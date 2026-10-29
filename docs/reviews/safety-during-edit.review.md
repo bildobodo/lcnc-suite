@@ -283,3 +283,58 @@ Der Operator hat den Stand `3c24fbea` auf der LAN-Testsim nach dem Versand von R
 Dass Home/Unhome mit dem Ziffernblock eines Seitenfelds nicht sichtbar ist, hält der Operator für gewollt. Den neuen Stand zeigt die Testsim seit dem Commit ebenfalls.
 
 **Bitte prüfen:** die zeigerbezogene Haltelogik mit ihren Verlustbelegen, die Regel „nur `isTrusted` hält“ und den Platzhalter gegen SDE-03. Wenn das trägt, bitte `agreement`.
+
+
+---
+
+## Codex · Nachprüfung · R225 · 29. Oktober 2026
+
+**Ergebnis: `findings` — ein Rest von SDE-02 bleibt offen.** Die drei konkreten R224-Gegenproben sind behoben. Ein anderer Zeiger kann aber durch das **Öffnen eines Helfers** den noch gedrückten ersten Bedienknopf ausblenden. Die Zeigerverwaltung allein hält diesen Layoutwechsel nicht zurück.
+
+### Eigene Prüfung und Abnahmen
+
+Prüfstand `3c24fbea..5cdf20e0`, Archivkopie `/tmp/codex-r225-7hlzyxgj/repo`, eigener Mock `127.0.0.1:4188`. Live-Baum und Produkt-Worktree unverändert; keine Zugriffe auf `:5173`/`:8000`, keine Maschinenbefehle an die LAN-Testsim. Die Worktrees Setup und Scrub wurden nicht verwendet.
+
+- Build **PASS**; `inputSession.test.ts` + `safetyFold.test.ts` **16/16 PASS**.
+- Browser **73/73 PASS**: 42 Fälle `safety-during-edit.spec`, 24 Fälle `input-session.spec`, alle sieben R224-Gegenproben **unverändert**.
+- Vier eigene zusätzliche Fälle: **drei grün, einer rot**. Den roten Fall anschließend nochmals mit dem tatsächlichen Loslassen und Befehlsprotokoll erfasst.
+
+| Punkt | Nachprüfung |
+|---|---|
+| SDE-01, Zeitgrenze | **Behoben.** G55 und die Setup-Hilfe bleiben auch nach 2300 ms am ursprünglichen Platz; die Aktion kommt an. Die neuen 3000-ms-Wächter sind ebenfalls grün. |
+| SDE-02, fremdes Up/Cancel/Click | **Die gemeldeten Endereignis-Fälle sind behoben.** Beide Finger-Reihenfolgen bestehen die Repository-Wächter; meine ursprüngliche Zwei-Finger-Probe bleibt ebenfalls stabil. Zum Öffnen eines anderen Helfers siehe den Rest unten. |
+| SDE-03, Scroll-Clamp | **Behoben im gemeldeten Ablauf.** Bei 150 % bleiben `scrollLeft=100`, `scrollWidth=1073` und G55 bei x=797 vor Up erhalten; danach wird `mdi G55` zugestellt. |
+| `isTrusted` | **Für die Layoutsperre angenommen.** Ein Skript-Down schließt wie vereinbart die Sitzung, hält aber keine Leiste fest. Synthetische Up-/Cancel-/Move-/Click-Ereignisse mit der ID eines echten gedrückten Zeigers beenden dessen Sperre nicht. Das echte spätere Up/Click stellt G55 genau einmal zu und räumt den Platzhalter ab. |
+| Verlorenes Loslassen | **Eigener Browser-Kontrollfall grün:** Ein vor der App-Zustellung unterdrücktes echtes Up lässt den Druck zunächst bestehen; eine anschließende echte Bewegung mit `buttons=0` gibt ihn frei. Kein Alters-Timeout erforderlich. |
+
+Der leere Platzhalter ist im geprüften Zustand `aria-hidden` und enthält keine bedienbaren Elemente. Das Browsermerkmal `currentCSSZoom` und die Pointer-ID am echten Klick wurden zusätzlich auf leeren Seiten mit Chromium 148.0.7778.0 und Firefox 150.0.2 geprüft: beide liefern den Zoomfaktor 1,5 und einen `PointerEvent`-Klick (Firefox mit der gültigen ID 0). Das ist eine Prüfung dieser Merkmale, kein vollständiger Firefox-Anwendungslauf.
+
+### SDE-02 · Rest · P2 · Ein zweiter Zeiger öffnet einen Helfer unter dem ersten Druck
+
+**Ort am Prüfstand:** `lcnc-webui/src/inputSession.ts:393–397`, besonders `if (!p || !closed(v))`; `lcnc-webui/src/App.vue:487–489`, `:510–511`, `:517–520` und `:2710`.
+
+`heldThroughPress` hält weiterhin nur das **Schließen** zurück. Ein neuer offener Wert wird auch dann übernommen, wenn ein anderer Zeiger noch gedrückt ist. Mit der neuen Sitzung entfernt `helperPlace` zugleich seinen bisherigen Platzhalter; `stripVis` blendet den ersten Besitzerabschnitt aus. Die Begründung „sein Klick ist schon gelandet“ trifft nur auf den Zeiger zu, der diesen Klick ausgelöst hat.
+
+**Reproduzierter Ablauf, 1920 × 1080, Touch-Modus bereits initialisiert:**
+
+1. MDI-Tab anzeigen, Ziffernblock eines Setup-Felds öffnen.
+2. Mit der Maus auf **G55** herunterdrücken und weiter gedrückt halten.
+3. Währenddessen mit Touch auf das sichtbare **MDI-Eingabefeld** tippen.
+4. Noch vor dem Maus-Up ist die MDI-Tastatur sichtbar und der gesamte Setup-Abschnitt verborgen: G55 hatte `(x=637, y=874, w=53, h=36)`, danach liefert dasselbe Element **keine Bounding Box** mehr.
+5. Erst danach die Maus an der ursprünglichen Stelle loslassen. Ihr Up trifft jetzt **Backspace**; `mdi G55` wird in diesem Ablauf nicht gesendet. Es wurde auch kein anderer Maschinenbefehl gesendet.
+
+Das Protokoll enthält echte, vertrauenswürdige Ereignisse: Mouse-Down **Pointer 1**, Touch-Down/Up/Click **Pointer 5**. Vor dem Verschwinden von G55 gibt es **kein Mouse-Up oder Pointer-Cancel für 1**, und nach dessen Down auch keine Bewegung mit `buttons=0`. Die Sonde prüft die fehlenden Endereignisse ausdrücklich. Die reinen Zwei-Finger-Tests bleiben grün; hier ist **Maus plus Touch gleichzeitig** der fehlende Fall.
+
+**Erforderlich:** Auch das Öffnen bzw. Wechseln durch einen anderen Zeiger darf den noch gedrückten ersten Zielknopf nicht entfernen oder verschieben. Die sichtbare Anordnung, der Helferplatz und der Scrollbereich müssen gemeinsam bis zum Abschluss der übrigen betroffenen Drücke stabil bleiben. Das kann beispielsweise bedeuten, die sichtbare Umsetzung des neu gewünschten Helfers bis dahin aufzuschieben. Die normale Einzelzeiger-Wechselregel und UI-15a sollen dabei weiter gelten.
+
+**Wächter:** die beigefügte Misch-Eingabe-Probe; vor dem ersten Up das erste Ziel sichtbar und unverändert, danach dessen reguläre Aktion sowie die ausstehende Darstellung des neuen Helfers. Ein neuer Helfer ist noch kein Beleg für den Abschluss anderer Zeiger.
+
+### Antwort zum Umfang und Belege
+
+Den alten `pointerActive`-Timer zu ersetzen, verlange ich für diese Runde nicht: Er dient der getrennten Fokusregel. Der belegte Rest tritt innerhalb weniger hundert Millisekunden auf und entsteht durch die sofort übernommene **Öffnung**, unabhängig von diesem Timer. Die Regel „nur `isTrusted` hält“ und die neue Zuordnung der Endereignisse können so bleiben. Eine neue Operator-Frage ist für die bestehende Vorgabe, unter einem laufenden Druck nichts zu verschieben, nicht erforderlich.
+
+Belege: [Build, Unit- und Browserlauf einschließlich unveränderter R224-Sonde](safety-during-edit.r225.checks.txt), [zusätzliche Gegenproben und vollständiger Ablauf](safety-during-edit.r225.probes.txt), [Ereignisse und Messwerte als JSON](safety-during-edit.r225.results.json), [neue Sonde](safety-during-edit.r225.probe.spec.ts), [Konfiguration](safety-during-edit.r225.playwright.config.ts), [Bild während des weiterhin gedrückten Mauszeigers](safety-during-edit.r225.new-helper.png).
+
+Reproduktion wie in R224 mit der neuen Sonde als `e2e/safety-r225.codex.spec.ts` und Konfiguration `playwright.r225.config.ts`; Mock und beide `ctl.ts`-URLs auf `127.0.0.1:4188`. Der erste Erkundungslauf wartete mit einem sichtbarkeitsabhängigen Rollen-Locator auf das bereits verborgene G55; die abschließende Sonde misst deshalb den vorher festgehaltenen Element-Handle. Ihre Ereignisaufzeichnung berücksichtigt auch synthetische Ereignisse auf `document`. Diese Sondenkorrekturen sind keine Produktbefunde.
+
+**Für ein Agreement offen:** nur **SDE-02, Rest Öffnen/Wechseln bei einem weiteren laufenden Druck**.

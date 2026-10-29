@@ -1,0 +1,102 @@
+
+=== browser-extra-final.log ===
+
+Running 4 tests using 1 worker
+
+(node:3571315) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3571315) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+R225 synthetic-down {"jog":true,"events":[{"type":"pointerdown","ms":1836,"pointerId":741,"pointerType":"mouse","isTrusted":false,"buttons":1,"isPrimary":true,"target":"SafetyArmDisarmE-StopResetPower onPower "}]}
+  ✓  1 e2e/safety-r225.codex.spec.ts:78:1 › untrusted pointerdown closes the helper but holds no layout (2.2s)
+R225 synthetic-endings {"before":{"x":637,"y":866,"width":53,"height":28},"during":{"x":637,"y":866,"width":53,"height":28},"events":[{"type":"pointermove","ms":1806.3999999761581,"pointerId":1,"pointerType":"mouse","isTrusted":true,"buttons":0,"isPrimary":true,"target":"G55"},{"type":"pointerdown","ms":1833.7999999523163,"pointerId":1,"pointerType":"mouse","isTrusted":true,"buttons":1,"isPrimary":true,"target":"G55"},{"type":"pointerup","ms":1867.7999999523163,"pointerId":1,"pointerType":"mouse","isTrusted":false,"buttons":0,"isPrimary":false,"target":"#document"},{"type":"pointercancel","ms":1867.8999999761581,"pointerId":1,"pointerType":"mouse","isTrusted":false,"buttons":0,"isPrimary":false,"target":"#document"},{"type":"pointermove","ms":1867.8999999761581,"pointerId":1,"pointerType":"mouse","isTrusted":false,"buttons":0,"isPrimary":false,"target":"#document"},{"type":"click","ms":1867.8999999761581,"pointerId":1,"pointerType":"mouse","isTrusted":false,"buttons":0,"isPrimary":false,"target":"#document"},{"type":"pointerup","ms":2594.7000000476837,"pointerId":1,"pointerType":"mouse","isTrusted":true,"buttons":0,"isPrimary":true,"target":"G55"},{"type":"click","ms":2594.7999999523163,"pointerId":1,"pointerType":"mouse","isTrusted":true,"buttons":0,"isPrimary":false,"target":"G55"}]}
+  ✓  2 e2e/safety-r225.codex.spec.ts:89:1 › untrusted endings cannot release a real held pointer (3.0s)
+R225 lost-release recovered by buttons=0
+  ✓  3 e2e/safety-r225.codex.spec.ts:114:1 › a buttons=0 movement recovers an actually lost pointerup (2.7s)
+R225 new-helper-under-mouse {"before":{"x":637,"y":874,"width":53,"height":36},"during":null,"placeholder":0,"text":1,"commands":[],"events":[{"type":"pointermove","ms":2044.9000000953674,"pointerId":1,"pointerType":"mouse","isTrusted":true,"buttons":0,"isPrimary":true,"target":"G55"},{"type":"pointerdown","ms":2057.5,"pointerId":1,"pointerType":"mouse","isTrusted":true,"buttons":1,"isPrimary":true,"target":"G55"},{"type":"pointerdown","ms":2149.4000000953674,"pointerId":5,"pointerType":"touch","isTrusted":true,"buttons":1,"isPrimary":true,"target":"MDI command"},{"type":"pointerup","ms":2149.5,"pointerId":5,"pointerType":"touch","isTrusted":true,"buttons":0,"isPrimary":true,"target":"MDI command"},{"type":"click","ms":2154.100000023842,"pointerId":5,"pointerType":"touch","isTrusted":true,"buttons":0,"isPrimary":false,"target":"MDI command"}]}
+  ✘  4 e2e/safety-r225.codex.spec.ts:139:2 › different pointers opening a helper › a touch opens MDI while the mouse still holds G55 (2.8s)
+
+
+  1) e2e/safety-r225.codex.spec.ts:139:2 › different pointers opening a helper › a touch opens MDI while the mouse still holds G55 
+
+    Error: the first pointer still owns a visible unmoved target
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    Expected: [32m{"height": 36, "width": 53, "x": 637, "y": 874}[39m
+    Received: [31mnull[39m
+
+      157 |   await evidence(page,info,'new-helper-under-mouse',state);
+      158 |   await page.mouse.up();
+    > 159 |   expect(during,'the first pointer still owns a visible unmoved target').toEqual(before);
+          |                                                                          ^
+      160 |  });
+      161 | });
+      162 |
+        at /tmp/codex-r225-7hlzyxgj/repo/lcnc-webui/e2e/safety-r225.codex.spec.ts:159:74
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-r225.codex-differen-c0e95-e-the-mouse-still-holds-G55/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-r225.codex-differen-c0e95-e-the-mouse-still-holds-G55/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-r225.codex-differen-c0e95-e-the-mouse-still-holds-G55/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-r225.codex-differen-c0e95-e-the-mouse-still-holds-G55/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/safety-r225.codex.spec.ts:139:2 › different pointers opening a helper › a touch opens MDI while the mouse still holds G55 
+  3 passed (11.3s)
+
+=== browser-open-final.log ===
+
+Running 1 test using 1 worker
+
+(node:3573633) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3573633) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+R225 new-helper-under-mouse {"before":{"x":637,"y":874,"width":53,"height":36},"during":null,"placeholder":0,"text":1,"commands":[],"events":[{"type":"pointermove","ms":1731.1999999284744,"pointerId":1,"pointerType":"mouse","isTrusted":true,"buttons":0,"isPrimary":true,"target":"G55"},{"type":"pointerdown","ms":1743.3999999761581,"pointerId":1,"pointerType":"mouse","isTrusted":true,"buttons":1,"isPrimary":true,"target":"G55"},{"type":"pointerdown","ms":1885.2999999523163,"pointerId":5,"pointerType":"touch","isTrusted":true,"buttons":1,"isPrimary":true,"target":"MDI command"},{"type":"pointerup","ms":1885.5999999046326,"pointerId":5,"pointerType":"touch","isTrusted":true,"buttons":0,"isPrimary":true,"target":"MDI command"},{"type":"click","ms":1899.7999999523163,"pointerId":5,"pointerType":"touch","isTrusted":true,"buttons":0,"isPrimary":false,"target":"MDI command"}]}
+R225 new-helper-after-release {"commands":[],"events":[{"type":"pointermove","ms":1731.1999999284744,"pointerId":1,"pointerType":"mouse","isTrusted":true,"buttons":0,"isPrimary":true,"target":"G55"},{"type":"pointerdown","ms":1743.3999999761581,"pointerId":1,"pointerType":"mouse","isTrusted":true,"buttons":1,"isPrimary":true,"target":"G55"},{"type":"pointerdown","ms":1885.2999999523163,"pointerId":5,"pointerType":"touch","isTrusted":true,"buttons":1,"isPrimary":true,"target":"MDI command"},{"type":"pointerup","ms":1885.5999999046326,"pointerId":5,"pointerType":"touch","isTrusted":true,"buttons":0,"isPrimary":true,"target":"MDI command"},{"type":"click","ms":1899.7999999523163,"pointerId":5,"pointerType":"touch","isTrusted":true,"buttons":0,"isPrimary":false,"target":"MDI command"},{"type":"pointerup","ms":2193.1999999284744,"pointerId":1,"pointerType":"mouse","isTrusted":true,"buttons":0,"isPrimary":true,"target":"Backspace"}]}
+  ✘  1 e2e/safety-r225.codex.spec.ts:139:2 › different pointers opening a helper › a touch opens MDI while the mouse still holds G55 (2.7s)
+
+
+  1) e2e/safety-r225.codex.spec.ts:139:2 › different pointers opening a helper › a touch opens MDI while the mouse still holds G55 
+
+    Error: the first pointer still owns a visible unmoved target
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    Expected: [32m{"height": 36, "width": 53, "x": 637, "y": 874}[39m
+    Received: [31mnull[39m
+
+      159 |   await page.waitForTimeout(150);
+      160 |   console.log('R225 new-helper-after-release '+JSON.stringify({commands:await sent(),events:await page.evaluate(()=>(window as any).r224events)}));
+    > 161 |   expect(during,'the first pointer still owns a visible unmoved target').toEqual(before);
+          |                                                                          ^
+      162 |  });
+      163 | });
+      164 |
+        at /tmp/codex-r225-7hlzyxgj/repo/lcnc-webui/e2e/safety-r225.codex.spec.ts:161:74
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-r225.codex-differen-c0e95-e-the-mouse-still-holds-G55/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-r225.codex-differen-c0e95-e-the-mouse-still-holds-G55/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-r225.codex-differen-c0e95-e-the-mouse-still-holds-G55/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-r225.codex-differen-c0e95-e-the-mouse-still-holds-G55/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/safety-r225.codex.spec.ts:139:2 › different pointers opening a helper › a touch opens MDI while the mouse still holds G55 

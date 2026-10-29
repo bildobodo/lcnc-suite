@@ -1,0 +1,147 @@
+
+=== build.log ===
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2123 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-ByvNut9C.css                 7.81 kB │ gzip:   1.94 kB
+dist/static/index-CKCZzYoQ.css                      95.30 kB │ gzip:  17.38 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-Ctv9c2Aw.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-CWiVHleD.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-DJVN2Agf.js                276.02 kB │ gzip: 104.05 kB
+dist/static/index-Co8MFP-_.js                      666.10 kB │ gzip: 214.16 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.26s
+
+=== unit.log ===
+
+ RUN  v4.1.8 /tmp/codex-r225-7hlzyxgj/repo/lcnc-webui
+
+
+ Test Files  2 passed (2)
+      Tests  16 passed (16)
+   Start at  19:48:43
+   Duration  164ms (transform 85ms, setup 0ms, import 139ms, tests 8ms, environment 0ms)
+
+
+=== browser-regression.log ===
+
+Running 73 tests using 1 worker
+
+(node:3562882) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3562882) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/input-session.spec.ts:86:1 › MDI → number → MDI: exactly one helper at a time, the title names the owner (2.6s)
+  ✓   2 e2e/input-session.spec.ts:123:1 › number A → number B: A is not confirmed, its draft returns marked as draft (1.9s)
+  ✓   3 e2e/input-session.spec.ts:153:1 › a click, double click or drag on the open number field selects nothing and the keyboard keeps typing (2.6s)
+  ✓   4 e2e/input-session.spec.ts:194:1 › number → text → number keeps the draft; a tap outside hides the keypad, OK and Cancel return focus (3.1s)
+  ✓   5 e2e/input-session.spec.ts:236:1 › number keypad: X hides and keeps the draft (tap and Tab + Enter), Discard throws it away; both return focus, nothing is sent (2.4s)
+  ✓   6 e2e/input-session.spec.ts:270:1 › drafts: Clear is a draft of 0; a sibling's OK (busy latch) is not an owner end, the field's gate ending is (3.5s)
+  ✓   7 e2e/input-session.spec.ts:342:1 › tap outside, Tab outside (from the field and from a key) and Close hide the keyboard without confirming; a re-tap re-opens (3.2s)
+  ✓   8 e2e/input-session.spec.ts:393:1 › the keyboards: X and Discard are red, the confirm key reads Apply in both (operator 2026-10-01) (2.5s)
+  ✓   9 e2e/input-session.spec.ts:420:1 › the number keypad shows the result of a calculation in a second line under the entry (operator 2026-10-01) (2.6s)
+  ✓  10 e2e/input-session.spec.ts:443:1 › Send from the keyboard is the MDI path; Enter in a search field never reaches the machine (3.0s)
+  ✓  11 e2e/input-session.spec.ts:470:1 › physical typing into the MDI line is kept with the helper open and closed; Enter sends the whole line once, the history recalls it, on-screen keys append (2.7s)
+  ✓  12 e2e/input-session.spec.ts:502:1 › field contract: every text field is a technical field — no autofill, autocorrect, autocapitalize or spellcheck, a stable name and an accessible name (3.0s)
+  ✓  13 e2e/input-session.spec.ts:541:1 › editor → number → editor keeps the buffer; a hidden tab locks, not ends, the session (5.2s)
+  ✓  14 e2e/input-session.spec.ts:591:1 › offset cell: leaving the tab closes the keypad with its draft; only the visible cell's OK writes, once (2.9s)
+  ✓  15 e2e/input-session.spec.ts:626:1 › offset drafts end with the probe gate, not with a sibling cell's OK (4.0s)
+  ✓  16 e2e/input-session.spec.ts:685:3 › touch › touch-only entry of code, expressions, braces and an umlaut description; correction mid-text (15.5s)
+  ✓  17 e2e/input-session.spec.ts:736:1 › a page switch keeps the field's selection (2.9s)
+  ✓  18 e2e/input-session.spec.ts:748:3 › landscape light: every page fits the strip budget and never changes the frame (3.1s)
+  ✓  19 e2e/input-session.spec.ts:748:3 › landscape dark: every page fits the strip budget and never changes the frame (3.4s)
+  ✓  20 e2e/input-session.spec.ts:766:3 › portrait, touch › every page: 44 px keys, no overflow, reachable without scrolling at 100 % and 150 % (4.3s)
+EDITOR_LINES zoom 1: 21.43
+EDITOR_LINES zoom 1.5: 9.79
+  ✓  21 e2e/input-session.spec.ts:825:3 › portrait, touch › editor and search as owners: the readout stays visible and hit-testable at 100 % and 150 %; portrait edit mode folds the idle program controls (5.3s)
+  ✓  22 e2e/input-session.spec.ts:930:3 › D7, touch › the X is each helper's top-right key, 44 × 44 — number keypad and text keyboard, landscape and portrait (5.7s)
+  ✓  23 e2e/input-session.spec.ts:960:3 › D7, touch › the Code page: the digit block 7 8 9 / 4 5 6 / 1 2 3 / 0 . - in both orientations, the letters in one reading order; every page reads row by row (4.6s)
+  ✓  24 e2e/input-session.spec.ts:992:3 › D7, touch › the number keypad at 100 % and 150 % portrait: 44 px keys, within the viewport, its owner field in view and not covered (4.8s)
+  ✓  25 e2e/safety-during-edit.spec.ts:98:3 › landscape 1280 × 800: Safety stays at the left in every helper state, each helper starts right of it or of its owner section (2.5s)
+  ✓  26 e2e/safety-during-edit.spec.ts:98:3 › landscape 1920 × 1080: Safety stays at the left in every helper state, each helper starts right of it or of its owner section (2.5s)
+  ✓  27 e2e/safety-during-edit.spec.ts:98:3 › landscape 2560 × 1440: Safety stays at the left in every helper state, each helper starts right of it or of its owner section (2.7s)
+  ✓  28 e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: arm sends arm {armed: false} (1.9s)
+  ✓  29 e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: estop sends estop (1.8s)
+  ✓  30 e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: machineOn sends machine_on/off (1.8s)
+  ✓  31 e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): arm sends arm {armed: false} (1.7s)
+  ✓  32 e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): estop sends estop (1.8s)
+  ✓  33 e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): machineOn sends machine_on/off (1.8s)
+  ✓  34 e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): arm sends arm {armed: false} (1.9s)
+  ✓  35 e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): estop sends estop (1.8s)
+  ✓  36 e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): machineOn sends machine_on/off (1.8s)
+  ✓  37 e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: arm sends arm {armed: false} (2.5s)
+  ✓  38 e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: estop sends estop (2.1s)
+  ✓  39 e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: machineOn sends machine_on/off (2.1s)
+  ✓  40 e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): arm sends arm {armed: false} (2.0s)
+  ✓  41 e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): estop sends estop (2.0s)
+  ✓  42 e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): machineOn sends machine_on/off (2.3s)
+  ✓  43 e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): arm sends arm {armed: false} (2.2s)
+  ✓  44 e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): estop sends estop (2.1s)
+  ✓  45 e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): machineOn sends machine_on/off (2.0s)
+  ✓  46 e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, portrait) › keyboard: arm sends arm {armed: false} (1.8s)
+  ✓  47 e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, portrait) › keyboard: estop sends estop (2.0s)
+  ✓  48 e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, portrait) › keyboard: machineOn sends machine_on/off (1.9s)
+  ✓  49 e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (strip field): arm sends arm {armed: false} (2.2s)
+  ✓  50 e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (strip field): estop sends estop (2.2s)
+  ✓  51 e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (strip field): machineOn sends machine_on/off (2.1s)
+  ✓  52 e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (side-pane field): arm sends arm {armed: false} (2.1s)
+  ✓  53 e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (side-pane field): estop sends estop (2.0s)
+  ✓  54 e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (side-pane field): machineOn sends machine_on/off (2.1s)
+  ✓  55 e2e/safety-during-edit.spec.ts:155:3 › landscape: a hold on a control of the owner section lands — the section does not move under the press (2.4s)
+  ✓  56 e2e/safety-during-edit.spec.ts:155:3 › portrait: a hold on a control of the owner section lands — the section does not move under the press (2.5s)
+  ✓  57 e2e/safety-during-edit.spec.ts:195:3 › a long press lands like a short one — the press is not ended by its age (mouse, landscape) › G55 held 3000 ms with the setup keypad open: unmoved before the release, mdi G55 sent once (4.9s)
+  ✓  58 e2e/safety-during-edit.spec.ts:209:3 › a long press lands like a short one — the press is not ended by its age (mouse, landscape) › Setup's help held 3000 ms with the setup keypad open: unmoved, the help opens (4.8s)
+  ✓  59 e2e/safety-during-edit.spec.ts:221:3 › a long press lands like a short one — the press is not ended by its age (mouse, landscape) › a release no click follows (the right button) ends the press after its 500 ms — the strip follows while nothing is pressed (2.6s)
+  ✓  60 e2e/safety-during-edit.spec.ts:248:3 › each pointer ends its own press (touch, landscape, two fingers) › finger 2 taps elsewhere and lifts while finger 1 holds Home X: Home X stays, the strip follows only after finger 1 (3.7s)
+  ✓  61 e2e/safety-during-edit.spec.ts:273:3 › each pointer ends its own press (touch, landscape, two fingers) › finger 1 lifts while finger 2 holds Home Y: Home Y stays put and fires, the strip follows after finger 2 (4.1s)
+  ✓  62 e2e/safety-during-edit.spec.ts:295:3 › each pointer ends its own press (touch, landscape, two fingers) › a cancelled touch ends its press at once (control: the browser took it) (2.1s)
+  ✓  63 e2e/safety-during-edit.spec.ts:312:1 › a sideways-scrolled strip keeps its scroll position under a press that closes the keypad (1280 × 800 at 150 %) (1.9s)
+  ✓  64 e2e/safety-during-edit.spec.ts:346:5 › portrait: the machine info stays while the helper fits with it › keyboard: kept at 100 % (900 × 1200), folded at 150 % — the helper whole in the viewport, the safety buttons unmoved (2.0s)
+  ✓  65 e2e/safety-during-edit.spec.ts:346:5 › portrait: the machine info stays while the helper fits with it › keypad (strip field): kept at 100 % (900 × 1200), folded at 150 % — the helper whole in the viewport, the safety buttons unmoved (1.9s)
+  ✓  66 e2e/safety-during-edit.spec.ts:346:5 › portrait: the machine info stays while the helper fits with it › keypad (side-pane field): kept at 100 % (900 × 1200), kept at 150 % — the helper whole in the viewport, the safety buttons unmoved (2.1s)
+R224 help-100 {"before":{"x":734,"y":789,"width":13,"height":13},"during":{"x":734,"y":789,"width":13,"height":13},"expanded":"true","commands":[],"events":[{"type":"pointerdown","ms":1527.5,"pointerId":1,"buttons":1,"isPrimary":true,"target":"Help: Go to positions"},{"type":"pointerup","ms":1679.7999999523163,"pointerId":1,"buttons":0,"isPrimary":true,"target":"Help: Go to positions"},{"type":"click","ms":1679.8999999761581,"pointerId":1,"buttons":0,"isPrimary":false,"target":"Help: Go to positions"}]}
+  ✓  67 e2e/safety-r224.codex.spec.ts:76:2 › plain Setup help: 100 ms press lands before the layout follows (2.1s)
+R224 help-2300 {"before":{"x":734,"y":789,"width":13,"height":13},"during":{"x":734,"y":789,"width":13,"height":13},"expanded":"true","commands":[],"events":[{"type":"pointerdown","ms":1551.8000000715256,"pointerId":1,"buttons":1,"isPrimary":true,"target":"Help: Go to positions"},{"type":"pointerup","ms":3904.600000023842,"pointerId":1,"buttons":0,"isPrimary":true,"target":"Help: Go to positions"},{"type":"click","ms":3904.600000023842,"pointerId":1,"buttons":0,"isPrimary":false,"target":"Help: Go to positions"}]}
+  ✓  68 e2e/safety-r224.codex.spec.ts:76:2 › plain Setup help: 2300 ms press lands before the layout follows (4.3s)
+R224 two-fingers {"before":{"x":513.5,"y":813.5,"width":111.5,"height":36},"during":{"x":513.5,"y":813.5,"width":111.5,"height":36},"commands":[{"cmd":"home","joint":0,"req_id":"8h5kc9-5"}],"events":[{"type":"pointerdown","ms":1725.7000000476837,"pointerId":4,"buttons":1,"isPrimary":true,"target":""},{"type":"pointerdown","ms":1840.2999999523163,"pointerId":5,"buttons":1,"isPrimary":false,"target":"No program loadedDrag & drop a file here"},{"type":"pointerup","ms":1923.6000000238419,"pointerId":5,"buttons":0,"isPrimary":false,"target":"No program loadedDrag & drop a file here"}]}
+  ✓  69 e2e/safety-r224.codex.spec.ts:97:2 › multiple fingers › second finger released: first Home X still down after another 650 ms (2.8s)
+R224 g55-100 {"before":{"x":637,"y":866,"width":53,"height":28},"during":{"x":637,"y":866,"width":53,"height":28},"commands":[{"cmd":"mdi","text":"G55","req_id":"h7qfnu-5"}],"events":[{"type":"pointerdown","ms":1519.1999999284744,"pointerId":1,"buttons":1,"isPrimary":true,"target":"G55"},{"type":"pointerup","ms":1660.2999999523163,"pointerId":1,"buttons":0,"isPrimary":true,"target":"G55"},{"type":"click","ms":1660.3999999761581,"pointerId":1,"buttons":0,"isPrimary":false,"target":"G55"}]}
+  ✓  70 e2e/safety-r224.codex.spec.ts:127:2 › WCS G55: 100 ms press sends the chosen offset (2.2s)
+R224 g55-2300 {"before":{"x":637,"y":866,"width":53,"height":28},"during":{"x":637,"y":866,"width":53,"height":28},"commands":[{"cmd":"mdi","text":"G55","req_id":"5d5egb-5"}],"events":[{"type":"pointerdown","ms":1537.6999999284744,"pointerId":1,"buttons":1,"isPrimary":true,"target":"G55"},{"type":"pointerup","ms":3867.2999999523163,"pointerId":1,"buttons":0,"isPrimary":true,"target":"G55"},{"type":"click","ms":3867.399999976158,"pointerId":1,"buttons":0,"isPrimary":false,"target":"G55"}]}
+  ✓  71 e2e/safety-r224.codex.spec.ts:127:2 › WCS G55: 2300 ms press sends the chosen offset (4.3s)
+R224 fold {"before":{"info":true,"infoHeight":254.875,"bottom":1342.375,"height":2000,"codes":"E-StopACTIVECLEARPowerONOFFAxesHOMEDUNHOMEDOverridesACTIVENONEModeMANUALAUTOMDI—InterpIDLERUNNINGPAUSEDWAITING—MotionWORLDJOINTElapsed--:--G33.1 G19.1 G90 G91.1 G93 G21 G42.1 G43.1 G59.3 G61.1 G96 G98M3 M8 M48"},"afterUpdate":{"info":false,"bottom":1075.5,"height":1337},"afterReopen":{"info":false,"bottom":1075.5,"height":1337}}
+  ✓  72 e2e/safety-r224.codex.spec.ts:148:2 › portrait fold after a status change › a folded detail is measured again when its content gets shorter (3.0s)
+R224 scroll-clamp {"before":{"x":797,"y":484.5,"width":78,"height":42},"during":{"x":797,"y":484.5,"width":78,"height":42},"scrollBefore":{"left":100,"width":1073,"client":836},"scrollDuring":{"left":100,"width":1073,"client":836},"commands":[{"cmd":"mdi","text":"G55","req_id":"o2rogj-5"}],"events":[{"type":"pointerdown","ms":1718.3999999761581,"pointerId":1,"buttons":1,"isPrimary":true,"target":"G55"},{"type":"pointerup","ms":1879.1999999284744,"pointerId":1,"buttons":0,"isPrimary":true,"target":"G55"},{"type":"click","ms":1879.1999999284744,"pointerId":1,"buttons":0,"isPrimary":false,"target":"G55"}]}
+  ✓  73 e2e/safety-r224.codex.spec.ts:181:1 › a horizontally scrolled owner keeps its place when the keypad closes (2.3s)
+
+  73 passed (3.6m)

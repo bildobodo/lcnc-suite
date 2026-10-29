@@ -1,0 +1,283 @@
+{
+  "review": "R225",
+  "head": "5cdf20e0292061a979db71618158623803745dd4",
+  "base": "3c24fbea",
+  "archive": "/tmp/codex-r225-7hlzyxgj/repo",
+  "mock": "http://127.0.0.1:4188/",
+  "r224_probe_unchanged_sha256": "fb0e6243e9c00dafed5c62e2562df3f76e3b0c8b76f4633a4d58b2d6069a7eb3",
+  "verification": {
+    "build": "PASS",
+    "unit": "16/16",
+    "browser": "73/73 (42 safety + 24 session + 7 unchanged R224 probes)",
+    "extra": "3 PASS, 1 FAIL; failing case repeated with post-release evidence"
+  },
+  "results": {
+    "synthetic-down": {
+      "jog": true,
+      "events": [
+        {
+          "type": "pointerdown",
+          "ms": 1836,
+          "pointerId": 741,
+          "pointerType": "mouse",
+          "isTrusted": false,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "SafetyArmDisarmE-StopResetPower onPower "
+        }
+      ]
+    },
+    "synthetic-endings": {
+      "before": {
+        "x": 637,
+        "y": 866,
+        "width": 53,
+        "height": 28
+      },
+      "during": {
+        "x": 637,
+        "y": 866,
+        "width": 53,
+        "height": 28
+      },
+      "events": [
+        {
+          "type": "pointermove",
+          "ms": 1806.3999999761581,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "G55"
+        },
+        {
+          "type": "pointerdown",
+          "ms": 1833.7999999523163,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": true,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "G55"
+        },
+        {
+          "type": "pointerup",
+          "ms": 1867.7999999523163,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": false,
+          "buttons": 0,
+          "isPrimary": false,
+          "target": "#document"
+        },
+        {
+          "type": "pointercancel",
+          "ms": 1867.8999999761581,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": false,
+          "buttons": 0,
+          "isPrimary": false,
+          "target": "#document"
+        },
+        {
+          "type": "pointermove",
+          "ms": 1867.8999999761581,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": false,
+          "buttons": 0,
+          "isPrimary": false,
+          "target": "#document"
+        },
+        {
+          "type": "click",
+          "ms": 1867.8999999761581,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": false,
+          "buttons": 0,
+          "isPrimary": false,
+          "target": "#document"
+        },
+        {
+          "type": "pointerup",
+          "ms": 2594.7000000476837,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "G55"
+        },
+        {
+          "type": "click",
+          "ms": 2594.7999999523163,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": false,
+          "target": "G55"
+        }
+      ]
+    },
+    "new-helper-under-mouse": {
+      "before": {
+        "x": 637,
+        "y": 874,
+        "width": 53,
+        "height": 36
+      },
+      "during": null,
+      "placeholder": 0,
+      "text": 1,
+      "commands": [],
+      "events": [
+        {
+          "type": "pointermove",
+          "ms": 1731.1999999284744,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "G55"
+        },
+        {
+          "type": "pointerdown",
+          "ms": 1743.3999999761581,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": true,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "G55"
+        },
+        {
+          "type": "pointerdown",
+          "ms": 1885.2999999523163,
+          "pointerId": 5,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "MDI command"
+        },
+        {
+          "type": "pointerup",
+          "ms": 1885.5999999046326,
+          "pointerId": 5,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "MDI command"
+        },
+        {
+          "type": "click",
+          "ms": 1899.7999999523163,
+          "pointerId": 5,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": false,
+          "target": "MDI command"
+        }
+      ]
+    },
+    "new-helper-after-release": {
+      "commands": [],
+      "events": [
+        {
+          "type": "pointermove",
+          "ms": 1731.1999999284744,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "G55"
+        },
+        {
+          "type": "pointerdown",
+          "ms": 1743.3999999761581,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": true,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "G55"
+        },
+        {
+          "type": "pointerdown",
+          "ms": 1885.2999999523163,
+          "pointerId": 5,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "MDI command"
+        },
+        {
+          "type": "pointerup",
+          "ms": 1885.5999999046326,
+          "pointerId": 5,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "MDI command"
+        },
+        {
+          "type": "click",
+          "ms": 1899.7999999523163,
+          "pointerId": 5,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": false,
+          "target": "MDI command"
+        },
+        {
+          "type": "pointerup",
+          "ms": 2193.1999999284744,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "Backspace"
+        }
+      ]
+    }
+  },
+  "browser_feature_check": {
+    "method": "isolated empty pages, no application requests",
+    "chromium": {
+      "version": "148.0.7778.0",
+      "currentCSSZoom": 1.5,
+      "rectWidth": 150,
+      "offsetWidth": 100,
+      "clickConstructor": "PointerEvent",
+      "clickPointerId": 1,
+      "isTrusted": true
+    },
+    "firefox": {
+      "version": "150.0.2",
+      "currentCSSZoom": 1.5,
+      "rectWidth": 150,
+      "offsetWidth": 100,
+      "clickConstructor": "PointerEvent",
+      "clickPointerId": 0,
+      "isTrusted": true
+    }
+  },
+  "harness_notes": [
+    "Initial mixed-input probe waited for the now-hidden G55 role locator; corrected to measure the original element handle, which returns null when hidden.",
+    "The first synthetic-event log assumed an Element target; corrected to also record Document-targeted events. Only corrected final logs substantiate findings.",
+    "The lost-release control deliberately suppresses one native pointerup before app delivery; a real buttons=0 movement restores the strip.",
+    "No accesses to live ports 5173/8000 and no product edits."
+  ]
+}
