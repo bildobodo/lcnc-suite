@@ -1,0 +1,323 @@
+{
+  "review": "R224",
+  "source": "3c24fbeaa55a59b48ceec597dfda63791100592f",
+  "base": "729a7f4a",
+  "source_worktree": "/home/cnc/lcnc-suite-gates",
+  "archive": "/tmp/codex-r224-dhk7p6gq/repo",
+  "mock": "http://127.0.0.1:4188/",
+  "node": "v22.23.2",
+  "probe_sha256": "fb0e6243e9c00dafed5c62e2562df3f76e3b0c8b76f4633a4d58b2d6069a7eb3",
+  "results": {
+    "help-100": {
+      "before": {
+        "x": 734,
+        "y": 789,
+        "width": 13,
+        "height": 13
+      },
+      "during": {
+        "x": 734,
+        "y": 789,
+        "width": 13,
+        "height": 13
+      },
+      "expanded": "true",
+      "commands": [],
+      "events": [
+        {
+          "type": "pointerdown",
+          "ms": 1553.1999999284744,
+          "pointerId": 1,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "Help: Go to positions"
+        },
+        {
+          "type": "pointerup",
+          "ms": 1713.1000000238419,
+          "pointerId": 1,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "Help: Go to positions"
+        },
+        {
+          "type": "click",
+          "ms": 1713.1999999284744,
+          "pointerId": 1,
+          "buttons": 0,
+          "isPrimary": false,
+          "target": "Help: Go to positions"
+        }
+      ]
+    },
+    "help-2300": {
+      "before": {
+        "x": 734,
+        "y": 789,
+        "width": 13,
+        "height": 13
+      },
+      "during": {
+        "x": 1264.5,
+        "y": 789,
+        "width": 13,
+        "height": 13
+      },
+      "expanded": "false",
+      "commands": [],
+      "events": [
+        {
+          "type": "pointerdown",
+          "ms": 1496.3999999761581,
+          "pointerId": 1,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "Help: Go to positions"
+        },
+        {
+          "type": "pointerup",
+          "ms": 3864.600000023842,
+          "pointerId": 1,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "Jog"
+        },
+        {
+          "type": "click",
+          "ms": 3864.7999999523163,
+          "pointerId": 1,
+          "buttons": 0,
+          "isPrimary": false,
+          "target": "SafetyArmDisarmE-StopResetPower onPower "
+        }
+      ]
+    },
+    "two-fingers": {
+      "before": {
+        "x": 513.5,
+        "y": 813.5,
+        "width": 111.5,
+        "height": 36
+      },
+      "during": {
+        "x": 1044,
+        "y": 813.5,
+        "width": 111.5,
+        "height": 36
+      },
+      "commands": [
+        {
+          "cmd": "home",
+          "joint": 0,
+          "req_id": "89sdy6-5"
+        }
+      ],
+      "events": [
+        {
+          "type": "pointerdown",
+          "ms": 1669.1000000238419,
+          "pointerId": 4,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": ""
+        },
+        {
+          "type": "pointerdown",
+          "ms": 1800.1999999284744,
+          "pointerId": 5,
+          "buttons": 1,
+          "isPrimary": false,
+          "target": "No program loadedDrag & drop a file here"
+        },
+        {
+          "type": "pointerup",
+          "ms": 1900.3999999761581,
+          "pointerId": 5,
+          "buttons": 0,
+          "isPrimary": false,
+          "target": "No program loadedDrag & drop a file here"
+        }
+      ]
+    },
+    "g55-100": {
+      "before": {
+        "x": 637,
+        "y": 866,
+        "width": 53,
+        "height": 28
+      },
+      "during": {
+        "x": 637,
+        "y": 866,
+        "width": 53,
+        "height": 28
+      },
+      "commands": [
+        {
+          "cmd": "mdi",
+          "text": "G55",
+          "req_id": "10cd9h-5"
+        }
+      ],
+      "events": [
+        {
+          "type": "pointerdown",
+          "ms": 1553.2000000476837,
+          "pointerId": 1,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "G55"
+        },
+        {
+          "type": "pointerup",
+          "ms": 1704.7000000476837,
+          "pointerId": 1,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "G55"
+        },
+        {
+          "type": "click",
+          "ms": 1704.7999999523163,
+          "pointerId": 1,
+          "buttons": 0,
+          "isPrimary": false,
+          "target": "G55"
+        }
+      ]
+    },
+    "g55-2300": {
+      "before": {
+        "x": 637,
+        "y": 866,
+        "width": 53,
+        "height": 28
+      },
+      "during": {
+        "x": 1167.5,
+        "y": 866,
+        "width": 53,
+        "height": 28
+      },
+      "commands": [
+        {
+          "cmd": "get_tool_table",
+          "req_id": "9cxuzo-4"
+        }
+      ],
+      "events": [
+        {
+          "type": "pointerdown",
+          "ms": 1440.5,
+          "pointerId": 1,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "G55"
+        },
+        {
+          "type": "pointerup",
+          "ms": 3789.2999999523163,
+          "pointerId": 1,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "Y+X-StopX+Y-Z+Z-Speed600mm/min600Step (m"
+        },
+        {
+          "type": "click",
+          "ms": 3789.2999999523163,
+          "pointerId": 1,
+          "buttons": 0,
+          "isPrimary": false,
+          "target": "SafetyArmDisarmE-StopResetPower onPower "
+        }
+      ]
+    },
+    "fold": {
+      "before": {
+        "info": true,
+        "infoHeight": 254.875,
+        "bottom": 1342.375,
+        "height": 2000,
+        "codes": "E-StopACTIVECLEARPowerONOFFAxesHOMEDUNHOMEDOverridesACTIVENONEModeMANUALAUTOMDI—InterpIDLERUNNINGPAUSEDWAITING—MotionWORLDJOINTElapsed--:--G33.1 G19.1 G90 G91.1 G93 G21 G42.1 G43.1 G59.3 G61.1 G96 G98M3 M8 M48"
+      },
+      "afterUpdate": {
+        "info": false,
+        "bottom": 1075.5,
+        "height": 1337
+      },
+      "afterReopen": {
+        "info": false,
+        "bottom": 1075.5,
+        "height": 1337
+      }
+    },
+    "scroll-clamp": {
+      "before": {
+        "x": 797,
+        "y": 484.5,
+        "width": 78,
+        "height": 42
+      },
+      "during": {
+        "x": 947,
+        "y": 484.5,
+        "width": 78,
+        "height": 42
+      },
+      "scrollBefore": {
+        "left": 100,
+        "width": 1073,
+        "client": 836
+      },
+      "scrollDuring": {
+        "left": 0,
+        "width": 836,
+        "client": 836
+      },
+      "commands": [
+        {
+          "cmd": "get_tool_table",
+          "req_id": "jqdnbb-4"
+        }
+      ],
+      "events": [
+        {
+          "type": "pointerdown",
+          "ms": 1512.8000000715256,
+          "pointerId": 1,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "G55"
+        },
+        {
+          "type": "pointerup",
+          "ms": 1665.6000000238419,
+          "pointerId": 1,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "Home Y"
+        },
+        {
+          "type": "click",
+          "ms": 1665.7000000476837,
+          "pointerId": 1,
+          "buttons": 0,
+          "isPrimary": false,
+          "target": "XXYYZZZero AllHome AllUnhome AllGo to G3"
+        }
+      ]
+    }
+  },
+  "verification": {
+    "build": "PASS",
+    "unit": "10/10",
+    "repository_browser": "59/59",
+    "own_probes": "3 PASS, 4 FAIL (three findings); three separate final runs"
+  },
+  "harness_notes": [
+    "Initial multi-touch exploration released id=1 instead of id=2; discarded. Final probe asserts the two distinct pointer IDs, the second pointerup only, and no pointercancel before the comparison.",
+    "Initial portrait exploration tried to use the tab selector after zoom; it timed out before testing the fold. Final entry opens MDI before zoom.",
+    "Fold exploration did not expose a discrepancy: the same final status remained folded before and after reopening. It does not establish a new unfolding boundary.",
+    "Only final results used for findings. No access to operator ports 5173/8000; no machine commands."
+  ]
+}

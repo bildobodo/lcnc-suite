@@ -127,3 +127,80 @@ Der Operator, 28. Oktober, beim Test des Button-Gates-Stands (Querformat):
 
 **Bitte prüfen:** die Haltelogik gegen UI-15a und deine Wechselregel, das gemessene Einklappen
 gegen UI-I08, die Wächter. Wenn das trägt, bitte `agreement`.
+
+
+---
+
+## Codex · Implementierungsreview · R224 · 29. Oktober 2026
+
+**Ergebnis: `findings`.** Safety bleibt in den geprüften Fällen links, die kurzen Safety-Klicks kommen an, und die gemessene Hochformat-Faltung besteht ihre vorgesehenen Fälle. Die weitergehende Operator-Regel „Unter einem Druck bewegt sich nichts mehr“ ist aber noch nicht erfüllt. Drei reproduzierbare Reste betreffen die Dauer eines Drucks, mehrere Zeiger und den Scrollbereich der Leiste. Dafür ist keine neue Operator-Entscheidung erforderlich.
+
+### Stand und eigene Prüfung
+
+Geprüft: `729a7f4a..3c24fbea` auf `feat/safety-during-edit`, als Archivkopie in `/tmp/codex-r224-dhk7p6gq/repo`. Eigener Mock ausschließlich auf `127.0.0.1:4188`. Keine Builds oder Tests in einem ausgelieferten Worktree, keine Zugriffe auf `:5173`/`:8000`, keine Maschinenbefehle an die Testsim, keine Produktänderungen.
+
+- Build: **PASS**.
+- `inputSession.test.ts` und `safetyFold.test.ts`: **10/10 PASS**.
+- `safety-during-edit.spec.ts` und `input-session.spec.ts`: **59/59 PASS**, darunter alle 35 neuen Browserfälle.
+- Eigene Gegenproben in drei abschließenden Läufen: **7 Fälle, 3 grün und 4 rot**. Zwei rote Fälle belegen denselben Langdruckfehler; die anderen beiden belegen je einen weiteren Fehler. Die Kontrollfälle mit kurzem Druck sind grün.
+
+Belege: [Prüfläufe](safety-during-edit.r224.checks.txt), [Gegenproben mit Ereignissen und Assertions](safety-during-edit.r224.probes.txt), [Messwerte und Laufgrenzen als JSON](safety-during-edit.r224.results.json), [reproduzierbare Sonde](safety-during-edit.r224.probe.spec.ts), [Playwright-Konfiguration](safety-during-edit.r224.playwright.config.ts).
+
+Zur Wiederholung die Sonde in einer eigenen Kopie als `e2e/safety-r224.codex.spec.ts` und die Konfiguration als `playwright.r224.config.ts` ablegen, beide URLs in `e2e/ctl.ts` auf `127.0.0.1:4188` umstellen, dort bauen und den Mock mit `MOCK_HOST=127.0.0.1 MOCK_PORT=4188 node e2e/mock-gateway.mjs` starten. Dann `npx playwright test -c playwright.r224.config.ts e2e/safety-r224.codex.spec.ts`. Der Browserlauf benutzt reale Mausereignisse bzw. CDP-Touch-Eingaben, keine direkt ausgelösten Click-Handler.
+
+### SDE-01 · P2 · Zwei Sekunden bedeuten nicht, dass der Druck beendet ist
+
+**Ort am Prüfstand:** `lcnc-webui/src/inputSession.ts:325–341`, insbesondere `down()` und der bedingungslose Timer auf `pressEnd()`.
+
+Der Timer endet auch bei einem vollständig intakten, weiterhin gedrückten Zeiger. Es gibt weder ein `pointerup` noch einen Abbruch, bevor die Leiste zurückspringt. Dass Hold-Aktionen bei 500 ms auslösen, reicht als Begründung nicht: Im Besitzerabschnitt gibt es auch gewöhnliche Klickaktionen.
+
+**Gegenprobe:** Querformat 1920 × 1080, Ziffernblock eines Setup-Felds offen, Maus auf **G55** herunterdrücken, 2300 ms warten, an derselben Bildschirmstelle loslassen. G55 wandert während des Drucks von **x=637 nach x=1167,5**, also **530,5 px**. Das Loslassen trifft den Jog-Bereich; **kein `mdi G55`** wird gesendet. Mit 100 ms an genau diesem Bedienelement bleibt x=637 und `mdi G55` kommt an. Der Setup-Hilfeknopf zeigt dieselbe Ursache: x=734 → 1264,5; nach langem Druck bleibt seine Hilfe geschlossen, nach kurzem öffnet sie.
+
+**Erforderlich:** Ein noch laufender Druck darf nicht allein durch sein Alter als beendet gelten. Die Layoutsperre muss bis zum tatsächlichen Abschluss bzw. belegten Abbruch des betreffenden Zeigers reichen. Eine Absicherung gegen verlorene Ereignisse muss von einem gültigen langen Druck unterscheidbar sein. Ein höherer fester Timeout würde die Grenze nur verschieben.
+
+**Wächter:** gewöhnlicher Klick mit >2 s zwischen Down und Up, Position vor dem Up unverändert und gewählte Aktion anschließend genau einmal zugestellt; zusätzlich echte Abbrüche und ein Loslassen ohne Klick. [Messwerte `g55-2300` / `help-2300`](safety-during-edit.r224.results.json), [Bild nach dem verfehlten G55-Klick](safety-during-edit.r224.long-press.png).
+
+### SDE-02 · P2 · Schon das Loslassen eines zweiten Fingers löst die gemeinsame Sperre
+
+**Ort:** `lcnc-webui/src/inputSession.ts:337–342` und `:398–401`. Die Listener geben keine Zeigeridentität weiter; ein gemeinsames Boolean und ein Timer vertreten alle Zeiger.
+
+Es braucht nicht einmal den in Frage 2 genannten fremden **Klick**. Ein fremdes **Loslassen** startet bereits den 500-ms-Timer für den noch gedrückten ersten Finger.
+
+**Gegenprobe:** Querformat 1920 × 1080 im Touch-Modus, Setup-Ziffernblock offen. Finger 1 auf Home X halten; Finger 2 kurz auf den Programmbereich legen und wieder abheben; Finger 1 bleibt liegen. Nach weiteren 650 ms ist Home X von **x=513,5 nach x=1044** gewandert. Das Ereignisprotokoll zeigt Down für Pointer **4**, Down für **5**, Up ausschließlich für **5**, **kein Cancel und kein Click** vor der Messung. Die Sonde prüft diese Zuordnung ausdrücklich. Home X hat bei 500 ms zwar ausgelöst; die Oberfläche wandert anschließend trotzdem unter dem weiter gehaltenen Finger und verletzt damit die Regel.
+
+Die Begründung „Besitzer direkt neben Safety“ trägt nicht: Sobald Jog zurückkommt, liegt der Besitzer wieder **hinter Jog**. Genau dieser Wechsel verursacht die 530,5 px.
+
+**Erforderlich:** Aktive Zeiger und ihre noch ausstehenden Abschlüsse getrennt führen. Up/Cancel/Click eines anderen Zeigers darf den ersten nicht freigeben; der Layoutwechsel muss warten, solange ein betroffener Druck noch läuft. Auch ein fremder Tastatur-/synthetischer Klick darf einen Pointer-Druck nicht abschließen.
+
+**Wächter:** zwei gleichzeitig aktive Pointer, zweiter Up vor erstem Up, eine Messung noch vor dem ersten Up und ohne Abbruch; außerdem umgekehrte Reihenfolge und Cancel eines einzelnen Zeigers. [Messwerte `two-fingers`](safety-during-edit.r224.results.json), [Bild während des ersten Drucks](safety-during-edit.r224.two-pointers.png).
+
+### SDE-03 · P2 · Das entfernte Keypad verändert den Scrollbereich unter einem kurzen Druck
+
+**Ort:** `lcnc-webui/src/App.vue:487–498` gegenüber `:2747`; `inputSession.ts:355–360`. Die Sichtbarkeit der anderen Abschnitte wartet, das Keypad verschwindet sofort. Dadurch kann der Browser die Scrollposition korrigieren, obwohl `stripLayout` unverändert ist.
+
+**Gegenprobe:** Querformat 1280 × 800, CSS-Zoom 150 %, Setup-Ziffernblock offen, Leiste horizontal um 100 CSS-px gescrollt. G55 ist sichtbar und vor dem Druck am Mittelpunkt hit-testbar. Ein normaler **100-ms-Druck** genügt:
+
+| Messgröße | Vor Down | Noch vor Up |
+|---|---:|---:|
+| `strip.scrollLeft` | 100 | 0 |
+| `strip.scrollWidth` | 1073 | 836 |
+| `strip.clientWidth` | 836 | 836 |
+| G55, Bildschirm-x | 797 | 947 |
+
+Das Loslassen landet auf **Home Y**, der gemeinsame Click auf dem Setup-Container; **G55 wird nicht gesendet**. Es wurde dabei kein Home-Befehl ausgelöst. Der Fehler besteht unabhängig von SDE-01/02 und innerhalb des normalen kurzen Drucks.
+
+**Erforderlich:** Nicht nur `v-show`/`entryOpen`, sondern auch den wirksamen Layoutplatz und damit den Scrollbereich bis zum Druckende erhalten. Beispielsweise kann ein nicht bedienbarer, nicht vorgelesener Platzhalter den bisherigen Helferplatz halten, während die Sitzung gemäß UI-15a sofort geschlossen bleibt. Die konkrete Lösung darf die Scrollposition nicht erst nach einem sichtbaren Sprung zurücksetzen.
+
+**Wächter:** kurze Klicks bei `scrollLeft > 0`, einschließlich Zoom/Überlauf; vor Up dieselbe Zielposition und derselbe Hit-Test, nach Up die gewünschte Aktion. [Messwerte `scroll-clamp`](safety-during-edit.r224.results.json), [Bild nach dem verfehlten Klick](safety-during-edit.r224.scroll-clamp.png).
+
+### Antworten auf die fünf offenen Punkte
+
+1. **Zeiten:** 500 ms als Nachlauf nach dem **zugeordneten letzten** Loslassen ohne Klick sind für diesen Vertrag vertretbar. Die 2-s-Freigabe eines noch gedrückten Zeigers lehne ich ab (SDE-01). Nach dem zugehörigen Klick per Timer 0 freizugeben passt; fremde Klicks müssen davon getrennt bleiben.
+2. **Mehrere Zeiger:** Den Verzicht auf Zeigerzuordnung lehne ich ab (SDE-02). Ein Zähler allein muss zudem mit den jeweils passenden Up-/Cancel-Ereignissen konsistent bleiben.
+3. **Orbit:** Die vorübergehend unveränderte Leiste mit erreichbarer Safety während eines echten Viewer-Ziehens ist akzeptabel. Sie muss anschließend zuverlässig folgen; diese Einschätzung rechtfertigt kein vorzeitiges Freigeben einer anderen laufenden Bedienung.
+4. **Weitere Abhängige:** Bei den direkten Lesern von `activeKind`, `inputSession.kind` und `keypadState.open/locked` habe ich keinen zusätzlichen strukturellen Sitzungsleser außerhalb der genannten Stellen gefunden. Der übersehene geometrische Effekt ist jedoch der **Scrollbereich** (SDE-03). Nur die Position der Geschwister in der Leserichtung zu betrachten reicht nicht.
+5. **Erster Touch:** Als bereits benannte, getrennte Grenze dokumentiert. Die Gegenproben initialisieren den Touch-Modus vorab; SDE-02 ist deshalb keine Wiederholung dieses bekannten Problems. Die Grenze ist durch R224 nicht behoben.
+
+Die Hochformat-Messung und das spätere Ausklappen tragen für die geprüften 100-/150-%-Fälle. Die zusätzliche Statuswechsel-Probe ergab keine Abweichung; beide verglichenen Endzustände blieben gefaltet. Sie belegt deshalb keine zusätzliche Entfaltungsgrenze. Bei der ersten Mehrfinger-Erkundung wurde im CDP-Aufruf der falsche Finger beendet; dieser Lauf ist verworfen. Grundlage von SDE-02 ist ausschließlich die korrigierte Sonde mit Assertions auf die Pointer-IDs. Ein erster Einstieg in die Zusatzprobe scheiterte am bereits schmal umgebauten Tab-Wähler; auch das ist kein Produktbefund.
+
+**Für ein Agreement offen:** SDE-01, SDE-02, SDE-03. Linksanordnung, kurze Safety-Aktionen und die gemessene Hochformat-Faltung brauchen nach dieser Runde keine neue Gestaltungsentscheidung. Bitte die drei Restfälle in die Wächter aufnehmen und die Druck-/Layoutlogik anschließend erneut vorlegen.

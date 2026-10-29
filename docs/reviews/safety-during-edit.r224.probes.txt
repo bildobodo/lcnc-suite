@@ -1,0 +1,214 @@
+
+=== browser-probes-final.log ===
+
+Running 5 tests using 1 worker
+
+(node:3448489) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3448489) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+R224 help-100 {"before":{"x":734,"y":789,"width":13,"height":13},"during":{"x":734,"y":789,"width":13,"height":13},"expanded":"true","commands":[],"events":[{"type":"pointerdown","ms":1553.1999999284744,"pointerId":1,"buttons":1,"isPrimary":true,"target":"Help: Go to positions"},{"type":"pointerup","ms":1713.1000000238419,"pointerId":1,"buttons":0,"isPrimary":true,"target":"Help: Go to positions"},{"type":"click","ms":1713.1999999284744,"pointerId":1,"buttons":0,"isPrimary":false,"target":"Help: Go to positions"}]}
+  ✓  1 e2e/safety-r224.codex.spec.ts:76:2 › plain Setup help: 100 ms press lands before the layout follows (2.2s)
+R224 help-2300 {"before":{"x":734,"y":789,"width":13,"height":13},"during":{"x":1264.5,"y":789,"width":13,"height":13},"expanded":"false","commands":[],"events":[{"type":"pointerdown","ms":1496.3999999761581,"pointerId":1,"buttons":1,"isPrimary":true,"target":"Help: Go to positions"},{"type":"pointerup","ms":3864.600000023842,"pointerId":1,"buttons":0,"isPrimary":true,"target":"Jog"},{"type":"click","ms":3864.7999999523163,"pointerId":1,"buttons":0,"isPrimary":false,"target":"SafetyArmDisarmE-StopResetPower onPower "}]}
+  ✘  2 e2e/safety-r224.codex.spec.ts:76:2 › plain Setup help: 2300 ms press lands before the layout follows (4.5s)
+(node:3448727) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3448727) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+R224 two-fingers {"before":{"x":513.5,"y":813.5,"width":111.5,"height":36},"during":{"x":1044,"y":813.5,"width":111.5,"height":36},"commands":[{"cmd":"home","joint":0,"req_id":"89sdy6-5"}],"events":[{"type":"pointerdown","ms":1669.1000000238419,"pointerId":4,"buttons":1,"isPrimary":true,"target":""},{"type":"pointerdown","ms":1800.1999999284744,"pointerId":5,"buttons":1,"isPrimary":false,"target":"No program loadedDrag & drop a file here"},{"type":"pointerup","ms":1900.3999999761581,"pointerId":5,"buttons":0,"isPrimary":false,"target":"No program loadedDrag & drop a file here"}]}
+  ✘  3 e2e/safety-r224.codex.spec.ts:97:2 › multiple fingers › second finger released: first Home X still down after another 650 ms (3.0s)
+(node:3448860) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3448860) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+R224 g55-100 {"before":{"x":637,"y":866,"width":53,"height":28},"during":{"x":637,"y":866,"width":53,"height":28},"commands":[{"cmd":"mdi","text":"G55","req_id":"10cd9h-5"}],"events":[{"type":"pointerdown","ms":1553.2000000476837,"pointerId":1,"buttons":1,"isPrimary":true,"target":"G55"},{"type":"pointerup","ms":1704.7000000476837,"pointerId":1,"buttons":0,"isPrimary":true,"target":"G55"},{"type":"click","ms":1704.7999999523163,"pointerId":1,"buttons":0,"isPrimary":false,"target":"G55"}]}
+  ✓  4 e2e/safety-r224.codex.spec.ts:127:2 › WCS G55: 100 ms press sends the chosen offset (2.2s)
+R224 g55-2300 {"before":{"x":637,"y":866,"width":53,"height":28},"during":{"x":1167.5,"y":866,"width":53,"height":28},"commands":[{"cmd":"get_tool_table","req_id":"9cxuzo-4"}],"events":[{"type":"pointerdown","ms":1440.5,"pointerId":1,"buttons":1,"isPrimary":true,"target":"G55"},{"type":"pointerup","ms":3789.2999999523163,"pointerId":1,"buttons":0,"isPrimary":true,"target":"Y+X-StopX+Y-Z+Z-Speed600mm/min600Step (m"},{"type":"click","ms":3789.2999999523163,"pointerId":1,"buttons":0,"isPrimary":false,"target":"SafetyArmDisarmE-StopResetPower onPower "}]}
+  ✘  5 e2e/safety-r224.codex.spec.ts:127:2 › WCS G55: 2300 ms press sends the chosen offset (4.5s)
+
+
+  1) e2e/safety-r224.codex.spec.ts:76:2 › plain Setup help: 2300 ms press lands before the layout follows 
+
+    Error: same press target before release
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 1[39m
+
+    [2m  Object {[22m
+    [2m    "height": 13,[22m
+    [2m    "width": 13,[22m
+    [32m-   "x": 734,[39m
+    [31m+   "x": 1264.5,[39m
+    [2m    "y": 789,[22m
+    [2m  }[22m
+
+      88 |   const expanded=await target.getAttribute('aria-expanded');
+      89 |   await evidence(page,info,'help-'+hold,{before,during,expanded,commands:await sent()});
+    > 90 |   expect(during,'same press target before release').toEqual(before);
+         |                                                     ^
+      91 |   await expect(target,'same action for a slow release').toHaveAttribute('aria-expanded','true');
+      92 |  });
+      93 | }
+        at /tmp/codex-r224-dhk7p6gq/repo/lcnc-webui/e2e/safety-r224.codex.spec.ts:90:53
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-r224.codex-plain-Se-7075c-s-before-the-layout-follows/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-r224.codex-plain-Se-7075c-s-before-the-layout-follows/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-r224.codex-plain-Se-7075c-s-before-the-layout-follows/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-r224.codex-plain-Se-7075c-s-before-the-layout-follows/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/safety-r224.codex.spec.ts:97:2 › multiple fingers › second finger released: first Home X still down after another 650 ms 
+
+    Error: the first pointer is still held, well before its 2s deadline
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 1[39m
+
+    [2m  Object {[22m
+    [2m    "height": 36,[22m
+    [2m    "width": 111.5,[22m
+    [32m-   "x": 513.5,[39m
+    [31m+   "x": 1044,[39m
+    [2m    "y": 813.5,[22m
+    [2m  }[22m
+
+      120 |   await evidence(page,info,'two-fingers',{before,during,commands:await sent()});
+      121 |   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    > 122 |   expect(during,'the first pointer is still held, well before its 2s deadline').toEqual(before);
+          |                                                                                 ^
+      123 |  });
+      124 | });
+      125 |
+        at /tmp/codex-r224-dhk7p6gq/repo/lcnc-webui/e2e/safety-r224.codex.spec.ts:122:81
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-r224.codex-multiple-a32b3-l-down-after-another-650-ms/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-r224.codex-multiple-a32b3-l-down-after-another-650-ms/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-r224.codex-multiple-a32b3-l-down-after-another-650-ms/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-r224.codex-multiple-a32b3-l-down-after-another-650-ms/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) e2e/safety-r224.codex.spec.ts:127:2 › WCS G55: 2300 ms press sends the chosen offset ──────────
+
+    Error: the same WCS choice arrives for both press lengths
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoContainEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    Expected value: [32mObjectContaining {"cmd": "mdi", "text": "G55"}[39m
+    Received array: [31m[{"cmd": "get_tool_table", "req_id": "9cxuzo-4"}][39m
+
+      140 |   const commands=await sent();
+      141 |   await evidence(page,info,'g55-'+hold,{before,during,commands});
+    > 142 |   expect(commands,'the same WCS choice arrives for both press lengths').toContainEqual(expect.objectContaining({cmd:'mdi',text:'G55'}));
+          |                                                                         ^
+      143 |  });
+      144 | }
+      145 |
+        at /tmp/codex-r224-dhk7p6gq/repo/lcnc-webui/e2e/safety-r224.codex.spec.ts:142:73
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-r224.codex-WCS-G55--56865-ess-sends-the-chosen-offset/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-r224.codex-WCS-G55--56865-ess-sends-the-chosen-offset/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-r224.codex-WCS-G55--56865-ess-sends-the-chosen-offset/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-r224.codex-WCS-G55--56865-ess-sends-the-chosen-offset/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    e2e/safety-r224.codex.spec.ts:76:2 › plain Setup help: 2300 ms press lands before the layout follows 
+    e2e/safety-r224.codex.spec.ts:97:2 › multiple fingers › second finger released: first Home X still down after another 650 ms 
+    e2e/safety-r224.codex.spec.ts:127:2 › WCS G55: 2300 ms press sends the chosen offset ───────────
+  2 passed (18.3s)
+
+=== browser-fold-final.log ===
+
+Running 1 test using 1 worker
+
+(node:3451722) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3451722) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+R224 fold {"before":{"info":true,"infoHeight":254.875,"bottom":1342.375,"height":2000,"codes":"E-StopACTIVECLEARPowerONOFFAxesHOMEDUNHOMEDOverridesACTIVENONEModeMANUALAUTOMDI—InterpIDLERUNNINGPAUSEDWAITING—MotionWORLDJOINTElapsed--:--G33.1 G19.1 G90 G91.1 G93 G21 G42.1 G43.1 G59.3 G61.1 G96 G98M3 M8 M48"},"afterUpdate":{"info":false,"bottom":1075.5,"height":1337},"afterReopen":{"info":false,"bottom":1075.5,"height":1337}}
+  ✓  1 e2e/safety-r224.codex.spec.ts:148:2 › portrait fold after a status change › a folded detail is measured again when its content gets shorter (2.9s)
+
+  1 passed (3.3s)
+
+=== browser-scroll.log ===
+
+Running 1 test using 1 worker
+
+(node:3453313) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3453313) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+R224 scroll-clamp {"before":{"x":797,"y":484.5,"width":78,"height":42},"during":{"x":947,"y":484.5,"width":78,"height":42},"scrollBefore":{"left":100,"width":1073,"client":836},"scrollDuring":{"left":0,"width":836,"client":836},"commands":[{"cmd":"get_tool_table","req_id":"jqdnbb-4"}],"events":[{"type":"pointerdown","ms":1512.8000000715256,"pointerId":1,"buttons":1,"isPrimary":true,"target":"G55"},{"type":"pointerup","ms":1665.6000000238419,"pointerId":1,"buttons":0,"isPrimary":true,"target":"Home Y"},{"type":"click","ms":1665.7000000476837,"pointerId":1,"buttons":0,"isPrimary":false,"target":"XXYYZZZero AllHome AllUnhome AllGo to G3"}]}
+  ✘  1 e2e/safety-r224.codex.spec.ts:181:1 › a horizontally scrolled owner keeps its place when the keypad closes (2.2s)
+
+
+  1) e2e/safety-r224.codex.spec.ts:181:1 › a horizontally scrolled owner keeps its place when the keypad closes 
+
+    Error: a 100ms press must not scroll-clamp the target away
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 1[39m
+
+    [2m  Object {[22m
+    [2m    "height": 42,[22m
+    [2m    "width": 78,[22m
+    [32m-   "x": 797,[39m
+    [31m+   "x": 947,[39m
+    [2m    "y": 484.5,[22m
+    [2m  }[22m
+
+      201 |  const commands=await sent();
+      202 |  await evidence(page,info,'scroll-clamp',{before,during,scrollBefore,scrollDuring,commands});
+    > 203 |  expect(during,'a 100ms press must not scroll-clamp the target away').toEqual(before);
+          |                                                                       ^
+      204 |  expect(commands).toContainEqual(expect.objectContaining({cmd:'mdi',text:'G55'}));
+      205 | });
+      206 |
+        at /tmp/codex-r224-dhk7p6gq/repo/lcnc-webui/e2e/safety-r224.codex.spec.ts:203:71
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-r224.codex-a-horizo-7b535-lace-when-the-keypad-closes/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-r224.codex-a-horizo-7b535-lace-when-the-keypad-closes/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-r224.codex-a-horizo-7b535-lace-when-the-keypad-closes/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-r224.codex-a-horizo-7b535-lace-when-the-keypad-closes/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/safety-r224.codex.spec.ts:181:1 › a horizontally scrolled owner keeps its place when the keypad closes 
