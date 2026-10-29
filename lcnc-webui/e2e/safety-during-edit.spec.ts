@@ -344,6 +344,49 @@ test.describe("an opening by another pointer waits for the press still down (mou
   });
 });
 
+// ── A queued helper owns no place (Codex R226) ──
+// The mouse holds G55 in a sideways-scrolled strip; a touch opens MDI (its
+// keyboard queued, the keypad's place held). Closing that never-shown
+// session again (a tap outside every input area) used to drop the KEYPAD's
+// place — scrollLeft clamped to 0, G55 slid 150 px under the held mouse.
+// Kept or cancelled, the place holds until the mouse's press ends; then the
+// last wanted helper shows, or the normal strip returns, with no place left.
+test.describe("a queued helper owns no place: closing it keeps the shown one's (mouse + touch, 150 %)", () => {
+  test.use({ hasTouch: true });
+  for (const cancel of [false, true]) {
+    test(`the queued MDI keyboard ${cancel ? "closed again" : "kept"} while the mouse holds G55: target and scroll unchanged until the release`, async ({ page }) => {
+      await openTouch(page, { width: 1280, height: 800 });
+      await page.getByRole("tab", { name: "MDI", exact: true }).tap();
+      await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
+      await openHelper(page, "keypad (strip field)", true);
+      const strip = page.locator(".strip");
+      await strip.evaluate(el => { el.scrollLeft = 100; });
+      const scroll = () => strip.evaluate(el => ({ left: el.scrollLeft, width: el.scrollWidth }));
+      const scrollBefore = await scroll();
+      expect(scrollBefore.left, "the strip is scrolled").toBeGreaterThan(0);
+      await recordPointerEvents(page);
+      const target = await g55(page).elementHandle();
+      const before = (await target!.boundingBox())!;
+      await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2);
+      await page.mouse.down();
+      await page.locator(".mdiInput").tap();
+      await page.waitForTimeout(100);
+      expect(await page.locator(".tkStrip").count(), "the keyboard is queued").toBe(0);
+      expect(await page.locator(".stripHelperPlace").count(), "the keypad's place holds").toBe(1);
+      if (cancel) await page.touchscreen.tap(2, 2);
+      await page.waitForTimeout(650);
+      expect((await pointerEvents(page)).filter(e => (e.type === "pointerup" || e.type === "pointercancel") && e.pointerId === 1), "the mouse is still down").toHaveLength(0);
+      expect(await target!.boundingBox(), "G55 where the mouse pressed it").toEqual(before);
+      expect(await scroll(), "the scroll range and position unchanged").toEqual(scrollBefore);
+      await page.mouse.up();
+      if (cancel) await expect.poll(() => jogShown(page), { timeout: 2000, message: "the normal strip returns" }).toBe(true);
+      else await expect(page.locator(".tkStrip"), "the queued keyboard shows").toBeVisible();
+      await expect(page.locator(".stripHelperPlace"), "no place left behind").toHaveCount(0);
+      expect((await sent()).filter(c => !(c.cmd === "mdi" && c.text === "G55")), "no other command").toEqual([]);
+    });
+  }
+});
+
 // ── The keypad's place holds through a press too (Codex R224 SDE-03) ──
 // The keypad leaves at the pointerdown (its session closed), but its place
 // stays until the press has ended: with the strip scrolled sideways, the

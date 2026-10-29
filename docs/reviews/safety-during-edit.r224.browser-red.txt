@@ -281,3 +281,35 @@ Running 1 test using 1 worker
     ────────────────────────────────────────────────────────────────────────────────────────────────
   1 failed
     [serial-guards] › e2e/safety-during-edit.spec.ts:321:3 › an opening by another pointer waits for the press still down (mouse + touch) › a touch opens MDI while the mouse holds G55: G55 stays visible and unmoved, the release lands on it and nothing else, then the keyboard shows 
+
+# R226: the queued-helper guard (kept / closed again) against 61a9253f (product 995533d9): closed again red, kept green (control)
+Running 2 tests using 1 worker
+[1/2] [serial-guards] › e2e/safety-during-edit.spec.ts:357:5 › a queued helper owns no place: closing it keeps the shown one's (mouse + touch, 150 %) › the queued MDI keyboard kept while the mouse holds G55: target and scroll unchanged until the release
+[2/2] [serial-guards] › e2e/safety-during-edit.spec.ts:357:5 › a queued helper owns no place: closing it keeps the shown one's (mouse + touch, 150 %) › the queued MDI keyboard closed again while the mouse holds G55: target and scroll unchanged until the release
+  1) [serial-guards] › e2e/safety-during-edit.spec.ts:357:5 › a queued helper owns no place: closing it keeps the shown one's (mouse + touch, 150 %) › the queued MDI keyboard closed again while the mouse holds G55: target and scroll unchanged until the release 
+    Error: G55 where the mouse pressed it
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 1
+    + Received  + 1
+      Object {
+        "height": 54,
+        "width": 78,
+    -   "x": 797,
+    +   "x": 947,
+        "y": 496.5,
+      }
+      377 |       await page.waitForTimeout(650);
+      378 |       expect((await pointerEvents(page)).filter(e => (e.type === "pointerup" || e.type === "pointercancel") && e.pointerId === 1), "the mouse is still down").toHaveLength(0);
+    > 379 |       expect(await target!.boundingBox(), "G55 where the mouse pressed it").toEqual(before);
+          |                                                                             ^
+      380 |       expect(await scroll(), "the scroll range and position unchanged").toEqual(scrollBefore);
+      381 |       await page.mouse.up();
+      382 |       if (cancel) await expect.poll(() => jogShown(page), { timeout: 2000, message: "the normal strip returns" }).toBe(true);
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/safety-during-edit.spec.ts:379:77
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-queue-31168-unchanged-until-the-release-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+    Error Context: test-results/safety-during-edit-a-queue-31168-unchanged-until-the-release-serial-guards/error-context.md
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-queue-31168-unchanged-until-the-release-serial-guards/trace.zip
+    Usage:

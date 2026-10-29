@@ -495,8 +495,11 @@ const stripLayout = heldThroughPress(
 // the layout follows (Codex R225: a touch opening MDI hid Setup under the
 // mouse still holding G55). Without the place the strip's scroll range
 // shrank under the finger and the browser clamped a sideways scroll: G55
-// slid 150 px under a 100 ms click (R224 SDE-03). Measured when the helper's
-// session ends, before Vue removes it (a sync watcher in that same task).
+// slid 150 px under a 100 ms click (R224 SDE-03). Measured when a RENDERED
+// helper leaves, before Vue removes it (a sync watcher in that same task); a
+// queued helper was never rendered and owns no place — closing it again
+// keeps the shown one's (R226: its missing measurement dropped the keypad's
+// place under the held mouse).
 const stripEl = ref<HTMLElement | null>(null);
 type HelperSlot = "text" | "number";
 const slotOf = (k: string | null): HelperSlot | null =>
@@ -511,8 +514,11 @@ function measureHelperPlace(at: HelperSlot): typeof helperPlace.value {
   const z = (el as HTMLElement & { currentCSSZoom?: number }).currentCSSZoom || 1;   // rects are zoomed, styles are not
   return { at, style: { width: `${r.width / z}px`, height: `${r.height / z}px` } };
 }
-watch(shownHelper, (now, before) => {
-  if (before !== null && now !== before && pressHolds.value) helperPlace.value = measureHelperPlace(before);
+const renderedHelper = computed(() => (heldHelper.value === shownHelper.value ? heldHelper.value : null));
+watch(renderedHelper, (now, before) => {
+  if (before === null || now === before || !pressHolds.value) return;
+  const place = measureHelperPlace(before);
+  if (place) helperPlace.value = place;
 }, { flush: "sync" });
 watch(pressHolds, (p) => { if (!p) helperPlace.value = null; }, { flush: "sync" });
 // The keypad section sits LAST in the strip DOM: with every non-owner
