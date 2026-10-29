@@ -2089,6 +2089,7 @@ watch(viewerGcode, (newGcode) => {
           :compGrid="compGrid"
           :axes="axes"
           @open-settings="openSettingsTab"
+          @open-sim-tab="requestTab('sim')"
           @scrub-line="scrubLine = $event"
           @collision-lines="collisionLines = $event"
         />

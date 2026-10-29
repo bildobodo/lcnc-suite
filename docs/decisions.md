@@ -9642,3 +9642,27 @@ gates sim (3-axis, 2026-10-29, `button-gates.f.live-xyz-e.json`): before homing 
 multi-jogs were refused with that reason and no joint moved; homed, the multi-jog moved
 both axes and `jog_stop_multi` stopped them.
 
+## 2026-10-29 — The scrub bar: the speed beside Play, the check's coverage as a number, a timeline that is seen, a link to the Sim tab (operator)
+
+**Asked from use, under the feature freeze of 2026-10-25.** The operator, testing the
+simulation: the speed belongs next to Play ("otherwise it makes no sense"), the progress band
+above the timeline should go and the percentage stand right of the bar again, the empty timeline
+is not recognisable (a light grey with too little contrast), and a shortcut to the Sim tab is
+missing. This reverses two earlier decisions: the speed only in the Sim tab (one row, 2026-10-05)
+and the progress lane of its own over the track (2026-10-20).
+
+**Measured.** The timeline bar was the shared `--range-track` (panel 90 % + text): 1.22 : 1
+against the overlay card, 1.08 : 1 dimmed outside the simulation — under the 3 : 1 the suite holds
+for what identifies a control. A 1 px edge in `--control-edge` reached 3.94 / 3.30 : 1; a fill of
+half panel, half text 3.02 / 4.10 : 1.
+
+**Decided (operator, from renderings of four proposals on the XYZAC model, light and dark,
+landscape and portrait).** The fill (`--scrub-track`), never dimmed; the speed select right after
+Play (the same `simView.speed` the Sim tab shows); the check's coverage as "N %" in a fixed slot
+beside the timeline while the check is checking, paused or stopped short, empty once the route is
+covered (the result is the marks and the Sim tab); a link at the bar's end that shows the Sim tab,
+the operator's "square with an arrow in its top-right corner" (`SquareArrowOutUpRight`). With the
+added controls a portrait viewer left the timeline ~90 px: under 700 px of bar the timeline takes
+a row of its own (a container query on the bar, whose width the bottom column sets — never its
+content). Open: whether the Sim tab keeps its own speed select (both show the one value meanwhile).
+

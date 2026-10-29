@@ -1037,11 +1037,9 @@ test("the provisional result keeps its own limits while the full check runs, its
   await publishInRun(page, file, 4252, pinnedFor(9));
   await expect.poll(() => runLog(page), { timeout: 60_000 }).toEqual(["start provisional 1", "full"]);
   await expect.poll(() => colTap(page, t => t.held.length), { timeout: 60_000 }).toBe(1);
-  const band = async () => {
-    const st = (await page.locator(".scrubBand.swept").getAttribute("style")) ?? "";
-    const [from, width] = [...st.matchAll(/\* ([\d.e-]+)\)/g)].map(m => Number(m[1]));
-    return [Math.round(from! * 1000) / 1000, Math.round((from! + width!) * 1000) / 1000];
-  };
+  // the bar's coverage beside the timeline (operator 2026-10-29: no band
+  // over the track any more — where it started is the summary's words)
+  const coverage = page.locator(".scrubBar .checkSlot");
   const item = page.locator(".simSummary .sumItem").first();
   const help = async () => {
     await page.getByRole("button", { name: "Help: Collision check", exact: true }).click();
@@ -1051,7 +1049,7 @@ test("the provisional result keeps its own limits while the full check runs, its
     return text;
   };
   // the full check runs (its result held) — on screen the provisional result
-  expect(await band(), "the band: from L7 to where it stopped").toEqual([0.35, 0.75]);
+  await expect(coverage, "the bar: where it stopped").toHaveText("75 %");
   await expect(item).toHaveAttribute("aria-label", /provisional from L7, stopped at 75 % \(not certified\)$/);
   await expect(item.locator('span[title^="Not certified"]'), "its star").toHaveCount(1);
   const text = await help();
@@ -1081,7 +1079,7 @@ test("the provisional result keeps its own limits while the full check runs, its
   await expect.poll(() => runLog(page), { timeout: 30_000 }).toEqual(["start provisional 1", "full", "done"]);
   await expect(item).toHaveAttribute("aria-label", /· checked in full$/);
   await expect(item.locator('span[title^="Not certified"]')).toHaveCount(0);
-  expect(await band()).toEqual([0, 1]);
+  await expect(coverage, "checked in full: no coverage left to show").toHaveText("");
   const after = await help();
   expect(after).not.toContain("In contact at the check's start");
   expect(after).not.toContain("the rest is unchecked");

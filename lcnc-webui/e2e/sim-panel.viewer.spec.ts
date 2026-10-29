@@ -636,26 +636,25 @@ test("a row of two capped axes says each axis's numbers", async ({ page, context
 // seen and the contacts read pale — the bands were translucent, the progress
 // lay under them, and the ticks' light edges, one per column, washed the track
 // out (a tick showed only where its neighbours were free); the glyphs ran
-// together into a line. The progress has a lane of its own in the Sim tab's
-// progress colour, the findings fill the track opaque, a tick has no light
-// edge, a kind's glyphs stand at least their width apart.
-test("the timeline: the progress in its own lane and colour, opaque findings, ticks without a light edge, glyphs apart", async ({ page, context }) => {
+// together into a line. The findings fill the track opaque, a tick has no
+// light edge, a kind's glyphs stand at least their width apart. The progress
+// had a lane of its own over the track until 2026-10-29; it reads as "N %"
+// beside the timeline since (operator: "remove the bar, show the percentage").
+test("the timeline: no progress lane over the track, opaque findings, ticks without a light edge, glyphs apart", async ({ page, context }) => {
   await prepare(page, context, "desktop", PREVIEW, false);
   await expect.poll(() => page.evaluate(n => window.__viewerDiag?.setCollisionHits?.(
     Array.from({ length: n }, (_, k) => ({ line: 12, frac: 0.05 + (0.5 * k) / n }))) ?? false, 600)).toBe(true);
   await simShow(page, "clash");
   await expect(rows(page)).toHaveCount(400);
   const g = await page.evaluate(() => {
-    const bar = document.querySelector(".scrubBar")!, r = (s: string) => bar.querySelector(s)!.getBoundingClientRect();
+    const bar = document.querySelector(".scrubBar")!;
     const bg = (el: Element) => getComputedStyle(el).backgroundColor;
     const glyphs = [...bar.querySelectorAll(".scrubTick.clash .scrubGlyph")].map(e => e.getBoundingClientRect().left).sort((a, b) => a - b);
-    return { swept: r(".scrubBand.swept"), track: r(".scrubBand.track"), sweptBg: bg(bar.querySelector(".scrubBand.swept")!),
-             progressBg: bg(document.querySelector(".simPanel .progressFill")!), clashBg: bg(bar.querySelector(".scrubBand.clash")!),
+    return { swept: bar.querySelectorAll(".scrubBand.swept").length, clashBg: bg(bar.querySelector(".scrubBand.clash")!),
              shadows: [...new Set([...bar.querySelectorAll(".scrubTick")].map(e => getComputedStyle(e).boxShadow))],
              ticks: bar.querySelectorAll(".scrubTick.clash").length, gaps: glyphs.slice(1).map((x, i) => x - glyphs[i]!) };
   });
-  expect(g.swept.bottom, "the progress lane over the track, apart from it").toBeLessThanOrEqual(g.track.top);
-  expect(g.sweptBg, "the Sim tab's progress colour").toBe(g.progressBg);
+  expect(g.swept, "no progress lane over the track").toBe(0);
   expect(g.clashBg, "a contact band is opaque").toMatch(/^rgb\(/);
   expect(g.shadows, "no light edge on a tick").toEqual(["none"]);
   expect(Math.min(...g.gaps), "a kind's glyphs at least their width apart").toBeGreaterThanOrEqual(9.5);
@@ -1248,4 +1247,69 @@ test.describe("the summary keeps every statement in its line (Codex R136 VP-I94)
       await ctl({ op: "reset" });
     });
   }
+});
+
+// ── The scrub bar (operator 2026-10-29) ──
+// The speed beside Play ("otherwise it makes no sense"), the check's coverage
+// as "N %" beside the timeline instead of a band over it, a timeline bar that
+// is seen (3 : 1 against the card — the shared range track read 1.22 : 1 and
+// 1.08 : 1 dimmed), a link to the Sim tab, and a timeline row of its own
+// where the bar is narrow.
+const contrastOf = (a: number[], b: number[]) => {
+  const lin = (c: number) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+  const lum = (x: number[]) => 0.2126 * lin(x[0]!) + 0.7152 * lin(x[1]!) + 0.0722 * lin(x[2]!);
+  const [hi, lo] = [lum(a), lum(b)].sort((p, q) => q - p);
+  return (hi! + 0.05) / (lo! + 0.05);
+};
+/** A computed colour as sRGB numbers (Chromium resolves color-mix to srgb). */
+const rgbOf = (page: Page, sel: string, prop: "backgroundColor") => page.locator(sel).first().evaluate((el, p) => {
+  const c = document.createElement("canvas").getContext("2d")!;
+  c.fillStyle = getComputedStyle(el)[p as "backgroundColor"]; c.fillRect(0, 0, 1, 1);
+  return [...c.getImageData(0, 0, 1, 1).data].slice(0, 4);
+}, prop);
+
+test("the scrub bar: the speed beside Play is the Sim tab's speed, the link opens the Sim tab, no band over the track", async ({ page, context }) => {
+  await prepare(page, context);
+  const row = page.locator(".scrubBar .scrubRow");
+  const order = await row.evaluate(el => [...el.querySelectorAll("button, select, input")].map(c => c.getAttribute("aria-label") ?? c.getAttribute("title") ?? c.tagName));
+  const speedAt = order.indexOf("Playback speed");
+  expect(order[speedAt - 1], `the control before the speed is Play: ${JSON.stringify(order)}`).toMatch(/^(Play|Pause)/);
+  await row.getByRole("combobox", { name: "Playback speed" }).selectOption("5");
+  await expect(page.locator('.simPanel select[name="simSpeed"]'), "one value: the Sim tab shows it").toHaveValue("5");
+  await expect(page.locator(".scrubBar .scrubBand.swept")).toHaveCount(0);
+  await expect(page.locator(".scrubBar .checkSlot"), "the check is done: no coverage to show").toHaveText("");
+  await page.getByRole("tab", { name: "Program", exact: true }).click();
+  await expect(page.locator(".simPanel")).toBeHidden();
+  await row.getByRole("button", { name: "Open the Sim tab" }).click();
+  await expect(page.locator(".simPanel"), "the link shows the Sim tab").toBeVisible();
+});
+
+for (const scheme of ["light", "dark"] as const) {
+  test(`the scrub bar's timeline holds 3 : 1 against the card, in and out of the simulation (${scheme})`, async ({ page, context }) => {
+    await prepare(page, context, "desktop", PREVIEW, false);
+    await page.emulateMedia({ colorScheme: scheme, reducedMotion: "reduce" });
+    for (const sim of [false, true]) {
+      if (sim) await page.locator(".scrubBar input.toggle").check();
+      const track = await rgbOf(page, ".scrubBar .scrubBand.track", "backgroundColor");
+      const card = await rgbOf(page, ".viewerPane .scrubBar", "backgroundColor");
+      const opacity = await page.locator(".scrubBar .scrubBand.track").evaluate(el => Number(getComputedStyle(el).opacity));
+      expect(opacity, `${scheme}, sim ${sim}: not dimmed`).toBe(1);
+      const ratio = contrastOf(track.slice(0, 3), card.slice(0, 3));
+      expect(ratio, `${scheme}, sim ${sim}: track ${track} on card ${card}`).toBeGreaterThanOrEqual(3);
+    }
+  });
+}
+
+test("a portrait viewer: the timeline takes a row of its own, the controls stay one row above it", async ({ page, context }) => {
+  await prepare(page, context, "touch-portrait", PREVIEW, false);
+  const g = await page.evaluate(() => {
+    const bar = document.querySelector(".viewerPane .scrubBar")!, r = (s: string) => bar.querySelector(s)!.getBoundingClientRect();
+    return { bar: bar.getBoundingClientRect(), slider: r(".sliderWrap"), play: r("button"), speed: r("select"), link: r('[aria-label="Open the Sim tab"]') };
+  });
+  expect(g.bar.width, "the bar is narrow here").toBeLessThan(700);
+  expect(g.slider.top, "the timeline below the controls").toBeGreaterThanOrEqual(g.play.bottom);
+  expect(g.slider.width, "the timeline spans the bar").toBeGreaterThan(g.bar.width * 0.85);
+  const mid = (b: { top: number; height: number }) => b.top + b.height / 2;
+  expect(Math.abs(mid(g.speed) - mid(g.play)), "the speed in the controls' row").toBeLessThan(4);
+  expect(Math.abs(mid(g.link) - mid(g.play)), "the link in the controls' row").toBeLessThan(4);
 });

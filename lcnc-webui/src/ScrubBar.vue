@@ -39,7 +39,8 @@ import type { CollisionResult } from "./viewer/collision";
 import { EVENT_NONE } from "./viewer/eventIndex";
 import { mergedSweptFraction } from "./viewer/sweepMerge";
 import { fmtElapsed, NO_VALUE } from "./format";
-import { Play, Pause } from "lucide-vue-next";
+import { Play, Pause, SquareArrowOutUpRight } from "lucide-vue-next";
+import MachineSelect from "./MachineSelect.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
 import { buildSimRows, limitStopOf, lineWordAt, measurementsOf, placelessLimitRows, type SimRowKind, partLabel } from "./viewer/simRows";
@@ -48,7 +49,7 @@ import { limitMarks, NO_LIMIT_MARKS, type LimitMarks } from "./limitMarks";
 import { LIST_WINDOW as LIST_WINDOW_ROWS, MergedList, NO_CLASH, clashIndexOfView, clashTicks, nextTarget, stepTarget, windowCenter, windowFirst, type ClashIndex, type Pick, type SimTargets } from "./viewer/simWindow";
 import { m600Events, m600ToolNotes, parseProbeBands, parseProbeNotes, parseProbeStops, probeStopTitle, toolsetterBasisLine } from "./viewer/probeStop";
 import { confirmedToolsetter, toolsetterVarMap } from "./toolsetterVars";
-import { simRows, simView, claimSimActions, SIM_FILTER_KINDS, type SimSweepView } from "./simPanelStore";
+import { simRows, simView, claimSimActions, SIM_FILTER_KINDS, SIM_SPEEDS, type SimSweepView } from "./simPanelStore";
 import { beginSentence, depTimeSentence, type RunBegin } from "./viewer/startDep";
 import { checkCard, type CheckContext } from "./viewer/checkContext";
 import MachineToggle from "./MachineToggle.vue";
@@ -138,6 +139,8 @@ const emit = defineEmits<{
   // the timeline's width in columns: the marks and bands are built at it with
   // the contact view (plan 3.6)
   (e: "timeline-columns", n: number): void;
+  /** The bar's link: show the side pane's Sim tab (findings, check, list). */
+  (e: "open-sim-tab"): void;
 }>();
 
 const st = computed<Record<string, any>>(() => status.value?.data ?? {});
@@ -166,10 +169,15 @@ const visible = computed(() => !!track.value);
 
 const sPos = ref(0);          // scrub parameter (seconds on a time-based track)
 const playing = ref(false);
-// Playback speed, ×0.1 … ×100 in fixed steps — set in the Simulation tab
-// (simPanelStore). On a time-based track ×1 is REAL TIME; on the distance
-// fallback the base pace is BASE_MM_S.
+// Playback speed, ×0.1 … ×100 in fixed steps — chosen beside Play
+// (operator 2026-10-29: "otherwise it makes no sense"; the Sim tab shows the
+// same value, simPanelStore). On a time-based track ×1 is REAL TIME; on the
+// distance fallback the base pace is BASE_MM_S.
 const speed = computed(() => simView.speed);
+const speedChoice = computed({
+  get: () => String(simView.speed),
+  set: (v: string) => { simView.speed = Number(v); },
+});
 const BASE_MM_S = 30;
 
 const cumMax = computed(() => {
@@ -669,9 +677,10 @@ const posSlotCh = computed(() =>
 const posTitle = computed(() => probeStops.value.length
   ? "The time to the tool measurement the preview cannot predict — after it unknown" : undefined);
 
-// Sweep progress is drawn ON THE TIMELINE (the swept band, sweptFrac below)
-// so a scrub shows which section is already checked, and the clashes found
-// so far show as the sweep finds them (collisionPartial). There is no
+// Sweep progress reads as "N %" right of the timeline while the check has
+// not covered the whole route (checkPct; operator 2026-10-29 — the swept band
+// over the track is gone), and the clashes found so far show as the sweep
+// finds them (collisionPartial); the Sim tab keeps its own bar. There is no
 // button (2026-09-13): sweeps are open-ended, pause on camera interaction
 // and hidden tabs, park on a rotary jog and resume by themselves; a sweep is
 // only dropped by a superseding change (program, touch-off, tool).
@@ -1271,6 +1280,17 @@ const sweepView = computed<SimSweepView | null>(() => {
   }
   return view("done", 1, n ? findTone : "ok", caveat, detail, result("Clear"), caveat ? "checked to the end" : "checked in full");
 });
+/** The check's coverage beside the timeline while it has not covered the
+ *  whole route (checking, paused by a rotary jog, stopped short) — empty once
+ *  it has: the result is the marks and the Sim tab. It is the SHOWN result's
+ *  own coverage, the swept band's `sweptFrac` it replaces: a full check
+ *  running behind a provisional result on screen is the Sim tab's bar
+ *  (Codex R116 VP-I68 — the provisional "stopped at 75 %" reads 75 %). */
+const checkPct = computed(() => {
+  const w = sweepView.value;
+  return w && (w.state === "checking" || w.state === "paused" || w.state === "partial") ? pctOf(sweptFrac.value) : "";
+});
+const checkPctTitle = computed(() => (checkPct.value ? `Collision check: ${checkPct.value} of the program checked` : undefined));
 /** A provisional check's boundary contacts (plan 3b): the pairs in contact
  *  where it started — their onset and kind are the full check's. */
 const boundaryDetail = computed(() => {
@@ -1367,11 +1387,12 @@ onUnmounted(releaseSim);
 </script>
 
 <template>
-  <!-- ONE row (operator 2026-10-05): Sim, play, the timeline with its marks,
-       the time. Nothing here changes its width with the content, so the bar
-       never folds; the findings, the collision check and the speed are in
-       the side pane's Simulation tab. A narrow viewer gives the timeline a
-       row of its own — by the viewer's width, never by content. -->
+  <!-- ONE row (operator 2026-10-05, 2026-10-29): Sim, play, the speed, the
+       timeline with its marks, the check's coverage while it runs, the time,
+       the Sim tab link. Nothing here changes its width with the content, so
+       the bar never folds; the findings and the check's detail are in the
+       side pane's Simulation tab. A bar under 700 px gives the timeline a
+       row of its own — by the bar's width, never by content. -->
   <div v-if="visible" class="scrubBar overlay-card">
     <div class="row-controls scrubRow">
       <!-- Sim mode toggle — same switch as settings/coolant toggles. The
@@ -1386,6 +1407,9 @@ onUnmounted(releaseSim);
         <Pause v-if="playing" :size="14" />
         <Play v-else :size="14" />
       </MachineBtn>
+      <MachineSelect gate="simSpeed" v-model="speedChoice" name="scrubSpeed" aria-label="Playback speed" class="speedSelect">
+        <option v-for="v in SIM_SPEEDS" :key="v" v-memo="[v]" :value="String(v)">×{{ v }}</option>
+      </MachineSelect>
       <div ref="sliderWrap" class="sliderWrap">
         <MachineSlider gate="scrubPos" class="sliderInput rangeOverlayTrack" :min="0" :max="cumMax"
                        :step="cumMax / 2000 || 1" v-model="sPos" :disabled="!simMode"
@@ -1406,8 +1430,7 @@ onUnmounted(releaseSim);
              limit extents (warn), clash extents (danger, on top), the ticks
              with their glyphs (× clash, ▲ soft limit, ● tool change), and the
              input's thumb above them all. -->
-        <div class="scrubBand track" :class="{ dim: !simMode }"></div>
-        <div class="scrubBand swept" :style="{ left: `calc(var(--range-thumb) / 2 + (100% - var(--range-thumb)) * ${sweptFrom})`, width: `calc((100% - var(--range-thumb)) * ${Math.max(0, sweptFrac - sweptFrom)})` }"></div>
+        <div class="scrubBand track"></div>
         <div v-for="(b, i) in limitBands" :key="'lb' + i" class="scrubBand limit"
              :style="{ left: `calc(var(--range-thumb) / 2 + (100% - var(--range-thumb)) * ${b[0] / 100})`, width: `calc((100% - var(--range-thumb)) * ${(b[1] - b[0]) / 100})` }"></div>
         <div v-for="(b, i) in clashBands" :key="'cb' + i" class="scrubBand clash"
@@ -1426,8 +1449,12 @@ onUnmounted(releaseSim);
       </div>
       <!-- The time in a FIXED slot sized per program (posSlotCh): the
            timeline is the one flexible item, so it never moves. -->
+      <span class="val-slot checkSlot val-status mono" :title="checkPctTitle">{{ checkPct }}</span>
       <span class="val-slot posSlot val-status mono" :class="{ muted: !simMode && !running }"
             :style="{ '--slot-w': posSlotCh + 'ch' }" :title="posTitle">{{ posText }}</span>
+      <MachineBtn type="scrub" aria-label="Open the Sim tab" title="Open the Sim tab" @click="emit('open-sim-tab')">
+        <SquareArrowOutUpRight :size="14" />
+      </MachineBtn>
     </div>
   </div>
 </template>
@@ -1441,15 +1468,16 @@ onUnmounted(releaseSim);
      above it, the viewer's --gap-section around it). */
   position: relative;
   padding: var(--gap-tight) var(--gap-controls);
+  /* its own width decides the narrow form below (the bottom column sets it,
+     never the content) */
+  container-type: inline-size;
 }
-/* A narrow viewer: the timeline takes a row of its own (the viewer's width
-   decides — fitHud's .narrowViewer —, never the content). */
-.narrowViewer .scrubRow { flex-wrap: wrap; row-gap: var(--gap-tight); }
-.narrowViewer .sliderWrap { order: 1; flex: 1 1 100%; }
-.narrowViewer .posSlot { margin-left: auto; }
 .scrubRow {
   align-items: center;
 }
+.speedSelect { width: auto; flex: 0 0 auto; }
+/* The check's coverage ("<1 %" … "100 %"): a fixed slot, empty once done. */
+.checkSlot { --slot-w: 5ch; }
 .sliderWrap {
   flex: 1;
   min-width: 0;
@@ -1488,13 +1516,15 @@ onUnmounted(releaseSim);
   border-radius: var(--radius-sm);
   pointer-events: none;
 }
-.scrubBand.track { left: calc(var(--range-thumb) / 2); width: calc(100% - var(--range-thumb)); background: var(--range-track); }
-.scrubBand.track.dim { opacity: var(--opacity-disabled); }   /* mirrors the disabled slider */
-/* The progress has a lane of its own over the track, in the Sim tab's
-   progress colour; the findings fill the track itself, opaque (operator
-   2026-10-20: under translucent bands and the ticks' light edges both read
-   pale, and the progress was not seen at all). */
-.scrubBand.swept { top: calc(50% - 8px); height: 3px; transform: none; background: var(--info); }
+/* The empty timeline is a bar that holds 3 : 1 against the card in every
+   theme (--scrub-track; operator 2026-10-29 — the shared --range-track read
+   1.22 : 1, dimmed outside the simulation 1.08 : 1, and was not seen). Not
+   dimmed when the slider is disabled: the thumb and the disabled Play say
+   that; the bar shows the program's extent and its marks. */
+.scrubBand.track { left: calc(var(--range-thumb) / 2); width: calc(100% - var(--range-thumb)); background: var(--scrub-track); }
+/* The findings fill the track itself, opaque (operator 2026-10-20: under
+   translucent bands and the ticks' light edges both read pale). The check's
+   progress is the "N %" beside the timeline (checkSlot). */
 .scrubBand.limit { background: var(--mark-limit); }
 .scrubBand.clash { background: var(--mark-clash); }
 /* One tick for every mark kind, the track's height; the glyph under it is
@@ -1527,5 +1557,13 @@ onUnmounted(releaseSim);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+/* A bar under 700 px gives the timeline a row of its own (Sim, Play, the
+   speed, the coverage, the time and the link above it): with them in one row
+   the timeline kept ~90 px on a portrait viewer. After the base rules. */
+@container (max-width: 700px) {
+  .scrubRow { flex-wrap: wrap; row-gap: var(--gap-tight); }
+  .sliderWrap { order: 1; flex: 1 1 100%; }
+  .checkSlot { margin-left: auto; }
 }
 </style>

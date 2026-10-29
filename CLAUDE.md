@@ -58,7 +58,7 @@ One line per module: what it is and the rule that matters when you touch it. The
 - `gcodeHighlight.ts` — the G-code tokenizer/highlighter (code panel and MDI history).
 - `OffsetPanel.vue` + `offsetRows.ts` — the WCS offset table: an editable value is a button, locked it is text in the button's place; G52/G92 and G43 read from their canonical slot; Clear is hold-to-fire.
 - `CameraPip.vue` — the camera picture-in-picture (`.overlay-card`).
-- `ScrubBar.vue` — the program-scrub timeline: ONE row, fixed slots; owns the collision results and the finding navigation and feeds the Sim tab.
+- `ScrubBar.vue` — the program-scrub timeline: ONE row, fixed slots (Sim, Play, the speed, the timeline, the check's "N %" while it has not covered the route, the time, the Sim tab link); the timeline bar `--scrub-track` holds 3 : 1 and is never dimmed; under 700 px of bar the timeline takes a row of its own; owns the collision results and the finding navigation and feeds the Sim tab.
 - `SimPanel.vue` + `simPanelStore.ts` + `viewer/simRows.ts` + `viewer/simWindow.ts` — the Sim side tab: speed, the check's progress and its Check basis card, ONE always-present summary line (result · coverage · caveat, its form measured), ONE windowed list of the timeline's marks (≤ 400 rows, rendered in portions, follows the position), filter and ‹ ›; the panel owns its focus.
 - `SettingsPanel.vue` — sub-tabbed settings; ONE guarded close path; the save status per section; 3D Viewer sections one below the other.
 - `MacrosPanel.vue` + `CodeEditor.vue` + `MacroBar.vue` — the Macros tab (a table like Tools; the editor dialog bound to the file's revision; rename in one step), the ONE CodeMirror host, the macro bar (landscape over the strip, portrait under the viewer).
