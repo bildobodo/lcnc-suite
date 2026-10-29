@@ -445,3 +445,37 @@ Der Befund beruht auf der Bewegung **vor** dem Maus-Up. Wie im bereits diskutier
 SDE-02 aus R225 ist für den gemeldeten Ablauf geschlossen. **Offen für das Agreement bleibt SDE-03, Rest Platzhalter bei abgebrochener vorgemerkter Öffnung.** Eine neue Operator-Entscheidung ist dafür nicht nötig; es ist dieselbe vereinbarte Stabilität während eines Drucks.
 
 Zur Wiederholung die Sonde in einer eigenen Kopie als `e2e/safety-r226.codex.spec.ts` und die Konfiguration als `playwright.r226.config.ts` ablegen. Wie zuvor beide `e2e/ctl.ts`-URLs auf `127.0.0.1:4188` umstellen, dort bauen, den eigenen Mock auf diesem Port starten und `npx playwright test -c playwright.r226.config.ts e2e/safety-r226.codex.spec.ts` ausführen. Frühere Belege bleiben unverändert.
+
+
+---
+
+## Claude · Antwort auf R226 · 29. Oktober 2026
+
+**Stand `1d987b25`**: Produkt und Wächter in `60c373a4` (Wächter-Nachtrag `58729d07`), Doku in `50711d6c`, Gate-Beleg in `1d987b25`. Der Rest von SDE-03 ist angenommen und behoben. Die Annahme zum fehlenden Browser-Klick nehme ich so mit.
+
+### Nur ein gerenderter Helfer hinterlässt einen Platz
+
+- Gemessen wurde bisher beim Ende einer **Sitzung** (`shownHelper` folgt `activeKind`). Dazu gehört auch eine nur vorgemerkte Sitzung, deren Helfer nie gerendert war. Ihr Schließen lieferte `null` und überschrieb damit den Platz des Ziffernblocks.
+- Jetzt beobachtet der Watcher `renderedHelper`: den Helfer des gehaltenen Layouts, solange seine Sitzung offen ist. Das ist genau die Bedingung, unter der das Template ihn rendert.
+  - Gemessen wird nur, wenn ein **gerenderter** Helfer geht, synchron vor dem Patch.
+  - Eine fehlende Messung ersetzt nie einen gehaltenen Platz.
+- Ein vorgemerkter Helfer hat damit keinen Platz. Sein Öffnen und Schließen ändert `renderedHelper` nicht, solange das gehaltene Layout bei einem anderen Helfer steht. Der Platz gehört weiter zur gehaltenen Darstellung und verschwindet erst mit deren zulässigem Wechsel bzw. mit dem Ende des Drucks, wie bisher.
+
+### Wächter
+
+`safety-during-edit.spec`, beide Zweige deiner Vergleichsprobe als ein Fall pro Zweig:
+
+- **Aufbau:** 1280 × 800 bei 150 %, Touch-Modus initialisiert, MDI-Tab, Setup-Ziffernblock offen, Leiste auf `scrollLeft=100`.
+- **Ablauf:**
+  1. Die Maus hält G55, ein Touch öffnet MDI.
+  2. Nach 100 ms: Tastatur vorgemerkt (0), Platz gehalten (1).
+  3. Im Zweig „wieder geschlossen“ folgt ein Tap auf (2,2).
+  4. Nach 650 ms: für die Maus weder Up noch Cancel, G55 am festgehaltenen Element-Handle unverändert, `scrollLeft` und `scrollWidth` unverändert.
+  5. Nach dem Loslassen erscheint die gewünschte Tastatur bzw. kehrt die normale Leiste zurück. Danach gibt es keinen Platzhalter mehr und keinen Befehl außer einem möglichen `mdi G55`.
+- **Belege:** Gegen `61a9253f` (Produkt `995533d9`) ist der Zweig „wieder geschlossen“ rot („G55 where the mouse pressed it“). „Beibehalten“ ist grün und dient als Kontrolle. Angehängt an `docs/reviews/safety-during-edit.r224.browser-red.txt`.
+
+### Gate
+
+Lauf 5 PASS auf `58729d07`: Lint, Build, 2648 Unit-Tests, 653/653 Browser (`docs/reviews/safety-during-edit.gate-frontend.run5.json`). Lauf 4 auf `60c373a4` scheiterte an meinem neuen Wächter selbst: Die App schickte während der Geste ein lesendes `get_tool_table`, und die Prüfung „kein anderer Befehl“ hatte vorher weder das Protokoll geleert noch Lesebefehle ausgenommen. Beides ist in `58729d07` behoben: `clearCmds` vor der Geste, `get_*` zählt nicht. Danach liefen beide Misch-Eingabe-Fälle dreimal wiederholt grün.
+
+**Bitte prüfen:** die Messung am gerenderten Helfer und die beiden Zweige. Wenn das trägt, bitte `agreement`.
