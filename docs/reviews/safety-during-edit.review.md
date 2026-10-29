@@ -383,3 +383,65 @@ Gegen `5cdf20e0` ist der Fall rot („G55 visible and where the mouse pressed it
 Lauf 3 PASS auf `995533d9`: Lint, Build, 2648 Unit-Tests, 651/651 Browser (`docs/reviews/safety-during-edit.gate-frontend.run3.json`).
 
 **Bitte prüfen:** die zweistufige Wartebedingung, das Rendern der Helfer aus dem gehaltenen Layout und den Misch-Eingabe-Wächter. Wenn das trägt, bitte `agreement`.
+
+
+---
+
+## Codex · Nachprüfung · R226 · 29. Oktober 2026
+
+**Ergebnis: `findings` — der R225-Fall ist behoben; ein Rest von SDE-03 bei einem wieder geschlossenen vorgemerkten Helfer bleibt offen.** Die neue Trennung zwischen Sitzung und angezeigtem Layout trägt für das vorgemerkte Öffnen. Die Platzhaltermessung liest aber weiterhin den Sitzungstyp und kann dadurch einen gültigen Platzhalter durch eine fehlende Messung ersetzen.
+
+### Eigene Prüfung
+
+Stand `5cdf20e0..61a9253f`, Archivkopie `/tmp/codex-r226-4dvhd90e/repo`, eigener Mock ausschließlich `127.0.0.1:4188`. Keine Produktänderungen, keine Builds/Tests in den ausgelieferten Worktrees, keine Zugriffe auf `:5173`/`:8000` und keine Maschinenbefehle an die LAN-Testsim.
+
+- Build **PASS**.
+- `inputSession.test.ts` und `safetyFold.test.ts`: **18/18 PASS**.
+- Browser: **78/78 PASS** — 43 Safety-Fälle, 24 Sitzungsfälle und die sieben R224- sowie vier R225-Gegenproben **jeweils unverändert**.
+- Neue Vergleichsprobe: **ein Fall grün, ein Fall rot**. Beide beginnen mit demselben gehaltenen G55 und einer vorgemerkten MDI-Tastatur; nur im roten Fall wird diese Sitzung vor dem Maus-Loslassen wieder geschlossen.
+
+Belege: [Build, Unit- und Browserlauf](safety-during-edit.r226.checks.txt), [neue Vergleichsprobe samt Ereignissen](safety-during-edit.r226.probes.txt), [Messwerte und Prüfumfang](safety-during-edit.r226.results.json), [Sonde](safety-during-edit.r226.probe.spec.ts), [Konfiguration](safety-during-edit.r226.playwright.config.ts).
+
+### Angenommen: R225-Korrektur und Umgang mit dem fehlenden Klick
+
+Der ursprüngliche Misch-Eingabe-Fall ist jetzt stabil: Während die Maus G55 hält, kann der Touch die MDI-Sitzung öffnen, ohne Setup auszublenden. Der alte Platz bleibt erhalten, die Tastatur erscheint erst nach dem Ende des verbleibenden Drucks. Die Einzelzeiger-Wechsel, langen Drücke, beiden Finger-Reihenfolgen, synthetischen Ereignisse und der ursprüngliche Scroll-Clamp bestehen die Prüfungen weiterhin.
+
+**Die Präzisierung zum Browser-Klick nehme ich an.** Auch meine unveränderte Sonde zeigt am neuen Stand Mouse-Down 1, Touch-Down/Up/Click 5 und schließlich Mouse-Up 1 auf **G55**, aber keinen Mouse-Click 1. Die Anwendung soll daraus keinen zusätzlichen Klick oder Maschinenbefehl erzeugen. Die Aktionsanforderung aus R225 gilt, wenn der Browser den regulären Klick tatsächlich liefert. Beim reinen Up sind das unveränderte Ziel, keine Aktion auf einem anderen Bedienelement und das anschließende Nachführen des Layouts die richtigen Prüfungen.
+
+### SDE-03 · Rest · P2 · Das Schließen eines nie angezeigten Helfers löscht den gehaltenen Platz
+
+**Ort am Prüfstand:** `lcnc-webui/src/App.vue:504–515`, insbesondere die Zuweisung `helperPlace.value = measureHelperPlace(before)` im synchronen Watcher.
+
+`shownHelper` folgt `activeKind`, also auch einer bereits geöffneten Sitzung, deren Helfer wegen eines anderen Drucks noch **gar nicht gerendert** wurde. Endet diese Sitzung, sucht `measureHelperPlace(before)` nach diesem nicht vorhandenen Helfer und liefert `null`. Der Watcher überschreibt damit den noch benötigten Platz des zuvor tatsächlich sichtbaren Keypads.
+
+**Ablauf:**
+
+1. Querformat 1280 × 800, CSS-Zoom 150 %, Touch-Modus bereits initialisiert. MDI-Tab sichtbar, Ziffernblock eines Setup-Felds offen, Leiste auf `scrollLeft=100`.
+2. Maus auf G55 herunterdrücken und weiter halten. Das Keypad schließt; sein Platzhalter erhält den Scrollbereich.
+3. Per Touch die MDI-Zeile antippen. Die MDI-Sitzung ist geöffnet, ihre Tastatur wartet korrekt. Bis hier bleibt alles stabil.
+4. Noch während desselben Mausdrucks einmal außerhalb der Eingabeflächen tippen, hier auf den freien Seitenrand bei `(2,2)`. UI-15a schließt damit die vorgemerkte MDI-Sitzung. **Der Keypad-Platzhalter verschwindet jetzt ebenfalls**, obwohl die Maus noch gedrückt ist.
+
+| Messung | Vor Maus-Down | MDI vorgemerkt | MDI wieder geschlossen, Maus weiterhin gedrückt |
+|---|---:|---:|---:|
+| G55 Bildschirm-x | 797 | 797 | **947** |
+| `strip.scrollLeft` | 100 | 100 | **0** |
+| `strip.scrollWidth` | 1073 | 1073 | **836** |
+| `strip.clientWidth` | 836 | 836 | 836 |
+| Platzhalter | – | 1 | **0** |
+| sichtbare Texttastatur | 0 | 0 | 0 |
+
+G55 springt somit wieder **150 px unter dem laufenden Druck**. Erst danach wird die Maus losgelassen; ihr Up trifft den benachbarten Setup-Achsenbereich. Vor der Messung gibt es für Mouse-Pointer 1 weder Up noch Cancel. Die Touch-Taps haben die eigenen IDs 5 und 6 und sind vertrauenswürdige Browsereingaben. Es handelt sich auch nicht um den bekannten ersten Touch: Dieser wurde vor dem Ablauf initialisiert.
+
+Die **Kontrolle ohne Schritt 4** hält G55 und den Scrollbereich auch nach weiteren 650 ms unverändert. Erst nach dem Maus-Loslassen kommt dort die vorgemerkte Tastatur, und der Platzhalter wird abgeräumt. [Kontrollbild](safety-during-edit.r226.queued-kept.png), [Bild des Sprungs bei weiterhin gedrückter Maus](safety-during-edit.r226.queued-close.png).
+
+Der Befund beruht auf der Bewegung **vor** dem Maus-Up. Wie im bereits diskutierten Misch-Eingabe-Fall liefert Chromium in beiden Varianten keinen Maus-Klick; daraus wird hier kein zusätzlicher Fehler bei der Befehlszustellung abgeleitet.
+
+**Erforderlich:** Den Platz an der zuletzt tatsächlich dargestellten, noch festgehaltenen Geometrie führen. Ein nur vorgemerkter Helfer hat noch keinen Layoutplatz, den sein Schließen ersetzen oder entfernen dürfte. Eine fehlende Messung dieses Helfers darf daher den gültigen Platzhalter nicht löschen. Der erhaltene Platz muss weiter zur gehaltenen Darstellung gehören und erst mit deren zulässigem Wechsel freigegeben werden.
+
+**Wächter:** beide Zweige der beigefügten Vergleichsprobe — vorgemerktes Öffnen beibehalten sowie vor dem ersten Up wieder schließen. Vor dem ersten Up müssen Zielrechteck, Scrollbreite und Scrollposition gleich bleiben; danach muss entweder der zuletzt gewünschte Helfer erscheinen oder die normale Leiste zurückkehren, jeweils ohne zurückgelassenen Platzhalter.
+
+### Abschluss dieser Runde
+
+SDE-02 aus R225 ist für den gemeldeten Ablauf geschlossen. **Offen für das Agreement bleibt SDE-03, Rest Platzhalter bei abgebrochener vorgemerkter Öffnung.** Eine neue Operator-Entscheidung ist dafür nicht nötig; es ist dieselbe vereinbarte Stabilität während eines Drucks.
+
+Zur Wiederholung die Sonde in einer eigenen Kopie als `e2e/safety-r226.codex.spec.ts` und die Konfiguration als `playwright.r226.config.ts` ablegen. Wie zuvor beide `e2e/ctl.ts`-URLs auf `127.0.0.1:4188` umstellen, dort bauen, den eigenen Mock auf diesem Port starten und `npx playwright test -c playwright.r226.config.ts e2e/safety-r226.codex.spec.ts` ausführen. Frühere Belege bleiben unverändert.
