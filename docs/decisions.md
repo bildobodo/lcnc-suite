@@ -9682,3 +9682,14 @@ measured size while the press holds (`helperPlace` in App.vue). Guards: seven ne
 `safety-during-edit.spec` (long presses on G55 and Setup's help, two fingers in both orders, the
 scroll clamp — 6 red at 3c24fbea; cancel and release-without-click as controls) and the per-pointer
 rules in `inputSession.test`.
+
+**Codex R225: an opening waits too.** One rest of SDE-02: `heldThroughPress` held only a CLOSE,
+so a touch that opened the MDI keyboard while the mouse still held G55 hid Setup under the mouse
+(its release hit Backspace). Now a close waits for every press to END and an opening or a switch
+for every press to have had its CLICK — the click that opened it has, a pointer still down has
+not — and the helpers render from the held layout (the new one appears when the layout follows,
+the closed one keeps its measured place until then). Chrome dispatches no click for that mouse
+(the tap's compatibility mouse events reset its click target), so the guard holds what is ours:
+G55 visible and unmoved until the release, the release on G55 and nothing else hit, then the
+keyboard (red at 5cdf20e0).
+
