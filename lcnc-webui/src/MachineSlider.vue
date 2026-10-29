@@ -32,6 +32,6 @@ function onInput(e: Event) {
 </script>
 
 <template>
-  <input @input="onInput" v-bind="$attrs" type="range" :disabled="isDisabled" :min="min" :max="max" :step="step" :value="model" @contextmenu.prevent
+  <input @input="onInput" v-bind="$attrs" :data-control="gate" type="range" :disabled="isDisabled" :min="min" :max="max" :step="step" :value="model" @contextmenu.prevent
          :title="explainActive ? explainReason : ($attrs.title as string | undefined)" @pointerdown="explain">
 </template>

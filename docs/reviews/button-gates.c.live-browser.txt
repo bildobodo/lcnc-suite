@@ -1,0 +1,35 @@
+# package C live check on the gates sim (worktree 6d82b37b, built dist), the page never armed; helper fixed to a never-armed connection (its first run's 'disarmed' shutdown came from an armed SimulatorClient — the gateway rightly obeyed and the sim ended)
+  PASS  C0 a disarmed connection's shutdown is refused; LinuxCNC runs on
+  PASS  C1 every tab and sub-tab opens; Settings: protected dimmed with its reason, display free, X closes
+  PASS  C2 the browser opens a folder and goes back; a file row is closed with its reason
+  PASS  C3 the jog step changes; the MDI draft stays after Enter with its reason; the interpreter stays idle
+  PASS  C4 a program started elsewhere: the disarmed page's Pause pauses it, its Abort ends it
+{
+ "results": [
+  [
+   "C0 a disarmed connection's shutdown is refused; LinuxCNC runs on",
+   "PASS",
+   "{\"reply\":{\"ok\":false,\"error\":\"shutdown refused: Not armed — press Arm\"},\"linuxcnc_alive\":true}"
+  ],
+  [
+   "C1 every tab and sub-tab opens; Settings: protected dimmed with its reason, display free, X closes",
+   "PASS",
+   " protDim=true why=Not armed — press Arm dispFree=true closed=true"
+  ],
+  [
+   "C2 the browser opens a folder and goes back; a file row is closed with its reason",
+   "PASS",
+   "dim=true why=inner.ngc — Not armed — press Arm back=true"
+  ],
+  [
+   "C3 the jog step changes; the MDI draft stays after Enter with its reason; the interpreter stays idle",
+   "PASS",
+   "step=true kept=G4 P0.1 hint=Not armed — press Arm interp=1"
+  ],
+  [
+   "C4 a program started elsewhere: the disarmed page's Pause pauses it, its Abort ends it",
+   "PASS",
+   "run={\"task_mode\":2,\"interp_state\":4,\"paused\":false,\"task_state\":4,\"file\":\"/home/cnc/linuxcnc/nc_files/bg_c_dwell_200927.ngc\"} paused=true after={\"task_mode\":2,\"interp_state\":1,\"paused\":false,\"task_state\":4,\"file\":\"/home/cnc/linuxcnc/nc_files/bg_c_dwell_200927.ngc\"}"
+  ]
+ ]
+}

@@ -21,15 +21,13 @@ import {
   type LogicalButton, type LogicalState, type LogicalStick, type MappingSource,
 } from "./gamepadProfile";
 import { status } from "./lcncWs";
+import { JogGestures } from "./jogGesture";
+import { ACTION_GATES, startAdmitted, type StartContext } from "./actionAdmission";
+import type { Permissions as AllPermissions } from "./permissions";
 
-interface Permissions {
-  jog: boolean;
-  idle: boolean;
-  ready: boolean;
-  abort: boolean;
-  pause: boolean;
-  resume: boolean;
-}
+/** The classes the pad reads: the jog, and each action's own gate
+ *  (actionAdmission.ts ACTION_GATES — the screen control's). */
+type Permissions = Pick<AllPermissions, "jog" | (typeof ACTION_GATES)[keyof typeof ACTION_GATES]>;
 
 type GateKey = keyof Permissions;
 
@@ -43,6 +41,7 @@ const VEL_EPSILON = 0.10;
 const PAD_SWITCH_IDLE_MS = 1500;
 
 const NO_BUTTONS: Record<LogicalButton, boolean> = resolveLogical([], [], null).buttons;
+const DPAD_BUTTONS: readonly LogicalButton[] = ["dpad_up", "dpad_down", "dpad_left", "dpad_right"];
 
 export function useGamepad(deps: {
   jogVel: Ref<number>;
@@ -51,7 +50,12 @@ export function useGamepad(deps: {
   permissions: ComputedRef<Permissions>;
   send: (cmd: WsCommand) => void;
   fire: (cmd: WsCommand, gate?: GateKey) => void;
-  activeFile: ComputedRef<string | null>;
+  /** Start's program context (actionAdmission.ts — the button's own rule). */
+  startContext: ComputedRef<StartContext>;
+  /** Why this axis may not jog now beyond the `jog` class — before homing, an
+   *  axis the machine closes (package E, jointJog.ts); null when it may. A
+   *  stop is never refused. */
+  jogAxisRefusal: (axis: number) => string | null;
   config: Ref<GamepadDefaults>;
   /** Machine axis letters (viewer_init.axes) — X/Y/Z resolved by letter. */
   axes: ComputedRef<string[]>;
@@ -72,8 +76,14 @@ export function useGamepad(deps: {
   // Last time the ACTIVE pad had any raw button pressed (pad-switch arbiter).
   let lastButtonActivity = 0;
 
-  // Per-axis tracking: last velocity we sent
+  // Per-axis tracking: last velocity the ANALOG sticks sent (the D-pad's
+  // gestures are their own, below — a stick at rest must not stop a D-pad jog
+  // it never started)
   const lastSentVel: number[] = [];
+  // The D-pad jogs in progress, each with what it STARTED (button gates
+  // BG-06): its release stops that axis — not the one the Z modifier or the
+  // step selector would name by then.
+  const dpadJogs = new JogGestures<LogicalButton>();
   // Per-axis: last send timestamp
   const lastSendTime: number[] = [];
   // Button edge detection (logical)
@@ -93,6 +103,20 @@ export function useGamepad(deps: {
         lastSentVel[i] = 0;
       }
     }
+    for (const k of Object.keys(stickMaxVel)) delete stickMaxVel[Number(k)];
+    for (const c of dpadJogs.endAll()) deps.send(c);
+  }
+
+  // A stick gesture keeps the maximum speed it started with (button gates
+  // BG-05): the jog speed is a free preselection for the NEXT jog, and a
+  // slider moved mid-gesture must not speed up a running one. Taken when the
+  // axis leaves the dead zone, held through a reversal, dropped back in the
+  // dead zone or on a stop.
+  const stickMaxVel: Record<number, number> = {};
+  function gestureMaxVel(axis: number, deflection: number): number {
+    if (deflection === 0) { delete stickMaxVel[axis]; return 0; }
+    stickMaxVel[axis] ??= deps.jogVel.value;
+    return stickMaxVel[axis];
   }
 
   function sendJog(axis: number, vel: number, now: number) {
@@ -108,6 +132,9 @@ export function useGamepad(deps: {
       lastSendTime[axis] = now;
       return;
     }
+
+    // An axis closed before homing starts nothing (its stop above is never refused)
+    if (deps.jogAxisRefusal(axis)) return;
 
     // DIRECTION CHANGE: stop first, then start in new direction
     if (prev !== 0 && Math.sign(vel) !== Math.sign(prev)) {
@@ -129,7 +156,7 @@ export function useGamepad(deps: {
     // VELOCITY UPDATE: heavily throttled to avoid command queue buildup
     const dt = now - prevTime;
     const dv = Math.abs(vel - prev);
-    if (dt < VEL_UPDATE_INTERVAL || dv < Math.abs(deps.jogVel.value * VEL_EPSILON)) {
+    if (dt < VEL_UPDATE_INTERVAL || dv < Math.abs((stickMaxVel[axis] ?? deps.jogVel.value) * VEL_EPSILON)) {
       return;
     }
 
@@ -142,9 +169,12 @@ export function useGamepad(deps: {
   function dispatchAction(action: GamepadAction) {
     const perms = deps.permissions.value;
     switch (action) {
+      // Every action admits as its screen control does (button gates BG-10,
+      // actionAdmission.ts): Start `run` + the program context, Home All
+      // `zero`, the coolant `override`.
       case "start":
-        if (perms.resume) deps.fire({ cmd: "cycle_resume" }, 'resume');
-        else if (perms.ready && deps.activeFile.value) deps.fire({ cmd: "cycle_start" }, 'ready');
+        if (perms.resume) deps.fire({ cmd: "cycle_resume" }, ACTION_GATES.resume);
+        else if (startAdmitted(perms, deps.startContext.value)) deps.fire({ cmd: "cycle_start" }, ACTION_GATES.start);
         break;
       case "pause":
         if (perms.pause) deps.fire({ cmd: "cycle_pause" }, 'pause');
@@ -159,22 +189,23 @@ export function useGamepad(deps: {
         deps.send({ cmd: "estop" }); // no permission gate — E-Stop must always work
         break;
       case "spindle_stop":
-        if (perms.ready) deps.fire({ cmd: "spindle_stop" }, 'ready');
+        // the spindle stop at idle needs no homing (button gates BG-18)
+        if (perms.spindleStop) deps.fire({ cmd: "spindle_stop" }, 'spindleStop');
         break;
       case "flood_toggle": {
-        if (!perms.ready) break;
+        if (!perms[ACTION_GATES.coolant]) break;
         const floodOn = !!status.value?.data?.flood;
-        deps.fire({ cmd: floodOn ? "flood_off" : "flood_on" }, 'ready');
+        deps.fire({ cmd: floodOn ? "flood_off" : "flood_on" }, ACTION_GATES.coolant);
         break;
       }
       case "mist_toggle": {
-        if (!perms.ready) break;
+        if (!perms[ACTION_GATES.coolant]) break;
         const mistOn = !!status.value?.data?.mist;
-        deps.fire({ cmd: mistOn ? "mist_off" : "mist_on" }, 'ready');
+        deps.fire({ cmd: mistOn ? "mist_off" : "mist_on" }, ACTION_GATES.coolant);
         break;
       }
       case "home_all":
-        if (perms.idle) deps.fire({ cmd: "home_all" }, 'idle');
+        if (perms[ACTION_GATES.homeAll]) deps.fire({ cmd: "home_all" }, ACTION_GATES.homeAll);
         break;
       // z_mod, dead_man, none are not dispatchable actions
     }
@@ -298,60 +329,42 @@ export function useGamepad(deps: {
     const rz = applyDeadZone(logical.sticks.rz, cfg.deadZone) * (cfg.invertZ ? -1 : 1);
 
     if (canJogNow) {
-      const maxVel = deps.jogVel.value;
-      if (xi >= 0) sendJog(xi, lx * maxVel, now);
-      if (yi >= 0) sendJog(yi, ly * maxVel, now);
-      if (zi >= 0) sendJog(zi, rz * maxVel, now);
+      if (xi >= 0) sendJog(xi, lx * gestureMaxVel(xi, lx), now);
+      if (yi >= 0) sendJog(yi, ly * gestureMaxVel(yi, ly), now);
+      if (zi >= 0) sendJog(zi, rz * gestureMaxVel(zi, rz), now);
     } else if (!deadManOk || !canJog || !cfg.jogEnabled) {
       // Lost permission, dead man released, or jog disabled — stop everything
       stopAllJog();
     }
 
     // ── D-pad → discrete jog ──
+    // A release ends the gesture its press STARTED (BG-06) — checked on
+    // every frame, whatever the jog gate, the Z modifier or the step say now.
+    for (const btn of DPAD_BUTTONS) {
+      if (!logical.buttons[btn] && prevButtons[btn]) {
+        const stop = dpadJogs.end(btn);
+        if (stop) deps.send(stop);
+      }
+    }
     if (canJogNow) {
       // D-pad: full-speed jog or incremental (machine indices by letter,
-      // pairs dropped when the machine lacks the axis)
-      const dpadAxes: [LogicalButton, number, number][] = [];
-      if (xi >= 0) dpadAxes.push(["dpad_right", xi, 1], ["dpad_left", xi, -1]);
-      if (yi >= 0) dpadAxes.push(["dpad_up", yi, 1], ["dpad_down", yi, -1]);
-
-      // Check if z_mod button is held
+      // pairs dropped when the machine lacks the axis); up/down jog Z while
+      // the Z modifier is held at the press
       const zModHeld = isActionHeld(logical.buttons, "z_mod");
-
-      for (const [btn, axis, dir] of dpadAxes) {
-        const pressed = logical.buttons[btn];
-        const wasPressed = prevButtons[btn];
-
-        if (zModHeld && (btn === "dpad_up" || btn === "dpad_down")) {
-          // Z axis via D-pad + z_mod
-          if (pressed && !wasPressed && zi >= 0) {
-            const zDir = btn === "dpad_up" ? 1 : -1;
-            const vel = deps.jogVel.value * zDir;
-            if (deps.jogIncrement.value > 0) {
-              deps.send({ cmd: "jog_incr", axis: zi, vel, distance: deps.jogIncrement.value * zDir });
-            } else {
-              deps.send({ cmd: "jog_cont", axis: zi, vel });
-              lastSentVel[zi] = vel;
-            }
-          } else if (!pressed && wasPressed && deps.jogIncrement.value <= 0 && zi >= 0) {
-            deps.send({ cmd: "jog_stop", axis: zi });
-            lastSentVel[zi] = 0;
-          }
-          continue;
+      for (const btn of DPAD_BUTTONS) {
+        if (!logical.buttons[btn] || prevButtons[btn] || dpadJogs.has(btn)) continue;
+        const vertical = btn === "dpad_up" || btn === "dpad_down";
+        const dir = btn === "dpad_up" || btn === "dpad_right" ? 1 : -1;
+        const axis = vertical ? (zModHeld ? zi : yi) : xi;
+        if (axis < 0 || deps.jogAxisRefusal(axis)) continue;
+        const vel = deps.jogVel.value * dir;
+        const step = deps.jogIncrement.value;
+        if (step > 0) {
+          deps.send({ cmd: "jog_incr", axis, vel, distance: step * dir });
+        } else {
+          deps.send({ cmd: "jog_cont", axis, vel });
         }
-
-        if (pressed && !wasPressed) {
-          const vel = deps.jogVel.value * dir;
-          if (deps.jogIncrement.value > 0) {
-            deps.send({ cmd: "jog_incr", axis, vel, distance: deps.jogIncrement.value * dir });
-          } else {
-            deps.send({ cmd: "jog_cont", axis, vel });
-            lastSentVel[axis] = vel;
-          }
-        } else if (!pressed && wasPressed && deps.jogIncrement.value <= 0) {
-          deps.send({ cmd: "jog_stop", axis });
-          lastSentVel[axis] = 0;
-        }
+        dpadJogs.start(btn, { axes: [axis], cont: !(step > 0) });
       }
     }
 

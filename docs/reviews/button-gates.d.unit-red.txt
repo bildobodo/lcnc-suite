@@ -1,0 +1,109 @@
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite-gates/lcnc-webui
+
+ ❯ src/actionAdmission.test.ts (6 tests | 4 failed) 12ms
+     × Start: a stranded Plane state (ready, not run) starts nothing 4ms
+     × Start: editing or a load in flight starts nothing; the admitted start fires under run 3ms
+     × Home All: idle with surface compensation on (zero closed) homes nothing; zero homes 2ms
+     × Coolant: a running program (ready closed, override open) toggles it, under override 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/actionAdmission.test.ts > the gamepad admits as the screen does (BG-10) > Start: a stranded Plane state (ready, not run) starts nothing
+TypeError: Cannot read properties of undefined (reading 'value')
+ ❯ dispatchAction src/useGamepad.ts:170:49
+    168|       case "start":
+    169|         if (perms.resume) deps.fire({ cmd: "cycle_resume" }, 'resume');
+    170|         else if (perms.ready && deps.activeFile.value) deps.fire({ cmd…
+       |                                                 ^
+    171|         break;
+    172|       case "pause":
+ ❯ pollLoop src/useGamepad.ts:370:13
+ ❯ tick src/actionAdmission.test.ts:51:55
+ ❯ press src/actionAdmission.test.ts:54:5
+ ❯ src/actionAdmission.test.ts:81:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/actionAdmission.test.ts > the gamepad admits as the screen does (BG-10) > Start: editing or a load in flight starts nothing; the admitted start fires under run
+AssertionError: expected [] to deeply equal [ [ { cmd: 'cycle_start' }, 'run' ] ]
+
+- Expected
++ Received
+
+- [
+-   [
+-     {
+-       "cmd": "cycle_start",
+-     },
+-     "run",
+-   ],
+- ]
++ []
+
+ ❯ src/actionAdmission.test.ts:94:19
+     92|     ctx.value = READY_CTX;
+     93|     press(BTN_A);
+     94|     expect(fired).toEqual([[{ cmd: "cycle_start" }, "run"]]);
+       |                   ^
+     95|   });
+     96|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/actionAdmission.test.ts > the gamepad admits as the screen does (BG-10) > Home All: idle with surface compensation on (zero closed) homes nothing; zero homes
+AssertionError: expected [ [ { cmd: 'home_all' }, 'idle' ] ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   [
++     {
++       "cmd": "home_all",
++     },
++     "idle",
++   ],
++ ]
+
+ ❯ src/actionAdmission.test.ts:100:19
+     98|     perms.value = { idle: true, zero: false };
+     99|     press(BTN_B);
+    100|     expect(fired).toEqual([]);
+       |                   ^
+    101|     perms.value = { zero: true };
+    102|     press(BTN_B);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/actionAdmission.test.ts > the gamepad admits as the screen does (BG-10) > Coolant: a running program (ready closed, override open) toggles it, under override
+AssertionError: expected [] to deeply equal [ [ 'flood_on', 'override' ] ]
+
+- Expected
++ Received
+
+- [
+-   [
+-     "flood_on",
+-     "override",
+-   ],
+- ]
++ []
+
+ ❯ src/actionAdmission.test.ts:109:53
+    107|     perms.value = { ready: false, override: true };
+    108|     press(BTN_X);
+    109|     expect(fired.map(([c, gate]) => [c.cmd, gate])).toEqual([["flood_o…
+       |                                                     ^
+    110|     fired = [];
+    111|     perms.value = { ready: true, override: false };
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 2 passed (6)
+   Start at  11:47:34
+   Duration  308ms (transform 156ms, setup 0ms, import 229ms, tests 12ms, environment 0ms)
+

@@ -9,7 +9,7 @@ import MoreMenu from "./MoreMenu.vue";
 import { closeTextSessionIf, EDITOR_OWNER } from "./inputSession";
 import { splitSubLines, expansionAllowed, totalRows, rowAt, rowForMain, rowForSub, type SubExpansion } from "./subRows";
 import { usePermissions } from "./permissions";
-import { loadMachineDefaults, saveMachineDefaults, settingsVersion } from "./defaults";
+import { loadMachineDraft, saveMachineDefaults, settingsVersion } from "./defaults";
 import { confirmedToolsetter } from "./toolsetterVars";
 import { scanToolchangesBefore, scanEntryPositionBefore, revisionParts, type RflToolchangeScan, type RflEntryScan, type RflRunOptions } from "./gcodeRfl";
 import { highlightGcode, type Token } from "./gcodeHighlight";
@@ -32,6 +32,7 @@ import MachineInput from "./MachineInput.vue";
 import MachineToggle from "./MachineToggle.vue";
 import FileBrowser from "./FileBrowser.vue";
 import CodeEditor from "./CodeEditor.vue";
+import { START_REASONS, startRefusal } from "./actionAdmission";
 export interface GcodeStats {
   feedMoves: number;
   rapidMoves: number;
@@ -439,6 +440,10 @@ function violationText(v: LimitViolation): string {
 
 /** ---------- File browser ---------- */
 const showBrowser = ref(false);
+// The browser closes with the load's class (package F): its toggle is closed
+// then, so an open browser could not be closed any more — and it can load
+// nothing (a disarm, a program start).
+watch(() => can.value.programLoad, (open) => { if (!open) showBrowser.value = false; });
 const currentSubdir = ref("");
 const loading = ref(false);
 const uploadError = ref<string | null>(null);
@@ -549,7 +554,7 @@ function onDragLeave(_e: DragEvent) {
 
 function onDrop(e: DragEvent) {
   dragOver.value = false;
-  if (!can.value.setup || editing.value) return;
+  if (!can.value.sourceWrite || editing.value) return;
   const file = e.dataTransfer?.files[0];
   if (file) handleUpload(file);
 }
@@ -602,7 +607,7 @@ const programHoldKey = computed(() => `${props.activeFile ?? ""}|${props.program
 // on the text the operator sees, and the entry position Run from line
 // sends is read from it.
 const programLoading = computed(() => props.programRevision !== props.programTextRevision);
-const LOADING_REASON = "Loading program — wait";
+const LOADING_REASON = START_REASONS.loading;
 
 // The run options sit in the More panel (operator 2026-10-02): an option
 // that is ON stays named on More, open or closed — it changes how the
@@ -619,8 +624,10 @@ function dropSelection() {
 watch(() => props.activeFile, dropSelection);
 watch(() => props.gcodeContent, (now, before) => { if (now !== before) dropSelection(); });
 
+// The run-from-line dialog is a form: it shows — and starts with — this
+// tab's latest values, confirmed or not (button gates BG-19).
 function readRflDefaults() {
-  const mach = loadMachineDefaults();
+  const mach = loadMachineDraft();
   dialogSpindleDir.value = mach.rflSpindleDir;
   dialogSpindleSpeed.value = mach.rflSpindleRpm;
   dialogSafeZ.value = mach.rflSafeZ;
@@ -677,7 +684,7 @@ function confirmRunFromLine() {
   const parts = revisionParts(props.programTextRevision);
   if (!selectedLine.value || rflBlocked.value || programLoading.value || !parts) return;
   const program = { ...parts, source: props.programTextSource };
-  const mach = loadMachineDefaults();
+  const mach = loadMachineDraft();
   if (mach.rflSafeZ !== dialogSafeZ.value) {
     saveMachineDefaults({ ...mach, rflSafeZ: dialogSafeZ.value });
   }
@@ -704,6 +711,9 @@ function confirmRunFromLine() {
 // renders only the viewport, so the main thread stays free regardless of file
 // size — the same virtualization principle as the read-only viewer above.
 const editing = ref(false);
+// Start's admission beyond its `run` gate — the shortcut and the gamepad
+// refuse by the same rule (button gates BG-10, actionAdmission.ts).
+const startBlock = computed(() => startRefusal({ activeFile: props.activeFile, editing: editing.value, loading: programLoading.value }));
 // Portrait edit mode folds the file ops, the run controls and the progress
 // row: none can act while a session is open (Start/Step/Browse/Upload say
 // "Finish or discard the edit first"), and the side pane is what the
@@ -856,9 +866,9 @@ async function saveEdit() {
       <div v-if="!compactEdit" class="ctrlRow actionGroup">
         <!-- A hold bound to the program (D6) — a tap when it only opens the
              Run-from-line dialog (no motion yet; the dialog's action holds) -->
-        <MachineBtn type="start" class="ctrlBtn" @click="onStartClick" :disabled="!activeFile || editing || programLoading"
+        <MachineBtn type="start" class="ctrlBtn" @click="onStartClick" :disabled="!!startBlock"
           :hold="!opensRunDialog" :hold-key="programHoldKey"
-          :reason="editing ? 'Finish or discard the edit first' : !activeFile ? 'No program loaded' : programLoading ? LOADING_REASON : undefined">
+          :reason="startBlock ?? undefined">
           <Play :size="14" class="ctrlIcon" /> {{ selectedLine && selectedLine > 1 ? `Start L${selectedLine}` : 'Start' }}
         </MachineBtn>
         <!-- Step and Pause / Resume are symbols in the narrow pane
@@ -878,7 +888,7 @@ async function saveEdit() {
             <MachineToggle gate="optionalStop" v-model="optionalStopModel" label="M01" />
             <MachineToggle gate="blockDelete" v-model="blockDeleteModel" label="/BD" />
           </div>
-          <MachineBtn type="fileOp" class="actionBtn" @click="enterEdit" :disabled="!activeFile || editing">
+          <MachineBtn type="sourceOp" class="actionBtn" @click="enterEdit" :disabled="!activeFile || editing">
             Edit
           </MachineBtn>
           <MachineBtn type="fileOp" class="actionBtn" @click="reloadFile" :disabled="!activeFile || loading || editing">
@@ -888,12 +898,14 @@ async function saveEdit() {
             :reason="editing ? 'Finish or discard the edit first' : undefined">
             Unload
           </MachineBtn>
-          <!-- ONE files toggle (N82): pressed while the browser shows -->
+          <!-- ONE files toggle (N82): pressed while the browser shows. In
+               this tab the browser exists to load: the load's class
+               (`fileOp` = programLoad, package F, operator 2026-10-28). -->
           <MachineBtn type="fileOp" class="actionBtn" :selected="showBrowser" :aria-pressed="showBrowser" @click="toggleBrowser"
             :disabled="loading || editing" :reason="editing ? 'Finish or discard the edit first' : undefined">
             Files
           </MachineBtn>
-          <MachineBtn type="fileOp" class="actionBtn" @click="($refs.fileInput as HTMLInputElement).click()" :disabled="editing"
+          <MachineBtn type="sourceOp" class="actionBtn" @click="($refs.fileInput as HTMLInputElement).click()" :disabled="editing"
             :reason="editing ? 'Finish or discard the edit first' : undefined">
             Upload
           </MachineBtn>
@@ -939,14 +951,14 @@ async function saveEdit() {
 
     <!-- Shared file browser: same navigation and file rows as Tools. -->
     <FileBrowser v-if="showBrowser" v-model:subdir="currentSubdir" label="Server programs"
-      empty-text="No program files found" :active-file="activeFile"
+      empty-text="No program files found" :active-file="activeFile" file-gate="programLoad"
       :load-directory="browsePrograms" :select-file="selectFile" />
 
     <!-- Code area wrapper (drop overlay target) -->
     <div v-show="!showBrowser || activeFile || editing" class="codeArea">
       <!-- Drop overlay -->
-      <div v-if="dragOver" class="dropOverlay stack-sections" :class="{ denied: !can.setup }">
-        <svg v-if="can.setup" class="dropIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <div v-if="dragOver" class="dropOverlay stack-sections" :class="{ denied: !can.sourceWrite }">
+        <svg v-if="can.sourceWrite" class="dropIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
           <polyline points="7 10 12 15 17 10"/>
           <line x1="12" y1="15" x2="12" y2="3"/>
@@ -955,7 +967,7 @@ async function saveEdit() {
           <circle cx="12" cy="12" r="10"/>
           <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
         </svg>
-        <div class="dropText">{{ can.setup ? 'Drop program file to upload' : 'Not permitted' }}</div>
+        <div class="dropText">{{ can.sourceWrite ? 'Drop program file to upload' : 'Not permitted' }}</div>
       </div>
 
       <!-- Line numbers belong to a called sub / remap, not this file: the run
@@ -1060,7 +1072,7 @@ async function saveEdit() {
 
     <!-- Upload name conflict (UI-09): the gateway refused to replace. A form
          (a new name), so the backdrop does nothing (N41); Cancel stays
-         outside the setup Gate — the dialog always closes. -->
+         outside the write Gate — the dialog always closes. -->
     <DialogFrame v-if="uploadConflict" kind="form" size="md" title="Upload Conflict">
       <div class="dialogContent stack-controls">
         <div class="dialogBody">
@@ -1075,9 +1087,9 @@ async function saveEdit() {
       </div>
       <template #actions>
         <MachineBtn type="dialogCancel" @click="uploadConflict = null">Cancel</MachineBtn>
-        <Gate gate="setup" class="row-controls">
-          <MachineBtn type="fileOp" :disabled="!uploadRenameValid" @click="uploadRename">Rename</MachineBtn>
-          <MachineBtn type="dialogDangerSetup" @click="uploadReplace">Replace</MachineBtn>
+        <Gate gate="sourceWrite" class="row-controls">
+          <MachineBtn type="sourceOp" :disabled="!uploadRenameValid" @click="uploadRename">Rename</MachineBtn>
+          <MachineBtn type="sourceDanger" @click="uploadReplace">Replace</MachineBtn>
         </Gate>
       </template>
     </DialogFrame>
@@ -1153,7 +1165,9 @@ async function saveEdit() {
 
         <template #actions>
           <MachineBtn type="dialogCancel" @click="showRunDialog = false">Cancel</MachineBtn>
-          <Gate gate="ready" class="row-controls">
+          <!-- A program start: the `run` rule, the kinematics included — the
+               same gate App.runFromLine() fires under (button gates BG-09) -->
+          <Gate gate="run" class="row-controls">
             <!-- Starting motion is a hold (D6): bound to the program and the line -->
             <MachineBtn type="dialogConfirm" :disabled="rflBlocked || programLoading || rflSetterUnset" :reason="programLoading ? LOADING_REASON : rflSetterUnset ? rflSetterReason : undefined" hold :hold-key="`${programHoldKey}:${selectedLine}`" @click="confirmRunFromLine">{{ rflPreTool > 0 ? `Measure T${rflPreTool} + Run from Line ${selectedLine}` : `Run from Line ${selectedLine}` }}</MachineBtn>
           </Gate>

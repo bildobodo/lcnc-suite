@@ -7,6 +7,7 @@ import { loadMachineDefaults, type ToolChangeMode } from "./defaults";
 import { TOOL_TYPE_LABELS, toolTypeLabel } from "./toolTypes";
 import { fmtCell } from "./format";
 import { authHeaders } from "./auth";
+import { connHeaders } from "./connKey";
 import { CircleDot, Pencil, Trash2, X } from "lucide-vue-next";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
@@ -315,7 +316,7 @@ function saveEdit() {
     : isNewTool.value
       ? { cmd: "add_tool" as const, ...buildToolMsg(form) }
       : { cmd: "save_tool" as const, ...buildToolMsg(form) };
-  const id = fire(payload, "setup");
+  const id = fire(payload, "toolTableWrite");
   if (id === null) return;                       // nothing sent — fire() said why; no pending
   saveSession.value = { id, cmd: payload.cmd };
   saving.value = true;
@@ -391,7 +392,7 @@ function requestDelete(toolNum: number) {
 function confirmDelete() {
   if (deletingTool.value == null || deleteSession.value) return;
   deleteError.value = null;
-  const id = fire({ cmd: "delete_tool", tool_number: deletingTool.value }, "setup");
+  const id = fire({ cmd: "delete_tool", tool_number: deletingTool.value }, "toolTableWrite");
   if (id === null) return;
   deleteSession.value = { id };
 }
@@ -524,7 +525,8 @@ async function confirmImport() {
     const refresh = importMode.value === "metadata";
     if (refresh) form.append("revision", importRefresh.value!.revision);
     const endpoint = refresh ? "/import-tool-library/refresh" : "/import-tool-library/apply";
-    const resp = await fetch(endpoint, { method: "POST", headers: authHeaders(), body: form });
+    // a protected write names its connection (button gates BG-14)
+    const resp = await fetch(endpoint, { method: "POST", headers: { ...authHeaders(), ...connHeaders() }, body: form });
     if (!resp.ok) {
       let body: any = null;
       try {
@@ -688,8 +690,8 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showI
       <div v-if="deleteError" class="statusNote error" role="alert"><span>{{ deleteError }}</span></div>
       <template #actions>
         <MachineBtn type="dialogCancel" :disabled="!!deleteSession" @click="cancelDelete">Cancel</MachineBtn>
-        <Gate gate="setup" class="row-controls">
-          <MachineBtn type="dialogDangerSetup" :disabled="!!deleteSession" @click="confirmDelete">{{ deleteSession ? 'Deleting…' : 'Delete' }}</MachineBtn>
+        <Gate gate="toolTableWrite" class="row-controls">
+          <MachineBtn type="toolDanger" :disabled="!!deleteSession" @click="confirmDelete">{{ deleteSession ? 'Deleting…' : 'Delete' }}</MachineBtn>
         </Gate>
       </template>
     </DialogFrame>
@@ -836,8 +838,8 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showI
 
           <template #actions>
             <MachineBtn type="dialogCancel" :disabled="saving" @click="closeEditModal">Cancel</MachineBtn>
-            <Gate gate="setup" class="row-controls">
-              <MachineBtn type="fileSave" :disabled="saving" @click="saveEdit">{{ saving ? 'Saving…' : isNewTool ? "Add" : "Save" }}</MachineBtn>
+            <Gate gate="toolTableWrite" class="row-controls">
+              <MachineBtn type="toolSave" :disabled="saving" @click="saveEdit">{{ saving ? 'Saving…' : isNewTool ? "Add" : "Save" }}</MachineBtn>
             </Gate>
           </template>
     </DialogFrame>
@@ -916,10 +918,11 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showI
           </div>
           <template #actions>
             <MachineBtn type="dialogCancel" :disabled="importBusy" :title="importBusy ? 'Import in progress' : undefined" @click="cancelImport">Cancel</MachineBtn>
-            <Gate gate="setup" class="row-controls">
-              <MachineBtn v-if="importError && importFile" type="fileOp" :disabled="importBusy"
-                @click="previewImportFile(importFile)">Preview again</MachineBtn>
-              <MachineBtn type="fileSave" @click="requestImport" :disabled="!canConfirmImport">
+            <!-- a preview reads: free (BG-14); applying is toolTableWrite -->
+            <MachineBtn v-if="importError && importFile" type="fileBrowse" :disabled="importBusy"
+              @click="previewImportFile(importFile)">Preview again</MachineBtn>
+            <Gate gate="toolTableWrite" class="row-controls">
+              <MachineBtn type="toolSave" @click="requestImport" :disabled="!canConfirmImport">
                 {{ importBusy ? 'Importing…' : importMode === 'metadata' ? 'Update metadata' : 'Replace table' }}
               </MachineBtn>
             </Gate>
@@ -931,8 +934,8 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showI
       </div>
       <template #actions>
         <MachineBtn type="dialogCancel" @click="replaceConfirm = false">Cancel</MachineBtn>
-        <Gate gate="setup" class="row-controls">
-          <MachineBtn type="dialogDangerSetup" @click="confirmImport">Replace table</MachineBtn>
+        <Gate gate="toolTableWrite" class="row-controls">
+          <MachineBtn type="toolDanger" @click="confirmImport">Replace table</MachineBtn>
         </Gate>
       </template>
     </DialogFrame>
@@ -975,14 +978,15 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showI
             <td class="colNum mono">{{ fmtCell(tool.Z, 6) }}</td>
             <td class="colType">{{ toolTypeLabel(tool.type) }}</td>
             <td class="colAction colEdit">
-              <MachineBtn type="listActionSetup" @click.stop="openEdit(tool)" title="Edit tool" :aria-label="`Edit T${tool.T}`"><Pencil :size="14" /></MachineBtn>
+              <MachineBtn type="listActionTool" @click.stop="openEdit(tool)" title="Edit tool" :aria-label="`Edit T${tool.T}`"><Pencil :size="14" /></MachineBtn>
             </td>
             <td class="colAction">
               <!-- A list row's pencil / Trash2 (UI-N67): the listAction look,
-                   the setup gate; the delete asks (it cannot be undone). -->
+                   the tool-table write gate; the delete asks (it cannot be
+                   undone). -->
               <MachineBtn
                 v-if="tool.T !== currentTool"
-                type="listActionSetup"
+                type="listActionTool"
                 @click.stop="requestDelete(tool.T)"
                 title="Delete tool"
                 :aria-label="`Delete T${tool.T}`"

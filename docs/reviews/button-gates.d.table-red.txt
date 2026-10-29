@@ -1,0 +1,8 @@
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_button_gates_d.py:14: in <module>
+    from command_policy import (  # noqa: E402
+E   ImportError: cannot import name 'G30_NOT_IN_AUTO' from 'command_policy' (/home/cnc/lcnc-suite-gates-base/lcnc-gateway/command_policy.py)
+=========================== short test summary info ============================
+ERROR test_button_gates_d.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.04s

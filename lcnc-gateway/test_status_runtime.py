@@ -23,8 +23,11 @@ class _Stat:
 
 
 def _runtime(stat=None, err=None, snapshot=None, tbl_path=None,
-             library=None, fb_scale=60):
+             library=None, fb_scale=60, reader_fresh=None):
+    """`reader_fresh`: the HAL reader's freshness — by default fresh when a
+    snapshot is scripted (a reader that delivered), stale without one."""
     snap = snapshot if snapshot is not None else {}
+    fresh = (snapshot is not None) if reader_fresh is None else reader_fresh
     return StatusRuntime(
         get_stat=lambda: stat,
         get_err=lambda: err,
@@ -32,6 +35,7 @@ def _runtime(stat=None, err=None, snapshot=None, tbl_path=None,
         get_tool_tbl_path=lambda: tbl_path,
         load_tool_library=lambda: library or {},
         get_fb_scale=lambda: fb_scale,
+        get_reader_fresh=lambda: fresh,
     )
 
 
@@ -184,6 +188,41 @@ class TestPollStatus(unittest.TestCase):
         p = _runtime(stat=self._stat()).poll_status()
         self.assertIsNone(p.kins_type)
 
+    def test_a_stale_reader_s_last_values_are_no_policy_input(self):
+        # Button gates BG-12: the payload keeps the last reading for the
+        # display, the policy does not take it as the answer now.
+        stat = self._stat(g5x_index=6, actual_position=(0, 0, 0, 0.004, 0, 0, 0, 0, 0))
+        snap = {"kins_type": 2.0, "twp_active": 1, "z_eoffset_enable": False}
+        fresh = _runtime(stat=stat, snapshot=snap).poll_status()
+        stale = _runtime(stat=stat, snapshot=snap, reader_fresh=False).poll_status()
+        self.assertEqual((fresh.reader_fresh, stale.reader_fresh), (True, False))
+        self.assertEqual(stale.kins_type, 2.0, "the display keeps the last reading")
+        ps = status_runtime.policy_state_from_payload(stale, armed=True, kins_switchable=True)
+        self.assertEqual((ps.kins_type, ps.twp_active, ps.eoffset_enabled), (None, False, None))
+        self.assertFalse(stale.permissions["probe"])
+        self.assertIn("unknown", stale.permission_reasons["probe"].lower())
+
+    def test_a_tool_change_request_has_an_identity(self):
+        # Button gates BG-17 (Codex R205): a confirmation names its request.
+        # A new number on every rising edge and on a tool change while the
+        # request stays raised (the next one came between two polls).
+        snap = {"tool_change": True, "tool_prep_number": 7}
+        rt = _runtime(stat=self._stat(), snapshot=snap)
+        first = rt.poll_status().tool_change_seq
+        self.assertIsNotNone(first)
+        self.assertEqual(rt.poll_status().tool_change_seq, first, "the same request")
+        snap["tool_prep_number"] = 9
+        second = rt.poll_status().tool_change_seq
+        self.assertEqual(second, first + 1)
+        snap["tool_change"] = False
+        self.assertIsNone(rt.poll_status().tool_change_seq)
+        snap["tool_change"] = True
+        self.assertEqual(rt.poll_status().tool_change_seq, second + 1, "same tool, a new request")
+        snap["tool_change"] = None   # reader gap: no edge invented
+        rt.poll_status()
+        snap["tool_change"] = True
+        self.assertEqual(rt.poll_status().tool_change_seq, second + 1)
+
     def test_policy_state_carries_the_touchoff_inputs(self):
         # The touch-off gates (2026-08-30) read kins mode × fixture × table
         # pose from the SAME snapshot the broadcast carries: raw pin rounded,
@@ -203,8 +242,9 @@ class TestPollStatus(unittest.TestCase):
         # U-06: a closed gate ships its reason beside the bool; open gates none.
         self.assertIn("unknown", p2.permission_reasons["touchoff"])
         self.assertNotIn("always", p2.permission_reasons)
-        # Declared non-switchable: identity, certainly — open in G54.
-        rt = _runtime(stat=self._stat(g5x_index=1))
+        # Declared non-switchable: identity, certainly — open in G54 (with a
+        # fresh reader that reads the eoffset off: unknown refuses, BG-12).
+        rt = _runtime(stat=self._stat(g5x_index=1), snapshot={"z_eoffset_enable": False})
         rt._get_kins_switchable = lambda: False
         p3 = rt.poll_status()
         self.assertTrue(p3.permissions["touchoff"])

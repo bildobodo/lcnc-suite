@@ -6,6 +6,7 @@ import { Lock, LockOpen, TriangleAlert, Power, BookOpen } from "lucide-vue-next"
 import { activeKind } from "./inputSession";
 import { useMediaMql } from "./useMediaMql";
 import { NO_VALUE } from "./format";
+import { usePermissions, usePermissionReasons } from "./permissions";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
   TASK_MODE_MANUAL, TASK_MODE_AUTO, TASK_MODE_MDI,
@@ -14,12 +15,10 @@ import {
 const props = defineProps<{
   armed: boolean;
   busy: boolean;
-  tripUnacked: boolean;
   isEstop: boolean;
   isEnabled: boolean;
   isHomed: boolean;
   canEstop: boolean;
-  canResetEstop: boolean;
   // Status detail
   isTeleop: boolean;
   taskMode: number;
@@ -40,6 +39,13 @@ const emit = defineEmits<{
   (e: "machineOff"): void;
   (e: "openActiveCodes"): void;
 }>();
+
+// The recovery order (button gates BG-11): arming waits for the trip's
+// acknowledgement (armEnable — disarming never waits), E-Stop Reset needs arm
+// and the acknowledgement (estopReset). The backend judges both; the dimmed
+// button says why.
+const can = usePermissions();
+const reasons = usePermissionReasons();
 
 const modeLabel = computed(() => {
   switch (props.taskMode) {
@@ -99,8 +105,8 @@ const compact = computed(() => isPortrait.value && activeKind.value !== null);
         <MachineBtn
           type="arm"
           :active="armed"
-          :disabled="busy || (!armed && tripUnacked)"
-          :reason="!armed && tripUnacked ? 'Acknowledge the safety trip first' : undefined"
+          :disabled="busy || (!armed && !can.armEnable)"
+          :reason="!armed && !can.armEnable ? reasons.armEnable : undefined"
           @click="emit('arm', !armed)"
           class="safetyBtn"
           block
@@ -114,7 +120,8 @@ const compact = computed(() => isPortrait.value && activeKind.value !== null);
         <MachineBtn
           type="estop"
           :flashing="isEstop"
-          :disabled="!(isEstop ? canResetEstop : canEstop)"
+          :disabled="isEstop ? !can.estopReset : !canEstop"
+          :reason="isEstop && !can.estopReset ? reasons.estopReset : undefined"
           :aria-label="isEstop ? 'Reset E-Stop' : undefined"
           :title="isEstop ? 'Reset E-Stop' : undefined"
           @click="isEstop ? emit('estopReset') : emit('estop')"
@@ -198,6 +205,26 @@ const compact = computed(() => isPortrait.value && activeKind.value !== null);
   /* Three buttons share the sticky section: the action words (POWER OFF,
      DISARM — UX-10) need the width the size's 12 px side padding took
      (89 px of content in an 83 px box, layout gate). Layout only. */
+  padding-left: var(--gap-tight);
+  padding-right: var(--gap-tight);
+}
+/* A dimmed safety button with a reason is wrapped in .btnTip (BG-16: Power
+   in E-Stop explains with the safety Gate's reason, Arm during a trip): the
+   wrapper takes .safetyBtn and only PLACES — its button keeps the stacked
+   interior, so the dimmed footprint is the enabled one. Layout only. */
+.safetyBtn.btnTip {
+  flex-direction: row;
+  align-items: stretch;
+  padding-left: 0;
+  padding-right: 0;
+}
+/* audit-ok: the wrapped button is Btn.vue's root — no utility class reaches it */
+.safetyBtn.btnTip > :deep(button) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-tight);
   padding-left: var(--gap-tight);
   padding-right: var(--gap-tight);
 }

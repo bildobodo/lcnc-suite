@@ -3,6 +3,7 @@
  * Complements lcncWs.ts (which handles WebSocket).
  */
 import { authHeaders } from "./auth";
+import { connHeaders } from "./connKey";
 
 function getBaseUrl(): string {
   return location.origin;
@@ -123,7 +124,8 @@ export async function saveFile(path: string, content: string): Promise<SaveRespo
   const url = `${getBaseUrl()}/save?path=${encodeURIComponent(path)}`;
   const resp = await fetch(url, {
     method: "PUT",
-    headers: { "Content-Type": "text/plain; charset=utf-8", ...authHeaders() },
+    // a protected write names its connection (button gates BG-14)
+    headers: { "Content-Type": "text/plain; charset=utf-8", ...authHeaders(), ...connHeaders() },
     body: content,
   });
   if (!resp.ok) await throwHttpError(resp);
@@ -160,14 +162,14 @@ export async function fetchSettings(): Promise<Record<string, any>> {
 export async function saveSettingsSection(section: string, data: any): Promise<void> {
   const resp = await fetch(`${getBaseUrl()}/settings/${section}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
+    headers: { "Content-Type": "application/json", ...authHeaders(), ...connHeaders() },
     body: JSON.stringify({ data }),
   });
   if (!resp.ok) await throwHttpError(resp);
 }
 
 export async function resetServerSettings(): Promise<void> {
-  const resp = await fetch(`${getBaseUrl()}/settings`, { method: "DELETE", headers: authHeaders() });
+  const resp = await fetch(`${getBaseUrl()}/settings`, { method: "DELETE", headers: { ...authHeaders(), ...connHeaders() } });
   if (!resp.ok) await throwHttpError(resp);
 }
 
@@ -193,7 +195,7 @@ export async function uploadFile(file: File, opts: { overwrite?: boolean; name?:
   const url = `${getBaseUrl()}/upload${opts.overwrite ? "?overwrite=1" : ""}`;
   const resp = await fetch(url, {
     method: "POST",
-    headers: authHeaders(),
+    headers: { ...authHeaders(), ...connHeaders() },
     body: formData,
   });
   if (resp.status === 409) {
@@ -324,7 +326,7 @@ export async function saveMacroFile(name: string, base: string, text: string,
   const r = rename ? `&rename_from=${encodeURIComponent(rename.from)}&rename_base=${encodeURIComponent(rename.base)}` : "";
   const resp = await macroResponse(await fetch(
     `${getBaseUrl()}/macro?name=${encodeURIComponent(name)}&base=${encodeURIComponent(base)}${r}`, {
-      method: "PUT", headers: { "Content-Type": "text/plain; charset=utf-8", ...authHeaders() }, body: text }));
+      method: "PUT", headers: { "Content-Type": "text/plain; charset=utf-8", ...authHeaders(), ...connHeaders() }, body: text }));
   return (await resp.json()).macro;
 }
 
@@ -334,14 +336,14 @@ export async function uploadMacroFile(file: File, replace?: string): Promise<Mac
   form.append("file", file, file.name);
   const q = replace ? `?replace=${encodeURIComponent(replace)}` : "";
   const resp = await macroResponse(await fetch(`${getBaseUrl()}/macro-upload${q}`, {
-    method: "POST", headers: authHeaders(), body: form }));
+    method: "POST", headers: { ...authHeaders(), ...connHeaders() }, body: form }));
   return (await resp.json()).macro;
 }
 
 export async function deleteMacroFile(name: string, base: string): Promise<void> {
   await macroResponse(await fetch(
     `${getBaseUrl()}/macro?name=${encodeURIComponent(name)}&base=${encodeURIComponent(base)}`, {
-      method: "DELETE", headers: authHeaders() }));
+      method: "DELETE", headers: { ...authHeaders(), ...connHeaders() } }));
 }
 
 /** The program file at `path` as it is on the disk (Program's Download). */

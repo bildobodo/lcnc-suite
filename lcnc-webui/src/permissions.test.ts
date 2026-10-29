@@ -11,8 +11,12 @@ import { applyClientOverlay, type MachinePermissions } from "./permissions";
 const MACHINE_READY: MachinePermissions = {
   idle: true, jog: true, override: true, ready: true, run: true, machineFrame: true, goZero: true, planeFrame: true,
   pause: false, resume: false, step: true, abort: true,
+  // the spindle stop at idle; no tool change is pending
+  spindleStop: true, toolChangeConfirm: false,
   probe: true, zero: true, touchoff: true, touchoffRotary: true, twpCapture: true,
-  surfaceComp: true, safety: true, setup: true,
+  surfaceComp: true, safety: true, setup: true, sourceWrite: true, toolTableWrite: true,
+  programLoad: true, modeManual: true, modeCoord: true, parameterRead: true, g30Write: true,
+  spindleManual: true, armEnable: true, estopReset: true,
   armed: true, always: true,
 };
 
@@ -26,13 +30,26 @@ describe("applyClientOverlay", () => {
     expect(p.always).toBe(true);
   });
 
-  it("disarmed closes everything except always", () => {
+  it("disarmed closes everything except always and the stops", () => {
     const p = applyClientOverlay(MACHINE_READY, false, false);
     expect(p.ready).toBe(false);
     expect(p.safety).toBe(false);
     expect(p.armed).toBe(false);
-    expect(p.abort).toBe(false);
     expect(p.always).toBe(true);
+    // Button gates BG-08 / BG-18: a stop needs no arm — the backend's
+    // decision passes through (it judges the state; arm is not its term).
+    expect(p.abort).toBe(true);
+    expect(p.spindleStop).toBe(true);
+    expect(applyClientOverlay({ ...MACHINE_READY, pause: true }, false, false).pause).toBe(true);
+    expect(applyClientOverlay({ ...MACHINE_READY, resume: true }, false, false).resume).toBe(false);
+    // The M6 confirmation continues the program: armed (BG-17).
+    expect(applyClientOverlay({ ...MACHINE_READY, toolChangeConfirm: true }, false, false).toolChangeConfirm).toBe(false);
+  });
+
+  it("a stop follows the backend: closed there, closed here", () => {
+    const p = applyClientOverlay({ ...MACHINE_READY, spindleStop: false, abort: false }, false, false);
+    expect(p.spindleStop).toBe(false);
+    expect(p.abort).toBe(false);
   });
 
   it("busy closes the busy-subset but not jog/abort", () => {
@@ -47,9 +64,12 @@ describe("applyClientOverlay", () => {
     // gates without a busy term stay open
     expect(p.jog).toBe(true);
     expect(p.abort).toBe(true);
+    // a stop is never held behind the latch of another command
+    expect(p.spindleStop).toBe(true);
+    expect(applyClientOverlay({ ...MACHINE_READY, pause: true }, true, true).pause).toBe(true);
   });
 
-  it("absent backend permissions yield all-false except always (safe default)", () => {
+  it("absent backend permissions yield all-false except always and arming (safe default; Arm stays reachable)", () => {
     const p = applyClientOverlay(null, true, false);
     expect(p.ready).toBe(false);
     expect(p.jog).toBe(false);
@@ -75,9 +95,17 @@ describe("simulation-mode overlay (client-local, simMode.ts)", () => {
     expect(p.idle).toBe(false);
     expect(p.override).toBe(false);
     expect(p.step).toBe(false);
-    expect(p.abort).toBe(false);
     // Machine On needs a purposeful sim exit first.
     expect(p.safety).toBe(false);
+    // The M6 confirmation continues the REAL interpreter (BG-17).
+    expect(applyClientOverlay({ ...MACHINE_READY, toolChangeConfirm: true }, true, false, true).toolChangeConfirm).toBe(false);
+  });
+
+  it("keeps the stops open in sim (BG-08)", () => {
+    const p = applyClientOverlay({ ...MACHINE_READY, pause: true }, true, false, true);
+    expect(p.abort).toBe(true);
+    expect(p.pause).toBe(true);
+    expect(p.spindleStop).toBe(true);
   });
 
   it("keeps always, armed, and setup open in sim", () => {
@@ -120,24 +148,82 @@ describe("run gate (program start)", () => {
   });
 });
 
-describe("run gate — backend without the class (mixed-version window)", () => {
-  it("reads run as ready when the backend ships no run key, and stays closed when it does", () => {
-    const { run: _r, ...legacy } = MACHINE_READY as any;
-    expect(applyClientOverlay(legacy, true, false).run).toBe(true);
-    expect(applyClientOverlay({ ...legacy, ready: false }, true, false).run).toBe(false);
-    expect(applyClientOverlay({ ...MACHINE_READY, run: false }, true, false).run).toBe(false);
+describe("a class the gateway does not ship (button gates BG-15)", () => {
+  // The old fallback read a missing run / machineFrame / goZero as `ready`:
+  // Cycle Start, the G53 routines and → Zero opened without their
+  // kinematics rule. A missing class is closed and says why.
+  it("is closed — never read from ready", () => {
+    const { run: _r, machineFrame: _m, goZero: _g, ...legacy } = MACHINE_READY as any;
+    const p = applyClientOverlay(legacy, true, false);
+    expect(p.run).toBe(false);
+    expect(p.machineFrame).toBe(false);
+    expect(p.goZero).toBe(false);
+    expect(p.ready).toBe(true);      // what the gateway ships stays as it is
+  });
+  it("names the restart as its reason, armed or not for a stop", () => {
+    const { run: _r, abort: _a, ...legacy } = MACHINE_READY as any;
+    const r = applyClientOverlayReasons({}, true, false, false, legacy);
+    expect(r.run).toBe(CLIENT_REASONS.unknownClass);
+    expect(r.abort).toBe(CLIENT_REASONS.unknownClass);
+    expect(r.ready).toBeUndefined();
+    // disarmed: arming is the first thing to do; a stop needs no arm
+    const d = applyClientOverlayReasons({}, false, false, false, legacy);
+    expect(d.run).toBe(CLIENT_REASONS.notArmed);
+    expect(d.abort).toBe(CLIENT_REASONS.unknownClass);
+    expect(CLIENT_REASONS.unknownClass.length).toBeLessThanOrEqual(REASON_MAX_CHARS);
+  });
+  it("before the first status nothing is compared — no restart reason", () => {
+    expect(applyClientOverlayReasons(null, true, false, false, null).run).toBeUndefined();
   });
 });
 
 describe("machineFrame / goZero gates", () => {
-  it("follow armed/busy like ready and read as ready on a pre-class backend", () => {
+  it("follow armed/busy like ready", () => {
     expect(applyClientOverlay(MACHINE_READY, true, false).machineFrame).toBe(true);
     expect(applyClientOverlay(MACHINE_READY, true, true).goZero).toBe(false);
-    const { machineFrame: _m, goZero: _g, ...legacy } = MACHINE_READY as any;
-    const p = applyClientOverlay(legacy, true, false);
-    expect(p.machineFrame).toBe(true);
-    expect(p.goZero).toBe(true);
     expect(applyClientOverlay({ ...MACHINE_READY, machineFrame: false }, true, false).machineFrame).toBe(false);
+  });
+});
+
+describe("the write gates (button gates BG-14)", () => {
+  it("need arm, settle with busy and stay open in simulation", () => {
+    for (const g of ["sourceWrite", "toolTableWrite"] as const) {
+      expect(applyClientOverlay(MACHINE_READY, true, false)[g]).toBe(true);
+      expect(applyClientOverlay(MACHINE_READY, false, false)[g]).toBe(false);
+      expect(applyClientOverlay(MACHINE_READY, true, true)[g]).toBe(false);
+      expect(applyClientOverlay(MACHINE_READY, true, false, true)[g]).toBe(true);
+      expect(applyClientOverlay({ ...MACHINE_READY, [g]: false }, true, false)[g]).toBe(false);
+    }
+  });
+});
+
+describe("the recovery and the package D gates (button gates D)", () => {
+  it("arming is the backend's decision alone — a disarmed client may arm unless a trip waits", () => {
+    expect(applyClientOverlay(MACHINE_READY, false, false).armEnable).toBe(true);
+    expect(applyClientOverlay({ ...MACHINE_READY, armEnable: false }, false, false).armEnable).toBe(false);
+    // open until the backend says otherwise: before the first status, and
+    // against a gateway without the class (Arm stays reachable; the arm
+    // handler refuses over a trip itself)
+    expect(applyClientOverlay(null, false, false).armEnable).toBe(true);
+    const { armEnable: _a, ...older } = MACHINE_READY;
+    expect(applyClientOverlay(older, false, false).armEnable).toBe(true);
+    expect(applyClientOverlayReasons({}, false, false, false, older).armEnable).toBeUndefined();
+    const r = applyClientOverlayReasons({ armEnable: "Acknowledge the safety trip first" }, false, false, false,
+      { ...MACHINE_READY, armEnable: false });
+    expect(r.armEnable).toBe("Acknowledge the safety trip first");
+  });
+
+  it("E-Stop Reset, loading and the mode choice need this client's arm", () => {
+    const p = applyClientOverlay(MACHINE_READY, false, false);
+    for (const g of ["estopReset", "programLoad", "modeManual", "modeCoord", "parameterRead", "g30Write", "spindleManual"] as const) {
+      expect(p[g], g).toBe(false);
+    }
+  });
+
+  it("simulation keeps loading and the recovery, closes the mode choice, the G30 read and the spindle", () => {
+    const p = applyClientOverlay(MACHINE_READY, true, false, true);
+    for (const g of ["programLoad", "armEnable", "estopReset"] as const) expect(p[g], g).toBe(true);
+    for (const g of ["modeManual", "modeCoord", "parameterRead", "g30Write", "spindleManual"] as const) expect(p[g], g).toBe(false);
   });
 });
 
@@ -155,6 +241,16 @@ describe("applyClientOverlayReasons (U-06, review 2026-09-14)", () => {
     const sim = applyClientOverlayReasons(backend, true, false, true);
     expect(sim.ready).toBe(CLIENT_REASONS.sim);
     expect(sim.setup).toBeUndefined();      // stays open in sim
+    expect(sim.toolChangeConfirm).toBe(CLIENT_REASONS.sim);
+  });
+  it("a stop carries no client-local reason: only the backend's (BG-08)", () => {
+    const stops = { pause: "No program running", spindleStop: "Machine off — press Power on" };
+    for (const [armed, busy, sim] of [[false, false, false], [true, true, false], [true, false, true]] as const) {
+      const r = applyClientOverlayReasons(stops, armed, busy, sim);
+      expect(r.abort).toBeUndefined();
+      expect(r.pause).toBe("No program running");
+      expect(r.spindleStop).toBe("Machine off — press Power on");
+    }
   });
   it("a closed gate without a shipped reason stays unexplained, never invented", () => {
     expect(applyClientOverlayReasons(null, true, false, false)).toEqual({});

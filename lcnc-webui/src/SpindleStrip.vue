@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineToggle from "./MachineToggle.vue";
 import { RotateCw, RotateCcw, Square, Plus, Minus } from "lucide-vue-next";
 import { STEP_RPM } from "./defaults";
+import { fmtRpm } from "./format";
 
 const props = defineProps<{
   isForward: boolean;
   isReverse: boolean;
   isSpinning: boolean;
-  isRunning: boolean;
+  /** The commanded speed (STAT), shown in the head while the spindle turns. */
+  commandedRpm: number | null;
   rpmInput: number;
   minSpindleSpeed: number;
   maxSpindleSpeed: number;
@@ -32,8 +33,16 @@ const emit = defineEmits<{
 
 <template>
   <div class="stripSection">
-    <div class="sub">Spindle</div>
-    <Gate gate="ready" class="spnBlock stack-controls">
+    <!-- The head carries the commanded speed while the spindle turns: the
+         field below is the PRESELECTION and may hold a value not yet sent
+         (Codex R213 BG-27). In the head's own line — appearing, it moves
+         nothing. -->
+    <div class="sub spHead">Spindle<span v-if="isSpinning" class="spNow mono" title="Commanded speed"> · {{ fmtRpm(commandedRpm) }} rpm</span></div>
+    <!-- Every button self-gates from the catalog: the stop at idle needs no
+         homing and no arm (button gates BG-18), Rev / Fwd / ± keep `ready`;
+         the RPM is a preselection for the next Fwd / Rev (BG-05), free in
+         every state — running, turning, disarmed. -->
+    <div class="spnBlock stack-controls">
       <div class="spDirRow row-controls">
         <MachineBtn type="spindleRev" :active="isReverse" @click="emit('spindleRev', rpmInput)">
           <span class="btn-label"><RotateCcw :size="14" /> Rev</span>
@@ -51,13 +60,13 @@ const emit = defineEmits<{
         <MachineBtn type="spindleDecrease" @click="emit('spindleDecrease')">
           <Minus :size="14" />
         </MachineBtn>
-        <MachineInput gate="stripInput" type="number" class="spRpmInput" label="Spindle speed" context="Spindle speed · RPM" :value="rpmInput" :disabled="isSpinning || isRunning" @input="emit('update:rpmInput', +($event.target as HTMLInputElement).value)" :min="minSpindleSpeed" :max="maxSpindleSpeed" :step="STEP_RPM" />
+        <MachineInput gate="stripInput" type="number" class="spRpmInput" label="Spindle speed" context="Spindle speed · RPM" :value="rpmInput" @input="emit('update:rpmInput', +($event.target as HTMLInputElement).value)" :min="minSpindleSpeed" :max="maxSpindleSpeed" :step="STEP_RPM" />
         <MachineBtn type="spindleIncrease" @click="emit('spindleIncrease')">
           <Plus :size="14" />
         </MachineBtn>
       </div>
 
-    </Gate>
+    </div>
 
     <div class="sep"></div>
 
@@ -79,6 +88,7 @@ const emit = defineEmits<{
   align-items: stretch;
 }
 .spRpmInput { flex: 1; min-width: 0; width: 0; }
+.spHead { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .coolBlock {
   flex-shrink: 0;
 }

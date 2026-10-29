@@ -2,6 +2,7 @@
 import asyncio
 import gzip
 import hashlib
+import hmac
 import json
 import math
 import time
@@ -16,12 +17,12 @@ from pathlib import Path
 import linuxcnc
 
 from dataclasses import dataclass, field, replace as _dc_replace
-from typing import Any, Dict, Optional, List, Tuple
+from typing import Any, Callable, Dict, Optional, List, Tuple
 from fastapi.staticfiles import StaticFiles
 import re
 import shutil
 from urllib.parse import urlsplit
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form, HTTPException, Body, Query, Request, Depends
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form, HTTPException, Body, Query, Request, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import StreamingResponse, JSONResponse, FileResponse, Response
 
@@ -58,6 +59,9 @@ elif _launcher_bind.get("needs_poll"):
 # Pure, linuxcnc-free helpers (importable under pytest without the binding).
 from gateway_util import (
     mode_switch_ignored_message,
+    joint_jog_map,
+    parse_joint_letters,
+    trivkins_coordinates,
     ALLOWED_EXTENSIONS,
     AXIS_LETTERS,
     g30_param,
@@ -104,7 +108,7 @@ from gateway_util import (
     wcs_stamp_decision,
     PROV_STAMPED,
 )
-from command_policy import NOT_ARMED, MOTION_UNKNOWN, MACHINE_MOVING, motion_still_of, check_command, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
+from command_policy import gate_refusal, NOT_ARMED, STATE_UNKNOWN, MACHINE_BUSY, MOTION_UNKNOWN, MACHINE_MOVING, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -112,7 +116,7 @@ from tool_table import (
     _TOOL_META_FIELDS,
     tool_visual_metadata,
 )
-from settings_store import SettingsStore, VALID_SECTIONS as _VALID_SETTINGS_SECTIONS
+from settings_store import SettingsStore, VALID_SECTIONS as _VALID_SETTINGS_SECTIONS, section_needs_arm
 import status_runtime as _status_runtime_mod
 from status_runtime import StatusPayload
 import bulk_pipeline as _bulk_mod
@@ -321,7 +325,12 @@ _WS_CMD_QUEUE_MAX = 32
 # Stop-class commands are never rejected by backpressure ("no stop command
 # may be droppable", docs/decisions.md) — a 4× hard cap still bounds a
 # broken client.
-_WS_STOP_CMDS = frozenset({"jog_stop", "jog_stop_multi", "abort", "estop"})
+# cycle_pause and spindle_stop are stops too (button gates BG-08/BG-18): a
+# full queue never rejects them and an abort never cancels them — a pause or
+# a spindle stop that runs after an abort is harmless; one that is dropped
+# is not.
+_WS_STOP_CMDS = frozenset({"jog_stop", "jog_stop_multi", "abort", "estop",
+                           "cycle_pause", "spindle_stop"})
 # abort/estop SUPERSEDE the work this client queued before them and PREEMPT
 # any in-flight non-stop handler on EVERY client (2026-09-05): a stop must
 # never wait behind a 30 s MDI wait, and abort/E-Stop are machine-global, so
@@ -937,6 +946,13 @@ _reader_request = _hal_bridge.reader_request
 _reader_get = _hal_bridge.reader_get
 _reader_is_stale = _hal_bridge.reader_is_stale
 
+
+def _reader_fresh_get(field: str):
+    """A reader value only while its snapshot is fresh, else None — for a
+    POLICY decision (button gates BG-12): a stale snapshot's last value is
+    no answer now. Displays keep _reader_get and the reader_stale banner."""
+    return None if _reader_is_stale() else _reader_get(field)
+
 # Safety-chain completeness banner (review group B1). Grace covers the
 # concurrent process bring-up window; after it, a down watchdog socket or a
 # fresh reader snapshot without trip_latched means the advertised safety
@@ -1222,7 +1238,10 @@ _shared_status: Optional["StatusPayload"] = None
 # AUTO clears it: task refuses those while a jog is active, so success means
 # none is. Jogs started by other UIs (halui, axis) are not in here — the
 # gateway never stops what it did not start; the HAL chain owns motion safety.
-_active_jogs: set = set()
+# Each wire axis maps to the (joint_flag, CMD.jog index) its jog was STARTED
+# with (button gates package E): the stop addresses exactly that jog, never a
+# target recomputed from a motion mode or map read later.
+_active_jogs: Dict[int, Tuple[int, int]] = {}
 _shared_status_dict: Optional[dict] = None  # cached asdict(_shared_status)
 
 # ---- Program-elapsed timer (server-authoritative) ----
@@ -1308,16 +1327,22 @@ def _get_var_file_lock() -> asyncio.Lock:
     return _var_file_lock
 
 
-async def _thread_to_end(inner):
-    """Await a thread's future to its END. A cancel — a second one too —
-    waits for the thread before it propagates, so a lock the caller holds
-    is never released under an operation still running (the _cmd_blocking
-    principle: a thread cannot be cancelled). For the parameter file's
-    writers and the macro writers' publish under _source_lock (Codex R70
-    VP-I29: a cancelled PUT left the lock while its os.replace still ran)."""
+async def _thread_to_end(inner, on_cancel: Optional[Callable[[], None]] = None):
+    """Await a thread's future — or an admitted write section's task — to its
+    END. A cancel — a second one too — waits for it before it propagates, so
+    a lock the caller holds is never released under an operation still
+    running (the _cmd_blocking principle: a thread cannot be cancelled). For
+    the parameter file's writers, the macro writers' publish under
+    _source_lock (Codex R70 VP-I29: a cancelled PUT left the lock while its
+    os.replace still ran), the tool table's write + reload + metadata under
+    _cmd_lock (button gates BG-22, Codex R211) and every CMD write itself
+    (_cmd_blocking, Codex R220). `on_cancel` runs at the first cancel (the
+    write's wait loop ends its slices)."""
     try:
         return await asyncio.shield(inner)
     except asyncio.CancelledError:
+        if on_cancel is not None:
+            on_cancel()
         while not inner.done():
             try:
                 await asyncio.wait({inner})
@@ -2286,13 +2311,17 @@ def try_connect_lcnc() -> bool:
     DIFFERENT instance is refused (and ends the process) unless rebind is
     allowed — every caller (poller, WS endpoint, boot) inherits the rule."""
     global STAT, CMD, ERR, lcnc_connected, _lcnc_pid, _nc_files_dir, _ini_config, _ever_connected, _kins_decl_cache
-    global _machine_limits, _bound_instance
+    global _machine_limits, _bound_instance, _coord_without_homing_cache, _spindle_before_homing_cache
+    global _joint_jog_cache
     if _instance_ended:
         return False  # bound instance ended: never re-bind
     _nc_files_dir = None        # re-resolve on reconnect
     _ini_config = None          # re-read INI config on reconnect
     _machine_limits = None      # rebuild payload bounds on reconnect (#27)
     _kins_decl_cache = None     # re-parse kins declaration on reconnect
+    _coord_without_homing_cache = None   # button gates D: re-read on reconnect
+    _spindle_before_homing_cache = None
+    _joint_jog_cache = None              # package E: re-read on reconnect
     _status_runtime.invalidate_var_file_path()  # re-resolve on reconnect (P2.1)
     if not _nml_connectable():
         return False
@@ -2387,6 +2416,14 @@ _status_runtime = _status_runtime_mod.StatusRuntime(
     get_kins_switchable=lambda: _kins_is_switchable(),
     get_twp_capable=lambda: _twp_capable(),
     get_identity_first=lambda: _identity_first(),
+    # Button gates D: the recovery order, COORD without homing, the spindle
+    # before homing (late-bound: defined below).
+    get_trip_unacked=lambda: _unacked_trip is not None,
+    get_coord_without_homing=lambda: _coord_without_homing(),
+    get_spindle_before_homing=lambda: _spindle_before_homing(),
+    get_joint_jog_before_homing=lambda: _joint_jog_facts()["enabled"],
+    # The reader-derived policy inputs count only while it is fresh (BG-12).
+    get_reader_fresh=lambda: not _hal_bridge.reader_is_stale(),
     # Raw W1 stamps (late-bound: _prov_cache is defined below). No
     # falsification pass — a hand-typed G10 under a reserved fixture is the
     # documented operator-caused escape.
@@ -2789,7 +2826,8 @@ async def _reload_tool_table_and_bump():
     _tool_table_version += 1
 
 
-async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict) -> None:
+async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
+                                  conn_key=None) -> None:
     """Persist a full tool-table replacement (the REST Fusion import) atomically
     w.r.t. every other tool / NML operation (issue #24).
 
@@ -2799,12 +2837,24 @@ async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict)
     thread-safety contract requires that lock. The REST import previously
     bypassed `_cmd_lock`, so it could both race those handlers on tool.tbl /
     tool_library.json (lost update) AND call `_cmd_blocking` without the lock.
-    The blocking file writes run off the event loop via `run_in_executor`."""
-    loop = asyncio.get_event_loop()
-    async with _get_cmd_lock():
-        await loop.run_in_executor(None, write_tool_table, tbl_path, tbl_tools)
+    The blocking file writes run off the event loop in threads.
+    The admitted section — table, reload, metadata — runs to its END under
+    the lock even when the request is cancelled (button gates BG-22, Codex
+    R211; like _persist_tool_edit)."""
+    def _replace():
+        # Admitted at the write itself (button gates BG-14): the writer's
+        # connection, the toolTableWrite rule on a current read.
+        why = _write_admission_refusal(conn_key, tool_table=True)
+        if why:
+            raise HTTPException(status_code=409, detail=why)
+        write_tool_table(tbl_path, tbl_tools)
+
+    async def section():
+        await asyncio.to_thread(_replace)
         await _reload_tool_table_and_bump()
-        await loop.run_in_executor(None, save_tool_library, library)
+        await asyncio.to_thread(save_tool_library, library)
+    async with _get_cmd_lock():
+        await _thread_to_end(asyncio.ensure_future(section()))
 
 
 def _current_ini_path() -> str:
@@ -2868,12 +2918,13 @@ def load_settings() -> dict:
     return _settings_store.load()
 
 
-def save_settings_section(section: str, data):
-    _settings_store.save_section(section, data)
+def save_settings_section(section: str, data, admit=None):
+    """`admit` decides inside the store's lock (button gates BG-24)."""
+    _settings_store.save_section(section, data, admit)
 
 
-def reset_settings():
-    _settings_store.reset()
+def reset_settings(admit=None):
+    _settings_store.reset(admit)
 
 
 # _merge_tool_data now lives in tool_table.py (imported at top, #33).
@@ -3099,21 +3150,6 @@ def _release_start_claims(polled_at: Optional[float] = None) -> None:
     _source_claims[:] = keep
 
 
-def _source_write_refusal() -> Optional[str]:
-    """Under _source_lock: why a macro write may not publish NOW, or None."""
-    if _source_claims:
-        return "A macro or program is starting or running — wait"
-    if STAT is None:
-        return None   # no controller connected: nothing reads the files
-    try:
-        STAT.poll()
-    except Exception as e:  # noqa: BLE001 - no fresh read, no write
-        _trace.emit_exc("source.write_poll_failed", e)
-        return "Machine status not read — try again"
-    if safe_get("interp_state", None) != getattr(linuxcnc, "INTERP_IDLE", 1):
-        return "A macro or program runs — wait"
-    return None
-
 
 # ---- The run basis (plan „Prüfung im Lauf“ 1a/1b, Codex R112–R115) ----
 # Taken HERE, before an AUTO run or a first step from idle is written: the
@@ -3274,7 +3310,15 @@ def _run_for_pin(file: Optional[str]) -> Optional[Dict[str, Any]]:
     return rb
 
 
-async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["_StartClaim"] = None) -> int:
+class _WriteRefused(PermissionError):
+    """A write refused at its last moment by its `admit` (button gates BG-09 /
+    BG-12 for a program start, R217 for the gateway's own mode switches and
+    the manual commands): the reply says why, nothing was written."""
+
+
+async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["_StartClaim"] = None,
+                        admit: Optional[Callable[[], Optional[str]]] = None,
+                        written: Optional[Callable[[], None]] = None) -> int:
     """Run a blocking CMD.* call + optional wait_complete() on a worker thread.
 
     Every `CMD.* + wait_complete()` pair must go through here. Returns
@@ -3295,6 +3339,20 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
     stored serial (N slices ≡ one long wait to 10 ms), each return lets the
     loop breathe, and a cancel lands after the current slice. The command
     WRITE `cmd_fn(*args)` is never interrupted.
+
+    `admit`: the write's last check — a program start's (button gates BG-09 /
+    BG-12, Codex R206/R207), a mode switch's and a manual command's (R217) —
+    run INSIDE the write's own thread, right before `cmd_fn(*args)`: after
+    every awaited preparation here (the run basis, the start claim) and after
+    the executor queue the write waited in. It reads the controller itself
+    (a STAT poll in the thread), never a value from before the queue. A
+    refusal raises _WriteRefused with nothing written.
+
+    `written`: called in the write's thread right after `cmd_fn(*args)`
+    returned — the caller's booking of what was SENT (a jog, for its stop),
+    which a cancel during the write therefore never loses (Codex R219 BG-34:
+    the shielded write completes, the cancel propagates after it); a refused
+    or failed write books nothing.
 
     Caller must hold `_cmd_lock` — NML command channel is not thread-safe.
     """
@@ -3322,8 +3380,15 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
         if run_basis is not None:
             run_basis["state"] = "unsent"   # cancelled before the write: no run
         raise
-
     def _run():
+        if admit is not None:
+            refused = admit()
+            if refused:
+                if claim is not None:
+                    claim.state = "unsent"   # nothing reached the controller
+                if run_basis is not None:
+                    run_basis["state"] = "unsent"
+                raise _WriteRefused(refused)
         try:
             cmd_fn(*args)
         except BaseException:
@@ -3332,6 +3397,8 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
             if run_basis is not None:
                 run_basis["state"] = "unsent"   # no run
             raise
+        if written is not None:
+            written()
         if run_basis is not None:
             run_basis["state"] = "sent"
         if claim is not None:
@@ -3358,22 +3425,29 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
     # NML concurrently — the corruption the lock exists to prevent. Handlers
     # are cancellable (disconnect, abort/estop preemption), so on cancel we
     # flag the slice loop, keep the lock until the thread actually returns
-    # (bounded by one slice + one NML call), then propagate. asyncio.wait
+    # (bounded by one slice + one NML call, plus the executor queue it may
+    # still wait in), then propagate — through a SECOND cancel too (the abort
+    # preemption, then the disconnect: Codex R220 BG-34; it released the
+    # lock before the write and its booking were done). _thread_to_end
     # retrieves the inner result so nothing is reported as never-retrieved.
     inner = asyncio.ensure_future(asyncio.to_thread(_run))
-    try:
-        return await asyncio.shield(inner)
-    except asyncio.CancelledError:
-        cancel.set()
-        await asyncio.wait({inner})
-        raise
+    return await _thread_to_end(inner, on_cancel=cancel.set)
 
 
 _MODE_NAMES = {1: "MANUAL", 2: "AUTO", 3: "MDI"}
 
 
-async def set_mode(mode: int, force: bool = False):
+async def set_mode(mode: int, force: bool = False,
+                   admit: Optional[Callable[[], Optional[str]]] = None):
     """Switch LinuxCNC task mode. Caller must hold `_cmd_lock`.
+
+    `admit` (Codex R217): the switch's last check, inside its write thread
+    (_cmd_blocking) — the caller's class on a read taken there. Every switch
+    is admitted there in any case only onto an interpreter KNOWN idle
+    (button gates package E, Codex R218): a switch aborts a running MDI or
+    program (emcTaskSetMode → emcTaskAbort) and every caller switches from
+    idle — the jog stops send no switch at all. A refusal raises
+    _WriteRefused, nothing switched. No switch needed, nothing to admit.
 
     `force` sends the switch even when task is already in `mode`: for MDI
     and AUTO, emcTaskSetMode then runs emcTaskAbort → Interp::reset — the
@@ -3390,7 +3464,10 @@ async def set_mode(mode: int, force: bool = False):
         if mode in (linuxcnc.MODE_MDI, linuxcnc.MODE_AUTO):
             _active_jogs.clear()   # task cannot be in MDI/AUTO with a jog active
         return
-    rc = await _cmd_blocking(CMD.mode, mode)
+    def _admit_switch() -> Optional[str]:
+        # the caller's class first: its reason is the more specific one
+        return (admit() if admit is not None else None) or _interp_idle_refusal()
+    rc = await _cmd_blocking(CMD.mode, mode, admit=_admit_switch)
     if _cmd_rc_failed(rc):
         _trace.emit("task.mode_switch_refused", level="warn", mode=mode, rc=rc)
         raise ValueError(f"LinuxCNC refused the mode switch to {_MODE_NAMES.get(mode, mode)} (rc={rc})")
@@ -3423,16 +3500,114 @@ async def set_mode(mode: int, force: bool = False):
         _active_jogs.clear()   # the switch took (or is unverifiable): no jog is active
 
 
-def _jog_stop_would_abort_mdi(mode, interp, cmd: str) -> bool:
-    """A jog-stop arriving while an MDI EXECUTES: no jog can be in flight
-    (jogging requires MANUAL), and forcing MANUAL runs LinuxCNC's
-    mdi_execute_abort — the → Zero move stopped wherever it was when the
-    operator lifted the finger off the A jog (2026-09-04, "sometimes it
-    doesn't"). Skip the switch, say so in the trace, never silently."""
-    if mode == linuxcnc.MODE_MDI and interp != linuxcnc.INTERP_IDLE:
-        _trace.emit("jog.stop_skipped_mdi_busy", level="info", cmd=cmd, interp_state=interp)
-        return True
-    return False
+async def _send_jog_stop(axis: int) -> None:
+    """JOG_STOP for a jog the gateway started on wire `axis`, addressed as it
+    was started, in whatever mode task is in — no switch to MANUAL (button
+    gates package E, Codex R218): task 2.9.4 issues a jog stop in MANUAL, in
+    MDI whatever the interpreter does, and in AUTO idle (emctaskmain.cc,
+    allow_while_idle_type), and in joint mode it stops only that joint's free
+    planner, never a coordinated move (motion command.c EMCMOT_JOG_ABORT). The
+    switch it used to need could abort a fresh MDI, and a refused switch
+    would have suppressed the stop. Booked stopped only once the write
+    returned; a failed write raises and the jog stays booked. Caller holds
+    `_cmd_lock` and has ruled out AUTO running (task refuses a jog stop
+    there, and no jog can run)."""
+    jf, arg = _active_jogs[axis]
+    await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, arg, wait=None)
+    _active_jogs.pop(axis, None)
+
+
+def _auto_running() -> bool:
+    """AUTO with the interpreter not idle, on a read taken now: no jog can run
+    there, and task answers a jog stop with an operator error."""
+    STAT.poll()
+    return (safe_get("task_mode", None) == linuxcnc.MODE_AUTO
+            and safe_get("interp_state", None) != linuxcnc.INTERP_IDLE)
+
+
+#: A jog prepared homed met an unhomed machine at its write, or the reverse
+#: (Codex R219 BG-33): its target, gantry closure and cap no longer hold.
+JOG_HOMING_CHANGED = "Homing state changed — jog again"
+#: A multi-jog (the strip's diagonals) before homing starts two joints at once
+#: — no single joint, like a coordinated move (package F, operator
+#: 2026-10-28; AXIS and gmoccapy have no diagonals in joint mode).
+DIAGONAL_BEFORE_HOMING = "Diagonal jog after Home All"
+
+
+def _homed_now() -> Optional[bool]:
+    """Every configured joint homed, on a read taken now; None unread."""
+    STAT.poll()
+    return _status_runtime_mod.homed_of(safe_get("homed", None), safe_get("joints", 0))
+
+
+async def _start_jogs(cmd: str, armed: bool, entries) -> Dict[str, Any]:
+    """jog_cont / jog_incr and their multi forms: `entries` (wire axis, vel,
+    distance — None for a continuous jog). Caller holds `_cmd_lock` and has
+    checked arm and a running AUTO / MDI.
+
+    Homed: as before — teleop where motion is in it, the axis' canonical
+    number. Before homing (package E, BG-07; operator E1/E2 2026-10-28):
+    motion is in joint mode; each axis moves the joint the machine DECLARES
+    for it (_joint_jog_facts) — a closed axis (a gantry letter, no joint)
+    refuses the whole command with its reason, nothing sent — at most the cap,
+    the declared fraction of that joint's MAX_VELOCITY (the sign kept; traced
+    `jog.capped`). The `jog` class on a current read before the queue and
+    inside every write's thread — the switch to MANUAL and each jog (Codex
+    R217's standard). Each write also holds the homing state the command was
+    PREPARED under — target, gantry closure and cap belong to it (Codex R219
+    BG-33): homed or not changed since, it refuses; an unread state is not
+    homed. Each jog is booked with what was sent in the write's own thread,
+    so a cancel during the write never loses it (BG-34)."""
+    gate = _gate_admit("jog", armed)
+    why = gate()
+    if why:
+        return {"ok": False, "error": why}
+    before_homing = _homed_now() is not True
+
+    def admit() -> Optional[str]:
+        why = gate()
+        if why:
+            return why
+        return JOG_HOMING_CHANGED if (_homed_now() is not True) != before_homing else None
+
+    targets = None
+    if before_homing:
+        facts = _joint_jog_facts()
+        if not facts["enabled"]:
+            return {"ok": False, "error": facts["reason"] or "Not homed — press Home All"}
+        targets = []
+        for axis, vel, dist in entries:
+            row = facts["axes"][axis] if 0 <= axis < len(facts["axes"]) else None
+            if row is None or row["joint"] is None:
+                return {"ok": False, "error": (row or {}).get("reason") or f"No axis {axis}"}
+            cap = facts["fraction"] * row["max_vel"]
+            if abs(vel) > cap:
+                _trace.emit("jog.capped", level="info", cmd=cmd, axis=axis, joint=row["joint"],
+                            asked=vel, cap=cap)
+                vel = math.copysign(cap, vel)
+            targets.append((axis, 1, row["joint"], vel, dist))
+        # each axis' own closure first (the strip names it the same way)
+        if len(targets) > 1:
+            return {"ok": False, "error": DIAGONAL_BEFORE_HOMING}
+    try:
+        await set_mode(linuxcnc.MODE_MANUAL, admit=admit)
+        if targets is None:
+            jf = await _jog_mode_flag()
+            targets = [(axis, jf, _jog_axis_arg(axis, jf), vel, dist) for axis, vel, dist in entries]
+        for axis, jf, arg, vel, dist in targets:
+            def book(axis=axis, jf=jf, arg=arg):
+                _active_jogs[axis] = (jf, arg)
+            if dist is None:
+                rc = await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, arg, vel, wait=None,
+                                         admit=admit, written=book)
+            else:
+                rc = await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, arg, vel, dist, wait=None,
+                                         admit=admit, written=book)
+            _trace_jog(cmd, axis, jf, arg, vel=vel, dist=dist, rc=rc)
+    except _WriteRefused as refused:
+        return {"ok": False, "error": str(refused)}
+    return {"ok": True}
+
 
 def reject_if_auto_running() -> Optional[Dict[str, Any]]:
     STAT.poll()
@@ -3494,14 +3669,13 @@ def _jog_joint_flag() -> int:
     return 1
 
 
-def _trace_jog(cmd: str, axis: int, jf: int, **extra) -> None:
+def _trace_jog(cmd: str, axis: int, jf: int, arg: int, **extra) -> None:
     """One `jog.cmd` event per NEW jog (never per stop): what was issued and
     what task/motion looked like at that instant. A jog that "did nothing"
     (matrix, 2026-09-05: jog_cont A, no disarm, no refusal, A never moved)
     is undiagnosable without it."""
     STAT.poll()
-    _trace.emit("jog.cmd", level="info", cmd=cmd, axis=axis, jf=jf,
-                arg=_jog_axis_arg(axis, jf),
+    _trace.emit("jog.cmd", level="info", cmd=cmd, axis=axis, jf=jf, arg=arg,
                 task_mode=safe_get("task_mode", None), motion_mode=safe_get("motion_mode", None),
                 interp=safe_get("interp_state", None), **extra)
 
@@ -3548,6 +3722,13 @@ def _jog_axis_arg(idx: int, jf: int) -> int:
     (WS-D 5-axis user smoke; the disarm jog-stop missed C the same way).
     Out-of-range indices pass through — CMD.jog rejects them itself."""
     if jf != 0:
+        # A declared joint order (package E, _joint_jog_facts) names the
+        # joint; without one the old assumption index = joint stays (the
+        # beyond-limit joint jog of a homed machine) — true on every shipped
+        # profile, a guess elsewhere.
+        rows = _joint_jog_facts()["axes"]
+        if 0 <= idx < len(rows) and rows[idx]["joint"] is not None:
+            return rows[idx]["joint"]
         return idx
     letters = _axes_from_mask(int(safe_get("axis_mask", 0) or 0))
     if 0 <= idx < len(letters):
@@ -3572,10 +3753,10 @@ async def _jog_stop_for_client() -> None:
     docs/plans, keep the "armed = authorization" and "HAL = safety" layers
     separate — this function only handles the in-flight-jog case.
 
-    Mode safety: if the machine is in MODE_AUTO with the interpreter
-    running, a jog cannot be in flight (jogging requires MANUAL/TELEOP).
-    Forcing a mode switch to MANUAL here would interrupt the program —
-    exactly what this cleanup is trying to avoid. So skip in that case.
+    Mode safety: no mode switch (button gates package E, _send_jog_stop) —
+    the stop goes out in whatever mode task is in. In MODE_AUTO with the
+    interpreter running a jog cannot be in flight (jogging requires
+    MANUAL/TELEOP) and task refuses a jog stop there: skipped.
 
     Multi-armed-client note: today we stop every joint, which can interfere
     with a parallel jog from another armed client. Per-client active-jog
@@ -3591,21 +3772,17 @@ async def _jog_stop_for_client() -> None:
         # (2026-09-03 follow-up, closed by construction).
         _trace.emit("jog.stop_for_client_noop", level="info")
         return
-    STAT.poll()
-    mode = safe_get("task_mode", None)
-    interp = safe_get("interp_state", None)
-    if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
-        return  # program running — no jog to stop, must not switch mode
-    homed = normalize_homed(safe_get("homed", None))
-    if not homed:
-        return  # nothing to jog-stop if not homed
-    if _jog_stop_would_abort_mdi(mode, interp, "jog_stop_for_client"):
-        return  # an MDI is executing — no jog can be in flight; a mode switch would abort it
-    await set_mode(linuxcnc.MODE_MANUAL)
-    jf = _jog_joint_flag()
+    if _auto_running():
+        return  # program running — no jog to stop
+    # Homed or not: a jog the gateway started is stopped (button gates BG-07 —
+    # a joint jog before homing must stop on a disarm like any other), each
+    # as it was started and without a mode switch (_send_jog_stop). A failed
+    # stop keeps its jog booked and says so; the others are still stopped.
     for ax in sorted(_active_jogs):
-        await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, _jog_axis_arg(ax, jf), wait=None)
-    _active_jogs.clear()
+        try:
+            await _send_jog_stop(ax)
+        except Exception as e:  # noqa: BLE001 - one failed stop must not skip the rest
+            _trace.emit_exc("jog.stop_for_client_failed", e, axis=ax)
 
 
 def require_armed(armed: bool):
@@ -3619,9 +3796,15 @@ def require_no_eoffset():
     bake the eoffset into the new offset (the current position the offset is
     derived from is contaminated). LinuxCNC itself doesn't enforce this web-UI
     gate, so a direct client could otherwise bypass it. Mirrors the frontend's
-    `!eoffsetEnabled` condition: only blocks when the pin is definitely enabled
-    (None/stale → allowed, matching the UI)."""
-    if _reader_get("z_eoffset_enable"):
+    `!eoffsetEnabled` condition. Unknown is not "off" (button gates BG-12): a
+    stale reader, or an unread pin on a machine with a Z axis, refuses — the
+    same eoffset_state rule the gates use."""
+    on = _status_runtime_mod.eoffset_state(
+        _reader_fresh_get("z_eoffset_enable"), not _reader_is_stale(),
+        safe_get("axis_mask", None))
+    if on is None:
+        raise PermissionError("Surface compensation state unknown — HAL reader stale")
+    if on:
         raise PermissionError("Surface compensation active — clear the eoffset before editing work offsets")
 
 
@@ -3645,6 +3828,177 @@ def require_no_rotary_tilt():
             "feature (the map does not tilt or ride the platter)")
 
 
+#: A protected HTTP write whose connection is not (any more) connected
+#: (button gates BG-14): the page gets a new key with its next hello.
+CONN_UNKNOWN = "Connection unknown — reconnect"
+
+
+def _writer_refusal(conn_key) -> Optional[str]:
+    """Is a protected write's writer a connected, ARMED client? None = yes,
+    else the refusal (button gates BG-14, Codex R204). The key is the one
+    THIS connection got with its hello; its registry entry goes as the
+    disconnect cleanup's first step, so a key whose connection ended writes
+    nothing — no grace, and the resume id never stands in for it."""
+    if not isinstance(conn_key, str) or not conn_key:
+        return CONN_UNKNOWN
+    for c in list(_clients.values()):
+        if hmac.compare_digest(c.conn_key, conn_key):
+            return None if c.armed else NOT_ARMED
+    return CONN_UNKNOWN
+
+
+def _require_writer(conn_key) -> None:
+    """A protected HTTP write's first check, before its body is read: 403
+    with the reason. The commit checks again (_write_admission_refusal)."""
+    why = _writer_refusal(conn_key)
+    if why:
+        raise HTTPException(status_code=403, detail=why)
+
+
+def _write_admission_refusal(conn_key=None, *, tool_table: bool = False) -> Optional[str]:
+    """May a program / macro / tool-table write publish NOW? None = yes, else
+    the refusal — the commit-time half of sourceWrite / toolTableWrite
+    (button gates BG-14). Called at the commit itself, inside the
+    serialization a start registers under (_source_lock, or _cmd_lock for
+    the tool table), on a CURRENT read: the writer's connection — an HTTP
+    write's X-Conn-Key, a WS command's own connection — registered and armed
+    NOW (Codex R211 BG-23: never the arm the dispatcher saw), no start claim
+    open, no run from line and no load / unload in progress, a controller
+    status (none is no known idle, BG-26), the interpreter idle by a poll
+    that succeeded now, and for the tool table no tool change asking for a
+    tool (a FRESH reader). E-Stop does not refuse: the files are not the
+    machine."""
+    why = _writer_refusal(conn_key)
+    if why:
+        return why
+    if _source_claims:
+        return "A program or macro is starting or running — wait"
+    why = _rfl_busy_reason()
+    if why:
+        return why
+    if _status_runtime.program_changing:
+        return "A program is loading — wait"
+    if STAT is None:
+        return STATE_UNKNOWN
+    try:
+        STAT.poll()
+    except Exception as e:  # noqa: BLE001 - no fresh read, no write
+        _trace.emit_exc("write.stat_poll_failed", e)
+        return "Machine status not read — try again"
+    interp = safe_get("interp_state", None)
+    if interp is None:
+        return STATE_UNKNOWN
+    if interp != linuxcnc.INTERP_IDLE:
+        return "A program or MDI runs — wait"
+    if tool_table:
+        pending = _reader_fresh_get("tool_change")
+        if pending is None:
+            return "Tool change request unknown — HAL reader stale"
+        if pending:
+            return "Tool change pending — finish it first"
+    return None
+
+
+def _write_tool_table_admitted(tbl_path: str, tools: list, conn_key) -> None:
+    """A WS tool edit's write, admitted at the write itself, in its thread
+    (button gates BG-14): its connection armed NOW (BG-23); the handler
+    holds _cmd_lock, which every start needs. A refusal is a PermissionError
+    — the bounded reply."""
+    why = _write_admission_refusal(conn_key, tool_table=True)
+    if why:
+        raise PermissionError(why)
+    write_tool_table(tbl_path, tools)
+
+
+async def _persist_tool_edit(tbl_path: str, tools: list, conn_key, update_library,
+                             *, meta_dirty: bool = False) -> None:
+    """A WS tool edit's persist as ONE section, to its END (button gates
+    BG-22, Codex R211): the table write (admitted in its thread), the reload
+    into LinuxCNC, then the metadata — `update_library(library)` changes the
+    loaded tool_library in place before it is saved. The caller holds
+    _cmd_lock (handle_command). An abort preempts WS handlers: a cancel — a
+    second one too — waits for the section before it propagates, so the
+    lock never passes to the next writer under a write still running, and an
+    admitted table never goes without its reload and its metadata. A refusal
+    raises before anything is written. The cost to the abort that waits for
+    the lock: one table write, one load_tool_table (no wait_complete), one
+    library read and write."""
+    async def section():
+        global _tool_meta_dirty
+        await asyncio.to_thread(_write_tool_table_admitted, tbl_path, tools, conn_key)
+        await _reload_tool_table_and_bump()
+        library = await asyncio.to_thread(load_tool_library)
+        update_library(library)
+        await asyncio.to_thread(save_tool_library, library)
+        if meta_dirty:
+            _tool_meta_dirty = True
+    await _thread_to_end(asyncio.ensure_future(section()))
+
+
+def _settings_admission(section: Optional[str], conn_key):
+    """settingsWrite(section) as the store's commit check (button gates
+    BG-19, BG-24): a display section needs no arm; every other — and the
+    global reset (`section` None) — the writer's connection, registered and
+    armed when the store's lock is held; no idle, no power. Raises a
+    PermissionError to refuse. ONE rule for WS, HTTP, the beacon, the reset."""
+    def admit():
+        why = _writer_refusal(conn_key) if section is None or section_needs_arm(section) else None
+        if why:
+            raise PermissionError(why)
+    return admit
+
+
+async def _ws_save_settings(client, msg: Dict[str, Any]) -> Dict[str, Any]:
+    """A WS `save_settings`: the reply (button gates BG-19/BG-24). Admitted
+    inside the store's lock for this client's connection, like the HTTP save.
+    The Settings header's save status matches THIS reply to the save it sent
+    by req_id (UX-08): every path echoes it, or the header reads "Saving…"
+    forever on a real gateway."""
+    echo = {"cmd": "save_settings", **_req_echo(msg)}
+    section = msg.get("section", "")
+    if section not in _VALID_SETTINGS_SECTIONS:
+        return {"type": "reply", "ok": False, "error": f"Unknown settings section: {section}", **echo}
+    try:
+        await asyncio.to_thread(save_settings_section, section, msg.get("data"),
+                                _settings_admission(section, client.conn_key))
+    except PermissionError as pe:
+        return {"type": "reply", "ok": False, "error": str(pe), **echo}
+    except Exception as se:
+        return {"type": "reply", "ok": False, "error": f"{type(se).__name__}: {se}", **echo}
+    return {"type": "reply", "ok": True, **echo}
+
+
+# The tool-change request the gateway last confirmed (button gates BG-17):
+# a request is confirmed once.
+_tool_change_confirmed: Optional[int] = None
+
+
+def _tool_change_request_refusal(request) -> Optional[str]:
+    """Does this confirmation answer the CURRENT request? None = yes (and it
+    is recorded as confirmed), else the refusal (button gates BG-17, Codex
+    R205): a press begun on one request must not confirm the one that
+    replaced it — the number the dialog showed must be the current one, and
+    the tool asked for now must be the one that number was given for (the
+    next request raised between two polls) — and a request is confirmed
+    once: a second client's late confirm is refused. Booked only after the
+    message was delivered (_book_tool_change_confirmed, BG-20)."""
+    current = _status_runtime.tool_change_seq
+    prep = _reader_fresh_get("tool_prep_number")
+    if (not isinstance(request, int) or isinstance(request, bool) or request != current
+            or prep is None or int(round(float(prep))) != _status_runtime.tool_change_tool):
+        return "Tool change request changed — confirm again"
+    if request == _tool_change_confirmed:
+        return "Tool change already confirmed"
+    return None
+
+
+def _book_tool_change_confirmed(request: int) -> None:
+    """The request whose confirmation was DELIVERED (BG-20) — the one a
+    second confirm is refused for."""
+    global _tool_change_confirmed
+    _tool_change_confirmed = request
+
+
 def require_tool_change_pending():
     """Refuse a manual-toolchange confirmation when iocontrol is not asking for
     one.
@@ -3656,11 +4010,14 @@ def require_tool_change_pending():
     means the confirmation is meaningless at best and desynchronises the
     toolchange handshake at worst.
 
-    Same None/stale convention as require_no_eoffset(): only blocks when the pin
-    DEFINITELY says no change is pending (`is False`), so an absent or stale
-    reader snapshot allows the command rather than stranding an operator
-    mid-change."""
-    if _reader_get("tool_change") is False:
+    Only a FRESH pending request is confirmed (button gates BG-12 / BG-17):
+    an absent or stale reader is no request — asserting tool-changed into a
+    handshake nobody asked for desynchronises it. The operator is not
+    stranded: the reader_stale banner says why, Abort stays."""
+    pending = _reader_fresh_get("tool_change")
+    if pending is None:
+        raise PermissionError("Tool change request unknown — HAL reader stale")
+    if pending is not True:
         raise PermissionError("No tool change pending")
 
 
@@ -3727,27 +4084,72 @@ def _rfl_busy() -> bool:
     return any(t is not None and not t.done() for t in (_rfl_task, _rfl_flag_task))
 
 
-async def _start_guard(armed: bool, clears_flag: bool = False) -> Optional[dict]:
+async def _start_guard(armed: bool, clears_flag: bool = False,
+                       program: bool = False) -> Optional[dict]:
     """Before a start from idle — a program, a first step, an MDI line, a
     tool change (an M6 remap may run the routine): None to go on, else the
     refusal (Codex R18 XZ-11 — a normal start took over an old skip flag).
     While run from line starts or ends, its flag is not settled: refused.
     A flag that may be set is cleared first, in this same command — only
     once the interpreter took the clear does anything start. `clears_flag`:
-    the command's own values carry #3116=0 (_skip_flag_cleared)."""
+    the command's own values carry #3116=0 (_skip_flag_cleared).
+    `program`: a PROGRAM start (Cycle Start, run from line, Step from idle)
+    — the kinematics must be runnable on a CURRENT controller read, after
+    every preliminary step of this guard (_program_start_refusal; button
+    gates BG-09 / BG-12). An MDI line is no program start: it is how a
+    stranded frame is fixed (M428, G69)."""
     why = _rfl_busy_reason()
     if why:
         return {"ok": False, "error": why}
     if _skip_flag_unknown and not clears_flag:
+        # The clear is part of the start (button gates BG-32, Codex R217): a
+        # program or MDI running by a current read — another client's, since
+        # the snapshot — meets neither the switch to MDI nor the #3116 write;
+        # the flag stays unknown for a later start. Checked here, at the
+        # switch's write, and at each MDI write of the clear.
+        why = _interp_idle_refusal()
+        if why:
+            return {"ok": False, "error": why}
         # A refused switch (a jog held) says so itself — the MDI below would
         # swallow it into "not cleared".
-        await set_mode(linuxcnc.MODE_MDI)
+        await set_mode(linuxcnc.MODE_MDI, admit=_interp_idle_refusal)
         _file_ok, mdi_ok = await _apply_probe_vars({"3116": 0}, armed)
         if not mdi_ok:
             _trace.emit("rfl.flag_clear_failed", level="warn", by="start")
             return {"ok": False, "error": "Skip flag #3116 not cleared — nothing started"}
         _trace.emit("rfl.flag_cleared", by="start")
+    if program:
+        why = _program_start_refusal(armed)
+        if why:
+            return {"ok": False, "error": why}
     return None
+
+
+def _program_start_refusal(armed: bool) -> Optional[str]:
+    """May a PROGRAM start now? None = yes, else the refusal — the kinematics
+    rule (kins_runnable) on a CURRENT read (button gates BG-09 / BG-12, Codex
+    R205): the fixture from a STAT poll that succeeded now, the kins mode and
+    the plane from the reader read now. The broadcast lags a poll, and its
+    reader_fresh is the freshness when it was BUILT — a stale reader or a
+    mode switched since then refuses here. Called last before the start:
+    from _start_guard after its flag clear, and by the run-from-line
+    sequence right before its AUTO_RUN, minutes after its handler."""
+    if _shared_status is None:
+        return "Machine status not read yet — wait"
+    base = _live_policy_state(armed)
+    try:
+        STAT.poll()
+    except Exception as e:  # noqa: BLE001 - no poll, no start
+        _trace.emit_exc("start.stat_poll_failed", e)
+        return "Machine status not read — start again"
+    g5x = safe_get("g5x_index", None)
+    kins = _reader_fresh_get("kins_type")
+    active = _reader_fresh_get("twp_active")
+    return kins_runnable(_dc_replace(
+        base,
+        kins_type=None if kins is None else int(round(float(kins))),
+        twp_active=active is not None and bool(active),
+        g5x_index=None if g5x is None else int(g5x)))
 
 
 def _rfl_finished(task: asyncio.Task) -> None:
@@ -4039,8 +4441,20 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
                     await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_REVERSE, spindle_speed, wait=None)
         _rfl_phase("starting")
         async with _get_cmd_lock():
+            # The handler's admission is minutes old: the same current read
+            # decides — early, and again at the write itself, after the mode
+            # switch (button gates BG-09 / BG-12, Codex R206).
+            why = _program_start_refusal(True)
+            if why:
+                _rfl_phase("failed", False, why)
+                return
             await set_mode(linuxcnc.MODE_AUTO)
-            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None)
+            try:
+                await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None,
+                                    admit=lambda: _program_start_refusal(True))
+            except _WriteRefused as refused:
+                _rfl_phase("failed", False, str(refused))
+                return
         # Consumed by the skim (o<450> self-clears #3116); _skip_flag_unknown
         # stays set — an abort in the skim leaves it, the next start clears.
         flag_armed = False
@@ -4291,11 +4705,13 @@ async def _apply_probe_vars(vars_to_set: Dict[str, Any], armed: bool):
                     booked[key] = val
             if current:
                 chunks.append((current, booked))
-            await set_mode(linuxcnc.MODE_MDI)
+            # Not running by a current read at each write, as by the poll
+            # above (Codex R217 — the executor queue lies between them).
+            await set_mode(linuxcnc.MODE_MDI, admit=_interp_idle_refusal)
             mdi_ok = True
             for chunk, booked in chunks:
                 inflight = booked
-                ret = await _cmd_blocking(CMD.mdi, chunk, wait=5)
+                ret = await _cmd_blocking(CMD.mdi, chunk, wait=5, admit=_interp_idle_refusal)
                 inflight = None
                 if _cmd_rc_failed(ret):   # success is RCS_DONE (1), not 0
                     mdi_ok = False
@@ -4318,14 +4734,16 @@ async def _apply_probe_vars(vars_to_set: Dict[str, Any], armed: bool):
     return file_ok, mdi_ok
 
 
-async def handle_command(msg: Dict[str, Any], armed: bool):
+async def handle_command(msg: Dict[str, Any], armed: bool, conn_key: Optional[str] = None):
     # Acquire the CMD lock before dispatching. Every path that touches CMD.*
-    # must hold this lock; see _cmd_lock docstring.
+    # must hold this lock; see _cmd_lock docstring. `armed` is the client's
+    # arm at dispatch; `conn_key` its connection, which a protected write
+    # reads again at its commit (button gates BG-23, Codex R211).
     async with _get_cmd_lock():
-        return await _handle_command_impl(msg, armed)
+        return await _handle_command_impl(msg, armed, conn_key)
 
 
-async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
+async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optional[str] = None):
     global _estop_hold, _skip_flag_unknown
     cmd = msg.get("cmd")
     if not cmd:
@@ -4396,10 +4814,13 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
         if _deny is not None:
             _trace.emit("ws.command_denied", level="warn", cmd=cmd, reason=_deny)
             return {"ok": False, "error": _deny}
-    else:
-        # No status snapshot yet (pre-first-poll window). Can't evaluate state;
-        # the handler-level guards still apply. Trace so the gap is auditable.
-        _trace.emit("policy.check_skipped_no_state", level="warn", cmd=cmd)
+    elif COMMAND_GATES.get(cmd) is not None and COMMAND_GATES[cmd] not in STATELESS_GATES:
+        # No status snapshot yet (pre-first-poll window): nothing to judge the
+        # command against, so only the gates that need no state pass — E-Stop,
+        # Arm, the jog stops, Abort (button gates BG-12; this used to let
+        # every command through to its handler).
+        _trace.emit("ws.command_denied", level="warn", cmd=cmd, reason="no status yet")
+        return {"ok": False, "error": "Machine status not read yet — wait"}
 
     # Payload BOUNDS against what the machine declares (issue #27). Separate
     # claim from finite_int/finite_float's TYPE check in the handlers — see the
@@ -4489,11 +4910,23 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             mode = finite_int(msg.get("mode", 0))
             if mode not in (linuxcnc.MODE_MANUAL, linuxcnc.MODE_AUTO, linuxcnc.MODE_MDI):
                 return {"ok": False, "error": f"Invalid mode: {mode}"}
-            await set_mode(mode)
+            # Per target (button gates BG-04): MANUAL needs modeManual, MDI /
+            # AUTO also COORD reachable — every joint homed, or identity
+            # kinematics with NO_FORCE_HOMING. Judged on the controller's
+            # current read (Codex R216): the dispatcher's snapshot is a poll
+            # old, and a homing or a move since then must meet no switch.
+            admit = _gate_admit("modeManual" if mode == linuxcnc.MODE_MANUAL else "modeCoord", armed)
+            why = admit()   # early: the reason without a queued write
+            if why:
+                return {"ok": False, "error": why}
+            await set_mode(mode, admit=admit)   # and at the write (R217)
             return {"ok": True}
 
         if cmd == "shutdown":
-            # No require_armed — confirmation dialog is the safety gate.
+            # Armed (button gates package C): it ends LinuxCNC, and with the
+            # outer armed fieldset gone the client's catalog gate was its
+            # only check — the confirmation dialog is the second.
+            require_armed(armed)
             # Signal the LAUNCHER (parent), not ourselves, so the UI
             # shutdown path goes through the same _term trap as Ctrl-C.
             # Self-signaling SIGTERM makes uvicorn run lifespan teardown
@@ -4508,7 +4941,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             return {"ok": True}
 
         if cmd == "abort":
-            require_armed(armed)
+            # A stop needs no arm (button gates BG-08): arm authorizes NEW
+            # machine effects — E-Stop was already open to every client.
             await _cmd_blocking(CMD.abort, wait=None)
             return {"ok": True}
 
@@ -4747,20 +5181,14 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if not found:
                 return {"ok": False, "error": f"Tool T{tool_num} not found"}
 
-            await asyncio.to_thread(write_tool_table, tbl_path, tbl_tools)
-            await _reload_tool_table_and_bump()
-
-            # Update metadata
-            library = await asyncio.to_thread(load_tool_library)
-            key = str(tool_num)
-            if key not in library:
-                library[key] = {}
-            for field in _TOOL_META_FIELDS:
-                if field in msg:
-                    library[key][field] = msg[field]
-            await asyncio.to_thread(save_tool_library, library)
-            global _tool_meta_dirty
-            _tool_meta_dirty = True
+            def update(library):
+                key = str(tool_num)
+                if key not in library:
+                    library[key] = {}
+                for field in _TOOL_META_FIELDS:
+                    if field in msg:
+                        library[key][field] = msg[field]
+            await _persist_tool_edit(tbl_path, tbl_tools, conn_key, update, meta_dirty=True)
             return {"ok": True}
 
         if cmd == "add_tool":
@@ -4782,17 +5210,13 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 "D": finite_float(msg.get("diameter", 0.0), lo=0),
                 "remark": str(msg.get("remark", "")),
             })
-            await asyncio.to_thread(write_tool_table, tbl_path, tbl_tools)
-            await _reload_tool_table_and_bump()
-
-            # Save metadata if provided
-            library = await asyncio.to_thread(load_tool_library)
-            key = str(tool_num)
-            library[key] = {}
-            for field in _TOOL_META_FIELDS:
-                if field in msg:
-                    library[key][field] = msg[field]
-            await asyncio.to_thread(save_tool_library, library)
+            def update(library):   # the metadata, if provided
+                key = str(tool_num)
+                library[key] = {}
+                for field in _TOOL_META_FIELDS:
+                    if field in msg:
+                        library[key][field] = msg[field]
+            await _persist_tool_edit(tbl_path, tbl_tools, conn_key, update)
             return {"ok": True}
 
         if cmd == "delete_tool":
@@ -4818,13 +5242,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if len(new_tools) == len(tbl_tools):
                 return {"ok": False, "error": f"Tool T{tool_num} not found"}
 
-            await asyncio.to_thread(write_tool_table, tbl_path, new_tools)
-            await _reload_tool_table_and_bump()
-
-            library = await asyncio.to_thread(load_tool_library)
-            library.pop(str(tool_num), None)
-            await asyncio.to_thread(save_tool_library, library)
-
+            await _persist_tool_edit(tbl_path, new_tools, conn_key,
+                                     lambda library: library.pop(str(tool_num), None))
             return {"ok": True}
 
         if cmd == "renumber_tool":
@@ -4862,16 +5281,13 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             src["Z"] = finite_float(msg.get("z_offset", src.get("Z", 0.0)))
             src["D"] = finite_float(msg.get("diameter", src.get("D", 0.0)), lo=0)
             src["remark"] = str(msg.get("remark", src.get("remark", "")))
-            await asyncio.to_thread(write_tool_table, tbl_path, tbl_tools)
-            await _reload_tool_table_and_bump()
-
-            library = await asyncio.to_thread(load_tool_library)
-            meta = library.pop(str(old_num), {}) or {}
-            for field in _TOOL_META_FIELDS:
-                if field in msg:
-                    meta[field] = msg[field]
-            library[str(new_num)] = meta
-            await asyncio.to_thread(save_tool_library, library)
+            def update(library):
+                meta = library.pop(str(old_num), {}) or {}
+                for field in _TOOL_META_FIELDS:
+                    if field in msg:
+                        meta[field] = msg[field]
+                library[str(new_num)] = meta
+            await _persist_tool_edit(tbl_path, tbl_tools, conn_key, update)
             return {"ok": True, "tool_number": new_num}
 
         if cmd == "tool_change":
@@ -4916,11 +5332,16 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 # Idle → start program and step. A paused program is one a
                 # start already cleared the skip flag for — or run from
                 # line's own, whose skim owns it; no MDI while paused.
-                refused = await _start_guard(armed)
+                refused = await _start_guard(armed, program=True)
                 if refused:
                     return refused
-                await set_mode(linuxcnc.MODE_AUTO)
-                await _cmd_blocking(CMD.auto, linuxcnc.AUTO_STEP, wait=None)
+                admit = _start_admit("step", armed)   # as Cycle Start
+                why = admit()
+                if why:
+                    return {"ok": False, "error": why}
+                await set_mode(linuxcnc.MODE_AUTO, admit=admit)
+                await _cmd_blocking(CMD.auto, linuxcnc.AUTO_STEP, wait=None,
+                                    admit=admit)
             return {"ok": True}
 
         if cmd == "auto_run":
@@ -4994,7 +5415,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 # The skim of lines before N runs the M600 bodies: a flag that
                 # may be set is cleared first (Codex R18 XZ-11); with a
                 # pre-measurement its values carry the clear.
-                refused = await _start_guard(armed, clears_flag=bool(pre_tool))
+                refused = await _start_guard(armed, clears_flag=bool(pre_tool), program=True)
                 if refused:
                     return refused
                 if pre_tool:
@@ -5006,7 +5427,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                            program=identity)
                 return {"ok": True, "rfl": "started"}
 
-            refused = await _start_guard(armed)
+            refused = await _start_guard(armed, program=True)
             if refused:
                 return refused
             if spindle_dir and spindle_speed > 0:
@@ -5016,7 +5437,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 elif spindle_dir == "reverse":
                     await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_REVERSE, spindle_speed, wait=None)
             await set_mode(linuxcnc.MODE_AUTO)
-            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None)
+            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None,
+                                admit=lambda: _program_start_refusal(armed))
             return {"ok": True}
 
         # jog left intact (even if you're not using it right now)
@@ -5027,14 +5449,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if blocked:
                 return blocked
 
-            axis = finite_int(msg.get("axis"), lo=0)
-            vel = finite_float(msg.get("vel", 0.0))
-            await set_mode(linuxcnc.MODE_MANUAL)
-            jf = await _jog_mode_flag()
-            rc = await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, _jog_axis_arg(axis, jf), vel, wait=None)
-            _active_jogs.add(axis)
-            _trace_jog("jog_cont", axis, jf, vel=vel, rc=rc)
-            return {"ok": True}
+            return await _start_jogs("jog_cont", armed,
+                                     [(finite_int(msg.get("axis"), lo=0), finite_float(msg.get("vel", 0.0)), None)])
 
         if cmd == "jog_stop":
             # Stopping motion is always allowed — gateway must NOT silently
@@ -5043,25 +5459,17 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             # gap: operator holds jog, disarms, releases → client's jog_stop
             # was accepted as no-op and the machine kept moving. Audit Phase
             # 2 / Issue E1. In AUTO+running a jog cannot be in flight
-            # (jogging requires MANUAL/TELEOP) and a forced mode switch
-            # would interrupt the program — skip that case explicitly.
+            # (jogging requires MANUAL/TELEOP) and task refuses a jog stop
+            # there — skip that case explicitly. No mode switch (package E).
             axis = finite_int(msg.get("axis"), lo=0)
             if axis not in _active_jogs:
                 # Nothing the gateway started is moving on this axis: a late
                 # release. No mode switch — that is what aborted a fresh MDI.
                 _trace.emit("jog.stop_without_jog", level="info", cmd="jog_stop", axis=axis)
                 return {"ok": True}
-            STAT.poll()   # fresh: the guard below must not read a 30 ms-old snapshot
-            mode = safe_get("task_mode", None)
-            interp = safe_get("interp_state", None)
-            if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
+            if _auto_running():   # fresh: not a 30 ms-old snapshot
                 return {"ok": True}
-            if _jog_stop_would_abort_mdi(mode, interp, "jog_stop"):
-                return {"ok": True}
-            await set_mode(linuxcnc.MODE_MANUAL)
-            jf = _jog_joint_flag()
-            await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, _jog_axis_arg(axis, jf), wait=None)
-            _active_jogs.discard(axis)
+            await _send_jog_stop(axis)   # no switch; a failed write raises, the jog stays booked
             return {"ok": True}
 
         if cmd == "jog_cont_multi":
@@ -5071,36 +5479,30 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if blocked:
                 return blocked
 
-            axes = msg.get("axes", [])
-            await set_mode(linuxcnc.MODE_MANUAL)
-            jf = await _jog_mode_flag()
-            for entry in axes:
-                _ax = finite_int(entry["axis"], lo=0)
-                await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, _jog_axis_arg(_ax, jf), finite_float(entry["vel"]), wait=None)
-                _active_jogs.add(_ax)
-            return {"ok": True}
+            return await _start_jogs("jog_cont_multi", armed,
+                                     [(finite_int(e["axis"], lo=0), finite_float(e["vel"]), None)
+                                      for e in msg.get("axes", [])])
 
         if cmd == "jog_stop_multi":
             # Stopping motion is always allowed — see jog_stop above for the
             # same audit rationale (Phase 2 / Issue E1). In AUTO+running we
-            # have no jog in flight and must not switch modes.
+            # have no jog in flight; no mode switch (package E).
             axes = [finite_int(a, lo=0) for a in msg.get("axes", [])]
             active = [a for a in axes if a in _active_jogs]
             if not active:
                 _trace.emit("jog.stop_without_jog", level="info", cmd="jog_stop_multi", axes=axes)
                 return {"ok": True}
-            STAT.poll()
-            mode = safe_get("task_mode", None)
-            interp = safe_get("interp_state", None)
-            if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
+            if _auto_running():
                 return {"ok": True}
-            if _jog_stop_would_abort_mdi(mode, interp, "jog_stop_multi"):
-                return {"ok": True}
-            await set_mode(linuxcnc.MODE_MANUAL)
-            jf = _jog_joint_flag()
+            failed = []
             for a in active:
-                await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, _jog_axis_arg(a, jf), wait=None)
-                _active_jogs.discard(a)
+                try:
+                    await _send_jog_stop(a)
+                except Exception as e:  # noqa: BLE001 - one failed stop must not skip the rest
+                    _trace.emit_exc("jog.stop_failed", e, axis=a)
+                    failed.append(a)
+            if failed:
+                return {"ok": False, "error": f"Jog stop not sent for axes {failed} — press E-Stop if it still moves"}
             return {"ok": True}
 
         if cmd == "jog_incr":
@@ -5110,15 +5512,10 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if blocked:
                 return blocked
 
-            axis = finite_int(msg.get("axis"), lo=0)
-            vel = abs(finite_float(msg.get("vel", 0.0)))  # speed only; distance carries direction
-            dist = finite_float(msg.get("distance", 0.0))
-            await set_mode(linuxcnc.MODE_MANUAL)
-            jf = await _jog_mode_flag()
-            rc = await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, _jog_axis_arg(axis, jf), vel, dist, wait=None)
-            _active_jogs.add(axis)
-            _trace_jog("jog_incr", axis, jf, vel=vel, dist=dist, rc=rc)
-            return {"ok": True}
+            # speed only; the distance carries the direction
+            return await _start_jogs("jog_incr", armed,
+                                     [(finite_int(msg.get("axis"), lo=0), abs(finite_float(msg.get("vel", 0.0))),
+                                       finite_float(msg.get("distance", 0.0)))])
 
         if cmd == "jog_incr_multi":
             require_armed(armed)
@@ -5127,54 +5524,53 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if blocked:
                 return blocked
 
-            axes = msg.get("axes", [])
-            await set_mode(linuxcnc.MODE_MANUAL)
-            jf = await _jog_mode_flag()
-            for entry in axes:
-                _ax = finite_int(entry["axis"], lo=0)
-                await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, _jog_axis_arg(_ax, jf), abs(finite_float(entry["vel"])), finite_float(entry["distance"]), wait=None)
-                _active_jogs.add(_ax)
-            return {"ok": True}
+            return await _start_jogs("jog_incr_multi", armed,
+                                     [(finite_int(e["axis"], lo=0), abs(finite_float(e["vel"])),
+                                       finite_float(e["distance"])) for e in msg.get("axes", [])])
 
         if cmd == "home_all":
             require_armed(armed)
-            await set_mode(linuxcnc.MODE_MANUAL)
-            await _cmd_blocking(CMD.home, -1, wait=None)  # -1 homes all axes
-            return {"ok": True}
+            return await _manual_command("zero", armed, (CMD.home, (-1,), None))  # -1 homes all axes
 
         if cmd == "unhome_all":
             require_armed(armed)
-            await set_mode(linuxcnc.MODE_MANUAL)
-            await _cmd_blocking(CMD.teleop_enable, 0)  # unhome requires joint mode
-            await _cmd_blocking(CMD.unhome, -1, wait=None)  # -1 unhomes all axes
-            return {"ok": True}
+            return await _manual_command("zero", armed,
+                                         (CMD.teleop_enable, (0,), _CMD_WAIT_TIMEOUT),  # unhome requires joint mode
+                                         (CMD.unhome, (-1,), None))  # -1 unhomes all axes
 
         if cmd == "home":
             require_armed(armed)
             joint = finite_int(msg.get("joint", -1))
-            await set_mode(linuxcnc.MODE_MANUAL)
-            await _cmd_blocking(CMD.home, joint, wait=None)
-            return {"ok": True}
+            return await _manual_command("zero", armed, (CMD.home, (joint,), None))
 
         if cmd == "unhome":
             require_armed(armed)
             joint = finite_int(msg.get("joint", -1))
-            await set_mode(linuxcnc.MODE_MANUAL)
-            await _cmd_blocking(CMD.teleop_enable, 0)  # unhome requires joint mode
-            await _cmd_blocking(CMD.unhome, joint, wait=None)
-            return {"ok": True}
+            return await _manual_command("zero", armed,
+                                         (CMD.teleop_enable, (0,), _CMD_WAIT_TIMEOUT),  # unhome requires joint mode
+                                         (CMD.unhome, (joint,), None))
 
         if cmd == "cycle_start":
             require_armed(armed)
-            refused = await _start_guard(armed)
+            refused = await _start_guard(armed, program=True)
             if refused:
                 return refused
-            await set_mode(linuxcnc.MODE_AUTO)
-            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, 0, wait=None)  # Start from beginning
+            # The switch to AUTO aborts an MDI started since the snapshot
+            # (Codex R216's rule): the class on a current read first, then at
+            # the switch's write and at the start's, each with the kinematics
+            # (Codex R217).
+            admit = _start_admit("run", armed)
+            why = admit()
+            if why:
+                return {"ok": False, "error": why}
+            await set_mode(linuxcnc.MODE_AUTO, admit=admit)
+            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, 0, wait=None,  # Start from beginning
+                                admit=admit)
             return {"ok": True}
 
         if cmd == "cycle_pause":
-            require_armed(armed)
+            # Interrupting a running sequence is a stop (BG-08); resuming it
+            # is new motion and keeps require_armed below.
             await _cmd_blocking(CMD.auto, linuxcnc.AUTO_PAUSE, wait=None)
             return {"ok": True}
 
@@ -5203,34 +5599,32 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
         if cmd == "spindle_forward":
             require_armed(armed)
             speed = finite_float(msg.get("speed", 0))
-            await set_mode(linuxcnc.MODE_MANUAL)
-            await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_FORWARD, speed, wait=None)
-            return {"ok": True}
+            return await _manual_command("spindleManual", armed, (CMD.spindle, (linuxcnc.SPINDLE_FORWARD, speed,), None))
 
         if cmd == "spindle_reverse":
             require_armed(armed)
             speed = finite_float(msg.get("speed", 0))
-            await set_mode(linuxcnc.MODE_MANUAL)
-            await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_REVERSE, speed, wait=None)
-            return {"ok": True}
+            return await _manual_command("spindleManual", armed, (CMD.spindle, (linuxcnc.SPINDLE_REVERSE, speed,), None))
 
         if cmd == "spindle_stop":
-            require_armed(armed)
-            await set_mode(linuxcnc.MODE_MANUAL)
+            # The spindle stop at idle (button gates BG-18): no arm, no
+            # homing, and no MANUAL switch on the way — task takes the direct
+            # spindle stop in MANUAL, MDI and AUTO while the interpreter is
+            # idle. A program or an MDI that started since the gate's
+            # snapshot owns the spindle: refused, Pause / Abort are the stops.
+            STAT.poll()
+            if safe_get("interp_state", None) != linuxcnc.INTERP_IDLE:
+                return {"ok": False, "error": SPINDLE_OWNED}
             await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_OFF, wait=None)
             return {"ok": True}
 
         if cmd == "spindle_increase":
             require_armed(armed)
-            await set_mode(linuxcnc.MODE_MANUAL)
-            await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_INCREASE, wait=None)
-            return {"ok": True}
+            return await _manual_command("spindleManual", armed, (CMD.spindle, (linuxcnc.SPINDLE_INCREASE,), None))
 
         if cmd == "spindle_decrease":
             require_armed(armed)
-            await set_mode(linuxcnc.MODE_MANUAL)
-            await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_DECREASE, wait=None)
-            return {"ok": True}
+            return await _manual_command("spindleManual", armed, (CMD.spindle, (linuxcnc.SPINDLE_DECREASE,), None))
 
         if cmd == "flood_on":
             require_armed(armed)
@@ -5296,20 +5690,23 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if not validate_extension(abs_path):
                 return {"ok": False, "error": "Invalid file extension"}
 
-            blocked = reject_if_auto_running()
-            if blocked:
-                return blocked
-            if _rfl_busy():
-                # The sequence is bound to the loaded program (XZ-07).
-                return {"ok": False, "error": _rfl_busy_reason()}
+            # The commit-time admission (button gates BG-03, the BG-14 rule):
+            # THIS connection armed now, no start claim, no run from line
+            # (bound to the loaded program, XZ-07), no load / unload in
+            # progress, the interpreter idle by a poll that succeeded now.
+            # Before begin_program_change: it refuses a change in progress.
+            why = _write_admission_refusal(conn_key)
+            if why:
+                return {"ok": False, "error": why}
 
-            # Phase markers (B8) subdivide load_file so the lag monitor pins which
-            # step holds the loop — the run named "handle_command cmd=load_file"
-            # at ~78 ms but couldn't say which part. set_mode/program_open already
-            # offload their NML work; if a marker dominates a future lag.window,
-            # that's the synchronous piece to move off-loop next.
-            _set_phase("load_file.set_mode")
-            await set_mode(linuxcnc.MODE_AUTO)
+            # No AUTO pre-step (button gates BG-03): PLAN_OPEN needs no mode
+            # — LinuxCNC takes it in E-Stop, off and MANUAL (emctaskmain.cc
+            # v2.9.4) — and the switch failed off / unhomed, refusing a load
+            # the gate had allowed. A start switches to AUTO itself; that
+            # switch closes the plan (emcTaskAbort → emcTaskPlanClose) and
+            # PLAN_RUN re-opens task.file (emctaskmain.cc:2302), from line 1.
+            # Phase markers (B8) subdivide load_file so the lag monitor pins
+            # which step holds the loop.
             # Fire-and-forget (no wait_complete). milltask opens the file in its
             # OWN process; our `wait=5` just polled it via CMD.wait_complete — and
             # the LinuxCNC C binding HOLDS THE GIL across that poll, so the
@@ -5360,11 +5757,10 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
 
         if cmd == "unload_file":
             require_armed(armed)
-            blocked = reject_if_auto_running()
-            if blocked:
-                return blocked
-            if _rfl_busy():
-                return {"ok": False, "error": _rfl_busy_reason()}
+            # The load's commit-time admission (button gates BG-03).
+            why = _write_admission_refusal(conn_key)
+            if why:
+                return {"ok": False, "error": why}
             if not _status_runtime.begin_program_change():
                 return {"ok": False, "error": "Load record not writable — nothing unloaded"}
             try:
@@ -5478,9 +5874,23 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
         if cmd == "confirm_tool_change":
             require_armed(armed)
             require_tool_change_pending()
+            request = msg.get("request")
+            refused = _tool_change_request_refusal(request)
+            if refused:
+                return {"ok": False, "error": refused}
             _loop = asyncio.get_event_loop()
-            await _loop.run_in_executor(None, _hal_send, {"tool_changed": True})
-            return {"ok": True}
+            delivered = await _loop.run_in_executor(None, _hal_send, {"tool_changed": True})
+            # Booked only when delivered (button gates BG-20, Codex R206): a
+            # message that never left must not use the request up. A retry
+            # names the same request — the binding keeps it off any other.
+            if delivered is True:
+                _book_tool_change_confirmed(request)
+                return {"ok": True}
+            _trace.emit("toolchange.confirm_not_delivered", level="warn",
+                        request=request, outcome=str(delivered))
+            if delivered is False:
+                return {"ok": False, "error": "Confirmation not sent — confirm again"}
+            return {"ok": False, "error": "Confirmation unclear — confirm again if still asked"}
 
         if cmd == "simulate_probe_trip":
             require_armed(armed)
@@ -6478,6 +6888,141 @@ def _identity_first() -> bool:
         return False
 
 
+_coord_without_homing_cache: Optional[bool] = None
+_spindle_before_homing_cache: Optional[bool] = None
+
+
+def _coord_without_homing() -> bool:
+    """MDI / AUTO reachable without homing (button gates BG-04): motion's
+    kinType is KINEMATICS_IDENTITY — EMCMOT_COORD refuses an unhomed switch
+    otherwise (motion command.c v2.9.4:581), whatever the switchkins frame —
+    AND [TRAJ] NO_FORCE_HOMING = 1, without which task refuses every
+    coordinated move anyway. Both are fixed for the session; unreadable
+    (before the first NML connect, an INI that cannot be read) is False, the
+    closed reading, and is not cached."""
+    global _coord_without_homing_cache
+    if _coord_without_homing_cache is not None:
+        return _coord_without_homing_cache
+    ini_filename = getattr(STAT, "ini_filename", None) if STAT else None
+    kt = getattr(STAT, "kinematics_type", None) if STAT else None
+    if not ini_filename or kt is None:
+        return False
+    try:
+        nfh = (linuxcnc.ini(ini_filename).find("TRAJ", "NO_FORCE_HOMING") or "").strip()
+    except Exception as e:  # noqa: BLE001 - unreadable is the closed reading
+        _trace.emit_exc("policy.no_force_homing_unreadable", e)
+        return False
+    _coord_without_homing_cache = (kt == getattr(linuxcnc, "KINEMATICS_IDENTITY", 1) and nfh == "1")
+    return _coord_without_homing_cache
+
+
+def _spindle_before_homing() -> bool:
+    """[DISPLAY] WEBUI_SPINDLE_BEFORE_HOMING (operator Q1, Codex R203): the
+    manual spindle may run before homing — machine ON, idle, MANUAL. Exactly
+    "1" switches it on; absent or "0" is off; any other value is off AND said
+    once in the trace (an invalid value must never switch the exception on).
+    Unreadable before the first NML connect: False, not cached."""
+    global _spindle_before_homing_cache
+    if _spindle_before_homing_cache is not None:
+        return _spindle_before_homing_cache
+    ini_filename = getattr(STAT, "ini_filename", None) if STAT else None
+    if not ini_filename:
+        return False
+    try:
+        raw = linuxcnc.ini(ini_filename).find("DISPLAY", "WEBUI_SPINDLE_BEFORE_HOMING")
+    except Exception as e:  # noqa: BLE001 - unreadable is the closed reading
+        _trace.emit_exc("policy.spindle_before_homing_unreadable", e)
+        return False
+    value = (raw or "").strip()
+    if value not in ("", "0", "1"):
+        _trace.emit("policy.spindle_before_homing_invalid", level="warn", value=value[:40])
+    _spindle_before_homing_cache = value == "1"
+    return _spindle_before_homing_cache
+
+
+_joint_jog_cache: Optional[dict] = None
+_JOINT_JOG_OFF = {"enabled": False, "fraction": None, "axes": [], "reason": None}
+#: The cap before homing without a declaration (operator E2, 2026-10-28).
+_JOINT_JOG_DEFAULT_FRACTION = 0.1
+
+
+def _joint_jog_facts() -> dict:
+    """Jogging before homing (operator E1/E2, 2026-10-28; button gates package
+    E, BG-07): {enabled, fraction, axes, reason}, fixed for the session.
+
+    - `[DISPLAY] WEBUI_JOINT_JOG_BEFORE_HOMING`: exactly "1" switches it on;
+      absent or "0" is off; anything else is off AND said once in the trace.
+    - `[DISPLAY] WEBUI_JOINT_JOG_MAX_FRACTION`: the cap — a jog before homing
+      moves at most this share of its joint's [JOINT_n] MAX_VELOCITY.
+      Absent: 0.1. 0 < f ≤ 1, anything else switches the jog OFF and is
+      traced (an invalid value never raises the cap, the Q1 rule).
+    - the joint order: `[DISPLAY] WEBUI_JOINT_AXES` (each joint's letter in
+      joint order), else trivkins' `coordinates=`; else none — closed.
+      gateway_util.joint_jog_map turns it into one row per axis (a gantry
+      letter closed).
+    `enabled` = switch on, a valid cap, a valid map with at least one axis
+    that can jog. Unreadable before the first NML connect: off, not cached."""
+    global _joint_jog_cache
+    if _joint_jog_cache is not None:
+        return _joint_jog_cache
+    ini_filename = getattr(STAT, "ini_filename", None) if STAT else None
+    if not ini_filename:
+        return _JOINT_JOG_OFF
+    try:
+        ini = linuxcnc.ini(ini_filename)
+        raw = (ini.find("DISPLAY", "WEBUI_JOINT_JOG_BEFORE_HOMING") or "").strip()
+        if raw not in ("", "0", "1"):
+            _trace.emit("policy.joint_jog_invalid", level="warn", value=raw[:40])
+        if raw != "1":
+            _joint_jog_cache = dict(_JOINT_JOG_OFF)
+            return _joint_jog_cache
+        raw_f = (ini.find("DISPLAY", "WEBUI_JOINT_JOG_MAX_FRACTION") or "").strip()
+        fraction = _JOINT_JOG_DEFAULT_FRACTION
+        if raw_f:
+            try:
+                fraction = float(raw_f)
+            except ValueError:
+                fraction = float("nan")
+            if not 0.0 < fraction <= 1.0:
+                _trace.emit("policy.joint_jog_fraction_invalid", level="warn", value=raw_f[:40])
+                _joint_jog_cache = dict(_JOINT_JOG_OFF, reason="WEBUI_JOINT_JOG_MAX_FRACTION invalid — 0 < f ≤ 1")
+                return _joint_jog_cache
+        try:
+            letters = parse_joint_letters(ini.find("DISPLAY", "WEBUI_JOINT_AXES"))
+        except ValueError as e:
+            _trace.emit("policy.joint_axes_invalid", level="warn", error=str(e)[:80])
+            _joint_jog_cache = dict(_JOINT_JOG_OFF, reason="WEBUI_JOINT_AXES invalid — axis letters in joint order")
+            return _joint_jog_cache
+        if letters is None:
+            letters = trivkins_coordinates(ini.find("KINS", "KINEMATICS"))
+        joints = getattr(STAT, "joints", None)
+        max_vels = []
+        for j in range(joints if isinstance(joints, int) else 0):
+            try:
+                max_vels.append(float(ini.find(f"JOINT_{j}", "MAX_VELOCITY") or "nan"))
+            except ValueError:
+                max_vels.append(None)
+            if max_vels[-1] is not None and not max_vels[-1] > 0:
+                max_vels[-1] = None
+        axes = _axes_from_mask(int(getattr(STAT, "axis_mask", 0) or 0))
+    except Exception as e:  # noqa: BLE001 - unreadable is the closed reading
+        _trace.emit_exc("policy.joint_jog_unreadable", e)
+        return _JOINT_JOG_OFF
+    rows, why = joint_jog_map(letters, joints, list(axes), max_vels)
+    enabled = why is None and any(r["joint"] is not None for r in rows)
+    _joint_jog_cache = {"enabled": enabled, "fraction": fraction, "axes": rows, "reason": why}
+    _trace.emit("policy.joint_jog", level="info", enabled=enabled, fraction=fraction, reason=why,
+                axes=[(r["letter"], r["joint"]) for r in rows])
+    return _joint_jog_cache
+
+
+def _joint_jog_public() -> dict:
+    """viewer_init.joint_jog: what the strip names and dims before homing."""
+    f = _joint_jog_facts()
+    return {"enabled": f["enabled"], "fraction": f["fraction"], "reason": f["reason"],
+            "axes": [{"letter": r["letter"], "joint": r["joint"], "reason": r["reason"]} for r in f["axes"]]}
+
+
 #: Operator wording for a semantic kinematics mode (R-01). The M-CODE is
 #: deliberately absent: it is a per-configuration fact resolved at run time.
 _KINS_MODE_NAMES = {0: "Machine (identity)", 1: "TCP (world)", 2: "Plane (TOOL)"}
@@ -6606,11 +7151,116 @@ def _controller_capture_state(armed: bool):
         return None, _G30_NO_STATUS
     kins = None if _reader_is_stale() else _reader_get("kins_type")
     interp = safe_get("interp_state", None)
+    task_mode = safe_get("task_mode", None)
     return _dc_replace(
         base,
         kins_type=None if kins is None else int(round(float(kins))),
         is_idle=base.is_idle if interp is None else interp == linuxcnc.INTERP_IDLE,
+        # the synch rule (button gates BG-13): the mode NOW
+        task_mode=base.task_mode if task_mode is None else task_mode,
         motion_still=motion_still_of(safe_get("inpos", None), safe_get("current_vel", None))), None
+
+
+_STATUS_NOT_READ = "Machine status not read — try again"
+
+
+def _controller_gate_refusal(gate: str, armed: bool) -> Optional[str]:
+    """`gate` judged on a CURRENT controller read — its reason, or None
+    (button gates BG-04 / BG-31, Codex R216). The dispatcher judged the
+    command on the published snapshot, up to a poll old: a homing, a move or
+    an MDI started since then must not meet the gateway's own mode switch —
+    the mode choice, the manual spindle, Home / Unhome, and Cycle Start /
+    Step from idle before their switch to AUTO. Called before the queue (the
+    early reason) and as the write's `admit` inside its thread (Codex R217:
+    _gate_admit, _start_admit).
+
+    What the controller says about the machine comes from this poll — the
+    interpreter, the task mode, the motion, homing, homed — and a field it
+    does not offer is unknown, never the snapshot's value. Power is the
+    stricter of this poll and the snapshot (which carries the HAL safety
+    chain). A failed poll is no read. The rest — arm, the declaration facts,
+    the reader's pins — is the snapshot's. Stricter than
+    _controller_capture_state, whose agreed contract keeps the snapshot's
+    interpreter state when the poll lacks one (Codex R26/R27)."""
+    if _shared_status is None:
+        return _STATUS_NOT_READ
+    base = _live_policy_state(armed)
+    try:
+        STAT.poll()
+    except Exception as e:  # noqa: BLE001 - no poll, no command
+        _trace.emit_exc("policy.controller_poll_failed", e, gate=gate)
+        return _STATUS_NOT_READ
+    joints = safe_get("joints", 0)
+    try:
+        homing = _status_runtime_mod.homing_active_of(safe_get("joint", None), joints)
+    except (TypeError, ValueError, AttributeError) as e:
+        _trace.emit_exc("policy.controller_homing_unreadable", e, gate=gate)
+        homing = None
+    now = _dc_replace(
+        base,
+        is_estop=base.is_estop or bool(safe_get("estop", True)),
+        is_enabled=base.is_enabled and bool(safe_get("enabled", False)),
+        is_homed=bool(_status_runtime_mod.homed_of(safe_get("homed", None), joints)),
+        task_mode=safe_get("task_mode", None),
+        motion_still=motion_still_of(safe_get("inpos", None), safe_get("current_vel", None)),
+        homing_active=homing,
+        **_status_runtime_mod.interp_terms(safe_get("interp_state", None), safe_get("paused", None)))
+    why = gate_refusal(gate, now)
+    if why is not None and gate_refusal(gate, base) is None:
+        _trace.emit("policy.controller_refused", level="info", gate=gate, reason=why)
+    return why
+
+
+def _gate_admit(gate: str, armed: bool) -> Callable[[], Optional[str]]:
+    """`gate` on a current controller read, as a write's `admit` (Codex
+    R217): called before the queue for the early reason and again INSIDE the
+    write's thread, where it polls STAT itself."""
+    return lambda: _controller_gate_refusal(gate, armed)
+
+
+def _start_admit(gate: str, armed: bool) -> Callable[[], Optional[str]]:
+    """A program start's admission at each of its writes (Codex R217): the
+    kinematics on a current read (_program_start_refusal, BG-09) AND the
+    start's class — the interpreter idle among it — on a current read."""
+    return lambda: _program_start_refusal(armed) or _controller_gate_refusal(gate, armed)
+
+
+def _interp_idle_refusal() -> Optional[str]:
+    """The interpreter KNOWN idle on a read taken now — None, or why not
+    (button gates BG-32): the start guard's flag clear and the MDI half of
+    _apply_probe_vars, before the queue and inside each write's thread."""
+    try:
+        STAT.poll()
+    except Exception as e:  # noqa: BLE001 - no poll, no write
+        _trace.emit_exc("policy.idle_poll_failed", e)
+        return _STATUS_NOT_READ
+    t = _status_runtime_mod.interp_terms(safe_get("interp_state", None), safe_get("paused", None))
+    if not t["interp_known"]:
+        return STATE_UNKNOWN
+    return None if t["is_idle"] else MACHINE_BUSY
+
+
+async def _manual_command(gate: str, armed: bool, *writes) -> Dict[str, Any]:
+    """A manual command behind its own switch to MANUAL — the spindle's Fwd /
+    Rev / ± (button gates BG-31), Home and Unhome — each write `(cmd_fn,
+    args, wait)`. The command's class on a current read first (the early
+    reason, nothing queued), then INSIDE every write's thread: the switch
+    (it would abort an MDI started since the snapshot: emcTaskSetMode →
+    emcTaskAbort; and the unhomed spindle exception, Q1, must FIND MANUAL,
+    never make it) and each write after it — for Unhome the teleop step and
+    the unhome (Codex R216 / R217). A refusal at a write leaves it and the
+    rest unsent; the reply says why. Caller holds `_cmd_lock`."""
+    admit = _gate_admit(gate, armed)
+    why = admit()
+    if why:
+        return {"ok": False, "error": why}
+    try:
+        await set_mode(linuxcnc.MODE_MANUAL, admit=admit)
+        for cmd_fn, args, wait in writes:
+            await _cmd_blocking(cmd_fn, *args, wait=wait, admit=admit)
+    except _WriteRefused as refused:
+        return {"ok": False, "error": str(refused)}
+    return {"ok": True}
 
 
 def _live_policy_state(armed: bool):
@@ -6619,7 +7269,11 @@ def _live_policy_state(armed: bool):
     supplied from one place, so no handler can forget one (TWP-08)."""
     return _policy_state_from_payload(
         _shared_status, armed, kins_switchable=_kins_is_switchable(),
-        twp_capable=_twp_capable(), identity_first=_identity_first())
+        twp_capable=_twp_capable(), identity_first=_identity_first(),
+        trip_unacked=_unacked_trip is not None,
+        coord_without_homing=_coord_without_homing(),
+        spindle_before_homing=_spindle_before_homing(),
+        joint_jog_before_homing=_joint_jog_facts()["enabled"])
 
 
 # Cache for build_viewer_init() output. Keyed on every input that can
@@ -6764,6 +7418,8 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
         "linear_units": ini_cfg.get("linear_units"),
         "max_velocity": safe_get("max_velocity", None),
         "max_jog_velocity": get_max_jog_velocity(),
+        # Jogging before homing (package E): what each axis moves and the cap
+        "joint_jog": _joint_jog_public(),
         "default_jog_velocity": ini_cfg.get("default_jog_velocity"),
         "min_jog_velocity": ini_cfg.get("min_jog_velocity"),
         "max_angular_jog_velocity": ini_cfg.get("max_angular_jog_velocity"),
@@ -7323,6 +7979,14 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
                 await loop.run_in_executor(io_ex, f.close)
             def _commit():
                 nonlocal tmp
+                if gate is not None:
+                    # Admitted in the publish's own thread, under the
+                    # _source_lock held around it (button gates BG-14 — the
+                    # lesson of package A: after every wait, at the write).
+                    refusal = gate()
+                    if refusal:
+                        raise HTTPException(status_code=409, detail={"error": "refused", **(
+                            refusal if isinstance(refusal, dict) else {"reason": refusal})})
                 if replace:
                     os.replace(tmp, dest_path)
                     tmp = None  # published — don't unlink in finally
@@ -7340,10 +8004,6 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
                 await loop.run_in_executor(io_ex, _commit)
             else:
                 async with _get_source_lock():
-                    refusal = gate()
-                    if refusal:
-                        raise HTTPException(status_code=409, detail={"error": "refused", **(
-                            refusal if isinstance(refusal, dict) else {"reason": refusal})})
                     await _thread_to_end(loop.run_in_executor(io_ex, _commit))
             return written
         finally:
@@ -7368,13 +8028,17 @@ async def _atomic_stream_upload(file: "UploadFile", dest_path: str,
 
 
 @app.post("/upload", dependencies=[Depends(require_token)])
-async def upload_gcode(file: UploadFile = File(...), overwrite: int = Query(0)):
+async def upload_gcode(file: UploadFile = File(...), overwrite: int = Query(0),
+                       x_conn_key: Optional[str] = Header(None)):
     """Upload a G-code file to the NC files directory.
 
     ``overwrite=0`` (default) never replaces an existing program: a name clash
     answers 409 ``{"error": "exists", "filename"}`` and the client asks the
     operator (Cancel / Rename / Replace). ``overwrite=1`` replaces atomically.
     """
+    # A protected write (button gates BG-14): its connection must be armed;
+    # the publish is admitted again at the commit.
+    _require_writer(x_conn_key)
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")
 
@@ -7394,7 +8058,7 @@ async def upload_gcode(file: UploadFile = File(...), overwrite: int = Query(0)):
     try:
         size = await _atomic_stream_upload(file, dest_path, MAX_UPLOAD_SIZE,
                                            replace=bool(overwrite),
-                                           gate=lambda: _program_name_refusal(dest_path))
+                                           gate=lambda: _program_write_refusal(dest_path, x_conn_key))
     except HTTPException:
         raise
     except Exception as e:
@@ -7404,7 +8068,8 @@ async def upload_gcode(file: UploadFile = File(...), overwrite: int = Query(0)):
 
 
 @app.put("/save", dependencies=[Depends(require_token)])
-async def save_gcode(request: Request, path: str = Query(...)):
+async def save_gcode(request: Request, path: str = Query(...),
+                     x_conn_key: Optional[str] = Header(None)):
     """Save edited G-code content back to an existing file.
 
     The body is the RAW UTF-8 text, not JSON (#35): a 50 MB `JSON.stringify` on the
@@ -7413,6 +8078,7 @@ async def save_gcode(request: Request, path: str = Query(...)):
     raw body is async network I/O (no loop block), and it arrives already UTF-8-encoded,
     so there's no on-loop encode either. Only the atomic write+fsync is offloaded.
     """
+    _require_writer(x_conn_key)   # a protected write (button gates BG-14)
     nc_dir = get_nc_files_dir()
     abs_path = os.path.abspath(path)
 
@@ -7435,7 +8101,7 @@ async def save_gcode(request: Request, path: str = Query(...)):
     # LinuxCNC never sees a half-written file.
     try:
         size = await _atomic_stream_write(request.stream(), abs_path, MAX_UPLOAD_SIZE,
-                                          gate=lambda: _program_name_refusal(abs_path))
+                                          gate=lambda: _program_write_refusal(abs_path, x_conn_key))
     except HTTPException:
         raise
     except Exception as e:
@@ -7657,19 +8323,23 @@ def _file_revision(state: Dict[str, Any], path: str) -> Optional[str]:
     return macro_files.revision_of(got[0]) if got else None
 
 
-def _macro_write_gate(state: Dict[str, Any], path: str, base: str):
+def _macro_write_gate(state: Dict[str, Any], path: str, base: str, conn_key):
     """The refusal check a macro write runs under _source_lock right before
-    it publishes: no start open, the interpreter idle, the name's file
-    inside the folder, the base revision still the file on disk (`new` =
+    it publishes: the whole sourceWrite rule (_write_admission_refusal — an
+    armed writer, no start open, no run from line, no load in progress, a
+    known idle interpreter; Codex R211 BG-25), the name's file inside the
+    folder, the base revision still the file on disk (`new` =
     the name free), and no program of the same name in PROGRAM_PREFIX (it
     would win the interpreter's lookup). A refusal is the 409 body's
     `kind` with its fields — scripts/test_fixtures/macro_refusals.json;
     `revision` is the file read HERE, under the same lock (Codex R70
-    VP-I31: Keep editing rebases on exactly it; null = the file is gone)."""
+    VP-I31: Keep editing rebases on exactly it; null = the file is gone).
+    `conn_key`: the writer's connection — armed at this moment, or the write
+    is refused like a busy folder (button gates BG-14)."""
     name = os.path.basename(path)[:-len(".ngc")]
 
     def gate():
-        why = _source_write_refusal()
+        why = _write_admission_refusal(conn_key)
         if why:
             return {"kind": "busy", "reason": why}
         try:
@@ -7688,6 +8358,13 @@ def _macro_write_gate(state: Dict[str, Any], path: str, base: str):
             return {"kind": "taken", "reason": f"Name taken by a program in {state['prefix']}", "name": name}
         return None
     return gate
+
+
+def _program_write_refusal(dest_path: str, conn_key) -> Optional[str]:
+    """A program write's admission at its publish (button gates BG-14): the
+    sourceWrite rule with the writer's connection, then the macro-name
+    rule."""
+    return _write_admission_refusal(conn_key) or _program_name_refusal(dest_path)
 
 
 def _program_name_refusal(dest_path: str) -> Optional[str]:
@@ -7802,7 +8479,8 @@ def _unlink_renamed(path: str) -> None:
 
 @app.put("/macro", dependencies=[Depends(require_token)])
 async def put_macro(request: Request, name: str = Query(...), base: str = Query(...),
-                    rename_from: Optional[str] = Query(None), rename_base: Optional[str] = Query(None)):
+                    rename_from: Optional[str] = Query(None), rename_base: Optional[str] = Query(None),
+                    x_conn_key: Optional[str] = Header(None)):
     """Save a macro: `base` = the revision the editor started from (409 when
     the file is another one now), or `new` to create (409 when it exists).
     The header is checked AFTER the save — a file with header errors is the
@@ -7817,7 +8495,7 @@ async def put_macro(request: Request, name: str = Query(...), base: str = Query(
     state, path = await asyncio.to_thread(_macro_path, name)
     if base != "new" and not re.fullmatch(r"[0-9a-f]{64}", base or ""):
         raise HTTPException(status_code=400, detail="base: a revision or new")
-    gate = _macro_write_gate(state, path, base)
+    gate = _macro_write_gate(state, path, base, x_conn_key)
     after = None
     if rename_from is not None:
         if base != "new":
@@ -7827,7 +8505,7 @@ async def put_macro(request: Request, name: str = Query(...), base: str = Query(
         _, old_path = await asyncio.to_thread(_macro_path, rename_from)
         if old_path == path:
             raise HTTPException(status_code=400, detail="A rename needs another name")
-        new_gate, old_gate = gate, _macro_write_gate(state, old_path, rename_base)
+        new_gate, old_gate = gate, _macro_write_gate(state, old_path, rename_base, x_conn_key)
 
         def rename_gate():
             refusal = new_gate()
@@ -7850,7 +8528,8 @@ async def put_macro(request: Request, name: str = Query(...), base: str = Query(
 
 
 @app.post("/macro-upload", dependencies=[Depends(require_token)])
-async def upload_macro(file: UploadFile = File(...), replace: Optional[str] = Query(None)):
+async def upload_macro(file: UploadFile = File(...), replace: Optional[str] = Query(None),
+                       x_conn_key: Optional[str] = Header(None)):
     """Import a macro file. Without `replace` it only creates (409 with the
     current revision when the name exists); with `replace=<revision>` it
     replaces exactly the revision the operator confirmed (Codex VP69-03)."""
@@ -7868,23 +8547,29 @@ async def upload_macro(file: UploadFile = File(...), replace: Optional[str] = Qu
                 "error": "refused", "kind": "exists", "reason": "A macro of that name exists — reload",
                 "name": fname[:-4], "revision": current})
     await _atomic_stream_upload(file, path, MAX_MACRO_SIZE, replace=replace is not None,
-                                gate=_macro_write_gate(state, path, replace or "new"))
+                                gate=_macro_write_gate(state, path, replace or "new", x_conn_key))
     _trace.emit("macros.imported", name=fname[:-4], replaced=replace is not None)
     _macros_changed("imported")
     return {"ok": True, "macro": _macro_entry(state, fname[:-4], *await _macro_read_or_raise(state, path))}
 
 
 @app.delete("/macro", dependencies=[Depends(require_token)])
-async def delete_macro(name: str = Query(...), base: str = Query(...)):
+async def delete_macro(name: str = Query(...), base: str = Query(...),
+                       x_conn_key: Optional[str] = Header(None)):
     state, path = await asyncio.to_thread(_macro_path, name)
     if not re.fullmatch(r"[0-9a-f]{64}", base or ""):
         raise HTTPException(status_code=400, detail="base: a revision")
-    async with _get_source_lock():
-        refusal = _macro_write_gate(state, path, base)()
+    gate = _macro_write_gate(state, path, base, x_conn_key)
+
+    def _delete():
+        # admitted in the delete's own thread (button gates BG-14)
+        refusal = gate()
         if refusal and refusal["kind"] != "taken":
             raise HTTPException(status_code=409, detail={"error": "refused", **refusal})
+        os.unlink(path)
+    async with _get_source_lock():
         # to its END under the lock, through a cancel (Codex R70 VP-I29)
-        await _thread_to_end(asyncio.ensure_future(asyncio.to_thread(os.unlink, path)))
+        await _thread_to_end(asyncio.ensure_future(asyncio.to_thread(_delete)))
     _trace.emit("macros.deleted", name=name)
     _macros_changed("deleted")
     return {"ok": True}
@@ -7941,21 +8626,22 @@ async def _plan_current_metadata_refresh(raw: bytes, parsed: list, skipped: list
     return plan
 
 
-async def _save_refreshed_metadata(plan: dict) -> None:
+async def _save_refreshed_metadata(plan: dict, conn_key=None) -> None:
     # A disconnected HTTP request must not release _cmd_lock while its executor
     # write is still running. Finish that write and publish its version first.
     async def persist():
         global _tool_table_version, _tool_meta_dirty
-        await asyncio.to_thread(save_tool_library, plan["library"], ini_key=plan["ini_key"])
+        def _save():
+            why = _write_admission_refusal(conn_key, tool_table=True)
+            if why:
+                raise HTTPException(status_code=409, detail=why)
+            save_tool_library(plan["library"], ini_key=plan["ini_key"])
+        await asyncio.to_thread(_save)
         _tool_table_version += 1
         _tool_meta_dirty = True
 
-    task = asyncio.create_task(persist())
-    try:
-        await asyncio.shield(task)
-    except asyncio.CancelledError:
-        await task
-        raise
+    # to its end through a second cancel too (button gates BG-22)
+    await _thread_to_end(asyncio.ensure_future(persist()))
 
 
 @app.post("/import-tool-library", dependencies=[Depends(require_token)])
@@ -8014,8 +8700,11 @@ async def import_tool_library(file: UploadFile = File(...)):
 
 
 @app.post("/import-tool-library/refresh", dependencies=[Depends(require_token)])
-async def refresh_tool_library_metadata(file: UploadFile = File(...), revision: str = Form(...)):
-    """Refresh reviewed metadata only. Never write/reload tool.tbl or send NML."""
+async def refresh_tool_library_metadata(file: UploadFile = File(...), revision: str = Form(...),
+                                         x_conn_key: Optional[str] = Header(None)):
+    """Refresh reviewed metadata only. Never write/reload tool.tbl or send NML.
+    A protected write (button gates BG-14), admitted at its write."""
+    _require_writer(x_conn_key)
     raw = await file.read(MAX_TOOL_LIBRARY_SIZE + 1)
     if len(raw) > MAX_TOOL_LIBRARY_SIZE:
         raise HTTPException(status_code=413, detail="Tool library too large (max 16 MB)")
@@ -8031,7 +8720,7 @@ async def refresh_tool_library_metadata(file: UploadFile = File(...), revision: 
                 raise HTTPException(status_code=409, detail="Tool data changed; preview the library again")
             if not plan["updated"]:
                 raise ValueError("No unambiguous existing tools to refresh")
-            await _save_refreshed_metadata(plan)
+            await _save_refreshed_metadata(plan, x_conn_key)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"ok": True, "updated": len(plan["updated"]), "skipped": len(plan["skipped"])}
@@ -8040,8 +8729,12 @@ async def refresh_tool_library_metadata(file: UploadFile = File(...), revision: 
 @app.post("/import-tool-library/apply", dependencies=[Depends(require_token)])
 async def apply_tool_library_import(
     file: UploadFile = File(...),
+    x_conn_key: Optional[str] = Header(None),
 ):
-    """Apply a CAM tool library import — replaces tool.tbl and tool_library.json."""
+    """Apply a CAM tool library import — replaces tool.tbl and tool_library.json.
+    A protected write (button gates BG-14): its connection must be armed, and
+    the replace is admitted at the write (_persist_imported_tools)."""
+    _require_writer(x_conn_key)
     raw = await file.read(MAX_TOOL_LIBRARY_SIZE + 1)
     if len(raw) > MAX_TOOL_LIBRARY_SIZE:
         raise HTTPException(status_code=413, detail="Tool library too large (max 16 MB)")
@@ -8088,7 +8781,7 @@ async def apply_tool_library_import(
 
     # Serialize the whole replacement under _cmd_lock + off the event loop, so
     # it can't race the WS tool handlers or call into NML unlocked (issue #24).
-    await _persist_imported_tools(tbl_path, tbl_tools, library)
+    await _persist_imported_tools(tbl_path, tbl_tools, library, x_conn_key)
 
     return {"ok": True, "added": len(parsed), "skipped": len(_skipped)}
 
@@ -8899,7 +9592,7 @@ async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Di
 
     _set_phase(f"handle_command cmd={msg.get('cmd', '?')} client#{client_id}")
     try:
-        reply = await handle_command(msg, client.armed)
+        reply = await handle_command(msg, client.armed, client.conn_key)
     except (ValueError, TypeError, KeyError, PermissionError, OverflowError) as _val_e:
         # Malformed payload or failed precondition (bad numeric cast,
         # missing field, not-armed). Return a bounded structured error
@@ -9760,7 +10453,11 @@ async def ws_endpoint(ws: WebSocket):
                                     "session.resume_granted",
                                     client_id=client_id, session_id=_sid,
                                 )
-                await ws_send_json(ws, {"type": "reply", "ok": True, "armed": client.armed})
+                # This connection's key for protected HTTP writes (button
+                # gates BG-14) — minted with the connection, the same for
+                # every hello on it.
+                await ws_send_json(ws, {"type": "reply", "ok": True, "armed": client.armed,
+                                        "conn_key": client.conn_key})
                 continue
 
             if msg.get("cmd") == "safety_trip_ack":
@@ -9784,21 +10481,7 @@ async def ws_endpoint(ws: WebSocket):
                 continue
 
             if msg.get("cmd") == "save_settings":
-                # The Settings header's save status matches THIS reply to the
-                # save it sent by req_id (UX-08): every path echoes it, or the
-                # header reads "Saving…" forever on a real gateway.
-                _secho = {"cmd": "save_settings", **_req_echo(msg)}
-                section = msg.get("section", "")
-                if section not in _VALID_SETTINGS_SECTIONS:
-                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": f"Unknown settings section: {section}", **_secho})
-                    continue
-                _loop = asyncio.get_event_loop()
-                try:
-                    await _loop.run_in_executor(None, save_settings_section, section, msg.get("data"))
-                except Exception as _se:
-                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": f"{type(_se).__name__}: {_se}", **_secho})
-                    continue
-                await ws_send_json(ws, {"type": "reply", "ok": True, **_secho})
+                await ws_send_json(ws, await _ws_save_settings(client, msg))
                 continue
 
             if msg.get("cmd") == "client_diag":
@@ -10134,7 +10817,13 @@ async def get_settings():
 
 @app.put("/settings/{section}", dependencies=[Depends(require_token)])
 @app.post("/settings/{section}", dependencies=[Depends(require_token)])  # POST used by sendBeacon on page exit
-async def put_settings_section(section: str, request: Request):
+async def put_settings_section(section: str, request: Request,
+                               x_conn_key: Optional[str] = Header(None)):
+    """settingsWrite(section) (button gates BG-19): a display section needs
+    no arm; every other needs an armed writer — the connection in
+    X-Conn-Key, or for the page-hide beacon (which cannot set headers) in
+    the body's `conn_key`. A connection that ended writes nothing: no grace
+    (Codex R204)."""
     if section not in _VALID_SETTINGS_SECTIONS:
         return JSONResponse({"ok": False, "error": f"Unknown section: {section}"}, status_code=400)
     try:
@@ -10143,9 +10832,12 @@ async def put_settings_section(section: str, request: Request):
         return JSONResponse({"ok": False, "error": "Invalid JSON body"}, status_code=400)
     if not isinstance(body, dict) or "data" not in body:
         return JSONResponse({"ok": False, "error": "Missing 'data'"}, status_code=400)
-    loop = asyncio.get_event_loop()
+    key = x_conn_key if isinstance(x_conn_key, str) and x_conn_key else body.get("conn_key")
     try:
-        await loop.run_in_executor(None, save_settings_section, section, body["data"])
+        await asyncio.to_thread(save_settings_section, section, body["data"],
+                                _settings_admission(section, key))
+    except PermissionError as pe:
+        return JSONResponse({"ok": False, "error": str(pe)}, status_code=403)
     except Exception as e:
         # e.g. refuse-to-clobber when settings.json is corrupt — surface it.
         return JSONResponse({"ok": False, "error": f"{type(e).__name__}: {e}"}, status_code=409)
@@ -10153,9 +10845,13 @@ async def put_settings_section(section: str, request: Request):
 
 
 @app.delete("/settings", dependencies=[Depends(require_token)])
-async def delete_settings():
-    loop = asyncio.get_event_loop()
-    await loop.run_in_executor(None, reset_settings)
+async def delete_settings(x_conn_key: Optional[str] = Header(None)):
+    """The global reset — protected whatever sections it touches (button
+    gates BG-19): an armed writer, decided inside the store's lock (BG-24)."""
+    try:
+        await asyncio.to_thread(reset_settings, _settings_admission(None, x_conn_key))
+    except PermissionError as pe:
+        return JSONResponse({"ok": False, "error": str(pe)}, status_code=403)
     return {"ok": True}
 
 

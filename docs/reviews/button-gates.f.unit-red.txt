@@ -1,0 +1,26 @@
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite-gates/lcnc-webui
+
+ ❯ src/jointJog.test.ts (4 tests | 1 failed) 5ms
+     × names the joint an axis moves for its corner mark, only while jogging joints 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/jointJog.test.ts > jogging before homing > names the joint an axis moves for its corner mark, only while jogging joints
+TypeError: jogAxisJoint is not a function
+ ❯ src/jointJog.test.ts:24:12
+     22|
+     23|   it("names the joint an axis moves for its corner mark, only while jo…
+     24|     expect(jogAxisJoint(XYYZ, false, 0)).toBe(0);
+       |            ^
+     25|     expect(jogAxisJoint(XYYZ, false, 2)).toBe(3);
+     26|     expect(jogAxisJoint(XYYZ, false, 1)).toBeNull();      // the gantr…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  20:26:11
+   Duration  169ms (transform 49ms, setup 0ms, import 59ms, tests 5ms, environment 0ms)
+

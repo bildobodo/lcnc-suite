@@ -24,7 +24,7 @@ const { active: explainActive, reason: explainReason, explain } =
 </script>
 
 <template>
-  <select v-bind="$attrs" v-model="model" :disabled="isDisabled" class="inputField" :class="{ compact: def.density === 'compact' }"
+  <select v-bind="$attrs" :data-control="gate" v-model="model" :disabled="isDisabled" class="inputField" :class="{ compact: def.density === 'compact' }"
           :title="explainActive ? explainReason : ($attrs.title as string | undefined)" @pointerdown="explain">
     <slot />
   </select>

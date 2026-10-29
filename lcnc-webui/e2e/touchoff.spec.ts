@@ -18,10 +18,12 @@ const frameOption = (page: Page, v: number) =>
 
 const PERMS_ALL = {
   idle: true, jog: true, override: true, ready: true, run: true, pause: false,
-  resume: false, step: true, abort: true, probe: true, zero: true,
+  resume: false, step: true, abort: true, spindleStop: true, probe: true, zero: true,
   machineFrame: true, goZero: true, planeFrame: true,
   touchoff: true, touchoffRotary: true, twpCapture: true,
-  surfaceComp: true, safety: true, setup: true, armed: true, always: true,
+  surfaceComp: true, safety: true, setup: true, sourceWrite: true, toolTableWrite: true, armed: true, always: true,
+  // button gates D
+  programLoad: true, modeManual: true, modeCoord: true, parameterRead: true, g30Write: true, spindleManual: true, armEnable: true, estopReset: true,
 };
 
 // Commands the UI may send on its own while a test is merely looking at the
@@ -690,7 +692,8 @@ test("tool-change confirm: once per request, retry after a refusal, nothing with
   await expect(page.locator("input.setupInput").first()).toBeVisible();
   await ctlSend({ op: "quiet", on: true });
   try {
-    await ctlSend({ op: "status_delta", data: { tool_change_requested: true, tool_change_tool: 3, permissions: PERMS_ALL } });
+    // the gateway ships toolChangeConfirm with a fresh pending request (button gates BG-17)
+    await ctlSend({ op: "status_delta", data: { tool_change_requested: true, tool_change_tool: 3, tool_change_seq: 41, permissions: { ...PERMS_ALL, toolChangeConfirm: true } } });
     const dialog = page.locator(".safetyDialog .dialog", { hasText: "Load Tool into Spindle" });
     await expect(dialog).toBeVisible();
     await ctlSend({ op: "clearCmds" });
@@ -700,17 +703,54 @@ test("tool-change confirm: once per request, retry after a refusal, nothing with
     await confirm.click({ force: true }).catch(() => {});
     await page.waitForTimeout(200);
     const sent = await ctlSend({ op: "lastCmds" }) as { cmds?: { cmd?: string; req_id?: string }[] };
-    const confirms = (sent.cmds ?? []).filter(c => c.cmd === "confirm_tool_change");
+    const confirms = (sent.cmds ?? []).filter(c => c.cmd === "confirm_tool_change") as { cmd?: string; req_id?: string; request?: number }[];
     expect(confirms).toHaveLength(1);
+    expect(confirms[0]!.request, "the confirmation names its request (button gates BG-17)").toBe(41);
     // Refusal → the button comes back; a second confirm goes out.
-    await ctlSend({ op: "raw", frame: { type: "reply", cmd: "confirm_tool_change", req_id: confirms[0]!.req_id, ok: false, error: "not pending" } });
+    await ctlSend({ op: "raw", frame: { type: "reply", cmd: "confirm_tool_change", req_id: confirms[0]!.req_id, ok: false, error: "Confirmation not sent — confirm again" } });
     await expect(dialog.getByRole("button", { name: "Confirm", exact: true })).toBeEnabled();
+    // the refusal shows in the dialog (button gates BG-20)
+    await expect(dialog.getByRole("alert")).toHaveText("Confirmation not sent — confirm again");
     await dialog.getByRole("button", { name: "Confirm", exact: true }).click();
     await expect.poll(async () => ((await ctlSend({ op: "lastCmds" })).cmds ?? []).filter((c: any) => c.cmd === "confirm_tool_change").length).toBe(2);
+    await expect(dialog.getByRole("alert"), "a new press clears the old refusal").toHaveCount(0);
     // Request ends → dialog gone; nothing more is sent.
-    await ctlSend({ op: "status_delta", data: { tool_change_requested: false, tool_change_tool: null } });
+    await ctlSend({ op: "status_delta", data: { tool_change_requested: false, tool_change_tool: null, permissions: PERMS_ALL } });
     await expect(dialog).toHaveCount(0);
     expect(((await ctlSend({ op: "lastCmds" })).cmds ?? []).filter((c: any) => c.cmd === "confirm_tool_change").length).toBe(2);
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});
+
+test("a press begun on one tool-change request never confirms the next (Codex R205)", async ({ page }) => {
+  await page.goto(MOCK);
+  await expect(page.locator("input.setupInput").first()).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    const request = (tool: number, seq: number) => ctlSend({ op: "status_delta", data: {
+      tool_change_requested: true, tool_change_tool: tool, tool_change_seq: seq,
+      permissions: { ...PERMS_ALL, toolChangeConfirm: true } } });
+    await request(7, 1);
+    const dialog = page.locator(".safetyDialog .dialog", { hasText: "Load Tool into Spindle" });
+    const confirm = dialog.getByRole("button", { name: "Confirm", exact: true });
+    await expect(confirm).toBeEnabled();
+    await expect(dialog).toContainText("T7");
+    const box = (await confirm.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    // another client confirmed T7; the program reached the next change
+    await request(9, 2);
+    await expect(dialog).toContainText("T9");
+    await ctlSend({ op: "clearCmds" });
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+    const sent = () => ctlSend({ op: "lastCmds" }).then((r: any) => (r.cmds ?? []).filter((c: any) => c.cmd === "confirm_tool_change"));
+    expect(await sent(), "the old press confirms nothing").toEqual([]);
+    // a deliberate press confirms T9, naming it
+    await confirm.click();
+    await expect.poll(sent).toEqual([expect.objectContaining({ request: 2 })]);
   } finally {
     await ctlSend({ op: "quiet", on: false });
     await ctlSend({ op: "reset" });

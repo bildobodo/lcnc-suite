@@ -18,10 +18,12 @@ import { clickMore } from "./more";
 
 const PERMS_ALL = {
   idle: true, jog: true, override: true, ready: true, run: true, pause: false,
-  resume: false, step: true, abort: true, probe: true, zero: true,
+  resume: false, step: true, abort: true, spindleStop: true, probe: true, zero: true,
   machineFrame: true, goZero: true, planeFrame: true,
   touchoff: true, touchoffRotary: true, twpCapture: true,
-  surfaceComp: true, safety: true, setup: true, armed: true, always: true,
+  surfaceComp: true, safety: true, setup: true, sourceWrite: true, toolTableWrite: true, armed: true, always: true,
+  // button gates D
+  programLoad: true, modeManual: true, modeCoord: true, parameterRead: true, g30Write: true, spindleManual: true, armEnable: true, estopReset: true,
 };
 
 // Every machine gate closed with ONE long reason (it wraps to several lines):
@@ -77,10 +79,10 @@ type Box = { x: number; y: number; width: number; height: number };
 
 /** The hint is shown for `anchor`, lies wholly inside the window and sits
  *  directly above or below the control, overlapping it horizontally. */
-async function expectHintAt(page: Page, anchor: Box) {
+async function expectHintAt(page: Page, anchor: Box, text: string = LONG) {
   const vp = page.viewportSize()!;
   const hint = page.locator("[data-btn-hint]");
-  await expect(hint).toHaveText(LONG);
+  await expect(hint).toHaveText(text);
   let box: Box | null = null;
   await expect.poll(async () => {
     box = await hint.boundingBox();
@@ -203,20 +205,26 @@ test("the reason also answers the keyboard, a dimmed input and a control inside 
   await page.keyboard.press(" ");
   await expectHintAt(page, tipBox);
 
-  // A dimmed INPUT is the anchor too (it explains on pointerdown).
-  await page.getByRole("tab", { name: "MDI", exact: true }).click();
-  const mdi = page.locator(".mdiInput");
-  await expect(mdi).toBeDisabled();
-  await mdi.click({ force: true });
-  await expectHintAt(page, (await mdi.boundingBox())!);
+  // A dimmed INPUT is the anchor too (it explains on pointerdown): the
+  // strip's touch-off field (the MDI line is a free draft since button gates
+  // package C, BG-05).
+  const field = page.locator('[data-strip="setup"] input[data-control="touchoff"]').first();
+  await expect(field).toBeDisabled();
+  await field.click({ force: true });
+  await expectHintAt(page, (await field.boundingBox())!);
 
-  // Inside a dialog: the hint rides above the dialog layer.
+  // Inside a dialog: the hint rides above the dialog layer. A protected
+  // settings section dims only while disarmed (button gates package C, Q2):
+  // Settings → Machine, disarmed, its Reset explains.
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   const dialog = page.locator(".dialogOverlay").last();
-  const reset = dialog.locator(".btnTip").first();
+  await dialog.getByRole("tab", { name: "Machine", exact: true }).click();
+  await ctl({ op: "status_delta", armed: false, data: {} });
+  await expect(page.locator(".pill.disarmed")).toHaveCount(1);
+  const reset = dialog.locator(".btnTip:visible").filter({ has: page.locator('[data-control="resetProtected"]') }).first();
   await reset.scrollIntoViewIfNeeded();
   await reset.click();
-  await expectHintAt(page, (await reset.boundingBox())!);
+  await expectHintAt(page, (await reset.boundingBox())!, "Not armed — press Arm");
   const [hintZ, overlayZ] = await page.evaluate(() => [
     Number(getComputedStyle(document.querySelector("[data-btn-hint]")!).zIndex),
     Number(getComputedStyle(document.querySelector(".dialogOverlay")!).zIndex),
@@ -473,9 +481,10 @@ test("every help icon has one look: full opacity, one colour, enabled, the same 
     await sweep(`Settings/${tab}`, settings);
   }
   await settings.getByRole("button", { name: "Close settings", exact: true }).click();
-  // Gated: disarmed, the whole content sits in a disabled fieldset. Help is
-  // no machine action — the same "?" looks the same and still opens.
-  // (The sub-tabs are gated too: switch while armed, measure disarmed.)
+  // Gated: disarmed, the probe and toolsetter parameters are closed (armed
+  // since button gates package C) and their "?" sits beside a disabled
+  // field. Help is no machine action — the same "?" looks the same and
+  // still opens.
   for (const sub of ["Outside", "Calibrate", "Toolsetter"]) {
     await side.getByRole("tab", { name: sub, exact: true }).click();
     await ctl({ op: "status_delta", armed: false, data: {} });

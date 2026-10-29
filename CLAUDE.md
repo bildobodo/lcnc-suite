@@ -45,9 +45,11 @@ One line per module: what it is and the rule that matters when you touch it. The
 - `format.ts` — the shared formatters and `NO_VALUE` ("—"); words, units and state words per `docs/ui-glossary.md`.
 - `wcs.ts` — ONE source for fixture names (`G5X_LABELS`, `g5xLabel`, `RESERVED_WCS`).
 - `mathEval.ts` — the keypad's safe expressions and `validateEntry`, the ONE admissibility check (refused, never clamped).
-- `useNumberKeypad.ts` + `inputSession.ts` + `TextKeypadStrip.vue` + `textKeyboardPages.ts` — ONE on-screen input helper at a time, owned by one target: opening is a deliberate tap, never focus; leaving hides without confirming and the owner keeps its draft; keys act on click; the focus return after OK/Cancel is GUARDED (`focusReturn.pending` — an unfocused document is where Space is Cycle Start); X keeps the entry, Discard throws it away, the confirm key reads "Apply".
+- `useNumberKeypad.ts` + `inputSession.ts` + `TextKeypadStrip.vue` + `textKeyboardPages.ts` — ONE on-screen input helper at a time, owned by one target: opening is a deliberate tap, never focus; leaving hides without confirming and the owner keeps its draft; keys act on click; the focus return after OK/Cancel is GUARDED (`focusReturn.pending` — an unfocused document is where Space is Cycle Start); X keeps the entry, Discard throws it away, the confirm key reads "Apply"; a session ends with its OWNER's gate, never with the arm as such (a free field keeps its entry through a disarm).
 - `btnHint.ts` + `FloatingOverlays.vue` — the ONE transient control hint and the ONE keyboard glyph; placed from the rendered size, closed by the next press, key or scroll. Never a Teleport inside `MachineBtn` / `MachineInput` (a second root drops the parent's scoped CSS).
 - `gateExplain.ts` — the ONE explanation path for a dimmed control: AT the control, never the status line or the message log.
+- `actionAdmission.ts` — ONE admission per action (Start, Home All, the coolant) for the button, the shortcut and the gamepad — only the gesture differs (button gates BG-10).
+- `jointJog.ts` — jogging before homing (package E): a closed axis' reason (`jogAxisRefusal`, one rule for the strip, the keyboard and the gamepad; a stop is never refused), the joint for each button's corner mark (`jogAxisJoint`, `.cornerLabel`), the diagonals closed before homing (`jogDiagonalRefusal` — the gateway refuses a multi-jog there) and the head line with the cap; before homing the buttons jog in amber (`warn`) and keep their axis letters (operator 2026-10-28).
 - `FormField.vue` + `probeFields.ts` — the ONE labelled field (label above, wired `for`/`id`, the "?" a sibling of the label, unit and error as `aria-describedby`); probe and toolsetter fields as data.
 - `DetailsPopover.vue` — a labelled detail card behind one button (Connection details, the Sim tab's Check basis).
 - `HelpIcon.vue` + `helpPlacement.ts` — the ONE help pattern: a `span role="button"` with a native popover, text ≤ 120 chars, its own gap, placed from its laid-out size in the frame after `beforetoggle`; works in a disabled Gate.
@@ -60,15 +62,15 @@ One line per module: what it is and the rule that matters when you touch it. The
 - `SimPanel.vue` + `simPanelStore.ts` + `viewer/simRows.ts` + `viewer/simWindow.ts` — the Sim side tab: speed, the check's progress and its Check basis card, ONE always-present summary line (result · coverage · caveat, its form measured), ONE windowed list of the timeline's marks (≤ 400 rows, rendered in portions, follows the position), filter and ‹ ›; the panel owns its focus.
 - `SettingsPanel.vue` — sub-tabbed settings; ONE guarded close path; the save status per section; 3D Viewer sections one below the other.
 - `MacrosPanel.vue` + `CodeEditor.vue` + `MacroBar.vue` — the Macros tab (a table like Tools; the editor dialog bound to the file's revision; rename in one step), the ONE CodeMirror host, the macro bar (landscape over the strip, portrait under the viewer).
-- `Gate.vue`, `permissions.ts`, `machineControls.ts` — the fieldset gate, the permission evaluation (+ owner permissions without the busy latch), the controls catalog (see "Permission System").
+- `Gate.vue`, `permissions.ts`, `machineControls.ts`, `controlScan.ts` + `controlInventory.ts` — the fieldset gate (an INNER one — no outer armed fieldset since button gates package C; it tells its controls why it is closed), the permission evaluation (+ owner permissions without the busy latch), the controls catalog, the inventory of every control a disarmed client can operate (see "Permission System").
 - `MachineBtn.vue` (wraps `Btn.vue`), `MachineInput.vue`, `MachineToggle.vue`, `MachineSlider.vue`, `MachineSelect.vue`, `MachineRadio.vue`, `MachineColor.vue` — the catalog components, single-root. A close button carries a contextual `aria-label`; a hold reports every cancelled hold at the control; a radio's `name` is its group (a literal only in one component); `MachineInput` owns both input helpers, has ONE writer of its value and the field contract (`autocomplete="off"` …; no "code" in a text placeholder).
-- `lcncWs.ts` (+ `wsWorker.ts`, `ws/wsTransport.ts`) — the WebSocket client in a worker; reconnect only through `GET /ready`; `request()` / `awaitReply()` match the `req_id` and resolve `null` on a timeout (never a guessed success); a command that depends on another's outcome is ONE gateway command.
+- `lcncWs.ts` (+ `wsWorker.ts`, `ws/wsTransport.ts`) — the WebSocket client in a worker; reconnect only through `GET /ready`; `request()` / `awaitReply()` match the `req_id` and resolve `null` on a timeout (never a guessed success); a command that depends on another's outcome is ONE gateway command. The hello reply's `conn_key` goes to `connKey.ts` (cleared on close), which every protected HTTP write sends (BG-14).
 - `lcncApi.ts` + `browseFailure.ts` — REST helpers; a 400 is permanent (no Retry); listings only inside the program folder.
 - `lcnc.ts` — LinuxCNC constants and the `WsCommand` union.
-- `defaults.ts` + `settingsSaveStatus.ts` — server-synced settings sections; a save is never silent: a ledger per section and revision, a page-hide beacon unconfirmed until the server's next full blob carries it.
+- `defaults.ts` + `settingsSaveStatus.ts` — server-synced settings sections; a save is never silent: a ledger per section and revision, a page-hide beacon unconfirmed until the server's next full blob carries it. A PROTECTED section (all but `FREE_SECTIONS`) acts only once the server holds it: `loadSection` = what acts, `loadSectionDraft` = what a form shows and saves onto; a refused draft stays visible until the server's section changes (BG-19).
 - `useKeyboardShortcuts.ts` — the global shortcut map: Escape is the reserved E-Stop key (a capture listener, not re-bindable; Reset is button-only); behind a dialog nothing but E-Stop passes; a jog keyup is never filtered.
 - `main.ts`, `style.css` — the entry with the settings migration; global styles and tokens.
-- The strip: `SafetyStrip.vue` (buttons named for the NEXT action; the active codes one button), `JogStrip.vue` (rotary axes half a column in landscape; the step a direct choice; the block owns its focus), `SetupStrip.vue` (axis actions as symbols, named for the action; the WCS selector), `OverridesStrip.vue`, `SpindleStrip.vue`, `ToolStrip.vue` (read-only; says whether the spindle tool's own offset is in effect).
+- The strip: `SafetyStrip.vue` (buttons named for the NEXT action; the active codes one button), `JogStrip.vue` (rotary axes half a column in landscape; the step a direct choice; the block owns its focus), `SetupStrip.vue` (axis actions as symbols, named for the action; the WCS selector), `OverridesStrip.vue`, `SpindleStrip.vue` (the RPM field is the preselection, free in every state; the commanded speed in the head while turning), `ToolStrip.vue` (read-only; says whether the spindle tool's own offset is in effect).
 - `ToolsetterSettings.vue` + `g30Form.ts` — the toolsetter form and the G30 draft; a reply applies only to what its request was sent under.
 - `useAxes.ts` — the ONE axis set (from `viewer_init.axes`); never hardcode axis letters or positions.
 - Others: `GamepadLiveInput.vue`, `DebugTab.vue`, `gcodeReference.ts`, `interpolation.ts`, `toolsetterVars.ts`, `dragScroll.ts`, `edgeWorker.ts`, `touchDetect.ts` (touch flag; no context menu on a long press), `useGamepad.ts`, `useJogPointers.ts`, `ws/bulkData.ts` (wire types).
@@ -80,13 +82,13 @@ One line per module: what it is and the rule that matters when you touch it. The
 
 ### Bottom Action Strip
 
-Horizontally scrollable strip with six components (wrapped in `<Gate gate="armed">`):
+Horizontally scrollable strip with six components (no outer Gate — each control self-gates):
 
-1. **SafetyStrip** — Arm/Disarm, E-Stop, Machine On/Off, status display (in `#exempt` slot — always accessible)
+1. **SafetyStrip** — Arm/Disarm, E-Stop, Machine On/Off, status display (the strip's first child, sticky)
 2. **JogStrip** — Jog wheel, speed slider, step increments, world/joint mode
 3. **SetupStrip** — DRO display, axis touchoff, homing grid, WCS selector
 4. **OverridesStrip** — Feed/Spindle/Rapid override sliders
-5. **SpindleStrip** — FWD/REV/STOP, RPM input, actual speed, coolant toggles
+5. **SpindleStrip** — FWD/REV/STOP, the RPM preselection (free; a value the controller has not taken survives the status), the commanded speed in the head while turning, coolant toggles
 6. **ToolStrip** — Read-only loaded-tool info + a Tool Table nav button (the change dialog and measure/unload actions are App-level, not here)
 
 ## Safety System — Three Layers
@@ -97,7 +99,7 @@ Horizontally scrollable strip with six components (wrapped in `<Gate gate="armed
 2. **Heartbeat watchdog** — client heartbeat timeout (3s) → auto-disarm + abort
 3. **HAL watchdog** — retriggerable `oneshot` (0.5s, self-healing) + servo-thread `estop_latch` (`webui-hb-latch`, operator-cleared) in a three-stage AND chain → latched ESTOP
 
-HAL heartbeat runs in an independent asyncio task (`_heartbeat_loop`), decoupled from status processing. Three tasks per client (2026-09-03): the **reader** (liveness and bookkeeping frames only — `heartbeat`, `hello`, `safety_trip_ack`, settings, diagnostics, `tab_visibility` — it never awaits a handler or `_cmd_lock`), the **command worker** (one per client, in order, bounded queue `_WS_CMD_QUEUE_MAX`; stop-class commands are never the ones rejected; `arm` is queued too, so a disarm lands after the in-flight command; each command runs as its own sub-task, and `abort`/`estop` SUPERSEDE the client's queued non-stop commands — replied "Superseded by abort", traced `ws.command_superseded` — and PREEMPT every client's in-flight non-stop handler via `_preempt_inflight` — victim replied "Preempted by abort", traced `ws.command_preempt`/`ws.command_preempted`; `jog_stop` stays plain FIFO, never reordered ahead of its `jog_cont`; stops and `arm` are never cancelled), and the **status loop** (can be slow without affecting safety; owns the 3 s client hb-stall disarm, now reporting the in-flight command). Before the split a handler waiting inside `_cmd_lock` (plane touch-off, Capture) parked the reader and the client's OWN heartbeats went unread → false hb-stall disarms. `_cmd_blocking` holds `_cmd_lock` through a cancel (shield-and-wait) so a disconnect can never let two NML calls overlap, and waits in `_CMD_WAIT_SLICE` (50 ms) slices: the binding's `wait_complete()` holds the GIL for its whole wait (2.9.4 emcmodule.cc — `to_thread` isolates nothing for that half), so one slice is the most the event loop can be frozen by an awaited command, and a cancel lands after the current slice rather than after a 30 s wait. Additional: server-authoritative arming, backend `require_armed()`, `fire()` 200ms anti-spam, auto-stop jogs on focus loss.
+HAL heartbeat runs in an independent asyncio task (`_heartbeat_loop`), decoupled from status processing. Three tasks per client (2026-09-03): the **reader** (liveness and bookkeeping frames only — `heartbeat`, `hello`, `safety_trip_ack`, settings, diagnostics, `tab_visibility` — it never awaits a handler or `_cmd_lock`), the **command worker** (one per client, in order, bounded queue `_WS_CMD_QUEUE_MAX`; stop-class commands are never the ones rejected; `arm` is queued too, so a disarm lands after the in-flight command; each command runs as its own sub-task, and `abort`/`estop` SUPERSEDE the client's queued non-stop commands — replied "Superseded by abort", traced `ws.command_superseded` — and PREEMPT every client's in-flight non-stop handler via `_preempt_inflight` — victim replied "Preempted by abort", traced `ws.command_preempt`/`ws.command_preempted`; `jog_stop` stays plain FIFO, never reordered ahead of its `jog_cont`; stops and `arm` are never cancelled), and the **status loop** (can be slow without affecting safety; owns the 3 s client hb-stall disarm, now reporting the in-flight command). Before the split a handler waiting inside `_cmd_lock` (plane touch-off, Capture) parked the reader and the client's OWN heartbeats went unread → false hb-stall disarms. `_cmd_blocking` holds `_cmd_lock` through every cancel — a second one too (shield-and-wait to the write's END, `_thread_to_end`; Codex R220) — so a disconnect can never let two NML calls overlap or a cleanup run before a write and its booking are done, and waits in `_CMD_WAIT_SLICE` (50 ms) slices: the binding's `wait_complete()` holds the GIL for its whole wait (2.9.4 emcmodule.cc — `to_thread` isolates nothing for that half), so one slice is the most the event loop can be frozen by an awaited command, and a cancel lands after the current slice rather than after a 30 s wait. Additional: server-authoritative arming, backend `require_armed()`, `fire()` 200ms anti-spam, auto-stop jogs on focus loss.
 
 **Trip latching (issue #34).** `oneshot.0.out` self-heals when heartbeats resume, so the sticky latch lives in the HAL **servo thread** as an `estop_latch` (`webui-hb-latch`): its `ok-in` is `oneshot.0.out`, so it latches `ok-out` FALSE the instant the oneshot drops — in the *same ~1 ms cycle* — and stays FALSE until the operator clicks E-Stop Reset. This replaced an earlier `hal_watchdog.py` 100 ms Python edge-detector that **lost the race** against a ~1 ms oneshot re-arm (a heartbeat blip after a brief stall sampled `oneshot.0.out` already back TRUE → never saw the falling edge → silent auto-recovery from ESTOP). The latch is owned by HAL, so it survives both gateway *and* watchdog freezes/restarts. The gateway reads the sticky latch **level** `webui-hb-latch.fault-out` (snapshot field `trip_latched`) and runs `gateway_util.evaluate_trip_latch` (pure, unit-tested) — a clean FALSE→TRUE after a known-good baseline sets the `_unacked_trip` dict, broadcast as `status_msg.safety_trip` (a boot-faulted first-sight TRUE is audited as `safety.latch_faulted_on_connect`, not bannered). The frontend shows it in the existing `.statusBanner` (text + Acknowledge button; flash-danger while `safetyTrip` is set). Arm is rejected while `_unacked_trip is not None`. Recovery (enforced order): banner-Acknowledge clears `_unacked_trip` (both Arm and E-Stop Reset are rejected while it is set — a client that stayed armed through the trip must still acknowledge before it can leave ESTOP) → re-Arm if armed was lost → E-Stop Reset sends `{"trip_reset": true}` IPC to `hal_watchdog.py`, which pulses `webui-safety.trip-reset-out` → `webui-hb-latch.reset` rising edge → latch clears → 20 ms later `CMD.state(STATE_ESTOP_RESET)` → Machine On. (`hal_watchdog.py`'s `hb-ok-in` edge detection now only emits best-effort `wd.hb_edge`/`trip-count` forensics — no longer in the safety or banner path.)
 
@@ -137,7 +139,7 @@ Override examples: `LCNC_LOG_DIR=/tmp/altlogs lcnc-suite -ini foo.ini`, or `LOG_
 
 ### Permissions (`permissions.ts`)
 
-Single source of truth for all enable/disable logic. Components never compute their own disable conditions. 14 permission classes organized in 6 tiers:
+Single source of truth for all enable/disable logic. Components never compute their own disable conditions. The permission classes, organized in 6 tiers (backend `command_policy.GATE_REQUIREMENTS` and `permissions.ts` `GATE_NAMES` name the same set — `test_button_gates_d.py` compares them):
 
 ```
 base = armed && !estop && enabled
@@ -145,32 +147,44 @@ base = armed && !estop && enabled
 
 ```
 TIER 0 — Unconditional
-  always ─────────────── true                                         Arm, E-Stop, UI nav
+  always ─────────────── true                                         Arm, E-Stop, navigation, reading, preselections (jog step/speed, RPM, MDI line — BG-05), display settings, the jog pad's Stop
+  abort ──────────────── true — a STOP: no arm, sim or busy term (button gates BG-08)   Abort
 
 TIER 1 — Client state (no machine state needed)
-  armed ──────────────── s.armed                                      Outer content gate
+  armed ──────────────── s.armed                                      Protected settings (keyboard, gamepad, machine, probe, toolsetter, macro bar, MDI history — operator 2026-10-26), their resets, Shut down, Sim Trip
+  armEnable ──────────── no safety trip waiting for its acknowledgement — judged by the backend alone, no client arm term (BG-11)   ARMING (disarming is always open)
+  estopReset ─────────── armed + the trip acknowledged (BG-11; the recovery order trip → acknowledge → Arm → Reset → On)   E-Stop Reset
 
 TIER 2 — Machine power (no enabled needed)
   safety ─────────────── armed + !estop                               Machine On/Off
-  setup ──────────────── armed + !estop + isIdle + !busy              File ops, tool edits, settings reset
+  setup ──────────────── armed + !estop + isIdle + !busy              (no longer the load: programLoad)
+  programLoad ────────── armed + interp KNOWN idle — no E-Stop, power or homing term; no AUTO pre-step; the commit adds _write_admission_refusal (BG-03)   Load/unload/reload, a program file row
+  modeManual ─────────── armed + interp KNOWN idle + the machine STANDS + no homing under way — no power term (BG-04)   Mode Manual
+  modeCoord ──────────── modeManual + (homed OR identity kins with NO_FORCE_HOMING) — the handler re-checks the target's class on a CURRENT controller read, before the queue and at the write (R216 / R217)   Mode MDI / Auto
+  parameterRead ──────── armed + interp KNOWN idle + not (machine ON in AUTO: no synch) (BG-13)   G30 Refresh (the confirmed read)
+  sourceWrite ────────── armed + interp KNOWN idle, no start claim / run from line / program change; E-Stop allowed (BG-14)   Program + macro upload, save, edit, delete
+  toolTableWrite ─────── sourceWrite + no M6 request (fresh reader) (BG-14)   Tool add/edit/delete/renumber, library import, metadata refresh
 
 TIER 3 — Machine enabled (base = armed + !estop + enabled)
-  abort ──────────────── base                                         Abort, Shutdown
   override ───────────── base + !busy                                 Feed/Spindle/Rapid overrides
-  pause ──────────────── base + isRunning + !isPaused                 Pause
+  pause ──────────────── isRunning + !isPaused — a STOP: no arm, sim or busy term (BG-08)   Pause (AUTO or MDI)
+  spindleStop ────────── !estop + enabled + isIdle — a STOP: no arm, homing, sim or busy (BG-18; running/paused: the program owns the spindle)   Spindle Stop
   resume ─────────────── base + isPaused                              Resume
-  step ───────────────── base + ((isIdle+!busy+isHomed) OR isPaused)  Single-step
+  step ───────────────── base + (isPaused OR the `run` rule: idle + homed + kins runnable — BG-09; a program start re-reads the kinematics from the controller at the write, `_cmd_blocking(admit=)`)   Single-step
+  toolChangeConfirm ──── armed + a FRESH pending tool-change request; closed in sim; the command names the request (`tool_change_seq`), booked once only when delivered (BG-17/BG-20)   M6 Confirm
 
 TIER 4 — Machine idle (requires base + isIdle)
-  idle ───────────────── base + isIdle + !busy                        Banner home, mode select
-  jog ────────────────── base + isIdle + isHomed                      Jog buttons, speed slider
+  idle ───────────────── base + isIdle + !busy                        (the base of the idle classes)
+  jog ────────────────── base + isIdle + no homing under way (known) + (isHomed OR joint jog before homing declared — WEBUI_JOINT_JOG_BEFORE_HOMING; per axis the declared joint, a gantry letter closed, the speed capped; each write holds the homing state it was prepared under; package E)   Jog buttons
   zero ───────────────── base + isIdle + !busy + !eoffset             Home, Unhome
 
 TIER 5 — Full ready (requires everything)
-  ready ──────────────── base + isIdle + !busy + isHomed              MDI, Spindle, Coolant
+  ready ──────────────── base + isIdle + !busy + isHomed              MDI
+  spindleManual ──────── base + isIdle + (homed OR [DISPLAY] WEBUI_SPINDLE_BEFORE_HOMING = 1 in MANUAL) (operator Q1)   Spindle Fwd / Rev / ±
   run ────────────────── ready + kins runnable (Plane kins needs its plane + G59; unknown mode refuses)   Cycle Start, Run from line
   machineFrame ───────── ready + identity kins (G53 routines: → Home/G30, tool load/measure/unload, probe ops)
-  g30Capture ─────────── machineFrame + the machine STANDS (STAT.inpos, |current_vel| ≤ 0.001; unknown refuses)   G30 Use Current Position
+  g30Capture ─────────── machineFrame + the machine STANDS (STAT.inpos, |current_vel| ≤ 0.001; unknown refuses) + not ON in AUTO   G30 Use Current Position
+  g30Write ───────────── machineFrame + not ON in AUTO (BG-13)     Save G30
   goZero ─────────────── ready + a → Zero plan for the mode (Machine: subroutine — Z to machine zero only when below it, rotaries to the fixture's STAMP angle before X/Y; Plane: retract along the tool axis, X0 Y0 in the plane; TCP refuses). A retract NEVER lowers Z (`#<_abs_z>` guard in go_to_zero/home/g30.ngc + the RFL safe-Z step)
   probe ──────────────── base + isIdle + !busy + isHomed + !eoffset   Probe ops, tool change, WCS edit, macros (run_macro; a `FRAME machine` macro also machineFrame)
   touchoff ───────────── probe + kins-mode × fixture rule (linear)     DRO touch-off / Zero (linear letters)
@@ -183,18 +197,25 @@ TIER 5 — Full ready (requires everything)
 ```
 Disconnected      → always
 Armed             → + armed
+Armed + idle      → + programLoad, modeManual (standing), parameterRead (not ON in AUTO); armEnable / estopReset follow the trip
 E-Stop Cleared    → + safety, setup (if idle)
-Machine On        → + abort, override, idle, zero, jog (TIER 3+4)
+Machine On        → + override, idle, zero, jog, spindleStop (TIER 3+4)
 Homed             → + ready, probe, step (TIER 5)
-Running           → abort, override, pause, step remain; idle/ready/jog close
+Running           → abort, override, pause remain; idle/ready/jog/step/spindleStop close
 Paused            → abort, override, resume, step remain; pause closes
 ```
 
-**Touch-off under kinematics modes:** a touch-off is the gateway command `touchoff {axes}` (`command_policy.touchoff_route`), never a client-built `G10 L20`: identity → G54–G58 (rotary letters G54 only); TCP → G54–G58 with the table at A=0; Plane (kins 2) → G59 with the plane active, written through the plane into G54 by the remap (`M535`), the gateway seeding its G54 row only after the helper's `twp-datum-seq` advanced. G59–G59.3 are the TWP remap's scratch rows, never a touch-off target. The viewer draws ONE work-system marker, the active fixture, where the part's zero physically is (`viewer/programZero.ts`). **Motion buttons:** `scripts/twp_buttons_check.py` is the acceptance gate for any change touching a motion button. A `jog_stop` for an axis the gateway did not start is a traced no-op; `set_mode` verifies the switch and names only what it sees; a retract NEVER lowers Z (`#<_abs_z>` guard). Details: [docs/architecture/safety-and-permissions.md](docs/architecture/safety-and-permissions.md).
+Every idle / running / paused rule is preceded by "the interpreter state was read" and every eoffset rule by "the eoffset is known": an unread state or a stale HAL reader closes those gates with that reason, never reads as idle / "no compensation" (button gates BG-12). Before the first status the gateway refuses every command whose gate has a requirement (`command_policy.STATELESS_GATES`: E-Stop, Arm, the jog stops, Abort pass). A class the gateway does not ship is CLOSED in the client with "Gateway lacks this permission — restart it", never read from another class (BG-15).
+
+**Writes are admitted at the commit** (BG-14): every protected HTTP write (program upload/save, macro save/upload/delete, tool-library import and metadata refresh, a protected settings section, the settings reset) names its WebSocket CONNECTION (`X-Conn-Key`, the beacon's body `conn_key`; minted per connection, sent with the hello reply, gone with the connection — no grace, never the resume id) and the gateway checks, inside the write's own lock and thread right before the publish: the connection is open and armed NOW (a WS command carries its `conn_key` to the commit, never the dispatcher's arm), then `sourceWrite` / `toolTableWrite` on a fresh STAT read (`_write_admission_refusal`, ONE rule for programs, macros and the table; no STAT = state unknown, refused). An admitted tool-table persist — table, reload, metadata — ends under `_cmd_lock` through a cancel (`_thread_to_end`); a settings save or reset decides inside the store's lock. Reasons: "Connection unknown — reconnect", "Not armed — press Arm", the state's reason. Settings (BG-19, Q2): `display`, `viewer`, `panels`, `camera` save without arm; every other section needs the writer's arm, no idle (`settings_store.section_needs_arm`, ONE classification for WS, HTTP, beacon and reset) — and acts in the client only once the SERVER holds it (draft ≠ active, `defaults.ts`).
+
+**Touch-off under kinematics modes:** a touch-off is the gateway command `touchoff {axes}` (`command_policy.touchoff_route`), never a client-built `G10 L20`: identity → G54–G58 (rotary letters G54 only); TCP → G54–G58 with the table at A=0; Plane (kins 2) → G59 with the plane active, written through the plane into G54 by the remap (`M535`), the gateway seeding its G54 row only after the helper's `twp-datum-seq` advanced. G59–G59.3 are the TWP remap's scratch rows, never a touch-off target. The viewer draws ONE work-system marker, the active fixture, where the part's zero physically is (`viewer/programZero.ts`). **Motion buttons:** `scripts/twp_buttons_check.py` is the acceptance gate for any change touching a motion button. A `jog_stop` for an axis the gateway did not start is a traced no-op; a jog stop sends no mode switch and addresses the jog as it was started, booked stopped only once written; every `set_mode` write lands only on an interpreter KNOWN idle (package E); `set_mode` verifies the switch and names only what it sees; a handler that switches the task mode itself (the mode choice, the manual spindle, Home / Unhome, Cycle Start / Step from idle) judges its class on a CURRENT controller read before the queue AND inside each write's own thread — the switch and every command after it (`_cmd_blocking`'s `admit`, `_manual_command`, `_start_admit`; Codex R216 / R217); the start guard's skip-flag clear is part of the start (BG-32); a retract NEVER lowers Z (`#<_abs_z>` guard). Details: [docs/architecture/safety-and-permissions.md](docs/architecture/safety-and-permissions.md).
 
 **LinuxCNC enforces very little** — mode sequence (MDI needs MODE_MDI) and state transitions only. Our gates enforce: armed state (web-safety invention), idle-vs-running checks, homing requirements, and eoffset contamination prevention. The `set_mode()` + `reject_if_auto_running()` functions in gateway.py are the real backend gatekeepers.
 
-**Client-local overlay terms** (`applyClientOverlay`): `armed` (per-client), `busy` (per-tab debounce), and `sim` (`simMode.ts` — viewer simulation mode: the model shows the program, not the machine, so all machine-action gates close except `always`/`armed`/`setup`; see "Program scrub").
+**Client-local overlay terms** (`applyClientOverlay`): `armed` (per-client), `busy` (per-tab debounce), and `sim` (`simMode.ts` — viewer simulation mode: the model shows the program, not the machine, so all machine-action gates close except `always`/`armed`/`setup`; see "Program scrub"). None of the three closes a STOP (`STOP_GATES`: abort, pause, spindleStop — the backend's decision passes as is); `cycle_pause` and `spindle_stop` are never debounced and, in the gateway, stop-class commands (`_WS_STOP_CMDS`).
+
+**A started jog owns its stop** (`jogGesture.ts`, button gates BG-06): keyboard (keyed by the physical key, `code`), pointer and D-pad record at the press what they started (axes, continuous or a step) and the release stops exactly that — never what the step selector, the key map or the Z modifier say by then.
 
 ### Machine Controls Catalog (`machineControls.ts`)
 
@@ -203,7 +224,7 @@ Central catalog of every interactive element type — inspired by QtPyVCP's pred
 - **`BUTTON_TYPES`** — 55+ button types (start, abort, probe, close, tab, dialogConfirm, etc.)
 - **`INPUT_DEFS`** — 34+ input types (jogSpeed, mdiText, touchoff, feedOverride, etc.)
 
-Machine action types use permission gates (`ready`, `idle`, `probe`, etc.). UI-only types use `gate: 'always'` — they don't gate themselves but are still covered by the outer Gate fieldset.
+Machine action types use permission gates (`ready`, `idle`, `probe`, etc.). UI-only types use `gate: 'always'` — open to a DISARMED client too (no outer fieldset since button gates package C): every `always` control a disarmed client can operate is classified in `controlInventory.ts` (what it does, why it needs no arm); `controlInventory.test.ts` fails on an unclassified one. A protected effect is never `always`.
 
 ### Catalog Components (Machine*)
 
@@ -221,18 +242,18 @@ All interactive elements use catalog-aware wrapper components. **Never use `<Btn
 
 ### Gating Architecture — Default-Deny (IEC 62443 / ARINC 661)
 
-Four layers enforce permissions:
+Arm authorizes new machine effects, not navigation (button gates package C, Codex R202–R204): a disarmed client — the observer — navigates every tab and dialog, reads, preselects and stops; every control that would act is closed by its OWN gate and says why (BG-16: "Not armed — press Arm"; a control a closed inner Gate disables explains with that Gate's reason, `GATE_SCOPE_KEY`). Three layers:
 
-1. **Outer Gate** — `<Gate gate="armed">` wraps content area, macro bar, and bottom strip. When disarmed, everything is disabled by browser `<fieldset disabled>` cascade. Uses `armed` (not `safety`) so navigation works during E-Stop.
-2. **Inner Gates** — Section-level Gates with tighter permissions: `<Gate gate="override">` (OverridesStrip), `<Gate gate="ready">` (SpindleStrip), `<Gate gate="idle">` (OffsetPanel), `<Gate gate="setup">` (ToolTable/Gcode/Settings dialogs), `<Gate gate="safety">` (SafetyStrip Machine On/Off).
-3. **Catalog self-gating** — Each `MachineBtn`/`MachineInput` checks its own permission class for visual dimming + HTML disabled.
-4. **Backend `require_armed()`** — Every motion command in gateway.py checks armed before executing (defense-in-depth). Additionally, `fire()` in App.vue takes a gate parameter and re-checks permissions before sending.
+1. **Catalog self-gating** — Each `MachineBtn`/`MachineInput`/… checks its own permission class (dimming + `disabled`; a `ChoiceGroup` option `aria-disabled`, focusable). Every control a disarmed client can operate is in `controlInventory.ts`.
+2. **Inner Gates** — Section-level Gates where several controls share a tighter rule: `<Gate gate="override">` (OverridesStrip), `<Gate gate="probe">` (OffsetPanel's Clear), `<Gate gate="safety">` (Machine On/Off), `<Gate gate="sourceWrite">` / `"toolTableWrite"` / `"run"` (dialog confirms), the settings resets' per-section Gate. No outer `armed` fieldset (the content, the strip, the macro bar and every dialog used to sit in one: tabs, a dialog's X, the file browser and the stops inside the content were dead while disarmed).
+3. **Backend** — `require_armed()` and the policy gate on every command (shutdown included since package C), the commit-time admission of every protected write (`_write_admission_refusal`, `_settings_admission`). Additionally, `fire()` in App.vue takes a gate parameter and re-checks permissions before sending.
 
-**DOM layout**: Bottom strip's `#exempt` slot holds SafetyStrip (Arm/E-Stop always accessible even when disarmed).
+**DOM layout**: `.content#content-dialog-area` (the dialogs' Teleport target) and `.strip` are plain elements; SafetyStrip is the strip's first child.
 
 ### Usage — Gate.vue (primary pattern)
 ```vue
-<!-- Wrap a section; fieldset :disabled propagates to all children -->
+<!-- Wrap a section; fieldset :disabled propagates to all children, and
+     each control inside explains with the Gate's reason (GATE_SCOPE_KEY) -->
 <Gate gate="ready">
   <MachineBtn type="start" @click="run">Start</MachineBtn>
   <MachineInput gate="mdiText" v-model="mdi" />
@@ -258,7 +279,7 @@ Four layers enforce permissions:
 ## Layout Architecture
 
 - Content area: viewerPane (left, 3D viewer always visible) + sidePane (right, tabbed content panels)
-- Bottom action strip: horizontally scrollable row of strip components (SafetyStrip in `#exempt` slot)
+- Bottom action strip: horizontally scrollable row of strip components (SafetyStrip first, sticky)
 - Macro bar (`MacroBar.vue`): optional ROW of macro FILE buttons (the `bar` setting), a DENSE area like the strip and tables (`--control-h` = the compact 28 / 36 px; its `macro` buttons are md) — the macros scroll sideways in `.macroScroll` (both edges fade), its own Abort sits at the right end OUTSIDE the scroller and never scrolls away (operator 2026-10-02). App mounts it in ONE of two places by orientation (package 5 stage A, operator 2026-10-02): landscape under the content, over the strip; portrait in the viewer's column (`.viewerColumn` = viewer + bar, ONE flex item with the viewer floor) between the 3D viewer and the side pane — the side pane and the content keep exactly their place with or without macros, the viewer gives the row (it used to be a ~155 px vertical middle column). An orientation change mounts a NEW bar: a hold in progress ends with its button (nothing runs), App puts a focused macro's focus back on the same macro (`data-macro-id`) and re-points an open parameter dialog's opener to the new button (`modalRegistry.repointOpeners`); the scroll fades re-attach. `layout.spec` (portrait 100/150 %: one row under the viewer, full column width, side pane unmoved, every button whole and reachable; the strip-state frame now measures the side pane too) and `run-hold.spec` (mid-hold orientation change) pin it.
 - Each content panel independently selects tabs via TabPanel component
 - Shared state: coordMode, jogVel, mdiText, armed, busy
@@ -311,11 +332,11 @@ The rules in short. The full form of each pattern — measured values, the specs
 - **Syntax highlight tokens** — `--syntax-gcode/-mcode/-coord/-param/-comment`, a palette PER THEME; token classes and the CodeMirror style read the same variables; no opacity on comments.
 - **z-index scale** — `--z-base` 0 / `--z-raised` 1 / `--z-fade` 2 / `--z-pane-overlay` 5 / `--z-float` 10 / `--z-banner` 11 / `--z-modal` 1000 / `--z-modal-top` 1010. Never a literal.
 - **No `:deep()` visual overrides** — `:deep()` for layout only, never background, color, border or box-shadow; fix a button state in `Btn.vue`.
-- **Global utility classes** — `.text-muted/-ok/-warn/-danger`, `.mono`, `.emptyState`, `.statusDot`, `.sub` (section heading, no margin), `.sep` (the ONE horizontal divider — never a `border-bottom`), `.w-full`, `.saveStatus`, `.settingDesc`. Never a scoped copy.
+- **Global utility classes** — `.text-muted/-ok/-warn/-danger`, `.mono`, `.emptyState`, `.statusDot`, `.sub` (section heading, no margin), `.sep` (the ONE horizontal divider — never a `border-bottom`), `.w-full`, `.saveStatus`, `.settingDesc`, `.cornerLabel` (a small mark in a control's top-left corner naming what it addresses — the joint a jog moves before homing — without changing its size; aria-hidden). Never a scoped copy.
 
 **Controls and layout**
 - **Catalog components** — every interactive element is a `Machine*` component; never `<Btn>` in a template. `MachineBtn` / `MachineInput` render exactly ONE root (a Teleport or a second root drops the parent's scoped-CSS id). A class on a `MachineBtn` PLACES it (flex, grid, width, margin), never styles its interior — a dimmed button is wrapped in `.btnTip`, which takes the class. Equal-share rows are grid tracks (`minmax(max-content, 1fr)`), not `flex: 1`.
-- **Gate.vue** — `<fieldset :disabled="!allow">` with `.fs-reset`; browser-enforced default-deny; the outer Gate (`armed`) wraps the main area; `#exempt` holds only the safety section.
+- **Gate.vue** — `<fieldset :disabled="!allow">` with `.fs-reset`; browser-enforced default-deny for a SECTION (no outer armed Gate since button gates package C — a disarmed client navigates, reads and stops); it provides its closed state so the controls inside explain with its reason (BG-16).
 - **Tab pattern** — every side-pane tab's head is `.panelHead`: `.panelObject`, then ONE `.actionGroup`: the machine actions with Abort beside them on the left and, where the tab has management, More (`MoreMenu.vue`) at the RIGHT end. Download (`fileDownload`, gate `always`) saves the file as it is.
 - **Starting motion is a hold** — Start, Step, Resume, the Run-from-line action and macros are holds (`holdKey` = path + published revision + displayed-text revision); Pause and Abort are taps; the Space shortcut stays instant. A macro's parameter dialog reads its file live by name.
 - **Forms** — a labelled field is a `FormField` in a `.formGrid` (two columns while each keeps `--form-col-min` 160 px); `.formLabel` is the one label class; a unit is never a placeholder; `.sectionColumns` splits a section by the same rule (`--section-col-min` 320 px).
@@ -335,10 +356,10 @@ The rules in short. The full form of each pattern — measured values, the specs
 - **Tool geometry** — per-tool STLs in `machine/tools/` (tip at the origin, +Z), fallback cylinder; cutter and shaft split by `flute_length` / `shoulder_length`.
 
 **Data, files and machine**
-- **Settings** — `defaults.ts` section registry (`registerSection`, `loadSection` / `saveSection`); the server is the single source of truth (`settings_init` on every connect, `sendBeacon` on page exit). A new section goes into `_VALID_SETTINGS_SECTIONS` (gateway.py) AND `SERVER_SECTIONS` (main.ts).
+- **Settings** — `defaults.ts` section registry (`registerSection`, `loadSection` / `saveSection`); the server is the single source of truth (`settings_init` on every connect, `sendBeacon` on page exit). A new section goes into `_VALID_SETTINGS_SECTIONS` (gateway.py) AND `SERVER_SECTIONS` (main.ts), and is protected (arm to save, draft ≠ active) unless it is listed in `FREE_SECTIONS` in BOTH `settings_store.py` and `defaults.ts` (`settingsSections.test.ts`). A form reads `load…Draft`, what acts reads `load…Defaults`.
 - **localStorage** — only three places: the per-tab message history (`ws/statusStore.ts`), the one-time migration in `main.ts`, its cleanup in `resetAllDefaults`. No other use.
 - **Shared modules** — `format.ts`, `toolTypes.ts`, `gcodeHighlight.ts`; never duplicate a formatter or a tool type label.
-- **Program upload** — `POST /upload` never replaces a program without `overwrite=1` (409 → Cancel / Rename / Replace); the publish is an `os.link`, a filesystem that cannot link REFUSES (no copy fallback).
+- **Program upload** — `POST /upload` never replaces a program without `overwrite=1` (409 → Cancel / Rename / Replace); the publish is an `os.link`, a filesystem that cannot link REFUSES (no copy fallback); it is admitted at the publish for an armed connection under `sourceWrite` (BG-14).
 - **Editor session** — the G-code editor's buffer is bound to the file it was opened on; an external change raises a conflict banner; Save writes only the session's file.
 - **Macro files** — a macro is `<name>.ngc` in `[DISPLAY] WEBUI_MACRO_DIR` (on `SUBROUTINE_PATH`, last; apart from PROGRAM_PREFIX); `macro_files.py` is the ONE parser; a macro runs only when the interpreter's own lookup finds its file; `run_macro` is bound to the file's revision and forces `SET_MODE(MDI)`; writers and starts share ONE admission (a start claim released only by a positive status proof).
 - **INI lines LinuxCNC reads** — LinuxCNC keeps 255 bytes of an INI line and the first 10 `SUBROUTINE_PATH` entries, silently; `install_examples` refuses such an install, `config_sync_check.py` reports `[TRUNCATED]`.
@@ -504,6 +525,10 @@ which lcnc-suite    # should print ~/.local/bin/lcnc-suite
 | `CAMERA_RESOLUTION` | `1280x720` | Capture resolution `WxH` (USB cameras only) |
 | `CAMERA_FPS` | `15` | MJPEG stream frame rate |
 | `WEBUI_MACRO_DIR` | *(none)* | The macro folder (package 5): `.ngc` macros run by `o<name> call`; must be on `[RS274NGC] SUBROUTINE_PATH` (the examples: last) and apart from PROGRAM_PREFIX. Unset = no macro files. See "Macro files". |
+| `WEBUI_JOINT_JOG_BEFORE_HOMING` | *(off)* | `1` = jogging before homing (operator E1, button gates E): joint by joint, each axis its DECLARED joint, a gantry letter closed, at most `WEBUI_JOINT_JOG_MAX_FRACTION` of the joint's MAX_VELOCITY. Anything but exactly `1` is off (an invalid value traced). |
+| `WEBUI_JOINT_JOG_MAX_FRACTION` | `0.1` | The cap before homing (operator E2): 0 < f ≤ 1 of `[JOINT_n] MAX_VELOCITY`; an invalid value switches the jog OFF. Only the limit switches protect an unhomed joint. |
+| `WEBUI_JOINT_AXES` | *(none)* | The joint order for that jog: each joint's axis letter in joint order (`X Y Z A C`). Unset = trivkins' `coordinates=`; any other kinematics without it: closed. |
+| `WEBUI_SPINDLE_BEFORE_HOMING` | *(off)* | `1` = the manual spindle (Fwd / Rev / ±) runs before homing — machine ON, idle, MANUAL only (operator Q1, button gates D). Anything but exactly `1` is off; an invalid value is traced (`policy.spindle_before_homing_invalid`). |
 | `WEBUI_MACHINE_DIR` | *(gateway default)* | Machine viewer-model dir (`machine.json` + STLs) for the 3D machine model. Unset = `lcnc-gateway/machine/`. See "3D Machine Model". |
 
 Environment variables `LCNC_WEBUI_HOST`, `LCNC_WEBUI_PORT`, `LCNC_WEBUI_BROWSER`, `LCNC_WEBUI_DEV`, `LCNC_WEBUI_TOKEN`, `LCNC_WEBUI_ALLOWED_ORIGINS` override INI values. `LCNC_LOG_DIR` overrides `LOG_DIR`. Camera variables: `LCNC_CAMERA_SOURCE`, `LCNC_CAMERA_RESOLUTION`, `LCNC_CAMERA_FPS`.

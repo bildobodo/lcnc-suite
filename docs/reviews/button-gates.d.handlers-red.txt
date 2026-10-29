@@ -1,0 +1,17 @@
+FAILED test_button_gates_d.py::TestCommandGates::test_the_commands_name_their_classes
+FAILED test_button_gates_d.py::TestLoadWithoutAuto::test_a_connection_disarmed_since_the_dispatch_loads_nothing
+FAILED test_button_gates_d.py::TestLoadWithoutAuto::test_a_start_in_progress_refuses_load_and_unload
+SUBFAILED(estop=True, enabled=False) test_button_gates_d.py::TestLoadWithoutAuto::test_loads_in_estop_off_and_unhomed
+SUBFAILED(enabled=False) test_button_gates_d.py::TestLoadWithoutAuto::test_loads_in_estop_off_and_unhomed
+SUBFAILED(homed=False) test_button_gates_d.py::TestLoadWithoutAuto::test_loads_in_estop_off_and_unhomed
+FAILED test_button_gates_d.py::TestLoadWithoutAuto::test_no_mode_switch_before_the_open
+SUBFAILED(estop=True, enabled=False) test_button_gates_d.py::TestModePerTargetHandler::test_manual_in_estop_and_unhomed
+FAILED test_button_gates_d.py::TestModePerTargetHandler::test_mdi_unhomed_is_refused_with_its_reason
+FAILED test_button_gates_d.py::TestModePerTargetHandler::test_no_switch_while_the_machine_moves
+FAILED test_button_gates_d.py::TestRecoveryHandler::test_reset_before_the_first_status_is_refused
+FAILED test_button_gates_d.py::TestRecoveryHandler::test_reset_with_an_unacknowledged_trip
+SUBFAILED(enabled=False, task_mode=2) test_button_gates_d.py::TestG30ReadGate::test_off_and_unhomed_reach_the_handler
+FAILED test_button_gates_d.py::TestG30ReadGate::test_on_in_auto_is_refused_before_the_synch
+FAILED test_button_gates_d.py::TestSpindleBeforeHomingHandler::test_unhomed_with_the_switch_in_manual_runs
+FAILED test_button_gates_d.py::TestSpindleBeforeHomingHandler::test_unhomed_with_the_switch_in_mdi_is_refused
+16 failed, 27 passed, 26 subtests passed in 0.33s

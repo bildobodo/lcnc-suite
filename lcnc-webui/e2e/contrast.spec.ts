@@ -20,10 +20,12 @@ import { encode } from "@msgpack/msgpack";
 const PASSES = ["light", "dark", "hc-light", "hc-dark", "auto-dark"] as const;
 const PERMS_ALL = {
   idle: true, jog: true, override: true, ready: true, run: true, pause: false,
-  resume: false, step: true, abort: true, probe: true, zero: true,
+  resume: false, step: true, abort: true, spindleStop: true, probe: true, zero: true,
   machineFrame: true, goZero: true, planeFrame: true,
   touchoff: true, touchoffRotary: true, twpCapture: true,
-  surfaceComp: true, safety: true, setup: true, armed: true, always: true,
+  surfaceComp: true, safety: true, setup: true, sourceWrite: true, toolTableWrite: true, armed: true, always: true,
+  // button gates D
+  programLoad: true, modeManual: true, modeCoord: true, parameterRead: true, g30Write: true, spindleManual: true, armEnable: true, estopReset: true,
 };
 // Every token class the highlighter emits: comment, M, G, coordinates,
 // parameters, N-number.
@@ -124,7 +126,12 @@ function scan(args: { rootSel: string; floor: number }): { hits: Hit[]; checked:
       seen.add(el);
       const r = el.getBoundingClientRect();
       const cs = getComputedStyle(el);
-      if (!r.width || !r.height || cs.visibility === "hidden" || el.closest("[aria-hidden='true']") || inactive(el)) continue;
+      // aria-hidden is no visibility: a .cornerLabel is read by every sighted
+      // operator and hidden from assistive technology only because its
+      // control carries the same as a description (Codex R222 BG-36)
+      const hiddenFromAt = el.closest("[aria-hidden='true']");
+      const shown = hiddenFromAt?.classList.contains("cornerLabel") && !hiddenFromAt.parentElement?.closest("[aria-hidden='true']");
+      if (!r.width || !r.height || cs.visibility === "hidden" || (hiddenFromAt && !shown) || inactive(el)) continue;
       const fg0 = rgba(cs.color);
       if (isMark(fg0)) continue;
       checked++;
@@ -187,6 +194,17 @@ for (const pass of PASSES) {
     const delta = (data: Record<string, unknown>) => ctl({ op: "status_delta", data });
 
     await take("page", "header.hdr, .statusBanner, .strip, .sidePane, .viewerPane .overlay-card");
+    // Jogging before homing (button gates E / F): the jog head's warning line
+    // and the corner marks naming each button's joint.
+    await ctl({ op: "setJointJog", jointJog: { enabled: true, fraction: 0.1, reason: null,
+      axes: ["X", "Y", "Z"].map((letter, joint) => ({ letter, joint, reason: null })) } });
+    await delta({ homed: [0, 0, 0], homed_joints: [false, false, false] });
+    await expect(page.locator('[data-strip="jog"] .cornerLabel').first()).toBeVisible();
+    await expect(page.locator('[data-strip="jog"] .jogNote')).toBeVisible();
+    await take("Jog/before homing", '[data-strip="jog"]');
+    await ctl({ op: "setJointJog", jointJog: null });
+    await delta({ homed: [1, 1, 1], homed_joints: [true, true, true] });
+    await expect(page.locator('[data-strip="jog"] .cornerLabel')).toHaveCount(0);
     // Program: a selected line, then Run from line on it, the editor, the files.
     await page.locator(".codeLine").nth(2).click();
     await expect(page.locator(".codeLine.selected")).toHaveCount(1);

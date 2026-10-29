@@ -3,7 +3,6 @@ import './style.css'
 import App from './App.vue'
 import { fetchSettings, saveSettingsSection } from './lcncApi'
 import { initServerDefaults } from './defaults'
-import { VALID_GATES } from './permissions'
 import { initDragScroll } from './dragScroll'
 import { initScrollFade } from './scrollFade'
 import { initTouchDetect } from './touchDetect'
@@ -98,42 +97,11 @@ async function bootstrap() {
   initScrollFade();
   startClientDiag();
 
-  if (import.meta.env.DEV) {
-    function auditElement(el: HTMLElement) {
-      const gate = el.closest('[data-gate]');
-      if (gate && VALID_GATES.has(gate.getAttribute('data-gate')!)) return;
-
-      el.style.outline = '3px solid red';
-      el.title = 'UNGATED: not inside a <Gate> with a valid permission';
-      console.warn(
-        '[Gate audit] Ungated element:',
-        el,
-        gate ? `(nearest data-gate="${gate.getAttribute('data-gate')}" is not a valid permission)` : '(no Gate ancestor)',
-      );
-    }
-
-    function auditAll(root: Element | Document = document) {
-      for (const el of root.querySelectorAll('button, input, select, textarea')) {
-        auditElement(el as HTMLElement);
-      }
-    }
-
-    // Audit initial DOM after mount settles
-    setTimeout(() => {
-      auditAll();
-
-      // Watch for dynamically added elements (dialogs, popovers)
-      new MutationObserver((mutations) => {
-        for (const m of mutations) {
-          for (const node of m.addedNodes) {
-            if (!(node instanceof HTMLElement)) continue;
-            if (node.matches('button, input, select, textarea')) auditElement(node);
-            auditAll(node);
-          }
-        }
-      }).observe(document.body, { childList: true, subtree: true });
-    }, 0);
-  }
+  // The DEV-only "UNGATED" outline (every control without a <Gate>
+  // ancestor) leaned on the outer armed fieldset and is gone with it
+  // (button gates package C): the static control inventory
+  // (controlScan.ts + controlInventory.test.ts) now proves every control a
+  // disarmed client can operate, and what it does.
 }
 
 bootstrap();

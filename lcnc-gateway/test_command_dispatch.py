@@ -19,6 +19,7 @@ import gateway  # noqa: E402  (import after the fake is installed)
 import fusion_import  # noqa: E402
 import bulk_pipeline  # noqa: E402
 from gateway_util import kins_mode_commands, read_load_record  # noqa: E402
+from test_button_gates import controller_reads  # noqa: E402
 
 
 def _run(coro):
@@ -34,6 +35,12 @@ def _payload(**over):
         estop=False, enabled=True, emc_enable_in=True, homed=True,
         interp_state=linuxcnc.INTERP_IDLE, paused=False, eoffset_enabled=False,
         rotary_at_zero=True,
+        # The HAL reader is fresh: its values count as policy inputs (button
+        # gates BG-12 — a snapshot that does not say is stale) — and iocontrol
+        # asks for no tool change.
+        reader_fresh=True, tool_change_requested=False,
+        # Button gates D: MANUAL, no joint homing.
+        task_mode=linuxcnc.MODE_MANUAL, homing_active=False,
     )
     base.update(over)
     return SimpleNamespace(**base)
@@ -217,6 +224,10 @@ class TestHandlerExecution(unittest.TestCase):
     def setUp(self):
         gateway.lcnc_connected = True
         gateway.STAT = linuxcnc.stat()
+        # The current read agrees with _payload() (Codex R216 re-check); the
+        # task mode stays UNREAD as before — set_mode then sends every switch
+        # and cannot verify it, which the tests below count on.
+        controller_reads(gateway.STAT, task_mode=None)
         # Payload bounds are cached per session (get_machine_limits); a test
         # that widens axis_mask must not meet an earlier test's XYZ counts
         # (the jog tests failed whenever another test of this class ran first).
@@ -232,10 +243,23 @@ class TestHandlerExecution(unittest.TestCase):
         # Known clear unless a test says otherwise (TestSkipFlag below).
         gateway._skip_flag_unknown = False
         gateway._rfl_task = gateway._rfl_flag_task = None
+        # The sending connection, registered and armed: a load / unload is
+        # admitted at its commit for THIS connection (button gates BG-03, the
+        # BG-14 rule).
+        clients = dict(gateway._clients)
+        self.addCleanup(lambda: (gateway._clients.clear(), gateway._clients.update(clients)))
+        writer = gateway.ClientState(ip="t", ws=None, armed=True)
+        gateway._clients[911] = writer
+        self.key = writer.conn_key
+        # No start claim left over from another test: the status poller that
+        # would release it does not run here (_release_start_claims).
+        claims = list(gateway._source_claims)
+        self.addCleanup(lambda: gateway._source_claims.__setitem__(slice(None), claims))
+        gateway._source_claims.clear()
 
     def _send(self, msg):
         gateway._shared_status = _payload()   # ready -> passes policy
-        return _run(gateway.handle_command(msg, True))
+        return _run(gateway.handle_command(msg, True, self.key))
 
     def test_tool_change_queues_offset_after_m6_without_waiting_for_operator(self):
         # M6's end-of-block synchronization waits for tool-changed; G43 in
@@ -523,7 +547,7 @@ class TestHandlerExecution(unittest.TestCase):
         cmd = self._rcs()
         gateway._skip_flag_unknown = True
 
-        async def _refuse(mode):
+        async def _refuse(mode, **_kw):
             raise RuntimeError("Task refused the mode switch — release the jog")
         import unittest.mock
         with unittest.mock.patch.object(gateway, "set_mode", _refuse):
@@ -997,7 +1021,7 @@ class TestHandlerExecution(unittest.TestCase):
 
         async def scenario():
             gateway._shared_status = _payload()
-            task = asyncio.ensure_future(gateway.handle_command(msg, True))
+            task = asyncio.ensure_future(gateway.handle_command(msg, True, self.key))
             for _ in range(400):
                 if entered.is_set() or task.done():
                     break
@@ -1114,7 +1138,7 @@ class TestHandlerExecution(unittest.TestCase):
 
             async def scenario():
                 gateway._shared_status = _payload()
-                task = asyncio.ensure_future(gateway.handle_command({"cmd": "load_file", "path": a}, True))
+                task = asyncio.ensure_future(gateway.handle_command({"cmd": "load_file", "path": a}, True, self.key))
                 for _ in range(400):
                     if entered.is_set() or task.done():
                         break
@@ -1240,8 +1264,11 @@ class TestHandlerExecution(unittest.TestCase):
             gateway._preempt_inflight(by="abort", from_client=2)   # no await in between
             for _ in range(20):
                 await asyncio.sleep(0)
+            # The run's start claim ends when the poller sees the controller
+            # through with it (_release_start_claims); no poller runs here.
+            gateway._source_claims.clear()
             with unittest.mock.patch.object(gateway, "get_nc_files_dir", return_value=str(Path(self.prog).parent)):
-                load = await gateway.handle_command({"cmd": "load_file", "path": self.prog}, True)
+                load = await gateway.handle_command({"cmd": "load_file", "path": self.prog}, True, self.key)
             return r, load
         with unittest.mock.patch.object(gateway._bulk, "preview_version", 7), \
                 unittest.mock.patch.object(gateway._bulk, "published_source", gateway.program_source(self.prog)):
@@ -1392,8 +1419,12 @@ class TestToolPersistenceLock(unittest.TestCase):
         # Spy: record whether _cmd_lock is held at the moment each file is written.
         gateway.write_tool_table = lambda p, t: seen.__setitem__("table", gateway._cmd_lock.locked())
         gateway.save_tool_library = lambda lib: seen.__setitem__("lib", gateway._cmd_lock.locked())
+        from writer_fixture import armed_writer   # the import's writer (button gates BG-14)
+        key = armed_writer(self)
+        gateway.STAT = linuxcnc.stat()
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
         try:
-            _run(gateway._persist_imported_tools("/tmp/ignored.tbl", [], {}))
+            _run(gateway._persist_imported_tools("/tmp/ignored.tbl", [], {}, key))
         finally:
             gateway.write_tool_table, gateway.save_tool_library = orig_w, orig_s
         self.assertTrue(seen.get("table"), "_cmd_lock not held during tool-table write")
@@ -1723,6 +1754,10 @@ class TestPayloadBoundsReachCmd(unittest.TestCase):
     def setUp(self):
         gateway.lcnc_connected = True
         gateway.STAT = linuxcnc.stat()
+        # The current read agrees with _payload() (Codex R216 re-check); the
+        # task mode stays UNREAD as before — set_mode then sends every switch
+        # and cannot verify it, which the tests below count on.
+        controller_reads(gateway.STAT, task_mode=None)
         self.cmd = _RecordingCmd()
         gateway.CMD = self.cmd
         self._saved_limits = gateway._machine_limits
@@ -1811,6 +1846,13 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         # default XYZ made them pass only after an earlier test had widened
         # it (Codex R63: five failed when the class ran alone)
         gateway.STAT.axis_mask = 0b101111
+        # The interpreter idle: every mode switch is admitted at its write
+        # only onto a KNOWN idle interpreter; a jog reads power and homing
+        # now (button gates package E).
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        gateway.STAT.estop, gateway.STAT.enabled = False, True
+        gateway.STAT.joints, gateway.STAT.homed = 5, (1,) * 5 + (0,) * 4
+        gateway.STAT.joint = tuple({"homing": 0} for _ in range(9))   # no homing runs (R219 BG-35)
         # the payload bounds are cached per session (get_machine_limits): a
         # previous test's XYZ counts would refuse axis 3/4 ("above maximum 2")
         self._limits = gateway._machine_limits
@@ -1821,18 +1863,23 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         self._switchable = gateway._kins_is_switchable
         self._capable = gateway._twp_capable
         self._reader_get = gateway._reader_get
+        self._reader_is_stale = gateway._reader_is_stale
         self._identity_first = gateway._identity_first
         self._kins_cmd_cache = gateway._kins_mode_cmd_cache
         self._prov = dict(gateway._prov_cache)
         gateway._prov_cache.clear()
         self._skip_flag = gateway._skip_flag_unknown
         gateway._skip_flag_unknown = False   # these starts are about the mode, not the flag
+        # A fresh, empty reader by default (the eoffset pin read off): a stale
+        # one refuses every eoffset-guarded handler (button gates BG-12).
+        self._reader()
 
     def tearDown(self):
         gateway._skip_flag_unknown = self._skip_flag
         gateway._kins_is_switchable = self._switchable
         gateway._twp_capable = self._capable
         gateway._reader_get = self._reader_get
+        gateway._reader_is_stale = self._reader_is_stale
         gateway._identity_first = self._identity_first
         gateway._kins_mode_cmd_cache = self._kins_cmd_cache
         gateway._prov_cache.clear()
@@ -1840,8 +1887,12 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
 
     def _reader(self, **pins):
         """Scripted HAL-reader snapshot — the controller's own answer, as
-        distinct from the published status payload (R-02)."""
+        distinct from the published status payload (R-02). A FRESH one that
+        carries the eoffset pin like the real reader: unknown refuses
+        (button gates BG-12)."""
+        pins.setdefault("z_eoffset_enable", False)
         gateway._reader_get = pins.get
+        gateway._reader_is_stale = lambda: False
 
     # The two shipped switchkins configurations, read from the remap subs
     # THEMSELVES rather than restated here (R-01): the point of the finding is
@@ -2209,7 +2260,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         self._send({"cmd": "jog_cont", "axis": 3, "vel": 2.0})
         self.assertIn(3, gateway._active_jogs)
         self._send({"cmd": "mdi", "text": "G0 X1"})       # a switch to MDI means no jog is active
-        self.assertEqual(gateway._active_jogs, set())
+        self.assertEqual(gateway._active_jogs, {})
         self.cmd.calls.clear()
         r = self._send({"cmd": "jog_stop", "axis": 3})
         self.assertTrue(r["ok"])

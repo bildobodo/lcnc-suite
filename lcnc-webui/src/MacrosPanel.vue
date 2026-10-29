@@ -451,8 +451,8 @@ async function confirmDelete() {
                     :reason="runBlock ?? undefined" @click="selected && emit('run', selected)">Run</MachineBtn>
         <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
         <MoreMenu class="actionEnd" label="More macro actions">
-          <MachineBtn type="manage" @click="openNew">New</MachineBtn>
-          <MachineBtn type="fileOp" @click="pickImport">Upload</MachineBtn>
+          <MachineBtn type="sourceOp" @click="openNew">New</MachineBtn>
+          <MachineBtn type="sourceOp" @click="pickImport">Upload</MachineBtn>
           <MachineBtn type="fileDownload" :disabled="!selected" :reason="!selected ? 'No macro selected' : undefined"
                       @click="downloadSelected">Download</MachineBtn>
         </MoreMenu>
@@ -477,7 +477,7 @@ async function confirmDelete() {
     </div>
     <div v-for="n in missing" :key="n" class="statusNote warn" role="alert">
       <span>{{ n }}.ngc is on the bar but not in the macro folder</span>
-      <MachineBtn type="inline" @click="removeFromBar(n)">Remove from bar</MachineBtn>
+      <MachineBtn type="settingInline" @click="removeFromBar(n)">Remove from bar</MachineBtn>
     </div>
     <div v-if="note" class="statusNote" :class="note.kind" :role="note.kind === 'ok' ? 'status' : 'alert'">
       <span>{{ note.text }}</span>
@@ -512,24 +512,24 @@ async function confirmDelete() {
             </td>
             <td class="colDesc text-muted" :title="f.description.join(' ')"><span class="descText">{{ descriptionOf(f) }}</span></td>
             <td class="colBar" @click.stop>
-              <MachineToggle gate="macroEdit" :modelValue="barNames.includes(f.name)" :aria-label="`${f.title ?? f.name} on the bar`"
+              <MachineToggle gate="protectedSetting" :modelValue="barNames.includes(f.name)" :aria-label="`${f.title ?? f.name} on the bar`"
                              @update:modelValue="setOnBar(f.name, !!$event)" />
             </td>
             <td class="colAction" @click.stop>
-              <MachineBtn type="listActionSetup" title="Edit macro" :aria-label="`Edit ${f.name}`" @click="openEdit(f)"><Pencil :size="14" /></MachineBtn>
+              <MachineBtn type="listActionSource" title="Edit macro" :aria-label="`Edit ${f.name}`" @click="openEdit(f)"><Pencil :size="14" /></MachineBtn>
             </td>
             <td class="colAction" @click.stop>
-              <MachineBtn type="listActionSetup" title="Delete macro" :aria-label="`Delete ${f.name}`" @click="deleteAsk = f"><Trash2 :size="14" /></MachineBtn>
+              <MachineBtn type="listActionSource" title="Delete macro" :aria-label="`Delete ${f.name}`" @click="deleteAsk = f"><Trash2 :size="14" /></MachineBtn>
             </td>
             <td class="colOrder" @click.stop>
               <!-- The slot is in EVERY row — off the bar it is empty space
                    (hidden, not focusable), so On bar changes no row height
                    and no column width (operator 2026-10-02, live) -->
               <span class="orderSlot" :class="{ offBar: !barNames.includes(f.name) }">
-                <MachineBtn type="listAction" :disabled="!barNames.includes(f.name) || barNames.indexOf(f.name) === 0"
+                <MachineBtn type="listActionSetting" :disabled="!barNames.includes(f.name) || barNames.indexOf(f.name) === 0"
                             :aria-label="`Move ${f.name} up in the bar order`"
                             @click="moveOnBar(f.name, -1)"><ChevronUp :size="14" /></MachineBtn>
-                <MachineBtn type="listAction" :disabled="!barNames.includes(f.name) || barNames.indexOf(f.name) === barNames.length - 1"
+                <MachineBtn type="listActionSetting" :disabled="!barNames.includes(f.name) || barNames.indexOf(f.name) === barNames.length - 1"
                             :aria-label="`Move ${f.name} down in the bar order`" @click="moveOnBar(f.name, 1)"><ChevronDown :size="14" /></MachineBtn>
               </span>
             </td>
@@ -606,7 +606,7 @@ async function confirmDelete() {
       <div class="dialogBody">{{ deleteAsk.name }}.ngc leaves the macro folder and the bar. This cannot be undone.</div>
       <template #actions>
         <MachineBtn type="dialogCancel" @click="deleteAsk = null">Cancel</MachineBtn>
-        <MachineBtn type="dialogDangerSetup" @click="confirmDelete">Delete</MachineBtn>
+        <MachineBtn type="sourceDanger" @click="confirmDelete">Delete</MachineBtn>
       </template>
     </DialogFrame>
 
@@ -614,7 +614,7 @@ async function confirmDelete() {
       <div class="dialogBody">The macro folder has a file of this name; the upload replaces it. This cannot be undone.</div>
       <template #actions>
         <MachineBtn type="dialogCancel" @click="replaceAsk = null">Cancel</MachineBtn>
-        <MachineBtn type="dialogDangerSetup" @click="confirmReplace">Replace</MachineBtn>
+        <MachineBtn type="sourceDanger" @click="confirmReplace">Replace</MachineBtn>
       </template>
     </DialogFrame>
   </div>

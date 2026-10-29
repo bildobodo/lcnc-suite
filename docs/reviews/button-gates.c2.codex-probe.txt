@@ -1,0 +1,74 @@
+# Codex's R213 probes, UNCHANGED, against c0a240cd (R214)
+# browser: docs/reviews/button-gates.r213.browser.spec.ts copied to e2e/, project chromium, --workers=1 (Codex's config: workers 1; with parallel workers the shared mock collides)
+
+
+Running 8 tests using 1 worker
+
+RPM { interp_state: 2 } { disabled: false, title: null }
+RPM {
+  interp_state: 1,
+  spindle_enabled: true,
+  spindle_direction: 1,
+  spindle_speed: 1500
+} { disabled: false, title: null }
+  ✓  1 [chromium] › e2e/r213codex.spec.ts:26:1 › RPM preselection remains editable during a run and a turning spindle (1.4s)
+  ✓  2 [chromium] › e2e/r213codex.spec.ts:34:1 › a protected reset opened armed explains the closed enclosing Gate after disarm; display reset stays free (2.4s)
+  ✓  3 [chromium] › e2e/r213codex.spec.ts:52:1 › protected keypad closes at disarm without applying or writing (1.6s)
+  ✓  4 [chromium] › e2e/r213codex.spec.ts:60:1 › keyboard capture ends with disarm and the next key cannot update the mapping (1.7s)
+  ✓  5 [chromium] › e2e/r213codex.spec.ts:68:1 › MDI strip edits disarmed, Apply explains refusal and keeps draft without history writes (1.6s)
+  ✓  6 [chromium] › e2e/r213codex.spec.ts:78:1 › file row and mode choice explain the block by a real pointer tap (1.5s)
+  ✓  7 [chromium] › e2e/r213codex.spec.ts:86:1 › a free numeric draft survives disarm (RPM at idle) (1.4s)
+  ✘  8 [chromium] › e2e/r213codex.spec.ts:98:1 › the jog centre Stop is operable with Enter, like the pointer (1.4s)
+
+
+  1) [chromium] › e2e/r213codex.spec.ts:98:1 › the jog centre Stop is operable with Enter, like the pointer 
+
+    TypeError: expect.soft.poll is not a function
+
+      100 |  await expect(stop).toBeEnabled(); await stop.focus(); await ctl({op:'clearCmds'});
+      101 |  await page.keyboard.press('Enter');
+    > 102 |  await expect.soft.poll(async()=>(await commands()).filter(c=>c.cmd==='jog_stop').length,{message:'Enter activation of the visible Stop',timeout:700}).toBeGreaterThan(0);
+          |                    ^
+      103 |  await ctl({op:'clearCmds'}); await page.keyboard.press('Space');
+      104 |  await expect.soft.poll(async()=>(await commands()).filter(c=>c.cmd==='jog_stop').length,{message:'Space activation of the visible Stop',timeout:700}).toBeGreaterThan(0);
+      105 |  await ctl({op:'clearCmds'}); await stop.click();
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/r213codex.spec.ts:102:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r213codex-the-jog-centre-S-d9e8d-with-Enter-like-the-pointer-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r213codex-the-jog-centre-S-d9e8d-with-Enter-like-the-pointer-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r213codex-the-jog-centre-S-d9e8d-with-Enter-like-the-pointer-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r213codex-the-jog-centre-S-d9e8d-with-Enter-like-the-pointer-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › e2e/r213codex.spec.ts:98:1 › the jog centre Stop is operable with Enter, like the pointer 
+  7 passed (15.8s)
+
+# the jog case again with ONE change: expect.soft.poll -> expect.poll (expect.soft.poll does not exist in this Playwright; the case threw before counting)
+
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › e2e/r213codex.spec.ts:98:1 › the jog centre Stop is operable with Enter, like the pointer (1.5s)
+
+  1 passed (4.2s)
+
+# scanner: docs/reviews/button-gates.r213.scan.test.ts copied to src/, unchanged
+
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite-gates/lcnc-webui
+
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  08:32:05
+   Duration  98ms (transform 37ms, setup 0ms, import 43ms, tests 2ms, environment 0ms)
+

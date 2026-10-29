@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, shallowRef, watch } from "vue";
+import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, shallowRef, watch, type ComputedRef, type Ref } from "vue";
 import type { CollisionLineQuery } from "./viewer/collisionMarks";
 import { applyClientOverlay, applyClientOverlayReasons, PERMISSIONS_KEY, OWNER_PERMISSIONS_KEY, PERMISSION_REASONS_KEY, FIRE_KEY, type Permissions, type PermissionReasons } from "./permissions";
 import { simMode } from "./simMode";
@@ -33,7 +33,6 @@ import ProbePanel from "./ProbePanel.vue";
 import { PROBE_VIEWS, type ProbeView } from "./probeViews";
 import MachineSelect from "./MachineSelect.vue";
 import OffsetPanel from "./OffsetPanel.vue";
-import Gate from "./Gate.vue";
 import { toolOffsetState } from "./viewer/toolOffsetState";
 import { m600Events, m600StatsText, parseProbeNotes, parseProbeStops, probeStopWhy, type ProbeStop } from "./viewer/probeStop";
 import MachineBtn from "./MachineBtn.vue";
@@ -56,8 +55,9 @@ import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import NumberKeypadStrip from "./NumberKeypadStrip.vue";
 import FloatingOverlays from "./FloatingOverlays.vue";
 import { keypadState } from "./useNumberKeypad";
-import { activeKind, openTextSession, closeTextSessionIf, lockTextSessionIf, EDITOR_OWNER, MACRO_EDITOR_OWNER, type TextTarget, returnFocusTo } from "./inputSession";
-import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, saveGamepadDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type Layer, type OnTopLayer, type TrackMode, type Projection } from "./defaults";
+import { activeKind, openTextSession, lockTextSessionIf, EDITOR_OWNER, MACRO_EDITOR_OWNER, type TextTarget, returnFocusTo } from "./inputSession";
+import { explainAt } from "./gateExplain";
+import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, loadGamepadDraft, saveGamepadDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type Layer, type OnTopLayer, type TrackMode, type Projection } from "./defaults";
 import { confirmedToolsetter, toolsetterVarMap, TOOLSETTER_MDI_KEY } from "./toolsetterVars";
 import { useGamepad } from "./useGamepad";
 import { useMediaMql } from "./useMediaMql";
@@ -68,10 +68,12 @@ import { useMacros } from "./useMacros";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { modalOpen, repointOpeners } from "./modalRegistry";
 import { g5xLabel as fixtureLabel } from "./wcs";
+import { ACTION_GATES, type StartContext } from "./actionAdmission";
+import { jogAxisRefusal, type JointJog } from "./jointJog";
 import { forceStopAllJogs, initJogPointerSafety, destroyJogPointerSafety, activeJogKeys } from "./useJogPointers";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
-  TRAJ_MODE_FREE, TRAJ_MODE_TELEOP,
+  TRAJ_MODE_FREE, TRAJ_MODE_TELEOP, TASK_MODE_MANUAL,
   SPINDLE_FORWARD, SPINDLE_REVERSE,
   OPERATOR_DISPLAY,
   OPERATOR_ERROR,
@@ -447,6 +449,10 @@ const {
   // `mdi` call site (issue #31 — it was raw here and gated at every other).
 } = useMdiHistory({
   fire: (c) => { fire(c, 'ready'); },
+  // The line is a draft for every client (button gates BG-05); sending is
+  // `ready` — refused, the text stays and the reason shows at the line.
+  canSend: () => !!permissions.value.ready,
+  refused: () => explainAt(_mdiInputEl(), permissionReasons.value.ready),
   // The send disables the line for the busy latch and drops its focus: the
   // guarded return keeps the shortcut map closed until the line holds focus
   // again (or the operator moved on) — the next keystroke is MDI, never a
@@ -529,8 +535,9 @@ function mdiTarget(): TextTarget {
     focusEl: _mdiInputEl,
   };
 }
+// The keyboard opens for every client: the line is a draft (BG-05); its
+// Enter is the gated send (handleMdiSend).
 function openMdiSession() {
-  if (!permissions.value.ready) return;
   openTextSession({ ownerId: MDI_OWNER, kind: "code", context: "MDI", target: mdiTarget(), enterLabel: "Apply" });
 }
 // Hidden-but-mounted owners (tab switch): the editor's and the MDI line's
@@ -639,6 +646,13 @@ const connectedClients = computed<{ip: string, armed: boolean}[]>(() => status.v
 
 // INI/static machine config — delivered once in viewer_init, not per-tick.
 const ini = computed<Record<string, any>>(() => viewerInit.value?.ini_config ?? {});
+// Jogging before homing (package E): the machine's declaration (jointJog.ts).
+const jointJog = computed<JointJog | null>(() => ini.value.joint_jog ?? null);
+// One per-axis admission for the strip, the keyboard and the gamepad (BG-10).
+// isHomed is read at call time (declared below).
+function axisJogRefusal(axis: number): string | null {
+  return jogAxisRefusal(jointJog.value, isHomed.value, axis);
+}
 
 // LinuxCNC config name from INI path (e.g. "/home/cnc/.../my-mill/my-mill.ini" → "my-mill")
 const configName = computed(() => {
@@ -717,7 +731,6 @@ const runSubName = computed<string | null>(() => runLineState.value?.subName ?? 
 
 /** ---------- permissions (arming + machine state) ---------- */
 const canEstop = computed(() => !isEstop.value);
-const canResetEstop = computed(() => armed.value && isEstop.value);
 
 
 /** Centralized permissions — single source of truth for all button enable/disable.
@@ -750,14 +763,11 @@ provide(OWNER_PERMISSIONS_KEY, ownerPermissions);
 // MachineBtn shows "Busy — try again" at the control when this latch would
 // drop its click (fire()); read-only for children.
 provide("busy", busy);
-// Gate closes → the MDI session ends (its value could not be sent anyway).
-// (Declared after `permissions`: the watch getter runs at setup time.)
-watch(() => permissions.value.ready, (ok) => { if (!ok) closeTextSessionIf(MDI_OWNER, "MDI unavailable"); });
 // Why each closed gate is closed (U-06): the backend's reasons under the
 // client-local overlay's own — what a dimmed control shows on hover and
 // says on tap (MachineBtn), and what fire() reports when it drops a send.
 const permissionReasons = computed<PermissionReasons>(() =>
-  applyClientOverlayReasons(st.value.permission_reasons, armed.value, busy.value, simMode.value));
+  applyClientOverlayReasons(st.value.permission_reasons, armed.value, busy.value, simMode.value, st.value.permissions));
 provide(PERMISSION_REASONS_KEY, permissionReasons);
 
 // Provide a probing flag so catalog-aware MachineBtn instances with
@@ -836,9 +846,11 @@ function setKinsMode(t: number): string | null {
   if (t !== 0 && t !== 1 && t !== 2) return null;
   return fire({ cmd: "set_kins_mode", mode: t }, t === 2 ? "planeFrame" : "ready");
 }
-// Task mode (the strip's Mode group): its req_id back to the group.
+// Task mode (the strip's Mode group): its req_id back to the group. The
+// gate per target (button gates BG-04): MANUAL modeManual, MDI / AUTO
+// modeCoord — the gateway re-checks the same rule.
 function setTaskMode(m: number): string | null {
-  return fire({ cmd: "set_mode", mode: m }, "idle");
+  return fire({ cmd: "set_mode", mode: m }, m === TASK_MODE_MANUAL ? "modeManual" : "modeCoord");
 }
 // TWP re-orient: re-solve the head at the CURRENT table pose. Unlike the
 // jog-frame switch above this MOVES the rotaries, hence the probe tier.
@@ -941,20 +953,37 @@ const activeCodeWords = computed(() => `${activeGcodes.value} ${activeMcodes.val
 // Tool change dialog (global — tool changes can happen from any context)
 const toolChangeRequested = computed(() => !!st.value.tool_change_requested);
 const toolChangeTool = computed(() => st.value.tool_change_tool ?? null);
+// The pending request's identity (button gates BG-17, Codex R205): the
+// confirmation names it, and the Confirm button is rebuilt for every new
+// request — a press begun on one request never confirms the next.
+const toolChangeSeq = computed<number | null>(() => st.value.tool_change_seq ?? null);
+const toolChangeConfirmKey = computed(() => `${toolChangeSeq.value}:${toolChangeTool.value}:${simMode.value}:${connected.value}`);
 // Confirm exactly once per request (UI-05): `confirmSent` holds the req_id
 // of the confirm that actually went out (fire() returns null when nothing
 // was sent — never a pending). It clears when the request ends, when the
-// gateway refuses it (retry allowed) and on disconnect. Gate `armed`: the
-// change happens mid-program, never at idle/ready.
+// gateway refuses it (retry allowed), on disconnect and when the request is
+// replaced by another tool's. Gate `toolChangeConfirm`: armed and a FRESH
+// pending request, closed in simulation (button gates BG-17) — the change
+// happens mid-program, never at idle/ready.
 const confirmSent = ref<string | null>(null);
 function confirmToolChange() {
   if (!toolChangeRequested.value || confirmSent.value) return;
-  const id = fire({ cmd: "confirm_tool_change" }, 'armed');
+  const seq = toolChangeSeq.value;
+  confirmRefusal.value = null;
+  const id = fire({ cmd: "confirm_tool_change", ...(seq != null ? { request: seq } : {}) }, 'toolChangeConfirm');
   if (id) confirmSent.value = id;
 }
-watch(toolChangeRequested, (req) => { if (!req) confirmSent.value = null; });
+watch(toolChangeRequested, (req) => { if (!req) { confirmSent.value = null; confirmRefusal.value = null; } });
+// A confirmation the gateway refused or could not deliver says so IN the
+// dialog (button gates BG-20): the button is back, a deliberate press tries
+// again — bound to the same request.
+const confirmRefusal = ref<string | null>(null);
+watch([toolChangeSeq, toolChangeTool], () => { confirmSent.value = null; confirmRefusal.value = null; });
 watch(lastReply, (r) => {
-  if (r && confirmSent.value && r.req_id === confirmSent.value && r.ok === false) confirmSent.value = null;
+  if (r && confirmSent.value && r.req_id === confirmSent.value && r.ok === false) {
+    confirmSent.value = null;
+    confirmRefusal.value = r.error ?? "Confirmation refused";
+  }
 });
 watch(connected, (c) => { if (!c) confirmSent.value = null; });
 
@@ -1061,10 +1090,10 @@ const isSpinning = computed(() => isForward.value || isReverse.value);
 const floodOn = computed(() => !!st.value.flood);
 const mistOn = computed(() => !!st.value.mist);
 function toggleFlood() {
-  fire({ cmd: floodOn.value ? "flood_off" : "flood_on" }, 'override');
+  fire({ cmd: floodOn.value ? "flood_off" : "flood_on" }, ACTION_GATES.coolant);
 }
 function toggleMist() {
-  fire({ cmd: mistOn.value ? "mist_off" : "mist_on" }, 'override');
+  fire({ cmd: mistOn.value ? "mist_off" : "mist_on" }, ACTION_GATES.coolant);
 }
 
 // Program switches
@@ -1125,6 +1154,7 @@ function confirmSettingsDiscard() {
 // Macro state + execution (macro FILES, package 5). See useMacros.ts.
 const {
   macroBarNames,
+  macroBarDraft,
   setMacroBar,
   macroParamDialog,
   dialogFile,
@@ -1451,21 +1481,48 @@ watch(axes, (a) => {
   }
 });
 
-// Initialize defaults from INI (once, when first non-fallback value arrives)
-let _jogVelInit = false;
-watch(defaultJogVel, (v) => { if (!_jogVelInit && v !== 10) { jogVel.value = v; _jogVelInit = true; } });
-let _angJogVelInit = false;
-watch(defaultAngularJogVel, (v) => { if (!_angJogVelInit && v !== 10) { angularJogVel.value = v; _angJogVelInit = true; } });
-let _rpmInit = false;
-watch(defaultSpindleSpeed, (v) => { if (!_rpmInit && v !== 1000) { rpmInput.value = v; _rpmInit = true; } });
+// A preselection takes its INI default ONCE, when the first non-fallback
+// value arrives — and only while nobody has written it (Codex R214, BG-27
+// rest): a viewer_init that arrives after the operator moved the jog speed,
+// prepared an RPM, or after the field took the machine's commanded speed
+// must not replace that value. `written` is each field's own record.
+const preselectWritten = { jogVel: false, angularJogVel: false, rpm: false };
+function iniDefaultOnce(def: ComputedRef<number>, fallback: number, target: Ref<number>, field: keyof typeof preselectWritten) {
+  let done = false;
+  watch(def, (v) => {
+    if (done || v === fallback) return;
+    done = true;
+    if (!preselectWritten[field]) target.value = v;
+  });
+}
+iniDefaultOnce(defaultJogVel, 10, jogVel, "jogVel");
+iniDefaultOnce(defaultAngularJogVel, 10, angularJogVel, "angularJogVel");
+iniDefaultOnce(defaultSpindleSpeed, 1000, rpmInput, "rpm");
+function setJogVel(v: number) { jogVel.value = v; preselectWritten.jogVel = true; }
+function setAngularJogVel(v: number) { angularJogVel.value = v; preselectWritten.angularJogVel = true; }
 
-// While the spindle is running, mirror the live commanded RPM into rpmInput.
-// Keeps the displayed value in sync with SPINDLE_INCREASE/DECREASE and gives
-// the user the last commanded value as the staging value when they Stop.
-watch(spindleSpeed, (v) => {
-  if (isSpinning.value && v != null && v > 0 && v !== rpmInput.value) {
-    rpmInput.value = v;
-  }
+// rpmInput is the PRESELECTION for the next Fwd / Rev (button gates BG-05),
+// free in every state. While the spindle turns, the commanded RPM is
+// mirrored into it — it follows SPINDLE_INCREASE/DECREASE and leaves the
+// last commanded value as the staging value after a Stop — UNLESS the
+// operator holds a value there the controller has not taken (rpmPending):
+// no status overwrites it (Codex R213 BG-27); the strip's head shows the
+// commanded speed meanwhile. ONE end: the commanded speed reaches the
+// field's value — a SENT Fwd / Rev is not a taken one (the gateway may
+// refuse it), so sending ends nothing. The speed the spindle already turns
+// at, entered again, is no draft.
+const rpmPending = ref(false);
+function setRpmPreselect(v: number) {
+  rpmInput.value = v;
+  preselectWritten.rpm = true;
+  rpmPending.value = !(isSpinning.value && v === spindleSpeed.value);
+}
+watch([spindleSpeed, isSpinning], ([v, spinning]) => {
+  if (!spinning || v == null || v <= 0) return;
+  // from here the field holds the operator's or the machine's value
+  preselectWritten.rpm = true;
+  if (v === rpmInput.value) { rpmPending.value = false; return; }
+  if (!rpmPending.value) rpmInput.value = v;
 });
 
 /**
@@ -1523,7 +1580,7 @@ const { setAxis, setAll, setG5x } = useTouchoffMath({ axes, fire });
 
 // Homing is ZERO-tier on the backend (idle + !eoffset), not idle.
 function homeAll() {
-  fire({ cmd: "home_all" }, 'zero');
+  fire({ cmd: "home_all" }, ACTION_GATES.homeAll);
 }
 
 function unhomeAll() {
@@ -1554,7 +1611,7 @@ function unhomeAxis(joint: number) {
 
 
 function cycleStart() {
-  fire({ cmd: "cycle_start" }, 'run');
+  fire({ cmd: "cycle_start" }, ACTION_GATES.start);
 }
 
 function runFromLine(opts: import("./gcodeRfl").RflRunOptions) {
@@ -1615,42 +1672,52 @@ function setRapidOverride(scale: number) {
 }
 
 function spindleForward(speed: number) {
-  fire({ cmd: "spindle_forward", speed }, 'ready');
+  fire({ cmd: "spindle_forward", speed }, 'spindleManual');
 }
 
 function spindleReverse(speed: number) {
-  fire({ cmd: "spindle_reverse", speed }, 'ready');
+  fire({ cmd: "spindle_reverse", speed }, 'spindleManual');
 }
 
+// The spindle stop at idle needs no arm and no homing (button gates BG-18).
 function spindleStop() {
-  fire({ cmd: "spindle_stop" }, 'ready');
+  fire({ cmd: "spindle_stop" }, 'spindleStop');
 }
 
 function spindleIncrease() {
   if (isSpinning.value) {
-    fire({ cmd: "spindle_increase" }, 'ready');
+    fire({ cmd: "spindle_increase" }, 'spindleManual');
   } else {
-    if (!permissions.value.ready) return;
-    rpmInput.value = Math.min(maxSpindleSpeed.value, rpmInput.value + spindleIncrement.value);
+    if (!permissions.value.spindleManual) return;
+    setRpmPreselect(Math.min(maxSpindleSpeed.value, rpmInput.value + spindleIncrement.value));
   }
 }
 
 function spindleDecrease() {
   if (isSpinning.value) {
-    fire({ cmd: "spindle_decrease" }, 'ready');
+    fire({ cmd: "spindle_decrease" }, 'spindleManual');
   } else {
-    if (!permissions.value.ready) return;
-    rpmInput.value = Math.max(minSpindleSpeed.value, rpmInput.value - spindleIncrement.value);
+    if (!permissions.value.spindleManual) return;
+    setRpmPreselect(Math.max(minSpindleSpeed.value, rpmInput.value - spindleIncrement.value));
   }
 }
 
 function loadFile(path: string) {
-  fire({ cmd: "load_file", path }, 'setup');
+  fire({ cmd: "load_file", path }, 'programLoad');
 }
 
 function unloadFile() {
-  fire({ cmd: "unload_file" }, 'setup');
+  fire({ cmd: "unload_file" }, 'programLoad');
 }
+
+// Start's program context — the button, the shortcut and the gamepad read
+// the same one (button gates BG-10, actionAdmission.ts): nobody editing,
+// no load in flight (the displayed text not yet the published revision).
+const startContext = computed<StartContext>(() => ({
+  activeFile: activeFile.value,
+  editing: gcodeEditActive.value,
+  loading: gcodeRevision.value !== gcodeTextRevision.value,
+}));
 
 /** ---------- keyboard shortcuts ---------- */
 // See useKeyboardShortcuts.ts. Owns config, reverseKeyMap, jogActions,
@@ -1658,8 +1725,9 @@ function unloadFile() {
 // sync (settingsVersion → re-read loadKeyboardDefaults) lives inside.
 const {
   keyboardConfig,
+  keyboardDraft,
   setKeyboardConfig,
-  clearJogState: clearKeyboardJogState,
+  stopJogs: stopKeyboardJogs,
   jogActive: keyboardJogActive,
 } = useKeyboardShortcuts({
   jogVel,
@@ -1668,9 +1736,9 @@ const {
   axes,
   permissions,
   canEstop,
-  activeFile,
+  startContext,
+  jogAxisRefusal: axisJogRefusal,
   modalOpen,
-  editing: gcodeEditActive,
   send,
   fire,
 });
@@ -1683,7 +1751,10 @@ const {
 const clearMessagesAsk = ref(false);
 
 /** ---------- gamepad jogging ---------- */
+// The pad's configuration that ACTS is the server's (button gates BG-19);
+// Settings edits the draft, which acts once the server holds it.
 const gamepadConfig = ref<GamepadDefaults>(loadGamepadDefaults());
+const gamepadDraft = ref<GamepadDefaults>(loadGamepadDraft());
 const gamepadGated = computed(() => settingsDialogOpen.value);
 const gamepad = useGamepad({
   jogVel,
@@ -1692,14 +1763,15 @@ const gamepad = useGamepad({
   permissions,
   send,
   fire,
-  activeFile: computed(() => activeFile.value),
+  startContext,
+  jogAxisRefusal: axisJogRefusal,
   config: gamepadConfig,
   axes: computed(() => axes.value),
   gated: gamepadGated,
 });
 
 function setGamepadConfig(cfg: GamepadDefaults) {
-  gamepadConfig.value = cfg;
+  gamepadDraft.value = cfg;
   saveGamepadDefaults(cfg);
 }
 
@@ -1722,6 +1794,7 @@ watch(settingsVersion, () => {
   const mach = loadMachineDefaults();
   runFromLineEnabled.value = mach.runFromLine;
   gamepadConfig.value = loadGamepadDefaults();
+  gamepadDraft.value = loadGamepadDraft();
   const disp = loadDisplayDefaults();
   if (disp.theme !== themeMode.value) {
     themeMode.value = disp.theme;
@@ -1735,11 +1808,17 @@ watch(settingsVersion, () => {
 });
 
 /** ---------- safety: stop jog on focus loss ---------- */
+// A started jog owns its stop (button gates BG-06): every gesture's own stop
+// goes out — the pointer registry's, the keyboard's and the gamepad's, each
+// from what the gesture STARTED. The per-axis sweep is the belt and braces;
+// it no longer waits for the jog gate either — a closed start never closes
+// the stop it needs (the gateway ignores a stop for an axis it did not start).
 function stopAllJog() {
-  forceStopAllJogs();          // clear pointer-based jog state + send stops
-  clearKeyboardJogState();     // clear active keyboard-jog action set
-  gamepad.stopAllJog();
-  if (!permissions.value.jog) return; // no jog possible unless armed + enabled + homed
+  const hadGesture = keyboardJogActive.value || activeJogKeys.size > 0;
+  forceStopAllJogs();          // the pointer gestures' own stops
+  stopKeyboardJogs();          // the keyboard gestures' own stops
+  gamepad.stopAllJog();        // the pad's analog and D-pad gestures
+  if (!hadGesture && !permissions.value.jog) return;
   if (isRunning.value || isPaused.value) return; // no jog during program execution
   for (let i = 0; i < axes.value.length; i++) {
     send({ cmd: "jog_stop", axis: i });
@@ -1988,8 +2067,11 @@ watch(viewerGcode, (newGcode) => {
       </div>
     </div>
 
-    <!-- ══ Content area — outer Gate wraps tabs ══ -->
-    <Gate gate="armed" class="content" id="content-dialog-area">
+    <!-- ══ Content area — no outer Gate (button gates BG-01, package C):
+         navigation, views, reading and the dialogs' close are open to a
+         disarmed client; every action is gated by its own catalog gate or
+         an inner <Gate>. The id is the dialogs' Teleport target. ══ -->
+    <div class="content" id="content-dialog-area">
       <!-- ══ Left pane — 3D Viewer (always visible); in portrait the macro
            bar sits under it, in the same column (package 5, stage A) ══ -->
       <div class="viewerColumn stack-controls">
@@ -2124,7 +2206,7 @@ watch(viewerGcode, (newGcode) => {
               </div>
               <div class="mdiHistoryHeader">
                 <span class="sub">History</span>
-                <MachineBtn type="inlineMd" aria-label="Clear MDI history" title="Clear MDI history" @click="clearMdiHistory" :disabled="mdiHistory.length === 0">Clear</MachineBtn>
+                <MachineBtn type="settingInlineMd" aria-label="Clear MDI history" title="Clear MDI history" @click="clearMdiHistory" :disabled="mdiHistory.length === 0">Clear</MachineBtn>
               </div>
               <div class="codeViewer mdiHistoryList scroll-thin fade-scroll">
                 <div v-for="(entry, i) in mdiHistory" :key="entry.id"
@@ -2182,11 +2264,11 @@ watch(viewerGcode, (newGcode) => {
                   <MachineBtn type="toolUnload" :disabled="unloadUsesToolsetter && !toolsetter.ok" :reason="toolsetterReason" @click="unloadTool">Unload</MachineBtn>
                   <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
                   <MoreMenu class="actionEnd" label="More tool actions">
-                    <MachineBtn type="manage" @click="toolTableRef?.openAdd()">New</MachineBtn>
+                    <MachineBtn type="toolOp" @click="toolTableRef?.openAdd()">New</MachineBtn>
                     <!-- ONE files toggle (N82): pressed while the library browser shows -->
-                    <MachineBtn type="fileOp" :selected="!!toolTableRef?.showImportBrowser" :aria-pressed="!!toolTableRef?.showImportBrowser"
+                    <MachineBtn type="fileBrowse" :selected="!!toolTableRef?.showImportBrowser" :aria-pressed="!!toolTableRef?.showImportBrowser"
                                 :disabled="toolTableRef?.importBusy" @click="toolTableRef?.toggleImportBrowser()">Files</MachineBtn>
-                    <MachineBtn type="fileOp" :disabled="toolTableRef?.importBusy" @click="toolTableRef?.uploadLibrary()">Upload</MachineBtn>
+                    <MachineBtn type="fileBrowse" :disabled="toolTableRef?.importBusy" @click="toolTableRef?.uploadLibrary()">Upload</MachineBtn>
                     <MachineBtn type="fileDownload" @click="toolTableRef?.downloadTable()">Download</MachineBtn>
                   </MoreMenu>
                 </div>
@@ -2203,7 +2285,7 @@ watch(viewerGcode, (newGcode) => {
             <SimPanel />
           </template>
           <template #macros>
-            <MacrosPanel ref="macrosPanelRef" :bar-names="macroBarNames" @run="runMacroFile" @update-bar="setMacroBar" />
+            <MacrosPanel ref="macrosPanelRef" :bar-names="macroBarDraft" @run="runMacroFile" @update-bar="setMacroBar" />
           </template>
         </TabPanel>
 
@@ -2313,15 +2395,14 @@ watch(viewerGcode, (newGcode) => {
               :initialTab="settingsInitialTab"
               :gamepadConnected="gamepad.gamepadConnected.value"
               :gamepadName="gamepad.gamepadName.value"
-              :gamepadConfig="gamepadConfig"
+              :gamepadConfig="gamepadDraft"
               :gamepadMappingSource="gamepad.gamepadMappingSource.value"
               @setLayerOnTop="(l: OnTopLayer, on: boolean) => viewerRef?.setLayerOnTop?.(l, on)"
               @setProjection="(p: Projection) => { viewerProjection = p; setProjection(p); }"
               @setTrackMode="(m: TrackMode) => { viewerTrackMode = m; viewerRef?.setTrackingMode?.(m); }"
               @toggleLayer="(l: Layer, on: boolean) => { viewerLayers[l] = on; viewerRef?.setLayerVisible?.(l, on); }"
-              :keyboardConfig="keyboardConfig"
+              :keyboardConfig="keyboardDraft"
               @setKeyboardConfig="setKeyboardConfig"
-              @setRunFromLine="runFromLineEnabled = $event"
               @setGamepadConfig="setGamepadConfig" />
           </div>
       </DialogFrame>
@@ -2369,10 +2450,11 @@ watch(viewerGcode, (newGcode) => {
             <template v-else>
               Remove tool and press Confirm
             </template>
+            <div v-if="confirmRefusal" class="statusNote error" role="alert">{{ confirmRefusal }}</div>
           </div>
           <template #actions>
             <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
-            <MachineBtn type="toolChangeConfirm" :disabled="!toolChangeRequested || !!confirmSent"
+            <MachineBtn :key="toolChangeConfirmKey" type="toolChangeConfirm" :disabled="!toolChangeRequested || !!confirmSent"
                         :reason="confirmSent ? 'Confirmation sent — waiting for the controller' : undefined"
                         @click="confirmToolChange">{{ confirmSent ? 'Confirming…' : 'Confirm' }}</MachineBtn>
           </template>
@@ -2450,24 +2532,22 @@ watch(viewerGcode, (newGcode) => {
             <MachineBtn type="dialogReady" @click="confirmCompToggle">{{ compConfirmPending ? 'Enable' : 'Disable' }}</MachineBtn>
           </template>
       </DialogFrame>
-    </Gate><!-- /content (outer gate) -->
+    </div><!-- /content -->
 
     <!-- ══ Macro Bar — landscape: a row under the content (portrait: in the
          viewer column above) ══ -->
     <MacroBar v-if="!isPortrait && macroBar.items.length" :items="macroBar.items" @run="runBarItem" />
 
-    <!-- ══ Bottom Action Strip — default-deny Gate, SafetyStrip exempt + sticky ══ -->
-    <Gate gate="armed" class="strip bordered-panel scroll-thin" tabindex="-1">
-      <template #exempt>
+    <!-- ══ Bottom Action Strip — SafetyStrip first and sticky; every control
+         gated by its own catalog gate (no outer Gate, BG-01) ══ -->
+    <div class="strip bordered-panel scroll-thin" tabindex="-1">
       <SafetyStrip
         :armed="armed"
         :busy="busy"
-        :tripUnacked="safetyTrip !== null"
         :isEstop="isEstop"
         :isEnabled="isEnabled"
         :isHomed="isHomed"
         :canEstop="canEstop"
-        :canResetEstop="canResetEstop"
         :isTeleop="isTeleop"
         :taskMode="taskMode"
         :interpState="interpState"
@@ -2484,7 +2564,6 @@ watch(viewerGcode, (newGcode) => {
         @machine-off="fire({ cmd: 'machine_off' }, 'safety')"
         @open-active-codes="openGcodeRef({ active: true })"
       />
-      </template>
 
       <JogStrip
         v-show="stripVis('jog')"
@@ -2510,11 +2589,13 @@ watch(viewerGcode, (newGcode) => {
         :frameAct="setKinsMode"
         :jogDisabled="!permissions.jog"
         :taskMode="taskMode"
-        @update:jogVel="jogVel = $event"
-        @update:angularJogVel="angularJogVel = $event"
+        :jointJog="jointJog"
+        :homed="isHomed"
+        @update:jogVel="setJogVel"
+        @update:angularJogVel="setAngularJogVel"
         @update:jogIncrement="jogIncrement = $event"
-        @resetJogVel="jogVel = defaultJogVel"
-        @resetAngularJogVel="angularJogVel = defaultAngularJogVel"
+        @resetJogVel="setJogVel(defaultJogVel)"
+        @resetAngularJogVel="setAngularJogVel(defaultAngularJogVel)"
         :modeAct="setTaskMode"
       />
 
@@ -2586,7 +2667,7 @@ watch(viewerGcode, (newGcode) => {
         :isForward="isForward"
         :isReverse="isReverse"
         :isSpinning="isSpinning"
-        :isRunning="isRunning"
+        :commandedRpm="spindleSpeed"
         :rpmInput="rpmInput"
         :minSpindleSpeed="minSpindleSpeed"
         :maxSpindleSpeed="maxSpindleSpeed"
@@ -2597,7 +2678,7 @@ watch(viewerGcode, (newGcode) => {
         @spindleStop="spindleStop"
         @spindleIncrease="spindleIncrease"
         @spindleDecrease="spindleDecrease"
-        @update:rpmInput="rpmInput = $event"
+        @update:rpmInput="setRpmPreselect"
         @toggleFlood="toggleFlood"
         @toggleMist="toggleMist"
       />
@@ -2622,7 +2703,7 @@ watch(viewerGcode, (newGcode) => {
            sections are scrolled out of view (strip-more class, JS-toggled).
            SafetyStrip pins the near edge, so only the far edge needs it. -->
       <div class="stripFade" aria-hidden="true"></div>
-    </Gate><!-- /strip -->
+    </div><!-- /strip -->
 
     <!-- The app-wide floating hint and keyboard glyph (single instances). -->
     <FloatingOverlays />
@@ -3023,11 +3104,12 @@ watch(viewerGcode, (newGcode) => {
        hiding sections (keypad open) never widens the inner column and
        re-flows every control in it (the root box stayed 280 px — only the
        INNER width moved, which a bounding-box compare cannot see, UI-08).
-       `overflow-y: scroll`, not `scrollbar-gutter: stable`: the strip is a
-       <fieldset> (Gate), whose scroll container is its anonymous inner box,
-       and Chromium does not reserve the gutter there — the sticky Safety
-       section measured 252 → 262 px when the overflow vanished (layout
-       gate, 2026-09-20). Same rule as landscape's `overflow-x: scroll`. */
+       `overflow-y: scroll`, not `scrollbar-gutter: stable`: chosen while
+       the strip was a <fieldset> (the outer Gate, gone since button gates
+       package C), whose anonymous inner scroll box Chromium reserved no
+       gutter in — the sticky Safety section measured 252 → 262 px when the
+       overflow vanished (layout gate, 2026-09-20). It holds on the div too;
+       same rule as landscape's `overflow-x: scroll`. */
     overflow-y: scroll;
     /* scroll axis is vertical here: top padding moves into the sticky
        SafetyStrip, left padding is restored (no horizontal scroll) */

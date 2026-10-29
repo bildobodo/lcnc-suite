@@ -13,6 +13,7 @@
 // (eslint bans `export let`); cross-module signals travel via function calls
 // (noteHeartbeatSent), never shared mutable state.
 import { ref } from "vue";
+import { setConnKey } from "./connKey";
 import { decode as msgpackDecode } from "@msgpack/msgpack";
 import { type WsCommand, OPERATOR_ERROR, isQueueSafe } from "./lcnc";
 import { updateServerCache, loadDisplayDefaults, registerSettingsSaver } from "./defaults";
@@ -151,6 +152,7 @@ function onWorkerMessage(m: any) {
       // gateway to restore armed=true via a still-valid armed-resume hold.
       captureArmedForResume(armed.value);
       armed.value = false;     // new connection starts disarmed
+      setConnKey(null);        // the key died with its connection (button gates BG-14)
       try { disableWakeLock(); } catch { /* ignored */ }
       resetOnClose();          // latency readouts + RTT anchors are connection-scoped
       // Bulk version sentinels are connection-scoped too: the gateway re-pings
@@ -317,6 +319,9 @@ function onFrame(data: string | ArrayBuffer, rx?: number) {
     } else if (msg.type === "status_error") {
       handleStatusError(msg);
     } else if (msg.type === "reply") {
+      // The hello reply names this connection's key for protected HTTP
+      // writes (button gates BG-14); the same for every hello on it.
+      if (typeof msg.conn_key === "string" && msg.conn_key) setConnKey(msg.conn_key);
       lastReply.value = msg;
       // A caller that WAITED for this reply (request()) reports the outcome
       // itself, where the operation began — the generic line said it twice.
@@ -345,9 +350,11 @@ function onFrame(data: string | ArrayBuffer, rx?: number) {
     } else if (msg.type === "tool_table_changed") {
       handleToolTableChanged(msg);
     } else if (msg.type === "settings_changed" || msg.type === "settings_init") {
-      updateServerCache(msg.settings);
-      // The full blob is the only confirmation a page-hide (sendBeacon) save gets (UX-08).
+      // The full blob is the only confirmation a page-hide (sendBeacon) save
+      // gets (UX-08) — judged FIRST: a draft the blob proves not saved is a
+      // failed one when the cache keeps or ends it (button gates BG-19).
       noteSaveServerState(msg.settings);
+      updateServerCache(msg.settings);
     } else if (msg.type === "macros_changed") {
       macroFilesVersion.value++;
     } else if (msg.type === "halshow_snapshot") {

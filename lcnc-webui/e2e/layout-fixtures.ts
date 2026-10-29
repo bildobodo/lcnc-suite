@@ -27,19 +27,24 @@ export type LayoutState = 'homed' | 'unhomed' | 'off' | 'estop' | 'disarmed' | '
 
 // Representative gateway envelopes for rendering. Backend permission tests
 // remain authoritative for machine policy; this fixture never drives LinuxCNC.
-export async function setLayoutState(page: Page, profile: Profile, state: LayoutState) {
+export async function setLayoutState(page: Page, profile: Profile, state: LayoutState,
+                                     open: (keyof Permissions)[] = []) {
   const permissions = Object.fromEntries(GATE_NAMES.map(key => [key, true])) as Permissions;
   permissions.pause = false;
   permissions.resume = false;
   const disabled: (keyof Permissions)[] = [];
   if (state === 'unhomed') disabled.push('ready', 'run', 'jog', 'probe', 'touchoff', 'touchoffRotary',
-    'machineFrame', 'goZero', 'planeFrame', 'twpCapture', 'surfaceComp');
+    'machineFrame', 'goZero', 'planeFrame', 'twpCapture', 'surfaceComp', 'modeCoord', 'spindleManual', 'g30Write');
   if (['off', 'estop', 'running', 'paused'].includes(state)) disabled.push('idle', 'ready', 'run', 'jog', 'probe',
-    'zero', 'touchoff', 'touchoffRotary', 'machineFrame', 'goZero', 'planeFrame', 'twpCapture', 'surfaceComp');
+    'zero', 'touchoff', 'touchoffRotary', 'machineFrame', 'goZero', 'planeFrame', 'twpCapture', 'surfaceComp',
+    'modeCoord', 'spindleManual', 'g30Write');
+  // button gates D: a run or a pause closes the load, the mode choice and the G30 read
+  if (['running', 'paused'].includes(state)) disabled.push('programLoad', 'modeManual', 'parameterRead');
   if (state === 'estop') disabled.push('safety', 'setup', 'override');
   if (state === 'tcp') disabled.push('touchoffRotary', 'machineFrame', 'goZero');
   if (state.startsWith('plane')) disabled.push('touchoffRotary', 'machineFrame', 'twpCapture');
   if (state === 'plane-stale') disabled.push('planeFrame', 'jog', 'goZero', 'run');
+  for (const key of open) disabled.splice(0, disabled.length, ...disabled.filter(k => k !== key));
   for (const key of disabled) permissions[key] = false;
   permissions.pause = state === 'running';
   permissions.resume = state === 'paused';
@@ -108,9 +113,9 @@ export async function openLayout(page: Page, profile: Profile, viewport: LayoutV
 // frame (strip / viewer / content, outer AND inner sizes) and the
 // always-visible reference controls to stay put.
 export type StripState = 'keypad-setup' | 'keypad-panel' | 'gcode-keypad' | 'macro-bar'
-  | 'banner-estop' | 'banner-unhomed' | 'banner-message' | 'kins-chip';
+  | 'banner-estop' | 'banner-unhomed' | 'banner-message' | 'kins-chip' | 'spindle-preselect' | 'joint-jog';
 export const STRIP_STATES: StripState[] = ['keypad-setup', 'keypad-panel', 'gcode-keypad', 'macro-bar',
-  'banner-estop', 'banner-unhomed', 'banner-message', 'kins-chip'];
+  'banner-estop', 'banner-unhomed', 'banner-message', 'kins-chip', 'spindle-preselect', 'joint-jog'];
 
 /** The Setup section's axis rows: in PORTRAIT all it keeps while the
  * keypad edits one of its fields (design wave D7 — Zero All, Go to and the
@@ -134,6 +139,10 @@ export function refControls(sel: string, portrait: boolean): string | undefined 
 
 export function stripStateRefs(state: StripState, portrait = false): string[] {
   if (state === 'keypad-setup') return [PANELS.safety, portrait ? SETUP_AXIS_ROWS : PANELS.setup];
+  // the head's commanded speed appears in its own line: nothing in the section moves
+  if (state === 'spindle-preselect') return [PANELS.safety, PANELS.spindle];
+  // the head note and a dimmed axis change words, never a button's place
+  if (state === 'joint-jog') return [PANELS.safety, PANELS.jog];
   return [PANELS.safety];
 }
 
@@ -195,6 +204,31 @@ export async function enterStripState(page: Page, profile: Profile, state: Strip
       await ctl({ op: 'raw', frame: { type: 'reply', cmd: 'layout-probe', ok: false, error: 'Layout probe message — a long operator message that the banner must fit without moving its actions' } });
       await expect(page.locator('.statusBanner')).toContainText('Layout probe message');
       break;
+    case 'spindle-preselect': {
+      // The spindle turns and the RPM field holds a value not yet sent
+      // (Codex R213 BG-27): the head shows the commanded speed.
+      await ctl({ op: 'status_delta', data: { spindle_direction: 1, spindle_speed: 1500, spindle_enabled: true } });
+      await page.locator('.spRpmInput').click();
+      const pad = page.locator('.nkStrip');
+      for (const d of '800') await pad.getByRole('button', { name: d, exact: true }).click();
+      await pad.getByRole('button', { name: 'Apply', exact: true }).click();
+      await expect(pad).toHaveCount(0);
+      await expect(page.locator('.spRpmInput')).toHaveValue('800');
+      await expect(page.locator('[data-strip="spindle"] .spNow')).toHaveText(/1500/);
+      break;
+    }
+    case 'joint-jog': {
+      // Jogging before homing (button gates package E): the head states the
+      // joint jog and its cap, the second axis is a gantry letter — dimmed in
+      // its .btnTip wrapper.
+      await ctl({ op: 'setJointJog', jointJog: { enabled: true, fraction: 0.1, reason: null,
+        axes: profile.axes.map((letter, i) => i === 1
+          ? { letter, joint: null, reason: 'Gantry axis — jog it after Home All' }
+          : { letter, joint: i, reason: null }) } });
+      await setLayoutState(page, profile, 'unhomed', ['jog']);
+      await expect(page.locator('[data-strip="jog"] .jogNote')).toBeVisible();
+      break;
+    }
     case 'kins-chip':
       await ctl({ op: 'setKins', kins: { module: 'xyzac-trt-kins', type: 'xyzac-trt', identity_first: true, params: {} } });
       await ctl({ op: 'status_delta', data: { kins_type: 1 } });
@@ -231,6 +265,15 @@ export async function leaveStripState(page: Page, profile: Profile, state: Strip
       break;
     case 'banner-message':
       break;   // expires on its own (5 s); the next state does not depend on it
+    case 'joint-jog':
+      await ctl({ op: 'setJointJog', jointJog: null });
+      await setLayoutState(page, profile, 'homed');
+      await expect(page.locator('[data-strip="jog"] .jogNote')).toHaveCount(0);
+      break;
+    case 'spindle-preselect':
+      await ctl({ op: 'status_delta', data: { spindle_direction: 0, spindle_speed: 0, spindle_enabled: false } });
+      await expect(page.locator('[data-strip="spindle"] .spNow')).toHaveCount(0);
+      break;
     case 'kins-chip':
       await ctl({ op: 'setKins', kins: profile.kins });
       await ctl({ op: 'status_delta', data: { kins_type: profile.kins ? 0 : null } });

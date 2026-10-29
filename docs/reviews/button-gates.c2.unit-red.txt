@@ -1,0 +1,181 @@
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite-gates/lcnc-webui
+
+ ❯ src/controlInventory.test.ts (8 tests | 3 failed) 11ms
+     × finds a raw click with and without modifiers, in both spellings 4ms
+     × lists a bound entry that can take a non-literal value 2ms
+     × lets a Gate protect only when every gate it can name is closed 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/controlInventory.test.ts > the control scan reads every form of a handler and a gate > finds a raw click with and without modifiers, in both spellings
+AssertionError: DialogFrame's backdrop form: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/controlInventory.test.ts:56:90
+     54|   it("finds a raw click with and without modifiers, in both spellings"…
+     55|     expect.soft(scan(`<div @click="act">act</div>`)).toHaveLength(1);
+     56|     expect.soft(scan(`<div @click.self="act">act</div>`), "DialogFrame…
+       |                                                                                          ^
+     57|     expect.soft(scan(`<div @pointerdown.prevent="act">act</div>`)).toH…
+     58|     expect.soft(scan(`<div v-on:click.stop="act">act</div>`)).toHaveLe…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  src/controlInventory.test.ts > the control scan reads every form of a handler and a gate > finds a raw click with and without modifiers, in both spellings
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/controlInventory.test.ts:57:68
+     55|     expect.soft(scan(`<div @click="act">act</div>`)).toHaveLength(1);
+     56|     expect.soft(scan(`<div @click.self="act">act</div>`), "DialogFrame…
+     57|     expect.soft(scan(`<div @pointerdown.prevent="act">act</div>`)).toH…
+       |                                                                    ^
+     58|     expect.soft(scan(`<div v-on:click.stop="act">act</div>`)).toHaveLe…
+     59|     expect.soft(scan(`<div v-on:pointerdown="act">act</div>`)).toHaveL…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  src/controlInventory.test.ts > the control scan reads every form of a handler and a gate > finds a raw click with and without modifiers, in both spellings
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/controlInventory.test.ts:58:63
+     56|     expect.soft(scan(`<div @click.self="act">act</div>`), "DialogFrame…
+     57|     expect.soft(scan(`<div @pointerdown.prevent="act">act</div>`)).toH…
+     58|     expect.soft(scan(`<div v-on:click.stop="act">act</div>`)).toHaveLe…
+       |                                                               ^
+     59|     expect.soft(scan(`<div v-on:pointerdown="act">act</div>`)).toHaveL…
+     60|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  src/controlInventory.test.ts > the control scan reads every form of a handler and a gate > finds a raw click with and without modifiers, in both spellings
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/controlInventory.test.ts:59:64
+     57|     expect.soft(scan(`<div @pointerdown.prevent="act">act</div>`)).toH…
+     58|     expect.soft(scan(`<div v-on:click.stop="act">act</div>`)).toHaveLe…
+     59|     expect.soft(scan(`<div v-on:pointerdown="act">act</div>`)).toHaveL…
+       |                                                                ^
+     60|   });
+     61|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  src/controlInventory.test.ts > the control scan reads every form of a handler and a gate > lists a bound entry that can take a non-literal value
+AssertionError: a branch is a variable: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/controlInventory.test.ts:63:110
+     61|
+     62|   it("lists a bound entry that can take a non-literal value", () => {
+     63|     expect.soft(scan(`<MachineBtn :type="busy ? 'start' : other" @clic…
+       |                                                                                                              ^
+     64|     expect.soft(scan(`<MachineBtn :type="a ? b : c ? 'start' : 'step'"…
+     65|     // both branches literal and closed: protected (positive control)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  src/controlInventory.test.ts > the control scan reads every form of a handler and a gate > lists a bound entry that can take a non-literal value
+AssertionError: a nested branch is a variable: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/controlInventory.test.ts:64:123
+     62|   it("lists a bound entry that can take a non-literal value", () => {
+     63|     expect.soft(scan(`<MachineBtn :type="busy ? 'start' : other" @clic…
+     64|     expect.soft(scan(`<MachineBtn :type="a ? b : c ? 'start' : 'step'"…
+       |                                                                                                                           ^
+     65|     // both branches literal and closed: protected (positive control)
+     66|     expect.soft(scan(`<MachineBtn :type="busy ? 'start' : 'step'" @cli…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  src/controlInventory.test.ts > the control scan reads every form of a handler and a gate > lists a bound entry that can take a non-literal value
+AssertionError: expected [ { …(6) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "entry": "{v === 'abort' ? 'start' : 'step'}",
++     "file": "Probe.vue",
++     "gates": [
++       "abort",
++       "run",
++       "step",
++     ],
++     "key": "Probe.vue|MachineBtn:{v === 'abort' ? 'start' : 'step'}|@click=go",
++     "line": 2,
++     "tag": "MachineBtn",
++   },
++ ]
+
+ ❯ src/controlInventory.test.ts:68:94
+     66|     expect.soft(scan(`<MachineBtn :type="busy ? 'start' : 'step'" @cli…
+     67|     // a literal in the CONDITION is no value the entry can take
+     68|     expect.soft(scan(`<MachineBtn :type="v === 'abort' ? 'start' : 'st…
+       |                                                                                              ^
+     69|   });
+     70|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  src/controlInventory.test.ts > the control scan reads every form of a handler and a gate > lets a Gate protect only when every gate it can name is closed
+AssertionError: a branch is a variable: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/controlInventory.test.ts:72:121
+     70|
+     71|   it("lets a Gate protect only when every gate it can name is closed",…
+     72|     expect.soft(scan(`<Gate :gate="x ? 'armed' : y"><button @click="go…
+       |                                                                                                                         ^
+     73|     expect.soft(scan(`<Gate :gate="x ? 'armed' : 'always'"><button @cl…
+     74|     expect.soft(scan(`<Gate :gate="x ? 'armed' : 'ready'"><button @cli…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 5 passed (8)
+   Start at  07:31:05
+   Duration  380ms (transform 205ms, setup 0ms, import 297ms, tests 11ms, environment 0ms)
+

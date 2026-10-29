@@ -30,6 +30,11 @@ interface UseMdiHistoryOptions {
    *  document is where Space is Cycle Start (the number keypad's UI-I06
    *  class; review round 4 turned it up on the MDI line). */
   afterSend?: () => void;
+  /** May the line be SENT now? The line itself is a free draft (button
+   *  gates BG-05); a send the gate refuses keeps the text and writes no
+   *  history — `refused` tells why at the line. Absent: always. */
+  canSend?: () => boolean;
+  refused?: () => void;
 }
 
 export function useMdiHistory(opts: UseMdiHistoryOptions) {
@@ -52,6 +57,7 @@ export function useMdiHistory(opts: UseMdiHistoryOptions) {
   function handleMdiSend() {
     const cmd = mdiText.value.trim();
     if (!cmd) return;
+    if (opts.canSend && !opts.canSend()) { opts.refused?.(); return; }
     if (mdiHistory.value[0]?.text !== cmd) {
       mdiHistory.value.unshift({ id: _mdiNextId++, text: cmd });
       if (mdiHistory.value.length > MDI_MAX_HISTORY) {

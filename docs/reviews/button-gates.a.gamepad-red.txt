@@ -1,0 +1,14 @@
+     × a continuous D-pad jog stops on release, the stick at rest does not stop it 10ms
+     × a step changed mid-hold still stops the continuous jog on release 2ms
+     × a Z jog whose modifier is let go first stops Z, not Y 1ms
+     × stopAllJog ends a held D-pad jog with its own stop 8ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/useGamepad.test.ts > useGamepad D-pad jog lifecycle > a continuous D-pad jog stops on release, the stick at rest does not stop it
+AssertionError: expected [ { cmd: 'jog_cont', …(2) }, …(1) ] to deeply equal [ { cmd: 'jog_cont', axis: +0, …(1) } ]
+ FAIL  src/useGamepad.test.ts > useGamepad D-pad jog lifecycle > a step changed mid-hold still stops the continuous jog on release
+AssertionError: expected [ { cmd: 'jog_cont', …(2) }, …(1) ] to deeply equal [ { cmd: 'jog_cont', axis: +0, …(1) } ]
+ FAIL  src/useGamepad.test.ts > useGamepad D-pad jog lifecycle > a Z jog whose modifier is let go first stops Z, not Y
+AssertionError: expected [ { cmd: 'jog_stop', axis: 2 }, …(1) ] to deeply equal [ { cmd: 'jog_stop', axis: 2 } ]
+ FAIL  src/useGamepad.test.ts > useGamepad D-pad jog lifecycle > stopAllJog ends a held D-pad jog with its own stop
+AssertionError: expected 3 to be 2 // Object.is equality
+      Tests  4 failed | 1 passed (5)

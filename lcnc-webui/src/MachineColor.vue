@@ -17,5 +17,5 @@ const isDisabled = computed(() => !can.value[def.value.gate] || props.disabled);
 </script>
 
 <template>
-  <input v-bind="$attrs" type="color" v-model="model" :disabled="isDisabled">
+  <input v-bind="$attrs" :data-control="gate" type="color" v-model="model" :disabled="isDisabled">
 </template>

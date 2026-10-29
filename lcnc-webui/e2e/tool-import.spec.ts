@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { expectArmed } from "./ctl";
 
 const MOCK = process.env.TOOL_IMPORT_TEST_URL ?? "http://localhost:4174/";
 const upload = { name: "tools.json", mimeType: "application/json", buffer: Buffer.from('{"data":[]}') };
@@ -12,7 +13,7 @@ async function preview(page: Page, rows = [row], revision = "reviewed-revision")
       skipped: rows.filter(r => r.reason).map(r => r.T), revision },
   } }));
   await page.goto(MOCK);
-  await expect(page.locator('fieldset[data-gate="armed"]').first()).not.toBeDisabled();
+  await expectArmed(page);
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await page.locator('input[type="file"][accept*=".fctb"]').setInputFiles(upload);
   await expect(page.getByText("Import Fusion 360 Tool Library", { exact: true })).toBeVisible();

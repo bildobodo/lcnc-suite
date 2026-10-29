@@ -41,6 +41,7 @@ follow the no-silent-fallback rule: an absent snapshot or field returns
 import asyncio
 import json
 import select
+import threading
 import socket as _socket
 import time
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -78,6 +79,18 @@ PEER_CLOSED_BACKOFF_SEC = 1.0
 HELPER_REPLY_SEC = 2.0
 # "Not dialling while unbound" is logged at most this often.
 UNBOUND_DEFER_EMIT_SEC = 5.0
+# The watchdog stream's time budgets (button gates BG-20 / BG-21, Codex
+# R208/R209) — each operation is bounded on its own, none is a total:
+#   _WD_IO_TIMEOUT  every socket operation: connect, the hello, one frame's
+#                   sendall (socket.timeout, set BEFORE connect);
+#   _WD_SEND_WAIT   how long a send waits for another in flight to give the
+#                   stream up — a little over one socket operation, so the
+#                   write in progress finishes or times out meanwhile.
+# The lock holder is therefore bounded (connect + hello + one frame, the
+# verdict drain never blocks): Disconnect waits for it without a deadline of
+# its own and never loses its effect.
+_WD_IO_TIMEOUT = 0.05
+_WD_SEND_WAIT = 0.06
 
 
 class _FailureAggregator:
@@ -154,6 +167,17 @@ class HalBridge:
         )
         # Session-binding state (watchdog): idle | awaiting | admitted | legacy
         self._wd_state = "idle"
+        # A timeout part-way through a frame may have left its start in the
+        # stream (button gates BG-20, Codex R207): the next frame first ends
+        # that line INVALID, so the watchdog drops it — never joins it to the
+        # next message, never applies it late. A new connection is clean.
+        self._wd_frame_open = False
+        # ONE owner of the watchdog stream (button gates BG-20, Codex R208):
+        # the heartbeat (event loop) and the M6 confirmation (executor) write
+        # it from two threads; the frame-open decision, the frame and the
+        # stream state belong together — as do connect / disconnect, which
+        # swap the socket. Re-entrant: a send connects and drops it itself.
+        self._wd_lock = threading.RLock()
         self._wd_rx = b""
         self._wd_await_since = 0.0
         self._wd_backoff_until = 0.0
@@ -212,6 +236,11 @@ class HalBridge:
         return self._wd_sock is not None
 
     def watchdog_connect(self) -> None:
+        """Connect to the HAL watchdog (under the stream's lock)."""
+        with self._wd_lock:
+            self._watchdog_connect_locked()
+
+    def _watchdog_connect_locked(self) -> None:
         """Connect to the HAL watchdog Unix socket and send the hello.
         Non-fatal if unavailable; never dials while the gateway is unbound
         (the helper would only answer ``unbound_gateway``) or inside a
@@ -240,12 +269,16 @@ class HalBridge:
             return
         sock = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)
         try:
+            # The timeout BEFORE connect (button gates BG-21, Codex R209): a
+            # listener whose accept queue is full made connect() wait without
+            # end — and the stream lock with it, Disconnect included.
+            sock.settimeout(_WD_IO_TIMEOUT)
             sock.connect(self._watchdog_path)
-            sock.settimeout(0.05)
             sock.sendall((json.dumps(hello) + "\n").encode())
             self._wd_sock = sock
             self._wd_state = "awaiting"
             self._wd_rx = b""
+            self._wd_frame_open = False   # a new stream: no interrupted frame
             self._wd_await_since = now
             _prior_fails = self._wd_connect_fails.success()
             if _prior_fails:
@@ -258,7 +291,11 @@ class HalBridge:
             self._wd_sock = None
 
     def watchdog_disconnect(self) -> None:
-        """Disconnect from the HAL watchdog socket."""
+        """Disconnect from the HAL watchdog socket (under the stream's lock)."""
+        with self._wd_lock:
+            self._watchdog_disconnect_locked()
+
+    def _watchdog_disconnect_locked(self) -> None:
         if self._wd_sock is not None:
             try:
                 self._wd_sock.close()
@@ -267,6 +304,7 @@ class HalBridge:
             self._wd_sock = None
         self._wd_state = "idle"
         self._wd_rx = b""
+        self._wd_frame_open = False
 
     def _wd_peer_closed(self, detail: str) -> None:
         _trace.emit("hal.peer_closed", level="warn", detail=detail)
@@ -342,19 +380,51 @@ class HalBridge:
         self._wd_slow_count = 0
         return out
 
-    def watchdog_send(self, msg: dict) -> None:
-        """Send a pin-update message to the HAL watchdog via socket."""
+    def watchdog_send(self, msg: dict) -> Optional[bool]:
+        """Send a pin-update message to the HAL watchdog via socket — one
+        writer at a time (Codex R208). A send waits for another in flight at
+        most _WD_SEND_WAIT (a little over the socket's 50 ms timeout, so a
+        write in progress finishes or times out meanwhile): the heartbeat on
+        the event loop stays bounded, and a send that could not take the
+        stream says so (False, nothing written) — never queued for later,
+        never written into another frame. Outcomes as below."""
+        if not self._wd_lock.acquire(timeout=_WD_SEND_WAIT):
+            _trace.emit("hal.send_busy", level="warn", msg_keys=list(msg.keys()))
+            return False
+        try:
+            return self._watchdog_send_locked(msg)
+        finally:
+            self._wd_lock.release()
+
+    def _watchdog_send_locked(self, msg: dict) -> Optional[bool]:
+        """Send a pin-update message to the HAL watchdog via socket.
+
+        Says what happened (button gates BG-20, Codex R206 — the M6
+        confirmation must not count a message that never left): True =
+        written in full to a helper that is not still deciding on our hello;
+        False = nothing written (no socket, closed while draining, a broken
+        socket); None = unclear (a timeout part-way through `sendall`, or
+        the helper's verdict still pending — it applies what follows the
+        hello only once it admits us). The heartbeat and the other pins
+        ignore it."""
         if self._wd_sock is None:
             self.watchdog_connect()
         if self._wd_sock is None:
-            return
+            return False
         self._wd_poll_reply()
         if self._wd_sock is None:
-            return  # rejected / closed while draining the verdict
+            return False  # rejected / closed while draining the verdict
         _send_t0 = time.monotonic()
+        frame = (json.dumps(msg) + "\n").encode()
+        if self._wd_frame_open:
+            # "#" can never complete a JSON object: whatever part of the
+            # interrupted frame arrived is a malformed line the watchdog skips
+            # (wd.bad_msg) — then this frame starts on a clean line.
+            frame = b"#\n" + frame
         try:
-            self._wd_sock.sendall((json.dumps(msg) + "\n").encode())
+            self._wd_sock.sendall(frame)
         except _socket.timeout:
+            self._wd_frame_open = True
             # Kernel send buffer full — watchdog process is scheduling-
             # delayed (or hung). Drop this message and DON'T block the loop
             # waiting for buffer space. The heartbeat task continues firing;
@@ -365,7 +435,7 @@ class HalBridge:
             _trace.emit("hal.send_timeout", level="warn",
                         send_ms=round(_send_dt_to, 1),
                         msg_keys=list(msg.keys()))
-            return
+            return None
         except (OSError, BrokenPipeError):
             # A helper that rejected us writes the verdict and closes at once;
             # a send racing that close hits EPIPE with the verdict still
@@ -378,7 +448,8 @@ class HalBridge:
                 self.watchdog_disconnect()  # close the broken fd; reconnect on next send
                 _trace.emit("hal.send_disconnect", level="warn",
                             msg_keys=list(msg.keys()))
-            return
+            return False
+        self._wd_frame_open = False
         _send_dt = (time.monotonic() - _send_t0) * 1000
         if _send_dt > 30:
             _trace.emit("hal.send_slow", level="warn",
@@ -386,6 +457,7 @@ class HalBridge:
                         msg_keys=list(msg.keys()))
             self._wd_slow_count += 1
         self._wd_send_agg.record(ms=_send_dt)
+        return None if self._wd_state == "awaiting" else True
 
     def watchdog_outq(self) -> int:
         """Bytes queued in the kernel send buffer for the watchdog socket.

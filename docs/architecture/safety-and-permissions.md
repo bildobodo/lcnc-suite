@@ -59,3 +59,444 @@ step skips when already at/above; the matrix certifies the frame premise
 (`#<_abs_z>` == machine-frame Z with a TLO active) and both branches from
 above/below machine zero (the above rows SKIP with the reason on a Z0-at-top
 config).
+
+**Button gates, package A (2026-10-25, review `docs/reviews/button-gates.review.md`, Codex R202–R204).**
+An enabled control means the action is admissible in the last CONFIRMED state;
+the server re-checks before the effect. Package A closed what made that false:
+- *A started jog owns its stop* (BG-06, reproduced by Codex in R202): keyboard,
+  pointer and D-pad record at the press what they started (`jogGesture.ts`:
+  axes, continuous or a step) and the release sends that gesture's stop. A
+  keyboard gesture is keyed by the PHYSICAL key (`code`, R205): a key map
+  saved on another client while the key is held, or Shift turning "q" into
+  "Q", no longer loses the stop. They
+  used to re-read the step selector (a Cont jog whose step became 1 mm mid-hold
+  sent no `jog_stop` — the machine kept moving), the D-pad re-read the Z
+  modifier (Z jog, modifier let go first → `jog_stop` for Y), and the pad's
+  analog channel stopped a D-pad jog it had not started one frame after the
+  press. App's focus-loss stop sends every gesture's own stop and no longer
+  waits for the `jog` gate; the gateway's disarm jog-stop stops an unhomed
+  machine's jog too (BG-07 part).
+- *Step from idle is a start* (BG-09): `step` = paused OR the `run` rule (idle,
+  homed, kins runnable). A program start's kinematics are read from the
+  CONTROLLER (`_program_start_refusal`: the fixture from a STAT poll, kins and
+  plane from the reader now — the broadcast's `reader_fresh` was the freshness
+  when it was built, R205), early in `_start_guard(program=True)` and again at
+  the write itself (`_cmd_blocking(..., admit=)`, inside the write's own thread
+  right before `cmd_fn` — after the mode switch, the run basis, the start claim
+  and the executor queue, R206/R207; `_StartRefused`, nothing written), for
+  Cycle Start, Step from idle and both run-from-line paths (the sequence's
+  AUTO_RUN minutes after its handler). Never for an MDI line, the way out of a
+  stranded frame. Plane kins needs G59 KNOWN: an unread fixture refuses
+  (R206). Run from line's confirm runs under `run`.
+- *Unknown is closed* (BG-12): `interp_state` None is no longer INTERP_IDLE
+  (`interp_known`, `STATE_UNKNOWN` before every idle/running/paused rule); the
+  reader-derived policy inputs (kins type, plane, head pose, eoffset, the
+  tool-change request) count only while the reader is fresh
+  (`StatusPayload.reader_fresh`, `policy_state_from_payload`) — the payload
+  keeps the last reading for the display, the reader_stale banner says it is
+  old. An unread eoffset pin is unknown on a machine with Z and off on one
+  without (`eoffset_state`: a declaration, not a guess). Before the first
+  status only `STATELESS_GATES` pass the dispatcher (it used to skip the check).
+  Handlers read the reader through `_reader_fresh_get`.
+- *The M6 confirmation* (BG-17) has its own gate `toolChangeConfirm`: armed and
+  a FRESH pending request, closed in simulation (it continues the real
+  interpreter). It names the request it answers (R205): `tool_change_seq`, a
+  new number per observed rising edge of `iocontrol.0.tool-change` and per
+  tool change while raised (`StatusRuntime.track_tool_change`); the gateway
+  refuses an earlier number, a tool that changed since, a confirmation without
+  one, and a second confirmation of a request. The dialog's Confirm is rebuilt
+  per request (`:key`) — a press begun on T7 confirms nothing after T9 replaced
+  it. A request is booked as confirmed only when `watchdog_send` reports the
+  message DELIVERED (R206: True / False = nothing written / None = unclear; a
+  frame cut by a timeout is ended invalid with `#\n` before the next one, so the
+  watchdog drops it and never applies it late or joins it to the next — R207;
+  one writer owns the stream, `HalBridge._wd_lock` over send, connect and
+  disconnect: a send waits at most `_WD_SEND_WAIT` 60 ms for another in flight,
+  else returns False, nothing written — R208; every socket operation, connect
+  included, is bounded by `_WD_IO_TIMEOUT` 50 ms set BEFORE connect, so the
+  lock holder is bounded and Disconnect waits for it without losing its
+  effect — R209); a
+  refused or unclear confirmation shows in the dialog and a deliberate press
+  tries again, bound to the same request. Boundary: two requests for the SAME
+  tool whose low phase falls between two polls stay one observed request.
+- *Stops need no arm* (BG-08 / BG-18): `abort` has no requirement, `pause` is
+  running-and-not-paused (AUTO or MDI), `spindleStop` is on + idle without arm
+  or homing and sends the direct NML stop without a MANUAL switch (task takes it
+  in MANUAL, MDI and AUTO at idle; a run that started since the snapshot is
+  refused — the program owns the spindle). The client overlay never closes a
+  stop (`STOP_GATES`), `cycle_pause` / `spindle_stop` are never debounced and
+  are stop-class in the gateway queue. Resume, Step and the M6 confirmation are
+  no stops. **Deviation until package C:** the Abort and Pause buttons inside the
+  outer `armed` fieldset (G-code panel, Probing, Macros, the macro bar) and the
+  strip's spindle stop are still disabled by that fieldset while disarmed; the
+  banner's Abort, every dialog's Abort, the keyboard and the gamepad reach the
+  stops now. The unused `dialogBase` catalog type (the `abort` gate as a
+  "machine on" proxy) was removed.
+
+### Package B — writers and settings (button gates BG-14, BG-15, BG-19)
+
+- *A write names its connection* (BG-14, Codex R203/R204): the gateway mints
+  `conn_key` (`secrets.token_urlsafe(16)`) per WebSocket CONNECTION
+  (`ClientState`), sends it with every hello reply on it (the same key — a
+  second hello leaves no second one), and removes it with the registry entry as
+  the disconnect cleanup's first step. A protected HTTP write sends it as
+  `X-Conn-Key` (the page-hide beacon in its JSON body, beside `data`);
+  `_writer_refusal` finds an open, ARMED connection by it
+  (`hmac.compare_digest`), else "Connection unknown — reconnect" or "Not armed
+  — press Arm". No grace after the close, the resume id never stands in for it
+  (Codex R204: a protected save the server can no longer admit stays
+  unconfirmed in the page's ledger).
+- *Admitted at the commit:* the receive, the decode, the temp file and the
+  import preview run outside every lock; the last check —
+  `_write_admission_refusal`: the writer's connection registered and armed
+  NOW, no open start claim, no run from line starting, no program change, a
+  controller status (STAT None is no known idle: "Machine state unknown —
+  wait for status", Codex R211 BG-26), the interpreter KNOWN idle on a fresh
+  STAT poll, and for the table a fresh reader with no M6 request — runs in
+  the write's own thread right before the publish: the program publish inside
+  `_atomic_stream_write`'s `_commit()` under `_source_lock` (where starts take
+  their claim), the macro writers in `_macro_write_gate` (the same rule, then
+  the name / revision / folder rules — BG-25: a load or a run from line
+  refuses a macro write as it refuses a program write), the tool table in
+  `_write_tool_table_admitted` (the WS edits) and `_persist_imported_tools` /
+  `_save_refreshed_metadata` (import, refresh) — refusal = PermissionError →
+  403/409 or the WS reply, nothing replaced. A WS command carries its
+  connection's key to the commit (`handle_command(msg, armed, conn_key)`,
+  BG-23): the arm the dispatcher saw is no commit permission. E-Stop is
+  allowed: maintenance.
+- *An admitted tool-table persist ends* (BG-22, Codex R211): the table write,
+  the reload into LinuxCNC and the metadata are ONE section
+  (`_persist_tool_edit` for the WS edits, the import's own) awaited through
+  `_thread_to_end` under `_cmd_lock` — a cancel (an abort preempts WS
+  handlers), a second one too, waits for the whole section before it
+  propagates, so the next writer never runs inside it and an admitted table
+  never goes without its reload and metadata. The abort waiting for the lock
+  pays one table write, one `load_tool_table` (no wait_complete) and one
+  library read and write; the preempted edit's reply still says "Preempted by
+  abort" while the table holds the edit (`tool_table_changed` carries it) —
+  the contract a sent MDI has under `_cmd_blocking`. The client gates are the
+  same rules: `sourceWrite`, `toolTableWrite` (catalog `fileSave`, `sourceOp`,
+  `sourceDanger`, `toolOp`, `toolSave`, `toolDanger`, `listActionTool`,
+  `listActionSource`, `toolEdit*`, `uploadName`); both stay open in simulation
+  (a write moves nothing — what `setup` allowed there). Discard (`fileDiscard`)
+  is never gated: it writes nothing, and the Save beside it is now open in
+  E-Stop.
+- *No permissive fallback* (BG-15): a status that carries permissions but not
+  a class closes that class with "Gateway lacks this permission — restart it";
+  `run` / `machineFrame` / `goZero` are no longer read from `ready`.
+- *Settings* (BG-19, operator Q2): `settings_store.FREE_SECTIONS` (`display`,
+  `viewer`, `panels`, `camera`) save for any connected client; every other
+  section needs the writer's arm — no idle, power or homing term (the MDI
+  history saves during a long MDI). WS `save_settings`, `PUT /settings/<s>`,
+  the beacon and `DELETE /settings` (a protected global reset) ask
+  `section_needs_arm` through ONE admission (`_settings_admission`), called by
+  `SettingsStore.save_section` / `reset` INSIDE the store's lock right before
+  the write (BG-24, Codex R211: a check before the lock is stale once a
+  preceding writer lets go); a refusal writes and bumps nothing.
+- *Draft ≠ active* (BG-19): in the client a protected section acts only once
+  the SERVER holds it. `defaults.loadSection` is what acts — the server's
+  confirmed blob for a protected section, this tab's latest for a display
+  section; `loadSectionDraft` is what a form shows and saves onto. The key map
+  (`keyboardConfig` vs `keyboardDraft`), the pad (`gamepadConfig` vs
+  `gamepadDraft`), the macro bar (`macroBarNames` vs `macroBarDraft`), the
+  tool-change mode, run from line and the auto-disarm time follow the server's
+  blob; Settings, Probing's parameters and the run-from-line dialog are forms
+  (a probe and a run-from-line start send what their form shows, under their
+  own gates). A draft ends when the server holds it (an equal section, or the
+  reply for its revision), when it failed and the server's section changed
+  since (another writer's state shows; the failure stays in the save status),
+  or with the next change; on its way it rides along with other writers'
+  changes. Nothing resends it — a later Arm or a reconnect applies nothing. The
+  e2e mock answers `save_settings` and sends the blob like the gateway
+  (`settingsEcho`; the save-status specs turn it off and answer themselves).
+
+### Package C — navigation, preselections, the file browser, explanations (button gates BG-01, BG-02, BG-05, BG-16)
+
+**The principles** (Codex R202, agreed R204). Enabled means *admissible by the
+last confirmed state and meaningful for the concrete action* — no promise of
+success: the server checks again right before the effect. Unknown is never
+idle, homed or "compensation off".
+
+1. View, draft, commit and motion are different things. Tabs, search, help,
+   reading, copying, the viewer and local drafts need no arm. A draft is
+   never executed by arming, a reconnect or a focus change.
+2. Arm authorizes new machine effects, not navigation. Stops stay reachable;
+   resume, the M6 confirmation and the E-Stop reset are no stops.
+3. A gate belongs to the action with its target and parameters (MANUAL is
+   not AUTO; a step from idle is a start, from a pause a resume).
+4. One contract, several callers: the backend decides and explains; screen,
+   keyboard and gamepad use the same action map (package D completes it).
+5. A begun gesture owns its end: a jog keeps its target, frame, mode and
+   speed from its start (BG-06, BG-05).
+6. No hidden mode switch to unlock a view; a refused command never looks
+   successful.
+
+**The matrix** (`✓` = under the action's own conditions; columns other than
+"Observer" assume arm):
+
+| Action | Disconnected | Observer | E-Stop | Off | Unhomed | Idle | Running | Paused |
+|---|---|---|---|---|---|---|---|---|
+| Navigation, drafts, help, preselections | cached | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Reading / download from the gateway | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Display settings (display, viewer, panels, camera) | local | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Protected settings (read: free) | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| File / tool-table commit (sourceWrite / toolTableWrite) | – | – | ✓ idle | ✓ idle | ✓ idle | ✓ | – | – |
+| Abort, E-Stop, the needed jog stop | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Pause (AUTO or MDI) | – | ✓ running | – | – | – | – | ✓ | – |
+| Spindle stop (at idle) | – | ✓ | – | – | ✓ | ✓ | – | – |
+| Start, step from idle, MDI, macro, WCS, touch-off, world jog | – | – | – | – | – | ✓ | – | – |
+
+Loading, the mode choice, G30, the recovery order and Q1 follow in package D,
+joint jog before homing in E.
+
+**What package C changed.**
+
+- *No outer armed fieldset* (BG-01): the content (`.content#content-dialog-area`,
+  the dialogs' Teleport target), the strip and the macro bar are plain
+  elements. Before, a disarmed client could not change a tab, close a dialog,
+  browse the program folder or reach the Abort and Pause inside the content
+  (package A's "every dialog's Abort is outside the fieldset" was wrong: every
+  dialog teleports into the content — corrected in the C answer). Every
+  control a disarmed client can operate is in `controlInventory.ts` — what it
+  does and why that needs no arm; `controlScan.ts` finds them in the templates
+  (a control is live when its own gate and every `<Gate>` around it in its file
+  open without arm: `always` and the stops) and `controlInventory.test.ts`
+  fails on an unclassified one or a stale entry. The scan reads an event by
+  its name (`@click.self` = `@click`) and a bound gate or entry by every value
+  it can take: only literal values that all close count as closed, anything
+  dynamic is listed (Codex R213 BG-30). It guards the LIST of controls and
+  their gates, not what a handler does. A protected effect is never a
+  category: such a control takes an armed gate. The DEV "UNGATED" outline
+  (`main.ts`) leaned on the outer fieldset and is gone.
+- *Protected settings dimmed* (operator decision 2026-10-26, Q2 "the rest
+  armed"): the keyboard and gamepad configuration (`inputConfig`), the probe
+  and toolsetter parameters (`probeParam`, `scanParam`, `toolsetterParam`), the
+  machine section (`protectedSetting(Num)`), the macro bar's membership and
+  order, a key binding's removal and capture (the capture cell refuses and
+  says why), a gamepad profile (`profileRemove`, `dialogSettingConfirm` /
+  `dialogSettingDanger`), the MDI history's Clear (`settingInlineMd`) — `armed`,
+  dimmed with "Not armed — press Arm". Not the plan's "drafts free": a
+  disarmed draft could never be saved (the gateway refuses it, arming resends
+  nothing), and the probe form would carry it into the next probe. Resets:
+  `resetDisplay` (free) / `resetProtected` (armed); the confirm's Gate follows
+  `isProtectedSection(target)`.
+- *Preselections* (BG-05): the jog step, the jog speed and its reset, the RPM
+  and the MDI line are free in every state. The RPM field is the preselection
+  for the next Fwd / Rev — running and turning too (R213 BG-27): it mirrors the
+  commanded speed while the spindle turns unless it holds a value not yet sent
+  (`rpmPending`, ended only by the commanded speed reaching it — sent is not
+  taken; the commanded speed entered again is no draft); a late INI default
+  fills only a preselection nobody has written (`iniDefaultOnce`, R214 — the
+  RPM and both jog speeds);
+  the head shows the commanded speed while turning. A number keypad ends with
+  its OWNER's gate, never with the arm as such (R213 BG-28): a free field keeps
+  its entry through a disarm, a protected one closes and applies nothing. The MDI line's send stays `ready`
+  (`useMdiHistory` `canSend`): a refused Enter keeps the text, writes no
+  history and says why at the line; its keyboard opens for every client. The
+  analog stick keeps the speed it started with (`gestureMaxVel`, taken when
+  the axis leaves the dead zone, held through a reversal, dropped in the dead
+  zone or on a stop). The jog pad's centre Stop is a stop (`jogStop`, always)
+  by pointer and by Enter / Space (keydown, repeats ignored; R213 BG-29).
+- *The file browser* (BG-02): no `setup` Gate around it; folders, `..` and
+  Retry are reading; a FILE row carries the parent's `fileGate` (Program
+  `setup` — loading moves to `programLoad` in D; Tools: the library preview, a
+  read). A closed file row is disabled with its reason (title + a tap). The
+  library Upload and Preview again are `fileBrowse` (always): the preview
+  reads, applying is `toolTableWrite`. **Package F (operator 2026-10-28):**
+  the Program tab's Files toggle takes the load's class (`fileOp` =
+  `programLoad`, like Reload / Unload) — the browser there exists to load,
+  and disarmed it showed nothing but closed rows; it closes when that class
+  closes (a disarm, a program start), since its closed toggle could not.
+  Download stays free (the one real read); the Tools tab's Files is
+  unchanged.
+- *Explanations* (BG-16): `gateExplain` offers the reason to every client,
+  the disarmed one too; a control a closed inner `<Gate>` disables explains
+  with that Gate's reason (Gate.vue provides `GATE_SCOPE_KEY`, the outermost
+  closed one). `MachineChoice` takes `title` as a prop — as a fallthrough
+  attribute an undefined title overrode the reason (every dimmed mode / WCS
+  option was mute). Catalog controls carry `data-control="<entry>"`.
+- *Backend:* `shutdown` is `armed` (policy + `require_armed`): the client's
+  catalog gate was its only check. `simTrip` is `armed` (dev builds).
+  `timing_log` stays free: a diagnostic file, no machine, file or settings
+  effect.
+- *Guards:* `controlInventory.test.ts`, `e2e/disarmed.spec.ts` (disarmed at
+  idle / unhomed / E-Stop / running: every tab and sub-tab, every visible
+  catalog control gated → closed WITH its reason, nothing forbidden sent; the
+  preselections; Pause, Abort, the jog Stop and the spindle stop act; the
+  browser browses; a dialog opened armed closes after the disarm),
+  `useGamepad.test.ts` (the stick's speed), `test_button_gates_c.py`
+  (shutdown).
+
+### Package D — loading, the task mode, one action map, the recovery, G30, the spindle before homing (button gates BG-03, BG-04, BG-10, BG-11, BG-13, Q1)
+
+- *Loading* (BG-03): `programLoad` = armed + the interpreter KNOWN idle — no
+  E-Stop, power or homing term. The load no longer switches to AUTO first:
+  PLAN_OPEN needs no mode (LinuxCNC takes it in E-Stop, off and MANUAL,
+  emctaskmain.cc v2.9.4), and the switch failed off / unhomed, refusing a load
+  the gate had allowed. A start switches to AUTO itself; that switch closes the
+  plan (emcTaskAbort → emcTaskPlanClose) and PLAN_RUN re-opens `task.file`
+  (emctaskmain.cc:2302), from line 1 — STAT.file and the load record stay. The
+  load and the unload are admitted at the commit like a write
+  (`_write_admission_refusal`: this connection armed now, no start claim, no
+  run from line, no program change, the interpreter idle by a current poll).
+  A load changes the program, which ends a viewer simulation (ScrubBar).
+- *The task mode per target* (BG-04): `modeManual` = armed + idle + the
+  machine stands (`motion_still`) + no joint homing (`homing_active`); no
+  power term — MANUAL in E-Stop and unhomed. `modeCoord` adds "COORD
+  reachable": every joint homed, or motion's kinType is KINEMATICS_IDENTITY
+  (`STAT.kinematics_type`, never the switchkins frame) AND `[TRAJ]
+  NO_FORCE_HOMING = 1` (`_coord_without_homing`; EMCMOT_COORD refuses an
+  unhomed switch on any other kins type, command.c v2.9.4:581). The command
+  gate is `modeManual`; the handler judges the TARGET's class (`modeManual` /
+  `modeCoord`) again on a current controller read before the switch (see
+  "At the write" below). The checked option sends nothing
+  (ChoiceGroup).
+- *One action map* (BG-10): `actionAdmission.ts` — the button, the shortcut
+  and the gamepad admit Start (`run` + program context), Home All (`zero`)
+  and the coolant (`override`) by the same rule. The shortcut and the pad
+  stay silent on a refusal (they have no control to explain at) — a named
+  boundary.
+- *The recovery order* (BG-11): the trip is a policy input (`trip_unacked`,
+  the gateway's `_unacked_trip`). `armEnable` (to ARM; judged by the backend
+  alone — a disarmed client arms) and `estopReset` (armed + acknowledged)
+  replace the client's own booleans; `estop_reset` is no longer `always`, so
+  it is refused before the first status like every non-stop command (BG-12).
+  Both stay open in viewer simulation (the Reset had no sim term before).
+- *G30* (BG-13): `parameterRead` = armed + idle + not (machine ON in AUTO) —
+  the confirming synch is refused there (`_synch_interp_params`, R118
+  unchanged); off, E-Stop and unhomed read. `g30Capture` and the new
+  `g30Write` (Save) carry the same condition; the capture's take-over re-check
+  reads the task mode from its current poll.
+- *The spindle before homing* (operator Q1): `[DISPLAY]
+  WEBUI_SPINDLE_BEFORE_HOMING = 1` — exactly "1" (anything else is off, an
+  invalid value traced). `spindleManual` = base + idle + (homed OR the switch
+  in MANUAL); Fwd / Rev / ± use it. Off by default: nothing changes on a
+  machine that does not set it. The exception FINDS MANUAL, never makes it:
+  the handlers' own switch to MANUAL is admitted at its write.
+- *At the write* (Codex R216 / R217, BG-04 rest / BG-31 / BG-32): the
+  dispatcher judges a command on the PUBLISHED snapshot, up to a poll old,
+  and a write then waits in the executor queue. The handlers that switch the
+  task mode themselves — the mode choice, the manual spindle (Fwd / Rev /
+  ±), and, the same class found beside BG-31, Home / Unhome and Cycle Start
+  / Step from idle — judge their class on a CURRENT controller read before
+  the queue (the early reason) AND inside EVERY write's own thread, after
+  every wait of their own (`_cmd_blocking`'s `admit`, a STAT poll in the
+  thread): the switch and each command after it, for Unhome its teleop step
+  and the unhome (`set_mode(…, admit=)`, `_manual_command`, `_gate_admit`).
+  A start's admit is the kinematics (BG-09) AND the start's class
+  (`_start_admit`), at the switch to AUTO and at the start itself. A switch
+  to MANUAL from an MDI that started since the snapshot would abort it
+  (emcTaskSetMode → emcTaskAbort), and a homing or a move since then must
+  meet no switch. The start guard's skip-flag clear is part of the start
+  (BG-32): a running interpreter by a current read refuses before its switch
+  to MDI, and its switch and its `#3116=0` MDI line are admitted at their
+  writes (`_interp_idle_refusal`, also on `_apply_probe_vars`' MDI half); a
+  refusal leaves the flag unknown. One gap named: the var-file half of the
+  clear precedes the switch — a start inside that wait leaves the file
+  written and the flag unknown (the file is read only at LinuxCNC's start).
+  The resume from a real pause is no start from idle and takes none of this.
+  **Boundary at D's agreement (R218), closed in package E:** the other
+  handlers with their own switch refused a running AUTO / MDI only on a
+  fresh poll before the queue; since E every `set_mode` write is admitted in
+  its thread only onto an interpreter KNOWN idle, and the jog stops send no
+  switch at all (see package E). The display may
+  still lag a poll (a moment too strict or too open); the commands above
+  never act on it. A write refused at its admit raises `_WriteRefused` (a
+  PermissionError: the dispatcher's reply says why). Three controller reads,
+  three strictnesses:
+
+  | Helper | Used by | A field the poll lacks | Why |
+  |---|---|---|---|
+  | `_controller_gate_refusal` | `set_mode`, the manual spindle, Home / Unhome, Cycle Start / Step from idle — before the queue and at each write | unknown → the gate refuses; never the snapshot's | the gateway's own switch must not act on an old favourable value (R216 / R217) |
+  | `_controller_capture_state` | G30 Capture's take-over | interp: the snapshot's; frame and motion: unknown | agreed R25–R27 (OP-I02): the frame and the standstill decide what the numbers mean |
+  | `_controller_touchoff_state` | touch-off target | the snapshot's value | refreshes the fixture and frame where the controller offers them (R-02); a non-switchable machine has no frame pin |
+
+  Power is the stricter of the poll and the snapshot (which carries the HAL
+  safety chain); a failed poll refuses ("Machine status not read — try
+  again"). The interpreter, homed and homing derivations are ONE pure rule
+  for the snapshot and the current read (`status_runtime.interp_terms`,
+  `homed_of`, `homing_active_of`).
+
+### Package E — jogging before homing, the jog-stop contract, every mode write onto an idle interpreter (button gates BG-07; Codex R218; operator E1–E3)
+
+- *The stop contract* (Codex R218): `jog_stop`, `jog_stop_multi` and the
+  disarm stop (`_jog_stop_for_client`) send `JOG_STOP` in whatever mode task
+  is in — no switch to MANUAL. Task 2.9.4 issues a jog stop in MANUAL, in
+  MDI whatever the interpreter does, and in AUTO idle (emctaskmain.cc,
+  `allow_while_idle_type`); in joint mode it stops only that joint's free
+  planner, never a coordinated move (motion command.c `EMCMOT_JOG_ABORT`; it
+  does cancel that joint's homing, as before). The old switch could abort a
+  fresh MDI, and refused it would have suppressed the stop. AUTO running:
+  nothing sent (task refuses a jog stop there; no jog can run). Each jog is
+  booked with the (joint flag, CMD.jog index) it was STARTED with
+  (`_active_jogs`), the stop addresses exactly that (`_send_jog_stop`), and
+  the jog counts as stopped only once its stop was written — a failed write
+  keeps it booked and the reply says so; the disarm stop still stops the
+  others.
+- *Every mode write onto an idle interpreter* (closes D's boundary):
+  `set_mode` admits each switch in its write thread after the caller's own
+  admit (whose reason is the more specific one) only onto an interpreter
+  KNOWN idle (`_interp_idle_refusal`) — a switch aborts a running MDI or
+  program, and every caller switches from idle. A refusal raises
+  `_WriteRefused`; the background fixture heal and the RFL sequence catch it
+  as a failure, the handlers reply with the reason.
+- *Jogging before homing* (BG-07; operator E1/E2, 2026-10-28):
+  `[DISPLAY] WEBUI_JOINT_JOG_BEFORE_HOMING = 1` (exactly "1", default off,
+  an invalid value traced) opens `jog` before homing:
+  `jog = base + idle + (homed OR joint_jog_before_homing)`. Which joint an
+  axis moves comes from a DECLARED joint order — `[DISPLAY]
+  WEBUI_JOINT_AXES` (each joint's letter in joint order), else trivkins'
+  `coordinates=`; never the axis-list index guessed as a joint number
+  (`gateway_util.joint_jog_map`, pure). A letter two joints carry (a gantry)
+  is closed, as is an axis without a joint or a `[JOINT_n] MAX_VELOCITY`; a
+  count or letter mismatch closes the whole map. Unhomed jog limits are
+  `pos ± full travel` (motion `refresh_jog_limits`): only the limit switches
+  protect — so the speed is capped at `WEBUI_JOINT_JOG_MAX_FRACTION`
+  (default 0.1; 0 < f ≤ 1, an invalid value switches the jog OFF) × the
+  joint's MAX_VELOCITY, sign kept, traced `jog.capped`. Partially homed is
+  before homing (joint mode; the cap on every joint — over-strict for the
+  homed ones, which their soft limits protect). The four jog commands share
+  `_start_jogs`: the `jog` class on a current read before the queue and
+  inside every write's thread (the switch and each jog); a closed axis
+  refuses the whole command, nothing sent. Each write also holds the homing
+  state the command was PREPARED under — its target, gantry closure and cap
+  belong to it (Codex R219 BG-33): homed or not changed since (an unread
+  state counts as not homed), the write refuses "Homing state changed — jog
+  again", for every axis of a multi-jog too. A jog is booked in the write's
+  own thread right after `CMD.jog` returned (`_cmd_blocking`'s `written`),
+  so a cancel during the write — a disconnect — never loses it and the
+  disconnect stop reaches it (BG-34); a refused or failed write books
+  nothing. `_cmd_blocking` waits for its write's END through every cancel,
+  a second one too (the abort preemption, then the disconnect — Codex
+  R220): the command lock, and with it the disconnect stop, comes only after
+  the write and its booking (`_thread_to_end(on_cancel=)`). No NEW jog while homing runs: `jog` requires the homing state
+  known and no joint homing (BG-35; motion rejects a jog then, command.c
+  v2.9.4:785/853, and a booked jog's stop would cancel the homing); the
+  stops stay open. `_jog_axis_arg` uses the
+  declared order for any joint jog (also the homed beyond-limit one);
+  without a declaration index = joint stays — true on every shipped
+  profile.
+- *The client* (operator E3 as revised 2026-10-28): `jointJog.ts` reads
+  `viewer_init.ini_config.joint_jog`; the strip dims a closed axis and every
+  diagonal that moves it with the gateway's reason, and its head says
+  "Joint jog — no soft limits · max 10 %" in its own line (cut with an
+  ellipsis in the narrow portrait strip, the whole in the title). The
+  buttons keep their axis letters — the operator dropped joint names on the
+  buttons ("J2·Z+" widened the Z and rotary buttons; no other UI names them
+  there). The keyboard and the gamepad refuse a closed axis by the same
+  rule (`jogAxisRefusal`); a stop is never refused. **Package F (operator
+  2026-10-28):** each jog button marks the joint it moves in its corner
+  ("J0", the global `.cornerLabel`, `jogAxisJoint`; aria-hidden — the name
+  stays the axis, the button's description says "Joint 0" for assistive
+  technology, Codex R222 BG-37), never changing its size; AXIS and gmoccapy name the
+  joints by number before homing too. Before homing every direction button
+  jogs in amber (the `warn` variant; red stays the stops'), and the
+  diagonals are closed: a multi-jog starts two joints at once — no single
+  joint, like a coordinated move — so the gateway refuses it there
+  ("Diagonal jog after Home All", after each axis' own closure) and the
+  strip dims the four diagonals with that reason (`jogDiagonalRefusal`).
+  Two keys or a slanted stick still start two separate jogs, each capped —
+  as in AXIS and gmoccapy (neither has diagonals in joint mode, neither
+  blocks simultaneous jogs; Probe Basic sends axis jogs only).
+- *Named limits*: no gantry sim config exists — the gantry closure is
+  proven by the pure map's tests only.

@@ -11,7 +11,7 @@ REPLY and the MACHINE OUTCOME, printed as PASS / FAIL / SKIP per cell.
 Modes: Machine (M428), TCP (M429, table at A=0), Plane (plane captured at
 the tip, G59 active). Rows: → Zero, → Home / → G30 (gate), Zero All
 (touch-off route), tool measure/load (gate; SKIP without a toolsetter),
-probe op (gate), Cycle Start (gate incl. the post-M2 stranded state), the
+probe op (gate), Cycle Start and Step (gate incl. the post-M2 stranded state), the
 two operator-reported sequences (Zero All at A=20 → jog A → → Zero lands
 on the datum; release the A jog mid-move → the move completes).
 
@@ -623,10 +623,21 @@ settled("g5x_index", 1)
 p = permissions()
 gate_row("Cycle Start (G54 under Plane kins — the M2 strand)", P, p, "run", False)
 gate_row("→ Zero (G54 under Plane kins)", P, p, "goZero", False)
+# Step from idle is a START (button gates BG-09): it used to stay open here.
+# Sent only while its gate reads closed — an open gate is the FAIL above and
+# must not start a program in the tilted frame.
+gate_row("Step (G54 under Plane kins — a start)", P, p, "step", False)
+if not p.get("step"):
+    r = ws_cmd({"cmd": "auto_step"})
+    s.poll()
+    check("Step refused in the M2 strand, nothing started", P,
+          r.get("ok") is False and "without G59" in str(r.get("error", ""))
+          and s.interp_state == linuxcnc.INTERP_IDLE, f"reply={r} interp={s.interp_state}")
 mdi("G59")
 settled("g5x_index", 6)
 p = permissions()
 gate_row("Cycle Start (G59 again)", P, p, "run", True)
+gate_row("Step (G59 again)", P, p, "step", True)
 
 # ---------------------------------------------------------------- soft-limit recovery under switched kins
 # With the type-0 Z window narrowed (Z0 = top), the world window is lifted under

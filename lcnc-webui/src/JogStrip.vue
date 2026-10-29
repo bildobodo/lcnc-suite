@@ -4,7 +4,8 @@ import { computed, inject, ref, watch, nextTick, onMounted, onUnmounted, type Re
 import { send } from "./lcncWs";
 import { usePermissions } from "./permissions";
 import { INPUT_DEFS } from "./machineControls";
-import { registerJog, unregisterJog, activeJogKeys, forceStopAllJogs, forceStopJog, jogKeyFor } from "./useJogPointers";
+import { registerJog, activeJogKeys, forceStopAllJogs, forceStopJog, jogKeyFor } from "./useJogPointers";
+import { stopFor, type JogGesture } from "./jogGesture";
 import { useAxes } from "./useAxes";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSelect from "./MachineSelect.vue";
@@ -13,6 +14,7 @@ import ChoiceGroup from "./ChoiceGroup.vue";
 import type { ChoiceOption } from "./choiceGroup";
 import HelpIcon from "./HelpIcon.vue";
 import { TASK_MODE_MANUAL, TASK_MODE_AUTO, TASK_MODE_MDI } from "./lcnc";
+import { jointJogActive, jogAxisJoint, jogAxisRefusal, jogDiagonalRefusal, jointJogNote, type JointJog } from "./jointJog";
 import {
   ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
   ArrowUpLeft, ArrowUpRight, ArrowDownLeft, ArrowDownRight,
@@ -40,6 +42,11 @@ const props = defineProps<{
   iniIncrements: number[] | null;
   jogDisabled: boolean;
   taskMode: number;
+  /** Jogging before homing (package E, BG-07): viewer_init's declaration and
+   *  whether every joint is homed — before homing a closed axis is dimmed
+   *  with its reason and the head states the joint jog and its cap. */
+  jointJog?: JointJog | null;
+  homed?: boolean;
   // Jog-frame selector (switchable-kins machines only; industry convention
   // — Heidenhain 3D-ROT manual setting, Siemens WCS/MCS softkey — is an
   // EXPLICIT operator choice of jog frame, prominently indicated).
@@ -98,9 +105,9 @@ const planeTitle = computed(() => {
 // toolbar, MANUAL activation, the checked option the confirmed state; the
 // step increment is local — a plain radio group (the arrows choose).
 const modeOptions: ChoiceOption<number>[] = [
-  { value: TASK_MODE_MANUAL, label: "Manual", gate: "modeSelect" },
-  { value: TASK_MODE_MDI, label: "MDI", gate: "modeSelect" },
-  { value: TASK_MODE_AUTO, label: "Auto", gate: "modeSelect" },
+  { value: TASK_MODE_MANUAL, label: "Manual", gate: "modeManual" },
+  { value: TASK_MODE_MDI, label: "MDI", gate: "modeCoord" },
+  { value: TASK_MODE_AUTO, label: "Auto", gate: "modeCoord" },
 ];
 const frameOptions = computed<ChoiceOption<number>[]>(() => [
   { value: 0, label: "Machine", gate: "jogFrame", title: "Identity kinematics — jog along machine axes" },
@@ -329,6 +336,37 @@ const xyBtns = computed<JogDef[]>(() => {
   ];
 });
 
+// Before homing (package E): an axis the machine closes (a gantry letter) is
+// dimmed with its reason; the buttons keep their axis letters and mark the
+// joint they move in their corner (package F, operator 2026-10-28 — in the
+// label, "J2·Z+" widened the Z and rotary buttons; AXIS and gmoccapy name
+// the joints by number too).
+const jointOn = computed(() => jointJogActive(props.jointJog, !!props.homed));
+// A diagonal moves two joints at once — closed before homing (package F);
+// every direction button jogs in amber then (the warn variant — red stays
+// the stops').
+function padRefusal(btn: JogDef): string | undefined {
+  return axisRefusal(btn.axis, btn.axis2)
+    ?? (btn.axis2 != null ? jogDiagonalRefusal(props.jointJog, !!props.homed) ?? undefined : undefined);
+}
+const jogVariant = computed(() => (jointOn.value ? "warn" as const : undefined));
+function jointMark(index: number | undefined): number | null {
+  return index == null || index < 0 ? null : jogAxisJoint(props.jointJog, !!props.homed, index);
+}
+// The mark is for sight (aria-hidden); assistive technology hears the joint
+// as the button's description (Codex R222 BG-37) — the name stays the axis.
+function jointDescription(index: number | undefined, index2?: number): string | undefined {
+  const j = index2 == null ? jointMark(index) : null;
+  return j == null ? undefined : `Joint ${j}`;
+}
+function axisRefusal(...indices: (number | undefined)[]): string | undefined {
+  for (const i of indices) {
+    if (i == null || i < 0) continue;
+    const why = jogAxisRefusal(props.jointJog, !!props.homed, i);
+    if (why) return why;
+  }
+  return undefined;
+}
 function stopAllJog() {
   forceStopAllJogs();
   // Belt-and-suspenders: stop all axes at backend level
@@ -337,16 +375,32 @@ function stopAllJog() {
   }
 }
 
-function makeBtnStopFn(btn: JogDef): () => void {
-  const isDiag = btn.axis2 != null;
-  if (props.jogIncrement > 0) return () => {};
-  if (isDiag) return () => send({ cmd: "jog_stop_multi", axes: [btn.axis, btn.axis2!] });
-  return () => send({ cmd: "jog_stop", axis: btn.axis });
+// A gesture's stop is decided at its START (button gates BG-06): the step
+// selected then and the axes pressed — a step changed mid-hold must not
+// leave a continuous jog without its jog_stop.
+function stopFnFor(gesture: JogGesture): () => void {
+  return () => {
+    const c = stopFor(gesture);
+    if (c) send(c);
+  };
+}
+
+// The centre Stop by keyboard (Codex R213 BG-29): Enter / Space on the
+// focused Stop stop like the pointer. Handled on KEYDOWN, default prevented
+// — the browser's synthesized click never follows, and no click handler
+// exists that a pointer's click could double; a held key's repeats add
+// nothing. A direction button has no keyboard jog: the key does nothing there.
+function onJogKey(btn: JogDef, e: KeyboardEvent) {
+  if (btn.axis >= 0 || (e.key !== "Enter" && e.key !== " ")) return;
+  e.preventDefault();
+  if (!e.repeat) stopAllJog();
 }
 
 function startJog(btn: JogDef, e: PointerEvent) {
-  if (isDisabled.value) return;
+  // The centre Stop is a stop: before the jog gate (button gates BG-01 /
+  // BG-08 — a closed start never closes its stop).
   if (btn.axis < 0) { stopAllJog(); return; }
+  if (isDisabled.value) return;
   if (activeJogKeys.has(btn.label)) return;
 
   const el = e.currentTarget as Element;
@@ -377,7 +431,10 @@ function startJog(btn: JogDef, e: PointerEvent) {
     }
   }
 
-  registerJog(e.pointerId, btn.label, makeBtnStopFn(btn), el);
+  registerJog(e.pointerId, btn.label, stopFnFor({
+    axes: isDiag ? [btn.axis, btn.axis2!] : [btn.axis],
+    cont: !(props.jogIncrement > 0),
+  }), el);
 }
 
 function stopJog(btn: JogDef, e: PointerEvent) {
@@ -385,19 +442,8 @@ function stopJog(btn: JogDef, e: PointerEvent) {
   // this jog may stop it — a second finger tapping the held button must
   // not send jog_stop for a jog it doesn't own (registry desync).
   if (jogKeyFor(e.pointerId) !== btn.label) return;
-
-  if (props.jogIncrement <= 0) {
-    const isDiag = btn.axis2 != null;
-    if (isDiag) {
-      send({ cmd: "jog_stop_multi", axes: [btn.axis, btn.axis2!] });
-    } else {
-      send({ cmd: "jog_stop", axis: btn.axis });
-    }
-  }
-
-  unregisterJog(e.pointerId);
-  // safe-silent: releasing an already-released pointer throws harmlessly
-  try { (e.currentTarget as HTMLElement)?.releasePointerCapture?.(e.pointerId); } catch {}
+  // The stop the gesture registered at its start; releases the capture.
+  forceStopJog(e.pointerId);
 }
 
 /**
@@ -435,8 +481,7 @@ function startAxisJog(axisIndex: number, dir: 1 | -1, vel: number, e: PointerEve
     send({ cmd: "jog_cont", axis: axisIndex, vel: vel * dir });
   }
 
-  const stopFn = props.jogIncrement > 0 ? () => {} : () => send({ cmd: "jog_stop", axis: axisIndex });
-  registerJog(e.pointerId, key, stopFn, el);
+  registerJog(e.pointerId, key, stopFnFor({ axes: [axisIndex], cont: !(props.jogIncrement > 0) }), el);
 }
 
 function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
@@ -444,20 +489,16 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   const key = `${letter}${dir > 0 ? "+" : "-"}`;
   // Ownership guard — see stopJog.
   if (jogKeyFor(e.pointerId) !== key) return;
-
-  if (props.jogIncrement <= 0) {
-    send({ cmd: "jog_stop", axis: axisIndex });
-  }
-
-  unregisterJog(e.pointerId);
-  // safe-silent: releasing an already-released pointer throws harmlessly
-  try { (e.currentTarget as HTMLElement)?.releasePointerCapture?.(e.pointerId); } catch {}
+  forceStopJog(e.pointerId);
 }
 </script>
 
 <template>
   <div class="stripSection">
-    <div class="sub">Jog</div>
+    <!-- Before homing (package E) the head states the joint jog and its cap
+         in ITS OWN LINE: never a second one (it moved the buttons in the
+         narrow portrait strip) — cut with an ellipsis, the whole in the title. -->
+    <div class="sub row-tight jogHead">Jog<span v-if="jointOn" class="jogNote text-warn" :title="jointJogNote(jointJog)">· {{ jointJogNote(jointJog) }}</span></div>
     <div class="jogContent row-sections">
       <div ref="jogBtnsRef" class="jogBtns row-sections">
         <div v-if="hasXyPad" class="xyWrap" :style="xySize ? { width: xySize + 'px', height: xySize + 'px' } : undefined">
@@ -465,23 +506,31 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             <MachineBtn
               v-for="btn in xyBtns"
               :key="btn.label"
-              type="jog"
+              :type="btn.axis < 0 ? 'jogStop' : 'jog'"
+              :disabled="!!padRefusal(btn)"
+              :reason="padRefusal(btn)"
+              :aria-description="jointDescription(btn.axis, btn.axis2)"
               class="jogBtn"
-              :variant="btn.axis < 0 ? 'danger' : undefined"
+              :variant="btn.axis < 0 ? 'danger' : jogVariant"
               :active="activeJogKeys.has(btn.label)"
               @pointerdown.prevent="startJog(btn, $event)"
               @pointerup.prevent="stopJog(btn, $event)"
               @pointercancel.prevent="stopJog(btn, $event)"
               @pointerleave.prevent="stopJog(btn, $event)"
               @pointermove="slideOffCheck"
+              @keydown="onJogKey(btn, $event)"
               @contextmenu.prevent
-            ><div :class="['jogInner', btn.dir_class]"><component :is="btn.icon" class="jogIcon" /><span v-if="btn.shortLabel" class="jogLabel">{{ btn.shortLabel }}</span></div></MachineBtn>
+            ><span v-if="btn.axis2 == null && jointMark(btn.axis) != null" class="cornerLabel" aria-hidden="true">J{{ jointMark(btn.axis) }}</span><div :class="['jogInner', btn.dir_class]"><component :is="btn.icon" class="jogIcon" /><span v-if="btn.shortLabel" class="jogLabel">{{ btn.shortLabel }}</span></div></MachineBtn>
           </div>
         </div>
 
         <div v-if="zAxis" class="axisCol zCol" :class="{ zTall: abcAxes.length > 0 && uvwAxes.length > 0, zOnly: abcAxes.length === 0 && uvwAxes.length === 0 }">
           <MachineBtn
             type="jog"
+            :disabled="!!axisRefusal(zAxis.index)"
+            :reason="axisRefusal(zAxis.index)"
+            :aria-description="jointDescription(zAxis.index)"
+            :variant="jogVariant"
             class="jogBtn"
             :active="activeJogKeys.has('Z+')"
             @pointerdown.prevent="startAxisJog(zAxis.index, 1, jogVel, $event)"
@@ -490,9 +539,13 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             @pointerleave.prevent="stopAxisJog(zAxis.index, 1, $event)"
             @pointermove="slideOffCheck"
             @contextmenu.prevent
-          ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">Z+</span></div></MachineBtn>
+          ><span v-if="jointMark(zAxis.index) != null" class="cornerLabel" aria-hidden="true">J{{ jointMark(zAxis.index) }}</span><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">Z+</span></div></MachineBtn>
           <MachineBtn
             type="jog"
+            :disabled="!!axisRefusal(zAxis.index)"
+            :reason="axisRefusal(zAxis.index)"
+            :aria-description="jointDescription(zAxis.index)"
+            :variant="jogVariant"
             class="jogBtn"
             :active="activeJogKeys.has('Z-')"
             @pointerdown.prevent="startAxisJog(zAxis.index, -1, jogVel, $event)"
@@ -501,7 +554,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             @pointerleave.prevent="stopAxisJog(zAxis.index, -1, $event)"
             @pointermove="slideOffCheck"
             @contextmenu.prevent
-          ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">Z-</span></div></MachineBtn>
+          ><span v-if="jointMark(zAxis.index) != null" class="cornerLabel" aria-hidden="true">J{{ jointMark(zAxis.index) }}</span><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">Z-</span></div></MachineBtn>
         </div>
 
         <!-- ABC axes (rotary — use angularJogVel), tight cluster -->
@@ -509,6 +562,10 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
           <div v-for="(ra, i) in abcAxes" :key="ra.letter" class="axisCol" :class="{ solo: soloAxis(abcAxes.length, i) }">
             <MachineBtn
               type="jog"
+              :disabled="!!axisRefusal(ra.index)"
+              :reason="axisRefusal(ra.index)"
+              :aria-description="jointDescription(ra.index)"
+              :variant="jogVariant"
               class="jogBtn"
               :active="activeJogKeys.has(ra.letter + '+')"
               @pointerdown.prevent="startAxisJog(ra.index, 1, angularJogVel, $event)"
@@ -517,9 +574,13 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointerleave.prevent="stopAxisJog(ra.index, 1, $event)"
               @pointermove="slideOffCheck"
               @contextmenu.prevent
-            ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">{{ ra.letter }}+</span></div></MachineBtn>
+            ><span v-if="jointMark(ra.index) != null" class="cornerLabel" aria-hidden="true">J{{ jointMark(ra.index) }}</span><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">{{ ra.letter }}+</span></div></MachineBtn>
             <MachineBtn
               type="jog"
+              :disabled="!!axisRefusal(ra.index)"
+              :reason="axisRefusal(ra.index)"
+              :aria-description="jointDescription(ra.index)"
+              :variant="jogVariant"
               class="jogBtn"
               :active="activeJogKeys.has(ra.letter + '-')"
               @pointerdown.prevent="startAxisJog(ra.index, -1, angularJogVel, $event)"
@@ -528,7 +589,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointerleave.prevent="stopAxisJog(ra.index, -1, $event)"
               @pointermove="slideOffCheck"
               @contextmenu.prevent
-            ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">{{ ra.letter }}-</span></div></MachineBtn>
+            ><span v-if="jointMark(ra.index) != null" class="cornerLabel" aria-hidden="true">J{{ jointMark(ra.index) }}</span><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">{{ ra.letter }}-</span></div></MachineBtn>
           </div>
         </div>
 
@@ -537,6 +598,10 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
           <div v-for="(ra, i) in uvwAxes" :key="ra.letter" class="axisCol" :class="{ solo: soloAxis(uvwAxes.length, i) }">
             <MachineBtn
               type="jog"
+              :disabled="!!axisRefusal(ra.index)"
+              :reason="axisRefusal(ra.index)"
+              :aria-description="jointDescription(ra.index)"
+              :variant="jogVariant"
               class="jogBtn"
               :active="activeJogKeys.has(ra.letter + '+')"
               @pointerdown.prevent="startAxisJog(ra.index, 1, jogVel, $event)"
@@ -545,9 +610,13 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointerleave.prevent="stopAxisJog(ra.index, 1, $event)"
               @pointermove="slideOffCheck"
               @contextmenu.prevent
-            ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">{{ ra.letter }}+</span></div></MachineBtn>
+            ><span v-if="jointMark(ra.index) != null" class="cornerLabel" aria-hidden="true">J{{ jointMark(ra.index) }}</span><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">{{ ra.letter }}+</span></div></MachineBtn>
             <MachineBtn
               type="jog"
+              :disabled="!!axisRefusal(ra.index)"
+              :reason="axisRefusal(ra.index)"
+              :aria-description="jointDescription(ra.index)"
+              :variant="jogVariant"
               class="jogBtn"
               :active="activeJogKeys.has(ra.letter + '-')"
               @pointerdown.prevent="startAxisJog(ra.index, -1, jogVel, $event)"
@@ -556,7 +625,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointerleave.prevent="stopAxisJog(ra.index, -1, $event)"
               @pointermove="slideOffCheck"
               @contextmenu.prevent
-            ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">{{ ra.letter }}-</span></div></MachineBtn>
+            ><span v-if="jointMark(ra.index) != null" class="cornerLabel" aria-hidden="true">J{{ jointMark(ra.index) }}</span><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">{{ ra.letter }}-</span></div></MachineBtn>
           </div>
         </div>
       </div>
@@ -567,16 +636,16 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
           <!-- value + unit in ONE cell (a portrait grid row keeps its four
                cells); the unit follows its source (design wave D0, UI-N02) -->
           <span class="jogSpeedVal stack-micro"><span class="val-mono val-slot">{{ Math.round(jogVel * 60) }}</span><span class="label-muted">{{ linearUnit }}/min</span></span>
-          <MachineSlider gate="jogSpeed" :aria-label="abcAxes.length > 0 ? 'Linear jog speed' : 'Jog speed'" :aria-valuetext="`${Math.round(jogVel * 60)} ${linearUnit}/min`" :disabled="isDisabled" :min="minJogVel" :max="maxJogVel" :step="0.1" :modelValue="jogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }" class="vSlider" />
+          <MachineSlider gate="jogSpeed" :aria-label="abcAxes.length > 0 ? 'Linear jog speed' : 'Jog speed'" :aria-valuetext="`${Math.round(jogVel * 60)} ${linearUnit}/min`" :min="minJogVel" :max="maxJogVel" :step="0.1" :modelValue="jogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }" class="vSlider" />
           <!-- A reset shows the value it returns to and names it (N90) -->
-          <MachineBtn type="jogSpeedReset" :disabled="isDisabled" @click="emit('resetJogVel')"
+          <MachineBtn type="jogSpeedReset" @click="emit('resetJogVel')"
                       :aria-label="linearResetName" :title="linearResetName">{{ Math.round(defaultJogVel * 60) }}</MachineBtn>
         </div>
         <div v-if="abcAxes.length > 0" class="speedCol stack-controls">
           <span class="label-muted">Rotary</span>
           <span class="jogSpeedVal stack-micro"><span class="val-mono val-slot">{{ Math.round(angularJogVel * 60) }}</span><span class="label-muted">°/min</span></span>
-          <MachineSlider gate="jogSpeed" aria-label="Rotary jog speed" :aria-valuetext="`${Math.round(angularJogVel * 60)} °/min`" :disabled="isDisabled" :min="minAngularJogVel" :max="maxAngularJogVel" :step="0.1" :modelValue="angularJogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:angularJogVel', v) }" class="vSlider" />
-          <MachineBtn type="jogSpeedReset" :disabled="isDisabled" @click="emit('resetAngularJogVel')"
+          <MachineSlider gate="jogSpeed" aria-label="Rotary jog speed" :aria-valuetext="`${Math.round(angularJogVel * 60)} °/min`" :min="minAngularJogVel" :max="maxAngularJogVel" :step="0.1" :modelValue="angularJogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:angularJogVel', v) }" class="vSlider" />
+          <MachineBtn type="jogSpeedReset" @click="emit('resetAngularJogVel')"
                       :aria-label="rotaryResetName" :title="rotaryResetName">{{ Math.round(defaultAngularJogVel * 60) }}</MachineBtn>
         </div>
       </div>
@@ -631,6 +700,8 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 
 <style scoped>
 .jogContent > * { flex-shrink: 0; }
+.jogHead { white-space: nowrap; min-width: 0; }
+.jogNote { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── Left: XY grid + Z + extra axes ── */
 .jogBtns {

@@ -1,0 +1,74 @@
+
+Running 1 test using 1 worker
+
+  ✘  1 [serial-guards] › e2e/disarmed.spec.ts:305:1 › the RPM preselection is free running and turning; an unsent value outlives a speed change and the disarm, Fwd sends it (BG-05, R213 BG-27) (23.5s)
+
+
+  1) [serial-guards] › e2e/disarmed.spec.ts:305:1 › the RPM preselection is free running and turning; an unsent value outlives a speed change and the disarm, Fwd sends it (BG-05, R213 BG-27) 
+
+    Error: sent but not taken: still prepared
+
+    expect(locator).toHaveValue(expected) failed
+
+    Locator:  locator('.spRpmInput')
+    Expected: "800"
+    Received: "1700"
+    Timeout:  10000ms
+
+    Call log:
+      - sent but not taken: still prepared with timeout 10000ms
+      - waiting for locator('.spRpmInput')
+        24 × locator resolved to <input min="0" readonly step="10" lang="en" type="text" max="99999" value="1700" inputmode="none" name="stripInput" data-v-81fd583d="" autocomplete="off" data-control="stripInput" aria-label="Spindle speed" data-input-area="input-14" class="spRpmInput inputField"/>
+           - unexpected value "1700"
+
+
+      338 |   await ctl({ op: "status_delta", data: { spindle_speed: 1700 } });
+      339 |   await expect(now).toHaveText(/1700/);
+    > 340 |   await expect.soft(rpm, "sent but not taken: still prepared").toHaveValue("800");
+          |                                                                ^
+      341 |   // the controller took it; from then on the field follows the commanded speed again
+      342 |   await ctl({ op: "status_delta", data: { spindle_speed: 800 } });
+      343 |   await expect(now).toHaveText(/800/);
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/disarmed.spec.ts:340:64
+
+    Error: the commanded speed entered again is no draft
+
+    expect(locator).toHaveValue(expected) failed
+
+    Locator:  locator('.spRpmInput')
+    Expected: "1050"
+    Received: "950"
+    Timeout:  10000ms
+
+    Call log:
+      - the commanded speed entered again is no draft with timeout 10000ms
+      - waiting for locator('.spRpmInput')
+        24 × locator resolved to <input min="0" readonly step="10" lang="en" type="text" max="99999" value="950" inputmode="none" name="stripInput" data-v-81fd583d="" autocomplete="off" data-control="stripInput" aria-label="Spindle speed" data-input-area="input-14" class="spRpmInput inputField"/>
+           - unexpected value "950"
+
+
+      350 |   await ctl({ op: "status_delta", data: { spindle_speed: 1050 } });
+      351 |   await expect(now).toHaveText(/1050/);
+    > 352 |   await expect.soft(rpm, "the commanded speed entered again is no draft").toHaveValue("1050");
+          |                                                                           ^
+      353 | });
+      354 |
+      355 | test("the disarm keeps a free field's keypad and its entry; a protected field's keypad closes and applies nothing (R213 BG-28)", async ({ page }) => {
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/disarmed.spec.ts:352:75
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/disarmed-the-RPM-preselect-5d811--sends-it-BG-05-R213-BG-27--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/disarmed-the-RPM-preselect-5d811--sends-it-BG-05-R213-BG-27--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/disarmed-the-RPM-preselect-5d811--sends-it-BG-05-R213-BG-27--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/disarmed-the-RPM-preselect-5d811--sends-it-BG-05-R213-BG-27--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [serial-guards] › e2e/disarmed.spec.ts:305:1 › the RPM preselection is free running and turning; an unsent value outlives a speed change and the disarm, Fwd sends it (BG-05, R213 BG-27) 

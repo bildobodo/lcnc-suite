@@ -356,6 +356,9 @@ class StatusPayload:
 
     # tool change (HAL iocontrol)
     tool_change_requested: Optional[bool]
+    #: The pending request's identity (button gates BG-17, Codex R205): a
+    #: confirmation names the request it answers. None while none is pending.
+    tool_change_seq: Optional[int]
     tool_change_tool: Optional[int]
     tool_change_info: Optional[dict]
 
@@ -399,6 +402,15 @@ class StatusPayload:
     # (review #5). None until the first poll.
     is_estop: Optional[bool] = None
     is_enabled: Optional[bool] = None
+    # The HAL reader's snapshot was fresh when this payload was built. The
+    # reader-derived POLICY inputs (kins mode, the plane, the eoffset, the
+    # tool-change request) count only then; the displayed values keep their
+    # last reading and the reader_stale banner says so (button gates BG-12).
+    # False by default: a payload that does not say is stale.
+    reader_fresh: bool = False
+    # A joint is homing (STAT joint[i].homing, the configured joints). None =
+    # unreadable — the task-mode gates refuse (button gates BG-04).
+    homing_active: Optional[bool] = None
 
 
 _CAPTURE_OFFSET_EPS = 1e-6  # matches the remap's rotary_offsets_nonzero
@@ -430,10 +442,72 @@ def capture_g92_xyz_clean(g92_offset) -> bool:
     return all(abs(v) <= _CAPTURE_OFFSET_EPS for v in g92l)
 
 
+#: Canonical Z bit of STAT.axis_mask.
+_Z_AXIS_BIT = 1 << 2
+
+
+def eoffset_state(value, reader_fresh: bool, axis_mask) -> Optional[bool]:
+    """Surface compensation's Z eoffset as a policy input: True / False, or
+    None = unknown (closed). A stale reader is unknown. A fresh reader without
+    the pin is unknown on a machine with a Z axis (the pin failed to read) —
+    and off on a machine without one: there is no axis.z.eoffset-enable to be
+    on (BG-12, Codex R203: a declaration, not a guess). Pure."""
+    if not reader_fresh:
+        return None
+    if value is not None:
+        return bool(value)
+    try:
+        has_z = bool(int(axis_mask) & _Z_AXIS_BIT)
+    except (TypeError, ValueError):
+        return None
+    return None if has_z else False
+
+
+def interp_terms(interp, paused) -> Dict[str, bool]:
+    """The interpreter's policy terms from STAT.interp_state / STAT.paused —
+    one rule for the snapshot and the gateway's current read (Codex R216).
+    An unread interpreter state is UNKNOWN, not idle (BG-12): every idle /
+    running / paused gate closes and says so. INTERP_PAUSED counts as paused
+    even if the STAT.paused flag lags — matching update_program_timer;
+    otherwise both pause and resume close in that transient and the
+    operator can't resume a paused program (review #1). Pure."""
+    known = interp is not None
+    is_paused = known and (bool(paused) or interp == linuxcnc.INTERP_PAUSED)
+    return dict(interp_known=known,
+                is_idle=known and interp == linuxcnc.INTERP_IDLE,
+                is_running=(not is_paused) and interp in (linuxcnc.INTERP_READING, linuxcnc.INTERP_WAITING),
+                is_paused=is_paused)
+
+
+def homed_of(homed_val, joints) -> Optional[bool]:
+    """Every configured joint homed. STAT.homed is a fixed-length tuple of int
+    (one slot per possible joint, e.g. length 16); STAT.joints is the
+    configured count — sliced to it so unused slots don't drag homed False.
+    None when either is unread. Pure."""
+    if not homed_val or not joints:
+        return None
+    return all(bool(x) for x in homed_val[:joints])
+
+
+def homing_active_of(jinfo, joints) -> Optional[bool]:
+    """Homing under way on a configured joint (button gates BG-04): None when
+    STAT lists no joints or a joint lacks the flag — never "no". A malformed
+    list raises; the caller says so. Pure."""
+    if not jinfo:
+        return None
+    nj = int(joints or 0) or len(jinfo)
+    flags = [j.get("homing") if isinstance(j, dict) else None for j in jinfo[:nj]]
+    return None if any(f is None for f in flags) else any(bool(f) for f in flags)
+
+
 def policy_state_from_payload(p: "StatusPayload", armed: bool,
                               kins_switchable: bool = True,
                               twp_capable: bool = False,
-                              identity_first: bool = False) -> _PolicyMachineState:
+                              identity_first: bool = False,
+                              trip_unacked: bool = True,
+                              coord_without_homing: bool = False,
+                              spindle_before_homing: bool = False,
+                              joint_jog_before_homing: bool = False) -> _PolicyMachineState:
     """Build the command-policy MachineState from a status snapshot.
 
     `kins_switchable` is the machine's kins DECLARATION (gateway
@@ -448,6 +522,13 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool,
     is identity on this kins family. Both default CLOSED (no TWP rules, the
     module's own identityfirst default) — see command_policy.MachineState.
 
+    `trip_unacked` (gateway _unacked_trip), `coord_without_homing` (motion's
+    kinType identity AND NO_FORCE_HOMING) and `spindle_before_homing` (the
+    WEBUI_SPINDLE_BEFORE_HOMING switch) are gateway facts for the recovery,
+    the task-mode and the manual-spindle gates (button gates D);
+    `joint_jog_before_homing` (the WEBUI_JOINT_JOG_BEFORE_HOMING switch with
+    a valid joint order, package E) for the jog gate; each defaults CLOSED.
+
     The estop/enabled HAL-merge lives here (issues #14 + #19): STAT.estop/enabled
     merged with the safety chain (emc_enable_in). poll_status broadcasts the
     result as is_estop/is_enabled, which the frontend banner/DRO consume — so the
@@ -456,22 +537,25 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool,
 
     `busy` is intentionally absent (see command_policy module docstring): it is a
     per-tab client debounce the gateway can't observe, overlaid client-side."""
+    # The HAL reader's values are policy inputs only while it is fresh
+    # (button gates BG-12): a stale snapshot keeps its last reading, and a
+    # last "identity" / "no compensation" / "no request" is no answer now.
+    fresh = getattr(p, "reader_fresh", False) is True
+
+    def _reader(name):
+        return getattr(p, name, None) if fresh else None
+
     emc = p.emc_enable_in
-    interp = p.interp_state if p.interp_state is not None else linuxcnc.INTERP_IDLE
-    # Treat INTERP_PAUSED as paused even if the STAT.paused flag lags — matching
-    # update_program_timer. Otherwise, in that transient both pause and resume
-    # gates close and the operator can't resume a paused program (review #1).
-    is_paused = bool(p.paused) or interp == linuxcnc.INTERP_PAUSED
     return _PolicyMachineState(
         armed=armed,
         is_estop=bool(p.estop) or (emc is False),
         is_enabled=bool(p.enabled) and (emc is not False),
         is_homed=bool(p.homed),
-        is_idle=(interp == linuxcnc.INTERP_IDLE),
-        is_running=(not is_paused)
-        and interp in (linuxcnc.INTERP_READING, linuxcnc.INTERP_WAITING),
-        is_paused=is_paused,
-        eoffset_enabled=bool(p.eoffset_enabled),
+        **interp_terms(p.interp_state, p.paused),
+        eoffset_enabled=eoffset_state(_reader("eoffset_enabled"), fresh,
+                                      getattr(p, "axis_mask", None)),
+        tool_change_pending=(None if (_tc := _reader("tool_change_requested")) is None
+                             else bool(_tc)),
         # None (position unreadable) reads as NOT at zero: a gate that cannot
         # see the rotaries must refuse, not assume. This is the opposite of the
         # eoffset convention above deliberately — an absent eoffset pin means
@@ -485,10 +569,10 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool,
         identity_first=bool(identity_first),
         # getattr: a partial payload (test doubles, an older envelope) reads as
         # UNKNOWN — the closed gate — never as identity/G54.
-        kins_type=(None if (_kt := getattr(p, "kins_type", None)) is None
+        kins_type=(None if (_kt := _reader("kins_type")) is None
                    else int(round(float(_kt)))),
         g5x_index=(None if (_gi := getattr(p, "g5x_index", None)) is None else int(_gi)),
-        twp_active=(getattr(p, "twp_active", None) is True),
+        twp_active=(_reader("twp_active") is True),
         # Table A at the datum within the provenance window; an absent
         # canonical position reads as NOT at zero (closed), like the rotary
         # rule above.
@@ -496,19 +580,27 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool,
                    and abs(float(_ra[0])) <= PROV_A_EPS),
         # Capture-plane gate inputs (2026-08-31): absent table/offset data
         # reads CLOSED, like every rule above.
-        twp_defined=(getattr(p, "twp_defined", None) is True),
+        twp_defined=(_reader("twp_defined") is True),
         # Head aligned with the plane (TWP-04): the A/B/C orient stamp vs the
         # live rotaries; unknown (no stamp, sentinel, missing reading) is
         # CLOSED, never "aligned".
         twp_aligned=(twp_head_aligned(
-            (getattr(p, "twp_pose_a", None), getattr(p, "twp_pose_b", None),
-             getattr(p, "twp_pose_c", None)),
-            getattr(p, "rotary_abc", None), getattr(p, "twp_defined", None)) is True),
+            (_reader("twp_pose_a"), _reader("twp_pose_b"), _reader("twp_pose_c")),
+            getattr(p, "rotary_abc", None), _reader("twp_defined")) is True),
         rotary_offsets_clean=capture_rotary_offsets_clean(
             getattr(p, "wcs_table", None), getattr(p, "g92_offset", None)),
         g92_xyz_clean=capture_g92_xyz_clean(getattr(p, "g92_offset", None)),
         # Standstill for the G30 capture (Codex R25 OP-I02); unreadable = None.
         motion_still=motion_still_of(getattr(p, "inpos", None), getattr(p, "current_vel", None)),
+        # Button gates D: the task mode (G30 synch, the manual spindle's
+        # exception), homing under way (the mode switch), and the gateway's
+        # own facts — every one unread / unsaid reads CLOSED.
+        task_mode=getattr(p, "task_mode", None),
+        homing_active=getattr(p, "homing_active", None),
+        coord_without_homing=bool(coord_without_homing),
+        trip_unacked=bool(trip_unacked),
+        spindle_before_homing=bool(spindle_before_homing),
+        joint_jog_before_homing=bool(joint_jog_before_homing),
     )
 
 
@@ -525,6 +617,11 @@ class StatusRuntime:
         get_kins_switchable: Callable[[], bool] = lambda: True,
         get_twp_capable: Callable[[], bool] = lambda: False,
         get_identity_first: Callable[[], bool] = lambda: False,
+        get_trip_unacked: Callable[[], bool] = lambda: True,
+        get_coord_without_homing: Callable[[], bool] = lambda: False,
+        get_spindle_before_homing: Callable[[], bool] = lambda: False,
+        get_joint_jog_before_homing: Callable[[], bool] = lambda: False,
+        get_reader_fresh: Callable[[], bool] = lambda: False,
         get_prov_a: Callable[[], Optional[List[Optional[float]]]] = lambda: None,
         get_instance: Callable[[], Optional[tuple]] = lambda: None,
         load_record_path: Optional[str] = None,
@@ -536,6 +633,15 @@ class StatusRuntime:
         self._get_kins_switchable = get_kins_switchable
         self._get_twp_capable = get_twp_capable
         self._get_identity_first = get_identity_first
+        # Button gates D: the unacknowledged trip, COORD without homing, the
+        # spindle-before-homing switch — CLOSED defaults (the gateway wires them).
+        self._get_trip_unacked = get_trip_unacked
+        self._get_coord_without_homing = get_coord_without_homing
+        self._get_spindle_before_homing = get_spindle_before_homing
+        self._get_joint_jog_before_homing = get_joint_jog_before_homing
+        # The reader's freshness at build time — the policy inputs it feeds
+        # count only while it is fresh (BG-12). Default stale = closed.
+        self._get_reader_fresh = get_reader_fresh
         self._get_prov_a = get_prov_a
         self._get_err = get_err
         self._reader_get = reader_get
@@ -558,6 +664,13 @@ class StatusRuntime:
         self._var_file_path_cache_val: Optional[str] = None
         # Program timer (server-authoritative elapsed clock)
         self._program_start_mono: Optional[float] = None
+        # The manual tool-change request's identity (button gates BG-17):
+        # a new number on every observed rising edge of iocontrol's
+        # tool-change and on a tool change while it stays raised — the next
+        # request came between two polls. A confirmation names its number.
+        self.tool_change_seq = 0
+        self.tool_change_tool: Optional[int] = None
+        self._tc_prev: Optional[bool] = None
         self._program_paused_accum_ms = 0
         self._program_pause_start_mono: Optional[float] = None
         self._program_active_last = False
@@ -622,12 +735,7 @@ class StatusRuntime:
         """LinuxCNC homed confirmation. STAT.homed is a fixed-length tuple of int
         (one slot per possible joint, e.g. length 16); STAT.joints is the configured
         joint count. Slice to that count so unused slots don't drag homed False."""
-        if not homed_val:
-            return None
-        nj = self.safe_get("joints", 0)
-        if not nj:
-            return None
-        return all(bool(x) for x in homed_val[:nj])
+        return homed_of(homed_val, self.safe_get("joints", 0))
 
     def get_spindle_override(self) -> Optional[float]:
         val = self.safe_get("spindle_override", None)
@@ -726,6 +834,13 @@ class StatusRuntime:
 
     def end_program_change(self) -> None:
         self._changing = False
+
+    @property
+    def program_changing(self) -> bool:
+        """A load or unload is between its request and the interpreter's
+        answer — a program write must not publish meanwhile (button gates
+        BG-14)."""
+        return self._changing
 
     def resolve_var_file_path(self) -> Optional[str]:
         """Resolve absolute path to the LinuxCNC var file from the active INI.
@@ -1065,6 +1180,12 @@ class StatusRuntime:
             except (TypeError, ValueError, AttributeError) as exc:
                 _trace.emit("poller.joint_limits_unreadable", level="warn", error=repr(exc))
                 joint_limits = None
+        # Homing under way on a configured joint (button gates BG-04).
+        try:
+            homing_active = homing_active_of(jinfo, safe_get("joints", 0))
+        except (TypeError, ValueError, AttributeError) as exc:
+            _trace.emit("poller.homing_unreadable", level="warn", error=repr(exc))
+            homing_active = None
         if jpos is None:
             jpos = safe_get("joint_position", None)
         joint_pos = to_float_list(jpos)
@@ -1127,6 +1248,8 @@ class StatusRuntime:
                 except (OSError, KeyError, ValueError, TypeError) as e:
                     _trace.emit("toolchange.info_lookup_failed", level="warn",
                                 tool=tool_change_tool, exc=type(e).__name__, msg=str(e))
+
+        tool_change_seq = self.track_tool_change(tool_change_requested, tool_change_tool)
 
         spindle_ovr = self.get_spindle_override()
 
@@ -1218,6 +1341,7 @@ class StatusRuntime:
             tool_length=tool_length,
             tool_table_z=tool_table_z,
             tool_change_requested=tool_change_requested,
+            tool_change_seq=tool_change_seq,
             tool_change_tool=tool_change_tool,
             tool_change_info=tool_change_info,
             probe_tripped=bool(safe_get("probe_tripped", 0)),
@@ -1235,6 +1359,8 @@ class StatusRuntime:
             rotary_at_zero=rotary_at_zero(
                 to_float_list(safe_get("actual_position", None)), axis_mask),
         )
+        payload.reader_fresh = bool(self._get_reader_fresh())
+        payload.homing_active = homing_active
         # Backend-authoritative permissions from this very snapshot (issue #19).
         # armed=True; the per-client armed/busy overlay happens client-side.
         # One safety-merge: build the policy state once, broadcast its merged
@@ -1243,12 +1369,30 @@ class StatusRuntime:
         _pstate = policy_state_from_payload(
             payload, armed=True, kins_switchable=self._get_kins_switchable(),
             twp_capable=self._get_twp_capable(),
-            identity_first=self._get_identity_first())
+            identity_first=self._get_identity_first(),
+            trip_unacked=self._get_trip_unacked(),
+            coord_without_homing=self._get_coord_without_homing(),
+            spindle_before_homing=self._get_spindle_before_homing(),
+            joint_jog_before_homing=self._get_joint_jog_before_homing())
         payload.is_estop = _pstate.is_estop
         payload.is_enabled = _pstate.is_enabled
         payload.permissions = evaluate_permissions(_pstate)
         payload.permission_reasons = permission_reasons(_pstate)
         return payload
+
+    def track_tool_change(self, requested: Optional[bool], tool: Optional[int]) -> Optional[int]:
+        """The pending request's number, or None while none is pending. A
+        rising edge or a new tool while raised is a new request; an unread
+        pin (None) keeps the last reading — no edge invented. Two requests
+        for the SAME tool whose low phase falls between two polls stay one:
+        nothing tells them apart at the reader's rate, and the second needs
+        no new tool in the spindle."""
+        if requested is True and (self._tc_prev is not True or tool != self.tool_change_tool):
+            self.tool_change_seq += 1
+            self.tool_change_tool = tool
+        if requested is not None:
+            self._tc_prev = requested
+        return self.tool_change_seq if requested is True else None
 
     def poll_and_serialize(self):
         """Executor-thread helper: poll STAT + serialize to dict in one hop.

@@ -1,0 +1,176 @@
+.FF.FFF.                                                              [100%]
+=================================== FAILURES ===================================
+_ TestJoggingBeforeHoming.test_a_gantry_axis_refuses_the_whole_command (cmd='jog_cont') _
+
+self = <test_button_gates_e.TestJoggingBeforeHoming testMethod=test_a_gantry_axis_refuses_the_whole_command>
+
+    def test_a_gantry_axis_refuses_the_whole_command(self):
+        self.order(list("XYYZ"))
+        for msg in ({"cmd": "jog_cont", "axis": 1, "vel": 1.0},
+                    {"cmd": "jog_cont_multi", "axes": [{"axis": 0, "vel": 1.0}, {"axis": 1, "vel": 1.0}]},
+                    {"cmd": "jog_incr_multi", "axes": [{"axis": 2, "vel": 1.0, "distance": 1.0},
+                                                       {"axis": 1, "vel": 1.0, "distance": 1.0}]}):
+            with self.subTest(cmd=msg["cmd"]):
+                self.cmd.calls.clear()
+                gateway.STAT.joints = 4
+                r = self.send(msg, controller={"homed": False, "joints": 4}, homed=False)
+>               self.assertEqual(r, {"ok": False, "error": "Gantry axis — jog it after Home All"})
+E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Gantry axis — jog it after Home All'}
+E               - {'ok': True}
+E               + {'error': 'Gantry axis — jog it after Home All', 'ok': False}
+
+test_button_gates_e.py:393: AssertionError
+_ TestJoggingBeforeHoming.test_a_gantry_axis_refuses_the_whole_command (cmd='jog_cont_multi') _
+
+self = <test_button_gates_e.TestJoggingBeforeHoming testMethod=test_a_gantry_axis_refuses_the_whole_command>
+
+    def test_a_gantry_axis_refuses_the_whole_command(self):
+        self.order(list("XYYZ"))
+        for msg in ({"cmd": "jog_cont", "axis": 1, "vel": 1.0},
+                    {"cmd": "jog_cont_multi", "axes": [{"axis": 0, "vel": 1.0}, {"axis": 1, "vel": 1.0}]},
+                    {"cmd": "jog_incr_multi", "axes": [{"axis": 2, "vel": 1.0, "distance": 1.0},
+                                                       {"axis": 1, "vel": 1.0, "distance": 1.0}]}):
+            with self.subTest(cmd=msg["cmd"]):
+                self.cmd.calls.clear()
+                gateway.STAT.joints = 4
+                r = self.send(msg, controller={"homed": False, "joints": 4}, homed=False)
+>               self.assertEqual(r, {"ok": False, "error": "Gantry axis — jog it after Home All"})
+E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Gantry axis — jog it after Home All'}
+E               - {'ok': True}
+E               + {'error': 'Gantry axis — jog it after Home All', 'ok': False}
+
+test_button_gates_e.py:393: AssertionError
+_ TestJoggingBeforeHoming.test_a_gantry_axis_refuses_the_whole_command (cmd='jog_incr_multi') _
+
+self = <test_button_gates_e.TestJoggingBeforeHoming testMethod=test_a_gantry_axis_refuses_the_whole_command>
+
+    def test_a_gantry_axis_refuses_the_whole_command(self):
+        self.order(list("XYYZ"))
+        for msg in ({"cmd": "jog_cont", "axis": 1, "vel": 1.0},
+                    {"cmd": "jog_cont_multi", "axes": [{"axis": 0, "vel": 1.0}, {"axis": 1, "vel": 1.0}]},
+                    {"cmd": "jog_incr_multi", "axes": [{"axis": 2, "vel": 1.0, "distance": 1.0},
+                                                       {"axis": 1, "vel": 1.0, "distance": 1.0}]}):
+            with self.subTest(cmd=msg["cmd"]):
+                self.cmd.calls.clear()
+                gateway.STAT.joints = 4
+                r = self.send(msg, controller={"homed": False, "joints": 4}, homed=False)
+>               self.assertEqual(r, {"ok": False, "error": "Gantry axis — jog it after Home All"})
+E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Gantry axis — jog it after Home All'}
+E               - {'ok': True}
+E               + {'error': 'Gantry axis — jog it after Home All', 'ok': False}
+
+test_button_gates_e.py:393: AssertionError
+_____________ TestJoggingBeforeHoming.test_a_joint_jog_at_the_cap ______________
+
+self = <test_button_gates_e.TestJoggingBeforeHoming testMethod=test_a_joint_jog_at_the_cap>
+
+    def test_a_joint_jog_at_the_cap(self):
+        r = self.unhomed({"cmd": "jog_cont", "axis": 1, "vel": -5.0})
+        self.assertTrue(r["ok"], r)
+>       self.assertEqual(self.jogs(), [(linuxcnc.JOG_CONTINUOUS, 1, 1, -2.0)])   # 10 % of 20
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Lists differ: [(10, 1, 1, -5.0)] != [(10, 1, 1, -2.0)]
+E       
+E       First differing element 0:
+E       (10, 1, 1, -5.0)
+E       (10, 1, 1, -2.0)
+E       
+E       - [(10, 1, 1, -5.0)]
+E       ?              ^
+E       
+E       + [(10, 1, 1, -2.0)]
+E       ?              ^
+
+test_button_gates_e.py:364: AssertionError
+__________________ TestJoggingBeforeHoming.test_an_increment ___________________
+
+self = <test_button_gates_e.TestJoggingBeforeHoming testMethod=test_an_increment>
+
+    def test_an_increment(self):
+        r = self.unhomed({"cmd": "jog_incr", "axis": 2, "vel": 9.0, "distance": -1.0})
+        self.assertTrue(r["ok"], r)
+>       self.assertEqual(self.jogs(), [(linuxcnc.JOG_INCREMENT, 1, 2, 2.0, -1.0)])
+E       AssertionError: Lists differ: [(9, 1, 2, 9.0, -1.0)] != [(9, 1, 2, 2.0, -1.0)]
+E       
+E       First differing element 0:
+E       (9, 1, 2, 9.0, -1.0)
+E       (9, 1, 2, 2.0, -1.0)
+E       
+E       - [(9, 1, 2, 9.0, -1.0)]
+E       ?            ^
+E       
+E       + [(9, 1, 2, 2.0, -1.0)]
+E       ?            ^
+
+test_button_gates_e.py:373: AssertionError
+________ TestJoggingBeforeHoming.test_partially_homed_is_before_homing _________
+
+self = <test_button_gates_e.TestJoggingBeforeHoming testMethod=test_partially_homed_is_before_homing>
+
+    def test_partially_homed_is_before_homing(self):
+        # joints 0 and 1 homed, 2 not: joint mode, the cap on every joint
+        # (over-strict for the homed ones, which their soft limits protect)
+        self.controller()
+        gateway.STAT.homed = (1, 1, 0) + (0,) * 13
+        gateway._shared_status = _payload(homed=False, inpos=True, current_vel=0.0)
+        gateway._cmd_lock = None
+        r = _run(gateway.handle_command({"cmd": "jog_cont", "axis": 0, "vel": 9.0}, True, self.writer.conn_key))
+        self.assertTrue(r["ok"], r)
+>       self.assertEqual(self.jogs(), [(linuxcnc.JOG_CONTINUOUS, 1, 0, 2.0)])
+E       AssertionError: Lists differ: [(10, 1, 0, 9.0)] != [(10, 1, 0, 2.0)]
+E       
+E       First differing element 0:
+E       (10, 1, 0, 9.0)
+E       (10, 1, 0, 2.0)
+E       
+E       - [(10, 1, 0, 9.0)]
+E       ?             ^
+E       
+E       + [(10, 1, 0, 2.0)]
+E       ?             ^
+
+test_button_gates_e.py:405: AssertionError
+________ TestJoggingBeforeHoming.test_the_declared_joint_not_the_index _________
+
+self = <test_button_gates_e.TestJoggingBeforeHoming testMethod=test_the_declared_joint_not_the_index>
+
+    def test_the_declared_joint_not_the_index(self):
+        self.order(list("XZY"))       # joint 1 carries Z, joint 2 Y
+        self.unhomed({"cmd": "jog_cont", "axis": 1, "vel": 1.0})        # wire 1 = Y
+>       self.assertEqual(self.jogs(), [(linuxcnc.JOG_CONTINUOUS, 1, 2, 1.0)])
+E       AssertionError: Lists differ: [(10, 1, 1, 1.0)] != [(10, 1, 2, 1.0)]
+E       
+E       First differing element 0:
+E       (10, 1, 1, 1.0)
+E       (10, 1, 2, 1.0)
+E       
+E       - [(10, 1, 1, 1.0)]
+E       ?          ^
+E       
+E       + [(10, 1, 2, 1.0)]
+E       ?          ^
+
+test_button_gates_e.py:378: AssertionError
+________ TestJoggingBeforeHoming.test_the_jog_is_admitted_at_its_write _________
+
+self = <test_button_gates_e.TestJoggingBeforeHoming testMethod=test_the_jog_is_admitted_at_its_write>
+
+    def test_the_jog_is_admitted_at_its_write(self):
+        def running():
+            gateway.STAT.task_mode, gateway.STAT.interp_state = linuxcnc.MODE_MDI, linuxcnc.INTERP_READING
+        self.controller(homed=False)                 # MANUAL already: the first write is the jog
+        gateway.STAT.homed = (0,) * 16
+        r = self.at_the_write({"cmd": "jog_cont", "axis": 0, "vel": 1.0}, running)
+>       self.assertFalse(r["ok"], r)
+E       AssertionError: True is not false : {'ok': True}
+
+test_button_gates_e.py:425: AssertionError
+=========================== short test summary info ============================
+SUBFAILED(cmd='jog_cont') test_button_gates_e.py::TestJoggingBeforeHoming::test_a_gantry_axis_refuses_the_whole_command
+SUBFAILED(cmd='jog_cont_multi') test_button_gates_e.py::TestJoggingBeforeHoming::test_a_gantry_axis_refuses_the_whole_command
+SUBFAILED(cmd='jog_incr_multi') test_button_gates_e.py::TestJoggingBeforeHoming::test_a_gantry_axis_refuses_the_whole_command
+FAILED test_button_gates_e.py::TestJoggingBeforeHoming::test_a_joint_jog_at_the_cap
+FAILED test_button_gates_e.py::TestJoggingBeforeHoming::test_an_increment - A...
+FAILED test_button_gates_e.py::TestJoggingBeforeHoming::test_partially_homed_is_before_homing
+FAILED test_button_gates_e.py::TestJoggingBeforeHoming::test_the_declared_joint_not_the_index
+FAILED test_button_gates_e.py::TestJoggingBeforeHoming::test_the_jog_is_admitted_at_its_write

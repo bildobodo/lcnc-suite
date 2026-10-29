@@ -1,0 +1,25 @@
+[1A[2K  1) [serial-guards] › e2e/keyboard-guards.spec.ts:688:1 › a continuous jog keeps its stop when the step changes mid-hold (button gates BG-06) 
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoContain[2m([22m[32mexpected[39m[2m) // indexOf[22m
+    Expected value: [32m"jog_stop"[39m
+    Received array: [31m["jog_cont"][39m
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+      700 |   await steps.getByRole("radio", { name: "1", exact: true }).click();
+      701 |   await page.keyboard.up("ArrowRight");
+    > 702 |   await expect.poll(recordedCmds).toContain("jog_stop");
+          |                                   ^
+      703 |   const sent = (await ctl({ op: "lastCmds" }) as { cmds?: { cmd?: string; axis?: number }[] }).cmds ?? [];
+      704 |   const started = sent.find(c => c.cmd === "jog_cont");
+      705 |   const stopped = sent.filter(c => c.cmd === "jog_stop");
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/keyboard-guards.spec.ts:702:35
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/keyboard-guards-a-continuo-9eafa-id-hold-button-gates-BG-06--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+    Error Context: test-results/keyboard-guards-a-continuo-9eafa-id-hold-button-gates-BG-06--serial-guards/error-context.md
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/keyboard-guards-a-continuo-9eafa-id-hold-button-gates-BG-06--serial-guards/trace.zip
+    Usage:
+        npx playwright show-trace test-results/keyboard-guards-a-continuo-9eafa-id-hold-button-gates-BG-06--serial-guards/trace.zip
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+[1A[2K  1 failed
+    [serial-guards] › e2e/keyboard-guards.spec.ts:688:1 › a continuous jog keeps its stop when the step changes mid-hold (button gates BG-06) 

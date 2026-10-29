@@ -259,7 +259,7 @@ onBeforeUnmount(() => { window.clearInterval(timer); clearInterval(restartTimer)
         <MachineBtn type="inlineMd" :disabled="capturedCount === 0" reason="Nothing captured yet"
                     :warning="restartArmed" aria-live="polite" @click="requestRestart">{{ restartArmed ? `Press again to restart (${restartRemaining} s)` : 'Restart' }}</MachineBtn>
         <MachineBtn v-if="phase !== 'done'" type="inlineMd" @click="skip">Skip</MachineBtn>
-        <MachineBtn v-else type="dialogConfirm" @click="save">Save Profile</MachineBtn>
+        <MachineBtn v-else type="dialogSettingConfirm" @click="save">Save Profile</MachineBtn>
       </template>
   </DialogFrame>
 </template>

@@ -1,0 +1,167 @@
+{
+ "info": {
+  "profile": "xyzac",
+  "kinematics_type": 4,
+  "start_state": 1,
+  "joints": 5,
+  "homed_after_machine_off": [
+   1,
+   1,
+   1,
+   1,
+   1
+  ],
+  "mdi_after_off_on": {
+   "reply": {
+    "type": "reply",
+    "cmd": "set_mode",
+    "ok": true
+   },
+   "mode": "MDI",
+   "homed": [
+    1,
+    1,
+    1,
+    1,
+    1
+   ]
+  }
+ },
+ "results": [
+  {
+   "check": "L1 load in E-Stop: ok, STAT.file, task mode unchanged (MANUAL)",
+   "result": "PASS",
+   "detail": "reply={'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc'} file=/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc mode MANUAL->MANUAL record={'instance': [620314, 50097731], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc'}"
+  },
+  {
+   "check": "L2 MANUAL in E-Stop",
+   "result": "PASS",
+   "detail": "{'type': 'reply', 'cmd': 'set_mode', 'ok': True} mode=MANUAL"
+  },
+  {
+   "check": "L1 load in off: ok, STAT.file, task mode unchanged (MANUAL)",
+   "result": "PASS",
+   "detail": "reply={'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc'} file=/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc mode MANUAL->MANUAL record={'instance': [620314, 50097731], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc'}"
+  },
+  {
+   "check": "L4 G30 read with the machine off: confirmed",
+   "result": "PASS",
+   "detail": "{'type': 'reply', 'cmd': 'read_g30', 'ok': True, 'confirmed': True, 'values': {'X': 0.0, 'Y': 0.0, 'Z': 0.0, 'A': 0.0, 'C': 0.0}}"
+  },
+  {
+   "check": "L1 load in ON unhomed: ok, STAT.file, task mode unchanged (MANUAL)",
+   "result": "PASS",
+   "detail": "reply={'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc'} file=/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc mode MANUAL->MANUAL record={'instance': [620314, 50097731], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc'}"
+  },
+  {
+   "check": "L2 MDI unhomed refused with the reason (kins not identity)",
+   "result": "PASS",
+   "detail": "{'ok': False, 'error': 'Not homed \u2014 MDI and Auto need Home All'}"
+  },
+  {
+   "check": "L5 spindle unhomed without the switch: refused",
+   "result": "PASS",
+   "detail": "{'ok': False, 'error': 'Not homed \u2014 press Home All'}"
+  },
+  {
+   "check": "L1 load in partially homed: ok, STAT.file, task mode unchanged (MANUAL)",
+   "result": "PASS",
+   "detail": "reply={'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc'} file=/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc mode MANUAL->MANUAL record={'instance': [620314, 50097731], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc'}"
+  },
+  {
+   "check": "homing completes",
+   "result": "PASS",
+   "detail": ""
+  },
+  {
+   "check": "L2 homed: MDI switches",
+   "result": "PASS",
+   "detail": "{'type': 'reply', 'cmd': 'set_mode', 'ok': True} mode=MDI"
+  },
+  {
+   "check": "L2 homed: AUTO switches",
+   "result": "PASS",
+   "detail": "{'type': 'reply', 'cmd': 'set_mode', 'ok': True} mode=AUTO"
+  },
+  {
+   "check": "L2 homed: MANUAL switches",
+   "result": "PASS",
+   "detail": "{'type': 'reply', 'cmd': 'set_mode', 'ok': True} mode=MANUAL"
+  },
+  {
+   "check": "L1 load in ON homed MANUAL: ok, STAT.file, task mode unchanged (MANUAL)",
+   "result": "PASS",
+   "detail": "reply={'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc'} file=/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc mode MANUAL->MANUAL record={'instance': [620314, 50097731], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc'}"
+  },
+  {
+   "check": "L3 the program loaded in MANUAL runs from the start; STAT.file stays",
+   "result": "PASS",
+   "detail": "{'type': 'reply', 'cmd': 'cycle_start', 'ok': True} ran=True done=True file=/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc mode=AUTO"
+  },
+  {
+   "check": "L4 G30 read ON in AUTO: refused with the reason",
+   "result": "PASS",
+   "detail": "{'ok': False, 'error': 'G30 not confirmed in AUTO \u2014 switch to MDI first'}"
+  },
+  {
+   "check": "L4 G30 read in MDI: confirmed",
+   "result": "PASS",
+   "detail": "{'type': 'reply', 'cmd': 'read_g30', 'ok': True, 'confirmed': True, 'values': {'X': 0.0, 'Y': 0.0, 'Z': 0.0, 'A': 0.0, 'C': 0.0}}"
+  },
+  {
+   "check": "L10 spindle Fwd from MDI idle (homed): switched to MANUAL, turns",
+   "result": "PASS",
+   "detail": "{'type': 'reply', 'cmd': 'spindle_forward', 'ok': True} direction=1 mode=MANUAL"
+  },
+  {
+   "check": "L10 spindle stops",
+   "result": "PASS",
+   "detail": "{'type': 'reply', 'cmd': 'spindle_stop', 'ok': True}"
+  },
+  {
+   "check": "L11 Home from MDI idle: switched to MANUAL, joint 0 homed again",
+   "result": "PASS",
+   "detail": "{'type': 'reply', 'cmd': 'home', 'ok': True} switched=True started=False rehomed=True mode=MANUAL"
+  },
+  {
+   "check": "L1 load in off (homed before): ok, STAT.file, task mode unchanged (MDI)",
+   "result": "PASS",
+   "detail": "reply={'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc'} file=/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc mode MDI->MDI record={'instance': [620314, 50097731], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc'}"
+  },
+  {
+   "check": "L6 a program loaded with the machine off survives Machine On",
+   "result": "PASS",
+   "detail": "file=/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc record={'instance': [620314, 50097731], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_205932.ngc'}"
+  },
+  {
+   "check": "L7 gateway process found",
+   "result": "PASS",
+   "detail": "620465"
+  },
+  {
+   "check": "L7 the trip latched E-Stop and the gateway's policy names it",
+   "result": "PASS",
+   "detail": "estop=True estopReset reason=Acknowledge the safety trip first"
+  },
+  {
+   "check": "L7 E-Stop Reset refused until acknowledged",
+   "result": "PASS",
+   "detail": "{'ok': False, 'error': 'Acknowledge the safety trip first'}"
+  },
+  {
+   "check": "L7 arming refused while the trip waits; armEnable closed with the reason",
+   "result": "PASS",
+   "detail": "arm={'ok': False, 'error': 'Safety trip not acknowledged'} armEnable=False reason=Acknowledge the safety trip first"
+  },
+  {
+   "check": "L7 acknowledged: armEnable open",
+   "result": "PASS",
+   "detail": "True"
+  },
+  {
+   "check": "L7 then Reset and On",
+   "result": "FAIL",
+   "detail": "{'type': 'reply', 'cmd': 'estop_reset', 'ok': True} {'ok': False, 'error': 'E-Stop active \u2014 reset E-Stop first'} reset=True on=False"
+  }
+ ]
+}

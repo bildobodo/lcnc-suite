@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { ctl as ctlQuery, MOCK } from "./ctl";
+import { ctl as ctlQuery, MOCK, expectArmed } from "./ctl";
 
 // Connection-lifecycle guards (A1.6) — born from the A1 manual smoke:
 //
@@ -24,8 +24,6 @@ import { ctl as ctlQuery, MOCK } from "./ctl";
 // because refuseWs/shutdownClose are mock-global and would break parallel
 // specs mid-flight.
 
-const armedGate = (page: import("@playwright/test").Page) =>
-  page.locator('fieldset[data-gate="armed"]').first();
 
 // The mock-gateway is ONE process shared by every spec; frames.spec mutates its
 // state.data and other specs flip quiet/refuseWs. Reset to pristine before each
@@ -36,12 +34,12 @@ test.beforeEach(async () => {
 
 test("reload while armed requests armed-resume with the same session id", async ({ page }) => {
   await page.goto(MOCK);
-  await expect(armedGate(page)).not.toBeDisabled();
+  await expectArmed(page);
   const session = await page.evaluate(() => sessionStorage.getItem("lcnc-session-id"));
   expect(session).toBeTruthy();
 
   await page.reload();
-  await expect(armedGate(page)).not.toBeDisabled();
+  await expectArmed(page);
 
   await expect.poll(async () => {
     const r = await ctlQuery({ op: "lastHellos" });
@@ -55,7 +53,7 @@ test("reload while armed requests armed-resume with the same session id", async 
 
 test("explicit server_shutdown frame shows the shutdown banner", async ({ page }) => {
   await page.goto(MOCK);
-  await expect(armedGate(page)).not.toBeDisabled();
+  await expectArmed(page);
   // Poll-retry the broadcast: a single fire can race the page's WS readiness in
   // the shared mock (intermittently dropped). Re-sending until the banner shows
   // is delivery-robust yet still RED if the banner logic is broken (the poll
@@ -70,7 +68,7 @@ test("explicit server_shutdown frame shows the shutdown banner", async ({ page }
 
 test("server-going-away close (1001) shows the shutdown banner without any frame", async ({ page }) => {
   await page.goto(MOCK);
-  await expect(armedGate(page)).not.toBeDisabled();
+  await expectArmed(page);
   // Keep refusing reconnect hellos with 1001 so the banner window is stable
   // (a successful reconnect would clear it again).
   await ctlQuery({ op: "refuseWs", on: true });

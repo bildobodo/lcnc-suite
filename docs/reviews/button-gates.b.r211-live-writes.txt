@@ -1,0 +1,91 @@
+# re-run after the R211 fix (e2fb79f6), unchanged script, gates sim
+=== package B writes (program folder /home/cnc/linuxcnc/nc_files, table /home/cnc/linuxcnc/configs/lcnc_suite_sim_gates/xyzac5/tool.tbl) ===
+  PASS  K1 the hello names a key, the same one on a second hello, another per connection
+  PASS  U1 upload without a key: 403 Connection unknown, nothing written
+  PASS  U2 upload with the observer's key: 403 Not armed, nothing written
+  PASS  U3 upload with the armed key: 200, the file on the disk
+  PASS  U4 save while a program runs: refused, the file unchanged
+  PASS  U5 save with the key of a closed connection: 403, unchanged
+  PASS  S1 a display section, observer: saved
+  PASS  S2 a protected section over HTTP, observer: 403, the store unchanged
+  PASS  S3 a protected section over WS: the observer refused, the armed client saved
+  PASS  S4 the global reset, observer: 403, the store unchanged
+  PASS  S5 a page-hide beacon of a closed connection: refused, nothing stored
+  PASS  T1 a tool-table edit while an M6 request waits: refused, the table unchanged
+  PASS  T2 a tool-table edit in E-Stop, armed: admitted
+  PASS  U6 upload in E-Stop, armed: admitted
+settings restored: {'display': True, 'keyboard': True}
+{
+ "results": [
+  [
+   "K1 the hello names a key, the same one on a second hello, another per connection",
+   "PASS",
+   "armed='31VFjweiSUyj1_FstnH4YQ' again='31VFjweiSUyj1_FstnH4YQ' observer='ROj8hmzkjqJCxc9pH3tmUg'"
+  ],
+  [
+   "U1 upload without a key: 403 Connection unknown, nothing written",
+   "PASS",
+   "403 Connection unknown \u2014 reconnect"
+  ],
+  [
+   "U2 upload with the observer's key: 403 Not armed, nothing written",
+   "PASS",
+   "403 Not armed \u2014 press Arm"
+  ],
+  [
+   "U3 upload with the armed key: 200, the file on the disk",
+   "PASS",
+   "200 {'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/bg_b_live_113913.ngc', 'filename': 'bg_b_live_113913.ngc', 'size': 10}"
+  ],
+  [
+   "U4 save while a program runs: refused, the file unchanged",
+   "PASS",
+   "running=True 409 {'error': 'refused', 'reason': 'A program or macro is starting or running \u2014 wait'}"
+  ],
+  [
+   "U5 save with the key of a closed connection: 403, unchanged",
+   "PASS",
+   "403 Connection unknown \u2014 reconnect"
+  ],
+  [
+   "S1 a display section, observer: saved",
+   "PASS",
+   "200 {'ok': True}"
+  ],
+  [
+   "S2 a protected section over HTTP, observer: 403, the store unchanged",
+   "PASS",
+   "403 Not armed \u2014 press Arm"
+  ],
+  [
+   "S3 a protected section over WS: the observer refused, the armed client saved",
+   "PASS",
+   "observer={'ok': False, 'error': 'save_settings refused: Not armed \u2014 press Arm'} armed={'type': 'reply', 'ok': True, 'cmd': 'save_settings'} saved=True"
+  ],
+  [
+   "S4 the global reset, observer: 403, the store unchanged",
+   "PASS",
+   "403 Not armed \u2014 press Arm"
+  ],
+  [
+   "S5 a page-hide beacon of a closed connection: refused, nothing stored",
+   "PASS",
+   "403 Connection unknown \u2014 reconnect"
+  ],
+  [
+   "T1 a tool-table edit while an M6 request waits: refused, the table unchanged",
+   "PASS",
+   "pending=True reply={'ok': False, 'error': 'save_tool refused: Machine busy \u2014 wait until it is idle'}"
+  ],
+  [
+   "T2 a tool-table edit in E-Stop, armed: admitted",
+   "PASS",
+   "estop=True reply={'type': 'reply', 'cmd': 'save_tool', 'ok': True} remark='bg-b 113913'"
+  ],
+  [
+   "U6 upload in E-Stop, armed: admitted",
+   "PASS",
+   "200 {'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/bg_b_estop_113913.ngc', 'filename': 'bg_b_estop_113913.ngc', 'size': 16}"
+  ]
+ ]
+}

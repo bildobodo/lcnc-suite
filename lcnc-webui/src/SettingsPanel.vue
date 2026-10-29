@@ -13,14 +13,14 @@ import MachineColor from "./MachineColor.vue";
 import FormField from "./FormField.vue";
 import {
   loadViewerDefaults, saveViewerDefaults, viewerFallback,
-  loadMachineDefaults, saveMachineDefaults,
+  loadMachineDraft, saveMachineDefaults,
   loadDisplayDefaults, saveDisplayDefaults, settingsVersion, serverSettingsReady,
   loadCameraDefaults, saveCameraDefaults,
   ON_TOP_LAYERS, type OnTopLayer, type Layer, type ColorDefaults, type PaletteMode, type PaletteOrigin, type HudDefaults, type HudScale,
   type TrackMode, type Projection, type PreviewMode, type ToolChangeMode, type SpindleDir, type SpindleFeedbackUnit,
   type ThemeMode, type GamepadDefaults,
   GAMEPAD_FALLBACK,
-  loadKeyboardDefaults, type KeyboardDefaults, DEFAULT_KB_MAPPING,
+  loadKeyboardDraft, type KeyboardDefaults, DEFAULT_KB_MAPPING, isProtectedSection,
 } from "./defaults";
 import { resolveViewerPalette, userColorsOf, USER_ROLES, type UserRole, type ViewerRole } from "./viewer/viewerPalette";
 import { LAYER_COLUMNS, HUD_LAYER } from "./viewerLayerGroups";
@@ -72,7 +72,6 @@ const emit = defineEmits<{
   (e: "setProjection", proj: Projection): void;
   (e: "setTrackMode", mode: TrackMode): void;
   (e: "toggleLayer", layer: Layer, on: boolean): void;
-  (e: "setRunFromLine", on: boolean): void;
   (e: "setGamepadConfig", cfg: GamepadDefaults): void;
   (e: "setKeyboardConfig", cfg: KeyboardDefaults): void;
 }>();
@@ -116,7 +115,7 @@ function resetMachine() {
     spindleFeedbackUnit: "rps", spindleLoadPin: "",
     autoDisarmMin: 10,
   });
-  const md = loadMachineDefaults();
+  const md = loadMachineDraft();
   toolChangeMode.value = md.toolChangeMode;
   runFromLine.value = md.runFromLine;
   rflSpindleDir.value = md.rflSpindleDir;
@@ -124,7 +123,6 @@ function resetMachine() {
   spindleFeedbackUnit.value = md.spindleFeedbackUnit;
   spindleLoadPin.value = md.spindleLoadPin;
   autoDisarmMin.value = md.autoDisarmMin;
-  emit("setRunFromLine", md.runFromLine);
 }
 
 function saveStartFullscreen() {
@@ -271,7 +269,10 @@ function saveCamTracked() {
 }
 
 // ─── Machine defaults ──────────────────────
-const machSaved = loadMachineDefaults();
+// The form shows the DRAFT (button gates BG-19): a change acts — run from
+// line on, the tool-change mode, the auto-disarm time — only once the
+// server holds it; App and the panels read the confirmed section.
+const machSaved = loadMachineDraft();
 const toolChangeMode = ref<ToolChangeMode>(machSaved.toolChangeMode);
 const runFromLine = ref(machSaved.runFromLine);
 const rflSpindleDir = ref<SpindleDir>(machSaved.rflSpindleDir);
@@ -286,7 +287,7 @@ function saveMachine() {
     runFromLine: runFromLine.value,
     rflSpindleDir: rflSpindleDir.value,
     rflSpindleRpm: rflSpindleRpm.value,
-    rflSafeZ: loadMachineDefaults().rflSafeZ,  // managed from the RFL dialog, preserved here
+    rflSafeZ: loadMachineDraft().rflSafeZ,  // managed from the RFL dialog, preserved here
     spindleFeedbackUnit: spindleFeedbackUnit.value,
     spindleLoadPin: spindleLoadPin.value,
     autoDisarmMin: autoDisarmMin.value,
@@ -295,7 +296,7 @@ function saveMachine() {
 
 // Re-read when another client changes settings
 watch(settingsVersion, () => {
-  const md = loadMachineDefaults();
+  const md = loadMachineDraft();
   toolChangeMode.value = md.toolChangeMode;
   runFromLine.value = md.runFromLine;
   rflSpindleDir.value = md.rflSpindleDir;
@@ -303,7 +304,6 @@ watch(settingsVersion, () => {
   spindleFeedbackUnit.value = md.spindleFeedbackUnit;
   spindleLoadPin.value = md.spindleLoadPin;
   autoDisarmMin.value = md.autoDisarmMin;
-  emit("setRunFromLine", md.runFromLine);
   const vd = loadViewerDefaults();
   Object.assign(layers, vd.layers);
   paletteMode.value = vd.paletteMode;
@@ -336,7 +336,7 @@ watch(settingsVersion, () => {
 // ── Keyboard tab state ──
 // Fallback when the parent hasn't yet supplied a keyboardConfig prop.
 // Read once at setup; the live config is owned by KeyboardTab + parent.
-const defaultKbConfig = loadKeyboardDefaults();
+const defaultKbConfig = loadKeyboardDraft();
 
 function resetKeyboard() {
   // Server-synced reset: emit the defaults; the parent updates the
@@ -738,7 +738,7 @@ function resetMachineColor(id: string) {
         </div>
 
         <div class="resetRow">
-          <MachineBtn type="reset" @click="resetTarget = 'viewer'">Reset 3D Viewer</MachineBtn>
+          <MachineBtn type="resetDisplay" @click="resetTarget = 'viewer'">Reset 3D Viewer</MachineBtn>
         </div>
         </div>
       </template>
@@ -751,11 +751,11 @@ function resetMachineColor(id: string) {
             <div class="settingDesc">Controls what happens when you load a tool from the Tool Table.</div>
             <div class="radioGroup">
               <label>
-                <MachineRadio gate="displaySetting" name="toolChangeMode" v-model="toolChangeMode" value="m6g43" @update:modelValue="saveMachine()" />
+                <MachineRadio gate="protectedSetting" name="toolChangeMode" v-model="toolChangeMode" value="m6g43" @update:modelValue="saveMachine()" />
                 <span><span class="radioLabel">M6 G43</span><br><span class="radioDesc">Load tool, activate length offset</span></span>
               </label>
               <label>
-                <MachineRadio gate="displaySetting" name="toolChangeMode" v-model="toolChangeMode" value="m600" @update:modelValue="saveMachine()" />
+                <MachineRadio gate="protectedSetting" name="toolChangeMode" v-model="toolChangeMode" value="m600" @update:modelValue="saveMachine()" />
                 <span><span class="radioLabel">M600</span><br><span class="radioDesc">Load tool, measure with toolsetter, save offset</span></span>
               </label>
             </div>
@@ -766,7 +766,7 @@ function resetMachineColor(id: string) {
             <div class="settingDesc">Disarm this client after a period with no input while the machine is idle — protects an unattended touchscreen from stray taps. Never triggers while a program runs or is paused, while probing, or while a jog is held.</div>
             <div class="radioGroup inline">
               <label v-for="m in [0, 5, 10, 20, 30]" :key="m">
-                <MachineRadio gate="displaySetting" name="autoDisarmMin" v-model.number="autoDisarmMin" :value="m" @update:modelValue="saveMachine()" />
+                <MachineRadio gate="protectedSetting" name="autoDisarmMin" v-model.number="autoDisarmMin" :value="m" @update:modelValue="saveMachine()" />
                 {{ m === 0 ? 'Off' : m + ' min' }}
               </label>
             </div>
@@ -778,11 +778,11 @@ function resetMachineColor(id: string) {
             <div class="settingDesc">What unit does your spindle encoder / VFD driver output on the speed-in HAL pin? Simulators use RPS; most real VFDs output RPM directly.</div>
             <div class="radioGroup">
               <label>
-                <MachineRadio gate="displaySetting" name="spindleFeedbackUnit" v-model="spindleFeedbackUnit" value="rps" @update:modelValue="saveMachine()" />
+                <MachineRadio gate="protectedSetting" name="spindleFeedbackUnit" v-model="spindleFeedbackUnit" value="rps" @update:modelValue="saveMachine()" />
                 <span><span class="radioLabel">RPS (default)</span><br><span class="radioDesc">Pin outputs revolutions per second (×60 for display)</span></span>
               </label>
               <label>
-                <MachineRadio gate="displaySetting" name="spindleFeedbackUnit" v-model="spindleFeedbackUnit" value="rpm" @update:modelValue="saveMachine()" />
+                <MachineRadio gate="protectedSetting" name="spindleFeedbackUnit" v-model="spindleFeedbackUnit" value="rpm" @update:modelValue="saveMachine()" />
                 <span><span class="radioLabel">RPM</span><br><span class="radioDesc">Pin outputs RPM directly (most VFDs)</span></span>
               </label>
             </div>
@@ -792,7 +792,7 @@ function resetMachineColor(id: string) {
             <div class="sub">Spindle Load HAL Pin</div>
             <div class="settingDesc">HAL pin that outputs spindle load percentage (e.g. <code>spindle-load-conv.load-percentage</code>). Leave empty to disable.</div>
             <MachineInput
-              gate="displaySetting"
+              gate="protectedSetting"
               type="text"
               v-model="spindleLoadPin"
               label="Spindle Load HAL Pin"
@@ -805,7 +805,7 @@ function resetMachineColor(id: string) {
           <div class="stack-controls">
             <div class="sub">Run from Line</div>
             <div class="settingDesc">Allow starting program execution from a selected line in the code viewer.</div>
-            <MachineToggle gate="displaySetting" v-model="runFromLine" @update:modelValue="emit('setRunFromLine', runFromLine); saveMachine()" label="Enable run from line (advanced — use with care)" />
+            <MachineToggle gate="protectedSetting" v-model="runFromLine" @update:modelValue="saveMachine()" label="Enable run from line (advanced — use with care)" />
             <div v-if="runFromLine" class="statusNote warn" role="alert">
               <span>Run-from-line is inherently risky: LinuxCNC reconstructs program
               state by skimming, entry moves follow modal axis words, and skipped
@@ -818,21 +818,21 @@ function resetMachineColor(id: string) {
                 <template #default="{ group }">
                   <!-- the spindle strip's order and words: Rev · Stop · Fwd (UI-N14) -->
                   <div v-bind="group" class="radioGroup inline">
-                    <label><MachineRadio gate="displaySetting" name="rflDefaultSpindleDir" v-model="rflSpindleDir" value="reverse" @update:modelValue="saveMachine()" /> Rev</label>
-                    <label><MachineRadio gate="displaySetting" name="rflDefaultSpindleDir" v-model="rflSpindleDir" value="off" @update:modelValue="saveMachine()" /> Stop</label>
-                    <label><MachineRadio gate="displaySetting" name="rflDefaultSpindleDir" v-model="rflSpindleDir" value="forward" @update:modelValue="saveMachine()" /> Fwd</label>
+                    <label><MachineRadio gate="protectedSetting" name="rflDefaultSpindleDir" v-model="rflSpindleDir" value="reverse" @update:modelValue="saveMachine()" /> Rev</label>
+                    <label><MachineRadio gate="protectedSetting" name="rflDefaultSpindleDir" v-model="rflSpindleDir" value="off" @update:modelValue="saveMachine()" /> Stop</label>
+                    <label><MachineRadio gate="protectedSetting" name="rflDefaultSpindleDir" v-model="rflSpindleDir" value="forward" @update:modelValue="saveMachine()" /> Fwd</label>
                   </div>
                 </template>
               </FormField>
               <FormField v-if="rflSpindleDir !== 'off'" label="Default Spindle Speed" unit="RPM">
                 <template #default="{ input }">
-                  <MachineInput v-bind="input" gate="displaySetting" type="number" v-model.number="rflSpindleRpm" min="0" @change="saveMachine()" />
+                  <MachineInput v-bind="input" gate="protectedSettingNum" type="number" v-model.number="rflSpindleRpm" min="0" @change="saveMachine()" />
                 </template>
               </FormField>
             </div>
           </div>
           <div class="resetRow">
-            <MachineBtn type="reset" @click="resetTarget = 'machine'">Reset Machine</MachineBtn>
+            <MachineBtn type="resetProtected" @click="resetTarget = 'machine'">Reset Machine</MachineBtn>
           </div>
         </div>
       </template>
@@ -861,7 +861,7 @@ function resetMachineColor(id: string) {
             <MachineToggle gate="displaySetting" v-model="keepAwake" @update:modelValue="saveKeepAwake" label="Prevent screen lock while connected" />
           </div>
           <div class="resetRow">
-            <MachineBtn type="reset" @click="resetTarget = 'display'">Reset Display</MachineBtn>
+            <MachineBtn type="resetDisplay" @click="resetTarget = 'display'">Reset Display</MachineBtn>
           </div>
         </div>
       </template>
@@ -878,7 +878,7 @@ function resetMachineColor(id: string) {
             @set-gamepad-config="emit('setGamepadConfig', $event)"
           />
           <div class="resetRow">
-            <MachineBtn type="reset" @click="resetTarget = 'gamepad'">Reset Gamepad</MachineBtn>
+            <MachineBtn type="resetProtected" @click="resetTarget = 'gamepad'">Reset Gamepad</MachineBtn>
           </div>
         </div>
       </template>
@@ -891,7 +891,7 @@ function resetMachineColor(id: string) {
             @set-keyboard-config="emit('setKeyboardConfig', $event)"
           />
           <div class="resetRow">
-            <MachineBtn type="reset" @click="resetTarget = 'keyboard'">Reset Keyboard</MachineBtn>
+            <MachineBtn type="resetProtected" @click="resetTarget = 'keyboard'">Reset Keyboard</MachineBtn>
           </div>
         </div>
       </template>
@@ -915,7 +915,9 @@ function resetMachineColor(id: string) {
         <div class="dialogBody">Restores the {{ resetLabels[resetTarget] }} settings to their defaults. This cannot be undone.</div>
         <template #actions>
           <MachineBtn type="dialogCancel" @click="resetTarget = null">Cancel</MachineBtn>
-          <Gate gate="setup" class="row-controls">
+          <!-- The reset's own gate (BG-19, package C): a display section
+               resets for any client, a protected one needs the writer's arm -->
+          <Gate :gate="isProtectedSection(resetTarget ?? '') ? 'armed' : 'always'" class="row-controls">
             <MachineBtn type="dialogDanger" @click="confirmReset">Reset</MachineBtn>
           </Gate>
         </template>

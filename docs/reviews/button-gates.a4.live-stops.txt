@@ -1,0 +1,35 @@
+=== stops without arm (observer) ===
+  PASS  S1 spindle stop at idle, disarmed: ok, stopped, task mode unchanged
+  PASS  S2 spindle stop while an MDI move runs, disarmed: refused, the spindle keeps turning
+  PASS  S3 pause of the running MDI move, disarmed: ok, motion paused
+  PASS  S4 resume, disarmed: refused
+  PASS  S5 abort, disarmed: ok, the interpreter idles
+{
+ "results": [
+  [
+   "S1 spindle stop at idle, disarmed: ok, stopped, task mode unchanged",
+   "PASS",
+   "started=True reply={'type': 'reply', 'cmd': 'spindle_stop', 'ok': True} stopped=True mode 3->3"
+  ],
+  [
+   "S2 spindle stop while an MDI move runs, disarmed: refused, the spindle keeps turning",
+   "PASS",
+   "moving=True reply={'ok': False, 'error': 'spindle_stop refused: Program owns the spindle \u2014 use Pause or Abort'} spindle_on=True"
+  ],
+  [
+   "S3 pause of the running MDI move, disarmed: ok, motion paused",
+   "PASS",
+   "reply={'type': 'reply', 'cmd': 'cycle_pause', 'ok': True} paused=True still=True"
+  ],
+  [
+   "S4 resume, disarmed: refused",
+   "PASS",
+   "reply={'ok': False, 'error': 'cycle_resume refused: Not armed \u2014 press Arm'} paused=True interp=3"
+  ],
+  [
+   "S5 abort, disarmed: ok, the interpreter idles",
+   "PASS",
+   "reply={'type': 'reply', 'cmd': 'abort', 'ok': True} idle=True"
+  ]
+ ]
+}

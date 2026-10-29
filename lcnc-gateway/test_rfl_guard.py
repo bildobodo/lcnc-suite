@@ -47,6 +47,7 @@ class _SeqHarness(unittest.IsolatedAsyncioTestCase):
             "_rfl_status": gateway._rfl_status,
             "_errors_total": gateway._errors_total,
             "_skip_flag_unknown": getattr(gateway, "_skip_flag_unknown", None),
+            "_program_start_refusal": gateway._program_start_refusal,
         }
         gateway._cmd_lock = None  # fresh lock per asyncio loop (test pattern)
         gateway._rfl_task = gateway._rfl_flag_task = None
@@ -63,13 +64,21 @@ class _SeqHarness(unittest.IsolatedAsyncioTestCase):
             test.mdi_calls.append(text)
             return (True, "")
 
-        async def _fake_set_mode(mode):
+        async def _fake_set_mode(mode, **_kw):
             return None
 
-        async def _fake_cmd_blocking(fn, *args, wait=None):
+        async def _fake_cmd_blocking(fn, *args, wait=None, admit=None):
+            # the real one's last check before the write (button gates BG-09)
+            if admit is not None and admit():
+                raise gateway._WriteRefused(admit())
             if args and args[0] == linuxcnc.AUTO_RUN:
                 test.auto_run_calls.append(args)
             return 0
+
+        # The kinematics rule of a program start is test_button_gates'
+        # (TestStartChecksTheControllerNow / TestStartAfterPreparation); here
+        # the machine is runnable.
+        gateway._program_start_refusal = lambda armed: None
 
         gateway._rfl_mdi_step = _fake_mdi_step
         gateway.set_mode = _fake_set_mode

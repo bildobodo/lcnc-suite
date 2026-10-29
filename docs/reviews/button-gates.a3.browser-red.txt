@@ -1,0 +1,8 @@
+# red run on 7d356229 (the state Codex reviewed in R206), the changed guards copied in
+  1) [serial-touchoff] › e2e/touchoff.spec.ts:688:1 › tool-change confirm: once per request, retry after a refusal, nothing without a request 
+    Error: expect(locator).toHaveText(expected) failed
+    Expected: "Confirmation not sent — confirm again"
+    Error: element(s) not found
+    test-results/touchoff-tool-change-confi-db498-l-nothing-without-a-request-serial-touchoff/test-failed-1.png
+  1 failed
+  1 passed (4.5s)

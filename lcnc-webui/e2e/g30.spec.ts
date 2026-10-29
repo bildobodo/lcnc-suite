@@ -12,10 +12,12 @@ import { ctl, MOCK } from "./ctl";
 
 const PERMS_ALL = {
   idle: true, jog: true, override: true, ready: true, run: true, pause: false,
-  resume: false, step: true, abort: true, probe: true, zero: true,
+  resume: false, step: true, abort: true, spindleStop: true, probe: true, zero: true,
   machineFrame: true, g30Capture: true, goZero: true, planeFrame: true,
   touchoff: true, touchoffRotary: true, twpCapture: true,
-  surfaceComp: true, safety: true, setup: true, armed: true, always: true,
+  surfaceComp: true, safety: true, setup: true, sourceWrite: true, toolTableWrite: true, armed: true, always: true,
+  // button gates D
+  programLoad: true, modeManual: true, modeCoord: true, parameterRead: true, g30Write: true, spindleManual: true, armEnable: true, estopReset: true,
 };
 const STORED = { X: 100, Y: 0, Z: -26.275 };
 const SETTINGS = { toolsetter: { touchX: 0, touchY: 0, touchZ: -300, fastFeed: 200, slowFeed: 20, traverseFeed: 500,

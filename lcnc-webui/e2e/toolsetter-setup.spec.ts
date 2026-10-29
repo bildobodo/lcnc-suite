@@ -16,10 +16,12 @@ import { ctl, MOCK, publishToolTable } from "./ctl";
 
 const PERMS_ALL = {
   idle: true, jog: true, override: true, ready: true, run: true, pause: false,
-  resume: false, step: true, abort: true, probe: true, zero: true,
+  resume: false, step: true, abort: true, spindleStop: true, probe: true, zero: true,
   machineFrame: true, goZero: true, planeFrame: true,
   touchoff: true, touchoffRotary: true, twpCapture: true,
-  surfaceComp: true, safety: true, setup: true, armed: true, always: true,
+  surfaceComp: true, safety: true, setup: true, sourceWrite: true, toolTableWrite: true, armed: true, always: true,
+  // button gates D
+  programLoad: true, modeManual: true, modeCoord: true, parameterRead: true, g30Write: true, spindleManual: true, armEnable: true, estopReset: true,
 };
 const SET_UP = {
   touchX: 0, touchY: 0, touchZ: -300, fastFeed: 200, slowFeed: 0, traverseFeed: 500,
@@ -99,6 +101,10 @@ test("a partial section: the form names what is missing, shows unset fields empt
 test("a save the server never confirmed is no setup; its confirmation is", async ({ page }) => {
   const { spindleZeroHeight: _last, ...almost } = SET_UP;
   await open(page, { ...M600, toolsetter: almost });
+  // the mock answers no save here (button gates BG-19: by default it acts
+  // like the gateway and broadcasts the blob — this test needs a save the
+  // server never confirmed)
+  await ctl({ op: "settingsEcho", on: false });
   await page.getByRole("tab", { name: "Probing", exact: true }).click();
   await page.getByRole("tab", { name: "Toolsetter", exact: true }).click();
   await page.getByRole("textbox", { name: "Spindle Zero Height", exact: true }).click();

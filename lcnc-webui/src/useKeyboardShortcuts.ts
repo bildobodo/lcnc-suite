@@ -9,6 +9,9 @@
 // but send `estop`. The regular shortcut map is a bubbling keydown/keyup
 // pair attached in onMounted. Cross-client sync (settingsVersion bumps)
 // re-reads from loadKeyboardDefaults so a save on another tab is reflected.
+// The map that ACTS is the server's (button gates BG-19): a change made
+// here is a draft (`keyboardDraft`, what Settings shows) until the server
+// holds it — a refused save (not armed) changes no key.
 //
 // stopAllJog is App.vue's responsibility (it also clears pointer + gamepad
 // jog state); this composable exposes clearJogState() so the global stop
@@ -16,13 +19,15 @@
 
 import { ref, reactive, computed, watch, onMounted, onUnmounted, type Ref, type ComputedRef } from "vue";
 import {
-  loadKeyboardDefaults, saveKeyboardDefaults, settingsVersion, normalizeKeyboardMapping,
+  loadKeyboardDefaults, loadKeyboardDraft, saveKeyboardDefaults, settingsVersion, normalizeKeyboardMapping,
   ESTOP_KEY, type KeyboardDefaults, type KeyboardAction,
 } from "./defaults";
 import type { Permissions } from "./permissions";
 import type { WsCommand } from "./lcnc";
 
 import { isRotaryAxis } from "./useAxes";
+import { JogGestures, type JogGesture } from "./jogGesture";
+import { ACTION_GATES, startAdmitted, type StartContext } from "./actionAdmission";
 
 interface UseKeyboardShortcutsOptions {
   jogVel: Ref<number>;
@@ -31,18 +36,20 @@ interface UseKeyboardShortcutsOptions {
   axes: ComputedRef<string[]>;
   permissions: Ref<Permissions>;
   canEstop: ComputedRef<boolean>;
-  activeFile: Ref<string | null>;
+  /** Start's program context (actionAdmission.ts — the button's own rule). */
+  startContext: Ref<StartContext>;
+  /** Why this axis may not jog now beyond the `jog` class — before homing, an
+   *  axis the machine closes (package E, jointJog.ts); null when it may. */
+  jogAxisRefusal: (axis: number) => string | null;
   /** True while a dialog or the number keypad is open (modalRegistry). */
   modalOpen: ComputedRef<boolean>;
-  /** True while the G-code editor is open — Cycle Start never runs a
-   *  program whose buffer is being edited. */
-  editing: Ref<boolean>;
   send: (cmd: WsCommand) => void;
   fire: (payload: any, gate?: keyof Permissions, cooldownMs?: number) => void;
 }
 
 export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
   const keyboardConfig = ref<KeyboardDefaults>(loadKeyboardDefaults());
+  const keyboardDraft = ref<KeyboardDefaults>(loadKeyboardDraft());
 
   const reverseKeyMap = computed(() => {
     const map = new Map<string, KeyboardAction>();
@@ -52,7 +59,13 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
     return map;
   });
 
-  const jogActions = reactive(new Set<string>());
+  // The keyboard jogs in progress, keyed by the PHYSICAL key that started
+  // them (`code`), each with what it STARTED (BG-06): the keyup stops that —
+  // never what the step, the key map (a remap saved on another client while
+  // the key is held, Codex R205) or a modifier (Shift turns "q" into "Q")
+  // say by then.
+  const jogGestures = new JogGestures<string>(reactive(new Map<string, JogGesture>()));
+  const physicalKey = (e: KeyboardEvent) => e.code || e.key;
 
   function jogActionToAxis(action: string): { axis: number; dir: 1 | -1; isAngular: boolean } | null {
     const match = action.match(/^jog_([a-z])([+-])$/);
@@ -121,17 +134,18 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
     if (action.startsWith("jog_")) {
       if (!keyboardConfig.value.jogEnabled) return;
       e.preventDefault();
-      if (e.repeat || jogActions.has(action)) return;
+      if (e.repeat || jogGestures.has(physicalKey(e))) return;
       if (!opts.permissions.value.jog) return;
       const jog = jogActionToAxis(action);
-      if (!jog) return;
-      jogActions.add(action);
+      if (!jog || opts.jogAxisRefusal(jog.axis)) return;
       const vel = (jog.isAngular ? opts.angularJogVel.value : opts.jogVel.value) * jog.dir;
-      if (opts.jogIncrement.value > 0) {
-        opts.send({ cmd: "jog_incr", axis: jog.axis, vel, distance: opts.jogIncrement.value * jog.dir });
+      const step = opts.jogIncrement.value;
+      if (step > 0) {
+        opts.send({ cmd: "jog_incr", axis: jog.axis, vel, distance: step * jog.dir });
       } else {
         opts.send({ cmd: "jog_cont", axis: jog.axis, vel });
       }
+      jogGestures.start(physicalKey(e), { axes: [jog.axis], cont: !(step > 0) });
       return;
     }
 
@@ -145,7 +159,7 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
       e.preventDefault();
       if (opts.permissions.value.resume) opts.fire({ cmd: "cycle_resume" }, 'resume');
       else if (opts.permissions.value.pause) opts.fire({ cmd: "cycle_pause" }, 'pause');
-      else if (opts.permissions.value.run && !opts.editing.value && !!opts.activeFile.value) opts.fire({ cmd: "cycle_start" }, 'run');
+      else if (startAdmitted(opts.permissions.value, opts.startContext.value)) opts.fire({ cmd: "cycle_start" }, ACTION_GATES.start);
       return;
     }
 
@@ -161,34 +175,31 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
   // key is held must not suppress the release → jog_stop (the guards above
   // live in the keydown path only).
   function onKeyUp(e: KeyboardEvent) {
-    const action = reverseKeyMap.value.get(e.key);
-    if (!action || !action.startsWith("jog_")) return;
-    if (jogActions.has(action)) {
-      jogActions.delete(action);
-      if (opts.jogIncrement.value <= 0) {
-        const jog = jogActionToAxis(action);
-        if (jog) opts.send({ cmd: "jog_stop", axis: jog.axis });
-      }
-    }
+    const stop = jogGestures.end(physicalKey(e));
+    if (stop) opts.send(stop);
   }
 
+  /** A change from Settings: the draft now, the active map once the server
+   *  confirms it (the settingsVersion watch below). */
   function setKeyboardConfig(cfg: KeyboardDefaults) {
     const normalized = { ...cfg, mapping: normalizeKeyboardMapping(cfg.mapping) };
-    keyboardConfig.value = normalized;
+    keyboardDraft.value = normalized;
     saveKeyboardDefaults(normalized);
   }
 
-  /** Clear the active-jog-action set. Used by App.vue's global stopAllJog
-   *  so a focus-loss / visibility-change / disabled-toggle stop is reflected
-   *  in our internal state. Does NOT send jog_stop commands — that's the
-   *  caller's responsibility (it also handles pointer + gamepad). */
-  function clearJogState() {
-    jogActions.clear();
+  /** End every keyboard jog with the stop it owns. Used by App.vue's global
+   *  stopAllJog (focus loss, visibility change, a disabled toggle, a tab
+   *  switch): each continuous gesture's own axis, whatever the step or the
+   *  key map say now (BG-06). */
+  function stopJogs() {
+    for (const c of jogGestures.endAll()) opts.send(c);
   }
 
-  // Cross-client sync: another tab saved keyboard config → re-read.
+  // The server's settings changed (this tab's save confirmed, another
+  // client's, a reconnect) → re-read what acts and what the form shows.
   watch(settingsVersion, () => {
     keyboardConfig.value = loadKeyboardDefaults();
+    keyboardDraft.value = loadKeyboardDraft();
   });
 
   onMounted(() => {
@@ -204,9 +215,10 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
 
   return {
     keyboardConfig,
+    keyboardDraft,
     setKeyboardConfig,
-    clearJogState,
+    stopJogs,
     /** A keyboard jog is running (a jog key held down). */
-    jogActive: computed(() => jogActions.size > 0),
+    jogActive: computed(() => jogGestures.size > 0),
   };
 }

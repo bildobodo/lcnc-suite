@@ -1,0 +1,272 @@
+..FFFFFF..F                                                         [100%]
+=================================== FAILURES ===================================
+_ TestAStopNeedsNoSwitch.test_jog_stop_in_mdi_idle_and_while_an_mdi_runs (task_mode=3) _
+
+self = <test_button_gates_e.TestAStopNeedsNoSwitch testMethod=test_jog_stop_in_mdi_idle_and_while_an_mdi_runs>
+
+    def test_jog_stop_in_mdi_idle_and_while_an_mdi_runs(self):
+        for controller in ({"task_mode": linuxcnc.MODE_MDI}, MDI_RUNNING):
+            with self.subTest(**controller):
+                self.cmd.calls.clear()
+                self.jogs(a2=(1, 2))
+                r = self.send({"cmd": "jog_stop", "axis": 2}, controller=controller)
+                self.assertEqual(r, {"ok": True})
+                self.assertEqual(self.stops(), [(linuxcnc.JOG_STOP, 1, 2)])
+>               self.assertNotIn("mode", self.cmd.names())
+E               AssertionError: 'mode' unexpectedly found in ['mode', 'wait_complete', 'jog']
+
+test_button_gates_e.py:56: AssertionError
+_ TestAStopNeedsNoSwitch.test_jog_stop_in_mdi_idle_and_while_an_mdi_runs (task_mode=3, interp_state=5) _
+
+self = <test_button_gates_e.TestAStopNeedsNoSwitch testMethod=test_jog_stop_in_mdi_idle_and_while_an_mdi_runs>
+
+    def test_jog_stop_in_mdi_idle_and_while_an_mdi_runs(self):
+        for controller in ({"task_mode": linuxcnc.MODE_MDI}, MDI_RUNNING):
+            with self.subTest(**controller):
+                self.cmd.calls.clear()
+                self.jogs(a2=(1, 2))
+                r = self.send({"cmd": "jog_stop", "axis": 2}, controller=controller)
+                self.assertEqual(r, {"ok": True})
+>               self.assertEqual(self.stops(), [(linuxcnc.JOG_STOP, 1, 2)])
+E               AssertionError: Lists differ: [] != [(8, 1, 2)]
+E               
+E               Second list contains 1 additional elements.
+E               First extra element 0:
+E               (8, 1, 2)
+E               
+E               - []
+E               + [(8, 1, 2)]
+
+test_button_gates_e.py:55: AssertionError
+__________________ TestAStopNeedsNoSwitch.test_jog_stop_multi __________________
+
+self = <test_button_gates_e.TestAStopNeedsNoSwitch testMethod=test_jog_stop_multi>
+
+    def test_jog_stop_multi(self):
+        self.jogs(a0=(1, 0), a2=(1, 2))
+        r = self.send({"cmd": "jog_stop_multi", "axes": [0, 2]}, controller=MDI_RUNNING)
+        self.assertEqual(r, {"ok": True})
+>       self.assertEqual(self.stops(), [(linuxcnc.JOG_STOP, 1, 0), (linuxcnc.JOG_STOP, 1, 2)])
+E       AssertionError: Lists differ: [] != [(8, 1, 0), (8, 1, 2)]
+E       
+E       Second list contains 2 additional elements.
+E       First extra element 0:
+E       (8, 1, 0)
+E       
+E       - []
+E       + [(8, 1, 0), (8, 1, 2)]
+
+test_button_gates_e.py:63: AssertionError
+_________________ TestAStopNeedsNoSwitch.test_the_disarm_stop __________________
+
+self = <test_button_gates_e.TestAStopNeedsNoSwitch testMethod=test_the_disarm_stop>
+
+    def test_the_disarm_stop(self):
+        self.jogs(a1=(1, 1))
+        self.controller(**MDI_RUNNING)
+        self.disarm_stop()
+>       self.assertEqual(self.stops(), [(linuxcnc.JOG_STOP, 1, 1)])
+E       AssertionError: Lists differ: [] != [(8, 1, 1)]
+E       
+E       Second list contains 1 additional elements.
+E       First extra element 0:
+E       (8, 1, 1)
+E       
+E       - []
+E       + [(8, 1, 1)]
+
+test_button_gates_e.py:70: AssertionError
+_____ TestAStopAddressesTheJogAsStarted.test_a_teleop_jog_stops_as_teleop ______
+
+self = <test_button_gates_e.TestAStopAddressesTheJogAsStarted testMethod=test_a_teleop_jog_stops_as_teleop>
+
+    def test_a_teleop_jog_stops_as_teleop(self):
+        limits = gateway._machine_limits      # the payload bounds per axis count
+        gateway._machine_limits = None
+        self.addCleanup(lambda: setattr(gateway, "_machine_limits", limits))
+        gateway.STAT.motion_mode = linuxcnc.TRAJ_MODE_TELEOP
+        gateway.STAT.axis_mask = 0b101111                 # XYZAC: C is wire 4, canonical 5
+        r = self.send({"cmd": "jog_cont", "axis": 4, "vel": 1.0})
+        self.assertTrue(r["ok"], r)
+>       self.assertEqual(gateway._active_jogs, {4: (0, 5)})
+E       AssertionError: {4} != {4: (0, 5)}
+
+test_button_gates_e.py:97: AssertionError
+________________ TestAStopIsBookedOnlyOnceWritten.test_jog_stop ________________
+
+self = <test_button_gates_e.TestAStopIsBookedOnlyOnceWritten testMethod=test_jog_stop>
+
+    def test_jog_stop(self):
+        self.jogs(a2=(1, 2))
+        self.failing_stop(2)
+        r = self.send({"cmd": "jog_stop", "axis": 2})
+        self.assertFalse(r["ok"], r)
+>       self.assertEqual(gateway._active_jogs, {2: (1, 2)})
+E       AssertionError: {2} != {2: (1, 2)}
+
+test_button_gates_e.py:122: AssertionError
+_____________ TestAStopIsBookedOnlyOnceWritten.test_jog_stop_multi _____________
+
+self = <test_button_gates_e.TestAStopIsBookedOnlyOnceWritten testMethod=test_jog_stop_multi>
+
+    def test_jog_stop_multi(self):
+        self.jogs(a0=(1, 0), a2=(1, 2))
+        self.failing_stop(0)
+        r = self.send({"cmd": "jog_stop_multi", "axes": [0, 2]})
+        self.assertFalse(r["ok"], r)
+>       self.assertIn("[0]", r["error"])
+E       AssertionError: '[0]' not found in 'RuntimeError: NML write failed'
+
+test_button_gates_e.py:129: AssertionError
+____________ TestAStopIsBookedOnlyOnceWritten.test_the_disarm_stop _____________
+
+self = <test_button_gates_e.TestAStopIsBookedOnlyOnceWritten testMethod=test_the_disarm_stop>
+
+    def test_the_disarm_stop(self):
+        self.jogs(a0=(1, 0), a2=(1, 2))
+        self.failing_stop(0)
+>       self.disarm_stop()
+
+test_button_gates_e.py:136: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_button_gates_e.py:41: in disarm_stop
+    _run(go())
+test_button_gates.py:251: in _run
+    return asyncio.run(coro)
+           ^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/base_events.py:725: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+test_button_gates_e.py:39: in go
+    await gateway._jog_stop_for_client()
+gateway.py:3657: in _jog_stop_for_client
+    await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, _jog_axis_arg(ax, jf), wait=None)
+gateway.py:3410: in _cmd_blocking
+    return await asyncio.shield(inner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/threads.py:25: in to_thread
+    return await loop.run_in_executor(None, func_call)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/concurrent/futures/thread.py:59: in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+gateway.py:3373: in _run
+    cmd_fn(*args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = (8, 1, 0)
+
+    def jog(*args):
+        if args[0] == linuxcnc.JOG_STOP and args[2] == axis_arg:
+>           raise RuntimeError("NML write failed")
+E           RuntimeError: NML write failed
+
+test_button_gates_e.py:113: RuntimeError
+______ TestNoSwitchOntoARunningInterpreter.test_handlers (cmd='jog_cont') ______
+
+self = <test_button_gates_e.TestNoSwitchOntoARunningInterpreter testMethod=test_handlers>
+
+    def test_handlers(self):
+        cases = ((dict(task_mode=linuxcnc.MODE_MDI), {"cmd": "jog_cont", "axis": 0, "vel": 1.0}),
+                 (dict(task_mode=linuxcnc.MODE_MDI), {"cmd": "jog_incr", "axis": 0, "vel": 1.0, "distance": 1.0}),
+                 (dict(task_mode=linuxcnc.MODE_MANUAL), {"cmd": "mdi", "text": "G0 X1"}))
+        for controller, msg in cases:
+            with self.subTest(cmd=msg["cmd"]):
+                self.cmd.calls.clear()
+                self.controller(**controller)
+                r = self.at_the_write(msg, self.running)
+>               self.assertEqual(r, {"ok": False, "error": "Machine busy — wait until it is idle"})
+E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Machine busy — wait until it is idle'}
+E               - {'ok': True}
+E               + {'error': 'Machine busy — wait until it is idle', 'ok': False}
+
+test_button_gates_e.py:164: AssertionError
+______ TestNoSwitchOntoARunningInterpreter.test_handlers (cmd='jog_incr') ______
+
+self = <test_button_gates_e.TestNoSwitchOntoARunningInterpreter testMethod=test_handlers>
+
+    def test_handlers(self):
+        cases = ((dict(task_mode=linuxcnc.MODE_MDI), {"cmd": "jog_cont", "axis": 0, "vel": 1.0}),
+                 (dict(task_mode=linuxcnc.MODE_MDI), {"cmd": "jog_incr", "axis": 0, "vel": 1.0, "distance": 1.0}),
+                 (dict(task_mode=linuxcnc.MODE_MANUAL), {"cmd": "mdi", "text": "G0 X1"}))
+        for controller, msg in cases:
+            with self.subTest(cmd=msg["cmd"]):
+                self.cmd.calls.clear()
+                self.controller(**controller)
+                r = self.at_the_write(msg, self.running)
+>               self.assertEqual(r, {"ok": False, "error": "Machine busy — wait until it is idle"})
+E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Machine busy — wait until it is idle'}
+E               - {'ok': True}
+E               + {'error': 'Machine busy — wait until it is idle', 'ok': False}
+
+test_button_gates_e.py:164: AssertionError
+________ TestNoSwitchOntoARunningInterpreter.test_handlers (cmd='mdi') _________
+
+self = <test_button_gates_e.TestNoSwitchOntoARunningInterpreter testMethod=test_handlers>
+
+    def test_handlers(self):
+        cases = ((dict(task_mode=linuxcnc.MODE_MDI), {"cmd": "jog_cont", "axis": 0, "vel": 1.0}),
+                 (dict(task_mode=linuxcnc.MODE_MDI), {"cmd": "jog_incr", "axis": 0, "vel": 1.0, "distance": 1.0}),
+                 (dict(task_mode=linuxcnc.MODE_MANUAL), {"cmd": "mdi", "text": "G0 X1"}))
+        for controller, msg in cases:
+            with self.subTest(cmd=msg["cmd"]):
+                self.cmd.calls.clear()
+                self.controller(**controller)
+                r = self.at_the_write(msg, self.running)
+>               self.assertEqual(r, {"ok": False, "error": "Machine busy — wait until it is idle"})
+E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Machine busy — wait until it is idle'}
+E               - {'ok': True}
+E               + {'error': 'Machine busy — wait until it is idle', 'ok': False}
+
+test_button_gates_e.py:164: AssertionError
+_____ TestNoSwitchOntoARunningInterpreter.test_the_background_fixture_heal _____
+
+self = <test_button_gates_e.TestNoSwitchOntoARunningInterpreter testMethod=test_the_background_fixture_heal>
+
+    def test_the_background_fixture_heal(self):
+        self.controller()
+        traced = []
+        with mock.patch.object(gateway._trace, "emit", lambda tag, **kw: traced.append((tag, kw))):
+            async def go():
+                import asyncio
+                loop = asyncio.get_running_loop()
+                original = loop.run_in_executor
+    
+                def enqueue(executor, fn, *args):
+                    def changed_then_run(*a):
+                        self.running()
+                        return fn(*a)
+                    return original(executor, changed_then_run, *args)
+                with mock.patch.object(loop, "run_in_executor", enqueue):
+                    await gateway._reserved_fixture_heal()
+            _run(go())
+>       self.assertEqual([n for n in self.cmd.names() if n in ("mode", "mdi")], [])
+E       AssertionError: Lists differ: ['mode', 'mdi'] != []
+E       
+E       First list contains 2 additional elements.
+E       First extra element 0:
+E       'mode'
+E       
+E       - ['mode', 'mdi']
+E       + []
+
+test_button_gates_e.py:184: AssertionError
+=========================== short test summary info ============================
+SUBFAILED(task_mode=3) test_button_gates_e.py::TestAStopNeedsNoSwitch::test_jog_stop_in_mdi_idle_and_while_an_mdi_runs
+SUBFAILED(task_mode=3, interp_state=5) test_button_gates_e.py::TestAStopNeedsNoSwitch::test_jog_stop_in_mdi_idle_and_while_an_mdi_runs
+FAILED test_button_gates_e.py::TestAStopNeedsNoSwitch::test_jog_stop_multi - ...
+FAILED test_button_gates_e.py::TestAStopNeedsNoSwitch::test_the_disarm_stop
+FAILED test_button_gates_e.py::TestAStopAddressesTheJogAsStarted::test_a_teleop_jog_stops_as_teleop
+FAILED test_button_gates_e.py::TestAStopIsBookedOnlyOnceWritten::test_jog_stop
+FAILED test_button_gates_e.py::TestAStopIsBookedOnlyOnceWritten::test_jog_stop_multi
+FAILED test_button_gates_e.py::TestAStopIsBookedOnlyOnceWritten::test_the_disarm_stop
+SUBFAILED(cmd='jog_cont') test_button_gates_e.py::TestNoSwitchOntoARunningInterpreter::test_handlers
+SUBFAILED(cmd='jog_incr') test_button_gates_e.py::TestNoSwitchOntoARunningInterpreter::test_handlers
+SUBFAILED(cmd='mdi') test_button_gates_e.py::TestNoSwitchOntoARunningInterpreter::test_handlers
+FAILED test_button_gates_e.py::TestNoSwitchOntoARunningInterpreter::test_the_background_fixture_heal

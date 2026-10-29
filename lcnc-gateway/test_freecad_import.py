@@ -141,7 +141,7 @@ class TestFreeCADRoutes(unittest.IsolatedAsyncioTestCase):
         self.raw = archive()
         preview = await self.preview()
         import gateway
-        await gateway.refresh_tool_library_metadata(self.upload(), preview['revision'])
+        await gateway.refresh_tool_library_metadata(self.upload(), preview['revision'], x_conn_key=self.conn_key)
         self.assertEqual(self.table.read_bytes(), self.table_bytes)
         self.assertEqual(self.store.load()['1']['source_id'], 'cutter-id')
         self.assertIn('native_profile', self.store.load()['1'])
@@ -149,8 +149,9 @@ class TestFreeCADRoutes(unittest.IsolatedAsyncioTestCase):
     async def test_freecad_replace_initializes_unmeasured_zero(self):
         import gateway
         with patch.object(gateway, '_persist_imported_tools', new_callable=AsyncMock) as persist:
-            await gateway.apply_tool_library_import(self.upload(archive()))
-            _, table, metadata = persist.call_args.args
+            await gateway.apply_tool_library_import(self.upload(archive()), x_conn_key=self.conn_key)
+            _, table, metadata, key = persist.call_args.args
+            self.assertEqual(key, self.conn_key)   # the writer's connection (button gates BG-14)
             self.assertEqual(table[0]['Z'], 0)
             self.assertEqual(metadata['1']['oal'], 50)
 

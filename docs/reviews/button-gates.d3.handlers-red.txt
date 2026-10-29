@@ -1,0 +1,232 @@
+...FFF.FF..                                                   [100%]
+=================================== FAILURES ===================================
+_____ TestAtTheWrite.test_cycle_start_and_step (cmd='cycle_start', mode=1) _____
+
+self = <test_button_gates_d.TestAtTheWrite testMethod=test_cycle_start_and_step>
+
+    def test_cycle_start_and_step(self):
+        busy = {"cycle_start": "Machine busy — wait until it is idle",
+                "auto_step": "Program running — pause first to step"}
+        for cmd in ("cycle_start", "auto_step"):
+            for mode in (linuxcnc.MODE_MANUAL, linuxcnc.MODE_AUTO):
+                with self.subTest(cmd=cmd, mode=mode):
+                    # From MANUAL the first write is the switch to AUTO; in
+                    # AUTO already, the start itself.
+                    self.cmd.calls.clear()
+                    self.controller(task_mode=mode)
+                    r = self.at_the_write({"cmd": cmd}, self.running)
+>                   self.assertEqual(r, {"ok": False, "error": busy[cmd]})
+E                   AssertionError: {'ok': True} != {'ok': False, 'error': 'Machine busy — wait until it is idle'}
+E                   - {'ok': True}
+E                   + {'error': 'Machine busy — wait until it is idle', 'ok': False}
+
+test_button_gates_d.py:637: AssertionError
+_____ TestAtTheWrite.test_cycle_start_and_step (cmd='cycle_start', mode=2) _____
+
+self = <test_button_gates_d.TestAtTheWrite testMethod=test_cycle_start_and_step>
+
+    def test_cycle_start_and_step(self):
+        busy = {"cycle_start": "Machine busy — wait until it is idle",
+                "auto_step": "Program running — pause first to step"}
+        for cmd in ("cycle_start", "auto_step"):
+            for mode in (linuxcnc.MODE_MANUAL, linuxcnc.MODE_AUTO):
+                with self.subTest(cmd=cmd, mode=mode):
+                    # From MANUAL the first write is the switch to AUTO; in
+                    # AUTO already, the start itself.
+                    self.cmd.calls.clear()
+                    self.controller(task_mode=mode)
+                    r = self.at_the_write({"cmd": cmd}, self.running)
+>                   self.assertEqual(r, {"ok": False, "error": busy[cmd]})
+E                   AssertionError: {'ok': True} != {'ok': False, 'error': 'Machine busy — wait until it is idle'}
+E                   - {'ok': True}
+E                   + {'error': 'Machine busy — wait until it is idle', 'ok': False}
+
+test_button_gates_d.py:637: AssertionError
+______ TestAtTheWrite.test_cycle_start_and_step (cmd='auto_step', mode=1) ______
+
+self = <test_button_gates_d.TestAtTheWrite testMethod=test_cycle_start_and_step>
+
+    def test_cycle_start_and_step(self):
+        busy = {"cycle_start": "Machine busy — wait until it is idle",
+                "auto_step": "Program running — pause first to step"}
+        for cmd in ("cycle_start", "auto_step"):
+            for mode in (linuxcnc.MODE_MANUAL, linuxcnc.MODE_AUTO):
+                with self.subTest(cmd=cmd, mode=mode):
+                    # From MANUAL the first write is the switch to AUTO; in
+                    # AUTO already, the start itself.
+                    self.cmd.calls.clear()
+                    self.controller(task_mode=mode)
+                    r = self.at_the_write({"cmd": cmd}, self.running)
+>                   self.assertEqual(r, {"ok": False, "error": busy[cmd]})
+E                   AssertionError: {'ok': True} != {'ok': False, 'error': 'Program running — pause first to step'}
+E                   - {'ok': True}
+E                   + {'error': 'Program running — pause first to step', 'ok': False}
+
+test_button_gates_d.py:637: AssertionError
+______ TestAtTheWrite.test_cycle_start_and_step (cmd='auto_step', mode=2) ______
+
+self = <test_button_gates_d.TestAtTheWrite testMethod=test_cycle_start_and_step>
+
+    def test_cycle_start_and_step(self):
+        busy = {"cycle_start": "Machine busy — wait until it is idle",
+                "auto_step": "Program running — pause first to step"}
+        for cmd in ("cycle_start", "auto_step"):
+            for mode in (linuxcnc.MODE_MANUAL, linuxcnc.MODE_AUTO):
+                with self.subTest(cmd=cmd, mode=mode):
+                    # From MANUAL the first write is the switch to AUTO; in
+                    # AUTO already, the start itself.
+                    self.cmd.calls.clear()
+                    self.controller(task_mode=mode)
+                    r = self.at_the_write({"cmd": cmd}, self.running)
+>                   self.assertEqual(r, {"ok": False, "error": busy[cmd]})
+E                   AssertionError: {'ok': True} != {'ok': False, 'error': 'Program running — pause first to step'}
+E                   - {'ok': True}
+E                   + {'error': 'Program running — pause first to step', 'ok': False}
+
+test_button_gates_d.py:637: AssertionError
+________________ TestAtTheWrite.test_home_all_already_in_manual ________________
+
+self = <test_button_gates_d.TestAtTheWrite testMethod=test_home_all_already_in_manual>
+
+    def test_home_all_already_in_manual(self):
+        r = self.at_the_write({"cmd": "home_all"}, self.running)
+>       self.assertEqual(r, {"ok": False, "error": "Machine busy — wait until it is idle"})
+E       AssertionError: {'ok': True} != {'ok': False, 'error': 'Machine busy — wait until it is idle'}
+E       - {'ok': True}
+E       + {'error': 'Machine busy — wait until it is idle', 'ok': False}
+
+test_button_gates_d.py:604: AssertionError
+_____________________ TestAtTheWrite.test_the_mode_choice ______________________
+
+self = <test_button_gates_d.TestAtTheWrite testMethod=test_the_mode_choice>
+
+    def test_the_mode_choice(self):
+        def homing():
+            gateway.STAT.joint = tuple({"homing": 1} for _ in range(16))
+        r = self.at_the_write({"cmd": "set_mode", "mode": linuxcnc.MODE_MDI}, homing)
+>       self.assertEqual(r, {"ok": False, "error": "Homing in progress — wait until it ends"})
+E       AssertionError: {'ok': True} != {'ok': False, 'error': 'Homing in progress — wait until it ends'}
+E       - {'ok': True}
+E       + {'error': 'Homing in progress — wait until it ends', 'ok': False}
+
+test_button_gates_d.py:594: AssertionError
+______________ TestAtTheWrite.test_the_spindle_already_in_manual _______________
+
+self = <test_button_gates_d.TestAtTheWrite testMethod=test_the_spindle_already_in_manual>
+
+    def test_the_spindle_already_in_manual(self):
+        r = self.at_the_write({"cmd": "spindle_forward", "speed": 1000}, self.running)
+>       self.assertEqual(r, {"ok": False, "error": "Machine busy — wait until it is idle"})
+E       AssertionError: {'ok': True} != {'ok': False, 'error': 'Machine busy — wait until it is idle'}
+E       - {'ok': True}
+E       + {'error': 'Machine busy — wait until it is idle', 'ok': False}
+
+test_button_gates_d.py:599: AssertionError
+_____ TestAtTheWrite.test_unhome_after_its_teleop_step (cmd='unhome_all') ______
+
+self = <test_button_gates_d.TestAtTheWrite testMethod=test_unhome_after_its_teleop_step>
+
+    def test_unhome_after_its_teleop_step(self):
+        def teleop(*args):
+            self.cmd.calls.append(("teleop_enable", args, {}))
+            self.running()
+            return 0
+        self.cmd.teleop_enable = teleop
+        for msg in ({"cmd": "unhome_all"}, {"cmd": "unhome", "joint": 0}):
+            with self.subTest(cmd=msg["cmd"]):
+                self.cmd.calls.clear()
+                self.controller()
+                r = self.send(msg, controller={})
+>               self.assertEqual(r, {"ok": False, "error": "Machine busy — wait until it is idle"})
+E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Machine busy — wait until it is idle'}
+E               - {'ok': True}
+E               + {'error': 'Machine busy — wait until it is idle', 'ok': False}
+
+test_button_gates_d.py:618: AssertionError
+_______ TestAtTheWrite.test_unhome_after_its_teleop_step (cmd='unhome') ________
+
+self = <test_button_gates_d.TestAtTheWrite testMethod=test_unhome_after_its_teleop_step>
+
+    def test_unhome_after_its_teleop_step(self):
+        def teleop(*args):
+            self.cmd.calls.append(("teleop_enable", args, {}))
+            self.running()
+            return 0
+        self.cmd.teleop_enable = teleop
+        for msg in ({"cmd": "unhome_all"}, {"cmd": "unhome", "joint": 0}):
+            with self.subTest(cmd=msg["cmd"]):
+                self.cmd.calls.clear()
+                self.controller()
+                r = self.send(msg, controller={})
+>               self.assertEqual(r, {"ok": False, "error": "Machine busy — wait until it is idle"})
+E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Machine busy — wait until it is idle'}
+E               - {'ok': True}
+E               + {'error': 'Machine busy — wait until it is idle', 'ok': False}
+
+test_button_gates_d.py:618: AssertionError
+___ TestTheFlagClearIsPartOfTheStart.test_a_start_while_the_clear_is_queued ____
+
+self = <test_button_gates_d.TestTheFlagClearIsPartOfTheStart testMethod=test_a_start_while_the_clear_is_queued>
+
+    def test_a_start_while_the_clear_is_queued(self):
+        def running():
+            gateway.STAT.interp_state = linuxcnc.INTERP_READING
+        self.controller()
+        r = self.at_the_write({"cmd": "cycle_start"}, running, at=2)   # the #3116=0 MDI line
+>       self.assertEqual(r, {"ok": False, "error": "Skip flag #3116 not cleared — nothing started"})
+E       AssertionError: {'ok': False, 'error': 'Machine busy — wait until it is idle'} != {'ok': False, 'error': 'Skip flag #3116 not cleared — nothing started'}
+E       - {'error': 'Machine busy — wait until it is idle', 'ok': False}
+E       + {'error': 'Skip flag #3116 not cleared — nothing started', 'ok': False}
+
+test_button_gates_d.py:697: AssertionError
+___ TestTheFlagClearIsPartOfTheStart.test_a_start_while_the_switch_is_queued ___
+
+self = <test_button_gates_d.TestTheFlagClearIsPartOfTheStart testMethod=test_a_start_while_the_switch_is_queued>
+
+    def test_a_start_while_the_switch_is_queued(self):
+        def running():
+            gateway.STAT.task_mode, gateway.STAT.interp_state = linuxcnc.MODE_AUTO, linuxcnc.INTERP_READING
+        self.controller()
+        r = self.at_the_write({"cmd": "cycle_start"}, running, at=1)   # the switch to MDI
+>       self.assertEqual(r, {"ok": False, "error": "Machine busy — wait until it is idle"})
+E       AssertionError: {'ok': False, 'error': 'Skip flag #3116 not cleared — nothing started'} != {'ok': False, 'error': 'Machine busy — wait until it is idle'}
+E       - {'error': 'Skip flag #3116 not cleared — nothing started', 'ok': False}
+E       + {'error': 'Machine busy — wait until it is idle', 'ok': False}
+
+test_button_gates_d.py:688: AssertionError
+_ TestTheFlagClearIsPartOfTheStart.test_running_by_the_current_read (cmd='cycle_start') _
+
+self = <test_button_gates_d.TestTheFlagClearIsPartOfTheStart testMethod=test_running_by_the_current_read>
+
+    def test_running_by_the_current_read(self):
+        for cmd in ("cycle_start", "auto_step", "mdi"):
+            with self.subTest(cmd=cmd):
+                self.cmd.calls.clear()
+                msg = {"cmd": cmd, "text": "G0 X1"} if cmd == "mdi" else {"cmd": cmd}
+                r = self.send(msg, controller={"task_mode": linuxcnc.MODE_AUTO,
+                                               "interp_state": linuxcnc.INTERP_READING})
+                self.assertFalse(r["ok"], r)
+>               self.assertEqual([n for n in self.cmd.names() if n in ("mode", "mdi", "auto")], [])
+E               AssertionError: Lists differ: ['mode'] != []
+E               
+E               First list contains 1 additional elements.
+E               First extra element 0:
+E               'mode'
+E               
+E               - ['mode']
+E               + []
+
+test_button_gates_d.py:677: AssertionError
+=========================== short test summary info ============================
+SUBFAILED(cmd='cycle_start', mode=1) test_button_gates_d.py::TestAtTheWrite::test_cycle_start_and_step
+SUBFAILED(cmd='cycle_start', mode=2) test_button_gates_d.py::TestAtTheWrite::test_cycle_start_and_step
+SUBFAILED(cmd='auto_step', mode=1) test_button_gates_d.py::TestAtTheWrite::test_cycle_start_and_step
+SUBFAILED(cmd='auto_step', mode=2) test_button_gates_d.py::TestAtTheWrite::test_cycle_start_and_step
+FAILED test_button_gates_d.py::TestAtTheWrite::test_home_all_already_in_manual
+FAILED test_button_gates_d.py::TestAtTheWrite::test_the_mode_choice - Asserti...
+FAILED test_button_gates_d.py::TestAtTheWrite::test_the_spindle_already_in_manual
+SUBFAILED(cmd='unhome_all') test_button_gates_d.py::TestAtTheWrite::test_unhome_after_its_teleop_step
+SUBFAILED(cmd='unhome') test_button_gates_d.py::TestAtTheWrite::test_unhome_after_its_teleop_step
+FAILED test_button_gates_d.py::TestTheFlagClearIsPartOfTheStart::test_a_start_while_the_clear_is_queued
+FAILED test_button_gates_d.py::TestTheFlagClearIsPartOfTheStart::test_a_start_while_the_switch_is_queued
+SUBFAILED(cmd='cycle_start') test_button_gates_d.py::TestTheFlagClearIsPartOfTheStart::test_running_by_the_current_read

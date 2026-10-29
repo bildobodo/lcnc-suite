@@ -23,10 +23,12 @@ import { clickMore } from "./more";
 
 const PERMS_ALL = {
   idle: true, jog: true, override: true, ready: true, run: true, pause: false,
-  resume: false, step: true, abort: true, probe: true, zero: true,
+  resume: false, step: true, abort: true, spindleStop: true, probe: true, zero: true,
   machineFrame: true, goZero: true, planeFrame: true,
   touchoff: true, touchoffRotary: true, twpCapture: true,
-  surfaceComp: true, safety: true, setup: true, armed: true, always: true,
+  surfaceComp: true, safety: true, setup: true, sourceWrite: true, toolTableWrite: true, armed: true, always: true,
+  // button gates D
+  programLoad: true, modeManual: true, modeCoord: true, parameterRead: true, g30Write: true, spindleManual: true, armEnable: true, estopReset: true,
 };
 const TOOL = { T: 5, P: 5, Z: -40, D: 6, type: "endmill", description: "Test cutter" };
 const PROBE_VIEWS = ["Outside", "Inside", "Angle", "Boss/Pocket", "Ridge/Valley", "Surface", "Calibrate", "Toolsetter"];
@@ -233,13 +235,15 @@ test("a reset sits at the end of its section, right, and its confirm keeps its b
   await reset.click();
   const ask = page.getByRole("dialog", { name: "Reset Toolsetter settings?", exact: true });
   await expect(ask.getByRole("button", { name: "Reset", exact: true })).toBeEnabled();
-  await ctl({ op: "status_delta", data: { permissions: { ...PERMS_ALL, setup: false } } });
+  // The toolsetter settings are a protected section: their reset is armed
+  // (button gates package C, Q2 — no idle term); a disarm closes it.
+  await ctl({ op: "status_delta", armed: false, data: {} });
   await expect(ask.getByRole("button", { name: "Reset", exact: true })).toBeDisabled();
   await expect(ask.getByRole("button", { name: "Cancel", exact: true })).toBeEnabled();
   await ask.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(ask).toHaveCount(0);
 
-  await ctl({ op: "status_delta", data: { permissions: PERMS_ALL } });
+  await ctl({ op: "status_delta", armed: true, data: { permissions: PERMS_ALL } });
   await page.getByRole("tab", { name: "Calibrate", exact: true }).click();
   await page.getByRole("button", { name: "Reset Calibration", exact: true }).click();
   const cal = page.getByRole("dialog", { name: "Reset probe calibration?", exact: true });

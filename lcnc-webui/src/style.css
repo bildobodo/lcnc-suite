@@ -695,28 +695,6 @@ fieldset:disabled textarea {
   opacity: var(--opacity-disabled) !important;
   cursor: not-allowed;
 }
-/* Legend children are exempt from fieldset:disabled per HTML spec —
-   restore opacity so Arm and E-Stop look fully enabled while disarmed.
-   The intent is "always visible where you can act": Arm so you can arm,
-   E-Stop so you can stop. Buttons that are :disabled at the per-button
-   level (e.g. E-Stop "Reset" when canResetEstop=false because not armed)
-   intentionally stay dimmed via the standard `button:disabled` rule —
-   the operator should see that Reset isn't available until they arm.
-   Two anchor patterns share the same exemption:
-     1. fieldset:not([disabled]) — original <Gate gate="always"> wrappers.
-     2. div.btnGate — current SafetyStrip plain-div wrappers.
-   `div.btnGate` (not just `.btnGate`) excludes fieldset.btnGate —
-   Machine On/Off is inside <Gate gate="safety" class="btnGate"> which
-   produces a fieldset.btnGate; that one stays dimmed when disarmed via
-   the parent fieldset:disabled descendant rule. */
-fieldset:disabled > legend fieldset:not([disabled]) button:not(:disabled),
-fieldset:disabled > legend fieldset:not([disabled]) input:not(:disabled),
-fieldset:disabled > legend div.btnGate > button:not(:disabled),
-fieldset:disabled > legend div.btnGate > input:not(:disabled) {
-  opacity: 1 !important;
-  cursor: pointer;
-}
-
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -2253,6 +2231,27 @@ label:has(input:disabled, select:disabled) {
 .text-warn   { color: var(--warn-text); }
 .text-danger { color: var(--danger-text); }
 .text-muted  { color: var(--fg-muted); }
+
+/* Corner label (button gates package F, operator 2026-10-28): a small mark
+   in a control's top-left corner that names what the control addresses —
+   the joint a jog moves before homing — without changing the control's size
+   (in the label, "J2·Z+" widened the Z and rotary buttons 18 px). The
+   control is its positioned box (Btn.vue's root is). It takes the control's
+   OWN text colour, the one tested to hold 4.5 : 1 on that control (muted it
+   held 4.09 : 1 on the dark amber — Codex R222 BG-36), and the smallest type
+   step in the corner's edge so it keeps clear of a centred icon and label in
+   the 57 px portrait buttons (layout.spec measures the clearance). Shown for
+   sight and hidden from assistive technology (aria-hidden): the control
+   carries the same as its description. */
+.cornerLabel {
+  position: absolute;
+  top: var(--gap-micro);
+  left: var(--gap-micro);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  line-height: 1;
+  pointer-events: none;
+}
 
 /* Radio button label row (jog increments, WCS selector) */
 .radio-label    { display: flex; align-items: center; gap: var(--gap-tight); font-size: var(--fs-base); cursor: pointer; white-space: nowrap; }

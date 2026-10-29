@@ -1,0 +1,123 @@
+{
+  "mode": "offline",
+  "started": "2026-10-27T20:04:54.579353+00:00",
+  "root": "/home/cnc/lcnc-suite-gates",
+  "gates": [
+    {
+      "name": "backend",
+      "command": [
+        "/home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-gates/lcnc-gateway",
+      "log": "backend.log",
+      "started": "2026-10-27T20:04:54.587295+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 66.0,
+      "finished": "2026-10-27T20:06:00.585065+00:00",
+      "notes": []
+    },
+    {
+      "name": "5axis-model",
+      "command": [
+        "/home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3",
+        "/home/cnc/lcnc-suite-gates/scripts/test_5axis_xyzac.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-gates",
+      "log": "5axis-model.log",
+      "started": "2026-10-27T20:06:00.585365+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.73,
+      "finished": "2026-10-27T20:06:01.311035+00:00",
+      "notes": []
+    },
+    {
+      "name": "audit-css",
+      "command": [
+        "/home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-gates/scripts/test_audit_scoped_css.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-gates",
+      "log": "audit-css.log",
+      "started": "2026-10-27T20:06:01.311223+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 1.06,
+      "finished": "2026-10-27T20:06:02.372451+00:00",
+      "notes": []
+    },
+    {
+      "name": "review-handshake",
+      "command": [
+        "/home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-gates/scripts/test_review_handshake.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-gates",
+      "log": "review-handshake.log",
+      "started": "2026-10-27T20:06:02.372646+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 4.5,
+      "finished": "2026-10-27T20:06:06.869882+00:00",
+      "notes": []
+    },
+    {
+      "name": "readback-target",
+      "command": [
+        "/home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-gates/scripts/test_toolsetter_readback_check.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-gates",
+      "log": "readback-target.log",
+      "started": "2026-10-27T20:06:06.870049+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.17,
+      "finished": "2026-10-27T20:06:07.035597+00:00",
+      "notes": []
+    },
+    {
+      "name": "parity-compare",
+      "command": [
+        "/home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-gates/scripts/test_parity_compare.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-gates",
+      "log": "parity-compare.log",
+      "started": "2026-10-27T20:06:07.035785+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.17,
+      "finished": "2026-10-27T20:06:07.210698+00:00",
+      "notes": []
+    }
+  ],
+  "commit": "88e23d49a2a3ad8082ec32814271458dce31dbb8",
+  "tracked_changes": [
+    "docs/reviews/button-gates.d2.handlers-red.txt",
+    "lcnc-gateway/gateway.py",
+    "lcnc-gateway/test_button_gates.py",
+    "lcnc-gateway/test_button_gates_d.py"
+  ],
+  "runner_sha256": "ad2a70abaac46b079e3e0e3e02afc5b745eba88f98910c8cdd40149d4a6ca2d7",
+  "status": "pass",
+  "changed_file_sha256": {
+    "docs/reviews/button-gates.d2.handlers-red.txt": "c4fe4fe263d0ee925aacc8a00dd183afa70ee48a6540c2b42b0563f55cbc563e",
+    "lcnc-gateway/gateway.py": "43699166410618c285cbe8b29fd369604fdcb4f44706efb8ec1e0a1ef755a123",
+    "lcnc-gateway/test_button_gates.py": "680a74f7c7461c4316c03f3f0d54797129377ac54c711a21e72ce015e504c8b9",
+    "lcnc-gateway/test_button_gates_d.py": "d5fe90fa91a169ab5a9ae634197e672725d19cfae745d06f1d25c2541c61ac84"
+  },
+  "not_run": [],
+  "finished": "2026-10-27T20:06:07.210875+00:00"
+}

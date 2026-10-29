@@ -1,0 +1,34 @@
+{
+  "head": "dec9f2e8",
+  "uncommitted": 0,
+  "note": "package D run 1 at dec9f2e8",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 8
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 16
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "PASS",
+      "seconds": 434,
+      "tests": "162 files, 2624 passed"
+    },
+    {
+      "name": "frontend-browser",
+      "command": "npx playwright test --trace off --reporter=line",
+      "status": "FAIL",
+      "seconds": 20,
+      "tests": "8 passed",
+      "note": "run alone"
+    }
+  ]
+}

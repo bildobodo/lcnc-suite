@@ -1,0 +1,48 @@
+
+Running 1 test using 1 worker
+
+[1A[2K[1/1] [serial-guards] › e2e/joint-jog.spec.ts:97:1 › before homing every open axis jogs in amber, the diagonals are closed with their reason; homed both are back (package F)
+[1A[2K  1) [serial-guards] › e2e/joint-jog.spec.ts:97:1 › before homing every open axis jogs in amber, the diagonals are closed with their reason; homed both are back (package F) 
+
+    Error: X+: amber before homing
+
+    [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveClass[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator: locator('[data-strip="jog"]').getByRole('button', { name: 'X+', exact: true })
+    Expected pattern: [32m/\bwarn\b/[39m
+    Received string:  [31m"b sm default mono jogBtn"[39m
+    Timeout: 10000ms
+
+    Call log:
+    [2m  - X+: amber before homing with timeout 10000ms[22m
+    [2m  - waiting for locator('[data-strip="jog"]').getByRole('button', { name: 'X+', exact: true })[22m
+    [2m    22 × locator resolved to <button data-v-423535d9="" data-v-4181fe1c="" data-control="jog" class="b sm default mono jogBtn">…</button>[22m
+    [2m       - unexpected value "b sm default mono jogBtn"[22m
+
+
+      102 |     const btn = strip.getByRole("button", { name, exact: true });
+      103 |     await expect(btn, name).toBeEnabled();
+    > 104 |     await expect(btn, `${name}: amber before homing`).toHaveClass(/\bwarn\b/);
+          |                                                       ^
+      105 |   }
+      106 |   await expect(strip.locator('[data-control="jogStop"]'), "the Stop stays red").not.toHaveClass(/\bwarn\b/);
+      107 |   for (const cell of [0, 2, 6, 8]) {   // the pad's four corners: the diagonals
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/joint-jog.spec.ts:104:55
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/joint-jog-before-homing-ev-6c8fb-ed-both-are-back-package-F--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/joint-jog-before-homing-ev-6c8fb-ed-both-are-back-package-F--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/joint-jog-before-homing-ev-6c8fb-ed-both-are-back-package-F--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/joint-jog-before-homing-ev-6c8fb-ed-both-are-back-package-F--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  1 failed
+    [serial-guards] › e2e/joint-jog.spec.ts:97:1 › before homing every open axis jogs in amber, the diagonals are closed with their reason; homed both are back (package F) 

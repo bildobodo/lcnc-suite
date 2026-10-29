@@ -11,7 +11,9 @@ import { computed, inject, type ComputedRef, type InjectionKey } from "vue";
  * cannot observe:
  *
  *   - `armed` — this client's server-authoritative arming. ANDed into every
- *     gate except `always` (Arm / E-Stop stay reachable while disarmed).
+ *     gate except `always` (Arm / E-Stop stay reachable while disarmed) and
+ *     the stops (STOP_GATES: Abort, Pause, the spindle stop — button gates
+ *     BG-08 / BG-18: arm authorizes new machine effects, a stop is none).
  *   - `busy`  — a per-tab debounce while a command settles. ANDed as `!busy`
  *     into the gates that carried a top-level `!busy` term in the old formula.
  *
@@ -49,6 +51,28 @@ export type Permissions = {
    *  is no standstill (a manual jog keeps INTERP_IDLE), unknown refuses.
    *  Backend: command_policy motion_still_of (Codex R25 OP-I02). */
   g30Capture: boolean;
+  /** g30Write: machineFrame + a confirming synch is possible — not with the
+   *  machine ON in AUTO, where LinuxCNC refuses it (button gates BG-13). */
+  g30Write: boolean;
+  /** parameterRead: the confirmed G30 read — armed, idle, no power or homing
+   *  term; closed only with the machine ON in AUTO (no synch there, BG-13). */
+  parameterRead: boolean;
+  /** programLoad: load / unload / re-parse the program — armed and the
+   *  interpreter known idle; no E-Stop, power or homing term (BG-03). */
+  programLoad: boolean;
+  /** modeManual / modeCoord: the task mode per target (BG-04) — no jog,
+   *  motion or homing under way; MDI / AUTO also need COORD reachable
+   *  (homed, or identity kinematics with NO_FORCE_HOMING). No power term. */
+  modeManual: boolean;
+  modeCoord: boolean;
+  /** spindleManual: Fwd / Rev / ± — `ready`, or unhomed in MANUAL where the
+   *  machine declares WEBUI_SPINDLE_BEFORE_HOMING (operator Q1). */
+  spindleManual: boolean;
+  /** armEnable: ARMING (disarming is always open) — no safety trip waiting
+   *  for its acknowledgement (BG-11). */
+  armEnable: boolean;
+  /** estopReset: armed + the trip acknowledged — the recovery order (BG-11). */
+  estopReset: boolean;
   /** goZero: ready + a → Zero plan exists for the kinematics mode — Machine
    *  frame (subroutine) or Plane frame with its plane and G59 (retract along
    *  the tool axis, X0 Y0 in the plane); TCP refuses. Backend:
@@ -65,8 +89,15 @@ export type Permissions = {
   resume: boolean;
   /** step: single-step (ready to start OR paused to continue) */
   step: boolean;
-  /** abort: can abort/stop */
+  /** abort: can abort — in every state, without arm (a stop, BG-08) */
   abort: boolean;
+  /** spindleStop: the spindle stop at idle — machine on, interpreter idle;
+   *  no arm, no homing (BG-18). While a program or MDI runs or pauses it
+   *  owns the spindle: Pause / Abort. */
+  spindleStop: boolean;
+  /** toolChangeConfirm: the manual tool-change confirmation — armed and a
+   *  FRESH pending request; closed in simulation (BG-17). */
+  toolChangeConfirm: boolean;
   /** probe: ready + no eoffset (probing with comp active contaminates) */
   probe: boolean;
   /** zero: idle + no eoffset (zeroing with comp active bakes offset into G5x) */
@@ -96,6 +127,15 @@ export type Permissions = {
   safety: boolean;
   /** setup: armed + estop cleared + idle (admin ops, no enabled needed) */
   setup: boolean;
+  /** sourceWrite: a program or macro FILE write — armed, the interpreter
+   *  KNOWN idle (E-Stop allowed: maintenance), no start, run-from-line or
+   *  program change in progress. The gateway checks it again at the commit,
+   *  for the writer's own connection (button gates BG-14). */
+  sourceWrite: boolean;
+  /** toolTableWrite: sourceWrite + no M6 request pending (the tool table
+   *  is what a tool change reads). Every tool-table writer: the WS edits,
+   *  the library import, the metadata refresh (BG-14). */
+  toolTableWrite: boolean;
   /** armed: client is armed — outer content gate, allows nav during E-Stop */
   armed: boolean;
   /** always: unconditional — only for Arm and E-Stop */
@@ -104,10 +144,11 @@ export type Permissions = {
 
 /** All gate names, in a stable order. */
 export const GATE_NAMES = [
-  "idle", "jog", "override", "ready", "run", "machineFrame", "g30Capture", "goZero", "planeFrame", "pause", "resume", "step",
-  "abort", "probe", "zero", "touchoff", "touchoffRotary", "twpCapture",
-  "surfaceComp",
-  "safety", "setup", "armed", "always",
+  "idle", "jog", "override", "ready", "run", "machineFrame", "g30Capture", "g30Write", "parameterRead", "goZero", "planeFrame",
+  "pause", "resume", "step",
+  "abort", "spindleStop", "toolChangeConfirm", "probe", "zero", "touchoff", "touchoffRotary", "twpCapture",
+  "surfaceComp", "programLoad", "modeManual", "modeCoord", "spindleManual", "armEnable", "estopReset",
+  "safety", "setup", "sourceWrite", "toolTableWrite", "armed", "always",
 ] as const;
 
 /**
@@ -118,8 +159,9 @@ export const GATE_NAMES = [
  * wrong. `jog` never had a busy term (hold-to-move).
  */
 const BUSY_GATES: ReadonlySet<keyof Permissions> = new Set([
-  "idle", "override", "ready", "run", "machineFrame", "g30Capture", "goZero", "planeFrame", "probe", "zero", "touchoff", "touchoffRotary",
-  "twpCapture", "surfaceComp", "setup",
+  "idle", "override", "ready", "run", "machineFrame", "g30Capture", "g30Write", "parameterRead", "goZero", "planeFrame", "probe",
+  "zero", "touchoff", "touchoffRotary", "twpCapture", "surfaceComp", "setup", "sourceWrite", "toolTableWrite",
+  "programLoad", "modeManual", "modeCoord", "spindleManual",
 ]);
 
 /**
@@ -128,10 +170,43 @@ const BUSY_GATES: ReadonlySet<keyof Permissions> = new Set([
  * every machine-action gate must be closed — the display is intentionally
  * wrong, so acting on it is the hazard. `always` keeps Arm/E-Stop, `armed`
  * keeps navigation, `setup` keeps file browsing (loading a file exits sim).
- * `safety` is deliberately NOT here: Machine On requires exiting sim first.
+ * The file and tool-table writes (sourceWrite, toolTableWrite) took over
+ * what `setup` gated there and stay open the same way: a write moves
+ * nothing, and the simulation is how a program is checked before it is
+ * saved (button gates B — a decision, not an accident).
+ * `programLoad` took over loading from `setup` and stays open the same way
+ * (a load changes the program, which ends the simulation — ScrubBar).
+ * `armEnable` / `estopReset` keep the recovery reachable (the Reset button
+ * had no sim term before button gates D either). `safety` is deliberately
+ * NOT here: Machine On requires exiting sim first.
  */
 const SIM_GATES: ReadonlySet<keyof Permissions> = new Set([
-  "always", "armed", "setup",
+  "always", "armed", "setup", "sourceWrite", "toolTableWrite", "programLoad", "armEnable", "estopReset",
+]);
+
+/**
+ * The stops (button gates BG-08 / BG-18, Codex R202–R204): no client-local
+ * term closes them — not disarmed (arm authorizes NEW machine effects; E-Stop
+ * was always open to every client), not the busy latch of another command,
+ * not simulation mode. The backend judges the state (Pause: something runs;
+ * the spindle stop: machine on and idle); its decision passes through as is.
+ */
+const STOP_GATES: ReadonlySet<keyof Permissions> = new Set([
+  "abort", "pause", "spindleStop",
+]);
+
+/**
+ * Gates judged by the backend alone, like the stops: the stops, and ARMING
+ * (`armEnable`, button gates BG-11) — it is what a disarmed client does, so
+ * the client's own `armed` term can never be part of it; the backend closes
+ * it while a safety trip waits for its acknowledgement. Arming is the one
+ * class that stays OPEN until the backend says otherwise: the Arm button is
+ * reachable before the first status and against a gateway without the class
+ * (smoke.spec "Arm control stays reachable"), and the gateway's arm handler
+ * refuses arming over an unacknowledged trip itself.
+ */
+const BACKEND_ONLY_GATES: ReadonlySet<keyof Permissions> = new Set([
+  ...STOP_GATES, "armEnable",
 ]);
 
 /** The backend's machine-state permission dict (computed with `armed=true`). */
@@ -139,11 +214,14 @@ export type MachinePermissions = Partial<Record<keyof Permissions, boolean>>;
 
 /**
  * Apply the client-local overlay to the backend-broadcast machine permissions.
- * `always` is unconditional; every other gate requires `armed`; busy-subset
- * gates also require `!busy`. Absent backend perms (before the first status)
- * yield all-false except `always` — the safe default.
+ * `always` is unconditional; a stop or arming (BACKEND_ONLY_GATES) is the
+ * backend's decision alone; every other gate requires `armed`; busy-subset gates also require
+ * `!busy`. Absent backend perms (before the first status)
+ * yield all-false except `always` — the safe default. A class the gateway
+ * does not ship is CLOSED, never read from another one (button gates
+ * BG-15: the old fallback opened Cycle Start, the machine-frame routines
+ * and → Zero on `ready` alone); its reason says to restart the gateway.
  */
-let _warnedNoRun = false;
 export function applyClientOverlay(
   machine: MachinePermissions | null | undefined,
   armed: boolean,
@@ -151,16 +229,10 @@ export function applyClientOverlay(
   sim: boolean = false,
 ): Permissions {
   const out = {} as Permissions;
-  // Mixed-version window (2026-09-03): a gateway that predates the `run`
-  // class ships no `run` key. Read it as `ready` (its old gate) and say so
-  // once, instead of dimming Cycle Start until the restart.
-  if (machine && machine.ready !== undefined
-      && (machine.run === undefined || machine.machineFrame === undefined || machine.goZero === undefined)) {
-    if (!_warnedNoRun) { _warnedNoRun = true; console.warn("[permissions] backend ships no 'run' / 'machineFrame' / 'goZero' class — using 'ready' until the gateway restarts"); }
-    machine = { run: machine.ready, machineFrame: machine.ready, goZero: machine.ready, ...machine };
-  }
   for (const g of GATE_NAMES) {
     if (g === "always") { out[g] = true; continue; }
+    if (g === "armEnable") { out[g] = machine?.[g] !== false; continue; }
+    if (BACKEND_ONLY_GATES.has(g)) { out[g] = !!machine?.[g]; continue; }
     out[g] = !!machine?.[g] && armed
       && (BUSY_GATES.has(g) ? !busy : true)
       && (sim ? SIM_GATES.has(g) : true);
@@ -183,22 +255,40 @@ export const CLIENT_REASONS = {
   notArmed: "Not armed — press Arm",
   settling: "Busy — the last command is still running",
   sim: "Simulation mode — exit the simulation first",
+  /** A status that carries permissions but not this class: the gateway
+   *  predates it (BG-15). */
+  unknownClass: "Gateway lacks this permission — restart it",
 } as const;
 
 /** The reasons twin of applyClientOverlay: the client-local terms explain
  *  themselves (armed / busy / sim), else the backend's reason rides through.
- *  A gate closed by the backend without a shipped reason (an older gateway)
- *  stays unexplained — dimmed as before, never a made-up sentence. */
+ *  A gate closed by the backend without a shipped reason stays unexplained —
+ *  dimmed, never a made-up sentence. A class missing from a status that
+ *  carries permissions (`perms`, the boolean dict) is named as such (BG-15);
+ *  before the first status there is nothing to compare against. */
 export function applyClientOverlayReasons(
   machine: Partial<Record<string, string>> | null | undefined,
   armed: boolean,
   busy: boolean,
   sim: boolean = false,
+  perms?: MachinePermissions | null,
 ): PermissionReasons {
   const out: PermissionReasons = {};
   for (const g of GATE_NAMES) {
     if (g === "always") continue;
+    const unknown = perms != null && perms[g] === undefined;
+    if (g === "armEnable") {   // open unless the backend closes it (above)
+      const r = perms?.[g] === false ? machine?.[g] : undefined;
+      if (r) out[g] = r;
+      continue;
+    }
+    if (BACKEND_ONLY_GATES.has(g)) {
+      const r = unknown ? CLIENT_REASONS.unknownClass : machine?.[g];
+      if (r) out[g] = r;
+      continue;
+    }
     if (!armed) { out[g] = CLIENT_REASONS.notArmed; continue; }
+    if (unknown) { out[g] = CLIENT_REASONS.unknownClass; continue; }
     if (sim && !SIM_GATES.has(g)) { out[g] = CLIENT_REASONS.sim; continue; }
     if (busy && BUSY_GATES.has(g)) { out[g] = CLIENT_REASONS.settling; continue; }
     const r = machine?.[g];
@@ -216,10 +306,6 @@ const _noReasons = computed<PermissionReasons>(() => ({}));
 export function usePermissionReasons(): ComputedRef<PermissionReasons> {
   return inject(PERMISSION_REASONS_KEY, _noReasons);
 }
-
-/** Valid gate names (excludes `always`) — used by main.ts data-gate guard. */
-export const VALID_GATES: ReadonlySet<string> =
-  new Set(GATE_NAMES.filter((k) => k !== "always"));
 
 /** Injection key for provide/inject */
 export const PERMISSIONS_KEY = Symbol("permissions") as InjectionKey<ComputedRef<Permissions>>;

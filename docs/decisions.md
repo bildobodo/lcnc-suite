@@ -9469,3 +9469,176 @@ ended — a protected save the server can no longer admit stays unconfirmed;
 closing the page before the save is confirmed may lose the last change. No
 offset write path around MDI (LinuxCNC requires homing for MDI; reading and
 drafting offsets is free). No global `NO_FORCE_HOMING`.
+
+**Package B as built (2026-10-26, before its implementation review).** Three
+choices the plan left open: (1) a protected draft that FAILED ends when the
+server's section changes after it was made — another writer's newer state is
+what the form shows then, the save status keeps the failure; a draft still on
+its way rides along (else two tabs editing one section would flicker, and a
+draft refused hours ago would hide every later change). (2) `sourceWrite` and
+`toolTableWrite` stay open in simulation, as `setup` did for these writes: a
+write moves nothing, and the simulation is where a program is checked before
+it is saved. (3) The editor's Discard is never gated — the Save beside it is
+now open in E-Stop, and an edit must never be trapped. The e2e mock answers a
+settings save and broadcasts the blob like the gateway (`settingsEcho`): a
+mock that never confirmed made every UI-saved protected setting look inactive.
+A visible consequence: a protected toggle (keyboard jogging, run from line,
+the macro bar) acts after its 300 ms debounce and the gateway's answer, not
+on the click.
+
+**Package B after Codex R211 (2026-10-26).** Codex accepted BG-15, the M6 rule, the
+draft/active split and the three choices above, and found five commit boundaries still
+open (BG-22–26), each fixed with its probe adopted as a guard
+(`test_button_gates_b_commit.py`): an admitted tool-table persist ends under `_cmd_lock`
+through a cancel — the abort that preempts it waits for one table write, one reload and
+one library write, and the preempted reply still says "Preempted" while the edit landed
+(the `_cmd_blocking` contract); a WS write reads its connection's arm at the commit; a
+settings save and the reset decide inside the store's lock; macros run the program
+rule (`_source_write_refusal` is gone); and no controller status refuses every source
+and table write — the gateway before its first status cannot vouch for an idle
+interpreter (operator-visible only in that window).
+
+**Package C as built (2026-10-26, before its implementation review).** The outer
+armed fieldset is gone (BG-01): a disarmed client navigates every tab and dialog,
+reads, preselects and stops; every control that acts is closed by its own gate and
+says why (BG-16). One operator decision changed the plan: the PROTECTED settings
+(keyboard, gamepad, machine, probe and toolsetter parameters, the macro bar, the MDI
+history) are dimmed with "Not armed — press Arm" while disarmed instead of the plan's
+"drafts free" (operator 2026-10-26, asked when the inventory showed what "free"
+meant): a disarmed draft can never be saved — the gateway refuses it and arming
+resends nothing — and the probe form would carry a disarmed draft into the next probe.
+Reading them stays free, the display sections stay free. Two defects the inventory
+and the new browser guard turned up: `shutdown` had no arm check at the gateway
+(only the client's catalog gate), and a ChoiceGroup option's undefined `title`
+attribute overrode its reason (every dimmed mode / WCS option was mute, armed too).
+Package A's record said every dialog's Abort sat outside the fieldset — wrong: every
+dialog teleports into the content; corrected in the C answer. Loading, the mode
+choice, G30, the action map and the recovery order stay package D.
+
+**Package C after its implementation review (R213, 2026-10-27).** Four corrections.
+The RPM field is the PRESELECTION for the next Fwd / Rev, free in every state —
+running, turning, disarmed (BG-27; before, it was locked while the spindle turned or a
+program ran, without a reason). While the spindle turns the commanded speed is mirrored
+into it unless the operator holds a value the controller has not taken (`rpmPending`): no
+status overwrites that value; Fwd / Rev sends it. ONE end: the commanded speed reaching the
+field's value — a sent Fwd / Rev is not a taken one (the gateway may refuse it), and the
+speed the spindle already turns at, entered again, is no draft (both found in my own
+correction before the R214 answer). A late INI default fills only an UNTOUCHED preselection (R214):
+the one-shot default from `viewer_init` used to overwrite a prepared RPM, the mirrored
+commanded speed and a moved jog speed alike — each preselection now records whether the
+operator (or, for the RPM, the machine) has written it (`iniDefaultOnce`). The strip's head shows the commanded speed
+while the spindle turns ("Spindle · 1500 rpm"), in the heading's own line, so the
+field and the spindle can differ visibly. A disarm no longer throws away every open
+number keypad (BG-28): the global disarm watch in the keypad strip predated the owner
+model; the OWNER ends its session when its own gate closes (the owner permissions carry
+the arm), so a free field keeps its entry and a protected one closes without applying;
+a field a closed enclosing Gate disables is vetoed at confirm (`:disabled`). The jog
+pad's centre Stop answers Enter and Space (BG-29: only the pointer stopped) — on
+keydown, default prevented, repeats ignored, never a second stop from the pointer's
+click. The inventory scan reads an event by its name (`@click.self`, `v-on:click.stop`)
+and a bound gate or entry by every value it can take — a variable branch, a nested
+ternary or a literal in the condition no longer counts as closed (BG-30); it found the
+dialog backdrop, the code editor's keyboard opener, the macro table's control cells and
+the More menu's frame, all classified. Its named limit: it guards the list of controls
+and their gates, not what a handler does.
+
+**Package D as built (2026-10-27, before its implementation review).** Loading needs
+no AUTO, power or homing (BG-03): `programLoad`, the load and unload admitted at the
+commit like a write; a start's own AUTO switch closes and PLAN_RUN re-opens the file
+(LinuxCNC source; the live check is in the package's evidence). The task mode is judged per target (BG-04): MANUAL
+wherever task takes it (E-Stop, off, unhomed; not while moving or homing), MDI / AUTO
+only where COORD is reachable (homed, or identity kinematics with NO_FORCE_HOMING —
+the motion kinType, never the switchkins frame). One admission per action for button,
+shortcut and gamepad (BG-10, `actionAdmission.ts`). The recovery order is a policy rule
+with the trip as its input (BG-11: `armEnable`, `estopReset`). The confirmed G30 read is
+its own class, closed only with the machine ON in AUTO (BG-13: `parameterRead`,
+`g30Write`). The manual spindle may run before homing in MANUAL where the machine sets
+`[DISPLAY] WEBUI_SPINDLE_BEFORE_HOMING = 1` (operator Q1; default off). Backend and
+permissions.ts now name the same classes, compared by a test.
+
+**Package D, implementation review R216 (2026-10-27).** Codex confirmed BG-03, BG-10,
+BG-11 and BG-13 and found the rest of BG-04 and BG-31: the mode choice and the manual
+spindle were judged only on the published snapshot (a poll old) and then switched the
+task mode themselves — a homing or a move since then met the switch, and Fwd / Rev / ±
+switched a just-started MDI to MANUAL (aborting it) and so created the MANUAL the Q1
+exception needs. Now every handler that switches the mode itself judges its class on
+a CURRENT controller read before the switch, and the manual ones once more after it
+(`_controller_gate_refusal`, `_switch_to_manual`); a field the poll lacks is unknown,
+never the snapshot's value; a failed poll refuses. Home / Unhome and Cycle Start / Step
+from idle (their switch to AUTO came after a start guard whose current read judged only
+the kinematics) had the same shape and were fixed with it (beyond the two named
+findings). The display may still lag a poll —
+accepted by Codex for the dimming, never for the command. The interpreter, homed and
+homing derivations became one pure rule for the snapshot and the current read.
+
+**Package D, re-review R217 (2026-10-27).** Codex: the check sat BEFORE the executor
+queue — the write itself still waited in it, as did the commands after a switch and
+Unhome after its teleop step; and the start guard's skip-flag clear switched to MDI
+before any check (BG-32). Now every write of those paths carries the admission INSIDE
+its thread (`_cmd_blocking`'s `admit`, already the program start's last check since
+BG-09): `set_mode(…, admit=)`, `_manual_command` (the switch and each command),
+`_start_admit` (the kinematics AND the start's class, at the switch to AUTO and the
+start). The flag clear refuses a running interpreter before its switch and admits its
+switch and MDI line at their writes; a refusal keeps the flag unknown. The other
+handlers' switches keep only their pre-queue poll — a named boundary; an idle admit on
+every `set_mode` write is proposed for package E beside the native jog-stop check
+(raising out of a stop path is a stop-semantics change of its own).
+
+**Package E as built (2026-10-28, before its implementation review).** Codex R218 took my
+proposal as E's first scope: a jog stop now needs no mode switch (2.9.4 task issues it in
+MANUAL, MDI and AUTO idle; it stops only the joint's free planner) — it addresses the jog
+as started and counts as stopped only once written — and every `set_mode` write lands only
+on an interpreter KNOWN idle, read in its thread. Jogging before homing (BG-07) where
+`[DISPLAY] WEBUI_JOINT_JOG_BEFORE_HOMING = 1` (operator E1, default off): each axis moves
+its DECLARED joint (`WEBUI_JOINT_AXES`, else trivkins' `coordinates=`; a gantry letter
+closed), capped at `WEBUI_JOINT_JOG_MAX_FRACTION` (operator E2, default 0.1; invalid →
+off) of the joint's MAX_VELOCITY — unhomed jog limits are pos ± full travel, only the
+limit switches protect. The operator first chose joint names on the buttons (E3, "J0 · X")
+and dropped them the same day when "J2·Z+" widened the Z and rotary buttons ("other UIs do
+not do it either"); the strip's head states "Joint jog — no soft limits · max 10 %", a
+closed axis is dimmed with its reason, keyboard and gamepad refuse by the same rule.
+
+**Package E, implementation review R219 (2026-10-28).** Codex confirmed the R218 scope (stops
+without a switch, the idle admit at every mode write) and the regular joint map, and found
+three transitions: a jog prepared homed met an unhomed machine at its write and went out
+uncapped or as a single gantry joint (BG-33); a jog written during a cancel was never booked,
+so the disconnect stop missed it (BG-34); a new jog was admitted while homing ran (BG-35).
+Now each jog write holds the homing state it was prepared under (else "Homing state changed —
+jog again"), the booking happens in the write's thread (`_cmd_blocking(written=)`), and `jog`
+requires no homing under way (known).
+
+**Package E, re-review R220 (2026-10-28).** BG-33 and BG-35 closed; BG-34's rest: a SECOND
+cancel (the abort preemption, then the disconnect) broke `_cmd_blocking`'s one wait for its
+write, so the command lock — and the disconnect stop — came before the write and its booking.
+`_cmd_blocking` now awaits its write through every cancel (`_thread_to_end`, which already did
+this for the file and tool-table writers, with `on_cancel` ending the wait slices).
+
+**Package F — the operator's look at the full stand (2026-10-28).** Testing all five
+packages on a LAN copy of the gates sim, the operator asked three things. (1) Preselections
+(jog speed, step, RPM) free while disarmed: they live only in the browser tab until the next
+jog or spindle start — kept free. (2) The Program tab's Files was free and, disarmed, showed
+only closed rows: it now takes the load's class (`programLoad`, like Reload / Unload) and
+closes the browser when that class closes; Download stays free, the Tools tab's Files is
+unchanged. (3) Joint names: AXIS (joint-mode radio buttons 0, 1, 2 …) and gmoccapy (jog
+buttons "0+", "0−" …) DO name the joints before homing — R219 repeated the remark "no other
+UI does" without my checking it; the joint is now a corner mark ("J0", a new
+global `.cornerLabel`) that never changes a button's size. Neither AXIS nor gmoccapy caps the
+speed or has a switch: jogging joints before homing is native LinuxCNC (moving off a limit
+switch, out of a clamp, to a reference mark; world coordinates and soft limits are undefined
+before homing, so only joint jogs, each bounded to ± full travel from where it starts). The operator then asked for
+(4) the diagonals: a diagonal starts two joints at once — no single joint, like a coordinated
+move — so before homing the four diagonals are closed (the gateway refuses a multi-jog there,
+"Diagonal jog after Home All"); simultaneous keys or a slanted stick stay allowed as in AXIS,
+gmoccapy and Probe Basic (none of them blocks simultaneous jogs; none has diagonals in joint
+mode), each joint capped. (5) A warning colour: the direction buttons jog in amber before
+homing — the operator suggested red; red stays the stops' (the pad's Stop, Abort, E-Stop),
+or the Stop would look like its neighbours. The corner mark carries no sign: the button's
+"+" / "−" is the joint's direction. Codex R222 accepted Files, the diagonal rule and the amber and found the
+marks at 4.09 : 1 in dark (muted text on the amber; the contrast guard skipped them as
+aria-hidden) and the joint missing for assistive technology: the mark now takes its button's
+own text colour, sits at `--gap-micro` in `--fs-2xs` (≥ 1 px clear of icon and label in the
+57 px portrait buttons, measured), and each marked button's description says "Joint n". Live on the
+gates sim (3-axis, 2026-10-29, `button-gates.f.live-xyz-e.json`): before homing both
+multi-jogs were refused with that reason and no joint moved; homed, the multi-jog moved
+both axes and `jog_stop_multi` stopped them.
+

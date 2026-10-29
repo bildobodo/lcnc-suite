@@ -93,6 +93,9 @@ class _Base(unittest.TestCase):
         gateway.CMD = self.cmd
         gateway._source_claims.clear()
         self.addCleanup(gateway._source_claims.clear)
+        # every macro write names an armed writer (button gates BG-14)
+        from writer_fixture import armed_writer
+        self.conn_key = armed_writer(self, tool_change=None)
 
 
 class StartClaims(_Base):
@@ -170,7 +173,7 @@ class StartClaims(_Base):
                      dict(interp_state=linuxcnc.INTERP_READING)]:
             for _ in range(3):
                 self.assertEqual(self._poll(**{**done, **over}), 1, over)
-            self.assertIsNotNone(gateway._source_write_refusal(), over)
+            self.assertIsNotNone(gateway._write_admission_refusal(self.conn_key), over)
         self.assertEqual(self._poll(**done), 0)
 
     def test_a_refused_start_releases_only_on_its_own_proof(self):
@@ -206,12 +209,12 @@ class StartClaims(_Base):
         self.assertEqual(self._poll(**done), 0)
 
     def test_a_write_waits_for_every_claim_and_for_an_idle_interpreter(self):
-        self.assertIsNone(gateway._source_write_refusal())
+        self.assertIsNone(gateway._write_admission_refusal(self.conn_key))
         gateway._source_claims.append(gateway._StartClaim("mdi"))
-        self.assertIn("starting or running", gateway._source_write_refusal())
+        self.assertIn("starting or running", gateway._write_admission_refusal(self.conn_key))
         gateway._source_claims.clear()
         gateway.STAT.interp_state = linuxcnc.INTERP_READING
-        self.assertIn("runs", gateway._source_write_refusal())
+        self.assertIn("runs", gateway._write_admission_refusal(self.conn_key))
 
     def test_no_command_reaches_the_controller_around_the_start_hook(self):
         src = Path(gateway.__file__).read_text()
@@ -254,7 +257,8 @@ class Routes(_Folder):
             gateway._source_lock = None
             transport = httpx.ASGITransport(app=gateway.app)
             async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
-                return await c.request(method, url, headers={"X-Auth-Token": "t"} if auth else {}, **kw)
+                return await c.request(method, url, headers={"X-Auth-Token": "t", "X-Conn-Key": self.conn_key}
+                                       if auth else {}, **kw)
         return asyncio.run(go())
 
     def test_every_route_needs_the_token(self):
@@ -401,7 +405,7 @@ class DelayedWrite(_Folder):
         async def go():
             with self.assertRaises(gateway.HTTPException) as e:
                 await gateway._atomic_stream_write(chunks(), path, 1000, replace=True,
-                                                   gate=gateway._macro_write_gate(self.state, path, rev(FACE)))
+                                                   gate=gateway._macro_write_gate(self.state, path, rev(FACE), self.conn_key))
             return e.exception
         e = _run(go())
         self.assertEqual(e.status_code, 409)
@@ -477,7 +481,7 @@ class CancelledWrites(_Folder):
         seen, start = self._start_after(target)
 
         async def go():
-            first = asyncio.ensure_future(gateway.put_macro(_body(newer), name="park", base=rev(PARK),
+            first = asyncio.ensure_future(gateway.put_macro(x_conn_key=self.conn_key, request=_body(newer), name="park", base=rev(PARK),
                                                             rename_from=None, rename_base=None))
             try:
                 await self._cancel_twice(first, entered)
@@ -500,7 +504,7 @@ class CancelledWrites(_Folder):
         seen, start = self._start_after(target)
 
         async def go():
-            first = asyncio.ensure_future(gateway.put_macro(_body(text), name="fresh", base="new",
+            first = asyncio.ensure_future(gateway.put_macro(x_conn_key=self.conn_key, request=_body(text), name="fresh", base="new",
                                                             rename_from=None, rename_base=None))
             try:
                 await self._cancel_twice(first, entered)
@@ -524,11 +528,11 @@ class CancelledWrites(_Folder):
         entered, release, wrap = _held(self.mdir / "park.ngc")
 
         async def go():
-            first = asyncio.ensure_future(gateway.put_macro(_body(moved), name="park2", base="new",
+            first = asyncio.ensure_future(gateway.put_macro(x_conn_key=self.conn_key, request=_body(moved), name="park2", base="new",
                                                             rename_from="park", rename_base=rev(PARK)))
             try:
                 await self._cancel_twice(first, entered)
-                second = asyncio.ensure_future(gateway.put_macro(_body(newer), name="park", base=rev(PARK),
+                second = asyncio.ensure_future(gateway.put_macro(x_conn_key=self.conn_key, request=_body(newer), name="park", base=rev(PARK),
                                                                  rename_from=None, rename_base=None))
                 await asyncio.sleep(0.1)
                 self.assertFalse(second.done(), "the second writer waits for the rename's end")
@@ -558,11 +562,11 @@ class CancelledWrites(_Folder):
             raise PermissionError(13, "Permission denied", path)
 
         async def go():
-            first = asyncio.ensure_future(gateway.put_macro(_body(moved), name="park2", base="new",
+            first = asyncio.ensure_future(gateway.put_macro(x_conn_key=self.conn_key, request=_body(moved), name="park2", base="new",
                                                             rename_from="park", rename_base=rev(PARK)))
             try:
                 await self._cancel_twice(first, entered)
-                second = asyncio.ensure_future(gateway.put_macro(_body(other), name="park2", base="new",
+                second = asyncio.ensure_future(gateway.put_macro(x_conn_key=self.conn_key, request=_body(other), name="park2", base="new",
                                                                  rename_from=None, rename_base=None))
                 await asyncio.sleep(0.1)
                 self.assertFalse(second.done(), "the second writer waits for the rollback's end")
@@ -583,10 +587,10 @@ class CancelledWrites(_Folder):
         entered, release, wrap = _held(target)
 
         async def go():
-            first = asyncio.ensure_future(gateway.delete_macro(name="park", base=rev(PARK)))
+            first = asyncio.ensure_future(gateway.delete_macro(x_conn_key=self.conn_key, name="park", base=rev(PARK)))
             try:
                 await self._cancel_twice(first, entered)
-                second = asyncio.ensure_future(gateway.put_macro(_body(PARK), name="park", base="new",
+                second = asyncio.ensure_future(gateway.put_macro(x_conn_key=self.conn_key, request=_body(PARK), name="park", base="new",
                                                                  rename_from=None, rename_base=None))
                 await asyncio.sleep(0.1)
                 self.assertFalse(second.done(), "the second writer waits for the removal's end")
@@ -736,7 +740,8 @@ class RunMacro(_Folder):
         from types import SimpleNamespace
         gateway._shared_status = SimpleNamespace(estop=False, enabled=True, emc_enable_in=True, homed=True,
                                                  interp_state=linuxcnc.INTERP_IDLE, paused=False,
-                                                 eoffset_enabled=False, rotary_at_zero=True)
+                                                 eoffset_enabled=False, rotary_at_zero=True,
+                                                 reader_fresh=True)
         msg = {"cmd": "run_macro", "name": "face_top", "args": [1.5, 400], "revision": rev(FACE)}
         msg.update(over)
         return _run(gateway.handle_command(msg, True))

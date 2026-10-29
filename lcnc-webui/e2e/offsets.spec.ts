@@ -114,7 +114,9 @@ test("the active fixture is named, not only tinted; a row click selects for Clea
 // opens. Surface compensation on: `probe` closes, jog and run stay open.
 const PERMS_ALL = Object.fromEntries(["idle", "jog", "override", "ready", "run", "machineFrame", "g30Capture", "goZero",
   "planeFrame", "step", "abort", "probe", "zero", "touchoff", "touchoffRotary", "twpCapture", "surfaceComp",
-  "safety", "setup", "armed", "always"].map(g => [g, true]));
+  "safety", "setup", "sourceWrite", "toolTableWrite", "armed", "always",
+  // button gates D
+  "programLoad", "modeManual", "modeCoord", "parameterRead", "g30Write", "spindleManual", "armEnable", "estopReset"].map(g => [g, true]));
 test("a focused value keeps its focus in its cell while locked; the next keys stay local; the lock says why once", async ({ page }) => {
   await openOffsets(page, { g92_offset: canon({}), tool_offset: canon({}), eoffset_enabled: false, eoffset_z: 0 });
   await ctl({ op: "raw", frame: { type: "settings_init", settings: { keyboard: { jogEnabled: true, buttonsEnabled: true } } } });

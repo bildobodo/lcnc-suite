@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import WebSocket from "ws";
 import { assertLayout, expectDialogUncovered, measureLayout } from "./layout-audit";
 import { VIEWPORTS } from "./layout-fixtures";
-import { ctl as ctlOp, publishToolTable } from "./ctl";
+import { ctl as ctlOp, publishToolTable, expectArmed } from "./ctl";
 import { clickMore } from "./more";
 
 const MOCK = process.env.TOOL_IMPORT_TEST_URL ?? "http://localhost:4174/";
@@ -62,7 +62,7 @@ test("unverified geometry is visible in the table, editor and both import modes"
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.goto(MOCK);
-  await expect(page.locator('fieldset[data-gate="armed"]').first()).not.toBeDisabled();
+  await expectArmed(page);
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect.poll(async () => {
     await publishToolTable([tool], MOCK);
@@ -107,7 +107,7 @@ for (const viewport of VIEWPORTS) {
     await ctlOp({ op: "reset" });
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await page.goto(MOCK);
-    await expect(page.locator('fieldset[data-gate="armed"]').first()).not.toBeDisabled();
+    await expectArmed(page);
     if (viewport.touch) await page.evaluate(() => document.documentElement.classList.add("touch-device"));
     await page.getByRole("tab", { name: "Tools", exact: true }).click();
     await expect.poll(async () => {
@@ -148,7 +148,7 @@ async function toolCmds(cmd: string): Promise<{ req_id?: string; [k: string]: un
 async function openAdd(page: Page) {
   await ctlOp({ op: "reset" });
   await page.goto(MOCK);
-  await expect(page.locator('fieldset[data-gate="armed"]').first()).not.toBeDisabled();
+  await expectArmed(page);
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect.poll(async () => {
     await publishToolTable([tool], MOCK);
@@ -227,7 +227,7 @@ test("disconnect while saving: outcome unknown, no blind resend, draft kept", as
   await expect(dialog.locator(".statusNote.error")).toContainText("outcome unknown");
   await expect(dialog.getByRole("button", { name: "Add", exact: true })).toBeEnabled();
   // The client reconnects on its own; nothing was re-sent meanwhile.
-  await expect(page.locator('fieldset[data-gate="armed"]').first()).not.toBeDisabled({ timeout: 15_000 });
+  await expectArmed(page, 15_000);
   await page.waitForTimeout(500);
   expect((await toolCmds("add_tool")).length).toBeLessThanOrEqual(1);
 });

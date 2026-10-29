@@ -23,6 +23,6 @@ const { active: explainActive, reason: explainReason, explain } =
 </script>
 
 <template>
-  <input v-bind="$attrs" type="radio" v-model="model" :disabled="isDisabled" :name="name" :value="value"
+  <input v-bind="$attrs" :data-control="gate" type="radio" v-model="model" :disabled="isDisabled" :name="name" :value="value"
          :title="explainActive ? explainReason : ($attrs.title as string | undefined)" @pointerdown="explain">
 </template>

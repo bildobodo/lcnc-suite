@@ -1,0 +1,18 @@
+# unit guards of package C against the frontend of 632ee435 (package B agreed) — controlScan/controlInventory(.test) and useGamepad.test copied in
+     × a stick gesture keeps the speed it started with; the next one takes the new speed 12ms
+     × has no outer armed Gate around the content, the strip or the macro bar 6ms
+     × classifies every control a disarmed client can operate 2ms
+     × names nothing the scan no longer finds 1ms
+     × keeps the scan honest: the controls it must see are seen 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/controlInventory.test.ts > the control inventory (button gates BG-01) > has no outer armed Gate around the content, the strip or the macro bar
+AssertionError: ./App.vue: expected [ '<Gate gate="armed"', …(1) ] to deeply equal []
+ FAIL  src/controlInventory.test.ts > the control inventory (button gates BG-01) > classifies every control a disarmed client can operate
+AssertionError: a control a disarmed client can operate is not classified — give it an armed gate, or classify it in controlInventory.ts: expected [ …(58) ] to deeply equal []
+ FAIL  src/controlInventory.test.ts > the control inventory (button gates BG-01) > names nothing the scan no longer finds
+AssertionError: expected [ …(33) ] to deeply equal []
+ FAIL  src/controlInventory.test.ts > the control inventory (button gates BG-01) > keeps the scan honest: the controls it must see are seen
+AssertionError: expected false to be true // Object.is equality
+ FAIL  src/useGamepad.test.ts > useGamepad stick jog speed (button gates BG-05) > a stick gesture keeps the speed it started with; the next one takes the new speed
+AssertionError: expected [ { cmd: 'jog_cont', …(2) }, …(1) ] to deeply equal [ { cmd: 'jog_cont', axis: +0, …(1) } ]
+      Tests  5 failed | 6 passed (11)

@@ -1,0 +1,10 @@
+# red run on a8b0b03f (package A agreed, before package B), the new guard and the mock's settings echo copied in
+  1) [serial-guards] › e2e/keyboard-guards.spec.ts:1002:1 › a refused key-map change acts nowhere; the draft stays; the server holding it makes it act (button gates BG-19) 
+    Error: the refused key does nothing
+    Expected: 0
+    Received: 1
+    > 1039 |   expect(await abortsAfter("F9"), "the refused key does nothing").toBe(0);
+    test-results/keyboard-guards-a-refused--a5b4d--it-act-button-gates-BG-19--serial-guards/test-failed-1.png
+    Error Context: test-results/keyboard-guards-a-refused--a5b4d--it-act-button-gates-BG-19--serial-guards/error-context.md
+  1 failed
+    [serial-guards] › e2e/keyboard-guards.spec.ts:1002:1 › a refused key-map change acts nowhere; the draft stays; the server holding it makes it act (button gates BG-19) 

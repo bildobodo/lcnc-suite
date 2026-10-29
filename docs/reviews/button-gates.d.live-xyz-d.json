@@ -1,0 +1,35 @@
+{
+ "info": {
+  "profile": "xyz-d",
+  "kinematics_type": 1,
+  "start_state": 1,
+  "joints": 3
+ },
+ "results": [
+  {
+   "check": "xyz-d starts unhomed",
+   "result": "PASS",
+   "detail": "[0, 0, 0]"
+  },
+  {
+   "check": "L8 unhomed MDI switches (identity kins + NO_FORCE_HOMING)",
+   "result": "PASS",
+   "detail": "{'type': 'reply', 'cmd': 'set_mode', 'ok': True} mode=MDI"
+  },
+  {
+   "check": "L9 spindle unhomed in MDI: refused with the reason",
+   "result": "PASS",
+   "detail": "{'ok': False, 'error': 'Unhomed spindle: Manual mode only'}"
+  },
+  {
+   "check": "L9 spindle unhomed in MANUAL with the switch: turns",
+   "result": "PASS",
+   "detail": "{'type': 'reply', 'cmd': 'spindle_forward', 'ok': True} direction=1 speed=500.0"
+  },
+  {
+   "check": "spindle stops",
+   "result": "PASS",
+   "detail": "{'type': 'reply', 'cmd': 'spindle_stop', 'ok': True}"
+  }
+ ]
+}

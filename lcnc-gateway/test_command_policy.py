@@ -101,6 +101,11 @@ def state(**over) -> MachineState:
         # zero — the touch-off gates are open here; TWP tests override.
         kins_switchable=False, kins_type=None, g5x_index=1, twp_active=False,
         a_at_zero=True,
+        # The interpreter state was read (button gates BG-12: unread is not
+        # idle) and iocontrol asks for no tool change.
+        interp_known=True, tool_change_pending=False,
+        # Button gates D: MANUAL, no homing under way, no safety trip waiting.
+        task_mode=1, homing_active=False, trip_unacked=False,
     )
     base.update(over)
     return MachineState(**base)
@@ -242,9 +247,15 @@ class TestCheckCommand(unittest.TestCase):
         # Its real precondition is a PENDING request (handler-side
         # require_tool_change_pending), not machine state — the operation must
         # stay available while a program is paused at M6.
-        self.assertIsNone(check_command("confirm_tool_change", state(is_idle=False, is_running=True)))
-        self.assertIsNone(check_command("confirm_tool_change", state(is_paused=True)))
-        self.assertIsNotNone(check_command("confirm_tool_change", state(armed=False)))
+        self.assertIsNone(check_command("confirm_tool_change", state(
+            is_idle=False, is_running=True, tool_change_pending=True)))
+        self.assertIsNone(check_command("confirm_tool_change", state(
+            is_paused=True, tool_change_pending=True)))
+        self.assertIsNotNone(check_command("confirm_tool_change", state(
+            armed=False, tool_change_pending=True)))
+        # ...and only while one is pending (button gates BG-17).
+        self.assertIsNotNone(check_command("confirm_tool_change", state(
+            is_idle=False, is_running=True, tool_change_pending=False)))
 
     # ---- surface-map rotary gate ----
 
@@ -539,10 +550,16 @@ class TestSingleSource(unittest.TestCase):
     def test_disarmed_denies_with_first_requirement_message(self):
         # Every gated command denies when disarmed, reporting the table's first
         # requirement message; 'always' commands are never denied.
+        # The stops need no arm (button gates BG-08 / BG-18): Abort is as
+        # unconditional as E-Stop; Pause and the spindle stop judge the state.
+        from command_policy import STATELESS_GATES
+        stops_by_state = {"pause", "spindleStop"}
         for cmd, gate in COMMAND_GATES.items():
             r = check_command(cmd, state(armed=False))
-            if gate == "always":
+            if gate in STATELESS_GATES:
                 self.assertIsNone(r, f"{cmd!r} should be unconditional")
+            elif gate in stops_by_state:
+                self.assertNotEqual(r, "Not armed — press Arm", f"{cmd!r} is a stop")
             else:
                 self.assertEqual(r, "Not armed — press Arm", f"{cmd!r}")
 
