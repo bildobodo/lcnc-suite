@@ -1,0 +1,315 @@
+# R224 guards against 3c24fbea (before the SDE-01..03 fix): 5 red, 2 green controls
+# npx playwright test e2e/safety-during-edit.spec.ts --project serial-guards --no-deps -g 'long press|each pointer|sideways'
+
+Running 7 tests using 1 worker
+
+[1/7] [serial-guards] › e2e/safety-during-edit.spec.ts:195:3 › a long press lands like a short one — the press is not ended by its age (mouse, landscape) › G55 held 3000 ms with the setup keypad open: unmoved before the release, mdi G55 sent once
+  1) [serial-guards] › e2e/safety-during-edit.spec.ts:195:3 › a long press lands like a short one — the press is not ended by its age (mouse, landscape) › G55 held 3000 ms with the setup keypad open: unmoved before the release, mdi G55 sent once 
+
+    Error: G55 where the press began, before the release
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "h": 28,
+        "w": 53,
+    -   "x": 637,
+    +   "x": 1167.5,
+        "y": 866,
+      }
+
+      201 |     await page.mouse.down();
+      202 |     await page.waitForTimeout(LONG_PRESS_MS);
+    > 203 |     expect(await box(g55(page)), "G55 where the press began, before the release").toEqual(before);
+          |                                                                                   ^
+      204 |     await page.mouse.up();
+      205 |     await expect.poll(async () => (await sent()).filter(c => c.cmd === "mdi" && c.text === "G55").length, { timeout: 3000 }).toBe(1);
+      206 |     await expect.poll(() => jogShown(page), { timeout: 2000, message: "after the press the strip follows" }).toBe(true);
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/safety-during-edit.spec.ts:203:83
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-long--141c2-e-release-mdi-G55-sent-once-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-long--141c2-e-release-mdi-G55-sent-once-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-long--141c2-e-release-mdi-G55-sent-once-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-long--141c2-e-release-mdi-G55-sent-once-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[2/7] [serial-guards] › e2e/safety-during-edit.spec.ts:209:3 › a long press lands like a short one — the press is not ended by its age (mouse, landscape) › Setup's help held 3000 ms with the setup keypad open: unmoved, the help opens
+  2) [serial-guards] › e2e/safety-during-edit.spec.ts:209:3 › a long press lands like a short one — the press is not ended by its age (mouse, landscape) › Setup's help held 3000 ms with the setup keypad open: unmoved, the help opens 
+
+    Error: the help where the press began
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "h": 13,
+        "w": 13,
+    -   "x": 734,
+    +   "x": 1264.5,
+        "y": 789,
+      }
+
+      214 |     await page.mouse.down();
+      215 |     await page.waitForTimeout(LONG_PRESS_MS);
+    > 216 |     expect(await box(setupHelp(page)), "the help where the press began").toEqual(before);
+          |                                                                          ^
+      217 |     await page.mouse.up();
+      218 |     await expect(setupHelp(page)).toHaveAttribute("aria-expanded", "true");
+      219 |   });
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/safety-during-edit.spec.ts:216:74
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-long--f26d0-open-unmoved-the-help-opens-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-long--f26d0-open-unmoved-the-help-opens-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-long--f26d0-open-unmoved-the-help-opens-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-long--f26d0-open-unmoved-the-help-opens-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[3/7] [serial-guards] › e2e/safety-during-edit.spec.ts:221:3 › a long press lands like a short one — the press is not ended by its age (mouse, landscape) › a release no click follows (the right button) ends the press after its 500 ms — the strip follows while nothing is pressed
+[4/7] [serial-guards] › e2e/safety-during-edit.spec.ts:248:3 › each pointer ends its own press (touch, landscape, two fingers) › finger 2 taps elsewhere and lifts while finger 1 holds Home X: Home X stays, the strip follows only after finger 1
+  3) [serial-guards] › e2e/safety-during-edit.spec.ts:248:3 › each pointer ends its own press (touch, landscape, two fingers) › finger 2 taps elsewhere and lifts while finger 1 holds Home X: Home X stays, the strip follows only after finger 1 
+
+    Error: Home X under finger 1, still held
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "h": 36,
+        "w": 111.5,
+    -   "x": 513.5,
+    +   "x": 1044,
+        "y": 813.5,
+      }
+
+      262 |     expect(ups.map(e => e.pointerId), "only finger 2 was released").toEqual([downs[1].pointerId]);
+      263 |     expect(ev.filter(e => e.type === "pointercancel")).toHaveLength(0);
+    > 264 |     expect(await box(homeX), "Home X under finger 1, still held").toEqual(before);
+          |                                                                   ^
+      265 |     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      266 |     await expect.poll(async () => (await sent()).filter(c => (c.cmd === "home" || c.cmd === "unhome") && c.joint === 0).length, { timeout: 3000 }).toBe(1);
+      267 |     await expect.poll(() => jogShown(page), { timeout: 2000, message: "both presses over: the strip follows" }).toBe(true);
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/safety-during-edit.spec.ts:264:67
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-each-po-17446-follows-only-after-finger-1-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-each-po-17446-follows-only-after-finger-1-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-each-po-17446-follows-only-after-finger-1-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-each-po-17446-follows-only-after-finger-1-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[5/7] [serial-guards] › e2e/safety-during-edit.spec.ts:270:3 › each pointer ends its own press (touch, landscape, two fingers) › finger 1 lifts from Home X while finger 2 rests on Setup's help: the help stays put and opens on its own release
+  4) [serial-guards] › e2e/safety-during-edit.spec.ts:270:3 › each pointer ends its own press (touch, landscape, two fingers) › finger 1 lifts from Home X while finger 2 rests on Setup's help: the help stays put and opens on its own release 
+
+    Error: the help under finger 2, still held
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "h": 16,
+        "w": 16,
+    -   "x": 731,
+    +   "x": 1261.5,
+        "y": 789,
+      }
+
+      282 |     const downs = ev.filter(e => e.type === "pointerdown"), ups = ev.filter(e => e.type === "pointerup");
+      283 |     expect(ups.map(e => e.pointerId), `only finger 1 was released ${JSON.stringify(ev)}`).toEqual([downs[0].pointerId]);
+    > 284 |     expect(await box(setupHelp(page)), "the help under finger 2, still held").toEqual(helpBefore);
+          |                                                                               ^
+      285 |     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      286 |     await expect(setupHelp(page)).toHaveAttribute("aria-expanded", "true");
+      287 |     await expect.poll(() => jogShown(page), { timeout: 2000 }).toBe(true);
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/safety-during-edit.spec.ts:284:79
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-each-po-6e68d-nd-opens-on-its-own-release-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-each-po-6e68d-nd-opens-on-its-own-release-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-each-po-6e68d-nd-opens-on-its-own-release-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-each-po-6e68d-nd-opens-on-its-own-release-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[6/7] [serial-guards] › e2e/safety-during-edit.spec.ts:290:3 › each pointer ends its own press (touch, landscape, two fingers) › a cancelled touch ends its press at once (control: the browser took it)
+[7/7] [serial-guards] › e2e/safety-during-edit.spec.ts:307:1 › a sideways-scrolled strip keeps its scroll position under a press that closes the keypad (1280 × 800 at 150 %)
+  5) [serial-guards] › e2e/safety-during-edit.spec.ts:307:1 › a sideways-scrolled strip keeps its scroll position under a press that closes the keypad (1280 × 800 at 150 %) 
+
+    Error: the scroll range and position unchanged under the press
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Object {
+    -   "left": 100,
+    -   "width": 1073,
+    +   "left": 0,
+    +   "width": 836,
+      }
+
+      323 |   await page.mouse.down();
+      324 |   await page.waitForTimeout(100);
+    > 325 |   expect(await scroll(), "the scroll range and position unchanged under the press").toEqual(scrollBefore);
+          |                                                                                     ^
+      326 |   expect(await box(g55(page)), "G55 where the press began").toEqual(before);
+      327 |   await page.mouse.up();
+      328 |   await expect.poll(async () => (await sent()).filter(c => c.cmd === "mdi" && c.text === "G55").length, { timeout: 3000 }).toBe(1);
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/safety-during-edit.spec.ts:325:85
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-sidew-9b2ee-e-keypad-1280-×-800-at-150--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-sidew-9b2ee-e-keypad-1280-×-800-at-150--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-sidew-9b2ee-e-keypad-1280-×-800-at-150--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-sidew-9b2ee-e-keypad-1280-×-800-at-150--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  5 failed
+    [serial-guards] › e2e/safety-during-edit.spec.ts:195:3 › a long press lands like a short one — the press is not ended by its age (mouse, landscape) › G55 held 3000 ms with the setup keypad open: unmoved before the release, mdi G55 sent once 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:209:3 › a long press lands like a short one — the press is not ended by its age (mouse, landscape) › Setup's help held 3000 ms with the setup keypad open: unmoved, the help opens 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:248:3 › each pointer ends its own press (touch, landscape, two fingers) › finger 2 taps elsewhere and lifts while finger 1 holds Home X: Home X stays, the strip follows only after finger 1 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:270:3 › each pointer ends its own press (touch, landscape, two fingers) › finger 1 lifts from Home X while finger 2 rests on Setup's help: the help stays put and opens on its own release 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:307:1 › a sideways-scrolled strip keeps its scroll position under a press that closes the keypad (1280 × 800 at 150 %) 
+  2 passed (32.7s)
+
+# The revised reverse two-finger case (finger 2 holds Home Y; the help variant made no click under multi-touch) against 3c24fbea: red
+Running 1 test using 1 worker
+[1/1] [serial-guards] › e2e/safety-during-edit.spec.ts:273:3 › each pointer ends its own press (touch, landscape, two fingers) › finger 1 lifts while finger 2 holds Home Y: Home Y stays put and fires, the strip follows after finger 2
+  1) [serial-guards] › e2e/safety-during-edit.spec.ts:273:3 › each pointer ends its own press (touch, landscape, two fingers) › finger 1 lifts while finger 2 holds Home Y: Home Y stays put and fires, the strip follows after finger 2 
+    Error: Home Y under finger 2, still held
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 1
+    + Received  + 1
+      Object {
+        "h": 36,
+        "w": 111.5,
+    -   "x": 513.5,
+    +   "x": 1044,
+        "y": 853.5,
+      }
+      287 |     const downs = ev.filter(e => e.type === "pointerdown"), ups = ev.filter(e => e.type === "pointerup");
+      288 |     expect(ups.map(e => e.pointerId), `only finger 1 was released ${JSON.stringify(ev)}`).toEqual([downs[0].pointerId]);
+    > 289 |     expect(await box(homeY), "Home Y under finger 2, still held").toEqual(yBefore);
+          |                                                                   ^
+      290 |     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      291 |     await expect.poll(async () => (await sent()).filter(c => (c.cmd === "home" || c.cmd === "unhome") && c.joint === 1).length, { timeout: 3000 }).toBe(1);
+      292 |     await expect.poll(() => jogShown(page), { timeout: 2000 }).toBe(true);
+        at /home/cnc/sde-base/lcnc-webui/e2e/safety-during-edit.spec.ts:289:67
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-each-po-afceb-trip-follows-after-finger-2-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+    Error Context: test-results/safety-during-edit-each-po-afceb-trip-follows-after-finger-2-serial-guards/error-context.md
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-each-po-afceb-trip-follows-after-finger-2-serial-guards/trace.zip
+    Usage:
+        npx playwright show-trace test-results/safety-during-edit-each-po-afceb-trip-follows-after-finger-2-serial-guards/trace.zip
+
+# R225: the mixed-input guard (a touch opens MDI while the mouse holds G55) against 5cdf20e0: red
+Running 1 test using 1 worker
+[1/1] [serial-guards] › e2e/safety-during-edit.spec.ts:321:3 › an opening by another pointer waits for the press still down (mouse + touch) › a touch opens MDI while the mouse holds G55: G55 stays visible and unmoved, the release lands on it and nothing else, then the keyboard shows
+  1) [serial-guards] › e2e/safety-during-edit.spec.ts:321:3 › an opening by another pointer waits for the press still down (mouse + touch) › a touch opens MDI while the mouse holds G55: G55 stays visible and unmoved, the release lands on it and nothing else, then the keyboard shows 
+    Error: G55 visible and where the mouse pressed it
+    expect(received).toEqual(expected) // deep equality
+    Expected: {"height": 36, "width": 53, "x": 637, "y": 874}
+    Received: null
+      333 |     const ev = await pointerEvents(page);
+      334 |     expect(ev.filter(e => (e.type === "pointerup" || e.type === "pointercancel") && e.pointerId === 1), "the mouse is still down").toHaveLength(0);
+    > 335 |     expect(await target!.boundingBox(), "G55 visible and where the mouse pressed it").toEqual(before);
+          |                                                                                       ^
+      336 |     expect(await page.locator(".tkStrip").count(), "the keyboard waits for the mouse").toBe(0);
+      337 |     await page.mouse.up();
+      338 |     await expect(page.locator(".tkStrip"), "after the mouse's press the opening applies").toBeVisible();
+        at /home/cnc/sde-base/lcnc-webui/e2e/safety-during-edit.spec.ts:335:87
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-an-open-3f6b6-lse-then-the-keyboard-shows-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+    Error Context: test-results/safety-during-edit-an-open-3f6b6-lse-then-the-keyboard-shows-serial-guards/error-context.md
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-an-open-3f6b6-lse-then-the-keyboard-shows-serial-guards/trace.zip
+    Usage:
+        npx playwright show-trace test-results/safety-during-edit-an-open-3f6b6-lse-then-the-keyboard-shows-serial-guards/trace.zip
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+  1 failed
+    [serial-guards] › e2e/safety-during-edit.spec.ts:321:3 › an opening by another pointer waits for the press still down (mouse + touch) › a touch opens MDI while the mouse holds G55: G55 stays visible and unmoved, the release lands on it and nothing else, then the keyboard shows 
+
+# R226: the queued-helper guard (kept / closed again) against 61a9253f (product 995533d9): closed again red, kept green (control)
+Running 2 tests using 1 worker
+[1/2] [serial-guards] › e2e/safety-during-edit.spec.ts:357:5 › a queued helper owns no place: closing it keeps the shown one's (mouse + touch, 150 %) › the queued MDI keyboard kept while the mouse holds G55: target and scroll unchanged until the release
+[2/2] [serial-guards] › e2e/safety-during-edit.spec.ts:357:5 › a queued helper owns no place: closing it keeps the shown one's (mouse + touch, 150 %) › the queued MDI keyboard closed again while the mouse holds G55: target and scroll unchanged until the release
+  1) [serial-guards] › e2e/safety-during-edit.spec.ts:357:5 › a queued helper owns no place: closing it keeps the shown one's (mouse + touch, 150 %) › the queued MDI keyboard closed again while the mouse holds G55: target and scroll unchanged until the release 
+    Error: G55 where the mouse pressed it
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 1
+    + Received  + 1
+      Object {
+        "height": 54,
+        "width": 78,
+    -   "x": 797,
+    +   "x": 947,
+        "y": 496.5,
+      }
+      377 |       await page.waitForTimeout(650);
+      378 |       expect((await pointerEvents(page)).filter(e => (e.type === "pointerup" || e.type === "pointercancel") && e.pointerId === 1), "the mouse is still down").toHaveLength(0);
+    > 379 |       expect(await target!.boundingBox(), "G55 where the mouse pressed it").toEqual(before);
+          |                                                                             ^
+      380 |       expect(await scroll(), "the scroll range and position unchanged").toEqual(scrollBefore);
+      381 |       await page.mouse.up();
+      382 |       if (cancel) await expect.poll(() => jogShown(page), { timeout: 2000, message: "the normal strip returns" }).toBe(true);
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/safety-during-edit.spec.ts:379:77
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-queue-31168-unchanged-until-the-release-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+    Error Context: test-results/safety-during-edit-a-queue-31168-unchanged-until-the-release-serial-guards/error-context.md
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-queue-31168-unchanged-until-the-release-serial-guards/trace.zip
+    Usage:

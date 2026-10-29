@@ -23,7 +23,7 @@
 //     Apply sends the line; editor → Enter is a newline, Save saves; a
 //     search field's Enter never reaches the machine. Both keyboards' confirm
 //     key READS "Apply" (operator 2026-10-01). Escape stays E-Stop everywhere.
-import { computed, reactive, watch } from "vue";
+import { computed, reactive, readonly, ref, shallowRef, watch, type Ref } from "vue";
 import { keypadState, closeKeypad, closeKeypadIf, hideKeypad, onKeypadOpen } from "./useNumberKeypad";
 
 export { saveDraft, takeDraft, dropDraft, dropDrafts, clearDrafts } from "./useNumberKeypad";
@@ -307,7 +307,107 @@ function setPointerActive(on: boolean): void {
   if (on) pointerTimer = window.setTimeout(() => { pointerActive = false; }, 2000);  // lost pointerup backstop
 }
 
+// ── The strip's layout holds through a press (operator 2026-10-28/29) ──
+// A press outside the focus area closes the helper at its pointerdown (the
+// rule above); what the STRIP shows follows only when the press has ended,
+// after its click. Closing re-flowed the strip under the finger: the hidden
+// sections came back, the owner section moved right of Jog (Safety too while
+// the strip centred), and the click — or a hold's 500 ms — ended beside the
+// control it began on: Disarm, E-Stop and Power did nothing with a helper
+// open (safety-during-edit.spec). A CLOSE waits for every press to end; an
+// OPENING or a switch waits only for a press whose click has not come — the
+// click that opened it has landed, another pointer still pressing has not (a
+// touch opening MDI hid Setup under the mouse still holding G55, Codex R225).
+// Every POINTER holds the strip
+// until its own press has ended (Codex R224): after its click's handlers, at
+// once on its pointercancel (a pan took it), PRESS_NO_CLICK_MS after its
+// release when no click followed (the right button, a dimmed control), and
+// at once when the browser shows its release was lost — a move of that
+// pointer with no button down, a new PRIMARY pointer of its type (none other
+// of that type is in contact then), the window losing focus, the page
+// hidden. A press is never ended by its AGE (a 2 s backstop let a long press
+// on G55 miss, SDE-01), and one pointer's release, click or cancel never
+// ends another's (a second finger lifting moved Home X under the first,
+// SDE-02). Only the browser's own input counts (`isTrusted`): a script's
+// pointerdown still closes the helper, it holds nothing.
+const pressing = ref(false);        // a press has not ended: a close waits
+const pressPending = ref(false);    // a press has not had its click: an opening waits
+/** A press is in progress: what holds through it waits (read-only). */
+export const pressHolds: Readonly<Ref<boolean>> = readonly(pressing);
+export const PRESS_NO_CLICK_MS = 500;
+const pointersDown = new Map<number, string>();   // pointer → its pointerType
+// released, ending after its click (timer 0) or PRESS_NO_CLICK_MS without one
+const releasedPointers = new Map<number, { timer: ReturnType<typeof setTimeout>; clicked: boolean }>();
+let lastReleased: number | null = null;
+function settlePress(): void {
+  pressing.value = pointersDown.size > 0 || releasedPointers.size > 0;
+  pressPending.value = pointersDown.size > 0 || [...releasedPointers.values()].some((r) => !r.clicked);
+}
+function endPointer(id: number): void {
+  pointersDown.delete(id);
+  clearTimeout(releasedPointers.get(id)?.timer);
+  releasedPointers.delete(id);
+}
+function endPointerAfter(id: number, ms: number, clicked: boolean): void {
+  clearTimeout(releasedPointers.get(id)?.timer);
+  releasedPointers.set(id, { clicked, timer: setTimeout(() => { releasedPointers.delete(id); settlePress(); }, ms) });
+  settlePress();
+}
+/** The press as the document listeners below report it, by pointer
+ *  (exported for the unit test, which has no DOM). */
+export const press = {
+  down(id: number, type = "", primary = false): void {
+    if (primary) for (const [p, t] of pointersDown) if (t === type) pointersDown.delete(p);   // their release was lost
+    endPointer(id);
+    pointersDown.set(id, type);
+    settlePress();
+  },
+  up(id: number): void {
+    if (!pointersDown.delete(id)) return;
+    lastReleased = id;
+    endPointerAfter(id, PRESS_NO_CLICK_MS, false);
+  },
+  /** A click (after its own handlers: a timer queued while it is
+   *  dispatched). `id` = the pointer that made it; null = a click that names
+   *  no pointer (a browser whose click is a MouseEvent): the last release.
+   *  A click whose pointer has not just been released ends nothing. */
+  click(id: number | null): void {
+    const p = id ?? lastReleased;
+    if (p !== null && releasedPointers.has(p)) endPointerAfter(p, 0, true);
+  },
+  cancel(id: number): void { endPointer(id); settlePress(); },
+  /** A move with no button down: that pointer's release was lost. */
+  moved(id: number, buttons: number): void {
+    if (buttons === 0 && pointersDown.has(id)) { endPointer(id); settlePress(); }
+  },
+  /** The window lost focus or the page was hidden: no release will come. */
+  lost(): void {
+    for (const id of [...pointersDown.keys(), ...releasedPointers.keys()]) endPointer(id);
+    settlePress();
+  },
+};
+/** The pointer a click names: its pointerId (-1 for a keyboard click —
+ *  matches no press), null where the click is a plain MouseEvent from a
+ *  pointer (detail > 0), undefined for a keyboard or synthetic one. */
+function clickPointer(e: MouseEvent): number | null | undefined {
+  if (typeof PointerEvent !== "undefined" && e instanceof PointerEvent) return e.pointerId;
+  return e.detail > 0 ? null : undefined;
+}
+
+/** A ref that follows `source`, except that a change waits while a press it
+ *  could move is in progress: a change to a value `closed` calls a close
+ *  until every press has ended, any other until every press has had its
+ *  click (the click that made it has; another pointer still down has not). */
+export function heldThroughPress<T>(source: () => T, closed: (v: T) => boolean): Readonly<Ref<T>> {
+  const held = shallowRef(source());
+  watch([source, pressing, pressPending], ([v, p, pending]) => {
+    if (closed(v) ? !p : !pending) held.value = v;
+  }, { flush: "sync" });
+  return held;
+}
+
 function onDocPointerDown(e: PointerEvent): void {
+  if (e.isTrusted) press.down(e.pointerId, e.pointerType, e.isPrimary);   // before the close below: the layout holds through it
   setPointerActive(true);
   if (inAnyArea(e.target)) return;   // this owner's area (operating) or another's (the click switches)
   if (keypadState.open && !keypadState.locked) hideKeypad("pointer down outside the input area");
@@ -350,9 +450,15 @@ function pollOwners(): void {
 
 if (typeof document !== "undefined") {
   document.addEventListener("pointerdown", onDocPointerDown, { capture: true, passive: true });
-  document.addEventListener("pointerup", () => setPointerActive(false), { capture: true, passive: true });
-  document.addEventListener("pointercancel", () => setPointerActive(false), { capture: true, passive: true });
-  window.addEventListener("blur", () => setPointerActive(false));
+  document.addEventListener("pointerup", (e) => { setPointerActive(false); if (e.isTrusted) press.up(e.pointerId); }, { capture: true, passive: true });
+  document.addEventListener("pointercancel", (e) => { setPointerActive(false); if (e.isTrusted) press.cancel(e.pointerId); }, { capture: true, passive: true });
+  document.addEventListener("pointermove", (e) => { if (e.isTrusted) press.moved(e.pointerId, e.buttons); }, { capture: true, passive: true });
+  document.addEventListener("click", (e) => {
+    const id = e.isTrusted ? clickPointer(e) : undefined;
+    if (id !== undefined) press.click(id);
+  }, { capture: true, passive: true });
+  window.addEventListener("blur", () => { setPointerActive(false); press.lost(); });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) press.lost(); });
   document.addEventListener("focusin", onDocFocusIn, true);
   watch(() => keypadState.open || inputSession.kind !== null, (on) => {
     clearInterval(pollTimer);

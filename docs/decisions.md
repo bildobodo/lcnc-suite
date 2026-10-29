@@ -9642,3 +9642,62 @@ gates sim (3-axis, 2026-10-29, `button-gates.f.live-xyz-e.json`): before homing 
 multi-jogs were refused with that reason and no joint moved; homed, the multi-jog moved
 both axes and `jog_stop_multi` stopped them.
 
+## 2026-10-29 — The safety buttons while an input helper is open: Safety stays at the left, nothing moves under a press, portrait keeps the machine info where it fits (operator)
+
+**Report (operator 2026-10-28, landscape, the button-gates test stand).** With a field's number
+keypad or the code keyboard open, Disarm, E-Stop and Power did nothing. **Cause (measured, mock):**
+the strip CENTRED what fitted (`.strip::before/::after { flex: 1 }`): opening a helper hides every
+other section, so Safety sat at x 571 instead of 17 at 1920 px (at 2560 px even without a helper);
+the pointerdown outside the input area closed the helper (the session rule, UI-15a), the sections
+came back and Safety jumped left before the click — nothing was sent (without a helper `arm` was).
+The same class outside Safety: with the keypad on a touch-off field, a hold on Setup's Home X ended
+beside it — Setup moved 560 → 1008 px when Jog came back. Portrait never moved Safety (its taps
+passed), but folded the machine info whenever a helper was open (design wave D7, UI-I08).
+
+**Decisions (operator 2026-10-29).** (1) The strip never centres: Safety at the left in every
+state and at every width, a helper directly right of it (the number keypad right of its owner
+section), free room at the far end. (2) Fixed for every control, not only Safety: nothing moves
+under a press. The helper still closes at the pointerdown (the agreed session rule is unchanged);
+what the strip SHOWS — `stripVis`, Setup's `entryOpen`, the Safety fold — follows when the press has
+ended, after its click (`heldThroughPress` in inputSession.ts; an opening or a switch applies at once). (3) Portrait keeps the machine info while a helper is open wherever the
+column holds the helper with it and folds it only where it would not — measured (`safetyFold.ts`,
+in the frame after the layout changed and on a resize), not by orientation: 900 × 1200 keeps it
+(keyboard bottom 880, keypad 893 of 1200 px); at 150 % (600 × 800 CSS px) the keyboard (76 px) and
+the keypad under Setup (89 px) would end below the viewport and it folds; a side-pane field's keypad
+alone fits and keeps it. The UI-I08 criterion stands: the whole helper in view at 100 % and 150 %.
+Guards: `safety-during-edit.spec` (26 of 35 red at 729a7f4a), `inputSession.test`,
+`safetyFold.test`; `input-session.spec`'s portrait budget keeps the info at 100 %.
+
+**Codex R224 (same day): the press ends with ITS pointer.** Three rests, each with a red
+counter-probe: SDE-01 a 2 s backstop ended a press still held (a 2.3 s press on G55 moved it
+530 px and sent nothing); SDE-02 one boolean stood for every pointer (a second finger lifting
+released the first, Home X moved 530 px under it); SDE-03 the keypad left at once and the strip's
+scroll range shrank under the press (at 150 % scrolled 100 px, scrollLeft clamped to 0, G55 slid
+150 px under a 100 ms click). Now the press is tracked per pointer and ends only with that pointer
+— its click, its pointercancel, 500 ms after its release when no click followed, or evidence its
+release was lost (a move of it with no button, a new primary pointer of its type, blur, a hidden
+page) — never by age and never by another pointer; only trusted input holds (a script's
+pointerdown still closes the helper). The closed helper's place stays as an empty box of its
+measured size while the press holds (`helperPlace` in App.vue). Guards: seven new browser cases in
+`safety-during-edit.spec` (long presses on G55 and Setup's help, two fingers in both orders, the
+scroll clamp — 6 red at 3c24fbea; cancel and release-without-click as controls) and the per-pointer
+rules in `inputSession.test`.
+
+**Codex R225: an opening waits too.** One rest of SDE-02: `heldThroughPress` held only a CLOSE,
+so a touch that opened the MDI keyboard while the mouse still held G55 hid Setup under the mouse
+(its release hit Backspace). Now a close waits for every press to END and an opening or a switch
+for every press to have had its CLICK — the click that opened it has, a pointer still down has
+not — and the helpers render from the held layout (the new one appears when the layout follows,
+the closed one keeps its measured place until then). Chrome dispatches no click for that mouse
+(the tap's compatibility mouse events reset its click target), so the guard holds what is ours:
+G55 visible and unmoved until the release, the release on G55 and nothing else hit, then the
+keyboard (red at 5cdf20e0).
+
+**Codex R226: a queued helper owns no place.** The place was measured when a SESSION ended, so
+closing a queued keyboard that was never shown (the mouse still on G55, a second tap outside)
+measured nothing and dropped the keypad's place — the strip's scroll clamped, G55 slid 150 px under
+the held mouse. Now only a helper that was rendered (the held layout's, while its session is open)
+leaves a place, and a missing measurement never replaces a held one. Guard: the queued keyboard kept
+or closed again under the held mouse at 150 % with the strip scrolled — target and scroll unchanged
+until the release (closed again red at 61a9253f).
+

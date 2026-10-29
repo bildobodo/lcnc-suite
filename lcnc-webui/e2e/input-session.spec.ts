@@ -800,18 +800,20 @@ test.describe("portrait, touch", () => {
         // The agreed criterion (plan WP8, UI-I08): the whole helper within
         // the viewport at 100 % AND at 150 % (= 600 × 800 CSS px). What
         // makes it fit at 150 % is the sticky Safety section folding its
-        // status detail away while a helper is open (title + the three
-        // safety buttons stay) — measured below, never a smaller key, a
+        // status detail away (title + the three safety buttons stay) — only
+        // there: at 100 % the keyboard fits with it and it stays (operator
+        // 2026-10-29, safety-during-edit.spec) — never a smaller key, a
         // wider strip or a WP4 exception; the strip needs no scroll for it.
         expect(fits.bottom, `keyboard bottom within the viewport at zoom ${zoom}: ${JSON.stringify(fits.budget)}`).toBeLessThanOrEqual(fits.inner + 1);
         expect(fits.stripScroll, `no hidden strip part at zoom ${zoom}`).toBeLessThanOrEqual(1);
       }
       // The field being edited (the readout), the state banner and the
-      // safety controls stay in view; the Safety detail is folded away.
+      // safety controls stay in view; the Safety detail stays at 100 % and
+      // is folded away at 150 %, where the keyboard would not fit with it.
       await expect(mdi).toBeInViewport();
       await expect(page.locator(".statusBanner")).toBeInViewport();
       for (const btn of await page.locator(".safetyBtns button").all()) await expect(btn).toBeInViewport();
-      await expect(page.locator(".safetyStrip .statusDetail")).toHaveCount(0);
+      await expect(page.locator(".safetyStrip .statusDetail")).toHaveCount(zoom === "1" ? 1 : 0);
     }
     // Helper closed: the full detail returns.
     await tapKey(page.locator(".tkStrip"), "Close keyboard");
