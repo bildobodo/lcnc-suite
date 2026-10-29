@@ -167,6 +167,172 @@ for (const orient of [{ name: "landscape", width: 1920, height: 1080 }, { name: 
   });
 }
 
+// ── The press ends with ITS pointer (Codex R224 SDE-01 / SDE-02) ──
+// A press holds the strip until that pointer's own end — its click, its
+// cancel, 500 ms after a release no click followed — never by its age, and
+// never by another pointer's release. A long press on a plain control lands
+// like a short one; a second finger leaves the first one's press alone.
+const LONG_PRESS_MS = 3000;
+/** The press targets read by the long-press and two-finger cases: a WCS
+ *  choice (a click sends `mdi G55`) and Setup's help (a click opens it). */
+const g55 = (page: Page) => page.getByRole("radio", { name: "G55", exact: true });
+const setupHelp = (page: Page) => page.getByRole("button", { name: "Help: Go to positions", exact: true });
+const jogShown = (page: Page) => page.locator('[data-strip="jog"]').evaluate(el => (el as HTMLElement).offsetParent !== null);
+
+async function recordPointerEvents(page: Page) {
+  await page.evaluate(() => {
+    const w = window as unknown as { sdeEvents: { type: string; pointerId?: number }[] };
+    w.sdeEvents = [];
+    for (const type of ["pointerdown", "pointerup", "pointercancel", "click"]) {
+      document.addEventListener(type, (e) => w.sdeEvents.push({ type, pointerId: (e as PointerEvent).pointerId }), true);
+    }
+  });
+}
+const pointerEvents = (page: Page) =>
+  page.evaluate(() => (window as unknown as { sdeEvents: { type: string; pointerId?: number }[] }).sdeEvents);
+
+test.describe("a long press lands like a short one — the press is not ended by its age (mouse, landscape)", () => {
+  test(`G55 held ${LONG_PRESS_MS} ms with the setup keypad open: unmoved before the release, mdi G55 sent once`, async ({ page }) => {
+    await open(page, { width: 1920, height: 1080 });
+    await openHelper(page, "keypad (strip field)", false);
+    await ctl({ op: "clearCmds" });
+    const before = await box(g55(page));
+    await page.mouse.move(before.x + before.w / 2, before.y + before.h / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(LONG_PRESS_MS);
+    expect(await box(g55(page)), "G55 where the press began, before the release").toEqual(before);
+    await page.mouse.up();
+    await expect.poll(async () => (await sent()).filter(c => c.cmd === "mdi" && c.text === "G55").length, { timeout: 3000 }).toBe(1);
+    await expect.poll(() => jogShown(page), { timeout: 2000, message: "after the press the strip follows" }).toBe(true);
+  });
+
+  test(`Setup's help held ${LONG_PRESS_MS} ms with the setup keypad open: unmoved, the help opens`, async ({ page }) => {
+    await open(page, { width: 1920, height: 1080 });
+    await openHelper(page, "keypad (strip field)", false);
+    const before = await box(setupHelp(page));
+    await page.mouse.move(before.x + before.w / 2, before.y + before.h / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(LONG_PRESS_MS);
+    expect(await box(setupHelp(page)), "the help where the press began").toEqual(before);
+    await page.mouse.up();
+    await expect(setupHelp(page)).toHaveAttribute("aria-expanded", "true");
+  });
+
+  test("a release no click follows (the right button) ends the press after its 500 ms — the strip follows while nothing is pressed", async ({ page }) => {
+    await open(page, { width: 1920, height: 1080 });
+    await openHelper(page, "keypad (strip field)", false);
+    const head = await box(page.locator('[data-strip="setup"] .sectionHelp'));
+    await page.mouse.move(head.x + 4, head.y + head.h / 2);
+    await page.mouse.down({ button: "right" });
+    await page.mouse.up({ button: "right" });
+    await expect(page.locator(".nkStrip"), "the press outside the keypad closed it").toHaveCount(0);
+    expect(await jogShown(page), "within the 500 ms the strip still holds").toBe(false);
+    await expect.poll(() => jogShown(page), { timeout: 2000 }).toBe(true);
+  });
+});
+
+test.describe("each pointer ends its own press (touch, landscape, two fingers)", () => {
+  test.use({ hasTouch: true });
+
+  async function touchSetup(page: Page) {
+    await openTouch(page, { width: 1920, height: 1080 });
+    await openHelper(page, "keypad (strip field)", true);
+    await ctl({ op: "clearCmds" });
+    await recordPointerEvents(page);
+    const homeX = page.locator('[data-strip="setup"]').getByRole("button", { name: /^(Home|Unhome) X$/ });
+    const cdp = await page.context().newCDPSession(page);
+    return { homeX, cdp };
+  }
+  const centre = (b: { x: number; y: number; w: number; h: number }, id: number) => ({ id, x: b.x + b.w / 2, y: b.y + b.h / 2 });
+
+  test("finger 2 taps elsewhere and lifts while finger 1 holds Home X: Home X stays, the strip follows only after finger 1", async ({ page }) => {
+    const { homeX, cdp } = await touchSetup(page);
+    const before = await box(homeX);
+    const p1 = centre(before, 1);
+    const p2 = { id: 2, x: 1850, y: 600 };   // the side pane
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p1] });
+    await page.waitForTimeout(80);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p1, p2] });
+    await page.waitForTimeout(50);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [p2] });
+    await page.waitForTimeout(650);
+    const ev = await pointerEvents(page);
+    const downs = ev.filter(e => e.type === "pointerdown"), ups = ev.filter(e => e.type === "pointerup");
+    expect(downs, JSON.stringify(ev)).toHaveLength(2);
+    expect(ups.map(e => e.pointerId), "only finger 2 was released").toEqual([downs[1].pointerId]);
+    expect(ev.filter(e => e.type === "pointercancel")).toHaveLength(0);
+    expect(await box(homeX), "Home X under finger 1, still held").toEqual(before);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await expect.poll(async () => (await sent()).filter(c => (c.cmd === "home" || c.cmd === "unhome") && c.joint === 0).length, { timeout: 3000 }).toBe(1);
+    await expect.poll(() => jogShown(page), { timeout: 2000, message: "both presses over: the strip follows" }).toBe(true);
+  });
+
+  // A second finger makes no tap (Chrome's tap is a one-finger gesture, no
+  // click), so its target here is a HOLD: Home Y fires from its own timer.
+  // Finger 1 (the press that closes the keypad) rests on Setup's heading.
+  test("finger 1 lifts while finger 2 holds Home Y: Home Y stays put and fires, the strip follows after finger 2", async ({ page }) => {
+    const { cdp } = await touchSetup(page);
+    const homeY = page.locator('[data-strip="setup"]').getByRole("button", { name: /^(Home|Unhome) Y$/ });
+    const yBefore = await box(homeY);
+    const head = await box(page.locator('[data-strip="setup"] .sectionHelp'));
+    const p1 = { id: 1, x: head.x + 4, y: head.y + head.h / 2 };
+    const p2 = centre(yBefore, 2);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p1] });
+    await page.waitForTimeout(100);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p1, p2] });
+    await page.waitForTimeout(50);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [p1] });
+    await page.waitForTimeout(650);   // past finger 1's 500 ms; finger 2's hold fires meanwhile
+    const ev = await pointerEvents(page);
+    const downs = ev.filter(e => e.type === "pointerdown"), ups = ev.filter(e => e.type === "pointerup");
+    expect(ups.map(e => e.pointerId), `only finger 1 was released ${JSON.stringify(ev)}`).toEqual([downs[0].pointerId]);
+    expect(await box(homeY), "Home Y under finger 2, still held").toEqual(yBefore);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await expect.poll(async () => (await sent()).filter(c => (c.cmd === "home" || c.cmd === "unhome") && c.joint === 1).length, { timeout: 3000 }).toBe(1);
+    await expect.poll(() => jogShown(page), { timeout: 2000 }).toBe(true);
+  });
+
+  test("a cancelled touch ends its press at once (control: the browser took it)", async ({ page }) => {
+    const { homeX, cdp } = await touchSetup(page);
+    const p1 = centre(await box(homeX), 1);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p1] });
+    await page.waitForTimeout(100);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] });
+    expect((await pointerEvents(page)).some(e => e.type === "pointercancel"), "the browser reported the cancel").toBe(true);
+    await expect.poll(() => jogShown(page), { timeout: 400 }).toBe(true);
+    expect((await sent()).some(c => c.cmd === "home" || c.cmd === "unhome"), "the cancelled hold sent nothing").toBe(false);
+  });
+});
+
+// ── The keypad's place holds through a press too (Codex R224 SDE-03) ──
+// The keypad leaves at the pointerdown (its session closed), but its place
+// stays until the press has ended: with the strip scrolled sideways, the
+// shrinking scroll range made the browser clamp scrollLeft and the press
+// target slid away under a 100 ms click.
+test("a sideways-scrolled strip keeps its scroll position under a press that closes the keypad (1280 × 800 at 150 %)", async ({ page }) => {
+  await open(page, { width: 1280, height: 800 });
+  await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
+  await openHelper(page, "keypad (strip field)", false);
+  const strip = page.locator(".strip");
+  await strip.evaluate(el => { el.scrollLeft = 100; });
+  const scroll = () => strip.evaluate(el => ({ left: el.scrollLeft, width: el.scrollWidth }));
+  const scrollBefore = await scroll();
+  expect(scrollBefore.left, "the strip is scrolled").toBeGreaterThan(0);
+  await ctl({ op: "clearCmds" });
+  const before = await box(g55(page));
+  expect(await g55(page).evaluate(el => {
+    const r = el.getBoundingClientRect();
+    return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+  }), "G55 is hit-testable at its centre").toBe(true);
+  await page.mouse.move(before.x + before.w / 2, before.y + before.h / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(100);
+  expect(await scroll(), "the scroll range and position unchanged under the press").toEqual(scrollBefore);
+  expect(await box(g55(page)), "G55 where the press began").toEqual(before);
+  await page.mouse.up();
+  await expect.poll(async () => (await sent()).filter(c => c.cmd === "mdi" && c.text === "G55").length, { timeout: 3000 }).toBe(1);
+});
+
 // At 150 % (600 × 800 CSS px) the keyboard (692 zoomed px) and the keypad
 // under its owner section (Setup + keypad) end past the viewport with the
 // info (76 / 89 CSS px); the keypad of a side-pane field alone fits with it.
