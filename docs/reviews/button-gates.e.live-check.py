@@ -16,6 +16,8 @@ profile xyz-e  (trivkins coordinates=XYZ, NO_FORCE_HOMING = 1,
   E6  an increment before homing moves joint 1 by the distance, capped
   E7  homed: the cap no longer applies (teleop jog at the asked speed)
   E9  a jog while homing runs is refused with its reason (Codex R219 BG-35)
+  E10 before homing both multi-jogs (the diagonals) are refused, nothing moves (package F)
+  E11 homed: the multi-jog moves both axes, jog_stop_multi stops them
 profile xyzac-e (xyzac-trt-kins, WEBUI_JOINT_AXES = X Y Z A C)
   E8  a jog of C (wire 4) before homing moves joint 4 — only joint 4 — capped
 
@@ -166,6 +168,20 @@ try:
         check(f"E6 an increment before homing: joint 1 by the distance, at most the cap {cap1:g}",
               bool(r.get("ok")) and abs(moved + 2.0) < 0.01 and peak <= cap1 * 1.02 and done,
               f"{r} moved={moved:.4f} peak={peak:.3f}")
+        # E10 (package F, Codex R222/R223): before homing the gateway refuses
+        # both multi-jogs (the strip's diagonals) — nothing moves
+        poll()
+        before = [s.joint[j]["output"] for j in range(s.joints)]
+        gate_open(c, "jog")
+        r_cont = call(c, "jog_cont_multi", axes=[{"axis": 0, "vel": 5.0}, {"axis": 1, "vel": 5.0}])
+        r_incr = call(c, "jog_incr_multi", axes=[{"axis": 0, "vel": 5.0, "distance": 1.0},
+                                                {"axis": 1, "vel": 5.0, "distance": 1.0}])
+        time.sleep(0.5)
+        poll()
+        moved = [abs(s.joint[j]["output"] - before[j]) for j in range(s.joints)]
+        check("E10 before homing both multi-jogs are refused, nothing moves",
+              all(r.get("ok") is False and "Diagonal jog after Home All" in r.get("error", "") for r in (r_cont, r_incr))
+              and max(moved) < 1e-6, f"cont={r_cont} incr={r_incr} moved={moved}")
         # E7: homed — the cap no longer applies. The sim's home switches are
         # SHARED and closed above X 1 / Y 0.5 / Z 2 (simulated_home_probe_basic
         # .hal): park every joint below its switch first, or task refuses
@@ -198,6 +214,14 @@ try:
         check("E7 homed: no cap (teleop at the asked speed)",
               homed and bool(r.get("ok")) and peak > cap0 * 1.5,
               f"homed={homed} {r} peak={peak:.3f} asked={3 * cap0:g}")
+        # E11: homed, the diagonal is back — both axes move, the multi stop stops them
+        standing(3)
+        r = call(c, "jog_cont_multi", axes=[{"axis": 0, "vel": 5.0}, {"axis": 1, "vel": 5.0}])
+        both = wait(lambda st: abs(st.joint[0]["velocity"]) > 0.1 and abs(st.joint[1]["velocity"]) > 0.1, 2)
+        r2 = call(c, "jog_stop_multi", axes=[0, 1])
+        stopped = standing(3)
+        check("E11 homed: the multi-jog moves both axes, jog_stop_multi stops them",
+              bool(r.get("ok")) and both and bool(r2.get("ok")) and stopped, f"{r} both={both} {r2} stopped={stopped}")
     elif PROFILE == "xyzac-e":
         cap4 = 0.1 * max_vel(4)
         info["cap"] = cap4

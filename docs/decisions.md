@@ -9637,5 +9637,8 @@ or the Stop would look like its neighbours. The corner mark carries no sign: the
 marks at 4.09 : 1 in dark (muted text on the amber; the contrast guard skipped them as
 aria-hidden) and the joint missing for assistive technology: the mark now takes its button's
 own text colour, sits at `--gap-micro` in `--fs-2xs` (≥ 1 px clear of icon and label in the
-57 px portrait buttons, measured), and each marked button's description says "Joint n".
+57 px portrait buttons, measured), and each marked button's description says "Joint n". Live on the
+gates sim (3-axis, 2026-10-29, `button-gates.f.live-xyz-e.json`): before homing both
+multi-jogs were refused with that reason and no joint moved; homed, the multi-jog moved
+both axes and `jog_stop_multi` stopped them.
 
