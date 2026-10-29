@@ -204,3 +204,82 @@ Das Loslassen landet auf **Home Y**, der gemeinsame Click auf dem Setup-Containe
 Die Hochformat-Messung und das spätere Ausklappen tragen für die geprüften 100-/150-%-Fälle. Die zusätzliche Statuswechsel-Probe ergab keine Abweichung; beide verglichenen Endzustände blieben gefaltet. Sie belegt deshalb keine zusätzliche Entfaltungsgrenze. Bei der ersten Mehrfinger-Erkundung wurde im CDP-Aufruf der falsche Finger beendet; dieser Lauf ist verworfen. Grundlage von SDE-02 ist ausschließlich die korrigierte Sonde mit Assertions auf die Pointer-IDs. Ein erster Einstieg in die Zusatzprobe scheiterte am bereits schmal umgebauten Tab-Wähler; auch das ist kein Produktbefund.
 
 **Für ein Agreement offen:** SDE-01, SDE-02, SDE-03. Linksanordnung, kurze Safety-Aktionen und die gemessene Hochformat-Faltung brauchen nach dieser Runde keine neue Gestaltungsentscheidung. Bitte die drei Restfälle in die Wächter aufnehmen und die Druck-/Layoutlogik anschließend erneut vorlegen.
+
+
+---
+
+## Claude · Antwort auf R224 · 29. Oktober 2026
+
+**Stand `5cdf20e0`** (Produkt und Wächter `42d04052`, Doku `db1a463c`, Gate-Beleg `5cdf20e0`). Alle drei Befunde sind angenommen und behoben. Jede deiner Gegenproben steckt als Wächter in `safety-during-edit.spec`.
+
+### SDE-01: Ein Druck endet nie durch sein Alter
+
+- Der 2-s-Rückfall ist entfernt (`PRESS_LOST_MS` gibt es nicht mehr).
+- Ein Druck endet nur noch durch:
+  - seinen eigenen Klick, per Timer 0 nach dessen Handlern;
+  - sein `pointercancel`;
+  - 500 ms nach seinem Loslassen, wenn kein Klick folgt;
+  - einen Beleg, dass sein Loslassen verloren ging.
+- Als Beleg für ein verlorenes Loslassen gelten:
+  - eine Bewegung desselben Zeigers ohne gedrückte Taste (`buttons === 0`);
+  - ein neuer **primärer** Zeiger desselben Typs. Für Touch heißt `isPrimary`: Kein anderer Touch hat Kontakt. Damit bleibt ein verlorenes Touch-Ende nicht dauerhaft hängen;
+  - Fokusverlust des Fensters oder eine verborgene Seite (`visibilitychange`).
+- Ein gültiger langer Druck liefert keinen dieser Belege und hält deshalb, so lange er dauert. Das ist die verlangte Unterscheidung von einer Absicherung gegen verlorene Ereignisse.
+- **Wächter:**
+  - 3 s auf G55 und 3 s auf Setups Hilfe, jeweils mit offenem Setup-Ziffernblock. Vor dem Loslassen steht das Ziel unverändert. Danach kommt `mdi G55` genau einmal an bzw. die Hilfe öffnet sich, und erst dann folgt die Leiste.
+  - Kontrolle „Loslassen ohne Klick“ (rechte Taste): Innerhalb von 500 ms hält die Leiste, danach folgt sie.
+  - Kontrolle „Abbruch“ (CDP `touchCancel`): Der Browser meldet `pointercancel`, die Leiste folgt innerhalb von 400 ms, die abgebrochene Hold-Aktion sendet nichts.
+
+### SDE-02: Jeder Zeiger beendet nur seinen eigenen Druck
+
+- Gedrückte Zeiger stehen in einer Map (Zeiger-ID → Typ). Losgelassene Zeiger warten in einer zweiten Map auf ihren Klick, jeder mit eigenem Timer.
+- Die Leiste hält, solange eine der beiden Maps nicht leer ist.
+- Up, Cancel, Move und Klick wirken nur auf die eigene Zeiger-ID.
+- **Klick-Zuordnung:**
+  - Ein Klick als `PointerEvent` nennt seinen Zeiger. Ein Tastaturklick (`pointerId -1`) passt zu keinem Druck.
+  - Ein Klick als reines `MouseEvent` wird mit `detail > 0` dem zuletzt losgelassenen Zeiger zugeordnet. Mit `detail 0` (Tastatur oder synthetisch) beendet er nichts.
+- **Nur echte Eingabe hält (`isTrusted`):**
+  - Ein Skript-`pointerdown` schließt den Helfer weiter nach UI-15a, hält aber kein Layout.
+  - Anlass: Vier bestehende Testhelfer (`input-session.spec` ×2, `layout-fixtures`, `disarmed.spec`) feuern ein synthetisches `pointerdown` ohne `pointerup`. Ohne Altersgrenze hätten sie die Leiste dauerhaft gehalten.
+  - Ich halte die Regel für richtig, weil Benutzereingabe immer vertrauenswürdig ist. Deine Sicht dazu ist erwünscht.
+- **Wächter:**
+  - **Deine Reihenfolge:** Finger 1 hält Home X, Finger 2 tippt auf den Seitenbereich und hebt ab. 650 ms später steht Home X unverändert. Die Ereignisliste belegt: zwei Downs, ein Up nur für Finger 2, kein Cancel. Nach dem Ende von Finger 1 ist `home` genau einmal gesendet, und die Leiste folgt.
+  - **Umgekehrte Reihenfolge:**
+    - Finger 1 liegt auf Setups Überschrift. Finger 2 hält Home Y, dann hebt Finger 1 ab.
+    - 650 ms später steht Home Y unverändert, und sein Hold hat gefeuert (`home`/`unhome` Gelenk 1 genau einmal). Die Leiste folgt erst nach Finger 2.
+    - Das Ziel von Finger 2 ist bewusst eine Hold-Taste. Chrome erzeugt für den zweiten Finger einer Mehrfinger-Geste keinen Tap und damit keinen Klick. Meine erste Fassung mit der Hilfe als Ziel scheiterte genau daran, nicht am Produkt.
+    - Home X kam als Ziel für Finger 1 nicht in Frage: Nach seinem Feuern schließt die Busy-Sperre Home Y für 200 ms.
+  - Der Cancel eines einzelnen Zeigers und fremde Klicks sind in `inputSession.test` abgedeckt.
+
+### SDE-03: Der Platz des Helfers hält durch den Druck
+
+- Der Helfer verschwindet weiter sofort, denn seine Sitzung ist geschlossen (UI-15a).
+- Solange der Druck die Leiste hält, steht an seiner Stelle ein leerer Kasten mit seinem gemessenen Rahmenmaß (`helperPlace` in App.vue, `aria-hidden`, nicht bedienbar).
+  - Gemessen wird beim Schließen in einem synchronen Watcher. Der läuft im Task des `pointerdown`, bevor Vue den Helfer entfernt.
+  - Das Maß ist das Rect, geteilt durch `currentCSSZoom`.
+  - Die Trennlinie der Leiste (`.strip > * + *`) gibt dem Kasten den Rand des Helfers.
+- Scrollbreite und `scrollLeft` ändern sich unter dem Druck nicht mehr, und der Browser muss nichts korrigieren. Mit dem Ende des Drucks verschwindet der Kasten zusammen mit dem gehaltenen Layout.
+- **Wächter:** deine Probe bei 1280 × 800 und 150 %, die Leiste um 100 px gescrollt, 100 ms auf G55. Vor dem Loslassen sind `scrollLeft`, `scrollWidth` und die Lage von G55 unverändert. Danach kommt `mdi G55` genau einmal an.
+
+### Rot und Grün
+
+- **Rot gegen `3c24fbea`:** 6 Fälle (`docs/reviews/safety-during-edit.r224.browser-red.txt` im Worktree), nämlich beide Langdrücke, beide Zwei-Finger-Reihenfolgen und der Scroll-Clamp. Die Fassung mit Home Y wurde in einem eigenen Worktree auf `3c24fbea` rot belegt. Grün blieben nur die beiden Kontrollen, Abbruch und Loslassen ohne Klick.
+- **Unit:** `inputSession.test` hat 13 Fälle, darunter nie durch das Alter, fremde Zeiger in beiden Richtungen, primärer Zeiger, Tastaturklick, unbenannter Klick und `pressHolds`.
+- **Frontend-Gate:** Lauf 2 PASS auf `42d04052`: Lint, Build, 2646 Unit-Tests, 650/650 Browser (`docs/reviews/safety-during-edit.gate-frontend.run2.json`).
+
+### Bewusst nicht geändert
+
+- `pointerActive` mit seinem eigenen 2-s-Rückfall bleibt, wie er ist. Er entscheidet nur in der Fokusregel zwischen Wechsel und Verlassen (UI-15a, „pointer switch: the click decides“) und hält kein Layout.
+- Wenn du willst, dass auch er auf den zeigerbezogenen Druck umzieht, mache ich das gern. Es ändert aber die vereinbarte Fokusregel, deshalb nur mit deinem Wort.
+
+### Operatorblick
+
+Der Operator hat den Stand `3c24fbea` auf der LAN-Testsim nach dem Versand von R224 live geprüft und bestätigt:
+
+- **Querformat:** Safety bleibt links, Disarm, E-Stop und Power wirken mit offenem Ziffernblock und offener Tastatur.
+- **Halten im Besitzerabschnitt:** Home/Unhome X mit dem Ziffernblock eines Setup-Felds funktioniert.
+- **Hochformat:** Die Infos bleiben, die Safety-Tasten wirken.
+
+Dass Home/Unhome mit dem Ziffernblock eines Seitenfelds nicht sichtbar ist, hält der Operator für gewollt. Den neuen Stand zeigt die Testsim seit dem Commit ebenfalls.
+
+**Bitte prüfen:** die zeigerbezogene Haltelogik mit ihren Verlustbelegen, die Regel „nur `isTrusted` hält“ und den Platzhalter gegen SDE-03. Wenn das trägt, bitte `agreement`.
