@@ -253,3 +253,31 @@ Running 1 test using 1 worker
     test-results/safety-during-edit-each-po-afceb-trip-follows-after-finger-2-serial-guards/trace.zip
     Usage:
         npx playwright show-trace test-results/safety-during-edit-each-po-afceb-trip-follows-after-finger-2-serial-guards/trace.zip
+
+# R225: the mixed-input guard (a touch opens MDI while the mouse holds G55) against 5cdf20e0: red
+Running 1 test using 1 worker
+[1/1] [serial-guards] › e2e/safety-during-edit.spec.ts:321:3 › an opening by another pointer waits for the press still down (mouse + touch) › a touch opens MDI while the mouse holds G55: G55 stays visible and unmoved, the release lands on it and nothing else, then the keyboard shows
+  1) [serial-guards] › e2e/safety-during-edit.spec.ts:321:3 › an opening by another pointer waits for the press still down (mouse + touch) › a touch opens MDI while the mouse holds G55: G55 stays visible and unmoved, the release lands on it and nothing else, then the keyboard shows 
+    Error: G55 visible and where the mouse pressed it
+    expect(received).toEqual(expected) // deep equality
+    Expected: {"height": 36, "width": 53, "x": 637, "y": 874}
+    Received: null
+      333 |     const ev = await pointerEvents(page);
+      334 |     expect(ev.filter(e => (e.type === "pointerup" || e.type === "pointercancel") && e.pointerId === 1), "the mouse is still down").toHaveLength(0);
+    > 335 |     expect(await target!.boundingBox(), "G55 visible and where the mouse pressed it").toEqual(before);
+          |                                                                                       ^
+      336 |     expect(await page.locator(".tkStrip").count(), "the keyboard waits for the mouse").toBe(0);
+      337 |     await page.mouse.up();
+      338 |     await expect(page.locator(".tkStrip"), "after the mouse's press the opening applies").toBeVisible();
+        at /home/cnc/sde-base/lcnc-webui/e2e/safety-during-edit.spec.ts:335:87
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-an-open-3f6b6-lse-then-the-keyboard-shows-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+    Error Context: test-results/safety-during-edit-an-open-3f6b6-lse-then-the-keyboard-shows-serial-guards/error-context.md
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-an-open-3f6b6-lse-then-the-keyboard-shows-serial-guards/trace.zip
+    Usage:
+        npx playwright show-trace test-results/safety-during-edit-an-open-3f6b6-lse-then-the-keyboard-shows-serial-guards/trace.zip
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+  1 failed
+    [serial-guards] › e2e/safety-during-edit.spec.ts:321:3 › an opening by another pointer waits for the press still down (mouse + touch) › a touch opens MDI while the mouse holds G55: G55 stays visible and unmoved, the release lands on it and nothing else, then the keyboard shows 

@@ -314,8 +314,11 @@ function setPointerActive(on: boolean): void {
 // sections came back, the owner section moved right of Jog (Safety too while
 // the strip centred), and the click — or a hold's 500 ms — ended beside the
 // control it began on: Disarm, E-Stop and Power did nothing with a helper
-// open (safety-during-edit.spec). Only a CLOSE waits: an opening or a switch
-// comes from a click that has already landed. Every POINTER holds the strip
+// open (safety-during-edit.spec). A CLOSE waits for every press to end; an
+// OPENING or a switch waits only for a press whose click has not come — the
+// click that opened it has landed, another pointer still pressing has not (a
+// touch opening MDI hid Setup under the mouse still holding G55, Codex R225).
+// Every POINTER holds the strip
 // until its own press has ended (Codex R224): after its click's handlers, at
 // once on its pointercancel (a pan took it), PRESS_NO_CLICK_MS after its
 // release when no click followed (the right button, a dimmed control), and
@@ -327,24 +330,28 @@ function setPointerActive(on: boolean): void {
 // ends another's (a second finger lifting moved Home X under the first,
 // SDE-02). Only the browser's own input counts (`isTrusted`): a script's
 // pointerdown still closes the helper, it holds nothing.
-const pressing = ref(false);
+const pressing = ref(false);        // a press has not ended: a close waits
+const pressPending = ref(false);    // a press has not had its click: an opening waits
 /** A press is in progress: what holds through it waits (read-only). */
 export const pressHolds: Readonly<Ref<boolean>> = readonly(pressing);
 export const PRESS_NO_CLICK_MS = 500;
 const pointersDown = new Map<number, string>();   // pointer → its pointerType
-const releasedPointers = new Map<number, ReturnType<typeof setTimeout>>();   // released, its click not yet in
+// released, ending after its click (timer 0) or PRESS_NO_CLICK_MS without one
+const releasedPointers = new Map<number, { timer: ReturnType<typeof setTimeout>; clicked: boolean }>();
 let lastReleased: number | null = null;
 function settlePress(): void {
   pressing.value = pointersDown.size > 0 || releasedPointers.size > 0;
+  pressPending.value = pointersDown.size > 0 || [...releasedPointers.values()].some((r) => !r.clicked);
 }
 function endPointer(id: number): void {
   pointersDown.delete(id);
-  clearTimeout(releasedPointers.get(id));
+  clearTimeout(releasedPointers.get(id)?.timer);
   releasedPointers.delete(id);
 }
-function endPointerAfter(id: number, ms: number): void {
-  clearTimeout(releasedPointers.get(id));
-  releasedPointers.set(id, setTimeout(() => { releasedPointers.delete(id); settlePress(); }, ms));
+function endPointerAfter(id: number, ms: number, clicked: boolean): void {
+  clearTimeout(releasedPointers.get(id)?.timer);
+  releasedPointers.set(id, { clicked, timer: setTimeout(() => { releasedPointers.delete(id); settlePress(); }, ms) });
+  settlePress();
 }
 /** The press as the document listeners below report it, by pointer
  *  (exported for the unit test, which has no DOM). */
@@ -358,8 +365,7 @@ export const press = {
   up(id: number): void {
     if (!pointersDown.delete(id)) return;
     lastReleased = id;
-    endPointerAfter(id, PRESS_NO_CLICK_MS);
-    settlePress();
+    endPointerAfter(id, PRESS_NO_CLICK_MS, false);
   },
   /** A click (after its own handlers: a timer queued while it is
    *  dispatched). `id` = the pointer that made it; null = a click that names
@@ -367,7 +373,7 @@ export const press = {
    *  A click whose pointer has not just been released ends nothing. */
   click(id: number | null): void {
     const p = id ?? lastReleased;
-    if (p !== null && releasedPointers.has(p)) endPointerAfter(p, 0);
+    if (p !== null && releasedPointers.has(p)) endPointerAfter(p, 0, true);
   },
   cancel(id: number): void { endPointer(id); settlePress(); },
   /** A move with no button down: that pointer's release was lost. */
@@ -388,12 +394,14 @@ function clickPointer(e: MouseEvent): number | null | undefined {
   return e.detail > 0 ? null : undefined;
 }
 
-/** A ref that follows `source`, except that a change to a value `closed`
- *  calls a close waits while a press is in progress and lands when it ends. */
+/** A ref that follows `source`, except that a change waits while a press it
+ *  could move is in progress: a change to a value `closed` calls a close
+ *  until every press has ended, any other until every press has had its
+ *  click (the click that made it has; another pointer still down has not). */
 export function heldThroughPress<T>(source: () => T, closed: (v: T) => boolean): Readonly<Ref<T>> {
   const held = shallowRef(source());
-  watch([source, pressing], ([v, p]) => {
-    if (!p || !closed(v)) held.value = v;
+  watch([source, pressing, pressPending], ([v, p, pending]) => {
+    if (closed(v) ? !p : !pending) held.value = v;
   }, { flush: "sync" });
   return held;
 }

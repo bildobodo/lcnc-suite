@@ -181,15 +181,18 @@ const jogShown = (page: Page) => page.locator('[data-strip="jog"]').evaluate(el 
 
 async function recordPointerEvents(page: Page) {
   await page.evaluate(() => {
-    const w = window as unknown as { sdeEvents: { type: string; pointerId?: number }[] };
+    const w = window as unknown as { sdeEvents: { type: string; pointerId?: number; target?: string }[] };
     w.sdeEvents = [];
     for (const type of ["pointerdown", "pointerup", "pointercancel", "click"]) {
-      document.addEventListener(type, (e) => w.sdeEvents.push({ type, pointerId: (e as PointerEvent).pointerId }), true);
+      document.addEventListener(type, (e) => {
+        const c = (e.target as Element | null)?.closest('button, input, [role="radio"]');
+        w.sdeEvents.push({ type, pointerId: (e as PointerEvent).pointerId, target: (c?.getAttribute("aria-label") ?? c?.textContent ?? "").trim().slice(0, 40) });
+      }, true);
     }
   });
 }
 const pointerEvents = (page: Page) =>
-  page.evaluate(() => (window as unknown as { sdeEvents: { type: string; pointerId?: number }[] }).sdeEvents);
+  page.evaluate(() => (window as unknown as { sdeEvents: { type: string; pointerId?: number; target?: string }[] }).sdeEvents);
 
 test.describe("a long press lands like a short one — the press is not ended by its age (mouse, landscape)", () => {
   test(`G55 held ${LONG_PRESS_MS} ms with the setup keypad open: unmoved before the release, mdi G55 sent once`, async ({ page }) => {
@@ -301,6 +304,43 @@ test.describe("each pointer ends its own press (touch, landscape, two fingers)",
     expect((await pointerEvents(page)).some(e => e.type === "pointercancel"), "the browser reported the cancel").toBe(true);
     await expect.poll(() => jogShown(page), { timeout: 400 }).toBe(true);
     expect((await sent()).some(c => c.cmd === "home" || c.cmd === "unhome"), "the cancelled hold sent nothing").toBe(false);
+  });
+});
+
+// ── An opening by another pointer waits too (Codex R225) ──
+// The mouse holds G55 (the keypad closed at its pointerdown); a touch taps
+// the MDI line and opens the keyboard. The keyboard used to replace Setup at
+// once — the mouse's release then hit Backspace. Now the opening waits until
+// every press has had its click (or its 500 ms without one): the mouse is
+// released on G55, nothing else is hit, then the keyboard comes. Chrome
+// dispatches no click for the mouse here — the tap's compatibility mouse
+// events reset its click target — so G55's own action is the browser's to
+// give; what is ours is that nothing else receives the release.
+test.describe("an opening by another pointer waits for the press still down (mouse + touch)", () => {
+  test.use({ hasTouch: true });
+  test("a touch opens MDI while the mouse holds G55: G55 stays visible and unmoved, the release lands on it and nothing else, then the keyboard shows", async ({ page }) => {
+    await openTouch(page, { width: 1920, height: 1080 });
+    await page.getByRole("tab", { name: "MDI", exact: true }).tap();
+    await openHelper(page, "keypad (strip field)", true);
+    await ctl({ op: "clearCmds" });
+    await recordPointerEvents(page);
+    const target = await g55(page).elementHandle();
+    const before = (await target!.boundingBox())!;
+    await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2);
+    await page.mouse.down();
+    await page.locator(".mdiInput").tap();
+    await page.waitForTimeout(150);
+    const ev = await pointerEvents(page);
+    expect(ev.filter(e => (e.type === "pointerup" || e.type === "pointercancel") && e.pointerId === 1), "the mouse is still down").toHaveLength(0);
+    expect(await target!.boundingBox(), "G55 visible and where the mouse pressed it").toEqual(before);
+    expect(await page.locator(".tkStrip").count(), "the keyboard waits for the mouse").toBe(0);
+    await page.mouse.up();
+    await expect(page.locator(".tkStrip"), "after the mouse's press the opening applies").toBeVisible();
+    await expect(page.locator(".stripHelperPlace")).toHaveCount(0);
+    const after = await pointerEvents(page);
+    expect(after.find(e => e.type === "pointerup" && e.pointerId === 1)?.target, `the mouse released on G55 ${JSON.stringify(after)}`).toBe("G55");
+    expect(after.filter(e => e.type === "click" && e.pointerId !== 5 && e.target !== "G55"), "no click on another control").toEqual([]);
+    expect((await sent()).filter(c => !(c.cmd === "mdi" && c.text === "G55")), "no other command").toEqual([]);
   });
 });
 

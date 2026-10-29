@@ -5,8 +5,9 @@ import { heldThroughPress, press, pressHolds, PRESS_NO_CLICK_MS } from "./inputS
 // The strip's layout holds through a press (operator 2026-10-28/29): a
 // helper closing at the pointerdown keeps the strip as it is until the press
 // has ended — after its click — so the click lands on the control it began
-// on. Only a close waits; an opening or a switch applies at once. Each
-// pointer ends its OWN press, never by its age (Codex R224 SDE-01/02). The
+// on. A close waits for every press to end; an opening or a switch only for
+// a press whose click has not come (Codex R225). Each pointer ends its OWN
+// press, never by its age (Codex R224 SDE-01/02). The
 // real pointers are in safety-during-edit.spec; here the press's end rules.
 describe("heldThroughPress", () => {
   const open = ref<string | null>("text");
@@ -139,20 +140,50 @@ describe("heldThroughPress", () => {
     expect(held.value).toBeNull();
   });
 
-  it("an opening or a switch during a press applies at once — its click has landed", () => {
+  it("an opening or a switch by the click of the only press applies at once — its click has landed", () => {
     open.value = null;
     press.down(1);
+    press.up(1);
+    press.click(1);              // the field's click handler opens the session
     open.value = "number";
     expect(held.value).toBe("number");
     open.value = "text";
     expect(held.value).toBe("text");
   });
 
+  it("an opening by another pointer waits while a press has not had its click (R225: the mouse still on G55)", () => {
+    press.down(1);               // the mouse presses G55: the keypad closes
+    open.value = null;
+    press.down(5);               // a touch taps the MDI line
+    press.up(5);
+    press.click(5);
+    open.value = "code";         // ... and opens the keyboard
+    expect(held.value, "the mouse is still down: nothing changes under it").toBe("text");
+    vi.advanceTimersByTime(PRESS_NO_CLICK_MS * 4);
+    expect(held.value, "not by the time either").toBe("text");
+    press.up(1);
+    expect(held.value, "released, its click not yet in").toBe("text");
+    press.click(1);
+    expect(held.value, "every press has had its click: the opening applies").toBe("code");
+  });
+
+  it("a switch by another pointer waits the same way", () => {
+    open.value = "number";
+    press.down(1);
+    press.down(5);
+    press.up(5);
+    press.click(5);
+    open.value = "text";
+    expect(held.value).toBe("number");
+    press.cancel(1);
+    expect(held.value).toBe("text");
+  });
+
   it("the value the press ends on is the source's latest, not the first close", () => {
     press.down(1);
     open.value = null;
-    open.value = "number";       // reopened within the same press
-    expect(held.value).toBe("number");
+    open.value = "number";       // reopened within the same press — held too, its click has not come
+    expect(held.value).toBe("text");
     open.value = null;
     press.up(1);
     press.click(1);

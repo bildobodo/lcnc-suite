@@ -480,25 +480,29 @@ const numKeypadOwner = computed(() =>
     ? keypadState.trigger?.closest("[data-strip]")?.getAttribute("data-strip") ?? null
     : null
 );
-// What the strip shows follows the session, except that a helper closing
-// under a press keeps the strip as it is until the press has ended — after
-// its click (inputSession.ts `heldThroughPress`): the press lands on the
-// control it began on (operator 2026-10-28, safety-during-edit.spec).
+// What the strip shows follows the session, except that nothing changes
+// under a press (inputSession.ts `heldThroughPress`): a helper closing waits
+// until the press has ended — after its click —, a helper another pointer
+// opened until every press has had its click. The press lands on the control
+// it began on (operator 2026-10-28, safety-during-edit.spec).
 const stripLayout = heldThroughPress(
   () => ({ kind: activeKind.value, numOwner: numKeypadOwner.value }),
   (v) => v.kind === null,
 );
-// The helper itself leaves at once (its session closed, UI-15a); its PLACE
-// stays while the press holds the strip — an empty box of the helper's laid-
-// out size where it was. Without it the strip's scroll range shrank under
-// the finger and the browser clamped a sideways scroll: G55 slid 150 px
-// under a 100 ms click (Codex R224 SDE-03). Measured at the close, before
-// Vue removes the helper (a sync watcher in the pointerdown's own task).
+// The helpers render from the held layout too: a helper whose session ended
+// under a press leaves at once (UI-15a) but its PLACE stays — an empty box of
+// its laid-out size — and a helper another pointer opened appears only when
+// the layout follows (Codex R225: a touch opening MDI hid Setup under the
+// mouse still holding G55). Without the place the strip's scroll range
+// shrank under the finger and the browser clamped a sideways scroll: G55
+// slid 150 px under a 100 ms click (R224 SDE-03). Measured when the helper's
+// session ends, before Vue removes it (a sync watcher in that same task).
 const stripEl = ref<HTMLElement | null>(null);
 type HelperSlot = "text" | "number";
-const shownHelper = computed<HelperSlot | null>(() =>
-  activeKind.value === "code" || activeKind.value === "text" ? "text"
-    : keypadState.open && !keypadState.locked ? "number" : null);
+const slotOf = (k: string | null): HelperSlot | null =>
+  k === "code" || k === "text" ? "text" : k === "number" ? "number" : null;
+const shownHelper = computed(() => slotOf(activeKind.value));
+const heldHelper = computed(() => slotOf(stripLayout.value.kind));
 const helperPlace = shallowRef<{ at: HelperSlot; style: { width: string; height: string } } | null>(null);
 function measureHelperPlace(at: HelperSlot): typeof helperPlace.value {
   const el = stripEl.value?.querySelector<HTMLElement>(at === "text" ? ".tkStrip" : ".nkStrip");
@@ -508,7 +512,7 @@ function measureHelperPlace(at: HelperSlot): typeof helperPlace.value {
   return { at, style: { width: `${r.width / z}px`, height: `${r.height / z}px` } };
 }
 watch(shownHelper, (now, before) => {
-  helperPlace.value = now === null && before !== null && pressHolds.value ? measureHelperPlace(before) : null;
+  if (before !== null && now !== before && pressHolds.value) helperPlace.value = measureHelperPlace(before);
 }, { flush: "sync" });
 watch(pressHolds, (p) => { if (!p) helperPlace.value = null; }, { flush: "sync" });
 // The keypad section sits LAST in the strip DOM: with every non-owner
@@ -2707,8 +2711,8 @@ watch(viewerGcode, (newGcode) => {
            and the active WCS stays visible in the HUD. SafetyStrip is
            pinned first and the strip never centres, so Safety stays where
            it is when the keyboard swaps in/out (stripLayout). -->
-      <TextKeypadStrip v-if="activeKind === 'code' || activeKind === 'text'" :axes="axes" />
-      <div v-else-if="helperPlace?.at === 'text'" class="stripHelperPlace" aria-hidden="true" :style="helperPlace.style"></div>
+      <TextKeypadStrip v-if="heldHelper === 'text' && shownHelper === 'text'" :axes="axes" />
+      <div v-else-if="heldHelper === 'text' && helperPlace?.at === 'text'" class="stripHelperPlace" aria-hidden="true" :style="helperPlace.style"></div>
 
       <OverridesStrip
         v-show="stripVis('overrides')"
@@ -2767,9 +2771,9 @@ watch(viewerGcode, (newGcode) => {
       <!-- Number keypad: swaps in like the G-code keypad, but keeps the
            section that owns the edited field visible (see stripVis). Last in
            DOM so it renders directly right of whichever section survives. -->
-      <NumberKeypadStrip v-if="keypadState.open" v-show="!keypadState.locked" />
+      <NumberKeypadStrip v-if="keypadState.open && (keypadState.locked || heldHelper === 'number')" v-show="!keypadState.locked" />
       <!-- The keypad's place while a press holds the strip (helperPlace) -->
-      <div v-else-if="helperPlace?.at === 'number'" class="stripHelperPlace" aria-hidden="true" :style="helperPlace.style"></div>
+      <div v-else-if="heldHelper === 'number' && helperPlace?.at === 'number'" class="stripHelperPlace" aria-hidden="true" :style="helperPlace.style"></div>
 
       <!-- Scroll-edge affordance: fades in at the far edge while strip
            sections are scrolled out of view (strip-more class, JS-toggled).
