@@ -340,7 +340,7 @@ test.describe("an opening by another pointer waits for the press still down (mou
     const after = await pointerEvents(page);
     expect(after.find(e => e.type === "pointerup" && e.pointerId === 1)?.target, `the mouse released on G55 ${JSON.stringify(after)}`).toBe("G55");
     expect(after.filter(e => e.type === "click" && e.pointerId !== 5 && e.target !== "G55"), "no click on another control").toEqual([]);
-    expect((await sent()).filter(c => !(c.cmd === "mdi" && c.text === "G55")), "no other command").toEqual([]);
+    expect((await sent()).filter(c => !(c.cmd === "mdi" && c.text === "G55") && !String(c.cmd).startsWith("get_")), "no other command (reads aside)").toEqual([]);
   });
 });
 
@@ -364,6 +364,7 @@ test.describe("a queued helper owns no place: closing it keeps the shown one's (
       const scroll = () => strip.evaluate(el => ({ left: el.scrollLeft, width: el.scrollWidth }));
       const scrollBefore = await scroll();
       expect(scrollBefore.left, "the strip is scrolled").toBeGreaterThan(0);
+      await ctl({ op: "clearCmds" });
       await recordPointerEvents(page);
       const target = await g55(page).elementHandle();
       const before = (await target!.boundingBox())!;
@@ -382,7 +383,7 @@ test.describe("a queued helper owns no place: closing it keeps the shown one's (
       if (cancel) await expect.poll(() => jogShown(page), { timeout: 2000, message: "the normal strip returns" }).toBe(true);
       else await expect(page.locator(".tkStrip"), "the queued keyboard shows").toBeVisible();
       await expect(page.locator(".stripHelperPlace"), "no place left behind").toHaveCount(0);
-      expect((await sent()).filter(c => !(c.cmd === "mdi" && c.text === "G55")), "no other command").toEqual([]);
+      expect((await sent()).filter(c => !(c.cmd === "mdi" && c.text === "G55") && !String(c.cmd).startsWith("get_")), "no other command (reads aside)").toEqual([]);
     });
   }
 });
