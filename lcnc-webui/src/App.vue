@@ -55,7 +55,8 @@ import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import NumberKeypadStrip from "./NumberKeypadStrip.vue";
 import FloatingOverlays from "./FloatingOverlays.vue";
 import { keypadState } from "./useNumberKeypad";
-import { activeKind, openTextSession, lockTextSessionIf, EDITOR_OWNER, MACRO_EDITOR_OWNER, type TextTarget, returnFocusTo } from "./inputSession";
+import { activeKind, openTextSession, lockTextSessionIf, EDITOR_OWNER, MACRO_EDITOR_OWNER, type TextTarget, returnFocusTo, heldThroughPress } from "./inputSession";
+import { measureStripColumn, safetyFoldNeeded } from "./safetyFold";
 import { explainAt } from "./gateExplain";
 import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, loadGamepadDraft, saveGamepadDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type Layer, type OnTopLayer, type TrackMode, type Projection } from "./defaults";
 import { confirmedToolsetter, toolsetterVarMap, TOOLSETTER_MDI_KEY } from "./toolsetterVars";
@@ -479,15 +480,59 @@ const numKeypadOwner = computed(() =>
     ? keypadState.trigger?.closest("[data-strip]")?.getAttribute("data-strip") ?? null
     : null
 );
+// What the strip shows follows the session, except that a helper closing
+// under a press keeps the strip as it is until the press has ended — after
+// its click (inputSession.ts `heldThroughPress`): the press lands on the
+// control it began on (operator 2026-10-28, safety-during-edit.spec).
+const stripLayout = heldThroughPress(
+  () => ({ kind: activeKind.value, numOwner: numKeypadOwner.value }),
+  (v) => v.kind === null,
+);
 // The keypad section sits LAST in the strip DOM: with every non-owner
 // section hidden, it lands directly right of the owner (or of SafetyStrip)
 // without any reordering logic.
 function stripVis(section: string): boolean {
-  const k = activeKind.value;
+  const k = stripLayout.value.kind;
   if (k === "code" || k === "text") return false;
-  if (k === "number") return numKeypadOwner.value === section;
+  if (k === "number") return stripLayout.value.numOwner === section;
   return true;
 }
+
+// Portrait: the Safety section keeps its machine info while a helper is open
+// wherever the column holds the helper with it (safetyFold.ts). Measured in
+// the frame after the layout changed (before its paint: no frame shows the
+// helper cut off), on a strip or section resize too (a zoom, a page switch).
+// An unfold waits for a press like a close — it would move the owner section
+// down under the finger.
+const stripEl = ref<HTMLElement | null>(null);
+const safetyFoldNow = ref(false);
+let safetyInfoAdds: number | null = null;
+let safetyFoldRaf = 0;
+const safetyFoldWatched = new WeakSet<Element>();
+let safetyFoldRo: ResizeObserver | null = null;
+function measureSafetyFold() {
+  const strip = stripEl.value;
+  if (!strip || !isPortrait.value || stripLayout.value.kind === null) { safetyFoldNow.value = false; return; }
+  for (const child of strip.children) if (!safetyFoldWatched.has(child)) { safetyFoldWatched.add(child); safetyFoldRo?.observe(child); }
+  const column = measureStripColumn(strip);
+  if (column.infoAdds != null) safetyInfoAdds = column.infoAdds;
+  safetyFoldNow.value = safetyFoldNeeded(column, safetyInfoAdds);
+}
+function scheduleSafetyFold() {
+  cancelAnimationFrame(safetyFoldRaf);
+  safetyFoldRaf = requestAnimationFrame(measureSafetyFold);
+}
+const safetyCompact = heldThroughPress(() => safetyFoldNow.value, (fold) => !fold);
+watch([stripLayout, isPortrait], scheduleSafetyFold);
+onMounted(() => {
+  safetyFoldRo = new ResizeObserver(scheduleSafetyFold);
+  if (stripEl.value) safetyFoldRo.observe(stripEl.value);
+});
+onUnmounted(() => {
+  cancelAnimationFrame(safetyFoldRaf);
+  safetyFoldRo?.disconnect();
+  safetyFoldRo = null;
+});
 
 const mdiInputRef = ref<any>(null);
 
@@ -1401,7 +1446,7 @@ watch(isPortrait, () => {
 }, { flush: "pre" });
 // Strip content swaps (keypad in/out) change scrollWidth without resizing
 // the strip itself — re-check the edge fades.
-watch(activeKind, () => nextTick(attachScrollFades));
+watch(stripLayout, () => nextTick(attachScrollFades));
 onUnmounted(() => {
   fadeRo?.disconnect();
   fadeRo = null;
@@ -2540,8 +2585,9 @@ watch(viewerGcode, (newGcode) => {
 
     <!-- ══ Bottom Action Strip — SafetyStrip first and sticky; every control
          gated by its own catalog gate (no outer Gate, BG-01) ══ -->
-    <div class="strip bordered-panel scroll-thin" tabindex="-1">
+    <div ref="stripEl" class="strip bordered-panel scroll-thin" tabindex="-1">
       <SafetyStrip
+        :compact="safetyCompact"
         :armed="armed"
         :busy="busy"
         :isEstop="isEstop"
@@ -2617,7 +2663,7 @@ watch(viewerGcode, (newGcode) => {
         :twpDatumMoved="twpDatumMoved"
         :twpOffDatum="twpOffDatum"
         :g5xIndex="st.g5x_index ?? null"
-        :entryOpen="numKeypadOwner === 'setup'"
+        :entryOpen="stripLayout.numOwner === 'setup'"
         @twpOrient="twpReorient"
         @twpCapture="twpCapture"
         @twpClear="twpClear"
@@ -2637,7 +2683,8 @@ watch(viewerGcode, (newGcode) => {
            SafetyStrip while a text session is open (MDI line, editor,
            search/description fields) — none of them are usable mid-typing,
            and the active WCS stays visible in the HUD. SafetyStrip is
-           pinned first, so nothing shifts when the keyboard swaps in/out. -->
+           pinned first and the strip never centres, so Safety stays where
+           it is when the keyboard swaps in/out (stripLayout). -->
       <TextKeypadStrip v-if="activeKind === 'code' || activeKind === 'text'" :axes="axes" />
 
       <OverridesStrip
@@ -2781,12 +2828,13 @@ watch(viewerGcode, (newGcode) => {
   overflow-y: hidden;
   border-radius: var(--radius-container);
 }
-/* Center all sections when space allows; collapse to 0 on overflow */
-.strip::before,
-.strip::after {
-  content: '';
-  flex: 1;
-}
+/* The sections start at the left in every state (operator 2026-10-29):
+   Safety never moves, an input helper starts directly right of it (the
+   number keypad right of its owner section), and free room stays at the
+   far end. The strip used to CENTRE what fitted — opening a helper hid the
+   other sections and pushed Safety ~550 px right, the press that closed
+   the helper brought them back and Safety left under the finger before the
+   click (Disarm, E-Stop, Power did nothing; safety-during-edit.spec). */
 .strip > * + * {
   border-left: 1px solid var(--border-subtle);
   padding-left: var(--gap-controls);
@@ -3120,10 +3168,6 @@ watch(viewerGcode, (newGcode) => {
     padding-left: 0;
     border-top: 1px solid var(--border-subtle);
     padding-top: var(--gap-controls);
-  }
-  .wrap > .strip::before,
-  .wrap > .strip::after {
-    display: none;
   }
   /* Vertical scroller: fade moves to the bottom edge */
   .wrap > .strip > .stripFade {

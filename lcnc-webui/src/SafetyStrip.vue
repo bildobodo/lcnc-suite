@@ -3,8 +3,6 @@ import { computed } from "vue";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import { Lock, LockOpen, TriangleAlert, Power, BookOpen } from "lucide-vue-next";
-import { activeKind } from "./inputSession";
-import { useMediaMql } from "./useMediaMql";
 import { NO_VALUE } from "./format";
 import { usePermissions, usePermissionReasons } from "./permissions";
 import {
@@ -13,6 +11,9 @@ import {
 } from "./lcnc";
 
 const props = defineProps<{
+  /** Portrait with an input helper the column cannot hold with the machine
+   *  info: the info folds away (App measures it, safetyFold.ts). */
+  compact: boolean;
   armed: boolean;
   busy: boolean;
   isEstop: boolean;
@@ -72,23 +73,21 @@ const overridesActive = computed(() =>
   || (props.rapidOverride != null && Math.round(props.rapidOverride * 100) !== 100)
 );
 
-// Portrait with an input helper open: the status detail folds away and the
-// section is its title and the three safety buttons. The detail (172 CSS
-// px) is what left the portrait keyboard 97 px below the fold at 150 % on
-// 900 × 1200 (implementation review UI-I08); a four-row form was measured
-// too and misses by 11 px whenever the header wraps one line more (its
-// wrap count at 600 CSS px follows the pill texts — it flipped between two
-// measurements), so the fold is the form with margin (≥ 47 px).
-// What the detail said stays readable: the banner above names the machine
-// state (IDLE / RUNNING / NOT HOMED / E-STOP / OFF), E-Stop and power are
-// the buttons' own labels; Motion, Elapsed, overrides and the active codes
-// return when the helper closes. The safety buttons never move (WP4 pinned
-// controls); landscape is unchanged (fixed section height).
-const isPortrait = useMediaMql("(orientation: portrait)");
+// Portrait with an input helper open: the status detail stays wherever the
+// column holds the helper with it and folds only where it would not
+// (operator 2026-10-29; App measures, safetyFold.ts). Folded, the section is
+// its title and the three safety buttons: at 150 % on 900 × 1200 the
+// detail (172 CSS px) left the keyboard below the fold (implementation
+// review UI-I08), and a four-row form missed by 11 px whenever the header
+// wrapped one line more. What the detail said stays readable meanwhile:
+// the banner above names the machine state (IDLE / RUNNING / NOT HOMED /
+// E-STOP / OFF), E-Stop and power are the buttons' own labels; Motion,
+// Elapsed, overrides and the active codes return when the helper closes.
+// The safety buttons never move (WP4 pinned controls) — the detail sits
+// below them; landscape never folds (fixed section height).
 // the block's name carries the codes it shows (WCAG 2.5.3), none before a status
 const codesLabel = computed(() =>
   ["Active codes", props.gcodes, props.mcodes].filter(Boolean).join(" ") + " — open in the G-code reference");
-const compact = computed(() => isPortrait.value && activeKind.value !== null);
 </script>
 
 <template>

@@ -23,7 +23,7 @@
 //     Apply sends the line; editor → Enter is a newline, Save saves; a
 //     search field's Enter never reaches the machine. Both keyboards' confirm
 //     key READS "Apply" (operator 2026-10-01). Escape stays E-Stop everywhere.
-import { computed, reactive, watch } from "vue";
+import { computed, reactive, ref, shallowRef, watch, type Ref } from "vue";
 import { keypadState, closeKeypad, closeKeypadIf, hideKeypad, onKeypadOpen } from "./useNumberKeypad";
 
 export { saveDraft, takeDraft, dropDraft, dropDrafts, clearDrafts } from "./useNumberKeypad";
@@ -307,7 +307,53 @@ function setPointerActive(on: boolean): void {
   if (on) pointerTimer = window.setTimeout(() => { pointerActive = false; }, 2000);  // lost pointerup backstop
 }
 
+// ── The strip's layout holds through a press (operator 2026-10-28/29) ──
+// A press outside the focus area closes the helper at its pointerdown (the
+// rule above); what the STRIP shows follows only when the press has ended,
+// after its click. Closing re-flowed the strip under the finger: the hidden
+// sections came back, the owner section moved right of Jog (Safety too while
+// the strip centred), and the click — or a hold's 500 ms — ended beside the
+// control it began on: Disarm, E-Stop and Power did nothing with a helper
+// open (safety-during-edit.spec). Only a CLOSE waits: an opening or a switch
+// comes from a click that has already landed. A press ends after its click's
+// own handlers, at once on pointercancel (a pan took it) or a lost window
+// focus, PRESS_NO_CLICK_MS after a release no click followed (a dimmed
+// control, a slide off) and, if no release ever arrives, PRESS_LOST_MS after
+// it began (the pointer backstop's 2 s — a hold fires at 500 ms).
+const pressing = ref(false);
+export const PRESS_NO_CLICK_MS = 500;
+export const PRESS_LOST_MS = 2000;
+let pressTimer: ReturnType<typeof setTimeout> | undefined;
+function pressEnd(): void {
+  clearTimeout(pressTimer);
+  pressing.value = false;
+}
+function pressAfter(ms: number): void {
+  clearTimeout(pressTimer);
+  pressTimer = setTimeout(pressEnd, ms);
+}
+/** The press as the document listeners below report it (exported for the
+ *  unit test, which has no DOM). */
+export const press = {
+  down(): void { pressing.value = true; pressAfter(PRESS_LOST_MS); },
+  up(): void { if (pressing.value) pressAfter(PRESS_NO_CLICK_MS); },
+  /** after the click's own handlers: a timer queued while it is dispatched */
+  click(): void { if (pressing.value) pressAfter(0); },
+  cancel: pressEnd,
+};
+
+/** A ref that follows `source`, except that a change to a value `closed`
+ *  calls a close waits while a press is in progress and lands when it ends. */
+export function heldThroughPress<T>(source: () => T, closed: (v: T) => boolean): Readonly<Ref<T>> {
+  const held = shallowRef(source());
+  watch([source, pressing], ([v, p]) => {
+    if (!p || !closed(v)) held.value = v;
+  }, { flush: "sync" });
+  return held;
+}
+
 function onDocPointerDown(e: PointerEvent): void {
+  press.down();   // before the close below: the layout holds through it
   setPointerActive(true);
   if (inAnyArea(e.target)) return;   // this owner's area (operating) or another's (the click switches)
   if (keypadState.open && !keypadState.locked) hideKeypad("pointer down outside the input area");
@@ -350,9 +396,10 @@ function pollOwners(): void {
 
 if (typeof document !== "undefined") {
   document.addEventListener("pointerdown", onDocPointerDown, { capture: true, passive: true });
-  document.addEventListener("pointerup", () => setPointerActive(false), { capture: true, passive: true });
-  document.addEventListener("pointercancel", () => setPointerActive(false), { capture: true, passive: true });
-  window.addEventListener("blur", () => setPointerActive(false));
+  document.addEventListener("pointerup", () => { setPointerActive(false); press.up(); }, { capture: true, passive: true });
+  document.addEventListener("pointercancel", () => { setPointerActive(false); press.cancel(); }, { capture: true, passive: true });
+  document.addEventListener("click", press.click, { capture: true, passive: true });
+  window.addEventListener("blur", () => { setPointerActive(false); press.cancel(); });
   document.addEventListener("focusin", onDocFocusIn, true);
   watch(() => keypadState.open || inputSession.kind !== null, (on) => {
     clearInterval(pollTimer);

@@ -1,0 +1,971 @@
+
+Running 35 tests using 1 worker
+
+[1/35] [serial-guards] › e2e/safety-during-edit.spec.ts:98:3 › landscape 1280 × 800: Safety stays at the left in every helper state, each helper starts right of it or of its owner section
+  1) [serial-guards] › e2e/safety-during-edit.spec.ts:98:3 › landscape 1280 × 800: Safety stays at the left in every helper state, each helper starts right of it or of its owner section 
+
+    Error: Safety at the strip's start: {"strip":{"x":8,"y":500,"w":1264,"h":292},"plain":{"section":{"x":17,"y":509,"w":280,"h":264},"buttons":[{"x":25,"y":533.5,"w":85.5,"h":56},{"x":118.5,"y":533.5,"w":85.5,"h":56},{"x":211.5,"y":533.5,"w":85.5,"h":56}]}}
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 1.5
+    Received:    9
+
+      102 |     const jog = await box(page.locator('[data-strip="jog"]'));
+      103 |     // at the strip's left edge (its own 8 px start), never centred
+    > 104 |     expect(plain.section.x - strip.x, `Safety at the strip's start: ${JSON.stringify({ strip, plain })}`).toBeLessThanOrEqual(1.5);
+          |                                                                                                           ^
+      105 |     for (const helper of HELPERS) {
+      106 |       const h = await openHelper(page, helper, false);
+      107 |       expect(await safetyBoxes(page), `${helper}: Safety unmoved`).toEqual(plain);
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:104:107
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-landsca-a527f--it-or-of-its-owner-section-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-landsca-a527f--it-or-of-its-owner-section-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-landsca-a527f--it-or-of-its-owner-section-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-landsca-a527f--it-or-of-its-owner-section-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[2/35] [serial-guards] › e2e/safety-during-edit.spec.ts:98:3 › landscape 1920 × 1080: Safety stays at the left in every helper state, each helper starts right of it or of its owner section
+  2) [serial-guards] › e2e/safety-during-edit.spec.ts:98:3 › landscape 1920 × 1080: Safety stays at the left in every helper state, each helper starts right of it or of its owner section 
+
+    Error: Safety at the strip's start: {"strip":{"x":8,"y":780,"w":1904,"h":292},"plain":{"section":{"x":17,"y":789,"w":280,"h":264},"buttons":[{"x":25,"y":813.5,"w":85.5,"h":56},{"x":118.5,"y":813.5,"w":85.5,"h":56},{"x":211.5,"y":813.5,"w":85.5,"h":56}]}}
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 1.5
+    Received:    9
+
+      102 |     const jog = await box(page.locator('[data-strip="jog"]'));
+      103 |     // at the strip's left edge (its own 8 px start), never centred
+    > 104 |     expect(plain.section.x - strip.x, `Safety at the strip's start: ${JSON.stringify({ strip, plain })}`).toBeLessThanOrEqual(1.5);
+          |                                                                                                           ^
+      105 |     for (const helper of HELPERS) {
+      106 |       const h = await openHelper(page, helper, false);
+      107 |       expect(await safetyBoxes(page), `${helper}: Safety unmoved`).toEqual(plain);
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:104:107
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-landsca-f8502--it-or-of-its-owner-section-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-landsca-f8502--it-or-of-its-owner-section-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-landsca-f8502--it-or-of-its-owner-section-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-landsca-f8502--it-or-of-its-owner-section-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[3/35] [serial-guards] › e2e/safety-during-edit.spec.ts:98:3 › landscape 2560 × 1440: Safety stays at the left in every helper state, each helper starts right of it or of its owner section
+  3) [serial-guards] › e2e/safety-during-edit.spec.ts:98:3 › landscape 2560 × 1440: Safety stays at the left in every helper state, each helper starts right of it or of its owner section 
+
+    Error: Safety at the strip's start: {"strip":{"x":8,"y":1140,"w":2544,"h":292},"plain":{"section":{"x":278,"y":1149,"w":280,"h":264},"buttons":[{"x":286,"y":1173.5,"w":85.5,"h":56},{"x":379,"y":1173.5,"w":85.5,"h":56},{"x":472.5,"y":1173.5,"w":85.5,"h":56}]}}
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 1.5
+    Received:    270
+
+      102 |     const jog = await box(page.locator('[data-strip="jog"]'));
+      103 |     // at the strip's left edge (its own 8 px start), never centred
+    > 104 |     expect(plain.section.x - strip.x, `Safety at the strip's start: ${JSON.stringify({ strip, plain })}`).toBeLessThanOrEqual(1.5);
+          |                                                                                                           ^
+      105 |     for (const helper of HELPERS) {
+      106 |       const h = await openHelper(page, helper, false);
+      107 |       expect(await safetyBoxes(page), `${helper}: Safety unmoved`).toEqual(plain);
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:104:107
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-landsca-9d5bc--it-or-of-its-owner-section-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-landsca-9d5bc--it-or-of-its-owner-section-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-landsca-9d5bc--it-or-of-its-owner-section-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-landsca-9d5bc--it-or-of-its-owner-section-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[4/35] [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: arm sends arm {armed: false}
+  4) [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: arm sends arm {armed: false} 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      129 |         await ctl({ op: "clearCmds" });
+      130 |         await page.locator(`.safetyBtns [data-control="${p.control}"]`).click();
+    > 131 |         await expect.poll(async () => p.wants(await sent()), { timeout: 3000 }).toBe(true);
+          |                                                                                 ^
+      132 |       });
+      133 |     }
+      134 |   }
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:131:81
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-press-7e99e--arm-sends-arm-armed-false--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-press-7e99e--arm-sends-arm-armed-false--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-press-7e99e--arm-sends-arm-armed-false--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-press-7e99e--arm-sends-arm-armed-false--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[5/35] [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: estop sends estop
+  5) [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: estop sends estop 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      129 |         await ctl({ op: "clearCmds" });
+      130 |         await page.locator(`.safetyBtns [data-control="${p.control}"]`).click();
+    > 131 |         await expect.poll(async () => p.wants(await sent()), { timeout: 3000 }).toBe(true);
+          |                                                                                 ^
+      132 |       });
+      133 |     }
+      134 |   }
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:131:81
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-press-05527--keyboard-estop-sends-estop-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-press-05527--keyboard-estop-sends-estop-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-press-05527--keyboard-estop-sends-estop-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-press-05527--keyboard-estop-sends-estop-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[6/35] [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: machineOn sends machine_on/off
+  6) [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: machineOn sends machine_on/off 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      129 |         await ctl({ op: "clearCmds" });
+      130 |         await page.locator(`.safetyBtns [data-control="${p.control}"]`).click();
+    > 131 |         await expect.poll(async () => p.wants(await sent()), { timeout: 3000 }).toBe(true);
+          |                                                                                 ^
+      132 |       });
+      133 |     }
+      134 |   }
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:131:81
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-press-8b860-hineOn-sends-machine-on-off-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-press-8b860-hineOn-sends-machine-on-off-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-press-8b860-hineOn-sends-machine-on-off-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-press-8b860-hineOn-sends-machine-on-off-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[7/35] [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): arm sends arm {armed: false}
+  7) [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): arm sends arm {armed: false} 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      129 |         await ctl({ op: "clearCmds" });
+      130 |         await page.locator(`.safetyBtns [data-control="${p.control}"]`).click();
+    > 131 |         await expect.poll(async () => p.wants(await sent()), { timeout: 3000 }).toBe(true);
+          |                                                                                 ^
+      132 |       });
+      133 |     }
+      134 |   }
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:131:81
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-press-6b213--arm-sends-arm-armed-false--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-press-6b213--arm-sends-arm-armed-false--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-press-6b213--arm-sends-arm-armed-false--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-press-6b213--arm-sends-arm-armed-false--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[8/35] [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): estop sends estop
+  8) [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): estop sends estop 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      129 |         await ctl({ op: "clearCmds" });
+      130 |         await page.locator(`.safetyBtns [data-control="${p.control}"]`).click();
+    > 131 |         await expect.poll(async () => p.wants(await sent()), { timeout: 3000 }).toBe(true);
+          |                                                                                 ^
+      132 |       });
+      133 |     }
+      134 |   }
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:131:81
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-press-6a9f3-rip-field-estop-sends-estop-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-press-6a9f3-rip-field-estop-sends-estop-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-press-6a9f3-rip-field-estop-sends-estop-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-press-6a9f3-rip-field-estop-sends-estop-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[9/35] [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): machineOn sends machine_on/off
+  9) [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): machineOn sends machine_on/off 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      129 |         await ctl({ op: "clearCmds" });
+      130 |         await page.locator(`.safetyBtns [data-control="${p.control}"]`).click();
+    > 131 |         await expect.poll(async () => p.wants(await sent()), { timeout: 3000 }).toBe(true);
+          |                                                                                 ^
+      132 |       });
+      133 |     }
+      134 |   }
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:131:81
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-press-f3934-hineOn-sends-machine-on-off-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-press-f3934-hineOn-sends-machine-on-off-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-press-f3934-hineOn-sends-machine-on-off-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-press-f3934-hineOn-sends-machine-on-off-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[10/35] [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): arm sends arm {armed: false}
+  10) [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): arm sends arm {armed: false} 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      129 |         await ctl({ op: "clearCmds" });
+      130 |         await page.locator(`.safetyBtns [data-control="${p.control}"]`).click();
+    > 131 |         await expect.poll(async () => p.wants(await sent()), { timeout: 3000 }).toBe(true);
+          |                                                                                 ^
+      132 |       });
+      133 |     }
+      134 |   }
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:131:81
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-press-4b3a2--arm-sends-arm-armed-false--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-press-4b3a2--arm-sends-arm-armed-false--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-press-4b3a2--arm-sends-arm-armed-false--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-press-4b3a2--arm-sends-arm-armed-false--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[11/35] [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): estop sends estop
+  11) [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): estop sends estop 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      129 |         await ctl({ op: "clearCmds" });
+      130 |         await page.locator(`.safetyBtns [data-control="${p.control}"]`).click();
+    > 131 |         await expect.poll(async () => p.wants(await sent()), { timeout: 3000 }).toBe(true);
+          |                                                                                 ^
+      132 |       });
+      133 |     }
+      134 |   }
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:131:81
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-press-c8c66-ane-field-estop-sends-estop-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-press-c8c66-ane-field-estop-sends-estop-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-press-c8c66-ane-field-estop-sends-estop-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-press-c8c66-ane-field-estop-sends-estop-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[12/35] [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): machineOn sends machine_on/off
+  12) [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): machineOn sends machine_on/off 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      129 |         await ctl({ op: "clearCmds" });
+      130 |         await page.locator(`.safetyBtns [data-control="${p.control}"]`).click();
+    > 131 |         await expect.poll(async () => p.wants(await sent()), { timeout: 3000 }).toBe(true);
+          |                                                                                 ^
+      132 |       });
+      133 |     }
+      134 |   }
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:131:81
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-press-12210-hineOn-sends-machine-on-off-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-press-12210-hineOn-sends-machine-on-off-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-press-12210-hineOn-sends-machine-on-off-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-press-12210-hineOn-sends-machine-on-off-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[13/35] [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: arm sends arm {armed: false}
+  13) [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: arm sends arm {armed: false} 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      145 |           await ctl({ op: "clearCmds" });
+      146 |           await page.locator(`.safetyBtns [data-control="${p.control}"]`).tap();
+    > 147 |           await expect.poll(async () => p.wants(await sent()), { timeout: 3000 }).toBe(true);
+          |                                                                                   ^
+      148 |         });
+      149 |       }
+      150 |     }
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:147:83
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-tap-o-eb5f1--arm-sends-arm-armed-false--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-tap-o-eb5f1--arm-sends-arm-armed-false--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-tap-o-eb5f1--arm-sends-arm-armed-false--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-tap-o-eb5f1--arm-sends-arm-armed-false--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[14/35] [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: estop sends estop
+  14) [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: estop sends estop 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      145 |           await ctl({ op: "clearCmds" });
+      146 |           await page.locator(`.safetyBtns [data-control="${p.control}"]`).tap();
+    > 147 |           await expect.poll(async () => p.wants(await sent()), { timeout: 3000 }).toBe(true);
+          |                                                                                   ^
+      148 |         });
+      149 |       }
+      150 |     }
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:147:83
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-tap-o-8976e--keyboard-estop-sends-estop-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-tap-o-8976e--keyboard-estop-sends-estop-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-tap-o-8976e--keyboard-estop-sends-estop-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-tap-o-8976e--keyboard-estop-sends-estop-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[15/35] [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: machineOn sends machine_on/off
+  15) [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: machineOn sends machine_on/off 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      145 |           await ctl({ op: "clearCmds" });
+      146 |           await page.locator(`.safetyBtns [data-control="${p.control}"]`).tap();
+    > 147 |           await expect.poll(async () => p.wants(await sent()), { timeout: 3000 }).toBe(true);
+          |                                                                                   ^
+      148 |         });
+      149 |       }
+      150 |     }
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:147:83
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-tap-o-7e502-hineOn-sends-machine-on-off-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-tap-o-7e502-hineOn-sends-machine-on-off-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-tap-o-7e502-hineOn-sends-machine-on-off-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-tap-o-7e502-hineOn-sends-machine-on-off-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[16/35] [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): arm sends arm {armed: false}
+  16) [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): arm sends arm {armed: false} 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      145 |           await ctl({ op: "clearCmds" });
+      146 |           await page.locator(`.safetyBtns [data-control="${p.control}"]`).tap();
+    > 147 |           await expect.poll(async () => p.wants(await sent()), { timeout: 3000 }).toBe(true);
+          |                                                                                   ^
+      148 |         });
+      149 |       }
+      150 |     }
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:147:83
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-tap-o-b7daa--arm-sends-arm-armed-false--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-tap-o-b7daa--arm-sends-arm-armed-false--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-tap-o-b7daa--arm-sends-arm-armed-false--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-tap-o-b7daa--arm-sends-arm-armed-false--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[17/35] [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): estop sends estop
+  17) [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): estop sends estop 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      145 |           await ctl({ op: "clearCmds" });
+      146 |           await page.locator(`.safetyBtns [data-control="${p.control}"]`).tap();
+    > 147 |           await expect.poll(async () => p.wants(await sent()), { timeout: 3000 }).toBe(true);
+          |                                                                                   ^
+      148 |         });
+      149 |       }
+      150 |     }
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:147:83
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-tap-o-78e0a-rip-field-estop-sends-estop-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-tap-o-78e0a-rip-field-estop-sends-estop-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-tap-o-78e0a-rip-field-estop-sends-estop-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-tap-o-78e0a-rip-field-estop-sends-estop-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[18/35] [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): machineOn sends machine_on/off
+  18) [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): machineOn sends machine_on/off 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      145 |           await ctl({ op: "clearCmds" });
+      146 |           await page.locator(`.safetyBtns [data-control="${p.control}"]`).tap();
+    > 147 |           await expect.poll(async () => p.wants(await sent()), { timeout: 3000 }).toBe(true);
+          |                                                                                   ^
+      148 |         });
+      149 |       }
+      150 |     }
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:147:83
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-tap-o-6900a-hineOn-sends-machine-on-off-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-tap-o-6900a-hineOn-sends-machine-on-off-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-tap-o-6900a-hineOn-sends-machine-on-off-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-tap-o-6900a-hineOn-sends-machine-on-off-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[19/35] [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): arm sends arm {armed: false}
+  19) [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): arm sends arm {armed: false} 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      145 |           await ctl({ op: "clearCmds" });
+      146 |           await page.locator(`.safetyBtns [data-control="${p.control}"]`).tap();
+    > 147 |           await expect.poll(async () => p.wants(await sent()), { timeout: 3000 }).toBe(true);
+          |                                                                                   ^
+      148 |         });
+      149 |       }
+      150 |     }
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:147:83
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-tap-o-283b4--arm-sends-arm-armed-false--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-tap-o-283b4--arm-sends-arm-armed-false--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-tap-o-283b4--arm-sends-arm-armed-false--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-tap-o-283b4--arm-sends-arm-armed-false--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[20/35] [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): estop sends estop
+  20) [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): estop sends estop 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      145 |           await ctl({ op: "clearCmds" });
+      146 |           await page.locator(`.safetyBtns [data-control="${p.control}"]`).tap();
+    > 147 |           await expect.poll(async () => p.wants(await sent()), { timeout: 3000 }).toBe(true);
+          |                                                                                   ^
+      148 |         });
+      149 |       }
+      150 |     }
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:147:83
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-tap-o-1eac5-ane-field-estop-sends-estop-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-tap-o-1eac5-ane-field-estop-sends-estop-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-tap-o-1eac5-ane-field-estop-sends-estop-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-tap-o-1eac5-ane-field-estop-sends-estop-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[21/35] [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): machineOn sends machine_on/off
+  21) [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): machineOn sends machine_on/off 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      145 |           await ctl({ op: "clearCmds" });
+      146 |           await page.locator(`.safetyBtns [data-control="${p.control}"]`).tap();
+    > 147 |           await expect.poll(async () => p.wants(await sent()), { timeout: 3000 }).toBe(true);
+          |                                                                                   ^
+      148 |         });
+      149 |       }
+      150 |     }
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:147:83
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-tap-o-ee907-hineOn-sends-machine-on-off-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-a-tap-o-ee907-hineOn-sends-machine-on-off-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-a-tap-o-ee907-hineOn-sends-machine-on-off-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-a-tap-o-ee907-hineOn-sends-machine-on-off-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[22/35] [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, portrait) › keyboard: arm sends arm {armed: false}
+[23/35] [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, portrait) › keyboard: estop sends estop
+[24/35] [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, portrait) › keyboard: machineOn sends machine_on/off
+[25/35] [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (strip field): arm sends arm {armed: false}
+[26/35] [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (strip field): estop sends estop
+[27/35] [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (strip field): machineOn sends machine_on/off
+[28/35] [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (side-pane field): arm sends arm {armed: false}
+[29/35] [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (side-pane field): estop sends estop
+[30/35] [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, portrait) › keypad (side-pane field): machineOn sends machine_on/off
+[31/35] [serial-guards] › e2e/safety-during-edit.spec.ts:155:3 › landscape: a hold on a control of the owner section lands — the section does not move under the press
+  22) [serial-guards] › e2e/safety-during-edit.spec.ts:155:3 › landscape: a hold on a control of the owner section lands — the section does not move under the press 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      164 |     await page.waitForTimeout(700);
+      165 |     await page.mouse.up();
+    > 166 |     await expect.poll(async () => (await sent()).some(c => (c.cmd === "home" || c.cmd === "unhome") && c.joint === 0), { timeout: 3000 }).toBe(true);
+          |                                                                                                                                           ^
+      167 |   });
+      168 | }
+      169 |
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:166:139
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-landsca-14976-es-not-move-under-the-press-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-landsca-14976-es-not-move-under-the-press-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-landsca-14976-es-not-move-under-the-press-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-landsca-14976-es-not-move-under-the-press-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[32/35] [serial-guards] › e2e/safety-during-edit.spec.ts:155:3 › portrait: a hold on a control of the owner section lands — the section does not move under the press
+  23) [serial-guards] › e2e/safety-during-edit.spec.ts:155:3 › portrait: a hold on a control of the owner section lands — the section does not move under the press 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 3000ms exceeded while waiting on the predicate
+
+      164 |     await page.waitForTimeout(700);
+      165 |     await page.mouse.up();
+    > 166 |     await expect.poll(async () => (await sent()).some(c => (c.cmd === "home" || c.cmd === "unhome") && c.joint === 0), { timeout: 3000 }).toBe(true);
+          |                                                                                                                                           ^
+      167 |   });
+      168 | }
+      169 |
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:166:139
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-portrai-97163-es-not-move-under-the-press-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-portrai-97163-es-not-move-under-the-press-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-portrai-97163-es-not-move-under-the-press-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-portrai-97163-es-not-move-under-the-press-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[33/35] [serial-guards] › e2e/safety-during-edit.spec.ts:180:5 › portrait: the machine info stays while the helper fits with it › keyboard: kept at 100 % (900 × 1200), folded at 150 % — the helper whole in the viewport, the safety buttons unmoved
+  24) [serial-guards] › e2e/safety-during-edit.spec.ts:180:5 › portrait: the machine info stays while the helper fits with it › keyboard: kept at 100 % (900 × 1200), folded at 150 % — the helper whole in the viewport, the safety buttons unmoved 
+
+    Error: 100 %: the machine info stays
+
+    expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('.safetyStrip .statusRow')
+    Expected: 8
+    Received: 0
+    Timeout:  10000ms
+
+    Call log:
+      - 100 %: the machine info stays with timeout 10000ms
+      - waiting for locator('.safetyStrip .statusRow')
+        24 × locator resolved to 0 elements
+           - unexpected value "0"
+
+
+      182 |       const plain = await safetyBoxes(page);
+      183 |       const h = await openHelper(page, helper, true);
+    > 184 |       await expect(page.locator(".safetyStrip .statusRow"), "100 %: the machine info stays").toHaveCount(8);
+          |                                                                                              ^
+      185 |       await expect(page.locator(".safetyStrip .codesRow")).toHaveCount(1);
+      186 |       expect((await safetyBoxes(page)).buttons, "100 %: the safety buttons unmoved").toEqual(plain.buttons);
+      187 |       const fit = (l: Locator) => l.evaluate(el => {
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:184:94
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-portrai-26782--the-safety-buttons-unmoved-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-portrai-26782--the-safety-buttons-unmoved-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-portrai-26782--the-safety-buttons-unmoved-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-portrai-26782--the-safety-buttons-unmoved-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[34/35] [serial-guards] › e2e/safety-during-edit.spec.ts:180:5 › portrait: the machine info stays while the helper fits with it › keypad (strip field): kept at 100 % (900 × 1200), folded at 150 % — the helper whole in the viewport, the safety buttons unmoved
+  25) [serial-guards] › e2e/safety-during-edit.spec.ts:180:5 › portrait: the machine info stays while the helper fits with it › keypad (strip field): kept at 100 % (900 × 1200), folded at 150 % — the helper whole in the viewport, the safety buttons unmoved 
+
+    Error: 100 %: the machine info stays
+
+    expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('.safetyStrip .statusRow')
+    Expected: 8
+    Received: 0
+    Timeout:  10000ms
+
+    Call log:
+      - 100 %: the machine info stays with timeout 10000ms
+      - waiting for locator('.safetyStrip .statusRow')
+        24 × locator resolved to 0 elements
+           - unexpected value "0"
+
+
+      182 |       const plain = await safetyBoxes(page);
+      183 |       const h = await openHelper(page, helper, true);
+    > 184 |       await expect(page.locator(".safetyStrip .statusRow"), "100 %: the machine info stays").toHaveCount(8);
+          |                                                                                              ^
+      185 |       await expect(page.locator(".safetyStrip .codesRow")).toHaveCount(1);
+      186 |       expect((await safetyBoxes(page)).buttons, "100 %: the safety buttons unmoved").toEqual(plain.buttons);
+      187 |       const fit = (l: Locator) => l.evaluate(el => {
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:184:94
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-portrai-b2273--the-safety-buttons-unmoved-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-portrai-b2273--the-safety-buttons-unmoved-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-portrai-b2273--the-safety-buttons-unmoved-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-portrai-b2273--the-safety-buttons-unmoved-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[35/35] [serial-guards] › e2e/safety-during-edit.spec.ts:180:5 › portrait: the machine info stays while the helper fits with it › keypad (side-pane field): kept at 100 % (900 × 1200), kept at 150 % — the helper whole in the viewport, the safety buttons unmoved
+  26) [serial-guards] › e2e/safety-during-edit.spec.ts:180:5 › portrait: the machine info stays while the helper fits with it › keypad (side-pane field): kept at 100 % (900 × 1200), kept at 150 % — the helper whole in the viewport, the safety buttons unmoved 
+
+    Error: 100 %: the machine info stays
+
+    expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('.safetyStrip .statusRow')
+    Expected: 8
+    Received: 0
+    Timeout:  10000ms
+
+    Call log:
+      - 100 %: the machine info stays with timeout 10000ms
+      - waiting for locator('.safetyStrip .statusRow')
+        24 × locator resolved to 0 elements
+           - unexpected value "0"
+
+
+      182 |       const plain = await safetyBoxes(page);
+      183 |       const h = await openHelper(page, helper, true);
+    > 184 |       await expect(page.locator(".safetyStrip .statusRow"), "100 %: the machine info stays").toHaveCount(8);
+          |                                                                                              ^
+      185 |       await expect(page.locator(".safetyStrip .codesRow")).toHaveCount(1);
+      186 |       expect((await safetyBoxes(page)).buttons, "100 %: the safety buttons unmoved").toEqual(plain.buttons);
+      187 |       const fit = (l: Locator) => l.evaluate(el => {
+        at /home/cnc/lcnc-suite-gates-base/lcnc-webui/e2e/safety-during-edit.spec.ts:184:94
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-portrai-b1d8e--the-safety-buttons-unmoved-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-portrai-b1d8e--the-safety-buttons-unmoved-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-portrai-b1d8e--the-safety-buttons-unmoved-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-portrai-b1d8e--the-safety-buttons-unmoved-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  26 failed
+    [serial-guards] › e2e/safety-during-edit.spec.ts:98:3 › landscape 1280 × 800: Safety stays at the left in every helper state, each helper starts right of it or of its owner section 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:98:3 › landscape 1920 × 1080: Safety stays at the left in every helper state, each helper starts right of it or of its owner section 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:98:3 › landscape 2560 × 1440: Safety stays at the left in every helper state, each helper starts right of it or of its owner section 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: arm sends arm {armed: false} 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: estop sends estop 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keyboard: machineOn sends machine_on/off 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): arm sends arm {armed: false} 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): estop sends estop 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (strip field): machineOn sends machine_on/off 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): arm sends arm {armed: false} 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): estop sends estop 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:126:7 › a press on a safety button with a helper open lands (mouse, landscape) › keypad (side-pane field): machineOn sends machine_on/off 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: arm sends arm {armed: false} 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: estop sends estop 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keyboard: machineOn sends machine_on/off 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): arm sends arm {armed: false} 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): estop sends estop 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (strip field): machineOn sends machine_on/off 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): arm sends arm {armed: false} 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): estop sends estop 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:142:9 › a tap on a safety button with a helper open lands (touch, landscape) › keypad (side-pane field): machineOn sends machine_on/off 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:155:3 › landscape: a hold on a control of the owner section lands — the section does not move under the press 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:155:3 › portrait: a hold on a control of the owner section lands — the section does not move under the press 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:180:5 › portrait: the machine info stays while the helper fits with it › keyboard: kept at 100 % (900 × 1200), folded at 150 % — the helper whole in the viewport, the safety buttons unmoved 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:180:5 › portrait: the machine info stays while the helper fits with it › keypad (strip field): kept at 100 % (900 × 1200), folded at 150 % — the helper whole in the viewport, the safety buttons unmoved 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:180:5 › portrait: the machine info stays while the helper fits with it › keypad (side-pane field): kept at 100 % (900 × 1200), kept at 150 % — the helper whole in the viewport, the safety buttons unmoved 
+  9 passed (2.9m)
