@@ -9642,3 +9642,30 @@ gates sim (3-axis, 2026-10-29, `button-gates.f.live-xyz-e.json`): before homing 
 multi-jogs were refused with that reason and no joint moved; homed, the multi-jog moved
 both axes and `jog_stop_multi` stopped them.
 
+## 2026-10-29 — The safety buttons while an input helper is open: Safety stays at the left, nothing moves under a press, portrait keeps the machine info where it fits (operator)
+
+**Report (operator 2026-10-28, landscape, the button-gates test stand).** With a field's number
+keypad or the code keyboard open, Disarm, E-Stop and Power did nothing. **Cause (measured, mock):**
+the strip CENTRED what fitted (`.strip::before/::after { flex: 1 }`): opening a helper hides every
+other section, so Safety sat at x 571 instead of 17 at 1920 px (at 2560 px even without a helper);
+the pointerdown outside the input area closed the helper (the session rule, UI-15a), the sections
+came back and Safety jumped left before the click — nothing was sent (without a helper `arm` was).
+The same class outside Safety: with the keypad on a touch-off field, a hold on Setup's Home X ended
+beside it — Setup moved 560 → 1008 px when Jog came back. Portrait never moved Safety (its taps
+passed), but folded the machine info whenever a helper was open (design wave D7, UI-I08).
+
+**Decisions (operator 2026-10-29).** (1) The strip never centres: Safety at the left in every
+state and at every width, a helper directly right of it (the number keypad right of its owner
+section), free room at the far end. (2) Fixed for every control, not only Safety: nothing moves
+under a press. The helper still closes at the pointerdown (the agreed session rule is unchanged);
+what the strip SHOWS — `stripVis`, Setup's `entryOpen`, the Safety fold — follows when the press has
+ended, after its click (`heldThroughPress` in inputSession.ts: at once on pointercancel or a lost
+window focus, 500 ms after a release no click followed, 2 s without a release; an opening or a
+switch applies at once). (3) Portrait keeps the machine info while a helper is open wherever the
+column holds the helper with it and folds it only where it would not — measured (`safetyFold.ts`,
+in the frame after the layout changed and on a resize), not by orientation: 900 × 1200 keeps it
+(keyboard bottom 880, keypad 893 of 1200 px); at 150 % (600 × 800 CSS px) the keyboard (76 px) and
+the keypad under Setup (89 px) would end below the viewport and it folds; a side-pane field's keypad
+alone fits and keeps it. The UI-I08 criterion stands: the whole helper in view at 100 % and 150 %.
+Guards: `safety-during-edit.spec` (26 of 35 red at 729a7f4a), `inputSession.test`,
+`safetyFold.test`; `input-session.spec`'s portrait budget keeps the info at 100 %.
