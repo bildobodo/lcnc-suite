@@ -1,0 +1,433 @@
+{
+  "round": "R227",
+  "date": "2026-10-29",
+  "reviewed_base": "61a9253f",
+  "reviewed_head": "1d987b253ce54e7d6cdba1c4be7e684b9b331b9c",
+  "source_worktree": "/home/cnc/lcnc-suite-gates",
+  "test_archive": "/tmp/codex-r227-8u5_xv49/repo",
+  "mock": "http://127.0.0.1:4188",
+  "live_access": false,
+  "archive_only_changes": [
+    "e2e/ctl.ts HTTP and WS host to 127.0.0.1:4188",
+    "e2e/input-session.spec.ts mock URL to 127.0.0.1:4188",
+    "own Playwright configuration",
+    "byte-identical R224, R225, R226 probes copied into e2e"
+  ],
+  "build": "PASS",
+  "unit": {
+    "passed": 18,
+    "files": [
+      "src/inputSession.test.ts",
+      "src/safetyFold.test.ts"
+    ]
+  },
+  "browser": {
+    "passed": 82,
+    "failed": 0,
+    "browser": "chromium",
+    "workers": 1,
+    "breakdown": {
+      "safety-during-edit.spec.ts": 45,
+      "input-session.spec.ts": 24,
+      "R224": 7,
+      "R225": 4,
+      "R226": 2
+    }
+  },
+  "original_probe_sha256": {
+    "safety-during-edit.r224.probe.spec.ts": "fb0e6243e9c00dafed5c62e2562df3f76e3b0c8b76f4633a4d58b2d6069a7eb3",
+    "safety-during-edit.r225.probe.spec.ts": "d0582b9d536d23c9562860f3076d46d51ff630ae2694c11c303a30409c4326dc",
+    "safety-during-edit.r226.probe.spec.ts": "3078124e830b17e180207fcad33065e061719460722af647b0ab9f8a58aa533e"
+  },
+  "r226_replayed": {
+    "queued-kept": {
+      "before": {
+        "x": 797,
+        "y": 496.5,
+        "width": 78,
+        "height": 54
+      },
+      "scrollBefore": {
+        "left": 100,
+        "width": 1073,
+        "client": 836
+      },
+      "queued": {
+        "target": {
+          "x": 797,
+          "y": 496.5,
+          "width": 78,
+          "height": 54
+        },
+        "scroll": {
+          "left": 100,
+          "width": 1073,
+          "client": 836
+        },
+        "place": 1,
+        "text": 0
+      },
+      "held": {
+        "target": {
+          "x": 797,
+          "y": 496.5,
+          "width": 78,
+          "height": 54
+        },
+        "scroll": {
+          "left": 100,
+          "width": 1073,
+          "client": 836
+        },
+        "place": 1,
+        "text": 0
+      },
+      "events": [
+        {
+          "type": "pointermove",
+          "ms": 2040,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "G55"
+        },
+        {
+          "type": "pointerdown",
+          "ms": 2051.2999999523163,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": true,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "G55"
+        },
+        {
+          "type": "pointerdown",
+          "ms": 2176.2999999523163,
+          "pointerId": 5,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "MDI command"
+        },
+        {
+          "type": "pointerup",
+          "ms": 2176.399999976158,
+          "pointerId": 5,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "MDI command"
+        },
+        {
+          "type": "click",
+          "ms": 2190.399999976158,
+          "pointerId": 5,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": false,
+          "target": "MDI command"
+        }
+      ]
+    },
+    "queued-kept-after": {
+      "place": 0,
+      "text": 1,
+      "commands": [],
+      "events": [
+        {
+          "type": "pointermove",
+          "ms": 2040,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "G55"
+        },
+        {
+          "type": "pointerdown",
+          "ms": 2051.2999999523163,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": true,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "G55"
+        },
+        {
+          "type": "pointerdown",
+          "ms": 2176.2999999523163,
+          "pointerId": 5,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "MDI command"
+        },
+        {
+          "type": "pointerup",
+          "ms": 2176.399999976158,
+          "pointerId": 5,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "MDI command"
+        },
+        {
+          "type": "click",
+          "ms": 2190.399999976158,
+          "pointerId": 5,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": false,
+          "target": "MDI command"
+        },
+        {
+          "type": "pointerup",
+          "ms": 3168.5,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "G55"
+        }
+      ]
+    },
+    "queued-close": {
+      "before": {
+        "x": 797,
+        "y": 496.5,
+        "width": 78,
+        "height": 54
+      },
+      "scrollBefore": {
+        "left": 100,
+        "width": 1073,
+        "client": 836
+      },
+      "queued": {
+        "target": {
+          "x": 797,
+          "y": 496.5,
+          "width": 78,
+          "height": 54
+        },
+        "scroll": {
+          "left": 100,
+          "width": 1073,
+          "client": 836
+        },
+        "place": 1,
+        "text": 0
+      },
+      "held": {
+        "target": {
+          "x": 797,
+          "y": 496.5,
+          "width": 78,
+          "height": 54
+        },
+        "scroll": {
+          "left": 100,
+          "width": 1073,
+          "client": 836
+        },
+        "place": 1,
+        "text": 0
+      },
+      "events": [
+        {
+          "type": "pointermove",
+          "ms": 2034.5999999046326,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "G55"
+        },
+        {
+          "type": "pointerdown",
+          "ms": 2046.1999999284744,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": true,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "G55"
+        },
+        {
+          "type": "pointerdown",
+          "ms": 2169.899999976158,
+          "pointerId": 5,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "MDI command"
+        },
+        {
+          "type": "pointerup",
+          "ms": 2170,
+          "pointerId": 5,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "MDI command"
+        },
+        {
+          "type": "click",
+          "ms": 2183.399999976158,
+          "pointerId": 5,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": false,
+          "target": "MDI command"
+        },
+        {
+          "type": "pointerdown",
+          "ms": 2421.0999999046326,
+          "pointerId": 6,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "LinuxCNC WebUI (local)11:11:48 PMWS conn"
+        },
+        {
+          "type": "pointerup",
+          "ms": 2421.2999999523163,
+          "pointerId": 6,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "LinuxCNC WebUI (local)11:11:48 PMWS conn"
+        },
+        {
+          "type": "click",
+          "ms": 2434.2999999523163,
+          "pointerId": 6,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": false,
+          "target": "LinuxCNC WebUI (local)11:11:48 PMWS conn"
+        }
+      ]
+    },
+    "queued-close-after": {
+      "place": 0,
+      "text": 0,
+      "commands": [],
+      "events": [
+        {
+          "type": "pointermove",
+          "ms": 2034.5999999046326,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "G55"
+        },
+        {
+          "type": "pointerdown",
+          "ms": 2046.1999999284744,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": true,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "G55"
+        },
+        {
+          "type": "pointerdown",
+          "ms": 2169.899999976158,
+          "pointerId": 5,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "MDI command"
+        },
+        {
+          "type": "pointerup",
+          "ms": 2170,
+          "pointerId": 5,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "MDI command"
+        },
+        {
+          "type": "click",
+          "ms": 2183.399999976158,
+          "pointerId": 5,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": false,
+          "target": "MDI command"
+        },
+        {
+          "type": "pointerdown",
+          "ms": 2421.0999999046326,
+          "pointerId": 6,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 1,
+          "isPrimary": true,
+          "target": "LinuxCNC WebUI (local)11:11:48 PMWS conn"
+        },
+        {
+          "type": "pointerup",
+          "ms": 2421.2999999523163,
+          "pointerId": 6,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "LinuxCNC WebUI (local)11:11:48 PMWS conn"
+        },
+        {
+          "type": "click",
+          "ms": 2434.2999999523163,
+          "pointerId": 6,
+          "pointerType": "touch",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": false,
+          "target": "LinuxCNC WebUI (local)11:11:48 PMWS conn"
+        },
+        {
+          "type": "pointerup",
+          "ms": 3263.2999999523163,
+          "pointerId": 1,
+          "pointerType": "mouse",
+          "isTrusted": true,
+          "buttons": 0,
+          "isPrimary": true,
+          "target": "G55"
+        }
+      ]
+    }
+  },
+  "limits": [
+    "No live machine commands or access to ports 5173/8000",
+    "Targeted Chromium suite, not a full cross-browser gate",
+    "Previously accepted first-touch layout change and native missing-click behavior remain the named boundaries"
+  ]
+}
