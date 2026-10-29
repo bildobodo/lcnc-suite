@@ -1,0 +1,92 @@
+# Leftovers guards against development 1d987b25
+
+Running 2 tests using 1 worker
+
+[1/2] [serial-guards] › e2e/joint-jog.spec.ts:137:1 › the diagonal jog buttons are named for their move; before homing the head line's "?" says the whole note
+  1) [serial-guards] › e2e/joint-jog.spec.ts:137:1 › the diagonal jog buttons are named for their move; before homing the head line's "?" says the whole note 
+
+    Error: Jog X- Y+
+
+    expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('[data-strip="jog"]').getByRole('button', { name: 'Jog X- Y+', exact: true })
+    Expected: 1
+    Received: 0
+    Timeout:  10000ms
+
+    Call log:
+      - Jog X- Y+ with timeout 10000ms
+      - waiting for locator('[data-strip="jog"]').getByRole('button', { name: 'Jog X- Y+', exact: true })
+        23 × locator resolved to 0 elements
+           - unexpected value "0"
+
+
+      139 |   const jog = page.locator('[data-strip="jog"]');
+      140 |   for (const name of ["Jog X- Y+", "Jog X+ Y+", "Jog X- Y-", "Jog X+ Y-"]) {
+    > 141 |     await expect(jog.getByRole("button", { name, exact: true }), name).toHaveCount(1);
+          |                                                                        ^
+      142 |   }
+      143 |   await expect(jog.getByRole("button", { name: "Help: Jogging before homing" }), "homed: no note, no help").toHaveCount(0);
+      144 |   await open(page, false);
+        at /home/cnc/rest-base/lcnc-webui/e2e/joint-jog.spec.ts:141:72
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/joint-jog-the-diagonal-jog-c7dc3--line-s-says-the-whole-note-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/joint-jog-the-diagonal-jog-c7dc3--line-s-says-the-whole-note-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/joint-jog-the-diagonal-jog-c7dc3--line-s-says-the-whole-note-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/joint-jog-the-diagonal-jog-c7dc3--line-s-says-the-whole-note-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[2/2] [serial-guards] › e2e/safety-during-edit.spec.ts:428:3 › the first touch: the switch to touch sizes waits for its press › a first touch that holds Home X: the button stays put and fires, touch sizes apply after the release
+  2) [serial-guards] › e2e/safety-during-edit.spec.ts:428:3 › the first touch: the switch to touch sizes waits for its press › a first touch that holds Home X: the button stays put and fires, touch sizes apply after the release 
+
+    Error: Home X under the finger, unmoved
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+    -   "h": 34,
+    +   "h": 36,
+        "w": 111.5,
+        "x": 1044,
+        "y": 533.5,
+      }
+
+      434 |     await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ id: 1, x: before.x + before.w / 2, y: before.y + before.h / 2 }] });
+      435 |     await page.waitForTimeout(700);
+    > 436 |     expect(await box(homeX), "Home X under the finger, unmoved").toEqual(before);
+          |                                                                  ^
+      437 |     await expect(page.locator("html"), "not yet: the press holds").not.toHaveClass(/touch-device/);
+      438 |     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      439 |     await expect(page.locator("html"), "the press ended: touch sizes").toHaveClass(/touch-device/);
+        at /home/cnc/rest-base/lcnc-webui/e2e/safety-during-edit.spec.ts:436:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/safety-during-edit-the-fir-17b1e-zes-apply-after-the-release-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/safety-during-edit-the-fir-17b1e-zes-apply-after-the-release-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/safety-during-edit-the-fir-17b1e-zes-apply-after-the-release-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/safety-during-edit-the-fir-17b1e-zes-apply-after-the-release-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [serial-guards] › e2e/joint-jog.spec.ts:137:1 › the diagonal jog buttons are named for their move; before homing the head line's "?" says the whole note 
+    [serial-guards] › e2e/safety-during-edit.spec.ts:428:3 › the first touch: the switch to touch sizes waits for its press › a first touch that holds Home X: the button stays put and fires, touch sizes apply after the release 

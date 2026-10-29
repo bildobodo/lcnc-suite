@@ -9,7 +9,8 @@
  * Once a session sees touch, it stays in touch mode — refresh to reset.
  */
 
-import { ref } from "vue";
+import { ref, watch } from "vue";
+import { pressHolds } from "./inputSession";
 
 let installed = false;
 
@@ -18,11 +19,24 @@ let installed = false;
     line height matching the .codeLine CSS height). */
 export const isTouchDevice = ref(false);
 
-function onFirstTouch(e: PointerEvent): void {
-  if (e.pointerType !== "touch") return;
+function enterTouchMode(): void {
   document.documentElement.classList.add("touch-device");
   isTouchDevice.value = true;
+}
+/** The switch to touch sizes re-lays the page out (36/44 px floors), so it
+    waits until the press that showed the touch has ended — after its click
+    or hold (inputSession.ts `pressHolds`; nothing moves under a press,
+    operator 2026-10-29): the first touch of a session used to move the strip
+    under the finger, and a hold on Start or a tap on E-Stop could end beside
+    its button. Read after this pointerdown's dispatch, when the press is
+    registered. */
+function onFirstTouch(e: PointerEvent): void {
+  if (e.pointerType !== "touch") return;
   document.removeEventListener("pointerdown", onFirstTouch, true);
+  setTimeout(() => {
+    if (!pressHolds.value) { enterTouchMode(); return; }
+    const stop = watch(pressHolds, (held) => { if (!held) { stop(); enterTouchMode(); } });
+  }, 0);
 }
 
 /** Where a long press may still open the browser's own menu: editable text

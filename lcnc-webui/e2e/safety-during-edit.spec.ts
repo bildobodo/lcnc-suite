@@ -417,6 +417,30 @@ test("a sideways-scrolled strip keeps its scroll position under a press that clo
   await expect.poll(async () => (await sent()).filter(c => c.cmd === "mdi" && c.text === "G55").length, { timeout: 3000 }).toBe(1);
 });
 
+// ── The first touch waits too (leftovers package) ──
+// The session's first touch switches to touch sizes (36/44 px floors) and
+// re-lays the page out; it used to do that under the very finger that showed
+// the touch (the specs tap neutrally first for that reason). Now the switch
+// waits until that press has ended: a first touch that is a hold on Home X
+// stays on Home X and fires, then the touch sizes apply.
+test.describe("the first touch: the switch to touch sizes waits for its press", () => {
+  test.use({ hasTouch: true });
+  test("a first touch that holds Home X: the button stays put and fires, touch sizes apply after the release", async ({ page }) => {
+    await open(page, { width: 1280, height: 800 });
+    await expect(page.locator("html"), "no touch yet").not.toHaveClass(/touch-device/);
+    const homeX = page.locator('[data-strip="setup"]').getByRole("button", { name: /^(Home|Unhome) X$/ });
+    const before = await box(homeX);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ id: 1, x: before.x + before.w / 2, y: before.y + before.h / 2 }] });
+    await page.waitForTimeout(700);
+    expect(await box(homeX), "Home X under the finger, unmoved").toEqual(before);
+    await expect(page.locator("html"), "not yet: the press holds").not.toHaveClass(/touch-device/);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await expect(page.locator("html"), "the press ended: touch sizes").toHaveClass(/touch-device/);
+    await expect.poll(async () => (await sent()).filter(c => (c.cmd === "home" || c.cmd === "unhome") && c.joint === 0).length, { timeout: 3000 }).toBe(1);
+  });
+});
+
 // At 150 % (600 × 800 CSS px) the keyboard (692 zoomed px) and the keypad
 // under its owner section (Setup + keypad) end past the viewport with the
 // info (76 / 89 CSS px); the keypad of a side-pane field alone fits with it.

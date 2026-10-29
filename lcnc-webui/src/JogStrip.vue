@@ -14,7 +14,7 @@ import ChoiceGroup from "./ChoiceGroup.vue";
 import type { ChoiceOption } from "./choiceGroup";
 import HelpIcon from "./HelpIcon.vue";
 import { TASK_MODE_MANUAL, TASK_MODE_AUTO, TASK_MODE_MDI } from "./lcnc";
-import { jointJogActive, jogAxisJoint, jogAxisRefusal, jogDiagonalRefusal, jointJogNote, type JointJog } from "./jointJog";
+import { jointJogActive, jogAxisJoint, jogAxisRefusal, jogDiagonalRefusal, jointJogHelp, jointJogNote, type JointJog } from "./jointJog";
 import {
   ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
   ArrowUpLeft, ArrowUpRight, ArrowDownLeft, ArrowDownRight,
@@ -359,6 +359,12 @@ function jointDescription(index: number | undefined, index2?: number): string | 
   const j = index2 == null ? jointMark(index) : null;
   return j == null ? undefined : `Joint ${j}`;
 }
+// The diagonals show an arrow only: their accessible name says the move
+// ("Jog X+ Y+"; Codex R219 note, leftovers package) — the straight buttons
+// are named by their own text.
+function jogName(btn: JogDef): string {
+  return `Jog ${btn.label.replace(/([+-])(?=[A-Z])/, "$1 ")}`;
+}
 function axisRefusal(...indices: (number | undefined)[]): string | undefined {
   for (const i of indices) {
     if (i == null || i < 0) continue;
@@ -498,7 +504,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
     <!-- Before homing (package E) the head states the joint jog and its cap
          in ITS OWN LINE: never a second one (it moved the buttons in the
          narrow portrait strip) — cut with an ellipsis, the whole in the title. -->
-    <div class="sub row-tight jogHead">Jog<span v-if="jointOn" class="jogNote text-warn" :title="jointJogNote(jointJog)">· {{ jointJogNote(jointJog) }}</span></div>
+    <div class="sub row-tight jogHead">Jog<span v-if="jointOn" class="jogNote text-warn" :title="jointJogNote(jointJog)">· {{ jointJogNote(jointJog) }}</span><HelpIcon v-if="jointOn" label="Jogging before homing">{{ jointJogHelp(jointJog) }}</HelpIcon></div>
     <div class="jogContent row-sections">
       <div ref="jogBtnsRef" class="jogBtns row-sections">
         <div v-if="hasXyPad" class="xyWrap" :style="xySize ? { width: xySize + 'px', height: xySize + 'px' } : undefined">
@@ -510,6 +516,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               :disabled="!!padRefusal(btn)"
               :reason="padRefusal(btn)"
               :aria-description="jointDescription(btn.axis, btn.axis2)"
+              :aria-label="btn.shortLabel ? undefined : jogName(btn)"
               class="jogBtn"
               :variant="btn.axis < 0 ? 'danger' : jogVariant"
               :active="activeJogKeys.has(btn.label)"

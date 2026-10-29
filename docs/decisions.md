@@ -9701,3 +9701,19 @@ leaves a place, and a missing measurement never replaces a held one. Guard: the 
 or closed again under the held mouse at 150 % with the strip scrolled — target and scroll unchanged
 until the release (closed again red at 61a9253f).
 
+## 2026-10-29 — Leftovers of the button-gates and safety reviews
+
+Three items Codex named outside its agreements (R219, R227) and the operator put before the Setup
+and scrub-bar work:
+- **The diagonal jog buttons** show an arrow only and had no accessible name; they are named for
+  their move ("Jog X+ Y+"). The straight ones keep their own text.
+- **The jog head line before homing** ("Joint jog — no soft limits · max 10 %") is cut on a narrow
+  strip, and a touch has no hover title: a "?" beside it says the whole note.
+- **The first touch** switches the session to touch sizes and re-laid the strip out under the very
+  finger that showed the touch (the specs tapped neutrally first for that reason, a named limit of
+  safety-during-edit). The switch now waits until that press has ended (`pressHolds`): a first
+  touch that holds Home X stays on it and fires, then the touch sizes apply.
+
+Guards: `joint-jog.spec` (the names, the "?"), `safety-during-edit.spec` (the first touch) — both
+red at 1d987b25 (`docs/reviews/leftovers.browser-red.txt`).
+
