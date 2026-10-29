@@ -9693,3 +9693,11 @@ the closed one keeps its measured place until then). Chrome dispatches no click 
 G55 visible and unmoved until the release, the release on G55 and nothing else hit, then the
 keyboard (red at 5cdf20e0).
 
+**Codex R226: a queued helper owns no place.** The place was measured when a SESSION ended, so
+closing a queued keyboard that was never shown (the mouse still on G55, a second tap outside)
+measured nothing and dropped the keypad's place — the strip's scroll clamped, G55 slid 150 px under
+the held mouse. Now only a helper that was rendered (the held layout's, while its session is open)
+leaves a place, and a missing measurement never replaces a held one. Guard: the queued keyboard kept
+or closed again under the held mouse at 150 % with the strip scrolled — target and scroll unchanged
+until the release (closed again red at 61a9253f).
+
