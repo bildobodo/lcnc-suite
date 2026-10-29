@@ -9659,9 +9659,7 @@ state and at every width, a helper directly right of it (the number keypad right
 section), free room at the far end. (2) Fixed for every control, not only Safety: nothing moves
 under a press. The helper still closes at the pointerdown (the agreed session rule is unchanged);
 what the strip SHOWS — `stripVis`, Setup's `entryOpen`, the Safety fold — follows when the press has
-ended, after its click (`heldThroughPress` in inputSession.ts: at once on pointercancel or a lost
-window focus, 500 ms after a release no click followed, 2 s without a release; an opening or a
-switch applies at once). (3) Portrait keeps the machine info while a helper is open wherever the
+ended, after its click (`heldThroughPress` in inputSession.ts; an opening or a switch applies at once). (3) Portrait keeps the machine info while a helper is open wherever the
 column holds the helper with it and folds it only where it would not — measured (`safetyFold.ts`,
 in the frame after the layout changed and on a resize), not by orientation: 900 × 1200 keeps it
 (keyboard bottom 880, keypad 893 of 1200 px); at 150 % (600 × 800 CSS px) the keyboard (76 px) and
@@ -9669,3 +9667,18 @@ the keypad under Setup (89 px) would end below the viewport and it folds; a side
 alone fits and keeps it. The UI-I08 criterion stands: the whole helper in view at 100 % and 150 %.
 Guards: `safety-during-edit.spec` (26 of 35 red at 729a7f4a), `inputSession.test`,
 `safetyFold.test`; `input-session.spec`'s portrait budget keeps the info at 100 %.
+
+**Codex R224 (same day): the press ends with ITS pointer.** Three rests, each with a red
+counter-probe: SDE-01 a 2 s backstop ended a press still held (a 2.3 s press on G55 moved it
+530 px and sent nothing); SDE-02 one boolean stood for every pointer (a second finger lifting
+released the first, Home X moved 530 px under it); SDE-03 the keypad left at once and the strip's
+scroll range shrank under the press (at 150 % scrolled 100 px, scrollLeft clamped to 0, G55 slid
+150 px under a 100 ms click). Now the press is tracked per pointer and ends only with that pointer
+— its click, its pointercancel, 500 ms after its release when no click followed, or evidence its
+release was lost (a move of it with no button, a new primary pointer of its type, blur, a hidden
+page) — never by age and never by another pointer; only trusted input holds (a script's
+pointerdown still closes the helper). The closed helper's place stays as an empty box of its
+measured size while the press holds (`helperPlace` in App.vue). Guards: seven new browser cases in
+`safety-during-edit.spec` (long presses on G55 and Setup's help, two fingers in both orders, the
+scroll clamp — 6 red at 3c24fbea; cancel and release-without-click as controls) and the per-pointer
+rules in `inputSession.test`.
