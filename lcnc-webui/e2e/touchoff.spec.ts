@@ -98,27 +98,16 @@ test.describe('strip layout', () => {
         await expect(setup.getByRole('button', { name: 'Unhome All', exact: true })).toBeEnabled();
         await expect(setup.getByRole('button', { name: 'Unhome Z', exact: true })).toBeEnabled();
         await page.evaluate(() => document.fonts.ready);
-        // Aggregate actions always follow ALL axis rows, followed by travel
-        // and plane actions. No half-empty action column between axis groups.
-        const footer = await setup.evaluate(el => {
-          const axes = el.querySelector('.axisGrids')!.getBoundingClientRect();
-          const rows = [...el.querySelectorAll('.actionRow')].map(row => {
-            const box = row.getBoundingClientRect();
-            return { x: box.x, y: box.y, width: box.width, bottom: box.bottom };
-          });
-          return { axesBottom: axes.bottom, bottom: el.getBoundingClientRect().bottom, rows };
-        });
-        expect(footer.rows).toHaveLength(profile.kins === TRSRN ? 3 : 2);
-        expect(footer.rows[0]!.y).toBeGreaterThanOrEqual(footer.axesBottom);
-        for (let row = 1; row < footer.rows.length; row++) {
-          expect(footer.rows[row]!.y).toBeGreaterThanOrEqual(footer.rows[row - 1]!.bottom);
-          expect(footer.rows[row]!.width).toBeCloseTo(footer.rows[0]!.width, 0);
-        }
-        expect(footer.rows.at(-1)!.bottom).toBeLessThanOrEqual(footer.bottom + 1);
-        // WCS choices must also fit the fixed landscape height on touch.
+        // The actions stand where the arrangement by axis count puts them
+        // (setupLayout.ts — the forms are pinned in setup-layout.spec.ts):
+        // here, each one exactly once and inside the section, and no control
+        // (the WCS options included) below or right of the fixed landscape box.
+        for (const name of [profile.kins ? 'Zero XYZ' : 'Zero All', 'Unhome All', 'Go to G30', 'Go to MCS 0', 'Go to WCS 0',
+          ...(profile.kins === TRSRN ? ['Capture plane', 'Orient', 'Clear plane'] : [])])
+          await expect(setup.getByRole('button', { name, exact: true }), name).toHaveCount(1);
         const clipped = await setup.evaluate(el => {
           const root = el.getBoundingClientRect();
-          return [...el.querySelectorAll('button, input.setupInput, .wcsCol label')]
+          return [...el.querySelectorAll('button, input.setupInput, [role="radio"]')]
             .filter(control => {
               const box = control.getBoundingClientRect();
               return box.right > root.right + 1 || box.bottom > root.bottom + 1;
