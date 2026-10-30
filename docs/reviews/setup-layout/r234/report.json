@@ -1,0 +1,3306 @@
+[
+{
+"id": "0__1-X__L1280__live",
+"w": 450,
+"h": 264,
+"fill": 37,
+"stripOver": 441,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__1-X__L1280__dim",
+"w": 450,
+"h": 264,
+"fill": 37,
+"stripOver": 441,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__5-TWP__L1280__live",
+"w": 551,
+"h": 264,
+"fill": 59,
+"stripOver": 1000,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__5-TWP__L1280__dim",
+"w": 551,
+"h": 264,
+"fill": 59,
+"stripOver": 1000,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__7-TWP__L1280__live",
+"w": 765,
+"h": 264,
+"fill": 60,
+"stripOver": 1333,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__7-TWP__L1280__dim",
+"w": 765,
+"h": 264,
+"fill": 60,
+"stripOver": 1333,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__8-TWP__L1280__live",
+"w": 765,
+"h": 264,
+"fill": 63,
+"stripOver": 1353,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__8-TWP__L1280__dim",
+"w": 765,
+"h": 264,
+"fill": 63,
+"stripOver": 1353,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__9-TWP__L1280__live",
+"w": 771,
+"h": 264,
+"fill": 66,
+"stripOver": 1417,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__9-TWP__L1280__dim",
+"w": 771,
+"h": 264,
+"fill": 66,
+"stripOver": 1417,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__4-TCP__L1280__live",
+"w": 551,
+"h": 264,
+"fill": 46,
+"stripOver": 962,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__4-TCP__L1280__dim",
+"w": 551,
+"h": 264,
+"fill": 46,
+"stripOver": 962,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__6-TCP__L1280__live",
+"w": 551,
+"h": 264,
+"fill": 55,
+"stripOver": 1040,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__6-TCP__L1280__dim",
+"w": 551,
+"h": 264,
+"fill": 55,
+"stripOver": 1040,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__7-TCP__L1280__live",
+"w": 765,
+"h": 264,
+"fill": 50,
+"stripOver": 1316,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__7-TCP__L1280__dim",
+"w": 765,
+"h": 264,
+"fill": 50,
+"stripOver": 1316,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__1-X__L1280-touch__live",
+"w": 450,
+"h": 264,
+"fill": 42,
+"stripOver": 450,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__1-X__L1280-touch__dim",
+"w": 450,
+"h": 264,
+"fill": 42,
+"stripOver": 450,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__5-TWP__L1280-touch__live",
+"w": 551,
+"h": 264,
+"fill": 66,
+"stripOver": 1009,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__5-TWP__L1280-touch__dim",
+"w": 551,
+"h": 264,
+"fill": 66,
+"stripOver": 1009,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__7-TWP__L1280-touch__live",
+"w": 765,
+"h": 264,
+"fill": 65,
+"stripOver": 1342,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__7-TWP__L1280-touch__dim",
+"w": 765,
+"h": 264,
+"fill": 65,
+"stripOver": 1342,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__8-TWP__L1280-touch__live",
+"w": 765,
+"h": 264,
+"fill": 69,
+"stripOver": 1362,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__8-TWP__L1280-touch__dim",
+"w": 765,
+"h": 264,
+"fill": 69,
+"stripOver": 1362,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__9-TWP__L1280-touch__live",
+"w": 771,
+"h": 264,
+"fill": 72,
+"stripOver": 1426,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__9-TWP__L1280-touch__dim",
+"w": 771,
+"h": 264,
+"fill": 72,
+"stripOver": 1426,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__4-TCP__L1280-touch__live",
+"w": 551,
+"h": 264,
+"fill": 51,
+"stripOver": 971,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__4-TCP__L1280-touch__dim",
+"w": 551,
+"h": 264,
+"fill": 51,
+"stripOver": 971,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__6-TCP__L1280-touch__live",
+"w": 551,
+"h": 264,
+"fill": 60,
+"stripOver": 1049,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__6-TCP__L1280-touch__dim",
+"w": 551,
+"h": 264,
+"fill": 60,
+"stripOver": 1049,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__7-TCP__L1280-touch__live",
+"w": 765,
+"h": 264,
+"fill": 54,
+"stripOver": 1325,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__7-TCP__L1280-touch__dim",
+"w": 765,
+"h": 264,
+"fill": 54,
+"stripOver": 1325,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__1-X__P900__live",
+"w": 262,
+"h": 262,
+"fill": 62,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__1-X__P900__dim",
+"w": 262,
+"h": 262,
+"fill": 62,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__5-TWP__P900__live",
+"w": 262,
+"h": 466,
+"fill": 73,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__5-TWP__P900__dim",
+"w": 262,
+"h": 466,
+"fill": 73,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__7-TWP__P900__live",
+"w": 262,
+"h": 542,
+"fill": 75,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__7-TWP__P900__dim",
+"w": 262,
+"h": 542,
+"fill": 75,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__8-TWP__P900__live",
+"w": 262,
+"h": 580,
+"fill": 76,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__8-TWP__P900__dim",
+"w": 262,
+"h": 580,
+"fill": 76,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__9-TWP__P900__live",
+"w": 262,
+"h": 618,
+"fill": 76,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__9-TWP__P900__dim",
+"w": 262,
+"h": 618,
+"fill": 76,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__4-TCP__P900__live",
+"w": 262,
+"h": 376,
+"fill": 69,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__4-TCP__P900__dim",
+"w": 262,
+"h": 376,
+"fill": 69,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__6-TCP__P900__live",
+"w": 262,
+"h": 452,
+"fill": 72,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__6-TCP__P900__dim",
+"w": 262,
+"h": 452,
+"fill": 72,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__7-TCP__P900__live",
+"w": 262,
+"h": 490,
+"fill": 73,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__7-TCP__P900__dim",
+"w": 262,
+"h": 490,
+"fill": 73,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__1-X__L1280__live",
+"w": 450,
+"h": 264,
+"fill": 37,
+"stripOver": 441,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__1-X__L1280__dim",
+"w": 450,
+"h": 264,
+"fill": 37,
+"stripOver": 441,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__5-TWP__L1280__live",
+"w": 551,
+"h": 264,
+"fill": 59,
+"stripOver": 1000,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__5-TWP__L1280__dim",
+"w": 551,
+"h": 264,
+"fill": 59,
+"stripOver": 1000,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__7-TWP__L1280__live",
+"w": 765,
+"h": 264,
+"fill": 60,
+"stripOver": 1333,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__7-TWP__L1280__dim",
+"w": 765,
+"h": 264,
+"fill": 60,
+"stripOver": 1333,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__8-TWP__L1280__live",
+"w": 765,
+"h": 264,
+"fill": 63,
+"stripOver": 1353,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__8-TWP__L1280__dim",
+"w": 765,
+"h": 264,
+"fill": 63,
+"stripOver": 1353,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__9-TWP__L1280__live",
+"w": 771,
+"h": 264,
+"fill": 66,
+"stripOver": 1417,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__9-TWP__L1280__dim",
+"w": 771,
+"h": 264,
+"fill": 66,
+"stripOver": 1417,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__4-TCP__L1280__live",
+"w": 450,
+"h": 264,
+"fill": 63,
+"stripOver": 861,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__4-TCP__L1280__dim",
+"w": 450,
+"h": 264,
+"fill": 63,
+"stripOver": 861,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__6-TCP__L1280__live",
+"w": 463,
+"h": 264,
+"fill": 58,
+"stripOver": 952,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__6-TCP__L1280__dim",
+"w": 463,
+"h": 264,
+"fill": 58,
+"stripOver": 952,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__7-TCP__L1280__live",
+"w": 551,
+"h": 264,
+"fill": 64,
+"stripOver": 1102,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__7-TCP__L1280__dim",
+"w": 551,
+"h": 264,
+"fill": 64,
+"stripOver": 1102,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__1-X__L1280-touch__live",
+"w": 450,
+"h": 264,
+"fill": 42,
+"stripOver": 450,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__1-X__L1280-touch__dim",
+"w": 450,
+"h": 264,
+"fill": 42,
+"stripOver": 450,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__5-TWP__L1280-touch__live",
+"w": 551,
+"h": 264,
+"fill": 66,
+"stripOver": 1009,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__5-TWP__L1280-touch__dim",
+"w": 551,
+"h": 264,
+"fill": 66,
+"stripOver": 1009,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__7-TWP__L1280-touch__live",
+"w": 765,
+"h": 264,
+"fill": 65,
+"stripOver": 1342,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__7-TWP__L1280-touch__dim",
+"w": 765,
+"h": 264,
+"fill": 65,
+"stripOver": 1342,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__8-TWP__L1280-touch__live",
+"w": 765,
+"h": 264,
+"fill": 69,
+"stripOver": 1362,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__8-TWP__L1280-touch__dim",
+"w": 765,
+"h": 264,
+"fill": 69,
+"stripOver": 1362,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__9-TWP__L1280-touch__live",
+"w": 771,
+"h": 264,
+"fill": 72,
+"stripOver": 1426,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__9-TWP__L1280-touch__dim",
+"w": 771,
+"h": 264,
+"fill": 72,
+"stripOver": 1426,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__4-TCP__L1280-touch__live",
+"w": 450,
+"h": 264,
+"fill": 70,
+"stripOver": 870,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__4-TCP__L1280-touch__dim",
+"w": 450,
+"h": 264,
+"fill": 70,
+"stripOver": 870,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__6-TCP__L1280-touch__live",
+"w": 463,
+"h": 264,
+"fill": 64,
+"stripOver": 961,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__6-TCP__L1280-touch__dim",
+"w": 463,
+"h": 264,
+"fill": 64,
+"stripOver": 961,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__7-TCP__L1280-touch__live",
+"w": 551,
+"h": 264,
+"fill": 70,
+"stripOver": 1111,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__7-TCP__L1280-touch__dim",
+"w": 551,
+"h": 264,
+"fill": 70,
+"stripOver": 1111,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__1-X__P900__live",
+"w": 262,
+"h": 262,
+"fill": 62,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__1-X__P900__dim",
+"w": 262,
+"h": 262,
+"fill": 62,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__5-TWP__P900__live",
+"w": 262,
+"h": 466,
+"fill": 73,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__5-TWP__P900__dim",
+"w": 262,
+"h": 466,
+"fill": 73,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__7-TWP__P900__live",
+"w": 262,
+"h": 542,
+"fill": 75,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__7-TWP__P900__dim",
+"w": 262,
+"h": 542,
+"fill": 75,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__8-TWP__P900__live",
+"w": 262,
+"h": 580,
+"fill": 76,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__8-TWP__P900__dim",
+"w": 262,
+"h": 580,
+"fill": 76,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__9-TWP__P900__live",
+"w": 262,
+"h": 618,
+"fill": 76,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__9-TWP__P900__dim",
+"w": 262,
+"h": 618,
+"fill": 76,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__4-TCP__P900__live",
+"w": 262,
+"h": 376,
+"fill": 69,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__4-TCP__P900__dim",
+"w": 262,
+"h": 376,
+"fill": 69,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__6-TCP__P900__live",
+"w": 262,
+"h": 452,
+"fill": 72,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__6-TCP__P900__dim",
+"w": 262,
+"h": 452,
+"fill": 72,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__7-TCP__P900__live",
+"w": 262,
+"h": 490,
+"fill": 73,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "G__7-TCP__P900__dim",
+"w": 262,
+"h": 490,
+"fill": 73,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__1-X__L1280__live",
+"w": 337,
+"h": 264,
+"fill": 61,
+"stripOver": 328,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__1-X__L1280__dim",
+"w": 337,
+"h": 264,
+"fill": 61,
+"stripOver": 328,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__5-TWP__L1280__live",
+"w": 551,
+"h": 264,
+"fill": 59,
+"stripOver": 1000,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__5-TWP__L1280__dim",
+"w": 551,
+"h": 264,
+"fill": 59,
+"stripOver": 1000,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TWP__L1280__live",
+"w": 581,
+"h": 264,
+"fill": 64,
+"stripOver": 1149,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TWP__L1280__dim",
+"w": 581,
+"h": 264,
+"fill": 64,
+"stripOver": 1149,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-TWP__L1280__live",
+"w": 664,
+"h": 264,
+"fill": 65,
+"stripOver": 1252,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-TWP__L1280__dim",
+"w": 664,
+"h": 264,
+"fill": 65,
+"stripOver": 1252,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-TWP__L1280__live",
+"w": 691,
+"h": 264,
+"fill": 65,
+"stripOver": 1337,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-TWP__L1280__dim",
+"w": 691,
+"h": 264,
+"fill": 65,
+"stripOver": 1337,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__4-TCP__L1280__live",
+"w": 450,
+"h": 264,
+"fill": 63,
+"stripOver": 861,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__4-TCP__L1280__dim",
+"w": 450,
+"h": 264,
+"fill": 63,
+"stripOver": 861,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__6-TCP__L1280__live",
+"w": 463,
+"h": 264,
+"fill": 58,
+"stripOver": 952,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__6-TCP__L1280__dim",
+"w": 463,
+"h": 264,
+"fill": 58,
+"stripOver": 952,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TCP__L1280__live",
+"w": 551,
+"h": 264,
+"fill": 64,
+"stripOver": 1102,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TCP__L1280__dim",
+"w": 551,
+"h": 264,
+"fill": 64,
+"stripOver": 1102,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__1-X__L1280-touch__live",
+"w": 337,
+"h": 264,
+"fill": 69,
+"stripOver": 337,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__1-X__L1280-touch__dim",
+"w": 337,
+"h": 264,
+"fill": 69,
+"stripOver": 337,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__5-TWP__L1280-touch__live",
+"w": 551,
+"h": 264,
+"fill": 66,
+"stripOver": 1009,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__5-TWP__L1280-touch__dim",
+"w": 551,
+"h": 264,
+"fill": 66,
+"stripOver": 1009,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TWP__L1280-touch__live",
+"w": 581,
+"h": 264,
+"fill": 70,
+"stripOver": 1158,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TWP__L1280-touch__dim",
+"w": 581,
+"h": 264,
+"fill": 70,
+"stripOver": 1158,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-TWP__L1280-touch__live",
+"w": 664,
+"h": 264,
+"fill": 71,
+"stripOver": 1261,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-TWP__L1280-touch__dim",
+"w": 664,
+"h": 264,
+"fill": 71,
+"stripOver": 1261,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-TWP__L1280-touch__live",
+"w": 691,
+"h": 264,
+"fill": 71,
+"stripOver": 1346,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-TWP__L1280-touch__dim",
+"w": 691,
+"h": 264,
+"fill": 71,
+"stripOver": 1346,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__4-TCP__L1280-touch__live",
+"w": 450,
+"h": 264,
+"fill": 70,
+"stripOver": 870,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__4-TCP__L1280-touch__dim",
+"w": 450,
+"h": 264,
+"fill": 70,
+"stripOver": 870,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__6-TCP__L1280-touch__live",
+"w": 463,
+"h": 264,
+"fill": 64,
+"stripOver": 961,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__6-TCP__L1280-touch__dim",
+"w": 463,
+"h": 264,
+"fill": 64,
+"stripOver": 961,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TCP__L1280-touch__live",
+"w": 551,
+"h": 264,
+"fill": 70,
+"stripOver": 1111,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TCP__L1280-touch__dim",
+"w": 551,
+"h": 264,
+"fill": 70,
+"stripOver": 1111,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__1-X__P900__live",
+"w": 262,
+"h": 262,
+"fill": 62,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__1-X__P900__dim",
+"w": 262,
+"h": 262,
+"fill": 62,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__5-TWP__P900__live",
+"w": 262,
+"h": 466,
+"fill": 73,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__5-TWP__P900__dim",
+"w": 262,
+"h": 466,
+"fill": 73,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TWP__P900__live",
+"w": 262,
+"h": 542,
+"fill": 75,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TWP__P900__dim",
+"w": 262,
+"h": 542,
+"fill": 75,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-TWP__P900__live",
+"w": 262,
+"h": 580,
+"fill": 76,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-TWP__P900__dim",
+"w": 262,
+"h": 580,
+"fill": 76,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-TWP__P900__live",
+"w": 262,
+"h": 618,
+"fill": 76,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-TWP__P900__dim",
+"w": 262,
+"h": 618,
+"fill": 76,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__4-TCP__P900__live",
+"w": 262,
+"h": 376,
+"fill": 69,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__4-TCP__P900__dim",
+"w": 262,
+"h": 376,
+"fill": 69,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__6-TCP__P900__live",
+"w": 262,
+"h": 452,
+"fill": 72,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__6-TCP__P900__dim",
+"w": 262,
+"h": 452,
+"fill": 72,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TCP__P900__live",
+"w": 262,
+"h": 490,
+"fill": 73,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TCP__P900__dim",
+"w": 262,
+"h": 490,
+"fill": 73,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__2-XZ__L1280__live",
+"w": 339,
+"h": 264,
+"fill": 60,
+"stripOver": 380,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__2-XZ__L1280__dim",
+"w": 339,
+"h": 264,
+"fill": 60,
+"stripOver": 380,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__3-XYZ__L1280__live",
+"w": 367,
+"h": 264,
+"fill": 61,
+"stripOver": 660,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__3-XYZ__L1280__dim",
+"w": 367,
+"h": 264,
+"fill": 61,
+"stripOver": 660,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__4-XYZA__L1280__live",
+"w": 450,
+"h": 264,
+"fill": 63,
+"stripOver": 861,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__4-XYZA__L1280__dim",
+"w": 450,
+"h": 264,
+"fill": 63,
+"stripOver": 861,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__5-XYZAC__L1280__live",
+"w": 463,
+"h": 264,
+"fill": 53,
+"stripOver": 895,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__5-XYZAC__L1280__dim",
+"w": 463,
+"h": 264,
+"fill": 53,
+"stripOver": 895,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__5-TCP__L1280__live",
+"w": 463,
+"h": 264,
+"fill": 53,
+"stripOver": 895,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__5-TCP__L1280__dim",
+"w": 463,
+"h": 264,
+"fill": 53,
+"stripOver": 895,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__6-XYZABC__L1280__live",
+"w": 463,
+"h": 264,
+"fill": 58,
+"stripOver": 952,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__6-XYZABC__L1280__dim",
+"w": 463,
+"h": 264,
+"fill": 58,
+"stripOver": 952,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__6-TWP__L1280__live",
+"w": 551,
+"h": 264,
+"fill": 64,
+"stripOver": 1057,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__6-TWP__L1280__dim",
+"w": 551,
+"h": 264,
+"fill": 64,
+"stripOver": 1057,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-XYZABCU__L1280__live",
+"w": 551,
+"h": 264,
+"fill": 64,
+"stripOver": 1102,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-XYZABCU__L1280__dim",
+"w": 551,
+"h": 264,
+"fill": 64,
+"stripOver": 1102,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-XYZABCUV__L1280__live",
+"w": 553,
+"h": 264,
+"fill": 64,
+"stripOver": 1124,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-XYZABCUV__L1280__dim",
+"w": 553,
+"h": 264,
+"fill": 64,
+"stripOver": 1124,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-XYZABCUVW__L1280__live",
+"w": 581,
+"h": 264,
+"fill": 64,
+"stripOver": 1210,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-XYZABCUVW__L1280__dim",
+"w": 581,
+"h": 264,
+"fill": 64,
+"stripOver": 1210,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__2-XZ__L1280-touch__live",
+"w": 339,
+"h": 264,
+"fill": 68,
+"stripOver": 389,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__2-XZ__L1280-touch__dim",
+"w": 339,
+"h": 264,
+"fill": 68,
+"stripOver": 389,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__3-XYZ__L1280-touch__live",
+"w": 367,
+"h": 264,
+"fill": 68,
+"stripOver": 669,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__3-XYZ__L1280-touch__dim",
+"w": 367,
+"h": 264,
+"fill": 68,
+"stripOver": 669,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__4-XYZA__L1280-touch__live",
+"w": 450,
+"h": 264,
+"fill": 70,
+"stripOver": 870,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__4-XYZA__L1280-touch__dim",
+"w": 450,
+"h": 264,
+"fill": 70,
+"stripOver": 870,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__5-XYZAC__L1280-touch__live",
+"w": 463,
+"h": 264,
+"fill": 59,
+"stripOver": 904,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__5-XYZAC__L1280-touch__dim",
+"w": 463,
+"h": 264,
+"fill": 59,
+"stripOver": 904,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__5-TCP__L1280-touch__live",
+"w": 463,
+"h": 264,
+"fill": 59,
+"stripOver": 904,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__5-TCP__L1280-touch__dim",
+"w": 463,
+"h": 264,
+"fill": 59,
+"stripOver": 904,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__6-XYZABC__L1280-touch__live",
+"w": 463,
+"h": 264,
+"fill": 64,
+"stripOver": 961,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__6-XYZABC__L1280-touch__dim",
+"w": 463,
+"h": 264,
+"fill": 64,
+"stripOver": 961,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__6-TWP__L1280-touch__live",
+"w": 551,
+"h": 264,
+"fill": 70,
+"stripOver": 1066,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__6-TWP__L1280-touch__dim",
+"w": 551,
+"h": 264,
+"fill": 70,
+"stripOver": 1066,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-XYZABCU__L1280-touch__live",
+"w": 551,
+"h": 264,
+"fill": 70,
+"stripOver": 1111,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-XYZABCU__L1280-touch__dim",
+"w": 551,
+"h": 264,
+"fill": 70,
+"stripOver": 1111,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-XYZABCUV__L1280-touch__live",
+"w": 553,
+"h": 264,
+"fill": 70,
+"stripOver": 1133,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-XYZABCUV__L1280-touch__dim",
+"w": 553,
+"h": 264,
+"fill": 70,
+"stripOver": 1133,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-XYZABCUVW__L1280-touch__live",
+"w": 581,
+"h": 264,
+"fill": 70,
+"stripOver": 1219,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-XYZABCUVW__L1280-touch__dim",
+"w": 581,
+"h": 264,
+"fill": 70,
+"stripOver": 1219,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__2-XZ__P900__live",
+"w": 262,
+"h": 300,
+"fill": 65,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__2-XZ__P900__dim",
+"w": 262,
+"h": 300,
+"fill": 65,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__3-XYZ__P900__live",
+"w": 262,
+"h": 338,
+"fill": 68,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__3-XYZ__P900__dim",
+"w": 262,
+"h": 338,
+"fill": 68,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__4-XYZA__P900__live",
+"w": 262,
+"h": 376,
+"fill": 69,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__4-XYZA__P900__dim",
+"w": 262,
+"h": 376,
+"fill": 69,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__5-XYZAC__P900__live",
+"w": 262,
+"h": 414,
+"fill": 71,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__5-XYZAC__P900__dim",
+"w": 262,
+"h": 414,
+"fill": 71,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__5-TCP__P900__live",
+"w": 262,
+"h": 414,
+"fill": 71,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__5-TCP__P900__dim",
+"w": 262,
+"h": 414,
+"fill": 71,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__6-XYZABC__P900__live",
+"w": 262,
+"h": 452,
+"fill": 72,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__6-XYZABC__P900__dim",
+"w": 262,
+"h": 452,
+"fill": 72,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__6-TWP__P900__live",
+"w": 262,
+"h": 504,
+"fill": 74,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__6-TWP__P900__dim",
+"w": 262,
+"h": 504,
+"fill": 74,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-XYZABCU__P900__live",
+"w": 262,
+"h": 490,
+"fill": 73,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-XYZABCU__P900__dim",
+"w": 262,
+"h": 490,
+"fill": 73,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-XYZABCUV__P900__live",
+"w": 262,
+"h": 528,
+"fill": 74,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-XYZABCUV__P900__dim",
+"w": 262,
+"h": 528,
+"fill": 74,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-XYZABCUVW__P900__live",
+"w": 262,
+"h": 566,
+"fill": 75,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-XYZABCUVW__P900__dim",
+"w": 262,
+"h": 566,
+"fill": 75,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__2-XZ__L1920__live",
+"w": 450,
+"h": 264,
+"fill": 46,
+"stripOver": 0,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__3-XYZ__L1920__live",
+"w": 450,
+"h": 264,
+"fill": 55,
+"stripOver": 103,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__4-XYZA__L1920__live",
+"w": 551,
+"h": 264,
+"fill": 46,
+"stripOver": 322,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__5-XYZAC__L1920__live",
+"w": 551,
+"h": 264,
+"fill": 50,
+"stripOver": 343,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__6-XYZABC__L1920__live",
+"w": 551,
+"h": 264,
+"fill": 55,
+"stripOver": 400,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__6-TWP__L1920__live",
+"w": 551,
+"h": 264,
+"fill": 64,
+"stripOver": 417,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__7-XYZABCU__L1920__live",
+"w": 765,
+"h": 264,
+"fill": 50,
+"stripOver": 676,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__9-XYZABCUVW__L1920__live",
+"w": 771,
+"h": 264,
+"fill": 56,
+"stripOver": 760,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__2-XZ__L1920__live",
+"w": 339,
+"h": 264,
+"fill": 60,
+"stripOver": 0,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__3-XYZ__L1920__live",
+"w": 367,
+"h": 264,
+"fill": 61,
+"stripOver": 20,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__4-XYZA__L1920__live",
+"w": 450,
+"h": 264,
+"fill": 63,
+"stripOver": 221,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__5-XYZAC__L1920__live",
+"w": 463,
+"h": 264,
+"fill": 53,
+"stripOver": 255,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__6-XYZABC__L1920__live",
+"w": 463,
+"h": 264,
+"fill": 58,
+"stripOver": 312,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__6-TWP__L1920__live",
+"w": 551,
+"h": 264,
+"fill": 64,
+"stripOver": 417,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-XYZABCU__L1920__live",
+"w": 551,
+"h": 264,
+"fill": 64,
+"stripOver": 462,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-XYZABCUVW__L1920__live",
+"w": 581,
+"h": 264,
+"fill": 64,
+"stripOver": 570,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TWP__L1280-touch-150__live",
+"w": 851,
+"h": 396,
+"fill": 70,
+"stripOver": 1550,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TWP__L1280-touch-150__dim",
+"w": 851,
+"h": 396,
+"fill": 70,
+"stripOver": 1550,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__3-XYZ__L1280-touch-150__live",
+"w": 533,
+"h": 396,
+"fill": 68,
+"stripOver": 1067,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__3-XYZ__L1280-touch-150__dim",
+"w": 533,
+"h": 396,
+"fill": 68,
+"stripOver": 1067,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-XYZABCUVW__L1280-touch-150__live",
+"w": 851,
+"h": 396,
+"fill": 70,
+"stripOver": 1614,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-XYZABCUVW__L1280-touch-150__dim",
+"w": 851,
+"h": 396,
+"fill": 70,
+"stripOver": 1614,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__2-XZ__L1280__dim",
+"w": 367,
+"h": 264,
+"fill": 61,
+"stripOver": 408,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-XYZABCUV__L1280__dim",
+"w": 581,
+"h": 264,
+"fill": 64,
+"stripOver": 1152,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__2-XZ__L1280-touch__dim",
+"w": 367,
+"h": 264,
+"fill": 69,
+"stripOver": 417,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-XYZABCUV__L1280-touch__dim",
+"w": 581,
+"h": 264,
+"fill": 70,
+"stripOver": 1161,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__2-XZ__P900__dim",
+"w": 262,
+"h": 300,
+"fill": 65,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-XYZABCUV__P900__dim",
+"w": 262,
+"h": 528,
+"fill": 74,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TWP__L1280__live",
+"w": 581,
+"h": 264,
+"fill": 64,
+"stripOver": 1149,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TWP__L1280__dim",
+"w": 581,
+"h": 264,
+"fill": 64,
+"stripOver": 1149,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-TWP__L1280__live",
+"w": 664,
+"h": 264,
+"fill": 65,
+"stripOver": 1252,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-TWP__L1280__dim",
+"w": 664,
+"h": 264,
+"fill": 65,
+"stripOver": 1252,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-TWP__L1280__live",
+"w": 691,
+"h": 264,
+"fill": 65,
+"stripOver": 1337,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-TWP__L1280__dim",
+"w": 691,
+"h": 264,
+"fill": 65,
+"stripOver": 1337,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TWP__L1280-touch__live",
+"w": 581,
+"h": 264,
+"fill": 70,
+"stripOver": 1158,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TWP__L1280-touch__dim",
+"w": 581,
+"h": 264,
+"fill": 70,
+"stripOver": 1158,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-TWP__L1280-touch__live",
+"w": 664,
+"h": 264,
+"fill": 71,
+"stripOver": 1261,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-TWP__L1280-touch__dim",
+"w": 664,
+"h": 264,
+"fill": 71,
+"stripOver": 1261,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-TWP__L1280-touch__live",
+"w": 691,
+"h": 264,
+"fill": 71,
+"stripOver": 1346,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-TWP__L1280-touch__dim",
+"w": 691,
+"h": 264,
+"fill": 71,
+"stripOver": 1346,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TWP__P900__live",
+"w": 262,
+"h": 542,
+"fill": 75,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TWP__P900__dim",
+"w": 262,
+"h": 542,
+"fill": 75,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-TWP__P900__live",
+"w": 262,
+"h": 580,
+"fill": 76,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__8-TWP__P900__dim",
+"w": 262,
+"h": 580,
+"fill": 76,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-TWP__P900__live",
+"w": 262,
+"h": 618,
+"fill": 76,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-TWP__P900__dim",
+"w": 262,
+"h": 618,
+"fill": 76,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__7-TWP__L1280__live",
+"w": 691,
+"h": 264,
+"fill": 66,
+"stripOver": 1259,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__7-TWP__L1280__dim",
+"w": 691,
+"h": 264,
+"fill": 66,
+"stripOver": 1259,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__8-TWP__L1280__live",
+"w": 691,
+"h": 264,
+"fill": 66,
+"stripOver": 1279,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__8-TWP__L1280__dim",
+"w": 691,
+"h": 264,
+"fill": 66,
+"stripOver": 1279,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__9-TWP__L1280__live",
+"w": 691,
+"h": 264,
+"fill": 65,
+"stripOver": 1337,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__9-TWP__L1280__dim",
+"w": 691,
+"h": 264,
+"fill": 65,
+"stripOver": 1337,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__7-TWP__L1280-touch__live",
+"w": 691,
+"h": 264,
+"fill": 72,
+"stripOver": 1268,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__7-TWP__L1280-touch__dim",
+"w": 691,
+"h": 264,
+"fill": 72,
+"stripOver": 1268,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__8-TWP__L1280-touch__live",
+"w": 691,
+"h": 264,
+"fill": 72,
+"stripOver": 1288,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__8-TWP__L1280-touch__dim",
+"w": 691,
+"h": 264,
+"fill": 72,
+"stripOver": 1288,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__9-TWP__L1280-touch__live",
+"w": 691,
+"h": 264,
+"fill": 71,
+"stripOver": 1346,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__9-TWP__L1280-touch__dim",
+"w": 691,
+"h": 264,
+"fill": 71,
+"stripOver": 1346,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__7-TWP__P900__live",
+"w": 262,
+"h": 542,
+"fill": 75,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__7-TWP__P900__dim",
+"w": 262,
+"h": 542,
+"fill": 75,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__8-TWP__P900__live",
+"w": 262,
+"h": 580,
+"fill": 76,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__8-TWP__P900__dim",
+"w": 262,
+"h": 580,
+"fill": 76,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__9-TWP__P900__live",
+"w": 262,
+"h": 618,
+"fill": 76,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__9-TWP__P900__dim",
+"w": 262,
+"h": 618,
+"fill": 76,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TWP__L1920__live",
+"w": 581,
+"h": 264,
+"fill": 64,
+"stripOver": 509,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-TWP__L1920__live",
+"w": 691,
+"h": 264,
+"fill": 65,
+"stripOver": 697,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__7-TWP__L1280-touch-150__live",
+"w": 851,
+"h": 396,
+"fill": 70,
+"stripOver": 1550,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "P__9-TWP__L1280-touch-150__live",
+"w": 1009,
+"h": 396,
+"fill": 71,
+"stripOver": 1733,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__7-TWP__L1920__live",
+"w": 691,
+"h": 264,
+"fill": 66,
+"stripOver": 619,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__9-TWP__L1920__live",
+"w": 691,
+"h": 264,
+"fill": 65,
+"stripOver": 697,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__7-TWP__L1280-touch-150__live",
+"w": 1009,
+"h": 396,
+"fill": 72,
+"stripOver": 1655,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "Q__9-TWP__L1280-touch-150__live",
+"w": 1009,
+"h": 396,
+"fill": 71,
+"stripOver": 1733,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__5-TCP__L1280__live",
+"w": 551,
+"h": 264,
+"fill": 50,
+"stripOver": 983,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__5-TCP__L1280__dim",
+"w": 551,
+"h": 264,
+"fill": 50,
+"stripOver": 983,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__6-TWP__L1280__live",
+"w": 551,
+"h": 264,
+"fill": 64,
+"stripOver": 1057,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__6-TWP__L1280__dim",
+"w": 551,
+"h": 264,
+"fill": 64,
+"stripOver": 1057,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__5-TCP__L1280-touch__live",
+"w": 551,
+"h": 264,
+"fill": 56,
+"stripOver": 992,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__5-TCP__L1280-touch__dim",
+"w": 551,
+"h": 264,
+"fill": 56,
+"stripOver": 992,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__6-TWP__L1280-touch__live",
+"w": 551,
+"h": 264,
+"fill": 70,
+"stripOver": 1066,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__6-TWP__L1280-touch__dim",
+"w": 551,
+"h": 264,
+"fill": 70,
+"stripOver": 1066,
+"wrapped": [],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__5-TCP__P900__live",
+"w": 262,
+"h": 414,
+"fill": 71,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__5-TCP__P900__dim",
+"w": 262,
+"h": 414,
+"fill": 71,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__6-TWP__P900__live",
+"w": 262,
+"h": 504,
+"fill": 74,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+},
+{
+"id": "0__6-TWP__P900__dim",
+"w": 262,
+"h": 504,
+"fill": 74,
+"stripOver": 0,
+"wrapped": [
+"Go to G30",
+"Go to MCS 0",
+"Go to WCS 0",
+"Capture plane",
+"Clear plane"
+],
+"cut": [],
+"outside": []
+}
+]

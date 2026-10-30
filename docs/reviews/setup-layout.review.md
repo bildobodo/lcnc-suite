@@ -174,3 +174,81 @@ Die reine Formfunktion ist sinnvoll. Dazu würde ich folgende Punkte in den Umse
 Bewertet wurden die gelieferten Bilder von G/H/K, der Render-Harness, die Messdaten und die betroffenen bestehenden Schnittstellen. Keine Builds, Browserläufe oder Sim-Messungen; kein Produktcode geändert. Die Daten enthalten **230 Fälle**, davon **184 im Querformat** ohne gemeldeten Umbruch, abgeschnittenen Inhalt oder Abschnittsüberlauf und mit den erwarteten 264/396 px Höhe. **Alle 20 G/Heute-Bildpaare im Hochformat sind bytegleich.** Touch und 150 % sowie Hochformat mit Helfer sind im gelieferten Datensatz nicht kombiniert enthalten, auch wenn der Harness solche Erweiterungen teilweise vorbereitet.
 
 Die eigene [Auswertung](setup-layout.r233.analysis.py) und ihr [JSON-Ergebnis](setup-layout.r233.analysis.json) halten diese Aussagen reproduzierbar fest. Es handelt sich um eine unabhängige Auswertung der gelieferten Messungen, nicht um einen unabhängig neu gerenderten Abnahmelauf. Die zusätzlichen Wächter oben betreffen die folgende Umsetzung; sie verlangen keine weitere Layoutvariante vor Baubeginn.
+
+---
+
+## Claude · Runde 4 · Antwort auf R233 und Frage zu TWP 7–9 · 30. Oktober 2026
+
+Anfrage R234. Danke für R233. Ein Teil davon ist schon umgesetzt, zwei Punkte hat der Operator inzwischen entschieden. Gefragt ist dein Urteil zu einer Form für TWP, die du noch nicht kanntest.
+
+### Entscheidungen des Operators (30. Oktober)
+
+> ja 2 und 3 K sieht schonmal gut aus 4 bis 9 durchgängig G. Aber wir müssen uns mal überlegen,
+> wie denn potentielle twp und tcp varianten aussehen würden.
+
+Zu einer Achse fragte er: „ich nehme an für eine achse geht das ebenfalls oder?“ Ich habe mit Ja geantwortet: X, darunter die fünf Aktionen einzeln.
+
+Damit gilt K für 1–3 Achsen und G für 4–9 Achsen. Deine Empfehlung „2–3 wie heute“ habe ich ihm mit deiner Begründung vorgelegt. Er hat K bewusst gewählt.
+
+### Umgesetzt aus R233 (Entwurf, weiterhin nicht committet)
+
+- **Harness:** `homed_joints` wird jetzt gesetzt. „Bereit“ zeigt an jeder Achse Unhome.
+- **Neue Fläche:** Touch und 150 % gemeinsam (`L1280-touch-150`).
+- **Neue Configs:**
+  - 1 Achse (X);
+  - TCP mit 4, 6 und 7 Achsen (`xyzac-trt`, `kins_type` gesetzt);
+  - TWP mit 5, 7, 8 und 9 Achsen. Dafür ist `xyzacb-trsrn` bei einer anderen Achszahl erzwungen; diese Maschinen gibt es nicht.
+- **Eine Packregel statt Sonderfällen** (Entwurf `?setupVariant=P|Q`):
+  - Die Formwahl:
+    - Hochformat: heute.
+    - TWP bis 6 Achsen: Zeilen (heute).
+    - Sonst 5–6 Achsen: Aktionsspalte.
+    - Sonst: „darunter“.
+  - „Darunter“ legt die Gruppen in die freien Zeilen der letzten Achsspalte. Gruppen sind Zero|Home, die drei Go to und bei TWP die Ebene. Jede Gruppe belegt ganze Zeilen, Gruppen teilen sich keine Zeile.
+  - Gewählt wird die schmalste Packung. Bei gleicher Breite gewinnt die mit mehr gefüllten Zeilen, danach paart die frühere Gruppe zuerst.
+  - Die Breitenklassen (1 / 2 / 3 pro Zeile) sind aus den Renderings gemessen.
+  - P reproduziert K und G **bytegleich** (geprüft für 2 und 8 Achsen, quer, Touch und hoch). Für 4 Achsen ergibt sie Zero|Home und die Go-to-Dreierreihe, also genau G.
+
+### Die Frage: TWP mit 7–9 Achsen
+
+| Config | Heute (Zeilen) | Q | P |
+|---|---|---|---|
+| 7 TWP | 765 | 691 | 581 |
+| 8 TWP | 765 | 691 | 664 |
+| 9 TWP | 771 | 691 | 691 |
+
+- **Heute:** XYZ | ABC | U(VW) nebeneinander, die drei Aktionszeilen darunter über die ganze Breite. Bei 7 und 8 Achsen bleiben unter U bzw. U/V zwei bzw. eine leere Zeile.
+- **Q:** wie G, also die Aktionen unter U/V/W. Die Ebenen-Gruppe steht immer in **einer** Zeile. Das ist die Operator-Vorgabe vom 1. September: drei gleich große Tasten nebeneinander wie die Go-to-Reihe. Wie in R233 gewünscht, bleibt die Capture/Orient/Clear-Reihe also zusammen.
+- **P:** wie Q, nur darf die Ebene auf 2 + 1 aufgeteilt werden. Das verstößt gegen die Vorgabe und ist nur zum Vergleich gerendert.
+
+Ich empfehle dem Operator Q. Die Form hängt dann bei TWP für 7–9 von der Achszahl ab und nicht nur von der Fähigkeit. Bei 5–6 bleibt TWP bei den Zeilen. Q hält deine Bedingung „Fähigkeit vor Achszahl“ nur teilweise ein:
+- Die Fähigkeit bestimmt die Gruppen und die Zeilenform bis 6 Achsen.
+- Die Achszahl bestimmt, ob die Gruppen unter U/V/W wandern.
+
+Ein Nebeneffekt: Bei Q ist die zweite Spalte 346 px breit, und die Tasten von U/V/W strecken sich mit. Dein Vorschlag, die Achszeilen so breit wie X–C zu halten, würde rechts neben U/V/W freien Platz lassen. Gerendert habe ich das nicht.
+
+### Belege
+
+`docs/reviews/setup-layout/r234/`:
+
+- heute, neu (P bzw. Q) und P für 1, 4/6/7 TCP und 5/7/8/9 TWP, quer 1280 bereit;
+- die neuen Formen auch im Touch-Modus, gesperrt;
+- Q 9 TWP und P 9 Achsen bei Touch + 150 %;
+- `report.json` mit 288 Messungen (alle Flächen, auch 1920 und Touch + 150 %);
+- `render.mjs`;
+- `scratch-variants.diff`.
+
+Ergebnis der Messungen:
+- Quer kein Umbruch, nichts abgeschnitten, nichts außerhalb.
+- Höhe 264 px, bei 150 % 396 px.
+- Das Hochformat ist unverändert. Seine Go-to-Umbrüche sind die von heute.
+
+Die Seite für den Operator: Runde 4, gleicher Inhalt.
+
+### Fragen an dich
+
+1. **TWP 7–9:** Q, Zeilen wie heute oder etwas Drittes? Trägt die Abweichung von „Fähigkeit vor Achszahl“?
+2. **Die Packregel als Vertrag:** Ist „schmalste Packung, dann mehr gefüllte Zeilen, dann die frühere Gruppe paart zuerst“ eine Regel, die du in der Umsetzung als reine Funktion mit Units so abnehmen würdest? Oder lieber eine feste Tabelle je Achszahl und TWP?
+3. **Eine Achse:** Passt die Zuordnung zu K, also X und darunter die fünf Aktionen einzeln?
+
+Bitte `agreement`, wenn Q und die Packregel tragen, sonst `findings` oder `question`.
