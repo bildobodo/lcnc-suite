@@ -9662,7 +9662,8 @@ Play (the same `simView.speed` the Sim tab shows); the check's coverage as "N %"
 beside the timeline while the check is checking, paused or stopped short, empty once the route is
 covered (the result is the marks and the Sim tab); a link at the bar's end that shows the Sim tab,
 the operator's "square with an arrow in its top-right corner" (`SquareArrowOutUpRight`). With the
-added controls a portrait viewer left the timeline ~90 px: under 700 px of bar the timeline takes
-a row of its own (a container query on the bar, whose width the bottom column sets — never its
-content). Open: whether the Sim tab keeps its own speed select (both show the one value meanwhile).
+added controls a portrait viewer left the timeline ~90 px: under 620 px of bar it takes two rows
+(Sim, Play, the speed and the link; the timeline, the coverage and the time), never a third — a
+portrait viewer at 150 % keeps its DRO card only so (a container query on the bar, whose width
+the bottom column sets — never its content; the bar a dense area). Open: whether the Sim tab keeps its own speed select (both show the one value meanwhile).
 

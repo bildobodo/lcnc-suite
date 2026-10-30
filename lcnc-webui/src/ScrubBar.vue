@@ -1391,9 +1391,9 @@ onUnmounted(releaseSim);
        timeline with its marks, the check's coverage while it runs, the time,
        the Sim tab link. Nothing here changes its width with the content, so
        the bar never folds; the findings and the check's detail are in the
-       side pane's Simulation tab. A bar under 700 px gives the timeline a
-       row of its own — by the bar's width, never by content. -->
-  <div v-if="visible" class="scrubBar overlay-card">
+       side pane's Simulation tab. A bar under 620 px takes two rows — by
+       the bar's width, never by content. -->
+  <div v-if="visible" class="scrubBar overlay-card denseArea">
     <div class="row-controls scrubRow">
       <!-- Sim mode toggle — same switch as settings/coolant toggles. The
            parent-authoritative model snaps it back if entry is refused. -->
@@ -1401,7 +1401,7 @@ onUnmounted(releaseSim);
                      :disabled="!simMode && !machineOff"
                      help="Poses the 3D model along the program. Machine must be OFF; machine controls lock until you exit." />
 
-      <MachineBtn type="scrub" :disabled="!simMode && !machineOff"
+      <MachineBtn type="scrub" class="iconBtn" :disabled="!simMode && !machineOff"
                   :title="playing ? 'Pause playback' : 'Play the program through the machine model'"
                   @click="togglePlay">
         <Pause v-if="playing" :size="14" />
@@ -1410,6 +1410,9 @@ onUnmounted(releaseSim);
       <MachineSelect gate="simSpeed" v-model="speedChoice" name="scrubSpeed" aria-label="Playback speed" class="speedSelect">
         <option v-for="v in SIM_SPEEDS" :key="v" v-memo="[v]" :value="String(v)">×{{ v }}</option>
       </MachineSelect>
+      <!-- the narrow form's line break (CSS below): Sim, Play, the speed and
+           the link above; the timeline, the coverage and the time below -->
+      <span class="rowBreak" aria-hidden="true"></span>
       <div ref="sliderWrap" class="sliderWrap">
         <MachineSlider gate="scrubPos" class="sliderInput rangeOverlayTrack" :min="0" :max="cumMax"
                        :step="cumMax / 2000 || 1" v-model="sPos" :disabled="!simMode"
@@ -1452,7 +1455,7 @@ onUnmounted(releaseSim);
       <span class="val-slot checkSlot val-status mono" :title="checkPctTitle">{{ checkPct }}</span>
       <span class="val-slot posSlot val-status mono" :class="{ muted: !simMode && !running }"
             :style="{ '--slot-w': posSlotCh + 'ch' }" :title="posTitle">{{ posText }}</span>
-      <MachineBtn type="scrub" aria-label="Open the Sim tab" title="Open the Sim tab" @click="emit('open-sim-tab')">
+      <MachineBtn type="scrub" class="iconBtn simTabLink" aria-label="Open the Sim tab" title="Open the Sim tab" @click="emit('open-sim-tab')">
         <SquareArrowOutUpRight :size="14" />
       </MachineBtn>
     </div>
@@ -1558,12 +1561,21 @@ onUnmounted(releaseSim);
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* A bar under 700 px gives the timeline a row of its own (Sim, Play, the
-   speed, the coverage, the time and the link above it): with them in one row
-   the timeline kept ~90 px on a portrait viewer. After the base rules. */
-@container (max-width: 700px) {
-  .scrubRow { flex-wrap: wrap; row-gap: var(--gap-tight); }
-  .sliderWrap { order: 1; flex: 1 1 100%; }
-  .checkSlot { margin-left: auto; }
+/* A bar under 620 px takes TWO rows — the timeline kept ~90 px in one
+   (the fixed items take ~405 px; at 620 one row leaves the timeline ~200):
+   Sim, Play, the speed and the link above; the timeline, the coverage and
+   the time below, as low as the timeline itself. Never a third, and no
+   button in the second: a portrait viewer at 150 % holds the DRO card above
+   the bottom column only so (layout.spec — TWP's six DRO rows). The bar is a
+   dense area, its two symbol buttons take the compact touch floor in width
+   too (36 px, the strip's), and the gaps --gap-tight: the first row then
+   holds 249 of 256 px there. After the base rules. */
+.rowBreak { display: none; }
+html.touch-device .scrubBar.denseArea .scrubRow .iconBtn.b { min-width: var(--touch-target-compact); }
+@container (max-width: 620px) {
+  .scrubRow { flex-wrap: wrap; gap: var(--gap-tight); }
+  .simTabLink { order: 1; margin-left: auto; }
+  .rowBreak { display: block; order: 2; flex: 0 0 100%; height: 0; }
+  .sliderWrap, .checkSlot, .posSlot { order: 3; }
 }
 </style>

@@ -724,17 +724,20 @@ test("stepping through the findings never changes the bar: the same box, the sam
     // Layout px (CSS zoom aside): the bar, the timeline, the bar's content box.
     const bar = () => page.locator(".scrubBar").evaluate(el => {
       const b = el as HTMLElement, cs = getComputedStyle(b);
-      return { w: b.offsetWidth, h: b.offsetHeight, slider: (b.querySelector(".sliderWrap") as HTMLElement).offsetWidth,
-        content: b.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), narrow: !!b.closest(".narrowViewer") };
+      const slider = b.querySelector(".sliderWrap") as HTMLElement, play = b.querySelector("button") as HTMLElement;
+      // the bar's two-row form: under 620 px of its own width (a container query)
+      return { w: b.offsetWidth, h: b.offsetHeight, slider: slider.offsetWidth,
+        content: b.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), narrow: b.offsetWidth < 620,
+        below: slider.offsetTop >= play.offsetTop + play.offsetHeight };
     });
     const step = simStepBtn(page, "Next on the timeline");
     await step.click();
     await expect(page.locator(".simBanner")).toBeVisible();
     await settleLayout(page);
     const at = await bar();
-    expect(at.narrow, `${vp}: a narrow viewer only at 150 % portrait`).toBe(vp === "touch-portrait");
+    expect(at.narrow, `${vp}: the two-row form only at 150 % portrait`).toBe(vp === "touch-portrait");
     expect(at.slider, `${vp}: the timeline keeps its room`).toBeGreaterThanOrEqual(120);
-    if (at.narrow) expect(at.slider, `${vp}: a narrow viewer gives the timeline a row of its own`).toBeGreaterThanOrEqual(at.content - 1);
+    expect(at.below, `${vp}: the timeline under the controls exactly in the two-row form`).toBe(at.narrow);
     for (let i = 0; i < 6; i++) {
       await step.click();
       expect(await bar(), `${vp}: step ${i + 2} — the bar as it was`).toEqual(at);
@@ -1300,16 +1303,18 @@ for (const scheme of ["light", "dark"] as const) {
   });
 }
 
-test("a portrait viewer: the timeline takes a row of its own, the controls stay one row above it", async ({ page, context }) => {
+test("a portrait viewer: two rows — Sim, Play, the speed and the link above, the timeline with the coverage and the time below", async ({ page, context }) => {
   await prepare(page, context, "touch-portrait", PREVIEW, false);
   const g = await page.evaluate(() => {
     const bar = document.querySelector(".viewerPane .scrubBar")!, r = (s: string) => bar.querySelector(s)!.getBoundingClientRect();
-    return { bar: bar.getBoundingClientRect(), slider: r(".sliderWrap"), play: r("button"), speed: r("select"), link: r('[aria-label="Open the Sim tab"]') };
+    return { bar: bar.getBoundingClientRect(), slider: r(".sliderWrap"), play: r("button"), speed: r("select"), link: r('[aria-label="Open the Sim tab"]'),
+             time: r(".posSlot") };
   });
-  expect(g.bar.width, "the bar is narrow here").toBeLessThan(700);
-  expect(g.slider.top, "the timeline below the controls").toBeGreaterThanOrEqual(g.play.bottom);
-  expect(g.slider.width, "the timeline spans the bar").toBeGreaterThan(g.bar.width * 0.85);
   const mid = (b: { top: number; height: number }) => b.top + b.height / 2;
-  expect(Math.abs(mid(g.speed) - mid(g.play)), "the speed in the controls' row").toBeLessThan(4);
-  expect(Math.abs(mid(g.link) - mid(g.play)), "the link in the controls' row").toBeLessThan(4);
+  expect(g.bar.width, "the bar is narrow here").toBeLessThan(620);
+  expect(Math.abs(mid(g.speed) - mid(g.play)), "the speed in Play's row").toBeLessThan(4);
+  expect(g.slider.top, "the timeline below the controls").toBeGreaterThanOrEqual(g.play.bottom);
+  expect(Math.abs(mid(g.link) - mid(g.play)), "the link in Play's row").toBeLessThan(4);
+  expect(Math.abs(mid(g.time) - mid(g.slider)), "the time in the timeline's row").toBeLessThan(12);
+  expect(g.slider.width, "the timeline keeps most of its row").toBeGreaterThan(g.bar.width * 0.55);
 });
