@@ -300,3 +300,120 @@ Die gelieferten Q-, P-, TCP-, Einachs- und Vergleichsbilder wurden gesichtet. Di
 Die übrigen R233-Wächter gelten weiter, insbesondere tatsächliche Erreichbarkeit neben Safety, Helfer/Fokus/gedrückte Taste, lange Werte und Rahmenhinweise sowie gemischte und gesperrte Zustände. Die neue Touch+150-%-Aufnahme zeigt weiterhin die bekannte Überdeckung durch Safety im Abschnittsbild; die spätere Interaktionsprüfung muss die einzelnen Ziele durch Scrollen erreichbar nachweisen. Aus `outside: []` folgt das nicht.
 
 Die erzwungenen TWP-/TCP-Konfigurationen sind sinnvolle **synthetische Layoutfälle**. Ihre Darstellung ist kein Nachweis, dass die betreffende Kinematik, Homing-Zuordnung oder die TWP-Routinen diese Achsenmenge real unterstützen. Dafür enthält diese Runde weder einen Auftrag noch Belege. Keine Produktdateien verändert, keine Builds, Browser- oder Sim-Läufe; eigene Belege sind ausschließlich die Auswertung und Packrechnung der gelieferten Daten.
+
+
+---
+
+## Claude · Umsetzung · Anfrage R235 · 30. Oktober 2026
+
+**Branch `feat/setup-layout`** (Worktree `~/lcnc-suite-setup`), auf `development` `5fb6c761`. Der Diff
+`5fb6c761..9303cf6e` enthält die Umsetzung, die Wächter, die Doku und den Gate-Beleg.
+
+### Entscheidungen des Operators seit R234
+
+- **Regel:** „2 und 3 K … 4 bis 9 durchgängig G“. Eine Achse folgt K. Für TWP 7–9 gilt Q, wie in
+  R234 abgenommen.
+- **WCS** (30. Oktober, nach Renderings: „das passt so“):
+  - Im Hochformat eine Titelzeile mit „WCS“ und dem Rahmen-Chip, darunter zwei Reihen,
+    G54–G58 und G59–G59.3.
+  - Quer stehen „WCS“ und der Chip auf der Titelzeile von „SETUP“.
+
+### Umsetzung
+
+1. **`setupLayout.ts`** (rein): `setupLayout(n, twp, portrait)` → Form, Achsen je Spalte, Spanne je
+   Aktion.
+   - **Formwahl:**
+     - Hochformat und TWP bis 6 Achsen: Zeilen.
+     - Sonst „darunter“, wenn die Gruppen in die freien Zeilen der letzten Spalte passen.
+     - Sonst Spalte.
+   - Dieselbe Packung (`pack`) bedient alle drei Formen:
+     - **Zeilen:** jede Gruppe eine Zeile, also das heutige Bild;
+     - **Spalte:** sechs freie Zeilen;
+     - **darunter:** die freien Zeilen der letzten Spalte.
+   - **Rangfolge** wie von dir präzisiert:
+     - Kandidaten nur mit vollständigen Gruppen und dem Ebenentrio als Dreierreihe; das ist eine
+       harte Bedingung (`perRow: [3]`).
+     - Dann die Breitenklasse (1 / 2 / Go-to-3 / Ebene-3), dann mehr belegte Zeilen.
+     - Bei Gleichstand gewinnt die zuerst gefundene Packung. Die Aufzählung läuft absteigend,
+       damit paart die frühere Gruppe zuerst.
+   - Die Breitenklassen sind feste Parameter, nichts wird zur Laufzeit gemessen.
+2. **`SetupActions.vue`:** die Aktionen als EIN Block in einem Raster mit sechs Spuren.
+   - Spanne 6, 3 oder 2 je Taste, das sind dieselben Zellen wie die alten Zwei- und Dreierreihen.
+     Spaltenabstand 8, Zeilenabstand 4.
+   - Titel, Gründe und Gates stehen nur hier.
+   - `wrapLabels` nur in der Zeilenform; das war die bisherige Hochformat-Regel für „Go to / G30“.
+3. **`SetupStrip.vue`:**
+   - **Abschnitt:** ein Raster mit `title | wcshead` über `controls | wcs`. Im Hochformat
+     untereinander, mit `margin-top: --gap-tight` vor dem WCS-Titel, also wie bisher 12 px Abstand.
+   - **Tab-Reihenfolge = DOM-Reihenfolge:** Achszeilen, Aktionen, WCS-Titel, Koordinatensysteme.
+     Der WCS-Titel steht im DOM nach den Steuerelementen und nur per `grid-area` oben.
+   - **Platzierung des Blocks:**
+     - „darunter“ im Raster der letzten Achsspalte (`grid-column: 1 / -1`);
+     - sonst nach den Achsgruppen, bei „Spalte“ mit `row-sections`, also 12 px wie in den
+       abgenommenen Renderings.
+   - **Achsgitter:** `natural` (`80px auto auto`) außer in der Zeilenform. `.axisGrids` bleibt das
+     Element der Achszeilen (`SETUP_AXIS_ROWS`).
+   - **WCS-Titel:** `width: 0; min-width: 100%`, innen `justify-content: flex-end`. Die
+     Koordinatensysteme bemessen die Spalte, ein langer Chip läuft nach links in die leere
+     Titelzeile. Das „?“ von Setup steht dafür direkt hinter dem Wort.
+   - **Hochformat, Koordinatensysteme:** zwei eigene Reihen, jede volle Breite: 20 Spuren,
+     G54–G58 mit Spanne 4, G59–G59.3 mit Spanne 5. `columns: 5` bleibt, damit Hoch/Runter um fünf
+     springt.
+     - **Abweichung von den abgenommenen Renderings:** Fünf Spalten in der Breite ihres breitesten
+       Eintrags brauchen 254 px. Der Abschnitt hat mit einer klassischen Scrollleiste 252 px. Das
+       Harness hatte Scrollleisten ausgeblendet, 262 px, und ist deshalb nicht übergelaufen.
+
+### Wächter und Belege
+
+- **`setupLayout.test.ts`** (11): deine R234-Matrix als **literale** Werte, 0–9 Achsen, TWP,
+  Hochformat und das Sechs-Zeilen-Budget.
+- **`setup-layout.spec.ts`** (serial-layout):
+  - **Abdeckung:** 14 Configs, darunter XYZC, XYZBC, TCP und synthetisch 7/9 TWP. Flächen: quer,
+    quer Touch, Touch + 150 %, Hochformat, Hochformat Touch + 150 %. Zustände: bereit, gesperrt,
+    gemischt gehomt (`homed_joints` wird gesetzt).
+  - **Je Fall:**
+    - `measureLayout` ohne Probleme, quer kein Umbruch, jede Aktion genau einmal;
+    - die Spalten und die Belegung je Gruppe literal;
+    - die Lage je Form, der WCS-Titel auf der SETUP-Zeile und G54 auf Höhe der ersten Achszeile
+      (quer) bzw. die zwei Reihen unter dem Titel (hoch).
+  - **Zusätzlich:**
+    - die Tab-Reihenfolge;
+    - die Erreichbarkeit neben Safety bei 150 %: jedes Steuerelement wird neben Safety gescrollt,
+      dann muss `elementFromPoint` es treffen;
+    - der lange Chip aus echtem Status: TCP „MACHINE · off datum“, TWP „MACHINE · off datum ·
+      datum moved“, quer, quer Touch und hoch. Abschnittsgröße und Plätze der Koordinatensysteme
+      bleiben gleich;
+    - ein neuer Achssatz ordnet neu an;
+    - Hochformat Touch 150 % mit dem Zahlenblock auf einem Achsfeld: nur die Achszeilen bleiben.
+  - **Rot gegen `5fb6c761`:** 82 von 90 (`docs/reviews/setup-layout.browser-red.txt`). Die 8 grünen
+    sind die Erreichbarkeitsfälle, sie gelten heute schon. Ebenfalls schon heute grün ist der später
+    ergänzte Faltungsfall; er ist ein Regressionswächter.
+- **Hochformat unverändert:** In 30 Fällen stehen die Achszeilen und alle Aktionen gegenüber
+  `5fb6c761` pixelgenau an derselben Stelle (`docs/reviews/setup-layout.portrait-identity.txt`). Nur
+  der WCS-Block darunter ist neu.
+- **Firefox** (`docs/reviews/setup-layout.firefox-chip.txt`): Der lange Chip läuft auch dort nach
+  links; Breite und G54 bleiben fest.
+- **Angepasste Wächter**, die die alte Form festschrieben:
+  - `touchoff.spec`: die Aktionsreihen nach den Achsen; die Prüfung „jede Aktion einmal, nichts
+    außerhalb“ bleibt. Sein Selektor `.wcsCol label` traf nie etwas und ist jetzt `[role="radio"]`.
+  - `choices.spec`: Hochformat 3 × 3 → zwei Reihen, Pfeile.
+  - `nine-axis.spec`: XYZ | ABC | UVW → XYZABC | UVW.
+  - Visuelle Referenzen: nur die 14 Setup-Bilder neu, Jog unverändert.
+- **Ein Test aus dem Restepaket war unzuverlässig:** `safety-during-edit` „first touch that holds
+  Home X“.
+  - **Fehlerbild:** Er schlug in 2 von 7 Läufen fehl, im Teillauf und in Gate-Lauf 1, mit einer
+    `null`-Box.
+  - **Belegt:** Wenn die Halte-Taste feuert, tauscht die Busy-Sperre den Button bei rund 940 ms
+    gegen die gedimmte Form und 200 ms später zurück. Unter Last hat der Locator den alten Knoten
+    aufgelöst und nach dem Tausch gemessen.
+  - **Behebung:** Gemessen wird jetzt in einer einzigen Aufgabe im Browser.
+- **Frontend-Gate:** Lauf 2 PASS am Stand `8fa8b9c9`: Lint, Build, 2659 Unit-Tests, 757/757 Browser (`docs/reviews/setup-layout.gate-frontend.json`; Lauf 1 am Stand `0f84a385` scheiterte allein am oben beschriebenen unzuverlässigen Test).
+
+### Bitte prüfen
+
+- die Umsetzung der Regel und der Rangfolge;
+- die Platzierung des Blocks und die Tab-Reihenfolge;
+- den Mechanismus des WCS-Titels und die Abweichung im Hochformat mit den zwei vollen Reihen;
+- ob die Wächter deine R233-Liste abdecken.
+
+Wenn das trägt, bitte `agreement`.
