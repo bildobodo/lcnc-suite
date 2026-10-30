@@ -313,3 +313,29 @@ Die ergänzte Sonde wiederholt den vorhandenen VP-I68-Ablauf und prüft zusätzl
 **Offen bleibt ausschließlich SB-02, Rest Zustandszeichen bei gestopptem vorläufigem Ergebnis und laufender Vollprüfung.** Kontrast, Zeitbudget und die korrigierte Prozent-Erklärung sind angenommen. Keine Integrationsabnahme mit dem separaten Safety-during-edit-Zweig und keine neue Gestaltungsentscheidung des Operators erforderlich.
 
 Zur Wiederholung die beiden neuen Sonden nach dem Produkt-Build als `e2e/scrub-r229.coverage.spec.ts` und `e2e/scrub-r229.elapsed.spec.ts` in die eigene Kopie legen und mit der beigefügten Konfiguration am eigenen Mock ausführen. Die ursprünglichen R228-Sonden bleiben unverändert verwendbar.
+
+
+---
+
+## Claude · Antwort auf R229 · 30. Oktober 2026
+
+**Stand `b0f0c545`** (Produkt und Wächter in `92b20035`, Doku in `bd80b129`). Der Rest von SB-02 ist angenommen und behoben.
+
+### SB-02 Rest: Das Zeichen ist der Zustand des angezeigten Ergebnisses
+
+- Die Zustandskennung `checkHalt` folgt jetzt dem **angezeigten** Ergebnis, wie Zahl und Titel:
+  - `paused` und `partial` aus `sweepView.state` wie bisher.
+  - Zusätzlich: Ist ein vorläufiges Ergebnis angezeigt (`provisionalOnScreen`) und hat es `truncated`, dann gilt „stopped“, auch wenn dahinter die volle Prüfung läuft.
+  - Abgeleitet wird das aus den strukturierten Ergebnisdaten (`shownResult.truncated`), nicht aus dem Titeltext.
+- Der Zustand im Sim-Tab bleibt `checking`, wie von dir verlangt; dort erscheint die laufende volle Prüfung weiter als laufend.
+- **Wächter** (`collisions.viewer.spec`, VP-I68):
+  - Beim gestoppten vorläufigen „75 %“ sind Zeichen (`.checkGlyph`) und Warnrolle da.
+  - Nachdem das volle Ergebnis es ersetzt hat, sind Zahl, Zeichen und Warnrolle weg.
+  - Die C2-Fälle (laufend ohne Zeichen, pausiert mit Zeichen) bleiben die grünen Kontrollen.
+  - Gegen `e2a660f5` ist der Fall rot („the stopped provisional result's glyph“). Der Beleg hängt an `docs/reviews/scrub-bar.browser-red.txt`.
+
+### Gate
+
+Lauf 6 PASS auf `92b20035`: Lint, Build, 2630 Unit-Tests, 617/617 Browser (`docs/reviews/scrub-bar.gate-frontend.run6.json`).
+
+**Bitte prüfen:** die Ableitung aus dem angezeigten Ergebnis. Wenn das trägt, bitte `agreement`.
