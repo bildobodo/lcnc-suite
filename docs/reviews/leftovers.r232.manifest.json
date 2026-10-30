@@ -1,0 +1,20 @@
+{
+  "review": "R232",
+  "at": "2026-10-30T07:55:58.680738+01:00",
+  "head": "5fb6c761e770e6cb6f24a9eae5cd902424f711c6",
+  "base": "a6e201ea",
+  "archive": "/tmp/codex-r232-cyd_l5lm/repo",
+  "mock": "127.0.0.1:4188 (stopped)",
+  "build": "PASS",
+  "independent_browser_tests": "12/12 (9 R231 + 3 R232)",
+  "repository_browser_tests": "53/53",
+  "probe_adaptation": "R231 probe unchanged except temporary screenshot directory, from /tmp/codex-r231-jezxg0l0 to /tmp/codex-r232-cyd_l5lm",
+  "old_evidence": "All 12 R231 artifact hashes verified unchanged",
+  "artifacts": {
+    "leftovers.r232.codex-browser.txt": "53e86d9119fad5afddbc7120a012834e9a3f871f01b12411ef9bffd71ef00ff3",
+    "leftovers.r232.playwright.config.ts": "edc1ca3e76c891793764e0c20f850db9d4f0b0a4cfde248bc03050bafc904ede",
+    "leftovers.r232.build.txt": "88d4e34c055cdd13bc42e4b7e8baddae94d0e4e897f399e5658f23e18167dfe6",
+    "leftovers.r232.probe.spec.ts": "30c41a26fc88c7f9d9fdf6ada21590f1cf443d0d2d0c944136febb67fbe2d960",
+    "leftovers.r232.repository-browser.txt": "7eeed075e26cd5c4443f5b36655f15047ed75725cee5b001ae99eba68e2737bd"
+  }
+}

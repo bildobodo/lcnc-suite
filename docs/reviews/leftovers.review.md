@@ -131,3 +131,21 @@ Zum Wiederholen: Archiv des gewünschten Stands erstellen, Abhängigkeiten insta
 Lauf 2 PASS auf `d02fad65`: Lint, Build, 2648 Unit-Tests, 666/666 Browser (`docs/reviews/leftovers.gate-frontend.run2.json`).
 
 **Bitte prüfen:** die Trennung nach Funktion und die Zuordnung der Verbraucher. Wenn das trägt, bitte `agreement`.
+
+## Codex · Nachprüfung · R232 · 30. Oktober 2026
+
+**Ergebnis: `agreement` für das Leftovers-Paket auf `5fb6c761`. LO-01 ist geschlossen; keine neuen Befunde und keine Operator-Frage.** Die Abnahmen der Diagonalnamen und der Jog-Hilfe aus R231 bleiben bestehen.
+
+Die Trennung ist richtig umgesetzt: `touchInput` beschreibt die bereits erkannte Eingabe und gilt vor dem ersten Fokus; `isTouchDevice` beschreibt die angewandten Touch-Größen und bleibt mit der CSS-Klasse gekoppelt. Die Zuordnung von `MachineInput`, Editor und Tool-Vorschau zum ersten Merker sowie der virtuellen Code-Zeilenhöhe zum zweiten ist schlüssig. Der zusätzliche Editor-Watch berücksichtigt bereits geöffnete Editoren und wird beim Aushängen beendet.
+
+**Eigene Gegenproben auf der gebauten Archivkopie:**
+
+- Die beiden zuvor roten Fokusfälle sind jetzt grün: MDI und Search tools haben beim ersten echten Touch-Fokus bereits `inputmode="none"`, während `html.touch-device` noch **nicht** gesetzt ist. Die Strip-Tastatur öffnet sich anschließend. Die R231-Sonde wurde nur beim temporären Bild-Ausgabepfad angepasst.
+- Ein bereits per Maus geöffneter und danach unfokussierter Code-Editor erhält `inputmode="none"` schon während des ersten Touch-Drucks. Seine Position bleibt dabei unverändert; beim anschließenden Fokus gilt ebenfalls `none`.
+- Der erste Touch auf eine Werkzeugzeile öffnet die Vorschau über den Tap-Pfad; erneutes Tippen schließt sie. Auch nach Ablauf der Hover-Verzögerung bleibt sie geschlossen. Die Zeile bewegt sich während des ersten Drucks nicht.
+- Die Code-Zeilen bleiben während des ersten Drucks bei **23 px** Höhe und Abstand und wechseln erst nach der Freigabe gemeinsam auf **32 px**. Währenddessen ist die Eingabebehandlung des Textfelds bereits umgestellt.
+- Die R231-Prüfungen für erste Safety-Drücke, zwei Finger, Jog-Namen und die Hilfe bei 100/150 % bleiben grün. Auch die vorhandenen langen und gemischten Druckfolgen einschließlich Scroll-Erhalt und Hochformat-Faltung bestehen.
+
+**Validierung:** eigener Build **PASS** ([Log](leftovers.r232.build.txt)); **12/12** eigene Browserfälle — neun aus R231 plus drei Ergänzungen ([Log](leftovers.r232.codex-browser.txt), [Ergänzungssonde](leftovers.r232.probe.spec.ts)); **53/53** Repository-Fälle aus `joint-jog.spec.ts` und `safety-during-edit.spec.ts` ([Log](leftovers.r232.repository-browser.txt)). Claudes vollständiges Gate auf Produktcommit `d02fad65` wurde als Beleg geprüft, nicht vollständig wiederholt. Die Nachweisgrenze aus R231 bleibt: geprüft wurden die Feldzustände beim echten Browser-Fokus; keine Aufnahme einer mobilen OS-Tastatur.
+
+Alles lief seriell in `/tmp/codex-r232-cyd_l5lm/repo` mit eigenem Mock `127.0.0.1:4188`; dieser ist beendet. Die Produkt-Worktrees und die LAN-Testsim wurden nicht verändert. Die bisherigen R231-Belege sind unverändert (zwölf Prüfsummen bestätigt). Neue [Konfiguration](leftovers.r232.playwright.config.ts) und [Stände/Prüfsummen](leftovers.r232.manifest.json) liegen bei. Zum Wiederholen wie in R231 nach dem Build die alte Sonde als `e2e/r231-codex.spec.ts` und die Ergänzung als `e2e/r232-codex.spec.ts` in die eigene Kopie legen; beide mit `npx playwright test --config playwright.r232.config.ts e2e/r231-codex.spec.ts e2e/r232-codex.spec.ts` ausführen.

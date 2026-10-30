@@ -1,0 +1,36 @@
+
+Running 12 tests using 1 worker
+
+(node:280951) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:280951) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FIRST_SAFETY {"control":"arm","before":{"x":17,"y":533.5,"width":85.328125,"height":56},"commands":[{"cmd":"arm","armed":false,"req_id":"i7j1cp-5"}]}
+  ✓   1 e2e/r231-codex.spec.ts:34:2 › first touch on arm stays until its click and delivers exactly once (2.2s)
+FIRST_SAFETY {"control":"estop","before":{"x":110.328125,"y":533.5,"width":85.34375,"height":56},"commands":[{"cmd":"estop","req_id":"lwl5rx-5"}]}
+  ✓   2 e2e/r231-codex.spec.ts:34:2 › first touch on estop stays until its click and delivers exactly once (2.0s)
+FIRST_SAFETY {"control":"machineOn","before":{"x":203.671875,"y":533.5,"width":85.328125,"height":56},"commands":[{"cmd":"machine_off","req_id":"n0tv79-5"}]}
+  ✓   3 e2e/r231-codex.spec.ts:34:2 › first touch on machineOn stays until its click and delivers exactly once (2.0s)
+MULTI {"before":{"x":1044,"y":533.5,"width":111.5,"height":34},"commands":[{"cmd":"get_tool_table","req_id":"62101k-4"}]}
+  ✓   4 e2e/r231-codex.spec.ts:49:1 › first-touch layout waits for the other finger too (3.2s)
+HELP {"zoom":1,"trigger":{"x":256,"y":424.84375,"width":13,"height":13},"popover":{"x":118.5,"y":443.84375,"width":288,"height":41.875}}
+  ✓   5 e2e/r231-codex.spec.ts:63:2 › portrait first touch opens complete jogging help, zoom 1 (2.0s)
+HELP {"zoom":1.5,"trigger":{"x":389.5,"y":665.25,"width":19.5,"height":19.5},"popover":{"x":183.25,"y":690.75,"width":432,"height":61.84375}}
+  ✓   6 e2e/r231-codex.spec.ts:63:2 › portrait first touch opens complete jogging help, zoom 1.5 (2.0s)
+FIRST_TEXT_FOCUS {"field":"MDI","focus":[{"tag":"INPUT","cls":"mdiInput inputField","inputmode":"none","touch":false}],"after":"none"}
+  ✓   7 e2e/r231-codex.spec.ts:83:2 › first touch into MDI sets inputmode none before focus (1.5s)
+FIRST_TEXT_FOCUS {"field":"Search tools","focus":[{"tag":"INPUT","cls":"toolSearch inputField","inputmode":"none","touch":false}],"after":"none"}
+  ✓   8 e2e/r231-codex.spec.ts:83:2 › first touch into Search tools sets inputmode none before focus (1.6s)
+DIAGONAL {"name":"Jog X- Y+","dx":-1,"dy":1,"commands":[{"cmd":"jog_cont_multi","axes":[{"axis":0,"vel":-7.071},{"axis":1,"vel":7.071}],"req_id":"qhet1q-5"},{"cmd":"jog_stop_multi","axes":[0,1],"req_id":"qhet1q-6"}]}
+DIAGONAL {"name":"Jog X+ Y+","dx":1,"dy":1,"commands":[{"cmd":"jog_cont_multi","axes":[{"axis":0,"vel":7.071},{"axis":1,"vel":7.071}],"req_id":"qhet1q-7"},{"cmd":"jog_stop_multi","axes":[0,1],"req_id":"qhet1q-8"}]}
+DIAGONAL {"name":"Jog X- Y-","dx":-1,"dy":-1,"commands":[{"cmd":"jog_cont_multi","axes":[{"axis":0,"vel":-7.071},{"axis":1,"vel":-7.071}],"req_id":"qhet1q-9"},{"cmd":"jog_stop_multi","axes":[0,1],"req_id":"qhet1q-10"}]}
+DIAGONAL {"name":"Jog X+ Y-","dx":1,"dy":-1,"commands":[{"cmd":"jog_cont_multi","axes":[{"axis":0,"vel":7.071},{"axis":1,"vel":-7.071}],"req_id":"qhet1q-11"},{"cmd":"jog_stop_multi","axes":[0,1],"req_id":"qhet1q-12"}]}
+  ✓   9 e2e/r231-codex.spec.ts:99:1 › each named diagonal starts its two named directions (1.5s)
+EDITOR {"focuses":[{"mode":"none","touch":false}],"atDown":"none","sizesAtDown":false}
+  ✓  10 e2e/r232-codex.spec.ts:40:1 › an already mounted editor suppresses native text input at the first touch, before focus and before size change (2.1s)
+TOOL_TAP {"opened":true,"retapClosed":true,"afterHoverDelayClosed":true}
+  ✓  11 e2e/r232-codex.spec.ts:56:1 › the first tool-row touch uses the tap path while sizes wait; retap hides and no late hover reopens it (2.5s)
+CODE_PITCH {"before":[{"top":256.5,"height":23},{"top":279.5,"height":23},{"top":302.5,"height":23}],"after":[{"top":294.5,"height":32},{"top":326.5,"height":32},{"top":358.5,"height":32}]}
+  ✓  12 e2e/r232-codex.spec.ts:71:1 › virtual code pitch changes with CSS after release, while text inputmode changes during the press (1.8s)
+
+  12 passed (25.0s)
