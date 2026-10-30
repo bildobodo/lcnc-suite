@@ -24,7 +24,10 @@ async function watchSelects(page: Page): Promise<() => Promise<Record<string, st
     const seen: string[] = [];
     document.querySelectorAll("select").forEach((s, i) => {
       if (!s.getClientRects().length) return;
-      const key = s.getAttribute("aria-label") ?? s.getAttribute("name") ?? `select ${i}`;
+      // two selects of one name (the scrub bar's speed and the Sim tab's,
+      // operator 2026-10-29) are watched apart
+      let key = s.getAttribute("aria-label") ?? s.getAttribute("name") ?? `select ${i}`;
+      if (w.__writes.has(key)) key = `${key} (${s.getAttribute("name") ?? i})`;
       seen.push(key);
       w.__writes.set(key, []);
       new MutationObserver(ms => ms.forEach(m => w.__writes.get(key)!.push(
@@ -165,10 +168,11 @@ test("the Simulation tab's speed and list filter while the simulation plays", as
   await ctl({ op: "loadGcode" });
   await expect(page.locator(".scrubBar")).toBeVisible();
   await page.getByRole("tab", { name: "Sim", exact: true }).click();
-  await page.getByRole("combobox", { name: "Playback speed" }).selectOption("10");
+  await page.locator('.simPanel select[name="simSpeed"]').selectOption("10");
   await page.locator(".scrubBar input.toggle").check();
   await expect(page.locator(".simBanner")).toBeVisible();
   await page.locator('.scrubBar [title="Play the program through the machine model"]').click();
   const seen = await expectNoWrites(page, "Simulation");
-  expect(seen).toEqual(expect.arrayContaining(["Playback speed", "Show on the list"]));
+  // both speed selects — the bar's and the tab's — are watched
+  expect(seen).toEqual(expect.arrayContaining(["Playback speed", "Playback speed (simSpeed)", "Show on the list"]));
 });
