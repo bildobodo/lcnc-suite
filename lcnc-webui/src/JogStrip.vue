@@ -844,6 +844,12 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
    as wide as its widest choice row, and a block label put the "?" at the
    column's edge, away from what it explains. */
 .choiceBlock > .sectionHelp { width: fit-content; }
+/* The plane note takes no width of its own: the choice rows size the column
+   and a longer note wraps under them, where nothing follows ("Plane: head
+   not aligned — Orient" widened the column by 31 px when a plane was
+   defined and moved every strip control right of Jog — Setup's fixtures
+   under a finger, R235). */
+.choiceNote { width: 0; min-width: 100%; }
 
 /* ── Portrait layout ── */
 @media (orientation: portrait) {

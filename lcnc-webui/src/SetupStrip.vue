@@ -274,7 +274,7 @@ const actionEvents = {
 }
 /* The "?" right after the word: the rest of the line is where a long chip
    runs out to. */
-.setupTitle { grid-area: title; justify-self: start; }
+.setupTitle { grid-area: title; justify-self: start; align-self: start; }
 .setupControls { grid-area: controls; }
 .wcsTitle { grid-area: wcshead; width: 0; min-width: 100%; display: flex; justify-content: flex-end; }
 .wcsTitleInner { flex: none; min-width: 100%; align-items: center; white-space: nowrap; }
@@ -316,8 +316,12 @@ const actionEvents = {
   /* The section rhythm between the controls and the WCS block (12 = the
      row gap 8 + 4); the title spans the column ("?" at its end, as before). */
   .setupTitle { justify-self: stretch; }
+  /* "WCS", and on a switchable machine the frame chip on a line of its own
+     under it: the head's height never depends on the chip's text (a long
+     chip wrapped beside "WCS" in touch portrait, the head grew 16.5 → 37 px
+     and the fixtures slid 20.5 px from under a finger — Codex R235 SL-01). */
   .wcsTitle { margin-top: var(--gap-tight); width: auto; justify-content: flex-start; }
-  .wcsTitleInner { flex: 1 1 auto; min-width: 0; flex-wrap: wrap; white-space: normal; }
+  .wcsTitleInner { flex: 1 1 auto; flex-direction: column; align-items: flex-start; }
   /* Narrow input column to fit the 280 px strip column: 280 − 2 × 8 padding
      − border − the reserved scrollbar band (~14 px, WP4) ≈ 248 px inside;
      "Unhome X" needs 84 px, so the input column and the grid gap give way

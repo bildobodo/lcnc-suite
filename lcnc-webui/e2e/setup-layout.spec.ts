@@ -50,6 +50,7 @@ const SURFACES: Surface[] = [
   { name: "landscape touch", width: 1280, height: 800, touch: true },
   { name: "landscape touch 150 %", width: 1280, height: 800, touch: true, zoom: 1.5 },
   { name: "portrait", width: 900, height: 1200, portrait: true },
+  { name: "portrait touch", width: 900, height: 1200, touch: true, portrait: true },
   { name: "portrait touch 150 %", width: 900, height: 1200, touch: true, zoom: 1.5, portrait: true },
 ];
 
@@ -291,8 +292,72 @@ for (const c of CONFIGS.filter(c => ["5 TCP", "6 TWP"].includes(c.name))) {
       await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
       expect(await geo(), `${c.name} ${s.name}`).toEqual(before);
       expect(await layoutIssues(section)).toEqual([]);
+      // the chip and its "?" whole inside the section, on one line
+      const chip = await section.evaluate(el => {
+        const r = el.getBoundingClientRect(), c = el.querySelector(".kinsChip")!.getBoundingClientRect();
+        const lines = new Set([...el.querySelector(".kinsChip")!.getClientRects()].map(q => Math.round(q.top)));
+        return { inside: c.left >= r.left - 1 && c.right <= r.right + 1, lines: lines.size };
+      });
+      expect(chip, `${c.name} ${s.name}: the chip`).toEqual({ inside: true, lines: 1 });
     });
   }
+}
+
+// The chip changes while a finger holds a fixture (Codex R235 SL-01: in touch
+// portrait at 100 % the long chip wrapped beside "WCS", the head grew 16.5 →
+// 37 px and G55 slid 20.5 px from under the finger — the release chose
+// nothing). Long, then short again, during ONE held contact: G55 stays under
+// the finger and its release chooses it exactly once.
+test.describe("a chip change under a held fixture", () => {
+  test.use({ hasTouch: true });
+  for (const c of CONFIGS.filter(c => ["5 TCP", "6 TWP"].includes(c.name))) {
+    for (const s of SURFACES.filter(s => s.touch && !s.zoom)) {
+      test(`${c.name}, ${s.name}: G55 stays under the finger and is chosen on release`, async ({ page }) => {
+        await open(page, c, s);
+        const section = page.locator(SETUP);
+        const g55 = section.getByRole("radio", { name: "G55", exact: true });
+        await g55.scrollIntoViewIfNeeded();
+        const at = async () => g55.evaluate(e => { const r = e.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+        const press = await at();
+        const hits = () => page.evaluate(p => { const e = document.elementFromPoint(p.x, p.y); return e?.getAttribute("role") === "radio" ? e.textContent?.trim() : (e?.className ?? "nothing"); }, press);
+        const settle = () => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+        const cdp = await page.context().newCDPSession(page);
+        await ctl({ op: "clearCmds" });
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ id: 1, x: press.x, y: press.y }] });
+        await ctl({ op: "status_delta", data: { kins_type: 0, wcs_prov_a: [0, 0, 0, 0, 0, 0, 0, 0, 0], rotary_abc: [20, 0, 0],
+          ...(c.twp ? { twp_defined: true, twp_datum: [0, 0, 0] } : {}) } });
+        await expect(page.locator(".kinsChip")).toContainText(c.twp ? "off datum · datum moved" : "off datum");
+        await settle();
+        expect(await at(), "the long chip: G55 unmoved").toEqual(press);
+        expect(await hits(), "the long chip: the finger still on G55").toBe("G55");
+        await ctl({ op: "status_delta", data: { rotary_abc: [0, 0, 0], ...(c.twp ? { twp_defined: false } : {}) } });
+        await expect(page.locator(".kinsChip")).not.toContainText("off datum");
+        await settle();
+        expect(await at(), "the short chip again: G55 unmoved").toEqual(press);
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+        await expect.poll(async () => ((await ctl({ op: "lastCmds" })) as { cmds: { cmd: string; text?: string }[] }).cmds
+          .filter(m => m.cmd === "mdi" && m.text === "G55").length, { timeout: 3000 }).toBe(1);
+      });
+    }
+  }
+});
+
+// A title's "?" stands centred on its text line (operator 2026-10-30: the
+// Setup "?", now right after the word, sat 1.75 px high on the desktop —
+// top-anchored 13 px in a 16.5 px line). Every `.sectionHelp` follows the
+// same rule: Setup's title and Jog's "Kinematics Frame".
+for (const s of [SURFACES[0]!, SURFACES[1]!, SURFACES.find(s => s.name === "portrait touch")!]) {
+  test(`${s.name}: a title's "?" is centred on its line`, async ({ page }) => {
+    await open(page, CONFIGS.find(c => c.name === "6 TWP")!, s);
+    const off = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>(".strip .sectionHelp")]
+      .filter(t => t.offsetParent !== null).map(t => {
+        const lh = parseFloat(getComputedStyle(t).lineHeight), r = t.getBoundingClientRect();
+        const i = t.querySelector(":scope > .helpIcon")!.getBoundingClientRect();
+        return { title: t.textContent!.trim().slice(0, 16), off: Math.round(((i.top + i.height / 2) - (r.top + lh / 2)) * 4) / 4 };
+      }));
+    expect(off.length, "Setup and Kinematics Frame").toBeGreaterThanOrEqual(2);
+    for (const o of off) expect(Math.abs(o.off), `${o.title}: icon centre − line centre`).toBeLessThanOrEqual(0.5);
+  });
 }
 
 // Portrait at 150 % with the keypad on an axis field: the section keeps its

@@ -1645,16 +1645,21 @@ label:has(input:disabled, select:disabled) {
 }
 .helpIcon:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 /* A heading or label carrying its "?" out of the flow (design wave D6,
-   N93 — was two scoped copies): the icon at the box's top right, anchored
-   to the TOP (centred it overhung the next row by 1.75 px), and the box
-   reserves its square beside the text (a label that is its column's widest
-   content — "Kinematics Frame" — had the icon over its last word). */
+   N93 — was two scoped copies): the icon at the box's right, centred on the
+   box — one line tall (a box taller than its line, e.g. stretched in a grid
+   row, sets `align-self: start`) — and the box reserves
+   its square beside the text (a label that is its column's widest content
+   — "Kinematics Frame" — had the icon over its last word). */
 .sectionHelp {
   position: relative;
   display: block;
   padding-right: calc(var(--help-icon-size) + var(--gap-tight));
 }
-.sectionHelp > .helpIcon { position: absolute; right: 0; top: 0; }
+/* Centred on the box, which is one line tall: at top 0 the 13 px desktop
+   icon sat 1.75 px high in a 16.5 px title line — seen once Setup's "?"
+   stood right after the word (operator 2026-10-30). (Not `1lh`: in the
+   icon's own `top` it is the icon's line height.) */
+.sectionHelp > .helpIcon { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
 
 /* ONE look for everything that explains a control (design wave D1 live
    look): the "?" help popover and the control hint (a dimmed control's

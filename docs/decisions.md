@@ -9806,3 +9806,15 @@ left over the empty title line (Chromium and Firefox checked).
 Guards: `setupLayout.test.ts` (the rule), `setup-layout.spec.ts` (the visible layer — 82 of 90 red
 at 5fb6c761, `docs/reviews/setup-layout.browser-red.txt`); `touchoff.spec` no longer pins the old
 action rows.
+
+**Codex R235 (SL-01) and two more of the same kind.** In touch portrait at 100 % (252 px with a
+classic scrollbar) the long chip with its "?" no longer fitted beside "WCS" and wrapped: the head
+grew 16.5 → 37 px and G55 slid 20.5 px from under a held finger — its release chose nothing. On a
+switchable machine the chip now has a line of its own under "WCS" in portrait (as the old head had),
+so the head never depends on its text. The guard that holds a finger on G55 while the chip turns long
+and short again found a second case in landscape: Jog's plane note ("Plane: head not aligned —
+Orient") widened its column by 31 px and slid the whole Setup section from under the finger; the
+note takes no width of its own now and wraps under the frame choice. And the operator saw the "?"
+beside "SETUP" sit slightly high: a title's "?" was anchored at the top of its line (13 px in
+16.5 px on the desktop); it is centred on the one-line box now, measured 0–0.25 px off the text in
+Chromium and Firefox. Guards red at 9303cf6e (`docs/reviews/setup-layout.r236.browser-red.txt`).

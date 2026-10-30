@@ -140,7 +140,7 @@ look 2026-09-27) — beyond the audit's 4 px sliver window.
 `layout.spec` filter) pins the Setup arrangement by axis count (operator
 2026-10-29/30, Codex R233/R234) on the visible layer: 14 configs (1, 2, 3,
 4 XYZA / XYZC, 5 XYZBC / TCP, 6, 6 TWP, 7, 8, 9, synthetic 7 / 9 TWP) × 1280
-landscape, touch, touch at 150 %, portrait and touch portrait at 150 % ×
+landscape, touch, touch at 150 %, portrait, touch portrait and touch portrait at 150 % ×
 ready, dimmed and mixed homing: no control outside, clipped or overlapping
 (`measureLayout`), no landscape label on two lines, every action exactly
 once, the axis columns and each action group's buttons per row as LITERAL
@@ -151,9 +151,9 @@ G59–G59.3 (portrait). Tab walks the axis rows, the actions in order, then
 the WCS; every control can be brought out from under the pinned Safety
 section and takes the hit at 150 %; a long frame chip ("MACHINE · off datum",
 TWP "… · datum moved", from real status) changes neither the section's size
-nor a fixture's place; a new axis set re-lays the section out. 82 of 90 red
+nor a fixture's place, the chip whole and on one line; a finger held on G55 (CDP touch) while the chip turns long and short again — G55 unmoved, still under the finger, chosen once on release (Codex R235 SL-01: touch portrait at 100 %; it found Jog's plane note shifting Setup in landscape too); every strip title's "?" centred on its line within 0.5 px (desktop, touch, portrait); a new axis set re-lays the section out. 82 of 90 red
 at 5fb6c761 (`docs/reviews/setup-layout.browser-red.txt`; the 8 reach cases
-hold there too). The rule itself: `setupLayout.test.ts` (literal results
+hold there too); the R235 additions 4 of 15 red at 9303cf6e (`docs/reviews/setup-layout.r236.browser-red.txt`). The rule itself: `setupLayout.test.ts` (literal results
 for 0–9 axes, TWP, portrait, the six-row budget).
 
 `layout.spec.ts` (serial-layout) measures the FRAME — the strip, the viewer
