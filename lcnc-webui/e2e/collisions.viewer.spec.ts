@@ -1050,6 +1050,8 @@ test("the provisional result keeps its own limits while the full check runs, its
   };
   // the full check runs (its result held) — on screen the provisional result
   await expect(coverage, "the bar: where it stopped").toHaveText("75 %");
+  // "up to 75 %", never "75 % of the program checked" (Codex R228 SB-02)
+  await expect(coverage).toHaveAttribute("title", "Collision check: provisional from L7, stopped at 75 %");
   await expect(item).toHaveAttribute("aria-label", /provisional from L7, stopped at 75 % \(not certified\)$/);
   await expect(item.locator('span[title^="Not certified"]'), "its star").toHaveCount(1);
   const text = await help();
@@ -2041,15 +2043,25 @@ for (const kind of ["a near miss alone", "an undecidable gap alone", "no row at 
     await deliver({ id: main.id, contactPairs: [["spindle_nose", "a_yoke_casting"]], progress: 0.3,
                     partial: meta({ covered: 0.3, reason: "running" }) }, true);
     await expect(summary).toHaveAttribute("aria-label", new RegExp(`^${words} so far · 30 % checked`));
+    const slot = page.locator(".scrubBar .checkSlot");
+    await expect(slot, "running: the number alone").toHaveText("30 %");
+    await expect(slot).toHaveAttribute("title", "Collision check: 30 % checked");
+    await expect(slot.locator(".checkGlyph")).toHaveCount(0);
     await expect(clashRows(page)).toHaveCount(kind === "a near miss alone" ? 1 : 0);
     // parked: the sweep-so-far's metadata
     await deliver({ id: main.id, stopped: true, result: meta({ covered: 0.4, reason: "stopped" }) }, false);
     await expect(summary).toHaveAttribute("aria-label", /paused at 40 %/);
+    // paused: the number with a glyph, in the warn role, the words in its title (Codex R228 SB-02)
+    await expect(slot).toHaveText("40 %");
+    await expect(slot.locator(".checkGlyph")).toHaveCount(1);
+    await expect(slot).toHaveClass(/text-warn/);
+    await expect(slot).toHaveAttribute("title", /paused at 40 %/);
     // the end
     await deliver({ id: main.id, result: meta(null) }, true);
     const endWords = kind === "a near miss alone" ? "1 near miss · checked in full"
       : kind === "an undecidable gap alone" ? "Clear · checked to the end" : "Clear · checked in full";
     await expect(summary).toHaveAttribute("aria-label", new RegExp(`^${endWords.replace(/[·]/g, "\\$&")}`));
+    await expect(slot, "the end: no coverage left to show").toHaveText("");
     // the caveat: an undecidable stretch is named from the tables, the others say none
     await page.getByRole("button", { name: "Help: Collision check", exact: true }).click();
     const help = await page.locator(".helpPopover:popover-open").innerText();

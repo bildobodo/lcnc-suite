@@ -1287,18 +1287,35 @@ test("the scrub bar: the speed beside Play is the Sim tab's speed, the link open
   await expect(page.locator(".simPanel"), "the link shows the Sim tab").toBeVisible();
 });
 
-for (const scheme of ["light", "dark"] as const) {
-  test(`the scrub bar's timeline holds 3 : 1 against the card, in and out of the simulation (${scheme})`, async ({ page, context }) => {
+// The card is 92 % opaque: the track is measured against the card composed
+// over the page AND over geometry in --fg (contrast.spec's floating-card
+// contract; Codex R228 SB-01 — half and half read 2.63 : 1 over geometry).
+const composed = (card: number[], under: number[]) => {
+  const a = card[3]! / 255;
+  return [0, 1, 2].map(i => Math.round(a * card[i]! + (1 - a) * under[i]!));
+};
+const roleRgb = (page: Page, role: string) => page.evaluate(r => {
+  const el = document.createElement("span"); el.style.color = `var(${r})`; document.body.append(el);
+  const c = document.createElement("canvas").getContext("2d")!;
+  c.fillStyle = getComputedStyle(el).color; c.fillRect(0, 0, 1, 1); el.remove();
+  return [...c.getImageData(0, 0, 1, 1).data].slice(0, 3);
+}, role);
+for (const theme of ["light", "dark", "hc-light", "hc-dark"] as const) {
+  test(`the scrub bar's timeline holds 3 : 1 against the card over the page and over geometry, in and out of the simulation (${theme})`, async ({ page, context }) => {
     await prepare(page, context, "desktop", PREVIEW, false);
-    await page.emulateMedia({ colorScheme: scheme, reducedMotion: "reduce" });
+    await page.emulateMedia({ colorScheme: theme.endsWith("dark") ? "dark" : "light", reducedMotion: "reduce" });
+    if (theme.startsWith("hc")) await page.evaluate(t => { document.documentElement.dataset.theme = t; }, theme);
+    const under = { page: await roleRgb(page, "--bg"), geometry: await roleRgb(page, "--fg") };
     for (const sim of [false, true]) {
       if (sim) await page.locator(".scrubBar input.toggle").check();
       const track = await rgbOf(page, ".scrubBar .scrubBand.track", "backgroundColor");
       const card = await rgbOf(page, ".viewerPane .scrubBar", "backgroundColor");
       const opacity = await page.locator(".scrubBar .scrubBand.track").evaluate(el => Number(getComputedStyle(el).opacity));
-      expect(opacity, `${scheme}, sim ${sim}: not dimmed`).toBe(1);
-      const ratio = contrastOf(track.slice(0, 3), card.slice(0, 3));
-      expect(ratio, `${scheme}, sim ${sim}: track ${track} on card ${card}`).toBeGreaterThanOrEqual(3);
+      expect(opacity, `${theme}, sim ${sim}: not dimmed`).toBe(1);
+      for (const [over, rgb] of Object.entries(under)) {
+        const bg = composed(card, rgb);
+        expect(contrastOf(track.slice(0, 3), bg), `${theme}, sim ${sim}, over the ${over}: track ${track} on card ${card} → ${bg}`).toBeGreaterThanOrEqual(3);
+      }
     }
   });
 }
@@ -1318,3 +1335,32 @@ test("a portrait viewer: two rows — Sim, Play, the speed and the link above, t
   expect(Math.abs(mid(g.time) - mid(g.slider)), "the time in the timeline's row").toBeLessThan(12);
   expect(g.slider.width, "the timeline keeps most of its row").toBeGreaterThan(g.bar.width * 0.55);
 });
+
+// Codex R228 SB-03: the time's slot grows with the program's length — a 6 h
+// and a 30 h program left the timeline 93 / 78 px at 150 %. The narrow form
+// shows the elapsed time only (the title and the Sim tab the whole), its
+// slot sized for the program's length: the timeline keeps 120 px.
+for (const [seconds, label] of [[116, "2 min"], [21600, "6 h"], [108000, "30 h"]] as const) {
+  test(`a ${label} program at 150 % portrait: two rows, the timeline keeps 120 px, the time whole`, async ({ page, context }) => {
+    const n = FEED.length;
+    const preview = Buffer.from(encode({ ...PREVIEW_FIELDS,
+      feed_tcum: new Uint8Array(new Float32Array(FEED.map((_, i) => (i * seconds) / (n - 1))).buffer) }));
+    await prepare(page, context, "touch-portrait", preview, false);
+    await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
+    await settleLayout(page);
+    const g = await page.locator(".viewerPane .scrubBar").evaluate(el => {
+      const b = el as HTMLElement, slider = b.querySelector(".sliderWrap") as HTMLElement, play = b.querySelector("button") as HTMLElement;
+      const pos = b.querySelector(".posSlot") as HTMLElement;
+      return { w: b.offsetWidth, slider: slider.offsetWidth, below: slider.offsetTop >= play.offsetTop + play.offsetHeight,
+               rows: new Set([...b.querySelectorAll(".scrubRow > *")].filter(e => (e as HTMLElement).offsetHeight > 0)
+                 .map(e => Math.round((e as HTMLElement).offsetTop / 8))).size,
+               time: pos.innerText, whole: pos.scrollWidth <= pos.clientWidth + 1, title: pos.getAttribute("title") };
+    });
+    expect(g.w, "the two-row form").toBeLessThan(620);
+    expect(g.below, "the timeline under the controls").toBe(true);
+    expect(g.slider, `the timeline keeps its room (${JSON.stringify(g)})`).toBeGreaterThanOrEqual(120);
+    expect(g.time, "the elapsed time alone").toMatch(/^~?[\d:]+$/);
+    expect(g.whole, "the time whole").toBe(true);
+    expect(g.title, "the whole readout in the title").toMatch(/\//);
+  });
+}

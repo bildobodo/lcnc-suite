@@ -9667,3 +9667,12 @@ added controls a portrait viewer left the timeline ~90 px: under 620 px of bar i
 portrait viewer at 150 % keeps its DRO card only so (a container query on the bar, whose width
 the bottom column sets — never its content; the bar a dense area). Open: whether the Sim tab keeps its own speed select (both show the one value meanwhile).
 
+**Codex R228 (same night): three corrections.** SB-01 — the card is 92 % opaque: over geometry
+in --fg the half-and-half fill read 2.63 : 1 in the light theme; the fill is 40 % panel, 60 % text
+now (light 3.41, dark 4.48, HC ≥ 4.6 : 1 composed over the page and over geometry), still the
+operator's fill. SB-02 — the number is where the SHOWN check reaches (a provisional one began at
+the run's line): its title is the summary's coverage words, never "N % of the program checked";
+paused and stopped short carry a glyph in the warn role. SB-03 — the time slot grew with the
+program's length (6 h, 30 h left the timeline 93 / 78 px at 150 %): the narrow form shows the
+elapsed time only, its slot sized for the program; the whole readout is the title and the Sim tab.
+

@@ -218,10 +218,12 @@
   /* Range-slider track; shared with overlays that paint their own track
      (ScrubBar's timeline draws it over the thumb-centre travel). */
   --range-track: color-mix(in oklab, var(--panel) 90%, var(--fg));
-  /* The program-scrub timeline's bar: half panel, half text — 3 : 1 against
-     the overlay card in every theme (ScrubBar; operator 2026-10-29: the
-     range track read 1.22 : 1 there and the empty timeline was not seen). */
-  --scrub-track: color-mix(in oklab, var(--panel) 50%, var(--fg));
+  /* The program-scrub timeline's bar: 40 % panel, 60 % text — 3 : 1 against
+     the 92 % overlay card over the page AND over geometry in --fg, in every
+     theme (light 3.41, dark 4.48, HC ≥ 4.6; ScrubBar; operator 2026-10-29:
+     the range track read 1.22 : 1 there and the empty timeline was not seen;
+     Codex R228 SB-01: half and half read 2.63 : 1 over geometry). */
+  --scrub-track: color-mix(in oklab, var(--panel) 40%, var(--fg));
   /* Range-slider thumb diameter. The thumb's centre travels from half of
      this to width − half; overlays aligned to that travel (ScrubBar's
      timeline) read the token — never hard-code the thumb size. */

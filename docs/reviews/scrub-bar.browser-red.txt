@@ -138,3 +138,40 @@ Running 4 tests using 1 worker
     [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1288:3 › the scrub bar's timeline holds 3 : 1 against the card, in and out of the simulation (light) 
     [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1288:3 › the scrub bar's timeline holds 3 : 1 against the card, in and out of the simulation (dark) 
     [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1303:1 › a portrait viewer: the timeline takes a row of its own, the controls stay one row above it 
+
+# R228 guards (SB-01 composited contrast, SB-02 title/glyph, SB-03 long programs) against 1b532a3a: 8 of 11 red (dark / hc-light / hc-dark held 3 : 1 before — Codex's table: only light was under)
+  ✘   1 [serial-viewer] › e2e/collisions.viewer.spec.ts:1014:1 › the provisional result keeps its own limits while the full check runs, its contacts at the start stay provisional — then a full check replaces them (Codex R116 VP-I68/I69) (21.5s)
+  ✘   2 [serial-viewer] › e2e/collisions.viewer.spec.ts:2003:3 › the states without a first touch — a near miss alone: progress, park, end, basis and caveats (C2) (14.2s)
+  ✘   3 [serial-viewer] › e2e/collisions.viewer.spec.ts:2003:3 › the states without a first touch — an undecidable gap alone: progress, park, end, basis and caveats (C2) (14.1s)
+  ✘   4 [serial-viewer] › e2e/collisions.viewer.spec.ts:2003:3 › the states without a first touch — no row at all: progress, park, end, basis and caveats (C2) (14.0s)
+  ✘   5 [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1304:3 › the scrub bar's timeline holds 3 : 1 against the card over the page and over geometry, in and out of the simulation (light) (3.7s)
+  ✓   6 [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1304:3 › the scrub bar's timeline holds 3 : 1 against the card over the page and over geometry, in and out of the simulation (dark) (3.2s)
+  ✓   7 [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1304:3 › the scrub bar's timeline holds 3 : 1 against the card over the page and over geometry, in and out of the simulation (hc-light) (3.2s)
+  ✓   8 [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1304:3 › the scrub bar's timeline holds 3 : 1 against the card over the page and over geometry, in and out of the simulation (hc-dark) (3.2s)
+  ✘   9 [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1344:3 › a 2 min program at 150 % portrait: two rows, the timeline keeps 120 px, the time whole (3.1s)
+  ✘  10 [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1344:3 › a 6 h program at 150 % portrait: two rows, the timeline keeps 120 px, the time whole (3.3s)
+  ✘  11 [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1344:3 › a 30 h program at 150 % portrait: two rows, the timeline keeps 120 px, the time whole (3.3s)
+    Error: expect(locator).toHaveAttribute(expected) failed
+    Expected: "Collision check: provisional from L7, stopped at 75 %"
+    Received: "Collision check: 75 % of the program checked"
+    Error: expect(locator).toHaveAttribute(expected) failed
+    Expected: "Collision check: 30 % checked"
+    Received: "Collision check: 30 % of the program checked"
+    Error: expect(locator).toHaveAttribute(expected) failed
+    Expected: "Collision check: 30 % checked"
+    Received: "Collision check: 30 % of the program checked"
+    Error: expect(locator).toHaveAttribute(expected) failed
+    Expected: "Collision check: 30 % checked"
+    Received: "Collision check: 30 % of the program checked"
+    Error: light, sim false, over the geometry: track 132,143,154,255 on card 245,245,245,235 → 228,230,231
+    Expected: >= 3
+    Received:    2.6301065622824935
+    Error: the elapsed time alone
+    Expected pattern: /^~?[\d:]+$/
+    Received string:  "00:00/01:56"
+    Error: the timeline keeps its room ({"w":272,"slider":93,"below":true,"rows":3,"time":"00:00/6:00:00","whole":true,"title":null})
+    Expected: >= 120
+    Received:    93
+    Error: the timeline keeps its room ({"w":272,"slider":78,"below":true,"rows":3,"time":"00:00/30:00:00","whole":true,"title":null})
+    Expected: >= 120
+    Received:    78

@@ -39,7 +39,7 @@ import type { CollisionResult } from "./viewer/collision";
 import { EVENT_NONE } from "./viewer/eventIndex";
 import { mergedSweptFraction } from "./viewer/sweepMerge";
 import { fmtElapsed, NO_VALUE } from "./format";
-import { Play, Pause, SquareArrowOutUpRight } from "lucide-vue-next";
+import { Play, Pause, Square, SquareArrowOutUpRight } from "lucide-vue-next";
 import MachineSelect from "./MachineSelect.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
@@ -667,6 +667,15 @@ const lineTitle = computed(() => lineOffPath.value
 // sit right-aligned in a slot sized for two timestamps (operator,
 // 2026-09-12: "why live and not always the timer?").
 const posText = computed(() => (running.value ? `~${posLabel.value}` : posLabel.value));
+// The bar's readout in two parts: where the timeline stands, and the total —
+// the narrow form shows the first only (a 30 h program's "30:00:00/30:00:00"
+// left the timeline 78 px at 150 %, Codex R228 SB-03); the title and the Sim
+// tab keep both.
+const posNow = computed(() => {
+  if (!track.value?.timeBased) return posText.value;
+  return `${running.value ? "~" : ""}${fmtElapsed(Math.floor(sPos.value))}`;
+});
+const posRest = computed(() => (posNow.value === posText.value ? "" : posText.value.slice(posNow.value.length)));
 // Both readout slots are sized PER PROGRAM, so they change only on load and
 // the timeline never moves while scrubbing. Time: "mm:ss/mm:ss" plus the
 // run "~" (5ch holds the distance axis's "100%"). Line: "L" + the digits of
@@ -674,8 +683,13 @@ const posText = computed(() => (running.value ? `~${posLabel.value}` : posLabel.
 // sub names ellipsize with the full text in the title.
 const posSlotCh = computed(() =>
   track.value?.timeBased ? fmtElapsed(Math.floor(cumMax.value)).length * 2 + 2 + (probeStops.value.length ? 1 : 0) : 5);
+/** The narrow form's slot: the elapsed time alone (with the run's "~"). */
+const posNarrowCh = computed(() =>
+  track.value?.timeBased ? fmtElapsed(Math.floor(cumMax.value)).length + 1 : 5);
+// the probe's note as before (≤ 90 characters, the audit's LONG_TITLE);
+// otherwise the whole readout — the narrow form shows only its first part
 const posTitle = computed(() => probeStops.value.length
-  ? "The time to the tool measurement the preview cannot predict — after it unknown" : undefined);
+  ? "The time to the tool measurement the preview cannot predict — after it unknown" : posText.value);
 
 // Sweep progress reads as "N %" right of the timeline while the check has
 // not covered the whole route (checkPct; operator 2026-10-29 — the swept band
@@ -1290,7 +1304,18 @@ const checkPct = computed(() => {
   const w = sweepView.value;
   return w && (w.state === "checking" || w.state === "paused" || w.state === "partial") ? pctOf(sweptFrac.value) : "";
 });
-const checkPctTitle = computed(() => (checkPct.value ? `Collision check: ${checkPct.value} of the program checked` : undefined));
+/** paused (a rotary jog parked it) or stopped short: a glyph beside the
+ *  number in the warn role — the number alone read the same in every state
+ *  (Codex R228 SB-02). */
+const checkHalt = computed<"paused" | "stopped" | null>(() => {
+  const s = sweepView.value?.state;
+  return checkPct.value && s === "paused" ? "paused" : checkPct.value && s === "partial" ? "stopped" : null;
+});
+// The number is where the shown check REACHES — a provisional one began at
+// the run's line, so "75 %" there is "up to 75 %", never a share of the
+// program checked (Codex R228 SB-02): its words are the summary's own
+// coverage ("provisional from L7, stopped at 75 %", "42 % checked").
+const checkPctTitle = computed(() => (checkPct.value ? `Collision check: ${sweepView.value?.coverage || checkPct.value}` : undefined));
 /** A provisional check's boundary contacts (plan 3b): the pairs in contact
  *  where it started — their onset and kind are the full check's. */
 const boundaryDetail = computed(() => {
@@ -1452,9 +1477,9 @@ onUnmounted(releaseSim);
       </div>
       <!-- The time in a FIXED slot sized per program (posSlotCh): the
            timeline is the one flexible item, so it never moves. -->
-      <span class="val-slot checkSlot val-status mono" :title="checkPctTitle">{{ checkPct }}</span>
+      <span class="val-slot checkSlot val-status mono" :class="{ 'text-warn': checkHalt }" :title="checkPctTitle">{{ checkPct }}<Pause v-if="checkHalt === 'paused'" :size="10" class="checkGlyph" aria-hidden="true" /><Square v-else-if="checkHalt === 'stopped'" :size="10" class="checkGlyph" aria-hidden="true" /></span>
       <span class="val-slot posSlot val-status mono" :class="{ muted: !simMode && !running }"
-            :style="{ '--slot-w': posSlotCh + 'ch' }" :title="posTitle">{{ posText }}</span>
+            :style="{ '--slot-w-wide': posSlotCh + 'ch', '--slot-w-narrow': posNarrowCh + 'ch' }" :title="posTitle">{{ posNow }}<span class="posRest">{{ posRest }}</span></span>
       <MachineBtn type="scrub" class="iconBtn simTabLink" aria-label="Open the Sim tab" title="Open the Sim tab" @click="emit('open-sim-tab')">
         <SquareArrowOutUpRight :size="14" />
       </MachineBtn>
@@ -1479,8 +1504,11 @@ onUnmounted(releaseSim);
   align-items: center;
 }
 .speedSelect { width: auto; flex: 0 0 auto; }
-/* The check's coverage ("<1 %" … "100 %"): a fixed slot, empty once done. */
-.checkSlot { --slot-w: 5ch; }
+/* The check's coverage ("<1 %" … "100 %") and its glyph when it is paused
+   or stopped short: a fixed slot (the glyph's room always kept), empty once
+   done. */
+.checkSlot { --slot-w: calc(5ch + 10px + var(--gap-micro)); white-space: nowrap; }
+.checkGlyph { margin-left: var(--gap-micro); vertical-align: baseline; }
 .sliderWrap {
   flex: 1;
   min-width: 0;
@@ -1556,6 +1584,7 @@ onUnmounted(releaseSim);
    inline PER PROGRAM — posSlotCh): FIXED, not min-width (2026-09-12), so
    the timeline — the one flex:1 item — keeps its edges while text changes. */
 .posSlot {
+  --slot-w: var(--slot-w-wide);
   flex: 0 0 var(--slot-w);
   white-space: nowrap;
   overflow: hidden;
@@ -1577,5 +1606,7 @@ html.touch-device .scrubBar.denseArea .scrubRow .iconBtn.b { min-width: var(--to
   .simTabLink { order: 1; margin-left: auto; }
   .rowBreak { display: block; order: 2; flex: 0 0 100%; height: 0; }
   .sliderWrap, .checkSlot, .posSlot { order: 3; }
+  .posSlot { --slot-w: var(--slot-w-narrow); }
+  .posRest { display: none; }
 }
 </style>
