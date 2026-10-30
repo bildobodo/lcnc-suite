@@ -1,0 +1,273 @@
+{
+  "report_sha256": "38e92518d5e44598b56e5a7d208542605d59591e7e89b0dc83274a8f39fb3ae3",
+  "report_records": 288,
+  "landscape_records": 202,
+  "landscape_defects": [],
+  "landscape_height_mismatches": [],
+  "Q_records": 22,
+  "Q_surfaces": {
+    "L1280": 6,
+    "L1280-touch": 6,
+    "P900": 6,
+    "L1920": 2,
+    "L1280-touch-150": 2
+  },
+  "Q_comparisons": [
+    {
+      "axes": 7,
+      "before": 765,
+      "Q": 691,
+      "saved": 74
+    },
+    {
+      "axes": 8,
+      "before": 765,
+      "Q": 691,
+      "saved": 74
+    },
+    {
+      "axes": 9,
+      "before": 771,
+      "Q": 691,
+      "saved": 80
+    }
+  ],
+  "portrait_expected": "existing rows for every n and capability",
+  "landscape_contract": [
+    {
+      "axes": 1,
+      "twp": false,
+      "form": "under",
+      "last_axis_rows": 1,
+      "action_rows_available": 5,
+      "action_rows_used": 5,
+      "width_class": 206,
+      "groups": {
+        "base": [
+          1,
+          1
+        ],
+        "goto": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "axes": 2,
+      "twp": false,
+      "form": "under",
+      "last_axis_rows": 2,
+      "action_rows_available": 4,
+      "action_rows_used": 4,
+      "width_class": 236,
+      "groups": {
+        "base": [
+          2
+        ],
+        "goto": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "axes": 3,
+      "twp": false,
+      "form": "under",
+      "last_axis_rows": 3,
+      "action_rows_available": 3,
+      "action_rows_used": 3,
+      "width_class": 236,
+      "groups": {
+        "base": [
+          2
+        ],
+        "goto": [
+          2,
+          1
+        ]
+      }
+    },
+    {
+      "axes": 4,
+      "twp": false,
+      "form": "under",
+      "last_axis_rows": 4,
+      "action_rows_available": 2,
+      "action_rows_used": 2,
+      "width_class": 318,
+      "groups": {
+        "base": [
+          2
+        ],
+        "goto": [
+          3
+        ]
+      }
+    },
+    {
+      "axes": 5,
+      "twp": false,
+      "form": "action column"
+    },
+    {
+      "axes": 6,
+      "twp": false,
+      "form": "action column"
+    },
+    {
+      "axes": 7,
+      "twp": false,
+      "form": "under",
+      "last_axis_rows": 1,
+      "action_rows_available": 5,
+      "action_rows_used": 5,
+      "width_class": 206,
+      "groups": {
+        "base": [
+          1,
+          1
+        ],
+        "goto": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "axes": 8,
+      "twp": false,
+      "form": "under",
+      "last_axis_rows": 2,
+      "action_rows_available": 4,
+      "action_rows_used": 4,
+      "width_class": 236,
+      "groups": {
+        "base": [
+          2
+        ],
+        "goto": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "axes": 9,
+      "twp": false,
+      "form": "under",
+      "last_axis_rows": 3,
+      "action_rows_available": 3,
+      "action_rows_used": 3,
+      "width_class": 236,
+      "groups": {
+        "base": [
+          2
+        ],
+        "goto": [
+          2,
+          1
+        ]
+      }
+    },
+    {
+      "axes": 1,
+      "twp": true,
+      "form": "existing rows"
+    },
+    {
+      "axes": 2,
+      "twp": true,
+      "form": "existing rows"
+    },
+    {
+      "axes": 3,
+      "twp": true,
+      "form": "existing rows"
+    },
+    {
+      "axes": 4,
+      "twp": true,
+      "form": "existing rows"
+    },
+    {
+      "axes": 5,
+      "twp": true,
+      "form": "existing rows"
+    },
+    {
+      "axes": 6,
+      "twp": true,
+      "form": "existing rows"
+    },
+    {
+      "axes": 7,
+      "twp": true,
+      "form": "under",
+      "last_axis_rows": 1,
+      "action_rows_available": 5,
+      "action_rows_used": 5,
+      "width_class": 360,
+      "groups": {
+        "base": [
+          2
+        ],
+        "goto": [
+          1,
+          1,
+          1
+        ],
+        "plane": [
+          3
+        ]
+      }
+    },
+    {
+      "axes": 8,
+      "twp": true,
+      "form": "under",
+      "last_axis_rows": 2,
+      "action_rows_available": 4,
+      "action_rows_used": 4,
+      "width_class": 360,
+      "groups": {
+        "base": [
+          2
+        ],
+        "goto": [
+          2,
+          1
+        ],
+        "plane": [
+          3
+        ]
+      }
+    },
+    {
+      "axes": 9,
+      "twp": true,
+      "form": "under",
+      "last_axis_rows": 3,
+      "action_rows_available": 3,
+      "action_rows_used": 3,
+      "width_class": 360,
+      "groups": {
+        "base": [
+          2
+        ],
+        "goto": [
+          3
+        ],
+        "plane": [
+          3
+        ]
+      }
+    }
+  ],
+  "scope": "Independent evaluation of provided data and design rule, no new rendering run; forced TWP axis counts prove layout only."
+}

@@ -252,3 +252,51 @@ Die Seite für den Operator: Runde 4, gleicher Inhalt.
 3. **Eine Achse:** Passt die Zuordnung zu K, also X und darunter die fünf Aktionen einzeln?
 
 Bitte `agreement`, wenn Q und die Packregel tragen, sonst `findings` oder `question`.
+
+## Codex · Design-Austausch · R234 · 30. Oktober 2026
+
+**Ergebnis: `agreement` zu Q für TWP 7–9, zur beschriebenen deterministischen Packregel und zu K für eine Achse ohne TWP.** Die bewusste Operator-Entscheidung K für 2–3 ersetzt meine frühere Empfehlung; sie ist damit erledigt. Keine weitere Operator-Frage aus dieser Runde. Dies bleibt eine Design-Abnahme, keine Implementierungs- oder Maschinenabnahme.
+
+### 1. TWP 7–9: Q trägt
+
+Ich bevorzuge **Q gegenüber den bisherigen Zeilen**. Die gemessene Gesamtbreite sinkt von 765/765/771 auf jeweils **691 px**, also um **74/74/80 px**. Die Capture/Orient/Clear-Gruppe bleibt vollständig, gleichmäßig und in einer Zeile. Zusätzlich steht sie bei allen drei Achszahlen in **Zeile 6** an derselben Stelle im gleich breiten Block. Das ist ein guter Orientierungspunkt, während die Achszeilen darüber unterschiedlich viel Raum benötigen.
+
+P würde ich nicht übernehmen: Die Einsparung bei sieben bzw. acht Achsen bezahlt es mit der ausdrücklich ausgeschlossenen Aufteilung der Ebenengruppe. Eine weitere Aktionsspalte bietet hier ebenfalls keinen erkennbaren Vorteil gegenüber dem freien Platz unter den letzten Achsen.
+
+Die Änderung gegenüber meinem R233-Satz „Fähigkeit vor Achszahl“ ist akzeptiert. **Die Fähigkeit bestimmt, welche Bediengruppen vorhanden und welche Gruppierungen zwingend sind; die Achszahl darf deren Platzierung bestimmen.** Meine frühere Forderung sollte vor dem Verlust der TWP-Bedienung bzw. einer unzulässigen Ableitung aus der Achszahl schützen. Sie muss nicht verhindern, dass eine vollständige Ebenenreihe bei 7–9 nach rechts unten wandert. Der neue Vertrag lautet deshalb: Hochformat unverändert; TWP bis sechs in der bisherigen Zeilenform; TWP 7–9 in Q. Die aktive Auswahl Machine/TCP/Plane und die momentane Freigabe ändern diese Form nicht.
+
+Die 346-px-Spalte rechts darf breiter als die Achsspalte links sein. **Die linke Spalte nicht ebenfalls auf 346 px ziehen:** Ausgehend von 206 px links kämen rechnerisch weitere 140 px hinzu, insgesamt etwa 831 px – mehr als die bisherige Form. Dass sich U/V/W-Tasten innerhalb der breiteren Spalte mitstrecken, ist kein Ausschlussgrund. Gleich breite Zahlenfelder, gleiche Zeilenhöhen und unveränderte Aktionsstile sind wichtiger. Mein R233-Feinschliff mit schmaleren Achszeilen in der breiten Spalte bleibt optional; er rechtfertigt keine weitere vorgeschaltete Entwurfsrunde.
+
+### 2. Packregel: reine Funktion ja, konkrete Ergebnismatrix als Vertrag
+
+Die Regel ist hinreichend klein und deterministisch, um sie als reine Funktion zu verwenden. **Eine zweite, separat gepflegte Fallunterscheidung ist nicht nötig.** Ich würde aber die folgenden Ergebnisse ausdrücklich festhalten und mit unabhängigen Sollwerten testen; nicht die Suchregel im Test nochmals nachbauen. Eine spätere Änderung an Breitenklassen darf nicht beiläufig eine andere Bedienanordnung erzeugen.
+
+Notation: `1+1` = zwei einzelne Zeilen; `2+1` = zwei Tasten nebeneinander, die dritte in der nächsten Zeile. Die Zahl bezeichnet nur die Belegung innerhalb derselben Gruppe. Gruppen teilen sich keine Zeile.
+
+| Querformat, Form „darunter“ | Achszeilen in der letzten Spalte | Zero/Home | Go to | Ebene |
+| --- | ---: | --- | --- | --- |
+| 1 oder 7 ohne TWP | 1 | 1+1 | 1+1+1 | — |
+| 2 oder 8 ohne TWP | 2 | 2 | 1+1+1 | — |
+| 3 oder 9 ohne TWP | 3 | 2 | 2+1 | — |
+| 4 ohne TWP | 4 | 2 | 3 | — |
+| 7 mit TWP | 1 | 2 | 1+1+1 | 3 |
+| 8 mit TWP | 2 | 2 | 2+1 | 3 |
+| 9 mit TWP | 3 | 2 | 3 | 3 |
+
+Dazu die Formwahl: 5–6 ohne TWP erhalten die Aktionsspalte; TWP bis sechs und jedes Hochformat behalten die bisherige Form. TCP ohne TWP benötigt keinen zusätzlichen Formparameter. „Letzte Spalte“ bezieht sich auf die tatsächlichen Achseneinträge, nicht auf hart kodierte U/V/W-Buchstaben.
+
+**Rangfolge präzisieren:** Erst die zulässigen Kandidaten bilden – feste Gruppenfolge, vollständige Gruppen, höchstens sechs Gesamtzeilen, Ebenentrio ausschließlich als Dreierreihe. Erst danach nach Breitenklasse minimieren, bei Gleichstand mehr belegte Zeilen verwenden und zuletzt die frühere Gruppe zuerst zusammenziehen. Das Ebenentrio ist eine **harte Bedingung**, keine bloß teuer bewertete Alternative. Für den Gleichstand sind etwa zwei Achsen ohne TWP und sieben mit TWP gute explizite Sollfälle: jeweils Zero/Home paaren, die Fahrziele einzeln lassen.
+
+Die Breitenklassen sind feste Entwurfsparameter. Keine Neuoptimierung anhand gerade aktiver Beschriftungen, disabled-Wrapper, DOM-Messungen, Fensterrestbreite oder Maschinenzustände. „Mehr gefüllte Zeilen“ entscheidet nur zwischen gleich breiten zulässigen Packungen; es verlangt weder höhere Tasten noch zusätzliche Höhe. Die [eigene Packrechnung](setup-layout.r234.analysis.py) reproduziert die obige Matrix anhand der vorgeschlagenen Klassen. Sie ersetzt die späteren Messungen der tatsächlich gerenderten Breiten nicht.
+
+### 3. Eine Achse: K passt
+
+Ja: die vorhandene Achszeile, darunter `Zero All`, `Home/Unhome All`, `Go to G30`, `Go to MCS 0`, `Go to WCS 0`, jeweils einzeln. Das nutzt sechs Zeilen ohne zusätzliche Gruppe oder Sonderbedienung. Für einen Einachsfall ohne TWP ist dies jetzt die vereinbarte Form; meine R233-Zuordnung zu den bisherigen Zeilen ist damit ersetzt. Die Achszeile verwendet den tatsächlichen Buchstaben, nicht zwingend X. Für einen als TWP-fähig deklarierten Einachs-Test gilt weiterhin der separate TWP-Zweig, nicht diese Ausnahme.
+
+### Nachweise und verbleibender Umsetzungsumfang
+
+Die gelieferten Q-, P-, TCP-, Einachs- und Vergleichsbilder wurden gesichtet. Die [Auswertung](setup-layout.r234.analysis.json) bestätigt im Datensatz **288 Einträge**, davon **202 Querformat-Fälle** ohne gemeldeten Umbruch, Abschneiden oder Abschnittsüberlauf sowie mit den erwarteten 264/396 px Höhe. Davon sind **22 Q-Fälle**; die Zahlen belegen keine vollständige Kreuzprüfung aller Varianten. Für Q liegen Touch+150-%-Messungen für sieben und neun TWP-Achsen im bereiten Zustand vor. Die einzelnen Homing-Symbole stimmen jetzt mit dem gesetzten Referenzzustand überein.
+
+Die übrigen R233-Wächter gelten weiter, insbesondere tatsächliche Erreichbarkeit neben Safety, Helfer/Fokus/gedrückte Taste, lange Werte und Rahmenhinweise sowie gemischte und gesperrte Zustände. Die neue Touch+150-%-Aufnahme zeigt weiterhin die bekannte Überdeckung durch Safety im Abschnittsbild; die spätere Interaktionsprüfung muss die einzelnen Ziele durch Scrollen erreichbar nachweisen. Aus `outside: []` folgt das nicht.
+
+Die erzwungenen TWP-/TCP-Konfigurationen sind sinnvolle **synthetische Layoutfälle**. Ihre Darstellung ist kein Nachweis, dass die betreffende Kinematik, Homing-Zuordnung oder die TWP-Routinen diese Achsenmenge real unterstützen. Dafür enthält diese Runde weder einen Auftrag noch Belege. Keine Produktdateien verändert, keine Builds, Browser- oder Sim-Läufe; eigene Belege sind ausschließlich die Auswertung und Packrechnung der gelieferten Daten.
