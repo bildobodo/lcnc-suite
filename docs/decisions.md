@@ -9674,7 +9674,8 @@ under 3 : 1 on it, and one share of panel holds both rules only in a window per 
 42–44 %, dark 44–52 %, hc-light ≥ 49 %): light 43 %, dark 48 %, hc-light 54 %, hc-dark 48 %; still
 the operator's fill. SB-02 — the number is where the SHOWN check reaches (a provisional one began at
 the run's line): its title is the summary's coverage words, never "N % of the program checked";
-paused and stopped short carry a glyph in the warn role. SB-03 — the time slot grew with the
+paused and stopped short carry a glyph in the warn role — the shown result's state, so a
+stopped provisional result keeps it while the full check runs behind it (R229). SB-03 — the time slot grew with the
 program's length (6 h, 30 h left the timeline 93 / 78 px at 150 %): the narrow form shows the
 elapsed time only, its slot sized for the program; the whole readout is the title and the Sim tab.
 
