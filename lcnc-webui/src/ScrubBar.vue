@@ -1306,10 +1306,16 @@ const checkPct = computed(() => {
 });
 /** paused (a rotary jog parked it) or stopped short: a glyph beside the
  *  number in the warn role — the number alone read the same in every state
- *  (Codex R228 SB-02). */
+ *  (Codex R228 SB-02). It is the SHOWN result's state, like the number: a
+ *  provisional result that stopped short keeps its stop while the full
+ *  check runs behind it (the tab's state says "checking" for that one —
+ *  Codex R229). */
 const checkHalt = computed<"paused" | "stopped" | null>(() => {
+  if (!checkPct.value) return null;
   const s = sweepView.value?.state;
-  return checkPct.value && s === "paused" ? "paused" : checkPct.value && s === "partial" ? "stopped" : null;
+  if (s === "paused") return "paused";
+  if (s === "partial") return "stopped";
+  return provisionalOnScreen.value && shownResult.value?.truncated ? "stopped" : null;
 });
 // The number is where the shown check REACHES — a provisional one began at
 // the run's line, so "75 %" there is "up to 75 %", never a share of the

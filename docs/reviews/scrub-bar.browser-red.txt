@@ -175,3 +175,12 @@ Running 4 tests using 1 worker
     Error: the timeline keeps its room ({"w":272,"slider":78,"below":true,"rows":3,"time":"00:00/30:00:00","whole":true,"title":null})
     Expected: >= 120
     Received:    78
+
+# R229: the VP-I68 case with the stopped provisional result's glyph against e2a660f5: red
+    Error: the stopped provisional result's glyph
+    expect(locator).toHaveCount(expected) failed
+    Expected: 1
+    Received: 0
+    test-results/collisions.viewer-the-prov-3bc05-them-Codex-R116-VP-I68-I69--serial-viewer/test-failed-1.png
+    Error Context: test-results/collisions.viewer-the-prov-3bc05-them-Codex-R116-VP-I68-I69--serial-viewer/error-context.md
+  1 failed

@@ -1052,6 +1052,9 @@ test("the provisional result keeps its own limits while the full check runs, its
   await expect(coverage, "the bar: where it stopped").toHaveText("75 %");
   // "up to 75 %", never "75 % of the program checked" (Codex R228 SB-02)
   await expect(coverage).toHaveAttribute("title", "Collision check: provisional from L7, stopped at 75 %");
+  // and its stop — the shown result's, while the full check runs behind it (Codex R229)
+  await expect(coverage.locator(".checkGlyph"), "the stopped provisional result's glyph").toHaveCount(1);
+  await expect(coverage).toHaveClass(/text-warn/);
   await expect(item).toHaveAttribute("aria-label", /provisional from L7, stopped at 75 % \(not certified\)$/);
   await expect(item.locator('span[title^="Not certified"]'), "its star").toHaveCount(1);
   const text = await help();
@@ -1082,6 +1085,8 @@ test("the provisional result keeps its own limits while the full check runs, its
   await expect(item).toHaveAttribute("aria-label", /· checked in full$/);
   await expect(item.locator('span[title^="Not certified"]')).toHaveCount(0);
   await expect(coverage, "checked in full: no coverage left to show").toHaveText("");
+  await expect(coverage.locator(".checkGlyph")).toHaveCount(0);
+  await expect(coverage).not.toHaveClass(/text-warn/);
   const after = await help();
   expect(after).not.toContain("In contact at the check's start");
   expect(after).not.toContain("the rest is unchecked");
