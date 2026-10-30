@@ -1,0 +1,24 @@
+{
+  "review_bytes_before": 35370,
+  "review_sha256_before": "16e0e82e27c1aae716514ba500bf2b385c25ad4fbeada906323a334ab0825475",
+  "product_head": "9303cf6e645c81ff79775a10fdb0cd464401dbbe",
+  "base": "5fb6c761",
+  "archive": "/tmp/codex-r235-720x5f32/repo",
+  "mock": "127.0.0.1:4188",
+  "source_tests_note": "Only local e2e localhost:4174 references rewritten to 127.0.0.1:4188; independent config, no product source changes.",
+  "result": "findings",
+  "finding": "SL-01",
+  "new_repository_setup_cases": {
+    "passed": 91,
+    "failed": 0
+  },
+  "independent_cases": {
+    "passed": 5,
+    "failed": 1
+  },
+  "targeted_gate_hold_cases": {
+    "passed": 4,
+    "failed": 0
+  },
+  "isolated_touch_reproduction": "fails: WCS row shifts 20.5 px, pointer hits setupContent, no command sent"
+}

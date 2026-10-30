@@ -1,0 +1,439 @@
+R235 — own archive of feat/setup-layout 9303cf6e, base 5fb6c761
+Mock 127.0.0.1:4188; classic scrollbars; Chromium; 1 worker. No live service used.
+Only e2e localhost:4174 references redirected to 127.0.0.1:4188; product source unchanged.
+
+Reproduce: archive product commit, install matching dependencies, npm run build, copy the supplied config and specs into lcnc-webui and e2e, start e2e/mock-gateway.mjs with MOCK_HOST=127.0.0.1 MOCK_PORT=4188. The independent specs write to /tmp/codex-r235-720x5f32 (create it or change only their out constant).
+
+An initial broader run of choices, nine-axis, safety, setup and touchoff was stopped by Codex after 10 passing choices cases to focus on the changed layout. One case interrupted, 169 unrun; this is not counted as a completed gate.
+
+=== BUILD ===
+npm run build
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2127 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-Btr8Zs4M.css                 8.28 kB │ gzip:   2.11 kB
+dist/static/index-CJzrkFva.css                      96.88 kB │ gzip:  17.64 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-ycBchNPt.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-CirQeJkh.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-Cd36BhL8.js                277.89 kB │ gzip: 104.70 kB
+dist/static/index-BRBDO86z.js                      669.63 kB │ gzip: 215.37 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 13.14s
+
+=== UNIT ===
+npm exec vitest run src/setupLayout.test.ts src/choiceGroup.test.ts (only setupLayout.test.ts exists; 11 cases)
+
+ RUN  v4.1.8 /tmp/codex-r235-720x5f32/repo/lcnc-webui
+
+
+ Test Files  1 passed (1)
+      Tests  11 passed (11)
+   Start at  23:22:25
+   Duration  264ms (transform 83ms, setup 0ms, import 97ms, tests 23ms, environment 0ms)
+
+
+=== LAYOUT AND INDEPENDENT PROBES ===
+npx playwright test --config playwright.r235.config.ts setup-layout.spec.ts r235.codex.spec.ts
+
+Running 97 tests using 1 worker
+
+(node:1229827) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1229827) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/r235.codex.spec.ts:12:3 › TWP state changes: title, labels and coordinates landscape 1 (5.9s)
+  ✓   2 e2e/r235.codex.spec.ts:12:3 › TWP state changes: title, labels and coordinates landscape 1.5 (5.0s)
+  ✘   3 e2e/r235.codex.spec.ts:12:3 › TWP state changes: title, labels and coordinates portrait 1 (5.4s)
+(node:1230267) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1230267) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   4 e2e/r235.codex.spec.ts:12:3 › TWP state changes: title, labels and coordinates portrait 1.5 (5.4s)
+  ✓   5 e2e/r235.codex.spec.ts:59:1 › portrait WCS: one tab stop, complete rows, navigation never chooses, one explicit choice (5.3s)
+  ✓   6 e2e/r235.codex.spec.ts:81:1 › axis list changes with a keypad open: original target is cancelled (4.2s)
+  ✓   7 e2e/setup-layout.spec.ts:138:5 › 1 X, landscape: the arrangement, every action once, nothing outside or clipped (4.2s)
+  ✓   8 e2e/setup-layout.spec.ts:138:5 › 1 X, landscape touch: the arrangement, every action once, nothing outside or clipped (4.5s)
+  ✓   9 e2e/setup-layout.spec.ts:138:5 › 1 X, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped (4.5s)
+  ✓  10 e2e/setup-layout.spec.ts:138:5 › 1 X, portrait: the arrangement, every action once, nothing outside or clipped (4.1s)
+  ✓  11 e2e/setup-layout.spec.ts:138:5 › 1 X, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped (4.4s)
+  ✓  12 e2e/setup-layout.spec.ts:138:5 › 2 XZ, landscape: the arrangement, every action once, nothing outside or clipped (4.6s)
+  ✓  13 e2e/setup-layout.spec.ts:138:5 › 2 XZ, landscape touch: the arrangement, every action once, nothing outside or clipped (4.5s)
+  ✓  14 e2e/setup-layout.spec.ts:138:5 › 2 XZ, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped (4.2s)
+  ✓  15 e2e/setup-layout.spec.ts:138:5 › 2 XZ, portrait: the arrangement, every action once, nothing outside or clipped (3.7s)
+  ✓  16 e2e/setup-layout.spec.ts:138:5 › 2 XZ, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped (3.8s)
+  ✓  17 e2e/setup-layout.spec.ts:138:5 › 3 XYZ, landscape: the arrangement, every action once, nothing outside or clipped (3.3s)
+  ✓  18 e2e/setup-layout.spec.ts:138:5 › 3 XYZ, landscape touch: the arrangement, every action once, nothing outside or clipped (3.1s)
+  ✓  19 e2e/setup-layout.spec.ts:138:5 › 3 XYZ, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped (3.2s)
+  ✓  20 e2e/setup-layout.spec.ts:138:5 › 3 XYZ, portrait: the arrangement, every action once, nothing outside or clipped (3.0s)
+  ✓  21 e2e/setup-layout.spec.ts:138:5 › 3 XYZ, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped (2.9s)
+  ✓  22 e2e/setup-layout.spec.ts:138:5 › 4 XYZA, landscape: the arrangement, every action once, nothing outside or clipped (3.4s)
+  ✓  23 e2e/setup-layout.spec.ts:138:5 › 4 XYZA, landscape touch: the arrangement, every action once, nothing outside or clipped (3.3s)
+  ✓  24 e2e/setup-layout.spec.ts:138:5 › 4 XYZA, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped (3.3s)
+  ✓  25 e2e/setup-layout.spec.ts:138:5 › 4 XYZA, portrait: the arrangement, every action once, nothing outside or clipped (3.2s)
+  ✓  26 e2e/setup-layout.spec.ts:138:5 › 4 XYZA, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped (3.3s)
+  ✓  27 e2e/setup-layout.spec.ts:138:5 › 4 XYZC, landscape: the arrangement, every action once, nothing outside or clipped (3.5s)
+  ✓  28 e2e/setup-layout.spec.ts:138:5 › 4 XYZC, landscape touch: the arrangement, every action once, nothing outside or clipped (3.4s)
+  ✓  29 e2e/setup-layout.spec.ts:138:5 › 4 XYZC, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped (3.3s)
+  ✓  30 e2e/setup-layout.spec.ts:138:5 › 4 XYZC, portrait: the arrangement, every action once, nothing outside or clipped (3.1s)
+  ✓  31 e2e/setup-layout.spec.ts:138:5 › 4 XYZC, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped (3.3s)
+  ✓  32 e2e/setup-layout.spec.ts:138:5 › 5 XYZBC, landscape: the arrangement, every action once, nothing outside or clipped (3.5s)
+  ✓  33 e2e/setup-layout.spec.ts:138:5 › 5 XYZBC, landscape touch: the arrangement, every action once, nothing outside or clipped (3.5s)
+  ✓  34 e2e/setup-layout.spec.ts:138:5 › 5 XYZBC, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped (3.4s)
+  ✓  35 e2e/setup-layout.spec.ts:138:5 › 5 XYZBC, portrait: the arrangement, every action once, nothing outside or clipped (3.4s)
+  ✓  36 e2e/setup-layout.spec.ts:138:5 › 5 XYZBC, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped (3.4s)
+  ✓  37 e2e/setup-layout.spec.ts:138:5 › 5 TCP, landscape: the arrangement, every action once, nothing outside or clipped (3.6s)
+  ✓  38 e2e/setup-layout.spec.ts:138:5 › 5 TCP, landscape touch: the arrangement, every action once, nothing outside or clipped (3.5s)
+  ✓  39 e2e/setup-layout.spec.ts:138:5 › 5 TCP, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped (3.5s)
+  ✓  40 e2e/setup-layout.spec.ts:138:5 › 5 TCP, portrait: the arrangement, every action once, nothing outside or clipped (3.3s)
+  ✓  41 e2e/setup-layout.spec.ts:138:5 › 5 TCP, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped (3.4s)
+  ✓  42 e2e/setup-layout.spec.ts:138:5 › 6 XYZABC, landscape: the arrangement, every action once, nothing outside or clipped (3.8s)
+  ✓  43 e2e/setup-layout.spec.ts:138:5 › 6 XYZABC, landscape touch: the arrangement, every action once, nothing outside or clipped (3.7s)
+  ✓  44 e2e/setup-layout.spec.ts:138:5 › 6 XYZABC, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped (3.5s)
+  ✓  45 e2e/setup-layout.spec.ts:138:5 › 6 XYZABC, portrait: the arrangement, every action once, nothing outside or clipped (3.4s)
+  ✓  46 e2e/setup-layout.spec.ts:138:5 › 6 XYZABC, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped (3.6s)
+  ✓  47 e2e/setup-layout.spec.ts:138:5 › 6 TWP, landscape: the arrangement, every action once, nothing outside or clipped (4.0s)
+  ✓  48 e2e/setup-layout.spec.ts:138:5 › 6 TWP, landscape touch: the arrangement, every action once, nothing outside or clipped (3.8s)
+  ✓  49 e2e/setup-layout.spec.ts:138:5 › 6 TWP, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped (4.0s)
+  ✓  50 e2e/setup-layout.spec.ts:138:5 › 6 TWP, portrait: the arrangement, every action once, nothing outside or clipped (3.8s)
+  ✓  51 e2e/setup-layout.spec.ts:138:5 › 6 TWP, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped (3.8s)
+  ✓  52 e2e/setup-layout.spec.ts:138:5 › 7, landscape: the arrangement, every action once, nothing outside or clipped (3.8s)
+  ✓  53 e2e/setup-layout.spec.ts:138:5 › 7, landscape touch: the arrangement, every action once, nothing outside or clipped (3.9s)
+  ✓  54 e2e/setup-layout.spec.ts:138:5 › 7, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped (3.7s)
+  ✓  55 e2e/setup-layout.spec.ts:138:5 › 7, portrait: the arrangement, every action once, nothing outside or clipped (3.6s)
+  ✓  56 e2e/setup-layout.spec.ts:138:5 › 7, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped (3.7s)
+  ✓  57 e2e/setup-layout.spec.ts:138:5 › 8, landscape: the arrangement, every action once, nothing outside or clipped (4.0s)
+  ✓  58 e2e/setup-layout.spec.ts:138:5 › 8, landscape touch: the arrangement, every action once, nothing outside or clipped (4.0s)
+  ✓  59 e2e/setup-layout.spec.ts:138:5 › 8, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped (3.9s)
+  ✓  60 e2e/setup-layout.spec.ts:138:5 › 8, portrait: the arrangement, every action once, nothing outside or clipped (3.9s)
+  ✓  61 e2e/setup-layout.spec.ts:138:5 › 8, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped (4.1s)
+  ✓  62 e2e/setup-layout.spec.ts:138:5 › 9, landscape: the arrangement, every action once, nothing outside or clipped (4.2s)
+  ✓  63 e2e/setup-layout.spec.ts:138:5 › 9, landscape touch: the arrangement, every action once, nothing outside or clipped (4.2s)
+  ✓  64 e2e/setup-layout.spec.ts:138:5 › 9, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped (4.2s)
+  ✓  65 e2e/setup-layout.spec.ts:138:5 › 9, portrait: the arrangement, every action once, nothing outside or clipped (4.0s)
+  ✓  66 e2e/setup-layout.spec.ts:138:5 › 9, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped (4.0s)
+  ✓  67 e2e/setup-layout.spec.ts:138:5 › 7 TWP, landscape: the arrangement, every action once, nothing outside or clipped (4.1s)
+  ✓  68 e2e/setup-layout.spec.ts:138:5 › 7 TWP, landscape touch: the arrangement, every action once, nothing outside or clipped (4.2s)
+  ✓  69 e2e/setup-layout.spec.ts:138:5 › 7 TWP, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped (4.2s)
+  ✓  70 e2e/setup-layout.spec.ts:138:5 › 7 TWP, portrait: the arrangement, every action once, nothing outside or clipped (4.1s)
+  ✓  71 e2e/setup-layout.spec.ts:138:5 › 7 TWP, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped (4.1s)
+  ✓  72 e2e/setup-layout.spec.ts:138:5 › 9 TWP, landscape: the arrangement, every action once, nothing outside or clipped (4.5s)
+  ✓  73 e2e/setup-layout.spec.ts:138:5 › 9 TWP, landscape touch: the arrangement, every action once, nothing outside or clipped (4.6s)
+  ✓  74 e2e/setup-layout.spec.ts:138:5 › 9 TWP, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped (4.5s)
+  ✓  75 e2e/setup-layout.spec.ts:138:5 › 9 TWP, portrait: the arrangement, every action once, nothing outside or clipped (4.2s)
+  ✓  76 e2e/setup-layout.spec.ts:138:5 › 9 TWP, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped (4.3s)
+  ✓  77 e2e/setup-layout.spec.ts:205:3 › 3 XYZ: Tab walks the axis rows, the actions in order, then the WCS (2.3s)
+  ✓  78 e2e/setup-layout.spec.ts:205:3 › 5 TCP: Tab walks the axis rows, the actions in order, then the WCS (2.7s)
+  ✓  79 e2e/setup-layout.spec.ts:205:3 › 6 TWP: Tab walks the axis rows, the actions in order, then the WCS (3.0s)
+  ✓  80 e2e/setup-layout.spec.ts:205:3 › 9: Tab walks the axis rows, the actions in order, then the WCS (3.2s)
+  ✓  81 e2e/setup-layout.spec.ts:205:3 › 9 TWP: Tab walks the axis rows, the actions in order, then the WCS (3.4s)
+  ✓  82 e2e/setup-layout.spec.ts:241:5 › 3 XYZ, landscape touch 150 %: every Setup control is reachable beside Safety (1.8s)
+  ✓  83 e2e/setup-layout.spec.ts:241:5 › 3 XYZ, portrait touch 150 %: every Setup control is reachable beside Safety (1.8s)
+  ✓  84 e2e/setup-layout.spec.ts:241:5 › 6 TWP, landscape touch 150 %: every Setup control is reachable beside Safety (1.9s)
+  ✓  85 e2e/setup-layout.spec.ts:241:5 › 6 TWP, portrait touch 150 %: every Setup control is reachable beside Safety (1.9s)
+  ✓  86 e2e/setup-layout.spec.ts:241:5 › 9, landscape touch 150 %: every Setup control is reachable beside Safety (1.9s)
+  ✓  87 e2e/setup-layout.spec.ts:241:5 › 9, portrait touch 150 %: every Setup control is reachable beside Safety (1.8s)
+  ✓  88 e2e/setup-layout.spec.ts:241:5 › 9 TWP, landscape touch 150 %: every Setup control is reachable beside Safety (1.8s)
+  ✓  89 e2e/setup-layout.spec.ts:241:5 › 9 TWP, portrait touch 150 %: every Setup control is reachable beside Safety (1.9s)
+  ✓  90 e2e/setup-layout.spec.ts:277:5 › 5 TCP, landscape: a long frame chip moves nothing (2.0s)
+  ✓  91 e2e/setup-layout.spec.ts:277:5 › 5 TCP, landscape touch: a long frame chip moves nothing (2.0s)
+  ✓  92 e2e/setup-layout.spec.ts:277:5 › 5 TCP, portrait: a long frame chip moves nothing (1.9s)
+  ✓  93 e2e/setup-layout.spec.ts:277:5 › 6 TWP, landscape: a long frame chip moves nothing (2.0s)
+  ✓  94 e2e/setup-layout.spec.ts:277:5 › 6 TWP, landscape touch: a long frame chip moves nothing (2.0s)
+  ✓  95 e2e/setup-layout.spec.ts:277:5 › 6 TWP, portrait: a long frame chip moves nothing (1.9s)
+  ✓  96 e2e/setup-layout.spec.ts:301:1 › portrait touch 150 %, the keypad on an axis field: only the axis rows stay (2.0s)
+  ✓  97 e2e/setup-layout.spec.ts:319:1 › a new axis set re-lays the section out (2.2s)
+
+
+  1) e2e/r235.codex.spec.ts:12:3 › TWP state changes: title, labels and coordinates portrait 1 ─────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 9[39m
+    [31m+ Received  + 9[39m
+
+    [33m@@ -2,64 +2,64 @@[39m
+    [2m    Object {[22m
+    [2m      "h": 36,[22m
+    [2m      "text": "G54",[22m
+    [2m      "w": 47.1875,[22m
+    [2m      "x": 0,[22m
+    [32m-     "y": 450,[39m
+    [31m+     "y": 470.5,[39m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "h": 36,[22m
+    [2m      "text": "G55",[22m
+    [2m      "w": 47.203125,[22m
+    [2m      "x": 51.1875,[22m
+    [32m-     "y": 450,[39m
+    [31m+     "y": 470.5,[39m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "h": 36,[22m
+    [2m      "text": "G56",[22m
+    [2m      "w": 47.203125,[22m
+    [2m      "x": 102.390625,[22m
+    [32m-     "y": 450,[39m
+    [31m+     "y": 470.5,[39m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "h": 36,[22m
+    [2m      "text": "G57",[22m
+    [2m      "w": 47.203125,[22m
+    [2m      "x": 153.59375,[22m
+    [32m-     "y": 450,[39m
+    [31m+     "y": 470.5,[39m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "h": 36,[22m
+    [2m      "text": "G58",[22m
+    [2m      "w": 47.203125,[22m
+    [2m      "x": 204.796875,[22m
+    [32m-     "y": 450,[39m
+    [31m+     "y": 470.5,[39m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "h": 36,[22m
+    [2m      "text": "G59",[22m
+    [2m      "w": 60,[22m
+    [2m      "x": 0,[22m
+    [32m-     "y": 490,[39m
+    [31m+     "y": 510.5,[39m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "h": 36,[22m
+    [2m      "text": "G59.1",[22m
+    [2m      "w": 60,[22m
+    [2m      "x": 64,[22m
+    [32m-     "y": 490,[39m
+    [31m+     "y": 510.5,[39m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "h": 36,[22m
+    [2m      "text": "G59.2",[22m
+    [2m      "w": 60,[22m
+    [2m      "x": 128,[22m
+    [32m-     "y": 490,[39m
+    [31m+     "y": 510.5,[39m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "h": 36,[22m
+    [2m      "text": "G59.3",[22m
+    [2m      "w": 60,[22m
+    [2m      "x": 192,[22m
+    [32m-     "y": 490,[39m
+    [31m+     "y": 510.5,[39m
+    [2m    },[22m
+    [2m  ][22m
+
+      45 |     await expect(page.locator(`${S} .kinsChip`)).toContainText('off datum · datum moved');
+      46 |     const g=await geometry();
+    > 47 |     expect(g.radios).toEqual(start.radios);
+         |                      ^
+      48 |     expect(g.head.x).toBeGreaterThanOrEqual(-0.5);
+      49 |     if (!portrait) expect(g.head.x).toBeGreaterThanOrEqual(g.setup.x+g.setup.w+4*zoom);
+      50 |     records.push({portrait,zoom,state:'long chip',...g});
+        at /tmp/codex-r235-720x5f32/repo/lcnc-webui/e2e/r235.codex.spec.ts:47:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r235.codex-TWP-state-chang-0a757--and-coordinates-portrait-1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r235.codex-TWP-state-chang-0a757--and-coordinates-portrait-1/error-context.md
+
+    Error Context: test-results/r235.codex-TWP-state-chang-0a757--and-coordinates-portrait-1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r235.codex-TWP-state-chang-0a757--and-coordinates-portrait-1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r235.codex-TWP-state-chang-0a757--and-coordinates-portrait-1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  Slow test file: e2e/setup-layout.spec.ts (5.2m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  1 failed
+    e2e/r235.codex.spec.ts:12:3 › TWP state changes: title, labels and coordinates portrait 1 ──────
+  96 passed (5.7m)
+
+=== TARGETED FOLLOW-UP ===
+npx playwright test --config playwright.r235.config.ts r235.header.spec.ts safety-during-edit.spec.ts touchoff.spec.ts --grep "R235:|first touch that holds Home X|Plane mode:|Capture/Clear plane|TCP trunnion"
+
+Running 5 tests using 1 worker
+
+(node:1237842) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1237842) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r235.header.spec.ts:7:1 › R235: portrait Touch WCS positions remain stable when the frame chip grows (3.8s)
+(node:1238001) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1238001) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 e2e/safety-during-edit.spec.ts:428:3 › the first touch: the switch to touch sizes waits for its press › a first touch that holds Home X: the button stays put and fires, touch sizes apply after the release (2.7s)
+  ✓  3 e2e/touchoff.spec.ts:167:1 › Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero XYZ stays open (3.2s)
+  ✓  4 e2e/touchoff.spec.ts:206:1 › Capture/Clear plane buttons: gate-driven, Clear needs a plane (or TOOL limbo) (2.8s)
+  ✓  5 e2e/touchoff.spec.ts:242:1 › TCP trunnion (switchable, not TWP): G59 selectable, no Plane frame, no Capture row (3.0s)
+
+
+  1) e2e/r235.header.spec.ts:7:1 › R235: portrait Touch WCS positions remain stable when the frame chip grows 
+
+    Error: every WCS row keeps its location beneath the held pointer
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 9[39m
+    [31m+ Received  + 9[39m
+
+    [2m  Array [[22m
+    [32m-   450,[39m
+    [32m-   450,[39m
+    [32m-   450,[39m
+    [32m-   450,[39m
+    [32m-   450,[39m
+    [32m-   490,[39m
+    [32m-   490,[39m
+    [32m-   490,[39m
+    [32m-   490,[39m
+    [31m+   470.5,[39m
+    [31m+   470.5,[39m
+    [31m+   470.5,[39m
+    [31m+   470.5,[39m
+    [31m+   470.5,[39m
+    [31m+   510.5,[39m
+    [31m+   510.5,[39m
+    [31m+   510.5,[39m
+    [31m+   510.5,[39m
+    [2m  ][22m
+
+      40 |   const cmds=await ctl({op:'lastCmds'});
+      41 |   writeFileSync(`${out}/header.json`,JSON.stringify({before,after,press,hit,cmds},null,2));
+    > 42 |   expect(after.radios.map(r=>r.relativeY),'every WCS row keeps its location beneath the held pointer').toEqual(before.radios.map(r=>r.relativeY));
+         |                                                                                                        ^
+      43 | });
+      44 | test.afterAll(async()=>{await ctl({op:'reset'});});
+      45 |
+        at /tmp/codex-r235-720x5f32/repo/lcnc-webui/e2e/r235.header.spec.ts:42:104
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r235.header-R235-portrait--5ec02-e-when-the-frame-chip-grows/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r235.header-R235-portrait--5ec02-e-when-the-frame-chip-grows/error-context.md
+
+    Error Context: test-results/r235.header-R235-portrait--5ec02-e-when-the-frame-chip-grows/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r235.header-R235-portrait--5ec02-e-when-the-frame-chip-grows/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r235.header-R235-portrait--5ec02-e-when-the-frame-chip-grows/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/r235.header.spec.ts:7:1 › R235: portrait Touch WCS positions remain stable when the frame chip grows 
+  4 passed (17.0s)
+
+=== ISOLATED TOUCH REPRODUCTION ===
+npx playwright test --config playwright.r235.config.ts r235.header.spec.ts
+
+Running 1 test using 1 worker
+
+(node:1238904) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1238904) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r235.header.spec.ts:7:1 › R235: portrait Touch WCS positions remain stable when the frame chip grows (3.8s)
+
+
+  1) e2e/r235.header.spec.ts:7:1 › R235: portrait Touch WCS positions remain stable when the frame chip grows 
+
+    Error: every WCS row keeps its location beneath the held pointer
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 9[39m
+    [31m+ Received  + 9[39m
+
+    [2m  Array [[22m
+    [32m-   450,[39m
+    [32m-   450,[39m
+    [32m-   450,[39m
+    [32m-   450,[39m
+    [32m-   450,[39m
+    [32m-   490,[39m
+    [32m-   490,[39m
+    [32m-   490,[39m
+    [32m-   490,[39m
+    [31m+   470.5,[39m
+    [31m+   470.5,[39m
+    [31m+   470.5,[39m
+    [31m+   470.5,[39m
+    [31m+   470.5,[39m
+    [31m+   510.5,[39m
+    [31m+   510.5,[39m
+    [31m+   510.5,[39m
+    [31m+   510.5,[39m
+    [2m  ][22m
+
+      40 |   const cmds=await ctl({op:'lastCmds'});
+      41 |   writeFileSync(`${out}/header.json`,JSON.stringify({before,after,press,hit,cmds},null,2));
+    > 42 |   expect(after.radios.map(r=>r.relativeY),'every WCS row keeps its location beneath the held pointer').toEqual(before.radios.map(r=>r.relativeY));
+         |                                                                                                        ^
+      43 | });
+      44 | test.afterAll(async()=>{await ctl({op:'reset'});});
+      45 |
+        at /tmp/codex-r235-720x5f32/repo/lcnc-webui/e2e/r235.header.spec.ts:42:104
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r235.header-R235-portrait--5ec02-e-when-the-frame-chip-grows/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r235.header-R235-portrait--5ec02-e-when-the-frame-chip-grows/error-context.md
+
+    Error Context: test-results/r235.header-R235-portrait--5ec02-e-when-the-frame-chip-grows/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r235.header-R235-portrait--5ec02-e-when-the-frame-chip-grows/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r235.header-R235-portrait--5ec02-e-when-the-frame-chip-grows/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/r235.header.spec.ts:7:1 › R235: portrait Touch WCS positions remain stable when the frame chip grows 
+
+The focused header probe was repeated with its initial touch in the neutral viewer canvas (instead of opening Messages via the status banner). Same 20.5 px shift, same miss, no commands. The saved spec, JSON and screenshots are this last isolated run.

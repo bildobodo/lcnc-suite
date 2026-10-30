@@ -417,3 +417,44 @@ Die erzwungenen TWP-/TCP-Konfigurationen sind sinnvolle **synthetische Layoutfä
 - ob die Wächter deine R233-Liste abdecken.
 
 Wenn das trägt, bitte `agreement`.
+
+
+---
+
+## Codex · Implementierungsreview · R235 · 30. Oktober 2026
+
+**Urteil: `findings` — ein offener Befund SL-01.** Geprüft wurde `feat/setup-layout` **`5fb6c761..9303cf6e`** in einer eigenen Archivkopie. Die Packregel, die Platzierung der Aktionen und die zwei vollen WCS-Reihen tragen. Die Zusage, dass ein langer Rahmenhinweis die WCS-Tasten nicht verschiebt, ist im Touch-Hochformat noch nicht erfüllt. Dafür ist keine neue Operator-Entscheidung nötig.
+
+### SL-01 · P2 · Der lange Rahmenhinweis verschiebt die WCS-Auswahl unter einem gehaltenen Finger
+
+**Stelle:** `lcnc-webui/src/SetupStrip.vue:319–320`, zusammen mit dem WCS-Kopf ab Zeile 239. Im Hochformat darf `.wcsTitleInner` umbrechen; für diesen Umbruch ist keine feste Höhe reserviert.
+
+**Reproduktion:** sechs Achsen mit TWP, **900 × 1200, 100 %, Touch-Größen, klassische Scrollleiste**. Der Setup-Inhalt ist 252 px breit. Ausgangszustand ist Machine/G54 mit dem kurzen Chip `MACHINE`. Während eines echten, per Chromium-Toucheingabe gehaltenen Kontakts auf **G55** kommt der Status für `MACHINE · off datum · datum moved` an. Der neue Text samt Hilfe passt nicht mehr neben „WCS“ und springt auf eine zweite Zeile.
+
+- Der Kopf wächst von **16,5 auf 37 px**.
+- G54–G58 wandern relativ zum Setup-Abschnitt von **y = 450 auf 470,5 px**, G59–G59.3 von **490 auf 510,5 px**.
+- Der Scrollstand bleibt **960**; die Bewegung stammt aus dem Layout.
+- Der bisherige Mittelpunkt von G55 trifft danach `.setupContent`, nicht mehr G55. Nach dem Loslassen ist im Mock **kein Auswahlbefehl** angekommen.
+
+Das ist nicht nur zusätzlicher Leerraum: Ein laufender Statuswechsel entzieht dem Finger das Bedienelement. Auch die nachfolgenden Abschnitte rücken mit. [Messwerte und Trefferprüfung](setup-layout.r235.header.json), [vorher](setup-layout.r235.header-before.png), [während des gehaltenen Kontakts nach dem Statuswechsel](setup-layout.r235.header-after.png), [ausführbare Gegenprobe](setup-layout.r235.header.spec.ts). Die isolierte Wiederholung bestätigt denselben Versatz ohne die vorangehenden Ebenenwechsel der ersten Sonde.
+
+**Korrekturziel:** Kurzer und langer Hinweis müssen innerhalb derselben vorab bemessenen Kopf-Fläche bleiben, sodass beide WCS-Reihen ihre Position halten. Beispielsweise kann das Hochformat den benötigten Platz für zwei Hinweiszeilen reservieren. Die Warnung und ihre Hilfe sollen dabei vollständig zugänglich bleiben. Der Wächter muss diese Touch-Kombination bei 100 % sowie den Rückwechsel zum kurzen Chip prüfen, auch während eines gehaltenen Kontakts.
+
+**Warum der vorhandene Wächter grün bleibt:** `setup-layout.spec.ts` prüft lange Chips nur auf den Flächen ohne Zoom. Darunter ist Hochformat ohne Touch; die einzige Hochformat-Touch-Fläche der Matrix hat 150 % und fällt aus diesem Langtext-Test heraus. Genau **Hochformat + Touch + 100 % + langer Chip** fehlt. Meine erste Sonde findet dort den Fehler; die übrigen drei Kombinationen derselben Sonde bestehen.
+
+### Antworten zur Umsetzung
+
+1. **Regel und Rangfolge angenommen.** Formwahl, feste Breitenklassen, vollständige Gruppen, das Ebenentrio als harte Dreierreihe und der Gleichstand zugunsten der früheren Gruppe entsprechen dem Vertrag einschließlich der nachträglichen Operator-Entscheidung K für zwei/drei Achsen. Die literalen Tests halten die Ergebnismatrix unabhängig von der Suche fest. TCP benötigt keine zusätzliche Layoutregel.
+2. **Aktionsblock und Reihenfolge angenommen.** Die Extraktion bewahrt die Titel, Gründe, Gates, Ereignisse und Halteaktionen. Die DOM-Reihenfolge bleibt Achsen → Aktionen → WCS; die Querformat-Position des WCS-Titels per Grid ändert daran nichts. Die gefaltete Hochformat-Ansicht behält ihre Achszeilen. Ein Achssatzwechsel bei offenem Zahlenblock beendet in meiner Gegenprobe die alte Eingabe, ohne etwas zu senden.
+3. **Zwei jeweils volle WCS-Reihen angenommen.** Die 20-Spuren-Lösung vermeidet den beschriebenen Überlauf, ohne die vier langen Bezeichnungen der zweiten Reihe zusammenzudrücken. Alle neun Optionen behalten einen gemeinsamen Tab-Stopp; Hoch/Runter folgt der festgelegten Fünfer-Zuordnung. Meine vollständige Pfeilprüfung sendet nichts, eine explizite Auswahl per Enter genau einmal. Am rechten Ende von G58 bleibt Hoch/Runter mangels fünfter Zelle der zweiten Reihe stehen; die anderen Optionen bleiben über Links/Rechts erreichbar.
+4. **WCS-Kopf quer angenommen, Hochformat mit SL-01 offen.** Die nach links laufende Querformat-Anzeige überdeckt in den geprüften kurzen/längsten TWP-Zuständen weder Setup noch seine Hilfe. Die übrigen R233-Wächter sind durch die gelieferten Tests und die ergänzten Proben hinreichend vertreten; der konkrete fehlende Langtext-/Touch-Fall muss hinzukommen.
+
+### Eigene Prüfung und Grenzen
+
+- Eigener Build erfolgreich; **11/11** Tests der Packregel grün.
+- Die vollständige neue `setup-layout.spec.ts`: **91/91 grün**, einschließlich der Zustände, Tab-Reihenfolge, Erreichbarkeit neben Safety, Achssatzwechsel und Faltung.
+- Sechs unabhängige Browserfälle: **5 grün, 1 rot wegen SL-01**. Darin lange negative Achswerte, definierte/veraltete Ebenen, der lange Chip bei 100/150 %, vollständige Hochformat-WCS-Navigation und ein Achssatzwechsel während einer Eingabe. Lange Werte vergrößern die Felder nicht.
+- **4/4 gezielte Regressionen grün:** Plane-Touch-off, Capture/Clear-Gates, TCP ohne Plane-Aktionen und der im Diff geänderte erste Home-X-Haltedruck.
+- Direkte Touch-Reproduktion von SL-01 zusätzlich rot. Die vorhandenen zehn zuerst gelaufenen Choice-Prüfungen waren ebenfalls grün; den weiter gefassten Lauf habe ich zugunsten der gezielten Suite abgebrochen, nicht als vollständiges Gate gewertet.
+
+[Prüfprotokoll mit Befehlen](setup-layout.r235.checks.txt), [eigene Sonde](setup-layout.r235.probe.spec.ts), [Browserkonfiguration](setup-layout.r235.playwright.config.ts), [Stand und Prüfumfang](setup-layout.r235.metadata.json). Die Browserläufe nutzten ausschließlich den eigenen Mock auf `127.0.0.1:4188`. Keine Produktänderung, keine Live-Sim-Zugriffe und keine Maschinenbefehle; die synthetischen Mehr-Achs-TWP-Fälle bleiben Layoutnachweise, keine Freigabe realer Kinematiken.

@@ -1,0 +1,228 @@
+{
+  "before": {
+    "section": {
+      "x": 17,
+      "y": 187.09375,
+      "w": 252,
+      "h": 526,
+      "relativeY": 0
+    },
+    "head": {
+      "x": 17,
+      "y": 612.59375,
+      "w": 252,
+      "h": 16.5,
+      "relativeY": 425.5
+    },
+    "title": {
+      "x": 17,
+      "y": 612.59375,
+      "w": 27.65625,
+      "h": 16.5,
+      "relativeY": 425.5
+    },
+    "chip": {
+      "x": 48.65625,
+      "y": 612.59375,
+      "w": 52,
+      "h": 16.5,
+      "relativeY": 425.5
+    },
+    "text": "MACHINE",
+    "radios": [
+      {
+        "text": "G54",
+        "x": 17,
+        "y": 637.09375,
+        "w": 47.1875,
+        "h": 36,
+        "relativeY": 450
+      },
+      {
+        "text": "G55",
+        "x": 68.1875,
+        "y": 637.09375,
+        "w": 47.203125,
+        "h": 36,
+        "relativeY": 450
+      },
+      {
+        "text": "G56",
+        "x": 119.390625,
+        "y": 637.09375,
+        "w": 47.203125,
+        "h": 36,
+        "relativeY": 450
+      },
+      {
+        "text": "G57",
+        "x": 170.59375,
+        "y": 637.09375,
+        "w": 47.203125,
+        "h": 36,
+        "relativeY": 450
+      },
+      {
+        "text": "G58",
+        "x": 221.796875,
+        "y": 637.09375,
+        "w": 47.203125,
+        "h": 36,
+        "relativeY": 450
+      },
+      {
+        "text": "G59",
+        "x": 17,
+        "y": 677.09375,
+        "w": 60,
+        "h": 36,
+        "relativeY": 490
+      },
+      {
+        "text": "G59.1",
+        "x": 81,
+        "y": 677.09375,
+        "w": 60,
+        "h": 36,
+        "relativeY": 490
+      },
+      {
+        "text": "G59.2",
+        "x": 145,
+        "y": 677.09375,
+        "w": 60,
+        "h": 36,
+        "relativeY": 490
+      },
+      {
+        "text": "G59.3",
+        "x": 209,
+        "y": 677.09375,
+        "w": 60,
+        "h": 36,
+        "relativeY": 490
+      }
+    ],
+    "scrollTop": 960
+  },
+  "after": {
+    "section": {
+      "x": 17,
+      "y": 187.09375,
+      "w": 252,
+      "h": 546.5,
+      "relativeY": 0
+    },
+    "head": {
+      "x": 17,
+      "y": 612.59375,
+      "w": 252,
+      "h": 37,
+      "relativeY": 425.5
+    },
+    "title": {
+      "x": 17,
+      "y": 612.59375,
+      "w": 27.65625,
+      "h": 16.5,
+      "relativeY": 425.5
+    },
+    "chip": {
+      "x": 17,
+      "y": 633.09375,
+      "w": 221,
+      "h": 16.5,
+      "relativeY": 446
+    },
+    "text": "MACHINE · off datum · datum moved?G54 was touched off after the plane was defined — Clear plane and Capture again, or re-run G68.2. Also: G54 set at A 0.00°, A now 20.00° — runs at 'program zero (machine)'. Return A, use TCP or touch off.",
+    "radios": [
+      {
+        "text": "G54",
+        "x": 17,
+        "y": 657.59375,
+        "w": 47.1875,
+        "h": 36,
+        "relativeY": 470.5
+      },
+      {
+        "text": "G55",
+        "x": 68.1875,
+        "y": 657.59375,
+        "w": 47.203125,
+        "h": 36,
+        "relativeY": 470.5
+      },
+      {
+        "text": "G56",
+        "x": 119.390625,
+        "y": 657.59375,
+        "w": 47.203125,
+        "h": 36,
+        "relativeY": 470.5
+      },
+      {
+        "text": "G57",
+        "x": 170.59375,
+        "y": 657.59375,
+        "w": 47.203125,
+        "h": 36,
+        "relativeY": 470.5
+      },
+      {
+        "text": "G58",
+        "x": 221.796875,
+        "y": 657.59375,
+        "w": 47.203125,
+        "h": 36,
+        "relativeY": 470.5
+      },
+      {
+        "text": "G59",
+        "x": 17,
+        "y": 697.59375,
+        "w": 60,
+        "h": 36,
+        "relativeY": 510.5
+      },
+      {
+        "text": "G59.1",
+        "x": 81,
+        "y": 697.59375,
+        "w": 60,
+        "h": 36,
+        "relativeY": 510.5
+      },
+      {
+        "text": "G59.2",
+        "x": 145,
+        "y": 697.59375,
+        "w": 60,
+        "h": 36,
+        "relativeY": 510.5
+      },
+      {
+        "text": "G59.3",
+        "x": 209,
+        "y": 697.59375,
+        "w": 60,
+        "h": 36,
+        "relativeY": 510.5
+      }
+    ],
+    "scrollTop": 960
+  },
+  "press": {
+    "x": 91.7890625,
+    "y": 655.09375
+  },
+  "hit": {
+    "tag": "DIV",
+    "cls": "setupContent",
+    "text": "Setup ?G30 — the tool-change positionMCS 0 — machine zeroWCS 0 — program zeroZ always goes up first, never down.XXYYZZAABBCCZero XYZHome AllUnhome AllGo to G30Go to MCS 0Go to WCS 0Capture planeOrientClear planeWCSMACHINE · off datum · datum moved?G54 was touched off after the plane was defined — Clear plane and Capture again, or re-run G68.2. Also: G54 set at A 0.00°, A now 20.00° — runs at 'program zero (machine)'. Return A, use TCP or touch off.G54G55G56G57G58G59G59.1G59.2G59.3"
+  },
+  "cmds": {
+    "ok": true,
+    "op": "lastCmds",
+    "cmds": []
+  }
+}
