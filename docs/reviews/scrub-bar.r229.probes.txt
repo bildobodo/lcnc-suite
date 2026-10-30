@@ -1,0 +1,137 @@
+COMMAND: npx playwright test -c playwright.r229.config.ts e2e/scrub-r228.codex.spec.ts e2e/scrub-r228.coverage.spec.ts e2e/scrub-r229.coverage.spec.ts e2e/scrub-r229.elapsed.spec.ts -g 'R228|R229'
+
+Running 7 tests using 1 worker
+
+(node:4167830) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4167830) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+R228 contrast [{"theme":"light","track":[117,130,142,255],"card":[245,245,245,235],"fg":[33,53,71,255],"bg":[255,255,255,255],"uncomposited":3.6070887262806552,"onPage":3.6319935250515107,"onGeometry":3.1425034046136298},{"theme":"dark","track":[119,126,134,255],"card":[18,24,33,235],"fg":[230,237,243,255],"bg":[11,15,20,255],"uncomposited":4.339155303214356,"onPage":4.368504852859606,"onGeometry":3.579414074818514},{"theme":"hc-light","track":[104,104,104,255],"card":[240,240,240,235],"fg":[0,0,0,255],"bg":[255,255,255,255],"uncomposited":4.889663122826383,"onPage":4.941229876443713,"onGeometry":4.10949512498896},{"theme":"hc-dark","track":[125,125,125,255],"card":[10,10,10,235],"fg":[255,255,255,255],"bg":[0,0,0,255],"uncomposited":4.809605705440039,"onPage":4.83129201367662,"onGeometry":4.085519837650186}]
+  ✓  1 e2e/scrub-r228.codex.spec.ts:59:1 › R228 contrast includes the card alpha, all four themes (3.5s)
+R228 layout {"seconds":116,"bar":{"x":462,"y":553.5,"width":408,"height":122,"top":553.5,"right":870,"bottom":675.5,"left":462},"slider":{"x":475,"y":626.5,"width":231,"height":42,"top":626.5,"right":706,"bottom":668.5,"left":475},"play":{"x":632.5,"y":560.5,"width":54,"height":54,"top":560.5,"right":686.5,"bottom":614.5,"left":632.5},"speed":{"x":692.5,"y":560.5,"width":101,"height":54,"top":560.5,"right":793.5,"bottom":614.5,"left":692.5},"link":{"x":803,"y":560.5,"width":54,"height":54,"top":560.5,"right":857,"bottom":614.5,"left":803},"pos":{"x":791,"y":635.125,"width":66,"height":24.75,"top":635.125,"right":857,"bottom":659.875,"left":791},"time":"00:00/01:56","zoom":"1.5"}
+R228 focus {"seconds":116,"tabOrder":[{"name":null,"cls":"sliderInput rangeOverlayTrack","box":{"x":475,"y":626.5,"width":231,"height":42,"top":626.5,"right":706,"bottom":668.5,"left":475}},{"name":"Open the Sim tab","cls":"b sm default iconBtn simTabLink","box":{"x":803,"y":560.5,"width":54,"height":54,"top":560.5,"right":857,"bottom":614.5,"left":803}}]}
+  ✓  2 e2e/scrub-r228.codex.spec.ts:74:2 › R228 portrait 150 percent, duration 116, layout and keyboard order (3.6s)
+R228 layout {"seconds":21600,"bar":{"x":462,"y":553.5,"width":408,"height":122,"top":553.5,"right":870,"bottom":675.5,"left":462},"slider":{"x":475,"y":626.5,"width":209,"height":42,"top":626.5,"right":684,"bottom":668.5,"left":475},"play":{"x":632.5,"y":560.5,"width":54,"height":54,"top":560.5,"right":686.5,"bottom":614.5,"left":632.5},"speed":{"x":692.5,"y":560.5,"width":101,"height":54,"top":560.5,"right":793.5,"bottom":614.5,"left":692.5},"link":{"x":803,"y":560.5,"width":54,"height":54,"top":560.5,"right":857,"bottom":614.5,"left":803},"pos":{"x":769,"y":635.125,"width":88,"height":24.75,"top":635.125,"right":857,"bottom":659.875,"left":769},"time":"00:00/6:00:00","zoom":"1.5"}
+R228 focus {"seconds":21600,"tabOrder":[{"name":null,"cls":"sliderInput rangeOverlayTrack","box":{"x":475,"y":626.5,"width":209,"height":42,"top":626.5,"right":684,"bottom":668.5,"left":475}},{"name":"Open the Sim tab","cls":"b sm default iconBtn simTabLink","box":{"x":803,"y":560.5,"width":54,"height":54,"top":560.5,"right":857,"bottom":614.5,"left":803}}]}
+  ✓  3 e2e/scrub-r228.codex.spec.ts:74:2 › R228 portrait 150 percent, duration 21600, layout and keyboard order (3.4s)
+R228 layout {"seconds":108000,"bar":{"x":462,"y":553.5,"width":408,"height":122,"top":553.5,"right":870,"bottom":675.5,"left":462},"slider":{"x":475,"y":626.5,"width":198,"height":42,"top":626.5,"right":673,"bottom":668.5,"left":475},"play":{"x":632.5,"y":560.5,"width":54,"height":54,"top":560.5,"right":686.5,"bottom":614.5,"left":632.5},"speed":{"x":692.5,"y":560.5,"width":101,"height":54,"top":560.5,"right":793.5,"bottom":614.5,"left":692.5},"link":{"x":803,"y":560.5,"width":54,"height":54,"top":560.5,"right":857,"bottom":614.5,"left":803},"pos":{"x":758,"y":635.125,"width":99,"height":24.75,"top":635.125,"right":857,"bottom":659.875,"left":758},"time":"00:00/30:00:00","zoom":"1.5"}
+R228 focus {"seconds":108000,"tabOrder":[{"name":null,"cls":"sliderInput rangeOverlayTrack","box":{"x":475,"y":626.5,"width":198,"height":42,"top":626.5,"right":673,"bottom":668.5,"left":475}},{"name":"Open the Sim tab","cls":"b sm default iconBtn simTabLink","box":{"x":803,"y":560.5,"width":54,"height":54,"top":560.5,"right":857,"bottom":614.5,"left":803}}]}
+  ✓  4 e2e/scrub-r228.codex.spec.ts:74:2 › R228 portrait 150 percent, duration 108000, layout and keyboard order (3.6s)
+R228 coverage {"label":"75 %","title":"Collision check: provisional from L7, stopped at 75 %","summary":"1 collision · provisional from L7, stopped at 75 % (not certified)","range":{"fromCum":280,"fromLine":7,"boundary":5}}
+  ✓  5 e2e/scrub-r228.coverage.spec.ts:561:1 › R228 the provisional result keeps its own limits while the full check runs, its contacts at the start stay provisional — then a full check replaces them (Codex R116 VP-I68/I69) (11.6s)
+R228 coverage {"label":"75 %","title":"Collision check: provisional from L7, stopped at 75 %","summary":"1 collision · provisional from L7, stopped at 75 % (not certified)","range":{"fromCum":280,"fromLine":7,"boundary":5}}
+R229 stopped-result {"text":"75 %","title":"Collision check: provisional from L7, stopped at 75 %","glyphs":0,"cls":"val-slot checkSlot val-status mono","shownRange":{"fromCum":280,"fromLine":7,"boundary":5},"summary":"1 collision · provisional from L7, stopped at 75 % (not certified)"}
+R229 full-result {"text":"","glyphs":0,"cls":"val-slot checkSlot val-status mono"}
+  ✘  6 e2e/scrub-r229.coverage.spec.ts:561:1 › R229 the provisional result keeps its own limits while the full check runs, its contacts at the start stay provisional — then a full check replaces them (Codex R116 VP-I68/I69) (12.0s)
+(node:4168684) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4168684) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  7 e2e/scrub-r229.elapsed.spec.ts:48:1 › R229 narrow elapsed time stays whole and the slider fixed through the end of a 30 hour program (8.7s)
+
+
+  1) e2e/scrub-r229.coverage.spec.ts:561:1 › R229 the provisional result keeps its own limits while the full check runs, its contacts at the start stay provisional — then a full check replaces them (Codex R116 VP-I68/I69) 
+
+    Error: the displayed stopped-at-75-percent result must have its stop glyph while the full check runs behind it
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m1[39m
+    Received: [31m0[39m
+
+      608 |   console.log('R229 stopped-result '+JSON.stringify(held));
+      609 |   await page.screenshot({path: 'r229-stopped-result.png'});
+    > 610 |   expect.soft(held.glyphs, 'the displayed stopped-at-75-percent result must have its stop glyph while the full check runs behind it').toBe(1);
+          |                                                                                                                                       ^
+      611 |   expect.soft(held.cls, 'the displayed halted result keeps its warning role').toMatch(/text-warn/);
+      612 |   const text = await help();
+      613 |   expect(text).toContain("Stopped at 75 % of the program — the rest is unchecked.");
+        at /tmp/codex-r229-r12j7e66/repo/lcnc-webui/e2e/scrub-r229.coverage.spec.ts:610:135
+
+    Error: the displayed halted result keeps its warning role
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoMatch[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected pattern: [32m/text-warn/[39m
+    Received string:  [31m"val-slot checkSlot val-status mono"[39m
+
+      609 |   await page.screenshot({path: 'r229-stopped-result.png'});
+      610 |   expect.soft(held.glyphs, 'the displayed stopped-at-75-percent result must have its stop glyph while the full check runs behind it').toBe(1);
+    > 611 |   expect.soft(held.cls, 'the displayed halted result keeps its warning role').toMatch(/text-warn/);
+          |                                                                               ^
+      612 |   const text = await help();
+      613 |   expect(text).toContain("Stopped at 75 % of the program — the rest is unchecked.");
+      614 |   expect(text).toContain("Not certified: Clearance guarantee not certified for this sweep: a body was left out");
+        at /tmp/codex-r229-r12j7e66/repo/lcnc-webui/e2e/scrub-r229.coverage.spec.ts:611:79
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/scrub-r229.coverage-R229-t-de272-them-Codex-R116-VP-I68-I69-/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/scrub-r229.coverage-R229-t-de272-them-Codex-R116-VP-I68-I69-/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/scrub-r229.coverage-R229-t-de272-them-Codex-R116-VP-I68-I69-/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/scrub-r229.coverage-R229-t-de272-them-Codex-R116-VP-I68-I69-/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/scrub-r229.elapsed.spec.ts:48:1 › R229 narrow elapsed time stays whole and the slider fixed through the end of a 30 hour program 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveText[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator: locator('.scrubBar .posSlot')
+    Expected pattern: [32m/^5:00:00/[39m
+    Received string:  [31m"4:59:42/30:00:00"[39m
+    Timeout: 5000ms
+
+    Call log:
+    [2m  - Expect "toHaveText" with timeout 5000ms[22m
+    [2m  - waiting for locator('.scrubBar .posSlot')[22m
+    [2m    14 × locator resolved to <span data-v-a6995bfa="" title="4:59:42/30:00:00" class="val-slot posSlot val-status mono">…</span>[22m
+    [2m       - unexpected value "4:59:42/30:00:00"[22m
+
+
+      55 |  for(const [at,expected] of [[0,'00:00'],[18000,'5:00:00'],[108000,'30:00:00']] as const) {
+      56 |   await page.locator('.scrubBar .sliderInput').evaluate((el:HTMLInputElement,v)=>{el.value=String(v);el.dispatchEvent(new Event('input',{bubbles:true}));},at);
+    > 57 |   await expect(page.locator('.scrubBar .posSlot')).toHaveText(new RegExp('^'+expected));
+         |                                                    ^
+      58 |   const m=await page.locator('.scrubBar').evaluate(el=>{const p=el.querySelector('.posSlot') as HTMLElement; const slider=el.querySelector('.sliderWrap') as HTMLElement;
+      59 |    return {text:p.innerText,title:p.title,scroll:p.scrollWidth,client:p.clientWidth,slider:slider.getBoundingClientRect().toJSON()};});
+      60 |   expect(m.text).toBe(expected);expect(m.title).toBe(expected+'/30:00:00');expect(m.scroll).toBeLessThanOrEqual(m.client+1);
+        at /tmp/codex-r229-r12j7e66/repo/lcnc-webui/e2e/scrub-r229.elapsed.spec.ts:57:52
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/scrub-r229.elapsed-R229-na-17278-he-end-of-a-30-hour-program/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/scrub-r229.elapsed-R229-na-17278-he-end-of-a-30-hour-program/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/scrub-r229.elapsed-R229-na-17278-he-end-of-a-30-hour-program/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/scrub-r229.elapsed-R229-na-17278-he-end-of-a-30-hour-program/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    e2e/scrub-r229.coverage.spec.ts:561:1 › R229 the provisional result keeps its own limits while the full check runs, its contacts at the start stay provisional — then a full check replaces them (Codex R116 VP-I68/I69) 
+    e2e/scrub-r229.elapsed.spec.ts:48:1 › R229 narrow elapsed time stays whole and the slider fixed through the end of a 30 hour program 
+  5 passed (49.5s)
+
+HARNESS CORRECTION: elapsed intermediate input 18000 not a multiple of range step 54. Input 54000 / expected 15:00:00 replaces it; no product change. Only elapsed probe repeated.
+COMMAND: npx playwright test -c playwright.r229.config.ts e2e/scrub-r229.elapsed.spec.ts
+
+Running 1 test using 1 worker
+
+(node:4169943) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4169943) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+R229 elapsed [{"text":"00:00","title":"00:00/30:00:00","scroll":66,"client":66,"slider":{"x":475,"y":626.5,"width":198,"height":42,"top":626.5,"right":673,"bottom":668.5,"left":475}},{"text":"15:00:00","title":"15:00:00/30:00:00","scroll":66,"client":66,"slider":{"x":475,"y":626.5,"width":198,"height":42,"top":626.5,"right":673,"bottom":668.5,"left":475}},{"text":"30:00:00","title":"30:00:00/30:00:00","scroll":66,"client":66,"slider":{"x":475,"y":626.5,"width":198,"height":42,"top":626.5,"right":673,"bottom":668.5,"left":475}}]
+  ✓  1 e2e/scrub-r229.elapsed.spec.ts:48:1 › R229 narrow elapsed time stays whole and the slider fixed through the end of a 30 hour program (3.1s)
+
+  1 passed (3.6s)

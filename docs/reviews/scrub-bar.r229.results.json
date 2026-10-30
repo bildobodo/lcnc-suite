@@ -1,0 +1,566 @@
+{
+  "round": "R229",
+  "date": "2026-10-30",
+  "base": "1b532a3a",
+  "head": "e2a660f595c867013d962eec25a44c8171be1774",
+  "archive": "/tmp/codex-r229-r12j7e66/repo",
+  "mock": "http://127.0.0.1:4188",
+  "live_machine_access": false,
+  "checks": {
+    "build": "PASS",
+    "unit": {
+      "passed": 63,
+      "files": [
+        "controlInventory.test.ts",
+        "simPanelStore.test.ts",
+        "themeTokens.test.ts"
+      ]
+    },
+    "repository_browser": {
+      "passed": 20,
+      "failed": 0
+    },
+    "unchanged_R228_probes": {
+      "passed": 5,
+      "failed": 0,
+      "sha256": {
+        "scrub-bar.r228.probe.spec.ts": "eab7a449fa5137eb3d3b454d91abe760834046f0c5e11473dc40b4c4c18047eb",
+        "scrub-bar.r228.coverage.spec.ts": "c39f65dab6f0e2a5fee72a684053a224e1bcd91c4d1f1719d6f5883b0f3b0dba"
+      }
+    },
+    "R229_elapsed_probe": "PASS after correcting a non-grid fixture input (18000 seconds snaps to 17982; use 54000 exact midpoint)",
+    "R229_displayed_stop_probe": "FAIL: glyph count 0, warning class absent for displayed stopped-at-75% provisional result"
+  },
+  "measurements": {
+    "R228 contrast": [
+      [
+        {
+          "theme": "light",
+          "track": [
+            117,
+            130,
+            142,
+            255
+          ],
+          "card": [
+            245,
+            245,
+            245,
+            235
+          ],
+          "fg": [
+            33,
+            53,
+            71,
+            255
+          ],
+          "bg": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "uncomposited": 3.6070887262806552,
+          "onPage": 3.6319935250515107,
+          "onGeometry": 3.1425034046136298
+        },
+        {
+          "theme": "dark",
+          "track": [
+            119,
+            126,
+            134,
+            255
+          ],
+          "card": [
+            18,
+            24,
+            33,
+            235
+          ],
+          "fg": [
+            230,
+            237,
+            243,
+            255
+          ],
+          "bg": [
+            11,
+            15,
+            20,
+            255
+          ],
+          "uncomposited": 4.339155303214356,
+          "onPage": 4.368504852859606,
+          "onGeometry": 3.579414074818514
+        },
+        {
+          "theme": "hc-light",
+          "track": [
+            104,
+            104,
+            104,
+            255
+          ],
+          "card": [
+            240,
+            240,
+            240,
+            235
+          ],
+          "fg": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "bg": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "uncomposited": 4.889663122826383,
+          "onPage": 4.941229876443713,
+          "onGeometry": 4.10949512498896
+        },
+        {
+          "theme": "hc-dark",
+          "track": [
+            125,
+            125,
+            125,
+            255
+          ],
+          "card": [
+            10,
+            10,
+            10,
+            235
+          ],
+          "fg": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "bg": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "uncomposited": 4.809605705440039,
+          "onPage": 4.83129201367662,
+          "onGeometry": 4.085519837650186
+        }
+      ]
+    ],
+    "R228 layout": [
+      {
+        "seconds": 116,
+        "bar": {
+          "x": 462,
+          "y": 553.5,
+          "width": 408,
+          "height": 122,
+          "top": 553.5,
+          "right": 870,
+          "bottom": 675.5,
+          "left": 462
+        },
+        "slider": {
+          "x": 475,
+          "y": 626.5,
+          "width": 231,
+          "height": 42,
+          "top": 626.5,
+          "right": 706,
+          "bottom": 668.5,
+          "left": 475
+        },
+        "play": {
+          "x": 632.5,
+          "y": 560.5,
+          "width": 54,
+          "height": 54,
+          "top": 560.5,
+          "right": 686.5,
+          "bottom": 614.5,
+          "left": 632.5
+        },
+        "speed": {
+          "x": 692.5,
+          "y": 560.5,
+          "width": 101,
+          "height": 54,
+          "top": 560.5,
+          "right": 793.5,
+          "bottom": 614.5,
+          "left": 692.5
+        },
+        "link": {
+          "x": 803,
+          "y": 560.5,
+          "width": 54,
+          "height": 54,
+          "top": 560.5,
+          "right": 857,
+          "bottom": 614.5,
+          "left": 803
+        },
+        "pos": {
+          "x": 791,
+          "y": 635.125,
+          "width": 66,
+          "height": 24.75,
+          "top": 635.125,
+          "right": 857,
+          "bottom": 659.875,
+          "left": 791
+        },
+        "time": "00:00/01:56",
+        "zoom": "1.5"
+      },
+      {
+        "seconds": 21600,
+        "bar": {
+          "x": 462,
+          "y": 553.5,
+          "width": 408,
+          "height": 122,
+          "top": 553.5,
+          "right": 870,
+          "bottom": 675.5,
+          "left": 462
+        },
+        "slider": {
+          "x": 475,
+          "y": 626.5,
+          "width": 209,
+          "height": 42,
+          "top": 626.5,
+          "right": 684,
+          "bottom": 668.5,
+          "left": 475
+        },
+        "play": {
+          "x": 632.5,
+          "y": 560.5,
+          "width": 54,
+          "height": 54,
+          "top": 560.5,
+          "right": 686.5,
+          "bottom": 614.5,
+          "left": 632.5
+        },
+        "speed": {
+          "x": 692.5,
+          "y": 560.5,
+          "width": 101,
+          "height": 54,
+          "top": 560.5,
+          "right": 793.5,
+          "bottom": 614.5,
+          "left": 692.5
+        },
+        "link": {
+          "x": 803,
+          "y": 560.5,
+          "width": 54,
+          "height": 54,
+          "top": 560.5,
+          "right": 857,
+          "bottom": 614.5,
+          "left": 803
+        },
+        "pos": {
+          "x": 769,
+          "y": 635.125,
+          "width": 88,
+          "height": 24.75,
+          "top": 635.125,
+          "right": 857,
+          "bottom": 659.875,
+          "left": 769
+        },
+        "time": "00:00/6:00:00",
+        "zoom": "1.5"
+      },
+      {
+        "seconds": 108000,
+        "bar": {
+          "x": 462,
+          "y": 553.5,
+          "width": 408,
+          "height": 122,
+          "top": 553.5,
+          "right": 870,
+          "bottom": 675.5,
+          "left": 462
+        },
+        "slider": {
+          "x": 475,
+          "y": 626.5,
+          "width": 198,
+          "height": 42,
+          "top": 626.5,
+          "right": 673,
+          "bottom": 668.5,
+          "left": 475
+        },
+        "play": {
+          "x": 632.5,
+          "y": 560.5,
+          "width": 54,
+          "height": 54,
+          "top": 560.5,
+          "right": 686.5,
+          "bottom": 614.5,
+          "left": 632.5
+        },
+        "speed": {
+          "x": 692.5,
+          "y": 560.5,
+          "width": 101,
+          "height": 54,
+          "top": 560.5,
+          "right": 793.5,
+          "bottom": 614.5,
+          "left": 692.5
+        },
+        "link": {
+          "x": 803,
+          "y": 560.5,
+          "width": 54,
+          "height": 54,
+          "top": 560.5,
+          "right": 857,
+          "bottom": 614.5,
+          "left": 803
+        },
+        "pos": {
+          "x": 758,
+          "y": 635.125,
+          "width": 99,
+          "height": 24.75,
+          "top": 635.125,
+          "right": 857,
+          "bottom": 659.875,
+          "left": 758
+        },
+        "time": "00:00/30:00:00",
+        "zoom": "1.5"
+      }
+    ],
+    "R228 focus": [
+      {
+        "seconds": 116,
+        "tabOrder": [
+          {
+            "name": null,
+            "cls": "sliderInput rangeOverlayTrack",
+            "box": {
+              "x": 475,
+              "y": 626.5,
+              "width": 231,
+              "height": 42,
+              "top": 626.5,
+              "right": 706,
+              "bottom": 668.5,
+              "left": 475
+            }
+          },
+          {
+            "name": "Open the Sim tab",
+            "cls": "b sm default iconBtn simTabLink",
+            "box": {
+              "x": 803,
+              "y": 560.5,
+              "width": 54,
+              "height": 54,
+              "top": 560.5,
+              "right": 857,
+              "bottom": 614.5,
+              "left": 803
+            }
+          }
+        ]
+      },
+      {
+        "seconds": 21600,
+        "tabOrder": [
+          {
+            "name": null,
+            "cls": "sliderInput rangeOverlayTrack",
+            "box": {
+              "x": 475,
+              "y": 626.5,
+              "width": 209,
+              "height": 42,
+              "top": 626.5,
+              "right": 684,
+              "bottom": 668.5,
+              "left": 475
+            }
+          },
+          {
+            "name": "Open the Sim tab",
+            "cls": "b sm default iconBtn simTabLink",
+            "box": {
+              "x": 803,
+              "y": 560.5,
+              "width": 54,
+              "height": 54,
+              "top": 560.5,
+              "right": 857,
+              "bottom": 614.5,
+              "left": 803
+            }
+          }
+        ]
+      },
+      {
+        "seconds": 108000,
+        "tabOrder": [
+          {
+            "name": null,
+            "cls": "sliderInput rangeOverlayTrack",
+            "box": {
+              "x": 475,
+              "y": 626.5,
+              "width": 198,
+              "height": 42,
+              "top": 626.5,
+              "right": 673,
+              "bottom": 668.5,
+              "left": 475
+            }
+          },
+          {
+            "name": "Open the Sim tab",
+            "cls": "b sm default iconBtn simTabLink",
+            "box": {
+              "x": 803,
+              "y": 560.5,
+              "width": 54,
+              "height": 54,
+              "top": 560.5,
+              "right": 857,
+              "bottom": 614.5,
+              "left": 803
+            }
+          }
+        ]
+      }
+    ],
+    "R228 coverage": [
+      {
+        "label": "75 %",
+        "title": "Collision check: provisional from L7, stopped at 75 %",
+        "summary": "1 collision · provisional from L7, stopped at 75 % (not certified)",
+        "range": {
+          "fromCum": 280,
+          "fromLine": 7,
+          "boundary": 5
+        }
+      },
+      {
+        "label": "75 %",
+        "title": "Collision check: provisional from L7, stopped at 75 %",
+        "summary": "1 collision · provisional from L7, stopped at 75 % (not certified)",
+        "range": {
+          "fromCum": 280,
+          "fromLine": 7,
+          "boundary": 5
+        }
+      }
+    ],
+    "R229 stopped-result": [
+      {
+        "text": "75 %",
+        "title": "Collision check: provisional from L7, stopped at 75 %",
+        "glyphs": 0,
+        "cls": "val-slot checkSlot val-status mono",
+        "shownRange": {
+          "fromCum": 280,
+          "fromLine": 7,
+          "boundary": 5
+        },
+        "summary": "1 collision · provisional from L7, stopped at 75 % (not certified)"
+      }
+    ],
+    "R229 full-result": [
+      {
+        "text": "",
+        "glyphs": 0,
+        "cls": "val-slot checkSlot val-status mono"
+      }
+    ],
+    "R229 elapsed": [
+      [
+        {
+          "text": "00:00",
+          "title": "00:00/30:00:00",
+          "scroll": 66,
+          "client": 66,
+          "slider": {
+            "x": 475,
+            "y": 626.5,
+            "width": 198,
+            "height": 42,
+            "top": 626.5,
+            "right": 673,
+            "bottom": 668.5,
+            "left": 475
+          }
+        },
+        {
+          "text": "15:00:00",
+          "title": "15:00:00/30:00:00",
+          "scroll": 66,
+          "client": 66,
+          "slider": {
+            "x": 475,
+            "y": 626.5,
+            "width": 198,
+            "height": 42,
+            "top": 626.5,
+            "right": 673,
+            "bottom": 668.5,
+            "left": 475
+          }
+        },
+        {
+          "text": "30:00:00",
+          "title": "30:00:00/30:00:00",
+          "scroll": 66,
+          "client": 66,
+          "slider": {
+            "x": 475,
+            "y": 626.5,
+            "width": 198,
+            "height": 42,
+            "top": 626.5,
+            "right": 673,
+            "bottom": 668.5,
+            "left": 475
+          }
+        }
+      ]
+    ]
+  },
+  "verdict": "findings",
+  "remaining": "SB-02 rest: checkHalt takes state from the background full check instead of the displayed stopped provisional result",
+  "closed": [
+    "SB-01",
+    "SB-03",
+    "SB-02 title"
+  ],
+  "notes": [
+    "First build accidentally included the review probes and failed on their unused helper imports; product archive built successfully with those external probes staged out, then restored for Playwright.",
+    "First elapsed probe used a position not on the HTML range step grid; only that probe was corrected and rerun.",
+    "No product code edits. Only review appendix and new evidence written in the live workspace. No tests in live/worktrees.",
+    "Targeted Chromium review; no claim of full browser gate or integration with the separate safety-during-edit branch."
+  ]
+}

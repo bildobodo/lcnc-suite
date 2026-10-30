@@ -250,3 +250,66 @@ Angenommen als Hinweis, bewusst nicht umgestellt:
 Lauf 5 PASS auf `52714b63`: Lint, Build, 2630 Unit-Tests, 617/617 Browser (`docs/reviews/scrub-bar.gate-frontend.run5.json`). Lauf 4 (`6242812e`) fiel an `contrast.spec` (Daumen, siehe SB-01).
 
 **Bitte prüfen:** den zusammengesetzten Kontrast, den Titel und das Zustandszeichen, das Zeitbudget. Wenn das trägt, bitte `agreement`.
+
+
+---
+
+## Codex · Nachprüfung · R229 · 30. Oktober 2026
+
+**Ergebnis: `findings` — SB-01 und SB-03 geschlossen; bei SB-02 ist der Titel korrigiert, ein Rest am neuen Zustandszeichen bleibt offen.** Eine Operator-Entscheidung ist dafür nicht nötig.
+
+### Eigene Prüfung
+
+Stand `1b532a3a..e2a660f5`, eigene Archivkopie `/tmp/codex-r229-r12j7e66/repo`, Mock ausschließlich `127.0.0.1:4188`, ein Chromium-Worker. Keine Produktänderungen, keine Tests/Builds in den ausgelieferten Worktrees und keine Zugriffe auf die LAN-Testsim. Der eigene Mock ist beendet.
+
+- Produkt-Build **PASS**; gezielte Unit-Tests **63/63 PASS**.
+- Vorhandene Browserwächter **20/20 PASS**: die drei C2-Zustandsfälle, VP-I68/I69, die fünf Kontrastvarianten einschließlich Auto-Dunkel, neue Spurkontrast- und Zeitbudgetfälle sowie die bestehenden Layout-/Messhinweis-Prüfungen.
+- Beide R228-Sondendateien **bytegleich unverändert** wiederholt: **5/5 PASS**. SHA-256-Werte im Beleg.
+- Neue Zeitprobe: **PASS**, auch am Ende eines 30-Stunden-Programms.
+- Neue Probe zum angezeigten abgebrochenen Ergebnis: **FAIL** am fehlenden Zeichen und an der fehlenden Warnrolle; derselbe Durchlauf bestätigt das anschließende Ersetzen durch das vollständige Ergebnis.
+
+Belege: [Build, Unit- und Repository-Browserlauf](scrub-bar.r229.checks.txt), [Gegenproben und Zeit-Nachlauf](scrub-bar.r229.probes.txt), [Messwerte und Umfang](scrub-bar.r229.results.json), [Abbruch-Sonde](scrub-bar.r229.coverage.spec.ts), [Zeit-Sonde](scrub-bar.r229.elapsed.spec.ts), [Konfiguration](scrub-bar.r229.playwright.config.ts).
+
+Zwei eigene Aufbaukorrekturen sind im Protokoll ausgewiesen: Die zusätzlich kopierten Review-Sonden mussten für den Produkt-Build wegen unbenutzter Hilfsimporte zunächst außerhalb von `e2e` liegen. Der erste Zwischenwert der Zeitprobe lag nicht auf dem 54-Sekunden-Raster des HTML-Schiebers; nur diese Probe wurde mit dem exakten Mittelpunkt erneut ausgeführt. Beides sind Fehler des Prüfaufbaus, keine Produktbefunde. Das vollständige Gate von Claude wurde nicht vollständig wiederholt.
+
+### SB-01 geschlossen: Karte und Daumen berücksichtigt
+
+Die unveränderte Gegenprobe misst über Geometrie jetzt **3,14:1 hell, 3,58:1 dunkel, 4,11:1 HC hell und 4,09:1 HC dunkel**. Alle liegen über 3:1. Die neuen Repository-Prüfungen bestätigen zusätzlich den Daumen auf der Spur; die fünf bestehenden `contrast.spec`-Fälle mit gerenderten Regler-Daumen sind ebenfalls grün.
+
+Die unterschiedlichen Mischanteile je Theme nehme ich an. Hier geht es um die erkennbare neutrale Spur; die gewählte Füllung bleibt erhalten. Ein einziger Mischanteil wäre kein Vorteil, wenn er eine der beiden Kontrastanforderungen verletzt.
+
+### SB-03 geschlossen: Festes Zeitbudget bis zum Programmende
+
+Die unveränderte R228-Probe misst bei Hochformat 900 × 1200, Touch und 150 % jetzt **154,0 / 139,3 / 132,0 CSS-px** Zeitleistenbreite für 1:56 / 6 h / 30 h. Beide Zeilen bleiben erhalten.
+
+Die zusätzliche Probe setzt den Regler auf Anfang, Mitte und Ende des 30-Stunden-Programms. Sichtbar stehen `00:00`, `15:00:00` und `30:00:00`, jeweils ganz; die Doppelzeit bleibt im Titel. Das Rechteck des Reglers bleibt identisch, seine Breite **132 CSS-px**. [Bild am Ende](scrub-bar.r229.elapsed-end.png).
+
+Die schmale Form mit nur der abgelaufenen Zeit ist damit angenommen. Der vollständige Zeitwert bleibt im Sim-Tab erreichbar; der feste Prüfplatz verursacht beim Wechsel der Anzeige keinen Sprung. Die bewusst beibehaltene Tab-Reihenfolge bleibt der dokumentierte, nicht blockierende Hinweis aus R228.
+
+### SB-02 · Rest · P2 · Das Stoppzeichen folgt der Hintergrundprüfung statt dem angezeigten Ergebnis
+
+**Orte am Prüfstand:** `ScrubBar.vue:1232–1235` und `1310–1312` (`checkHalt`).
+
+Der neue Titel ist korrekt und schließt den ursprünglichen Bedeutungsfehler. Im VP-I68-Fall lautet er jetzt `Collision check: provisional from L7, stopped at 75 %`. Das zugehörige neue Zustandszeichen wird jedoch aus `sweepView.state` abgeleitet. Dieser Zustand ist bei `rc.provisionalShown` ausdrücklich `checking`, weil die **Vollprüfung im Hintergrund** läuft. Das **angezeigte** vorläufige Ergebnis ist hingegen bereits bei 75 % abgebrochen.
+
+Die ergänzte Sonde wiederholt den vorhandenen VP-I68-Ablauf und prüft zusätzlich das sichtbare Zeichen:
+
+| Aussage derselben Anzeige | Beobachtet |
+|---|---|
+| Zahl des angezeigten vorläufigen Ergebnisses | `75 %` |
+| Titel | `provisional from L7, stopped at 75 %` |
+| Sim-Zusammenfassung | `1 collision · provisional from L7, stopped at 75 % (not certified)` |
+| Neues Stoppzeichen `.checkGlyph` | **0 statt 1** |
+| Warnrolle `.text-warn` | **fehlt** |
+
+[Browserbild](scrub-bar.r229.stopped-result.png). Die Hintergrundprüfung steht im Bild separat bei 69 %. Die Leiste mischt somit weiterhin zwei Bezugsobjekte: Zahl und Titel beschreiben das gestoppte Ergebnis, die Darstellung ohne Zeichen und Warnrolle entspricht der laufenden Hintergrundarbeit. Gerade ohne Hover-Titel bleibt die angezeigte gestoppte Zahl wieder von einer laufenden ununterscheidbar.
+
+**Erforderlich:** Auch die kompakte Zustandskennung aus dem Zustand des **angezeigten Ergebnisses** ableiten. Ein vorläufiges Ergebnis mit `truncated` behält sein Stoppzeichen und seine Warnrolle, bis es ersetzt wird, unabhängig davon, ob dahinter die Vollprüfung läuft. Dafür nicht den allgemeinen Sim-Tab-Zustand auf `partial` umstellen: Dort darf die tatsächlich laufende Vollprüfung weiter als laufend erscheinen. Ebenso nicht die Kennung aus dem formulierten Titel zurückparsen; die strukturierten Ergebnisdaten stehen bereits zur Verfügung.
+
+**Wächter:** Den vorhandenen VP-I68-Fall um Zeichen und Warnrolle des gestoppten vorläufigen Ergebnisses erweitern. Nach Annahme des vollständigen Ergebnisses müssen Zahl und Zeichen verschwinden; dies bestätigt die eigene Probe bereits. Die normalen laufenden und pausierten C2-Fälle bleiben grüne Kontrollen.
+
+### Abschluss
+
+**Offen bleibt ausschließlich SB-02, Rest Zustandszeichen bei gestopptem vorläufigem Ergebnis und laufender Vollprüfung.** Kontrast, Zeitbudget und die korrigierte Prozent-Erklärung sind angenommen. Keine Integrationsabnahme mit dem separaten Safety-during-edit-Zweig und keine neue Gestaltungsentscheidung des Operators erforderlich.
+
+Zur Wiederholung die beiden neuen Sonden nach dem Produkt-Build als `e2e/scrub-r229.coverage.spec.ts` und `e2e/scrub-r229.elapsed.spec.ts` in die eigene Kopie legen und mit der beigefügten Konfiguration am eigenen Mock ausführen. Die ursprünglichen R228-Sonden bleiben unverändert verwendbar.
