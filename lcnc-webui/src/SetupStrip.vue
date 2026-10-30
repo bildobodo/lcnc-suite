@@ -312,16 +312,21 @@ const actionEvents = {
 .kinsChip { text-align: left; display: flex; align-items: center; }
 
 @media (orientation: portrait) {
-  .setupContent { grid-template-columns: minmax(0, 1fr); grid-template-areas: "title" "controls" "wcshead" "wcs"; }
-  /* The section rhythm between the controls and the WCS block (12 = the
-     row gap 8 + 4); the title spans the column ("?" at its end, as before). */
+  /* One column; the spacing per row as margins (no row gap under them): the
+     heading's 8 to the controls, the sections' 12 to the WCS block, and
+     "WCS" to its fixtures as a group label to its group (4, like Jog's
+     Mode) — the portrait Jog + Setup budget (layout.spec) holds with the
+     chip's own line. The title spans the column ("?" at its end, as before). */
+  .setupContent { grid-template-columns: minmax(0, 1fr); grid-template-areas: "title" "controls" "wcshead" "wcs"; row-gap: 0; }
+  .setupControls { margin-top: var(--gap-controls); }
+  .wcsCol { margin-top: var(--gap-tight); }
   .setupTitle { justify-self: stretch; }
   /* "WCS", and on a switchable machine the frame chip on a line of its own
      under it: the head's height never depends on the chip's text (a long
      chip wrapped beside "WCS" in touch portrait, the head grew 16.5 → 37 px
      and the fixtures slid 20.5 px from under a finger — Codex R235 SL-01). */
-  .wcsTitle { margin-top: var(--gap-tight); width: auto; justify-content: flex-start; }
-  .wcsTitleInner { flex: 1 1 auto; flex-direction: column; align-items: flex-start; }
+  .wcsTitle { margin-top: var(--gap-section); width: auto; justify-content: flex-start; }
+  .wcsTitleInner { flex: 1 1 auto; flex-direction: column; align-items: flex-start; gap: var(--gap-micro); }
   /* Narrow input column to fit the 280 px strip column: 280 − 2 × 8 padding
      − border − the reserved scrollbar band (~14 px, WP4) ≈ 248 px inside;
      "Unhome X" needs 84 px, so the input column and the grid gap give way
