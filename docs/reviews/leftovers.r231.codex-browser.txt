@@ -1,0 +1,65 @@
+
+Running 8 tests using 1 worker
+
+(node:200465) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:200465) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FIRST_SAFETY {"control":"arm","before":{"x":17,"y":533.5,"width":85.328125,"height":56},"commands":[{"cmd":"arm","armed":false,"req_id":"knz1eh-5"}]}
+  ✓  1 e2e/r231-codex.spec.ts:34:2 › first touch on arm stays until its click and delivers exactly once (2.3s)
+FIRST_SAFETY {"control":"estop","before":{"x":110.328125,"y":533.5,"width":85.34375,"height":56},"commands":[{"cmd":"estop","req_id":"h2pal8-5"}]}
+  ✓  2 e2e/r231-codex.spec.ts:34:2 › first touch on estop stays until its click and delivers exactly once (2.6s)
+FIRST_SAFETY {"control":"machineOn","before":{"x":203.671875,"y":533.5,"width":85.328125,"height":56},"commands":[{"cmd":"machine_off","req_id":"5ir6hq-5"}]}
+  ✓  3 e2e/r231-codex.spec.ts:34:2 › first touch on machineOn stays until its click and delivers exactly once (2.3s)
+MULTI {"before":{"x":1044,"y":533.5,"width":111.5,"height":34},"commands":[]}
+  ✓  4 e2e/r231-codex.spec.ts:49:1 › first-touch layout waits for the other finger too (3.5s)
+HELP {"zoom":1,"trigger":{"x":256,"y":424.84375,"width":13,"height":13},"popover":{"x":118.5,"y":443.84375,"width":288,"height":41.875}}
+  ✓  5 e2e/r231-codex.spec.ts:63:2 › portrait first touch opens complete jogging help, zoom 1 (2.3s)
+HELP {"zoom":1.5,"trigger":{"x":389.5,"y":665.25,"width":19.5,"height":19.5},"popover":{"x":183.25,"y":690.75,"width":432,"height":61.84375}}
+  ✓  6 e2e/r231-codex.spec.ts:63:2 › portrait first touch opens complete jogging help, zoom 1.5 (2.4s)
+FIRST_TEXT_FOCUS [{"tag":"INPUT","cls":"mdiInput inputField","inputmode":null,"touch":false}]
+  ✘  7 e2e/r231-codex.spec.ts:82:1 › first touch into MDI suppresses the native keyboard at focus (2.0s)
+(node:200967) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:200967) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+DIAGONAL {"name":"Jog X- Y+","dx":-1,"dy":1,"commands":[{"cmd":"jog_cont_multi","axes":[{"axis":0,"vel":-7.071},{"axis":1,"vel":7.071}],"req_id":"3wmv2k-5"},{"cmd":"jog_stop_multi","axes":[0,1],"req_id":"3wmv2k-6"}]}
+DIAGONAL {"name":"Jog X+ Y+","dx":1,"dy":1,"commands":[{"cmd":"jog_cont_multi","axes":[{"axis":0,"vel":7.071},{"axis":1,"vel":7.071}],"req_id":"3wmv2k-7"},{"cmd":"jog_stop_multi","axes":[0,1],"req_id":"3wmv2k-8"}]}
+DIAGONAL {"name":"Jog X- Y-","dx":-1,"dy":-1,"commands":[{"cmd":"jog_cont_multi","axes":[{"axis":0,"vel":-7.071},{"axis":1,"vel":-7.071}],"req_id":"3wmv2k-9"},{"cmd":"jog_stop_multi","axes":[0,1],"req_id":"3wmv2k-10"}]}
+DIAGONAL {"name":"Jog X+ Y-","dx":1,"dy":-1,"commands":[{"cmd":"jog_cont_multi","axes":[{"axis":0,"vel":7.071},{"axis":1,"vel":-7.071}],"req_id":"3wmv2k-11"},{"cmd":"jog_stop_multi","axes":[0,1],"req_id":"3wmv2k-12"}]}
+  ✓  8 e2e/r231-codex.spec.ts:96:1 › each named diagonal starts its two named directions (2.1s)
+
+
+  1) e2e/r231-codex.spec.ts:82:1 › first touch into MDI suppresses the native keyboard at focus ────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"none"[39m
+    Received: [31mnull[39m
+
+      92 |  const result=await page.evaluate(()=>(window as any).r231Focus);
+      93 |  console.log('FIRST_TEXT_FOCUS',JSON.stringify(result));
+    > 94 |  expect(result.find((r:any)=>r.cls.includes('mdiInput'))?.inputmode).toBe('none');
+         |                                                                      ^
+      95 | });
+      96 | test('each named diagonal starts its two named directions',async({page})=>{
+      97 |  await open(page,{width:1280,height:800});
+        at /tmp/codex-r231-jezxg0l0/repo/lcnc-webui/e2e/r231-codex.spec.ts:94:70
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r231-codex-first-touch-int-b7fa5-he-native-keyboard-at-focus/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r231-codex-first-touch-int-b7fa5-he-native-keyboard-at-focus/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r231-codex-first-touch-int-b7fa5-he-native-keyboard-at-focus/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r231-codex-first-touch-int-b7fa5-he-native-keyboard-at-focus/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/r231-codex.spec.ts:82:1 › first touch into MDI suppresses the native keyboard at focus ─────
+  7 passed (20.8s)

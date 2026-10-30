@@ -1,0 +1,52 @@
+
+Running 2 tests using 1 worker
+
+(node:202847) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:202847) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FIRST_TEXT_FOCUS {"field":"MDI","focus":[{"tag":"INPUT","cls":"mdiInput inputField","inputmode":"none","touch":true}],"after":"none"}
+  ✓  1 e2e/r231-codex.spec.ts:83:2 › first touch into MDI sets inputmode none before focus (1.9s)
+  ✘  2 e2e/r231-codex.spec.ts:83:2 › first touch into Search tools sets inputmode none before focus (6.9s)
+
+
+  1) e2e/r231-codex.spec.ts:83:2 › first touch into Search tools sets inputmode none before focus ──
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('.tkStrip')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('.tkStrip')[22m
+
+
+      90 |   });
+      91 |   await input.tap();
+    > 92 |   await expect(page.locator('.tkStrip')).toBeVisible();
+         |                                          ^
+      93 |   await expect(page.locator('html')).toHaveClass(/touch-device/);
+      94 |   const result=await page.evaluate(()=>(window as any).r231Focus);
+      95 |   console.log('FIRST_TEXT_FOCUS',JSON.stringify({field,focus:result,after:await input.getAttribute('inputmode')}));
+        at /tmp/codex-r231-jezxg0l0/baseline/lcnc-webui/e2e/r231-codex.spec.ts:92:42
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r231-codex-first-touch-int-8ff4c-inputmode-none-before-focus/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r231-codex-first-touch-int-8ff4c-inputmode-none-before-focus/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r231-codex-first-touch-int-8ff4c-inputmode-none-before-focus/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r231-codex-first-touch-int-8ff4c-inputmode-none-before-focus/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/r231-codex.spec.ts:83:2 › first touch into Search tools sets inputmode none before focus ───
+  1 passed (9.6s)

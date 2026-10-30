@@ -1,0 +1,80 @@
+
+Running 2 tests using 1 worker
+
+(node:202017) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:202017) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FIRST_TEXT_FOCUS {"field":"MDI","focus":[{"tag":"INPUT","cls":"mdiInput inputField","inputmode":null,"touch":false}],"after":"none"}
+  ✘  1 e2e/r231-codex.spec.ts:83:2 › first touch into MDI sets inputmode none before focus (2.9s)
+(node:202177) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:202177) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FIRST_TEXT_FOCUS {"field":"Search tools","focus":[{"tag":"INPUT","cls":"toolSearch inputField","inputmode":null,"touch":false}],"after":"none"}
+  ✘  2 e2e/r231-codex.spec.ts:83:2 › first touch into Search tools sets inputmode none before focus (2.9s)
+
+
+  1) e2e/r231-codex.spec.ts:83:2 › first touch into MDI sets inputmode none before focus ───────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"none"[39m
+    Received: [31mnull[39m
+
+      94 |   const result=await page.evaluate(()=>(window as any).r231Focus);
+      95 |   console.log('FIRST_TEXT_FOCUS',JSON.stringify({field,focus:result,after:await input.getAttribute('inputmode')}));
+    > 96 |   expect(result[0]?.inputmode).toBe('none');
+         |                                ^
+      97 |  });
+      98 | }
+      99 | test('each named diagonal starts its two named directions',async({page})=>{
+        at /tmp/codex-r231-jezxg0l0/repo/lcnc-webui/e2e/r231-codex.spec.ts:96:32
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r231-codex-first-touch-int-d7c58-inputmode-none-before-focus/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r231-codex-first-touch-int-d7c58-inputmode-none-before-focus/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r231-codex-first-touch-int-d7c58-inputmode-none-before-focus/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r231-codex-first-touch-int-d7c58-inputmode-none-before-focus/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/r231-codex.spec.ts:83:2 › first touch into Search tools sets inputmode none before focus ──
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"none"[39m
+    Received: [31mnull[39m
+
+      94 |   const result=await page.evaluate(()=>(window as any).r231Focus);
+      95 |   console.log('FIRST_TEXT_FOCUS',JSON.stringify({field,focus:result,after:await input.getAttribute('inputmode')}));
+    > 96 |   expect(result[0]?.inputmode).toBe('none');
+         |                                ^
+      97 |  });
+      98 | }
+      99 | test('each named diagonal starts its two named directions',async({page})=>{
+        at /tmp/codex-r231-jezxg0l0/repo/lcnc-webui/e2e/r231-codex.spec.ts:96:32
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r231-codex-first-touch-int-8ff4c-inputmode-none-before-focus/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r231-codex-first-touch-int-8ff4c-inputmode-none-before-focus/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r231-codex-first-touch-int-8ff4c-inputmode-none-before-focus/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r231-codex-first-touch-int-8ff4c-inputmode-none-before-focus/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    e2e/r231-codex.spec.ts:83:2 › first touch into MDI sets inputmode none before focus ────────────
+    e2e/r231-codex.spec.ts:83:2 › first touch into Search tools sets inputmode none before focus ───

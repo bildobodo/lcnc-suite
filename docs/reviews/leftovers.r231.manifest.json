@@ -1,0 +1,31 @@
+{
+  "review": "R231",
+  "at": "2026-10-30T06:51:30.925248+01:00",
+  "head": "a6e201ea50cec388f0f801320f7fda6b03796daf",
+  "baseline": "f14c2ec3e44b03d9bf32631f4ffec622dcf22e95",
+  "working_directory": "/tmp/codex-r231-jezxg0l0",
+  "mock": "127.0.0.1:4188",
+  "node": "v22.23.2",
+  "results": {
+    "build": "PASS",
+    "unit": "20/20",
+    "repository_browser": "51/51",
+    "independent_positive_cases": "7/7",
+    "focus_at_head": "MDI and Search tools: inputmode null at focus, none afterward",
+    "baseline": "MDI passes; Search tools fails earlier because the helper does not open (not a valid focus comparison)"
+  },
+  "artifacts": {
+    "leftovers.r231.focus-baseline.txt": "5c87fb0d6726f14320228da96e6d5a92a8280c86e4df728a8fcd4270b77b75c4",
+    "leftovers.r231.playwright.config.ts": "edc1ca3e76c891793764e0c20f850db9d4f0b0a4cfde248bc03050bafc904ede",
+    "leftovers.r231.repository-browser.txt": "f719713a2b153a69c615f0da9ad0e857c874ec397b47e6a82115babb5aea442f",
+    "leftovers.r231.build.txt": "540ba50ecb73ae24897b5e6baa2b0128a3b3f318341619887beac5a9cd0f3f44",
+    "leftovers.r231.unit.txt": "f2dce23fd0447a09243f27ca0e908e25fc4d7cd07888bf28814c89de52cf7e35",
+    "leftovers.r231.baseline-build.txt": "1747dfcf747f111b03cd3fe4c49c8e26a04e0a060f31b05a7ba8e6e16cdec539",
+    "leftovers.r231.mdi-focus.trace.zip": "2e5a3f7650097466cc433461f85da62f5e00a623bcaa0ad242a40c225bd8cc28",
+    "leftovers.r231.probe.spec.ts": "c07c729cdd67fe87e479b9ccab739c13a113641fa486dd4aaa841341c0b9d9ac",
+    "leftovers.r231.focus-head.txt": "31f3d146485e7edfc3a0239147fcfbfa32330deebeab3b23f3886949bae3f2e7",
+    "leftovers.r231.codex-browser.txt": "847978f42ac66281125157f382e21033d8c541160cb343d8f22c30718a8116a6",
+    "leftovers.r231.help-portrait-150.png": "679dd9dce09950a4caaa60e95df8eb0ff2976e1df0318ffb97d947bf0a57c723",
+    "leftovers.r231.tools-focus.trace.zip": "1adba9aff1b92586a85d1f66d6ea0f6b06f882a09bbab5b40a8eeaa489d110e9"
+  }
+}
