@@ -1,0 +1,83 @@
+R228 independent checks
+Head 1b532a3a171961752f1484e32228d68b63ed024b
+Archive /tmp/codex-r228-3gw0n9w2/repo
+Mock 127.0.0.1:4188, workers=1
+
+COMMAND: npm run build
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2122 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-CxO0s1FA.css                 8.02 kB │ gzip:   2.04 kB
+dist/static/index-C78fEigD.css                      95.47 kB │ gzip:  17.40 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-Bq8UPevt.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-DXca8t-F.js                 9.05 kB │ gzip:   3.34 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-Ch3kw1tL.js                277.19 kB │ gzip: 104.49 kB
+dist/static/index-BgtDqLwn.js                      662.94 kB │ gzip: 212.96 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.28s
+
+COMMAND: npx vitest run src/controlInventory.test.ts src/simPanelStore.test.ts src/themeTokens.test.ts
+
+ RUN  v4.1.8 /tmp/codex-r228-3gw0n9w2/repo/lcnc-webui
+
+
+ Test Files  3 passed (3)
+      Tests  63 passed (63)
+   Start at  01:56:46
+   Duration  747ms (transform 673ms, setup 0ms, import 1.03s, tests 57ms, environment 0ms)
+
+
+COMMAND: npx playwright test -c playwright.r228.config.ts e2e/sim-panel.viewer.spec.ts e2e/collisions.viewer.spec.ts e2e/select-writes.spec.ts -g 'the scrub bar|a portrait viewer: two rows|the timeline:|stepping through the findings|provisional result keeps its own limits|select'
+
+Running 14 tests using 1 worker
+
+(node:4028896) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4028896) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/collisions.viewer.spec.ts:1014:1 › the provisional result keeps its own limits while the full check runs, its contacts at the start stay provisional — then a full check replaces them (Codex R116 VP-I68/I69) (7.9s)
+  ✓   2 e2e/select-writes.spec.ts:66:1 › desktop: the Tools type filter, the tool editor's type, the Macros bar filter, the reference's group (3.3s)
+  ✓   3 e2e/select-writes.spec.ts:86:1 › portrait 150 %: the side panel and the probing procedure selects (2.1s)
+  ✓   4 e2e/select-writes.spec.ts:96:1 › TWP on touch landscape: the jog step select (2.0s)
+  ✓   5 e2e/select-writes.spec.ts:102:1 › Settings › Gamepad with a pad polled: the mapping selects (2.6s)
+  ✓   6 e2e/select-writes.spec.ts:120:1 › the tool library import's mode select (2.1s)
+  ✓   7 e2e/select-writes.spec.ts:133:1 › the message center's filter while messages arrive and the machine talks (1.9s)
+  ✓   8 e2e/select-writes.spec.ts:155:1 › the Simulation tab's speed and list filter while the simulation plays (2.8s)
+  ✓   9 e2e/sim-panel.viewer.spec.ts:643:1 › the timeline: no progress lane over the track, opaque findings, ticks without a light edge, glyphs apart (3.0s)
+  ✓  10 e2e/sim-panel.viewer.spec.ts:718:1 › stepping through the findings never changes the bar: the same box, the same timeline (11.1s)
+  ✓  11 e2e/sim-panel.viewer.spec.ts:1274:1 › the scrub bar: the speed beside Play is the Sim tab's speed, the link opens the Sim tab, no band over the track (2.9s)
+  ✓  12 e2e/sim-panel.viewer.spec.ts:1291:3 › the scrub bar's timeline holds 3 : 1 against the card, in and out of the simulation (light) (2.8s)
+  ✓  13 e2e/sim-panel.viewer.spec.ts:1291:3 › the scrub bar's timeline holds 3 : 1 against the card, in and out of the simulation (dark) (2.9s)
+  ✓  14 e2e/sim-panel.viewer.spec.ts:1306:1 › a portrait viewer: two rows — Sim, Play, the speed and the link above, the timeline with the coverage and the time below (2.6s)
+
+  14 passed (50.9s)

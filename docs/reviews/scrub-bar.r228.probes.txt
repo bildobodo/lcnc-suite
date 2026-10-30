@@ -1,0 +1,169 @@
+COMMAND: npx playwright test -c playwright.r228.config.ts e2e/scrub-r228.codex.spec.ts e2e/scrub-r228.coverage.spec.ts -g R228
+
+Running 5 tests using 1 worker
+
+(node:4031810) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4031810) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+R228 contrast [{"theme":"light","track":[132,143,154,255],"card":[245,245,245,235],"fg":[33,53,71,255],"bg":[255,255,255,255],"uncomposited":3.0206758320524125,"onPage":3.041531799137764,"onGeometry":2.631619238334266},{"theme":"dark","track":[115,122,130,255],"card":[18,24,33,235],"fg":[230,237,243,255],"bg":[11,15,20,255],"uncomposited":4.103353473094832,"onPage":4.131108086160051,"onGeometry":3.3848987070526855},{"theme":"hc-light","track":[93,93,93,255],"card":[240,240,240,235],"fg":[0,0,0,255],"bg":[255,255,255,255],"uncomposited":5.7779834086928865,"onPage":5.838918454596183,"onGeometry":4.856079867638278},{"theme":"hc-dark","track":[120,120,120,255],"card":[10,10,10,235],"fg":[255,255,255,255],"bg":[0,0,0,255],"uncomposited":4.48420028856987,"onPage":4.504419357576399,"onGeometry":3.8091041879435594}]
+  ✘  1 e2e/scrub-r228.codex.spec.ts:59:1 › R228 contrast includes the card alpha, all four themes (4.0s)
+(node:4031979) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4031979) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+R228 layout {"seconds":116,"bar":{"x":462,"y":553.5,"width":408,"height":122,"top":553.5,"right":870,"bottom":675.5,"left":462},"slider":{"x":475,"y":626.5,"width":183,"height":42,"top":626.5,"right":658,"bottom":668.5,"left":475},"play":{"x":632.5,"y":560.5,"width":54,"height":54,"top":560.5,"right":686.5,"bottom":614.5,"left":632.5},"speed":{"x":692.5,"y":560.5,"width":101,"height":54,"top":560.5,"right":793.5,"bottom":614.5,"left":692.5},"link":{"x":803,"y":560.5,"width":54,"height":54,"top":560.5,"right":857,"bottom":614.5,"left":803},"pos":{"x":725,"y":635.125,"width":132,"height":24.75,"top":635.125,"right":857,"bottom":659.875,"left":725},"time":"00:00/01:56","zoom":"1.5"}
+R228 focus {"seconds":116,"tabOrder":[{"name":null,"cls":"sliderInput rangeOverlayTrack","box":{"x":475,"y":626.5,"width":183,"height":42,"top":626.5,"right":658,"bottom":668.5,"left":475}},{"name":"Open the Sim tab","cls":"b sm default iconBtn simTabLink","box":{"x":803,"y":560.5,"width":54,"height":54,"top":560.5,"right":857,"bottom":614.5,"left":803}}]}
+  ✓  2 e2e/scrub-r228.codex.spec.ts:74:2 › R228 portrait 150 percent, duration 116, layout and keyboard order (3.1s)
+R228 layout {"seconds":21600,"bar":{"x":462,"y":553.5,"width":408,"height":122,"top":553.5,"right":870,"bottom":675.5,"left":462},"slider":{"x":475,"y":626.5,"width":139,"height":42,"top":626.5,"right":614,"bottom":668.5,"left":475},"play":{"x":632.5,"y":560.5,"width":54,"height":54,"top":560.5,"right":686.5,"bottom":614.5,"left":632.5},"speed":{"x":692.5,"y":560.5,"width":101,"height":54,"top":560.5,"right":793.5,"bottom":614.5,"left":692.5},"link":{"x":803,"y":560.5,"width":54,"height":54,"top":560.5,"right":857,"bottom":614.5,"left":803},"pos":{"x":681,"y":635.125,"width":176,"height":24.75,"top":635.125,"right":857,"bottom":659.875,"left":681},"time":"00:00/6:00:00","zoom":"1.5"}
+R228 focus {"seconds":21600,"tabOrder":[{"name":null,"cls":"sliderInput rangeOverlayTrack","box":{"x":475,"y":626.5,"width":139,"height":42,"top":626.5,"right":614,"bottom":668.5,"left":475}},{"name":"Open the Sim tab","cls":"b sm default iconBtn simTabLink","box":{"x":803,"y":560.5,"width":54,"height":54,"top":560.5,"right":857,"bottom":614.5,"left":803}}]}
+  ✘  3 e2e/scrub-r228.codex.spec.ts:74:2 › R228 portrait 150 percent, duration 21600, layout and keyboard order (3.6s)
+(node:4032202) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4032202) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+R228 layout {"seconds":108000,"bar":{"x":462,"y":553.5,"width":408,"height":122,"top":553.5,"right":870,"bottom":675.5,"left":462},"slider":{"x":475,"y":626.5,"width":117,"height":42,"top":626.5,"right":592,"bottom":668.5,"left":475},"play":{"x":632.5,"y":560.5,"width":54,"height":54,"top":560.5,"right":686.5,"bottom":614.5,"left":632.5},"speed":{"x":692.5,"y":560.5,"width":101,"height":54,"top":560.5,"right":793.5,"bottom":614.5,"left":692.5},"link":{"x":803,"y":560.5,"width":54,"height":54,"top":560.5,"right":857,"bottom":614.5,"left":803},"pos":{"x":659,"y":635.125,"width":198,"height":24.75,"top":635.125,"right":857,"bottom":659.875,"left":659},"time":"00:00/30:00:00","zoom":"1.5"}
+R228 focus {"seconds":108000,"tabOrder":[{"name":null,"cls":"sliderInput rangeOverlayTrack","box":{"x":475,"y":626.5,"width":117,"height":42,"top":626.5,"right":592,"bottom":668.5,"left":475}},{"name":"Open the Sim tab","cls":"b sm default iconBtn simTabLink","box":{"x":803,"y":560.5,"width":54,"height":54,"top":560.5,"right":857,"bottom":614.5,"left":803}}]}
+  ✘  4 e2e/scrub-r228.codex.spec.ts:74:2 › R228 portrait 150 percent, duration 108000, layout and keyboard order (3.7s)
+(node:4032374) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4032374) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+R228 coverage {"label":"75 %","title":"Collision check: 75 % of the program checked","summary":"1 collision · provisional from L7, stopped at 75 % (not certified)","range":{"fromCum":280,"fromLine":7,"boundary":5}}
+  ✘  5 e2e/scrub-r228.coverage.spec.ts:561:1 › R228 the provisional result keeps its own limits while the full check runs, its contacts at the start stay provisional — then a full check replaces them (Codex R116 VP-I68/I69) (11.3s)
+
+
+  1) e2e/scrub-r228.codex.spec.ts:59:1 › R228 contrast includes the card alpha, all four themes ────
+
+    Error: light against geometry through card
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32m3[39m
+    Received:    [31m2.631619238334266[39m
+
+      66 |   const m=await page.evaluate(contrastProbe);measurements.push({theme,...m});
+      67 |   expect.soft(m.onPage,theme+' against page through card').toBeGreaterThanOrEqual(3);
+    > 68 |   expect.soft(m.onGeometry,theme+' against geometry through card').toBeGreaterThanOrEqual(3);
+         |                                                                    ^
+      69 |  }
+      70 |  console.log('R228 contrast '+JSON.stringify(measurements));
+      71 |  await info.attach('contrast.json',{body:JSON.stringify(measurements,null,2),contentType:'application/json'});
+        at /tmp/codex-r228-3gw0n9w2/repo/lcnc-webui/e2e/scrub-r228.codex.spec.ts:68:68
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/scrub-r228.codex-R228-cont-62aeb--card-alpha-all-four-themes/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/scrub-r228.codex-R228-cont-62aeb--card-alpha-all-four-themes/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/scrub-r228.codex-R228-cont-62aeb--card-alpha-all-four-themes/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/scrub-r228.codex-R228-cont-62aeb--card-alpha-all-four-themes/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/scrub-r228.codex.spec.ts:74:2 › R228 portrait 150 percent, duration 21600, layout and keyboard order 
+
+    Error: at least 120 CSS px for the slider
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32m120[39m
+    Received:    [31m92.66666666666667[39m
+
+      90 |   expect.soft(Math.abs(mid(m.link)-mid(m.play)),'link in row 1').toBeLessThan(4);
+      91 |   expect.soft(Math.abs(mid(m.pos)-mid(m.slider)),'time in row 2').toBeLessThan(12);
+    > 92 |   expect.soft(m.slider.width/1.5,'at least 120 CSS px for the slider').toBeGreaterThanOrEqual(120);
+         |                                                                        ^
+      93 |   expect.soft(m.slider.width,'nonzero usable slider').toBeGreaterThan(36*1.5);
+      94 |   expect.soft(m.pos.right,'time inside bar').toBeLessThanOrEqual(m.bar.right);
+      95 |   const tabOrder=[];
+        at /tmp/codex-r228-3gw0n9w2/repo/lcnc-webui/e2e/scrub-r228.codex.spec.ts:92:72
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/scrub-r228.codex-R228-port-1b26e-0-layout-and-keyboard-order/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/scrub-r228.codex-R228-port-1b26e-0-layout-and-keyboard-order/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/scrub-r228.codex-R228-port-1b26e-0-layout-and-keyboard-order/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/scrub-r228.codex-R228-port-1b26e-0-layout-and-keyboard-order/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) e2e/scrub-r228.codex.spec.ts:74:2 › R228 portrait 150 percent, duration 108000, layout and keyboard order 
+
+    Error: at least 120 CSS px for the slider
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32m120[39m
+    Received:    [31m78[39m
+
+      90 |   expect.soft(Math.abs(mid(m.link)-mid(m.play)),'link in row 1').toBeLessThan(4);
+      91 |   expect.soft(Math.abs(mid(m.pos)-mid(m.slider)),'time in row 2').toBeLessThan(12);
+    > 92 |   expect.soft(m.slider.width/1.5,'at least 120 CSS px for the slider').toBeGreaterThanOrEqual(120);
+         |                                                                        ^
+      93 |   expect.soft(m.slider.width,'nonzero usable slider').toBeGreaterThan(36*1.5);
+      94 |   expect.soft(m.pos.right,'time inside bar').toBeLessThanOrEqual(m.bar.right);
+      95 |   const tabOrder=[];
+        at /tmp/codex-r228-3gw0n9w2/repo/lcnc-webui/e2e/scrub-r228.codex.spec.ts:92:72
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/scrub-r228.codex-R228-port-3dfcb-0-layout-and-keyboard-order/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/scrub-r228.codex-R228-port-3dfcb-0-layout-and-keyboard-order/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/scrub-r228.codex-R228-port-3dfcb-0-layout-and-keyboard-order/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/scrub-r228.codex-R228-port-3dfcb-0-layout-and-keyboard-order/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) e2e/scrub-r228.coverage.spec.ts:561:1 › R228 the provisional result keeps its own limits while the full check runs, its contacts at the start stay provisional — then a full check replaces them (Codex R116 VP-I68/I69) 
+
+    Error: a reached end is not the checked fraction of the whole program
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mnot[2m.[22mtoContain[2m([22m[32mexpected[39m[2m) // indexOf[22m
+
+    Expected substring: not [32m"75 % of the program checked"[39m
+    Received string:        [31m"Collision check: [7m75 % of the program checked[27m"[39m
+
+      601 |   await expect(item.locator('span[title^="Not certified"]'), "its star").toHaveCount(1);
+      602 |   console.log('R228 coverage '+JSON.stringify({label:await coverage.innerText(), title:await coverage.getAttribute('title'),summary:await item.getAttribute('aria-label'),range:await page.evaluate(()=>window.__viewerDiag!.getCollisionRange!())}));
+    > 603 |   expect.soft(await coverage.getAttribute('title'),'a reached end is not the checked fraction of the whole program').not.toContain('75 % of the program checked');
+          |                                                                                                                          ^
+      604 |   const text = await help();
+      605 |   expect(text).toContain("Stopped at 75 % of the program — the rest is unchecked.");
+      606 |   expect(text).toContain("Not certified: Clearance guarantee not certified for this sweep: a body was left out");
+        at /tmp/codex-r228-3gw0n9w2/repo/lcnc-webui/e2e/scrub-r228.coverage.spec.ts:603:122
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/scrub-r228.coverage-R228-t-45e26-them-Codex-R116-VP-I68-I69-/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/scrub-r228.coverage-R228-t-45e26-them-Codex-R116-VP-I68-I69-/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/scrub-r228.coverage-R228-t-45e26-them-Codex-R116-VP-I68-I69-/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/scrub-r228.coverage-R228-t-45e26-them-Codex-R116-VP-I68-I69-/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4 failed
+    e2e/scrub-r228.codex.spec.ts:59:1 › R228 contrast includes the card alpha, all four themes ─────
+    e2e/scrub-r228.codex.spec.ts:74:2 › R228 portrait 150 percent, duration 21600, layout and keyboard order 
+    e2e/scrub-r228.codex.spec.ts:74:2 › R228 portrait 150 percent, duration 108000, layout and keyboard order 
+    e2e/scrub-r228.coverage.spec.ts:561:1 › R228 the provisional result keeps its own limits while the full check runs, its contacts at the start stay provisional — then a full check replaces them (Codex R116 VP-I68/I69) 
+  1 passed (30.0s)

@@ -102,3 +102,86 @@ Gebrauch; die Ausnahme ist in `docs/decisions.md` (29. Oktober) begründet.
 
 **Bitte prüfen:** die Umsetzung gegen die Entscheidungen, die Abdeckung des angezeigten Ergebnisses
 (VP-I68), die Wächter. Wenn das trägt, bitte `agreement`.
+
+
+---
+
+## Codex · Implementierungsreview · R228 · 30. Oktober 2026
+
+**Ergebnis: `findings` — drei offene P2-Befunde SB-01 bis SB-03.** Die Geschwindigkeit neben Play, die gemeinsame Zustandsquelle beider Auswahlen und der Sim-Tab-Link sind angenommen. Der Bezug auf das angezeigte Prüfergebnis ist richtig; dessen Prozent-Erklärung, der tatsächliche Spurkontrast und das Breitenbudget längerer Programme brauchen Korrekturen.
+
+### Eigene Prüfung
+
+Stand `729a7f4a..1b532a3a`, Archivkopie `/tmp/codex-r228-3gw0n9w2/repo`, eigener Mock ausschließlich `127.0.0.1:4188`, ein Browser-Worker. Keine Produktänderungen, keine Tests/Builds in den ausgelieferten Worktrees, keine Zugriffe auf die LAN-Testsim. Der eigene Mock ist beendet. Die Basis vor Safety during edit wurde wie angefragt geprüft; daraus folgt keine Integrationsabnahme mit diesem separaten Zweig.
+
+- Build **PASS**.
+- `controlInventory.test.ts`, `simPanelStore.test.ts`, `themeTokens.test.ts`: **63/63 PASS**.
+- Gezielte vorhandene Browserwächter: **14/14 PASS**. Enthalten sind VP-I68/I69, die sieben Select-Schreibprüfungen, Zeitleistenmarken, Layout beim Durchsteppen und die vier neuen Scrub-Bar-Fälle.
+- Eigene Gegenproben: **1 grün / 4 rot**. Die kurze Vorschau ist die Layout-Kontrolle; rot sind Kontrast über Geometrie, zwei längere Laufzeiten und die Erklärung der vorläufigen Prozentzahl.
+
+Belege: [Build, Unit- und vorhandene Browserprüfungen](scrub-bar.r228.checks.txt), [Gegenproben-Protokoll](scrub-bar.r228.probes.txt), [Messwerte](scrub-bar.r228.results.json), [Kontrast-/Layoutsonde](scrub-bar.r228.probe.spec.ts), [Coverage-Sonde](scrub-bar.r228.coverage.spec.ts), [Konfiguration](scrub-bar.r228.playwright.config.ts). Claudes vollständiges Gate mit 612 Browserfällen wurde nicht vollständig wiederholt.
+
+### SB-01 · P2 · Die transparente Karte unterschreitet im hellen Theme die versprochenen 3:1
+
+**Orte:** `style.css:221–224`, `ScrubBar.vue:1522–1528`; neuer Wächter in `sim-panel.viewer.spec.ts:1291–1302`.
+
+Der Wächter vergleicht die RGB-Kanäle von Spur und Karte und verwirft dabei den Alphakanal der Karte. `.overlay-card` ist aber nur zu 92 % deckend. Der gemessene Kartenwert ist `[245,245,245,235]`; hinter dunkler Geometrie ist der sichtbare Hintergrund entsprechend dunkler.
+
+Die eigene Probe verwendet die bereits in `contrast.spec.ts` vereinbarte Zusammensetzung einer schwebenden Karte über Seitenhintergrund **und** Geometrie in `--fg`, mit den tatsächlich vom Browser aufgelösten Farben:
+
+| Theme | Ohne Zusammensetzen, wie neuer Wächter | Über Seitenhintergrund | Über Geometrie |
+|---|---:|---:|---:|
+| Hell | 3,02:1 | 3,04:1 | **2,63:1** |
+| Dunkel | 4,10:1 | 4,13:1 | 3,38:1 |
+| HC Hell | 5,78:1 | 5,84:1 | 4,86:1 |
+| HC Dunkel | 4,48:1 | 4,50:1 | 3,81:1 |
+
+Die Probe läuft bei aktivierter Simulation, also mit bedienbarem Schieber. Dies ist eine Zusammensetzung gemessener CSS-Farben nach dem bestehenden Prüfvertrag, keine als WebGL-Pixelmessung ausgegebene Rechnung.
+
+**Erforderlich:** Die gewählte Füllung auch gegen den zusammengesetzten Kartenhintergrund auf mindestens 3:1 bringen und den Wächter entsprechend erweitern. Ein etwas kräftigerer, ausgemessener Füllton oder ein deckender lokaler Hintergrund unter der Spur sind mögliche Wege. Die Operator-Entscheidung für die Füllung muss dafür nicht zurückgenommen werden.
+
+### SB-02 · P2 · Die erreichte Endposition wird als geprüfter Anteil des ganzen Programms erklärt
+
+**Ort:** `ScrubBar.vue:1283–1293`, insbesondere `checkPctTitle`.
+
+Im bestehenden VP-I68-Fall beginnt die angezeigte vorläufige Prüfung bei `fromCum=280` von 800, also bei **35 % / L7**, und endet bei **75 %**. Die Zahl `sweptFrac=0.75` ist dafür richtig: Sie beschreibt, **bis wohin** diese Prüfung reicht. Sie bedeutet nicht, dass 75 % des gesamten Programms geprüft wurden.
+
+Die neue Anzeige hat dennoch den Titel:
+
+> Collision check: 75 % of the program checked
+
+Gleichzeitig nennt die korrekte Sim-Zusammenfassung `provisional from L7, stopped at 75 % (not certified)`. Die eigene Coverage-Sonde wiederholt denselben Ablauf, lässt alle bisherigen Aussagen weiter prüfen und wird nur an dieser zusätzlichen Titelprüfung rot. Die spätere vollständige Prüfung ersetzt das vorläufige Ergebnis weiterhin korrekt.
+
+**Erforderlich:** Endposition, Umfang und Einschränkung getrennt benennen. Bei beibehaltenem `sweptFrac` muss die Erklärung „bis …“ bzw. „gestoppt bei …, vorläufig ab L7“ aussagen; sie darf keinen geprüften Anteil des Gesamtprogramms behaupten. Auch „bis 100 %“ eines vorläufigen Suffixes ist keine Vollprüfung. Nicht auf den Fortschritt der im Hintergrund laufenden Vollprüfung zurückwechseln: Der richtige Bezug zum angezeigten Ergebnis muss erhalten bleiben.
+
+**Antwort auf Frage 1:** Eine dauerhaft stehende nackte Prozentzahl unterscheidet laufend, pausiert und abgebrochen nicht. Ich empfehle eine kompakte Zustandskennung für pausiert/abgebrochen sowie eine ehrliche Erklärung des Prüfabschnitts, mit den Details über den Sim-Link erreichbar. Die Zahl kann bleiben; sie sollte als Prüfstand erkennbar sein. Die irreführende aktuelle Erklärung ist unabhängig von der Wahl dieser Kurzform zu korrigieren.
+
+### SB-03 · P2 · Das Zweizeilenbudget hält die 120-px-Untergrenze nur bei kurzen Programmen
+
+**Orte:** `ScrubBar.vue:675–676` (`posSlotCh`), `1482–1487` und `1557–1580` (feste Plätze und flexible Spur); bestehender Mindestbreiten-Wächter `sim-panel.viewer.spec.ts:718–749`.
+
+Der neue Wächter prüft nur eine Vorschau von 116 Sekunden. Mit derselben Geometrie und lediglich längeren `feed_tcum`-Werten, Hochformat 900 × 1200, Touch und 150 %, ergibt sich:
+
+| Vorschauzeit | Zeitleiste in CSS-px, Zoom herausgerechnet | Zeilen |
+|---|---:|---:|
+| 1:56 | **122,0** | 2 |
+| 6:00:00 | **92,7** | 2 |
+| 30:00:00 | **78,0** | 2 |
+
+Die erste Zeile bleibt in allen drei Fällen stabil. Das Problem sitzt in der zweiten: `posSlotCh` reserviert mit der Programmdauer immer mehr Breite, dazu kommen die festen 5 ch der Prüfanzeige; `.sliderWrap` darf bis auf null schrumpfen. Damit fällt gerade die vom vorhandenen Wächter verlangte Untergrenze von 120 CSS-px. Der Reglerweg ist nach Abzug des Daumens noch kürzer. Das ist keine geänderte Geometrie oder künstliche Schriftvergrößerung, sondern die bereits unterstützte 150-%-Ansicht mit einer längeren Vorschau.
+
+[Bild kurze Kontrolle](scrub-bar.r228.duration-116.png), [Bild sechs Stunden](scrub-bar.r228.duration-21600.png), [Bild 30 Stunden](scrub-bar.r228.duration-108000.png).
+
+**Erforderlich:** Den festen Zeit-/Abdeckungsplätzen ein Budget geben, das die Mindestbreite der Zeitleiste auch für Stundenprogramme hält, und diese Fälle in den Wächter aufnehmen. Ein stabiles kompaktes Zeitformat in der schmalen Form wäre ein Gegenentwurf; der Sim-Tab zeigt bereits die vollständige Zeit. Falls die vollständige Doppelzeit zwingend auch in der Leiste bleiben soll, braucht es eine andere Aufteilung. Nur `min-width:120px` hinzuzufügen wäre unvollständig: Das darf weder eine dritte Zeile noch einen abgeschnittenen Wert erzeugen. Den leeren Prozentplatz während einer abgeschlossenen Prüfung einfach zu entfernen würde wiederum die Spur beim Zustandswechsel verschieben.
+
+### Antworten auf die übrigen Fragen und angenommene Teile
+
+**Frage 2 — Container-Query:** Angenommen. Die Breite kommt von der übergeordneten unteren Spalte; die Query ändert deren Inhalt, nicht deren verfügbare Breite. In den geprüften Wechseln ist keine Rückkopplung aufgetreten. Die 7 px Reserve der ersten Zeile lösen allerdings das separate Zeitbudget aus SB-03 nicht. Beide Zeilen müssen geprüft werden, einschließlich längerer Zeitdarstellungen.
+
+**Frage 3 — zwei Geschwindigkeitsauswahlen:** Technisch unbedenklich. Beide lesen und schreiben denselben Wert; meine Probe ändert erst in der Leiste auf ×100, dann im Sim-Tab auf ×0,1 und bestätigt die Rückrichtung. Die vorhandene Mutation-Überwachung beider Selects ist ebenfalls grün. Die bereits offene Operator-Entscheidung zur dauerhaften Doppelung bleibt eine Gestaltungsentscheidung und blockiert diese Korrekturen nicht.
+
+Der Sim-Link benutzt `requestTab('sim')` und damit den bestehenden Schutz ungespeicherter Makro-Entwürfe. Der gewählte Symboltyp entspricht der Operator-Vorgabe. Die neue Klassifikation im Control-Inventar passt zu Navigation bzw. lokaler Wiedergabe.
+
+Nicht blockierender Hinweis zur schmalen Form: CSS `order` setzt den Link optisch vor die Zeitleiste, die Tastaturfolge bleibt Geschwindigkeit → Zeitleiste → Link. Die eigene Probe protokolliert diesen Sprung. Bei einer ohnehin nötigen Layoutkorrektur sollte auch diese Reihenfolge möglichst der sichtbaren Anordnung folgen.
+
+**Kein Agreement vor SB-01 bis SB-03. Keine zusätzliche Operator-Entscheidung für die belegten Fehler erforderlich.** Für die Wiederholung die beiden Sonden als `e2e/scrub-r228.codex.spec.ts` und `e2e/scrub-r228.coverage.spec.ts` sowie die Konfiguration in einer eigenen Archivkopie ablegen, die Mock-URLs in `e2e/*.ts` auf `127.0.0.1:4188` umstellen und nach dem Build dort mit `-g R228` ausführen. Frühere Belege bleiben unverändert.

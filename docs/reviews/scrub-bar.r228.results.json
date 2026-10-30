@@ -1,0 +1,480 @@
+{
+  "round": "R228",
+  "date": "2026-10-30",
+  "base": "729a7f4a",
+  "head": "1b532a3a171961752f1484e32228d68b63ed024b",
+  "archive": "/tmp/codex-r228-3gw0n9w2/repo",
+  "mock": "http://127.0.0.1:4188",
+  "live_machine_access": false,
+  "archive_only_adjustments": [
+    "mock URLs in e2e/*.ts to 127.0.0.1:4188",
+    "own Playwright config",
+    "two own probe specs; coverage probe reuses the VP-I68 scenario and adds the title assertion"
+  ],
+  "checks": {
+    "build": "PASS",
+    "unit": {
+      "passed": 63,
+      "files": [
+        "controlInventory.test.ts",
+        "simPanelStore.test.ts",
+        "themeTokens.test.ts"
+      ]
+    },
+    "repository_browser": {
+      "passed": 14,
+      "failed": 0
+    },
+    "own_browser": {
+      "passed": 1,
+      "failed": 4,
+      "meaning": "contrast, 6h/30h slider width, and coverage title fail; short-duration layout passes"
+    }
+  },
+  "measurements": {
+    "contrast": [
+      [
+        {
+          "theme": "light",
+          "track": [
+            132,
+            143,
+            154,
+            255
+          ],
+          "card": [
+            245,
+            245,
+            245,
+            235
+          ],
+          "fg": [
+            33,
+            53,
+            71,
+            255
+          ],
+          "bg": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "uncomposited": 3.0206758320524125,
+          "onPage": 3.041531799137764,
+          "onGeometry": 2.631619238334266
+        },
+        {
+          "theme": "dark",
+          "track": [
+            115,
+            122,
+            130,
+            255
+          ],
+          "card": [
+            18,
+            24,
+            33,
+            235
+          ],
+          "fg": [
+            230,
+            237,
+            243,
+            255
+          ],
+          "bg": [
+            11,
+            15,
+            20,
+            255
+          ],
+          "uncomposited": 4.103353473094832,
+          "onPage": 4.131108086160051,
+          "onGeometry": 3.3848987070526855
+        },
+        {
+          "theme": "hc-light",
+          "track": [
+            93,
+            93,
+            93,
+            255
+          ],
+          "card": [
+            240,
+            240,
+            240,
+            235
+          ],
+          "fg": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "bg": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "uncomposited": 5.7779834086928865,
+          "onPage": 5.838918454596183,
+          "onGeometry": 4.856079867638278
+        },
+        {
+          "theme": "hc-dark",
+          "track": [
+            120,
+            120,
+            120,
+            255
+          ],
+          "card": [
+            10,
+            10,
+            10,
+            235
+          ],
+          "fg": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "bg": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "uncomposited": 4.48420028856987,
+          "onPage": 4.504419357576399,
+          "onGeometry": 3.8091041879435594
+        }
+      ]
+    ],
+    "layout": [
+      {
+        "seconds": 116,
+        "bar": {
+          "x": 462,
+          "y": 553.5,
+          "width": 408,
+          "height": 122,
+          "top": 553.5,
+          "right": 870,
+          "bottom": 675.5,
+          "left": 462
+        },
+        "slider": {
+          "x": 475,
+          "y": 626.5,
+          "width": 183,
+          "height": 42,
+          "top": 626.5,
+          "right": 658,
+          "bottom": 668.5,
+          "left": 475
+        },
+        "play": {
+          "x": 632.5,
+          "y": 560.5,
+          "width": 54,
+          "height": 54,
+          "top": 560.5,
+          "right": 686.5,
+          "bottom": 614.5,
+          "left": 632.5
+        },
+        "speed": {
+          "x": 692.5,
+          "y": 560.5,
+          "width": 101,
+          "height": 54,
+          "top": 560.5,
+          "right": 793.5,
+          "bottom": 614.5,
+          "left": 692.5
+        },
+        "link": {
+          "x": 803,
+          "y": 560.5,
+          "width": 54,
+          "height": 54,
+          "top": 560.5,
+          "right": 857,
+          "bottom": 614.5,
+          "left": 803
+        },
+        "pos": {
+          "x": 725,
+          "y": 635.125,
+          "width": 132,
+          "height": 24.75,
+          "top": 635.125,
+          "right": 857,
+          "bottom": 659.875,
+          "left": 725
+        },
+        "time": "00:00/01:56",
+        "zoom": "1.5"
+      },
+      {
+        "seconds": 21600,
+        "bar": {
+          "x": 462,
+          "y": 553.5,
+          "width": 408,
+          "height": 122,
+          "top": 553.5,
+          "right": 870,
+          "bottom": 675.5,
+          "left": 462
+        },
+        "slider": {
+          "x": 475,
+          "y": 626.5,
+          "width": 139,
+          "height": 42,
+          "top": 626.5,
+          "right": 614,
+          "bottom": 668.5,
+          "left": 475
+        },
+        "play": {
+          "x": 632.5,
+          "y": 560.5,
+          "width": 54,
+          "height": 54,
+          "top": 560.5,
+          "right": 686.5,
+          "bottom": 614.5,
+          "left": 632.5
+        },
+        "speed": {
+          "x": 692.5,
+          "y": 560.5,
+          "width": 101,
+          "height": 54,
+          "top": 560.5,
+          "right": 793.5,
+          "bottom": 614.5,
+          "left": 692.5
+        },
+        "link": {
+          "x": 803,
+          "y": 560.5,
+          "width": 54,
+          "height": 54,
+          "top": 560.5,
+          "right": 857,
+          "bottom": 614.5,
+          "left": 803
+        },
+        "pos": {
+          "x": 681,
+          "y": 635.125,
+          "width": 176,
+          "height": 24.75,
+          "top": 635.125,
+          "right": 857,
+          "bottom": 659.875,
+          "left": 681
+        },
+        "time": "00:00/6:00:00",
+        "zoom": "1.5"
+      },
+      {
+        "seconds": 108000,
+        "bar": {
+          "x": 462,
+          "y": 553.5,
+          "width": 408,
+          "height": 122,
+          "top": 553.5,
+          "right": 870,
+          "bottom": 675.5,
+          "left": 462
+        },
+        "slider": {
+          "x": 475,
+          "y": 626.5,
+          "width": 117,
+          "height": 42,
+          "top": 626.5,
+          "right": 592,
+          "bottom": 668.5,
+          "left": 475
+        },
+        "play": {
+          "x": 632.5,
+          "y": 560.5,
+          "width": 54,
+          "height": 54,
+          "top": 560.5,
+          "right": 686.5,
+          "bottom": 614.5,
+          "left": 632.5
+        },
+        "speed": {
+          "x": 692.5,
+          "y": 560.5,
+          "width": 101,
+          "height": 54,
+          "top": 560.5,
+          "right": 793.5,
+          "bottom": 614.5,
+          "left": 692.5
+        },
+        "link": {
+          "x": 803,
+          "y": 560.5,
+          "width": 54,
+          "height": 54,
+          "top": 560.5,
+          "right": 857,
+          "bottom": 614.5,
+          "left": 803
+        },
+        "pos": {
+          "x": 659,
+          "y": 635.125,
+          "width": 198,
+          "height": 24.75,
+          "top": 635.125,
+          "right": 857,
+          "bottom": 659.875,
+          "left": 659
+        },
+        "time": "00:00/30:00:00",
+        "zoom": "1.5"
+      }
+    ],
+    "focus": [
+      {
+        "seconds": 116,
+        "tabOrder": [
+          {
+            "name": null,
+            "cls": "sliderInput rangeOverlayTrack",
+            "box": {
+              "x": 475,
+              "y": 626.5,
+              "width": 183,
+              "height": 42,
+              "top": 626.5,
+              "right": 658,
+              "bottom": 668.5,
+              "left": 475
+            }
+          },
+          {
+            "name": "Open the Sim tab",
+            "cls": "b sm default iconBtn simTabLink",
+            "box": {
+              "x": 803,
+              "y": 560.5,
+              "width": 54,
+              "height": 54,
+              "top": 560.5,
+              "right": 857,
+              "bottom": 614.5,
+              "left": 803
+            }
+          }
+        ]
+      },
+      {
+        "seconds": 21600,
+        "tabOrder": [
+          {
+            "name": null,
+            "cls": "sliderInput rangeOverlayTrack",
+            "box": {
+              "x": 475,
+              "y": 626.5,
+              "width": 139,
+              "height": 42,
+              "top": 626.5,
+              "right": 614,
+              "bottom": 668.5,
+              "left": 475
+            }
+          },
+          {
+            "name": "Open the Sim tab",
+            "cls": "b sm default iconBtn simTabLink",
+            "box": {
+              "x": 803,
+              "y": 560.5,
+              "width": 54,
+              "height": 54,
+              "top": 560.5,
+              "right": 857,
+              "bottom": 614.5,
+              "left": 803
+            }
+          }
+        ]
+      },
+      {
+        "seconds": 108000,
+        "tabOrder": [
+          {
+            "name": null,
+            "cls": "sliderInput rangeOverlayTrack",
+            "box": {
+              "x": 475,
+              "y": 626.5,
+              "width": 117,
+              "height": 42,
+              "top": 626.5,
+              "right": 592,
+              "bottom": 668.5,
+              "left": 475
+            }
+          },
+          {
+            "name": "Open the Sim tab",
+            "cls": "b sm default iconBtn simTabLink",
+            "box": {
+              "x": 803,
+              "y": 560.5,
+              "width": 54,
+              "height": 54,
+              "top": 560.5,
+              "right": 857,
+              "bottom": 614.5,
+              "left": 803
+            }
+          }
+        ]
+      }
+    ],
+    "coverage": [
+      {
+        "label": "75 %",
+        "title": "Collision check: 75 % of the program checked",
+        "summary": "1 collision · provisional from L7, stopped at 75 % (not certified)",
+        "range": {
+          "fromCum": 280,
+          "fromLine": 7,
+          "boundary": 5
+        }
+      }
+    ]
+  },
+  "findings": [
+    "SB-01: light-theme track contrast after alpha composition 2.6316:1",
+    "SB-02: a provisional range ending at 75 percent is called 75 percent of the program checked",
+    "SB-03: portrait 150 percent slider width falls from 122 to 92.67 / 78 CSS px for 6h / 30h"
+  ],
+  "notes": [
+    "Initial discovery run accidentally included unrelated legacy cases from top-level loops in the copied harness; stopped, removed those registrations, repeated exactly five own cases.",
+    "Own contrast probe uses the same foreground-geometry composition contract as contrast.spec.ts; it is a computed-colour composition, not a captured WebGL pixel measurement.",
+    "No claim of full browser gate or Firefox validation."
+  ]
+}
