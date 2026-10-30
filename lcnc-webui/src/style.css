@@ -218,12 +218,16 @@
   /* Range-slider track; shared with overlays that paint their own track
      (ScrubBar's timeline draws it over the thumb-centre travel). */
   --range-track: color-mix(in oklab, var(--panel) 90%, var(--fg));
-  /* The program-scrub timeline's bar: 40 % panel, 60 % text — 3 : 1 against
-     the 92 % overlay card over the page AND over geometry in --fg, in every
-     theme (light 3.41, dark 4.48, HC ≥ 4.6; ScrubBar; operator 2026-10-29:
-     the range track read 1.22 : 1 there and the empty timeline was not seen;
-     Codex R228 SB-01: half and half read 2.63 : 1 over geometry). */
-  --scrub-track: color-mix(in oklab, var(--panel) 40%, var(--fg));
+  /* The program-scrub timeline's bar, PER THEME (each block sets its own
+     share of panel): 3 : 1 against the 92 % overlay card over the page AND
+     over geometry in --fg, and 3 : 1 against the slider's thumb (--fg) on
+     it — one share holds both only in a window per theme (light 42–44 %,
+     dark 44–52 %, hc-light ≥ 49 %): light 43 % (card 3.14, thumb 3.21),
+     dark 48 % (3.56 / 3.48), hc-light 54 % (4.10 / 3.77), hc-dark 48 %
+     (4.05 / 4.12). Operator 2026-10-29 (the range track read 1.22 : 1 and
+     the empty timeline was not seen), Codex R228 SB-01 (half and half read
+     2.63 : 1 over geometry), contrast.spec (40 % left the thumb 2.96). */
+  --scrub-track: color-mix(in oklab, var(--panel) 43%, var(--fg));
   /* Range-slider thumb diameter. The thumb's centre travels from half of
      this to width − half; overlays aligned to that travel (ScrubBar's
      timeline) read the token — never hard-code the thumb size. */
@@ -344,6 +348,7 @@
     --bg: #0b0f14;
     --fg: #e6edf3;
     --panel: #121821;
+    --scrub-track: color-mix(in oklab, var(--panel) 48%, var(--fg));
     --border: rgba(255,255,255,0.12);
     /* A control's or a floating card's edge (viewer contrast plan, V5): >= 3 : 1
        against what lies next to it — the card's scene, a switch's panel. */
@@ -391,6 +396,7 @@
   --bg: #ffffff;
   --fg: #213547;
   --panel: #f5f5f5;
+  --scrub-track: color-mix(in oklab, var(--panel) 43%, var(--fg));
   --border: rgba(0,0,0,0.12);
   /* A control's or a floating card's edge (viewer contrast plan, V5): >= 3 : 1
      against what lies next to it — the card's scene, a switch's panel. */
@@ -435,6 +441,7 @@
   --bg: #0b0f14;
   --fg: #e6edf3;
   --panel: #121821;
+  --scrub-track: color-mix(in oklab, var(--panel) 48%, var(--fg));
   --border: rgba(255,255,255,0.12);
   /* A control's or a floating card's edge (viewer contrast plan, V5): >= 3 : 1
      against what lies next to it — the card's scene, a switch's panel. */
@@ -481,6 +488,7 @@
   --bg: #ffffff;
   --fg: #000000;
   --panel: #f0f0f0;
+  --scrub-track: color-mix(in oklab, var(--panel) 54%, var(--fg));
   --border: rgba(0,0,0,0.45);
   /* A control's or a floating card's edge (viewer contrast plan, V5): >= 3 : 1
      against what lies next to it — the card's scene, a switch's panel. */
@@ -535,6 +543,7 @@
   --bg: #000000;
   --fg: #ffffff;
   --panel: #0a0a0a;
+  --scrub-track: color-mix(in oklab, var(--panel) 48%, var(--fg));
   --border: rgba(255,255,255,0.45);
   /* A control's or a floating card's edge (viewer contrast plan, V5): >= 3 : 1
      against what lies next to it — the card's scene, a switch's panel. */

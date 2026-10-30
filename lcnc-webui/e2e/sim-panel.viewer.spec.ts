@@ -1301,7 +1301,7 @@ const roleRgb = (page: Page, role: string) => page.evaluate(r => {
   return [...c.getImageData(0, 0, 1, 1).data].slice(0, 3);
 }, role);
 for (const theme of ["light", "dark", "hc-light", "hc-dark"] as const) {
-  test(`the scrub bar's timeline holds 3 : 1 against the card over the page and over geometry, in and out of the simulation (${theme})`, async ({ page, context }) => {
+  test(`the scrub bar's timeline holds 3 : 1 against the card over the page and over geometry, and against its thumb, in and out of the simulation (${theme})`, async ({ page, context }) => {
     await prepare(page, context, "desktop", PREVIEW, false);
     await page.emulateMedia({ colorScheme: theme.endsWith("dark") ? "dark" : "light", reducedMotion: "reduce" });
     if (theme.startsWith("hc")) await page.evaluate(t => { document.documentElement.dataset.theme = t; }, theme);
@@ -1316,6 +1316,8 @@ for (const theme of ["light", "dark", "hc-light", "hc-dark"] as const) {
         const bg = composed(card, rgb);
         expect(contrastOf(track.slice(0, 3), bg), `${theme}, sim ${sim}, over the ${over}: track ${track} on card ${card} → ${bg}`).toBeGreaterThanOrEqual(3);
       }
+      // and the slider's thumb (--fg) on it keeps 3 : 1 too (contrast.spec's rule)
+      expect(contrastOf(under.geometry, track.slice(0, 3)), `${theme}, sim ${sim}: the thumb on the track`).toBeGreaterThanOrEqual(3);
     }
   });
 }

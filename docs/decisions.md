@@ -9669,8 +9669,10 @@ the bottom column sets — never its content; the bar a dense area). Open: wheth
 
 **Codex R228 (same night): three corrections.** SB-01 — the card is 92 % opaque: over geometry
 in --fg the half-and-half fill read 2.63 : 1 in the light theme; the fill is 40 % panel, 60 % text
-now (light 3.41, dark 4.48, HC ≥ 4.6 : 1 composed over the page and over geometry), still the
-operator's fill. SB-02 — the number is where the SHOWN check reaches (a provisional one began at
+per theme now — the gate's contrast.spec found that a darker bar leaves the slider's thumb (--fg)
+under 3 : 1 on it, and one share of panel holds both rules only in a window per theme (light
+42–44 %, dark 44–52 %, hc-light ≥ 49 %): light 43 %, dark 48 %, hc-light 54 %, hc-dark 48 %; still
+the operator's fill. SB-02 — the number is where the SHOWN check reaches (a provisional one began at
 the run's line): its title is the summary's coverage words, never "N % of the program checked";
 paused and stopped short carry a glyph in the warn role. SB-03 — the time slot grew with the
 program's length (6 h, 30 h left the timeline 93 / 78 px at 150 %): the narrow form shows the
