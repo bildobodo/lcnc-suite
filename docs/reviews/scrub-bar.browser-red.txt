@@ -1,0 +1,186 @@
+# The scrub bar guards (sim-panel.viewer.spec, operator 2026-10-29) against development 729a7f4a: 4 red
+# npx playwright test e2e/sim-panel.viewer.spec.ts --project serial-viewer --no-deps -g 'scrub bar|portrait viewer: the timeline'
+
+Running 4 tests using 1 worker
+
+[1/4] [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1271:1 › the scrub bar: the speed beside Play is the Sim tab's speed, the link opens the Sim tab, no band over the track
+  1) [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1271:1 › the scrub bar: the speed beside Play is the Sim tab's speed, the link opens the Sim tab, no band over the track 
+
+    TypeError: expect(received).toMatch(expected)
+
+    Matcher error: received value must be a string
+
+    Received has value: undefined
+
+      1274 |   const order = await row.evaluate(el => [...el.querySelectorAll("button, select, input")].map(c => c.getAttribute("aria-label") ?? c.getAttribute("title") ?? c.tagName));
+      1275 |   const speedAt = order.indexOf("Playback speed");
+    > 1276 |   expect(order[speedAt - 1], `the control before the speed is Play: ${JSON.stringify(order)}`).toMatch(/^(Play|Pause)/);
+           |                                                                                                ^
+      1277 |   await row.getByRole("combobox", { name: "Playback speed" }).selectOption("5");
+      1278 |   await expect(page.locator('.simPanel select[name="simSpeed"]'), "one value: the Sim tab shows it").toHaveValue("5");
+      1279 |   await expect(page.locator(".scrubBar .scrubBand.swept")).toHaveCount(0);
+        at /home/cnc/scrub-base/lcnc-webui/e2e/sim-panel.viewer.spec.ts:1276:96
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-the-scrub-7fa7b--tab-no-band-over-the-track-serial-viewer/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/sim-panel.viewer-the-scrub-7fa7b--tab-no-band-over-the-track-serial-viewer/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-the-scrub-7fa7b--tab-no-band-over-the-track-serial-viewer/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/sim-panel.viewer-the-scrub-7fa7b--tab-no-band-over-the-track-serial-viewer/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[2/4] [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1288:3 › the scrub bar's timeline holds 3 : 1 against the card, in and out of the simulation (light)
+  2) [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1288:3 › the scrub bar's timeline holds 3 : 1 against the card, in and out of the simulation (light) 
+
+    Error: light, sim false: not dimmed
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 0.4
+
+      1294 |       const card = await rgbOf(page, ".viewerPane .scrubBar", "backgroundColor");
+      1295 |       const opacity = await page.locator(".scrubBar .scrubBand.track").evaluate(el => Number(getComputedStyle(el).opacity));
+    > 1296 |       expect(opacity, `${scheme}, sim ${sim}: not dimmed`).toBe(1);
+           |                                                            ^
+      1297 |       const ratio = contrastOf(track.slice(0, 3), card.slice(0, 3));
+      1298 |       expect(ratio, `${scheme}, sim ${sim}: track ${track} on card ${card}`).toBeGreaterThanOrEqual(3);
+      1299 |     }
+        at /home/cnc/scrub-base/lcnc-webui/e2e/sim-panel.viewer.spec.ts:1296:60
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-the-scrub-f07ca-ut-of-the-simulation-light--serial-viewer/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/sim-panel.viewer-the-scrub-f07ca-ut-of-the-simulation-light--serial-viewer/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-the-scrub-f07ca-ut-of-the-simulation-light--serial-viewer/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/sim-panel.viewer-the-scrub-f07ca-ut-of-the-simulation-light--serial-viewer/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[3/4] [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1288:3 › the scrub bar's timeline holds 3 : 1 against the card, in and out of the simulation (dark)
+  3) [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1288:3 › the scrub bar's timeline holds 3 : 1 against the card, in and out of the simulation (dark) 
+
+    Error: dark, sim false: not dimmed
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 0.4
+
+      1294 |       const card = await rgbOf(page, ".viewerPane .scrubBar", "backgroundColor");
+      1295 |       const opacity = await page.locator(".scrubBar .scrubBand.track").evaluate(el => Number(getComputedStyle(el).opacity));
+    > 1296 |       expect(opacity, `${scheme}, sim ${sim}: not dimmed`).toBe(1);
+           |                                                            ^
+      1297 |       const ratio = contrastOf(track.slice(0, 3), card.slice(0, 3));
+      1298 |       expect(ratio, `${scheme}, sim ${sim}: track ${track} on card ${card}`).toBeGreaterThanOrEqual(3);
+      1299 |     }
+        at /home/cnc/scrub-base/lcnc-webui/e2e/sim-panel.viewer.spec.ts:1296:60
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-the-scrub-06c0d-out-of-the-simulation-dark--serial-viewer/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/sim-panel.viewer-the-scrub-06c0d-out-of-the-simulation-dark--serial-viewer/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-the-scrub-06c0d-out-of-the-simulation-dark--serial-viewer/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/sim-panel.viewer-the-scrub-06c0d-out-of-the-simulation-dark--serial-viewer/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[4/4] [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1303:1 › a portrait viewer: the timeline takes a row of its own, the controls stay one row above it
+  4) [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1303:1 › a portrait viewer: the timeline takes a row of its own, the controls stay one row above it 
+
+    Error: page.evaluate: TypeError: Cannot read properties of null (reading 'getBoundingClientRect')
+        at r (eval at evaluate (:302:30), <anonymous>:3:36)
+        at eval (eval at evaluate (:302:30), <anonymous>:8:14)
+        at UtilityScript.evaluate (<anonymous>:304:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at r (eval at evaluate (:302:30), <anonymous>:3:36)
+        at eval (eval at evaluate (:302:30), <anonymous>:8:14)
+        at UtilityScript.evaluate (<anonymous>:304:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at /home/cnc/scrub-base/lcnc-webui/e2e/sim-panel.viewer.spec.ts:1305:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-a-portrai-cee63-trols-stay-one-row-above-it-serial-viewer/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/sim-panel.viewer-a-portrai-cee63-trols-stay-one-row-above-it-serial-viewer/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-a-portrai-cee63-trols-stay-one-row-above-it-serial-viewer/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/sim-panel.viewer-a-portrai-cee63-trols-stay-one-row-above-it-serial-viewer/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  4 failed
+    [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1271:1 › the scrub bar: the speed beside Play is the Sim tab's speed, the link opens the Sim tab, no band over the track 
+    [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1288:3 › the scrub bar's timeline holds 3 : 1 against the card, in and out of the simulation (light) 
+    [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1288:3 › the scrub bar's timeline holds 3 : 1 against the card, in and out of the simulation (dark) 
+    [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1303:1 › a portrait viewer: the timeline takes a row of its own, the controls stay one row above it 
+
+# R228 guards (SB-01 composited contrast, SB-02 title/glyph, SB-03 long programs) against 1b532a3a: 8 of 11 red (dark / hc-light / hc-dark held 3 : 1 before — Codex's table: only light was under)
+  ✘   1 [serial-viewer] › e2e/collisions.viewer.spec.ts:1014:1 › the provisional result keeps its own limits while the full check runs, its contacts at the start stay provisional — then a full check replaces them (Codex R116 VP-I68/I69) (21.5s)
+  ✘   2 [serial-viewer] › e2e/collisions.viewer.spec.ts:2003:3 › the states without a first touch — a near miss alone: progress, park, end, basis and caveats (C2) (14.2s)
+  ✘   3 [serial-viewer] › e2e/collisions.viewer.spec.ts:2003:3 › the states without a first touch — an undecidable gap alone: progress, park, end, basis and caveats (C2) (14.1s)
+  ✘   4 [serial-viewer] › e2e/collisions.viewer.spec.ts:2003:3 › the states without a first touch — no row at all: progress, park, end, basis and caveats (C2) (14.0s)
+  ✘   5 [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1304:3 › the scrub bar's timeline holds 3 : 1 against the card over the page and over geometry, in and out of the simulation (light) (3.7s)
+  ✓   6 [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1304:3 › the scrub bar's timeline holds 3 : 1 against the card over the page and over geometry, in and out of the simulation (dark) (3.2s)
+  ✓   7 [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1304:3 › the scrub bar's timeline holds 3 : 1 against the card over the page and over geometry, in and out of the simulation (hc-light) (3.2s)
+  ✓   8 [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1304:3 › the scrub bar's timeline holds 3 : 1 against the card over the page and over geometry, in and out of the simulation (hc-dark) (3.2s)
+  ✘   9 [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1344:3 › a 2 min program at 150 % portrait: two rows, the timeline keeps 120 px, the time whole (3.1s)
+  ✘  10 [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1344:3 › a 6 h program at 150 % portrait: two rows, the timeline keeps 120 px, the time whole (3.3s)
+  ✘  11 [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1344:3 › a 30 h program at 150 % portrait: two rows, the timeline keeps 120 px, the time whole (3.3s)
+    Error: expect(locator).toHaveAttribute(expected) failed
+    Expected: "Collision check: provisional from L7, stopped at 75 %"
+    Received: "Collision check: 75 % of the program checked"
+    Error: expect(locator).toHaveAttribute(expected) failed
+    Expected: "Collision check: 30 % checked"
+    Received: "Collision check: 30 % of the program checked"
+    Error: expect(locator).toHaveAttribute(expected) failed
+    Expected: "Collision check: 30 % checked"
+    Received: "Collision check: 30 % of the program checked"
+    Error: expect(locator).toHaveAttribute(expected) failed
+    Expected: "Collision check: 30 % checked"
+    Received: "Collision check: 30 % of the program checked"
+    Error: light, sim false, over the geometry: track 132,143,154,255 on card 245,245,245,235 → 228,230,231
+    Expected: >= 3
+    Received:    2.6301065622824935
+    Error: the elapsed time alone
+    Expected pattern: /^~?[\d:]+$/
+    Received string:  "00:00/01:56"
+    Error: the timeline keeps its room ({"w":272,"slider":93,"below":true,"rows":3,"time":"00:00/6:00:00","whole":true,"title":null})
+    Expected: >= 120
+    Received:    93
+    Error: the timeline keeps its room ({"w":272,"slider":78,"below":true,"rows":3,"time":"00:00/30:00:00","whole":true,"title":null})
+    Expected: >= 120
+    Received:    78
+
+# R229: the VP-I68 case with the stopped provisional result's glyph against e2a660f5: red
+    Error: the stopped provisional result's glyph
+    expect(locator).toHaveCount(expected) failed
+    Expected: 1
+    Received: 0
+    test-results/collisions.viewer-the-prov-3bc05-them-Codex-R116-VP-I68-I69--serial-viewer/test-failed-1.png
+    Error Context: test-results/collisions.viewer-the-prov-3bc05-them-Codex-R116-VP-I68-I69--serial-viewer/error-context.md
+  1 failed
