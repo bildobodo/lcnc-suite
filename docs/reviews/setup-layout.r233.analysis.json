@@ -1,0 +1,245 @@
+{
+  "source": "/home/cnc/lcnc-suite/docs/reviews/setup-layout/report.json",
+  "source_sha256": "9b6235b9938831165b8c2f188f208151191b6e67f97897598a9a7e87461dc8bc",
+  "rows": 230,
+  "surfaces": {
+    "L1280": 46,
+    "L1920": 46,
+    "L1280-150": 46,
+    "L1280-touch": 46,
+    "P900": 46
+  },
+  "landscape_cases": 184,
+  "landscape_wrap_cut_outside": [],
+  "landscape_unexpected_height": [],
+  "widths_and_strip_overflow_at_1920": [
+    {
+      "config": "2-XZ",
+      "before": 450,
+      "G": 450,
+      "saved": 0,
+      "strip_over_before": 0,
+      "strip_over_G": 0
+    },
+    {
+      "config": "3-XYZ",
+      "before": 450,
+      "G": 450,
+      "saved": 0,
+      "strip_over_before": 103,
+      "strip_over_G": 103
+    },
+    {
+      "config": "4-XYZA",
+      "before": 551,
+      "G": 450,
+      "saved": 101,
+      "strip_over_before": 322,
+      "strip_over_G": 221
+    },
+    {
+      "config": "5-XYZAC",
+      "before": 551,
+      "G": 463,
+      "saved": 88,
+      "strip_over_before": 343,
+      "strip_over_G": 255
+    },
+    {
+      "config": "5-TCP",
+      "before": 551,
+      "G": 463,
+      "saved": 88,
+      "strip_over_before": 343,
+      "strip_over_G": 255
+    },
+    {
+      "config": "6-XYZABC",
+      "before": 551,
+      "G": 463,
+      "saved": 88,
+      "strip_over_before": 400,
+      "strip_over_G": 312
+    },
+    {
+      "config": "6-TWP",
+      "before": 551,
+      "G": 551,
+      "saved": 0,
+      "strip_over_before": 417,
+      "strip_over_G": 417
+    },
+    {
+      "config": "7-XYZABCU",
+      "before": 765,
+      "G": 551,
+      "saved": 214,
+      "strip_over_before": 676,
+      "strip_over_G": 462
+    },
+    {
+      "config": "8-XYZABCUV",
+      "before": 765,
+      "G": 581,
+      "saved": 184,
+      "strip_over_before": 696,
+      "strip_over_G": 512
+    },
+    {
+      "config": "9-XYZABCUVW",
+      "before": 771,
+      "G": 581,
+      "saved": 190,
+      "strip_over_before": 760,
+      "strip_over_G": 570
+    }
+  ],
+  "portrait_image_pairs": [
+    {
+      "id": "G__2-XZ__P900__live",
+      "verified": true,
+      "byte_equal": true,
+      "before_sha256": "7d38e8c4e2f9546cee8ba7b482634c7ab7e5cc6c4eb7c0f9790ba97b61e2a57c",
+      "G_sha256": "7d38e8c4e2f9546cee8ba7b482634c7ab7e5cc6c4eb7c0f9790ba97b61e2a57c"
+    },
+    {
+      "id": "G__2-XZ__P900__dim",
+      "verified": true,
+      "byte_equal": true,
+      "before_sha256": "772ceece6b921d97b5fd0113813c515559636bfdbdb48c987b74003eda455972",
+      "G_sha256": "772ceece6b921d97b5fd0113813c515559636bfdbdb48c987b74003eda455972"
+    },
+    {
+      "id": "G__3-XYZ__P900__live",
+      "verified": true,
+      "byte_equal": true,
+      "before_sha256": "95a91c81ed3f54cb9e3b82a198a6102239ed27cde42ddd18a892fc1c15edb88b",
+      "G_sha256": "95a91c81ed3f54cb9e3b82a198a6102239ed27cde42ddd18a892fc1c15edb88b"
+    },
+    {
+      "id": "G__3-XYZ__P900__dim",
+      "verified": true,
+      "byte_equal": true,
+      "before_sha256": "ac2d283a5ee7fa6347352660f33341bc0e58b05230600989a30df8b1f7ef34b4",
+      "G_sha256": "ac2d283a5ee7fa6347352660f33341bc0e58b05230600989a30df8b1f7ef34b4"
+    },
+    {
+      "id": "G__4-XYZA__P900__live",
+      "verified": true,
+      "byte_equal": true,
+      "before_sha256": "10f199a485d42f0c134f90579fe8255174c2f34da99ad587b0d37ea6033259cf",
+      "G_sha256": "10f199a485d42f0c134f90579fe8255174c2f34da99ad587b0d37ea6033259cf"
+    },
+    {
+      "id": "G__4-XYZA__P900__dim",
+      "verified": true,
+      "byte_equal": true,
+      "before_sha256": "6b1a8e14e16cb4ba98b330b852e61320df5c0c1b94c0a6abb12e308cf0452fe8",
+      "G_sha256": "6b1a8e14e16cb4ba98b330b852e61320df5c0c1b94c0a6abb12e308cf0452fe8"
+    },
+    {
+      "id": "G__5-XYZAC__P900__live",
+      "verified": true,
+      "byte_equal": true,
+      "before_sha256": "22e8a53135389b0fd01b064c6bead58b4af9b989af9f7995586e00a5d0a9907e",
+      "G_sha256": "22e8a53135389b0fd01b064c6bead58b4af9b989af9f7995586e00a5d0a9907e"
+    },
+    {
+      "id": "G__5-XYZAC__P900__dim",
+      "verified": true,
+      "byte_equal": true,
+      "before_sha256": "d1565d13c1814bec53e929a67d59605f9a99549409338fb36d73fa52e8fe29ad",
+      "G_sha256": "d1565d13c1814bec53e929a67d59605f9a99549409338fb36d73fa52e8fe29ad"
+    },
+    {
+      "id": "G__5-TCP__P900__live",
+      "verified": true,
+      "byte_equal": true,
+      "before_sha256": "54e7e1f1cf51cf60d8eba3064bd71e76ad38849b0af6037a4301df6807e3cc2e",
+      "G_sha256": "54e7e1f1cf51cf60d8eba3064bd71e76ad38849b0af6037a4301df6807e3cc2e"
+    },
+    {
+      "id": "G__5-TCP__P900__dim",
+      "verified": true,
+      "byte_equal": true,
+      "before_sha256": "f03bf5a66efc1810c5790f92960c974731ae53ca57b14b6cb8f49605ca9d42bc",
+      "G_sha256": "f03bf5a66efc1810c5790f92960c974731ae53ca57b14b6cb8f49605ca9d42bc"
+    },
+    {
+      "id": "G__6-XYZABC__P900__live",
+      "verified": true,
+      "byte_equal": true,
+      "before_sha256": "c621a806fd9b49cd686aa02059f90b5dc66fb33ebc79c4430eb6fcbd7011a48e",
+      "G_sha256": "c621a806fd9b49cd686aa02059f90b5dc66fb33ebc79c4430eb6fcbd7011a48e"
+    },
+    {
+      "id": "G__6-XYZABC__P900__dim",
+      "verified": true,
+      "byte_equal": true,
+      "before_sha256": "98cf1bf8275624e7b86a2646cae2229239239e666afa1e7c4e6cc7c3ab8758ba",
+      "G_sha256": "98cf1bf8275624e7b86a2646cae2229239239e666afa1e7c4e6cc7c3ab8758ba"
+    },
+    {
+      "id": "G__6-TWP__P900__live",
+      "verified": true,
+      "byte_equal": true,
+      "before_sha256": "379f892adc2aa557cd1d6d81567d85bc95b0deb41d66f4f78a19ba1331e8f771",
+      "G_sha256": "379f892adc2aa557cd1d6d81567d85bc95b0deb41d66f4f78a19ba1331e8f771"
+    },
+    {
+      "id": "G__6-TWP__P900__dim",
+      "verified": true,
+      "byte_equal": true,
+      "before_sha256": "d84e660661a9e520d51d1a95c195bdad1504232e4a25b0615680dd897e7ceac6",
+      "G_sha256": "d84e660661a9e520d51d1a95c195bdad1504232e4a25b0615680dd897e7ceac6"
+    },
+    {
+      "id": "G__7-XYZABCU__P900__live",
+      "verified": true,
+      "byte_equal": true,
+      "before_sha256": "79f902c3fca44e75dcf080a904e690e77780ab6709fda1ed7dd750e97ad81e67",
+      "G_sha256": "79f902c3fca44e75dcf080a904e690e77780ab6709fda1ed7dd750e97ad81e67"
+    },
+    {
+      "id": "G__7-XYZABCU__P900__dim",
+      "verified": true,
+      "byte_equal": true,
+      "before_sha256": "86e0f82e6d1d037b8820547aa8d1de06c4f8d6deaaeec572ccab6225789a8fdd",
+      "G_sha256": "86e0f82e6d1d037b8820547aa8d1de06c4f8d6deaaeec572ccab6225789a8fdd"
+    },
+    {
+      "id": "G__8-XYZABCUV__P900__live",
+      "verified": true,
+      "byte_equal": true,
+      "before_sha256": "2c0dbf707a9ee6b023de10a8d3680eff361f0bfa1a3b3e30230beae1fbf22274",
+      "G_sha256": "2c0dbf707a9ee6b023de10a8d3680eff361f0bfa1a3b3e30230beae1fbf22274"
+    },
+    {
+      "id": "G__8-XYZABCUV__P900__dim",
+      "verified": true,
+      "byte_equal": true,
+      "before_sha256": "72b7e2880f8d63a0507901ef846b4291e3a32ec5a48b6f480f79b124eac2f6c5",
+      "G_sha256": "72b7e2880f8d63a0507901ef846b4291e3a32ec5a48b6f480f79b124eac2f6c5"
+    },
+    {
+      "id": "G__9-XYZABCUVW__P900__live",
+      "verified": true,
+      "byte_equal": true,
+      "before_sha256": "5f2094dab31542a70989d7ad1e7676dc0c8177412786ab9c59c39f044cfa78f5",
+      "G_sha256": "5f2094dab31542a70989d7ad1e7676dc0c8177412786ab9c59c39f044cfa78f5"
+    },
+    {
+      "id": "G__9-XYZABCUVW__P900__dim",
+      "verified": true,
+      "byte_equal": true,
+      "before_sha256": "99f74e23d930620fc0dee868263c301c47435d3aff3bce771b91a35e3b8fa741",
+      "G_sha256": "99f74e23d930620fc0dee868263c301c47435d3aff3bce771b91a35e3b8fa741"
+    }
+  ],
+  "limits": [
+    "Supplied measurements, not an independent rendering run.",
+    "Touch plus 150% zoom is absent from the supplied surface matrix.",
+    "P900 with keypad and P900-150 are absent from the supplied surface matrix.",
+    "Bounding-box containment does not prove hit-testability beside sticky Safety."
+  ]
+}

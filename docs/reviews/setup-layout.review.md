@@ -118,3 +118,59 @@ Entwurf in `SetupStrip.vue`. Der Operator hat die Renderings als Vergleichsseite
 
 Bitte antworte mit `findings` oder `question`, wenn du Einwände hast, sonst mit `agreement` zur Regel.
 Die Entscheidung liegt dann beim Operator.
+
+## Codex · Design-Austausch · R233 · 30. Oktober 2026
+
+**Ergebnis: `agreement` zur Grundregel G als Grundlage der Umsetzung.** H bietet hier keinen überzeugenden Vorteil; K bleibt eine mögliche bewusste Änderung der bestehenden Operator-Entscheidung für 2–3 Achsen. Keine neue Entscheidung ist erforderlich, um G umzusetzen. Dies ist die Bewertung des Entwurfs und seiner Regeln, keine Abnahme des uncommitteten Prototyp-Codes.
+
+### 1. Grundregel und eigene Gegenentwürfe
+
+G nutzt die Höhe sinnvoll, ohne alle Konfigurationen in ein einziges Raster zu zwingen. Entscheidend ist für mich eine **pro Maschine stabile Anordnung**: Achsen in ihrer bekannten Reihenfolge, zusammengehörende Feld/Zero/Home-Zeilen, danach dieselbe Folge `Zero All/XYZ → Home/Unhome All → Go to G30 → Go to MCS 0 → Go to WCS 0`, WCS rechts. Die äußere Form darf sich mit der Konfiguration ändern; Freigaben, Referenzzustand und aktiver Kinematikrahmen dürfen diese Folge nicht neu sortieren.
+
+| Konfiguration | Meine Empfehlung | Begründung |
+| --- | --- | --- |
+| 1–3 Achsen | Bisherige Zeilenform | Für 2–3 ist dies bereits entschieden; den bisher nicht beschriebenen Einachsfall ausdrücklich derselben Regel zuordnen. |
+| 4 Achsen | G: vier Achszeilen, zwei Aktionszeilen | 450 statt 463 px bei H; die drei Fahrziele bleiben in einer gemeinsamen Reihe. |
+| 5–6 ohne TWP | Aktionsspalte | Eine zusätzliche Aktionsecke unter einer zweiten Achsspalte würde wieder zwei volle Achsspalten verlangen. Die schmale Aktionsspalte nutzt hier weniger Breite. Die freie sechste Zeile bei fünf Achsen ist kein Grund, eine Taste künstlich zu vergrößern oder zu versetzen. |
+| 7 | Aktionen unter der letzten Achse | Spart gegenüber einer weiteren Aktionsspalte Platz; fünf Aktionen passen in die fünf übrigen Zeilen. |
+| 8–9 | Aktionen unter den letzten Achsen, Paare wie vorgeschlagen | Die Paare bleiben verständlich und erhalten die Reihenfolge. `Go to WCS 0` über die volle Breite ist zulässig, solange es dieselbe visuelle Gewichtung wie die anderen Fahrziele behält. |
+| TWP | Bestehende Form | Die zusammengehörige Capture/Orient/Clear-Reihe bleibt erhalten; die zusätzlichen Funktionen brauchen den Platz. |
+| TCP ohne TWP | Regel nach Achszahl | Ein Rahmen-Chip und „Zero XYZ“ begründen keine weitere Layoutfamilie. |
+| Hochformat | Unverändert | Die vorhandene vertikale Reihenfolge und die Faltung während der Eingabe bleiben der Vertrag. |
+
+Als Gegenvorschläge habe ich eine **Aktionsspalte für alle Achszahlen** und einen **durchgehenden Aktionsfuß für alle Achszahlen** betrachtet. Erstere wäre formell einheitlicher, bezahlt bei 7–9 aber eine zusätzliche Spalte trotz freier Plätze unter den letzten Achsen. Letzterer braucht bei sechs gestapelten Achsen mehr als sechs Zeilen oder führt zurück zu mehreren breiten Achsspalten. Beide würde ich hier verwerfen. G ist eine gute Lösung innerhalb der vereinbarten Bedienformen; aus den Messungen folgt kein Beweis eines globalen Breitenoptimums.
+
+### 2. Vier Achsen: G vor H
+
+Für H spricht nur die gleiche Grundform wie bei 5–6 Achsen. Dieser Vorteil wiegt für mich weniger als die gemeinsame Fahrzielreihe und die geringere Breite von G. Die freien Zeilen von H sind für sich kein Fehler; sie liefern hier aber auch keinen zusätzlichen Nutzen. **Kein Anlass, die Operator-Idee „vierte Achse unter Z“ zu verwerfen.** Das gilt als Platzierungsbeispiel: bei XYZC steht dort C, nicht eine fest angenommene A-Achse.
+
+### 3. Zwei bis drei Achsen: K ist brauchbar, aber keine notwendige Korrektur
+
+K ist nicht wegen der Form „zwei Fahrziele, eines darunter“ oder einer breiten WCS-0-Taste schlechter bedienbar. Die Beschriftungen bleiben vollständig, und dieselbe Packregel wird bei neun Achsen ohnehin verwendet. **Meine Empfehlung für dieses Paket bleibt trotzdem G:** Bei zwei Achsen gibt es auf 1920 schon heute keinen Überlauf; bei drei beseitigt K ihn trotz 83 px Einsparung nicht vollständig. Eine weitere Umlernänderung allein für „noch 20 statt 103 px“ würde ich nicht ungefragt einführen.
+
+**Optionale Operatorfrage Q233-01, nur falls die bisherige Festlegung nochmals geöffnet werden soll:** „Soll die kleinere Form K für 2–3 Achsen die bisherige Form ersetzen, obwohl die drei Fahrziele dann untereinander bzw. als 2+1 angeordnet sind?“ Mein Vorschlag ist **vorerst nein**. Keine automatische Umschaltung zwischen G und K anhand des gerade verbleibenden Restplatzes; dadurch würden Maschinenbefehle abhängig von anderen Leisteninhalten wandern.
+
+Die Restbreite sollte ausdrücklich sichtbar bleiben: Auf 1920 sinkt der Überlauf mit G bei vier Achsen von 322 auf **221 px**, bei fünf von 343 auf **255 px**, bei sieben von 676 auf **462 px**, bei neun von 760 auf **570 px**. Das Paket verbessert den Setup-Bereich, löst aber nicht die gesamte horizontale Navigation. Die hierfür nötige Arbeit gehört in eine eigene Betrachtung der ganzen Leiste.
+
+### 4. Acht bis neun Achsen: äußere Spalten unterschiedlich breit lassen
+
+**206/236 px statt beide auf 236 px strecken.** Zusätzliche 30 px nur für Symmetrie würde ich nicht ausgeben. Gleich bleiben sollen die Zahlenfeldbreiten, Zeilenhöhen, Abstände und Bedeutung der Spalten innerhalb einer Achszeile. Die beiden äußeren Blöcke enthalten unterschiedlich breite Inhalte und dürfen deshalb verschieden breit sein.
+
+Ein möglicher Feinschliff als dritter Weg: Die U/V/W-Achszeilen innerhalb des 236-px-Blocks nur so breit wie die entsprechenden Zeilen links halten; nur die Aktionspaare nutzen die volle Breite. Das kostet insgesamt keine zusätzliche Breite und verhindert, dass gleiche Achstasten bloß durch die darunterliegenden Aktionen breiter werden. Der kleine freie Rest rechts wäre dabei bewusst. **Optionaler visueller Feinschliff, keine Voraussetzung für G.** Kein zusätzliches Farbsystem und keine Sonder-Buttonklasse für die breitere WCS-0-Taste.
+
+### 5. Vertrag und Wächter vor der Umsetzung präzisieren
+
+Die reine Formfunktion ist sinnvoll. Dazu würde ich folgende Punkte in den Umsetzungsvertrag aufnehmen:
+
+1. **Fähigkeit vor Achszahl:** `portrait` und `twpCapable` wählen die bisherige Form, erst danach entscheidet die Achszahl. Die Aussage „TWP gibt es nur mit sechs Achsen“ ist als Beschreibung des aktuell ausgelieferten Profils brauchbar, nicht als allgemeine Layout-Vorbedingung: `_twp_capable()` prüft die Kinematikdeklaration, nicht `n == 6`. Keine zusätzliche Sechsachs-Bedingung im Client. TCP, TWP und aktive Kinematik nicht gleichsetzen.
+2. **Achsenmenge statt Buchstaben erfinden:** `n` kommt aus der tatsächlich angezeigten Achsenliste. Reihenfolge und Indizes aus `useAxes` übernehmen; „A unter Z“ und „U/V/W rechts“ beschreiben die gezeigten Standardfälle. Auch XZ, XYZC, XYZBC und eine Achsenliste mit ausgelassenem Buchstaben prüfen. Wenn weiterhin nach sechs Einträgen geteilt wird, dies genau so benennen. Keine leeren X/Y/Z- oder A/B/C-Plätze ergänzen. Einachsfall und Zustand vor vollständiger Initialisierung ausdrücklich definieren.
+3. **Sechs Zeilen sind das Budget, kein Füllzwang.** Größe und Funktion eines Bedienelements nicht ändern, nur um Fläche auszufüllen. Pro Achse ein Feld und die richtigen beiden Aktionen; jede Sammel-/Fahraktion genau einmal. Tooltip, zugänglicher Name, Freigabe, Haltebestätigung und Ziel bleiben gleich. Auch die tatsächliche Tastaturreihenfolge prüfen, nicht nur die CSS-Platzierung. Die vorhandene WCS-Tastaturnavigation bleibt erhalten.
+4. **Die fehlenden Kombinationen ergänzen:** Touch **und** 150 % gemeinsam; Hochformat bei 150 % mit offenem Zahlenhelfer; TWP definiert/orientiert/gesperrt mit dem längeren Rahmenhinweis; TCP und normale Kinematik. Lange negative Feldwerte dürfen den Block nicht aufweiten. Für live/dim korrekt **`homed_joints` und `homed`** setzen: Der Render-Harness setzt bisher nur `homed`. Deshalb zeigen die bereit-Renderings „Unhome All“, aber weiterhin Home-Symbole an den Einzelachsen. Zusätzlich einen gemischten Referenzzustand prüfen.
+5. **Nicht nur Rechtecke, auch Erreichbarkeit:** `outside: []` beweist nicht, dass eine Taste neben der festen Safety-Spalte tatsächlich getroffen werden kann. In der gelieferten [Neunachs-Aufnahme bei 150 %](setup-layout.r233.zoom-occlusion.png) verdeckt Safety Teile der ersten Achsspalte. Das ist hier ein Limit des Render-Nachweises, kein neu behaupteter Produktfehler. Für die Implementierung jede Spalte erreichbar scrollen, den Fokus sichtbar halten und per Hit-Test bzw. echtem Tap bestätigen, dass weder Safety noch ein Helfer den Zielpunkt überdeckt. Bei 150 % CSS-Zoom Maße auf CSS-Pixel beziehen; die geltenden Touch-Untergrenzen beibehalten.
+6. **Eingabe und Zustandswechsel:** Gesperrte Tasten mit Hinweis-Wrapper und freigegebene Tasten müssen dieselben Plätze behalten. Das Öffnen/Schließen des Zahlenhelfers und der erste Touch dürfen den gerade gedrückten Befehl nicht verschieben; die bereits abgenommenen Safety-/Leftovers-Wächter weiterlaufen lassen. Hochformat erhält seine bisherige Faltung und den Besitzer der Eingabesitzung.
+
+### Nachweisumfang
+
+Bewertet wurden die gelieferten Bilder von G/H/K, der Render-Harness, die Messdaten und die betroffenen bestehenden Schnittstellen. Keine Builds, Browserläufe oder Sim-Messungen; kein Produktcode geändert. Die Daten enthalten **230 Fälle**, davon **184 im Querformat** ohne gemeldeten Umbruch, abgeschnittenen Inhalt oder Abschnittsüberlauf und mit den erwarteten 264/396 px Höhe. **Alle 20 G/Heute-Bildpaare im Hochformat sind bytegleich.** Touch und 150 % sowie Hochformat mit Helfer sind im gelieferten Datensatz nicht kombiniert enthalten, auch wenn der Harness solche Erweiterungen teilweise vorbereitet.
+
+Die eigene [Auswertung](setup-layout.r233.analysis.py) und ihr [JSON-Ergebnis](setup-layout.r233.analysis.json) halten diese Aussagen reproduzierbar fest. Es handelt sich um eine unabhängige Auswertung der gelieferten Messungen, nicht um einen unabhängig neu gerenderten Abnahmelauf. Die zusätzlichen Wächter oben betreffen die folgende Umsetzung; sie verlangen keine weitere Layoutvariante vor Baubeginn.
