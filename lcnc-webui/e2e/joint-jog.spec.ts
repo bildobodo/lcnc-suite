@@ -130,3 +130,20 @@ test("homed: the axis letters as before, no note, every axis open", async ({ pag
     await expect(strip.getByRole("button", { name, exact: true }), name).toBeEnabled();
   }
 });
+
+// Leftovers package (Codex notes at R219): the diagonals show an arrow only —
+// each is named for its move; the head line is cut on a narrow strip and a
+// touch has no hover title — its "?" says the whole note.
+test("the diagonal jog buttons are named for their move; before homing the head line's \"?\" says the whole note", async ({ page }) => {
+  await open(page, true);
+  const jog = page.locator('[data-strip="jog"]');
+  for (const name of ["Jog X- Y+", "Jog X+ Y+", "Jog X- Y-", "Jog X+ Y-"]) {
+    await expect(jog.getByRole("button", { name, exact: true }), name).toHaveCount(1);
+  }
+  await expect(jog.getByRole("button", { name: "Help: Jogging before homing" }), "homed: no note, no help").toHaveCount(0);
+  await open(page, false);
+  const help = jog.getByRole("button", { name: "Help: Jogging before homing" });
+  await help.click();
+  await expect(page.locator(".helpPopover:popover-open")).toHaveText(
+    "Not homed: each button moves its own joint, without soft limits, at most 10 % of its speed.");
+});

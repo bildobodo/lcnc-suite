@@ -417,6 +417,56 @@ test("a sideways-scrolled strip keeps its scroll position under a press that clo
   await expect.poll(async () => (await sent()).filter(c => c.cmd === "mdi" && c.text === "G55").length, { timeout: 3000 }).toBe(1);
 });
 
+// ── The first touch waits too (leftovers package) ──
+// The session's first touch switches to touch sizes (36/44 px floors) and
+// re-lays the page out; it used to do that under the very finger that showed
+// the touch (the specs tap neutrally first for that reason). Now the switch
+// waits until that press has ended: a first touch that is a hold on Home X
+// stays on Home X and fires, then the touch sizes apply.
+test.describe("the first touch: the switch to touch sizes waits for its press", () => {
+  test.use({ hasTouch: true });
+  test("a first touch that holds Home X: the button stays put and fires, touch sizes apply after the release", async ({ page }) => {
+    await open(page, { width: 1280, height: 800 });
+    await expect(page.locator("html"), "no touch yet").not.toHaveClass(/touch-device/);
+    const homeX = page.locator('[data-strip="setup"]').getByRole("button", { name: /^(Home|Unhome) X$/ });
+    const before = await box(homeX);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ id: 1, x: before.x + before.w / 2, y: before.y + before.h / 2 }] });
+    await page.waitForTimeout(700);
+    expect(await box(homeX), "Home X under the finger, unmoved").toEqual(before);
+    await expect(page.locator("html"), "not yet: the press holds").not.toHaveClass(/touch-device/);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await expect(page.locator("html"), "the press ended: touch sizes").toHaveClass(/touch-device/);
+    await expect.poll(async () => (await sent()).filter(c => (c.cmd === "home" || c.cmd === "unhome") && c.joint === 0).length, { timeout: 3000 }).toBe(1);
+  });
+});
+
+// Codex R231 LO-01: only the SIZES wait for the first touch's press — the
+// input behaviour follows at once: a first touch into a text field focuses
+// it with inputmode="none" already set (the OS keyboard stays shut; the
+// strip keyboard serves the field).
+test.describe("the first touch: the input behaviour applies at once, before the field's focus", () => {
+  test.use({ hasTouch: true });
+  for (const field of ["MDI", "Search tools"] as const) {
+    test(`a first touch into ${field}: focused with inputmode="none", the strip keyboard opens`, async ({ page }) => {
+      await open(page, { width: 1280, height: 800 });
+      await expect(page.locator("html"), "no touch yet").not.toHaveClass(/touch-device/);
+      await page.getByRole("tab", { name: field === "MDI" ? "MDI" : "Tools", exact: true }).click();
+      const input = field === "MDI" ? page.locator(".mdiInput") : page.getByRole("textbox", { name: "Search tools", exact: true });
+      await input.evaluate(el => {
+        const w = window as unknown as { focusSeen: (string | null)[] };
+        w.focusSeen = [];
+        el.addEventListener("focus", () => w.focusSeen.push(el.getAttribute("inputmode")), true);
+      });
+      await input.tap();
+      await expect(page.locator(".tkStrip")).toBeVisible();
+      await expect(page.locator("html"), "the sizes after the press").toHaveClass(/touch-device/);
+      const seen = await page.evaluate(() => (window as unknown as { focusSeen: (string | null)[] }).focusSeen);
+      expect(seen[0], `inputmode at the first focus ${JSON.stringify(seen)}`).toBe("none");
+    });
+  }
+});
+
 // At 150 % (600 × 800 CSS px) the keyboard (692 zoomed px) and the keypad
 // under its owner section (Setup + keypad) end past the viewport with the
 // info (76 / 89 CSS px); the keypad of a side-pane field alone fits with it.

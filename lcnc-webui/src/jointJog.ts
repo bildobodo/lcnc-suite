@@ -59,6 +59,12 @@ export function jogAxisJoint(jj: JointJog | null | undefined, homed: boolean, ax
 }
 
 /** The jog block's head line while jogging joints. */
+/** The head line's "?" — the whole note where the line is cut (touch has no
+ *  hover title; Codex R219 note, leftovers package). ≤ 120 characters. */
+export function jointJogHelp(jj: JointJog | null | undefined): string {
+  const pct = jj?.fraction != null ? Math.round(jj.fraction * 100) : null;
+  return `Not homed: each button moves its own joint, without soft limits${pct != null ? `, at most ${pct} % of its speed` : ""}.`;
+}
 export function jointJogNote(jj: JointJog | null | undefined): string {
   const pct = jj?.fraction != null ? Math.round(jj.fraction * 100) : null;
   return pct != null ? `Joint jog — no soft limits · max ${pct} %` : "Joint jog — no soft limits";

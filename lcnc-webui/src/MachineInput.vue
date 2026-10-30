@@ -4,7 +4,7 @@ import { usePermissions, useOwnerPermissions } from './permissions';
 import { INPUT_DEFS, type InputType, type InputDef } from './machineControls';
 import { openKeypad, keypadState, closeKeypadIf, newKeypadOwnerId, refocusKeypad } from './useNumberKeypad';
 import { openTextSession, closeTextSessionIf, returnFocusTo, inputSession, dropDraft, showInputGlyph, hideInputGlyph, placeInputGlyph, type TextTarget } from './inputSession';
-import { isTouchDevice } from './touchDetect';
+import { touchInput } from './touchDetect';
 import { useGateExplain } from './gateExplain';
 import { connected } from './lcncWs';
 import type { EntryConstraints } from './mathEval';
@@ -139,7 +139,7 @@ const isTextActive = computed(() => sessionEnabled.value && inputSession.kind !=
 // Touch: the OS keyboard is suppressed wherever the strip keyboard serves
 // the field; otherwise the caller's inputmode (if any) passes through.
 const textInputMode = computed<InputHTMLAttributes['inputmode']>(() =>
-  isTouchDevice.value && !props.noSession ? 'none' : (attrs.inputmode as InputHTMLAttributes['inputmode']));
+  touchInput.value && !props.noSession ? 'none' : (attrs.inputmode as InputHTMLAttributes['inputmode']));
 
 function fireInput() {
   const el = textEl.value;
@@ -184,7 +184,7 @@ function onTextClick() { if (!isTextActive.value) openText(); }
 // inputGlyph); it belongs to this field's focus area.
 function placeGlyph() { if (textEl.value) placeInputGlyph(ownerId, textEl.value); }
 function onTextFocus() {
-  if (isTouchDevice.value || isDisabled.value || props.noSession) return;
+  if (touchInput.value || isDisabled.value || props.noSession) return;
   if (!props.sessionOpen && !sessionEnabled.value) return;
   if (!textEl.value) return;
   showInputGlyph(ownerId, textEl.value, openText);

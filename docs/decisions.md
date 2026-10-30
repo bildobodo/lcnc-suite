@@ -9738,3 +9738,26 @@ stopped provisional result keeps it while the full check runs behind it (R229). 
 program's length (6 h, 30 h left the timeline 93 / 78 px at 150 %): the narrow form shows the
 elapsed time only, its slot sized for the program; the whole readout is the title and the Sim tab.
 
+## 2026-10-29 — Leftovers of the button-gates and safety reviews
+
+Three items Codex named outside its agreements (R219, R227) and the operator put before the Setup
+and scrub-bar work:
+- **The diagonal jog buttons** show an arrow only and had no accessible name; they are named for
+  their move ("Jog X+ Y+"). The straight ones keep their own text.
+- **The jog head line before homing** ("Joint jog — no soft limits · max 10 %") is cut on a narrow
+  strip, and a touch has no hover title: a "?" beside it says the whole note.
+- **The first touch** switches the session to touch sizes and re-laid the strip out under the very
+  finger that showed the touch (the specs tapped neutrally first for that reason, a named limit of
+  safety-during-edit). The switch now waits until that press has ended (`pressHolds`): a first
+  touch that holds Home X stays on it and fires, then the touch sizes apply.
+
+Guards: `joint-jog.spec` (the names, the "?"), `safety-during-edit.spec` (the first touch) — both
+red at 1d987b25 (`docs/reviews/leftovers.browser-red.txt`).
+
+**Codex R231: the input behaviour does not wait.** Deferring the touch flag with the sizes
+deferred `inputmode="none"` too: a first touch into the MDI line or the tool search focused the
+field without it (the OS keyboard could open). The flags are split by function: `touchInput`
+(inputmode, the keyboard glyph, tap instead of hover) at the first touch's pointerdown;
+`isTouchDevice` and the class (the sizes, the code panel's line height) after its press. Guard: a
+first touch into MDI and into Search tools — focused with `inputmode="none"` (red at a6e201ea).
+

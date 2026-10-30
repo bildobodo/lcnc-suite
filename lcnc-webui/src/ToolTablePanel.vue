@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, defineAsyncComponent } from "vue";
+import { touchInput } from "./touchDetect";
 import { request, lastReply, connected, toolTableVersion } from "./lcncWs";
 import { useFire } from "./permissions";
 import { useToolsetterMdi } from "./toolsetterVars";
@@ -588,12 +589,14 @@ const hoverTool = ref<Tool | null>(null);
 const hoverPos = ref({ x: 0, y: 0 });
 let hoverTimer = 0;
 
-const isTouchDevice = () => document.documentElement.classList.contains("touch-device");
+// Tap or hover is input behaviour: the session's first touch decides it at
+// once (touchInput), not the touch sizes that follow its press (Codex R231).
+const tapNotHover = () => touchInput.value;
 
 function onToolEnter(tool: Tool, e: MouseEvent) {
   // Touch uses the tap path (onToolTap) — the emulated mouseenter that
   // precedes a tap's click would race the 300ms timer against the toggle.
-  if (isTouchDevice()) return;
+  if (tapNotHover()) return;
   clearTimeout(hoverTimer);
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
   hoverTimer = window.setTimeout(() => {
@@ -611,7 +614,7 @@ function onToolLeave() {
 
 /** Touch equivalent of the hover preview: tap a row to pin it, re-tap to hide. */
 function onToolTap(tool: Tool, e: MouseEvent) {
-  if (!isTouchDevice()) return;
+  if (!tapNotHover()) return;
   if (hoverTool.value?.T === tool.T) { hoverTool.value = null; return; }
   const cell = (e.currentTarget as HTMLElement).querySelector("td");
   const rect = (cell ?? (e.currentTarget as HTMLElement)).getBoundingClientRect();
