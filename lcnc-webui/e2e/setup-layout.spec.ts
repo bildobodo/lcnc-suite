@@ -295,6 +295,25 @@ for (const c of CONFIGS.filter(c => ["5 TCP", "6 TWP"].includes(c.name))) {
   }
 }
 
+// Portrait at 150 % with the keypad on an axis field: the section keeps its
+// axis rows only (design wave D7) — the action block and the WCS title and
+// fixtures fold with it, wherever the arrangement put them (Codex R233).
+test("portrait touch 150 %, the keypad on an axis field: only the axis rows stay", async ({ page }) => {
+  const c = CONFIGS.find(c => c.name === "6 TWP")!;
+  await open(page, c, SURFACES.find(s => s.name === "portrait touch 150 %")!);
+  const section = page.locator(SETUP);
+  const field = section.locator("input.setupInput").first();
+  await field.scrollIntoViewIfNeeded();
+  await field.click();
+  await expect(page.locator(".nkStrip")).toBeVisible();
+  for (const name of ["Go to G30", "Unhome All", "Capture plane"])
+    await expect(section.getByRole("button", { name, exact: true }), `${name} folded`).toBeHidden();
+  await expect(section.getByRole("radio", { name: "G54", exact: true }), "the fixtures folded").toBeHidden();
+  await expect(section.locator(".wcsTitle"), "the WCS title folded").toBeHidden();
+  await expect(section.locator("input.setupInput"), "every axis field stays").toHaveCount(6);
+  await expect(field).toBeVisible();
+});
+
 // Before viewer_init the default axis set lays out; the real set re-lays it
 // out on arrival (the controls are closed until the first status anyway).
 test("a new axis set re-lays the section out", async ({ page }) => {

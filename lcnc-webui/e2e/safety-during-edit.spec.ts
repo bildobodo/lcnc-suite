@@ -433,7 +433,16 @@ test.describe("the first touch: the switch to touch sizes waits for its press", 
     const cdp = await page.context().newCDPSession(page);
     await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ id: 1, x: before.x + before.w / 2, y: before.y + before.h / 2 }] });
     await page.waitForTimeout(700);
-    expect(await box(homeX), "Home X under the finger, unmoved").toEqual(before);
+    // Measured in ONE page task: the hold fires around now and the busy latch
+    // re-renders the button (the dimmed form is a wrapper) — a locator that
+    // resolved the old node and measured it after the swap read null.
+    const held = await page.evaluate(() => {
+      const b = [...document.querySelectorAll('[data-strip="setup"] button')]
+        .find(e => /^(Home|Unhome) X$/.test(e.getAttribute("aria-label") ?? ""))!;
+      const r = b.getBoundingClientRect();
+      return { x: Math.round(r.x * 2) / 2, y: Math.round(r.y * 2) / 2, w: Math.round(r.width * 2) / 2, h: Math.round(r.height * 2) / 2 };
+    });
+    expect(held, "Home X under the finger, unmoved").toEqual(before);
     await expect(page.locator("html"), "not yet: the press holds").not.toHaveClass(/touch-device/);
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await expect(page.locator("html"), "the press ended: touch sizes").toHaveClass(/touch-device/);
