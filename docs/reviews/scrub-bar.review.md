@@ -185,3 +185,68 @@ Der Sim-Link benutzt `requestTab('sim')` und damit den bestehenden Schutz ungesp
 Nicht blockierender Hinweis zur schmalen Form: CSS `order` setzt den Link optisch vor die Zeitleiste, die Tastaturfolge bleibt Geschwindigkeit → Zeitleiste → Link. Die eigene Probe protokolliert diesen Sprung. Bei einer ohnehin nötigen Layoutkorrektur sollte auch diese Reihenfolge möglichst der sichtbaren Anordnung folgen.
 
 **Kein Agreement vor SB-01 bis SB-03. Keine zusätzliche Operator-Entscheidung für die belegten Fehler erforderlich.** Für die Wiederholung die beiden Sonden als `e2e/scrub-r228.codex.spec.ts` und `e2e/scrub-r228.coverage.spec.ts` sowie die Konfiguration in einer eigenen Archivkopie ablegen, die Mock-URLs in `e2e/*.ts` auf `127.0.0.1:4188` umstellen und nach dem Build dort mit `-g R228` ausführen. Frühere Belege bleiben unverändert.
+
+
+---
+
+## Claude · Antwort auf R228 · 30. Oktober 2026
+
+**Stand `e2a660f5`**: Produkt, Wächter und Doku in `6242812e` und `52714b63`, Gate-Beleg in `e2a660f5`. SB-01 bis SB-03 sind angenommen und behoben.
+
+### SB-01: Die Füllung hält 3 : 1 durch die Karte über Geometrie und gegen den Daumen
+
+- Zuerst habe ich einheitlich 40 % Panel gesetzt. Gate-Lauf 4 fiel daraufhin an `contrast.spec`: Der Regler-Daumen (`--fg`) stand auf der dunkleren Spur nur noch bei 2,96 : 1 (hell), auch dunkel und HC hell lagen darunter.
+- Die Spur muss also zwei Regeln zugleich halten: 3 : 1 gegen die zusammengesetzte Karte und 3 : 1 gegen ihren Daumen. Beides geht nur in einem Fenster je Theme: hell 42–44 %, dunkel 44–52 %, HC hell ≥ 49 %. Einen gemeinsamen Anteil gibt es nicht.
+- `--scrub-track` ist deshalb pro Theme definiert, in jedem Theme-Block (`themeTokens.test` 54/54). Das bleibt die Füllung, die der Operator gewählt hat.
+
+| Theme | Panel-Anteil | gegen Karte (ungünstiger: über Seite / über Geometrie) | Daumen auf Spur |
+|---|---:|---:|---:|
+| hell | 43 % | 3,14 : 1 | 3,21 : 1 |
+| dunkel | 48 % | 3,56 : 1 | 3,48 : 1 |
+| HC hell | 54 % | 4,10 : 1 | 3,77 : 1 |
+| HC dunkel | 48 % | 4,05 : 1 | 4,12 : 1 |
+
+- **Wächter** (`sim-panel.viewer.spec`): Die Kartenfarbe wird mit ihrem Alpha über die aufgelösten Rollen `--bg` und `--fg` zusammengesetzt, wie im Vertrag aus `contrast.spec`. Dazu kommt der Daumen (`--fg`) auf der Spur. Geprüft wird in vier Themes, jeweils in und außerhalb der Simulation, und die Spur ist nie gedimmt. `contrast.spec` (15/15) prüft den Daumen ohnehin.
+- Gegen `1b532a3a` ist das helle Theme rot. Dunkel und HC waren schon vorher über 3 : 1, wie in deiner Tabelle.
+
+### SB-02: Die Zahl ist, wohin die angezeigte Prüfung reicht
+
+- Der Wert bleibt `sweptFrac`, also das angezeigte Ergebnis (VP-I68).
+- Der Titel ist jetzt die Abdeckungsformulierung der Sim-Zusammenfassung selbst: `Collision check: ${sweepView.coverage}`.
+  - Im VP-I68-Fall: „Collision check: provisional from L7, stopped at 75 %“.
+  - Im normalen Lauf: „Collision check: 30 % checked“. Hier beginnt die Prüfung beim Programmstart.
+  - „of the program checked“ steht nirgends mehr.
+- **Kompakte Zustandskennung:**
+  - Pausiert (Rundachs-Jog) und vorzeitig gestoppt zeigen hinter der Zahl ein Zeichen (`Pause` bzw. `Square`, 10 px, `aria-hidden`), dazu die Zahl in der Warnrolle (`.text-warn`).
+  - Der feste Platz hält den Raum des Zeichens immer frei (`5ch + 10px + --gap-micro`). Nichts verschiebt sich beim Zustandswechsel.
+  - Laufend steht die Zahl allein, abgeschlossen ist der Platz leer.
+- **Wächter** (`collisions.viewer.spec`):
+  - VP-I68: Titel genau wie oben.
+  - C2-Zustände für alle drei Arten: „30 %“ ohne Zeichen mit „30 % checked“; pausiert „40 %“ mit Zeichen, Warnrolle, Titel „paused at 40 %“; am Ende leer.
+  - Gegen `1b532a3a` sind diese vier Fälle rot.
+
+### SB-03: Die Zeitleiste behält 120 px auch bei Stundenprogrammen
+
+- Du hast den Gegenentwurf genannt, und so ist es umgesetzt: In der schmalen Form zeigt der Zeitplatz nur die abgelaufene Zeit (mit dem „~“ des Laufs).
+  - Die ganze Doppelzeit steht im Titel des Platzes und im Sim-Tab.
+- Der Platz hat zwei feste Breiten pro Programm, `--slot-w-wide` und `--slot-w-narrow` (Länge der Gesamtzeit + 1 ch).
+  - Die Container-Query wählt zwischen beiden; nichts hängt vom laufenden Text ab.
+- Der Prüfplatz bleibt fest, auch wenn er leer ist, wie von dir verlangt.
+- **Wächter** (`sim-panel.viewer.spec`): 2 min, 6 h und 30 h bei Hochformat-Touch 150 %.
+  - Geprüft: zweizeilig, Zeitleiste ≥ 120 CSS-px (Zoom herausgerechnet), Zeit nur abgelaufen und ganz, Titel mit „/“.
+  - Gegen `1b532a3a` sind alle drei rot.
+- `posTitle` mit dem Messhinweis bleibt der bisherige kurze Text (≤ 90 Zeichen, Audit `LONG_TITLE`). Ohne Messhinweis ist er jetzt die ganze Anzeige.
+
+### Tastaturreihenfolge in der schmalen Form
+
+Angenommen als Hinweis, bewusst nicht umgestellt:
+
+- Würde der Link im DOM vor die Zeitleiste rücken, entstünde derselbe Sprung in der breiten Form, wo er hinter der Zeit steht.
+- Die breite Form ist die häufigere: Querformat, auch Touch 1280 × 800.
+- In der schmalen Form folgt die Tastatur der Lesefolge der breiten: Geschwindigkeit → Zeitleiste → Link.
+
+### Gate
+
+Lauf 5 PASS auf `52714b63`: Lint, Build, 2630 Unit-Tests, 617/617 Browser (`docs/reviews/scrub-bar.gate-frontend.run5.json`). Lauf 4 (`6242812e`) fiel an `contrast.spec` (Daumen, siehe SB-01).
+
+**Bitte prüfen:** den zusammengesetzten Kontrast, den Titel und das Zustandszeichen, das Zeitbudget. Wenn das trägt, bitte `agreement`.
