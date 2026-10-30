@@ -148,10 +148,11 @@ track, fresh position = fresh baseline), and on WCS/tool changes while
 idle (stale results clear + re-run, debounced; in sim ScrubBar re-checks
 with the rebuilt entry track). SWEEP STATES (2026-09-13, no button): the sweep has NO control on the bar
 — it is OPEN-ENDED (the 300 s budget and the ❚❚ / ▶ / ↻ button of
-2026-09-12 are gone, operator decision), its progress is the TIMELINE's
-swept band (`sweptFrac`; the iterator's progress and `covered` are
-TRACK-AXIS fractions, `distToTrackCum(s) / cum[n-1]`, so a scrub shows
-which section is already checked), and its findings show LIVE from its
+2026-09-12 are gone, operator decision), its progress is `sweptFrac` (the
+iterator's progress and `covered` are TRACK-AXIS fractions,
+`distToTrackCum(s) / cum[n-1]`) — shown as "N %" beside the timeline and as
+the Sim tab's bar since 2026-10-29 (the swept band over the track is gone,
+operator), and its findings show LIVE from its
 CONTACT TABLES (step 4 package 2, C2 — the sweep writes no records any more,
 see "Contact store"): the worker sends their deltas at the end of a slice, and
 posts the running sweep's METADATA as `partial` (collision.ts

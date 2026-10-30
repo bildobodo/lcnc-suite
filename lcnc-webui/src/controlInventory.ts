@@ -406,6 +406,10 @@ export const CONTROL_INVENTORY: Record<string, readonly [ControlCategory, string
     ["local", "the program scrub: display only; simulation mode's entry needs the machine off and closes every machine gate (simMode.ts)"],
   "ScrubBar.vue|MachineToggle:simToggle|v-model=simToggleModel":
     ["local", "the program scrub: display only; simulation mode's entry needs the machine off and closes every machine gate (simMode.ts)"],
+  "ScrubBar.vue|MachineSelect:simSpeed|v-model=speedChoice":
+    ["local", "the program scrub: display only; simulation mode's entry needs the machine off and closes every machine gate (simMode.ts)"],
+  "ScrubBar.vue|MachineBtn:scrub|@click=emit('open-sim-tab')":
+    ["nav", "closes, cancels, navigates or switches a view — no effect beyond the screen"],
   // ── SettingsPanel.vue ──
   "SettingsPanel.vue|MachineBtn:dialogCancel|@click=resetTarget = null":
     ["nav", "closes, cancels, navigates or switches a view — no effect beyond the screen"],

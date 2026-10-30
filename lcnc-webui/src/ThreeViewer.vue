@@ -206,6 +206,8 @@ const emit = defineEmits<{
   // Source lines with collision hits after a sweep (null = no/stale results,
   // [] = checked clean) — App forwards to GcodePanel for line markers.
   (e: "collision-lines", lines: CollisionLineQuery | null): void;
+  // The scrub bar's link: App shows the side pane's Sim tab.
+  (e: "open-sim-tab"): void;
 }>();
 
 // HUD data (read from status for template)
@@ -6006,6 +6008,7 @@ defineExpose({
       @finding="onFinding"
       @manual-scrub="endPathReveal"
       @cancel-check="_colInvalidate"
+      @open-sim-tab="emit('open-sim-tab')"
       :contactViewFor="contactViewFor"
       :contactsVersion="contactsVersion"
     />
