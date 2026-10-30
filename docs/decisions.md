@@ -9754,3 +9754,10 @@ and scrub-bar work:
 Guards: `joint-jog.spec` (the names, the "?"), `safety-during-edit.spec` (the first touch) — both
 red at 1d987b25 (`docs/reviews/leftovers.browser-red.txt`).
 
+**Codex R231: the input behaviour does not wait.** Deferring the touch flag with the sizes
+deferred `inputmode="none"` too: a first touch into the MDI line or the tool search focused the
+field without it (the OS keyboard could open). The flags are split by function: `touchInput`
+(inputmode, the keyboard glyph, tap instead of hover) at the first touch's pointerdown;
+`isTouchDevice` and the class (the sizes, the code panel's line height) after its press. Guard: a
+first touch into MDI and into Search tools — focused with `inputmode="none"` (red at a6e201ea).
+

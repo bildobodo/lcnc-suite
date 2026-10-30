@@ -8,7 +8,7 @@
 // revision); this component owns the view: created on mount with `doc`,
 // destroyed — and its keyboard session closed — on unmount.
 import { inject, onMounted, onUnmounted, ref, watch, type Ref } from "vue";
-import { isTouchDevice } from "./touchDetect";
+import { touchInput } from "./touchDetect";
 import { openTextSession, closeTextSessionIf, inputSession, type TextTarget } from "./inputSession";
 import { emitTelemetry } from "./lcncWs";
 
@@ -36,6 +36,7 @@ let view: any = null;
 let theme: { compartment: any; make: (dark: boolean) => any } | null = null;
 let cm: { deleteCharBackward: any; undo: any; redo: any; cursorCharLeft: any; cursorCharRight: any; insertTab: any } | null = null;
 let alive = true;
+let stopTouchInput: (() => void) | null = null;
 
 // The editor's light/dark base theme follows the RESOLVED app theme (design
 // wave D8); reconfigured live on a switch.
@@ -79,8 +80,10 @@ onMounted(async () => {
       parent: host.value,
     });
     // Touch: text entry comes from the strip keyboard — suppress the OS
-    // keyboard the same way MachineInput does for number fields.
-    if (isTouchDevice.value) view.contentDOM.setAttribute("inputmode", "none");
+    // keyboard the same way MachineInput does, from the session's first
+    // touch on (also when the editor was open before it — Codex R231 LO-01).
+    const contentDOM = view.contentDOM;
+    stopTouchInput = watch(touchInput, (on) => { if (on) contentDOM.setAttribute("inputmode", "none"); }, { immediate: true });
     if (props.autoOpen) {
       // Focus on entry so the caret shows at once.
       view.focus();
@@ -100,6 +103,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   alive = false;
+  stopTouchInput?.();
   closeTextSessionIf(props.ownerId);
   view?.destroy();
   view = null;

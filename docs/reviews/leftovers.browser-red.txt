@@ -90,3 +90,16 @@ Running 2 tests using 1 worker
   2 failed
     [serial-guards] › e2e/joint-jog.spec.ts:137:1 › the diagonal jog buttons are named for their move; before homing the head line's "?" says the whole note 
     [serial-guards] › e2e/safety-during-edit.spec.ts:428:3 › the first touch: the switch to touch sizes waits for its press › a first touch that holds Home X: the button stays put and fires, touch sizes apply after the release 
+
+# R231 LO-01: the first touch into MDI / Search tools (inputmode at the first focus) against a6e201ea
+    Error: inputmode at the first focus [null]
+    Expected: "none"
+    Received: null
+    test-results/safety-during-edit-the-fir-61f86-ne-the-strip-keyboard-opens-serial-guards/test-failed-1.png
+    Error Context: test-results/safety-during-edit-the-fir-61f86-ne-the-strip-keyboard-opens-serial-guards/error-context.md
+    Error: inputmode at the first focus [null]
+    Expected: "none"
+    Received: null
+    test-results/safety-during-edit-the-fir-ad2d6-ne-the-strip-keyboard-opens-serial-guards/test-failed-1.png
+    Error Context: test-results/safety-during-edit-the-fir-ad2d6-ne-the-strip-keyboard-opens-serial-guards/error-context.md
+  2 failed

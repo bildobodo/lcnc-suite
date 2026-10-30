@@ -14,10 +14,18 @@ import { pressHolds } from "./inputSession";
 
 let installed = false;
 
-/** Reactive mirror of the html.touch-device class — for JS that must stay
-    in sync with the CSS touch layer (e.g. GcodePanel's virtual-scroll
-    line height matching the .codeLine CSS height). */
+/** Reactive mirror of the html.touch-device class — the touch SIZES: for JS
+    that must stay in sync with the CSS touch layer (e.g. GcodePanel's
+    virtual-scroll line height matching the .codeLine CSS height). Set once
+    the first touch's press has ended, with the class. */
 export const isTouchDevice = ref(false);
+/** The session has seen touch input — the INPUT behaviour that follows from
+    it: the OS keyboard suppressed where the strip keyboard serves a field
+    (inputmode="none"), a tap instead of a hover. Set at the first touch's
+    pointerdown, before its tap focuses anything; only the sizes wait for
+    the press (Codex R231 LO-01: a first touch into the MDI line focused it
+    without inputmode="none"). */
+export const touchInput = ref(false);
 
 function enterTouchMode(): void {
   document.documentElement.classList.add("touch-device");
@@ -33,6 +41,7 @@ function enterTouchMode(): void {
 function onFirstTouch(e: PointerEvent): void {
   if (e.pointerType !== "touch") return;
   document.removeEventListener("pointerdown", onFirstTouch, true);
+  touchInput.value = true;
   setTimeout(() => {
     if (!pressHolds.value) { enterTouchMode(); return; }
     const stop = watch(pressHolds, (held) => { if (!held) { stop(); enterTouchMode(); } });
