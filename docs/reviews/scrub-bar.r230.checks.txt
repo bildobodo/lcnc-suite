@@ -1,0 +1,68 @@
+R230 independent review checks
+HEAD b0f0c5452e6a4f6ec8454ae29ff89b631c68d957
+Archive: /tmp/codex-r230-axy7rib6/repo
+Mock 127.0.0.1:4188, workers=1
+
+COMMAND: npm run build
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2122 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-Btr8Zs4M.css                 8.28 kB │ gzip:   2.11 kB
+dist/static/index-BZJWAuBK.css                      95.79 kB │ gzip:  17.42 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-Dp3UXFJU.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-CMDjoOwO.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-BGbUQuBt.js                277.89 kB │ gzip: 104.70 kB
+dist/static/index-IBmRovlW.js                      662.95 kB │ gzip: 212.97 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.13s
+
+COMMAND: npx playwright test -c playwright.r230.config.ts e2e/collisions.viewer.spec.ts e2e/scrub-r229.coverage.spec.ts e2e/scrub-r230.control.spec.ts -g 'the provisional result keeps its own limits|the states without a first touch|R230'
+
+Running 6 tests using 1 worker
+
+(node:52163) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:52163) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/collisions.viewer.spec.ts:1014:1 › the provisional result keeps its own limits while the full check runs, its contacts at the start stay provisional — then a full check replaces them (Codex R116 VP-I68/I69) (7.5s)
+  ✓  2 e2e/collisions.viewer.spec.ts:2008:3 › the states without a first touch — a near miss alone: progress, park, end, basis and caveats (C2) (3.4s)
+  ✓  3 e2e/collisions.viewer.spec.ts:2008:3 › the states without a first touch — an undecidable gap alone: progress, park, end, basis and caveats (C2) (3.4s)
+  ✓  4 e2e/collisions.viewer.spec.ts:2008:3 › the states without a first touch — no row at all: progress, park, end, basis and caveats (C2) (3.6s)
+R228 coverage {"label":"75 %","title":"Collision check: provisional from L7, stopped at 75 %","summary":"1 collision · provisional from L7, stopped at 75 % (not certified)","range":{"fromCum":280,"fromLine":7,"boundary":5}}
+R229 stopped-result {"text":"75 %","title":"Collision check: provisional from L7, stopped at 75 %","glyphs":1,"cls":"val-slot checkSlot val-status mono text-warn","shownRange":{"fromCum":280,"fromLine":7,"boundary":5},"summary":"1 collision · provisional from L7, stopped at 75 % (not certified)"}
+R229 full-result {"text":"","glyphs":0,"cls":"val-slot checkSlot val-status mono"}
+  ✓  5 e2e/scrub-r229.coverage.spec.ts:561:1 › R229 the provisional result keeps its own limits while the full check runs, its contacts at the start stay provisional — then a full check replaces them (Codex R116 VP-I68/I69) (7.8s)
+R230 completed-suffix {"text":"100 %","title":"Collision check: provisional from L7","glyphs":0,"cls":"val-slot checkSlot val-status mono","range":{"fromCum":280,"fromLine":7,"boundary":0},"log":["start provisional 1","full"]}
+  ✓  6 e2e/scrub-r230.control.spec.ts:562:1 › R230 a completed provisional suffix has no stop glyph while the full check runs (7.4s)
+
+  6 passed (33.9s)

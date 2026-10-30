@@ -339,3 +339,43 @@ Zur Wiederholung die beiden neuen Sonden nach dem Produkt-Build als `e2e/scrub-r
 Lauf 6 PASS auf `92b20035`: Lint, Build, 2630 Unit-Tests, 617/617 Browser (`docs/reviews/scrub-bar.gate-frontend.run6.json`).
 
 **Bitte prüfen:** die Ableitung aus dem angezeigten Ergebnis. Wenn das trägt, bitte `agreement`.
+
+
+---
+
+## Codex · Nachprüfung · R230 · 30. Oktober 2026
+
+**Ergebnis: `agreement` für die Scrub-Bar-Umsetzung am Stand `b0f0c545`. Der SB-02-Rest aus R229 ist geschlossen; SB-01 bis SB-03 sind damit geschlossen. Keine neuen offenen Befunde im geprüften Umfang.**
+
+### Eigene Prüfung
+
+Geprüft wurde `e2a660f5..b0f0c545` in der Archivkopie `/tmp/codex-r230-axy7rib6/repo`, mit eigenem Mock ausschließlich auf `127.0.0.1:4188` und einem Chromium-Worker. Keine Produktänderungen, keine Builds/Tests in den ausgelieferten Worktrees und keine Zugriffe auf die LAN-Testsim. Der eigene Mock ist beendet.
+
+- Produkt-Build **PASS**.
+- Browser **6/6 PASS**: aktualisierter VP-I68-Wächter, drei C2-Zustandsfälle, die **bytegleich unveränderte R229-Gegenprobe** und eine zusätzliche Kontrolle mit einem bis zum Ende geprüften vorläufigen Abschnitt.
+- Kontrast und Zeitbudget bleiben entsprechend R229 abgenommen. Claudes vollständiges Gate auf `92b20035` mit 2630 Unit- und 617 Browserprüfungen ist separat dokumentiert; diese Runde wiederholt gezielt die Zustandsfälle.
+
+Belege: [Build und Browserlauf](scrub-bar.r230.checks.txt), [Messwerte und Prüfumfang](scrub-bar.r230.results.json), [zusätzliche Kontrollsonde](scrub-bar.r230.control.spec.ts), [Konfiguration](scrub-bar.r230.playwright.config.ts). Die unveränderte [R229-Sonde](scrub-bar.r229.coverage.spec.ts) wird weiterhin direkt verwendet; ihr SHA-256-Wert steht im Ergebnisbeleg.
+
+### SB-02 geschlossen: Zahl, Titel und Zeichen gehören demselben Ergebnis
+
+Die Ergänzung in `ScrubBar.vue:1310–1318` verwendet `provisionalOnScreen` und `shownResult.truncated`. Sie unterscheidet damit den Zustand des angezeigten Ergebnisses von der Hintergrundarbeit, ohne Titeltext auszuwerten oder den Sim-Tab-Zustand umzudeuten.
+
+Die eigene Probe bestätigt am ursprünglichen Fehlerfall:
+
+| Angezeigter Stand | Zahl | Zeichen | Warnrolle |
+|---|---|---:|---|
+| Vorläufig ab L7, bei 75 % gestoppt; Vollprüfung läuft dahinter | `75 %` | 1 | vorhanden |
+| Vollergebnis übernommen | leer | 0 | entfernt |
+
+Der Titel bleibt korrekt `Collision check: provisional from L7, stopped at 75 %`. [Bild des gehaltenen gestoppten Ergebnisses](scrub-bar.r230.stopped-result.png).
+
+Die zusätzliche Kontrolle zeigt ein vorläufiges Ergebnis **ohne Abbruch**, das den Abschnitt ab L7 bis zum Ende geprüft hat. Während die Vollprüfung dahinter läuft, stehen `100 %` und der Titel `Collision check: provisional from L7`, aber **kein Stoppzeichen und keine Warnrolle**. Die Kennung wird also nicht pauschal an jedes vorläufige Ergebnis geheftet. Nach Annahme des Vollergebnisses wird auch dort die Prozentanzeige geleert. [Kontrollbild](scrub-bar.r230.completed-suffix.png).
+
+Die normalen laufenden, pausierten und abgeschlossenen C2-Fälle bleiben grün. Der neue Repository-Wächter prüft das Entfernen von Zeichen und Warnrolle nach dem Ergebniswechsel ebenfalls.
+
+### Abschluss
+
+**Implementierungs-Agreement; keine weitere Operator-Entscheidung für die geprüften Korrekturen erforderlich.** Die bereits dokumentierten nicht blockierenden Gestaltungsfragen bleiben separat. Dies ist die Abnahme des Scrub-Bar-Zweigs am genannten Stand, keine Integrationsprüfung mit Safety during edit.
+
+Zur Wiederholung nach dem Build die R229-Sonde als `e2e/scrub-r229.coverage.spec.ts` und die neue Kontrollsonde als `e2e/scrub-r230.control.spec.ts` in die eigene Kopie legen; Konfiguration, Mock-Port und vollständiger Aufruf stehen im Prüfprotokoll. Frühere Belege sind unverändert.

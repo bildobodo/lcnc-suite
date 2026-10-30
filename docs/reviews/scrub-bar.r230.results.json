@@ -1,0 +1,80 @@
+{
+  "round": "R230",
+  "date": "2026-10-30",
+  "base": "e2a660f5",
+  "head": "b0f0c5452e6a4f6ec8454ae29ff89b631c68d957",
+  "archive": "/tmp/codex-r230-axy7rib6/repo",
+  "mock": "http://127.0.0.1:4188",
+  "live_machine_access": false,
+  "build": "PASS",
+  "browser": {
+    "passed": 6,
+    "failed": 0,
+    "breakdown": {
+      "repository_VP_I68": 1,
+      "repository_C2_states": 3,
+      "unchanged_R229_counterprobe": 1,
+      "completed_provisional_control": 1
+    }
+  },
+  "unchanged_R229_probe_sha256": "f4f0245c20b0972db4399c2bb11690ad9eb573f3000a5053e36e52c4521b2166",
+  "observations": {
+    "R228 coverage": {
+      "label": "75 %",
+      "title": "Collision check: provisional from L7, stopped at 75 %",
+      "summary": "1 collision · provisional from L7, stopped at 75 % (not certified)",
+      "range": {
+        "fromCum": 280,
+        "fromLine": 7,
+        "boundary": 5
+      }
+    },
+    "R229 stopped-result": {
+      "text": "75 %",
+      "title": "Collision check: provisional from L7, stopped at 75 %",
+      "glyphs": 1,
+      "cls": "val-slot checkSlot val-status mono text-warn",
+      "shownRange": {
+        "fromCum": 280,
+        "fromLine": 7,
+        "boundary": 5
+      },
+      "summary": "1 collision · provisional from L7, stopped at 75 % (not certified)"
+    },
+    "R229 full-result": {
+      "text": "",
+      "glyphs": 0,
+      "cls": "val-slot checkSlot val-status mono"
+    },
+    "R230 completed-suffix": {
+      "text": "100 %",
+      "title": "Collision check: provisional from L7",
+      "glyphs": 0,
+      "cls": "val-slot checkSlot val-status mono",
+      "range": {
+        "fromCum": 280,
+        "fromLine": 7,
+        "boundary": 0
+      },
+      "log": [
+        "start provisional 1",
+        "full"
+      ]
+    }
+  },
+  "verdict": "agreement",
+  "closed": [
+    "SB-01",
+    "SB-02",
+    "SB-03"
+  ],
+  "limits": [
+    "Targeted Chromium re-review of the R229 correction.",
+    "No repeated full unit/browser gate or integration with the separate safety-during-edit branch."
+  ],
+  "archive_only_adjustments": [
+    "e2e mock URLs to 127.0.0.1:4188",
+    "own Playwright config",
+    "two review probes added after product build"
+  ]
+}
