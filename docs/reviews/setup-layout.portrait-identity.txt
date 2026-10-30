@@ -1,0 +1,34 @@
+# Portrait: the axis rows and the actions as at 5fb6c761. Section-relative boxes [x, y, width] of every
+# action, the implementation (0f84a385) vs the base build (render harness, scrollbars hidden: 262 px column).
+# Only the WCS block below them changed (the title line, two rows).
+0__1-X__P900__dim                    actions identical: True   section 262x262 -> 262x254
+0__1-X__P900__live                   actions identical: True   section 262x262 -> 262x254
+0__3-XYZ__P900-150__dim              actions identical: True   section 394x498 -> 394x487
+0__3-XYZ__P900-150__live             actions identical: True   section 394x498 -> 394x487
+0__3-XYZ__P900-touch__dim            actions identical: True   section 262x370 -> 262x354
+0__3-XYZ__P900-touch__live           actions identical: True   section 262x370 -> 262x354
+0__3-XYZ__P900__dim                  actions identical: True   section 262x338 -> 262x330
+0__3-XYZ__P900__live                 actions identical: True   section 262x338 -> 262x330
+0__5-TCP__P900-150__dim              actions identical: True   section 394x610 -> 394x599
+0__5-TCP__P900-150__live             actions identical: True   section 394x610 -> 394x599
+0__5-TCP__P900-touch__dim            actions identical: True   section 262x450 -> 262x434
+0__5-TCP__P900-touch__live           actions identical: True   section 262x450 -> 262x434
+0__5-TCP__P900__dim                  actions identical: True   section 262x414 -> 262x406
+0__5-TCP__P900__live                 actions identical: True   section 262x414 -> 262x406
+0__6-TWP__P900-150__dim              actions identical: True   section 394x740 -> 394x729
+0__6-TWP__P900-150__live             actions identical: True   section 394x740 -> 394x729
+0__6-TWP__P900-touch__dim            actions identical: True   section 262x542 -> 262x526
+0__6-TWP__P900-touch__live           actions identical: True   section 262x542 -> 262x526
+0__6-TWP__P900__dim                  actions identical: True   section 262x504 -> 262x496
+0__6-TWP__P900__live                 actions identical: True   section 262x504 -> 262x496
+0__7-TWP__P900__dim                  actions identical: True   section 262x542 -> 262x534
+0__7-TWP__P900__live                 actions identical: True   section 262x542 -> 262x534
+0__9-TWP__P900__dim                  actions identical: True   section 262x618 -> 262x610
+0__9-TWP__P900__live                 actions identical: True   section 262x618 -> 262x610
+0__9-XYZABCUVW__P900-150__dim        actions identical: True   section 394x834 -> 394x823
+0__9-XYZABCUVW__P900-150__live       actions identical: True   section 394x834 -> 394x823
+0__9-XYZABCUVW__P900-touch__dim      actions identical: True   section 262x610 -> 262x594
+0__9-XYZABCUVW__P900-touch__live     actions identical: True   section 262x610 -> 262x594
+0__9-XYZABCUVW__P900__dim            actions identical: True   section 262x566 -> 262x558
+0__9-XYZABCUVW__P900__live           actions identical: True   section 262x566 -> 262x558
+# 30 cases
