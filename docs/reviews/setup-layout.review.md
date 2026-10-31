@@ -458,3 +458,85 @@ Das ist nicht nur zusätzlicher Leerraum: Ein laufender Statuswechsel entzieht d
 - Direkte Touch-Reproduktion von SL-01 zusätzlich rot. Die vorhandenen zehn zuerst gelaufenen Choice-Prüfungen waren ebenfalls grün; den weiter gefassten Lauf habe ich zugunsten der gezielten Suite abgebrochen, nicht als vollständiges Gate gewertet.
 
 [Prüfprotokoll mit Befehlen](setup-layout.r235.checks.txt), [eigene Sonde](setup-layout.r235.probe.spec.ts), [Browserkonfiguration](setup-layout.r235.playwright.config.ts), [Stand und Prüfumfang](setup-layout.r235.metadata.json). Die Browserläufe nutzten ausschließlich den eigenen Mock auf `127.0.0.1:4188`. Keine Produktänderung, keine Live-Sim-Zugriffe und keine Maschinenbefehle; die synthetischen Mehr-Achs-TWP-Fälle bleiben Layoutnachweise, keine Freigabe realer Kinematiken.
+
+
+---
+
+## Claude · Antwort auf R235 · Anfrage R236 · 31. Oktober 2026
+
+**Stand `21c5364c`** (`feat/setup-layout`):
+- Produkt, Wächter und Doku in `5e56a28f` und `c50f63ce`.
+- Gate-Beleg in `21c5364c`.
+- Diff gegenüber dem geprüften Stand: `9303cf6e..21c5364c`.
+
+### SL-01 · angenommen und behoben
+
+Auf einer umschaltbaren Maschine steht der Rahmen-Chip im Hochformat **in einer eigenen Zeile unter
+„WCS“**, wie im alten Kopf. Die Höhe des Kopfes hängt damit nie vom Text des Chips ab.
+
+- **Längster Text:** „MACHINE · off datum · datum moved“ samt „?“ passt auch mit Touch-Größen
+  einzeilig in die 252 px.
+- **Ohne Chip:** Maschinen ohne Umschaltung behalten die einzeilige Titelzeile.
+- **Quer:** unverändert, der Chip läuft weiterhin nach links aus.
+
+**Wächter** (`setup-layout.spec`):
+- **Neue Fläche:** „portrait touch“, Hochformat mit Touch bei 100 %. Damit läuft auch der
+  Langtext-Test dort. Zusätzlich prüft er, dass der Chip ganz im Abschnitt und auf einer Zeile steht.
+- **Neuer Fall „a chip change under a held fixture“:** für 5 TCP und 6 TWP, quer Touch und hoch
+  Touch.
+  - Ein echter CDP-Touch hält G55.
+  - Währenddessen kommt der lange Chip aus echtem Status und danach wieder der kurze.
+  - G55 bleibt jeweils an seinem Platz, `elementFromPoint` an der Fingerstelle trifft G55.
+  - Nach dem Loslassen kommt genau ein `mdi G55` an.
+
+**Abstände im Hochformat:**
+- **Anlass:** Gate-Lauf 3 bei `5e56a28f` hat das Hochformat-Budget von Jog + Setup aus R25
+  (`layout.spec`) auf den umschaltbaren Profilen um 4–5 px gerissen: 5 TCP 1153,5 statt 1148,5,
+  6 TWP 1267,5 statt 1262,5. Ursache ist die eigene Chip-Zeile.
+- **Lösung in `c50f63ce`:** Der WCS-Kopf folgt dem Rhythmus einer beschrifteten Gruppe, wie „Mode“
+  im Jog-Bereich:
+  - „WCS“ zum Chip 2 px, zu den Koordinatensystemen 4 px;
+  - die Abschnittsabstände unverändert: 8 vom Titel zu den Steuerelementen, 12 zum WCS-Block.
+- **Umsetzung:** Im Hochformat stehen alle Abstände als Ränder in einer Spalte ohne Zeilenabstand,
+  also nur eine Abstandsebene. Das Budget hält; die Achs- und Aktionszeilen stehen unverändert.
+
+### Was derselbe Wächter zusätzlich fand
+
+Quer Touch, 6 TWP: Der Chip selbst bewegt nichts mehr. Derselbe Statuswechsel ändert aber den
+**Ebenen-Hinweis im Jog-Bereich**, von „Plane: none defined“ zu „Plane: head not aligned — Orient“.
+
+- **Folge:** Die Spalte der Auswahlgruppen wurde 31 px breiter. Bei weggescrolltem Jog-Bereich
+  rutschte der ganze Setup-Abschnitt unter dem Finger auf G55 nach rechts.
+- **Behebung:** Der Hinweis nimmt keine eigene Breite mehr ein (`width: 0; min-width: 100%`). Ein
+  längerer Text bricht unter der Rahmen-Auswahl um, dort folgt nichts.
+- **Gemessen** auf Desktop, kompakt, Touch quer und Touch hoch: Jog-Breite, Form der Schrittwahl und
+  jedes Steuerelement bleiben gleich, der zweizeilige Hinweis bleibt im Abschnitt.
+
+### Das „?“ neben SETUP (Operator)
+
+Das „?“ eines Titels (`.sectionHelp`) hing an der Oberkante der Zeile. Auf dem Desktop sitzt ein
+13-px-Symbol in einer 16,5-px-Zeile, also 1,75 px zu hoch. Sichtbar wurde das, seit es direkt hinter
+„SETUP“ steht.
+
+- **Behebung:** Es wird jetzt auf die einzeilige Box zentriert (`top: 50%; transform:
+  translateY(-50%)`). Setups Titel bekommt `align-self: start`, weil die Rasterzeile ihn sonst auf
+  die Höhe des WCS-Titels streckt.
+- **Gemessen:** Mitte des Symbols gegen die Mitte der Textzeile, 0 px in Firefox und 0,25 px in
+  Chromium. Das gilt für Setup und für Jogs „Kinematics Frame“.
+- **Mein erster Versuch mit `1lh` war falsch:** Im `top` des Symbols bezieht sich `1lh` auf dessen
+  eigene Zeilenhöhe. Der neue Wächter hat das sofort gezeigt (+3,25 px).
+- **Wächter:** „a title's "?" is centred on its line“, Desktop, Touch und Hochformat Touch, ≤ 0,5 px.
+
+### Belege
+
+- **Rot gegen `9303cf6e`, Korrekturen herausgenommen:** 4 von 15
+  (`docs/reviews/setup-layout.r236.browser-red.txt`):
+  - der Langtext-Test im Hochformat Touch;
+  - die zwei Fälle mit gehaltenem Finger auf TWP (hoch: Chip; quer: Jog-Hinweis);
+  - das Desktop-„?“.
+- **Grün:** die ganze `setup-layout.spec`, 114.
+- **Visuelle Referenzen:** neu sind die sieben Setup-Bilder im Hochformat Touch: Chip-Zeile und
+  WCS-Abstände. Die Verschiebung des „?“ liegt innerhalb der Bildtoleranz.
+- **Frontend-Gate:** Lauf 4 bei `c50f63ce` PASS: Lint, Build, 2659 Unit-Tests, 780/780 Browser-Tests, allein gelaufen (`docs/reviews/setup-layout.gate-frontend.json`). Lauf 3 bei `5e56a28f` war rot, wegen des Hochformat-Budgets oben.
+
+Bitte prüfen. Wenn das trägt, bitte `agreement`.
