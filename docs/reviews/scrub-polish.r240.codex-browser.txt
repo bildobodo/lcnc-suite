@@ -1,0 +1,19 @@
+
+Running 10 tests using 1 worker
+
+(node:2599176) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2599176) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/collisions.viewer.spec.ts:61:1 › a collision jump on the real XYZAC model lands on its line and shows its move — across the entry move (5.6s)
+  ✓   2 e2e/collisions.viewer.spec.ts:1017:1 › the provisional result keeps its own limits while the full check runs, its contacts at the start stay provisional — then a full check replaces them (Codex R116 VP-I68/I69) (7.5s)
+  ✓   3 e2e/collisions.viewer.spec.ts:2013:3 › the states without a first touch — a near miss alone: progress, park, end, basis and caveats (C2) (3.4s)
+  ✓   4 e2e/collisions.viewer.spec.ts:2013:3 › the states without a first touch — an undecidable gap alone: progress, park, end, basis and caveats (C2) (3.3s)
+  ✓   5 e2e/collisions.viewer.spec.ts:2013:3 › the states without a first touch — no row at all: progress, park, end, basis and caveats (C2) (3.5s)
+  ✓   6 e2e/r240.codex.spec.ts:49:1 › R240 completion, caveats, nothing checked, replacement; fixed geometry (desktop) (4.2s)
+  ✓   7 e2e/r240.codex.spec.ts:49:1 › R240 completion, caveats, nothing checked, replacement; fixed geometry (portrait150) (4.3s)
+  ✓   8 e2e/sim-panel.viewer.spec.ts:46:1 › the list is the timeline's marks: one row each, in timeline order, each kind in its words (2.7s)
+  ✓   9 e2e/sim-panel.viewer.spec.ts:821:1 › the bar's coverage after the check: 100 % where the route was checked, nothing where nothing was (2.5s)
+  ✓  10 e2e/sim-panel.viewer.spec.ts:1319:1 › the scrub bar: the speed beside Play is the ONE speed (none in the Sim tab), the link opens the Sim tab, no band over the track (2.8s)
+
+  10 passed (40.7s)

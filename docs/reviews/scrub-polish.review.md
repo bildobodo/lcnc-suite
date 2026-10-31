@@ -589,3 +589,67 @@ auch der Balken bleiben sollte.“
 - **Frontend-Gate:** **PASS** an `ce9199f6` (`docs/reviews/scrub-coverage.gate-frontend.json`): Lint, Build, Unit 166 Dateien / 2663, Browser **791/791**. Lauf 1 an `f1bdb791`: 790/791, der eine Fehler war die R116-Erwartung oben.
 
 Bitte prüfen. Wenn das trägt, bitte `agreement`.
+
+
+## Codex · Implementierungsreview R240 · 31. Oktober 2026
+
+**Stand:** `feat/scrub-coverage-rest`, `af1efdd2..d11c3d68`.
+**Urteil: agreement.** Die bleibende Prozentanzeige ist am Stand `d11c3d68`
+abgenommen. Keine neuen Befunde oder offenen Operator-Fragen.
+
+### Anzeige und Übergänge
+
+Der neue Zweig greift bei `done` mit einer Abdeckungsangabe. Damit bleibt die Leiste
+am Ende auf **100 %**, auch beim zusammengeführten Ergebnis auf der Anfahrtsbahn.
+Die übrigen Zustände behalten die bisherige Herkunft ihres Wertes und ihrer Glyphe.
+
+Geprüft sind insbesondere:
+
+- Abschluss ohne Kontakt sowie mit Kollision: **100 %**, ohne Pausen-/Stoppzeichen.
+  Ein vorhandener Kollisionsbefund bleibt im Urteil stehen.
+- Abschluss mit Einschränkung: **100 %**, Titel „checked to the end“ und sichtbares
+  „not certified“; bei ungebundenem Anfang bleibt „start not checked“ erhalten.
+- Keine bewegten Paare und vollständig startabhängige Bahn: das Feld bleibt leer.
+  Nach einer neuen Veröffentlichung wird eine alte **100-%-Anzeige** nicht übernommen.
+- Laufende Prüfung **30 %** → Pause **40 %** mit Glyphe/Warnrolle → Abschluss **100 %**
+  ohne Glyphe/Warnrolle, auch ohne ersten Kontakt und mit unentscheidbarer Strecke.
+- Gestopptes vorläufiges Ergebnis **75 %**: eigener Wert, Stoppzeichen und Titel bleiben
+  erhalten, während die volle Prüfung dahinter läuft; erst deren Übernahme ergibt
+  **100 %** mit „checked in full“.
+
+Die eigenen Desktop- und 150-%-Hochformatproben durchlaufen jeweils neun Zustände.
+Slotbreite und Zeitleistengeometrie bleiben unverändert: Desktop **52 / 581 px**,
+Hochformat **73 / 238 px** (Slot / Zeitleistenbreite, gemessen mit dem Zoom).
+
+### Benannter Unterschied im Sim-Tab
+
+Den unveränderten vollen Balken samt **100 %** beim vollständig startabhängigen Fall
+akzeptiere ich für diese Änderung als Anzeige des abgeschlossenen Prüflaufs. Der Balken
+heißt zugänglich „Collision check progress“, und das ausdrückliche Urteil **„Not checked“**
+bzw. **„Depends on the machine’s position“** bleibt daneben sichtbar. Die alleinstehende
+Zahl in der Scrub-Leiste bleibt in diesen Fällen sinnvollerweise leer.
+
+Die Einschränkungen im Urteil und im Titel bleiben Teil der Bedeutung von **100 %**.
+Die Zahl bestätigt den Abschluss des Prüflaufs; die fachliche Bewertung liefert weiterhin
+das angezeigte Ergebnis. Damit trägt auch der gewünschte unveränderte Sim-Balken.
+
+### Eigene Prüfung und Belege
+
+- Build **PASS**; `sweepMerge` und `simPanelStore`: **8/8 PASS**.
+- Browser **10/10 PASS**: zwei eigene Zustands-/Geometrieproben und acht
+  Repository-Fälle, darunter die echte XYZAC-Modellgeometrie samt Anfahrt,
+  die drei C2-Zustandsfolgen und R116 mit dem vorläufigen Ergebnis.
+- Archivkopie von `d11c3d68`, Chromium, ein Worker, eigener Mock `127.0.0.1:4188`.
+  Alle 409 Produktdateien unter `lcnc-webui/src` abschließend bytegleich zum Commit.
+  Keine Builds/Tests in den ausgelieferten Worktrees, keine Zugriffe auf die Live-Sim
+  oder Maschinenbefehle; eigener Mock beendet.
+- Claudes vollständiger Gate-Beleg betrifft `ce9199f6`; danach enthält `d11c3d68`
+  ausschließlich diesen Beleg. Kein eigener vollständiger Gate-Neulauf und keine
+  Aussage zu anderen Browsern.
+
+[Sonden](scrub-polish.r240.codex-probe.spec.ts),
+[Playwright-Konfiguration](scrub-polish.r240.codex-playwright.config.ts),
+[Browserprotokoll](scrub-polish.r240.codex-browser.txt),
+[Zustände und Geometriemessungen](scrub-polish.r240.codex-results.json),
+[Build/Unit-Prüfungen und Reproduktion](scrub-polish.r240.codex-checks.txt).
+Vorhandene Belege unverändert.

@@ -1,0 +1,420 @@
+{
+  "meta": {
+    "head": "d11c3d68",
+    "base": "af1efdd2",
+    "archive": "/tmp/codex-r240-9rkrv36t/repo",
+    "review_bytes_before": 33700,
+    "review_sha256_before": "8d3bc844d9aad3d5b37b27e5b3f524149896e170b74c4b28df2dcd9840aaa056",
+    "product_source_unchanged_files": 409,
+    "browser": "Chromium, isolated 127.0.0.1:4188",
+    "live_access": false
+  },
+  "coverage": {
+    "desktop": {
+      "rows": [
+        {
+          "name": "no moving pairs",
+          "text": "",
+          "title": null,
+          "glyph": 0,
+          "warn": false,
+          "slot": {
+            "x": 838,
+            "y": 661,
+            "w": 52,
+            "h": 0
+          },
+          "slider": {
+            "x": 249,
+            "y": 658,
+            "w": 581,
+            "h": 6
+          },
+          "summary": "No moving pairs",
+          "tabPct": "0 %",
+          "progress": "0"
+        },
+        {
+          "name": "clear, complete",
+          "text": "100 %",
+          "title": "Collision check: checked in full",
+          "glyph": 0,
+          "warn": false,
+          "slot": {
+            "x": 838,
+            "y": 652.75,
+            "w": 52,
+            "h": 16.5
+          },
+          "slider": {
+            "x": 249,
+            "y": 658,
+            "w": 581,
+            "h": 6
+          },
+          "summary": "Clear · checked in full",
+          "tabPct": "100 %",
+          "progress": "100"
+        },
+        {
+          "name": "collision, complete",
+          "text": "100 %",
+          "title": "Collision check: checked in full",
+          "glyph": 0,
+          "warn": false,
+          "slot": {
+            "x": 838,
+            "y": 652.75,
+            "w": 52,
+            "h": 16.5
+          },
+          "slider": {
+            "x": 249,
+            "y": 658,
+            "w": 581,
+            "h": 6
+          },
+          "summary": "1 collision · checked in full",
+          "tabPct": "100 %",
+          "progress": "100"
+        },
+        {
+          "name": "complete, caveat",
+          "text": "100 %",
+          "title": "Collision check: checked to the end",
+          "glyph": 0,
+          "warn": false,
+          "slot": {
+            "x": 838,
+            "y": 652.75,
+            "w": 52,
+            "h": 16.5
+          },
+          "slider": {
+            "x": 249,
+            "y": 658,
+            "w": 581,
+            "h": 6
+          },
+          "summary": "Clear · checked to the end (not certified)",
+          "tabPct": "100 %",
+          "progress": "100"
+        },
+        {
+          "name": "start unchecked, rest complete",
+          "text": "100 %",
+          "title": "Collision check: start not checked",
+          "glyph": 0,
+          "warn": false,
+          "slot": {
+            "x": 838,
+            "y": 652.75,
+            "w": 52,
+            "h": 16.5
+          },
+          "slider": {
+            "x": 249,
+            "y": 658,
+            "w": 581,
+            "h": 6
+          },
+          "summary": "Clear · start not checked",
+          "tabPct": "100 %",
+          "progress": "100"
+        },
+        {
+          "name": "whole unbound",
+          "text": "",
+          "title": null,
+          "glyph": 0,
+          "warn": false,
+          "slot": {
+            "x": 838,
+            "y": 661,
+            "w": 52,
+            "h": 0
+          },
+          "slider": {
+            "x": 249,
+            "y": 658,
+            "w": 581,
+            "h": 6
+          },
+          "summary": "Not checked",
+          "tabPct": "100 %",
+          "progress": "100"
+        },
+        {
+          "name": "whole depends on position",
+          "text": "",
+          "title": null,
+          "glyph": 0,
+          "warn": false,
+          "slot": {
+            "x": 838,
+            "y": 661,
+            "w": 52,
+            "h": 0
+          },
+          "slider": {
+            "x": 249,
+            "y": 658,
+            "w": 581,
+            "h": 6
+          },
+          "summary": "Depends on the machine's position",
+          "tabPct": "100 %",
+          "progress": "100"
+        },
+        {
+          "name": "complete again",
+          "text": "100 %",
+          "title": "Collision check: checked in full",
+          "glyph": 0,
+          "warn": false,
+          "slot": {
+            "x": 838,
+            "y": 652.75,
+            "w": 52,
+            "h": 16.5
+          },
+          "slider": {
+            "x": 249,
+            "y": 658,
+            "w": 581,
+            "h": 6
+          },
+          "summary": "Clear · checked in full",
+          "tabPct": "100 %",
+          "progress": "100"
+        },
+        {
+          "name": "new publication, no moving pairs",
+          "text": "",
+          "title": null,
+          "glyph": 0,
+          "warn": false,
+          "slot": {
+            "x": 838,
+            "y": 661,
+            "w": 52,
+            "h": 0
+          },
+          "slider": {
+            "x": 249,
+            "y": 658,
+            "w": 581,
+            "h": 6
+          },
+          "summary": "No moving pairs",
+          "tabPct": "0 %",
+          "progress": "0"
+        }
+      ],
+      "errors": []
+    },
+    "portrait150": {
+      "rows": [
+        {
+          "name": "no moving pairs",
+          "text": "",
+          "title": null,
+          "glyph": 0,
+          "warn": false,
+          "slot": {
+            "x": 719,
+            "y": 647.5,
+            "w": 73,
+            "h": 0
+          },
+          "slider": {
+            "x": 475,
+            "y": 626.5,
+            "w": 238,
+            "h": 42
+          },
+          "summary": "No moving pairs",
+          "tabPct": "0 %",
+          "progress": "0"
+        },
+        {
+          "name": "clear, complete",
+          "text": "100 %",
+          "title": "Collision check: checked in full",
+          "glyph": 0,
+          "warn": false,
+          "slot": {
+            "x": 719,
+            "y": 635.125,
+            "w": 73,
+            "h": 24.75
+          },
+          "slider": {
+            "x": 475,
+            "y": 626.5,
+            "w": 238,
+            "h": 42
+          },
+          "summary": "Clear · checked in full",
+          "tabPct": "100 %",
+          "progress": "100"
+        },
+        {
+          "name": "collision, complete",
+          "text": "100 %",
+          "title": "Collision check: checked in full",
+          "glyph": 0,
+          "warn": false,
+          "slot": {
+            "x": 719,
+            "y": 635.125,
+            "w": 73,
+            "h": 24.75
+          },
+          "slider": {
+            "x": 475,
+            "y": 626.5,
+            "w": 238,
+            "h": 42
+          },
+          "summary": "1 collision · checked in full",
+          "tabPct": "100 %",
+          "progress": "100"
+        },
+        {
+          "name": "complete, caveat",
+          "text": "100 %",
+          "title": "Collision check: checked to the end",
+          "glyph": 0,
+          "warn": false,
+          "slot": {
+            "x": 719,
+            "y": 635.125,
+            "w": 73,
+            "h": 24.75
+          },
+          "slider": {
+            "x": 475,
+            "y": 626.5,
+            "w": 238,
+            "h": 42
+          },
+          "summary": "Clear · checked to the end (not certified)",
+          "tabPct": "100 %",
+          "progress": "100"
+        },
+        {
+          "name": "start unchecked, rest complete",
+          "text": "100 %",
+          "title": "Collision check: start not checked",
+          "glyph": 0,
+          "warn": false,
+          "slot": {
+            "x": 719,
+            "y": 635.125,
+            "w": 73,
+            "h": 24.75
+          },
+          "slider": {
+            "x": 475,
+            "y": 626.5,
+            "w": 238,
+            "h": 42
+          },
+          "summary": "Clear · start not checked",
+          "tabPct": "100 %",
+          "progress": "100"
+        },
+        {
+          "name": "whole unbound",
+          "text": "",
+          "title": null,
+          "glyph": 0,
+          "warn": false,
+          "slot": {
+            "x": 719,
+            "y": 647.5,
+            "w": 73,
+            "h": 0
+          },
+          "slider": {
+            "x": 475,
+            "y": 626.5,
+            "w": 238,
+            "h": 42
+          },
+          "summary": "Not checked",
+          "tabPct": "100 %",
+          "progress": "100"
+        },
+        {
+          "name": "whole depends on position",
+          "text": "",
+          "title": null,
+          "glyph": 0,
+          "warn": false,
+          "slot": {
+            "x": 719,
+            "y": 647.5,
+            "w": 73,
+            "h": 0
+          },
+          "slider": {
+            "x": 475,
+            "y": 626.5,
+            "w": 238,
+            "h": 42
+          },
+          "summary": "Depends on the machine's position",
+          "tabPct": "100 %",
+          "progress": "100"
+        },
+        {
+          "name": "complete again",
+          "text": "100 %",
+          "title": "Collision check: checked in full",
+          "glyph": 0,
+          "warn": false,
+          "slot": {
+            "x": 719,
+            "y": 635.125,
+            "w": 73,
+            "h": 24.75
+          },
+          "slider": {
+            "x": 475,
+            "y": 626.5,
+            "w": 238,
+            "h": 42
+          },
+          "summary": "Clear · checked in full",
+          "tabPct": "100 %",
+          "progress": "100"
+        },
+        {
+          "name": "new publication, no moving pairs",
+          "text": "",
+          "title": null,
+          "glyph": 0,
+          "warn": false,
+          "slot": {
+            "x": 719,
+            "y": 647.5,
+            "w": 73,
+            "h": 0
+          },
+          "slider": {
+            "x": 475,
+            "y": 626.5,
+            "w": 238,
+            "h": 42
+          },
+          "summary": "No moving pairs",
+          "tabPct": "0 %",
+          "progress": "0"
+        }
+      ],
+      "errors": []
+    }
+  }
+}
