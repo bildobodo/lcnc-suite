@@ -813,6 +813,51 @@ test("a part left out of the check stays marked, with or without moving pairs", 
   await expect(item.locator('span[title^="Not certified"]')).toHaveCount(1);
 });
 
+// Operator 2026-10-31: the bar's coverage stays once the check is done — 100 %
+// (the empty slot read as missing), like the Sim tab's bar. It names only what
+// was checked: no moving pair, or a track whose every move depends on the
+// machine's position, has no coverage to show — the bar's number has no
+// words beside it, the tab's bar has its verdict.
+test("the bar's coverage after the check: 100 % where the route was checked, nothing where nothing was", async ({ page, context }) => {
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: PREVIEW }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: TEXT }));
+  await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await ctl({ op: "status_delta", data: { active_file: "/sim.ngc", is_enabled: false, enabled: false } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5101, file: "/sim.ngc" } });
+  await expect.poll(() => page.locator(".simPanel .checkVerdict").count(), { timeout: 30_000 }).toBe(1);
+  await openSimTab(page);
+  const item = page.locator(".simPanel .simSummary .sumItem").first();
+  const slot = page.locator(".scrubBar .checkSlot");
+  const tabPct = page.locator(".simPanel .checkPct");
+  // the layout mock's model: no moving pair — nothing checked, nothing to show
+  await expect(item).toHaveAttribute("aria-label", "No moving pairs");
+  await expect(slot, "no moving pair: no coverage").toHaveText("");
+  // a moving pair, checked in full: 100 %, like the tab
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([]) ?? false)).toBe(true);
+  await expect(item).toHaveAttribute("aria-label", "Clear · checked in full");
+  await expect(slot, "checked in full").toHaveText("100 %");
+  await expect(slot).toHaveAttribute("title", "Collision check: checked in full");
+  await expect(slot.locator(".checkGlyph")).toHaveCount(0);
+  await expect(tabPct, "the tab's bar says the same").toHaveText("100 %");
+  const setStart = (sd: { fromLine: number; toLine: number; whole: boolean; unbound?: boolean } | null) =>
+    page.evaluate(s => window.__viewerDiag?.setCollisionStartDependent?.(s) ?? false, sd);
+  // a beginning no entry move binds: the rest is checked to the end — 100 %, the words in the title
+  expect(await setStart({ fromLine: 2, toLine: 4, whole: false, unbound: true })).toBe(true);
+  await expect(item).toHaveAttribute("aria-label", "Clear · start not checked");
+  await expect(slot, "the start unchecked, the rest to the end").toHaveText("100 %");
+  await expect(slot).toHaveAttribute("title", "Collision check: start not checked");
+  // every move depends on the machine's position: nothing checked here
+  for (const [sd, words] of [[{ fromLine: 2, toLine: 32, whole: true, unbound: true }, "Not checked"],
+                             [{ fromLine: 2, toLine: 32, whole: true }, "Depends on the machine's position"]] as const) {
+    expect(await setStart(sd)).toBe(true);
+    await expect(item).toHaveAttribute("aria-label", words);
+    await expect(slot, `${words}: no coverage`).toHaveText("");
+  }
+  // and back
+  expect(await setStart(null)).toBe(true);
+  await expect(slot).toHaveText("100 %");
+});
+
 // Codex R78 VP-I38: the steps sorted by position alone — where a tool change,
 // a limit and a collision share one moment, "Next on the timeline" went down
 // the list and back up. One order for both, ties and the wrap included.
@@ -1282,7 +1327,13 @@ test("the scrub bar: the speed beside Play is the ONE speed (none in the Sim tab
   await expect(page.locator(".simPanel select"), "the Sim tab's one select is its list filter").toHaveCount(1);
   await expect(page.locator(".simPanel").getByRole("combobox", { name: "Playback speed" })).toHaveCount(0);
   await expect(page.locator(".scrubBar .scrubBand.swept")).toHaveCount(0);
-  await expect(page.locator(".scrubBar .checkSlot"), "the check is done: no coverage to show").toHaveText("");
+  // the check is done: its coverage stays, 100 % (operator 2026-10-31 — an
+  // empty slot read as missing), plain, its words in the title
+  const slot = page.locator(".scrubBar .checkSlot");
+  await expect(slot, "the check is done: 100 % stays").toHaveText("100 %");
+  await expect(slot).toHaveAttribute("title", "Collision check: checked in full");
+  await expect(slot.locator(".checkGlyph")).toHaveCount(0);
+  await expect(slot).not.toHaveClass(/text-warn/);
   await page.getByRole("tab", { name: "Program", exact: true }).click();
   await expect(page.locator(".simPanel")).toBeHidden();
   await row.getByRole("button", { name: "Open the Sim tab" }).click();

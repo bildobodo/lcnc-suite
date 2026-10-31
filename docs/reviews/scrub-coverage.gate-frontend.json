@@ -1,0 +1,34 @@
+{
+  "head": "ce9199f6",
+  "uncommitted": 0,
+  "note": "scrub coverage 100 % at ce9199f6, run 2",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 8
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 15
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "PASS",
+      "seconds": 431,
+      "tests": "166 files, 2663 passed"
+    },
+    {
+      "name": "frontend-browser",
+      "command": "npx playwright test --trace off --reporter=line",
+      "status": "PASS",
+      "seconds": 2954,
+      "tests": "791 passed",
+      "note": "run alone"
+    }
+  ]
+}

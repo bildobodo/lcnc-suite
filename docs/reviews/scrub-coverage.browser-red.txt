@@ -1,0 +1,224 @@
+
+Running 5 tests using 1 worker
+
+[1/5] [serial-viewer] › e2e/collisions.viewer.spec.ts:61:1 › a collision jump on the real XYZAC model lands on its line and shows its move — across the entry move
+  1) [serial-viewer] › e2e/collisions.viewer.spec.ts:61:1 › a collision jump on the real XYZAC model lands on its line and shows its move — across the entry move 
+
+    Error: the route checked: 100 %
+
+    expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('.scrubBar .checkSlot')
+    Expected: "100 %"
+    Received: ""
+    Timeout:  60000ms
+
+    Call log:
+      - the route checked: 100 % with timeout 60000ms
+      - waiting for locator('.scrubBar .checkSlot')
+        121 × locator resolved to <span data-v-321970e7="" class="val-slot checkSlot val-status mono">…</span>
+            - unexpected value ""
+
+
+      82 |   // the merged result covers the whole route: 100 %, never a rounded 99 %
+      83 |   // on the entry track's axis (operator 2026-10-31)
+    > 84 |   await expect(page.locator(".scrubBar .checkSlot"), "the route checked: 100 %").toHaveText("100 %", { timeout: 60_000 });
+         |                                                                                  ^
+      85 |   const move = (await page.evaluate(() => window.__viewerDiag!.projectRole!("feed")))!;
+      86 |   expect(move, "the collision's move is shown").not.toBeNull();
+      87 |   // L7 runs along X; the plunge (L6) and the retract (L8) are along Z — a
+        at /home/cnc/lcnc-suite-scrub/lcnc-webui/e2e/collisions.viewer.spec.ts:84:82
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/collisions.viewer-a-collis-42a6b-ove-—-across-the-entry-move-serial-viewer/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/collisions.viewer-a-collis-42a6b-ove-—-across-the-entry-move-serial-viewer/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/collisions.viewer-a-collis-42a6b-ove-—-across-the-entry-move-serial-viewer/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/collisions.viewer-a-collis-42a6b-ove-—-across-the-entry-move-serial-viewer/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[2/5] [serial-viewer] › e2e/collisions.viewer.spec.ts:2011:3 › the states without a first touch — a near miss alone: progress, park, end, basis and caveats (C2)
+  2) [serial-viewer] › e2e/collisions.viewer.spec.ts:2011:3 › the states without a first touch — a near miss alone: progress, park, end, basis and caveats (C2) 
+
+    Error: the end: 100 % stays
+
+    expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('.scrubBar .checkSlot')
+    Expected: "100 %"
+    Received: ""
+    Timeout:  10000ms
+
+    Call log:
+      - the end: 100 % stays with timeout 10000ms
+      - waiting for locator('.scrubBar .checkSlot')
+        23 × locator resolved to <span data-v-321970e7="" class="val-slot checkSlot val-status mono">…</span>
+           - unexpected value ""
+
+
+      2071 |     await expect(summary).toHaveAttribute("aria-label", new RegExp(`^${endWords.replace(/[·]/g, "\\$&")}`));
+      2072 |     // the end: the coverage stays at 100 % (operator 2026-10-31), its words in the title
+    > 2073 |     await expect(slot, "the end: 100 % stays").toHaveText("100 %");
+           |                                                ^
+      2074 |     await expect(slot).toHaveAttribute("title", `Collision check: ${endWords.split(" · ")[1]}`);
+      2075 |     await expect(slot.locator(".checkGlyph")).toHaveCount(0);
+      2076 |     await expect(slot).not.toHaveClass(/text-warn/);
+        at /home/cnc/lcnc-suite-scrub/lcnc-webui/e2e/collisions.viewer.spec.ts:2073:48
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/collisions.viewer-the-stat-73e29-k-end-basis-and-caveats-C2--serial-viewer/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/collisions.viewer-the-stat-73e29-k-end-basis-and-caveats-C2--serial-viewer/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/collisions.viewer-the-stat-73e29-k-end-basis-and-caveats-C2--serial-viewer/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/collisions.viewer-the-stat-73e29-k-end-basis-and-caveats-C2--serial-viewer/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[3/5] [serial-viewer] › e2e/collisions.viewer.spec.ts:2011:3 › the states without a first touch — an undecidable gap alone: progress, park, end, basis and caveats (C2)
+  3) [serial-viewer] › e2e/collisions.viewer.spec.ts:2011:3 › the states without a first touch — an undecidable gap alone: progress, park, end, basis and caveats (C2) 
+
+    Error: the end: 100 % stays
+
+    expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('.scrubBar .checkSlot')
+    Expected: "100 %"
+    Received: ""
+    Timeout:  10000ms
+
+    Call log:
+      - the end: 100 % stays with timeout 10000ms
+      - waiting for locator('.scrubBar .checkSlot')
+        23 × locator resolved to <span data-v-321970e7="" class="val-slot checkSlot val-status mono">…</span>
+           - unexpected value ""
+
+
+      2071 |     await expect(summary).toHaveAttribute("aria-label", new RegExp(`^${endWords.replace(/[·]/g, "\\$&")}`));
+      2072 |     // the end: the coverage stays at 100 % (operator 2026-10-31), its words in the title
+    > 2073 |     await expect(slot, "the end: 100 % stays").toHaveText("100 %");
+           |                                                ^
+      2074 |     await expect(slot).toHaveAttribute("title", `Collision check: ${endWords.split(" · ")[1]}`);
+      2075 |     await expect(slot.locator(".checkGlyph")).toHaveCount(0);
+      2076 |     await expect(slot).not.toHaveClass(/text-warn/);
+        at /home/cnc/lcnc-suite-scrub/lcnc-webui/e2e/collisions.viewer.spec.ts:2073:48
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/collisions.viewer-the-stat-c25c8-k-end-basis-and-caveats-C2--serial-viewer/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/collisions.viewer-the-stat-c25c8-k-end-basis-and-caveats-C2--serial-viewer/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/collisions.viewer-the-stat-c25c8-k-end-basis-and-caveats-C2--serial-viewer/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/collisions.viewer-the-stat-c25c8-k-end-basis-and-caveats-C2--serial-viewer/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[4/5] [serial-viewer] › e2e/sim-panel.viewer.spec.ts:821:1 › the bar's coverage after the check: 100 % where the route was checked, nothing where nothing was
+  4) [serial-viewer] › e2e/sim-panel.viewer.spec.ts:821:1 › the bar's coverage after the check: 100 % where the route was checked, nothing where nothing was 
+
+    Error: checked in full
+
+    expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('.scrubBar .checkSlot')
+    Expected: "100 %"
+    Received: ""
+    Timeout:  10000ms
+
+    Call log:
+      - checked in full with timeout 10000ms
+      - waiting for locator('.scrubBar .checkSlot')
+        23 × locator resolved to <span data-v-321970e7="" class="val-slot checkSlot val-status mono">…</span>
+           - unexpected value ""
+
+
+      836 |   await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([]) ?? false)).toBe(true);
+      837 |   await expect(item).toHaveAttribute("aria-label", "Clear · checked in full");
+    > 838 |   await expect(slot, "checked in full").toHaveText("100 %");
+          |                                         ^
+      839 |   await expect(slot).toHaveAttribute("title", "Collision check: checked in full");
+      840 |   await expect(slot.locator(".checkGlyph")).toHaveCount(0);
+      841 |   await expect(tabPct, "the tab's bar says the same").toHaveText("100 %");
+        at /home/cnc/lcnc-suite-scrub/lcnc-webui/e2e/sim-panel.viewer.spec.ts:838:41
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-the-bar-s-60910-d-nothing-where-nothing-was-serial-viewer/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/sim-panel.viewer-the-bar-s-60910-d-nothing-where-nothing-was-serial-viewer/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-the-bar-s-60910-d-nothing-where-nothing-was-serial-viewer/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/sim-panel.viewer-the-bar-s-60910-d-nothing-where-nothing-was-serial-viewer/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[5/5] [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1319:1 › the scrub bar: the speed beside Play is the ONE speed (none in the Sim tab), the link opens the Sim tab, no band over the track
+  5) [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1319:1 › the scrub bar: the speed beside Play is the ONE speed (none in the Sim tab), the link opens the Sim tab, no band over the track 
+
+    Error: the check is done: 100 % stays
+
+    expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('.scrubBar .checkSlot')
+    Expected: "100 %"
+    Received: ""
+    Timeout:  10000ms
+
+    Call log:
+      - the check is done: 100 % stays with timeout 10000ms
+      - waiting for locator('.scrubBar .checkSlot')
+        23 × locator resolved to <span data-v-321970e7="" class="val-slot checkSlot val-status mono">…</span>
+           - unexpected value ""
+
+
+      1331 |   // empty slot read as missing), plain, its words in the title
+      1332 |   const slot = page.locator(".scrubBar .checkSlot");
+    > 1333 |   await expect(slot, "the check is done: 100 % stays").toHaveText("100 %");
+           |                                                        ^
+      1334 |   await expect(slot).toHaveAttribute("title", "Collision check: checked in full");
+      1335 |   await expect(slot.locator(".checkGlyph")).toHaveCount(0);
+      1336 |   await expect(slot).not.toHaveClass(/text-warn/);
+        at /home/cnc/lcnc-suite-scrub/lcnc-webui/e2e/sim-panel.viewer.spec.ts:1333:56
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-the-scrub-7d223--tab-no-band-over-the-track-serial-viewer/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/sim-panel.viewer-the-scrub-7d223--tab-no-band-over-the-track-serial-viewer/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-the-scrub-7d223--tab-no-band-over-the-track-serial-viewer/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/sim-panel.viewer-the-scrub-7d223--tab-no-band-over-the-track-serial-viewer/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  5 failed
+    [serial-viewer] › e2e/collisions.viewer.spec.ts:61:1 › a collision jump on the real XYZAC model lands on its line and shows its move — across the entry move 
+    [serial-viewer] › e2e/collisions.viewer.spec.ts:2011:3 › the states without a first touch — a near miss alone: progress, park, end, basis and caveats (C2) 
+    [serial-viewer] › e2e/collisions.viewer.spec.ts:2011:3 › the states without a first touch — an undecidable gap alone: progress, park, end, basis and caveats (C2) 
+    [serial-viewer] › e2e/sim-panel.viewer.spec.ts:821:1 › the bar's coverage after the check: 100 % where the route was checked, nothing where nothing was 
+    [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1319:1 › the scrub bar: the speed beside Play is the ONE speed (none in the Sim tab), the link opens the Sim tab, no band over the track 
