@@ -2402,6 +2402,14 @@ async function buildFromInit(init: ViewerInit) {
           collisionResult.value = { ...r, uncertified: note };
           return true;
         },
+        // The result's start-dependent beginning alone (operator 2026-10-31:
+        // the bar's coverage after the check names only what was checked).
+        setCollisionStartDependent: (sd: CollisionResult["startDependent"] | null) => {
+          const r = collisionResult.value;
+          if (!r) return false;
+          collisionResult.value = { ...r, startDependent: sd ?? undefined };
+          return true;
+        },
         // Made-up findings over the result on screen: a point contact per hit
         // in the middle of its line's first move, or at `frac` of the track
         // (its line is then the track's there) — a possible one, a near miss

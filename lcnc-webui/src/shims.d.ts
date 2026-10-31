@@ -38,6 +38,7 @@ interface ViewerDiag {
   tintPart?: (id: string, on: boolean) => void;
   setCollisionHits?: (hits: { line: number; frac?: number; rapid?: boolean; possible?: boolean; near?: number; atStart?: boolean; ordinal?: number }[]) => boolean;
   setCollisionNote?: (note: string | null) => boolean;
+  setCollisionStartDependent?: (sd: { fromLine: number; toLine: number; whole: boolean; untracked?: boolean; unbound?: boolean } | null) => boolean;
   setCollisionShards?: (n: number | null) => void;
   /** The published main view's questions, each kind's worst time in ms (Codex R158's measurement). */
   timeContactQueries?: () => { targets: number; ms: Record<string, number> } | null;

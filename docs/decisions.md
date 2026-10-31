@@ -9888,3 +9888,15 @@ fallback (no `feed_tcum`) 4000 mm put the Program tab's clock in hours; a track'
 when its axis is time, the estimate always. Guards red at 57a7877e
 (`docs/reviews/scrub-polish.r239.browser-red.txt`): long → simulation → exit → short, the same file
 with a new version and another file; a 4000 mm distance axis with a 120 s estimate.
+
+**Operator, after R239: the coverage stays at 100 %** ("so it looks less empty — the same in the
+Sim tab, where the bar should stay too"). The bar's slot no longer empties once the check is done:
+it reads 100 %, plain (no glyph, no warn role), its title the summary's coverage words ("Collision
+check: checked in full" / "checked to the end" / "start not checked"); the timeline keeps its
+length — the slot never changed width. Only where the summary NAMES a coverage: no moving pair, or a
+track that depends on the machine's position to its end ("Not checked", "Depends on the machine's
+position"), checked nothing, and the bar's number has no words beside it — the slot stays empty
+there. The Sim tab already kept its bar and "100 %" once done and is unchanged (its bar stands
+beside the verdict's words). Guards red at af1efdd2 (`docs/reviews/scrub-coverage.browser-red.txt`):
+the end of a check (the C2 states, the scrub-bar test), the merged result on the entry track (100 %,
+never a rounded 99 %), and the states without coverage (`setCollisionStartDependent`, a test hook).

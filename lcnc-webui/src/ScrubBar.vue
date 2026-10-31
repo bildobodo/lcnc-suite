@@ -724,10 +724,11 @@ const posWidest = computed(() => {
 const posTitle = computed(() => probeStops.value.length
   ? "The time to the tool measurement the preview cannot predict — after it unknown" : posText.value);
 
-// Sweep progress reads as "N %" right of the timeline while the check has
-// not covered the whole route (checkPct; operator 2026-10-29 — the swept band
-// over the track is gone), and the clashes found so far show as the sweep
-// finds them (collisionPartial); the Sim tab keeps its own bar. There is no
+// Sweep progress reads as "N %" right of the timeline (checkPct; operator
+// 2026-10-29 — the swept band over the track is gone), 100 % once the check
+// has covered the route (operator 2026-10-31), and the clashes found so far
+// show as the sweep finds them (collisionPartial); the Sim tab keeps its own
+// bar. There is no
 // button (2026-09-13): sweeps are open-ended, pause on camera interaction
 // and hidden tabs, park on a rotary jog and resume by themselves; a sweep is
 // only dropped by a superseding change (program, touch-off, tool).
@@ -1327,14 +1328,18 @@ const sweepView = computed<SimSweepView | null>(() => {
   }
   return view("done", 1, n ? findTone : "ok", caveat, detail, result("Clear"), caveat ? "checked to the end" : "checked in full");
 });
-/** The check's coverage beside the timeline while it has not covered the
- *  whole route (checking, paused by a rotary jog, stopped short) — empty once
- *  it has: the result is the marks and the Sim tab. It is the SHOWN result's
+/** The check's coverage beside the timeline: how far it has come while it
+ *  checks, is paused by a rotary jog or stopped short — the SHOWN result's
  *  own coverage, the swept band's `sweptFrac` it replaces: a full check
  *  running behind a provisional result on screen is the Sim tab's bar
- *  (Codex R116 VP-I68 — the provisional "stopped at 75 %" reads 75 %). */
+ *  (Codex R116 VP-I68 — the provisional "stopped at 75 %" reads 75 %).
+ *  Once done it stays at 100 % (operator 2026-10-31: the empty slot read as
+ *  missing), but only where the summary names a coverage: no moving pair, or
+ *  a track that depends on the machine's position to its end, checked
+ *  nothing — the number has no words beside it here, the tab's bar has. */
 const checkPct = computed(() => {
   const w = sweepView.value;
+  if (w?.state === "done") return w.coverage ? pctOf(1) : "";
   return w && (w.state === "checking" || w.state === "paused" || w.state === "partial") ? pctOf(sweptFrac.value) : "";
 });
 /** paused (a rotary jog parked it) or stopped short: a glyph beside the
@@ -1452,7 +1457,7 @@ onUnmounted(releaseSim);
 
 <template>
   <!-- ONE row (operator 2026-10-05, 2026-10-29): Sim, play, the speed, the
-       timeline with its marks, the check's coverage while it runs, the time,
+       timeline with its marks, the check's coverage (100 % once done), the time,
        the Sim tab link. Nothing here changes its width with the content, so
        the bar never folds; the findings and the check's detail are in the
        side pane's Simulation tab. A bar under 620 px takes two rows — by
@@ -1544,8 +1549,8 @@ onUnmounted(releaseSim);
 }
 .speedSelect { width: auto; flex: 0 0 auto; }
 /* The check's coverage ("<1 %" … "100 %") and its glyph when it is paused
-   or stopped short: a fixed slot (the glyph's room always kept), empty once
-   done. */
+   or stopped short: a fixed slot (the glyph's room always kept), 100 % once
+   done, empty where nothing was checked. */
 .checkSlot { --slot-w: calc(5ch + 10px + var(--gap-micro)); white-space: nowrap; }
 .checkGlyph { margin-left: var(--gap-micro); vertical-align: baseline; }
 .sliderWrap {

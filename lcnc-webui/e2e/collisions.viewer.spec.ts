@@ -79,6 +79,9 @@ test("a collision jump on the real XYZAC model lands on its line and shows its m
   // machine's position, merged in (step 4 plan 1c)
   await expect.poll(async () => await basisCard(page), { timeout: 30_000 })
     .toContain("The machine's position — the entry move included");
+  // the merged result covers the whole route: 100 %, never a rounded 99 %
+  // on the entry track's axis (operator 2026-10-31)
+  await expect(page.locator(".scrubBar .checkSlot"), "the route checked: 100 %").toHaveText("100 %", { timeout: 60_000 });
   const move = (await page.evaluate(() => window.__viewerDiag!.projectRole!("feed")))!;
   expect(move, "the collision's move is shown").not.toBeNull();
   // L7 runs along X; the plunge (L6) and the retract (L8) are along Z — a
@@ -2066,7 +2069,11 @@ for (const kind of ["a near miss alone", "an undecidable gap alone", "no row at 
     const endWords = kind === "a near miss alone" ? "1 near miss · checked in full"
       : kind === "an undecidable gap alone" ? "Clear · checked to the end" : "Clear · checked in full";
     await expect(summary).toHaveAttribute("aria-label", new RegExp(`^${endWords.replace(/[·]/g, "\\$&")}`));
-    await expect(slot, "the end: no coverage left to show").toHaveText("");
+    // the end: the coverage stays at 100 % (operator 2026-10-31), its words in the title
+    await expect(slot, "the end: 100 % stays").toHaveText("100 %");
+    await expect(slot).toHaveAttribute("title", `Collision check: ${endWords.split(" · ")[1]}`);
+    await expect(slot.locator(".checkGlyph")).toHaveCount(0);
+    await expect(slot).not.toHaveClass(/text-warn/);
     // the caveat: an undecidable stretch is named from the tables, the others say none
     await page.getByRole("button", { name: "Help: Collision check", exact: true }).click();
     const help = await page.locator(".helpPopover:popover-open").innerText();
