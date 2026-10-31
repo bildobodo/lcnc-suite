@@ -9900,3 +9900,41 @@ there. The Sim tab already kept its bar and "100 %" once done and is unchanged (
 beside the verdict's words). Guards red at af1efdd2 (`docs/reviews/scrub-coverage.browser-red.txt`):
 the end of a check (the C2 states, the scrub-bar test), the merged result on the entry track (100 %,
 never a rounded 99 %), and the states without coverage (`setCollisionStartDependent`, a test hook).
+
+## 2026-10-31 — The machine's panel in the layout tests; the running line's highlight stands still (operator)
+
+**The machine's panel.** The operator's panel is a Full HD touch screen in landscape on the LinuxCNC
+PC, no scaling; the launcher opens the default browser in a window (`xdg-open`). Two viewports join
+the layout sweeps: `touch-fullhd` 1920 × 1080 (full screen) and `touch-fullhd-window` 1920 × 940 (a
+maximised window under a desktop panel and the browser's bars). Every per-viewport sweep in
+`layout.spec` (control panels across states, side tabs, the probe grid, navigation, Abort's place,
+the browsers, the strip states, the HUD column) passed at both before any change (28/28), the tool
+dialog's geometry too; the tool edit dialog's two reference images are new. Seen on the renders,
+not a defect of the sweep: the strip is wider than 1920 px — 29 px past it with three axes, 264 px
+with XYZAC (the Tool section wholly), 426 px with the TWP gantry; it scrolls sideways by design.
+Asked of the operator whether it should fit.
+
+**The highlight stands still.** The operator, live: at dozens of lines a second the highlighted line
+went up and down; other UIs keep the highlight in one place and scroll the program through — in
+the Sim tab's list too. The cause: since 2026-09-30 the code glides (each packet's step over the
+packet gap), but the highlight sat ON the running row, which a packet moves by its whole step at
+once — down by up to five lines at three lines a packet, then glided back with the text (the same
+wish the operator had said on 2026-09-30: "dass die Zeile stehen bleibt, aber das Programm
+scrollt"). The highlight is now a band while the code glides, drawn where the text glides to — the
+scroll's own glide in the rows' space — so it keeps its place on screen and the text scrolls
+under it. The rule it replaces ("the highlight stays on the line that actually runs, no band
+lagging the machine", 6c4d0c8c) becomes: the band is never ahead of the running line, at most one
+packet gap (≤ 150 ms) behind, and ON it whenever the packets pause — the running row's own highlight
+takes over there with the same look; mid-glide it covers parts of two rows. Near the file's start
+or end, where the scroll stops, the band glides from row to row. VP-I21 holds unchanged (the
+running row in view in every frame; a step past the visible band moves the text, the band is
+re-read from the new scroll). The Sim list does the same with its marked row (a band of the shown
+or the next row's look, placed per frame without a render); a new marked row holds the band where
+it stood until the list follows in the next frame, and a moved window shifts a glide under way with
+the rows. Found on the way, not on any list: a Program tab hidden during a run showed the wrong part
+of the code when it came back (the follow had no height there; 20 rows without the running one)
+until the next line — a long move kept it so; the view's height is reactive now and the view that
+comes back snaps to the followed row. Guards red at c2fa26ba (`docs/reviews/fixed-highlight.browser-red.txt`):
+the code panel at 30 packets a second (the highlight's top moved 116 px; now ≤ 1, never ahead, the
+running row at rest, the hidden tab), the Sim list at ×50 (33 px).
+

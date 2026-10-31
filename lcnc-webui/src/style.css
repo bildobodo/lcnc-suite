@@ -1911,10 +1911,28 @@ label:has(input:disabled, select:disabled) {
   background: var(--hl-surface);   /* a surface hover tier (the old mix summed to 95 %: alpha 0.95) */
 }
 
-.codeLine.active {
+.codeLine.active,
+.codeFollowBand {
   background: color-mix(in oklab, var(--highlight) var(--tint-active), var(--panel));
   border-left: 3px solid var(--highlight);
-  padding-left: 9px;
+}
+.codeLine.active { padding-left: 9px; }
+/* While the code glides the followed line's highlight is a band where the
+   text glides to (GcodePanel, operator 2026-10-31): it keeps its place on
+   screen and the rows scroll over it; the followed row itself shows nothing
+   until the glide ends on it — then it takes the same look. */
+.codeFollowBand {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--code-line-h);
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.codeLine.active.followed:not(.selected) {
+  background: none;
+  border-left: 0;
+  padding-left: 12px;
 }
 
 .codeLine.selected {

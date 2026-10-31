@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, useId, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, shallowRef, useId, watch } from "vue";
 import type { CollisionLineMark } from "./viewer/collision";
 import type { CollisionLineQuery } from "./viewer/collisionMarks";
 import { listFiles, uploadFile, saveFile, fetchSubfile, fetchProgramFile, UploadConflictError, type FileEntry } from "./lcncApi";
@@ -243,6 +243,9 @@ const LINE_HEIGHT = computed(() => (isTouchDevice.value ? 32 : 23));
 const BUFFER = 10;
 
 const scrollTop = ref(0);
+/** The view's height, from its ResizeObserver (below): the rendered window
+ *  reads it, so a view that comes back from a hidden tab renders its rows. */
+const viewH = ref(0);
 
 // Split into primitive computeds so a sub-line scroll (which leaves the integer
 // start/end unchanged) does NOT re-run visibleLines. During a running program
@@ -252,7 +255,7 @@ const rangeStart = computed(() =>
   Math.max(0, Math.floor(_scrollToContent(scrollTop.value) / LINE_HEIGHT.value) - BUFFER)
 );
 const rangeEnd = computed(() => {
-  const viewportH = codeViewerRef.value?.clientHeight ?? 400;
+  const viewportH = viewH.value || (codeViewerRef.value?.clientHeight ?? 400);
   const count = Math.ceil(viewportH / LINE_HEIGHT.value) + BUFFER * 2;
   return Math.min(rowCount.value, rangeStart.value + count);
 });
@@ -319,7 +322,23 @@ function onCodeScroll(ev: Event) {
 // comes back after an unload: it starts at the top, and the rendered window
 // must read THAT position — the old value rendered rows past the visible
 // part, and the code stayed blank until a scroll (live look 2026-10-01).
-watch(codeViewerRef, el => { scrollTop.value = el ? el.scrollTop : 0; }, { flush: "post" });
+watch(codeViewerRef, (el, old) => {
+  scrollTop.value = el ? el.scrollTop : 0;
+  if (old) _sized?.unobserve(old);
+  if (el) _sized?.observe(el);
+}, { flush: "post" });
+// A follow while the Program tab was hidden had no height to work with: the
+// window kept the buffer's 20 rows, the running row was not among them, and
+// the view showed the wrong part until the next line came (a long move: for
+// its whole time). The view that comes back — or changes its height — shows
+// the followed row at once.
+const _sized = typeof ResizeObserver === "function" ? new ResizeObserver(() => {
+  const h = codeViewerRef.value?.clientHeight ?? 0;
+  if (h === viewH.value) return;
+  viewH.value = h;
+  if (h > 0 && _followedRow != null) scrollToRow(_followedRow, true);
+}) : null;
+onUnmounted(() => _sized?.disconnect());
 // Another program opens at its first line (a run follows its line anyway).
 watch(() => props.activeFile, (now, before) => { if (now !== before) setScroll(0); }, { flush: "post" });
 
@@ -337,9 +356,29 @@ function setScroll(s: number) {
 // 3, 5 lines at a time): each new target is reached over the last packet
 // gap, one step per animation frame; a far jump, a pause or reduced motion
 // snaps.
+// The highlight STANDS STILL while the code glides (operator 2026-10-31:
+// "das Highlight bleibt immer an der gleichen Stelle auf dem Bildschirm und
+// das Programm scrollt durch"): a packet moves the running row by its whole
+// step at once, so a highlight ON the row went down and glided back up with
+// the text. During a glide the highlight is a band drawn where the text
+// glides to — the same glide in the rows' space, so while the scroll is free
+// the band keeps its place on screen and the code scrolls under it; near the
+// file's start or end, where the scroll stops, the band glides from row to
+// row. It is never ahead of the running line, at most one packet gap
+// (≤ GLIDE.maxMs) behind, and ON it when the glide ends — the row's own
+// highlight takes over there with the same look. The row keeps `active`
+// throughout; a second active row (a call line beside its sub row) keeps
+// its own look.
 let _glide: Glide | null = null;
 let _glideRaf = 0;
 let _lastFollowAt = -Infinity;
+/** The band's glide: the row it glides to and its own from / to in content
+ *  px (the scroll glide's t0 and duration). */
+const followBand = shallowRef<{ row: number; glide: Glide } | null>(null);
+/** The band's place in content px (the rows' own space). */
+const bandY = ref(0);
+/** The row the code last followed (its own highlight shows at rest). */
+let _followedRow: number | null = null;
 const reducedMotion = useMediaMql("(prefers-reduced-motion: reduce)");
 function _glideFrame(now: number) {
   _glideRaf = 0;
@@ -347,31 +386,55 @@ function _glideFrame(now: number) {
   if (!g) return;
   const { pos, done } = glideAt(g, now);
   setScroll(pos);
-  if (done) _glide = null;
+  const fb = followBand.value;
+  if (fb) bandY.value = glideAt(fb.glide, now).pos;
+  if (done) { _glide = null; followBand.value = null; }
   else _glideRaf = requestAnimationFrame(_glideFrame);
 }
 function stopGlide() {
   if (_glideRaf) cancelAnimationFrame(_glideRaf);
   _glideRaf = 0;
   _glide = null;
+  followBand.value = null;
 }
 onUnmounted(stopGlide);
+// No line followed any more (the run ended, the scrub left): no band either.
+// Another program or a sub expanded or folded: the rows are others, the row
+// followed last is no place to start a band from.
+watch(() => props.currentLine == null && props.scrubLine == null && subActiveLine.value == null, none => {
+  if (none) { stopGlide(); _followedRow = null; }
+});
+watch([() => props.activeFile, expansion], () => { stopGlide(); _followedRow = null; });
 
 // Scroll to a ROW (mathematical — no DOM search). Target is computed in
 // content space, then mapped to scrollbar space (identity at scale 1).
-function scrollToRow(row: number) {
+function scrollToRow(row: number, snap = false) {
   const el = codeViewerRef.value;
   if (!el) return;
-  const targetY = row * LINE_HEIGHT.value - el.clientHeight / 2 + LINE_HEIGHT.value / 2;
+  const lh = LINE_HEIGHT.value, rowY = row * lh;
+  /** Where the followed row stands in the view while the scroll is free. */
+  const anchor = el.clientHeight / 2 - lh / 2;
+  const targetY = rowY - anchor;
   const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
   const to = Math.min(Math.max(0, _contentToScroll(targetY)), maxScroll);
+  if (snap) {
+    stopGlide();
+    _followedRow = row;
+    setScroll(to);
+    return;
+  }
   const now = performance.now();
   const gap = now - _lastFollowAt;
   _lastFollowAt = now;
+  // Where the highlight stands now (content px): the band mid-glide, else
+  // the row followed last.
+  const before = el.scrollTop;
+  const shownY = followBand.value ? bandY.value : _followedRow != null ? _followedRow * lh : null;
+  _followedRow = row;
   // Where the running line stays in view (VP-I21) — within the scroll range.
-  const vb = visibleBand(row * LINE_HEIGHT.value, LINE_HEIGHT.value, el.clientHeight, _contentToScroll);
+  const vb = visibleBand(rowY, lh, el.clientHeight, _contentToScroll);
   const band: [number, number] | null = vb && [Math.max(0, vb[0]), Math.min(maxScroll, vb[1])];
-  const g = planGlide(el.scrollTop, to, now, gap, el.clientHeight, reducedMotion.value,
+  const g = planGlide(before, to, now, gap, el.clientHeight, reducedMotion.value,
                       band && band[0] <= band[1] ? band : null);
   if (!g) {
     stopGlide();
@@ -379,8 +442,19 @@ function scrollToRow(row: number) {
     return;
   }
   // A step past the band: the text jumps to its edge now — the running line
-  // is highlighted in this very frame — and glides the rest.
-  if (g.from !== el.scrollTop) setScroll(g.from);
+  // is in view in this very frame — and glides the rest.
+  if (g.from !== before) setScroll(g.from);
+  // The band starts where the highlight stands ON SCREEN: at the anchor while
+  // the scroll was free — re-read from the scroll the glide starts at, so the
+  // jump to the band's edge moves the text, not the highlight —, else where
+  // it stood (near the file's start or end). No highlight before (the first
+  // follow): the code glides to the row as it is.
+  if (shownY != null) {
+    const atAnchor = Math.abs(shownY - (_scrollToContent(before) + anchor)) < 1;
+    const fromY = atAnchor ? _scrollToContent(g.from) + anchor : shownY;
+    bandY.value = fromY;
+    followBand.value = { row, glide: { from: fromY, to: rowY, t0: g.t0, dur: g.dur } };
+  } else followBand.value = null;
   _glide = g;
   if (!_glideRaf) _glideRaf = requestAnimationFrame(_glideFrame);
 }
@@ -1002,16 +1076,21 @@ async function saveEdit() {
       <!-- Code viewer (virtual scroll) -->
       <div class="codeViewer scroll-thin fade-scroll" v-else-if="gcodeContent" ref="codeViewerRef" @scroll="onCodeScroll">
         <div :style="{ height: totalHeight + 'px', position: 'relative' }">
-          <div :style="{ position: 'absolute', top: offsetY + 'px', left: 0, right: 0 }">
+          <div class="codeRows" :style="{ position: 'absolute', top: offsetY + 'px', left: 0, right: 0 }">
+            <!-- The followed line's highlight while the code glides: where
+                 the text glides to, so it keeps its place on screen. -->
+            <div v-if="followBand" class="codeFollowBand" aria-hidden="true"
+                 :style="{ top: bandY - rangeStart * LINE_HEIGHT + 'px' }"></div>
             <!-- Rows, not raw lines (W5): sub rows are the called file's
                  lines indented under the o-call — they carry their OWN
                  line numbers (muted) and never take main-line marks,
                  selection or run-from-line clicks. -->
             <div class="codeLine"
-                 v-for="item in visibleLines"
+                 v-for="(item, i) in visibleLines"
                  :key="item.kind + ':' + item.lineNum"
                  :class="{
                    subRow: item.kind === 'sub',
+                   followed: followBand?.row === rangeStart + i,
                    active: item.kind === 'main'
                      ? (currentLine === item.lineNum || scrubLine === item.lineNum)
                      : subActiveLine === item.lineNum,
@@ -1280,6 +1359,9 @@ async function saveEdit() {
 
 /* .statusNote (error / warn) — global (style.css), the one inline message
    pattern shared with the tool table, the file browser and the dialogs. */
+
+/* The rows lie over the followed line's band (.codeFollowBand). */
+.codeRows > .codeLine { position: relative; }
 
 /* Code area wrapper */
 .codeArea {

@@ -5,12 +5,15 @@
 // different number of lines between two of them — 0, 3, 5 — so a hard
 // scroll per packet jerked the text. Each new target is reached over the
 // time the last packet took to come: at a steady pace the text scrolls
-// evenly under a centred highlight, which stays on the line that actually
-// runs (at most one packet interval from the centre — never a band that
-// lags the machine). After a pause in the packets (a dwell, a long move)
-// the next step glides over the longest duration — a jump from rest was a
-// jerk of its own. A far jump (program start, a timeline drag, a sub
-// expansion) and reduced motion SNAP. The running line never leaves the
+// evenly. The highlight stands still (operator 2026-10-31): on the running
+// row it went down by a packet's step at once and glided back with the text,
+// so while a glide runs the callers draw it as a band where the text glides
+// to — the same glide in content px —, at most one packet interval behind
+// the running line and on it when the glide ends. After a pause in the
+// packets (a dwell, a long move) the next step glides over the longest
+// duration — a jump from rest was a jerk of its own. A far jump (program
+// start, a timeline drag, a sub expansion) and reduced motion SNAP. The
+// running line never leaves the
 // view (Codex R52 VP-I21: at 20 lines a packet the highlight moved at once
 // while the text followed over the packet interval — outside the view in
 // 81 % of the frames): a glide starts inside the VISIBLE BAND, the scroll

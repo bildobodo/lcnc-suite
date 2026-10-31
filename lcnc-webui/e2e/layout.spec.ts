@@ -2145,6 +2145,87 @@ test('the running line glides: the code scrolls evenly under a centred highlight
   await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(line));
 });
 
+// Operator 2026-10-31: at dozens of lines a second the highlight still went
+// up and down — it sat ON the running row, which a packet moves by its whole
+// step at once, and the text glided it back to the middle. The highlight
+// stands STILL now: while the code glides it is a band drawn where the text
+// glides to (the scroll's own glide, in the rows' space), so the text scrolls
+// under it; it is never ahead of the running line, at most one status
+// interval behind, and at rest the running row is the highlight again. A
+// Program tab hidden during the run shows the running row at once.
+test('the highlight stands still while the code glides under it — never ahead of the running line, on it at rest', async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: GLIDE_PREVIEW }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain',
+    body: Array.from({ length: GLIDE_LINES }, (_, i) => `G1 X${i % 2 ? 10 : 0} Y${i * 0.5} F100`).join('\n') }));
+  await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === 'desktop')!);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await ctl({ op: 'status_delta', data: { active_file: '/glide.ngc' } });
+  await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 5101, file: '/glide.ngc' } });
+  const SEL = '.codeViewer:not(.mdiHistoryList)';
+  const viewer = page.locator(SEL);
+  await expect(viewer.locator('.codeLine').first()).toBeVisible({ timeout: 30_000 });
+  await ctl({ op: 'quiet', on: true });
+  let line = 60;
+  await ctl({ op: 'status_delta', data: { interp_state: 2, task_mode: 2, motion_line: line } });
+  await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(line));
+  await page.waitForTimeout(700);
+  // Per animation frame: the highlight's top in the view (the band while the
+  // code glides, else the running row), the running row's top, the scroll.
+  await page.evaluate(sel => {
+    const el = document.querySelector<HTMLElement>(sel)!;
+    const w = window as unknown as { __hl: { hl: number; run: number; st: number }[] };
+    w.__hl = [];
+    const t0 = performance.now();
+    const f = (now: number) => {
+      const v = el.getBoundingClientRect().top;
+      const hl = el.querySelector('.codeFollowBand') ?? el.querySelector('.codeLine.active');
+      const run = el.querySelector('.codeLine.active');
+      w.__hl.push({ hl: hl ? hl.getBoundingClientRect().top - v : NaN, run: run ? run.getBoundingClientRect().top - v : NaN, st: el.scrollTop });
+      if (now - t0 < 2800) requestAnimationFrame(f);
+    };
+    requestAnimationFrame(f);
+  }, SEL);
+  for (let i = 0; i < 60; i++) {
+    line += 3;
+    await ctl({ op: 'status_delta', data: { motion_line: line } });
+    await page.waitForTimeout(33);
+  }
+  await page.waitForTimeout(500);
+  const frames = await page.evaluate(() => (window as unknown as { __hl: { hl: number; run: number; st: number }[] }).__hl);
+  const first = frames.findIndex((f, i) => i > 0 && f.st !== frames[i - 1]!.st);
+  const last = frames.findLastIndex((f, i) => i > 0 && f.st !== frames[i - 1]!.st);
+  const gliding = frames.slice(first, last + 1);
+  expect(gliding.length, 'the code glided through the packets').toBeGreaterThan(30);
+  const tops = gliding.map(f => f.hl);
+  const spread = Math.max(...tops) - Math.min(...tops);
+  test.info().annotations.push({ type: 'highlight', description: `${gliding.length} frames, the highlight's top moved ${spread.toFixed(1)} px` });
+  expect(tops.every(Number.isFinite), 'a highlight in every frame').toBe(true);
+  expect(spread, `the highlight stands still while the code glides (${spread.toFixed(1)} px)`).toBeLessThanOrEqual(1);
+  const ahead = gliding.filter(f => f.hl > f.run + 0.5);
+  expect(ahead, 'never ahead of the running line').toEqual([]);
+  // At rest: the running row is the highlight, centred.
+  await expect(viewer.locator('.codeFollowBand')).toHaveCount(0);
+  await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(line));
+  const rest = await viewer.evaluate(el => {
+    const a = el.querySelector('.codeLine.active')!, r = a.getBoundingClientRect(), v = el.getBoundingClientRect();
+    return { off: (r.top + r.height / 2) - (v.top + v.height / 2), h: r.height, bg: getComputedStyle(a).backgroundColor };
+  });
+  expect(Math.abs(rest.off), `centred at rest (${rest.off} px)`).toBeLessThan(rest.h / 2 + 1);
+  expect(rest.bg, 'the running row carries the highlight at rest').not.toBe('rgba(0, 0, 0, 0)');
+  // A hidden Program tab: packets while it is hidden, then shown — the running row at once.
+  await page.getByRole('tab', { name: 'MDI', exact: true }).click();
+  for (let i = 0; i < 5; i++) {
+    line += 3;
+    await ctl({ op: 'status_delta', data: { motion_line: line } });
+    await page.waitForTimeout(33);
+  }
+  await page.getByRole('tab', { name: 'Program', exact: true }).click();
+  await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(line));
+  await expect(viewer.locator('.codeFollowBand'), 'no band left over from the hidden tab').toHaveCount(0);
+  await ctl({ op: 'quiet', on: false });
+});
+
 // Live look 2026-10-01: "No program loaded" stood elsewhere than the loaded
 // program's name — the Stats button gives the object line its height, and
 // without a program the line shrank to its text: the name and every row

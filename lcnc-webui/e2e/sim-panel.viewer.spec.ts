@@ -1035,6 +1035,60 @@ test("playback at ×100 with normal motion: the marked row never leaves the list
   expect(marked.filter(s => !s.inView), "every sample: the marked row wholly in the list's view").toEqual([]);
 });
 
+// Operator 2026-10-31: the marked row's bar went down a row with every row
+// the playback passed and the list glided it back — at ×50 a bounce per row.
+// It stands still now: while the list glides the bar is drawn where the list
+// glides to, and the rows scroll under it.
+test("playback at ×50: the marked row's highlight stands still while the list glides under it", async ({ page, context }) => {
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: LONG_PREVIEW }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: LONG_TEXT }));
+  await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await ctl({ op: "status_delta", data: { active_file: "/long.ngc", is_enabled: false, enabled: false } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5401, file: "/long.ngc" } });
+  await simShow(page, "limit");
+  await expect(page.locator('.simPanel tr[data-sim-row="L57@57"]')).toHaveCount(1, { timeout: 15_000 });
+  await settleLayout(page);
+  await page.locator('.simPanel tr[data-sim-row="L8@8"]').click();
+  await expect(page.locator(".simBanner")).toBeVisible();
+  await page.locator(".scrubBar .sliderInput").evaluate((el: HTMLInputElement) => {
+    el.value = String(Number(el.max) * 0.15);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await page.waitForTimeout(400);
+  await page.locator('.scrubBar select[name="scrubSpeed"]').selectOption("50");
+  // Per animation frame: the highlight's top in the list (the band while the
+  // list glides, else the marked row), the marked row, the scroll and its range.
+  await page.evaluate(() => {
+    const sc = document.querySelector(".simPanel .simTable") as HTMLElement;
+    const w = window as unknown as { __sim: { hl: number; key: string | null; st: number; max: number; t: number }[] };
+    w.__sim = [];
+    const t0 = performance.now();
+    const f = (now: number) => {
+      const top = sc.getBoundingClientRect().top;
+      const tr = sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow");
+      // the band while it shows (between glides it is hidden), else the marked row
+      const band = sc.querySelector(".simFollowBand");
+      const hl = band && band.getClientRects().length ? band : tr;
+      w.__sim.push({ hl: hl ? hl.getBoundingClientRect().top - top : NaN, key: tr?.dataset.simRow ?? null,
+        st: sc.scrollTop, max: sc.scrollHeight - sc.clientHeight, t: now - t0 });
+      if (now - t0 < 1600) requestAnimationFrame(f);
+    };
+    requestAnimationFrame(f);
+  });
+  await page.locator('.scrubBar [title="Play the program through the machine model"]').click();
+  await page.waitForTimeout(1800);
+  const frames = await page.evaluate(() => (window as unknown as { __sim: { hl: number; key: string | null; st: number; max: number; t: number }[] }).__sim);
+  // the list scrolling freely (not at its start or end), past the first follow
+  const free = frames.filter(f => f.t > 250 && f.st > 1 && f.st < f.max - 1 && f.key);
+  expect(new Set(free.map(f => f.key)).size, "the playback passed many rows").toBeGreaterThan(5);
+  const tops = free.map(f => f.hl);
+  const spread = Math.max(...tops) - Math.min(...tops);
+  test.info().annotations.push({ type: "highlight", description: `${free.length} frames, the bar's top moved ${spread.toFixed(1)} px` });
+  expect(spread, `the marked row's highlight stands still while the list glides (${spread.toFixed(1)} px)`).toBeLessThanOrEqual(1);
+});
+
 // Operator 2026-10-06 (live): the collision verdict came in with the
 // check's result — and left with every re-check — and the filter and the
 // steps under it jumped. ONE summary line is always there: × the check's
