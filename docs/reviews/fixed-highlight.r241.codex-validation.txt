@@ -1,0 +1,399 @@
+R241 independent review: git archive 0e4deea9; own mock 127.0.0.1:4188. No live gateway or machine commands.
+Source integrity: all 409 lcnc-webui/src files match the archive. Dependencies copied only after equal package-lock.json.
+First probe pass: 1200/600000 line transitions and Sim end/filter/resize/tab.
+Final probe pass: the explicit one-packet assertion, 2M line case, subroutine, visual references, affected perf browser guard.
+
+--- build.log ---
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2127 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-CX6P-oit.css                 8.14 kB │ gzip:   2.08 kB
+dist/static/index-BQESHlgT.css                      97.77 kB │ gzip:  17.81 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-C22A6VHJ.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-DXghlMbW.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-DDFjb5FL.js                278.70 kB │ gzip: 104.92 kB
+dist/static/index-J4RBGXzQ.js                      671.92 kB │ gzip: 216.31 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 7.56s
+
+--- unit.log ---
+
+ RUN  v4.1.8 /tmp/codex-r241-1s6zd0w0/repo/lcnc-webui
+
+
+ Test Files  2 passed (2)
+      Tests  40 passed (40)
+   Start at  23:10:39
+   Duration  289ms (transform 175ms, setup 0ms, import 251ms, tests 25ms, environment 0ms)
+
+
+--- browser-existing.log ---
+
+Running 7 tests using 1 worker
+
+(node:2851723) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2851723) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/layout.spec.ts:2054:1 › the running line glides: the code scrolls evenly under a centred highlight, which never leaves the view (11.4s)
+  ✓  2 e2e/layout.spec.ts:2156:1 › the highlight stands still while the code glides under it — never ahead of the running line, on it at rest (8.1s)
+  ✓  3 e2e/sim-panel.viewer.spec.ts:418:1 › a moved window keeps the picture: the row shown before stays where it was, then the list glides (plan 4.4) (6.9s)
+  ✓  4 e2e/sim-panel.viewer.spec.ts:468:1 › a new result keeps the list where it was scrolled; a new position brings it back (6.8s)
+  ✓  5 e2e/sim-panel.viewer.spec.ts:961:1 › the list follows the position: the marked row stays in the middle of its view (3.3s)
+  ✓  6 e2e/sim-panel.viewer.spec.ts:1002:1 › playback at ×100 with normal motion: the marked row never leaves the list's view (7.2s)
+  ✓  7 e2e/sim-panel.viewer.spec.ts:1042:1 › playback at ×50: the marked row's highlight stands still while the list glides under it (5.7s)
+
+  7 passed (50.8s)
+
+--- browser-fullhd.log ---
+
+Running 28 tests using 1 worker
+
+(node:2854158) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2854158) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/layout.spec.ts:16:5 › 3axis-xyz touch-fullhd: control panels stay usable across machine states (6.1s)
+  ✓   2 e2e/layout.spec.ts:16:5 › 3axis-xyz touch-fullhd-window: control panels stay usable across machine states (5.9s)
+  ✓   3 e2e/layout.spec.ts:16:5 › 5axis-xyzac touch-fullhd: control panels stay usable across machine states (6.6s)
+  ✓   4 e2e/layout.spec.ts:16:5 › 5axis-xyzac touch-fullhd-window: control panels stay usable across machine states (6.5s)
+  ✓   5 e2e/layout.spec.ts:16:5 › 6axis-twp touch-fullhd: control panels stay usable across machine states (7.8s)
+  ✓   6 e2e/layout.spec.ts:16:5 › 6axis-twp touch-fullhd-window: control panels stay usable across machine states (7.8s)
+  ✓   7 e2e/layout.spec.ts:62:5 › 3axis-xyz touch-fullhd: side panel tabs keep every control's footprint across machine states (26.0s)
+  ✓   8 e2e/layout.spec.ts:62:5 › 3axis-xyz touch-fullhd-window: side panel tabs keep every control's footprint across machine states (25.5s)
+  ✓   9 e2e/layout.spec.ts:62:5 › 5axis-xyzac touch-fullhd: side panel tabs keep every control's footprint across machine states (32.1s)
+  ✓  10 e2e/layout.spec.ts:62:5 › 5axis-xyzac touch-fullhd-window: side panel tabs keep every control's footprint across machine states (31.2s)
+  ✓  11 e2e/layout.spec.ts:62:5 › 6axis-twp touch-fullhd: side panel tabs keep every control's footprint across machine states (41.9s)
+  ✓  12 e2e/layout.spec.ts:62:5 › 6axis-twp touch-fullhd-window: side panel tabs keep every control's footprint across machine states (40.8s)
+  ✓  13 e2e/layout.spec.ts:103:3 › touch-fullhd: the jog speed value and unit are centred over their slider (3.1s)
+  ✓  14 e2e/layout.spec.ts:103:3 › touch-fullhd-window: the jog speed value and unit are centred over their slider (3.0s)
+  ✓  15 e2e/layout.spec.ts:128:3 › touch-fullhd: the probe grid sub-tabs keep the parameters in place (3.8s)
+  ✓  16 e2e/layout.spec.ts:128:3 › touch-fullhd-window: the probe grid sub-tabs keep the parameters in place (3.9s)
+  ✓  17 e2e/layout.spec.ts:176:3 › touch-fullhd: side-pane navigation fits its budget (tabs or selects, no clipped name, three form rows) (3.3s)
+  ✓  18 e2e/layout.spec.ts:176:3 › touch-fullhd-window: side-pane navigation fits its budget (tabs or selects, no clipped name, three form rows) (3.2s)
+  ✓  19 e2e/layout.spec.ts:279:3 › touch-fullhd: Abort ends the machine actions in every tab — only More right of it — the head keeps its order (3.6s)
+  ✓  20 e2e/layout.spec.ts:279:3 › touch-fullhd-window: Abort ends the machine actions in every tab — only More right of it — the head keeps its order (3.3s)
+  ✓  21 e2e/layout.spec.ts:659:3 › touch-fullhd: program browser shows its root and uses the available panel (3.9s)
+  ✓  22 e2e/layout.spec.ts:723:3 › touch-fullhd: tools reuse the program file browser with a full tool table (4.8s)
+  ✓  23 e2e/layout.spec.ts:659:3 › touch-fullhd-window: program browser shows its root and uses the available panel (4.0s)
+  ✓  24 e2e/layout.spec.ts:723:3 › touch-fullhd-window: tools reuse the program file browser with a full tool table (4.9s)
+  ✓  25 e2e/layout.spec.ts:812:3 › touch-fullhd: strip states keep the frame and the pinned controls invariant (9.7s)
+  ✓  26 e2e/layout.spec.ts:812:3 › touch-fullhd-window: strip states keep the frame and the pinned controls invariant (9.4s)
+  ✓  27 e2e/tool-geometry.spec.ts:106:3 › touch-fullhd: the tool edit dialog keeps labels, fields and footer usable (2.7s)
+  ✓  28 e2e/tool-geometry.spec.ts:106:3 › touch-fullhd-window: the tool edit dialog keeps labels, fields and footer usable (2.7s)
+
+  Slow test file: e2e/layout.spec.ts (5.0m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  28 passed (5.1m)
+
+--- browser-probes.log ---
+
+Running 3 tests using 1 worker
+
+(node:2853083) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2853083) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+program [33m1200[39m [
+  { phase: [32m'forward'[39m, spread: [33m0.96875[39m, missing: [33m0[39m },
+  { phase: [32m'reverse'[39m, spread: [33m0.890625[39m, missing: [33m0[39m }
+]
+  ✓  1 e2e/r241.codex.spec.ts:36:31 › independent program transitions 1200 lines (8.2s)
+program [33m600000[39m [
+  { phase: [32m'forward'[39m, spread: [33m1.75[39m, missing: [33m0[39m },
+  { phase: [32m'reverse'[39m, spread: [33m1.796875[39m, missing: [33m0[39m }
+]
+  ✘  2 e2e/r241.codex.spec.ts:36:31 › independent program transitions 600000 lines (10.2s)
+(node:2853546) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2853546) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[
+  {
+    end: [32m'end'[39m,
+    band: [33mfalse[39m,
+    marked: [90mundefined[39m,
+    followed: [90mundefined[39m,
+    st: [33m580[39m,
+    top: [33m0[39m
+  },
+  {
+    end: [32m'filter'[39m,
+    band: [33mfalse[39m,
+    marked: [90mundefined[39m,
+    followed: [90mundefined[39m,
+    st: [90mundefined[39m,
+    top: [90mundefined[39m
+  },
+  {
+    end: [32m'resize'[39m,
+    band: [33mfalse[39m,
+    marked: [32m'L34@34'[39m,
+    followed: [90mundefined[39m,
+    st: [33m530[39m,
+    top: [33m0[39m
+  },
+  {
+    end: [32m'tab'[39m,
+    band: [33mfalse[39m,
+    marked: [32m'L43@43'[39m,
+    followed: [90mundefined[39m,
+    st: [33m759[39m,
+    top: [33m0[39m
+  }
+]
+  ✓  3 e2e/r241.codex.spec.ts:71:1 › independent Sim ends, filter and resize clear the transient band (7.0s)
+
+
+  1) e2e/r241.codex.spec.ts:36:31 › independent program transitions 600000 lines ───────────────────
+
+    Error: 600000 forward: fixed band spread
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m1.5[39m
+    Received:    [31m1.75[39m
+
+      53 |  expect(errors).toEqual([]);
+      54 |  expect(free.filter(f=>!f.line),'active row present in each free frame').toEqual([]);
+    > 55 |  for(const r of report)expect.soft(r.spread,`${n} ${r.phase}: fixed band spread`).toBeLessThanOrEqual(1.5);
+         |                                                                                   ^
+      56 |  await expect(page.locator(SEL+' .codeFollowBand')).toHaveCount(0);
+      57 |  await expect(page.locator(SEL+' .codeLine.active .lineNumber')).toHaveText(String(n));
+      58 | });
+        at /tmp/codex-r241-1s6zd0w0/repo/lcnc-webui/e2e/r241.codex.spec.ts:55:83
+
+    Error: 600000 reverse: fixed band spread
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m1.5[39m
+    Received:    [31m1.796875[39m
+
+      53 |  expect(errors).toEqual([]);
+      54 |  expect(free.filter(f=>!f.line),'active row present in each free frame').toEqual([]);
+    > 55 |  for(const r of report)expect.soft(r.spread,`${n} ${r.phase}: fixed band spread`).toBeLessThanOrEqual(1.5);
+         |                                                                                   ^
+      56 |  await expect(page.locator(SEL+' .codeFollowBand')).toHaveCount(0);
+      57 |  await expect(page.locator(SEL+' .codeLine.active .lineNumber')).toHaveText(String(n));
+      58 | });
+        at /tmp/codex-r241-1s6zd0w0/repo/lcnc-webui/e2e/r241.codex.spec.ts:55:83
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r241.codex-independent-program-transitions-600000-lines/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r241.codex-independent-program-transitions-600000-lines/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r241.codex-independent-program-transitions-600000-lines/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r241.codex-independent-program-transitions-600000-lines/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/r241.codex.spec.ts:36:31 › independent program transitions 600000 lines ────────────────────
+  2 passed (28.7s)
+
+--- browser-final-probes.log ---
+
+Running 6 tests using 1 worker
+
+(node:2860139) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2860139) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/collisions.viewer.spec.ts:673:1 › a parse made for the run is checked during it: provisional from the machine's line, then in full; idle checks in full (plan „Prüfung im Lauf“ 3) (14.3s)
+program [33m1200[39m [
+  { phase: [32m'forward'[39m, spread: [33m0.96875[39m, missing: [33m0[39m },
+  { phase: [32m'reverse'[39m, spread: [33m0.9375[39m, missing: [33m0[39m }
+]
+steady lag at 3 lines per packet [33m4.021739130434782[39m
+  ✘  2 e2e/r241.codex.spec.ts:36:39 › independent program transitions 1200 lines (9.0s)
+(node:2860677) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2860677) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+program [33m2000000[39m [
+  { phase: [32m'forward'[39m, spread: [33m4.953125[39m, missing: [33m0[39m },
+  { phase: [32m'reverse'[39m, spread: [33m4.625[39m, missing: [33m0[39m }
+]
+  ✘  3 e2e/r241.codex.spec.ts:36:39 › independent program transitions 2000000 lines (11.7s)
+(node:2861021) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2861021) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+subroutine { frames: [33m134[39m, lines: [33m17[39m, bands: [33m0[39m, spread: [33m179[39m }
+  ✘  4 e2e/r241.codex.spec.ts:90:1 › independent expanded subroutine retains its fixed highlight across sub-line updates (6.4s)
+(node:2861252) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2861252) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  5 e2e/visual.spec.ts:64:3 › touch-fullhd: tool edit dialog reference image (3.5s)
+  ✓  6 e2e/visual.spec.ts:64:3 › touch-fullhd-window: tool edit dialog reference image (3.2s)
+
+
+  1) e2e/r241.codex.spec.ts:36:39 › independent program transitions 1200 lines ─────────────────────
+
+    Error: one packet behind: band never before the preceding packet target
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m3.0434782608695654[39m
+    Received:    [31m4.021739130434782[39m
+
+      55 |   const lag=Math.max(...steady.map(f=>(f.run-f.hl)/f.h));
+      56 |   console.log('steady lag at 3 lines per packet',lag);
+    > 57 |   expect.soft(lag,'one packet behind: band never before the preceding packet target').toBeLessThanOrEqual(3+1/23);
+         |                                                                                       ^
+      58 |  }
+      59 |  expect(errors).toEqual([]);
+      60 |  expect(free.filter(f=>!f.line),'active row present in each free frame').toEqual([]);
+        at /tmp/codex-r241-1s6zd0w0/repo/lcnc-webui/e2e/r241.codex.spec.ts:57:87
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r241.codex-independent-program-transitions-1200-lines/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r241.codex-independent-program-transitions-1200-lines/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r241.codex-independent-program-transitions-1200-lines/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r241.codex-independent-program-transitions-1200-lines/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/r241.codex.spec.ts:36:39 › independent program transitions 2000000 lines ──────────────────
+
+    Error: 2000000 forward: fixed band spread
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m1[39m
+    Received:    [31m4.953125[39m
+
+      59 |  expect(errors).toEqual([]);
+      60 |  expect(free.filter(f=>!f.line),'active row present in each free frame').toEqual([]);
+    > 61 |  for(const r of report)expect.soft(r.spread,`${n} ${r.phase}: fixed band spread`).toBeLessThanOrEqual(1);
+         |                                                                                   ^
+      62 |  await expect(page.locator(SEL+' .codeFollowBand')).toHaveCount(0);
+      63 |  await expect(page.locator(SEL+' .codeLine.active .lineNumber')).toHaveText(String(n));
+      64 | });
+        at /tmp/codex-r241-1s6zd0w0/repo/lcnc-webui/e2e/r241.codex.spec.ts:61:83
+
+    Error: 2000000 reverse: fixed band spread
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m1[39m
+    Received:    [31m4.625[39m
+
+      59 |  expect(errors).toEqual([]);
+      60 |  expect(free.filter(f=>!f.line),'active row present in each free frame').toEqual([]);
+    > 61 |  for(const r of report)expect.soft(r.spread,`${n} ${r.phase}: fixed band spread`).toBeLessThanOrEqual(1);
+         |                                                                                   ^
+      62 |  await expect(page.locator(SEL+' .codeFollowBand')).toHaveCount(0);
+      63 |  await expect(page.locator(SEL+' .codeLine.active .lineNumber')).toHaveText(String(n));
+      64 | });
+        at /tmp/codex-r241-1s6zd0w0/repo/lcnc-webui/e2e/r241.codex.spec.ts:61:83
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r241.codex-independent-program-transitions-2000000-lines/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r241.codex-independent-program-transitions-2000000-lines/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r241.codex-independent-program-transitions-2000000-lines/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r241.codex-independent-program-transitions-2000000-lines/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) e2e/r241.codex.spec.ts:90:1 › independent expanded subroutine retains its fixed highlight across sub-line updates 
+
+    Error: updates within the same expansion keep a band
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThan[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: > [32m5[39m
+    Received:   [31m0[39m
+
+      115 |  console.log('subroutine',{frames:frames.length,lines:new Set(frames.map(f=>f.line)).size,bands:frames.filter(f=>f.band).length,spread});
+      116 |  expect(new Set(frames.map(f=>f.line)).size).toBeGreaterThan(15);
+    > 117 |  expect.soft(frames.filter(f=>f.band).length,'updates within the same expansion keep a band').toBeGreaterThan(5);
+          |                                                                                               ^
+      118 |  expect.soft(spread,'subroutine fixed highlight').toBeLessThanOrEqual(1.5);
+      119 | });
+      120 |
+        at /tmp/codex-r241-1s6zd0w0/repo/lcnc-webui/e2e/r241.codex.spec.ts:117:95
+
+    Error: subroutine fixed highlight
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m1.5[39m
+    Received:    [31m179[39m
+
+      116 |  expect(new Set(frames.map(f=>f.line)).size).toBeGreaterThan(15);
+      117 |  expect.soft(frames.filter(f=>f.band).length,'updates within the same expansion keep a band').toBeGreaterThan(5);
+    > 118 |  expect.soft(spread,'subroutine fixed highlight').toBeLessThanOrEqual(1.5);
+          |                                                   ^
+      119 | });
+      120 |
+        at /tmp/codex-r241-1s6zd0w0/repo/lcnc-webui/e2e/r241.codex.spec.ts:118:51
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r241.codex-independent-exp-ba146-ght-across-sub-line-updates/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r241.codex-independent-exp-ba146-ght-across-sub-line-updates/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r241.codex-independent-exp-ba146-ght-across-sub-line-updates/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r241.codex-independent-exp-ba146-ght-across-sub-line-updates/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    e2e/r241.codex.spec.ts:36:39 › independent program transitions 1200 lines ──────────────────────
+    e2e/r241.codex.spec.ts:36:39 › independent program transitions 2000000 lines ───────────────────
+    e2e/r241.codex.spec.ts:90:1 › independent expanded subroutine retains its fixed highlight across sub-line updates 
+  3 passed (55.6s)

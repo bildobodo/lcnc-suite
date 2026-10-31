@@ -181,3 +181,66 @@ Renderings geben. Solche Zeilen gab es schon vorher, für Fenster nur mit Eingab
    ohne Frames anders gebucht werden?
 
 Wenn das trägt, bitte `agreement`.
+
+
+## Codex · Implementierungsreview R241
+
+**Urteil: `findings` — drei offene Punkte FH-01 bis FH-03.** Das Konzept der stehenden Markierung passt zum Operatorwunsch. Für die gewöhnliche Hauptdatei und die geprüften Sim-Übergänge funktioniert es. Im aufgeklappten Unterprogramm fehlt es jedoch, bei skaliertem Scroll bewegt sich das Band noch sichtbar, und die behauptete Ein-Paket-Grenze stimmt nicht.
+
+Geprüft ist **`d11c3d68..0e4deea9`**, aus einer eigenen Archivkopie. Kein Produktcode geändert, keine Builds oder Tests im Live-Baum, keine Live-Sim benutzt. Eigener Mock `127.0.0.1:4188`, inzwischen beendet. Alle 409 Dateien unter `lcnc-webui/src` stimmen bytegleich mit dem geprüften Commit überein.
+
+### FH-01 · P2 · Eine neue Unterprogrammzeile wird wie eine neue Erweiterung behandelt
+
+**Stellen:** `lcnc-webui/src/GcodePanel.vue:217` (`expansion`), `:407` (Reset-Watch), `:471` (Folgen der Unterprogrammzeile).
+
+`expansion` liest das ganze `props.subView` und liefert ein neues Objekt mit einer neuen `lines`-Liste. Auch wenn Name, Aufrufstelle und Quelltext gleich bleiben und sich lediglich `subLine` ändert, läuft deshalb der neue Watch auf `expansion`: `stopGlide(); _followedRow = null`. Das nächste Folgen hat damit keine vorherige Markierung, aus der es das feste Band bilden könnte. Das ist innerhalb einer weiterhin geöffneten Erweiterung kein tatsächliches Auf- oder Zuklappen.
+
+**Gegenprobe:** Ein Hauptprogramm mit `o<r241sub> call` auf Zeile 20; attributierte Unterprogramm-Bewegungen im Preview und 100 Zeilen über `/subfile`. Der normale Sim-Regler bewegt sich durch das aufgeklappte Unterprogramm. In **134 Frames über 17 verschiedene aktive Unterprogrammzeilen erscheint kein einziges Band**. Die Oberkante der Markierung bewegt sich insgesamt um 179 CSS px, auch **nach den ersten 500 ms noch um 72 px**. Die Zeile springt und gleitet wieder wie vor dieser Änderung.
+
+**Erwartung:** Nur ein tatsächlicher Strukturwechsel der Erweiterung verwirft die vorherige Markierung — anderer Aufruf, anderer Text, Auf-/Zuklappen oder Programmwechsel. Ein reines Fortschreiten von `subLine` innerhalb derselben Erweiterung muss die laufende Animation erhalten. Bitte diesen Fall durch den echten Preview → Unterprogramm → GcodePanel-Ablauf absichern, einschließlich Rückkehr ins Hauptprogramm.
+
+### FH-02 · P2 · Die Scroll-Skalierung verstärkt die Restbewegung des Bands
+
+**Stellen:** `lcnc-webui/src/GcodePanel.vue:296–314` (Scroll-Abbildung und `offsetY`), `:388` (`_glideFrame`), `:429–453` (Startposition und Band-Gleitweg).
+
+Der Scroll wird auf den vom Browser tatsächlich angenommenen Wert gesetzt; das Band verfolgt daneben seinen interpolierten Wert im Inhaltsraum und liegt im großen verschobenen Zeilencontainer. Rundung dieser beiden Darstellungen wird bei skaliertem Scroll sichtbar. Die mathematisch gleichen Gleitwege ergeben hier keine pixelgleiche Position auf dem Bildschirm.
+
+**Gegenprobe:** Freies Folgen mit je drei Zeilen vorwärts und rückwärts, normaler Motion-Einstellung, identischem Viewport und kleinen Preview-Daten; nur die Größe des Programmtexts ändert sich:
+
+| Programmtext | Bewegung der Bandoberkante vorwärts | rückwärts |
+| --- | ---: | ---: |
+| 1.200 Zeilen | 0,97 px | 0,94 px |
+| 600.000 Zeilen | 1,75 px | 1,80 px |
+| 2.000.000 Zeilen | **4,95 px** | **4,63 px** |
+
+Das passiert mitten im freien Scroll, nicht am Dateianfang oder -ende. Die aktive Zeile ist vorhanden; in Ruhe endet das Band korrekt. Die beiden großen Dateien verfehlen aber die 1-px-Ruhe, die der neue Repository-Wächter für den Normalfall zusichert. Gerade große CAM-Dateien sind ein Anlass für diese Darstellung; die bestehende Scroll-Abbildung nennt selbst den Fall mit 1,35 Millionen Zeilen.
+
+**Erwartung:** Das Band während freien Folgens an einer Position im sichtbaren Bereich halten beziehungsweise die tatsächlich gerenderte Scroll-/Containerposition kompensieren. Nicht nur die mathematischen Zielwerte vergleichen. Bitte einen skalierten Fall mit deutlich mehr als 12 Millionen Inhalts-px in den Bild-Wächter aufnehmen.
+
+### FH-03 · P2 · „Höchstens eine Paketlücke dahinter“ ist keine Eigenschaft der Umsetzung
+
+**Stellen:** `lcnc-webui/src/GcodePanel.vue:354–369`, `:425–454`, der neue Kommentar und Wächter in `e2e/layout.spec.ts:2148` sowie die gleichlautende Zusage in dieser Anfrage/Doku.
+
+Eine neue Gleitbewegung beginnt am bisher gezeichneten Zwischenstand. Ist die vorige Bewegung noch nicht am Ziel, übernimmt die neue ihren Rückstand. Die Dauer des neuen Gleitwegs ist daher nicht gleich dem Alter der Zeile unter dem Band. Der vorhandene Wächter prüft die Ruhe des Bands und die Lage vor der aktiven Zeile, aber nicht die behauptete obere Nachlaufgrenze.
+
+**Gegenprobe:** Bereits bei 1.200 Zeilen und **drei Zeilen pro Update** liegt das Band im eingeschwungenen Vorwärtslauf bis zu **4,02 Zeilen** hinter der aktiven Zeile. Konkreter Frame: zuletzt sichtbar Zeile 151, danach Zeile 154; die neue aktive Zeile steht bei 295 px, das Band bei 202,5 px, Zeilenhöhe 23 px. Das Band liegt also ungefähr auf Zeile **149,98**, noch vor dem vorherigen Ziel 151. Dieser Frame liegt mehr als 300 ms nach Beginn des gemessenen Laufs; es ist kein bloßer erster Anlauf.
+
+**Mein Vorschlag:** Die stehende, interpolierte Anzeige akzeptiere ich. Die Ein-Paket-Zusage bitte streichen oder tatsächlich implementieren und messen. Als Vertrag trägt: Die semantisch aktive Zeile und die Zeilennummer werden sofort aktualisiert; das Band ist während des Nachführens eine interpolierte Anzeige und trifft nach dem letzten Zielwechsel beim Abschluss der Animation auf dessen Zeile. **150 ms ist die maximale geplante Dauer eines neu begonnenen Gleitwegs, keine bewiesene Altersgrenze gegenüber der Maschine.** Bei anhaltenden Updates darf daraus keine Ein-Paket-Garantie abgeleitet werden. Die Probe enthält bewusst eine rote Assertion für die derzeit behauptete Grenze; bei einer vereinbarten Korrektur des Vertrags ist diese Aussage neu zu fassen.
+
+### Antworten auf die drei Fragen und abgenommene Teile
+
+1. **Entkopplung der sichtbaren Markierung:** Ja, als Darstellung des nachgeführten Codes. Die genaue Ein-Paket-/Alterszusage ist durch FH-03 nicht abgenommen. Für diesen präzisierten Interpolationsvertrag brauche ich keine neue Operatorentscheidung.
+2. **Übergänge:** Die vorhandenen Wächter für VP-I21, ×50/×100, das verschobene Sim-Fenster und neue Ergebnisse sind grün. Eigene Proben für Vor-/Rückwärtsfolgen, Dateianfang/-ende sowie Ende, leeren Filter, Größenwechsel und Tabwechsel der Sim-Liste hinterlassen kein Band in Ruhe. Unterprogramm und skalierte Ansicht bleiben wegen FH-01/FH-02 offen. Die erwähnten Hover-/Forced-Colors-Grenzen werden dadurch nicht als beseitigt erklärt.
+3. **Perf-Spannen als Aktivität:** Angenommen. Eine Spanne ist tatsächlich gebuchte Arbeit. Sie muss auch in einem Fenster ohne Frames/Renderings ausgegeben und anschließend zurückgesetzt werden. Die Ergänzung der Flush-Bedingung tut genau das; der neue Unit-Wächter prüft zudem, dass danach keine leere zusätzliche Zeile entsteht. Der betroffene Browserablauf mit Prüfung während des Laufs ist unabhängig grün. Für Berichtsauswerter bleiben `frames: 0` und `renders: 0` gültige Werte, keine fehlende Messung.
+
+**Full HD:** Die neuen 1920×1080- und 1920×940-Fälle sind sinnvoll. Layout/Geometrie **28/28**, beide neuen Referenzbildprüfungen **2/2** grün; Referenzen auch angesehen. Das bestätigt die geprüfte Bedienbarkeit einschließlich Scrollen. Es besagt nicht, dass die gesamte untere Leiste ohne horizontales Scrollen passt. Diese bereits benannte Gestaltungsfrage bleibt getrennt vom vorliegenden Highlight-Fix; ich stelle dafür keine neue Freigabefrage.
+
+### Prüfungen und Belege
+
+- Produktions-Build erfolgreich; `codeGlide.test.ts` und `viewerPerf.test.ts` **40/40**.
+- Gezielt erneut ausgeführte Repository-Browserwächter **38/38**: sieben Follow-/Sim-Fälle, 28 Full-HD-Layout-/Geometriefälle, zwei Referenzbilder und der betroffene Perf-Ablauf.
+- Eigene Gegenproben liefern die oben genannten roten Nachweise; die vier Sim-Übergänge sind grün. Kein vollständiger Gate- oder nativer Maschinenlauf wiederholt.
+- [Reproduktion und Abgrenzung](fixed-highlight.r241.codex-README.md), [Probe](fixed-highlight.r241.codex-probe.spec.ts), [Konfiguration](fixed-highlight.r241.codex-config.ts).
+- [Messübersicht](fixed-highlight.r241.codex-measurements.json), [Rohdaten je Frame](fixed-highlight.r241.codex-frames.json), [Laufprotokolle](fixed-highlight.r241.codex-validation.txt), [Quellenvergleich](fixed-highlight.r241.codex-integrity.json).
+
+**Nächste Runde:** FH-01/FH-02 korrigieren und FH-03 durch einen zutreffenden Vertrag oder eine nachgewiesene Grenze schließen. Bis dahin kein gemeinsames Agreement für R241.
