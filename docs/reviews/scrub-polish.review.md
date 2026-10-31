@@ -314,3 +314,94 @@ eingeschlossen.
 - **Frontend-Gate:** Lauf 2 PASS bei `ed93f388`: Lint, Build, 2663 Unit-Tests, 787/787 Browser (`docs/reviews/scrub-polish.gate-frontend.json`, Lauf 1 am Stand `96a8bcbd` überschrieben).
 
 Bitte prüfen. Wenn das trägt, bitte `agreement`.
+
+
+## Codex · Nachprüfung R238 · 31. Oktober 2026
+
+**Stand:** `feat/scrub-polish`, `5f1e7c1c..57a7877e`. **Urteil: findings.**
+**SP-01 geschlossen.** Die ursprüngliche Gegenprobe zu SP-02 ist ebenfalls grün;
+bei der neuen gemeinsamen Zeitform bleiben zwei begrenzte Reste (weiterhin P3).
+Keine Operator-Entscheidung erforderlich.
+
+### SP-01 · abgenommen
+
+Die vier R237-Abläufe bestehen unverändert, einschließlich des tatsächlichen Laufstarts:
+
+| Fall | Slot vor / nach Laufstart | Zeitleiste vor / nach |
+|---|---:|---:|
+| kurz | 81 / 81 px | 581 / 581 px |
+| zwei Stunden | 103 / 103 px | 559 / 559 px |
+| 30 h, unbekanntes Ende | 126 / 126 px | 536 / 536 px |
+| 30 h, schmal bei 150 % | 85 / 85 px | 212 / 212 px |
+
+Zusätzlich 410 gemischte Zeittexte gegen das gerenderte Feld gemessen:
+maximal 102 px bei reservierten 103 px. Die zehn verborgenen Formen sind für diese
+Korrektur nachvollziehbar; `aria-hidden` und die schmale Darstellung bleiben korrekt.
+Die geringe zusätzliche Reserve gegenüber R237 ist sinnvoll.
+
+### SP-02 · ursprünglicher Fall geschlossen, Rest A: vorherige Anfahrt wird der neuen Veröffentlichung zugerechnet
+
+Die gemeinsame Stundenform bei **3580 s + 50 s Anfahrt** funktioniert jetzt. Auch das
+einmalige Wachsen beim erstmaligen Überschreiten der Stunde nehme ich an; anschließend
+bleibt die Form beim Verlassen von Sim und beim Laufstart erhalten.
+
+Das zugesagte Zurücksetzen auf eine **neue Veröffentlichung** funktioniert nach einem
+Sim-Eintritt aber noch nicht:
+
+1. Zwei-Stunden-Programm laden, Sim mit 50-s-Anfahrt betreten und wieder verlassen.
+2. Eine neue Vorschau mit **120 s** veröffentlichen – geprüft sowohl unter demselben
+   Dateinamen mit neuer Version als auch unter einem anderen Dateinamen.
+3. Die Leiste übernimmt die neue Bahn (`max = 120`), zeigt aber **`0:00:00/0:02:00`**;
+   Program zeigt **`0:00:00`**. Erwartet sind `00:00/02:00` und `00:00`.
+   Der Zeit-Slot bleibt deshalb 103 px statt 81 px breit.
+
+Der Kontrollfall ohne vorherigen Sim-Eintritt setzt die Form korrekt zurück.
+
+**Ursache:** `ScrubBar.vue:195–200` läuft synchron beim Austausch von `viewerGcode`.
+Die neue Kennung wird bereits übernommen, während `cumMax` noch aus dem behaltenen
+`entryTrack` der alten Veröffentlichung stammt. Der normale `watch(baseTrack)`
+(`:428–432`) entfernt diese Anfahrt erst danach. Das eingetragene Maximum von 7250 s
+kann für die neue Kennung anschließend nur noch wachsen und bleibt daher erhalten.
+
+**Korrektur:** Beim Wechsel der Veröffentlichung die Form ausschließlich aus deren eigener
+Schätzung und eigener zeitbasierter Bahn initialisieren. Eine Anfahrt darf nur beitragen,
+wenn sie nachweislich zu dieser Veröffentlichung gehört. Die Reihenfolge der Watcher muss
+das absichern. Wächter: lang → Sim → Austritt → kurz, sowohl gleiche Datei/neue Version
+als auch andere Datei.
+
+### SP-02 · Rest B: eine Wegstrecke fließt als Sekundenwert in die gemeinsame Form
+
+Derselbe Watcher nimmt `Math.floor(cumMax)` ohne Prüfung von `track.timeBased` auf.
+`cumMax` ist bei der weiterhin unterstützten Abstandsdarstellung eine Wegstrecke
+(`viewer/scrubTrack.ts:139,283ff.`, fehlende `tcum`-Daten), keine Dauer.
+
+Gegenprobe ohne vorherige Simulation: Vorschau ohne `feed_tcum`, Weglänge **4000 mm**,
+Schätzung **120 s**. Die Leiste zeigt korrekt `0 %`, aber Program wechselt auf
+**`0:00:00`** statt `00:00`, weil die 4000 mm als Stunden-Schwellwert verwendet werden.
+
+**Korrektur:** Nur die kumulierte Achse einer zeitbasierten Bahn darf die Sekundenbasis
+vergrößern; bei einer Wegachse bleibt die tatsächliche Zeitschätzung maßgeblich.
+Ein Wächter mit langer Wegstrecke und kurzer/fehlender Zeitschätzung reicht hier.
+Die eigentlichen Uhrwerte sind in beiden Resten unverändert; betroffen sind Stellenform
+und reservierte Breite.
+
+### Eigene Prüfung und Belege
+
+- Archivkopie von `57a7877e`, eigener Mock `127.0.0.1:4188`, Chromium, ein Worker.
+  Keine Builds/Tests in den ausgelieferten Worktrees, keine Zugriffe auf die Live-Sim,
+  keine Maschinenbefehle. Eigener Mock beendet; 409 Produktdateien unter `lcnc-webui/src`
+  nach den Prüfungen bytegleich zum Commit.
+- Build **PASS**; `format`, `simRows`, `simPanelStore`: **23/23 PASS**.
+- Betroffene Repository-Browserfälle: **10/10 PASS** (neue Breiten-/Formwächter,
+  Desktop/Touch-Buttonhöhen und die drei Hochformatfälle bei 150 %).
+- R237-Sonde unverändert bis auf den Ausgabeordner: **6/6 PASS**.
+- Ergänzende R238-Probe: **2 PASS / 3 FAIL**. Zwei rote Fälle für Rest A,
+  einer für Rest B; keine Infrastrukturfehler. Kein vollständiger Gate-Neulauf,
+  keine Aussage zu anderen Browsern.
+
+Neue [Gegenproben](scrub-polish.r238.codex-probe.spec.ts),
+[Playwright-Konfiguration](scrub-polish.r238.codex-playwright.config.ts),
+[Browserprotokoll](scrub-polish.r238.codex-browser.txt),
+[Messwerte](scrub-polish.r238.codex-results.json),
+[Build/Unit/Repository-Prüfungen und Reproduktion](scrub-polish.r238.codex-checks.txt).
+Die R237-Belege bleiben unverändert.

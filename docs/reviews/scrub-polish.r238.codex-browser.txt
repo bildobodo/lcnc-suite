@@ -1,0 +1,171 @@
+
+Running 11 tests using 1 worker
+
+(node:2023615) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2023615) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/r237.rerun.spec.ts:41:4 › R237 stable time slot: short (3.2s)
+  ✓   2 e2e/r237.rerun.spec.ts:41:4 › R237 stable time slot: two-hour (3.2s)
+  ✓   3 e2e/r237.rerun.spec.ts:41:4 › R237 stable time slot: 30h-unknown (3.3s)
+  ✓   4 e2e/r237.rerun.spec.ts:41:4 › R237 stable time slot: 30h-narrow-unknown (3.2s)
+  ✓   5 e2e/r237.rerun.spec.ts:70:1 › R237 a program close to one hour: Program and Sim use one time form (2.9s)
+  ✓   6 e2e/r237.rerun.spec.ts:89:1 › R237 rendered widest text diagnostics (2.3s)
+  ✘   7 e2e/r238.codex.spec.ts:57:64 › R238 a new publication resets the form: same file after Sim (3.3s)
+(node:2024195) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2024195) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   8 e2e/r238.codex.spec.ts:57:64 › R238 a new publication resets the form: other file after Sim (3.5s)
+(node:2024373) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2024373) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   9 e2e/r238.codex.spec.ts:57:64 › R238 a new publication resets the form: same file without Sim (2.7s)
+  ✘  10 e2e/r238.codex.spec.ts:75:1 › R238 a distance fallback never sets an hours form from millimetres (2.7s)
+(node:2024585) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2024585) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  11 e2e/r238.codex.spec.ts:83:1 › R238 the hidden forms bound mixed digits (2.5s)
+
+
+  1) e2e/r238.codex.spec.ts:57:64 › R238 a new publication resets the form: same file after Sim ────
+
+    Error: the new 120-second program takes its own form
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "00:00/02:00"
+    Received: "0:00:00/0:02:00"
+
+      70 |  const after=await barSnapshot(page),clock=await programClock(page);
+      71 |  writeFileSync(`${OUT}/publication-${c.entry?'entry':'base'}-${c.file==='/short.ngc'?'other':'same'}.json`,JSON.stringify({before,after,clock},null,2));
+    > 72 |  expect.soft(after.text,'the new 120-second program takes its own form').toBe('00:00/02:00');
+         |                                                                          ^
+      73 |  expect.soft(clock,'the Program clock takes the new publication\'s form').toBe('00:00');
+      74 | });
+      75 | test('R238 a distance fallback never sets an hours form from millimetres',async({page,context})=>{
+        at /tmp/codex-r238-5zz6_vg6/repo/lcnc-webui/e2e/r238.codex.spec.ts:72:74
+
+    Error: the Program clock takes the new publication's form
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "00:00"
+    Received: "0:00:00"
+
+      71 |  writeFileSync(`${OUT}/publication-${c.entry?'entry':'base'}-${c.file==='/short.ngc'?'other':'same'}.json`,JSON.stringify({before,after,clock},null,2));
+      72 |  expect.soft(after.text,'the new 120-second program takes its own form').toBe('00:00/02:00');
+    > 73 |  expect.soft(clock,'the Program clock takes the new publication\'s form').toBe('00:00');
+         |                                                                           ^
+      74 | });
+      75 | test('R238 a distance fallback never sets an hours form from millimetres',async({page,context})=>{
+      76 |  await prepare(page,context,120,'desktop');
+        at /tmp/codex-r238-5zz6_vg6/repo/lcnc-webui/e2e/r238.codex.spec.ts:73:75
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r238.codex-R238-a-new-publ-72243-he-form-same-file-after-Sim/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r238.codex-R238-a-new-publ-72243-he-form-same-file-after-Sim/error-context.md
+
+    Error Context: test-results/r238.codex-R238-a-new-publ-72243-he-form-same-file-after-Sim/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r238.codex-R238-a-new-publ-72243-he-form-same-file-after-Sim/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r238.codex-R238-a-new-publ-72243-he-form-same-file-after-Sim/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/r238.codex.spec.ts:57:64 › R238 a new publication resets the form: other file after Sim ───
+
+    Error: the new 120-second program takes its own form
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "00:00/02:00"
+    Received: "0:00:00/0:02:00"
+
+      70 |  const after=await barSnapshot(page),clock=await programClock(page);
+      71 |  writeFileSync(`${OUT}/publication-${c.entry?'entry':'base'}-${c.file==='/short.ngc'?'other':'same'}.json`,JSON.stringify({before,after,clock},null,2));
+    > 72 |  expect.soft(after.text,'the new 120-second program takes its own form').toBe('00:00/02:00');
+         |                                                                          ^
+      73 |  expect.soft(clock,'the Program clock takes the new publication\'s form').toBe('00:00');
+      74 | });
+      75 | test('R238 a distance fallback never sets an hours form from millimetres',async({page,context})=>{
+        at /tmp/codex-r238-5zz6_vg6/repo/lcnc-webui/e2e/r238.codex.spec.ts:72:74
+
+    Error: the Program clock takes the new publication's form
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "00:00"
+    Received: "0:00:00"
+
+      71 |  writeFileSync(`${OUT}/publication-${c.entry?'entry':'base'}-${c.file==='/short.ngc'?'other':'same'}.json`,JSON.stringify({before,after,clock},null,2));
+      72 |  expect.soft(after.text,'the new 120-second program takes its own form').toBe('00:00/02:00');
+    > 73 |  expect.soft(clock,'the Program clock takes the new publication\'s form').toBe('00:00');
+         |                                                                           ^
+      74 | });
+      75 | test('R238 a distance fallback never sets an hours form from millimetres',async({page,context})=>{
+      76 |  await prepare(page,context,120,'desktop');
+        at /tmp/codex-r238-5zz6_vg6/repo/lcnc-webui/e2e/r238.codex.spec.ts:73:75
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r238.codex-R238-a-new-publ-d016f-e-form-other-file-after-Sim/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r238.codex-R238-a-new-publ-d016f-e-form-other-file-after-Sim/error-context.md
+
+    Error Context: test-results/r238.codex-R238-a-new-publ-d016f-e-form-other-file-after-Sim/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r238.codex-R238-a-new-publ-d016f-e-form-other-file-after-Sim/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r238.codex-R238-a-new-publ-d016f-e-form-other-file-after-Sim/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) e2e/r238.codex.spec.ts:75:1 › R238 a distance fallback never sets an hours form from millimetres 
+
+    Error: 4000 mm is not 4000 seconds
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "00:00"
+    Received: "0:00:00"
+
+      79 |  writeFileSync(`${OUT}/distance-form.json`,JSON.stringify({bar,clock,estimateSeconds:120,lengthMm:4000},null,2));
+      80 |  expect(bar.text).toMatch(/%$/);
+    > 81 |  expect(clock,'4000 mm is not 4000 seconds').toBe('00:00');
+         |                                              ^
+      82 | });
+      83 | test('R238 the hidden forms bound mixed digits',async({page,context})=>{
+      84 |  await prepare(page,context,6960,'desktop');
+        at /tmp/codex-r238-5zz6_vg6/repo/lcnc-webui/e2e/r238.codex.spec.ts:81:46
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r238.codex-R238-a-distance-fa299-hours-form-from-millimetres/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r238.codex-R238-a-distance-fa299-hours-form-from-millimetres/error-context.md
+
+    Error Context: test-results/r238.codex-R238-a-distance-fa299-hours-form-from-millimetres/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r238.codex-R238-a-distance-fa299-hours-form-from-millimetres/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r238.codex-R238-a-distance-fa299-hours-form-from-millimetres/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    e2e/r238.codex.spec.ts:57:64 › R238 a new publication resets the form: same file after Sim ─────
+    e2e/r238.codex.spec.ts:57:64 › R238 a new publication resets the form: other file after Sim ────
+    e2e/r238.codex.spec.ts:75:1 › R238 a distance fallback never sets an hours form from millimetres 
+  8 passed (35.5s)
