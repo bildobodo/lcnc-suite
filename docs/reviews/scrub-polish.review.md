@@ -131,3 +131,102 @@ Text abgeschnitten.
 - dass mit der Sim-Tab-Auswahl nichts verloren ging, was nur sie bediente.
 
 Wenn das trägt, bitte `agreement`.
+
+
+## Codex · Implementierungsreview R237 · 31. Oktober 2026
+
+**Stand:** `feat/scrub-polish`, `21c5364c..5f1e7c1c`. **Urteil: findings.**
+Die eine Geschwindigkeitswahl und die angeglichenen Höhen sind abgenommen.
+Bei den beiden Zusagen zum Zeitfeld bleiben zwei kleine, reproduzierbare Darstellungsreste.
+Keine zusätzliche Operator-Entscheidung erforderlich.
+
+### SP-01 · P3 · Die Gesamtzeit ist nicht immer die breiteste Anzeige
+
+`lcnc-webui/src/ScrubBar.vue:686–689` verwendet für das verborgene Breitenmuster
+`~Gesamtzeit/Gesamtzeit`. Das hält die Breite beim geprüften Scrubben, umfasst aber nicht
+alle Laufanzeigen. Trotz `tabular-nums` misst Chromium mit der gebündelten Schrift z. B.
+`~1:56:00/1:56:00` mit **101 px**, `~0:00:00/1:56:00` mit **102 px**.
+Auch die Zusatzmessung mit ausgeschaltetem Kerning beseitigt die Differenz nicht.
+
+Die Gegenprobe setzt nach dem Scrubben die Position wieder auf null und meldet am Mock den
+Laufstart. Vorschau und Gesamtzeit bleiben dabei identisch:
+
+| Anzeige | Slot vor → nach Laufstart | Zeitleistenbreite vor → nach |
+|---|---:|---:|
+| `00:00/01:56` → `~00:00/01:56` | 79 → 80 px | 583 → 582 px |
+| `0:00:00/1:56:00` → `~0:00:00/1:56:00` | 101 → 102 px | 561 → 560 px |
+| `00:00:00/30:00:00+` → mit `~` | 124 → 125 px | 538 → 537 px |
+| schmal, 150 %, `00:00:00` → `~00:00:00` | 84 → 85 px | 213 → 212 px |
+
+Die Tabelle nennt `getBoundingClientRect()`-Werte; die letzte Zeile enthält den Zoom.
+Das ist ein kleiner Layoutfehler, ohne abgeschnittene Anzeige oder verlorene Bedienfunktion.
+Die Zusage „beim Start eines Laufs bleibt die Zeitleiste stehen“ ist damit noch nicht erfüllt.
+Der bisherige Zwei-Stunden-Wächter erlaubt genau diese Abweichung durch seine ±1-px-Toleranz
+und vergleicht keine tatsächlichen Zustandswechsel.
+
+**Vorschlag:** Das verborgene Muster bzw. seine festgelegte Breite muss eine nachgewiesene
+Obergrenze der möglichen Anzeigen dieser Schrift und Zeitform reservieren. Eine kleine Reserve
+am Breitenmuster ist vertretbar. Den Wächter vom gleichen Zeitstand vor dem Start bis zur
+sichtbaren `~`-Anzeige führen, bei unveränderter Vorschau; schmale Form und `+` einschließen.
+
+### SP-02 · P3 · An der Stundengrenze teilen Program und Sim noch keine Zeitform
+
+`App.vue:971–972` entscheidet die Stundenform aus `gcodeStats.totalTime`.
+`ScrubBar.vue:675–689` und `viewer/simRows.ts:97–100` entscheiden sie aus der Dauer der
+angezeigten Bahn, einschließlich einer eingefügten Anfahrt. Diese Grundlagen können auf
+verschiedenen Seiten einer Formgrenze liegen.
+
+Gegenprobe: Programmdauer **3580 s (59:40)**, Anfahrt **50 s**. Beim Eintritt in Sim ergibt
+sich eine angezeigte Gesamtdauer von **3630 s (1:00:30)**. Gleichzeitig stehen dort:
+
+- Leiste und Sim-Kopf: `0:00:00/1:00:30`;
+- Sim-Zeitspalte: etwa `0:13:10`, `0:33:45`;
+- Program-Laufuhr und Safety-Elapsed: `00:00`.
+
+Die unterschiedlichen Zeitwerte der Laufuhr und der Vorschau sind sachlich richtig.
+Die angefragte gemeinsame **Form je Programm** fehlt hier jedoch. Der normale Zwei-Stunden-Fall
+prüft diesen Unterschied der Grundlagen nicht, weil beide bereits die Stundenform wählen.
+
+**Vorschlag:** Eine gemeinsame Formatentscheidung für das geladene Programm führen,
+unter Berücksichtigung der angezeigten Vorschau einschließlich Anfahrt. Beide Uhren behalten
+ihre eigenen Werte und teilen die Stellenform. Die Entscheidung sollte innerhalb derselben
+Programmversion beim Ein-/Austritt in Sim stabil bleiben. Einen Wächter über die Stundengrenze
+mit Anfahrt ergänzen.
+
+### Übrige Prüfpunkte und Grenzen
+
+- `fmtElapsedAs` formatiert die geprüften ganzzahligen Zeiten korrekt: kurze Programme,
+  Stunden, zweistellige Stunden und Überschreitung der Schätzung. Die vollständige Anzeige
+  bei Überschreitung der vorgesehenen Stundenziffern ist sinnvoll. SP-01 tritt schon bei
+  null Sekunden innerhalb der Schätzung auf.
+- Die entfernte Sim-Auswahl schrieb denselben `simView.speed` wie die Leiste. Die verbliebene
+  Auswahl arbeitet während der Wiedergabe; keine nur dort verfügbare Geschwindigkeitsfunktion
+  gefunden. Listenfilter und Navigation bleiben erreichbar.
+- Play, Link und Auswahl sind im Desktop sowie mit Touch gleich hoch, einschließlich der
+  gedimmten Buttons mit Wrapper. Die Regel am eigentlichen Button trägt.
+- Die schmale Form blendet den Gesamtzeitteil auch im Breitenmuster aus; `+` bleibt in der
+  vollständigen Anzeige enthalten. Beim Scrubben der vier eigenen Fälle blieb die Leiste stabil.
+- Der unveränderte Abdeckungs-Slot und seine spätere Operator-Frage gehören weiterhin nicht
+  zu dieser Änderung.
+
+### Eigene Prüfung und Belege
+
+Ausschließlich Archivkopie von `5f1e7c1c`, eigener Mock `127.0.0.1:4188`, Chromium,
+ein Browser-Worker. Keine Builds/Tests in den ausgelieferten Worktrees, kein Zugriff auf
+`:5173`/`:8000`, keine Maschinenbefehle. Alle **409 Produktdateien unter `lcnc-webui/src`**
+in der Testkopie abschließend bytegleich zum Commit; eigener Mock beendet.
+
+- Build **PASS**; betroffene Unit-Suiten **21/21 PASS**.
+- Ausgewählte Repository-Browserprüfungen **14/14 PASS**: Geschwindigkeitswahl während
+  Wiedergabe, ×100, Buttonhöhen, Zwei-Stunden-Form, unbekannte Messung, Kontrast und
+  150-%-Hochformat mit kurzen/langen Programmen.
+- Finale eigene Probe: **5 erwartungswidrig rote Fälle / 1 grüne Diagnose**.
+  Vier rote Fälle belegen SP-01, einer SP-02; keine Infrastrukturfehler.
+  Kein vollständiger Gate-Neulauf und keine Aussage zu anderen Browsern.
+
+Reproduzierbare [Sonde](scrub-polish.r237.probe.spec.ts),
+[isolierte Playwright-Konfiguration](scrub-polish.r237.playwright.config.ts),
+[Browserprotokoll](scrub-polish.r237.browser.txt),
+[Messwerte einschließlich Schriftbreiten](scrub-polish.r237.results.json),
+[Build/Unit/Repository-Prüfungen und Ablauf](scrub-polish.r237.checks.txt),
+[Bild der unterschiedlichen Stundenform](scrub-polish.r237.hour-boundary.png).

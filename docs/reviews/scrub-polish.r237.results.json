@@ -1,0 +1,3381 @@
+{
+  "meta": {
+    "head": "5f1e7c1c",
+    "base": "21c5364c",
+    "archive": "/tmp/codex-r237-ymzu9z_z/repo",
+    "review_sha256_before": "c17481826809382b452264a948bd14487553a35b985ff0ec52169ef15397bbde",
+    "review_bytes_before": 7517,
+    "product_source_unchanged_files": 409,
+    "browser": "Chromium, isolated mock 127.0.0.1:4188",
+    "live_access": false
+  },
+  "stable_slot_cases": {
+    "short": [
+      {
+        "state": "sim start",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 583,
+          "h": 6
+        },
+        "slot": {
+          "x": 900,
+          "y": 652.75,
+          "w": 79,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "00:00/01:56~01:56/01:56",
+            "w": 79,
+            "display": "inline-grid"
+          },
+          {
+            "text": "00:00/01:56",
+            "w": 79,
+            "display": "flex"
+          },
+          {
+            "text": "00:00/01:56",
+            "w": 73,
+            "display": "block"
+          },
+          {
+            "text": "/01:56",
+            "w": 38,
+            "display": "inline"
+          },
+          {
+            "text": "~01:56/01:56",
+            "w": 79,
+            "display": "flex"
+          },
+          {
+            "text": "~01:56/01:56",
+            "w": 79,
+            "display": "block"
+          },
+          {
+            "text": "/01:56",
+            "w": 38,
+            "display": "inline"
+          }
+        ],
+        "max": 116,
+        "text": "00:00/01:56",
+        "title": "00:00/01:56",
+        "template": "~01:56/01:56",
+        "whole": true,
+        "sim": "00:00/01:56"
+      },
+      {
+        "state": "scrub 0.01",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 583,
+          "h": 6
+        },
+        "slot": {
+          "x": 900,
+          "y": 652.75,
+          "w": 79,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "00:01/01:56~01:56/01:56",
+            "w": 79,
+            "display": "inline-grid"
+          },
+          {
+            "text": "00:01/01:56",
+            "w": 79,
+            "display": "flex"
+          },
+          {
+            "text": "00:01/01:56",
+            "w": 73,
+            "display": "block"
+          },
+          {
+            "text": "/01:56",
+            "w": 38,
+            "display": "inline"
+          },
+          {
+            "text": "~01:56/01:56",
+            "w": 79,
+            "display": "flex"
+          },
+          {
+            "text": "~01:56/01:56",
+            "w": 79,
+            "display": "block"
+          },
+          {
+            "text": "/01:56",
+            "w": 38,
+            "display": "inline"
+          }
+        ],
+        "max": 116,
+        "text": "00:01/01:56",
+        "title": "00:01/01:56",
+        "template": "~01:56/01:56",
+        "whole": true,
+        "sim": "00:01/01:56"
+      },
+      {
+        "state": "scrub 0.25",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 583,
+          "h": 6
+        },
+        "slot": {
+          "x": 900,
+          "y": 652.75,
+          "w": 79,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "00:29/01:56~01:56/01:56",
+            "w": 79,
+            "display": "inline-grid"
+          },
+          {
+            "text": "00:29/01:56",
+            "w": 79,
+            "display": "flex"
+          },
+          {
+            "text": "00:29/01:56",
+            "w": 72,
+            "display": "block"
+          },
+          {
+            "text": "/01:56",
+            "w": 38,
+            "display": "inline"
+          },
+          {
+            "text": "~01:56/01:56",
+            "w": 79,
+            "display": "flex"
+          },
+          {
+            "text": "~01:56/01:56",
+            "w": 79,
+            "display": "block"
+          },
+          {
+            "text": "/01:56",
+            "w": 38,
+            "display": "inline"
+          }
+        ],
+        "max": 116,
+        "text": "00:29/01:56",
+        "title": "00:29/01:56",
+        "template": "~01:56/01:56",
+        "whole": true,
+        "sim": "00:29/01:56"
+      },
+      {
+        "state": "scrub 0.75",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 583,
+          "h": 6
+        },
+        "slot": {
+          "x": 900,
+          "y": 652.75,
+          "w": 79,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "01:27/01:56~01:56/01:56",
+            "w": 79,
+            "display": "inline-grid"
+          },
+          {
+            "text": "01:27/01:56",
+            "w": 79,
+            "display": "flex"
+          },
+          {
+            "text": "01:27/01:56",
+            "w": 71,
+            "display": "block"
+          },
+          {
+            "text": "/01:56",
+            "w": 38,
+            "display": "inline"
+          },
+          {
+            "text": "~01:56/01:56",
+            "w": 79,
+            "display": "flex"
+          },
+          {
+            "text": "~01:56/01:56",
+            "w": 79,
+            "display": "block"
+          },
+          {
+            "text": "/01:56",
+            "w": 38,
+            "display": "inline"
+          }
+        ],
+        "max": 116,
+        "text": "01:27/01:56",
+        "title": "01:27/01:56",
+        "template": "~01:56/01:56",
+        "whole": true,
+        "sim": "01:27/01:56"
+      },
+      {
+        "state": "scrub 1",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 583,
+          "h": 6
+        },
+        "slot": {
+          "x": 900,
+          "y": 652.75,
+          "w": 79,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "01:56/01:56~01:56/01:56",
+            "w": 79,
+            "display": "inline-grid"
+          },
+          {
+            "text": "01:56/01:56",
+            "w": 79,
+            "display": "flex"
+          },
+          {
+            "text": "01:56/01:56",
+            "w": 72,
+            "display": "block"
+          },
+          {
+            "text": "/01:56",
+            "w": 38,
+            "display": "inline"
+          },
+          {
+            "text": "~01:56/01:56",
+            "w": 79,
+            "display": "flex"
+          },
+          {
+            "text": "~01:56/01:56",
+            "w": 79,
+            "display": "block"
+          },
+          {
+            "text": "/01:56",
+            "w": 38,
+            "display": "inline"
+          }
+        ],
+        "max": 116,
+        "text": "01:56/01:56",
+        "title": "01:56/01:56",
+        "template": "~01:56/01:56",
+        "whole": true,
+        "sim": "01:56/01:56"
+      },
+      {
+        "state": "scrub 0",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 583,
+          "h": 6
+        },
+        "slot": {
+          "x": 900,
+          "y": 652.75,
+          "w": 79,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "00:00/01:56~01:56/01:56",
+            "w": 79,
+            "display": "inline-grid"
+          },
+          {
+            "text": "00:00/01:56",
+            "w": 79,
+            "display": "flex"
+          },
+          {
+            "text": "00:00/01:56",
+            "w": 73,
+            "display": "block"
+          },
+          {
+            "text": "/01:56",
+            "w": 38,
+            "display": "inline"
+          },
+          {
+            "text": "~01:56/01:56",
+            "w": 79,
+            "display": "flex"
+          },
+          {
+            "text": "~01:56/01:56",
+            "w": 79,
+            "display": "block"
+          },
+          {
+            "text": "/01:56",
+            "w": 38,
+            "display": "inline"
+          }
+        ],
+        "max": 116,
+        "text": "00:00/01:56",
+        "title": "00:00/01:56",
+        "template": "~01:56/01:56",
+        "whole": true,
+        "sim": "00:00/01:56"
+      },
+      {
+        "state": "before run",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 583,
+          "h": 6
+        },
+        "slot": {
+          "x": 900,
+          "y": 652.75,
+          "w": 79,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "00:00/01:56~01:56/01:56",
+            "w": 79,
+            "display": "inline-grid"
+          },
+          {
+            "text": "00:00/01:56",
+            "w": 79,
+            "display": "flex"
+          },
+          {
+            "text": "00:00/01:56",
+            "w": 73,
+            "display": "block"
+          },
+          {
+            "text": "/01:56",
+            "w": 38,
+            "display": "inline"
+          },
+          {
+            "text": "~01:56/01:56",
+            "w": 79,
+            "display": "flex"
+          },
+          {
+            "text": "~01:56/01:56",
+            "w": 79,
+            "display": "block"
+          },
+          {
+            "text": "/01:56",
+            "w": 38,
+            "display": "inline"
+          }
+        ],
+        "max": 116,
+        "text": "00:00/01:56",
+        "title": "00:00/01:56",
+        "template": "~01:56/01:56",
+        "whole": true,
+        "sim": "00:00/01:56"
+      },
+      {
+        "state": "run",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 582,
+          "h": 6
+        },
+        "slot": {
+          "x": 899,
+          "y": 652.75,
+          "w": 80,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "~00:00/01:56~01:56/01:56",
+            "w": 80,
+            "display": "inline-grid"
+          },
+          {
+            "text": "~00:00/01:56",
+            "w": 80,
+            "display": "flex"
+          },
+          {
+            "text": "~00:00/01:56",
+            "w": 80,
+            "display": "block"
+          },
+          {
+            "text": "/01:56",
+            "w": 38,
+            "display": "inline"
+          },
+          {
+            "text": "~01:56/01:56",
+            "w": 80,
+            "display": "flex"
+          },
+          {
+            "text": "~01:56/01:56",
+            "w": 79,
+            "display": "block"
+          },
+          {
+            "text": "/01:56",
+            "w": 38,
+            "display": "inline"
+          }
+        ],
+        "max": 116,
+        "text": "~00:00/01:56",
+        "title": "~00:00/01:56",
+        "template": "~01:56/01:56",
+        "whole": true,
+        "sim": "~00:00/01:56"
+      }
+    ],
+    "two-hour": [
+      {
+        "state": "sim start",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 561,
+          "h": 6
+        },
+        "slot": {
+          "x": 878,
+          "y": 652.75,
+          "w": 101,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "0:00:00/1:56:00~1:56:00/1:56:00",
+            "w": 101,
+            "display": "inline-grid"
+          },
+          {
+            "text": "0:00:00/1:56:00",
+            "w": 101,
+            "display": "flex"
+          },
+          {
+            "text": "0:00:00/1:56:00",
+            "w": 95,
+            "display": "block"
+          },
+          {
+            "text": "/1:56:00",
+            "w": 49,
+            "display": "inline"
+          },
+          {
+            "text": "~1:56:00/1:56:00",
+            "w": 101,
+            "display": "flex"
+          },
+          {
+            "text": "~1:56:00/1:56:00",
+            "w": 101,
+            "display": "block"
+          },
+          {
+            "text": "/1:56:00",
+            "w": 49,
+            "display": "inline"
+          }
+        ],
+        "max": 6960,
+        "text": "0:00:00/1:56:00",
+        "title": "0:00:00/1:56:00",
+        "template": "~1:56:00/1:56:00",
+        "whole": true,
+        "sim": "0:00:00/1:56:00"
+      },
+      {
+        "state": "scrub 0.01",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 561,
+          "h": 6
+        },
+        "slot": {
+          "x": 878,
+          "y": 652.75,
+          "w": 101,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "0:01:09/1:56:00~1:56:00/1:56:00",
+            "w": 101,
+            "display": "inline-grid"
+          },
+          {
+            "text": "0:01:09/1:56:00",
+            "w": 101,
+            "display": "flex"
+          },
+          {
+            "text": "0:01:09/1:56:00",
+            "w": 95,
+            "display": "block"
+          },
+          {
+            "text": "/1:56:00",
+            "w": 49,
+            "display": "inline"
+          },
+          {
+            "text": "~1:56:00/1:56:00",
+            "w": 101,
+            "display": "flex"
+          },
+          {
+            "text": "~1:56:00/1:56:00",
+            "w": 101,
+            "display": "block"
+          },
+          {
+            "text": "/1:56:00",
+            "w": 49,
+            "display": "inline"
+          }
+        ],
+        "max": 6960,
+        "text": "0:01:09/1:56:00",
+        "title": "0:01:09/1:56:00",
+        "template": "~1:56:00/1:56:00",
+        "whole": true,
+        "sim": "0:01:09/1:56:00"
+      },
+      {
+        "state": "scrub 0.25",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 561,
+          "h": 6
+        },
+        "slot": {
+          "x": 878,
+          "y": 652.75,
+          "w": 101,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "0:29:00/1:56:00~1:56:00/1:56:00",
+            "w": 101,
+            "display": "inline-grid"
+          },
+          {
+            "text": "0:29:00/1:56:00",
+            "w": 101,
+            "display": "flex"
+          },
+          {
+            "text": "0:29:00/1:56:00",
+            "w": 94,
+            "display": "block"
+          },
+          {
+            "text": "/1:56:00",
+            "w": 49,
+            "display": "inline"
+          },
+          {
+            "text": "~1:56:00/1:56:00",
+            "w": 101,
+            "display": "flex"
+          },
+          {
+            "text": "~1:56:00/1:56:00",
+            "w": 101,
+            "display": "block"
+          },
+          {
+            "text": "/1:56:00",
+            "w": 49,
+            "display": "inline"
+          }
+        ],
+        "max": 6960,
+        "text": "0:29:00/1:56:00",
+        "title": "0:29:00/1:56:00",
+        "template": "~1:56:00/1:56:00",
+        "whole": true,
+        "sim": "0:29:00/1:56:00"
+      },
+      {
+        "state": "scrub 0.75",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 561,
+          "h": 6
+        },
+        "slot": {
+          "x": 878,
+          "y": 652.75,
+          "w": 101,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "1:27:00/1:56:00~1:56:00/1:56:00",
+            "w": 101,
+            "display": "inline-grid"
+          },
+          {
+            "text": "1:27:00/1:56:00",
+            "w": 101,
+            "display": "flex"
+          },
+          {
+            "text": "1:27:00/1:56:00",
+            "w": 93,
+            "display": "block"
+          },
+          {
+            "text": "/1:56:00",
+            "w": 49,
+            "display": "inline"
+          },
+          {
+            "text": "~1:56:00/1:56:00",
+            "w": 101,
+            "display": "flex"
+          },
+          {
+            "text": "~1:56:00/1:56:00",
+            "w": 101,
+            "display": "block"
+          },
+          {
+            "text": "/1:56:00",
+            "w": 49,
+            "display": "inline"
+          }
+        ],
+        "max": 6960,
+        "text": "1:27:00/1:56:00",
+        "title": "1:27:00/1:56:00",
+        "template": "~1:56:00/1:56:00",
+        "whole": true,
+        "sim": "1:27:00/1:56:00"
+      },
+      {
+        "state": "scrub 1",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 561,
+          "h": 6
+        },
+        "slot": {
+          "x": 878,
+          "y": 652.75,
+          "w": 101,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "1:56:00/1:56:00~1:56:00/1:56:00",
+            "w": 101,
+            "display": "inline-grid"
+          },
+          {
+            "text": "1:56:00/1:56:00",
+            "w": 101,
+            "display": "flex"
+          },
+          {
+            "text": "1:56:00/1:56:00",
+            "w": 94,
+            "display": "block"
+          },
+          {
+            "text": "/1:56:00",
+            "w": 49,
+            "display": "inline"
+          },
+          {
+            "text": "~1:56:00/1:56:00",
+            "w": 101,
+            "display": "flex"
+          },
+          {
+            "text": "~1:56:00/1:56:00",
+            "w": 101,
+            "display": "block"
+          },
+          {
+            "text": "/1:56:00",
+            "w": 49,
+            "display": "inline"
+          }
+        ],
+        "max": 6960,
+        "text": "1:56:00/1:56:00",
+        "title": "1:56:00/1:56:00",
+        "template": "~1:56:00/1:56:00",
+        "whole": true,
+        "sim": "1:56:00/1:56:00"
+      },
+      {
+        "state": "scrub 0",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 561,
+          "h": 6
+        },
+        "slot": {
+          "x": 878,
+          "y": 652.75,
+          "w": 101,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "0:00:00/1:56:00~1:56:00/1:56:00",
+            "w": 101,
+            "display": "inline-grid"
+          },
+          {
+            "text": "0:00:00/1:56:00",
+            "w": 101,
+            "display": "flex"
+          },
+          {
+            "text": "0:00:00/1:56:00",
+            "w": 95,
+            "display": "block"
+          },
+          {
+            "text": "/1:56:00",
+            "w": 49,
+            "display": "inline"
+          },
+          {
+            "text": "~1:56:00/1:56:00",
+            "w": 101,
+            "display": "flex"
+          },
+          {
+            "text": "~1:56:00/1:56:00",
+            "w": 101,
+            "display": "block"
+          },
+          {
+            "text": "/1:56:00",
+            "w": 49,
+            "display": "inline"
+          }
+        ],
+        "max": 6960,
+        "text": "0:00:00/1:56:00",
+        "title": "0:00:00/1:56:00",
+        "template": "~1:56:00/1:56:00",
+        "whole": true,
+        "sim": "0:00:00/1:56:00"
+      },
+      {
+        "state": "before run",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 561,
+          "h": 6
+        },
+        "slot": {
+          "x": 878,
+          "y": 652.75,
+          "w": 101,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "0:00:00/1:56:00~1:56:00/1:56:00",
+            "w": 101,
+            "display": "inline-grid"
+          },
+          {
+            "text": "0:00:00/1:56:00",
+            "w": 101,
+            "display": "flex"
+          },
+          {
+            "text": "0:00:00/1:56:00",
+            "w": 95,
+            "display": "block"
+          },
+          {
+            "text": "/1:56:00",
+            "w": 49,
+            "display": "inline"
+          },
+          {
+            "text": "~1:56:00/1:56:00",
+            "w": 101,
+            "display": "flex"
+          },
+          {
+            "text": "~1:56:00/1:56:00",
+            "w": 101,
+            "display": "block"
+          },
+          {
+            "text": "/1:56:00",
+            "w": 49,
+            "display": "inline"
+          }
+        ],
+        "max": 6960,
+        "text": "0:00:00/1:56:00",
+        "title": "0:00:00/1:56:00",
+        "template": "~1:56:00/1:56:00",
+        "whole": true,
+        "sim": "0:00:00/1:56:00"
+      },
+      {
+        "state": "run",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 560,
+          "h": 6
+        },
+        "slot": {
+          "x": 877,
+          "y": 652.75,
+          "w": 102,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "~0:00:00/1:56:00~1:56:00/1:56:00",
+            "w": 102,
+            "display": "inline-grid"
+          },
+          {
+            "text": "~0:00:00/1:56:00",
+            "w": 102,
+            "display": "flex"
+          },
+          {
+            "text": "~0:00:00/1:56:00",
+            "w": 102,
+            "display": "block"
+          },
+          {
+            "text": "/1:56:00",
+            "w": 49,
+            "display": "inline"
+          },
+          {
+            "text": "~1:56:00/1:56:00",
+            "w": 102,
+            "display": "flex"
+          },
+          {
+            "text": "~1:56:00/1:56:00",
+            "w": 101,
+            "display": "block"
+          },
+          {
+            "text": "/1:56:00",
+            "w": 49,
+            "display": "inline"
+          }
+        ],
+        "max": 6960,
+        "text": "~0:00:00/1:56:00",
+        "title": "~0:00:00/1:56:00",
+        "template": "~1:56:00/1:56:00",
+        "whole": true,
+        "sim": "~0:00:00/1:56:00"
+      }
+    ],
+    "30h-unknown": [
+      {
+        "state": "sim start",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 538,
+          "h": 6
+        },
+        "slot": {
+          "x": 855,
+          "y": 652.75,
+          "w": 124,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "00:00:00/30:00:00+~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "inline-grid"
+          },
+          {
+            "text": "00:00:00/30:00:00+",
+            "w": 124,
+            "display": "flex"
+          },
+          {
+            "text": "00:00:00/30:00:00+",
+            "w": 118,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 64,
+            "display": "inline"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "flex"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 64,
+            "display": "inline"
+          }
+        ],
+        "max": 108000,
+        "text": "00:00:00/30:00:00+",
+        "title": "The time to the tool measurement the preview cannot predict — after it unknown",
+        "template": "~30:00:00/30:00:00+",
+        "whole": true,
+        "sim": "00:00:00/30:00:00+"
+      },
+      {
+        "state": "scrub 0.01",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 538,
+          "h": 6
+        },
+        "slot": {
+          "x": 855,
+          "y": 652.75,
+          "w": 124,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "00:18:00/30:00:00+~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "inline-grid"
+          },
+          {
+            "text": "00:18:00/30:00:00+",
+            "w": 124,
+            "display": "flex"
+          },
+          {
+            "text": "00:18:00/30:00:00+",
+            "w": 117,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 64,
+            "display": "inline"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "flex"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 64,
+            "display": "inline"
+          }
+        ],
+        "max": 108000,
+        "text": "00:18:00/30:00:00+",
+        "title": "The time to the tool measurement the preview cannot predict — after it unknown",
+        "template": "~30:00:00/30:00:00+",
+        "whole": true,
+        "sim": "00:18:00/30:00:00+"
+      },
+      {
+        "state": "scrub 0.25",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 538,
+          "h": 6
+        },
+        "slot": {
+          "x": 855,
+          "y": 652.75,
+          "w": 124,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "07:30:00/30:00:00+~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "inline-grid"
+          },
+          {
+            "text": "07:30:00/30:00:00+",
+            "w": 124,
+            "display": "flex"
+          },
+          {
+            "text": "07:30:00/30:00:00+",
+            "w": 116,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 64,
+            "display": "inline"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "flex"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 64,
+            "display": "inline"
+          }
+        ],
+        "max": 108000,
+        "text": "07:30:00/30:00:00+",
+        "title": "The time to the tool measurement the preview cannot predict — after it unknown",
+        "template": "~30:00:00/30:00:00+",
+        "whole": true,
+        "sim": "07:30:00/30:00:00+"
+      },
+      {
+        "state": "scrub 0.75",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 538,
+          "h": 6
+        },
+        "slot": {
+          "x": 855,
+          "y": 652.75,
+          "w": 124,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "22:30:00/30:00:00+~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "inline-grid"
+          },
+          {
+            "text": "22:30:00/30:00:00+",
+            "w": 124,
+            "display": "flex"
+          },
+          {
+            "text": "22:30:00/30:00:00+",
+            "w": 115,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 64,
+            "display": "inline"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "flex"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 64,
+            "display": "inline"
+          }
+        ],
+        "max": 108000,
+        "text": "22:30:00/30:00:00+",
+        "title": "The time to the tool measurement the preview cannot predict — after it unknown",
+        "template": "~30:00:00/30:00:00+",
+        "whole": true,
+        "sim": "22:30:00/30:00:00+"
+      },
+      {
+        "state": "scrub 1",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 538,
+          "h": 6
+        },
+        "slot": {
+          "x": 855,
+          "y": 652.75,
+          "w": 124,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "30:00:00/30:00:00+~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "inline-grid"
+          },
+          {
+            "text": "30:00:00/30:00:00+",
+            "w": 124,
+            "display": "flex"
+          },
+          {
+            "text": "30:00:00/30:00:00+",
+            "w": 117,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 64,
+            "display": "inline"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "flex"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 64,
+            "display": "inline"
+          }
+        ],
+        "max": 108000,
+        "text": "30:00:00/30:00:00+",
+        "title": "The time to the tool measurement the preview cannot predict — after it unknown",
+        "template": "~30:00:00/30:00:00+",
+        "whole": true,
+        "sim": "30:00:00/30:00:00+"
+      },
+      {
+        "state": "scrub 0",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 538,
+          "h": 6
+        },
+        "slot": {
+          "x": 855,
+          "y": 652.75,
+          "w": 124,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "00:00:00/30:00:00+~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "inline-grid"
+          },
+          {
+            "text": "00:00:00/30:00:00+",
+            "w": 124,
+            "display": "flex"
+          },
+          {
+            "text": "00:00:00/30:00:00+",
+            "w": 118,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 64,
+            "display": "inline"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "flex"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 64,
+            "display": "inline"
+          }
+        ],
+        "max": 108000,
+        "text": "00:00:00/30:00:00+",
+        "title": "The time to the tool measurement the preview cannot predict — after it unknown",
+        "template": "~30:00:00/30:00:00+",
+        "whole": true,
+        "sim": "00:00:00/30:00:00+"
+      },
+      {
+        "state": "before run",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 538,
+          "h": 6
+        },
+        "slot": {
+          "x": 855,
+          "y": 652.75,
+          "w": 124,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "00:00:00/30:00:00+~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "inline-grid"
+          },
+          {
+            "text": "00:00:00/30:00:00+",
+            "w": 124,
+            "display": "flex"
+          },
+          {
+            "text": "00:00:00/30:00:00+",
+            "w": 118,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 64,
+            "display": "inline"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "flex"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 64,
+            "display": "inline"
+          }
+        ],
+        "max": 108000,
+        "text": "00:00:00/30:00:00+",
+        "title": "The time to the tool measurement the preview cannot predict — after it unknown",
+        "template": "~30:00:00/30:00:00+",
+        "whole": true,
+        "sim": "00:00:00/30:00:00+"
+      },
+      {
+        "state": "run",
+        "slider": {
+          "x": 249,
+          "y": 658,
+          "w": 537,
+          "h": 6
+        },
+        "slot": {
+          "x": 854,
+          "y": 652.75,
+          "w": 125,
+          "h": 16.5
+        },
+        "play": {
+          "x": 127,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "select": {
+          "x": 171,
+          "y": 647,
+          "w": 70,
+          "h": 28
+        },
+        "link": {
+          "x": 987,
+          "y": 647,
+          "w": 36,
+          "h": 28
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "~00:00:00/30:00:00+~30:00:00/30:00:00+",
+            "w": 125,
+            "display": "inline-grid"
+          },
+          {
+            "text": "~00:00:00/30:00:00+",
+            "w": 125,
+            "display": "flex"
+          },
+          {
+            "text": "~00:00:00/30:00:00+",
+            "w": 125,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 64,
+            "display": "inline"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 125,
+            "display": "flex"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 124,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 64,
+            "display": "inline"
+          }
+        ],
+        "max": 108000,
+        "text": "~00:00:00/30:00:00+",
+        "title": "The time to the tool measurement the preview cannot predict — after it unknown",
+        "template": "~30:00:00/30:00:00+",
+        "whole": true,
+        "sim": "~00:00:00/30:00:00+"
+      }
+    ],
+    "30h-narrow-unknown": [
+      {
+        "state": "sim start",
+        "slider": {
+          "x": 475,
+          "y": 626.5,
+          "w": 213,
+          "h": 42
+        },
+        "slot": {
+          "x": 773,
+          "y": 635.125,
+          "w": 84,
+          "h": 24.75
+        },
+        "play": {
+          "x": 632.5,
+          "y": 560.5,
+          "w": 54,
+          "h": 54
+        },
+        "select": {
+          "x": 692.5,
+          "y": 560.5,
+          "w": 101,
+          "h": 54
+        },
+        "link": {
+          "x": 803,
+          "y": 560.5,
+          "w": 54,
+          "h": 54
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "00:00:00/30:00:00+~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "inline-grid"
+          },
+          {
+            "text": "00:00:00/30:00:00+",
+            "w": 84,
+            "display": "flex"
+          },
+          {
+            "text": "00:00:00/30:00:00+",
+            "w": 74,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 0,
+            "display": "none"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "flex"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 0,
+            "display": "none"
+          }
+        ],
+        "max": 108000,
+        "text": "00:00:00",
+        "title": "The time to the tool measurement the preview cannot predict — after it unknown",
+        "template": "~30:00:00/30:00:00+",
+        "whole": true,
+        "sim": "00:00:00/30:00:00+"
+      },
+      {
+        "state": "scrub 0.01",
+        "slider": {
+          "x": 475,
+          "y": 626.5,
+          "w": 213,
+          "h": 42
+        },
+        "slot": {
+          "x": 773,
+          "y": 635.125,
+          "w": 84,
+          "h": 24.75
+        },
+        "play": {
+          "x": 632.5,
+          "y": 560.5,
+          "w": 54,
+          "h": 54
+        },
+        "select": {
+          "x": 692.5,
+          "y": 560.5,
+          "w": 101,
+          "h": 54
+        },
+        "link": {
+          "x": 803,
+          "y": 560.5,
+          "w": 54,
+          "h": 54
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "00:18:00/30:00:00+~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "inline-grid"
+          },
+          {
+            "text": "00:18:00/30:00:00+",
+            "w": 84,
+            "display": "flex"
+          },
+          {
+            "text": "00:18:00/30:00:00+",
+            "w": 74,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 0,
+            "display": "none"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "flex"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 0,
+            "display": "none"
+          }
+        ],
+        "max": 108000,
+        "text": "00:18:00",
+        "title": "The time to the tool measurement the preview cannot predict — after it unknown",
+        "template": "~30:00:00/30:00:00+",
+        "whole": true,
+        "sim": "00:18:00/30:00:00+"
+      },
+      {
+        "state": "scrub 0.25",
+        "slider": {
+          "x": 475,
+          "y": 626.5,
+          "w": 213,
+          "h": 42
+        },
+        "slot": {
+          "x": 773,
+          "y": 635.125,
+          "w": 84,
+          "h": 24.75
+        },
+        "play": {
+          "x": 632.5,
+          "y": 560.5,
+          "w": 54,
+          "h": 54
+        },
+        "select": {
+          "x": 692.5,
+          "y": 560.5,
+          "w": 101,
+          "h": 54
+        },
+        "link": {
+          "x": 803,
+          "y": 560.5,
+          "w": 54,
+          "h": 54
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "07:30:00/30:00:00+~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "inline-grid"
+          },
+          {
+            "text": "07:30:00/30:00:00+",
+            "w": 84,
+            "display": "flex"
+          },
+          {
+            "text": "07:30:00/30:00:00+",
+            "w": 72,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 0,
+            "display": "none"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "flex"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 0,
+            "display": "none"
+          }
+        ],
+        "max": 108000,
+        "text": "07:30:00",
+        "title": "The time to the tool measurement the preview cannot predict — after it unknown",
+        "template": "~30:00:00/30:00:00+",
+        "whole": true,
+        "sim": "07:30:00/30:00:00+"
+      },
+      {
+        "state": "scrub 0.75",
+        "slider": {
+          "x": 475,
+          "y": 626.5,
+          "w": 213,
+          "h": 42
+        },
+        "slot": {
+          "x": 773,
+          "y": 635.125,
+          "w": 84,
+          "h": 24.75
+        },
+        "play": {
+          "x": 632.5,
+          "y": 560.5,
+          "w": 54,
+          "h": 54
+        },
+        "select": {
+          "x": 692.5,
+          "y": 560.5,
+          "w": 101,
+          "h": 54
+        },
+        "link": {
+          "x": 803,
+          "y": 560.5,
+          "w": 54,
+          "h": 54
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "22:30:00/30:00:00+~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "inline-grid"
+          },
+          {
+            "text": "22:30:00/30:00:00+",
+            "w": 84,
+            "display": "flex"
+          },
+          {
+            "text": "22:30:00/30:00:00+",
+            "w": 71,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 0,
+            "display": "none"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "flex"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 0,
+            "display": "none"
+          }
+        ],
+        "max": 108000,
+        "text": "22:30:00",
+        "title": "The time to the tool measurement the preview cannot predict — after it unknown",
+        "template": "~30:00:00/30:00:00+",
+        "whole": true,
+        "sim": "22:30:00/30:00:00+"
+      },
+      {
+        "state": "scrub 1",
+        "slider": {
+          "x": 475,
+          "y": 626.5,
+          "w": 213,
+          "h": 42
+        },
+        "slot": {
+          "x": 773,
+          "y": 635.125,
+          "w": 84,
+          "h": 24.75
+        },
+        "play": {
+          "x": 632.5,
+          "y": 560.5,
+          "w": 54,
+          "h": 54
+        },
+        "select": {
+          "x": 692.5,
+          "y": 560.5,
+          "w": 101,
+          "h": 54
+        },
+        "link": {
+          "x": 803,
+          "y": 560.5,
+          "w": 54,
+          "h": 54
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "30:00:00/30:00:00+~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "inline-grid"
+          },
+          {
+            "text": "30:00:00/30:00:00+",
+            "w": 84,
+            "display": "flex"
+          },
+          {
+            "text": "30:00:00/30:00:00+",
+            "w": 73,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 0,
+            "display": "none"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "flex"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 0,
+            "display": "none"
+          }
+        ],
+        "max": 108000,
+        "text": "30:00:00",
+        "title": "The time to the tool measurement the preview cannot predict — after it unknown",
+        "template": "~30:00:00/30:00:00+",
+        "whole": true,
+        "sim": "30:00:00/30:00:00+"
+      },
+      {
+        "state": "scrub 0",
+        "slider": {
+          "x": 475,
+          "y": 626.5,
+          "w": 213,
+          "h": 42
+        },
+        "slot": {
+          "x": 773,
+          "y": 635.125,
+          "w": 84,
+          "h": 24.75
+        },
+        "play": {
+          "x": 632.5,
+          "y": 560.5,
+          "w": 54,
+          "h": 54
+        },
+        "select": {
+          "x": 692.5,
+          "y": 560.5,
+          "w": 101,
+          "h": 54
+        },
+        "link": {
+          "x": 803,
+          "y": 560.5,
+          "w": 54,
+          "h": 54
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "00:00:00/30:00:00+~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "inline-grid"
+          },
+          {
+            "text": "00:00:00/30:00:00+",
+            "w": 84,
+            "display": "flex"
+          },
+          {
+            "text": "00:00:00/30:00:00+",
+            "w": 74,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 0,
+            "display": "none"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "flex"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 0,
+            "display": "none"
+          }
+        ],
+        "max": 108000,
+        "text": "00:00:00",
+        "title": "The time to the tool measurement the preview cannot predict — after it unknown",
+        "template": "~30:00:00/30:00:00+",
+        "whole": true,
+        "sim": "00:00:00/30:00:00+"
+      },
+      {
+        "state": "before run",
+        "slider": {
+          "x": 475,
+          "y": 626.5,
+          "w": 213,
+          "h": 42
+        },
+        "slot": {
+          "x": 773,
+          "y": 635.125,
+          "w": 84,
+          "h": 24.75
+        },
+        "play": {
+          "x": 632.5,
+          "y": 560.5,
+          "w": 54,
+          "h": 54
+        },
+        "select": {
+          "x": 692.5,
+          "y": 560.5,
+          "w": 101,
+          "h": 54
+        },
+        "link": {
+          "x": 803,
+          "y": 560.5,
+          "w": 54,
+          "h": 54
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "00:00:00/30:00:00+~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "inline-grid"
+          },
+          {
+            "text": "00:00:00/30:00:00+",
+            "w": 84,
+            "display": "flex"
+          },
+          {
+            "text": "00:00:00/30:00:00+",
+            "w": 74,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 0,
+            "display": "none"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "flex"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 0,
+            "display": "none"
+          }
+        ],
+        "max": 108000,
+        "text": "00:00:00",
+        "title": "The time to the tool measurement the preview cannot predict — after it unknown",
+        "template": "~30:00:00/30:00:00+",
+        "whole": true,
+        "sim": "00:00:00/30:00:00+"
+      },
+      {
+        "state": "run",
+        "slider": {
+          "x": 475,
+          "y": 626.5,
+          "w": 212,
+          "h": 42
+        },
+        "slot": {
+          "x": 772,
+          "y": 635.125,
+          "w": 85,
+          "h": 24.75
+        },
+        "play": {
+          "x": 632.5,
+          "y": 560.5,
+          "w": 54,
+          "h": 54
+        },
+        "select": {
+          "x": 692.5,
+          "y": 560.5,
+          "w": 101,
+          "h": 54
+        },
+        "link": {
+          "x": 803,
+          "y": 560.5,
+          "w": 54,
+          "h": 54
+        },
+        "font": {
+          "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+          "size": "11px",
+          "weight": "600",
+          "variant": "tabular-nums",
+          "kerning": "auto"
+        },
+        "details": [
+          {
+            "text": "~00:00:00/30:00:00+~30:00:00/30:00:00+",
+            "w": 85,
+            "display": "inline-grid"
+          },
+          {
+            "text": "~00:00:00/30:00:00+",
+            "w": 85,
+            "display": "flex"
+          },
+          {
+            "text": "~00:00:00/30:00:00+",
+            "w": 85,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 0,
+            "display": "none"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 85,
+            "display": "flex"
+          },
+          {
+            "text": "~30:00:00/30:00:00+",
+            "w": 84,
+            "display": "block"
+          },
+          {
+            "text": "/30:00:00+",
+            "w": 0,
+            "display": "none"
+          }
+        ],
+        "max": 108000,
+        "text": "~00:00:00",
+        "title": "The time to the tool measurement the preview cannot predict — after it unknown",
+        "template": "~30:00:00/30:00:00+",
+        "whole": true,
+        "sim": "~00:00:00/30:00:00+"
+      }
+    ]
+  },
+  "hour_boundary": {
+    "statsTotal": 3580,
+    "bar": {
+      "slider": {
+        "x": 249,
+        "y": 658,
+        "w": 561,
+        "h": 6
+      },
+      "slot": {
+        "x": 878,
+        "y": 652.75,
+        "w": 101,
+        "h": 16.5
+      },
+      "play": {
+        "x": 127,
+        "y": 647,
+        "w": 36,
+        "h": 28
+      },
+      "select": {
+        "x": 171,
+        "y": 647,
+        "w": 70,
+        "h": 28
+      },
+      "link": {
+        "x": 987,
+        "y": 647,
+        "w": 36,
+        "h": 28
+      },
+      "font": {
+        "family": "Inter, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+        "size": "11px",
+        "weight": "600",
+        "variant": "tabular-nums",
+        "kerning": "auto"
+      },
+      "details": [
+        {
+          "text": "0:00:00/1:00:30~1:00:30/1:00:30",
+          "w": 101,
+          "display": "inline-grid"
+        },
+        {
+          "text": "0:00:00/1:00:30",
+          "w": 101,
+          "display": "flex"
+        },
+        {
+          "text": "0:00:00/1:00:30",
+          "w": 95,
+          "display": "block"
+        },
+        {
+          "text": "/1:00:30",
+          "w": 49,
+          "display": "inline"
+        },
+        {
+          "text": "~1:00:30/1:00:30",
+          "w": 101,
+          "display": "flex"
+        },
+        {
+          "text": "~1:00:30/1:00:30",
+          "w": 101,
+          "display": "block"
+        },
+        {
+          "text": "/1:00:30",
+          "w": 49,
+          "display": "inline"
+        }
+      ],
+      "max": 3630,
+      "text": "0:00:00/1:00:30",
+      "title": "0:00:00/1:00:30",
+      "template": "~1:00:30/1:00:30",
+      "whole": true,
+      "sim": "0:00:00/1:00:30"
+    },
+    "rows": [
+      "",
+      "0:13:10",
+      "0:33:45"
+    ],
+    "elapsed": "00:00"
+  },
+  "text_widths": [
+    {
+      "kerning": "auto",
+      "text": "~1:56:00/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:00/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:01/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:02/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:03/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:04/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:05/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:06/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:07/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:08/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:09/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:10/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:11/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:12/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:13/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:14/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:15/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:16/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:17/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:18/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:19/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:20/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:21/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:22/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:23/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:24/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:25/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:26/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:27/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:28/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:29/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:30/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:31/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:32/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:33/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:34/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:35/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:36/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:37/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:38/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:39/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:40/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:41/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:42/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:43/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:44/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:45/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:46/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:47/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:48/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:49/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:50/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:51/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:52/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:53/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:54/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:55/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:56/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:57/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:58/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "auto",
+      "text": "~0:00:59/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~1:56:00/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:00/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:01/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:02/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:03/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:04/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:05/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:06/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:07/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:08/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:09/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:10/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:11/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:12/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:13/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:14/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:15/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:16/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:17/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:18/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:19/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:20/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:21/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:22/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:23/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:24/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:25/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:26/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:27/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:28/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:29/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:30/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:31/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:32/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:33/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:34/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:35/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:36/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:37/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:38/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:39/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:40/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:41/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:42/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:43/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:44/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:45/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:46/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:47/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:48/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:49/1:56:00",
+      "width": 102
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:50/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:51/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:52/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:53/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:54/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:55/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:56/1:56:00",
+      "width": 101
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:57/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:58/1:56:00",
+      "width": 100
+    },
+    {
+      "kerning": "none",
+      "text": "~0:00:59/1:56:00",
+      "width": 101
+    }
+  ]
+}

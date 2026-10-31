@@ -1,0 +1,103 @@
+R237 independent verification, 2026-10-31
+Product: feat/scrub-polish 21c5364c..5f1e7c1c
+Archive: /tmp/codex-r237-ymzu9z_z/repo (git archive 5f1e7c1c)
+Product sources unchanged: all 409 files under lcnc-webui/src compared byte-for-byte with git archive 5f1e7c1c.
+Dependencies copied from the prior isolated review, package-lock.json verified identical.
+Own mock: MOCK_HOST=127.0.0.1 MOCK_PORT=4188 node e2e/mock-gateway.mjs
+Existing e2e localhost:4174 references rewritten to 127.0.0.1:4188 in archive only.
+No access to the operator's :8000/:5173. No machine commands. Mock stopped at review end.
+
+Commands from archive/lcnc-webui:
+npm run build
+npm exec vitest run src/format.test.ts src/viewer/simRows.test.ts
+npx playwright test --config playwright.r237.config.ts sim-panel.viewer.spec.ts select-writes.spec.ts --grep 'the scrub bar|a two-hour program|program at 150 % portrait|tool measurement the preview cannot predict|the Simulation tab|playback at ×100'
+npx playwright test --config playwright.r237.config.ts r237.codex.spec.ts
+
+Independent probe: copy scrub-polish.r237.probe.spec.ts to e2e/r237.codex.spec.ts;
+copy scrub-polish.r237.playwright.config.ts to playwright.r237.config.ts.
+Set OUT in the probe to an existing evidence directory if the original /tmp path is unavailable.
+The probe serves synthetic preview payloads; it checks rendering, not the native interpreter's duration prediction.
+The final probe starts the run at an exact zero position (no preceding playback).
+Earlier exploration with real-time playback made the 1px width issue depend on the stopped second;
+that is why the final probe deterministically scrubs back to zero before the run-start check.
+The hour-boundary fixture supplies rapid_rate=1 mm/s and joint_pos=[-50,0,0,0,0], adding 50 seconds to 3580 seconds.
+
+
+--- build.log ---
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2127 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-C85TSqFA.css                 8.14 kB │ gzip:   2.08 kB
+dist/static/index-BmTBRHMm.css                      97.14 kB │ gzip:  17.67 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-BS8UB_lW.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-CL1XdQ8H.js                 9.05 kB │ gzip:   3.34 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-4Oizhi6T.js                278.11 kB │ gzip: 104.75 kB
+dist/static/index-xx54yrGg.js                      669.32 kB │ gzip: 215.34 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.37s
+
+--- unit.log ---
+
+ RUN  v4.1.8 /tmp/codex-r237-ymzu9z_z/repo/lcnc-webui
+
+
+ Test Files  2 passed (2)
+      Tests  21 passed (21)
+   Start at  09:33:16
+   Duration  209ms (transform 142ms, setup 0ms, import 246ms, tests 7ms, environment 0ms)
+
+
+--- repository-browser.log ---
+
+Running 14 tests using 1 worker
+
+(node:1904701) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1904701) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/select-writes.spec.ts:156:1 › the Simulation tab's list filter and the bar's speed while the simulation plays (2.9s)
+  ✓   2 e2e/sim-panel.viewer.spec.ts:957:1 › playback at ×100 with normal motion: the marked row never leaves the list's view (6.2s)
+  ✓   3 e2e/sim-panel.viewer.spec.ts:1084:1 › a tool measurement the preview cannot predict: the summary, the time and the rows say what is not known (3.3s)
+  ✓   4 e2e/sim-panel.viewer.spec.ts:1274:1 › the scrub bar: the speed beside Play is the ONE speed (none in the Sim tab), the link opens the Sim tab, no band over the track (3.2s)
+  ✓   5 e2e/sim-panel.viewer.spec.ts:1296:3 › the scrub bar: Play and the Sim tab link as tall as the speed select, live and dimmed (desktop) (2.9s)
+  ✓   6 e2e/sim-panel.viewer.spec.ts:1296:3 › the scrub bar: Play and the Sim tab link as tall as the speed select, live and dimmed (touch-landscape) (3.0s)
+  ✓   7 e2e/sim-panel.viewer.spec.ts:1321:1 › a two-hour program: every time in its form, the bar's time slot as wide as the run's readout (3.1s)
+  ✓   8 e2e/sim-panel.viewer.spec.ts:1366:3 › the scrub bar's timeline holds 3 : 1 against the card over the page and over geometry, and against its thumb, in and out of the simulation (light) (3.5s)
+  ✓   9 e2e/sim-panel.viewer.spec.ts:1366:3 › the scrub bar's timeline holds 3 : 1 against the card over the page and over geometry, and against its thumb, in and out of the simulation (dark) (3.3s)
+  ✓  10 e2e/sim-panel.viewer.spec.ts:1366:3 › the scrub bar's timeline holds 3 : 1 against the card over the page and over geometry, and against its thumb, in and out of the simulation (hc-light) (3.5s)
+  ✓  11 e2e/sim-panel.viewer.spec.ts:1366:3 › the scrub bar's timeline holds 3 : 1 against the card over the page and over geometry, and against its thumb, in and out of the simulation (hc-dark) (3.3s)
+  ✓  12 e2e/sim-panel.viewer.spec.ts:1408:3 › a 2 min program at 150 % portrait: two rows, the timeline keeps 120 px, the time whole (3.0s)
+  ✓  13 e2e/sim-panel.viewer.spec.ts:1408:3 › a 6 h program at 150 % portrait: two rows, the timeline keeps 120 px, the time whole (3.1s)
+  ✓  14 e2e/sim-panel.viewer.spec.ts:1408:3 › a 30 h program at 150 % portrait: two rows, the timeline keeps 120 px, the time whole (3.2s)
+
+  14 passed (48.4s)

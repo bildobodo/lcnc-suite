@@ -1,0 +1,294 @@
+
+Running 6 tests using 1 worker
+
+(node:1912688) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1912688) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r237.codex.spec.ts:41:4 › R237 stable time slot: short (4.4s)
+(node:1912859) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1912859) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 e2e/r237.codex.spec.ts:41:4 › R237 stable time slot: two-hour (4.0s)
+(node:1913081) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1913081) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 e2e/r237.codex.spec.ts:41:4 › R237 stable time slot: 30h-unknown (4.0s)
+(node:1913251) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1913251) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  4 e2e/r237.codex.spec.ts:41:4 › R237 stable time slot: 30h-narrow-unknown (4.0s)
+(node:1913425) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1913425) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  5 e2e/r237.codex.spec.ts:70:1 › R237 a program close to one hour: Program and Sim use one time form (3.7s)
+(node:1913581) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1913581) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  6 e2e/r237.codex.spec.ts:89:1 › R237 rendered widest text diagnostics (2.8s)
+
+
+  1) e2e/r237.codex.spec.ts:41:4 › R237 stable time slot: short ────────────────────────────────────
+
+    Error: run-start width: 00:00/01:56 -> ~00:00/01:56
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 79
+    Received: 80
+
+      63 |  // A change of track/entry basis is separately visible in max; only a fixed basis claims fixed width.
+      64 |  writeFileSync(`${OUT}/${cfg.name}.json`,JSON.stringify(records,null,2));
+    > 65 |  if(run.max===beforeRun.max){expect.soft(run.slot.w, `run-start width: ${beforeRun.text} -> ${run.text}`).toBe(beforeRun.slot.w);expect.soft(run.slider, 'timeline stays still at run start').toEqual(beforeRun.slider);}
+         |                                                                                                           ^
+      66 |  expect(run.whole).toBe(true);
+      67 |  writeFileSync(`${OUT}/${cfg.name}.json`,JSON.stringify(records,null,2));
+      68 | });
+        at /tmp/codex-r237-ymzu9z_z/repo/lcnc-webui/e2e/r237.codex.spec.ts:65:107
+
+    Error: timeline stays still at run start
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "h": 6,
+    -   "w": 583,
+    +   "w": 582,
+        "x": 249,
+        "y": 658,
+      }
+
+      63 |  // A change of track/entry basis is separately visible in max; only a fixed basis claims fixed width.
+      64 |  writeFileSync(`${OUT}/${cfg.name}.json`,JSON.stringify(records,null,2));
+    > 65 |  if(run.max===beforeRun.max){expect.soft(run.slot.w, `run-start width: ${beforeRun.text} -> ${run.text}`).toBe(beforeRun.slot.w);expect.soft(run.slider, 'timeline stays still at run start').toEqual(beforeRun.slider);}
+         |                                                                                                                                                                                               ^
+      66 |  expect(run.whole).toBe(true);
+      67 |  writeFileSync(`${OUT}/${cfg.name}.json`,JSON.stringify(records,null,2));
+      68 | });
+        at /tmp/codex-r237-ymzu9z_z/repo/lcnc-webui/e2e/r237.codex.spec.ts:65:191
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r237.codex-R237-stable-time-slot-short/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r237.codex-R237-stable-time-slot-short/error-context.md
+
+    Error Context: test-results/r237.codex-R237-stable-time-slot-short/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r237.codex-R237-stable-time-slot-short/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r237.codex-R237-stable-time-slot-short/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/r237.codex.spec.ts:41:4 › R237 stable time slot: two-hour ─────────────────────────────────
+
+    Error: run-start width: 0:00:00/1:56:00 -> ~0:00:00/1:56:00
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 101
+    Received: 102
+        at Error: run-start width: 0:00:00/1:56:00 -> ~0:00:00/1:56:0
+        at /tmp/codex-r237-ymzu9z_z/repo/lcnc-webui/e2e/r237.codex.spec.ts:65:107
+
+    Error: timeline stays still at run start
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "h": 6,
+    -   "w": 561,
+    +   "w": 560,
+        "x": 249,
+        "y": 658,
+      }
+
+      63 |  // A change of track/entry basis is separately visible in max; only a fixed basis claims fixed width.
+      64 |  writeFileSync(`${OUT}/${cfg.name}.json`,JSON.stringify(records,null,2));
+    > 65 |  if(run.max===beforeRun.max){expect.soft(run.slot.w, `run-start width: ${beforeRun.text} -> ${run.text}`).toBe(beforeRun.slot.w);expect.soft(run.slider, 'timeline stays still at run start').toEqual(beforeRun.slider);}
+         |                                                                                                                                                                                               ^
+      66 |  expect(run.whole).toBe(true);
+      67 |  writeFileSync(`${OUT}/${cfg.name}.json`,JSON.stringify(records,null,2));
+      68 | });
+        at /tmp/codex-r237-ymzu9z_z/repo/lcnc-webui/e2e/r237.codex.spec.ts:65:191
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r237.codex-R237-stable-time-slot-two-hour/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r237.codex-R237-stable-time-slot-two-hour/error-context.md
+
+    Error Context: test-results/r237.codex-R237-stable-time-slot-two-hour/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r237.codex-R237-stable-time-slot-two-hour/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r237.codex-R237-stable-time-slot-two-hour/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) e2e/r237.codex.spec.ts:41:4 › R237 stable time slot: 30h-unknown ──────────────────────────────
+
+    Error: run-start width: 00:00:00/30:00:00+ -> ~00:00:00/30:00:00+
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 124
+    Received: 125
+
+      63 |  // A change of track/entry basis is separately visible in max; only a fixed basis claims fixed width.
+      64 |  writeFileSync(`${OUT}/${cfg.name}.json`,JSON.stringify(records,null,2));
+    > 65 |  if(run.max===beforeRun.max){expect.soft(run.slot.w, `run-start width: ${beforeRun.text} -> ${run.text}`).toBe(beforeRun.slot.w);expect.soft(run.slider, 'timeline stays still at run start').toEqual(beforeRun.slider);}
+         |                                                                                                           ^
+      66 |  expect(run.whole).toBe(true);
+      67 |  writeFileSync(`${OUT}/${cfg.name}.json`,JSON.stringify(records,null,2));
+      68 | });
+        at /tmp/codex-r237-ymzu9z_z/repo/lcnc-webui/e2e/r237.codex.spec.ts:65:107
+
+    Error: timeline stays still at run start
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "h": 6,
+    -   "w": 538,
+    +   "w": 537,
+        "x": 249,
+        "y": 658,
+      }
+
+      63 |  // A change of track/entry basis is separately visible in max; only a fixed basis claims fixed width.
+      64 |  writeFileSync(`${OUT}/${cfg.name}.json`,JSON.stringify(records,null,2));
+    > 65 |  if(run.max===beforeRun.max){expect.soft(run.slot.w, `run-start width: ${beforeRun.text} -> ${run.text}`).toBe(beforeRun.slot.w);expect.soft(run.slider, 'timeline stays still at run start').toEqual(beforeRun.slider);}
+         |                                                                                                                                                                                               ^
+      66 |  expect(run.whole).toBe(true);
+      67 |  writeFileSync(`${OUT}/${cfg.name}.json`,JSON.stringify(records,null,2));
+      68 | });
+        at /tmp/codex-r237-ymzu9z_z/repo/lcnc-webui/e2e/r237.codex.spec.ts:65:191
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r237.codex-R237-stable-time-slot-30h-unknown/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r237.codex-R237-stable-time-slot-30h-unknown/error-context.md
+
+    Error Context: test-results/r237.codex-R237-stable-time-slot-30h-unknown/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r237.codex-R237-stable-time-slot-30h-unknown/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r237.codex-R237-stable-time-slot-30h-unknown/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) e2e/r237.codex.spec.ts:41:4 › R237 stable time slot: 30h-narrow-unknown ───────────────────────
+
+    Error: run-start width: 00:00:00 -> ~00:00:00
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 84
+    Received: 85
+        at Error: run-start width: 00:00:00 -> ~00:0:0
+        at /tmp/codex-r237-ymzu9z_z/repo/lcnc-webui/e2e/r237.codex.spec.ts:65:107
+
+    Error: timeline stays still at run start
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "h": 42,
+    -   "w": 213,
+    +   "w": 212,
+        "x": 475,
+        "y": 626.5,
+      }
+
+      63 |  // A change of track/entry basis is separately visible in max; only a fixed basis claims fixed width.
+      64 |  writeFileSync(`${OUT}/${cfg.name}.json`,JSON.stringify(records,null,2));
+    > 65 |  if(run.max===beforeRun.max){expect.soft(run.slot.w, `run-start width: ${beforeRun.text} -> ${run.text}`).toBe(beforeRun.slot.w);expect.soft(run.slider, 'timeline stays still at run start').toEqual(beforeRun.slider);}
+         |                                                                                                                                                                                               ^
+      66 |  expect(run.whole).toBe(true);
+      67 |  writeFileSync(`${OUT}/${cfg.name}.json`,JSON.stringify(records,null,2));
+      68 | });
+        at /tmp/codex-r237-ymzu9z_z/repo/lcnc-webui/e2e/r237.codex.spec.ts:65:191
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r237.codex-R237-stable-time-slot-30h-narrow-unknown/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r237.codex-R237-stable-time-slot-30h-narrow-unknown/error-context.md
+
+    Error Context: test-results/r237.codex-R237-stable-time-slot-30h-narrow-unknown/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r237.codex-R237-stable-time-slot-30h-narrow-unknown/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r237.codex-R237-stable-time-slot-30h-narrow-unknown/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) e2e/r237.codex.spec.ts:70:1 › R237 a program close to one hour: Program and Sim use one time form 
+
+    Error: one time form for the same loaded program
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 3
+    Received: 2
+
+      83 |  await page.screenshot({path:`${OUT}/hour-boundary.png`});
+      84 |  const barsColons=bar.text.split('/')[0]!.split(':').length;
+    > 85 |  expect(elapsed.split(':').length,'one time form for the same loaded program').toBe(barsColons);
+         |                                                                                ^
+      86 | });
+      87 | test.afterAll(async()=>{await ctl({op:'reset'});});
+      88 |
+        at /tmp/codex-r237-ymzu9z_z/repo/lcnc-webui/e2e/r237.codex.spec.ts:85:80
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r237.codex-R237-a-program--2e7c8-m-and-Sim-use-one-time-form/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r237.codex-R237-a-program--2e7c8-m-and-Sim-use-one-time-form/error-context.md
+
+    Error Context: test-results/r237.codex-R237-a-program--2e7c8-m-and-Sim-use-one-time-form/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r237.codex-R237-a-program--2e7c8-m-and-Sim-use-one-time-form/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r237.codex-R237-a-program--2e7c8-m-and-Sim-use-one-time-form/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5 failed
+    e2e/r237.codex.spec.ts:41:4 › R237 stable time slot: short ─────────────────────────────────────
+    e2e/r237.codex.spec.ts:41:4 › R237 stable time slot: two-hour ──────────────────────────────────
+    e2e/r237.codex.spec.ts:41:4 › R237 stable time slot: 30h-unknown ───────────────────────────────
+    e2e/r237.codex.spec.ts:41:4 › R237 stable time slot: 30h-narrow-unknown ────────────────────────
+    e2e/r237.codex.spec.ts:70:1 › R237 a program close to one hour: Program and Sim use one time form 
+  1 passed (27.6s)
