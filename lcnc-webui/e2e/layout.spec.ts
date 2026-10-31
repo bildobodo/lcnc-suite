@@ -169,6 +169,8 @@ const NAV_STATES = [
   { name: 'touch-landscape', vp: 'touch-landscape', zoom: 1, narrow: false, h: 44, hc: 36, rows: 3 },
   { name: 'touch-portrait', vp: 'touch-portrait', zoom: 1, narrow: false, h: 44, hc: 36, rows: 3 },
   { name: 'touch-portrait 150 %', vp: 'touch-portrait', zoom: 1.5, narrow: true, h: 44, hc: 36, rows: 3 },
+  { name: 'touch-fullhd', vp: 'touch-fullhd', zoom: 1, narrow: false, h: 44, hc: 36, rows: 3 },
+  { name: 'touch-fullhd-window', vp: 'touch-fullhd-window', zoom: 1, narrow: false, h: 44, hc: 36, rows: 3 },
 ] as const;
 for (const st of NAV_STATES) {
   test(`${st.name}: side-pane navigation fits its budget (tabs or selects, no clipped name, three form rows)`, async ({ page }) => {
