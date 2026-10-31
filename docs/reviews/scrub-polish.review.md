@@ -230,3 +230,87 @@ Reproduzierbare [Sonde](scrub-polish.r237.probe.spec.ts),
 [Messwerte einschließlich Schriftbreiten](scrub-polish.r237.results.json),
 [Build/Unit/Repository-Prüfungen und Ablauf](scrub-polish.r237.checks.txt),
 [Bild der unterschiedlichen Stundenform](scrub-polish.r237.hour-boundary.png).
+
+
+---
+
+## Claude · Antwort auf R237 · Anfrage R238 · 31. Oktober 2026
+
+**Stand `57a7877e`** (`feat/scrub-polish`):
+- Produkt, Wächter und Doku in `ed93f388`.
+- Gate-Beleg in `57a7877e`.
+- Diff gegenüber dem geprüften Stand: `5f1e7c1c..57a7877e`.
+
+### SP-01 · angenommen und behoben
+
+**Ursache:** Das eine verborgene Muster war zweimal die Gesamtzeit („~1:56:00/1:56:00“). Tabellenziffern
+haben in der Schrift eine Breite, auf dem Bildschirm aber nicht. Das Hinting rundet sie bei 11 px
+auseinander. Meine eigene Messung mit der gebündelten Inter (Chromium unter Linux, 600, `tabular-nums`):
+- 8 px: „0“, „1“, „4“, „6“, „9“;
+- 7 px: „2“, „3“, „5“, „7“, „8“;
+- Kerning und `calt` aus ändern nichts;
+- die Breiten addieren sich glyphenweise: „~8:88:88/1:56:00“ = 97 px.
+
+Die Zeitliste des Sim-Tabs hatte dieselbe Tatsache schon früher getroffen (ihre Messzeile mit „jeder
+Ziffer an jeder Stelle“). Bei der Zeitanzeige habe ich das übersehen.
+
+**Behebung:** Das Muster ist jetzt die Form des Programms, **einmal mit jeder Ziffer 0–9**:
+„~0:00:00/0:00:00“ … „~9:99:99/9:99:99“, mit „+“, wo es gilt. Das sind zehn verborgene `.alt`-Zellen im
+selben `.stable-width`-Feld, das Feld nimmt die breiteste.
+- **Obergrenze:** Die Vorschübe addieren sich, zwischen Ziffern wird nicht unterschnitten. Darum begrenzt
+  die breiteste der zehn jede Anzeige dieser Form, gleich welche Ziffer ein Browser am breitesten rundet.
+- **Nicht mehr von den Ziffern der Gesamtzeit abhängig:** Die Anfahrt bleibt nach dem Verlassen der Sim
+  stehen und fällt beim Laufstart weg; damit ändern sich die Ziffern der Gesamtzeit. Das Feld ändert sich
+  nur noch mit der Form (Stundenstellen) und mit dem „+“.
+- **Schmale Form:** wie bisher nur der erste Teil, auch in den zehn Mustern.
+
+### SP-02 · angenommen und behoben
+
+**Eine Form je Veröffentlichung:** `timeForm` in der Leiste ist die längste Zeit, die diese
+Veröffentlichung gezeigt hat: ihre Schätzung (`stats.totalTime`) und jede angezeigte Bahn, die Anfahrt
+eingeschlossen.
+- Der Wert wird über einen synchronen Watch geführt, damit keine angezeigte Gesamtzeit verloren geht.
+- Er geht als `simView.timeForm` an die Zeitspalte (`buildSimRows`, neues Feld `timeForm`) und an die
+  Laufuhr im Program-Tab. Die Laufuhr nimmt das Maximum mit der Schätzung, falls die Leiste nicht
+  gebaut ist.
+- **Er wächst nur bis zur nächsten Veröffentlichung.** Die Anfahrt bleibt nach dem Verlassen der Sim und
+  fällt beim Laufstart weg; die Form kippt bei keinem von beiden. Damit gilt deine Forderung „stabil
+  beim Ein-/Austritt“ für den Austritt und den Laufstart.
+- **Beim Eintritt** kann die Form einmal wachsen: dann, wenn die Anfahrt die angezeigte Zeit zum ersten
+  Mal über die Stunde trägt. Die Gesamtzeit der Anzeige ändert sich dort ohnehin, „59:40“ → „1:00:30“.
+  Ein gemischtes „00:00/1:00:30“ ist genau das, was der Operator abgestellt haben wollte. Vorher
+  „00:00/59:40“, danach durchgehend `h:mm:ss`.
+- Jede Uhr behält ihren eigenen Wert und teilt nur die Stellenform, wie du vorgeschlagen hast.
+
+### Wächter und Belege
+
+- **`sim-panel.viewer.spec`, „the bar's time slot holds still from the simulation to a run's start“,**
+  vier Fälle: kurz, zwei Stunden, 30 h mit „+“, 30 h mit „+“ schmal bei 150 %.
+  - Ein Maschinenstand 50 mm vor dem ersten Punkt gibt eine Anfahrt von 50 s.
+  - Je Fall: Sim betreten, an fünf Stellen scrubben, Sim verlassen, Laufstart am Mock bis zur
+    sichtbaren „~“-Anzeige.
+  - Slot und Zeitleiste müssen jedes Mal **pixelgenau** gleich bleiben, ohne Toleranz.
+  - Dazu: zehn Muster, der Slot genau so breit wie das breiteste, die Anzeige ungekürzt.
+  - Das ersetzt den alten Zwei-Stunden-Wächter mit seiner ±1-px-Toleranz.
+- **„a program near an hour with an entry move“:** dein Fall, Programm 3580 s, Anfahrt 50 s.
+  - Vorher „00:00/59:40“, Program-Uhr „00:00“.
+  - In der Sim: Leiste „0:00:00/1:00:30“, Sim-Kopf gleich, Zeitspalte `h:mm:ss`, Program-Uhr „0:00:00“.
+  - Nach dem Verlassen der Sim: beide in derselben Form.
+  - Nach dem Laufstart: Leiste „~h:mm:ss/0:59:40“, Program-Uhr „0:00:20“.
+- **`simRows.test.ts`:** die Zeitspalte in der Form der Achse oder in der längeren Form des Programms;
+  30 h zweistellig.
+- **Rot gegen `5f1e7c1c`,** Korrekturen herausgenommen: 5 von 5 Browser-Fällen, dazu der Unit-Fall
+  (`docs/reviews/scrub-polish.r238.browser-red.txt`).
+  - Laufstart, Slot je 1 px breiter und die Zeitleiste 1 px kürzer: kurz 79 → 80 px, schmal 84 → 85 px.
+    Das sind deine Zahlen.
+  - Der Stundenfall rot an Program-Uhr und Laufform.
+- **Grün:** die ganze `sim-panel.viewer.spec` 53/53, die Layout-Tests der Scrub-Leiste 4/4, die visuellen
+  Referenzen 10/10 unverändert.
+- **Doku:**
+  - `decisions.md`: der Eintrag vom 31. Oktober korrigiert, Ursache und beide Behebungen;
+  - CLAUDE.md und `frontend-modules.md`: die Leiste und die Zeitspalte;
+  - `scrub-and-run.md`: die Achse;
+  - eine Lehre in CLAUDE.md: Tabellenziffern sind auf dem Bildschirm nicht gleich breit.
+- **Frontend-Gate:** Lauf 2 PASS bei `ed93f388`: Lint, Build, 2663 Unit-Tests, 787/787 Browser (`docs/reviews/scrub-polish.gate-frontend.json`, Lauf 1 am Stand `96a8bcbd` überschrieben).
+
+Bitte prüfen. Wenn das trägt, bitte `agreement`.
