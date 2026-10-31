@@ -514,3 +514,78 @@ schmale Zeitformen, unbekanntes Ende sowie gemeinsame Form an der Stundengrenze.
 [Messwerte](scrub-polish.r239.codex-results.json),
 [Build/Unit/Repository-Prüfungen und Reproduktion](scrub-polish.r239.codex-checks.txt).
 Vorhandene Belege unverändert.
+
+
+
+---
+
+## Claude · Anfrage R240 · 31. Oktober 2026 · die Abdeckung bleibt bei 100 %
+
+**Stand `d11c3d68`** (`feat/scrub-coverage-rest`, von `development` = `af1efdd2`):
+- Produkt, Wächter und Doku in `f1bdb791`.
+- Eine sechste Erwartung in `ce9199f6` (unten).
+- Gate-Beleg in `d11c3d68`.
+- Diff: `af1efdd2..d11c3d68`.
+
+**Operator nach R239**, zur offenen Frage, ob der %-Platz nach der Prüfung verschwinden soll: „nein,
+die Prozentanzeige bleibt bei 100 %. So wirkt es weniger leer. Und das Gleiche auch im Sim-Tab, wo
+auch der Balken bleiben sollte.“
+
+### Änderung
+
+- **Leiste:** `checkPct` leert sich nach dem Ende der Prüfung nicht mehr. Bei `state === "done"`
+  steht dort „100 %“:
+  - schlicht, ohne Glyphe und ohne Warnrolle (`checkHalt` bleibt bei `done` null);
+  - der Titel trägt die Abdeckungsworte der Zusammenfassung: „Collision check: checked in full“,
+    „… checked to the end“, „… start not checked“.
+- **Der Wert ist `pctOf(1)`**, nicht `sweptFrac`. Auf der Anfahrtsbahn geht `sweptFrac` durch
+  `mergedSweptFraction`; ein gerundetes „99 %“ nach einer fertigen Prüfung wäre schlimmer als das
+  leere Feld.
+- **Leer bleibt das Feld nur, wo die Zusammenfassung keine Abdeckung nennt:**
+  - `nopairs` („No moving pairs“ / „Not checked“);
+  - eine Bahn, die bis zum Ende von der Maschinenstellung abhängt (`startDependent.whole`:
+    „Not checked“ / „Depends on the machine's position“).
+
+  Dort wurde nichts geprüft, und die Zahl in der Leiste steht ohne Worte daneben. Ein „100 %“ würde
+  sich dort wie eine volle Prüfung lesen.
+- **Sim-Tab: unverändert.** Er zeigt nach dem Ende schon Balken und „100 %“
+  (`sim-panel.viewer.spec`, erster Test).
+  - Bekannter Unterschied: Beim `whole`-Fall zeigt der Tab weiter einen vollen Balken (`frac` 1)
+    neben „Not checked“. Sein Balken steht neben den Urteilsworten, die Zahl in der Leiste nicht.
+    Das habe ich bewusst nicht angefasst.
+  - Wenn du das anders siehst, sag es.
+- **Geometrie:** keine Änderung. Das Feld war schon für „100 %“ samt Glyphe bemessen; die Zeitleiste
+  behält ihre Länge.
+- **Testzugang:** `__viewerDiag.setCollisionStartDependent` (ThreeViewer, `shims.d.ts`), nach dem
+  Muster von `setCollisionNote`.
+
+### Wächter und Belege
+
+- **`sim-panel.viewer.spec`:**
+  - „the scrub bar: the speed beside Play …“: das Feld nach dem Ende „100 %“, Titel „Collision check:
+    checked in full“, ohne Glyphe und ohne Warnrolle.
+  - **neu** „the bar's coverage after the check: 100 % where the route was checked, nothing where
+    nothing was“:
+    - keine bewegten Paare → leer;
+    - in vollem Umfang → „100 %“, der Tab ebenso;
+    - Start nicht gebunden → „100 %“, Titel „start not checked“;
+    - `whole` ungebunden und gebunden → leer;
+    - zurück → „100 %“.
+- **`collisions.viewer.spec`:**
+  - die C2-Zustände ohne ersten Kontakt: am Ende „100 %“, Titel aus den Abdeckungsworten;
+  - der Kollisionssprung über die Anfahrt (echtes XYZAC-Modell): das zusammengeführte Ergebnis auf
+    der Anfahrtsbahn liest „100 %“;
+  - „the provisional result keeps its own limits while the full check runs …“ (R116): nach der vollen
+    Prüfung „100 %“ mit Titel „checked in full“ statt `""`. Meine Suche hatte diese Erwartung
+    übersehen, weil der Test das Feld über eine Variable anspricht. Gate-Lauf 1 an `f1bdb791` hat sie
+    gefunden: 790/791, der eine Fehler „Expected: "" Received: "100 %"“. Ich habe sie korrigiert.
+    Eine weitere Suche nach `checkSlot` und `.checkPct` findet keine weitere.
+- **Rot gegen `af1efdd2`**, nur die Wächter (und der Testzugang) neu: 5 von 5
+  (`docs/reviews/scrub-coverage.browser-red.txt`). Jeweils `""` statt „100 %“.
+- **Grün:** dieselben 6 Fälle und der R116-Fall.
+- **Doku:**
+  - `decisions.md`: Nachtrag im Eintrag vom 31. Oktober;
+  - CLAUDE.md und `frontend-modules.md`: die Leiste.
+- **Frontend-Gate:** **PASS** an `ce9199f6` (`docs/reviews/scrub-coverage.gate-frontend.json`): Lint, Build, Unit 166 Dateien / 2663, Browser **791/791**. Lauf 1 an `f1bdb791`: 790/791, der eine Fehler war die R116-Erwartung oben.
+
+Bitte prüfen. Wenn das trägt, bitte `agreement`.
