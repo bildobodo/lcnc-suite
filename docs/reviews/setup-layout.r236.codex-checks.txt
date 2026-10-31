@@ -1,0 +1,305 @@
+R236: 9303cf6e..21c5364c, isolated git archive, own mock 127.0.0.1:4188.
+Product source unchanged. Test endpoint references changed from localhost:4174 to 127.0.0.1:4188. Classic scrollbars enabled, one browser worker.
+
+R235 probe and header specs copied from the unchanged review evidence; only their output directory changed to /tmp/codex-r236-lcibep7n.
+The new independent probe writes per-surface JSON there (create the directory or adapt only OUT when reproducing). Chromium JSON was preserved before the separate Firefox check.
+
+
+=== BUILD ===
+npm run build
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2127 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-Btr8Zs4M.css                 8.28 kB │ gzip:   2.11 kB
+dist/static/index-CACusLKs.css                      97.13 kB │ gzip:  17.67 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-DuBf6F2u.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-RNPRUyUt.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-DAFCKYY_.js                277.89 kB │ gzip: 104.70 kB
+dist/static/index-BzUhP7pS.js                      669.63 kB │ gzip: 215.37 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 7.22s
+
+=== UNIT ===
+npm exec vitest run src/setupLayout.test.ts
+
+ RUN  v4.1.8 /tmp/codex-r236-lcibep7n/repo/lcnc-webui
+
+
+ Test Files  1 passed (1)
+      Tests  11 passed (11)
+   Start at  02:00:14
+   Duration  113ms (transform 32ms, setup 0ms, import 40ms, tests 8ms, environment 0ms)
+
+
+=== R235 RE-RUN ===
+npx playwright test --config playwright.r236.config.ts r235.rerun.spec.ts r235.header-rerun.spec.ts
+
+Running 7 tests using 1 worker
+
+(node:1428451) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1428451) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r235.header-rerun.spec.ts:7:1 › R235: portrait Touch WCS positions remain stable when the frame chip grows (3.2s)
+  ✓  2 e2e/r235.rerun.spec.ts:12:3 › TWP state changes: title, labels and coordinates landscape 1 (3.2s)
+  ✓  3 e2e/r235.rerun.spec.ts:12:3 › TWP state changes: title, labels and coordinates landscape 1.5 (3.2s)
+  ✓  4 e2e/r235.rerun.spec.ts:12:3 › TWP state changes: title, labels and coordinates portrait 1 (3.2s)
+  ✓  5 e2e/r235.rerun.spec.ts:12:3 › TWP state changes: title, labels and coordinates portrait 1.5 (3.1s)
+  ✓  6 e2e/r235.rerun.spec.ts:59:1 › portrait WCS: one tab stop, complete rows, navigation never chooses, one explicit choice (3.5s)
+  ✓  7 e2e/r235.rerun.spec.ts:81:1 › axis list changes with a keypad open: original target is cancelled (2.9s)
+
+  7 passed (23.0s)
+
+=== TARGETED REPOSITORY CASES ===
+npx playwright test --config playwright.r236.config.ts setup-layout.spec.ts layout.spec.ts --grep "portrait touch:|long frame chip|chip change under|title's|keypad on an axis field|the choice groups keep the strip within its budget"
+
+Running 39 tests using 1 worker
+
+(node:1429561) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1429561) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/layout.spec.ts:1825:3 › 3axis-xyz desktop: the choice groups keep the strip within its budget, whole targets, nothing overflowing (3.0s)
+  ✓   2 e2e/layout.spec.ts:1825:3 › 3axis-xyz touch-landscape: the choice groups keep the strip within its budget, whole targets, nothing overflowing (2.8s)
+  ✓   3 e2e/layout.spec.ts:1825:3 › 5axis-xyzac desktop: the choice groups keep the strip within its budget, whole targets, nothing overflowing (2.7s)
+  ✓   4 e2e/layout.spec.ts:1825:3 › 5axis-xyzac touch-landscape: the choice groups keep the strip within its budget, whole targets, nothing overflowing (2.6s)
+  ✓   5 e2e/layout.spec.ts:1825:3 › 6axis-twp desktop: the choice groups keep the strip within its budget, whole targets, nothing overflowing (2.7s)
+  ✓   6 e2e/layout.spec.ts:1825:3 › 6axis-twp touch-landscape: the choice groups keep the strip within its budget, whole targets, nothing overflowing (2.8s)
+  ✓   7 e2e/layout.spec.ts:1825:3 › 3axis-xyz touch-portrait: the choice groups keep the strip within its budget, whole targets, nothing overflowing (2.5s)
+  ✓   8 e2e/layout.spec.ts:1825:3 › 5axis-xyzac touch-portrait: the choice groups keep the strip within its budget, whole targets, nothing overflowing (2.6s)
+  ✓   9 e2e/layout.spec.ts:1825:3 › 6axis-twp touch-portrait: the choice groups keep the strip within its budget, whole targets, nothing overflowing (2.7s)
+  ✓  10 e2e/setup-layout.spec.ts:139:5 › 1 X, portrait touch: the arrangement, every action once, nothing outside or clipped (2.9s)
+  ✓  11 e2e/setup-layout.spec.ts:139:5 › 2 XZ, portrait touch: the arrangement, every action once, nothing outside or clipped (3.0s)
+  ✓  12 e2e/setup-layout.spec.ts:139:5 › 3 XYZ, portrait touch: the arrangement, every action once, nothing outside or clipped (3.2s)
+  ✓  13 e2e/setup-layout.spec.ts:139:5 › 4 XYZA, portrait touch: the arrangement, every action once, nothing outside or clipped (3.2s)
+  ✓  14 e2e/setup-layout.spec.ts:139:5 › 4 XYZC, portrait touch: the arrangement, every action once, nothing outside or clipped (3.4s)
+  ✓  15 e2e/setup-layout.spec.ts:139:5 › 5 XYZBC, portrait touch: the arrangement, every action once, nothing outside or clipped (3.5s)
+  ✓  16 e2e/setup-layout.spec.ts:139:5 › 5 TCP, portrait touch: the arrangement, every action once, nothing outside or clipped (3.5s)
+  ✓  17 e2e/setup-layout.spec.ts:139:5 › 6 XYZABC, portrait touch: the arrangement, every action once, nothing outside or clipped (3.6s)
+  ✓  18 e2e/setup-layout.spec.ts:139:5 › 6 TWP, portrait touch: the arrangement, every action once, nothing outside or clipped (3.9s)
+  ✓  19 e2e/setup-layout.spec.ts:139:5 › 7, portrait touch: the arrangement, every action once, nothing outside or clipped (3.7s)
+  ✓  20 e2e/setup-layout.spec.ts:139:5 › 8, portrait touch: the arrangement, every action once, nothing outside or clipped (3.9s)
+  ✓  21 e2e/setup-layout.spec.ts:139:5 › 9, portrait touch: the arrangement, every action once, nothing outside or clipped (4.1s)
+  ✓  22 e2e/setup-layout.spec.ts:139:5 › 7 TWP, portrait touch: the arrangement, every action once, nothing outside or clipped (4.1s)
+  ✓  23 e2e/setup-layout.spec.ts:139:5 › 9 TWP, portrait touch: the arrangement, every action once, nothing outside or clipped (4.4s)
+  ✓  24 e2e/setup-layout.spec.ts:278:5 › 5 TCP, landscape: a long frame chip moves nothing (2.0s)
+  ✓  25 e2e/setup-layout.spec.ts:278:5 › 5 TCP, landscape touch: a long frame chip moves nothing (2.2s)
+  ✓  26 e2e/setup-layout.spec.ts:278:5 › 5 TCP, portrait: a long frame chip moves nothing (2.0s)
+  ✓  27 e2e/setup-layout.spec.ts:278:5 › 5 TCP, portrait touch: a long frame chip moves nothing (2.1s)
+  ✓  28 e2e/setup-layout.spec.ts:278:5 › 6 TWP, landscape: a long frame chip moves nothing (2.1s)
+  ✓  29 e2e/setup-layout.spec.ts:278:5 › 6 TWP, landscape touch: a long frame chip moves nothing (2.0s)
+  ✓  30 e2e/setup-layout.spec.ts:278:5 › 6 TWP, portrait: a long frame chip moves nothing (2.0s)
+  ✓  31 e2e/setup-layout.spec.ts:278:5 › 6 TWP, portrait touch: a long frame chip moves nothing (1.9s)
+  ✓  32 e2e/setup-layout.spec.ts:315:7 › a chip change under a held fixture › 5 TCP, landscape touch: G55 stays under the finger and is chosen on release (2.3s)
+  ✓  33 e2e/setup-layout.spec.ts:315:7 › a chip change under a held fixture › 5 TCP, portrait touch: G55 stays under the finger and is chosen on release (2.2s)
+  ✓  34 e2e/setup-layout.spec.ts:315:7 › a chip change under a held fixture › 6 TWP, landscape touch: G55 stays under the finger and is chosen on release (2.3s)
+  ✓  35 e2e/setup-layout.spec.ts:315:7 › a chip change under a held fixture › 6 TWP, portrait touch: G55 stays under the finger and is chosen on release (2.2s)
+  ✓  36 e2e/setup-layout.spec.ts:350:3 › landscape: a title's "?" is centred on its line (1.8s)
+  ✓  37 e2e/setup-layout.spec.ts:350:3 › landscape touch: a title's "?" is centred on its line (2.0s)
+  ✓  38 e2e/setup-layout.spec.ts:350:3 › portrait touch: a title's "?" is centred on its line (1.7s)
+  ✓  39 e2e/setup-layout.spec.ts:366:1 › portrait touch 150 %, the keypad on an axis field: only the axis rows stay (2.1s)
+
+  39 passed (1.8m)
+
+=== INDEPENDENT CHROMIUM CASES ===
+npx playwright test --config playwright.r236.config.ts r236.codex.spec.ts
+
+Running 6 tests using 1 worker
+
+(node:1432626) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1432626) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r236.codex.spec.ts:11:27 › R236 independent note and help: desktop 1 (3.2s)
+  ✓  2 e2e/r236.codex.spec.ts:11:27 › R236 independent note and help: compact 1 (2.8s)
+  ✓  3 e2e/r236.codex.spec.ts:11:27 › R236 independent note and help: touch-landscape 1 (2.9s)
+  ✓  4 e2e/r236.codex.spec.ts:11:27 › R236 independent note and help: touch-landscape 1.5 (2.9s)
+  ✓  5 e2e/r236.codex.spec.ts:11:27 › R236 independent note and help: touch-portrait 1 (2.8s)
+  ✓  6 e2e/r236.codex.spec.ts:11:27 › R236 independent note and help: touch-portrait 1.5 (3.0s)
+
+  6 passed (18.4s)
+
+=== ADDITIONAL FIREFOX CHECK — NOT AN OVERALL PASS ===
+npx playwright test --config playwright.r236.firefox.config.ts r236.codex.spec.ts --grep "desktop 1|touch-landscape 1$|touch-portrait 1$"
+
+Running 3 tests using 1 worker
+
+(node:1433712) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1433712) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r236.codex.spec.ts:11:27 › R236 independent note and help: desktop 1 (2.4s)
+(node:1434011) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1434011) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 e2e/r236.codex.spec.ts:11:27 › R236 independent note and help: touch-landscape 1 (2.1s)
+(node:1434301) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1434301) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 e2e/r236.codex.spec.ts:11:27 › R236 independent note and help: touch-portrait 1 (2.2s)
+
+
+  1) e2e/r236.codex.spec.ts:11:27 › R236 independent note and help: desktop 1 ──────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 8[39m
+
+    [32m- Array [][39m
+    [31m+ Array [[39m
+    [31m+   "TypeError: can't access property \"canvas\", N is null",[39m
+    [31m+   "TypeError: can't access property \"canvas\", N is null",[39m
+    [31m+   "TypeError: can't access property \"canvas\", N is null",[39m
+    [31m+   "TypeError: can't access property \"canvas\", N is null",[39m
+    [31m+   "TypeError: can't access property \"canvas\", N is null",[39m
+    [31m+   "TypeError: can't access property \"canvas\", N is null",[39m
+    [31m+ ][39m
+
+      61 |   expect(popBox.x+popBox.width).toBeLessThanOrEqual(vp.width+1);expect(popBox.y+popBox.height).toBeLessThanOrEqual(vp.height+1);
+      62 |   await page.keyboard.press('Enter');await expect(pop).toHaveCount(0);
+    > 63 |   expect(errors).toEqual([]);
+         |                  ^
+      64 |   writeFileSync(`${OUT}/independent-${s.name}-${s.zoom}.json`,JSON.stringify({surface:s,records,helpData,popBox},null,2));
+      65 | });
+      66 | test.afterAll(async()=>{await ctl({op:'reset'});});
+        at /tmp/codex-r236-lcibep7n/repo/lcnc-webui/e2e/r236.codex.spec.ts:63:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r236.codex-R236-independent-note-and-help-desktop-1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r236.codex-R236-independent-note-and-help-desktop-1/error-context.md
+
+    Error Context: test-results/r236.codex-R236-independent-note-and-help-desktop-1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r236.codex-R236-independent-note-and-help-desktop-1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r236.codex-R236-independent-note-and-help-desktop-1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/r236.codex.spec.ts:11:27 › R236 independent note and help: touch-landscape 1 ──────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 8[39m
+
+    [32m- Array [][39m
+    [31m+ Array [[39m
+    [31m+   "TypeError: can't access property \"canvas\", N is null",[39m
+    [31m+   "TypeError: can't access property \"canvas\", N is null",[39m
+    [31m+   "TypeError: can't access property \"canvas\", N is null",[39m
+    [31m+   "TypeError: can't access property \"canvas\", N is null",[39m
+    [31m+   "TypeError: can't access property \"canvas\", N is null",[39m
+    [31m+   "TypeError: can't access property \"canvas\", N is null",[39m
+    [31m+ ][39m
+
+      61 |   expect(popBox.x+popBox.width).toBeLessThanOrEqual(vp.width+1);expect(popBox.y+popBox.height).toBeLessThanOrEqual(vp.height+1);
+      62 |   await page.keyboard.press('Enter');await expect(pop).toHaveCount(0);
+    > 63 |   expect(errors).toEqual([]);
+         |                  ^
+      64 |   writeFileSync(`${OUT}/independent-${s.name}-${s.zoom}.json`,JSON.stringify({surface:s,records,helpData,popBox},null,2));
+      65 | });
+      66 | test.afterAll(async()=>{await ctl({op:'reset'});});
+        at /tmp/codex-r236-lcibep7n/repo/lcnc-webui/e2e/r236.codex.spec.ts:63:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r236.codex-R236-independent-note-and-help-touch-landscape-1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r236.codex-R236-independent-note-and-help-touch-landscape-1/error-context.md
+
+    Error Context: test-results/r236.codex-R236-independent-note-and-help-touch-landscape-1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r236.codex-R236-independent-note-and-help-touch-landscape-1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r236.codex-R236-independent-note-and-help-touch-landscape-1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) e2e/r236.codex.spec.ts:11:27 › R236 independent note and help: touch-portrait 1 ───────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 8[39m
+
+    [32m- Array [][39m
+    [31m+ Array [[39m
+    [31m+   "TypeError: can't access property \"canvas\", N is null",[39m
+    [31m+   "TypeError: can't access property \"canvas\", N is null",[39m
+    [31m+   "TypeError: can't access property \"canvas\", N is null",[39m
+    [31m+   "TypeError: can't access property \"canvas\", N is null",[39m
+    [31m+   "TypeError: can't access property \"canvas\", N is null",[39m
+    [31m+   "TypeError: can't access property \"canvas\", N is null",[39m
+    [31m+ ][39m
+
+      61 |   expect(popBox.x+popBox.width).toBeLessThanOrEqual(vp.width+1);expect(popBox.y+popBox.height).toBeLessThanOrEqual(vp.height+1);
+      62 |   await page.keyboard.press('Enter');await expect(pop).toHaveCount(0);
+    > 63 |   expect(errors).toEqual([]);
+         |                  ^
+      64 |   writeFileSync(`${OUT}/independent-${s.name}-${s.zoom}.json`,JSON.stringify({surface:s,records,helpData,popBox},null,2));
+      65 | });
+      66 | test.afterAll(async()=>{await ctl({op:'reset'});});
+        at /tmp/codex-r236-lcibep7n/repo/lcnc-webui/e2e/r236.codex.spec.ts:63:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r236.codex-R236-independent-note-and-help-touch-portrait-1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r236.codex-R236-independent-note-and-help-touch-portrait-1/error-context.md
+
+    Error Context: test-results/r236.codex-R236-independent-note-and-help-touch-portrait-1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r236.codex-R236-independent-note-and-help-touch-portrait-1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r236.codex-R236-independent-note-and-help-touch-portrait-1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    e2e/r236.codex.spec.ts:11:27 › R236 independent note and help: desktop 1 ───────────────────────
+    e2e/r236.codex.spec.ts:11:27 › R236 independent note and help: touch-landscape 1 ───────────────
+    e2e/r236.codex.spec.ts:11:27 › R236 independent note and help: touch-portrait 1 ────────────────
+
+Firefox: all geometry, control, note, step, help-centre and help-popover assertions finish; the final pageerror assertion is red. Console states that WebGL context creation is disabled/unavailable in this headless environment (AllowWebgl2:false; exhausted GL driver options). The errors are retained, not filtered. Thus these are NOT counted as three green Firefox tests or a full Firefox/Viewer approval.

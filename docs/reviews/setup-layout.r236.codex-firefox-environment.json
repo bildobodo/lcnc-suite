@@ -1,0 +1,35 @@
+[
+  {
+    "case": "r236.codex-R236-independent-note-and-help-desktop-1",
+    "webgl_console_messages": [
+      "THREE.WebGLRenderer: A WebGL context could not be created. Reason:  WebGL creation failed: \n* AllowWebgl2:false restricts context creation on this system. ()",
+      "THREE.WebGLRenderer: Error creating WebGL context.",
+      "[JavaScript Warning: \"Failed to create WebGL context: WebGL creation failed: \n* AllowWebgl2:false restricts context creation on this system. ()\" {file: \"http://127.0.0.1:4188/static/three-D_Nc9AAY.js\" line: 4011}]",
+      "WebGL SDF generation not supported: can't access property \"canvas\", N is null",
+      "[JavaScript Warning: \"Failed to create WebGL context: WebGL creation failed: \n* WebglAllowWindowsNativeGl:false restricts context creation on this system. ()\n* Exhausted GL driver options. (FEATURE_FAILURE_WEBGL_EXHAUSTED_DRIVERS)\" {file: \"http://127.0.0.1:4188/static/three-D_Nc9AAY.js\" line: 4019}]",
+      "WebGL SDF generation failed, falling back to JS Error"
+    ]
+  },
+  {
+    "case": "r236.codex-R236-independent-note-and-help-touch-landscape-1",
+    "webgl_console_messages": [
+      "THREE.WebGLRenderer: A WebGL context could not be created. Reason:  WebGL creation failed: \n* AllowWebgl2:false restricts context creation on this system. ()",
+      "THREE.WebGLRenderer: Error creating WebGL context.",
+      "[JavaScript Warning: \"Failed to create WebGL context: WebGL creation failed: \n* AllowWebgl2:false restricts context creation on this system. ()\" {file: \"http://127.0.0.1:4188/static/three-D_Nc9AAY.js\" line: 4011}]",
+      "WebGL SDF generation not supported: can't access property \"canvas\", N is null",
+      "[JavaScript Warning: \"Failed to create WebGL context: WebGL creation failed: \n* WebglAllowWindowsNativeGl:false restricts context creation on this system. ()\n* Exhausted GL driver options. (FEATURE_FAILURE_WEBGL_EXHAUSTED_DRIVERS)\" {file: \"http://127.0.0.1:4188/static/three-D_Nc9AAY.js\" line: 4019}]",
+      "WebGL SDF generation failed, falling back to JS Error"
+    ]
+  },
+  {
+    "case": "r236.codex-R236-independent-note-and-help-touch-portrait-1",
+    "webgl_console_messages": [
+      "THREE.WebGLRenderer: A WebGL context could not be created. Reason:  WebGL creation failed: \n* AllowWebgl2:false restricts context creation on this system. ()",
+      "THREE.WebGLRenderer: Error creating WebGL context.",
+      "[JavaScript Warning: \"Failed to create WebGL context: WebGL creation failed: \n* AllowWebgl2:false restricts context creation on this system. ()\" {file: \"http://127.0.0.1:4188/static/three-D_Nc9AAY.js\" line: 4011}]",
+      "WebGL SDF generation not supported: can't access property \"canvas\", N is null",
+      "[JavaScript Warning: \"Failed to create WebGL context: WebGL creation failed: \n* WebglAllowWindowsNativeGl:false restricts context creation on this system. ()\n* Exhausted GL driver options. (FEATURE_FAILURE_WEBGL_EXHAUSTED_DRIVERS)\" {file: \"http://127.0.0.1:4188/static/three-D_Nc9AAY.js\" line: 4019}]",
+      "WebGL SDF generation failed, falling back to JS Error"
+    ]
+  }
+]

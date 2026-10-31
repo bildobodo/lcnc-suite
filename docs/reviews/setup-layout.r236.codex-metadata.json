@@ -1,0 +1,20 @@
+{
+  "head": "21c5364c",
+  "base": "9303cf6e",
+  "archive": "/tmp/codex-r236-lcibep7n/repo",
+  "review_sha256_before": "9b1f840ea48551dbaaf7fffcf2af72d25cd43b7817b0bd9e8ce2df9acb66b38d",
+  "review_bytes_before": 46272,
+  "verdict": "agreement",
+  "closed": [
+    "SL-01"
+  ],
+  "build": "pass",
+  "unit": 11,
+  "chromium": {
+    "r235_rerun": 7,
+    "repository_targeted": 39,
+    "independent": 6,
+    "total": 52
+  },
+  "firefox": "3 layout checks complete, final pageerror assertions fail due to WebGL context unavailable; not a full pass"
+}
