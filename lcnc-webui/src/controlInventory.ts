@@ -487,17 +487,15 @@ export const CONTROL_INVENTORY: Record<string, readonly [ControlCategory, string
     ["display", "a display setting (display / viewer / panels / camera): free (Q2)"],
   // ── SimPanel.vue ──
   "SimPanel.vue|MachineBtn:scrub|@click=simStep(KINDS[filter], -1)":
-    ["local", "the Sim tab: the simulation's playback, filter, speed and its list — display (simulation mode closes every machine gate)"],
+    ["local", "the Sim tab: the simulation's filter, its steps and its list — display (simulation mode closes every machine gate)"],
   "SimPanel.vue|MachineBtn:scrub|@click=simStep(KINDS[filter], 1)":
-    ["local", "the Sim tab: the simulation's playback, filter, speed and its list — display (simulation mode closes every machine gate)"],
+    ["local", "the Sim tab: the simulation's filter, its steps and its list — display (simulation mode closes every machine gate)"],
   "SimPanel.vue|MachineSelect:filter|v-model=filter":
-    ["local", "the Sim tab: the simulation's playback, filter, speed and its list — display (simulation mode closes every machine gate)"],
-  "SimPanel.vue|MachineSelect:simSpeed|v-model=speed":
-    ["local", "the Sim tab: the simulation's playback, filter, speed and its list — display (simulation mode closes every machine gate)"],
+    ["local", "the Sim tab: the simulation's filter, its steps and its list — display (simulation mode closes every machine gate)"],
   "SimPanel.vue|span|@keydown=onPickKey($event, r)":
-    ["local", "the Sim tab: the simulation's playback, filter, speed and its list — display (simulation mode closes every machine gate)"],
+    ["local", "the Sim tab: the simulation's filter, its steps and its list — display (simulation mode closes every machine gate)"],
   "SimPanel.vue|tr|@click=show(r, $event)":
-    ["local", "the Sim tab: the simulation's playback, filter, speed and its list — display (simulation mode closes every machine gate)"],
+    ["local", "the Sim tab: the simulation's filter, its steps and its list — display (simulation mode closes every machine gate)"],
   // ── SpindleStrip.vue ──
   "SpindleStrip.vue|MachineBtn:spindleStop|@click=emit('spindleStop')":
     ["stop", "a stop: open without arm (BG-08 / BG-18); the backend's state decides"],

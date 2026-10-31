@@ -1,0 +1,125 @@
+Guards red at 21c5364c (development 21c5364c, product changes taken out), 2026-10-31T08:25:50+01:00
+npx playwright test e2e/sim-panel.viewer.spec.ts --project serial-viewer --no-deps --workers=1 -g "the ONE speed|as tall as the speed select|a two-hour program"
+
+Running 4 tests using 1 worker
+  1) [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1274:1 › the scrub bar: the speed beside Play is the ONE speed (none in the Sim tab), the link opens the Sim tab, no band over the track 
+    Error: the Sim tab's one select is its list filter
+    expect(locator).toHaveCount(expected) failed
+    Locator:  locator('.simPanel select')
+    Expected: 1
+    Received: 2
+    Timeout:  10000ms
+    Call log:
+      - the Sim tab's one select is its list filter with timeout 10000ms
+      - waiting for locator('.simPanel select')
+        24 × locator resolved to 2 elements
+           - unexpected value "2"
+      1280 |   // the speed only beside Play (operator 2026-10-31): the Sim tab, open here, has none
+      1281 |   await expect(page.locator(".simPanel")).toBeVisible();
+    > 1282 |   await expect(page.locator(".simPanel select"), "the Sim tab's one select is its list filter").toHaveCount(1);
+           |                                                                                                 ^
+      1283 |   await expect(page.locator(".simPanel").getByRole("combobox", { name: "Playback speed" })).toHaveCount(0);
+      1284 |   await expect(page.locator(".scrubBar .scrubBand.swept")).toHaveCount(0);
+      1285 |   await expect(page.locator(".scrubBar .checkSlot"), "the check is done: no coverage to show").toHaveText("");
+        at /home/cnc/lcnc-suite-scrub/lcnc-webui/e2e/sim-panel.viewer.spec.ts:1282:97
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-the-scrub-7d223--tab-no-band-over-the-track-serial-viewer/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+    Error Context: test-results/sim-panel.viewer-the-scrub-7d223--tab-no-band-over-the-track-serial-viewer/error-context.md
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-the-scrub-7d223--tab-no-band-over-the-track-serial-viewer/trace.zip
+    Usage:
+        npx playwright show-trace test-results/sim-panel.viewer-the-scrub-7d223--tab-no-band-over-the-track-serial-viewer/trace.zip
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+  2) [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1296:3 › the scrub bar: Play and the Sim tab link as tall as the speed select, live and dimmed (desktop) 
+    Error: Play: {"play":26,"link":26,"select":28,"disabled":false}
+    expect(received).toBe(expected) // Object.is equality
+    Expected: 28
+    Received: 26
+      1304 |     const live = await heights();
+      1305 |     expect(live.disabled, "the machine off: Play live").toBe(false);
+    > 1306 |     expect(live.play, `Play: ${JSON.stringify(live)}`).toBe(live.select);
+           |                                                        ^
+      1307 |     expect(live.link, `the link: ${JSON.stringify(live)}`).toBe(live.select);
+      1308 |     await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true } });
+      1309 |     await expect.poll(async () => (await heights()).disabled, { message: "the machine on: Play dimmed" }).toBe(true);
+        at /home/cnc/lcnc-suite-scrub/lcnc-webui/e2e/sim-panel.viewer.spec.ts:1306:56
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-the-scrub-98331-ct-live-and-dimmed-desktop--serial-viewer/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+    Error Context: test-results/sim-panel.viewer-the-scrub-98331-ct-live-and-dimmed-desktop--serial-viewer/error-context.md
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-the-scrub-98331-ct-live-and-dimmed-desktop--serial-viewer/trace.zip
+    Usage:
+        npx playwright show-trace test-results/sim-panel.viewer-the-scrub-98331-ct-live-and-dimmed-desktop--serial-viewer/trace.zip
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+  3) [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1321:1 › a two-hour program: every time in its form, the bar's time slot as wide as the run's readout 
+    Error: the elapsed in the total's form
+    expect(received).toMatch(expected)
+    Expected pattern: /^0:00:00\/1:5\d:\d\d$/
+    Received string:  "00:00/1:56:00"
+      1340 |     return { text, pos: pos.getBoundingClientRect().width, run: textIn(pos, `~${text}`) };
+      1341 |   });
+    > 1342 |   expect.soft(widths.text, "the elapsed in the total's form").toMatch(/^0:00:00\/1:5\d:\d\d$/);
+           |                                                               ^
+      1343 |   expect.soft(Math.abs(widths.pos - widths.run), `the time's slot holds the run's readout and no more: ${JSON.stringify(widths)}`).toBeLessThanOrEqual(1);
+      1344 |   await expect.soft(page.locator(".simPanel .simTime"), "the Sim tab's head: the bar's readout").toHaveText(widths.text);
+      1345 |   await expect(page.locator(".simPanel tbody tr[data-sim-row]").first()).toBeVisible();
+        at /home/cnc/lcnc-suite-scrub/lcnc-webui/e2e/sim-panel.viewer.spec.ts:1342:63
+    Error: the time's slot holds the run's readout and no more: {"text":"00:00/1:56:00","pos":128,"run":91}
+    expect(received).toBeLessThanOrEqual(expected)
+    Expected: <= 1
+    Received:    37
+      1341 |   });
+      1342 |   expect.soft(widths.text, "the elapsed in the total's form").toMatch(/^0:00:00\/1:5\d:\d\d$/);
+    > 1343 |   expect.soft(Math.abs(widths.pos - widths.run), `the time's slot holds the run's readout and no more: ${JSON.stringify(widths)}`).toBeLessThanOrEqual(1);
+           |                                                                                                                                    ^
+      1344 |   await expect.soft(page.locator(".simPanel .simTime"), "the Sim tab's head: the bar's readout").toHaveText(widths.text);
+      1345 |   await expect(page.locator(".simPanel tbody tr[data-sim-row]").first()).toBeVisible();
+      1346 |   const at = await page.locator(".simPanel tbody tr[data-sim-row] .colAt").allInnerTexts();
+        at /home/cnc/lcnc-suite-scrub/lcnc-webui/e2e/sim-panel.viewer.spec.ts:1343:132
+    Error: the Time column: ["24:00","1:04:00","1:04:00","1:52:00"]
+    expect(received).toMatch(expected)
+    Expected pattern: /^\d:\d\d:\d\d$/
+    Received string:  "24:00"
+      1345 |   await expect(page.locator(".simPanel tbody tr[data-sim-row]").first()).toBeVisible();
+      1346 |   const at = await page.locator(".simPanel tbody tr[data-sim-row] .colAt").allInnerTexts();
+    > 1347 |   for (const t of at) expect.soft(t, `the Time column: ${JSON.stringify(at)}`).toMatch(/^\d:\d\d:\d\d$/);
+           |                                                                                ^
+      1348 |   await page.getByRole("tab", { name: "Program", exact: true }).click();
+      1349 |   await expect.soft(page.locator(".elapsedLabel"), "the Program tab's run clock").toHaveText("0:00:00");
+      1350 | });
+        at /home/cnc/lcnc-suite-scrub/lcnc-webui/e2e/sim-panel.viewer.spec.ts:1347:80
+    Error: the Program tab's run clock
+    expect(locator).toHaveText(expected) failed
+    Locator:  locator('.elapsedLabel')
+    Expected: "0:00:00"
+    Received: "00:00"
+    Timeout:  10000ms
+    Call log:
+      - the Program tab's run clock with timeout 10000ms
+      - waiting for locator('.elapsedLabel')
+        24 × locator resolved to <span data-v-afa3174c="" class="elapsedLabel">00:00</span>
+           - unexpected value "00:00"
+      1347 |   for (const t of at) expect.soft(t, `the Time column: ${JSON.stringify(at)}`).toMatch(/^\d:\d\d:\d\d$/);
+      1348 |   await page.getByRole("tab", { name: "Program", exact: true }).click();
+    > 1349 |   await expect.soft(page.locator(".elapsedLabel"), "the Program tab's run clock").toHaveText("0:00:00");
+           |                                                                                   ^
+      1350 | });
+      1351 |
+      1352 | // The card is 92 % opaque: the track is measured against the card composed
+        at /home/cnc/lcnc-suite-scrub/lcnc-webui/e2e/sim-panel.viewer.spec.ts:1349:83
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-a-two-hou-71112-s-wide-as-the-run-s-readout-serial-viewer/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+    Error Context: test-results/sim-panel.viewer-a-two-hou-71112-s-wide-as-the-run-s-readout-serial-viewer/error-context.md
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-a-two-hou-71112-s-wide-as-the-run-s-readout-serial-viewer/trace.zip
+    Usage:
+        npx playwright show-trace test-results/sim-panel.viewer-a-two-hou-71112-s-wide-as-the-run-s-readout-serial-viewer/trace.zip
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+  3 failed
+    [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1274:1 › the scrub bar: the speed beside Play is the ONE speed (none in the Sim tab), the link opens the Sim tab, no band over the track 
+    [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1296:3 › the scrub bar: Play and the Sim tab link as tall as the speed select, live and dimmed (desktop) 
+    [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1321:1 › a two-hour program: every time in its form, the bar's time slot as wide as the run's readout 
+  1 passed (39.1s)

@@ -4,7 +4,7 @@
 // (viewer/clashTargets.ts, the limit and tool targets of ScrubBar), so the
 // list, the marks and prev/next can never disagree. Pure; unit-tested.
 import { limitViolationText, type LimitViolation } from "../ws/bulkData";
-import { NO_VALUE, fmtDistUpper, fmtElapsed, fmtPct } from "../format";
+import { NO_VALUE, fmtDistUpper, fmtElapsedAs, fmtPct } from "../format";
 import { isNearMiss, type ClashTarget } from "./clashTargets";
 import type { LineAt } from "./contactView";
 import type { LimitTarget } from "./limitPlaces";
@@ -94,8 +94,9 @@ export function simRowOrder(a: { cum: number; kind: SimRowKind }, b: { cum: numb
 }
 
 export function buildSimRows(i: SimRowInput): SimRow[] {
+  // in the program's form (the bar's readout): one width down the column
   const at = (cum: number) => i.timeBased
-    ? fmtElapsed(Math.floor(cum))
+    ? fmtElapsedAs(Math.floor(cum), Math.floor(i.axisEnd))
     : fmtPct(i.axisEnd > 0 ? cum / i.axisEnd : 0);
   const rows: SimRow[] = [];
   for (const t of i.clash) {

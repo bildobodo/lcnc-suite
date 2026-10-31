@@ -66,6 +66,20 @@ export function fmtElapsed(s: number): string {
   return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
 
+/** A time of a program in the form of the program's `total` (seconds): once
+ *  the total reaches an hour, h:mm:ss with as many hour digits as the
+ *  total's — every time of one program one width, the room its readout keeps
+ *  filled ("0:00:00/1:55:40", operator 2026-10-31). A time past the form
+ *  (a run longer than its estimate) shows its own hours. */
+export function fmtElapsedAs(s: number, total: number): string {
+  const totalHours = Math.floor(total / 3600);
+  if (totalHours < 1) return fmtElapsed(s);
+  const h = Math.floor(s / 3600);
+  const mm = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
+  const ss = String(s % 60).padStart(2, "0");
+  return `${String(h).padStart(String(totalHours).length, "0")}:${mm}:${ss}`;
+}
+
 /** Progress readout for a timed job: elapsed of the expected duration
  *  ("00:03 of ~00:12"), elapsed alone when nothing was expected. One
  *  wording for the status banner, the viewer HUD and their tooltips. */

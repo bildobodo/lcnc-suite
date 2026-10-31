@@ -18,7 +18,7 @@ import { explainAt } from "./gateExplain";
 import { fmtPct, NO_VALUE } from "./format";
 import { cssZoomOf } from "./helpPlacement";
 import { glideAt, planGlide, visibleBand, type Glide } from "./codeGlide";
-import { SIM_FILTER_KINDS, SIM_SPEEDS, simJump, simRows, simStep, simView, type SimFilter } from "./simPanelStore";
+import { SIM_FILTER_KINDS, simJump, simRows, simStep, simView, type SimFilter } from "./simPanelStore";
 import type { SimRow, SimRowKind } from "./viewer/simRows";
 import { admit, grow, isComplete, nextRange, renderedStop, widestOf, type ListRange } from "./viewer/simListRange";
 
@@ -49,11 +49,6 @@ const NAV: Record<Filter, [string, string]> = {
   tool: ["Previous tool change", "Next tool change"],
 };
 const stepReason = computed(() => !rows.value.length ? "Nothing of this kind on the timeline" : simView.jumpReason);
-
-const speed = computed({
-  get: () => String(simView.speed),
-  set: (v: string) => { simView.speed = Number(v); },
-});
 
 // ── ONE summary line, always there (operator 2026-10-06): the collision
 // verdict came in with the check's result — and left with every re-check —
@@ -454,13 +449,10 @@ function onRootKey(e: KeyboardEvent) {
   <div ref="root" class="simPanel stack-controls" tabindex="-1" @keydown="onRootKey">
     <div v-if="!simView.available" class="emptyState">Load a program to simulate it.</div>
     <template v-else>
-      <!-- ONE row: the speed and where the simulation (or the run) stands.
-           Sim and play stay on the viewer's bar. -->
-      <div class="simHead row-controls denseArea">
-        <span class="label-muted">Speed</span>
-        <MachineSelect gate="simSpeed" v-model="speed" name="simSpeed" aria-label="Playback speed" class="speedSelect">
-          <option v-for="v in SIM_SPEEDS" :key="v" v-memo="[v]" :value="String(v)">×{{ v }}</option>
-        </MachineSelect>
+      <!-- ONE row: where the simulation (or the run) stands. Sim, Play and
+           the speed are the viewer's bar's (operator 2026-10-31: the speed
+           only beside Play). -->
+      <div class="simHead row-controls">
         <span class="simWhere mono" :title="simView.lineTitle">
           <span class="simLine" :class="{ 'text-warn': simView.lineOffPath }">{{ simView.line }}</span><template v-if="simView.line"> · </template><span class="simTime">{{ simView.time }}</span>
         </span>
@@ -586,8 +578,7 @@ function onRootKey(e: KeyboardEvent) {
 /* Layout only — the table, the fields and the progress bar are global. */
 .simPanel { height: 100%; min-height: 0; }
 .simHead, .checkRow, .listHead { align-items: center; flex-shrink: 0; }
-.speedSelect { width: auto; }
-.simWhere { margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.simWhere { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .checkRow .progressTrack { min-width: 48px; }
 /* The check basis card: its values are sentences — they read from the start. */
 .checkCard dd { text-align: start; }

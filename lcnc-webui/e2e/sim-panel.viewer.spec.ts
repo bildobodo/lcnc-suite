@@ -971,7 +971,7 @@ test("playback at ×100 with normal motion: the marked row never leaves the list
     el.value = String(Number(el.max) * 0.15);
     el.dispatchEvent(new Event("input", { bubbles: true }));
   });
-  await page.locator('.simPanel select[name="simSpeed"]').selectOption("100");
+  await page.locator('.scrubBar select[name="scrubSpeed"]').selectOption("100");
   await page.locator('.scrubBar [title="Play the program through the machine model"]').click();
   const samples: { key: string | null; inView: boolean; below: number }[] = [];
   for (let i = 0; i < 40; i++) {
@@ -1271,20 +1271,82 @@ const rgbOf = (page: Page, sel: string, prop: "backgroundColor") => page.locator
   return [...c.getImageData(0, 0, 1, 1).data].slice(0, 4);
 }, prop);
 
-test("the scrub bar: the speed beside Play is the Sim tab's speed, the link opens the Sim tab, no band over the track", async ({ page, context }) => {
+test("the scrub bar: the speed beside Play is the ONE speed (none in the Sim tab), the link opens the Sim tab, no band over the track", async ({ page, context }) => {
   await prepare(page, context);
   const row = page.locator(".scrubBar .scrubRow");
   const order = await row.evaluate(el => [...el.querySelectorAll("button, select, input")].map(c => c.getAttribute("aria-label") ?? c.getAttribute("title") ?? c.tagName));
   const speedAt = order.indexOf("Playback speed");
   expect(order[speedAt - 1], `the control before the speed is Play: ${JSON.stringify(order)}`).toMatch(/^(Play|Pause)/);
-  await row.getByRole("combobox", { name: "Playback speed" }).selectOption("5");
-  await expect(page.locator('.simPanel select[name="simSpeed"]'), "one value: the Sim tab shows it").toHaveValue("5");
+  // the speed only beside Play (operator 2026-10-31): the Sim tab, open here, has none
+  await expect(page.locator(".simPanel")).toBeVisible();
+  await expect(page.locator(".simPanel select"), "the Sim tab's one select is its list filter").toHaveCount(1);
+  await expect(page.locator(".simPanel").getByRole("combobox", { name: "Playback speed" })).toHaveCount(0);
   await expect(page.locator(".scrubBar .scrubBand.swept")).toHaveCount(0);
   await expect(page.locator(".scrubBar .checkSlot"), "the check is done: no coverage to show").toHaveText("");
   await page.getByRole("tab", { name: "Program", exact: true }).click();
   await expect(page.locator(".simPanel")).toBeHidden();
   await row.getByRole("button", { name: "Open the Sim tab" }).click();
   await expect(page.locator(".simPanel"), "the link shows the Sim tab").toBeVisible();
+});
+
+// The bar's symbol buttons are as tall as its speed select (operator
+// 2026-10-31: Play read 26 px beside the 28 px select) — live and dimmed
+// (a dimmed button sits in its .btnTip wrapper), desktop and touch.
+for (const vp of ["desktop", "touch-landscape"] as const) {
+  test(`the scrub bar: Play and the Sim tab link as tall as the speed select, live and dimmed (${vp})`, async ({ page, context }) => {
+    await prepare(page, context, vp, PREVIEW, false);
+    const heights = () => page.locator(".viewerPane .scrubBar").evaluate(bar => {
+      const h = (e: Element | null) => (e ? Math.round(e.getBoundingClientRect().height * 2) / 2 : -1);
+      const play = bar.querySelector("button") as HTMLButtonElement;
+      return { play: h(play), link: h(bar.querySelector('button[aria-label="Open the Sim tab"]')), select: h(bar.querySelector("select")),
+               disabled: play.disabled };
+    });
+    const live = await heights();
+    expect(live.disabled, "the machine off: Play live").toBe(false);
+    expect(live.play, `Play: ${JSON.stringify(live)}`).toBe(live.select);
+    expect(live.link, `the link: ${JSON.stringify(live)}`).toBe(live.select);
+    await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true } });
+    await expect.poll(async () => (await heights()).disabled, { message: "the machine on: Play dimmed" }).toBe(true);
+    const dim = await heights();
+    expect(dim.play, `Play dimmed: ${JSON.stringify(dim)}`).toBe(dim.select);
+    expect(dim.link, `the link: ${JSON.stringify(dim)}`).toBe(dim.select);
+  });
+}
+
+// One time form per program (operator 2026-10-31): the elapsed in the
+// total's form ("0:00:00/1:56:00") in the bar, the Sim tab's head and Time
+// column and the Program tab's run clock. The bar's time slot is as wide
+// as the run's readout and no wider: its 16 ch of "~h:mm:ss/h:mm:ss" left
+// 45 px of it empty.
+test("a two-hour program: every time in its form, the bar's time slot as wide as the run's readout", async ({ page, context }) => {
+  const LONG = Buffer.from(encode({ ...PREVIEW_FIELDS,
+    feed_tcum: new Uint8Array(new Float32Array(FEED.map((_, i) => i * 240)).buffer),
+    stats: { feedMoves: 30, rapidMoves: 0, linearMoves: 30, arcMoves: 0, feedDist: 1, rapidDist: 0, linearDist: 1, arcDist: 0,
+             feedTime: 6960, rapidTime: 0, totalTime: 6960, feedRates: [100], toolChanges: 2, toolsUsed: [3, 5], unit: "mm", fileSize: 1 } }));
+  await prepare(page, context, "desktop", LONG, false);
+  const widths = await page.locator(".viewerPane .scrubBar").evaluate(bar => {
+    // a text's width in a slot's own font, beside it (it takes no room)
+    const textIn = (slot: Element, text: string) => {
+      const probe = document.createElement("span");
+      probe.style.cssText = "position: absolute; visibility: hidden; white-space: nowrap";
+      probe.textContent = text;
+      slot.appendChild(probe);
+      const w = probe.getBoundingClientRect().width;
+      probe.remove();
+      return w;
+    };
+    const pos = bar.querySelector(".posSlot")!;
+    const text = (pos as HTMLElement).innerText;
+    return { text, pos: pos.getBoundingClientRect().width, run: textIn(pos, `~${text}`) };
+  });
+  expect.soft(widths.text, "the elapsed in the total's form").toMatch(/^0:00:00\/1:5\d:\d\d$/);
+  expect.soft(Math.abs(widths.pos - widths.run), `the time's slot holds the run's readout and no more: ${JSON.stringify(widths)}`).toBeLessThanOrEqual(1);
+  await expect.soft(page.locator(".simPanel .simTime"), "the Sim tab's head: the bar's readout").toHaveText(widths.text);
+  await expect(page.locator(".simPanel tbody tr[data-sim-row]").first()).toBeVisible();
+  const at = await page.locator(".simPanel tbody tr[data-sim-row] .colAt").allInnerTexts();
+  for (const t of at) expect.soft(t, `the Time column: ${JSON.stringify(at)}`).toMatch(/^\d:\d\d:\d\d$/);
+  await page.getByRole("tab", { name: "Program", exact: true }).click();
+  await expect.soft(page.locator(".elapsedLabel"), "the Program tab's run clock").toHaveText("0:00:00");
 });
 
 // The card is 92 % opaque: the track is measured against the card composed
