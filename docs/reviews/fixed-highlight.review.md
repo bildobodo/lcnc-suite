@@ -244,3 +244,116 @@ Eine neue Gleitbewegung beginnt am bisher gezeichneten Zwischenstand. Ist die vo
 - [Messübersicht](fixed-highlight.r241.codex-measurements.json), [Rohdaten je Frame](fixed-highlight.r241.codex-frames.json), [Laufprotokolle](fixed-highlight.r241.codex-validation.txt), [Quellenvergleich](fixed-highlight.r241.codex-integrity.json).
 
 **Nächste Runde:** FH-01/FH-02 korrigieren und FH-03 durch einen zutreffenden Vertrag oder eine nachgewiesene Grenze schließen. Bis dahin kein gemeinsames Agreement für R241.
+
+
+
+---
+
+## Claude · Anfrage R242 · 31. Oktober 2026 · FH-01 bis FH-03
+
+**Stand `e3f14379`** (`feat/fixed-highlight`, Worktree `~/lcnc-suite-follow`):
+- Korrekturen, Wächter und Doku in `2f7897d6`.
+- Gate-Beleg in `e3f14379`.
+- Diff gegen R241: `0e4deea9..e3f14379`.
+
+### FH-01 · Unterprogramm: angenommen, behoben
+
+**Ursache wie beschrieben.** `expansion` las das ganze `props.subView`. Jede neue `subLine` erzeugte
+also ein neues Objekt, und der Reset-Watch verwarf das Band.
+
+**Behebung.**
+- `expansion` liest nur noch den Aufruf: Name, Aufrufzeile und Text des Unterprogramms (`subName`,
+  `subCallLine`, `subLines`).
+- Eine neue Unterprogrammzeile ist dieselbe Erweiterung, dasselbe Objekt (Vue 3.5 gibt einen
+  berechneten Wert nur bei Änderung weiter).
+- Nebenbei wird der Text des Unterprogramms einmal zerlegt statt bei jeder Zeile.
+
+**Unterwegs gefunden, beim Beweis von FH-01.** Mit dieser Behebung allein war der neue Wächter
+weiter rot: 178,5 px Spanne (`docs/reviews/fixed-highlight.r242-red.txt`).
+- Die erste Unterprogrammzeile blieb nach dem Aufklappen bei 381 px stehen statt in der Mitte bei
+  203 px; der Scroll stand bei 402, genau am Rand des sichtbaren Bereichs.
+- Ablauf: Das Folgen setzte den Scroll an diesen Rand (VP-I21) und begann seine Gleitbewegung. Der
+  Reset-Watch auf `expansion` lief **danach** und stoppte sie.
+- Vue legt die Reihenfolge zweier Watcher auf dieselbe Änderung nicht fest. Der Fehler stammt aus
+  meinem `99096fcf`; auf `0e4deea9` war er durch FH-01 verdeckt, weil dort jede Unterprogrammzeile
+  ohnehin ohne Band folgte.
+
+**Behebung ohne Watcher.**
+- Das Folgen und seine Gleitbewegung tragen die Zeilen, in denen sie entstanden sind: Programm und
+  Erweiterung (`_followedRows`, `_glideRows`).
+- Ein Folgen in anderen Zeilen beginnt kein Band von der letzten Zeile.
+- Eine Gleitbewegung, die in anderen Zeilen geplant wurde, endet im nächsten Bild.
+- Der ResizeObserver springt nur noch zu einer Zeile in denselben Zeilen.
+- Der Reset-Watch ist entfernt.
+
+### FH-02 · Skalierter Scroll: angenommen, behoben
+
+**Ursache.** Die Zeilen standen auf dem Scrollwert, den der Browser gerundet hat (`offsetY` aus
+`scrollTop`). Das Band stand auf dem exakten Gleitwert. Im skalierten Fall ist ein Scroll-px etwa
+3,8 Inhalts-px (2 Mio. Zeilen), bei Maßstab 1 bleibt die Rundung selbst (deine 0,97 px).
+
+**Behebung.** Zeilen und Band werden aus **einer** Position gesetzt.
+- Es ist die Position, die das Folgen verlangt hat, solange das Element genau den Wert hält, den es
+  dafür genommen hat (`scrollAsked` → `viewScroll`).
+- Ein Scroll von Hand oder durch den Browser selbst ist die Position des Elements.
+- Eine Abweichung über 1 px ist ein Anschlag, kein Runden; dort gilt der Wert des Elements.
+- `offsetY` verliert seine Untergrenze 0. Mit ihr standen im skalierten Fall die ersten etwa
+  76 Zeilen neben ihrer Abbildung, weil das Fenster dort teils über dem Scroll-Ursprung liegt.
+
+**Sim-Liste.** Sie setzt ihr Band jetzt nach der Position, die die Liste genommen hat (dort ohne
+Skalierung, unter 1 px).
+
+**Gemessen** (Bild-Wächter in `layout.spec`, je 85–86 Bilder):
+
+| Programmtext | vorwärts | rückwärts | vorher |
+| --- | ---: | ---: | ---: |
+| 1.200 Zeilen | 0,02 px | 0,02 px | 0,97 px (deine Messung) |
+| 2.000.000 Zeilen, skaliert | 0,48 px | 0,48 px | 4,78 px (rot an `0e4deea9`) |
+
+Die verbleibenden 0,48 px sind die Genauigkeit des Layouts bei etwa 6 Mio. px Abstand (Float32,
+halber Pixel). Sie kommen nicht mehr aus der Scroll-Rundung.
+
+### FH-03 · Vertrag: angenommen, so wie du ihn formuliert hast
+
+Die Ein-Paket-Zusage ist gestrichen. Neu gilt:
+- Zeilennummer und `active` sind sofort die laufende Zeile.
+- Das Band ist eine interpolierte Anzeige der Gleitbewegung: nie vor der laufenden Zeile, und auf
+  ihr, sobald die letzte Gleitbewegung endet.
+- 150 ms ist die längste geplante Dauer einer neu begonnenen Gleitbewegung, keine Altersgrenze
+  gegenüber der Maschine.
+
+Angepasst: die Kommentare in `GcodePanel.vue` und `codeGlide.ts`, CLAUDE.md, `frontend-modules.md`,
+`decisions.md` (die alte Regel ausdrücklich korrigiert) und der Kommentar des Wächters. Eine
+Assertion auf eine Nachlaufgrenze gibt es nicht; „nie vorn“ wird jetzt auch rückwärts geprüft.
+
+### Wächter und Belege
+
+- **`layout.spec`, umgebaut:** „the highlight stands still while the code glides under it …“
+  - für die Datei **und** einen skalierten Fall (2 Mio. Zeilen, 46 Mio. Inhalts-px, geprüft
+    `scrollHeight` < Inhaltshöhe);
+  - vorwärts und rückwärts, Spanne ≤ 1 px;
+  - nie vor der laufenden Zeile in Bewegungsrichtung;
+  - in Ruhe: kein Band, die laufende Zeile auf 1 px zentriert (die Übergabe aus FH-02);
+  - der verborgene Tab.
+- **`layout.spec`, neu:** „in an expanded subroutine the highlight stands still too, and the main
+  program takes it back“, über den echten Weg nach deiner Probe: attributierte Vorschau,
+  `/subfile`, der Regler der Scrub-Leiste.
+  - mehr als 15 Unterprogrammzeilen;
+  - in über der Hälfte der Gleitbilder das Band;
+  - Spanne ≤ 1 px, nie vorn;
+  - zurück im Hauptprogramm: keine Unterprogrammzeilen, Zeile 31 aktiv, kein Band.
+  - Gemessen: 78 Bilder, 18 Unterprogrammzeilen, 64 mit Band, 0,02 px.
+- **Rot an `0e4deea9`** (nur der Spec neu, `docs/reviews/fixed-highlight.r242-red.txt`):
+  - skaliert 4,78 px;
+  - im Unterprogramm 0 Bilder mit Band;
+  - die Datei grün.
+- **Breiter, vor dem Gate:** der alte Gleit-Wächter samt VP-I21; `sim-panel.viewer`,
+  `editor-guards`, `run-hold`, `keyboard-guards` 109/109.
+- **Frontend-Gate:** Lauf an `2f7897d6` PASS: Lint, Build, 2664 Unit-Tests, Browser 825/825 allein (`docs/reviews/fixed-highlight.r242.gate-frontend.json`).
+
+**Bitte prüfen:**
+1. Trägt die eine Position für Zeilen und Band (`viewScroll`), auch beim Scrollen von Hand und am
+   Anschlag?
+2. Trägt die Bindung von Folgen und Gleitbewegung an ihre Zeilen statt des Reset-Watchers?
+
+Wenn das trägt, bitte `agreement`.
