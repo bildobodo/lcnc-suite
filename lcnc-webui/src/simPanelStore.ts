@@ -59,6 +59,10 @@ export const simView = reactive({
   lineOffPath: false,
   lineTitle: "",
   time: "",
+  /** The program's time form (seconds, ScrubBar's timeForm): the longest
+   *  time this publication has shown. Every time of the program — the bar,
+   *  the list, the Program tab's clock — takes its form (fmtElapsedAs). */
+  timeForm: 0,
   sweep: null as SimSweepView | null,
   /** The verdict of the preview shown before the one displayed now — a run
    *  published another (its tool table changed) — said in words only: no
@@ -100,8 +104,8 @@ export const simView = reactive({
   window: { before: 0, after: 0 },
 });
 
-/** The speed steps the tab offers (operator 2026-10-05: fixed steps, not a
- *  slider): 1-2-5 from a tenth to a hundredfold. */
+/** The speed steps the bar offers beside Play (operator 2026-10-05: fixed
+ *  steps, not a slider): 1-2-5 from a tenth to a hundredfold. */
 export const SIM_SPEEDS = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100] as const;
 
 interface SimActions {
@@ -127,6 +131,7 @@ export function claimSimActions(a: SimActions): () => void {
     _owner = null;
     _actions = null;
     simView.available = false;
+    simView.timeForm = 0;
     simView.counts = { clash: 0, limit: 0, tool: 0 };
     simView.window = { before: 0, after: 0 };
     simRows.value = [];

@@ -9830,9 +9830,10 @@ The operator, looking at a two-hour program on the scrub bar (a request from rea
   coverage slot, empty once the route is covered (52 + its gap 8), and 45 px of the time's own slot
   that no text filled. That slot was sized in `ch` — 16 characters of "~h:mm:ss/h:mm:ss" at the
   width of a digit — while ":" and "/" in Inter are far narrower. It is now as wide as the
-  program's widest readout, measured by the browser from the text itself (a hidden `.alt` in a
-  `.stable-width` cell: the run's "~", the elapsed in the total's form, the "+" where the time has
-  an unknown end), so the timeline still never moves while scrubbing or when a run starts. The
+  program's widest readout, measured by the browser from the text itself (hidden `.alt` cells in
+  a `.stable-width` cell: the run's "~", the program's form, the "+" where the time has an unknown
+  end — one per figure since R237, below), so the timeline never moves while scrubbing or when a
+  run starts. The
   coverage slot stays: it is 2 px over its widest form ("100 %" with its glyph). Letting it
   disappear once the check is done would give the timeline another 60 px but move the timeline's
   end at the check's end — asked of the operator, not done.
@@ -9849,5 +9850,31 @@ The operator, looking at a two-hour program on the scrub bar (a request from rea
 
 Guards red at 21c5364c (`docs/reviews/scrub-polish.browser-red.txt`): the Sim tab has no speed;
 Play and the link as tall as the select, live and dimmed, desktop and touch (touch already held);
-a two-hour program — the time in its form in the bar, the tab and the Program tab, the slot as
-wide as the run's readout and no wider.
+a two-hour program — the time in its form in the bar, the tab and the Program tab.
+
+**Codex R237, two findings, both fixed (R238):**
+
+- **SP-01 — the slot grew 1 px at a run's start.** Its one hidden form was the TOTAL twice
+  ("~1:56:00/1:56:00"), and tabular figures are one advance in the font but not on screen: hinting
+  rounds them apart at 11 px (Chromium on Linux: "0", "1", "4", "6", "9" 8 px, the others 7), so
+  "~0:00:00/1:56:00" was 1 px wider — the Sim tab's sizer row had already met this ("each digit
+  in all its places"). Now the program's form once with EVERY figure ("~0:00:00/0:00:00"
+  … "~9:99:99/9:99:99", ten hidden cells): advances add up (no kerning between figures — kerning
+  and `calt` off change nothing), so the widest of the ten bounds every readout of that form,
+  whichever figure a browser rounds widest. The slot no longer follows the total's own figures
+  either: the entry move kept after the simulation and dropped at a run's start changed them.
+- **SP-02 — Program and Sim in different forms across the hour.** The bar and the list took the
+  form from the displayed track (the entry move included), the Program tab's clock from the
+  estimate: 59:40 + a 50 s entry move read "0:00:00/1:00:30" in the bar and "00:00" on the clock.
+  Now ONE form per publication: the bar's `timeForm`, the longest time the publication has shown —
+  its estimate and every displayed track — published as `simView.timeForm` for the list and the
+  clock. It only GROWS until the next publication: the entry track stays after the simulation and
+  goes at a run's start, and the form flips with neither. It can grow once, when an entry move
+  first carries the displayed time over the hour — the readout's total changes there anyway, and
+  a mixed "00:00/1:00:30" is what the operator asked to end.
+
+Guards red at 5f1e7c1c (`docs/reviews/scrub-polish.r238.browser-red.txt`): the slot and the
+timeline from the simulation through its end to a run's start, unchanged to the pixel — short,
+two hours, 30 h with an unknown end, and narrow at 150 % (each 1 px at the run's start, Codex's
+numbers); a program near an hour with an entry move — one form in the bar, the Sim tab and the
+Program tab, kept through the simulation's end and a run's start; `simRows.test.ts` the list's form.

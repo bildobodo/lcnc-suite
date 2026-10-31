@@ -1,0 +1,183 @@
+Guards red at 5f1e7c1c (feat/scrub-polish, the R237 product changes taken out), 2026-10-31T09:55:50+01:00
+$ npx vitest run src/viewer/simRows.test.ts
+     × every time in the program's form: the axis end's, or the longer form the program has shown (Codex R237 SP-02) 3ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+- Expected
++ Received
+      Tests  1 failed | 12 passed (13)
+
+$ npx playwright test e2e/sim-panel.viewer.spec.ts --project serial-viewer --no-deps --workers=1 -g "holds still from the simulation|near an hour with an entry move"
+Running 5 tests using 1 worker
+  1) [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1350:3 › the bar's time slot holds still from the simulation to a run's start: short 
+    Error: a hidden form per figure
+    expect(received).toBe(expected) // Object.is equality
+    Expected: 10
+    Received: 1
+      1357 |     const at = await timeSlot(page);
+      1358 |     expect.soft(at.text, "the readout in the program's form").toMatch(c.text);
+    > 1359 |     expect.soft(at.alts, "a hidden form per figure").toBe(10);
+           |                                                      ^
+      1360 |     expect.soft(at.slot.w, `the slot: its widest form, ${JSON.stringify(at)}`).toBe(at.widest);
+      1361 |     expect(at.whole, "the readout whole").toBe(true);
+      1362 |     for (const f of [0.01, 0.25, 0.75, 1, 0]) {
+    Error: a run's start: 00:00/02:46 → ~00:00/01:56
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 3
+    + Received  + 3
+      Array [
+        Object {
+    -     "w": 79,
+    -     "x": 900,
+    +     "w": 80,
+    +     "x": 899,
+        },
+        Object {
+    -     "w": 583,
+    +     "w": 582,
+          "x": 249,
+        },
+      ]
+      1376 |     await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+      1377 |     const run = await timeSlot(page);
+    > 1378 |     expect([run.slot, run.slider], `a run's start: ${at.text} → ${run.text}`).toEqual([at.slot, at.slider]);
+           |                                                                               ^
+      1379 |     expect(run.whole, "the run's readout whole").toBe(true);
+      1380 |   });
+      1381 | }
+  2) [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1350:3 › the bar's time slot holds still from the simulation to a run's start: two hours 
+    Error: a hidden form per figure
+    expect(received).toBe(expected) // Object.is equality
+    Expected: 10
+    Received: 1
+      1357 |     const at = await timeSlot(page);
+      1358 |     expect.soft(at.text, "the readout in the program's form").toMatch(c.text);
+    > 1359 |     expect.soft(at.alts, "a hidden form per figure").toBe(10);
+           |                                                      ^
+      1360 |     expect.soft(at.slot.w, `the slot: its widest form, ${JSON.stringify(at)}`).toBe(at.widest);
+      1361 |     expect(at.whole, "the readout whole").toBe(true);
+      1362 |     for (const f of [0.01, 0.25, 0.75, 1, 0]) {
+    Error: a run's start: 0:00:00/1:56:50 → ~0:00:00/1:56:00
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 3
+    + Received  + 3
+      Array [
+        Object {
+    -     "w": 99,
+    -     "x": 880,
+    +     "w": 102,
+    +     "x": 877,
+        },
+        Object {
+    -     "w": 563,
+    +     "w": 560,
+          "x": 249,
+        },
+      ]
+  3) [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1350:3 › the bar's time slot holds still from the simulation to a run's start: 30 h with an unknown end 
+    Error: a hidden form per figure
+    expect(received).toBe(expected) // Object.is equality
+    Expected: 10
+    Received: 1
+      1357 |     const at = await timeSlot(page);
+      1358 |     expect.soft(at.text, "the readout in the program's form").toMatch(c.text);
+    > 1359 |     expect.soft(at.alts, "a hidden form per figure").toBe(10);
+           |                                                      ^
+      1360 |     expect.soft(at.slot.w, `the slot: its widest form, ${JSON.stringify(at)}`).toBe(at.widest);
+      1361 |     expect(at.whole, "the readout whole").toBe(true);
+      1362 |     for (const f of [0.01, 0.25, 0.75, 1, 0]) {
+    Error: a run's start: 00:00:00/30:00:50+ → ~00:00:00/30:00:00+
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 3
+    + Received  + 3
+      Array [
+        Object {
+    -     "w": 122,
+    -     "x": 857,
+    +     "w": 125,
+    +     "x": 854,
+        },
+        Object {
+    -     "w": 540,
+    +     "w": 537,
+          "x": 249,
+        },
+      ]
+      1376 |     await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+      1377 |     const run = await timeSlot(page);
+    > 1378 |     expect([run.slot, run.slider], `a run's start: ${at.text} → ${run.text}`).toEqual([at.slot, at.slider]);
+           |                                                                               ^
+      1379 |     expect(run.whole, "the run's readout whole").toBe(true);
+      1380 |   });
+      1381 | }
+  4) [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1350:3 › the bar's time slot holds still from the simulation to a run's start: 30 h with an unknown end, narrow at 150 % 
+    Error: a hidden form per figure
+    expect(received).toBe(expected) // Object.is equality
+    Expected: 10
+    Received: 1
+      1357 |     const at = await timeSlot(page);
+      1358 |     expect.soft(at.text, "the readout in the program's form").toMatch(c.text);
+    > 1359 |     expect.soft(at.alts, "a hidden form per figure").toBe(10);
+           |                                                      ^
+      1360 |     expect.soft(at.slot.w, `the slot: its widest form, ${JSON.stringify(at)}`).toBe(at.widest);
+      1361 |     expect(at.whole, "the readout whole").toBe(true);
+      1362 |     for (const f of [0.01, 0.25, 0.75, 1, 0]) {
+    Error: a run's start: 00:00:00 → ~00:00:00
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 3
+    + Received  + 3
+      Array [
+        Object {
+    -     "w": 84,
+    -     "x": 773,
+    +     "w": 85,
+    +     "x": 772,
+        },
+        Object {
+    -     "w": 213,
+    +     "w": 212,
+          "x": 475,
+        },
+      ]
+  5) [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1387:1 › a program near an hour with an entry move: one time form in the bar, the Sim tab and the Program tab, through the simulation's end and a run's start 
+    Error: the Program tab's clock in the bar's form
+    expect(received).toBe(expected) // Object.is equality
+    Expected: "0:00:00"
+    Received: "00:00"
+      1404 |   const at = await page.locator(".simPanel tbody tr[data-sim-row] .colAt").allInnerTexts();
+      1405 |   for (const t of at) expect.soft(t, `the Time column: ${JSON.stringify(at)}`).toMatch(/^\d:\d\d:\d\d$/);
+    > 1406 |   expect.soft(await programClock(), "the Program tab's clock in the bar's form").toBe("0:00:00");
+           |                                                                                  ^
+      1407 |   await page.locator(".scrubBar input.toggle").uncheck();
+      1408 |   await expect(page.locator(".simBanner")).toBeHidden();
+      1409 |   expect.soft(await bar(), "out of the simulation: the form kept").toMatch(/^\d:\d\d:\d\d\/\d:\d\d:\d\d$/);
+    Error: out of the simulation: the clock's form kept
+    expect(received).toBe(expected) // Object.is equality
+    Expected: "0:00:00"
+    Received: "00:00"
+      1408 |   await expect(page.locator(".simBanner")).toBeHidden();
+      1409 |   expect.soft(await bar(), "out of the simulation: the form kept").toMatch(/^\d:\d\d:\d\d\/\d:\d\d:\d\d$/);
+    > 1410 |   expect.soft(await programClock(), "out of the simulation: the clock's form kept").toBe("0:00:00");
+           |                                                                                     ^
+      1411 |   await runStart();
+      1412 |   await expect.poll(bar, { message: "a run drops the entry move: the program's own time, the form kept" }).toMatch(/^~\d:\d\d:\d\d\/0:59:40$/);
+      1413 |   expect.soft(await programClock(), "the run's clock in the form").toBe("0:00:20");
+    Error: a run drops the entry move: the program's own time, the form kept
+    a run drops the entry move: the program's own time, the form kept
+    expect(received).toMatch(expected)
+    Expected pattern: /^~\d:\d\d:\d\d\/0:59:40$/
+    Received string:  "~00:00/59:40"
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+      1410 |   expect.soft(await programClock(), "out of the simulation: the clock's form kept").toBe("0:00:00");
+      1411 |   await runStart();
+    > 1412 |   await expect.poll(bar, { message: "a run drops the entry move: the program's own time, the form kept" }).toMatch(/^~\d:\d\d:\d\d\/0:59:40$/);
+           |                                                                                                            ^
+      1413 |   expect.soft(await programClock(), "the run's clock in the form").toBe("0:00:20");
+      1414 | });
+      1415 |
+  5 failed
+    [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1350:3 › the bar's time slot holds still from the simulation to a run's start: short 
+    [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1350:3 › the bar's time slot holds still from the simulation to a run's start: two hours 
+    [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1350:3 › the bar's time slot holds still from the simulation to a run's start: 30 h with an unknown end 
+    [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1350:3 › the bar's time slot holds still from the simulation to a run's start: 30 h with an unknown end, narrow at 150 % 
+    [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1387:1 › a program near an hour with an entry move: one time form in the bar, the Sim tab and the Program tab, through the simulation's end and a run's start 

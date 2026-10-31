@@ -31,6 +31,18 @@ describe("simRows", () => {
     expect(rows[1]!.rapid).toBeNull();
   });
 
+  it("every time in the program's form: the axis end's, or the longer form the program has shown (Codex R237 SP-02)", () => {
+    const tool = [{ key: "T30", line: 30, tool: 3, cum: 790, cumEnd: 795 }, { key: "T40", line: 40, tool: 4, cum: 2025, cumEnd: 2030 }];
+    const at = (o: { axisEnd: number; timeForm?: number }) =>
+      buildSimRows({ clash: [], limit: [], tool, unit: "mm", timeBased: true, ...o }).map(r => r.at);
+    expect(at({ axisEnd: 3580 })).toEqual(["13:10", "33:45"]);
+    // the entry move carried the displayed axis past the hour: the list in that form
+    expect(at({ axisEnd: 3630 })).toEqual(["0:13:10", "0:33:45"]);
+    // a run dropped the entry move (axis 3580), the program's form stays
+    expect(at({ axisEnd: 3580, timeForm: 3630 })).toEqual(["0:13:10", "0:33:45"]);
+    expect(at({ axisEnd: 7200, timeForm: 108000 })).toEqual(["00:13:10", "00:33:45"]);
+  });
+
   it("says a re-entry, a near miss, a contact through later lines, and the entry move", () => {
     const [a, b, c] = buildSimRows({
       clash: [clash({ cum: 1, line: 5, entry: true, entryMove: true, key: "E5|t|w|0" }), clash({ cum: 2, line: 5, reentry: true, key: "C5|t|w|1" }),
