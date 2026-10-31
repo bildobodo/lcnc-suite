@@ -1,0 +1,105 @@
+R239 independent verification, 2026-10-31
+Product: feat/scrub-polish 57a7877e..af1efdd2
+Archive: /tmp/codex-r239-rqpnnrp6/repo (git archive af1efdd2)
+All 409 files under lcnc-webui/src verified byte-for-byte against the reviewed commit after testing.
+Dependencies copied from the isolated R238 archive after package-lock.json equality check.
+Own mock: MOCK_HOST=127.0.0.1 MOCK_PORT=4188 node e2e/mock-gateway.mjs
+Existing e2e localhost:4174 references rewritten to 127.0.0.1:4188 in archive only.
+No access to live ports :8000/:5173; no machine commands. Own mock stopped after checks.
+
+Commands in archive/lcnc-webui:
+npm run build
+npm exec vitest run src/format.test.ts src/viewer/simRows.test.ts src/simPanelStore.test.ts
+npx playwright test --config playwright.r239.config.ts r237.rerun.spec.ts r238.rerun.spec.ts r239.codex.spec.ts
+npx playwright test --config playwright.r239.config.ts sim-panel.viewer.spec.ts --grep "the bar's time slot|a program near an hour|Play and the Sim tab link|program at 150 % portrait|a new publication takes its own time form|a distance axis is no time"
+
+Reproduction:
+Copy scrub-polish.r239.codex-probe.spec.ts to e2e/r239.codex.spec.ts.
+Copy scrub-polish.r239.codex-playwright.config.ts to playwright.r239.config.ts.
+Copy scrub-polish.r237.probe.spec.ts to e2e/r237.rerun.spec.ts and
+scrub-polish.r238.codex-probe.spec.ts to e2e/r238.rerun.spec.ts.
+Only each probe's OUT directory was changed to /tmp/codex-r239-rqpnnrp6; no assertion or prior scenario changed.
+This equality was checked after the run. OUT must name an existing output directory.
+All previews are synthetic UI fixtures; no native interpreter is started.
+
+Results: build PASS, unit 23/23, independent browser 13/13 (R237 6, R238 5, new R239 2), repository browser 13/13.
+No full gate rerun. Browser coverage: Chromium only.
+
+
+--- build.log ---
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2127 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.32 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-CJs5gHC_.css                 8.14 kB │ gzip:   2.08 kB
+dist/static/index-DHsjrbWn.css                      97.14 kB │ gzip:  17.67 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-CPx2W27T.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-BotEbdEf.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-DZEcNwiZ.js                278.55 kB │ gzip: 104.90 kB
+dist/static/index-DdajhFsa.js                      669.36 kB │ gzip: 215.35 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.47s
+
+--- unit.log ---
+
+ RUN  v4.1.8 /tmp/codex-r239-rqpnnrp6/repo/lcnc-webui
+
+
+ Test Files  3 passed (3)
+      Tests  23 passed (23)
+   Start at  12:18:09
+   Duration  300ms (transform 297ms, setup 0ms, import 528ms, tests 12ms, environment 0ms)
+
+
+--- repository-browser.log ---
+
+Running 13 tests using 1 worker
+
+(node:2117673) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2117673) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/sim-panel.viewer.spec.ts:1296:3 › the scrub bar: Play and the Sim tab link as tall as the speed select, live and dimmed (desktop) (2.6s)
+  ✓   2 e2e/sim-panel.viewer.spec.ts:1296:3 › the scrub bar: Play and the Sim tab link as tall as the speed select, live and dimmed (touch-landscape) (2.5s)
+  ✓   3 e2e/sim-panel.viewer.spec.ts:1350:3 › the bar's time slot holds still from the simulation to a run's start: short (3.5s)
+  ✓   4 e2e/sim-panel.viewer.spec.ts:1350:3 › the bar's time slot holds still from the simulation to a run's start: two hours (3.7s)
+  ✓   5 e2e/sim-panel.viewer.spec.ts:1350:3 › the bar's time slot holds still from the simulation to a run's start: 30 h with an unknown end (3.7s)
+  ✓   6 e2e/sim-panel.viewer.spec.ts:1350:3 › the bar's time slot holds still from the simulation to a run's start: 30 h with an unknown end, narrow at 150 % (3.6s)
+  ✓   7 e2e/sim-panel.viewer.spec.ts:1387:1 › a program near an hour with an entry move: one time form in the bar, the Sim tab and the Program tab, through the simulation's end and a run's start (4.0s)
+  ✓   8 e2e/sim-panel.viewer.spec.ts:1433:3 › a new publication takes its own time form: a 2 h program's entry move holds nothing of a 2 min one (the same file, a new version) (3.8s)
+  ✓   9 e2e/sim-panel.viewer.spec.ts:1433:3 › a new publication takes its own time form: a 2 h program's entry move holds nothing of a 2 min one (another file) (3.6s)
+  ✓  10 e2e/sim-panel.viewer.spec.ts:1448:1 › a distance axis is no time: 4000 mm without a time axis leave the Program tab's clock in its estimate's form (3.2s)
+  ✓  11 e2e/sim-panel.viewer.spec.ts:1514:3 › a 2 min program at 150 % portrait: two rows, the timeline keeps 120 px, the time whole (3.0s)
+  ✓  12 e2e/sim-panel.viewer.spec.ts:1514:3 › a 6 h program at 150 % portrait: two rows, the timeline keeps 120 px, the time whole (3.3s)
+  ✓  13 e2e/sim-panel.viewer.spec.ts:1514:3 › a 30 h program at 150 % portrait: two rows, the timeline keeps 120 px, the time whole (3.0s)
+
+  13 passed (44.3s)

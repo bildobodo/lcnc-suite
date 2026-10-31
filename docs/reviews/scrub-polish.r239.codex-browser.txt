@@ -1,0 +1,22 @@
+
+Running 13 tests using 1 worker
+
+(node:2116410) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2116410) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/r237.rerun.spec.ts:41:4 › R237 stable time slot: short (3.2s)
+  ✓   2 e2e/r237.rerun.spec.ts:41:4 › R237 stable time slot: two-hour (3.5s)
+  ✓   3 e2e/r237.rerun.spec.ts:41:4 › R237 stable time slot: 30h-unknown (3.3s)
+  ✓   4 e2e/r237.rerun.spec.ts:41:4 › R237 stable time slot: 30h-narrow-unknown (3.3s)
+  ✓   5 e2e/r237.rerun.spec.ts:70:1 › R237 a program close to one hour: Program and Sim use one time form (3.0s)
+  ✓   6 e2e/r237.rerun.spec.ts:89:1 › R237 rendered widest text diagnostics (2.4s)
+  ✓   7 e2e/r238.rerun.spec.ts:57:64 › R238 a new publication resets the form: same file after Sim (3.3s)
+  ✓   8 e2e/r238.rerun.spec.ts:57:64 › R238 a new publication resets the form: other file after Sim (3.1s)
+  ✓   9 e2e/r238.rerun.spec.ts:57:64 › R238 a new publication resets the form: same file without Sim (2.7s)
+  ✓  10 e2e/r238.rerun.spec.ts:75:1 › R238 a distance fallback never sets an hours form from millimetres (2.9s)
+  ✓  11 e2e/r238.rerun.spec.ts:83:1 › R238 the hidden forms bound mixed digits (2.4s)
+  ✓  12 e2e/r239.codex.spec.ts:57:1 › R239 publication while Sim is open: reset, then grow from the new entry (3.3s)
+  ✓  13 e2e/r239.codex.spec.ts:76:1 › R239 distance axis without an estimate forgets the old hours form (3.1s)
+
+  13 passed (39.9s)
