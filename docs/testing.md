@@ -136,6 +136,26 @@ answers over its whole `--help-hit` area. A "?"'s invisible hit area once
 made the body scroll 6 px sideways and take the pointer (operator's live
 look 2026-09-27) — beyond the audit's 4 px sliver window.
 
+`setup-layout.spec.ts` (serial-layout — its name matches the project's
+`layout.spec` filter) pins the Setup arrangement by axis count (operator
+2026-10-29/30, Codex R233/R234) on the visible layer: 14 configs (1, 2, 3,
+4 XYZA / XYZC, 5 XYZBC / TCP, 6, 6 TWP, 7, 8, 9, synthetic 7 / 9 TWP) × 1280
+landscape, touch, touch at 150 %, portrait, touch portrait and touch portrait at 150 % ×
+ready, dimmed and mixed homing: no control outside, clipped or overlapping
+(`measureLayout`), no landscape label on two lines, every action exactly
+once, the axis columns and each action group's buttons per row as LITERAL
+expected values (Codex's matrix), the actions under the last column /
+beside / under every axis per form, the WCS title on the SETUP line with G54
+level with the first axis row (landscape) or above two rows G54–G58 /
+G59–G59.3 (portrait). Tab walks the axis rows, the actions in order, then
+the WCS; every control can be brought out from under the pinned Safety
+section and takes the hit at 150 %; a long frame chip ("MACHINE · off datum",
+TWP "… · datum moved", from real status) changes neither the section's size
+nor a fixture's place, the chip whole and on one line; a finger held on G55 (CDP touch) while the chip turns long and short again — G55 unmoved, still under the finger, chosen once on release (Codex R235 SL-01: touch portrait at 100 %; it found Jog's plane note shifting Setup in landscape too); every strip title's "?" centred on its line within 0.5 px (desktop, touch, portrait); a new axis set re-lays the section out. 82 of 90 red
+at 5fb6c761 (`docs/reviews/setup-layout.browser-red.txt`; the 8 reach cases
+hold there too); the R235 additions 4 of 15 red at 9303cf6e (`docs/reviews/setup-layout.r236.browser-red.txt`). The rule itself: `setupLayout.test.ts` (literal results
+for 0–9 axes, TWP, portrait, the six-row budget).
+
 `layout.spec.ts` (serial-layout) measures the FRAME — the strip, the viewer
 pane and the content area, bounding box AND `clientWidth`/`clientHeight` —
 and enters every state the bottom strip can show: the number keypad from a

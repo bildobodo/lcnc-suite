@@ -1,0 +1,5 @@
+# The long frame chip in Firefox (Playwright firefox-1522), the implementation at 0f84a385, 6-axis TWP
+# (xyzacb-trsrn): the chip text replaced in place; section size, G54's place, the WCS label's x and the chip's end
+# relative to the section. L = 1280 x 800 landscape, P = 900 x 1200 portrait.
+L impl before 547x264 G54@439,25 WCS@439 chipEnd@523  | MACHINE · off datum → 547x264 G54@439,25 WCS@403 chipEnd@547  | TOOL · G59.3 · datum moved → 547x264 G54@439,25 WCS@363 chipEnd@547  | MACHINE · off datum · datum moved → 547x264 G54@439,25 WCS@321 chipEnd@547 
+P impl before 262x496 G54@0,436 WCS@0 chipEnd@84  | MACHINE · off datum → 262x496 G54@0,436 WCS@0 chipEnd@144  | TOOL · G59.3 · datum moved → 262x496 G54@0,436 WCS@0 chipEnd@184  | MACHINE · off datum · datum moved → 262x496 G54@0,436 WCS@0 chipEnd@226 

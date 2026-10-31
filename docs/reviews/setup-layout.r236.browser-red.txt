@@ -1,0 +1,25 @@
+# R235 SL-01 + the operator's "?" (2026-10-30): the new guards against 9303cf6e (the fixes stashed).
+# 4 of 15 red: the long chip in touch portrait (size and under a held finger), the Jog note shifting
+# Setup under a held finger in landscape touch, the desktop "?" off its line.
+  1) [serial-layout] › e2e/setup-layout.spec.ts:278:5 › 6 TWP, portrait touch: a long frame chip moves nothing 
+    Error: 6 TWP portrait touch
+    - Expected  - 10
+    + Received  + 10
+    test-results/setup-layout-6-TWP-portrai-25319-ng-frame-chip-moves-nothing-serial-layout/test-failed-1.png
+  2) [serial-layout] › e2e/setup-layout.spec.ts:315:7 › a chip change under a held fixture › 6 TWP, landscape touch: G55 stays under the finger and is chosen on release 
+    Error: the long chip: G55 unmoved
+    - Expected  - 1
+    + Received  + 1
+    test-results/setup-layout-a-chip-change-fde15-er-and-is-chosen-on-release-serial-layout/test-failed-1.png
+  3) [serial-layout] › e2e/setup-layout.spec.ts:315:7 › a chip change under a held fixture › 6 TWP, portrait touch: G55 stays under the finger and is chosen on release 
+    Error: the long chip: G55 unmoved
+    - Expected  - 1
+    + Received  + 1
+    test-results/setup-layout-a-chip-change-9dc19-er-and-is-chosen-on-release-serial-layout/test-failed-1.png
+  4) [serial-layout] › e2e/setup-layout.spec.ts:350:3 › landscape: a title's "?" is centred on its line 
+    Error: Kinematics Frame: icon centre − line centre
+    Expected: <= 0.5
+    Received:    1.75
+    test-results/setup-layout-landscape-a-title-s-is-centred-on-its-line-serial-layout/test-failed-1.png
+  4 failed
+  11 passed (31.6s)

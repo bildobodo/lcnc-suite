@@ -178,19 +178,23 @@ test("the press's own reveal keeps its hint: the strip scrolls the half-hidden o
   expect(await sent()).toEqual([]);
 });
 
-test("portrait: the work offsets are 3 × 3 by row — width is fixed there, height the price; the arrows follow the rows", async ({ page }) => {
+test("portrait: the work offsets are two rows under their title — G54–G58, then G59–G59.3; the arrows follow the rows", async ({ page }) => {
+  // Operator 2026-10-30: a title line ("WCS" and the frame chip) over two
+  // rows of their own, each the full width — on this TWP machine the second
+  // row is exactly the reserved one.
   await openLayout(page, TWP, VIEWPORTS.find(v => v.name === "touch-portrait")!);
   await settleLayout(page);
   await ctl({ op: "clearCmds" });
   const tops = await group(page, "Work offset").getByRole("radio").evaluateAll(els =>
     els.map(e => Math.round(e.getBoundingClientRect().top)));
-  expect(new Set(tops).size, `rows: ${tops.join(", ")}`).toBe(3);
-  expect(tops.slice(0, 3).every(t => t === tops[0]), "G54 G55 G56 share the first row").toBe(true);
+  expect(new Set(tops).size, `rows: ${tops.join(", ")}`).toBe(2);
+  expect(tops.slice(0, 5).every(t => t === tops[0]), "G54–G58 share the first row").toBe(true);
+  expect(tops.slice(5).every(t => t === tops[5]), "G59–G59.3 share the second row").toBe(true);
   await option(page, "Work offset", "G54").focus();
   await page.keyboard.press("ArrowRight");
   await expect(option(page, "Work offset", "G55")).toBeFocused();
   await page.keyboard.press("ArrowDown");
-  await expect(option(page, "Work offset", "G58")).toBeFocused();
+  await expect(option(page, "Work offset", "G59.1")).toBeFocused();
   expect(await sent()).toEqual([]);
 });
 

@@ -9761,3 +9761,60 @@ field without it (the OS keyboard could open). The flags are split by function: 
 `isTouchDevice` and the class (the sizes, the code panel's line height) after its press. Guard: a
 first touch into MDI and into Search tools — focused with `inputmode="none"` (red at a6e201ea).
 
+
+## 2026-10-30 — The Setup section by axis count; the WCS title on the Setup line (operator, Codex R233/R234)
+
+Since the axis actions became symbols, Zero All, Home All and the Go to row no longer fitted the
+section well, and every axis past three opened another group of three beside the first with empty
+cells under it (operator 2026-10-29). Landscape has a fixed height of six rows and pays for WIDTH —
+the strip runs past the screen at 1280 in every config and at 1920 from three axes — so the rule
+fills the height and spends as little width as it can:
+
+- **The axes** fill a column of up to six rows (A/B/C under X/Y/Z — the operator's condition from
+  round 2), U/V/W start the next column.
+- **The actions** fill the rows left free: under the last axis column (1–4 axes, 7–9 axes), in a
+  column of their own where too few rows are free (5–6 axes), in rows under all axis groups on a
+  TWP machine up to six axes (its eight actions need the width — "6 TWP wie heute"). Portrait stays
+  as it was.
+- **Groups, not buttons:** Zero All | Home All, the three Go to and the plane trio never share a row
+  and keep their order; each group takes whole rows, as few to a row as the free rows allow; the
+  narrowest packing wins, then the one that fills more rows, then the earlier group pairs first.
+  The plane trio is always one row (operator 2026-09-01) — a hard constraint.
+
+Decided from renderings in four rounds: 2–3 axes in this compact form ("K") is the operator's choice
+— Codex had recommended keeping the old rows for 2–3 (83 px saved, and at 1920 the 3-axis strip
+still runs 20 px past the screen) and accepted the choice; 4 axes as rows under the axes ("G", 450
+px) beat an action column ("H", 463 px with two empty rows); TWP 7–9 (synthetic — TWP is the 6-axis
+`xyzacb-trsrn` today) packs under U/V/W with the trio kept ("Q", 691 px) rather than splitting it
+("P"). Codex R234: the capability decides which groups exist and which must stay together, the
+count where they stand; the result matrix is pinned as literal values, never the search run again.
+Widths at 1280 (today → now): 4 axes 551 → 450, 5–6 axes 551 → 463, 7 axes 765 → 551, 8–9 axes
+765/771 → 581, 2–3 axes 450 → 367, one axis 450 → 337.
+
+**The WCS title** (operator, same day): "WCS" and the frame chip stand on the Setup title line and
+the fixtures start level with the first axis row; in portrait the title stands above two rows,
+G54–G58 and G59–G59.3 — on a TWP machine exactly the reserved row. Each portrait row takes the full
+width (twenty tracks, span 4 / span 5): five columns sized by their widest option need 254 px, 2 px
+more than the 252 px a classic scrollbar leaves.
+
+**Found on the way — a long chip moved the strip.** "MACHINE · off datum · datum moved" widened the
+landscape section by up to 91 px whenever the state changed (a turn of the table): everything right
+of Setup moved, Spindle Stop included; in portrait it pushed the fixtures up to 150 px to the right
+and out of the column. The WCS title now takes no width of its own and a long chip runs out to the
+left over the empty title line (Chromium and Firefox checked).
+
+Guards: `setupLayout.test.ts` (the rule), `setup-layout.spec.ts` (the visible layer — 82 of 90 red
+at 5fb6c761, `docs/reviews/setup-layout.browser-red.txt`); `touchoff.spec` no longer pins the old
+action rows.
+
+**Codex R235 (SL-01) and two more of the same kind.** In touch portrait at 100 % (252 px with a
+classic scrollbar) the long chip with its "?" no longer fitted beside "WCS" and wrapped: the head
+grew 16.5 → 37 px and G55 slid 20.5 px from under a held finger — its release chose nothing. On a
+switchable machine the chip now has a line of its own under "WCS" in portrait (as the old head had),
+so the head never depends on its text. The guard that holds a finger on G55 while the chip turns long
+and short again found a second case in landscape: Jog's plane note ("Plane: head not aligned —
+Orient") widened its column by 31 px and slid the whole Setup section from under the finger; the
+note takes no width of its own now and wraps under the frame choice. And the operator saw the "?"
+beside "SETUP" sit slightly high: a title's "?" was anchored at the top of its line (13 px in
+16.5 px on the desktop); it is centred on the one-line box now, measured 0–0.25 px off the text in
+Chromium and Firefox. Guards red at 9303cf6e (`docs/reviews/setup-layout.r236.browser-red.txt`).

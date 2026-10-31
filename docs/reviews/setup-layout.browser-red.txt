@@ -1,0 +1,87 @@
+# setup-layout.spec.ts against development 5fb6c761 (before the change), 2026-10-30
+# 82 failed, 8 passed (the 8 = the reach tests, a regression guard that holds today too).
+# Each failing test, its first failed assertion. The Tab-order failures were the test's own
+# name reading ("Home AllUnhome All", the stable-width span) — fixed in the spec afterwards.
+
+1 X, landscape: the arrangement, every action once, nothing outside or clipped | 1 X landscape live: Zero/Home rows | Expected: "1+1"     Received: "2"
+1 X, landscape touch: the arrangement, every action once, nothing outside or clipped | 1 X landscape touch live: Zero/Home rows | Expected: "1+1"     Received: "2"
+1 X, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped | 1 X landscape touch 150 % live: Zero/Home rows | Expected: "1+1"     Received: "2"
+1 X, portrait: the arrangement, every action once, nothing outside or clipped | 1 X portrait live: G54–G58 one row | Expected: <= 1     Received:    32
+1 X, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped | 1 X portrait touch 150 % live: G54–G58 one row | Expected: <= 1     Received:    60
+2 XZ, landscape: the arrangement, every action once, nothing outside or clipped | 2 XZ landscape live: Go to rows | Expected: "1+1+1"     Received: "3"
+2 XZ, landscape touch: the arrangement, every action once, nothing outside or clipped | 2 XZ landscape touch live: Go to rows | Expected: "1+1+1"     Received: "3"
+2 XZ, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped | 2 XZ landscape touch 150 % live: Go to rows | Expected: "1+1+1"     Received: "3"
+2 XZ, portrait: the arrangement, every action once, nothing outside or clipped | 2 XZ portrait live: G54–G58 one row | Expected: <= 1     Received:    32
+2 XZ, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped | 2 XZ portrait touch 150 % live: G54–G58 one row | Expected: <= 1     Received:    60
+3 XYZ, landscape: the arrangement, every action once, nothing outside or clipped | 3 XYZ landscape live: Go to rows | Expected: "2+1"     Received: "3"
+3 XYZ, landscape touch: the arrangement, every action once, nothing outside or clipped | 3 XYZ landscape touch live: Go to rows | Expected: "2+1"     Received: "3"
+3 XYZ, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped | 3 XYZ landscape touch 150 % live: Go to rows | Expected: "2+1"     Received: "3"
+3 XYZ, portrait: the arrangement, every action once, nothing outside or clipped | 3 XYZ portrait live: G54–G58 one row | Expected: <= 1     Received:    32
+3 XYZ, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped | 3 XYZ portrait touch 150 % live: G54–G58 one row | Expected: <= 1     Received:    60
+4 XYZA, landscape: the arrangement, every action once, nothing outside or clipped | 4 XYZA landscape live: axis columns | Expected  - 1     + Received  + 2
+4 XYZA, landscape touch: the arrangement, every action once, nothing outside or clipped | 4 XYZA landscape touch live: axis columns | Expected  - 1     + Received  + 2
+4 XYZA, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped | 4 XYZA landscape touch 150 % live: axis columns | Expected  - 1     + Received  + 2
+4 XYZA, portrait: the arrangement, every action once, nothing outside or clipped | 4 XYZA portrait live: G54–G58 one row | Expected: <= 1     Received:    32
+4 XYZA, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped | 4 XYZA portrait touch 150 % live: G54–G58 one row | Expected: <= 1     Received:    60
+4 XYZC, landscape: the arrangement, every action once, nothing outside or clipped | 4 XYZC landscape live: axis columns | Expected  - 1     + Received  + 2
+4 XYZC, landscape touch: the arrangement, every action once, nothing outside or clipped | 4 XYZC landscape touch live: axis columns | Expected  - 1     + Received  + 2
+4 XYZC, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped | 4 XYZC landscape touch 150 % live: axis columns | Expected  - 1     + Received  + 2
+4 XYZC, portrait: the arrangement, every action once, nothing outside or clipped | 4 XYZC portrait live: G54–G58 one row | Expected: <= 1     Received:    32
+4 XYZC, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped | 4 XYZC portrait touch 150 % live: G54–G58 one row | Expected: <= 1     Received:    60
+5 XYZBC, landscape: the arrangement, every action once, nothing outside or clipped | 5 XYZBC landscape live: axis columns | Expected  - 1     + Received  + 2
+5 XYZBC, landscape touch: the arrangement, every action once, nothing outside or clipped | 5 XYZBC landscape touch live: axis columns | Expected  - 1     + Received  + 2
+5 XYZBC, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped | 5 XYZBC landscape touch 150 % live: axis columns | Expected  - 1     + Received  + 2
+5 XYZBC, portrait: the arrangement, every action once, nothing outside or clipped | 5 XYZBC portrait live: G54–G58 one row | Expected: <= 1     Received:    32
+5 XYZBC, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped | 5 XYZBC portrait touch 150 % live: G54–G58 one row | Expected: <= 1     Received:    60
+5 TCP, landscape: the arrangement, every action once, nothing outside or clipped | 5 TCP landscape live: axis columns | Expected  - 1     + Received  + 2
+5 TCP, landscape touch: the arrangement, every action once, nothing outside or clipped | 5 TCP landscape touch live: axis columns | Expected  - 1     + Received  + 2
+5 TCP, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped | 5 TCP landscape touch 150 % live: axis columns | Expected  - 1     + Received  + 2
+5 TCP, portrait: the arrangement, every action once, nothing outside or clipped | 5 TCP portrait live: G54–G58 one row | Expected: <= 1     Received:    32
+5 TCP, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped | 5 TCP portrait touch 150 % live: G54–G58 one row | Expected: <= 1     Received:    60
+6 XYZABC, landscape: the arrangement, every action once, nothing outside or clipped | 6 XYZABC landscape live: axis columns | Expected  - 1     + Received  + 2
+6 XYZABC, landscape touch: the arrangement, every action once, nothing outside or clipped | 6 XYZABC landscape touch live: axis columns | Expected  - 1     + Received  + 2
+6 XYZABC, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped | 6 XYZABC landscape touch 150 % live: axis columns | Expected  - 1     + Received  + 2
+6 XYZABC, portrait: the arrangement, every action once, nothing outside or clipped | 6 XYZABC portrait live: G54–G58 one row | Expected: <= 1     Received:    32
+6 XYZABC, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped | 6 XYZABC portrait touch 150 % live: G54–G58 one row | Expected: <= 1     Received:    60
+6 TWP, landscape: the arrangement, every action once, nothing outside or clipped | 6 TWP landscape live: WCS title on the SETUP line | Expected: <= 1     Received:    24.5
+6 TWP, landscape touch: the arrangement, every action once, nothing outside or clipped | 6 TWP landscape touch live: WCS title on the SETUP line | Expected: <= 1     Received:    24.5
+6 TWP, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped | 6 TWP landscape touch 150 % live: WCS title on the SETUP line | Expected: <= 1     Received:    36.75
+6 TWP, portrait: the arrangement, every action once, nothing outside or clipped | 6 TWP portrait live: G54–G58 one row | Expected: <= 1     Received:    32
+6 TWP, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped | 6 TWP portrait touch 150 % live: G54–G58 one row | Expected: <= 1     Received:    60
+7, landscape: the arrangement, every action once, nothing outside or clipped | 7 landscape live: axis columns | Expected  - 1     + Received  + 2
+7, landscape touch: the arrangement, every action once, nothing outside or clipped | 7 landscape touch live: axis columns | Expected  - 1     + Received  + 2
+7, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped | 7 landscape touch 150 % live: axis columns | Expected  - 1     + Received  + 2
+7, portrait: the arrangement, every action once, nothing outside or clipped | 7 portrait live: G54–G58 one row | Expected: <= 1     Received:    32
+7, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped | 7 portrait touch 150 % live: G54–G58 one row | Expected: <= 1     Received:    60
+8, landscape: the arrangement, every action once, nothing outside or clipped | 8 landscape live: axis columns | Expected  - 1     + Received  + 2
+8, landscape touch: the arrangement, every action once, nothing outside or clipped | 8 landscape touch live: axis columns | Expected  - 1     + Received  + 2
+8, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped | 8 landscape touch 150 % live: axis columns | Expected  - 1     + Received  + 2
+8, portrait: the arrangement, every action once, nothing outside or clipped | 8 portrait live: G54–G58 one row | Expected: <= 1     Received:    32
+8, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped | 8 portrait touch 150 % live: G54–G58 one row | Expected: <= 1     Received:    60
+9, landscape: the arrangement, every action once, nothing outside or clipped | 9 landscape live: axis columns | Expected  - 1     + Received  + 2
+9, landscape touch: the arrangement, every action once, nothing outside or clipped | 9 landscape touch live: axis columns | Expected  - 1     + Received  + 2
+9, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped | 9 landscape touch 150 % live: axis columns | Expected  - 1     + Received  + 2
+9, portrait: the arrangement, every action once, nothing outside or clipped | 9 portrait live: G54–G58 one row | Expected: <= 1     Received:    32
+9, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped | 9 portrait touch 150 % live: G54–G58 one row | Expected: <= 1     Received:    60
+7 TWP, landscape: the arrangement, every action once, nothing outside or clipped | 7 TWP landscape live: axis columns | Expected  - 1     + Received  + 2
+7 TWP, landscape touch: the arrangement, every action once, nothing outside or clipped | 7 TWP landscape touch live: axis columns | Expected  - 1     + Received  + 2
+7 TWP, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped | 7 TWP landscape touch 150 % live: axis columns | Expected  - 1     + Received  + 2
+7 TWP, portrait: the arrangement, every action once, nothing outside or clipped | 7 TWP portrait live: G54–G58 one row | Expected: <= 1     Received:    32
+7 TWP, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped | 7 TWP portrait touch 150 % live: G54–G58 one row | Expected: <= 1     Received:    60
+9 TWP, landscape: the arrangement, every action once, nothing outside or clipped | 9 TWP landscape live: axis columns | Expected  - 1     + Received  + 2
+9 TWP, landscape touch: the arrangement, every action once, nothing outside or clipped | 9 TWP landscape touch live: axis columns | Expected  - 1     + Received  + 2
+9 TWP, landscape touch 150 %: the arrangement, every action once, nothing outside or clipped | 9 TWP landscape touch 150 % live: axis columns | Expected  - 1     + Received  + 2
+9 TWP, portrait: the arrangement, every action once, nothing outside or clipped | 9 TWP portrait live: G54–G58 one row | Expected: <= 1     Received:    32
+9 TWP, portrait touch 150 %: the arrangement, every action once, nothing outside or clipped | 9 TWP portrait touch 150 % live: G54–G58 one row | Expected: <= 1     Received:    60
+3 XYZ: Tab walks the axis rows, the actions in order, then the WCS | actions in order | Expected  - 1     + Received  + 1
+5 TCP: Tab walks the axis rows, the actions in order, then the WCS | actions in order | Expected  - 1     + Received  + 1
+6 TWP: Tab walks the axis rows, the actions in order, then the WCS | actions in order | Expected  - 1     + Received  + 3
+9: Tab walks the axis rows, the actions in order, then the WCS | actions in order | Expected  - 1     + Received  + 1
+9 TWP: Tab walks the axis rows, the actions in order, then the WCS | actions in order | Expected  - 1     + Received  + 3
+5 TCP, landscape: a long frame chip moves nothing | 5 TCP landscape | Expected  - 1     + Received  + 1
+5 TCP, landscape touch: a long frame chip moves nothing | 5 TCP landscape touch | Expected  - 1     + Received  + 1
+5 TCP, portrait: a long frame chip moves nothing | 5 TCP portrait | Expected  - 15     + Received  + 15
+6 TWP, landscape: a long frame chip moves nothing | 6 TWP landscape | Expected  - 10     + Received  + 10
+6 TWP, landscape touch: a long frame chip moves nothing | 6 TWP landscape touch | Expected  - 10     + Received  + 10
+6 TWP, portrait: a long frame chip moves nothing | 6 TWP portrait | Expected  - 15     + Received  + 15
+a new axis set re-lays the section out ──── | and into its column | Expected: > 1610.5     Received:   1300.5
