@@ -155,6 +155,9 @@ const baseTrack = computed(() => viewerGcode.value?.scrubTrack ?? null);
 // (trace: browser.error.console ×8 over two days). Nothing watches the
 // track deeply — consumers react to the ref reassignment only.
 const entryTrack = shallowRef<ScrubTrack | null>(null);
+// the base track the entry track was built from (the time form counts an
+// entry move only for its own publication, Codex R238)
+let _entryBase: ScrubTrack | null = null;
 const track = computed(() => entryTrack.value ?? baseTrack.value);
 const running = computed(() => (st.value.interp_state ?? INTERP_IDLE) !== INTERP_IDLE);
 const machineOff = computed(() => !st.value.is_enabled);
@@ -189,13 +192,19 @@ const cumMax = computed(() => {
 // entry move's included. It only grows until the next publication: the entry
 // track is kept after the simulation and dropped at a run start, and the
 // form must flip with neither ("0:00:00" in the bar, the Sim tab and the
-// Program tab's clock alike). Sync: no displayed total is ever missed.
+// Program tab's clock alike). Sync: no displayed total is ever missed. Only
+// what belongs to THIS publication counts (Codex R238): an entry move built
+// from its own track — a new publication arrives while the last one's entry
+// track still stands, the base watch drops it after this — and a track's end
+// only when its axis is time (a distance axis is millimetres, not seconds).
 const timeForm = ref(0);
 let _timeFormOf: unknown = null;
-watch([viewerGcode, cumMax], ([g, max]) => {
+watch([viewerGcode, baseTrack, entryTrack], ([g, base, entry]) => {
+  const t = entry && _entryBase === base ? entry : base;
+  const shown = t?.timeBased ? Math.floor(t.cum[t.count - 1]!) : 0;
   const seen = g === _timeFormOf ? timeForm.value : 0;
   _timeFormOf = g;
-  timeForm.value = Math.max(seen, Math.floor(max), Math.floor(g?.stats?.totalTime ?? 0));
+  timeForm.value = Math.max(seen, shown, Math.floor(g?.stats?.totalTime ?? 0));
   simView.timeForm = timeForm.value;
 }, { immediate: true, flush: "sync" });
 const curLine = ref(0);
@@ -344,6 +353,7 @@ function _buildEntryTrackNow() {
     base, _baseJoints, viewerInit.value?.axes ?? [], _wcs(), _kinsSpec.value,
     _epochTerms.value, st.value.kins_type ?? null,
     { linear: g?.rapid_rate, rotary: g?.rot_rapid_rate, axisVmax: g?.axis_vmax, trajVmax: g?.traj_vmax });
+  _entryBase = base;   // before the assignment: the sync time-form watch reads it
   entryTrack.value = built ? markRaw(built) : null;
 }
 

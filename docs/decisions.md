@@ -9878,3 +9878,13 @@ timeline from the simulation through its end to a run's start, unchanged to the 
 two hours, 30 h with an unknown end, and narrow at 150 % (each 1 px at the run's start, Codex's
 numbers); a program near an hour with an entry move — one form in the bar, the Sim tab and the
 Program tab, kept through the simulation's end and a run's start; `simRows.test.ts` the list's form.
+
+**Codex R238: SP-01 closed; two rests of SP-02, both fixed (R239).** What counts toward the form is
+the publication's OWN: (A) a new publication arrived while the last one's entry move still stood —
+the sync time-form watch runs before the base watch drops it — so a 2 h program's entry held a
+2 min program at "0:00:00/0:02:00"; an entry move now counts only when it was built from this
+publication's track (`_entryBase`). (B) The track's end counted whatever its axis — on the distance
+fallback (no `feed_tcum`) 4000 mm put the Program tab's clock in hours; a track's end counts only
+when its axis is time, the estimate always. Guards red at 57a7877e
+(`docs/reviews/scrub-polish.r239.browser-red.txt`): long → simulation → exit → short, the same file
+with a new version and another file; a 4000 mm distance axis with a 120 s estimate.

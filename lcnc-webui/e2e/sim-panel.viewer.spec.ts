@@ -1413,6 +1413,48 @@ test("a program near an hour with an entry move: one time form in the bar, the S
   expect.soft(await programClock(), "the run's clock in the form").toBe("0:00:20");
 });
 
+// Codex R238: what counts toward the form is the publication's own — a new
+// one arrived while the last one's entry move still stood (A), and a distance
+// axis is millimetres, never seconds (B).
+const publish = async (page: Page, context: BrowserContext, preview: Buffer, file: string, version: number, max: string) => {
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: preview }));
+  await ctl({ op: "status_delta", data: { active_file: file } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version, file } });
+  await expect.poll(() => page.locator(".scrubBar .sliderInput").getAttribute("max"), { message: `${file} v${version} on the bar` }).toBe(max);
+  await settleLayout(page);
+};
+const clockText = async (page: Page) => {
+  await page.getByRole("tab", { name: "Program", exact: true }).click();
+  const t = await page.locator(".elapsedLabel").innerText();
+  await openSimTab(page);
+  return t;
+};
+for (const file of ["/sim.ngc", "/short.ngc"]) {
+  test(`a new publication takes its own time form: a 2 h program's entry move holds nothing of a 2 min one (${file === "/sim.ngc" ? "the same file, a new version" : "another file"})`, async ({ page, context }) => {
+    await prepare(page, context, "desktop", timed(7200), false);
+    await ctl({ op: "status_delta", data: { joint_pos: [-50, 0, 0, 0, 0] } });
+    await page.locator(".scrubBar input.toggle").check();
+    await expect(page.locator(".simBanner")).toBeVisible();
+    await page.locator(".scrubBar input.toggle").uncheck();
+    await expect(page.locator(".simBanner")).toBeHidden();
+    expect.soft(await clockText(page), "the long program's form").toBe("0:00:00");
+    await publish(page, context, timed(120), file, 5101, "120");
+    const at = await timeSlot(page);
+    expect.soft(at.text, "the 2 min program in its own form").toBe("00:00/02:00");
+    expect.soft(at.slot.w, "its slot its own form's widest").toBe(at.widest);
+    expect.soft(await clockText(page), "the Program tab's clock in the new program's form").toBe("00:00");
+  });
+}
+test("a distance axis is no time: 4000 mm without a time axis leave the Program tab's clock in its estimate's form", async ({ page, context }) => {
+  await prepare(page, context, "desktop", timed(120), false);
+  const DIST = Buffer.from(encode({ file: "/dist.ngc", preview_schema: 11, feed: [[0, 0, 0], [4000, 0, 0]], feed_lines: [3, 4], feed_seq: [3, 4], rapid_rate: 1,
+    stats: { feedMoves: 1, rapidMoves: 0, linearMoves: 1, arcMoves: 0, feedDist: 4000, rapidDist: 0, linearDist: 4000, arcDist: 0,
+             feedTime: 120, rapidTime: 0, totalTime: 120, feedRates: [100], toolChanges: 0, toolsUsed: [], unit: "mm", fileSize: 1 } }));
+  await publish(page, context, DIST, "/dist.ngc", 5101, "4000");
+  expect.soft((await timeSlot(page)).text, "the distance axis reads in %").toMatch(/ %$/);
+  expect.soft(await clockText(page), "4000 mm are not 4000 s").toBe("00:00");
+});
+
 // The card is 92 % opaque: the track is measured against the card composed
 // over the page AND over geometry in --fg (contrast.spec's floating-card
 // contract; Codex R228 SB-01 — half and half read 2.63 : 1 over geometry).
