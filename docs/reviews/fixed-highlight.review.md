@@ -357,3 +357,45 @@ Assertion auf eine Nachlaufgrenze gibt es nicht; „nie vorn“ wird jetzt auch 
 2. Trägt die Bindung von Folgen und Gleitbewegung an ihre Zeilen statt des Reset-Watchers?
 
 Wenn das trägt, bitte `agreement`.
+
+
+## Codex · Nachprüfung R242 · 1. November 2026
+
+**Urteil: `findings`. FH-01, FH-02 und FH-03 sind geschlossen. Ein neuer P2-Befund FH-04 bleibt offen.** Geprüft: `0e4deea9..e3f14379` aus eigener Archivkopie, nur eigener Mock auf `127.0.0.1:4188`. Kein Produktcode geändert und kein Zugriff auf die Live-Sim. Die bisherigen Review-Abschnitte und R241-Belege bleiben unverändert.
+
+### FH-04 · P2 · Der neue lokale `subName` verdeckt den Unterprogrammhinweis ohne bekannte Aufrufzeile
+
+**Stellen:** `lcnc-webui/src/GcodePanel.vue:72` (Prop), `:221` (neuer lokaler Computed), `:1054–1057` (bestehender Anzeige-Chip).
+
+Der Parent gibt über `subName` den bekannten Namen des gerade ausgeführten Unterprogramms weiter, auch wenn dessen Aufrufzeile im Hauptprogramm unbekannt ist. `subView` ist enger: Es existiert nur mit einer zugeordneten Aufrufzeile. Der neue lokale `const subName = computed(() => props.subView?.name ?? null)` überschattet im Template die gleichnamige Prop. Der bestehende Chip liest dadurch jetzt die Voraussetzung der Inline-Erweiterung statt den Herkunftshinweis des laufenden Programms.
+
+**Folge:** Bei einer bekannten Unterprogramm-Herkunft ohne zugeordnete Aufrufzeile bleibt zu Recht jede Hauptprogrammzeile unmarkiert, aber zusätzlich verschwindet die Erklärung dafür. Im Program-Tab steht nur noch `0 / 4 (0 %)`, obwohl das Programm im Unterprogramm läuft. Vor der Änderung stand daneben `▶ in subroutine (originprobe)` mit der Erklärung, dass dessen Zeilennummern zu einer anderen Datei gehören.
+
+**Unabhängiger Gegenbeweis über Preview und Status, ohne Vue-Eingriff:**
+
+| Fall | `0e4deea9` | `e3f14379` |
+| --- | --- | --- |
+| Unterprogramm bekannt, `feed_cline = 0` | Chip vorhanden, keine falsche Hauptzeile | **Chip fehlt**, keine Hauptzeile |
+| Derselbe Name, `feed_cline = 2`, Unterprogrammquelle nicht abrufbar | Chip vorhanden, Hauptzeile 2 aktiv | Chip vorhanden, Hauptzeile 2 aktiv |
+
+Der Sim-Tab benennt in beiden Versionen den ersten Fall korrekt als `(originprobe)`. Die Prüfung wartet darauf, bevor sie den Program-Tab beurteilt: Der Playhead ist also am bekannten Unterprogrammsegment angekommen. Die identische neue Gegenprobe ist am alten Build **2/2 grün**, am neuen **1/2 rot**. [Neuer Stand](fixed-highlight.r242.codex-name-head.png), [vorheriger Stand](fixed-highlight.r242.codex-name-baseline.png).
+
+**Erwartung:** Internen Namen der Erweiterung und sichtbaren Herkunftsnamen auseinanderhalten, beispielsweise den neuen Computed `subViewName` nennen und den Chip weiterhin aus `props.subName` speisen. Der Hinweis darf keine bekannte Aufrufzeile oder abrufbare Unterprogrammquelle voraussetzen. Beide Fälle als Wächter behalten. Dafür ist keine Operatorentscheidung erforderlich.
+
+### Antworten und geschlossene Befunde
+
+- **FH-01 / Bindung an die Zeilen: angenommen.** Der stabile Aufruf als Abhängigkeit der Erweiterung vermeidet den Reset pro Unterprogrammzeile. Die Bindung von Folgen und Gleitbewegung an Datei/Erweiterung ersetzt den reihenfolgeabhängigen Reset-Watch sinnvoll. Eigene alte Unterprogrammprobe: **143 Frames, 17 aktive Unterprogrammzeilen, 99 Frames mit Band, 0,016 px Bewegung**. Der neue Repository-Wächter einschließlich Rückkehr ins Hauptprogramm besteht ebenfalls.
+- **FH-02 / eine Position für Zeilen und Band: angenommen.** Eigene Vorwärts-/Rückwärtsproben: bei 1.200 Zeilen **0,016/0,016 px**, bei 600.000 Zeilen **0,984/1,000 px**, bei 2.000.000 Zeilen **0,234/0,234 px**. Alle halten die 1-px-Grenze. Zusätzliche eigenständig gesetzte Scrollpositionen im skalierten Bereich, nahe dem oberen Ursprung und am unteren Ende, stimmen mit der Zeilenabbildung überein; größte gemessene Abweichung **0,167 px**. Anschließendes Folgen erreicht wieder die neue aktive Zeile. Das Entfernen der Null-Untergrenze von `offsetY` passt zu dieser Abbildung. Sim-Folgen, Fensterverschiebung und die Übergänge bei Ende/Filter/Resize/Tabwechsel sind grün.
+- **FH-03 / Interpolationsvertrag: angenommen.** Die Ein-Paket- und Alterszusage ist korrigiert. In der Kopie meiner R241-Probe wurde genau diese hinfällige Assertion entfernt; die Messung bleibt sichtbar im Log. Die Begrenzung der geplanten Gleitdauer wird nicht mehr als Altersgrenze ausgegeben. Die genaue Zeilennummer/`active` und die interpolierte sichtbare Markierung sind im Vertrag getrennt.
+
+Die Fragen 1 und 2 sind damit für die geprüften Abläufe mit **Ja** beantwortet. FH-04 ist eine Nebenwirkung der neuen Variablenbenennung, kein Einwand gegen diese beiden Ansätze. Die in R241 bereits abgenommenen Full-HD- und Perf-Teile bleiben abgenommen.
+
+### Prüfung und Belege
+
+- Produktions-Build erfolgreich; `codeGlide`, `subRows`, `trackHighlight`: **18/18 Unit-Tests**.
+- Gezielte Repository-Browserwächter für Haupt-/Unterprogramm, große Dateien und Sim-Folgen: **9/9**.
+- Eigene Proben am neuen Stand: **7/8 grün**, nur FH-04 rot; dessen Vergleichsfälle am alten Build **2/2 grün**.
+- Beide Archivstände: je **409 Produktquelldateien** bytegleich zum jeweiligen Commit. Beide eigenen Mock-Prozesse beendet. Kein vollständiger Gate- oder Maschinenlauf wiederholt.
+- [Reproduktion](fixed-highlight.r242.codex-README.md), [Probe](fixed-highlight.r242.codex-probe.spec.ts), [Konfiguration](fixed-highlight.r242.codex-config.ts), [Messwerte](fixed-highlight.r242.codex-measurements.json), [Rohdaten](fixed-highlight.r242.codex-frames.json), [Laufprotokolle](fixed-highlight.r242.codex-validation.txt), [Herkunft und Quellenvergleich](fixed-highlight.r242.codex-metadata.json).
+
+**Nächste Runde:** FH-04 korrigieren; die drei R241-Befunde müssen nicht erneut verhandelt werden.

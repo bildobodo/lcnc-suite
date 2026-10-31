@@ -1,0 +1,77 @@
+{
+  "1200": {
+    "forward": {
+      "frames": 89,
+      "spread_px": 0.015625
+    },
+    "reverse": {
+      "frames": 88,
+      "spread_px": 0.015625
+    }
+  },
+  "600000": {
+    "forward": {
+      "frames": 81,
+      "spread_px": 0.984375
+    },
+    "reverse": {
+      "frames": 81,
+      "spread_px": 1
+    }
+  },
+  "2000000": {
+    "forward": {
+      "frames": 82,
+      "spread_px": 0.234375
+    },
+    "reverse": {
+      "frames": 82,
+      "spread_px": 0.234375
+    }
+  },
+  "subroutine": {
+    "frames": 143,
+    "lines": 17,
+    "band_frames": 99,
+    "spread_px": 0.015625
+  },
+  "manual_scroll_max_mapping_error_px": 0.16656608134508133,
+  "name_origin": {
+    "head": {
+      "0": {
+        "callLine": 0,
+        "simLine": "(originprobe)",
+        "chipCount": 0,
+        "active": [],
+        "text": "Program\nMDI\nProbing\nOffsets\nTools\nMacros\nSim\norigin-name.ngc\n4 lines\nStart\nStep\nPause\nAbort\nMore\n0 / 4 (0 %)\n00:00\n1\nG1 X10 F100\n2\no<originprobe> call\n3\nG1 X40\n4\nM2"
+      },
+      "2": {
+        "callLine": 2,
+        "simLine": "L2 (originprobe)",
+        "chipCount": 1,
+        "active": [
+          "2"
+        ],
+        "text": "Program\nMDI\nProbing\nOffsets\nTools\nMacros\nSim\norigin-name.ngc\n4 lines\nStart\nStep\nPause\nAbort\nMore\n2 / 4 (50 %)\n\u25b6 in subroutine (originprobe)\n00:00\n1\nG1 X10 F100\n2\no<originprobe> call\n3\nG1 X40\n4\nM2"
+      }
+    },
+    "baseline": {
+      "0": {
+        "callLine": 0,
+        "simLine": "(originprobe)",
+        "chipCount": 1,
+        "active": [],
+        "text": "Program\nMDI\nProbing\nOffsets\nTools\nMacros\nSim\norigin-name.ngc\n4 lines\nStart\nStep\nPause\nAbort\nMore\n0 / 4 (0 %)\n\u25b6 in subroutine (originprobe)\n00:00\n1\nG1 X10 F100\n2\no<originprobe> call\n3\nG1 X40\n4\nM2"
+      },
+      "2": {
+        "callLine": 2,
+        "simLine": "L2 (originprobe)",
+        "chipCount": 1,
+        "active": [
+          "2"
+        ],
+        "text": "Program\nMDI\nProbing\nOffsets\nTools\nMacros\nSim\norigin-name.ngc\n4 lines\nStart\nStep\nPause\nAbort\nMore\n2 / 4 (50 %)\n\u25b6 in subroutine (originprobe)\n00:00\n1\nG1 X10 F100\n2\no<originprobe> call\n3\nG1 X40\n4\nM2"
+      }
+    }
+  }
+}

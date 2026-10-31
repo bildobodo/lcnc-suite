@@ -1,0 +1,203 @@
+R242 independent review: git archive e3f14379, isolated mock 127.0.0.1:4188.
+Baseline: unchanged 0e4deea9 archive build, same mock port after stopping head mock. Both mocks stopped.
+Product sources unchanged in both archives. Live tree: review append and new evidence only.
+
+--- build.log ---
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2127 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-CX6P-oit.css                 8.14 kB │ gzip:   2.08 kB
+dist/static/index-OSnDt2-j.css                      97.77 kB │ gzip:  17.81 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-BpRBPdiq.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-Dy8GlZst.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-CDuV6pn8.js                278.70 kB │ gzip: 104.92 kB
+dist/static/index-Bup8TwDI.js                      672.33 kB │ gzip: 216.56 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 7.09s
+
+--- unit.log ---
+
+ RUN  v4.1.8 /tmp/codex-r242-wryvpp3n/repo/lcnc-webui
+
+
+ Test Files  3 passed (3)
+      Tests  18 passed (18)
+   Start at  00:53:18
+   Duration  266ms (transform 228ms, setup 0ms, import 332ms, tests 12ms, environment 0ms)
+
+
+--- browser-repository.log ---
+
+Running 9 tests using 1 worker
+
+(node:2979721) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2979721) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/layout.spec.ts:2054:1 › the running line glides: the code scrolls evenly under a centred highlight, which never leaves the view (11.3s)
+  ✓  2 e2e/layout.spec.ts:2165:3 › the highlight stands still while the code glides under it — never ahead of the running line, on it at rest: the file (9.8s)
+  ✓  3 e2e/layout.spec.ts:2165:3 › the highlight stands still while the code glides under it — never ahead of the running line, on it at rest: a scaled view (2 M lines) (11.4s)
+  ✓  4 e2e/layout.spec.ts:2256:1 › in an expanded subroutine the highlight stands still too, and the main program takes it back (6.5s)
+  ✓  5 e2e/sim-panel.viewer.spec.ts:418:1 › a moved window keeps the picture: the row shown before stays where it was, then the list glides (plan 4.4) (6.5s)
+  ✓  6 e2e/sim-panel.viewer.spec.ts:468:1 › a new result keeps the list where it was scrolled; a new position brings it back (6.7s)
+  ✓  7 e2e/sim-panel.viewer.spec.ts:961:1 › the list follows the position: the marked row stays in the middle of its view (3.3s)
+  ✓  8 e2e/sim-panel.viewer.spec.ts:1002:1 › playback at ×100 with normal motion: the marked row never leaves the list's view (7.2s)
+  ✓  9 e2e/sim-panel.viewer.spec.ts:1042:1 › playback at ×50: the marked row's highlight stands still while the list glides under it (5.7s)
+
+  9 passed (1.2m)
+
+--- browser-probes.log ---
+
+Running 8 tests using 1 worker
+
+(node:2981248) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2981248) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+program [33m1200[39m [
+  { phase: [32m'forward'[39m, spread: [33m0.015625[39m, missing: [33m0[39m },
+  { phase: [32m'reverse'[39m, spread: [33m0.015625[39m, missing: [33m0[39m }
+]
+steady lag at 3 lines per packet [33m4.417119565217392[39m
+  ✓  1 e2e/r242.codex.spec.ts:36:39 › independent program transitions 1200 lines (9.3s)
+program [33m600000[39m [
+  { phase: [32m'forward'[39m, spread: [33m0.984375[39m, missing: [33m0[39m },
+  { phase: [32m'reverse'[39m, spread: [33m1[39m, missing: [33m0[39m }
+]
+  ✓  2 e2e/r242.codex.spec.ts:36:39 › independent program transitions 600000 lines (8.7s)
+program [33m2000000[39m [
+  { phase: [32m'forward'[39m, spread: [33m0.234375[39m, missing: [33m0[39m },
+  { phase: [32m'reverse'[39m, spread: [33m0.234375[39m, missing: [33m0[39m }
+]
+  ✓  3 e2e/r242.codex.spec.ts:36:39 › independent program transitions 2000000 lines (9.8s)
+[
+  {
+    end: [32m'end'[39m,
+    band: [33mfalse[39m,
+    marked: [90mundefined[39m,
+    followed: [90mundefined[39m,
+    st: [33m580[39m,
+    top: [33m0[39m
+  },
+  {
+    end: [32m'filter'[39m,
+    band: [33mfalse[39m,
+    marked: [90mundefined[39m,
+    followed: [90mundefined[39m,
+    st: [90mundefined[39m,
+    top: [90mundefined[39m
+  },
+  {
+    end: [32m'resize'[39m,
+    band: [33mfalse[39m,
+    marked: [32m'L34@34'[39m,
+    followed: [90mundefined[39m,
+    st: [33m530[39m,
+    top: [33m0[39m
+  },
+  {
+    end: [32m'tab'[39m,
+    band: [33mfalse[39m,
+    marked: [32m'L43@43'[39m,
+    followed: [90mundefined[39m,
+    st: [33m759[39m,
+    top: [33m0[39m
+  }
+]
+  ✓  4 e2e/r242.codex.spec.ts:77:1 › independent Sim ends, filter and resize clear the transient band (7.0s)
+subroutine { frames: [33m143[39m, lines: [33m17[39m, bands: [33m99[39m, spread: [33m0.015625[39m }
+  ✓  5 e2e/r242.codex.spec.ts:90:1 › independent expanded subroutine retains its fixed highlight across sub-line updates (5.8s)
+  ✓  6 e2e/r242.codex.spec.ts:123:1 › manual scroll and both ends of the scaled file retain the row mapping (6.4s)
+  ✘  7 e2e/r242.codex.spec.ts:147:29 › run subroutine name survives without an inline expansion (call 0) (8.3s)
+(node:2982414) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2982414) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  8 e2e/r242.codex.spec.ts:147:29 › run subroutine name survives without an inline expansion (call 2) (3.0s)
+
+
+  1) e2e/r242.codex.spec.ts:147:29 › run subroutine name survives without an inline expansion (call 0) 
+
+    Error: the Program tab must explain the called-file origin
+
+    [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[title^="Executing inside the originprobe subroutine"]')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - the Program tab must explain the called-file origin with timeout 5000ms[22m
+    [2m  - waiting for locator('[title^="Executing inside the originprobe subroutine"]')[22m
+
+
+      167 |  const data={callLine,simLine:await page.locator('.simPanel .simLine').textContent(),chipCount:await chip.count(),active:await page.locator(SEL+' .codeLine.active .lineNumber').allTextContents(),text:await page.locator('.sidePane').innerText()};
+      168 |  writeFileSync(`${OUT}/sub-name-${callLine}.json`,JSON.stringify(data,null,2));await page.screenshot({path:`${OUT}/sub-name-${callLine}.png`});
+    > 169 |  await expect(chip,'the Program tab must explain the called-file origin').toBeVisible();
+          |                                                                           ^
+      170 |  if(!callLine){await expect(chip).toContainText('in subroutine (originprobe)');await expect(page.locator(SEL+' .codeLine.active')).toHaveCount(0);}
+      171 | });
+      172 |
+        at /tmp/codex-r242-wryvpp3n/repo/lcnc-webui/e2e/r242.codex.spec.ts:169:75
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r242.codex-run-subroutine--20951-an-inline-expansion-call-0-/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r242.codex-run-subroutine--20951-an-inline-expansion-call-0-/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r242.codex-run-subroutine--20951-an-inline-expansion-call-0-/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r242.codex-run-subroutine--20951-an-inline-expansion-call-0-/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/r242.codex.spec.ts:147:29 › run subroutine name survives without an inline expansion (call 0) 
+  7 passed (1.0m)
+
+--- browser-baseline.log ---
+
+Running 2 tests using 1 worker
+
+(node:2983060) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2983060) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r242.baseline.spec.ts:147:29 › run subroutine name survives without an inline expansion (call 0) (3.1s)
+  ✓  2 e2e/r242.baseline.spec.ts:147:29 › run subroutine name survives without an inline expansion (call 2) (2.9s)
+
+  2 passed (6.7s)

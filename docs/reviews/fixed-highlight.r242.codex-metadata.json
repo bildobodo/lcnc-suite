@@ -1,0 +1,21 @@
+{
+  "head": "e3f14379",
+  "base": "0e4deea9",
+  "archive": "/tmp/codex-r242-wryvpp3n/repo",
+  "review_bytes_before": 25377,
+  "review_sha256_before": "17aa402f80e4fb56e2d0333fbca7cf0e9e666064b63554a49329c1b9d111f380",
+  "baseline_build": "0e4deea9, reused untouched R241 archive build",
+  "integrity": {
+    "e3f14379": {
+      "source_files_compared": 409,
+      "changed_source_files": [],
+      "served_index_sha256": "7e15a111ee1af38ea011a2fa2d77f43d88647a4eb49e15c1fedf41d64cbfe440"
+    },
+    "0e4deea9": {
+      "source_files_compared": 409,
+      "changed_source_files": [],
+      "served_index_sha256": "88f82f1038456dce450db5ce88aa81e818a63b018bbae0a5c5f83ccbda45e7da"
+    }
+  },
+  "review_prefix_unchanged": true
+}
