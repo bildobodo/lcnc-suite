@@ -344,7 +344,9 @@ function glideStep() {
   const now = performance.now();
   const { pos, done } = glideAt(g, now);
   sc.scrollTop = pos;
-  if (bandGlide) placeBand(glideAt(bandGlide, now).pos);
+  // the band by the position the list TOOK (the browser rounds it): its
+  // place on screen is the glide's own, not the rounding's (Codex R241 FH-02)
+  if (bandGlide) placeBand(glideAt(bandGlide, now).pos + sc.scrollTop - pos);
   if (!done) { glideRaf = requestAnimationFrame(glideStep); return; }
   glide = null;
   // the glide's own row takes the look again — unless a newer marked row
@@ -425,7 +427,7 @@ function follow(animate: boolean): boolean {
       band.style.width = `${tr.offsetWidth}px`;
       band.style.height = `${lineH}px`;
     }
-    placeBand(fromY);
+    placeBand(fromY + sc.scrollTop - plan.from);   // by the position the list took (glideStep)
     bandGlide = { from: fromY, to: contentTop(sc, tr), t0: plan.t0, dur: plan.dur };
     bandGlideKey = key;
     bandKind.value = shownKeyIs(key) ? "shown" : "next";

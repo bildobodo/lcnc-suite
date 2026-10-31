@@ -9924,7 +9924,7 @@ scrollt"). The highlight is now a band while the code glides, drawn where the te
 scroll's own glide in the rows' space — so it keeps its place on screen and the text scrolls
 under it. The rule it replaces ("the highlight stays on the line that actually runs, no band
 lagging the machine", 6c4d0c8c) becomes: the band is never ahead of the running line, at most one
-packet gap (≤ 150 ms) behind, and ON it whenever the packets pause — the running row's own highlight
+packet gap (≤ 150 ms) behind [corrected after Codex R241 FH-03, below: no such bound — an interpolated display, never ahead, on the line once the last glide ends], and ON it whenever the packets pause — the running row's own highlight
 takes over there with the same look; mid-glide it covers parts of two rows. Near the file's start
 or end, where the scroll stops, the band glides from row to row. VP-I21 holds unchanged (the
 running row in view in every frame; a step past the visible band moves the text, the band is
@@ -9950,4 +9950,32 @@ activity now — they come only from real work (a check's request and post, a pa
 so an idle viewer stays silent. Red first: `viewerPerf.test.ts` "a window with spans alone is
 reported in its own row" (`docs/reviews/fixed-highlight.perf-red.txt`); the browser test 8 of 8
 after it.
+
+**Codex R241: three findings, one more found on the way.** The perf spans and the Full HD
+viewports were accepted; the highlight was not, yet:
+- FH-01 — in an expanded subroutine the band never showed: `expansion` read the whole `subView`, so
+  every sub line was a new expansion object and the reset watcher on it dropped the band. It reads
+  the call now (name, call line, the sub's text): a new sub line is the same expansion, and the
+  sub's text is split once instead of once per line.
+- FH-02 — in a scaled view the band moved up to 5 px (2 M lines): the rows were placed from the
+  scroll position the browser ROUNDED, the band from the glide's own, and one scroll px is ~3.8
+  content px there. Rows and band are placed from one position now — the one the follow asked for
+  while the element holds what it took for it; a scroll by hand is the element's own. Measured:
+  0.02 px at scale 1 (Codex 0.97), 0.48 px at 2 M lines (4.78; the rest is the layout's own
+  precision at ~6 M px). `offsetY` lost its clamp at 0, which placed the first ~76 lines of a
+  scaled file off their mapping. The Sim list places its band by the position the list took too.
+- FH-03 — "at most one packet gap behind" was no property: a glide starts where the band stands, so
+  a glide not finished when the next packet comes carries its rest (4.02 lines at 3 lines a
+  packet, Codex). The contract, as Codex put it: the line number and the row's `active` are the
+  running line at once; the band is an interpolated display, never ahead of the running line, on
+  it once the last glide ends; 150 ms is the longest a new glide is planned over, no age bound.
+- Found while proving FH-01: on a sub's first line the reset watcher ran AFTER the follow (Vue
+  orders no two watchers of one change) and stopped its glide at the visible band's edge — the row
+  ~180 px off the middle until the next line. The follow and its glide now carry the rows they were
+  made in (program + expansion), checked where they are read; the reset watcher is gone.
+Guards (`layout.spec`): the stillness test for the file AND a scaled view (2 M lines, forwards and
+backwards, centred to the px at rest), and "in an expanded subroutine the highlight stands still
+too, and the main program takes it back" through the real path (attributed preview, `/subfile`,
+the scrub slider). Red at 0e4deea9: 4.78 px scaled, no band in the sub
+(`docs/reviews/fixed-highlight.r242-red.txt`).
 

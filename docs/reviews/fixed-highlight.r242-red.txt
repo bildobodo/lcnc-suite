@@ -1,0 +1,31 @@
+Codex R241 FH-01 / FH-02: the guards red against the product at 0e4deea9 (only e2e/layout.spec.ts
+changed; product files stashed, `npm run build`, then
+npx playwright test e2e/layout.spec.ts --project=serial-layout --no-deps --workers=1 -g "highlight stands still"):
+
+  ✓ the highlight stands still … : the file
+  ✘ the highlight stands still … : a scaled view (2 M lines)
+      Error: forwards: the highlight stands still while the code glides (4.78 px)
+      Expected: <= 1   Received: 4.78125
+  ✘ in an expanded subroutine the highlight stands still too, and the main program takes it back
+      Error: a new sub line keeps the band
+      Expected: > 40   Received: 0
+  2 failed, 1 passed
+
+Found while proving FH-01 (FH-01 fixed, the reset watcher on `expansion` still in place): the sub
+guard failed on its spread — "the highlight stands still in the sub (178.52 px)". Frames from the
+scrub into the sub (top of the active row in the view, scroll, band):
+  main call line 20 gliding with the band (st 57, 72), then the sub expands (scrollHeight 4600 → 6900):
+  the sub row at rest at 381 px, scroll 402 — the visible band's edge (rowY + 2·23 − 426 = 402),
+  not the middle (203 px): the follow of the sub's first line set the scroll to the band's edge
+  and started its glide; the reset watcher on `expansion`, run after it, stopped that glide.
+  The next sub line then glided from there (band 268 → 210 px), the source of the 178 px.
+After binding the follow and its glide to their rows (no reset watcher):
+
+  ✓ the running line glides … (VP-I21, unchanged)
+  ✓ … the file:              forwards 0.02 px, backwards 0.02 px (86 / 85 frames), centred at rest ≤ 1 px
+  ✓ … a scaled view (2 M):   forwards 0.48 px, backwards 0.48 px (86 frames each), centred at rest ≤ 1 px
+  ✓ … expanded subroutine:   78 frames, 18 sub lines, 64 with the band, 0.02 px; back in the main
+                             program: no sub rows, main line 31 active, no band
+  4 passed
+
+Wider: sim-panel.viewer, editor-guards, run-hold, keyboard-guards 109/109.

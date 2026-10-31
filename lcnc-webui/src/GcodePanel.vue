@@ -214,14 +214,19 @@ watch(() => props.subView?.name, (name) => {
 // line's own text IS `o<name> call` for exactly this span (remap wrappers
 // and nested spans never pass — see subRows.expansionAllowed), never in
 // edit mode. Null = the plain main-file view, all row math is identity.
+// It reads the call, never the executing sub line: a new sub line is the
+// same expansion — the same object, so the follow keeps its band (Codex R241
+// FH-01: each sub line was a new expansion and dropped it) and the sub's
+// text is split once.
+const subName = computed(() => props.subView?.name ?? null);
+const subCallLine = computed(() => props.subView?.callLine ?? null);
+const subLines = computed(() => subText.value ? splitSubLines(subText.value) : null);
 const expansion = computed<SubExpansion | null>(() => {
-  const sv = props.subView;
-  const text = subText.value;
-  if (!sv || !text || editing.value || !props.gcodeContent) return null;
-  if (sv.callLine < 1 || sv.callLine > lineCount.value) return null;
-  const lines = splitSubLines(text);
-  if (!expansionAllowed(lineAt(sv.callLine - 1), sv.name, lines.length)) return null;
-  return { callLine: sv.callLine, name: sv.name, lines };
+  const name = subName.value, callLine = subCallLine.value, lines = subLines.value;
+  if (name == null || callLine == null || !lines || editing.value || !props.gcodeContent) return null;
+  if (callLine < 1 || callLine > lineCount.value) return null;
+  if (!expansionAllowed(lineAt(callLine - 1), name, lines.length)) return null;
+  return { callLine, name, lines };
 });
 const rowCount = computed(() => totalRows(lineCount.value, expansion.value));
 // The executing sub line — the indented row that carries the highlight.
@@ -242,7 +247,21 @@ const lineDigits = computed(() => String(lineCount.value || 0).length);
 const LINE_HEIGHT = computed(() => (isTouchDevice.value ? 32 : 23));
 const BUFFER = 10;
 
+/** The scroll position the element took. */
 const scrollTop = ref(0);
+/** The position the follow ASKED for and the one the element took for it:
+ *  the browser rounds a scroll position, and in a scaled view (below) one
+ *  scroll px is several content px — rows placed from the rounded value and
+ *  the band from the glide's own moved apart by up to 5 px (Codex R241
+ *  FH-02, 2 M lines). */
+const scrollAsked = shallowRef<{ asked: number; took: number } | null>(null);
+/** The scroll position the rows are placed from: the asked one while the
+ *  element still holds what it took for it — a scroll by hand, or the
+ *  browser's own, is a position of its own. */
+const viewScroll = computed(() => {
+  const a = scrollAsked.value;
+  return a && a.took === scrollTop.value ? a.asked : scrollTop.value;
+});
 /** The view's height, from its ResizeObserver (below): the rendered window
  *  reads it, so a view that comes back from a hidden tab renders its rows. */
 const viewH = ref(0);
@@ -252,7 +271,7 @@ const viewH = ref(0);
 // currentLine advances 5–50×/s, each nudging scrollTop; keying retokenization
 // off the integer bounds avoids redundant work on every sub-LINE_HEIGHT delta.
 const rangeStart = computed(() =>
-  Math.max(0, Math.floor(_scrollToContent(scrollTop.value) / LINE_HEIGHT.value) - BUFFER)
+  Math.max(0, Math.floor(_scrollToContent(viewScroll.value) / LINE_HEIGHT.value) - BUFFER)
 );
 const rangeEnd = computed(() => {
   const viewportH = viewH.value || (codeViewerRef.value?.clientHeight ?? 400);
@@ -307,11 +326,14 @@ function _contentToScroll(y: number): number {
 
 // Pin the rendered window under the scrollbar thumb: place it at scrollTop,
 // backed off by how far rangeStart's content position sits above the mapped
-// viewport top. At scale 1 this is exactly rangeStart * LINE_HEIGHT.
-const offsetY = computed(() => {
-  const y = _scrollToContent(scrollTop.value);
-  return Math.max(0, scrollTop.value + rangeStart.value * LINE_HEIGHT.value - y);
-});
+// viewport top — the content y of the position the rows are placed from, so
+// a row stands at its content y less that one value on screen, exactly what
+// the band reads. At scale 1 and with no rounding this is exactly
+// rangeStart * LINE_HEIGHT. Never clamped at 0: in a scaled view the window
+// near the top lies partly above the scroll origin (clamped, the first ~76
+// lines stood up to s × (scale − 1) px off their mapping).
+const offsetY = computed(() =>
+  scrollTop.value + rangeStart.value * LINE_HEIGHT.value - _scrollToContent(viewScroll.value));
 
 function onCodeScroll(ev: Event) {
   scrollTop.value = (ev.target as HTMLElement).scrollTop;
@@ -324,6 +346,7 @@ function onCodeScroll(ev: Event) {
 // part, and the code stayed blank until a scroll (live look 2026-10-01).
 watch(codeViewerRef, (el, old) => {
   scrollTop.value = el ? el.scrollTop : 0;
+  scrollAsked.value = null;
   if (old) _sized?.unobserve(old);
   if (el) _sized?.observe(el);
 }, { flush: "post" });
@@ -336,19 +359,23 @@ const _sized = typeof ResizeObserver === "function" ? new ResizeObserver(() => {
   const h = codeViewerRef.value?.clientHeight ?? 0;
   if (h === viewH.value) return;
   viewH.value = h;
-  if (h > 0 && _followedRow != null) scrollToRow(_followedRow, true);
+  if (h > 0 && _followedRow != null && _rowsStill(_followedRows)) scrollToRow(_followedRow, true);
 }) : null;
 onUnmounted(() => _sized?.disconnect());
 // Another program opens at its first line (a run follows its line anyway).
 watch(() => props.activeFile, (now, before) => { if (now !== before) setScroll(0); }, { flush: "post" });
 
-/** Set the scroll position AND the rendered window's input in one step —
- *  the clamped value the element took, never the requested one. */
+/** Set the scroll position AND the rendered window's input in one step: the
+ *  value the element took, and the asked one the rows are placed from while
+ *  the two differ by rounding only (more is a clamp — the element's value
+ *  stands). */
 function setScroll(s: number) {
   const el = codeViewerRef.value;
   if (!el) return;
   el.scrollTop = s;
-  scrollTop.value = el.scrollTop;
+  const took = el.scrollTop;
+  scrollTop.value = took;
+  scrollAsked.value = Math.abs(took - s) < 1 ? { asked: s, took } : null;
 }
 
 // The followed line GLIDES (codeGlide.ts, operator 2026-09-30: the
@@ -364,11 +391,14 @@ function setScroll(s: number) {
 // glides to — the same glide in the rows' space, so while the scroll is free
 // the band keeps its place on screen and the code scrolls under it; near the
 // file's start or end, where the scroll stops, the band glides from row to
-// row. It is never ahead of the running line, at most one packet gap
-// (≤ GLIDE.maxMs) behind, and ON it when the glide ends — the row's own
-// highlight takes over there with the same look. The row keeps `active`
-// throughout; a second active row (a call line beside its sub row) keeps
-// its own look.
+// row. The band is an interpolated display of the glide: never ahead of the
+// running line, and ON it when the last glide ends — the row's own
+// highlight takes over there with the same look. A new glide starts where
+// the band stands and is planned over at most GLIDE.maxMs, so under steady
+// packets the band may trail by more than one step: no age bound against
+// the machine (Codex R241 FH-03). The line number and the row's `active`
+// are the running line at once; a second active row (a call line beside its
+// sub row) keeps its own look.
 let _glide: Glide | null = null;
 let _glideRaf = 0;
 let _lastFollowAt = -Infinity;
@@ -377,13 +407,27 @@ let _lastFollowAt = -Infinity;
 const followBand = shallowRef<{ row: number; glide: Glide } | null>(null);
 /** The band's place in content px (the rows' own space). */
 const bandY = ref(0);
-/** The row the code last followed (its own highlight shows at rest). */
+/** The rows a follow is made in: the program and the sub expansion (the
+ *  same object while the call stands — a new sub line keeps it). */
+interface FollowRows { file: string | null; exp: SubExpansion | null }
+const _rowsNow = (): FollowRows => ({ file: props.activeFile, exp: expansion.value });
+const _rowsStill = (r: FollowRows | null) => !!r && r.file === props.activeFile && r.exp === expansion.value;
+/** The row the code last followed (its own highlight shows at rest) and the
+ *  rows it is one of; the rows the running glide was planned in. A follow
+ *  in other rows starts no band from the last one, a glide planned in other
+ *  rows ends — decided where the follow and the frame read them: a reset
+ *  watcher on the expansion ran AFTER the follow of a sub's first line (Vue
+ *  orders no two watchers of one change) and stopped its glide at the
+ *  visible band's edge, the row 180 px off the middle until the next line. */
 let _followedRow: number | null = null;
+let _followedRows: FollowRows | null = null;
+let _glideRows: FollowRows | null = null;
 const reducedMotion = useMediaMql("(prefers-reduced-motion: reduce)");
 function _glideFrame(now: number) {
   _glideRaf = 0;
   const g = _glide;
   if (!g) return;
+  if (!_rowsStill(_glideRows)) { stopGlide(); return; }
   const { pos, done } = glideAt(g, now);
   setScroll(pos);
   const fb = followBand.value;
@@ -399,12 +443,9 @@ function stopGlide() {
 }
 onUnmounted(stopGlide);
 // No line followed any more (the run ended, the scrub left): no band either.
-// Another program or a sub expanded or folded: the rows are others, the row
-// followed last is no place to start a band from.
 watch(() => props.currentLine == null && props.scrubLine == null && subActiveLine.value == null, none => {
   if (none) { stopGlide(); _followedRow = null; }
 });
-watch([() => props.activeFile, expansion], () => { stopGlide(); _followedRow = null; });
 
 // Scroll to a ROW (mathematical — no DOM search). Target is computed in
 // content space, then mapped to scrollbar space (identity at scale 1).
@@ -420,6 +461,7 @@ function scrollToRow(row: number, snap = false) {
   if (snap) {
     stopGlide();
     _followedRow = row;
+    _followedRows = _rowsNow();
     setScroll(to);
     return;
   }
@@ -427,10 +469,15 @@ function scrollToRow(row: number, snap = false) {
   const gap = now - _lastFollowAt;
   _lastFollowAt = now;
   // Where the highlight stands now (content px): the band mid-glide, else
-  // the row followed last.
-  const before = el.scrollTop;
-  const shownY = followBand.value ? bandY.value : _followedRow != null ? _followedRow * lh : null;
+  // the row followed last. The glide goes on from the position the rows
+  // stand at, not the rounded one — read from the element (a scroll by hand
+  // whose event is still to come is the position).
+  const asked = scrollAsked.value;
+  const before = asked && asked.took === el.scrollTop ? asked.asked : el.scrollTop;
+  const shownY = followBand.value && _rowsStill(_glideRows) ? bandY.value
+    : _followedRow != null && _rowsStill(_followedRows) ? _followedRow * lh : null;
   _followedRow = row;
+  _followedRows = _rowsNow();
   // Where the running line stays in view (VP-I21) — within the scroll range.
   const vb = visibleBand(rowY, lh, el.clientHeight, _contentToScroll);
   const band: [number, number] | null = vb && [Math.max(0, vb[0]), Math.min(maxScroll, vb[1])];
@@ -456,6 +503,7 @@ function scrollToRow(row: number, snap = false) {
     followBand.value = { row, glide: { from: fromY, to: rowY, t0: g.t0, dur: g.dur } };
   } else followBand.value = null;
   _glide = g;
+  _glideRows = _rowsNow();
   if (!_glideRaf) _glideRaf = requestAnimationFrame(_glideFrame);
 }
 function scrollToLine(line: number) {
