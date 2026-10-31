@@ -471,6 +471,20 @@ describe("main-thread spans of an offset change (VP188-02 step 0)", () => {
     expect(last().span_col_copy, "a window keeps its own").toBeUndefined();
   });
 
+  it("a window with spans alone is reported in its own row — a check started on a quiet viewer (gate 2026-10-31)", () => {
+    noteSpan("col_copy", 3);
+    noteSpan("col_post", 1);
+    flushViewerPerf();
+    expect(emitted, "no status frame, no render: the spans still make the row").toHaveLength(1);
+    expect(last().span_col_copy).toEqual({ n: 1, sum: 3, max: 3 });
+    expect(last().span_col_post).toEqual({ n: 1, sum: 1, max: 1 });
+    noteSpan("whatever", 2);
+    flushViewerPerf();
+    expect(last().span_unknown, "an unknown name is work too").toBe(1);
+    flushViewerPerf();
+    expect(emitted, "then quiet again").toHaveLength(2);
+  });
+
   it("times a call, marks the inner one nested, and closes on a throw", () => {
     let clock = 100;
     vi.spyOn(performance, "now").mockImplementation(() => clock);

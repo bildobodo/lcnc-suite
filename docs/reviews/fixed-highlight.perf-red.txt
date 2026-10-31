@@ -1,0 +1,31 @@
+Found by the frontend gate at 99096fcf (2026-10-31): one failure outside the change.
+
+  [serial-viewer] e2e/collisions.viewer.spec.ts:673 "a parse made for the run is checked during it …"
+    expect.poll([spanN("span_col_copy") >= starts, spanN("span_col_post") >= starts]) → [false, false]
+
+Single runs (npx playwright test e2e/collisions.viewer.spec.ts:673 --project=serial-viewer --no-deps --workers=1):
+  feat/fixed-highlight 99096fcf : passed, passed, failed
+  development d11c3d68 (rebuilt): failed, failed, failed, failed, passed, failed
+
+The telemetry the page posted in a failing run (temporary log in the spec, not committed;
+ms since the test's start, perf(<span_col_copy n>, f<frames>, r<renders>)):
+  2215  ws.client_env, ws.connect.attempt, ws.open, wakelock.tier_selected, wakelock.acquire_failed, longtask
+  4882  collision.sweep_start, perf(1,f6,r14)
+  7015  collision.sweep_done, collision.run_check_start, collision.sweep_start, perf(1,f8,r4),
+        collision.sweep_witness ×2, collision.sweep_done, collision.sweep_start
+  9672  collision.sweep_witness ×4, collision.sweep_done, collision.run_check_discarded, perf(1,f8,r0),
+        collision.sweep_start
+  13145 collision.sweep_done
+  → starts 4, copy 3, post 3: the idle check's span (the last sweep_start) never reached a row.
+
+Cause: flushViewerPerf() sent a row only for a window with status frames, renders or presses
+(_frames, _renderCount, _inN, _inOdd). In quiet mode (no status) with nothing to draw, a window
+whose only activity was the check's col_copy / col_post spans stayed silent, so the spans waited
+for the next active window, or never came.
+
+Unit guard, red before the fix (src/viewerPerf.test.ts):
+  × a window with spans alone is reported in its own row — a check started on a quiet viewer (gate 2026-10-31)
+  AssertionError: no status frame, no render: the spans still make the row: expected [] to have a length of 1 but got +0
+
+After the fix (spans count as activity): viewerPerf.test.ts 33/33; the browser test 8 of 8 single
+runs; frames.spec 5/5.

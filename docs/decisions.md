@@ -9938,3 +9938,16 @@ comes back snaps to the followed row. Guards red at c2fa26ba (`docs/reviews/fixe
 the code panel at 30 packets a second (the highlight's top moved 116 px; now ≤ 1, never ahead, the
 running row at rest, the hidden tab), the Sim list at ×50 (33 px).
 
+**Found by the gate, on no list: a quiet window dropped its spans.** The frontend gate at 99096fcf
+failed one test outside this change — the run check's `span_col_copy` / `span_col_post` count
+(VP188-02 step 0) — and `development` fails it too (5 of 6 single runs on d11c3d68; 791/791 in the
+R240 gate the same day: timing). A `viewer.perf` row is sent only for a window with activity, and
+activity was status frames, renders and presses — not the timed spans. The idle check after the
+run starts in quiet mode (no status) with nothing to draw, so its span stayed in the accumulator:
+booked under the window of the next activity, or never (the telemetry log of a failing run: four
+`sweep_start`, three rows with one span each, nothing after the last start). The spans count as
+activity now — they come only from real work (a check's request and post, a path reply, a load),
+so an idle viewer stays silent. Red first: `viewerPerf.test.ts` "a window with spans alone is
+reported in its own row" (`docs/reviews/fixed-highlight.perf-red.txt`); the browser test 8 of 8
+after it.
+
