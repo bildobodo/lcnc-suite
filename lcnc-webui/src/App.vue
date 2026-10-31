@@ -47,7 +47,8 @@ import DetailsPopover from "./DetailsPopover.vue";
 import FormField from "./FormField.vue";
 import MachineInput from "./MachineInput.vue";
 import { highlightGcode } from "./gcodeHighlight";
-import { fmtElapsed, fmtDuration, fmtDist, fmtSize, fmtProgressTimes, fmtNum, fmtQty, fmtMs, NO_VALUE } from "./format";
+import { fmtElapsedAs, fmtDuration, fmtDist, fmtSize, fmtProgressTimes, fmtNum, fmtQty, fmtMs, NO_VALUE } from "./format";
+import { simView } from "./simPanelStore";
 import type { GcodeStats } from "./GcodePanel.vue";
 import type { LimitViolation } from "./ws/bulkData";
 import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, Expand, Shrink, Activity } from "lucide-vue-next";
@@ -966,7 +967,12 @@ const programElapsed = computed(() => {
   // field simply hasn't been delivered. Render honest-absent instead.
   return ms == null ? null : Math.floor(ms / 1000);
 });
-const elapsedDisplay = computed(() => programElapsed.value == null ? "--:--" : fmtElapsed(programElapsed.value));
+// in the loaded program's form ("0:12:34" for a 2 h program): the readout
+// keeps one width through the run, like the scrub bar's (operator 2026-10-31)
+// — the bar's ONE form for the program (simView.timeForm, its entry move
+// included; Codex R237 SP-02), the estimate where the bar has none
+const elapsedDisplay = computed(() => programElapsed.value == null ? "--:--"
+  : fmtElapsedAs(programElapsed.value, Math.max(simView.timeForm, Math.floor(gcodeStats.value?.totalTime ?? 0))));
 
 /** ---------- system clock ---------- */
 const clockTime = ref('');

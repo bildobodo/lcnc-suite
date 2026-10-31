@@ -9818,3 +9818,73 @@ note takes no width of its own now and wraps under the frame choice. And the ope
 beside "SETUP" sit slightly high: a title's "?" was anchored at the top of its line (13 px in
 16.5 px on the desktop); it is centred on the one-line box now, measured 0–0.25 px off the text in
 Chromium and Firefox. Guards red at 9303cf6e (`docs/reviews/setup-layout.r236.browser-red.txt`).
+
+## 2026-10-31 — The scrub bar after real use: one speed, the time slot no wider than its text, one time form per program (operator)
+
+The operator, looking at a two-hour program on the scrub bar (a request from real use, under the
+2026-10-25 feature freeze like the 2026-10-29 rework):
+
+- **The speed only beside Play.** The Sim tab's own speed select is gone; the bar's is the one
+  speed control (`simView.speed`). The tab's head row keeps where the simulation or the run stands.
+- **The room right of the timeline** was 121 px at 1280: half a thumb and a gap (16), the check's
+  coverage slot, empty once the route is covered (52 + its gap 8), and 45 px of the time's own slot
+  that no text filled. That slot was sized in `ch` — 16 characters of "~h:mm:ss/h:mm:ss" at the
+  width of a digit — while ":" and "/" in Inter are far narrower. It is now as wide as the
+  program's widest readout, measured by the browser from the text itself (hidden `.alt` cells in
+  a `.stable-width` cell: the run's "~", the program's form, the "+" where the time has an unknown
+  end — one per figure since R237, below), so the timeline never moves while scrubbing or when a
+  run starts. The
+  coverage slot stays: it is 2 px over its widest form ("100 %" with its glyph). Letting it
+  disappear once the check is done would give the timeline another 60 px but move the timeline's
+  end at the check's end — asked of the operator, not done.
+- **One time form per program** (operator: "00:00:00, so it is clear where the room goes"): every
+  time of a program takes the form of its total (`fmtElapsedAs`) — "0:00:00/1:55:40" in the bar,
+  the Sim tab's head and its Time column ("0:59:13" beside "1:39:21" — they used to mix "59:13"
+  and "1:39:21"), and the Program tab's run clock. Under an hour, mm:ss as before.
+- **Play and the Sim tab link as tall as the speed select**: 26 px beside 28 on the desktop (their
+  sm padding); they take the bar's field height, `--control-h` (28 / 36 px) — in Btn.vue, since a
+  dimmed button's class lands on its `.btnTip` wrapper. No smaller field class: one field height
+  per density.
+- **The gap in the × marks** the operator saw is one contact that lasts: × marks where a contact
+  begins (a row of the Sim tab, a stop of ‹ ›), the red band how long it lasts. Unchanged.
+
+Guards red at 21c5364c (`docs/reviews/scrub-polish.browser-red.txt`): the Sim tab has no speed;
+Play and the link as tall as the select, live and dimmed, desktop and touch (touch already held);
+a two-hour program — the time in its form in the bar, the tab and the Program tab.
+
+**Codex R237, two findings, both fixed (R238):**
+
+- **SP-01 — the slot grew 1 px at a run's start.** Its one hidden form was the TOTAL twice
+  ("~1:56:00/1:56:00"), and tabular figures are one advance in the font but not on screen: hinting
+  rounds them apart at 11 px (Chromium on Linux: "0", "1", "4", "6", "9" 8 px, the others 7), so
+  "~0:00:00/1:56:00" was 1 px wider — the Sim tab's sizer row had already met this ("each digit
+  in all its places"). Now the program's form once with EVERY figure ("~0:00:00/0:00:00"
+  … "~9:99:99/9:99:99", ten hidden cells): advances add up (no kerning between figures — kerning
+  and `calt` off change nothing), so the widest of the ten bounds every readout of that form,
+  whichever figure a browser rounds widest. The slot no longer follows the total's own figures
+  either: the entry move kept after the simulation and dropped at a run's start changed them.
+- **SP-02 — Program and Sim in different forms across the hour.** The bar and the list took the
+  form from the displayed track (the entry move included), the Program tab's clock from the
+  estimate: 59:40 + a 50 s entry move read "0:00:00/1:00:30" in the bar and "00:00" on the clock.
+  Now ONE form per publication: the bar's `timeForm`, the longest time the publication has shown —
+  its estimate and every displayed track — published as `simView.timeForm` for the list and the
+  clock. It only GROWS until the next publication: the entry track stays after the simulation and
+  goes at a run's start, and the form flips with neither. It can grow once, when an entry move
+  first carries the displayed time over the hour — the readout's total changes there anyway, and
+  a mixed "00:00/1:00:30" is what the operator asked to end.
+
+Guards red at 5f1e7c1c (`docs/reviews/scrub-polish.r238.browser-red.txt`): the slot and the
+timeline from the simulation through its end to a run's start, unchanged to the pixel — short,
+two hours, 30 h with an unknown end, and narrow at 150 % (each 1 px at the run's start, Codex's
+numbers); a program near an hour with an entry move — one form in the bar, the Sim tab and the
+Program tab, kept through the simulation's end and a run's start; `simRows.test.ts` the list's form.
+
+**Codex R238: SP-01 closed; two rests of SP-02, both fixed (R239).** What counts toward the form is
+the publication's OWN: (A) a new publication arrived while the last one's entry move still stood —
+the sync time-form watch runs before the base watch drops it — so a 2 h program's entry held a
+2 min program at "0:00:00/0:02:00"; an entry move now counts only when it was built from this
+publication's track (`_entryBase`). (B) The track's end counted whatever its axis — on the distance
+fallback (no `feed_tcum`) 4000 mm put the Program tab's clock in hours; a track's end counts only
+when its axis is time, the estimate always. Guards red at 57a7877e
+(`docs/reviews/scrub-polish.r239.browser-red.txt`): long → simulation → exit → short, the same file
+with a new version and another file; a 4000 mm distance axis with a 120 s estimate.

@@ -3,10 +3,29 @@
 import { describe, expect, it } from "vitest";
 import {
   fmtProgressTimes, NO_VALUE, fmtPct, fmtMs, fmtQty, fmtUnit,
-  fmtCoord, fmtNum, fmtCell, fmtOffset, fmtRpm, fmtAxisValue,
+  fmtCoord, fmtNum, fmtCell, fmtOffset, fmtRpm, fmtAxisValue, fmtElapsedAs,
 } from "./format";
 import { g5xLabel } from "./wcs";
 import { toolTypeLabel } from "./toolTypes";
+
+describe("fmtElapsedAs — a program's times in the form of its total (operator 2026-10-31)", () => {
+  it("keeps mm:ss under an hour", () => {
+    expect(fmtElapsedAs(0, 3599)).toBe("00:00");
+    expect(fmtElapsedAs(754, 3599)).toBe("12:34");
+  });
+  it("takes h:mm:ss with the total's hour digits from an hour on", () => {
+    expect(fmtElapsedAs(0, 6940)).toBe("0:00:00");
+    expect(fmtElapsedAs(3553, 6940)).toBe("0:59:13");
+    expect(fmtElapsedAs(5961, 6940)).toBe("1:39:21");
+    expect(fmtElapsedAs(0, 3600)).toBe("0:00:00");
+    expect(fmtElapsedAs(0, 108000)).toBe("00:00:00");
+    expect(fmtElapsedAs(3600, 108000)).toBe("01:00:00");
+  });
+  it("shows a time past its total's form with its own hours", () => {
+    expect(fmtElapsedAs(36000, 6940)).toBe("10:00:00");
+    expect(fmtElapsedAs(3600, 600)).toBe("1:00:00");
+  });
+});
 
 describe("fmtProgressTimes", () => {
   it("reads elapsed of the expected duration, whole seconds, expectation never below 1 s", () => {

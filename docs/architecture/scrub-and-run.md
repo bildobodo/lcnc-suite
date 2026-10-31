@@ -7,8 +7,8 @@
 timeline bar overlaid on the 3D viewer (`ScrubBar.vue`, hosted in
 ThreeViewer's overlay next to CameraPip) poses the articulated machine
 model at any point of the loaded program without running it — drag or
-play at a speed chosen beside Play (and shown in the Simulation tab) in 1-2-5 steps (×0.1–×100). The timeline
-axis is PROGRAM TIME (seconds; ×1 = real time; mm:ss readout): the parse
+play at a speed chosen beside Play (the one speed control since 2026-10-31) in 1-2-5 steps (×0.1–×100). The timeline
+axis is PROGRAM TIME (seconds; ×1 = real time; the readout in the program's ONE form, mm:ss or h:mm:ss — the bar's `timeForm`, the longest time the publication has shown, entry move included, shared with the Sim tab and the Program tab's clock): the parse
 worker ships per-stream cumulative seconds (`feed_tcum`/`rapid_tcum` —
 feeds from F with max(linear, rotary°) governing, rapids from
 TRAJ/AXIS MAX_VELOCITY; also `rapid_rate`/`rot_rapid_rate` for the

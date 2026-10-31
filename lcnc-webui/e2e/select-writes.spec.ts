@@ -149,10 +149,11 @@ test("the message center's filter while messages arrive and the machine talks", 
   for (const [name, list] of Object.entries(got)) expect(list, `messages · ${name}: written while messages arrive`).toEqual([]);
 });
 
-// The Simulation tab (operator 2026-10-05): its speed and its list filter
-// stand in a panel that re-renders as the simulation plays (the time, the
-// next row) — while the machine talks, neither may be written.
-test("the Simulation tab's speed and list filter while the simulation plays", async ({ page, context }) => {
+// The Simulation tab (operator 2026-10-05): its list filter stands in a
+// panel that re-renders as the simulation plays (the time, the next row),
+// the speed in the bar that does — while the machine talks, neither may be
+// written. The speed is the bar's alone since 2026-10-31.
+test("the Simulation tab's list filter and the bar's speed while the simulation plays", async ({ page, context }) => {
   // A program with a timeline (the mock's own preview has none): 30 moves of
   // 10 s, played at ×10 — the tab re-renders with the time several times a
   // second, and the playback outlasts the packets.
@@ -168,11 +169,11 @@ test("the Simulation tab's speed and list filter while the simulation plays", as
   await ctl({ op: "loadGcode" });
   await expect(page.locator(".scrubBar")).toBeVisible();
   await page.getByRole("tab", { name: "Sim", exact: true }).click();
-  await page.locator('.simPanel select[name="simSpeed"]').selectOption("10");
+  await page.locator('.scrubBar select[name="scrubSpeed"]').selectOption("10");
   await page.locator(".scrubBar input.toggle").check();
   await expect(page.locator(".simBanner")).toBeVisible();
   await page.locator('.scrubBar [title="Play the program through the machine model"]').click();
   const seen = await expectNoWrites(page, "Simulation");
-  // both speed selects — the bar's and the tab's — are watched
-  expect(seen).toEqual(expect.arrayContaining(["Playback speed", "Playback speed (simSpeed)", "Show on the list"]));
+  // the bar's speed and the tab's filter are watched
+  expect(seen).toEqual(expect.arrayContaining(["Playback speed", "Show on the list"]));
 });

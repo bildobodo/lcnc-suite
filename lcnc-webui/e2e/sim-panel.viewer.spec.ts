@@ -971,7 +971,7 @@ test("playback at ×100 with normal motion: the marked row never leaves the list
     el.value = String(Number(el.max) * 0.15);
     el.dispatchEvent(new Event("input", { bubbles: true }));
   });
-  await page.locator('.simPanel select[name="simSpeed"]').selectOption("100");
+  await page.locator('.scrubBar select[name="scrubSpeed"]').selectOption("100");
   await page.locator('.scrubBar [title="Play the program through the machine model"]').click();
   const samples: { key: string | null; inView: boolean; below: number }[] = [];
   for (let i = 0; i < 40; i++) {
@@ -1271,20 +1271,188 @@ const rgbOf = (page: Page, sel: string, prop: "backgroundColor") => page.locator
   return [...c.getImageData(0, 0, 1, 1).data].slice(0, 4);
 }, prop);
 
-test("the scrub bar: the speed beside Play is the Sim tab's speed, the link opens the Sim tab, no band over the track", async ({ page, context }) => {
+test("the scrub bar: the speed beside Play is the ONE speed (none in the Sim tab), the link opens the Sim tab, no band over the track", async ({ page, context }) => {
   await prepare(page, context);
   const row = page.locator(".scrubBar .scrubRow");
   const order = await row.evaluate(el => [...el.querySelectorAll("button, select, input")].map(c => c.getAttribute("aria-label") ?? c.getAttribute("title") ?? c.tagName));
   const speedAt = order.indexOf("Playback speed");
   expect(order[speedAt - 1], `the control before the speed is Play: ${JSON.stringify(order)}`).toMatch(/^(Play|Pause)/);
-  await row.getByRole("combobox", { name: "Playback speed" }).selectOption("5");
-  await expect(page.locator('.simPanel select[name="simSpeed"]'), "one value: the Sim tab shows it").toHaveValue("5");
+  // the speed only beside Play (operator 2026-10-31): the Sim tab, open here, has none
+  await expect(page.locator(".simPanel")).toBeVisible();
+  await expect(page.locator(".simPanel select"), "the Sim tab's one select is its list filter").toHaveCount(1);
+  await expect(page.locator(".simPanel").getByRole("combobox", { name: "Playback speed" })).toHaveCount(0);
   await expect(page.locator(".scrubBar .scrubBand.swept")).toHaveCount(0);
   await expect(page.locator(".scrubBar .checkSlot"), "the check is done: no coverage to show").toHaveText("");
   await page.getByRole("tab", { name: "Program", exact: true }).click();
   await expect(page.locator(".simPanel")).toBeHidden();
   await row.getByRole("button", { name: "Open the Sim tab" }).click();
   await expect(page.locator(".simPanel"), "the link shows the Sim tab").toBeVisible();
+});
+
+// The bar's symbol buttons are as tall as its speed select (operator
+// 2026-10-31: Play read 26 px beside the 28 px select) — live and dimmed
+// (a dimmed button sits in its .btnTip wrapper), desktop and touch.
+for (const vp of ["desktop", "touch-landscape"] as const) {
+  test(`the scrub bar: Play and the Sim tab link as tall as the speed select, live and dimmed (${vp})`, async ({ page, context }) => {
+    await prepare(page, context, vp, PREVIEW, false);
+    const heights = () => page.locator(".viewerPane .scrubBar").evaluate(bar => {
+      const h = (e: Element | null) => (e ? Math.round(e.getBoundingClientRect().height * 2) / 2 : -1);
+      const play = bar.querySelector("button") as HTMLButtonElement;
+      return { play: h(play), link: h(bar.querySelector('button[aria-label="Open the Sim tab"]')), select: h(bar.querySelector("select")),
+               disabled: play.disabled };
+    });
+    const live = await heights();
+    expect(live.disabled, "the machine off: Play live").toBe(false);
+    expect(live.play, `Play: ${JSON.stringify(live)}`).toBe(live.select);
+    expect(live.link, `the link: ${JSON.stringify(live)}`).toBe(live.select);
+    await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true } });
+    await expect.poll(async () => (await heights()).disabled, { message: "the machine on: Play dimmed" }).toBe(true);
+    const dim = await heights();
+    expect(dim.play, `Play dimmed: ${JSON.stringify(dim)}`).toBe(dim.select);
+    expect(dim.link, `the link: ${JSON.stringify(dim)}`).toBe(dim.select);
+  });
+}
+
+// One time form per program (operator 2026-10-31): the elapsed in the
+// total's form ("0:00:00/1:56:00") in the bar, the Sim tab's head and Time
+// column and the Program tab's run clock. The bar's time slot is as wide
+// as the run's readout and no wider: its 16 ch of "~h:mm:ss/h:mm:ss" left
+// 45 px of it empty.
+// A program of `seconds` (feed_tcum to the end, stats to match); rapid 1 mm/s,
+// so a machine 50 mm off the first point adds a 50 s entry move in the sim.
+const timed = (seconds: number, unknown = false) => Buffer.from(encode({ ...PREVIEW_FIELDS, rapid_rate: 1,
+  feed_tcum: new Uint8Array(new Float32Array(FEED.map((_, i) => i * seconds / 29)).buffer),
+  stats: { feedMoves: 30, rapidMoves: 0, linearMoves: 30, arcMoves: 0, feedDist: 1, rapidDist: 0, linearDist: 1, arcDist: 0,
+           feedTime: seconds, rapidTime: 0, totalTime: seconds, feedRates: [100], toolChanges: 2, toolsUsed: [3, 5], unit: "mm", fileSize: 1 },
+  ...(unknown ? { probe_unpredicted: [[20, 3, "length", 10]] } : {}) }));
+// The bar's time slot and timeline as laid out, the readout, the widest of its
+// hidden forms (one per figure) and whether the slot shows its text whole.
+const timeSlot = (page: Page) => page.locator(".viewerPane .scrubBar").evaluate(bar => {
+  const box = (el: Element) => { const r = el.getBoundingClientRect(); return { x: r.x, w: r.width }; };
+  const slot = bar.querySelector(".posSlot") as HTMLElement;
+  return { slot: box(slot), slider: box(bar.querySelector(".sliderWrap")!), text: slot.innerText,
+           widest: Math.max(...[...slot.querySelectorAll(".alt")].map(a => a.getBoundingClientRect().width)),
+           alts: slot.querySelectorAll(".alt").length, whole: slot.scrollWidth <= slot.clientWidth };
+});
+const runStart = () => ctl({ op: "status_delta", data: { enabled: true, is_enabled: true, interp_state: 2, task_mode: 2, motion_line: 4, program_elapsed_ms: 20000 } });
+
+// Codex R237 SP-01: "~0:00:00/1:56:00" was 1 px wider than the slot's
+// "~1:56:00/1:56:00" — tabular figures round to different pixel advances — and
+// a run start moved the timeline. Scrubbing, leaving the simulation (the entry
+// move stays) and the run start (it goes) all leave the slot and the timeline
+// where they were; the slot is as wide as its widest hidden form.
+for (const c of [
+  { name: "short", seconds: 116, vp: "desktop", zoom: 1, unknown: false, text: /^00:00\/0\d:\d\d$/ },
+  { name: "two hours", seconds: 6960, vp: "desktop", zoom: 1, unknown: false, text: /^0:00:00\/1:5\d:\d\d$/ },
+  { name: "30 h with an unknown end", seconds: 108000, vp: "desktop", zoom: 1, unknown: true, text: /^00:00:00\/\d\d:\d\d:\d\d\+$/ },
+  { name: "30 h with an unknown end, narrow at 150 %", seconds: 108000, vp: "touch-portrait", zoom: 1.5, unknown: true, text: /^00:00:00$/ },
+] as const) {
+  test(`the bar's time slot holds still from the simulation to a run's start: ${c.name}`, async ({ page, context }) => {
+    await prepare(page, context, c.vp, timed(c.seconds, c.unknown), false);
+    if (c.zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, c.zoom);
+    await ctl({ op: "status_delta", data: { joint_pos: [-50, 0, 0, 0, 0] } });
+    await page.locator(".scrubBar input.toggle").check();
+    await expect(page.locator(".simBanner")).toBeVisible();
+    await settleLayout(page);
+    const at = await timeSlot(page);
+    expect.soft(at.text, "the readout in the program's form").toMatch(c.text);
+    expect.soft(at.alts, "a hidden form per figure").toBe(10);
+    expect.soft(at.slot.w, `the slot: its widest form, ${JSON.stringify(at)}`).toBe(at.widest);
+    expect(at.whole, "the readout whole").toBe(true);
+    for (const f of [0.01, 0.25, 0.75, 1, 0]) {
+      await page.locator(".scrubBar .sliderInput").evaluate((el: HTMLInputElement, x) => {
+        el.value = String(Number(el.max) * x); el.dispatchEvent(new Event("input", { bubbles: true }));
+      }, f);
+      await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+      const now = await timeSlot(page);
+      expect([now.slot, now.slider], `scrubbed to ${f}: ${now.text}`).toEqual([at.slot, at.slider]);
+    }
+    await page.locator(".scrubBar input.toggle").uncheck();
+    await expect(page.locator(".simBanner")).toBeHidden();
+    await settleLayout(page);
+    expect((await timeSlot(page)).slot, "out of the simulation").toEqual(at.slot);
+    await runStart();
+    await expect.poll(async () => (await timeSlot(page)).text).toMatch(/^~/);
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+    const run = await timeSlot(page);
+    expect([run.slot, run.slider], `a run's start: ${at.text} → ${run.text}`).toEqual([at.slot, at.slider]);
+    expect(run.whole, "the run's readout whole").toBe(true);
+  });
+}
+
+// Codex R237 SP-02: a program just under an hour (59:40) whose entry move (50 s)
+// carries the displayed time past it — the bar, the Sim tab and the Program
+// tab's clock in ONE form, kept when the simulation ends and when a run drops
+// the entry move.
+test("a program near an hour with an entry move: one time form in the bar, the Sim tab and the Program tab, through the simulation's end and a run's start", async ({ page, context }) => {
+  await prepare(page, context, "desktop", timed(3580), false);
+  const programClock = async () => {
+    await page.getByRole("tab", { name: "Program", exact: true }).click();
+    const t = await page.locator(".elapsedLabel").innerText();
+    await openSimTab(page);
+    return t;
+  };
+  const bar = () => page.locator(".viewerPane .scrubBar .posSlot").innerText();
+  expect.soft(await bar(), "under an hour: mm:ss").toBe("00:00/59:40");
+  expect.soft(await programClock(), "the Program tab's clock alike").toBe("00:00");
+  await ctl({ op: "status_delta", data: { joint_pos: [-50, 0, 0, 0, 0] } });
+  await page.locator(".scrubBar input.toggle").check();
+  await expect(page.locator(".simBanner")).toBeVisible();
+  await expect.soft(page.locator(".viewerPane .scrubBar .posSlot"), "the entry move past the hour").toHaveText("0:00:00/1:00:30", { useInnerText: true });
+  await expect.soft(page.locator(".simPanel .simTime"), "the Sim tab's head: the bar's").toHaveText("0:00:00/1:00:30");
+  await expect(rows(page).first()).toBeVisible();
+  const at = await page.locator(".simPanel tbody tr[data-sim-row] .colAt").allInnerTexts();
+  for (const t of at) expect.soft(t, `the Time column: ${JSON.stringify(at)}`).toMatch(/^\d:\d\d:\d\d$/);
+  expect.soft(await programClock(), "the Program tab's clock in the bar's form").toBe("0:00:00");
+  await page.locator(".scrubBar input.toggle").uncheck();
+  await expect(page.locator(".simBanner")).toBeHidden();
+  expect.soft(await bar(), "out of the simulation: the form kept").toMatch(/^\d:\d\d:\d\d\/\d:\d\d:\d\d$/);
+  expect.soft(await programClock(), "out of the simulation: the clock's form kept").toBe("0:00:00");
+  await runStart();
+  await expect.poll(bar, { message: "a run drops the entry move: the program's own time, the form kept" }).toMatch(/^~\d:\d\d:\d\d\/0:59:40$/);
+  expect.soft(await programClock(), "the run's clock in the form").toBe("0:00:20");
+});
+
+// Codex R238: what counts toward the form is the publication's own — a new
+// one arrived while the last one's entry move still stood (A), and a distance
+// axis is millimetres, never seconds (B).
+const publish = async (page: Page, context: BrowserContext, preview: Buffer, file: string, version: number, max: string) => {
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: preview }));
+  await ctl({ op: "status_delta", data: { active_file: file } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version, file } });
+  await expect.poll(() => page.locator(".scrubBar .sliderInput").getAttribute("max"), { message: `${file} v${version} on the bar` }).toBe(max);
+  await settleLayout(page);
+};
+const clockText = async (page: Page) => {
+  await page.getByRole("tab", { name: "Program", exact: true }).click();
+  const t = await page.locator(".elapsedLabel").innerText();
+  await openSimTab(page);
+  return t;
+};
+for (const file of ["/sim.ngc", "/short.ngc"]) {
+  test(`a new publication takes its own time form: a 2 h program's entry move holds nothing of a 2 min one (${file === "/sim.ngc" ? "the same file, a new version" : "another file"})`, async ({ page, context }) => {
+    await prepare(page, context, "desktop", timed(7200), false);
+    await ctl({ op: "status_delta", data: { joint_pos: [-50, 0, 0, 0, 0] } });
+    await page.locator(".scrubBar input.toggle").check();
+    await expect(page.locator(".simBanner")).toBeVisible();
+    await page.locator(".scrubBar input.toggle").uncheck();
+    await expect(page.locator(".simBanner")).toBeHidden();
+    expect.soft(await clockText(page), "the long program's form").toBe("0:00:00");
+    await publish(page, context, timed(120), file, 5101, "120");
+    const at = await timeSlot(page);
+    expect.soft(at.text, "the 2 min program in its own form").toBe("00:00/02:00");
+    expect.soft(at.slot.w, "its slot its own form's widest").toBe(at.widest);
+    expect.soft(await clockText(page), "the Program tab's clock in the new program's form").toBe("00:00");
+  });
+}
+test("a distance axis is no time: 4000 mm without a time axis leave the Program tab's clock in its estimate's form", async ({ page, context }) => {
+  await prepare(page, context, "desktop", timed(120), false);
+  const DIST = Buffer.from(encode({ file: "/dist.ngc", preview_schema: 11, feed: [[0, 0, 0], [4000, 0, 0]], feed_lines: [3, 4], feed_seq: [3, 4], rapid_rate: 1,
+    stats: { feedMoves: 1, rapidMoves: 0, linearMoves: 1, arcMoves: 0, feedDist: 4000, rapidDist: 0, linearDist: 4000, arcDist: 0,
+             feedTime: 120, rapidTime: 0, totalTime: 120, feedRates: [100], toolChanges: 0, toolsUsed: [], unit: "mm", fileSize: 1 } }));
+  await publish(page, context, DIST, "/dist.ngc", 5101, "4000");
+  expect.soft((await timeSlot(page)).text, "the distance axis reads in %").toMatch(/ %$/);
+  expect.soft(await clockText(page), "4000 mm are not 4000 s").toBe("00:00");
 });
 
 // The card is 92 % opaque: the track is measured against the card composed

@@ -38,7 +38,7 @@ import type { ScrubTrack } from "./ws/bulkData";
 import type { CollisionResult } from "./viewer/collision";
 import { EVENT_NONE } from "./viewer/eventIndex";
 import { mergedSweptFraction } from "./viewer/sweepMerge";
-import { fmtElapsed, NO_VALUE } from "./format";
+import { fmtElapsedAs, NO_VALUE } from "./format";
 import { Play, Pause, Square, SquareArrowOutUpRight } from "lucide-vue-next";
 import MachineSelect from "./MachineSelect.vue";
 import MachineBtn from "./MachineBtn.vue";
@@ -155,6 +155,9 @@ const baseTrack = computed(() => viewerGcode.value?.scrubTrack ?? null);
 // (trace: browser.error.console ×8 over two days). Nothing watches the
 // track deeply — consumers react to the ref reassignment only.
 const entryTrack = shallowRef<ScrubTrack | null>(null);
+// the base track the entry track was built from (the time form counts an
+// entry move only for its own publication, Codex R238)
+let _entryBase: ScrubTrack | null = null;
 const track = computed(() => entryTrack.value ?? baseTrack.value);
 const running = computed(() => (st.value.interp_state ?? INTERP_IDLE) !== INTERP_IDLE);
 const machineOff = computed(() => !st.value.is_enabled);
@@ -184,6 +187,26 @@ const cumMax = computed(() => {
   const t = track.value;
   return t ? t.cum[t.count - 1]! : 0;
 });
+// ONE time form per program version (Codex R237 SP-02): the longest time
+// this publication has shown — its estimate and every displayed track, the
+// entry move's included. It only grows until the next publication: the entry
+// track is kept after the simulation and dropped at a run start, and the
+// form must flip with neither ("0:00:00" in the bar, the Sim tab and the
+// Program tab's clock alike). Sync: no displayed total is ever missed. Only
+// what belongs to THIS publication counts (Codex R238): an entry move built
+// from its own track — a new publication arrives while the last one's entry
+// track still stands, the base watch drops it after this — and a track's end
+// only when its axis is time (a distance axis is millimetres, not seconds).
+const timeForm = ref(0);
+let _timeFormOf: unknown = null;
+watch([viewerGcode, baseTrack, entryTrack], ([g, base, entry]) => {
+  const t = entry && _entryBase === base ? entry : base;
+  const shown = t?.timeBased ? Math.floor(t.cum[t.count - 1]!) : 0;
+  const seen = g === _timeFormOf ? timeForm.value : 0;
+  _timeFormOf = g;
+  timeForm.value = Math.max(seen, shown, Math.floor(g?.stats?.totalTime ?? 0));
+  simView.timeForm = timeForm.value;
+}, { immediate: true, flush: "sync" });
 const curLine = ref(0);
 const curRapid = ref(false);
 // Per-point line trust + marked-sub name at the scrub position (W2 P6);
@@ -330,6 +353,7 @@ function _buildEntryTrackNow() {
     base, _baseJoints, viewerInit.value?.axes ?? [], _wcs(), _kinsSpec.value,
     _epochTerms.value, st.value.kins_type ?? null,
     { linear: g?.rapid_rate, rotary: g?.rot_rapid_rate, axisVmax: g?.axis_vmax, trajVmax: g?.traj_vmax });
+  _entryBase = base;   // before the assignment: the sync time-form watch reads it
   entryTrack.value = built ? markRaw(built) : null;
 }
 
@@ -507,7 +531,8 @@ const posLabel = computed(() => {
     // "+" too where a feed in the program's start-dependent beginning has
     // only a shortest duration, or none (parity-ef plan E7)
     const more = probeStops.value.length || track.value.depTime;
-    return `${fmtElapsed(Math.floor(sPos.value))}/${fmtElapsed(Math.floor(cumMax.value))}${more ? "+" : ""}`;
+    // both in the program's form (timeForm): the readout keeps one width
+    return `${fmtElapsedAs(Math.floor(sPos.value), timeForm.value)}/${fmtElapsedAs(Math.floor(cumMax.value), timeForm.value)}${more ? "+" : ""}`;
   }
   return `${pct.value} %`;
 });
@@ -673,19 +698,27 @@ const posText = computed(() => (running.value ? `~${posLabel.value}` : posLabel.
 // tab keep both.
 const posNow = computed(() => {
   if (!track.value?.timeBased) return posText.value;
-  return `${running.value ? "~" : ""}${fmtElapsed(Math.floor(sPos.value))}`;
+  return `${running.value ? "~" : ""}${fmtElapsedAs(Math.floor(sPos.value), timeForm.value)}`;
 });
 const posRest = computed(() => (posNow.value === posText.value ? "" : posText.value.slice(posNow.value.length)));
-// Both readout slots are sized PER PROGRAM, so they change only on load and
-// the timeline never moves while scrubbing. Time: "mm:ss/mm:ss" plus the
-// run "~" (5ch holds the distance axis's "100%"). Line: "L" + the digits of
-// the last line + " →" (the rapid marker), 5ch floor for "entry"/"end";
-// sub names ellipsize with the full text in the title.
-const posSlotCh = computed(() =>
-  track.value?.timeBased ? fmtElapsed(Math.floor(cumMax.value)).length * 2 + 2 + (probeStops.value.length ? 1 : 0) : 5);
-/** The narrow form's slot: the elapsed time alone (with the run's "~"). */
-const posNarrowCh = computed(() =>
-  track.value?.timeBased ? fmtElapsed(Math.floor(cumMax.value)).length + 1 : 5);
+// The time's slot is as wide as the program's WIDEST readout, built from
+// what the readout shows (the program's form, the run's "~", the "+"), so
+// the timeline never moves while scrubbing or when a run begins; the narrow
+// form keeps the first part. Sized from the rendered text (.stable-width),
+// never in ch: the 16 ch of "~h:mm:ss/h:mm:ss" left 45 px of the slot empty
+// (operator 2026-10-31). The form once with EVERY digit 0…9: tabular figures
+// are one advance in the font but not on screen — Chromium on Linux rounds
+// "0" to 8 px and "2" to 7 at 11 px, so "~0:00:00/1:56:00" was 1 px wider
+// than "~1:56:00/1:56:00" (Codex R237 SP-01). Advances add up (no kerning
+// between figures), so the widest of the ten bounds every readout, whatever
+// figure a browser rounds widest.
+const posWidest = computed(() => {
+  const form = !track.value?.timeBased ? { now: "~100 %", rest: "" } : {
+    now: `~${fmtElapsedAs(timeForm.value, timeForm.value)}`,
+    rest: `/${fmtElapsedAs(timeForm.value, timeForm.value)}${probeStops.value.length || track.value.depTime ? "+" : ""}`,
+  };
+  return "0123456789".split("").map(d => ({ now: form.now.replace(/\d/g, d), rest: form.rest.replace(/\d/g, d) }));
+});
 // the probe's note as before (≤ 90 characters, the audit's LONG_TITLE);
 // otherwise the whole readout — the narrow form shows only its first part
 const posTitle = computed(() => probeStops.value.length
@@ -1154,7 +1187,7 @@ const rowsNow = computed(() => {
   const rows = buildSimRows({
     clash: part.clash, limit: part.limit, tool: part.tool,
     unit: linearUnit.value,
-    timeBased: !!track.value?.timeBased, axisEnd: cumMax.value,
+    timeBased: !!track.value?.timeBased, axisEnd: cumMax.value, timeForm: timeForm.value,
     stop: limitStop.value,
     toolNotes: m600Notes.value.byLine,
     measurements: measurements.value,
@@ -1481,11 +1514,11 @@ onUnmounted(releaseSim);
           </span>
         </div>
       </div>
-      <!-- The time in a FIXED slot sized per program (posSlotCh): the
-           timeline is the one flexible item, so it never moves. -->
+      <!-- The coverage and the time in FIXED slots: the timeline is the
+           one flexible item, so it never moves. The time's is as wide as the
+           program's widest readout (its hidden .alt, one per figure). -->
       <span class="val-slot checkSlot val-status mono" :class="{ 'text-warn': checkHalt }" :title="checkPctTitle">{{ checkPct }}<Pause v-if="checkHalt === 'paused'" :size="10" class="checkGlyph" aria-hidden="true" /><Square v-else-if="checkHalt === 'stopped'" :size="10" class="checkGlyph" aria-hidden="true" /></span>
-      <span class="val-slot posSlot val-status mono" :class="{ muted: !simMode && !running }"
-            :style="{ '--slot-w-wide': posSlotCh + 'ch', '--slot-w-narrow': posNarrowCh + 'ch' }" :title="posTitle">{{ posNow }}<span class="posRest">{{ posRest }}</span></span>
+      <span class="posSlot val-status mono" :class="{ muted: !simMode && !running }" :title="posTitle"><span class="stable-width"><span><span>{{ posNow }}<span class="posRest">{{ posRest }}</span></span></span><span v-for="(w, i) in posWidest" :key="i" class="alt" aria-hidden="true"><span>{{ w.now }}<span class="posRest">{{ w.rest }}</span></span></span></span></span>
       <MachineBtn type="scrub" class="iconBtn simTabLink" aria-label="Open the Sim tab" title="Open the Sim tab" @click="emit('open-sim-tab')">
         <SquareArrowOutUpRight :size="14" />
       </MachineBtn>
@@ -1586,16 +1619,12 @@ onUnmounted(releaseSim);
   transform: translateX(-50%);
   line-height: 0;
 }
-/* The time's fixed slot (--slot-w is the global .val-slot width var, bound
-   inline PER PROGRAM — posSlotCh): FIXED, not min-width (2026-09-12), so
-   the timeline — the one flex:1 item — keeps its edges while text changes. */
-.posSlot {
-  --slot-w: var(--slot-w-wide);
-  flex: 0 0 var(--slot-w);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+/* The time's fixed slot: as wide as the program's widest readout (its
+   .alt cells, posWidest) — FIXED, so the timeline, the one flex:1 item, keeps its
+   edges while the text changes (2026-09-12). Each readout is ONE inline
+   span in its .stable-width cell: the two parts as the cell's flex items
+   read as two lines. */
+.posSlot { flex: none; white-space: nowrap; }
 /* A bar under 620 px takes TWO rows — the timeline kept ~90 px in one
    (the fixed items take ~405 px; at 620 one row leaves the timeline ~200):
    Sim, Play, the speed and the link above; the timeline, the coverage and
@@ -1612,7 +1641,6 @@ html.touch-device .scrubBar.denseArea .scrubRow .iconBtn.b { min-width: var(--to
   .simTabLink { order: 1; margin-left: auto; }
   .rowBreak { display: block; order: 2; flex: 0 0 100%; height: 0; }
   .sliderWrap, .checkSlot, .posSlot { order: 3; }
-  .posSlot { --slot-w: var(--slot-w-narrow); }
   .posRest { display: none; }
 }
 </style>

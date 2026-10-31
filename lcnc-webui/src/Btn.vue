@@ -82,6 +82,11 @@ html:not(.touch-device) .b:hover:not(:disabled) { background: var(--hl-hover); }
    button sizes (its density: D6); the macro bar is a dense area whose md
    buttons take its compact --control-h. */
 :where(.sidePane, .dialog, .macroBar) .b.md { padding-block: 0; min-height: var(--control-h); }
+/* The scrub bar's symbol buttons (Play, the Sim tab link) are as tall as the
+   speed select beside them: the bar's compact --control-h, 28 px — their sm
+   padding made 26 (operator 2026-10-31). Here, not on the caller's class: a
+   dimmed button's class lands on its .btnTip wrapper. */
+:where(.scrubBar) .b { min-height: var(--control-h); }
 
 /* Touch: min-heights come from the global button rule in style.css
    (touch sizing layer); narrow variants additionally need a width floor
