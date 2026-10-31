@@ -1087,7 +1087,9 @@ test("the provisional result keeps its own limits while the full check runs, its
   await expect.poll(() => runLog(page), { timeout: 30_000 }).toEqual(["start provisional 1", "full", "done"]);
   await expect(item).toHaveAttribute("aria-label", /· checked in full$/);
   await expect(item.locator('span[title^="Not certified"]')).toHaveCount(0);
-  await expect(coverage, "checked in full: no coverage left to show").toHaveText("");
+  // the full check's coverage stays at 100 % (operator 2026-10-31), its words in the title
+  await expect(coverage, "checked in full: 100 %").toHaveText("100 %");
+  await expect(coverage).toHaveAttribute("title", "Collision check: checked in full");
   await expect(coverage.locator(".checkGlyph")).toHaveCount(0);
   await expect(coverage).not.toHaveClass(/text-warn/);
   const after = await help();
