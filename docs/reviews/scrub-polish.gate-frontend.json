@@ -1,33 +1,33 @@
 {
-  "head": "96a8bcbd",
+  "head": "ed93f388",
   "uncommitted": 0,
-  "note": "scrub polish 96a8bcbd",
+  "note": "scrub polish R238 ed93f388",
   "gates": [
     {
       "name": "frontend-lint",
       "command": "npm run lint",
       "status": "PASS",
-      "seconds": 19
+      "seconds": 10
     },
     {
       "name": "frontend-build",
       "command": "npm run build",
       "status": "PASS",
-      "seconds": 42
+      "seconds": 19
     },
     {
       "name": "frontend-unit",
       "command": "npm test",
       "status": "PASS",
-      "seconds": 492,
-      "tests": "166 files, 2662 passed"
+      "seconds": 457,
+      "tests": "166 files, 2663 passed"
     },
     {
       "name": "frontend-browser",
       "command": "npx playwright test --trace off --reporter=line",
       "status": "PASS",
-      "seconds": 3172,
-      "tests": "783 passed",
+      "seconds": 3029,
+      "tests": "787 passed",
       "note": "run alone"
     }
   ]
