@@ -16,6 +16,7 @@ import { highlightGcode, type Token } from "./gcodeHighlight";
 import { fmtPct } from "./format";
 import { limitViolationText, type LimitViolation } from "./ws/bulkData";
 import { limitMarks } from "./limitMarks";
+import { toolMarks } from "./toolMarks";
 import { isTouchDevice } from "./touchDetect";
 import { useMediaMql } from "./useMediaMql";
 import { glideAt, planGlide, stepDelay, type Glide } from "./codeGlide";
@@ -23,7 +24,7 @@ import { emitTelemetry, pushMessage } from "./lcncWs";
 import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "./lcnc";
 import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
 import { refTargets, normaliseCode } from "./gcodeRefView";
-import { Play, SkipForward, Pause, X, Triangle } from "lucide-vue-next";
+import { Play, SkipForward, Pause, X, Triangle, Circle } from "lucide-vue-next";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineRadio from "./MachineRadio.vue";
@@ -574,6 +575,9 @@ watch(subActiveLine, (ln) => {
 // a record marks the line its own move shows, never its raw number — a record
 // with no place or no line marks none (Codex R178, the rest of VP-I130).
 const violationsByLine = computed(() => limitMarks.value);
+// The timeline's tool-change lines (toolMarks, published by the bar): line →
+// the tool it loads.
+const toolsByLine = computed(() => toolMarks.value);
 
 // one mark per line, asked only for the lines rendered — each once per
 // query (a new query is a new result shown)
@@ -585,6 +589,13 @@ const collisionMarkAt = computed(() => {
     return seen.get(line)!;
   };
 });
+
+/** Every finding of the line, named: the glyph shows one, the name says all. */
+function lineMarkName(lineNum: number): string {
+  const kinds = [violationsByLine.value.has(lineNum) && "limit violation", !!collisionMarkAt.value(lineNum) && "collision",
+                 toolsByLine.value.has(lineNum) && "tool change"].filter((k): k is string => !!k).join(", ");
+  return kinds.charAt(0).toUpperCase() + kinds.slice(1);
+}
 
 function lineMarkTitle(lineNum: number): string | undefined {
   const parts: string[] = [];
@@ -600,6 +611,8 @@ function lineMarkTitle(lineNum: number): string | undefined {
       ? "still in contact (began in the entry move) — see viewer Check results"
       : `still in contact (began L${cm.continuation}) — see viewer Check results`)
     : "collision clearance hit — see viewer Check results");
+  const tool = toolsByLine.value.get(lineNum);
+  if (tool != null) parts.push(`Tool change → T${tool || "?"}`);   // the Sim list's words
   return parts.length ? parts.join(" · ") : undefined;
 }
 
@@ -1194,19 +1207,23 @@ async function saveEdit() {
                    selected: item.kind === 'main' && selectedLine === item.lineNum,
                    selectable: item.kind === 'main' && runFromLine && gcodeContent,
                    violation: item.kind === 'main' && violationsByLine.has(item.lineNum),
-                   collision: item.kind === 'main' && !!collisionMarkAt(item.lineNum)
+                   collision: item.kind === 'main' && !!collisionMarkAt(item.lineNum),
+                   toolChange: item.kind === 'main' && toolsByLine.has(item.lineNum)
                  }"
                  :title="item.kind === 'main' ? lineMarkTitle(item.lineNum) : undefined"
                  @click="item.kind === 'main' && onLineClick(item.lineNum)">
               <span class="lineNumber">{{ item.lineNum }}</span>
               <!-- A finding is a FORM, not only the number's colour (viewer
                    contrast plan, V3): the timeline's glyphs, × wins the look,
-                   the name says every finding of the line. -->
+                   then ▲, then ● (a tool change, operator 2026-11-01); the
+                   name says every finding of the line. -->
               <span class="lineMark">
                 <X v-if="item.kind === 'main' && !!collisionMarkAt(item.lineNum)" :size="11" role="img"
-                   :aria-label="violationsByLine.has(item.lineNum) ? 'Limit violation, collision' : 'Collision'" />
+                   :aria-label="lineMarkName(item.lineNum)" />
                 <Triangle v-else-if="item.kind === 'main' && violationsByLine.has(item.lineNum)" :size="9" fill="currentColor"
-                          role="img" aria-label="Limit violation" />
+                          role="img" :aria-label="lineMarkName(item.lineNum)" />
+                <Circle v-else-if="item.kind === 'main' && toolsByLine.has(item.lineNum)" :size="9" fill="currentColor"
+                        role="img" :aria-label="lineMarkName(item.lineNum)" />
               </span>
               <span class="lineContent">
                 <span

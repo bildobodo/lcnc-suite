@@ -1946,9 +1946,14 @@ label:has(input:disabled, select:disabled) {
 }
 
 /* Line flagged by offline validation — tinted line number so the marker
-   survives next to active/selected backgrounds: soft-limit overtravel is
-   warn, a collision-sweep contact is danger (same colours as the scrub
-   bar's timeline marks; a line with both reads danger — later rule wins). */
+   survives next to active/selected backgrounds: a tool change in its mark's
+   colour, soft-limit overtravel warn, a collision-sweep contact danger (the
+   scrub bar's timeline marks; a line with more reads the last — later rule
+   wins). */
+.codeLine.toolChange .lineNumber,
+.codeLine.toolChange .lineMark {
+  color: var(--mark-tool);
+}
 .codeLine.violation .lineNumber,
 .codeLine.violation .lineMark {
   color: var(--mark-limit);

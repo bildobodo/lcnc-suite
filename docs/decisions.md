@@ -10090,3 +10090,15 @@ the position in the code panel's look, its text 4.5 : 1 on it" (five themes; red
 the fill differs in every theme) — it also brings the Sim tab and the code panel's position line
 into the reading-contrast scan, which never visited either (the full colour instead of the tint
 fails it in every theme: 1.35–3.36 : 1).
+
+**The code's mark column gets the tool change's ● (operator, the same look: "im programm werden ja
+limit überschreitungen und kollisionen mit den jeweiligen symbolen angezeigt. wie schaut das mit
+dem punkt für die werkzeugwechsel aus? … in der spalte im programmcode").** The code panel marked
+▲ and × beside the line number, never the third timeline mark. A tool-change line now carries ●
+and its number in `--mark-tool` — the lines of the timeline's tool-change targets (the wire's canon
+M6 lines and the text's M6 / M600 / M601 lines the track places: ONE source, `toolMarks`,
+published by the bar like `limitMarks`), so the code, the timeline and the Sim list name the same
+changes. × wins the look over ▲ over ●; the glyph's name says every finding of the line
+("Limit violation, collision, tool change"), the line's title adds the Sim list's words ("Tool
+change → T3"). Guard red first: `layout.spec` "a code line names its findings with a glyph: ▲
+limit, × collision, ● tool change, all named" (red at `2b7aa72f`: the tool line had no mark).

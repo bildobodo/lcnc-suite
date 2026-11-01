@@ -1480,7 +1480,10 @@ test('a help icon in the viewer warnings card scrolls nothing and keeps its hit 
 // apart. A glyph in the slot between the number and the code (the 16 px the
 // number's margin gave): ▲ limit, × collision, × when both (danger wins the
 // look), named for every finding of the line; the code starts where it did.
-test('a code line names its findings with a glyph: ▲ limit, × collision, both named', async ({ page, context }) => {
+// ● a tool change too (operator 2026-11-01: "wie schaut das mit dem punkt für
+// die werkzeugwechsel aus? … in der spalte im programmcode"): the timeline's
+// tool-change lines, in their colour, the others' glyph winning the look.
+test('a code line names its findings with a glyph: ▲ limit, × collision, ● tool change, all named', async ({ page, context }) => {
   test.setTimeout(120_000);
   const feed = LIMIT_FEED.map(p => [...p]);
   const body = Buffer.from(encode(withLimitRuns({ file: '/marks.ngc', preview_schema: 11, feed,
@@ -1490,7 +1493,9 @@ test('a code line names its findings with a glyph: ▲ limit, × collision, both
     violations_total: 2, rapid: [[0, 0, 5], [0, 0, 0]], rapid_lines: [1, 2], rapid_seq: [1, 2] })));
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain',
-    body: Array.from({ length: 40 }, (_, i) => i === 0 ? '(marks)' : `G1 X${i} Y${i % 2 ? 20 : 0} F100`).join('\n') }));
+    // a tool change alone on line 8, one on line 32 with its limit and collision
+    body: Array.from({ length: 40 }, (_, i) => i === 0 ? '(marks)' : i === 7 ? 'T3 M6'
+      : `${i === 31 ? 'T5 M6 ' : ''}G1 X${i} Y${i % 2 ? 20 : 0} F100`).join('\n') }));
   await openLayout(page, PROFILES[1], VIEWPORTS.find(v => v.name === 'desktop')!);
   await ctl({ op: 'status_delta', data: { active_file: '/marks.ngc' } });
   await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 990, file: '/marks.ngc' } });
@@ -1507,16 +1512,26 @@ test('a code line names its findings with a glyph: ▲ limit, × collision, both
     return line(n).evaluate(el => {
       const g = el.querySelector('.lineMark [role="img"]');
       return { name: g?.getAttribute('aria-label') ?? null, glyph: g ? [...g.classList].find(c => c.startsWith('lucide-') && c !== 'lucide-icon') ?? null : null,
-        codeX: el.querySelector('.lineContent')!.getBoundingClientRect().left };
+        codeX: el.querySelector('.lineContent')!.getBoundingClientRect().left,
+        color: getComputedStyle(el.querySelector('.lineMark')!).color, title: el.getAttribute('title') };
     });
   };
-  const [limitOnly, collisionOnly, both, plain] = [await mark(20), await mark(12), await mark(32), await mark(5)];
-  const dump = JSON.stringify({ limitOnly, collisionOnly, both, plain });
+  const markTool = await page.evaluate(() => {
+    const p = document.body.appendChild(document.createElement('span'));
+    p.style.color = 'var(--mark-tool)';
+    const c = getComputedStyle(p).color;
+    p.remove();
+    return c;
+  });
+  const [limitOnly, collisionOnly, all, tool, plain] = [await mark(20), await mark(12), await mark(32), await mark(8), await mark(5)];
+  const dump = JSON.stringify({ limitOnly, collisionOnly, all, tool, plain });
   expect([limitOnly.glyph, limitOnly.name], `limit: ▲ named ${dump}`).toEqual(['lucide-triangle-icon', 'Limit violation']);
   expect([collisionOnly.glyph, collisionOnly.name], `collision: × named ${dump}`).toEqual(['lucide-x-icon', 'Collision']);
-  expect([both.glyph, both.name], `both: × shows, the name says both ${dump}`).toEqual(['lucide-x-icon', 'Limit violation, collision']);
+  expect([all.glyph, all.name], `all three: × shows, the name says each ${dump}`).toEqual(['lucide-x-icon', 'Limit violation, collision, tool change']);
+  expect([tool.glyph, tool.name, tool.color], `tool change: ● named, in its mark's colour ${dump}`).toEqual(['lucide-circle-icon', 'Tool change', markTool]);
+  expect(tool.title, `its title says the tool, the Sim list's words ${dump}`).toBe('Tool change → T3');
   expect(plain.name, `a clean line has no mark ${dump}`).toBeNull();
-  expect(new Set([limitOnly.codeX, collisionOnly.codeX, both.codeX, plain.codeX]).size, `the code starts at one x ${dump}`).toBe(1);
+  expect(new Set([limitOnly.codeX, collisionOnly.codeX, all.codeX, tool.codeX, plain.codeX]).size, `the code starts at one x ${dump}`).toBe(1);
 });
 
 // Viewer contrast plan, V4 (VK-02/03): the tilted work plane names its state

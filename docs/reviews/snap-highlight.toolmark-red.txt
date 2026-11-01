@@ -1,0 +1,6 @@
+# Red at 2b7aa72f + the extended guard (layout.spec "a code line names its findings with a glyph: ▲ limit, × collision, ● tool change, all named"), built dist of 2b7aa72f, 2026-11-01
+    Error: all three: × shows, the name says each
+    -   "Limit violation, collision, tool change",
+    +   "Limit violation, collision",
+    tool (line 8, T3 M6): {"name":null,"glyph":null,"color":"rgb(33, 53, 71)","title":null} — no mark
+  1 failed
