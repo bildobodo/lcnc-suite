@@ -1,0 +1,41 @@
+{
+  "head": "99260c56",
+  "base": "4ad87515",
+  "archive": "/tmp/codex-r244-4ynyl998/repo",
+  "reviewBytes": 47927,
+  "reviewSha256": "65638164adcb1268b06bc6f7335a63d139d4d13fc00e4f080537a8703aaf2594",
+  "sourceFilesByteIdentical": 410,
+  "headFull": "99260c56a29ee22d397405f703d599c1344b6d6b",
+  "baselineFull": "4ad87515b8b2c71507209f92db70a8b48e6976fd",
+  "productWorktreeStatus": "",
+  "scope": "Read-only product review; own archive build; no live endpoints or machine commands; own mock stopped.",
+  "testAdjustments": [
+    "archive e2e localhost:4174 to 127.0.0.1:4188 (HTTP and WS)",
+    "own R243 probe copied with output path changed and R244 cases appended; no previous evidence modified",
+    "R243 dist used only for the selected restart control, R244 dist restored afterwards"
+  ],
+  "results": {
+    "build": "PASS",
+    "unit": {
+      "passed": 6
+    },
+    "repositoryBrowser": {
+      "passed": 15,
+      "parts": [
+        10,
+        2,
+        3
+      ]
+    },
+    "ownRegressionBrowser": {
+      "passed": 6
+    },
+    "restartCounterexample": {
+      "headFailingTrials": 8,
+      "headTrials": 8,
+      "baselineFailingTrials": 0,
+      "baselineTrials": 8
+    },
+    "scrollAwayCounterexample": "FAIL: band outside viewport in two frames"
+  }
+}

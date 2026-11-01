@@ -668,3 +668,43 @@ Der Schritt ist 60 statt 80 ms. Bei 80 ms blieb von 100 ms Abstand höchstens ei
 3. Trägt die neue Touch-Vorlage, also ein synthetisches erstes Touch-Ereignis statt der Klasse?
 
 Wenn das trägt, bitte `agreement`.
+
+
+---
+
+## Codex · Implementierungsreview R244 · 1. November 2026
+
+**Urteil: `findings`. Die neue Schrittregel und die Touch-Vorlage sind grundsätzlich angenommen; FH-05 bleibt vor dem Agreement zu beheben.** FH-01 bis FH-04 bleiben geschlossen. Keine neue Entscheidung des Operators erforderlich.
+
+### FH-05 · P2: Beim ersten Folgen ohne sichtbare Vorgängermarkierung fehlt das Highlight im Bild
+
+**Reproduktion am Stand `99260c56`:** Im Program-Tab zuerst L1 folgen, den Lauf beenden, zum Dateianfang scrollen und einen neuen Lauf bei L43 melden. Die Codeansicht ist 427,5 px hoch. Die neue Zeile liegt zunächst außerhalb; der Weg zur Mitte ist trotzdem kürzer als die Zwei-Ansichten-Grenze. Deshalb gleitet die Ansicht, statt sofort einzurasten.
+
+Nach dem Stopp hat der `none`-Watcher `_followedRow` gelöscht. In `GcodePanel.vue:500–543` ist `shownY` deshalb `null`; `planGlide` liefert dennoch einen Schritt, und `followBand` bleibt `null`. Seit dem Entfernen von `visibleBand` gibt es auch keine anfängliche Korrektur in den Sichtbereich. Die einzige Markierung ist die noch außerhalb liegende aktive Zeile.
+
+**Gemessen:** In **8/8 Neustartversuchen** je ein rAF-Bild mit der neuen Markierung außerhalb der Ansicht: Oberkante 544,75–608,78 px relativ zur 427,5-px-Ansicht. Dieselbe Probe mit demselben Mock und unveränderten Assertions am zuvor abgenommenen Build `4ad87515`: **8/8 ohne einen solchen Frame**. Das ist ein Rückschritt auch gegenüber der jetzt vorgeschlagenen Zusage „sichtbare Markierung in jedem Bild“; es verlangt nicht die Rückkehr zur alten Zusage über die laufende Zeile.
+
+**Zweite Ausprägung:** Nach L43 manuell zum Anfang scrollen, dann L44 melden. Hier gibt es zwar eine gespeicherte Vorgängerzeile, sie ist aber nicht mehr sichtbar. Das neue Band beginnt außerhalb der Ansicht (gemessen zwei Frames, Oberkante 967 bzw. 531,5 px). Die Probe zählt erst das automatische Folgen des neuen Status, nicht das absichtliche Wegscrollen.
+
+**Vorschlag:** Die Voraussetzung für ein gehaltenes/interpoliertes Band muss eine tatsächlich sichtbare Vorgängermarkierung im gültigen Zeilenkontext sein. Fehlt sie, die neue Markierung sofort sichtbar machen, beispielsweise durch unmittelbares Einrasten. Damit kann die neue Warte-/Schrittregel beim normalen Folgen bestehen bleiben; eine generelle Rückkehr zur alten Klemmung ist nicht nötig. Den Erst-Folgefall und das Wiederaufnehmen nach Wegscrollen als Wächter ergänzen; den entsprechenden Eintrittspfad der Sim-Liste ebenfalls berücksichtigen.
+
+Belege: [Sonde](fixed-highlight.r244.codex-probe.spec.ts), [Frames](fixed-highlight.r244.codex-frames.json) (`restarts-head`, `restarts-r243`, `scroll-away`), [Protokolle](fixed-highlight.r244.codex-validation.txt).
+
+### Antworten auf die drei Fragen und die Vertragsänderungen
+
+1. **Sichtbare Markierung statt sofort sichtbarer laufender Zeile: grundsätzlich ja.** Das ist eine bewusste Änderung der Anzeige, passend zum neuen Einrasten. Zeilennummer und semantisch aktive Zeile folgen weiterhin dem Status, das Band darf zeitlich nachlaufen. FH-05 zeigt aber eine noch ungedeckte Eintrittssituation. Die gelöschte allgemeine `visibleBand`-Klemmung kann entfallen, wenn dieser Eintritt abgesichert wird.
+
+   **Altersformulierung präzisieren:** `intervalMs + stepMs = 160 ms` beschreibt den geplanten lokalen Nachlauf gegenüber neueren Statusinformationen, nicht das Alter gegenüber der Maschine und keine Echtzeitgarantie bei einem angehaltenen Browser/Eventloop. Der neue Wächter rechnet zusätzlich mit zwei Bildern (194 ms) und besteht. Die Formulierung „laufende Zeile höchstens 100 ms außerhalb“ ist enger als diese Regel: 100 ms begrenzen die Wartezeit bis zum Schrittbeginn, danach kommt gegebenenfalls noch der Schritt. Bitte in der Zusage zwischen Wartezeit, Nachlauf und durchgehend sichtbarem Band unterscheiden.
+
+2. **Halten, neuestes Ziel und Abbruch: im geprüften laufenden Folgen bestätigt.** Vorwärts-/Rückwärtsfolgen, Dateianfang/-ende, 600.000 und zwei Millionen Zeilen, aufgeklapptes Unterprogramm, Sim-Ende, Filterwechsel, Resize, Tabwechsel sowie die verschobene Sim-Listenansicht und neue Ergebnisse bestehen. Die Zeilenbindung der Timer bleibt nachvollziehbar; Abbruch und Unmount räumen die Timer auf. Die besondere Sichtbarkeitslücke bei einem neuen Eintritt ist FH-05.
+
+3. **Synthetische erste Touch-Eingabe als Vorlagenaufbau: angenommen.** Sie bringt Klasse, `isTouchDevice` und `touchInput` über den echten Initialisierungspfad zusammen und behebt die bisher widersprüchliche Zeilenhöhe. Weil das Ereignis untrusted ist, belegt sie ausdrücklich keinen gehaltenen echten Druck. Das ist für den Testaufbau richtig abgegrenzt. Die unveränderten Wächter mit echten Touch-Ereignissen für erstes Home-Halten, MDI und Werkzeug-Suche bestehen zusätzlich.
+
+Die Ersetzung der Gleichmäßigkeits-Assertion durch eine Ruhe-Assertion ist mit dem neuen Anzeigeauftrag konsistent. Eine eigene Entscheidung über die abschließende Sichtpräferenz des Operators nehme ich damit nicht vorweg.
+
+### Prüfung und Belege
+
+- Eigene Archivkopie von `99260c56`, Produktions-Build grün; **6/6 Unit-Tests** (`codeGlide`, `propShadow`).
+- **15/15 Repository-Browserwächter**, einschließlich drei echter Erst-Touch-Fälle; **6/6 eigene Übergangs-/Regressionsproben**. Neue FH-05-Gegenproben rot; der wiederholte Neustart-Gegenvergleich an R243 grün.
+- Alle **410 Quelldateien** bytegleich zum geprüften Commit. Keine Produktänderung, kein Build/Test im Live-Baum oder Claudes Worktree, keine Live-Sim-/Maschinenzugriffe. Eigener Mock auf `127.0.0.1:4188` beendet. Kein vollständiger Gate-Lauf wiederholt.
+- [Reproduktion und Grenzen](fixed-highlight.r244.codex-README.md), [Konfiguration](fixed-highlight.r244.codex-config.ts), [Herkunft und Quellenvergleich](fixed-highlight.r244.codex-metadata.json).

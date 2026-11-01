@@ -1,0 +1,494 @@
+
+===== build.log =====
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2127 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-CX6P-oit.css                 8.14 kB │ gzip:   2.08 kB
+dist/static/index-DvuMU_Nv.css                      97.77 kB │ gzip:  17.81 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-D1UVzEjW.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-B5pQC1MK.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-CsW16niZ.js                278.70 kB │ gzip: 104.92 kB
+dist/static/index-Co1KgTRJ.js                      672.71 kB │ gzip: 216.69 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.19s
+
+===== unit.log =====
+
+ RUN  v4.1.8 /tmp/codex-r244-4ynyl998/repo/lcnc-webui
+
+
+ Test Files  2 passed (2)
+      Tests  6 passed (6)
+   Start at  12:28:39
+   Duration  557ms (transform 55ms, setup 0ms, import 122ms, tests 419ms, environment 0ms)
+
+
+===== repository-browser.log =====
+
+Running 10 tests using 1 worker
+
+(node:3722801) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3722801) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/layout.spec.ts:2056:1 › the running line steps: the code moves under a centred highlight and rests between steps; the highlight never leaves the view (9.4s)
+  ✓   2 e2e/layout.spec.ts:2165:3 › the highlight stands still while the code glides under it — never ahead of the running line, on it at rest: the file (8.1s)
+  ✓   3 e2e/layout.spec.ts:2165:3 › the highlight stands still while the code glides under it — never ahead of the running line, on it at rest: a scaled view (2 M lines) (9.6s)
+  ✓   4 e2e/layout.spec.ts:2261:3 › the code rests on a line between steps: the standing highlight covers a whole row, never an old one — 3 lines a packet (7.3s)
+  ✓   5 e2e/layout.spec.ts:2261:3 › the code rests on a line between steps: the standing highlight covers a whole row, never an old one — 8 lines a packet (7.3s)
+  ✓   6 e2e/layout.spec.ts:2343:1 › in an expanded subroutine the highlight stands still too, and the main program takes it back (5.0s)
+  ✓   7 e2e/layout.spec.ts:2428:3 › the code view lays its rows out at the height it draws them: desktop (2.4s)
+  ✓   8 e2e/layout.spec.ts:2428:3 › the code view lays its rows out at the height it draws them: touch-landscape (2.3s)
+  ✓   9 e2e/sim-panel.viewer.spec.ts:1005:1 › playback at ×100 with normal motion: the marked row's highlight never leaves the list's view (5.5s)
+  ✓  10 e2e/sim-panel.viewer.spec.ts:1048:1 › playback at ×50: the marked row's highlight stands still while the list steps under it, on a row between the steps (4.7s)
+
+  10 passed (1.0m)
+
+===== independent-browser.log =====
+
+Running 10 tests using 1 worker
+
+(node:3724512) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3724512) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+program 1200 [
+  { phase: 'forward', spread: 0.015625, missing: 0 },
+  { phase: 'reverse', spread: 0.015625, missing: 0 }
+]
+steady lag at 3 lines per packet 6
+  ✓   1 e2e/r244.codex.spec.ts:36:39 › independent program transitions 1200 lines (6.8s)
+program 600000 [
+  { phase: 'forward', spread: 0.984375, missing: 0 },
+  { phase: 'reverse', spread: 1, missing: 0 }
+]
+  ✓   2 e2e/r244.codex.spec.ts:36:39 › independent program transitions 600000 lines (7.3s)
+program 2000000 [
+  { phase: 'forward', spread: 0.234375, missing: 0 },
+  { phase: 'reverse', spread: 0.234375, missing: 0 }
+]
+  ✓   3 e2e/r244.codex.spec.ts:36:39 › independent program transitions 2000000 lines (8.2s)
+[
+  {
+    end: 'end',
+    band: false,
+    marked: undefined,
+    followed: undefined,
+    st: 580,
+    top: 0
+  },
+  {
+    end: 'filter',
+    band: false,
+    marked: undefined,
+    followed: undefined,
+    st: undefined,
+    top: undefined
+  },
+  {
+    end: 'resize',
+    band: false,
+    marked: 'L34@34',
+    followed: undefined,
+    st: 530,
+    top: 0
+  },
+  {
+    end: 'tab',
+    band: false,
+    marked: 'L43@43',
+    followed: undefined,
+    st: 759,
+    top: 0
+  }
+]
+  ✓   4 e2e/r244.codex.spec.ts:77:1 › independent Sim ends, filter and resize clear the transient band (5.7s)
+subroutine { frames: 113, lines: 17, bands: 84, spread: 0.015625 }
+  ✓   5 e2e/r244.codex.spec.ts:90:1 › independent expanded subroutine retains its fixed highlight across sub-line updates (4.7s)
+  ✓   6 e2e/r244.codex.spec.ts:123:1 › manual scroll and both ends of the scaled file retain the row mapping (5.0s)
+restart trials [
+  { trial: 0, hidden: [ [Object] ] },
+  { trial: 1, hidden: [ [Object] ] },
+  { trial: 2, hidden: [ [Object] ] },
+  { trial: 3, hidden: [ [Object] ] },
+  { trial: 4, hidden: [ [Object] ] },
+  { trial: 5, hidden: [ [Object] ] },
+  { trial: 6, hidden: [ [Object] ] },
+  { trial: 7, hidden: [ [Object] ] }
+]
+  ✘   7 e2e/r244.codex.spec.ts:191:1 › R244 restarting without a previous band keeps every new highlight visible (6.1s)
+(node:3725494) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3725494) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   8 e2e/safety-during-edit.spec.ts:428:3 › the first touch: the switch to touch sizes waits for its press › a first touch that holds Home X: the button stays put and fires, touch sizes apply after the release (2.5s)
+  ✓   9 e2e/safety-during-edit.spec.ts:460:5 › the first touch: the input behaviour applies at once, before the field's focus › a first touch into MDI: focused with inputmode="none", the strip keyboard opens (1.6s)
+  ✓  10 e2e/safety-during-edit.spec.ts:460:5 › the first touch: the input behaviour applies at once, before the field's focus › a first touch into Search tools: focused with inputmode="none", the strip keyboard opens (1.6s)
+
+
+  1) e2e/r244.codex.spec.ts:191:1 › R244 restarting without a previous band keeps every new highlight visible 
+
+    Error: the visible-highlight contract includes the first follow after a stop
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 90
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "band": false,
+    +     "h": 23,
+    +     "hl": 608.78125,
+    +     "line": "43",
+    +     "phase": "",
+    +     "run": 608.78125,
+    +     "st": 358,
+    +     "t": 2224.2999999523163,
+    +     "view": 427.5,
+    +   },
+    +   Object {
+    +     "band": false,
+    +     "h": 23,
+    +     "hl": 577.046875,
+    +     "line": "43",
+    +     "phase": "",
+    +     "run": 577.046875,
+    +     "st": 390,
+    +     "t": 2640.600000023842,
+    +     "view": 427.5,
+    +   },
+    +   Object {
+    +     "band": false,
+    +     "h": 23,
+    +     "hl": 549.25,
+    +     "line": "43",
+    +     "phase": "",
+    +     "run": 549.25,
+    +     "st": 418,
+    +     "t": 3040.5,
+    +     "view": 427.5,
+    +   },
+    +   Object {
+    +     "band": false,
+    +     "h": 23,
+    +     "hl": 553.78125,
+    +     "line": "43",
+    +     "phase": "",
+    +     "run": 553.78125,
+    +     "st": 413,
+    +     "t": 3440.5,
+    +     "view": 427.5,
+    +   },
+    +   Object {
+    +     "band": false,
+    +     "h": 23,
+    +     "hl": 544.75,
+    +     "line": "43",
+    +     "phase": "",
+    +     "run": 544.75,
+    +     "st": 422,
+    +     "t": 3857.2000000476837,
+    +     "view": 427.5,
+    +   },
+    +   Object {
+    +     "band": false,
+    +     "h": 23,
+    +     "hl": 544.75,
+    +     "line": "43",
+    +     "phase": "",
+    +     "run": 544.75,
+    +     "st": 422,
+    +     "t": 4290.5,
+    +     "view": 427.5,
+    +   },
+    +   Object {
+    +     "band": false,
+    +     "h": 23,
+    +     "hl": 598.828125,
+    +     "line": "43",
+    +     "phase": "",
+    +     "run": 598.828125,
+    +     "st": 368,
+    +     "t": 4708.100000023842,
+    +     "view": 427.5,
+    +   },
+    +   Object {
+    +     "band": false,
+    +     "h": 23,
+    +     "hl": 544.75,
+    +     "line": "43",
+    +     "phase": "",
+    +     "run": 544.75,
+    +     "st": 422,
+    +     "t": 5123.899999976158,
+    +     "view": 427.5,
+    +   },
+    + ]
+
+      206 |  writeFileSync(`${OUT}/restarts.json`,JSON.stringify(runs,null,2));
+      207 |  console.log('restart trials',runs.map(r=>({trial:r.trial,hidden:r.hidden.map((f:any)=>({hl:f.hl,view:f.view,st:f.st}))})));
+    > 208 |  expect(runs.flatMap(r=>r.hidden),'the visible-highlight contract includes the first follow after a stop').toEqual([]);
+          |                                                                                                            ^
+      209 | });
+      210 |
+        at /tmp/codex-r244-4ynyl998/repo/lcnc-webui/e2e/r244.codex.spec.ts:208:108
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r244.codex-R244-restarting-7ac09-every-new-highlight-visible/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r244.codex-R244-restarting-7ac09-every-new-highlight-visible/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r244.codex-R244-restarting-7ac09-every-new-highlight-visible/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r244.codex-R244-restarting-7ac09-every-new-highlight-visible/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/r244.codex.spec.ts:191:1 › R244 restarting without a previous band keeps every new highlight visible 
+  9 passed (51.5s)
+
+===== window-browser.log =====
+
+Running 2 tests using 1 worker
+
+(node:3727538) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3727538) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/sim-panel.viewer.spec.ts:418:1 › a moved window keeps the picture: the row shown before stays where it was, then the list glides (plan 4.4) (5.3s)
+  ✓  2 e2e/sim-panel.viewer.spec.ts:468:1 › a new result keeps the list where it was scrolled; a new position brings it back (5.2s)
+
+  2 passed (11.0s)
+
+===== first-follow.log =====
+
+Running 2 tests using 1 worker
+
+(node:3721854) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3721854) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+first-follow { target: 43, frames: 13, hidden: [] }
+  ✓  1 e2e/r244.codex.spec.ts:173:53 › R244 first visible highlight first-follow (2.0s)
+after-stop {
+  target: 43,
+  frames: 13,
+  hidden: [
+    {
+      t: 1936.1000000238419,
+      phase: '',
+      line: '43',
+      hl: 556.0625,
+      run: 556.0625,
+      h: 23,
+      view: 427.5,
+      st: 411,
+      band: false
+    }
+  ]
+}
+  ✘  2 e2e/r244.codex.spec.ts:173:53 › R244 first visible highlight after-stop (2.5s)
+
+
+  1) e2e/r244.codex.spec.ts:173:53 › R244 first visible highlight after-stop ───────────────────────
+
+    Error: every rendered highlight is in view, including the first step
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 13
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "band": false,
+    +     "h": 23,
+    +     "hl": 556.0625,
+    +     "line": "43",
+    +     "phase": "",
+    +     "run": 556.0625,
+    +     "st": 411,
+    +     "t": 1936.1000000238419,
+    +     "view": 427.5,
+    +   },
+    + ]
+
+      186 |  console.log(origin,{target,frames:shown.length,hidden:shown.filter(f=>f.hl<-.5||f.hl+f.h>f.view+.5)});
+      187 |  expect(shown.length).toBeGreaterThan(5);
+    > 188 |  expect(shown.filter(f=>f.hl<-.5||f.hl+f.h>f.view+.5),'every rendered highlight is in view, including the first step').toEqual([]);
+          |                                                                                                                        ^
+      189 | });
+      190 |
+        at /tmp/codex-r244-4ynyl998/repo/lcnc-webui/e2e/r244.codex.spec.ts:188:120
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r244.codex-R244-first-visible-highlight-after-stop/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r244.codex-R244-first-visible-highlight-after-stop/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r244.codex-R244-first-visible-highlight-after-stop/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r244.codex-R244-first-visible-highlight-after-stop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/r244.codex.spec.ts:173:53 › R244 first visible highlight after-stop ────────────────────────
+  1 passed (5.3s)
+
+===== old-browser.log =====
+
+Running 1 test using 1 worker
+
+(node:3726252) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3726252) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+restart trials [
+  { trial: 0, hidden: [] },
+  { trial: 1, hidden: [] },
+  { trial: 2, hidden: [] },
+  { trial: 3, hidden: [] },
+  { trial: 4, hidden: [] },
+  { trial: 5, hidden: [] },
+  { trial: 6, hidden: [] },
+  { trial: 7, hidden: [] }
+]
+  ✓  1 e2e/r244.codex.spec.ts:191:1 › R244 restarting without a previous band keeps every new highlight visible (5.4s)
+
+  1 passed (5.8s)
+
+===== scroll-away.log =====
+
+Running 1 test using 1 worker
+
+(node:3728860) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3728860) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+scroll-away [
+  {
+    t: 2253.2999999523163,
+    phase: '',
+    line: undefined,
+    hl: 967,
+    run: NaN,
+    h: undefined,
+    view: 427.5,
+    st: 0,
+    band: true
+  },
+  {
+    t: 2267.899999976158,
+    phase: '',
+    line: '44',
+    hl: 531.5,
+    run: 541.40625,
+    h: 23,
+    view: 427.5,
+    st: 449,
+    band: true
+  }
+]
+  ✘  1 e2e/r244.codex.spec.ts:211:1 › R244 a new status after scrolling away begins with a visible highlight (2.8s)
+
+
+  1) e2e/r244.codex.spec.ts:211:1 › R244 a new status after scrolling away begins with a visible highlight 
+
+    Error: a retained old row is not necessarily a visible predecessor
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 24
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "band": true,
+    +     "h": undefined,
+    +     "hl": 967,
+    +     "line": undefined,
+    +     "phase": "",
+    +     "run": NaN,
+    +     "st": 0,
+    +     "t": 2253.2999999523163,
+    +     "view": 427.5,
+    +   },
+    +   Object {
+    +     "band": true,
+    +     "h": 23,
+    +     "hl": 531.5,
+    +     "line": "44",
+    +     "phase": "",
+    +     "run": 541.40625,
+    +     "st": 449,
+    +     "t": 2267.899999976158,
+    +     "view": 427.5,
+    +   },
+    + ]
+
+      223 |  writeFileSync(`${OUT}/scroll-away.json`,JSON.stringify({target:target+1,frames,hidden},null,2));
+      224 |  console.log('scroll-away',hidden);
+    > 225 |  expect(hidden,'a retained old row is not necessarily a visible predecessor').toEqual([]);
+          |                                                                               ^
+      226 | });
+      227 |
+        at /tmp/codex-r244-4ynyl998/repo/lcnc-webui/e2e/r244.codex.spec.ts:225:79
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r244.codex-R244-a-new-stat-2cf47-ns-with-a-visible-highlight/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r244.codex-R244-a-new-stat-2cf47-ns-with-a-visible-highlight/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r244.codex-R244-a-new-stat-2cf47-ns-with-a-visible-highlight/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r244.codex-R244-a-new-stat-2cf47-ns-with-a-visible-highlight/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/r244.codex.spec.ts:211:1 › R244 a new status after scrolling away begins with a visible highlight 
