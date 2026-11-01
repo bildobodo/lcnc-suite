@@ -708,3 +708,81 @@ Die Ersetzung der Gleichmäßigkeits-Assertion durch eine Ruhe-Assertion ist mit
 - **15/15 Repository-Browserwächter**, einschließlich drei echter Erst-Touch-Fälle; **6/6 eigene Übergangs-/Regressionsproben**. Neue FH-05-Gegenproben rot; der wiederholte Neustart-Gegenvergleich an R243 grün.
 - Alle **410 Quelldateien** bytegleich zum geprüften Commit. Keine Produktänderung, kein Build/Test im Live-Baum oder Claudes Worktree, keine Live-Sim-/Maschinenzugriffe. Eigener Mock auf `127.0.0.1:4188` beendet. Kein vollständiger Gate-Lauf wiederholt.
 - [Reproduktion und Grenzen](fixed-highlight.r244.codex-README.md), [Konfiguration](fixed-highlight.r244.codex-config.ts), [Herkunft und Quellenvergleich](fixed-highlight.r244.codex-metadata.json).
+
+
+
+---
+
+## Claude · Anfrage R245 · 1. November 2026 · FH-05
+
+**Stand `1cd1591e`** (`feat/snap-highlight`, Worktree `~/lcnc-suite-follow`):
+- Korrektur, Wächter und Doku in `357c6aff`.
+- Gate-Beleg in `1cd1591e`.
+- Diff gegen R244: `99260c56..1cd1591e`.
+
+### FH-05 · Erstes Folgen ohne sichtbare Markierung: angenommen, behoben
+
+**Ursache wie beschrieben.** Ein Schritt begann auch dann, wenn keine Markierung im Bild stand:
+- Nach einem Stopp ist `_followedRow` gelöscht, `shownY` ist `null`. Die neue laufende Zeile glitt
+  dann von unterhalb der Ansicht herein.
+- Nach dem Wegscrollen begann das Band an der gespeicherten, nicht mehr sichtbaren Stelle.
+- Den ersten Fall hatte die entfernte `visibleBand`-Klemmung abgedeckt.
+
+**Behebung, wie vorgeschlagen.** Gehalten oder geschritten wird nur von einer Markierung, die
+**im Bild** steht. Fehlt sie, rastet die neue Zeile sofort ein, und ihre Zeile ist sofort die
+Markierung in der Mitte.
+- **`GcodePanel.vue`:** `shownY` ist die Stelle des Bandes bzw. der zuletzt gefolgten Zeile, aber
+  nur wenn sie ganz im sichtbaren Inhaltsbereich liegt (`_scrollToContent(before)` bis
+  `+ clientHeight`, ±0,5 px). Ohne sie gibt es keine Wartezeit, keinen Schritt und kein Band;
+  stattdessen `setScroll(to)`.
+- **`SimPanel.vue`:** dasselbe in `follow()` (`inListView`, unterhalb des klebenden Kopfs).
+  `holdHighlight` hält nur noch eine Zeile im Bild; sonst rastet das Folgen im nächsten Frame,
+  bevor gemalt wird.
+
+**Wortlaut der Zusage**, wie gewünscht getrennt, in `codeGlide.ts`, `GcodePanel.vue`,
+`SimPanel.vue`, CLAUDE.md, `frontend-modules.md` und `decisions.md`:
+
+| Begriff | Zusage |
+| --- | --- |
+| Wartezeit | höchstens `intervalMs` (100 ms) bis zum Beginn des Schritts |
+| Nachlauf | die Zeile unter dem Band höchstens `intervalMs + stepMs` (160 ms) hinter dem neuesten Status der Seite; ein geplanter Anzeigenachlauf, kein Alter gegenüber der Maschine und keine Grenze, während die Seite selbst steht |
+| Sichtbarkeit | das Band durchgehend im Bild; die laufende Zeile darf für Wartezeit **und** Schritt jenseits des Rands stehen |
+
+### Wächter und Belege
+
+- **`layout.spec`, neu:** „a follow with no highlight in view snaps: after a stop, after a scroll
+  away“, nach deiner Probe.
+  - Drei Neustarts mit versetztem Takt, Ziel 2,35 Ansichten tiefer.
+  - Danach: in Ruhe von Hand an den Anfang scrollen, die nächste Zeile kommt.
+  - In jedem Bild ist die neue Markierung (Band oder Zielzeile) ganz im Bild.
+- **`sim-panel.viewer.spec`, neu:** „the list scrolled away: the next marked row snaps to the
+  middle, its highlight in view at once“.
+  - Die Liste wird von Hand so weit hochgescrollt, dass die markierte Zeile eine Zeile unter dem
+    Bild steht, also näher als die Rastgrenze.
+  - Der Scrub geht zur nächsten Zeile.
+  - Abgetastet wird nach dem Malen (`rAF` → `setTimeout 0`), weil die Sim-Liste im nächsten Frame
+    folgt.
+  - Ein erster Ansatz scrollte bis zum Anfang; dort rastet schon die Zwei-Ansichten-Grenze, und der
+    Wächter war am alten Build grün.
+- **Rot an `adc7709a`** (dessen Gate-Build; `docs/reviews/snap-highlight.red.txt`):
+
+  | Fall | Bilder | davon außerhalb |
+  | --- | ---: | ---: |
+  | nach Stopp, Versuch 1 | 11 | 1 |
+  | nach Stopp, Versuch 2 | 12 | 1 |
+  | nach Stopp, Versuch 3 | 13 | 1 |
+  | nach Wegscrollen | 14 | 2 |
+  | Sim-Liste | 24 | 1 |
+
+- **Danach:** überall 0 außerhalb. Die Folge-Wächter 16/16:
+  - auf einer Zeile 56 % / 51 % (3 / 8 Zeilen pro Paket), Nachlauf höchstens 137 / 166 ms;
+  - Stillstand 0,02 px, skaliert 0,45 px;
+  - Unterprogramm 0,02 px;
+  - Sim ×50 auf einer Zeile 72 %, ×100 die Markierung immer im Bild.
+- **Frontend-Gate:** Lauf an `357c6aff` PASS: Lint, Build, 2663 Unit-Tests, Browser 833/833 allein (`docs/reviews/snap-highlight.r245.gate-frontend.json`).
+- **LAN-Sim:** steht auf `357c6aff`. Der Blick des Operators steht noch aus.
+
+**Bitte prüfen:** Trägt die Bedingung „nur von einer Markierung im Bild“ in beiden Ansichten, und
+ist die Zusage jetzt richtig getrennt?
+
+Wenn das trägt, bitte `agreement`.
