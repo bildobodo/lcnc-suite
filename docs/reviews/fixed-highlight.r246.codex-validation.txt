@@ -1,0 +1,157 @@
+
+===== build.log =====
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2127 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-CX6P-oit.css                 8.14 kB │ gzip:   2.08 kB
+dist/static/index-CG_FQFeY.css                      97.77 kB │ gzip:  17.81 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-BsGtTTAB.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-Dg_NYEFJ.js                 9.05 kB │ gzip:   3.34 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-DDoU-1rs.js                278.70 kB │ gzip: 104.92 kB
+dist/static/index-rukwE6eG.js                      673.09 kB │ gzip: 216.82 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.12s
+
+===== unit.log =====
+
+ RUN  v4.1.8 /tmp/codex-r246-6qxa2x4w/repo/lcnc-webui
+
+
+ Test Files  2 passed (2)
+      Tests  6 passed (6)
+   Start at  15:00:39
+   Duration  541ms (transform 47ms, setup 0ms, import 112ms, tests 404ms, environment 0ms)
+
+
+===== independent-browser.log =====
+
+Running 3 tests using 1 worker
+
+(node:3915960) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3915960) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[
+  {
+    end: 'end',
+    band: false,
+    marked: undefined,
+    followed: undefined,
+    st: 580,
+    top: 0
+  },
+  {
+    end: 'filter',
+    band: false,
+    marked: undefined,
+    followed: undefined,
+    st: undefined,
+    top: undefined
+  },
+  {
+    end: 'resize',
+    band: false,
+    marked: 'L34@34',
+    followed: undefined,
+    st: 530,
+    top: 0
+  },
+  {
+    end: 'tab',
+    band: false,
+    marked: 'L43@43',
+    followed: undefined,
+    st: 759,
+    top: 0
+  }
+]
+  ✓  1 e2e/r246.codex.spec.ts:77:1 › independent Sim ends, filter and resize clear the transient band (5.6s)
+pending Sim [
+  { trial: 0, beforeBand: false, off: false, hidden: 0, ms: [] },
+  { trial: 1, beforeBand: false, off: false, hidden: 0, ms: [] },
+  { trial: 2, beforeBand: false, off: false, hidden: 0, ms: [] },
+  { trial: 3, beforeBand: false, off: false, hidden: 0, ms: [] },
+  { trial: 4, beforeBand: false, off: false, hidden: 0, ms: [] }
+]
+  ✓  2 e2e/r246.pending-control.spec.ts:22:1 › R245 control after the waiting period: the Sim follow rechecks visibility after a scroll and new target (6.4s)
+pending Sim [
+  { trial: 0, beforeBand: true, off: false, hidden: 0, ms: [] },
+  { trial: 1, beforeBand: true, off: false, hidden: 0, ms: [] },
+  { trial: 2, beforeBand: true, off: false, hidden: 0, ms: [] },
+  { trial: 3, beforeBand: true, off: false, hidden: 0, ms: [] },
+  { trial: 4, beforeBand: true, off: false, hidden: 0, ms: [] }
+]
+  ✓  3 e2e/r246.pending.spec.ts:22:1 › R245 a pending Sim follow rechecks visibility after a scroll and new target (5.5s)
+
+  3 passed (18.1s)
+
+===== repository-counterguards.log =====
+
+Running 6 tests using 1 worker
+
+(node:3916799) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3916799) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/sim-panel.viewer.spec.ts:1043:1 › the list scrolled away: the next marked row snaps to the middle, its highlight in view at once (3.4s)
+  ✓  2 e2e/sim-panel.viewer.spec.ts:1109:1 › a row waiting for its step, the list scrolled away: the next row snaps, its highlight in view (4.0s)
+(node:3917043) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3917043) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 e2e/sim-panel.viewer.spec.ts:1043:1 › the list scrolled away: the next marked row snaps to the middle, its highlight in view at once (3.4s)
+  ✓  4 e2e/sim-panel.viewer.spec.ts:1109:1 › a row waiting for its step, the list scrolled away: the next row snaps, its highlight in view (4.4s)
+(node:3917286) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3917286) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  5 e2e/sim-panel.viewer.spec.ts:1043:1 › the list scrolled away: the next marked row snaps to the middle, its highlight in view at once (3.6s)
+  ✓  6 e2e/sim-panel.viewer.spec.ts:1109:1 › a row waiting for its step, the list scrolled away: the next row snaps, its highlight in view (4.2s)
+
+  6 passed (24.4s)
+
+===== repository-regression.log =====
+
+Running 5 tests using 1 worker
+
+(node:3918259) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3918259) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/layout.spec.ts:2342:1 › a follow with no highlight in view snaps: after a stop, after a scroll away (4.2s)
+  ✓  2 e2e/sim-panel.viewer.spec.ts:418:1 › a moved window keeps the picture: the row shown before stays where it was, then the list glides (plan 4.4) (5.3s)
+  ✓  3 e2e/sim-panel.viewer.spec.ts:468:1 › a new result keeps the list where it was scrolled; a new position brings it back (5.2s)
+  ✓  4 e2e/sim-panel.viewer.spec.ts:1003:1 › playback at ×100 with normal motion: the marked row's highlight never leaves the list's view (5.5s)
+  ✓  5 e2e/sim-panel.viewer.spec.ts:1180:1 › playback at ×50: the marked row's highlight stands still while the list steps under it, on a row between the steps (5.0s)
+
+  5 passed (26.0s)

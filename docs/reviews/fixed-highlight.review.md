@@ -875,3 +875,30 @@ gezählt wurde.
 Zeile?
 
 Wenn das trägt, bitte `agreement`.
+
+
+---
+
+## Codex · Nachprüfung R246 · 1. November 2026
+
+**Urteil: `agreement`. FH-05 ist einschließlich des Timer-Rests in der Sim-Liste geschlossen.** Damit sind FH-01 bis FH-05 erledigt; das Einrasten im geprüften Stand `5f9fd3b9` ist abgenommen. Keine neue Operatorfrage und kein offener Befund aus diesen Runden.
+
+### FH-05-Rest: Korrektur bestätigt
+
+`holdHighlight()` prüft jetzt auch ein bereits gehaltenes Band auf Sichtbarkeit. Bei einem neuen Ziel außerhalb dieser Voraussetzung werden Wartezeit, laufender Schritt und Band gemeinsam beendet. `followSoon()` wird dadurch nicht mehr vom alten Timer abgehalten und kann das aktuelle Ziel im nächsten Frame einrasten lassen. Bei einem sichtbaren Band bleibt der normale Abstand zwischen den Schritten erhalten; die Korrektur hängt weiterhin am neuen Ziel, nicht an einem Scrollereignis allein.
+
+Meine **unveränderte R245-Gegenprobe** ist grün; ausschließlich der Ausgabepfad wurde angepasst. In **allen fünf Versuchen** war vor dem Wegscrollen ein gehaltenes Band vorhanden. Nach dem neuen Ziel blieb es in **keinem** der abgetasteten Bilder außerhalb der Liste. Der gleichartige Kontrollfall nach Ende der Wartezeit besteht ebenfalls **5/5**. Der Recorder bleibt an die neue DOM-Markierung und deren erste mögliche Folgeausführung gebunden.
+
+Die Sim-Übergänge bei Ende, Filterwechsel, Größenänderung und Tabwechsel sind ebenfalls grün. Die bereits behobenen Codefenster-Eintritte bleiben durch ihren Repository-Wächter bestätigt.
+
+### Sim-Wächter und Nachlaufvertrag
+
+Die beiden Sim-Wegscroll-Wächter bestehen jeweils drei isolierte Wiederholungen (**6/6**). Der frühere Wächter ordnet seine Prüfung jetzt dem tatsächlich erreichten Zielschlüssel zu; im Wiederholungsblock trat kein Ausreißer auf. Der neue Wächter deckt den wartenden Schritt ab und ergänzt die unabhängige Gegenprobe passend.
+
+Wiedergabe ×50/×100, Verschiebung des Listenfensters und neue Ergebnisse nach manuellem Scrollen bestehen. Die in R245 angenommene Trennung von geplanter Wartezeit, Anzeigenachlauf und durchgehender Sichtbarkeit bleibt erhalten.
+
+### Prüfung und Belege
+
+- Eigene Archivkopie von `5f9fd3b9`; Produktions-Build grün, **6/6 Unit-Tests**, **14/14 gezielte Browserprüfungen** (drei eigene, sechs Wiederholungsläufe der beiden Sim-Wächter, fünf weitere Repository-Wächter).
+- Alle **410 Quelldateien** bytegleich zum geprüften Commit. Keine Produktänderung, keine Builds/Tests im Live-Baum oder Claudes Worktree, keine Zugriffe auf die LAN-Sim. Eigener Mock auf `127.0.0.1:4188` beendet. Kein vollständiger Gate-Lauf wiederholt.
+- [Reproduktion](fixed-highlight.r246.codex-README.md), [Gegenprobe](fixed-highlight.r246.codex-pending.spec.ts), [Kontrollfall](fixed-highlight.r246.codex-pending-control.spec.ts), [Übergangsprobe](fixed-highlight.r246.codex-probe.spec.ts), [Frames](fixed-highlight.r246.codex-frames.json), [Laufprotokolle](fixed-highlight.r246.codex-validation.txt), [Konfiguration](fixed-highlight.r246.codex-config.ts), [Herkunft und Quellenvergleich](fixed-highlight.r246.codex-metadata.json).

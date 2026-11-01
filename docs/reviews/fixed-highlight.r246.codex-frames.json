@@ -1,0 +1,1862 @@
+{
+  "sim-pending": [
+    {
+      "trial": 0,
+      "before": {
+        "t": 2493.399999976158,
+        "key": "L42@42",
+        "band": true,
+        "top": 374,
+        "bottom": 400,
+        "head": 290.5,
+        "viewBottom": 483,
+        "st": 758,
+        "inView": true
+      },
+      "off": {
+        "t": 2493.5,
+        "key": "L42@42",
+        "band": true,
+        "top": 509,
+        "bottom": 535,
+        "head": 290.5,
+        "viewBottom": 483,
+        "st": 623,
+        "inView": false
+      },
+      "targetAt": 2495.2999999523163,
+      "frames": [
+        {
+          "t": 2502.899999976158,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2513,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2529.2999999523163,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2545.5999999046326,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2563.0999999046326,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2579.0999999046326,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2596.2999999523163,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2612.0999999046326,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2629.2999999523163,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2645.5,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2662.399999976158,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2679.1999999284744,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2696.0999999046326,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2712,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        }
+      ],
+      "hidden": []
+    },
+    {
+      "trial": 1,
+      "before": {
+        "t": 3129.5,
+        "key": "L42@42",
+        "band": true,
+        "top": 374,
+        "bottom": 400,
+        "head": 290.5,
+        "viewBottom": 483,
+        "st": 758,
+        "inView": true
+      },
+      "off": {
+        "t": 3143.399999976158,
+        "key": "L42@42",
+        "band": true,
+        "top": 509,
+        "bottom": 535,
+        "head": 290.5,
+        "viewBottom": 483,
+        "st": 623,
+        "inView": false
+      },
+      "targetAt": 3145.399999976158,
+      "frames": [
+        {
+          "t": 3155.399999976158,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3163.0999999046326,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3179.1999999284744,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3196.6999999284744,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3211.7999999523163,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3228.899999976158,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3245.6999999284744,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3262.5,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3279,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3296.6999999284744,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3312.0999999046326,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3329.2999999523163,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3346.899999976158,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3362.2999999523163,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        }
+      ],
+      "hidden": []
+    },
+    {
+      "trial": 2,
+      "before": {
+        "t": 3776.1999999284744,
+        "key": "L42@42",
+        "band": true,
+        "top": 374,
+        "bottom": 400,
+        "head": 290.5,
+        "viewBottom": 483,
+        "st": 758,
+        "inView": true
+      },
+      "off": {
+        "t": 3776.7999999523163,
+        "key": "L42@42",
+        "band": true,
+        "top": 509,
+        "bottom": 535,
+        "head": 290.5,
+        "viewBottom": 483,
+        "st": 623,
+        "inView": false
+      },
+      "targetAt": 3779,
+      "frames": [
+        {
+          "t": 3788.0999999046326,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3798.0999999046326,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3812.2999999523163,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3829.2999999523163,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3846.899999976158,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3862.1999999284744,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3879,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3897.5,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3912.899999976158,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3928.899999976158,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3945.6999999284744,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3962.5999999046326,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3978.6999999284744,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3995.6999999284744,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        }
+      ],
+      "hidden": []
+    },
+    {
+      "trial": 3,
+      "before": {
+        "t": 4429.299999952316,
+        "key": "L42@42",
+        "band": true,
+        "top": 374,
+        "bottom": 400,
+        "head": 290.5,
+        "viewBottom": 483,
+        "st": 758,
+        "inView": true
+      },
+      "off": {
+        "t": 4443.399999976158,
+        "key": "L42@42",
+        "band": true,
+        "top": 509,
+        "bottom": 535,
+        "head": 290.5,
+        "viewBottom": 483,
+        "st": 623,
+        "inView": false
+      },
+      "targetAt": 4445,
+      "frames": [
+        {
+          "t": 4453.599999904633,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4463.599999904633,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4478.799999952316,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4495.799999952316,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4512.399999976158,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4528.899999976158,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4545.699999928474,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4564.799999952316,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4580.199999928474,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4597.199999928474,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4612.299999952316,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4629.299999952316,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4645.699999928474,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4669.099999904633,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        }
+      ],
+      "hidden": []
+    },
+    {
+      "trial": 4,
+      "before": {
+        "t": 5098.199999928474,
+        "key": "L42@42",
+        "band": true,
+        "top": 374,
+        "bottom": 400,
+        "head": 290.5,
+        "viewBottom": 483,
+        "st": 758,
+        "inView": true
+      },
+      "off": {
+        "t": 5110.099999904633,
+        "key": "L42@42",
+        "band": true,
+        "top": 509,
+        "bottom": 535,
+        "head": 290.5,
+        "viewBottom": 483,
+        "st": 623,
+        "inView": false
+      },
+      "targetAt": 5111.5,
+      "frames": [
+        {
+          "t": 5119.099999904633,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5130.699999928474,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5148.199999928474,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5162.299999952316,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5179.099999904633,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5195.699999928474,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5212.299999952316,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5228.899999976158,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5246.699999928474,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5263.199999928474,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5279.599999904633,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5295.699999928474,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5312.099999904633,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5328.599999904633,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        }
+      ],
+      "hidden": []
+    }
+  ],
+  "sim-pending-control": [
+    {
+      "trial": 0,
+      "before": {
+        "t": 2700.4000000953674,
+        "key": "L42@42",
+        "band": false,
+        "top": 373.5,
+        "bottom": 399,
+        "head": 290.5,
+        "viewBottom": 483,
+        "st": 784,
+        "inView": true
+      },
+      "off": {
+        "t": 2713.100000023842,
+        "key": "L42@42",
+        "band": false,
+        "top": 508.5,
+        "bottom": 534,
+        "head": 290.5,
+        "viewBottom": 483,
+        "st": 649,
+        "inView": false
+      },
+      "targetAt": 2714.8000000715256,
+      "frames": [
+        {
+          "t": 2723.5,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2734.5,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2751.100000023842,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2765.5,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2782.4000000953674,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2799,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2815.4000000953674,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2833.9000000953674,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2850.3000000715256,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2864.9000000953674,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2882.9000000953674,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2898.5,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2915.4000000953674,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 2932,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        }
+      ],
+      "hidden": []
+    },
+    {
+      "trial": 1,
+      "before": {
+        "t": 3536.600000023842,
+        "key": "L42@42",
+        "band": false,
+        "top": 373.5,
+        "bottom": 399,
+        "head": 290.5,
+        "viewBottom": 483,
+        "st": 784,
+        "inView": true
+      },
+      "off": {
+        "t": 3547.7000000476837,
+        "key": "L42@42",
+        "band": false,
+        "top": 508.5,
+        "bottom": 534,
+        "head": 290.5,
+        "viewBottom": 483,
+        "st": 649,
+        "inView": false
+      },
+      "targetAt": 3549.100000023842,
+      "frames": [
+        {
+          "t": 3557.9000000953674,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3567.3000000715256,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3582.2000000476837,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3599.3000000715256,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3615.3000000715256,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3631.8000000715256,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3650,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3666,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3682.4000000953674,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3698.8000000715256,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3715.2000000476837,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3731.8000000715256,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3749.2000000476837,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 3765.7000000476837,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        }
+      ],
+      "hidden": []
+    },
+    {
+      "trial": 2,
+      "before": {
+        "t": 4370.200000047684,
+        "key": "L42@42",
+        "band": false,
+        "top": 373.5,
+        "bottom": 399,
+        "head": 290.5,
+        "viewBottom": 483,
+        "st": 784,
+        "inView": true
+      },
+      "off": {
+        "t": 4379.700000047684,
+        "key": "L42@42",
+        "band": false,
+        "top": 508.5,
+        "bottom": 534,
+        "head": 290.5,
+        "viewBottom": 483,
+        "st": 649,
+        "inView": false
+      },
+      "targetAt": 4381.100000023842,
+      "frames": [
+        {
+          "t": 4389.100000023842,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4399.400000095367,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4416.100000023842,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4431.800000071526,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4450.400000095367,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4465.200000047684,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4481.400000095367,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4499,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4515.5,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4532.100000023842,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4549.5,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4565.400000095367,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4581.900000095367,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 4599,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        }
+      ],
+      "hidden": []
+    },
+    {
+      "trial": 3,
+      "before": {
+        "t": 5218.400000095367,
+        "key": "L42@42",
+        "band": false,
+        "top": 373.5,
+        "bottom": 399,
+        "head": 290.5,
+        "viewBottom": 483,
+        "st": 784,
+        "inView": true
+      },
+      "off": {
+        "t": 5229.600000023842,
+        "key": "L42@42",
+        "band": false,
+        "top": 508.5,
+        "bottom": 534,
+        "head": 290.5,
+        "viewBottom": 483,
+        "st": 649,
+        "inView": false
+      },
+      "targetAt": 5231.100000023842,
+      "frames": [
+        {
+          "t": 5242.400000095367,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5249.700000047684,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5265.700000047684,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5284.700000047684,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5298.200000047684,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5315,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5332,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5348.600000023842,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5364.600000023842,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5382,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5398.5,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5415.100000023842,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5431.800000071526,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 5448.200000047684,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        }
+      ],
+      "hidden": []
+    },
+    {
+      "trial": 4,
+      "before": {
+        "t": 6060.700000047684,
+        "key": "L42@42",
+        "band": false,
+        "top": 373.5,
+        "bottom": 399,
+        "head": 290.5,
+        "viewBottom": 483,
+        "st": 784,
+        "inView": true
+      },
+      "off": {
+        "t": 6064,
+        "key": "L42@42",
+        "band": false,
+        "top": 508.5,
+        "bottom": 534,
+        "head": 290.5,
+        "viewBottom": 483,
+        "st": 649,
+        "inView": false
+      },
+      "targetAt": 6065.200000047684,
+      "frames": [
+        {
+          "t": 6074.700000047684,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 6083.200000047684,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 6098.600000023842,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 6115.100000023842,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 6131.600000023842,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 6149.5,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 6166.600000023842,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 6182.300000071526,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 6198.700000047684,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 6215.900000095367,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 6232.400000095367,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 6249.600000023842,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 6266,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        },
+        {
+          "t": 6284.400000095367,
+          "key": "L43@43",
+          "band": false,
+          "top": 374,
+          "bottom": 399.5,
+          "head": 290.5,
+          "viewBottom": 483,
+          "st": 809,
+          "inView": true
+        }
+      ],
+      "hidden": []
+    }
+  ],
+  "sim-transitions": [
+    {
+      "end": "end",
+      "band": false,
+      "st": 580,
+      "top": 0
+    },
+    {
+      "end": "filter",
+      "band": false
+    },
+    {
+      "end": "resize",
+      "band": false,
+      "marked": "L34@34",
+      "st": 530,
+      "top": 0
+    },
+    {
+      "end": "tab",
+      "band": false,
+      "marked": "L43@43",
+      "st": 759,
+      "top": 0
+    }
+  ]
+}

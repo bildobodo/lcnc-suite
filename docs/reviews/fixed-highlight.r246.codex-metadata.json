@@ -1,0 +1,42 @@
+{
+  "head": "5f9fd3b9",
+  "base": "1cd1591e",
+  "archive": "/tmp/codex-r246-6qxa2x4w/repo",
+  "reviewBytes": 65176,
+  "reviewSha256": "2867ae638c6ba3e98eedaa5c628fcf6adaf1570dfffc960c37ad72ba2d4456f6",
+  "sourceFilesByteIdentical": 410,
+  "originalProbesUnchangedExceptOutputDirectory": true,
+  "headFull": "5f9fd3b9e5b77c34699b8fc7c5840dc4cd7cb5d1",
+  "baseFull": "1cd1591eb116125f0a21965391c1ccf3881e3036",
+  "productWorktreeStatus": "",
+  "scope": "Review-only. Own git archive; own mock 127.0.0.1:4188 stopped. No live endpoints, machine commands, product changes or commits.",
+  "adjustments": [
+    "archive e2e localhost:4174 -> 127.0.0.1:4188 (HTTP and WS)",
+    "R245 probes copied with output path changed only"
+  ],
+  "results": {
+    "build": "PASS",
+    "unit": {
+      "passed": 6
+    },
+    "ownBrowser": {
+      "passed": 3
+    },
+    "repositoryCounterguards": {
+      "passed": 6,
+      "repeatsPerTest": 3
+    },
+    "repositoryRegression": {
+      "passed": 5
+    },
+    "pendingSimTrials": {
+      "trials": 5,
+      "heldBeforeScroll": 5,
+      "hiddenFrames": 0
+    },
+    "controlTrials": {
+      "trials": 5,
+      "hiddenFrames": 0
+    }
+  }
+}
