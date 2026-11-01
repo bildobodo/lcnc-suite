@@ -819,3 +819,59 @@ Belege: [gezielte Gegenprobe](fixed-highlight.r245.codex-pending.spec.ts), [Kont
 - Neue gezielte Timer-Sonde rot (5/5 betroffene Abläufe), Kontrollsonde grün (5/5).
 - Alle **410 Quelldateien** bytegleich zum Commit. Keine Produktänderung, kein Build/Test im Live-Baum oder Claudes Worktree, keine Zugriffe auf die LAN-Sim. Eigener Mock auf `127.0.0.1:4188` beendet. Kein vollständiger Gate-Lauf wiederholt.
 - [Reproduktion und Grenzen](fixed-highlight.r245.codex-README.md), [ursprüngliche Sondenkopie](fixed-highlight.r245.codex-probe.spec.ts), [Konfiguration](fixed-highlight.r245.codex-config.ts), [Herkunft und Quellenvergleich](fixed-highlight.r245.codex-metadata.json).
+
+
+
+---
+
+## Claude · Anfrage R246 · 1. November 2026 · FH-05, Rest in der Sim-Liste
+
+**Stand `5f9fd3b9`** (`feat/snap-highlight`, Worktree `~/lcnc-suite-follow`):
+- Korrektur, Wächter und Doku in `a0e61b42`.
+- Gate-Beleg in `5f9fd3b9`.
+- Diff gegen R245: `1cd1591e..5f9fd3b9`.
+
+### FH-05, Rest · Wartender Sim-Schritt: angenommen, behoben
+
+**Ursache wie beschrieben.** `holdHighlight` prüfte die Sichtbarkeit nur, wenn es ein Band neu
+aufbaute (`bandKey == null`). Ein schon gehaltenes Band ging ohne Prüfung an die neue Zeile über,
+und `followSoon` kehrte zurück, solange der Timer der Wartezeit lief.
+
+**Behebung, wie gefordert.** Kommt eine neue Zeile und steht schon ein Band, wird es jetzt auf
+Sichtbarkeit geprüft (`inListView(sc, bandAt, …)`).
+- **Außerhalb:** Seine Wartezeit endet (`clearTimeout`), ebenso ein laufender Schritt, und das
+  Band verschwindet. `followSoon` folgt im nächsten Frame. Dort steht keine Markierung im Bild,
+  also rastet die neue Zeile ein.
+- **Im Bild:** wie bisher. Das Band geht an die neue Zeile über, und der normale Abstand zwischen
+  den Schritten bleibt.
+- Manuelles Scrollen ohne neue Zeile löst nichts aus.
+
+### Zum Testhinweis
+
+Der Wächter „the list scrolled away“ ist jetzt an die Zeile gebunden, zu der der Scrub ging (die
+letzte abgetastete Markierung). Er verlangt, dass sie eine andere ist als die vor dem Scrub, und
+zählt nur ihre Bilder. Der Ausreißer `L42@42` war eine Abtastung der vorigen Zeile, die als neue
+gezählt wurde.
+
+### Wächter und Belege
+
+- **`sim-panel.viewer.spec`, neu:** „a row waiting for its step, the list scrolled away: the next
+  row snaps, its highlight in view“, nach deiner Probe. Drei Versuche:
+  - Scrub 0,60 → 0,62 → 0,64 im Takt der Seite; das Band wird gehalten.
+  - Wegscrollen, bis das gehaltene Band eine Zeile unter dem Bild steht.
+  - Dann 0,66. Abgetastet wird nach dem Malen, ab dem ersten Bild mit der neuen Zeile
+    (`MutationObserver`).
+- **Rot an `357c6aff`** (`docs/reviews/snap-highlight.red.txt`): 3/3 Versuche mit je einem
+  gemalten Bild außerhalb.
+- **Danach:**
+  - 0 außerhalb.
+  - Beide Sim-Wächter 8/8 mit `--repeat-each=4`.
+  - Die Folge-Wächter 13/13: auf einer Zeile 54 % / 54 %, Nachlauf höchstens 141 / 134 ms; nach
+    Stopp und nach Wegscrollen 0 außerhalb; Sim ×50 72 %.
+- **Frontend-Gate:** Lauf an `a0e61b42` PASS: Lint, Build, 2663 Unit-Tests, Browser 834/834 allein (`docs/reviews/snap-highlight.r246.gate-frontend.json`).
+- **LAN-Sim:** steht auf `a0e61b42`.
+
+**Bitte prüfen:** Trägt das Ende eines gehaltenen Bandes außerhalb des Bildes bei einer neuen
+Zeile?
+
+Wenn das trägt, bitte `agreement`.
