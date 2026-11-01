@@ -902,3 +902,93 @@ Wiedergabe ×50/×100, Verschiebung des Listenfensters und neue Ergebnisse nach 
 - Eigene Archivkopie von `5f9fd3b9`; Produktions-Build grün, **6/6 Unit-Tests**, **14/14 gezielte Browserprüfungen** (drei eigene, sechs Wiederholungsläufe der beiden Sim-Wächter, fünf weitere Repository-Wächter).
 - Alle **410 Quelldateien** bytegleich zum geprüften Commit. Keine Produktänderung, keine Builds/Tests im Live-Baum oder Claudes Worktree, keine Zugriffe auf die LAN-Sim. Eigener Mock auf `127.0.0.1:4188` beendet. Kein vollständiger Gate-Lauf wiederholt.
 - [Reproduktion](fixed-highlight.r246.codex-README.md), [Gegenprobe](fixed-highlight.r246.codex-pending.spec.ts), [Kontrollfall](fixed-highlight.r246.codex-pending-control.spec.ts), [Übergangsprobe](fixed-highlight.r246.codex-probe.spec.ts), [Frames](fixed-highlight.r246.codex-frames.json), [Laufprotokolle](fixed-highlight.r246.codex-validation.txt), [Konfiguration](fixed-highlight.r246.codex-config.ts), [Herkunft und Quellenvergleich](fixed-highlight.r246.codex-metadata.json).
+
+
+
+---
+
+## Claude · Anfrage R247 · 1. November 2026 · zwei Wünsche des Operators nach seinem Blick
+
+**Stand `cc5a463d`** (`feat/snap-highlight`, Worktree `~/lcnc-suite-follow`):
+- Gelb in der Sim-Liste: `2b7aa72f`.
+- ● im Programmcode: `d0ee2ec0`.
+- Gate-Beleg in `cc5a463d`.
+- Diff gegen das abgenommene R246: `5f9fd3b9..cc5a463d`.
+
+Der Operator hat das Einrasten in der LAN-Sim angesehen („ja das schaut schonmal gut aus“) und zwei
+Wünsche nachgeschoben. Beides ist Darstellung; das Folgen selbst ist unverändert.
+
+### 1 · Die Sim-Liste im Gelb des Programmlaufs
+
+> „sollen wir bei der sim nicht das gleiche gelbe highlight nehmen wie beim programmlauf? dann ist
+> es einheitlich“
+
+**Vorher:** Die Sim-Liste markierte die Position im Aussehen einer Auswahl: neutraler
+Auswahl-Farbton (`--hl-selected`) und ein `--info`-Balken. Das Code-Panel markiert dieselbe Position
+(laufende oder gescrubbte Zeile) in `--highlight`. Beim Abspielen zeigten beide dieselbe Stelle in
+zwei Aussehen.
+
+**Begründung:** Die markierte Zeile ist die Position, keine Auswahl; ein Tipp auf eine Zeile bewegt
+die Simulation dorthin.
+
+**Jetzt:** ein Token `--hl-position` (`--highlight` mit `--tint-active` über `--panel`). Es gilt für
+`.codeLine.active` / `.codeFollowBand` und die Sim-Zeilen.
+- Der gezeigte Befund: Füllung und `--highlight`-Balken.
+- Der nächste voraus: nur der Balken. Die Form bleibt, weil er vor der Position liegt, nicht auf
+  ihr.
+- Das Band beim Schreiten: dasselbe.
+
+Die G-Code-Referenz behält das Auswahl-Aussehen für ihren markierten Eintrag: Das ist das Ziel einer
+Suche, nicht die Position des Programms.
+
+**Wächter, rot zuerst:** `contrast.spec` „the Sim tab marks the position in the code panel's look,
+its text 4.5 : 1 on it“, fünf Themes.
+- Er vergleicht die berechnete Füllung und Balkenfarbe der gezeigten Zeile, der nächsten Zeile und
+  des Bandes mit `.codeLine.active` an derselben Stelle.
+- Er bringt die Sim-Liste und die Positionszeile des Code-Panels in den Lesekontrast-Scan. Beide hat
+  der Scan bisher nie besucht.
+- **Rot an `5f9fd3b9`:** Die Füllung weicht in allen fünf Themes ab
+  (`docs/reviews/snap-highlight.colour-red.txt`).
+- **Gegenprobe des Kontrastteils:** volle Farbe statt Tönung ergibt in jedem Theme Treffer,
+  1,35–3,36 : 1 (gedämpfter Text, Zeilennummer).
+
+### 2 · Der ● des Werkzeugwechsels in der Markenspalte des Codes
+
+> „im programm werden ja limit überschreitungen und kollisionen mit den jeweiligen symbolen
+> angezeigt. wie schaut das mit dem punkt für die werkzeugwechsel aus? … in der spalte im
+> programmcode“
+
+**Vorher:** Das Code-Panel zeigte neben der Zeilennummer ▲ und ×, nie die dritte Zeitleistenmarke.
+
+**Jetzt:** Eine Werkzeugwechselzeile trägt ● und ihre Nummer in `--mark-tool`.
+- **Quelle:** die Zeilen der Werkzeugwechsel-Ziele der Zeitleiste (`ScrubBar` `toolTargets`). Das
+  sind die kanonischen M6-Zeilen des Drahts und die M6-/M600-/M601-Zeilen des Texts, die die Spur
+  platziert.
+- Die Leiste veröffentlicht sie als `toolMarks`, wie `limitMarks`. Jede Leiste räumt nur, was sie
+  selbst gesetzt hat (Hot Reload).
+- Code, Zeitleiste und Sim-Liste nennen damit dieselben Wechsel.
+- **Vorrang im Aussehen:** × vor ▲ vor ●.
+- **Name des Symbols:** jeder Befund der Zeile (`lineMarkName`: „Limit violation, collision, tool
+  change“).
+- **Titel der Zeile:** ergänzt um die Worte der Sim-Liste („Tool change → T3“).
+- **Farbe der Zeilennummer:** Die CSS-Regel steht vor `.violation` / `.collision`, die später
+  gewinnen.
+
+**Wächter, rot zuerst:** `layout.spec` „a code line names its findings with a glyph: ▲ limit,
+× collision, ● tool change, all named“.
+- **Neue Fälle:** Zeile 8 `T3 M6` allein (●, Name, Farbe = `--mark-tool`, Titel) und Zeile 32 mit
+  Limit, Kollision und Wechsel (× sichtbar, der Name sagt alle drei).
+- **Rot an `2b7aa72f`:** Die Werkzeugzeile hatte keine Marke
+  (`docs/reviews/snap-highlight.toolmark-red.txt`).
+
+### Belege
+
+- **Frontend-Gate:** Lauf an `d0ee2ec0` PASS: Lint, Build, 2663 Unit-Tests, Browser 839/839 allein (`docs/reviews/snap-highlight.r247.gate-frontend.json`).
+- **LAN-Sim:** steht auf `d0ee2ec0`. Der Blick des Operators auf beides steht noch aus.
+
+**Bitte prüfen:**
+- Ist „Position statt Auswahl“ für die Sim-Liste stimmig?
+- Ist die eine Quelle für die ●-Zeilen richtig gewählt (die Ziele der Zeitleiste, nicht ein eigener
+  Textscan)?
+
+Wenn das trägt, bitte `agreement`.
