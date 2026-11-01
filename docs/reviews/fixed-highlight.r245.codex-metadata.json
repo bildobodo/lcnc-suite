@@ -1,0 +1,41 @@
+{
+  "head": "1cd1591e",
+  "base": "99260c56",
+  "archive": "/tmp/codex-r245-ukvcssko/repo",
+  "reviewBytes": 57908,
+  "reviewSha256": "2408475a961614f0f430229df2620b18f5712448e6455b9d454f25af564c1573",
+  "sourceFilesByteIdentical": 410,
+  "headFull": "1cd1591eb116125f0a21965391c1ccf3881e3036",
+  "baseFull": "99260c56a29ee22d397405f703d599c1344b6d6b",
+  "productWorktreeStatus": "",
+  "scope": "Review-only. Own git archive, own mock 127.0.0.1:4188 stopped. No live endpoints, machine commands, product edits or commits.",
+  "adjustments": [
+    "archive e2e localhost:4174 -> 127.0.0.1:4188, HTTP and WS",
+    "R244 own probe copied with output path changed only",
+    "additional pending-Sim probe and matched control only in archive; recorder starts after observed new target DOM"
+  ],
+  "results": {
+    "build": "PASS",
+    "unit": {
+      "passed": 6
+    },
+    "originalR244Probes": {
+      "passed": 9
+    },
+    "repositoryBrowser": {
+      "passed": 9,
+      "failed": 1,
+      "isolatedRepeatsOfFailedTest": {
+        "passed": 3
+      }
+    },
+    "pendingSimProbe": {
+      "failingTrials": 5,
+      "trials": 5
+    },
+    "pendingSimControl250ms": {
+      "failingTrials": 0,
+      "trials": 5
+    }
+  }
+}

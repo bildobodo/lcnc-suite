@@ -1,0 +1,391 @@
+
+===== build.log =====
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2127 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-CX6P-oit.css                 8.14 kB │ gzip:   2.08 kB
+dist/static/index-BtNyZIni.css                      97.77 kB │ gzip:  17.81 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-CRk0jIB0.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-CD54D6PS.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-DIbQio4c.js                278.70 kB │ gzip: 104.92 kB
+dist/static/index-CJZd80cx.js                      672.96 kB │ gzip: 216.82 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.06s
+
+===== unit.log =====
+
+ RUN  v4.1.8 /tmp/codex-r245-ukvcssko/repo/lcnc-webui
+
+
+ Test Files  2 passed (2)
+      Tests  6 passed (6)
+   Start at  13:46:36
+   Duration  575ms (transform 51ms, setup 0ms, import 120ms, tests 438ms, environment 0ms)
+
+
+===== original-probes.log =====
+
+Running 9 tests using 1 worker
+
+(node:3820299) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3820299) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+program 1200 [
+  { phase: 'forward', spread: 0.015625, missing: 0 },
+  { phase: 'reverse', spread: 0.015625, missing: 0 }
+]
+steady lag at 3 lines per packet 6
+  ✓  1 e2e/r245.codex.spec.ts:36:39 › independent program transitions 1200 lines (6.8s)
+program 600000 [
+  { phase: 'forward', spread: 1, missing: 0 },
+  { phase: 'reverse', spread: 0.984375, missing: 0 }
+]
+  ✓  2 e2e/r245.codex.spec.ts:36:39 › independent program transitions 600000 lines (7.3s)
+program 2000000 [
+  { phase: 'forward', spread: 0.21875, missing: 0 },
+  { phase: 'reverse', spread: 0.234375, missing: 0 }
+]
+  ✓  3 e2e/r245.codex.spec.ts:36:39 › independent program transitions 2000000 lines (8.0s)
+[
+  {
+    end: 'end',
+    band: false,
+    marked: undefined,
+    followed: undefined,
+    st: 580,
+    top: 0
+  },
+  {
+    end: 'filter',
+    band: false,
+    marked: undefined,
+    followed: undefined,
+    st: undefined,
+    top: undefined
+  },
+  {
+    end: 'resize',
+    band: false,
+    marked: 'L34@34',
+    followed: undefined,
+    st: 530,
+    top: 0
+  },
+  {
+    end: 'tab',
+    band: false,
+    marked: 'L43@43',
+    followed: undefined,
+    st: 759,
+    top: 0
+  }
+]
+  ✓  4 e2e/r245.codex.spec.ts:77:1 › independent Sim ends, filter and resize clear the transient band (5.7s)
+subroutine { frames: 110, lines: 17, bands: 90, spread: 0.015625 }
+  ✓  5 e2e/r245.codex.spec.ts:90:1 › independent expanded subroutine retains its fixed highlight across sub-line updates (4.2s)
+first-follow { target: 43, frames: 15, hidden: [] }
+  ✓  6 e2e/r245.codex.spec.ts:173:53 › R244 first visible highlight first-follow (2.3s)
+after-stop { target: 43, frames: 13, hidden: [] }
+  ✓  7 e2e/r245.codex.spec.ts:173:53 › R244 first visible highlight after-stop (2.7s)
+restart trials [
+  { trial: 0, hidden: [] },
+  { trial: 1, hidden: [] },
+  { trial: 2, hidden: [] },
+  { trial: 3, hidden: [] },
+  { trial: 4, hidden: [] },
+  { trial: 5, hidden: [] },
+  { trial: 6, hidden: [] },
+  { trial: 7, hidden: [] }
+]
+  ✓  8 e2e/r245.codex.spec.ts:191:1 › R244 restarting without a previous band keeps every new highlight visible (5.2s)
+scroll-away []
+  ✓  9 e2e/r245.codex.spec.ts:211:1 › R244 a new status after scrolling away begins with a visible highlight (2.6s)
+
+  9 passed (45.4s)
+
+===== repository-browser.log =====
+
+Running 10 tests using 1 worker
+
+(node:3822969) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3822969) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/layout.spec.ts:2165:3 › the highlight stands still while the code glides under it — never ahead of the running line, on it at rest: the file (8.4s)
+  ✓   2 e2e/layout.spec.ts:2165:3 › the highlight stands still while the code glides under it — never ahead of the running line, on it at rest: a scaled view (2 M lines) (9.4s)
+  ✓   3 e2e/layout.spec.ts:2261:3 › the code rests on a line between steps: the standing highlight covers a whole row, never an old one — 3 lines a packet (7.3s)
+  ✓   4 e2e/layout.spec.ts:2261:3 › the code rests on a line between steps: the standing highlight covers a whole row, never an old one — 8 lines a packet (7.5s)
+  ✓   5 e2e/layout.spec.ts:2342:1 › a follow with no highlight in view snaps: after a stop, after a scroll away (4.2s)
+  ✓   6 e2e/sim-panel.viewer.spec.ts:418:1 › a moved window keeps the picture: the row shown before stays where it was, then the list glides (plan 4.4) (5.5s)
+  ✓   7 e2e/sim-panel.viewer.spec.ts:468:1 › a new result keeps the list where it was scrolled; a new position brings it back (5.5s)
+  ✓   8 e2e/sim-panel.viewer.spec.ts:1003:1 › playback at ×100 with normal motion: the marked row's highlight never leaves the list's view (5.6s)
+  ✘   9 e2e/sim-panel.viewer.spec.ts:1043:1 › the list scrolled away: the next marked row snaps to the middle, its highlight in view at once (4.0s)
+(node:3824213) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3824213) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  10 e2e/sim-panel.viewer.spec.ts:1105:1 › playback at ×50: the marked row's highlight stands still while the list steps under it, on a row between the steps (5.1s)
+
+
+  1) e2e/sim-panel.viewer.spec.ts:1043:1 › the list scrolled away: the next marked row snaps to the middle, its highlight in view at once 
+
+    Error: the next row's highlight in view in every painted frame
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "inView": false,
+    +     "key": "L42@42",
+    +   },
+    + ]
+
+      1094 |   test.info().annotations.push({ type: "fh05", description: `${next.length} frames of the next row, ${next.filter(f => !f.inView).length} with the highlight out of view` });
+      1095 |   expect(next.length, "the scrub moved to another marked row").toBeGreaterThan(5);
+    > 1096 |   expect(next.filter(f => !f.inView), "the next row's highlight in view in every painted frame").toEqual([]);
+           |                                                                                                  ^
+      1097 | });
+      1098 |
+      1099 | // Operator 2026-10-31: the marked row's bar went down a row with every row
+        at /tmp/codex-r245-ukvcssko/repo/lcnc-webui/e2e/sim-panel.viewer.spec.ts:1096:98
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-the-list--2b6e2-s-highlight-in-view-at-once/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/sim-panel.viewer-the-list--2b6e2-s-highlight-in-view-at-once/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-the-list--2b6e2-s-highlight-in-view-at-once/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/sim-panel.viewer-the-list--2b6e2-s-highlight-in-view-at-once/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/sim-panel.viewer.spec.ts:1043:1 › the list scrolled away: the next marked row snaps to the middle, its highlight in view at once 
+  9 passed (1.1m)
+
+===== repository-sim-repeat.log =====
+
+Running 3 tests using 1 worker
+
+(node:3826517) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3826517) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/sim-panel.viewer.spec.ts:1043:1 › the list scrolled away: the next marked row snaps to the middle, its highlight in view at once (3.4s)
+(node:3826679) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3826679) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 e2e/sim-panel.viewer.spec.ts:1043:1 › the list scrolled away: the next marked row snaps to the middle, its highlight in view at once (3.7s)
+(node:3826831) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3826831) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 e2e/sim-panel.viewer.spec.ts:1043:1 › the list scrolled away: the next marked row snaps to the middle, its highlight in view at once (3.7s)
+
+  3 passed (12.1s)
+
+===== pending-ordered-browser.log =====
+
+Running 2 tests using 1 worker
+
+(node:3825842) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3825842) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+pending Sim [
+  { trial: 0, beforeBand: false, off: false, hidden: 0, ms: [] },
+  { trial: 1, beforeBand: false, off: false, hidden: 0, ms: [] },
+  { trial: 2, beforeBand: false, off: false, hidden: 0, ms: [] },
+  { trial: 3, beforeBand: false, off: false, hidden: 0, ms: [] },
+  { trial: 4, beforeBand: false, off: false, hidden: 0, ms: [] }
+]
+  ✓  1 e2e/r245.pending-control.spec.ts:22:1 › R245 control after the waiting period: the Sim follow rechecks visibility after a scroll and new target (6.4s)
+pending Sim [
+  {
+    trial: 0,
+    beforeBand: true,
+    off: false,
+    hidden: 2,
+    ms: [ 10.700000047683716, 41 ]
+  },
+  {
+    trial: 1,
+    beforeBand: true,
+    off: false,
+    hidden: 1,
+    ms: [ 20.399999976158142 ]
+  },
+  {
+    trial: 2,
+    beforeBand: true,
+    off: false,
+    hidden: 2,
+    ms: [ 10.100000023841858, 20.90000009536743 ]
+  },
+  {
+    trial: 3,
+    beforeBand: true,
+    off: false,
+    hidden: 1,
+    ms: [ 21.40000009536743 ]
+  },
+  { trial: 4, beforeBand: true, off: false, hidden: 1, ms: [ 22 ] }
+]
+  ✘  2 e2e/r245.pending.spec.ts:22:1 › R245 a pending Sim follow rechecks visibility after a scroll and new target (5.9s)
+
+
+  1) e2e/r245.pending.spec.ts:22:1 › R245 a pending Sim follow rechecks visibility after a scroll and new target 
+
+    Error: the new target snaps instead of waiting with an invisible band
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 79
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "band": true,
+    +     "bottom": 535,
+    +     "head": 290.5,
+    +     "inView": false,
+    +     "key": "L43@43",
+    +     "st": 623,
+    +     "t": 2387.5,
+    +     "top": 509,
+    +     "viewBottom": 483,
+    +   },
+    +   Object {
+    +     "band": true,
+    +     "bottom": 535,
+    +     "head": 290.5,
+    +     "inView": false,
+    +     "key": "L43@43",
+    +     "st": 623,
+    +     "t": 2417.7999999523163,
+    +     "top": 509,
+    +     "viewBottom": 483,
+    +   },
+    +   Object {
+    +     "band": true,
+    +     "bottom": 535,
+    +     "head": 290.5,
+    +     "inView": false,
+    +     "key": "L43@43",
+    +     "st": 623,
+    +     "t": 3035.100000023842,
+    +     "top": 509,
+    +     "viewBottom": 483,
+    +   },
+    +   Object {
+    +     "band": true,
+    +     "bottom": 535,
+    +     "head": 290.5,
+    +     "inView": false,
+    +     "key": "L43@43",
+    +     "st": 623,
+    +     "t": 3651.899999976158,
+    +     "top": 509,
+    +     "viewBottom": 483,
+    +   },
+    +   Object {
+    +     "band": true,
+    +     "bottom": 535,
+    +     "head": 290.5,
+    +     "inView": false,
+    +     "key": "L43@43",
+    +     "st": 623,
+    +     "t": 3662.7000000476837,
+    +     "top": 509,
+    +     "viewBottom": 483,
+    +   },
+    +   Object {
+    +     "band": true,
+    +     "bottom": 535,
+    +     "head": 290.5,
+    +     "inView": false,
+    +     "key": "L43@43",
+    +     "st": 623,
+    +     "t": 4301.700000047684,
+    +     "top": 509,
+    +     "viewBottom": 483,
+    +   },
+    +   Object {
+    +     "band": true,
+    +     "bottom": 535,
+    +     "head": 290.5,
+    +     "inView": false,
+    +     "key": "L43@43",
+    +     "st": 623,
+    +     "t": 4935.299999952316,
+    +     "top": 509,
+    +     "viewBottom": 483,
+    +   },
+    + ]
+
+      62 |  expect(result.every(r=>r.targetAt!==null&&r.frames.length>5),'new DOM target observed and multiple frames collected').toBe(true);
+      63 |  expect(result.every(r=>!r.off.inView),'each trial really scrolls the existing highlight out of view').toBe(true);
+    > 64 |  expect(result.flatMap(r=>r.hidden),'the new target snaps instead of waiting with an invisible band').toEqual([]);
+         |                                                                                                       ^
+      65 | });
+      66 |
+        at /tmp/codex-r245-ukvcssko/repo/lcnc-webui/e2e/r245.pending.spec.ts:64:103
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r245.pending-R245-a-pendin-7b2e6-ter-a-scroll-and-new-target/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r245.pending-R245-a-pendin-7b2e6-ter-a-scroll-and-new-target/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r245.pending-R245-a-pendin-7b2e6-ter-a-scroll-and-new-target/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r245.pending-R245-a-pendin-7b2e6-ter-a-scroll-and-new-target/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/r245.pending.spec.ts:22:1 › R245 a pending Sim follow rechecks visibility after a scroll and new target 
+  1 passed (13.6s)
