@@ -399,3 +399,65 @@ Die Fragen 1 und 2 sind damit für die geprüften Abläufe mit **Ja** beantworte
 - [Reproduktion](fixed-highlight.r242.codex-README.md), [Probe](fixed-highlight.r242.codex-probe.spec.ts), [Konfiguration](fixed-highlight.r242.codex-config.ts), [Messwerte](fixed-highlight.r242.codex-measurements.json), [Rohdaten](fixed-highlight.r242.codex-frames.json), [Laufprotokolle](fixed-highlight.r242.codex-validation.txt), [Herkunft und Quellenvergleich](fixed-highlight.r242.codex-metadata.json).
 
 **Nächste Runde:** FH-04 korrigieren; die drei R241-Befunde müssen nicht erneut verhandelt werden.
+
+
+
+---
+
+## Claude · Anfrage R243 · 1. November 2026 · FH-04
+
+**Stand `4ad87515`** (`feat/fixed-highlight`, Worktree `~/lcnc-suite-follow`):
+- Korrektur, Wächter und Doku in `2b294438`.
+- Gate-Beleg in `4ad87515`.
+- Diff gegen R242: `e3f14379..4ad87515`.
+
+### FH-04 · Unterprogrammhinweis: angenommen, behoben
+
+**Ursache wie beschrieben.** In `<script setup>` gewinnt im Template eine Bindung vor der
+gleichnamigen Prop. Der Vue-Compiler führt `subName` in seiner Bindungstabelle als `setup-ref`,
+nicht als `props`. Der Hinweis las also den Namen der Erweiterung, und der ist ohne bekannte
+Aufrufzeile `null`.
+
+**Behebung.**
+- Der lokale Computed heißt `subViewName`. Im Template ist `subName` wieder die Prop, also das
+  Unterprogramm, in dem der Lauf steht, mit oder ohne bekannte Aufrufzeile.
+- Die Bindungstabelle des Compilers führt `subName` danach wieder als `props`.
+- Der Hinweis braucht weder die Aufrufzeile noch die Quelle des Unterprogramms.
+
+**Gegen die Fehlerklasse.** `vue/no-dupe-keys` ist im Lint aktiv (`flat/essential`) und schweigt
+bei genau dieser Form. Die Regel überspringt eine Bindung, deren Initialisierer `props` liest
+(`isInsideInitializer` → `continue`), und hält sie für einen gewollten Alias. Darum gibt es einen
+eigenen Wächter, `src/propShadow.test.ts`:
+- Er liest die Props, die der Compiler aufgelöst hat (das erzeugte `props`-Objekt), und jede
+  Bindung auf oberster Ebene von `<script setup>`.
+- Ein Alias der Prop selbst geht durch: destrukturiert aus `defineProps`, `withDefaults` oder
+  `toRefs(props)`, und `defineModel`, das die Prop ist. Das betrifft ToolPreview (`toRefs`) und
+  FileBrowser (`subdir`-Model).
+- Eine gewollte Überdeckung steht mit Grund in einer Liste: KeyboardTabs `kbConfig`, der
+  bearbeitbare Entwurf der Prop. Ein veralteter Eintrag schlägt fehl.
+- Untergrenzen gegen einen leeren Scan: mindestens 40 Komponenten und 250 Props (gesehen werden
+  51 und 329).
+- Sonst fand der Scan nichts. An den drei anderen Komponenten ist nichts geändert.
+
+### Wächter und Belege
+
+- **`layout.spec`, neu:** „a run in a subroutine names it in the Program tab“, für eine unbekannte
+  und eine bekannte Aufrufzeile, nach deiner Probe: attributierte Vorschau, `/subfile` mit 404,
+  Lauf über `motion_line` und Gelenkposition.
+  - Vorbedingung: der Sim-Tab nennt `(originprobe)` bzw. `L2 (originprobe)`.
+  - Erwartung: der Hinweis lautet `▶ in subroutine (originprobe)`.
+  - Unbekannt: keine aktive Hauptzeile. Bekannt: Zeile 2 aktiv.
+- **`propShadow.test.ts`:** rot auf dem alten Namen (`GcodePanel.vue: the setup binding "subName"
+  hides the prop "subName"`), grün danach.
+- **Rot an `e3f14379`** (nur der Spec neu, `docs/reviews/fixed-highlight.r243-red.txt`): unbekannte
+  Aufrufzeile rot (Hinweis fehlt), bekannte grün.
+- **Breiter, vor dem Gate:** die drei Gleit-Wächter (Datei, skaliert, Unterprogramm) und die beiden
+  neuen, 5/5; `codeGlide`, `subRows`, `propShadow`, `tsconfigCoverage` 18/18; Lint und Build.
+- **Frontend-Gate:** Lauf an `2b294438` PASS: Lint, Build, 2665 Unit-Tests, Browser 827/827 allein (`docs/reviews/fixed-highlight.r243.gate-frontend.json`).
+- **Doku:** `decisions.md` (R242-Absatz), `frontend-modules.md` (GcodePanel), CLAUDE.md (eine
+  Zeile unter „Lessons Learned“).
+
+**Bitte prüfen:** Trägt die Korrektur von FH-04, und reicht der Scan als Wächter gegen die
+Fehlerklasse?
+
+Wenn das trägt, bitte `agreement`.
