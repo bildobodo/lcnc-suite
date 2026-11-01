@@ -17,7 +17,7 @@ import { usePermissions } from "./permissions";
 import { explainAt } from "./gateExplain";
 import { fmtPct, NO_VALUE } from "./format";
 import { cssZoomOf } from "./helpPlacement";
-import { glideAt, planGlide, visibleBand, type Glide } from "./codeGlide";
+import { glideAt, planGlide, stepDelay, type Glide } from "./codeGlide";
 import { SIM_FILTER_KINDS, simJump, simRows, simStep, simView, type SimFilter } from "./simPanelStore";
 import type { SimRow, SimRowKind } from "./viewer/simRows";
 import { admit, grow, isComplete, nextRange, renderedStop, widestOf, type ListRange } from "./viewer/simListRange";
@@ -301,26 +301,31 @@ const tabStop = computed(() => renderedStop(range.value, rows.value.map(r => r.k
 // ── The list FOLLOWS the position (operator 2026-10-06: "like the code
 // panel when the program runs"): the marked row — the shown finding, else
 // the next one ahead — stands in the middle of the list's view while the
-// simulation scrubs or plays and while a program runs. It glides the code
-// panel's way (codeGlide.ts): each new target over the time since the last
-// one (30–150 ms), from a start held in the row's VISIBLE BAND — a row that
-// left the view comes back at once, the rest glides. A browser smooth
-// scroll restarted per row fell behind at ×100 playback and the marked row
-// sat below the view for 1.5 s (Codex R81 VP-I41). A far jump and reduced
-// motion snap; the list moves, never the focus; a list that fits stays.
+// simulation scrubs or plays and while a program runs. It steps the code
+// panel's way (codeGlide.ts): a step slowing into the row, a row that comes
+// sooner than GLIDE.intervalMs after the last step waits (the newest marked
+// row is taken). A browser smooth scroll restarted per row fell behind at
+// ×100 playback and the marked row sat below the view for 1.5 s (Codex R81
+// VP-I41): the highlight — the band while a row waits or the list steps —
+// never leaves the view, and the row it covers is at most intervalMs +
+// stepMs old. A far jump and reduced motion snap; the list moves, never the
+// focus; a list that fits stays.
 const scroller = ref<HTMLElement | null>(null);
 const marked = computed(() => rows.value.find(r => shown(r) || isNext(r))?.key ?? null);
 const reduceMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 let glide: Glide | null = null;
 let glideRaf = 0;
-let lastTargetAt = -Infinity;
-// The marked row's highlight STANDS STILL while the list glides (operator
+/** When the last step began (performance.now). */
+let stepAt = -Infinity;
+// The marked row's highlight STANDS STILL while the list steps (operator
 // 2026-10-31: its bar went down a row with every row the playback passed and
-// the list glided it back): during a glide it is a band where the list glides
-// to — the scroll's own glide in the list's content — so the rows scroll
-// under it; at the list's start or end, where the scroll stops, it glides
-// from row to row. When the glide ends the marked row takes the same look
-// again. Placed on the element per frame, never through a render.
+// the list glided it back): during a step it is a band where the list goes
+// to — the scroll's own step in the list's content — so the rows move under
+// it; at the list's start or end, where the scroll stops, it goes from row
+// to row; while a row waits for its step it stays on the row it stands on
+// (between steps the list rests with the band ON a row — 2026-11-01). When
+// the step ends and no row waits the marked row takes the same look again.
+// Placed on the element per frame, never through a render.
 const bandEl = ref<HTMLElement | null>(null);
 /** The marked row the band glides to (its own look is off meanwhile). */
 const bandKey = ref<string | null>(null);
@@ -387,8 +392,9 @@ const rowEl = (sc: HTMLElement, key: string) => sc.querySelector<HTMLElement>(`t
 const contentTop = (sc: HTMLElement, tr: HTMLElement) =>
   (tr.getBoundingClientRect().top - sc.getBoundingClientRect().top) / cssZoomOf(sc) - sc.clientTop + sc.scrollTop;
 /** Brings the marked row to the middle; false while it cannot (no row
- *  rendered, no height yet). */
-function follow(animate: boolean): boolean {
+ *  rendered, no height yet), a number of ms while the row waits for its
+ *  step. */
+function follow(animate: boolean): boolean | number {
   const sc = scroller.value, key = marked.value;
   if (!sc || !key || !sc.clientHeight) return false;
   const tr = rowEl(sc, key);
@@ -401,19 +407,22 @@ function follow(animate: boolean): boolean {
   const max = Math.max(0, sc.scrollHeight - sc.clientHeight);
   const clamp = (y: number) => Math.max(0, Math.min(max, y));
   const to = clamp(rowY - (viewH - lineH) / 2);
-  const now = performance.now(), gap = now - lastTargetAt;
-  lastTargetAt = now;
-  // Where the highlight stands now: the band (gliding or held), else the row
+  const now = performance.now();
+  // Where the highlight stands now: the band (stepping or held), else the row
   // the list followed last (if it is rendered).
   const prev = bandKey.value != null ? bandAt : followed && followed !== key ? rowEl(sc, followed) : null;
   const prevY = typeof prev === "number" ? prev : prev ? contentTop(sc, prev) : null;
+  // Too soon after the last step: the row waits — the band holds where it
+  // stands (holdHighlight), the step comes with the timer.
+  const wait = animate && prevY != null ? stepDelay(stepAt, now, reduceMotion()) : 0;
+  if (wait > 0) return wait;
+  stepAt = now;
   cancelAnimationFrame(glideRaf);
   glide = null;
   endBand();
-  const plan = animate ? planGlide(sc.scrollTop, to, now, gap, viewH, reduceMotion(), visibleBand(rowY, lineH, viewH, clamp)) : null;
+  const plan = animate ? planGlide(sc.scrollTop, to, now, viewH, lineH, reduceMotion()) : null;
   if (!plan) { sc.scrollTop = to; return true; }
   const before = sc.scrollTop;
-  sc.scrollTop = plan.from;   // into the band at once — the row is in view from here on
   // The band starts where the highlight stands ON SCREEN: in the middle while
   // the scroll was free — re-read from the scroll the glide starts at —, else
   // where it stood (the list's start or end). No highlight before (the first
@@ -478,14 +487,25 @@ function restoreAnchor() {
   sc.scrollTop += d;
   // a glide under way moves with the rows: its target and the band shifted by as much
   if (glide) { glide.from += d; glide.to += d; }
-  if (bandGlide) { bandGlide.from += d; bandGlide.to += d; placeBand(bandAt + d); }
+  if (bandGlide) { bandGlide.from += d; bandGlide.to += d; }
+  // the band moves with its row, stepping or held
+  if (bandKey.value != null) placeBand(bandAt + d);
 }
+let waitTimer = 0;
 function followSoon() {
-  if (!followRaf) followRaf = requestAnimationFrame(() => {
+  // a row waiting for its step: the timer takes the newest marked row
+  if (followRaf || waitTimer) return;
+  followRaf = requestAnimationFrame(() => {
     followRaf = 0;
     const key = marked.value;
-    if (!key || follow(true)) followed = key;
-    else endBand();
+    const r = key ? follow(true) : false;
+    if (typeof r === "number") {
+      holdHighlight();   // the band holds where it stands (a list that just filled had no hold)
+      waitTimer = window.setTimeout(() => { waitTimer = 0; followSoon(); }, r);
+      return;
+    }
+    if (key && r) followed = key;
+    else { if (!key) followed = null; endBand(); }   // no marked row: no band held for it
     shownMarked = key;
   });
 }
@@ -524,7 +544,7 @@ watch(scroller, (el, old) => {
   if (old) sized?.unobserve(old);
   if (el) sized?.observe(el);
 });
-onUnmounted(() => { sized?.disconnect(); cancelAnimationFrame(glideRaf); cancelAnimationFrame(followRaf); });
+onUnmounted(() => { sized?.disconnect(); cancelAnimationFrame(glideRaf); cancelAnimationFrame(followRaf); clearTimeout(waitTimer); });
 
 /** The panel itself, holding a parked focus, keeps the navigation keys —
  *  one that reached the shortcut map would jog. */

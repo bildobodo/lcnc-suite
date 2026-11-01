@@ -999,7 +999,10 @@ test("the list follows the position: the marked row stays in the middle of its v
 // above never saw it). It glides the code panel's way now, from inside the
 // row's visible band: with NORMAL motion, playing at ×100, the marked row is
 // wholly in view at every sample.
-test("playback at ×100 with normal motion: the marked row never leaves the list's view", async ({ page, context }) => {
+// Codex R81 VP-I41: at ×100 the marked row sat below the view for 1.5 s. The
+// highlight — the band while the list steps or a row waits for its step,
+// else the marked row — never leaves the view.
+test("playback at ×100 with normal motion: the marked row's highlight never leaves the list's view", async ({ page, context }) => {
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: LONG_PREVIEW }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: LONG_TEXT }));
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
@@ -1025,21 +1028,24 @@ test("playback at ×100 with normal motion: the marked row never leaves the list
       const sc = document.querySelector(".simPanel .simTable") as HTMLElement;
       const tr = sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow");
       const head = sc.querySelector("thead")!.getBoundingClientRect(), b = sc.getBoundingClientRect();
-      const r = tr?.getBoundingClientRect();
+      const band = sc.querySelector(".simFollowBand");
+      const r = (band && band.getClientRects().length ? band : tr)?.getBoundingClientRect();
       return { key: tr?.dataset.simRow ?? null, inView: !!r && r.top >= head.bottom - 1 && r.bottom <= b.bottom + 1,
         below: r ? Math.round(r.bottom - b.bottom) : 0 };
     }));
   }
   const marked = samples.filter(s => s.key);
   expect(new Set(marked.map(s => s.key)).size, "the playback moved through many rows").toBeGreaterThan(5);
-  expect(marked.filter(s => !s.inView), "every sample: the marked row wholly in the list's view").toEqual([]);
+  expect(marked.filter(s => !s.inView), "every sample: the highlight wholly in the list's view").toEqual([]);
 });
 
 // Operator 2026-10-31: the marked row's bar went down a row with every row
 // the playback passed and the list glided it back — at ×50 a bounce per row.
-// It stands still now: while the list glides the bar is drawn where the list
-// glides to, and the rows scroll under it.
-test("playback at ×50: the marked row's highlight stands still while the list glides under it", async ({ page, context }) => {
+// It stands still now: while the list steps the bar is drawn where the list
+// goes to, and the rows move under it. And it covers a ROW between the steps
+// (2026-11-01, the Einrasten): a list that glided on with every new row left
+// the bar over halves of two.
+test("playback at ×50: the marked row's highlight stands still while the list steps under it, on a row between the steps", async ({ page, context }) => {
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: LONG_PREVIEW }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: LONG_TEXT }));
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
@@ -1062,7 +1068,7 @@ test("playback at ×50: the marked row's highlight stands still while the list g
   // list glides, else the marked row), the marked row, the scroll and its range.
   await page.evaluate(() => {
     const sc = document.querySelector(".simPanel .simTable") as HTMLElement;
-    const w = window as unknown as { __sim: { hl: number; key: string | null; st: number; max: number; t: number }[] };
+    const w = window as unknown as { __sim: { hl: number; key: string | null; st: number; max: number; t: number; grid: number }[] };
     w.__sim = [];
     const t0 = performance.now();
     const f = (now: number) => {
@@ -1071,22 +1077,28 @@ test("playback at ×50: the marked row's highlight stands still while the list g
       // the band while it shows (between glides it is hidden), else the marked row
       const band = sc.querySelector(".simFollowBand");
       const hl = band && band.getClientRects().length ? band : tr;
-      w.__sim.push({ hl: hl ? hl.getBoundingClientRect().top - top : NaN, key: tr?.dataset.simRow ?? null,
-        st: sc.scrollTop, max: sc.scrollHeight - sc.clientHeight, t: now - t0 });
+      // how far the highlight is from the nearest row
+      const y = hl ? hl.getBoundingClientRect().top : NaN;
+      let grid = Infinity;
+      for (const r of sc.querySelectorAll("tr[data-sim-row]")) grid = Math.min(grid, Math.abs(r.getBoundingClientRect().top - y));
+      w.__sim.push({ hl: hl ? y - top : NaN, key: tr?.dataset.simRow ?? null,
+        st: sc.scrollTop, max: sc.scrollHeight - sc.clientHeight, t: now - t0, grid });
       if (now - t0 < 1600) requestAnimationFrame(f);
     };
     requestAnimationFrame(f);
   });
   await page.locator('.scrubBar [title="Play the program through the machine model"]').click();
   await page.waitForTimeout(1800);
-  const frames = await page.evaluate(() => (window as unknown as { __sim: { hl: number; key: string | null; st: number; max: number; t: number }[] }).__sim);
+  const frames = await page.evaluate(() => (window as unknown as { __sim: { hl: number; key: string | null; st: number; max: number; t: number; grid: number }[] }).__sim);
   // the list scrolling freely (not at its start or end), past the first follow
   const free = frames.filter(f => f.t > 250 && f.st > 1 && f.st < f.max - 1 && f.key);
   expect(new Set(free.map(f => f.key)).size, "the playback passed many rows").toBeGreaterThan(5);
   const tops = free.map(f => f.hl);
   const spread = Math.max(...tops) - Math.min(...tops);
-  test.info().annotations.push({ type: "highlight", description: `${free.length} frames, the bar's top moved ${spread.toFixed(1)} px` });
-  expect(spread, `the marked row's highlight stands still while the list glides (${spread.toFixed(1)} px)`).toBeLessThanOrEqual(1);
+  const onRow = free.filter(f => f.grid <= 1).length / free.length;
+  test.info().annotations.push({ type: "highlight", description: `${free.length} frames, the bar's top moved ${spread.toFixed(1)} px, on a row in ${(onRow * 100).toFixed(0)} %` });
+  expect(spread, `the marked row's highlight stands still while the list steps (${spread.toFixed(1)} px)`).toBeLessThanOrEqual(1);
+  expect(onRow, `the bar covers a row between the steps (${(onRow * 100).toFixed(0)} % of the frames)`).toBeGreaterThanOrEqual(0.3);
 });
 
 // Operator 2026-10-06 (live): the collision verdict came in with the

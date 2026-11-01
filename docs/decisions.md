@@ -9993,3 +9993,58 @@ compiler resolved against every top-level setup binding; an alias of the prop it
 in the Program tab" with the call line unknown and known (red at e3f14379 for unknown,
 `docs/reviews/fixed-highlight.r243-red.txt`), and the scan (red on the old name).
 
+
+## 2026-11-01 — The running line snaps into place (operator: the Einrasten)
+
+**Asked.** The operator, live: the highlight stands still now, "aber es scheint nicht mehr ganz
+synchron mit den Codezeilen zu sein — wie machen das die anderen?" Read in their sources:
+- AXIS (`/usr/bin/axis`, `set_current_line`): the text tag `executing` on the line of
+  `stat.motion_line` (or `motion_id`), then `t.see(line + 2); t.see(line)` — Tk scrolls just enough
+  to show the line with two lines below it (centred only from far away): the highlight walks down
+  to the view's bottom and rides there while the text jumps line by line.
+- gmoccapy (`gladevcp/hal_sourceview.py`, `highlight_line`): the source mark `motion` on the line,
+  `scroll_to_mark(mark, 0, True, 0, 0.5)` — centred; GTK 3 animates it (`gtk_adjustment_animate_to_value`,
+  200 ms ease-out cubic, `gtkscrolledwindow.c` `ANIMATION_DURATION`), the line from `motion_line`
+  every 100 ms (`hal_glib` `CYCLE_TIME`): the mark jumps down with its line and glides back to the
+  middle — our state before 2026-10-31.
+- Probe Basic (QtPyVCP `GcodeTextEdit.setCurrentLine`): the cursor to the line, `centerCursor()`
+  with `setCenterOnScroll(True)`, the line's ExtraSelection full width, no animation, `motion_line`
+  every 100 ms (status plugin `cycle_time`): the highlight stands in the middle, the text jumps by
+  whole lines.
+In all three the highlight is the LINE's own, so it is always on the running line; none keeps it
+still while the text moves smoothly. Ours did (a band over text gliding on with every packet), and
+measured (desktop, `~/claude-work/follow/sync-measure.spec.ts`): on a row (≤ 1 px) in 20 % of the
+frames at 1 line / 100 ms, 10 % at 3 lines / 33 ms, 3 % at 8 / 33 ms; behind the running line
+0.6 / 2.4 / 5.5 lines (median). Offered: snap per line like Probe Basic, steps that snap into
+place ("Einrasten", recommended), or as is; the operator: "versuchen wirs" (the cost asked first:
+less than the glide — fewer frames move).
+
+**Decided.** The text goes in STEPS (`codeGlide.ts`): 60 ms slowing into the line (ease-out cubic,
+GTK's easing), at most one step per 100 ms — a line that comes sooner waits, the latest waiting
+line is taken, at any pace (at speed the text goes on in steps of several lines). A first variant
+let a line out of the view step at once, to keep Codex R52 VP-I21 / R81 VP-I41 literal for the
+running row; measured, that was every packet at 3–8 lines a packet in the desktop view — the glide
+went on as before exactly where the operator saw the lines out of step (at rest 5 %, on a row 21 %
+at 80 ms steps). So VP-I21 / VP-I41 are restated to what they were about, the HIGHLIGHT: it is the
+band while the text steps or a line waits, at its place on screen while the scroll is free, never
+out of the view; the running row, its own look off meanwhile, may be past the view's edge until
+the next step (≤ 100 ms). The clamp of a step's start into the running line's visible band went
+with it (`visibleBand`). The contract of Codex R241 FH-03 (an interpolated display, no age bound)
+is replaced: the band is never ahead of the running line, it covers a row whenever the text
+rests, and the line it covers is at most `intervalMs + stepMs` old. The line number and `active`
+are the running line at once, as before. The same in the Sim tab's list. Measured on the branch
+(desktop, three / eight lines a packet at 30 Hz): on a row in 55 % / 49 % of the frames (12 % /
+2 % before), the covered line at most 148 / 140 ms old (send time to frame); one line per 100 ms:
+65 % (20 %); the Sim list at ×50: 72 % (16 %). Guards: `layout.spec` "the code rests on a line
+between steps" for both paces (on a row ≥ 30 %, the covered line ≤ 194 ms old, the highlight in
+view in every frame), the glide test's even-pace assertions replaced by "the code rests between
+steps" and its in-view phases measuring the highlight, the ×50 Sim test (on a row ≥ 30 %), the
+×100 Sim test measuring the highlight (`docs/reviews/snap-highlight.red.txt`).
+
+**Found on the way (the harness).** The touch viewports of the e2e fixtures set the `touch-device`
+class by hand and never the touch state the code panel computes its rows from (`isTouchDevice`):
+every touch-viewport test laid the code view's 23 px rows out under 32 px ones (the first
+measurement of this round read 6 lines behind from it). Every fixture enters touch the app's own
+way now — one synthetic first touch (`e2e/touchMode.ts`: the input state at once, the sizes when
+the untrusted press has ended); `layout.spec` "the code view lays its rows out at the height it
+draws them" (desktop and touch, red before: 6900 px of content for 300 rows of 32 px).

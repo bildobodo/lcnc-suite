@@ -1,0 +1,25 @@
+Einrasten red evidence (2026-11-01): the new and changed guards against the product as it was
+(the development build at 4ad87515, copied in as dist; specs and codeGlide constants of
+feat/snap-highlight: stepMs 60, intervalMs 100).
+
+  npx playwright test e2e/layout.spec.ts e2e/sim-panel.viewer.spec.ts --no-deps --workers=1 \
+    -g "the code rests on a line between steps|the running line steps|playback at ×50|playback at ×100"
+
+  the running line steps: … rests between steps …                       FAILED
+    the code rests between steps — 60 fps, 127 frames: 0 % at rest (> 10 % required)
+  the code rests on a line between steps … — 3 lines a packet           FAILED
+    190 frames: on a row in 12 % (≥ 30 % required), the covered line at most 68 ms old
+  the code rests on a line between steps … — 8 lines a packet           FAILED
+    191 frames: on a row in 2 % (≥ 30 % required), the covered line at most 54 ms old
+  playback at ×50: … on a row between the steps (Sim list)              FAILED
+    the bar covers a row between the steps (16 % of the frames; ≥ 30 % required)
+  playback at ×100: the marked row's highlight never leaves the list's view   passed
+    (VP-I41 restated to the visible highlight: it holds before and after)
+
+The same guards on feat/snap-highlight: all passed — at rest 26 %; on a row 55 % / 49 %, the
+covered line at most 148 / 140 ms old (bound 194); the Sim list's bar on a row in 72 %.
+
+A first variant (stepMs 80; a line out of the view never waited, Codex R52 VP-I21 kept for the
+running row) measured: at rest 5 %, on a row 21 % at 3 lines a packet; the wait never came at
+3–8 lines a packet in the desktop view (the running row left it first), so the glide went on as
+before exactly where the operator saw the lines out of step. Hence the wait at every pace.

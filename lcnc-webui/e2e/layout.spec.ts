@@ -6,6 +6,7 @@ import { ctl, publishToolTable } from './ctl';
 import { Folder, serveNow, addPlain } from './macroFolder';
 import { clickMore } from './more';
 import { NARROW_PANE_PX } from '../src/sidePaneNarrow';
+import { GLIDE } from '../src/codeGlide';
 import { measureLayout, assertLayout, layoutChanges, measureFrame, frameChanges, sidewaysOverflow, type LayoutSnapshot } from './layout-audit';
 import { PROFILES, VIEWPORTS, PANELS, openLayout, setLayoutState, settleLayout, type LayoutState,
   STRIP_STATES, enterStripState, leaveStripState, stripStateRefs, stripStateExempt, refControls, SETUP_AXIS_ROWS } from './layout-fixtures';
@@ -2052,7 +2053,7 @@ const GLIDE_FEED = Array.from({ length: GLIDE_LINES }, (_, i) => [i % 2 ? 10 : 0
 const GLIDE_PREVIEW = Buffer.from(encode({ file: '/glide.ngc', preview_schema: 11, feed: GLIDE_FEED,
   feed_lines: GLIDE_FEED.map((_, i) => i + 1), feed_seq: GLIDE_FEED.map((_, i) => i + 1),
   feed_outside: new Uint8Array(GLIDE_LINES), rapid: [], violations: [], violations_total: 0 }));
-test('the running line glides: the code scrolls evenly under a centred highlight, which never leaves the view', async ({ page, context }) => {
+test('the running line steps: the code moves under a centred highlight and rests between steps; the highlight never leaves the view', async ({ page, context }) => {
   test.setTimeout(120_000);
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: GLIDE_PREVIEW }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain',
@@ -2069,8 +2070,9 @@ test('the running line glides: the code scrolls evenly under a centred highlight
   await ctl({ op: 'status_delta', data: { interp_state: 2, task_mode: 2, motion_line: line } });
   await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(line));
   await page.waitForTimeout(700);   // past the first step: the phases start from rest
-  /** Per animation frame: the time, the scroll and whether the highlighted
-   *  row is wholly inside the code view (±0.5 px). */
+  /** Per animation frame: the time, the scroll and whether the highlight —
+   *  the band while the code steps or a line waits, else the running row —
+   *  is wholly inside the code view (±0.5 px). */
   const sample = (ms: number) => page.evaluate(({ sel, ms }) => {
     const el = document.querySelector<HTMLElement>(sel)!;
     const w = window as unknown as { __glide: [number, number, boolean, string][] };
@@ -2078,7 +2080,7 @@ test('the running line glides: the code scrolls evenly under a centred highlight
     const t0 = performance.now();
     const f = (now: number) => {
       const v = el.getBoundingClientRect(), a = el.querySelector('.codeLine.active');
-      const r = a?.getBoundingClientRect();
+      const r = (el.querySelector('.codeFollowBand') ?? a)?.getBoundingClientRect();
       const inside = !!r && r.top >= v.top - 0.5 && r.bottom <= v.bottom + 0.5;
       w.__glide.push([now, el.scrollTop, inside, a?.querySelector('.lineNumber')?.textContent ?? '']);
       if (now - t0 < ms) requestAnimationFrame(f);
@@ -2088,7 +2090,7 @@ test('the running line glides: the code scrolls evenly under a centred highlight
   const samples = () => page.evaluate(() => (window as unknown as { __glide: [number, number, boolean, string][] }).__glide);
   const hidden = (ss: [number, number, boolean, string][]) => ss.filter(x => !x[2]);
 
-  // Phase 1: three lines a packet — even.
+  // Phase 1: three lines a packet — in steps.
   await sample(3500);
   for (let i = 0; i < 60; i++) {
     line += 3;
@@ -2105,28 +2107,25 @@ test('the running line glides: the code scrolls evenly under a centred highlight
   });
   expect(m.line, 'the last line is the highlighted one').toBe(line);
   expect(Math.abs(m.off), `it stands centred (${m.off} px off)`).toBeLessThan(m.lineH / 2 + 1);
-  expect(hidden(even).length, `three lines a packet: the running line in view in every frame ${JSON.stringify(hidden(even).slice(0, 5))}`).toBe(0);
+  expect(hidden(even).length, `three lines a packet: the highlight in view in every frame ${JSON.stringify(hidden(even).slice(0, 5))}`).toBe(0);
   const steps = even.slice(1).map((x, i) => x[1] - even[i]![1]);
   const fps = (even.length - 1) / ((even.at(-1)![0] - even[0]![0]) / 1000);
   expect(Math.min(...steps), 'the code never scrolls backwards').toBeGreaterThanOrEqual(-0.5);
-  // Over the frames from the first move to the last: a hard follow moves
-  // about every other frame by a whole packet's step and stands still in
-  // between; a glide moves nearly every frame by a part of it. (A single
-  // late frame may still carry a whole step — shares, not the maximum.)
-  const packetStep = 3 * m.lineH;
+  // Over the frames from the first move to the last: the code goes in steps
+  // (codeGlide.ts — it glided on with every packet until 2026-11-01, when a
+  // frame without movement was rare) and stands still between them, the
+  // highlight then on a row (the rest test below measures that).
   const first = steps.findIndex(v => v > 0.5), last = steps.findLastIndex(v => v > 0.5);
   const active = steps.slice(first, last + 1);
-  const moving = active.filter(v => v > 0.5).length / active.length;
-  const whole = active.filter(v => v >= 0.9 * packetStep).length / active.length;
-  const note = `${fps.toFixed(0)} fps, ${active.length} frames: ${(moving * 100).toFixed(0)} % move, ${(whole * 100).toFixed(0)} % by a whole ${packetStep} px packet step`;
+  const resting = active.filter(v => Math.abs(v) <= 0.5).length / active.length;
+  const note = `${fps.toFixed(0)} fps, ${active.length} frames: ${(resting * 100).toFixed(0)} % at rest`;
   test.info().annotations.push({ type: 'glide', description: note });
-  if (fps >= 50) {
-    expect(whole, `hardly a frame moves a whole packet's step — ${note}`).toBeLessThan(0.1);
-    expect(moving, `nearly every frame moves — ${note}`).toBeGreaterThan(0.75);
-  }
+  if (fps >= 50) expect(resting, `the code rests between steps — ${note}`).toBeGreaterThan(0.1);
 
-  // Phase 2 (VP-I21): twenty lines a packet forwards, then back — larger
-  // than the view's half: the running line must still be in every frame.
+  // Phase 2 (Codex R52 VP-I21): twenty lines a packet forwards, then back —
+  // larger than the view's half: the highlight must still be in view in
+  // every frame (the band, while the running row waits past the edge for
+  // its step).
   await page.waitForTimeout(700);
   await sample(3600);
   for (let i = 0; i < 36; i++) {
@@ -2141,8 +2140,8 @@ test('the running line glides: the code scrolls evenly under a centred highlight
   }
   await page.waitForTimeout(400);
   const big = await samples();
-  test.info().annotations.push({ type: 'glide', description: `20 lines a packet: ${big.length} frames, ${hidden(big).length} with the running line out of view` });
-  expect(hidden(big).length, `twenty lines a packet: the running line in view in every frame ${JSON.stringify(hidden(big).slice(0, 5))}`).toBe(0);
+  test.info().annotations.push({ type: 'glide', description: `20 lines a packet: ${big.length} frames, ${hidden(big).length} with the highlight out of view` });
+  expect(hidden(big).length, `twenty lines a packet: the highlight in view in every frame ${JSON.stringify(hidden(big).slice(0, 5))}`).toBe(0);
   await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(line));
 });
 
@@ -2245,6 +2244,93 @@ for (const size of [{ name: 'the file', lines: GLIDE_LINES, at: 60 }, { name: 'a
     await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(line));
     await expect(viewer.locator('.codeFollowBand'), 'no band left over from the hidden tab').toHaveCount(0);
     await ctl({ op: 'quiet', on: false });
+  });
+}
+
+// Operator 2026-11-01: the highlight stood still but was "nicht mehr ganz
+// synchron mit den Codezeilen" — the text glided on with every packet, so
+// the band over it sat on a row in 3–20 % of the frames and, at speed,
+// several lines behind. The code now goes in steps that snap into place
+// (codeGlide.ts): a line that comes sooner than GLIDE.intervalMs after the
+// last step waits, the text rests on a line between steps, and the line the
+// highlight covers is at most intervalMs + stepMs old (the time each line
+// was SENT: it came no sooner). A CAM-like pace — three lines a packet at
+// 30 Hz — and a fast one, eight, where the running row is often past the
+// view's edge and the band, never.
+for (const pace of [3, 8]) {
+  test(`the code rests on a line between steps: the standing highlight covers a whole row, never an old one — ${pace} lines a packet`, async ({ page, context }) => {
+    test.setTimeout(120_000);
+    await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: GLIDE_PREVIEW }));
+    await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain', body: glideText(GLIDE_LINES) }));
+    await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === 'desktop')!);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await ctl({ op: 'status_delta', data: { active_file: '/glide.ngc' } });
+    await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 5101, file: '/glide.ngc' } });
+    const SEL = '.codeViewer:not(.mdiHistoryList)';
+    const viewer = page.locator(SEL);
+    await expect(viewer.locator('.codeLine').first()).toBeVisible({ timeout: 30_000 });
+    await ctl({ op: 'quiet', on: true });
+    let line = 60;
+    await ctl({ op: 'status_delta', data: { interp_state: 2, task_mode: 2, motion_line: line } });
+    await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(line));
+    await page.waitForTimeout(700);
+    // Per animation frame: how far the highlight (the band, else the running
+    // row) is from the nearest row, that row's line, whether it is in view.
+    type F = { t: number; off: number; covered: number; inView: boolean; st: number };
+    await page.evaluate(sel => {
+      const el = document.querySelector<HTMLElement>(sel)!;
+      const w = window as unknown as { __rest: F[]; __restOn: boolean };
+      w.__rest = []; w.__restOn = true;
+      const f = (now: number) => {
+        const hl = el.querySelector('.codeFollowBand') ?? el.querySelector('.codeLine.active');
+        if (hl) {
+          const r = hl.getBoundingClientRect(), v = el.getBoundingClientRect();
+          let best: Element | null = null, d = Infinity;
+          for (const row of el.querySelectorAll('.codeLine')) {
+            const dd = Math.abs(row.getBoundingClientRect().top - r.top);
+            if (dd < d) { d = dd; best = row; }
+          }
+          w.__rest.push({ t: now, off: d, covered: Number(best?.querySelector('.lineNumber')?.textContent),
+            inView: r.top >= v.top - 0.5 && r.bottom <= v.bottom + 0.5, st: el.scrollTop });
+        }
+        if (w.__restOn) requestAnimationFrame(f);
+      };
+      requestAnimationFrame(f);
+    }, SEL);
+    // each line's send time on the page's clock (it arrives no sooner)
+    const pageNow = await page.evaluate(() => performance.now()), base = Date.now();
+    const sent: { line: number; t: number }[] = [];
+    for (let i = 0; i < 90; i++) {
+      line += pace;
+      sent.push({ line, t: Date.now() - base + pageNow });
+      await ctl({ op: 'status_delta', data: { motion_line: line } });
+      await page.waitForTimeout(33);
+    }
+    await page.waitForTimeout(400);
+    await page.evaluate(() => { (window as unknown as { __restOn: boolean }).__restOn = false; });
+    const frames = await page.evaluate(() => (window as unknown as { __rest: F[] }).__rest);
+    const first = frames.findIndex((f, i) => i > 0 && f.st !== frames[i - 1]!.st);
+    const last = frames.findLastIndex((f, i) => i > 0 && f.st !== frames[i - 1]!.st);
+    const running = frames.slice(first, last + 1);
+    const onRow = running.filter(f => f.off <= 1).length / running.length;
+    // how long the covered line has been out of date: since the next line was sent
+    const stale = running.map(f => {
+      const next = sent.find(x => x.line > f.covered);
+      return next && next.t < f.t ? f.t - next.t : 0;
+    });
+    const worst = Math.max(...stale);
+    const bound = GLIDE.intervalMs + GLIDE.stepMs + 34;   // + two frames
+    const note = `${running.length} frames: on a row in ${(onRow * 100).toFixed(0)} %, the covered line at most ${worst.toFixed(0)} ms old`;
+    test.info().annotations.push({ type: 'rest', description: note });
+    expect(running.length, 'the code followed the packets').toBeGreaterThan(60);
+    expect(onRow, `the highlight covers a whole row while the text rests — ${note}`).toBeGreaterThanOrEqual(0.3);
+    expect(worst, `the covered line is at most ${bound} ms old — ${note}`).toBeLessThanOrEqual(bound);
+    expect(running.filter(f => !f.inView), 'the highlight in view in every frame').toEqual([]);
+    // never ahead: the covered line was sent before the frame
+    expect(running.filter(f => !sent.some(x => x.line >= f.covered && x.t <= f.t) && f.covered > 60), 'never ahead of the running line').toEqual([]);
+    // at rest: on the running line
+    await expect(viewer.locator('.codeFollowBand')).toHaveCount(0);
+    await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(line));
   });
 }
 
