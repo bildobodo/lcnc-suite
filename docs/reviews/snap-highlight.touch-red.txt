@@ -1,0 +1,13 @@
+Touch fixtures red evidence (2026-11-01, feat/snap-highlight from development 4ad87515):
+the new layout.spec guard with the fixtures as they were (the `touch-device` class set by hand).
+
+  npx playwright test e2e/layout.spec.ts --project=serial-layout --no-deps --workers=1 -g "lays its rows out"
+
+  the code view lays its rows out at the height it draws them: desktop          passed
+  the code view lays its rows out at the height it draws them: touch-landscape  FAILED
+    Expected: 9600   (300 rows of 32 px, the CSS --code-line-h under html.touch-device)
+    Received: 6900   (300 rows of 23 px: GcodePanel's LINE_HEIGHT reads isTouchDevice, never set)
+
+After the fixtures enter touch the app's way (e2e/touchMode.ts): 2/2 passed; every spec that sets
+touch (layout, forms, macros, touchoff, dialogs, setup-layout, tool-geometry, touch-hold, choices):
+376/376 passed against the unchanged product build.

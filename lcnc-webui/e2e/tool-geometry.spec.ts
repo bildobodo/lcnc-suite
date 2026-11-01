@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { enterTouch } from "./touchMode";
 import WebSocket from "ws";
 import { assertLayout, expectDialogUncovered, measureLayout } from "./layout-audit";
 import { VIEWPORTS } from "./layout-fixtures";
@@ -108,7 +109,7 @@ for (const viewport of VIEWPORTS) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await page.goto(MOCK);
     await expectArmed(page);
-    if (viewport.touch) await page.evaluate(() => document.documentElement.classList.add("touch-device"));
+    if (viewport.touch) await enterTouch(page);
     await page.getByRole("tab", { name: "Tools", exact: true }).click();
     await expect.poll(async () => {
       await publishToolTable([tool], MOCK);

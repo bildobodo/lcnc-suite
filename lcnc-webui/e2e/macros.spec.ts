@@ -1,6 +1,7 @@
 // Package 5, stage C (plan docs/reviews/makros.plan.md): the Macros tab and
 // macro FILES on the bar, against the in-memory folder of macroFolder.ts.
 import { test, expect, type Page } from "@playwright/test";
+import { enterTouch } from "./touchMode";
 import { ctl, MOCK } from "./ctl";
 import { Folder, serve, rev, PARK, FACE } from "./macroFolder";
 import { clickMore, moreItem, moreTrigger } from "./more";
@@ -325,7 +326,7 @@ test("the Macros tab and its editor never run out sideways: desktop, portrait 10
     }
     await ready(page, folder, { macros: { macros: [], bar: ["park", "face_top", "go_to_g30_macro", "spindle_warmup", "coolant_flush"] } });
     await page.setViewportSize({ width: vp.w, height: vp.h });
-    if (vp.touch) await page.evaluate(() => document.documentElement.classList.add("touch-device"));
+    if (vp.touch) await enterTouch(page);
     if (vp.zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, vp.zoom);
     // the side pane's narrow flag follows the resize through a
     // ResizeObserver: wait until it matches the width before choosing tab or
@@ -612,7 +613,7 @@ test("one action row: Run and Abort left, More right; its panel, its keys, and a
   for (const narrow of [false, true]) {
     if (narrow) {
       await page.setViewportSize({ width: 900, height: 1200 });
-      await page.evaluate(() => document.documentElement.classList.add("touch-device"));
+      await enterTouch(page);
       await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
       await expect(page.getByRole("combobox", { name: "Side panel" })).toBeVisible();
     }
@@ -729,7 +730,7 @@ test("On bar and the order buttons move nothing in the list: no row height, colu
       folder.files.set(n, { text: `o<${n}> sub\no<${n}> endsub\n`, meta: { title: n, units: null, frame: null, params: [] } });
     }
     await ready(page, folder, { macros: { macros: [], bar: ["face_top"] } });
-    if (touch) await page.evaluate(() => document.documentElement.classList.add("touch-device"));
+    if (touch) await enterTouch(page);
     await openTab(page);
     // positions inside the TABLE: the test's own tap may scroll the body
     const geometry = () => page.evaluate(() => ({
@@ -790,7 +791,7 @@ test("a table that starts scrolling keeps its columns: the first macro on the ba
 test("the macro bar is dense: compact buttons, and an Abort at its right end that sends exactly abort", async ({ page }) => {
   for (const touch of [false, true]) {
     await ready(page, new Folder(), { macros: { macros: [], bar: ["park", "face_top"] } });
-    if (touch) await page.evaluate(() => document.documentElement.classList.add("touch-device"));
+    if (touch) await enterTouch(page);
     const bar = page.locator(".macroBar");
     const want = touch ? 36 : 28;
     for (const name of ["Park", "Face top", "Abort"]) {

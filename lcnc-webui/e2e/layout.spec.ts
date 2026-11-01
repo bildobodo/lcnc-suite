@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { enterTouch } from './touchMode';
 import { encode } from '@msgpack/msgpack';
 import { withLimitRuns } from './limitRuns';
 import { ctl, publishToolTable } from './ctl';
@@ -1391,7 +1392,7 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
     await expect(page.locator('.viewerPane .hud')).toBeHidden();
     await geometry('A desktop, HUD off', false);
     await page.setViewportSize({ width: portrait.width, height: portrait.height });
-    await page.evaluate(() => document.documentElement.classList.add('touch-device'));
+    await enterTouch(page);
     await zoom(1.5);
     await geometry('A portrait 150 %, HUD off', true);
     await simOn();
@@ -2330,6 +2331,32 @@ test('in an expanded subroutine the highlight stands still too, and the main pro
 // hint vanished: "0 / 4 (0 %)" and no word of the sub). The hint is the
 // prop: the sub the program runs in, call line known or not; the source of
 // the sub is not needed (/subfile refused here).
+// The code view's virtual rows are laid out from the row height the panel
+// computes (`LINE_HEIGHT`, 23 / 32 px by the touch SIZES) and drawn at the
+// CSS one (`--code-line-h`): the two must be one. The touch viewports set
+// the touch class alone and never the touch state the panel reads, so every
+// touch-viewport measurement of the code view laid 23 px rows out under
+// 32 px ones (found 2026-11-01 measuring the followed line: 6 lines off).
+// The viewports enter touch the app's own way — its first touch.
+for (const vp of ['desktop', 'touch-landscape']) {
+  test(`the code view lays its rows out at the height it draws them: ${vp}`, async ({ page, context }) => {
+    const N = 300;
+    await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain',
+      body: Array.from({ length: N }, (_, i) => `G1 X${i} F100`).join('\n') }));
+    await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === vp)!);
+    await ctl({ op: 'status_delta', data: { active_file: '/rows.ngc' } });
+    await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 5120, file: '/rows.ngc' } });
+    const viewer = page.locator('.codeViewer:not(.mdiHistoryList)');
+    await expect(viewer.locator('.codeLine').first()).toBeVisible({ timeout: 30_000 });
+    const m = await viewer.evaluate(el => {
+      const rows = [...el.querySelectorAll<HTMLElement>('.codeLine')].map(r => r.getBoundingClientRect());
+      return { rowH: rows[0]!.height, pitch: rows[1]!.top - rows[0]!.top, content: el.scrollHeight };
+    });
+    expect(m.pitch, 'rows follow each other at their height').toBeCloseTo(m.rowH, 1);
+    expect(m.content, `the content is ${N} rows of ${m.rowH} px`).toBeCloseTo(N * m.rowH, -1);
+  });
+}
+
 for (const callLine of [0, 2]) {
   test(`a run in a subroutine names it in the Program tab, call line ${callLine ? 'known' : 'unknown'}`, async ({ page, context }) => {
     const file = '/origin-name.ngc';

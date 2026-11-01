@@ -2,6 +2,7 @@ import { expect, type Page } from '@playwright/test';
 import { ctl, MOCK } from './ctl';
 import { Folder, serveNow } from './macroFolder';
 import { clickMore } from './more';
+import { enterTouch } from './touchMode';
 import { GATE_NAMES, type Permissions } from '../src/permissions';
 
 export const PROFILES = [
@@ -101,7 +102,7 @@ export async function openLayout(page: Page, profile: Profile, viewport: LayoutV
   await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
   await page.goto(MOCK);
   await expect(page.locator('input.setupInput').first()).toBeVisible();
-  if (viewport.touch) await page.evaluate(() => document.documentElement.classList.add('touch-device'));
+  if (viewport.touch) await enterTouch(page);
   await ctl({ op: 'setAxes', axes: profile.axes });
   await ctl({ op: 'setKins', kins: profile.kins });
   await setLayoutState(page, profile, 'homed');

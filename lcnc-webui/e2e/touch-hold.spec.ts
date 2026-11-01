@@ -1,9 +1,11 @@
 import { test, expect, type Page, type CDPSession } from "@playwright/test";
+import { enterTouch } from "./touchMode";
 import { ctl, MOCK } from "./ctl";
 import { clickMore } from "./more";
 
 // WP7 / UI-14 — hold-to-fire under REAL touch events. The layout fixtures
-// only add the `touch-device` class; a hold is a pointer sequence, so this
+// enter touch with one synthetic first touch (touchMode.ts) — the sizes and
+// the input state, no press; a hold is a pointer sequence, so this
 // spec drives Chromium's touch input through CDP (Input.dispatchTouchEvent)
 // in a hasTouch context and asserts the one thing that matters: exactly one
 // command per complete hold, none for a tap, a slide-off, a cancel, a
@@ -32,7 +34,7 @@ async function open(page: Page) {
   await ctl({ op: "reset" });
   await page.goto(MOCK);
   await expect(page.locator("input.setupInput").first()).toBeVisible();
-  await page.evaluate(() => document.documentElement.classList.add("touch-device"));
+  await enterTouch(page);
   await ctl({ op: "quiet", on: true });
   await ctl({ op: "status_delta", data: { active_file: "/A.ngc", homed: [1, 1, 1], permissions: PERMS_ALL } });
   await expect(page.getByRole("button", { name: "Unhome All", exact: true })).toBeEnabled();

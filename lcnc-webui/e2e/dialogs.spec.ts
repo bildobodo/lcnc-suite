@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
+import { enterTouch } from "./touchMode";
 import { ctl, MOCK, publishToolTable } from "./ctl";
 import { clickMore, moreTrigger } from "./more";
 import { Folder, serve } from "./macroFolder";
@@ -631,10 +632,8 @@ for (const row of ROWS) {
     const dialog = page.getByRole("dialog", { name: row.title, exact: typeof row.title === "string" });
     await expect(dialog).toBeVisible();
     await page.setViewportSize({ width: 900, height: 1200 });
-    await page.evaluate(() => {
-      document.documentElement.classList.add("touch-device");
-      document.documentElement.style.zoom = "1.5";
-    });
+    await enterTouch(page);
+    await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
     await settle(page);
     await settle(page);
     await expect(dialog).toBeVisible();

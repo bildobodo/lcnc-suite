@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
+import { enterTouch } from "./touchMode";
 import { ctl, MOCK } from "./ctl";
 import { measureLayout } from "./layout-audit";
 
@@ -73,7 +74,7 @@ async function open(page: Page, c: Config, s: Surface) {
   await ctl({ op: "setKins", kins: c.kins ?? null });
   await page.goto(MOCK);
   await expect(page.locator("input.setupInput")).toHaveCount(c.axes.length);
-  if (s.touch) await page.evaluate(() => document.documentElement.classList.add("touch-device"));
+  if (s.touch) await enterTouch(page);
   if (s.zoom) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, s.zoom);
   await setState(page, c, "live");
 }
