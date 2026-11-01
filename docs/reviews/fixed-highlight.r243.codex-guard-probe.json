@@ -1,0 +1,99 @@
+{
+  "pass": true,
+  "coverage": {
+    "rootComponents": 56,
+    "componentsWithProps": 51,
+    "props": 329
+  },
+  "cases": {
+    "current": {
+      "declared": [
+        "activeFile",
+        "gcodeContent",
+        "programRevision",
+        "programTextRevision",
+        "programTextSource",
+        "gcodeStats",
+        "violationsTotal",
+        "currentLine",
+        "subName",
+        "linesUntrustedReason",
+        "scrubLine",
+        "collisionLines",
+        "subView",
+        "isPaused",
+        "elapsed",
+        "optionalStop",
+        "blockDelete",
+        "runFromLine"
+      ],
+      "hidden": [],
+      "subNameBinding": "props"
+    },
+    "reintroducedFH04": {
+      "declared": [
+        "activeFile",
+        "gcodeContent",
+        "programRevision",
+        "programTextRevision",
+        "programTextSource",
+        "gcodeStats",
+        "violationsTotal",
+        "currentLine",
+        "subName",
+        "linesUntrustedReason",
+        "scrubLine",
+        "collisionLines",
+        "subView",
+        "isPaused",
+        "elapsed",
+        "optionalStop",
+        "blockDelete",
+        "runFromLine"
+      ],
+      "hidden": [
+        "subName"
+      ],
+      "subNameBinding": "setup-ref"
+    },
+    "computed": {
+      "declared": [
+        "subName",
+        "other"
+      ],
+      "hidden": [
+        "subName"
+      ],
+      "subNameBinding": "setup-ref"
+    },
+    "runtimeObject": {
+      "declared": [
+        "subName"
+      ],
+      "hidden": [
+        "subName"
+      ],
+      "subNameBinding": "literal-const"
+    },
+    "directDestructure": {
+      "declared": [
+        "subName"
+      ],
+      "hidden": [],
+      "subNameBinding": "props"
+    },
+    "runtimeArrayLimit": {
+      "declared": [],
+      "hidden": [],
+      "subNameBinding": "literal-const"
+    },
+    "renamedAliasLimit": {
+      "declared": [
+        "subName",
+        "other"
+      ],
+      "hidden": [],
+      "subNameBinding": "setup-maybe-ref"
+    }
+  }
+}

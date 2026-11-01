@@ -1,0 +1,73 @@
+R243 independent review, git archive 4ad87515; own mock 127.0.0.1:4188, stopped.
+Build before copied browser probe; existing R242 probe differs only in OUT path; grep selects its two FH-04 cases.
+No product source changes, no live gateway or machine commands.
+
+--- build.log ---
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2127 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-CX6P-oit.css                 8.14 kB │ gzip:   2.08 kB
+dist/static/index-CXANCbxc.css                      97.77 kB │ gzip:  17.81 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-DtxEL3MN.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-P617fXXv.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-B0QPSzl1.js                278.70 kB │ gzip: 104.92 kB
+dist/static/index-cNF03QGd.js                      672.34 kB │ gzip: 216.57 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.98s
+
+--- unit.log ---
+
+ RUN  v4.1.8 /tmp/codex-r243-jzy7bm44/repo/lcnc-webui
+
+
+ Test Files  4 passed (4)
+      Tests  18 passed (18)
+   Start at  02:17:53
+   Duration  973ms (transform 150ms, setup 0ms, import 288ms, tests 750ms, environment 0ms)
+
+
+--- browser.log ---
+
+Running 5 tests using 1 worker
+
+(node:3085259) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3085259) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/layout.spec.ts:2256:1 › in an expanded subroutine the highlight stands still too, and the main program takes it back (6.6s)
+  ✓  2 e2e/layout.spec.ts:2334:3 › a run in a subroutine names it in the Program tab, call line unknown (3.0s)
+  ✓  3 e2e/layout.spec.ts:2334:3 › a run in a subroutine names it in the Program tab, call line known (2.9s)
+  ✓  4 e2e/r243.codex.spec.ts:147:29 › run subroutine name survives without an inline expansion (call 0) (2.9s)
+  ✓  5 e2e/r243.codex.spec.ts:147:29 › run subroutine name survives without an inline expansion (call 2) (2.8s)
+
+  5 passed (19.3s)

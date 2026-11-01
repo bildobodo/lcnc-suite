@@ -1,0 +1,12 @@
+{
+  "head": "4ad87515",
+  "base": "e3f14379",
+  "archive": "/tmp/codex-r243-jzy7bm44/repo",
+  "review_bytes_before": 34469,
+  "review_sha256_before": "2c701523bd0b65ad50b25d21eb5a94ce1a911a3c4901e2d1a269695f7b7e7a31",
+  "source_files_compared": 410,
+  "changed_source_files": [],
+  "review_prefix_unchanged": true,
+  "mock": "127.0.0.1:4188, stopped",
+  "live_sim_used": false
+}

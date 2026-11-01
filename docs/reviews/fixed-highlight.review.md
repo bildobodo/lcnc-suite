@@ -461,3 +461,37 @@ eigenen Wächter, `src/propShadow.test.ts`:
 Fehlerklasse?
 
 Wenn das trägt, bitte `agreement`.
+
+
+## Codex · Nachprüfung R243 · 1. November 2026
+
+**Urteil: `agreement`. FH-04 ist geschlossen; damit sind FH-01 bis FH-04 erledigt.** Die Umsetzung des festen Highlights einschließlich der bereits abgenommenen Full-HD- und Perf-Änderungen ist im geprüften Stand `4ad87515` abgenommen. Keine neue Operatorfrage und kein offener Produktbefund aus diesen Runden.
+
+### FH-04: Korrektur bestätigt
+
+Der interne Computed heißt `subViewName`; die Anzeige `subName` wird wieder aus der Prop aufgelöst. Der Vue-Compiler führt sie tatsächlich als `props`. Die stabile Aufruf-Abhängigkeit der Erweiterung bleibt erhalten.
+
+Meine **unveränderten beiden R242-Gegenproben** sind am neuen Stand grün (nur der Ausgabepfad der Sondenkopie wurde angepasst):
+
+| Lauf im Unterprogramm | Ergebnis |
+| --- | --- |
+| Aufrufzeile unbekannt, `feed_cline = 0` | `▶ in subroutine (originprobe)` vorhanden; keine Hauptprogrammzeile fälschlich aktiv |
+| Aufrufzeile 2 bekannt, Unterprogrammquelle nicht abrufbar | Hinweis vorhanden; Hauptprogrammzeile 2 aktiv |
+
+Die neuen Repository-Wächter für beide Fälle und der Wächter für das stehende Band im aufgeklappten Unterprogramm samt Rückkehr ins Hauptprogramm bestehen ebenfalls. Der in R242 nachgewiesene Rückschritt ist damit behoben.
+
+### Antwort zum zusätzlichen Scan
+
+**Als zusätzlicher Wächter für diese Fehlerform und den heutigen Komponentenbestand angenommen.** Der Scan läuft über alle derzeitigen 56 Vue-Komponenten auf der obersten `src`-Ebene; 51 davon haben zusammen 329 aufgelöste Props. Direkte Prop-Aliase und die begründete Entwurf-Ausnahme bleiben zulässig; veraltete Ausnahmen und ein leerer Scan sind abgesichert.
+
+Unabhängig geprüft: Die aktuelle GcodePanel-Quelle meldet keine Überschattung. Wird der frühere FH-04-Name ausschließlich in einer In-Memory-Kopie wiederhergestellt, erkennt der eingereichte Scanner `subName` als verdeckte Prop; der Compiler meldet dazu `setup-ref`. Weitere Computed- und Runtime-Objekt-Fälle werden erkannt, ein direkter gleichnamiger Prop-Alias bleibt erlaubt.
+
+**Benannte Reichweite, kein neuer Blocker:** Der Scan ist keine vollständige Prüfung aller zulässigen Vue-Deklarationsformen. Meine isolierten Beispiele mit `defineProps(['subName'])` und mit `{ other: subName } = toRefs(props)` werden nicht beanstandet: Runtime-Arrays werden nicht gelesen und die Alias-Ausnahme prüft die Deklarationsform, nicht die Zuordnung jeder Eigenschaft. Diese Formen liegen hier nicht als weiterer Produktfehler vor. Werden sie künftig eingesetzt oder Komponenten in Unterordner verschoben, ist der Scan zu erweitern. Für FH-04 ergänzen ihn die beiden direkten Browser-Wächter passend.
+
+### Prüfung und Belege
+
+- Eigene Archivkopie von `4ad87515`; Produktions-Build grün.
+- `propShadow`, `tsconfigCoverage`, `codeGlide`, `subRows`: **18/18 Unit-Tests**.
+- Gezielte Browserprüfungen: **5/5** (drei Repository-Wächter, zwei ursprüngliche Gegenproben).
+- Alle **410 Quelldateien** unter `lcnc-webui/src` bytegleich zum geprüften Commit. Keine Produktänderung, keine Builds/Tests im Live-Baum, kein Zugriff auf die Live-Sim. Eigener Mock auf `127.0.0.1:4188` beendet. Kein vollständiger Gate-Lauf wiederholt.
+- [Reproduktion und Abgrenzung](fixed-highlight.r243.codex-README.md), [Browserprobe](fixed-highlight.r243.codex-probe.spec.ts), [Konfiguration](fixed-highlight.r243.codex-config.ts), [Herkunftsfälle](fixed-highlight.r243.codex-name-cases.json), [Scanner-Gegenprobe](fixed-highlight.r243.codex-guard-probe.mjs), [Scanner-Ergebnis](fixed-highlight.r243.codex-guard-probe.json), [Laufprotokolle](fixed-highlight.r243.codex-validation.txt), [Herkunft und Quellenvergleich](fixed-highlight.r243.codex-metadata.json).

@@ -1,0 +1,18 @@
+{
+  "0": {
+    "callLine": 0,
+    "simLine": "(originprobe)",
+    "chipCount": 1,
+    "active": [],
+    "text": "Program\nMDI\nProbing\nOffsets\nTools\nMacros\nSim\norigin-name.ngc\n4 lines\nStart\nStep\nPause\nAbort\nMore\n0 / 4 (0 %)\n\u25b6 in subroutine (originprobe)\n00:00\n1\nG1 X10 F100\n2\no<originprobe> call\n3\nG1 X40\n4\nM2"
+  },
+  "2": {
+    "callLine": 2,
+    "simLine": "L2 (originprobe)",
+    "chipCount": 1,
+    "active": [
+      "2"
+    ],
+    "text": "Program\nMDI\nProbing\nOffsets\nTools\nMacros\nSim\norigin-name.ngc\n4 lines\nStart\nStep\nPause\nAbort\nMore\n2 / 4 (50 %)\n\u25b6 in subroutine (originprobe)\n00:00\n1\nG1 X10 F100\n2\no<originprobe> call\n3\nG1 X40\n4\nM2"
+  }
+}
