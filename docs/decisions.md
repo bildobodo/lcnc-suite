@@ -10062,3 +10062,13 @@ no highlight in view snaps: after a stop, after a scroll away" (1 frame out per 
 the scroll away; 0 after) and `sim-panel.viewer.spec` "the list scrolled away: the next marked row
 snaps to the middle" (1 painted frame out; 0 after). The wording of the bound as Codex asked: a
 display lag behind the newest status; the running row past the edge for the wait AND the step.
+
+**Codex R245: FH-05 closed in the code view, the wording accepted; the rest in the Sim list.** A
+row WAITING for its step held the band on the row before; scrolled away from that band by hand,
+the next marked row kept it — `holdHighlight` checked the view only when it built a band, and
+`followSoon` returned while the wait's timer ran — so the band stayed off screen until the old
+timer (5/5 in Codex's probe). A held band out of view now ends with its wait and its step on the
+next row, and the follow snaps. Guard red first: `sim-panel.viewer.spec` "a row waiting for its
+step, the list scrolled away: the next row snaps" (3/3 trials one painted frame out; 0 after,
+8/8 repeated). The earlier Sim guard is bound to the row the scrub went to (Codex saw one sample
+of the row before counted as the new one).

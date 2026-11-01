@@ -1059,7 +1059,6 @@ test("the list scrolled away: the next marked row snaps to the middle, its highl
   }, f);
   await scrub(0.6);
   await page.waitForTimeout(500);
-  const before = await page.locator(".simPanel tr.shownRow, .simPanel tr.nextRow").getAttribute("data-sim-row");
   // Scrolled up by hand until the marked row stands a row below the view —
   // out of it, nearer than the snap distance.
   const off = await page.locator(".simPanel .simTable").evaluate(sc => {
@@ -1069,6 +1068,7 @@ test("the list scrolled away: the next marked row snaps to the middle, its highl
   });
   expect(off.below, "the marked row below the view").toBeGreaterThan(0);
   await page.waitForTimeout(150);
+  const before = await page.locator(".simPanel tr.shownRow, .simPanel tr.nextRow").getAttribute("data-sim-row");
   // Every painted frame from here (sampled after the paint): the highlight —
   // the band while it shows, else the marked row — and whether it is in view.
   await page.evaluate(() => {
@@ -1090,10 +1090,85 @@ test("the list scrolled away: the next marked row snaps to the middle, its highl
   await page.waitForTimeout(400);
   await page.evaluate(() => { (window as unknown as { __fhOn: boolean }).__fhOn = false; });
   const frames = await page.evaluate(() => (window as unknown as { __fh: { key: string | null; inView: boolean }[] }).__fh);
-  const next = frames.filter(f => f.key && f.key !== before);
-  test.info().annotations.push({ type: "fh05", description: `${next.length} frames of the next row, ${next.filter(f => !f.inView).length} with the highlight out of view` });
-  expect(next.length, "the scrub moved to another marked row").toBeGreaterThan(5);
+  // the frames of the row the scrub went to (bound to that row, Codex R245)
+  const target = frames.at(-1)?.key ?? null;
+  expect(target, "the scrub moved to another marked row").not.toBe(before);
+  const next = frames.filter(f => f.key === target);
+  test.info().annotations.push({ type: "fh05", description: `${next.length} frames of ${target}, ${next.filter(f => !f.inView).length} with the highlight out of view` });
+  expect(next.length, "the new row was drawn").toBeGreaterThan(5);
   expect(next.filter(f => !f.inView), "the next row's highlight in view in every painted frame").toEqual([]);
+});
+
+// Codex R245 (the rest of FH-05): a row WAITING for its step, its band held
+// on the row before — the list scrolled away from that band by hand, then a
+// new row comes. The held band is out of view: the wait for it ends and the
+// new row snaps (it waited for the old timer, the band off screen meanwhile).
+// The scrub steps and the scroll run in the page, on its clock, to land in
+// the wait; the frames are sampled after the paint, from the first that
+// shows the new row.
+test("a row waiting for its step, the list scrolled away: the next row snaps, its highlight in view", async ({ page, context }) => {
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: LONG_PREVIEW }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: LONG_TEXT }));
+  await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await ctl({ op: "status_delta", data: { active_file: "/long.ngc", is_enabled: false, enabled: false } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5403, file: "/long.ngc" } });
+  await simShow(page, "limit");
+  await expect(page.locator('.simPanel tr[data-sim-row="L57@57"]')).toHaveCount(1, { timeout: 15_000 });
+  await settleLayout(page);
+  await page.locator('.simPanel tr[data-sim-row="L8@8"]').click();
+  await expect(page.locator(".simBanner")).toBeVisible();
+  type R = { key: string | null; band: boolean; inView: boolean };
+  for (let trial = 0; trial < 3; trial++) {
+    await page.locator(".scrubBar .sliderInput").evaluate((el: HTMLInputElement) => {
+      el.value = String(Number(el.max) * 0.6);
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await page.waitForTimeout(250);
+    const t = await page.evaluate(async trial => {
+      const sc = document.querySelector<HTMLElement>(".simPanel .simTable")!;
+      const slider = document.querySelector<HTMLInputElement>(".scrubBar .sliderInput")!;
+      const wait = (ms: number) => new Promise(r => setTimeout(r, ms));
+      const move = (f: number) => { slider.value = String(Number(slider.max) * f); slider.dispatchEvent(new Event("input", { bubbles: true })); };
+      const read = (): R => {
+        const tr = sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow");
+        const band = sc.querySelector<HTMLElement>(".simFollowBand");
+        const hasBand = !!band?.getClientRects().length;
+        const r = (hasBand ? band : tr)?.getBoundingClientRect();
+        const head = sc.querySelector("thead")!.getBoundingClientRect(), v = sc.getBoundingClientRect();
+        return { key: tr?.dataset.simRow ?? null, band: hasBand, inView: !!r && r.top >= head.bottom - 1 && r.bottom <= v.bottom + 1 };
+      };
+      // two rows in quick succession: the second waits for its step, the band held
+      move(0.62); await wait(24 + trial);
+      move(0.64); await wait(60);
+      const before = read();
+      // scrolled up by hand until the held highlight is a row below the view
+      const hl = sc.querySelector<HTMLElement>(".simFollowBand")?.getClientRects().length
+        ? sc.querySelector<HTMLElement>(".simFollowBand")! : sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow")!;
+      const r = hl.getBoundingClientRect(), v = sc.getBoundingClientRect();
+      sc.scrollTop -= v.bottom - r.top + r.height;
+      const off = read();
+      // the new row: sampled after each paint from the first frame that shows it
+      const frames: R[] = [];
+      let on = true;
+      const sample = () => { setTimeout(() => frames.push(read()), 0); if (on) requestAnimationFrame(sample); };
+      const seen = new MutationObserver(() => {
+        if (read().key !== before.key) { seen.disconnect(); requestAnimationFrame(sample); }
+      });
+      seen.observe(sc, { attributes: true, childList: true, subtree: true });
+      move(0.66); await wait(250);
+      on = false; seen.disconnect();
+      return { before, off, frames };
+    }, trial);
+    const target = t.frames.at(-1)?.key ?? null;
+    const next = t.frames.filter(f => f.key === target);
+    test.info().annotations.push({ type: "fh05", description: `trial ${trial}: held band ${t.before.band}, ${next.length} frames of ${target}, ${next.filter(f => !f.inView).length} out of view` });
+    expect(t.off.inView, `trial ${trial}: the scroll took the held highlight out of view`).toBe(false);
+    expect(target, `trial ${trial}: a new row came`).not.toBe(t.before.key);
+    expect(next.length, `trial ${trial}: the new row was drawn`).toBeGreaterThan(5);
+    expect.soft(next.filter(f => !f.inView), `trial ${trial}: the new row's highlight in view in every painted frame`).toEqual([]);
+  }
 });
 
 // Operator 2026-10-31: the marked row's bar went down a row with every row

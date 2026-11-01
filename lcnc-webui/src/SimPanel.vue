@@ -522,10 +522,23 @@ function followSoon() {
 function holdHighlight() {
   const sc = scroller.value, key = marked.value;
   if (!sc || !key || reduceMotion() || bandKey.value === key) return;
-  if (bandKey.value == null) {
+  const head = sc.querySelector<HTMLElement>("thead")?.offsetHeight ?? 0;
+  if (bandKey.value != null) {
+    // A band the list was scrolled away from holds nothing: its wait and its
+    // step end, the follow snaps the new row in the next frame (Codex R245,
+    // the rest of FH-05: the band stayed off screen until the old timer).
+    if (!inListView(sc, bandAt, bandEl.value?.offsetHeight ?? 0, head)) {
+      clearTimeout(waitTimer);
+      waitTimer = 0;
+      cancelAnimationFrame(glideRaf);
+      glide = null;
+      endBand();
+      return;
+    }
+  } else {
     const prev = followed ? rowEl(sc, followed) : null;
     // only a row in view is held (the follow snaps from anywhere else — FH-05)
-    if (!prev || !inListView(sc, contentTop(sc, prev), prev.offsetHeight, sc.querySelector<HTMLElement>("thead")?.offsetHeight ?? 0)) return;
+    if (!prev || !inListView(sc, contentTop(sc, prev), prev.offsetHeight, head)) return;
     const band = bandEl.value;
     if (band) {
       band.style.left = `${prev.offsetLeft}px`;

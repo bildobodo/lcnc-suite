@@ -36,3 +36,13 @@ FH-05 (Codex R244) red evidence — the new guards against the adc7709a build (t
 
 After the fix: 0 out of view in every case; the follow set 16/16 (on a row 56 % / 51 %, the
 covered line at most 137 / 166 ms behind; the Sim list at ×50 72 %).
+
+FH-05 rest (Codex R245) red evidence — against the 357c6aff build (the gate's dist):
+
+  a row waiting for its step, the list scrolled away: the next row snaps, its highlight in view  FAILED
+    trial 0: held band true, 16 frames of L43@43, 1 out of view
+    trial 1: held band true, 16 frames of L43@43, 1 out of view
+    trial 2: held band true, 16 frames of L43@43, 1 out of view
+
+After the fix: 0 out of view in each trial; with "the list scrolled away" 8/8 over --repeat-each=4;
+the follow set 13/13.
