@@ -17,6 +17,10 @@ export const VIEWPORTS = [
   { name: 'compact', width: 1024, height: 768, touch: false },
   { name: 'touch-landscape', width: 1280, height: 800, touch: true },
   { name: 'touch-portrait', width: 900, height: 1200, touch: true },
+  // the machine's panel (operator 2026-10-31): Full HD landscape at 100 %, in
+  // full screen and in a maximised browser window under a desktop panel
+  { name: 'touch-fullhd', width: 1920, height: 1080, touch: true },
+  { name: 'touch-fullhd-window', width: 1920, height: 940, touch: true },
 ] as const;
 export type LayoutViewport = typeof VIEWPORTS[number];
 export const PANELS = {

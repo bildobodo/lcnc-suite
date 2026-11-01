@@ -150,6 +150,7 @@ onUnmounted(() => { sumFit?.disconnect(); cancelAnimationFrame(_sumFitRaf); });
 
 /** The row that is shown, else the next one ahead of the position. */
 const shown = (r: SimRow) => r.key === simView.shownKey;
+const shownKeyIs = (key: string) => key === simView.shownKey;
 const isNext = (r: SimRow) => !simView.shownKey && r.key === simView.nextKey;
 
 // ── The rows: a tap shows the finding; the keyboard's way is the row's line
@@ -313,13 +314,45 @@ const reduceMotion = () => typeof matchMedia === "function" && matchMedia("(pref
 let glide: Glide | null = null;
 let glideRaf = 0;
 let lastTargetAt = -Infinity;
+// The marked row's highlight STANDS STILL while the list glides (operator
+// 2026-10-31: its bar went down a row with every row the playback passed and
+// the list glided it back): during a glide it is a band where the list glides
+// to — the scroll's own glide in the list's content — so the rows scroll
+// under it; at the list's start or end, where the scroll stops, it glides
+// from row to row. When the glide ends the marked row takes the same look
+// again. Placed on the element per frame, never through a render.
+const bandEl = ref<HTMLElement | null>(null);
+/** The marked row the band glides to (its own look is off meanwhile). */
+const bandKey = ref<string | null>(null);
+const bandKind = ref<"shown" | "next">("next");
+let bandGlide: Glide | null = null;
+/** The row the band's glide goes to. */
+let bandGlideKey: string | null = null;
+/** The band's place now, in the list's content px. */
+let bandAt = 0;
+function placeBand(y: number) {
+  bandAt = y;
+  if (bandEl.value) bandEl.value.style.top = `${y}px`;
+}
+function endBand() {
+  bandGlide = null;
+  bandKey.value = null;
+}
 function glideStep() {
   const sc = scroller.value, g = glide;
   if (!sc || !g) return;
-  const { pos, done } = glideAt(g, performance.now());
+  const now = performance.now();
+  const { pos, done } = glideAt(g, now);
   sc.scrollTop = pos;
-  if (done) glide = null;
-  else glideRaf = requestAnimationFrame(glideStep);
+  // the band by the position the list TOOK (the browser rounds it): its
+  // place on screen is the glide's own, not the rounding's (Codex R241 FH-02)
+  if (bandGlide) placeBand(glideAt(bandGlide, now).pos + sc.scrollTop - pos);
+  if (!done) { glideRaf = requestAnimationFrame(glideStep); return; }
+  glide = null;
+  // the glide's own row takes the look again — unless a newer marked row
+  // holds the band already (it follows in the next frame)
+  if (bandKey.value === bandGlideKey) endBand();
+  else bandGlide = null;
 }
 // The spacers' row height: the rows' pitch, measured once per LIST that
 // fills in portions, from its first portion — a layout of at most that
@@ -349,6 +382,10 @@ function measureRowH() {
 // (below `scroller`: an immediate watch reads it at once)
 watch(range, measureRowH, { flush: "post", immediate: true });
 const rowEl = (sc: HTMLElement, key: string) => sc.querySelector<HTMLElement>(`tr[data-sim-row="${CSS.escape(key)}"]`);
+/** A row's top in the list's content px — where the band (absolute in the
+ *  scroller) stands on it. */
+const contentTop = (sc: HTMLElement, tr: HTMLElement) =>
+  (tr.getBoundingClientRect().top - sc.getBoundingClientRect().top) / cssZoomOf(sc) - sc.clientTop + sc.scrollTop;
 /** Brings the marked row to the middle; false while it cannot (no row
  *  rendered, no height yet). */
 function follow(animate: boolean): boolean {
@@ -366,11 +403,36 @@ function follow(animate: boolean): boolean {
   const to = clamp(rowY - (viewH - lineH) / 2);
   const now = performance.now(), gap = now - lastTargetAt;
   lastTargetAt = now;
+  // Where the highlight stands now: the band (gliding or held), else the row
+  // the list followed last (if it is rendered).
+  const prev = bandKey.value != null ? bandAt : followed && followed !== key ? rowEl(sc, followed) : null;
+  const prevY = typeof prev === "number" ? prev : prev ? contentTop(sc, prev) : null;
   cancelAnimationFrame(glideRaf);
   glide = null;
+  endBand();
   const plan = animate ? planGlide(sc.scrollTop, to, now, gap, viewH, reduceMotion(), visibleBand(rowY, lineH, viewH, clamp)) : null;
   if (!plan) { sc.scrollTop = to; return true; }
+  const before = sc.scrollTop;
   sc.scrollTop = plan.from;   // into the band at once — the row is in view from here on
+  // The band starts where the highlight stands ON SCREEN: in the middle while
+  // the scroll was free — re-read from the scroll the glide starts at —, else
+  // where it stood (the list's start or end). No highlight before (the first
+  // follow, a row the window dropped): the list glides to the row as it is.
+  if (prevY != null) {
+    const anchorOff = head - sc.clientTop + (viewH - lineH) / 2;
+    const fromY = Math.abs(prevY - (before + anchorOff)) < 1 ? plan.from + anchorOff : prevY;
+    const band = bandEl.value;
+    if (band) {
+      band.style.left = `${tr.offsetLeft}px`;
+      band.style.width = `${tr.offsetWidth}px`;
+      band.style.height = `${lineH}px`;
+    }
+    placeBand(fromY + sc.scrollTop - plan.from);   // by the position the list took (glideStep)
+    bandGlide = { from: fromY, to: contentTop(sc, tr), t0: plan.t0, dur: plan.dur };
+    bandGlideKey = key;
+    bandKind.value = shownKeyIs(key) ? "shown" : "next";
+    bandKey.value = key;
+  }
   glide = plan;
   glideRaf = requestAnimationFrame(glideStep);
   return true;
@@ -411,15 +473,41 @@ function restoreAnchor() {
   const sc = scroller.value, a = anchor;
   anchor = null;
   const tr = sc && a ? rowEl(sc, a.key) : null;
-  if (sc && a && tr) sc.scrollTop += (tr.getBoundingClientRect().top - a.y) / cssZoomOf(sc);
+  if (!sc || !a || !tr) return;
+  const d = (tr.getBoundingClientRect().top - a.y) / cssZoomOf(sc);
+  sc.scrollTop += d;
+  // a glide under way moves with the rows: its target and the band shifted by as much
+  if (glide) { glide.from += d; glide.to += d; }
+  if (bandGlide) { bandGlide.from += d; bandGlide.to += d; placeBand(bandAt + d); }
 }
 function followSoon() {
   if (!followRaf) followRaf = requestAnimationFrame(() => {
     followRaf = 0;
     const key = marked.value;
     if (!key || follow(true)) followed = key;
+    else endBand();
     shownMarked = key;
   });
+}
+/** A new marked row: until the list follows it (the next frame) the
+ *  highlight stays where it stood — the new row's own look showed it a row
+ *  further on for that frame, a bounce per row (operator 2026-10-31). */
+function holdHighlight() {
+  const sc = scroller.value, key = marked.value;
+  if (!sc || !key || reduceMotion() || bandKey.value === key) return;
+  if (bandKey.value == null) {
+    const prev = followed ? rowEl(sc, followed) : null;
+    if (!prev) return;
+    const band = bandEl.value;
+    if (band) {
+      band.style.left = `${prev.offsetLeft}px`;
+      band.style.width = `${prev.offsetWidth}px`;
+      band.style.height = `${prev.offsetHeight}px`;
+    }
+    placeBand(contentTop(sc, prev));
+  }
+  bandKind.value = shownKeyIs(key) ? "shown" : "next";
+  bandKey.value = key;
 }
 watch([marked, rows], () => {
   // the marked row rendered — unless that would drop the focused row: it then
@@ -427,7 +515,7 @@ watch([marked, rows], () => {
   measureRowH();   // the spacers before the marked row's place is read
   if (marked.value) admitRow(rows.value.findIndex(r => r.key === marked.value), focusedIndex());
   restoreAnchor();
-  if (marked.value !== followed) followSoon();
+  if (marked.value !== followed) { holdHighlight(); followSoon(); }
 }, { flush: "post" });
 watch(listComplete, whole => { if (whole && marked.value !== followed) followSoon(); });
 // A hidden tab has no height: it catches up when it shows (or resizes).
@@ -527,6 +615,9 @@ function onRootKey(e: KeyboardEvent) {
       <div v-if="!rows.length" class="emptyState">{{ total ? "None of this kind." : "No collisions, limit violations or tool changes." }}</div>
       <div v-else ref="scroller" v-sticky-head class="simTable dataTable scroll-thin fade-scroll" :class="{ locked: !can.armed }" @focusin="onListFocusIn"
            :style="{ '--sim-row-h': `${rowH}px` }" :data-rendered="`${range.hi - range.lo}/${rows.length}`" :data-list-complete="listComplete ? 1 : 0">
+        <!-- The marked row's highlight while the list glides: where the list
+             glides to, so it keeps its place on screen. -->
+        <div ref="bandEl" v-show="bandKey" class="simFollowBand" :class="bandKind" aria-hidden="true"></div>
         <table>
           <thead>
             <tr><th class="colKind" aria-label="Kind"></th><th class="colLine">Line</th><th class="colWhat">What</th><th class="colMove">Move</th><th class="colAt">Time</th></tr>
@@ -545,7 +636,7 @@ function onRootKey(e: KeyboardEvent) {
             </tr>
             <tr v-if="range.lo > 0" class="listSpacer" aria-hidden="true"><td colspan="5" :style="{ height: `calc(var(--sim-row-h) * ${range.lo})` }"></td></tr>
             <tr v-for="r in renderedRows" :key="r.key" :data-sim-row="r.key" :data-sim-at="r.kind === 'clash' ? `${r.key[0]}${r.line}` : r.key"
-                :class="{ shownRow: shown(r), nextRow: isNext(r) }" @click="show(r, $event)">
+                :class="{ shownRow: shown(r), nextRow: isNext(r), followed: r.key === bandKey }" @click="show(r, $event)">
               <td class="colKind" :class="r.kind">
                 <!-- lucide's own glyphs written out, as the components render
                      them: one component per row cost the first 400 rows' render (plan 3.6) -->
@@ -602,7 +693,7 @@ function onRootKey(e: KeyboardEvent) {
 .simSummary.form3 .sumClash { flex: 0 1 auto; min-width: 0; }
 .simSummary.form3 .checkVerdict { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .filterSelect { flex: 1; min-width: 0; }
-.simTable { flex: 1; min-height: 0; overflow: auto; }
+.simTable { flex: 1; min-height: 0; overflow: auto; position: relative; }
 /* The rows in portions (Codex R164 VP-I120): the sizer row takes no height
    and gives the columns the window's widest values; a spacer is the height of
    the rows not yet rendered (no padding, no rule — its height is theirs). */
@@ -614,10 +705,18 @@ tbody tr[data-sim-row] { cursor: pointer; }
 .locked tbody tr[data-sim-row] { cursor: default; }
 /* The shown finding: the selection tint and a bar; the next one ahead (no
    finding shown — a run's look-ahead): the bar alone. */
-.shownRow { background: var(--hl-selected); }
+.shownRow,
+.simFollowBand.shown { background: var(--hl-selected); }
 .shownRow td { background: inherit; }
 .shownRow td:first-child,
-.nextRow td:first-child { box-shadow: inset 3px 0 0 var(--info); }
+.nextRow td:first-child,
+.simFollowBand { box-shadow: inset 3px 0 0 var(--info); }
+/* While the list glides the marked row's highlight is the band (above): the
+   row shows nothing until the glide ends on it. The rows lie over the band. */
+.simFollowBand { position: absolute; pointer-events: none; }
+.shownRow.followed { background: none; }
+.followed td:first-child { box-shadow: none; }
+.simTable tbody tr[data-sim-row] { position: relative; }
 .colKind { width: 1%; text-align: center; }
 .colKind.clash, .sumGlyph.clash { color: var(--mark-clash); }
 .colKind.limit, .sumGlyph.limit { color: var(--mark-limit); }

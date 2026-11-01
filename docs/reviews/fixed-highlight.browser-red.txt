@@ -1,0 +1,55 @@
+# Fixed highlight — red at c2fa26ba (development d11c3d68 + the Full HD viewports), product unchanged
+
+## layout.spec — the highlight stands still (code panel)
+Running 1 test using 1 worker
+[1/1] [serial-layout] › e2e/layout.spec.ts:2156:1 › the highlight stands still while the code glides under it — never ahead of the running line, on it at rest
+  1) [serial-layout] › e2e/layout.spec.ts:2156:1 › the highlight stands still while the code glides under it — never ahead of the running line, on it at rest 
+    Error: the highlight stands still while the code glides (116.0 px)
+    expect(received).toBeLessThanOrEqual(expected)
+    Expected: <= 1
+    Received:    116
+      2202 |   test.info().annotations.push({ type: 'highlight', description: `${gliding.length} frames, the highlight's top moved ${spread.toFixed(1)} px` });
+      2203 |   expect(tops.every(Number.isFinite), 'a highlight in every frame').toBe(true);
+    > 2204 |   expect(spread, `the highlight stands still while the code glides (${spread.toFixed(1)} px)`).toBeLessThanOrEqual(1);
+           |                                                                                                ^
+      2205 |   const ahead = gliding.filter(f => f.hl > f.run + 0.5);
+      2206 |   expect(ahead, 'never ahead of the running line').toEqual([]);
+      2207 |   // At rest: the running row is the highlight, centred.
+        at /home/cnc/lcnc-suite-follow/lcnc-webui/e2e/layout.spec.ts:2204:96
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/layout-the-highlight-stand-33c34--running-line-on-it-at-rest-serial-layout/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    Usage:
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+  1 failed
+    [serial-layout] › e2e/layout.spec.ts:2156:1 › the highlight stands still while the code glides under it — never ahead of the running line, on it at rest 
+
+## sim-panel.viewer.spec — the marked row's highlight stands still (Sim list, ×50)
+Running 1 test using 1 worker
+[1/1] [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1042:1 › playback at ×50: the marked row's highlight stands still while the list glides under it
+  1) [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1042:1 › playback at ×50: the marked row's highlight stands still while the list glides under it 
+    Error: the marked row's highlight stands still while the list glides (33.0 px)
+    expect(received).toBeLessThanOrEqual(expected)
+    Expected: <= 1
+    Received:    33
+      1085 |   const spread = Math.max(...tops) - Math.min(...tops);
+      1086 |   test.info().annotations.push({ type: "highlight", description: `${free.length} frames, the bar's top moved ${spread.toFixed(1)} px` });
+    > 1087 |   expect(spread, `the marked row's highlight stands still while the list glides (${spread.toFixed(1)} px)`).toBeLessThanOrEqual(1);
+           |                                                                                                             ^
+      1088 | });
+      1089 |
+      1090 | // Operator 2026-10-06 (live): the collision verdict came in with the
+        at /home/cnc/lcnc-suite-follow/lcnc-webui/e2e/sim-panel.viewer.spec.ts:1087:109
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/sim-panel.viewer-playback--42349-le-the-list-glides-under-it-serial-viewer/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    Usage:
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+  1 failed
+    [serial-viewer] › e2e/sim-panel.viewer.spec.ts:1042:1 › playback at ×50: the marked row's highlight stands still while the list glides under it 
+
+## The hidden Program tab (probe on the unchanged build, same steps as the test's last phase)
+After 5 packets with the Program tab hidden and the tab shown again (500 ms):
+PROBE rows 20 active 0   — 20 rows rendered (the buffer), the running row not among them

@@ -86,7 +86,8 @@
 //
 // Emission rides the existing telemetry batcher (POST /telemetry, off the WS
 // status path), tagged `browser.viewer.perf` in trace.ndjson. One summary per
-// WINDOW_MS, and only when there was activity — idle machines stay silent.
+// WINDOW_MS, and only when there was activity (status, renders, presses, timed
+// spans) — idle machines stay silent.
 
 import { emitTelemetry } from './ws/telemetry';
 
@@ -545,10 +546,14 @@ function _heapUsedMb(): number | null {
   return +(mem.usedJSHeapSize / (1024 * 1024)).toFixed(1);
 }
 
-/** Emit the window summary if it saw status frames or renders, and reset.
- *  Driven by the interval below; exported for tests. */
+/** Emit the window summary if it saw status frames, renders, presses or
+ *  timed spans, and reset. A span is work on the main thread: a check that
+ *  starts on a quiet viewer (no status, nothing drawn) is reported in its own
+ *  window, not held until the next activity books it under another (gate
+ *  2026-10-31). Driven by the interval below; exported for tests. */
 export function flushViewerPerf(): void {
-  if (_frames === 0 && _renderCount === 0 && _inN === 0 && _inOdd === 0) return; // idle window — stay quiet
+  if (_frames === 0 && _renderCount === 0 && _inN === 0 && _inOdd === 0
+      && _spans.size === 0 && _spanUnknown === 0) return; // idle window — stay quiet
   const sorted = _sorted(_gaps);
   const raf = _sorted(_rafGaps);
   const mt = _sorted(_mtLate);

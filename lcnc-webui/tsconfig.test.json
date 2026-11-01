@@ -45,6 +45,7 @@
     "src/themeTokens.test.ts",
     "src/playwrightProjects.test.ts",
     "src/radioNames.test.ts",
+    "src/propShadow.test.ts",
     "src/exampleToolLibrary.test.ts",
     "src/freecadGeometry.test.ts",
     "src/toolGeometry.test.ts",

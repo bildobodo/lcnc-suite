@@ -277,7 +277,10 @@ times a fixed list of synchronous work an offset change sets off —
 `path_reply` (the part-frame reply with `toolpath.apply`), `path_programmed`,
 `pf_load`, `entry_track` — per window `span_<name>: {n, sum, max}`, a span
 inside another one as `nested_*` (never in the outer sum); the report pools
-them per phase (`main_thread`). The check's request transfers every track
+them per phase (`main_thread`). A window with spans is a row even without
+status frames or renders (a check started on a quiet viewer — before
+2026-10-31 its span waited for the next activity and was booked under that
+window, or never). The check's request transfers every track
 column it copies, none cloned twice (`viewer/colTrackCopy.ts`, N1;
 `getCollisionRequestMeta` says copies / transferred / detached). The S run
 after it still missed the age target (p95 60 ms): the dominant cost was the

@@ -9900,3 +9900,96 @@ there. The Sim tab already kept its bar and "100 %" once done and is unchanged (
 beside the verdict's words). Guards red at af1efdd2 (`docs/reviews/scrub-coverage.browser-red.txt`):
 the end of a check (the C2 states, the scrub-bar test), the merged result on the entry track (100 %,
 never a rounded 99 %), and the states without coverage (`setCollisionStartDependent`, a test hook).
+
+## 2026-10-31 — The machine's panel in the layout tests; the running line's highlight stands still (operator)
+
+**The machine's panel.** The operator's panel is a Full HD touch screen in landscape on the LinuxCNC
+PC, no scaling; the launcher opens the default browser in a window (`xdg-open`). Two viewports join
+the layout sweeps: `touch-fullhd` 1920 × 1080 (full screen) and `touch-fullhd-window` 1920 × 940 (a
+maximised window under a desktop panel and the browser's bars). Every per-viewport sweep in
+`layout.spec` (control panels across states, side tabs, the probe grid, navigation, Abort's place,
+the browsers, the strip states, the HUD column) passed at both before any change (28/28), the tool
+dialog's geometry too; the tool edit dialog's two reference images are new. Seen on the renders,
+not a defect of the sweep: the strip is wider than 1920 px — 29 px past it with three axes, 264 px
+with XYZAC (the Tool section wholly), 426 px with the TWP gantry; it scrolls sideways by design.
+Asked of the operator whether it should fit.
+
+**The highlight stands still.** The operator, live: at dozens of lines a second the highlighted line
+went up and down; other UIs keep the highlight in one place and scroll the program through — in
+the Sim tab's list too. The cause: since 2026-09-30 the code glides (each packet's step over the
+packet gap), but the highlight sat ON the running row, which a packet moves by its whole step at
+once — down by up to five lines at three lines a packet, then glided back with the text (the same
+wish the operator had said on 2026-09-30: "dass die Zeile stehen bleibt, aber das Programm
+scrollt"). The highlight is now a band while the code glides, drawn where the text glides to — the
+scroll's own glide in the rows' space — so it keeps its place on screen and the text scrolls
+under it. The rule it replaces ("the highlight stays on the line that actually runs, no band
+lagging the machine", 6c4d0c8c) becomes: the band is never ahead of the running line, at most one
+packet gap (≤ 150 ms) behind [corrected after Codex R241 FH-03, below: no such bound — an interpolated display, never ahead, on the line once the last glide ends], and ON it whenever the packets pause — the running row's own highlight
+takes over there with the same look; mid-glide it covers parts of two rows. Near the file's start
+or end, where the scroll stops, the band glides from row to row. VP-I21 holds unchanged (the
+running row in view in every frame; a step past the visible band moves the text, the band is
+re-read from the new scroll). The Sim list does the same with its marked row (a band of the shown
+or the next row's look, placed per frame without a render); a new marked row holds the band where
+it stood until the list follows in the next frame, and a moved window shifts a glide under way with
+the rows. Found on the way, not on any list: a Program tab hidden during a run showed the wrong part
+of the code when it came back (the follow had no height there; 20 rows without the running one)
+until the next line — a long move kept it so; the view's height is reactive now and the view that
+comes back snaps to the followed row. Guards red at c2fa26ba (`docs/reviews/fixed-highlight.browser-red.txt`):
+the code panel at 30 packets a second (the highlight's top moved 116 px; now ≤ 1, never ahead, the
+running row at rest, the hidden tab), the Sim list at ×50 (33 px).
+
+**Found by the gate, on no list: a quiet window dropped its spans.** The frontend gate at 99096fcf
+failed one test outside this change — the run check's `span_col_copy` / `span_col_post` count
+(VP188-02 step 0) — and `development` fails it too (5 of 6 single runs on d11c3d68; 791/791 in the
+R240 gate the same day: timing). A `viewer.perf` row is sent only for a window with activity, and
+activity was status frames, renders and presses — not the timed spans. The idle check after the
+run starts in quiet mode (no status) with nothing to draw, so its span stayed in the accumulator:
+booked under the window of the next activity, or never (the telemetry log of a failing run: four
+`sweep_start`, three rows with one span each, nothing after the last start). The spans count as
+activity now — they come only from real work (a check's request and post, a path reply, a load),
+so an idle viewer stays silent. Red first: `viewerPerf.test.ts` "a window with spans alone is
+reported in its own row" (`docs/reviews/fixed-highlight.perf-red.txt`); the browser test 8 of 8
+after it.
+
+**Codex R241: three findings, one more found on the way.** The perf spans and the Full HD
+viewports were accepted; the highlight was not, yet:
+- FH-01 — in an expanded subroutine the band never showed: `expansion` read the whole `subView`, so
+  every sub line was a new expansion object and the reset watcher on it dropped the band. It reads
+  the call now (name, call line, the sub's text): a new sub line is the same expansion, and the
+  sub's text is split once instead of once per line.
+- FH-02 — in a scaled view the band moved up to 5 px (2 M lines): the rows were placed from the
+  scroll position the browser ROUNDED, the band from the glide's own, and one scroll px is ~3.8
+  content px there. Rows and band are placed from one position now — the one the follow asked for
+  while the element holds what it took for it; a scroll by hand is the element's own. Measured:
+  0.02 px at scale 1 (Codex 0.97), 0.48 px at 2 M lines (4.78; the rest is the layout's own
+  precision at ~6 M px). `offsetY` lost its clamp at 0, which placed the first ~76 lines of a
+  scaled file off their mapping. The Sim list places its band by the position the list took too.
+- FH-03 — "at most one packet gap behind" was no property: a glide starts where the band stands, so
+  a glide not finished when the next packet comes carries its rest (4.02 lines at 3 lines a
+  packet, Codex). The contract, as Codex put it: the line number and the row's `active` are the
+  running line at once; the band is an interpolated display, never ahead of the running line, on
+  it once the last glide ends; 150 ms is the longest a new glide is planned over, no age bound.
+- Found while proving FH-01: on a sub's first line the reset watcher ran AFTER the follow (Vue
+  orders no two watchers of one change) and stopped its glide at the visible band's edge — the row
+  ~180 px off the middle until the next line. The follow and its glide now carry the rows they were
+  made in (program + expansion), checked where they are read; the reset watcher is gone.
+Guards (`layout.spec`): the stillness test for the file AND a scaled view (2 M lines, forwards and
+backwards, centred to the px at rest), and "in an expanded subroutine the highlight stands still
+too, and the main program takes it back" through the real path (attributed preview, `/subfile`,
+the scrub slider). Red at 0e4deea9: 4.78 px scaled, no band in the sub
+(`docs/reviews/fixed-highlight.r242-red.txt`).
+
+**Codex R242: FH-01..FH-03 closed, FH-04.** The local computed for the expansion's name was called
+`subName` — the name of GcodePanel's prop for the sub the run is in. A `<script setup>` binding
+wins over a prop of the same name in the template, so the "in subroutine" hint read the
+expansion's name, null without a known call line: a run in a sub whose call line the preview
+could not attribute showed "0 / 4 (0 %)" and no word of the sub. Renamed `subViewName`; the hint
+reads the prop again, call line known or not, the sub's source not needed. ESLint's
+`vue/no-dupe-keys` is on and silent on that shape (it skips a binding whose initializer reads
+`props`, taking it for an alias), so `propShadow.test.ts` scans every component: the props the
+compiler resolved against every top-level setup binding; an alias of the prop itself
+(`defineProps` / `withDefaults` / `toRefs(props)` destructured, `defineModel`) passes, KeyboardTab's
+`kbConfig` draft is listed with its reason. Guards: `layout.spec` "a run in a subroutine names it
+in the Program tab" with the call line unknown and known (red at e3f14379 for unknown,
+`docs/reviews/fixed-highlight.r243-red.txt`), and the scan (red on the old name).
+
