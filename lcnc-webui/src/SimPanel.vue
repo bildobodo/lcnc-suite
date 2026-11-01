@@ -744,14 +744,16 @@ function onRootKey(e: KeyboardEvent) {
 .listSpacer td { padding: 0; border-bottom: 0; }
 tbody tr[data-sim-row] { cursor: pointer; }
 .locked tbody tr[data-sim-row] { cursor: default; }
-/* The shown finding: the selection tint and a bar; the next one ahead (no
-   finding shown — a run's look-ahead): the bar alone. */
+/* The position's look, the code panel's (operator 2026-11-01: "dann ist es
+   einheitlich"): the shown finding — the simulation stands at it — its fill
+   and its bar; the next one ahead (no finding shown — playback's and a run's
+   look-ahead) the bar alone. */
 .shownRow,
-.simFollowBand.shown { background: var(--hl-selected); }
+.simFollowBand.shown { background: var(--hl-position); }
 .shownRow td { background: inherit; }
 .shownRow td:first-child,
 .nextRow td:first-child,
-.simFollowBand { box-shadow: inset 3px 0 0 var(--info); }
+.simFollowBand { box-shadow: inset 3px 0 0 var(--highlight); }
 /* While the list glides the marked row's highlight is the band (above): the
    row shows nothing until the glide ends on it. The rows lie over the band. */
 .simFollowBand { position: absolute; pointer-events: none; }

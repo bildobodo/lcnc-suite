@@ -10072,3 +10072,21 @@ next row, and the follow snaps. Guard red first: `sim-panel.viewer.spec` "a row 
 step, the list scrolled away: the next row snaps" (3/3 trials one painted frame out; 0 after,
 8/8 repeated). The earlier Sim guard is bound to the row the scrub went to (Codex saw one sample
 of the row before counted as the new one).
+
+**Codex R246: agreement** at `5f9fd3b9` (FH-01..FH-05 closed, the Einrasten accepted).
+
+**The Sim list takes the running line's yellow (operator, after the look in the LAN sim: "sollen
+wir bei der sim nicht das gleiche gelbe highlight nehmen wie beim programmlauf? dann ist es
+einheitlich").** The Sim tab marked the position in the selection's look — the neutral selection
+tint and an `--info` bar — while the code panel marks the same position (the running line, the
+scrubbed one) in `--highlight`; during playback both show the same place in two looks. The marked
+row is the position, not a pick: a tap on a row moves the simulation there. So the shown finding
+takes the code line's fill and bar, the next one ahead the bar alone (its shape kept: it is ahead
+of the position, not at it), the band while the list steps the same. ONE token, `--hl-position`
+(`--highlight` at `--tint-active` over `--panel`), read by `.codeLine.active` / `.codeFollowBand`
+and the Sim rows. The G-code reference keeps the selection's look for its marked entry: that is a
+lookup's target, not the program's position. Guard red first: `contrast.spec` "the Sim tab marks
+the position in the code panel's look, its text 4.5 : 1 on it" (five themes; red at `5f9fd3b9`:
+the fill differs in every theme) — it also brings the Sim tab and the code panel's position line
+into the reading-contrast scan, which never visited either (the full colour instead of the tint
+fails it in every theme: 1.35–3.36 : 1).

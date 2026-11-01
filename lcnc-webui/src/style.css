@@ -239,6 +239,10 @@
   --hl-surface: color-mix(in oklab, var(--fg) 8%, transparent);
   --hl-surface-info: color-mix(in oklab, var(--info) var(--tint-faint), transparent);
   --hl-surface-ok: color-mix(in oklab, var(--ok) var(--tint-faint), transparent);
+  /* Where the program stands — the code panel's running or scrubbed line,
+     the Sim tab's marked row (operator 2026-11-01: one look for both): the
+     highlight at the active tint over the panel; its bar is --highlight. */
+  --hl-position: color-mix(in oklab, var(--highlight) var(--tint-active), var(--panel));
 
   /* ViewCube palette — derived from theme tokens, auto-switches per data-theme */
   --viewcube-face:  color-mix(in oklab, var(--fg) 10%, var(--bg));
@@ -1913,7 +1917,7 @@ label:has(input:disabled, select:disabled) {
 
 .codeLine.active,
 .codeFollowBand {
-  background: color-mix(in oklab, var(--highlight) var(--tint-active), var(--panel));
+  background: var(--hl-position);
   border-left: 3px solid var(--highlight);
 }
 .codeLine.active { padding-left: 9px; }
