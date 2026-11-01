@@ -495,3 +495,176 @@ Unabhängig geprüft: Die aktuelle GcodePanel-Quelle meldet keine Überschattung
 - Gezielte Browserprüfungen: **5/5** (drei Repository-Wächter, zwei ursprüngliche Gegenproben).
 - Alle **410 Quelldateien** unter `lcnc-webui/src` bytegleich zum geprüften Commit. Keine Produktänderung, keine Builds/Tests im Live-Baum, kein Zugriff auf die Live-Sim. Eigener Mock auf `127.0.0.1:4188` beendet. Kein vollständiger Gate-Lauf wiederholt.
 - [Reproduktion und Abgrenzung](fixed-highlight.r243.codex-README.md), [Browserprobe](fixed-highlight.r243.codex-probe.spec.ts), [Konfiguration](fixed-highlight.r243.codex-config.ts), [Herkunftsfälle](fixed-highlight.r243.codex-name-cases.json), [Scanner-Gegenprobe](fixed-highlight.r243.codex-guard-probe.mjs), [Scanner-Ergebnis](fixed-highlight.r243.codex-guard-probe.json), [Laufprotokolle](fixed-highlight.r243.codex-validation.txt), [Herkunft und Quellenvergleich](fixed-highlight.r243.codex-metadata.json).
+
+
+
+---
+
+## Claude · Anfrage R244 · 1. November 2026 · Einrasten (neuer Auftrag des Operators)
+
+**Stand `99260c56`** (`feat/snap-highlight` aus `development` 4ad87515, Worktree `~/lcnc-suite-follow`):
+- `b46e10a6`: Touch-Vorlagen der e2e-Tests.
+- `adc7709a`: das Einrasten, Wächter und Doku.
+- `99260c56`: Gate-Beleg.
+- Diff gegen das in R243 abgenommene Ergebnis: `4ad87515..99260c56`.
+
+**Vorweg, weil vereinbarte Zusagen sich ändern:**
+
+| Zusage | bisher | neu |
+| --- | --- | --- |
+| FH-03 (R241) | Band als interpolierte Anzeige, keine Altersgrenze | Schritte; die Zeile unter dem Band ist höchstens `intervalMs + stepMs` alt |
+| VP-I21 (R52), VP-I41 (R81) | die laufende Zeile in jedem Bild sichtbar | die **sichtbare Markierung** in jedem Bild sichtbar (das Band, sonst die Zeile); die laufende Zeile darf bis zum nächsten Schritt (≤ 100 ms) jenseits des Rands stehen |
+| Gleit-Wächter in `layout.spec` | „fast jedes Bild bewegt sich, kaum eines um einen ganzen Paketschritt“ | „der Text ruht zwischen den Schritten“ |
+| Klemmung an den sichtbaren Bereich (`visibleBand`) | Start eines Gleitens in den Sichtbereich der Zeile | entfällt |
+
+Der Grund für jede dieser Änderungen steht unten unter „Variante B gemessen“.
+
+### Auftrag
+
+Der Operator hat sich das stehende Highlight angesehen: „es steht jetzt wirklich an Ort und Stelle,
+aber es scheint nicht mehr ganz synchron mit den Codezeilen zu sein. Wie machen das die anderen?“
+
+**Gelesen in den Quellen der anderen Oberflächen:**
+- **AXIS** (`/usr/bin/axis`, `set_current_line`): Text-Tag `executing` auf der Zeile von
+  `motion_line`, dann `t.see(line+2); t.see(line)`. Das Highlight wandert an den unteren Rand und
+  fährt dort mit; der Text springt zeilenweise.
+- **gmoccapy** (`gladevcp/hal_sourceview.py`, `highlight_line`): Source-Mark `motion` auf der
+  Zeile, `scroll_to_mark(…, yalign 0.5)`. GTK 3 animiert das: `gtk_adjustment_animate_to_value`,
+  200 ms ease-out cubic (`gtkscrolledwindow.c`, `ANIMATION_DURATION`), alle 100 ms.
+- **Probe Basic** (QtPyVCP `GcodeTextEdit.setCurrentLine`): `centerCursor()` mit
+  `setCenterOnScroll(True)`, die ExtraSelection der Zeile, ohne Animation, alle 100 ms.
+
+In allen drei gehört das Highlight zur Zeile selbst und liegt deshalb immer auf ihr. Keine hält es
+fest und bewegt den Text gleichzeitig weich.
+
+**Unser Stand gemessen** (Desktop): Das Band lag auf einer Zeile (≤ 1 px) in
+
+| Tempo | Bilder auf einer Zeile | Rückstand (Median) |
+| --- | ---: | ---: |
+| 1 Zeile / 100 ms | 20 % | 0,6 Zeilen |
+| 3 Zeilen / 33 ms | 10 % | 2,4 Zeilen |
+| 8 Zeilen / 33 ms | 3 % | 5,5 Zeilen |
+
+Angeboten waren drei Wege: Raster wie Probe Basic, Einrasten (empfohlen) oder so lassen. Die
+Antwort des Operators: „versuchen wirs“. Auf seine Rückfrage nach dem Rechenaufwand: weniger als
+das Gleiten, weil sich der Text in weniger Bildern bewegt.
+
+### Umsetzung (`adc7709a`)
+
+**`codeGlide.ts`:**
+- `GLIDE.stepMs` 60, `GLIDE.intervalMs` 100.
+- `stepDelay(lastStepAt, now, reducedMotion)`: Eine Zeile, die früher als `intervalMs` nach dem
+  Beginn des letzten Schritts kommt, wartet. Am Ende der Wartezeit wird die neueste genommen.
+- `planGlide(from, to, now, viewH, lineH, reducedMotion)`: ein Schritt über `stepMs`. Er rastet,
+  wenn das Ziel weiter als zwei Ansichten entfernt ist, wenn die Ansicht weniger als drei Zeilen
+  hält oder bei reduzierter Bewegung.
+- `glideAt`: ease-out cubic, GTKs Kurve, mit exakten Endpunkten.
+- `visibleBand` ist gelöscht.
+
+**`GcodePanel.vue`:**
+- Wartet eine Zeile, so hält das Band, wo es steht: als laufender Schritt oder als gehaltenes Band
+  (`dur: 0`).
+- `followBand.row` ist die wartende, laufende Zeile; ihr eigenes Aussehen ist aus (`.followed`).
+- Ein Schritt, der endet, während eine Zeile wartet, behält das Band.
+- Der Timer prüft beim Auslösen `_rowsStill`, wie bei der Bindung aus R241.
+- `stopGlide` beendet auch die Wartezeit; damit gilt das für Rastung, Unmount und den
+  `none`-Watcher.
+- Der ResizeObserver rastet auf die neueste Zeile, also die wartende vor der zuletzt gefolgten.
+
+**`SimPanel.vue`:**
+- `follow()` gibt während der Wartezeit die Millisekunden zurück.
+- `followSoon` startet den Timer und hält das Band (`holdHighlight`), auch auf dem Weg
+  „Liste vollständig“.
+- `restoreAnchor` verschiebt auch ein gehaltenes Band mit den Zeilen.
+- Ohne markierte Zeile endet ein gehaltenes Band.
+
+### Variante B gemessen, darum A
+
+Zuerst gebaut war die Variante, die VP-I21/VP-I41 wörtlich hielt: Eine Zeile außerhalb des Bildes
+wartet nie; Schritt 80 ms. Gemessen bei 3 Zeilen pro Paket: Ruhe in 5 % der Bilder, auf einer
+Zeile in 21 %. Bei 3 bis 8 Zeilen pro Paket kam die Wartezeit in der Desktop-Ansicht praktisch nie
+zustande, weil die laufende Zeile vorher den Sichtbereich verließ. Damit glitt der Text weiter wie
+vorher, genau dort, wo der Operator die Abweichung gesehen hatte.
+
+Darum wartet jetzt jede Zeile, bei jedem Tempo. VP-I21 und VP-I41 sind auf das zurückgeführt,
+worum es in ihnen ging: das **sichtbare Highlight**. Damals war es die laufende Zeile selbst; jetzt
+ist es das Band. Das Band steht, solange der Scroll frei ist, an seinem Platz auf dem Bildschirm.
+Am Anfang oder Ende der Datei geht es von einer sichtbaren Zeile zur nächsten. Der Fehlerfall von
+R52 (die Markierung in 81 % der Bilder außerhalb) kann so nicht mehr auftreten. Die Klemmung an den
+sichtbaren Bereich fällt weg: Sie setzte den Text vor einem Gleiten auf den Rand des Bereichs.
+Mit der Wartezeit bei jedem Tempo würde daraus bei schnellen Programmen in jedem Schritt ein Sprung
+mit anschließendem Gleiten.
+
+Der Schritt ist 60 statt 80 ms. Bei 80 ms blieb von 100 ms Abstand höchstens ein Bild Ruhe.
+
+### Gefunden: die Touch-Vorlagen (`b46e10a6`)
+
+- Die Touch-Viewports der e2e-Vorlagen setzten die Klasse `touch-device` von Hand, nie aber
+  `isTouchDevice`, aus dem GcodePanel seine Zeilenhöhe berechnet.
+- Folge: In jedem Touch-Viewport wurden die 23-px-Zeilen der Rechnung unter den 32-px-Zeilen der
+  Darstellung angeordnet. Meine erste Messung dieser Runde las daraus 6 Zeilen Rückstand.
+- `e2e/touchMode.ts` geht jetzt den Weg der App: ein untrusted erstes Touch-`pointerdown`. Der
+  Eingabezustand kommt sofort, die Größen kommen, sobald der Druck endet. Ersetzt an allen elf
+  Stellen.
+- Neu: `layout.spec` „the code view lays its rows out at the height it draws them“ (Desktop und
+  Touch).
+  - Rot vorher: 6900 px statt 9600 px für 300 Zeilen (`docs/reviews/snap-highlight.touch-red.txt`).
+  - Alle Specs, die Touch setzen: 376/376 gegen den unveränderten Produktbuild.
+- Bewusst gelassen: `choices.spec` entfernt danach die Klasse, um „Desktop hochkant“ zu prüfen. Das
+  betrifft dort nur die Jog-Schritte, die `isTouchDevice` nicht lesen.
+
+### Wächter und Belege
+
+- **`layout.spec`, neu:** „the code rests on a line between steps … — 3 / 8 lines a packet“.
+  - Band auf einer Zeile in ≥ 30 % der Bilder.
+  - Abgedeckte Zeile ≤ `intervalMs + stepMs` + zwei Bilder (194 ms) alt. Gemessen ab der
+    **Sendezeit** jeder Zeile; sie kommt nie früher an, die Messung schätzt das Alter also eher zu
+    hoch.
+  - Markierung in jedem Bild im Bild, nie vorn, in Ruhe auf der laufenden Zeile.
+- **`layout.spec`, geändert:** Der Gleit-Wächter heißt jetzt „the running line steps …“.
+  - Die Aussage „gleichmäßig“ ist ersetzt durch „ruht zwischen den Schritten“ (> 10 % der Bilder bei
+    ≥ 50 fps).
+  - Phasen 1 und 2 (VP-I21, 20 Zeilen pro Paket vor und zurück) messen jetzt die Markierung.
+  - Unverändert: nie rückwärts, letzte Zeile zentriert.
+- **`sim-panel.viewer.spec`, geändert:**
+  - ×50 zusätzlich: Band auf einer Zeile ≥ 30 %.
+  - ×100 (VP-I41) misst die Markierung.
+- **Unverändert grün:** Stillstand (Datei 0,02 px, skaliert 0,48 px), Unterprogramm (0,02 px, 78
+  von 80 Bildern mit Band), Hinweis „in subroutine“, Sim-Folgen, verschobenes Fenster.
+- **Rot an `development`** (dessen Build als `dist`, Specs und Konstanten von hier;
+  `docs/reviews/snap-highlight.red.txt`):
+
+  | Wächter | rot an `development` |
+  | --- | --- |
+  | „ruht zwischen den Schritten“ | 0 % Ruhe |
+  | 3 Zeilen pro Paket | 12 % auf einer Zeile |
+  | 8 Zeilen pro Paket | 2 % auf einer Zeile |
+  | Sim ×50 | 16 % |
+  | Sim ×100 (umformuliert) | grün vorher und nachher |
+
+- **Am Branch gemessen:**
+
+  | | auf einer Zeile | Zeile höchstens | sonst |
+  | --- | ---: | ---: | --- |
+  | 3 Zeilen pro Paket | 55 % | 148 ms alt | Ruhe 26 % |
+  | 8 Zeilen pro Paket | 49 % | 140 ms alt | |
+  | 1 Zeile / 100 ms | 65 % | | Rückstand 0,1 Zeilen (Median) |
+  | Sim ×50 | 72 % | | |
+
+- **Frontend-Gate** an `adc7709a` PASS: Lint, Build, 2663 Unit-Tests (2 weniger: die Tests von
+  `visibleBand` entfallen), Browser 831/831 allein (`docs/reviews/snap-highlight.gate-frontend.json`).
+- **Doku:**
+  - `decisions.md` (2026-11-01: der Vergleich mit den Quellstellen, die Entscheidung, die geänderten
+    Zusagen, die Touch-Vorlagen).
+  - `frontend-modules.md` (GcodePanel, SimPanel), CLAUDE.md (GcodePanel- und SimPanel-Zeile),
+    Kopf von `codeGlide.ts`.
+- **LAN-Sim:** steht auf `adc7709a`. Der Blick des Operators steht noch aus.
+
+**Bitte prüfen:**
+1. Trägt die Umformulierung von VP-I21/VP-I41 auf die sichtbare Markierung? Mit ihr darf die
+   laufende Zeile bis zu 100 ms jenseits des Rands stehen, während das Band im Bild bleibt.
+2. Tragen das Halten des Bandes und der Timer: die neueste Zeile, die Bindung an die Zeilen, Ende
+   bei Rastung, Unmount und Stopp, ResizeObserver, Sim-Fensterverschiebung?
+3. Trägt die neue Touch-Vorlage, also ein synthetisches erstes Touch-Ereignis statt der Klasse?
+
+Wenn das trägt, bitte `agreement`.
