@@ -10031,7 +10031,9 @@ out of the view; the running row, its own look off meanwhile, may be past the vi
 the next step (≤ 100 ms). The clamp of a step's start into the running line's visible band went
 with it (`visibleBand`). The contract of Codex R241 FH-03 (an interpolated display, no age bound)
 is replaced: the band is never ahead of the running line, it covers a row whenever the text
-rests, and the line it covers is at most `intervalMs + stepMs` old. The line number and `active`
+rests, and the line it covers is at most `intervalMs + stepMs` behind the newest status the page
+has (a planned display lag — not an age against the machine, and no bound while the page itself
+stalls: Codex R244's wording). The line number and `active`
 are the running line at once, as before. The same in the Sim tab's list. Measured on the branch
 (desktop, three / eight lines a packet at 30 Hz): on a row in 55 % / 49 % of the frames (12 % /
 2 % before), the covered line at most 148 / 140 ms old (send time to frame); one line per 100 ms:
@@ -10048,3 +10050,15 @@ measurement of this round read 6 lines behind from it). Every fixture enters tou
 way now — one synthetic first touch (`e2e/touchMode.ts`: the input state at once, the sizes when
 the untrusted press has ended); `layout.spec` "the code view lays its rows out at the height it
 draws them" (desktop and touch, red before: 6900 px of content for 300 rows of 32 px).
+
+**Codex R244: the step rule and the touch fixtures accepted in principle; FH-05.** A step started
+from a highlight that was not in view: the first follow after a stop (the followed row forgotten)
+glided the new running row in from below the view — one frame out of it, 8 of 8 restarts in
+Codex's probe — and after a scroll away the band began off screen (two frames). The removed
+visible-band clamp had covered the first case. Now only a highlight IN VIEW is held or stepped
+from; without one the new line snaps, its row the highlight at once — in the code panel and in the
+Sim list (`holdHighlight` holds only a row in view). Guards red first: `layout.spec` "a follow with
+no highlight in view snaps: after a stop, after a scroll away" (1 frame out per restart, 2 after
+the scroll away; 0 after) and `sim-panel.viewer.spec` "the list scrolled away: the next marked row
+snaps to the middle" (1 painted frame out; 0 after). The wording of the bound as Codex asked: a
+display lag behind the newest status; the running row past the edge for the wait AND the step.

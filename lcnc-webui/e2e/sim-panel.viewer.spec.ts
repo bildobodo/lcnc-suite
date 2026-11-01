@@ -996,12 +996,10 @@ test("the list follows the position: the marked row stays in the middle of its v
 // Codex R81 VP-I41: the follow restarted a browser smooth scroll per row —
 // at ×100 playback it fell behind and the marked row sat below the view for
 // 1.5 s (openLayout emulates reduced motion, where it snapped: the scrub test
-// above never saw it). It glides the code panel's way now, from inside the
-// row's visible band: with NORMAL motion, playing at ×100, the marked row is
-// wholly in view at every sample.
-// Codex R81 VP-I41: at ×100 the marked row sat below the view for 1.5 s. The
-// highlight — the band while the list steps or a row waits for its step,
-// else the marked row — never leaves the view.
+// above never saw it). It steps the code panel's way now: with NORMAL
+// motion, playing at ×100, the highlight — the band while the list steps or
+// a row waits for its step, else the marked row — is wholly in view at every
+// sample.
 test("playback at ×100 with normal motion: the marked row's highlight never leaves the list's view", async ({ page, context }) => {
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: LONG_PREVIEW }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: LONG_TEXT }));
@@ -1037,6 +1035,65 @@ test("playback at ×100 with normal motion: the marked row's highlight never lea
   const marked = samples.filter(s => s.key);
   expect(new Set(marked.map(s => s.key)).size, "the playback moved through many rows").toBeGreaterThan(5);
   expect(marked.filter(s => !s.inView), "every sample: the highlight wholly in the list's view").toEqual([]);
+});
+
+// Codex R244 FH-05: a step needs a highlight in view to start from. With the
+// list scrolled away by hand, the next marked row's band began off screen
+// and glided in; such a follow snaps — the row in the middle at once.
+test("the list scrolled away: the next marked row snaps to the middle, its highlight in view at once", async ({ page, context }) => {
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: LONG_PREVIEW }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: LONG_TEXT }));
+  await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await ctl({ op: "status_delta", data: { active_file: "/long.ngc", is_enabled: false, enabled: false } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5402, file: "/long.ngc" } });
+  await simShow(page, "limit");
+  await expect(page.locator('.simPanel tr[data-sim-row="L57@57"]')).toHaveCount(1, { timeout: 15_000 });
+  await settleLayout(page);
+  await page.locator('.simPanel tr[data-sim-row="L8@8"]').click();
+  await expect(page.locator(".simBanner")).toBeVisible();
+  const scrub = (f: number) => page.locator(".scrubBar .sliderInput").evaluate((el: HTMLInputElement, at) => {
+    el.value = String(Number(el.max) * at);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  }, f);
+  await scrub(0.6);
+  await page.waitForTimeout(500);
+  const before = await page.locator(".simPanel tr.shownRow, .simPanel tr.nextRow").getAttribute("data-sim-row");
+  // Scrolled up by hand until the marked row stands a row below the view —
+  // out of it, nearer than the snap distance.
+  const off = await page.locator(".simPanel .simTable").evaluate(sc => {
+    const r = sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow")!.getBoundingClientRect(), b = sc.getBoundingClientRect();
+    sc.scrollTop -= b.bottom - r.top + r.height;
+    return { below: sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow")!.getBoundingClientRect().top - b.bottom, view: sc.clientHeight };
+  });
+  expect(off.below, "the marked row below the view").toBeGreaterThan(0);
+  await page.waitForTimeout(150);
+  // Every painted frame from here (sampled after the paint): the highlight —
+  // the band while it shows, else the marked row — and whether it is in view.
+  await page.evaluate(() => {
+    const sc = document.querySelector(".simPanel .simTable") as HTMLElement;
+    const w = window as unknown as { __fh: { key: string | null; inView: boolean }[]; __fhOn: boolean };
+    w.__fh = []; w.__fhOn = true;
+    const sample = () => {
+      const tr = sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow");
+      const band = sc.querySelector(".simFollowBand");
+      const hl = band && band.getClientRects().length ? band : tr;
+      const head = sc.querySelector("thead")!.getBoundingClientRect(), b = sc.getBoundingClientRect();
+      const r = hl?.getBoundingClientRect();
+      w.__fh.push({ key: tr?.dataset.simRow ?? null, inView: !!r && r.top >= head.bottom - 1 && r.bottom <= b.bottom + 1 });
+    };
+    const f = () => { setTimeout(sample, 0); if (w.__fhOn) requestAnimationFrame(f); };
+    requestAnimationFrame(f);
+  });
+  await scrub(0.63);
+  await page.waitForTimeout(400);
+  await page.evaluate(() => { (window as unknown as { __fhOn: boolean }).__fhOn = false; });
+  const frames = await page.evaluate(() => (window as unknown as { __fh: { key: string | null; inView: boolean }[] }).__fh);
+  const next = frames.filter(f => f.key && f.key !== before);
+  test.info().annotations.push({ type: "fh05", description: `${next.length} frames of the next row, ${next.filter(f => !f.inView).length} with the highlight out of view` });
+  expect(next.length, "the scrub moved to another marked row").toBeGreaterThan(5);
+  expect(next.filter(f => !f.inView), "the next row's highlight in view in every painted frame").toEqual([]);
 });
 
 // Operator 2026-10-31: the marked row's bar went down a row with every row

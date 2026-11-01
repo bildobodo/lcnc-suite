@@ -13,15 +13,19 @@
 // lines. While the text moves, and while a line waits, the callers draw the
 // highlight as a band where the text goes to (the same step in content px):
 // never ahead of the running line, on a line whenever the text rests, and
-// the line it covers is at most intervalMs + stepMs old. The line number
-// and the row's `active` are the running line at once. A far jump (program
-// start, a timeline drag, a sub expansion), a view under three lines and
-// reduced motion SNAP. The highlight never leaves the view (Codex R52
-// VP-I21: at 20 lines a packet the highlight — then the running row itself
-// — moved at once while the text followed over the packet interval,
-// outside the view in 81 % of the frames): it is the band, which stands at
-// its place on screen while the scroll is free; the running row, its own
-// look off meanwhile, may be past the view's edge until the next step.
+// the line it covers is at most intervalMs + stepMs behind the newest
+// status the page has (a planned display lag — not an age against the
+// machine, and no bound while the page itself stalls; Codex R244). The line
+// number and the row's `active` are the running line at once. A far jump
+// (program start, a timeline drag, a sub expansion), a view under three
+// lines, reduced motion and a follow with no highlight in view to start
+// from (the first after a stop, a scroll away — Codex R244 FH-05) SNAP. The
+// highlight never leaves the view (Codex R52 VP-I21: at 20 lines a packet
+// the highlight — then the running row itself — moved at once while the
+// text followed over the packet interval, outside the view in 81 % of the
+// frames): it is the band, which stands at its place on screen while the
+// scroll is free; the running row, its own look off meanwhile, may be past
+// the view's edge for the wait (≤ intervalMs) and the step that brings it.
 // Pure.
 
 /** A step from one scroll position to another. */

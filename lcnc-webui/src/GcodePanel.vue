@@ -403,7 +403,9 @@ function setScroll(s: number) {
 // running line, it covers a row whenever the text rests — not halves of two
 // (the operator, 2026-11-01: "nicht mehr ganz synchron mit den Codezeilen":
 // a band over text that glided on every packet sat on a row in 3–20 % of
-// the frames) — and that row's line is at most intervalMs + stepMs old;
+// the frames) — and that row's line is at most intervalMs + stepMs behind
+// the newest status (a display lag, not an age against the machine);
+// a follow with no highlight in view to start from snaps (Codex R244 FH-05);
 // when no line waits and the step ends, the row's own highlight takes over
 // with the same look. The line number and the row's `active` are the
 // running line at once; a second active row (a call line beside its sub
@@ -497,11 +499,19 @@ function scrollToRow(row: number, snap = false) {
   // whose event is still to come is the position).
   const asked = scrollAsked.value;
   const before = asked && asked.took === el.scrollTop ? asked.asked : el.scrollTop;
-  const shownY = followBand.value && _rowsStill(_glideRows) ? bandY.value
+  const shownAt = followBand.value && _rowsStill(_glideRows) ? bandY.value
     : _followedRow != null && _rowsStill(_followedRows) ? _followedRow * lh : null;
+  // Only a highlight IN VIEW is held or stepped from; without one — the first
+  // follow after a stop, a scroll away — the new line SNAPS, its row the
+  // highlight at once (Codex R244 FH-05: it glided in from below the view,
+  // its first frame out of it, and a band began off screen).
+  const viewTop = _scrollToContent(before);
+  const shownY = shownAt != null && shownAt >= viewTop - 0.5 && shownAt + lh <= viewTop + el.clientHeight + 0.5
+    ? shownAt : null;
   // Too soon after the last step: the line waits, the highlight stays where
   // it stands (a band on it; the running row's own look off — the row may be
-  // past the view's edge meanwhile, the highlight never: Codex R52 VP-I21).
+  // past the view's edge for the wait and the step, the highlight never:
+  // Codex R52 VP-I21).
   const wait = shownY != null ? stepDelay(_stepAt, now, reducedMotion.value) : 0;
   if (wait > 0) {
     const fb = followBand.value;
@@ -526,21 +536,20 @@ function scrollToRow(row: number, snap = false) {
   _followedRow = row;
   _followedRows = _rowsNow();
   _stepAt = now;
-  const g = planGlide(before, to, now, el.clientHeight, lh, reducedMotion.value);
-  if (!g) {
+  const g = shownY != null ? planGlide(before, to, now, el.clientHeight, lh, reducedMotion.value) : null;
+  if (!g || shownY == null) {
     stopGlide();
     setScroll(to);
     return;
   }
   // The band starts where the highlight stands ON SCREEN: at the anchor while
   // the scroll was free, else where it stood (near the file's start or end).
-  // No highlight before (the first follow): the code goes to the row as it is.
-  if (shownY != null) {
-    const atAnchor = Math.abs(shownY - (_scrollToContent(before) + anchor)) < 1;
+  {
+    const atAnchor = Math.abs(shownY - (viewTop + anchor)) < 1;
     const fromY = atAnchor ? _scrollToContent(g.from) + anchor : shownY;
     bandY.value = fromY;
     followBand.value = { row, glide: { from: fromY, to: rowY, t0: g.t0, dur: g.dur } };
-  } else followBand.value = null;
+  }
   _glide = g;
   _glideRows = _rowsNow();
   if (!_glideRaf) _glideRaf = requestAnimationFrame(_glideFrame);

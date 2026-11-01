@@ -2334,6 +2334,82 @@ for (const pace of [3, 8]) {
   });
 }
 
+// Codex R244 FH-05: a step needs a highlight to start from that is IN VIEW.
+// The first follow after a stop (the followed row forgotten) glided the new
+// running row in from below the view — its first frame out of it — and a
+// follow after the code was scrolled away began its band off screen. Such a
+// follow snaps: the new row is the highlight at once, in the middle.
+test('a follow with no highlight in view snaps: after a stop, after a scroll away', async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: GLIDE_PREVIEW }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain', body: glideText(GLIDE_LINES) }));
+  await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === 'desktop')!);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await ctl({ op: 'status_delta', data: { active_file: '/glide.ngc' } });
+  await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 5101, file: '/glide.ngc' } });
+  const SEL = '.codeViewer:not(.mdiHistoryList)';
+  const viewer = page.locator(SEL);
+  await expect(viewer.locator('.codeLine').first()).toBeVisible({ timeout: 30_000 });
+  await ctl({ op: 'quiet', on: true });
+  const run = (n: number) => ctl({ op: 'status_delta', data: { interp_state: 2, task_mode: 2, motion_line: n } });
+  // Per frame from here: the new follow's highlight — the band, or the row of
+  // `target` — and whether it is wholly in the code view.
+  type H = { band: boolean; top: number; bottom: number; view: number };
+  const record = (target: number) => page.evaluate(({ sel, target }) => {
+    const el = document.querySelector<HTMLElement>(sel)!;
+    const w = window as unknown as { __fh: H[]; __fhOn: boolean };
+    w.__fh = []; w.__fhOn = true;
+    const f = () => {
+      const v = el.getBoundingClientRect();
+      const band = el.querySelector('.codeFollowBand');
+      const row = [...el.querySelectorAll('.codeLine.active')].find(r => r.querySelector('.lineNumber')?.textContent === String(target));
+      const hl = band ?? row;
+      if (hl) {
+        const r = hl.getBoundingClientRect();
+        w.__fh.push({ band: !!band, top: r.top - v.top, bottom: r.bottom - v.top, view: el.clientHeight });
+      }
+      if (w.__fhOn) requestAnimationFrame(f);
+    };
+    requestAnimationFrame(f);
+  }, { sel: SEL, target });
+  const stop = () => page.evaluate(() => { (window as unknown as { __fhOn: boolean }).__fhOn = false; });
+  const frames = () => page.evaluate(() => (window as unknown as { __fh: H[] }).__fh);
+  const out = (fs: H[]) => fs.filter(f => f.top < -0.5 || f.bottom > f.view + 0.5);
+  // a line about 2.35 views down: out of the view, nearer than the snap distance
+  const target = await viewer.evaluate(el => Math.floor(el.clientHeight * 2.35 / 23));
+  // After a stop: the run ends, the code is at the file's start, a new run reports `target`.
+  await run(1);
+  await page.waitForTimeout(200);
+  for (let trial = 0; trial < 3; trial++) {
+    await ctl({ op: 'status_delta', data: { interp_state: 1, motion_line: 0 } });
+    await page.waitForTimeout(100);
+    await viewer.evaluate(el => { el.scrollTop = 0; });
+    await page.waitForTimeout(25 + trial * 7);
+    await record(target);
+    await run(target);
+    await page.waitForTimeout(240);
+    await stop();
+    const fs = await frames();
+    test.info().annotations.push({ type: 'fh05', description: `after a stop (${trial}): ${fs.length} frames, ${out(fs).length} out of view` });
+    expect(fs.length, 'the new highlight was drawn').toBeGreaterThan(5);
+    expect.soft(out(fs), `after a stop (${trial}): the highlight in view in every frame`).toEqual([]);
+  }
+  // After a scroll away: the code rests on `target`, is scrolled to the top
+  // by hand, and the next line comes.
+  await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(target));
+  await viewer.evaluate(el => { el.scrollTop = 0; });
+  await page.waitForTimeout(150);
+  await record(target + 1);
+  await run(target + 1);
+  await page.waitForTimeout(240);
+  await stop();
+  const away = await frames();
+  test.info().annotations.push({ type: 'fh05', description: `after a scroll away: ${away.length} frames, ${out(away).length} out of view` });
+  expect(away.length, 'the new highlight was drawn').toBeGreaterThan(5);
+  expect.soft(out(away), 'after a scroll away: the highlight in view in every frame').toEqual([]);
+  await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(target + 1));
+});
+
 // The same in an expanded subroutine (Codex R241 FH-01): the scrub moves
 // through the sub's lines — each one a new sub line in the SAME expansion,
 // never a new expansion — so the band stands while the sub's rows glide

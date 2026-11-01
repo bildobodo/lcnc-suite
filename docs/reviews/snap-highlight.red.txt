@@ -23,3 +23,16 @@ A first variant (stepMs 80; a line out of the view never waited, Codex R52 VP-I2
 running row) measured: at rest 5 %, on a row 21 % at 3 lines a packet; the wait never came at
 3–8 lines a packet in the desktop view (the running row left it first), so the glide went on as
 before exactly where the operator saw the lines out of step. Hence the wait at every pace.
+
+FH-05 (Codex R244) red evidence — the new guards against the adc7709a build (the gate's dist):
+
+  a follow with no highlight in view snaps: after a stop, after a scroll away     FAILED
+    after a stop (0): 11 frames, 1 out of view
+    after a stop (1): 12 frames, 1 out of view
+    after a stop (2): 13 frames, 1 out of view
+    after a scroll away: 14 frames, 2 out of view
+  the list scrolled away: the next marked row snaps to the middle (Sim list)        FAILED
+    24 frames of the next row, 1 with the highlight out of view
+
+After the fix: 0 out of view in every case; the follow set 16/16 (on a row 56 % / 51 %, the
+covered line at most 137 / 166 ms behind; the Sim list at ×50 72 %).

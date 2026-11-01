@@ -308,8 +308,10 @@ const tabStop = computed(() => renderedStop(range.value, rows.value.map(r => r.k
 // ×100 playback and the marked row sat below the view for 1.5 s (Codex R81
 // VP-I41): the highlight — the band while a row waits or the list steps —
 // never leaves the view, and the row it covers is at most intervalMs +
-// stepMs old. A far jump and reduced motion snap; the list moves, never the
-// focus; a list that fits stays.
+// stepMs behind the newest marked row. A far jump, reduced motion and a
+// follow with no highlight in view to start from (the first, the list
+// scrolled away — Codex R244 FH-05) snap; the list moves, never the focus;
+// a list that fits stays.
 const scroller = ref<HTMLElement | null>(null);
 const marked = computed(() => rows.value.find(r => shown(r) || isNext(r))?.key ?? null);
 const reduceMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -391,6 +393,10 @@ const rowEl = (sc: HTMLElement, key: string) => sc.querySelector<HTMLElement>(`t
  *  scroller) stands on it. */
 const contentTop = (sc: HTMLElement, tr: HTMLElement) =>
   (tr.getBoundingClientRect().top - sc.getBoundingClientRect().top) / cssZoomOf(sc) - sc.clientTop + sc.scrollTop;
+/** Whether a row at `y` (the list's content px) stands wholly in the list's
+ *  view, below its sticky head. */
+const inListView = (sc: HTMLElement, y: number, h: number, head: number) =>
+  y >= sc.scrollTop + head - 0.5 && y + h <= sc.scrollTop + sc.clientHeight + 0.5;
 /** Brings the marked row to the middle; false while it cannot (no row
  *  rendered, no height yet), a number of ms while the row waits for its
  *  step. */
@@ -411,7 +417,10 @@ function follow(animate: boolean): boolean | number {
   // Where the highlight stands now: the band (stepping or held), else the row
   // the list followed last (if it is rendered).
   const prev = bandKey.value != null ? bandAt : followed && followed !== key ? rowEl(sc, followed) : null;
-  const prevY = typeof prev === "number" ? prev : prev ? contentTop(sc, prev) : null;
+  const prevAt = typeof prev === "number" ? prev : prev ? contentTop(sc, prev) : null;
+  // Only a highlight IN VIEW is held or stepped from; without one (the first
+  // follow, the list scrolled away) the row SNAPS to the middle (Codex R244 FH-05).
+  const prevY = prevAt != null && inListView(sc, prevAt, lineH, head) ? prevAt : null;
   // Too soon after the last step: the row waits — the band holds where it
   // stands (holdHighlight), the step comes with the timer.
   const wait = animate && prevY != null ? stepDelay(stepAt, now, reduceMotion()) : 0;
@@ -420,14 +429,12 @@ function follow(animate: boolean): boolean | number {
   cancelAnimationFrame(glideRaf);
   glide = null;
   endBand();
-  const plan = animate ? planGlide(sc.scrollTop, to, now, viewH, lineH, reduceMotion()) : null;
-  if (!plan) { sc.scrollTop = to; return true; }
+  const plan = animate && prevY != null ? planGlide(sc.scrollTop, to, now, viewH, lineH, reduceMotion()) : null;
+  if (!plan || prevY == null) { sc.scrollTop = to; return true; }
   const before = sc.scrollTop;
   // The band starts where the highlight stands ON SCREEN: in the middle while
-  // the scroll was free — re-read from the scroll the glide starts at —, else
-  // where it stood (the list's start or end). No highlight before (the first
-  // follow, a row the window dropped): the list glides to the row as it is.
-  if (prevY != null) {
+  // the scroll was free, else where it stood (the list's start or end).
+  {
     const anchorOff = head - sc.clientTop + (viewH - lineH) / 2;
     const fromY = Math.abs(prevY - (before + anchorOff)) < 1 ? plan.from + anchorOff : prevY;
     const band = bandEl.value;
@@ -517,7 +524,8 @@ function holdHighlight() {
   if (!sc || !key || reduceMotion() || bandKey.value === key) return;
   if (bandKey.value == null) {
     const prev = followed ? rowEl(sc, followed) : null;
-    if (!prev) return;
+    // only a row in view is held (the follow snaps from anywhere else — FH-05)
+    if (!prev || !inListView(sc, contentTop(sc, prev), prev.offsetHeight, sc.querySelector<HTMLElement>("thead")?.offsetHeight ?? 0)) return;
     const band = bandEl.value;
     if (band) {
       band.style.left = `${prev.offsetLeft}px`;
