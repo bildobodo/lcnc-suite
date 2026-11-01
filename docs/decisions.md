@@ -9979,3 +9979,17 @@ too, and the main program takes it back" through the real path (attributed previ
 the scrub slider). Red at 0e4deea9: 4.78 px scaled, no band in the sub
 (`docs/reviews/fixed-highlight.r242-red.txt`).
 
+**Codex R242: FH-01..FH-03 closed, FH-04.** The local computed for the expansion's name was called
+`subName` — the name of GcodePanel's prop for the sub the run is in. A `<script setup>` binding
+wins over a prop of the same name in the template, so the "in subroutine" hint read the
+expansion's name, null without a known call line: a run in a sub whose call line the preview
+could not attribute showed "0 / 4 (0 %)" and no word of the sub. Renamed `subViewName`; the hint
+reads the prop again, call line known or not, the sub's source not needed. ESLint's
+`vue/no-dupe-keys` is on and silent on that shape (it skips a binding whose initializer reads
+`props`, taking it for an alias), so `propShadow.test.ts` scans every component: the props the
+compiler resolved against every top-level setup binding; an alias of the prop itself
+(`defineProps` / `withDefaults` / `toRefs(props)` destructured, `defineModel`) passes, KeyboardTab's
+`kbConfig` draft is listed with its reason. Guards: `layout.spec` "a run in a subroutine names it
+in the Program tab" with the call line unknown and known (red at e3f14379 for unknown,
+`docs/reviews/fixed-highlight.r243-red.txt`), and the scan (red on the old name).
+

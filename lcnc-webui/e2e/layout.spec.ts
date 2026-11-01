@@ -2324,6 +2324,47 @@ test('in an expanded subroutine the highlight stands still too, and the main pro
   await expect(viewer.locator('.codeFollowBand'), 'no band at rest').toHaveCount(0);
 });
 
+// The run in a subroutine keeps its hint where no row can be lit (Codex R242
+// FH-04: a local `subName` — the expansion's name — took the template's
+// place of the prop of the same name, and without a known call line the
+// hint vanished: "0 / 4 (0 %)" and no word of the sub). The hint is the
+// prop: the sub the program runs in, call line known or not; the source of
+// the sub is not needed (/subfile refused here).
+for (const callLine of [0, 2]) {
+  test(`a run in a subroutine names it in the Program tab, call line ${callLine ? 'known' : 'unknown'}`, async ({ page, context }) => {
+    const file = '/origin-name.ngc';
+    const f = [[0, 0, 0], [10, 0, 0], [20, 0, 0], [30, 0, 0], [40, 0, 0]];
+    const preview = Buffer.from(encode({ file, preview_schema: 11, feed: f, feed_lines: [1, 2, 339, 340, 3], feed_seq: [1, 2, 3, 4, 5],
+      feed_lineok: new Uint8Array([1, 1, 0, 0, 1]), feed_sub: new Uint8Array([255, 255, 0, 0, 255]), sub_names: ['originprobe'],
+      feed_cline: new Uint8Array(Uint16Array.from([0, 0, callLine, callLine, 0]).buffer), feed_outside: new Uint8Array(5),
+      rapid: [], violations: [], violations_total: 0 }));
+    await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: preview }));
+    await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain', body: 'G1 X10 F100\no<originprobe> call\nG1 X40\nM2' }));
+    await context.route(/\/subfile\?/, r => r.fulfill({ status: 404, body: 'source not available' }));
+    await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === 'desktop')!);
+    await ctl({ op: 'status_delta', data: { active_file: file, joint_pos: [0, 0, 0], actual_position: [0, 0, 0],
+      g5x_offset: Array(9).fill(0), g92_offset: Array(9).fill(0), tool_offset: Array(9).fill(0), rotation_xy: 0 } });
+    await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 5110 + callLine, file } });
+    const SEL = '.codeViewer:not(.mdiHistoryList)';
+    await expect(page.locator(SEL + ' .codeLine').first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('.scrubBar')).toBeVisible();
+    await ctl({ op: 'quiet', on: true });
+    await ctl({ op: 'status_delta', data: { interp_state: 2, task_mode: 2, motion_line: 339, joint_pos: [15, 0, 0], actual_position: [15, 0, 0] } });
+    await page.waitForTimeout(100);
+    await ctl({ op: 'status_delta', data: { motion_line: 339, joint_pos: [16, 0, 0], actual_position: [16, 0, 0] } });
+    // The precondition: the run is in the sub (the Sim tab names it), so the
+    // Program tab is judged at the sub's segment, not before the run attached.
+    await expect(page.locator('.simPanel .simLine')).toHaveText(callLine ? 'L2 (originprobe)' : '(originprobe)');
+    const hint = page.locator('[title^="Executing inside the originprobe subroutine"]');
+    await expect(hint, 'the Program tab names the sub').toHaveText('▶ in subroutine (originprobe)');
+    if (callLine) {
+      await expect(page.locator(SEL + ' .codeLine.active .lineNumber'), 'the call line is lit').toHaveText('2');
+    } else {
+      await expect(page.locator(SEL + ' .codeLine.active'), 'no main row is lit').toHaveCount(0);
+    }
+  });
+}
+
 // Live look 2026-10-01: "No program loaded" stood elsewhere than the loaded
 // program's name — the Stats button gives the object line its height, and
 // without a program the line shrank to its text: the name and every row

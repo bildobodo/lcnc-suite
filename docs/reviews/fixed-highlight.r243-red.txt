@@ -1,0 +1,13 @@
+FH-04 red evidence (Codex R242): the new guard on the unfixed product code
+(feat/fixed-highlight e3f14379 = product 2f7897d6; only e2e/layout.spec.ts new), 2026-11-01:
+
+  npm run build && npx playwright test e2e/layout.spec.ts --project=serial-layout --no-deps --workers=1 \
+    -g "a run in a subroutine names it"
+
+  a run in a subroutine names it in the Program tab, call line unknown  FAILED
+    Locator: locator('[title^="Executing inside the originprobe subroutine"]')
+    Expected: "▶ in subroutine (originprobe)"
+    Error: element(s) not found   (after the Sim tab named "(originprobe)")
+  a run in a subroutine names it in the Program tab, call line known    passed
+
+  1 failed, 1 passed

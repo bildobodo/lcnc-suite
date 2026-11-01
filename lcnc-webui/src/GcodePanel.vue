@@ -217,12 +217,14 @@ watch(() => props.subView?.name, (name) => {
 // It reads the call, never the executing sub line: a new sub line is the
 // same expansion — the same object, so the follow keeps its band (Codex R241
 // FH-01: each sub line was a new expansion and dropped it) and the sub's
-// text is split once.
-const subName = computed(() => props.subView?.name ?? null);
+// text is split once. Never named like a prop: the template's `subName` is
+// the sub the run is in, call line known or not (Codex R242 FH-04 — a local
+// `subName` took its place and the hint vanished without a call line).
+const subViewName = computed(() => props.subView?.name ?? null);
 const subCallLine = computed(() => props.subView?.callLine ?? null);
 const subLines = computed(() => subText.value ? splitSubLines(subText.value) : null);
 const expansion = computed<SubExpansion | null>(() => {
-  const name = subName.value, callLine = subCallLine.value, lines = subLines.value;
+  const name = subViewName.value, callLine = subCallLine.value, lines = subLines.value;
   if (name == null || callLine == null || !lines || editing.value || !props.gcodeContent) return null;
   if (callLine < 1 || callLine > lineCount.value) return null;
   if (!expansionAllowed(lineAt(callLine - 1), name, lines.length)) return null;
