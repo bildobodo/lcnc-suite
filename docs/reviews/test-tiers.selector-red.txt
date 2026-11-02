@@ -1,0 +1,21 @@
+# Test selector guards (step 3) — red first, 2026-11-03T00:20:25+01:00
+# tree: feat/test-tiers e2382863 + the uncommitted selector
+
+## Two reds the guards found while being written
+- test_every_e2e_disk_read_outside_the_frontend_is_declared: ('toolsetter.viewer', 'examples/sim_config/machine-5axis-xyzac') — the spec reads the 5-axis model and was not declared; SPEC_READS now names it
+- test_an_e2e_helper_selects_its_importers_and_an_orphan_the_full_run: 'full' == ['joint-jog'] — a helper with no central rule fell to the fail-closed default; the helper branch now asks for its importers when no rule matches
+
+## Mutations: each breaks one rule or one mechanism; every one must be red
+RED  a source loses its rule: ['test_every_tracked_source_has_a_rule']
+RED  a rule names a missing spec: ['test_every_named_spec_exists']
+RED  a rule glob matches nothing: ['test_every_rule_glob_matches_a_tracked_file']
+RED  a heavy data path dropped: ['test_every_heavy_read_lies_under_a_data_rule']
+RED  a heavy file dropped: ['test_heavy_unit_files_exist_and_no_other_file_is_as_slow']
+RED  a spec read undeclared: ['test_every_e2e_disk_read_outside_the_frontend_is_declared']
+RED  unmatched no longer full: ['test_a_new_source_without_a_rule_selects_everything']
+RED  missing base reads as empty: ['test_a_missing_base_is_an_error_never_an_empty_diff']
+RED  no vitest answer skips heavy: ['test_without_the_vitest_answer_the_heavy_group_runs']
+RED  docs select backend: ['test_documentation_selects_no_product_test_and_says_why']
+
+## Restored
+21 passed in 0.51s

@@ -1,0 +1,32 @@
+"""Red-first proof of the selector guards: each mutation breaks one rule or
+one mechanism IN PLACE, runs test_selector.py and restores the file. Run by
+hand only (never beside another run of the guards in this tree):
+
+    lcnc-gateway/.venv/bin/python3 scripts/test_select/mutations.py
+
+Every line must read RED.
+"""
+import subprocess, sys
+from pathlib import Path
+R = Path("scripts/test_select/rules.py"); S = Path("scripts/test_select/selector.py")
+MUTS = [
+ ("a source loses its rule", R, '"probeVars.ts",\n', '\n'),
+ ("a rule names a missing spec", R, 'MESSAGES = ("messages", "feedback-channels")', 'MESSAGES = ("messages", "feedback-channels", "gone")'),
+ ("a rule glob matches nothing", R, '"CornerGlyph.vue", "axisColors.ts"', '"CornerGlyph.vue", "axisColors.ts", "Nowhere.vue"'),
+ ("a heavy data path dropped", R, '    "lcnc-gateway/machine/**",\n)', ')'),
+ ("a heavy file dropped", R, '    "lcnc-webui/src/viewer/contactViewIndexed.test.ts",\n', ''),
+ ("a spec read undeclared", R, '    "freecad-import": ("test-fixtures/freecad/**",),\n', ''),
+ ("unmatched no longer full", R, '        d.browser_full = d.backend = d.heavy = True', '        pass'),
+ ("missing base reads as empty", S, '        raise SelectError(f"no commit {rev!r} — a missing base is never an empty diff") from None', '        return rev'),
+ ("no vitest answer skips heavy", S, '        heavy.append("vitest list --changed not asked: the heavy group runs (fail closed)")', '        pass'),
+ ("docs select backend", R, 'none="no product code", final=True', 'none="no product code", final=False'),
+]
+for name, f, a, b in MUTS:
+    src = f.read_text(); assert src.count(a) == 1, name
+    f.write_text(src.replace(a, b))
+    try:
+        r = subprocess.run([sys.executable, "-m", "pytest", "-q", "-x", "-p", "no:cacheprovider", "scripts/test_select/test_selector.py"], capture_output=True, text=True)
+        failed = [l.split("::")[1].split(" ")[0] for l in r.stdout.splitlines() if l.startswith("FAILED")]
+        print(f"{'RED ' if r.returncode else 'GREEN!'} {name}: {failed}")
+    finally:
+        f.write_text(src)
