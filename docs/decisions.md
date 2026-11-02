@@ -9993,3 +9993,26 @@ compiler resolved against every top-level setup binding; an alias of the prop it
 in the Program tab" with the call line unknown and known (red at e3f14379 for unknown,
 `docs/reviews/fixed-highlight.r243-red.txt`), and the scan (red on the old name).
 
+
+## 2026-11-02 · Test strategy step 2: what the UI sends against the gateway's schema
+
+Codex R248–R251 agreed a test strategy (`docs/reviews/test-strategy.review.md`: round, merge and
+live tiers; four guards). Step 2, the static contract (TS248-04): `commandShapes.test.ts` reads
+the `WsCommand` union through the TypeScript checker and the gateway's `COMMAND_SCHEMA` /
+`COMMAND_GATES` through Python and requires agreement. Building it found that the union was not
+what goes out: `fire` (App's, `FireFn`, the composables' `fire` options) took `any`, so `home`,
+`unhome`, `go_to_zero` and `run_macro` were sent without being in the union, and the three tool
+commands were open (`[key: string]: any`). Every sender now takes `WsCommand` (the build then
+broke at exactly those four sends), the union names them, and `save_tool` / `add_tool` /
+`renumber_tool` share the closed `ToolFields`. The schema's drift the strategy was written for:
+`renumber_tool` bounded a `new_number` nobody sends while `old_tool_number` had no bound — and a
+renumber's `pocket` / `diameter` none (save and add bound them); it now bounds all four
+(`test_command_policy.py`, red first). Each field sent without a bound is named with its reason,
+each map with its contract, the two opaque values (`save_settings.data`, `client_diag.data`) with
+where they are checked, `set_max_velocity` as server-only. Found and left OPEN, named in the
+test: the multi-jogs' entries — the schema bounds only their count, and the homed handler passes
+each entry's axis and velocity on without the single jog's bounds (LinuxCNC caps the velocity
+itself); per-entry bounds need the motion buttons' live check (`twp_buttons_check.py`) and are
+raised in the review. Red at development (4ad87515's union and schema): the four unsent-in-union
+commands, the three open commands, the renumber drift
+(`docs/reviews/test-tiers.shapes-red.txt`).

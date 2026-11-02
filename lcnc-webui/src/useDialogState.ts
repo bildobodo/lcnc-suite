@@ -24,7 +24,7 @@ interface UseDialogStateOptions {
   /** The gated send path (App.vue's fire) — this composable runs in App's
    *  setup, where useFire() cannot inject, so it is handed in explicitly.
    *  The compensation toggle is `ready`-tier on the backend. */
-  fire?: (payload: any, gate?: keyof Permissions) => string | null;
+  fire?: (payload: WsCommand, gate?: keyof Permissions) => string | null;
   /** Asked before Settings closes by ANY path (its X, the backdrop, opening
    *  another navigation dialog). Returns true when it took over — it shows
    *  "Discard changes?" and calls `proceed` on Discard (UI-K16). */

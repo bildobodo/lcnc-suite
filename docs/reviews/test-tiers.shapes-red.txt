@@ -1,0 +1,85 @@
+Test strategy step 2 — red first
+
+== commandShapes.test.ts against development 4ad87515's lcnc.ts + command_policy.py
+     × agree: every bounded field is sent, every sent field is bounded or named, every map has its contract 6ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
++   "home: the gateway knows it, the UI never sends it and no reason is named",
++   "unhome: the gateway knows it, the UI never sends it and no reason is named",
++   "run_macro: the gateway knows it, the UI never sends it and no reason is named",
++   "go_to_zero: the gateway knows it, the UI never sends it and no reason is named",
++   "save_tool: an open index signature — the command must be closed",
++   "save_tool.pocket: the schema bounds a field the UI never sends",
++   "save_tool.diameter: the schema bounds a field the UI never sends",
++   "add_tool: an open index signature — the command must be closed",
++   "add_tool.pocket: the schema bounds a field the UI never sends",
++   "add_tool.diameter: the schema bounds a field the UI never sends",
++   "renumber_tool: an open index signature — the command must be closed",
++   "renumber_tool.new_number: the schema bounds a field the UI never sends",
++   "renumber_tool.old_tool_number: sent without a schema bound and no reason is named",
++   "save_tool.z_offset: listed, but the UI sends no such field",
++   "save_tool.remark: listed, but the UI sends no such field",
++   "save_tool.description: listed, but the UI sends no such field",
++   "save_tool.type: listed, but the UI sends no such field",
++   "save_tool.flutes: listed, but the UI sends no such field",
++   "save_tool.oal: listed, but the UI sends no such field",
++   "save_tool.flute_length: listed, but the UI sends no such field",
++   "save_tool.corner_radius: listed, but the UI sends no such field",
++   "save_tool.body_length: listed, but the UI sends no such field",
++   "save_tool.shaft_diameter: listed, but the UI sends no such field",
++   "save_tool.taper_angle: listed, but the UI sends no such field",
++   "save_tool.point_angle: listed, but the UI sends no such field",
++   "save_tool.tip_diameter: listed, but the UI sends no such field",
++   "save_tool.material: listed, but the UI sends no such field",
++   "save_tool.holder: listed, but the UI sends no such field",
++   "add_tool.z_offset: listed, but the UI sends no such field",
++   "add_tool.remark: listed, but the UI sends no such field",
++   "add_tool.description: listed, but the UI sends no such field",
++   "add_tool.type: listed, but the UI sends no such field",
++   "add_tool.flutes: listed, but the UI sends no such field",
++   "add_tool.oal: listed, but the UI sends no such field",
++   "add_tool.flute_length: listed, but the UI sends no such field",
++   "add_tool.corner_radius: listed, but the UI sends no such field",
++   "add_tool.body_length: listed, but the UI sends no such field",
++   "add_tool.shaft_diameter: listed, but the UI sends no such field",
++   "add_tool.taper_angle: listed, but the UI sends no such field",
++   "add_tool.point_angle: listed, but the UI sends no such field",
++   "add_tool.tip_diameter: listed, but the UI sends no such field",
++   "add_tool.material: listed, but the UI sends no such field",
++   "add_tool.holder: listed, but the UI sends no such field",
++   "renumber_tool.z_offset: listed, but the UI sends no such field",
++   "renumber_tool.remark: listed, but the UI sends no such field",
++   "renumber_tool.description: listed, but the UI sends no such field",
++   "renumber_tool.type: listed, but the UI sends no such field",
++   "renumber_tool.flutes: listed, but the UI sends no such field",
++   "renumber_tool.oal: listed, but the UI sends no such field",
++   "renumber_tool.flute_length: listed, but the UI sends no such field",
++   "renumber_tool.corner_radius: listed, but the UI sends no such field",
++   "renumber_tool.body_length: listed, but the UI sends no such field",
++   "renumber_tool.shaft_diameter: listed, but the UI sends no such field",
++   "renumber_tool.taper_angle: listed, but the UI sends no such field",
++   "renumber_tool.point_angle: listed, but the UI sends no such field",
++   "renumber_tool.tip_diameter: listed, but the UI sends no such field",
++   "renumber_tool.material: listed, but the UI sends no such field",
++   "renumber_tool.holder: listed, but the UI sends no such field",
+      Tests  1 failed | 4 passed (5)
+
+== against the closed union, before the renumber schema fix
+- Expected
++ Received
+
+- []
++ [
++   "jog_cont_multi.axes: a map or opaque value ({ axis: number; vel: number; }[]) without a named contract",
++   "jog_incr_multi.axes: a map or opaque value ({ axis: number; vel: number; distance: number; }[]) without a named contract",
++   "renumber_tool.new_number: the schema bounds a field the UI never sends",
++   "renumber_tool.old_tool_number: sent without a schema bound and no reason is named",
++   "renumber_tool.pocket: sent without a schema bound and no reason is named",
++   "renumber_tool.diameter: sent without a schema bound and no reason is named",
++ ]
+
+
+== test_command_policy.py test_renumber_bounds_both_numbers_the_ui_sends, old schema
+        self.assertEqual(validate_payload("renumber_tool", ok, self.LIM), {})
+>           self.assertIn(field, self._reject("renumber_tool", {**ok, field: bad}), (field, bad))
+    with self.assertRaises(ValueError) as cm:
+E   AssertionError: ValueError not raised

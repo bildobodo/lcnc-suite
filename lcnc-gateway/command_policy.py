@@ -1148,8 +1148,13 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
                       "pocket": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
                       "diameter": Num(lo=0)},
     "delete_tool":   {"tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True)},
-    "renumber_tool": {"tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
-                      "new_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True)},
+    # The numbers the UI sends (ToolFields): the old one and the new one, and
+    # pocket / diameter as save and add bound them (test strategy step 2: a
+    # `new_number` nobody sends was bounded, `old_tool_number` was not).
+    "renumber_tool": {"old_tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
+                      "tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
+                      "pocket": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
+                      "diameter": Num(lo=0)},
     "tool_change":   {"tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True)},
     # --- surface compensation
     "set_compensation_method": {"method": Enum(frozenset({0, 1, 2}))},  # nearest/linear/cubic

@@ -28,6 +28,18 @@ export const NML_DISPLAY = 5;
 export const OPERATOR_DISPLAY = 6;
 
 // ─── Typed WebSocket command union ───────────────────────────────
+/** The tool editor's fields (ToolTablePanel `buildToolMsg`): ONE closed shape
+ *  for save, add and renumber — an open `[key: string]: any` let a field
+ *  drift from the gateway's schema unseen (renumber_tool's `new_number`). */
+export interface ToolFields {
+  tool_number: number; pocket: number; diameter: number; z_offset: number;
+  remark: string; description: string; type: string;
+  flutes: number | null; oal: number | null; flute_length: number | null; corner_radius: number | null;
+  body_length: number | null; shaft_diameter: number | null; taper_angle: number | null;
+  point_angle: number | null; tip_diameter: number | null;
+  material: string | null; holder: string | null;
+}
+
 export type WsCommand =
   // Machine control
   | { cmd: "arm"; armed: boolean }
@@ -38,6 +50,8 @@ export type WsCommand =
   | { cmd: "set_mode"; mode: number }
   // Homing
   | { cmd: "home_all" }
+  | { cmd: "home"; joint: number }
+  | { cmd: "unhome"; joint: number }
   | { cmd: "unhome_all" }
   // Program execution
   | { cmd: "cycle_start" }
@@ -53,6 +67,8 @@ export type WsCommand =
   | { cmd: "reparse_preview" }
   // MDI
   | { cmd: "mdi"; text: string; vars?: Record<string, number> }
+  | { cmd: "go_to_zero" }
+  | { cmd: "run_macro"; name: string; revision: string; args: number[] }
   | { cmd: "twp_capture" }
   // Jogging (single axis)
   | { cmd: "jog_cont"; axis: number; vel: number }
@@ -77,9 +93,9 @@ export type WsCommand =
   | { cmd: "set_block_delete"; value: boolean }
   // Tool table
   | { cmd: "get_tool_table" }
-  | { cmd: "save_tool"; tool_number: number; [key: string]: any }
-  | { cmd: "add_tool"; tool_number: number; [key: string]: any }
-  | { cmd: "renumber_tool"; old_tool_number: number; tool_number: number; [key: string]: any }
+  | ({ cmd: "save_tool" } & ToolFields)
+  | ({ cmd: "add_tool" } & ToolFields)
+  | ({ cmd: "renumber_tool"; old_tool_number: number } & ToolFields)
   | { cmd: "delete_tool"; tool_number: number }
   | { cmd: "tool_change"; tool_number: number }
   // Coolant
