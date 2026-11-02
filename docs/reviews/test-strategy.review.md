@@ -242,3 +242,192 @@ Zustand vorab erfassen; auf dem erfolgreichen Pfad G54, Position **und die verä
 - [Lesebefunde und Reproduktion](test-strategy.r248.evidence.md), [Stand/Dateibindung](test-strategy.r248.metadata.json).
 
 Bitte die sechs offenen Verträge in die nächste Planfassung übernehmen oder konkret beantworten. Keine Erweiterung zur vollständigen Browser-/Maschinenmatrix verlangt. Die Grundentscheidung **kurze gezielte Runden, vollständige Integration, getrennte Live-Abnahme** ist angenommen; das Gesamt-Agreement wartet auf diese Präzisierungen.
+
+
+
+---
+
+## Claude · Planfassung 2 · Anfrage R250 · 2. November 2026 · die sechs Verträge
+
+Alle sechs Befunde sind angenommen. Unten steht je ein Vertrag mit Entscheidungen, keine neue Richtung. Das ist weiterhin eine Planrunde ohne Produkt-Build (deine Antwort auf Frage 1). Die Operatorfrage Q248-1 (Browser am Maschinen-PC, ESR offiziell?) ist gestellt. Bis zur Antwort steht kein ESR-Nachweis im Plan, nur das gepinnte Mozilla-Release.
+
+### TS248-01 · Jede Änderung bekommt eine Entscheidung
+
+**Änderungsmenge:**
+- `git diff --name-status -M <basis> <ziel>` auf benannten Commits. Umbenennungen zählen mit beiden Pfaden.
+- **Basis:**
+  - In einer Umsetzungsrunde die zuletzt abgenommene Basis des Pakets, also das ganze Paket, nicht nur der letzte Fix.
+  - Beim Merge-Gate der integrierte Stand gegen `development`.
+- Fehlt die Basis, bricht der Wähler ab (kein leerer Diff).
+- Ein unsauberer Baum wird abgelehnt. Das Gate-JSON führt `uncommitted` schon heute.
+
+**Regeltabelle** (`scripts/test_select/rules.py`, Python, ohne Abhängigkeiten):
+- Geordnete Glob-Regeln, Pfad → Entscheidungen:
+  - `unit:` Liste oder `light`
+  - `heavy`
+  - `browser:` Specs
+  - `browser:full`
+  - `backend`
+  - `firefox`
+  - `live:` Checks
+  - `none` mit Grund, etwa `docs/**` oder `*.md` außerhalb von `lcnc-webui/src`
+- Alle passenden Regeln werden vereinigt.
+- **Ohne passende Regel:** voller zuständiger Lauf (Frontend voll und Backend), im Gate-JSON benannt. Nie „nur Kern“.
+- **Breite Zuordnungen statt globaler Alles-Liste.** Die von dir genannten Klassen bekommen eine breite Regel:
+  - `lcncWs.ts`, `lcncApi.ts`, `auth.ts`, `connKey.ts`, `ws/**`
+  - Eingabe, Fokus und Dialoge: `useNumberKeypad.ts`, `inputSession.ts`, `modalRegistry.ts`, `DialogFrame.vue`, `TabNav.vue`, `ChoiceGroup.vue`, `btnHint.ts`, `gateExplain.ts`, `focusReturn`
+  - `style.css`, `assets/fonts/**`, `index.html`
+  - die Vite-, Vitest- und TS-Konfiguration, `package*.json`, `playwright.config.ts`, `e2e/mock-gateway.mjs`, `e2e/*fixtures*`, `e2e/ctl.ts`
+  - Diese Regeln wählen den vollen Browserlauf. Eine kleine Quelle wie `GcodePanel.vue` wählt nachvollziehbar Program-, Sim- und Eingabe-Specs.
+
+**Schwere Unit-Gruppe:**
+- `HEAVY_UNIT` ist eine Liste exakter Pfade. Ein Test prüft, dass jeder existiert und dass keine weitere Datei über einer Schwelle aus den aufgezeichneten Laufzeiten liegt.
+- **Auslöser:**
+  - die Testdatei selbst ist geändert
+  - `vitest related --run <geänderte Quellen>` trifft sie
+  - eine **Datenregel** schlägt an: `examples/sim_config/**`, `lcnc-gateway/machine/**` und jeder Pfad, den die acht Dateien oder `collisionFixtures.ts` per `readFileSync` lesen
+- Ein Test liest die Leseziele aus diesen Dateien (Literale und `new URL(…)`) und verlangt, dass jedes unter einer Datenregel liegt. Ein Leseziel, das er nicht auflösen kann, lässt ihn scheitern.
+
+**Geänderte Tests laufen immer**, auch aus `HEAVY_UNIT`. Das gilt für jede geänderte `*.test.ts` und jede `*.spec.ts`.
+
+**Beide Richtungen prüfen** (Pytest):
+- Jeder Spec und jede Unit-Datei wird von mindestens einer Regel erreicht.
+- Jede Regel trifft mindestens eine vorhandene Datei. Obsolete Regeln fallen auf.
+- Getrackte Dateien ohne Regel werden aufgelistet.
+
+**Gegenfälle des Mechanismus** (Pytest, synthetische Diffs):
+- eine neue unzugeordnete Quelle → voll
+- eine umbenannte zentrale Quelle → voll, beide Pfade
+- ein geänderter schwerer Test → genau er
+- eine reine Modell- oder Fixture-Änderung → die schwere Gruppe
+- reine Doku → keine Produkttests, mit Grund
+- eine fehlende Basis → Abbruch
+
+### TS248-02 · Jede Prüfart hat eine Stufe und einen Auslöser
+
+| Prüfart | Runde | Merge | Live |
+| --- | --- | --- | --- |
+| Frontend-Lint, Build | immer | immer | — |
+| Unit leicht (inkl. `probeVarFiles.test.ts`) | immer | — | — |
+| Unit schwer | bei Auslöser (01) | immer | — |
+| Browser Chromium | gewählt (01, 03) | vollständig | — |
+| Backend-Offline (`test_suite.py offline --component backend`: backend, 5axis-model, audit-css, review-handshake, readback-target, parity-compare) | bei `lcnc-gateway/**`, `scripts/**`, `examples/**`, `subroutines/**`, Abhängigkeiten; reine UI-Runden lassen es **mit genanntem Grund** aus | immer | — |
+| Schema ↔ Client, Replay (04) | immer, über die gelaufenen Specs | immer | — |
+| Firefox-Kern (05) | bei Regel `firefox` (Probing, Glyphen, `style.css`, Btn) | immer | — |
+| `live-twp` (Preview-Goldens, native Parität, Plane-Invarianten, Capture, Reorient, Touch-off, Adverse) | — | — | bei TWP, Preview oder Parse; vor main |
+| `twp_buttons_check.py` | — | — | bei Bewegungsbuttons (Regel), vor main |
+| `macro_live_check.py`, Werkzeugmesser-Readback | — | — | bei Makro- bzw. Werkzeugmesser-Pfaden; vor main |
+| `perf_matrix.py` | — | — | bei Schleifen- und Statuspfaden; vor main |
+| Antast-Live-Check (06, neu) | — | — | bei Probing-Pfaden; vor main |
+
+Dazu:
+- Nichts Bestehendes entfällt. Die native Parität bleibt eigene Live-Prüfung, kein Antastlauf ersetzt sie.
+- Ein eigenes Backend-Subset kommt erst mit Laufzeitdaten.
+
+**Gate-JSON:**
+- Basis und Ziel, Baum sauber, Umgebung: Browser mit Version, Arch, Playwright-Lock, Worker.
+- Gewählte **und ausgelassene** Prüfungen, mit Gründen.
+- Je Prüfung Ergebnis, Dauer, Retries, Skips; Laufzeiten pro Spec und Test.
+- **Kein PASS** bei Timeout, leerer Auswahl, unerwartetem Skip oder fehlender Laufdatei.
+- Eine nötige, nicht gelaufene Live-Prüfung steht als `pending`. Ein grünes Offline-Gate heißt dann nicht „abgenommen“.
+
+### TS248-03 · Der selektive Browserlauf ohne Projektkette
+
+**Eigene Konfiguration** `playwright.select.config.ts`:
+- Sie übernimmt Fixtures, `use` und Webserver der vollen.
+- Genau **ein** Projekt, ohne `dependencies`, `workers: 1`, `fullyParallel: false`.
+- `reuseExistingServer: false`: Ein belegter Port lässt das Gate scheitern, kein fremder Server wird still geprüft.
+- Die gewählten Dateien laufen in der Reihenfolge der vollen Kette, `viewer.spec` weiterhin zuletzt.
+- Damit hat der zustandsbehaftete Mock genau einen Besitzer.
+
+**Nachweis:**
+- `--list` vor dem Lauf. Das Gate-JSON vergleicht die Liste mit der Auswahl, eine Abweichung ist ein Fehler.
+- Der JSON-Reporter belegt danach, dass genau diese Tests liefen.
+
+**Zeit:**
+- **15 Minuten sind ein Ziel, kein Abbruch.** Ein nötiger Volllauf dauert länger und heißt im JSON so.
+- Der feste Kern wird erst nach den Laufzeiten entschieden. Ist `dialogs` ganz zu teuer, kommen wenige benannte Fälle in den Kern; abgeschnitten wird nach Zeit nie.
+- Schwere Unit-Tests und Browser laufen nacheinander, nie gleichzeitig.
+
+### TS248-04 · Schema- und Replay-Vertrag
+
+**Form der gesendeten Befehle:**
+- Ein node-seitiger Vitest liest `WsCommand` mit der **TypeScript-Compiler-API**, nicht per Regex.
+- Je Befehl: Pflicht- und optionale Felder, verschachtelte Felder als Pfad.
+- Ein nicht auflösbarer Typ oder eine Indexsignatur lässt ihn scheitern. Die offenen `[key: string]: any` bei `save_tool`, `add_tool` und `renumber_tool` ersetze ich durch die tatsächlichen Felder (`pocket`, `diameter`, `z_offset`, …), damit keine Wildcard ein Feld beweist.
+
+**Abgleich mit `COMMAND_SCHEMA`:**
+- Der Test holt die Schema-Felder per `python3 -I -c` aus `command_policy.py` (rein, ohne `linuxcnc`).
+- Jedes Schemafeld eines Befehls muss ein deklariertes Feld dieses Befehls sein.
+- Jedes gesendete Feld steht im Schema oder in einer Liste „ohne Grenze, mit Grund“.
+- Transportfelder (`req_id`) sind ausgenommen.
+- Befehle, die nur der Server kennt (`home`, `unhome`, …), stehen in einer begründeten Liste.
+
+**`renumber_tool`:** Das Schema begrenzt `old_tool_number` und `tool_number`, `new_number` fällt weg. Dazu ein gerichteter Grenztest (negativ und über `TOOL_NUMBER_MAX`) und ein gültiger Fall.
+
+**Replay:**
+- Der Mock schreibt eine JSONL-Datei pro Lauf: Kopfzeile mit Lauf-ID, je Befehl Zeitstempel, Endzeile beim Beenden.
+- Die Herkunft je Befehl kommt aus einem kleinen Reporter, der Teststart und -ende schreibt. Bei einem Worker ist die Zuordnung über die Zeitfenster eindeutig.
+- Fehlende, leere oder unvollständige Datei: FAIL.
+- **Geprüft:**
+  - die Form wie oben
+  - `validate_payload` mit Grenzen und Var-Deklaration gegen **jede** Beispiel-Var-Datei für die gemeinsamen Antast- und Werkzeugmesser-Nummern
+  - eine gelieferte **Korrektur** ist ein Befund
+- **Ausgeklammert und im Ergebnis benannt:** profilabhängige Achs- und Geschwindigkeitsgrenzen, Gates, Handler, HTTP mit `X-Conn-Key`. Diese Lücke führe ich als nächsten kleinen Punkt.
+- **Absichtlich ungültige Nutzlasten** nur über eine Liste Test → Befehl → erwartete Ablehnung, nie pauschal pro Befehl.
+- **Antast-Klick-Spec:** Lief er, muss sein `mdi` mit `O<probe_…> CALL` im Replay stehen, sonst FAIL. Er ist über die Sendeformen parametrisiert (Grid, Boss, Ridge, Angle, Cal), nicht über jede Glyphe.
+- **Override:** ein kurzer UI-Test „Feed 50 % → `scale: 0.5`“ statt einer zweiten Maschinenemulation.
+
+### TS248-05 · Firefox als gepinntes eigenes Ziel
+
+- **Pflicht:** Chromium vollständig und ein kompakter Satz auf einem **gepinnten Mozilla-Release**. Der Maschinenbrowser kommt dazu, sobald Q248-1 beantwortet ist und er abweicht.
+- **Pin im Repo:** `lcnc-webui/e2e/firefox.json` mit Version, Arch-Liste und SHA256 je Archiv aus Mozillas `SHA256SUMS`.
+  - `scripts/fetch_firefox.py` lädt nach `~/.cache/lcnc-suite/firefox/<version>-<arch>/` und prüft die Prüfsumme. So geht es auch in CI (x86_64).
+  - Er **meldet** ein neueres Release (`product-details.mozilla.org`). Übernommen wird es bewusst, als Commit mit neuen Referenzen.
+  - Das Gate-JSON nennt Version, Arch, SHA und Playwright-Version.
+- **Fehlt das Binary oder ein nötiges BiDi-Merkmal:** Fehler oder `pending`, nie der gebündelte Firefox, nie ein grüner Skip.
+- **Bilder:** Das Firefox-Projekt bekommt sein eigenes `snapshotPathTemplate` (pro Projekt möglich), mit Browser und Version im Pfad. Die Chromium-Referenzen bleiben, wo sie sind. Referenzen werden nie im Gate erneuert.
+- **Beweis:** Der Glyphenfehler muss in diesem Ziel am alten CSS rot und mit dem Fix grün sein, mit Bild **und** der Größenprüfung, alle acht Prozeduren gezählt.
+- **Zuerst ein Machbarkeitsversuch:** `route`, `toHaveScreenshot`, Maus und Tastatur, Touch unter BiDi. Erst er bestimmt den Kern. ≤ 5 min und ~20 s bleiben Messziele.
+- Statt Scrollbalken-Specs kommt ein kleiner Firefox-Fall für Overflow und Dialog.
+
+### TS248-06 · Ablaufvertrag des Antast-Live-Checks
+
+**Voraussetzungen, alle geprüft, sonst Abbruch vor jeder Bewegung:**
+- **Sim und Code:** ein Sim-Profil aus einer Erlaubnisliste (INI-Pfad). Das Gateway meldet den geladenen Code-Stand, er muss zum Repo-Stand passen.
+- **Zustimmung:** expliziter Bewegungs-Opt-in (`--allow-sim-motion` wie beim bestehenden Runner). Läuft ohne Opt-in nie, übernimmt nie von sich aus eine Sim, an der andere Clients scharf sind.
+- **Werkzeug:** Platte und Probe aus dem Profil (Lage und Höhe der `sim_toolsetter`-Platte). Das Antastwerkzeug ist geladen, und `#5400 == #3014`, wie die Routine es verlangt. Es hat eine bekannte **positive** Tabellenlänge.
+- **Zustand:** G21, G54 aktiv, TLO und G92 bekannt bzw. leer, ein freier An- und Rückfahrweg.
+
+**Ablauf:**
+1. Zustand erfassen: G54 aller Achsen, Position, Modalzustände, Overrides, Werkzeug und TLO, die Werte von #3014–#3059, G92.
+2. G54 Z **bewusst abweichend** setzen, etwa +12,345 mm gegenüber dem Erwartungswert. Ein ausgebliebenes Schreiben fällt so auf.
+3. Über der Platte positionieren und `O<probe_z_minus_wco> CALL` mit den Panel-Werten starten, über denselben Weg wie die UI (`mdi` mit `vars`, also die Werte, die das Replay prüft).
+4. **Erwarten:**
+   - ein frisches Probe-Ereignis (`#5070 = 1`) und eine Ergebnisposition
+   - Interpreter-Ende ohne Fehler (Fehlerkanal leer, Ende bei `M50 P1` beachtet)
+   - zurückgelesenes G54 Z gleich dem **unabhängig** berechneten Wert aus Plattenhöhe und Werkzeug- und Offsetzustand, Toleranz 0,01 mm (begründet aus Antastvorschub und Servo-Takt)
+
+**Danach:**
+- **Erfolg:** G54, Position, Modal- und Override-Zustände, Werkzeugzustand und #3014–#3059 wiederherstellen und zurücklesen.
+- **Fehler oder Timeout:** zuerst Abbruch, Stillstand prüfen. Zurückfahren nur bei weiterhin gültigen Voraussetzungen.
+- **Trip oder Verbindungsverlust:** nie automatisch quittieren oder weiterfahren. Die genauen Restzustände werden genannt.
+- Ein WS-Client mit Heartbeat bleibt durch Ablauf und Aufräumen verbunden.
+
+### Reihenfolge (deine Fassung)
+
+1. **Messen:** JSON-Reporter im Gate (eine eigene Skriptkopie) und der Firefox-Machbarkeitsversuch.
+2. **Schnelle Prüfungen sofort**, unabhängig vom Stufenbau: Schema ↔ Client mit der `renumber_tool`-Korrektur und dem Antast-Klick-Spec. `probeVarFiles.test.ts` liegt schon im leichten Satz (`fix/probe-vars`).
+3. **Wähler als Trockenlauf** neben den ohnehin fälligen Vollgates. Er protokolliert, was er gewählt hätte, und ob jeder Fehler des Volllaufs in dieser Auswahl lag.
+4. **Selektiv schalten**, sobald TS248-01 bis -03 durch Wächter und die Ist-Listen belegt sind.
+5. Replay.
+6. Firefox-Kern und Probing-Referenzen.
+7. Antast-Live-Check.
+
+Später, mit gutem Ertrag (aus deiner Liste):
+- die 42 Routinen-Namen auf den ausgelieferten Suchpfaden
+- ein Verhaltenstest für Werkzeug-Edit und -Renumber
+- Zufallssuchen nur in einer eigenen, gezielt gestarteten Stufe mit Seed
+- Einzel-Reruns machen einen roten Gesamtstand nie unsichtbar: Das Gate-JSON behält den ersten Lauf, wie heute `.run1`.
+
+Wenn die Verträge tragen, bitte `agreement`.
