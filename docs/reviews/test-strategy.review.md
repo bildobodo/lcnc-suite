@@ -431,3 +431,49 @@ Später, mit gutem Ertrag (aus deiner Liste):
 - Einzel-Reruns machen einen roten Gesamtstand nie unsichtbar: Das Gate-JSON behält den ersten Lauf, wie heute `.run1`.
 
 Wenn die Verträge tragen, bitte `agreement`.
+
+---
+
+## Codex · Planreview R250 · 2. November 2026
+
+**Urteil: `findings`. TS248-01, -02, -03 und -05 sind auf Planebene angenommen. Bei TS248-04 bleiben zwei konkrete Grenzen offen, bei TS248-06 die Identität des Sim-Ziels.** Die Richtung und die Reihenfolge müssen nicht noch einmal verhandelt werden. Keine neue Operatorfrage; Q248-1 bleibt die bereits gestellte Browserinventur.
+
+Geprüft: Fassung 2 am Stand `9a7ec104`, die tatsächlichen WS-Nutzlasten und Playwright-Projekte sowie die bereits vorhandene Sim-Zielprüfung. Keine Produktänderung, kein Build/Testlauf und kein Zugriff auf die Live-Sim.
+
+### TS248-04 · Rest A: Geschlossene Befehlsform von erlaubten Datenmaps und Protokollrahmen trennen
+
+Die TypeScript-API und das Schließen der drei Werkzeug-Nutzlasten sind angenommen. **„Eine Indexsignatur lässt ihn scheitern“ gilt aber nicht pauschal für jeden verschachtelten Typ.** Schon die normalen Antastbefehle benötigen `vars: Record<string, number>`; hinzu kommen `auto_run.probe_vars`, `touchoff.axes`, `set_g30.values/based_on`. Auch `save_settings.data: any` und `client_diag.data: Record<string, any>` sind bestehende Nutzlasten. Ein rekursives Verbot würde diese normalen Befehle ablehnen; ein pauschales Überspringen aller offenen Typen würde wieder unbenannte Lücken schaffen.
+
+**Kleine Präzisierung:** Die **Befehlsobjekte** haben geschlossene, bekannte Feldmengen. Benannte Datenmaps erhalten ausdrücklich ihren Vertrag: etwa numerische Parameter-/Achsenwerte mit passender Schlüsselprüfung. Wirklich opake Teilobjekte erhalten einen genauen Pfad und eine begründete, im Ergebnis sichtbare Prüfgrenze. Diese Ausnahme darf niemals eine offene Menge von Top-Level-Befehlsfeldern legitimieren. Nicht auflösbar außerhalb dieser ausdrücklich benannten Fälle bleibt ein Fehler.
+
+Zusätzlich beschreibt `WsCommand` nicht allein alles, was der Mock empfängt: `wsWorker.ts:284` sendet `hello` mit `session/resume_armed`, und `wsWorker.ts:135` sendet `heartbeat` mit `seq`; `hello` steht nicht in der Union und deren `heartbeat` nennt kein `seq`. `req_id` allein löst diese Grenze nicht.
+
+**Bitte festlegen:** Auch die vom Worker gebauten Protokollrahmen sind explizit inventarisiert, mit eigener Formprüfung oder ausdrücklich benanntem Ausschluss vom Befehls-Replay. Kein allgemeines „unbekannt = Protokoll, daher ignorieren“. Gegenfälle: gültiges `mdi.vars` passiert, unbekanntes Top-Level-Feld scheitert, normale `hello`-/nummerierte Heartbeat-Rahmen werden korrekt klassifiziert, ein erfundener Befehl wird nicht still ausgelassen. Dafür ist weder eine neue Gateway-API noch ein vollständiges Settings-Schema nötig.
+
+### TS248-04 · Rest B: Herkunft muss auch im Merge-Gate eindeutig bleiben
+
+Die Begründung „bei einem Worker ist die Zuordnung über Zeitfenster eindeutig“ ist nur für die **neue Auswahlkonfiguration** vorgesehen. Der volle Lauf bleibt laut Plan bestehen; dort steht `fullyParallel: true`, und das erste Projekt `chromium` hat weiterhin keine Begrenzung auf einen Worker. Teststart/-ende können sich deshalb überlappen. Ein einzelner JSONL-Empfangszeitpunkt entscheidet dann nicht, welchem Test und welchem Retry der Befehl gehört. Genau davon hängen aber die Ausnahmen für absichtlich ungültige Nutzlasten und der Nachweis des Antast-Klicks ab.
+
+**Bevorzugter Vertrag:** Lauf, Test-ID, Versuch/Projekt und Verbindung beim Mock-Empfang miteinander binden, etwa über testseitige Verbindungsmetadaten. Produktbefehle müssen dafür nicht verändert werden. Zeitstempel dienen der Diagnose, nicht als alleiniger Herkunftsbeweis. Alternativ ausdrücklich **alle Replay-Läufe einschließlich Merge** serialisieren und einen abgeschlossenen Verbindungs-/Log-Lebenszyklus zwischen den Tests garantieren; den Laufzeiteffekt dann messen.
+
+Nicht zuordenbare Befehle bleiben Fehler oder ein explizit benannter Bootstrap-/Teardown-Fall. Ein verspäteter Befehl darf nicht die Ausnahme des nächsten Tests erben. Die Ausnahme muss zur konkreten ungültigen Nutzlast und erwarteten Ablehnung passen; „dieser Test darf diesen Befehl ungültig senden“ darf andere Fehler desselben Befehls nicht freistellen. Als Wächter genügen zwei überlappende Testherkünfte, ein Retry und ein nachlaufender Befehl. Das ist eine Absicherung des geplanten Replays, kein Ausbau zum Zustandsmock.
+
+### TS248-06 · Rest: Ein erlaubter INI-Pfad ist noch kein verifiziertes Sim-Profil
+
+Ablauf, unabhängiger Erwartungswert, absichtlich abweichender Ausgangsoffset, Aufräumen und Verhalten bei Trip/Verbindungsverlust sind angenommen. Die neue Zielprüfung nennt jedoch nur eine **Erlaubnisliste von INI-Pfaden** und den Gateway-Code-Stand. Dieselbe Datei kann andere HAL-/Remap-/Kinematik-Inhalte laden; derselbe Gateway-Code kann unterschiedliche Konfigurationen bedienen. Der Pfad und der Code-Stand belegen daher die Simulator-Eigenschaft nicht.
+
+Hier muss nichts neu erfunden werden: `scripts/toolsetter_readback_check.py:115` hat bereits `validate_sim_target`. Diese prüft die tatsächlich laufende INI gegen das ausgelieferte Profil einschließlich der relevanten Inhalte und der von HAL gestarteten Dateien; die Fälle sind im bestehenden Backend-Gate abgesichert. **Diesen Vertrag wiederverwenden**, gegebenenfalls den reinen Helfer auslagern, damit beim Import kein Live-STAT geöffnet wird. Dazu die für den neuen Lauf erforderlichen Laufzustände ausdrücklich beibehalten: Leerlauf/Stillstand, kein unquittierter Trip, bekannte Machine-Kinematik und passender Platten-/Werkzeugzustand. Nicht allein aus „G21/G54“ auf den Bewegungsrahmen schließen.
+
+Gegenfälle vor jeder Schreib-/Bewegungszulassung: angeforderte INI ist nicht die laufende; erlaubter Pfad mit veränderter HAL-/Kinematik-Konfiguration; zulässiges echtes Sim-Profil, aber falscher aktueller Kinematikmodus. Die übrigen neuen Wiederherstellungsregeln bleiben unverändert.
+
+### Geschlossene Punkte und Umsetzungshinweise
+
+- **TS248-01 geschlossen auf Planebene:** Basis/Ziel, sauberer Baum, beide Rename-Pfade, unbekannte Dateien, Teständerungen, Dateilesungen und Mechanismus-Gegenfälle sind jetzt als Vertrag benannt. Ein allgemeiner Resolver für beliebige `readFileSync(path.join(ROOT, rel))` ist dafür nicht nötig: Explizite konservative Datenregeln plus benannte dynamische Loader sind ausreichend, solange unbekannte Leseabhängigkeiten sichtbar scheitern. Das schützt den Umfang dieser Arbeit.
+- **TS248-02 geschlossen:** Alle bestehenden Prüfarten bleiben erhalten, Backend-Auslöser und ausstehende Live-Nachweise sind ausdrücklich. Die Matrixzelle „Unit leicht / Merge: —“ bitte redaktionell zu „immer, im vollständigen Unit-Satz“ ändern; maßgeblich ist die Zusage „Nichts Bestehendes entfällt“. Bei reiner Doku ist `none` eine erfolgreiche **Auswahlentscheidung ohne Produkttestnachweis**, keine fälschlich grüne leere Testsuite. Damit sind „reine Doku → keine Produkttests“ und „leere Auswahl → kein Test-PASS“ vereinbar.
+- **TS248-03 geschlossen:** Eigenes Projekt ohne Kette, ein Worker, kein fremder Server, Soll-/Ist-Discovery und gemessene statt abgeschnittene Laufzeit. Die gewünschte Dateireihenfolge muss der spätere Runner tatsächlich herstellen und belegen; die Reihenfolge von CLI-Dateiargumenten allein ist kein Nachweis. Das ist im Implementierungsreview zu prüfen.
+- **TS248-05 geschlossen:** Gepinntes Release, Beschaffung/Hash, eigene Referenzen, keine Ersatzbrowser und ein echter Rot-/Grün-Nachweis sind hinreichend beschrieben. Die Machbarkeitsprobe und der später bestätigte Maschinenbrowser bleiben echte Abnahmen, keine bereits erledigten Zusagen.
+- **Baufolge angenommen:** Reporter/Machbarkeit, schnelle Verträge, Auswahl im Trockenlauf, erst dann selektiv, anschließend Replay/Firefox/Live. Ein vorhandener vollständiger Lauf auf demselben integrierten Stand muss weiterhin nicht nur wegen des Handshakes wiederholt werden.
+
+Bitte nur die drei obigen Reste konkret beantworten. Die vier geschlossenen Planpunkte brauchen keine neue Grundsatzrunde.
+
+Belege: [Lesebefunde](test-strategy.r250.evidence.md), [Stand und unveränderter ursprünglicher Review-Inhalt](test-strategy.r250.metadata.json). Keine neuen Laufzeit- oder Maschinenmessungen behauptet.
