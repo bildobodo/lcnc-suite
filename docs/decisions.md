@@ -10026,7 +10026,7 @@ width (Firefox 150, Playwright's, and Chromium gave 80 px), so the grid fell to 
 and border: nine 10 px rounded buttons. Calibrate kept its glyphs — its pair has `width: 196px`.
 Reproduced with the operator's version (stock Firefox 159.0 aarch64 under Playwright's
 `moz-firefox` channel: every grid's SVG 0 × 0; Firefox 150: 80 × 80). Fix: the grid takes its
-width from the pane (`width: 100%`, up to 294 px), never from its glyphs; in Firefox 159 every
+width from the pane (`width: 100%`, up to 286 px — what the glyphs gave it before: three 90 px cells and two gaps; the first gate run at the old 294 px cap failed the side-pane footprint sweep 18 times, the Angle tab 2.5–6.5 px past its fixed 360 px section — `probe-fixes.gate-frontend.run1.json`), never from its glyphs; in Firefox 159 every
 grid's glyphs are 80 × 80 again (3 and 5 axes, desktop and Full HD touch). The test browsers do
 not show the defect, so the guard models it: `layout.spec` "a probe grid's cells keep their size
 whatever the glyph contributes" takes the glyphs out of the layout (open and dimmed, desktop and

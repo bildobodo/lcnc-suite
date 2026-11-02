@@ -1287,9 +1287,12 @@ function fmtR(key: string): string {
 html.touch-device .gridSection { height: 368px; }
 
 /* Grids (centered). The width comes from the pane (`width: 100%` up to
-   294 px), never from the glyphs: Firefox 159 sizes a glyph's percentage-wide
+   286 px), never from the glyphs: Firefox 159 sizes a glyph's percentage-wide
    SVG at zero in the grid's content width, and the shrink-to-fit grid fell
-   to its cells' padding — "nur 9 Punkte" (operator 2026-11-02). */
+   to its cells' padding — "nur 9 Punkte" (operator 2026-11-02). 286 px is the
+   width the glyphs gave it before: three 90 px cells (the 80 px glyph, 4 px
+   padding, 1 px border) and two gaps — at the old 294 px cap the cells grew
+   2.7 px and the Angle tab ran 2.5–6.5 px past its fixed section. */
 .gridWrap {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1297,7 +1300,7 @@ html.touch-device .gridSection { height: 368px; }
      a mis-tap approaches the workpiece from the wrong side */
   gap: var(--gap-controls);
   width: 100%;
-  max-width: 294px;
+  max-width: 286px;
   margin: 0 auto;
 }
 
