@@ -1483,6 +1483,8 @@ test('a help icon in the viewer warnings card scrolls nothing and keeps its hit 
 // ● a tool change too (operator 2026-11-01: "wie schaut das mit dem punkt für
 // die werkzeugwechsel aus? … in der spalte im programmcode"): the timeline's
 // tool-change lines, in their colour, the others' glyph winning the look.
+// A name that holds "m6" is no M word (Codex R247 FH-06); a word that follows
+// a number without a space is one (T7M600).
 test('a code line names its findings with a glyph: ▲ limit, × collision, ● tool change, all named', async ({ page, context }) => {
   test.setTimeout(120_000);
   const feed = LIMIT_FEED.map(p => [...p]);
@@ -1493,8 +1495,10 @@ test('a code line names its findings with a glyph: ▲ limit, × collision, ● 
     violations_total: 2, rapid: [[0, 0, 5], [0, 0, 0]], rapid_lines: [1, 2], rapid_seq: [1, 2] })));
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain',
-    // a tool change alone on line 8, one on line 32 with its limit and collision
+    // a tool change alone on line 8, one on line 32 with its limit and collision,
+    // a parameter named for M600 on line 16, a compact T7M600 on line 18
     body: Array.from({ length: 40 }, (_, i) => i === 0 ? '(marks)' : i === 7 ? 'T3 M6'
+      : i === 15 ? '#<m600_count> = 0' : i === 17 ? 'T7M600'
       : `${i === 31 ? 'T5 M6 ' : ''}G1 X${i} Y${i % 2 ? 20 : 0} F100`).join('\n') }));
   await openLayout(page, PROFILES[1], VIEWPORTS.find(v => v.name === 'desktop')!);
   await ctl({ op: 'status_delta', data: { active_file: '/marks.ngc' } });
@@ -1523,15 +1527,18 @@ test('a code line names its findings with a glyph: ▲ limit, × collision, ● 
     p.remove();
     return c;
   });
-  const [limitOnly, collisionOnly, all, tool, plain] = [await mark(20), await mark(12), await mark(32), await mark(8), await mark(5)];
-  const dump = JSON.stringify({ limitOnly, collisionOnly, all, tool, plain });
+  const [limitOnly, collisionOnly, all, tool, plain, named, compact] = [await mark(20), await mark(12), await mark(32), await mark(8), await mark(5),
+    await mark(16), await mark(18)];
+  const dump = JSON.stringify({ limitOnly, collisionOnly, all, tool, plain, named, compact });
   expect([limitOnly.glyph, limitOnly.name], `limit: ▲ named ${dump}`).toEqual(['lucide-triangle-icon', 'Limit violation']);
   expect([collisionOnly.glyph, collisionOnly.name], `collision: × named ${dump}`).toEqual(['lucide-x-icon', 'Collision']);
   expect([all.glyph, all.name], `all three: × shows, the name says each ${dump}`).toEqual(['lucide-x-icon', 'Limit violation, collision, tool change']);
   expect([tool.glyph, tool.name, tool.color], `tool change: ● named, in its mark's colour ${dump}`).toEqual(['lucide-circle-icon', 'Tool change', markTool]);
   expect(tool.title, `its title says the tool, the Sim list's words ${dump}`).toBe('Tool change → T3');
   expect(plain.name, `a clean line has no mark ${dump}`).toBeNull();
-  expect(new Set([limitOnly.codeX, collisionOnly.codeX, all.codeX, tool.codeX, plain.codeX]).size, `the code starts at one x ${dump}`).toBe(1);
+  expect([named.name, named.title], `a parameter's name is no tool change ${dump}`).toEqual([null, null]);
+  expect([compact.glyph, compact.title], `T7M600 is one ${dump}`).toEqual(['lucide-circle-icon', 'Tool change → T7']);
+  expect(new Set([limitOnly.codeX, collisionOnly.codeX, all.codeX, tool.codeX, plain.codeX, named.codeX, compact.codeX]).size, `the code starts at one x ${dump}`).toBe(1);
 });
 
 // Viewer contrast plan, V4 (VK-02/03): the tilted work plane names its state

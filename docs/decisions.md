@@ -10102,3 +10102,20 @@ changes. × wins the look over ▲ over ●; the glyph's name says every finding
 ("Limit violation, collision, tool change"), the line's title adds the Sim list's words ("Tool
 change → T3"). Guard red first: `layout.spec` "a code line names its findings with a glyph: ▲
 limit, × collision, ● tool change, all named" (red at `2b7aa72f`: the tool line had no mark).
+
+**Codex R247 FH-06: a name is no M word.** The position's yellow accepted; the ● in the code took
+the shared text scan's false hits along: `viewer/toolChangeScan.ts` stripped comments only, so an
+M6 / M600 / M601 inside a name in angle brackets — `#<m600_count> = 0`, `#<m6> = 1`,
+`o<m6_remap> call` — was a tool change (a ● in the code, a row in the Sim list, a mark on the
+timeline; the scan unchanged since 2026-09-12, the code panel only the newest reader). The scan now
+strips every `<…>` name after the comments: in RS274NGC angle brackets only delimit a named
+parameter or an O-word's name (comparisons are words: LT, GT). Two more defects of the same scan,
+fixed in the same wave: a word that follows a number without a space was missed (`T13M600`,
+`N20M6`, `X1.M601` — the left bound excluded a digit and a dot; a number ends where the next
+word's letter starts), and a T word the text cannot evaluate (`T#<next>`, `T[#1 + 1]`) kept the T
+before it — now the tool is unknown (0, "T?"), never that guess; the wire's number still wins
+where it has one. The fix sits at the source; the code, the timeline and the Sim list keep
+reading it. Guards red first: `toolChangeScan.test.ts` (Codex's three lines, an O-word name, a
+name beside a real M6; the compact words; the unevaluable T) and `layout.spec` "a code line names
+its findings" (line 16 `#<m600_count> = 0` no mark — red: "Tool change → T3" —, line 18 `T7M600`
+a ● "Tool change → T7" — red: none; `docs/reviews/snap-highlight.fh06-red.txt`).

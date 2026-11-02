@@ -1,0 +1,52 @@
+FH-06 (Codex R247) — red first, against cc5a463d's scanner
+
+== unit: src/viewer/toolChangeScan.test.ts (3 new cases) ==
+     × an M6 / M600 / M601 inside a parameter's or an O-word's name is no tool change 3ms
+     × a word follows a number without a space: T13M600, N20M6, X1.M601 1ms
+     × a T word the text cannot evaluate (T#<n>, T[…]) leaves the tool unknown, never the T before it 0ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  3 failed | 2 passed (5)
+
+== browser: layout.spec 'a code line names its findings' (old build) ==
+-- line 16 #<m600_count> = 0:
+      Array [
+    -   null,
+    -   null,
+    +   "Tool change",
+    +   "Tool change → T3",
+      ]
+
+      1537 |   expect(tool.title, `its title says the tool, the Sim list's words ${dump}`).toBe('Tool change → T3');
+      1538 |   expect(plain.name, `a clean line has no mark ${dump}`).toBeNull();
+    > 1539 |   expect([named.name, named.title], `a parameter's name is no tool change ${dump}`).toEqual([null, null]);
+           |                                                                                     ^
+      1540 |   expect([compact.glyph, compact.title], `T7M600 is one ${dump}`).toEqual(['lucide-circle-icon', 'Tool change → T7']);
+      1541 |   expect(new Set([limitOnly.codeX, collisionOnly.codeX, all.codeX, tool.codeX, plain.codeX, named.codeX, compact.codeX]).size, `the code starts at one x ${dump}`).toBe(1);
+      1542 | });
+        at /home/cnc/lcnc-suite-follow/lcnc-webui/e2e/layout.spec.ts:1539:85
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/layout-a-code-line-names-i-4ec72-ion-●-tool-change-all-named-serial-layout/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/layout-a-code-line-names-i-4ec72-ion-●-tool-change-all-named-serial-layout/error-context.md
+
+
+  1 failed
+    [serial-layout] › e2e/layout.spec.ts:1488:1 › a code line names its findings with a glyph: ▲ limit, × collision, ● tool change, all named 
+-- line 18 T7M600 (the two expectations swapped for this run, the spec restored after):
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Array [
+    -   "lucide-circle-icon",
+    -   "Tool change → T7",
+    +   null,
+    +   null,
+      ]
+
+      1537 |   expect(tool.title, `its title says the tool, the Sim list's words ${dump}`).toBe('Tool change → T3');
+      1538 |   expect(plain.name, `a clean line has no mark ${dump}`).toBeNull();
+    > 1539 |   expect([compact.glyph, compact.title], `T7M600 is one ${dump}`).toEqual(['lucide-circle-icon', 'Tool change → T7']);

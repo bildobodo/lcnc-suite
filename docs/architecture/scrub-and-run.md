@@ -20,7 +20,10 @@ routine's own M6 at its call line when that is the program's only one,
 else none — `main_file_tool_changes`; see "M600 in the preview") and the
 client unions them with a TEXT scan for
 M6 / M600 / M601 lines (`viewer/toolChangeScan.ts`, tool from the T word
-on or before the line; "T13 M600" had no mark) — a change line has no
+on or before the line; "T13 M600" had no mark; outside comments AND names —
+`#<m6>`, `o<m600_x>` are identifiers, Codex R247 FH-06 —, a word may follow
+a number without a space, `T13M600`; a T the text cannot evaluate,
+`T#<n>`, leaves the tool unknown) — a change line has no
 motion, so its mark sits at the next line with one; info-blue ● marks +
 the "T13 in 2:41" countdown.
 **Phase 2 (run-time display)**: the bar stays visible during a REAL run
