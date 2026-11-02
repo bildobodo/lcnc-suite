@@ -1,0 +1,39 @@
+{
+  "source_sha256": "01bd7babfeffda25355fec7eaf396d8c4e85ec971933ef92cb0e2446d07d6423",
+  "rows": [
+    {
+      "case": "unknown command",
+      "status": "no exception",
+      "corrections": {}
+    },
+    {
+      "case": "missing required text",
+      "status": "no exception",
+      "corrections": {}
+    },
+    {
+      "case": "misspelled field",
+      "status": "no exception",
+      "corrections": {}
+    },
+    {
+      "case": "old tool number not bounded",
+      "status": "no exception",
+      "corrections": {}
+    },
+    {
+      "case": "declared vars rejected",
+      "status": "rejected",
+      "error": "mdi: #3015 is not in this machine's var file \u2014 declare it there to make it configurable"
+    },
+    {
+      "case": "clamp is a returned correction",
+      "status": "no exception",
+      "corrections": {
+        "scale": 2.0
+      }
+    }
+  ],
+  "assertions": "PASS (observed validator scope)",
+  "machine_access": false
+}
