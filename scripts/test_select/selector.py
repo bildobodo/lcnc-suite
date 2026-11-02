@@ -102,8 +102,8 @@ def read_by(path: str) -> set[str]:
 
 def vitest_changed(repo: Path, base: str) -> list[str]:
     """The unit files `vitest list --changed <base>` names (import graph)."""
-    if git(repo, "status", "--porcelain"):
-        raise SelectError("vitest compares base with the working tree: the tree must be clean")
+    if git(repo, "status", "--porcelain", "--", "lcnc-webui"):
+        raise SelectError("vitest compares base with the working tree: lcnc-webui must be clean, untracked files too")
     out = repo / "lcnc-webui" / "node_modules" / ".cache" / "test-select-vitest.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     r = subprocess.run(["npx", "vitest", "list", "--changed", base, "--filesOnly",
