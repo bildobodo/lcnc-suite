@@ -9,7 +9,7 @@ Every line must read RED.
 import shutil, subprocess, sys
 from pathlib import Path
 R = Path("scripts/test_select/rules.py"); S = Path("scripts/test_select/selector.py")
-P = Path("scripts/test_select/proof.py")
+P = Path("scripts/test_select/proof.py"); G = Path("scripts/test_select/graph.py")
 MUTS = [
  ("a source loses its rule", R, '"probeVars.ts",\n', '\n'),
  ("a rule names a missing spec", R, 'MESSAGES = ("messages", "feedback-channels")', 'MESSAGES = ("messages", "feedback-channels", "gone")'),
@@ -22,6 +22,10 @@ MUTS = [
  ("no vitest answer skips heavy", S, '        heavy_all = True\n        related: list[str] = []', '        related: list[str] = []'),
  ("a changed heavy test runs the group", S, '                    heavy_files.add(path)', '                    heavy_all = True'),
  ("docs select backend", R, 'none="no product code", final=True', 'none="no product code", final=False'),
+ ("a shared module loses an area", R, 'browser=PROGRAM + VIEWER),\n    Rule(src("download.ts")', 'browser=PROGRAM),\n    Rule(src("download.ts")'),
+ ("a status-path module not FULL", R, '"viewer/kinematics.ts", "viewer/kins.ts", "viewer/partFrame.ts",', '"viewer/kinematics.ts", "viewer/partFrame.ts",'),
+ ("the sweep owns a path alone", R, '        owned |= not rule.additive', '        owned = True'),
+ ("a worker counts as an import", G, '            if m.group(4):\n                workers.add(target)  # its owner holds no runtime edge to it\n                continue', '            if m.group(4):\n                workers.add(target)'),
  ("listing ignores the project", P, '        if sel_at[f] != full_at[f]:', '        if False:'),
  ("order ignores a project overlap", P, '        if span[b][0] < span[a][1]:', '        if False:'),
  ("order ignores the path order", P, '        if by_start != sorted(files):', '        if False:'),

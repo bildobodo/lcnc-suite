@@ -14,6 +14,8 @@ A rule names:
   none     a reason: the path carries no product test (documentation, agent
            configuration); with `final` it decides alone
   unit_only  nothing beyond the light unit set and the build
+  additive   adds its selection to the rules that own a path; a path only
+           additive rules match is unmatched (the fail-closed default)
 
 The light unit set (every unit file but HEAVY_UNIT), lint and build run in
 every round regardless of the table. A changed spec always runs itself and a
@@ -111,6 +113,7 @@ class Rule:
     none: str | None = None
     unit_only: bool = False
     final: bool = False     # a match decides alone (documentation)
+    additive: bool = False  # adds to an owning rule, never owns a path alone
 
 
 W = "lcnc-webui/"
@@ -146,6 +149,12 @@ RULES: tuple[Rule, ...] = (
              "dragScroll.ts", "clientDiag.ts", "wakeLock.ts", "StatsDonut.vue"),
          "central: every surface, every dialog or every connection depends on it",
          browser=FULL, firefox=True),
+    Rule(src("macroFiles.ts", "runBasis.ts", "viewerPerf.ts", "viewer/eventIndex.ts",
+             "viewer/kinematics.ts", "viewer/kins.ts", "viewer/partFrame.ts",
+             "viewer/tloEvents.ts", "viewer/wcsEpochs.ts"),
+         "the connection's status and bulk path (lcncWs, ws/statusStore, ws/bulkData) "
+         "imports it: every status-driven surface (graph.py)",
+         browser=FULL),
     Rule((W + "index.html", W + "package.json", W + "package-lock.json", W + ".npmrc",
           W + "vite.config.ts", W + "viteHttpRestartPing.ts", W + "vitest.config.ts",
           W + "tsconfig.json", W + "tsconfig.app.json", W + "playwright.config.ts",
@@ -160,10 +169,12 @@ RULES: tuple[Rule, ...] = (
          unit_only=True),
     Rule(src("testGlobals.ts", "shims.d.ts"),
          "types and unit-test globals: the build and the light unit set cover them",
-         unit_only=True),
+         unit_only=True, final=True),
 
-    # ── Every component: its rendered surface ────────────────────────────
-    Rule((S + "**/*.vue",), "a component: every rendered surface", browser=UI_SWEEP),
+    # ── Every component and every module it uses: its rendered surface ───
+    Rule((S + "**/*.vue", S + "**/*.ts"),
+         "a component, or a module a component renders through: every rendered surface",
+         browser=UI_SWEEP, additive=True),
 
     # ── Areas ────────────────────────────────────────────────────────────
     Rule(src("GcodePanel.vue", "CodeEditor.vue", "codeGlide.ts", "trackHighlight.ts",
@@ -211,6 +222,25 @@ RULES: tuple[Rule, ...] = (
          "the viewer, the preview and the simulation", browser=VIEWER + ("layout",)),
     Rule(src("previewWorker.ts", "previewDecode.ts"), "the preview's decode",
          live=("live-twp",)),
+
+    # ── Modules several areas render through (graph.py names them) ───────
+    Rule(src("axisColors.ts", "viewer/labelFont.ts"), "axis colours and the label font: probing glyphs and the viewer",
+         browser=PROBING + VIEWER),
+    Rule(src("codeGlide.ts", "trackHighlight.ts", "limitMarks.ts"),
+         "the running line and the marks: the code panel and the Sim tab", browser=PROGRAM + VIEWER),
+    Rule(src("download.ts"), "a file saved: programs, macros, tool tables", browser=PROGRAM + MACROS + TOOLS),
+    Rule(src("gcodeRefView.ts", "gcodeReference.ts"), "the reference opened from the code panel",
+         browser=PROGRAM),
+    Rule(src("g30Shared.ts", "toolHolder.ts", "toolUnits.ts", "viewer/toolOffsetState.ts"),
+         "tool and G30 values the 3D view draws", browser=TOOLS + TOOLSETTER + VIEWER),
+    Rule(src("toolsetterSetup.ts", "toolsetterVars.ts", "probeFields.ts"),
+         "the toolsetter's values: the form, the measure from the table, run from line, the setter in 3D",
+         browser=TOOLSETTER + TOOLS + PROGRAM + VIEWER + PROBING),
+    Rule(src("viewer/activeFixtureFrame.ts", "viewer/programZero.ts", "viewer/twpPlaneFrame.ts"),
+         "the work frame: the viewer's marker and the Setup section", browser=VIEWER + SETUP),
+    Rule(src("viewer/colourMath.ts", "viewer/customContrast.ts", "viewer/palette.ts",
+             "viewer/palettePairs.ts", "viewer/viewerPalette.ts"),
+         "the viewer's colours and their settings", browser=VIEWER + SETTINGS),
 
     # ── Outside the frontend ─────────────────────────────────────────────
     Rule(("lcnc-gateway/**",), "the gateway: the browser suite runs against the mock",
@@ -287,6 +317,7 @@ class Decision:
 
 def decide(path: str, rules: tuple[Rule, ...] = RULES) -> Decision:
     d = Decision(path)
+    owned = False
     for rule in rules:
         if not any(matches(g, path) for g in rule.globs):
             continue
@@ -294,6 +325,7 @@ def decide(path: str, rules: tuple[Rule, ...] = RULES) -> Decision:
             d.rules, d.none = [rule.why], rule.none
             return d
         d.rules.append(rule.why)
+        owned |= not rule.additive
         if rule.browser == FULL:
             d.browser_full = True
         else:
@@ -301,7 +333,7 @@ def decide(path: str, rules: tuple[Rule, ...] = RULES) -> Decision:
         d.backend |= rule.backend
         d.firefox |= rule.firefox
         d.live.update(rule.live)
-    if not d.rules:
+    if not owned:
         d.unmatched = True     # fail closed: the full frontend and backend runs
         d.browser_full = d.backend = d.heavy = True
     return d

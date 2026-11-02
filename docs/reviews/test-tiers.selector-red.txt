@@ -1,9 +1,16 @@
-# Test selector guards (step 3) — red first, 2026-11-03T00:25:42+01:00
-# tree: feat/test-tiers 88de2441 + uncommitted selector changes
+# Test selector guards (step 3) — red first, 2026-11-03T00:33:46+01:00
+# tree: feat/test-tiers 01efe3ff + uncommitted selector changes
 
 ## Two reds the guards found while being written
 - test_every_e2e_disk_read_outside_the_frontend_is_declared: ('toolsetter.viewer', 'examples/sim_config/machine-5axis-xyzac') — the spec reads the 5-axis model and was not declared; SPEC_READS now names it
 - test_an_e2e_helper_selects_its_importers_and_an_orphan_the_full_run: 'full' == ['joint-jog'] — a helper with no central rule fell to the fail-closed default; the helper branch now asks for its importers when no rule matches
+
+## The import graph against the rule table (graph.py, first run at fa8c6b3f's rules)
+- 133 modules missed areas of the components they render through; without type-only imports: 85 missed the UI sweep (or an area) of their components, 46 reached a central component (App.vue, MachineInput.vue, ChoiceGroup.vue).
+- The chains: lcncWs → ws/bulkData → previewWorker (a worker, new URL) → viewer/scrubTrack → viewer/kins; lcncWs → defaults → probeVars; lcncWs → ws/statusStore → runBasis; App.vue → (its features' modules).
+- Three named cuts (graph.CUTS + the worker rule): App.vue composes features, defaults.ts takes default values, a worker is a terminal with its own rule. Left reaching a central component: 9 modules on the status and bulk path → FULL (rules.py).
+- Every module now carries the UI sweep (an ADDITIVE rule: it never owns a path, so a new module still selects the full run), and eight shared-module rules carry the areas the graph named (codeGlide/trackHighlight/limitMarks → program + viewer, the toolsetter values → toolsetter + tools + program + viewer + probing, …). Guard: 0 problems.
+- The snap branch's toolMarks.ts (GcodePanel → toolMarks → viewer/toolChangeScan) will make the guard ask PROGRAM of toolChangeScan at the merge — the gap this guard exists for.
 
 ## Mutations: each breaks one rule or one mechanism; every one must be red, in its own guard
 (no bytecode cache: two mutants of one file with the same size in the same mtime second loaded the previous mutant's .pyc — an earlier run of the overlap mutant named the listing guard)
@@ -18,12 +25,16 @@ RED  missing base reads as empty: ['test_a_missing_base_is_an_error_never_an_emp
 RED  no vitest answer skips heavy: ['test_without_the_vitest_answer_the_heavy_group_runs']
 RED  a changed heavy test runs the group: ['test_a_changed_heavy_test_runs_exactly_itself']
 RED  docs select backend: ['test_documentation_selects_no_product_test_and_says_why']
+RED  a shared module loses an area: ['test_a_module_holds_the_selection_of_every_component_it_reaches']
+RED  a status-path module not FULL: ['test_a_module_holds_the_selection_of_every_component_it_reaches']
+RED  the sweep owns a path alone: ['test_a_new_source_without_a_rule_selects_everything']
+RED  a worker counts as an import: ['test_a_module_holds_the_selection_of_every_component_it_reaches']
 RED  listing ignores the project: ['test_the_listing_is_exactly_the_selection_in_the_full_projects']
 RED  order ignores a project overlap: ['test_the_order_proof_holds_the_chain_and_the_path_order']
 RED  order ignores the path order: ['test_the_order_proof_holds_the_chain_and_the_path_order']
 
 ## Restored
-25 passed in 0.59s
+27 passed in 0.68s
 
 ## The proofs on real reports
 select config --list for ['visual', 'layout', 'armed', 'sim-panel.viewer', 'probe-click', 'tool-holder', 'choices'] → exactly the selection, each file in its full-config project

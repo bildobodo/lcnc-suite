@@ -241,7 +241,7 @@ def test_a_changed_spec_and_a_reference_image_select_their_spec(repo: Path):
 
 
 def test_vitest_is_asked_only_on_a_clean_tree(repo: Path):
-    (repo / "dirty.txt").write_text("x")
+    (repo / "lcnc-webui/src/stray.test.ts").write_text("x")
     with pytest.raises(selector.SelectError, match="clean"):
         selector.vitest_changed(repo, "HEAD")
 
@@ -327,3 +327,38 @@ def test_a_vitest_hit_runs_exactly_the_heavy_files_it_reaches(repo: Path):
     base = commit_change(repo, lambda r: (r / "lcnc-webui/src/ProbePanel.vue").write_text("v2\n"))
     sel = selector.select(repo, base, "HEAD", vitest_files=[HEAVY_UNIT[2], "lcnc-webui/src/x.test.ts"])
     assert sel["unit"]["heavy"] == [HEAVY_UNIT[2]]
+
+
+# ── The import graph: a module holds what its components select ─────────
+from test_select import graph  # noqa: E402
+
+SRC = ROOT / "lcnc-webui" / "src"
+
+
+def graph_problems() -> list[str]:
+    rev, workers = graph.importers(SRC)
+    problems = []
+    for f in graph.sources(SRC):
+        d = decide(f"lcnc-webui/src/{f}")
+        if f.endswith(".vue") or d.browser_full or d.unmatched:
+            continue
+        for t, path in graph.terminals(f, rev, workers).items():
+            td = decide(f"lcnc-webui/src/{t}")
+            how = " ← ".join(path)
+            if td.browser_full:
+                problems.append(f"{f}: reaches the central {t} ({how})")
+            elif not set(td.browser) <= d.browser:
+                problems.append(f"{f}: misses {sorted(set(td.browser) - d.browser)} of {t} ({how})")
+    return problems
+
+
+def test_a_module_holds_the_selection_of_every_component_it_reaches():
+    """A module acts and renders through the components that use it: its
+    selection holds theirs, and one reaching a central component is FULL
+    (graph.py: runtime imports, three named cuts)."""
+    assert graph_problems() == []
+
+
+def test_the_cuts_name_real_files():
+    for name in graph.CUTS:
+        assert (SRC / name).is_file(), name
