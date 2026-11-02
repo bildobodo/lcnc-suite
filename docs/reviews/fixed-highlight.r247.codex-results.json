@@ -1,0 +1,84 @@
+{
+  "lifecycle": {
+    "A": [
+      {
+        "line": 4,
+        "text": "T3 M600",
+        "glyph": "Tool change",
+        "title": "Tool change → T3"
+      },
+      {
+        "line": 6,
+        "text": "T#<next> M6",
+        "glyph": "Tool change",
+        "title": "Tool change → T8"
+      },
+      {
+        "line": 9,
+        "text": "T5 M601",
+        "glyph": "Tool change",
+        "title": "Tool change → T5"
+      }
+    ],
+    "B": [],
+    "reloaded": [
+      {
+        "line": 4,
+        "text": "T3 M600",
+        "glyph": "Tool change",
+        "title": "Tool change → T3"
+      },
+      {
+        "line": 6,
+        "text": "T#<next> M6",
+        "glyph": "Tool change",
+        "title": "Tool change → T8"
+      },
+      {
+        "line": 9,
+        "text": "T5 M601",
+        "glyph": "Tool change",
+        "title": "Tool change → T5"
+      }
+    ],
+    "unloadedCodeRows": 0,
+    "afterUnload": []
+  },
+  "names": {
+    "fixture": {
+      "file": "/tool-mark-names.ngc",
+      "text": "G21 G90\n#<m600_count> = 0\n#<m6> = 1\n#<m601_done> = 0\n(T99 M6)\n; M600 in a comment\nG1 X10 F100\nG1 X20\nM2",
+      "lines": [
+        1,
+        7,
+        8
+      ],
+      "changes": []
+    },
+    "code": [
+      {
+        "line": 2,
+        "text": "#<m600_count> = 0",
+        "glyph": "Tool change",
+        "title": "Tool change → T?"
+      },
+      {
+        "line": 3,
+        "text": "#<m6> = 1",
+        "glyph": "Tool change",
+        "title": "Tool change → T?"
+      },
+      {
+        "line": 4,
+        "text": "#<m601_done> = 0",
+        "glyph": "Tool change",
+        "title": "Tool change → T?"
+      }
+    ],
+    "sim": [
+      "L2Tool change → T?0 %",
+      "L3Tool change → T?0 %",
+      "L4Tool change → T?0 %"
+    ]
+  }
+}

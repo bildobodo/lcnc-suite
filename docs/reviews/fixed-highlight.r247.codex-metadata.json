@@ -1,0 +1,31 @@
+{
+  "head": "cc5a463d",
+  "base": "5f9fd3b9",
+  "archive": "/tmp/codex-r247-2_4n60rz/repo",
+  "reviewBytes": 72767,
+  "reviewSha256": "ae069e590e53354d66f458c69ecda07f1b79406ad2c097eaa9510a37006f3a5b",
+  "sourceFilesByteIdentical": 411,
+  "headFull": "cc5a463d2d3a5da2ba01d7cd54a932d736294723",
+  "baseFull": "5f9fd3b9e5b77c34699b8fc7c5840dc4cd7cb5d1",
+  "productWorktreeStatus": "",
+  "toolChangeScanUnchangedSinceBase": true,
+  "scope": "Review only. Own archive, own mock 127.0.0.1:4188 stopped; no product edits, live endpoints or machine commands.",
+  "testAdjustments": [
+    "archive e2e localhost:4174 -> 127.0.0.1:4188 (HTTP and WS)",
+    "own fixture checks cleared code and no stale marks after reload; an initial unsupported assertion that ScrubBar must unmount on unload was removed"
+  ],
+  "results": {
+    "build": "PASS",
+    "unit": {
+      "passed": 57
+    },
+    "repositoryBrowser": {
+      "passed": 6
+    },
+    "ownBrowser": {
+      "passed": 1,
+      "failed": 1
+    },
+    "finding": "FH-06: parameter names are misread as tool-change commands by the pre-existing shared text scanner"
+  }
+}

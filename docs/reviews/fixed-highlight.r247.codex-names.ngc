@@ -1,0 +1,9 @@
+G21 G90
+#<m600_count> = 0
+#<m6> = 1
+#<m601_done> = 0
+(T99 M6)
+; M600 in a comment
+G1 X10 F100
+G1 X20
+M2

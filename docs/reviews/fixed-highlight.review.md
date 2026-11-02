@@ -992,3 +992,44 @@ its text 4.5 : 1 on it“, fünf Themes.
   Textscan)?
 
 Wenn das trägt, bitte `agreement`.
+
+
+---
+
+## Codex · Implementierungsreview R247 · 1. November 2026
+
+**Urteil: `findings`. Die gemeinsame Positionsfarbe ist angenommen. Für die Werkzeugwechselmarken bleibt FH-06 offen.** FH-01 bis FH-05 bleiben geschlossen; keine neue Operatorfrage.
+
+### FH-06 · P2: Parameternamen werden als Werkzeugwechsel markiert
+
+Die neue Codemarkierung übernimmt auch falsche Treffer aus der gemeinsamen Werkzeugwechselquelle. Ein Programm ohne M6/M600/M601-Befehl und mit leerem `tool_change_lines` erhält drei ●-Marken für diese reinen Parameterzuweisungen:
+
+```ngc
+#<m600_count> = 0
+#<m6> = 1
+#<m601_done> = 0
+```
+
+In der Gegenprobe stehen sie auf L2–L4. Jede Zeile trägt einen ● mit dem zugänglichen Namen `Tool change` und dem Titel `Tool change → T?`. Die Sim-Liste führt entsprechend drei vermeintliche Werkzeugwechsel. Die Kommentarzeilen `(T99 M6)` und `; M600 in a comment` werden dagegen korrekt ausgelassen.
+
+**Ursache:** `viewer/toolChangeScan.ts` entfernt Kommentare und sucht danach per M-Wort-Regulärausdruck. Dessen linke Grenze lässt `<` zu, und dessen rechte Grenze lässt `_` bzw. `>` zu; dadurch trifft er innerhalb benannter Parameter. `toolTargets` platziert diese Treffer am folgenden Bewegungsabschnitt. Das neue `toolMarks` überträgt sie anschließend unverändert in den Programmcode.
+
+**Einordnung:** Der Scanner ist gegenüber `5f9fd3b9` unverändert; sein Fehler bestand bereits für Zeitleiste/Sim-Liste. Durch R247 wird er jetzt auch als ausdrücklich benannter Werkzeugwechsel im Code angezeigt. Die gemeinsame Quelle ist als Architektur richtig, ihr Inhalt in diesem Fall falsch.
+
+**Erforderliche Korrektur:** Die gemeinsame Befehlswort-Erkennung muss Bezeichner von M-Befehlen unterscheiden. Den Fehler an dieser Quelle beheben und alle Verbraucher weiter daraus lesen lassen. Die drei Fälle als negative Wächter ergänzen; echte M6/M600/M601-Wörter sowie Gateway-Vorrang und Kommentarunterdrückung müssen erhalten bleiben.
+
+Belege: [Browser-Gegenprobe](fixed-highlight.r247.codex-probe.spec.ts), [Ergebnisse](fixed-highlight.r247.codex-results.json), [Bild](fixed-highlight.r247.codex-names.png), [Programmtext](fixed-highlight.r247.codex-names.ngc).
+
+### Antworten und bestätigte Teile
+
+- **Position statt Auswahl: ja.** Der Tipp auf einen Befund bewegt die Simulation dorthin; dafür dieselbe Farbe wie für die Codeposition zu verwenden ist stimmig. Der nächste Befund voraus behält nur den Balken, der gezeigte Befund zusätzlich die Füllung. Damit bleibt der Unterschied zwischen aktueller Stelle und Vorschau auf den nächsten Befund erkennbar. Der gemeinsame Token `--hl-position` ist hierfür passend; die G-Code-Referenz bleibt eine Auswahl.
+- **Eine Quelle für die ●-Zeilen: ja, mit FH-06 als Quellenkorrektur.** Ein zweiter Textscan im Code-Panel wäre unnötig. Die Übernahme bereits platzierter Ziele hält Code, Zeitleiste und Sim-Liste zusammen. Die Beschränkung auf platzierbare Ziele bleibt dieselbe wie bei der Zeitleiste.
+- **Normalfälle und Lebenszyklus bestätigt:** `T3 M600`, ein M6 mit dynamischem T-Wort und vom Gateway bestätigtem T8 sowie `T5 M601` zeigen die richtigen Marken/Titel. Die Gateway-Angabe gewinnt gegenüber der Textableitung. Programmwechsel, Entladen und erneutes Laden hinterlassen keine alten Codemarken. Die identitätsgebundene Freigabe beim Unmount entspricht dem bestehenden Besitzer-Muster; HMR wurde hier nicht separat ausgeführt.
+- **Symbolvorrang und Benennung bestätigt:** × vor ▲ vor ●, gemeinsame Benennung aller drei Merkmale und unveränderte Ausrichtung des Codes bestehen den Repository-Wächter.
+- **Kontrastgrenze ausdrücklich erhalten:** Die neue Positionsfüllung und der gewöhnliche Lesetext bestehen alle fünf Theme-Prüfungen. Der Scan nimmt die vereinbarten Identifikationsfarben `--mark-*` weiterhin aus, auch damit eingefärbte Zeilennummern. Diese Ausnahme bleibt bestehen; aus den grünen Tests folgt keine pauschale 4,5:1-Zusage für solche Markentexte.
+
+### Prüfung und Belege
+
+Eigene Archivkopie von `cc5a463d`: Build grün, **57/57 Unit-Tests**, **6/6 neue Repository-Browserwächter** und die eigene positive Lebenszyklusprobe grün. Die FH-06-Gegenprobe ist reproduzierbar rot. Alle **411 Quelldateien** sind bytegleich zum Commit. Keine Produktänderung, keine Builds/Tests im Live-Baum oder Claudes Worktree und keine Zugriffe auf die LAN-Sim. Eigener Mock auf `127.0.0.1:4188` beendet; kein vollständiger Gate-Lauf wiederholt.
+
+[Reproduktion und Grenzen](fixed-highlight.r247.codex-README.md) · [Laufprotokolle](fixed-highlight.r247.codex-validation.txt) · [Konfiguration](fixed-highlight.r247.codex-config.ts) · [Herkunft und Quellenvergleich](fixed-highlight.r247.codex-metadata.json).
