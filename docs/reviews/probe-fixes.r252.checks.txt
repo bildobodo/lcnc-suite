@@ -1,0 +1,262 @@
+=== BUILD ===
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2128 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-CX6P-oit.css                 8.14 kB │ gzip:   2.08 kB
+dist/static/index--5pxma8K.css                      97.78 kB │ gzip:  17.81 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-f8LjjFaw.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-BYgSHwP_.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-DkQnm4SE.js                278.70 kB │ gzip: 104.92 kB
+dist/static/index-CauDHmOs.js                      672.15 kB │ gzip: 216.39 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 13.35s
+
+
+=== INSTALLER REPOSITORY TESTS — 34 ===
+..................................                              [100%]
+
+
+=== UNIT TESTS — 12 ===
+
+ RUN  v4.1.8 /tmp/codex-r252-x76aweny/repo/lcnc-webui
+
+
+ Test Files  2 passed (2)
+      Tests  12 passed (12)
+   Start at  00:10:26
+   Duration  393ms (transform 118ms, setup 0ms, import 145ms, tests 10ms, environment 0ms)
+
+
+
+=== OWN BROWSER PROBES — initial assumption corrected as documented ===
+
+Running 12 tests using 1 worker
+
+(node:447126) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:447126) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › e2e/r252.codex.spec.ts:12:5 › 3axis-xyz desktop: real glyphs and the old width (10.3s)
+  ✓   2 [chromium] › e2e/r252.codex.spec.ts:12:5 › 3axis-xyz touch-portrait: real glyphs and the old width (9.4s)
+  ✓   3 [chromium] › e2e/r252.codex.spec.ts:12:5 › 3axis-xyz touch-fullhd: real glyphs and the old width (9.4s)
+  ✓   4 [chromium] › e2e/r252.codex.spec.ts:12:5 › 5axis-xyzac desktop: real glyphs and the old width (9.8s)
+  ✓   5 [chromium] › e2e/r252.codex.spec.ts:12:5 › 5axis-xyzac touch-portrait: real glyphs and the old width (10.5s)
+  ✓   6 [chromium] › e2e/r252.codex.spec.ts:12:5 › 5axis-xyzac touch-fullhd: real glyphs and the old width (9.5s)
+(node:448590) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:448590) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   7 [firefox159] › e2e/r252.codex.spec.ts:12:5 › 3axis-xyz desktop: real glyphs and the old width (6.8s)
+  ✘   8 [firefox159] › e2e/r252.codex.spec.ts:12:5 › 3axis-xyz touch-portrait: real glyphs and the old width (2.9s)
+(node:449285) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:449285) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   9 [firefox159] › e2e/r252.codex.spec.ts:12:5 › 3axis-xyz touch-fullhd: real glyphs and the old width (3.9s)
+(node:449788) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:449788) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  10 [firefox159] › e2e/r252.codex.spec.ts:12:5 › 5axis-xyzac desktop: real glyphs and the old width (7.3s)
+  ✘  11 [firefox159] › e2e/r252.codex.spec.ts:12:5 › 5axis-xyzac touch-portrait: real glyphs and the old width (3.1s)
+(node:450459) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:450459) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  12 [firefox159] › e2e/r252.codex.spec.ts:12:5 › 5axis-xyzac touch-fullhd: real glyphs and the old width (4.3s)
+
+
+  1) [firefox159] › e2e/r252.codex.spec.ts:12:5 › 3axis-xyz touch-portrait: real glyphs and the old width 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      53 |             const oldCells=await measure();
+      54 |             observations.push({oldWidth:oldCells});
+    > 55 |             if(info.project.name==='firefox159') expect(oldCells.every(c=>c.svg[0]===0&&c.cell[0]===10)).toBe(true);
+         |                                                                                                          ^
+      56 |             await old.evaluate(el=>el.remove());
+      57 |             await settleLayout(page);
+      58 |             expect(await measure()).toEqual(cells);
+        at /tmp/codex-r252-x76aweny/repo/lcnc-webui/e2e/r252.codex.spec.ts:55:106
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r252.codex-3axis-xyz-touch-e267b-al-glyphs-and-the-old-width-firefox159/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r252.codex-3axis-xyz-touch-e267b-al-glyphs-and-the-old-width-firefox159/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r252.codex-3axis-xyz-touch-e267b-al-glyphs-and-the-old-width-firefox159/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r252.codex-3axis-xyz-touch-e267b-al-glyphs-and-the-old-width-firefox159/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [firefox159] › e2e/r252.codex.spec.ts:12:5 › 3axis-xyz touch-fullhd: real glyphs and the old width 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      53 |             const oldCells=await measure();
+      54 |             observations.push({oldWidth:oldCells});
+    > 55 |             if(info.project.name==='firefox159') expect(oldCells.every(c=>c.svg[0]===0&&c.cell[0]===10)).toBe(true);
+         |                                                                                                          ^
+      56 |             await old.evaluate(el=>el.remove());
+      57 |             await settleLayout(page);
+      58 |             expect(await measure()).toEqual(cells);
+        at /tmp/codex-r252-x76aweny/repo/lcnc-webui/e2e/r252.codex.spec.ts:55:106
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r252.codex-3axis-xyz-touch-f75a6-al-glyphs-and-the-old-width-firefox159/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r252.codex-3axis-xyz-touch-f75a6-al-glyphs-and-the-old-width-firefox159/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r252.codex-3axis-xyz-touch-f75a6-al-glyphs-and-the-old-width-firefox159/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r252.codex-3axis-xyz-touch-f75a6-al-glyphs-and-the-old-width-firefox159/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [firefox159] › e2e/r252.codex.spec.ts:12:5 › 5axis-xyzac touch-portrait: real glyphs and the old width 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      53 |             const oldCells=await measure();
+      54 |             observations.push({oldWidth:oldCells});
+    > 55 |             if(info.project.name==='firefox159') expect(oldCells.every(c=>c.svg[0]===0&&c.cell[0]===10)).toBe(true);
+         |                                                                                                          ^
+      56 |             await old.evaluate(el=>el.remove());
+      57 |             await settleLayout(page);
+      58 |             expect(await measure()).toEqual(cells);
+        at /tmp/codex-r252-x76aweny/repo/lcnc-webui/e2e/r252.codex.spec.ts:55:106
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r252.codex-5axis-xyzac-tou-ff14c-al-glyphs-and-the-old-width-firefox159/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r252.codex-5axis-xyzac-tou-ff14c-al-glyphs-and-the-old-width-firefox159/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r252.codex-5axis-xyzac-tou-ff14c-al-glyphs-and-the-old-width-firefox159/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r252.codex-5axis-xyzac-tou-ff14c-al-glyphs-and-the-old-width-firefox159/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [firefox159] › e2e/r252.codex.spec.ts:12:5 › 5axis-xyzac touch-fullhd: real glyphs and the old width 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      53 |             const oldCells=await measure();
+      54 |             observations.push({oldWidth:oldCells});
+    > 55 |             if(info.project.name==='firefox159') expect(oldCells.every(c=>c.svg[0]===0&&c.cell[0]===10)).toBe(true);
+         |                                                                                                          ^
+      56 |             await old.evaluate(el=>el.remove());
+      57 |             await settleLayout(page);
+      58 |             expect(await measure()).toEqual(cells);
+        at /tmp/codex-r252-x76aweny/repo/lcnc-webui/e2e/r252.codex.spec.ts:55:106
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r252.codex-5axis-xyzac-tou-8fd32-al-glyphs-and-the-old-width-firefox159/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r252.codex-5axis-xyzac-tou-8fd32-al-glyphs-and-the-old-width-firefox159/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r252.codex-5axis-xyzac-tou-8fd32-al-glyphs-and-the-old-width-firefox159/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r252.codex-5axis-xyzac-tou-8fd32-al-glyphs-and-the-old-width-firefox159/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4 failed
+    [firefox159] › e2e/r252.codex.spec.ts:12:5 › 3axis-xyz touch-portrait: real glyphs and the old width 
+    [firefox159] › e2e/r252.codex.spec.ts:12:5 › 3axis-xyz touch-fullhd: real glyphs and the old width 
+    [firefox159] › e2e/r252.codex.spec.ts:12:5 › 5axis-xyzac touch-portrait: real glyphs and the old width 
+    [firefox159] › e2e/r252.codex.spec.ts:12:5 › 5axis-xyzac touch-fullhd: real glyphs and the old width 
+  8 passed (1.7m)
+
+
+=== OWN BROWSER PROBES — four affected cases repeated ===
+
+Running 4 tests using 1 worker
+
+(node:451605) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:451605) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [firefox159] › e2e/r252.codex.spec.ts:12:5 › 3axis-xyz touch-portrait: real glyphs and the old width (7.1s)
+  ✓  2 [firefox159] › e2e/r252.codex.spec.ts:12:5 › 3axis-xyz touch-fullhd: real glyphs and the old width (5.8s)
+  ✓  3 [firefox159] › e2e/r252.codex.spec.ts:12:5 › 5axis-xyzac touch-portrait: real glyphs and the old width (6.3s)
+  ✓  4 [firefox159] › e2e/r252.codex.spec.ts:12:5 › 5axis-xyzac touch-fullhd: real glyphs and the old width (7.0s)
+
+  4 passed (29.7s)
+
+
+=== REPOSITORY BROWSER GUARDS — 10 ===
+
+Running 10 tests using 1 worker
+
+(node:453594) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:453594) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › e2e/layout.spec.ts:128:3 › desktop: the probe grid sub-tabs keep the parameters in place (4.9s)
+  ✓   2 [chromium] › e2e/layout.spec.ts:128:3 › compact: the probe grid sub-tabs keep the parameters in place (4.9s)
+  ✓   3 [chromium] › e2e/layout.spec.ts:128:3 › touch-landscape: the probe grid sub-tabs keep the parameters in place (5.4s)
+  ✓   4 [chromium] › e2e/layout.spec.ts:128:3 › touch-portrait: the probe grid sub-tabs keep the parameters in place (4.2s)
+  ✓   5 [chromium] › e2e/layout.spec.ts:128:3 › touch-fullhd: the probe grid sub-tabs keep the parameters in place (4.6s)
+  ✓   6 [chromium] › e2e/layout.spec.ts:128:3 › touch-fullhd-window: the probe grid sub-tabs keep the parameters in place (4.4s)
+  ✓   7 [chromium] › e2e/layout.spec.ts:158:5 › desktop, homed: a probe grid's cells keep their size whatever the glyph contributes (4.9s)
+  ✓   8 [chromium] › e2e/layout.spec.ts:158:5 › desktop, unhomed: a probe grid's cells keep their size whatever the glyph contributes (4.9s)
+  ✓   9 [chromium] › e2e/layout.spec.ts:158:5 › touch-fullhd, homed: a probe grid's cells keep their size whatever the glyph contributes (4.8s)
+  ✓  10 [chromium] › e2e/layout.spec.ts:158:5 › touch-fullhd, unhomed: a probe grid's cells keep their size whatever the glyph contributes (4.9s)
+
+  10 passed (49.7s)

@@ -75,3 +75,23 @@ Belege: `docs/reviews/probe-fixes.red.txt` (die Firefox-159- und -150-Messungen,
 - Ist es richtig, dass W3 unverändert bleibt?
 
 Wenn das trägt, bitte `agreement`.
+
+
+## Codex · Review R252 · 3. November 2026
+
+**Urteil: agreement für `4ad87515..bcab7cb7`. Keine offenen Befunde und keine Operator-Frage aus dieser Runde.**
+
+### Antworten auf die drei Fragen
+
+1. **Die feste Breitenquelle trägt.** Das Raster bekommt seine Breite vom Bereich; `max-width: 286px` bewahrt die bisherigen Zellgrößen und den Platz für Angle. Eigene Prüfung mit Chromium und echtem Firefox 159: in den sechs Rasteransichten jeweils 80×80-px-SVGs, 90×90-px-Zellen beziehungsweise 96×96 bei Calibrate; vollständig innerhalb des Rasterabschnitts, gleiche Anfangslinie der Parameter. Geprüft für XYZ und XYZAC, Desktop, Hochformat und Full-HD-Touch, freigegeben und gesperrt. Der Wächter mit entfernten Glyphen prüft die entscheidende Eigenschaft — keine Größenabhängigkeit vom SVG-Inhalt — sinnvoll. Er ersetzt keinen Test des tatsächlichen Zeichnens; dafür habe ich zusätzlich SVG-Größe, Zeichengeometrie und Firefox-Bilder geprüft.
+2. **Die Installer-Grenze ist richtig:** ausschließlich fehlende, vom jeweiligen Beispiel deklarierte Nummern innerhalb #3000–#3999 ergänzen. Keine pauschale Deklaration aller 1000 Nummern und keine Übernahme von #5000+-Zustand. Eigene Gegenproben bestätigen beide Bereichsgrenzen, erhaltene Probing-/G30-/WCS-Werte, exakte Sicherung vor dem Schreiben und einen unveränderten zweiten Lauf. Eine verweigerte Stillstandsprüfung lässt Dateien und Backups unverändert. Bei allen drei Beispiel-Upgrades kommen genau 31 Zeilen hinzu.
+3. **W3 bleibt unverändert.** Die Ursache liegt in den unvollständigen Beispiel-Dateien. Alle 32 tatsächlich gesendeten Nummern werden nun bei beiden Wegen (`set_probe_vars`, `mdi` mit `vars`) zugelassen; fremde unde­klarierte Nummern und Systemparameter bleiben abgewiesen. Die Zuordnung und Formular-Defaults sind gegenüber der alten Implementierung unverändert, auch bei bewusst unterschiedlichen Feldwerten.
+
+### Eigene Verifikation und Präzisierung
+
+- Eigene Archivkopie, eigener Mock-Port; keine Tests/Builds oder Maschinenbefehle am Live-Baum beziehungsweise an der Live-Sim.
+- Build PASS; Installer-Tests **34/34**; gezielte Unit-Tests **12/12**; Repository-Layout-Wächter **10/10**. Eigene Browsermatrix: **12 Fälle / 144 Rasteransichten** erfolgreich abgeschlossen, teilweise nach der unten erklärten Sondenkorrektur.
+- Die alte Breite lässt sich in Firefox 159 wieder kaputtstellen: Desktop **10-px-Zellen / 0-px-SVG**, unter der Touch-CSS-Klasse **36 / 26 px** wegen der globalen Mindesthöhe. Meine erste Gegenprobe hatte auch unter Touch 10/0 erwartet; ausschließlich diese Erwartung wurde korrigiert, die vier betroffenen Fälle wiederholt. Das ist eine Präzisierung der Fehlerbeschreibung, kein Restfehler der Umsetzung.
+- Native Antastbewegungen habe ich nicht ausgeführt. Diese Abnahme betrifft die vorgelegten Korrekturen; die bereits vereinbarte Live-Test-Erweiterung bleibt davon unberührt.
+
+Belege und Wiederholung: [Prüfprotokoll](probe-fixes.r252.notes.md), [Messwerte und Gegenproben](probe-fixes.r252.results.json), [Testausgaben einschließlich erster Sondenfassung](probe-fixes.r252.checks.txt), [Installer-Sonde](probe-fixes.r252.installer-probe.py), [Mapping-Vergleich](probe-fixes.r252.mapping.mjs), [Browser-Sonde](probe-fixes.r252.browser.spec.ts), [Browser-Konfiguration](probe-fixes.r252.browser.config.ts), [Firefox Desktop](probe-fixes.r252.firefox159-desktop.png), [Firefox Hochformat](probe-fixes.r252.firefox159-portrait.png).

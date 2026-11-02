@@ -1,0 +1,695 @@
+{
+  "context": {
+    "commit": "bcab7cb7b1e9b556f39a2c0bc95ec104ddb09486",
+    "review_sha256": "0c0870634d5e154292155100c3c364b78f034342ae19c50dc794c26532250c5c"
+  },
+  "sourceIntegrity": {
+    "commit": "bcab7cb7",
+    "files_checked": 928,
+    "mismatch": []
+  },
+  "mapping": {
+    "defaultMove": "identical",
+    "mappingComparisons": 6,
+    "templateValuesChecked": 96,
+    "result": "PASS"
+  },
+  "installer": [
+    {
+      "boundary": "PASS",
+      "added": [
+        3000,
+        3999
+      ],
+      "outside_3000_3999_added": false,
+      "existing_text_preserved": true,
+      "missing_final_newline_completed": true
+    },
+    {
+      "profile": "xyz3/sim.var",
+      "PASS": true,
+      "new_rows": 31,
+      "backup_exact": true,
+      "existing_rows_kept": true,
+      "all_32_probe_numbers_admitted": true,
+      "undeclared_and_system_writes_rejected": true
+    },
+    {
+      "profile": "xyzac5/sim.var",
+      "PASS": true,
+      "new_rows": 31,
+      "backup_exact": true,
+      "existing_rows_kept": true,
+      "all_32_probe_numbers_admitted": true,
+      "undeclared_and_system_writes_rejected": true
+    },
+    {
+      "profile": "xyzabc6/sim.var",
+      "PASS": true,
+      "new_rows": 31,
+      "backup_exact": true,
+      "existing_rows_kept": true,
+      "all_32_probe_numbers_admitted": true,
+      "undeclared_and_system_writes_rejected": true
+    },
+    {
+      "rerun": "no changes",
+      "guard_before_write_and_backup": "PASS",
+      "report": [
+        "xyz3/sim.var: declared #3015-#3035, #3050-#3059 as the example does (the WebUI writes them; existing values kept)",
+        "xyzac5/sim.var: declared #3015-#3035, #3050-#3059 as the example does (the WebUI writes them; existing values kept)",
+        "xyzabc6/sim.var: declared #3015-#3035, #3050-#3059 as the example does (the WebUI writes them; existing values kept)"
+      ]
+    }
+  ],
+  "oldTemplateRejections": [
+    {
+      "profile": "xyz3",
+      "cmd": "set_probe_vars",
+      "expectedRejection": "set_probe_vars: #3015 is not in this machine's var file — declare it there to make it configurable"
+    },
+    {
+      "profile": "xyz3",
+      "cmd": "mdi",
+      "expectedRejection": "mdi: #3015 is not in this machine's var file — declare it there to make it configurable"
+    },
+    {
+      "profile": "xyzac5",
+      "cmd": "set_probe_vars",
+      "expectedRejection": "set_probe_vars: #3015 is not in this machine's var file — declare it there to make it configurable"
+    },
+    {
+      "profile": "xyzac5",
+      "cmd": "mdi",
+      "expectedRejection": "mdi: #3015 is not in this machine's var file — declare it there to make it configurable"
+    },
+    {
+      "profile": "xyzabc6",
+      "cmd": "set_probe_vars",
+      "expectedRejection": "set_probe_vars: #3015 is not in this machine's var file — declare it there to make it configurable"
+    },
+    {
+      "profile": "xyzabc6",
+      "cmd": "mdi",
+      "expectedRejection": "mdi: #3015 is not in this machine's var file — declare it there to make it configurable"
+    }
+  ],
+  "browser": [
+    {
+      "file": "chromium-3axis-xyz-desktop.json",
+      "browser": "148.0.7778.0",
+      "profile": "3axis-xyz",
+      "viewport": {
+        "name": "desktop",
+        "width": 1600,
+        "height": 1000,
+        "touch": false
+      },
+      "tested_grid_states": 12,
+      "fixed_cell_dimensions": [
+        [
+          90,
+          90
+        ],
+        [
+          96,
+          96
+        ]
+      ],
+      "fixed_svg_dimensions": [
+        [
+          80,
+          80
+        ]
+      ],
+      "old_width_cell_dimensions": [
+        [
+          90,
+          90
+        ]
+      ],
+      "old_width_svg_dimensions": [
+        [
+          80,
+          80
+        ]
+      ],
+      "grids_fit_section": true,
+      "parameter_starts_by_state": {
+        "homed": [
+          652
+        ],
+        "unhomed": [
+          652
+        ]
+      }
+    },
+    {
+      "file": "chromium-3axis-xyz-touch-fullhd.json",
+      "browser": "148.0.7778.0",
+      "profile": "3axis-xyz",
+      "viewport": {
+        "name": "touch-fullhd",
+        "width": 1920,
+        "height": 1080,
+        "touch": true
+      },
+      "tested_grid_states": 12,
+      "fixed_cell_dimensions": [
+        [
+          90,
+          90
+        ],
+        [
+          96,
+          96
+        ]
+      ],
+      "fixed_svg_dimensions": [
+        [
+          80,
+          80
+        ]
+      ],
+      "old_width_cell_dimensions": [
+        [
+          90,
+          90
+        ]
+      ],
+      "old_width_svg_dimensions": [
+        [
+          80,
+          80
+        ]
+      ],
+      "grids_fit_section": true,
+      "parameter_starts_by_state": {
+        "homed": [
+          710
+        ],
+        "unhomed": [
+          710
+        ]
+      }
+    },
+    {
+      "file": "chromium-3axis-xyz-touch-portrait.json",
+      "browser": "148.0.7778.0",
+      "profile": "3axis-xyz",
+      "viewport": {
+        "name": "touch-portrait",
+        "width": 900,
+        "height": 1200,
+        "touch": true
+      },
+      "tested_grid_states": 12,
+      "fixed_cell_dimensions": [
+        [
+          90,
+          90
+        ],
+        [
+          96,
+          96
+        ]
+      ],
+      "fixed_svg_dimensions": [
+        [
+          80,
+          80
+        ]
+      ],
+      "old_width_cell_dimensions": [
+        [
+          90,
+          90
+        ]
+      ],
+      "old_width_svg_dimensions": [
+        [
+          80,
+          80
+        ]
+      ],
+      "grids_fit_section": true,
+      "parameter_starts_by_state": {
+        "homed": [
+          1267
+        ],
+        "unhomed": [
+          1267
+        ]
+      }
+    },
+    {
+      "file": "chromium-5axis-xyzac-desktop.json",
+      "browser": "148.0.7778.0",
+      "profile": "5axis-xyzac",
+      "viewport": {
+        "name": "desktop",
+        "width": 1600,
+        "height": 1000,
+        "touch": false
+      },
+      "tested_grid_states": 12,
+      "fixed_cell_dimensions": [
+        [
+          90,
+          90
+        ],
+        [
+          96,
+          96
+        ]
+      ],
+      "fixed_svg_dimensions": [
+        [
+          80,
+          80
+        ]
+      ],
+      "old_width_cell_dimensions": [
+        [
+          90,
+          90
+        ]
+      ],
+      "old_width_svg_dimensions": [
+        [
+          80,
+          80
+        ]
+      ],
+      "grids_fit_section": true,
+      "parameter_starts_by_state": {
+        "homed": [
+          652
+        ],
+        "unhomed": [
+          652
+        ]
+      }
+    },
+    {
+      "file": "chromium-5axis-xyzac-touch-fullhd.json",
+      "browser": "148.0.7778.0",
+      "profile": "5axis-xyzac",
+      "viewport": {
+        "name": "touch-fullhd",
+        "width": 1920,
+        "height": 1080,
+        "touch": true
+      },
+      "tested_grid_states": 12,
+      "fixed_cell_dimensions": [
+        [
+          90,
+          90
+        ],
+        [
+          96,
+          96
+        ]
+      ],
+      "fixed_svg_dimensions": [
+        [
+          80,
+          80
+        ]
+      ],
+      "old_width_cell_dimensions": [
+        [
+          90,
+          90
+        ]
+      ],
+      "old_width_svg_dimensions": [
+        [
+          80,
+          80
+        ]
+      ],
+      "grids_fit_section": true,
+      "parameter_starts_by_state": {
+        "homed": [
+          710
+        ],
+        "unhomed": [
+          710
+        ]
+      }
+    },
+    {
+      "file": "chromium-5axis-xyzac-touch-portrait.json",
+      "browser": "148.0.7778.0",
+      "profile": "5axis-xyzac",
+      "viewport": {
+        "name": "touch-portrait",
+        "width": 900,
+        "height": 1200,
+        "touch": true
+      },
+      "tested_grid_states": 12,
+      "fixed_cell_dimensions": [
+        [
+          90,
+          90
+        ],
+        [
+          96,
+          96
+        ]
+      ],
+      "fixed_svg_dimensions": [
+        [
+          80,
+          80
+        ]
+      ],
+      "old_width_cell_dimensions": [
+        [
+          90,
+          90
+        ]
+      ],
+      "old_width_svg_dimensions": [
+        [
+          80,
+          80
+        ]
+      ],
+      "grids_fit_section": true,
+      "parameter_starts_by_state": {
+        "homed": [
+          1267
+        ],
+        "unhomed": [
+          1267
+        ]
+      }
+    },
+    {
+      "file": "firefox159-3axis-xyz-desktop.json",
+      "browser": "159.0",
+      "profile": "3axis-xyz",
+      "viewport": {
+        "name": "desktop",
+        "width": 1600,
+        "height": 1000,
+        "touch": false
+      },
+      "tested_grid_states": 12,
+      "fixed_cell_dimensions": [
+        [
+          90,
+          90
+        ],
+        [
+          96,
+          96
+        ]
+      ],
+      "fixed_svg_dimensions": [
+        [
+          80,
+          80
+        ]
+      ],
+      "old_width_cell_dimensions": [
+        [
+          10,
+          10
+        ]
+      ],
+      "old_width_svg_dimensions": [
+        [
+          0,
+          0
+        ]
+      ],
+      "grids_fit_section": true,
+      "parameter_starts_by_state": {
+        "homed": [
+          652
+        ],
+        "unhomed": [
+          652
+        ]
+      }
+    },
+    {
+      "file": "firefox159-3axis-xyz-touch-fullhd.json",
+      "browser": "159.0",
+      "profile": "3axis-xyz",
+      "viewport": {
+        "name": "touch-fullhd",
+        "width": 1920,
+        "height": 1080,
+        "touch": true
+      },
+      "tested_grid_states": 12,
+      "fixed_cell_dimensions": [
+        [
+          90,
+          90
+        ],
+        [
+          96,
+          96
+        ]
+      ],
+      "fixed_svg_dimensions": [
+        [
+          80,
+          80
+        ]
+      ],
+      "old_width_cell_dimensions": [
+        [
+          36,
+          36
+        ]
+      ],
+      "old_width_svg_dimensions": [
+        [
+          26,
+          26
+        ]
+      ],
+      "grids_fit_section": true,
+      "parameter_starts_by_state": {
+        "homed": [
+          710
+        ],
+        "unhomed": [
+          710
+        ]
+      }
+    },
+    {
+      "file": "firefox159-3axis-xyz-touch-portrait.json",
+      "browser": "159.0",
+      "profile": "3axis-xyz",
+      "viewport": {
+        "name": "touch-portrait",
+        "width": 900,
+        "height": 1200,
+        "touch": true
+      },
+      "tested_grid_states": 12,
+      "fixed_cell_dimensions": [
+        [
+          90,
+          90
+        ],
+        [
+          96,
+          96
+        ]
+      ],
+      "fixed_svg_dimensions": [
+        [
+          80,
+          80
+        ]
+      ],
+      "old_width_cell_dimensions": [
+        [
+          36,
+          36
+        ]
+      ],
+      "old_width_svg_dimensions": [
+        [
+          26,
+          26
+        ]
+      ],
+      "grids_fit_section": true,
+      "parameter_starts_by_state": {
+        "homed": [
+          1267
+        ],
+        "unhomed": [
+          1267
+        ]
+      }
+    },
+    {
+      "file": "firefox159-5axis-xyzac-desktop.json",
+      "browser": "159.0",
+      "profile": "5axis-xyzac",
+      "viewport": {
+        "name": "desktop",
+        "width": 1600,
+        "height": 1000,
+        "touch": false
+      },
+      "tested_grid_states": 12,
+      "fixed_cell_dimensions": [
+        [
+          90,
+          90
+        ],
+        [
+          96,
+          96
+        ]
+      ],
+      "fixed_svg_dimensions": [
+        [
+          80,
+          80
+        ]
+      ],
+      "old_width_cell_dimensions": [
+        [
+          10,
+          10
+        ]
+      ],
+      "old_width_svg_dimensions": [
+        [
+          0,
+          0
+        ]
+      ],
+      "grids_fit_section": true,
+      "parameter_starts_by_state": {
+        "homed": [
+          652
+        ],
+        "unhomed": [
+          652
+        ]
+      }
+    },
+    {
+      "file": "firefox159-5axis-xyzac-touch-fullhd.json",
+      "browser": "159.0",
+      "profile": "5axis-xyzac",
+      "viewport": {
+        "name": "touch-fullhd",
+        "width": 1920,
+        "height": 1080,
+        "touch": true
+      },
+      "tested_grid_states": 12,
+      "fixed_cell_dimensions": [
+        [
+          90,
+          90
+        ],
+        [
+          96,
+          96
+        ]
+      ],
+      "fixed_svg_dimensions": [
+        [
+          80,
+          80
+        ]
+      ],
+      "old_width_cell_dimensions": [
+        [
+          36,
+          36
+        ]
+      ],
+      "old_width_svg_dimensions": [
+        [
+          26,
+          26
+        ]
+      ],
+      "grids_fit_section": true,
+      "parameter_starts_by_state": {
+        "homed": [
+          710
+        ],
+        "unhomed": [
+          710
+        ]
+      }
+    },
+    {
+      "file": "firefox159-5axis-xyzac-touch-portrait.json",
+      "browser": "159.0",
+      "profile": "5axis-xyzac",
+      "viewport": {
+        "name": "touch-portrait",
+        "width": 900,
+        "height": 1200,
+        "touch": true
+      },
+      "tested_grid_states": 12,
+      "fixed_cell_dimensions": [
+        [
+          90,
+          90
+        ],
+        [
+          96,
+          96
+        ]
+      ],
+      "fixed_svg_dimensions": [
+        [
+          80,
+          80
+        ]
+      ],
+      "old_width_cell_dimensions": [
+        [
+          36,
+          36
+        ]
+      ],
+      "old_width_svg_dimensions": [
+        [
+          26,
+          26
+        ]
+      ],
+      "grids_fit_section": true,
+      "parameter_starts_by_state": {
+        "homed": [
+          1267
+        ],
+        "unhomed": [
+          1267
+        ]
+      }
+    }
+  ],
+  "probeCorrection": {
+    "initialRun": "8 passed, 4 failed only on the expected OLD touch width",
+    "initialAssumption": "Old Firefox cells 10 px, SVG 0 px in both desktop and touch",
+    "observed": "Desktop 10/0; touch 36/26, due to html.touch-device button minimum height",
+    "changed": "Only the expectation for the deliberately reverted width. No product/fixture change.",
+    "rerun": "All 4 affected Firefox touch tests passed, including remaining sub-tabs/states.",
+    "effectiveCoverage": "All 12 browser cases completed successfully across initial + targeted rerun."
+  }
+}
