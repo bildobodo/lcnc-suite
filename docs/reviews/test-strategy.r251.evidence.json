@@ -1,0 +1,25 @@
+{
+  "head": "a2f1c91012c5fe4a0dc03ef2b492a69c1721be57",
+  "review_bytes_before": 54765,
+  "review_sha256_before": "e8ef879fc8ff1e1ccd81b7ae7758681395aa086e2b0d24ba841d5b70b3b60ffd",
+  "method": "Read-only plan and source review; no product builds/tests or live access.",
+  "source_sha256": {
+    "lcnc-webui/src/lcnc.ts": "c266f13c48a0dadc52d9d007d18555cdf22b4d8c094640128aa82115c46a2970",
+    "lcnc-webui/src/wsWorker.ts": "8cdf636eb96fabac4b1138e0554661c107bcd0b9617773c94d506a11c343a95e",
+    "lcnc-webui/e2e/mock-gateway.mjs": "be595fa7b82ad3be3412f8757de69e638575abf278064ff1c6da25a2d8c66df3",
+    "lcnc-webui/e2e/scenes.viewer.spec.ts": "4f446df6e20fc0af81b5dc076e288fb11bf27c5ea976942f419724ce4f1c26b3",
+    "lcnc-webui/e2e/ctl.ts": "8c847768612adfc1aa882c85a7f45a4bf65d98a5bfa560cbf76bf5bf440dc0e9",
+    "scripts/toolsetter_readback_check.py": "4332bd233d000aa43faf38bd0e5b3e80979278630b440a5b82d724217c1116f2"
+  },
+  "manual_context_locations": [
+    228,
+    410,
+    495,
+    648,
+    971,
+    991
+  ],
+  "manual_context_source": "lcnc-webui/e2e/scenes.viewer.spec.ts",
+  "verdict": "agreement",
+  "scope": "Plan v3 only; implementation and capability/timing proofs pending."
+}
