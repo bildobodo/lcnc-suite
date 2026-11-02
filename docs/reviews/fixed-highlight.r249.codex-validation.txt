@@ -1,0 +1,120 @@
+
+===== build.log =====
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2128 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-BmstqZf7.css                 8.14 kB │ gzip:   2.08 kB
+dist/static/index-D7Yjh5R-.css                      97.98 kB │ gzip:  17.85 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-D8usSRWM.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-Dz5vyu-I.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-BXfRoOcK.js                278.89 kB │ gzip: 105.02 kB
+dist/static/index-CasmVNOa.js                      673.53 kB │ gzip: 216.98 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 14.24s
+
+===== unit.log =====
+
+ RUN  v4.1.8 /tmp/codex-r249-rq1yv81l/repo/lcnc-webui
+
+
+ Test Files  3 passed (3)
+      Tests  60 passed (60)
+   Start at  22:09:00
+   Duration  2.02s (transform 435ms, setup 0ms, import 721ms, tests 1.32s, environment 0ms)
+
+
+===== browser-repo.log =====
+
+Running 6 tests using 1 worker
+
+(node:284312) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:284312) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/contrast.spec.ts:553:3 › light: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it (5.9s)
+  ✓  2 e2e/contrast.spec.ts:553:3 › dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it (5.8s)
+  ✓  3 e2e/contrast.spec.ts:553:3 › hc-light: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it (5.4s)
+  ✓  4 e2e/contrast.spec.ts:553:3 › hc-dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it (6.0s)
+  ✓  5 e2e/contrast.spec.ts:553:3 › auto-dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it (5.6s)
+  ✓  6 e2e/layout.spec.ts:1488:1 › a code line names its findings with a glyph: ▲ limit, × collision, ● tool change, all named (7.7s)
+
+  6 passed (38.8s)
+
+===== browser-probes.log =====
+
+Running 3 tests using 1 worker
+
+(node:285952) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:285952) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r249.codex.spec.ts:32:1 › R249 marks use placed tool targets and clear at replacement and unload (6.6s)
+{ code: [], sim: [] }
+  ✓  2 e2e/r249.codex.spec.ts:49:1 › R249 parameter names containing M6 or M600 do not create tool changes (5.9s)
+  ✘  3 e2e/r249.codex.spec.ts:61:1 › R249 a new signed or function T never keeps the old T5 label (6.2s)
+
+
+  1) e2e/r249.codex.spec.ts:61:1 › R249 a new signed or function T never keeps the old T5 label ────
+
+    Error: the scanner may say unknown, but a new T word cannot be the old T5
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mnot[2m.[22mtoContain[2m([22m[32mexpected[39m[2m) // indexOf[22m
+
+    Expected value: not [32m"Tool change → T5"[39m
+    Received array:     [31m[[7m"Tool change → T5"[27m, "Tool change → T5", "Tool change → T5"][39m
+
+      69 |  await page.screenshot({path:`${OUT}/values.png`});
+      70 |  writeFileSync(`${OUT}/values.json`,JSON.stringify({fixture:f,code,sim},null,2));
+    > 71 |  expect(code.map(r=>r.title),'the scanner may say unknown, but a new T word cannot be the old T5').not.toContain('Tool change → T5');
+         |                                                                                                        ^
+      72 | });
+      73 |
+        at /tmp/codex-r249-rq1yv81l/repo/lcnc-webui/e2e/r249.codex.spec.ts:71:104
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r249.codex-R249-a-new-sign-f8ed9-ever-keeps-the-old-T5-label/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r249.codex-R249-a-new-sign-f8ed9-ever-keeps-the-old-T5-label/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r249.codex-R249-a-new-sign-f8ed9-ever-keeps-the-old-T5-label/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r249.codex-R249-a-new-sign-f8ed9-ever-keeps-the-old-T5-label/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/r249.codex.spec.ts:61:1 › R249 a new signed or function T never keeps the old T5 label ─────
+  2 passed (20.6s)

@@ -1,0 +1,13 @@
+{
+  "head": "a93401fc8b781e33ea7970158e9300f0a0ebe657",
+  "base": "cc5a463d",
+  "archive": "/tmp/codex-r249-rq1yv81l/repo",
+  "review_bytes": 82793,
+  "review_sha256": "b728b08e4ed4aeed354d64db620f0b3b5cbeda0e76f7c4a311f60d1369f1568c",
+  "byte_identical_product_source_files": 411,
+  "build": "PASS",
+  "unit": "60/60",
+  "repository_browser": "6/6",
+  "own_browser": "2 passed; 1 failed (wrong prior tool number)",
+  "live_access": false
+}

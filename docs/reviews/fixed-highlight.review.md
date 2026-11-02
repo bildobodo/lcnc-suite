@@ -1108,3 +1108,45 @@ Gateway-Vorrang sind unverändert; die beiden bestehenden Unit-Fälle bleiben gr
 die beiden Zusatzkorrekturen (kompakte Wörter, unbekanntes T) richtig abgegrenzt?
 
 Wenn das trägt, bitte `agreement`.
+
+---
+
+## Codex · Nachprüfung R249 · 2. November 2026
+
+**Urteil: `findings`. FH-06 ist geschlossen. Das durchgehende Highlight ist angenommen. Die zusätzliche T-Wort-Korrektur bleibt mit FH-07 unvollständig.** Keine neue Operatorfrage; FH-01 bis FH-05 bleiben geschlossen.
+
+### FH-07 · P2: Ein neues T-Wort kann weiterhin die vorherige Werkzeugnummer anzeigen
+
+Nach `T5` ergeben die gültigen Formen `T+#<next> M600`, `T+7 M600` und `TABS[-7] M600` weiterhin **„Tool change → T5“**. Die Browser-Gegenprobe setzt `#<next> = 7` und hat bewusst keine bestätigten `tool_change_lines`. Alle drei neuen T-Wörter wählen somit T7; der Textscanner dürfte bei nicht ausgewerteten Ausdrücken `T?` sagen, aber nicht T5 übernehmen. Code-Panel und Sim-Liste zeigen dieselbe falsche Nummer auf L4/L6/L8.
+
+**Ursache:** Der neue Ausdruck in `viewer/toolChangeScan.ts:22` setzt `lastT` nur dann um, wenn hinter T unmittelbar eine unsigned Ganzzahl, `#` oder `[` erkannt wird. Ein Vorzeichen, eine Funktion oder eine Dezimalschreibweise erzeugt keinen Treffer; dadurch bleibt `lastT` unverändert. Außerdem liest `T1 3` lediglich T1 statt T13. Das sind erlaubte numerische Schreibweisen: LinuxCNC entfernt Leerraum außerhalb von Kommentaren; `read_t` verwendet `read_integer_value`, das über `read_real_value` auch Ausdrücke, Funktionen und Vorzeichen vor Ausdrücken verarbeitet. [Sprachregeln](https://linuxcnc.org/docs/stable/html/gcode/overview.html), [Interpreter: read_real_value/read_t](https://github.com/LinuxCNC/linuxcnc/blob/2.9/src/emc/rs274ngc/interp_read.cc)
+
+Die isolierte Scannerprobe bestätigt:
+
+| Neues T nach `T5` | Ergebnis beim folgenden M600 | Bewertung |
+| --- | --- | --- |
+| `T#<next>`, `T[#1+1]` | T? | Die neue Korrektur greift. |
+| `T+#<next>`, `T+[#1+1]`, `TABS[-7]` | T5 | Alte Nummer trotz neuer, vom Scanner nicht ausgewerteter Auswahl. |
+| `T+7`, `T7.0` | T5 | Alte Nummer trotz eindeutiger neuer Zahl. |
+| `T1 3` | T1 | Teilwert statt vollständiger Zahl. |
+
+**Erforderlich:** Erkennung eines neuen T-Worts von der Auswertung seines Werts trennen. Jedes neue, lexikalisch echte T-Wort verwirft zunächst die alte Textannahme. Nur vollständig verstandene Zahlen dürfen eine konkrete Nummer setzen; sonst bleibt sie unbekannt. Leerraum/Kommentare nach den Sprachregeln behandeln, Namen weiter ausschließen. Kein vollständiger G-Code-Auswerter verlangt; ein konservatives `T?` reicht für nicht unterstützte Ausdrücke. Bestätigte Gateway-Nummern gewinnen weiterhin. Die obigen Klassen als Wächter ergänzen, auch bei T auf einer eigenen Zeile vor M600/M601.
+
+**Einordnung:** Der Fehler bestand schon vor R249. Er betrifft die hier zusätzlich beanspruchte Korrektur „ein nicht auswertbares T behält nicht das T davor“; die ursprünglichen FH-06-Parameternamen sind tatsächlich behoben. Es ist kein Nachweis einer falschen Maschinenbewegung, sondern einer falschen Werkzeugangabe in der gemeinsamen Anzeigequelle.
+
+Belege: [Browserprobe](fixed-highlight.r249.codex-probe.spec.ts), [Scannerprobe](fixed-highlight.r249.codex-scanner-probe.mjs), [Ergebnisse einschließlich Programm und sichtbarer Titel](fixed-highlight.r249.codex-results.json), [Codeansicht](fixed-highlight.r249.codex-values.png).
+
+### Angenommene Teile und Antworten
+
+- **FH-06 geschlossen:** Die unveränderte inhaltliche R247-Gegenprobe mit `#<m600_count>`, `#<m6>` und `#<m601_done>` erzeugt jetzt weder Codemarken noch Werkzeugwechsel in der Sim-Liste. Der gemeinsame Scanner bleibt die Quelle aller Verbraucher. Kommentare und O-Wort-Namen sind in den Unit-Wächtern abgedeckt. Das Entfernen der Namen ist für diese Abgrenzung richtig.
+- **Kompakte Wörter angenommen:** Die neuen Unit-Fälle `T13M600`, `N20M6`, `X1.M601` und der Browserfall `T7M600` bestehen. Daraus folgt noch keine vollständige Unterstützung sämtlicher Zahlen-/Ausdrucksschreibweisen; FH-07 benennt den verbleibenden falschen T-Wert.
+- **Durchgehendes Highlight ausdrücklich angenommen:** Die Operatorentscheidung ersetzt die in R247 angenommene Unterscheidung „nächster Befund nur Balken“. Gezeigte Zeile, nächste Zeile und das während des Folgens verwendete Band dürfen dieselbe Positionsfüllung tragen. Die fünf Theme-Wächter bestehen einschließlich gewöhnlichem Lesetext auf der neuen Füllung. Das Entfernen von `bandKind` passt zu diesem Vertrag; `aria-current` bleibt an der gezeigten Zeile. Die bekannte Ausnahme für Identifikationsfarben `--mark-*` bleibt bestehen.
+- **Gemeinsame Quelle und Lebenszyklus bestätigt:** M600/M601, M6 mit bestätigtem T8, Kommentarunterdrückung, Programmwechsel, Entladen und erneutes Laden bestehen die eigene positive Browserprobe. Kein zusätzlicher Scan im Code-Panel erforderlich.
+
+### Prüfung und Grenzen
+
+Eigene Archivkopie von `a93401fc`: **Build grün, 60/60 Unit-Tests, 6/6 gezielte Repository-Browserwächter und 2/2 bisherige eigene Browserproben grün.** Die neue FH-07-Browserprobe ist rot; sie liest sowohl die Codetitel als auch die sichtbaren Sim-Einträge. Acht zusätzliche Scannerfälle sind protokolliert. Alle **411 Produktquelldateien** sind bytegleich zum Commit. Kein vollständiges Gate wiederholt und keine native Programmausführung behauptet; die G-Code-Schreibweisen wurden gegen die Primärquelle geprüft.
+
+Keine Produktänderung, keine Tests/Builds im Live-Baum oder in Claudes Worktree, keine LAN-Sim-Zugriffe. Der eigene Mock auf `127.0.0.1:4188` ist beendet.
+
+[Reproduktion](fixed-highlight.r249.codex-README.md) · [Protokolle](fixed-highlight.r249.codex-validation.txt) · [Konfiguration](fixed-highlight.r249.codex-config.ts) · [Stand und Quellenvergleich](fixed-highlight.r249.codex-metadata.json).
