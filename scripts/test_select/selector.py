@@ -132,7 +132,9 @@ def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
     browser: set[str] = set()
     browser_full: list[str] = []
     backend: list[str] = []
-    heavy: list[str] = []
+    heavy: list[str] = []          # reasons
+    heavy_all = False              # the whole group, or only heavy_files
+    heavy_files: set[str] = set()
     unit_changed: set[str] = set()
     firefox: list[str] = []
     live: dict[str, list[str]] = {}
@@ -156,7 +158,8 @@ def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
             if not gone:
                 unit_changed.add(path)
                 if path in HEAVY_UNIT:
-                    heavy.append(f"{path} changed")
+                    heavy.append(f"{path} changed: runs itself")
+                    heavy_files.add(path)
             row["decision"] = "a unit file: runs itself" if not gone else "a unit file that is gone"
             continue
         if path.startswith(E2E) and not path.startswith(E2E + "__screenshots__/"):
@@ -187,7 +190,8 @@ def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
         if d.backend:
             backend.append(f"{path}: {next((r for r in d.rules), 'no rule')}")
         if d.heavy:
-            heavy.append(f"{path}: no rule")
+            heavy.append(f"{path}: no rule — the whole heavy group")
+            heavy_all = True
         if d.firefox:
             firefox.append(path)
         for check in d.live:
@@ -199,7 +203,8 @@ def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
             else:   # an e2e helper's reads select the specs importing it
                 browser |= helper_importers(repo, head_c, E2E + owner + ".ts", specs)
         if any(matches(g, path) for g in HEAVY_DATA):
-            heavy.append(f"{path}: read by the heavy group")
+            heavy.append(f"{path}: read by the heavy group — the whole group")
+            heavy_all = True
         if readers:
             row["reads"] = sorted(readers)
         row.setdefault("decision", "the rules: " + "; ".join(d.rules))
@@ -210,13 +215,15 @@ def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
     browser -= set(missing)   # a dry run on an older head: the rules are newer than it
 
     if vitest_files is None:
-        heavy.append("vitest list --changed not asked: the heavy group runs (fail closed)")
+        heavy.append("vitest list --changed not asked: the whole heavy group (fail closed)")
+        heavy_all = True
         related: list[str] = []
     else:
         related = vitest_files
         for f in related:
             if f in HEAVY_UNIT:
                 heavy.append(f"{f}: reached through the import graph (vitest list --changed)")
+                heavy_files.add(f)
 
     return {
         "base": base_c, "head": head_c,
@@ -225,7 +232,8 @@ def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
         "absent_at_head": missing,
         "unit": {
             "light": "every unit file but HEAVY_UNIT — every round",
-            "heavy": bool(heavy), "heavy_reasons": heavy,
+            "heavy": sorted(HEAVY_UNIT) if heavy_all else sorted(heavy_files),
+            "heavy_reasons": heavy,
             "changed": sorted(unit_changed),
             "related": related,
         },

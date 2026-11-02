@@ -169,7 +169,7 @@ def test_a_new_source_without_a_rule_selects_everything(repo: Path):
     base = commit_change(repo, lambda r: (r / "lcnc-webui/src/brandNew.ts").write_text("x\n"))
     sel = selector.select(repo, base, "HEAD", vitest_files=[])
     assert sel["unmatched"] == ["lcnc-webui/src/brandNew.ts"]
-    assert sel["browser"]["run"] == FULL and sel["backend"]["run"] and sel["unit"]["heavy"]
+    assert sel["browser"]["run"] == FULL and sel["backend"]["run"] and sel["unit"]["heavy"] == sorted(HEAVY_UNIT)
 
 
 def test_a_renamed_central_source_selects_the_full_run_by_both_paths(repo: Path):
@@ -185,21 +185,21 @@ def test_a_changed_heavy_test_runs_exactly_itself(repo: Path):
     base = commit_change(repo, lambda r: (r / HEAVY_UNIT[0]).write_text("v2\n"))
     sel = selector.select(repo, base, "HEAD", vitest_files=[HEAVY_UNIT[0]])
     assert sel["unit"]["changed"] == [HEAVY_UNIT[0]]
-    assert sel["unit"]["heavy"]
+    assert sel["unit"]["heavy"] == [HEAVY_UNIT[0]], "exactly itself, not the group"
     assert sel["browser"]["run"] == [] and not sel["backend"]["run"]
 
 
 def test_a_model_change_selects_the_heavy_group_and_the_specs_that_read_it(repo: Path):
     base = commit_change(repo, lambda r: (r / "examples/sim_config/machine-5axis-xyzac/table.stl").write_text("v2\n"))
     sel = selector.select(repo, base, "HEAD", vitest_files=[])
-    assert sel["unit"]["heavy"] and sel["backend"]["run"]
+    assert sel["unit"]["heavy"] == sorted(HEAVY_UNIT) and sel["backend"]["run"]
     assert sel["browser"]["run"] == ["bake-hold.viewer", "collisions.viewer", "reach.viewer", "toolsetter.viewer"]
 
 
 def test_documentation_selects_no_product_test_and_says_why(repo: Path):
     base = commit_change(repo, lambda r: (r / "docs/notes.md").write_text("v2\n"))
     sel = selector.select(repo, base, "HEAD", vitest_files=[])
-    assert sel["browser"]["run"] == [] and not sel["backend"]["run"] and not sel["unit"]["heavy"]
+    assert sel["browser"]["run"] == [] and not sel["backend"]["run"] and sel["unit"]["heavy"] == []
     assert sel["changed"][0]["decision"] == "no product tests: no product code"
     assert sel["backend"]["reasons"] == ["no path under a backend rule: a UI-only round"]
 
@@ -212,7 +212,7 @@ def test_a_missing_base_is_an_error_never_an_empty_diff(repo: Path):
 def test_without_the_vitest_answer_the_heavy_group_runs(repo: Path):
     base = commit_change(repo, lambda r: (r / "lcnc-webui/src/ProbePanel.vue").write_text("v2\n"))
     sel = selector.select(repo, base, "HEAD", vitest_files=None)
-    assert sel["unit"]["heavy"]
+    assert sel["unit"]["heavy"] == sorted(HEAVY_UNIT)
     assert any("not asked" in why for why in sel["unit"]["heavy_reasons"])
 
 
@@ -256,19 +256,19 @@ def reports(unit_status: dict[str, str], tests: list[tuple[str, str]]):
 
 
 def test_the_dry_run_names_a_failure_the_selection_would_miss():
-    sel = {"base": "b", "head": "h", "unit": {"heavy": False, "changed": []},
+    sel = {"base": "b", "head": "h", "unit": {"heavy": [], "changed": []},
            "browser": {"run": ["tabs"]}}
     vitest, pw = reports({"lcnc-webui/src/a.test.ts": "passed", HEAVY_UNIT[0]: "failed"},
                          [("tabs.spec.ts", "expected"), ("layout.spec.ts", "unexpected")])
     result = dryrun.dry_run(sel, vitest, pw)
     assert result["missed"] == [{"unit": HEAVY_UNIT[0], "status": "failed"},
                                 {"spec": "layout.spec.ts", "title": "t", "status": "unexpected"}]
-    sel["unit"]["heavy"], sel["browser"]["run"] = True, ["tabs", "layout"]
+    sel["unit"]["heavy"], sel["browser"]["run"] = [HEAVY_UNIT[0]], ["tabs", "layout"]
     assert dryrun.dry_run(sel, vitest, pw)["missed"] == []
 
 
 def test_the_dry_run_refuses_an_empty_report():
-    sel = {"base": "b", "head": "h", "unit": {"heavy": False, "changed": []}, "browser": {"run": FULL}}
+    sel = {"base": "b", "head": "h", "unit": {"heavy": [], "changed": []}, "browser": {"run": FULL}}
     with pytest.raises(ValueError):
         dryrun.dry_run(sel, {"testResults": []}, {"suites": []})
 
@@ -321,3 +321,9 @@ def test_the_order_proof_holds_the_chain_and_the_path_order():
     overlap = ran([("serial-guards", "a.spec.ts", 10, 5), ("serial-guards", "b.spec.ts", 12, 5)])
     assert proof.check_order(overlap, chain) == ["serial-guards: b.spec.ts began before a.spec.ts ended"]
     assert proof.check_order({"suites": []}, chain) == ["the report holds no test results"]
+
+
+def test_a_vitest_hit_runs_exactly_the_heavy_files_it_reaches(repo: Path):
+    base = commit_change(repo, lambda r: (r / "lcnc-webui/src/ProbePanel.vue").write_text("v2\n"))
+    sel = selector.select(repo, base, "HEAD", vitest_files=[HEAVY_UNIT[2], "lcnc-webui/src/x.test.ts"])
+    assert sel["unit"]["heavy"] == [HEAVY_UNIT[2]]

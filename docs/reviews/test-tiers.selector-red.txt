@@ -1,12 +1,12 @@
-# Test selector guards (step 3) — red first, 2026-11-03T00:24:27+01:00
-# tree: feat/test-tiers fa8c6b3f + proof.py (listing and order)
+# Test selector guards (step 3) — red first, 2026-11-03T00:25:42+01:00
+# tree: feat/test-tiers 88de2441 + uncommitted selector changes
 
 ## Two reds the guards found while being written
 - test_every_e2e_disk_read_outside_the_frontend_is_declared: ('toolsetter.viewer', 'examples/sim_config/machine-5axis-xyzac') — the spec reads the 5-axis model and was not declared; SPEC_READS now names it
 - test_an_e2e_helper_selects_its_importers_and_an_orphan_the_full_run: 'full' == ['joint-jog'] — a helper with no central rule fell to the fail-closed default; the helper branch now asks for its importers when no rule matches
 
 ## Mutations: each breaks one rule or one mechanism; every one must be red, in its own guard
-(no bytecode cache: two mutants of one file with the same size in the same mtime second loaded the previous mutant's .pyc — the first run of the overlap mutant named the listing guard)
+(no bytecode cache: two mutants of one file with the same size in the same mtime second loaded the previous mutant's .pyc — an earlier run of the overlap mutant named the listing guard)
 RED  a source loses its rule: ['test_every_tracked_source_has_a_rule']
 RED  a rule names a missing spec: ['test_every_named_spec_exists']
 RED  a rule glob matches nothing: ['test_every_rule_glob_matches_a_tracked_file']
@@ -16,13 +16,14 @@ RED  a spec read undeclared: ['test_every_e2e_disk_read_outside_the_frontend_is_
 RED  unmatched no longer full: ['test_a_new_source_without_a_rule_selects_everything']
 RED  missing base reads as empty: ['test_a_missing_base_is_an_error_never_an_empty_diff']
 RED  no vitest answer skips heavy: ['test_without_the_vitest_answer_the_heavy_group_runs']
+RED  a changed heavy test runs the group: ['test_a_changed_heavy_test_runs_exactly_itself']
 RED  docs select backend: ['test_documentation_selects_no_product_test_and_says_why']
 RED  listing ignores the project: ['test_the_listing_is_exactly_the_selection_in_the_full_projects']
 RED  order ignores a project overlap: ['test_the_order_proof_holds_the_chain_and_the_path_order']
 RED  order ignores the path order: ['test_the_order_proof_holds_the_chain_and_the_path_order']
 
 ## Restored
-24 passed in 0.49s
+25 passed in 0.59s
 
 ## The proofs on real reports
 select config --list for ['visual', 'layout', 'armed', 'sim-panel.viewer', 'probe-click', 'tool-holder', 'choices'] → exactly the selection, each file in its full-config project

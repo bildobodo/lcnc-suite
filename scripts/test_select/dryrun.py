@@ -55,13 +55,12 @@ def dry_run(sel: dict, vitest: dict, pw: dict) -> dict:
     units, tests = unit_rows(vitest), browser_rows(pw)
     if not units or not tests:
         raise ValueError("a full run's report is missing or empty — never read as 'no failures'")
-    heavy_on = sel["unit"]["heavy"]
-    changed_units = set(sel["unit"]["changed"])
+    heavy = set(sel["unit"]["heavy"])
     browser = sel["browser"]["run"]
     chosen_specs = None if browser == FULL else {f"{n}.spec.ts" for n in browser}
 
     def unit_selected(f: str) -> bool:
-        return f not in HEAVY_UNIT or heavy_on or f in changed_units
+        return f not in HEAVY_UNIT or f in heavy
 
     def spec_selected(f: str) -> bool:
         return chosen_specs is None or f in chosen_specs
@@ -80,7 +79,7 @@ def dry_run(sel: dict, vitest: dict, pw: dict) -> dict:
                      "browser_tests": len(tests), "browser_s": round(sum(t["ms"] for t in tests) / 1000),
                      "unit_failures": [u["file"] for u in unit_fail],
                      "browser_failures": [f'{t["file"]}: {t["title"]} ({t["status"]})' for t in test_fail]},
-        "selection": {"heavy": heavy_on,
+        "selection": {"heavy": sorted(heavy),
                       "unit_files": len(sel_units), "unit_cpu_s": round(sum(u["ms"] for u in sel_units) / 1000),
                       "browser": browser if browser == FULL else sorted(chosen_specs),
                       "browser_tests": len(sel_tests),
