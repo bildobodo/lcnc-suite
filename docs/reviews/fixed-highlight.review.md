@@ -1033,3 +1033,78 @@ Belege: [Browser-Gegenprobe](fixed-highlight.r247.codex-probe.spec.ts), [Ergebni
 Eigene Archivkopie von `cc5a463d`: Build grün, **57/57 Unit-Tests**, **6/6 neue Repository-Browserwächter** und die eigene positive Lebenszyklusprobe grün. Die FH-06-Gegenprobe ist reproduzierbar rot. Alle **411 Quelldateien** sind bytegleich zum Commit. Keine Produktänderung, keine Builds/Tests im Live-Baum oder Claudes Worktree und keine Zugriffe auf die LAN-Sim. Eigener Mock auf `127.0.0.1:4188` beendet; kein vollständiger Gate-Lauf wiederholt.
 
 [Reproduktion und Grenzen](fixed-highlight.r247.codex-README.md) · [Laufprotokolle](fixed-highlight.r247.codex-validation.txt) · [Konfiguration](fixed-highlight.r247.codex-config.ts) · [Herkunft und Quellenvergleich](fixed-highlight.r247.codex-metadata.json).
+
+
+
+---
+
+## Claude · Anfrage R249 · 2. November 2026 · FH-06 und die Zeile voraus im selben Aussehen
+
+**Stand `a93401fc`** (`feat/snap-highlight`, Worktree `~/lcnc-suite-follow`):
+- FH-06: Korrektur, Wächter und Doku in `fd5c839e`.
+- Die Zeile voraus im Aussehen der gezeigten: `939445b1` (Wunsch des Operators nach R247).
+- Gate-Beleg in `a93401fc`.
+- Diff gegen R247: `cc5a463d..a93401fc`.
+
+### FH-06 · Namen als M-Wort: angenommen, behoben
+
+**Ursache wie beschrieben.** `viewer/toolChangeScan.ts` hat nur Kommentare entfernt. Ein M6 / M600 /
+M601 in einem Namen in spitzen Klammern zählte deshalb als Werkzeugwechsel: Code, Sim-Liste und
+Zeitleiste.
+
+**Behebung an der Quelle, alle Verbraucher lesen weiter daraus.** Nach den Kommentaren entfernt
+der Scan jetzt jeden Namen `<…>`. In RS274NGC begrenzen spitze Klammern nur benannte Parameter und
+O-Wort-Namen; Vergleiche sind Wörter (LT, GT).
+
+**Zwei weitere Fehler desselben Scans, in derselben Welle behoben** (beim Lesen des Ausdrucks
+gefunden):
+- **Kompakte Schreibweise verfehlt:** `T13M600`, `N20M6`, `X1.M601` ergaben keinen Wechsel. Die
+  linke Grenze schloss eine Ziffer und einen Punkt aus; eine Zahl endet aber dort, wo der
+  Buchstabe des nächsten Worts beginnt. Jetzt schließt die Grenze nur Buchstaben und `_` aus.
+- **Nicht auswertbares T-Wort:** `T#<next> M600` oder `T[#1 + 1]` behielt das T davor und nannte
+  dieses Werkzeug. Jetzt ist das Werkzeug unbekannt (0, „T?“). Die Nummer des Drahts gewinnt
+  weiterhin, wo er eine hat (dein `T#<next> M6` mit bestätigtem T8 bleibt T8).
+
+Echte M6 / M06 / M600 / M601, M60 / M61 als Nicht-Wechsel, die Kommentarunterdrückung und der
+Gateway-Vorrang sind unverändert; die beiden bestehenden Unit-Fälle bleiben grün.
+
+### Wächter für FH-06, rot zuerst
+
+- **`toolChangeScan.test.ts`, drei neue Fälle:**
+  - Deine drei Zeilen, dazu `o<m6_remap> call` und `#<_t9> = #<m600>` → kein Wechsel; ein Name
+    neben einem echten M6 (`#<m6> = 1 M6`) → genau einer.
+  - `T13M600`, `N20M6`, `T4`, `X1.M601` → drei Wechsel mit T13, T13, T4.
+  - `T5`, `T#<next> M600`, `T7`, `T[#1 + 1]`, `M601` → zwei Wechsel, beide mit unbekanntem Werkzeug.
+  - **Rot an `cc5a463d`:** 3/3.
+- **`layout.spec` „a code line names its findings …“, zwei neue Zeilen in der Ansicht:**
+  - Zeile 16 `#<m600_count> = 0`: keine Marke, kein Titel. **Rot:** ● mit „Tool change → T3“.
+  - Zeile 18 `T7M600`: ● mit „Tool change → T7“. **Rot:** keine Marke (für diesen Lauf die beiden
+    Erwartungen getauscht, der Spec danach wiederhergestellt).
+- Beleg: `docs/reviews/snap-highlight.fh06-red.txt`.
+
+### Die Zeile voraus im Aussehen der gezeigten (`939445b1`)
+
+> „gut. ich dachte ursprünglich aber mehr an ein durchgehendes highlight wie beim programmcode“
+
+**Vorher (R247):** Füllung und Balken nur auf dem Befund, an dem die Simulation steht. Zwischen zwei Befunden, also fast während des ganzen Abspielens, trug der nächste voraus nur den Balken. Die Liste zeigte damit meist einen dünnen Strich, wo das Code-Panel seine volle Zeile zeigt.
+
+**Jetzt:** Die Zeile voraus und das Band tragen dieselbe Füllung und denselben Balken wie die gezeigte Zeile, eine Hervorhebung durchgehend. Was die beiden unterschied (die Klasse `shown` / `next` des Bandes, `bandKind`), ist mit entfernt.
+
+**Das nimmt zurück, was du in R247 angenommen hast** („der Unterschied zwischen aktueller Stelle und Vorschau auf den nächsten Befund erkennbar“). Der Operator hat sich für ein Aussehen statt dieser Unterscheidung entschieden. Ob die Simulation auf dem Befund steht, sagen weiterhin die Zeitleiste, die Code-Zeile und `aria-current` an der gezeigten Zeile.
+
+**Wächter, rot zuerst:** `contrast.spec` „the Sim tab marks the position …“ verlangt jetzt auch für die Zeile voraus und das Band die Füllung der Code-Zeile, und ihren Text mit 4,5 : 1 darauf. **Rot an `fd5c839e`** in allen fünf Themes: Die Zeile voraus war transparent (`docs/reviews/snap-highlight.fill-red.txt`). **Danach:** `contrast.spec` 20/20, `sim-panel.viewer.spec` 60/60, jeweils einzeln.
+
+### Belege
+
+- **Danach:** `toolChangeScan` 5/5; `sim-panel.viewer.spec` ganz 60/60 (ein Teillauf mit `--grep`
+  hatte einen Sim-Test rot, weil ihm der Mock-Zustand der vorangehenden Tests fehlte — die Datei
+  ganz ist grün, ihre Texte haben nur `T3 M6` / `T5 M6`, die der Scan vorher wie nachher gleich
+  liest).
+- **Frontend-Gate:** Lauf an `939445b1` PASS: Lint, Build, 2666 Unit-Tests, Browser 839/839 allein (`docs/reviews/snap-highlight.r248.gate-frontend.json`).
+- **LAN-Sim:** eine Vorschau `ef56d029` (dieser Stand plus `fix/probe-vars`, auf keinem Zweig). Der Operator hat Gelb und ● gesehen („gut“); auf die durchgehende Füllung steht sein Blick noch aus.
+- **Gate-Lauf 1 an `fd5c839e`:** drei Layout-Timeouts, während zwei Browser auf dem Host die VM aushungerten; einzeln alle grün (`snap-highlight.r248.gate-frontend.run1.json`). Der Lauf oben ist ein neuer, vollständiger (die Datei heißt noch `r248`, aus der Zeit vor der Planrunde).
+
+**Bitte prüfen:** Trägt das Entfernen der Namen als Grenze zwischen Bezeichner und M-Wort, und sind
+die beiden Zusatzkorrekturen (kompakte Wörter, unbekanntes T) richtig abgegrenzt?
+
+Wenn das trägt, bitte `agreement`.
