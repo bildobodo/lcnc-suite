@@ -1,5 +1,6 @@
 import { ref } from "vue";
 import { TOOLSETTER_FALLBACK } from "./toolsetterSetup";
+import { PROBE_FALLBACK } from "./probeVars";
 import { withToken } from "./auth";
 import { connKey } from "./connKey";
 import { mergeViewerSection, ON_TOP_FALLBACK, type OnTopLayer } from "./viewerSection";
@@ -903,17 +904,6 @@ export interface ProbeDefaults {
   scanDepthZ: number;
   autoZero: boolean;
 }
-
-const PROBE_FALLBACK: ProbeDefaults = {
-  probeTool: 99, slowFr: 50, fastFr: 200, traverseFr: 1000,
-  maxXYDistance: 10, xyClearance: 2, maxZDistance: 10, zClearance: 2,
-  calOffset: 0, stepOffWidth: 5, extraProbeDepth: 0, edgeWidth: 0.5,
-  diameterHint: 0, xHintBP: 0, yHintBP: 0, xHintRV: 0, yHintRV: 0,
-  wcoRotation: 0, calDiameter: 0, xCalWidth: 0, yCalWidth: 0,
-  scanX0: 10, scanX1: 200, scanY0: 10, scanY1: 200,
-  scanXProbes: 5, scanYProbes: 5, scanSafeZ: 20, scanDepthZ: 24,
-  autoZero: false,
-};
 
 registerSection<ProbeDefaults>("probe", PROBE_FALLBACK, (saved, fb) => {
   if (!saved) return { ...fb };

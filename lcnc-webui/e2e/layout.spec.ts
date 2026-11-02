@@ -147,6 +147,40 @@ for (const viewport of VIEWPORTS) {
   });
 }
 
+// A probe grid takes its width from the pane, never from its glyphs
+// (operator 2026-11-02: "nur 9 Punkte" in Firefox 159, which sizes the
+// glyph's percentage-wide SVG at zero in the grid's content width — the grid
+// shrank to its cells' padding; Firefox 150 and Chromium gave 80 px). The
+// glyphs taken out of the layout model that: every cell keeps its size,
+// open and dimmed (a closed gate wraps a cell in its explain span).
+for (const viewport of VIEWPORTS.filter(v => v.name === 'desktop' || v.name === 'touch-fullhd')) {
+  for (const state of ['homed', 'unhomed'] as const) {
+    test(`${viewport.name}, ${state}: a probe grid's cells keep their size whatever the glyph contributes`, async ({ page }) => {
+      await openLayout(page, PROFILES[0]!, viewport);
+      await setLayoutState(page, PROFILES[0]!, state);
+      const side = page.locator('.sidePane');
+      await side.getByRole('tab', { name: 'Probing', exact: true }).click();
+      const cells = () => side.locator('.gridCell').evaluateAll(els => els.map(el => {
+        const r = el.getBoundingClientRect();
+        return [Math.round(r.width * 10) / 10, Math.round(r.height * 10) / 10];
+      }));
+      for (const sub of ['Outside', 'Inside', 'Angle', 'Boss/Pocket', 'Ridge/Valley', 'Calibrate']) {
+        await side.getByRole('tab', { name: sub, exact: true }).click();
+        await settleLayout(page);
+        const before = await cells();
+        expect(before.length, `${sub}: cells`).toBeGreaterThanOrEqual(4);
+        expect(before.every(([w, h]) => w >= 44 && Math.abs(w - h) <= 1), `${sub}: square cells ${JSON.stringify(before)}`).toBe(true);
+        await page.addStyleTag({ content: '.gridCell svg { display: none !important; }' });
+        await settleLayout(page);
+        expect(await cells(), `${sub}: the cells without their glyphs`).toEqual(before);
+        await page.evaluate(() => document.querySelectorAll('style').forEach(s => {
+          if (s.textContent?.includes('.gridCell svg { display: none')) s.remove();
+        }));
+      }
+    });
+  }
+}
+
 // Design wave D3 (plan WP-DR, measured again with the bundled Inter): the
 // side pane's navigation in the four reference states. Five equal main tabs
 // and Probing's 4 × 2 grid while the pane has 400 px of content width
