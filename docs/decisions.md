@@ -10016,3 +10016,39 @@ itself); per-entry bounds need the motion buttons' live check (`twp_buttons_chec
 raised in the review. Red at development (4ad87515's union and schema): the four unsent-in-union
 commands, the three open commands, the renumber drift
 (`docs/reviews/test-tiers.shapes-red.txt`).
+## 2026-11-02 · Probing: the glyphs in Firefox 159, the probe numbers in the var files
+
+**Operator: "die probing svgs … werden nicht mehr angezeigt. nur 9 punkte" (Firefox 159 on the
+Mac; Chrome showed them).** The probe grid (`.gridWrap`: `max-width: 294px; margin: 0 auto`, no
+width) is shrink-to-fit — its width is its content's — and its content is each cell's glyph, an
+SVG at `width: 100%`. Firefox 159 counts that percentage-sized SVG as zero in the grid's content
+width (Firefox 150, Playwright's, and Chromium gave 80 px), so the grid fell to its cells' padding
+and border: nine 10 px rounded buttons. Calibrate kept its glyphs — its pair has `width: 196px`.
+Reproduced with the operator's version (stock Firefox 159.0 aarch64 under Playwright's
+`moz-firefox` channel: every grid's SVG 0 × 0; Firefox 150: 80 × 80). Fix: the grid takes its
+width from the pane (`width: 100%`, up to 294 px), never from its glyphs; in Firefox 159 every
+grid's glyphs are 80 × 80 again (3 and 5 axes, desktop and Full HD touch). The test browsers do
+not show the defect, so the guard models it: `layout.spec` "a probe grid's cells keep their size
+whatever the glyph contributes" takes the glyphs out of the layout (open and dimmed, desktop and
+Full HD touch) — red before the fix in Chromium (the cells 90 → 10 px), green after. No test had
+looked at the glyphs at all.
+
+**Operator: "Command: set_probe_vars: #3015 is not in this machine's var file — declare it there
+to make it configurable".** Since W3 (2026-08-20) the gateway admits only var numbers the
+machine's var file declares (the var file is the machine's statement of what persists). The probe
+panel writes #3014–#3035 and #3050–#3059 — on a field change (`set_probe_vars`) and with every
+probe (`mdi` `vars`, the same check) — and the three example var files declared nothing past
+#3014: every probe on every example was refused (checked offline: `validate_payload("mdi", …)`
+against the LAN sim's var file). It went unseen because the mock gateway does not check declared
+numbers, the gateway's unit tests use made-up sets, and the live button check judges the probe
+gate without running a probe. Fix: the example var files declare the probe numbers (the form's
+fallback values, #3030 = 1 measure only, in LinuxCNC's ascending order); `probeVars.ts` is the ONE
+map from the form to the numbers (`probeVarMap`, `PROBE_FALLBACK` moved there from `defaults.ts`
+and from ProbePanel's copy); `probeVarFiles.test.ts` (node-side) requires every shipped var file to
+declare every number the probe panel and the toolsetter write, in ascending order (red: 31 missing
+in each of the three); `install_examples.py` adds the WebUI's numbers (#3000–#3999 only — never
+LinuxCNC's offsets or G28/G30) an installed var file lacks, at the example's value, keeping its own
+(`test_example_install.py`, red first; two upgrade tests that pinned a var file byte for byte now
+pin its own lines kept). README names the numbers a machine's var file must declare. Not changed:
+the W3 rule itself (a probe's own values could be admitted undeclared — a policy change, not
+asked).

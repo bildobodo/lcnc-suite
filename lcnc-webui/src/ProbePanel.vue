@@ -18,6 +18,7 @@ import { LABEL_FONT_URL } from "./viewer/labelFont";
 import TabNav from "./TabNav.vue";
 import { tabIds } from "./tabIds";
 import { PROBE_VIEWS, type ProbeView } from "./probeViews";
+import { PROBE_FALLBACK, probeVarMap } from "./probeVars";
 
 const props = defineProps<{
   probing: boolean;
@@ -149,38 +150,8 @@ const calAxis = ref(0); // 0=avg XY, 1=X only, 2=Y only
 // ─── Parameters ───────────────────────────────────────────────────
 // Parameter order matches config v0.2 subroutines:
 // #1=probe_tool, #2=slow_fr, #3=fast_fr, #4=traverse_fr, #5=max_distance, #6=clearance, #7=cal_offset
-const params = ref({
-  probeTool: 99,
-  slowFr: 50.0,
-  fastFr: 200.0,
-  traverseFr: 1000.0,
-  maxXYDistance: 10.0,
-  xyClearance: 2.0,
-  maxZDistance: 10.0,
-  zClearance: 2.0,
-  calOffset: 0.0,
-  stepOffWidth: 5.0,
-  extraProbeDepth: 0.0,
-  edgeWidth: 0.5,
-  diameterHint: 0.0,
-  xHintBP: 0.0,
-  yHintBP: 0.0,
-  xHintRV: 0.0,
-  yHintRV: 0.0,
-  wcoRotation: 0,
-  calDiameter: 0.0,
-  xCalWidth: 0.0,
-  yCalWidth: 0.0,
-  // Surface map scan params
-  scanX0: 10.0,
-  scanX1: 200.0,
-  scanY0: 10.0,
-  scanY1: 200.0,
-  scanXProbes: 5,
-  scanYProbes: 5,
-  scanSafeZ: 20.0,
-  scanDepthZ: 24.0,
-});
+const { autoZero: _fallbackAutoZero, ...PROBE_PARAMS } = PROBE_FALLBACK;
+const params = ref({ ...PROBE_PARAMS });
 
 const autoZero = ref(false);
 const setRotation = computed({
@@ -191,42 +162,7 @@ const setRotation = computed({
 
 /** Map UI params → LinuxCNC var numbers (writes both XY and Z distance/clearance) */
 function buildVarMap(probeMode: number): Record<string, number> {
-  const p = params.value;
-  return {
-    "3014": p.probeTool,
-    "3015": p.slowFr,
-    "3016": p.fastFr,
-    "3017": p.traverseFr,
-    "3018": p.maxXYDistance,
-    "3019": p.xyClearance,
-    "3020": p.maxZDistance,
-    "3021": p.zClearance,
-    "3022": p.extraProbeDepth,
-    "3023": p.stepOffWidth,
-    "3024": p.edgeWidth,
-    "3025": p.diameterHint,
-    "3026": p.xHintBP,
-    "3027": p.yHintBP,
-    "3028": p.xHintRV,
-    "3029": p.yHintRV,
-    "3030": probeMode,       // 0 = set WCO, 1 = measure only
-    "3031": p.wcoRotation,
-    "3032": p.calOffset,
-    "3033": p.calDiameter,
-    "3034": p.xCalWidth,
-    "3035": p.yCalWidth,
-    // Surface map scan (#3050-#3059)
-    "3050": p.scanX0,
-    "3051": p.scanX1,
-    "3052": p.scanY0,
-    "3053": p.scanY1,
-    "3054": p.scanXProbes,
-    "3055": p.scanYProbes,
-    "3056": p.fastFr,     // shared with #3016
-    "3057": p.slowFr,     // shared with #3015
-    "3058": p.scanSafeZ,
-    "3059": p.scanDepthZ,
-  };
+  return probeVarMap(params.value, probeMode);
 }
 
 // The probe parameters are a form: a probe runs with what it shows, under
@@ -1350,13 +1286,17 @@ function fmtR(key: string): string {
    wave D4, operator decision 2026-09-26: 44 px touch controls). */
 html.touch-device .gridSection { height: 368px; }
 
-/* Grids (centered) */
+/* Grids (centered). The width comes from the pane (`width: 100%` up to
+   294 px), never from the glyphs: Firefox 159 sizes a glyph's percentage-wide
+   SVG at zero in the grid's content width, and the shrink-to-fit grid fell
+   to its cells' padding — "nur 9 Punkte" (operator 2026-11-02). */
 .gridWrap {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   /* --gap-controls: neighboring cells launch different probe cycles —
      a mis-tap approaches the workpiece from the wrong side */
   gap: var(--gap-controls);
+  width: 100%;
   max-width: 294px;
   margin: 0 auto;
 }

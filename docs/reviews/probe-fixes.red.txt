@@ -1,0 +1,89 @@
+Probing fixes (operator 2026-11-02) — red first, against development 4ad87515
+
+== 1. The glyphs: Firefox 159.0 (stock aarch64, Playwright moz-firefox) vs Firefox 150 (Playwright's), unfixed build
+[ff159] › e2e/probeglyph-scratch.spec.ts:10:5 › probe glyphs 5axis-xyzac desktop
+(9 cells; svg sizes: [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]])
+(9 cells; svg sizes: [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]])
+(9 cells; svg sizes: [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]])
+(6 cells; svg sizes: [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]])
+(6 cells; svg sizes: [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]])
+(4 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80]])
+[ff150] › e2e/probeglyph-scratch.spec.ts:10:5 › probe glyphs 5axis-xyzac desktop
+(9 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(9 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(9 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(6 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(6 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(4 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80]])
+
+== 1b. layout.spec 'a probe grid's cells keep their size whatever the glyph contributes' (Chromium, unfixed)
+  1) [serial-layout] › e2e/layout.spec.ts:158:5 › desktop, homed: a probe grid's cells keep their size whatever the glyph contributes 
+    Error: Outside: the cells without their glyphs
+    -     90,
+    -     90,
+    +     10,
+    +     10,
+    -     90,
+    -     90,
+    +     10,
+    +     10,
+    -     90,
+    -     90,
+    +     10,
+    +     10,
+    -     90,
+    -     90,
+  ... (4 failed: desktop/touch-fullhd × homed/unhomed)
+
+== 1c. after the fix, Firefox 159.0: every grid's SVG
+[ff159] › e2e/probeglyph-scratch.spec.ts:10:5 › probe glyphs 3axis-xyz desktop
+(9 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(9 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(9 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(6 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(6 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(4 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80]])
+[ff159] › e2e/probeglyph-scratch.spec.ts:10:5 › probe glyphs 3axis-xyz touch-fullhd
+(9 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(9 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(9 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(6 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(6 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(4 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80]])
+[ff159] › e2e/probeglyph-scratch.spec.ts:10:5 › probe glyphs 5axis-xyzac desktop
+(9 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(9 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(9 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(6 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(6 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(4 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80]])
+[ff159] › e2e/probeglyph-scratch.spec.ts:10:5 › probe glyphs 5axis-xyzac touch-fullhd
+(9 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(9 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(9 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(6 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(6 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80],[80,80],[80,80]])
+(4 cells; svg sizes: [[80,80],[80,80],[80,80],[80,80]])
+
+== 2. probeVarFiles.test.ts (the shipped var files, before the lines were added)
+AssertionError: expected [ 3015, 3016, 3017, 3018, 3019, …(26) ] to deeply equal []
+
+- Expected
++ Received
+ ✓ src/probeVarFiles.test.ts > the shipped var files > are found: one per example profile 1ms
+ × src/probeVarFiles.test.ts > the shipped var files > xyz3/sim.var declares every number the probe panel and the toolsetter write 5ms
+ ✓ src/probeVarFiles.test.ts > the shipped var files > xyz3/sim.var is in ascending order, as LinuxCNC reads it 0ms
+ × src/probeVarFiles.test.ts > the shipped var files > xyzabc6/sim.var declares every number the probe panel and the toolsetter write 1ms
+ ✓ src/probeVarFiles.test.ts > the shipped var files > xyzabc6/sim.var is in ascending order, as LinuxCNC reads it 0ms
+ × src/probeVarFiles.test.ts > the shipped var files > xyzac5/sim.var declares every number the probe panel and the toolsetter write 1ms
+ ✓ src/probeVarFiles.test.ts > the shipped var files > xyzac5/sim.var is in ascending order, as LinuxCNC reads it 0ms
+
+== 3. test_example_install.py: an installed var file gets the numbers (installer unchanged)
+E           -  3056,
+E           -  3057,
+E           -  3058,
+E           -  3059] : xyz3/sim.var
+
+test_example_install.py:110: AssertionError
+=========================== short test summary info ============================
+FAILED test_example_install.py::ExampleInstallTest::test_an_installed_var_file_gets_the_numbers_the_example_declares

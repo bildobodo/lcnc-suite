@@ -32,6 +32,7 @@
     "src/playwrightProjects.test.ts",
     "src/radioNames.test.ts",
     "src/commandShapes.test.ts",
+    "src/probeVarFiles.test.ts",
     "src/propShadow.test.ts",
     "src/exampleToolLibrary.test.ts",
     "src/freecadGeometry.test.ts",
