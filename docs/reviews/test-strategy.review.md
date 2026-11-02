@@ -477,3 +477,93 @@ Gegenfälle vor jeder Schreib-/Bewegungszulassung: angeforderte INI ist nicht di
 Bitte nur die drei obigen Reste konkret beantworten. Die vier geschlossenen Planpunkte brauchen keine neue Grundsatzrunde.
 
 Belege: [Lesebefunde](test-strategy.r250.evidence.md), [Stand und unveränderter ursprünglicher Review-Inhalt](test-strategy.r250.metadata.json). Keine neuen Laufzeit- oder Maschinenmessungen behauptet.
+
+
+---
+
+## Claude · Planfassung 3 · Anfrage R251 · 2. November 2026 · die drei Reste aus R250
+
+Die vier geschlossenen Punkte bleiben, wie sie sind. Die beiden redaktionellen Hinweise sind übernommen:
+- „Unit leicht / Merge“ heißt jetzt: **immer, im vollständigen Unit-Satz**.
+- `none` bei reiner Doku ist eine **erfolgreiche Auswahlentscheidung ohne Produkttestnachweis**. Sie ist kein grüner leerer Testlauf; eine leere Auswahl aus Produktpfaden bleibt FAIL.
+
+### TS248-04 Rest A · Geschlossene Befehle, benannte Datenmaps, inventarisierte Rahmen
+
+**Oberste Ebene geschlossen:** Jedes Befehlsobjekt hat eine feste Feldmenge, gelesen mit der TS-API aus `WsCommand`. Die drei offenen Werkzeugbefehle (`save_tool`, `add_tool`, `renumber_tool`) bekommen ihre tatsächlichen Felder. Ein unbekanntes Top-Level-Feld ist ein Fehler, ebenso ein Typ außerhalb der folgenden benannten Fälle.
+
+**Benannte Datenmaps** mit eigenem Vertrag (Pfad → Schlüssel → Wert):
+
+| Pfad | Schlüssel | Wert | im Replay zusätzlich |
+| --- | --- | --- | --- |
+| `mdi.vars`, `set_probe_vars.vars`, `auto_run.probe_vars` | `^\d+$` | endliche Zahl | `validate_payload` mit Var-Deklaration gegen jede Beispiel-Var-Datei |
+| `touchoff.axes` | `TOUCHOFF_LETTERS` | endliche Zahl | — |
+| `set_g30.values`, `set_g30.based_on` | Achsbuchstaben | endliche Zahl | — |
+| `touchoff.expect` | `kins_type`, `g5x_index` | Ganzzahl oder `null` | — |
+
+**Undurchsichtig, mit genauem Pfad und sichtbarer Grenze im Ergebnis:**
+- `save_settings.data`: der Abschnitt; den prüft der Settings-Store je Abschnitt, nicht dieses Replay.
+- `client_diag.data`: Diagnose ohne Wirkung.
+
+Diese Ausnahme gilt nur für genau diese zwei Pfade, nie für Felder auf oberster Ebene.
+
+**Protokollrahmen des Workers, inventarisiert:**
+- `hello` {`session`, `resume_armed`}
+- `tab_visibility` {`hidden`}
+- `heartbeat` {`seq`}
+
+Je mit eigener Formprüfung. Ein Test liest die `cmd`-Literale aus den eigenen `send`-Aufrufen von `wsWorker.ts` und verlangt genau diese drei. Ein neuer Rahmen des Workers lässt ihn scheitern. Alles andere sendet der Worker unverändert weiter: Das sind `WsCommand`s und gehen ins Befehls-Replay.
+
+**Gegenfälle:**
+- gültiges `mdi.vars` passiert
+- unbekanntes Top-Level-Feld scheitert
+- `hello` und ein nummerierter `heartbeat` werden als Rahmen klassifiziert und formgeprüft
+- ein erfundener Befehl scheitert, er wird nicht ausgelassen
+- ein falscher Schlüssel in `touchoff.axes` scheitert
+
+### TS248-04 Rest B · Herkunft an die Verbindung gebunden, auch im parallelen Volllauf
+
+**Bindung über ein Cookie, ohne Produktänderung:**
+- Ein automatisches Playwright-Fixture (`e2e/test.ts`, erweitertes `test`) setzt vor jedem Test im eigenen Browser-Kontext ein Cookie `e2e_origin`. Es trägt Lauf-ID, Test-ID, Projekt und Retry und gilt für den Mock-Ursprung.
+- Der Mock liest es beim WS-Upgrade und bei HTTP-Anfragen und bindet jede **Verbindung** an diese Herkunft.
+- Jeder Befehl trägt damit die Herkunft seiner Verbindung, nicht die eines Zeitfensters.
+- Parallel laufende Tests haben getrennte Kontexte, also getrennte Cookies. Ein nachlaufender Befehl auf einer alten Verbindung behält die alte Herkunft und erbt nie die Ausnahme des nächsten Tests.
+- Zeitstempel bleiben nur zur Diagnose.
+
+**Vollständigkeit:**
+- Ein Test verlangt, dass jeder Spec `test` aus `e2e/test.ts` importiert. Ein Spec ohne Fixture scheitert.
+- Ob der Worker das Cookie beim WS-Handschlag mitsendet, prüft ein Gegenfall im ersten Implementierungsschritt. Tut er es nicht, falle ich auf deinen Alternativvertrag zurück: alle Replay-Läufe seriell, der Laufzeiteffekt gemessen.
+
+**Nicht zuordenbar:**
+- Ein Befehl ohne Cookie ist ein Fehler.
+- Ausnahme ist ein ausdrücklich benannter Bootstrap- oder Teardown-Fall: der Mock-Selbsttest, die Smoke-Specs ohne Mock.
+
+**Ausnahmen für absichtlich ungültige Nutzlasten:** Schlüssel ist (Test-ID, Befehl, die konkrete ungültige Teil-Nutzlast, die erwartete Ablehnung). Ein anderer Fehler desselben Befehls im selben Test bleibt ein Befund.
+
+**Wächter:**
+- zwei überlappende Testherkünfte in zwei Workern
+- ein Retry mit eigener Herkunft
+- ein nachlaufender Befehl auf der Verbindung eines beendeten Tests, der dessen Herkunft behält
+
+### TS248-06 Rest · Der vorhandene Zielvertrag statt einer Pfadliste
+
+**Zielprüfung:** Der Antast-Live-Check nutzt `validate_sim_target` aus `toolsetter_readback_check.py`.
+- Die Funktion prüft die laufende INI gegen das ausgelieferte Profil samt relevanten Inhalten und den von HAL gestarteten Dateien. Die Backend-Tests decken sie schon ab.
+- Ich lagere sie in ein reines Modul aus (`scripts/sim_target.py`), damit der Import kein Live-STAT öffnet. Beide Checks nutzen sie, die bestehenden Tests ziehen mit um.
+- Die Pfad-Erlaubnisliste entfällt.
+
+**Dazu, vor jeder Schreib- oder Bewegungszulassung, aus frischem STAT und Reader:**
+- Leerlauf und Stillstand
+- kein unquittierter Trip
+- die Kinematik bekannt und Machine (`kins_type` frisch)
+- Platte und Werkzeug wie in TS248-06 (Plattenhöhe aus dem Profil, `#5400 == #3014`, positive Länge)
+
+Nicht allein aus „G21/G54“ auf den Bewegungsrahmen geschlossen.
+
+**Gegenfälle vor jeder Zulassung** (Pytest mit dem reinen Modul und einem gefälschten Zustand):
+- die angeforderte INI ist nicht die laufende
+- ein erlaubter Pfad mit veränderter HAL- oder Kinematik-Konfiguration
+- das echte Sim-Profil, aber der falsche aktuelle Kinematikmodus
+
+Die Wiederherstellungsregeln bleiben unverändert.
+
+Wenn die drei Reste tragen, bitte `agreement`. Ich beginne dann mit Schritt 1 (Messreporter, Firefox-Machbarkeit) und Schritt 2 (Schema ↔ Client mit `renumber_tool`, Antast-Klick-Spec).
