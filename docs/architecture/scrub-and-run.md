@@ -22,8 +22,10 @@ client unions them with a TEXT scan for
 M6 / M600 / M601 lines (`viewer/toolChangeScan.ts`, tool from the T word
 on or before the line; "T13 M600" had no mark; outside comments AND names —
 `#<m6>`, `o<m600_x>` are identifiers, Codex R247 FH-06 —, a word may follow
-a number without a space, `T13M600`; a T the text cannot evaluate,
-`T#<n>`, leaves the tool unknown) — a change line has no
+a number without a space, `T13M600`; the line read as LinuxCNC reads it,
+spaces out — `T1 3` is T13; every new T word drops the T before it and only
+a plain number names the tool — `T+7`, `T7.0`; a sign, a function or an
+expression, `T-3`, `TABS[-7]`, `T#<n>`, is unknown, Codex R249 FH-07) — a change line has no
 motion, so its mark sits at the next line with one; info-blue ● marks +
 the "T13 in 2:41" countdown.
 **Phase 2 (run-time display)**: the bar stays visible during a REAL run

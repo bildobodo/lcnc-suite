@@ -10131,3 +10131,19 @@ row ahead's fill and the band's to be the code line's and its text 4.5 : 1 on it
 themes: the row ahead transparent; `docs/reviews/snap-highlight.fill-red.txt`). This takes back
 the bar-only shape Codex accepted in R247 as "Vorschau auf den nächsten Befund erkennbar" — the
 operator chose one look over that distinction.
+
+**Codex R249: FH-06 closed, the uniform highlight accepted; FH-07 — a T word apart from its
+value.** The R248 fix reset the scan's tool only for `T#` / `T[`: after `T5`, `T+#<next> M600`,
+`T+7 M600` and `TABS[-7] M600` still read "Tool change → T5" (code and Sim list), `T7.0` too, and
+`T1 3` read T1 — LinuxCNC drops the spaces outside comments (T13) and reads the value as a real
+(`read_t` → `read_integer_value` → `read_real_value`: a sign, a decimal, a function). The scan
+now reads the line as LinuxCNC does — comments out, every space out, then the names — and
+recognizes a T word apart from its value: a T that ends no name (ATAN, SQRT, EXISTS, GT, LT) and
+begins no TAN function; every new one drops the T before it, and only a plain number (a plus
+sign, a decimal point with zeros) names the tool — anything else is unknown ("T?"), never the T
+before it. No full G-code evaluator: `T[7]` stays unknown. The wire's confirmed number still
+wins. Guards red first: `toolChangeScan.test.ts` (Codex's classes, each also with the T on its
+own line before M601; T+7, T7.0, T8., T1 3, T 0 9; and TAN / ATAN / SQRT / EXISTS / GT / LT are
+no T words — green before, kept as the guard the space removal could break), Codex's scanner
+probe unmodified (all eight forms unknown or right after), `layout.spec` "a code line names its
+findings" (line 22 `T+9 M600` → T9, line 26 `TABS[-7] M601` → T?).

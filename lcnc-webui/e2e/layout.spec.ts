@@ -1484,7 +1484,9 @@ test('a help icon in the viewer warnings card scrolls nothing and keeps its hit 
 // die werkzeugwechsel aus? … in der spalte im programmcode"): the timeline's
 // tool-change lines, in their colour, the others' glyph winning the look.
 // A name that holds "m6" is no M word (Codex R247 FH-06); a word that follows
-// a number without a space is one (T7M600).
+// a number without a space is one (T7M600); a new T word drops the T before
+// it — a plain number names the tool (T+9), anything else is unknown (Codex
+// R249 FH-07).
 test('a code line names its findings with a glyph: ▲ limit, × collision, ● tool change, all named', async ({ page, context }) => {
   test.setTimeout(120_000);
   const feed = LIMIT_FEED.map(p => [...p]);
@@ -1496,9 +1498,10 @@ test('a code line names its findings with a glyph: ▲ limit, × collision, ● 
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain',
     // a tool change alone on line 8, one on line 32 with its limit and collision,
-    // a parameter named for M600 on line 16, a compact T7M600 on line 18
+    // a parameter named for M600 on line 16, a compact T7M600 on line 18,
+    // T+9 M600 on line 22, TABS[-7] M601 on line 26
     body: Array.from({ length: 40 }, (_, i) => i === 0 ? '(marks)' : i === 7 ? 'T3 M6'
-      : i === 15 ? '#<m600_count> = 0' : i === 17 ? 'T7M600'
+      : i === 15 ? '#<m600_count> = 0' : i === 17 ? 'T7M600' : i === 21 ? 'T+9 M600' : i === 25 ? 'TABS[-7] M601'
       : `${i === 31 ? 'T5 M6 ' : ''}G1 X${i} Y${i % 2 ? 20 : 0} F100`).join('\n') }));
   await openLayout(page, PROFILES[1], VIEWPORTS.find(v => v.name === 'desktop')!);
   await ctl({ op: 'status_delta', data: { active_file: '/marks.ngc' } });
@@ -1527,9 +1530,9 @@ test('a code line names its findings with a glyph: ▲ limit, × collision, ● 
     p.remove();
     return c;
   });
-  const [limitOnly, collisionOnly, all, tool, plain, named, compact] = [await mark(20), await mark(12), await mark(32), await mark(8), await mark(5),
-    await mark(16), await mark(18)];
-  const dump = JSON.stringify({ limitOnly, collisionOnly, all, tool, plain, named, compact });
+  const [limitOnly, collisionOnly, all, tool, plain, named, compact, signed, fn] = [await mark(20), await mark(12), await mark(32), await mark(8), await mark(5),
+    await mark(16), await mark(18), await mark(22), await mark(26)];
+  const dump = JSON.stringify({ limitOnly, collisionOnly, all, tool, plain, named, compact, signed, fn });
   expect([limitOnly.glyph, limitOnly.name], `limit: ▲ named ${dump}`).toEqual(['lucide-triangle-icon', 'Limit violation']);
   expect([collisionOnly.glyph, collisionOnly.name], `collision: × named ${dump}`).toEqual(['lucide-x-icon', 'Collision']);
   expect([all.glyph, all.name], `all three: × shows, the name says each ${dump}`).toEqual(['lucide-x-icon', 'Limit violation, collision, tool change']);
@@ -1538,7 +1541,9 @@ test('a code line names its findings with a glyph: ▲ limit, × collision, ● 
   expect(plain.name, `a clean line has no mark ${dump}`).toBeNull();
   expect([named.name, named.title], `a parameter's name is no tool change ${dump}`).toEqual([null, null]);
   expect([compact.glyph, compact.title], `T7M600 is one ${dump}`).toEqual(['lucide-circle-icon', 'Tool change → T7']);
-  expect(new Set([limitOnly.codeX, collisionOnly.codeX, all.codeX, tool.codeX, plain.codeX, named.codeX, compact.codeX]).size, `the code starts at one x ${dump}`).toBe(1);
+  expect(signed.title, `T+9: a plain number names the tool ${dump}`).toBe('Tool change → T9');
+  expect(fn.title, `TABS[-7]: unknown, never the T before it ${dump}`).toBe('Tool change → T?');
+  expect(new Set([limitOnly.codeX, collisionOnly.codeX, all.codeX, tool.codeX, plain.codeX, named.codeX, compact.codeX, signed.codeX, fn.codeX]).size, `the code starts at one x ${dump}`).toBe(1);
 });
 
 // Viewer contrast plan, V4 (VK-02/03): the tilted work plane names its state

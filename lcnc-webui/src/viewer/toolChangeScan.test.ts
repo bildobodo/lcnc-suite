@@ -26,4 +26,24 @@ describe("toolChangeLinesFromText", () => {
   it("a T word the text cannot evaluate (T#<n>, T[…]) leaves the tool unknown, never the T before it", () => {
     expect(toolChangeLinesFromText("T5\nT#<next> M600\nT7\nT[#1 + 1]\nM601\n")).toEqual([[2, 0], [5, 0]]);
   });
+  // Codex R249 FH-07: a T word is recognized apart from its value — every new
+  // one drops the T before it; only a number the scan fully reads names the
+  // tool. LinuxCNC drops the spaces outside comments ("T1 3" is T13) and reads
+  // the value as a real (a sign, a decimal, a function).
+  it("every new T word drops the T before it; a sign, a function or an expression is unknown", () => {
+    for (const word of ["T+#<next>", "T+[#1+1]", "TABS[-7]", "T-3", "T7.5", "T[7]"]) {
+      expect(toolChangeLinesFromText(`T5\n${word} M600\n`), word).toEqual([[2, 0]]);
+      expect(toolChangeLinesFromText(`T5\n${word}\nM601\n`), `${word} on its own line`).toEqual([[3, 0]]);
+    }
+  });
+  it("a number the scan fully reads names the tool: a plus sign, a decimal point, spaces inside", () => {
+    expect(toolChangeLinesFromText("T5\nT+7 M600\n")).toEqual([[2, 7]]);
+    expect(toolChangeLinesFromText("T5\nT7.0 M600\nT8. M6\n")).toEqual([[2, 7], [3, 8]]);
+    expect(toolChangeLinesFromText("T5\nT1 3 M600\n")).toEqual([[2, 13]]);
+    expect(toolChangeLinesFromText("T5\nT 0 9\nM601\n")).toEqual([[3, 9]]);
+  });
+  it("a T inside a function or an operator is no T word: TAN, ATAN, SQRT, EXISTS, GT, LT", () => {
+    const src = "T5\nG0 X[TAN[45]] Y[ATAN[1]/[1]]\n#1 = [SQRT[4] GT 1] + EXISTS[#<x>] + [2 LT 3]\nM600\n";
+    expect(toolChangeLinesFromText(src)).toEqual([[4, 5]]);
+  });
 });
