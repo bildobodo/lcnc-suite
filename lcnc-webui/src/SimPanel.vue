@@ -150,7 +150,6 @@ onUnmounted(() => { sumFit?.disconnect(); cancelAnimationFrame(_sumFitRaf); });
 
 /** The row that is shown, else the next one ahead of the position. */
 const shown = (r: SimRow) => r.key === simView.shownKey;
-const shownKeyIs = (key: string) => key === simView.shownKey;
 const isNext = (r: SimRow) => !simView.shownKey && r.key === simView.nextKey;
 
 // ── The rows: a tap shows the finding; the keyboard's way is the row's line
@@ -331,7 +330,6 @@ let stepAt = -Infinity;
 const bandEl = ref<HTMLElement | null>(null);
 /** The marked row the band glides to (its own look is off meanwhile). */
 const bandKey = ref<string | null>(null);
-const bandKind = ref<"shown" | "next">("next");
 let bandGlide: Glide | null = null;
 /** The row the band's glide goes to. */
 let bandGlideKey: string | null = null;
@@ -446,7 +444,6 @@ function follow(animate: boolean): boolean | number {
     placeBand(fromY + sc.scrollTop - plan.from);   // by the position the list took (glideStep)
     bandGlide = { from: fromY, to: contentTop(sc, tr), t0: plan.t0, dur: plan.dur };
     bandGlideKey = key;
-    bandKind.value = shownKeyIs(key) ? "shown" : "next";
     bandKey.value = key;
   }
   glide = plan;
@@ -547,7 +544,6 @@ function holdHighlight() {
     }
     placeBand(contentTop(sc, prev));
   }
-  bandKind.value = shownKeyIs(key) ? "shown" : "next";
   bandKey.value = key;
 }
 watch([marked, rows], () => {
@@ -658,7 +654,7 @@ function onRootKey(e: KeyboardEvent) {
            :style="{ '--sim-row-h': `${rowH}px` }" :data-rendered="`${range.hi - range.lo}/${rows.length}`" :data-list-complete="listComplete ? 1 : 0">
         <!-- The marked row's highlight while the list glides: where the list
              glides to, so it keeps its place on screen. -->
-        <div ref="bandEl" v-show="bandKey" class="simFollowBand" :class="bandKind" aria-hidden="true"></div>
+        <div ref="bandEl" v-show="bandKey" class="simFollowBand" aria-hidden="true"></div>
         <table>
           <thead>
             <tr><th class="colKind" aria-label="Kind"></th><th class="colLine">Line</th><th class="colWhat">What</th><th class="colMove">Move</th><th class="colAt">Time</th></tr>
@@ -745,19 +741,23 @@ function onRootKey(e: KeyboardEvent) {
 tbody tr[data-sim-row] { cursor: pointer; }
 .locked tbody tr[data-sim-row] { cursor: default; }
 /* The position's look, the code panel's (operator 2026-11-01: "dann ist es
-   einheitlich"): the shown finding — the simulation stands at it — its fill
-   and its bar; the next one ahead (no finding shown — playback's and a run's
-   look-ahead) the bar alone. */
+   einheitlich"): its fill and its bar on the marked row — the shown finding
+   (the simulation stands at it) and the next one ahead (no finding shown:
+   playback's and a run's look-ahead) alike, one highlight throughout
+   (operator 2026-11-02: "ein durchgehendes highlight wie beim programmcode"). */
 .shownRow,
-.simFollowBand.shown { background: var(--hl-position); }
-.shownRow td { background: inherit; }
+.nextRow,
+.simFollowBand { background: var(--hl-position); }
+.shownRow td,
+.nextRow td { background: inherit; }
 .shownRow td:first-child,
 .nextRow td:first-child,
 .simFollowBand { box-shadow: inset 3px 0 0 var(--highlight); }
 /* While the list glides the marked row's highlight is the band (above): the
    row shows nothing until the glide ends on it. The rows lie over the band. */
 .simFollowBand { position: absolute; pointer-events: none; }
-.shownRow.followed { background: none; }
+.shownRow.followed,
+.nextRow.followed { background: none; }
 .followed td:first-child { box-shadow: none; }
 .simTable tbody tr[data-sim-row] { position: relative; }
 .colKind { width: 1%; text-align: center; }

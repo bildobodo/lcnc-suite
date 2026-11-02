@@ -590,13 +590,19 @@ for (const pass of PASSES) {
     expect(sim.bar, "the shown row: the code line's bar").toBe(code.bar);
     expect(sim.band, "the band while the list steps: the same bar").toBe(code.bar);
 
-    // A position before the findings: the next one ahead, its bar alone.
+    // A position before the findings: the next one ahead, in the same look —
+    // one highlight throughout, as the code's (operator 2026-11-02: "ich
+    // dachte … an ein durchgehendes highlight wie beim programmcode").
     await openSimTab(page);
     await page.locator(".scrubBar .sliderInput").evaluate((el: HTMLInputElement) => {
       el.value = "0"; el.dispatchEvent(new Event("input", { bubbles: true })); });
     await expect(page.locator(".simPanel tr.shownRow")).toHaveCount(0);
     await expect(page.locator(".simPanel tr.nextRow")).toHaveCount(1);
+    await page.mouse.move(0, 0);
+    expect(await look(".simPanel tr.nextRow", "fill"), "the next row: the code line's fill").toBe(code.fill);
     expect(await look(".simPanel tr.nextRow td", "shadow"), "the next row: the code line's bar").toBe(code.bar);
+    expect(await look(".simPanel .simFollowBand", "fill"), "the band ahead: the same fill").toBe(code.fill);
+    await readable("Sim/next row", ".simPanel tr.nextRow");
     await readable("Sim/next", ".simPanel");
   });
 }

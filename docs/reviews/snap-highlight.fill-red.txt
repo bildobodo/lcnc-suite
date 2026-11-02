@@ -1,0 +1,28 @@
+The row ahead in the code line's look (operator 2026-11-02) — red first, against fd5c839e
+
+  1) [serial-guards] › e2e/contrast.spec.ts:553:3 › light: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+    Error: the next row: the code line's fill
+    Expected: "oklab(0.934654 0.0113648 0.0322943)"
+    Received: "rgba(0, 0, 0, 0)"
+    test-results/contrast-light-the-Sim-tab-c0871-s-look-its-text-4-5-1-on-it-serial-guards/test-failed-1.png
+  2) [serial-guards] › e2e/contrast.spec.ts:553:3 › dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+    Error: the next row: the code line's fill
+    Expected: "oklab(0.324402 0.00807152 0.0164602)"
+    Received: "rgba(0, 0, 0, 0)"
+    test-results/contrast-dark-the-Sim-tab--90353-s-look-its-text-4-5-1-on-it-serial-guards/test-failed-1.png
+  3) [serial-guards] › e2e/contrast.spec.ts:553:3 › hc-light: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+    Error: the next row: the code line's fill
+    Expected: "oklab(0.892481 0.016529 0.0260731)"
+    Received: "rgba(0, 0, 0, 0)"
+    test-results/contrast-hc-light-the-Sim--545cf-s-look-its-text-4-5-1-on-it-serial-guards/test-failed-1.png
+  4) [serial-guards] › e2e/contrast.spec.ts:553:3 › hc-dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+    Error: the next row: the code line's fill
+    Expected: "oklab(0.282677 0.00581815 0.0313465)"
+    Received: "rgba(0, 0, 0, 0)"
+    test-results/contrast-hc-dark-the-Sim-t-78c94-s-look-its-text-4-5-1-on-it-serial-guards/test-failed-1.png
+  5) [serial-guards] › e2e/contrast.spec.ts:553:3 › auto-dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+    Error: the next row: the code line's fill
+    Expected: "oklab(0.324402 0.00807152 0.0164602)"
+    Received: "rgba(0, 0, 0, 0)"
+    test-results/contrast-auto-dark-the-Sim-a2e1c-s-look-its-text-4-5-1-on-it-serial-guards/test-failed-1.png
+  5 failed

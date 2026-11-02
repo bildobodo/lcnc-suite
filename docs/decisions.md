@@ -10119,3 +10119,15 @@ reading it. Guards red first: `toolChangeScan.test.ts` (Codex's three lines, an 
 name beside a real M6; the compact words; the unevaluable T) and `layout.spec` "a code line names
 its findings" (line 16 `#<m600_count> = 0` no mark — red: "Tool change → T3" —, line 18 `T7M600`
 a ● "Tool change → T7" — red: none; `docs/reviews/snap-highlight.fh06-red.txt`).
+
+**The row ahead in the same look (operator 2026-11-02, after the look: "gut. ich dachte
+ursprünglich aber mehr an ein durchgehendes highlight wie beim programmcode").** The Sim list gave
+the fill only to a finding the simulation stands at; between findings — nearly all of playback —
+the next one ahead carried the bar alone, so the list mostly showed a thin bar where the code
+panel shows its full line. The row ahead and the band now take the shown row's fill and bar: one
+highlight throughout. What told the two apart (the band's `shown` / `next` class, `bandKind`) is
+gone with it. Guard red first: `contrast.spec` "the Sim tab marks the position …" now requires the
+row ahead's fill and the band's to be the code line's and its text 4.5 : 1 on it (red in the five
+themes: the row ahead transparent; `docs/reviews/snap-highlight.fill-red.txt`). This takes back
+the bar-only shape Codex accepted in R247 as "Vorschau auf den nächsten Befund erkennbar" — the
+operator chose one look over that distinction.
