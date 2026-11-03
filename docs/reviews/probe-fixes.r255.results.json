@@ -1,0 +1,213 @@
+{
+  "base": "b9e29335",
+  "head": "a12c2443",
+  "kind": "offline static source + repository tests, no native motion",
+  "changed_ngc_files": 10,
+  "exact_literal_replacements": 38,
+  "repository_tests": 7,
+  "r254_probe": {
+    "kind": "static source call-contract, not interpreter execution",
+    "call_sites": 112,
+    "failures": 0,
+    "calibration_failures": 0,
+    "affected_files": [],
+    "bad_calls": []
+  },
+  "repository_call_sites_seen": 193,
+  "single_site_mutants_rejected": 38,
+  "all_old_calls_rejected": 38,
+  "source_files_restored_byte_identical": 1126,
+  "frontend_unchanged": true,
+  "mutations": [
+    {
+      "file": "subroutines/probe_basic/probe_cal_round_pocket.ngc",
+      "line": 72,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_cal_round_pocket.ngc",
+      "line": 88,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_cal_round_pocket.ngc",
+      "line": 93,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_cal_round_pocket.ngc",
+      "line": 109,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_cal_round_pocket.ngc",
+      "line": 114,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_cal_round_pocket.ngc",
+      "line": 138,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_cal_round_pocket.ngc",
+      "line": 143,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_cal_square_pocket.ngc",
+      "line": 74,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_cal_square_pocket.ngc",
+      "line": 99,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_cal_square_pocket.ngc",
+      "line": 104,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_rect_pocket.ngc",
+      "line": 70,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_rect_pocket.ngc",
+      "line": 95,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_rect_pocket.ngc",
+      "line": 100,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_rect_pocket_center_start.ngc",
+      "line": 50,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_rect_pocket_center_start.ngc",
+      "line": 55,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_rect_pocket_center_start.ngc",
+      "line": 80,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_rect_pocket_center_start.ngc",
+      "line": 85,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_round_pocket.ngc",
+      "line": 68,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_round_pocket.ngc",
+      "line": 84,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_round_pocket.ngc",
+      "line": 89,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_round_pocket.ngc",
+      "line": 105,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_round_pocket.ngc",
+      "line": 110,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_round_pocket.ngc",
+      "line": 134,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_round_pocket.ngc",
+      "line": 139,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_round_pocket_center_start.ngc",
+      "line": 49,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_round_pocket_center_start.ngc",
+      "line": 54,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_round_pocket_center_start.ngc",
+      "line": 70,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_round_pocket_center_start.ngc",
+      "line": 75,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_round_pocket_center_start.ngc",
+      "line": 91,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_round_pocket_center_start.ngc",
+      "line": 96,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_round_pocket_center_start.ngc",
+      "line": 120,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_round_pocket_center_start.ngc",
+      "line": 125,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_valley_x.ngc",
+      "line": 69,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_valley_x_center_start.ngc",
+      "line": 49,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_valley_x_center_start.ngc",
+      "line": 54,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_valley_y.ngc",
+      "line": 67,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_valley_y_center_start.ngc",
+      "line": 49,
+      "guard": "red, exact site"
+    },
+    {
+      "file": "subroutines/probe_basic/probe_valley_y_center_start.ngc",
+      "line": 54,
+      "guard": "red, exact site"
+    }
+  ]
+}

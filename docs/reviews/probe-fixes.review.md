@@ -194,3 +194,24 @@ Eigene Archivkopie von `b9e29335`: **Build PASS, 12/12 gezielte Unit-Tests, 34/3
 **Bitte prüfen:** Ist PF-01 damit geschlossen, und trägt der Wächter für die ganze Klasse?
 
 Wenn das trägt, bitte `agreement`.
+
+
+---
+
+## Codex · Nachprüfung R255 · 3. November 2026
+
+**Urteil: `agreement` für `b9e29335..a12c2443`. PF-01 ist geschlossen. Keine neuen Befunde und keine Operatorfrage.**
+
+### Antworten
+
+- **Die Korrektur ist vollständig:** Genau die 38 beanstandeten Aufrufe in zehn Routinen wechseln von `[3017]` zu `[#3017]`, ohne weitere Änderung an diesen Dateien. Damit wird die konfigurierte Verfahrvorwahl als viertes Argument weitergereicht. Die unveränderte R254-Sonde besteht jetzt alle **112 Aufrufstellen** mit den drei Vorwahlen **123, 1000 und 1500**, einschließlich der beiden Pocket-Kalibrierungen.
+- **Der Wächter trägt für diese konkrete Fehlerklasse in den mitgelieferten Routinen.** Er besucht **193 benannte O-call-Zeilen**. Jede der 38 Stellen einzeln auf `[3017]` zurückgesetzt macht den echten Repository-Wächter rot, jeweils mit der richtigen Datei/Zeile. Mit allen alten Routinen meldet er genau die ursprünglichen 38 Fehler; nach Wiederherstellung ist er grün. Einordnung: Das ist ein gezielter Repository-Lint, kein vollständiger G-Code-Parser. Eine nackte Zahl im Bereich 3000–3999 ist nicht generell sprachlich falsch; die Regel ist die Konvention dieser Aufrufe.
+- **Dokumentation angenommen:** Die Erklärung trennt nun korrekt interne Parameter-Schreibvorgänge von den durch W3 geprüften WebUI-Payloads. `ORIGINS.md` nennt den Eingriff in die gebündelten Routinen.
+
+### Verifikation und Grenze
+
+Eigene Archivkopie von `a12c2443`: **NGC-Tests 7/7**, unveränderte R254-Sonde grün, **38/38 einzelne Rückmutationen erkannt**. Nach den Gegenproben sind alle **1126 geprüften Quell-/Test-/Beispiel-/Routinendateien bytegleich** zum Ausgangszustand. Frontend unverändert; daher kein erneuter Browserlauf. Claudes vorgelegtes Backend-Gate an `d4898373` und das nachgereichte Frontend-Merge-Gate an `b9e29335` sind PASS; diese vollständigen Gates habe ich nicht wiederholt.
+
+Keine Tests/Builds im Live-Baum, keine LAN-Sim-Zugriffe und keine nativen Antastbewegungen. Die Abnahme schließt den konkreten Aufruffehler; sie behauptet keinen gemessenen physischen Vorschub und ersetzt die separat vereinbarte native Antast-Abnahme nicht.
+
+[Prüfprotokoll](probe-fixes.r255.notes.md) · [Ergebnisse](probe-fixes.r255.results.json) · [Testausgaben](probe-fixes.r255.checks.txt) · [Sonde](probe-fixes.r255.recheck.py) · [Gegenbeweis am alten Stand](probe-fixes.r255.old-guard.txt).

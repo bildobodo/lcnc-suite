@@ -1,0 +1,49 @@
+Traceback (most recent call last):
+  File "/tmp/codex-r255-taw1x_73/repo/lcnc-gateway/test_ngc_fixtures.py", line 162, in test_no_call_passes_a_var_number_as_a_literal
+    self.assertEqual(bad, [])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^
+AssertionError: Lists differ: ['subroutines/probe_basic/probe_valley_y_c[2503 chars]17]'] != []
+
+First list contains 38 additional elements.
+First extra element 0:
+'subroutines/probe_basic/probe_valley_y_center_start.ngc:49: [3017]'
+
++ []
+- ['subroutines/probe_basic/probe_valley_y_center_start.ngc:49: [3017]',
+-  'subroutines/probe_basic/probe_valley_y_center_start.ngc:54: [3017]',
+-  'subroutines/probe_basic/probe_valley_y.ngc:67: [3017]',
+-  'subroutines/probe_basic/probe_valley_x_center_start.ngc:49: [3017]',
+-  'subroutines/probe_basic/probe_valley_x_center_start.ngc:54: [3017]',
+-  'subroutines/probe_basic/probe_valley_x.ngc:69: [3017]',
+-  'subroutines/probe_basic/probe_round_pocket_center_start.ngc:49: [3017]',
+-  'subroutines/probe_basic/probe_round_pocket_center_start.ngc:54: [3017]',
+-  'subroutines/probe_basic/probe_round_pocket_center_start.ngc:70: [3017]',
+-  'subroutines/probe_basic/probe_round_pocket_center_start.ngc:75: [3017]',
+-  'subroutines/probe_basic/probe_round_pocket_center_start.ngc:91: [3017]',
+-  'subroutines/probe_basic/probe_round_pocket_center_start.ngc:96: [3017]',
+-  'subroutines/probe_basic/probe_round_pocket_center_start.ngc:120: [3017]',
+-  'subroutines/probe_basic/probe_round_pocket_center_start.ngc:125: [3017]',
+-  'subroutines/probe_basic/probe_round_pocket.ngc:68: [3017]',
+-  'subroutines/probe_basic/probe_round_pocket.ngc:84: [3017]',
+-  'subroutines/probe_basic/probe_round_pocket.ngc:89: [3017]',
+-  'subroutines/probe_basic/probe_round_pocket.ngc:105: [3017]',
+-  'subroutines/probe_basic/probe_round_pocket.ngc:110: [3017]',
+-  'subroutines/probe_basic/probe_round_pocket.ngc:134: [3017]',
+-  'subroutines/probe_basic/probe_round_pocket.ngc:139: [3017]',
+-  'subroutines/probe_basic/probe_rect_pocket_center_start.ngc:50: [3017]',
+-  'subroutines/probe_basic/probe_rect_pocket_center_start.ngc:55: [3017]',
+-  'subroutines/probe_basic/probe_rect_pocket_center_start.ngc:80: [3017]',
+-  'subroutines/probe_basic/probe_rect_pocket_center_start.ngc:85: [3017]',
+-  'subroutines/probe_basic/probe_rect_pocket.ngc:70: [3017]',
+-  'subroutines/probe_basic/probe_rect_pocket.ngc:95: [3017]',
+-  'subroutines/probe_basic/probe_rect_pocket.ngc:100: [3017]',
+-  'subroutines/probe_basic/probe_cal_square_pocket.ngc:74: [3017]',
+-  'subroutines/probe_basic/probe_cal_square_pocket.ngc:99: [3017]',
+-  'subroutines/probe_basic/probe_cal_square_pocket.ngc:104: [3017]',
+-  'subroutines/probe_basic/probe_cal_round_pocket.ngc:72: [3017]',
+-  'subroutines/probe_basic/probe_cal_round_pocket.ngc:88: [3017]',
+-  'subroutines/probe_basic/probe_cal_round_pocket.ngc:93: [3017]',
+-  'subroutines/probe_basic/probe_cal_round_pocket.ngc:109: [3017]',
+-  'subroutines/probe_basic/probe_cal_round_pocket.ngc:114: [3017]',
+-  'subroutines/probe_basic/probe_cal_round_pocket.ngc:138: [3017]',
+-  'subroutines/probe_basic/probe_cal_round_pocket.ngc:143: [3017]']

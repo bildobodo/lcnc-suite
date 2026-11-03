@@ -1,0 +1,23 @@
+UNCHANGED R254 PROBE
+{
+  "kind": "static source call-contract, not interpreter execution",
+  "call_sites": 112,
+  "failures": 0,
+  "calibration_failures": 0,
+  "affected_files": []
+}
+
+REPOSITORY NGC SUITE
+test_comments_are_balanced_on_every_line (test_ngc_fixtures.TestNgcFixtures.test_comments_are_balanced_on_every_line) ... ok
+test_repo_has_ngc_files (test_ngc_fixtures.TestNgcFixtures.test_repo_has_ngc_files) ... ok
+test_the_stripper_agrees_with_the_lint (test_ngc_fixtures.TestNgcFixtures.test_the_stripper_agrees_with_the_lint) ... ok
+test_no_call_passes_a_var_number_as_a_literal (test_ngc_fixtures.TestRoutineCallArguments.test_no_call_passes_a_var_number_as_a_literal) ... ok
+test_go_to_home_rotary_moves_are_g53 (test_ngc_fixtures.TestSubroutineContracts.test_go_to_home_rotary_moves_are_g53) ... ok
+test_go_to_zero_rotary_moves_are_g53 (test_ngc_fixtures.TestSubroutineContracts.test_go_to_zero_rotary_moves_are_g53) ... ok
+test_twp_goto_zero_guards_then_saves_modal_state (test_ngc_fixtures.TestSubroutineContracts.test_twp_goto_zero_guards_then_saves_modal_state) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.017s
+
+OK
+SUMMARY {"base": "b9e29335", "head": "a12c2443", "kind": "offline static source + repository tests, no native motion", "changed_ngc_files": 10, "exact_literal_replacements": 38, "repository_tests": 7, "repository_call_sites_seen": 193, "single_site_mutants_rejected": 38, "all_old_calls_rejected": 38, "source_files_restored_byte_identical": 1126, "frontend_unchanged": true}
