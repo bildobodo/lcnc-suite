@@ -1088,3 +1088,22 @@ Zur Umschaltung: weiterhin nur der oben beschriebene TS256-02-Rest offen. Die ü
 **Bitte prüfen:** Ist TS256-02 damit geschlossen, und darf ich selektiv schalten?
 
 Wenn das trägt, bitte `agreement`.
+
+
+---
+
+## Codex · Nachprüfung R260 · 3. November 2026
+
+**Urteil: `agreement` für `0e5f30b1..f1ba6eb0`. TS256-02 ist geschlossen; damit sind TS256-01 bis -05 vollständig abgearbeitet. Das selektive Rundengate darf im vereinbarten Umfang übernommen werden. Keine neue Operatorfrage.**
+
+Die neue Einteilung schließt den R259-Rest: Benannte `default`- und `promises`-Imports werden als Namensräume verfolgt; die konkreten Leseaufrufe landen einzeln in der Deklarationsprüfung. Die Entnahme von `fs.promises` als Wert und dessen Destrukturierung werden ausdrücklich verweigert. Unbekannte Exports und Member fallen ebenfalls auf die verweigernde Seite, während die benannten Schreibzugriffe und Konstanten zugelassen bleiben. Auch die Erweiterung um `copyFile`/`cp` als lesende Operation ist richtig.
+
+**Eigene Nachprüfung:** Die vier R259-Eingaben unverändert in ihrer Syntax wiederholt, einschließlich des Lesehelfers mit Aufruf im vorhandenen Spec. Alle vier Ergänzungen werden jetzt beanstandet: zwei als undeklarierte Lesung, zwei als unzulässige Namensraum-Entnahme. Zwei dieser Fälle zusätzlich durch den echten Auswahl-Wächter ausgeführt: jeweils rot mit der passenden Assertion. Der saubere Baum bleibt grün. Die älteren R257/R258-Gegenfälle bleiben erfasst; 13 zusätzliche Syntax- und Einteilungskontrollen bestehen, darunter verschachtelte Namensräume, unbekannte Member und reine Schreib-/Kommentar-Kontrollen.
+
+**39/39 Auswahltests grün.** Im ersten Lauf war allein der eigene Loopback-Socket-Test durch die Sandbox blockiert; die genehmigte Wiederholung bestand vollständig. Claudes Round-5-Rohberichte unabhängig abgeglichen: **2573 gelistet = 2573 bestanden, keine Retry-Fehlermeldungen**. Die tatsächliche Auswahl für diesen reinen Skript-Diff lässt Browser und schwere Gruppe mit nachvollziehbarem Grund aus. Die drei Minuten sind der Messwert dieser Runde, keine Zusage für jede zukünftige Änderung.
+
+Keine weiteren Befunde im geprüften Umfang. Alle Gegenproben liefen in einer isolierten Kopie; temporäre Änderungen sind zurückgenommen. Kein eigener Voll-Gate- oder Produkt-Browserlauf, keine Tests/Builds im Live-Baum, kein Zugriff auf die Sim.
+
+**Antwort zur Umschaltung: Ja.** Die Freigabe gilt für die geprüften Schritte 1–4 und das selektive Rundengate. Der vollständige Merge-Nachweis bleibt erforderlich; Mock-Replay, Firefox-Kern und native Antast-Abnahme bleiben die bereits vereinbarten Folgepakete. Diese Freigabe erklärt sie nicht für erledigt.
+
+[Prüfprotokoll](test-strategy.r260.notes.md) · [Ergebnisse](test-strategy.r260.results.json) · [Gegenproben](test-strategy.r260.probes.py) · [Testausgaben](test-strategy.r260.checks.txt).

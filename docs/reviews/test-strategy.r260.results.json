@@ -1,0 +1,280 @@
+{
+  "head": "f1ba6eb0bace2edeb1efcc9a0fa6a200b7622fd2",
+  "clean_control": [],
+  "r257_same_line": {
+    "problems": [
+      "lcnc-webui/e2e/freecad-import.spec.ts:5: a readFileSync call the table does not name: 'readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\")'"
+    ]
+  },
+  "r257_split_call": {
+    "problems": [
+      "lcnc-webui/e2e/freecad-import.spec.ts:77: a readFileSync call the table does not name: 'readFileSync\\n([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\")'"
+    ]
+  },
+  "r258_namespace_space": {
+    "problems": [
+      "lcnc-webui/src/viewer/collisionContacts.test.ts:164: a readFileSync call the table does not name: 'readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\")'"
+    ]
+  },
+  "r258_namespace_wrap": {
+    "problems": [
+      "lcnc-webui/src/viewer/collisionContacts.test.ts:165: a readFileSync call the table does not name: 'readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\")'"
+    ]
+  },
+  "r258_mixed_import": {
+    "problems": [
+      "lcnc-webui/e2e/freecad-import.spec.ts:78: a readFileSync call the table does not name: 'readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\")'"
+    ]
+  },
+  "named_default": {
+    "added": "import { default as extraFs } from \"node:fs\";\nasync function r259Read() { return extraFs.readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\"); }\n",
+    "call_in_test": "expect((await r259Read()).length).toBeGreaterThan(0);",
+    "scan": {
+      "calls": [
+        {
+          "line": 2,
+          "start": 89,
+          "prim": "readFileSync",
+          "text": "readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\")"
+        }
+      ],
+      "refused": []
+    },
+    "problems": [
+      "lcnc-webui/e2e/freecad-import.spec.ts:79: a readFileSync call the table does not name: 'readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\")'"
+    ],
+    "guard": {
+      "exit": 1,
+      "failed_test": "test_every_read_site_is_declared_exactly"
+    }
+  },
+  "named_promises": {
+    "added": "import { promises as ioPromises } from \"node:fs\";\nasync function r259Read() { return await ioPromises.readFile([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\"); }\n",
+    "call_in_test": "expect((await r259Read()).length).toBeGreaterThan(0);",
+    "scan": {
+      "calls": [
+        {
+          "line": 2,
+          "start": 102,
+          "prim": "readFile",
+          "text": "readFile([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\")"
+        }
+      ],
+      "refused": []
+    },
+    "problems": [
+      "lcnc-webui/e2e/freecad-import.spec.ts:79: a readFile call the table does not name: 'readFile([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\")'"
+    ]
+  },
+  "handed_promises": {
+    "added": "import baseFs from \"node:fs\";\nconst ioPromises = baseFs.promises;\nasync function r259Read() { return await ioPromises.readFile([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\"); }\n",
+    "call_in_test": "expect((await r259Read()).length).toBeGreaterThan(0);",
+    "scan": {
+      "calls": [],
+      "refused": [
+        "2: the IO namespace baseFs.promises used other than as baseFs.promises.member"
+      ]
+    },
+    "problems": [
+      "lcnc-webui/e2e/freecad-import.spec.ts:79: the IO namespace baseFs.promises used other than as baseFs.promises.member"
+    ]
+  },
+  "destructured_promises": {
+    "added": "import baseFs from \"node:fs\";\nconst { readFile } = baseFs.promises;\nasync function r259Read() { return await readFile([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\"); }\n",
+    "call_in_test": "expect((await r259Read()).length).toBeGreaterThan(0);",
+    "scan": {
+      "calls": [],
+      "refused": [
+        "2: the IO namespace baseFs.promises used other than as baseFs.promises.member"
+      ]
+    },
+    "problems": [
+      "lcnc-webui/e2e/freecad-import.spec.ts:79: the IO namespace baseFs.promises used other than as baseFs.promises.member"
+    ],
+    "guard": {
+      "exit": 1,
+      "failed_test": "test_every_read_site_is_declared_exactly"
+    }
+  },
+  "closure_controls": {
+    "nested_namespace_read": {
+      "calls": [
+        {
+          "line": 1,
+          "start": 51,
+          "prim": "readFile",
+          "text": "readFile(\"x\")"
+        }
+      ],
+      "refused": []
+    },
+    "nested_namespace_value": {
+      "calls": [],
+      "refused": [
+        "1: the IO namespace fs.default.promises used other than as fs.default.promises.member"
+      ]
+    },
+    "computed_namespace": {
+      "calls": [],
+      "refused": [
+        "1: the IO namespace fs.promises used other than as fs.promises.member"
+      ]
+    },
+    "unknown_export": {
+      "calls": [],
+      "refused": [
+        "1: unknownThing — an IO export the scanner does not classify"
+      ]
+    },
+    "unknown_member": {
+      "calls": [],
+      "refused": [
+        "1: fs.unknownThing — an IO member the scanner does not classify"
+      ]
+    },
+    "write_constants_control": {
+      "calls": [],
+      "refused": []
+    },
+    "read_import_alias": {
+      "calls": [
+        {
+          "line": 1,
+          "start": 46,
+          "prim": "readFileSync",
+          "text": "rf(\"x\")"
+        }
+      ],
+      "refused": []
+    },
+    "reader_taken_as_value": {
+      "calls": [],
+      "refused": [
+        "1: readFileSync used other than called"
+      ]
+    },
+    "comment_string_control": {
+      "calls": [],
+      "refused": []
+    },
+    "new_read_api": {
+      "calls": [
+        {
+          "line": 1,
+          "start": 29,
+          "prim": "copyFileSync",
+          "text": "copyFileSync(\"x\", \"y\")"
+        }
+      ],
+      "refused": []
+    },
+    "process_run": {
+      "calls": [
+        {
+          "line": 1,
+          "start": 45,
+          "prim": "spawnSync",
+          "text": "spawnSync(\"x\")"
+        }
+      ],
+      "refused": []
+    },
+    "dynamic_io": {
+      "calls": [],
+      "refused": [
+        "1: import() of an IO module"
+      ]
+    },
+    "io_reexport": {
+      "calls": [],
+      "refused": [
+        "1: a re-export of an IO module"
+      ]
+    }
+  },
+  "round_selection": {
+    "base": "0e5f30b1b5d3e06045ff40c09e239e82c6c87fb2",
+    "head": "f1ba6eb0bace2edeb1efcc9a0fa6a200b7622fd2",
+    "changed": [
+      {
+        "status": "A",
+        "path": "docs/reviews/test-tiers.round5.gate-round.json",
+        "rules": [
+          "documentation, agent and CI configuration (CI proves itself on GitHub)"
+        ],
+        "decision": "no product tests: no product code"
+      },
+      {
+        "status": "M",
+        "path": "docs/reviews/test-tiers.selector-red.txt",
+        "rules": [
+          "documentation, agent and CI configuration (CI proves itself on GitHub)"
+        ],
+        "decision": "no product tests: no product code"
+      },
+      {
+        "status": "M",
+        "path": "scripts/test_select/mutations.py",
+        "rules": [
+          "scripts and their tests ride the backend gate"
+        ],
+        "decision": "the rules: scripts and their tests ride the backend gate"
+      },
+      {
+        "status": "M",
+        "path": "scripts/test_select/readscan.mjs",
+        "rules": [
+          "scripts and their tests ride the backend gate"
+        ],
+        "decision": "the rules: scripts and their tests ride the backend gate"
+      },
+      {
+        "status": "M",
+        "path": "scripts/test_select/test_selector.py",
+        "rules": [
+          "scripts and their tests ride the backend gate"
+        ],
+        "decision": "the rules: scripts and their tests ride the backend gate"
+      }
+    ],
+    "unmatched": [],
+    "absent_at_head": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [],
+      "related": []
+    },
+    "browser": {
+      "run": [],
+      "reasons": [
+        "no path selects a browser spec"
+      ]
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "scripts/test_select/mutations.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/readscan.mjs: scripts and their tests ride the backend gate",
+        "scripts/test_select/test_selector.py: scripts and their tests ride the backend gate"
+      ]
+    },
+    "firefox": {
+      "needed": false
+    },
+    "live": {}
+  },
+  "round5_reports": {
+    "listed": 2573,
+    "assertions": 2573,
+    "retried": [],
+    "sha256": {
+      "unit-light.list.json": "7659823ec1fe217503ff9eb2dd496842bac93f2ac7d441ba28d678bcf46a176f",
+      "unit-light.json": "20bca32a3e71147bae7a3520a1a39db60624b001f677a33dedbb23aec60418bd"
+    },
+    "assertion_status": {
+      "passed": 2573
+    }
+  }
+}

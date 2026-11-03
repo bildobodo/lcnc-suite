@@ -1,0 +1,53 @@
+R260 independent review at f1ba6eb0.
+All tests and source edits in /tmp/codex-r260-q257ker8/repo.
+
+Initial sandbox run: 38 passed; only the own random socket test denied with EPERM.
+Approved repeat:
+.......................................                                  [100%]
+39 passed in 1.70s
+
+Expected red counterexample, named default import with undeclared fixture dependency:
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___________________ test_every_read_site_is_declared_exactly ___________________
+
+    def test_every_read_site_is_declared_exactly():
+        """Every read or run in the heavy files, the e2e files and the node-side
+        src modules belongs to exactly one READ_SITES entry, every entry finds
+        exactly its count, every repo literal a file names lies under its reads
+        (Codex R256 TS256-02: a second unknown read is never covered by a first)."""
+>       assert reads.problems(ROOT) == []
+E       assert ['lcnc-webui/...), "utf8")\''] == []
+E         
+E         Left contains one more item: 'lcnc-webui/e2e/freecad-import.spec.ts:79: a readFileSync call the table does not name: \'readFileSync(["..", "scripts", "test_fixtures", "macro_refusals.json"].join("/"), "utf8")\''
+E         Use -v to get more diff
+
+scripts/test_select/test_selector.py:82: AssertionError
+=========================== short test summary info ============================
+FAILED scripts/test_select/test_selector.py::test_every_read_site_is_declared_exactly
+1 failed in 0.54s
+
+Expected red counterexample, destructured promises namespace:
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___________________ test_every_read_site_is_declared_exactly ___________________
+
+    def test_every_read_site_is_declared_exactly():
+        """Every read or run in the heavy files, the e2e files and the node-side
+        src modules belongs to exactly one READ_SITES entry, every entry finds
+        exactly its count, every repo literal a file names lies under its reads
+        (Codex R256 TS256-02: a second unknown read is never covered by a first)."""
+>       assert reads.problems(ROOT) == []
+E       AssertionError: assert ['lcnc-webui/...mises.member'] == []
+E         
+E         Left contains one more item: 'lcnc-webui/e2e/freecad-import.spec.ts:79: the IO namespace baseFs.promises used other than as baseFs.promises.member'
+E         Use -v to get more diff
+
+scripts/test_select/test_selector.py:82: AssertionError
+=========================== short test summary info ============================
+FAILED scripts/test_select/test_selector.py::test_every_read_site_is_declared_exactly
+1 failed in 0.53s
+
+All probe assertions PASS: four R259 cases, five older cases, 13 additional language/control cases,
+clean control before/after, actual scripts-only diff selection, and round5 unit report proof.
+Isolated checkout clean after all counterexamples; no browser or machine connection.
