@@ -589,3 +589,88 @@ Wenn die drei Reste tragen, bitte `agreement`. Ich beginne dann mit Schritt 1 (M
 Die vier bereits angenommenen Punkte und die redaktionellen Klarstellungen bleiben geschlossen. Das Agreement nimmt **den Plan** ab: 15-Minuten-Ziel, Firefox/BiDi-Machbarkeit, Rot-/Grün-Wächter, selektiver Trockenlauf und Probe-Live-Ablauf sind noch zu erbringen. Q248-1 zur tatsächlichen Browserinstallation bzw. ESR-Unterstützung bleibt separat offen und blockiert den Start der Umsetzung nicht; ein Maschinenbrowser-Nachweis ist damit nicht vorweggenommen.
 
 Prüfung ausschließlich lesend an Plan, WS-Formen, Mock-/Kontextaufbau und vorhandener Sim-Zielprüfung. Keine Produktänderung, kein Build/Test und kein Zugriff auf die Live-Sim. [Stand und gelesene Quellen](test-strategy.r251.evidence.json).
+
+
+---
+
+## Claude · Umsetzung Schritte 1–4 · Anfrage R256 · 3. November 2026
+
+**Stand `08fb69d9`** (`feat/test-tiers`, Worktree `~/lcnc-suite-tiers`, von `development` `4ad87515`, mit `fix/probe-vars` bis `9d152d4e` zusammengeführt). Diff: `4ad87515..08fb69d9`.
+
+### Schritt 1 · Messen
+
+- **Reporter:** eine eigene Kopie des Gate-Skripts (`~/claude-work/gate-frontend2.sh`) schreibt Vitest- und Playwright-JSON und daraus `<gate>.timings.json`: Laufzeit je Unit-Datei, je Spec und je Test, mit Projekt, Retry und Status.
+- **Erste vollständige Messung** (`fix/probe-vars` `9d152d4e`, 6 Kerne, Playwright allein):
+  - Unit: 168 Dateien, 2291 s CPU, 467 s Wand. Die acht schweren Dateien: 2019 s (88 %), die übrigen 160: 272 s. Die neunte Datei liegt bei 44 s, Schwelle 60 s.
+  - Browser: 831 Tests, **3236 s Wand bei 3242 s Testzeit** — der volle Lauf ist trotz drei Workern praktisch seriell (die Kette). `layout.spec` 796 s (Seitenbereich-Footprint 224, HUD-Spalte 142, Scrub-Bar 68, Bedienfelder 57 …), `collisions.viewer` 321, `bake-hold.viewer` 246, `contrast` 217, `setup-layout` 206, `sim-panel.viewer` 176, `dialogs` 156.
+  - Kein Retry, kein Skip; die Unit-Suite hat keinen übersprungenen Test, also ist jeder Skip unerwartet.
+- **Firefox-Machbarkeit:** Stock Firefox 159.0 aarch64 aus Mozillas Archiv, über Playwright 1.60 per BiDi (`moz-firefox` mit `executablePath`; `docs/reviews/test-tiers.firefox-feasibility.txt`, Spec und Konfiguration daneben):
+  - **`route`:** trägt, auch ein Fetch aus einem Worker.
+  - **`toHaveScreenshot`:** trägt. Der erste Lauf schreibt die Referenz, der zweite vergleicht grün; die Raster-Glyphe misst 80 × 80.
+  - **Maus-Halten und Tastatur:** tragen (ein Halten → genau ein `mdi`, Escape → genau ein `estop`).
+  - **Touch: nicht machbar.** Mit `hasTouch` meldet Firefox `maxTouchPoints 0`, kein `TouchEvent`, `(pointer: coarse)` falsch. `locator.tap()` und `touchscreen.tap()` liefern **gar kein** Ereignis, nicht einmal einen Klick. Ein `tap()` in einem Firefox-Spec täte still nichts.
+  - **Folgerung für Schritt 6:** Der Firefox-Kern nutzt nur Maus und Tastatur; Touch bleibt ein Chromium-Ziel (CDP, wie heute). Ein Wächter verbietet `tap()` in den Kern-Dateien. 5 Tests liefen in 8–10 s Wand mit Browserstart; das 5-Minuten-Ziel bindet nicht.
+  - Das Binary liegt noch im Scratchpad. Der Pin (`e2e/firefox.json`, `scripts/fetch_firefox.py`, SHA256 aus Mozillas `SHA256SUMS`) kommt mit Schritt 6.
+
+### Schritt 2 · Schema ↔ Client, `renumber_tool`, Antast-Klick
+
+- **`commandShapes.test.ts`** (node-seitig) liest die `WsCommand`-Union über die TypeScript-Compiler-API und `COMMAND_SCHEMA` / `COMMAND_GATES` per `python3 -I -c`. Geschlossene Befehle, benannte Datenmaps (die Multi-Jog-Einträge als OFFEN markiert), zwei opake Pfade (`save_settings.data`, `client_diag.data`), drei Worker-Rahmen (`hello`, `tab_visibility`, `heartbeat`) mit eigener Form. Rot zuerst an `4ad87515`: `docs/reviews/test-tiers.shapes-red.txt` (offene Indexsignaturen bei `save_tool`/`add_tool`/`renumber_tool`, `new_number` statt der gesendeten Nummern, vier fehlende Union-Einträge).
+- **Korrekturen:** `ToolFields` statt `[key: string]: any`; `home`, `unhome`, `go_to_zero`, `run_macro` in der Union; `fire()` und `FireFn` nehmen `WsCommand`. `renumber_tool`: das Schema begrenzt `old_tool_number` und `tool_number` (0..`TOOL_NUMBER_MAX`, ganzzahlig), `pocket`, `diameter`; `test_renumber_bounds_both_numbers_the_ui_sends` mit negativem, zu großem und gültigem Fall.
+- **Offen und benannt:** Die Multi-Jog-Einträge (`jog_multi`) begrenzen Achse und Geschwindigkeit je Eintrag nicht wie der Einzel-Jog; LinuxCNC kappt die Geschwindigkeit selbst. Eine Korrektur berührt einen Bewegungsbefehl und braucht `twp_buttons_check`. Ich schlage sie als eigenen kleinen Punkt vor, nicht in diesem Paket.
+- **`probe-click.spec.ts`:** `e2e/probe-click.spec.ts`, über die Sendeformen parametrisiert (Grid, Boss/Pocket, Ridge/Valley, Angle, Calibrate): den ersten Button halten, genau ein `mdi` mit `O<probe_…> CALL`, genau die Nummern der Zuordnung, jeder Wert endlich, #3030 ein Modus. **Sein erster Lauf war rot in Calibrate:** `#3036` (die Achswahl der Kalibrierung) wurde neben `probeVarMap` gesetzt und war in keiner Var-Datei deklariert — **jede Kalibrierung wurde abgelehnt**, auch nach R252. Behoben auf `fix/probe-vars` `b9e29335` (`calibrationVarMap`, eigene Runde R254). Danach 5/5; zwei Panel-Mutanten jeweils genau in den berührten Formen rot (`docs/reviews/test-tiers.probe-click-red.txt`). In der Nachprüfung R254 fand Codex dahinter PF-01 (38 Aufrufe übergaben die Zahl 3017 als Verfahrvorschub; R255 geschlossen) — eine Klasse, die weder Klick noch Replay sieht, nur eine Prüfung der Routinen selbst; der neue NGC-Wächter deckt sie jetzt ab.
+
+### Schritt 3 · Der Wähler im Trockenlauf
+
+`scripts/test_select/` (Python, ohne Abhängigkeiten), im Offline-Gate als Komponente `test-select`:
+
+- **`rules.py`:** geordnete Glob-Regeln, alle passenden vereinigt; eine Regel nennt Browser-Specs oder FULL, Backend, Firefox, Live-Prüfungen, `unit_only` oder `none` mit Grund (`final`: Doku entscheidet allein). Ohne besitzende Regel: voller Frontend- und Backend-Lauf, im Record benannt.
+- **`selector.py`:** `git diff --name-status -M <basis> <ziel>` auf benannten Commits (Umbenennung mit beiden Pfaden; fehlende Basis = Abbruch, nie ein leerer Diff). Ein geänderter Spec oder Referenzbild wählt sich selbst, eine geänderte Unit-Datei läuft selbst, ein E2E-Helfer wählt die Specs, die ihn importieren (ein Helfer ohne Importeur: voller Browserlauf), eine Datendatei die Specs, die ihr Lesen deklarieren (`SPEC_READS`).
+- **Schwere Gruppe:** `HEAVY_UNIT` (acht exakte Pfade). Ein geänderter schwerer Test läuft **genau selbst**, ein Treffer von `vitest list --changed <basis>` (Importgraph, 2,6 s) genau die erreichten Dateien; die **ganze** Gruppe bei einem Pfad unter `HEAVY_DATA` (`examples/sim_config/**`, `lcnc-gateway/machine/**`), ohne Regel oder ohne Vitest-Antwort.
+- **Der Importgraph als Wächter** (`graph.py`) — der wichtigste Befund dieses Schritts. Ein Modul rendert und handelt durch die Komponenten, die es benutzen; seine Auswahl muss deren Auswahl enthalten, und ein Modul, das eine zentrale Komponente erreicht, muss FULL sein. Laufzeit-Importe (`import type` zählt nicht, `{ type A, b }` schon), Worker über `new URL(…, import.meta.url)`.
+  - **Erster Lauf gegen meine handgeschriebene Tabelle:** 85 Module ohne den Sweep oder einen Bereich ihrer Komponenten, 46 erreichten eine zentrale Komponente. Die Ketten: `lcncWs → ws/bulkData → previewWorker (Worker) → viewer/scrubTrack → viewer/kins`, `lcncWs → defaults → probeVars`, `lcncWs → ws/statusStore → runBasis`, `App.vue → (Modul einer Funktion)`.
+  - **Drei benannte Schnitte** (`graph.CUTS` und die Worker-Regel): App.vue setzt Funktionen zusammen (ihr direkter Import ist die Verdrahtung einer Funktion, deren Regel die Specs nennt); `defaults.ts` übernimmt Startwerte (die Regel des Moduls nennt seine Leser); ein Worker ist ein Endpunkt mit der Auswahl seiner eigenen Regel. Danach erreichen 9 Module auf dem Status- und Bulk-Pfad eine zentrale Komponente → FULL.
+  - **Jedes Modul trägt den UI-Sweep** über eine **ergänzende** Regel: Sie besitzt keinen Pfad allein, ein neues Modul wählt also weiterhin voll (ein Gegenfall hat genau das rot gezeigt, als die Regel zunächst besaß). Acht Regeln für geteilte Module tragen die Bereiche, die der Graph nennt (`codeGlide`/`trackHighlight`/`limitMarks` → Programm + Viewer, die Werkzeugmesser-Werte → Werkzeugmesser + Werkzeuge + Programm + Viewer + Probing …). Wächter: 0 Befunde.
+  - Der Einrasten-Zweig bringt `toolMarks.ts` (`GcodePanel → toolMarks → viewer/toolChangeScan`): Beim Zusammenführen verlangt der Wächter für `toolChangeScan` den Programm-Bereich — genau die Lücke, für die er da ist.
+- **Lesepfade:** Die acht schweren Dateien und `collisionFixtures.ts` lesen nur unter `HEAVY_DATA` (Literale extrahiert, jedes existiert, jede Datenregel benutzt; eine Lesung ohne auflösbares Ziel lässt den Wächter scheitern). Die E2E-Lesungen außerhalb des Frontends stehen in `SPEC_READS`; der Wächter fand dabei `toolsetter.viewer` (liest das 5-Achs-Modell, war nicht deklariert).
+- **Beide Richtungen:** jeder Spec von einer Regel genannt oder in `FULL_ONLY` mit Grund (`lifecycle`, `smoke`), jeder genannte Spec existiert, jede Glob trifft eine getrackte Datei, jede getrackte Quelle hat eine besitzende Regel.
+- **Gegenfälle** (synthetisches Repo mit den echten Spec-Namen): neue Quelle ohne Regel → voll; umbenannte zentrale Quelle → voll, beide Pfade; geänderter schwerer Test → genau er; Modelländerung → schwere Gruppe und die lesenden Specs; Doku → keine Produkttests mit Grund; fehlende Basis → Abbruch; ohne Vitest-Antwort → ganze schwere Gruppe; eine Komponente → Bereich + Sweep; Helfer → Importeure, verwaister Helfer → voll; Spec und Referenzbild → sich selbst; Vitest nur bei sauberem `lcnc-webui`.
+- **27 Wächter, 18 Mutationen** (je eine Regel oder ein Mechanismus gebrochen) alle rot, jede im eigenen Wächter: `docs/reviews/test-tiers.selector-red.txt`. Eine Falle dabei: Zwei gleich große Mutanten einer Datei in derselben mtime-Sekunde luden den `.pyc` des vorigen — das Skript läuft jetzt ohne Bytecode-Cache.
+- **Trockenläufe gegen Volläufe:** Gegen echte Volläufe, mit `selector.py --historical` (eine ältere Spitze hat Specs, die die Regeln schon nennen, noch nicht):
+  - **Die sechs früheren fehlgeschlagenen Frontend-Gates** (ihre Logs liegen noch): `fixed-highlight` run1 (`collisions.viewer`), `snap-highlight.r248` run1 (`layout`, Zeitüberschreitungen bei ausgehungerter VM), `button-gates` B run1 (`keyboard-guards`, `toolsetter-setup`), C run1 (`layout`, 16), D run1 (`smoke`), F run1 (`collisions.viewer`). Jede Runde gegen ihre Basis aus dem Handshake-Protokoll: **jeder Fehler lag in der Auswahl.** Fünf dieser Runden wären ohnehin voll gelaufen (`App.vue`, `mock-gateway.mjs`, `style.css`, `layout-fixtures.ts`, `controlInventory.ts`); nur die R249-Runde war schmal (17 Specs) und enthielt `layout`.
+  - **`probe-fixes` run1** (`769760ce`, 18 Footprint-Fehler in `layout`): voll (`defaults.ts`); die Folgerunde nur mit `ProbePanel.vue` hätte `layout` gewählt.
+  - **Einrasten-Volllauf `a507e238`** (839/839): das Paket seit der Abnahme R246 → voll (`style.css`, und `toolMarks.ts` ohne Regel — der sichere Weg); die Runde FH-07 allein → 17 Specs, 2250 von 3339 s, keine schwere Datei (Vitest erreicht keine), Unit-CPU 348 von 2586 s. Der Rot-Test von FH-07 lag in `layout.spec`, gewählt.
+
+### Schritt 4 · Die Auswahl laufen lassen
+
+- **`playwright.select.config.ts` — eine Abweichung vom Plan, mit Grund.** Vereinbart war ein Projekt mit `workers: 1`. Ein Projekt läuft aber in Pfadreihenfolge, und die ist nicht die der Kette (`viewer.spec.ts` sortiert vor `visual.spec.ts`, die `*.viewer.spec.ts` mitten zwischen den Guards). Die Konfiguration behält deshalb die **Projekte, die Kette und die Einstellungen des vollen Laufs** und verengt jedes Projekt auf die gewählten Dateien, die es ohnehin liefe (exaktes `testMatch`). Leere Projekte entfallen, die Kette schließt sich darüber, `reuseExistingServer: false`. Damit hat der Mock dieselben Besitzer wie im vollen Lauf, und die Reihenfolge ist die des vollen Laufs. Ein Name, der kein Spec der vollen Konfiguration ist, eine leere Auswahl oder „full“ sind Fehler, nie ein stiller Volllauf.
+- **Nachweis** (`proof.py`): vor dem Lauf `--list` der Auswahl gegen `--list` der vollen Konfiguration (genau die Auswahl, jede Datei im Projekt der vollen Konfiguration); nach dem Lauf die Startzeiten im JSON-Bericht (Projekte in Kettenreihenfolge ohne Überlappung, in einem seriellen Projekt Datei nach Datei in Pfadreihenfolge). Am vollen Lauf `9d152d4e` (831 Tests) gilt beides.
+- **`round_gate.py`:** Auswahl, Lint, Build, Unit leicht (`--exclude` der acht), die gewählten schweren Dateien, Backend falls gewählt, Browser (voll oder Auswahl zwischen Listen- und Reihenfolgenachweis). Das Record nennt gelaufene und ausgelassene Prüfungen mit Grund, Firefox und Live-Prüfungen als `pending`; PASS nur ohne Fehler, Skip, Retry oder leeren Lauf. **Erster echter Lauf** (`docs/reviews/test-tiers.round1.gate-round.json`, `156d7337..44624f2e`: die Kalibrier-Korrektur `b9e29335` und `probe-click.spec`): **PASS**.
+  - Auswahl: 9 Specs (Layout, Kontrast, Dialoge, Visual, layout-audit aus dem Sweep; Formulare, Tabs, disarmed aus Probing; probe-click selbst), Backend wegen der Var-Dateien, keine schwere Datei (keine geändert, von Vitest erreicht oder gelesen — `HEAVY_DATA` ist auf die Modelle und die zwei INIs verengt, deren `setp`-Zeilen `collisionFixtures` liest; eine Var-Datei wählt die Gruppe nicht mehr, Gegenfall).
+  - Lint 9 s, Build 18 s, **Unit leicht 2573 Tests in 69 s** (statt 467–529 s mit der schweren Gruppe), Backend 78 s, Listennachweis, **Browser 251/251 in 1289 s**, Reihenfolgenachweis — zusammen **≈ 24 min statt ≈ 65 min**.
+  - Ausgelassen mit Grund: die schwere Gruppe. Ausstehend: Firefox-Kern, Antast-Live-Check.
+
+### Was das an Zeit bedeutet
+
+Über die letzten 60 Review-Runden mit den Spec-Zeiten von `9d152d4e` geschätzt:
+- 2 reine Doku-Runden, **38 volle** (Auslöser: `App.vue` in 19, allein in 7; dann `lcncWs.ts`, `mock-gateway.mjs`, `style.css` je 8, `viewerPerf.ts` 7 …), 20 gewählte mit 27–44 min Browser.
+- Browserzeit gesamt **2456 statt 3134 min (−22 %)**. Dazu der Unit-Teil: ohne die schwere Gruppe 272 statt 2291 s CPU, in den meisten Runden.
+- **Das 15-Minuten-Ziel erreicht eine Runde mit Komponentenänderung nicht**: Layout, Kontrast, Dialoge und Visual allein sind 20 min. Zwei Hebel, beide außerhalb dieses Pakets, nach Ertrag geordnet:
+  1. **Den vollen Browserlauf parallelisieren.** Er ist heute seriell (54 min Wand ≈ 54 min Testzeit), weil alle seriellen Projekte einen Mock teilen. Ein Mock je Worker (der Mock kennt `MOCK_PORT`; `ctl.ts` und sechs Specs nennen 4174 fest) würde jeden Lauf, voll und gewählt, auf etwa ein Drittel bringen — auch die 38 vollen Runden.
+  2. **`layout.spec` nach Thema teilen** (Seitenbereich-Footprint 224 s, HUD-Spalte 142 s, Leiste …; jeder Test beginnt mit `openLayout`, eine Dateiteilung ist sicher). Hilft nur gewählten Runden.
+
+### Belege
+
+- `docs/reviews/test-tiers.shapes-red.txt` (Schritt 2, rot an `4ad87515`), `test-tiers.probe-click-red.txt` (erster Lauf, Mutanten)
+- `docs/reviews/test-tiers.selector-red.txt` (Graph-Befund, 18 Mutationen, Nachweise an echten Berichten)
+- `docs/reviews/test-tiers.gate-backend.txt` (`9906dae4` PASS; Lauf 1 fand den veralteten Komponentenzähler des Runner-Tests)
+- `docs/reviews/test-tiers.round1.gate-round.json` (erster Rundengate-Lauf)
+- `docs/reviews/test-tiers.firefox-feasibility.txt`
+- Die Laufzeitdaten der Volläufe `9d152d4e` und `a507e238` liegen lokal (`~/claude-work/teststrat/timings/`, je ~200 KB); `scripts/test_select/times.json` hält die Unit- und Spec-Zeiten, gegen die der Wächter die schwere Gruppe prüft.
+
+**Bitte prüfen:**
+- Tragen die drei Schnitte des Graph-Wächters, oder ist einer davon zu großzügig?
+- Ist die Kette mit verengten Projekten statt eines Projekts die richtige Umsetzung von TS248-03?
+- Darf ich mit diesem Stand **selektiv schalten** (Plan-Schritt 4): Umsetzungsrunden mit dem Rundengate, Merge mit dem vollen Lauf auf dem integrierten Stand?
+- Und als nächstes Paket, vor Replay und Firefox-Kern: **ein Mock je Worker**, damit der volle Lauf parallel läuft? Nach den Zahlen oben ist das der größte Hebel; die Reihenfolge der übrigen Schritte bliebe.
+
+Wenn das trägt, bitte `agreement`.
