@@ -1,0 +1,117 @@
+{
+  "head": "32e6ba685a045de5b8dd1c35121520e79d3906d5",
+  "r257_same_line": {
+    "problems": [
+      "lcnc-webui/e2e/freecad-import.spec.ts:5: a readFileSync call the table does not name: readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\");"
+    ]
+  },
+  "r257_split_call": {
+    "problems": [
+      "lcnc-webui/e2e/freecad-import.spec.ts:77: a readFileSync call the table does not name: readFileSync"
+    ]
+  },
+  "alias": {
+    "problems": [
+      "lcnc-webui/e2e/freecad-import.spec.ts:77: readFileSync used other than called"
+    ]
+  },
+  "namespace_direct": {
+    "file": "lcnc-webui/src/viewer/collisionContacts.test.ts",
+    "added": "fs.readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\");",
+    "problems": [
+      "lcnc-webui/src/viewer/collisionContacts.test.ts:164: a readFileSync call the table does not name: readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\");"
+    ],
+    "node_read_bytes": 1248
+  },
+  "namespace_space": {
+    "file": "lcnc-webui/src/viewer/collisionContacts.test.ts",
+    "added": "fs .readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\");",
+    "problems": [],
+    "node_read_bytes": 1248
+  },
+  "namespace_wrap": {
+    "file": "lcnc-webui/src/viewer/collisionContacts.test.ts",
+    "added": "fs.\nreadFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\");",
+    "problems": [],
+    "selection_guards": {
+      "exit": 0,
+      "output": ".....................................                                    [100%]\n37 passed, 1 deselected in 1.17s\n"
+    },
+    "node_read_bytes": 1248
+  },
+  "mixed_import": {
+    "file": "lcnc-webui/e2e/freecad-import.spec.ts",
+    "added": "\nimport r258fs, { constants as r258constants } from \"node:fs\";\nr258fs.readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\");\nvoid r258constants;\n",
+    "problems": [],
+    "node_read_bytes": 1248
+  },
+  "data_only_selection": {
+    "heavy": [],
+    "browser": [
+      "bake-hold.viewer",
+      "choices",
+      "collisions.viewer",
+      "dialogs",
+      "fatpaths.viewer",
+      "findings.viewer",
+      "forms",
+      "gcode-reference",
+      "keyboard-guards",
+      "layout",
+      "macros",
+      "messages",
+      "offsets",
+      "probe-click",
+      "rapids.viewer",
+      "reach.viewer",
+      "run-hold",
+      "select-writes",
+      "sim-panel.viewer",
+      "tool-geometry",
+      "tool-table-read",
+      "toolsetter.viewer",
+      "viewcube.viewer",
+      "visual"
+    ],
+    "collisionContacts_selected": false,
+    "freecad_selected": false
+  },
+  "unit_control": {
+    "name": "control",
+    "command": "npx vitest run src/r258Control.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/tmp/codex-r258-pl6mbzah/control-logs/control.json",
+    "status": "PASS",
+    "exit": 0,
+    "seconds": 0,
+    "files": 1,
+    "tests": 1,
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "listed": 1
+  },
+  "retry": {
+    "name": "retry-probe",
+    "command": "npx vitest run src/r257Retry.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/tmp/codex-r258-pl6mbzah/retry-logs/retry-probe.json",
+    "status": "FAIL",
+    "exit": 0,
+    "seconds": 0,
+    "files": 1,
+    "tests": 1,
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "why": [
+      "passed only after a failed attempt: /tmp/codex-r258-pl6mbzah/repo/lcnc-webui/src/r257Retry.test.ts > R257 retry once then pass"
+    ],
+    "listed": 1
+  },
+  "round3_raw_report": {
+    "listed": 2573,
+    "assertions": 2573,
+    "retried": [],
+    "sha256": {
+      "unit-light.list.json": "d236e82e18455f627666e0c0af2b7ff67238a479b6c02632432ab7751839f21e",
+      "unit-light.json": "02008c13e6f2c1937b45488625cbcbfc0be58d4813606f5d2af3982b82c9da0b"
+    }
+  }
+}

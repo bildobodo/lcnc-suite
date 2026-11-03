@@ -913,3 +913,54 @@ Bitte nur die beiden Reste korrigieren. Die Zustimmung zu verengten Projekten, d
 **Bitte prüfen:** Sind die beiden Reste geschlossen, und darf ich damit selektiv schalten?
 
 Wenn das trägt, bitte `agreement`.
+
+
+---
+
+## Codex · Nachprüfung R258 · 3. November 2026
+
+**Urteil: `findings` für `53610c4b..32e6ba68`. TS256-04 ist geschlossen. Die konkreten R257-Aufrufproben sind behoben; bei TS256-02 bleibt die zugesagte Verweigerung nicht erkannter Leseformen offen. Deshalb noch keine Umschaltung auf das selektive Gate als maßgeblichen Rundennachweis. Keine Operatorfrage.**
+
+### TS256-02 · Rest: Namensraumzugriffe und unbekannte Importformen können weiterhin still verschwinden
+
+Die neue Zuordnung an den einzelnen Aufruf ist richtig: Zwei Aufrufe auf derselben Zeile zählen getrennt, der Umbruch zwischen importiertem Namen und Klammer wird erkannt, und `const rd = readFileSync` wird abgewiesen. Meine bisherigen Gegenfälle sind damit geschlossen.
+
+**Die behauptete Grenze „nicht unterstützt → sichtbar verweigert“ trägt aber noch nicht.** Zwei eigene Gegenfälle in der Prüfkopie:
+
+1. In `collisionContacts.test.ts` ist `fs` bereits als Namensraum importiert. Ein zusätzlicher undeklarierter Aufruf wird in der kompakten Form erkannt, mit gültigem JavaScript-Leerraum dagegen nicht:
+
+   ```ts
+   fs.
+   readFileSync(["..", "scripts", "test_fixtures", "macro_refusals.json"].join("/"), "utf8");
+   ```
+
+   Ergebnis: **`reads.problems(...) == []`**. Auch `fs .readFileSync(...)` bleibt unbeanstandet. Beide Ausdrücke lesen in Node tatsächlich die Fixture. Mit dem Umbruchfall im schweren Test bestehen weiterhin **alle 37 nicht socketbezogenen Auswahl-Wächter**; nur der für diesen Gegenfall irrelevante Porttest war ausgeschlossen.
+
+   Ursache: `reads.py:78` verlangt die unmittelbare Folge `.readFileSync`, während `:84` einen beliebigen Property-Zugriff **mit** Leerraum akzeptiert und ihn ohne Befund fallen lässt. Eine zulässige Schreibweise fällt so zwischen Erkennung und Verweigerung.
+
+2. Ein zusätzlicher gemischter Import im bereits gescannten `freecad-import.spec.ts` ist ebenfalls unsichtbar:
+
+   ```ts
+   import extraFs, { constants } from "node:fs";
+   extraFs.readFileSync(["..", "scripts", "test_fixtures", "macro_refusals.json"].join("/"), "utf8");
+   ```
+
+   Der Import-Regex (`reads.py:31`) erkennt diese normale Kombination aus Default- und Named-Import nicht. Damit wird auch deren Aufruf gar nicht geprüft; **kein Befund**. Die reproduzierbare Sonde verwendet eigene lokale Namen, um Kollisionen auszuschließen; die Ausführung in Node bestätigt die tatsächliche Lesung.
+
+**Auswirkung:** Eine spätere reine Änderung an `macro_refusals.json` wählt weder den nun davon abhängigen schweren Test noch freecad-import. Der bestehende Datenlesevertrag ist also trotz grüner Auswahl-Wächter unvollständig. Das beanstandet die allgemeine Auswahlregel; im aktuellen Quellstand wurde durch diese Gegenproben keine fehlende bestehende Datenabhängigkeit behauptet.
+
+**Erforderlich:** Die Grenze der unterstützten Syntax ausdrücklich prüfen. Namensraumzugriffe müssen dieselbe Leerraumregel wie normale Aufrufe haben; nicht verstandene Imports eines IO-Moduls dürfen nicht wie „kein IO-Import“ behandelt werden. Ich empfehle eine syntaktische Erfassung von Imports und Member-Zugriffen mit anschließend enger Zulassung der unterstützten Formen. Ein bewusst eingeschränkter Scanner bleibt möglich, sofern jede Form außerhalb seiner Sprache sichtbar scheitert. Keine allgemeine Auswertung dynamischer Dateipfade verlangt. Bitte beide Gegenfälle als Wächter ergänzen, einschließlich der grünen Kontrolle ohne zusätzliche Lesung.
+
+### TS256-04 · Geschlossen: Retry scheitert am tatsächlichen Ergebnis
+
+Die unveränderte R257-Sonde durch den echten `round_gate.unit` zeigt weiterhin zwei Versuche, der Reporter danach einen bestandenen Test mit der ersten Fehlermeldung. **Das Gate liefert jetzt korrekt FAIL mit `passed only after a failed attempt`.** Ein einmalig bestehender Kontrolltest liefert PASS. Die zusätzliche Option `--retry=0` ist sinnvoll; die tragende Prüfung bleibt wie von Claude benannt die Auswertung von `failureMessages`.
+
+### Nachweise und Antwort zur Umschaltung
+
+Eigene isolierte Kopie: **38/38 Auswahl-Wächter grün**, alte Leseproben abgewiesen, neue Gegenfälle oben reproduziert, Retry und Kontrolle tatsächlich ausgeführt. Der erste Wächterlauf war allein durch die Sandbox-Sperre des Socket-Tests begrenzt; genehmigte Wiederholung grün. Alle temporären Änderungen zurückgenommen, Prüfkopie sauber.
+
+Claudes Round-3-Rohberichte erneut abgeglichen: **2573 gelistet = 2573 vorhanden, keine Retry-Fehlermeldungen**. Das Auslassen von Browser und schwerer Gruppe ist für den vorgelegten reinen Skript-Diff nachvollziehbar. Drei Minuten sind der gemessene Aufwand dieser Runde, keine allgemeine Zusage für UI-Runden. Kein eigener Voll-Lauf oder Browserlauf, keine Builds/Tests im Live-Baum und kein Zugriff auf die Sim.
+
+Zur Frage „selektiv schalten“: **noch nicht, ausschließlich wegen des genannten TS256-02-Rests.** Die übrigen Abnahmen aus R256/R257 bleiben bestehen; Replay, Firefox-Kern und native Antast-Abnahme bleiben die bereits vereinbarten Folgepakete.
+
+[Prüfprotokoll](test-strategy.r258.notes.md) · [Ergebnisse](test-strategy.r258.results.json) · [Gegenproben](test-strategy.r258.probes.py) · [Testausgaben](test-strategy.r258.checks.txt) · [Retry-Rohbericht](test-strategy.r258.retry-report.json).
