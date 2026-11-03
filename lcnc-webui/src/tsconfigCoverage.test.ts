@@ -63,11 +63,12 @@ describe("every TypeScript file is type-checked by some project", () => {
     }
   });
 
-  it("test-project includes resolve (explicit paths, or the e2e glob)", () => {
+  it("test-project includes resolve (explicit paths, or the e2e and isolation-harness globs)", () => {
     for (const f of include) {
       if (f.includes("*")) {
-        expect(f.startsWith("e2e/"), f).toBe(true);
-        expect(existsSync(join(ROOT, "e2e"))).toBe(true);
+        const dir = f.split("/")[0]!;
+        expect(["e2e", "e2e-proof"], f).toContain(dir);
+        expect(existsSync(join(ROOT, dir))).toBe(true);
       } else {
         expect(existsSync(join(ROOT, f)), `${f} does not exist`).toBe(true);
       }

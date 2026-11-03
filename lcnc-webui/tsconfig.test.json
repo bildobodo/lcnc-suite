@@ -75,6 +75,7 @@
     "src/viewer/checkBasis.test.ts",
     "src/viewer/collisionRangeOracle.test.ts",
     "scripts/simDump.ts",
-    "e2e/**/*.ts"
+    "e2e/**/*.ts",
+    "e2e-proof/**/*.ts"
   ]
 }

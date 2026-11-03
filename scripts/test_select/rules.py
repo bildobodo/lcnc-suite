@@ -211,6 +211,9 @@ RULES: tuple[Rule, ...] = (
          browser=FULL, firefox=True),
     Rule((W + "eslint.config.js",), "lint configuration: lint runs in every round",
          none="lint runs in every round"),
+    Rule((W + "e2e-proof/**", W + "playwright.proof.config.ts"),
+         "the per-worker mock's isolation harness: run by scripts/test_select/proof_harness.py at the "
+         "package's acceptance, never by the suite or a gate", none="a proof harness, not a suite test", final=True),
     Rule((W + "scripts/**", W + "tsconfig.test.json", W + "tsconfig.node.json"),
          "node-side tests, configs and tools: type-checked by the build, never in the bundle",
          unit_only=True),
