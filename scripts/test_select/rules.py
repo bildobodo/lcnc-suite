@@ -229,7 +229,7 @@ RULES: tuple[Rule, ...] = (
     # ── Areas ────────────────────────────────────────────────────────────
     Rule(src("GcodePanel.vue", "CodeEditor.vue", "codeGlide.ts", "trackHighlight.ts",
              "gcodeHighlight.ts", "gcodeCmLanguage.ts", "gcodeRfl.ts", "subRows.ts",
-             "runBasis.ts", "useMdiHistory.ts", "limitMarks.ts"),
+             "runBasis.ts", "useMdiHistory.ts", "limitMarks.ts", "toolMarks.ts"),
          "the program panel, its editor and the run", browser=PROGRAM),
     Rule(src("FileBrowser.vue", "browseFailure.ts", "download.ts"),
          "the file browser: programs, macros and tool import",
@@ -276,7 +276,7 @@ RULES: tuple[Rule, ...] = (
     # ── Modules several areas render through (graph.py names them) ───────
     Rule(src("axisColors.ts", "viewer/labelFont.ts"), "axis colours and the label font: probing glyphs and the viewer",
          browser=PROBING + VIEWER),
-    Rule(src("codeGlide.ts", "trackHighlight.ts", "limitMarks.ts"),
+    Rule(src("codeGlide.ts", "trackHighlight.ts", "limitMarks.ts", "toolMarks.ts"),
          "the running line and the marks: the code panel and the Sim tab", browser=PROGRAM + VIEWER),
     Rule(src("download.ts"), "a file saved: programs, macros, tool tables", browser=PROGRAM + MACROS + TOOLS),
     Rule(src("gcodeRefView.ts", "gcodeReference.ts"), "the reference opened from the code panel",
