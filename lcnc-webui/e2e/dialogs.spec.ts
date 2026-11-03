@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Locator } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "./test";
 import { enterTouch } from "./touchMode";
 import { ctl, MOCK, publishToolTable } from "./ctl";
 import { clickMore, moreTrigger } from "./more";
@@ -29,7 +29,8 @@ import { sidewaysOverflow, thickScrollbars } from "./layout-audit";
 // dialog opening over a field's keypad PAUSES it: the draft survives, is
 // unreachable meanwhile and comes back exact; nothing is applied).
 //
-// Runs under `serial-guards`: mock-global state, one file at a time.
+// The worker's own mock (e2e/test.ts): its state is this test's alone, reset
+// and checked before every test.
 
 const PERMS_ALL = {
   idle: true, jog: true, override: true, ready: true, run: true, pause: false,

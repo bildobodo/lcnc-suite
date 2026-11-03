@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
 import { ctl } from "./ctl";
 import { PROFILES, VIEWPORTS, openLayout, setLayoutState, settleLayout } from "./layout-fixtures";
 
@@ -11,7 +11,8 @@ import { PROFILES, VIEWPORTS, openLayout, setLayoutState, settleLayout } from ".
 //   and only the cell being edited carries the edit mark;
 // - a row click selects for Clear and never switches the machine's WCS.
 //
-// Runs under `serial-guards`: mock-global state (status, command log).
+// The worker's own mock (e2e/test.ts): its state is this test's alone, reset
+// and checked before every test.
 
 const XYZAC = PROFILES.find(p => p.name === "5axis-xyzac")!;
 const canon = (o: Partial<Record<string, number>>) => "XYZABCUVW".split("").map(l => o[l] ?? 0);

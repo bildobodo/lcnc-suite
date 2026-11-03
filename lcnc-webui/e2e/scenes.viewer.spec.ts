@@ -1,9 +1,11 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
 import * as THREE from "three";
 import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
 import { encode } from "@msgpack/msgpack";
 import { ctl, MOCK } from "./ctl";
+import { framesDrawn, topViewStands } from "./viewerSettle";
 import { MACHINE_BOX_PX, TOOLPATH_BOX_PX } from "../src/viewer/boxLines";
+import { writeFileSync } from "node:fs";
 
 // Design wave D8 (UI-K08, review round 6 UI-DI14): the viewer palette on a
 // machine model, a DENSE and a THIN path, a selected line, limit overflow
@@ -15,7 +17,8 @@ import { MACHINE_BOX_PX, TOOLPATH_BOX_PX } from "../src/viewer/boxLines";
 // attaches its image for the review by eye (the report; SCENE_OUT=<dir>
 // writes them to a folder as well).
 //
-// Runs under `serial-viewer`: mock-global state.
+// The worker's own mock (e2e/test.ts): its state is this test's alone, reset
+// and checked before every test.
 
 const THEMES = ["light", "dark", "hc-light", "hc-dark"] as const;
 
@@ -138,7 +141,7 @@ test("the palette in four themes, on a model, a dense and a thin path — and no
       await page.waitForTimeout(200);
       const shot = await page.locator(".viewerPane").screenshot();
       await testInfo.attach(`scene-${kind}-${theme}.png`, { body: shot, contentType: "image/png" });
-      if (process.env.SCENE_OUT) await import("node:fs").then(fs => fs.writeFileSync(`${process.env.SCENE_OUT}/scene-${kind}-${theme}.png`, shot));
+      if (process.env.SCENE_OUT) writeFileSync(`${process.env.SCENE_OUT}/scene-${kind}-${theme}.png`, shot);
     }
   }
 });
@@ -837,7 +840,7 @@ test("the toolpath box's end marks stand off the background and the model in fou
       const { groups, cornerOf } = await armSamples();
       const marked = await page.screenshot();
       await testInfo.attach(`end-marks-${theme}-${machine ? "model" : "background"}.png`, { body: marked, contentType: "image/png" });
-      if (process.env.SCENE_OUT) await import("node:fs").then(fs => fs.writeFileSync(`${process.env.SCENE_OUT}/end-marks-${theme}-${machine ? "model" : "background"}.png`, marked));
+      if (process.env.SCENE_OUT) writeFileSync(`${process.env.SCENE_OUT}/end-marks-${theme}-${machine ? "model" : "background"}.png`, marked);
       await settle(theme, { machine, toolpathBounds: false });
       const bare = await page.screenshot();
       const px = await pixelPairs(page, [marked, bare], groups);
@@ -884,7 +887,7 @@ test("the toolpath box's end marks stand off the background and the model in fou
   expect(apart, "the labels stand apart where the boxes coincide").toBeGreaterThan(80);
   const withLabels = await page.screenshot();
   await testInfo.attach("type-labels-variant-ii.png", { body: withLabels, contentType: "image/png" });
-  if (process.env.SCENE_OUT) await import("node:fs").then(fs => fs.writeFileSync(`${process.env.SCENE_OUT}/type-labels-variant-ii.png`, withLabels));
+  if (process.env.SCENE_OUT) writeFileSync(`${process.env.SCENE_OUT}/type-labels-variant-ii.png`, withLabels);
   // the text is drawn: the region right of each anchor changes when hidden
   await page.evaluate(() => window.__viewerDiag!.setBoxTypeLabelsShown!(false));
   await page.waitForTimeout(300);
@@ -892,7 +895,7 @@ test("the toolpath box's end marks stand off the background and the model in fou
   expect(hidden.machine?.visible || hidden.program?.visible, "the seam hides both").toBe(false);
   const without = await page.screenshot();
   await testInfo.attach("type-labels-variant-i.png", { body: without, contentType: "image/png" });
-  if (process.env.SCENE_OUT) await import("node:fs").then(fs => fs.writeFileSync(`${process.env.SCENE_OUT}/type-labels-variant-i.png`, without));
+  if (process.env.SCENE_OUT) writeFileSync(`${process.env.SCENE_OUT}/type-labels-variant-i.png`, without);
   for (const [name, at] of [["machine", labels.machine!.screen], ["program", labels.program!.screen]] as const) {
     const pts = Array.from({ length: 60 }, (_, i) => ({ x: at.x + 8 + (i % 20) * 4, y: at.y - 8 - Math.floor(i / 20) * 4 }));
     const px = (await pixelPairs(page, [withLabels, without], [pts]))[0]!;
@@ -1001,7 +1004,7 @@ test("a reach chain with two visible pieces shows both tones in each (plan Fassu
       groundGrid: false, toolsetter: false, toolChange: false, reachPart: false, reachRoom: true } } } } });
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
     await page.evaluate(() => window.__viewerDiag!.setView!("z+"));
-    await page.waitForTimeout(400);
+    await topViewStands(page);
     // the page ↔ world map of the top view (z = 0)
     const [o, ex, ey] = (await page.evaluate(() => window.__viewerDiag!.projectPoints!([[0, 0, 0], [100, 0, 0], [0, 100, 0]])))!;
     const rect = (await page.evaluate(() => window.__viewerDiag!.canvasRect!()))!;
@@ -1020,7 +1023,7 @@ test("a reach chain with two visible pieces shows both tones in each (plan Fassu
     const P = [[far, yA], [tip, yA], [far, yA + drop], [far, yC - drop], [tip, yC], [far, yC]].map(p => [p[0]!, p[1]!, 0]);
     const soup = P.slice(0, -1).flatMap((p, i) => [...p, ...P[i + 1]!]);
     await page.evaluate(s => window.__viewerDiag!.setReachSoup!(s), soup);
-    await page.waitForTimeout(400);
+    await framesDrawn(page);
     const pat = (await page.evaluate(() => window.__viewerDiag!.getBoundsPattern!("reachRoom")))!;
     expect(pat.cells.length, `${theme}: the soup is ONE chain`).toBe(1);
     // the injected soup lies where it was put (the machine frame is the world here)

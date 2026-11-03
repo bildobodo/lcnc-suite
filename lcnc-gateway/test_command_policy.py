@@ -592,6 +592,16 @@ class TestPayloadSchema(unittest.TestCase):
         self.assertIn("finite", self._reject("set_wcs", {"x": float("inf")}))
         self.assertIn("finite", self._reject("set_wcs", {"r": float("nan")}))
 
+    def test_renumber_bounds_both_numbers_the_ui_sends(self):
+        # Test strategy step 2: the schema bounded a `new_number` the UI never
+        # sends; `old_tool_number` had no bound, pocket and diameter none for a
+        # renumber (save and add bound them). Both numbers, pocket, diameter.
+        ok = {"old_tool_number": 5, "tool_number": 7, "pocket": 7, "diameter": 6.0}
+        self.assertEqual(validate_payload("renumber_tool", ok, self.LIM), {})
+        for field, bad in (("old_tool_number", -1), ("old_tool_number", 10 ** 9), ("tool_number", -2),
+                           ("pocket", 10 ** 9), ("diameter", -1.0)):
+            self.assertIn(field, self._reject("renumber_tool", {**ok, field: bad}), (field, bad))
+
     def test_axis_and_joint_indices_bounded_by_the_machine(self):
         self.assertIn("maximum 4", self._reject("jog_cont", {"axis": 7}))
         self.assertIn("maximum 4", self._reject("home", {"joint": 99}))

@@ -1,7 +1,6 @@
-import { test, expect, type Page } from "@playwright/test";
-import { expectArmed } from "./ctl";
+import { test, expect, type Page } from "./test";
+import { expectArmed, MOCK } from "./ctl";
 
-const MOCK = process.env.TOOL_IMPORT_TEST_URL ?? "http://localhost:4174/";
 const upload = { name: "tools.json", mimeType: "application/json", buffer: Buffer.from('{"data":[]}') };
 const row = { T: 1, type: "endmill", D: 6, current_diameter: 6, Z: -42.3,
   description: "Updated Fusion cutter", current_description: "Measured cutter", reason: null as string | null, match: "number" };

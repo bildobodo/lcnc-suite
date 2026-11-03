@@ -1,8 +1,7 @@
-import { test, expect, type Page } from "@playwright/test";
-import { publishToolTable, expectArmed } from "./ctl";
+import { test, expect, type Page } from "./test";
+import { publishToolTable, expectArmed, MOCK } from "./ctl";
 import WebSocket from "ws";
 
-const MOCK = process.env.TOOL_IMPORT_TEST_URL ?? "http://localhost:4174/";
 const controlUrl = new URL("ctl", MOCK).href.replace(/^http/, "ws");
 function ctl(op: Record<string, unknown>): Promise<void> {
   return new Promise((resolve, reject) => {

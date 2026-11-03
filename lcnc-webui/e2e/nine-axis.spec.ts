@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./test";
 import { ctl, MOCK } from "./ctl";
 
 // WS-D — dynamic 9-axis layout guards.
@@ -10,18 +10,14 @@ import { ctl, MOCK } from "./ctl";
 //   1. one row/button-group PER MACHINE AXIS, in machine order, all visible
 //   2. by-letter rendering (a lathe [X,Z] shows Z — no phantom Y between)
 //
-// Runs in the SERIAL project: setAxes swaps mock-global state, and the reset
-// op restores the XYZ baseline for whichever serial spec runs next.
+// setAxes swaps the axis set of the worker's own mock (e2e/test.ts); the
+// fixture's reset before every test restores the XYZ baseline.
 const NINE = ["X", "Y", "Z", "A", "B", "C", "U", "V", "W"];
 
 test.beforeEach(async ({ page }) => {
   await ctl({ op: "reset" });
   await page.goto(MOCK);
   await expect(page.getByRole("button", { name: "Zero X", exact: true })).toBeVisible();
-});
-
-test.afterAll(async () => {
-  await ctl({ op: "reset" });
 });
 
 test("9-axis machine: SetupStrip renders a zero/home group per axis, HUD shows all letters", async ({ page }) => {

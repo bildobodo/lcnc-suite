@@ -4,9 +4,14 @@
 // every ctl message with a JSON {ok, ...} frame, so first-message == reply.
 import WebSocket from "ws";
 import { expect, type Page } from "@playwright/test";
+import { mockUrl } from "./mockSlot.mjs";
 
-export const MOCK = "http://localhost:4174/";
-export const CTL = "ws://localhost:4174/ctl";
+// The mock of THIS worker (per-worker mock, Codex R262 PM261-02): its slot is
+// the worker's TEST_PARALLEL_INDEX, known at import. HTTP, the app's /ws and
+// /ctl all come from here; outside a worker (`--list`, the runner) the
+// address is unbound and any use fails visibly — never a shared port.
+export const MOCK = mockUrl(process.env.TEST_PARALLEL_INDEX);
+export const CTL = `${MOCK.replace(/^http/, "ws")}ctl`;
 
 /** Send a ctl op and resolve with the mock's parsed reply. */
 export function ctl(op: Record<string, unknown>): Promise<any> {
@@ -15,6 +20,29 @@ export function ctl(op: Record<string, unknown>): Promise<any> {
     c.once("open", () => c.send(JSON.stringify(op)));
     c.once("message", (d) => { c.close(); resolve(JSON.parse(String(d))); });
     c.once("error", reject);
+  });
+}
+
+/** What a FRESH app client receives on connect, read off the wire (per-worker
+ *  mock, Codex R263 PM263-01): the status and the viewer_init frame — the
+ *  latter without its `_rev`, a revision every re-ship bumps. Resolves once
+ *  this socket is closed on the client side; the mock may still count it a
+ *  moment longer (`snapshot().clients`). */
+export function appConnectFrames(): Promise<{ status: Record<string, unknown>; viewerInit: Record<string, unknown> }> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(`${MOCK.replace(/^http/, "ws")}ws`);
+    const frames: Record<string, unknown>[] = [];
+    const timer = setTimeout(() => { ws.terminate(); reject(new Error(`a fresh client got ${frames.length} of its 2 connect frames in 5 s`)); }, 5_000);
+    ws.on("error", e => { clearTimeout(timer); reject(e); });
+    ws.on("message", d => {
+      frames.push(JSON.parse(String(d)));
+      if (frames.length !== 2) return;
+      clearTimeout(timer);
+      const [status, init] = frames as [Record<string, unknown>, { data?: Record<string, unknown> }];
+      const { _rev: _ignored, ...data } = init.data ?? {};
+      ws.once("close", () => resolve({ status, viewerInit: { ...init, data } }));
+      ws.close();
+    });
   });
 }
 

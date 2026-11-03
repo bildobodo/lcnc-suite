@@ -7,7 +7,7 @@
 // packets flow (idle position, a run's G0 ↔ G1, a tool change, the feed) and
 // a gamepad is polled. Counted with a MutationObserver — browser-neutral;
 // Firefox is what reacts.
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
 import { encode } from "@msgpack/msgpack";
 import { withLimitRuns } from "./limitRuns";
 import { ctl, publishToolTable } from "./ctl";

@@ -5,7 +5,7 @@
 // ● tool change), a filter, the steps. Stepping through collisions used to
 // change the findings row's text width and the bar folded and unfolded under
 // the operator's finger; the list's rows are the bar's own targets.
-import { test, expect, type Page, type BrowserContext } from "@playwright/test";
+import { test, expect, type Page, type BrowserContext } from "./test";
 import { decode, encode } from "@msgpack/msgpack";
 import { readFileSync } from "node:fs";
 import { ctl } from "./ctl";
@@ -164,7 +164,7 @@ test("a long list is a window: 400 rows, the count and the steps reach every tar
  *  any frame), then every frame's rows, table height and column widths until
  *  the list is complete; `onFirst` runs at the first appearance, between the
  *  first portion and the next. */
-interface Fill { first: number | null; ref: string | null; ran: unknown;
+interface Fill { first: number | null; ref: string | null; ran: unknown; done: boolean;
   frames: Array<{ n: number; h: number; w: string; y: number | null; at: number | null; stops: Array<string | null>; active: string | null }> }
 /** Every frame from the first rendered row of a new list until it is
  *  complete: the rows rendered, the table's height, the column widths, where
@@ -175,7 +175,7 @@ interface Fill { first: number | null; ref: string | null; ran: unknown;
 async function watchFill(page: Page, onFirst: string | null = null, track: string | null = null) {
   await page.evaluate(([onFirst, track]) => {
     const w = window as unknown as Record<string, unknown> & { __fill: Fill };
-    w.__fill = { first: null, ref: null, frames: [], ran: null };
+    w.__fill = { first: null, ref: null, frames: [], ran: null, done: false };
     const f = w.__fill;
     const trs = () => [...document.querySelectorAll(".simPanel tbody tr[data-sim-row]")];
     const count = () => trs().length;
@@ -197,6 +197,7 @@ async function watchFill(page: Page, onFirst: string | null = null, track: strin
                                 at: tt ? tt.getBoundingClientRect().top - sc.getBoundingClientRect().top : null,
                                 stops: [...(sc?.querySelectorAll('.rowPick[tabindex="0"]') ?? [])].map(keyOf), active: keyOf(document.activeElement) });
         if (sc?.dataset.listComplete !== "1" || f.frames.length < 2) requestAnimationFrame(frame);
+        else f.done = true;
       };
       requestAnimationFrame(frame);
     });
@@ -218,6 +219,15 @@ function expectStillFill(f: Fill, what: string) {
   }
 }
 const complete = (page: Page) => expect(page.locator(".simPanel .simTable[data-list-complete='1']")).toHaveCount(1);
+/** The list `watchFill` watches, whole: its frames recorded to the last.
+ *  `complete` alone is the list on screen — before the new one arrives that
+ *  is the OLD list, complete at once (an empty list too): under load a fill
+ *  was read mid-way, 160 of 400 rows, two frames of nine (the parallel
+ *  measurement, 2026-11-03). */
+async function filled(page: Page) {
+  await expect.poll(() => fillOf(page).then(f => f.done), { message: "the new list filled to its last frame" }).toBe(true);
+  await complete(page);
+}
 /** A first portion in the MIDDLE of the window — around the 200th row, which
  *  holds the focus (shown, then reached the keyboard's way), when a new result
  *  brings new rows: the focus goes to the row now at its place (R78), the
@@ -233,7 +243,7 @@ async function midFill(page: Page, what: string) {
   await complete(page);
   await watchFill(page);
   await hits(page, 1000, 5000);
-  await complete(page);
+  await filled(page);
   const mid = await fillOf(page), keys = await rowKeys(page);
   expect(keys.length).toBe(400);
   await expect(page.locator(`.simPanel [data-sim-row="${keys[200]}"] .rowPick`), `${what}: the focus on the row now at its place`).toBeFocused();
@@ -251,7 +261,7 @@ test("a long list fills in portions: the first at once, the rest a portion a fra
   await simShow(page, "clash");
   await watchFill(page);
   await hits(page, 1000);
-  await complete(page);
+  await filled(page);
   await expect(rows(page)).toHaveCount(400);
   expectStillFill(await fillOf(page), "from the top");
   // the tab stop is a rendered row from the first portion on, and the first row is it
@@ -304,7 +314,7 @@ test("the spacers' row height is measured where the rows are seen — never in a
   await watchFill(page, null, key);
   await expect.poll(() => page.evaluate(n => window.__viewerDiag?.setCollisionHits?.(
     Array.from({ length: n }, (_, k) => ({ line: k < 300 ? 5 : 30, frac: 0.01 + (0.98 * k) / n, ordinal: k === 200 ? 200 : 5000 + k }))) ?? false, 1000)).toBe(true);
-  await complete(page);
+  await filled(page);
   const f = await fillOf(page), keys = await rowKeys(page);
   expect(keys.indexOf(f.ref), "the first portion around the shown row").toBe(keys.indexOf(key) - FIRST_ROWS / 2);
   expectStillFill(f, "after a fill in a hidden tab");
@@ -324,7 +334,7 @@ test("a list that begins to fill in a hidden tab and is shown between its portio
   await watchFill(page, `[...document.querySelectorAll('[role="tab"]')].find(t => t.textContent.trim() === "Sim").click();
     return document.querySelector(".simPanel tbody tr[data-sim-row]").getBoundingClientRect().height;`);
   await hits(page, 1000);
-  await complete(page);
+  await filled(page);
   await expect(page.locator(".simPanel")).toBeVisible();
   const f = await fillOf(page);
   expect(f.ran, "the first portion arrived in the hidden tab").toBe(0);
@@ -335,6 +345,7 @@ test("a size change after a list was measured: the next list fills at its own pi
   await prepare(page, context, "desktop", PREVIEW, false);
   await simShow(page, "clash");
   await hits(page, 1000);
+  await expect(rows(page), "the new list, whole (the list before it is complete too)").toHaveCount(400);
   await complete(page);
   // the pitch measured at 100 %; then 150 % (the bench's CSS zoom) — a pitch
   // kept per density shrank the table by 106 px while the next list filled
@@ -354,7 +365,7 @@ test("between the portions: the keys reach a row not yet rendered, a filter chan
   await hits(page, 1000);
   await expect.poll(() => page.evaluate(() => document.activeElement?.closest("[data-sim-row]")?.getAttribute("data-sim-row") ?? document.activeElement?.tagName))
     .toBe("C0|399|0");
-  await complete(page);
+  await filled(page);
   await expect(page.locator('.simPanel [data-sim-row="C0|399|0"] .rowPick'), "the focus stays across the fill").toBeFocused();
   for (const key of ["Home", "ArrowDown", "End", "ArrowUp"]) await page.keyboard.press(key);
   await expect(page.locator('.simPanel [data-sim-row="C0|398|0"] .rowPick')).toBeFocused();
@@ -364,7 +375,7 @@ test("between the portions: the keys reach a row not yet rendered, a filter chan
   await simShow(page, "clash");
   await watchFill(page, `const s = document.querySelector('.simPanel select[name="simFilter"]'); s.value = "all"; s.dispatchEvent(new Event("change", { bubbles: true })); return s.value;`);
   await hits(page, 1000, 7000);
-  await complete(page);
+  await filled(page);
   const keys = await rowKeys(page);
   expect(keys.length).toBe(400);
   expect(keys.every(k => /^C0\|7\d{3}\|0$/.test(k!) || /^[LT]/.test(k!)), "only the new list's rows").toBe(true);
@@ -380,6 +391,7 @@ test("the list keeps ONE tab stop while it fills around a focus far from the reg
   await prepare(page, context, "desktop", PREVIEW, false);
   await simShow(page, "clash");
   await hits(page, 1000);
+  await expect(rows(page), "the new list, whole (the list before it is complete too)").toHaveCount(400);
   await complete(page);
   // the focus on the 200th row — not shown: the tab stop stays the first row
   await page.locator('.simPanel [data-sim-row="C0|200|0"] .rowPick').focus();
@@ -397,7 +409,7 @@ test("the list keeps ONE tab stop while it fills around a focus far from the reg
   await page.keyboard.press("Tab");
   const tabbed = await page.evaluate(() => ({ row: document.activeElement?.closest("[data-sim-row]")?.getAttribute("data-sim-row") ?? document.activeElement?.className ?? null,
     filling: document.querySelector<HTMLElement>(".simTable")!.dataset.listComplete !== "1" }));
-  await complete(page);
+  await filled(page);
   const f = await fillOf(page);
   expect(f.ran, "the list's help held the focus at the first portion").toMatch(/^Help: /);
   expect(f.first).toBe(FIRST_ROWS);

@@ -1,0 +1,102 @@
+// SCRATCH (test strategy step 1, TS248-05): the BiDi feasibility of a stock
+// Mozilla Firefox for our specs — route, toHaveScreenshot, mouse hold,
+// keyboard, touch. Not committed; its findings go into the review.
+import { test, expect, type Page } from "@playwright/test";
+import { ctl, MOCK } from "./ctl";
+import { PROFILES, VIEWPORTS, openLayout } from "./layout-fixtures";
+
+const cmds = async (): Promise<string[]> => (((await ctl({ op: "lastCmds" })) as { cmds?: { cmd?: string }[] }).cmds ?? []).map(c => c.cmd ?? "");
+
+test("route: a page fetch and a worker fetch are answered by the test", async ({ page }) => {
+  await page.route("**/ff-route-probe*", r => r.fulfill({ body: "routed", contentType: "text/plain" }));
+  await page.goto(MOCK);
+  expect(await page.evaluate(() => fetch("/ff-route-probe").then(r => r.text()))).toBe("routed");
+  const fromWorker = await page.evaluate(() => new Promise<string>(resolve => {
+    const src = `fetch(${JSON.stringify(location.origin)} + "/ff-route-probe-worker").then(r => r.text()).then(t => postMessage(t), e => postMessage("error " + e))`;
+    const w = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+    w.onmessage = e => resolve(String(e.data));
+  }));
+  test.info().annotations.push({ type: "worker fetch", description: fromWorker });
+  expect(fromWorker).toBe("routed");
+});
+
+test("screenshot: the Outside grid against its reference", async ({ page }) => {
+  await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  const side = page.locator(".sidePane");
+  await side.getByRole("tab", { name: "Probing", exact: true }).click();
+  await side.getByRole("tab", { name: "Outside", exact: true }).click();
+  const grid = side.locator(".gridWrap").first();
+  const svg = await grid.locator("svg").first().boundingBox();
+  test.info().annotations.push({ type: "glyph", description: `${svg?.width}x${svg?.height}` });
+  expect(svg!.width).toBeGreaterThan(60);
+  await expect(grid).toHaveScreenshot("ff-outside-grid.png");
+});
+
+async function hold(page: Page, box: { x: number; y: number; width: number; height: number }) {
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(700);
+  await page.mouse.up();
+}
+
+test("mouse: a held probe cell sends exactly one mdi", async ({ page }) => {
+  await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  const side = page.locator(".sidePane");
+  await side.getByRole("tab", { name: "Probing", exact: true }).click();
+  const cell = side.getByRole("tabpanel").locator(".gridCell").first();
+  await expect(cell).toBeEnabled();
+  await ctl({ op: "clearCmds" });
+  await hold(page, (await cell.boundingBox())!);
+  await expect.poll(async () => (await cmds()).filter(c => c === "mdi").length).toBe(1);
+});
+
+test("keyboard: Escape on the page sends exactly one estop", async ({ page }) => {
+  await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await ctl({ op: "clearCmds" });
+  await page.keyboard.press("Escape");
+  await expect.poll(async () => (await cmds()).filter(c => c === "estop").length).toBe(1);
+});
+
+test.describe("touch", () => {
+  test.use({ hasTouch: true });
+  test("a tap reaches the page as a touch pointer and flips the app to touch", async ({ page }) => {
+    await page.goto(MOCK);
+    await expect(page.locator("input.setupInput").first()).toBeVisible();
+    await page.evaluate(() => {
+      (window as unknown as { __pt: string[] }).__pt = [];
+      addEventListener("pointerdown", e => (window as unknown as { __pt: string[] }).__pt.push(e.pointerType), true);
+    });
+    await page.locator(".sidePane").getByRole("tab", { name: "Offsets", exact: true }).tap();
+    const kinds = await page.evaluate(() => (window as unknown as { __pt: string[] }).__pt);
+    test.info().annotations.push({ type: "pointer types", description: kinds.join(",") });
+    expect(kinds).toContain("touch");
+    await expect(page.locator("html.touch-device")).toHaveCount(1);
+  });
+});
+
+test.describe("touch, what arrives", () => {
+  test.use({ hasTouch: true });
+  test("a tap and a touchscreen tap: the events the page sees", async ({ page }) => {
+    await page.goto(MOCK);
+    await expect(page.locator("input.setupInput").first()).toBeVisible();
+    await page.evaluate(() => {
+      const w = window as unknown as { __ev: string[] };
+      w.__ev = [];
+      for (const t of ["pointerdown", "pointerup", "touchstart", "touchend", "mousedown", "click"])
+        addEventListener(t, e => w.__ev.push(`${t}:${(e as PointerEvent).pointerType ?? ""}`), true);
+    });
+    const info = await page.evaluate(() => ({ maxTouch: navigator.maxTouchPoints, touchEvent: "ontouchstart" in window,
+      coarse: matchMedia("(pointer: coarse)").matches }));
+    test.info().annotations.push({ type: "env", description: JSON.stringify(info) });
+    const tab = page.locator(".sidePane").getByRole("tab", { name: "Offsets", exact: true });
+    await tab.tap();
+    const a = await page.evaluate(() => (window as unknown as { __ev: string[] }).__ev.splice(0));
+    const box = (await page.locator(".sidePane").getByRole("tab", { name: "Tools", exact: true }).boundingBox())!;
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+    const b = await page.evaluate(() => (window as unknown as { __ev: string[] }).__ev.splice(0));
+    test.info().annotations.push({ type: "locator.tap", description: a.join(" ") });
+    test.info().annotations.push({ type: "touchscreen.tap", description: b.join(" ") });
+    test.info().annotations.push({ type: "selected", description: String(await page.locator(".sidePane").getByRole("tab", { selected: true }).first().textContent()) });
+  });
+});

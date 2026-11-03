@@ -1,4 +1,5 @@
 import { computed, inject, type ComputedRef, type InjectionKey } from "vue";
+import type { WsCommand } from "./lcnc";
 
 /**
  * Permission classes — which controls are enabled in which machine state.
@@ -335,7 +336,7 @@ export function useOwnerPermissions(): ComputedRef<Permissions> {
  */
 /** Returns the `req_id` the command went out with, or null when nothing
  *  was sent (gate closed, busy latch, no transport) — never a pending. */
-export type FireFn = (payload: any, gate?: keyof Permissions, cooldownMs?: number) => string | null;
+export type FireFn = (payload: WsCommand, gate?: keyof Permissions, cooldownMs?: number) => string | null;
 export const FIRE_KEY = Symbol("fire") as InjectionKey<FireFn>;
 
 /** Composable: inject the gated send path from the ancestor provider. */

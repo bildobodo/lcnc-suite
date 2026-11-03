@@ -1,0 +1,77 @@
+Per-worker mock — the load races of the parallel full runs (2026-11-03)
+========================================================================
+
+The measurement (cb4e45b4, round_gate FULL, one project, each worker its own
+mock): w1 PASS 838/838; w2 2 failed, w3 5 failed — browser-executed and
+browser-workers PASS in all three (every test once, on one worker and mock).
+
+w3 failures:
+  collisions.viewer.spec.ts:990 a run check that begins inside a called routine names its call l
+      Error: expect(received).toEqual(expected) // deep equality
+  macros.spec.ts:242 another client's save during a bar hold cancels it; the next hol
+      Error: expect(locator).toHaveText(expected) failed
+  scenes.viewer.spec.ts:990 a reach chain with two visible pieces shows both tones in each (
+      Error: light piece 1: measured
+  sim-panel.viewer.spec.ts:249 a long list fills in portions: the first at once, the rest a por
+      Error: expect(received).toBe(expected) // Object.is equality
+  sim-panel.viewer.spec.ts:317 a list that begins to fill in a hidden tab and is shown between 
+      Error: shown between the portions: a portion a frame
+w2 failures:
+  run-hold.spec.ts:302 an orientation change mid-hold runs nothing; the focus and an op
+      Error: the hold ended with its button
+  sim-panel.viewer.spec.ts:317 a list that begins to fill in a hidden tab and is shown between 
+      Error: shown between the portions: a portion a frame
+
+Red under load (repro-red1: the six tests, --repeat-each 4, 3 workers, 3 CPU
+burners; the code of the measurement):
+  1/4 failed  collisions.viewer.spec.ts:990 a run check that begins inside a called routine names its call l
+  0/4 failed  macros.spec.ts:242 another client's save during a bar hold cancels it; the next hol
+  0/4 failed  run-hold.spec.ts:302 an orientation change mid-hold runs nothing; the focus and an op
+  3/4 failed  scenes.viewer.spec.ts:990 a reach chain with two visible pieces shows both tones in each (
+  0/4 failed  sim-panel.viewer.spec.ts:249 a long list fills in portions: the first at once, the rest a por
+  4/4 failed  sim-panel.viewer.spec.ts:317 a list that begins to fill in a hidden tab and is shown between 
+
+(macros:242, run-hold:302 and sim-panel:249 did not show under this load; the
+holds are proven by the delay and mutation runs below, sim-panel:249 shares
+the helper of sim-panel:317.)
+
+Green under the same load after the fixes (repro-green1, --repeat-each 6):
+  0/6 failed  collisions.viewer.spec.ts:1000 a run check that begins inside a called routine names its call l
+  1/6 failed  macros.spec.ts:242 another client's save during a bar hold cancels it; the next hol   ← Error: clock.pauseAt: Error: Cannot fast-forward to the past
+  4/6 failed  run-hold.spec.ts:302 an orientation change mid-hold runs nothing; the focus and an op   ← Error: clock.pauseAt: Error: Cannot fast-forward to the past
+  0/6 failed  scenes.viewer.spec.ts:1012 a reach chain with two visible pieces shows both tones in each (
+  0/6 failed  sim-panel.viewer.spec.ts:259 a long list fills in portions: the first at once, the rest a por
+  0/6 failed  sim-panel.viewer.spec.ts:327 a list that begins to fill in a hidden tab and is shown between 
+  (the clock form's first draft: pauseAt(page time + 50 ms) lay in the past
+  by its arrival under load — fixed: a second ahead of this machine's time)
+
+repro-green2 (--repeat-each 6, the clock fixed, the shared view signals; the
+hold tests still in the form that released before runFor — the final form's
+runs: the control below, the selected and the full runs of R263):
+  0/6 failed  macros.spec.ts:242 another client's save during a bar hold cancels it; the next hol
+  0/6 failed  run-hold.spec.ts:302 an orientation change mid-hold runs nothing; the focus and an op
+  0/6 failed  scenes.viewer.spec.ts:991 a reach chain with two visible pieces shows both tones in each (
+  0/6 failed  toolsetter.viewer.spec.ts:208 the tool setter is a pin drawn over the machine while on top, hi
+
+The hold tests' proofs (one worker, no burners):
+  delay — the listing the app reads after macros_changed held 700 ms (> the
+    500 ms hold): the OLD form FAILS ("element(s) not found", the
+    measurement's symptom), the NEW form passes.
+  first mutation pass — M1 (the hold-key watch shows the hint, keeps the
+    hold) and M2 (an unmounted button keeps its timer) both SURVIVED: the
+    clock form released the mouse before runFor — a release before the hold
+    time is a tap and ends every hold, so the check proved nothing. Fixed:
+    runFor(HOLD_MS) with the finger down, then the release, then 300 ms for
+    what a fired hold sent.
+  second pass — control (unmutated) macros:242 + run-hold:302 PASS;
+    M1 FAILS ("the hold bound to the old revision ran nothing": a run sent);
+    M2b (no unmount clear, no pointerleave cancel, no blur cancel) PASSES and
+    M2c (no unmount clear, no pointerleave cancel) PASSES.
+  why M2b survives — three guards end a hold on the old bar: pointerleave
+    (the page's log in the unmutated run: "[hold] macro cancelled after 0 ms:
+    pointer left the button"), the unmount's clearTimeout, and Vue itself:
+    runtime-core emit() returns when instance.isUnmounted (Vue 3.5.27), and
+    the bar runs its macro through emit('run'). The count is live: control
+    C1 (the same hold without the orientation change, held through runFor)
+    runs once.
+

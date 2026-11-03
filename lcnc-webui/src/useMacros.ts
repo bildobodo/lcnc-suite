@@ -10,6 +10,7 @@
 // composable: when another tab saves the bar, our copy refreshes from the
 // shared store.
 
+import type { WsCommand } from "./lcnc";
 import { computed, ref, watch } from "vue";
 import { loadMacrosDefaults, loadMacrosDraft, saveMacrosDefaults, settingsVersion } from "./defaults";
 import type { Permissions } from "./permissions";
@@ -28,7 +29,7 @@ export interface MacroParamDialogState {
 
 interface UseMacrosOptions {
   /** Permission-gated send wrapper from App.vue. */
-  fire: (payload: any, gate?: keyof Permissions, cooldownMs?: number) => void;
+  fire: (payload: WsCommand, gate?: keyof Permissions, cooldownMs?: number) => void;
 }
 
 let earlierNoted = false;

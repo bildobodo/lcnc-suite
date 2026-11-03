@@ -1,4 +1,4 @@
-import { test, expect, type Page, type CDPSession } from "@playwright/test";
+import { test, expect, type Page, type CDPSession } from "./test";
 import { enterTouch } from "./touchMode";
 import { ctl, MOCK } from "./ctl";
 import { clickMore } from "./more";
@@ -11,7 +11,8 @@ import { clickMore } from "./more";
 // command per complete hold, none for a tap, a slide-off, a cancel, a
 // hidden page — and every cancelled hold says so at the control.
 //
-// Runs under `serial-guards` (mock-global status + recorded commands).
+// The worker's own mock (e2e/test.ts): its state is this test's alone, reset
+// and checked before every test.
 
 test.use({ hasTouch: true, viewport: { width: 1280, height: 800 } });
 

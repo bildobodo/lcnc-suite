@@ -1,0 +1,45 @@
+Per-worker mock — PM263-01 (Codex R263): the confirmed reset kept tool_meta — red before, green after (2026-11-03)
+
+The finding: `status_delta` may set the status' TOP-LEVEL `tool_meta`; `reset`
+restored only `state.armed` and `state.data`, and the snapshot did not name
+the key, so mockBaseline confirmed a "pristine" mock whose every fresh app
+client still got the previous test's tool.
+
+1. Codex's own probe (per-worker-mock.r263.codex-baseline.spec.ts as
+   e2e-proof/r263/baseline.spec.ts, playwright.proof.config.ts, 1 worker):
+   at eecabc56 (unchanged): 1 passed, 1 failed —
+     R263 observed after auto reset: {"id":73,"diameter":42,"holder_segments":[{"h":23,"d1":51,"d2":51}]}
+   after the fix: 2 passed — R263 observed after auto reset: undefined
+   (the probe was removed from the tree after the green run; the durable
+   guard is e2e/mock-baseline.spec.ts).
+
+2. The guard e2e/mock-baseline.spec.ts, extended: the first test leaves the
+   tool's geometry, an envelope key (run_basis), a kinematics declaration,
+   the INI's increments, a raw settings_init and settingsEcho off beside the
+   nine axes, the delta, the scripted reply and quiet — and reads them on a
+   fresh client's wire (the dirt is real); the second test asserts the
+   snapshot equal to pristine AND a fresh client's connect frames equal to
+   the pristine ones, tool_meta / run_basis / kins absent.
+   a) old fixture (BASELINE_KEYS pick), unfixed mock: 1 passed, 1 failed —
+        Error: a fresh client must not get the previous test's tool
+        Received: {"diameter": 42, "holder_segments": [...], "id": 73}
+      (the restricted snapshot comparison passed: the finding as Codex saw it)
+   b) new fixture (whole snapshot + the fresh client's wire), unfixed mock:
+      1 passed, 1 failed — in the fixture, before the test body:
+        Error: a fresh app client's connect frames after reset
+        +     "tool_meta": Object {
+   c) the fix (reset clears every key of `state` and assigns the pristine
+      clone; VIEWER_INIT.data restored from its own pristine clone; the
+      snapshot carries `connect` — the two frames a fresh client gets, one
+      helper for the connect handler and the snapshot): 2 passed
+   d) mutation — the reset's two-field form back, the new fixture kept:
+      1 passed, 1 failed — in the fixture:
+        Error: the mock's baseline after reset
+        +       "tool_meta": Object {
+      (the extended snapshot alone sees it, not only the wire read)
+
+3. The real tool_meta writers and their neighbours, 3 workers:
+   mock-baseline, tool-holder, freecad-import, lifecycle, viewer: 16 passed.
+
+4. The isolation harness (proof_harness.py, unchanged): 7/7 PASS
+   (per-worker-mock.r264.harness.json).

@@ -1,4 +1,4 @@
-import { test, expect, type Page, type BrowserContext } from "@playwright/test";
+import { test, expect, type Page, type BrowserContext } from "./test";
 import { decode, encode } from "@msgpack/msgpack";
 import { readFileSync } from "node:fs";
 import { ctl } from "./ctl";
@@ -654,14 +654,24 @@ const originEnv = (file: string, version: number, over: Record<string, unknown> 
 const pinnedFor = (runId: number) => ({ pinned: true, reason: "midrun:table_mtime",
   for_run: { run_id: runId, ctx_digest: "d", tool_basis_rev: 1 } });
 const runLog = (page: Page) => page.evaluate(() => window.__viewerDiag?.getRunCheckLog?.() ?? []);
-/** Publish `version` during the run and, once it is on screen, one status
- *  frame (the gateway sends 30 a second; `quiet` sends none): the run watcher
- *  attaches the position to the new track before the auto timer plans. */
+/** Publish `version` during the run with the run's position in status frames
+ *  at the gateway's cadence (30 a second; `quiet` sends none) until it is on
+ *  screen, then one more: the run watcher attaches the position to the new
+ *  track before the auto timer (400 ms from the publish) plans. One frame
+ *  sent after the poll saw the version lost that race under load — the poll
+ *  itself waits up to 500 ms between its reads (the parallel measurement,
+ *  2026-11-03: "start full"). */
 async function publishInRun(page: Page, file: string, version: number, over: Record<string, unknown>) {
+  const at = { op: "status_delta", data: { joint_pos: [120, 0, -380, 0, 0], actual_position: [120, 0, -380, 0, 0] } };
   await ctl({ op: "status_delta", envelope: originEnv(file, version, over), data: {} });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version, file } });
-  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getShownVersion?.() ?? null), { timeout: 10_000 }).toBe(version);
-  await ctl({ op: "status_delta", data: { joint_pos: [120, 0, -380, 0, 0], actual_position: [120, 0, -380, 0, 0] } });
+  const cadence = setInterval(() => { void ctl(at).catch(() => {}); }, 33);
+  try {
+    await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version, file } });
+    await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getShownVersion?.() ?? null), { timeout: 10_000 }).toBe(version);
+  } finally {
+    clearInterval(cadence);
+  }
+  await ctl(at);
 }
 /** The run on screen at X 120 on L7 (the attached run position the provisional check starts from). */
 async function runOnL7(page: Page, file: string, version: number) {

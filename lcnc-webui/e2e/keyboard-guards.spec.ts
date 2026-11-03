@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Locator } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "./test";
 import { ctl, MOCK } from "./ctl";
 import { clickMore } from "./more";
 import { Folder, serve } from "./macroFolder";
@@ -12,8 +12,8 @@ import { Folder, serve } from "./macroFolder";
 // `estop_reset` (reset is a button, only); and a jog key released while a
 // field opened mid-jog still sends its `jog_stop`.
 //
-// Runs under the `serial-guards` project: mock-global state (status deltas,
-// recorded commands) — one file at a time.
+// The worker's own mock (e2e/test.ts): its state is this test's alone, reset
+// and checked before every test.
 
 const PERMS_ALL = {
   idle: true, jog: true, override: true, ready: true, run: true, pause: false,

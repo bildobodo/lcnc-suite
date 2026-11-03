@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./test";
 import { ctl, MOCK } from "./ctl";
 import * as THREE from "three";
 import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
@@ -20,9 +20,10 @@ import { encode } from "@msgpack/msgpack";
 //
 // Robustness: loadGcode is async (preview-worker round-trip) and rendering is
 // rAF-batched, so the spec POLLS for a settled count rather than guessing a
-// fixed wait — fixed settles raced the worker when both serial specs ran under
-// load. Runs in the serial `serial` project: a contention-free, settled
-// renderer, and it drives mock-global rebuild/load state.
+// fixed wait — fixed settles raced the worker when two viewer specs ran under
+// load. Its rebuild/load state is the worker's own mock (e2e/test.ts); the
+// leak probe was repeated beside the heavy viewer specs before the parallel
+// run (per-worker mock R263).
 
 type Page = import("@playwright/test").Page;
 
@@ -47,7 +48,8 @@ async function settledGeometries(page: Page): Promise<number> {
   return reads[reads.length - 1]!;
 }
 
-// The mock-gateway is shared by every spec; reset to pristine before each test.
+// The worker's own mock is reset and checked before every test (e2e/test.ts);
+// this reset stays — the same op twice, harmless.
 test.beforeEach(async () => {
   await ctl({ op: "reset" });
 });

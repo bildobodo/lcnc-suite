@@ -1,0 +1,15 @@
+# probe-click.spec.ts (test strategy step 2) — what it found and its counter-proof, 2026-11-03T01:22:10+01:00
+
+## First run (feat/test-tiers e2382863, the panel at fix/probe-vars bcab7cb7): RED in Calibrate
+Outside, Boss/Pocket, Ridge/Valley, Angle: 4 passed. Calibrate: its mdi carried one number more than the map:
+    +   "3036",
+#3036 (the calibration's axis) was set beside the map in runCalProbe and declared in no example var file —
+every calibration on every example was refused by the gateway. Fixed on fix/probe-vars b9e29335 (calibrationVarMap, the
+examples declare 3036 0, probeVarFiles.test takes the calibration's numbers: red 3/3 first — docs/reviews/probe-fixes.cal-red.txt).
+
+## After the merge (ace55ef5): 5 passed (select config, probe-click alone)
+
+## Mutations in ProbePanel.vue (vite build, the select config): each must be red in the forms it touches
+RED  Calibrate builds its numbers beside the map again: failed ['Calibrate'] (1 failed)
+RED  the grid drops one number (#3024): failed ['Angle', 'Boss/Pocket', 'Outside', 'Ridge/Valley'] (4 failed)
+(the grid mutant leaves Calibrate green: a calibration builds its numbers through calibrationVarMap, not the grid's buildVarMap)

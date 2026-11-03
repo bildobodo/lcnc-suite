@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
 import { enterTouch } from "./touchMode";
 import { ctl, MOCK, publishToolTable } from "./ctl";
 import { Folder, serve } from "./macroFolder";
@@ -20,7 +20,8 @@ import { clickMore } from "./more";
 //     part of its description and of the keypad readout; a label tap opens
 //     the field.
 //
-// Runs under `serial-guards`: mock-global state, one file at a time.
+// The worker's own mock (e2e/test.ts): its state is this test's alone, reset
+// and checked before every test.
 
 const PERMS_ALL = {
   idle: true, jog: true, override: true, ready: true, run: true, pause: false,

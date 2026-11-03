@@ -1,0 +1,39 @@
+Per-worker mock — the R263 load runs at eecabc56 (2026-11-03)
+
+Driver: ~/claude-work/teststrat/repro-load.sh <tree> <out.json> <repeat> <burners> <file:line>…
+(the named tests with --repeat-each, --retries 0, on LCNC_E2E_WORKERS=3, with K busy-loop
+CPU burners beside them; each run its own systemd unit, never beside another Playwright run).
+
+1. The hold tests in their final form (finger down through runFor(HOLD_MS), then the release,
+   then 300 ms for what a fired hold would have sent), 6 repeats on 3 workers + 3 burners:
+
+   0/6 failed  macros.spec.ts:242 another client's save during a bar hold cancels it; the next hold runs
+   0/6 failed  run-hold.spec.ts:303 an orientation change mid-hold runs nothing; the focus and an open dia
+   12 expected, 0 unexpected, 0 flaky (34.5 s)
+
+   Their proofs (delay, M1, M2b/M2c, control C1) are in per-worker-mock.load-races.txt; this run
+   is the final form under the same load that reproduced the other races red.
+
+2. The leak checker (viewer.spec:56, renderer.info: a clean rebuild frees the program's
+   geometry) repeated beside the heavy viewer specs — the plan's question 2 (R261/R262: does
+   it stay reliable on a renderer that shares the CPU / SwiftShader with two other workers?),
+   its assertions unchanged, no tolerance widened, no retry; 8 repeats on 3 workers, no burners:
+
+   0/8 failed  bake-hold.viewer.spec.ts:471 the viewer torn down in after_parse with a change held: no worker afte
+   0/8 failed  bake-hold.viewer.spec.ts:471 the viewer torn down in loading with a change held: no worker after it
+   0/8 failed  collisions.viewer.spec.ts:285 a shown side result keeps its contact tables while the main request se
+   0/8 failed  scenes.viewer.spec.ts:496 the box cells hang on the geometry: every transition at a world cell b
+   0/8 failed  scenes.viewer.spec.ts:751 the toolpath box's end marks stand off the background and the model in
+   0/8 failed  viewer.spec.ts:56 a clean rebuild frees AND re-applies the loaded program's toolpath geo
+   48 expected, 0 unexpected, 0 flaky (380.5 s)
+
+3. The rounds (round_gate, each its own unit; records beside this file):
+
+   r263-selected  base 07a7c4f4  24 specs  484/484  browser 880 s   round ~956 s   CPU 4115 s  peak 3391 MB  mocks 3
+   r263-full-w3   base 012cf3d5  53 specs  838/838  browser 1686 s  round ~1858 s  CPU 7301 s  peak 3547 MB  mocks 3
+   r263-full-w2   base 012cf3d5  53 specs  838/838  browser 1978 s  round ~2151 s  CPU 6943 s  peak 3042 MB  mocks 2
+
+   All three: verdict PASS, uncommitted 0, failed 0, flaky 0, browser-executed PASS (every listed
+   test ran exactly once), browser-workers PASS (every test on one worker and that worker's own
+   mock, one owner per instance). Mocks = workers: no replacement worker was needed, so no test
+   failed. "round" = the sum of the checks' seconds.

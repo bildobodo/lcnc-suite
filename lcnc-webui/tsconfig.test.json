@@ -45,6 +45,7 @@
     "src/themeTokens.test.ts",
     "src/playwrightProjects.test.ts",
     "src/radioNames.test.ts",
+    "src/commandShapes.test.ts",
     "src/probeVarFiles.test.ts",
     "src/propShadow.test.ts",
     "src/exampleToolLibrary.test.ts",
@@ -74,6 +75,7 @@
     "src/viewer/checkBasis.test.ts",
     "src/viewer/collisionRangeOracle.test.ts",
     "scripts/simDump.ts",
-    "e2e/**/*.ts"
+    "e2e/**/*.ts",
+    "e2e-proof/**/*.ts"
   ]
 }

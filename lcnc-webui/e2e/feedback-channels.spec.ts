@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
 import { ctl, MOCK } from "./ctl";
 import { clickMore } from "./more";
 
@@ -13,8 +13,8 @@ import { clickMore } from "./more";
 //    out of the message center marks it read.
 //  - A failed read explains itself where it happened; only a retryable failure
 //    offers Retry, a permanent refusal keeps the last valid listing.
-// Mock-global state (status deltas, recorded commands): runs under
-// `serial-guards`, one file at a time.
+// The worker's own mock (e2e/test.ts): its state is this test's alone, reset
+// and checked before every test.
 
 const PERMS_ALL = {
   idle: true, jog: true, override: true, ready: true, run: true, pause: false,
