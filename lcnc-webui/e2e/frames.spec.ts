@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./test";
 import { ctl as ctlSend, MOCK } from "./ctl";
 
 // Frame-type liveness guards (frontend split program, A0.3).

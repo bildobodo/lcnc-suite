@@ -81,6 +81,9 @@ export default defineConfig({
   // No focused test: a test.only would run alone and the rest silently not
   // (Codex R256 TS256-04 — round_gate also matches the listing to the run).
   forbidOnly: true,
+  // The worker count from ONE place: round_gate checks the same slot ports
+  // (4500 … 4500 + N - 1) before the run (Codex R262).
+  workers: Number(process.env.LCNC_E2E_WORKERS ?? 3),
   // Never a server that was already running: its build or mock would be
   // checked silently in place of this tree's.
   webServer: asList(full.webServer).map(w => ({ ...w, reuseExistingServer: false })),

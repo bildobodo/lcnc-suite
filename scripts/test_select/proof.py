@@ -220,3 +220,52 @@ def check_unit_executed(listed: list[dict], report: dict) -> list[str]:
     if not want:
         problems.append("the listing holds no test")
     return problems
+
+
+# ── Who ran each test, on which mock (per-worker mock, Codex R262 PM261-04) ──
+def check_workers(report: dict, events: list[dict]) -> list[str]:
+    """From the fixture's event log: every test of the report has its
+    test-start and test-end on one slot, worker and mock instance; inside a
+    worker process the tests run one after another; a mock instance has ONE
+    owner worker; two workers active at once never share an instance. A
+    missing event is a problem, never a skipped proof."""
+    problems: list[str] = []
+    bound = {e["instance"]: e for e in events if e.get("event") == "bound"}
+    starts: dict[tuple, dict] = {}
+    spans: list[tuple[float, float, int, str, tuple]] = []
+    for e in events:
+        if e.get("event") not in ("test-start", "test-end"):
+            continue
+        key = (e["file"], e["project"], e["title"], e.get("retry", 0))
+        if e["event"] == "test-start":
+            if key in starts:
+                problems.append(f"started twice: {' | '.join(map(str, key))}")
+            starts[key] = e
+        else:
+            s = starts.pop(key, None)
+            if s is None:
+                problems.append(f"ended, never started: {' | '.join(map(str, key))}")
+            elif (s["workerIndex"], s["instance"]) != (e["workerIndex"], e["instance"]):
+                problems.append(f"started and ended on different workers or mocks: {' | '.join(map(str, key))}")
+            else:
+                spans.append((s["t"], e["t"], s["workerIndex"], s["instance"], key))
+    problems += [f"started, never ended: {' | '.join(map(str, k))}" for k in starts]
+    ran = {(k[0], k[1], k[2]) for _, _, _, _, k in spans}
+    for k in sorted(playwright_tests(report)):
+        if k not in ran:
+            problems.append(f"no worker event for: {' | '.join(k)}")
+    owner: dict[str, int] = {}
+    for _, _, w, inst, key in spans:
+        if inst not in bound:
+            problems.append(f"a test on a mock never bound: {inst}")
+        if owner.setdefault(inst, w) != w:
+            problems.append(f"mock {inst} owned by workers {owner[inst]} and {w}")
+    by_worker: dict[int, list] = {}
+    for a, b, w, inst, key in spans:
+        by_worker.setdefault(w, []).append((a, b, key))
+    for w, xs in by_worker.items():
+        xs.sort()
+        for (a1, b1, k1), (a2, b2, k2) in zip(xs, xs[1:]):
+            if a2 < b1:
+                problems.append(f"worker {w} ran two tests at once: {k1[2]} / {k2[2]}")
+    return problems

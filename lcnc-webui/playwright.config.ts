@@ -1,3 +1,4 @@
+import path from "node:path";
 import { defineConfig } from "@playwright/test";
 
 const toolSpecs = /(example-tool-library|freecad-import|tool-geometry|tool-holder|tool-import)\.spec\.ts/;
@@ -11,6 +12,11 @@ const guardSpecs = /(disarmed|probe-click|safety-during-edit|setup-gates|joint-j
 if (process.env.CI && process.argv.some(arg => arg.startsWith('--update-snapshots') || arg === '-u')) {
   throw new Error('CI must compare committed visual references, never update them.');
 }
+
+// This run (per-worker mock): set once in the runner, inherited by every
+// worker — the slot owners' registry and the fixture's event log carry it.
+process.env.LCNC_E2E_RUN ??= `${process.pid}-${Date.now()}`;
+process.env.LCNC_E2E_EVENTS ??= path.resolve("test-results", "mock-events.jsonl");
 
 // Browser suite: the BUILT frontend with a plain preview for disconnected
 // smoke tests and a mock gateway for state, layout and visual regression
@@ -136,12 +142,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
     },
-    {
-      // Armed-state tests (armed.spec.ts) — built app + a mock gateway WS.
-      command: "node e2e/mock-gateway.mjs",
-      url: "http://localhost:4174",
-      reuseExistingServer: !process.env.CI,
-      timeout: 60_000,
-    },
+    // The mock gateway is no shared server any more: every worker starts its
+    // own on its slot (e2e/test.ts, per-worker mock — Codex R261/R262).
   ],
 });

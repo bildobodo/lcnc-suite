@@ -111,13 +111,19 @@ READ_SITES: dict[str, tuple[Read, ...]] = {
     _E + "macros.spec.ts": (
         Read("readFileSync((await download.path())!", 1, None, "a file the test downloaded itself"),),
     _E + "mock-gateway.mjs": (
-        Read("readFile(f)", 1, None, "serves the built app (dist/) — the mock is central: FULL"),),
+        Read("readFile(f)", 1, None, "serves the built app (dist/) — the mock is central: FULL"),
+        Read("existsSync(hold)", 1, None, "the isolation harness's hold file (MOCK_EXIT_HOLD_UNTIL), never set by the suite")),
+    _E + "mockFixture.ts": (
+        Read("spawn(process.execPath, [MOCK_SCRIPT]", 1, ("lcnc-webui/e2e/mock-gateway.mjs",),
+             "starts the worker's own mock"),
+        Read("readFileSync(registryPath(slot)", 1, None, "this run's slot-owner registry (a temp file it wrote)")),
 }
 
 # Specs only a FULL rule selects, with the reason no narrower source owns them.
 FULL_ONLY = {
     "lifecycle": "the connection's lifecycle: lcncWs, the worker and ws/ — central",
     "smoke": "the app loading without a gateway: main, App and the build — central",
+    "mock-baseline": "the per-worker mock's baseline reset (e2e/test.ts) — central",
 }
 
 # ── Spec groups ──────────────────────────────────────────────────────────
@@ -199,7 +205,8 @@ RULES: tuple[Rule, ...] = (
           W + "vite.config.ts", W + "viteHttpRestartPing.ts", W + "vitest.config.ts",
           W + "tsconfig.json", W + "tsconfig.app.json", W + "playwright.config.ts",
           W + "playwright.select.config.ts", W + "playwright.gate.config.ts", W + "e2e/mock-gateway.mjs",
-          W + "e2e/ctl.ts", W + "e2e/layout-fixtures.ts", W + "e2e/layout-audit.ts"),
+          W + "e2e/ctl.ts", W + "e2e/layout-fixtures.ts", W + "e2e/layout-audit.ts",
+          W + "e2e/test.ts", W + "e2e/mockFixture.ts", W + "e2e/mockSlot.mjs", W + "e2e/mockSlot.d.mts"),
          "build, test configuration or the shared mock and fixtures",
          browser=FULL, firefox=True),
     Rule((W + "eslint.config.js",), "lint configuration: lint runs in every round",

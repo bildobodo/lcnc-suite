@@ -37,7 +37,28 @@ from test_select.rules import FULL, HEAVY_UNIT  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "lcnc-webui"
-PORTS = (4173, 4174)     # the preview and the mock the browser configs start
+PREVIEW_PORT = 4173      # the gatewayless preview (smoke)
+SLOT_BASE = 4500         # e2e/mockSlot.mjs: worker slot i's mock listens on SLOT_BASE + i
+WORKERS = int(os.environ.get("LCNC_E2E_WORKERS", "3"))   # the gate configs read the same variable
+
+
+def ports(workers: int = WORKERS) -> list[int]:
+    """Every port a browser run binds: the preview and one mock per worker slot."""
+    return [PREVIEW_PORT, *range(SLOT_BASE, SLOT_BASE + workers)]
+
+
+def resources() -> dict:
+    """CPU and peak memory of this process's cgroup — the gate unit, browsers
+    and mock children included (read at the end of the run)."""
+    try:
+        rel = Path("/proc/self/cgroup").read_text().strip().split("::", 1)[1]
+        cg = Path("/sys/fs/cgroup") / rel.lstrip("/")
+        cpu = dict(l.split() for l in (cg / "cpu.stat").read_text().splitlines())
+        peak = cg / "memory.peak"
+        return {"cgroup": rel, "cpu_s": round(int(cpu["usage_usec"]) / 1e6),
+                "memory_peak_mb": round(int(peak.read_text()) / 2**20) if peak.exists() else None}
+    except (OSError, IndexError, KeyError, ValueError) as e:
+        return {"error": f"cgroup accounting unread: {e}"}
 
 
 def plan(sel: dict) -> list[str]:
@@ -172,8 +193,9 @@ def listing(config: str, env: dict, target: Path) -> tuple[dict, str | None]:
 
 def browser(sel: dict, logs: Path) -> list[dict]:
     names = sel["browser"]["run"]
-    report = logs / "playwright.json"
-    env = {"PLAYWRIGHT_JSON_OUTPUT_FILE": str(report), "PLAYWRIGHT_JSON_OUTPUT_NAME": str(report)}
+    report, events = logs / "playwright.json", logs / "mock-events.jsonl"
+    env = {"PLAYWRIGHT_JSON_OUTPUT_FILE": str(report), "PLAYWRIGHT_JSON_OUTPUT_NAME": str(report),
+           "LCNC_E2E_EVENTS": str(events), "LCNC_E2E_WORKERS": str(WORKERS)}
     checks = []
     if names == FULL:
         config = "playwright.gate.config.ts"
@@ -202,6 +224,10 @@ def browser(sel: dict, logs: Path) -> list[dict]:
                        **({"why": problems[:20]} if problems else {"tests": len(proof.playwright_tests(listed))})})
         order = proof.check_order(ran, proof.full_chain((WEB / "playwright.config.ts").read_text()))
         checks.append({"name": "browser-order", "status": "FAIL" if order else "PASS", **({"why": order} if order else {})})
+        log = [json.loads(l) for l in events.read_text().splitlines()] if events.is_file() else []
+        owners = proof.check_workers(ran, log) if log else ["the fixture's event log is missing or empty"]
+        checks.append({"name": "browser-workers", "status": "FAIL" if owners else "PASS",
+                       **({"why": owners[:20]} if owners else {"mocks": len({e["instance"] for e in log if e.get("event") == "bound"})})})
     return checks
 
 
@@ -217,7 +243,7 @@ def main(argv: list[str] | None = None) -> int:
     record: dict = {"kind": "round", "note": a.note}
 
     def finish(verdict: str, **extra) -> int:
-        record.update(verdict=verdict, **extra)
+        record.update(verdict=verdict, resources=resources(), **extra)
         out.write_text(json.dumps(record, indent=2, ensure_ascii=False) + "\n")
         print(f"round_gate: {verdict} → {out}")
         return 0 if verdict == "PASS" else 1
@@ -264,7 +290,7 @@ def main(argv: list[str] | None = None) -> int:
         omitted.append({"check": "backend", "reason": "; ".join(sel["backend"]["reasons"])})
 
     if sel["browser"]["run"]:
-        busy = [p for p in PORTS if listening(p)]
+        busy = [p for p in ports() if listening(p)]
         checks.append({"name": "ports-free", "status": "FAIL" if busy else "PASS",
                        **({"why": [f"port {p} already serves something: a foreign server would be tested in "
                                    f"place of this tree's" for p in busy]} if busy else {})})

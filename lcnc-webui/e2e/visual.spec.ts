@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url';
-import { test, expect } from '@playwright/test';
+import { test, expect } from "./test";
 import { ctl, publishToolTable } from './ctl';
 import { assertLayout, measureLayout } from './layout-audit';
 import { openLayout, PANELS, PROFILES, setLayoutState, settleLayout, VIEWPORTS, type LayoutState } from './layout-fixtures';

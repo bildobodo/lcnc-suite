@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Locator } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "./test";
 import { ctl, MOCK } from "./ctl";
 import { Folder, serve, rev } from "./macroFolder";
 

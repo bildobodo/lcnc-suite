@@ -13,6 +13,7 @@ P = Path("scripts/test_select/proof.py"); G = Path("scripts/test_select/graph.py
 RG = Path("scripts/test_select/round_gate.py")
 CC = Path("lcnc-webui/src/viewer/collisionContacts.test.ts"); FI = Path("lcnc-webui/e2e/freecad-import.spec.ts")
 SV = Path("lcnc-webui/e2e/scenes.viewer.spec.ts")
+TB = Path("lcnc-webui/e2e/tabs.spec.ts"); MS = Path("lcnc-webui/e2e/mockSlot.mjs")
 GC = Path("lcnc-webui/playwright.gate.config.ts")
 MUTS = [
  ("a source loses its rule", R, '"probeVars.ts",\n', '\n'),
@@ -56,6 +57,11 @@ MUTS = [
  ("the listing gets the run's report variables", RG, '.items() if k not in JSON_OUT}', '.items()}'),
  ("the gate reuses a running server", GC, 'reuseExistingServer: false', 'reuseExistingServer: true'),
  ("a unit retry passes", P, '    problems += vitest_retried(report)\n', ''),
+ ("a spec on Playwright's own test", TB, 'import { test, expect, type Page, type Locator } from "./test";', 'import { test, expect, type Page, type Locator } from "@playwright/test";'),
+ ("a spec names the old shared mock", TB, 'import { test, expect, type Page, type Locator } from "./test";\n', 'import { test, expect, type Page, type Locator } from "./test";\nconst OLD = "http://localhost:4174/";\n'),
+ ("a file-level hook beside the per-test reset", TB, 'import { test, expect, type Page, type Locator } from "./test";\n', 'import { test, expect, type Page, type Locator } from "./test";\ntest.beforeAll(async () => {});\n'),
+ ("slot 16 accepted", MS, '  return n < MOCK_MAX_SLOTS ? n : null;', '  return n <= MOCK_MAX_SLOTS ? n : null;'),
+ ("a mock shared by two workers passes", P, '        if owner.setdefault(inst, w) != w:', '        if False:'),
  ("listing ignores the project", P, '        if sel_at[f] != full_at[f]:', '        if False:'),
  ("order ignores a project overlap", P, '        if span[b][0] < span[a][1]:', '        if False:'),
  ("order ignores the path order", P, '        if by_start != sorted(files):', '        if False:'),

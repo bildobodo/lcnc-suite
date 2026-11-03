@@ -539,3 +539,83 @@ def test_a_listing_prints_its_json_never_into_the_runs_report(monkeypatch):
     monkeypatch.setenv("PLAYWRIGHT_JSON_OUTPUT_FILE", "/x/report.json")
     env = round_gate.listing_env({"PLAYWRIGHT_JSON_OUTPUT_NAME": "/x/report.json", "LCNC_E2E_SELECTION": "/x/sel.json"})
     assert not set(round_gate.JSON_OUT) & set(env) and env["LCNC_E2E_SELECTION"] == "/x/sel.json"
+
+
+# ── The per-worker mock (Codex R261/R262 PM261-01/-02) ───────────────────
+def e2e_sources() -> list[Path]:
+    return sorted(p for p in E2E.glob("*") if p.suffix in (".ts", ".mjs"))
+
+
+def test_every_spec_takes_its_test_from_the_fixture_file():
+    """./test carries the per-worker mock and the baseline reset; a spec on
+    Playwright's own `test` would run against no mock of its worker."""
+    bad = []
+    for f in sorted(E2E.glob("*.spec.ts")):
+        text = f.read_text()
+        if re.search(r"""from\s*["']@playwright/test["']""", text):
+            bad.append(f"{f.name}: imports from @playwright/test")
+        if not re.search(r"""import\s*\{\s*test\b[^}]*\}\s*from\s*["']\./test["']""", text):
+            bad.append(f"{f.name}: no test from ./test")
+    assert bad == []
+
+
+def test_no_mock_address_outside_its_binding():
+    """HTTP, /ws and /ctl come from ctl.ts (the worker's slot) only; no spec
+    or helper names a mock port or the removed override."""
+    allowed = {"ctl.ts", "mockSlot.mjs", "mockSlot.d.mts", "mock-gateway.mjs"}
+    bad = [f"{f.name}:{n}" for f in e2e_sources() if f.name not in allowed
+           for n, line in enumerate(f.read_text().splitlines(), 1)
+           if re.search(r"\b4174\b|localhost:45\d\d|TOOL_IMPORT_TEST_URL", line)]
+    assert bad == []
+
+
+def test_no_state_outlives_the_per_test_reset():
+    """The baseline fixture resets the mock before every test: state set up
+    once for a file (beforeAll) would be wiped, and a parallel describe would
+    put two tests on one mock at once."""
+    bad = [f"{f.name}:{n}: {m.group(0)}" for f in e2e_sources()
+           for n, line in enumerate(f.read_text().splitlines(), 1)
+           for m in [re.search(r"\b(beforeAll|afterAll|describe\.configure|describe\.parallel)\b", line)] if m
+           and not line.lstrip().startswith("//")]
+    assert bad == []
+
+
+def test_a_worker_slot_is_a_whole_index_in_range_and_nothing_else_binds():
+    probe = ("import('" + (E2E / "mockSlot.mjs").as_uri() + "').then(m => console.log(JSON.stringify("
+             "[undefined, '0', '3', '15', '16', '-1', '1.5', ' 2', '', 'x'].map(i => m.mockUrl(i)))))")
+    out = json.loads(subprocess.run(["node", "-e", probe], capture_output=True, text=True, check=True).stdout)
+    u = "http://mock-unbound.invalid/"
+    assert out == [u, "http://localhost:4500/", "http://localhost:4503/", "http://localhost:4515/", u, u, u, u, u, u]
+
+
+def test_every_test_ran_on_its_own_workers_mock_one_after_another():
+    """proof.check_workers over the fixture's event log (Codex R262 PM261-04)."""
+    report = pw([("a.spec.ts", "e2e", "one", 1), ("b.spec.ts", "e2e", "two", 1)])
+
+    def ev(event, t, file, title, w, inst, **kw):
+        return {"event": event, "t": t, "file": file, "project": "e2e", "title": title, "workerIndex": w,
+                "instance": inst, "retry": 0, **kw}
+    bound = [{"event": "bound", "instance": "m0", "workerIndex": 0}, {"event": "bound", "instance": "m1", "workerIndex": 1}]
+    good = bound + [ev("test-start", 0, "a.spec.ts", "one", 0, "m0"), ev("test-end", 5, "a.spec.ts", "one", 0, "m0"),
+                    ev("test-start", 1, "b.spec.ts", "two", 1, "m1"), ev("test-end", 4, "b.spec.ts", "two", 1, "m1")]
+    assert proof.check_workers(report, good) == []
+    assert proof.check_workers(report, good[:-1]) == [
+        "started, never ended: b.spec.ts | e2e | two | 0", "no worker event for: b.spec.ts | e2e | two"]
+    shared = bound + [ev("test-start", 0, "a.spec.ts", "one", 0, "m0"), ev("test-end", 5, "a.spec.ts", "one", 0, "m0"),
+                      ev("test-start", 1, "b.spec.ts", "two", 1, "m0"), ev("test-end", 4, "b.spec.ts", "two", 1, "m0")]
+    assert proof.check_workers(report, shared) == ["mock m0 owned by workers 0 and 1"]
+    overlap = bound + [ev("test-start", 0, "a.spec.ts", "one", 0, "m0"), ev("test-end", 5, "a.spec.ts", "one", 0, "m0"),
+                       ev("test-start", 3, "b.spec.ts", "two", 0, "m0"), ev("test-end", 8, "b.spec.ts", "two", 0, "m0")]
+    assert proof.check_workers(report, overlap) == ["worker 0 ran two tests at once: one / two"]
+    unbound = [bound[0]] + good[2:]
+    assert proof.check_workers(report, unbound) == ["a test on a mock never bound: m1"]
+
+
+def test_the_ports_checked_are_the_preview_and_every_worker_slot():
+    assert round_gate.ports(3) == [4173, 4500, 4501, 4502]
+    assert round_gate.ports(1) == [4173, 4500]
+    mock_slot = (E2E / "mockSlot.mjs").read_text()
+    assert f"MOCK_BASE_PORT = {round_gate.SLOT_BASE};" in mock_slot, "one slot base"
+    for cfg in ("playwright.gate.config.ts", "playwright.select.config.ts"):
+        assert "workers: Number(process.env.LCNC_E2E_WORKERS ?? 3)" in (ROOT / "lcnc-webui" / cfg).read_text(), cfg
+    assert 'os.environ.get("LCNC_E2E_WORKERS", "3")' in (ROOT / "scripts/test_select/round_gate.py").read_text()

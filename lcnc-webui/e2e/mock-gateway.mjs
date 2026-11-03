@@ -18,6 +18,7 @@
 // socket inside a Web Worker, which routeWebSocket intercepts only unreliably.
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer } from "ws";
@@ -394,6 +395,18 @@ ctlWss.on("connection", (ws) => {
       broadcast(m.frame);
     } else if (m.op === "settingsEcho") {
       settingsEcho = !!m.on;
+    } else if (m.op === "snapshot") {
+      // What a reset restores, read back (per-worker mock, Codex R262
+      // PM261-01): the baseline fixture and the isolation harness compare it.
+      // `clients` counts the APP's sockets — a test's leftover page shows here.
+      ws.send(JSON.stringify({ ok: true, op: "snapshot", snapshot: {
+        armed: state.armed, axes: _axes ?? VIEWER_INIT.data.axes, kins: VIEWER_INIT.data.kins ?? null,
+        work_pos: state.data.work_pos, replies: Object.keys(replies).sort(), envelope: Object.keys(envelope).sort(),
+        quiet, refuseWs, settingsEcho, settings: Object.keys(settingsStore).sort(),
+        cmds: cmds.length, hellos: hellos.length, clients: wss.clients.size,
+        instance: process.env.MOCK_INSTANCE ?? null,
+      } }));
+      return;
     } else if (m.op === "lastCmds") {
       ws.send(JSON.stringify({ ok: true, op: m.op, cmds }));
       return;
@@ -424,4 +437,31 @@ ctlWss.on("connection", (ws) => {
   });
 });
 
-server.listen(PORT, process.env.MOCK_HOST, () => console.log(`mock-gateway: http://localhost:${PORT}`));
+// A port already taken is a failure with its reason — never another mock
+// answering in this one's place (per-worker mock, PM261-03).
+server.on("error", (e) => { console.error(`mock-gateway: ${e.message}`); process.exit(1); });
+server.listen(PORT, process.env.MOCK_HOST, () => {
+  console.log(`mock-gateway: http://localhost:${PORT}`);
+  // The e2e worker fixture waits for exactly this line of ITS child: the bind
+  // confirmed, not a reachable page (whose could it be?).
+  if (process.env.MOCK_INSTANCE) console.log(`MOCK-BOUND ${server.address().port} ${process.env.MOCK_INSTANCE}`);
+});
+
+// Started by the e2e worker fixture: end with the worker. Its stdin is the
+// fixture's pipe — EOF means the worker is gone (a crash included), so no
+// mock outlives it holding the port its replacement needs. A manual
+// `node e2e/mock-gateway.mjs` (stdin a terminal or /dev/null) is untouched.
+// MOCK_EXIT_HOLD_UNTIL: the isolation harness only — hold the exit until that
+// file exists, to steer a slow predecessor against the handoff wait.
+if (process.env.MOCK_EXIT_ON_STDIN_EOF === "1") {
+  const leave = () => {
+    const hold = process.env.MOCK_EXIT_HOLD_UNTIL;
+    if (!hold) process.exit(0);
+    const poll = setInterval(() => {
+      if (existsSync(hold)) { clearInterval(poll); process.exit(0); }
+    }, 50);
+  };
+  process.stdin.on("end", leave);
+  process.stdin.on("close", leave);
+  process.stdin.resume();
+}

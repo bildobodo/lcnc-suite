@@ -1,4 +1,4 @@
-import { test, expect, type Page, type BrowserContext } from "@playwright/test";
+import { test, expect, type Page, type BrowserContext } from "./test";
 import { encode } from "@msgpack/msgpack";
 import { readFileSync } from "node:fs";
 import { ctl } from "./ctl";

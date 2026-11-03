@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from "./test";
 import { encode } from '@msgpack/msgpack';
 import { withLimitRuns } from './limitRuns';
 import { ctl, publishToolTable } from './ctl';

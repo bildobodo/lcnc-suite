@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from "./test";
 import { measureLayout, layoutChanges, thickScrollbars } from './layout-audit';
 
 test('layout guard finds injected overlaps, clipping, collapsed and missing controls', async ({ page }) => {

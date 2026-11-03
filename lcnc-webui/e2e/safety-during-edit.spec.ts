@@ -20,7 +20,7 @@
 // Every press is REAL pointer input (`mouse`, or `tap` with hasTouch):
 // Playwright hit-tests the control at its centre, so a control that moves
 // away under the press fails here instead of being reached synthetically.
-import { test, expect, type Page, type Locator } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "./test";
 import { ctl, MOCK } from "./ctl";
 
 const PERMS_ALL = {

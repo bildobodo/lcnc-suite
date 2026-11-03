@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Locator } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "./test";
 import { ctl, MOCK } from "./ctl";
 
 // Design wave D3 (UI-K17, K12, plan WP-D3 / WP-DR) — the ONE tab

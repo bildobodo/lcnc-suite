@@ -11,6 +11,9 @@ import full from "./playwright.config";
 export default defineConfig({
   ...full,
   forbidOnly: true,
+  // The worker count from ONE place: round_gate checks the same slot ports
+  // (4500 … 4500 + N - 1) before the run (Codex R262).
+  workers: Number(process.env.LCNC_E2E_WORKERS ?? 3),
   webServer: (Array.isArray(full.webServer) ? full.webServer : [full.webServer!])
     .map(w => ({ ...w, reuseExistingServer: false })),
 });

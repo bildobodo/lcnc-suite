@@ -1,10 +1,9 @@
-import { test, expect } from "@playwright/test";
-import { publishToolTable, expectArmed } from "./ctl";
+import { test, expect } from "./test";
+import { publishToolTable, expectArmed, MOCK } from "./ctl";
 import WebSocket from "ws";
 import { readFileSync } from "node:fs";
 const bundle = JSON.parse(readFileSync(new URL("../../test-fixtures/freecad/custom-native.json", import.meta.url), "utf8"));
 
-const MOCK = process.env.TOOL_IMPORT_TEST_URL ?? "http://localhost:4174/";
 const geometry = bundle.tools[0]!.geometry;
 const tool = { T: 19, P: 7, D: 10, Z: -42.3, type: "formmill", source_format: "freecad",
   description: "FreeCAD tool with bore", native_mesh: geometry.mesh, source_z_min: -4, oal: 30 };

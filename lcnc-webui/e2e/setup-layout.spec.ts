@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Locator } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "./test";
 import { ctl, MOCK } from "./ctl";
 import { measureLayout } from "./layout-audit";
 
@@ -391,4 +391,3 @@ test("a new axis set re-lays the section out", async ({ page }) => {
   expect(g30.x + g30.width, "and into its column").toBeGreaterThan(u.x);
 });
 
-test.afterAll(async () => { await ctl({ op: "reset" }); });

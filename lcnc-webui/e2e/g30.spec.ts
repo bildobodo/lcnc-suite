@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
 import { ctl, MOCK } from "./ctl";
 
 // G30's stored tool-change position (operator point P4, Codex R21–R24):

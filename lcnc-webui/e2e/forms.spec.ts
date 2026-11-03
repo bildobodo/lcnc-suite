@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
 import { ctl, MOCK, publishToolTable } from "./ctl";
 import { Folder, serve } from "./macroFolder";
 import { clickMore } from "./more";

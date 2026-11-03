@@ -1,11 +1,10 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
 import WebSocket from "ws";
 import { assertLayout, expectDialogUncovered, measureLayout } from "./layout-audit";
 import { VIEWPORTS } from "./layout-fixtures";
-import { ctl as ctlOp, publishToolTable, expectArmed } from "./ctl";
+import { ctl as ctlOp, publishToolTable, expectArmed, MOCK } from "./ctl";
 import { clickMore } from "./more";
 
-const MOCK = process.env.TOOL_IMPORT_TEST_URL ?? "http://localhost:4174/";
 function ctl(frame: Record<string, unknown>): Promise<void> {
   return new Promise((resolve, reject) => {
     const socket = new WebSocket(new URL("ctl", MOCK).href.replace(/^http/, "ws"));

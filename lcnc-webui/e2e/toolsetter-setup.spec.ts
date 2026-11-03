@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Locator } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "./test";
 import { ctl, MOCK, publishToolTable } from "./ctl";
 
 // Codex review R15 B1: the toolsetter's values reach the machine only when it

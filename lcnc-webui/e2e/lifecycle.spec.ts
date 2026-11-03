@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./test";
 import { ctl as ctlQuery, MOCK, expectArmed } from "./ctl";
 
 // Connection-lifecycle guards (A1.6) — born from the A1 manual smoke:

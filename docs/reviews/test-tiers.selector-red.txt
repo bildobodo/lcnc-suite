@@ -1,5 +1,5 @@
-# Test selector guards (step 3) — red first, 2026-11-03T05:17:33+01:00
-# tree: feat/test-tiers 0e5f30b1 + uncommitted selector changes
+# Test selector guards (step 3) — red first, 2026-11-03T06:00:15+01:00
+# tree: feat/test-tiers 012cf3d5 + uncommitted selector changes
 
 ## Two reds the guards found while being written
 - test_every_e2e_disk_read_outside_the_frontend_is_declared: ('toolsetter.viewer', 'examples/sim_config/machine-5axis-xyzac') — the spec reads the 5-axis model and was not declared; SPEC_READS now names it
@@ -48,12 +48,17 @@ RED  a listed test that never ran passes: ['test_every_listed_test_ran_once_and_
 RED  the listing gets the run's report variables: ['test_a_listing_prints_its_json_never_into_the_runs_report']
 RED  the gate reuses a running server: ['test_the_gate_configs_start_their_own_servers_and_refuse_a_focused_test']
 RED  a unit retry passes: ['test_every_listed_unit_test_ran']
+RED  a spec on Playwright's own test: ['test_every_spec_takes_its_test_from_the_fixture_file']
+RED  a spec names the old shared mock: ['test_no_mock_address_outside_its_binding']
+RED  a file-level hook beside the per-test reset: ['test_no_state_outlives_the_per_test_reset']
+RED  slot 16 accepted: ['test_a_worker_slot_is_a_whole_index_in_range_and_nothing_else_binds']
+RED  a mock shared by two workers passes: ['test_every_test_ran_on_its_own_workers_mock_one_after_another']
 RED  listing ignores the project: ['test_the_listing_is_exactly_the_selection_in_the_full_projects']
 RED  order ignores a project overlap: ['test_the_order_proof_holds_the_chain_and_the_path_order']
 RED  order ignores the path order: ['test_the_order_proof_holds_the_chain_and_the_path_order']
 
 ## Restored
-39 passed in 1.78s
+45 passed in 2.09s
 
 ## The proofs on real reports
 select config --list for ['visual', 'layout', 'armed', 'sim-panel.viewer', 'probe-click', 'tool-holder', 'choices'] → exactly the selection, each file in its full-config project

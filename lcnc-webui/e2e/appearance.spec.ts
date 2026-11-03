@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
 import { ctl, MOCK } from "./ctl";
 
 // Design wave D8 (UI-K08 / K09, UI-D07): what the operator reads is never

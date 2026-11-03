@@ -3,7 +3,7 @@
 // Safety strip's active codes are ONE button that opens it on "Active now"
 // (variant B); a code tapped in the program opens it AT its entry (the whole
 // list, the entry marked and in view) instead of searching for it.
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
 import { ctl } from "./ctl";
 import { openLayout, PROFILES, VIEWPORTS, settleLayout } from "./layout-fixtures";
 import { sidewaysOverflow } from "./layout-audit";

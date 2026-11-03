@@ -1,5 +1,5 @@
-import { test, expect } from "@playwright/test";
-import { expectArmed } from "./ctl";
+import { test, expect } from "./test";
+import { expectArmed, MOCK } from "./ctl";
 
 // Armed-state E2E (issue #26): point the app at the mock gateway (e2e/
 // mock-gateway.mjs), which pushes an armed + ready machine state. Asserts the
@@ -8,7 +8,6 @@ import { expectArmed } from "./ctl";
 // backend-permissions -> applyClientOverlay -> fieldset[disabled] pipeline in a
 // real browser. The mock serves the app on its own port so the app's
 // `location.host/ws` connection lands on the mock WS.
-const MOCK = "http://localhost:4174/";
 
 test("connected + armed + ready lifts default-deny on machine controls", async ({ page }) => {
   await page.goto(MOCK);

@@ -5,7 +5,7 @@
 // cap in its head, marks each button's joint in its corner — the buttons keep
 // their axis letters (operator 2026-10-28) — and the keyboard refuses a
 // closed axis like the button.
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
 import { ctl, MOCK } from "./ctl";
 import { GATE_NAMES, type Permissions } from "../src/permissions";
 

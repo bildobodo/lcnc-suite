@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from "./test";
 import { ctl } from './ctl';
 import { PROFILES, VIEWPORTS, openLayout } from './layout-fixtures';
 import { PROBE_FALLBACK, calibrationVarMap, probeVarMap } from '../src/probeVars';

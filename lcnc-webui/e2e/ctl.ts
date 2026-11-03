@@ -4,9 +4,14 @@
 // every ctl message with a JSON {ok, ...} frame, so first-message == reply.
 import WebSocket from "ws";
 import { expect, type Page } from "@playwright/test";
+import { mockUrl } from "./mockSlot.mjs";
 
-export const MOCK = "http://localhost:4174/";
-export const CTL = "ws://localhost:4174/ctl";
+// The mock of THIS worker (per-worker mock, Codex R262 PM261-02): its slot is
+// the worker's TEST_PARALLEL_INDEX, known at import. HTTP, the app's /ws and
+// /ctl all come from here; outside a worker (`--list`, the runner) the
+// address is unbound and any use fails visibly — never a shared port.
+export const MOCK = mockUrl(process.env.TEST_PARALLEL_INDEX);
+export const CTL = `${MOCK.replace(/^http/, "ws")}ctl`;
 
 /** Send a ctl op and resolve with the mock's parsed reply. */
 export function ctl(op: Record<string, unknown>): Promise<any> {

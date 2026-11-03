@@ -1,6 +1,6 @@
 // Package 5, stage C (plan docs/reviews/makros.plan.md): the Macros tab and
 // macro FILES on the bar, against the in-memory folder of macroFolder.ts.
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
 import { ctl, MOCK } from "./ctl";
 import { Folder, serve, rev, PARK, FACE } from "./macroFolder";
 import { clickMore, moreItem, moreTrigger } from "./more";

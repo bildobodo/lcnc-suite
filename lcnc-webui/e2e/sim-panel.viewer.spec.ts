@@ -5,7 +5,7 @@
 // ● tool change), a filter, the steps. Stepping through collisions used to
 // change the findings row's text width and the bar folded and unfolded under
 // the operator's finger; the list's rows are the bar's own targets.
-import { test, expect, type Page, type BrowserContext } from "@playwright/test";
+import { test, expect, type Page, type BrowserContext } from "./test";
 import { decode, encode } from "@msgpack/msgpack";
 import { readFileSync } from "node:fs";
 import { ctl } from "./ctl";

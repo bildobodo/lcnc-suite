@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./test";
 import { ctl, MOCK } from "./ctl";
 
 // WS-D — dynamic 9-axis layout guards.
@@ -18,10 +18,6 @@ test.beforeEach(async ({ page }) => {
   await ctl({ op: "reset" });
   await page.goto(MOCK);
   await expect(page.getByRole("button", { name: "Zero X", exact: true })).toBeVisible();
-});
-
-test.afterAll(async () => {
-  await ctl({ op: "reset" });
 });
 
 test("9-axis machine: SetupStrip renders a zero/home group per axis, HUD shows all letters", async ({ page }) => {
