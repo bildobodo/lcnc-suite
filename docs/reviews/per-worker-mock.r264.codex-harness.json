@@ -1,0 +1,606 @@
+{
+  "pass": true,
+  "cases": [
+    {
+      "case": "isolation on own mocks",
+      "pass": true,
+      "problems": [],
+      "dir": "/tmp/lcnc-proof-own-t6zc6aya",
+      "events": [
+        {
+          "t": 1793704299632,
+          "run": "proof-own-1905937-1793704298801069001",
+          "pid": 1905964,
+          "event": "bound",
+          "slot": 0,
+          "port": 4500,
+          "workerIndex": 0,
+          "instance": "af89d983-be2e-44a5-9191-ce6d68c157f8",
+          "endpoint": "http://localhost:4500/"
+        },
+        {
+          "t": 1793704299638,
+          "run": "proof-own-1905937-1793704298801069001",
+          "pid": 1905965,
+          "event": "bound",
+          "slot": 1,
+          "port": 4501,
+          "workerIndex": 1,
+          "instance": "844704c6-136b-45be-bcb5-b3004dec0042",
+          "endpoint": "http://localhost:4501/"
+        },
+        {
+          "t": 1793704299694,
+          "run": "proof-own-1905937-1793704298801069001",
+          "pid": 1905965,
+          "event": "test-start",
+          "slot": 1,
+          "workerIndex": 1,
+          "instance": "844704c6-136b-45be-bcb5-b3004dec0042",
+          "file": "own/b.spec.ts",
+          "project": "proof",
+          "title": "B on its own worker's mock",
+          "retry": 0
+        },
+        {
+          "t": 1793704299694,
+          "run": "proof-own-1905937-1793704298801069001",
+          "pid": 1905964,
+          "event": "test-start",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "af89d983-be2e-44a5-9191-ce6d68c157f8",
+          "file": "own/a.spec.ts",
+          "project": "proof",
+          "title": "A on its own worker's mock",
+          "retry": 0
+        },
+        {
+          "t": 1793704299752,
+          "run": "proof-own-1905937-1793704298801069001",
+          "pid": 1905965,
+          "event": "test-end",
+          "slot": 1,
+          "workerIndex": 1,
+          "instance": "844704c6-136b-45be-bcb5-b3004dec0042",
+          "file": "own/b.spec.ts",
+          "project": "proof",
+          "title": "B on its own worker's mock",
+          "retry": 0,
+          "status": "passed"
+        },
+        {
+          "t": 1793704299766,
+          "run": "proof-own-1905937-1793704298801069001",
+          "pid": 1905965,
+          "event": "stopped",
+          "slot": 1,
+          "workerIndex": 1,
+          "instance": "844704c6-136b-45be-bcb5-b3004dec0042"
+        },
+        {
+          "t": 1793704299803,
+          "run": "proof-own-1905937-1793704298801069001",
+          "pid": 1905964,
+          "event": "test-end",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "af89d983-be2e-44a5-9191-ce6d68c157f8",
+          "file": "own/a.spec.ts",
+          "project": "proof",
+          "title": "A on its own worker's mock",
+          "retry": 0,
+          "status": "passed"
+        },
+        {
+          "t": 1793704299820,
+          "run": "proof-own-1905937-1793704298801069001",
+          "pid": 1905964,
+          "event": "stopped",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "af89d983-be2e-44a5-9191-ce6d68c157f8"
+        }
+      ],
+      "marks": {
+        "A-final": {
+          "t": 1793704299802,
+          "pid": 1905964,
+          "slot": 0,
+          "parallelIndex": 0,
+          "instance": "af89d983-be2e-44a5-9191-ce6d68c157f8",
+          "axes": [
+            "X",
+            "Y",
+            "Z",
+            "A",
+            "B",
+            "C",
+            "U",
+            "V",
+            "W"
+          ],
+          "replies": [
+            "get_tool_table"
+          ],
+          "quiet": true
+        },
+        "B-checked": {
+          "t": 1793704299751,
+          "pid": 1905965,
+          "slot": 1,
+          "parallelIndex": 1,
+          "instance": "844704c6-136b-45be-bcb5-b3004dec0042"
+        },
+        "A-set": {
+          "t": 1793704299700,
+          "pid": 1905964,
+          "slot": 0,
+          "parallelIndex": 0,
+          "instance": "af89d983-be2e-44a5-9191-ce6d68c157f8"
+        }
+      },
+      "stats": {
+        "startTime": "2026-11-03T11:11:39.240Z",
+        "duration": 586.657,
+        "expected": 2,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    {
+      "case": "isolation on ONE shared mock (negative)",
+      "pass": true,
+      "problems": [],
+      "dir": "/tmp/lcnc-proof-shared-iac_nl6z",
+      "events": [],
+      "marks": {
+        "A-final": {
+          "t": 1793704300652,
+          "pid": 1906160,
+          "parallelIndex": 0,
+          "shared": "http://localhost:4590/",
+          "axes": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "replies": [],
+          "quiet": false
+        },
+        "B-checked": {
+          "t": 1793704300636,
+          "pid": 1906161,
+          "parallelIndex": 1,
+          "shared": "http://localhost:4590/"
+        },
+        "A-set": {
+          "t": 1793704300600,
+          "pid": 1906160,
+          "parallelIndex": 0,
+          "shared": "http://localhost:4590/"
+        }
+      },
+      "stats": {
+        "startTime": "2026-11-03T11:11:40.218Z",
+        "duration": 452.722,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      }
+    },
+    {
+      "case": "file after file in one worker",
+      "pass": true,
+      "problems": [],
+      "dir": "/tmp/lcnc-proof-sequence-dz1pjua3",
+      "events": [
+        {
+          "t": 1793704301447,
+          "run": "proof-sequence-1905937-1793704300689338080",
+          "pid": 1906227,
+          "event": "bound",
+          "slot": 0,
+          "port": 4500,
+          "workerIndex": 0,
+          "instance": "cf4c3728-c883-4773-bdc7-541a573f5ded",
+          "endpoint": "http://localhost:4500/"
+        },
+        {
+          "t": 1793704301495,
+          "run": "proof-sequence-1905937-1793704300689338080",
+          "pid": 1906227,
+          "event": "test-start",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "cf4c3728-c883-4773-bdc7-541a573f5ded",
+          "file": "sequence/1-dirty.spec.ts",
+          "project": "proof",
+          "title": "the first file leaves its worker's mock dirty",
+          "retry": 0
+        },
+        {
+          "t": 1793704301500,
+          "run": "proof-sequence-1905937-1793704300689338080",
+          "pid": 1906227,
+          "event": "test-end",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "cf4c3728-c883-4773-bdc7-541a573f5ded",
+          "file": "sequence/1-dirty.spec.ts",
+          "project": "proof",
+          "title": "the first file leaves its worker's mock dirty",
+          "retry": 0,
+          "status": "passed"
+        },
+        {
+          "t": 1793704301518,
+          "run": "proof-sequence-1905937-1793704300689338080",
+          "pid": 1906227,
+          "event": "test-start",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "cf4c3728-c883-4773-bdc7-541a573f5ded",
+          "file": "sequence/2-clean.spec.ts",
+          "project": "proof",
+          "title": "the next file of the same worker starts on the baseline",
+          "retry": 0
+        },
+        {
+          "t": 1793704301519,
+          "run": "proof-sequence-1905937-1793704300689338080",
+          "pid": 1906227,
+          "event": "test-end",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "cf4c3728-c883-4773-bdc7-541a573f5ded",
+          "file": "sequence/2-clean.spec.ts",
+          "project": "proof",
+          "title": "the next file of the same worker starts on the baseline",
+          "retry": 0,
+          "status": "passed"
+        },
+        {
+          "t": 1793704301535,
+          "run": "proof-sequence-1905937-1793704300689338080",
+          "pid": 1906227,
+          "event": "stopped",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "cf4c3728-c883-4773-bdc7-541a573f5ded"
+        }
+      ],
+      "marks": {
+        "clean": {
+          "t": 1793704301519,
+          "pid": 1906227,
+          "instance": "cf4c3728-c883-4773-bdc7-541a573f5ded"
+        },
+        "dirty": {
+          "t": 1793704301499,
+          "pid": 1906227,
+          "instance": "cf4c3728-c883-4773-bdc7-541a573f5ded",
+          "workerIndex": 0
+        }
+      },
+      "stats": {
+        "startTime": "2026-11-03T11:11:41.028Z",
+        "duration": 515.73,
+        "expected": 2,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    {
+      "case": "a worker ending hard, its replacement",
+      "pass": true,
+      "problems": [],
+      "dir": "/tmp/lcnc-proof-crash-3gkdtozl",
+      "events": [
+        {
+          "t": 1793704302425,
+          "run": "proof-crash-1905937-1793704301556736804",
+          "pid": 1906356,
+          "event": "bound",
+          "slot": 0,
+          "port": 4500,
+          "workerIndex": 0,
+          "instance": "1e5a0103-b5f0-49e2-9e0e-5e8279f19126",
+          "endpoint": "http://localhost:4500/"
+        },
+        {
+          "t": 1793704302485,
+          "run": "proof-crash-1905937-1793704301556736804",
+          "pid": 1906356,
+          "event": "test-start",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "1e5a0103-b5f0-49e2-9e0e-5e8279f19126",
+          "file": "crash/1-crash.spec.ts",
+          "project": "proof",
+          "title": "the worker ends hard mid-test",
+          "retry": 0
+        },
+        {
+          "t": 1793704302833,
+          "run": "proof-crash-1905937-1793704301556736804",
+          "pid": 1906431,
+          "event": "bound",
+          "slot": 0,
+          "port": 4500,
+          "workerIndex": 1,
+          "instance": "5bb7a358-c30f-4729-8549-281793a0eb34",
+          "endpoint": "http://localhost:4500/"
+        },
+        {
+          "t": 1793704302904,
+          "run": "proof-crash-1905937-1793704301556736804",
+          "pid": 1906431,
+          "event": "test-start",
+          "slot": 0,
+          "workerIndex": 1,
+          "instance": "5bb7a358-c30f-4729-8549-281793a0eb34",
+          "file": "crash/2-after.spec.ts",
+          "project": "proof",
+          "title": "the replacement worker binds a new mock on the slot, at the baseline",
+          "retry": 0
+        },
+        {
+          "t": 1793704302909,
+          "run": "proof-crash-1905937-1793704301556736804",
+          "pid": 1906431,
+          "event": "test-end",
+          "slot": 0,
+          "workerIndex": 1,
+          "instance": "5bb7a358-c30f-4729-8549-281793a0eb34",
+          "file": "crash/2-after.spec.ts",
+          "project": "proof",
+          "title": "the replacement worker binds a new mock on the slot, at the baseline",
+          "retry": 0,
+          "status": "passed"
+        },
+        {
+          "t": 1793704302931,
+          "run": "proof-crash-1905937-1793704301556736804",
+          "pid": 1906431,
+          "event": "stopped",
+          "slot": 0,
+          "workerIndex": 1,
+          "instance": "5bb7a358-c30f-4729-8549-281793a0eb34"
+        }
+      ],
+      "marks": {
+        "replaced": {
+          "t": 1793704302908,
+          "pid": 1906431,
+          "instance": "5bb7a358-c30f-4729-8549-281793a0eb34",
+          "workerIndex": 1
+        },
+        "crashed": {
+          "t": 1793704302485,
+          "pid": 1906356,
+          "instance": "1e5a0103-b5f0-49e2-9e0e-5e8279f19126",
+          "slot": 0,
+          "workerIndex": 0
+        }
+      },
+      "stats": {
+        "startTime": "2026-11-03T11:11:41.921Z",
+        "duration": 1018.3789999999999,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      }
+    },
+    {
+      "case": "a slow predecessor released 1.0 s after the handoff wait began",
+      "pass": true,
+      "problems": [],
+      "timing": {
+        "handoff_wait_t": 1793704304124,
+        "released_t": 1793704305172
+      },
+      "dir": "/tmp/lcnc-proof-delay-in-5fgjgbya",
+      "events": [
+        {
+          "t": 1793704303773,
+          "run": "proof-delay-in-1905937-1793704302959329600",
+          "pid": 1907329,
+          "event": "bound",
+          "slot": 0,
+          "port": 4500,
+          "workerIndex": 0,
+          "instance": "514a55a5-f80c-4393-8509-3a9475a4d0f8",
+          "endpoint": "http://localhost:4500/"
+        },
+        {
+          "t": 1793704303829,
+          "run": "proof-delay-in-1905937-1793704302959329600",
+          "pid": 1907329,
+          "event": "test-start",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "514a55a5-f80c-4393-8509-3a9475a4d0f8",
+          "file": "crash/1-crash.spec.ts",
+          "project": "proof",
+          "title": "the worker ends hard mid-test",
+          "retry": 0
+        },
+        {
+          "t": 1793704304124,
+          "run": "proof-delay-in-1905937-1793704302959329600",
+          "pid": 1907839,
+          "event": "handoff-wait",
+          "slot": 0,
+          "port": 4500,
+          "workerIndex": 1,
+          "predecessor": "514a55a5-f80c-4393-8509-3a9475a4d0f8",
+          "limitMs": 5000
+        },
+        {
+          "t": 1793704305282,
+          "run": "proof-delay-in-1905937-1793704302959329600",
+          "pid": 1907839,
+          "event": "bound",
+          "slot": 0,
+          "port": 4500,
+          "workerIndex": 1,
+          "instance": "be5cdd1b-1cf3-4f01-97b0-ce248e623286",
+          "endpoint": "http://localhost:4500/"
+        },
+        {
+          "t": 1793704305329,
+          "run": "proof-delay-in-1905937-1793704302959329600",
+          "pid": 1907839,
+          "event": "test-start",
+          "slot": 0,
+          "workerIndex": 1,
+          "instance": "be5cdd1b-1cf3-4f01-97b0-ce248e623286",
+          "file": "crash/2-after.spec.ts",
+          "project": "proof",
+          "title": "the replacement worker binds a new mock on the slot, at the baseline",
+          "retry": 0
+        },
+        {
+          "t": 1793704305332,
+          "run": "proof-delay-in-1905937-1793704302959329600",
+          "pid": 1907839,
+          "event": "test-end",
+          "slot": 0,
+          "workerIndex": 1,
+          "instance": "be5cdd1b-1cf3-4f01-97b0-ce248e623286",
+          "file": "crash/2-after.spec.ts",
+          "project": "proof",
+          "title": "the replacement worker binds a new mock on the slot, at the baseline",
+          "retry": 0,
+          "status": "passed"
+        },
+        {
+          "t": 1793704305405,
+          "run": "proof-delay-in-1905937-1793704302959329600",
+          "pid": 1907839,
+          "event": "stopped",
+          "slot": 0,
+          "workerIndex": 1,
+          "instance": "be5cdd1b-1cf3-4f01-97b0-ce248e623286"
+        }
+      ],
+      "marks": {
+        "replaced": {
+          "t": 1793704305332,
+          "pid": 1907839,
+          "instance": "be5cdd1b-1cf3-4f01-97b0-ce248e623286",
+          "workerIndex": 1
+        },
+        "crashed": {
+          "t": 1793704303829,
+          "pid": 1907329,
+          "instance": "514a55a5-f80c-4393-8509-3a9475a4d0f8",
+          "slot": 0,
+          "workerIndex": 0
+        }
+      },
+      "stats": {
+        "startTime": "2026-11-03T11:11:43.382Z",
+        "duration": 2029.1029999999998,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      }
+    },
+    {
+      "case": "a slow predecessor released 7.5 s after the handoff wait began",
+      "pass": true,
+      "problems": [],
+      "timing": {
+        "handoff_wait_t": 1793704306399
+      },
+      "dir": "/tmp/lcnc-proof-delay-out-f9ozz0uv",
+      "events": [
+        {
+          "t": 1793704306097,
+          "run": "proof-delay-out-1905937-1793704305426359758",
+          "pid": 1907970,
+          "event": "bound",
+          "slot": 0,
+          "port": 4500,
+          "workerIndex": 0,
+          "instance": "45fc232c-4a1d-407b-a6bd-bc8e15f70882",
+          "endpoint": "http://localhost:4500/"
+        },
+        {
+          "t": 1793704306145,
+          "run": "proof-delay-out-1905937-1793704305426359758",
+          "pid": 1907970,
+          "event": "test-start",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "45fc232c-4a1d-407b-a6bd-bc8e15f70882",
+          "file": "crash/1-crash.spec.ts",
+          "project": "proof",
+          "title": "the worker ends hard mid-test",
+          "retry": 0
+        },
+        {
+          "t": 1793704306399,
+          "run": "proof-delay-out-1905937-1793704305426359758",
+          "pid": 1908034,
+          "event": "handoff-wait",
+          "slot": 0,
+          "port": 4500,
+          "workerIndex": 1,
+          "predecessor": "45fc232c-4a1d-407b-a6bd-bc8e15f70882",
+          "limitMs": 5000
+        },
+        {
+          "t": 1793704311430,
+          "run": "proof-delay-out-1905937-1793704305426359758",
+          "pid": 1908034,
+          "event": "handoff-timeout",
+          "slot": 0,
+          "port": 4500,
+          "workerIndex": 1,
+          "predecessor": "45fc232c-4a1d-407b-a6bd-bc8e15f70882"
+        }
+      ],
+      "marks": {
+        "crashed": {
+          "t": 1793704306145,
+          "pid": 1907970,
+          "instance": "45fc232c-4a1d-407b-a6bd-bc8e15f70882",
+          "slot": 0,
+          "workerIndex": 0
+        }
+      },
+      "stats": {
+        "startTime": "2026-11-03T11:11:45.777Z",
+        "duration": 5664.774,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 2,
+        "flaky": 0
+      }
+    },
+    {
+      "case": "a foreign server on the slot port",
+      "pass": true,
+      "problems": [],
+      "dir": "/tmp/lcnc-proof-foreign-dis0961m",
+      "events": [],
+      "marks": {},
+      "stats": {
+        "startTime": "2026-11-03T11:11:52.021Z",
+        "duration": 339.67100000000005,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      }
+    }
+  ]
+}

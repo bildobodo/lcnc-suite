@@ -1,0 +1,242 @@
+{
+  "pass": true,
+  "kind": "browser stage only, repeated output path",
+  "runs": [
+    {
+      "iteration": 1,
+      "run": "gate-d22aea28-cf91-4a7d-a62d-92276b524be7",
+      "checks": [
+        {
+          "name": "browser-listing",
+          "status": "PASS",
+          "files": 1
+        },
+        {
+          "name": "browser-selected",
+          "command": "npx playwright test -c playwright.select.config.ts --forbid-only --trace off --reporter=line,json",
+          "status": "PASS",
+          "exit": 0,
+          "seconds": 2,
+          "tests": 2,
+          "passed": 2,
+          "failed": 0,
+          "flaky": 0,
+          "skipped": 0
+        },
+        {
+          "name": "browser-executed",
+          "status": "PASS",
+          "tests": 2
+        },
+        {
+          "name": "browser-workers",
+          "status": "PASS",
+          "run": "gate-d22aea28-cf91-4a7d-a62d-92276b524be7",
+          "mocks": 1
+        }
+      ],
+      "stats": {
+        "startTime": "2026-11-03T11:13:20.008Z",
+        "duration": 1725.8960000000002,
+        "expected": 2,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "events": [
+        {
+          "t": 1793704401631,
+          "run": "gate-d22aea28-cf91-4a7d-a62d-92276b524be7",
+          "pid": 1909886,
+          "event": "bound",
+          "slot": 0,
+          "port": 4500,
+          "workerIndex": 0,
+          "instance": "11209ac4-cfd5-468d-8570-c74de911e252",
+          "endpoint": "http://localhost:4500/"
+        },
+        {
+          "t": 1793704401682,
+          "run": "gate-d22aea28-cf91-4a7d-a62d-92276b524be7",
+          "pid": 1909886,
+          "event": "test-start",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "11209ac4-cfd5-468d-8570-c74de911e252",
+          "file": "mock-baseline.spec.ts",
+          "project": "e2e",
+          "title": "a test leaves its worker's mock dirty",
+          "retry": 0
+        },
+        {
+          "t": 1793704401692,
+          "run": "gate-d22aea28-cf91-4a7d-a62d-92276b524be7",
+          "pid": 1909886,
+          "event": "test-end",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "11209ac4-cfd5-468d-8570-c74de911e252",
+          "file": "mock-baseline.spec.ts",
+          "project": "e2e",
+          "title": "a test leaves its worker's mock dirty",
+          "retry": 0,
+          "status": "passed"
+        },
+        {
+          "t": 1793704401702,
+          "run": "gate-d22aea28-cf91-4a7d-a62d-92276b524be7",
+          "pid": 1909886,
+          "event": "test-start",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "11209ac4-cfd5-468d-8570-c74de911e252",
+          "file": "mock-baseline.spec.ts",
+          "project": "e2e",
+          "title": "the next test of the worker starts on the baseline",
+          "retry": 0
+        },
+        {
+          "t": 1793704401706,
+          "run": "gate-d22aea28-cf91-4a7d-a62d-92276b524be7",
+          "pid": 1909886,
+          "event": "test-end",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "11209ac4-cfd5-468d-8570-c74de911e252",
+          "file": "mock-baseline.spec.ts",
+          "project": "e2e",
+          "title": "the next test of the worker starts on the baseline",
+          "retry": 0,
+          "status": "passed"
+        },
+        {
+          "t": 1793704401724,
+          "run": "gate-d22aea28-cf91-4a7d-a62d-92276b524be7",
+          "pid": 1909886,
+          "event": "stopped",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "11209ac4-cfd5-468d-8570-c74de911e252"
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "run": "gate-e4a803a1-726f-4ce1-9bbe-739d201e737a",
+      "checks": [
+        {
+          "name": "browser-listing",
+          "status": "PASS",
+          "files": 1
+        },
+        {
+          "name": "browser-selected",
+          "command": "npx playwright test -c playwright.select.config.ts --forbid-only --trace off --reporter=line,json",
+          "status": "PASS",
+          "exit": 0,
+          "seconds": 2,
+          "tests": 2,
+          "passed": 2,
+          "failed": 0,
+          "flaky": 0,
+          "skipped": 0
+        },
+        {
+          "name": "browser-executed",
+          "status": "PASS",
+          "tests": 2
+        },
+        {
+          "name": "browser-workers",
+          "status": "PASS",
+          "run": "gate-e4a803a1-726f-4ce1-9bbe-739d201e737a",
+          "mocks": 1
+        }
+      ],
+      "stats": {
+        "startTime": "2026-11-03T11:13:23.294Z",
+        "duration": 1720.1390000000001,
+        "expected": 2,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "events": [
+        {
+          "t": 1793704404919,
+          "run": "gate-e4a803a1-726f-4ce1-9bbe-739d201e737a",
+          "pid": 1910102,
+          "event": "bound",
+          "slot": 0,
+          "port": 4500,
+          "workerIndex": 0,
+          "instance": "0d30757a-4d4a-4c59-884e-e04c51668058",
+          "endpoint": "http://localhost:4500/"
+        },
+        {
+          "t": 1793704404965,
+          "run": "gate-e4a803a1-726f-4ce1-9bbe-739d201e737a",
+          "pid": 1910102,
+          "event": "test-start",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "0d30757a-4d4a-4c59-884e-e04c51668058",
+          "file": "mock-baseline.spec.ts",
+          "project": "e2e",
+          "title": "a test leaves its worker's mock dirty",
+          "retry": 0
+        },
+        {
+          "t": 1793704404974,
+          "run": "gate-e4a803a1-726f-4ce1-9bbe-739d201e737a",
+          "pid": 1910102,
+          "event": "test-end",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "0d30757a-4d4a-4c59-884e-e04c51668058",
+          "file": "mock-baseline.spec.ts",
+          "project": "e2e",
+          "title": "a test leaves its worker's mock dirty",
+          "retry": 0,
+          "status": "passed"
+        },
+        {
+          "t": 1793704404985,
+          "run": "gate-e4a803a1-726f-4ce1-9bbe-739d201e737a",
+          "pid": 1910102,
+          "event": "test-start",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "0d30757a-4d4a-4c59-884e-e04c51668058",
+          "file": "mock-baseline.spec.ts",
+          "project": "e2e",
+          "title": "the next test of the worker starts on the baseline",
+          "retry": 0
+        },
+        {
+          "t": 1793704404988,
+          "run": "gate-e4a803a1-726f-4ce1-9bbe-739d201e737a",
+          "pid": 1910102,
+          "event": "test-end",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "0d30757a-4d4a-4c59-884e-e04c51668058",
+          "file": "mock-baseline.spec.ts",
+          "project": "e2e",
+          "title": "the next test of the worker starts on the baseline",
+          "retry": 0,
+          "status": "passed"
+        },
+        {
+          "t": 1793704405003,
+          "run": "gate-e4a803a1-726f-4ce1-9bbe-739d201e737a",
+          "pid": 1910102,
+          "event": "stopped",
+          "slot": 0,
+          "workerIndex": 0,
+          "instance": "0d30757a-4d4a-4c59-884e-e04c51668058"
+        }
+      ]
+    }
+  ]
+}

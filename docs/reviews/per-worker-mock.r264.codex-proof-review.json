@@ -1,0 +1,169 @@
+{
+  "original": {
+    "run": "gate-91b14dd9-616c-443b-9bfc-b9825cf254d4",
+    "report_run": "gate-91b14dd9-616c-443b-9bfc-b9825cf254d4",
+    "stats": {
+      "startTime": "2026-11-03T10:41:44.246Z",
+      "duration": 1671284.99,
+      "expected": 838,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "results": 838,
+    "execution_errors": [],
+    "worker_errors": [],
+    "event_counts": {
+      "bound": 3,
+      "test-start": 838,
+      "test-end": 838,
+      "stopped": 3
+    }
+  },
+  "wrong_bound_owner": {
+    "rejected": true,
+    "count": 1679,
+    "first": [
+      "mock 0db4f7e8-0db2-4af1-ac74-0134cfc609b6 stopped by another worker or slot than bound it",
+      "mock 770c5e0a-9755-4371-b115-e5ea5aaa1756 stopped by another worker or slot than bound it"
+    ]
+  },
+  "wrong_test_slot": {
+    "rejected": true,
+    "count": 2515,
+    "first": [
+      "a test on mock 310b4389-59a0-4fbb-ae34-87a986c3939b from another worker or slot than bound it: appearance.spec.ts | e2e | a pulse moves the background, never the text: the banner stays fully opaque while it pulses | 0",
+      "a test on mock 770c5e0a-9755-4371-b115-e5ea5aaa1756 from another worker or slot than bound it: armed.spec.ts | e2e | connected + armed + ready lifts default-deny on machine controls | 0"
+    ]
+  },
+  "shared_endpoint": {
+    "rejected": true,
+    "count": 2,
+    "first": [
+      "mock 770c5e0a-9755-4371-b115-e5ea5aaa1756: endpoint http://localhost:4500/ is not port 4501's",
+      "mock 0db4f7e8-0db2-4af1-ac74-0134cfc609b6: endpoint http://localhost:4500/ is not port 4502's"
+    ]
+  },
+  "foreign_event_run": {
+    "rejected": true,
+    "count": 839,
+    "first": [
+      "1676 events of another run (old-run), not gate-91b14dd9-616c-443b-9bfc-b9825cf254d4",
+      "no worker event for: appearance.spec.ts | e2e | a pulse moves the background, never the text: the banner stays fully opaque while it pulses | 0"
+    ]
+  },
+  "foreign_report_run": {
+    "rejected": true,
+    "count": 1,
+    "first": [
+      "the report names run old-run, the gate ran gate-91b14dd9-616c-443b-9bfc-b9825cf254d4"
+    ]
+  },
+  "missing_report_run": {
+    "rejected": true,
+    "count": 1,
+    "first": [
+      "the report names no run (config.metadata.run)"
+    ]
+  },
+  "shifted_workers": {
+    "rejected": true,
+    "count": 838,
+    "first": [
+      "worker 0 slot 0 by the report, worker 100 slot 0 by the events: appearance.spec.ts | e2e | a pulse moves the background, never the text: the banner stays fully opaque while it pulses | 0",
+      "worker 0 slot 0 by the report, worker 100 slot 0 by the events: appearance.spec.ts | e2e | forced colours: the focus ring, the selected tab and the state banner stay distinguishable | 0"
+    ]
+  },
+  "missing_stop": {
+    "rejected": true,
+    "count": 3,
+    "first": [
+      "mock 310b4389-59a0-4fbb-ae34-87a986c3939b bound, never stopped",
+      "mock 770c5e0a-9755-4371-b115-e5ea5aaa1756 bound, never stopped"
+    ]
+  },
+  "missing_bound": {
+    "rejected": true,
+    "count": 429,
+    "first": [
+      "stopped, never bound: 310b4389-59a0-4fbb-ae34-87a986c3939b",
+      "a test on a mock never bound: 310b4389-59a0-4fbb-ae34-87a986c3939b"
+    ]
+  },
+  "duplicate_complete_pair": {
+    "rejected": true,
+    "count": 2,
+    "first": [
+      "started twice: appearance.spec.ts | e2e | a pulse moves the background, never the text: the banner stays fully opaque while it pulses | 0",
+      "ended, never started: appearance.spec.ts | e2e | a pulse moves the background, never the text: the banner stays fully opaque while it pulses | 0"
+    ]
+  },
+  "test_before_bind": {
+    "rejected": true,
+    "count": 1,
+    "first": [
+      "a test outside mock 310b4389-59a0-4fbb-ae34-87a986c3939b's life: appearance.spec.ts | e2e | a pulse moves the background, never the text: the banner stays fully opaque while it pulses | 0"
+    ]
+  },
+  "test_after_stop": {
+    "rejected": true,
+    "count": 2,
+    "first": [
+      "worker 0 ran two tests at once: a pulse moves the background, never the text: the banner stays fully opaque while it pulses / reduced motion: no pulse and no flash — the state stays a static fill",
+      "a test outside mock 310b4389-59a0-4fbb-ae34-87a986c3939b's life: appearance.spec.ts | e2e | a pulse moves the background, never the text: the banner stays fully opaque while it pulses | 0"
+    ]
+  },
+  "end_missing": {
+    "rejected": true,
+    "count": 3,
+    "first": [
+      "worker 0 ran two tests at once: a pulse moves the background, never the text: the banner stays fully opaque while it pulses / reduced motion: no pulse and no flash — the state stays a static fill",
+      "started, never ended: appearance.spec.ts | e2e | a pulse moves the background, never the text: the banner stays fully opaque while it pulses | 0"
+    ]
+  },
+  "foreign_pair": {
+    "rejected": true,
+    "count": 1,
+    "first": [
+      "an event pair no result reports: appearance.spec.ts | e2e | unreported case | 0"
+    ]
+  },
+  "same_case_wrong_retry": {
+    "rejected": true,
+    "count": 2,
+    "first": [
+      "no worker event for: appearance.spec.ts | e2e | a pulse moves the background, never the text: the banner stays fully opaque while it pulses | 0",
+      "an event pair no result reports: appearance.spec.ts | e2e | a pulse moves the background, never the text: the banner stays fully opaque while it pulses | 1"
+    ]
+  },
+  "current_report_old_log_r263-full-w2": {
+    "rejected": true,
+    "count": 839,
+    "first": [
+      "1680 events of another run (1764681-1793698649185), not gate-91b14dd9-616c-443b-9bfc-b9825cf254d4",
+      "no worker event for: appearance.spec.ts | e2e | a pulse moves the background, never the text: the banner stays fully opaque while it pulses | 0"
+    ]
+  },
+  "old_plus_current_log_r263-full-w2": {
+    "rejected": true,
+    "count": 1,
+    "first": [
+      "1680 events of another run (1764681-1793698649185), not gate-91b14dd9-616c-443b-9bfc-b9825cf254d4"
+    ]
+  },
+  "current_report_old_log_r263-full-w3": {
+    "rejected": true,
+    "count": 839,
+    "first": [
+      "1682 events of another run (1710631-1793696769849), not gate-91b14dd9-616c-443b-9bfc-b9825cf254d4",
+      "no worker event for: appearance.spec.ts | e2e | a pulse moves the background, never the text: the banner stays fully opaque while it pulses | 0"
+    ]
+  },
+  "old_plus_current_log_r263-full-w3": {
+    "rejected": true,
+    "count": 1,
+    "first": [
+      "1682 events of another run (1710631-1793696769849), not gate-91b14dd9-616c-443b-9bfc-b9825cf254d4"
+    ]
+  }
+}

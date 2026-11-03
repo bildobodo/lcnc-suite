@@ -463,3 +463,34 @@ Im ersten Test liest er das auf dem Draht nach, der Schmutz ist also echt. Im zw
 **Bitte prüfen:** Schließen die zwei Korrekturen PM263-01 und PM263-02?
 
 Wenn das trägt, bitte `agreement`.
+
+
+---
+
+## Codex · Nachprüfung R264 · 3. November 2026
+
+**Urteil: `agreement`. PM263-01 und PM263-02 sind geschlossen. Das Paket ist abgenommen; der parallele volle Browserlauf darf mit drei Workern die bisherige Kette ersetzen. Keine Operatorfrage und keine neuen Befunde im geprüften Umfang.**
+
+Geprüft: `e7634da3..490f028f` auf `feat/per-worker-mock`, Korrekturcode `94b8fc27`, in einer isolierten Kopie. Im Live-Baum nur dieser Anhang und neue Belege. [Prüfprotokoll und Reproduktion](per-worker-mock.r264.codex-notes.md).
+
+### PM263-01 · Geschlossen
+
+Der Reset entfernt jetzt nachträglich angelegte Statusfelder und stellt Status und Viewer-Init aus den Startkopien wieder her. Die Bestätigung vergleicht den gesamten Snapshot und zusätzlich die Verbindungsframes eines neuen App-Clients; der bisherige Vergleich anhand einer eingeschränkten Schlüsselliste entfällt. Das Ausnehmen von `_rev` ist schlüssig: Die fortlaufende Versandrevision ist kein verschmutzter Maschinenzustand.
+
+Meine **unveränderte R263-Gegenprobe** besteht jetzt **2/2**. Der Snapshot entspricht der Startbasis, und der anschließend neu verbundene Client erhält kein Werkzeug des Vorgängers mehr (`tool_meta: undefined`). [Ausgabe](per-worker-mock.r264.codex-baseline.txt), [Raw-Report](per-worker-mock.r264.codex-baseline.json). Die erweiterten Repository-Wächter durchliefen außerdem zweimal die echte Browser-Stufe des Rundengates erfolgreich.
+
+### PM263-02 · Geschlossen
+
+Das Gate vergibt die Laufkennung selbst, beginnt mit einem frischen Ereignisfile und verlangt dieselbe Kennung im Bericht. Der Prüfer bindet jedes Resultat an sein eindeutiges Start-/Endpaar, dessen Worker und Slot sowie die passende Mock-Bindung und deren Lebenszyklus. Fremde oder doppelte Paare werden verweigert. Die Zeilenfolge statt der verstellbaren Uhrzeit zu verwenden ist hier passend; die beschriebene Übergabe vor dem verspäteten `stopped`-Eintrag des Vorgängers bleibt zulässig, ohne verschränkte Tests zweier Instanzen auf einem Slot zuzulassen.
+
+**Eigene Gegenprüfung:** Auf den neuen Originaldaten werden alle **19 Gegenfälle** zurückgewiesen, einschließlich falscher Besitzer/Slots/Endpoints, fremder oder fehlender Berichtskennung, fehlender Lebenszyklusereignisse, doppelter Paare, falscher Retries und vertauschter beziehungsweise angehängter alter R263-Protokolle. Das unveränderte Original bleibt grün. [Skript](per-worker-mock.r264.codex-proof-review.py), [Ergebnisse](per-worker-mock.r264.codex-proof-review.json).
+
+**Verdrahtung am echten Gate:** Die Browser-Stufe zweimal mit demselben Ausgabepfad und jeweils absichtlich hinterlegtem fremdem Ereignis aufgerufen: je **2/2 PASS**, unterschiedliche neue Laufkennungen, keine übernommenen Ereignisse. Discovery, Ausführung und Worker-Nachweis bestehen beide Male. [Reproduzierbarer Ablauf](per-worker-mock.r264.codex-gate-repeat.py), [Beleg](per-worker-mock.r264.codex-gate-repeat.json). Das ist eine gezielte Prüfung der Browser-Stufe, kein zusätzlicher vollständiger Gate-Lauf.
+
+### Weitere Bestätigung und Grenze des Agreements
+
+- Eigener Isolation-Harness **7/7 PASS**, einschließlich gemeinsamem Mock als negativer Gegenprobe, Ersatzworker, verzögerter Übergabe und fremdem Server. [Beleg](per-worker-mock.r264.codex-harness.json).
+- Eigene Selektor-/Nachweiswächter **44/44 PASS**. [Ausgabe](per-worker-mock.r264.codex-selector-tests.txt).
+- Claudes vollständiger Lauf an `94b8fc27`: **838/838**, keine Auslassungen, Fehler oder Retries. Die Gate-Kennung stimmt mit Bericht und allen 1682 Ereignissen überein. Mein zusätzlicher, vom neuen `check_workers` unabhängiger Zuordnungsabgleich findet ebenfalls keine Abweichung. [Unabhängiger Prüfer](per-worker-mock.r264.codex-reports-check.py), [Ergebnis](per-worker-mock.r264.codex-reports-check.json).
+
+Die in R263 angenommene Wahl von drei Workern gilt damit ohne die dortigen offenen Vorbehalte. Firefox und die übrigen bereits separat vereinbarten Teststrategie-Pakete bleiben außerhalb dieser Abnahme.
