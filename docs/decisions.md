@@ -10147,3 +10147,61 @@ own line before M601; T+7, T7.0, T8., T1 3, T 0 9; and TAN / ATAN / SQRT / EXIST
 no T words — green before, kept as the guard the space removal could break), Codex's scanner
 probe unmodified (all eight forms unknown or right after), `layout.spec` "a code line names its
 findings" (line 22 `T+9 M600` → T9, line 26 `TABS[-7] M601` → T?).
+
+## 2026-11-02 · Probing: the glyphs in Firefox 159, the probe numbers in the var files
+
+**Operator: "die probing svgs … werden nicht mehr angezeigt. nur 9 punkte" (Firefox 159 on the
+Mac; Chrome showed them).** The probe grid (`.gridWrap`: `max-width: 294px; margin: 0 auto`, no
+width) is shrink-to-fit — its width is its content's — and its content is each cell's glyph, an
+SVG at `width: 100%`. Firefox 159 counts that percentage-sized SVG as zero in the grid's content
+width (Firefox 150, Playwright's, and Chromium gave 80 px), so the grid fell to its cells' padding
+and border: nine 10 px rounded buttons. Calibrate kept its glyphs — its pair has `width: 196px`.
+Reproduced with the operator's version (stock Firefox 159.0 aarch64 under Playwright's
+`moz-firefox` channel: every grid's SVG 0 × 0; Firefox 150: 80 × 80). Fix: the grid takes its
+width from the pane (`width: 100%`, up to 286 px — what the glyphs gave it before: three 90 px cells and two gaps; the first gate run at the old 294 px cap failed the side-pane footprint sweep 18 times, the Angle tab 2.5–6.5 px past its fixed 360 px section — `probe-fixes.gate-frontend.run1.json`), never from its glyphs; in Firefox 159 every
+grid's glyphs are 80 × 80 again (3 and 5 axes, desktop and Full HD touch). The test browsers do
+not show the defect, so the guard models it: `layout.spec` "a probe grid's cells keep their size
+whatever the glyph contributes" takes the glyphs out of the layout (open and dimmed, desktop and
+Full HD touch) — red before the fix in Chromium (the cells 90 → 10 px), green after. No test had
+looked at the glyphs at all.
+
+**Operator: "Command: set_probe_vars: #3015 is not in this machine's var file — declare it there
+to make it configurable".** Since W3 (2026-08-20) the gateway admits only var numbers the
+machine's var file declares (the var file is the machine's statement of what persists). The probe
+panel writes #3014–#3035 and #3050–#3059 — on a field change (`set_probe_vars`) and with every
+probe (`mdi` `vars`, the same check) — and the three example var files declared nothing past
+#3014: every probe on every example was refused (checked offline: `validate_payload("mdi", …)`
+against the LAN sim's var file). It went unseen because the mock gateway does not check declared
+numbers, the gateway's unit tests use made-up sets, and the live button check judges the probe
+gate without running a probe. Fix: the example var files declare the probe numbers (the form's
+fallback values, #3030 = 1 measure only, in LinuxCNC's ascending order); `probeVars.ts` is the ONE
+map from the form to the numbers (`probeVarMap`, `PROBE_FALLBACK` moved there from `defaults.ts`
+and from ProbePanel's copy); `probeVarFiles.test.ts` (node-side) requires every shipped var file to
+declare every number the probe panel and the toolsetter write, in ascending order (red: 31 missing
+in each of the three); `install_examples.py` adds the WebUI's numbers (#3000–#3999 only — never
+LinuxCNC's offsets or G28/G30) an installed var file lacks, at the example's value, keeping its own
+(`test_example_install.py`, red first; two upgrade tests that pinned a var file byte for byte now
+pin its own lines kept). README names the numbers a machine's var file must declare. Not changed:
+the W3 rule itself (a probe's own values could be admitted undeclared — a policy change, not
+asked).
+
+**2026-11-03, the calibration's axis (#3036).** The probe-click spec (test strategy step 2: each
+send form held once, its `mdi` checked) found Calibrate sending #3036 — the axis choice (0 the
+average of X and Y, 1 X, 2 Y) — added beside the map in `runCalProbe`; no var file declared it, so
+every calibration was still refused after the fix above (and the R252 review did not see it: the
+map was the ONE source only for what it held). Fix: `calibrationVarMap` = the map + #3036, the
+panel's only way to build a calibration's numbers; `probeVarFiles.test.ts` takes its numbers (red:
+3036 missing in each of the three var files); the examples declare `3036 0`, which
+`install_examples.py` carries into an installed copy (#3000–#3999). The routines use other
+numbers no var file declares (#3000–#3003 coolant, #3011/#3012, #3037–#3039 — written by
+`update_programmable_coolant_params.ngc` and `tool_setter_param_update.ngc`, Codex R254): the
+WebUI never SENDS them, so W3 refuses nothing; what counts for W3 is the `vars` the WebUI sends.
+
+**PF-01 (Codex R254): 38 calls passed the number 3017 as the traverse feed.** In ten bundled
+probe_basic routines (round and rect pockets, valleys, the two pocket calibrations) a call passed
+`[3017]` — the NUMBER — where its neighbours pass `[#3017]`: the helper takes its fourth argument
+as the traverse feed, so the retracts between the touches ran at F3017 whatever the setting. The
+calibration fix above lets those calibrations reach the call. Fixed `[3017]` → `[#3017]` (exact
+bracket match, 38 lines); `test_ngc_fixtures.py` `TestRoutineCallArguments`: no `o<…> call` in the
+repository passes a WebUI var number (#3000–#3999) as a literal (red: the 38). ORIGINS.md notes
+the change to the upstream files.

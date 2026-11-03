@@ -1,0 +1,15 @@
+# fix/probe-vars at b9e29335 — the merge gate's backend half (the frontend half: probe-fixes.cal.gate-frontend.json)
+RUN  backend → /home/cnc/lcnc-suite-probe/runlogs/test-suite/cal-backend/backend.log
+PASS backend (66.73s)
+RUN  5axis-model → /home/cnc/lcnc-suite-probe/runlogs/test-suite/cal-backend/5axis-model.log
+PASS 5axis-model (0.73s)
+RUN  audit-css → /home/cnc/lcnc-suite-probe/runlogs/test-suite/cal-backend/audit-css.log
+PASS audit-css (1.19s)
+RUN  review-handshake → /home/cnc/lcnc-suite-probe/runlogs/test-suite/cal-backend/review-handshake.log
+PASS review-handshake (4.57s)
+RUN  readback-target → /home/cnc/lcnc-suite-probe/runlogs/test-suite/cal-backend/readback-target.log
+PASS readback-target (0.17s)
+RUN  parity-compare → /home/cnc/lcnc-suite-probe/runlogs/test-suite/cal-backend/parity-compare.log
+PASS parity-compare (0.17s)
+PASS: /home/cnc/lcnc-suite-probe/runlogs/test-suite/cal-backend/report.json
+backend exit 0

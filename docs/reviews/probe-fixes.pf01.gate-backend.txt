@@ -1,0 +1,15 @@
+# fix/probe-vars at d4898373 (PF-01: [#3017]) — backend offline gate
+RUN  backend → /home/cnc/lcnc-suite-probe/runlogs/test-suite/pf01-backend/backend.log
+PASS backend (67.66s)
+RUN  5axis-model → /home/cnc/lcnc-suite-probe/runlogs/test-suite/pf01-backend/5axis-model.log
+PASS 5axis-model (0.73s)
+RUN  audit-css → /home/cnc/lcnc-suite-probe/runlogs/test-suite/pf01-backend/audit-css.log
+PASS audit-css (1.16s)
+RUN  review-handshake → /home/cnc/lcnc-suite-probe/runlogs/test-suite/pf01-backend/review-handshake.log
+PASS review-handshake (4.54s)
+RUN  readback-target → /home/cnc/lcnc-suite-probe/runlogs/test-suite/pf01-backend/readback-target.log
+PASS readback-target (0.17s)
+RUN  parity-compare → /home/cnc/lcnc-suite-probe/runlogs/test-suite/pf01-backend/parity-compare.log
+PASS parity-compare (0.17s)
+PASS: /home/cnc/lcnc-suite-probe/runlogs/test-suite/pf01-backend/report.json
+backend exit 0

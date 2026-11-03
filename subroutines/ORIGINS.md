@@ -6,6 +6,7 @@
 - License: GPL-3.0
 - Author: Chris P (kcjengr)
 - Notes: Subroutines from `configs/probe_basic/subroutines/`. Excluded `go_to_g30.ngc` and `tool_touch_off.ngc` (TooTall's versions in tool_length_probe/ are preferred). Excluded ATC/carousel-specific files.
+- Changed here (2026-11-03, Codex R254 PF-01): 38 calls in the pocket, valley and pocket-calibration routines passed `[3017]` (the number) as the traverse feed where `[#3017]` (the parameter) was meant; now `[#3017]`.
 
 ## tool_length_probe/
 - Origin: https://github.com/TooTall18T/tool_length_probe
