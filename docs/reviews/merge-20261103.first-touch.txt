@@ -1,0 +1,28 @@
+Merge gate 2026-11-03 (development 3e52650f: snap highlight + fix/probe-vars + feat/per-worker-mock):
+one browser failure of 850 — a load race in the test, the product right (red before, green after)
+
+The failure (merge-20261103.gate-round.run1.json, browser-full 849/850, w0):
+  collisions.viewer.spec.ts "the first touch shows while the near miss's acknowledgement is held:
+  its delta goes beside the one out (C2, Codex R167)"
+  Error: the near miss's delta first, without an interval — Expected: 0, Received: 1
+
+1. Alone (1 worker, no burners), unchanged: 10/10 passed.
+2. Load (3 workers, 3 CPU burners, scripts' repro-load.sh), unchanged: 2/12 failed, the same line.
+3. A logging copy of the test under the same load (removed after): each message the pool posts,
+   per shard [request, generation, episodes, intervals]:
+     pass: m[[2,0,0,0],[2,0,1,0],[2,0,0,0],[2,0,0,0]] ack(held) m[[2,0,1,1],[2,0,0,0],...] ack(held)
+     fail: m[[2,0,1,1],[2,0,0,0],[2,0,0,0],[2,0,0,0]] ack(held)
+   Four shards; the near miss (shard 1: one episode, no interval) and the touch (shard 0 in this
+   run: an episode and an interval) are different pairs on different shards. Under load shard 0
+   reached the touch (L4007) before shard 1 had finished its first slice: the pool's first message
+   carried the touch — no delta out for it to go beside. The page showed the touch at once (C2's
+   claim holds); the test's precondition did not.
+4. The fix: the test runs on ONE path (`__viewerDiag.setCollisionShards(1)` before the publish):
+   the near miss and the touch come in program order, slices apart (40 ms slices, 4000 moves
+   between); it asserts the sweep ran on one shard. The pool's own rule stays pinned by
+   collisionWorker.test.ts "the pool: the request's first interval goes to the owner beside a
+   message still unacknowledged — once (C2, Codex R167)".
+   Load (3 workers, 3 burners), fixed: 18/18 passed.
+5. Sensitivity: the single path's C2 rule removed (contactStore.ts `inFlight > (firstIntervalUnsent
+   ? 1 : 0)` → `inFlight > 0`), the fixed test: 2/2 failed at "the touch, its acknowledgements
+   held"; restored and rebuilt.
