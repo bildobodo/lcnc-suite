@@ -1,0 +1,365 @@
+{
+  "review": "R266",
+  "archive": "98beef82061e0581fbe41533d761f7b27eb35ea0",
+  "product_commit": "8fa4fd156d4132ee81dadf4eea8c73367529d47e",
+  "scope": [
+    "8fa4fd15 Sim marks CSS and guard",
+    "3e52650f toolMarks selector mapping",
+    "fd70a210 C2 browser precondition on one shard"
+  ],
+  "isolation": {
+    "directory": "/tmp/codex-r266-1vt1uv72",
+    "dependencies": "private copy of lcnc-suite-marks/lcnc-webui/node_modules",
+    "browser": "Chromium, Playwright 1.60.0",
+    "mock": "own fixture on localhost:4500, 1 worker, no preview server",
+    "live_access": false,
+    "build_before_probe_append": true
+  },
+  "commands": [
+    "nice -n 10 npm run build",
+    "nice -n 10 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m pytest -q scripts/test_select/test_selector.py -k \"not listening_port\"",
+    "nice -n 10 ./node_modules/.bin/vitest run src/viewer/collisionWorker.test.ts -t \"first interval goes\" --maxWorkers=1",
+    "LCNC_E2E_RUN=codex-r266-1vt1uv72 LCNC_E2E_EVENTS=<archive>/mock-events.jsonl nice -n 10 ./node_modules/.bin/playwright test -c codex-r266.config.ts --grep \"a mark's glyph sits|the first touch shows|R266 independent\""
+  ],
+  "browser_config": "import { defineConfig } from '@playwright/test';\nimport full from './playwright.config';\nexport default defineConfig({\n  ...full,\n  workers: 1,\n  forbidOnly: true,\n  retries: 0,\n  webServer: [],\n  reporter: [['list'], ['json', { outputFile: '../browser-report.json' }]],\n  outputDir: '../browser-artifacts',\n  testMatch: /(?:sim-panel|collisions)\\.viewer\\.spec\\.ts$/,\n});\n",
+  "probe_reproduction": "Append codex-probe.ts to e2e/sim-panel.viewer.spec.ts in an isolated archive; use the recorded config. Existing three review-scope tests are unchanged.",
+  "results": {
+    "build": "PASS",
+    "selector": "43 passed; unrelated socket-bind guard deselected in restricted sandbox",
+    "c2_unit": "2 selected passed, 46 not selected",
+    "browser": {
+      "startTime": "2026-11-03T20:39:46.361Z",
+      "duration": 26543.311999999998,
+      "expected": 6,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  },
+  "measurements": [
+    {
+      "vp": "desktop",
+      "zoom": 1.5,
+      "current": [
+        {
+          "key": "T10",
+          "lineOffset": 0.375,
+          "cellOffsetY": 0,
+          "cellOffsetX": 0,
+          "display": "block"
+        },
+        {
+          "key": "C0|0|0",
+          "lineOffset": 0.375,
+          "cellOffsetY": 0,
+          "cellOffsetX": 0,
+          "display": "block"
+        },
+        {
+          "key": "T20",
+          "lineOffset": 0.375,
+          "cellOffsetY": 0,
+          "cellOffsetX": 0,
+          "display": "block"
+        },
+        {
+          "key": "L20@20",
+          "lineOffset": 0.375,
+          "cellOffsetY": 0,
+          "cellOffsetX": 0,
+          "display": "block"
+        },
+        {
+          "key": "C0|1|0",
+          "lineOffset": 0.375,
+          "cellOffsetY": 0,
+          "cellOffsetX": 0,
+          "display": "block"
+        },
+        {
+          "key": "L32@32",
+          "lineOffset": 0.375,
+          "cellOffsetY": 0,
+          "cellOffsetX": 0,
+          "display": "block"
+        }
+      ],
+      "legacy": [
+        {
+          "key": "T10",
+          "lineOffset": -1.5,
+          "cellOffsetY": -1.875,
+          "cellOffsetX": 0,
+          "display": "inline"
+        },
+        {
+          "key": "C0|0|0",
+          "lineOffset": -3,
+          "cellOffsetY": -3.375,
+          "cellOffsetX": 0,
+          "display": "inline"
+        },
+        {
+          "key": "T20",
+          "lineOffset": -1.5,
+          "cellOffsetY": -1.875,
+          "cellOffsetX": 0,
+          "display": "inline"
+        },
+        {
+          "key": "L20@20",
+          "lineOffset": -2.25,
+          "cellOffsetY": -2.625,
+          "cellOffsetX": 0,
+          "display": "inline"
+        },
+        {
+          "key": "C0|1|0",
+          "lineOffset": -3,
+          "cellOffsetY": -3.375,
+          "cellOffsetX": 0,
+          "display": "inline"
+        },
+        {
+          "key": "L32@32",
+          "lineOffset": -2.25,
+          "cellOffsetY": -2.625,
+          "cellOffsetX": 0,
+          "display": "inline"
+        }
+      ]
+    },
+    {
+      "vp": "touch-fullhd",
+      "zoom": 1.5,
+      "current": [
+        {
+          "key": "T10",
+          "lineOffset": 0.375,
+          "cellOffsetY": 0,
+          "cellOffsetX": 0,
+          "display": "block"
+        },
+        {
+          "key": "C0|0|0",
+          "lineOffset": 0.375,
+          "cellOffsetY": 0,
+          "cellOffsetX": 0,
+          "display": "block"
+        },
+        {
+          "key": "T20",
+          "lineOffset": 0.375,
+          "cellOffsetY": 0,
+          "cellOffsetX": 0,
+          "display": "block"
+        },
+        {
+          "key": "L20@20",
+          "lineOffset": 0.375,
+          "cellOffsetY": 0,
+          "cellOffsetX": 0,
+          "display": "block"
+        },
+        {
+          "key": "C0|1|0",
+          "lineOffset": 0.375,
+          "cellOffsetY": 0,
+          "cellOffsetX": 0,
+          "display": "block"
+        },
+        {
+          "key": "L32@32",
+          "lineOffset": 0.375,
+          "cellOffsetY": 0,
+          "cellOffsetX": 0,
+          "display": "block"
+        }
+      ],
+      "legacy": [
+        {
+          "key": "T10",
+          "lineOffset": -1.5,
+          "cellOffsetY": -1.875,
+          "cellOffsetX": 0,
+          "display": "inline"
+        },
+        {
+          "key": "C0|0|0",
+          "lineOffset": -3,
+          "cellOffsetY": -3.375,
+          "cellOffsetX": 0,
+          "display": "inline"
+        },
+        {
+          "key": "T20",
+          "lineOffset": -1.5,
+          "cellOffsetY": -1.875,
+          "cellOffsetX": 0,
+          "display": "inline"
+        },
+        {
+          "key": "L20@20",
+          "lineOffset": -2.25,
+          "cellOffsetY": -2.625,
+          "cellOffsetX": 0,
+          "display": "inline"
+        },
+        {
+          "key": "C0|1|0",
+          "lineOffset": -3,
+          "cellOffsetY": -3.375,
+          "cellOffsetX": 0,
+          "display": "inline"
+        },
+        {
+          "key": "L32@32",
+          "lineOffset": -2.25,
+          "cellOffsetY": -2.625,
+          "cellOffsetX": 0,
+          "display": "inline"
+        }
+      ]
+    },
+    {
+      "vp": "touch-portrait",
+      "zoom": 1.5,
+      "current": [
+        {
+          "key": "T10",
+          "lineOffset": 0.375,
+          "cellOffsetY": 0,
+          "cellOffsetX": 0,
+          "display": "block"
+        },
+        {
+          "key": "C0|0|0",
+          "lineOffset": 0.375,
+          "cellOffsetY": 0,
+          "cellOffsetX": 0,
+          "display": "block"
+        },
+        {
+          "key": "T20",
+          "lineOffset": 0.375,
+          "cellOffsetY": 0,
+          "cellOffsetX": 0,
+          "display": "block"
+        },
+        {
+          "key": "L20@20",
+          "lineOffset": 0.375,
+          "cellOffsetY": 0,
+          "cellOffsetX": 0,
+          "display": "block"
+        },
+        {
+          "key": "C0|1|0",
+          "lineOffset": 0.375,
+          "cellOffsetY": 0,
+          "cellOffsetX": 0,
+          "display": "block"
+        },
+        {
+          "key": "L32@32",
+          "lineOffset": 0.375,
+          "cellOffsetY": 0,
+          "cellOffsetX": 0,
+          "display": "block"
+        }
+      ],
+      "legacy": [
+        {
+          "key": "T10",
+          "lineOffset": -1.5,
+          "cellOffsetY": -1.875,
+          "cellOffsetX": 0,
+          "display": "inline"
+        },
+        {
+          "key": "C0|0|0",
+          "lineOffset": -3,
+          "cellOffsetY": -3.375,
+          "cellOffsetX": 0,
+          "display": "inline"
+        },
+        {
+          "key": "T20",
+          "lineOffset": -1.5,
+          "cellOffsetY": -1.875,
+          "cellOffsetX": 0,
+          "display": "inline"
+        },
+        {
+          "key": "L20@20",
+          "lineOffset": -2.25,
+          "cellOffsetY": -2.625,
+          "cellOffsetX": 0,
+          "display": "inline"
+        },
+        {
+          "key": "C0|1|0",
+          "lineOffset": -3,
+          "cellOffsetY": -3.375,
+          "cellOffsetX": 0,
+          "display": "inline"
+        },
+        {
+          "key": "L32@32",
+          "lineOffset": -2.25,
+          "cellOffsetY": -2.625,
+          "cellOffsetX": 0,
+          "display": "inline"
+        }
+      ]
+    }
+  ],
+  "toolMarks_decision": {
+    "path": "lcnc-webui/src/toolMarks.ts",
+    "rules": [
+      "a component, or a module a component renders through: every rendered surface",
+      "the program panel, its editor and the run",
+      "the running line and the marks: the code panel and the Sim tab"
+    ],
+    "browser": [
+      "bake-hold.viewer",
+      "collisions.viewer",
+      "contrast",
+      "dialogs",
+      "disarmed",
+      "editor-guards",
+      "fatpaths.viewer",
+      "feedback-channels",
+      "findings.viewer",
+      "frames",
+      "input-session",
+      "keyboard-guards",
+      "layout",
+      "layout-audit",
+      "rapids.viewer",
+      "reach.viewer",
+      "run-hold",
+      "safety-during-edit",
+      "scenes.viewer",
+      "select-writes",
+      "sim-panel.viewer",
+      "tabs",
+      "toolsetter.viewer",
+      "viewcube.viewer",
+      "viewer",
+      "visual"
+    ],
+    "browser_full": false,
+    "backend": false,
+    "heavy": false,
+    "firefox": false,
+    "live": [],
+    "none": null,
+    "unmatched": false
+  },
+  "own_limits": [
+    "No repeated CPU load test; Claude's 18/18 and mutation record reviewed, not rerun.",
+    "No complete merge or round gate rerun.",
+    "No Firefox rerun or operator live acceptance."
+  ]
+}

@@ -1,0 +1,311 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r266-1vt1uv72/lcnc-webui/codex-r266.config.ts",
+    "rootDir": "/tmp/codex-r266-1vt1uv72/lcnc-webui/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "codex-r266-1vt1uv72",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r266-1vt1uv72/browser-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "codex-r266-1vt1uv72",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/codex-r266-1vt1uv72/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:sim-panel|collisions)\\.viewer\\.spec\\.ts$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "../browser-report.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "collisions.viewer.spec.ts",
+      "file": "collisions.viewer.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "the first touch shows while the near miss's acknowledgement is held: its delta goes beside the one out (C2, Codex R167)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8197,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T20:39:47.133Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bbbb47f70077cd28aa48-f485937cfe02137ffd2d",
+          "file": "collisions.viewer.spec.ts",
+          "line": 243,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "sim-panel.viewer.spec.ts",
+      "file": "sim-panel.viewer.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "desktop: a mark's glyph sits on its row's line — in the Sim tab as in the Program tab",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3301,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T20:39:55.476Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f43c20e0ac8db9b0ef5c-9c08f71082b148450abc",
+          "file": "sim-panel.viewer.spec.ts",
+          "line": 92,
+          "column": 3
+        },
+        {
+          "title": "touch-fullhd: a mark's glyph sits on its row's line — in the Sim tab as in the Program tab",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3532,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T20:39:58.783Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f43c20e0ac8db9b0ef5c-556326b741f14939ee8d",
+          "file": "sim-panel.viewer.spec.ts",
+          "line": 92,
+          "column": 3
+        },
+        {
+          "title": "R266 independent desktop at 150 percent: row centres and legacy negative control",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3439,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T20:40:02.321Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "R266 paired measurements",
+                      "contentType": "application/json",
+                      "body": "ewogICJ2cCI6ICJkZXNrdG9wIiwKICAiem9vbSI6IDEuNSwKICAiY3VycmVudCI6IFsKICAgIHsKICAgICAgImtleSI6ICJUMTAiLAogICAgICAibGluZU9mZnNldCI6IDAuMzc1LAogICAgICAiY2VsbE9mZnNldFkiOiAwLAogICAgICAiY2VsbE9mZnNldFgiOiAwLAogICAgICAiZGlzcGxheSI6ICJibG9jayIKICAgIH0sCiAgICB7CiAgICAgICJrZXkiOiAiQzB8MHwwIiwKICAgICAgImxpbmVPZmZzZXQiOiAwLjM3NSwKICAgICAgImNlbGxPZmZzZXRZIjogMCwKICAgICAgImNlbGxPZmZzZXRYIjogMCwKICAgICAgImRpc3BsYXkiOiAiYmxvY2siCiAgICB9LAogICAgewogICAgICAia2V5IjogIlQyMCIsCiAgICAgICJsaW5lT2Zmc2V0IjogMC4zNzUsCiAgICAgICJjZWxsT2Zmc2V0WSI6IDAsCiAgICAgICJjZWxsT2Zmc2V0WCI6IDAsCiAgICAgICJkaXNwbGF5IjogImJsb2NrIgogICAgfSwKICAgIHsKICAgICAgImtleSI6ICJMMjBAMjAiLAogICAgICAibGluZU9mZnNldCI6IDAuMzc1LAogICAgICAiY2VsbE9mZnNldFkiOiAwLAogICAgICAiY2VsbE9mZnNldFgiOiAwLAogICAgICAiZGlzcGxheSI6ICJibG9jayIKICAgIH0sCiAgICB7CiAgICAgICJrZXkiOiAiQzB8MXwwIiwKICAgICAgImxpbmVPZmZzZXQiOiAwLjM3NSwKICAgICAgImNlbGxPZmZzZXRZIjogMCwKICAgICAgImNlbGxPZmZzZXRYIjogMCwKICAgICAgImRpc3BsYXkiOiAiYmxvY2siCiAgICB9LAogICAgewogICAgICAia2V5IjogIkwzMkAzMiIsCiAgICAgICJsaW5lT2Zmc2V0IjogMC4zNzUsCiAgICAgICJjZWxsT2Zmc2V0WSI6IDAsCiAgICAgICJjZWxsT2Zmc2V0WCI6IDAsCiAgICAgICJkaXNwbGF5IjogImJsb2NrIgogICAgfQogIF0sCiAgImxlZ2FjeSI6IFsKICAgIHsKICAgICAgImtleSI6ICJUMTAiLAogICAgICAibGluZU9mZnNldCI6IC0xLjUsCiAgICAgICJjZWxsT2Zmc2V0WSI6IC0xLjg3NSwKICAgICAgImNlbGxPZmZzZXRYIjogMCwKICAgICAgImRpc3BsYXkiOiAiaW5saW5lIgogICAgfSwKICAgIHsKICAgICAgImtleSI6ICJDMHwwfDAiLAogICAgICAibGluZU9mZnNldCI6IC0zLAogICAgICAiY2VsbE9mZnNldFkiOiAtMy4zNzUsCiAgICAgICJjZWxsT2Zmc2V0WCI6IDAsCiAgICAgICJkaXNwbGF5IjogImlubGluZSIKICAgIH0sCiAgICB7CiAgICAgICJrZXkiOiAiVDIwIiwKICAgICAgImxpbmVPZmZzZXQiOiAtMS41LAogICAgICAiY2VsbE9mZnNldFkiOiAtMS44NzUsCiAgICAgICJjZWxsT2Zmc2V0WCI6IDAsCiAgICAgICJkaXNwbGF5IjogImlubGluZSIKICAgIH0sCiAgICB7CiAgICAgICJrZXkiOiAiTDIwQDIwIiwKICAgICAgImxpbmVPZmZzZXQiOiAtMi4yNSwKICAgICAgImNlbGxPZmZzZXRZIjogLTIuNjI1LAogICAgICAiY2VsbE9mZnNldFgiOiAwLAogICAgICAiZGlzcGxheSI6ICJpbmxpbmUiCiAgICB9LAogICAgewogICAgICAia2V5IjogIkMwfDF8MCIsCiAgICAgICJsaW5lT2Zmc2V0IjogLTMsCiAgICAgICJjZWxsT2Zmc2V0WSI6IC0zLjM3NSwKICAgICAgImNlbGxPZmZzZXRYIjogMCwKICAgICAgImRpc3BsYXkiOiAiaW5saW5lIgogICAgfSwKICAgIHsKICAgICAgImtleSI6ICJMMzJAMzIiLAogICAgICAibGluZU9mZnNldCI6IC0yLjI1LAogICAgICAiY2VsbE9mZnNldFkiOiAtMi42MjUsCiAgICAgICJjZWxsT2Zmc2V0WCI6IDAsCiAgICAgICJkaXNwbGF5IjogImlubGluZSIKICAgIH0KICBdCn0="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f43c20e0ac8db9b0ef5c-48981c663780332818ed",
+          "file": "sim-panel.viewer.spec.ts",
+          "line": 1838,
+          "column": 3
+        },
+        {
+          "title": "R266 independent touch-fullhd at 150 percent: row centres and legacy negative control",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3603,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T20:40:05.767Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "R266 paired measurements",
+                      "contentType": "application/json",
+                      "body": "ewogICJ2cCI6ICJ0b3VjaC1mdWxsaGQiLAogICJ6b29tIjogMS41LAogICJjdXJyZW50IjogWwogICAgewogICAgICAia2V5IjogIlQxMCIsCiAgICAgICJsaW5lT2Zmc2V0IjogMC4zNzUsCiAgICAgICJjZWxsT2Zmc2V0WSI6IDAsCiAgICAgICJjZWxsT2Zmc2V0WCI6IDAsCiAgICAgICJkaXNwbGF5IjogImJsb2NrIgogICAgfSwKICAgIHsKICAgICAgImtleSI6ICJDMHwwfDAiLAogICAgICAibGluZU9mZnNldCI6IDAuMzc1LAogICAgICAiY2VsbE9mZnNldFkiOiAwLAogICAgICAiY2VsbE9mZnNldFgiOiAwLAogICAgICAiZGlzcGxheSI6ICJibG9jayIKICAgIH0sCiAgICB7CiAgICAgICJrZXkiOiAiVDIwIiwKICAgICAgImxpbmVPZmZzZXQiOiAwLjM3NSwKICAgICAgImNlbGxPZmZzZXRZIjogMCwKICAgICAgImNlbGxPZmZzZXRYIjogMCwKICAgICAgImRpc3BsYXkiOiAiYmxvY2siCiAgICB9LAogICAgewogICAgICAia2V5IjogIkwyMEAyMCIsCiAgICAgICJsaW5lT2Zmc2V0IjogMC4zNzUsCiAgICAgICJjZWxsT2Zmc2V0WSI6IDAsCiAgICAgICJjZWxsT2Zmc2V0WCI6IDAsCiAgICAgICJkaXNwbGF5IjogImJsb2NrIgogICAgfSwKICAgIHsKICAgICAgImtleSI6ICJDMHwxfDAiLAogICAgICAibGluZU9mZnNldCI6IDAuMzc1LAogICAgICAiY2VsbE9mZnNldFkiOiAwLAogICAgICAiY2VsbE9mZnNldFgiOiAwLAogICAgICAiZGlzcGxheSI6ICJibG9jayIKICAgIH0sCiAgICB7CiAgICAgICJrZXkiOiAiTDMyQDMyIiwKICAgICAgImxpbmVPZmZzZXQiOiAwLjM3NSwKICAgICAgImNlbGxPZmZzZXRZIjogMCwKICAgICAgImNlbGxPZmZzZXRYIjogMCwKICAgICAgImRpc3BsYXkiOiAiYmxvY2siCiAgICB9CiAgXSwKICAibGVnYWN5IjogWwogICAgewogICAgICAia2V5IjogIlQxMCIsCiAgICAgICJsaW5lT2Zmc2V0IjogLTEuNSwKICAgICAgImNlbGxPZmZzZXRZIjogLTEuODc1LAogICAgICAiY2VsbE9mZnNldFgiOiAwLAogICAgICAiZGlzcGxheSI6ICJpbmxpbmUiCiAgICB9LAogICAgewogICAgICAia2V5IjogIkMwfDB8MCIsCiAgICAgICJsaW5lT2Zmc2V0IjogLTMsCiAgICAgICJjZWxsT2Zmc2V0WSI6IC0zLjM3NSwKICAgICAgImNlbGxPZmZzZXRYIjogMCwKICAgICAgImRpc3BsYXkiOiAiaW5saW5lIgogICAgfSwKICAgIHsKICAgICAgImtleSI6ICJUMjAiLAogICAgICAibGluZU9mZnNldCI6IC0xLjUsCiAgICAgICJjZWxsT2Zmc2V0WSI6IC0xLjg3NSwKICAgICAgImNlbGxPZmZzZXRYIjogMCwKICAgICAgImRpc3BsYXkiOiAiaW5saW5lIgogICAgfSwKICAgIHsKICAgICAgImtleSI6ICJMMjBAMjAiLAogICAgICAibGluZU9mZnNldCI6IC0yLjI1LAogICAgICAiY2VsbE9mZnNldFkiOiAtMi42MjUsCiAgICAgICJjZWxsT2Zmc2V0WCI6IDAsCiAgICAgICJkaXNwbGF5IjogImlubGluZSIKICAgIH0sCiAgICB7CiAgICAgICJrZXkiOiAiQzB8MXwwIiwKICAgICAgImxpbmVPZmZzZXQiOiAtMywKICAgICAgImNlbGxPZmZzZXRZIjogLTMuMzc1LAogICAgICAiY2VsbE9mZnNldFgiOiAwLAogICAgICAiZGlzcGxheSI6ICJpbmxpbmUiCiAgICB9LAogICAgewogICAgICAia2V5IjogIkwzMkAzMiIsCiAgICAgICJsaW5lT2Zmc2V0IjogLTIuMjUsCiAgICAgICJjZWxsT2Zmc2V0WSI6IC0yLjYyNSwKICAgICAgImNlbGxPZmZzZXRYIjogMCwKICAgICAgImRpc3BsYXkiOiAiaW5saW5lIgogICAgfQogIF0KfQ=="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f43c20e0ac8db9b0ef5c-9abdcdfc3d73431ebdc1",
+          "file": "sim-panel.viewer.spec.ts",
+          "line": 1838,
+          "column": 3
+        },
+        {
+          "title": "R266 independent touch-portrait at 150 percent: row centres and legacy negative control",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3458,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T20:40:09.377Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "R266 paired measurements",
+                      "contentType": "application/json",
+                      "body": "ewogICJ2cCI6ICJ0b3VjaC1wb3J0cmFpdCIsCiAgInpvb20iOiAxLjUsCiAgImN1cnJlbnQiOiBbCiAgICB7CiAgICAgICJrZXkiOiAiVDEwIiwKICAgICAgImxpbmVPZmZzZXQiOiAwLjM3NSwKICAgICAgImNlbGxPZmZzZXRZIjogMCwKICAgICAgImNlbGxPZmZzZXRYIjogMCwKICAgICAgImRpc3BsYXkiOiAiYmxvY2siCiAgICB9LAogICAgewogICAgICAia2V5IjogIkMwfDB8MCIsCiAgICAgICJsaW5lT2Zmc2V0IjogMC4zNzUsCiAgICAgICJjZWxsT2Zmc2V0WSI6IDAsCiAgICAgICJjZWxsT2Zmc2V0WCI6IDAsCiAgICAgICJkaXNwbGF5IjogImJsb2NrIgogICAgfSwKICAgIHsKICAgICAgImtleSI6ICJUMjAiLAogICAgICAibGluZU9mZnNldCI6IDAuMzc1LAogICAgICAiY2VsbE9mZnNldFkiOiAwLAogICAgICAiY2VsbE9mZnNldFgiOiAwLAogICAgICAiZGlzcGxheSI6ICJibG9jayIKICAgIH0sCiAgICB7CiAgICAgICJrZXkiOiAiTDIwQDIwIiwKICAgICAgImxpbmVPZmZzZXQiOiAwLjM3NSwKICAgICAgImNlbGxPZmZzZXRZIjogMCwKICAgICAgImNlbGxPZmZzZXRYIjogMCwKICAgICAgImRpc3BsYXkiOiAiYmxvY2siCiAgICB9LAogICAgewogICAgICAia2V5IjogIkMwfDF8MCIsCiAgICAgICJsaW5lT2Zmc2V0IjogMC4zNzUsCiAgICAgICJjZWxsT2Zmc2V0WSI6IDAsCiAgICAgICJjZWxsT2Zmc2V0WCI6IDAsCiAgICAgICJkaXNwbGF5IjogImJsb2NrIgogICAgfSwKICAgIHsKICAgICAgImtleSI6ICJMMzJAMzIiLAogICAgICAibGluZU9mZnNldCI6IDAuMzc1LAogICAgICAiY2VsbE9mZnNldFkiOiAwLAogICAgICAiY2VsbE9mZnNldFgiOiAwLAogICAgICAiZGlzcGxheSI6ICJibG9jayIKICAgIH0KICBdLAogICJsZWdhY3kiOiBbCiAgICB7CiAgICAgICJrZXkiOiAiVDEwIiwKICAgICAgImxpbmVPZmZzZXQiOiAtMS41LAogICAgICAiY2VsbE9mZnNldFkiOiAtMS44NzUsCiAgICAgICJjZWxsT2Zmc2V0WCI6IDAsCiAgICAgICJkaXNwbGF5IjogImlubGluZSIKICAgIH0sCiAgICB7CiAgICAgICJrZXkiOiAiQzB8MHwwIiwKICAgICAgImxpbmVPZmZzZXQiOiAtMywKICAgICAgImNlbGxPZmZzZXRZIjogLTMuMzc1LAogICAgICAiY2VsbE9mZnNldFgiOiAwLAogICAgICAiZGlzcGxheSI6ICJpbmxpbmUiCiAgICB9LAogICAgewogICAgICAia2V5IjogIlQyMCIsCiAgICAgICJsaW5lT2Zmc2V0IjogLTEuNSwKICAgICAgImNlbGxPZmZzZXRZIjogLTEuODc1LAogICAgICAiY2VsbE9mZnNldFgiOiAwLAogICAgICAiZGlzcGxheSI6ICJpbmxpbmUiCiAgICB9LAogICAgewogICAgICAia2V5IjogIkwyMEAyMCIsCiAgICAgICJsaW5lT2Zmc2V0IjogLTIuMjUsCiAgICAgICJjZWxsT2Zmc2V0WSI6IC0yLjYyNSwKICAgICAgImNlbGxPZmZzZXRYIjogMCwKICAgICAgImRpc3BsYXkiOiAiaW5saW5lIgogICAgfSwKICAgIHsKICAgICAgImtleSI6ICJDMHwxfDAiLAogICAgICAibGluZU9mZnNldCI6IC0zLAogICAgICAiY2VsbE9mZnNldFkiOiAtMy4zNzUsCiAgICAgICJjZWxsT2Zmc2V0WCI6IDAsCiAgICAgICJkaXNwbGF5IjogImlubGluZSIKICAgIH0sCiAgICB7CiAgICAgICJrZXkiOiAiTDMyQDMyIiwKICAgICAgImxpbmVPZmZzZXQiOiAtMi4yNSwKICAgICAgImNlbGxPZmZzZXRZIjogLTIuNjI1LAogICAgICAiY2VsbE9mZnNldFgiOiAwLAogICAgICAiZGlzcGxheSI6ICJpbmxpbmUiCiAgICB9CiAgXQp9"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f43c20e0ac8db9b0ef5c-c07a11326fb8149e0d27",
+          "file": "sim-panel.viewer.spec.ts",
+          "line": 1838,
+          "column": 3
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-03T20:39:46.361Z",
+    "duration": 26543.311999999998,
+    "expected": 6,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

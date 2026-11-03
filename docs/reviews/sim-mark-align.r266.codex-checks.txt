@@ -1,0 +1,76 @@
+R266: isolated archive of 98beef82. No live endpoints used.
+
+===== build.txt =====
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2129 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.32 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-BmstqZf7.css                 8.14 kB │ gzip:   2.08 kB
+dist/static/index-CELndecL.css                      98.05 kB │ gzip:  17.88 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-Y64AXUKN.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-BrEEOgnz.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-B31qaUTj.js                279.03 kB │ gzip: 105.08 kB
+dist/static/index-DDHsAUcw.js                      673.39 kB │ gzip: 216.89 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.65s
+
+===== selector.txt =====
+...........................................                              [100%]
+43 passed, 1 deselected in 3.77s
+
+===== c2-unit.txt =====
+
+ RUN  v4.1.8 /tmp/codex-r266-1vt1uv72/lcnc-webui
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed | 46 skipped (48)
+   Start at  21:39:22
+   Duration  392ms (transform 212ms, setup 0ms, import 275ms, tests 63ms, environment 0ms)
+
+
+===== browser.txt =====
+
+Running 6 tests using 1 worker
+
+(node:2503961) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2503961) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [e2e] › e2e/collisions.viewer.spec.ts:243:1 › the first touch shows while the near miss's acknowledgement is held: its delta goes beside the one out (C2, Codex R167) (8.2s)
+  ✓  2 [e2e] › e2e/sim-panel.viewer.spec.ts:92:3 › desktop: a mark's glyph sits on its row's line — in the Sim tab as in the Program tab (3.3s)
+  ✓  3 [e2e] › e2e/sim-panel.viewer.spec.ts:92:3 › touch-fullhd: a mark's glyph sits on its row's line — in the Sim tab as in the Program tab (3.5s)
+  ✓  4 [e2e] › e2e/sim-panel.viewer.spec.ts:1838:3 › R266 independent desktop at 150 percent: row centres and legacy negative control (3.4s)
+  ✓  5 [e2e] › e2e/sim-panel.viewer.spec.ts:1838:3 › R266 independent touch-fullhd at 150 percent: row centres and legacy negative control (3.6s)
+  ✓  6 [e2e] › e2e/sim-panel.viewer.spec.ts:1838:3 › R266 independent touch-portrait at 150 percent: row centres and legacy negative control (3.5s)
+
+  6 passed (26.5s)
