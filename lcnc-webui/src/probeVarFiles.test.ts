@@ -9,7 +9,7 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { PROBE_FALLBACK, probeVarMap } from "./probeVars";
+import { PROBE_FALLBACK, calibrationVarMap } from "./probeVars";
 import { TOOLSETTER_FALLBACK, toolsetterVarMap } from "./toolsetterSetup";
 
 const EXAMPLES = fileURLToPath(new URL("../../examples/sim_config", import.meta.url));
@@ -17,7 +17,7 @@ const VAR_FILES = readdirSync(EXAMPLES, { withFileTypes: true })
   .filter(d => d.isDirectory() && existsSync(join(EXAMPLES, d.name, "sim.var")))
   .map(d => join(d.name, "sim.var"));
 const WRITTEN = [...new Set([
-  ...Object.keys(probeVarMap(PROBE_FALLBACK, 1)),
+  ...Object.keys(calibrationVarMap(PROBE_FALLBACK, 1, 0)),
   ...Object.keys(toolsetterVarMap(TOOLSETTER_FALLBACK)),
 ].map(Number))].sort((a, b) => a - b);
 

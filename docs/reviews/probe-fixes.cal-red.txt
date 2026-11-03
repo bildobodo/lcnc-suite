@@ -1,0 +1,15 @@
+# Calibrate sent #3036 beside the map; no var file declared it (found 2026-11-03 by the probe-click spec, test strategy step 2)
+
+== probe-click.spec.ts (feat/test-tiers e2382863 + the spec, select config, Calibrate only), against the panel at bcab7cb7
+    expected the keys of probeVarMap(PROBE_FALLBACK, 1); received one more:
+    +   "3036",
+    (Outside, Boss/Pocket, Ridge/Valley, Angle: green — they send exactly the map)
+
+== probeVarFiles.test.ts taking calibrationVarMap's numbers, var files still without #3036
+AssertionError: expected [ 3036 ] to deeply equal []
+- Expected
++ Received
+    × xyz3/sim.var / xyzabc6/sim.var / xyzac5/sim.var declares every number the probe panel and the toolsetter write
+      Tests  3 failed | 4 passed (7)
+
+== after: the examples declare 3036 0 → 7 passed (7); test_example_install.py 34 passed

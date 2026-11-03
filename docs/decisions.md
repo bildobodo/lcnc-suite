@@ -10052,3 +10052,15 @@ LinuxCNC's offsets or G28/G30) an installed var file lacks, at the example's val
 pin its own lines kept). README names the numbers a machine's var file must declare. Not changed:
 the W3 rule itself (a probe's own values could be admitted undeclared — a policy change, not
 asked).
+
+**2026-11-03, the calibration's axis (#3036).** The probe-click spec (test strategy step 2: each
+send form held once, its `mdi` checked) found Calibrate sending #3036 — the axis choice (0 the
+average of X and Y, 1 X, 2 Y) — added beside the map in `runCalProbe`; no var file declared it, so
+every calibration was still refused after the fix above (and the R252 review did not see it: the
+map was the ONE source only for what it held). Fix: `calibrationVarMap` = the map + #3036, the
+panel's only way to build a calibration's numbers; `probeVarFiles.test.ts` takes its numbers (red:
+3036 missing in each of the three var files); the examples declare `3036 0`, which
+`install_examples.py` carries into an installed copy (#3000–#3999). The routines read other
+numbers no var file declares (#3000–#3003 coolant, #3011/#3012, #3037–#3039 the toolsetter's
+param update) — read only, never written by the WebUI: LinuxCNC gives them 0 and the gateway
+refuses nothing.
