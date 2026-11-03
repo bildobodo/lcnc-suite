@@ -1,0 +1,51 @@
+R259 independent follow-up, target 0e5f30b1b5d3e06045ff40c09e239e82c6c87fb2.
+All tests and edits in /tmp/codex-r259-bkksfkcj/repo; no product browser/server/machine access.
+
+First sandbox run (only the random-loopback-socket guard denied):
+.....................................F.                                  [100%]
+=================================== FAILURES ===================================
+________________________ test_a_listening_port_is_seen _________________________
+
+    def test_a_listening_port_is_seen():
+>       with socket.socket() as s:
+             ^^^^^^^^^^^^^^^
+
+scripts/test_select/test_selector.py:514: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <socket.socket fd=-1, family=0, type=0, proto=0>
+family = <AddressFamily.AF_INET: 2>, type = <SocketKind.SOCK_STREAM: 1>
+proto = 0, fileno = None
+
+    def __init__(self, family=-1, type=-1, proto=-1, fileno=None):
+        # For user code address family and type values are IntEnum members, but
+        # for the underlying _socket.socket they're just integers. The
+        # constructor of _socket.socket converts the given argument to an
+        # integer automatically.
+        if fileno is None:
+            if family == -1:
+                family = AF_INET
+            if type == -1:
+                type = SOCK_STREAM
+            if proto == -1:
+                proto = 0
+>       _socket.socket.__init__(self, family, type, proto, fileno)
+E       PermissionError: [Errno 1] Operation not permitted
+
+/usr/lib/python3.13/socket.py:233: PermissionError
+=========================== short test summary info ============================
+FAILED scripts/test_select/test_selector.py::test_a_listening_port_is_seen - ...
+1 failed, 38 passed in 1.70s
+
+Approved repeat, including the own socket guard:
+.......................................                                  [100%]
+39 passed in 1.74s
+
+Counterexample inserted in freecad-import.spec.ts: named default IO import and an actual call from the test.
+All non-socket guards remain green:
+......................................                                   [100%]
+38 passed, 1 deselected in 1.69s
+
+Probe assertions: PASS. Full details (including all old cases, four silent cases, native Node reads,
+actual diff selection and raw reporter re-evaluation) in test-strategy.r259.results.json.
+Temporary source changes restored; isolated git status clean.

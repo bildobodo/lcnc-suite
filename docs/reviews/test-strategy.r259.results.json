@@ -1,0 +1,207 @@
+{
+  "head": "0e5f30b1b5d3e06045ff40c09e239e82c6c87fb2",
+  "r257_same_line": {
+    "problems": [
+      "lcnc-webui/e2e/freecad-import.spec.ts:5: a readFileSync call the table does not name: 'readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\")'"
+    ]
+  },
+  "r257_split_call": {
+    "problems": [
+      "lcnc-webui/e2e/freecad-import.spec.ts:77: a readFileSync call the table does not name: 'readFileSync\\n([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\")'"
+    ]
+  },
+  "r258_namespace_space": {
+    "problems": [
+      "lcnc-webui/src/viewer/collisionContacts.test.ts:164: a readFileSync call the table does not name: 'readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\")'"
+    ]
+  },
+  "r258_namespace_wrap": {
+    "problems": [
+      "lcnc-webui/src/viewer/collisionContacts.test.ts:165: a readFileSync call the table does not name: 'readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\")'"
+    ]
+  },
+  "r258_mixed_import": {
+    "problems": [
+      "lcnc-webui/e2e/freecad-import.spec.ts:78: a readFileSync call the table does not name: 'readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\")'"
+    ]
+  },
+  "scenes_dynamic_import": {
+    "problems": [
+      "lcnc-webui/e2e/scenes.viewer.spec.ts:1117: import() of an IO module"
+    ]
+  },
+  "named_default": {
+    "added": "import { default as extraFs } from \"node:fs\";\nasync function r259Read() { return extraFs.readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\"); }\n",
+    "call_in_test": "expect((await r259Read()).length).toBeGreaterThan(0);",
+    "scan": {
+      "calls": [],
+      "refused": []
+    },
+    "problems": [],
+    "guards": {
+      "exit": 0,
+      "output": "......................................                                   [100%]\n38 passed, 1 deselected in 1.69s\n"
+    },
+    "node_read_length": 1248
+  },
+  "named_promises": {
+    "added": "import { promises as ioPromises } from \"node:fs\";\nasync function r259Read() { return await ioPromises.readFile([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\"); }\n",
+    "call_in_test": "expect((await r259Read()).length).toBeGreaterThan(0);",
+    "scan": {
+      "calls": [],
+      "refused": []
+    },
+    "problems": [],
+    "node_read_length": 1248
+  },
+  "handed_promises": {
+    "added": "import baseFs from \"node:fs\";\nconst ioPromises = baseFs.promises;\nasync function r259Read() { return await ioPromises.readFile([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\"); }\n",
+    "call_in_test": "expect((await r259Read()).length).toBeGreaterThan(0);",
+    "scan": {
+      "calls": [],
+      "refused": []
+    },
+    "problems": [],
+    "node_read_length": 1248
+  },
+  "destructured_promises": {
+    "added": "import baseFs from \"node:fs\";\nconst { readFile } = baseFs.promises;\nasync function r259Read() { return await readFile([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\"); }\n",
+    "call_in_test": "expect((await r259Read()).length).toBeGreaterThan(0);",
+    "scan": {
+      "calls": [],
+      "refused": []
+    },
+    "problems": [],
+    "node_read_length": 1248
+  },
+  "data_only_selection": {
+    "browser": [
+      "bake-hold.viewer",
+      "choices",
+      "collisions.viewer",
+      "dialogs",
+      "fatpaths.viewer",
+      "findings.viewer",
+      "forms",
+      "gcode-reference",
+      "keyboard-guards",
+      "layout",
+      "macros",
+      "messages",
+      "offsets",
+      "probe-click",
+      "rapids.viewer",
+      "reach.viewer",
+      "run-hold",
+      "select-writes",
+      "sim-panel.viewer",
+      "tool-geometry",
+      "tool-table-read",
+      "toolsetter.viewer",
+      "viewcube.viewer",
+      "visual"
+    ],
+    "heavy": [],
+    "freecad_selected": false
+  },
+  "actual_round_selection": {
+    "base": "32e6ba685a045de5b8dd1c35121520e79d3906d5",
+    "head": "0e5f30b1b5d3e06045ff40c09e239e82c6c87fb2",
+    "changed": [
+      {
+        "status": "A",
+        "path": "docs/reviews/test-tiers.round4.gate-round.json",
+        "rules": [
+          "documentation, agent and CI configuration (CI proves itself on GitHub)"
+        ],
+        "decision": "no product tests: no product code"
+      },
+      {
+        "status": "M",
+        "path": "docs/reviews/test-tiers.selector-red.txt",
+        "rules": [
+          "documentation, agent and CI configuration (CI proves itself on GitHub)"
+        ],
+        "decision": "no product tests: no product code"
+      },
+      {
+        "status": "M",
+        "path": "lcnc-webui/e2e/scenes.viewer.spec.ts",
+        "decision": "the spec itself: scenes.viewer"
+      },
+      {
+        "status": "M",
+        "path": "scripts/test_select/mutations.py",
+        "rules": [
+          "scripts and their tests ride the backend gate"
+        ],
+        "decision": "the rules: scripts and their tests ride the backend gate"
+      },
+      {
+        "status": "M",
+        "path": "scripts/test_select/reads.py",
+        "rules": [
+          "scripts and their tests ride the backend gate"
+        ],
+        "decision": "the rules: scripts and their tests ride the backend gate"
+      },
+      {
+        "status": "A",
+        "path": "scripts/test_select/readscan.mjs",
+        "rules": [
+          "scripts and their tests ride the backend gate"
+        ],
+        "decision": "the rules: scripts and their tests ride the backend gate"
+      },
+      {
+        "status": "M",
+        "path": "scripts/test_select/test_selector.py",
+        "rules": [
+          "scripts and their tests ride the backend gate"
+        ],
+        "decision": "the rules: scripts and their tests ride the backend gate"
+      }
+    ],
+    "unmatched": [],
+    "absent_at_head": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [],
+      "related": []
+    },
+    "browser": {
+      "run": [
+        "scenes.viewer"
+      ],
+      "reasons": []
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "scripts/test_select/mutations.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/reads.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/readscan.mjs: scripts and their tests ride the backend gate",
+        "scripts/test_select/test_selector.py: scripts and their tests ride the backend gate"
+      ]
+    },
+    "firefox": {
+      "needed": false
+    },
+    "live": {}
+  },
+  "round4_reports": {
+    "browser_listed": 10,
+    "browser_executed": 10,
+    "unit_listed": 2573,
+    "unit_assertions": 2573,
+    "sha256": {
+      "list-full.json": "771a40a9ae38e51852ca12cae929f0b2dbe26395b2ee194da29bbe80dc79eda9",
+      "list-run.json": "b1e456044236d3efbba84554becc50b2e0a0d5b91b4a88541a21ddc46c8ac8b0",
+      "playwright.json": "3fb76e77d4a3e8a57cfc1f10e540d3b7c12ac7c5699f8c4208c3572fc5866b3c",
+      "unit-light.list.json": "1fad4f38778954a9e5d4d6326dca3d0be6717943110c40c247cc8b4b75736671",
+      "unit-light.json": "c886dfeb6a7fcb49bbeb178db9e152f5256f24d7dce159794548d14f07c02799"
+    }
+  }
+}
