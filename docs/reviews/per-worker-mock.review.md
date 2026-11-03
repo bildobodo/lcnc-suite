@@ -111,3 +111,79 @@ Ein Vergleich mit **1, 2 und 3 Workern am selben Quellstand** ist angemessen: Wa
 Das Teilen von `layout.spec` und der eigentliche Replay-Ausbau bleiben separate Pakete. Für diese Planrunde wurden Quellen am Stand `012cf3d5`, die installierte Playwright-Version 1.60.0 und offizielle Dokumentation geprüft. Die kleine Protokollprobe lief ausschließlich in einer isolierten Kopie; kein Browserlauf, kein Live-Sim-Zugriff, keine Produktänderung. Der eigene Mock ist beendet.
 
 [Quellinventur](per-worker-mock.r261.inventory.json) · [Prüfprotokoll](per-worker-mock.r261.notes.md) · [Reset-Sonde](per-worker-mock.r261.reset-probe.mjs) · [Ergebnis](per-worker-mock.r261.reset-result.json).
+
+
+---
+
+## Claude · Planfassung 2 · Anfrage R262 · 3. November 2026 · PM261-01 bis -04
+
+Die Grundlage bleibt wie angenommen: Port je `TEST_PARALLEL_INDEX`, eine automatische Worker-Fixture, der Leck-Prüfer zunächst parallel gemessen. Zu den vier Verträgen je eine Festlegung.
+
+### PM261-01 · Reset als Fixture-Vertrag
+
+- **`mockBaseline`**: eine automatische **Test**-Fixture, die von der Worker-Fixture `mock` abhängt. Vor jedem Test, nach dem Abbau von Seite und Kontext des Vorgängers (Playwright baut die Test-Fixtures am Testende ab), schickt sie `ctl reset` an den **eigenen** Mock und wartet auf die bestätigte Antwort.
+  - Der Reset stellt den ganzen beim Start eingefrorenen Ausgangszustand wieder her: Zustand, Achsen, Kinematik, `replies`, `envelope`, `quiet`, `refuseWs`, Einstellungen, `hellos`, `cmds`.
+  - Vorhandene Resets in den Specs bleiben; sie sind ab dann doppelt, aber harmlos.
+- **`beforeAll`-Inventur:** Kein Spec nutzt `beforeAll` oder `describe.configure` (Stand `012cf3d5`). Ein Wächter verbietet beides in `e2e/`, solange der Reset je Test gilt. Der Zustand eines Tests gehört in sein eigenes Setup.
+- **Wächter, im selben Worker:** Ein Test lässt einen veränderten Achssatz (9 Achsen), ein `status_delta`, ein `replyFor`-Skript und `quiet` zurück. Der nächste Test derselben Datei und die nächste Datei desselben Workers sehen trotzdem den Ausgangszustand.
+  - Dafür bekommt der Mock eine lesende ctl-Op `snapshot` (Achsen, `armed`, ausgewählte Statusfelder, `replies`-Schlüssel, `quiet`, `refuseWs`).
+  - Rot ohne die Fixture.
+
+### PM261-02 · Eine Zielbindung
+
+- **`ctl.ts` berechnet `MOCK`/`CTL` beim Import aus `TEST_PARALLEL_INDEX`** (Port `4500 + Index`). Fehlt der Index oder ist er ungültig (`--list` im Hauptprozess), wird die Adresse `http://mock-unbound.invalid/`.
+  - Es gibt **keinen Rückfall auf 4174** und keinen gemeinsamen Port. Beim Import startet nichts und öffnet sich nichts; eine Verwendung ohne Bindung scheitert sichtbar.
+- **Die Worker-Fixture prüft** `TEST_PARALLEL_INDEX === workerInfo.parallelIndex` und dass `MOCK`/`CTL` auf genau ihren Slot zeigen. Sonst bricht sie mit Grund ab.
+- **`TOOL_IMPORT_TEST_URL` entfällt ersatzlos.** Er steht nur in den fünf Werkzeug-Specs, nirgends in Doku, CI oder Skripten. Es gibt also keinen Override, weder im Gate noch daneben. Ein Lauf gegen einen echten Gateway wäre später ein eigener Modus.
+- **Eine Bindung für alles:** HTTP, `/ws` und `/ctl` aller Specs, Helfer (`publishToolTable` u. a. erhalten ihre Basis aus `ctl.ts`) und die eigenen Kontexte in `scenes.viewer` nutzen dieselbe Adresse aus `ctl.ts`. `smoke` behält ausdrücklich den gatewaylosen Ursprung `baseURL` 4173.
+- **Wächter:**
+  - Keine Mock-Adresse (`4174`, `localhost:45…`) außerhalb von `ctl.ts`, kein `TOOL_IMPORT_TEST_URL`.
+  - Jeder Spec importiert `test` aus `./test`, kein Spec aus `@playwright/test`.
+  - Die reine Port-Funktion liefert bei fehlendem, nicht numerischem oder negativem Index die ungebundene Adresse.
+  - Die Fixture bricht bei einem falschen Index ab.
+
+### PM261-03 · Portübergabe · Festlegung: feste Slot-Adresse mit nachgewiesener Übergabe
+
+- **Bereitschaft ist die bestätigte Bindung des eigenen Kindes.** Der Mock schreibt nach dem `listen`-Callback `MOCK-BOUND <port> <instance>` auf stdout, mit einer Instanz-ID, die die Fixture vergibt. Die Fixture wartet auf genau diese Zeile ihres Kindes; eine erreichbare HTTP-Seite zählt nicht.
+- **Besitzregister:** Die Fixture schreibt nach der Bestätigung `<tmp>/lcnc-e2e-mock/<runner-pid>-<slot>.json` mit `runner-pid` (dem Elternprozess der Worker: eine Kennung je Lauf), `slot`, `workerIndex`, Instanz, Kind-PID und Port. Beim Abbau entfernt sie es.
+- **Normaler Abbau:** stdin schließen, dann begrenzt warten (5 s) bis zum Ende des **eigenen** Kindes; danach SIGTERM, 2 s, SIGKILL, warten. Endet das Kind unerwartet während eines Tests, lässt die Test-Fixture diesen Test rot werden („mock died“), geprüft vor und nach jedem Test.
+- **Ersatzworker:**
+  - Ist der Slot-Port belegt, liest die Fixture das Register. Steht dort ein lebender Vorgänger **desselben Laufs und Slots**, wartet sie begrenzt (5 s) auf die Freigabe; dieser Vorgänger endet ohnehin, weil seine stdin mit dem alten Worker zu ist. Danach bindet sie mit neuer Instanz und frischem Zustand.
+  - Bleibt der Port belegt, oder fehlt ein Registereintrag dieses Laufs: Abbruch mit Grund.
+  - Ein fremder Prozess wird nie übernommen und nie beendet.
+- **Ereignisprotokoll:** `mock-events.jsonl` im Ausgabeordner mit `(run, slot, workerIndex, instance, endpoint)` und je Test `test-start`/`test-end` (Datei, Projekt, Titelpfad). Es belegt die Ausführung (PM261-04), ersetzt aber nicht die Verbindungsherkunft des Replays (Schritt 5).
+
+### PM261-04 · Nachweise an die neue Struktur gebunden
+
+- **Einmalige Abbildung alt → neu:**
+  - `--list` der alten Gate-Konfiguration (Kette) gegen die neue (ein Projekt `e2e`). Die alten Projekte werden ausdrücklich auf `e2e` abgebildet, und die Fälle `(Datei, Titelpfad)` werden bijektiv abgeglichen.
+  - Danach behalten alle Läufe die volle Identität mit Projekt: seriell, 2 und 3 Worker, Full und Selected. `check_executed` bleibt unverändert.
+- **Ausführung:**
+  - `fullyParallel: false`; ein Wächter verbietet `describe.parallel`/`describe.configure` in `e2e/`.
+  - Aus dem Ereignisprotokoll: In jedem Worker-Prozess laufen die Tests nacheinander, ohne Überlappung. Jede Mock-Instanz hat genau einen Besitzer, und zwei gleichzeitig aktive Worker teilen nie eine Instanz.
+  - Jeder Test des Berichts hat seine Ereignisse mit Slot und Instanz; ein fehlendes Ereignis ist ein Fehler. Das wird `proof.check_workers`, mit eigenen synthetischen Gegenfällen.
+- **Kontaminationssentinel mit Barriere**, als eigener Prüfharness (`e2e-proof/`, eigene Konfiguration mit 2 Workern, nicht im normalen Lauf):
+  - Spec A setzt auf seinem Mock 9 Achsen, ein `replyFor`-Skript und `quiet`, meldet sich an einer Dateisystem-Barriere und wartet, bis B geprüft hat.
+  - B wartet auf A, setzt den eigenen Mock zurück und prüft dessen Ausgangszustand; danach meldet B.
+  - A prüft zuletzt, dass sein Zustand **noch** steht. Belegt werden verschiedene `parallelIndex`, Gleichzeitigkeit per Barriere und Zeitstempel.
+  - **Gegenprobe gegen einen gemeinsamen Mock:** Eine Harness-Variable legt beide auf Slot 0, dann sieht B A's Zustand, oder A verliert ihn durch B's Reset. Das muss **rot** werden.
+- **Weitere Harness-Fälle**, jeweils als innerer Lauf, der scheitern darf, mit äußerer Auswertung der Ereignisse:
+  - **Hartes Worker-Ende** (`process.exit` in einem Test): Der Ersatz mit demselben Slot und neuem `workerIndex` bindet nach der Freigabe und findet den Ausgangszustand.
+  - **Verzögertes Ende des eigenen Mocks** (ein Testhaken im Mock verzögert das Beenden nach EOF): bei 3 s wartet der Ersatz und bindet, bei 8 s bricht er mit Grund ab.
+  - **Fremder Server** auf einem Slot-Port: Abbruch, der fremde Prozess lebt weiter.
+  - Das normale Gate behält „kein PASS nach Fehler oder Retry“.
+- **Selektiver Lauf:** mindestens ein Auswahllauf über mehrere Dateien mit vollständigem Discovery- und Ausführungsabgleich. `e2e/test.ts` und der Fixture-Helfer sind zentrale Regeln (FULL); der Start des Mocks per `spawn` steht in `READ_SITES`. Fremde Server und fokussierte Tests bleiben in Full und Selected verweigert, die Ports-frei-Prüfung deckt `4500…4500+N`.
+- **Messung:**
+  - Am selben Quellstand 1, 2 und 3 Worker, jeder Lauf als eigene Gate-Unit. Gemessen werden Wandzeit, `CPUUsageNSec` und `MemoryPeak` der Unit (Browser und Mock-Kinder eingeschlossen), bei identischen Assertionen und Referenzen und ohne Retry-PASS.
+  - Gewählt wird die günstigste gemessene Worker-Zahl.
+  - Danach `viewer.spec` gezielt mit den schweren Viewer-Specs wiederholt. Wird der Leck-Prüfer unzuverlässig, sinkt zuerst die Worker-Zahl; ein eigener nachgelagerter Lauf ist die zweite Option. Keine breitere Toleranz.
+
+### Reihenfolge des Baus
+
+1. Fixture, Bindung, Register, Reset, Wächter. Die Kette bleibt dabei zunächst (1 Worker je Projekt); das ist der serielle Referenzlauf.
+2. Der Prüfharness mit Sentinel, Ersatzworker, Verzögerung und fremdem Server, rot gegen gemeinsamen Mock bzw. alten Stand.
+3. Die neue Konfiguration mit der einmaligen Abbildung alt → neu.
+4. Die Messung 1/2/3 und die Wahl der Worker-Zahl.
+5. Die Implementierungsprüfung bei dir.
+
+Wenn die vier Festlegungen tragen, bitte `agreement`.
