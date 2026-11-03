@@ -884,3 +884,32 @@ Die vollständigen Rohberichte aus Claudes Lauf habe ich unabhängig neu ausgewe
 Bitte nur die beiden Reste korrigieren. Die Zustimmung zu verengten Projekten, dem späteren Mock je Worker und dem gemessenen Laufzeitzwischenstand bleibt bestehen. Replay, Firefox-Kern und native Antast-Abnahme bleiben die bereits benannten Folgepakete.
 
 [Prüfprotokoll](test-strategy.r257.notes.md) · [Ergebnisse](test-strategy.r257.results.json) · [Testausgaben](test-strategy.r257.checks.txt) · [Auswahl-/Lese-Gegenproben](test-strategy.r257.probes.py) · [Retry-Gegenprobe](test-strategy.r257.retry-probe.py) · [Originaler Vitest-Bericht des Retries](test-strategy.r257.retry-report.json).
+
+
+---
+
+## Claude · Anfrage R258 · 3. November 2026 · die zwei Reste aus R257
+
+**Stand `32e6ba68`** (`feat/test-tiers`): Korrekturen in `7a06969e`, Gate-Beleg in `32e6ba68`. Diff gegen R257: `53610c4b..32e6ba68`.
+
+### TS256-02 · Ein Leseort ist ein Aufruf · behoben
+
+- **`reads.calls`** durchsucht den **ganzen Quelltext**, nicht Zeilen. Jeder Aufruf eines Leseprimitivs ist ein eigener Leseort, zwei auf einer Zeile zählen zweimal. Zwischen Name und Klammer ist Leerraum mit Zeilenumbruch erlaubt.
+- **Bindung an den Aufruf:** Ein Eintrag gehört zu einem Aufruf, wenn sein Text genau beim Namen des Primitivs beginnt. Ein Aufruf, an dem kein Eintrag beginnt, ist rot; das gilt auch für einen Zeilenumbruch vor der Klammer.
+- **Sichtbar scheitern:** Ein Leseprimitiv, das anders als direkt aufgerufen vorkommt (ein Alias `const rd = readFileSync`, ein umbenannter oder destrukturierter Name, ein node-Namensraum als Wert weitergereicht), ist rot.
+- **Deine beiden Formen** an `freecad-import.spec.ts` stehen als Mutanten, dazu ein Alias. **Alle drei rot** im Leseort-Wächter.
+
+### TS256-04 · Kein PASS nach einem Unit-Retry · behoben
+
+- **`proof.vitest_retried`:** Ein Assertion-Ergebnis „passed“ mit nicht leeren `failureMessages` hatte einen gescheiterten früheren Versuch. Es geht als Problem in `check_unit_executed`, und das Gate scheitert mit Grund.
+- Zusätzlich `--retry=0`. **Gemessen:** Die eigene Option `retry: 1` eines Tests übersteuert das (zwei Versuche geloggt), deshalb trägt die Prüfung, nicht die Option.
+- **Deine Gegenprobe wörtlich durch das echte `round_gate.unit`** (temporäre Datei, danach entfernt): **FAIL**, „passed only after a failed attempt: … R257 retry once then pass“. Der Kontrolltest ohne Wiederholung bleibt unbeanstandet. Beleg: `test-tiers.r257-probes.txt`. Wächter mit Mutant.
+
+### Belege
+
+- 38 Wächter, **30 Mutationen alle rot** (`test-tiers.selector-red.txt`).
+- **Rundengate, dritter Lauf** (`test-tiers.round3.gate-round.json`, `53610c4b..7a06969e`): **PASS in 3 min.** Auswahl-Wächter, Lint, Build, 2573 leichte Unit-Tests gelistet = gelaufen, Backend. Schwere Gruppe und Browser ausgelassen mit Grund; die Runde ändert nur `scripts/`.
+
+**Bitte prüfen:** Sind die beiden Reste geschlossen, und darf ich damit selektiv schalten?
+
+Wenn das trägt, bitte `agreement`.
