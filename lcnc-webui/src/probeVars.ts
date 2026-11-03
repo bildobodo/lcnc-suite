@@ -13,7 +13,8 @@ export const PROBE_FALLBACK: ProbeDefaults = {
 };
 
 /** The probe parameters → the LinuxCNC var numbers the routines read: the
- *  probe_basic routines #3014–#3035 (XY and Z distance and clearance both),
+ *  probe_basic routines #3014–#3035 (XY and Z distance and clearance both;
+ *  a calibration adds #3036, `calibrationVarMap`),
  *  the surface map #3050–#3059. Every number must be declared in the
  *  machine's var file — the gateway refuses one it does not declare (W3),
  *  and a probe sends these with its call (operator 2026-11-02: the shipped
@@ -54,4 +55,14 @@ export function probeVarMap(p: Omit<ProbeDefaults, "autoZero">, probeMode: numbe
     "3058": p.scanSafeZ,
     "3059": p.scanDepthZ,
   };
+}
+
+/** A calibration sends the map above and its axis choice: #3036 = 0 the
+ *  average of X and Y, 1 X only, 2 Y only (probe_cal_*). One map for every
+ *  number the panel writes — #3036 was added beside it and no var file
+ *  declared it, so every calibration was refused (found by the probe-click
+ *  spec, 2026-11-03). */
+export function calibrationVarMap(p: Omit<ProbeDefaults, "autoZero">, probeMode: number,
+                                  calAxis: number): Record<string, number> {
+  return { ...probeVarMap(p, probeMode), "3036": calAxis };
 }

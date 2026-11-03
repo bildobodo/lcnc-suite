@@ -18,7 +18,7 @@ import { LABEL_FONT_URL } from "./viewer/labelFont";
 import TabNav from "./TabNav.vue";
 import { tabIds } from "./tabIds";
 import { PROBE_VIEWS, type ProbeView } from "./probeViews";
-import { PROBE_FALLBACK, probeVarMap } from "./probeVars";
+import { PROBE_FALLBACK, calibrationVarMap, probeVarMap } from "./probeVars";
 
 const props = defineProps<{
   probing: boolean;
@@ -249,8 +249,7 @@ function runAngleProbe(op: GridOp) {
 function runCalProbe(macro: string) {
   if (!can.value.ready || props.probing) return;
   saveProbeDefaults({ ...params.value, autoZero: autoZero.value });
-  const vars = buildVarMap(autoZero.value ? 0 : 1);
-  vars["3036"] = calAxis.value;
+  const vars = calibrationVarMap(params.value, autoZero.value ? 0 : 1, calAxis.value);
   emit("runProbe", { vars, macro });
 }
 

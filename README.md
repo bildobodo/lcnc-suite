@@ -993,7 +993,7 @@ Falls back to `[JOINT_N]` limits if `[AXIS_*]` is not present.
 
 | Key | Required | Description |
 |-----|----------|-------------|
-| `PARAMETER_FILE` | yes | Var file for WCS offsets, probe variables and toolsetter settings. It must **declare** every number the WebUI writes — the probe panel #3014–#3035 and #3050–#3059, the toolsetter #3004–#3013 and #3100–#3116: the gateway refuses a number the var file does not name (a probe is then refused with "#3015 is not in this machine's var file"). The examples declare them; `scripts/install_examples.py` adds missing ones to an installed copy |
+| `PARAMETER_FILE` | yes | Var file for WCS offsets, probe variables and toolsetter settings. It must **declare** every number the WebUI writes — the probe panel #3014–#3036 (#3036: a calibration's axis) and #3050–#3059, the toolsetter #3004–#3013 and #3100–#3116: the gateway refuses a number the var file does not name (a probe is then refused with "#3015 is not in this machine's var file"). The examples declare them; `scripts/install_examples.py` adds missing ones to an installed copy |
 | `SUBROUTINE_PATH` | yes (for probing) | Colon-separated paths — gateway scans these for `probe_*.ngc` macros |
 | `ON_ABORT_COMMAND` | recommended | `O<on_abort> call` — required by probe_basic to re-enable overrides after abort |
 | `REMAP=M600` | for tool change | `modalgroup=6 ngc=m600` — manual tool change via web UI |
