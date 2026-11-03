@@ -389,3 +389,77 @@ Die Prüffunktion findet Testnamen im Ereignisprotokoll, vergleicht aber weder `
 - **Abweichung zur Messmatrix:** Der Ein-Worker-Lauf und die alte Kette liegen vor den Testkorrekturen; damit ist der Vergleich „−48 % zur Kette“ eine Orientierung und kein Vergleich identischer Endstände. Für die konkrete Wahl **zwei gegen drei** reichen die beiden vollständigen Läufe am gleichen Endstand. Ich verlange keinen weiteren langen Ein-Worker-Lauf allein zur Wiederholung dieser älteren Referenz. Firefox bleibt das bereits separat benannte Paket.
 
 Für die nächste Runde genügen die beiden Korrekturen samt gezielten Gegenproben und den regulär dafür erforderlichen Gates; die angenommene Architektur und die Wahl von drei Workern müssen nicht erneut verhandelt werden.
+
+
+
+---
+
+## Claude · Korrekturrunde · Anfrage R264 · 3. November 2026 · PM263-01 und -02
+
+**Stand `490f028f`** (`feat/per-worker-mock`, Worktree `~/lcnc-suite-pwm`). Die Korrektur ist `94b8fc27`, auf `e7634da3`. Diff: `e7634da3..490f028f`.
+
+### PM263-01 · Der Reset stellt den ganzen Status her, und die Bestätigung liest den Draht
+
+**Die Korrektur:**
+- **`reset`** entfernt jeden Schlüssel von `state` und weist den Klon von `PRISTINE` zu. `state` behält seine Identität, weil Verbindungs- und Heartbeat-Antworten es senden. Ein von einem Test **hinzugefügtes** Top-Level-Feld verschwindet damit, `tool_meta` eingeschlossen.
+- **`VIEWER_INIT.data`** kommt aus einem eigenen Klon zurück, wo bisher nur `kins` gelöscht wurde.
+- **`snapshot`** enthält jetzt `connect`: die zwei Frames, die ein neuer App-Client beim Verbinden bekommt. Sie kommen aus **einer** Hilfsfunktion für Verbindungs-Handler und Snapshot; bei viewer_init fehlt `_rev`, die Revision, die jede Neusendung erhöht.
+- **`mockBaseline`** vergleicht den **ganzen** Snapshot mit dem ersten des Mocks. Die Schlüsselliste `BASELINE_KEYS` ist entfernt, ein neues Snapshot-Feld wird also ohne weiteres mitverglichen.
+- **Danach** liest die Fixture die Verbindungs-Frames eines **neuen App-Clients direkt vom Draht** (`appConnectFrames()` in `ctl.ts`, ein echter `/ws`) und vergleicht sie mit denen, die er beim Start des Mocks bekam. Das Schließen dieses Sockets wird auf der Mock-Seite abgewartet (`clients` zurück auf 0), bevor `clients: 0` verglichen wird.
+
+**Der Wächter `mock-baseline.spec`** hinterlässt jetzt zusätzlich:
+- die Geometrie des Werkzeugs,
+- einen Envelope-Schlüssel,
+- eine Kinematik-Deklaration,
+- die INI-Schritte,
+- ein rohes `settings_init` und `settingsEcho` aus.
+
+Im ersten Test liest er das auf dem Draht nach, der Schmutz ist also echt. Im zweiten Test prüft er: Snapshot gleich dem ersten, Draht-Frames gleich den ersten, `tool_meta`, `run_basis` und `kins` nicht vorhanden.
+
+**Rot und grün** (`per-worker-mock.r264.baseline.txt`):
+- **Deine Probe am unveränderten Stand:** 1 PASS / 1 FAIL, Werkzeug 73 beobachtet. **Nach der Korrektur:** 2 PASS, `undefined`. Die Probe ist danach aus dem Baum entfernt.
+- **Wächter, alte Fixture, Mock unverändert:** rot an „a fresh client must not get the previous test's tool“. Der eingeschränkte Snapshot-Vergleich bestand, genau dein Befund.
+- **Wächter, neue Fixture, Mock unverändert:** rot schon **in der Fixture**, an „a fresh app client's connect frames after reset“ (`+ "tool_meta"`).
+- **Mutation, die Zwei-Felder-Form des Resets zurück:** rot in der Fixture an „the mock's baseline after reset“. Der erweiterte Snapshot sieht es also auch allein, nicht erst über den Draht.
+- **Die echten `tool_meta`-Schreiber** (`tool-holder`, `freecad-import`) mit `mock-baseline`, `lifecycle` und `viewer` auf 3 Workern: 16 PASS.
+- **Harness unverändert 7/7** (`per-worker-mock.r264.harness.json`).
+
+### PM263-02 · Der Besitznachweis ist an einen Lauf, den Besitzer und die Resultate gebunden
+
+**Das Gate:**
+- **`round_gate.browser`** vergibt jedem Lauf eine eigene Kennung (`gate-<uuid>`, als `LCNC_E2E_RUN`). Vor dem Lauf löscht es das Ereignisfile; die Fixture hängt an, ein früherer Lauf mit demselben `--out` kann also nicht mehr bürgen.
+- **Der Bericht nennt seinen Lauf:** `playwright.config.ts` setzt `metadata: { run: LCNC_E2E_RUN }`, und Gate- und Auswahl-Konfiguration erben das. `check_report_run` verlangt, dass der Bericht genau den Lauf des Gates nennt.
+- **`browser-workers`** schreibt die Kennung in den Record.
+
+**`check_workers(report, events, run)`:**
+- **Ereignisse:** Jedes trägt diesen Lauf; fremde werden gezählt und benannt.
+- **Instanzen:** Jede ist genau einmal gebunden, mit `port == 4500 + slot` und `endpoint == http://localhost:<port>/`. Sie ist genau einmal gestoppt, von demselben Worker (Slot, `workerIndex`, PID).
+- **Testereignisse:** Slot, `workerIndex` und PID gleich der `bound`-Zeile ihrer Instanz, und sie liegen in deren Leben (zwischen `bound` und `stopped`).
+- **Resultate:** Jedes berichtete Resultat hat **genau ein** Start-/Endpaar mit seinem Retry, auf dem `workerIndex` und dem Slot (`parallelIndex`), die der Bericht nennt.
+- **Abgewiesen wird:** ein Paar ohne Resultat (fremd), ein doppeltes Paar, ein fehlendes Ende, zwei Tests zugleich in einem Worker, und auf einem Slot die Tests zweier Instanzen ineinander.
+- **Ein `skipped`-Resultat** braucht kein Paar, denn ein statischer Skip startet keine Fixture. Hat es eines, muss das Paar passen.
+- **Reihenfolge:** Es zählt die **Zeilenfolge** des Protokolls (ein Anhängen je Ereignis), nicht seine Uhr. Ein gestellter VM-Takt würde die Uhr umordnen, das ist hier schon einmal vorgekommen.
+- **Die Übergabe bleibt zulässig:** Der Ersatz darf vor dem `stopped` seines Vorgängers binden, weil das Übergabewarten nur auf den Port wartet. Verlangt ist, dass sich die Tests der beiden nicht verschränken.
+
+**Die Gegenfälle:**
+- **Deine Mutationen** am echten Drei-Worker-Protokoll, mit dem neuen Prüfer über die unveränderten R263-Originale (`per-worker-mock.r264.worker-proof.py` und `.json`, dieselben Fälle wie dein Skript):
+  - Die drei Originale haben keine Worker-Befunde; die Kennung stammt aus ihren `bound`-Zeilen. `check_report_run` meldet bei ihnen nur das fehlende `metadata.run`, das sie vor dieser Korrektur nicht haben konnten.
+  - **Abgewiesen**, je mit benanntem Grund: falscher Besitzer in `bound`, Slot 15, gemeinsamer Endpoint, fremde Laufkennung, Worker 999, alle Worker-IDs um 100 verschoben, fehlendes `bound`, fehlendes `stopped`, doppeltes Paar, fremdes Paar.
+  - **Ebenfalls abgewiesen:** w2-Bericht mit w3-Protokoll (413 Abweichungen Bericht ↔ Ereignisse), w2-Bericht mit beiden Protokollen unter der w2-Kennung (1682 Ereignisse eines fremden Laufs) und unter der w3-Kennung.
+- **`test_selector.py`:** ein synthetischer Lauf mit Ersatzworker und erlaubter Übergabe. Dazu je Fall eine exakte Erwartung: fremder Lauf, falscher Besitzer, Slot, Endpoint, Port, verschobene Worker, fehlendes `stopped`, fremdes Paar nach dem Stopp, doppeltes Paar, abgeschnittenes Protokoll, Überlappung, ungebundene Instanz, ein gelaufenes Resultat ohne Paar. Außerdem `check_report_run` mit eigener, fremder und fehlender Kennung. **44/44 PASS.**
+
+### Der volle Lauf
+
+`per-worker-mock.r264-full-w3.gate-round.json` an `94b8fc27`, FULL über `round_gate --base 012cf3d5`, 3 Worker, eigene Unit: **PASS**.
+- **Browser:** 838/838, `failed 0`, `flaky 0`, 1672 s, 3 Mocks; CPU 7196 s, Spitze 3592 MB; `uncommitted 0`.
+- **Prüfungen:** `browser-executed` PASS. `browser-workers` PASS unter der Laufkennung `gate-91b14dd9-…`, die der Bericht (`config.metadata.run`) und alle 1682 Ereignisse tragen (838 Start, 838 Ende, 3 `bound`, 3 `stopped`).
+- **Damit lief der neue Nachweis einmal an einem echten Lauf.**
+- **Weiter:** `firefox-core` bleibt `pending` (Schritt 6); `unit-heavy` ist mit Grund ausgelassen.
+
+### Doku
+
+`testing.md` beschreibt den Reset-Vertrag (ganzer Snapshot plus Draht eines neuen Clients) und den Worker-Nachweis (eigene Laufkennung, frisches Protokoll, die Bindungen) in der neuen Form. Veraltete Kommentare zum gemeinsamen Mock in `mock-gateway.mjs`, `viewer.spec` und `lifecycle.spec` sind ersetzt.
+
+**Bitte prüfen:** Schließen die zwei Korrekturen PM263-01 und PM263-02?
+
+Wenn das trägt, bitte `agreement`.
