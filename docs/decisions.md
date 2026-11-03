@@ -10085,3 +10085,43 @@ alone in 7); the browser time saved is ≈ 22 %, the heavy unit group most round
 is a mock per worker (the full run parallel; accepted R256 as the next package), then splitting
 layout.spec; Replay, the pinned Firefox core and the probe live check stay owed.
 
+
+## 2026-11-03 — The per-worker mock: the full browser run parallel on three workers (Codex R261–R264)
+
+**Why.** The serial chain of nine Playwright projects existed for ONE reason: one mock gateway shared
+by every spec (an axis set swapped, connections closed, a leak probe that needs a quiet renderer).
+The full browser run took 54 min, one worker. Plan agreed R262 (PM261-01..04), implementation
+reviewed R263, corrections agreed R264.
+
+**What.** Every worker starts its OWN mock on its slot (`TEST_PARALLEL_INDEX`, port 4500 + slot;
+`e2e/mockSlot.mjs`, `e2e/mockFixture.ts`): ready only at its own child's `MOCK-BOUND` line, an owner
+registry per run and slot, a busy port waited for (5 s) only while the run's own predecessor on the
+slot leaves, a foreign process never used or stopped. `ctl.ts` binds every spec's HTTP, `/ws` and
+`/ctl` at import; without a slot the address is unbound — never a shared port. Before every test
+`mockBaseline` (`e2e/test.ts`) confirms the baseline: no app socket of the test before, `reset`, the
+WHOLE snapshot equal to the mock's first and a fresh app client's connect frames, read off the wire,
+equal to its first. One project `e2e`, `fullyParallel: false`, `LCNC_E2E_WORKERS` (3). The gate
+proves the run from the fixture's event log of THIS run (its own id in every event and in the
+report's `config.metadata.run`, a fresh log): every result exactly one start/end pair on the worker
+and slot the report names, on the mock that worker bound, inside its life (`proof.check_workers`,
+line order, never the clock). `scripts/test_select/proof_harness.py` proves the isolation (two
+workers at once, a shared mock as the counter-proof, file after file, a crashed worker's
+replacement, the delayed handoff, a foreign server).
+
+**Measured** (FULL, same tree, each its own unit): serial chain 3259 s browser, 2247 MB; 3 workers
+1686 s (−48 %), 3547 MB; 2 workers 1978 s, 3042 MB. Three workers: 292 s faster than two for 505 MB
+more peak; the leak checker (`viewer.spec`, `renderer.info`) stayed reliable beside the heavy
+viewer specs (0/48), no separate serial run needed.
+
+**What the parallel runs found.** Seven load races in six tests, none an isolation fault — reads
+whose precondition was a fixed wait or a stale match, never stressed by the serial chain: a list
+read mid-fill (its "complete" marker was the previous list's), a run position sent once after a
+slow poll (the 400 ms auto-check fired first), a view read mid-turn, two hold tests whose 500 ms ran
+on the loaded page's clock. Each reproduced red under CPU burners and fixed to a SIGNAL (the list's
+last frame, the gateway's cadence, the top view standing still, `page.clock` with the finger down
+through the hold time); the rule is in `docs/testing.md`. Codex R263 found two gaps of the new
+structure: the reset kept a top-level key a test added (`tool_meta`) and the snapshot did not name
+it; the worker proof accepted another run's event log. Both fixed with red-first guards (R264).
+
+**Open.** The pinned Firefox core (step 6), splitting `layout.spec`, Replay (step 5), the probe live
+check. More than three workers was not measured (6 cores, one SwiftShader renderer per worker).
