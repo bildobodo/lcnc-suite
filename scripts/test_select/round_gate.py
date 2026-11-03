@@ -146,13 +146,25 @@ def unit(name: str, files: list[str], exclude: list[str], logs: Path) -> dict:
     return c
 
 
+JSON_OUT = ("PLAYWRIGHT_JSON_OUTPUT_FILE", "PLAYWRIGHT_JSON_OUTPUT_NAME")
+
+
+def listing_env(env: dict) -> dict:
+    return {k: v for k, v in {**os.environ, **env}.items() if k not in JSON_OUT}
+
+
 def listing(config: str, env: dict, target: Path) -> tuple[dict, str | None]:
+    """`--list` of a config, its JSON on stdout (never into the run's report
+    file: the output variables are the run's only)."""
     r = subprocess.run(["npx", "playwright", "test", "-c", config, "--list", "--reporter=json"], cwd=WEB,
-                       capture_output=True, text=True, env={**os.environ, **env})
+                       capture_output=True, text=True, env=listing_env(env))
     target.write_text(r.stdout)
     if r.returncode != 0 or not r.stdout.strip():
         return {}, f"{config} --list failed (exit {r.returncode}): {r.stderr.strip()[-300:]}"
-    data = json.loads(r.stdout)
+    try:
+        data = json.loads(r.stdout)
+    except json.JSONDecodeError as e:
+        return {}, f"{config} --list printed no JSON ({e}): {r.stdout[:200]!r}"
     if data.get("errors"):
         return data, f"{config} --list reports errors: {str(data['errors'])[:300]}"
     return data, None
@@ -273,5 +285,24 @@ def main(argv: list[str] | None = None) -> int:
                   checks=checks, omitted=omitted, pending=pending)
 
 
+def guarded(argv: list[str] | None = None) -> int:
+    """A crash of the runner itself is a FAIL with its reason in the record,
+    never a missing record."""
+    try:
+        return main(argv)
+    except Exception as e:   # noqa: BLE001 — every crash is recorded
+        import traceback
+        ap = argparse.ArgumentParser(add_help=False)
+        ap.add_argument("--out", type=Path)
+        out = ap.parse_known_args(argv)[0].out
+        if out is not None:
+            out = out if out.is_absolute() else ROOT / out
+            prior = json.loads(out.read_text()) if out.is_file() else {}
+            prior.update(verdict="FAIL", why=prior.get("why", []) + [f"the runner crashed: {e!r}"],
+                         traceback=traceback.format_exc()[-2000:])
+            out.write_text(json.dumps(prior, indent=2, ensure_ascii=False) + "\n")
+        raise
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(guarded())

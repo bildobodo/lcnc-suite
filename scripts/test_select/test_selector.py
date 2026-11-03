@@ -474,3 +474,11 @@ def test_a_listening_port_is_seen():
         s.bind(("127.0.0.1", 0))
         port = s.getsockname()[1]
     assert not round_gate.listening(port)
+
+
+def test_a_listing_prints_its_json_never_into_the_runs_report(monkeypatch):
+    """The run's report variables reach the run only: with them the listing's
+    JSON went into the report file and stdout was empty (round 2, crash)."""
+    monkeypatch.setenv("PLAYWRIGHT_JSON_OUTPUT_FILE", "/x/report.json")
+    env = round_gate.listing_env({"PLAYWRIGHT_JSON_OUTPUT_NAME": "/x/report.json", "LCNC_E2E_SELECTION": "/x/sel.json"})
+    assert not set(round_gate.JSON_OUT) & set(env) and env["LCNC_E2E_SELECTION"] == "/x/sel.json"

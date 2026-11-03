@@ -37,6 +37,7 @@ MUTS = [
  ("a helper's data selects nothing", S, '                browser |= graph.specs_reaching(f)\n        if path.startswith(S_SRC)', '                pass\n        if path.startswith(S_SRC)'),
  ("a UI-only round skips the guards", RG, '    steps = ["selection-guards", "lint", "build", "unit-light"]', '    steps = ["lint", "build", "unit-light"]'),
  ("a listed test that never ran passes", P, '    problems = [f"listed, never ran: {\' | \'.join(k)}" for k in sorted(set(want) - set(got))]', '    problems = []'),
+ ("the listing gets the run's report variables", RG, '.items() if k not in JSON_OUT}', '.items()}'),
  ("the gate reuses a running server", GC, 'reuseExistingServer: false', 'reuseExistingServer: true'),
  ("listing ignores the project", P, '        if sel_at[f] != full_at[f]:', '        if False:'),
  ("order ignores a project overlap", P, '        if span[b][0] < span[a][1]:', '        if False:'),
