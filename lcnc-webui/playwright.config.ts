@@ -1,14 +1,6 @@
 import path from "node:path";
 import { defineConfig } from "@playwright/test";
 
-const toolSpecs = /(example-tool-library|freecad-import|tool-geometry|tool-holder|tool-import)\.spec\.ts/;
-// Guard specs (WP0/WP7/WP8, design wave D1): keyboard + editor session
-// guards, touch hold, input session, feedback channels — mock-global state
-// (status deltas, recorded commands), one file at a time under
-// `serial-guards`. ONE filter for both the project's
-// testMatch and the chromium project's testIgnore (UI-15d).
-const guardSpecs = /(disarmed|probe-click|safety-during-edit|setup-gates|joint-jog|keyboard-guards|editor-guards|touch-hold|touch-surface|run-hold|input-session|feedback-channels|dialogs|tabs|forms|appearance|contrast|toolsetter-setup|offsets|g30|choices|macros|gcode-reference|tool-table-read|select-writes|messages)\.spec\.ts/;
-
 if (process.env.CI && process.argv.some(arg => arg.startsWith('--update-snapshots') || arg === '-u')) {
   throw new Error('CI must compare committed visual references, never update them.');
 }
@@ -27,7 +19,14 @@ process.env.LCNC_E2E_EVENTS ??= path.resolve("test-results", "mock-events.jsonl"
 // (browsers: `npx playwright install chromium` once.)
 export default defineConfig({
   testDir: "./e2e",
-  fullyParallel: true,
+  // A file's tests in order on one worker; files spread over the workers,
+  // each worker with its OWN mock (e2e/test.ts — per-worker mock, Codex
+  // R261/R262). The project chain that gave ONE shared mock one owner at a
+  // time is gone with that mock; what it protected (an axis set swapped,
+  // connections closed, a leak probe on a settled renderer) is now each
+  // worker's own state, reset before every test.
+  fullyParallel: false,
+  workers: Number(process.env.LCNC_E2E_WORKERS ?? 3),
   timeout: 30_000,
   expect: { timeout: 10_000 },
   updateSnapshots: 'none',
@@ -48,91 +47,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: "chromium", use: { browserName: "chromium" }, testIgnore: [/(lifecycle|viewer|nine-axis|touchoff|layout|layout-audit|visual)\.spec\.ts/, toolSpecs, guardSpecs] },
-    // Mock-global-state specs run strictly ONE FILE AT A TIME via project
-    // dependency CHAINING. fullyParallel:false alone is NOT enough — it only
-    // serializes tests within a file; separate files still land on parallel
-    // workers, and nine-axis's setAxes/reset broadcasts then swap the axis
-    // set mid-assertion in lifecycle/viewer (observed: HUD A-row vanishing
-    // under the °-suffix check, leak-probe geometry counts perturbed).
-    //  • lifecycle.spec.ts — reconnect/shutdown banner windows (refuseWs/
-    //    shutdownClose are mock-global).
-    //  • nine-axis.spec.ts — setAxes swaps the mock-global axis set.
-    //  • viewer.spec.ts — renderer.info leak probe needs a settled renderer;
-    //    runs LAST, after all axis churn.
-    {
-      // Import/holder specs broadcast tool tables and reset the shared mock.
-      // Serialize FILES too: fullyParallel:false only serializes each file's
-      // tests, while workers:1 prevents competing fixture broadcasts.
-      name: "serial-tools",
-      use: { browserName: "chromium" },
-      dependencies: ["chromium"],
-      testMatch: toolSpecs,
-      fullyParallel: false,
-      workers: 1,
-    },
-    {
-      name: "serial-lifecycle",
-      use: { browserName: "chromium" },
-      dependencies: ["serial-tools"],
-      testMatch: /lifecycle\.spec\.ts/,
-      fullyParallel: false,
-      workers: 1,
-    },
-    {
-      name: "serial-nine-axis",
-      use: { browserName: "chromium" },
-      dependencies: ["serial-lifecycle"],
-      testMatch: /nine-axis\.spec\.ts/,
-      fullyParallel: false,
-      workers: 1,
-    },
-    {
-      // touchoff.spec.ts — setAxes (rotary rows) + permissions deltas: same
-      // mock-global churn as nine-axis, so it rides the chain right after it.
-      name: "serial-touchoff",
-      use: { browserName: "chromium" },
-      dependencies: ["serial-nine-axis"],
-      testMatch: /touchoff\.spec\.ts/,
-      fullyParallel: false,
-      workers: 1,
-    },
-    {
-      name: "serial-guards",
-      use: { browserName: "chromium" },
-      dependencies: ["serial-touchoff"],
-      testMatch: guardSpecs,
-      fullyParallel: false,
-      workers: 1,
-    },
-    {
-      name: "serial-layout",
-      use: { browserName: "chromium" },
-      dependencies: ["serial-guards"],
-      testMatch: /(?:layout|layout-audit)\.spec\.ts/,
-      fullyParallel: false,
-      workers: 1,
-    },
-    {
-      name: "serial-visual",
-      use: { browserName: "chromium" },
-      dependencies: ["serial-layout"],
-      testMatch: /visual\.spec\.ts/,
-      fullyParallel: false,
-      workers: 1,
-    },
-    {
-      name: "serial-viewer",
-      use: { browserName: "chromium" },
-      dependencies: ["serial-visual"],
-      testMatch: /viewer\.spec\.ts/,
-      fullyParallel: false,
-      // Two files since review round 6 (scenes.viewer.spec.ts): without one
-      // worker they ran side by side on the one mock — the clean-rebuild
-      // spec loaded the scenes spec's model and previews and failed in
-      // every full `playwright test` (the offline gate).
-      workers: 1,
-    },
+    { name: "e2e", use: { browserName: "chromium" } },
   ],
   webServer: [
     {

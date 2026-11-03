@@ -222,8 +222,6 @@ def browser(sel: dict, logs: Path) -> list[dict]:
         problems = proof.check_executed(listed, ran)
         checks.append({"name": "browser-executed", "status": "FAIL" if problems else "PASS",
                        **({"why": problems[:20]} if problems else {"tests": len(proof.playwright_tests(listed))})})
-        order = proof.check_order(ran, proof.full_chain((WEB / "playwright.config.ts").read_text()))
-        checks.append({"name": "browser-order", "status": "FAIL" if order else "PASS", **({"why": order} if order else {})})
         log = [json.loads(l) for l in events.read_text().splitlines()] if events.is_file() else []
         owners = proof.check_workers(ran, log) if log else ["the fixture's event log is missing or empty"]
         checks.append({"name": "browser-workers", "status": "FAIL" if owners else "PASS",

@@ -1,0 +1,9 @@
+# One-time identity map, the chain (9f3fe7ad) → one project 'e2e' (Codex R262 PM261-04)
+old listing: 838 tests in 53 files over projects ['chromium', 'serial-guards', 'serial-layout', 'serial-lifecycle', 'serial-nine-axis', 'serial-tools', 'serial-touchoff', 'serial-viewer', 'serial-visual']
+new listing: 838 tests in 53 files over projects ['e2e']
+old cases in more than one project: none
+cases only in the old listing: none
+cases only in the new listing: none
+every new case in project e2e: True
+projects mapped to e2e (cases): {'chromium': 11, 'serial-guards': 333, 'serial-layout': 247, 'serial-lifecycle': 3, 'serial-nine-axis': 3, 'serial-tools': 25, 'serial-touchoff': 26, 'serial-viewer': 178, 'serial-visual': 12}
+bijective: True

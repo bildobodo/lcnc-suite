@@ -63,8 +63,6 @@ MUTS = [
  ("slot 16 accepted", MS, '  return n < MOCK_MAX_SLOTS ? n : null;', '  return n <= MOCK_MAX_SLOTS ? n : null;'),
  ("a mock shared by two workers passes", P, '        if owner.setdefault(inst, w) != w:', '        if False:'),
  ("listing ignores the project", P, '        if sel_at[f] != full_at[f]:', '        if False:'),
- ("order ignores a project overlap", P, '        if span[b][0] < span[a][1]:', '        if False:'),
- ("order ignores the path order", P, '        if by_start != sorted(files):', '        if False:'),
 ]
 for name, f, a, b in MUTS:
     src = f.read_text(); assert src.count(a) == 1, name

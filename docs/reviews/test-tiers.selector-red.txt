@@ -1,5 +1,5 @@
-# Test selector guards (step 3) — red first, 2026-11-03T06:00:15+01:00
-# tree: feat/test-tiers 012cf3d5 + uncommitted selector changes
+# Test selector guards (step 3) — red first, 2026-11-03T06:09:09+01:00
+# tree: feat/test-tiers 9f3fe7ad + uncommitted selector changes
 
 ## Two reds the guards found while being written
 - test_every_e2e_disk_read_outside_the_frontend_is_declared: ('toolsetter.viewer', 'examples/sim_config/machine-5axis-xyzac') — the spec reads the 5-axis model and was not declared; SPEC_READS now names it
@@ -54,13 +54,11 @@ RED  a file-level hook beside the per-test reset: ['test_no_state_outlives_the_p
 RED  slot 16 accepted: ['test_a_worker_slot_is_a_whole_index_in_range_and_nothing_else_binds']
 RED  a mock shared by two workers passes: ['test_every_test_ran_on_its_own_workers_mock_one_after_another']
 RED  listing ignores the project: ['test_the_listing_is_exactly_the_selection_in_the_full_projects']
-RED  order ignores a project overlap: ['test_the_order_proof_holds_the_chain_and_the_path_order']
-RED  order ignores the path order: ['test_the_order_proof_holds_the_chain_and_the_path_order']
 
 ## Restored
-45 passed in 2.09s
+43 passed in 2.71s
 
 ## The proofs on real reports
 select config --list for ['visual', 'layout', 'armed', 'sim-panel.viewer', 'probe-click', 'tool-holder', 'choices'] → exactly the selection, each file in its full-config project
 the same listing against one more selected spec → ['tabs.spec.ts: selected but not listed']
-order proof on the full run at 9d152d4e (831 tests) → chain order and path order hold
+(the order proof went with the chain of projects — check_workers proves each worker one test after another on its own mock, from the fixture event log of every gate run)

@@ -363,36 +363,6 @@ def test_the_listing_is_exactly_the_selection_in_the_full_projects():
         "z.spec.ts: selected but not listed"]
 
 
-def test_the_full_chain_is_read_from_the_config():
-    chain = proof.full_chain((ROOT / "lcnc-webui/playwright.config.ts").read_text())
-    assert chain[0] == ("chromium", False) and chain[-1] == ("serial-viewer", True)
-    assert len(chain) == 9 and all(serial for _, serial in chain[1:])
-
-
-def ran(rows: list[tuple[str, str, int, int]]) -> dict:
-    """(project, file, start s, duration s) → a JSON report."""
-    from datetime import datetime, timezone
-    return {"suites": [{"specs": [{"file": f, "tests": [{"projectName": p, "results": [{
-        "startTime": datetime.fromtimestamp(1_800_000_000 + t, timezone.utc).isoformat().replace("+00:00", "Z"),
-        "duration": d * 1000}]}]}]} for p, f, t, d in rows]}
-
-
-def test_the_order_proof_holds_the_chain_and_the_path_order():
-    chain = [("chromium", False), ("serial-guards", True), ("serial-viewer", True)]
-    good = ran([("chromium", "x.spec.ts", 0, 5), ("chromium", "w.spec.ts", 1, 3),
-                ("serial-guards", "a.spec.ts", 10, 5), ("serial-guards", "b.spec.ts", 16, 5),
-                ("serial-viewer", "v.spec.ts", 30, 5)])
-    assert proof.check_order(good, chain) == []
-    early = ran([("serial-guards", "a.spec.ts", 10, 5), ("serial-viewer", "v.spec.ts", 12, 5)])
-    assert proof.check_order(early, chain) == ["serial-viewer began before serial-guards ended"]
-    swapped = ran([("serial-guards", "b.spec.ts", 10, 5), ("serial-guards", "a.spec.ts", 16, 5)])
-    assert proof.check_order(swapped, chain) == [
-        "serial-guards: files ran ['b.spec.ts', 'a.spec.ts'], path order is ['a.spec.ts', 'b.spec.ts']"]
-    overlap = ran([("serial-guards", "a.spec.ts", 10, 5), ("serial-guards", "b.spec.ts", 12, 5)])
-    assert proof.check_order(overlap, chain) == ["serial-guards: b.spec.ts began before a.spec.ts ended"]
-    assert proof.check_order({"suites": []}, chain) == ["the report holds no test results"]
-
-
 def test_a_vitest_hit_runs_exactly_the_heavy_files_it_reaches(repo: Path):
     base = commit_change(repo, lambda r: (r / "lcnc-webui/src/ProbePanel.vue").write_text("v2\n"))
     sel = selector.select(repo, base, "HEAD", vitest_files=[HEAVY_UNIT[2], "lcnc-webui/src/x.test.ts"])
