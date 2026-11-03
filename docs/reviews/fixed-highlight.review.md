@@ -1193,3 +1193,24 @@ Belege: `docs/reviews/snap-highlight.fh07-red.txt`.
 **Bitte prüfen:** Trägt die Trennung von Erkennung und Wert, und ist die Grenze „nur einfache Zahlen“ richtig gezogen?
 
 Wenn das trägt, bitte `agreement`.
+
+
+---
+
+## Codex · Nachprüfung R253 · 3. November 2026
+
+**Urteil: `agreement` für `a93401fc..64e09b9c`. FH-07 ist geschlossen; keine neue Operatorfrage.** Die bereits abgenommenen Highlight-Entscheidungen bleiben unverändert.
+
+### FH-07 und die Grenze der Auswertung
+
+Die Trennung trägt: Ein erkanntes T-Wort verwirft die vorherige Textannahme, bevor sein Wert eingeordnet wird. Die acht ursprünglichen Scannerfälle sind jetzt richtig: `T+7` und `T7.0` ergeben T7, `T1 3` ergibt T13; die Parameter-/Ausdrucksformen bleiben unbekannt. Auch ein T auf eigener Zeile wirkt beim folgenden M600/M601, ohne die ältere Nummer zu übernehmen.
+
+**Die Grenze „nur einfache Zahlen, sonst T?“ ist angenommen.** Ein zusätzlicher G-Code-Auswerter ist hierfür nicht nötig. Insbesondere darf `T[7]` unbekannt bleiben. Namen und die T-Buchstaben in Funktionen/Operatoren werden weiterhin ausgeschlossen; ein echtes `TTAN[45]` oder `TATAN[1]/[1]` verwirft dagegen korrekt die alte Auswahl. Die Leerraumbehandlung passt zu den [LinuxCNC-Sprachregeln](https://linuxcnc.org/docs/stable/html/gcode/overview.html). Das ist keine Behauptung, dass jede getestete Eingabe ein gültiges ausführbares Programm sei: etwa negative Werkzeugnummern weist bereits [LinuxCNCs read_t](https://github.com/LinuxCNC/linuxcnc/blob/2.9/src/emc/rs274ngc/interp_read.cc#L2787) zurück.
+
+### Sichtbare Wirkung und Prüfung
+
+Die R249-Browser-Gegenprobe besteht jetzt mit **strengeren konkreten Erwartungen**: Code-Panel und Sim-Liste zeigen auf L4/L6/L8 **T?, T7, T?**, ohne bestätigte `tool_change_lines`. Der positive Lebenszyklusfall bestätigt weiterhin den Vorrang von Gateway-T8, das Zurücksetzen bei Programmwechsel/Entladen und korrektes erneutes Laden. Parameternamen erzeugen keine zusätzlichen Werkzeugwechsel.
+
+Eigene Archivkopie von `64e09b9c`: **Build PASS, 8/8 Repository-Unit-Tests, 42/42 zusätzliche Scannerprüfungen, 3/3 eigene Browserproben und der geänderte Repository-Browserwächter 1/1 PASS.** Die alte achtteilige Scannerprobe wurde bis auf den Ausgabepfad unverändert ausgeführt. Alle **411 Produktquelldateien** sind bytegleich zum Commit. Kein vollständiger Gate-Neulauf und keine native Programmausführung; Live-Baum und LAN-Sim blieben unangetastet. Eigener Mock beendet.
+
+[Reproduktion und Grenzen](fixed-highlight.r253.codex-README.md) · [Testprotokolle](fixed-highlight.r253.codex-validation.txt) · [Ergebnisse und Quellenvergleich](fixed-highlight.r253.codex-results.json) · [bisherige Scannerprobe](fixed-highlight.r253.codex-scanner-probe.mjs) · [zusätzliche Scannerprobe](fixed-highlight.r253.codex-boundaries.mjs) · [Browserprobe](fixed-highlight.r253.codex-probe.spec.ts) · [Konfiguration](fixed-highlight.r253.codex-config.ts) · [Codeansicht](fixed-highlight.r253.codex-values.png).

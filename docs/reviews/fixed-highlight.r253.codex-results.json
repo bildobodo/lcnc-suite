@@ -1,0 +1,1194 @@
+{
+  "review": {
+    "commit": "64e09b9c3b8de01255f34b6d8ac8d84d98f01d0b",
+    "base": "a93401fc",
+    "review_sha256": "51d5e0374f279cfac38776fe0c7819d34d5e1443ab8aab3f68810cbbce8ded2c"
+  },
+  "sourceIntegrity": {
+    "commit": "64e09b9c",
+    "files": 411,
+    "differences": []
+  },
+  "R249ScannerUnchanged": [
+    {
+      "form": "T#<next>",
+      "program": "T5\nT#<next> M600\nG1 X10 F100\nM2\n",
+      "actual": [
+        [
+          2,
+          0
+        ]
+      ]
+    },
+    {
+      "form": "T[#1+1]",
+      "program": "T5\nT[#1+1] M600\nG1 X10 F100\nM2\n",
+      "actual": [
+        [
+          2,
+          0
+        ]
+      ]
+    },
+    {
+      "form": "T+#<next>",
+      "program": "T5\nT+#<next> M600\nG1 X10 F100\nM2\n",
+      "actual": [
+        [
+          2,
+          0
+        ]
+      ]
+    },
+    {
+      "form": "T+[#1+1]",
+      "program": "T5\nT+[#1+1] M600\nG1 X10 F100\nM2\n",
+      "actual": [
+        [
+          2,
+          0
+        ]
+      ]
+    },
+    {
+      "form": "TABS[-7]",
+      "program": "T5\nTABS[-7] M600\nG1 X10 F100\nM2\n",
+      "actual": [
+        [
+          2,
+          0
+        ]
+      ]
+    },
+    {
+      "form": "T+7",
+      "program": "T5\nT+7 M600\nG1 X10 F100\nM2\n",
+      "actual": [
+        [
+          2,
+          7
+        ]
+      ]
+    },
+    {
+      "form": "T7.0",
+      "program": "T5\nT7.0 M600\nG1 X10 F100\nM2\n",
+      "actual": [
+        [
+          2,
+          7
+        ]
+      ]
+    },
+    {
+      "form": "T1 3",
+      "program": "T5\nT1 3 M600\nG1 X10 F100\nM2\n",
+      "actual": [
+        [
+          2,
+          13
+        ]
+      ]
+    }
+  ],
+  "extendedScanner": {
+    "source": "64e09b9c:src/viewer/toolChangeScan.ts",
+    "cases": 42,
+    "result": "PASS",
+    "observations": [
+      {
+        "word": "T+7",
+        "separate": false,
+        "program": "T5\nT+7 M600\nM601\n",
+        "expected": [
+          [
+            2,
+            7
+          ],
+          [
+            3,
+            7
+          ]
+        ],
+        "actual": [
+          [
+            2,
+            7
+          ],
+          [
+            3,
+            7
+          ]
+        ]
+      },
+      {
+        "word": "T+7",
+        "separate": true,
+        "program": "T5\nT+7\nM600\nM601\n",
+        "expected": [
+          [
+            3,
+            7
+          ],
+          [
+            4,
+            7
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            7
+          ],
+          [
+            4,
+            7
+          ]
+        ]
+      },
+      {
+        "word": "T7.0",
+        "separate": false,
+        "program": "T5\nT7.0 M600\nM601\n",
+        "expected": [
+          [
+            2,
+            7
+          ],
+          [
+            3,
+            7
+          ]
+        ],
+        "actual": [
+          [
+            2,
+            7
+          ],
+          [
+            3,
+            7
+          ]
+        ]
+      },
+      {
+        "word": "T7.0",
+        "separate": true,
+        "program": "T5\nT7.0\nM600\nM601\n",
+        "expected": [
+          [
+            3,
+            7
+          ],
+          [
+            4,
+            7
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            7
+          ],
+          [
+            4,
+            7
+          ]
+        ]
+      },
+      {
+        "word": "T8.",
+        "separate": false,
+        "program": "T5\nT8. M600\nM601\n",
+        "expected": [
+          [
+            2,
+            8
+          ],
+          [
+            3,
+            8
+          ]
+        ],
+        "actual": [
+          [
+            2,
+            8
+          ],
+          [
+            3,
+            8
+          ]
+        ]
+      },
+      {
+        "word": "T8.",
+        "separate": true,
+        "program": "T5\nT8.\nM600\nM601\n",
+        "expected": [
+          [
+            3,
+            8
+          ],
+          [
+            4,
+            8
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            8
+          ],
+          [
+            4,
+            8
+          ]
+        ]
+      },
+      {
+        "word": "T1 3",
+        "separate": false,
+        "program": "T5\nT1 3 M600\nM601\n",
+        "expected": [
+          [
+            2,
+            13
+          ],
+          [
+            3,
+            13
+          ]
+        ],
+        "actual": [
+          [
+            2,
+            13
+          ],
+          [
+            3,
+            13
+          ]
+        ]
+      },
+      {
+        "word": "T1 3",
+        "separate": true,
+        "program": "T5\nT1 3\nM600\nM601\n",
+        "expected": [
+          [
+            3,
+            13
+          ],
+          [
+            4,
+            13
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            13
+          ],
+          [
+            4,
+            13
+          ]
+        ]
+      },
+      {
+        "word": "T 0 9",
+        "separate": false,
+        "program": "T5\nT 0 9 M600\nM601\n",
+        "expected": [
+          [
+            2,
+            9
+          ],
+          [
+            3,
+            9
+          ]
+        ],
+        "actual": [
+          [
+            2,
+            9
+          ],
+          [
+            3,
+            9
+          ]
+        ]
+      },
+      {
+        "word": "T 0 9",
+        "separate": true,
+        "program": "T5\nT 0 9\nM600\nM601\n",
+        "expected": [
+          [
+            3,
+            9
+          ],
+          [
+            4,
+            9
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            9
+          ],
+          [
+            4,
+            9
+          ]
+        ]
+      },
+      {
+        "word": "t + 0 7 . 0 0",
+        "separate": false,
+        "program": "T5\nt + 0 7 . 0 0 M600\nM601\n",
+        "expected": [
+          [
+            2,
+            7
+          ],
+          [
+            3,
+            7
+          ]
+        ],
+        "actual": [
+          [
+            2,
+            7
+          ],
+          [
+            3,
+            7
+          ]
+        ]
+      },
+      {
+        "word": "t + 0 7 . 0 0",
+        "separate": true,
+        "program": "T5\nt + 0 7 . 0 0\nM600\nM601\n",
+        "expected": [
+          [
+            3,
+            7
+          ],
+          [
+            4,
+            7
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            7
+          ],
+          [
+            4,
+            7
+          ]
+        ]
+      },
+      {
+        "word": "T+#<next>",
+        "separate": false,
+        "program": "T5\nT+#<next> M600\nM601\n",
+        "expected": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "T+#<next>",
+        "separate": true,
+        "program": "T5\nT+#<next>\nM600\nM601\n",
+        "expected": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "T+[#1+1]",
+        "separate": false,
+        "program": "T5\nT+[#1+1] M600\nM601\n",
+        "expected": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "T+[#1+1]",
+        "separate": true,
+        "program": "T5\nT+[#1+1]\nM600\nM601\n",
+        "expected": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "TABS[-7]",
+        "separate": false,
+        "program": "T5\nTABS[-7] M600\nM601\n",
+        "expected": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "TABS[-7]",
+        "separate": true,
+        "program": "T5\nTABS[-7]\nM600\nM601\n",
+        "expected": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "TATAN[1]/[1]",
+        "separate": false,
+        "program": "T5\nTATAN[1]/[1] M600\nM601\n",
+        "expected": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "TATAN[1]/[1]",
+        "separate": true,
+        "program": "T5\nTATAN[1]/[1]\nM600\nM601\n",
+        "expected": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "TTAN[45]",
+        "separate": false,
+        "program": "T5\nTTAN[45] M600\nM601\n",
+        "expected": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "TTAN[45]",
+        "separate": true,
+        "program": "T5\nTTAN[45]\nM600\nM601\n",
+        "expected": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "TFIX[7.9]",
+        "separate": false,
+        "program": "T5\nTFIX[7.9] M600\nM601\n",
+        "expected": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "TFIX[7.9]",
+        "separate": true,
+        "program": "T5\nTFIX[7.9]\nM600\nM601\n",
+        "expected": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "TFUP[6.1]",
+        "separate": false,
+        "program": "T5\nTFUP[6.1] M600\nM601\n",
+        "expected": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "TFUP[6.1]",
+        "separate": true,
+        "program": "T5\nTFUP[6.1]\nM600\nM601\n",
+        "expected": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "TSQRT[49]",
+        "separate": false,
+        "program": "T5\nTSQRT[49] M600\nM601\n",
+        "expected": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "TSQRT[49]",
+        "separate": true,
+        "program": "T5\nTSQRT[49]\nM600\nM601\n",
+        "expected": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "T-3",
+        "separate": false,
+        "program": "T5\nT-3 M600\nM601\n",
+        "expected": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "T-3",
+        "separate": true,
+        "program": "T5\nT-3\nM600\nM601\n",
+        "expected": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "T7.5",
+        "separate": false,
+        "program": "T5\nT7.5 M600\nM601\n",
+        "expected": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "T7.5",
+        "separate": true,
+        "program": "T5\nT7.5\nM600\nM601\n",
+        "expected": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "T[7]",
+        "separate": false,
+        "program": "T5\nT[7] M600\nM601\n",
+        "expected": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "T[7]",
+        "separate": true,
+        "program": "T5\nT[7]\nM600\nM601\n",
+        "expected": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "T##1",
+        "separate": false,
+        "program": "T5\nT##1 M600\nM601\n",
+        "expected": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ]
+      },
+      {
+        "word": "T##1",
+        "separate": true,
+        "program": "T5\nT##1\nM600\nM601\n",
+        "expected": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ]
+        ]
+      },
+      {
+        "line": "G0 X[TAN[45]] Y[ATAN[1]/[1]]",
+        "program": "T5\nG0 X[TAN[45]] Y[ATAN[1]/[1]]\nM600\n",
+        "expected": [
+          [
+            3,
+            5
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            5
+          ]
+        ]
+      },
+      {
+        "line": "#1=[SQRT[49]GT1]+EXISTS[#<x>]+[2LT3]",
+        "program": "T5\n#1=[SQRT[49]GT1]+EXISTS[#<x>]+[2LT3]\nM600\n",
+        "expected": [
+          [
+            3,
+            5
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            5
+          ]
+        ]
+      },
+      {
+        "line": "#<t99> = 1",
+        "program": "T5\n#<t99> = 1\nM600\n",
+        "expected": [
+          [
+            3,
+            5
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            5
+          ]
+        ]
+      },
+      {
+        "line": "o<tool_m600_t7> call",
+        "program": "T5\no<tool_m600_t7> call\nM600\n",
+        "expected": [
+          [
+            3,
+            5
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            5
+          ]
+        ]
+      },
+      {
+        "line": "(T9 M600) ; T8 M601",
+        "program": "T5\n(T9 M600) ; T8 M601\nM600\n",
+        "expected": [
+          [
+            3,
+            5
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            5
+          ]
+        ]
+      },
+      {
+        "line": "#<m6> = #<t13>",
+        "program": "T5\n#<m6> = #<t13>\nM600\n",
+        "expected": [
+          [
+            3,
+            5
+          ]
+        ],
+        "actual": [
+          [
+            3,
+            5
+          ]
+        ]
+      }
+    ]
+  },
+  "visibleValues": {
+    "fixture": {
+      "file": "/tool-mark-values.ngc",
+      "text": "G21 G90\n#<next> = 7\nT5\nT+#<next> M600\nG1 X10 F100\nT+7 M600\nG1 X20\nTABS[-7] M600\nG1 X30\nM2",
+      "lines": [
+        1,
+        5,
+        7,
+        9
+      ],
+      "changes": []
+    },
+    "code": [
+      {
+        "line": 4,
+        "text": "T+#<next> M600",
+        "glyph": "Tool change",
+        "title": "Tool change → T?"
+      },
+      {
+        "line": 6,
+        "text": "T+7 M600",
+        "glyph": "Tool change",
+        "title": "Tool change → T7"
+      },
+      {
+        "line": 8,
+        "text": "TABS[-7] M600",
+        "glyph": "Tool change",
+        "title": "Tool change → T?"
+      }
+    ],
+    "sim": [
+      "L4Tool change → T?0 %",
+      "L6Tool change → T733 %",
+      "L8Tool change → T?67 %"
+    ]
+  },
+  "lifecycle": {
+    "A": [
+      {
+        "line": 4,
+        "text": "T3 M600",
+        "glyph": "Tool change",
+        "title": "Tool change → T3"
+      },
+      {
+        "line": 6,
+        "text": "T#<next> M6",
+        "glyph": "Tool change",
+        "title": "Tool change → T8"
+      },
+      {
+        "line": 9,
+        "text": "T5 M601",
+        "glyph": "Tool change",
+        "title": "Tool change → T5"
+      }
+    ],
+    "B": [],
+    "reloaded": [
+      {
+        "line": 4,
+        "text": "T3 M600",
+        "glyph": "Tool change",
+        "title": "Tool change → T3"
+      },
+      {
+        "line": 6,
+        "text": "T#<next> M6",
+        "glyph": "Tool change",
+        "title": "Tool change → T8"
+      },
+      {
+        "line": 9,
+        "text": "T5 M601",
+        "glyph": "Tool change",
+        "title": "Tool change → T5"
+      }
+    ],
+    "unloadedCodeRows": 0,
+    "afterUnload": []
+  },
+  "negativeNames": {
+    "fixture": {
+      "file": "/tool-mark-names.ngc",
+      "text": "G21 G90\n#<m600_count> = 0\n#<m6> = 1\n#<m601_done> = 0\n(T99 M6)\n; M600 in a comment\nG1 X10 F100\nG1 X20\nM2",
+      "lines": [
+        1,
+        7,
+        8
+      ],
+      "changes": []
+    },
+    "code": [],
+    "sim": []
+  }
+}
