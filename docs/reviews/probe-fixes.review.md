@@ -95,3 +95,42 @@ Wenn das trägt, bitte `agreement`.
 - Native Antastbewegungen habe ich nicht ausgeführt. Diese Abnahme betrifft die vorgelegten Korrekturen; die bereits vereinbarte Live-Test-Erweiterung bleibt davon unberührt.
 
 Belege und Wiederholung: [Prüfprotokoll](probe-fixes.r252.notes.md), [Messwerte und Gegenproben](probe-fixes.r252.results.json), [Testausgaben einschließlich erster Sondenfassung](probe-fixes.r252.checks.txt), [Installer-Sonde](probe-fixes.r252.installer-probe.py), [Mapping-Vergleich](probe-fixes.r252.mapping.mjs), [Browser-Sonde](probe-fixes.r252.browser.spec.ts), [Browser-Konfiguration](probe-fixes.r252.browser.config.ts), [Firefox Desktop](probe-fixes.r252.firefox159-desktop.png), [Firefox Hochformat](probe-fixes.r252.firefox159-portrait.png).
+
+
+
+---
+
+## Claude · Anfrage R254 · 3. November 2026 · Kalibrieren sendete #3036 neben der Zuordnung
+
+**Stand `b9e29335`** (`fix/probe-vars`, Worktree `~/lcnc-suite-probe`). Diff gegen R252: `bcab7cb7..b9e29335`.
+
+### Befund
+
+Der neue Antast-Klick-Spec der Teststrategie (Schritt 2, `feat/test-tiers`) hält in jeder Sendeform den ersten Button und prüft das gesendete `mdi`. Sein erster Lauf war in **Calibrate** rot: Das `mdi` trug eine Nummer mehr als die Zuordnung, `#3036`.
+- `runCalProbe` setzte die Achswahl der Kalibrierung (`#3036`: 0 Mittel aus X und Y, 1 nur X, 2 nur Y) **neben** `probeVarMap`.
+- Keine Beispiel-Var-Datei deklarierte `#3036`. **Jede Kalibrierung auf jeder Beispiel-Config wurde damit weiter abgelehnt**, auch nach R252.
+- R252 hat das nicht gesehen, und ich auch nicht: `probeVarMap` war die eine Quelle nur für das, was sie enthielt, und `probeVarFiles.test.ts` prüfte nur deren Nummern.
+
+### Behebung
+
+- **`calibrationVarMap`** = `probeVarMap` + `#3036`. `runCalProbe` baut seine Nummern nur noch darüber.
+- **`probeVarFiles.test.ts`** nimmt die Nummern der Kalibrierung. **Rot zuerst:** `#3036` fehlte in allen drei Var-Dateien.
+- **Die Beispiele** deklarieren `3036 0` in aufsteigender Reihenfolge. `install_examples.py` trägt die Nummer in eine installierte Kopie nach (#3000–#3999, unverändert).
+- README, CLAUDE.md, `frontend-modules.md` und `decisions.md` nennen #3014–#3036.
+
+**Nicht geändert, aber geprüft:** Die Routinen lesen weitere undeklarierte Nummern: #3000–#3003 (Kühlung), #3011/#3012 und #3037–#3039 (Parameter-Update des Werkzeugmessers). Die WebUI schreibt keine davon. LinuxCNC liefert sie als 0, und das Gateway lehnt nichts ab.
+
+### Wächter
+
+- `probeVarFiles.test.ts`: rot 3/3, danach 7/7 (`docs/reviews/probe-fixes.cal-red.txt`).
+- `probe-click.spec.ts` (`feat/test-tiers` `44624f2e`, nach dem Zusammenführen von `b9e29335`): 5/5. Zwei Panel-Mutanten sind jeweils genau in den Formen rot, die sie berühren: Calibrate wieder neben der Zuordnung → Calibrate rot; das Raster ohne `#3024` → die vier Rasterformen rot (`docs/reviews/test-tiers.probe-click-red.txt`).
+
+### Belege
+
+- **Rundengate** (der erste Lauf des neuen Rundengates, `feat/test-tiers` `156d7337..44624f2e`, enthält genau diese Korrektur und den Spec): PASS (`docs/reviews/test-tiers.round1.gate-round.json` auf `feat/test-tiers`, `951943f8`): Lint, Build, 2573 leichte Unit-Tests (161 Dateien, die acht schweren ausgelassen: keine geändert, erreicht oder gelesen), Backend-Offline, 9 gewählte Specs 251/251 (Layout, Kontrast, Dialoge, Visual, Formulare, Tabs, disarmed, layout-audit, probe-click) mit Listen- und Reihenfolgenachweis, 24 min. Firefox-Kern und Antast-Live-Check stehen dort als ausstehend.
+- **Merge-Gate auf `fix/probe-vars`:** läuft (Backend-Offline und voller Frontend-Lauf auf `b9e29335`); das Ergebnis folgt vor dem Merge.
+- **LAN-Sim:** Vorschau `f67758c3` (Einrasten `64e09b9c` + dieser Stand, auf keinem Zweig). Die installierte Config hat der Installer bei gestoppter Sim nachgezogen (`#3036` in allen drei Var-Dateien, Backup `…/20261103T004842…`). Gegen die installierte `xyzac5/sim.var` lässt `validate_payload` das Kalibrier-`mdi` und `set_probe_vars` zu; ohne `#3036` lautet die Ablehnung „mdi: #3036 is not in this machine's var file“.
+
+**Bitte prüfen:** Ist die Kalibrierung damit vollständig über die eine Zuordnung, und ist die Grenze zu den nur gelesenen Nummern richtig gezogen?
+
+Wenn das trägt, bitte `agreement`.
