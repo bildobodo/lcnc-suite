@@ -75,6 +75,43 @@ test("the list is the timeline's marks: one row each, in timeline order, each ki
   await expect(page.locator(".simPanel .checkVerdict")).toHaveText("2 collisions · checked in full");
 });
 
+// Operator 2026-11-03: "im sim tab scheinen die blauen punkte, gelben
+// dreiecke und kreuze noch nicht ganz auf einer linie mit der übrigen zeile
+// zu sein. anders als beim program tab". A mark's glyph sits on its row's
+// line: its centre where the line number's is (the fonts' content box is
+// centred on their figures), in the Sim tab as in the Program tab.
+const markOffsets = (page: Page, row: string, glyph: string, label: string) =>
+  page.locator(row).evaluateAll((els, [g, l]) => els.map(e => {
+    const svg = e.querySelector(g)!.getBoundingClientRect();
+    const range = document.createRange();
+    range.selectNodeContents(e.querySelector(l)!);
+    const text = range.getBoundingClientRect();
+    return Math.round(((svg.top + svg.bottom) / 2 - (text.top + text.bottom) / 2) * 100) / 100;
+  }), [glyph, label] as const);
+for (const vp of ["desktop", "touch-fullhd"]) {
+  test(`${vp}: a mark's glyph sits on its row's line — in the Sim tab as in the Program tab`, async ({ page, context }) => {
+    await prepare(page, context, vp);
+    const sim = await markOffsets(page, ".simPanel tbody tr[data-sim-row]", ".colKind svg", ".rowPick");
+    expect(sim, "every kind listed: two collisions, two limits, two tool changes").toHaveLength(6);
+    for (const d of sim) expect(Math.abs(d), `Sim tab: glyph centre to line centre ${JSON.stringify(sim)}`).toBeLessThanOrEqual(0.75);
+    // the summary line's glyphs beside their words, the same rule
+    const sum = await page.locator(".simPanel .sumGlyph").evaluateAll(els => els.map(e => {
+      const svg = e.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(e.nextElementSibling!);
+      const text = range.getBoundingClientRect();
+      return Math.round(((svg.top + svg.bottom) / 2 - (text.top + text.bottom) / 2) * 100) / 100;
+    }));
+    expect(sum, "the summary names three kinds").toHaveLength(3);
+    for (const d of sum) expect(Math.abs(d), `summary: glyph centre to word centre ${JSON.stringify(sum)}`).toBeLessThanOrEqual(0.75);
+    await page.getByRole("tab", { name: "Program", exact: true }).click();
+    await expect(page.locator(".codeLine .lineMark svg").first()).toBeVisible();
+    const code = await markOffsets(page, ".codeLine:has(.lineMark svg)", ".lineMark svg", ".lineNumber");
+    expect(code.length, "the code panel marks the same lines").toBeGreaterThanOrEqual(5);
+    for (const d of code) expect(Math.abs(d), `Program tab: glyph centre to line centre ${JSON.stringify(code)}`).toBeLessThanOrEqual(0.75);
+  });
+}
+
 test("a row shows its finding; the steps go through the shown kind; the next row follows the position", async ({ page, context }) => {
   await prepare(page, context);
   await simShow(page, "all");

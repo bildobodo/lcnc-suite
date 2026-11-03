@@ -764,6 +764,10 @@ tbody tr[data-sim-row] { cursor: pointer; }
 .colKind.clash, .sumGlyph.clash { color: var(--mark-clash); }
 .colKind.limit, .sumGlyph.limit { color: var(--mark-limit); }
 .colKind.tool, .sumGlyph.tool { color: var(--mark-tool); }
+/* The glyph is a block the cell centres on its row, as the Program tab's
+   mark sits in its line: inline, it stood on the text's baseline, each size
+   at its own height above the line's middle (operator 2026-11-03). */
+.colKind svg { display: block; margin-inline: auto; }
 /* The words that count a kind take its mark's colour (operator 2026-10-06);
    the collision verdict where it found collisions. */
 .sumKind.clash { color: var(--mark-clash); }
