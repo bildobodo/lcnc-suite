@@ -1,0 +1,174 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r263-jpk_vopd/repo/lcnc-webui/playwright.proof.config.ts",
+    "rootDir": "/tmp/codex-r263-jpk_vopd/repo/lcnc-webui/e2e-proof",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r263-jpk_vopd/repo/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "proof",
+        "name": "proof",
+        "testDir": "/tmp/codex-r263-jpk_vopd/repo/lcnc-webui/e2e-proof",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 120000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "r263/baseline.spec.ts",
+      "file": "r263/baseline.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R263 leave tool metadata from a previous test",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "proof",
+              "projectName": "proof",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 12,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T10:19:25.542Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "356330ebb5ebe94a2f94-cfb6971e783bd9131ef9",
+          "file": "r263/baseline.spec.ts",
+          "line": 12,
+          "column": 1
+        },
+        {
+          "title": "R263 the auto baseline must remove the preceding tool metadata",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "proof",
+              "projectName": "proof",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 12,
+                  "error": {
+                    "message": "Error: a fresh app must not inherit the previous test's tool\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeUndefined\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"diameter\": 42, \"holder_segments\": [{\"d1\": 51, \"d2\": 51, \"h\": 23}], \"id\": 73}\u001b[39m",
+                    "stack": "Error: a fresh app must not inherit the previous test's tool\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeUndefined\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"diameter\": 42, \"holder_segments\": [{\"d1\": 51, \"d2\": 51, \"h\": 23}], \"id\": 73}\u001b[39m\n    at /tmp/codex-r263-jpk_vopd/repo/lcnc-webui/e2e-proof/r263/baseline.spec.ts:21:84",
+                    "location": {
+                      "file": "/tmp/codex-r263-jpk_vopd/repo/lcnc-webui/e2e-proof/r263/baseline.spec.ts",
+                      "column": 84,
+                      "line": 21
+                    },
+                    "snippet": "  19 |   const frame = await status();\n  20 |   console.log(\"R263 observed after auto reset: \" + JSON.stringify(frame.tool_meta));\n> 21 |   expect(frame.tool_meta, \"a fresh app must not inherit the previous test's tool\").toBeUndefined();\n     |                                                                                    ^\n  22 | });\n  23 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r263-jpk_vopd/repo/lcnc-webui/e2e-proof/r263/baseline.spec.ts",
+                        "column": 84,
+                        "line": 21
+                      },
+                      "message": "Error: a fresh app must not inherit the previous test's tool\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeUndefined\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"diameter\": 42, \"holder_segments\": [{\"d1\": 51, \"d2\": 51, \"h\": 23}], \"id\": 73}\u001b[39m\n\n  19 |   const frame = await status();\n  20 |   console.log(\"R263 observed after auto reset: \" + JSON.stringify(frame.tool_meta));\n> 21 |   expect(frame.tool_meta, \"a fresh app must not inherit the previous test's tool\").toBeUndefined();\n     |                                                                                    ^\n  22 | });\n  23 |\n    at /tmp/codex-r263-jpk_vopd/repo/lcnc-webui/e2e-proof/r263/baseline.spec.ts:21:84"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "R263 observed after auto reset: {\"id\":73,\"diameter\":42,\"holder_segments\":[{\"h\":23,\"d1\":51,\"d2\":51}]}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T10:19:25.639Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r263-jpk_vopd/repo/lcnc-webui/test-results/r263-baseline-R263-the-aut-046d2-the-preceding-tool-metadata-proof/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r263-jpk_vopd/repo/lcnc-webui/e2e-proof/r263/baseline.spec.ts",
+                    "column": 84,
+                    "line": 21
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "356330ebb5ebe94a2f94-cf8e5485d929d0223402",
+          "file": "r263/baseline.spec.ts",
+          "line": 16,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-03T10:19:25.198Z",
+    "duration": 481.803,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

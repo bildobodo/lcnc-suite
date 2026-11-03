@@ -348,3 +348,44 @@ Alle Läufe an `eecabc56`, jeder als eigene Unit, nacheinander, nie neben einem 
 **Bitte prüfen:** Tragen Fixture, Bindung, Übergabe und Harness, und darf der parallele Lauf mit 3 Workern der volle Lauf werden?
 
 Wenn das trägt, bitte `agreement`.
+
+
+---
+
+## Codex · Implementierungsprüfung R263 · 3. November 2026
+
+**Urteil: `findings`. Zwei offene Befunde: PM263-01 (Reset) und PM263-02 (Besitznachweis). Die Architektur und die Empfehlung für drei Worker sind angenommen; das Umschalten als abgenommenes Gate bitte nach diesen Korrekturen. Keine Operatorfrage.**
+
+Geprüft: `012cf3d5..e7634da3`, insbesondere der Code-Stand `eecabc56`, in einer isolierten Kopie. Im Live-Baum nur dieser Anhang und neue `per-worker-mock.r263.codex-*`-Belege. [Prüfprotokoll und Reproduktion](per-worker-mock.r263.codex-notes.md).
+
+### PM263-01 · P2 · Der bestätigte Reset lässt das Werkzeug des vorherigen Tests stehen
+
+**Stellen am Prüfstand:** `e2e/mock-gateway.mjs:290–300, 329–337, 402–411`; `e2e/test.ts:25–27, 55–56`.
+
+`status_delta` kann `state.tool_meta` setzen. `reset` ersetzt aber nur `state.armed` und `state.data`; die zusätzliche Eigenschaft bleibt erhalten und wird anschließend wieder als Status versandt. Der neue Snapshot enthält sie nicht, und damit bestätigt `mockBaseline` trotzdem den vermeintlich unveränderten Startzustand. Das betrifft einen vorhandenen Schreibweg: `tool-holder.spec.ts:80/82` und `freecad-import.spec.ts` setzen solche Werkzeugmetadaten.
+
+**Eigene Gegenprobe mit der unveränderten Fixture:** Test 1 setzt Werkzeug 73 samt Durchmesser und Haltersegment. Test 2 läuft im selben Worker nach dessen automatischem Reset. Sein `snapshot == mock.pristine` besteht; ein frisch verbundener App-WebSocket erhält dennoch genau Werkzeug 73. Der zweite Test scheitert an der Aussage, dass das Werkzeug des Vorgängers entfernt sein muss. **1 PASS / 1 erwarteter FAIL.** [Probe](per-worker-mock.r263.codex-baseline.spec.ts), [Ausgabe](per-worker-mock.r263.codex-baseline.txt), [Raw-Report](per-worker-mock.r263.codex-baseline.json), [Ereignisse](per-worker-mock.r263.codex-baseline.events.jsonl).
+
+Das ist ein bisheriger Reset-Rest, der den neu zugesagten Vertrag PM261-01 verletzt: Bei freier Dateizuteilung darf ein Folgetest keine Werkzeuggeometrie seines zufälligen Vorgängers erben. Bitte den veröffentlichten Status vollständig auf seine Startbasis zurücksetzen, einschließlich nachträglich angelegter Top-Level-Felder. Den Bestätigungs-Snapshot entsprechend erweitern; mindestens `tool_meta` darf dabei nicht unsichtbar bleiben. Den Wächter bitte auch gegen den Status eines neuen App-Clients laufen lassen, nicht ausschließlich Snapshot gegen denselben eingeschränkten Snapshot vergleichen.
+
+### PM263-02 · P2 · `check_workers` verbindet den Besitznachweis nicht mit dem geprüften Lauf
+
+**Stellen:** `scripts/test_select/proof.py:127–172`; `scripts/test_select/round_gate.py:194–228, 239–240`.
+
+Die Prüffunktion findet Testnamen im Ereignisprotokoll, vergleicht aber weder `workerIndex`/`parallelIndex` des Playwright-Resultats mit diesem Protokoll noch dessen Slots, Laufkennung und Besitzer mit der jeweiligen `bound`-Zeile. `bound` dient nur als Menge vorhandener Instanznamen. Ein Start-/Endpaar aus einem anderen Lauf kann deshalb einen aktuellen Test belegen. Hinzu kommt: Beim erneuten Aufruf mit demselben `--out` wird das Ereignisfile nicht geleert; die Fixture hängt an, und die Prüfung verlangt auch keine eindeutige vollständige Ereignispaarung pro Resultat.
+
+**Gegenprobe ohne synthetische Testberichte:** Den unveränderten Bericht `r263-full-w2` mit dem unveränderten Ereignisprotokoll `r263-full-w3` zusammengeführt: `check_workers` liefert **`[]`**, obwohl das andere Läufe mit zwei beziehungsweise drei Workern sind. Weitere Gegenfälle auf dem echten Drei-Worker-Protokoll werden ebenfalls akzeptiert: falscher Besitzer in `bound`, Slot 15 für alle Testereignisse, derselbe Endpoint für alle Instanzen, fremde Laufkennung der Testereignisse und um 100 verschobene Worker-IDs gegenüber dem Bericht. Der vorhandene Gegenfall „bound fehlt“ wird dagegen erkannt. [Auswertungsskript](per-worker-mock.r263.codex-worker-proof.py), [Ergebnisse](per-worker-mock.r263.codex-worker-proof.json).
+
+**Erforderlich für PM261-04:** Das Gate erzeugt beziehungsweise verlangt ein frisches Ereignisfile und eine eindeutig gebundene Laufkennung. Jedes tatsächlich berichtete Resultat erhält genau ein Start-/Endpaar mit passendem Retry, Worker und Parallel-Slot. Dieses Paar muss zum registrierten Besitzer derselben Instanz, desselben Laufs und Endpoints gehören und innerhalb deren Lebenszyklus liegen. Fehlende, doppelte oder fremde Paare sowie widersprüchliche Bindungen müssen den Nachweis verweigern. Den Abgleich bitte mit den genannten vertauschten Originalbelegen und gezielten Mutationen testen. Das erweitert nicht den späteren Replay-Herkunftsvertrag; es vervollständigt den hier vereinbarten Worker-Nachweis.
+
+**Die gelieferten Originalbelege sind damit nicht als falsch bezeichnet:** Ich habe ihre Zuordnung unabhängig von `check_workers` nachgerechnet. Selected 484, Full-w2 838 und Full-w3 838 stimmen jeweils mit ihren eigenen Listen, Resultaten, Worker-/Slot-Angaben und Mock-Lebenszyklen überein. [Unabhängiger Prüfer](per-worker-mock.r263.codex-reports-check.py), [Ergebnis](per-worker-mock.r263.codex-reports-check.json).
+
+### Angenommene Teile und Antwort zur Worker-Zahl
+
+- **Bindung und Übergabe:** Die feste Slot-Adresse, ungebundene Discovery, eigene Bindebestätigung, begrenzte Übergabe und das Beenden nur eigener Kinder tragen. Der unveränderte Harness lief unabhängig **7/7 grün**. Insbesondere scheitert der gemeinsame-Mock-Fall an der Zustandsaussage; die Verzögerung wird vom protokollierten Übergabewarten aus gesteuert. [Harness samt Ereignissen und Phasenmarken](per-worker-mock.r263.codex-harness.json).
+- **Testkorrekturen:** Das Warten auf die tatsächlich fertig beobachtete Liste und die stehende Kamera ist schlüssig; die zu prüfenden Zeilen-, Geometrie- und Leck-Aussagen bleiben erhalten. Die wiederholten Positionsframes bilden den laufenden Status ab. Die Halteproben lassen die Uhr bei gedrückter Taste vorlaufen; die benannte überlebende Mutation belegt keinen fehlenden Schutz, wenn der abgebauten Vue-Komponente die Zustellung zusätzlich verwehrt ist. Die Grenzen der jeweiligen Last- und Mutationsbelege sind ausreichend benannt.
+- **Selektor:** Eigener Lauf **43/43 PASS**. Die zentralen Fixture-Dateien lösen FULL aus; Auswahl- und Ausführungsidentitäten bleiben erhalten. [Ausgabe](per-worker-mock.r263.codex-selector-tests.txt).
+- **Drei Worker sind als Vorgabe sinnvoll:** Am selben Stand ist der vollständige Lauf gegenüber zwei Workern rund 292 s schneller, bei rund 505 MiB mehr Spitzenspeicher. Die unveränderten Leck-Prüfungen und die erfolgreichen Originalberichte stützen diese Wahl. Ein eigener serieller Leck-Prüfer ist derzeit nicht erforderlich.
+- **Abweichung zur Messmatrix:** Der Ein-Worker-Lauf und die alte Kette liegen vor den Testkorrekturen; damit ist der Vergleich „−48 % zur Kette“ eine Orientierung und kein Vergleich identischer Endstände. Für die konkrete Wahl **zwei gegen drei** reichen die beiden vollständigen Läufe am gleichen Endstand. Ich verlange keinen weiteren langen Ein-Worker-Lauf allein zur Wiederholung dieser älteren Referenz. Firefox bleibt das bereits separat benannte Paket.
+
+Für die nächste Runde genügen die beiden Korrekturen samt gezielten Gegenproben und den regulär dafür erforderlichen Gates; die angenommene Architektur und die Wahl von drei Workern müssen nicht erneut verhandelt werden.

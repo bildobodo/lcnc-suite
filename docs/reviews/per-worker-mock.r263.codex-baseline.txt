@@ -1,0 +1,38 @@
+
+Running 2 tests using 1 worker
+
+[1A[2K(node:1825758) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1825758) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/2] [proof] › e2e-proof/r263/baseline.spec.ts:12:1 › R263 leave tool metadata from a previous test
+[1A[2K[2/2] [proof] › e2e-proof/r263/baseline.spec.ts:16:1 › R263 the auto baseline must remove the preceding tool metadata
+[1A[2K[proof] › e2e-proof/r263/baseline.spec.ts:16:1 › R263 the auto baseline must remove the preceding tool metadata
+R263 observed after auto reset: {"id":73,"diameter":42,"holder_segments":[{"h":23,"d1":51,"d2":51}]}
+
+[1A[2K  1) [proof] › e2e-proof/r263/baseline.spec.ts:16:1 › R263 the auto baseline must remove the preceding tool metadata 
+
+    Error: a fresh app must not inherit the previous test's tool
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeUndefined[2m()[22m
+
+    Received: [31m{"diameter": 42, "holder_segments": [{"d1": 51, "d2": 51, "h": 23}], "id": 73}[39m
+
+      19 |   const frame = await status();
+      20 |   console.log("R263 observed after auto reset: " + JSON.stringify(frame.tool_meta));
+    > 21 |   expect(frame.tool_meta, "a fresh app must not inherit the previous test's tool").toBeUndefined();
+         |                                                                                    ^
+      22 | });
+      23 |
+        at /tmp/codex-r263-jpk_vopd/repo/lcnc-webui/e2e-proof/r263/baseline.spec.ts:21:84
+
+    Error Context: test-results/r263-baseline-R263-the-aut-046d2-the-preceding-tool-metadata-proof/error-context.md
+
+
+[1A[2K  1 failed
+    [proof] › e2e-proof/r263/baseline.spec.ts:16:1 › R263 the auto baseline must remove the preceding tool metadata 
+  1 passed (482ms)

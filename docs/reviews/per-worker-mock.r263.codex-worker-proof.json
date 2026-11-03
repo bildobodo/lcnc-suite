@@ -1,0 +1,91 @@
+{
+  "r263-selected": {
+    "stats": {
+      "startTime": "2026-11-03T08:40:57.897Z",
+      "duration": 879662.711,
+      "expected": 484,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "identities": 484,
+    "execution_errors": [],
+    "worker_errors": []
+  },
+  "r263-full-w2": {
+    "stats": {
+      "startTime": "2026-11-03T09:37:29.187Z",
+      "duration": 1977133.2210000001,
+      "expected": 838,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "identities": 838,
+    "execution_errors": [],
+    "worker_errors": []
+  },
+  "r263-full-w3": {
+    "stats": {
+      "startTime": "2026-11-03T09:06:09.852Z",
+      "duration": 1685416.53,
+      "expected": 838,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "identities": 838,
+    "execution_errors": [],
+    "worker_errors": []
+  },
+  "bound_owner_wrong": {
+    "expected": "reject",
+    "actual_errors": [],
+    "error_count": 0,
+    "accepted": true
+  },
+  "slot_wrong": {
+    "expected": "reject",
+    "actual_errors": [],
+    "error_count": 0,
+    "accepted": true
+  },
+  "bound_lies_about_endpoint": {
+    "expected": "reject",
+    "actual_errors": [],
+    "error_count": 0,
+    "accepted": true
+  },
+  "events_from_another_run": {
+    "expected": "reject",
+    "actual_errors": [],
+    "error_count": 0,
+    "accepted": true
+  },
+  "report_worker_mismatch": {
+    "expected": "reject",
+    "actual_errors": [
+      "worker 999 ran two tests at once: connected + armed + ready lifts default-deny on machine controls / a pulse moves the background, never the text: the banner stays fully opaque while it pulses",
+      "worker 999 ran two tests at once: a pulse moves the background, never the text: the banner stays fully opaque while it pulses / an offset change without a parse re-bakes once, at the new offsets",
+      "worker 999 ran two tests at once: an offset change without a parse re-bakes once, at the new offsets / the machine groups: the arrows only move focus — no jog, no command; Enter and Space choose exactly once"
+    ],
+    "error_count": 668,
+    "accepted": false
+  },
+  "all_event_workers_disagree_with_report": {
+    "expected": "reject",
+    "actual_errors": []
+  },
+  "missing_bound_control": {
+    "rejected": true,
+    "error_count": 214
+  },
+  "w2_report_with_w3_event_log": {
+    "expected": "reject",
+    "actual_errors": []
+  },
+  "w2_report_with_both_original_event_logs": {
+    "expected": "reject",
+    "actual_errors": []
+  }
+}
