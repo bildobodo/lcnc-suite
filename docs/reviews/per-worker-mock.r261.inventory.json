@@ -1,0 +1,65 @@
+{
+  "commit": "012cf3d500a08db4d24bae4f6ea587b19582ec81",
+  "sources": {
+    "lcnc-webui/e2e/armed.spec.ts": {
+      "note": "13-21: navigation and armed assertion, no reset",
+      "sha256": "340b34b2629835d0e641f77fc1767de54353a16d01744d183a1a02b5cd01f235"
+    },
+    "lcnc-webui/e2e/frames.spec.ts": {
+      "note": "21-37: assumes X=12.345 and leaves X=99.125; no beforeEach reset",
+      "sha256": "4adaf2b7f4ad6237dba3e821e253b9ccdafdcf7ef95228b05d8a2e26e2720384"
+    },
+    "lcnc-webui/e2e/mock-gateway.mjs": {
+      "note": "234-239: new client receives shared state; 311-337: explicit reset; 427: listen",
+      "sha256": "be595fa7b82ad3be3412f8757de69e638575abf278064ff1c6da25a2d8c66df3"
+    },
+    "lcnc-webui/e2e/ctl.ts": {
+      "note": "8-9: shared endpoints; 27-34: ctlAt derives websocket from supplied base",
+      "sha256": "8c847768612adfc1aa882c85a7f45a4bf65d98a5bfa560cbf76bf5bf440dc0e9"
+    },
+    "lcnc-webui/e2e/tool-import.spec.ts": {
+      "note": "4: TOOL_IMPORT_TEST_URL; 16-17: route target then navigate",
+      "sha256": "c198306969d9ce5e00cd618c92b8ee3c2022808227ba438568a06b531d692e44"
+    },
+    "lcnc-webui/e2e/viewer.spec.ts": {
+      "note": "30-42: settled geometry counts; 46-48: beforeEach reset",
+      "sha256": "a39c8d5265497a24ad6b183f83e03c51de3dbc75a0f8eec9eea673d892a14468"
+    },
+    "lcnc-webui/e2e/layout-fixtures.ts": {
+      "note": "109 onward: openLayout resets explicitly",
+      "sha256": "ddeff09593d2ed660c45bf561a3e930e26ab8b0da52316b0eda2a35d496668df"
+    },
+    "lcnc-webui/playwright.config.ts": {
+      "note": "fullyParallel true currently; dependencies serialize the special projects",
+      "sha256": "b5bb8c9f6a1fa6c8a1587564f81dfe9e6cd1b125571d7eb439d39d02d82bc453"
+    },
+    "lcnc-webui/playwright.select.config.ts": {
+      "note": "select config currently filters and reconnects the project chain",
+      "sha256": "2b42e948e61b1573184501f4b5b5b5bcced5a605377bb3d1c9723bf55b87715c"
+    },
+    "scripts/test_select/proof.py": {
+      "note": "152-163: identity includes file, projectName, title; 100 onward: chain order proof",
+      "sha256": "a6b6c84f314f205f945e53d4a621a9a84cdfeff9f05c96c2667f3cf117a824f0"
+    },
+    "scripts/test_select/round_gate.py": {
+      "note": "208 onward: browser run uses current identity/order proof",
+      "sha256": "0b18c4fb1a7118c141ac3b445d5e85332b6293723195d3dd495f82a21551fe8d"
+    }
+  },
+  "specs_with_mock_but_no_reset_or_openLayout_text": [
+    "armed.spec.ts",
+    "example-tool-library.spec.ts",
+    "frames.spec.ts",
+    "freecad-import.spec.ts",
+    "tool-import.spec.ts"
+  ],
+  "inventory_limit": "Text search is a candidate list; only the named armed/frames paths were inspected semantically.",
+  "playwright": "1.60.0",
+  "worker_env_source": "node_modules/playwright/lib/worker/workerProcessEntry.js:2769 sets TEST_PARALLEL_INDEX from params.parallelIndex",
+  "references": [
+    "https://playwright.dev/docs/test-parallel#worker-index-and-parallel-index",
+    "https://playwright.dev/docs/test-fixtures#worker-scoped-fixtures",
+    "https://playwright.dev/docs/test-fixtures#execution-order",
+    "https://playwright.dev/docs/test-retries#failures"
+  ]
+}

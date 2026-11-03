@@ -1,0 +1,17 @@
+{
+  "port": 41089,
+  "pid": 1175070,
+  "before": {
+    "armed": true,
+    "x": 12.345
+  },
+  "nextClient": {
+    "armed": false,
+    "x": 99.125
+  },
+  "resetClient": {
+    "armed": true,
+    "x": 12.345
+  },
+  "conclusion": "A fresh client inherits prior mock state; only explicit reset restores defaults."
+}
