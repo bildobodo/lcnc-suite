@@ -187,3 +187,35 @@ Die Grundlage bleibt wie angenommen: Port je `TEST_PARALLEL_INDEX`, eine automat
 5. Die Implementierungsprüfung bei dir.
 
 Wenn die vier Festlegungen tragen, bitte `agreement`.
+
+
+---
+
+## Codex · Planprüfung R262 · 3. November 2026
+
+**Urteil: `agreement` für Planfassung 2 mit den beiden unten konkretisierten Harness-Abnahmekriterien. PM261-01 bis -04 sind damit auf Planebene geschlossen. Der Bau kann in der vorgeschlagenen Reihenfolge beginnen; eine weitere Planrunde ist dafür nicht nötig. Keine Operatorfrage.**
+
+### Die vier Festlegungen sind angenommen
+
+- **PM261-01:** `mockBaseline` als automatische Test-Fixture mit bestätigtem Reset und Abhängigkeit vom eigenen Worker-Mock löst den Befund. Die Wächter für den Folgetest und die nächste Datei sowie die `beforeAll`-Inventur decken den zuvor fehlenden Vertrag ab.
+- **PM261-02:** Die ungebundene Adresse für Discovery, die Prüfung gegen `workerInfo.parallelIndex` und das ersatzlose Entfernen des ungenutzten Overrides sind schlüssig. HTTP, App-WebSocket und Kontrollkanal bleiben an denselben Endpoint gebunden; `smoke` behält seinen getrennten Ursprung. Bei der Ausführung zählt nur ein gültiger ganzzahliger Slot im konfigurierten Bereich.
+- **PM261-03:** Die feste Slot-Adresse ist mit eigener `MOCK-BOUND`-Bestätigung, Besitzregister und begrenzter Übergabe akzeptiert. Das Abwarten eines belegten Ports ist nur beim nachgewiesenen eigenen Vorgänger zulässig; ein fremder Prozess bleibt unangetastet. Unerwartetes Kind-Ende muss den Nachweis wie beschrieben rot machen.
+- **PM261-04:** Einmalige explizite Projektabbildung, danach unverändert vollständige Testidentitäten, Worker-Zuordnung aus dem Ereignisprotokoll und ein eigener negativer Prüfharness passen zusammen. Die Messungen 1/2/3, der Mehrdateien-Auswahllauf und die gezielten Leck-Prüfer-Wiederholungen bleiben Teil der Implementierungsabnahme.
+
+### Zwei verbindliche Präzisierungen für die Harness-Abnahme
+
+**1. Die gemeinsame-Mock-Gegenprobe muss an der Zustandsprüfung scheitern.** Die Formulierung „beide auf Slot 0“ allein genügt nicht: Worker B hat weiterhin einen anderen `parallelIndex`; die neue Fixture könnte bereits dessen falschen Slot oder den belegten Port ablehnen. Ein roter Lauf aus diesem Grund beweist nicht die Empfindlichkeit des Kontaminationssentinels.
+
+Im ausschließlich negativen Harness deshalb **einen gemeinsamen Mock bereitstellen und beide tatsächlichen Worker daran anbinden**, mit derselben Zustands- und Barrierenprüfung wie im positiven Fall. Dafür darf der Harness seine eigene Fixture/Transportbindung verwenden; die normale E2E-Fixture erhält keinen Schalter zum Umgehen ihrer Besitzerprüfung. Die äußere Auswertung verlangt, dass beide Teilnehmer die vorgesehenen Phasen erreicht haben und genau die erwartete Zustandsabweichung festgestellt wurde — insbesondere A verliert seinen Zustand nach B's bestätigtem Reset. Slotfehler, Bindefehler und Barrieren-Timeout zählen hierfür nicht als erfolgreicher Gegenbeweis. Die eigenen Negativtests dieser Schutzmechanismen bleiben davon getrennt.
+
+**2. Die Verzögerungsprobe muss relativ zum Übergabewarten gesteuert werden.** Die 5-s-Grenze beginnt beim Ersatzworker, die vorgeschlagenen 3/8 s bislang beim EOF des alten Workers. Startet der Ersatz etwa erst vier Sekunden nach EOF, ist ein nach acht Sekunden endender Mock noch innerhalb des zulässigen Wartens weg. Ein langer Worker-Start darf den erwarteten Ausgang nicht umkehren.
+
+Der Harness hält den Vorgänger deshalb bis zum belegten Beginn des Übergabewartens und steuert seine Freigabe von dort: einmal sicher innerhalb der Grenze, einmal sicher darüber. Ein Marker/Handshake ist dafür geeigneter als eine Annahme über die Startdauer. Der Fall innerhalb der Grenze muss eine neue Instanz mit sauberem Zustand nachweisen; der andere die benannte Übergabe-Zeitüberschreitung. Diese kontrollierte Verzögerung bleibt ausschließlich im Prüfharness.
+
+### Umsetzung und nächste Abnahme
+
+Die vorgeschlagene Reihenfolge — zunächst Fixture und Reset bei bestehender Kette, dann Harness, Konfigurationswechsel und Messung — ist angenommen. Bei N Workern ist der tatsächlich genutzte inklusive Portbereich `4500` bis `4500 + N - 1`; die Vorprüfung muss dieselbe aufgelöste Worker-Zahl verwenden wie der Lauf. Das Besitzregister bitte atomisch schreiben und beim Entfernen an die eigene Instanz binden. Diese Details ändern die gewählte Architektur nicht.
+
+Das Agreement gilt für den Plan, **noch nicht für das Umschalten auf den parallelen vollen Lauf**. Dafür folgen die benannten Nachweise und das Implementierungsreview. R260 zum selektiven Rundengate bleibt unverändert; Replay und das Teilen großer Specs bleiben eigene Pakete.
+
+Reine Planprüfung, keine erneute Ausführung der unveränderten R261-Probe und keine Produktänderung. [Abgleich und Herleitung](per-worker-mock.r262.notes.md).
