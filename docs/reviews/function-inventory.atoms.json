@@ -1,0 +1,4606 @@
+{
+ "controls": [
+  {
+   "key": "App.vue|MachineBtn:headerIcon|@click=messagesDialogOpen ? closeMessages() : openMessages()",
+   "file": "App.vue",
+   "line": 2088,
+   "tag": "MachineBtn",
+   "entry": "headerIcon",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:headerIcon|@click=openGcodeRef()",
+   "file": "App.vue",
+   "line": 2091,
+   "tag": "MachineBtn",
+   "entry": "headerIcon",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:headerIcon|@click=openDialog('settings')",
+   "file": "App.vue",
+   "line": 2094,
+   "tag": "MachineBtn",
+   "entry": "headerIcon",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:headerIcon|@click=toggleFullscreen",
+   "file": "App.vue",
+   "line": 2097,
+   "tag": "MachineBtn",
+   "entry": "headerIcon",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:headerIcon|@click=showShutdownConfirm = true",
+   "file": "App.vue",
+   "line": 2105,
+   "tag": "MachineBtn",
+   "entry": "headerIcon",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|div|@click=openMessages",
+   "file": "App.vue",
+   "line": 2114,
+   "tag": "div",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:bannerAck|@click=acknowledgeSafetyTrip",
+   "file": "App.vue",
+   "line": 2141,
+   "tag": "MachineBtn",
+   "entry": "bannerAck",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:bannerReload|@click=loadFile(activeFile)",
+   "file": "App.vue",
+   "line": 2142,
+   "tag": "MachineBtn",
+   "entry": "bannerReload",
+   "gates": [
+    "programLoad"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:bannerReload|@click=loadFile(programUnconfirmed)",
+   "file": "App.vue",
+   "line": 2143,
+   "tag": "MachineBtn",
+   "entry": "bannerReload",
+   "gates": [
+    "programLoad"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:bannerHome|@click=homeAll",
+   "file": "App.vue",
+   "line": 2144,
+   "tag": "MachineBtn",
+   "entry": "bannerHome",
+   "gates": [
+    "zero"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:bannerAction|@click=openMessages",
+   "file": "App.vue",
+   "line": 2145,
+   "tag": "MachineBtn",
+   "entry": "bannerAction",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:bannerAction|@click=reloadPage",
+   "file": "App.vue",
+   "line": 2148,
+   "tag": "MachineBtn",
+   "entry": "bannerAction",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:bannerAbort|@click=fire({ cmd: 'abort' }, 'abort')",
+   "file": "App.vue",
+   "line": 2149,
+   "tag": "MachineBtn",
+   "entry": "bannerAbort",
+   "gates": [
+    "abort"
+   ]
+  },
+  {
+   "key": "App.vue|MachineSelect:tabSelect|v-model=probeView",
+   "file": "App.vue",
+   "line": 2188,
+   "tag": "MachineSelect",
+   "entry": "tabSelect",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineInput:mdiText|@keydown=onMdiKeydown v-model=mdiText",
+   "file": "App.vue",
+   "line": 2272,
+   "tag": "MachineInput",
+   "entry": "mdiText",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:mdi|@click=handleMdiSend",
+   "file": "App.vue",
+   "line": 2288,
+   "tag": "MachineBtn",
+   "entry": "mdi",
+   "gates": [
+    "ready"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:abort|@click=fire({ cmd: 'abort' }, 'abort')",
+   "file": "App.vue",
+   "line": 2289,
+   "tag": "MachineBtn",
+   "entry": "abort",
+   "gates": [
+    "abort"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:settingInlineMd|@click=clearMdiHistory",
+   "file": "App.vue",
+   "line": 2293,
+   "tag": "MachineBtn",
+   "entry": "settingInlineMd",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "App.vue|div|@click=mdiText = entry.text",
+   "file": "App.vue",
+   "line": 2296,
+   "tag": "div",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:simTrip|@click=send({ cmd: 'simulate_probe_trip' })",
+   "file": "App.vue",
+   "line": 2340,
+   "tag": "MachineBtn",
+   "entry": "simTrip",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:toolMeasure|@click=measureAuto",
+   "file": "App.vue",
+   "line": 2347,
+   "tag": "MachineBtn",
+   "entry": "toolMeasure",
+   "gates": [
+    "machineFrame"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:toolUnload|@click=unloadTool",
+   "file": "App.vue",
+   "line": 2348,
+   "tag": "MachineBtn",
+   "entry": "toolUnload",
+   "gates": [
+    "machineFrame"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:abort|@click=fire({ cmd: 'abort' }, 'abort')",
+   "file": "App.vue",
+   "line": 2349,
+   "tag": "MachineBtn",
+   "entry": "abort",
+   "gates": [
+    "abort"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:toolOp|@click=toolTableRef?.openAdd()",
+   "file": "App.vue",
+   "line": 2351,
+   "tag": "MachineBtn",
+   "entry": "toolOp",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:fileBrowse|@click=toolTableRef?.toggleImportBrowser()",
+   "file": "App.vue",
+   "line": 2353,
+   "tag": "MachineBtn",
+   "entry": "fileBrowse",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:fileBrowse|@click=toolTableRef?.uploadLibrary()",
+   "file": "App.vue",
+   "line": 2355,
+   "tag": "MachineBtn",
+   "entry": "fileBrowse",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:fileDownload|@click=toolTableRef?.downloadTable()",
+   "file": "App.vue",
+   "line": 2356,
+   "tag": "MachineBtn",
+   "entry": "fileDownload",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:dialogCancel|@click=tabLeaveAsk = null",
+   "file": "App.vue",
+   "line": 2379,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:dialogDanger|@click=confirmTabLeave",
+   "file": "App.vue",
+   "line": 2380,
+   "tag": "MachineBtn",
+   "entry": "dialogDanger",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:dialogCancel|@click=settingsDiscard = null",
+   "file": "App.vue",
+   "line": 2498,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:dialogDanger|@click=confirmSettingsDiscard",
+   "file": "App.vue",
+   "line": 2499,
+   "tag": "MachineBtn",
+   "entry": "dialogDanger",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:dialogCancel|@click=clearMessagesAsk = false",
+   "file": "App.vue",
+   "line": 2517,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:dialogDanger|@click=clearAllMessages(); clearMessagesAsk = false",
+   "file": "App.vue",
+   "line": 2518,
+   "tag": "MachineBtn",
+   "entry": "dialogDanger",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:abort|@click=fire({ cmd: 'abort' }, 'abort')",
+   "file": "App.vue",
+   "line": 2540,
+   "tag": "MachineBtn",
+   "entry": "abort",
+   "gates": [
+    "abort"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:toolChangeConfirm|@click=confirmToolChange",
+   "file": "App.vue",
+   "line": 2541,
+   "tag": "MachineBtn",
+   "entry": "toolChangeConfirm",
+   "gates": [
+    "toolChangeConfirm"
+   ]
+  },
+  {
+   "key": "App.vue|MachineInput:macroParam|v-model=macroParamDialog.values[p.key]",
+   "file": "App.vue",
+   "line": 2558,
+   "tag": "MachineInput",
+   "entry": "macroParam",
+   "gates": [
+    "ready"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:dialogCancel|@click=macroParamDialog = null",
+   "file": "App.vue",
+   "line": 2575,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:macroExecute|@click=confirmMacroParams",
+   "file": "App.vue",
+   "line": 2578,
+   "tag": "MachineBtn",
+   "entry": "macroExecute",
+   "gates": [
+    "probe"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:dialogCancel|@click=showShutdownConfirm = false",
+   "file": "App.vue",
+   "line": 2588,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:shutdown|@click=send({ cmd: 'shutdown' }); showShutdownConfirm = false",
+   "file": "App.vue",
+   "line": 2589,
+   "tag": "MachineBtn",
+   "entry": "shutdown",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:dialogCancel|@click=cancelCompToggle",
+   "file": "App.vue",
+   "line": 2615,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "App.vue|MachineBtn:dialogReady|@click=confirmCompToggle",
+   "file": "App.vue",
+   "line": 2616,
+   "tag": "MachineBtn",
+   "entry": "dialogReady",
+   "gates": [
+    "ready"
+   ]
+  },
+  {
+   "key": "Btn.vue|button|",
+   "file": "Btn.vue",
+   "line": 29,
+   "tag": "button",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "CameraPip.vue|div|@pointerdown=onDragStart",
+   "file": "CameraPip.vue",
+   "line": 215,
+   "tag": "div",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "CameraPip.vue|MachineBtn:windowToggle|@click.stop=toggleMinimize",
+   "file": "CameraPip.vue",
+   "line": 218,
+   "tag": "MachineBtn",
+   "entry": "windowToggle",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "CameraPip.vue|MachineBtn:close|@click.stop=close",
+   "file": "CameraPip.vue",
+   "line": 221,
+   "tag": "MachineBtn",
+   "entry": "close",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "CameraPip.vue|div|@pointerdown=onResizeStart",
+   "file": "CameraPip.vue",
+   "line": 253,
+   "tag": "div",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "ChoiceGroup.vue|MachineChoice:{o.gate}|@choose=el => choose(o, el)",
+   "file": "ChoiceGroup.vue",
+   "line": 151,
+   "tag": "MachineChoice",
+   "entry": "{o.gate}",
+   "gates": [
+    "dynamic"
+   ]
+  },
+  {
+   "key": "CodeEditor.vue|div|@pointerup=onPointerUp",
+   "file": "CodeEditor.vue",
+   "line": 152,
+   "tag": "div",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "DebugTab.vue|MachineBtn:inline|@click=toggleTimingLog",
+   "file": "DebugTab.vue",
+   "line": 65,
+   "tag": "MachineBtn",
+   "entry": "inline",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "DebugTab.vue|MachineBtn:inline|@click=resetTimingStats",
+   "file": "DebugTab.vue",
+   "line": 66,
+   "tag": "MachineBtn",
+   "entry": "inline",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "DebugTab.vue|MachineBtn:inline|@click=downloadTimingCsv",
+   "file": "DebugTab.vue",
+   "line": 67,
+   "tag": "MachineBtn",
+   "entry": "inline",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "DetailsPopover.vue|MachineBtn:{props.type}|@click=toggle @pointerdown=onPointerDown",
+   "file": "DetailsPopover.vue",
+   "line": 85,
+   "tag": "MachineBtn",
+   "entry": "{props.type}",
+   "gates": [
+    "dynamic"
+   ]
+  },
+  {
+   "key": "DialogFrame.vue|div|@click.self=requestClose('backdrop')",
+   "file": "DialogFrame.vue",
+   "line": 164,
+   "tag": "div",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "DialogFrame.vue|MachineBtn:close|@click=requestClose('x')",
+   "file": "DialogFrame.vue",
+   "line": 175,
+   "tag": "MachineBtn",
+   "entry": "close",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "FileBrowser.vue|MachineBtn:inline|@click=browse(subdir.split('/').slice(0, -1).join('/'))",
+   "file": "FileBrowser.vue",
+   "line": 83,
+   "tag": "MachineBtn",
+   "entry": "inline",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "FileBrowser.vue|MachineBtn:retry|@click=browse(failedDirectory)",
+   "file": "FileBrowser.vue",
+   "line": 90,
+   "tag": "MachineBtn",
+   "entry": "retry",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "FileBrowser.vue|button|@click=select(entry) @pointerdown=entry.type === 'file' && fileBlock && explainAt($event, fileBlock) :disabled=busy || (entry.type === 'file' && !!fileBlock)",
+   "file": "FileBrowser.vue",
+   "line": 94,
+   "tag": "button",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "FloatingOverlays.vue|button|@click=inputGlyph.open?.() @pointerdown.prevent=",
+   "file": "FloatingOverlays.vue",
+   "line": 88,
+   "tag": "button",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "GamepadMapWizard.vue|MachineBtn:dialogCancel|@click=emit('cancel')",
+   "file": "GamepadMapWizard.vue",
+   "line": 258,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GamepadMapWizard.vue|MachineBtn:inlineMd|@click=requestRestart",
+   "file": "GamepadMapWizard.vue",
+   "line": 259,
+   "tag": "MachineBtn",
+   "entry": "inlineMd",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GamepadMapWizard.vue|MachineBtn:inlineMd|@click=skip",
+   "file": "GamepadMapWizard.vue",
+   "line": 261,
+   "tag": "MachineBtn",
+   "entry": "inlineMd",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GamepadMapWizard.vue|MachineBtn:dialogSettingConfirm|@click=save",
+   "file": "GamepadMapWizard.vue",
+   "line": 262,
+   "tag": "MachineBtn",
+   "entry": "dialogSettingConfirm",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "GamepadTab.vue|MachineToggle:inputConfig|v-model=gpJogEnabled",
+   "file": "GamepadTab.vue",
+   "line": 131,
+   "tag": "MachineToggle",
+   "entry": "inputConfig",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "GamepadTab.vue|MachineToggle:inputConfig|v-model=gpButtonsEnabled",
+   "file": "GamepadTab.vue",
+   "line": 132,
+   "tag": "MachineToggle",
+   "entry": "inputConfig",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "GamepadTab.vue|MachineBtn:settingInlineMd|@click=showWizard = true",
+   "file": "GamepadTab.vue",
+   "line": 147,
+   "tag": "MachineBtn",
+   "entry": "settingInlineMd",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "GamepadTab.vue|MachineBtn:profileRemove|@click=requestRemoveProfile",
+   "file": "GamepadTab.vue",
+   "line": 148,
+   "tag": "MachineBtn",
+   "entry": "profileRemove",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "GamepadTab.vue|MachineBtn:dialogCancel|@click=removeConfirm = false",
+   "file": "GamepadTab.vue",
+   "line": 152,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GamepadTab.vue|MachineBtn:dialogSettingDanger|@click=removeProfile",
+   "file": "GamepadTab.vue",
+   "line": 153,
+   "tag": "MachineBtn",
+   "entry": "dialogSettingDanger",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "GamepadTab.vue|MachineToggle:inputConfig|@update:modelValue=setInverted(a.letter, $event)",
+   "file": "GamepadTab.vue",
+   "line": 166,
+   "tag": "MachineToggle",
+   "entry": "inputConfig",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "GamepadTab.vue|MachineSlider:inputConfig|@update:modelValue=(v: number | undefined) => emit('setGamepadConfig', { ...gamepadConfig!, deadZone: v ?? 0.15 })",
+   "file": "GamepadTab.vue",
+   "line": 178,
+   "tag": "MachineSlider",
+   "entry": "inputConfig",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "GamepadTab.vue|MachineSelect:inputConfig|@update:modelValue=onGpMappingChanged v-model=gpMapping[key]",
+   "file": "GamepadTab.vue",
+   "line": 212,
+   "tag": "MachineSelect",
+   "entry": "inputConfig",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:inline|@click=emit('showStats')",
+   "file": "GcodePanel.vue",
+   "line": 982,
+   "tag": "MachineBtn",
+   "entry": "inline",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:start|@click=onStartClick",
+   "file": "GcodePanel.vue",
+   "line": 993,
+   "tag": "MachineBtn",
+   "entry": "start",
+   "gates": [
+    "run"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:step|@click=emit('cycleStep')",
+   "file": "GcodePanel.vue",
+   "line": 1000,
+   "tag": "MachineBtn",
+   "entry": "step",
+   "gates": [
+    "step"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:{isPaused ? 'resume' : 'pause'}|@click=isPaused ? emit('cycleResume') : emit('cyclePause')",
+   "file": "GcodePanel.vue",
+   "line": 1005,
+   "tag": "MachineBtn",
+   "entry": "{isPaused ? 'resume' : 'pause'}",
+   "gates": [
+    "resume",
+    "pause"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:abort|@click=emit('abort')",
+   "file": "GcodePanel.vue",
+   "line": 1009,
+   "tag": "MachineBtn",
+   "entry": "abort",
+   "gates": [
+    "abort"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineToggle:optionalStop|v-model=optionalStopModel",
+   "file": "GcodePanel.vue",
+   "line": 1012,
+   "tag": "MachineToggle",
+   "entry": "optionalStop",
+   "gates": [
+    "override"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineToggle:blockDelete|v-model=blockDeleteModel",
+   "file": "GcodePanel.vue",
+   "line": 1013,
+   "tag": "MachineToggle",
+   "entry": "blockDelete",
+   "gates": [
+    "override"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:sourceOp|@click=enterEdit",
+   "file": "GcodePanel.vue",
+   "line": 1015,
+   "tag": "MachineBtn",
+   "entry": "sourceOp",
+   "gates": [
+    "sourceWrite"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:fileOp|@click=reloadFile",
+   "file": "GcodePanel.vue",
+   "line": 1018,
+   "tag": "MachineBtn",
+   "entry": "fileOp",
+   "gates": [
+    "programLoad"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:fileOp|@click=unloadFile",
+   "file": "GcodePanel.vue",
+   "line": 1021,
+   "tag": "MachineBtn",
+   "entry": "fileOp",
+   "gates": [
+    "programLoad"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:fileOp|@click=toggleBrowser",
+   "file": "GcodePanel.vue",
+   "line": 1028,
+   "tag": "MachineBtn",
+   "entry": "fileOp",
+   "gates": [
+    "programLoad"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:sourceOp|@click=($refs.fileInput as HTMLInputElement).click()",
+   "file": "GcodePanel.vue",
+   "line": 1032,
+   "tag": "MachineBtn",
+   "entry": "sourceOp",
+   "gates": [
+    "sourceWrite"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:fileDownload|@click=downloadProgram",
+   "file": "GcodePanel.vue",
+   "line": 1036,
+   "tag": "MachineBtn",
+   "entry": "fileDownload",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|input|@change=onFileSelect",
+   "file": "GcodePanel.vue",
+   "line": 1040,
+   "tag": "input",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:close|@click=uploadError = null",
+   "file": "GcodePanel.vue",
+   "line": 1066,
+   "tag": "MachineBtn",
+   "entry": "close",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:close|@click=downloadError = null",
+   "file": "GcodePanel.vue",
+   "line": 1070,
+   "tag": "MachineBtn",
+   "entry": "close",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:close|@click=saveError = null",
+   "file": "GcodePanel.vue",
+   "line": 1107,
+   "tag": "MachineBtn",
+   "entry": "close",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:inline|@click=keepEditing",
+   "file": "GcodePanel.vue",
+   "line": 1114,
+   "tag": "MachineBtn",
+   "entry": "inline",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:inlineDanger|@click=discardEdit",
+   "file": "GcodePanel.vue",
+   "line": 1115,
+   "tag": "MachineBtn",
+   "entry": "inlineDanger",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:fileSave|@click=saveEdit",
+   "file": "GcodePanel.vue",
+   "line": 1121,
+   "tag": "MachineBtn",
+   "entry": "fileSave",
+   "gates": [
+    "sourceWrite"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:fileDiscard|@click=discardEdit",
+   "file": "GcodePanel.vue",
+   "line": 1122,
+   "tag": "MachineBtn",
+   "entry": "fileDiscard",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|div|@click=item.kind === 'main' && onLineClick(item.lineNum)",
+   "file": "GcodePanel.vue",
+   "line": 1138,
+   "tag": "div",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|span|@click=interactive && onTokenClick($event, token) @mouseenter=interactive && onTokenMouseEnter($event, token) @mouseleave=interactive && onTokenMouseLeave()",
+   "file": "GcodePanel.vue",
+   "line": 1165,
+   "tag": "span",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:dialogCancel|@click=showDiscardConfirm = false",
+   "file": "GcodePanel.vue",
+   "line": 1197,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:dialogDanger|@click=confirmDiscard",
+   "file": "GcodePanel.vue",
+   "line": 1198,
+   "tag": "MachineBtn",
+   "entry": "dialogDanger",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineInput:uploadName|v-model=uploadConflict.newName",
+   "file": "GcodePanel.vue",
+   "line": 1213,
+   "tag": "MachineInput",
+   "entry": "uploadName",
+   "gates": [
+    "sourceWrite"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:dialogCancel|@click=uploadConflict = null",
+   "file": "GcodePanel.vue",
+   "line": 1218,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:sourceOp|@click=uploadRename",
+   "file": "GcodePanel.vue",
+   "line": 1220,
+   "tag": "MachineBtn",
+   "entry": "sourceOp",
+   "gates": [
+    "sourceWrite"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:sourceDanger|@click=uploadReplace",
+   "file": "GcodePanel.vue",
+   "line": 1221,
+   "tag": "MachineBtn",
+   "entry": "sourceDanger",
+   "gates": [
+    "sourceWrite"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineToggle:displaySetting|v-model=dialogSafeZ",
+   "file": "GcodePanel.vue",
+   "line": 1275,
+   "tag": "MachineToggle",
+   "entry": "displaySetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineRadio:displaySetting|@update:modelValue=dialogSpindleDir = 'reverse'",
+   "file": "GcodePanel.vue",
+   "line": 1283,
+   "tag": "MachineRadio",
+   "entry": "displaySetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineRadio:displaySetting|@update:modelValue=dialogSpindleDir = 'off'",
+   "file": "GcodePanel.vue",
+   "line": 1284,
+   "tag": "MachineRadio",
+   "entry": "displaySetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineRadio:displaySetting|@update:modelValue=dialogSpindleDir = 'forward'",
+   "file": "GcodePanel.vue",
+   "line": 1285,
+   "tag": "MachineRadio",
+   "entry": "displaySetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineInput:displaySettingNum|v-model.number=dialogSpindleSpeed",
+   "file": "GcodePanel.vue",
+   "line": 1289,
+   "tag": "MachineInput",
+   "entry": "displaySettingNum",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:dialogCancel|@click=showRunDialog = false",
+   "file": "GcodePanel.vue",
+   "line": 1296,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GcodePanel.vue|MachineBtn:dialogConfirm|@click=confirmRunFromLine",
+   "file": "GcodePanel.vue",
+   "line": 1301,
+   "tag": "MachineBtn",
+   "entry": "dialogConfirm",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GcodeReferenceDialog.vue|MachineInput:search|v-model=search",
+   "file": "GcodeReferenceDialog.vue",
+   "line": 69,
+   "tag": "MachineInput",
+   "entry": "search",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GcodeReferenceDialog.vue|MachineSelect:filter|v-model=filterGroup",
+   "file": "GcodeReferenceDialog.vue",
+   "line": 77,
+   "tag": "MachineSelect",
+   "entry": "filter",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "GcodeReferenceDialog.vue|button|@click=toggleSort('code')",
+   "file": "GcodeReferenceDialog.vue",
+   "line": 95,
+   "tag": "button",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "GcodeReferenceDialog.vue|button|@click=toggleSort('name')",
+   "file": "GcodeReferenceDialog.vue",
+   "line": 98,
+   "tag": "button",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "HalshowTab.vue|MachineInput:search|v-model=halSearch",
+   "file": "HalshowTab.vue",
+   "line": 131,
+   "tag": "MachineInput",
+   "entry": "search",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "HalshowTab.vue|MachineBtn:inline|@click=expandAllHal",
+   "file": "HalshowTab.vue",
+   "line": 137,
+   "tag": "MachineBtn",
+   "entry": "inline",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "HalshowTab.vue|MachineBtn:inline|@click=collapseAllHal",
+   "file": "HalshowTab.vue",
+   "line": 138,
+   "tag": "MachineBtn",
+   "entry": "inline",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "HalshowTab.vue|MachineBtn:inline|@click=toggleHalGroup(group)",
+   "file": "HalshowTab.vue",
+   "line": 157,
+   "tag": "MachineBtn",
+   "entry": "inline",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "HalshowTab.vue|MachineBtn:inline|@click=toggleHalGroup(group)",
+   "file": "HalshowTab.vue",
+   "line": 208,
+   "tag": "MachineBtn",
+   "entry": "inline",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "HelpIcon.vue|span|@click.prevent.stop=toggle @keydown=onKeydown @pointerdown=onPointerDown",
+   "file": "HelpIcon.vue",
+   "line": 111,
+   "tag": "span",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "JogStrip.vue|MachineBtn:{btn.axis < 0 ? 'jogStop' : 'jog'}|@contextmenu.prevent= @keydown=onJogKey(btn, $event) @pointercancel.prevent=stopJog(btn, $event) @pointerdown.prevent=startJog(btn, $event) @pointerleave.prevent=stopJog(btn, $event) @pointermove=slideOffCheck @pointerup.prevent=stopJog(btn, $event)",
+   "file": "JogStrip.vue",
+   "line": 512,
+   "tag": "MachineBtn",
+   "entry": "{btn.axis < 0 ? 'jogStop' : 'jog'}",
+   "gates": [
+    "always",
+    "jog"
+   ]
+  },
+  {
+   "key": "JogStrip.vue|MachineBtn:jog|@contextmenu.prevent= @pointercancel.prevent=stopAxisJog(zAxis.index, 1, $event) @pointerdown.prevent=startAxisJog(zAxis.index, 1, jogVel, $event) @pointerleave.prevent=stopAxisJog(zAxis.index, 1, $event) @pointermove=slideOffCheck @pointerup.prevent=stopAxisJog(zAxis.index, 1, $event)",
+   "file": "JogStrip.vue",
+   "line": 535,
+   "tag": "MachineBtn",
+   "entry": "jog",
+   "gates": [
+    "jog"
+   ]
+  },
+  {
+   "key": "JogStrip.vue|MachineBtn:jog|@contextmenu.prevent= @pointercancel.prevent=stopAxisJog(zAxis.index, -1, $event) @pointerdown.prevent=startAxisJog(zAxis.index, -1, jogVel, $event) @pointerleave.prevent=stopAxisJog(zAxis.index, -1, $event) @pointermove=slideOffCheck @pointerup.prevent=stopAxisJog(zAxis.index, -1, $event)",
+   "file": "JogStrip.vue",
+   "line": 550,
+   "tag": "MachineBtn",
+   "entry": "jog",
+   "gates": [
+    "jog"
+   ]
+  },
+  {
+   "key": "JogStrip.vue|MachineBtn:jog|@contextmenu.prevent= @pointercancel.prevent=stopAxisJog(ra.index, 1, $event) @pointerdown.prevent=startAxisJog(ra.index, 1, angularJogVel, $event) @pointerleave.prevent=stopAxisJog(ra.index, 1, $event) @pointermove=slideOffCheck @pointerup.prevent=stopAxisJog(ra.index, 1, $event)",
+   "file": "JogStrip.vue",
+   "line": 570,
+   "tag": "MachineBtn",
+   "entry": "jog",
+   "gates": [
+    "jog"
+   ]
+  },
+  {
+   "key": "JogStrip.vue|MachineBtn:jog|@contextmenu.prevent= @pointercancel.prevent=stopAxisJog(ra.index, -1, $event) @pointerdown.prevent=startAxisJog(ra.index, -1, angularJogVel, $event) @pointerleave.prevent=stopAxisJog(ra.index, -1, $event) @pointermove=slideOffCheck @pointerup.prevent=stopAxisJog(ra.index, -1, $event)",
+   "file": "JogStrip.vue",
+   "line": 585,
+   "tag": "MachineBtn",
+   "entry": "jog",
+   "gates": [
+    "jog"
+   ]
+  },
+  {
+   "key": "JogStrip.vue|MachineBtn:jog|@contextmenu.prevent= @pointercancel.prevent=stopAxisJog(ra.index, 1, $event) @pointerdown.prevent=startAxisJog(ra.index, 1, jogVel, $event) @pointerleave.prevent=stopAxisJog(ra.index, 1, $event) @pointermove=slideOffCheck @pointerup.prevent=stopAxisJog(ra.index, 1, $event)",
+   "file": "JogStrip.vue",
+   "line": 606,
+   "tag": "MachineBtn",
+   "entry": "jog",
+   "gates": [
+    "jog"
+   ]
+  },
+  {
+   "key": "JogStrip.vue|MachineBtn:jog|@contextmenu.prevent= @pointercancel.prevent=stopAxisJog(ra.index, -1, $event) @pointerdown.prevent=startAxisJog(ra.index, -1, jogVel, $event) @pointerleave.prevent=stopAxisJog(ra.index, -1, $event) @pointermove=slideOffCheck @pointerup.prevent=stopAxisJog(ra.index, -1, $event)",
+   "file": "JogStrip.vue",
+   "line": 621,
+   "tag": "MachineBtn",
+   "entry": "jog",
+   "gates": [
+    "jog"
+   ]
+  },
+  {
+   "key": "JogStrip.vue|MachineSlider:jogSpeed|@update:modelValue=(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }",
+   "file": "JogStrip.vue",
+   "line": 646,
+   "tag": "MachineSlider",
+   "entry": "jogSpeed",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "JogStrip.vue|MachineBtn:jogSpeedReset|@click=emit('resetJogVel')",
+   "file": "JogStrip.vue",
+   "line": 648,
+   "tag": "MachineBtn",
+   "entry": "jogSpeedReset",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "JogStrip.vue|MachineSlider:jogSpeed|@update:modelValue=(v: number | undefined) => { if (v != null) emit('update:angularJogVel', v) }",
+   "file": "JogStrip.vue",
+   "line": 654,
+   "tag": "MachineSlider",
+   "entry": "jogSpeed",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "JogStrip.vue|MachineBtn:jogSpeedReset|@click=emit('resetAngularJogVel')",
+   "file": "JogStrip.vue",
+   "line": 655,
+   "tag": "MachineBtn",
+   "entry": "jogSpeedReset",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "JogStrip.vue|div|@focusin=onStepFocusin @focusout=onStepFocusout @keydown=onStepKeydown @pointerdown=holdStep",
+   "file": "JogStrip.vue",
+   "line": 666,
+   "tag": "div",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "JogStrip.vue|MachineSelect:jogIncrement|@update:modelValue=(v: string | number | undefined) => { if (v != null) emit('update:jogIncrement', Number(v)) }",
+   "file": "JogStrip.vue",
+   "line": 673,
+   "tag": "MachineSelect",
+   "entry": "jogIncrement",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "KeyboardTab.vue|MachineToggle:inputConfig|@update:modelValue=saveKb() v-model=kbConfig.jogEnabled",
+   "file": "KeyboardTab.vue",
+   "line": 162,
+   "tag": "MachineToggle",
+   "entry": "inputConfig",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "KeyboardTab.vue|MachineToggle:inputConfig|@update:modelValue=saveKb() v-model=kbConfig.buttonsEnabled",
+   "file": "KeyboardTab.vue",
+   "line": 163,
+   "tag": "MachineToggle",
+   "entry": "inputConfig",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "KeyboardTab.vue|td|@click=startCapture(action, $event)",
+   "file": "KeyboardTab.vue",
+   "line": 179,
+   "tag": "td",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "KeyboardTab.vue|MachineBtn:listActionSetting|@click.stop=unbindKey(action)",
+   "file": "KeyboardTab.vue",
+   "line": 186,
+   "tag": "MachineBtn",
+   "entry": "listActionSetting",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "KeyboardTab.vue|td|@click=startCapture(action, $event)",
+   "file": "KeyboardTab.vue",
+   "line": 192,
+   "tag": "td",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "KeyboardTab.vue|MachineBtn:listActionSetting|@click.stop=unbindKey(action)",
+   "file": "KeyboardTab.vue",
+   "line": 199,
+   "tag": "MachineBtn",
+   "entry": "listActionSetting",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "KeyboardTab.vue|td|@click=startCapture(action, $event)",
+   "file": "KeyboardTab.vue",
+   "line": 214,
+   "tag": "td",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "KeyboardTab.vue|MachineBtn:listActionSetting|@click.stop=unbindKey(action)",
+   "file": "KeyboardTab.vue",
+   "line": 221,
+   "tag": "MachineBtn",
+   "entry": "listActionSetting",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "MachineBtn.vue|span|@click=explain @keydown=gateExplain.onKeydown",
+   "file": "MachineBtn.vue",
+   "line": 249,
+   "tag": "span",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "MachineChoice.vue|button|@click=activate",
+   "file": "MachineChoice.vue",
+   "line": 49,
+   "tag": "button",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "MachineColor.vue|input|v-model=model :disabled=isDisabled",
+   "file": "MachineColor.vue",
+   "line": 20,
+   "tag": "input",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "MachineInput.vue|input|@click=openKeypadFromInput @keydown.enter.prevent=openKeypadFromInput @keydown.space.prevent=openKeypadFromInput @pointerdown=onNumberPointerDown :disabled=isDisabled",
+   "file": "MachineInput.vue",
+   "line": 249,
+   "tag": "input",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "MachineInput.vue|input|@click=onTextClick @focus=onTextFocus @focusout=onTextFocusOut @input=onNativeInput @pointerdown=explain :disabled=isDisabled",
+   "file": "MachineInput.vue",
+   "line": 275,
+   "tag": "input",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "MachineRadio.vue|input|@pointerdown=explain v-model=model :disabled=isDisabled",
+   "file": "MachineRadio.vue",
+   "line": 26,
+   "tag": "input",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "MachineSelect.vue|select|@pointerdown=explain v-model=model :disabled=isDisabled",
+   "file": "MachineSelect.vue",
+   "line": 27,
+   "tag": "select",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "MachineSlider.vue|input|@contextmenu.prevent= @input=onInput @pointerdown=explain :disabled=isDisabled",
+   "file": "MachineSlider.vue",
+   "line": 35,
+   "tag": "input",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "MachineToggle.vue|span|@click=explain @keydown=explainKey",
+   "file": "MachineToggle.vue",
+   "line": 48,
+   "tag": "span",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "MachineToggle.vue|input|@change=onChange :disabled=isDisabled",
+   "file": "MachineToggle.vue",
+   "line": 52,
+   "tag": "input",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "MacroBar.vue|MachineBtn:macro|@click=emit('run', b.item)",
+   "file": "MacroBar.vue",
+   "line": 53,
+   "tag": "MachineBtn",
+   "entry": "macro",
+   "gates": [
+    "probe"
+   ]
+  },
+  {
+   "key": "MacroBar.vue|MachineBtn:abort|@click=fire({ cmd: 'abort' }, 'abort')",
+   "file": "MacroBar.vue",
+   "line": 58,
+   "tag": "MachineBtn",
+   "entry": "abort",
+   "gates": [
+    "abort"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:macroRun|@click=selected && emit('run', selected)",
+   "file": "MacrosPanel.vue",
+   "line": 449,
+   "tag": "MachineBtn",
+   "entry": "macroRun",
+   "gates": [
+    "probe"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:abort|@click=fire({ cmd: 'abort' }, 'abort')",
+   "file": "MacrosPanel.vue",
+   "line": 452,
+   "tag": "MachineBtn",
+   "entry": "abort",
+   "gates": [
+    "abort"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:sourceOp|@click=openNew",
+   "file": "MacrosPanel.vue",
+   "line": 454,
+   "tag": "MachineBtn",
+   "entry": "sourceOp",
+   "gates": [
+    "sourceWrite"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:sourceOp|@click=pickImport",
+   "file": "MacrosPanel.vue",
+   "line": 455,
+   "tag": "MachineBtn",
+   "entry": "sourceOp",
+   "gates": [
+    "sourceWrite"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:fileDownload|@click=downloadSelected",
+   "file": "MacrosPanel.vue",
+   "line": 456,
+   "tag": "MachineBtn",
+   "entry": "fileDownload",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineInput:macroSearch|v-model=searchText",
+   "file": "MacrosPanel.vue",
+   "line": 464,
+   "tag": "MachineInput",
+   "entry": "macroSearch",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineSelect:macroSearch|v-model=barFilter",
+   "file": "MacrosPanel.vue",
+   "line": 466,
+   "tag": "MachineSelect",
+   "entry": "macroSearch",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:retry|@click=reloadMacroFiles",
+   "file": "MacrosPanel.vue",
+   "line": 476,
+   "tag": "MachineBtn",
+   "entry": "retry",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:settingInline|@click=removeFromBar(n)",
+   "file": "MacrosPanel.vue",
+   "line": 480,
+   "tag": "MachineBtn",
+   "entry": "settingInline",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:close|@click=note = null",
+   "file": "MacrosPanel.vue",
+   "line": 484,
+   "tag": "MachineBtn",
+   "entry": "close",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|button|@click=sortAsc = !sortAsc",
+   "file": "MacrosPanel.vue",
+   "line": 494,
+   "tag": "button",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|tr|@click=selectedName = f.name",
+   "file": "MacrosPanel.vue",
+   "line": 506,
+   "tag": "tr",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|td|@click.stop=",
+   "file": "MacrosPanel.vue",
+   "line": 514,
+   "tag": "td",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineToggle:protectedSetting|@update:modelValue=setOnBar(f.name, !!$event)",
+   "file": "MacrosPanel.vue",
+   "line": 515,
+   "tag": "MachineToggle",
+   "entry": "protectedSetting",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|td|@click.stop=",
+   "file": "MacrosPanel.vue",
+   "line": 518,
+   "tag": "td",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:listActionSource|@click=openEdit(f)",
+   "file": "MacrosPanel.vue",
+   "line": 519,
+   "tag": "MachineBtn",
+   "entry": "listActionSource",
+   "gates": [
+    "sourceWrite"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|td|@click.stop=",
+   "file": "MacrosPanel.vue",
+   "line": 521,
+   "tag": "td",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:listActionSource|@click=deleteAsk = f",
+   "file": "MacrosPanel.vue",
+   "line": 522,
+   "tag": "MachineBtn",
+   "entry": "listActionSource",
+   "gates": [
+    "sourceWrite"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|td|@click.stop=",
+   "file": "MacrosPanel.vue",
+   "line": 524,
+   "tag": "td",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:listActionSetting|@click=moveOnBar(f.name, -1)",
+   "file": "MacrosPanel.vue",
+   "line": 529,
+   "tag": "MachineBtn",
+   "entry": "listActionSetting",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:listActionSetting|@click=moveOnBar(f.name, 1)",
+   "file": "MacrosPanel.vue",
+   "line": 532,
+   "tag": "MachineBtn",
+   "entry": "listActionSetting",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:inline|@click=reload",
+   "file": "MacrosPanel.vue",
+   "line": 564,
+   "tag": "MachineBtn",
+   "entry": "inline",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:inline|@click=keepEditing",
+   "file": "MacrosPanel.vue",
+   "line": 565,
+   "tag": "MachineBtn",
+   "entry": "inline",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineInput:macroEdit|v-model=nameModel",
+   "file": "MacrosPanel.vue",
+   "line": 571,
+   "tag": "MachineInput",
+   "entry": "macroEdit",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineInput:macroEdit|v-model=titleModel",
+   "file": "MacrosPanel.vue",
+   "line": 576,
+   "tag": "MachineInput",
+   "entry": "macroEdit",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineInput:macroEdit|v-model=descModel",
+   "file": "MacrosPanel.vue",
+   "line": 581,
+   "tag": "MachineInput",
+   "entry": "macroEdit",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:dialogCancel|@click=closeEditor",
+   "file": "MacrosPanel.vue",
+   "line": 592,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:fileSave|@click=save",
+   "file": "MacrosPanel.vue",
+   "line": 593,
+   "tag": "MachineBtn",
+   "entry": "fileSave",
+   "gates": [
+    "sourceWrite"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:dialogCancel|@click=discardAsk = null",
+   "file": "MacrosPanel.vue",
+   "line": 600,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:dialogDanger|@click=confirmDiscard",
+   "file": "MacrosPanel.vue",
+   "line": 601,
+   "tag": "MachineBtn",
+   "entry": "dialogDanger",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:dialogCancel|@click=deleteAsk = null",
+   "file": "MacrosPanel.vue",
+   "line": 608,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:sourceDanger|@click=confirmDelete",
+   "file": "MacrosPanel.vue",
+   "line": 609,
+   "tag": "MachineBtn",
+   "entry": "sourceDanger",
+   "gates": [
+    "sourceWrite"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:dialogCancel|@click=replaceAsk = null",
+   "file": "MacrosPanel.vue",
+   "line": 616,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MacrosPanel.vue|MachineBtn:sourceDanger|@click=confirmReplace",
+   "file": "MacrosPanel.vue",
+   "line": 617,
+   "tag": "MachineBtn",
+   "entry": "sourceDanger",
+   "gates": [
+    "sourceWrite"
+   ]
+  },
+  {
+   "key": "MessagesDialog.vue|MachineBtn:inline|@click=copyShown",
+   "file": "MessagesDialog.vue",
+   "line": 72,
+   "tag": "MachineBtn",
+   "entry": "inline",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MessagesDialog.vue|MachineBtn:inline|@click=emit('clearAll')",
+   "file": "MessagesDialog.vue",
+   "line": 75,
+   "tag": "MachineBtn",
+   "entry": "inline",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MessagesDialog.vue|MachineInput:search|v-model=search",
+   "file": "MessagesDialog.vue",
+   "line": 86,
+   "tag": "MachineInput",
+   "entry": "search",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MessagesDialog.vue|MachineSelect:filter|v-model=filter",
+   "file": "MessagesDialog.vue",
+   "line": 88,
+   "tag": "MachineSelect",
+   "entry": "filter",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MessagesDialog.vue|button|@click=toggleSort('time')",
+   "file": "MessagesDialog.vue",
+   "line": 98,
+   "tag": "button",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "MessagesDialog.vue|button|@click=toggleSort('type')",
+   "file": "MessagesDialog.vue",
+   "line": 99,
+   "tag": "button",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "MessagesDialog.vue|button|@click=toggleSort('source')",
+   "file": "MessagesDialog.vue",
+   "line": 100,
+   "tag": "button",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "MessagesDialog.vue|MachineBtn:listAction|@click=emit('copy', messageLine(m, time(m.ts)))",
+   "file": "MessagesDialog.vue",
+   "line": 113,
+   "tag": "MachineBtn",
+   "entry": "listAction",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MessagesDialog.vue|MachineBtn:listAction|@click=emit('dismiss', m.id)",
+   "file": "MessagesDialog.vue",
+   "line": 114,
+   "tag": "MachineBtn",
+   "entry": "listAction",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MoreMenu.vue|MachineBtn:more|",
+   "file": "MoreMenu.vue",
+   "line": 151,
+   "tag": "MachineBtn",
+   "entry": "more",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "MoreMenu.vue|div|@click.capture=onClick @focusout=onFocusOut @keydown=onKeydown",
+   "file": "MoreMenu.vue",
+   "line": 161,
+   "tag": "div",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('7') @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 241,
+   "tag": "MachineBtn",
+   "entry": "numKey",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('8') @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 242,
+   "tag": "MachineBtn",
+   "entry": "numKey",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('9') @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 243,
+   "tag": "MachineBtn",
+   "entry": "numKey",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numOp|@click=append('/') @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 244,
+   "tag": "MachineBtn",
+   "entry": "numOp",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numDel|@click=del @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 245,
+   "tag": "MachineBtn",
+   "entry": "numDel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('4') @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 247,
+   "tag": "MachineBtn",
+   "entry": "numKey",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('5') @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 248,
+   "tag": "MachineBtn",
+   "entry": "numKey",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('6') @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 249,
+   "tag": "MachineBtn",
+   "entry": "numKey",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numOp|@click=append('*') @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 250,
+   "tag": "MachineBtn",
+   "entry": "numOp",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numClr|@click=clear @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 251,
+   "tag": "MachineBtn",
+   "entry": "numClr",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('1') @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 253,
+   "tag": "MachineBtn",
+   "entry": "numKey",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('2') @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 254,
+   "tag": "MachineBtn",
+   "entry": "numKey",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('3') @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 255,
+   "tag": "MachineBtn",
+   "entry": "numKey",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numOp|@click=append('-') @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 256,
+   "tag": "MachineBtn",
+   "entry": "numOp",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numOp|@click=negate @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 257,
+   "tag": "MachineBtn",
+   "entry": "numOp",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numOp|@click=append('(') @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 259,
+   "tag": "MachineBtn",
+   "entry": "numOp",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('0') @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 260,
+   "tag": "MachineBtn",
+   "entry": "numKey",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('.') @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 261,
+   "tag": "MachineBtn",
+   "entry": "numKey",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numOp|@click=append('+') @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 262,
+   "tag": "MachineBtn",
+   "entry": "numOp",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numOp|@click=append(')') @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 263,
+   "tag": "MachineBtn",
+   "entry": "numOp",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numClose|@click=hide @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 269,
+   "tag": "MachineBtn",
+   "entry": "numClose",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numDiscard|@click=cancel @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 270,
+   "tag": "MachineBtn",
+   "entry": "numDiscard",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numEq|@click=evalExpr @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 271,
+   "tag": "MachineBtn",
+   "entry": "numEq",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "NumberKeypadStrip.vue|MachineBtn:numKey|@click=confirm @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "NumberKeypadStrip.vue",
+   "line": 272,
+   "tag": "MachineBtn",
+   "entry": "numKey",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "OffsetPanel.vue|MachineBtn:wcsClear|@click=clearSelected",
+   "file": "OffsetPanel.vue",
+   "line": 169,
+   "tag": "MachineBtn",
+   "entry": "wcsClear",
+   "gates": [
+    "probe"
+   ]
+  },
+  {
+   "key": "OffsetPanel.vue|MachineBtn:wcsClearAll|@click=clearAll",
+   "file": "OffsetPanel.vue",
+   "line": 173,
+   "tag": "MachineBtn",
+   "entry": "wcsClearAll",
+   "gates": [
+    "probe"
+   ]
+  },
+  {
+   "key": "OffsetPanel.vue|tr|@click=pinned = row.name as string",
+   "file": "OffsetPanel.vue",
+   "line": 203,
+   "tag": "tr",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "OffsetPanel.vue|td|@click=startEditCell(row.name as string, axis, Number(row[axis]), $event)",
+   "file": "OffsetPanel.vue",
+   "line": 208,
+   "tag": "td",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "OffsetPanel.vue|MachineBtn:offsetCell|",
+   "file": "OffsetPanel.vue",
+   "line": 223,
+   "tag": "MachineBtn",
+   "entry": "offsetCell",
+   "gates": [
+    "probe"
+   ]
+  },
+  {
+   "key": "OverridesStrip.vue|MachineSlider:feedOverride|@change=emit('feedChange') @update:model-value=onFeedSlider(Number($event))",
+   "file": "OverridesStrip.vue",
+   "line": 42,
+   "tag": "MachineSlider",
+   "entry": "feedOverride",
+   "gates": [
+    "override"
+   ]
+  },
+  {
+   "key": "OverridesStrip.vue|MachineBtn:overrideReset|@click=emit('overridePreset', 'feed', 100)",
+   "file": "OverridesStrip.vue",
+   "line": 43,
+   "tag": "MachineBtn",
+   "entry": "overrideReset",
+   "gates": [
+    "override"
+   ]
+  },
+  {
+   "key": "OverridesStrip.vue|MachineSlider:spindleOverride|@change=emit('spindleSliderChange') @update:model-value=onSpindleSlider(Number($event))",
+   "file": "OverridesStrip.vue",
+   "line": 48,
+   "tag": "MachineSlider",
+   "entry": "spindleOverride",
+   "gates": [
+    "override"
+   ]
+  },
+  {
+   "key": "OverridesStrip.vue|MachineBtn:overrideReset|@click=emit('overridePreset', 'spindle', 100)",
+   "file": "OverridesStrip.vue",
+   "line": 49,
+   "tag": "MachineBtn",
+   "entry": "overrideReset",
+   "gates": [
+    "override"
+   ]
+  },
+  {
+   "key": "OverridesStrip.vue|MachineSlider:rapidOverride|@change=emit('rapidChange') @update:model-value=onRapidSlider(Number($event))",
+   "file": "OverridesStrip.vue",
+   "line": 54,
+   "tag": "MachineSlider",
+   "entry": "rapidOverride",
+   "gates": [
+    "override"
+   ]
+  },
+  {
+   "key": "OverridesStrip.vue|MachineBtn:overrideReset|@click=emit('overridePreset', 'rapid', 100)",
+   "file": "OverridesStrip.vue",
+   "line": 55,
+   "tag": "MachineBtn",
+   "entry": "overrideReset",
+   "gates": [
+    "override"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineToggle:probeParam|@update:model-value=saveParams v-model=autoZero",
+   "file": "ProbePanel.vue",
+   "line": 642,
+   "tag": "MachineToggle",
+   "entry": "probeParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineToggle:probeParam|v-model=setRotation",
+   "file": "ProbePanel.vue",
+   "line": 643,
+   "tag": "MachineToggle",
+   "entry": "probeParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineBtn:simTrip|@click=emit('simTrip')",
+   "file": "ProbePanel.vue",
+   "line": 653,
+   "tag": "MachineBtn",
+   "entry": "simTrip",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineBtn:abort|@click=emit('abort')",
+   "file": "ProbePanel.vue",
+   "line": 654,
+   "tag": "MachineBtn",
+   "entry": "abort",
+   "gates": [
+    "abort"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineBtn:probeCell|@click=runGridProbe(op)",
+   "file": "ProbePanel.vue",
+   "line": 664,
+   "tag": "MachineBtn",
+   "entry": "probeCell",
+   "gates": [
+    "machineFrame"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineBtn:probeCell|@click=runGridProbe(op)",
+   "file": "ProbePanel.vue",
+   "line": 687,
+   "tag": "MachineBtn",
+   "entry": "probeCell",
+   "gates": [
+    "machineFrame"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineBtn:probeCell|@click=runBossProbe(op)",
+   "file": "ProbePanel.vue",
+   "line": 710,
+   "tag": "MachineBtn",
+   "entry": "probeCell",
+   "gates": [
+    "machineFrame"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineInput:probeParam|@change=saveParams v-model.number=params[f.key]",
+   "file": "ProbePanel.vue",
+   "line": 788,
+   "tag": "MachineInput",
+   "entry": "probeParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineBtn:probeCell|@click=runAngleProbe(op)",
+   "file": "ProbePanel.vue",
+   "line": 803,
+   "tag": "MachineBtn",
+   "entry": "probeCell",
+   "gates": [
+    "machineFrame"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineInput:probeParam|@change=saveParams v-model.number=params[f.key]",
+   "file": "ProbePanel.vue",
+   "line": 896,
+   "tag": "MachineInput",
+   "entry": "probeParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineBtn:probeCell|@click=runCalProbe('probe_cal_round_pocket')",
+   "file": "ProbePanel.vue",
+   "line": 913,
+   "tag": "MachineBtn",
+   "entry": "probeCell",
+   "gates": [
+    "machineFrame"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineBtn:probeCell|@click=runCalProbe('probe_cal_round_boss')",
+   "file": "ProbePanel.vue",
+   "line": 924,
+   "tag": "MachineBtn",
+   "entry": "probeCell",
+   "gates": [
+    "machineFrame"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineInput:probeParam|@change=saveParams v-model.number=params[f.key]",
+   "file": "ProbePanel.vue",
+   "line": 939,
+   "tag": "MachineInput",
+   "entry": "probeParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineBtn:probeCell|@click=runCalProbe('probe_cal_square_pocket')",
+   "file": "ProbePanel.vue",
+   "line": 953,
+   "tag": "MachineBtn",
+   "entry": "probeCell",
+   "gates": [
+    "machineFrame"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineBtn:probeCell|@click=runCalProbe('probe_cal_square_boss')",
+   "file": "ProbePanel.vue",
+   "line": 964,
+   "tag": "MachineBtn",
+   "entry": "probeCell",
+   "gates": [
+    "machineFrame"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineInput:probeParam|@change=saveParams v-model.number=params[f.key]",
+   "file": "ProbePanel.vue",
+   "line": 979,
+   "tag": "MachineInput",
+   "entry": "probeParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineRadio:probeParam|v-model.number=calAxis",
+   "file": "ProbePanel.vue",
+   "line": 993,
+   "tag": "MachineRadio",
+   "entry": "probeParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineRadio:probeParam|v-model.number=calAxis",
+   "file": "ProbePanel.vue",
+   "line": 994,
+   "tag": "MachineRadio",
+   "entry": "probeParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineRadio:probeParam|v-model.number=calAxis",
+   "file": "ProbePanel.vue",
+   "line": 995,
+   "tag": "MachineRadio",
+   "entry": "probeParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineBtn:probeReset|@click=resetCal",
+   "file": "ProbePanel.vue",
+   "line": 999,
+   "tag": "MachineBtn",
+   "entry": "probeReset",
+   "gates": [
+    "probe"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineBtn:probeCell|@click=runRidgeProbe(op)",
+   "file": "ProbePanel.vue",
+   "line": 1011,
+   "tag": "MachineBtn",
+   "entry": "probeCell",
+   "gates": [
+    "machineFrame"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineInput:probeParam|@change=saveParams v-model.number=params[f.key]",
+   "file": "ProbePanel.vue",
+   "line": 1081,
+   "tag": "MachineInput",
+   "entry": "probeParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineInput:scanParam|@change=saveParams v-model.number=params[f.key]",
+   "file": "ProbePanel.vue",
+   "line": 1096,
+   "tag": "MachineInput",
+   "entry": "scanParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineBtn:retry|@click=emit('getProbeResults')",
+   "file": "ProbePanel.vue",
+   "line": 1113,
+   "tag": "MachineBtn",
+   "entry": "retry",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineBtn:surfaceScan|@click=runSurfaceScan",
+   "file": "ProbePanel.vue",
+   "line": 1118,
+   "tag": "MachineBtn",
+   "entry": "surfaceScan",
+   "gates": [
+    "surfaceComp"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineBtn:surfaceRefresh|@click=refreshSurface",
+   "file": "ProbePanel.vue",
+   "line": 1119,
+   "tag": "MachineBtn",
+   "entry": "surfaceRefresh",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineBtn:retry|@click=emit('getCompGrid')",
+   "file": "ProbePanel.vue",
+   "line": 1125,
+   "tag": "MachineBtn",
+   "entry": "retry",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineRadio:compMethod|@update:modelValue=setMethod(Number(id))",
+   "file": "ProbePanel.vue",
+   "line": 1138,
+   "tag": "MachineRadio",
+   "entry": "compMethod",
+   "gates": [
+    "probe"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineToggle:viewerSetting|@update:modelValue=emit('toggleSurfaceLayer', $event!)",
+   "file": "ProbePanel.vue",
+   "line": 1143,
+   "tag": "MachineToggle",
+   "entry": "viewerSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineToggle:compToggle|@update:modelValue=onCompToggle",
+   "file": "ProbePanel.vue",
+   "line": 1151,
+   "tag": "MachineToggle",
+   "entry": "compToggle",
+   "gates": [
+    "ready"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineInput:probeParam|@change=saveParams v-model.number=params[f.key]",
+   "file": "ProbePanel.vue",
+   "line": 1182,
+   "tag": "MachineInput",
+   "entry": "probeParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineBtn:dialogCancel|@click=resetTarget = null",
+   "file": "ProbePanel.vue",
+   "line": 1234,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ProbePanel.vue|MachineBtn:dialogDanger|@click=confirmReset",
+   "file": "ProbePanel.vue",
+   "line": 1239,
+   "tag": "MachineBtn",
+   "entry": "dialogDanger",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SafetyStrip.vue|MachineBtn:arm|@click=emit('arm', !armed)",
+   "file": "SafetyStrip.vue",
+   "line": 104,
+   "tag": "MachineBtn",
+   "entry": "arm",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SafetyStrip.vue|MachineBtn:estop|@click=isEstop ? emit('estopReset') : emit('estop')",
+   "file": "SafetyStrip.vue",
+   "line": 119,
+   "tag": "MachineBtn",
+   "entry": "estop",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SafetyStrip.vue|MachineBtn:machineOn|@click=isEnabled ? emit('machineOff') : emit('machineOn')",
+   "file": "SafetyStrip.vue",
+   "line": 136,
+   "tag": "MachineBtn",
+   "entry": "machineOn",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SafetyStrip.vue|MachineBtn:activeCodes|@click=emit('openActiveCodes')",
+   "file": "SafetyStrip.vue",
+   "line": 169,
+   "tag": "MachineBtn",
+   "entry": "activeCodes",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ScrubBar.vue|MachineToggle:simToggle|v-model=simToggleModel",
+   "file": "ScrubBar.vue",
+   "line": 1469,
+   "tag": "MachineToggle",
+   "entry": "simToggle",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ScrubBar.vue|MachineBtn:scrub|@click=togglePlay",
+   "file": "ScrubBar.vue",
+   "line": 1473,
+   "tag": "MachineBtn",
+   "entry": "scrub",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ScrubBar.vue|MachineSelect:simSpeed|v-model=speedChoice",
+   "file": "ScrubBar.vue",
+   "line": 1479,
+   "tag": "MachineSelect",
+   "entry": "simSpeed",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ScrubBar.vue|MachineSlider:scrubPos|@input=onScrubInput v-model=sPos",
+   "file": "ScrubBar.vue",
+   "line": 1486,
+   "tag": "MachineSlider",
+   "entry": "scrubPos",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ScrubBar.vue|MachineBtn:scrub|@click=emit('open-sim-tab')",
+   "file": "ScrubBar.vue",
+   "line": 1527,
+   "tag": "MachineBtn",
+   "entry": "scrub",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineToggle:viewerSetting|@update:modelValue=onLayerChange(lf.key, $event!)",
+   "file": "SettingsPanel.vue",
+   "line": 503,
+   "tag": "MachineToggle",
+   "entry": "viewerSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineToggle:viewerSetting|@update:modelValue=onLayerOnTopChange(lf.key as OnTopLayer, $event!)",
+   "file": "SettingsPanel.vue",
+   "line": 515,
+   "tag": "MachineToggle",
+   "entry": "viewerSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=onProjectionChange('perspective')",
+   "file": "SettingsPanel.vue",
+   "line": 557,
+   "tag": "MachineRadio",
+   "entry": "viewerSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=onProjectionChange('parallel')",
+   "file": "SettingsPanel.vue",
+   "line": 558,
+   "tag": "MachineRadio",
+   "entry": "viewerSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=onTrackModeChange('none')",
+   "file": "SettingsPanel.vue",
+   "line": 562,
+   "tag": "MachineRadio",
+   "entry": "viewerSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=onTrackModeChange('tool')",
+   "file": "SettingsPanel.vue",
+   "line": 563,
+   "tag": "MachineRadio",
+   "entry": "viewerSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=onTrackModeChange('wcs')",
+   "file": "SettingsPanel.vue",
+   "line": 564,
+   "tag": "MachineRadio",
+   "entry": "viewerSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=onPreviewModeChange('part')",
+   "file": "SettingsPanel.vue",
+   "line": 570,
+   "tag": "MachineRadio",
+   "entry": "viewerSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=onPreviewModeChange('programmed')",
+   "file": "SettingsPanel.vue",
+   "line": 571,
+   "tag": "MachineRadio",
+   "entry": "viewerSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineToggle:viewerSetting|@update:modelValue=onLayerChange(HUD_LAYER, $event!)",
+   "file": "SettingsPanel.vue",
+   "line": 583,
+   "tag": "MachineToggle",
+   "entry": "viewerSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=hud.scale = s.value; save()",
+   "file": "SettingsPanel.vue",
+   "line": 587,
+   "tag": "MachineRadio",
+   "entry": "viewerSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineToggle:viewerSetting|@update:modelValue=hud[t.key] = $event!; save()",
+   "file": "SettingsPanel.vue",
+   "line": 594,
+   "tag": "MachineToggle",
+   "entry": "viewerSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineToggle:cameraSetting|@update:modelValue=saveCamTracked v-model=camShowCrosshair",
+   "file": "SettingsPanel.vue",
+   "line": 614,
+   "tag": "MachineToggle",
+   "entry": "cameraSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineToggle:cameraSetting|@update:modelValue=saveCamTracked v-model=camShowCircle",
+   "file": "SettingsPanel.vue",
+   "line": 615,
+   "tag": "MachineToggle",
+   "entry": "cameraSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineToggle:cameraSetting|@update:modelValue=saveCamTracked v-model=camShowGrid",
+   "file": "SettingsPanel.vue",
+   "line": 616,
+   "tag": "MachineToggle",
+   "entry": "cameraSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineInput:cameraSetting|@change=saveCamTracked v-model.number=camCircleRadius",
+   "file": "SettingsPanel.vue",
+   "line": 622,
+   "tag": "MachineInput",
+   "entry": "cameraSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineInput:cameraSetting|@change=saveCamTracked v-model.number=camGridSpacing",
+   "file": "SettingsPanel.vue",
+   "line": 627,
+   "tag": "MachineInput",
+   "entry": "cameraSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineSlider:cameraSetting|@update:modelValue=saveCamTracked v-model=camOverlayOpacity",
+   "file": "SettingsPanel.vue",
+   "line": 633,
+   "tag": "MachineSlider",
+   "entry": "cameraSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineColor:cameraSetting|@update:modelValue=saveCamTracked v-model=camOverlayColor",
+   "file": "SettingsPanel.vue",
+   "line": 638,
+   "tag": "MachineColor",
+   "entry": "cameraSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=onPaletteModeChange('auto')",
+   "file": "SettingsPanel.vue",
+   "line": 651,
+   "tag": "MachineRadio",
+   "entry": "viewerSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=onPaletteModeChange('custom')",
+   "file": "SettingsPanel.vue",
+   "line": 652,
+   "tag": "MachineRadio",
+   "entry": "viewerSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineBtn:inline|@click=onPaletteModeChange('auto')",
+   "file": "SettingsPanel.vue",
+   "line": 659,
+   "tag": "MachineBtn",
+   "entry": "inline",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineBtn:inline|@click=onPaletteModeChange('auto')",
+   "file": "SettingsPanel.vue",
+   "line": 662,
+   "tag": "MachineBtn",
+   "entry": "inline",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineColor:viewerSetting|@update:modelValue=onColorChange(row.role as UserRole, $event!)",
+   "file": "SettingsPanel.vue",
+   "line": 669,
+   "tag": "MachineColor",
+   "entry": "viewerSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineColor:viewerSetting|@update:modelValue=onMachineColorChange(part.id, $event!)",
+   "file": "SettingsPanel.vue",
+   "line": 726,
+   "tag": "MachineColor",
+   "entry": "viewerSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineBtn:listAction|@click=resetMachineColor(part.id)",
+   "file": "SettingsPanel.vue",
+   "line": 733,
+   "tag": "MachineBtn",
+   "entry": "listAction",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineToggle:viewerSetting|@update:modelValue=setMachineEdges(machineEdgesOn); save() v-model=machineEdgesOn",
+   "file": "SettingsPanel.vue",
+   "line": 736,
+   "tag": "MachineToggle",
+   "entry": "viewerSetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineBtn:resetDisplay|@click=resetTarget = 'viewer'",
+   "file": "SettingsPanel.vue",
+   "line": 741,
+   "tag": "MachineBtn",
+   "entry": "resetDisplay",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:protectedSetting|@update:modelValue=saveMachine() v-model=toolChangeMode",
+   "file": "SettingsPanel.vue",
+   "line": 754,
+   "tag": "MachineRadio",
+   "entry": "protectedSetting",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:protectedSetting|@update:modelValue=saveMachine() v-model=toolChangeMode",
+   "file": "SettingsPanel.vue",
+   "line": 758,
+   "tag": "MachineRadio",
+   "entry": "protectedSetting",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:protectedSetting|@update:modelValue=saveMachine() v-model.number=autoDisarmMin",
+   "file": "SettingsPanel.vue",
+   "line": 769,
+   "tag": "MachineRadio",
+   "entry": "protectedSetting",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:protectedSetting|@update:modelValue=saveMachine() v-model=spindleFeedbackUnit",
+   "file": "SettingsPanel.vue",
+   "line": 781,
+   "tag": "MachineRadio",
+   "entry": "protectedSetting",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:protectedSetting|@update:modelValue=saveMachine() v-model=spindleFeedbackUnit",
+   "file": "SettingsPanel.vue",
+   "line": 785,
+   "tag": "MachineRadio",
+   "entry": "protectedSetting",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineInput:protectedSetting|@change=saveMachine() v-model=spindleLoadPin",
+   "file": "SettingsPanel.vue",
+   "line": 794,
+   "tag": "MachineInput",
+   "entry": "protectedSetting",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineToggle:protectedSetting|@update:modelValue=saveMachine() v-model=runFromLine",
+   "file": "SettingsPanel.vue",
+   "line": 808,
+   "tag": "MachineToggle",
+   "entry": "protectedSetting",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:protectedSetting|@update:modelValue=saveMachine() v-model=rflSpindleDir",
+   "file": "SettingsPanel.vue",
+   "line": 821,
+   "tag": "MachineRadio",
+   "entry": "protectedSetting",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:protectedSetting|@update:modelValue=saveMachine() v-model=rflSpindleDir",
+   "file": "SettingsPanel.vue",
+   "line": 822,
+   "tag": "MachineRadio",
+   "entry": "protectedSetting",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:protectedSetting|@update:modelValue=saveMachine() v-model=rflSpindleDir",
+   "file": "SettingsPanel.vue",
+   "line": 823,
+   "tag": "MachineRadio",
+   "entry": "protectedSetting",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineInput:protectedSettingNum|@change=saveMachine() v-model.number=rflSpindleRpm",
+   "file": "SettingsPanel.vue",
+   "line": 829,
+   "tag": "MachineInput",
+   "entry": "protectedSettingNum",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineBtn:resetProtected|@click=resetTarget = 'machine'",
+   "file": "SettingsPanel.vue",
+   "line": 835,
+   "tag": "MachineBtn",
+   "entry": "resetProtected",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:displaySetting|@update:modelValue=setTheme('auto') v-model=themeMode",
+   "file": "SettingsPanel.vue",
+   "line": 846,
+   "tag": "MachineRadio",
+   "entry": "displaySetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:displaySetting|@update:modelValue=setTheme('light') v-model=themeMode",
+   "file": "SettingsPanel.vue",
+   "line": 847,
+   "tag": "MachineRadio",
+   "entry": "displaySetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:displaySetting|@update:modelValue=setTheme('dark') v-model=themeMode",
+   "file": "SettingsPanel.vue",
+   "line": 848,
+   "tag": "MachineRadio",
+   "entry": "displaySetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:displaySetting|@update:modelValue=setTheme('hc-light') v-model=themeMode",
+   "file": "SettingsPanel.vue",
+   "line": 849,
+   "tag": "MachineRadio",
+   "entry": "displaySetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineRadio:displaySetting|@update:modelValue=setTheme('hc-dark') v-model=themeMode",
+   "file": "SettingsPanel.vue",
+   "line": 850,
+   "tag": "MachineRadio",
+   "entry": "displaySetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineToggle:displaySetting|@update:modelValue=saveStartFullscreen v-model=startFullscreen",
+   "file": "SettingsPanel.vue",
+   "line": 856,
+   "tag": "MachineToggle",
+   "entry": "displaySetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineToggle:displaySetting|@update:modelValue=saveKeepAwake v-model=keepAwake",
+   "file": "SettingsPanel.vue",
+   "line": 861,
+   "tag": "MachineToggle",
+   "entry": "displaySetting",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineBtn:resetDisplay|@click=resetTarget = 'display'",
+   "file": "SettingsPanel.vue",
+   "line": 864,
+   "tag": "MachineBtn",
+   "entry": "resetDisplay",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineBtn:resetProtected|@click=resetTarget = 'gamepad'",
+   "file": "SettingsPanel.vue",
+   "line": 881,
+   "tag": "MachineBtn",
+   "entry": "resetProtected",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineBtn:resetProtected|@click=resetTarget = 'keyboard'",
+   "file": "SettingsPanel.vue",
+   "line": 894,
+   "tag": "MachineBtn",
+   "entry": "resetProtected",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineBtn:dialogCancel|@click=resetTarget = null",
+   "file": "SettingsPanel.vue",
+   "line": 917,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SettingsPanel.vue|MachineBtn:dialogDanger|@click=confirmReset",
+   "file": "SettingsPanel.vue",
+   "line": 921,
+   "tag": "MachineBtn",
+   "entry": "dialogDanger",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SetupActions.vue|MachineBtn:zero|@click=emit('zeroAll')",
+   "file": "SetupActions.vue",
+   "line": 49,
+   "tag": "MachineBtn",
+   "entry": "zero",
+   "gates": [
+    "touchoff"
+   ]
+  },
+  {
+   "key": "SetupActions.vue|MachineBtn:{isHomed ? 'unhome' : 'home'}|@click=isHomed ? emit('unhomeAll') : emit('homeAll')",
+   "file": "SetupActions.vue",
+   "line": 50,
+   "tag": "MachineBtn",
+   "entry": "{isHomed ? 'unhome' : 'home'}",
+   "gates": [
+    "zero",
+    "zero"
+   ]
+  },
+  {
+   "key": "SetupActions.vue|MachineBtn:goTo|@click=emit('goToG30')",
+   "file": "SetupActions.vue",
+   "line": 55,
+   "tag": "MachineBtn",
+   "entry": "goTo",
+   "gates": [
+    "machineFrame"
+   ]
+  },
+  {
+   "key": "SetupActions.vue|MachineBtn:goTo|@click=emit('goToHome')",
+   "file": "SetupActions.vue",
+   "line": 56,
+   "tag": "MachineBtn",
+   "entry": "goTo",
+   "gates": [
+    "machineFrame"
+   ]
+  },
+  {
+   "key": "SetupActions.vue|MachineBtn:goZero|@click=emit('goToZero')",
+   "file": "SetupActions.vue",
+   "line": 57,
+   "tag": "MachineBtn",
+   "entry": "goZero",
+   "gates": [
+    "goZero"
+   ]
+  },
+  {
+   "key": "SetupActions.vue|MachineBtn:twpCapture|@click=emit('twpCapture')",
+   "file": "SetupActions.vue",
+   "line": 63,
+   "tag": "MachineBtn",
+   "entry": "twpCapture",
+   "gates": [
+    "twpCapture"
+   ]
+  },
+  {
+   "key": "SetupActions.vue|MachineBtn:twpReorient|@click=emit('twpOrient')",
+   "file": "SetupActions.vue",
+   "line": 69,
+   "tag": "MachineBtn",
+   "entry": "twpReorient",
+   "gates": [
+    "probe"
+   ]
+  },
+  {
+   "key": "SetupActions.vue|MachineBtn:twpClear|@click=emit('twpClear')",
+   "file": "SetupActions.vue",
+   "line": 80,
+   "tag": "MachineBtn",
+   "entry": "twpClear",
+   "gates": [
+    "ready"
+   ]
+  },
+  {
+   "key": "SetupStrip.vue|MachineInput:{isRotaryAxis(a.letter) ? 'touchoffRotary' : 'touchoff'}|@input=emit('setAxis', a.index, +($event.target as HTMLInputElement).value, expectNow())",
+   "file": "SetupStrip.vue",
+   "line": 210,
+   "tag": "MachineInput",
+   "entry": "{isRotaryAxis(a.letter) ? 'touchoffRotary' : 'touchoff'}",
+   "gates": [
+    "touchoffRotary",
+    "touchoff"
+   ]
+  },
+  {
+   "key": "SetupStrip.vue|MachineBtn:{isRotaryAxis(a.letter) ? 'zeroRotary' : 'zero'}|@click=emit('setAxis', a.index, 0, expectNow())",
+   "file": "SetupStrip.vue",
+   "line": 214,
+   "tag": "MachineBtn",
+   "entry": "{isRotaryAxis(a.letter) ? 'zeroRotary' : 'zero'}",
+   "gates": [
+    "touchoffRotary",
+    "touchoff"
+   ]
+  },
+  {
+   "key": "SetupStrip.vue|MachineBtn:{homedJoints[a.index] ? 'unhome' : 'home'}|@click=homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)",
+   "file": "SetupStrip.vue",
+   "line": 217,
+   "tag": "MachineBtn",
+   "entry": "{homedJoints[a.index] ? 'unhome' : 'home'}",
+   "gates": [
+    "zero",
+    "zero"
+   ]
+  },
+  {
+   "key": "SimPanel.vue|MachineSelect:filter|v-model=filter",
+   "file": "SimPanel.vue",
+   "line": 605,
+   "tag": "MachineSelect",
+   "entry": "filter",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SimPanel.vue|MachineBtn:scrub|@click=simStep(KINDS[filter], -1)",
+   "file": "SimPanel.vue",
+   "line": 608,
+   "tag": "MachineBtn",
+   "entry": "scrub",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SimPanel.vue|MachineBtn:scrub|@click=simStep(KINDS[filter], 1)",
+   "file": "SimPanel.vue",
+   "line": 610,
+   "tag": "MachineBtn",
+   "entry": "scrub",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SimPanel.vue|tr|@click=show(r, $event)",
+   "file": "SimPanel.vue",
+   "line": 638,
+   "tag": "tr",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "SimPanel.vue|span|@keydown=onPickKey($event, r)",
+   "file": "SimPanel.vue",
+   "line": 648,
+   "tag": "span",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "SpindleStrip.vue|MachineBtn:spindleRev|@click=emit('spindleRev', rpmInput)",
+   "file": "SpindleStrip.vue",
+   "line": 47,
+   "tag": "MachineBtn",
+   "entry": "spindleRev",
+   "gates": [
+    "spindleManual"
+   ]
+  },
+  {
+   "key": "SpindleStrip.vue|MachineBtn:spindleStop|@click=emit('spindleStop')",
+   "file": "SpindleStrip.vue",
+   "line": 50,
+   "tag": "MachineBtn",
+   "entry": "spindleStop",
+   "gates": [
+    "spindleStop"
+   ]
+  },
+  {
+   "key": "SpindleStrip.vue|MachineBtn:spindleFwd|@click=emit('spindleFwd', rpmInput)",
+   "file": "SpindleStrip.vue",
+   "line": 54,
+   "tag": "MachineBtn",
+   "entry": "spindleFwd",
+   "gates": [
+    "spindleManual"
+   ]
+  },
+  {
+   "key": "SpindleStrip.vue|MachineBtn:spindleDecrease|@click=emit('spindleDecrease')",
+   "file": "SpindleStrip.vue",
+   "line": 60,
+   "tag": "MachineBtn",
+   "entry": "spindleDecrease",
+   "gates": [
+    "spindleManual"
+   ]
+  },
+  {
+   "key": "SpindleStrip.vue|MachineInput:stripInput|@input=emit('update:rpmInput', +($event.target as HTMLInputElement).value)",
+   "file": "SpindleStrip.vue",
+   "line": 63,
+   "tag": "MachineInput",
+   "entry": "stripInput",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "SpindleStrip.vue|MachineBtn:spindleIncrease|@click=emit('spindleIncrease')",
+   "file": "SpindleStrip.vue",
+   "line": 64,
+   "tag": "MachineBtn",
+   "entry": "spindleIncrease",
+   "gates": [
+    "spindleManual"
+   ]
+  },
+  {
+   "key": "SpindleStrip.vue|MachineToggle:coolant|@update:modelValue=emit('toggleFlood')",
+   "file": "SpindleStrip.vue",
+   "line": 76,
+   "tag": "MachineToggle",
+   "entry": "coolant",
+   "gates": [
+    "override"
+   ]
+  },
+  {
+   "key": "SpindleStrip.vue|MachineToggle:coolant|@update:modelValue=emit('toggleMist')",
+   "file": "SpindleStrip.vue",
+   "line": 77,
+   "tag": "MachineToggle",
+   "entry": "coolant",
+   "gates": [
+    "override"
+   ]
+  },
+  {
+   "key": "TabNav.vue|MachineBtn:{variant === 'main' ? 'tabMain' : 'tabSub'}|@click=emit('update:modelValue', t.id)",
+   "file": "TabNav.vue",
+   "line": 80,
+   "tag": "MachineBtn",
+   "entry": "{variant === 'main' ? 'tabMain' : 'tabSub'}",
+   "gates": [
+    "always",
+    "always"
+   ]
+  },
+  {
+   "key": "TabPanel.vue|MachineSelect:tabSelect|@update:model-value=onSelect",
+   "file": "TabPanel.vue",
+   "line": 54,
+   "tag": "MachineSelect",
+   "entry": "tabSelect",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "TextKeypadStrip.vue|MachineBtn:numKey|@click=insert(k) @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "TextKeypadStrip.vue",
+   "line": 62,
+   "tag": "MachineBtn",
+   "entry": "numKey",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "TextKeypadStrip.vue|MachineBtn:numOp|@click=inputSession.shift = !inputSession.shift @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "TextKeypadStrip.vue",
+   "line": 70,
+   "tag": "MachineBtn",
+   "entry": "numOp",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "TextKeypadStrip.vue|MachineBtn:numOp|@click=target?.backspace() @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "TextKeypadStrip.vue",
+   "line": 75,
+   "tag": "MachineBtn",
+   "entry": "numOp",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "TextKeypadStrip.vue|MachineBtn:numKey|@click=target?.enter() @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "TextKeypadStrip.vue",
+   "line": 79,
+   "tag": "MachineBtn",
+   "entry": "numKey",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "TextKeypadStrip.vue|MachineBtn:numOp|@click=insert(' ') @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "TextKeypadStrip.vue",
+   "line": 84,
+   "tag": "MachineBtn",
+   "entry": "numOp",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "TextKeypadStrip.vue|MachineBtn:numOp|@click=target?.moveCursor?.(-1) @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "TextKeypadStrip.vue",
+   "line": 91,
+   "tag": "MachineBtn",
+   "entry": "numOp",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "TextKeypadStrip.vue|MachineBtn:numOp|@click=target?.moveCursor?.(1) @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "TextKeypadStrip.vue",
+   "line": 93,
+   "tag": "MachineBtn",
+   "entry": "numOp",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "TextKeypadStrip.vue|MachineBtn:numOp|@click=target?.undo?.() @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "TextKeypadStrip.vue",
+   "line": 95,
+   "tag": "MachineBtn",
+   "entry": "numOp",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "TextKeypadStrip.vue|MachineBtn:numOp|@click=target?.redo?.() @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "TextKeypadStrip.vue",
+   "line": 97,
+   "tag": "MachineBtn",
+   "entry": "numOp",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "TextKeypadStrip.vue|MachineBtn:numOp|@click=target?.tab?.() @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "TextKeypadStrip.vue",
+   "line": 99,
+   "tag": "MachineBtn",
+   "entry": "numOp",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "TextKeypadStrip.vue|MachineBtn:numOp|@click=target?.clear?.() @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "TextKeypadStrip.vue",
+   "line": 101,
+   "tag": "MachineBtn",
+   "entry": "numOp",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "TextKeypadStrip.vue|MachineBtn:numOp|@click=setPage(p) @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "TextKeypadStrip.vue",
+   "line": 108,
+   "tag": "MachineBtn",
+   "entry": "numOp",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "TextKeypadStrip.vue|MachineBtn:numClose|@click=closeTextSessionByOperator('closed by the operator') @contextmenu.prevent= @pointerdown.prevent=",
+   "file": "TextKeypadStrip.vue",
+   "line": 111,
+   "tag": "MachineBtn",
+   "entry": "numClose",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ThreeViewer.vue|MachineBtn:viewPreset|@click=setView('reset')",
+   "file": "ThreeViewer.vue",
+   "line": 5912,
+   "tag": "MachineBtn",
+   "entry": "viewPreset",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ThreeViewer.vue|MachineBtn:viewPreset|@click=resetBackplot",
+   "file": "ThreeViewer.vue",
+   "line": 5913,
+   "tag": "MachineBtn",
+   "entry": "viewPreset",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ThreeViewer.vue|MachineBtn:viewerQuickToggle|@click=togglePip",
+   "file": "ThreeViewer.vue",
+   "line": 5914,
+   "tag": "MachineBtn",
+   "entry": "viewerQuickToggle",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ThreeViewer.vue|MachineBtn:viewerQuickToggle|@click=emit('open-settings', 'viewer')",
+   "file": "ThreeViewer.vue",
+   "line": 5917,
+   "tag": "MachineBtn",
+   "entry": "viewerQuickToggle",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ThreeViewer.vue|MachineBtn:windowToggle|@click=notesOpen = !notesOpen",
+   "file": "ThreeViewer.vue",
+   "line": 5938,
+   "tag": "MachineBtn",
+   "entry": "windowToggle",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ToolStrip.vue|MachineBtn:nav|@click=emit('openToolTable')",
+   "file": "ToolStrip.vue",
+   "line": 71,
+   "tag": "MachineBtn",
+   "entry": "nav",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ToolStrip.vue|MachineBtn:retry|@click=fetchTools",
+   "file": "ToolStrip.vue",
+   "line": 76,
+   "tag": "MachineBtn",
+   "entry": "retry",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|input|@change=onImportFileSelect",
+   "file": "ToolTablePanel.vue",
+   "line": 634,
+   "tag": "input",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineInput:toolSearch|v-model=searchText",
+   "file": "ToolTablePanel.vue",
+   "line": 639,
+   "tag": "MachineInput",
+   "entry": "toolSearch",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineSelect:toolSearch|v-model=filterType",
+   "file": "ToolTablePanel.vue",
+   "line": 647,
+   "tag": "MachineSelect",
+   "entry": "toolSearch",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineBtn:retry|@click=fetchTools",
+   "file": "ToolTablePanel.vue",
+   "line": 661,
+   "tag": "MachineBtn",
+   "entry": "retry",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineBtn:close|@click=downloadError = null",
+   "file": "ToolTablePanel.vue",
+   "line": 665,
+   "tag": "MachineBtn",
+   "entry": "close",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineBtn:close|@click=importError = null",
+   "file": "ToolTablePanel.vue",
+   "line": 669,
+   "tag": "MachineBtn",
+   "entry": "close",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineBtn:close|@click=importResult = null",
+   "file": "ToolTablePanel.vue",
+   "line": 683,
+   "tag": "MachineBtn",
+   "entry": "close",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineBtn:dialogCancel|@click=cancelDelete",
+   "file": "ToolTablePanel.vue",
+   "line": 695,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineBtn:toolDanger|@click=confirmDelete",
+   "file": "ToolTablePanel.vue",
+   "line": 697,
+   "tag": "MachineBtn",
+   "entry": "toolDanger",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.T",
+   "file": "ToolTablePanel.vue",
+   "line": 723,
+   "tag": "MachineInput",
+   "entry": "toolEditNum",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.P",
+   "file": "ToolTablePanel.vue",
+   "line": 728,
+   "tag": "MachineInput",
+   "entry": "toolEditNum",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineSelect:toolEdit|v-model=editForm.type",
+   "file": "ToolTablePanel.vue",
+   "line": 733,
+   "tag": "MachineSelect",
+   "entry": "toolEdit",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineInput:toolEdit|v-model=editForm.description",
+   "file": "ToolTablePanel.vue",
+   "line": 741,
+   "tag": "MachineInput",
+   "entry": "toolEdit",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.D",
+   "file": "ToolTablePanel.vue",
+   "line": 746,
+   "tag": "MachineInput",
+   "entry": "toolEditNum",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.Z",
+   "file": "ToolTablePanel.vue",
+   "line": 751,
+   "tag": "MachineInput",
+   "entry": "toolEditNum",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.flutes",
+   "file": "ToolTablePanel.vue",
+   "line": 756,
+   "tag": "MachineInput",
+   "entry": "toolEditNum",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineInput:toolEdit|v-model=editForm.material",
+   "file": "ToolTablePanel.vue",
+   "line": 761,
+   "tag": "MachineInput",
+   "entry": "toolEdit",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.oal",
+   "file": "ToolTablePanel.vue",
+   "line": 770,
+   "tag": "MachineInput",
+   "entry": "toolEditNum",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.body_length",
+   "file": "ToolTablePanel.vue",
+   "line": 775,
+   "tag": "MachineInput",
+   "entry": "toolEditNum",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.flute_length",
+   "file": "ToolTablePanel.vue",
+   "line": 780,
+   "tag": "MachineInput",
+   "entry": "toolEditNum",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.shaft_diameter",
+   "file": "ToolTablePanel.vue",
+   "line": 785,
+   "tag": "MachineInput",
+   "entry": "toolEditNum",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.corner_radius",
+   "file": "ToolTablePanel.vue",
+   "line": 790,
+   "tag": "MachineInput",
+   "entry": "toolEditNum",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.tip_diameter",
+   "file": "ToolTablePanel.vue",
+   "line": 795,
+   "tag": "MachineInput",
+   "entry": "toolEditNum",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.taper_angle",
+   "file": "ToolTablePanel.vue",
+   "line": 800,
+   "tag": "MachineInput",
+   "entry": "toolEditNum",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.point_angle",
+   "file": "ToolTablePanel.vue",
+   "line": 805,
+   "tag": "MachineInput",
+   "entry": "toolEditNum",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineInput:toolEdit|v-model=editForm.holder",
+   "file": "ToolTablePanel.vue",
+   "line": 810,
+   "tag": "MachineInput",
+   "entry": "toolEdit",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineToggle:toolEdit|v-model=showNominalHolder",
+   "file": "ToolTablePanel.vue",
+   "line": 830,
+   "tag": "MachineToggle",
+   "entry": "toolEdit",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineBtn:dialogCancel|@click=closeEditModal",
+   "file": "ToolTablePanel.vue",
+   "line": 843,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineBtn:toolSave|@click=saveEdit",
+   "file": "ToolTablePanel.vue",
+   "line": 845,
+   "tag": "MachineBtn",
+   "entry": "toolSave",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineBtn:dialogCancel|@click=showEditDiscard = false",
+   "file": "ToolTablePanel.vue",
+   "line": 853,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineBtn:dialogDanger|@click=confirmEditDiscard",
+   "file": "ToolTablePanel.vue",
+   "line": 854,
+   "tag": "MachineBtn",
+   "entry": "dialogDanger",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineSelect:toolEdit|v-model=importMode",
+   "file": "ToolTablePanel.vue",
+   "line": 870,
+   "tag": "MachineSelect",
+   "entry": "toolEdit",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineBtn:dialogCancel|@click=cancelImport",
+   "file": "ToolTablePanel.vue",
+   "line": 923,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineBtn:fileBrowse|@click=previewImportFile(importFile)",
+   "file": "ToolTablePanel.vue",
+   "line": 925,
+   "tag": "MachineBtn",
+   "entry": "fileBrowse",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineBtn:toolSave|@click=requestImport",
+   "file": "ToolTablePanel.vue",
+   "line": 928,
+   "tag": "MachineBtn",
+   "entry": "toolSave",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineBtn:dialogCancel|@click=replaceConfirm = false",
+   "file": "ToolTablePanel.vue",
+   "line": 939,
+   "tag": "MachineBtn",
+   "entry": "dialogCancel",
+   "gates": [
+    "always"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineBtn:toolDanger|@click=confirmImport",
+   "file": "ToolTablePanel.vue",
+   "line": 941,
+   "tag": "MachineBtn",
+   "entry": "toolDanger",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|button|@click=toggleSort('T')",
+   "file": "ToolTablePanel.vue",
+   "line": 954,
+   "tag": "button",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|button|@click=toggleSort('D')",
+   "file": "ToolTablePanel.vue",
+   "line": 956,
+   "tag": "button",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|button|@click=toggleSort('Z')",
+   "file": "ToolTablePanel.vue",
+   "line": 957,
+   "tag": "button",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|tr|@click=onToolTap(tool, $event)",
+   "file": "ToolTablePanel.vue",
+   "line": 964,
+   "tag": "tr",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineBtn:toolLoad|@click.stop=requestToolChange(tool.T)",
+   "file": "ToolTablePanel.vue",
+   "line": 973,
+   "tag": "MachineBtn",
+   "entry": "toolLoad",
+   "gates": [
+    "machineFrame"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineBtn:listActionTool|@click.stop=openEdit(tool)",
+   "file": "ToolTablePanel.vue",
+   "line": 984,
+   "tag": "MachineBtn",
+   "entry": "listActionTool",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolTablePanel.vue|MachineBtn:listActionTool|@click.stop=requestDelete(tool.T)",
+   "file": "ToolTablePanel.vue",
+   "line": 990,
+   "tag": "MachineBtn",
+   "entry": "listActionTool",
+   "gates": [
+    "toolTableWrite"
+   ]
+  },
+  {
+   "key": "ToolsetterSettings.vue|MachineInput:toolsetterParam|@change=saveTsParams(f.key) v-model.number=tsParams[f.key]",
+   "file": "ToolsetterSettings.vue",
+   "line": 310,
+   "tag": "MachineInput",
+   "entry": "toolsetterParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ToolsetterSettings.vue|MachineInput:toolsetterParam|@update:modelValue=v => editDraft(a.letter, v)",
+   "file": "ToolsetterSettings.vue",
+   "line": 322,
+   "tag": "MachineInput",
+   "entry": "toolsetterParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ToolsetterSettings.vue|MachineBtn:g30Capture|@click=captureG30",
+   "file": "ToolsetterSettings.vue",
+   "line": 329,
+   "tag": "MachineBtn",
+   "entry": "g30Capture",
+   "gates": [
+    "g30Capture"
+   ]
+  },
+  {
+   "key": "ToolsetterSettings.vue|MachineBtn:g30Save|@click=saveG30",
+   "file": "ToolsetterSettings.vue",
+   "line": 330,
+   "tag": "MachineBtn",
+   "entry": "g30Save",
+   "gates": [
+    "g30Write"
+   ]
+  },
+  {
+   "key": "ToolsetterSettings.vue|MachineBtn:g30Read|@click=refreshG30",
+   "file": "ToolsetterSettings.vue",
+   "line": 332,
+   "tag": "MachineBtn",
+   "entry": "g30Read",
+   "gates": [
+    "parameterRead"
+   ]
+  },
+  {
+   "key": "ToolsetterSettings.vue|MachineInput:toolsetterParam|@change=saveTsParams(f.key) v-model.number=tsParams[f.key]",
+   "file": "ToolsetterSettings.vue",
+   "line": 342,
+   "tag": "MachineInput",
+   "entry": "toolsetterParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ToolsetterSettings.vue|MachineInput:toolsetterParam|@change=saveTsParams(f.key) v-model.number=tsParams[f.key]",
+   "file": "ToolsetterSettings.vue",
+   "line": 354,
+   "tag": "MachineInput",
+   "entry": "toolsetterParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ToolsetterSettings.vue|MachineToggle:toolsetterParam|v-model=tsUseToolTable",
+   "file": "ToolsetterSettings.vue",
+   "line": 360,
+   "tag": "MachineToggle",
+   "entry": "toolsetterParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ToolsetterSettings.vue|MachineToggle:toolsetterParam|v-model=tsGoBackToStart",
+   "file": "ToolsetterSettings.vue",
+   "line": 361,
+   "tag": "MachineToggle",
+   "entry": "toolsetterParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ToolsetterSettings.vue|MachineToggle:toolsetterParam|v-model=tsDisablePrePos",
+   "file": "ToolsetterSettings.vue",
+   "line": 362,
+   "tag": "MachineToggle",
+   "entry": "toolsetterParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ToolsetterSettings.vue|MachineToggle:toolsetterParam|v-model=tsLastTry",
+   "file": "ToolsetterSettings.vue",
+   "line": 363,
+   "tag": "MachineToggle",
+   "entry": "toolsetterParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ToolsetterSettings.vue|MachineRadio:toolsetterParam|@update:modelValue=saveTsParams('brakeAfter') v-model.number=tsParams.brakeAfter",
+   "file": "ToolsetterSettings.vue",
+   "line": 368,
+   "tag": "MachineRadio",
+   "entry": "toolsetterParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ToolsetterSettings.vue|MachineRadio:toolsetterParam|@update:modelValue=saveTsParams('spindleStopM') v-model.number=tsParams.spindleStopM",
+   "file": "ToolsetterSettings.vue",
+   "line": 376,
+   "tag": "MachineRadio",
+   "entry": "toolsetterParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ToolsetterSettings.vue|MachineInput:toolsetterParam|@change=saveTsParams(f.key) v-model.number=tsParams[f.key]",
+   "file": "ToolsetterSettings.vue",
+   "line": 388,
+   "tag": "MachineInput",
+   "entry": "toolsetterParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ToolsetterSettings.vue|MachineRadio:toolsetterParam|@update:modelValue=saveTsParams('offsetDirection') v-model.number=tsParams.offsetDirection",
+   "file": "ToolsetterSettings.vue",
+   "line": 396,
+   "tag": "MachineRadio",
+   "entry": "toolsetterParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ToolsetterSettings.vue|MachineInput:toolsetterParam|@change=saveTsParams(f.key) v-model.number=tsParams[f.key]",
+   "file": "ToolsetterSettings.vue",
+   "line": 408,
+   "tag": "MachineInput",
+   "entry": "toolsetterParam",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ToolsetterSettings.vue|MachineBtn:resetProtected|@click=emit('resetSection', 'toolsetter')",
+   "file": "ToolsetterSettings.vue",
+   "line": 422,
+   "tag": "MachineBtn",
+   "entry": "resetProtected",
+   "gates": [
+    "armed"
+   ]
+  },
+  {
+   "key": "ViewCube.vue|canvas|@click=onClick @pointerleave=onPointerLeave @pointermove=onPointerMove",
+   "file": "ViewCube.vue",
+   "line": 471,
+   "tag": "canvas",
+   "entry": "",
+   "gates": [
+    "raw"
+   ]
+  }
+ ],
+ "buttonTypes": {
+  "start": "run",
+  "step": "step",
+  "pause": "pause",
+  "resume": "resume",
+  "abort": "abort",
+  "mdi": "ready",
+  "goTo": "machineFrame",
+  "goZero": "goZero",
+  "home": "zero",
+  "unhome": "zero",
+  "probe": "machineFrame",
+  "probeCell": "machineFrame",
+  "probeReset": "probe",
+  "surfaceScan": "surfaceComp",
+  "toolLoad": "machineFrame",
+  "toolMeasure": "machineFrame",
+  "toolUnload": "machineFrame",
+  "spindleFwd": "spindleManual",
+  "spindleRev": "spindleManual",
+  "spindleStop": "spindleStop",
+  "spindleIncrease": "spindleManual",
+  "spindleDecrease": "spindleManual",
+  "flood": "override",
+  "mist": "override",
+  "jog": "jog",
+  "jogStop": "always",
+  "overridePreset": "override",
+  "overrideReset": "override",
+  "jogSpeedReset": "always",
+  "fileOp": "programLoad",
+  "fileBrowse": "always",
+  "fileDownload": "always",
+  "fileDiscard": "always",
+  "fileSave": "sourceWrite",
+  "sourceOp": "sourceWrite",
+  "sourceDanger": "sourceWrite",
+  "toolOp": "toolTableWrite",
+  "toolSave": "toolTableWrite",
+  "toolDanger": "toolTableWrite",
+  "resetDisplay": "always",
+  "resetProtected": "armed",
+  "settingInline": "armed",
+  "settingInlineMd": "armed",
+  "listActionSetting": "armed",
+  "dialogSettingConfirm": "armed",
+  "dialogSettingDanger": "armed",
+  "wcs": "probe",
+  "wcsClear": "probe",
+  "wcsClearAll": "probe",
+  "twpReorient": "probe",
+  "zero": "touchoff",
+  "zeroRotary": "touchoffRotary",
+  "twpCapture": "twpCapture",
+  "twpClear": "ready",
+  "macro": "probe",
+  "macroExecute": "probe",
+  "macroRun": "probe",
+  "arm": "always",
+  "estop": "always",
+  "machineOn": "always",
+  "shutdown": "armed",
+  "simTrip": "armed",
+  "dialogReady": "ready",
+  "dialogReadyDanger": "ready",
+  "close": "always",
+  "windowToggle": "always",
+  "tabMain": "always",
+  "tabSub": "always",
+  "viewPreset": "always",
+  "viewerQuickToggle": "always",
+  "scrub": "always",
+  "overlayToggle": "always",
+  "dialogCancel": "always",
+  "dialogConfirm": "always",
+  "dialogDanger": "always",
+  "listAction": "always",
+  "listActionTool": "toolTableWrite",
+  "listActionSource": "sourceWrite",
+  "profileRemove": "armed",
+  "nav": "always",
+  "inline": "always",
+  "more": "always",
+  "offsetCell": "probe",
+  "activeCodes": "always",
+  "g30Capture": "g30Capture",
+  "g30Save": "g30Write",
+  "g30Read": "parameterRead",
+  "inlineDanger": "always",
+  "retry": "always",
+  "surfaceRefresh": "always",
+  "inlineXs": "always",
+  "inlineMd": "always",
+  "bannerAction": "always",
+  "bannerAck": "always",
+  "bannerReload": "programLoad",
+  "bannerAbort": "abort",
+  "bannerHome": "zero",
+  "toolChangeConfirm": "toolChangeConfirm",
+  "headerIcon": "always",
+  "detailsIcon": "always",
+  "numKey": "always",
+  "numOp": "always",
+  "numDel": "always",
+  "numClr": "always",
+  "numEq": "always",
+  "numClose": "always",
+  "numDiscard": "always"
+ },
+ "inputDefs": {
+  "jogSpeed": "always",
+  "jogIncrement": "always",
+  "jogWheel": "jog",
+  "jogAxis": "jog",
+  "mdiText": "always",
+  "touchoff": "touchoff",
+  "touchoffRotary": "touchoffRotary",
+  "wcsSelect": "probe",
+  "stripInput": "always",
+  "scrubPos": "always",
+  "simToggle": "always",
+  "simSpeed": "always",
+  "coolant": "override",
+  "modeManual": "modeManual",
+  "modeCoord": "modeCoord",
+  "jogFrame": "ready",
+  "planeFrame": "planeFrame",
+  "feedOverride": "override",
+  "spindleOverride": "override",
+  "rapidOverride": "override",
+  "probeParam": "armed",
+  "scanParam": "armed",
+  "compToggle": "ready",
+  "compMethod": "probe",
+  "toolsetterParam": "armed",
+  "uploadName": "sourceWrite",
+  "toolEdit": "toolTableWrite",
+  "toolEditNum": "toolTableWrite",
+  "toolSearch": "always",
+  "tabSelect": "always",
+  "viewerSetting": "always",
+  "viewerSettingNum": "always",
+  "cameraSetting": "always",
+  "displaySetting": "always",
+  "displaySettingNum": "always",
+  "protectedSetting": "armed",
+  "protectedSettingNum": "armed",
+  "macroEdit": "always",
+  "macroSearch": "always",
+  "macroParam": "ready",
+  "inputConfig": "armed",
+  "optionalStop": "override",
+  "blockDelete": "override",
+  "viewerColor": "always",
+  "cameraColor": "always",
+  "search": "always",
+  "filter": "always"
+ },
+ "keyboard": [],
+ "gamepad": [
+  [
+   "spindle_stop",
+   "Spindle Stop"
+  ],
+  [
+   "flood_toggle",
+   "Flood Toggle"
+  ],
+  [
+   "mist_toggle",
+   "Mist Toggle"
+  ],
+  [
+   "home_all",
+   "Home All"
+  ],
+  [
+   "z_mod",
+   "Z Modifier (D-pad)"
+  ],
+  [
+   "dead_man",
+   "Dead Man (hold to jog)"
+  ],
+  [
+   "none",
+   "None"
+  ]
+ ],
+ "commands": [
+  "abort",
+  "add_tool",
+  "arm",
+  "auto_run",
+  "auto_step",
+  "capture_g30",
+  "clear_wcs",
+  "client_diag",
+  "confirm_tool_change",
+  "cycle_pause",
+  "cycle_resume",
+  "cycle_start",
+  "delete_tool",
+  "estop",
+  "estop_reset",
+  "flood_off",
+  "flood_on",
+  "get_comp_grid",
+  "get_probe_results",
+  "get_probe_vars",
+  "get_tool_table",
+  "get_wcs_table",
+  "go_to_zero",
+  "halshow_live",
+  "heartbeat",
+  "home",
+  "home_all",
+  "jog_cont",
+  "jog_cont_multi",
+  "jog_incr",
+  "jog_incr_multi",
+  "jog_stop",
+  "jog_stop_multi",
+  "list_probe_macros",
+  "load_file",
+  "machine_off",
+  "machine_on",
+  "mdi",
+  "mist_off",
+  "mist_on",
+  "read_g30",
+  "renumber_tool",
+  "reparse_preview",
+  "run_macro",
+  "safety_trip_ack",
+  "save_settings",
+  "save_tool",
+  "set_block_delete",
+  "set_compensation",
+  "set_compensation_method",
+  "set_feed_override",
+  "set_g30",
+  "set_kins_mode",
+  "set_mode",
+  "set_optional_stop",
+  "set_probe_vars",
+  "set_rapid_override",
+  "set_spindle_override",
+  "set_wcs",
+  "shutdown",
+  "simulate_probe_trip",
+  "spindle_decrease",
+  "spindle_forward",
+  "spindle_increase",
+  "spindle_reverse",
+  "spindle_stop",
+  "tab_visibility",
+  "timing_log",
+  "tool_change",
+  "touchoff",
+  "twp_capture",
+  "unhome",
+  "unhome_all",
+  "unload_file"
+ ]
+}
