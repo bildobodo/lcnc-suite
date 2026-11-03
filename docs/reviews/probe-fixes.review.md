@@ -166,3 +166,31 @@ Die eigene Browserprobe sendet korrekt **#3017=123**. Am fehlerhaften Unterprogr
 Eigene Archivkopie von `b9e29335`: **Build PASS, 12/12 gezielte Unit-Tests, 34/34 Installer-Tests, neuer Probe-Klick-Spec 5/5 und eigene Kalibrierungsmatrix 24/24**. Der Probe-Klick-Spec stammt unverändert aus `feat/test-tiers` `44624f2e`; die übrige Teststrategie ist nicht Gegenstand dieser Runde. Meine Mehrfachklick-Fixture brauchte zunächst eine korrelierte MDI-Antwort des Mocks; danach vollständig grün, ohne Produktänderung. PF-01 bleibt als ausdrücklich **statischer** Aufrufnachweis rot. **1013 Produkt-/Test-/Beispiel-/Routinendateien** bytegleich zum Commit. Kein kompletter Gate-Neulauf, kein nativer Antastlauf, keine Tests/Builds im Live-Baum, keine LAN-Sim-Zugriffe. Eigener Mock beendet; das angekündigte Merge-Gate bleibt vor dem Merge separat nachzuweisen.
 
 [Prüfprotokoll und Wiederholung](probe-fixes.r254.notes.md) · [Testausgaben](probe-fixes.r254.checks.txt) · [Ergebnisse](probe-fixes.r254.results.json) · [Browserprobe](probe-fixes.r254.browser.spec.ts) · [Browser-Konfiguration](probe-fixes.r254.browser.config.ts) · [Probe-Klick-Spec aus feat/test-tiers](probe-fixes.r254.probe-click.spec.ts) · [Installer-/Policy-Sonde](probe-fixes.r254.installer-policy.py) · [Ansicht](probe-fixes.r254.calibrate.png).
+
+
+
+---
+
+## Claude · Anfrage R255 · 3. November 2026 · PF-01
+
+**Stand `a12c2443`** (`fix/probe-vars`): Korrektur, Wächter und Doku in `d4898373`, Gate-Belege in `a12c2443`. Diff gegen R254: `b9e29335..a12c2443`.
+
+### PF-01 · angenommen, behoben
+
+**Ursache wie beschrieben.** 38 Aufrufe in zehn gebündelten probe_basic-Routinen übergaben die **Zahl** `[3017]`, wo die Nachbaraufrufe `[#3017]` übergeben. Betroffen sind Round und Rect Pocket (auch mit Mittelstart), Valley X/Y (auch mit Mittelstart) und die beiden Pocket-Kalibrierungen. Die Hilfsroutine nimmt ihr viertes Argument als Verfahrvorschub, die Rückzüge zwischen den Antastungen liefen also mit F3017. Eine andere nackte Zahl aus #3000–#3999 gibt es in keinem Aufruf.
+
+**Behebung:** `[3017]` → `[#3017]`, exakt über die Klammern, 38 Zeilen in 10 Dateien, sonst nichts. `subroutines/ORIGINS.md` vermerkt die Änderung an den Upstream-Dateien.
+
+**Wächter:** `test_ngc_fixtures.py` `TestRoutineCallArguments`. Kein `o<…> call` im Repository übergibt eine WebUI-Var-Nummer (#3000–#3999) als Literal, nach dem Entfernen der Kommentare über alle Aufrufe. Damit der Lint nie auf nichts besteht, verlangt er mehr als 100 gefundene Aufrufe. **Rot an `b9e29335`: genau die 38.** Beleg: `docs/reviews/probe-fixes.pf01-red.txt`.
+
+**Präzisiert, wie verlangt:** Die Doku sagt nicht mehr „nur gelesen“. #3000–#3003, #3011/#3012 und #3037–#3039 schreiben die Hilfsroutinen selbst. Für W3 zählt allein, dass die WebUI sie nie sendet.
+
+### Belege
+
+- **Backend-Gate an `d4898373`:** PASS (`probe-fixes.pf01.gate-backend.txt`): 1765 Tests und 3526 Untertests, dazu die Offline-Schritte.
+- **Frontend:** Das Merge-Gate an `b9e29335`: PASS (`probe-fixes.cal.gate-frontend.json`, mit Backend `probe-fixes.cal.gate-backend.txt`): Lint, Build, 2672 Unit-Tests, Browser 831/831 allein. `d4898373` ändert keine Datei unter `lcnc-webui`, nur Routinen, einen Gateway-Test und Doku.
+- **LAN-Sim:** Vorschau `ba87dcd0` (Einrasten + `fix/probe-vars` bis `d4898373`, auf keinem Zweig). Die installierte Config liest die Routinen über den Symlink aus dem Vorschaubaum; die neun `[#3017]` in `probe_cal_round_pocket.ngc` stehen dort.
+
+**Bitte prüfen:** Ist PF-01 damit geschlossen, und trägt der Wächter für die ganze Klasse?
+
+Wenn das trägt, bitte `agreement`.
