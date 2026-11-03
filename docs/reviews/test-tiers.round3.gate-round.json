@@ -1,0 +1,106 @@
+{
+  "kind": "round",
+  "note": "feat/test-tiers 53610c4b..HEAD: the R257 rests (scripts only)",
+  "base": "53610c4bf0f9110ee4e87d2ece5faa8ae60aac81",
+  "head": "7a06969e66cc4e9ce4840401f7f87209fc762adc",
+  "uncommitted": 0,
+  "plan": [
+    "selection-guards",
+    "lint",
+    "build",
+    "unit-light",
+    "backend"
+  ],
+  "env": {
+    "nproc": 6,
+    "arch": "aarch64",
+    "node": "v22.23.2",
+    "playwright": "Version 1.60.0"
+  },
+  "selection": {
+    "unmatched": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [],
+      "related": []
+    },
+    "browser": {
+      "run": [],
+      "reasons": [
+        "no path selects a browser spec"
+      ]
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "scripts/test_select/mutations.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/proof.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/reads.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/round_gate.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/rules.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/test_selector.py: scripts and their tests ride the backend gate"
+      ]
+    },
+    "firefox": {
+      "needed": false
+    },
+    "live": {}
+  },
+  "verdict": "PASS",
+  "checks": [
+    {
+      "name": "selection-guards",
+      "command": "/home/cnc/lcnc-suite-tiers/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-tiers/scripts/test_select/test_selector.py",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 1
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 9
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 16
+    },
+    {
+      "name": "unit-light",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/lcnc-suite-tiers/docs/reviews/test-tiers.round3.gate-round.logs/unit-light.json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 66,
+      "files": 161,
+      "tests": 2573,
+      "passed": 2573,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 2573
+    },
+    {
+      "name": "backend",
+      "command": "/home/cnc/lcnc-suite-tiers/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-tiers/scripts/test_suite.py offline --component backend --out-dir /home/cnc/lcnc-suite-tiers/docs/reviews/test-tiers.round3.gate-round.logs/backend",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 79
+    }
+  ],
+  "omitted": [
+    {
+      "check": "unit-heavy",
+      "reason": "no heavy file changed, reached or read for"
+    },
+    {
+      "check": "browser",
+      "reason": "no path selects a browser spec"
+    }
+  ],
+  "pending": []
+}
