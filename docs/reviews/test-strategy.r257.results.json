@@ -1,0 +1,169 @@
+{
+  "lcnc-webui/e2e/macroFolder.ts": {
+    "browser": [
+      "bake-hold.viewer",
+      "choices",
+      "collisions.viewer",
+      "dialogs",
+      "fatpaths.viewer",
+      "findings.viewer",
+      "forms",
+      "gcode-reference",
+      "keyboard-guards",
+      "layout",
+      "macros",
+      "messages",
+      "offsets",
+      "probe-click",
+      "rapids.viewer",
+      "reach.viewer",
+      "run-hold",
+      "select-writes",
+      "sim-panel.viewer",
+      "tool-geometry",
+      "tool-table-read",
+      "toolsetter.viewer",
+      "viewcube.viewer",
+      "visual"
+    ],
+    "reads": []
+  },
+  "scripts/test_fixtures/macro_refusals.json": {
+    "browser": [
+      "bake-hold.viewer",
+      "choices",
+      "collisions.viewer",
+      "dialogs",
+      "fatpaths.viewer",
+      "findings.viewer",
+      "forms",
+      "gcode-reference",
+      "keyboard-guards",
+      "layout",
+      "macros",
+      "messages",
+      "offsets",
+      "probe-click",
+      "rapids.viewer",
+      "reach.viewer",
+      "run-hold",
+      "select-writes",
+      "sim-panel.viewer",
+      "tool-geometry",
+      "tool-table-read",
+      "toolsetter.viewer",
+      "viewcube.viewer",
+      "visual"
+    ],
+    "reads": [
+      "lcnc-webui/e2e/macroFolder.ts"
+    ]
+  },
+  "r256_extra_line": {
+    "problems": [
+      "lcnc-webui/e2e/freecad-import.spec.ts:77: a read the table does not name: readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\");"
+    ],
+    "actual_read_sites": [
+      [
+        5,
+        "const bundle = JSON.parse(readFileSync(new URL(\"../../test-fixtures/freecad/custom-native.json\", import.meta.url), \"utf8\"));"
+      ],
+      [
+        77,
+        "readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\");"
+      ]
+    ]
+  },
+  "r257_same_line": {
+    "problems": [],
+    "actual_read_sites": [
+      [
+        5,
+        "const bundle = JSON.parse(readFileSync(new URL(\"../../test-fixtures/freecad/custom-native.json\", import.meta.url), \"utf8\")); readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\");"
+      ]
+    ]
+  },
+  "r257_split_call": {
+    "problems": [],
+    "actual_read_sites": [
+      [
+        5,
+        "const bundle = JSON.parse(readFileSync(new URL(\"../../test-fixtures/freecad/custom-native.json\", import.meta.url), \"utf8\"));"
+      ]
+    ]
+  },
+  "r256_heavy_extra_line": [
+    "lcnc-webui/src/viewer/collisionContacts.test.ts:164: a read the table does not name: fs.readFileSync(path.join(ROOT, \"scripts\", \"test_fixtures\", \"macro_refusals.json\"), \"utf8\");"
+  ],
+  "undeclared_read_not_selected": {
+    "freecad-import_selected": false,
+    "heavy": []
+  },
+  "preflight": {
+    "graph_problems": [
+      "probeVars.ts: misses ['editor-guards', 'feedback-channels', 'input-session', 'keyboard-guards', 'run-hold', 'safety-during-edit', 'select-writes', 'sim-panel.viewer'] of GcodePanel.vue (GcodePanel.vue ← probeVars.ts)"
+    ],
+    "record": {
+      "kind": "round",
+      "note": "",
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "name": "selection-guards",
+          "command": "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -B -m pytest -q -p no:cacheprovider /tmp/codex-r257-gw75svhn/repo/scripts/test_select/test_selector.py",
+          "status": "FAIL",
+          "exit": 1,
+          "seconds": 1
+        }
+      ],
+      "why": [
+        "the selection's guards are red: the rule table does not hold for this tree, nothing may be left out"
+      ]
+    },
+    "selection_calls": 0
+  },
+  "r256_actual_only_report": [
+    "listed, never ran: probe-click.spec.ts | serial-guards | Angle: a held probe button sends its routine with the panel's numbers",
+    "listed, never ran: probe-click.spec.ts | serial-guards | Boss/Pocket: a held probe button sends its routine with the panel's numbers",
+    "listed, never ran: probe-click.spec.ts | serial-guards | Calibrate: a held probe button sends its routine with the panel's numbers",
+    "listed, never ran: probe-click.spec.ts | serial-guards | Outside: a held probe button sends its routine with the panel's numbers",
+    "listed, never ran: probe-click.spec.ts | serial-guards | Ridge/Valley: a held probe button sends its routine with the panel's numbers"
+  ],
+  "provided_full_run": {
+    "browser_listed": 836,
+    "browser_ran": 836,
+    "unit_listed": 2573,
+    "unit_assertions": 2573,
+    "unit_failureMessages": [],
+    "checks": "complete and ordered",
+    "sha256": {
+      "list-run.json": "e97c8480f96367f3a8a1311555325bfdd6cf0011fe14566b8c6307eeab264e06",
+      "playwright.json": "364188f194c65dfb4a216602fe8a72aac46a1d4fdc1eb3f224edde3f6c336d4f",
+      "unit-light.list.json": "a5dfb0c032c838482877b1f969154b03ff23d76218a45f6bf53e2f42a3750f88",
+      "unit-light.json": "4e02b97b056f377c1d22ab666616281f36828d38ab006c961bf31b079814d0a7"
+    }
+  },
+  "base": "08fb69d9",
+  "head": "53610c4b",
+  "copy": "/tmp/codex-r257-gw75svhn/repo",
+  "source_after": "git status --porcelain empty",
+  "unit_retry_gate_result": {
+    "name": "retry-probe",
+    "command": "npx vitest run src/r257Retry.test.ts --allowOnly=false --reporter=default --reporter=json --outputFile.json=/tmp/codex-r257-gw75svhn/retry-logs/retry-probe.json",
+    "status": "PASS",
+    "exit": 0,
+    "seconds": 0,
+    "files": 1,
+    "tests": 1,
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "listed": 1
+  },
+  "tests": {
+    "selector": 38,
+    "selector_pass": 38,
+    "build": "PASS",
+    "product_browser_rerun": false
+  }
+}

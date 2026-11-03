@@ -1,0 +1,157 @@
+## selector.txt
+....................................F.                                   [100%]
+=================================== FAILURES ===================================
+________________________ test_a_listening_port_is_seen _________________________
+
+    def test_a_listening_port_is_seen():
+>       with socket.socket() as s:
+             ^^^^^^^^^^^^^^^
+
+scripts/test_select/test_selector.py:469: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <socket.socket fd=-1, family=0, type=0, proto=0>
+family = <AddressFamily.AF_INET: 2>, type = <SocketKind.SOCK_STREAM: 1>
+proto = 0, fileno = None
+
+    def __init__(self, family=-1, type=-1, proto=-1, fileno=None):
+        # For user code address family and type values are IntEnum members, but
+        # for the underlying _socket.socket they're just integers. The
+        # constructor of _socket.socket converts the given argument to an
+        # integer automatically.
+        if fileno is None:
+            if family == -1:
+                family = AF_INET
+            if type == -1:
+                type = SOCK_STREAM
+            if proto == -1:
+                proto = 0
+>       _socket.socket.__init__(self, family, type, proto, fileno)
+E       PermissionError: [Errno 1] Operation not permitted
+
+/usr/lib/python3.13/socket.py:233: PermissionError
+=========================== short test summary info ============================
+FAILED scripts/test_select/test_selector.py::test_a_listening_port_is_seen - ...
+1 failed, 37 passed in 1.17s
+
+
+## selector-approved.txt
+......................................                                   [100%]
+38 passed in 1.12s
+
+
+## preflight-failure.logs/selection-guards.log
+..............................F.......                                   [100%]
+=================================== FAILURES ===================================
+_______ test_a_module_holds_the_selection_of_every_component_it_reaches ________
+
+    def test_a_module_holds_the_selection_of_every_component_it_reaches():
+        """A module acts and renders through the components that use it: its
+        selection holds theirs, and one reaching a central component is FULL
+        (graph.py: runtime imports, three named cuts)."""
+>       assert graph_problems() == []
+E       assert ['probeVars.t...robeVars.ts)'] == []
+E         
+E         Left contains one more item: "probeVars.ts: misses ['editor-guards', 'feedback-channels', 'input-session', 'keyboard-guards', 'run-hold', 'safety-during-edit', 'select-writes', 'sim-panel.viewer'] of GcodePanel.vue (GcodePanel.vue ← probeVars.ts)"
+E         Use -v to get more diff
+
+scripts/test_select/test_selector.py:378: AssertionError
+=========================== short test summary info ============================
+FAILED scripts/test_select/test_selector.py::test_a_module_holds_the_selection_of_every_component_it_reaches
+1 failed, 37 passed in 1.13s
+
+
+## probes.txt
+round_gate: FAIL → /tmp/codex-r257-gw75svhn/preflight-failure.json
+{
+  "lcnc-webui/e2e/macroFolder.ts": "PASS",
+  "scripts/test_fixtures/macro_refusals.json": "PASS",
+  "r256_extra_line": "PASS",
+  "r257_same_line": "UNKNOWN READ NOT DETECTED",
+  "r257_split_call": "UNKNOWN READ NOT DETECTED",
+  "r256_heavy_extra_line": "PASS",
+  "undeclared_read_not_selected": "PASS",
+  "preflight": "PASS",
+  "r256_actual_only_report": "PASS",
+  "provided_full_run": "PASS"
+}
+
+
+## retry.txt
+{
+  "name": "retry-probe",
+  "command": "npx vitest run src/r257Retry.test.ts --allowOnly=false --reporter=default --reporter=json --outputFile.json=/tmp/codex-r257-gw75svhn/retry-logs/retry-probe.json",
+  "status": "PASS",
+  "exit": 0,
+  "seconds": 0,
+  "files": 1,
+  "tests": 1,
+  "passed": 1,
+  "failed": 0,
+  "skipped": 0,
+  "listed": 1
+}
+
+
+## retry-logs/retry-probe.log
+
+ RUN  v4.1.8 /tmp/codex-r257-gw75svhn/repo/lcnc-webui
+
+stdout | src/r257Retry.test.ts > R257 retry once then pass
+R257_ATTEMPT 1
+
+stdout | src/r257Retry.test.ts > R257 retry once then pass
+R257_ATTEMPT 2
+
+ ✓ src/r257Retry.test.ts (1 test) 3ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  04:35:07
+   Duration  75ms (transform 15ms, setup 0ms, import 19ms, tests 3ms, environment 0ms)
+
+JSON report written to /tmp/codex-r257-gw75svhn/retry-logs/retry-probe.json
+
+
+## build.txt
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2128 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-CX6P-oit.css                 8.14 kB │ gzip:   2.08 kB
+dist/static/index-7EGcrt0q.css                      97.78 kB │ gzip:  17.81 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-C6JK9H1a.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-BOL7GN4F.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-B6zN9yz4.js                278.70 kB │ gzip: 104.92 kB
+dist/static/index-C218PA1v.js                      672.20 kB │ gzip: 216.41 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.03s
