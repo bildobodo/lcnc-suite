@@ -12,6 +12,7 @@ R = Path("scripts/test_select/rules.py"); S = Path("scripts/test_select/selector
 P = Path("scripts/test_select/proof.py"); G = Path("scripts/test_select/graph.py")
 RG = Path("scripts/test_select/round_gate.py")
 CC = Path("lcnc-webui/src/viewer/collisionContacts.test.ts"); FI = Path("lcnc-webui/e2e/freecad-import.spec.ts")
+SV = Path("lcnc-webui/e2e/scenes.viewer.spec.ts")
 GC = Path("lcnc-webui/playwright.gate.config.ts")
 MUTS = [
  ("a source loses its rule", R, '"probeVars.ts",\n', '\n'),
@@ -37,6 +38,12 @@ MUTS = [
   'const bundle = JSON.parse(readFileSync(new URL("../../test-fixtures/freecad/custom-native.json", import.meta.url), "utf8")); readFileSync(["..", "scripts", "test_fixtures", "macro_refusals.json"].join("/"), "utf8");\n'),
  ("Codex R257: a read with a line break before its parenthesis", FI, 'const bundle = JSON.parse(readFileSync(new URL("../../test-fixtures/freecad/custom-native.json", import.meta.url), "utf8"));\n',
   'const bundle = JSON.parse(readFileSync(new URL("../../test-fixtures/freecad/custom-native.json", import.meta.url), "utf8"));\nconst EXTRA2 = readFileSync\n  (["..", "scripts", "test_fixtures", "macro_refusals.json"].join("/"), "utf8");\n'),
+ ("Codex R258: a namespace member after a line break", CC, 'const ROOT = path.resolve(__dirname, "../../..");\n',
+  'const ROOT = path.resolve(__dirname, "../../..");\nconst EXTRA3 = fs.\n  readFileSync(["..", "scripts", "test_fixtures", "macro_refusals.json"].join("/"), "utf8");\n'),
+ ("Codex R258: a mixed default + named IO import", FI, 'const bundle = JSON.parse(readFileSync(new URL("../../test-fixtures/freecad/custom-native.json", import.meta.url), "utf8"));\n',
+  'const bundle = JSON.parse(readFileSync(new URL("../../test-fixtures/freecad/custom-native.json", import.meta.url), "utf8"));\nimport extraFs, { constants } from "node:fs";\nconst EXTRA4 = extraFs.readFileSync(["..", "scripts", "test_fixtures", "macro_refusals.json"].join("/"), "utf8");\n'),
+ ("a dynamic import of node:fs", SV, '  if (process.env.SCENE_OUT) writeFileSync(`${process.env.SCENE_OUT}/type-labels-variant-i.png`, without);',
+  '  if (process.env.SCENE_OUT) await import("node:fs").then(fs => fs.writeFileSync(`${process.env.SCENE_OUT}/type-labels-variant-i.png`, without));'),
  ("an alias of a read primitive", FI, 'const bundle = JSON.parse(readFileSync(new URL("../../test-fixtures/freecad/custom-native.json", import.meta.url), "utf8"));\n', 'const bundle = JSON.parse(readFileSync(new URL("../../test-fixtures/freecad/custom-native.json", import.meta.url), "utf8"));\nconst rd = readFileSync;\n'),
  ("helpers reached one import deep only", S, '                stack.append(y)\n        return specs', '        return specs'),
  ("a helper's data selects nothing", S, '                browser |= graph.specs_reaching(f)\n        if path.startswith(S_SRC)', '                pass\n        if path.startswith(S_SRC)'),

@@ -1,89 +1,39 @@
 """Every read a test makes from disk, against the table (Codex R256 TS256-02,
-R257).
+R257, R258).
 
 The scanned files are the heavy unit files, every e2e file and every
-node-side module under lcnc-webui/src (none reads today). A read site is ONE
-CALL — the whole source is scanned, so two calls on a line count twice and a
-call split across lines is still a call. Each call belongs to exactly one
-entry of rules.READ_SITES, which binds to the call by the text that starts
-at the primitive's name; each entry finds exactly its count. A form the
-scanner cannot bind fails visibly: a call whose text matches no entry (a
-line break before its parenthesis included), and a read primitive used
-other than called — an alias, a destructured name, an imported name or a
-node namespace handed on as a value. Pure: reads the files it is given.
+node-side module under lcnc-webui/src (none reads today). The TypeScript
+parser finds the read sites (readscan.mjs): every CALL of a node read or run
+primitive — through a name imported from node:fs, fs/promises or
+child_process, or as a member of such a module's default or namespace
+binding, whitespace and line breaks wherever JavaScript allows them — and
+refuses every other use of those modules (an alias, a destructuring, a
+namespace handed on, an element access, require() / import() of one, a
+re-export): a form outside the scanner's narrow language fails visibly.
+Each call belongs to exactly one entry of rules.READ_SITES, bound by the text
+from the primitive's name; each entry finds exactly its count. Pure but for
+running node on the parser the frontend already ships.
 """
 from __future__ import annotations
 
+import json
 import os
 import re
-from dataclasses import dataclass
+import subprocess
 from pathlib import Path
 
 from test_select.rules import HEAVY_UNIT, READ_SITES, matches
 
-# What reads or runs: the node modules' primitives, through a name the file
-# imports from them or on a namespace it imports from them (fs.readFileSync,
-# cp.execFileSync) — a RegExp's .exec( or a dialog's .open( is no read.
-NODE_IO = r"(?:node:)?(?:fs|fs/promises|child_process)"
-PRIMITIVES = ("readFileSync", "readFile", "readdirSync", "readdir", "existsSync", "statSync", "stat",
-              "lstatSync", "createReadStream", "openSync", "open", "execFileSync", "execFile",
-              "execSync", "exec", "spawnSync", "spawn", "fork", "opendir", "opendirSync")
-IMPORT = re.compile(r"""import\s*(?:\{([^}]*)\}|(?:\*\s+as\s+)?(\w+))\s*from\s*["']%s["'];?""" % NODE_IO)
+SCAN = Path(__file__).resolve().parent / "readscan.mjs"
 
 
-@dataclass(frozen=True)
-class Call:
-    offset: int     # where the primitive's name starts
-    line: int
-    name: str       # the primitive
-
-
-def blank_comments(text: str) -> str:
-    """Whole-line // comments to spaces (offsets and line numbers kept)."""
-    return re.sub(r"(?m)^[ \t]*//.*$", lambda m: " " * len(m.group(0)), text)
-
-
-def calls(text: str) -> tuple[list[Call], list[str]]:
-    """Every call of a read primitive, and every use of one the scanner
-    cannot bind (not called directly)."""
-    src = blank_comments(text)
-    imports = list(IMPORT.finditer(src))
-    inside = lambda o: any(m.start() <= o < m.end() for m in imports)   # noqa: E731
-    named: dict[str, str] = {}      # local name → primitive
-    spaces: list[str] = []
-    for m in imports:
-        if m.group(2):
-            spaces.append(m.group(2))
-            continue
-        for part in m.group(1).split(","):
-            bits = part.split()
-            if bits and bits[0] != "type" and bits[0] in PRIMITIVES:
-                named[bits[-1] if "as" in bits else bits[0]] = bits[0]
-    found: list[Call] = []
-    loose: list[str] = []
-    line_of = lambda o: src.count("\n", 0, o) + 1   # noqa: E731
-    for local, prim in named.items():
-        for m in re.finditer(rf"(?<![\w.$]){re.escape(local)}\b", src):
-            if inside(m.start()):
-                continue
-            if re.match(r"\s*\(", src[m.end():]):
-                found.append(Call(m.start(), line_of(m.start()), prim))
-            else:
-                loose.append(f"{line_of(m.start())}: {local} used other than called")
-    prim_alt = "|".join(PRIMITIVES)
-    for ns in spaces:
-        for m in re.finditer(rf"(?<![\w.$]){re.escape(ns)}\b", src):
-            if inside(m.start()):
-                continue
-            mm = re.match(rf"(?:\.promises)?\.({prim_alt})\b(\s*\()?", src[m.end():])
-            if mm and mm.group(2):
-                at = m.end() + mm.start(1)
-                found.append(Call(at, line_of(at), mm.group(1)))
-            elif mm:
-                loose.append(f"{line_of(m.start())}: {ns}.{mm.group(1)} used other than called")
-            elif not re.match(r"\s*\.\s*\w", src[m.end():]):
-                loose.append(f"{line_of(m.start())}: the namespace {ns} handed on as a value")
-    return sorted(found, key=lambda c: c.offset), loose
+def scan(root: Path, files: list[str]) -> dict[str, dict]:
+    """{file: {calls: [{line, start, prim, text}], refused: [...]}} — a scanner
+    failure raises: no answer is never "no reads"."""
+    r = subprocess.run(["node", str(SCAN), str(root.resolve()), *files], capture_output=True, text=True)
+    if r.returncode != 0:
+        raise RuntimeError(f"readscan.mjs failed: {r.stderr.strip()[-400:]}")
+    return json.loads(r.stdout)
 
 
 # A literal path a scanned file names outside lcnc-webui: new URL("../../x"),
@@ -102,25 +52,25 @@ def scanned(root: Path) -> list[str]:
 
 def problems(root: Path) -> list[str]:
     found: list[str] = []
-    for rel in scanned(root):
+    files = scanned(root)
+    result = scan(root, files)
+    for rel in files:
         text = (root / rel).read_text()
-        src = blank_comments(text)
-        actual, loose = calls(text)
-        found += [f"{rel}:{x}" for x in loose]
+        found += [f"{rel}:{x}" for x in result[rel]["refused"]]
+        actual = result[rel]["calls"]
         declared = READ_SITES.get(rel, ())
         owner: dict[int, str] = {}
         for r in declared:
-            hits = [c for c in actual if src.startswith(r.text, c.offset)]
+            hits = [c for c in actual if c["text"].startswith(r.text)]
             if len(hits) != r.count:
                 found.append(f"{rel}: {r.text!r} found {len(hits)} times, the table says {r.count}")
             for c in hits:
-                if c.offset in owner:
-                    found.append(f"{rel}:{c.line}: a call two entries claim")
-                owner[c.offset] = r.text
+                if c["start"] in owner:
+                    found.append(f"{rel}:{c['line']}: a call two entries claim")
+                owner[c["start"]] = r.text
         for c in actual:
-            if c.offset not in owner:
-                found.append(f"{rel}:{c.line}: a {c.name} call the table does not name: "
-                             f"{src[c.offset:c.offset + 100].splitlines()[0] if src[c.offset:].strip() else ''}")
+            if c["start"] not in owner:
+                found.append(f"{rel}:{c['line']}: a {c['prim']} call the table does not name: {c['text'][:100]!r}")
         # every literal path outside the frontend lies under what this file declares
         globs = [g for r in declared if r.reads for g in r.reads]
         for lit in REPO_LITERAL.findall(text):
@@ -130,7 +80,7 @@ def problems(root: Path) -> list[str]:
     for rel in READ_SITES:
         if not (root / rel).is_file():
             found.append(f"{rel}: in the table, not in the tree")
-        elif rel not in scanned(root):
+        elif rel not in files:
             found.append(f"{rel}: in the table but not scanned")
     return found
 

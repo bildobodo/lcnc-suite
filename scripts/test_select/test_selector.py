@@ -82,6 +82,45 @@ def test_every_read_site_is_declared_exactly():
     assert reads.problems(ROOT) == []
 
 
+FORMS = {   # source → (calls found as (primitive, the text's start), refused count)
+    'import fs from "node:fs";\nfs.readFileSync("a");': ([("readFileSync", 'readFileSync("a")')], 0),
+    'import fs from "node:fs";\nfs.\nreadFileSync("a");': ([("readFileSync", 'readFileSync("a")')], 0),
+    'import fs from "node:fs";\nfs .readFileSync ("a");': ([("readFileSync", 'readFileSync ("a")')], 0),
+    'import extraFs, { constants } from "node:fs";\nextraFs.readFileSync("a");': ([("readFileSync", 'readFileSync("a")')], 0),
+    'import * as fs from "fs";\nfs.promises.readFile("a");': ([("readFile", 'readFile("a")')], 0),
+    'import { readFileSync as rf } from "node:fs";\nrf("a"); rf("b");': ([("readFileSync", 'rf("a")'), ("readFileSync", 'rf("b")')], 0),
+    'import fs = require("node:fs");\nfs.existsSync("a");': ([("existsSync", 'existsSync("a")')], 0),
+    'import { execFileSync } from "node:child_process";\nexecFileSync("python3", []);': ([("execFileSync", 'execFileSync("python3", [])')], 0),
+    'import { constants, writeFileSync } from "node:fs";\nwriteFileSync("x", "y");': ([], 0),
+    '// readFileSync("a")\nconst s = "readFileSync(b)";': ([], 0),
+    'const re = /x/; re.exec("y"); dialog.open();': ([], 0),
+    'import fs from "node:fs";\nfs["readFileSync"]("a");': ([], 1),
+    'import fs from "node:fs";\nconst { readFileSync } = fs;': ([], 1),
+    'import fs from "node:fs";\nconst r = fs.readFileSync;': ([], 1),
+    'import { readFileSync } from "node:fs";\nconst rd = readFileSync;': ([], 1),
+    'import fs from "node:fs";\nhelper(fs);': ([], 1),
+    'const fs = require("node:fs");': ([], 1),
+    'const m = await import("node:fs");': ([], 1),
+    'export * from "node:fs";': ([], 1),
+}
+
+
+def test_the_scanner_finds_every_admitted_call_and_refuses_every_other_form(tmp_path: Path):
+    """The read-site scanner's language on the TypeScript parser (Codex R258):
+    whitespace anywhere JavaScript allows, mixed imports, .promises, import =
+    require; and every form outside it refused — never "no read"."""
+    files = []
+    for i, src in enumerate(FORMS):
+        f = tmp_path / f"form{i}.ts"
+        f.write_text(src)
+        files.append(str(f))
+    out = reads.scan(ROOT, files)
+    for f, (src, (want_calls, want_refused)) in zip(files, FORMS.items()):
+        got = out[f]
+        assert [(c["prim"], c["text"]) for c in got["calls"]] == [(p, t) for p, t in want_calls], src
+        assert len(got["refused"]) == want_refused, (src, got["refused"])
+
+
 def test_the_heavy_loader_reads_only_what_its_entry_declares():
     """What the FixtureFiles loader and collisionBounds are handed: the
     ROOT-relative literals of the heavy files and collisionFixtures.ts — each
