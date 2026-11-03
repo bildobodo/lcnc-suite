@@ -219,3 +219,132 @@ Die vorgeschlagene Reihenfolge — zunächst Fixture und Reset bei bestehender K
 Das Agreement gilt für den Plan, **noch nicht für das Umschalten auf den parallelen vollen Lauf**. Dafür folgen die benannten Nachweise und das Implementierungsreview. R260 zum selektiven Rundengate bleibt unverändert; Replay und das Teilen großer Specs bleiben eigene Pakete.
 
 Reine Planprüfung, keine erneute Ausführung der unveränderten R261-Probe und keine Produktänderung. [Abgleich und Herleitung](per-worker-mock.r262.notes.md).
+
+
+
+---
+
+## Claude · Implementierungsprüfung · Anfrage R263 · 3. November 2026
+
+**Stand `e7634da3`** (`feat/per-worker-mock`, Worktree `~/lcnc-suite-pwm`, von `feat/test-tiers` `012cf3d5`). Diff: `012cf3d5..e7634da3`. Der Code steht seit `eecabc56`; `e7634da3` fügt nur die Records der Nachweisläufe an `eecabc56` hinzu.
+
+### Schritt 1 · Fixture, Bindung, Register, Reset (`6d025e1a`)
+
+- **`e2e/mockSlot.mjs`:** rein, ohne Ein-/Ausgabe. Ein Slot ist nur ein ganzzahliger `TEST_PARALLEL_INDEX` in 0…15, sein Port `4500 + Slot`. Ohne gültigen Index ist die Adresse `http://mock-unbound.invalid/`. **Gemessen:** `--list` und der Runner laden die Dateien ohne Index, jeder Worker hat seinen Index schon beim Import, und sein Elternprozess ist der Runner.
+- **`ctl.ts`** bindet `MOCK`/`CTL` beim Import an den Slot. HTTP, App-WS und `/ctl` aller Specs und Helfer kommen von hier, die sechs eigenen Adressen und `TOOL_IMPORT_TEST_URL` sind entfernt.
+- **`e2e/test.ts`, Worker-Fixture `mock` (auto):**
+  - Sie prüft den Slot gegen `workerInfo.parallelIndex` und `MOCK` gegen dessen Port.
+  - `mockFixture.startMock` startet den eigenen Mock mit Instanz-ID. **Bereit** ist er erst bei der Zeile `MOCK-BOUND <port> <instance>` dieses Kindes.
+  - Das Besitzregister wird atomar geschrieben (Temp-Datei, dann `rename`) und nur von der eigenen Instanz entfernt.
+  - Bei belegtem Port wartet die Fixture nur auf den lebenden Vorgänger **desselben Laufs und Slots**, begrenzt auf 5 s. Alles andere ist ein Abbruch; ein fremder Prozess wird nie benutzt oder beendet.
+  - Abbau: stdin schließen, 5 s, dann TERM, 2 s, KILL.
+- **Mock:** `snapshot` (lesend, zählt die App-Sockets), `MOCK-BOUND` und ein Abbruch mit Grund bei belegtem Port. Er endet bei stdin-EOF, aber nur mit `MOCK_EXIT_ON_STDIN_EOF=1`; ein manueller Start bleibt unverändert. Der Haltehaken `MOCK_EXIT_HOLD_UNTIL` dient allein dem Harness.
+- **Test-Fixture `mockBaseline` (auto):** keine App-Verbindung des Vorgängers mehr offen (gepollt), dann `reset`, dann der Snapshot gleich dem beim Start des Mocks. Am Testende schließt sie jeden noch offenen Kontext; die sechs eigenen Kontexte in `scenes.viewer` schließen nicht im `finally`. Ein gestorbener Mock macht den Test rot.
+- **Ereignisprotokoll** je Lauf mit `bound`/`handoff-wait`/`handoff-timeout`/`stopped` und `test-start`/`test-end` (Datei, Projekt, Titelpfad, Retry, Slot, Worker, Instanz).
+- **Inventur:** Kein `beforeAll`. Die zwei `afterAll` (`nine-axis`, `setup-layout`) setzten nur zurück und sind entfernt. Ein Wächter verbietet Datei-Hooks und `describe.parallel`/`configure`.
+- **Rundengate:**
+  - Die Worker-Zahl kommt aus `LCNC_E2E_WORKERS`, und die Ports-Vorprüfung prüft `4173` und `4500…4500+N−1`.
+  - `proof.check_workers` läuft über das Ereignisprotokoll: Jeder Test hat Start und Ende auf einem Worker und Mock, in jedem Worker laufen die Tests nacheinander, jede Instanz hat einen Besitzer.
+  - CPU und Spitzenspeicher der eigenen Unit-cgroup stehen im Record.
+
+### Schritt 2 · Prüfharness (`9f3fe7ad`, Korrektur `6a4b356a`)
+
+`scripts/test_select/proof_harness.py` startet jeden Fall als inneren Lauf (`playwright.proof.config.ts`, `e2e-proof/`) und urteilt von außen über Bericht, Marken und Ereignisse. **7/7 PASS** (`per-worker-mock.harness.json`):
+- **Eigene Mocks:** Zwei Worker laufen gleichzeitig (Barriere, überlappende Zeiten, verschiedene `parallelIndex`), und A behält seinen Zustand über B's Reset.
+- **Ein gemeinsamer Mock (negativ, deine Präzisierung 1):**
+  - Der Harness startet ihn selbst und bindet beide Worker mit **eigenem Transport** daran. Die E2E-Fixture bleibt ohne Schalter.
+  - Er gilt nur als Gegenbeweis, wenn alle Phasen erreicht sind, B besteht, A **an seiner Zustandsprüfung** scheitert und `A-final` den zurückgesetzten Zustand zeigt. Ein Fehler an Barriere, Slot oder Bindung zählt nicht.
+- **Datei nach Datei** im selben Worker: die zweite Datei sieht den Ausgangszustand derselben Instanz.
+- **Hartes Worker-Ende:** Der Ersatz bekommt denselben Slot, einen neuen Worker, einen neuen Mock und den Ausgangszustand.
+- **Verzögerte Übergabe (deine Präzisierung 2):**
+  - Der Vorgänger wird über `MOCK_EXIT_HOLD_UNTIL` gehalten. Der Harness gibt ihn **ab dem protokollierten `handoff-wait`** frei, nicht ab dem EOF.
+  - Nach 1 s: neue Instanz am Ausgangszustand. Nach 7,5 s: „handoff timed out“ plus `handoff-timeout`-Ereignis.
+- **Fremder Server** auf 4500: verweigert, und er läuft weiter.
+- **Lauf 1** (`harness.run1.json`): 6/7. Der Fremdserver-Fall lief ohne seinen Server, weil der gehaltene Mock des Verzögerungsfalls 4500 noch hielt. Die Korrektur: Jeder Fall beginnt auf freien Ports, und der Fremdserver-Fall weist nach, dass sein Server lauscht.
+
+### Schritt 3 · Ein Projekt statt der Kette (`ed8e83ef`)
+
+- **`playwright.config.ts`:** ein Projekt `e2e`, `fullyParallel: false`, `workers` aus `LCNC_E2E_WORKERS` (Vorgabe 3), keine Abhängigkeiten. Die Gate- und die Auswahl-Konfiguration erben das.
+- **Einmalige Abbildung** (`per-worker-mock.identity-map.txt`): 838 Fälle aus neun Projekten, jeder genau einmal in `e2e`. Keiner fehlt, keiner kommt hinzu, bijektiv.
+- **`playwrightProjects.test`** schreibt jetzt die neue Invariante fest, wo es acht serielle Projekte festhielt; der Grund steht im Kopf. Der Kettenbeweis (`full_chain`/`check_order`) entfällt, `check_workers` übernimmt.
+
+### Schritt 4 · Messung, sieben Lastrennen, ihre Korrektur (`07a7c4f4`, `eecabc56`)
+
+**Die Messung** an `cb4e45b4` (FULL über `round_gate`, je Worker-Zahl eine eigene Unit; `per-worker-mock.measure-w{1,2,3}.gate-round.json`):
+
+| Worker | Urteil | Browser | ganze Runde | CPU | Spitze | Mocks |
+|---|---|---|---|---|---|---|
+| seriell (Kette, `6d025e1a`) | Browser PASS | 3259 s | 3441 s | 6334 s | 2247 MB | 11 |
+| 1 | PASS 838/838 | 3242 s | 3414 s | 6274 s | 2358 MB | 1 |
+| 2 | FAIL 2 | 1979 s | 2152 s | 6948 s | 2726 MB | 4 |
+| 3 | FAIL 5 | 1705 s | 1876 s | 7352 s | 3493 MB | 8 |
+
+`browser-executed` und `browser-workers` sind in allen drei PASS: Jeder Test lief genau einmal, auf einem Worker und dessen Mock, und jede Instanz hatte einen Besitzer. Die Fehlschläge verteilen sich auf mehrere Slots (0 und 1). Die zusätzlichen Mocks sind Ersatzworker nach den Fehlschlägen. **Keiner ist ein Isolationsfehler.** Alle sieben (sechs Tests, `sim-panel:317` in beiden Läufen) sind Lesestellen, deren Vorbedingung nur eine feste Wartezeit oder ein veralteter Treffer annahm. Die serielle Kette hat sie nie belastet.
+
+**Die Ursachen und Korrekturen** (`per-worker-mock.load-races.txt`):
+- **`sim-panel` 249 und 317:** `complete` traf die Liste **vor** der neuen; die alte ist sofort vollständig, eine leere ebenso. Gelesen wurde mitten im Füllen: 160 von 400 Zeilen, 2 von 9 Frames. `filled` wartet jetzt auf den letzten Frame der beobachteten Liste, die zwei Stellen ohne Beobachter auf die 400 Zeilen der neuen Liste.
+- **`collisions` 990:** Die Position des Laufs ging einmal raus, und zwar nach einem Poll, der bis zu 500 ms zwischen seinen Lesungen wartet. Der Auto-Prüf-Timer steht auf 400 ms, also kam „start full“. Jetzt geht sie im Takt des Gateways (30 je Sekunde), bis die Version angezeigt ist. Die Produktregel „ohne Position die volle Prüfung“ bleibt.
+- **`scenes` 990 und `toolsetter` 208:** Die Abbildung wurde 400 bzw. 800 ms nach dem Start einer 300-ms-Drehung gelesen, unter Last also mitten in der Drehung. `viewerSettle.ts` wartet, bis die Draufsicht steht (Achsen ausgerichtet, zwei Lesungen einen Frame auseinander gleich), und auf zwei gezeichnete Frames. `toolsetter` hat in der Messung nicht versagt, folgt aber demselben Muster.
+- **`macros` 242 und `run-hold` 302:** Die 500 ms des Haltens laufen auf der Uhr des Tests (`page.clock`).
+  - Die Uhr wird vor dem Laden installiert und eine Sekunde voraus angehalten, während das abbrechende Ereignis eintrifft.
+  - Dann folgt `runFor(HOLD_MS)` mit gedrücktem Finger, erst danach das Loslassen und 300 ms für das, was ein gefeuertes Halten gesendet hätte.
+
+**Rot vor, grün nach der Korrektur, unter derselben Last** (3 Worker, 3 CPU-Brenner, `--repeat-each`):
+- **Rot:** `sim-panel:317` 4/4, `scenes` 3/4, `collisions` 1/4.
+- **Grün:** jeder der vier 0/6.
+- **Die Halte-Tests** zeigten sich unter dieser Last in der alten Form nicht; ihre Endform läuft dort 0/6 je Test (Belege, Punkt 2). Ihr Nachweis:
+  - **Verzögerung:** Die Liste, die die App nach `macros_changed` liest, kommt 700 ms spät. Die alte Form fällt dann mit dem Symptom der Messung, die neue besteht.
+  - **Mutation M1** (die Halteschlüssel-Beobachtung zeigt den Hinweis, behält das Halten): **rot**.
+  - **Mein Fehler im ersten Durchgang:** M1 und M2 überlebten, weil meine Uhrform **vor** `runFor` losließ. Ein Loslassen vor der Haltezeit ist ein Tippen und beendet jedes Halten; der Test bewies also nichts. Die Mutationsprobe hat das gefunden.
+  - **M2b** (ohne `clearTimeout` beim Unmount, ohne `pointerleave`- und `blur`-Abbruch) überlebt **zu Recht**. Ein dritter Wächter beendet das Halten auf der alten Leiste: Vue verwirft ein `emit` einer ausgehängten Komponente (`if (instance.isUnmounted) return`, 3.5.27), und die Leiste startet ihr Makro über `emit('run')`.
+  - Im Protokoll der Seite endet das Halten ohne Mutation an `pointerleave`.
+  - Die Kontrolle C1 zeigt, dass die Zählung lebt: dasselbe Halten ohne Orientierungswechsel, durch `runFor` gehalten, läuft genau einmal.
+
+**Doku:** `testing.md` beschreibt den Browserlauf als ein Projekt auf N Workern mit je eigenem Mock und dazu die Signalregel samt Reproduktion eines Lastrennens; der Kurztext steht in `CLAUDE.md`. Die Spec-Köpfe nennen die serielle Kette nicht mehr.
+
+### Der Referenzlauf und mein Fehler
+
+**Der serielle Referenzlauf** lief an `6d025e1a`: per-Worker-Mocks unter der alten Kette (`per-worker-mock.step1.gate-round.json`). Browser **838 gelistet = 838 einmal gelaufen, 11 Mocks, Kettenreihenfolge gehalten, 3259 s**; CPU 6334 s, Spitze 2247 MB.
+
+**Der Record ist FAIL, und zu Recht.** Ich habe während des Laufs im selben Baum Schritt 2 gebaut und dabei einen Testtitel in `tsconfigCoverage.test.ts` geändert. Der Unit-Abgleich je Test meldete „gelistet, nie gelaufen“ und „gelaufen, nie gelistet“, also genau den Fall, für den TS256-04 gebaut wurde. Seitdem arbeite ich während eines Gates in einem zweiten Worktree.
+
+### Belege
+
+Alle Läufe an `eecabc56`, jeder als eigene Unit, nacheinander, nie neben einem anderen Playwright-Lauf; die Records liegen in `docs/reviews/`.
+
+1. **Ein gewählter Lauf über mehrere Dateien** (`per-worker-mock.r263-selected.gate-round.json`, `--base 07a7c4f4`, 3 Worker): **PASS**.
+   - 24 Specs, **484/484**, `failed 0`, `flaky 0`; Browser 880 s, Runde ≈ 956 s, CPU 4115 s, Spitze 3391 MB.
+   - `browser-listing`, `browser-executed` und `browser-workers` PASS, 3 Mocks.
+   - Backend und `unit-heavy` sind mit Grund ausgelassen (eine reine UI-Runde).
+2. **Die Halte-Tests in ihrer Endform unter Last** (`per-worker-mock.r263-load.txt` §1, 3 Worker, 3 CPU-Brenner, `--repeat-each 6`, `--retries 0`):
+   - `macros:242` 0/6, `run-hold:303` 0/6.
+   - Das ist dieselbe Last, unter der die anderen Rennen rot reproduziert wurden. Sie unterscheidet die alte und die neue Form der Halte-Tests nicht (auch die alte blieb dort grün); ihr Nachweis ist die Verzögerungsprobe mit M1 und C1. Dieser Lauf zeigt nur, dass die Endform unter Last nicht wackelt.
+3. **Der Leck-Prüfer neben den schweren Viewer-Specs** (deine Frage 2 aus R261/R262; §2, 3 Worker, `--repeat-each 8`, `--retries 0`):
+   - Wiederholt: `viewer:56` (`renderer.info`: ein sauberer Neuaufbau gibt die Geometrie frei), dazu `scenes:496`, `scenes:751`, beide `bake-hold:471` und `collisions:285`. Alle **0/8**, zusammen 48/48.
+   - Seine Aussagen sind unverändert, die Toleranz ist nicht verbreitert, es gibt keinen Retry.
+   - Er bleibt auf einem Renderer zuverlässig, der CPU und SwiftShader mit zwei anderen Workern teilt. Damit braucht es weder weniger Worker noch einen eigenen nachgelagerten Lauf.
+4. **Der volle Lauf** (`per-worker-mock.r263-full-w{3,2}.gate-round.json`, `--base 012cf3d5`, FULL, weil `e2e/test.ts` geändert ist):
+
+   | Worker | Urteil | Tests | Browser | Runde | CPU | Spitze | Mocks |
+   |---|---|---|---|---|---|---|---|
+   | 3 | PASS | 838/838 | 1686 s | ≈ 1858 s | 7301 s | 3547 MB | 3 |
+   | 2 | PASS | 838/838 | 1978 s | ≈ 2151 s | 6943 s | 3042 MB | 2 |
+
+   - Beide mit `failed 0`, `flaky 0`, `uncommitted 0`; `browser-executed` und `browser-workers` sind PASS.
+   - Mocks = Worker: Kein Ersatzworker war nötig, also scheiterte kein Test.
+   - `firefox-core` bleibt `pending` (Schritt 6).
+   - „Runde“ ist die Summe der Sekunden der einzelnen Prüfungen.
+5. **Gegen die Messung vor der Korrektur:**
+   - 3 Worker: 5 Fehlschläge vorher, 0 jetzt, 8 Mocks vorher, 3 jetzt.
+   - 2 Worker: 2 Fehlschläge vorher, 0 jetzt.
+   - Die Laufzeiten blieben gleich (1705 → 1686 s, 1979 → 1978 s); die Signale kosten keine messbare Zeit.
+
+**Meine Empfehlung: 3 Worker** (die Vorgabe `LCNC_E2E_WORKERS=3` bleibt).
+- **Ertrag:** Gegenüber 2 Workern spart der Browserlauf 292 s (−15 %), gegenüber der seriellen Kette 1573 s (3259 → 1686 s, −48 %).
+- **Kosten gegenüber 2 Workern:** +505 MB Spitze und +358 s CPU.
+- **Die Spitze von 3,5 GB Arbeitsspeicher** liegt deutlich unter dem Rahmen: Die VM hat 19,5 GB, die Gate-Units laufen mit `MemoryMax=12G`. Sie ist um 1,3 GB höher als die der seriellen Kette. Den Plattenbedarf (die Regel „≥ 3 GB frei auf `/`“ für die Trace-Artefakte) habe ich parallel nicht eigens gemessen.
+- **Mehr als 3 Worker** habe ich nicht gemessen. Bei 6 Kernen und einem SwiftShader-Renderer je Worker wäre das eine eigene Messung.
+
+**Bitte prüfen:** Tragen Fixture, Bindung, Übergabe und Harness, und darf der parallele Lauf mit 3 Workern der volle Lauf werden?
+
+Wenn das trägt, bitte `agreement`.
