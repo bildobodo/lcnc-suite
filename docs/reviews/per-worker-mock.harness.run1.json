@@ -1,0 +1,58 @@
+{
+  "pass": false,
+  "cases": [
+    {
+      "case": "isolation on own mocks",
+      "pass": true,
+      "problems": [],
+      "dir": "/tmp/lcnc-proof-own-3csspsa8"
+    },
+    {
+      "case": "isolation on ONE shared mock (negative)",
+      "pass": true,
+      "problems": [],
+      "dir": "/tmp/lcnc-proof-shared-feqy1qzz"
+    },
+    {
+      "case": "file after file in one worker",
+      "pass": true,
+      "problems": [],
+      "dir": "/tmp/lcnc-proof-sequence-8hy4hc0g"
+    },
+    {
+      "case": "a worker ending hard, its replacement",
+      "pass": true,
+      "problems": [],
+      "dir": "/tmp/lcnc-proof-crash-tmt3jq8h"
+    },
+    {
+      "case": "a slow predecessor released 1.0 s after the handoff wait began",
+      "pass": true,
+      "problems": [],
+      "timing": {
+        "handoff_wait_t": 1793685575471,
+        "released_t": 1793685576497
+      },
+      "dir": "/tmp/lcnc-proof-delay-in-h5am0lsm"
+    },
+    {
+      "case": "a slow predecessor released 7.5 s after the handoff wait began",
+      "pass": true,
+      "problems": [],
+      "timing": {
+        "handoff_wait_t": 1793685577773
+      },
+      "dir": "/tmp/lcnc-proof-delay-out-nms4zz1m"
+    },
+    {
+      "case": "a foreign server on the slot port",
+      "pass": false,
+      "problems": [
+        "the run did not refuse: {'status': 'passed', 'error': ''}",
+        "the reason: ",
+        "the foreign server was stopped"
+      ],
+      "dir": "/tmp/lcnc-proof-foreign-jqthrrzs"
+    }
+  ]
+}
