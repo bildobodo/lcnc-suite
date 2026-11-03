@@ -196,6 +196,16 @@ def test_a_model_change_selects_the_heavy_group_and_the_specs_that_read_it(repo:
     assert sel["browser"]["run"] == ["bake-hold.viewer", "collisions.viewer", "reach.viewer", "toolsetter.viewer"]
 
 
+def test_a_var_file_selects_the_backend_and_the_probe_live_check_not_the_heavy_group(repo: Path):
+    def edit(r: Path):
+        (r / "examples/sim_config/xyz3").mkdir(parents=True)
+        (r / "examples/sim_config/xyz3/sim.var").write_text("3036\t0.000000\n")
+    base = commit_change(repo, edit)
+    sel = selector.select(repo, base, "HEAD", vitest_files=[])
+    assert sel["backend"]["run"] and sel["unit"]["heavy"] == [] and sel["browser"]["run"] == []
+    assert sel["live"] == {"probe-live": ["examples/sim_config/xyz3/sim.var"]}
+
+
 def test_documentation_selects_no_product_test_and_says_why(repo: Path):
     base = commit_change(repo, lambda r: (r / "docs/notes.md").write_text("v2\n"))
     sel = selector.select(repo, base, "HEAD", vitest_files=[])

@@ -54,7 +54,8 @@ HEAVY_THRESHOLD_MS = 60_000
 # target of the eight files and of collisionFixtures.ts and requires each one
 # under a path here.
 HEAVY_DATA = (
-    "examples/sim_config/**",
+    "examples/sim_config/machine-*/**",
+    "examples/sim_config/*.ini",       # their setp lines only (collisionFixtures.iniSetp)
     "lcnc-gateway/machine/**",
 )
 

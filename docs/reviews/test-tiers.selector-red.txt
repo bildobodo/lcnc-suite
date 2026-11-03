@@ -1,5 +1,5 @@
-# Test selector guards (step 3) — red first, 2026-11-03T00:33:46+01:00
-# tree: feat/test-tiers 01efe3ff + uncommitted selector changes
+# Test selector guards (step 3) — red first, 2026-11-03T01:19:19+01:00
+# tree: feat/test-tiers ce3a99ba + uncommitted selector changes
 
 ## Two reds the guards found while being written
 - test_every_e2e_disk_read_outside_the_frontend_is_declared: ('toolsetter.viewer', 'examples/sim_config/machine-5axis-xyzac') — the spec reads the 5-axis model and was not declared; SPEC_READS now names it
@@ -34,7 +34,7 @@ RED  order ignores a project overlap: ['test_the_order_proof_holds_the_chain_and
 RED  order ignores the path order: ['test_the_order_proof_holds_the_chain_and_the_path_order']
 
 ## Restored
-27 passed in 0.68s
+28 passed in 0.49s
 
 ## The proofs on real reports
 select config --list for ['visual', 'layout', 'armed', 'sim-panel.viewer', 'probe-click', 'tool-holder', 'choices'] → exactly the selection, each file in its full-config project
