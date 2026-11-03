@@ -1,0 +1,552 @@
+{
+  "kind": "round",
+  "note": "development fd70a210: snap highlight (ff) + fix/probe-vars + feat/per-worker-mock (contains test tiers) + the two merge-integration fixes (toolMarks rule, first-touch on one path); the merge gate on 3 workers, run 2",
+  "base": "4ad87515b8b2c71507209f92db70a8b48e6976fd",
+  "head": "fd70a21053fc8a5be61621eda1d17002215b3746",
+  "uncommitted": 0,
+  "plan": [
+    "selection-guards",
+    "lint",
+    "build",
+    "unit-light",
+    "backend",
+    "ports-free",
+    "browser"
+  ],
+  "env": {
+    "nproc": 6,
+    "arch": "aarch64",
+    "node": "v22.23.2",
+    "playwright": "Version 1.60.0"
+  },
+  "selection": {
+    "unmatched": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [
+        "lcnc-webui/src/codeGlide.test.ts",
+        "lcnc-webui/src/commandShapes.test.ts",
+        "lcnc-webui/src/playwrightProjects.test.ts",
+        "lcnc-webui/src/probeVarFiles.test.ts",
+        "lcnc-webui/src/tsconfigCoverage.test.ts",
+        "lcnc-webui/src/viewer/toolChangeScan.test.ts"
+      ],
+      "related": [
+        "lcnc-webui/src/actionAdmission.test.ts",
+        "lcnc-webui/src/codeGlide.test.ts",
+        "lcnc-webui/src/commandShapes.test.ts",
+        "lcnc-webui/src/lcnc.test.ts",
+        "lcnc-webui/src/lcncWs.clock.test.ts",
+        "lcnc-webui/src/lcncWs.exports.test.ts",
+        "lcnc-webui/src/permissions.test.ts",
+        "lcnc-webui/src/playwrightProjects.test.ts",
+        "lcnc-webui/src/probeVarFiles.test.ts",
+        "lcnc-webui/src/settingsDraft.test.ts",
+        "lcnc-webui/src/settingsSections.test.ts",
+        "lcnc-webui/src/statusAge.test.ts",
+        "lcnc-webui/src/tsconfigCoverage.test.ts",
+        "lcnc-webui/src/useGamepad.test.ts",
+        "lcnc-webui/src/useMacros.test.ts",
+        "lcnc-webui/src/useTouchoffMath.test.ts",
+        "lcnc-webui/src/viewer/checkContext.test.ts",
+        "lcnc-webui/src/viewer/checkWiring.test.ts",
+        "lcnc-webui/src/viewer/contactMeter.test.ts",
+        "lcnc-webui/src/viewer/contactView.test.ts",
+        "lcnc-webui/src/viewer/limitOriginPayloads.test.ts",
+        "lcnc-webui/src/viewer/limitPlaces.test.ts",
+        "lcnc-webui/src/viewer/probeStop.test.ts",
+        "lcnc-webui/src/viewer/scrubBarWords.test.ts",
+        "lcnc-webui/src/viewer/shownContacts.test.ts",
+        "lcnc-webui/src/viewer/simRows.test.ts",
+        "lcnc-webui/src/viewer/simWindow.test.ts",
+        "lcnc-webui/src/viewer/startDepPayloads.test.ts",
+        "lcnc-webui/src/viewer/toolChangePayloads.test.ts",
+        "lcnc-webui/src/viewer/toolChangeScan.test.ts",
+        "lcnc-webui/src/ws/bulkData.test.ts",
+        "lcnc-webui/src/ws/parseSeen.test.ts",
+        "lcnc-webui/src/ws/statusStore.test.ts"
+      ]
+    },
+    "browser": {
+      "run": "full",
+      "reasons": [
+        "lcnc-webui/e2e/ctl.ts: build, test configuration or the shared mock and fixtures",
+        "lcnc-webui/e2e/layout-fixtures.ts: build, test configuration or the shared mock and fixtures",
+        "lcnc-webui/e2e/mock-gateway.mjs: build, test configuration or the shared mock and fixtures",
+        "lcnc-webui/e2e/mockFixture.ts: build, test configuration or the shared mock and fixtures",
+        "lcnc-webui/e2e/mockSlot.d.mts: build, test configuration or the shared mock and fixtures",
+        "lcnc-webui/e2e/mockSlot.mjs: build, test configuration or the shared mock and fixtures",
+        "lcnc-webui/e2e/test.ts: build, test configuration or the shared mock and fixtures",
+        "lcnc-webui/playwright.config.ts: build, test configuration or the shared mock and fixtures",
+        "lcnc-webui/playwright.gate.config.ts: build, test configuration or the shared mock and fixtures",
+        "lcnc-webui/playwright.select.config.ts: build, test configuration or the shared mock and fixtures",
+        "lcnc-webui/src/App.vue: central: every surface, every dialog or every connection depends on it",
+        "lcnc-webui/src/defaults.ts: central: every surface, every dialog or every connection depends on it",
+        "lcnc-webui/src/lcnc.ts: central: every surface, every dialog or every connection depends on it",
+        "lcnc-webui/src/permissions.ts: central: every surface, every dialog or every connection depends on it",
+        "lcnc-webui/src/style.css: central: every surface, every dialog or every connection depends on it",
+        "lcnc-webui/src/useDialogState.ts: central: every surface, every dialog or every connection depends on it",
+        "lcnc-webui/src/useKeyboardShortcuts.ts: central: every surface, every dialog or every connection depends on it",
+        "lcnc-webui/tsconfig.app.json: build, test configuration or the shared mock and fixtures"
+      ]
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "examples/sim_config/xyz3/sim.var: the shipped examples: backend, models, var files",
+        "examples/sim_config/xyzabc6/sim.var: the shipped examples: backend, models, var files",
+        "examples/sim_config/xyzac5/sim.var: the shipped examples: backend, models, var files",
+        "lcnc-gateway/command_policy.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_command_policy.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_example_install.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_ngc_fixtures.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_suite_runner.py: the gateway: the browser suite runs against the mock",
+        "scripts/install_examples.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/__init__.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/dryrun.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/graph.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/mutations.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/proof.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/proof_harness.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/reads.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/readscan.mjs: scripts and their tests ride the backend gate",
+        "scripts/test_select/round_gate.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/rules.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/selector.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/test_selector.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/times.json: scripts and their tests ride the backend gate",
+        "scripts/test_suite.py: scripts and their tests ride the backend gate",
+        "subroutines/probe_basic/probe_cal_round_pocket.ngc: the bundled routines",
+        "subroutines/probe_basic/probe_cal_square_pocket.ngc: the bundled routines",
+        "subroutines/probe_basic/probe_rect_pocket.ngc: the bundled routines",
+        "subroutines/probe_basic/probe_rect_pocket_center_start.ngc: the bundled routines",
+        "subroutines/probe_basic/probe_round_pocket.ngc: the bundled routines",
+        "subroutines/probe_basic/probe_round_pocket_center_start.ngc: the bundled routines",
+        "subroutines/probe_basic/probe_valley_x.ngc: the bundled routines",
+        "subroutines/probe_basic/probe_valley_x_center_start.ngc: the bundled routines",
+        "subroutines/probe_basic/probe_valley_y.ngc: the bundled routines",
+        "subroutines/probe_basic/probe_valley_y_center_start.ngc: the bundled routines"
+      ]
+    },
+    "firefox": {
+      "needed": true,
+      "paths": [
+        "lcnc-webui/e2e/ctl.ts",
+        "lcnc-webui/e2e/layout-fixtures.ts",
+        "lcnc-webui/e2e/mock-gateway.mjs",
+        "lcnc-webui/e2e/mockFixture.ts",
+        "lcnc-webui/e2e/mockSlot.d.mts",
+        "lcnc-webui/e2e/mockSlot.mjs",
+        "lcnc-webui/e2e/test.ts",
+        "lcnc-webui/playwright.config.ts",
+        "lcnc-webui/playwright.gate.config.ts",
+        "lcnc-webui/playwright.select.config.ts",
+        "lcnc-webui/src/App.vue",
+        "lcnc-webui/src/ProbePanel.vue",
+        "lcnc-webui/src/defaults.ts",
+        "lcnc-webui/src/lcnc.ts",
+        "lcnc-webui/src/permissions.ts",
+        "lcnc-webui/src/probeVars.ts",
+        "lcnc-webui/src/style.css",
+        "lcnc-webui/src/useDialogState.ts",
+        "lcnc-webui/src/useKeyboardShortcuts.ts",
+        "lcnc-webui/tsconfig.app.json"
+      ],
+      "status": "pending: the pinned Mozilla target is not built yet (step 6)"
+    },
+    "live": {
+      "macro-live": [
+        "lcnc-webui/src/useMacros.ts"
+      ],
+      "probe-live": [
+        "examples/sim_config/xyz3/sim.var",
+        "examples/sim_config/xyzabc6/sim.var",
+        "examples/sim_config/xyzac5/sim.var",
+        "lcnc-webui/src/ProbePanel.vue",
+        "lcnc-webui/src/probeVars.ts",
+        "subroutines/probe_basic/probe_cal_round_pocket.ngc",
+        "subroutines/probe_basic/probe_cal_square_pocket.ngc",
+        "subroutines/probe_basic/probe_rect_pocket.ngc",
+        "subroutines/probe_basic/probe_rect_pocket_center_start.ngc",
+        "subroutines/probe_basic/probe_round_pocket.ngc",
+        "subroutines/probe_basic/probe_round_pocket_center_start.ngc",
+        "subroutines/probe_basic/probe_valley_x.ngc",
+        "subroutines/probe_basic/probe_valley_x_center_start.ngc",
+        "subroutines/probe_basic/probe_valley_y.ngc",
+        "subroutines/probe_basic/probe_valley_y_center_start.ngc"
+      ],
+      "toolsetter-readback": [
+        "subroutines/probe_basic/probe_cal_round_pocket.ngc",
+        "subroutines/probe_basic/probe_cal_square_pocket.ngc",
+        "subroutines/probe_basic/probe_rect_pocket.ngc",
+        "subroutines/probe_basic/probe_rect_pocket_center_start.ngc",
+        "subroutines/probe_basic/probe_round_pocket.ngc",
+        "subroutines/probe_basic/probe_round_pocket_center_start.ngc",
+        "subroutines/probe_basic/probe_valley_x.ngc",
+        "subroutines/probe_basic/probe_valley_x_center_start.ngc",
+        "subroutines/probe_basic/probe_valley_y.ngc",
+        "subroutines/probe_basic/probe_valley_y_center_start.ngc"
+      ],
+      "twp-buttons": [
+        "lcnc-gateway/command_policy.py",
+        "lcnc-webui/src/useTouchoffMath.ts"
+      ]
+    }
+  },
+  "browser_specs": [
+    {
+      "file": "layout.spec.ts",
+      "ms": 1362033
+    },
+    {
+      "file": "collisions.viewer.spec.ts",
+      "ms": 546790
+    },
+    {
+      "file": "setup-layout.spec.ts",
+      "ms": 448645
+    },
+    {
+      "file": "bake-hold.viewer.spec.ts",
+      "ms": 358930
+    },
+    {
+      "file": "sim-panel.viewer.spec.ts",
+      "ms": 346720
+    },
+    {
+      "file": "dialogs.spec.ts",
+      "ms": 290263
+    },
+    {
+      "file": "contrast.spec.ts",
+      "ms": 288490
+    },
+    {
+      "file": "safety-during-edit.spec.ts",
+      "ms": 179393
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "ms": 139637
+    },
+    {
+      "file": "keyboard-guards.spec.ts",
+      "ms": 129246
+    },
+    {
+      "file": "input-session.spec.ts",
+      "ms": 126838
+    },
+    {
+      "file": "macros.spec.ts",
+      "ms": 119043
+    },
+    {
+      "file": "touchoff.spec.ts",
+      "ms": 115299
+    },
+    {
+      "file": "run-hold.spec.ts",
+      "ms": 91693
+    },
+    {
+      "file": "toolsetter.viewer.spec.ts",
+      "ms": 81475
+    },
+    {
+      "file": "choices.spec.ts",
+      "ms": 68551
+    },
+    {
+      "file": "feedback-channels.spec.ts",
+      "ms": 61993
+    },
+    {
+      "file": "forms.spec.ts",
+      "ms": 58459
+    },
+    {
+      "file": "editor-guards.spec.ts",
+      "ms": 57858
+    },
+    {
+      "file": "viewer.spec.ts",
+      "ms": 57674
+    },
+    {
+      "file": "visual.spec.ts",
+      "ms": 53068
+    },
+    {
+      "file": "disarmed.spec.ts",
+      "ms": 47707
+    },
+    {
+      "file": "tool-geometry.spec.ts",
+      "ms": 43571
+    },
+    {
+      "file": "g30.spec.ts",
+      "ms": 40113
+    },
+    {
+      "file": "tabs.spec.ts",
+      "ms": 37341
+    },
+    {
+      "file": "viewcube.viewer.spec.ts",
+      "ms": 33156
+    },
+    {
+      "file": "example-tool-library.spec.ts",
+      "ms": 31481
+    },
+    {
+      "file": "select-writes.spec.ts",
+      "ms": 30057
+    },
+    {
+      "file": "tool-table-read.spec.ts",
+      "ms": 24995
+    },
+    {
+      "file": "toolsetter-setup.spec.ts",
+      "ms": 24652
+    },
+    {
+      "file": "gcode-reference.spec.ts",
+      "ms": 23835
+    },
+    {
+      "file": "offsets.spec.ts",
+      "ms": 23533
+    },
+    {
+      "file": "probe-click.spec.ts",
+      "ms": 22790
+    },
+    {
+      "file": "findings.viewer.spec.ts",
+      "ms": 22534
+    },
+    {
+      "file": "frames.spec.ts",
+      "ms": 22287
+    },
+    {
+      "file": "rapids.viewer.spec.ts",
+      "ms": 21002
+    },
+    {
+      "file": "setup-gates.spec.ts",
+      "ms": 20915
+    },
+    {
+      "file": "messages.spec.ts",
+      "ms": 20111
+    },
+    {
+      "file": "joint-jog.spec.ts",
+      "ms": 19162
+    },
+    {
+      "file": "touch-hold.spec.ts",
+      "ms": 19004
+    },
+    {
+      "file": "appearance.spec.ts",
+      "ms": 17906
+    },
+    {
+      "file": "reach.viewer.spec.ts",
+      "ms": 12387
+    },
+    {
+      "file": "tool-import.spec.ts",
+      "ms": 11334
+    },
+    {
+      "file": "nine-axis.spec.ts",
+      "ms": 11034
+    },
+    {
+      "file": "lifecycle.spec.ts",
+      "ms": 9558
+    },
+    {
+      "file": "touch-surface.spec.ts",
+      "ms": 9202
+    },
+    {
+      "file": "tool-holder.spec.ts",
+      "ms": 8719
+    },
+    {
+      "file": "fatpaths.viewer.spec.ts",
+      "ms": 4801
+    },
+    {
+      "file": "freecad-import.spec.ts",
+      "ms": 4075
+    },
+    {
+      "file": "smoke.spec.ts",
+      "ms": 2582
+    },
+    {
+      "file": "armed.spec.ts",
+      "ms": 1560
+    },
+    {
+      "file": "layout-audit.spec.ts",
+      "ms": 1081
+    },
+    {
+      "file": "mock-baseline.spec.ts",
+      "ms": 51
+    }
+  ],
+  "verdict": "PASS",
+  "resources": {
+    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/merge-gate-20261103b.service",
+    "cpu_s": 8897,
+    "memory_peak_mb": 3631
+  },
+  "checks": [
+    {
+      "name": "selection-guards",
+      "command": "/home/cnc/lcnc-suite-dev/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-dev/scripts/test_select/test_selector.py",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 2
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 8
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 16
+    },
+    {
+      "name": "unit-light",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/lcnc-suite-dev/docs/reviews/merge-20261103.gate-round.logs/unit-light.json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 64,
+      "files": 161,
+      "tests": 2577,
+      "passed": 2577,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 2577
+    },
+    {
+      "name": "backend",
+      "command": "/home/cnc/lcnc-suite-dev/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-dev/scripts/test_suite.py offline --component backend --out-dir /home/cnc/lcnc-suite-dev/docs/reviews/merge-20261103.gate-round.logs/backend",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 81
+    },
+    {
+      "name": "ports-free",
+      "status": "PASS"
+    },
+    {
+      "name": "browser-full",
+      "command": "npx playwright test -c playwright.gate.config.ts --forbid-only --trace off --reporter=line,json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 2037,
+      "tests": 850,
+      "passed": 850,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    {
+      "name": "browser-executed",
+      "status": "PASS",
+      "tests": 850
+    },
+    {
+      "name": "browser-workers",
+      "status": "PASS",
+      "run": "gate-6e6c8f82-4d71-4e38-b74d-654b52a2f5af",
+      "mocks": 3
+    }
+  ],
+  "omitted": [
+    {
+      "check": "unit-heavy",
+      "reason": "no heavy file changed, reached or read for"
+    }
+  ],
+  "pending": [
+    {
+      "check": "firefox-core",
+      "status": "pending: the pinned Mozilla target is not built yet (step 6)"
+    },
+    {
+      "check": "macro-live",
+      "status": "pending: a live check, run before main",
+      "paths": [
+        "lcnc-webui/src/useMacros.ts"
+      ]
+    },
+    {
+      "check": "probe-live",
+      "status": "pending: a live check, run before main",
+      "paths": [
+        "examples/sim_config/xyz3/sim.var",
+        "examples/sim_config/xyzabc6/sim.var",
+        "examples/sim_config/xyzac5/sim.var",
+        "lcnc-webui/src/ProbePanel.vue",
+        "lcnc-webui/src/probeVars.ts",
+        "subroutines/probe_basic/probe_cal_round_pocket.ngc",
+        "subroutines/probe_basic/probe_cal_square_pocket.ngc",
+        "subroutines/probe_basic/probe_rect_pocket.ngc",
+        "subroutines/probe_basic/probe_rect_pocket_center_start.ngc",
+        "subroutines/probe_basic/probe_round_pocket.ngc",
+        "subroutines/probe_basic/probe_round_pocket_center_start.ngc",
+        "subroutines/probe_basic/probe_valley_x.ngc",
+        "subroutines/probe_basic/probe_valley_x_center_start.ngc",
+        "subroutines/probe_basic/probe_valley_y.ngc",
+        "subroutines/probe_basic/probe_valley_y_center_start.ngc"
+      ]
+    },
+    {
+      "check": "toolsetter-readback",
+      "status": "pending: a live check, run before main",
+      "paths": [
+        "subroutines/probe_basic/probe_cal_round_pocket.ngc",
+        "subroutines/probe_basic/probe_cal_square_pocket.ngc",
+        "subroutines/probe_basic/probe_rect_pocket.ngc",
+        "subroutines/probe_basic/probe_rect_pocket_center_start.ngc",
+        "subroutines/probe_basic/probe_round_pocket.ngc",
+        "subroutines/probe_basic/probe_round_pocket_center_start.ngc",
+        "subroutines/probe_basic/probe_valley_x.ngc",
+        "subroutines/probe_basic/probe_valley_x_center_start.ngc",
+        "subroutines/probe_basic/probe_valley_y.ngc",
+        "subroutines/probe_basic/probe_valley_y_center_start.ngc"
+      ]
+    },
+    {
+      "check": "twp-buttons",
+      "status": "pending: a live check, run before main",
+      "paths": [
+        "lcnc-gateway/command_policy.py",
+        "lcnc-webui/src/useTouchoffMath.ts"
+      ]
+    }
+  ]
+}
