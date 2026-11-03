@@ -94,6 +94,18 @@ class Inner:
         return out
 
 
+def ports_free(within_s: float = 10.0) -> list[int]:
+    """Before a case: the slot ports and the shared port free — a previous
+    case's held mock may still be leaving. The ports still taken after the
+    bound, or []."""
+    t0 = time.time()
+    while True:
+        taken = [port for port in (*range(4500, 4504), SHARED_PORT) if busy(port)]
+        if not taken or time.time() - t0 > within_s:
+            return taken
+        time.sleep(0.1)
+
+
 def expect(cond: bool, what: str, problems: list[str]) -> None:
     if not cond:
         problems.append(what)
@@ -232,12 +244,16 @@ def case_delay(within: bool) -> dict:
 def case_foreign() -> dict:
     p = []
     srv = subprocess.Popen([sys.executable, "-m", "http.server", "4500", "--bind", "127.0.0.1"],
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=tempfile.mkdtemp())
+                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True, cwd=tempfile.mkdtemp())
+    run = None
     try:
         for _ in range(50):
-            if busy(4500):
+            if busy(4500) or srv.poll() is not None:
                 break
             time.sleep(0.1)
+        if srv.poll() is not None or not busy(4500):
+            p.append(f"the foreign server did not come up (no proof): {srv.stderr.read()[-300:] if srv.poll() is not None else 'not listening'}")
+            return {"case": "a foreign server on the slot port", "pass": False, "problems": p, "dir": None}
         run = Inner("foreign", ["e2e-proof/foreign"], 1)
         rc = run.run()
         res = run.results()
@@ -248,7 +264,7 @@ def case_foreign() -> dict:
     finally:
         srv.terminate()
         srv.wait(timeout=10)
-    return {"case": "a foreign server on the slot port", "pass": not p, "problems": p, "dir": str(run.dir)}
+    return {"case": "a foreign server on the slot port", "pass": not p, "problems": p, "dir": str(run.dir) if run else None}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -259,7 +275,15 @@ def main(argv: list[str] | None = None) -> int:
     if taken:
         print(f"proof_harness: ports {taken} are taken — never beside a gate's browser run", file=sys.stderr)
         return 2
-    cases = [case_own(), case_shared(), case_sequence(), case_crash(), case_delay(True), case_delay(False), case_foreign()]
+    cases = []
+    for case in (case_own, case_shared, case_sequence, case_crash, lambda: case_delay(True),
+                 lambda: case_delay(False), case_foreign):
+        left = ports_free()
+        if left:
+            cases.append({"case": getattr(case, "__name__", "a case"), "pass": False,
+                          "problems": [f"ports {left} still taken from the case before"], "dir": None})
+            break
+        cases.append(case())
     result = {"pass": all(c["pass"] for c in cases), "cases": cases}
     a.out.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
     for c in cases:
