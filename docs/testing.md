@@ -13,6 +13,56 @@ Playwright Chromium with `npx playwright install --with-deps chromium` there.
 | `python3 scripts/test_suite.py offline --component frontend` | Frontend checks, including recorded parity replay | None |
 | `lcnc-gateway/.venv/bin/python scripts/test_suite.py live-twp --ini /path/lcnc_suite_sim_6axis_twp_xyzabc.ini --allow-sim-motion` | Fresh preview goldens, cached-payload parity and plane invariants, mode/button, capture, reorient, touch-off and adverse-path checks | Yes, simulator only |
 
+## Round gate and merge gate (test strategy, Codex R248–R260)
+
+An implementation round runs the **round gate**: only the checks its change
+needs, chosen from a named base, with the proof of what ran. A merge runs the
+**full** offline gate on the integrated state (`test_suite.py offline`, or the
+round gate's FULL path); a full run already made on the identical state is
+reused. Live checks (`live-twp`, `twp_buttons_check.py`, the macro and
+toolsetter read-backs, `perf_matrix.py`, the probe live check) stay owed before
+main and stand as `pending` in the record.
+
+```
+lcnc-gateway/.venv/bin/python3 scripts/test_select/round_gate.py \
+    --base <the package's last accepted commit> --out docs/reviews/<topic>.gate-round.json
+```
+
+The tree must be clean. In order, never two at once: the selector's own
+guards (`scripts/test_select/test_selector.py` — red guards end the gate before
+anything is left out), the selection, lint, build, the light unit set (every
+unit file but the eight heavy collision files, `--allowOnly=false`), the heavy
+files the change reaches, the backend offline gate when a backend path changed,
+the browser run. The browser run needs ports 4173/4174 free, starts its own
+servers (`playwright.gate.config.ts` for FULL, `playwright.select.config.ts`
+for a selection: the full chain with each project narrowed to the selected
+files) and forbids `.only`. Every listed test must have run exactly once
+(`proof.check_executed`; units `check_unit_executed`, a test passed only after
+a retry fails), in the full chain's order. The record names every check run
+and left out with its reason.
+
+**The selector** (`scripts/test_select/selector.py`, `rules.py`): every
+changed path gets a decision. A rule owns a path (a spec group, FULL, backend,
+live checks, or "no product code"); a path no rule owns selects the full
+frontend and backend runs. Every module under `src` carries the UI sweep
+(layout, contrast, visual, dialogs) and must hold the selection of every
+component it renders through (`graph.py`, three named cuts: App.vue, defaults,
+workers). A changed spec or unit file runs itself; an e2e helper selects the
+specs that reach it (transitively, `E2EGraph`); a data file selects the files
+whose declared reads cover it (`READ_SITES`: every read call in the heavy files,
+the e2e files and node-side src modules, found by the TypeScript parser in
+`readscan.mjs`). `vitest list --changed` adds the heavy files a change reaches.
+
+**When a guard is red after a change:** a new source file needs its rule in
+`rules.py`; a new disk read in a heavy test or an e2e file needs its
+`READ_SITES` entry (or the read is refused); a module newly imported by
+another area's component needs that area in its rule (the graph guard names
+it). `scripts/test_select/mutations.py` proves the guards red first (run it
+alone, never beside another run in the tree).
+
+Measured: a scripts-only round ≈ 3 min, one spec ≈ 5 min, a component round
+≈ 25 min (the UI sweep alone is ≈ 20 min), a FULL round ≈ 60 min.
+
 The live parity loads every corpus program through the gateway's own
 `load_file`, as the operator loads (since review R15 B2 a bare
 `program_open` is a `STAT.file` flip the gateway ignores — the payload

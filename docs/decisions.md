@@ -10064,3 +10064,24 @@ panel's only way to build a calibration's numbers; `probeVarFiles.test.ts` takes
 numbers no var file declares (#3000–#3003 coolant, #3011/#3012, #3037–#3039 the toolsetter's
 param update) — read only, never written by the WebUI: LinuxCNC gives them 0 and the gateway
 refuses nothing.
+
+## 2026-11-03 — Test tiers: the selective round gate (Codex R248–R260)
+
+**Operator (2026-11-02): "die tests dürfen nicht ewig dauern … ob immer alle tests ablaufen
+müssen".** Measured: the full browser run is serial (54 min wall ≈ 54 min of test time, the mock
+is shared by the whole chain), the eight collision unit files are 88 % of the unit CPU. Agreed
+plan (R251): implementation rounds run a selected round gate, a merge the full run on the
+integrated state, live checks before main. Built on feat/test-tiers and reviewed R256–R260:
+`scripts/test_select/` (rule table, import-graph guard, transitive e2e graph, every disk read
+declared and found by the TypeScript parser, the heavy group only when reached), the select and
+gate Playwright configs (the full chain narrowed per project, own servers, no `.only`), the round
+gate (the selector's guards first in every round, every listed test run exactly once, the chain
+order, no PASS after a retry). The reviews found what the first versions missed: transitive
+helpers, a second read hidden behind a known one (line-based, then whitespace, then mixed
+imports and namespaces as values), the guards riding the backend run only, a focused test
+passing every proof, a full run reusing a foreign server, a unit retry passing, the runner's own
+crash leaving no record. Over the last 60 review rounds 38 would still have been full (App.vue
+alone in 7); the browser time saved is ≈ 22 %, the heavy unit group most rounds. The next lever
+is a mock per worker (the full run parallel; accepted R256 as the next package), then splitting
+layout.spec; Replay, the pinned Firefox core and the probe live check stay owed.
+

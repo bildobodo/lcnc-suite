@@ -430,6 +430,10 @@ The stored tool-change position lives in the INTERPRETER; the parameter file hol
 
 **ALWAYS run `npm run build` (in `lcnc-webui/`) after any TypeScript/Vue change.** This uses `vue-tsc -b` which is stricter than `vue-tsc --noEmit` — it catches unused imports (TS6133) and declaration emit issues that `--noEmit` misses. Zero TS errors is a hard requirement. Never use `vue-tsc --noEmit` as the sole verification step. `-b` builds THREE projects: `tsconfig.app.json` (DOM, `src/**` minus the node-side tests), `tsconfig.node.json` (the vite/vitest/playwright configs) and `tsconfig.test.json` (the node-side tests, `scripts/simDump.ts`, `e2e/**`) — a test that imports `node:fs` goes in the app exclude AND the test include; `src/tsconfigCoverage.test.ts` enforces both lists and refuses stale entries.
 
+## Test tiers
+
+An implementation round runs `scripts/test_select/round_gate.py --base <accepted base>` (the selected checks with their proof; Codex R260); a merge runs the full offline gate on the integrated state; live checks stay owed before main. A new source file needs its rule in `scripts/test_select/rules.py`, a new disk read in a heavy or e2e test its `READ_SITES` entry — the selector's guards run first in every round and stop it. Details: [docs/testing.md](docs/testing.md) "Round gate and merge gate".
+
 ## Lessons Learned
 
 - Normalize camera direction vectors before scaling by distance — non-unit vectors (iso, dimetric) cause distance drift on repeated clicks
