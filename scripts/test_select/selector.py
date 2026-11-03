@@ -184,13 +184,14 @@ def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
         if d.unmatched:
             unmatched.append(path)
             row["decision"] = "NO RULE: the full frontend and backend runs"
+        owner = "no rule owns it (fail closed)" if d.unmatched else d.rules[0]
         if d.browser_full:
-            browser_full.append(f"{path}: {d.rules[0] if d.rules else 'no rule'}")
+            browser_full.append(f"{path}: {owner}")
         browser |= d.browser
         if d.backend:
-            backend.append(f"{path}: {next((r for r in d.rules), 'no rule')}")
+            backend.append(f"{path}: {owner}")
         if d.heavy:
-            heavy.append(f"{path}: no rule — the whole heavy group")
+            heavy.append(f"{path}: no rule owns it — the whole heavy group")
             heavy_all = True
         if d.firefox:
             firefox.append(path)
