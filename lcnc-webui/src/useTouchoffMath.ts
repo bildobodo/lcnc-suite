@@ -11,6 +11,7 @@
 // rotary letters are `touchoffRotary` (Machine frame + G54 only), linear
 // letters `touchoff`.
 
+import type { WsCommand } from "./lcnc";
 import type { ComputedRef } from "vue";
 import type { Permissions } from "./permissions";
 import { isRotaryAxis } from "./useAxes";
@@ -19,7 +20,7 @@ interface UseTouchoffMathOptions {
   /** Axis letters in motion-controller order (e.g. ["X","Y","Z"]). */
   axes: ComputedRef<string[]>;
   /** Permission-gated send wrapper from App.vue. */
-  fire: (payload: any, gate?: keyof Permissions, cooldownMs?: number) => string | null | void;
+  fire: (payload: WsCommand, gate?: keyof Permissions, cooldownMs?: number) => string | null | void;
 }
 
 /** The gate class a touch-off of `letters` needs: rotary if ANY letter is

@@ -1,0 +1,333 @@
+#!/usr/bin/env python3
+"""The test selector (test strategy step 3, Codex R248–R251): which checks a
+round runs, from a NAMED base..head diff.
+
+    python3 -I scripts/test_select/selector.py --base <commit> [--head HEAD]
+        [--repo <worktree>] [--vitest | --vitest-list <json>] [--out sel.json]
+
+Every changed path gets a decision (rules.py); the record names what was
+selected AND what was left out, with reasons. Fail closed: a missing base
+exits 2 (never an empty diff), a path no rule matches selects the full
+frontend and backend runs, an e2e helper no spec imports selects the full
+browser run, and without the `vitest list --changed` answer the heavy unit
+group runs (named). `--vitest` asks vitest in the worktree, which must then be
+clean and at head (vitest compares base with the working tree).
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from test_select.rules import (  # noqa: E402
+    FULL, HEAVY_UNIT, READ_SITES, decide, matches,
+)
+
+ROOT = Path(__file__).resolve().parents[2]
+W = "lcnc-webui/"
+E2E = W + "e2e/"
+S_SRC = W + "src/"
+SPEC_RE = re.compile(r"lcnc-webui/e2e/([^/]+)\.spec\.ts\Z")
+SHOT_RE = re.compile(r"lcnc-webui/e2e/__screenshots__/([^/]+)\.spec\.ts/")
+UNIT_RE = re.compile(r"lcnc-webui/.+\.test\.ts\Z")
+
+
+class SelectError(Exception):
+    pass
+
+
+def git(repo: Path, *args: str) -> str:
+    r = subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True)
+    if r.returncode != 0:
+        raise SelectError(f"git {' '.join(args)}: {r.stderr.strip()}")
+    return r.stdout
+
+
+def commit(repo: Path, rev: str) -> str:
+    try:
+        return git(repo, "rev-parse", "--verify", "--quiet", rev + "^{commit}").strip()
+    except SelectError:
+        raise SelectError(f"no commit {rev!r} — a missing base is never an empty diff") from None
+
+
+def changed_paths(repo: Path, base: str, head: str) -> list[tuple[str, str]]:
+    """(status, path) per changed path; a rename or copy yields both paths."""
+    out = []
+    for line in git(repo, "diff", "--name-status", "-M", base, head).splitlines():
+        parts = line.split("\t")
+        status = parts[0][0]
+        if status in "RC":
+            out.append((status + "-from", parts[1]))
+            out.append((status + "-to", parts[2]))
+        else:
+            out.append((status, parts[1]))
+    return out
+
+
+def spec_files(repo: Path, head: str) -> dict[str, str]:
+    """name → path of every spec at head."""
+    names = {}
+    for p in git(repo, "ls-tree", "-r", "--name-only", head, "--", E2E).splitlines():
+        m = SPEC_RE.match(p)
+        if m:
+            names[m.group(1)] = p
+    return names
+
+
+E2E_IMPORT = re.compile(
+    r"""(?:^|\s)(?:import|export)\s[^'"]*?from\s*['"](\.{1,2}/[^'"]+)['"]"""
+    r"""|import\(\s*['"](\.{1,2}/[^'"]+)['"]\s*\)|^\s*import\s+['"](\.{1,2}/[^'"]+)['"]""", re.M | re.S)
+
+
+class E2EGraph:
+    """The e2e files' imports at head, transitively (Codex R256 TS256-01): a
+    spec reaches what its helpers import, their helpers and the src modules
+    and data they read. Edges: relative imports (re-exports and dynamic ones
+    too) resolved to a file, and a string literal naming an e2e file (a
+    stylesheet a spec adds). An import the graph cannot resolve is a problem
+    the selection answers with the full browser run."""
+
+    def __init__(self, repo: Path, head: str):
+        self.files = {p: git(repo, "show", f"{head}:{p}")
+                      for p in git(repo, "ls-tree", "-r", "--name-only", head, "--", E2E).splitlines()
+                      if not p.startswith(E2E + "__screenshots__/") and p.endswith((".ts", ".mjs", ".js", ".css"))}
+        known = set(git(repo, "ls-tree", "-r", "--name-only", head, "--", W).splitlines())
+        self.rev: dict[str, set[str]] = {}
+        self.problems: list[str] = []
+        helpers = [p for p in self.files if not SPEC_RE.match(p)]
+        for f, text in self.files.items():
+            for m in E2E_IMPORT.finditer(text):
+                rel = m.group(1) or m.group(2) or m.group(3)
+                target = self._resolve(f, rel, known)
+                if target is None:
+                    self.problems.append(f"{f}: import {rel!r} resolves to no file")
+                else:
+                    self.rev.setdefault(target, set()).add(f)
+            for h in helpers:
+                if h != f and re.search(r"""['"`][^'"`]*%s['"`]""" % re.escape(Path(h).name), text):
+                    self.rev.setdefault(h, set()).add(f)
+
+    @staticmethod
+    def _resolve(importer: str, rel: str, known: set[str]) -> str | None:
+        base = Path(importer).parent / rel
+        for cand in (base, Path(f"{base}.ts"), Path(f"{base}.mjs"), Path(f"{base}.js"), base / "index.ts"):
+            norm = os.path.normpath(cand.as_posix())
+            if norm in known:
+                return norm
+        return None
+
+    def specs_reaching(self, target: str) -> set[str]:
+        seen, stack, specs = {target}, [target], set()
+        while stack:
+            for y in self.rev.get(stack.pop(), ()):
+                if y in seen:
+                    continue
+                seen.add(y)
+                m = SPEC_RE.match(y)
+                if m:
+                    specs.add(m.group(1))
+                stack.append(y)
+        return specs
+
+
+def readers_of(path: str) -> list[str]:
+    """The scanned files whose declared reads (READ_SITES) cover a path."""
+    return sorted(f for f, reads in READ_SITES.items()
+                  if any(r.reads and any(matches(g, path) for g in r.reads) for r in reads))
+
+
+def vitest_changed(repo: Path, base: str) -> list[str]:
+    """The unit files `vitest list --changed <base>` names (import graph)."""
+    if git(repo, "status", "--porcelain", "--", "lcnc-webui"):
+        raise SelectError("vitest compares base with the working tree: lcnc-webui must be clean, untracked files too")
+    out = repo / "lcnc-webui" / "node_modules" / ".cache" / "test-select-vitest.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    r = subprocess.run(["npx", "vitest", "list", "--changed", base, "--filesOnly",
+                        f"--json={out}"], cwd=repo / "lcnc-webui", capture_output=True, text=True)
+    if r.returncode != 0:
+        raise SelectError(f"vitest list --changed failed: {r.stderr.strip()[-400:]}")
+    return files_from_vitest_list(json.loads(out.read_text()), repo)
+
+
+def files_from_vitest_list(data: list[dict], repo: Path) -> list[str]:
+    files = set()
+    for row in data:
+        f = row["file"]
+        rel = f.split("/lcnc-webui/", 1)[-1] if "/lcnc-webui/" in f else f
+        files.add(W + rel)
+    return sorted(files)
+
+
+def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
+           historical: bool = False) -> dict:
+    base_c, head_c = commit(repo, base), commit(repo, head)
+    changes = changed_paths(repo, base_c, head_c)
+    specs = spec_files(repo, head_c)
+    graph = E2EGraph(repo, head_c)
+    deleted = {p for s, p in changes if s in ("D", "R-from")}
+
+    browser: set[str] = set()
+    browser_full: list[str] = []
+    backend: list[str] = []
+    heavy: list[str] = []          # reasons
+    heavy_all = False              # the whole group, or only heavy_files
+    heavy_files: set[str] = set()
+    unit_changed: set[str] = set()
+    firefox: list[str] = []
+    live: dict[str, list[str]] = {}
+    unmatched: list[str] = []
+    rows = []
+
+    for status, path in changes:
+        row = {"status": status, "path": path}
+        rows.append(row)
+        gone = path in deleted
+        m_spec, m_shot = SPEC_RE.match(path), SHOT_RE.match(path)
+        if m_spec or m_shot:
+            name = (m_spec or m_shot).group(1)
+            if name in specs:
+                browser.add(name)
+                row["decision"] = f"the spec itself: {name}"
+            else:
+                row["decision"] = "a spec that is gone at head: nothing to run"
+            continue
+        if UNIT_RE.match(path):
+            if not gone:
+                unit_changed.add(path)
+                if path in HEAVY_UNIT:
+                    heavy.append(f"{path} changed: runs itself")
+                    heavy_files.add(path)
+            row["decision"] = "a unit file: runs itself" if not gone else "a unit file that is gone"
+            continue
+        if path.startswith(E2E) and not path.startswith(E2E + "__screenshots__/"):
+            if gone:
+                row["decision"] = "an e2e helper that is gone: its importers changed and select themselves"
+                continue
+            d = decide(path)
+            if d.unmatched:     # no central rule: the specs reaching it through their imports
+                reaching = graph.specs_reaching(path)
+                if reaching:
+                    browser |= reaching
+                    row["decision"] = "an e2e helper: the specs reaching it: " + ", ".join(sorted(reaching))
+                else:
+                    browser_full.append(f"{path}: an e2e helper no spec reaches")
+                    row["decision"] = "an e2e helper no spec reaches: the full browser run"
+                continue
+        d = decide(path)
+        row["rules"] = d.rules
+        if d.none is not None:
+            row["decision"] = f"no product tests: {d.none}"
+            continue
+        if d.unmatched:
+            unmatched.append(path)
+            row["decision"] = "NO RULE: the full frontend and backend runs"
+        owner = "no rule owns it (fail closed)" if d.unmatched else d.rules[0]
+        if d.browser_full:
+            browser_full.append(f"{path}: {owner}")
+        browser |= d.browser
+        if d.backend:
+            backend.append(f"{path}: {owner}")
+        if d.heavy:
+            heavy.append(f"{path}: no rule owns it — the whole heavy group")
+            heavy_all = True
+        if d.firefox:
+            firefox.append(path)
+        for check in d.live:
+            live.setdefault(check, []).append(path)
+        readers = readers_of(path)
+        for f in readers:
+            m = SPEC_RE.match(f)
+            if f in HEAVY_UNIT:
+                heavy.append(f"{path}: read by {f}")
+                heavy_files.add(f)
+            elif m:
+                browser.add(m.group(1))
+            else:   # an e2e helper's read selects the specs reaching the helper
+                browser |= graph.specs_reaching(f)
+        if path.startswith(S_SRC) and not gone:   # a src module the specs import themselves
+            browser |= graph.specs_reaching(path)
+        if readers:
+            row["reads"] = readers
+        row.setdefault("decision", "the rules: " + "; ".join(d.rules))
+
+    if graph.problems:
+        browser_full.extend(f"{p} (fail closed)" for p in graph.problems)
+    missing = sorted(browser - set(specs))
+    if missing and not historical:
+        raise SelectError(f"rules name specs that do not exist at head: {missing}")
+    browser -= set(missing)   # a dry run on an older head: the rules are newer than it
+
+    if vitest_files is None:
+        heavy.append("vitest list --changed not asked: the whole heavy group (fail closed)")
+        heavy_all = True
+        related: list[str] = []
+    else:
+        related = vitest_files
+        for f in related:
+            if f in HEAVY_UNIT:
+                heavy.append(f"{f}: reached through the import graph (vitest list --changed)")
+                heavy_files.add(f)
+
+    return {
+        "base": base_c, "head": head_c,
+        "changed": rows,
+        "unmatched": unmatched,
+        "absent_at_head": missing,
+        "unit": {
+            "light": "every unit file but HEAVY_UNIT — every round",
+            "heavy": sorted(HEAVY_UNIT) if heavy_all else sorted(heavy_files),
+            "heavy_reasons": heavy,
+            "changed": sorted(unit_changed),
+            "related": related,
+        },
+        "browser": ({"run": FULL, "reasons": browser_full} if browser_full
+                    else {"run": sorted(browser), "reasons": [] if browser else
+                          ["no path selects a browser spec"]}),
+        "backend": ({"run": True, "reasons": backend} if backend else
+                    {"run": False, "reasons": ["no path under a backend rule: a UI-only round"]}),
+        "firefox": ({"needed": True, "paths": firefox,
+                     "status": "pending: the pinned Mozilla target is not built yet (step 6)"}
+                    if firefox else {"needed": False}),
+        "live": {k: sorted(set(v)) for k, v in sorted(live.items())},
+    }
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--base", required=True)
+    ap.add_argument("--head", default="HEAD")
+    ap.add_argument("--repo", type=Path, default=ROOT)
+    g = ap.add_mutually_exclusive_group()
+    g.add_argument("--vitest", action="store_true", help="ask vitest in the repo (clean tree at head)")
+    g.add_argument("--vitest-list", type=Path, help="a saved `vitest list --changed --json` answer")
+    ap.add_argument("--historical", action="store_true",
+                    help="a dry run on an older head: drop rule-named specs it does not have")
+    ap.add_argument("--out", type=Path)
+    a = ap.parse_args(argv)
+    try:
+        vitest_files = None
+        if a.vitest:
+            if commit(a.repo, "HEAD") != commit(a.repo, a.head):
+                raise SelectError("--vitest needs the worktree at head")
+            vitest_files = vitest_changed(a.repo, a.base)
+        elif a.vitest_list:
+            vitest_files = files_from_vitest_list(json.loads(a.vitest_list.read_text()), a.repo)
+        sel = select(a.repo, a.base, a.head, vitest_files, a.historical)
+    except SelectError as e:
+        print(f"test_select: {e}", file=sys.stderr)
+        return 2
+    text = json.dumps(sel, indent=2, ensure_ascii=False)
+    if a.out:
+        a.out.write_text(text + "\n")
+    else:
+        print(text)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

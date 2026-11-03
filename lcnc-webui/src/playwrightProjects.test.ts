@@ -1,22 +1,24 @@
-// Every serial Playwright project runs its FILES on one worker. The serial
-// projects share ONE mock gateway whose state (viewer_init, programs, axes)
-// is global: `fullyParallel: false` only serialises a file's tests, so a
-// project with two files and no `workers: 1` runs them side by side. That
-// happened when scenes.viewer.spec.ts joined viewer.spec.ts (review round
-// 6): the clean-rebuild spec loaded the scenes spec's model and previews and
-// failed in every full `playwright test` — the offline gate — while the
-// per-project runs, forced to one worker, stayed green.
+// The browser suite's ONE project (per-worker mock, Codex R261/R262): a
+// file's tests in order on one worker (fullyParallel false, no describe
+// running its tests side by side), files spread over the workers, each
+// worker with its own mock (the automatic fixture in e2e/test.ts). The old
+// chain of serial projects existed only because ONE mock was shared — the
+// clean-rebuild spec once loaded another spec's model and failed in every
+// full run; that state is now each worker's own, reset before every test.
+// The worker count comes from ONE variable (LCNC_E2E_WORKERS), which the
+// round gate also uses for the slot ports it checks.
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 
 // node:fs, not an import: the config imports Playwright, which vitest need not load.
 const config = readFileSync(new URL("../playwright.config.ts", import.meta.url), "utf8");
 
-describe("Playwright serial projects", () => {
-  it("every serial project runs its files on one worker", () => {
-    // A project object closes at four spaces of indentation.
-    const projects = [...config.matchAll(/name:\s*"(serial-[\w-]+)"([\s\S]*?)\n {4}\}/g)];
-    expect(projects.length, "the serial chain").toBeGreaterThanOrEqual(8);
-    expect(projects.filter(([, , body]) => !/\bworkers:\s*1\b/.test(body!)).map(([, name]) => name)).toEqual([]);
+describe("Playwright project", () => {
+  it("one project, a file's tests in order, the worker count from LCNC_E2E_WORKERS", () => {
+    expect([...config.matchAll(/\bname:\s*"([\w-]+)"/g)].map(m => m[1])).toEqual(["e2e"]);
+    expect(config).toMatch(/\bfullyParallel:\s*false\b/);
+    expect(config).not.toMatch(/\bfullyParallel:\s*true\b/);
+    expect(config).toMatch(/\bworkers:\s*Number\(process\.env\.LCNC_E2E_WORKERS \?\? 3\)/);
+    expect(config).not.toMatch(/\bdependencies:/);
   });
 });

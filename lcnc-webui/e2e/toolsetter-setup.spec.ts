@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Locator } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "./test";
 import { ctl, MOCK, publishToolTable } from "./ctl";
 
 // Codex review R15 B1: the toolsetter's values reach the machine only when it
@@ -12,7 +12,8 @@ import { ctl, MOCK, publishToolTable } from "./ctl";
 // data pending, a partial section, a save never confirmed, the takeover
 // refused, a valid setup with zeros, Reset, another INI's blob.
 //
-// Runs under `serial-guards`: mock-global state (replies, command log).
+// The worker's own mock (e2e/test.ts): its state is this test's alone, reset
+// and checked before every test.
 
 const PERMS_ALL = {
   idle: true, jog: true, override: true, ready: true, run: true, pause: false,

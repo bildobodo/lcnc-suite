@@ -1,4 +1,5 @@
-import { test, expect, type Page, type Locator } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "./test";
+import { enterTouch } from "./touchMode";
 import { ctl, MOCK } from "./ctl";
 import { measureLayout } from "./layout-audit";
 
@@ -12,8 +13,8 @@ import { measureLayout } from "./layout-audit";
 // never widens the section nor moves a fixture.
 //
 // The expected arrangement is written out per config (Codex R234: literal
-// values, never the rule run again). Runs in serial-layout (setAxes and
-// setKins are mock-global).
+// values, never the rule run again). setAxes and setKins act on the
+// worker's own mock (e2e/test.ts).
 
 const TRSRN = { module: "xyzacb_trsrn", type: "xyzacb-trsrn", identity_first: false, params: {} };
 const TRT = { module: "xyzac-trt-kins", type: "xyzac-trt", identity_first: true, params: {} };
@@ -73,7 +74,7 @@ async function open(page: Page, c: Config, s: Surface) {
   await ctl({ op: "setKins", kins: c.kins ?? null });
   await page.goto(MOCK);
   await expect(page.locator("input.setupInput")).toHaveCount(c.axes.length);
-  if (s.touch) await page.evaluate(() => document.documentElement.classList.add("touch-device"));
+  if (s.touch) await enterTouch(page);
   if (s.zoom) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, s.zoom);
   await setState(page, c, "live");
 }
@@ -391,4 +392,3 @@ test("a new axis set re-lays the section out", async ({ page }) => {
   expect(g30.x + g30.width, "and into its column").toBeGreaterThan(u.x);
 });
 
-test.afterAll(async () => { await ctl({ op: "reset" }); });

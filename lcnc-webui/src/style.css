@@ -239,6 +239,10 @@
   --hl-surface: color-mix(in oklab, var(--fg) 8%, transparent);
   --hl-surface-info: color-mix(in oklab, var(--info) var(--tint-faint), transparent);
   --hl-surface-ok: color-mix(in oklab, var(--ok) var(--tint-faint), transparent);
+  /* Where the program stands — the code panel's running or scrubbed line,
+     the Sim tab's marked row (operator 2026-11-01: one look for both): the
+     highlight at the active tint over the panel; its bar is --highlight. */
+  --hl-position: color-mix(in oklab, var(--highlight) var(--tint-active), var(--panel));
 
   /* ViewCube palette — derived from theme tokens, auto-switches per data-theme */
   --viewcube-face:  color-mix(in oklab, var(--fg) 10%, var(--bg));
@@ -1913,7 +1917,7 @@ label:has(input:disabled, select:disabled) {
 
 .codeLine.active,
 .codeFollowBand {
-  background: color-mix(in oklab, var(--highlight) var(--tint-active), var(--panel));
+  background: var(--hl-position);
   border-left: 3px solid var(--highlight);
 }
 .codeLine.active { padding-left: 9px; }
@@ -1942,9 +1946,14 @@ label:has(input:disabled, select:disabled) {
 }
 
 /* Line flagged by offline validation — tinted line number so the marker
-   survives next to active/selected backgrounds: soft-limit overtravel is
-   warn, a collision-sweep contact is danger (same colours as the scrub
-   bar's timeline marks; a line with both reads danger — later rule wins). */
+   survives next to active/selected backgrounds: a tool change in its mark's
+   colour, soft-limit overtravel warn, a collision-sweep contact danger (the
+   scrub bar's timeline marks; a line with more reads the last — later rule
+   wins). */
+.codeLine.toolChange .lineNumber,
+.codeLine.toolChange .lineMark {
+  color: var(--mark-tool);
+}
 .codeLine.violation .lineNumber,
 .codeLine.violation .lineMark {
   color: var(--mark-limit);

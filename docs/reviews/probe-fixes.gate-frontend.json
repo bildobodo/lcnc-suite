@@ -1,0 +1,34 @@
+{
+  "head": "9d152d4e",
+  "uncommitted": 0,
+  "note": "fix/probe-vars at 9d152d4e: the grid at 286 px (run 1 at 769760ce: the Angle tab past its section at 294, 18 footprint failures); Playwright alone",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 9
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 18
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npx vitest run --reporter=default --reporter=json --outputFile.json=/home/cnc/lcnc-suite-probe/docs/reviews/probe-fixes.gate-frontend.logs/vitest.json",
+      "status": "PASS",
+      "seconds": 467,
+      "tests": "168 files, 2672 passed"
+    },
+    {
+      "name": "frontend-browser",
+      "command": "PLAYWRIGHT_JSON_OUTPUT_FILE=/home/cnc/lcnc-suite-probe/docs/reviews/probe-fixes.gate-frontend.logs/playwright.json PLAYWRIGHT_JSON_OUTPUT_NAME=/home/cnc/lcnc-suite-probe/docs/reviews/probe-fixes.gate-frontend.logs/playwright.json npx playwright test --trace off --reporter=line,json",
+      "status": "PASS",
+      "seconds": 3237,
+      "tests": "831 passed",
+      "note": "run alone"
+    }
+  ]
+}

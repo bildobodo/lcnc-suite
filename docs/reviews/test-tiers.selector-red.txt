@@ -1,0 +1,64 @@
+# Test selector guards (step 3) — red first, 2026-11-03T06:09:09+01:00
+# tree: feat/test-tiers 9f3fe7ad + uncommitted selector changes
+
+## Two reds the guards found while being written
+- test_every_e2e_disk_read_outside_the_frontend_is_declared: ('toolsetter.viewer', 'examples/sim_config/machine-5axis-xyzac') — the spec reads the 5-axis model and was not declared; SPEC_READS now names it
+- test_an_e2e_helper_selects_its_importers_and_an_orphan_the_full_run: 'full' == ['joint-jog'] — a helper with no central rule fell to the fail-closed default; the helper branch now asks for its importers when no rule matches
+
+## The import graph against the rule table (graph.py, first run at fa8c6b3f's rules)
+- 133 modules missed areas of the components they render through; without type-only imports: 85 missed the UI sweep (or an area) of their components, 46 reached a central component (App.vue, MachineInput.vue, ChoiceGroup.vue).
+- The chains: lcncWs → ws/bulkData → previewWorker (a worker, new URL) → viewer/scrubTrack → viewer/kins; lcncWs → defaults → probeVars; lcncWs → ws/statusStore → runBasis; App.vue → (its features' modules).
+- Three named cuts (graph.CUTS + the worker rule): App.vue composes features, defaults.ts takes default values, a worker is a terminal with its own rule. Left reaching a central component: 9 modules on the status and bulk path → FULL (rules.py).
+- Every module now carries the UI sweep (an ADDITIVE rule: it never owns a path, so a new module still selects the full run), and eight shared-module rules carry the areas the graph named (codeGlide/trackHighlight/limitMarks → program + viewer, the toolsetter values → toolsetter + tools + program + viewer + probing, …). Guard: 0 problems.
+- The snap branch's toolMarks.ts (GcodePanel → toolMarks → viewer/toolChangeScan) will make the guard ask PROGRAM of toolChangeScan at the merge — the gap this guard exists for.
+
+## Mutations: each breaks one rule or one mechanism; every one must be red, in its own guard
+(no bytecode cache: two mutants of one file with the same size in the same mtime second loaded the previous mutant's .pyc — an earlier run of the overlap mutant named the listing guard)
+RED  a source loses its rule: ['test_every_tracked_source_has_a_rule']
+RED  a rule names a missing spec: ['test_every_named_spec_exists']
+RED  a rule glob matches nothing: ['test_every_rule_glob_matches_a_tracked_file']
+RED  a heavy data path dropped: ['test_the_heavy_loader_reads_only_what_its_entry_declares']
+RED  a heavy file dropped: ['test_heavy_unit_files_exist_and_no_other_file_is_as_slow']
+RED  a read site undeclared: ['test_every_read_site_is_declared_exactly']
+RED  unmatched no longer full: ['test_a_new_source_without_a_rule_selects_everything']
+RED  missing base reads as empty: ['test_a_missing_base_is_an_error_never_an_empty_diff']
+RED  no vitest answer skips heavy: ['test_without_the_vitest_answer_the_heavy_group_runs']
+RED  a changed heavy test runs the group: ['test_a_changed_heavy_test_runs_exactly_itself']
+RED  docs select backend: ['test_documentation_selects_no_product_test_and_says_why']
+RED  a shared module loses an area: ['test_a_module_holds_the_selection_of_every_component_it_reaches']
+RED  a status-path module not FULL: ['test_a_module_holds_the_selection_of_every_component_it_reaches']
+RED  the sweep owns a path alone: ['test_a_new_source_without_a_rule_selects_everything']
+RED  a worker counts as an import: ['test_a_module_holds_the_selection_of_every_component_it_reaches']
+RED  Codex R256: a second read in a heavy file: ['test_every_read_site_is_declared_exactly']
+RED  Codex R256: a second read in a spec, joined path: ['test_every_read_site_is_declared_exactly']
+RED  Codex R257: a second read on the declared line: ['test_every_read_site_is_declared_exactly']
+RED  Codex R257: a read with a line break before its parenthesis: ['test_every_read_site_is_declared_exactly']
+RED  Codex R258: a namespace member after a line break: ['test_every_read_site_is_declared_exactly']
+RED  Codex R258: a mixed default + named IO import: ['test_every_read_site_is_declared_exactly']
+RED  a dynamic import of node:fs: ['test_every_read_site_is_declared_exactly']
+RED  Codex R259: a named default import: ['test_every_read_site_is_declared_exactly']
+RED  Codex R259: a named promises import: ['test_every_read_site_is_declared_exactly']
+RED  Codex R259: fs.promises taken as a value: ['test_every_read_site_is_declared_exactly']
+RED  Codex R259: readFile destructured from fs.promises: ['test_every_read_site_is_declared_exactly']
+RED  an alias of a read primitive: ['test_every_read_site_is_declared_exactly']
+RED  helpers reached one import deep only: ['test_the_real_chain_reaches_the_spec_two_helpers_up']
+RED  a helper's data selects nothing: ['test_data_a_helper_reads_selects_the_specs_reaching_the_helper']
+RED  a UI-only round skips the guards: ['test_every_round_runs_the_selection_guards_first']
+RED  a listed test that never ran passes: ['test_every_listed_test_ran_once_and_nothing_else_ran']
+RED  the listing gets the run's report variables: ['test_a_listing_prints_its_json_never_into_the_runs_report']
+RED  the gate reuses a running server: ['test_the_gate_configs_start_their_own_servers_and_refuse_a_focused_test']
+RED  a unit retry passes: ['test_every_listed_unit_test_ran']
+RED  a spec on Playwright's own test: ['test_every_spec_takes_its_test_from_the_fixture_file']
+RED  a spec names the old shared mock: ['test_no_mock_address_outside_its_binding']
+RED  a file-level hook beside the per-test reset: ['test_no_state_outlives_the_per_test_reset']
+RED  slot 16 accepted: ['test_a_worker_slot_is_a_whole_index_in_range_and_nothing_else_binds']
+RED  a mock shared by two workers passes: ['test_every_test_ran_on_its_own_workers_mock_one_after_another']
+RED  listing ignores the project: ['test_the_listing_is_exactly_the_selection_in_the_full_projects']
+
+## Restored
+43 passed in 2.71s
+
+## The proofs on real reports
+select config --list for ['visual', 'layout', 'armed', 'sim-panel.viewer', 'probe-click', 'tool-holder', 'choices'] → exactly the selection, each file in its full-config project
+the same listing against one more selected spec → ['tabs.spec.ts: selected but not listed']
+(the order proof went with the chain of projects — check_workers proves each worker one test after another on its own mock, from the fixture event log of every gate run)

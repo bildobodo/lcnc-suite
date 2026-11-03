@@ -16,6 +16,13 @@ SOURCE = ROOT / "examples/sim_config"
 CATALOG = json.loads((SOURCE / "profiles.json").read_text())
 
 
+def webui_rows(text):
+    """A var file's WebUI parameters (#3000-#3999) and the rest, as lines."""
+    lines = [line for line in text.splitlines() if line.split()]
+    mine = [line for line in lines if 3000 <= int(line.split()[0]) < 4000]
+    return mine, [line for line in lines if line not in mine]
+
+
 class ExampleInstallTest(unittest.TestCase):
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()
@@ -87,6 +94,34 @@ class ExampleInstallTest(unittest.TestCase):
         self.assertEqual(sorted(p.name for p in macros.glob("*.ngc")),
                          sorted(Path(m).name for m in CATALOG["macros"]))
 
+    def test_an_installed_var_file_gets_the_numbers_the_example_declares(self):
+        # Operator 2026-11-02: the probe panel's #3015-#3059 were declared in no
+        # example, so the gateway refused every probe (W3: only declared numbers).
+        # An installed var file is the machine's state and never replaced: the
+        # numbers it lacks come in, in order, and its own values stay.
+        self.install()
+        for profile in CATALOG["profiles"]:
+            var = self.dest / profile["state_dir"] / "sim.var"
+            lines = var.read_text().splitlines(keepends=True)
+            kept = [l for l in lines if not 3015 <= int(l.split()[0]) <= 3059]
+            kept = [("3014\t7.000000\n" if l.split()[0] == "3014" else l) for l in kept]
+            var.write_text("".join(kept))
+        report = []
+        installer.install(ROOT, self.dest, self.backups, report=report)
+        for profile in CATALOG["profiles"]:
+            rel = profile["state_dir"] + "/sim.var"
+            rows = [l.split() for l in (self.dest / rel).read_text().splitlines() if l.split()]
+            nums = [int(r[0]) for r in rows]
+            values = {int(r[0]): float(r[1]) for r in rows}
+            shipped = {int(l.split()[0]) for l in (SOURCE / rel).read_text().splitlines()
+                       if l.split() and 3000 <= int(l.split()[0]) < 4000}
+            self.assertEqual(sorted(shipped - set(nums)), [], rel)
+            self.assertEqual(nums, sorted(set(nums)), f"{rel}: in ascending order, once each")
+            self.assertEqual(values[3014], 7.0, f"{rel}: its own value stays")
+            self.assertEqual(values[3016], 200.0, f"{rel}: a new number takes the example's value")
+            self.assertTrue(any(rel in line and "#3015" in line for line in report), report)
+        self.assertIsNone(self.install())  # nothing left to declare: no writes
+
     def test_the_example_macros_come_once_and_a_deleted_one_stays_gone(self):
         self.install()
         park = self.user_home / "linuxcnc/macros/park.ngc"
@@ -152,7 +187,10 @@ class ExampleInstallTest(unittest.TestCase):
         self.assertEqual(backup.stat().st_mode & 0o777, 0o700)
         self.assertEqual((backup / "config" / profile["previous_ini"]).read_text(), old)
         self.assertEqual((backup / "config/hallib/custom.hal").read_text(), "operator modification")
-        self.assertEqual((self.dest / "xyz3/sim.var").read_text(), "5221 123.45\n")
+        # The state is kept; only the WebUI's numbers come in from the example.
+        mine, rest = webui_rows((self.dest / "xyz3/sim.var").read_text())
+        self.assertEqual(rest, ["5221 123.45"])
+        self.assertEqual(mine, webui_rows((SOURCE / "xyz3/sim.var").read_text())[0])
         self.assertEqual((self.dest / "xyz3/tool.tbl").read_text(), "T7 P7 Z99 D8\n")
         self.assertFalse((self.dest / 'xyz3/tool.seed.json').exists())
         ini = (self.dest / profile["ini"]).read_text()
@@ -162,9 +200,12 @@ class ExampleInstallTest(unittest.TestCase):
         self.assertFalse((self.dest / "lcnc_suite_sim_dmu160p.ini").exists())
         # Neither upgrading nor re-running may transplant old 5-axis tool geometry.
         self.assertEqual((self.dest / "xyzac5/tool.tbl").read_bytes(), (SOURCE / "xyzac5/tool.tbl").read_bytes())
-        (self.dest / "xyzac5/sim.var").write_text("local offsets")
+        # Local state is kept: a rerun only declares the WebUI's numbers it lacks,
+        # and the one after writes nothing.
+        (self.dest / "xyzac5/sim.var").write_text("5221 42\n")
+        self.install()
+        self.assertEqual(webui_rows((self.dest / "xyzac5/sim.var").read_text())[1], ["5221 42"])
         self.assertIsNone(self.install())
-        self.assertEqual((self.dest / "xyzac5/sim.var").read_text(), "local offsets")
 
     def test_upgrade_keeps_existing_table_without_seeding_and_preserves_custom_import_folder(self):
         self.install()
@@ -250,7 +291,9 @@ class ExampleInstallTest(unittest.TestCase):
         config = installer.values(ini.read_text())
         self.assertEqual(config["TRAJ", "POSITION_FILE"], "xyzac5/position.txt")
         self.assertEqual(config["DISPLAY", "WEBUI_DEV"], "1")
-        self.assertEqual(offsets.read_text(), "5221 42\n")
+        mine, rest = webui_rows(offsets.read_text())
+        self.assertEqual(rest, ["5221 42"])
+        self.assertEqual(mine, webui_rows((SOURCE / "xyzac5/sim.var").read_text())[0])
         self.assertEqual(position.read_bytes(), (SOURCE / "xyzac5/position.txt").read_bytes())
         # Once the controller has saved a different pose, updates preserve it.
         saved = "\n".join(map(str, [10, 20, 350, 15, 45] + [0] * 11)) + "\n"

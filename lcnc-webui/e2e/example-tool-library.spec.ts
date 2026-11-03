@@ -1,5 +1,5 @@
-import { test, expect, type Locator, type Page } from "@playwright/test";
-import { expectArmed } from "./ctl";
+import { test, expect, type Locator, type Page } from "./test";
+import { expectArmed, MOCK } from "./ctl";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -7,7 +7,6 @@ import WebSocket from "ws";
 import { assertLayout, layoutChanges, measureLayout } from "./layout-audit";
 import { clickMore, moreItem } from "./more";
 
-const MOCK = process.env.TOOL_IMPORT_TEST_URL ?? "http://localhost:4174/";
 const raw = readFileSync(new URL("../../examples/sim_config/tool-libraries/fusion-freecad.json", import.meta.url));
 const tools = JSON.parse(execFileSync("python3", ["-c", `
 import json

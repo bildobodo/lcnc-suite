@@ -1,6 +1,7 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
 import { readFileSync } from "node:fs";
 import { ctl } from "./ctl";
+import { framesDrawn, topViewStands } from "./viewerSettle";
 import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
 
 // The tool setter in the 3D view (operator 2026-09-29): a puck in the machine
@@ -211,7 +212,8 @@ test("the tool setter is a pin drawn over the machine while on top, hidden by th
     viewer: { machineEdges: false, layers: { ...QUIET, toolChange: false, toolsetter: shown }, onTop: { toolsetter: onTop } } });
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: settings(true, true) } });
   await page.evaluate(() => window.__viewerDiag!.setView!("z+"));
-  await page.waitForTimeout(800);
+  await topViewStands(page);
+  await framesDrawn(page);
   const at = (await page.evaluate(() => window.__viewerDiag!.getToolsetter!()))!;
   expect(at).toMatchObject({ visible: true, top: [150, 0, -300], onTop: true });
   /** The pixels within ±48 CSS px of the pin's point. */

@@ -1,4 +1,4 @@
-import { test, expect, type Page, type BrowserContext } from "@playwright/test";
+import { test, expect, type Page, type BrowserContext } from "./test";
 import { encode } from "@msgpack/msgpack";
 import { withLimitRuns } from "./limitRuns";
 import { ctl } from "./ctl";

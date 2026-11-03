@@ -9,7 +9,7 @@
 // control (data-control = its catalog entry) whose gate needs arm must be
 // disabled AND carry its reason; a free one may act. The static inventory
 // (src/controlInventory.ts) names what each free control does.
-import { test, expect, type Page, type Locator } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "./test";
 import { ctl, MOCK } from "./ctl";
 import { moreItem } from "./more";
 import { BUTTON_TYPES, INPUT_DEFS } from "../src/machineControls";

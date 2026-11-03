@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
+import { enterTouch } from "./touchMode";
 import { ctl as ctlSend, MOCK } from "./ctl";
 import { clickMore } from "./more";
 
@@ -84,7 +85,7 @@ test.describe('strip layout', () => {
         await page.setViewportSize(portrait ? { width: 900, height: 1200 } : { width: 1600, height: 1000 });
         await page.goto(MOCK);
         await expect(page.getByRole('button', { name: 'Zero X', exact: true })).toBeVisible();
-        if (layout.includes('touch')) await page.evaluate(() => document.documentElement.classList.add('touch-device'));
+        if (layout.includes('touch')) await enterTouch(page);
         await ctlSend({ op: 'setAxes', axes: profile.axes });
         await ctlSend({ op: 'setKins', kins: profile.kins });
         const homed = {

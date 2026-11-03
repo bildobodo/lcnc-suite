@@ -13,6 +13,102 @@ Playwright Chromium with `npx playwright install --with-deps chromium` there.
 | `python3 scripts/test_suite.py offline --component frontend` | Frontend checks, including recorded parity replay | None |
 | `lcnc-gateway/.venv/bin/python scripts/test_suite.py live-twp --ini /path/lcnc_suite_sim_6axis_twp_xyzabc.ini --allow-sim-motion` | Fresh preview goldens, cached-payload parity and plane invariants, mode/button, capture, reorient, touch-off and adverse-path checks | Yes, simulator only |
 
+## Round gate and merge gate (test strategy, Codex R248–R260)
+
+An implementation round runs the **round gate**: only the checks its change
+needs, chosen from a named base, with the proof of what ran. A merge runs the
+**full** offline gate on the integrated state (`test_suite.py offline`, or the
+round gate's FULL path); a full run already made on the identical state is
+reused. Live checks (`live-twp`, `twp_buttons_check.py`, the macro and
+toolsetter read-backs, `perf_matrix.py`, the probe live check) stay owed before
+main and stand as `pending` in the record.
+
+```
+lcnc-gateway/.venv/bin/python3 scripts/test_select/round_gate.py \
+    --base <the package's last accepted commit> --out docs/reviews/<topic>.gate-round.json
+```
+
+The tree must be clean. In order, never two at once: the selector's own
+guards (`scripts/test_select/test_selector.py` — red guards end the gate before
+anything is left out), the selection, lint, build, the light unit set (every
+unit file but the eight heavy collision files, `--allowOnly=false`), the heavy
+files the change reaches, the backend offline gate when a backend path changed,
+the browser run. The browser run needs port 4173 and the mock slots
+`4500 … 4500 + N − 1` free, starts its own servers (`playwright.gate.config.ts`
+for FULL, `playwright.select.config.ts` for a selection: the one project
+narrowed to the selected files) and forbids `.only`. Every listed test must
+have run exactly once (`proof.check_executed`; units `check_unit_executed`, a
+test passed only after a retry fails), each on one worker against that
+worker's own mock (`proof.check_workers`, from the fixture's event log of
+THIS run — the gate gives the run its own id, which every event and the
+report's `config.metadata.run` carry, and starts a fresh log: every mock bound
+once on its slot's port and endpoint and stopped by the same worker; every
+result of the report exactly one start/end pair with its retry, on the worker
+and slot the report names, on the mock that worker bound, inside its life; no
+pair without a result; a worker's tests one after another; on a slot the
+mocks follow each other; order by the log's lines, never its clock — Codex
+R263 PM263-02). The record names every check run and left out with its
+reason, and the unit's CPU time and peak memory.
+
+**The browser run in parallel** (per-worker mock, Codex R261–R263): ONE
+project `e2e` on N workers (`LCNC_E2E_WORKERS`, default 3), `fullyParallel:
+false` (a file's tests in order on one worker). Every worker starts its OWN
+mock gateway on its slot (`TEST_PARALLEL_INDEX`, port 4500 + slot;
+`e2e/mockSlot.mjs`, `e2e/mockFixture.ts`): ready only at its own child's
+`MOCK-BOUND` line, an owner registry per run and slot, a busy port waited for
+only while the run's own predecessor on that slot leaves (5 s), a foreign
+process never used or stopped. Before every test the fixture `mockBaseline`
+(`e2e/test.ts`) confirms the baseline — no app socket of the test before,
+`reset`, the WHOLE snapshot equal to the mock's first and a fresh app
+client's connect frames, read off the wire, equal to its first (a key a test
+added at the status' top level once survived the reset unseen, R263
+PM263-01) — and closes every context
+the test left open. A spec imports `test` from `./test`, never from
+`@playwright/test`; file hooks (`beforeAll`/`afterAll`) and
+`describe.parallel`/`configure` are refused. `scripts/test_select/
+proof_harness.py` proves the isolation (two workers at once, a shared mock
+seen as the counter-proof, file after file, a crashed worker's replacement,
+the delayed handoff in and past its bound, a foreign server).
+
+**A test reads after a signal, never after a fixed wait.** Parallel workers
+load the machine: the first parallel full runs (2026-11-03) found seven load
+races in six tests, every one a read whose precondition a fixed wait or a
+stale match only assumed — a list's "complete" mark matched the list BEFORE
+the new one (`filled` in `sim-panel.viewer.spec.ts` waits for the new list's
+last frame), a view read 400 ms into its 300 ms turn (`viewerSettle.ts`:
+`topViewStands`, `framesDrawn`), the run's position sent once after a poll
+that waits up to 500 ms between reads, against a 400 ms timer (now at the
+gateway's cadence). A HOLD test runs on the test's clock (`page.clock`):
+installed before the page loads, paused a second ahead while the cancelling
+event lands, `runFor(HOLD_MS)` with the finger still down (a release before
+the hold time is a tap and ends any hold — a test that releases first proves
+nothing), then the release and a 300 ms window for what a fired hold sent.
+To reproduce a load race: the tests `--repeat-each` on three workers beside
+CPU burners (one `while 1: pass` per spare core) — red before the fix, green
+after it under the same load.
+
+**The selector** (`scripts/test_select/selector.py`, `rules.py`): every
+changed path gets a decision. A rule owns a path (a spec group, FULL, backend,
+live checks, or "no product code"); a path no rule owns selects the full
+frontend and backend runs. Every module under `src` carries the UI sweep
+(layout, contrast, visual, dialogs) and must hold the selection of every
+component it renders through (`graph.py`, three named cuts: App.vue, defaults,
+workers). A changed spec or unit file runs itself; an e2e helper selects the
+specs that reach it (transitively, `E2EGraph`); a data file selects the files
+whose declared reads cover it (`READ_SITES`: every read call in the heavy files,
+the e2e files and node-side src modules, found by the TypeScript parser in
+`readscan.mjs`). `vitest list --changed` adds the heavy files a change reaches.
+
+**When a guard is red after a change:** a new source file needs its rule in
+`rules.py`; a new disk read in a heavy test or an e2e file needs its
+`READ_SITES` entry (or the read is refused); a module newly imported by
+another area's component needs that area in its rule (the graph guard names
+it). `scripts/test_select/mutations.py` proves the guards red first (run it
+alone, never beside another run in the tree).
+
+Measured: a scripts-only round ≈ 3 min, one spec ≈ 5 min, a component round
+≈ 25 min (the UI sweep alone is ≈ 20 min), a FULL round ≈ 60 min.
+
 The live parity loads every corpus program through the gateway's own
 `load_file`, as the operator loads (since review R15 B2 a bare
 `program_open` is a `STAT.file` flip the gateway ignores — the payload
@@ -61,13 +157,11 @@ entry — the backend pytest starts in `lcnc-gateway/` with
 wrong fixture expectation turns that entry red; `python3
 scripts/audit-scoped-css.py --paths <files…>` scans just the given files.
 
-## Guard specs (serial-guards)
+## Guard specs
 
-The guard specs share one filter (`guardSpecs` in `playwright.config.ts`) and run
-one file at a time under the `serial-guards` project, between
-`serial-touchoff` and `serial-layout`; the parallel `chromium` project
-ignores them through the same constant. `npx playwright test --list` shows
-each file once, under `serial-guards` only.
+The guard specs ran one file at a time in their own serial project while the
+mock gateway was shared; since the per-worker mock they run in the one
+project like every spec, each worker against its own mock.
 
 | Spec | Pins |
 | --- | --- |
@@ -84,8 +178,9 @@ each file once, under `serial-guards` only.
 | `input-session.spec.ts` | The unified input session (WP8): one layout per target, drafts per owner (also across number → text → number), outside tap / Tab out of the field or out of a key hides both helpers without confirming, focus returns to the field after OK/Cancel, text entry with REAL touch taps (`hasTouch`), page switches within the strip budget. Keys are pressed with real pointer input (`click`/`tap`), never `dispatchEvent`, so a covered key fails. Portrait 900 × 1200: the whole keyboard within the viewport at 100 % AND at 150 % (CSS `zoom` on the root = 600 × 800 CSS px) — what makes 150 % fit is the sticky Safety section folding its status detail while a helper is open — only there: at 100 % it stays (operator 2026-10-29) (a four-row compact form was measured too: it misses by 11 px whenever the header wraps one line more, which its pill texts decide at 600 px) — plus the MDI line (the readout), the banner and the safety buttons `toBeInViewport()` at both zooms (the portrait viewer floor is column-relative, `min(500px, 45%)`). A failure names the space budget (header, banner, safety, strip top). Also: `''` is a draft ("= 0 draft"), a neighbour's OK (busy latch) is not an owner end, a gate end drops the owner's drafts (fields and offset cells), and a real backend revocation INSIDE the latch ends them too (two status frames 50 ms apart — the status store applies frames per animation frame, so a close and re-open inside one frame is no state). Editor and search as owners (round 3): the first code line, Save/Discard and the search field are judged by `elementFromPoint` at their centre (a viewport rectangle misses clipping by an ancestor), ≥ 3 editor lines visible at 150 % (measured 7.2), and portrait edit mode folds the idle program controls (Start/Upload/progress gone while editing, back after Discard). Physical typing into the MDI line (round 4, UI-I11): `page.keyboard.type` with the helper open and after closing it, Enter sends exactly one `mdi` with the whole line, focus returns to the line through the busy latch, ArrowDown recalls the history entry, on-screen keys append. Field contract (UX-13): every visible non-readonly `input.inputField` in the MDI tab, the Tools tab, the reference dialog and Settings › Machine carries `autocomplete=off`, `autocorrect=off`, `autocapitalize=off`, `spellcheck=false`, a `name` and an accessible name (≥ 4 fields, or the scan is vacuous). Number keypad X (UX-01): by tap and by Tab + Enter it hides and keeps the draft (comes back marked), focus lands on the field and the next Space is the field's own opener; Discard drops the draft. UX-13 result: the MDI placeholder is "MDI command (↑↓ history)" and no scanned text field has the word "code" in its placeholder (Apple Passwords reads it as a verification-code field). Design wave D7 (touch, after a neutral first tap — the first touch re-lays the strip out under the finger): the close X is the top-right key, 44 × 44, of the number keypad and the text keyboard (Code and ABC) in landscape 1280 × 800 and portrait 900 × 1200 — no control above or right of it; the Code page's digit block 7 8 9 / 4 5 6 / 1 2 3 / 0 . - in both orientations, the letters in one reading order, ABC a–z row by row; the number keypad at 100 % and 150 % portrait with a strip owner and a side-pane owner: keys ≥ 43 × zoom, the keypad in the viewport, the owner field in view and hit at its centre, plus the first and last field on six axes. |
 | `safety-during-edit.spec.ts` | The safety buttons while an input helper is open (operator 2026-10-28/29). Landscape 1280 × 800, 1920 × 1080 and 2560 × 1440: Safety at the strip's start and its section and buttons unmoved with the text keyboard, the keypad of a strip field and the keypad of a side-pane field; the keyboard and the side-pane keypad start where Jog starts, the strip field's owner section takes that place and its keypad follows it. A REAL press (mouse in landscape, touch tap in landscape and portrait) on Disarm, E-Stop and Power with each helper open sends `arm {armed: false}`, `estop`, `machine_on`/`off`; a 700 ms mouse hold on Setup's Home / Unhome X with the keypad on a Setup field sends it (landscape and portrait — the owner section must not move under the press). Portrait (touch) 900 × 1200: the machine info stays (8 status rows + the codes) with each helper at 100 %, the helper whole in the viewport without a strip scroll, the safety buttons unmoved; at 150 % it folds for the keyboard and the strip keypad and stays for the side-pane keypad (it fits), the helper still whole; back at 100 % it returns. 26 of the 35 cases were red at 729a7f4a (`docs/reviews/safety-during-edit.browser-red.txt`; the portrait safety taps passed there — portrait never moved Safety). Codex R224: a 3 s press on G55 and on Setup's help lands unmoved; two fingers (CDP touch) in both orders — one finger's release leaves the other's press and target in place; a cancelled touch and a right-button release end the press (controls); a 100 ms press at 150 % with the strip scrolled sideways keeps scrollLeft and the target (6 red at 3c24fbea, `docs/reviews/safety-during-edit.r224.browser-red.txt`). Codex R225: a touch opens MDI while the mouse holds G55 — G55 unmoved until the release, the release on G55 and nothing else hit, then the keyboard (red at 5cdf20e0). Codex R226: the queued keyboard kept or closed again under the held mouse at 150 % with the strip scrolled — G55 and the scroll unchanged until the release, then the wanted helper or the normal strip, no place left (closed again red at 61a9253f). Leftovers: a first touch that holds Home X stays on it and fires, the touch sizes apply after its release (red at 1d987b25). |
 
-Every case sets its own preconditions (`ctl reset` + its status envelope); a
-spec must pass alone AND inside the full `npm run test:e2e`.
+Every case sets its own preconditions (its status envelope; the fixture has
+reset the worker's mock and confirmed the baseline before it); a spec must pass
+alone AND inside the full `npm run test:e2e`.
 
 ## Frame / strip states (layout gate)
 
@@ -136,8 +231,7 @@ answers over its whole `--help-hit` area. A "?"'s invisible hit area once
 made the body scroll 6 px sideways and take the pointer (operator's live
 look 2026-09-27) — beyond the audit's 4 px sliver window.
 
-`setup-layout.spec.ts` (serial-layout — its name matches the project's
-`layout.spec` filter) pins the Setup arrangement by axis count (operator
+`setup-layout.spec.ts` pins the Setup arrangement by axis count (operator
 2026-10-29/30, Codex R233/R234) on the visible layer: 14 configs (1, 2, 3,
 4 XYZA / XYZC, 5 XYZBC / TCP, 6, 6 TWP, 7, 8, 9, synthetic 7 / 9 TWP) × 1280
 landscape, touch, touch at 150 %, portrait, touch portrait and touch portrait at 150 % ×
@@ -156,7 +250,7 @@ at 5fb6c761 (`docs/reviews/setup-layout.browser-red.txt`; the 8 reach cases
 hold there too); the R235 additions 4 of 15 red at 9303cf6e (`docs/reviews/setup-layout.r236.browser-red.txt`). The rule itself: `setupLayout.test.ts` (literal results
 for 0–9 axes, TWP, portrait, the six-row budget).
 
-`layout.spec.ts` (serial-layout) measures the FRAME — the strip, the viewer
+`layout.spec.ts` measures the FRAME — the strip, the viewer
 pane and the content area, bounding box AND `clientWidth`/`clientHeight` —
 and enters every state the bottom strip can show: the number keypad from a
 setup field and from a panel field, the G-code keyboard, a macro bar, the
@@ -184,7 +278,7 @@ passes on nothing.
 target = the travel box's centre, eye distance = max(2.345 × maxDim,
 1.05 × model radius + near), where the model radius is the bounding sphere
 of every non-stock part about the target at the scene's pose. `viewer.spec.ts`
-(serial-viewer) drives a bed/column fixture far larger than its travel box
+drives a bed/column fixture far larger than its travel box
 through `window.__viewerDiag` (getCamera / getPartBounds / setView /
 setViewDirection / switchProjection) and asserts the eye is outside every
 part at the default frame, in all 26 ViewCube directions, after every
@@ -204,13 +298,13 @@ six path roles ≥ 0.12 apart in OKLab. `viewerSection.test.ts` pins the
 migration (UI-D05: no stored section → Automatic, any stored palette →
 Custom unchanged, custom colours survive Automatic ↔ Custom, the merge is a
 fixed point for save / reload and a second client). `viewer.spec.ts`
-(serial-viewer) reads the colours off the DRAWN materials (each tagged with
+reads the colours off the DRAWN materials (each tagged with
 its role, `__viewerDiag.getPalette`): Automatic follows a theme switch — the
 collision tint on screen included (`__viewerDiag.tintPart`) — a legacy
 palette from another client is Custom and stays through a switch, Settings
 switches Automatic ↔ Custom and keeps the custom colours stored, the legend
 shows the drawn colours with the rapid dashed. `scenes.viewer.spec.ts`
-(serial-viewer) renders a model with a dense and a thin path, limit
+renders a model with a dense and a thin path, limit
 overflow, the driven path and the selected line in the four themes and
 asserts the structure: the drawn roles and the WIDE selection (a
 LineSegments2 >= 3 px carrying the line's segments, visible); it attaches
@@ -222,7 +316,7 @@ rendered scenes by eye and guarded by the material colours.
 
 The scrub bar (operator 2026-10-29, `sim-panel.viewer.spec.ts`): the speed select right after Play holds the Sim tab's value; no progress band over the track and no coverage once the check is done; the link shows the Sim tab; the timeline bar holds 3 : 1 against the 92 % card composed over the page and over geometry, and against its thumb, in light, dark, hc-light and hc-dark, in and out of the simulation, never dimmed; a 2 min, 6 h and 30 h program at 150 % portrait keeps the timeline ≥ 120 px with the elapsed time whole; a portrait viewer (touch 900 × 1200) takes two rows: Sim, Play, the speed and the link above, the timeline, the coverage and the time below. `collisions.viewer.spec.ts` reads a stopped provisional check's coverage as "75 %" in the bar with the title "provisional from L7, stopped at 75 %", and the C2 states: "30 %" running, "40 %" with a glyph in the warn role when paused, empty at the end.
 
-Viewer contrast (plan `docs/reviews/viewer-kontrast.plan.md`): `themeTokens.test.ts` checks the pair table (`viewer/palettePairs.ts`) in every theme block — colour-separated pairs under normal, protan, deutan and tritan simulation, every pair under normal vision, a cue for each pair without colour separation — and the selection's core-or-halo rule. `scenes.viewer.spec.ts` "the width ladder" (serial-viewer) measures the IMAGE: a top view onto a lit table with a program line, a line flagged outside the limits and the backplot, four themes at DPR 1 and 2; the drawn width across each line is the sum of each device pixel's coverage by the role colour against the local background (feed and limit ≈ 1, backplot 2 × DPR; a missing line reads 0), every role line opaque, then the selection's profile over the table: core in the middle, halo 2.5 CSS px either side — also after a resize. The HUD layer is off there (the scene is measured, not the DRO card). Red: a backplot in world units (0 px), a halo as narrow as the core (the sides read the table).
+Viewer contrast (plan `docs/reviews/viewer-kontrast.plan.md`): `themeTokens.test.ts` checks the pair table (`viewer/palettePairs.ts`) in every theme block — colour-separated pairs under normal, protan, deutan and tritan simulation, every pair under normal vision, a cue for each pair without colour separation — and the selection's core-or-halo rule. `scenes.viewer.spec.ts` "the width ladder" measures the IMAGE: a top view onto a lit table with a program line, a line flagged outside the limits and the backplot, four themes at DPR 1 and 2; the drawn width across each line is the sum of each device pixel's coverage by the role colour against the local background (feed and limit ≈ 1, backplot 2 × DPR; a missing line reads 0), every role line opaque, then the selection's profile over the table: core in the middle, halo 2.5 CSS px either side — also after a resize. The HUD layer is off there (the scene is measured, not the DRO card). Red: a backplot in world units (0 px), a halo as narrow as the core (the sides read the table).
 
 The code panel's findings (`layout.spec`, V3): a program with violations and collision hits — a glyph and a name per line (▲ "Limit violation", × "Collision", × "Limit violation, collision"), none on a clean line, the code at one x. The tilted work plane (`layout.spec`, V4, TWP profile): five live states and a simulated plane beside a live machine claiming staleness, with the HUD visible (four themes, a scene per state attached for the eye), folded (portrait 150 %) and off — the label on the object, role, dashed edge, arrow and HUD word from one decision, the edge opaque, the mode line saying each part once; red with the old HUD word ("plane stale" beside "head moved") and with the old mode line ("TWP · G54 · G54"). The non-text pass (`contrast.spec`, V5, five themes): card edges on the scene, switch edges/knobs, button glyphs and slider thumbs from rendered pixels; red on the pre-V5 styles (card edges 1.37, switch off 1.3–1.4, knob on the dark blue 2.4–2.5). The palette's origin (`viewerSection.test.ts` and `viewer.spec`, V6): stored without a mode → "legacy", kept through a save and reload and a layer toggle, the Settings note and its one-tap switch to Automatic (colours kept, the choice marked "operator"); a mode without an origin → the offer only; an operator's choice → quiet; red without V6 (no note).
 
@@ -234,16 +328,17 @@ poses are not covered — this is not a camera-collision system, and
 ## Browser layout regression checks
 
 Layout checks run automatically in `npm run test:e2e` and therefore in the
-offline frontend suite and pull-request CI. They use the mock gateway on
-4174, not a running LinuxCNC session or the development server on 5173.
-Build first: these tests serve `dist/`, not the working Vue sources.
-Every `serial-*` project runs its files on ONE worker (`workers: 1`): the
-mock's state is global, and `fullyParallel: false` only serialises a file's
-tests — `serial-viewer` without it ran `viewer.spec.ts` beside
-`scenes.viewer.spec.ts` (review round 6) and the clean-rebuild spec failed in
-every full `playwright test`, while per-project runs forced to one worker
-stayed green. `src/playwrightProjects.test.ts` pins it. The offline gate's
-single `playwright test` is the arbiter — a per-project loop is no substitute.
+offline frontend suite and pull-request CI. They use each worker's own mock
+gateway (port 4500 + its slot), not a running LinuxCNC session or the
+development server on 5173. Build first: these tests serve `dist/`, not the
+working Vue sources. With ONE shared mock, `viewer.spec.ts` beside
+`scenes.viewer.spec.ts` (review round 6) failed the clean-rebuild spec in every
+full `playwright test` — the other spec's program and axes reached its renderer
+— so the serial projects ran their files on one worker; with a mock per worker
+that broadcast is gone, and the leak probe was repeated beside the heavy viewer
+specs before the switch (per-worker mock R263). `src/playwrightProjects.test.ts`
+pins the one project. The offline gate's single `playwright test` is the
+arbiter — a per-file loop is no substitute.
 
 ```sh
 cd lcnc-webui

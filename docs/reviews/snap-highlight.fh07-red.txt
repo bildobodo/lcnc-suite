@@ -1,0 +1,24 @@
+FH-07 (Codex R249) — red first, against a93401fc's scanner
+
+== unit: toolChangeScan.test.ts
+ ✓ src/viewer/toolChangeScan.test.ts > toolChangeLinesFromText > finds M6 / M600 / M601 lines with the T word on the line or the last one before it 3ms
+ ✓ src/viewer/toolChangeScan.test.ts > toolChangeLinesFromText > M06 counts, M60 / M61 do not, a T inside a word or a comment does not set the tool, empty text gives nothing 1ms
+ ✓ src/viewer/toolChangeScan.test.ts > toolChangeLinesFromText > an M6 / M600 / M601 inside a parameter's or an O-word's name is no tool change 0ms
+ ✓ src/viewer/toolChangeScan.test.ts > toolChangeLinesFromText > a word follows a number without a space: T13M600, N20M6, X1.M601 0ms
+ ✓ src/viewer/toolChangeScan.test.ts > toolChangeLinesFromText > a T word the text cannot evaluate (T#<n>, T[…]) leaves the tool unknown, never the T before it 0ms
+ × src/viewer/toolChangeScan.test.ts > toolChangeLinesFromText > every new T word drops the T before it; a sign, a function or an expression is unknown 6ms
+   → T+#<next>: expected [ [ 2, 5 ] ] to deeply equal [ [ 2, +0 ] ]
+ × src/viewer/toolChangeScan.test.ts > toolChangeLinesFromText > a number the scan fully reads names the tool: a plus sign, a decimal point, spaces inside 2ms
+   → expected [ [ 2, 5 ] ] to deeply equal [ [ 2, 7 ] ]
+ ✓ src/viewer/toolChangeScan.test.ts > toolChangeLinesFromText > a T inside a function or an operator is no T word: TAN, ATAN, SQRT, EXISTS, GT, LT 0ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  2 failed | 6 passed (8)
+
+== Codex's scanner probe, unmodified, after the fix
+T#<next> -> [[2,0]]  T[#1+1] -> [[2,0]]  T+#<next> -> [[2,0]]  T+[#1+1] -> [[2,0]]  TABS[-7] -> [[2,0]]  T+7 -> [[2,7]]  T7.0 -> [[2,7]]  T1 3 -> [[2,13]]
+
+== browser: layout.spec 'a code line names its findings' at the old scanner (line 22 T+9 M600, line 26 TABS[-7] M601 — both read the T before, T7)
+    Expected: "Tool change → T9"
+    Received: "Tool change → T7"
+    test-results/layout-a-code-line-names-i-4ec72-ion-●-tool-change-all-named-serial-layout/test-failed-1.png
+  1 failed

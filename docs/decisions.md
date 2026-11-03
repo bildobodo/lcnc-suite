@@ -9993,3 +9993,298 @@ compiler resolved against every top-level setup binding; an alias of the prop it
 in the Program tab" with the call line unknown and known (red at e3f14379 for unknown,
 `docs/reviews/fixed-highlight.r243-red.txt`), and the scan (red on the old name).
 
+
+## 2026-11-01 — The running line snaps into place (operator: the Einrasten)
+
+**Asked.** The operator, live: the highlight stands still now, "aber es scheint nicht mehr ganz
+synchron mit den Codezeilen zu sein — wie machen das die anderen?" Read in their sources:
+- AXIS (`/usr/bin/axis`, `set_current_line`): the text tag `executing` on the line of
+  `stat.motion_line` (or `motion_id`), then `t.see(line + 2); t.see(line)` — Tk scrolls just enough
+  to show the line with two lines below it (centred only from far away): the highlight walks down
+  to the view's bottom and rides there while the text jumps line by line.
+- gmoccapy (`gladevcp/hal_sourceview.py`, `highlight_line`): the source mark `motion` on the line,
+  `scroll_to_mark(mark, 0, True, 0, 0.5)` — centred; GTK 3 animates it (`gtk_adjustment_animate_to_value`,
+  200 ms ease-out cubic, `gtkscrolledwindow.c` `ANIMATION_DURATION`), the line from `motion_line`
+  every 100 ms (`hal_glib` `CYCLE_TIME`): the mark jumps down with its line and glides back to the
+  middle — our state before 2026-10-31.
+- Probe Basic (QtPyVCP `GcodeTextEdit.setCurrentLine`): the cursor to the line, `centerCursor()`
+  with `setCenterOnScroll(True)`, the line's ExtraSelection full width, no animation, `motion_line`
+  every 100 ms (status plugin `cycle_time`): the highlight stands in the middle, the text jumps by
+  whole lines.
+In all three the highlight is the LINE's own, so it is always on the running line; none keeps it
+still while the text moves smoothly. Ours did (a band over text gliding on with every packet), and
+measured (desktop, `~/claude-work/follow/sync-measure.spec.ts`): on a row (≤ 1 px) in 20 % of the
+frames at 1 line / 100 ms, 10 % at 3 lines / 33 ms, 3 % at 8 / 33 ms; behind the running line
+0.6 / 2.4 / 5.5 lines (median). Offered: snap per line like Probe Basic, steps that snap into
+place ("Einrasten", recommended), or as is; the operator: "versuchen wirs" (the cost asked first:
+less than the glide — fewer frames move).
+
+**Decided.** The text goes in STEPS (`codeGlide.ts`): 60 ms slowing into the line (ease-out cubic,
+GTK's easing), at most one step per 100 ms — a line that comes sooner waits, the latest waiting
+line is taken, at any pace (at speed the text goes on in steps of several lines). A first variant
+let a line out of the view step at once, to keep Codex R52 VP-I21 / R81 VP-I41 literal for the
+running row; measured, that was every packet at 3–8 lines a packet in the desktop view — the glide
+went on as before exactly where the operator saw the lines out of step (at rest 5 %, on a row 21 %
+at 80 ms steps). So VP-I21 / VP-I41 are restated to what they were about, the HIGHLIGHT: it is the
+band while the text steps or a line waits, at its place on screen while the scroll is free, never
+out of the view; the running row, its own look off meanwhile, may be past the view's edge until
+the next step (≤ 100 ms). The clamp of a step's start into the running line's visible band went
+with it (`visibleBand`). The contract of Codex R241 FH-03 (an interpolated display, no age bound)
+is replaced: the band is never ahead of the running line, it covers a row whenever the text
+rests, and the line it covers is at most `intervalMs + stepMs` behind the newest status the page
+has (a planned display lag — not an age against the machine, and no bound while the page itself
+stalls: Codex R244's wording). The line number and `active`
+are the running line at once, as before. The same in the Sim tab's list. Measured on the branch
+(desktop, three / eight lines a packet at 30 Hz): on a row in 55 % / 49 % of the frames (12 % /
+2 % before), the covered line at most 148 / 140 ms old (send time to frame); one line per 100 ms:
+65 % (20 %); the Sim list at ×50: 72 % (16 %). Guards: `layout.spec` "the code rests on a line
+between steps" for both paces (on a row ≥ 30 %, the covered line ≤ 194 ms old, the highlight in
+view in every frame), the glide test's even-pace assertions replaced by "the code rests between
+steps" and its in-view phases measuring the highlight, the ×50 Sim test (on a row ≥ 30 %), the
+×100 Sim test measuring the highlight (`docs/reviews/snap-highlight.red.txt`).
+
+**Found on the way (the harness).** The touch viewports of the e2e fixtures set the `touch-device`
+class by hand and never the touch state the code panel computes its rows from (`isTouchDevice`):
+every touch-viewport test laid the code view's 23 px rows out under 32 px ones (the first
+measurement of this round read 6 lines behind from it). Every fixture enters touch the app's own
+way now — one synthetic first touch (`e2e/touchMode.ts`: the input state at once, the sizes when
+the untrusted press has ended); `layout.spec` "the code view lays its rows out at the height it
+draws them" (desktop and touch, red before: 6900 px of content for 300 rows of 32 px).
+
+**Codex R244: the step rule and the touch fixtures accepted in principle; FH-05.** A step started
+from a highlight that was not in view: the first follow after a stop (the followed row forgotten)
+glided the new running row in from below the view — one frame out of it, 8 of 8 restarts in
+Codex's probe — and after a scroll away the band began off screen (two frames). The removed
+visible-band clamp had covered the first case. Now only a highlight IN VIEW is held or stepped
+from; without one the new line snaps, its row the highlight at once — in the code panel and in the
+Sim list (`holdHighlight` holds only a row in view). Guards red first: `layout.spec` "a follow with
+no highlight in view snaps: after a stop, after a scroll away" (1 frame out per restart, 2 after
+the scroll away; 0 after) and `sim-panel.viewer.spec` "the list scrolled away: the next marked row
+snaps to the middle" (1 painted frame out; 0 after). The wording of the bound as Codex asked: a
+display lag behind the newest status; the running row past the edge for the wait AND the step.
+
+**Codex R245: FH-05 closed in the code view, the wording accepted; the rest in the Sim list.** A
+row WAITING for its step held the band on the row before; scrolled away from that band by hand,
+the next marked row kept it — `holdHighlight` checked the view only when it built a band, and
+`followSoon` returned while the wait's timer ran — so the band stayed off screen until the old
+timer (5/5 in Codex's probe). A held band out of view now ends with its wait and its step on the
+next row, and the follow snaps. Guard red first: `sim-panel.viewer.spec` "a row waiting for its
+step, the list scrolled away: the next row snaps" (3/3 trials one painted frame out; 0 after,
+8/8 repeated). The earlier Sim guard is bound to the row the scrub went to (Codex saw one sample
+of the row before counted as the new one).
+
+**Codex R246: agreement** at `5f9fd3b9` (FH-01..FH-05 closed, the Einrasten accepted).
+
+**The Sim list takes the running line's yellow (operator, after the look in the LAN sim: "sollen
+wir bei der sim nicht das gleiche gelbe highlight nehmen wie beim programmlauf? dann ist es
+einheitlich").** The Sim tab marked the position in the selection's look — the neutral selection
+tint and an `--info` bar — while the code panel marks the same position (the running line, the
+scrubbed one) in `--highlight`; during playback both show the same place in two looks. The marked
+row is the position, not a pick: a tap on a row moves the simulation there. So the shown finding
+takes the code line's fill and bar, the next one ahead the bar alone (its shape kept: it is ahead
+of the position, not at it), the band while the list steps the same. ONE token, `--hl-position`
+(`--highlight` at `--tint-active` over `--panel`), read by `.codeLine.active` / `.codeFollowBand`
+and the Sim rows. The G-code reference keeps the selection's look for its marked entry: that is a
+lookup's target, not the program's position. Guard red first: `contrast.spec` "the Sim tab marks
+the position in the code panel's look, its text 4.5 : 1 on it" (five themes; red at `5f9fd3b9`:
+the fill differs in every theme) — it also brings the Sim tab and the code panel's position line
+into the reading-contrast scan, which never visited either (the full colour instead of the tint
+fails it in every theme: 1.35–3.36 : 1).
+
+**The code's mark column gets the tool change's ● (operator, the same look: "im programm werden ja
+limit überschreitungen und kollisionen mit den jeweiligen symbolen angezeigt. wie schaut das mit
+dem punkt für die werkzeugwechsel aus? … in der spalte im programmcode").** The code panel marked
+▲ and × beside the line number, never the third timeline mark. A tool-change line now carries ●
+and its number in `--mark-tool` — the lines of the timeline's tool-change targets (the wire's canon
+M6 lines and the text's M6 / M600 / M601 lines the track places: ONE source, `toolMarks`,
+published by the bar like `limitMarks`), so the code, the timeline and the Sim list name the same
+changes. × wins the look over ▲ over ●; the glyph's name says every finding of the line
+("Limit violation, collision, tool change"), the line's title adds the Sim list's words ("Tool
+change → T3"). Guard red first: `layout.spec` "a code line names its findings with a glyph: ▲
+limit, × collision, ● tool change, all named" (red at `2b7aa72f`: the tool line had no mark).
+
+**Codex R247 FH-06: a name is no M word.** The position's yellow accepted; the ● in the code took
+the shared text scan's false hits along: `viewer/toolChangeScan.ts` stripped comments only, so an
+M6 / M600 / M601 inside a name in angle brackets — `#<m600_count> = 0`, `#<m6> = 1`,
+`o<m6_remap> call` — was a tool change (a ● in the code, a row in the Sim list, a mark on the
+timeline; the scan unchanged since 2026-09-12, the code panel only the newest reader). The scan now
+strips every `<…>` name after the comments: in RS274NGC angle brackets only delimit a named
+parameter or an O-word's name (comparisons are words: LT, GT). Two more defects of the same scan,
+fixed in the same wave: a word that follows a number without a space was missed (`T13M600`,
+`N20M6`, `X1.M601` — the left bound excluded a digit and a dot; a number ends where the next
+word's letter starts), and a T word the text cannot evaluate (`T#<next>`, `T[#1 + 1]`) kept the T
+before it — now the tool is unknown (0, "T?"), never that guess; the wire's number still wins
+where it has one. The fix sits at the source; the code, the timeline and the Sim list keep
+reading it. Guards red first: `toolChangeScan.test.ts` (Codex's three lines, an O-word name, a
+name beside a real M6; the compact words; the unevaluable T) and `layout.spec` "a code line names
+its findings" (line 16 `#<m600_count> = 0` no mark — red: "Tool change → T3" —, line 18 `T7M600`
+a ● "Tool change → T7" — red: none; `docs/reviews/snap-highlight.fh06-red.txt`).
+
+**The row ahead in the same look (operator 2026-11-02, after the look: "gut. ich dachte
+ursprünglich aber mehr an ein durchgehendes highlight wie beim programmcode").** The Sim list gave
+the fill only to a finding the simulation stands at; between findings — nearly all of playback —
+the next one ahead carried the bar alone, so the list mostly showed a thin bar where the code
+panel shows its full line. The row ahead and the band now take the shown row's fill and bar: one
+highlight throughout. What told the two apart (the band's `shown` / `next` class, `bandKind`) is
+gone with it. Guard red first: `contrast.spec` "the Sim tab marks the position …" now requires the
+row ahead's fill and the band's to be the code line's and its text 4.5 : 1 on it (red in the five
+themes: the row ahead transparent; `docs/reviews/snap-highlight.fill-red.txt`). This takes back
+the bar-only shape Codex accepted in R247 as "Vorschau auf den nächsten Befund erkennbar" — the
+operator chose one look over that distinction.
+
+**Codex R249: FH-06 closed, the uniform highlight accepted; FH-07 — a T word apart from its
+value.** The R248 fix reset the scan's tool only for `T#` / `T[`: after `T5`, `T+#<next> M600`,
+`T+7 M600` and `TABS[-7] M600` still read "Tool change → T5" (code and Sim list), `T7.0` too, and
+`T1 3` read T1 — LinuxCNC drops the spaces outside comments (T13) and reads the value as a real
+(`read_t` → `read_integer_value` → `read_real_value`: a sign, a decimal, a function). The scan
+now reads the line as LinuxCNC does — comments out, every space out, then the names — and
+recognizes a T word apart from its value: a T that ends no name (ATAN, SQRT, EXISTS, GT, LT) and
+begins no TAN function; every new one drops the T before it, and only a plain number (a plus
+sign, a decimal point with zeros) names the tool — anything else is unknown ("T?"), never the T
+before it. No full G-code evaluator: `T[7]` stays unknown. The wire's confirmed number still
+wins. Guards red first: `toolChangeScan.test.ts` (Codex's classes, each also with the T on its
+own line before M601; T+7, T7.0, T8., T1 3, T 0 9; and TAN / ATAN / SQRT / EXISTS / GT / LT are
+no T words — green before, kept as the guard the space removal could break), Codex's scanner
+probe unmodified (all eight forms unknown or right after), `layout.spec` "a code line names its
+findings" (line 22 `T+9 M600` → T9, line 26 `TABS[-7] M601` → T?).
+
+## 2026-11-02 · Test strategy step 2: what the UI sends against the gateway's schema
+
+Codex R248–R251 agreed a test strategy (`docs/reviews/test-strategy.review.md`: round, merge and
+live tiers; four guards). Step 2, the static contract (TS248-04): `commandShapes.test.ts` reads
+the `WsCommand` union through the TypeScript checker and the gateway's `COMMAND_SCHEMA` /
+`COMMAND_GATES` through Python and requires agreement. Building it found that the union was not
+what goes out: `fire` (App's, `FireFn`, the composables' `fire` options) took `any`, so `home`,
+`unhome`, `go_to_zero` and `run_macro` were sent without being in the union, and the three tool
+commands were open (`[key: string]: any`). Every sender now takes `WsCommand` (the build then
+broke at exactly those four sends), the union names them, and `save_tool` / `add_tool` /
+`renumber_tool` share the closed `ToolFields`. The schema's drift the strategy was written for:
+`renumber_tool` bounded a `new_number` nobody sends while `old_tool_number` had no bound — and a
+renumber's `pocket` / `diameter` none (save and add bound them); it now bounds all four
+(`test_command_policy.py`, red first). Each field sent without a bound is named with its reason,
+each map with its contract, the two opaque values (`save_settings.data`, `client_diag.data`) with
+where they are checked, `set_max_velocity` as server-only. Found and left OPEN, named in the
+test: the multi-jogs' entries — the schema bounds only their count, and the homed handler passes
+each entry's axis and velocity on without the single jog's bounds (LinuxCNC caps the velocity
+itself); per-entry bounds need the motion buttons' live check (`twp_buttons_check.py`) and are
+raised in the review. Red at development (4ad87515's union and schema): the four unsent-in-union
+commands, the three open commands, the renumber drift
+(`docs/reviews/test-tiers.shapes-red.txt`).
+## 2026-11-02 · Probing: the glyphs in Firefox 159, the probe numbers in the var files
+
+**Operator: "die probing svgs … werden nicht mehr angezeigt. nur 9 punkte" (Firefox 159 on the
+Mac; Chrome showed them).** The probe grid (`.gridWrap`: `max-width: 294px; margin: 0 auto`, no
+width) is shrink-to-fit — its width is its content's — and its content is each cell's glyph, an
+SVG at `width: 100%`. Firefox 159 counts that percentage-sized SVG as zero in the grid's content
+width (Firefox 150, Playwright's, and Chromium gave 80 px), so the grid fell to its cells' padding
+and border: nine 10 px rounded buttons. Calibrate kept its glyphs — its pair has `width: 196px`.
+Reproduced with the operator's version (stock Firefox 159.0 aarch64 under Playwright's
+`moz-firefox` channel: every grid's SVG 0 × 0; Firefox 150: 80 × 80). Fix: the grid takes its
+width from the pane (`width: 100%`, up to 286 px — what the glyphs gave it before: three 90 px cells and two gaps; the first gate run at the old 294 px cap failed the side-pane footprint sweep 18 times, the Angle tab 2.5–6.5 px past its fixed 360 px section — `probe-fixes.gate-frontend.run1.json`), never from its glyphs; in Firefox 159 every
+grid's glyphs are 80 × 80 again (3 and 5 axes, desktop and Full HD touch). The test browsers do
+not show the defect, so the guard models it: `layout.spec` "a probe grid's cells keep their size
+whatever the glyph contributes" takes the glyphs out of the layout (open and dimmed, desktop and
+Full HD touch) — red before the fix in Chromium (the cells 90 → 10 px), green after. No test had
+looked at the glyphs at all.
+
+**Operator: "Command: set_probe_vars: #3015 is not in this machine's var file — declare it there
+to make it configurable".** Since W3 (2026-08-20) the gateway admits only var numbers the
+machine's var file declares (the var file is the machine's statement of what persists). The probe
+panel writes #3014–#3035 and #3050–#3059 — on a field change (`set_probe_vars`) and with every
+probe (`mdi` `vars`, the same check) — and the three example var files declared nothing past
+#3014: every probe on every example was refused (checked offline: `validate_payload("mdi", …)`
+against the LAN sim's var file). It went unseen because the mock gateway does not check declared
+numbers, the gateway's unit tests use made-up sets, and the live button check judges the probe
+gate without running a probe. Fix: the example var files declare the probe numbers (the form's
+fallback values, #3030 = 1 measure only, in LinuxCNC's ascending order); `probeVars.ts` is the ONE
+map from the form to the numbers (`probeVarMap`, `PROBE_FALLBACK` moved there from `defaults.ts`
+and from ProbePanel's copy); `probeVarFiles.test.ts` (node-side) requires every shipped var file to
+declare every number the probe panel and the toolsetter write, in ascending order (red: 31 missing
+in each of the three); `install_examples.py` adds the WebUI's numbers (#3000–#3999 only — never
+LinuxCNC's offsets or G28/G30) an installed var file lacks, at the example's value, keeping its own
+(`test_example_install.py`, red first; two upgrade tests that pinned a var file byte for byte now
+pin its own lines kept). README names the numbers a machine's var file must declare. Not changed:
+the W3 rule itself (a probe's own values could be admitted undeclared — a policy change, not
+asked).
+
+**2026-11-03, the calibration's axis (#3036).** The probe-click spec (test strategy step 2: each
+send form held once, its `mdi` checked) found Calibrate sending #3036 — the axis choice (0 the
+average of X and Y, 1 X, 2 Y) — added beside the map in `runCalProbe`; no var file declared it, so
+every calibration was still refused after the fix above (and the R252 review did not see it: the
+map was the ONE source only for what it held). Fix: `calibrationVarMap` = the map + #3036, the
+panel's only way to build a calibration's numbers; `probeVarFiles.test.ts` takes its numbers (red:
+3036 missing in each of the three var files); the examples declare `3036 0`, which
+`install_examples.py` carries into an installed copy (#3000–#3999). The routines use other
+numbers no var file declares (#3000–#3003 coolant, #3011/#3012, #3037–#3039 — written by
+`update_programmable_coolant_params.ngc` and `tool_setter_param_update.ngc`, Codex R254): the
+WebUI never SENDS them, so W3 refuses nothing; what counts for W3 is the `vars` the WebUI sends.
+
+**PF-01 (Codex R254): 38 calls passed the number 3017 as the traverse feed.** In ten bundled
+probe_basic routines (round and rect pockets, valleys, the two pocket calibrations) a call passed
+`[3017]` — the NUMBER — where its neighbours pass `[#3017]`: the helper takes its fourth argument
+as the traverse feed, so the retracts between the touches ran at F3017 whatever the setting. The
+calibration fix above lets those calibrations reach the call. Fixed `[3017]` → `[#3017]` (exact
+bracket match, 38 lines); `test_ngc_fixtures.py` `TestRoutineCallArguments`: no `o<…> call` in the
+repository passes a WebUI var number (#3000–#3999) as a literal (red: the 38). ORIGINS.md notes
+the change to the upstream files.
+
+## 2026-11-03 — Test tiers: the selective round gate (Codex R248–R260)
+
+**Operator (2026-11-02): "die tests dürfen nicht ewig dauern … ob immer alle tests ablaufen
+müssen".** Measured: the full browser run is serial (54 min wall ≈ 54 min of test time, the mock
+is shared by the whole chain), the eight collision unit files are 88 % of the unit CPU. Agreed
+plan (R251): implementation rounds run a selected round gate, a merge the full run on the
+integrated state, live checks before main. Built on feat/test-tiers and reviewed R256–R260:
+`scripts/test_select/` (rule table, import-graph guard, transitive e2e graph, every disk read
+declared and found by the TypeScript parser, the heavy group only when reached), the select and
+gate Playwright configs (the full chain narrowed per project, own servers, no `.only`), the round
+gate (the selector's guards first in every round, every listed test run exactly once, the chain
+order, no PASS after a retry). The reviews found what the first versions missed: transitive
+helpers, a second read hidden behind a known one (line-based, then whitespace, then mixed
+imports and namespaces as values), the guards riding the backend run only, a focused test
+passing every proof, a full run reusing a foreign server, a unit retry passing, the runner's own
+crash leaving no record. Over the last 60 review rounds 38 would still have been full (App.vue
+alone in 7); the browser time saved is ≈ 22 %, the heavy unit group most rounds. The next lever
+is a mock per worker (the full run parallel; accepted R256 as the next package), then splitting
+layout.spec; Replay, the pinned Firefox core and the probe live check stay owed.
+
+
+## 2026-11-03 — The per-worker mock: the full browser run parallel on three workers (Codex R261–R264)
+
+**Why.** The serial chain of nine Playwright projects existed for ONE reason: one mock gateway shared
+by every spec (an axis set swapped, connections closed, a leak probe that needs a quiet renderer).
+The full browser run took 54 min, one worker. Plan agreed R262 (PM261-01..04), implementation
+reviewed R263, corrections agreed R264.
+
+**What.** Every worker starts its OWN mock on its slot (`TEST_PARALLEL_INDEX`, port 4500 + slot;
+`e2e/mockSlot.mjs`, `e2e/mockFixture.ts`): ready only at its own child's `MOCK-BOUND` line, an owner
+registry per run and slot, a busy port waited for (5 s) only while the run's own predecessor on the
+slot leaves, a foreign process never used or stopped. `ctl.ts` binds every spec's HTTP, `/ws` and
+`/ctl` at import; without a slot the address is unbound — never a shared port. Before every test
+`mockBaseline` (`e2e/test.ts`) confirms the baseline: no app socket of the test before, `reset`, the
+WHOLE snapshot equal to the mock's first and a fresh app client's connect frames, read off the wire,
+equal to its first. One project `e2e`, `fullyParallel: false`, `LCNC_E2E_WORKERS` (3). The gate
+proves the run from the fixture's event log of THIS run (its own id in every event and in the
+report's `config.metadata.run`, a fresh log): every result exactly one start/end pair on the worker
+and slot the report names, on the mock that worker bound, inside its life (`proof.check_workers`,
+line order, never the clock). `scripts/test_select/proof_harness.py` proves the isolation (two
+workers at once, a shared mock as the counter-proof, file after file, a crashed worker's
+replacement, the delayed handoff, a foreign server).
+
+**Measured** (FULL, same tree, each its own unit): serial chain 3259 s browser, 2247 MB; 3 workers
+1686 s (−48 %), 3547 MB; 2 workers 1978 s, 3042 MB. Three workers: 292 s faster than two for 505 MB
+more peak; the leak checker (`viewer.spec`, `renderer.info`) stayed reliable beside the heavy
+viewer specs (0/48), no separate serial run needed.
+
+**What the parallel runs found.** Seven load races in six tests, none an isolation fault — reads
+whose precondition was a fixed wait or a stale match, never stressed by the serial chain: a list
+read mid-fill (its "complete" marker was the previous list's), a run position sent once after a
+slow poll (the 400 ms auto-check fired first), a view read mid-turn, two hold tests whose 500 ms ran
+on the loaded page's clock. Each reproduced red under CPU burners and fixed to a SIGNAL (the list's
+last frame, the gateway's cadence, the top view standing still, `page.clock` with the finger down
+through the hold time); the rule is in `docs/testing.md`. Codex R263 found two gaps of the new
+structure: the reset kept a top-level key a test added (`tool_meta`) and the snapshot did not name
+it; the worker proof accepted another run's event log. Both fixed with red-first guards (R264).
+
+**Open.** The pinned Firefox core (step 6), splitting `layout.spec`, Replay (step 5), the probe live
+check. More than three workers was not measured (6 cores, one SwiftShader renderer per worker).

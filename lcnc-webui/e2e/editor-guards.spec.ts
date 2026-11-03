@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Route } from "@playwright/test";
+import { test, expect, type Page, type Route } from "./test";
 import { ctl, MOCK } from "./ctl";
 import { clickMore, moreItem } from "./more";
 import { thickScrollbars } from "./layout-audit";

@@ -109,7 +109,11 @@ global: the lines the PLACED limit rows show — `limitMarks`, published by
 the bar from `limitPlaces`: a record marks the line its own move shows, a
 called file's move its call line, and nothing without a place or a line,
 never a raw number (Codex R178); collision hits are danger via
-`.codeLine.collision`) and
+`.codeLine.collision`; a tool change in `--mark-tool` via `.codeLine.toolChange`
+— the timeline's tool-change lines, `toolMarks`, published by the bar from
+its `toolTargets`, operator 2026-11-01 —; the slot between number and code
+shows × over ▲ over ● and its name says every finding of the line,
+`lineMarkName`) and
 a Soft limits row in the program stats dialog. Limitation: validated
 against the parse-time WCS — touch-off after load requires a file reload
 to re-validate (the live overflow box remains the coarse always-current

@@ -18,6 +18,7 @@
 // socket inside a Web Worker, which routeWebSocket intercepts only unreliably.
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer } from "ws";
@@ -133,7 +134,8 @@ const state = {
 
 // Pristine snapshot for `op: "reset"`. Captured once at startup, BEFORE any
 // spec can mutate `state`, so a reset restores everything rather than the few
-// fields someone remembered to list.
+// fields someone remembered to list — a top-level key a test ADDED (tool_meta)
+// included (Codex R263 PM263-01).
 const PRISTINE = structuredClone(state);
 
 // App derives its axis list from viewer_init (gateway computes it from
@@ -150,6 +152,7 @@ const VIEWER_INIT = {
   },
 };
 
+const PRISTINE_INIT = structuredClone(VIEWER_INIT);   // setKins writes into it before the first reset
 let activeViewerInit = VIEWER_INIT;
 
 // viewer.spec.ts forces in-session scene rebuilds: ThreeViewer dedups
@@ -231,10 +234,12 @@ const withEnvelope = (frame) => ({ ...frame, ...envelope });
 let settingsStore = {};
 let settingsEcho = true;
 
+// What a fresh app client receives on connect — also what `snapshot` reports.
+const connectFrames = () => [withEnvelope(state), activeViewerInit];
+
 wss.on("connection", (ws) => {
   ws.on("error", () => {}); // page teardown mid-write is routine in e2e
-  ws.send(JSON.stringify(withEnvelope(state)));
-  ws.send(JSON.stringify(activeViewerInit));
+  for (const frame of connectFrames()) ws.send(JSON.stringify(frame));
   ws.on("message", (buf) => {
     let msg = null;
     try { msg = JSON.parse(String(buf)); } catch { /* non-JSON — fall through */ }
@@ -309,16 +314,19 @@ ctlWss.on("connection", (ws) => {
           timing: { server_ms: 0.2, hb_seq: client.lastHbSeq, g_mono_ms: Math.round(performance.now() * 1000) / 1000, g_pid: process.pid } })));
       }
     } else if (m.op === "reset") {
-      // Restore pristine state between tests. The mock is ONE process shared by
-      // every spec (frames.spec mutates state.data via status_delta, and
-      // nine-axis.spec swaps the axis set), so serial specs call this in
-      // beforeEach to avoid order-dependent bleed.
+      // Restore the pristine state: the worker's baseline fixture sends this
+      // before every test (e2e/test.ts — the mock belongs to one worker, its
+      // tests run one after another), and confirms it from `snapshot` and a
+      // fresh app client's connect frames.
       //
       // Restores the WHOLE snapshot rather than a hand-picked field list (F5):
       // `delta` does Object.assign(state.data, …) with ARBITRARY fields and
       // `setAxes` rewrites work_pos/g92_offset/tool_offset/wcs_table, so
       // anything a spec touched beyond work_pos used to bleed into the next
       // one — silently, as a passing test that depended on the previous spec.
+      // `state` keeps its identity (the connect and heartbeat replies send it):
+      // every key goes, the pristine ones come back. `_initRev` / `_gcodeVer`
+      // stay monotonic — a revision that went back would read as unchanged.
       quiet = false;
       refuseWs = false;
       replies = {};
@@ -326,9 +334,9 @@ ctlWss.on("connection", (ws) => {
       settingsStore = {};
       settingsEcho = true;
       activeViewerInit = VIEWER_INIT;
-      state.armed = PRISTINE.armed;
-      state.data = structuredClone(PRISTINE.data);
-      delete VIEWER_INIT.data.kins;   // setKins is per-spec state too
+      for (const k of Object.keys(state)) delete state[k];
+      Object.assign(state, structuredClone(PRISTINE));
+      VIEWER_INIT.data = structuredClone(PRISTINE_INIT.data);   // setKins is per-test state too
       _axes = null;
       hellos.length = 0;   // lifecycle.spec asserts on hello COUNTS
       cmds.length = 0;
@@ -394,6 +402,24 @@ ctlWss.on("connection", (ws) => {
       broadcast(m.frame);
     } else if (m.op === "settingsEcho") {
       settingsEcho = !!m.on;
+    } else if (m.op === "snapshot") {
+      // What a reset restores, read back (per-worker mock, Codex R262
+      // PM261-01): the baseline fixture and the isolation harness compare it.
+      // `clients` counts the APP's sockets — a test's leftover page shows here.
+      // `connect` is what a fresh app client would get (R263 PM263-01), the
+      // viewer_init without its `_rev` (a revision every re-ship bumps).
+      const [status, init] = connectFrames();
+      const initData = { ...init.data };
+      delete initData._rev;
+      ws.send(JSON.stringify({ ok: true, op: "snapshot", snapshot: {
+        connect: { status, viewerInit: { ...init, data: initData } },
+        armed: state.armed, axes: _axes ?? VIEWER_INIT.data.axes, kins: VIEWER_INIT.data.kins ?? null,
+        work_pos: state.data.work_pos, replies: Object.keys(replies).sort(), envelope: Object.keys(envelope).sort(),
+        quiet, refuseWs, settingsEcho, settings: Object.keys(settingsStore).sort(),
+        cmds: cmds.length, hellos: hellos.length, clients: wss.clients.size,
+        instance: process.env.MOCK_INSTANCE ?? null,
+      } }));
+      return;
     } else if (m.op === "lastCmds") {
       ws.send(JSON.stringify({ ok: true, op: m.op, cmds }));
       return;
@@ -424,4 +450,31 @@ ctlWss.on("connection", (ws) => {
   });
 });
 
-server.listen(PORT, process.env.MOCK_HOST, () => console.log(`mock-gateway: http://localhost:${PORT}`));
+// A port already taken is a failure with its reason — never another mock
+// answering in this one's place (per-worker mock, PM261-03).
+server.on("error", (e) => { console.error(`mock-gateway: ${e.message}`); process.exit(1); });
+server.listen(PORT, process.env.MOCK_HOST, () => {
+  console.log(`mock-gateway: http://localhost:${PORT}`);
+  // The e2e worker fixture waits for exactly this line of ITS child: the bind
+  // confirmed, not a reachable page (whose could it be?).
+  if (process.env.MOCK_INSTANCE) console.log(`MOCK-BOUND ${server.address().port} ${process.env.MOCK_INSTANCE}`);
+});
+
+// Started by the e2e worker fixture: end with the worker. Its stdin is the
+// fixture's pipe — EOF means the worker is gone (a crash included), so no
+// mock outlives it holding the port its replacement needs. A manual
+// `node e2e/mock-gateway.mjs` (stdin a terminal or /dev/null) is untouched.
+// MOCK_EXIT_HOLD_UNTIL: the isolation harness only — hold the exit until that
+// file exists, to steer a slow predecessor against the handoff wait.
+if (process.env.MOCK_EXIT_ON_STDIN_EOF === "1") {
+  const leave = () => {
+    const hold = process.env.MOCK_EXIT_HOLD_UNTIL;
+    if (!hold) process.exit(0);
+    const poll = setInterval(() => {
+      if (existsSync(hold)) { clearInterval(poll); process.exit(0); }
+    }, 50);
+  };
+  process.stdin.on("end", leave);
+  process.stdin.on("close", leave);
+  process.stdin.resume();
+}

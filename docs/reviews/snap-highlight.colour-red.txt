@@ -1,0 +1,44 @@
+# Red at 5f9fd3b9 + the new guard (contrast.spec, "the Sim tab marks the position in the code panel's look"), built dist of 5f9fd3b9, 2026-11-01
+[1/5] [serial-guards] › e2e/contrast.spec.ts:553:3 › light: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it
+  1) [serial-guards] › e2e/contrast.spec.ts:553:3 › light: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+    Error: the shown row: the code line's fill
+    Expected: "oklab(0.934654 0.0113648 0.0322943)"
+    Received: "oklab(0.882872 -0.00241776 -0.00567614)"
+    test-results/contrast-light-the-Sim-tab-c0871-s-look-its-text-4-5-1-on-it-serial-guards/test-failed-1.png
+[2/5] [serial-guards] › e2e/contrast.spec.ts:553:3 › dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it
+  2) [serial-guards] › e2e/contrast.spec.ts:553:3 › dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+    Error: the shown row: the code line's fill
+    Expected: "oklab(0.324402 0.00807152 0.0164602)"
+    Received: "oklab(0.326497 -0.000720633 -0.00147884)"
+    test-results/contrast-dark-the-Sim-tab--90353-s-look-its-text-4-5-1-on-it-serial-guards/test-failed-1.png
+[3/5] [serial-guards] › e2e/contrast.spec.ts:553:3 › hc-light: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it
+  3) [serial-guards] › e2e/contrast.spec.ts:553:3 › hc-light: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+    Error: the shown row: the code line's fill
+    Expected: "oklab(0.892481 0.016529 0.0260731)"
+    Received: "oklab(0.849995 0.0000387326 0.0000170738)"
+    test-results/contrast-hc-light-the-Sim--545cf-s-look-its-text-4-5-1-on-it-serial-guards/test-failed-1.png
+[4/5] [serial-guards] › e2e/contrast.spec.ts:553:3 › hc-dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it
+  4) [serial-guards] › e2e/contrast.spec.ts:553:3 › hc-dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+    Error: the shown row: the code line's fill
+    Expected: "oklab(0.282677 0.00581815 0.0313465)"
+    Received: "oklab(0.30099 0.0000137255 0.00000604019)"
+    test-results/contrast-hc-dark-the-Sim-t-78c94-s-look-its-text-4-5-1-on-it-serial-guards/test-failed-1.png
+[5/5] [serial-guards] › e2e/contrast.spec.ts:553:3 › auto-dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it
+  5) [serial-guards] › e2e/contrast.spec.ts:553:3 › auto-dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+    Error: the shown row: the code line's fill
+    Expected: "oklab(0.324402 0.00807152 0.0164602)"
+    Received: "oklab(0.326497 -0.000720633 -0.00147884)"
+    test-results/contrast-auto-dark-the-Sim-a2e1c-s-look-its-text-4-5-1-on-it-serial-guards/test-failed-1.png
+  5 failed
+    [serial-guards] › e2e/contrast.spec.ts:553:3 › light: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+    [serial-guards] › e2e/contrast.spec.ts:553:3 › dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+    [serial-guards] › e2e/contrast.spec.ts:553:3 › hc-light: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+    [serial-guards] › e2e/contrast.spec.ts:553:3 › hc-dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+    [serial-guards] › e2e/contrast.spec.ts:553:3 › auto-dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+
+# Mutation of the contrast half (after the change): --hl-position: var(--highlight) (the full colour, no tint) — the scan catches it in every pass
+    Error: light: Sim/shown row       "3.36 < 4.5  tr.shownRow > td.colWhat > span.text-muted" rgb(82,94,106) on rgb(255,165,0)
+    Error: dark: Sim/shown row        "1.67 < 4.5  tr.shownRow > td.colLine.mono > span.rowPick  \"L5\"" rgb(230,237,243) on rgb(255,165,0)
+    Error: hc-light: Sim/shown row    "3.2 < 4.5  tr.shownRow > td.colAt.mono  \"6 %\"" rgb(59,59,59) on rgb(208,112,0)
+    Error: hc-dark: Sim/shown row     "1.69 < 4.5  tr.shownRow > td.colWhat > span.whatText" rgb(255,255,255) on rgb(255,187,51)
+# With the change (--hl-position = --highlight at --tint-active over --panel): 5 passed

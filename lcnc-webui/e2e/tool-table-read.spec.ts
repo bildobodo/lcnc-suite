@@ -5,7 +5,7 @@
 // in a reconnect left it loading for good, with no Retry. Now a slow read is
 // said after 8 s (Retry), its late reply is still taken, and a read that gets
 // no reply at all ends with the reason after 60 s.
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./test";
 import { ctl, publishToolTable } from "./ctl";
 import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
 

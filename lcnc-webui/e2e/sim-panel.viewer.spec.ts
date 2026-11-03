@@ -5,7 +5,7 @@
 // ● tool change), a filter, the steps. Stepping through collisions used to
 // change the findings row's text width and the bar folded and unfolded under
 // the operator's finger; the list's rows are the bar's own targets.
-import { test, expect, type Page, type BrowserContext } from "@playwright/test";
+import { test, expect, type Page, type BrowserContext } from "./test";
 import { decode, encode } from "@msgpack/msgpack";
 import { readFileSync } from "node:fs";
 import { ctl } from "./ctl";
@@ -164,7 +164,7 @@ test("a long list is a window: 400 rows, the count and the steps reach every tar
  *  any frame), then every frame's rows, table height and column widths until
  *  the list is complete; `onFirst` runs at the first appearance, between the
  *  first portion and the next. */
-interface Fill { first: number | null; ref: string | null; ran: unknown;
+interface Fill { first: number | null; ref: string | null; ran: unknown; done: boolean;
   frames: Array<{ n: number; h: number; w: string; y: number | null; at: number | null; stops: Array<string | null>; active: string | null }> }
 /** Every frame from the first rendered row of a new list until it is
  *  complete: the rows rendered, the table's height, the column widths, where
@@ -175,7 +175,7 @@ interface Fill { first: number | null; ref: string | null; ran: unknown;
 async function watchFill(page: Page, onFirst: string | null = null, track: string | null = null) {
   await page.evaluate(([onFirst, track]) => {
     const w = window as unknown as Record<string, unknown> & { __fill: Fill };
-    w.__fill = { first: null, ref: null, frames: [], ran: null };
+    w.__fill = { first: null, ref: null, frames: [], ran: null, done: false };
     const f = w.__fill;
     const trs = () => [...document.querySelectorAll(".simPanel tbody tr[data-sim-row]")];
     const count = () => trs().length;
@@ -197,6 +197,7 @@ async function watchFill(page: Page, onFirst: string | null = null, track: strin
                                 at: tt ? tt.getBoundingClientRect().top - sc.getBoundingClientRect().top : null,
                                 stops: [...(sc?.querySelectorAll('.rowPick[tabindex="0"]') ?? [])].map(keyOf), active: keyOf(document.activeElement) });
         if (sc?.dataset.listComplete !== "1" || f.frames.length < 2) requestAnimationFrame(frame);
+        else f.done = true;
       };
       requestAnimationFrame(frame);
     });
@@ -218,6 +219,15 @@ function expectStillFill(f: Fill, what: string) {
   }
 }
 const complete = (page: Page) => expect(page.locator(".simPanel .simTable[data-list-complete='1']")).toHaveCount(1);
+/** The list `watchFill` watches, whole: its frames recorded to the last.
+ *  `complete` alone is the list on screen — before the new one arrives that
+ *  is the OLD list, complete at once (an empty list too): under load a fill
+ *  was read mid-way, 160 of 400 rows, two frames of nine (the parallel
+ *  measurement, 2026-11-03). */
+async function filled(page: Page) {
+  await expect.poll(() => fillOf(page).then(f => f.done), { message: "the new list filled to its last frame" }).toBe(true);
+  await complete(page);
+}
 /** A first portion in the MIDDLE of the window — around the 200th row, which
  *  holds the focus (shown, then reached the keyboard's way), when a new result
  *  brings new rows: the focus goes to the row now at its place (R78), the
@@ -233,7 +243,7 @@ async function midFill(page: Page, what: string) {
   await complete(page);
   await watchFill(page);
   await hits(page, 1000, 5000);
-  await complete(page);
+  await filled(page);
   const mid = await fillOf(page), keys = await rowKeys(page);
   expect(keys.length).toBe(400);
   await expect(page.locator(`.simPanel [data-sim-row="${keys[200]}"] .rowPick`), `${what}: the focus on the row now at its place`).toBeFocused();
@@ -251,7 +261,7 @@ test("a long list fills in portions: the first at once, the rest a portion a fra
   await simShow(page, "clash");
   await watchFill(page);
   await hits(page, 1000);
-  await complete(page);
+  await filled(page);
   await expect(rows(page)).toHaveCount(400);
   expectStillFill(await fillOf(page), "from the top");
   // the tab stop is a rendered row from the first portion on, and the first row is it
@@ -304,7 +314,7 @@ test("the spacers' row height is measured where the rows are seen — never in a
   await watchFill(page, null, key);
   await expect.poll(() => page.evaluate(n => window.__viewerDiag?.setCollisionHits?.(
     Array.from({ length: n }, (_, k) => ({ line: k < 300 ? 5 : 30, frac: 0.01 + (0.98 * k) / n, ordinal: k === 200 ? 200 : 5000 + k }))) ?? false, 1000)).toBe(true);
-  await complete(page);
+  await filled(page);
   const f = await fillOf(page), keys = await rowKeys(page);
   expect(keys.indexOf(f.ref), "the first portion around the shown row").toBe(keys.indexOf(key) - FIRST_ROWS / 2);
   expectStillFill(f, "after a fill in a hidden tab");
@@ -324,7 +334,7 @@ test("a list that begins to fill in a hidden tab and is shown between its portio
   await watchFill(page, `[...document.querySelectorAll('[role="tab"]')].find(t => t.textContent.trim() === "Sim").click();
     return document.querySelector(".simPanel tbody tr[data-sim-row]").getBoundingClientRect().height;`);
   await hits(page, 1000);
-  await complete(page);
+  await filled(page);
   await expect(page.locator(".simPanel")).toBeVisible();
   const f = await fillOf(page);
   expect(f.ran, "the first portion arrived in the hidden tab").toBe(0);
@@ -335,6 +345,7 @@ test("a size change after a list was measured: the next list fills at its own pi
   await prepare(page, context, "desktop", PREVIEW, false);
   await simShow(page, "clash");
   await hits(page, 1000);
+  await expect(rows(page), "the new list, whole (the list before it is complete too)").toHaveCount(400);
   await complete(page);
   // the pitch measured at 100 %; then 150 % (the bench's CSS zoom) — a pitch
   // kept per density shrank the table by 106 px while the next list filled
@@ -354,7 +365,7 @@ test("between the portions: the keys reach a row not yet rendered, a filter chan
   await hits(page, 1000);
   await expect.poll(() => page.evaluate(() => document.activeElement?.closest("[data-sim-row]")?.getAttribute("data-sim-row") ?? document.activeElement?.tagName))
     .toBe("C0|399|0");
-  await complete(page);
+  await filled(page);
   await expect(page.locator('.simPanel [data-sim-row="C0|399|0"] .rowPick'), "the focus stays across the fill").toBeFocused();
   for (const key of ["Home", "ArrowDown", "End", "ArrowUp"]) await page.keyboard.press(key);
   await expect(page.locator('.simPanel [data-sim-row="C0|398|0"] .rowPick')).toBeFocused();
@@ -364,7 +375,7 @@ test("between the portions: the keys reach a row not yet rendered, a filter chan
   await simShow(page, "clash");
   await watchFill(page, `const s = document.querySelector('.simPanel select[name="simFilter"]'); s.value = "all"; s.dispatchEvent(new Event("change", { bubbles: true })); return s.value;`);
   await hits(page, 1000, 7000);
-  await complete(page);
+  await filled(page);
   const keys = await rowKeys(page);
   expect(keys.length).toBe(400);
   expect(keys.every(k => /^C0\|7\d{3}\|0$/.test(k!) || /^[LT]/.test(k!)), "only the new list's rows").toBe(true);
@@ -380,6 +391,7 @@ test("the list keeps ONE tab stop while it fills around a focus far from the reg
   await prepare(page, context, "desktop", PREVIEW, false);
   await simShow(page, "clash");
   await hits(page, 1000);
+  await expect(rows(page), "the new list, whole (the list before it is complete too)").toHaveCount(400);
   await complete(page);
   // the focus on the 200th row — not shown: the tab stop stays the first row
   await page.locator('.simPanel [data-sim-row="C0|200|0"] .rowPick').focus();
@@ -397,7 +409,7 @@ test("the list keeps ONE tab stop while it fills around a focus far from the reg
   await page.keyboard.press("Tab");
   const tabbed = await page.evaluate(() => ({ row: document.activeElement?.closest("[data-sim-row]")?.getAttribute("data-sim-row") ?? document.activeElement?.className ?? null,
     filling: document.querySelector<HTMLElement>(".simTable")!.dataset.listComplete !== "1" }));
-  await complete(page);
+  await filled(page);
   const f = await fillOf(page);
   expect(f.ran, "the list's help held the focus at the first portion").toMatch(/^Help: /);
   expect(f.first).toBe(FIRST_ROWS);
@@ -996,10 +1008,11 @@ test("the list follows the position: the marked row stays in the middle of its v
 // Codex R81 VP-I41: the follow restarted a browser smooth scroll per row —
 // at ×100 playback it fell behind and the marked row sat below the view for
 // 1.5 s (openLayout emulates reduced motion, where it snapped: the scrub test
-// above never saw it). It glides the code panel's way now, from inside the
-// row's visible band: with NORMAL motion, playing at ×100, the marked row is
-// wholly in view at every sample.
-test("playback at ×100 with normal motion: the marked row never leaves the list's view", async ({ page, context }) => {
+// above never saw it). It steps the code panel's way now: with NORMAL
+// motion, playing at ×100, the highlight — the band while the list steps or
+// a row waits for its step, else the marked row — is wholly in view at every
+// sample.
+test("playback at ×100 with normal motion: the marked row's highlight never leaves the list's view", async ({ page, context }) => {
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: LONG_PREVIEW }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: LONG_TEXT }));
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
@@ -1025,21 +1038,158 @@ test("playback at ×100 with normal motion: the marked row never leaves the list
       const sc = document.querySelector(".simPanel .simTable") as HTMLElement;
       const tr = sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow");
       const head = sc.querySelector("thead")!.getBoundingClientRect(), b = sc.getBoundingClientRect();
-      const r = tr?.getBoundingClientRect();
+      const band = sc.querySelector(".simFollowBand");
+      const r = (band && band.getClientRects().length ? band : tr)?.getBoundingClientRect();
       return { key: tr?.dataset.simRow ?? null, inView: !!r && r.top >= head.bottom - 1 && r.bottom <= b.bottom + 1,
         below: r ? Math.round(r.bottom - b.bottom) : 0 };
     }));
   }
   const marked = samples.filter(s => s.key);
   expect(new Set(marked.map(s => s.key)).size, "the playback moved through many rows").toBeGreaterThan(5);
-  expect(marked.filter(s => !s.inView), "every sample: the marked row wholly in the list's view").toEqual([]);
+  expect(marked.filter(s => !s.inView), "every sample: the highlight wholly in the list's view").toEqual([]);
+});
+
+// Codex R244 FH-05: a step needs a highlight in view to start from. With the
+// list scrolled away by hand, the next marked row's band began off screen
+// and glided in; such a follow snaps — the row in the middle at once.
+test("the list scrolled away: the next marked row snaps to the middle, its highlight in view at once", async ({ page, context }) => {
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: LONG_PREVIEW }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: LONG_TEXT }));
+  await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await ctl({ op: "status_delta", data: { active_file: "/long.ngc", is_enabled: false, enabled: false } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5402, file: "/long.ngc" } });
+  await simShow(page, "limit");
+  await expect(page.locator('.simPanel tr[data-sim-row="L57@57"]')).toHaveCount(1, { timeout: 15_000 });
+  await settleLayout(page);
+  await page.locator('.simPanel tr[data-sim-row="L8@8"]').click();
+  await expect(page.locator(".simBanner")).toBeVisible();
+  const scrub = (f: number) => page.locator(".scrubBar .sliderInput").evaluate((el: HTMLInputElement, at) => {
+    el.value = String(Number(el.max) * at);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  }, f);
+  await scrub(0.6);
+  await page.waitForTimeout(500);
+  // Scrolled up by hand until the marked row stands a row below the view —
+  // out of it, nearer than the snap distance.
+  const off = await page.locator(".simPanel .simTable").evaluate(sc => {
+    const r = sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow")!.getBoundingClientRect(), b = sc.getBoundingClientRect();
+    sc.scrollTop -= b.bottom - r.top + r.height;
+    return { below: sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow")!.getBoundingClientRect().top - b.bottom, view: sc.clientHeight };
+  });
+  expect(off.below, "the marked row below the view").toBeGreaterThan(0);
+  await page.waitForTimeout(150);
+  const before = await page.locator(".simPanel tr.shownRow, .simPanel tr.nextRow").getAttribute("data-sim-row");
+  // Every painted frame from here (sampled after the paint): the highlight —
+  // the band while it shows, else the marked row — and whether it is in view.
+  await page.evaluate(() => {
+    const sc = document.querySelector(".simPanel .simTable") as HTMLElement;
+    const w = window as unknown as { __fh: { key: string | null; inView: boolean }[]; __fhOn: boolean };
+    w.__fh = []; w.__fhOn = true;
+    const sample = () => {
+      const tr = sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow");
+      const band = sc.querySelector(".simFollowBand");
+      const hl = band && band.getClientRects().length ? band : tr;
+      const head = sc.querySelector("thead")!.getBoundingClientRect(), b = sc.getBoundingClientRect();
+      const r = hl?.getBoundingClientRect();
+      w.__fh.push({ key: tr?.dataset.simRow ?? null, inView: !!r && r.top >= head.bottom - 1 && r.bottom <= b.bottom + 1 });
+    };
+    const f = () => { setTimeout(sample, 0); if (w.__fhOn) requestAnimationFrame(f); };
+    requestAnimationFrame(f);
+  });
+  await scrub(0.63);
+  await page.waitForTimeout(400);
+  await page.evaluate(() => { (window as unknown as { __fhOn: boolean }).__fhOn = false; });
+  const frames = await page.evaluate(() => (window as unknown as { __fh: { key: string | null; inView: boolean }[] }).__fh);
+  // the frames of the row the scrub went to (bound to that row, Codex R245)
+  const target = frames.at(-1)?.key ?? null;
+  expect(target, "the scrub moved to another marked row").not.toBe(before);
+  const next = frames.filter(f => f.key === target);
+  test.info().annotations.push({ type: "fh05", description: `${next.length} frames of ${target}, ${next.filter(f => !f.inView).length} with the highlight out of view` });
+  expect(next.length, "the new row was drawn").toBeGreaterThan(5);
+  expect(next.filter(f => !f.inView), "the next row's highlight in view in every painted frame").toEqual([]);
+});
+
+// Codex R245 (the rest of FH-05): a row WAITING for its step, its band held
+// on the row before — the list scrolled away from that band by hand, then a
+// new row comes. The held band is out of view: the wait for it ends and the
+// new row snaps (it waited for the old timer, the band off screen meanwhile).
+// The scrub steps and the scroll run in the page, on its clock, to land in
+// the wait; the frames are sampled after the paint, from the first that
+// shows the new row.
+test("a row waiting for its step, the list scrolled away: the next row snaps, its highlight in view", async ({ page, context }) => {
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: LONG_PREVIEW }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: LONG_TEXT }));
+  await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await ctl({ op: "status_delta", data: { active_file: "/long.ngc", is_enabled: false, enabled: false } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5403, file: "/long.ngc" } });
+  await simShow(page, "limit");
+  await expect(page.locator('.simPanel tr[data-sim-row="L57@57"]')).toHaveCount(1, { timeout: 15_000 });
+  await settleLayout(page);
+  await page.locator('.simPanel tr[data-sim-row="L8@8"]').click();
+  await expect(page.locator(".simBanner")).toBeVisible();
+  type R = { key: string | null; band: boolean; inView: boolean };
+  for (let trial = 0; trial < 3; trial++) {
+    await page.locator(".scrubBar .sliderInput").evaluate((el: HTMLInputElement) => {
+      el.value = String(Number(el.max) * 0.6);
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await page.waitForTimeout(250);
+    const t = await page.evaluate(async trial => {
+      const sc = document.querySelector<HTMLElement>(".simPanel .simTable")!;
+      const slider = document.querySelector<HTMLInputElement>(".scrubBar .sliderInput")!;
+      const wait = (ms: number) => new Promise(r => setTimeout(r, ms));
+      const move = (f: number) => { slider.value = String(Number(slider.max) * f); slider.dispatchEvent(new Event("input", { bubbles: true })); };
+      const read = (): R => {
+        const tr = sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow");
+        const band = sc.querySelector<HTMLElement>(".simFollowBand");
+        const hasBand = !!band?.getClientRects().length;
+        const r = (hasBand ? band : tr)?.getBoundingClientRect();
+        const head = sc.querySelector("thead")!.getBoundingClientRect(), v = sc.getBoundingClientRect();
+        return { key: tr?.dataset.simRow ?? null, band: hasBand, inView: !!r && r.top >= head.bottom - 1 && r.bottom <= v.bottom + 1 };
+      };
+      // two rows in quick succession: the second waits for its step, the band held
+      move(0.62); await wait(24 + trial);
+      move(0.64); await wait(60);
+      const before = read();
+      // scrolled up by hand until the held highlight is a row below the view
+      const hl = sc.querySelector<HTMLElement>(".simFollowBand")?.getClientRects().length
+        ? sc.querySelector<HTMLElement>(".simFollowBand")! : sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow")!;
+      const r = hl.getBoundingClientRect(), v = sc.getBoundingClientRect();
+      sc.scrollTop -= v.bottom - r.top + r.height;
+      const off = read();
+      // the new row: sampled after each paint from the first frame that shows it
+      const frames: R[] = [];
+      let on = true;
+      const sample = () => { setTimeout(() => frames.push(read()), 0); if (on) requestAnimationFrame(sample); };
+      const seen = new MutationObserver(() => {
+        if (read().key !== before.key) { seen.disconnect(); requestAnimationFrame(sample); }
+      });
+      seen.observe(sc, { attributes: true, childList: true, subtree: true });
+      move(0.66); await wait(250);
+      on = false; seen.disconnect();
+      return { before, off, frames };
+    }, trial);
+    const target = t.frames.at(-1)?.key ?? null;
+    const next = t.frames.filter(f => f.key === target);
+    test.info().annotations.push({ type: "fh05", description: `trial ${trial}: held band ${t.before.band}, ${next.length} frames of ${target}, ${next.filter(f => !f.inView).length} out of view` });
+    expect(t.off.inView, `trial ${trial}: the scroll took the held highlight out of view`).toBe(false);
+    expect(target, `trial ${trial}: a new row came`).not.toBe(t.before.key);
+    expect(next.length, `trial ${trial}: the new row was drawn`).toBeGreaterThan(5);
+    expect.soft(next.filter(f => !f.inView), `trial ${trial}: the new row's highlight in view in every painted frame`).toEqual([]);
+  }
 });
 
 // Operator 2026-10-31: the marked row's bar went down a row with every row
 // the playback passed and the list glided it back — at ×50 a bounce per row.
-// It stands still now: while the list glides the bar is drawn where the list
-// glides to, and the rows scroll under it.
-test("playback at ×50: the marked row's highlight stands still while the list glides under it", async ({ page, context }) => {
+// It stands still now: while the list steps the bar is drawn where the list
+// goes to, and the rows move under it. And it covers a ROW between the steps
+// (2026-11-01, the Einrasten): a list that glided on with every new row left
+// the bar over halves of two.
+test("playback at ×50: the marked row's highlight stands still while the list steps under it, on a row between the steps", async ({ page, context }) => {
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: LONG_PREVIEW }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: LONG_TEXT }));
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
@@ -1062,7 +1212,7 @@ test("playback at ×50: the marked row's highlight stands still while the list g
   // list glides, else the marked row), the marked row, the scroll and its range.
   await page.evaluate(() => {
     const sc = document.querySelector(".simPanel .simTable") as HTMLElement;
-    const w = window as unknown as { __sim: { hl: number; key: string | null; st: number; max: number; t: number }[] };
+    const w = window as unknown as { __sim: { hl: number; key: string | null; st: number; max: number; t: number; grid: number }[] };
     w.__sim = [];
     const t0 = performance.now();
     const f = (now: number) => {
@@ -1071,22 +1221,28 @@ test("playback at ×50: the marked row's highlight stands still while the list g
       // the band while it shows (between glides it is hidden), else the marked row
       const band = sc.querySelector(".simFollowBand");
       const hl = band && band.getClientRects().length ? band : tr;
-      w.__sim.push({ hl: hl ? hl.getBoundingClientRect().top - top : NaN, key: tr?.dataset.simRow ?? null,
-        st: sc.scrollTop, max: sc.scrollHeight - sc.clientHeight, t: now - t0 });
+      // how far the highlight is from the nearest row
+      const y = hl ? hl.getBoundingClientRect().top : NaN;
+      let grid = Infinity;
+      for (const r of sc.querySelectorAll("tr[data-sim-row]")) grid = Math.min(grid, Math.abs(r.getBoundingClientRect().top - y));
+      w.__sim.push({ hl: hl ? y - top : NaN, key: tr?.dataset.simRow ?? null,
+        st: sc.scrollTop, max: sc.scrollHeight - sc.clientHeight, t: now - t0, grid });
       if (now - t0 < 1600) requestAnimationFrame(f);
     };
     requestAnimationFrame(f);
   });
   await page.locator('.scrubBar [title="Play the program through the machine model"]').click();
   await page.waitForTimeout(1800);
-  const frames = await page.evaluate(() => (window as unknown as { __sim: { hl: number; key: string | null; st: number; max: number; t: number }[] }).__sim);
+  const frames = await page.evaluate(() => (window as unknown as { __sim: { hl: number; key: string | null; st: number; max: number; t: number; grid: number }[] }).__sim);
   // the list scrolling freely (not at its start or end), past the first follow
   const free = frames.filter(f => f.t > 250 && f.st > 1 && f.st < f.max - 1 && f.key);
   expect(new Set(free.map(f => f.key)).size, "the playback passed many rows").toBeGreaterThan(5);
   const tops = free.map(f => f.hl);
   const spread = Math.max(...tops) - Math.min(...tops);
-  test.info().annotations.push({ type: "highlight", description: `${free.length} frames, the bar's top moved ${spread.toFixed(1)} px` });
-  expect(spread, `the marked row's highlight stands still while the list glides (${spread.toFixed(1)} px)`).toBeLessThanOrEqual(1);
+  const onRow = free.filter(f => f.grid <= 1).length / free.length;
+  test.info().annotations.push({ type: "highlight", description: `${free.length} frames, the bar's top moved ${spread.toFixed(1)} px, on a row in ${(onRow * 100).toFixed(0)} %` });
+  expect(spread, `the marked row's highlight stands still while the list steps (${spread.toFixed(1)} px)`).toBeLessThanOrEqual(1);
+  expect(onRow, `the bar covers a row between the steps (${(onRow * 100).toFixed(0)} % of the frames)`).toBeGreaterThanOrEqual(0.3);
 });
 
 // Operator 2026-10-06 (live): the collision verdict came in with the

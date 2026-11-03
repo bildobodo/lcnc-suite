@@ -3,7 +3,7 @@
 // the type and the origin, a sortable head (Time, Type, Source), Copy and the
 // trash per row, the count in the title; a narrow center (150 % portrait)
 // makes each message a card — the old one broke its text letter by letter.
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
 import { ctl } from "./ctl";
 import { openLayout, PROFILES, VIEWPORTS, settleLayout } from "./layout-fixtures";
 import { sidewaysOverflow } from "./layout-audit";

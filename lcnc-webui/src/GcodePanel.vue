@@ -16,14 +16,15 @@ import { highlightGcode, type Token } from "./gcodeHighlight";
 import { fmtPct } from "./format";
 import { limitViolationText, type LimitViolation } from "./ws/bulkData";
 import { limitMarks } from "./limitMarks";
+import { toolMarks } from "./toolMarks";
 import { isTouchDevice } from "./touchDetect";
 import { useMediaMql } from "./useMediaMql";
-import { glideAt, planGlide, visibleBand, type Glide } from "./codeGlide";
+import { glideAt, planGlide, stepDelay, type Glide } from "./codeGlide";
 import { emitTelemetry, pushMessage } from "./lcncWs";
 import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "./lcnc";
 import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
 import { refTargets, normaliseCode } from "./gcodeRefView";
-import { Play, SkipForward, Pause, X, Triangle } from "lucide-vue-next";
+import { Play, SkipForward, Pause, X, Triangle, Circle } from "lucide-vue-next";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineRadio from "./MachineRadio.vue";
@@ -361,7 +362,11 @@ const _sized = typeof ResizeObserver === "function" ? new ResizeObserver(() => {
   const h = codeViewerRef.value?.clientHeight ?? 0;
   if (h === viewH.value) return;
   viewH.value = h;
-  if (h > 0 && _followedRow != null && _rowsStill(_followedRows)) scrollToRow(_followedRow, true);
+  if (!(h > 0)) return;
+  // the newest line: the one waiting for its step, else the one followed
+  const row = _waitRow != null && _rowsStill(_waitRows) ? _waitRow
+    : _followedRow != null && _rowsStill(_followedRows) ? _followedRow : null;
+  if (row != null) scrollToRow(row, true);
 }) : null;
 onUnmounted(() => _sized?.disconnect());
 // Another program opens at its first line (a run follows its line anyway).
@@ -380,32 +385,43 @@ function setScroll(s: number) {
   scrollAsked.value = Math.abs(took - s) < 1 ? { asked: s, took } : null;
 }
 
-// The followed line GLIDES (codeGlide.ts, operator 2026-09-30: the
-// highlight "zuckt" — a hard scroll per status packet moved the text by 0,
-// 3, 5 lines at a time): each new target is reached over the last packet
-// gap, one step per animation frame; a far jump, a pause or reduced motion
+// The followed line goes in STEPS that snap into place (codeGlide.ts,
+// operator 2026-09-30: the highlight "zuckt" — a hard scroll per status
+// packet moved the text by 0, 3, 5 lines at a time; 2026-11-01: the
+// Einrasten): a step of GLIDE.stepMs slowing into the line, one position per
+// animation frame; a line that comes sooner than GLIDE.intervalMs after the
+// last step began waits — the latest is taken; a far jump or reduced motion
 // snaps.
-// The highlight STANDS STILL while the code glides (operator 2026-10-31:
-// "das Highlight bleibt immer an der gleichen Stelle auf dem Bildschirm und
-// das Programm scrollt durch"): a packet moves the running row by its whole
-// step at once, so a highlight ON the row went down and glided back up with
-// the text. During a glide the highlight is a band drawn where the text
-// glides to — the same glide in the rows' space, so while the scroll is free
-// the band keeps its place on screen and the code scrolls under it; near the
-// file's start or end, where the scroll stops, the band glides from row to
-// row. The band is an interpolated display of the glide: never ahead of the
-// running line, and ON it when the last glide ends — the row's own
-// highlight takes over there with the same look. A new glide starts where
-// the band stands and is planned over at most GLIDE.maxMs, so under steady
-// packets the band may trail by more than one step: no age bound against
-// the machine (Codex R241 FH-03). The line number and the row's `active`
-// are the running line at once; a second active row (a call line beside its
-// sub row) keeps its own look.
+// The highlight STANDS STILL (operator 2026-10-31: "das Highlight bleibt
+// immer an der gleichen Stelle auf dem Bildschirm und das Programm scrollt
+// durch"): a packet moves the running row by its whole step at once, so a
+// highlight ON the row went down and came back up with the text. While a
+// step runs the highlight is a band drawn where the text goes to — the same
+// step in the rows' space, so while the scroll is free the band keeps its
+// place on screen and the code moves under it; near the file's start or
+// end, where the scroll stops, the band goes from row to row. While a line
+// waits the band stays on the row it stands on. It is never ahead of the
+// running line, it covers a row whenever the text rests — not halves of two
+// (the operator, 2026-11-01: "nicht mehr ganz synchron mit den Codezeilen":
+// a band over text that glided on every packet sat on a row in 3–20 % of
+// the frames) — and that row's line is at most intervalMs + stepMs behind
+// the newest status (a display lag, not an age against the machine);
+// a follow with no highlight in view to start from snaps (Codex R244 FH-05);
+// when no line waits and the step ends, the row's own highlight takes over
+// with the same look. The line number and the row's `active` are the
+// running line at once; a second active row (a call line beside its sub
+// row) keeps its own look.
 let _glide: Glide | null = null;
 let _glideRaf = 0;
-let _lastFollowAt = -Infinity;
-/** The band's glide: the row it glides to and its own from / to in content
- *  px (the scroll glide's t0 and duration). */
+/** When the last step began (performance.now). */
+let _stepAt = -Infinity;
+/** The row waiting for its step, the rows it is one of, and its timer. */
+let _waitRow: number | null = null;
+let _waitRows: FollowRows | null = null;
+let _waitTimer = 0;
+/** The band's step: the row it covers (the running row: its own look is
+ *  off meanwhile) and its own from / to in content px (the scroll step's t0
+ *  and duration). */
 const followBand = shallowRef<{ row: number; glide: Glide } | null>(null);
 /** The band's place in content px (the rows' own space). */
 const bandY = ref(0);
@@ -434,13 +450,23 @@ function _glideFrame(now: number) {
   setScroll(pos);
   const fb = followBand.value;
   if (fb) bandY.value = glideAt(fb.glide, now).pos;
-  if (done) { _glide = null; followBand.value = null; }
-  else _glideRaf = requestAnimationFrame(_glideFrame);
+  if (done) {
+    _glide = null;
+    // a line waits: the band stays on the row the step ended on
+    if (_waitRow == null) followBand.value = null;
+  } else _glideRaf = requestAnimationFrame(_glideFrame);
+}
+function stopWait() {
+  if (_waitTimer) clearTimeout(_waitTimer);
+  _waitTimer = 0;
+  _waitRow = null;
+  _waitRows = null;
 }
 function stopGlide() {
   if (_glideRaf) cancelAnimationFrame(_glideRaf);
   _glideRaf = 0;
   _glide = null;
+  stopWait();
   followBand.value = null;
 }
 onUnmounted(stopGlide);
@@ -468,42 +494,63 @@ function scrollToRow(row: number, snap = false) {
     return;
   }
   const now = performance.now();
-  const gap = now - _lastFollowAt;
-  _lastFollowAt = now;
-  // Where the highlight stands now (content px): the band mid-glide, else
-  // the row followed last. The glide goes on from the position the rows
+  // Where the highlight stands now (content px): the band mid-step or held,
+  // else the row followed last. The step goes on from the position the rows
   // stand at, not the rounded one — read from the element (a scroll by hand
   // whose event is still to come is the position).
   const asked = scrollAsked.value;
   const before = asked && asked.took === el.scrollTop ? asked.asked : el.scrollTop;
-  const shownY = followBand.value && _rowsStill(_glideRows) ? bandY.value
+  const shownAt = followBand.value && _rowsStill(_glideRows) ? bandY.value
     : _followedRow != null && _rowsStill(_followedRows) ? _followedRow * lh : null;
+  // Only a highlight IN VIEW is held or stepped from; without one — the first
+  // follow after a stop, a scroll away — the new line SNAPS, its row the
+  // highlight at once (Codex R244 FH-05: it glided in from below the view,
+  // its first frame out of it, and a band began off screen).
+  const viewTop = _scrollToContent(before);
+  const shownY = shownAt != null && shownAt >= viewTop - 0.5 && shownAt + lh <= viewTop + el.clientHeight + 0.5
+    ? shownAt : null;
+  // Too soon after the last step: the line waits, the highlight stays where
+  // it stands (a band on it; the running row's own look off — the row may be
+  // past the view's edge for the wait and the step, the highlight never:
+  // Codex R52 VP-I21).
+  const wait = shownY != null ? stepDelay(_stepAt, now, reducedMotion.value) : 0;
+  if (wait > 0) {
+    const fb = followBand.value;
+    if (!fb || !_rowsStill(_glideRows)) {
+      bandY.value = shownY!;
+      followBand.value = { row, glide: { from: shownY!, to: shownY!, t0: now, dur: 0 } };
+      _glideRows = _rowsNow();
+    } else if (fb.row !== row) followBand.value = { row, glide: fb.glide };
+    _waitRow = row;
+    _waitRows = _rowsNow();
+    if (!_waitTimer) _waitTimer = window.setTimeout(() => {
+      _waitTimer = 0;
+      const r = _waitRow, rows = _waitRows;
+      _waitRow = null;
+      _waitRows = null;
+      if (r != null && _rowsStill(rows)) scrollToRow(r);
+      else if (!_glide) followBand.value = null;
+    }, wait);
+    return;
+  }
+  stopWait();
   _followedRow = row;
   _followedRows = _rowsNow();
-  // Where the running line stays in view (VP-I21) — within the scroll range.
-  const vb = visibleBand(rowY, lh, el.clientHeight, _contentToScroll);
-  const band: [number, number] | null = vb && [Math.max(0, vb[0]), Math.min(maxScroll, vb[1])];
-  const g = planGlide(before, to, now, gap, el.clientHeight, reducedMotion.value,
-                      band && band[0] <= band[1] ? band : null);
-  if (!g) {
+  _stepAt = now;
+  const g = shownY != null ? planGlide(before, to, now, el.clientHeight, lh, reducedMotion.value) : null;
+  if (!g || shownY == null) {
     stopGlide();
     setScroll(to);
     return;
   }
-  // A step past the band: the text jumps to its edge now — the running line
-  // is in view in this very frame — and glides the rest.
-  if (g.from !== before) setScroll(g.from);
   // The band starts where the highlight stands ON SCREEN: at the anchor while
-  // the scroll was free — re-read from the scroll the glide starts at, so the
-  // jump to the band's edge moves the text, not the highlight —, else where
-  // it stood (near the file's start or end). No highlight before (the first
-  // follow): the code glides to the row as it is.
-  if (shownY != null) {
-    const atAnchor = Math.abs(shownY - (_scrollToContent(before) + anchor)) < 1;
+  // the scroll was free, else where it stood (near the file's start or end).
+  {
+    const atAnchor = Math.abs(shownY - (viewTop + anchor)) < 1;
     const fromY = atAnchor ? _scrollToContent(g.from) + anchor : shownY;
     bandY.value = fromY;
     followBand.value = { row, glide: { from: fromY, to: rowY, t0: g.t0, dur: g.dur } };
-  } else followBand.value = null;
+  }
   _glide = g;
   _glideRows = _rowsNow();
   if (!_glideRaf) _glideRaf = requestAnimationFrame(_glideFrame);
@@ -528,6 +575,9 @@ watch(subActiveLine, (ln) => {
 // a record marks the line its own move shows, never its raw number — a record
 // with no place or no line marks none (Codex R178, the rest of VP-I130).
 const violationsByLine = computed(() => limitMarks.value);
+// The timeline's tool-change lines (toolMarks, published by the bar): line →
+// the tool it loads.
+const toolsByLine = computed(() => toolMarks.value);
 
 // one mark per line, asked only for the lines rendered — each once per
 // query (a new query is a new result shown)
@@ -539,6 +589,13 @@ const collisionMarkAt = computed(() => {
     return seen.get(line)!;
   };
 });
+
+/** Every finding of the line, named: the glyph shows one, the name says all. */
+function lineMarkName(lineNum: number): string {
+  const kinds = [violationsByLine.value.has(lineNum) && "limit violation", !!collisionMarkAt.value(lineNum) && "collision",
+                 toolsByLine.value.has(lineNum) && "tool change"].filter((k): k is string => !!k).join(", ");
+  return kinds.charAt(0).toUpperCase() + kinds.slice(1);
+}
 
 function lineMarkTitle(lineNum: number): string | undefined {
   const parts: string[] = [];
@@ -554,6 +611,8 @@ function lineMarkTitle(lineNum: number): string | undefined {
       ? "still in contact (began in the entry move) — see viewer Check results"
       : `still in contact (began L${cm.continuation}) — see viewer Check results`)
     : "collision clearance hit — see viewer Check results");
+  const tool = toolsByLine.value.get(lineNum);
+  if (tool != null) parts.push(`Tool change → T${tool || "?"}`);   // the Sim list's words
   return parts.length ? parts.join(" · ") : undefined;
 }
 
@@ -1127,8 +1186,9 @@ async function saveEdit() {
       <div class="codeViewer scroll-thin fade-scroll" v-else-if="gcodeContent" ref="codeViewerRef" @scroll="onCodeScroll">
         <div :style="{ height: totalHeight + 'px', position: 'relative' }">
           <div class="codeRows" :style="{ position: 'absolute', top: offsetY + 'px', left: 0, right: 0 }">
-            <!-- The followed line's highlight while the code glides: where
-                 the text glides to, so it keeps its place on screen. -->
+            <!-- The followed line's highlight while the code steps (where
+                 the text goes to, so it keeps its place on screen) and
+                 while a line waits for its step (on the row it stands on). -->
             <div v-if="followBand" class="codeFollowBand" aria-hidden="true"
                  :style="{ top: bandY - rangeStart * LINE_HEIGHT + 'px' }"></div>
             <!-- Rows, not raw lines (W5): sub rows are the called file's
@@ -1147,19 +1207,23 @@ async function saveEdit() {
                    selected: item.kind === 'main' && selectedLine === item.lineNum,
                    selectable: item.kind === 'main' && runFromLine && gcodeContent,
                    violation: item.kind === 'main' && violationsByLine.has(item.lineNum),
-                   collision: item.kind === 'main' && !!collisionMarkAt(item.lineNum)
+                   collision: item.kind === 'main' && !!collisionMarkAt(item.lineNum),
+                   toolChange: item.kind === 'main' && toolsByLine.has(item.lineNum)
                  }"
                  :title="item.kind === 'main' ? lineMarkTitle(item.lineNum) : undefined"
                  @click="item.kind === 'main' && onLineClick(item.lineNum)">
               <span class="lineNumber">{{ item.lineNum }}</span>
               <!-- A finding is a FORM, not only the number's colour (viewer
                    contrast plan, V3): the timeline's glyphs, × wins the look,
-                   the name says every finding of the line. -->
+                   then ▲, then ● (a tool change, operator 2026-11-01); the
+                   name says every finding of the line. -->
               <span class="lineMark">
                 <X v-if="item.kind === 'main' && !!collisionMarkAt(item.lineNum)" :size="11" role="img"
-                   :aria-label="violationsByLine.has(item.lineNum) ? 'Limit violation, collision' : 'Collision'" />
+                   :aria-label="lineMarkName(item.lineNum)" />
                 <Triangle v-else-if="item.kind === 'main' && violationsByLine.has(item.lineNum)" :size="9" fill="currentColor"
-                          role="img" aria-label="Limit violation" />
+                          role="img" :aria-label="lineMarkName(item.lineNum)" />
+                <Circle v-else-if="item.kind === 'main' && toolsByLine.has(item.lineNum)" :size="9" fill="currentColor"
+                        role="img" :aria-label="lineMarkName(item.lineNum)" />
               </span>
               <span class="lineContent">
                 <span

@@ -244,6 +244,51 @@ def seed_xyzac_state(filename, text, local, shipped, report):
     return "".join(f"{n}\t{v:.6f}\n" for n, v in sorted(rows.items()))
 
 
+def number_ranges(numbers):
+    """#3015-#3035, #3050-#3059: sorted numbers as runs."""
+    runs, numbers = [], sorted(numbers)
+    for n in numbers:
+        if runs and n == runs[-1][1] + 1:
+            runs[-1][1] = n
+        else:
+            runs.append([n, n])
+    return ", ".join(f"#{a}" if a == b else f"#{a}-#{b}" for a, b in runs)
+
+
+#: The WebUI's parameters in a var file: the probe panel (#3014-#3059) and the
+#: toolsetter (#3004-#3013, #3100-#3116). LinuxCNC's own (#5000 on: offsets,
+#: G28/G30) are the machine's state and never come from the example.
+WEBUI_VAR_RANGE = range(3000, 4000)
+
+
+def declare_template_vars(text, template_text):
+    """The installed var file with every WebUI number (WEBUI_VAR_RANGE) the
+    shipped one declares and it does not, in order, at the shipped value; its
+    own numbers keep their values. LinuxCNC keeps only the numbers its var file
+    names, and the gateway refuses a write to any other (W3) — the probe
+    panel's #3015-#3059 were in no example until 2026-11-02, so every probe
+    was refused. Returns the text and the numbers added."""
+    def number(line):
+        tok = line.split()
+        return int(tok[0]) if tok and tok[0].isdigit() else None
+    lines = text.splitlines(keepends=True)
+    if lines and not lines[-1].endswith("\n"):
+        lines[-1] += "\n"
+    have = {number(line) for line in lines} - {None}
+    pending = sorted((n, line if line.endswith("\n") else line + "\n")
+                     for line in template_text.splitlines(keepends=True)
+                     if (n := number(line)) in WEBUI_VAR_RANGE and n not in have)
+    added = [n for n, _ in pending]
+    out = []
+    for line in lines:
+        n = number(line)
+        while pending and n is not None and pending[0][0] < n:
+            out.append(pending.pop(0)[1])
+        out.append(line)
+    out += [line for _, line in pending]
+    return "".join(out), added
+
+
 def migrate_xyzac_position(text):
     """The saved joint positions: Z (the third entry) moves with the datum."""
     lines = text.split("\n")
@@ -496,6 +541,16 @@ def install(repo, destination, backup_root, settings_path=None, report=None):
                 if Path(rel).name in ("sim.var", "position.txt"):
                     writes[rel] = seed_xyzac_state(Path(rel).name, writes[rel].decode(),
                                                    local, ref, report).encode()
+        rel = profile["state_dir"] + "/sim.var"
+        if rel not in from_template:
+            current = writes[rel].decode() if rel in writes else (
+                (destination / rel).read_text() if (destination / rel).is_file() else None)
+            if current is not None:
+                declared, added = declare_template_vars(current, (source / rel).read_text())
+                if added:
+                    writes[rel] = declared.encode()
+                    report.append(f"{rel}: declared {number_ranges(added)} as the example does "
+                                  f"(the WebUI writes them; existing values kept)")
         for rel in profile["programs"]:
             # User-edited programs remain local, just like offsets/tool tables;
             # an unedited copy of a superseded shipped version follows the example.

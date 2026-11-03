@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Locator } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "./test";
 import { ctl, MOCK } from "./ctl";
 import { Folder, serve, rev } from "./macroFolder";
 
@@ -17,7 +17,8 @@ import { Folder, serve, rev } from "./macroFolder";
 //     moves on and never executes; Execute is a hold bound to the values;
 //     the send checks the button's own class (`probe`, not `ready`).
 //
-// Runs under `serial-guards`: mock-global status + recorded commands.
+// The worker's own mock (e2e/test.ts): its state is this test's alone, reset
+// and checked before every test.
 
 const PERMS_ALL = {
   idle: true, jog: true, override: true, ready: true, run: true, pause: false,
@@ -300,17 +301,27 @@ test("the Run-from-line preset and Settings' default preset never uncheck each o
 // focused macro keeps its focus on the same macro (by its id); an open
 // parameter dialog returns to the new button when it closes.
 test("an orientation change mid-hold runs nothing; the focus and an open dialog's return follow the macro", async ({ page }) => {
+  // the hold's 500 ms run on the test's clock: it stands while the bar
+  // moves — under load the new layout took longer than the hold, which then
+  // ran on the old button: the case was gone (the parallel measurement,
+  // 2026-11-03). A hold that outlives its button fires in the runFor below.
+  await page.clock.install();
   await ready(page, BAR, new Folder());
   const PORTRAIT = { width: 1000, height: 1400 }, LANDSCAPE = { width: 1600, height: 1000 };
   const park = () => page.locator(".macroBar").getByRole("button", { name: "Park", exact: true });
   const box = (await park().boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  // a second ahead: the page's clock started at this machine's time and runs
+  // with it — `page time + 50 ms` was in the past by its arrival under load
+  await page.clock.pauseAt(Date.now() + 1_000);
   await page.mouse.down();
-  await page.waitForTimeout(150);
   await page.setViewportSize(PORTRAIT);
   await expect(page.locator(".viewerColumn .macroBar"), "the bar moved into the viewer column").toBeVisible();
-  await page.waitForTimeout(HOLD_MS);
+  // the finger stays the whole hold time (a release before it is a tap,
+  // which ends any hold): a hold that outlived its button fires here
+  await page.clock.runFor(HOLD_MS);
   await page.mouse.up();
+  await page.clock.resume();
   await page.waitForTimeout(300);
   expect(await count("run_macro"), "the hold ended with its button").toBe(0);
   await press(page, park(), HOLD_MS);

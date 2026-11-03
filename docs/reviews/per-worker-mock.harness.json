@@ -1,0 +1,54 @@
+{
+  "pass": true,
+  "cases": [
+    {
+      "case": "isolation on own mocks",
+      "pass": true,
+      "problems": [],
+      "dir": "/tmp/lcnc-proof-own-8r7eenng"
+    },
+    {
+      "case": "isolation on ONE shared mock (negative)",
+      "pass": true,
+      "problems": [],
+      "dir": "/tmp/lcnc-proof-shared-7snzy76f"
+    },
+    {
+      "case": "file after file in one worker",
+      "pass": true,
+      "problems": [],
+      "dir": "/tmp/lcnc-proof-sequence-6t4iiied"
+    },
+    {
+      "case": "a worker ending hard, its replacement",
+      "pass": true,
+      "problems": [],
+      "dir": "/tmp/lcnc-proof-crash-xdfaycmb"
+    },
+    {
+      "case": "a slow predecessor released 1.0 s after the handoff wait began",
+      "pass": true,
+      "problems": [],
+      "timing": {
+        "handoff_wait_t": 1793685696764,
+        "released_t": 1793685697790
+      },
+      "dir": "/tmp/lcnc-proof-delay-in-1ummd3mo"
+    },
+    {
+      "case": "a slow predecessor released 7.5 s after the handoff wait began",
+      "pass": true,
+      "problems": [],
+      "timing": {
+        "handoff_wait_t": 1793685698973
+      },
+      "dir": "/tmp/lcnc-proof-delay-out-1bhjdk_i"
+    },
+    {
+      "case": "a foreign server on the slot port",
+      "pass": true,
+      "problems": [],
+      "dir": "/tmp/lcnc-proof-foreign-2gem21gd"
+    }
+  ]
+}

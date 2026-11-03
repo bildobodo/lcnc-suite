@@ -11,7 +11,7 @@
 //   spindle     unhomed in MANUAL where the machine declares it (Q1)
 //   start       the shortcut refuses while the program is still loading,
 //               like the button (one admission, BG-10)
-import { test, expect, type Page, type Route } from "@playwright/test";
+import { test, expect, type Page, type Route } from "./test";
 import { ctl, MOCK } from "./ctl";
 import { clickMore } from "./more";
 import { GATE_NAMES, type Permissions } from "../src/permissions";

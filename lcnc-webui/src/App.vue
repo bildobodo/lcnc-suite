@@ -79,7 +79,7 @@ import {
   SPINDLE_FORWARD, SPINDLE_REVERSE,
   OPERATOR_DISPLAY,
   OPERATOR_ERROR,
-  cooldownFor, isNeverDebounced,
+  cooldownFor, isNeverDebounced, type WsCommand,
 } from "./lcnc";
 
 const _vd = loadViewerDefaults();
@@ -1625,7 +1625,7 @@ watch([spindleSpeed, isSpinning], ([v, spinning]) => {
  *
  * A drop is logged, not silent — the same honesty rule the backend follows.
  */
-function fire(payload: any, gate?: keyof Permissions, cooldownMs?: number): string | null {
+function fire(payload: WsCommand, gate?: keyof Permissions, cooldownMs?: number): string | null {
   const cmd = String(payload?.cmd ?? "");
   const neverDebounced = isNeverDebounced(cmd);
   if (busy.value && !neverDebounced) {

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./test";
 
 // Disconnected smoke tests (issue #26): no gateway is running, so the app loads
 // into its default disarmed/disconnected state. These assert the shell mounts

@@ -1,0 +1,47 @@
+# PF-01 (Codex R254): a call passed the NUMBER 3017 as the traverse feed — red first, 2026-11-03T02:01:07+01:00
+
+== the 38 call sites at b9e29335 (git grep '\[3017\]' -- subroutines)
+subroutines/probe_basic/probe_cal_round_pocket.ngc:72
+subroutines/probe_basic/probe_cal_round_pocket.ngc:88
+subroutines/probe_basic/probe_cal_round_pocket.ngc:93
+subroutines/probe_basic/probe_cal_round_pocket.ngc:109
+subroutines/probe_basic/probe_cal_round_pocket.ngc:114
+subroutines/probe_basic/probe_cal_round_pocket.ngc:138
+subroutines/probe_basic/probe_cal_round_pocket.ngc:143
+subroutines/probe_basic/probe_cal_square_pocket.ngc:74
+subroutines/probe_basic/probe_cal_square_pocket.ngc:99
+subroutines/probe_basic/probe_cal_square_pocket.ngc:104
+subroutines/probe_basic/probe_rect_pocket.ngc:70
+subroutines/probe_basic/probe_rect_pocket.ngc:95
+subroutines/probe_basic/probe_rect_pocket.ngc:100
+subroutines/probe_basic/probe_rect_pocket_center_start.ngc:50
+subroutines/probe_basic/probe_rect_pocket_center_start.ngc:55
+subroutines/probe_basic/probe_rect_pocket_center_start.ngc:80
+subroutines/probe_basic/probe_rect_pocket_center_start.ngc:85
+subroutines/probe_basic/probe_round_pocket.ngc:68
+subroutines/probe_basic/probe_round_pocket.ngc:84
+subroutines/probe_basic/probe_round_pocket.ngc:89
+subroutines/probe_basic/probe_round_pocket.ngc:105
+subroutines/probe_basic/probe_round_pocket.ngc:110
+subroutines/probe_basic/probe_round_pocket.ngc:134
+subroutines/probe_basic/probe_round_pocket.ngc:139
+subroutines/probe_basic/probe_round_pocket_center_start.ngc:49
+subroutines/probe_basic/probe_round_pocket_center_start.ngc:54
+subroutines/probe_basic/probe_round_pocket_center_start.ngc:70
+subroutines/probe_basic/probe_round_pocket_center_start.ngc:75
+subroutines/probe_basic/probe_round_pocket_center_start.ngc:91
+subroutines/probe_basic/probe_round_pocket_center_start.ngc:96
+subroutines/probe_basic/probe_round_pocket_center_start.ngc:120
+subroutines/probe_basic/probe_round_pocket_center_start.ngc:125
+subroutines/probe_basic/probe_valley_x.ngc:69
+subroutines/probe_basic/probe_valley_x_center_start.ngc:49
+subroutines/probe_basic/probe_valley_x_center_start.ngc:54
+subroutines/probe_basic/probe_valley_y.ngc:67
+subroutines/probe_basic/probe_valley_y_center_start.ngc:49
+subroutines/probe_basic/probe_valley_y_center_start.ngc:54
+
+== test_ngc_fixtures.py TestRoutineCallArguments at b9e29335's routines
+AssertionError: Lists differ: ['subroutines/probe_basic/probe_valley_x.ngc:69: [3017]', …] != []
+First list contains 38 additional elements.
+
+== after [3017] → [#3017] (exact bracket match, 10 files, 38 lines): test_ngc_fixtures.py 7 passed

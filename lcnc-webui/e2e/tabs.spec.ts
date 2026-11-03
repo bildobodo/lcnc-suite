@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Locator } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "./test";
 import { ctl, MOCK } from "./ctl";
 
 // Design wave D3 (UI-K17, K12, plan WP-D3 / WP-DR) — the ONE tab
@@ -17,7 +17,8 @@ import { ctl, MOCK } from "./ctl";
 //   - a hidden panel is not focusable;
 //   - narrow (the side pane below 400 px): two labelled selects.
 //
-// Runs under `serial-guards`: mock-global state, one file at a time.
+// The worker's own mock (e2e/test.ts): its state is this test's alone, reset
+// and checked before every test.
 
 const PERMS_ALL = {
   idle: true, jog: true, override: true, ready: true, run: true, pause: false,

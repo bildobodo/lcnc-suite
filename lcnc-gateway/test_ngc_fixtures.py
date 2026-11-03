@@ -14,6 +14,7 @@ gateway_util.strip_gcode_comments so the lint and the stripper cannot
 drift apart.
 """
 import os
+import re
 import unittest
 
 from gateway_util import strip_gcode_comments
@@ -133,6 +134,32 @@ class TestSubroutineContracts(unittest.TestCase):
         for l in code:
             if l.startswith("G0 "):
                 self.assertFalse(any(w[0] in "ABC" for w in l.split()[1:]), l)
+
+
+class TestRoutineCallArguments(unittest.TestCase):
+    """A call passes a parameter's VALUE: `[#3017]`, never the bare number
+    `[3017]` — the routine takes its argument as a value (#4 = 3017 → the
+    retracts between the touches at F3017 whatever the traverse setting).
+    The bundled pocket, valley and calibration routines did that at 38 call
+    sites (Codex R254 PF-01). A WebUI var number (#3000–#3999) as a literal
+    argument is always that typo."""
+
+    CALL = re.compile(r"\bo<[\w-]+>\s*call\b(.*)", re.I)
+
+    def test_no_call_passes_a_var_number_as_a_literal(self):
+        bad, calls = [], 0
+        for path in _ngc_files():
+            with open(path, errors="replace") as fh:
+                for n, line in enumerate(fh, 1):
+                    m = self.CALL.search(strip_gcode_comments(line))
+                    if not m:
+                        continue
+                    calls += 1
+                    for arg in re.findall(r"\[([^\]]*)\]", m.group(1)):
+                        if re.fullmatch(r"\s*3\d{3}(\.0*)?\s*", arg):
+                            bad.append(f"{os.path.relpath(path, _ROOT)}:{n}: [{arg.strip()}]")
+        self.assertGreater(calls, 100, "a lint that finds no calls passes on nothing")
+        self.assertEqual(bad, [])
 
 
 if __name__ == "__main__":

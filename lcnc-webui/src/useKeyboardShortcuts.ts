@@ -44,7 +44,7 @@ interface UseKeyboardShortcutsOptions {
   /** True while a dialog or the number keypad is open (modalRegistry). */
   modalOpen: ComputedRef<boolean>;
   send: (cmd: WsCommand) => void;
-  fire: (payload: any, gate?: keyof Permissions, cooldownMs?: number) => void;
+  fire: (payload: WsCommand, gate?: keyof Permissions, cooldownMs?: number) => void;
 }
 
 export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {

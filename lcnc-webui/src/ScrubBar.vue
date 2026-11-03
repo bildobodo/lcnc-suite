@@ -46,6 +46,7 @@ import MachineSlider from "./MachineSlider.vue";
 import { buildSimRows, limitStopOf, lineWordAt, measurementsOf, placelessLimitRows, type SimRowKind, partLabel } from "./viewer/simRows";
 import { limitPlaces, type LimitTarget } from "./viewer/limitPlaces";
 import { limitMarks, NO_LIMIT_MARKS, type LimitMarks } from "./limitMarks";
+import { toolMarks, NO_TOOL_MARKS, type ToolMarks } from "./toolMarks";
 import { LIST_WINDOW as LIST_WINDOW_ROWS, MergedList, NO_CLASH, clashIndexOfView, clashTicks, nextTarget, stepTarget, windowCenter, windowFirst, type ClashIndex, type Pick, type SimTargets } from "./viewer/simWindow";
 import { m600Events, m600ToolNotes, parseProbeBands, parseProbeNotes, parseProbeStops, probeStopTitle, toolsetterBasisLine } from "./viewer/probeStop";
 import { confirmedToolsetter, toolsetterVarMap } from "./toolsetterVars";
@@ -1058,6 +1059,15 @@ const toolTargets = computed(() => {
   }
   return out.sort((a, b) => a.cum - b.cum);
 });
+// The code panel marks the same lines (toolMarks); each bar clears only
+// what it set (a hot reload builds the new bar first).
+let _toolMarksSet: ToolMarks | null = null;
+watch(toolTargets, ts => {
+  const m: ToolMarks = new Map(ts.map(t => [t.line, t.tool] as const));
+  _toolMarksSet = m;
+  toolMarks.value = m;
+}, { immediate: true });
+onUnmounted(() => { if (toolMarks.value === _toolMarksSet) toolMarks.value = NO_TOOL_MARKS; });
 
 /** ---------- timeline marks + extents (2026-09-12) ---------- */
 // Every mark is the same tick, told apart by colour AND a glyph under the

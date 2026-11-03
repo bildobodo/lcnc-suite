@@ -1,62 +1,50 @@
 import { describe, it, expect } from "vitest";
-import { GLIDE, glideAt, planGlide, visibleBand } from "./codeGlide";
-
-const ANY: [number, number] = [-Infinity, Infinity];
+import { GLIDE, glideAt, planGlide, stepDelay } from "./codeGlide";
 
 describe("codeGlide", () => {
-  it("glides a step over the last packet gap, evenly, and arrives", () => {
-    const g = planGlide(1000, 1069, 0, 33, 400, false, ANY)!;
-    expect(g).toEqual({ from: 1000, to: 1069, t0: 0, dur: 33 });
-    expect(glideAt(g, 0).pos).toBe(1000);
-    expect(glideAt(g, 16.5).pos).toBeCloseTo(1034.5, 6);
-    expect(glideAt(g, 33)).toEqual({ pos: 1069, done: true });
-    expect(glideAt(g, 60)).toEqual({ pos: 1069, done: true });
+  it("steps to the line over stepMs, slowing into it, and arrives exactly", () => {
+    const g = planGlide(1000, 1069, 0, 400, 23, false)!;
+    expect(g).toEqual({ from: 1000, to: 1069, t0: 0, dur: GLIDE.stepMs });
+    expect(glideAt(g, 0)).toEqual({ pos: 1000, done: false });
+    // ease-out: past the even pace at the half, then slower
+    const half = glideAt(g, GLIDE.stepMs / 2).pos;
+    expect(half).toBeCloseTo(1000 + 69 * 0.875, 6);
+    let last = 1000;
+    for (let t = 0; t <= GLIDE.stepMs; t += 4) {
+      const p = glideAt(g, t).pos;
+      expect(p, `monotone at ${t} ms`).toBeGreaterThanOrEqual(last);
+      last = p;
+    }
+    expect(glideAt(g, GLIDE.stepMs)).toEqual({ pos: 1069, done: true });
+    expect(glideAt(g, 500)).toEqual({ pos: 1069, done: true });
   });
 
-  it("holds the duration to its bounds", () => {
-    expect(planGlide(0, 23, 0, 5, 400, false, ANY)!.dur).toBe(GLIDE.minMs);
-    expect(planGlide(0, 23, 0, 400, 400, false, ANY)!.dur).toBe(GLIDE.maxMs);
+  it("takes stepMs whatever the packets do — the wait, not the duration, follows their pace", () => {
+    expect(planGlide(0, 23, 0, 400, 23, false)!.dur).toBe(GLIDE.stepMs);
+    expect(planGlide(0, 700, 0, 400, 23, false)!.dur, "many lines: one step too").toBe(GLIDE.stepMs);
+    expect(GLIDE.stepMs).toBeLessThan(GLIDE.intervalMs);   // a step ends before the next may begin
   });
 
-  it("glides from rest too — over the longest duration, never a jump", () => {
-    expect(planGlide(0, 23, 0, 600, 400, false, ANY)!.dur, "after a pause").toBe(GLIDE.maxMs);
-    expect(planGlide(0, 23, 0, Infinity, 400, false, ANY)!.dur, "the first target").toBe(GLIDE.maxMs);
+  it("a line waits until intervalMs after the last step began — at any distance", () => {
+    expect(stepDelay(-Infinity, 0, false), "the first step").toBe(0);
+    expect(stepDelay(1000, 1000 + GLIDE.intervalMs, false), "a whole interval later").toBe(0);
+    expect(stepDelay(1000, 1033, false), "a packet later: the rest").toBe(GLIDE.intervalMs - 33);
+    expect(stepDelay(1000, 1033, true), "reduced motion snaps at once").toBe(0);
   });
 
-  it("snaps a far jump, reduced motion and no step", () => {
-    expect(planGlide(0, 801, 0, 33, 400, false, ANY), "further than two views").toBeNull();
-    expect(planGlide(0, 799, 0, 33, 400, false, ANY), "within two views").not.toBeNull();
-    expect(planGlide(0, 23, 0, 33, 400, true, ANY), "reduced motion").toBeNull();
-    expect(planGlide(5, 5, 0, 33, 400, false, ANY), "nothing to do").toBeNull();
-    expect(planGlide(0, 23, 0, 33, 0, false, ANY), "no viewport yet").toBeNull();
+  it("snaps a far jump, a view under three lines, reduced motion and no step", () => {
+    expect(planGlide(0, 801, 0, 400, 23, false), "further than two views").toBeNull();
+    expect(planGlide(0, 799, 0, 400, 23, false), "within two views").not.toBeNull();
+    expect(planGlide(0, 23, 0, 68, 23, false), "a view of less than three lines").toBeNull();
+    expect(planGlide(0, 23, 0, 69, 23, false), "three lines").not.toBeNull();
+    expect(planGlide(0, 23, 0, 400, 23, true), "reduced motion").toBeNull();
+    expect(planGlide(5, 5, 0, 400, 23, false), "nothing to do").toBeNull();
+    expect(planGlide(0, 23, 0, 0, 23, false), "no viewport yet").toBeNull();
   });
 
   it("goes backwards too (a loop, a sub's return)", () => {
-    const g = planGlide(500, 431, 10, 33, 400, false, ANY)!;
-    expect(glideAt(g, 10 + 33).pos).toBe(431);
-    expect(glideAt(g, 10 + 16.5).pos).toBeCloseTo(465.5, 6);
-  });
-
-  it("starts inside the running line's visible band — a step past it jumps to the edge (Codex R52 VP-I21)", () => {
-    // 23 px lines, 400 px view: row 60 → the band of scroll tops
-    const band = visibleBand(60 * 23, 23, 400, y => y)!;
-    expect(band).toEqual([60 * 23 + 46 - 400, 60 * 23 - 23]);
-    // a 20-line packet from the previous centre: the start is the band's edge
-    const to = 60 * 23 - 200 + 11.5, prev = 40 * 23 - 200 + 11.5;
-    const g = planGlide(prev, to, 0, 33, 400, false, band)!;
-    expect(g.from).toBe(band[0]);
-    expect(glideAt(g, 33).pos).toBe(to);
-    // backwards the same, from the other edge
-    const back = planGlide(80 * 23 - 200 + 11.5, to, 0, 33, 400, false, band)!;
-    expect(back.from).toBe(band[1]);
-    // a small step starts where it is
-    expect(planGlide(to - 69, to, 0, 33, 400, false, band)!.from).toBe(to - 69);
-  });
-
-  it("maps the band through the scaled scroll space and snaps where a line and its margins do not fit", () => {
-    const half = (y: number) => y / 2;   // a spacer at half the content height
-    expect(visibleBand(1000, 23, 400, half)).toEqual([(1000 + 46 - 400) / 2, (1000 - 23) / 2]);
-    expect(visibleBand(1000, 23, 60, y => y), "a view of less than three lines").toBeNull();
-    expect(planGlide(0, 23, 0, 33, 60, false, null), "no band: snap").toBeNull();
+    const g = planGlide(500, 431, 10, 400, 23, false)!;
+    expect(glideAt(g, 10 + GLIDE.stepMs).pos).toBe(431);
+    expect(glideAt(g, 10 + GLIDE.stepMs / 2).pos).toBeCloseTo(500 - 69 * 0.875, 6);
   });
 });

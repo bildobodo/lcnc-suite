@@ -1,0 +1,191 @@
+{
+  "kind": "round",
+  "note": "feat/test-tiers 156d7337..44624f2e: the calibration fix merged (b9e29335) and the probe-click spec — the round gate's first run",
+  "base": "156d73379fe1cb26fb5514302af3c8880f240108",
+  "head": "44624f2e10300a366396a4970b45c3bf5177fc28",
+  "uncommitted": 0,
+  "env": {
+    "nproc": 6,
+    "arch": "aarch64",
+    "node": "v22.23.2",
+    "playwright": "Version 1.60.0"
+  },
+  "selection": {
+    "unmatched": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [
+        "lcnc-webui/src/probeVarFiles.test.ts"
+      ],
+      "related": [
+        "lcnc-webui/src/actionAdmission.test.ts",
+        "lcnc-webui/src/lcncWs.clock.test.ts",
+        "lcnc-webui/src/lcncWs.exports.test.ts",
+        "lcnc-webui/src/probeVarFiles.test.ts",
+        "lcnc-webui/src/settingsDraft.test.ts",
+        "lcnc-webui/src/settingsSections.test.ts",
+        "lcnc-webui/src/useGamepad.test.ts",
+        "lcnc-webui/src/useMacros.test.ts"
+      ]
+    },
+    "browser": {
+      "run": [
+        "contrast",
+        "dialogs",
+        "disarmed",
+        "forms",
+        "layout",
+        "layout-audit",
+        "probe-click",
+        "tabs",
+        "visual"
+      ],
+      "reasons": []
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "examples/sim_config/xyz3/sim.var: the shipped examples: backend, models, var files",
+        "examples/sim_config/xyzabc6/sim.var: the shipped examples: backend, models, var files",
+        "examples/sim_config/xyzac5/sim.var: the shipped examples: backend, models, var files"
+      ]
+    },
+    "firefox": {
+      "needed": true,
+      "paths": [
+        "lcnc-webui/src/ProbePanel.vue",
+        "lcnc-webui/src/probeVars.ts"
+      ],
+      "status": "pending: the pinned Mozilla target is not built yet (step 6)"
+    },
+    "live": {
+      "probe-live": [
+        "examples/sim_config/xyz3/sim.var",
+        "examples/sim_config/xyzabc6/sim.var",
+        "examples/sim_config/xyzac5/sim.var",
+        "lcnc-webui/src/ProbePanel.vue",
+        "lcnc-webui/src/probeVars.ts"
+      ]
+    }
+  },
+  "browser_specs": [
+    {
+      "file": "layout.spec.ts",
+      "ms": 795652
+    },
+    {
+      "file": "contrast.spec.ts",
+      "ms": 215230
+    },
+    {
+      "file": "dialogs.spec.ts",
+      "ms": 153276
+    },
+    {
+      "file": "visual.spec.ts",
+      "ms": 32425
+    },
+    {
+      "file": "disarmed.spec.ts",
+      "ms": 27672
+    },
+    {
+      "file": "forms.spec.ts",
+      "ms": 27088
+    },
+    {
+      "file": "tabs.spec.ts",
+      "ms": 18774
+    },
+    {
+      "file": "probe-click.spec.ts",
+      "ms": 12907
+    },
+    {
+      "file": "layout-audit.spec.ts",
+      "ms": 623
+    }
+  ],
+  "checks": [
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 9
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 18
+    },
+    {
+      "name": "unit-light",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --reporter=default --reporter=json --outputFile.json=/home/cnc/lcnc-suite-tiers/docs/reviews/test-tiers.round1.gate-round.logs/vitest-light.json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 69,
+      "files": 161,
+      "tests": 2573,
+      "passed": 2573,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "backend",
+      "command": "/home/cnc/lcnc-suite-tiers/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-tiers/scripts/test_suite.py offline --component backend --out-dir /home/cnc/lcnc-suite-tiers/docs/reviews/test-tiers.round1.gate-round.logs/backend",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 78
+    },
+    {
+      "name": "browser-listing",
+      "status": "PASS",
+      "files": 9
+    },
+    {
+      "name": "browser-selected",
+      "command": "npx playwright test -c playwright.select.config.ts --trace off --reporter=line,json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 1289,
+      "tests": 251,
+      "passed": 251,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    {
+      "name": "browser-order",
+      "status": "PASS"
+    }
+  ],
+  "omitted": [
+    {
+      "check": "unit-heavy",
+      "reason": "no heavy file changed, reached or read for"
+    }
+  ],
+  "pending": [
+    {
+      "check": "firefox-core",
+      "status": "pending: the pinned Mozilla target is not built yet (step 6)"
+    },
+    {
+      "check": "probe-live",
+      "status": "pending: a live check, run before main",
+      "paths": [
+        "examples/sim_config/xyz3/sim.var",
+        "examples/sim_config/xyzabc6/sim.var",
+        "examples/sim_config/xyzac5/sim.var",
+        "lcnc-webui/src/ProbePanel.vue",
+        "lcnc-webui/src/probeVars.ts"
+      ]
+    }
+  ],
+  "verdict": "PASS"
+}

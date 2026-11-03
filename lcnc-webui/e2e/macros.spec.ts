@@ -1,6 +1,7 @@
 // Package 5, stage C (plan docs/reviews/makros.plan.md): the Macros tab and
 // macro FILES on the bar, against the in-memory folder of macroFolder.ts.
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
+import { enterTouch } from "./touchMode";
 import { ctl, MOCK } from "./ctl";
 import { Folder, serve, rev, PARK, FACE } from "./macroFolder";
 import { clickMore, moreItem, moreTrigger } from "./more";
@@ -241,19 +242,31 @@ test("closing the editor over a draft asks first, by Cancel and by X: Keep editi
 // ── The run state follows the file (plan "Run und Editorentwurf", Codex VP69-05) ──
 test("another client's save during a bar hold cancels it; the next hold runs the new revision once", async ({ page }) => {
   const folder = new Folder();
+  // the hold's 500 ms run on the test's clock: it stands while the save
+  // lands — under load the save's way (the frame, the listing) took longer
+  // than the hold, which then ran the old revision: the case was gone
+  // (the parallel measurement, 2026-11-03). A hold the save does not cancel
+  // fires in the runFor below.
+  await page.clock.install();
   await ready(page, folder, { macros: { macros: [], bar: ["park"] } });
   const park = page.locator(".macroBar").getByRole("button", { name: "Park", exact: true });
   await expect(park).toBeEnabled();
   const box = (await park.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  // a second ahead: the page's clock started at this machine's time and runs
+  // with it — `page time + 50 ms` was in the past by its arrival under load
+  await page.clock.pauseAt(Date.now() + 1_000);
   await page.mouse.down();
-  await page.waitForTimeout(150);
   const theirs = PARK.replace("G90", "G90 (theirs)");
   folder.touch("park", theirs);
   await ctl({ op: "raw", frame: { type: "macros_changed", version: 2 } });
-  await page.waitForTimeout(HOLD_MS);
+  await expect(page.locator("[data-btn-hint]"), "the save cancelled the hold under the finger").toHaveText("Selection changed — hold again");
+  // the finger stays the whole hold time (a release before it is a tap,
+  // which ends any hold): a hold the save left alive fires here
+  await page.clock.runFor(HOLD_MS);
   await page.mouse.up();
-  await expect(page.locator("[data-btn-hint]")).toHaveText("Selection changed — hold again");
+  await page.clock.resume();
+  await page.waitForTimeout(300);   // what a fired hold sent is on its way
   expect(await runs(), "the hold bound to the old revision ran nothing").toEqual([]);
   await press(page, park, HOLD_MS);
   await expect.poll(runs).toEqual([expect.objectContaining({ name: "park", revision: rev(theirs) })]);
@@ -325,7 +338,7 @@ test("the Macros tab and its editor never run out sideways: desktop, portrait 10
     }
     await ready(page, folder, { macros: { macros: [], bar: ["park", "face_top", "go_to_g30_macro", "spindle_warmup", "coolant_flush"] } });
     await page.setViewportSize({ width: vp.w, height: vp.h });
-    if (vp.touch) await page.evaluate(() => document.documentElement.classList.add("touch-device"));
+    if (vp.touch) await enterTouch(page);
     if (vp.zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, vp.zoom);
     // the side pane's narrow flag follows the resize through a
     // ResizeObserver: wait until it matches the width before choosing tab or
@@ -612,7 +625,7 @@ test("one action row: Run and Abort left, More right; its panel, its keys, and a
   for (const narrow of [false, true]) {
     if (narrow) {
       await page.setViewportSize({ width: 900, height: 1200 });
-      await page.evaluate(() => document.documentElement.classList.add("touch-device"));
+      await enterTouch(page);
       await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
       await expect(page.getByRole("combobox", { name: "Side panel" })).toBeVisible();
     }
@@ -729,7 +742,7 @@ test("On bar and the order buttons move nothing in the list: no row height, colu
       folder.files.set(n, { text: `o<${n}> sub\no<${n}> endsub\n`, meta: { title: n, units: null, frame: null, params: [] } });
     }
     await ready(page, folder, { macros: { macros: [], bar: ["face_top"] } });
-    if (touch) await page.evaluate(() => document.documentElement.classList.add("touch-device"));
+    if (touch) await enterTouch(page);
     await openTab(page);
     // positions inside the TABLE: the test's own tap may scroll the body
     const geometry = () => page.evaluate(() => ({
@@ -790,7 +803,7 @@ test("a table that starts scrolling keeps its columns: the first macro on the ba
 test("the macro bar is dense: compact buttons, and an Abort at its right end that sends exactly abort", async ({ page }) => {
   for (const touch of [false, true]) {
     await ready(page, new Folder(), { macros: { macros: [], bar: ["park", "face_top"] } });
-    if (touch) await page.evaluate(() => document.documentElement.classList.add("touch-device"));
+    if (touch) await enterTouch(page);
     const bar = page.locator(".macroBar");
     const want = touch ? 36 : 28;
     for (const name of ["Park", "Face top", "Abort"]) {

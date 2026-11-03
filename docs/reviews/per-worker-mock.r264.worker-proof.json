@@ -1,0 +1,153 @@
+{
+  "r263-selected": {
+    "results": 484,
+    "execution_errors": [],
+    "worker_errors": [],
+    "report_run": [
+      "the report names no run (config.metadata.run)"
+    ]
+  },
+  "r263-full-w2": {
+    "results": 838,
+    "execution_errors": [],
+    "worker_errors": [],
+    "report_run": [
+      "the report names no run (config.metadata.run)"
+    ]
+  },
+  "r263-full-w3": {
+    "results": 838,
+    "execution_errors": [],
+    "worker_errors": [],
+    "report_run": [
+      "the report names no run (config.metadata.run)"
+    ]
+  },
+  "bound_owner_wrong": {
+    "expected": "reject",
+    "rejected": true,
+    "error_count": 1679,
+    "first": [
+      "mock 47dbd83c-6482-47b6-9c9f-d8345f4e8f0b stopped by another worker or slot than bound it",
+      "mock efbb753b-1916-4868-a0e9-333b476782c1 stopped by another worker or slot than bound it",
+      "mock 326619a0-61b7-4ce6-99b3-65db50557679 stopped by another worker or slot than bound it"
+    ]
+  },
+  "slot_wrong": {
+    "expected": "reject",
+    "rejected": true,
+    "error_count": 2515,
+    "first": [
+      "a test on mock efbb753b-1916-4868-a0e9-333b476782c1 from another worker or slot than bound it: armed.spec.ts | e2e | connected + armed + ready lifts default-deny on machine controls | 0",
+      "a test on mock 326619a0-61b7-4ce6-99b3-65db50557679 from another worker or slot than bound it: appearance.spec.ts | e2e | a pulse moves the background, never the text: the banner stays fully opaque while it pulses | 0",
+      "a test on mock 47dbd83c-6482-47b6-9c9f-d8345f4e8f0b from another worker or slot than bound it: bake-hold.viewer.spec.ts | e2e | an offset change without a parse re-bakes once, at the new offsets | 0"
+    ]
+  },
+  "bound_lies_about_endpoint": {
+    "expected": "reject",
+    "rejected": true,
+    "error_count": 2,
+    "first": [
+      "mock efbb753b-1916-4868-a0e9-333b476782c1: endpoint http://localhost:4500/ is not port 4501's",
+      "mock 47dbd83c-6482-47b6-9c9f-d8345f4e8f0b: endpoint http://localhost:4500/ is not port 4502's"
+    ]
+  },
+  "events_from_another_run": {
+    "expected": "reject",
+    "rejected": true,
+    "error_count": 839,
+    "first": [
+      "1676 events of another run (old-other-run), not 1710631-1793696769849",
+      "no worker event for: appearance.spec.ts | e2e | a pulse moves the background, never the text: the banner stays fully opaque while it pulses | 0",
+      "no worker event for: appearance.spec.ts | e2e | forced colours: the focus ring, the selected tab and the state banner stay distinguishable | 0"
+    ]
+  },
+  "report_worker_mismatch": {
+    "expected": "reject",
+    "rejected": true,
+    "error_count": 3182,
+    "first": [
+      "a test on mock efbb753b-1916-4868-a0e9-333b476782c1 from another worker or slot than bound it: armed.spec.ts | e2e | connected + armed + ready lifts default-deny on machine controls | 0",
+      "a test on mock 326619a0-61b7-4ce6-99b3-65db50557679 from another worker or slot than bound it: appearance.spec.ts | e2e | a pulse moves the background, never the text: the banner stays fully opaque while it pulses | 0",
+      "worker 999 ran two tests at once: connected + armed + ready lifts default-deny on machine controls / a pulse moves the background, never the text: the banner stays fully opaque while it pulses"
+    ]
+  },
+  "all_event_workers_disagree_with_report": {
+    "expected": "reject",
+    "rejected": true,
+    "error_count": 838,
+    "first": [
+      "worker 0 slot 0 by the report, worker 100 slot 0 by the events: appearance.spec.ts | e2e | a pulse moves the background, never the text: the banner stays fully opaque while it pulses | 0",
+      "worker 0 slot 0 by the report, worker 100 slot 0 by the events: appearance.spec.ts | e2e | forced colours: the focus ring, the selected tab and the state banner stay distinguishable | 0",
+      "worker 0 slot 0 by the report, worker 100 slot 0 by the events: appearance.spec.ts | e2e | reduced motion: no pulse and no flash — the state stays a static fill | 0"
+    ]
+  },
+  "missing_bound_control": {
+    "expected": "reject",
+    "rejected": true,
+    "error_count": 429,
+    "first": [
+      "stopped, never bound: 326619a0-61b7-4ce6-99b3-65db50557679",
+      "a test on a mock never bound: 326619a0-61b7-4ce6-99b3-65db50557679",
+      "a test on a mock never bound: 326619a0-61b7-4ce6-99b3-65db50557679"
+    ]
+  },
+  "missing_stopped": {
+    "expected": "reject",
+    "rejected": true,
+    "error_count": 3,
+    "first": [
+      "mock efbb753b-1916-4868-a0e9-333b476782c1 bound, never stopped",
+      "mock 326619a0-61b7-4ce6-99b3-65db50557679 bound, never stopped",
+      "mock 47dbd83c-6482-47b6-9c9f-d8345f4e8f0b bound, never stopped"
+    ]
+  },
+  "duplicate_pair": {
+    "expected": "reject",
+    "rejected": true,
+    "error_count": 4,
+    "first": [
+      "a test outside mock efbb753b-1916-4868-a0e9-333b476782c1's life: armed.spec.ts | e2e | connected + armed + ready lifts default-deny on machine controls | 0",
+      "started twice: armed.spec.ts | e2e | connected + armed + ready lifts default-deny on machine controls | 0",
+      "a test outside mock 326619a0-61b7-4ce6-99b3-65db50557679's life: appearance.spec.ts | e2e | a pulse moves the background, never the text: the banner stays fully opaque while it pulses | 0"
+    ]
+  },
+  "foreign_pair": {
+    "expected": "reject",
+    "rejected": true,
+    "error_count": 4,
+    "first": [
+      "a test outside mock efbb753b-1916-4868-a0e9-333b476782c1's life: armed.spec.ts | e2e | connected + armed + ready lifts default-deny on machine controls (foreign) | 0",
+      "a test outside mock 326619a0-61b7-4ce6-99b3-65db50557679's life: appearance.spec.ts | e2e | a pulse moves the background, never the text: the banner stays fully opaque while it pulses (foreign) | 0",
+      "started, never ended: armed.spec.ts | e2e | connected + armed + ready lifts default-deny on machine controls (foreign) | 0"
+    ]
+  },
+  "w2_report_with_w3_event_log": {
+    "expected": "reject",
+    "rejected": true,
+    "error_count": 413,
+    "first": [
+      "worker 1 slot 1 by the report, worker 2 slot 2 by the events: bake-hold.viewer.spec.ts | e2e | A→B→A held across the supersede gap and the loading: muted until the matching path is DRAWN (VP193-01) | 0",
+      "worker 1 slot 1 by the report, worker 2 slot 2 by the events: bake-hold.viewer.spec.ts | e2e | E1: a check parked by a rotary jog under the hold goes on after the hold — never left paused | 0",
+      "worker 1 slot 1 by the report, worker 2 slot 2 by the events: bake-hold.viewer.spec.ts | e2e | E1: a parse that ends without a publication — a noted restart checks once after the gap; without one the paused check goes on | 0"
+    ]
+  },
+  "w2_report_with_both_original_event_logs": {
+    "expected": "reject",
+    "rejected": true,
+    "error_count": 1,
+    "first": [
+      "1682 events of another run (1710631-1793696769849), not 1764681-1793698649185"
+    ]
+  },
+  "w2_report_with_both_logs_under_w3s_run": {
+    "expected": "reject",
+    "rejected": true,
+    "error_count": 414,
+    "first": [
+      "1680 events of another run (1764681-1793698649185), not 1710631-1793696769849",
+      "worker 1 slot 1 by the report, worker 2 slot 2 by the events: bake-hold.viewer.spec.ts | e2e | A→B→A held across the supersede gap and the loading: muted until the matching path is DRAWN (VP193-01) | 0",
+      "worker 1 slot 1 by the report, worker 2 slot 2 by the events: bake-hold.viewer.spec.ts | e2e | E1: a check parked by a rotary jog under the hold goes on after the hold — never left paused | 0"
+    ]
+  }
+}

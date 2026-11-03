@@ -1,10 +1,12 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from "./test";
+import { enterTouch } from './touchMode';
 import { encode } from '@msgpack/msgpack';
 import { withLimitRuns } from './limitRuns';
 import { ctl, publishToolTable } from './ctl';
 import { Folder, serveNow, addPlain } from './macroFolder';
 import { clickMore } from './more';
 import { NARROW_PANE_PX } from '../src/sidePaneNarrow';
+import { GLIDE } from '../src/codeGlide';
 import { measureLayout, assertLayout, layoutChanges, measureFrame, frameChanges, sidewaysOverflow, type LayoutSnapshot } from './layout-audit';
 import { PROFILES, VIEWPORTS, PANELS, openLayout, setLayoutState, settleLayout, type LayoutState,
   STRIP_STATES, enterStripState, leaveStripState, stripStateRefs, stripStateExempt, refControls, SETUP_AXIS_ROWS } from './layout-fixtures';
@@ -145,6 +147,40 @@ for (const viewport of VIEWPORTS) {
     expect(Object.keys(tops).length, JSON.stringify(tops)).toBeGreaterThanOrEqual(5);
     expect(new Set(Object.values(tops)).size, `where the parameters start: ${JSON.stringify(tops)}`).toBe(1);
   });
+}
+
+// A probe grid takes its width from the pane, never from its glyphs
+// (operator 2026-11-02: "nur 9 Punkte" in Firefox 159, which sizes the
+// glyph's percentage-wide SVG at zero in the grid's content width — the grid
+// shrank to its cells' padding; Firefox 150 and Chromium gave 80 px). The
+// glyphs taken out of the layout model that: every cell keeps its size,
+// open and dimmed (a closed gate wraps a cell in its explain span).
+for (const viewport of VIEWPORTS.filter(v => v.name === 'desktop' || v.name === 'touch-fullhd')) {
+  for (const state of ['homed', 'unhomed'] as const) {
+    test(`${viewport.name}, ${state}: a probe grid's cells keep their size whatever the glyph contributes`, async ({ page }) => {
+      await openLayout(page, PROFILES[0]!, viewport);
+      await setLayoutState(page, PROFILES[0]!, state);
+      const side = page.locator('.sidePane');
+      await side.getByRole('tab', { name: 'Probing', exact: true }).click();
+      const cells = () => side.locator('.gridCell').evaluateAll(els => els.map(el => {
+        const r = el.getBoundingClientRect();
+        return [Math.round(r.width * 10) / 10, Math.round(r.height * 10) / 10];
+      }));
+      for (const sub of ['Outside', 'Inside', 'Angle', 'Boss/Pocket', 'Ridge/Valley', 'Calibrate']) {
+        await side.getByRole('tab', { name: sub, exact: true }).click();
+        await settleLayout(page);
+        const before = await cells();
+        expect(before.length, `${sub}: cells`).toBeGreaterThanOrEqual(4);
+        expect(before.every(([w, h]) => w >= 44 && Math.abs(w - h) <= 1), `${sub}: square cells ${JSON.stringify(before)}`).toBe(true);
+        await page.addStyleTag({ content: '.gridCell svg { display: none !important; }' });
+        await settleLayout(page);
+        expect(await cells(), `${sub}: the cells without their glyphs`).toEqual(before);
+        await page.evaluate(() => document.querySelectorAll('style').forEach(s => {
+          if (s.textContent?.includes('.gridCell svg { display: none')) s.remove();
+        }));
+      }
+    });
+  }
 }
 
 // Design wave D3 (plan WP-DR, measured again with the bundled Inter): the
@@ -1391,7 +1427,7 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
     await expect(page.locator('.viewerPane .hud')).toBeHidden();
     await geometry('A desktop, HUD off', false);
     await page.setViewportSize({ width: portrait.width, height: portrait.height });
-    await page.evaluate(() => document.documentElement.classList.add('touch-device'));
+    await enterTouch(page);
     await zoom(1.5);
     await geometry('A portrait 150 %, HUD off', true);
     await simOn();
@@ -1478,7 +1514,14 @@ test('a help icon in the viewer warnings card scrolls nothing and keeps its hit 
 // apart. A glyph in the slot between the number and the code (the 16 px the
 // number's margin gave): ▲ limit, × collision, × when both (danger wins the
 // look), named for every finding of the line; the code starts where it did.
-test('a code line names its findings with a glyph: ▲ limit, × collision, both named', async ({ page, context }) => {
+// ● a tool change too (operator 2026-11-01: "wie schaut das mit dem punkt für
+// die werkzeugwechsel aus? … in der spalte im programmcode"): the timeline's
+// tool-change lines, in their colour, the others' glyph winning the look.
+// A name that holds "m6" is no M word (Codex R247 FH-06); a word that follows
+// a number without a space is one (T7M600); a new T word drops the T before
+// it — a plain number names the tool (T+9), anything else is unknown (Codex
+// R249 FH-07).
+test('a code line names its findings with a glyph: ▲ limit, × collision, ● tool change, all named', async ({ page, context }) => {
   test.setTimeout(120_000);
   const feed = LIMIT_FEED.map(p => [...p]);
   const body = Buffer.from(encode(withLimitRuns({ file: '/marks.ngc', preview_schema: 11, feed,
@@ -1488,7 +1531,12 @@ test('a code line names its findings with a glyph: ▲ limit, × collision, both
     violations_total: 2, rapid: [[0, 0, 5], [0, 0, 0]], rapid_lines: [1, 2], rapid_seq: [1, 2] })));
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain',
-    body: Array.from({ length: 40 }, (_, i) => i === 0 ? '(marks)' : `G1 X${i} Y${i % 2 ? 20 : 0} F100`).join('\n') }));
+    // a tool change alone on line 8, one on line 32 with its limit and collision,
+    // a parameter named for M600 on line 16, a compact T7M600 on line 18,
+    // T+9 M600 on line 22, TABS[-7] M601 on line 26
+    body: Array.from({ length: 40 }, (_, i) => i === 0 ? '(marks)' : i === 7 ? 'T3 M6'
+      : i === 15 ? '#<m600_count> = 0' : i === 17 ? 'T7M600' : i === 21 ? 'T+9 M600' : i === 25 ? 'TABS[-7] M601'
+      : `${i === 31 ? 'T5 M6 ' : ''}G1 X${i} Y${i % 2 ? 20 : 0} F100`).join('\n') }));
   await openLayout(page, PROFILES[1], VIEWPORTS.find(v => v.name === 'desktop')!);
   await ctl({ op: 'status_delta', data: { active_file: '/marks.ngc' } });
   await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 990, file: '/marks.ngc' } });
@@ -1505,16 +1553,31 @@ test('a code line names its findings with a glyph: ▲ limit, × collision, both
     return line(n).evaluate(el => {
       const g = el.querySelector('.lineMark [role="img"]');
       return { name: g?.getAttribute('aria-label') ?? null, glyph: g ? [...g.classList].find(c => c.startsWith('lucide-') && c !== 'lucide-icon') ?? null : null,
-        codeX: el.querySelector('.lineContent')!.getBoundingClientRect().left };
+        codeX: el.querySelector('.lineContent')!.getBoundingClientRect().left,
+        color: getComputedStyle(el.querySelector('.lineMark')!).color, title: el.getAttribute('title') };
     });
   };
-  const [limitOnly, collisionOnly, both, plain] = [await mark(20), await mark(12), await mark(32), await mark(5)];
-  const dump = JSON.stringify({ limitOnly, collisionOnly, both, plain });
+  const markTool = await page.evaluate(() => {
+    const p = document.body.appendChild(document.createElement('span'));
+    p.style.color = 'var(--mark-tool)';
+    const c = getComputedStyle(p).color;
+    p.remove();
+    return c;
+  });
+  const [limitOnly, collisionOnly, all, tool, plain, named, compact, signed, fn] = [await mark(20), await mark(12), await mark(32), await mark(8), await mark(5),
+    await mark(16), await mark(18), await mark(22), await mark(26)];
+  const dump = JSON.stringify({ limitOnly, collisionOnly, all, tool, plain, named, compact, signed, fn });
   expect([limitOnly.glyph, limitOnly.name], `limit: ▲ named ${dump}`).toEqual(['lucide-triangle-icon', 'Limit violation']);
   expect([collisionOnly.glyph, collisionOnly.name], `collision: × named ${dump}`).toEqual(['lucide-x-icon', 'Collision']);
-  expect([both.glyph, both.name], `both: × shows, the name says both ${dump}`).toEqual(['lucide-x-icon', 'Limit violation, collision']);
+  expect([all.glyph, all.name], `all three: × shows, the name says each ${dump}`).toEqual(['lucide-x-icon', 'Limit violation, collision, tool change']);
+  expect([tool.glyph, tool.name, tool.color], `tool change: ● named, in its mark's colour ${dump}`).toEqual(['lucide-circle-icon', 'Tool change', markTool]);
+  expect(tool.title, `its title says the tool, the Sim list's words ${dump}`).toBe('Tool change → T3');
   expect(plain.name, `a clean line has no mark ${dump}`).toBeNull();
-  expect(new Set([limitOnly.codeX, collisionOnly.codeX, both.codeX, plain.codeX]).size, `the code starts at one x ${dump}`).toBe(1);
+  expect([named.name, named.title], `a parameter's name is no tool change ${dump}`).toEqual([null, null]);
+  expect([compact.glyph, compact.title], `T7M600 is one ${dump}`).toEqual(['lucide-circle-icon', 'Tool change → T7']);
+  expect(signed.title, `T+9: a plain number names the tool ${dump}`).toBe('Tool change → T9');
+  expect(fn.title, `TABS[-7]: unknown, never the T before it ${dump}`).toBe('Tool change → T?');
+  expect(new Set([limitOnly.codeX, collisionOnly.codeX, all.codeX, tool.codeX, plain.codeX, named.codeX, compact.codeX, signed.codeX, fn.codeX]).size, `the code starts at one x ${dump}`).toBe(1);
 });
 
 // Viewer contrast plan, V4 (VK-02/03): the tilted work plane names its state
@@ -2051,7 +2114,7 @@ const GLIDE_FEED = Array.from({ length: GLIDE_LINES }, (_, i) => [i % 2 ? 10 : 0
 const GLIDE_PREVIEW = Buffer.from(encode({ file: '/glide.ngc', preview_schema: 11, feed: GLIDE_FEED,
   feed_lines: GLIDE_FEED.map((_, i) => i + 1), feed_seq: GLIDE_FEED.map((_, i) => i + 1),
   feed_outside: new Uint8Array(GLIDE_LINES), rapid: [], violations: [], violations_total: 0 }));
-test('the running line glides: the code scrolls evenly under a centred highlight, which never leaves the view', async ({ page, context }) => {
+test('the running line steps: the code moves under a centred highlight and rests between steps; the highlight never leaves the view', async ({ page, context }) => {
   test.setTimeout(120_000);
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: GLIDE_PREVIEW }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain',
@@ -2068,8 +2131,9 @@ test('the running line glides: the code scrolls evenly under a centred highlight
   await ctl({ op: 'status_delta', data: { interp_state: 2, task_mode: 2, motion_line: line } });
   await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(line));
   await page.waitForTimeout(700);   // past the first step: the phases start from rest
-  /** Per animation frame: the time, the scroll and whether the highlighted
-   *  row is wholly inside the code view (±0.5 px). */
+  /** Per animation frame: the time, the scroll and whether the highlight —
+   *  the band while the code steps or a line waits, else the running row —
+   *  is wholly inside the code view (±0.5 px). */
   const sample = (ms: number) => page.evaluate(({ sel, ms }) => {
     const el = document.querySelector<HTMLElement>(sel)!;
     const w = window as unknown as { __glide: [number, number, boolean, string][] };
@@ -2077,7 +2141,7 @@ test('the running line glides: the code scrolls evenly under a centred highlight
     const t0 = performance.now();
     const f = (now: number) => {
       const v = el.getBoundingClientRect(), a = el.querySelector('.codeLine.active');
-      const r = a?.getBoundingClientRect();
+      const r = (el.querySelector('.codeFollowBand') ?? a)?.getBoundingClientRect();
       const inside = !!r && r.top >= v.top - 0.5 && r.bottom <= v.bottom + 0.5;
       w.__glide.push([now, el.scrollTop, inside, a?.querySelector('.lineNumber')?.textContent ?? '']);
       if (now - t0 < ms) requestAnimationFrame(f);
@@ -2087,7 +2151,7 @@ test('the running line glides: the code scrolls evenly under a centred highlight
   const samples = () => page.evaluate(() => (window as unknown as { __glide: [number, number, boolean, string][] }).__glide);
   const hidden = (ss: [number, number, boolean, string][]) => ss.filter(x => !x[2]);
 
-  // Phase 1: three lines a packet — even.
+  // Phase 1: three lines a packet — in steps.
   await sample(3500);
   for (let i = 0; i < 60; i++) {
     line += 3;
@@ -2104,28 +2168,25 @@ test('the running line glides: the code scrolls evenly under a centred highlight
   });
   expect(m.line, 'the last line is the highlighted one').toBe(line);
   expect(Math.abs(m.off), `it stands centred (${m.off} px off)`).toBeLessThan(m.lineH / 2 + 1);
-  expect(hidden(even).length, `three lines a packet: the running line in view in every frame ${JSON.stringify(hidden(even).slice(0, 5))}`).toBe(0);
+  expect(hidden(even).length, `three lines a packet: the highlight in view in every frame ${JSON.stringify(hidden(even).slice(0, 5))}`).toBe(0);
   const steps = even.slice(1).map((x, i) => x[1] - even[i]![1]);
   const fps = (even.length - 1) / ((even.at(-1)![0] - even[0]![0]) / 1000);
   expect(Math.min(...steps), 'the code never scrolls backwards').toBeGreaterThanOrEqual(-0.5);
-  // Over the frames from the first move to the last: a hard follow moves
-  // about every other frame by a whole packet's step and stands still in
-  // between; a glide moves nearly every frame by a part of it. (A single
-  // late frame may still carry a whole step — shares, not the maximum.)
-  const packetStep = 3 * m.lineH;
+  // Over the frames from the first move to the last: the code goes in steps
+  // (codeGlide.ts — it glided on with every packet until 2026-11-01, when a
+  // frame without movement was rare) and stands still between them, the
+  // highlight then on a row (the rest test below measures that).
   const first = steps.findIndex(v => v > 0.5), last = steps.findLastIndex(v => v > 0.5);
   const active = steps.slice(first, last + 1);
-  const moving = active.filter(v => v > 0.5).length / active.length;
-  const whole = active.filter(v => v >= 0.9 * packetStep).length / active.length;
-  const note = `${fps.toFixed(0)} fps, ${active.length} frames: ${(moving * 100).toFixed(0)} % move, ${(whole * 100).toFixed(0)} % by a whole ${packetStep} px packet step`;
+  const resting = active.filter(v => Math.abs(v) <= 0.5).length / active.length;
+  const note = `${fps.toFixed(0)} fps, ${active.length} frames: ${(resting * 100).toFixed(0)} % at rest`;
   test.info().annotations.push({ type: 'glide', description: note });
-  if (fps >= 50) {
-    expect(whole, `hardly a frame moves a whole packet's step — ${note}`).toBeLessThan(0.1);
-    expect(moving, `nearly every frame moves — ${note}`).toBeGreaterThan(0.75);
-  }
+  if (fps >= 50) expect(resting, `the code rests between steps — ${note}`).toBeGreaterThan(0.1);
 
-  // Phase 2 (VP-I21): twenty lines a packet forwards, then back — larger
-  // than the view's half: the running line must still be in every frame.
+  // Phase 2 (Codex R52 VP-I21): twenty lines a packet forwards, then back —
+  // larger than the view's half: the highlight must still be in view in
+  // every frame (the band, while the running row waits past the edge for
+  // its step).
   await page.waitForTimeout(700);
   await sample(3600);
   for (let i = 0; i < 36; i++) {
@@ -2140,8 +2201,8 @@ test('the running line glides: the code scrolls evenly under a centred highlight
   }
   await page.waitForTimeout(400);
   const big = await samples();
-  test.info().annotations.push({ type: 'glide', description: `20 lines a packet: ${big.length} frames, ${hidden(big).length} with the running line out of view` });
-  expect(hidden(big).length, `twenty lines a packet: the running line in view in every frame ${JSON.stringify(hidden(big).slice(0, 5))}`).toBe(0);
+  test.info().annotations.push({ type: 'glide', description: `20 lines a packet: ${big.length} frames, ${hidden(big).length} with the highlight out of view` });
+  expect(hidden(big).length, `twenty lines a packet: the highlight in view in every frame ${JSON.stringify(hidden(big).slice(0, 5))}`).toBe(0);
   await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(line));
 });
 
@@ -2247,6 +2308,169 @@ for (const size of [{ name: 'the file', lines: GLIDE_LINES, at: 60 }, { name: 'a
   });
 }
 
+// Operator 2026-11-01: the highlight stood still but was "nicht mehr ganz
+// synchron mit den Codezeilen" — the text glided on with every packet, so
+// the band over it sat on a row in 3–20 % of the frames and, at speed,
+// several lines behind. The code now goes in steps that snap into place
+// (codeGlide.ts): a line that comes sooner than GLIDE.intervalMs after the
+// last step waits, the text rests on a line between steps, and the line the
+// highlight covers is at most intervalMs + stepMs old (the time each line
+// was SENT: it came no sooner). A CAM-like pace — three lines a packet at
+// 30 Hz — and a fast one, eight, where the running row is often past the
+// view's edge and the band, never.
+for (const pace of [3, 8]) {
+  test(`the code rests on a line between steps: the standing highlight covers a whole row, never an old one — ${pace} lines a packet`, async ({ page, context }) => {
+    test.setTimeout(120_000);
+    await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: GLIDE_PREVIEW }));
+    await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain', body: glideText(GLIDE_LINES) }));
+    await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === 'desktop')!);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await ctl({ op: 'status_delta', data: { active_file: '/glide.ngc' } });
+    await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 5101, file: '/glide.ngc' } });
+    const SEL = '.codeViewer:not(.mdiHistoryList)';
+    const viewer = page.locator(SEL);
+    await expect(viewer.locator('.codeLine').first()).toBeVisible({ timeout: 30_000 });
+    await ctl({ op: 'quiet', on: true });
+    let line = 60;
+    await ctl({ op: 'status_delta', data: { interp_state: 2, task_mode: 2, motion_line: line } });
+    await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(line));
+    await page.waitForTimeout(700);
+    // Per animation frame: how far the highlight (the band, else the running
+    // row) is from the nearest row, that row's line, whether it is in view.
+    type F = { t: number; off: number; covered: number; inView: boolean; st: number };
+    await page.evaluate(sel => {
+      const el = document.querySelector<HTMLElement>(sel)!;
+      const w = window as unknown as { __rest: F[]; __restOn: boolean };
+      w.__rest = []; w.__restOn = true;
+      const f = (now: number) => {
+        const hl = el.querySelector('.codeFollowBand') ?? el.querySelector('.codeLine.active');
+        if (hl) {
+          const r = hl.getBoundingClientRect(), v = el.getBoundingClientRect();
+          let best: Element | null = null, d = Infinity;
+          for (const row of el.querySelectorAll('.codeLine')) {
+            const dd = Math.abs(row.getBoundingClientRect().top - r.top);
+            if (dd < d) { d = dd; best = row; }
+          }
+          w.__rest.push({ t: now, off: d, covered: Number(best?.querySelector('.lineNumber')?.textContent),
+            inView: r.top >= v.top - 0.5 && r.bottom <= v.bottom + 0.5, st: el.scrollTop });
+        }
+        if (w.__restOn) requestAnimationFrame(f);
+      };
+      requestAnimationFrame(f);
+    }, SEL);
+    // each line's send time on the page's clock (it arrives no sooner)
+    const pageNow = await page.evaluate(() => performance.now()), base = Date.now();
+    const sent: { line: number; t: number }[] = [];
+    for (let i = 0; i < 90; i++) {
+      line += pace;
+      sent.push({ line, t: Date.now() - base + pageNow });
+      await ctl({ op: 'status_delta', data: { motion_line: line } });
+      await page.waitForTimeout(33);
+    }
+    await page.waitForTimeout(400);
+    await page.evaluate(() => { (window as unknown as { __restOn: boolean }).__restOn = false; });
+    const frames = await page.evaluate(() => (window as unknown as { __rest: F[] }).__rest);
+    const first = frames.findIndex((f, i) => i > 0 && f.st !== frames[i - 1]!.st);
+    const last = frames.findLastIndex((f, i) => i > 0 && f.st !== frames[i - 1]!.st);
+    const running = frames.slice(first, last + 1);
+    const onRow = running.filter(f => f.off <= 1).length / running.length;
+    // how long the covered line has been out of date: since the next line was sent
+    const stale = running.map(f => {
+      const next = sent.find(x => x.line > f.covered);
+      return next && next.t < f.t ? f.t - next.t : 0;
+    });
+    const worst = Math.max(...stale);
+    const bound = GLIDE.intervalMs + GLIDE.stepMs + 34;   // + two frames
+    const note = `${running.length} frames: on a row in ${(onRow * 100).toFixed(0)} %, the covered line at most ${worst.toFixed(0)} ms old`;
+    test.info().annotations.push({ type: 'rest', description: note });
+    expect(running.length, 'the code followed the packets').toBeGreaterThan(60);
+    expect(onRow, `the highlight covers a whole row while the text rests — ${note}`).toBeGreaterThanOrEqual(0.3);
+    expect(worst, `the covered line is at most ${bound} ms old — ${note}`).toBeLessThanOrEqual(bound);
+    expect(running.filter(f => !f.inView), 'the highlight in view in every frame').toEqual([]);
+    // never ahead: the covered line was sent before the frame
+    expect(running.filter(f => !sent.some(x => x.line >= f.covered && x.t <= f.t) && f.covered > 60), 'never ahead of the running line').toEqual([]);
+    // at rest: on the running line
+    await expect(viewer.locator('.codeFollowBand')).toHaveCount(0);
+    await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(line));
+  });
+}
+
+// Codex R244 FH-05: a step needs a highlight to start from that is IN VIEW.
+// The first follow after a stop (the followed row forgotten) glided the new
+// running row in from below the view — its first frame out of it — and a
+// follow after the code was scrolled away began its band off screen. Such a
+// follow snaps: the new row is the highlight at once, in the middle.
+test('a follow with no highlight in view snaps: after a stop, after a scroll away', async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: GLIDE_PREVIEW }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain', body: glideText(GLIDE_LINES) }));
+  await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === 'desktop')!);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await ctl({ op: 'status_delta', data: { active_file: '/glide.ngc' } });
+  await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 5101, file: '/glide.ngc' } });
+  const SEL = '.codeViewer:not(.mdiHistoryList)';
+  const viewer = page.locator(SEL);
+  await expect(viewer.locator('.codeLine').first()).toBeVisible({ timeout: 30_000 });
+  await ctl({ op: 'quiet', on: true });
+  const run = (n: number) => ctl({ op: 'status_delta', data: { interp_state: 2, task_mode: 2, motion_line: n } });
+  // Per frame from here: the new follow's highlight — the band, or the row of
+  // `target` — and whether it is wholly in the code view.
+  type H = { band: boolean; top: number; bottom: number; view: number };
+  const record = (target: number) => page.evaluate(({ sel, target }) => {
+    const el = document.querySelector<HTMLElement>(sel)!;
+    const w = window as unknown as { __fh: H[]; __fhOn: boolean };
+    w.__fh = []; w.__fhOn = true;
+    const f = () => {
+      const v = el.getBoundingClientRect();
+      const band = el.querySelector('.codeFollowBand');
+      const row = [...el.querySelectorAll('.codeLine.active')].find(r => r.querySelector('.lineNumber')?.textContent === String(target));
+      const hl = band ?? row;
+      if (hl) {
+        const r = hl.getBoundingClientRect();
+        w.__fh.push({ band: !!band, top: r.top - v.top, bottom: r.bottom - v.top, view: el.clientHeight });
+      }
+      if (w.__fhOn) requestAnimationFrame(f);
+    };
+    requestAnimationFrame(f);
+  }, { sel: SEL, target });
+  const stop = () => page.evaluate(() => { (window as unknown as { __fhOn: boolean }).__fhOn = false; });
+  const frames = () => page.evaluate(() => (window as unknown as { __fh: H[] }).__fh);
+  const out = (fs: H[]) => fs.filter(f => f.top < -0.5 || f.bottom > f.view + 0.5);
+  // a line about 2.35 views down: out of the view, nearer than the snap distance
+  const target = await viewer.evaluate(el => Math.floor(el.clientHeight * 2.35 / 23));
+  // After a stop: the run ends, the code is at the file's start, a new run reports `target`.
+  await run(1);
+  await page.waitForTimeout(200);
+  for (let trial = 0; trial < 3; trial++) {
+    await ctl({ op: 'status_delta', data: { interp_state: 1, motion_line: 0 } });
+    await page.waitForTimeout(100);
+    await viewer.evaluate(el => { el.scrollTop = 0; });
+    await page.waitForTimeout(25 + trial * 7);
+    await record(target);
+    await run(target);
+    await page.waitForTimeout(240);
+    await stop();
+    const fs = await frames();
+    test.info().annotations.push({ type: 'fh05', description: `after a stop (${trial}): ${fs.length} frames, ${out(fs).length} out of view` });
+    expect(fs.length, 'the new highlight was drawn').toBeGreaterThan(5);
+    expect.soft(out(fs), `after a stop (${trial}): the highlight in view in every frame`).toEqual([]);
+  }
+  // After a scroll away: the code rests on `target`, is scrolled to the top
+  // by hand, and the next line comes.
+  await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(target));
+  await viewer.evaluate(el => { el.scrollTop = 0; });
+  await page.waitForTimeout(150);
+  await record(target + 1);
+  await run(target + 1);
+  await page.waitForTimeout(240);
+  await stop();
+  const away = await frames();
+  test.info().annotations.push({ type: 'fh05', description: `after a scroll away: ${away.length} frames, ${out(away).length} out of view` });
+  expect(away.length, 'the new highlight was drawn').toBeGreaterThan(5);
+  expect.soft(out(away), 'after a scroll away: the highlight in view in every frame').toEqual([]);
+  await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(target + 1));
+});
+
 // The same in an expanded subroutine (Codex R241 FH-01): the scrub moves
 // through the sub's lines — each one a new sub line in the SAME expansion,
 // never a new expansion — so the band stands while the sub's rows glide
@@ -2330,6 +2554,32 @@ test('in an expanded subroutine the highlight stands still too, and the main pro
 // hint vanished: "0 / 4 (0 %)" and no word of the sub). The hint is the
 // prop: the sub the program runs in, call line known or not; the source of
 // the sub is not needed (/subfile refused here).
+// The code view's virtual rows are laid out from the row height the panel
+// computes (`LINE_HEIGHT`, 23 / 32 px by the touch SIZES) and drawn at the
+// CSS one (`--code-line-h`): the two must be one. The touch viewports set
+// the touch class alone and never the touch state the panel reads, so every
+// touch-viewport measurement of the code view laid 23 px rows out under
+// 32 px ones (found 2026-11-01 measuring the followed line: 6 lines off).
+// The viewports enter touch the app's own way — its first touch.
+for (const vp of ['desktop', 'touch-landscape']) {
+  test(`the code view lays its rows out at the height it draws them: ${vp}`, async ({ page, context }) => {
+    const N = 300;
+    await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain',
+      body: Array.from({ length: N }, (_, i) => `G1 X${i} F100`).join('\n') }));
+    await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === vp)!);
+    await ctl({ op: 'status_delta', data: { active_file: '/rows.ngc' } });
+    await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 5120, file: '/rows.ngc' } });
+    const viewer = page.locator('.codeViewer:not(.mdiHistoryList)');
+    await expect(viewer.locator('.codeLine').first()).toBeVisible({ timeout: 30_000 });
+    const m = await viewer.evaluate(el => {
+      const rows = [...el.querySelectorAll<HTMLElement>('.codeLine')].map(r => r.getBoundingClientRect());
+      return { rowH: rows[0]!.height, pitch: rows[1]!.top - rows[0]!.top, content: el.scrollHeight };
+    });
+    expect(m.pitch, 'rows follow each other at their height').toBeCloseTo(m.rowH, 1);
+    expect(m.content, `the content is ${N} rows of ${m.rowH} px`).toBeCloseTo(N * m.rowH, -1);
+  });
+}
+
 for (const callLine of [0, 2]) {
   test(`a run in a subroutine names it in the Program tab, call line ${callLine ? 'known' : 'unknown'}`, async ({ page, context }) => {
     const file = '/origin-name.ngc';

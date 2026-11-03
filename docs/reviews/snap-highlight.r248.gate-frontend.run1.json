@@ -1,0 +1,34 @@
+{
+  "head": "fd5c839e",
+  "uncommitted": 0,
+  "note": "feat/snap-highlight at fd5c839e: FH-06 \u2014 a name is no M word, compact words, an unevaluable T unknown (Codex R247); Playwright alone",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 8
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 16
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "PASS",
+      "seconds": 433,
+      "tests": "167 files, 2666 passed"
+    },
+    {
+      "name": "frontend-browser",
+      "command": "npx playwright test --trace off --reporter=line",
+      "status": "FAIL",
+      "seconds": 2700,
+      "tests": "644 passed",
+      "note": "run alone"
+    }
+  ]
+}

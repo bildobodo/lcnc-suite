@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
 import { ctl, MOCK } from "./ctl";
 
 // Design wave D8 (UI-K08 / K09, UI-D07): what the operator reads is never
@@ -17,7 +17,8 @@ import { ctl, MOCK } from "./ctl";
 //     shadows are dropped there, and the selection was a background plus
 //     a shadow.
 //
-// Runs under `serial-guards`: mock-global state.
+// The worker's own mock (e2e/test.ts): its state is this test's alone, reset
+// and checked before every test.
 
 async function ready(page: Page) {
   await ctl({ op: "reset" });

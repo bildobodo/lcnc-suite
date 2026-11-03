@@ -81,11 +81,13 @@ class TestSuiteRunner(unittest.TestCase):
         # A/B tooling after the Mac acceptance, 2026-10-01.)
         # + parity-compare (the parity gate's comparison: two-way, coverage on
         # a probe's braking range — docs/reviews/parity-ef.plan.md F4)
-        self.assertEqual(len(commands), 10)
+        # + test-select (the test selector's guards, test strategy step 3)
+        self.assertEqual(len(commands), 11)
         self.assertIn("audit-css", [name for name, _, _ in commands])
         self.assertIn("review-handshake", [name for name, _, _ in commands])
         self.assertIn("readback-target", [name for name, _, _ in commands])
         self.assertIn("parity-compare", [name for name, _, _ in commands])
+        self.assertIn("test-select", [name for name, _, _ in commands])
         self.assertNotIn("viewer-ab-report", [name for name, _, _ in commands])
         self.assertFalse(any("sim_parity" in str(command) for _, command, _ in commands))
 

@@ -1,6 +1,8 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
 import { ctl, MOCK, publishToolTable } from "./ctl";
 import { clickMore } from "./more";
+import { openSimTab } from "./simTab";
+import { withLimitRuns } from "./limitRuns";
 import { encode } from "@msgpack/msgpack";
 
 // Design wave D8 (UI-K08 / K09, UI-D07): every text the operator reads
@@ -12,7 +14,8 @@ import { encode } from "@msgpack/msgpack";
 // (colours normalised through a canvas, so color-mix / oklab count).
 // Disabled controls are exempt (WCAG: inactive UI).
 //
-// Runs under `serial-guards`: mock-global state.
+// The worker's own mock (e2e/test.ts): its state is this test's alone, reset
+// and checked before every test.
 
 // The four explicit themes, plus AUTO under a dark system scheme: that is a
 // fifth palette (style.css's `prefers-color-scheme: dark` block for a root
@@ -531,5 +534,76 @@ for (const pass of PASSES) {
     await settings.getByRole("tab", { name: "Display", exact: true }).click();
     await take("Settings / Display", '[role="dialog"]');
     expect(hits, `${pass}: ${checked} controls checked`).toEqual([]);
+  });
+}
+
+// The position's look (operator 2026-11-01: "sollen wir bei der sim nicht
+// das gleiche gelbe highlight nehmen wie beim programmlauf? dann ist es
+// einheitlich"): the Sim tab's marked row looks like the code panel's line
+// of the position — the shown finding its fill and its bar, the next one
+// ahead its bar alone — and every text on it reads 4.5 : 1. Two soft-limit
+// records on the syntax sample (lines 5 and 6) are the rows.
+const SIM_FEED = [[0, 0, 0], [10, 0, 0], [20, 0, 0], [110, 0, 0], [30, 0, 0], [120, 0, 0], [40, 0, 0]];
+const SIM_PREVIEW = Buffer.from(encode(withLimitRuns({ file: "/S.ngc", preview_schema: 11, feed: SIM_FEED,
+  feed_lines: [3, 3, 4, 5, 5, 6, 6], feed_seq: SIM_FEED.map((_, i) => i + 1),
+  feed_outside: new Uint8Array(SIM_FEED.map(p => (p[0]! > 100 ? 1 : 0))),
+  violations: [{ line: 5, axis: "X", value: 110, limit: 100, kind: "max" }, { line: 6, axis: "X", value: 120, limit: 100, kind: "max" }],
+  violations_total: 2 })));
+
+for (const pass of PASSES) {
+  test(`${pass}: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it`, async ({ page }) => {
+    await page.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: SIM_PREVIEW }));
+    await ready(page, pass);
+    await expect(page.locator(".scrubBar")).toBeVisible();
+    await ctl({ op: "status_delta", data: { is_enabled: false, enabled: false } });
+    await openSimTab(page);
+    // a fill, or the colour of a bar (a border, an inset shadow)
+    const look = (sel: string, part: "fill" | "border" | "shadow") => page.evaluate(({ sel, part }) => {
+      const e = document.querySelector(sel);
+      if (!e) return `no ${sel}`;
+      const cs = getComputedStyle(e);
+      if (part === "fill") return cs.backgroundColor;
+      if (part === "border") return cs.borderLeftColor;
+      return /^(?:rgba?|oklab|oklch|color)\([^)]*\)/.exec(cs.boxShadow)?.[0] ?? cs.boxShadow;
+    }, { sel, part });
+    const readable = async (surface: string, rootSel: string) => {
+      await page.waitForFunction(() => document.getAnimations().every(a =>
+        a.playState !== "running" || a.effect?.getComputedTiming().iterations === Infinity));
+      const r = await page.evaluate(scan, { rootSel, floor: 4.5 });
+      expect(r.checked, `${surface}: the scan saw text`).toBeGreaterThan(0);
+      expect(r.hits.map(h => `${h.ratio} < ${h.min}  ${h.where}  "${h.text}"  ${h.fg} on ${h.bg}`), `${pass}: ${surface}`).toEqual([]);
+    };
+
+    // A finding shown: the simulation stands at it, the code panel on its line.
+    await page.locator('.simPanel tr[data-sim-row^="L"]').first().click();
+    await page.mouse.move(0, 0);   // no hover tint over the row
+    await expect(page.locator(".simBanner")).toBeVisible();
+    await expect(page.locator(".simPanel tr.shownRow")).toHaveCount(1);
+    await readable("Sim/shown row", ".simPanel tr.shownRow");
+    await readable("Sim/shown", ".simPanel");
+    const sim = { fill: await look(".simPanel tr.shownRow", "fill"), bar: await look(".simPanel tr.shownRow td", "shadow"),
+      band: await look(".simPanel .simFollowBand", "shadow") };
+    await page.getByRole("tab", { name: "Program", exact: true }).click();
+    await expect(page.locator(".codeLine.active")).toHaveCount(1);
+    await readable("Program/the position's line", ".codeLine.active");
+    const code = { fill: await look(".codeLine.active", "fill"), bar: await look(".codeLine.active", "border") };
+    expect(sim.fill, "the shown row: the code line's fill").toBe(code.fill);
+    expect(sim.bar, "the shown row: the code line's bar").toBe(code.bar);
+    expect(sim.band, "the band while the list steps: the same bar").toBe(code.bar);
+
+    // A position before the findings: the next one ahead, in the same look —
+    // one highlight throughout, as the code's (operator 2026-11-02: "ich
+    // dachte … an ein durchgehendes highlight wie beim programmcode").
+    await openSimTab(page);
+    await page.locator(".scrubBar .sliderInput").evaluate((el: HTMLInputElement) => {
+      el.value = "0"; el.dispatchEvent(new Event("input", { bubbles: true })); });
+    await expect(page.locator(".simPanel tr.shownRow")).toHaveCount(0);
+    await expect(page.locator(".simPanel tr.nextRow")).toHaveCount(1);
+    await page.mouse.move(0, 0);
+    expect(await look(".simPanel tr.nextRow", "fill"), "the next row: the code line's fill").toBe(code.fill);
+    expect(await look(".simPanel tr.nextRow td", "shadow"), "the next row: the code line's bar").toBe(code.bar);
+    expect(await look(".simPanel .simFollowBand", "fill"), "the band ahead: the same fill").toBe(code.fill);
+    await readable("Sim/next row", ".simPanel tr.nextRow");
+    await readable("Sim/next", ".simPanel");
   });
 }

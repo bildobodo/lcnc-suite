@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./test";
 import { encode } from "@msgpack/msgpack";
 import { withLimitRuns } from "./limitRuns";
 import { ctl } from "./ctl";

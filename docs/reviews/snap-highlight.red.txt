@@ -1,0 +1,48 @@
+Einrasten red evidence (2026-11-01): the new and changed guards against the product as it was
+(the development build at 4ad87515, copied in as dist; specs and codeGlide constants of
+feat/snap-highlight: stepMs 60, intervalMs 100).
+
+  npx playwright test e2e/layout.spec.ts e2e/sim-panel.viewer.spec.ts --no-deps --workers=1 \
+    -g "the code rests on a line between steps|the running line steps|playback at ×50|playback at ×100"
+
+  the running line steps: … rests between steps …                       FAILED
+    the code rests between steps — 60 fps, 127 frames: 0 % at rest (> 10 % required)
+  the code rests on a line between steps … — 3 lines a packet           FAILED
+    190 frames: on a row in 12 % (≥ 30 % required), the covered line at most 68 ms old
+  the code rests on a line between steps … — 8 lines a packet           FAILED
+    191 frames: on a row in 2 % (≥ 30 % required), the covered line at most 54 ms old
+  playback at ×50: … on a row between the steps (Sim list)              FAILED
+    the bar covers a row between the steps (16 % of the frames; ≥ 30 % required)
+  playback at ×100: the marked row's highlight never leaves the list's view   passed
+    (VP-I41 restated to the visible highlight: it holds before and after)
+
+The same guards on feat/snap-highlight: all passed — at rest 26 %; on a row 55 % / 49 %, the
+covered line at most 148 / 140 ms old (bound 194); the Sim list's bar on a row in 72 %.
+
+A first variant (stepMs 80; a line out of the view never waited, Codex R52 VP-I21 kept for the
+running row) measured: at rest 5 %, on a row 21 % at 3 lines a packet; the wait never came at
+3–8 lines a packet in the desktop view (the running row left it first), so the glide went on as
+before exactly where the operator saw the lines out of step. Hence the wait at every pace.
+
+FH-05 (Codex R244) red evidence — the new guards against the adc7709a build (the gate's dist):
+
+  a follow with no highlight in view snaps: after a stop, after a scroll away     FAILED
+    after a stop (0): 11 frames, 1 out of view
+    after a stop (1): 12 frames, 1 out of view
+    after a stop (2): 13 frames, 1 out of view
+    after a scroll away: 14 frames, 2 out of view
+  the list scrolled away: the next marked row snaps to the middle (Sim list)        FAILED
+    24 frames of the next row, 1 with the highlight out of view
+
+After the fix: 0 out of view in every case; the follow set 16/16 (on a row 56 % / 51 %, the
+covered line at most 137 / 166 ms behind; the Sim list at ×50 72 %).
+
+FH-05 rest (Codex R245) red evidence — against the 357c6aff build (the gate's dist):
+
+  a row waiting for its step, the list scrolled away: the next row snaps, its highlight in view  FAILED
+    trial 0: held band true, 16 frames of L43@43, 1 out of view
+    trial 1: held band true, 16 frames of L43@43, 1 out of view
+    trial 2: held band true, 16 frames of L43@43, 1 out of view
+
+After the fix: 0 out of view in each trial; with "the list scrolled away" 8/8 over --repeat-each=4;
+the follow set 13/13.

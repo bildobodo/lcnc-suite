@@ -1,4 +1,4 @@
-import { test, expect, type Page, type BrowserContext } from "@playwright/test";
+import { test, expect, type Page, type BrowserContext } from "./test";
 import { decode, encode } from "@msgpack/msgpack";
 import { readFileSync } from "node:fs";
 import { ctl } from "./ctl";
@@ -234,6 +234,12 @@ test("the contact tables reach the page: every delta applied and acknowledged in
 // is HELD until the touch shows: the delta with the request's first interval
 // goes beside the one out.
 // (Measured: held, the touch waited out the whole hold — +395 ms at 300 ms.)
+// ONE path (one shard): over the pool the near miss and the touch are two
+// pairs' on two shards, and a shard that got ahead under load sent the
+// touch first — no delta out to go beside (merge gate 2026-11-03: the first
+// message carried shard 0's touch while shard 1 had not finished its first
+// slice; 2/12 on 3 workers with 3 burners). On one path they come in program
+// order, slices apart; the pool's rule is collisionWorker.test.ts's (C2).
 test("the first touch shows while the near miss's acknowledgement is held: its delta goes beside the one out (C2, Codex R167)", async ({ page, context }) => {
   test.setTimeout(120_000);
   await page.addInitScript(() => {
@@ -261,7 +267,8 @@ test("the first touch shows while the near miss's acknowledgement is held: its d
   for (let i = 1; i <= 4000; i++) { feed.push([i % 2 ? 20 : 0, 0, -100 - (i % 40)]); lines.push(5 + i); }
   feed.push([0, 0, -380], [240, 0, -380], [240, 0, -100]);
   lines.push(4006, 4007, 4008);
-  await prepare(page, context, { file: "/first-touch.ngc", version: 2291, feed, lines, joints: [-100, 0, 0, 0, 0] });
+  await prepare(page, context, { file: "/first-touch.ngc", version: 2291, feed, lines, joints: [-100, 0, 0, 0, 0],
+    before: () => expect.poll(() => page.evaluate(() => { window.__viewerDiag?.setCollisionShards?.(1); return !!window.__viewerDiag?.setCollisionShards; })).toBe(true) });
   const tap = () => page.evaluate(() => { const t = (window as unknown as { __ackTap: { acks: number; ivs: number[] } }).__ackTap; return { acks: t.acks, ivs: t.ivs.slice() }; });
   await expect(clashRows(page).filter({ hasNotText: /near miss/ }).first(), "the touch, its acknowledgements held").toBeVisible({ timeout: 30_000 });
   const t = await tap();
@@ -271,6 +278,7 @@ test("the first touch shows while the near miss's acknowledgement is held: its d
   await page.evaluate(() => { const t = (window as unknown as { __ackTap: { hold: boolean; held: Array<() => void> } }).__ackTap; t.hold = false; for (const h of t.held.splice(0)) h(); });
   await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
   const c = await page.evaluate(() => window.__viewerDiag!.getContacts!());
+  expect(c.main!.shards, "one path: the sweep ran on one shard").toBe(1);
   expect(c.acks, "every delta acknowledged").toBe(c.messages);
   expect(c.dropped, "none dropped").toBe(0);
   await ctl({ op: "reset" });
@@ -654,14 +662,24 @@ const originEnv = (file: string, version: number, over: Record<string, unknown> 
 const pinnedFor = (runId: number) => ({ pinned: true, reason: "midrun:table_mtime",
   for_run: { run_id: runId, ctx_digest: "d", tool_basis_rev: 1 } });
 const runLog = (page: Page) => page.evaluate(() => window.__viewerDiag?.getRunCheckLog?.() ?? []);
-/** Publish `version` during the run and, once it is on screen, one status
- *  frame (the gateway sends 30 a second; `quiet` sends none): the run watcher
- *  attaches the position to the new track before the auto timer plans. */
+/** Publish `version` during the run with the run's position in status frames
+ *  at the gateway's cadence (30 a second; `quiet` sends none) until it is on
+ *  screen, then one more: the run watcher attaches the position to the new
+ *  track before the auto timer (400 ms from the publish) plans. One frame
+ *  sent after the poll saw the version lost that race under load — the poll
+ *  itself waits up to 500 ms between its reads (the parallel measurement,
+ *  2026-11-03: "start full"). */
 async function publishInRun(page: Page, file: string, version: number, over: Record<string, unknown>) {
+  const at = { op: "status_delta", data: { joint_pos: [120, 0, -380, 0, 0], actual_position: [120, 0, -380, 0, 0] } };
   await ctl({ op: "status_delta", envelope: originEnv(file, version, over), data: {} });
-  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version, file } });
-  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getShownVersion?.() ?? null), { timeout: 10_000 }).toBe(version);
-  await ctl({ op: "status_delta", data: { joint_pos: [120, 0, -380, 0, 0], actual_position: [120, 0, -380, 0, 0] } });
+  const cadence = setInterval(() => { void ctl(at).catch(() => {}); }, 33);
+  try {
+    await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version, file } });
+    await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getShownVersion?.() ?? null), { timeout: 10_000 }).toBe(version);
+  } finally {
+    clearInterval(cadence);
+  }
+  await ctl(at);
 }
 /** The run on screen at X 120 on L7 (the attached run position the provisional check starts from). */
 async function runOnL7(page: Page, file: string, version: number) {

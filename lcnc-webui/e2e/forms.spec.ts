@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
+import { enterTouch } from "./touchMode";
 import { ctl, MOCK, publishToolTable } from "./ctl";
 import { Folder, serve } from "./macroFolder";
 import { clickMore } from "./more";
@@ -19,7 +20,8 @@ import { clickMore } from "./more";
 //     part of its description and of the keypad readout; a label tap opens
 //     the field.
 //
-// Runs under `serial-guards`: mock-global state, one file at a time.
+// The worker's own mock (e2e/test.ts): its state is this test's alone, reset
+// and checked before every test.
 
 const PERMS_ALL = {
   idle: true, jog: true, override: true, ready: true, run: true, pause: false,
@@ -50,7 +52,7 @@ async function ready(page: Page, touch: boolean, linearUnits = "mm", settings: R
   await page.setViewportSize(touch ? { width: 1280, height: 800 } : { width: 1600, height: 1000 });
   await page.goto(MOCK);
   await expect(page.locator("input.setupInput").first()).toBeVisible();
-  if (touch) await page.evaluate(() => document.documentElement.classList.add("touch-device"));
+  if (touch) await enterTouch(page);
   await ctl({ op: "setViewerInit", data: viewerInit(linearUnits) });
   await ctl({ op: "status_delta", data: { permissions: PERMS_ALL } });
   await ctl({ op: "raw", frame: { type: "settings_init", settings } });

@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
 import { readFileSync } from "node:fs";
 import { ctl } from "./ctl";
 import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";

@@ -5,7 +5,7 @@
 // displayed square's border, the whole side long, the letter outside past the
 // tip; an oblique view shows none. The corner gizmo — under the scrub bar
 // most of the time — is gone.
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
 import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
 
 type Face = { label: string; opacity: number; border: number[][]; arrows: { axis: string; start: number[]; tip: number[]; letter: number[]; letterHalf: number }[] };

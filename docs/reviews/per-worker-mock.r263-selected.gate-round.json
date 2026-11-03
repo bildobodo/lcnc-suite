@@ -1,0 +1,252 @@
+{
+  "kind": "round",
+  "note": "feat/per-worker-mock eecabc56: the load-race fixes, a selected run over their files on 3 workers",
+  "base": "07a7c4f424185aabe6fa53efa1fa491c3a2eb8fc",
+  "head": "eecabc56cb94716c161168bb1f16d2c52cbcb471",
+  "uncommitted": 0,
+  "plan": [
+    "selection-guards",
+    "lint",
+    "build",
+    "unit-light",
+    "ports-free",
+    "browser"
+  ],
+  "env": {
+    "nproc": 6,
+    "arch": "aarch64",
+    "node": "v22.23.2",
+    "playwright": "Version 1.60.0"
+  },
+  "selection": {
+    "unmatched": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [],
+      "related": []
+    },
+    "browser": {
+      "run": [
+        "appearance",
+        "choices",
+        "collisions.viewer",
+        "contrast",
+        "dialogs",
+        "feedback-channels",
+        "forms",
+        "g30",
+        "input-session",
+        "keyboard-guards",
+        "lifecycle",
+        "macros",
+        "nine-axis",
+        "offsets",
+        "run-hold",
+        "scenes.viewer",
+        "setup-layout",
+        "sim-panel.viewer",
+        "tabs",
+        "toolsetter-setup",
+        "toolsetter.viewer",
+        "touch-hold",
+        "touch-surface",
+        "viewer"
+      ],
+      "reasons": []
+    },
+    "backend": {
+      "run": false,
+      "reasons": [
+        "no path under a backend rule: a UI-only round"
+      ]
+    },
+    "firefox": {
+      "needed": false
+    },
+    "live": {}
+  },
+  "browser_specs": [
+    {
+      "file": "collisions.viewer.spec.ts",
+      "ms": 475748
+    },
+    {
+      "file": "setup-layout.spec.ts",
+      "ms": 306312
+    },
+    {
+      "file": "dialogs.spec.ts",
+      "ms": 260190
+    },
+    {
+      "file": "sim-panel.viewer.spec.ts",
+      "ms": 259344
+    },
+    {
+      "file": "contrast.spec.ts",
+      "ms": 250318
+    },
+    {
+      "file": "input-session.spec.ts",
+      "ms": 116245
+    },
+    {
+      "file": "keyboard-guards.spec.ts",
+      "ms": 114677
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "ms": 114157
+    },
+    {
+      "file": "macros.spec.ts",
+      "ms": 91278
+    },
+    {
+      "file": "run-hold.spec.ts",
+      "ms": 75428
+    },
+    {
+      "file": "toolsetter.viewer.spec.ts",
+      "ms": 66633
+    },
+    {
+      "file": "choices.spec.ts",
+      "ms": 65979
+    },
+    {
+      "file": "feedback-channels.spec.ts",
+      "ms": 57418
+    },
+    {
+      "file": "forms.spec.ts",
+      "ms": 52785
+    },
+    {
+      "file": "viewer.spec.ts",
+      "ms": 48310
+    },
+    {
+      "file": "g30.spec.ts",
+      "ms": 37622
+    },
+    {
+      "file": "tabs.spec.ts",
+      "ms": 28727
+    },
+    {
+      "file": "toolsetter-setup.spec.ts",
+      "ms": 22956
+    },
+    {
+      "file": "appearance.spec.ts",
+      "ms": 18651
+    },
+    {
+      "file": "offsets.spec.ts",
+      "ms": 18529
+    },
+    {
+      "file": "touch-hold.spec.ts",
+      "ms": 15727
+    },
+    {
+      "file": "nine-axis.spec.ts",
+      "ms": 8611
+    },
+    {
+      "file": "lifecycle.spec.ts",
+      "ms": 7703
+    },
+    {
+      "file": "touch-surface.spec.ts",
+      "ms": 7035
+    }
+  ],
+  "verdict": "PASS",
+  "resources": {
+    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/r263-selected.service",
+    "cpu_s": 4115,
+    "memory_peak_mb": 3391
+  },
+  "checks": [
+    {
+      "name": "selection-guards",
+      "command": "/home/cnc/lcnc-suite-pwm/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-pwm/scripts/test_select/test_selector.py",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 2
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 7
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 14
+    },
+    {
+      "name": "unit-light",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/lcnc-suite-pwm/docs/reviews/per-worker-mock.r263-selected.gate-round.logs/unit-light.json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 53,
+      "files": 161,
+      "tests": 2573,
+      "passed": 2573,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 2573
+    },
+    {
+      "name": "ports-free",
+      "status": "PASS"
+    },
+    {
+      "name": "browser-listing",
+      "status": "PASS",
+      "files": 24
+    },
+    {
+      "name": "browser-selected",
+      "command": "npx playwright test -c playwright.select.config.ts --forbid-only --trace off --reporter=line,json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 880,
+      "tests": 484,
+      "passed": 484,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    {
+      "name": "browser-executed",
+      "status": "PASS",
+      "tests": 484
+    },
+    {
+      "name": "browser-workers",
+      "status": "PASS",
+      "mocks": 3
+    }
+  ],
+  "omitted": [
+    {
+      "check": "unit-heavy",
+      "reason": "no heavy file changed, reached or read for"
+    },
+    {
+      "check": "backend",
+      "reason": "no path under a backend rule: a UI-only round"
+    }
+  ],
+  "pending": []
+}

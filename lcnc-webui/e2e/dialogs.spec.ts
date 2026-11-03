@@ -1,4 +1,5 @@
-import { test, expect, type Page, type Locator } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "./test";
+import { enterTouch } from "./touchMode";
 import { ctl, MOCK, publishToolTable } from "./ctl";
 import { clickMore, moreTrigger } from "./more";
 import { Folder, serve } from "./macroFolder";
@@ -28,7 +29,8 @@ import { sidewaysOverflow, thickScrollbars } from "./layout-audit";
 // dialog opening over a field's keypad PAUSES it: the draft survives, is
 // unreachable meanwhile and comes back exact; nothing is applied).
 //
-// Runs under `serial-guards`: mock-global state, one file at a time.
+// The worker's own mock (e2e/test.ts): its state is this test's alone, reset
+// and checked before every test.
 
 const PERMS_ALL = {
   idle: true, jog: true, override: true, ready: true, run: true, pause: false,
@@ -631,10 +633,8 @@ for (const row of ROWS) {
     const dialog = page.getByRole("dialog", { name: row.title, exact: typeof row.title === "string" });
     await expect(dialog).toBeVisible();
     await page.setViewportSize({ width: 900, height: 1200 });
-    await page.evaluate(() => {
-      document.documentElement.classList.add("touch-device");
-      document.documentElement.style.zoom = "1.5";
-    });
+    await enterTouch(page);
+    await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
     await settle(page);
     await settle(page);
     await expect(dialog).toBeVisible();
