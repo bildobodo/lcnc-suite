@@ -1,0 +1,26 @@
+# Codex R256 counter-probes on the real tools, feat/test-tiers 0e116e35, 2026-11-03T03:28:53+01:00
+# Each change was temporary and restored; the tree is clean after.
+
+== 1. test.only in probe-click.spec.ts, the select config (forbidOnly), selection [probe-click]
+Error: item focused with '.only' is not allowed due to the '--forbid-only' CLI flag: "probe-click.spec.ts sentinel: a focused test"
+> 60 | test.only("sentinel: a focused test", () => {});
+exit 1
+
+== 1b. playwright test --list with a test.only: the listing does not refuse it — the RUN does (1.), and round_gate matches the listing to the run (proof.check_executed)
+== 2. it.only in src/btnHint.test.ts, vitest run --allowOnly=false
+ ❯ src/btnHint.test.ts (1 test | 1 failed) 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+Error: [Vitest] Unexpected .only modifier. Remove it or pass --allowOnly argument to bypass this error
+ Test Files  1 failed (1)
+exit 1
+== 3. a foreign test server on 127.0.0.1:4173 (python3 -m http.server, its own temp dir)
+round_gate.listening(4173), listening(4174): True False
+-- the select config, selection [probe-click]:
+Error: http://localhost:4173 is already used, make sure that nothing is running on the port/url or set reuseExistingServer:true in config.webServer.
+exit 1
+-- the developer config (reuseExistingServer: !CI), smoke.spec alone, for contrast:
+    Error: expect(locator).toBeVisible() failed
+    test-results/smoke-app-shell-mounts-with-no-gateway-connected-chromium/test-failed-1.png
+    Error: expect(locator).toBeVisible() failed
+exit 1
+(the developer config reused the foreign server and tested ITS page — smoke failed on 'a foreign server'; the gate configs refuse, and round_gate's ports-free check stops before any browser run)
