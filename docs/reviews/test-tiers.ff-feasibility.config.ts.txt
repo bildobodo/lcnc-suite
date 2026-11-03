@@ -1,0 +1,20 @@
+import { defineConfig } from "@playwright/test";
+import full from "./playwright.config";
+
+// SCRATCH (test strategy step 1, TS248-05): can a stock Mozilla Firefox run
+// what our specs need through WebDriver BiDi? Not committed.
+const FF = process.env.LCNC_FIREFOX;
+if (!FF) throw new Error("LCNC_FIREFOX names no Firefox binary");
+
+export default defineConfig({
+  ...full,
+  testMatch: /ff-feasibility\.spec\.ts/,
+  snapshotPathTemplate: `${process.env.FF_SNAP_DIR ?? "/tmp/ff-snap"}/{arg}{ext}`,
+  updateSnapshots: "missing",
+  workers: 1,
+  projects: [{
+    name: "firefox-stock",
+    use: { browserName: "firefox", channel: "moz-firefox", launchOptions: { executablePath: FF } },
+  }],
+  webServer: (Array.isArray(full.webServer) ? full.webServer : [full.webServer!]).map(w => ({ ...w, reuseExistingServer: false })),
+});

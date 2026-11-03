@@ -1,0 +1,26 @@
+# Firefox feasibility (test strategy step 1, Codex R248 TS248-05), 2026-11-03T01:51:57+01:00
+# Target: stock Mozilla Firefox 159.0 aarch64 (firefox-159.0.tar.xz, sha256 de7b16588bf3ab11…, from Mozilla's
+# release archive, unpacked in the session scratchpad), driven by Version 1.60.0 through WebDriver BiDi
+# (channel "moz-firefox" + executablePath). Mock and preview: the full config's servers, not reused.
+# Spec and config: test-tiers.ff-feasibility.spec.ts.txt / .config.ts.txt (scratch, not in the suite).
+
+route ............ PASS  page.route answers a page fetch AND a fetch from a dedicated Worker (blob URL)
+toHaveScreenshot . PASS  run 1 writes the missing reference (updateSnapshots "missing"), run 2 compares green:
+                         the Outside grid, glyph 80×80 (the 286 px fix holds in this target)
+mouse hold ....... PASS  mouse.down, 700 ms, mouse.up on a probe cell → exactly one mdi
+keyboard ......... PASS  Escape on the page → exactly one estop
+touch ............ NOT FEASIBLE  with hasTouch: navigator.maxTouchPoints 0, no TouchEvent, (pointer: coarse) false;
+                         locator.tap() and touchscreen.tap() deliver NO event at all — no pointerdown,
+                         touchstart, mousedown or click; the tab stays unselected. A tap() in a Firefox
+                         spec would silently do nothing.
+
+Timing: 5 tests in 8–10 s wall including the browser start (0.5–1.7 s per test).
+
+Consequences for step 6 (the Firefox core):
+- The core uses mouse and keyboard only; touch stays a Chromium target (CDP Input.dispatchTouchEvent, the
+  touch specs as today). A Firefox spec must never call tap() — a guard can scan the core's files for it.
+- route and toHaveScreenshot carry the Probing glyph references and an overflow/dialog case; its own
+  snapshotPathTemplate with browser and version in the path.
+- The core's time target (≤ 5 min) is far from binding at ~1–2 s per test.
+- The glyph bug itself was reproduced in this binary before the fix (probe-fixes.red.txt: every grid SVG
+  0×0 at the old CSS, 80×80 with the fix); step 6 turns that into the core's red/green proof.
