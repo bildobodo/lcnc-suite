@@ -1,0 +1,218 @@
+{
+  "kind": "round",
+  "note": "fix/sim-mark-align 8fa4fd15: the Sim tab marks centred on their row",
+  "base": "ddd2c4fe98cfaa9a86761323516da99b46dfdbfb",
+  "head": "8fa4fd156d4132ee81dadf4eea8c73367529d47e",
+  "uncommitted": 0,
+  "plan": [
+    "selection-guards",
+    "lint",
+    "build",
+    "unit-light",
+    "ports-free",
+    "browser"
+  ],
+  "env": {
+    "nproc": 6,
+    "arch": "aarch64",
+    "node": "v22.23.2",
+    "playwright": "Version 1.60.0"
+  },
+  "selection": {
+    "unmatched": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [],
+      "related": []
+    },
+    "browser": {
+      "run": [
+        "bake-hold.viewer",
+        "collisions.viewer",
+        "contrast",
+        "dialogs",
+        "fatpaths.viewer",
+        "findings.viewer",
+        "frames",
+        "layout",
+        "layout-audit",
+        "rapids.viewer",
+        "reach.viewer",
+        "scenes.viewer",
+        "sim-panel.viewer",
+        "toolsetter.viewer",
+        "viewcube.viewer",
+        "viewer",
+        "visual"
+      ],
+      "reasons": []
+    },
+    "backend": {
+      "run": false,
+      "reasons": [
+        "no path under a backend rule: a UI-only round"
+      ]
+    },
+    "firefox": {
+      "needed": false
+    },
+    "live": {}
+  },
+  "browser_specs": [
+    {
+      "file": "layout.spec.ts",
+      "ms": 1107652
+    },
+    {
+      "file": "collisions.viewer.spec.ts",
+      "ms": 591033
+    },
+    {
+      "file": "bake-hold.viewer.spec.ts",
+      "ms": 393500
+    },
+    {
+      "file": "sim-panel.viewer.spec.ts",
+      "ms": 326160
+    },
+    {
+      "file": "dialogs.spec.ts",
+      "ms": 314816
+    },
+    {
+      "file": "contrast.spec.ts",
+      "ms": 284371
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "ms": 130990
+    },
+    {
+      "file": "toolsetter.viewer.spec.ts",
+      "ms": 77809
+    },
+    {
+      "file": "viewer.spec.ts",
+      "ms": 57858
+    },
+    {
+      "file": "visual.spec.ts",
+      "ms": 55827
+    },
+    {
+      "file": "viewcube.viewer.spec.ts",
+      "ms": 34005
+    },
+    {
+      "file": "frames.spec.ts",
+      "ms": 22504
+    },
+    {
+      "file": "findings.viewer.spec.ts",
+      "ms": 19446
+    },
+    {
+      "file": "rapids.viewer.spec.ts",
+      "ms": 17840
+    },
+    {
+      "file": "reach.viewer.spec.ts",
+      "ms": 11209
+    },
+    {
+      "file": "fatpaths.viewer.spec.ts",
+      "ms": 3648
+    },
+    {
+      "file": "layout-audit.spec.ts",
+      "ms": 1277
+    }
+  ],
+  "verdict": "PASS",
+  "resources": {
+    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/marks-round.service",
+    "cpu_s": 5933,
+    "memory_peak_mb": 3352
+  },
+  "checks": [
+    {
+      "name": "selection-guards",
+      "command": "/home/cnc/lcnc-suite-marks/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-marks/scripts/test_select/test_selector.py",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 2
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 9
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 18
+    },
+    {
+      "name": "unit-light",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/lcnc-suite-marks/docs/reviews/sim-mark-align.gate-round.logs/unit-light.json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 80,
+      "files": 161,
+      "tests": 2577,
+      "passed": 2577,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 2577
+    },
+    {
+      "name": "ports-free",
+      "status": "PASS"
+    },
+    {
+      "name": "browser-listing",
+      "status": "PASS",
+      "files": 17
+    },
+    {
+      "name": "browser-selected",
+      "command": "npx playwright test -c playwright.select.config.ts --forbid-only --trace off --reporter=line,json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 1553,
+      "tests": 414,
+      "passed": 414,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    {
+      "name": "browser-executed",
+      "status": "PASS",
+      "tests": 414
+    },
+    {
+      "name": "browser-workers",
+      "status": "PASS",
+      "run": "gate-d74f244a-8fc1-454f-87ff-405234450a29",
+      "mocks": 3
+    }
+  ],
+  "omitted": [
+    {
+      "check": "unit-heavy",
+      "reason": "no heavy file changed, reached or read for"
+    },
+    {
+      "check": "backend",
+      "reason": "no path under a backend rule: a UI-only round"
+    }
+  ],
+  "pending": []
+}
