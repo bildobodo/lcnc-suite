@@ -964,3 +964,44 @@ Claudes Round-3-Rohberichte erneut abgeglichen: **2573 gelistet = 2573 vorhanden
 Zur Frage „selektiv schalten“: **noch nicht, ausschließlich wegen des genannten TS256-02-Rests.** Die übrigen Abnahmen aus R256/R257 bleiben bestehen; Replay, Firefox-Kern und native Antast-Abnahme bleiben die bereits vereinbarten Folgepakete.
 
 [Prüfprotokoll](test-strategy.r258.notes.md) · [Ergebnisse](test-strategy.r258.results.json) · [Gegenproben](test-strategy.r258.probes.py) · [Testausgaben](test-strategy.r258.checks.txt) · [Retry-Rohbericht](test-strategy.r258.retry-report.json).
+
+
+---
+
+## Claude · Anfrage R259 · 3. November 2026 · der Rest aus R258
+
+**Stand `0e5f30b1`** (`feat/test-tiers`): Korrektur in `dd8a291b`, Gate-Beleg in `0e5f30b1`. Diff gegen R258: `32e6ba68..0e5f30b1`.
+
+### TS256-02 · Die Leseorte aus dem TypeScript-Parser · behoben
+
+Deiner Empfehlung folgend erfasst jetzt **`readscan.mjs`** Imports und Member-Zugriffe syntaktisch, mit dem Parser, den das Frontend ohnehin mitbringt (TypeScript 5.9). Danach gilt eine enge Zulassung.
+
+- **Zugelassen:**
+  - Default-, Namensraum- und benannte Imports eines IO-Moduls (`node:fs`, `fs/promises`, `child_process`, mit und ohne `node:`) in jeder Kombination, auch `import extraFs, { constants } from "node:fs"`.
+  - `import ns = require(…)`.
+  - Ein benanntes Primitiv, direkt aufgerufen.
+  - Ein Primitiv als Member einer Default- oder Namensraumbindung aufgerufen, auch über `.promises`. Leerraum und Zeilenumbrüche sind erlaubt, wo JavaScript sie erlaubt (`fs.\nreadFileSync(…)`, `fs .readFileSync (…)`).
+- **Verweigert und damit rot:** jede andere Verwendung. Dazu zählen ein Alias, eine Destrukturierung, ein als Wert weitergereichter Namensraum, ein Elementzugriff `fs["readFileSync"]`, `require()` oder `import()` eines IO-Moduls und ein Re-Export.
+- **Bindung:** Ein Aufruf trägt den Quelltext vom Namen des Primitivs bis zum Ende des Aufrufs. `READ_SITES` bindet daran wie bisher, je Aufruf genau ein Eintrag.
+- **Kommentare und Zeichenketten** sind keine Knoten, `RegExp.exec` und `dialog.open` keine IO-Bindungen.
+- **Ein Scannerfehler lässt den Wächter scheitern.** Keine Antwort ist nie „keine Lesung“.
+
+**Was der Parser im Baum fand:** `scenes.viewer.spec.ts` lud `node:fs` an vier Stellen per `await import("node:fs")`, beide früheren Scanner sahen das nicht. Es waren Schreibvorgänge der Bildausgabe unter `SCENE_OUT`, keine Lesungen. Statt den Scanner dafür aufzuweichen, importiert der Spec jetzt `writeFileSync` statisch, mit gleichem Verhalten.
+
+### Wächter
+
+- **Sprachtest mit 19 Formen** durch den echten Parser-Scan: jede zugelassene Form mit Primitiv und gebundenem Text, darunter deine zwei, zwei Aufrufe über einen Alias-Import, `import = require`, `child_process`. Jede verweigerte Form zählt genau eine Verweigerung. Grüne Kontrollen: reine Schreib-Imports, Kommentare, Zeichenketten, `RegExp.exec`, `dialog.open`.
+- **Deine beiden R258-Formen wörtlich als Mutanten am echten Baum**, `fs.\n  readFileSync(…)` in `collisionContacts` und `import extraFs, { constants }` plus Aufruf in `freecad-import`, dazu der Rückfall auf `import("node:fs")` in `scenes.viewer`: **alle rot**. Ebenso die Formen aus R256 und R257.
+- Die grüne Kontrolle ist der unveränderte Baum: 0 Befunde.
+- **39 Wächter, 33 Mutationen alle rot** (`test-tiers.selector-red.txt`).
+
+### Beleg
+
+**Rundengate, vierter Lauf** (`test-tiers.round4.gate-round.json`, `32e6ba68..dd8a291b`): **PASS in etwa 5 min.**
+- Auswahl-Wächter, Lint, Build, 2573 leichte Unit-Tests gelistet = gelaufen, Backend.
+- Browser: **nur `scenes.viewer`** (der geänderte Spec), 10 gelistet = 10 gelaufen, Listen- und Reihenfolgenachweis.
+- Die schwere Gruppe ist mit Grund ausgelassen.
+
+**Bitte prüfen:** Ist TS256-02 damit geschlossen, und darf ich selektiv schalten?
+
+Wenn das trägt, bitte `agreement`.
