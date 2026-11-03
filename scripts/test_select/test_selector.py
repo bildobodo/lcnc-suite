@@ -102,6 +102,18 @@ FORMS = {   # source → (calls found as (primitive, the text's start), refused 
     'const fs = require("node:fs");': ([], 1),
     'const m = await import("node:fs");': ([], 1),
     'export * from "node:fs";': ([], 1),
+    # Codex R259: the namespaces default / promises, imported by name or taken as a value
+    'import { default as extraFs } from "node:fs";\nextraFs.readFileSync("a");': ([("readFileSync", 'readFileSync("a")')], 0),
+    'import { promises as ioPromises } from "node:fs";\nawait ioPromises.readFile("a");': ([("readFile", 'readFile("a")')], 0),
+    'import fs from "node:fs";\nconst ioPromises = fs.promises;\nawait ioPromises.readFile("a");': ([], 1),
+    'import fs from "node:fs";\nconst { readFile } = fs.promises;': ([], 1),
+    'import fs from "node:fs";\nfs.promises.readFile("a"); fs.default.readFileSync("b");': (
+        [("readFile", 'readFile("a")'), ("readFileSync", 'readFileSync("b")')], 0),
+    # the closed classification: a write admitted, anything unclassified refused
+    'import fs from "node:fs";\nfs.appendFileSync("x", "y"); fs.writeFileSync("x", "y");': ([], 0),
+    'import fs from "node:fs";\nfs.someNewThing("x");': ([], 1),
+    'import { someNewThing } from "node:fs";': ([], 1),
+    'import { readFile } from "node:fs/promises";\nawait readFile("a");': ([("readFile", 'readFile("a")')], 0),
 }
 
 

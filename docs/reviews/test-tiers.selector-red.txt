@@ -1,5 +1,5 @@
-# Test selector guards (step 3) — red first, 2026-11-03T05:05:26+01:00
-# tree: feat/test-tiers 32e6ba68 + uncommitted selector changes
+# Test selector guards (step 3) — red first, 2026-11-03T05:17:33+01:00
+# tree: feat/test-tiers 0e5f30b1 + uncommitted selector changes
 
 ## Two reds the guards found while being written
 - test_every_e2e_disk_read_outside_the_frontend_is_declared: ('toolsetter.viewer', 'examples/sim_config/machine-5axis-xyzac') — the spec reads the 5-axis model and was not declared; SPEC_READS now names it
@@ -36,6 +36,10 @@ RED  Codex R257: a read with a line break before its parenthesis: ['test_every_r
 RED  Codex R258: a namespace member after a line break: ['test_every_read_site_is_declared_exactly']
 RED  Codex R258: a mixed default + named IO import: ['test_every_read_site_is_declared_exactly']
 RED  a dynamic import of node:fs: ['test_every_read_site_is_declared_exactly']
+RED  Codex R259: a named default import: ['test_every_read_site_is_declared_exactly']
+RED  Codex R259: a named promises import: ['test_every_read_site_is_declared_exactly']
+RED  Codex R259: fs.promises taken as a value: ['test_every_read_site_is_declared_exactly']
+RED  Codex R259: readFile destructured from fs.promises: ['test_every_read_site_is_declared_exactly']
 RED  an alias of a read primitive: ['test_every_read_site_is_declared_exactly']
 RED  helpers reached one import deep only: ['test_the_real_chain_reaches_the_spec_two_helpers_up']
 RED  a helper's data selects nothing: ['test_data_a_helper_reads_selects_the_specs_reaching_the_helper']

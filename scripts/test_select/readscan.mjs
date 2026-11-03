@@ -7,13 +7,16 @@
 //   {"<file>": {"calls": [{line, start, prim, text}], "refused": ["<line>: why"]}}
 //
 // Admitted: `import d, * as ns, { a as b } from "<io>"` in any combination and
-// `import ns = require("<io>")`; a named primitive called directly; a
-// primitive called as a member of a default or namespace binding, optionally
-// through `.promises`, whitespace and line breaks anywhere between. Refused:
-// any other use of a primitive binding or an IO namespace (an alias, a
-// destructuring, handed on as a value, an element access), require() or
-// import() of an IO module, a re-export of one. A call's `text` is the source
-// from the primitive's name to the call's end — what rules.READ_SITES binds to.
+// `import ns = require("<io>")`. Every export or member of an IO module is
+// classified (Codex R259) — a READ (tracked, and it must be called), a
+// NAMESPACE (promises, default: followed further, by name or as a member), a
+// WRITE or a constant (admitted) — and anything unclassified is refused;
+// whitespace and line breaks anywhere JavaScript allows. Refused too: any
+// other use of a read binding or a namespace (an alias, a destructuring, a
+// namespace taken as a value — `const p = fs.promises` —, an element access),
+// require() or import() of an IO module, a re-export of one. A call's `text`
+// is the source from the read's name to the call's end — what
+// rules.READ_SITES binds to.
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
@@ -22,9 +25,20 @@ const [rootArg, ...files] = process.argv.slice(2);
 const root = resolve(rootArg);
 const ts = createRequire(join(root, "lcnc-webui", "package.json"))("typescript");
 const IO = new Set(["fs", "fs/promises", "child_process"].flatMap(m => [m, `node:${m}`]));
-const PRIMITIVES = new Set(["readFileSync", "readFile", "readdirSync", "readdir", "existsSync", "statSync", "stat",
-  "lstatSync", "createReadStream", "openSync", "open", "execFileSync", "execFile", "execSync", "exec", "spawnSync",
-  "spawn", "fork", "opendir", "opendirSync"]);
+// Every export or member of an IO module the scanner meets is one of three,
+// or refused (Codex R259: "not a read primitive" alone proves nothing):
+//   READS       a read or a run — tracked, and it must be called
+//   NAMESPACES  promises, default — followed further; taken as a value: refused
+//   WRITES      a write or a constant — admitted (it reads nothing)
+const READS = new Set(["readFileSync", "readFile", "readdirSync", "readdir", "existsSync", "exists", "statSync",
+  "stat", "lstatSync", "lstat", "accessSync", "access", "createReadStream", "openSync", "open", "opendir",
+  "opendirSync", "readSync", "read", "readvSync", "readv", "readlinkSync", "readlink", "realpathSync", "realpath",
+  "copyFileSync", "copyFile", "cpSync", "cp", "watch", "watchFile", "globSync", "glob",
+  "execFileSync", "execFile", "execSync", "exec", "spawnSync", "spawn", "fork"]);
+const NAMESPACES = new Set(["promises", "default"]);
+const WRITES = new Set(["writeFileSync", "writeFile", "appendFileSync", "appendFile", "mkdirSync", "mkdir",
+  "mkdtempSync", "mkdtemp", "rmSync", "rm", "rmdirSync", "rmdir", "unlinkSync", "unlink", "renameSync", "rename",
+  "createWriteStream", "constants", "chmodSync", "chmod"]);
 
 const out = {};
 for (const rel of files) {
@@ -47,7 +61,9 @@ for (const rel of files) {
       if (nb && ts.isNamedImports(nb)) for (const el of nb.elements) {
         if (el.isTypeOnly) continue;
         const imported = (el.propertyName ?? el.name).text;
-        if (PRIMITIVES.has(imported)) named.set(el.name.text, imported);
+        if (READS.has(imported)) named.set(el.name.text, imported);
+        else if (NAMESPACES.has(imported)) ns.add(el.name.text);
+        else if (!WRITES.has(imported)) refused.push(`${line(el)}: ${imported} — an IO export the scanner does not classify`);
       }
     } else if (ts.isImportEqualsDeclaration(st) && ts.isExternalModuleReference(st.moduleReference)
                && ioModule(st.moduleReference.expression)) {
@@ -66,6 +82,27 @@ for (const rel of files) {
   };
   const callTo = (callee) => ts.isCallExpression(callee.parent) && callee.parent.expression === callee ? callee.parent : null;
 
+  // `ref` is a namespace (an IO binding, or a namespace member of one): it must
+  // be the object of a member access, and that member is classified.
+  const member = (ref, label) => {
+    const pae = ref.parent;
+    if (!(ts.isPropertyAccessExpression(pae) && pae.expression === ref)) {
+      refused.push(`${line(ref)}: the IO namespace ${label} used other than as ${label}.member`);
+      return;
+    }
+    const m = pae.name.text;
+    if (READS.has(m)) {
+      const call = callTo(pae);
+      if (call) calls.push({ line: line(pae.name), start: pae.name.getStart(sf), prim: m,
+                             text: text.slice(pae.name.getStart(sf), call.getEnd()) });
+      else refused.push(`${line(pae.name)}: ${label}.${m} used other than called`);
+    } else if (NAMESPACES.has(m)) {
+      member(pae, `${label}.${m}`);
+    } else if (!WRITES.has(m)) {
+      refused.push(`${line(pae.name)}: ${label}.${m} — an IO member the scanner does not classify`);
+    }
+  };
+
   const visit = node => {
     if (ts.isCallExpression(node) && (node.expression.kind === ts.SyntaxKind.ImportKeyword
         || (ts.isIdentifier(node.expression) && node.expression.text === "require")) && ioModule(node.arguments[0])) {
@@ -79,20 +116,7 @@ for (const rel of files) {
                                text: text.slice(node.getStart(sf), call.getEnd()) });
         else refused.push(`${line(node)}: ${name} used other than called`);
       } else if (ns.has(name)) {
-        let target = node.parent;
-        if (!(ts.isPropertyAccessExpression(target) && target.expression === node)) {
-          refused.push(`${line(node)}: the IO namespace ${name} used other than as name.member`);
-        } else {
-          if (target.name.text === "promises" && ts.isPropertyAccessExpression(target.parent)
-              && target.parent.expression === target) target = target.parent;
-          const member = target.name;
-          if (PRIMITIVES.has(member.text)) {
-            const call = callTo(target);
-            if (call) calls.push({ line: line(member), start: member.getStart(sf), prim: member.text,
-                                   text: text.slice(member.getStart(sf), call.getEnd()) });
-            else refused.push(`${line(member)}: ${name}.${member.text} used other than called`);
-          }
-        }
+        member(node, name);
       }
     }
     ts.forEachChild(node, visit);
