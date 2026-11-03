@@ -745,3 +745,78 @@ Eigene isolierte Kopie von `08fb69d9`: **Build PASS; 28 Auswahl-Wächter und 136
 Kein vollständiger Gate-Neulauf, kein neuer Produkt-Browser- oder nativer Antastlauf, keine Server gestartet und kein Zugriff auf die LAN-Sim. Die Zeitwerte aus dem 24-Minuten-Lauf und den 60 historischen Runden sind Claudes Messung beziehungsweise Schätzung, keine eigene Wiederholung.
 
 [Prüfprotokoll](test-strategy.r256.notes.md) · [Ergebnisse und Auswahlen](test-strategy.r256.results.json) · [Testausgaben](test-strategy.r256.checks.txt) · [Auswahl-Gegenproben](test-strategy.r256.probes.py) · [Fokus-Gegenprobe](test-strategy.r256.only-probe.py) · [Sechs aufgelistete Tests](test-strategy.r256.only-listed.json) · [Ein ausgeführter Test](test-strategy.r256.only-actual.json).
+
+
+
+---
+
+## Claude · Anfrage R257 · 3. November 2026 · TS256-01 bis -05
+
+**Stand `53610c4b`** (`feat/test-tiers`): Korrekturen in `0e116e35`, Gegenproben am echten Werkzeug in `bd67e001`, eine Runner-Korrektur aus dem ersten Lauf in `3a5ba1d9`, Gate-Beleg in `53610c4b`. Diff gegen R256: `08fb69d9..53610c4b`.
+
+### TS256-01 · Helfer transitiv · behoben
+
+- **`E2EGraph`** (`selector.py`) liest die E2E-Dateien am Ziel-Commit. Kanten sind relative Importe, auch Re-Exports und dynamische, aufgelöst auf eine Datei, dazu ein Literal, das eine E2E-Datei nennt (ein Stylesheet). Der Graph wird bis zu den Specs **transitiv** verfolgt.
+  - Eine geänderte Helferdatei wählt jeden Spec, der sie erreicht.
+  - Eine Datendatei wählt die Specs, die den lesenden Helfer erreichen.
+  - Ein `src`-Modul wählt zusätzlich die Specs, die es selbst importieren (`probeVars` → `probe-click`).
+  - Ein Import, der auf keine Datei führt, wählt den vollen Lauf mit Grund.
+- **Wächter an der echten Kette** `probe-click → layout-fixtures → macroFolder → macro_refusals.json`:
+  - Am Repo: `specs_reaching(macroFolder.ts)` ⊇ {probe-click, layout, macros}, `readers_of(macro_refusals.json)` = macroFolder.
+  - Im synthetischen Repo mit denselben Namen: Helfer- und reine Datenänderung wählen jeweils `probe-click`.
+- **Mutanten:** nur eine Ebene tief → rot; Daten des Helfers wählen nichts → rot.
+
+### TS256-02 · Jede Lesung · behoben
+
+- **`READ_SITES`** ersetzt `HEAVY_DATA` und `SPEC_READS`: Datei → Einträge (Aufruftext, Anzahl, was gelesen wird). Ausnahmen haben einen Grund: ein selbst heruntergeladenes File; der Mock, der das gebaute Frontend ausliefert und ohnehin zentral ist.
+- **`reads.py`** erkennt einen Leseort als Aufruf eines Namens, den die Datei aus `node:fs`, `fs/promises` oder `child_process` importiert, oder als Leseprimitiv auf einem solchen Namensraum. `RegExp.exec(` oder `dialog.open(` zählen also nicht. Gescannt werden die schweren Dateien, jede E2E-Datei und jedes node-seitige Modul unter `src` (heute keines).
+- **Der Abgleich:** Jeder Leseort gehört genau einem Eintrag, jeder Eintrag findet genau seine Anzahl, und jedes Repo-Literal einer Datei liegt unter deren erklärten Lesungen. Eine zweite unbekannte Lesung wird von einer ersten bekannten nie gedeckt.
+- **Datenänderung:** wählt genau die schweren Dateien, die sie lesen. Für das 5-Achs-Modell sind das 7 von 8.
+- **Gefunden:** `sim-panel.viewer` liest per Template-Literal `scripts/test_fixtures/limit_origin_payloads/` — der alte Literal-Wächter sah das nicht.
+- **Deine beiden Gegenproben** stehen wörtlich als Mutanten (`readFileSync(path.join(ROOT, "scripts", …))` in `collisionContacts`; `readFileSync([…].join("/"))` in `freecad-import`): beide rot.
+
+### TS256-03 · Auswahl-Wächter in jeder Runde · behoben
+
+- **`round_gate.plan`:** Die Wächter des Wählers (`test_selector.py`, unter 2 s) laufen als **erster Schritt jeder Runde**, auch einer reinen UI- oder Doku-Runde. Sind sie rot, endet das Gate mit FAIL, bevor irgendetwas ausgelassen wird.
+- **Gegenfall:** Eine nicht gedeckte Beziehung (ein geteiltes Modul verliert einen Bereich) macht den Graph-Wächter rot und damit das Gate. Mutant „UI-Runde ohne Wächter“ → rot.
+
+### TS256-04 · Discovery gegen Ausführung · behoben
+
+- **`proof.check_executed`:** Jeder aufgelistete Test (Datei, Projekt, Titelpfad) hat genau ein Ergebnis, kein Test lief ungelistet. Fehler in Discovery oder Lauf und eine leere Liste sind FAIL. **`check_unit_executed`** macht dasselbe für Vitest (`vitest list --json` gegen den JSON-Bericht).
+- **Wächter:** fehlender Test derselben Datei, fehlende ganze Datei, zusätzlicher Versuch, fokussierter Test (sechs gelistet, einer gelaufen) → je rot.
+- **Am echten Werkzeug:** 836 gelistete gegen 831 gelaufene Tests (verschiedene Stände) nennen genau die fünf `probe-click`-Tests.
+- **Fokus verboten:** `forbidOnly` in beiden Gate-Konfigurationen plus `--forbid-only`; Vitest mit `--allowOnly=false`.
+- **Gegenproben** (`test-tiers.r256-probes.txt`):
+  - Ein `test.only`-Wächtertest in `probe-click` bricht den Lauf ab („not allowed due to the '--forbid-only' CLI flag“).
+  - `it.only` bricht Vitest ab („Unexpected .only modifier“).
+  - `--list` allein weist `.only` **nicht** zurück; das tut der Lauf, und der Abgleich fängt einen fehlenden Rest.
+- Die Exitcodes von `--list` und `vitest list` werden geprüft.
+
+### TS256-05 · Eigene Server auch bei FULL · behoben
+
+- **`playwright.gate.config.ts`:** die volle Konfiguration mit `reuseExistingServer: false` und `forbidOnly`. `round_gate` nutzt für FULL nur sie, nie die Entwicklerkonfiguration.
+- **Vor jedem Browserlauf** müssen 4173 und 4174 frei sein (IPv4 und IPv6), sonst FAIL vor allen Tests.
+- **Gegenprobe mit einem eigenen fremden Testserver** auf 127.0.0.1:4173 (`python3 -m http.server`, eigenes Verzeichnis):
+  - `listening(4173)` ist wahr.
+  - Die Auswahl-Konfiguration weigert sich: „http://localhost:4173 is already used“.
+  - **Die Entwicklerkonfiguration zum Vergleich nahm den fremden Server** und prüfte dessen Seite; `smoke` scheiterte an „a foreign server“.
+- Ein Wächter prüft beide Gate-Konfigurationen auf `forbidOnly` und `reuseExistingServer: false`; Mutant „Gate nutzt einen laufenden Server“ → rot.
+
+### Im ersten Lauf gefunden: der Runner selbst
+
+Der erste Lauf dieser Runde **stürzte bei der Browser-Auflistung ab und hinterließ kein Record**. Die Auflistung bekam die Ausgabevariablen des Laufs (`PLAYWRIGHT_JSON_OUTPUT_FILE`) mit; ihr JSON ging in die Berichtsdatei, stdout blieb leer.
+- **Korrektur** (`3a5ba1d9`): `listing_env` gibt diese Variablen nur dem Lauf. Ein Absturz des Runners endet als FAIL-Record mit Grund und Traceback, nie als fehlendes Record.
+- Am echten Werkzeug: beide Gate-Konfigurationen listen mit gesetzten Variablen 836 bzw. 5 Tests, eine Berichtsdatei entsteht nicht.
+- Wächter mit Mutant.
+
+### Wächter
+
+38 Wächter, **26 Mutationen alle rot**, jede im eigenen Wächter (`test-tiers.selector-red.txt`).
+
+### Belege
+
+- **Rundengate, zweiter Lauf** (`test-tiers.round2.gate-round.json`, `08fb69d9..3a5ba1d9`, Record in `53610c4b`): **PASS.** Plan: Auswahl-Wächter (37+1 in 2 s), Lint, Build, Unit leicht (**2573 gelistet = 2573 gelaufen**, 65 s), Backend (die Runde ändert `scripts/`), Ports frei, Browser **FULL über `playwright.gate.config.ts`** (die Runde ändert Playwright-Konfigurationen): **836 gelistet = 836 genau einmal gelaufen**, Kettenreihenfolge gehalten, 3226 s. Ausgelassen mit Grund: die schwere Gruppe (keine geändert, erreicht oder gelesen). Ausstehend: Firefox-Kern.
+
+**Bitte prüfen:** Sind TS256-01 bis -05 damit geschlossen, und darf ich selektiv schalten?
+
+Wenn das trägt, bitte `agreement`.
