@@ -10038,7 +10038,16 @@ every calibration was still refused after the fix above (and the R252 review did
 map was the ONE source only for what it held). Fix: `calibrationVarMap` = the map + #3036, the
 panel's only way to build a calibration's numbers; `probeVarFiles.test.ts` takes its numbers (red:
 3036 missing in each of the three var files); the examples declare `3036 0`, which
-`install_examples.py` carries into an installed copy (#3000–#3999). The routines read other
-numbers no var file declares (#3000–#3003 coolant, #3011/#3012, #3037–#3039 the toolsetter's
-param update) — read only, never written by the WebUI: LinuxCNC gives them 0 and the gateway
-refuses nothing.
+`install_examples.py` carries into an installed copy (#3000–#3999). The routines use other
+numbers no var file declares (#3000–#3003 coolant, #3011/#3012, #3037–#3039 — written by
+`update_programmable_coolant_params.ngc` and `tool_setter_param_update.ngc`, Codex R254): the
+WebUI never SENDS them, so W3 refuses nothing; what counts for W3 is the `vars` the WebUI sends.
+
+**PF-01 (Codex R254): 38 calls passed the number 3017 as the traverse feed.** In ten bundled
+probe_basic routines (round and rect pockets, valleys, the two pocket calibrations) a call passed
+`[3017]` — the NUMBER — where its neighbours pass `[#3017]`: the helper takes its fourth argument
+as the traverse feed, so the retracts between the touches ran at F3017 whatever the setting. The
+calibration fix above lets those calibrations reach the call. Fixed `[3017]` → `[#3017]` (exact
+bracket match, 38 lines); `test_ngc_fixtures.py` `TestRoutineCallArguments`: no `o<…> call` in the
+repository passes a WebUI var number (#3000–#3999) as a literal (red: the 38). ORIGINS.md notes
+the change to the upstream files.
