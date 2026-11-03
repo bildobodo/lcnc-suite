@@ -29,6 +29,7 @@ import socket
 import subprocess
 import sys
 import time
+import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -38,7 +39,7 @@ from test_select.rules import FULL, HEAVY_UNIT  # noqa: E402
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "lcnc-webui"
 PREVIEW_PORT = 4173      # the gatewayless preview (smoke)
-SLOT_BASE = 4500         # e2e/mockSlot.mjs: worker slot i's mock listens on SLOT_BASE + i
+SLOT_BASE = proof.SLOT_BASE   # e2e/mockSlot.mjs: worker slot i's mock listens on SLOT_BASE + i
 WORKERS = int(os.environ.get("LCNC_E2E_WORKERS", "3"))   # the gate configs read the same variable
 
 
@@ -194,8 +195,13 @@ def listing(config: str, env: dict, target: Path) -> tuple[dict, str | None]:
 def browser(sel: dict, logs: Path) -> list[dict]:
     names = sel["browser"]["run"]
     report, events = logs / "playwright.json", logs / "mock-events.jsonl"
+    # ONE run: its own id, named by every event and by the report, and a
+    # fresh event log — the fixture appends, so a log of an earlier run with
+    # the same --out would otherwise vouch for this one (Codex R263 PM263-02)
+    run_id = f"gate-{uuid.uuid4()}"
+    events.unlink(missing_ok=True)
     env = {"PLAYWRIGHT_JSON_OUTPUT_FILE": str(report), "PLAYWRIGHT_JSON_OUTPUT_NAME": str(report),
-           "LCNC_E2E_EVENTS": str(events), "LCNC_E2E_WORKERS": str(WORKERS)}
+           "LCNC_E2E_EVENTS": str(events), "LCNC_E2E_RUN": run_id, "LCNC_E2E_WORKERS": str(WORKERS)}
     checks = []
     if names == FULL:
         config = "playwright.gate.config.ts"
@@ -223,8 +229,9 @@ def browser(sel: dict, logs: Path) -> list[dict]:
         checks.append({"name": "browser-executed", "status": "FAIL" if problems else "PASS",
                        **({"why": problems[:20]} if problems else {"tests": len(proof.playwright_tests(listed))})})
         log = [json.loads(l) for l in events.read_text().splitlines()] if events.is_file() else []
-        owners = proof.check_workers(ran, log) if log else ["the fixture's event log is missing or empty"]
-        checks.append({"name": "browser-workers", "status": "FAIL" if owners else "PASS",
+        owners = proof.check_report_run(ran, run_id) + (
+            proof.check_workers(ran, log, run_id) if log else ["the fixture's event log is missing or empty"])
+        checks.append({"name": "browser-workers", "status": "FAIL" if owners else "PASS", "run": run_id,
                        **({"why": owners[:20]} if owners else {"mocks": len({e["instance"] for e in log if e.get("event") == "bound"})})})
     return checks
 

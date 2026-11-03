@@ -123,50 +123,146 @@ def check_unit_executed(listed: list[dict], report: dict) -> list[str]:
     return problems
 
 
-# ── Who ran each test, on which mock (per-worker mock, Codex R262 PM261-04) ──
-def check_workers(report: dict, events: list[dict]) -> list[str]:
-    """From the fixture's event log: every test of the report has its
-    test-start and test-end on one slot, worker and mock instance; inside a
-    worker process the tests run one after another; a mock instance has ONE
-    owner worker; two workers active at once never share an instance. A
-    missing event is a problem, never a skipped proof."""
+# ── Who ran each test, on which mock (per-worker mock, Codex R262 PM261-04, R263 PM263-02) ──
+SLOT_BASE = 4500   # e2e/mockSlot.mjs: worker slot i's mock listens on SLOT_BASE + i
+
+
+def playwright_results(report: dict) -> dict[tuple[str, str, str, int], dict]:
+    """(file, project, title path, retry) → that result's workerIndex,
+    parallelIndex and status, as the report gives them."""
+    out: dict[tuple[str, str, str, int], dict] = {}
+
+    def walk(suite: dict, path: tuple[str, ...]):
+        for spec in suite.get("specs", []):
+            for t in spec.get("tests", []):
+                for r in t.get("results", []):
+                    key = (spec["file"], t["projectName"], " › ".join(path + (spec["title"],)), r.get("retry", 0))
+                    if key in out:
+                        raise ValueError(f"two results share {key}")
+                    out[key] = {"workerIndex": r.get("workerIndex"), "parallelIndex": r.get("parallelIndex"),
+                                "status": r.get("status")}
+        for s in suite.get("suites", []):
+            walk(s, path + (s["title"],))
+
+    for s in report.get("suites", []):
+        walk(s, ())
+    return out
+
+
+def report_run(report: dict) -> str | None:
+    """The run the report names (playwright.config.ts `metadata.run`)."""
+    return (report.get("config") or {}).get("metadata", {}).get("run")
+
+
+def check_report_run(report: dict, run: str) -> list[str]:
+    """The report is the one of the run the gate started (Codex R263 PM263-02)."""
+    named = report_run(report)
+    if named is None:
+        return ["the report names no run (config.metadata.run)"]
+    return [] if named == run else [f"the report names run {named}, the gate ran {run}"]
+
+
+def check_workers(report: dict, events: list[dict], run: str) -> list[str]:
+    """From the fixture's event log, bound to ONE run (Codex R262 PM261-04,
+    R263 PM263-02): every event carries that run; every mock instance is
+    bound once, on its slot's port and endpoint, and stopped once by the
+    same worker; every reported result has exactly one test-start/test-end
+    pair with its retry, on the worker (`workerIndex`) and slot
+    (`parallelIndex`) the report names, on the mock that worker bound, inside
+    that mock's life; a pair no result reports is foreign; inside a worker
+    the tests run one after another; on a slot the mocks follow each other
+    (a replacement's tests never interleave with its predecessor's). A
+    `skipped` result needs no pair (a static skip runs no fixture); if it
+    has one, the pair must match it. Order is the log's LINE order — one
+    append per event — never its clock (a stepped clock would reorder it).
+    A missing event is a problem, never a skipped proof."""
     problems: list[str] = []
-    bound = {e["instance"]: e for e in events if e.get("event") == "bound"}
-    starts: dict[tuple, dict] = {}
-    spans: list[tuple[float, float, int, str, tuple]] = []
+    name = lambda k: " | ".join(map(str, k))  # noqa: E731
+    foreign: dict[str, int] = {}
     for e in events:
+        if e.get("run") != run:
+            foreign[str(e.get("run"))] = foreign.get(str(e.get("run")), 0) + 1
+    problems += [f"{n} events of another run ({r}), not {run}" for r, n in sorted(foreign.items())]
+    events = [e for e in events if e.get("run") == run]
+
+    bound: dict[str, tuple[int, dict]] = {}
+    stopped: dict[str, int] = {}
+    for i, e in enumerate(events):
+        inst = e.get("instance")
+        if e.get("event") == "bound":
+            if inst in bound:
+                problems.append(f"mock {inst} bound twice")
+                continue
+            bound[inst] = (i, e)
+            slot, port = e.get("slot"), e.get("port")
+            if not isinstance(slot, int) or port != SLOT_BASE + slot:
+                problems.append(f"mock {inst}: port {port} is not slot {slot}'s")
+            if e.get("endpoint") != f"http://localhost:{port}/":
+                problems.append(f"mock {inst}: endpoint {e.get('endpoint')} is not port {port}'s")
+        elif e.get("event") == "stopped":
+            b = bound.get(inst)
+            if b is None:
+                problems.append(f"stopped, never bound: {inst}")
+            elif inst in stopped:
+                problems.append(f"mock {inst} stopped twice")
+            else:
+                stopped[inst] = i
+                if (e.get("slot"), e.get("workerIndex"), e.get("pid")) != (b[1]["slot"], b[1]["workerIndex"], b[1].get("pid")):
+                    problems.append(f"mock {inst} stopped by another worker or slot than bound it")
+    problems += [f"mock {inst} bound, never stopped" for inst in bound if inst not in stopped]
+
+    starts: dict[tuple, tuple[int, dict]] = {}
+    pairs: dict[tuple, dict] = {}
+    open_on: dict[int, tuple] = {}
+    slot_order: dict[int, list[str]] = {}
+    for i, e in enumerate(events):
         if e.get("event") not in ("test-start", "test-end"):
             continue
         key = (e["file"], e["project"], e["title"], e.get("retry", 0))
-        if e["event"] == "test-start":
-            if key in starts:
-                problems.append(f"started twice: {' | '.join(map(str, key))}")
-            starts[key] = e
+        inst, w = e.get("instance"), e.get("workerIndex")
+        b = bound.get(inst)
+        if b is None:
+            problems.append(f"a test on a mock never bound: {inst}")
         else:
+            owner = b[1]
+            if (e.get("slot"), w, e.get("pid")) != (owner["slot"], owner["workerIndex"], owner.get("pid")):
+                problems.append(f"a test on mock {inst} from another worker or slot than bound it: {name(key)}")
+            if not b[0] < i < stopped.get(inst, len(events)):
+                problems.append(f"a test outside mock {inst}'s life: {name(key)}")
+        order = slot_order.setdefault(e.get("slot"), [])
+        if not order or order[-1] != inst:
+            order.append(inst)
+        if e["event"] == "test-start":
+            if key in starts or key in pairs:
+                problems.append(f"started twice: {name(key)}")
+                continue
+            if w in open_on:
+                problems.append(f"worker {w} ran two tests at once: {open_on[w][2]} / {key[2]}")
+            open_on[w] = key
+            starts[key] = (i, e)
+        else:
+            if open_on.get(w) == key:
+                del open_on[w]
             s = starts.pop(key, None)
             if s is None:
-                problems.append(f"ended, never started: {' | '.join(map(str, key))}")
-            elif (s["workerIndex"], s["instance"]) != (e["workerIndex"], e["instance"]):
-                problems.append(f"started and ended on different workers or mocks: {' | '.join(map(str, key))}")
+                problems.append(f"ended, never started: {name(key)}")
+            elif (s[1]["workerIndex"], s[1]["instance"], s[1].get("slot")) != (w, inst, e.get("slot")):
+                problems.append(f"started and ended on different workers or mocks: {name(key)}")
             else:
-                spans.append((s["t"], e["t"], s["workerIndex"], s["instance"], key))
-    problems += [f"started, never ended: {' | '.join(map(str, k))}" for k in starts]
-    ran = {(k[0], k[1], k[2]) for _, _, _, _, k in spans}
-    for k in sorted(playwright_tests(report)):
-        if k not in ran:
-            problems.append(f"no worker event for: {' | '.join(k)}")
-    owner: dict[str, int] = {}
-    for _, _, w, inst, key in spans:
-        if inst not in bound:
-            problems.append(f"a test on a mock never bound: {inst}")
-        if owner.setdefault(inst, w) != w:
-            problems.append(f"mock {inst} owned by workers {owner[inst]} and {w}")
-    by_worker: dict[int, list] = {}
-    for a, b, w, inst, key in spans:
-        by_worker.setdefault(w, []).append((a, b, key))
-    for w, xs in by_worker.items():
-        xs.sort()
-        for (a1, b1, k1), (a2, b2, k2) in zip(xs, xs[1:]):
-            if a2 < b1:
-                problems.append(f"worker {w} ran two tests at once: {k1[2]} / {k2[2]}")
+                pairs[key] = s[1]
+    problems += [f"started, never ended: {name(k)}" for k in starts]
+    for slot, order in sorted(slot_order.items(), key=lambda x: str(x[0])):
+        if len(order) != len(set(order)):
+            problems.append(f"slot {slot}: the tests of its mocks interleave ({' → '.join(order)})")
+
+    results = playwright_results(report)
+    for k, r in sorted(results.items()):
+        p = pairs.get(k)
+        if p is None:
+            if r["status"] != "skipped":
+                problems.append(f"no worker event for: {name(k)}")
+        elif (p["workerIndex"], p.get("slot")) != (r["workerIndex"], r["parallelIndex"]):
+            problems.append(f"worker {r['workerIndex']} slot {r['parallelIndex']} by the report, "
+                            f"worker {p['workerIndex']} slot {p.get('slot')} by the events: {name(k)}")
+    problems += [f"an event pair no result reports: {name(k)}" for k in sorted(set(pairs) - set(results))]
     return problems

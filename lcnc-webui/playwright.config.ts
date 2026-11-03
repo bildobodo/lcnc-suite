@@ -27,6 +27,9 @@ export default defineConfig({
   // worker's own state, reset before every test.
   fullyParallel: false,
   workers: Number(process.env.LCNC_E2E_WORKERS ?? 3),
+  // The report names its run — the one the fixture's event log carries
+  // (round_gate binds the two, Codex R263 PM263-02).
+  metadata: { run: process.env.LCNC_E2E_RUN },
   timeout: 30_000,
   expect: { timeout: 10_000 },
   updateSnapshots: 'none',

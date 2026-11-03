@@ -6,6 +6,7 @@ on synthetic diffs in a scratch repository.
 """
 from __future__ import annotations
 
+import copy
 import json
 import re
 import socket
@@ -558,27 +559,100 @@ def test_a_worker_slot_is_a_whole_index_in_range_and_nothing_else_binds():
     assert out == [u, "http://localhost:4500/", "http://localhost:4503/", "http://localhost:4515/", u, u, u, u, u, u]
 
 
-def test_every_test_ran_on_its_own_workers_mock_one_after_another():
-    """proof.check_workers over the fixture's event log (Codex R262 PM261-04)."""
-    report = pw([("a.spec.ts", "e2e", "one", 1), ("b.spec.ts", "e2e", "two", 1)])
+RUN = "gate-r"
 
-    def ev(event, t, file, title, w, inst, **kw):
-        return {"event": event, "t": t, "file": file, "project": "e2e", "title": title, "workerIndex": w,
-                "instance": inst, "retry": 0, **kw}
-    bound = [{"event": "bound", "instance": "m0", "workerIndex": 0}, {"event": "bound", "instance": "m1", "workerIndex": 1}]
-    good = bound + [ev("test-start", 0, "a.spec.ts", "one", 0, "m0"), ev("test-end", 5, "a.spec.ts", "one", 0, "m0"),
-                    ev("test-start", 1, "b.spec.ts", "two", 1, "m1"), ev("test-end", 4, "b.spec.ts", "two", 1, "m1")]
-    assert proof.check_workers(report, good) == []
-    assert proof.check_workers(report, good[:-1]) == [
-        "started, never ended: b.spec.ts | e2e | two | 0", "no worker event for: b.spec.ts | e2e | two"]
-    shared = bound + [ev("test-start", 0, "a.spec.ts", "one", 0, "m0"), ev("test-end", 5, "a.spec.ts", "one", 0, "m0"),
-                      ev("test-start", 1, "b.spec.ts", "two", 1, "m0"), ev("test-end", 4, "b.spec.ts", "two", 1, "m0")]
-    assert proof.check_workers(report, shared) == ["mock m0 owned by workers 0 and 1"]
-    overlap = bound + [ev("test-start", 0, "a.spec.ts", "one", 0, "m0"), ev("test-end", 5, "a.spec.ts", "one", 0, "m0"),
-                       ev("test-start", 3, "b.spec.ts", "two", 0, "m0"), ev("test-end", 8, "b.spec.ts", "two", 0, "m0")]
-    assert proof.check_workers(report, overlap) == ["worker 0 ran two tests at once: one / two"]
-    unbound = [bound[0]] + good[2:]
-    assert proof.check_workers(report, unbound) == ["a test on a mock never bound: m1"]
+
+def worker_report(rows: list[tuple], run: str | None = RUN) -> dict:
+    """(file, title, workerIndex, parallelIndex, status) → a Playwright JSON
+    report with its run in config.metadata (one result per test, retry 0)."""
+    specs = [{"title": t, "file": f, "tests": [{"projectName": "e2e", "results": [
+        {"status": st, "retry": 0, "workerIndex": w, "parallelIndex": sl}]}]} for f, t, w, sl, st in rows]
+    return {"config": {"metadata": {"actualWorkers": 2, **({"run": run} if run else {})}},
+            "suites": [{"title": sp["file"], "file": sp["file"], "specs": [sp], "suites": []} for sp in specs]}
+
+
+def worker_events() -> list[dict]:
+    """A clean run on two slots: m0/m1 bound, a test each, slot 0's worker
+    replaced — its successor m2 binds BEFORE m0's stop is logged (the handoff
+    waits only for the port) — and runs the third test."""
+    ws = {0: (0, 100, "m0"), 1: (1, 101, "m1"), 2: (0, 102, "m2")}   # workerIndex → slot, pid, instance
+
+    def e(event, w, **kw):
+        slot, pid, inst = ws[w]
+        return {"run": RUN, "pid": pid, "event": event, "slot": slot, "workerIndex": w, "instance": inst, **kw}
+
+    def bound(w):
+        port = 4500 + ws[w][0]
+        return e("bound", w, port=port, endpoint=f"http://localhost:{port}/")
+
+    def t(event, f, title, w):
+        return e(event, w, file=f, project="e2e", title=title, retry=0)
+    return [bound(0), bound(1), t("test-start", "a.spec.ts", "one", 0), t("test-start", "b.spec.ts", "two", 1),
+            t("test-end", "a.spec.ts", "one", 0), t("test-end", "b.spec.ts", "two", 1), bound(2), e("stopped", 0),
+            t("test-start", "c.spec.ts", "three", 2), t("test-end", "c.spec.ts", "three", 2),
+            e("stopped", 1), e("stopped", 2)]
+
+
+WORKER_ROWS = [("a.spec.ts", "one", 0, 0, "passed"), ("b.spec.ts", "two", 1, 1, "passed"),
+               ("c.spec.ts", "three", 2, 0, "passed"), ("d.spec.ts", "four", -1, -1, "skipped")]
+
+
+def test_every_result_ran_on_the_mock_its_worker_bound_in_this_run():
+    """proof.check_workers over the fixture's event log, bound to ONE run, to
+    each mock's owner and to the report's results (Codex R262 PM261-04, R263
+    PM263-02: every case Codex's mutations of the real log passed is here)."""
+    report, ev = worker_report(WORKER_ROWS), worker_events()
+    check = lambda x, r=report: proof.check_workers(r, x, RUN)  # noqa: E731
+    assert check(ev) == [], "a clean run (a handoff, a static skip with no pair)"
+
+    def edit(pred, **kw):
+        return [{**e, **kw} if pred(e) else e for e in copy.deepcopy(ev)]
+    two = lambda e: e.get("title") == "two"  # noqa: E731
+    k2 = "b.spec.ts | e2e | two | 0"
+    assert check(ev[:5] + ev[6:]) == [f"started, never ended: {k2}", f"no worker event for: {k2}"]
+    assert check(edit(two, run="old")) == [f"2 events of another run (old), not {RUN}", f"no worker event for: {k2}"]
+    assert check(edit(lambda e: e["event"] == "bound" and e["instance"] == "m1", workerIndex=999)) == [
+        "mock m1 stopped by another worker or slot than bound it"] + [
+        f"a test on mock m1 from another worker or slot than bound it: {k2}"] * 2, "the wrong owner in bound"
+    assert check(edit(two, slot=15)) == [
+        f"a test on mock m1 from another worker or slot than bound it: {k2}"] * 2 + [
+        f"worker 1 slot 1 by the report, worker 1 slot 15 by the events: {k2}"]
+    assert check(edit(lambda e: e["event"] == "bound" and e["instance"] == "m1", endpoint="http://localhost:4500/")) == [
+        "mock m1: endpoint http://localhost:4500/ is not port 4501's"]
+    assert check(edit(lambda e: e["event"] == "bound" and e["instance"] == "m1", port=4500)) == [
+        "mock m1: port 4500 is not slot 1's", "mock m1: endpoint http://localhost:4501/ is not port 4500's"]
+    shifted = [{**e, "workerIndex": e["workerIndex"] + 100} for e in copy.deepcopy(ev)]
+    assert check(shifted) == [
+        "worker 0 slot 0 by the report, worker 100 slot 0 by the events: a.spec.ts | e2e | one | 0",
+        f"worker 1 slot 1 by the report, worker 101 slot 1 by the events: {k2}",
+        "worker 2 slot 0 by the report, worker 102 slot 0 by the events: c.spec.ts | e2e | three | 0"]
+    assert check(ev[:-1]) == ["mock m2 bound, never stopped"]
+    assert check(ev + [{**ev[2], "file": "e.spec.ts", "title": "five"}, {**ev[4], "file": "e.spec.ts", "title": "five"}]) == [
+        "a test outside mock m0's life: e.spec.ts | e2e | five | 0"] * 2 + [
+        "slot 0: the tests of its mocks interleave (m0 → m2 → m0)",
+        "an event pair no result reports: e.spec.ts | e2e | five | 0"], "a foreign pair, after its mock's stop"
+    assert check(ev[:6] + [ev[2], ev[4]] + ev[6:]) == [
+        "started twice: a.spec.ts | e2e | one | 0", "ended, never started: a.spec.ts | e2e | one | 0"], "a duplicate pair"
+    assert check(ev[:6] + [ev[3]]) == ["mock m0 bound, never stopped", "mock m1 bound, never stopped",
+                                       f"started twice: {k2}", "no worker event for: c.spec.ts | e2e | three | 0"], "cut short"
+    assert check(edit(two, workerIndex=0, slot=0, pid=100, instance="m0")) == [
+        "worker 0 ran two tests at once: one / two", f"worker 1 slot 1 by the report, worker 0 slot 0 by the events: {k2}"]
+    assert check(edit(two, instance="m9")) == ["a test on a mock never bound: m9"] * 2
+    assert check([e for e in ev if not (e["event"] == "bound" and e["instance"] == "m1")]) == [
+        "stopped, never bound: m1"] + ["a test on a mock never bound: m1"] * 2
+    assert check(ev, worker_report([r if r[1] != "four" else (*r[:4], "passed") for r in WORKER_ROWS])) == [
+        "no worker event for: d.spec.ts | e2e | four | 0"], "a result that ran needs its pair"
+
+
+def test_the_report_names_the_run_the_gate_started():
+    assert proof.check_report_run(worker_report(WORKER_ROWS), RUN) == []
+    assert proof.check_report_run(worker_report(WORKER_ROWS, run="gate-other"), RUN) == [
+        f"the report names run gate-other, the gate ran {RUN}"]
+    assert proof.check_report_run(worker_report(WORKER_ROWS, run=None), RUN) == ["the report names no run (config.metadata.run)"]
+    cfg = (ROOT / "lcnc-webui" / "playwright.config.ts").read_text()
+    assert "metadata: { run: process.env.LCNC_E2E_RUN }" in cfg, "the report carries its run"
+    gate = (ROOT / "scripts/test_select/round_gate.py").read_text()
+    assert '"LCNC_E2E_RUN": run_id' in gate and "events.unlink(missing_ok=True)" in gate, "one run, a fresh log"
 
 
 def test_the_ports_checked_are_the_preview_and_every_worker_slot():

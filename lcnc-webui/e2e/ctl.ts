@@ -23,6 +23,29 @@ export function ctl(op: Record<string, unknown>): Promise<any> {
   });
 }
 
+/** What a FRESH app client receives on connect, read off the wire (per-worker
+ *  mock, Codex R263 PM263-01): the status and the viewer_init frame — the
+ *  latter without its `_rev`, a revision every re-ship bumps. Resolves once
+ *  this socket is closed on the client side; the mock may still count it a
+ *  moment longer (`snapshot().clients`). */
+export function appConnectFrames(): Promise<{ status: Record<string, unknown>; viewerInit: Record<string, unknown> }> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(`${MOCK.replace(/^http/, "ws")}ws`);
+    const frames: Record<string, unknown>[] = [];
+    const timer = setTimeout(() => { ws.terminate(); reject(new Error(`a fresh client got ${frames.length} of its 2 connect frames in 5 s`)); }, 5_000);
+    ws.on("error", e => { clearTimeout(timer); reject(e); });
+    ws.on("message", d => {
+      frames.push(JSON.parse(String(d)));
+      if (frames.length !== 2) return;
+      clearTimeout(timer);
+      const [status, init] = frames as [Record<string, unknown>, { data?: Record<string, unknown> }];
+      const { _rev: _ignored, ...data } = init.data ?? {};
+      ws.once("close", () => resolve({ status, viewerInit: { ...init, data } }));
+      ws.close();
+    });
+  });
+}
+
 /** A ctl op against a mock at `base` (the tool specs may run their own). */
 function ctlAt(base: string, op: Record<string, unknown>): Promise<unknown> {
   return new Promise((resolve, reject) => {

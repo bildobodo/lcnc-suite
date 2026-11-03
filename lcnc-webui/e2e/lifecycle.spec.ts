@@ -53,7 +53,7 @@ test("explicit server_shutdown frame shows the shutdown banner", async ({ page }
   await page.goto(MOCK);
   await expectArmed(page);
   // Poll-retry the broadcast: a single fire can race the page's WS readiness in
-  // the shared mock (intermittently dropped). Re-sending until the banner shows
+  // the mock (intermittently dropped). Re-sending until the banner shows
   // is delivery-robust yet still RED if the banner logic is broken (the poll
   // times out because the text never appears).
   const banner = page.getByText("Server shutting down");

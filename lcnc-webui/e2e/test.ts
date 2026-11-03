@@ -7,13 +7,16 @@
 //                index, the address ctl.ts bound at import must be its port.
 //  mockBaseline  (test)   — before every test, the confirmed baseline: no app
 //                socket left from the test before, then `reset`, then the
-//                mock's snapshot equal to the one it had when it started.
+//                mock's WHOLE snapshot equal to the one it had when it
+//                started, and a fresh app client's connect frames (read off
+//                the wire) equal to the ones it got then (Codex R263
+//                PM263-01: a key the snapshot did not name once survived).
 //                After the test, every context left open is closed (a
 //                failing test's own contexts included). A mock that died
 //                fails the test.
 import { relative } from "node:path";
 import { test as base, expect } from "@playwright/test";
-import { ctl, MOCK } from "./ctl";
+import { appConnectFrames, ctl, MOCK } from "./ctl";
 import { logEvent, startMock, stopMock, type MockHandle } from "./mockFixture";
 import { portOf, slotOf } from "./mockSlot.mjs";
 
@@ -21,12 +24,12 @@ export * from "@playwright/test";
 
 type Snapshot = Record<string, unknown>;
 const snapshot = async (): Promise<Snapshot> => ((await ctl({ op: "snapshot" })) as { snapshot: Snapshot }).snapshot;
-/** What a reset must restore; `instance` and the counters that a reset zeroes are compared as they are. */
-const BASELINE_KEYS = ["armed", "axes", "kins", "work_pos", "replies", "envelope", "quiet", "refuseWs",
-  "settingsEcho", "settings", "cmds", "hellos", "clients", "instance"] as const;
-const pick = (s: Snapshot) => Object.fromEntries(BASELINE_KEYS.map(k => [k, s[k]]));
 
-export const test = base.extend<{ mockBaseline: void }, { mock: MockHandle & { pristine: Snapshot } }>({
+const noAppSockets = (why: string) => expect.poll(async () => (await snapshot()).clients,
+  { timeout: 5_000, message: why }).toBe(0);
+type Wire = Awaited<ReturnType<typeof appConnectFrames>>;
+
+export const test = base.extend<{ mockBaseline: void }, { mock: MockHandle & { pristine: Snapshot; pristineWire: Wire } }>({
   // eslint-disable-next-line no-empty-pattern -- Playwright reads a fixture's dependencies from this pattern
   mock: [async ({}, use, workerInfo) => {
     const slot = slotOf(process.env.TEST_PARALLEL_INDEX);
@@ -36,8 +39,10 @@ export const test = base.extend<{ mockBaseline: void }, { mock: MockHandle & { p
       throw new Error(`ctl.ts bound ${MOCK}, the worker's slot is port ${portOf(slot)}`);
     const handle = await startMock(slot, workerInfo.workerIndex);
     const pristine = await snapshot();
+    const pristineWire = await appConnectFrames();
+    await noAppSockets("the pristine read's fresh client");
     try {
-      await use({ ...handle, pristine });
+      await use({ ...handle, pristine, pristineWire });
     } finally {
       await stopMock(handle);
     }
@@ -50,10 +55,13 @@ export const test = base.extend<{ mockBaseline: void }, { mock: MockHandle & { p
       retry: testInfo.retry };
     if (mock.died()) throw new Error(`the worker's mock ended: ${mock.died()}`);
     // the test before closed its contexts at its end; their sockets close a moment later
-    await expect.poll(async () => (await snapshot()).clients, { timeout: 5_000,
-      message: "app sockets left from the test before" }).toBe(0);
+    await noAppSockets("app sockets left from the test before");
     await ctl({ op: "reset" });
-    expect(pick(await snapshot()), "the mock's baseline after reset").toEqual(pick(mock.pristine));
+    // what a fresh app client gets (Codex R263 PM263-01), then its socket gone on the mock's side too
+    const wire = await appConnectFrames();
+    await noAppSockets("the baseline's own fresh client");
+    expect(await snapshot(), "the mock's baseline after reset").toEqual(mock.pristine);
+    expect(wire, "a fresh app client's connect frames after reset").toEqual(mock.pristineWire);
     logEvent({ event: "test-start", ...where });
     await use();   // resolves after the test, failed or not
     logEvent({ event: "test-end", ...where, status: testInfo.status });

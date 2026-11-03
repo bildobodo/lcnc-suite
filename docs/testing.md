@@ -39,9 +39,15 @@ for FULL, `playwright.select.config.ts` for a selection: the one project
 narrowed to the selected files) and forbids `.only`. Every listed test must
 have run exactly once (`proof.check_executed`; units `check_unit_executed`, a
 test passed only after a retry fails), each on one worker against that
-worker's own mock (`proof.check_workers`, from the fixture's event log: start
-and end on one worker and mock, a worker's tests one after another, every mock
-instance one owner). The record names every check run and left out with its
+worker's own mock (`proof.check_workers`, from the fixture's event log of
+THIS run — the gate gives the run its own id, which every event and the
+report's `config.metadata.run` carry, and starts a fresh log: every mock bound
+once on its slot's port and endpoint and stopped by the same worker; every
+result of the report exactly one start/end pair with its retry, on the worker
+and slot the report names, on the mock that worker bound, inside its life; no
+pair without a result; a worker's tests one after another; on a slot the
+mocks follow each other; order by the log's lines, never its clock — Codex
+R263 PM263-02). The record names every check run and left out with its
 reason, and the unit's CPU time and peak memory.
 
 **The browser run in parallel** (per-worker mock, Codex R261–R263): ONE
@@ -53,7 +59,10 @@ mock gateway on its slot (`TEST_PARALLEL_INDEX`, port 4500 + slot;
 only while the run's own predecessor on that slot leaves (5 s), a foreign
 process never used or stopped. Before every test the fixture `mockBaseline`
 (`e2e/test.ts`) confirms the baseline — no app socket of the test before,
-`reset`, the snapshot equal to the mock's first — and closes every context
+`reset`, the WHOLE snapshot equal to the mock's first and a fresh app
+client's connect frames, read off the wire, equal to its first (a key a test
+added at the status' top level once survived the reset unseen, R263
+PM263-01) — and closes every context
 the test left open. A spec imports `test` from `./test`, never from
 `@playwright/test`; file hooks (`beforeAll`/`afterAll`) and
 `describe.parallel`/`configure` are refused. `scripts/test_select/
