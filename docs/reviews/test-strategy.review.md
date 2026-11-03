@@ -1058,3 +1058,33 @@ Eigene Auswahltests **39/39 grün** nach genehmigter Wiederholung des anfangs du
 Zur Umschaltung: weiterhin nur der oben beschriebene TS256-02-Rest offen. Die übrigen Abnahmen und benannten Folgepakete aus den vorherigen Runden bleiben bestehen.
 
 [Prüfprotokoll](test-strategy.r259.notes.md) · [Ergebnisse](test-strategy.r259.results.json) · [Gegenproben](test-strategy.r259.probes.py) · [Testausgaben](test-strategy.r259.checks.txt).
+
+
+---
+
+## Claude · Anfrage R260 · 3. November 2026 · der Rest aus R259
+
+**Stand `f1ba6eb0`** (`feat/test-tiers`): Korrektur in `9f38cf4e`, Gate-Beleg in `f1ba6eb0`. Diff gegen R259: `0e5f30b1..f1ba6eb0`.
+
+### TS256-02 · Jeder IO-Export und jeder Member eingeteilt · behoben
+
+`readscan.mjs` teilt jeden Export und jeden Member eines IO-Moduls in **eine von drei geschlossenen Mengen** ein. Alles, was in keiner liegt, wird verweigert; „kein Leseprimitiv“ allein entscheidet nichts mehr.
+
+- **READS**: Lesen und Ausführen, wird verfolgt und muss aufgerufen sein. Neben den bisherigen jetzt auch `exists`, `stat`/`lstat`, `access`, `read`/`readv`, `readlink`, `realpath`, `copyFile`/`cp` (die Quelle wird gelesen), `watch`/`watchFile` und `glob`.
+- **NAMESPACES**: `promises` und `default`. Sie werden weiterverfolgt, egal ob per Namen importiert (`import { default as x }`, `import { promises as p }`) oder als Member erreicht (`fs.promises.…`, `fs.default.…`). **Als Wert entnommen** (`const p = fs.promises`) oder destrukturiert (`const { readFile } = fs.promises`) wird ein Namensraum verweigert.
+- **WRITES**: Schreibzugriffe und Konstanten (`writeFile`, `appendFile`, `mkdir`, `mkdtemp`, `rm`, `unlink`, `rename`, `createWriteStream`, `constants`, `chmod`). Sie lesen nichts und sind zugelassen.
+- **Unbekannt**, als Import (`import { someNewThing }`) oder als Member (`fs.someNewThing(…)`): verweigert.
+
+### Wächter
+
+- **Sprachtest mit jetzt 28 Formen** durch den echten Parser-Scan. Deine vier Formen sind dabei: Die beiden benannten Namensraum-Importe werden als Aufrufe mit gebundenem Text erkannt, die beiden Entnahmen aus `fs.promises` verweigert. Grüne Kontrollen: `fs.promises.readFile`, `fs.default.readFileSync` (beide erkannt), `appendFileSync`/`writeFileSync` (zugelassen), `readFile` aus `node:fs/promises` (erkannt). Unbekannter Export und unbekannter Member: je eine Verweigerung.
+- **Deine vier Formen wörtlich als Mutanten** in `freecad-import.spec.ts`, jeweils mit einer Lesung von `macro_refusals.json`: **alle rot**. Ebenso alle früheren aus R256–R258. Grüne Kontrolle ist der unveränderte Baum mit 0 Befunden.
+- **39 Wächter, 37 Mutationen alle rot** (`test-tiers.selector-red.txt`).
+
+### Beleg
+
+**Rundengate, fünfter Lauf** (`test-tiers.round5.gate-round.json`, `0e5f30b1..9f38cf4e`): **PASS in etwa 3 min.** Auswahl-Wächter, Lint, Build, 2573 leichte Unit-Tests gelistet = gelaufen, Backend. Schwere Gruppe und Browser sind mit Grund ausgelassen, die Runde ändert nur `scripts/`.
+
+**Bitte prüfen:** Ist TS256-02 damit geschlossen, und darf ich selektiv schalten?
+
+Wenn das trägt, bitte `agreement`.
