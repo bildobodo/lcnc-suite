@@ -1,5 +1,5 @@
-# Test selector guards (step 3) — red first, 2026-11-03T03:33:44+01:00
-# tree: feat/test-tiers bd67e001 + uncommitted selector changes
+# Test selector guards (step 3) — red first, 2026-11-03T04:42:47+01:00
+# tree: feat/test-tiers 53610c4b + uncommitted selector changes
 
 ## Two reds the guards found while being written
 - test_every_e2e_disk_read_outside_the_frontend_is_declared: ('toolsetter.viewer', 'examples/sim_config/machine-5axis-xyzac') — the spec reads the 5-axis model and was not declared; SPEC_READS now names it
@@ -31,18 +31,22 @@ RED  the sweep owns a path alone: ['test_a_new_source_without_a_rule_selects_eve
 RED  a worker counts as an import: ['test_a_module_holds_the_selection_of_every_component_it_reaches']
 RED  Codex R256: a second read in a heavy file: ['test_every_read_site_is_declared_exactly']
 RED  Codex R256: a second read in a spec, joined path: ['test_every_read_site_is_declared_exactly']
+RED  Codex R257: a second read on the declared line: ['test_every_read_site_is_declared_exactly']
+RED  Codex R257: a read with a line break before its parenthesis: ['test_every_read_site_is_declared_exactly']
+RED  an alias of a read primitive: ['test_every_read_site_is_declared_exactly']
 RED  helpers reached one import deep only: ['test_the_real_chain_reaches_the_spec_two_helpers_up']
 RED  a helper's data selects nothing: ['test_data_a_helper_reads_selects_the_specs_reaching_the_helper']
 RED  a UI-only round skips the guards: ['test_every_round_runs_the_selection_guards_first']
 RED  a listed test that never ran passes: ['test_every_listed_test_ran_once_and_nothing_else_ran']
 RED  the listing gets the run's report variables: ['test_a_listing_prints_its_json_never_into_the_runs_report']
 RED  the gate reuses a running server: ['test_the_gate_configs_start_their_own_servers_and_refuse_a_focused_test']
+RED  a unit retry passes: ['test_every_listed_unit_test_ran']
 RED  listing ignores the project: ['test_the_listing_is_exactly_the_selection_in_the_full_projects']
 RED  order ignores a project overlap: ['test_the_order_proof_holds_the_chain_and_the_path_order']
 RED  order ignores the path order: ['test_the_order_proof_holds_the_chain_and_the_path_order']
 
 ## Restored
-38 passed in 1.39s
+38 passed in 1.33s
 
 ## The proofs on real reports
 select config --list for ['visual', 'layout', 'armed', 'sim-panel.viewer', 'probe-click', 'tool-holder', 'choices'] → exactly the selection, each file in its full-config project

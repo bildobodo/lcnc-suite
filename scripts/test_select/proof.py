@@ -202,11 +202,21 @@ def vitest_ran(report: dict) -> dict[tuple[str, str], int]:
     return out
 
 
+def vitest_retried(report: dict) -> list[str]:
+    """A test that passed only on a later attempt: Vitest reports ONE
+    assertion result, `passed`, whose failureMessages still hold the earlier
+    attempts' failures (Codex R257, vitest 4.1.8). No PASS after a retry."""
+    return [f"passed only after a failed attempt: {f['name']} > {' > '.join(a.get('ancestorTitles', []) + [a['title']])}"
+            for f in report.get("testResults", []) for a in f.get("assertionResults", [])
+            if a.get("status") == "passed" and a.get("failureMessages")]
+
+
 def check_unit_executed(listed: list[dict], report: dict) -> list[str]:
     want, got = vitest_listed(listed), vitest_ran(report)
     problems = [f"listed, never ran: {f} > {n}" for (f, n) in sorted(set(want) - set(got))]
     problems += [f"ran, never listed: {f} > {n}" for (f, n) in sorted(set(got) - set(want))]
     problems += [f"listed {want[k]}, ran {got[k]}: {k[0]} > {k[1]}" for k in sorted(set(want) & set(got)) if want[k] != got[k]]
+    problems += vitest_retried(report)
     if not want:
         problems.append("the listing holds no test")
     return problems

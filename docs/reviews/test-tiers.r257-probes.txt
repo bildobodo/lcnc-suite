@@ -1,0 +1,17 @@
+# Codex R257 rests, counter-probes on the real tools, 2026-11-03T04:42:47+01:00
+
+== TS256-04 rest: Codex's retry test (retry: 1, fails attempt 1, passes attempt 2) + a control, through round_gate.unit (temporary src/zzR257Retry.test.ts, removed after)
+attempts logged: 2 (the test's own retry option overrides --retry=0)
+{
+ "status": "FAIL",
+ "tests": 2,
+ "passed": 2,
+ "failed": 0,
+ "skipped": 0,
+ "listed": 2,
+ "why": [
+  "passed only after a failed attempt: /home/cnc/lcnc-suite-tiers/lcnc-webui/src/zzR257Retry.test.ts > R257 retry once then pass"
+ ]
+}
+
+== TS256-02 rest: Codex's two forms are mutations of freecad-import.spec.ts (a second read on the declared line; a line break before the parenthesis), plus an alias of a read primitive — each red in test_every_read_site_is_declared_exactly (test-tiers.selector-red.txt)

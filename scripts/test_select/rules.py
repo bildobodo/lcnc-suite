@@ -111,7 +111,7 @@ READ_SITES: dict[str, tuple[Read, ...]] = {
     _E + "macros.spec.ts": (
         Read("readFileSync((await download.path())!", 1, None, "a file the test downloaded itself"),),
     _E + "mock-gateway.mjs": (
-        Read("await readFile(f)", 1, None, "serves the built app (dist/) — the mock is central: FULL"),),
+        Read("readFile(f)", 1, None, "serves the built app (dist/) — the mock is central: FULL"),),
 }
 
 # Specs only a FULL rule selects, with the reason no narrower source owns them.

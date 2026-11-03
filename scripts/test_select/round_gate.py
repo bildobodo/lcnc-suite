@@ -133,7 +133,7 @@ def unit(name: str, files: list[str], exclude: list[str], logs: Path) -> dict:
     args = [*files, *[x for f in exclude for x in ("--exclude", f)]]
     lst = subprocess.run(["npx", "vitest", "list", *args, f"--json={listed}"], cwd=WEB,
                          capture_output=True, text=True)
-    c = run(name, ["npx", "vitest", "run", *args, "--allowOnly=false", "--reporter=default",
+    c = run(name, ["npx", "vitest", "run", *args, "--allowOnly=false", "--retry=0", "--reporter=default",
                    "--reporter=json", f"--outputFile.json={report}"], WEB, logs)
     judge(c, vitest_counts(report))
     if lst.returncode != 0 or not listed.is_file():

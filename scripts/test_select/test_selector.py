@@ -437,6 +437,11 @@ def test_every_listed_unit_test_ran():
     report["testResults"][0]["assertionResults"].pop()
     assert proof.check_unit_executed(listed, report) == ["listed, never ran: /x/a.test.ts > d > two"]
     assert proof.check_unit_executed([], {"testResults": []}) == ["the listing holds no test"]
+    # a test that passed on its second attempt (Codex R257): one entry, passed, the first failure kept
+    retried = {"testResults": [{"name": "/x/a.test.ts", "assertionResults": [
+        {"ancestorTitles": ["d"], "title": "one", "status": "passed", "failureMessages": ["AssertionError: expected 1 to be 2"]},
+        {"ancestorTitles": ["d"], "title": "two", "status": "passed", "failureMessages": []}]}]}
+    assert proof.check_unit_executed(listed, retried) == ["passed only after a failed attempt: /x/a.test.ts > d > one"]
 
 
 # ── The round gate's plan and configs (Codex R256 TS256-03 / -05) ────────
@@ -462,6 +467,7 @@ def test_the_gate_configs_start_their_own_servers_and_refuse_a_focused_test():
         assert re.search(r"webServer:\s*\(?(Array\.isArray|asList)\(full\.webServer", text), name
     gate = (ROOT / "scripts/test_select/round_gate.py").read_text()
     assert '"playwright.gate.config.ts"' in gate and '"--forbid-only"' in gate and '"--allowOnly=false"' in gate
+    assert '"--retry=0"' in gate
     assert "playwright.config.ts\", \"--list" not in gate, "the gate never lists or runs the developer config"
 
 
