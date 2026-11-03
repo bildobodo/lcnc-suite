@@ -1,0 +1,17 @@
+# feat/test-tiers at 9906dae4 — offline backend gate (TS248-02: this branch changes command_policy.py and scripts/). Run 1 at 9e1bec4a FAILED one test: test_suite_runner counted 10 offline components, test-select is the 11th — fixed in 9906dae4.
+RUN  backend → /home/cnc/lcnc-suite-tiers/runlogs/test-suite/tiers-backend/backend.log
+PASS backend (75.41s)
+RUN  5axis-model → /home/cnc/lcnc-suite-tiers/runlogs/test-suite/tiers-backend/5axis-model.log
+PASS 5axis-model (0.74s)
+RUN  audit-css → /home/cnc/lcnc-suite-tiers/runlogs/test-suite/tiers-backend/audit-css.log
+PASS audit-css (1.19s)
+RUN  review-handshake → /home/cnc/lcnc-suite-tiers/runlogs/test-suite/tiers-backend/review-handshake.log
+PASS review-handshake (4.55s)
+RUN  readback-target → /home/cnc/lcnc-suite-tiers/runlogs/test-suite/tiers-backend/readback-target.log
+PASS readback-target (0.17s)
+RUN  parity-compare → /home/cnc/lcnc-suite-tiers/runlogs/test-suite/tiers-backend/parity-compare.log
+PASS parity-compare (0.17s)
+RUN  test-select → /home/cnc/lcnc-suite-tiers/runlogs/test-suite/tiers-backend/test-select.log
+PASS test-select (0.62s)
+PASS: /home/cnc/lcnc-suite-tiers/runlogs/test-suite/tiers-backend/report.json
+backend exit 0
