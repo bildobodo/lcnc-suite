@@ -134,3 +134,35 @@ Der neue Antast-Klick-Spec der Teststrategie (Schritt 2, `feat/test-tiers`) häl
 **Bitte prüfen:** Ist die Kalibrierung damit vollständig über die eine Zuordnung, und ist die Grenze zu den nur gelesenen Nummern richtig gezogen?
 
 Wenn das trägt, bitte `agreement`.
+
+
+---
+
+## Codex · Nachprüfung R254 · 3. November 2026
+
+**Urteil: `findings`. Die vorgelegte #3036-/Mapping-Korrektur ist angenommen. Offen bleibt PF-01, ein neu entdeckter, vorbestehender Fehler im jetzt wieder freigegebenen Kalibrierweg. Keine Operatorentscheidung erforderlich.**
+
+### PF-01 · P1: Pocket-Kalibrierungen verwerfen die Verfahrvorwahl und übergeben fest 3017
+
+`probe_cal_round_pocket.ngc` übergibt an **sieben**, `probe_cal_square_pocket.ngc` an **drei** Aufrufstellen `[3017]` als viertes Argument an `probe_x_plus/minus` beziehungsweise `probe_y_plus/minus`. Beispiel: [Round Pocket, Zeile 72](../../subroutines/probe_basic/probe_cal_round_pocket.ngc#L72) und [Square Pocket, Zeile 74](../../subroutines/probe_basic/probe_cal_square_pocket.ngc#L74).
+
+Das ist die **Zahl 3017**, kein Zugriff auf die konfigurierte Variable **#3017**. O-call übergibt das vierte Argument als `#4`; die Hilfsroutinen übernehmen es in `#<probe_traverse_fr>` und verwenden es in ihren **G1-Rückzügen zwischen den Antastungen**, etwa [probe_x_plus.ngc:17/59/69](../../subroutines/probe_basic/probe_x_plus.ngc#L17). [LinuxCNC: Aufrufargumente](https://linuxcnc.org/docs/stable/html/gcode/o-code.html#_subroutines), [Parameterzugriffe](https://linuxcnc.org/docs/stable/html/gcode/overview.html#_parameters).
+
+Die eigene Browserprobe sendet korrekt **#3017=123**. Am fehlerhaften Unterprogrammaufruf wird daraus dennoch **F3017 statt F123**; auch die übliche Vorwahl 1000 wird ignoriert. Gemeint ist der angeforderte Vorschub, keine Messung einer tatsächlich erreichten Maschinengeschwindigkeit. Die langsame/schnelle G38-Antastgeschwindigkeit ist nicht der hier beanstandete Parameter.
+
+**Einordnung:** Alle betroffenen NGC-Dateien sind gegenüber `bcab7cb7` unverändert. Das ist keine Regression des neuen Helpers. Durch die ergänzte Deklaration können die bislang am Gateway abgewiesenen Kalibrierungen jetzt aber bis zu diesen Aufrufen gelangen. Deshalb keine vollständige Abnahme des Kalibrierwegs, obwohl die Zuordnungsänderung korrekt ist.
+
+**Erforderlicher Folgefix:** Die Verfahrvorwahl weitergeben (`[#3017]` beziehungsweise gleichwertig), statt die Parameternummer als Wert zu übergeben, und diese Weitergabe absichern. Die gezielte Suche findet dieselbe Klasse auch in gewöhnlichen Round-/Rect-Pocket- und Valley-Routinen: insgesamt **38 Stellen in zehn Dateien**. Die [statische Gegenprobe](probe-fixes.r254.traverse-guard.py) prüft 112 Aufrufstellen mit drei unterschiedlichen Vorwahlen und ist an diesen 38 Stellen rot; genaue Dateien/Zeilen und Verwendung im Helfer stehen in den [Ergebnissen](probe-fixes.r254.results.json). Diese konkrete Klasse gemeinsam korrigieren; kein allgemeiner Umbau der Antastroutinen verlangt.
+
+### Angenommene Korrektur und Antworten
+
+- **Kalibrierung vollständig in der Payload-Zuordnung:** Alle vier Buttons benutzen `calibrationVarMap`; diese umfasst die unveränderte Grundzuordnung plus #3036. Eigene Klickmatrix **24/24**: vier Buttons × drei Achswahlen × beide Auto-Zero-Modi. Jeweils korrekter Aufruf und alle **33 Variablen**, einschließlich unabhängiger Prüfung von #3036=0/1/2 und #3030=1/0. Die vier Routinen lesen #3036 für genau diese Auswahl.
+- **Deklaration und Migration angenommen:** #3036=0 in allen drei Templates; der bestehende Installer ergänzt fehlende Deklarationen und bewahrt einen vorhandenen Wert 2. Exaktes Backup, eigene WCS-Werte und alle Bestandszeilen erhalten, Wiederholung ohne Änderungen. Die tatsächlich gesendeten Browser-Payloads bestehen W3 in allen drei Profilen; allein das Entfernen von #3036 reproduziert die Ablehnung.
+- **Grenze präzisieren:** Entscheidend sind die von der WebUI gesendeten `vars`, nicht die Behauptung, andere Nummern würden ausschließlich gelesen. `tool_setter_param_update.ngc:33–43` **schreibt** #3011/#3012/#3037–#3039; `update_programmable_coolant_params.ngc:12–18` schreibt #3000–#3003. Die vorliegenden WebUI-Zuordnungen senden diese Nummern nicht. Das begründet die Abgrenzung für W3; „nur gelesen“ sollte in der Erklärung entsprechend korrigiert werden. Daraus folgt keine Forderung, alle internen Parameter pauschal freizugeben.
+- **R252-Prüflücke anerkannt:** Meine damalige Prüfung der 32 Map-Nummern erfasste die zusätzliche Kalibrierungsnummer außerhalb der Map nicht. Die R254-Nachprüfung folgt deshalb den tatsächlichen Klick-Payloads bis zur Gateway-Prüfung und zusätzlich ihrer Verwendung in den Routinen.
+
+### Prüfung und Grenzen
+
+Eigene Archivkopie von `b9e29335`: **Build PASS, 12/12 gezielte Unit-Tests, 34/34 Installer-Tests, neuer Probe-Klick-Spec 5/5 und eigene Kalibrierungsmatrix 24/24**. Der Probe-Klick-Spec stammt unverändert aus `feat/test-tiers` `44624f2e`; die übrige Teststrategie ist nicht Gegenstand dieser Runde. Meine Mehrfachklick-Fixture brauchte zunächst eine korrelierte MDI-Antwort des Mocks; danach vollständig grün, ohne Produktänderung. PF-01 bleibt als ausdrücklich **statischer** Aufrufnachweis rot. **1013 Produkt-/Test-/Beispiel-/Routinendateien** bytegleich zum Commit. Kein kompletter Gate-Neulauf, kein nativer Antastlauf, keine Tests/Builds im Live-Baum, keine LAN-Sim-Zugriffe. Eigener Mock beendet; das angekündigte Merge-Gate bleibt vor dem Merge separat nachzuweisen.
+
+[Prüfprotokoll und Wiederholung](probe-fixes.r254.notes.md) · [Testausgaben](probe-fixes.r254.checks.txt) · [Ergebnisse](probe-fixes.r254.results.json) · [Browserprobe](probe-fixes.r254.browser.spec.ts) · [Browser-Konfiguration](probe-fixes.r254.browser.config.ts) · [Probe-Klick-Spec aus feat/test-tiers](probe-fixes.r254.probe-click.spec.ts) · [Installer-/Policy-Sonde](probe-fixes.r254.installer-policy.py) · [Ansicht](probe-fixes.r254.calibrate.png).

@@ -1,0 +1,190 @@
+=== BUILD ===
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2128 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-CX6P-oit.css                 8.14 kB │ gzip:   2.08 kB
+dist/static/index-CjzrKkqp.css                      97.78 kB │ gzip:  17.81 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-haQLvIC9.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-B3gVh5uc.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-sW_bS4SL.js                278.70 kB │ gzip: 104.92 kB
+dist/static/index-Bc_K66uA.js                      672.20 kB │ gzip: 216.41 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.36s
+
+
+=== UNIT — 12/12 ===
+
+ RUN  v4.1.8 /tmp/codex-r254-xi5hkcf6/repo/lcnc-webui
+
+
+ Test Files  2 passed (2)
+      Tests  12 passed (12)
+   Start at  01:50:59
+   Duration  223ms (transform 77ms, setup 0ms, import 90ms, tests 5ms, environment 0ms)
+
+
+
+=== INSTALLER — 34/34 ===
+..................................                              [100%]
+
+
+=== BROWSER — first run, missing mock response documented ===
+
+Running 6 tests using 1 worker
+
+(node:619247) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:619247) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/probe-click.spec.ts:41:3 › Outside: a held probe button sends its routine with the panel's numbers (5.3s)
+  ✓  2 e2e/probe-click.spec.ts:41:3 › Boss/Pocket: a held probe button sends its routine with the panel's numbers (5.6s)
+  ✓  3 e2e/probe-click.spec.ts:41:3 › Ridge/Valley: a held probe button sends its routine with the panel's numbers (5.0s)
+  ✓  4 e2e/probe-click.spec.ts:41:3 › Angle: a held probe button sends its routine with the panel's numbers (5.4s)
+  ✓  5 e2e/probe-click.spec.ts:41:3 › Calibrate: a held probe button sends its routine with the panel's numbers (6.0s)
+  ✘  6 e2e/r254.codex.spec.ts:16:1 › R254 all calibration buttons send the selected axis and mode, with all 33 variables (12.5s)
+
+
+  1) e2e/r254.codex.spec.ts:16:1 › R254 all calibration buttons send the selected axis and mode, with all 33 variables 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m1[39m
+    Received: [31m0[39m
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      30 |     await ctl({op:'clearCmds'});
+      31 |     await hold(page,side.getByTitle(title!,{exact:true}));
+    > 32 |     await expect.poll(async()=>(await sent()).filter(c=>c.cmd==='mdi').length).toBe(1);
+         |                                                                                ^
+      33 |     const command=(await sent()).find(c=>c.cmd==='mdi');
+      34 |     observations.push({autoZero,axis,title,command});
+      35 |     writeFileSync(`${out}/calibration-clicks.json`,JSON.stringify(observations,null,2));
+        at /tmp/codex-r254-xi5hkcf6/repo/lcnc-webui/e2e/r254.codex.spec.ts:32:80
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r254.codex-R254-all-calibr-b0875--mode-with-all-33-variables/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r254.codex-R254-all-calibr-b0875--mode-with-all-33-variables/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r254.codex-R254-all-calibr-b0875--mode-with-all-33-variables/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r254.codex-R254-all-calibr-b0875--mode-with-all-33-variables/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/r254.codex.spec.ts:16:1 › R254 all calibration buttons send the selected axis and mode, with all 33 variables 
+  5 passed (41.8s)
+
+
+=== BROWSER — own matrix with correlated reply ===
+
+Running 1 test using 1 worker
+
+(node:620959) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:620959) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r254.codex.spec.ts:16:1 › R254 all calibration buttons send the selected axis and mode, with all 33 variables (31.3s)
+
+  1 passed (32.5s)
+
+
+=== MIGRATION AND W3 — actual emitted payloads ===
+[
+  {
+    "profile": "xyz3",
+    "inserted": true,
+    "value3036": 0.0,
+    "backup_exact": true,
+    "existing_rows_kept": true,
+    "admitted_actual_clicks_both_paths": 48,
+    "same_clicks_rejected_without3036": 48
+  },
+  {
+    "profile": "xyzac5",
+    "inserted": true,
+    "value3036": 0.0,
+    "backup_exact": true,
+    "existing_rows_kept": true,
+    "admitted_actual_clicks_both_paths": 48,
+    "same_clicks_rejected_without3036": 48
+  },
+  {
+    "profile": "xyzabc6",
+    "inserted": false,
+    "value3036": 2.0,
+    "backup_exact": true,
+    "existing_rows_kept": true,
+    "admitted_actual_clicks_both_paths": 48,
+    "same_clicks_rejected_without3036": 48
+  },
+  {
+    "rerun": "no change",
+    "report": [
+      "xyz3/sim.var: declared #3036 as the example does (the WebUI writes them; existing values kept)",
+      "xyzac5/sim.var: declared #3036 as the example does (the WebUI writes them; existing values kept)"
+    ]
+  }
+]
+
+
+=== STATIC CALL-CONTRACT — expected red PF-01 ===
+{
+  "kind": "static source call-contract, not interpreter execution",
+  "call_sites": 112,
+  "failures": 38,
+  "calibration_failures": 10,
+  "affected_files": [
+    "subroutines/probe_basic/probe_cal_round_pocket.ngc",
+    "subroutines/probe_basic/probe_cal_square_pocket.ngc",
+    "subroutines/probe_basic/probe_rect_pocket.ngc",
+    "subroutines/probe_basic/probe_rect_pocket_center_start.ngc",
+    "subroutines/probe_basic/probe_round_pocket.ngc",
+    "subroutines/probe_basic/probe_round_pocket_center_start.ngc",
+    "subroutines/probe_basic/probe_valley_x.ngc",
+    "subroutines/probe_basic/probe_valley_x_center_start.ngc",
+    "subroutines/probe_basic/probe_valley_y.ngc",
+    "subroutines/probe_basic/probe_valley_y_center_start.ngc"
+  ]
+}
+Traceback (most recent call last):
+  File "/tmp/codex-r254-xi5hkcf6/traverse-guard.py", line 42, in <module>
+    assert not bad, f'{len(bad)} call sites ignore configured #3017; see {output}'
+           ^^^^^^^
+AssertionError: 38 call sites ignore configured #3017; see /tmp/codex-r254-xi5hkcf6/traverse.json
