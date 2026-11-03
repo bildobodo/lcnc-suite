@@ -1,0 +1,34 @@
+{
+  "head": "a507e238",
+  "uncommitted": 0,
+  "note": "feat/snap-highlight at a507e238: FH-07 \u2014 a T word apart from its value (Codex R249); Playwright alone",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 9
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 17
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npx vitest run --reporter=default --reporter=json --outputFile.json=/home/cnc/lcnc-suite-follow/docs/reviews/snap-highlight.fh07.gate-frontend.logs/vitest.json",
+      "status": "PASS",
+      "seconds": 529,
+      "tests": "167 files, 2669 passed"
+    },
+    {
+      "name": "frontend-browser",
+      "command": "PLAYWRIGHT_JSON_OUTPUT_FILE=/home/cnc/lcnc-suite-follow/docs/reviews/snap-highlight.fh07.gate-frontend.logs/playwright.json PLAYWRIGHT_JSON_OUTPUT_NAME=/home/cnc/lcnc-suite-follow/docs/reviews/snap-highlight.fh07.gate-frontend.logs/playwright.json npx playwright test --trace off --reporter=line,json",
+      "status": "PASS",
+      "seconds": 3334,
+      "tests": "839 passed",
+      "note": "run alone"
+    }
+  ]
+}
