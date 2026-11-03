@@ -8,7 +8,8 @@ import { ctl, MOCK } from "./ctl";
 // 0 (GET /g30 turned a missing row into 0.0). The old "Set Current Position"
 // sent G30.1 and meant to show the position — the readout stayed old.
 //
-// Runs under `serial-guards`: mock-global state (status, replies, command log).
+// The worker's own mock (e2e/test.ts): its state is this test's alone, reset
+// and checked before every test.
 
 const PERMS_ALL = {
   idle: true, jog: true, override: true, ready: true, run: true, pause: false,

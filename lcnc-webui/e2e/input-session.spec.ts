@@ -8,7 +8,7 @@ import { measureLayout, assertLayout, measureFrame, frameChanges } from "./layou
 // opened by a deliberate tap/click or the keyboard glyph — never by focus —
 // and closed without confirming anything by a tap or a Tab outside its
 // focus area (field + glyph + keys), for the number keypad and the text
-// keyboard alike. Runs under `serial-guards`.
+// keyboard alike.
 //
 // Keys are pressed with REAL pointer input (`click`, or `tap` in the
 // hasTouch block): Playwright hit-tests the key at its centre before the

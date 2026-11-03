@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
 import { encode } from "@msgpack/msgpack";
 import { ctl, MOCK } from "./ctl";
+import { framesDrawn, topViewStands } from "./viewerSettle";
 import { MACHINE_BOX_PX, TOOLPATH_BOX_PX } from "../src/viewer/boxLines";
 import { writeFileSync } from "node:fs";
 
@@ -16,7 +17,8 @@ import { writeFileSync } from "node:fs";
 // attaches its image for the review by eye (the report; SCENE_OUT=<dir>
 // writes them to a folder as well).
 //
-// Runs under `serial-viewer`: mock-global state.
+// The worker's own mock (e2e/test.ts): its state is this test's alone, reset
+// and checked before every test.
 
 const THEMES = ["light", "dark", "hc-light", "hc-dark"] as const;
 
@@ -1002,7 +1004,7 @@ test("a reach chain with two visible pieces shows both tones in each (plan Fassu
       groundGrid: false, toolsetter: false, toolChange: false, reachPart: false, reachRoom: true } } } } });
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
     await page.evaluate(() => window.__viewerDiag!.setView!("z+"));
-    await page.waitForTimeout(400);
+    await topViewStands(page);
     // the page ↔ world map of the top view (z = 0)
     const [o, ex, ey] = (await page.evaluate(() => window.__viewerDiag!.projectPoints!([[0, 0, 0], [100, 0, 0], [0, 100, 0]])))!;
     const rect = (await page.evaluate(() => window.__viewerDiag!.canvasRect!()))!;
@@ -1021,7 +1023,7 @@ test("a reach chain with two visible pieces shows both tones in each (plan Fassu
     const P = [[far, yA], [tip, yA], [far, yA + drop], [far, yC - drop], [tip, yC], [far, yC]].map(p => [p[0]!, p[1]!, 0]);
     const soup = P.slice(0, -1).flatMap((p, i) => [...p, ...P[i + 1]!]);
     await page.evaluate(s => window.__viewerDiag!.setReachSoup!(s), soup);
-    await page.waitForTimeout(400);
+    await framesDrawn(page);
     const pat = (await page.evaluate(() => window.__viewerDiag!.getBoundsPattern!("reachRoom")))!;
     expect(pat.cells.length, `${theme}: the soup is ONE chain`).toBe(1);
     // the injected soup lies where it was put (the machine frame is the world here)

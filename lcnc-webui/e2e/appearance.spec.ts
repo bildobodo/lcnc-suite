@@ -17,7 +17,8 @@ import { ctl, MOCK } from "./ctl";
 //     shadows are dropped there, and the selection was a background plus
 //     a shadow.
 //
-// Runs under `serial-guards`: mock-global state.
+// The worker's own mock (e2e/test.ts): its state is this test's alone, reset
+// and checked before every test.
 
 async function ready(page: Page) {
   await ctl({ op: "reset" });

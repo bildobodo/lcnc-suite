@@ -20,14 +20,12 @@ import { ctl as ctlQuery, MOCK, expectArmed } from "./ctl";
 //    signals arrive on a real shutdown — this spec keeps the frontend
 //    honest for either one alone.
 //
-// This file runs in the SERIAL `lifecycle` playwright project (dependencies)
-// because refuseWs/shutdownClose are mock-global and would break parallel
-// specs mid-flight.
+// refuseWs/shutdownClose act on the worker's own mock (e2e/test.ts): no
+// other spec shares it.
 
 
-// The mock-gateway is ONE process shared by every spec; frames.spec mutates its
-// state.data and other specs flip quiet/refuseWs. Reset to pristine before each
-// serial test so ordering across the suite can't bleed in.
+// A second reset after the fixture's own (e2e/test.ts) — harmless; the cases
+// here flip quiet/refuseWs on the worker's mock.
 test.beforeEach(async () => {
   await ctlQuery({ op: "reset" });
 });

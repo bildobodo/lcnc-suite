@@ -12,8 +12,8 @@ import { measureLayout } from "./layout-audit";
 // never widens the section nor moves a fixture.
 //
 // The expected arrangement is written out per config (Codex R234: literal
-// values, never the rule run again). Runs in serial-layout (setAxes and
-// setKins are mock-global).
+// values, never the rule run again). setAxes and setKins act on the
+// worker's own mock (e2e/test.ts).
 
 const TRSRN = { module: "xyzacb_trsrn", type: "xyzacb-trsrn", identity_first: false, params: {} };
 const TRT = { module: "xyzac-trt-kins", type: "xyzac-trt", identity_first: true, params: {} };

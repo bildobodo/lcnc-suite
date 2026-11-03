@@ -10,8 +10,8 @@ import { ctl, MOCK } from "./ctl";
 //   1. one row/button-group PER MACHINE AXIS, in machine order, all visible
 //   2. by-letter rendering (a lathe [X,Z] shows Z — no phantom Y between)
 //
-// Runs in the SERIAL project: setAxes swaps mock-global state, and the reset
-// op restores the XYZ baseline for whichever serial spec runs next.
+// setAxes swaps the axis set of the worker's own mock (e2e/test.ts); the
+// fixture's reset before every test restores the XYZ baseline.
 const NINE = ["X", "Y", "Z", "A", "B", "C", "U", "V", "W"];
 
 test.beforeEach(async ({ page }) => {

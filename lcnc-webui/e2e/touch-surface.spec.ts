@@ -16,7 +16,8 @@ import { ctl, MOCK } from "./ctl";
 //     track and the view cube; only buttons were exempt.
 //   - an icon-only header pill is centred and as tall as a text pill.
 //
-// Runs under `serial-guards`: mock-global state, one file at a time.
+// The worker's own mock (e2e/test.ts): its state is this test's alone, reset
+// and checked before every test.
 
 // A touch-capable browser; the session is in touch mode only after a touch.
 test.use({ hasTouch: true });

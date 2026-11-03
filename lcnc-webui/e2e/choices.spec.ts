@@ -12,7 +12,8 @@ import { PROFILES, VIEWPORTS, openLayout, settleLayout } from "./layout-fixtures
 // step increment is local: a row (the arrows choose) only with few, short
 // options, else a labelled select.
 //
-// Runs under `serial-guards`: mock-global state (status, command log).
+// The worker's own mock (e2e/test.ts): its state is this test's alone, reset
+// and checked before every test.
 
 const TWP = PROFILES.find(p => p.name === "6axis-twp")!;
 const DESKTOP = VIEWPORTS.find(v => v.name === "desktop")!;

@@ -20,9 +20,10 @@ import { encode } from "@msgpack/msgpack";
 //
 // Robustness: loadGcode is async (preview-worker round-trip) and rendering is
 // rAF-batched, so the spec POLLS for a settled count rather than guessing a
-// fixed wait — fixed settles raced the worker when both serial specs ran under
-// load. Runs in the serial `serial` project: a contention-free, settled
-// renderer, and it drives mock-global rebuild/load state.
+// fixed wait — fixed settles raced the worker when two viewer specs ran under
+// load. Its rebuild/load state is the worker's own mock (e2e/test.ts); the
+// leak probe was repeated beside the heavy viewer specs before the parallel
+// run (per-worker mock R263).
 
 type Page = import("@playwright/test").Page;
 

@@ -12,7 +12,8 @@ import { encode } from "@msgpack/msgpack";
 // (colours normalised through a canvas, so color-mix / oklab count).
 // Disabled controls are exempt (WCAG: inactive UI).
 //
-// Runs under `serial-guards`: mock-global state.
+// The worker's own mock (e2e/test.ts): its state is this test's alone, reset
+// and checked before every test.
 
 // The four explicit themes, plus AUTO under a dark system scheme: that is a
 // fifth palette (style.css's `prefers-color-scheme: dark` block for a root
