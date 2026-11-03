@@ -1,0 +1,34 @@
+{
+  "head": "b9e29335",
+  "uncommitted": 0,
+  "note": "fix/probe-vars at b9e29335: a calibration's #3036 through the one map (merge gate); Playwright alone",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 8
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 15
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npx vitest run --reporter=default --reporter=json --outputFile.json=/home/cnc/lcnc-suite-probe/docs/reviews/probe-fixes.cal.gate-frontend.logs/vitest.json",
+      "status": "PASS",
+      "seconds": 484,
+      "tests": "168 files, 2672 passed"
+    },
+    {
+      "name": "frontend-browser",
+      "command": "PLAYWRIGHT_JSON_OUTPUT_FILE=/home/cnc/lcnc-suite-probe/docs/reviews/probe-fixes.cal.gate-frontend.logs/playwright.json PLAYWRIGHT_JSON_OUTPUT_NAME=/home/cnc/lcnc-suite-probe/docs/reviews/probe-fixes.cal.gate-frontend.logs/playwright.json npx playwright test --trace off --reporter=line,json",
+      "status": "PASS",
+      "seconds": 3227,
+      "tests": "831 passed",
+      "note": "run alone"
+    }
+  ]
+}
