@@ -1,0 +1,523 @@
+{
+  "kind": "static source audit only; no runtime/test/live measurements",
+  "product_commit": "4a2a068a6f3f8912c61a9b2d40f539d5c83accd3",
+  "document_commit": "569eee5e3d8c5b8dd473a3e127be6f846f1363d1",
+  "atom_file_sha256": "cdb9ae961c5c59b9865830968a80af44405ec2d7d5e16888d83f3c6a03dfca7b",
+  "atom_sections": [
+    "controls",
+    "buttonTypes",
+    "inputDefs",
+    "keyboard",
+    "gamepad",
+    "commands"
+  ],
+  "atom_counts": {
+    "controls": 433,
+    "buttonTypes": 107,
+    "inputDefs": 47,
+    "keyboard": 0,
+    "gamepad": 7,
+    "commands": 74
+  },
+  "controls": {
+    "occurrences": 433,
+    "unique_keys": 406,
+    "files": 49,
+    "duplicate_keys": {
+      "App.vue|MachineBtn:abort|@click=fire({ cmd: 'abort' }, 'abort')": [
+        {
+          "file": "App.vue",
+          "line": 2289
+        },
+        {
+          "file": "App.vue",
+          "line": 2349
+        },
+        {
+          "file": "App.vue",
+          "line": 2540
+        }
+      ],
+      "HalshowTab.vue|MachineBtn:inline|@click=toggleHalGroup(group)": [
+        {
+          "file": "HalshowTab.vue",
+          "line": 157
+        },
+        {
+          "file": "HalshowTab.vue",
+          "line": 208
+        }
+      ],
+      "KeyboardTab.vue|td|@click=startCapture(action, $event)": [
+        {
+          "file": "KeyboardTab.vue",
+          "line": 179
+        },
+        {
+          "file": "KeyboardTab.vue",
+          "line": 192
+        },
+        {
+          "file": "KeyboardTab.vue",
+          "line": 214
+        }
+      ],
+      "KeyboardTab.vue|MachineBtn:listActionSetting|@click.stop=unbindKey(action)": [
+        {
+          "file": "KeyboardTab.vue",
+          "line": 186
+        },
+        {
+          "file": "KeyboardTab.vue",
+          "line": 199
+        },
+        {
+          "file": "KeyboardTab.vue",
+          "line": 221
+        }
+      ],
+      "MacrosPanel.vue|td|@click.stop=": [
+        {
+          "file": "MacrosPanel.vue",
+          "line": 514
+        },
+        {
+          "file": "MacrosPanel.vue",
+          "line": 518
+        },
+        {
+          "file": "MacrosPanel.vue",
+          "line": 521
+        },
+        {
+          "file": "MacrosPanel.vue",
+          "line": 524
+        }
+      ],
+      "ProbePanel.vue|MachineBtn:probeCell|@click=runGridProbe(op)": [
+        {
+          "file": "ProbePanel.vue",
+          "line": 664
+        },
+        {
+          "file": "ProbePanel.vue",
+          "line": 687
+        }
+      ],
+      "ProbePanel.vue|MachineInput:probeParam|@change=saveParams v-model.number=params[f.key]": [
+        {
+          "file": "ProbePanel.vue",
+          "line": 788
+        },
+        {
+          "file": "ProbePanel.vue",
+          "line": 896
+        },
+        {
+          "file": "ProbePanel.vue",
+          "line": 939
+        },
+        {
+          "file": "ProbePanel.vue",
+          "line": 979
+        },
+        {
+          "file": "ProbePanel.vue",
+          "line": 1081
+        },
+        {
+          "file": "ProbePanel.vue",
+          "line": 1182
+        }
+      ],
+      "ProbePanel.vue|MachineRadio:probeParam|v-model.number=calAxis": [
+        {
+          "file": "ProbePanel.vue",
+          "line": 993
+        },
+        {
+          "file": "ProbePanel.vue",
+          "line": 994
+        },
+        {
+          "file": "ProbePanel.vue",
+          "line": 995
+        }
+      ],
+      "SettingsPanel.vue|MachineBtn:inline|@click=onPaletteModeChange('auto')": [
+        {
+          "file": "SettingsPanel.vue",
+          "line": 659
+        },
+        {
+          "file": "SettingsPanel.vue",
+          "line": 662
+        }
+      ],
+      "SettingsPanel.vue|MachineRadio:protectedSetting|@update:modelValue=saveMachine() v-model=toolChangeMode": [
+        {
+          "file": "SettingsPanel.vue",
+          "line": 754
+        },
+        {
+          "file": "SettingsPanel.vue",
+          "line": 758
+        }
+      ],
+      "SettingsPanel.vue|MachineRadio:protectedSetting|@update:modelValue=saveMachine() v-model=spindleFeedbackUnit": [
+        {
+          "file": "SettingsPanel.vue",
+          "line": 781
+        },
+        {
+          "file": "SettingsPanel.vue",
+          "line": 785
+        }
+      ],
+      "SettingsPanel.vue|MachineRadio:protectedSetting|@update:modelValue=saveMachine() v-model=rflSpindleDir": [
+        {
+          "file": "SettingsPanel.vue",
+          "line": 821
+        },
+        {
+          "file": "SettingsPanel.vue",
+          "line": 822
+        },
+        {
+          "file": "SettingsPanel.vue",
+          "line": 823
+        }
+      ],
+      "ToolsetterSettings.vue|MachineInput:toolsetterParam|@change=saveTsParams(f.key) v-model.number=tsParams[f.key]": [
+        {
+          "file": "ToolsetterSettings.vue",
+          "line": 310
+        },
+        {
+          "file": "ToolsetterSettings.vue",
+          "line": 342
+        },
+        {
+          "file": "ToolsetterSettings.vue",
+          "line": 354
+        },
+        {
+          "file": "ToolsetterSettings.vue",
+          "line": 388
+        },
+        {
+          "file": "ToolsetterSettings.vue",
+          "line": 408
+        }
+      ]
+    }
+  },
+  "gamepad": {
+    "declared_values": [
+      "start",
+      "pause",
+      "resume",
+      "abort",
+      "estop",
+      "spindle_stop",
+      "flood_toggle",
+      "mist_toggle",
+      "home_all",
+      "z_mod",
+      "dead_man",
+      "none"
+    ],
+    "inventoried_values": [
+      "spindle_stop",
+      "flood_toggle",
+      "mist_toggle",
+      "home_all",
+      "z_mod",
+      "dead_man",
+      "none"
+    ],
+    "missing": [
+      "abort",
+      "estop",
+      "pause",
+      "resume",
+      "start"
+    ],
+    "note": "Includes the 'none' assignment; these are declared choices, not 12 machine commands."
+  },
+  "keyboard": {
+    "declared_actions": [
+      "jog_x+",
+      "jog_x-",
+      "jog_y+",
+      "jog_y-",
+      "jog_z+",
+      "jog_z-",
+      "jog_a+",
+      "jog_a-",
+      "jog_b+",
+      "jog_b-",
+      "jog_c+",
+      "jog_c-",
+      "jog_u+",
+      "jog_u-",
+      "jog_v+",
+      "jog_v-",
+      "jog_w+",
+      "jog_w-",
+      "estop",
+      "cycle",
+      "abort"
+    ],
+    "inventoried": [],
+    "note": "21 bindable actions; absent axes and unbound defaults need not be active on a given profile."
+  },
+  "source_excerpts": [
+    {
+      "path": "lcnc-webui/src/controlScan.ts",
+      "sha256": "ca845ae876a6f36da0a9ccf4dbee7022334e99cac9d24221d29877bbe404db7c",
+      "matches": [
+        {
+          "line": 27,
+          "text": "const CATALOG_ATTR: Record<string, \"type\" | \"gate\"> = {"
+        },
+        {
+          "line": 31,
+          "text": "const RAW_CONTROLS = new Set([\"button\", \"input\", \"select\", \"textarea\"]);"
+        },
+        {
+          "line": 34,
+          "text": "const ACTION_EVENTS = new Set([\"click\", \"dblclick\", \"pointerdown\", \"pointerup\", \"mousedown\", \"mouseup\", \"touchstart\", \"touchend\"]);"
+        },
+        {
+          "line": 58,
+          "text": "function templateOf(sfc: string): { text: string; offset: number } {"
+        },
+        {
+          "line": 169,
+          "text": "    const isRaw = RAW_CONTROLS.has(t.name) || t.attrs.role === \"button\""
+        }
+      ]
+    },
+    {
+      "path": "lcnc-webui/e2e/tool-import.spec.ts",
+      "sha256": "71da4fc3f8034e65b863479f1cff8a3a8ca2df1d632971875eaced3ebed4d837",
+      "matches": [
+        {
+          "line": 9,
+          "text": "  await page.route(\"**/import-tool-library\", route => route.fulfill({ json: {"
+        },
+        {
+          "line": 23,
+          "text": "  await page.route(\"**/import-tool-library/refresh\", async route => {"
+        },
+        {
+          "line": 26,
+          "text": "    await route.fulfill({ json: { ok: true, updated: 1, skipped: 0 } });"
+        },
+        {
+          "line": 28,
+          "text": "  await page.route(\"**/import-tool-library/apply\", route => {"
+        },
+        {
+          "line": 62,
+          "text": "  await page.route(\"**/import-tool-library/apply\", route => {"
+        },
+        {
+          "line": 64,
+          "text": "    return route.fulfill({ json: { ok: true, added: 1, skipped: 0 } });"
+        },
+        {
+          "line": 80,
+          "text": "  await page.route(\"**/import-tool-library/refresh\", route => route.fulfill({"
+        },
+        {
+          "line": 83,
+          "text": "  await page.route(\"**/import-tool-library/apply\", route => { replacements++; return route.abort(); });"
+        }
+      ]
+    },
+    {
+      "path": "lcnc-webui/e2e/macroFolder.ts",
+      "sha256": "182dd7d9d2c92228731eedc20b6030345d5c06d0d323a75ac1981fc9bb112f78",
+      "matches": [
+        {
+          "line": 78,
+          "text": "  await page.route(\"**/macros\", r => r.fulfill({ json: folder.list() }));"
+        },
+        {
+          "line": 79,
+          "text": "  await page.route(/\\/macro\\?/, async r => {"
+        }
+      ]
+    },
+    {
+      "path": "lcnc-webui/e2e/test.ts",
+      "sha256": "6c008bd67f8ec8141ffed8c9e074d19f270281c84c4cffaa7ca70be8c3e39541",
+      "matches": [
+        {
+          "line": 42,
+          "text": "    const pristineWire = await appConnectFrames();"
+        },
+        {
+          "line": 61,
+          "text": "    const wire = await appConnectFrames();"
+        },
+        {
+          "line": 65,
+          "text": "    logEvent({ event: \"test-start\", ...where });"
+        },
+        {
+          "line": 67,
+          "text": "    logEvent({ event: \"test-end\", ...where, status: testInfo.status });"
+        },
+        {
+          "line": 68,
+          "text": "    for (const c of browser.contexts()) await c.close().catch(() => {});"
+        }
+      ]
+    },
+    {
+      "path": "lcnc-webui/src/App.vue",
+      "sha256": "2110be0018f72aaade3788664aa44a86be4ad8877b1bbd59f89fcadab33372c1",
+      "matches": [
+        {
+          "line": 2241,
+          "text": "              :eoffsetEnabled=\"!!st.eoffset_enabled\""
+        },
+        {
+          "line": 2242,
+          "text": "              :compMethod=\"st.comp_method ?? null\""
+        }
+      ]
+    },
+    {
+      "path": "lcnc-webui/src/ProbePanel.vue",
+      "sha256": "270ec686cc4f29e0809a4ae9f5f4ca25edc2084d50d63dbbbf26a57be89778c7",
+      "matches": [
+        {
+          "line": 275,
+          "text": "const METHOD_LABELS: Record<number, string> = { 0: \"Nearest\", 1: \"Linear\", 2: \"Cubic\" };"
+        },
+        {
+          "line": 1131,
+          "text": "            <span>Compensation: <b class=\"stable-width\"><span :class=\"{ alt: !eoffsetEnabled }\">ON</span><span :class=\"{ alt: eoffsetEnabled }\">OFF</span></b></span>"
+        },
+        {
+          "line": 1139,
+          "text": "                :modelValue=\"compMethod ?? 2\" @update:modelValue=\"setMethod(Number(id))\" /> {{ label }}"
+        }
+      ]
+    },
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "sha256": "2575459c6a68edae87bd0a97445f8de891a62fdf5867f4187fb25cd585910af4",
+      "matches": [
+        {
+          "line": 5856,
+          "text": "        if cmd == \"set_compensation\":"
+        },
+        {
+          "line": 5862,
+          "text": "            await _loop.run_in_executor(None, _hal_send, {\"compensation_enable\": enable})"
+        },
+        {
+          "line": 5866,
+          "text": "        if cmd == \"set_compensation_method\":"
+        },
+        {
+          "line": 5870,
+          "text": "            await _loop.run_in_executor(None, _hal_send, {\"compensation_method\": method})"
+        },
+        {
+          "line": 5874,
+          "text": "        if cmd == \"confirm_tool_change\":"
+        },
+        {
+          "line": 5882,
+          "text": "            delivered = await _loop.run_in_executor(None, _hal_send, {\"tool_changed\": True})"
+        }
+      ]
+    },
+    {
+      "path": "scripts/macro_live_check.py",
+      "sha256": "caf0363838217ce73417e441c02b1f1d884ee3b8e8cdd4ab9f69ed0ed99a1399",
+      "matches": [
+        {
+          "line": 7,
+          "text": "outcome from LinuxCNC. Prints one PASS / FAIL / SKIP table. Never run it on"
+        },
+        {
+          "line": 9,
+          "text": "and changes G54. The intended target is a COPY of a sim configuration run"
+        },
+        {
+          "line": 22,
+          "text": "gateway on its own port without a token. Each run ends with the check's client"
+        },
+        {
+          "line": 23,
+          "text": "gone — the HAL watchdog trips the sim; restart it for the next run."
+        }
+      ]
+    },
+    {
+      "path": "scripts/toolsetter_readback_check.py",
+      "sha256": "4332bd233d000aa43faf38bd0e5b3e80979278630b440a5b82d724217c1116f2",
+      "matches": [
+        {
+          "line": 17,
+          "text": "VP-I71); nothing is run. Then:"
+        },
+        {
+          "line": 27,
+          "text": "Rows print PASS / FAIL with what was measured. Ends by terminating the"
+        },
+        {
+          "line": 49,
+          "text": "s = linuxcnc.stat()"
+        }
+      ]
+    },
+    {
+      "path": "scripts/test_support/live_session.py",
+      "sha256": "91000c7d5caaacf0e860d26e66fa73a3a36c574d830f10234b6c5577b6aab2a8",
+      "matches": [
+        {
+          "line": 51,
+          "text": "                    if requested and seq != confirmed:"
+        },
+        {
+          "line": 54,
+          "text": "                        self.send({\"cmd\": \"confirm_tool_change\", \"request\": seq})"
+        }
+      ]
+    },
+    {
+      "path": "scripts/perf_matrix.py",
+      "sha256": "d574d8002cf6ae7d16feed77a532e42c5356d1bfab9bf02c29dcf18e09290776",
+      "matches": [
+        {
+          "line": 22,
+          "text": "  --allow-trip  enables: sigstop_trip (SIGSTOPs the gateway > oneshot budget,"
+        },
+        {
+          "line": 23,
+          "text": "                asserts the HAL latch TRIPS and STAYS latched through recovery"
+        },
+        {
+          "line": 25,
+          "text": "                recovery sequence ack->arm->reset and verifies the latch clears)"
+        },
+        {
+          "line": 436,
+          "text": "        return {\"skipped\": \"needs --allow-trip (trips the HAL safety latch)\"}"
+        },
+        {
+          "line": 538,
+          "text": "    ap.add_argument(\"--allow-trip\", action=\"store_true\","
+        }
+      ]
+    }
+  ]
+}
