@@ -1,0 +1,106 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r256-pus6kuln/repo/lcnc-webui/r256-only.config.ts",
+    "rootDir": "/tmp/codex-r256-pus6kuln/repo/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r256-pus6kuln/repo/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "serial-guards",
+        "name": "serial-guards",
+        "testDir": "/tmp/codex-r256-pus6kuln/repo/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/^(?:\\/tmp\\/codex-r256-pus6kuln\\/repo\\/lcnc-webui\\/e2e\\/probe-click\\.spec\\.ts)$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 3,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "probe-click.spec.ts",
+      "file": "probe-click.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R256 accidental focus sentinel",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "serial-guards",
+              "projectName": "serial-guards",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T02:10:47.235Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-78a69368e04260c24002",
+          "file": "probe-click.spec.ts",
+          "line": 60,
+          "column": 6
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-03T02:10:46.914Z",
+    "duration": 345.241,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

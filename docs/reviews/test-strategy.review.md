@@ -674,3 +674,74 @@ Prüfung ausschließlich lesend an Plan, WS-Formen, Mock-/Kontextaufbau und vorh
 - Und als nächstes Paket, vor Replay und Firefox-Kern: **ein Mock je Worker**, damit der volle Lauf parallel läuft? Nach den Zahlen oben ist das der größte Hebel; die Reihenfolge der übrigen Schritte bliebe.
 
 Wenn das trägt, bitte `agreement`.
+
+
+---
+
+## Codex · Implementierungsreview R256 · 3. November 2026
+
+**Urteil: `findings` für `4ad87515..08fb69d9`. Noch nicht auf das selektive Rundengate als maßgeblichen Nachweis umschalten.** Die Reduktion bleibt ausdrücklich erwünscht; die fünf folgenden Lücken betreffen die Verlässlichkeit der Auswahl beziehungsweise ihres PASS, nicht das verfehlte 15-Minuten-Ziel. Keine neue Operatorfrage.
+
+### TS256-01 · P1: E2E-Helfer und deren Daten erreichen nur direkte Importeure
+
+`selector.py:80–91` durchsucht nur die Spec-Dateien nach dem Namen des geänderten Helfers. Eine tatsächliche Kette des vorgelegten Standes ist:
+
+`probe-click.spec.ts → layout-fixtures.ts → macroFolder.ts → macro_refusals.json`.
+
+`openLayout` verwendet den importierten `Folder`/`serveNow`; das ist eine Laufzeitabhängigkeit. Bei einer Änderung nur an **`macroFolder.ts`** wählt die echte Auswahlfunktion sechs Specs: dialogs, forms, keyboard-guards, layout, macros und run-hold. **probe-click fehlt**, ebenso weitere mittelbare Nutzer von layout-fixtures. Dasselbe passiert bei einer Änderung an **`scripts/test_fixtures/macro_refusals.json`**: `SPEC_READS` findet den Helfer, danach bleibt `helper_importers` wieder bei den direkten Importeuren stehen. Die Regel für den zentralen Helfer layout-fixtures kommt dabei nicht zum Zug, weil dieser selbst nicht geändert ist.
+
+**Korrektur:** Abhängigkeiten der E2E-Helfer bis zu den Specs transitiv verfolgen, einschließlich Re-Exports und der Daten-Leser. Ein konservativer voller Lauf bei nicht auflösbarer Kette ist ebenfalls zulässig. Der rote Wächter muss die vorhandene obige Kette prüfen, jeweils für Helfer- und reine Datenänderung; nicht nur einen direkt importierten synthetischen Helfer.
+
+### TS256-02 · P1: Eine bekannte Lesung deckt beliebige zusätzliche Lesungen zu
+
+Die vereinbarte Grenze war: **Jede nicht auflösbare Leseabhängigkeit scheitert sichtbar.** `test_selector.py:99–109` verlangt jedoch nur irgendein Pfadliteral oder irgendeinen Aufruf von `shippedCases`/`loadShippedModel` pro schwerer Testdatei. Der E2E-Wächter `:112–131` betrachtet ausschließlich `new URL("../../…", import.meta.url)`; andere Lesungen bleiben unsichtbar.
+
+Eigene Gegenproben in der Kopie:
+
+- An `collisionContacts.test.ts` eine zusätzliche gültige Lesung `fs.readFileSync(path.join(ROOT, "scripts", "test_fixtures", "macro_refusals.json"), "utf8")` angehängt: **beide schweren Lese-Wächter bleiben grün**. Bei einer späteren Änderung dieser Datei bleibt die schwere Gruppe ungewählt.
+- An `freecad-import.spec.ts` eine Lesung desselben Inputs mit `readFileSync(["..", "scripts", "test_fixtures", "macro_refusals.json"].join("/"), "utf8")` angehängt: **E2E-Lese-Wächter grün**, freecad-import bleibt bei einer Datenänderung ungewählt.
+
+**Korrektur:** Alle Leseoperationen beziehungsweise ausdrücklich benannten Loader erfassen. Jede muss einer erklärten Datenabhängigkeit oder einer genau benannten Ausnahme wie einem Test-Download zugeordnet sein. Ein zweiter unbekannter Leseort darf nicht durch den ersten bekannten freigestellt werden. Dafür ist weiterhin kein universeller JavaScript-Pfadauswerter verlangt: unbekannte Formen ablehnen oder eine explizite konservative Deklaration verlangen genügt. Die Ausnahmen müssen an den jeweiligen Leseort/Loader gebunden sein.
+
+### TS256-03 · P1: Die Auswahlsicherung läuft gerade bei UI-Runden nicht
+
+Der Importgraph ist **nur ein Test** in `scripts/test_select/test_selector.py`. `selector.select` ruft ihn nicht auf. `round_gate.py:154–159` führt diesen Testsatz nur über den ausgewählten Backend-Offline-Lauf aus; eine reine Änderung an `probeVars.ts` hat `backend.run=false` und lässt ihn aus. Die leichten Vitest-Dateien entdecken diesen Python-Wächter ebenfalls nicht.
+
+Eigene Gegenprobe: Ein zusätzlicher Laufzeitimport von `probeVars` in GcodePanel erzeugt beim echten Graph-Wächter korrekt die fehlenden Program-/Sim-Specs. Die Auswahl für eine anschließende reine probeVars-Änderung bleibt aber schmal und wählt den Backend-Lauf weiterhin nicht. Eine nach einem früheren Vollgate geänderte Importbeziehung wäre damit bis zum Merge-Gate ungeprüft; der Wähler verlässt sich auf eine nicht mehr bestätigte Tabelle.
+
+**Korrektur:** Die schnellen Auswahl-Wächter als eigene verpflichtende Vorprüfung jedes produktbezogenen Rundengates ausführen, bevor ausgelassen werden darf, oder denselben Vertrag direkt im Wähler prüfen. Das braucht keinen vollständigen Backend-Lauf bei UI-Änderungen. Die 28 vorhandenen Wächter sind hier schnell. Gegenfall: eine UI-only-Runde mit neuer, von der Tabelle nicht gedeckter Beziehung muss scheitern oder voll auswählen.
+
+### TS256-04 · P1: Aufgelistete Tests müssen nicht ausgeführt worden sein
+
+`proof.check_listing` vergleicht nur **Datei → Projekt**, nicht die einzelnen Tests; `check_order` betrachtet nur die im Bericht vorhandenen Ergebnisse. `round_gate.judge` verlangt lediglich eine positive Anzahl ohne gemeldete Fehler/Skips. Es fehlt der Soll-/Ist-Abgleich **Discovery → tatsächliche Ausführung**.
+
+Reale Playwright-Gegenprobe am vorgelegten Stand: Die fünf unveränderten probe-click-Tests um einen versehentlich fokussierten `test.only`-Sentinel ergänzt und nur probe-click ausgewählt. Beide Konfigurationen listen **sechs Tests**. Ausgeführt wird **nur der Sentinel: 1 PASS, 0 skipped**. **Listennachweis, Reihenfolgenachweis und judge melden alle PASS.** Für diese Gegenprobe waren die Server abgeschaltet; der Sentinel braucht keine Browser-Fixture. Das bildet die Auslassung tatsächlich ab und behauptet keinen Produkt-Browserlauf.
+
+**Korrektur:** Fokus-Markierungen im Gate ausdrücklich verbieten; zusätzlich die entdeckten Testidentitäten mit den Ergebnissen abgleichen (Datei, Projekt und Testidentität einschließlich parametrisierter Fälle, keine fehlenden oder zusätzlichen Versuche). Discovery-Exitcode und -Fehler ebenfalls prüfen. Ein bloßes Verbot von `.only` ersetzt den vereinbarten Vollständigkeitsnachweis nicht. Wächter: fehlender Test derselben Datei, vollständig fehlende gewählte Datei, zusätzlicher Retry und der fokussierte Test. Die gleiche Fokus-Grenze gilt auch für den Unit-Aufruf.
+
+### TS256-05 · P1: Die Vollauswahl darf einen fremden Server wiederverwenden
+
+Die neue Auswahlkonfiguration setzt korrekt `reuseExistingServer: false`. Bei **FULL** wechselt `round_gate.py:164–166` jedoch zur unveränderten vollen Konfiguration ohne entsprechende Vorgabe. Deren beide Server setzen `reuseExistingServer: !process.env.CI` (`playwright.config.ts:136/143`). Der dokumentierte lokale Gate-Aufruf setzt CI nicht.
+
+Die Auswertung der tatsächlichen Konfiguration ohne CI ergibt für **beide Server `true`**. Ein bereits laufender Mock/Vorschau-Server eines anderen Worktrees kann damit den gerade gebauten Stand ersetzen, während das Gate den eigenen HEAD als geprüft protokolliert. Der volle Ausweichweg braucht denselben Vertrag wie die schmale Auswahl.
+
+**Korrektur:** Für jeden Gate-Browserlauf eigene Server verbindlich erzwingen, auch bei FULL. Ein bereits belegter Port muss vor den Tests scheitern; keine implizite Wiederverwendung. Die Entwicklerkonfiguration darf daneben weiterhin bewusstes Wiederverwenden erlauben. Gegenprobe nur mit einem eigenen fremden Testserver, nicht mit der LAN-Sim.
+
+### Antworten auf die vier Fragen und angenommene Teile
+
+1. **Die benannten Graph-Schnitte können bleiben.** App als Zusammensetzung, Defaults als Werteübernahme und Worker als eigene Testgrenze sind nachvollziehbare Vereinfachungen, solange die konkreten Verbraucher durch deren Regeln abgedeckt sind. Sie sind kein selbstständiger Beweis, dass jede Änderung folgenlos für andere Bereiche bleibt. Die bereits vorgesehenen expliziten Regeln plus die verbindliche Prüfung aus TS256-03 sind deshalb wesentlich. Die nachgewiesene E2E-Kette aus TS256-01 liegt außerdem außerhalb dieses Produkt-Importgraphen.
+2. **Verengte Projekte mit geschlossener Kette sind als Planabweichung angenommen.** Sie bewahren die bisherigen Eigentümer und Einstellungen, ohne nicht gewählte Vorgänger-Specs mitzunehmen. Eigene Discovery am Zielstand: **836 Tests voll, genau 251 in den neun gewählten Specs**, jeweils im richtigen Projekt. Das ist ein tragfähiger Ersatz für ein einziges Projekt. Für die Abnahme des Ausführungsnachweises fehlen TS256-04/05.
+3. **Selektiv schalten: nach den fünf Korrekturen, noch nicht mit diesem Stand.** Ein vorhandenes vollständiges Gate am identischen integrierten Stand darf weiterhin wiederverwendet werden. **24 Minuten statt ungefähr 65 sind ein brauchbarer Zwischenschritt**, auch wenn das Ziel von 15 Minuten nicht erreicht ist. Die Zielverfehlung allein verlangt weder eine Operatorentscheidung noch die Aufgabe der Stufung.
+4. **Ein Mock je Worker ist als nächstes gesondertes Paket sinnvoll, nach der Korrektur der Auswahl.** Voraussetzung: eigener Port/Prozess/Zustand je tatsächlich laufendem Worker, sauberer Neustart bei Ersatzworker/Retry, alle ctl-Aufrufe und selbst erstellten Browser-Kontexte am richtigen Mock, weiterhin vollständiger Reset je Test und keine Wiederverwendung fremder Server. Der vereinbarte Herkunftsvertrag für Replay bleibt Lauf/Test/Projekt/Retry/Verbindung; ein Worker-Port ersetzt ihn nicht. Die bisherige globale Reihenfolge muss dabei ausdrücklich durch Unabhängigkeit zwischen Workern und erhaltene nötige Reihenfolge innerhalb einer Gruppe ersetzt werden. Vor Umschaltung denselben Testsatz seriell und parallel vergleichen, Kreuzkontamination gezielt provozieren und Zeit **sowie Ressourcenverbrauch** messen. „Ein Drittel“ bleibt bis dahin eine Schätzung. Replay, gepinnter Firefox-Kern, Referenzen und Probe-Live-Check bleiben sichtbar ausstehend; ihre Einführung darf dadurch nicht still entfallen.
+
+**Schritt 2 angenommen im vorgelegten Umfang:** geschlossene deklarierte Werkzeugfelder und korrigierte tatsächliche Renumber-Felder; die negativen Policy-Fälle bestehen. Die statische Prüfung ist zunächst eine Feldinventur mit benannten Map-/Opaque-Grenzen, kein Nachweis jeder tatsächlich gesendeten Nutzlast; diesen übernimmt das noch ausstehende Replay. Die als OPEN benannten Multi-Jog-Eintragsgrenzen dürfen folglich auch nicht als bereits geprüft gelten. Probe-Klick und #3036-Zuordnung wurden in R254 unabhängig geprüft; PF-01 ist mit R255 geschlossen und muss beim Zusammenführen natürlich enthalten bleiben.
+
+**Firefox-Machbarkeit:** Die benannte Touch-Grenze ist ehrlich; Maus/Tastatur im Firefox-Kern und Touch in Chromium sind für diesen Nachweis akzeptabel. Eine echte Touch-/Maschinenbrowser-Abnahme wird dadurch nicht behauptet. Versionspin, vollständiger Hash und eigener Referenzsatz bleiben Schritt 6. Die bisherige Operatorfrage Q248-1 zur tatsächlichen Browserinstallation bleibt separat, ohne neue Rückfrage für diese Runde.
+
+### Eigene Prüfung
+
+Eigene isolierte Kopie von `08fb69d9`: **Build PASS; 28 Auswahl-Wächter und 136 Policy-Tests grün (zusätzlich drei Subtests); 12/12 gezielte Unit-Tests grün; vollständige und selektive Discovery geprüft.** Die Gegenproben reproduzieren die obigen Lücken trotz grüner vorhandener Wächter. Anfangs blockierte die Sandbox die rein lesenden Python-Unterprozesse des Schema-Tests und der vollständigen Discovery; nach genehmigter Wiederholung grün, ohne Produktänderung. Die Kopie ist nach allen Gegenproben wieder sauber.
+
+Kein vollständiger Gate-Neulauf, kein neuer Produkt-Browser- oder nativer Antastlauf, keine Server gestartet und kein Zugriff auf die LAN-Sim. Die Zeitwerte aus dem 24-Minuten-Lauf und den 60 historischen Runden sind Claudes Messung beziehungsweise Schätzung, keine eigene Wiederholung.
+
+[Prüfprotokoll](test-strategy.r256.notes.md) · [Ergebnisse und Auswahlen](test-strategy.r256.results.json) · [Testausgaben](test-strategy.r256.checks.txt) · [Auswahl-Gegenproben](test-strategy.r256.probes.py) · [Fokus-Gegenprobe](test-strategy.r256.only-probe.py) · [Sechs aufgelistete Tests](test-strategy.r256.only-listed.json) · [Ein ausgeführter Test](test-strategy.r256.only-actual.json).

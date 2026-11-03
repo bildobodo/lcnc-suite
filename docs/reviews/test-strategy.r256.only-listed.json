@@ -1,0 +1,188 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r256-pus6kuln/repo/lcnc-webui/playwright.select.config.ts",
+    "rootDir": "/tmp/codex-r256-pus6kuln/repo/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r256-pus6kuln/repo/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "serial-guards",
+        "name": "serial-guards",
+        "testDir": "/tmp/codex-r256-pus6kuln/repo/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/^(?:\\/tmp\\/codex-r256-pus6kuln\\/repo\\/lcnc-webui\\/e2e\\/probe-click\\.spec\\.ts)$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 3,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "probe-click.spec.ts",
+      "file": "probe-click.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Outside: a held probe button sends its routine with the panel's numbers",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "serial-guards",
+              "projectName": "serial-guards",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-dcb3a799863d661c4b17",
+          "file": "probe-click.spec.ts",
+          "line": 41,
+          "column": 3
+        },
+        {
+          "title": "Boss/Pocket: a held probe button sends its routine with the panel's numbers",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "serial-guards",
+              "projectName": "serial-guards",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-f6dd9867264defefa6bf",
+          "file": "probe-click.spec.ts",
+          "line": 41,
+          "column": 3
+        },
+        {
+          "title": "Ridge/Valley: a held probe button sends its routine with the panel's numbers",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "serial-guards",
+              "projectName": "serial-guards",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-00d74034f85defceb35d",
+          "file": "probe-click.spec.ts",
+          "line": 41,
+          "column": 3
+        },
+        {
+          "title": "Angle: a held probe button sends its routine with the panel's numbers",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "serial-guards",
+              "projectName": "serial-guards",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-09933dff937f053bf538",
+          "file": "probe-click.spec.ts",
+          "line": 41,
+          "column": 3
+        },
+        {
+          "title": "Calibrate: a held probe button sends its routine with the panel's numbers",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "serial-guards",
+              "projectName": "serial-guards",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-9c5c1b82c1a1f4e86625",
+          "file": "probe-click.spec.ts",
+          "line": 41,
+          "column": 3
+        },
+        {
+          "title": "R256 accidental focus sentinel",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "serial-guards",
+              "projectName": "serial-guards",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "ac836fac29d06c9d06ef-78a69368e04260c24002",
+          "file": "probe-click.spec.ts",
+          "line": 60,
+          "column": 6
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-03T02:10:46.443Z",
+    "duration": 62.99000000000001,
+    "expected": 0,
+    "skipped": 6,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

@@ -1,0 +1,323 @@
+{
+  "transitive_helpers": {
+    "helper": {
+      "base": "08fb69d9fa9ea4c182d2f820947f4a49cb4b8233",
+      "head": "08fb69d9fa9ea4c182d2f820947f4a49cb4b8233",
+      "changed": [
+        {
+          "status": "M",
+          "path": "lcnc-webui/e2e/macroFolder.ts",
+          "decision": "an e2e helper: the specs importing it: dialogs, forms, keyboard-guards, layout, macros, run-hold"
+        }
+      ],
+      "unmatched": [],
+      "absent_at_head": [],
+      "unit": {
+        "light": "every unit file but HEAVY_UNIT — every round",
+        "heavy": [],
+        "heavy_reasons": [],
+        "changed": [],
+        "related": []
+      },
+      "browser": {
+        "run": [
+          "dialogs",
+          "forms",
+          "keyboard-guards",
+          "layout",
+          "macros",
+          "run-hold"
+        ],
+        "reasons": []
+      },
+      "backend": {
+        "run": false,
+        "reasons": [
+          "no path under a backend rule: a UI-only round"
+        ]
+      },
+      "firefox": {
+        "needed": false
+      },
+      "live": {}
+    },
+    "fixture_data": {
+      "base": "08fb69d9fa9ea4c182d2f820947f4a49cb4b8233",
+      "head": "08fb69d9fa9ea4c182d2f820947f4a49cb4b8233",
+      "changed": [
+        {
+          "status": "M",
+          "path": "scripts/test_fixtures/macro_refusals.json",
+          "rules": [
+            "scripts and their tests ride the backend gate"
+          ],
+          "reads": [
+            "macroFolder"
+          ],
+          "decision": "the rules: scripts and their tests ride the backend gate"
+        }
+      ],
+      "unmatched": [],
+      "absent_at_head": [],
+      "unit": {
+        "light": "every unit file but HEAVY_UNIT — every round",
+        "heavy": [],
+        "heavy_reasons": [],
+        "changed": [],
+        "related": []
+      },
+      "browser": {
+        "run": [
+          "dialogs",
+          "forms",
+          "keyboard-guards",
+          "layout",
+          "macros",
+          "run-hold"
+        ],
+        "reasons": []
+      },
+      "backend": {
+        "run": true,
+        "reasons": [
+          "scripts/test_fixtures/macro_refusals.json: scripts and their tests ride the backend gate"
+        ]
+      },
+      "firefox": {
+        "needed": false
+      },
+      "live": {}
+    },
+    "missing_import_chain": [
+      "probe-click.spec.ts",
+      "layout-fixtures.ts",
+      "macroFolder.ts",
+      "scripts/test_fixtures/macro_refusals.json"
+    ]
+  },
+  "unresolved_heavy_read": {
+    "added": "fs.readFileSync(path.join(ROOT, \"scripts\", \"test_fixtures\", \"macro_refusals.json\"), \"utf8\");",
+    "file": "lcnc-webui/src/viewer/collisionContacts.test.ts",
+    "both_guards": "PASS despite undeclared input",
+    "later_data_change_heavy": []
+  },
+  "unresolved_e2e_read": {
+    "added": "readFileSync([\"..\", \"scripts\", \"test_fixtures\", \"macro_refusals.json\"].join(\"/\"), \"utf8\");",
+    "guard": "PASS despite undeclared input",
+    "later_data_change_specs": [
+      "dialogs",
+      "forms",
+      "keyboard-guards",
+      "layout",
+      "macros",
+      "run-hold"
+    ]
+  },
+  "guard_not_run_for_ui": {
+    "selection": {
+      "base": "08fb69d9fa9ea4c182d2f820947f4a49cb4b8233",
+      "head": "08fb69d9fa9ea4c182d2f820947f4a49cb4b8233",
+      "changed": [
+        {
+          "status": "M",
+          "path": "lcnc-webui/src/probeVars.ts",
+          "rules": [
+            "a component, or a module a component renders through: every rendered surface",
+            "the probing panel and its glyphs"
+          ],
+          "decision": "the rules: a component, or a module a component renders through: every rendered surface; the probing panel and its glyphs"
+        }
+      ],
+      "unmatched": [],
+      "absent_at_head": [],
+      "unit": {
+        "light": "every unit file but HEAVY_UNIT — every round",
+        "heavy": [],
+        "heavy_reasons": [],
+        "changed": [],
+        "related": []
+      },
+      "browser": {
+        "run": [
+          "contrast",
+          "dialogs",
+          "disarmed",
+          "forms",
+          "layout",
+          "layout-audit",
+          "probe-click",
+          "tabs",
+          "visual"
+        ],
+        "reasons": []
+      },
+      "backend": {
+        "run": false,
+        "reasons": [
+          "no path under a backend rule: a UI-only round"
+        ]
+      },
+      "firefox": {
+        "needed": true,
+        "paths": [
+          "lcnc-webui/src/probeVars.ts"
+        ],
+        "status": "pending: the pinned Mozilla target is not built yet (step 6)"
+      },
+      "live": {
+        "probe-live": [
+          "lcnc-webui/src/probeVars.ts"
+        ]
+      }
+    },
+    "countercase_graph_failures": [
+      "probeVars.ts: misses ['editor-guards', 'feedback-channels', 'input-session', 'keyboard-guards', 'run-hold', 'safety-during-edit', 'select-writes', 'sim-panel.viewer'] of GcodePanel.vue (GcodePanel.vue ← probeVars.ts)"
+    ]
+  },
+  "partial_browser_proof": {
+    "full_tests": 5,
+    "selected_or_actual_tests": 1,
+    "listing_problems": [],
+    "order_problems": [],
+    "judgement": {
+      "status": "PASS",
+      "tests": 1,
+      "passed": 1,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0
+    }
+  },
+  "head": "08fb69d9",
+  "base": "4ad87515",
+  "copy": "/tmp/codex-r256-pus6kuln/repo",
+  "source_status_after": "clean, including untracked files",
+  "only": {
+    "listing": [],
+    "order": [],
+    "judgement": {
+      "status": "PASS",
+      "tests": 1,
+      "passed": 1,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    "selected_listing": {
+      "startTime": "2026-11-03T02:10:46.443Z",
+      "duration": 62.99000000000001,
+      "expected": 0,
+      "skipped": 6,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "actual": {
+      "startTime": "2026-11-03T02:10:46.914Z",
+      "duration": 345.241,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "note": "only sentinel executes, webServer disabled for this offline proof; no page/browser fixture"
+  },
+  "full_gate_config": {
+    "environment": "CI absent (normal documented local round_gate invocation)",
+    "webServers": [
+      {
+        "url": "http://localhost:4173",
+        "reuseExistingServer": true
+      },
+      {
+        "url": "http://localhost:4174",
+        "reuseExistingServer": true
+      }
+    ],
+    "forbidOnly": false
+  },
+  "real_discovery": {
+    "full": {
+      "tests": 836,
+      "by_file_project": {
+        "armed.spec.ts | chromium": 1,
+        "frames.spec.ts | chromium": 5,
+        "smoke.spec.ts | chromium": 3,
+        "example-tool-library.spec.ts | serial-tools": 7,
+        "freecad-import.spec.ts | serial-tools": 1,
+        "tool-geometry.spec.ts | serial-tools": 11,
+        "tool-holder.spec.ts | serial-tools": 2,
+        "tool-import.spec.ts | serial-tools": 4,
+        "lifecycle.spec.ts | serial-lifecycle": 3,
+        "nine-axis.spec.ts | serial-nine-axis": 3,
+        "touchoff.spec.ts | serial-touchoff": 26,
+        "appearance.spec.ts | serial-guards": 4,
+        "choices.spec.ts | serial-guards": 12,
+        "contrast.spec.ts | serial-guards": 15,
+        "dialogs.spec.ts | serial-guards": 57,
+        "disarmed.spec.ts | serial-guards": 14,
+        "editor-guards.spec.ts | serial-guards": 10,
+        "feedback-channels.spec.ts | serial-guards": 8,
+        "forms.spec.ts | serial-guards": 6,
+        "g30.spec.ts | serial-guards": 11,
+        "gcode-reference.spec.ts | serial-guards": 4,
+        "input-session.spec.ts | serial-guards": 24,
+        "joint-jog.spec.ts | serial-guards": 5,
+        "keyboard-guards.spec.ts | serial-guards": 30,
+        "macros.spec.ts | serial-guards": 22,
+        "messages.spec.ts | serial-guards": 4,
+        "offsets.spec.ts | serial-guards": 6,
+        "probe-click.spec.ts | serial-guards": 5,
+        "run-hold.spec.ts | serial-guards": 11,
+        "safety-during-edit.spec.ts | serial-guards": 48,
+        "select-writes.spec.ts | serial-guards": 7,
+        "setup-gates.spec.ts | serial-guards": 6,
+        "tabs.spec.ts | serial-guards": 9,
+        "tool-table-read.spec.ts | serial-guards": 2,
+        "toolsetter-setup.spec.ts | serial-guards": 7,
+        "touch-hold.spec.ts | serial-guards": 3,
+        "touch-surface.spec.ts | serial-guards": 3,
+        "layout-audit.spec.ts | serial-layout": 6,
+        "layout.spec.ts | serial-layout": 127,
+        "setup-layout.spec.ts | serial-layout": 114,
+        "visual.spec.ts | serial-visual": 12,
+        "bake-hold.viewer.spec.ts | serial-viewer": 27,
+        "collisions.viewer.spec.ts | serial-viewer": 50,
+        "fatpaths.viewer.spec.ts | serial-viewer": 1,
+        "findings.viewer.spec.ts | serial-viewer": 5,
+        "rapids.viewer.spec.ts | serial-viewer": 4,
+        "reach.viewer.spec.ts | serial-viewer": 1,
+        "scenes.viewer.spec.ts | serial-viewer": 10,
+        "sim-panel.viewer.spec.ts | serial-viewer": 58,
+        "toolsetter.viewer.spec.ts | serial-viewer": 10,
+        "viewcube.viewer.spec.ts | serial-viewer": 4,
+        "viewer.spec.ts | serial-viewer": 8
+      },
+      "errors": []
+    },
+    "selected": {
+      "tests": 251,
+      "by_file_project": {
+        "contrast.spec.ts | serial-guards": 15,
+        "dialogs.spec.ts | serial-guards": 57,
+        "disarmed.spec.ts | serial-guards": 14,
+        "forms.spec.ts | serial-guards": 6,
+        "probe-click.spec.ts | serial-guards": 5,
+        "tabs.spec.ts | serial-guards": 9,
+        "layout-audit.spec.ts | serial-layout": 6,
+        "layout.spec.ts | serial-layout": 127,
+        "visual.spec.ts | serial-visual": 12
+      },
+      "errors": []
+    }
+  },
+  "validation": {
+    "selector_tests": 28,
+    "command_policy_tests": 136,
+    "additional_subtests": 3,
+    "unit_tests": 12,
+    "build": "PASS",
+    "browser_product_tests_rerun": false,
+    "server_access": false,
+    "initial_sandbox_limits": "EPERM on read-only Python subprocesses; targeted units and full discovery rerun with approved escalation"
+  }
+}
