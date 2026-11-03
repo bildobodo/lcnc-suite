@@ -1,5 +1,5 @@
-# Test selector guards (step 3) — red first, 2026-11-03T01:19:19+01:00
-# tree: feat/test-tiers ce3a99ba + uncommitted selector changes
+# Test selector guards (step 3) — red first, 2026-11-03T03:27:05+01:00
+# tree: feat/test-tiers 08fb69d9 + uncommitted selector changes
 
 ## Two reds the guards found while being written
 - test_every_e2e_disk_read_outside_the_frontend_is_declared: ('toolsetter.viewer', 'examples/sim_config/machine-5axis-xyzac') — the spec reads the 5-axis model and was not declared; SPEC_READS now names it
@@ -17,9 +17,9 @@
 RED  a source loses its rule: ['test_every_tracked_source_has_a_rule']
 RED  a rule names a missing spec: ['test_every_named_spec_exists']
 RED  a rule glob matches nothing: ['test_every_rule_glob_matches_a_tracked_file']
-RED  a heavy data path dropped: ['test_every_heavy_read_lies_under_a_data_rule']
+RED  a heavy data path dropped: ['test_the_heavy_loader_reads_only_what_its_entry_declares']
 RED  a heavy file dropped: ['test_heavy_unit_files_exist_and_no_other_file_is_as_slow']
-RED  a spec read undeclared: ['test_every_e2e_disk_read_outside_the_frontend_is_declared']
+RED  a read site undeclared: ['test_every_read_site_is_declared_exactly']
 RED  unmatched no longer full: ['test_a_new_source_without_a_rule_selects_everything']
 RED  missing base reads as empty: ['test_a_missing_base_is_an_error_never_an_empty_diff']
 RED  no vitest answer skips heavy: ['test_without_the_vitest_answer_the_heavy_group_runs']
@@ -29,12 +29,19 @@ RED  a shared module loses an area: ['test_a_module_holds_the_selection_of_every
 RED  a status-path module not FULL: ['test_a_module_holds_the_selection_of_every_component_it_reaches']
 RED  the sweep owns a path alone: ['test_a_new_source_without_a_rule_selects_everything']
 RED  a worker counts as an import: ['test_a_module_holds_the_selection_of_every_component_it_reaches']
+RED  Codex R256: a second read in a heavy file: ['test_every_read_site_is_declared_exactly']
+RED  Codex R256: a second read in a spec, joined path: ['test_every_read_site_is_declared_exactly']
+RED  helpers reached one import deep only: ['test_the_real_chain_reaches_the_spec_two_helpers_up']
+RED  a helper's data selects nothing: ['test_data_a_helper_reads_selects_the_specs_reaching_the_helper']
+RED  a UI-only round skips the guards: ['test_every_round_runs_the_selection_guards_first']
+RED  a listed test that never ran passes: ['test_every_listed_test_ran_once_and_nothing_else_ran']
+RED  the gate reuses a running server: ['test_the_gate_configs_start_their_own_servers_and_refuse_a_focused_test']
 RED  listing ignores the project: ['test_the_listing_is_exactly_the_selection_in_the_full_projects']
 RED  order ignores a project overlap: ['test_the_order_proof_holds_the_chain_and_the_path_order']
 RED  order ignores the path order: ['test_the_order_proof_holds_the_chain_and_the_path_order']
 
 ## Restored
-28 passed in 0.49s
+37 passed in 1.23s
 
 ## The proofs on real reports
 select config --list for ['visual', 'layout', 'armed', 'sim-panel.viewer', 'probe-click', 'tool-holder', 'choices'] → exactly the selection, each file in its full-config project

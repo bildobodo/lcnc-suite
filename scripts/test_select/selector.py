@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -24,12 +25,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from test_select.rules import (  # noqa: E402
-    FULL, HEAVY_DATA, HEAVY_UNIT, SPEC_READS, decide, matches,
+    FULL, HEAVY_UNIT, READ_SITES, decide, matches,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
 W = "lcnc-webui/"
 E2E = W + "e2e/"
+S_SRC = W + "src/"
 SPEC_RE = re.compile(r"lcnc-webui/e2e/([^/]+)\.spec\.ts\Z")
 SHOT_RE = re.compile(r"lcnc-webui/e2e/__screenshots__/([^/]+)\.spec\.ts/")
 UNIT_RE = re.compile(r"lcnc-webui/.+\.test\.ts\Z")
@@ -77,27 +79,66 @@ def spec_files(repo: Path, head: str) -> dict[str, str]:
     return names
 
 
-def helper_importers(repo: Path, head: str, helper: str, specs: dict[str, str]) -> set[str]:
-    """The specs that import (or, for a stylesheet, name) an e2e helper."""
-    stem = Path(helper).name
-    stem_noext = re.sub(r"\.(ts|mjs|js)$", "", stem)
-    pat = re.compile(r"""['"]\./(?:%s|%s)['"]|['"][^'"]*%s['"]""" % (
-        re.escape(stem_noext), re.escape(stem), re.escape(stem)))
-    hits = set()
-    for name, path in specs.items():
-        text = git(repo, "show", f"{head}:{path}")
-        if pat.search(text):
-            hits.add(name)
-    return hits
+E2E_IMPORT = re.compile(
+    r"""(?:^|\s)(?:import|export)\s[^'"]*?from\s*['"](\.{1,2}/[^'"]+)['"]"""
+    r"""|import\(\s*['"](\.{1,2}/[^'"]+)['"]\s*\)|^\s*import\s+['"](\.{1,2}/[^'"]+)['"]""", re.M | re.S)
 
 
-def read_by(path: str) -> set[str]:
-    """The specs whose declared disk reads (SPEC_READS) cover a path."""
-    out = set()
-    for owner, globs in SPEC_READS.items():
-        if any(matches(g, path) for g in globs):
-            out.add(owner)
-    return out
+class E2EGraph:
+    """The e2e files' imports at head, transitively (Codex R256 TS256-01): a
+    spec reaches what its helpers import, their helpers and the src modules
+    and data they read. Edges: relative imports (re-exports and dynamic ones
+    too) resolved to a file, and a string literal naming an e2e file (a
+    stylesheet a spec adds). An import the graph cannot resolve is a problem
+    the selection answers with the full browser run."""
+
+    def __init__(self, repo: Path, head: str):
+        self.files = {p: git(repo, "show", f"{head}:{p}")
+                      for p in git(repo, "ls-tree", "-r", "--name-only", head, "--", E2E).splitlines()
+                      if not p.startswith(E2E + "__screenshots__/") and p.endswith((".ts", ".mjs", ".js", ".css"))}
+        known = set(git(repo, "ls-tree", "-r", "--name-only", head, "--", W).splitlines())
+        self.rev: dict[str, set[str]] = {}
+        self.problems: list[str] = []
+        helpers = [p for p in self.files if not SPEC_RE.match(p)]
+        for f, text in self.files.items():
+            for m in E2E_IMPORT.finditer(text):
+                rel = m.group(1) or m.group(2) or m.group(3)
+                target = self._resolve(f, rel, known)
+                if target is None:
+                    self.problems.append(f"{f}: import {rel!r} resolves to no file")
+                else:
+                    self.rev.setdefault(target, set()).add(f)
+            for h in helpers:
+                if h != f and re.search(r"""['"`][^'"`]*%s['"`]""" % re.escape(Path(h).name), text):
+                    self.rev.setdefault(h, set()).add(f)
+
+    @staticmethod
+    def _resolve(importer: str, rel: str, known: set[str]) -> str | None:
+        base = Path(importer).parent / rel
+        for cand in (base, Path(f"{base}.ts"), Path(f"{base}.mjs"), Path(f"{base}.js"), base / "index.ts"):
+            norm = os.path.normpath(cand.as_posix())
+            if norm in known:
+                return norm
+        return None
+
+    def specs_reaching(self, target: str) -> set[str]:
+        seen, stack, specs = {target}, [target], set()
+        while stack:
+            for y in self.rev.get(stack.pop(), ()):
+                if y in seen:
+                    continue
+                seen.add(y)
+                m = SPEC_RE.match(y)
+                if m:
+                    specs.add(m.group(1))
+                stack.append(y)
+        return specs
+
+
+def readers_of(path: str) -> list[str]:
+    """The scanned files whose declared reads (READ_SITES) cover a path."""
+    return sorted(f for f, reads in READ_SITES.items()
+                  if any(r.reads and any(matches(g, path) for g in r.reads) for r in reads))
 
 
 def vitest_changed(repo: Path, base: str) -> list[str]:
@@ -127,6 +168,7 @@ def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
     base_c, head_c = commit(repo, base), commit(repo, head)
     changes = changed_paths(repo, base_c, head_c)
     specs = spec_files(repo, head_c)
+    graph = E2EGraph(repo, head_c)
     deleted = {p for s, p in changes if s in ("D", "R-from")}
 
     browser: set[str] = set()
@@ -167,14 +209,14 @@ def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
                 row["decision"] = "an e2e helper that is gone: its importers changed and select themselves"
                 continue
             d = decide(path)
-            if d.unmatched:     # no central rule: the specs importing it
-                importers = helper_importers(repo, head_c, path, specs)
-                if importers:
-                    browser |= importers
-                    row["decision"] = "an e2e helper: the specs importing it: " + ", ".join(sorted(importers))
+            if d.unmatched:     # no central rule: the specs reaching it through their imports
+                reaching = graph.specs_reaching(path)
+                if reaching:
+                    browser |= reaching
+                    row["decision"] = "an e2e helper: the specs reaching it: " + ", ".join(sorted(reaching))
                 else:
-                    browser_full.append(f"{path}: an e2e helper no spec imports")
-                    row["decision"] = "an e2e helper no spec imports: the full browser run"
+                    browser_full.append(f"{path}: an e2e helper no spec reaches")
+                    row["decision"] = "an e2e helper no spec reaches: the full browser run"
                 continue
         d = decide(path)
         row["rules"] = d.rules
@@ -197,19 +239,24 @@ def select(repo: Path, base: str, head: str, vitest_files: list[str] | None,
             firefox.append(path)
         for check in d.live:
             live.setdefault(check, []).append(path)
-        readers = read_by(path)
-        for owner in readers:
-            if owner in specs:
-                browser.add(owner)
-            else:   # an e2e helper's reads select the specs importing it
-                browser |= helper_importers(repo, head_c, E2E + owner + ".ts", specs)
-        if any(matches(g, path) for g in HEAVY_DATA):
-            heavy.append(f"{path}: read by the heavy group — the whole group")
-            heavy_all = True
+        readers = readers_of(path)
+        for f in readers:
+            m = SPEC_RE.match(f)
+            if f in HEAVY_UNIT:
+                heavy.append(f"{path}: read by {f}")
+                heavy_files.add(f)
+            elif m:
+                browser.add(m.group(1))
+            else:   # an e2e helper's read selects the specs reaching the helper
+                browser |= graph.specs_reaching(f)
+        if path.startswith(S_SRC) and not gone:   # a src module the specs import themselves
+            browser |= graph.specs_reaching(path)
         if readers:
-            row["reads"] = sorted(readers)
+            row["reads"] = readers
         row.setdefault("decision", "the rules: " + "; ".join(d.rules))
 
+    if graph.problems:
+        browser_full.extend(f"{p} (fail closed)" for p in graph.problems)
     missing = sorted(browser - set(specs))
     if missing and not historical:
         raise SelectError(f"rules name specs that do not exist at head: {missing}")

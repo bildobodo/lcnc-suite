@@ -49,30 +49,69 @@ HEAVY_UNIT = (
 )
 HEAVY_THRESHOLD_MS = 60_000
 
-# What the heavy files read from disk (not imports — `vitest list --changed`
-# never sees them, Codex R248 TS248-01). test_select extracts every read
-# target of the eight files and of collisionFixtures.ts and requires each one
-# under a path here.
-HEAVY_DATA = (
+# Every place a scanned file reads from disk or runs a program (Codex R256
+# TS256-02): the heavy unit files, every e2e file and every node-side module
+# under src. file → (Read(the call's text, how many times, what it reads)).
+# A read call the table does not name fails the guard, a named one that is
+# gone or counted differently fails it too — a second unknown read is never
+# covered by a first known one. `reads` None = an exception with its reason
+# (a file the test itself made, the mock serving the built app).
+@dataclass(frozen=True)
+class Read:
+    text: str
+    count: int
+    reads: tuple[str, ...] | None
+    why: str = ""
+
+
+# The FixtureFiles loader (`text:` / `bytes:` → readFileSync(ROOT/rel)) reads
+# the paths collisionFixtures names; collisionBounds reads the model dirs it
+# names itself. The guard extracts those literals and requires them here.
+HEAVY_LOADER = (
     "examples/sim_config/machine-*/**",
     "examples/sim_config/*.ini",       # their setp lines only (collisionFixtures.iniSetp)
     "lcnc-gateway/machine/**",
 )
+_LOADER = Read('readFileSync(path.join(ROOT, rel)', 2, HEAVY_LOADER)
+_MODEL5 = ("examples/sim_config/machine-5axis-xyzac/**",)
+_MODEL_JSON = Read('readFileSync(new URL("machine.json", MODEL)', 1, _MODEL5)
+_MODEL_ROUTE = 'readFileSync(new URL(new URL(r.request().url()).pathname.split("/").pop()!, MODEL))'
+_W, _E = "lcnc-webui/src/viewer/", "lcnc-webui/e2e/"
 
-# The data each spec (or e2e helper) reads from disk outside lcnc-webui:
-# a `new URL("../../…", import.meta.url)` or a run of a gateway module.
-# test_select requires every such literal in e2e/ to lie under its file's
-# entry here.
-SPEC_READS = {
-    "bake-hold.viewer": ("examples/sim_config/machine-5axis-xyzac/**",),
-    "collisions.viewer": ("examples/sim_config/machine-5axis-xyzac/**",
-                          "scripts/test_fixtures/start_dep_payloads/**"),
-    "reach.viewer": ("examples/sim_config/machine-5axis-xyzac/**",),
-    "toolsetter.viewer": ("examples/sim_config/machine-5axis-xyzac/**",),
-    "example-tool-library": ("examples/sim_config/tool-libraries/**", "lcnc-gateway/**"),
-    "freecad-import": ("test-fixtures/freecad/**",),
-    # e2e/macroFolder.ts, imported by these specs
-    "macroFolder": ("scripts/test_fixtures/macro_refusals.json",),
+READ_SITES: dict[str, tuple[Read, ...]] = {
+    _W + "collisionContacts.test.ts": (_LOADER,),
+    _W + "collisionRangeOracle.test.ts": (_LOADER,),
+    _W + "contactViewCross.test.ts": (_LOADER,),
+    _W + "collisionOracle.test.ts": (_LOADER,),
+    _W + "sweepShards.test.ts": (_LOADER,),
+    _W + "collisionLineSample.test.ts": (_LOADER,),
+    _W + "collisionBounds.test.ts": (
+        Read('readFileSync(path.join(dir, "machine.json")', 1, HEAVY_LOADER),
+        Read("readFileSync(path.join(dir, partCollisionFile(p)))", 1, HEAVY_LOADER)),
+    _E + "bake-hold.viewer.spec.ts": (_MODEL_JSON, Read(_MODEL_ROUTE, 1, _MODEL5)),
+    _E + "collisions.viewer.spec.ts": (
+        _MODEL_JSON, Read(_MODEL_ROUTE, 1, _MODEL5),
+        Read('readFileSync(new URL("../../scripts/test_fixtures/start_dep_payloads/e_single.msgpack"', 2,
+             ("scripts/test_fixtures/start_dep_payloads/**",))),
+    _E + "reach.viewer.spec.ts": (_MODEL_JSON, Read(_MODEL_ROUTE, 1, _MODEL5)),
+    _E + "toolsetter.viewer.spec.ts": (_MODEL_JSON, Read(_MODEL_ROUTE, 4, _MODEL5)),
+    _E + "sim-panel.viewer.spec.ts": (
+        Read("readFileSync(new URL(`../../scripts/test_fixtures/limit_origin_payloads/", 1,
+             ("scripts/test_fixtures/limit_origin_payloads/**",)),),
+    _E + "example-tool-library.spec.ts": (
+        Read('readFileSync(new URL("../../examples/sim_config/tool-libraries/fusion-freecad.json"', 1,
+             ("examples/sim_config/tool-libraries/**",)),
+        Read('execFileSync("python3"', 1, ("lcnc-gateway/**", "examples/sim_config/tool-libraries/**"),
+             "runs the gateway's import over the library")),
+    _E + "freecad-import.spec.ts": (
+        Read('readFileSync(new URL("../../test-fixtures/freecad/custom-native.json"', 1, ("test-fixtures/freecad/**",)),),
+    _E + "macroFolder.ts": (
+        Read('readFileSync(new URL("../../scripts/test_fixtures/macro_refusals.json"', 1,
+             ("scripts/test_fixtures/macro_refusals.json",)),),
+    _E + "macros.spec.ts": (
+        Read("readFileSync((await download.path())!", 1, None, "a file the test downloaded itself"),),
+    _E + "mock-gateway.mjs": (
+        Read("await readFile(f)", 1, None, "serves the built app (dist/) — the mock is central: FULL"),),
 }
 
 # Specs only a FULL rule selects, with the reason no narrower source owns them.
@@ -159,7 +198,7 @@ RULES: tuple[Rule, ...] = (
     Rule((W + "index.html", W + "package.json", W + "package-lock.json", W + ".npmrc",
           W + "vite.config.ts", W + "viteHttpRestartPing.ts", W + "vitest.config.ts",
           W + "tsconfig.json", W + "tsconfig.app.json", W + "playwright.config.ts",
-          W + "playwright.select.config.ts", W + "e2e/mock-gateway.mjs",
+          W + "playwright.select.config.ts", W + "playwright.gate.config.ts", W + "e2e/mock-gateway.mjs",
           W + "e2e/ctl.ts", W + "e2e/layout-fixtures.ts", W + "e2e/layout-audit.ts"),
          "build, test configuration or the shared mock and fixtures",
          browser=FULL, firefox=True),

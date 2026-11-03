@@ -78,6 +78,9 @@ export default defineConfig({
   ...full,
   testDir,
   projects: kept,
+  // No focused test: a test.only would run alone and the rest silently not
+  // (Codex R256 TS256-04 — round_gate also matches the listing to the run).
+  forbidOnly: true,
   // Never a server that was already running: its build or mock would be
   // checked silently in place of this tree's.
   webServer: asList(full.webServer).map(w => ({ ...w, reuseExistingServer: false })),

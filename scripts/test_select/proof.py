@@ -146,3 +146,67 @@ def check_order(report: dict, chain: list[tuple[str, bool]]) -> list[str]:
 def _ms(iso: str) -> float:
     from datetime import datetime
     return datetime.fromisoformat(iso.replace("Z", "+00:00")).timestamp() * 1000
+
+
+# ── Discovery against execution (Codex R256 TS256-04) ────────────────────
+def playwright_tests(report: dict) -> dict[tuple[str, str, str], int]:
+    """(file, project, title path) → how many results the report holds for
+    it; a `--list` report holds none."""
+    out: dict[tuple[str, str, str], int] = {}
+
+    def walk(suite: dict, path: tuple[str, ...]):
+        for spec in suite.get("specs", []):
+            for t in spec.get("tests", []):
+                key = (spec["file"], t["projectName"], " › ".join(path + (spec["title"],)))
+                if key in out:
+                    raise ValueError(f"two tests share {key}")
+                out[key] = len(t.get("results", []))
+        for s in suite.get("suites", []):
+            walk(s, path + (s["title"],))
+
+    for s in report.get("suites", []):
+        walk(s, ())   # the file suite's title is the file: not part of the path
+    return out
+
+
+def check_executed(listing: dict, report: dict) -> list[str]:
+    """Every listed test ran exactly once, no test ran that was not listed —
+    a focused test, a missing file, a dropped case or a retry each show here."""
+    if listing.get("errors") or report.get("errors"):
+        return [f"discovery or run errors: {(listing.get('errors') or report.get('errors'))[:2]}"]
+    want, got = playwright_tests(listing), playwright_tests(report)
+    problems = [f"listed, never ran: {' | '.join(k)}" for k in sorted(set(want) - set(got))]
+    problems += [f"ran, never listed: {' | '.join(k)}" for k in sorted(set(got) - set(want))]
+    problems += [f"{n} results (retried or run twice): {' | '.join(k)}" for k, n in sorted(got.items()) if k in want and n != 1]
+    problems += [f"no result: {' | '.join(k)}" for k, n in sorted(got.items()) if k in want and n == 0]
+    if not want:
+        problems.append("the listing holds no test")
+    return problems
+
+
+def vitest_listed(rows: list[dict]) -> dict[tuple[str, str], int]:
+    """`vitest list --json`: [{name: 'a > b > title', file}] → counts."""
+    out: dict[tuple[str, str], int] = {}
+    for r in rows:
+        key = (r["file"], r["name"])
+        out[key] = out.get(key, 0) + 1
+    return out
+
+
+def vitest_ran(report: dict) -> dict[tuple[str, str], int]:
+    out: dict[tuple[str, str], int] = {}
+    for f in report.get("testResults", []):
+        for a in f.get("assertionResults", []):
+            key = (f["name"], " > ".join(a.get("ancestorTitles", []) + [a["title"]]))
+            out[key] = out.get(key, 0) + 1
+    return out
+
+
+def check_unit_executed(listed: list[dict], report: dict) -> list[str]:
+    want, got = vitest_listed(listed), vitest_ran(report)
+    problems = [f"listed, never ran: {f} > {n}" for (f, n) in sorted(set(want) - set(got))]
+    problems += [f"ran, never listed: {f} > {n}" for (f, n) in sorted(set(got) - set(want))]
+    problems += [f"listed {want[k]}, ran {got[k]}: {k[0]} > {k[1]}" for k in sorted(set(want) & set(got)) if want[k] != got[k]]
+    if not want:
+        problems.append("the listing holds no test")
+    return problems

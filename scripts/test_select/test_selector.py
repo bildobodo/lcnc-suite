@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import re
+import socket
 import subprocess
 import sys
 from pathlib import Path
@@ -15,9 +16,9 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from test_select import dryrun, rules, selector  # noqa: E402
+from test_select import dryrun, reads, rules, selector  # noqa: E402
 from test_select.rules import (  # noqa: E402
-    FULL, FULL_ONLY, HEAVY_DATA, HEAVY_THRESHOLD_MS, HEAVY_UNIT, RULES, SPEC_READS, decide, matches,
+    FULL, FULL_ONLY, HEAVY_LOADER, HEAVY_THRESHOLD_MS, HEAVY_UNIT, READ_SITES, RULES, decide, matches,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -73,62 +74,37 @@ def test_heavy_unit_files_exist_and_no_other_file_is_as_slow():
     assert fast == [], "in HEAVY_UNIT but below the threshold"
 
 
-LITERAL = re.compile(r"""["'`]((?:examples|lcnc-gateway|scripts|subroutines|test-fixtures)/[^"'`$\s]*)["'`]""")
+def test_every_read_site_is_declared_exactly():
+    """Every read or run in the heavy files, the e2e files and the node-side
+    src modules belongs to exactly one READ_SITES entry, every entry finds
+    exactly its count, every repo literal a file names lies under its reads
+    (Codex R256 TS256-02: a second unknown read is never covered by a first)."""
+    assert reads.problems(ROOT) == []
 
 
-def heavy_read_literals() -> dict[str, list[str]]:
-    files = list(HEAVY_UNIT) + ["lcnc-webui/src/viewer/collisionFixtures.ts"]
-    return {f: LITERAL.findall((ROOT / f).read_text()) for f in files}
-
-
-def test_every_heavy_read_lies_under_a_data_rule():
-    """What the eight files and collisionFixtures.ts read from disk (no
-    import: `vitest list --changed` never sees it) lies under HEAVY_DATA."""
-    reads = heavy_read_literals()
-    loose = [(f, lit) for f, lits in reads.items() for lit in lits
-             if not any(matches(g, lit) or matches(g, lit.rstrip("/") + "/x") for g in HEAVY_DATA)]
+def test_the_heavy_loader_reads_only_what_its_entry_declares():
+    """What the FixtureFiles loader and collisionBounds are handed: the
+    ROOT-relative literals of the heavy files and collisionFixtures.ts — each
+    exists and lies under HEAVY_LOADER, and every HEAVY_LOADER glob is used."""
+    lits = reads.heavy_literals(ROOT)
+    assert len(lits) >= 5
+    loose = [l for l in lits if not any(matches(g, l) or matches(g, l.rstrip("/") + "/x") for g in HEAVY_LOADER)]
     assert loose == []
-    for f, lits in reads.items():
-        for lit in lits:
-            assert (ROOT / lit).exists(), f"{f} reads {lit}, which does not exist"
-    every = [lit for lits in reads.values() for lit in lits]
-    unused = [g for g in HEAVY_DATA if not any(matches(g, l) or matches(g, l.rstrip("/") + "/x") for l in every)]
-    assert unused == [], "a HEAVY_DATA glob no heavy file reads"
-
-
-def test_a_heavy_file_reading_from_disk_names_what_it_reads():
-    """A read whose target the guard cannot resolve fails it: a heavy file
-    that calls readFileSync names a path literal or reads through the
-    fixture module's shipped cases (whose literals the guard sees)."""
-    reads = heavy_read_literals()
-    for f in HEAVY_UNIT:
-        text = (ROOT / f).read_text()
-        if "readFileSync" not in text:
-            continue
-        via_fixtures = re.search(r"\b(shippedCases|loadShippedModel)\(", text) is not None
-        assert reads[f] or via_fixtures, f"{f}: reads from disk without a path the guard can resolve"
-
-
-URL_LITERAL = re.compile(r"""new URL\(\s*["'](\.\./\.\./[^"']+)["']\s*,\s*import\.meta\.url\s*\)""")
-
-
-def test_every_e2e_disk_read_outside_the_frontend_is_declared():
-    """A spec or helper that reads a file outside lcnc-webui declares it in
-    SPEC_READS, so a change to that file selects it — and every entry is used."""
-    seen: dict[str, set[str]] = {}
-    for f in sorted(E2E.glob("*.ts")) + sorted(E2E.glob("*.mjs")):
-        owner = f.name[: -len(".spec.ts")] if f.name.endswith(".spec.ts") else f.stem
-        for rel in URL_LITERAL.findall(f.read_text()):
-            target = (E2E / rel).resolve().relative_to(ROOT).as_posix()
-            seen.setdefault(owner, set()).add(target)
-    undeclared = [(o, t) for o, ts in seen.items() for t in ts
-                  if not any(matches(g, t) or matches(g, t.rstrip("/") + "/x") for g in SPEC_READS.get(o, ()))]
-    assert undeclared == []
-    unused = [(o, g) for o, gs in SPEC_READS.items() for g in gs
-              if not any(matches(g, t) or matches(g, t.rstrip("/") + "/x") for t in seen.get(o, ()))]
+    assert [l for l in lits if not (ROOT / l).exists()] == []
+    unused = [g for g in HEAVY_LOADER if not any(matches(g, l) or matches(g, l.rstrip("/") + "/x") for l in lits)]
     assert unused == []
-    for owner in SPEC_READS:
-        assert owner in spec_names() or (E2E / f"{owner}.ts").is_file(), owner
+
+
+def test_the_real_chain_reaches_the_spec_two_helpers_up():
+    """probe-click.spec → layout-fixtures → macroFolder → macro_refusals.json
+    (Codex R256 TS256-01): a change to the helper or to its data selects
+    probe-click, not only macroFolder's direct importers."""
+    g = selector.E2EGraph(ROOT, "HEAD")
+    assert g.problems == []
+    reaching = g.specs_reaching("lcnc-webui/e2e/macroFolder.ts")
+    assert {"probe-click", "layout", "macros"} <= reaching
+    assert selector.readers_of("scripts/test_fixtures/macro_refusals.json") == ["lcnc-webui/e2e/macroFolder.ts"]
+    assert "probe-click" in g.specs_reaching("lcnc-webui/src/probeVars.ts")
 
 
 # ── Counter-cases on synthetic diffs ─────────────────────────────────────
@@ -148,8 +124,14 @@ def repo(tmp_path: Path) -> Path:
     (r / "lcnc-webui/e2e/joint-jog.spec.ts").write_text('import { x } from "./jogHelper";\n')
     (r / "lcnc-webui/e2e/jogHelper.ts").write_text("export const x = 1;\n")
     (r / "lcnc-webui/e2e/orphanHelper.ts").write_text("export const y = 1;\n")
-    for p in ("lcnc-webui/src/format.ts", "lcnc-webui/src/ProbePanel.vue", HEAVY_UNIT[0],
-              "examples/sim_config/machine-5axis-xyzac/table.stl", "docs/notes.md"):
+    # the real chain (Codex R256 TS256-01): spec → layout-fixtures → macroFolder → data
+    (r / "lcnc-webui/e2e/probe-click.spec.ts").write_text(
+        'import { openLayout } from "./layout-fixtures";\nimport { probeVarMap } from "../src/probeVars";\n')
+    (r / "lcnc-webui/e2e/layout-fixtures.ts").write_text("import { Folder, serveNow } from './macroFolder';\n")
+    (r / "lcnc-webui/e2e/macroFolder.ts").write_text("export const Folder = 1;\n")
+    for p in ("lcnc-webui/src/format.ts", "lcnc-webui/src/ProbePanel.vue", "lcnc-webui/src/probeVars.ts",
+              HEAVY_UNIT[0], "examples/sim_config/machine-5axis-xyzac/table.stl", "docs/notes.md",
+              "scripts/test_fixtures/macro_refusals.json"):
         (r / p).parent.mkdir(parents=True, exist_ok=True)
         (r / p).write_text("v1\n")
     sh(r, "init", "-q", "-b", "main")
@@ -192,7 +174,10 @@ def test_a_changed_heavy_test_runs_exactly_itself(repo: Path):
 def test_a_model_change_selects_the_heavy_group_and_the_specs_that_read_it(repo: Path):
     base = commit_change(repo, lambda r: (r / "examples/sim_config/machine-5axis-xyzac/table.stl").write_text("v2\n"))
     sel = selector.select(repo, base, "HEAD", vitest_files=[])
-    assert sel["unit"]["heavy"] == sorted(HEAVY_UNIT) and sel["backend"]["run"]
+    readers = sorted(f for f, rs in READ_SITES.items() if f in HEAVY_UNIT
+                     and any(r.reads and any(matches(g, "examples/sim_config/machine-5axis-xyzac/table.stl") for g in r.reads) for r in rs))
+    assert len(readers) == 7 and sel["unit"]["heavy"] == readers, "exactly the heavy files that read it"
+    assert sel["backend"]["run"]
     assert sel["browser"]["run"] == ["bake-hold.viewer", "collisions.viewer", "reach.viewer", "toolsetter.viewer"]
 
 
@@ -238,6 +223,30 @@ def test_an_e2e_helper_selects_its_importers_and_an_orphan_the_full_run(repo: Pa
     assert selector.select(repo, base, "HEAD", vitest_files=[])["browser"]["run"] == ["joint-jog"]
     base = commit_change(repo, lambda r: (r / "lcnc-webui/e2e/orphanHelper.ts").write_text("v2\n"))
     assert selector.select(repo, base, "HEAD", vitest_files=[])["browser"]["run"] == FULL
+
+
+def test_a_helper_two_imports_up_selects_the_spec(repo: Path):
+    base = commit_change(repo, lambda r: (r / "lcnc-webui/e2e/macroFolder.ts").write_text("v2\n"))
+    assert "probe-click" in selector.select(repo, base, "HEAD", vitest_files=[])["browser"]["run"]
+
+
+def test_data_a_helper_reads_selects_the_specs_reaching_the_helper(repo: Path):
+    base = commit_change(repo, lambda r: (r / "scripts/test_fixtures/macro_refusals.json").write_text("v2\n"))
+    sel = selector.select(repo, base, "HEAD", vitest_files=[])
+    assert "probe-click" in sel["browser"]["run"]
+    assert sel["changed"][0]["reads"] == ["lcnc-webui/e2e/macroFolder.ts"]
+
+
+def test_a_src_module_a_spec_imports_selects_that_spec(repo: Path):
+    base = commit_change(repo, lambda r: (r / "lcnc-webui/src/probeVars.ts").write_text("v2\n"))
+    assert "probe-click" in selector.select(repo, base, "HEAD", vitest_files=[])["browser"]["run"]
+
+
+def test_an_import_that_resolves_nowhere_selects_the_full_run(repo: Path):
+    base = commit_change(repo, lambda r: (r / "lcnc-webui/e2e/tabs.spec.ts").write_text('import { z } from "./nowhere";\n'))
+    sel = selector.select(repo, base, "HEAD", vitest_files=[])
+    assert sel["browser"]["run"] == FULL
+    assert any("nowhere" in why and "fail closed" in why for why in sel["browser"]["reasons"])
 
 
 def test_a_changed_spec_and_a_reference_image_select_their_spec(repo: Path):
@@ -372,3 +381,96 @@ def test_a_module_holds_the_selection_of_every_component_it_reaches():
 def test_the_cuts_name_real_files():
     for name in graph.CUTS:
         assert (SRC / name).is_file(), name
+
+
+# ── Discovery against execution (Codex R256 TS256-04) ────────────────────
+def pw(rows: list[tuple[str, str, str, int]], errors: list | None = None) -> dict:
+    """(file, project, title, results) → a Playwright JSON report; titles
+    with ' › ' sit in a describe suite."""
+    suites: dict[str, dict] = {}
+    for f, p, title, n in rows:
+        fs = suites.setdefault(f, {"title": f, "file": f, "specs": [], "suites": []})
+        *desc, leaf = title.split(" › ")
+        target = fs
+        for d in desc:
+            nxt = next((s for s in target["suites"] if s["title"] == d), None)
+            if nxt is None:
+                nxt = {"title": d, "specs": [], "suites": []}
+                target["suites"].append(nxt)
+            target = nxt
+        target["specs"].append({"title": leaf, "file": f, "tests": [
+            {"projectName": p, "results": [{"status": "passed"}] * n}]})
+    return {"suites": list(suites.values()), "errors": errors or []}
+
+
+LISTED = [("a.spec.ts", "serial-guards", "one", 0), ("a.spec.ts", "serial-guards", "grid › two", 0),
+          ("b.spec.ts", "serial-guards", "three", 0)]
+
+
+def ran_as(listed, drop=(), extra=(), counts=None):
+    rows = [(f, p, t, (counts or {}).get(t, 1)) for f, p, t, _ in listed if t not in drop]
+    return pw(rows + list(extra))
+
+
+def test_every_listed_test_ran_once_and_nothing_else_ran():
+    listing = pw(LISTED)
+    assert proof.check_executed(listing, ran_as(LISTED)) == []
+    assert proof.check_executed(listing, ran_as(LISTED, drop={"grid › two"})) == [
+        "listed, never ran: a.spec.ts | serial-guards | grid › two"]
+    assert proof.check_executed(listing, ran_as(LISTED, drop={"three"})) == [
+        "listed, never ran: b.spec.ts | serial-guards | three"], "a whole selected file missing"
+    assert proof.check_executed(listing, ran_as(LISTED, counts={"one": 2})) == [
+        "2 results (retried or run twice): a.spec.ts | serial-guards | one"]
+    # a focused test.only: the listing names six, one ran (Codex's sentinel)
+    focused = LISTED + [("a.spec.ts", "serial-guards", "sentinel", 0)]
+    only = pw([("a.spec.ts", "serial-guards", "sentinel", 1)])
+    assert len(proof.check_executed(pw(focused), only)) == 3
+    assert proof.check_executed(pw(LISTED, errors=[{"message": "x"}]), ran_as(LISTED))[0].startswith("discovery or run errors")
+    assert proof.check_executed(pw([]), pw([])) == ["the listing holds no test"]
+
+
+def test_every_listed_unit_test_ran():
+    listed = [{"file": "/x/a.test.ts", "name": "d > one"}, {"file": "/x/a.test.ts", "name": "d > two"}]
+    report = {"testResults": [{"name": "/x/a.test.ts", "assertionResults": [
+        {"ancestorTitles": ["d"], "title": "one"}, {"ancestorTitles": ["d"], "title": "two"}]}]}
+    assert proof.check_unit_executed(listed, report) == []
+    report["testResults"][0]["assertionResults"].pop()
+    assert proof.check_unit_executed(listed, report) == ["listed, never ran: /x/a.test.ts > d > two"]
+    assert proof.check_unit_executed([], {"testResults": []}) == ["the listing holds no test"]
+
+
+# ── The round gate's plan and configs (Codex R256 TS256-03 / -05) ────────
+from test_select import round_gate  # noqa: E402
+
+
+def test_every_round_runs_the_selection_guards_first():
+    """A UI-only round (no backend) runs them too: the table is checked
+    against THIS tree before anything is left out."""
+    ui_only = {"unit": {"heavy": []}, "backend": {"run": False}, "browser": {"run": ["tabs"]}}
+    docs_only = {"unit": {"heavy": []}, "backend": {"run": False}, "browser": {"run": []}}
+    for sel in (ui_only, docs_only):
+        steps = round_gate.plan(sel)
+        assert steps[0] == "selection-guards"
+    assert round_gate.plan(ui_only)[-2:] == ["ports-free", "browser"]
+
+
+def test_the_gate_configs_start_their_own_servers_and_refuse_a_focused_test():
+    for name in ("playwright.gate.config.ts", "playwright.select.config.ts"):
+        text = (ROOT / "lcnc-webui" / name).read_text()
+        assert "forbidOnly: true" in text, name
+        assert "reuseExistingServer: false" in text, name
+        assert re.search(r"webServer:\s*\(?(Array\.isArray|asList)\(full\.webServer", text), name
+    gate = (ROOT / "scripts/test_select/round_gate.py").read_text()
+    assert '"playwright.gate.config.ts"' in gate and '"--forbid-only"' in gate and '"--allowOnly=false"' in gate
+    assert "playwright.config.ts\", \"--list" not in gate, "the gate never lists or runs the developer config"
+
+
+def test_a_listening_port_is_seen():
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        s.listen(1)
+        assert round_gate.listening(s.getsockname()[1])
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+    assert not round_gate.listening(port)

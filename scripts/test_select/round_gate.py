@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
-"""The round gate (test strategy step 4, Codex R248–R251): the checks a round
-needs, chosen by the selector from a NAMED base, with the proof of what ran.
+"""The round gate (test strategy step 4, Codex R248–R251, R256): the checks a
+round needs, chosen by the selector from a NAMED base, with the proof of what
+ran.
 
     python3 -I scripts/test_select/round_gate.py --base <commit> \\
         --out docs/reviews/<topic>.gate-round.json [--note "…"]
 
 The tree must be clean (its head is the gate's head). In order, never two at
-once: the selection, lint, build, the light unit set, the heavy files it
-names, the backend offline gate when selected, the browser run — the full
-config for a full selection, else the select config between its listing proof
-and its order proof. The record names every check run and every check left
-out, with its reason; the Firefox core and the live checks a path asks for
-stand as pending (an offline PASS is not an acceptance). PASS only when every
-check that ran passed, without a skip, a retry or an empty run.
+once (plan()): the selector's own guards first — the rule table must hold for
+THIS tree before anything may be left out (TS256-03) —, the selection, lint,
+build, the light unit set, the heavy files it names, the backend offline gate
+when selected, the browser run: the ports free (no server already listening
+is ever tested in place of this tree's, TS256-05), the full or the select
+config, no focused test, its listing matched test for test to what ran
+(TS256-04) and the order against the full chain. Unit runs are matched to
+their listing the same way and refuse `.only`. The record names every check
+run and left out with its reason; the Firefox core and the live checks a path
+asks for stand as pending (an offline PASS is not an acceptance). PASS only
+when every check that ran passed, without a skip, a retry or an empty run.
 """
 from __future__ import annotations
 
@@ -20,6 +25,7 @@ import argparse
 import json
 import os
 import platform
+import socket
 import subprocess
 import sys
 import time
@@ -31,6 +37,20 @@ from test_select.rules import FULL, HEAVY_UNIT  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "lcnc-webui"
+PORTS = (4173, 4174)     # the preview and the mock the browser configs start
+
+
+def plan(sel: dict) -> list[str]:
+    """The checks of a round, in order. The selection guards are first in
+    EVERY round — a UI-only round too, whose backend run they used to ride."""
+    steps = ["selection-guards", "lint", "build", "unit-light"]
+    if sel["unit"]["heavy"]:
+        steps.append("unit-heavy")
+    if sel["backend"]["run"]:
+        steps.append("backend")
+    if sel["browser"]["run"]:
+        steps += ["ports-free", "browser"]
+    return steps
 
 
 def run(name: str, cmd: list[str], cwd: Path, logs: Path, env: dict | None = None) -> dict:
@@ -40,6 +60,11 @@ def run(name: str, cmd: list[str], cwd: Path, logs: Path, env: dict | None = Non
                             env={**os.environ, **(env or {})}).returncode
     return {"name": name, "command": " ".join(cmd), "status": "PASS" if rc == 0 else "FAIL",
             "exit": rc, "seconds": round(time.monotonic() - started)}
+
+
+def fail(check: dict, *why: str) -> None:
+    check["status"] = "FAIL"
+    check.setdefault("why", []).extend(why)
 
 
 def vitest_counts(report: Path) -> dict:
@@ -78,24 +103,94 @@ def spec_times(report: Path) -> list[dict]:
 def judge(check: dict, counts: dict) -> None:
     """No PASS on a missing report, an empty run, a skip, a retry or a failure."""
     check.update(counts)
-    why = []
-    if "error" in counts:
-        why.append(counts["error"])
-    else:
+    why = [counts["error"]] if "error" in counts else []
+    if "error" not in counts:
         if counts.get("tests", 0) == 0:
             why.append("an empty run")
-        for k in ("failed", "skipped", "flaky"):
-            if counts.get(k):
-                why.append(f"{counts[k]} {k}")
-    if why and check["status"] == "PASS":
-        check["status"] = "FAIL"
+        why += [f"{counts[k]} {k}" for k in ("failed", "skipped", "flaky") if counts.get(k)]
     if why:
-        check["why"] = why
+        fail(check, *why)
 
 
 def output(cmd: list[str], cwd: Path) -> str:
     r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
     return r.stdout.strip() if r.returncode == 0 else f"unknown ({r.stderr.strip()[:80]})"
+
+
+def listening(port: int) -> bool:
+    for host in ("127.0.0.1", "::1"):
+        try:
+            with socket.create_connection((host, port), timeout=0.5):
+                return True
+        except OSError:
+            continue
+    return False
+
+
+def unit(name: str, files: list[str], exclude: list[str], logs: Path) -> dict:
+    """A vitest run matched to its own listing; `.only` refused."""
+    listed, report = logs / f"{name}.list.json", logs / f"{name}.json"
+    args = [*files, *[x for f in exclude for x in ("--exclude", f)]]
+    lst = subprocess.run(["npx", "vitest", "list", *args, f"--json={listed}"], cwd=WEB,
+                         capture_output=True, text=True)
+    c = run(name, ["npx", "vitest", "run", *args, "--allowOnly=false", "--reporter=default",
+                   "--reporter=json", f"--outputFile.json={report}"], WEB, logs)
+    judge(c, vitest_counts(report))
+    if lst.returncode != 0 or not listed.is_file():
+        fail(c, f"vitest list failed: {lst.stderr.strip()[-300:]}")
+    elif report.is_file() and report.stat().st_size:
+        problems = proof.check_unit_executed(json.loads(listed.read_text()), json.loads(report.read_text()))
+        if problems:
+            fail(c, *problems[:20])
+        c["listed"] = len(json.loads(listed.read_text()))
+    return c
+
+
+def listing(config: str, env: dict, target: Path) -> tuple[dict, str | None]:
+    r = subprocess.run(["npx", "playwright", "test", "-c", config, "--list", "--reporter=json"], cwd=WEB,
+                       capture_output=True, text=True, env={**os.environ, **env})
+    target.write_text(r.stdout)
+    if r.returncode != 0 or not r.stdout.strip():
+        return {}, f"{config} --list failed (exit {r.returncode}): {r.stderr.strip()[-300:]}"
+    data = json.loads(r.stdout)
+    if data.get("errors"):
+        return data, f"{config} --list reports errors: {str(data['errors'])[:300]}"
+    return data, None
+
+
+def browser(sel: dict, logs: Path) -> list[dict]:
+    names = sel["browser"]["run"]
+    report = logs / "playwright.json"
+    env = {"PLAYWRIGHT_JSON_OUTPUT_FILE": str(report), "PLAYWRIGHT_JSON_OUTPUT_NAME": str(report)}
+    checks = []
+    if names == FULL:
+        config = "playwright.gate.config.ts"
+    else:
+        config, env = "playwright.select.config.ts", {**env, "LCNC_E2E_SELECTION": str(logs / "selection.json")}
+    listed, err = listing(config, env, logs / "list-run.json")
+    if names != FULL and not err:
+        full, err = listing("playwright.gate.config.ts", {}, logs / "list-full.json")
+        if not err:
+            problems = proof.check_listing(full, listed, names)
+            checks.append({"name": "browser-listing", "status": "FAIL" if problems else "PASS",
+                           **({"why": problems} if problems else {"files": len(names)})})
+            if problems:
+                return checks
+    if err:
+        return checks + [{"name": "browser-listing", "status": "FAIL", "why": [err]}]
+    c = run("browser-full" if names == FULL else "browser-selected",
+            ["npx", "playwright", "test", "-c", config, "--forbid-only", "--trace", "off", "--reporter=line,json"],
+            WEB, logs, env)
+    judge(c, playwright_counts(report))
+    checks.append(c)
+    if report.is_file() and report.stat().st_size:
+        ran = json.loads(report.read_text())
+        problems = proof.check_executed(listed, ran)
+        checks.append({"name": "browser-executed", "status": "FAIL" if problems else "PASS",
+                       **({"why": problems[:20]} if problems else {"tests": len(proof.playwright_tests(listed))})})
+        order = proof.check_order(ran, proof.full_chain((WEB / "playwright.config.ts").read_text()))
+        checks.append({"name": "browser-order", "status": "FAIL" if order else "PASS", **({"why": order} if order else {})})
+    return checks
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -107,104 +202,75 @@ def main(argv: list[str] | None = None) -> int:
     out = a.out if a.out.is_absolute() else ROOT / a.out
     logs = out.with_suffix(".logs")
     logs.mkdir(parents=True, exist_ok=True)
-
     record: dict = {"kind": "round", "note": a.note}
+
+    def finish(verdict: str, **extra) -> int:
+        record.update(verdict=verdict, **extra)
+        out.write_text(json.dumps(record, indent=2, ensure_ascii=False) + "\n")
+        print(f"round_gate: {verdict} → {out}")
+        return 0 if verdict == "PASS" else 1
+
+    checks: list[dict] = []
+    guards = run("selection-guards", [sys.executable, "-B", "-m", "pytest", "-q", "-p", "no:cacheprovider",
+                                      str(ROOT / "scripts/test_select/test_selector.py")], ROOT, logs)
+    checks.append(guards)
+    if guards["status"] != "PASS":
+        return finish("FAIL", checks=checks, why=["the selection's guards are red: the rule table does not hold "
+                                                  "for this tree, nothing may be left out"])
     try:
         if subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=ROOT,
                           capture_output=True, text=True, check=True).stdout:
             raise selector.SelectError("the tree has uncommitted changes: commit them, the gate binds a head")
         sel = selector.select(ROOT, a.base, "HEAD", selector.vitest_changed(ROOT, a.base))
     except selector.SelectError as e:
-        record.update(verdict="FAIL", why=[str(e)])
-        out.write_text(json.dumps(record, indent=2, ensure_ascii=False) + "\n")
-        print(f"round_gate: {e}", file=sys.stderr)
-        return 2
+        return finish("FAIL", checks=checks, why=[str(e)])
     (logs / "selection.json").write_text(json.dumps(sel, indent=2, ensure_ascii=False) + "\n")
-    record.update(base=sel["base"], head=sel["head"], uncommitted=0, env={
+    record.update(base=sel["base"], head=sel["head"], uncommitted=0, plan=plan(sel), env={
         "nproc": os.cpu_count(), "arch": platform.machine(),
-        "node": output(["node", "--version"], WEB),
-        "playwright": output(["npx", "playwright", "--version"], WEB)})
+        "node": output(["node", "--version"], WEB), "playwright": output(["npx", "playwright", "--version"], WEB)})
     record["selection"] = {k: sel[k] for k in ("unmatched", "unit", "browser", "backend", "firefox", "live")}
-    checks, omitted = [], []
+    omitted = []
 
     checks.append(run("lint", ["npm", "run", "lint"], WEB, logs))
     checks.append(run("build", ["npm", "run", "build"], WEB, logs))
-
-    light = logs / "vitest-light.json"
-    exclude = [x for f in HEAVY_UNIT for x in ("--exclude", f.removeprefix("lcnc-webui/"))]
-    c = run("unit-light", ["npx", "vitest", "run", *exclude, "--reporter=default", "--reporter=json",
-                           f"--outputFile.json={light}"], WEB, logs)
-    judge(c, vitest_counts(light))
-    checks.append(c)
+    checks.append(unit("unit-light", [], [f.removeprefix("lcnc-webui/") for f in HEAVY_UNIT], logs))
 
     heavy = sel["unit"]["heavy"]
     if heavy:
-        report = logs / "vitest-heavy.json"
-        c = run("unit-heavy", ["npx", "vitest", "run", *[f.removeprefix("lcnc-webui/") for f in heavy],
-                               "--reporter=default", "--reporter=json", f"--outputFile.json={report}"], WEB, logs)
-        judge(c, vitest_counts(report))
+        c = unit("unit-heavy", [f.removeprefix("lcnc-webui/") for f in heavy], [], logs)
         if c.get("files") != len(heavy):
-            c["status"] = "FAIL"
-            c.setdefault("why", []).append(f"{c.get('files')} heavy files ran, {len(heavy)} selected")
+            fail(c, f"{c.get('files')} heavy files ran, {len(heavy)} selected")
         c["selected"] = heavy
         checks.append(c)
     else:
         omitted.append({"check": "unit-heavy", "reason": "no heavy file changed, reached or read for"})
 
     if sel["backend"]["run"]:
-        c = run("backend", [sys.executable, str(ROOT / "scripts/test_suite.py"), "offline", "--component",
-                            "backend", "--out-dir", str(logs / "backend")], ROOT, logs)
-        checks.append(c)
+        checks.append(run("backend", [sys.executable, str(ROOT / "scripts/test_suite.py"), "offline", "--component",
+                                      "backend", "--out-dir", str(logs / "backend")], ROOT, logs))
     else:
         omitted.append({"check": "backend", "reason": "; ".join(sel["backend"]["reasons"])})
 
-    browser = sel["browser"]["run"]
-    report = logs / "playwright.json"
-    pw_env = {"PLAYWRIGHT_JSON_OUTPUT_FILE": str(report), "PLAYWRIGHT_JSON_OUTPUT_NAME": str(report)}
-    if browser == FULL:
-        c = run("browser-full", ["npx", "playwright", "test", "--trace", "off", "--reporter=line,json"],
-                WEB, logs, pw_env)
-        judge(c, playwright_counts(report))
-        checks.append(c)
-    elif browser:
-        sel_file = logs / "selection.json"
-        listing = {}
-        for name, extra, env in (("full", [], {}), ("selected", ["-c", "playwright.select.config.ts"],
-                                                    {"LCNC_E2E_SELECTION": str(sel_file)})):
-            target = logs / f"list-{name}.json"
-            with target.open("w") as fh:
-                subprocess.run(["npx", "playwright", "test", *extra, "--list", "--reporter=json"], cwd=WEB,
-                               stdout=fh, stderr=subprocess.DEVNULL, env={**os.environ, **env})
-            listing[name] = json.loads(target.read_text()) if target.stat().st_size else {}
-        problems = proof.check_listing(listing["full"], listing["selected"], browser)
-        checks.append({"name": "browser-listing", "status": "FAIL", "why": problems} if problems
-                      else {"name": "browser-listing", "status": "PASS", "files": len(browser)})
-        if not problems:
-            c = run("browser-selected", ["npx", "playwright", "test", "-c", "playwright.select.config.ts",
-                                         "--trace", "off", "--reporter=line,json"],
-                    WEB, logs, {**pw_env, "LCNC_E2E_SELECTION": str(sel_file)})
-            judge(c, playwright_counts(report))
-            checks.append(c)
-            if report.is_file() and report.stat().st_size:
-                chain = proof.full_chain((WEB / "playwright.config.ts").read_text())
-                order = proof.check_order(json.loads(report.read_text()), chain)
-                checks.append({"name": "browser-order", "status": "FAIL" if order else "PASS",
-                               **({"why": order} if order else {})})
+    if sel["browser"]["run"]:
+        busy = [p for p in PORTS if listening(p)]
+        checks.append({"name": "ports-free", "status": "FAIL" if busy else "PASS",
+                       **({"why": [f"port {p} already serves something: a foreign server would be tested in "
+                                   f"place of this tree's" for p in busy]} if busy else {})})
+        if not busy:
+            checks += browser(sel, logs)
+        report = logs / "playwright.json"
+        if report.is_file() and report.stat().st_size:
+            record["browser_specs"] = spec_times(report)
     else:
         omitted.append({"check": "browser", "reason": "; ".join(sel["browser"]["reasons"])})
-    if report.is_file() and report.stat().st_size:
-        record["browser_specs"] = spec_times(report)
 
     pending = []
     if sel["firefox"].get("needed"):
         pending.append({"check": "firefox-core", "status": sel["firefox"]["status"]})
     for check, paths in sel["live"].items():
         pending.append({"check": check, "status": "pending: a live check, run before main", "paths": paths})
-    record.update(checks=checks, omitted=omitted, pending=pending,
-                  verdict="PASS" if all(c["status"] == "PASS" for c in checks) else "FAIL")
-    out.write_text(json.dumps(record, indent=2, ensure_ascii=False) + "\n")
-    print(f"round_gate: {record['verdict']} → {out}")
-    return 0 if record["verdict"] == "PASS" else 1
+    return finish("PASS" if all(c["status"] == "PASS" for c in checks) else "FAIL",
+                  checks=checks, omitted=omitted, pending=pending)
 
 
 if __name__ == "__main__":
