@@ -2238,7 +2238,7 @@ watch(viewerGcode, (newGcode) => {
               :workPos="workPos"
               :probeResults="probeResults"
               :eoffsetZ="st.eoffset_z ?? null"
-              :eoffsetEnabled="!!st.eoffset_enabled"
+              :eoffsetEnabled="st.eoffset_enabled ?? null"
               :compMethod="st.comp_method ?? null"
               :compGridVersion="st.comp_grid_version ?? 0"
               :surfacePoints="surfacePoints"
@@ -2255,7 +2255,6 @@ watch(viewerGcode, (newGcode) => {
               @getProbeResults="requestProbeResults"
               @getCompGrid="requestCompGrid"
               @setCompensation="requestCompToggle"
-              @setCompMethod="fire({ cmd: 'set_compensation_method', method: $event }, 'probe')"
             />
           </template>
 

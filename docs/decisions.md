@@ -10383,3 +10383,26 @@ in a program over the worker's text alone (no lib, no import resolution, no
 disk) — only its one declaration as a `const` of a plain name with an
 initializer is a proven value; a binding pattern, a function-wide `var`, a
 `let`, a parameter, a catch or loop binding are unresolved.
+
+## 2026-11-04 — Surface compensation shows and answers what is true (the function inventory's first gap package)
+
+Codex R265 named it the first gap package; the inventory's F-COMP S1–S3 were
+open. What the red-first tests found against development f0070ec7:
+
+- **Gateway.** `set_compensation` sent `bool(msg.get("enable", False))`: no
+  value switched compensation OFF, `"yes"` switched it ON; `set_compensation_method`
+  sent Cubic for a missing method; both answered `ok` whatever `_hal_send`
+  said. Now a missing value sends nothing ("Compensation not sent — on or off
+  missing", "Method not sent — none given") and `_compensation_reply` answers
+  by the delivery: written → ok, nothing written → "Compensation not sent —
+  try again", unclear → "Compensation unclear — check the display". Ok is the
+  delivery; the pin's state is the status's to show.
+- **Display.** An unread `eoffset_enabled` read OFF (`!!`), an unread method
+  Cubic (`?? 2`); a clicked method checked itself before the status took it
+  (the native radio). Now ON / OFF / "—", and the method is a manual
+  `ChoiceGroup` — the strip's pattern for machine choices: checked is the
+  reported state, a request pending until the status shows it, "Not
+  confirmed" after 5 s.
+
+Owed: the native effect (F-COMP S4: on/off and the three methods on a known
+non-flat surface) in the native tier.

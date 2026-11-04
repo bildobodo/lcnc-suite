@@ -1,0 +1,35 @@
+# Compensation package — red first (2026-11-04)
+
+## Gateway: test_compensation.py against the old gateway.py (HEAD f0070ec7)
+E               AssertionError: Tuples differ: ({'ok': True}, [{'compensation_enable': False}]) != ({'ok': False, 'error': 'Compensation not sent — on or off missing'}, [])
+test_compensation.py:44: AssertionError
+E               AssertionError: Tuples differ: ({'ok': True}, [{'compensation_enable': True}]) != ({'ok': False, 'error': 'Compensation not sent — on or off missing'}, [])
+test_compensation.py:44: AssertionError
+E               AssertionError: Tuples differ: ({'ok': True}, [{'compensation_method': 2}]) != ({'ok': False, 'error': 'Method not sent — none given'}, [])
+test_compensation.py:44: AssertionError
+E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Compensation unclear — check the display'}
+test_compensation.py:37: AssertionError
+E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Compensation unclear — check the display'}
+test_compensation.py:37: AssertionError
+E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Compensation not sent — try again'}
+test_compensation.py:31: AssertionError
+E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Compensation not sent — try again'}
+test_compensation.py:31: AssertionError
+
+## Browser: e2e/compensation.spec.ts against the old ProbePanel.vue / App.vue
+[1A[2K[1/3] [e2e] › e2e/compensation.spec.ts:27:1 › unread pins are never OFF or Cubic: the state reads —, no method is checked, the switch is not on
+[1A[2K  1) [e2e] › e2e/compensation.spec.ts:27:1 › unread pins are never OFF or Cubic: the state reads —, no method is checked, the switch is not on 
+    Error: expect(locator).toHaveText(expected) failed
+    Expected: "—"
+    Received: "OFF"
+    test-results/compensation-unread-pins-a-89786-hecked-the-switch-is-not-on-e2e/test-failed-1.png
+[1A[2K[2/3] [e2e] › e2e/compensation.spec.ts:34:1 › the reported state: ON with its method checked, OFF once the status says so
+[1A[2K[3/3] [e2e] › e2e/compensation.spec.ts:43:1 › a chosen method is sent once and pending; the reported one stays checked, 'Not confirmed' after 5 s
+[1A[2K  2) [e2e] › e2e/compensation.spec.ts:43:1 › a chosen method is sent once and pending; the reported one stays checked, 'Not confirmed' after 5 s 
+    expect(locator).not.toBeChecked() failed
+    Expected: not checked
+    Received: checked
+    test-results/compensation-a-chosen-meth-15fdc-ked-Not-confirmed-after-5-s-e2e/test-failed-1.png
+[1A[2K  2 failed
+    [e2e] › e2e/compensation.spec.ts:27:1 › unread pins are never OFF or Cubic: the state reads —, no method is checked, the switch is not on 
+    [e2e] › e2e/compensation.spec.ts:43:1 › a chosen method is sent once and pending; the reported one stays checked, 'Not confirmed' after 5 s 

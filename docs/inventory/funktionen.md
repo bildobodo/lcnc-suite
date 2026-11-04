@@ -7,7 +7,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **Quellen vollständig erfasst:** ja (1147 Atome in 17 Quellen)
 - **Ungelöste Stellen:** 0
 - **Ausgeschlossen (außerhalb der Grenze, mit Grund):** 1
-- **Familien mit offenen Varianten:** 45 — das Atom steht, seine Varianten sind nicht einzeln abgeleitet
+- **Familien mit offenen Varianten:** 44 — das Atom steht, seine Varianten sind nicht einzeln abgeleitet
 - **Anzeigen** (was die Oberfläche zusagt, etwa „Kompensation bestätigt aktiv“) haben keine Quelle mit Atomen; ihr Katalog sichtbarer Zusagen folgt als eigener Schritt.
 - **Belegt** heißt hier: ein benannter Test existiert mit diesem Titel. Ob er lief und bestand, kommt aus den Laufberichten (nächster Schritt).
 
@@ -116,7 +116,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | **Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut** `F-PROBE` | Tab „Probing“ | 87 | 4 | 3 | 1 |
 | **Taster kalibrieren** `F-PROBECAL` | Tab „Probing“ | 15 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Fläche abtasten (Surface-Scan)** `F-SURFACE` | Tab „Probing“ | 6 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Flächenkompensation ein/aus und Interpolation umschalten** `F-COMP` | Dialog, Tab „Probing“ | 13 | 4 | 0 | 4 |
+| **Flächenkompensation ein/aus und Interpolation umschalten** `F-COMP` | Dialog, Tab „Probing“ | 13 | 4 | 3 | 1 |
 
 ### Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut
 
@@ -132,11 +132,11 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 ### Flächenkompensation ein/aus und Interpolation umschalten
 
 - **S1 (Unbekannt):** „AN“ erscheint nur aus einem gelesenen Pin; ein unbekannter Wert erscheint als unbekannt, nie als AUS. — gilt für: alle
-  - Beleg: **offen** — Lücke: App.vue macht aus fehlendem eoffset_enabled mit !! ein AUS — das erste Lückenpaket
+  - Beleg: browser: `compensation.spec.ts` — unread pins are never OFF or Cubic: the state reads —, no method is checked, the switch is not on; browser: `compensation.spec.ts` — the reported state: ON with its method checked, OFF once the status says so
 - **S2 (Unbekannt):** Die angezeigte Interpolation ist die, die der Status meldet; eine unbekannte erscheint nie als Cubic. — gilt für: alle
-  - Beleg: **offen** — Lücke: ProbePanel.vue wählt mit compMethod ?? 2 Cubic — das erste Lückenpaket
-- **S3 (Ablehnung):** Ein Umschalten, das HAL nicht zustellt, antwortet nicht ok. — gilt für: alle
-  - Beleg: **offen** — Lücke: gateway.py ignoriert das Ergebnis von _hal_send — das erste Lückenpaket
+  - Beleg: browser: `compensation.spec.ts` — unread pins are never OFF or Cubic: the state reads —, no method is checked, the switch is not on; browser: `compensation.spec.ts` — a chosen method is sent once and pending; the reported one stays checked, 'Not confirmed' after 5 s
+- **S3 (Ablehnung):** Ein Umschalten, das HAL nicht zustellt, antwortet nicht ok; ein fehlender Wert schickt nichts (kein stilles AUS, kein stilles Cubic). — gilt für: alle
+  - Beleg: gateway: `test_compensation.py` — test_nothing_written_is_not_sent; gateway: `test_compensation.py` — test_an_unclear_send_is_never_ok; gateway: `test_compensation.py` — test_a_missing_value_sends_nothing
 - **S4 (Wirkung):** Auf echtem LinuxCNC wirkt AN/AUS, und die drei Methoden unterscheiden sich an bekannten Punkten einer nicht ebenen Fläche. — gilt für: 3axis_xyz
   - Beleg: **offen** — Lücke: nativer Lauf offen
 

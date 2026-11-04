@@ -941,6 +941,19 @@ _hal_bridge = _hal_bridge_mod.HalBridge(
 _hal_connect = _hal_bridge.watchdog_connect
 _hal_disconnect = _hal_bridge.watchdog_disconnect
 _hal_send = _hal_bridge.watchdog_send
+
+
+def _compensation_reply(event: str, delivered: Optional[bool], **fields) -> dict:
+    """A compensation request answered by its delivery (watchdog_send: True
+    written in full, False nothing written, None unclear). Only a delivered
+    message is ok — and ok is the delivery, not the pin's state."""
+    if delivered is True:
+        _trace.emit(event, **fields)
+        return {"ok": True}
+    _trace.emit(f"{event}_not_delivered", level="warn", outcome=str(delivered), **fields)
+    if delivered is False:
+        return {"ok": False, "error": "Compensation not sent — try again"}
+    return {"ok": False, "error": "Compensation unclear — check the display"}
 _reader_recv_loop = _hal_bridge.reader_recv_loop
 _reader_request = _hal_bridge.reader_request
 _reader_get = _hal_bridge.reader_get
@@ -5853,23 +5866,29 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
         # toolchange handshake in any machine state. Gates now live in
         # command_policy.COMMAND_GATES; the "LinuxCNC not connected" check and
         # the bounded-error catch come free on this path.
+        # Surface compensation (Codex R265 / function inventory F-COMP): the
+        # request names its value — no default stands in for a missing one —
+        # and the reply says whether it was DELIVERED; whether the pin took it
+        # is the status's to show (eoffset_enabled, comp_method).
         if cmd == "set_compensation":
             require_armed(armed)
-            enable = bool(msg.get("enable", False))
+            enable = msg.get("enable")
+            if not isinstance(enable, bool):
+                return {"ok": False, "error": "Compensation not sent — on or off missing"}
             if enable:
                 require_no_rotary_tilt()
             _loop = asyncio.get_event_loop()
-            await _loop.run_in_executor(None, _hal_send, {"compensation_enable": enable})
-            _trace.emit("compensation.enable", enable=enable)
-            return {"ok": True}
+            delivered = await _loop.run_in_executor(None, _hal_send, {"compensation_enable": enable})
+            return _compensation_reply("compensation.enable", delivered, enable=enable)
 
         if cmd == "set_compensation_method":
             require_armed(armed)
-            method = finite_int(msg.get("method", 2))
+            if msg.get("method") is None:
+                return {"ok": False, "error": "Method not sent — none given"}
+            method = finite_int(msg["method"])
             _loop = asyncio.get_event_loop()
-            await _loop.run_in_executor(None, _hal_send, {"compensation_method": method})
-            _trace.emit("compensation.method", method=method)
-            return {"ok": True}
+            delivered = await _loop.run_in_executor(None, _hal_send, {"compensation_method": method})
+            return _compensation_reply("compensation.method", delivered, method=method)
 
         if cmd == "confirm_tool_change":
             require_armed(armed)
