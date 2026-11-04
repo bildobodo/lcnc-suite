@@ -63,6 +63,9 @@ describe("toolsetterVarMap", () => {
     expect([m["3100"], m["3101"], m["3102"]]).toEqual([0, 0, -300]);
     expect([m["3004"], m["3005"], m["3006"], m["3007"], m["3009"], m["3010"]]).toEqual([200, 0, 500, 180, 2, 180]);
     expect([m["3103"], m["3106"], m["3107"]]).toEqual([1, 0, 5]);
-    expect(Object.keys(m)).toHaveLength(23);
+    // the whole set, not its size (Codex R276 FI-I09: #3104 renamed #3904
+    // kept the count)
+    const set = [3004, 3005, 3006, 3007, 3009, 3010, 3013, ...Array.from({ length: 16 }, (_, i) => 3100 + i)];
+    expect(Object.keys(m).sort()).toEqual(set.map(String).sort());
   });
 });

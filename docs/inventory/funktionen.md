@@ -18,12 +18,12 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | Funktion | Aussage | Art | gilt für | Lücke |
 |---|---|---|---|---|
 | Freigeben (Arm) und Sperren | Das Herzschlag-Budget eines Clients ist 3 s. | Daten | alle | Gateway: kein Test bindet den Standardwert _HB_STALL_SEC |
-| Not-Halt auslösen und zurücksetzen | Der Latch greift im selben Servotakt, in dem der Herzschlag ausbleibt. | Wirkung | alle | nicht gemessen; ein Live-Lauf muss sticky_ok und recovered_ok auswerten, nicht nur den Exitcode |
+| Not-Halt auslösen und zurücksetzen | Läuft das Budget des Oneshots (0,5 s) ohne Herzschlag ab, verriegelt der Latch im selben Servotakt. | Wirkung | alle | nicht gemessen: der Abstand zwischen dem Ablauf von oneshot.0.out und fault-out im Servotakt (halsampler) |
 | Sicherheits-Auslösung quittieren, Sicherheitskette | Eine gemeldete Auslösung erscheint im Banner mit Quittieren und wird protokolliert. | Bedienbarkeit | alle | Browser/Gateway: Versand, Banner und Protokolleintrag beobachtet kein Test |
 | Antast-Auslösung simulieren (nur Sim) | Sim-Trip pulst den Antast-Eingang probe-in kurz; eine fehlgeschlagene Zustellung wird gemeldet. | Wirkung | alle | Gateway: kein Test des Handlers (halcmd sets probe-in); nativ in der Sim |
 | Referenzieren und Referenz aufheben | Home All und Home je Achse senden ihren Befehl und referenzieren am echten Task. | Wirkung | alle | Browser: kein Spec löst home/home_all aus; nativ |
 | Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren | Auf echtem LinuxCNC bewegt jeder Jog-Knopf seine Achse in seine Richtung und hält am Loslassen. | Wirkung | offen | nativ: Achse, Richtung und Stopp je Knopf am echten Task (die native Stufe) |
-| Anfahren: G30, Maschinennull, Werkstücknull | Z ist oben, bevor X/Y fahren. | Wirkung | Machine | nativ: Verlauf oder Befehlsfolge (die Endpositionen belegen die Reihenfolge nicht) |
+| Anfahren: G30, Maschinennull, Werkstücknull | Z ist oben, bevor X/Y fahren (→ Zero, → Home, → G30). | Wirkung | Machine | nativ: Verlauf oder Befehlsfolge (die Endpositionen belegen die Reihenfolge nicht) |
 | Overrides: Vorschub, Eilgang, Spindel | Ein Schieber auf 50 % sendet den Faktor 0,5 für genau seinen Override. | Daten | alle | Browser: kein Spec prüft, was die Override-Schieber senden (Codex R250: ein kurzer UI-Test 50 % → scale 0.5) |
 | Overrides: Vorschub, Eilgang, Spindel | Auf echtem LinuxCNC ändert der Override die Geschwindigkeit; in M600 und Surface-Scan ist er abgeschaltet (M50 P0). | Wirkung | offen | nativ (native Stufe) |
 | Spindel von Hand: Rechts, Links, Stopp, Drehzahl | Rechts und Links senden die Drehzahl der Vorwahl; ± ändern sie. | Daten | alle | Browser: kein Spec löst spindle_forward/reverse/increase/decrease aus |
@@ -88,8 +88,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: gateway: `test_button_gates_d.py` — test_reset_needs_arm_and_the_acknowledgement
 - **S4 (Wirkung):** Bleibt der Herzschlag des Gateways aus (SIGSTOP), verriegelt HAL den Not-Halt und hält ihn, bis die Wiederherstellung (Quittieren, Arm, Zurücksetzen) ihn löst. — gilt für: alle
   - Beleg: script: `perf_matrix.py` — sigstop_trip (live, nicht im Gate)
-- **S4b (Wirkung):** Der Latch greift im selben Servotakt, in dem der Herzschlag ausbleibt. — gilt für: alle
-  - Beleg: **offen** — Lücke: nicht gemessen; ein Live-Lauf muss sticky_ok und recovered_ok auswerten, nicht nur den Exitcode
+- **S4b (Wirkung):** Läuft das Budget des Oneshots (0,5 s) ohne Herzschlag ab, verriegelt der Latch im selben Servotakt. — gilt für: alle
+  - Beleg: **offen** — Lücke: nicht gemessen: der Abstand zwischen dem Ablauf von oneshot.0.out und fault-out im Servotakt (halsampler)
 
 ### Sicherheits-Auslösung quittieren, Sicherheitskette
 
@@ -155,13 +155,13 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ### Anfahren: G30, Maschinennull, Werkstücknull
 
-- **S1 (Wirkung):** Von über Z0 senkt ein Rückzug Z nie: → Zero lässt Z unverändert, → Home sieht kein Z unter dem Start. — gilt für: Machine
+- **S1 (Wirkung):** Von über Z0: → Home senkt Z nie (das kleinste gesehene Z ist der Start); → Zero endet mit demselben Z und X/Y am Werkstücknullpunkt. — gilt für: Machine
   - Beleg: script: `twp_buttons_check.py` — → Zero from ABOVE Z0 (G53 Z+50): Z unchanged (never lowered), X/Y at work zero (live, nicht im Gate); script: `twp_buttons_check.py` — → Home from ABOVE Z0: min Z seen >= +50 (never lowered), X/Y to machine zero (live, nicht im Gate)
 - **S1b (Wirkung):** Von unter Z0 fahren → Zero und → Home Z auf die Maschinen-Oberkante. — gilt für: Machine
   - Beleg: script: `twp_buttons_check.py` — → Zero from BELOW Z0 (G53 Z-60): Z at machine top exactly, X/Y at work zero, A back to the stamp (0) (live, nicht im Gate); script: `twp_buttons_check.py` — → Home from BELOW Z0: Z to machine top, X/Y to machine zero, A 0 (live, nicht im Gate)
-- **S1c (Wirkung):** Z ist oben, bevor X/Y fahren. — gilt für: Machine
+- **S1c (Wirkung):** Z ist oben, bevor X/Y fahren (→ Zero, → Home, → G30). — gilt für: Machine
   - Beleg: **offen** — Lücke: nativ: Verlauf oder Befehlsfolge (die Endpositionen belegen die Reihenfolge nicht)
-- **S1d (Wirkung):** → G30 von unter Z0 fährt erst nach oben, dann auf #5181–#5183. — gilt für: Machine
+- **S1d (Wirkung):** → G30 von unter Z0 erreicht unterwegs ungefähr Z0 und endet auf #5181–#5183 (die Reihenfolge: S1c). — gilt für: Machine
   - Beleg: script: `twp_buttons_check.py` — → G30 from BELOW Z0: retracts to the top first (max Z seen ~ 0), then lands on #5181..#5183 (live, nicht im Gate)
 - **S2 (Wirkung):** → Zero nach einem Jog der Drehachse bringt den Tisch auf den Stempelwinkel zurück, X/Y lesen null. — gilt für: Machine
   - Beleg: script: `twp_buttons_check.py` — → Zero after jogging A away: table returns to A 20 and X/Y read zero (tip on the datum) (live, nicht im Gate)
@@ -516,7 +516,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 - **S1 (Wirkung):** Mehrere Clients gleichzeitig: Nach dem Laden eines Programms holen mehrere Clients die Vorschau, und der Herzschlag-Abstand des Gateways bleibt sicher unter der Grenze von 500 ms. — gilt für: alle
   - Beleg: **offen** — Lücke: neues perf_matrix-Szenario mit Protokoll-Clients statt Browsern (deren Simulation läuft auf den Client-Geräten, nicht im Gateway); native Stufe. Vorhanden: fanout (8 Clients), reconnect_storm (12 Verbindungen), preview_publish (ein Client) — Operator 2026-11-04
-- **S2 (Abbruch):** Trennt sich ein Client, bricht das Gateway seine laufenden Befehle ab und verwirft die wartenden. — gilt für: alle
+- **S2 (Abbruch):** Trennt sich ein Client, bricht das Gateway die Bearbeitung seines laufenden Befehls ab (ein angefangenes Schreiben endet zuerst; einen schon zugestellten CNC-Befehl nimmt das nicht zurück) und verwirft die wartenden. — gilt für: alle
   - Beleg: gateway: `test_ws_command_worker.py` — test_disconnect_cancels_inflight_and_traces_drops
 - **S3 (Abbruch):** Beim Disarm durch Trennen oder Herzschlag-Ablauf stoppt der Helfer die gebuchten Jogs, ohne Moduswechsel; bei laufendem AUTO sendet er nichts. — gilt für: alle
   - Beleg: gateway: `test_button_gates_e.py` — test_the_disarm_stop; gateway: `test_button_gates_e.py` — test_auto_running_sends_nothing

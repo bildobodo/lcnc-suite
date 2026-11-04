@@ -1,0 +1,4 @@
+E           AssertionError
+scripts/inventory/functions.py:368: AssertionError
+FAILED scripts/inventory/test_inventory.py::test_format_refuses_before_it_writes
+1 failed, 33 deselected in 0.02s

@@ -345,9 +345,9 @@ def dump(fns: dict) -> str:
     for i, f in enumerate(fns["functions"]):
         block = [f'  {{"id": {j(f["id"])}, "area": {j(f["area"])}, "name": {j(f["name"])},']
         parts = [wrapped("atoms", f.get("atoms", []))]
-        if f.get("uses"):
+        if "uses" in f:
             parts.append(wrapped("uses", f["uses"]))
-        if f.get("statements"):
+        if "statements" in f:
             st = f["statements"]
             parts.append(['   "statements": ['] + [f"    {j(x)}" + ("," if k < len(st) - 1 else "") for k, x in enumerate(st)] + ["   ]"])
         for k, part in enumerate(parts):
@@ -364,8 +364,13 @@ def main() -> int:
     if "--format" in sys.argv[1:]:
         path = HERE / "functions.json"
         fns = json.loads(path.read_text())
-        path.write_text(dump(fns))
-        assert json.loads(path.read_text()) == fns
+        text = dump(fns)
+        # the layout is checked before the file is touched (Codex R276
+        # FI-I12): a field dump() does not write is refused, never dropped
+        if json.loads(text) != fns:
+            print("functions.json not formatted — it holds a field the layout does not write (functions.py dump())")
+            return 1
+        path.write_text(text)
     web, py, fns = load()
     found = problems(web, py, fns)
     for p in found:

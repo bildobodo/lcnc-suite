@@ -10397,10 +10397,13 @@ unload). Each now says its rule; a partial proof is split, the rest an open
 statement with the layer that would see the break; the table's short list
 names 34 open statements and the 18 functions without machine effect.
 
-The disconnect contract (FI-I11), as it is: a client's leaving cancels its
-in-flight command, drops its queue and stops the booked jogs
-(`_jog_stop_for_client`, every booked joint, nothing in AUTO); its heartbeat
-timeout disarms it and stops the jogs the same way; neither aborts a running
+The disconnect contract (FI-I11), as it is: a client's leaving cancels the
+gateway's handling of its in-flight command (a write begun ends first; a
+command LinuxCNC took is not taken back) and drops its queue; an ARMED
+client's leaving also attempts the jog stop (`_jog_stop_for_client`: every
+joint the gateway booked as jogging — gateway-wide, not that client's own —
+machine enabled, nothing while AUTO runs; R276); an armed client's heartbeat
+timeout disarms it and attempts the same stop; neither aborts a running
 program — armed is authorization, not a dead-man, and the HAL chain owns
 motion abort. CLAUDE.md's safety layers said "jog_stop + abort" for both —
 corrected, with README's "stops all motion". The integration proof (leaving

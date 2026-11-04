@@ -256,3 +256,24 @@ def test_evidence_is_bound_to_a_file_and_its_title(tmp_path):
     assert fn.evidence_problems({"layer": "script", "file": "t.py", "title": "${rel} a family"}, tmp_path)
     assert fn.evidence_problems({"layer": "script", "file": "t.py", "title": "another"}, tmp_path)
     assert fn.evidence_problems({"layer": "script", "file": "gone.py", "title": "x"}, tmp_path)
+
+
+def test_format_refuses_before_it_writes(tmp_path, monkeypatch):
+    """Codex R276 FI-I12: a field the layout does not write is refused with
+    the file untouched — never dropped with an error after the write. A
+    present empty list is the data and stays."""
+    monkeypatch.setattr(fn, "HERE", tmp_path)
+    monkeypatch.setattr(sys, "argv", ["functions.py", "--format"])
+    base = {"areas": {"x": "X"}, "functions": [{"id": "F-A", "area": "x", "name": "A", "atoms": ["a"]}], "excludedAtoms": {}}
+    path = tmp_path / "functions.json"
+    extra = json.loads(json.dumps(base))
+    extra["functions"][0]["reviewNote"] = "a field the layout does not know"
+    path.write_text(json.dumps(extra))
+    before = path.read_bytes()
+    assert fn.main() == 1
+    assert path.read_bytes() == before, "refused: the original bytes"
+    empty = json.loads(json.dumps(base))
+    empty["functions"][0]["uses"] = []
+    path.write_text(json.dumps(empty))
+    fn.main()
+    assert json.loads(path.read_text()) == empty, "uses: [] written as it is"
