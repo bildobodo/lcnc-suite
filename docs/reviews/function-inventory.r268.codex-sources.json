@@ -1,0 +1,19 @@
+{
+  "review_head": "bde4480eb57452e2c6af359494577002f1e6fa3a",
+  "product_basis": "98beef82",
+  "review_before_bytes": 77191,
+  "review_before_sha256": "116d742f37d813491d52b4322027b7b4d90006f7791f3214e36ac37e3b4a1b09",
+  "run_command": "PW_ROOT=/tmp/codex-r266-1vt1uv72/lcnc-webui/node_modules nice -n 10 node /tmp/codex-r268/probe.cjs",
+  "scope": "Standalone HTTP and hardlink counterexamples only; no suite build or machine endpoints. Probe used a private existing dependency copy.",
+  "sources": {
+    "lcnc-webui/package.json": "f675f55e7ea4c1c0156e3b203a17ee1abff282361151a4df0803c350b83d26eb",
+    "lcnc-webui/package-lock.json": "7dcad8f9f2c2337a1479f99473e0e30e771af85c94c4a4e04845d8b29398d351",
+    "lcnc-webui/tsconfig.app.json": "072a678c29f592767d5194c1fe40813ca17e10d7fd9764990de5305330c51412",
+    "lcnc-webui/tsconfig.node.json": "bc2477d366fe8faf150d7471ea2a1b8ba4e54f05981191bc048716fa30caabb4",
+    "lcnc-webui/tsconfig.test.json": "017569d6d193577243722cfc764698521654784ef67cd44231f9999615b7685a",
+    "lcnc-gateway/lcnc_paths.py": "30da9ab5ced96d93b8166e7d960401fbcb22a7da818768baac04eb175f2a45ec",
+    "scripts/install_examples.py": "6749dea61e951b22e3d083de54473ad91511410fe062c03abc27f3fbf6919306",
+    "examples/sim_config/lcnc_suite_sim_5axis_xyzac.ini": "623b1f0a14c52a71cb250c25c7213d9892408b2cdab971b398d8a2d254d95288"
+  },
+  "probe_sha256": "9a9cb541774f17f7a7e18336d71ed6bad22364ae5086d0b2cbd6c48a48ccb3a9"
+}

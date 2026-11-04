@@ -1,0 +1,122 @@
+{
+  "playwright": "1.60.0",
+  "typescript": "5.9.3",
+  "cases": [
+    {
+      "mode": "real",
+      "requests": [
+        {
+          "id": "real-1",
+          "path": "/real",
+          "from": null
+        },
+        {
+          "id": "real-2",
+          "path": "/end",
+          "from": "real-1"
+        }
+      ],
+      "routed": [
+        {
+          "id": "real-1",
+          "path": "/real"
+        }
+      ],
+      "server": [
+        {
+          "path": "/real",
+          "id": "real-1"
+        },
+        {
+          "path": "/end",
+          "id": "real-1"
+        }
+      ],
+      "responses": [
+        {
+          "id": "real-1",
+          "status": 302
+        },
+        {
+          "id": "real-2",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "mode": "synthetic",
+      "requests": [
+        {
+          "id": "synthetic-1",
+          "path": "/synthetic",
+          "from": null
+        },
+        {
+          "id": "synthetic-2",
+          "path": "/end",
+          "from": "synthetic-1"
+        }
+      ],
+      "routed": [
+        {
+          "id": "synthetic-1",
+          "path": "/synthetic"
+        }
+      ],
+      "server": [
+        {
+          "path": "/end",
+          "id": null
+        }
+      ],
+      "responses": [
+        {
+          "id": "synthetic-1",
+          "status": 302
+        },
+        {
+          "id": "synthetic-2",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "mode": "fetch",
+      "requests": [
+        {
+          "id": "fetch-1",
+          "path": "/fetch",
+          "from": null
+        }
+      ],
+      "routed": [
+        {
+          "id": "fetch-1",
+          "path": "/fetch"
+        }
+      ],
+      "server": [
+        {
+          "path": "/fetch",
+          "id": "fetch-1"
+        },
+        {
+          "path": "/end",
+          "id": "fetch-1"
+        }
+      ],
+      "responses": [
+        {
+          "id": "fetch-1",
+          "status": 200
+        }
+      ]
+    }
+  ],
+  "hardlink": {
+    "sameInode": true,
+    "originalAfterWriteToCopy": "new build info"
+  },
+  "browser": "148.0.7778.0",
+  "result": "Counterexamples reproduced: header is not per redirect hop; hardlink is not write isolation."
+}

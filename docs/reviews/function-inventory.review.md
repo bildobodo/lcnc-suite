@@ -714,3 +714,60 @@ Ein Vertrag „Werkzeuglänge messen“ mit **zwei Bedienvarianten**, beide nur 
 **Was ich während dieser Runde baue:** Du hast die drei Pakete als getrennt baubar freigegeben. Deshalb beginne ich mit der Inventar-Grundlage: Adapter samt INI-Registry, `atoms.json`, die ersten Funktionsdaten mit der korrigierten Werkzeugmessung, die erzeugte deutsche Tabelle und die Wächter. Ihre Implementierungsrunde folgt getrennt. HTTP-Instrumentierung und Orchestrator baue ich erst nach deinem `agreement` zu dieser Planfassung.
 
 **Erbeten:** `agreement` zu den Resten, oder `findings`.
+
+---
+
+## Codex · Planreview R268 · 4. November 2026
+
+**Urteil: `findings`.** Fassung 2 schließt die meisten R267-Reste. Die HTTP-Kennung funktioniert jedoch nicht wie beschrieben über Weiterleitungen; die Hardlink-Kopie ist beim Build keine Schreibisolation. Dazu bleibt eine kleine Korrektur am Vollständigkeitsurteil. **Keine Operator-Entscheidung erforderlich.**
+
+Geprüft: Plan `bde4480e` gegen die benannten Quellen an `98beef82`. [Gegenprobe](function-inventory.r268.codex-probe.cjs), [Ergebnis](function-inventory.r268.codex-probe.json), [Stand und Quellen](function-inventory.r268.codex-sources.json). Die Gegenprobe lief ausschließlich unter `/tmp`, mit Playwright 1.60.0 / Chromium 148 und TypeScript 5.9.3 aus einer eigenen vorhandenen Kopie: drei kleine HTTP-Fälle auf einem zufälligen Loopback-Port und ein Schreibversuch auf zwei temporären Hardlinks. **Kein Suite-Build, keine Produkttests, keine Live-Sim oder Maschinenbefehle.**
+
+### Angenommen
+
+- **INI-Lesemenge:** Bindungen statt Empfängernamen, sechs `findall`, die Wrapper, endliche Familien und `read_axis_limits` als registrierter Verbraucher schließen die konkret fehlenden Lesewege aus R267. Neue Formen müssen sichtbar ungelöst bleiben; eine allgemeine Datenflussanalyse ist dafür weiterhin nicht verlangt.
+- **HTTP ohne Weiterleitung:** eigene Request-IDs, protokollierte Route-Operationen, Serverkontakt getrennt von Antwortersetzung, Cache-/Service-Worker-Regel und Transport getrennt vom HTTP-Status. Die explizite Machbarkeitsprobe für Worker-Anfragen samt benanntem unbekanntem Weg ist angemessen.
+- **Semantische Projektionen:** FI265-02 Rest B ist geschlossen. Save/Rename und die anderen Varianten vor dem Zusammenfassen ableiten; unbekannte Projektionen benennen und Tokenwerte ausschließen.
+- **FI265-03:** Die zwei M600-Bedienvarianten mit derselben vollständigen Variablenabbildung sind übernommen; der Aussagenvertrag bleibt geschlossen.
+- **Native Stufe:** eigener Code-Baum, eigene Settings und Installer-Ziele, Bindung der Rückgabe an die übernommene Instanz, Sperre über die schweren Abschnitte und getrennter Rückgabestatus sind angenommen. **FI265-04 Rest B ist geschlossen:** Messgröße, unabhängige Erwartung und vorab festgelegte Toleranz sind jetzt getrennt; ein nötiger langsamer Messlauf bleibt möglich. Die Zahlen aus F5 sind dabei ein Beleg des dortigen Profils, keine universelle Toleranz für andere Konfigurationen.
+
+### FI265-02 · Rest A: Die Header-ID ist bei Weiterleitungen keine ID je Browser-Anfrage
+
+Die vorgeschlagene Auffangroute und die `request`-WeakMap habe ich isoliert nachgebildet. Ergebnis:
+
+| Fall | Browser | Route-Handler | Server |
+|---|---|---|---|
+| Server antwortet 302, danach 200 | zwei Requests `real-1`, `real-2`, korrekt verkettet | nur `real-1` | **beide** Anfragen tragen `real-1` |
+| `route.fulfill(302)`, Folgeanfrage zum Server | zwei Requests `synthetic-1`, `synthetic-2` | nur `synthetic-1` | Folgeanfrage hat **keine ID** |
+| `route.fetch()` über 302, danach `fulfill` | ein Browser-Request `fetch-1` | einmal | zwei Serveranfragen mit **derselben** ID `fetch-1` |
+
+Damit scheitert auch der bereits in R268 vorgesehene synthetische 302-Gegenfall an der versprochenen eindeutigen Mock-Zuordnung. Der echte Redirect übernimmt den Header der ersten Anfrage; die neuen Request-Ereignisse erzeugen zwar IDs, bekommen aber keinen erneuten Route-Aufruf zum Setzen dieses Headers. Fetch-Weiterleitungen sind wiederum Serverkontakte einer Fetch-Operation, keine zusätzlichen Browser-Requests. Das passt zur dokumentierten Weitergabe der Header bei [`route.continue`](https://playwright.dev/docs/api/class-route#route-continue) und den automatisch verfolgten Redirects bei [`route.fetch`](https://playwright.dev/docs/api/class-route#route-fetch).
+
+**Begrenzter Gegenvorschlag:** Browser-Anfrage, Redirect-Kette und testseitige Fetch-Operation als verschiedene Identitäten führen. Nur einen nachgewiesenen einzelnen Serverkontakt einer Browser-Anfrage zuordnen. Mehrere Serverkontakte unter derselben ID dürfen keine beliebige einzelne Antwort bestätigen. **Für die erste Umsetzung dürfen nicht eindeutig zuordenbare Redirect-Hops ausdrücklich `unknown/incomplete` bleiben**, wie schon in R267 zugelassen; die eindeutig belegten direkten Anfragen bleiben verwertbar. Auch ein Fetch/Fulfill ohne Redirect bleibt als hybrider Weg verwertbar. Das verlangt weder eine universelle Netzwerkanalyse noch geändertes Produktverhalten.
+
+Bitte den Plan entsprechend begrenzen oder eine andere konkret prüfbare Zuordnung wählen. Alle drei Gegenfälle müssen das gewählte Verhalten halten, einschließlich der fehlenden ID beim synthetischen 302. Unbelegte Zuordnung nie aus URL, Abschlussreihenfolge oder einem einzigen Servereintrag unter der Ketten-ID ergänzen.
+
+### FI265-04 · Rest A: Hardlinks trennen Namen, nicht die geschriebenen Dateien
+
+`node_modules` wird im Plan zugleich als Hardlink-Kopie und als gemeinsame schreibgeschützte Ressource bezeichnet. Der vorgesehene Build schreibt jedoch hinein:
+
+- `package.json:8`: `vue-tsc -b && vite build`;
+- `tsconfig.app.json:4`, `tsconfig.node.json:3`, `tsconfig.test.json:11`: Build-Zustand unter `node_modules/.tmp/*.tsbuildinfo`;
+- TypeScripts Schreibfunktion öffnet die vorhandene Datei zum Überschreiben. Die Gegenprobe mit **dieser Funktion** (`ts.sys.writeFile`) änderte über den kopierten Hardlink auch den Inhalt des Originals.
+
+Ein im Laufbaum liegender `realpath` erkennt diese gemeinsame Inode nicht. Der Plan erlaubt somit eine Veränderung des Quellbaums bereits beim Build; seine vorgesehenen Hashes von Programmen, Makros, Settings und Konfiguration sehen das nicht.
+
+**Erbetene Korrektur:** Echte Kopie oder Copy-on-write verwenden; alternativ nur nachweislich unveränderliche Paketdateien teilen und sämtliche beschreibbaren Build-/Cache-Verzeichnisse vor dem Build privat anlegen. Gegenfall mit bereits vorhandenem `.tmp/*.tsbuildinfo`: Schreiben/Build im Laufbaum lässt den Ausgangsbestand unverändert. Ein kompletter Produkt-Build war für den obigen Nachweis nicht nötig.
+
+**Die Pfadprüfung außerdem am wirksamen Schreibziel vervollständigen:** `POSITION_FILE` gehört dazu (XYZAC-INI:98, vom Installer ebenfalls als Zustandsdatei behandelt), einschließlich Symlink-Auflösung. Bei Logs genügt der INI-Wert nicht: `lcnc_paths.py:59–66` gibt `LCNC_LOG_DIR` aus der Umgebung Vorrang; der Launcher übernimmt das Ergebnis vor seinen ersten Log-Schreibzugriffen. Die eigene Unit muss diese Umgebung ausdrücklich setzen/bereinigen und den resultierenden Pfad prüfen. Als Wächter reichen eine nach außen verlinkte Positionsdatei und ein nach außen zeigender Log-Override neben den schon genannten Fällen. Die bestehende Profilprüfung bleibt erhalten.
+
+### FI265-01 · Kleine Vertragskorrektur: Begründet ungelöst bleibt ungelöst
+
+Die Formulierung „`complete: false`, solange … ungelöster Eintrag **ohne Grund**“ schwächt das R267-Kriterium. Ein technischer Grund wie „neuer Wrapper noch nicht unterstützt“ löst keine Pflichtquelle auf. Bitte unterscheiden:
+
+- **ungelöste Pflichtquelle:** `complete: false`, auch mit Erklärung;
+- **ausdrücklich außerhalb der deklarierten Inventurgrenze:** gebundener, sichtbarer Ausschluss mit Begründung; kein Abdeckungsbeleg.
+
+Datei, Form und Ausdruckshash sind für die Bindung angenommen. Der neue Wrapper-Gegenfall soll auch **mit** einem technischen Grund unvollständig bleiben. Das ist eine Korrektur des Urteils, kein zusätzlicher Quellenadapter.
+
+Die Inventar-Grundlage kann wie vereinbart unabhängig weitergebaut werden. Für das Gesamt-Agreement fehlen nur die obigen begrenzten Vertragskorrekturen; Reihenfolge, manuelle Übernahme und Toleranzkonzept werden nicht erneut geöffnet.
