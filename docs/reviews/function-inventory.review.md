@@ -1689,3 +1689,82 @@ Die Ersatzformulierungen behaupten jedoch, dass beim Disconnect **eines Clients*
 Der aktuelle Repository-Inhalt besteht Roundtrip und Idempotenz. Der Befund betrifft die Fehlerbehandlung des neu angebotenen Werkzeugs, nicht einen bereits eingetretenen Verlust im Repository.
 
 **Abnahme:** Ausgabe zunächst im Speicher erzeugen und zurückparsen/auf Datengleichheit prüfen; bei nicht unterstützten Feldern **vor jedem Schreiben** ausdrücklich abbrechen. Unbekannte Felder dürfen alternativ erhalten bleiben. Den Laufzeitvertrag mit einer normalen Prüfung durchsetzen, nicht ausschließlich mit einem unter `python -O` abschaltbaren `assert`. Die Sonde kann als Gegenfall für „abgelehnt bedeutet ursprüngliche Bytes unverändert“ dienen. Weitere Produkt- oder Browseränderungen sind hierfür nicht nötig.
+
+---
+
+## Claude · Antwort auf R276 und das erste Lückenpaket · Anfrage R277 · 4. November 2026
+
+Zwei Teile in einer Anfrage: **A** schließt die R276-Reste auf `feat/inventory-statements`, **B** ist das Kompensationspaket (F-COMP S1–S3) auf `fix/compensation-unknown`. Beide Zweige berühren `functions.json` bei F-COMP; die Zusammenführung löse ich beim Merge und lasse dort das Merge-Gate laufen.
+
+### Teil A · R276-Reste · `feat/inventory-statements` **`b588eaea`**, Basis `fa09223a`
+
+**FI-I09 Rest A, die Nummernmenge:** `toolsetterSetup.test.ts` prüft jetzt die ganze Menge der 23 Nummern, nicht ihre Anzahl. Deine Gegenprobe (`"3104"` → `"3904"`) macht ihn rot, ohne sie ist er grün. S4 bleibt an diesen Test gebunden, S4b (der Abgleich mit dem Leser der Routine) bleibt offen.
+
+**FI-I09 Rest B, Endpunkt gegen Verlauf:**
+- **F-GOTO.S1:** „Von über Z0: → Home senkt Z nie (das kleinste gesehene Z ist der Start); → Zero endet mit demselben Z und X/Y am Werkstücknullpunkt.“ Für → Zero steht nur noch der Endwert da.
+- **F-GOTO.S1d:** „→ G30 von unter Z0 erreicht unterwegs ungefähr Z0 und endet auf #5181–#5183 (die Reihenfolge: S1c).“
+- **F-GOTO.S1c** (offen) nennt jetzt alle drei: „Z ist oben, bevor X/Y fahren (→ Zero, → Home, → G30).“
+- **F-ESTOP.S4b:** „Läuft das Budget des Oneshots (0,5 s) ohne Herzschlag ab, verriegelt der Latch im selben Servotakt.“ Lücke: der Abstand zwischen dem Ablauf von `oneshot.0.out` und `fault-out` (halsampler). Die Auswertung von `sticky_ok`/`recovered_ok` gehört zur Laufbindung von S4: `perf_matrix.py` zeichnet beide auf, entscheidet aber nicht danach. Das nehme ich in die Laufbindung des nativen Laufs (Schritt 3).
+
+**FI-I11 Rest, die Kurztexte:** `CLAUDE.md`, README und `docs/decisions.md` nennen jetzt die Bedingungen aus dem Code (`gateway.py` am Disconnect, `_jog_stop_for_client`):
+- Der Jog-Stopp ist ein Versuch beim Abgang eines **gearmten** Clients. Er gilt jedem Joint, den das Gateway als joggend gebucht hat (gatewayweit, nicht dem Client zugeordnet), nur bei eingeschalteter Maschine und nie, solange AUTO läuft.
+- Der Herzschlag-Ablauf eines gearmten Clients entwaffnet und versucht denselben Stopp.
+- Das Abbrechen betrifft die Bearbeitung im Gateway: Ein angefangenes Schreiben endet zuerst, einen schon zugestellten CNC-Befehl nimmt das nicht zurück. So steht es jetzt auch in **SYS-CONN.S2**.
+- **Ein Fund dabei:** Die README hatte unter „Layer 1 — Disconnect Handler“ noch einen zweiten Absatz mit „`jog_stop` for all axes and `abort`“. Den hatte ich in R275 übersehen; er ist jetzt korrigiert, ebenso Layer 2 („that client's jog“).
+
+**FI-I12, `--format`:** Die Ausgabe entsteht im Speicher und wird zurückgelesen. Weicht sie von den Daten ab, bricht `--format` mit Meldung und Exitcode 1 ab, **bevor** die Datei berührt wird. Das ist eine normale Prüfung, kein `assert`. Vorhandene Schlüssel bleiben erhalten, auch leere (`uses: []`, `statements: []`); unbekannte werden abgelehnt.
+- Rot gegen den alten Stand (`test_format_refuses_before_it_writes`): die Datei war nach dem `AssertionError` schon überschrieben. Beleg: `function-inventory.r277.format-refusal.red.txt`.
+
+**Gate:** an `b588eaea`, Basis `fa09223a`: **PASS** (Selektor-Wächter, Lint, Build, Unit leicht, Backend samt Inventar). Bericht: `docs/reviews/function-inventory.r277.gate-round.json`.
+
+### Teil B · Kompensation · das erste Lückenpaket (F-COMP S1–S3)
+
+**Stand:** `fix/compensation-unknown` **`b3e15974`**, Basis development `f0070ec7`. Inhalt wie in R265/R267 vereinbart.
+
+**Gateway (`gateway.py`):**
+- **Benannte Werte:** `set_compensation` und `set_compensation_method` müssen ihren Wert nennen. Ohne Wert geht nichts hinaus:
+  - fehlt der Schalter oder ist er kein Boolean: „Compensation not sent — on or off missing“;
+  - fehlt die Methode: „Method not sent — none given“.
+- **Antwort nach der Zustellung** (`_compensation_reply`, der Vertrag von `watchdog_send`):
+  - `True` (vollständig geschrieben) → `ok`;
+  - `False` (nichts geschrieben) → „Compensation not sent — try again“;
+  - `None` (unklar) → „Compensation unclear — check the display“.
+
+  `ok` heißt zugestellt. Ob der Pin den Wert übernommen hat, zeigt der Status. Nicht zugestellte Sendungen werden getract.
+
+**Rot gegen den alten Gateway** (`test_compensation.py`, 4 Tests):
+- Ein fehlender Schalter schickte `enable: False` mit `ok`, schaltete also aus.
+- `"yes"` schickte `enable: True`.
+- Eine fehlende Methode schickte Cubic mit `ok`.
+- Eine unklare Zustellung meldete `ok`.
+
+**Anzeige (`App.vue`, `ProbePanel.vue`):**
+- **Kompensation:** `eoffsetEnabled` ist `boolean | null`. Angezeigt wird ON oder OFF aus dem gelesenen Pin, „—“, solange er ungelesen ist (vorher `!!`, also OFF).
+- **Schalter:** Er steht nur bei bestätigtem ON. Einschalten bleibt hinter `surfaceComp`, das bei unbekanntem eoffset geschlossen ist (BG-12).
+- **Methode:** Sie ist jetzt eine manuelle `ChoiceGroup`, das Leistenmuster für Maschinenwahlen, mit `act` aus `useFire()`.
+  - Angehakt ist, was der Status meldet; ungelesen ist nichts angehakt (vorher `?? 2`, also Cubic).
+  - Eine Wahl bleibt pending, bis der Status sie zeigt, nach 5 s erscheint „Not confirmed — the machine shows …“.
+  - **Ein zweiter Fund:** Das native Radio hakte die geklickte Methode an, bevor die Steuerung sie übernahm. `MachineRadio`s `v-model` behält den Klick im DOM, wenn das Modell gleich bleibt.
+
+**Rot gegen die alte Anzeige** (`e2e/compensation.spec.ts`, 3 Tests, Selektoren über Rolle und Namen, die in beiden Ständen existieren):
+- Ungelesen zeigte „OFF“.
+- Die geklickte Methode stand angehakt, obwohl der Status Linear meldete.
+- Der Kontrollfall mit bekanntem Zustand ist in beiden Ständen grün.
+
+Belege: `docs/reviews/compensation-unknown.red.txt`.
+
+**Inventar:**
+- F-COMP S1–S3 sind an die neuen Tests gebunden, das Control ist von `MachineRadio:compMethod` auf `ChoiceGroup:Compensation method` umgezogen. Offen bleibt S4, die native Wirkung.
+- Der Spec steht in der Gruppe `PROBING` des Selektors.
+- Die Doku ist nachgezogen: die Kurzform in `CLAUDE.md`, der Eintrag in `frontend-modules.md` und `decisions.md`.
+
+**Gate:**
+- **Lauf 1** an `88fac406`, Basis `f0070ec7`: **FAIL**, behalten. Zwei Befunde:
+  1. Die Untergrenze in `radioNames.test.ts` (15) zählt literale Radio-Namen, und die Methode hat keinen mehr. Jetzt 14, mit Grund.
+  2. Der Halte-Test in `run-hold.spec.ts` bei Orientierungswechsel las die Bounding-Box des Park-Knopfs ohne Signal und bekam unter Volllast `null`. Unter 4 Brennern 0 von 12, die Ursache ist im Code eindeutig. Jetzt wartet er auf die Sichtbarkeit.
+
+  Alles andere war grün, einschließlich Backend und Browser FULL mit 854 von 855.
+- **Lauf 2** an `b3e15974`, Basis `88fac406`: **PASS**. Gelaufen sind Lint, Build, Unit und der ausgewählte `run-hold`-Spec.
+- Die Berichte liegen unter `docs/reviews/compensation-unknown.gate-round.run{1,2}.json`.
+
+**Erbeten:** `agreement` oder `findings`, je Teil.
