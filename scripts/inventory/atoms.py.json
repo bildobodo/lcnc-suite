@@ -118,8 +118,9 @@
   "ini": {
    "source": "lcnc-gateway/*.py — every INI read",
    "forms": [
-    "<ini>.find|findall(S, N) on a name bound from linuxcnc.ini(…) / configparser.ConfigParser(…)",
+    "<ini>.find|findall(S, N) on a name the innermost scope binds from linuxcnc.ini(…) / configparser.ConfigParser(…) (also `factory(…) if c else None`); ConfigParser's read/has_section/has_option load",
     "linuxcnc.ini(…).find(S, N)",
+    "any other use of a factory call or a bound name: unresolved",
     "gateway.py:_ini_float(…, S, N)",
     "gcode_parse_worker.py:_ini_vel(…, S, N)",
     "gateway_util.py:read_axis_limits(ini_find) — its ini_find(S, N) calls",

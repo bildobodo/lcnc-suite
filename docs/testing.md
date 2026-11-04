@@ -159,8 +159,14 @@ and their evidence. The operator's table is `docs/inventory/funktionen.md`
   classes stay apart: `unresolved` (incomplete, with a reason or without),
   `excluded` (outside the declared boundary, bound to file, form and
   expression), `variantsOpen` (a family whose members are not derived).
-  The table has a view by place and a statement's `applies` (Machine / TCP /
-  Plane or a profile id) is checked.
+  The table has a view by place; every statement names its scope (`applies`:
+  Machine / TCP / Plane, a profile id, `alle` or `offen`); a parametric test
+  title lists its `instances`; every routine and remap is bound to its shipped
+  file in the example profiles (`functions.routine_problems`).
+- **Test-only modules** — `controlScan.ts`, `controlInventory.ts` and the
+  inventory's adapters have a unit-only rule; `test_selector.py` walks the
+  runtime imports from `main.ts`, `App.vue` and every worker a reached module
+  starts, with no cut (`graph.reached_from`), and fails if one is reached.
 
 Evidence is bound statically in this step (the named file holds the title);
 whether it ran and passed comes from the run artifacts with the measurement

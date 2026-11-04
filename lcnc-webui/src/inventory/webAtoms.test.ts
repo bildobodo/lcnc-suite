@@ -112,12 +112,22 @@ describe("the function inventory's web atoms (Codex R265–R268 FI265-01)", () =
     expect(a.variantsOpen).toEqual([{ file: "P.vue", form: "v-for family", expr: "f in other" }]);
   });
 
-  it("controls: a ChoiceGroup instance is the control at its place; one the scan misses is unresolved", () => {
-    const vue = `<template><div><ChoiceGroup label="Task mode" :options="o" :act="modeAct" /></div></template>`;
-    expect(controlsAdapter(memory({ "J.vue": vue })).atoms.map((x) => x.id)).toEqual(["control:J.vue|ChoiceGroup:Task mode| :act=modeAct"]);
-    // the kebab-case spelling Vue accepts too: written, not read by the scan
-    const broken = controlsAdapter(memory({ "K.vue": "<template><div><choice-group label=\"x\" :act=\"a\" /></div></template>" }));
-    expect(broken.unresolved.map((u) => u.form)).toEqual(["<ChoiceGroup>"]);
+  it("controls: a ChoiceGroup instance is the control at its place, in either spelling", () => {
+    const vue = `<template><div><ChoiceGroup label="Task mode" :options="o" :act="modeAct" /><choice-group label="Frame" :act="f" /></div></template>`;
+    expect(controlsAdapter(memory({ "J.vue": vue })).atoms.map((x) => x.id)).toEqual([
+      "control:J.vue|ChoiceGroup:Frame| :act=f", "control:J.vue|ChoiceGroup:Task mode| :act=modeAct"]);
+  });
+
+  it("controls: a catalog component in kebab-case is read (Codex R270 FI-I04); a tag the scan does not read is unresolved", () => {
+    const vue = `<template><div><MachineInput gate="mdiText" v-model="a" /><machine-input gate="mdiText" v-model="b" /></div></template>`;
+    const a = controlsAdapter(memory({ "M.vue": vue }));
+    expect(a.atoms.map((x) => x.id)).toEqual(["control:M.vue|MachineInput:mdiText|v-model=a", "control:M.vue|MachineInput:mdiText|v-model=b"]);
+    expect(a.unresolved).toEqual([]);
+    // written in the template, but inside an attribute: no tag the scan reads
+    const odd = controlsAdapter(memory({ "N.vue": `<template><div title="<MachineBtn type=abort>"><MachineBtn type="abort" @click="x" /></div></template>` }));
+    expect(odd.unresolved).toEqual([{ file: "N.vue", form: "<MachineBtn>", expr: "2 written, 1 found" }]);
+    // a commented-out one is no use
+    expect(controlsAdapter(memory({ "C.vue": `<template><!-- <MachineBtn type="abort" /> --><MachineBtn type="abort" @click="x" /></template>` })).unresolved).toEqual([]);
   });
 
   it("controls: a family inside a v-for element is the element's, outermost first", () => {
@@ -158,10 +168,16 @@ describe("the function inventory's web atoms (Codex R265–R268 FI265-01)", () =
     expect(noTables.unresolved.map((u) => u.form)).toEqual(["op.macro"]);
   });
 
-  it("frames: a JSON object, a text frame and a relay are read; any other send is unresolved", () => {
-    const a = framesAdapter(memory({ "wsWorker.ts": 'ws.send(JSON.stringify({ cmd: "hello" })); ws.send(`{"cmd":"heartbeat","seq":${n}}`); ws.send(p); ws.send(msg.payload); ws.send(build());' }));
-    expect(a.atoms.map((x) => x.id)).toEqual(["frame:heartbeat", "frame:hello"]);
-    expect(a.unresolved.map((u) => u.expr)).toEqual(["ws.send(build())"]);
+  it("frames: a JSON object, a text frame, a const bound to one; the two proven relays; any other send unresolved (Codex R270 FI-I03)", () => {
+    const worker = `ws.send(JSON.stringify({ cmd: "hello" })); ws.send(\`{"cmd":"heartbeat","seq":\${n}}\`);
+      function flush() { while (preOpenQueue.length) { const p = preOpenQueue.shift()!; ws.send(p); } }
+      function onmsg(msg) { switch (msg.type) { case "send": preOpenQueue.push(msg.payload); ws.send(msg.payload); break; } }
+      function own() { const f = JSON.stringify({ cmd: "new_frame", value: 1 }); ws.send(f); }`;
+    const a = framesAdapter(memory({ "wsWorker.ts": worker }));
+    expect(a.atoms.map((x) => x.id)).toEqual(["frame:heartbeat", "frame:hello", "frame:new_frame"]);
+    expect(a.unresolved).toEqual([]);
+    const other = framesAdapter(memory({ "wsWorker.ts": worker + `\nfunction x(v) { ws.send(v); ws.send(msg.payload); preOpenQueue.push(build()); }` }));
+    expect(other.unresolved.map((u) => u.expr)).toEqual(["ws.send(v)", "ws.send(msg.payload)", "preOpenQueue.push(build())"]);
   });
 
   it("routines: the reference's syntax text is excluded with its reason; the same text elsewhere is not", () => {
@@ -175,6 +191,15 @@ describe("the function inventory's web atoms (Codex R265–R268 FI265-01)", () =
     const w = webAtoms(treeSources());
     expect(Object.keys(w.excludedFiles)).toEqual(["inventory/"]);
     expect(JSON.stringify(w.adapters)).not.toContain("inventory/webAtoms.ts");
+  });
+
+  it("probe routines: one unknown table entry or calibration call beside known literals is unresolved (Codex R270 FI-I02)", () => {
+    const table = probeRoutines("ProbePanel.vue", PROBE_PANEL.replace("{ macro: \"probe_z_minus_wco\" }", "{ macro: \"probe_z_minus_wco\" }, { macro: chooseRoutine() }"));
+    expect(table.names).toContain("probe_z_minus_wco");
+    expect(table.unresolved.map((u) => u.form)).toEqual(["a procedure table's macro:"]);
+    const cal = probeRoutines("ProbePanel.vue", PROBE_PANEL.replace("<b @click", "<i @click=\"runCalProbe(selected)\" /><b @click"));
+    expect(cal.names).toContain("probe_cal_round_boss");
+    expect(cal.unresolved.map((u) => u.expr)).toEqual(["runCalProbe(selected)"]);
   });
 
   it("routines: the macro family without its literals is unresolved", () => {

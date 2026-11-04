@@ -92,3 +92,42 @@ def terminals(module: str, rev: dict[str, set[str]], workers: set[str]) -> dict[
             else:
                 queue.append(y)
     return found
+
+
+def spawns(src: Path) -> dict[str, set[str]]:
+    """A module → the workers it starts (`new Worker(new URL("./x.ts", import.meta.url))`)."""
+    out: dict[str, set[str]] = {}
+    for f in sources(src):
+        for m in EDGE.finditer((src / f).read_text()):
+            if m.group(4):
+                target = _resolve(src, f, m.group(4))
+                if target is not None and target != f:
+                    out.setdefault(f, set()).add(target)
+    return out
+
+
+def reached_from(entries: list[str], rev: dict[str, set[str]], spawned: dict[str, set[str]]) -> dict[str, list[str]]:
+    """Every module a runtime walk from the entries reaches — through every
+    runtime import and into every worker a reached module starts, with NO cut
+    (the proof that a test-only module stays out of the running app, Codex
+    R270) — each with the chain from its entry."""
+    fwd: dict[str, set[str]] = {}
+    for imported, by in rev.items():
+        for f in by:
+            fwd.setdefault(f, set()).add(imported)
+    prev: dict[str, str | None] = {e: None for e in entries}
+    queue = deque(entries)
+    while queue:
+        x = queue.popleft()
+        for y in sorted(fwd.get(x, set()) | spawned.get(x, set())):
+            if y not in prev:
+                prev[y] = x
+                queue.append(y)
+    out = {}
+    for m in prev:
+        path, node = [], m
+        while node is not None:
+            path.append(node)
+            node = prev[node]
+        out[m] = path[::-1]
+    return out

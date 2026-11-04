@@ -97,23 +97,21 @@ def http_adapter(sources: dict[str, str]) -> dict:
 
 # ── INI ──────────────────────────────────────────────────────────────────
 
-# The read registry (Codex R267/R268): wrappers by module and name with the
-# positions of their section and key arguments; consumers that take a read
-# function, with the parameter that carries it.
-WRAPPERS = {("gateway.py", "_ini_float"): (1, 2), ("gcode_parse_worker.py", "_ini_vel"): (0, 1)}
+# The read registry (Codex R267/R268/R270): wrappers by module and name with
+# the index of their INI-object parameter (None: it reads an object of an
+# enclosing scope) and of their section and key; consumers that take a read
+# function, with its parameter. A wrapper's own parametric read is its call
+# sites'; anything else in its body is read like any other code.
+WRAPPERS = {("gateway.py", "_ini_float"): (0, 1, 2), ("gcode_parse_worker.py", "_ini_vel"): (None, 0, 1)}
 CONSUMERS = {("gateway_util.py", "read_axis_limits"): "ini_find"}
+# Functions that return an INI object (their `return linuxcnc.ini(…)` is the
+# form; a name bound from their call is an INI object).
+FACTORY_FUNCTIONS = {("gateway.py", "_g30_ini")}
+# What makes an INI object, the reads it offers and the loads it may take.
+FACTORIES = {"linuxcnc.ini": ("find", "findall"), "configparser.ConfigParser": ("get",)}
+LOADS = {"configparser.ConfigParser": ("read", "read_string", "read_file", "has_section", "has_option")}
 FAMILY_KEY = re.compile(r"\{[^}]*\}")
-
-
-def _receivers(tree: ast.AST) -> set[str]:
-    """Names bound from linuxcnc.ini(…) or configparser.ConfigParser(…)."""
-    out = set()
-    for n in ast.walk(tree):
-        if isinstance(n, ast.Assign) and isinstance(n.value, ast.Call):
-            f = ast.unparse(n.value.func)
-            if f in ("linuxcnc.ini", "configparser.ConfigParser"):
-                out |= {t.id for t in n.targets if isinstance(t, ast.Name)}
-    return out
+SCOPES = (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
 
 
 def _string(node: ast.AST, scope: ast.AST | None) -> str | None:
@@ -131,21 +129,78 @@ def _string(node: ast.AST, scope: ast.AST | None) -> str | None:
     return None
 
 
-def _functions(tree: ast.AST):
-    """(function, its node) for every def, innermost last; module scope as None."""
-    stack: list = []
+def _factory_value(v: ast.AST | None, file: str = "") -> ast.Call | None:
+    """The factory call an assigned value is: the call itself (a factory or a
+    registered factory function), or the one branch of
+    `factory(…) if cond else None`."""
+    if isinstance(v, ast.Call) and (ast.unparse(v.func) in FACTORIES or (file, ast.unparse(v.func)) in FACTORY_FUNCTIONS):
+        return v
+    if isinstance(v, ast.IfExp):
+        branches = [v.body, v.orelse]
+        calls = [b for b in branches if isinstance(b, ast.Call) and ast.unparse(b.func) in FACTORIES]
+        nones = [b for b in branches if isinstance(b, ast.Constant) and b.value is None]
+        if len(calls) == 1 and len(nones) == 1:
+            return calls[0]
+    return None
 
-    def visit(n, fn):
-        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            fn = n
+
+def _bindings(scope: ast.AST, file: str) -> dict[str, str | None]:
+    """The names a scope binds itself (nested scopes excluded): name → the
+    factory it is bound from, or None for any other binding. A registered
+    wrapper's INI parameter is bound from linuxcnc.ini."""
+    out: dict[str, str | None] = {}
+    if not isinstance(scope, ast.Module):
+        a = scope.args
+        for x in [*a.posonlyargs, *a.args, *a.kwonlyargs, *([a.vararg] if a.vararg else []), *([a.kwarg] if a.kwarg else [])]:
+            out[x.arg] = None
+        w = WRAPPERS.get((file, getattr(scope, "name", "")))
+        if w and w[0] is not None:
+            out[(a.posonlyargs + a.args)[w[0]].arg] = "linuxcnc.ini"
+
+    def visit(n: ast.AST):
         for c in ast.iter_child_nodes(n):
-            stack.append((c, fn))
-            visit(c, fn)
-    visit(tree, None)
-    return stack
+            if isinstance(c, SCOPES):
+                if not isinstance(c, ast.Lambda):
+                    out.setdefault(c.name, None)
+                continue
+            if isinstance(c, (ast.Assign, ast.AnnAssign)):
+                call = _factory_value(c.value, file)
+                for t in (c.targets if isinstance(c, ast.Assign) else [c.target]):
+                    if isinstance(t, ast.Name):
+                        f = ast.unparse(call.func) if call is not None else None
+                        kind = f if f in FACTORIES or f is None else "linuxcnc.ini"
+                        out[t.id] = kind if out.get(t.id, kind) == kind else "mixed"
+                    else:
+                        visit(t)
+                if c.value is not None:
+                    visit(c.value)
+                continue
+            if isinstance(c, ast.Name) and isinstance(c.ctx, ast.Store):
+                out[c.id] = None if out.get(c.id) is None else "mixed"
+            visit(c)
+    visit(scope)
+    return out
+
+
+def _truth_test(n: ast.AST, parent: dict) -> bool:
+    """The name is only tested: a condition, `not`, `is (not) None`, or an
+    `and`/`or` that is itself a condition (`x = ini or y` is a use)."""
+    up = parent.get(n)
+    if isinstance(up, (ast.If, ast.While, ast.IfExp)) and up.test is n:
+        return True
+    if isinstance(up, ast.UnaryOp) and isinstance(up.op, ast.Not):
+        return True
+    if isinstance(up, ast.BoolOp):
+        return _truth_test(up, parent)
+    return isinstance(up, ast.Compare) and all(isinstance(o, (ast.Is, ast.IsNot)) for o in up.ops) \
+        and all(isinstance(c, ast.Constant) and c.value is None for c in up.comparators)
 
 
 def ini_adapter(sources: dict[str, str], example_inis: dict[str, str]) -> dict:
+    """Every INI read: a factory call (`linuxcnc.ini(…)`, `ConfigParser(…)`) is
+    bound to a name or read on the spot; a name bound from one (in the
+    innermost scope that binds it) is read, loaded, handed to a registered
+    wrapper or consumer — any other use of either is unresolved."""
     atoms: dict[str, dict] = {}
     unresolved: list[dict] = []
 
@@ -162,59 +217,100 @@ def ini_adapter(sources: dict[str, str], example_inis: dict[str, str]) -> dict:
 
     for file, text in sources.items():
         tree = ast.parse(text)
-        recv = _receivers(tree)
-        wrapper_defs = {name for (f, name) in WRAPPERS if f == file}
-        consumer_defs = {name: p for (f, name), p in CONSUMERS.items() if f == file}
-        for n, fn in _functions(tree):
-            in_wrapper = fn is not None and fn.name in wrapper_defs
-            if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr in ("find", "findall", "get"):
-                v = n.func.value
-                is_ini = (isinstance(v, ast.Name) and v.id in recv) or (
-                    isinstance(v, ast.Call) and ast.unparse(v.func) == "linuxcnc.ini")
-                if not is_ini or (n.func.attr == "get" and not (isinstance(v, ast.Name) and v.id in recv)):
-                    continue
-                if in_wrapper:
-                    continue   # a wrapper's body: its reads are its call sites'
-                if len(n.args) < 2:
-                    unresolved.append(site(file, f"<ini>.{n.func.attr}", ast.unparse(n)))
-                    continue
-                if fn is not None and all(isinstance(x, ast.Name) and x.id in {p.arg for p in fn.args.args} for x in n.args[:2]):
-                    continue   # reads its parameters: a wrapper — reported once, below
-                read(file, _string(n.args[0], fn), _string(n.args[1], fn), f"<ini>.{n.func.attr}(S, N)", ast.unparse(n),
-                     many=n.func.attr == "findall")
+        parent = {c: n for n in ast.walk(tree) for c in ast.iter_child_nodes(n)}
+        binds = {s: _bindings(s, file) for s in ast.walk(tree) if isinstance(s, SCOPES)}
+
+        def chain(n: ast.AST) -> list[ast.AST]:
+            out = []
+            while n in parent:
+                n = parent[n]
+                if isinstance(n, SCOPES):
+                    out.append(n)
+            return out
+
+        def kind(name: ast.Name) -> str | None:
+            for s in chain(name):
+                if name.id in binds[s]:
+                    return binds[s][name.id]
+            return None
+
+        def fn_of(n: ast.AST):
+            return next((s for s in chain(n) if isinstance(s, (ast.FunctionDef, ast.AsyncFunctionDef))), None)
+
+        def params(fn) -> list[str]:
+            return [] if fn is None else [x.arg for x in fn.args.posonlyargs + fn.args.args]
+
+        def read_call(call: ast.Call, attr: str, form: str):
+            fn = fn_of(call)
+            w = WRAPPERS.get((file, getattr(fn, "name", "")))
+            if len(call.args) < 2:
+                unresolved.append(site(file, form, ast.unparse(call)))
+                return
+            own = params(fn)
+            if w and all(isinstance(a, ast.Name) for a in call.args[:2]) \
+                    and [a.id for a in call.args[:2]] == [own[w[1]], own[w[2]]]:
+                return   # the wrapper's own parametric read: its call sites'
+            sec, key = _string(call.args[0], fn), _string(call.args[1], fn)
+            if (sec is None or key is None) and all(isinstance(a, ast.Name) and a.id in own for a in call.args[:2]):
+                unresolved.append(site(file, "an unregistered wrapper", f"{fn.name}: {ast.unparse(call)}"))
+                return
+            read(file, sec, key, form, ast.unparse(call), many=attr == "findall")
+
+        for n in ast.walk(tree):
+            up = parent.get(n)
+            # a factory call: bound to names, or read on the spot
+            if isinstance(n, ast.Call) and ast.unparse(n.func) in FACTORIES:
+                f = ast.unparse(n.func)
+                assign = parent.get(up) if isinstance(up, ast.IfExp) else up
+                if isinstance(assign, ast.Assign) and _factory_value(assign.value) is n \
+                        and all(isinstance(t, ast.Name) for t in assign.targets):
+                    pass
+                elif isinstance(assign, ast.Return) and (file, getattr(fn_of(n), "name", "")) in FACTORY_FUNCTIONS:
+                    pass   # a registered factory function's return
+                elif isinstance(up, ast.Attribute) and up.attr in FACTORIES[f] and isinstance(parent.get(up), ast.Call) \
+                        and parent[up].func is up:
+                    read_call(parent[up], up.attr, f"{f}(…).{up.attr}(S, N)")
+                else:
+                    unresolved.append(site(file, "an INI object handed on", ast.unparse(up if up is not None else n)))
+            # a name bound from a factory
+            elif isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load) and kind(n) not in (None,):
+                k = kind(n)
+                call = parent.get(up) if isinstance(up, ast.Attribute) else None
+                if k == "mixed":
+                    unresolved.append(site(file, "a name bound to an INI object and to something else", ast.unparse(up or n)))
+                elif isinstance(up, ast.Attribute) and up.attr in FACTORIES[k] and isinstance(call, ast.Call) and call.func is up:
+                    read_call(call, up.attr, f"<ini>.{up.attr}(S, N)")
+                elif isinstance(up, ast.Attribute) and up.attr in LOADS.get(k, ()) and isinstance(call, ast.Call) and call.func is up:
+                    pass
+                elif isinstance(up, ast.Attribute) and up.attr in FACTORIES[k] and isinstance(call, ast.Call) and up in call.args \
+                        and isinstance(call.func, ast.Name) and any(name == call.func.id for (_, name) in CONSUMERS):
+                    pass   # the read function handed to a registered consumer
+                elif _truth_test(n, parent):
+                    pass   # `if ini …`, `ini is None`: a check, no use
+                elif isinstance(up, ast.Call) and isinstance(up.func, ast.Name) and (file, up.func.id) in WRAPPERS \
+                        and WRAPPERS[(file, up.func.id)][0] is not None and up.args[WRAPPERS[(file, up.func.id)][0]:][:1] == [n]:
+                    pass   # the object handed to a registered wrapper
+                elif isinstance(up, ast.Attribute):
+                    unresolved.append(site(file, "an INI read function handed on", ast.unparse(parent.get(up) or up)))
+                else:
+                    unresolved.append(site(file, "an INI object used another way", ast.unparse(up if up is not None else n)))
+            # a registered wrapper's call site
             elif isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and (file, n.func.id) in WRAPPERS:
-                si, ki = WRAPPERS[(file, n.func.id)]
-                args = n.args
-                if len(args) <= max(si, ki):
+                _, si, ki = WRAPPERS[(file, n.func.id)]
+                if len(n.args) <= max(si, ki):
                     unresolved.append(site(file, f"{n.func.id}(…)", ast.unparse(n)))
-                    continue
-                read(file, _string(args[si], fn), _string(args[ki], fn), f"{n.func.id}(S, N)", ast.unparse(n))
-            elif isinstance(n, ast.Call) and fn is not None and fn.name in consumer_defs \
-                    and isinstance(n.func, ast.Name) and n.func.id == consumer_defs[fn.name]:
-                read(file, _string(n.args[0], fn) if n.args else None, _string(n.args[1], fn) if len(n.args) > 1 else None,
-                     f"{fn.name}'s {n.func.id}(S, N)", ast.unparse(n))
-            # a read function handed on: only to a registered consumer
-            if isinstance(n, ast.Call):
-                for a in n.args:
-                    if isinstance(a, ast.Attribute) and a.attr in ("find", "findall") and isinstance(a.value, ast.Name) and a.value.id in recv:
-                        callee = ast.unparse(n.func).split(".")[-1]
-                        if not any(name == callee for (_, name) in CONSUMERS):
-                            unresolved.append(site(file, "read function handed on", ast.unparse(n)))
-            # a receiver used any other way (attribute, argument, return)
-            if isinstance(n, ast.Name) and n.id in recv and isinstance(n.ctx, ast.Load):
-                pass
-        # an unregistered function that reads a receiver with a non-literal
-        # section or key: a new wrapper
-        for n, fn in _functions(tree):
-            if fn is None or fn.name in wrapper_defs or fn.name in consumer_defs:
-                continue
-            if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr in ("find", "findall") \
-                    and isinstance(n.func.value, ast.Name) and n.func.value.id in recv and len(n.args) >= 2 \
-                    and all(isinstance(a, ast.Name) and a.id in {x.arg for x in fn.args.args} for a in n.args[:2]):
-                unresolved.append(site(file, "an unregistered wrapper", f"{fn.name}: {ast.unparse(n)}"))
+                else:
+                    read(file, _string(n.args[si], fn_of(n)), _string(n.args[ki], fn_of(n)), f"{n.func.id}(S, N)", ast.unparse(n))
+            # a registered consumer's reads through its read-function parameter
+            elif isinstance(n, ast.Call) and isinstance(n.func, ast.Name):
+                fn = fn_of(n)
+                if fn is not None and CONSUMERS.get((file, fn.name)) == n.func.id:
+                    read(file, _string(n.args[0], fn) if n.args else None, _string(n.args[1], fn) if len(n.args) > 1 else None,
+                         f"{fn.name}'s {n.func.id}(S, N)", ast.unparse(n))
     return adapter("lcnc-gateway/*.py — every INI read", [
-        "<ini>.find|findall(S, N) on a name bound from linuxcnc.ini(…) / configparser.ConfigParser(…)",
-        "linuxcnc.ini(…).find(S, N)",
+        "<ini>.find|findall(S, N) on a name the innermost scope binds from linuxcnc.ini(…) / configparser.ConfigParser(…) "
+        "(also `factory(…) if c else None`); ConfigParser's read/has_section/has_option load",
+        "linuxcnc.ini(…).find(S, N)", "any other use of a factory call or a bound name: unresolved",
         *[f"{f}:{n}(…, S, N)" for (f, n) in WRAPPERS],
         *[f"{f}:{n}({p}) — its {p}(S, N) calls" for (f, n), p in CONSUMERS.items()],
         "an f-string section is a family: its members from the shipped example INIs",

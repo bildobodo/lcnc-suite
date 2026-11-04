@@ -28,6 +28,13 @@ const CATALOG_ATTR: Record<string, "type" | "gate"> = {
   MachineBtn: "type", MachineInput: "gate", MachineToggle: "gate", MachineSelect: "gate",
   MachineSlider: "gate", MachineRadio: "gate", MachineColor: "gate", MachineChoice: "gate",
 };
+/** The catalog components, by their PascalCase name. */
+export const CATALOG_COMPONENTS: readonly string[] = Object.keys(CATALOG_ATTR);
+
+/** A component tag in either spelling Vue accepts: `machine-input` → `MachineInput`. */
+export function pascalTag(name: string): string {
+  return name.includes("-") ? name.split("-").map((p) => (p[0] ?? "").toUpperCase() + p.slice(1)).join("") : name;
+}
 const RAW_CONTROLS = new Set(["button", "input", "select", "textarea"]);
 /** Events that make a raw element a control — matched on the event NAME:
  *  `@click.self`, `v-on:click.stop` and `@click` are one event (R213 BG-30). */
@@ -159,7 +166,11 @@ export function scanControls(file: string, sfc: string, { all = false, component
   // the open elements with their `v-for` — a control's family
   const open: { name: string; vfor?: string }[] = [];
   const lineAt = (pos: number) => sfc.slice(0, offset + pos).split("\n").length;
-  for (const t of tags(text)) {
+  // a known component in either spelling (`machine-input`); any other
+  // element keeps its name (a raw `<my-el @click>` stays a raw control)
+  const known = (n: string) => n === "Gate" || n in CATALOG_ATTR || n in components;
+  for (const t0 of tags(text)) {
+    const t = known(pascalTag(t0.name)) ? { ...t0, name: pascalTag(t0.name) } : t0;
     if (t.closing) {
       const at = open.map((o) => o.name).lastIndexOf(t.name);
       if (at >= 0) open.length = at;

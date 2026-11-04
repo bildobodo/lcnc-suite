@@ -8,7 +8,7 @@
 // the files the type adapters read (webAtoms.test.ts reads the tree). No line
 // numbers in the result: they move with every edit, the atoms do not.
 import ts from "typescript";
-import { scanControls } from "../controlScan";
+import { CATALOG_COMPONENTS, scanControls } from "../controlScan";
 import { BUTTON_TYPES, INPUT_DEFS } from "../machineControls";
 
 export interface Atom {
@@ -97,8 +97,9 @@ export const ACTING_COMPONENTS: Record<string, string> = { ChoiceGroup: "label" 
 
 /** Every template control (`controlScan` with `all` and the acting
  *  components). Identical keys in one file stay apart (`#2` …): two places to
- *  operate are two atoms. An acting component's tag the scan did not turn
- *  into an atom is unresolved. */
+ *  operate are two atoms. A catalog or acting component written in the
+ *  template (either spelling) that the scan did not turn into an atom is
+ *  unresolved. */
 export function controlsAdapter(src: WebSources): Adapter {
   const atoms: Atom[] = [];
   const unresolved: Unresolved[] = [];
@@ -107,10 +108,11 @@ export function controlsAdapter(src: WebSources): Adapter {
     if (!rel.endsWith(".vue")) continue;
     const seen = new Map<string, number>();
     const usages = scanControls(rel, text, { all: true, components: ACTING_COMPONENTS });
-    for (const tag of Object.keys(ACTING_COMPONENTS)) {
-      // both spellings Vue accepts: the scan reads the PascalCase one
+    const tpl = templateText(text).replace(/<!--[\s\S]*?-->/g, "");
+    for (const tag of [...Object.keys(ACTING_COMPONENTS), ...CATALOG_COMPONENTS]) {
+      // both spellings Vue accepts, each written use found by the scan
       const kebab = tag.replace(/(?<!^)([A-Z])/g, "-$1").toLowerCase();
-      const written = templateText(text).match(new RegExp(`<(?:${tag}|${kebab})\\b`, "g"))?.length ?? 0;
+      const written = tpl.match(new RegExp(`<(?:${tag}|${kebab})\\b`, "g"))?.length ?? 0;
       const found = usages.filter((u) => u.tag === tag).length;
       if (written !== found) unresolved.push({ file: rel, form: `<${tag}>`, expr: `${written} written, ${found} found` });
     }
@@ -260,30 +262,55 @@ export function listenersAdapter(src: WebSources): Adapter {
 }
 
 /** The worker's own frames: every `<socket>.send(arg)` in wsWorker.ts —
- *  `JSON.stringify({ cmd: "…", … })`, a literal or template text with a
- *  literal `"cmd":"…"`, or a RELAY (`send(p)`, `send(msg.payload)`: a
- *  WsCommand from the main thread, the commands adapter's). Anything else is
- *  unresolved. */
+ *  `JSON.stringify({ cmd: "…", … })` (also through a const bound to it), a
+ *  literal or template text with a literal `"cmd":"…"`, or one of the two
+ *  RELAYS of a main-thread WsCommand (the commands adapter's): `msg.payload`
+ *  in the `case "send":` clause, and a const bound to `preOpenQueue.shift()`
+ *  — a queue only that clause fills. Anything else is unresolved. */
 export function framesAdapter(src: WebSources): Adapter {
   const rel = "wsWorker.ts";
   const atoms = new Map<string, Atom>();
   const unresolved: Unresolved[] = [];
   const frame = (cmd: string) => atoms.set(cmd, { id: `frame:${cmd}` });
-  for (const sf of parsed(rel, src.files[rel] ?? "")) walk(sf, (n) => {
-    if (!ts.isCallExpression(n) || !ts.isPropertyAccessExpression(n.expression) || n.expression.name.text !== "send") return;
-    const arg = n.arguments[0];
-    if (!arg) return;
-    if (ts.isIdentifier(arg) || ts.isPropertyAccessExpression(arg)) return;   // a relay
-    const obj = ts.isCallExpression(arg) && arg.expression.getText(sf) === "JSON.stringify" ? arg.arguments[0] : undefined;
-    const cmd = obj && ts.isObjectLiteralExpression(obj)
-      ? obj.properties.find((p): p is ts.PropertyAssignment => ts.isPropertyAssignment(p) && p.name.getText(sf) === "cmd")
-      : undefined;
-    if (cmd && ts.isStringLiteralLike(cmd.initializer)) return void frame(cmd.initializer.text);
-    const text = ts.isStringLiteralLike(arg) || ts.isTemplateExpression(arg) ? /^["'`]\{"cmd":"(\w+)"/.exec(arg.getText(sf))?.[1] : undefined;
-    if (text) return void frame(text);
-    unresolved.push({ file: rel, form: "send", expr: n.getText(sf).slice(0, 80) });
-  });
-  return { source: "wsWorker.ts <socket>.send(…)", forms: ["JSON.stringify({ cmd: literal, … })", "text beginning {\"cmd\":\"literal\"", "relay of an identifier or property (a WsCommand)"],
+  for (const sf of parsed(rel, src.files[rel] ?? "")) {
+    const inSendCase = (n: ts.Node) => {
+      for (let p = n.parent; p; p = p.parent) if (ts.isCaseClause(p)) return ts.isStringLiteralLike(p.expression) && p.expression.text === "send";
+      return false;
+    };
+    const fnOf = (n: ts.Node): ts.Node => { let p = n.parent; while (p && !ts.isFunctionLike(p)) p = p.parent; return p ?? sf; };
+    const initOf = (id: ts.Identifier): ts.Expression[] => {
+      const out: ts.Expression[] = [];
+      walk(fnOf(id), (d) => { if (ts.isVariableDeclaration(d) && ts.isIdentifier(d.name) && d.name.text === id.text && d.initializer) out.push(d.initializer); });
+      return out;
+    };
+    const literalCmd = (e: ts.Expression): string | undefined => {
+      const obj = ts.isCallExpression(e) && e.expression.getText(sf) === "JSON.stringify" ? e.arguments[0] : undefined;
+      const cmd = obj && ts.isObjectLiteralExpression(obj)
+        ? obj.properties.find((p): p is ts.PropertyAssignment => ts.isPropertyAssignment(p) && p.name.getText(sf) === "cmd") : undefined;
+      if (cmd && ts.isStringLiteralLike(cmd.initializer)) return cmd.initializer.text;
+      return ts.isStringLiteralLike(e) || ts.isTemplateExpression(e) ? /^["'`]\{"cmd":"(\w+)"/.exec(e.getText(sf))?.[1] : undefined;
+    };
+    walk(sf, (n) => {
+      if (!ts.isCallExpression(n) || !ts.isPropertyAccessExpression(n.expression)) return;
+      const arg = n.arguments[0];
+      if (n.expression.getText(sf) === "preOpenQueue.push") {
+        if (!(arg && arg.getText(sf) === "msg.payload" && inSendCase(n)))
+          unresolved.push({ file: rel, form: "the relay queue filled from elsewhere", expr: n.getText(sf).slice(0, 80) });
+        return;
+      }
+      if (n.expression.name.text !== "send" || !arg) return;
+      if (arg.getText(sf) === "msg.payload" && inSendCase(n)) return;   // relay: the main thread's command
+      const bound = ts.isIdentifier(arg) ? initOf(arg) : [];
+      const only = bound.length === 1 ? bound[0]! : undefined;
+      if (only && only.getText(sf).replace(/!$/, "") === "preOpenQueue.shift()") return;   // relay: the queue of the same
+      const cmd = literalCmd(only ?? arg);
+      if (cmd) return void frame(cmd);
+      unresolved.push({ file: rel, form: "send", expr: n.getText(sf).slice(0, 80) });
+    });
+  }
+  return { source: "wsWorker.ts <socket>.send(…)",
+    forms: ["JSON.stringify({ cmd: literal, … })", "text beginning {\"cmd\":\"literal\"", "a const bound to one of those",
+      "relay: msg.payload in case \"send\"", "relay: a const bound to preOpenQueue.shift(), the queue only case \"send\" fills"],
     atoms: sortById([...atoms.values()]), unresolved };
 }
 
@@ -297,22 +324,33 @@ const CALL_RE = /o<([^>]+)>\s*call/gi;
 export function probeRoutines(rel: string, text: string): { names: string[]; unresolved: Unresolved[] } {
   const names = new Set<string>();
   const unresolved: Unresolved[] = [];
-  const tables = new Set<string>();
-  const calArgs = [...templateText(text).matchAll(/runCalProbe\('([\w-]+)'\)/g)].map((m) => m[1]!);
+  const tables: string[] = [];
+  const calArgs: string[] = [];
   let fromTables = false, fromCal = false;
+  // every runCalProbe(…) the template calls: a literal, or unresolved
+  for (const m of templateText(text).matchAll(/runCalProbe\(([^)]*)\)/g)) {
+    const lit = /^\s*(['"])([\w-]+)\1\s*$/.exec(m[1]!);
+    if (lit) calArgs.push(lit[2]!);
+    else unresolved.push({ file: rel, form: "runCalProbe(literal)", expr: m[0] });
+  }
+  const isRunProbe = (n: ts.Node) => ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === "emit"
+    && !!n.arguments[0] && ts.isStringLiteralLike(n.arguments[0]) && n.arguments[0].text === "runProbe";
+  const inRunProbe = (n: ts.Node) => { for (let p = n.parent; p; p = p.parent) if (isRunProbe(p)) return true; return false; };
   for (const sf of parsed(rel, text)) walk(sf, (n) => {
     if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === "runCalProbe") {
       const a = n.arguments[0];
       if (a && ts.isStringLiteralLike(a)) calArgs.push(a.text);
-      else if (!ts.isFunctionDeclaration(n.parent)) unresolved.push({ file: rel, form: "runCalProbe(literal)", expr: n.getText(sf).slice(0, 80) });
+      else unresolved.push({ file: rel, form: "runCalProbe(literal)", expr: n.getText(sf).slice(0, 80) });
     }
-    const isEmit = ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === "emit"
-      && n.arguments[0] && ts.isStringLiteralLike(n.arguments[0]) && n.arguments[0].text === "runProbe";
-    if (!isEmit) {
-      if (ts.isPropertyAssignment(n) && n.name.getText(sf) === "macro" && ts.isStringLiteralLike(n.initializer)) tables.add(n.initializer.text);
+    if (!isRunProbe(n)) {
+      // a procedure table's entry: every `macro:` outside the emit itself
+      if ((ts.isPropertyAssignment(n) || ts.isShorthandPropertyAssignment(n)) && n.name.getText(sf) === "macro" && !inRunProbe(n)) {
+        if (ts.isPropertyAssignment(n) && ts.isStringLiteralLike(n.initializer)) tables.push(n.initializer.text);
+        else unresolved.push({ file: rel, form: "a procedure table's macro:", expr: n.getText(sf).slice(0, 80) });
+      }
       return;
     }
-    const obj = n.arguments[1];
+    const obj = (n as ts.CallExpression).arguments[1];
     const prop = obj && ts.isObjectLiteralExpression(obj) ? obj.properties.find((p) => p.name?.getText(sf) === "macro") : undefined;
     let fn: ts.Node | undefined = n.parent;
     while (fn && !ts.isFunctionDeclaration(fn)) fn = fn.parent;
@@ -322,10 +360,8 @@ export function probeRoutines(rel: string, text: string): { names: string[]; unr
     else if (prop && ts.isShorthandPropertyAssignment(prop) && inCal) fromCal = true;
     else unresolved.push({ file: rel, form: "emit(\"runProbe\", { macro })", expr: n.getText(sf).slice(0, 80) });
   });
-  // the literals inside emit() are no table entries
-  for (const n of names) tables.delete(n);
   if (fromTables) {
-    if (!tables.size) unresolved.push({ file: rel, form: "op.macro", expr: "no procedure table literal `macro:`" });
+    if (!tables.length) unresolved.push({ file: rel, form: "op.macro", expr: "no procedure table literal `macro:`" });
     tables.forEach((t) => names.add(t));
   }
   if (fromCal) {

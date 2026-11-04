@@ -400,6 +400,32 @@ def test_a_module_holds_the_selection_of_every_component_it_reaches():
     assert graph_problems() == []
 
 
+def test_test_only_modules_are_reached_by_no_runtime_entry():
+    """controlScan, controlInventory and the inventory's adapters run in tests
+    only: from main.ts, App.vue and every worker, through every runtime import
+    and no cut, none is reached (Codex R270) — their unit-only rule stays true."""
+    rev, _ = graph.importers(SRC)
+    for e in rules.RUNTIME_ENTRIES:
+        assert (SRC / e).is_file(), e
+    for m in rules.TEST_ONLY:
+        assert (SRC / m).is_file(), m
+    reached = graph.reached_from(list(rules.RUNTIME_ENTRIES), rev, graph.spawns(SRC))
+    assert len(reached) > 50, "the walk reaches the app"
+    assert {m: " → ".join(reached[m]) for m in rules.TEST_ONLY if m in reached} == {}
+
+
+def test_the_runtime_walk_sees_a_transitive_import_not_a_type_or_a_comment(tmp_path):
+    (tmp_path / "main.ts").write_text('import "./a";\n')
+    (tmp_path / "a.ts").write_text('// import { x } from "./controlScan";\nimport type { T } from "./controlScan";\n')
+    (tmp_path / "w.ts").write_text('import { scan } from "./controlScan";\n')
+    (tmp_path / "App.vue").write_text('<script setup>\nconst w = new Worker(new URL("./w.ts", import.meta.url));\n</script>\n')
+    (tmp_path / "controlScan.ts").write_text("export const scan = 1;\n")
+    rev, _ = graph.importers(tmp_path)
+    spawned = graph.spawns(tmp_path)
+    assert graph.reached_from(["main.ts"], rev, spawned).keys() == {"main.ts", "a.ts"}
+    assert graph.reached_from(["App.vue"], rev, spawned)["controlScan.ts"] == ["App.vue", "w.ts", "controlScan.ts"]
+
+
 def test_the_cuts_name_real_files():
     for name in graph.CUTS:
         assert (SRC / name).is_file(), name

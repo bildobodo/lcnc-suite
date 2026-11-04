@@ -207,14 +207,19 @@
    "uses": ["cmd:mdi", "cmd:auto_run"],
    "statements": [
     {"id": "S1", "kind": "Daten", "text": "Direkte Messung: Messen sendet EIN mdi mit den Toolsetter-Werten in vars (#3004–#3007, #3009, #3010, #3013, #3100–#3115).",
+     "applies": ["alle"],
      "evidence": [{"layer": "browser", "file": "toolsetter-setup.spec.ts", "title": "Measure Current is ONE command: the values ride the mdi"}]},
     {"id": "S2", "kind": "Daten", "text": "Vormessung beim Start ab Zeile: EIN auto_run mit pre_tool und probe_vars aus derselben Abbildung.",
+     "applies": ["alle"],
      "evidence": [{"layer": "browser", "file": "run-hold.spec.ts", "title": "Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values"}]},
     {"id": "S3", "kind": "Ablehnung", "text": "Ohne eingerichteten Toolsetter (Sektion vom Server bestätigt) bleiben Messen und Entladen aus — mit Grund.",
+     "applies": ["alle"],
      "evidence": [{"layer": "browser", "file": "toolsetter-setup.spec.ts", "title": "without the server's settings, and without a saved section, Measure Current and Unload (M600) stay off"}]},
     {"id": "S4", "kind": "Daten", "text": "Die Var-Nummern sind die, die tool_touch_off.ngc liest.",
+     "applies": ["alle"],
      "evidence": [{"layer": "unit", "file": "toolsetterSetup.test.ts", "title": "writes the var numbers tool_touch_off.ngc reads"}]},
     {"id": "S5", "kind": "Wirkung", "text": "Auf echtem LinuxCNC landet die gemessene Länge in der Werkzeugtabelle und im G43-Offset.",
+     "applies": ["offen"],
      "gap": "nativer Lauf offen (nach Schritt 7)"}
    ]},
   {"id": "F-TOOLSETTER", "area": "werkzeug", "name": "Toolsetter einrichten (Werkzeuglängen-Messung)",
@@ -233,10 +238,18 @@
              "status:data.probed_position", "status:data.probing", "setting:probe.*=30"],
    "statements": [
     {"id": "S1", "kind": "Daten", "text": "Ein Antast-Button sendet genau ein mdi mit O<probe_…> CALL und genau den Var-Nummern der Zuordnung; jeder Wert endlich.",
-     "evidence": [{"layer": "browser", "file": "probe-click.spec.ts", "title": ": a held probe button sends its routine with the panel's numbers"}]},
-    {"id": "S2", "kind": "Daten", "text": "Jede Var-Nummer, die das Panel schreibt, ist in jeder ausgelieferten Var-Datei deklariert.",
+     "applies": ["alle"],
+     "evidence": [{"layer": "browser", "file": "probe-click.spec.ts", "title": "${form.sub}: a held probe button sends its routine with the panel's numbers",
+                   "instances": ["Outside", "Boss/Pocket", "Ridge/Valley", "Angle", "Calibrate"]}]},
+    {"id": "S2", "kind": "Daten", "text": "Jede Var-Nummer, die das Panel und der Toolsetter schreiben, ist in der Var-Datei jedes Beispielprofils deklariert.",
+     "applies": ["alle"],
+     "evidence": [{"layer": "unit", "file": "probeVarFiles.test.ts", "title": "${rel} declares every number the probe panel and the toolsetter write",
+                   "instances": ["xyz3/sim.var", "xyzabc6/sim.var", "xyzac5/sim.var"]}]},
+    {"id": "S2b", "kind": "Daten", "text": "Jedes Beispielprofil liefert seine Var-Datei aus.",
+     "applies": ["alle"],
      "evidence": [{"layer": "unit", "file": "probeVarFiles.test.ts", "title": "are found: one per example profile"}]},
     {"id": "S3", "kind": "Wirkung", "text": "Auf echtem LinuxCNC setzt ein Z-Antasten G54 Z auf den erwarteten Wert (Platte, Werkzeug, Toleranz je Messgröße).",
+     "applies": ["offen"],
      "gap": "Schritt 7, der Antast-Live-Check"}
    ]},
   {"id": "F-PROBECAL", "area": "antasten", "name": "Taster kalibrieren",
@@ -254,12 +267,16 @@
              "status:data.eoffset_enabled", "status:data.eoffset_z"],
    "statements": [
     {"id": "S1", "kind": "Unbekannt", "text": "„AN“ erscheint nur aus einem gelesenen Pin; ein unbekannter Wert erscheint als unbekannt, nie als AUS.",
+     "applies": ["alle"],
      "gap": "App.vue macht aus fehlendem eoffset_enabled mit !! ein AUS — das erste Lückenpaket"},
     {"id": "S2", "kind": "Unbekannt", "text": "Die angezeigte Interpolation ist die, die der Status meldet; eine unbekannte erscheint nie als Cubic.",
+     "applies": ["alle"],
      "gap": "ProbePanel.vue wählt mit compMethod ?? 2 Cubic — das erste Lückenpaket"},
     {"id": "S3", "kind": "Ablehnung", "text": "Ein Umschalten, das HAL nicht zustellt, antwortet nicht ok.",
+     "applies": ["alle"],
      "gap": "gateway.py ignoriert das Ergebnis von _hal_send — das erste Lückenpaket"},
     {"id": "S4", "kind": "Wirkung", "text": "Auf echtem LinuxCNC wirkt AN/AUS, und die drei Methoden unterscheiden sich an bekannten Punkten einer nicht ebenen Fläche.",
+     "applies": ["3axis_xyz"],
      "gap": "nativer Lauf offen"}
    ]},
 
@@ -273,8 +290,10 @@
              "http:*/macro=3", "http:GET /macros", "http:POST /macro-upload", "ini:DISPLAY/WEBUI_MACRO_DIR"],
    "statements": [
     {"id": "S1", "kind": "Ablehnung", "text": "Speichern ist an die gelesene Revision gebunden; ein Konflikt oder eine Ablehnung zeigt ihren Grund, der Entwurf bleibt.",
+     "applies": ["alle"],
      "evidence": [{"layer": "browser", "file": "macros.spec.ts", "title": "Save's refusal: a conflict rebases Keep editing on the gateway's revision"}]},
     {"id": "S2", "kind": "Wirkung", "text": "Umbenennen verschiebt die Datei und ihren Platz auf der Leiste in einem Schritt.",
+     "applies": ["alle"],
      "evidence": [{"layer": "browser", "file": "macros.spec.ts", "title": "a rename moves the file and its place on the bar"}]}
    ]},
   {"id": "F-MACRORUN", "area": "makros", "name": "Makro starten (Tab, Leiste, Parameter-Dialog)",
@@ -359,6 +378,7 @@
              "ini:DISPLAY/WEBUI_GC_FREEZE", "ini:DISPLAY/WEBUI_ASYNCIO_DEBUG", "ini:HAL/POSTGUI_HALFILE"],
    "statements": [
     {"id": "S1", "kind": "Wirkung", "text": "Mehrere Clients gleichzeitig: Nach dem Laden eines Programms holen mehrere Clients die Vorschau, und der Herzschlag-Abstand des Gateways bleibt sicher unter der Grenze von 500 ms.",
+     "applies": ["alle"],
      "gap": "neues perf_matrix-Szenario mit Protokoll-Clients statt Browsern (deren Simulation läuft auf den Client-Geräten, nicht im Gateway); native Stufe. Vorhanden: fanout (8 Clients), reconnect_storm (12 Verbindungen), preview_publish (ein Client) — Operator 2026-11-04"}
    ]},
   {"id": "SYS-STATUS", "area": "system", "name": "Statusübertragung (Rahmen und gemeinsame Felder)",

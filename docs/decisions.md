@@ -10338,3 +10338,21 @@ The view by place showed the mode and the frame "without a control": the
 strip's ChoiceGroups act through `:act`, which no event scan sees —
 `controlScan`'s `components` option makes the instance the control, a spelling
 the scan does not read (kebab-case) is unresolved.
+
+Codex R270 (findings FI-I01..06, all closed with his counter-cases): the INI
+adapter now binds receivers per scope and classifies every factory call and
+every use of a bound name (read, load, a registered wrapper or consumer, a
+truth test — anything else unresolved); a registered wrapper's body is exempt
+only for its own parametric read; `_g30_ini` is a registered factory
+function. Every table `macro:` and every `runCalProbe(…)` is resolved or
+reported one by one; a worker `send` is a relay only on its two proven paths
+(`msg.payload` in `case "send"`, the queue only that clause fills); the
+catalog components are read in both spellings with a written-against-found
+count. Every routine is bound to its shipped file (an M-code through its
+remap; every remap to its ngc file or Python function) — removing
+`probe_cal_round_boss.ngc` turns the guard red. F-PROBE.S2 now names the
+var-declaration tests of all profiles (a parametric title lists its
+instances); every statement names its scope (a mode, a profile, "alle" or
+"offen"). `controlScan.ts` / `controlInventory.ts` are test-only: unit-only
+rule, and a runtime walk from `main.ts`, `App.vue` and every worker their
+creators start, with no cut, must reach neither (`graph.reached_from`).

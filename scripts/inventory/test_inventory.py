@@ -93,15 +93,51 @@ def test_ini_the_registered_consumer_and_a_new_one():
     good = ini({"gateway_util.py": consumer, "gateway.py": "import linuxcnc\nini = linuxcnc.ini(p)\nread_axis_limits(ini.find, 7)\n"})
     assert ids(good) == ["ini:AXIS_*/MIN_LIMIT"] and good["unresolved"] == []
     bad = ini({"gateway_util.py": consumer, "gateway.py": "import linuxcnc\nini = linuxcnc.ini(p)\nother_reader(ini.find)\nx = ini.find('A', 'B')\n"})
-    assert [u["form"] for u in bad["unresolved"]] == ["read function handed on"]
+    assert [u["form"] for u in bad["unresolved"]] == ["an INI read function handed on"]
 
 
 def test_ini_a_new_wrapper_stays_unresolved_with_a_reason_too():
+    # the wrapper reads only when the INI object is handed to it: that call is the site
     a = ini({"gateway.py": "import linuxcnc\nini = linuxcnc.ini(p)\n"
                            "def _ini_int(ini, section, key):  # not yet supported: a technical reason\n"
-                           "    return int(ini.find(section, key))\nx = ini.find('A', 'B')\n"})
-    assert [u["form"] for u in a["unresolved"]] == ["an unregistered wrapper"]
+                           "    return int(ini.find(section, key))\nx = ini.find('A', 'B')\ny = _ini_int(ini, 'C', 'D')\n"})
+    assert ids(a) == ["ini:A/B"]
+    assert [(u["form"], u["expr"]) for u in a["unresolved"]] == [("an INI object used another way", "_ini_int(ini, 'C', 'D')")]
     assert not fn.completeness({"adapters": {"ini": a}})["complete"]
+
+
+# Codex R270 FI-I01: each beside one kept read must add an atom or be unresolved.
+R270_BASE = "import linuxcnc\nini = linuxcnc.ini(path)\na = ini.find('BASE', 'KEPT')\n"
+R270_CASES = {
+    "attribute_receiver": R270_BASE + "holder.cfg = linuxcnc.ini(path)\nx = holder.cfg.find('EXTRA', 'ATTRIBUTE')\n",
+    "returned_receiver": R270_BASE + "def make_cfg():\n    return linuxcnc.ini(path)\nx = make_cfg().find('EXTRA', 'RETURN')\n",
+    "new_wrapper_other_parameter": R270_BASE + "def _ini_int(cfg, section, key):\n    return int(cfg.find(section, key))\nx = _ini_int(ini, 'EXTRA', 'WRAPPER')\n",
+    "reader_via_keyword": R270_BASE + "other_reader(read=ini.find)\n",
+    "reader_assigned": R270_BASE + "read = ini.find\nx = read('EXTRA', 'ALIAS')\n",
+    "registered_wrapper_added_literal": R270_BASE + "def _ini_float(ini, section, key):\n    side = ini.find('EXTRA', 'BODY')\n"
+                                        "    return float(ini.find(section, key))\nx = _ini_float(ini, 'BASE', 'KEPT')\n",
+}
+
+
+@pytest.mark.parametrize("case", sorted(R270_CASES))
+def test_ini_codex_r270_no_use_disappears(case):
+    a = ini({"gateway.py": R270_CASES[case]}, {"p.ini": "[BASE]\nKEPT=1\n"})
+    assert ids(a) != ["ini:BASE/KEPT"] or a["unresolved"], f"{case}: only the kept read and complete"
+
+
+def test_ini_the_literal_in_a_wrapper_body_is_an_atom():
+    a = ini({"gateway.py": R270_CASES["registered_wrapper_added_literal"]}, {"p.ini": "[BASE]\nKEPT=1\n"})
+    assert ids(a) == ["ini:BASE/KEPT", "ini:EXTRA/BODY"] and a["unresolved"] == []
+
+
+def test_ini_scopes_a_factory_function_and_truth_tests():
+    src = ("import linuxcnc\ndef _g30_ini():\n    return linuxcnc.ini(p) if p else None\n"
+           "def f():\n    ini = _g30_ini()\n    if ini and x:\n        return ini.find('AXIS_A', 'WRAPPED_ROTARY')\n"
+           "def g(ini):\n    return ini.find('NOT', 'INI')\n"   # a parameter named ini is no INI object
+           "def h():\n    y = ini or 1\n")                      # a module-level ini used as a value
+    a = ini({"gateway.py": src + "ini = linuxcnc.ini(q)\n"})
+    assert ids(a) == ["ini:AXIS_A/WRAPPED_ROTARY"]
+    assert [u["form"] for u in a["unresolved"]] == ["an INI object used another way"]
 
 
 def test_http_a_computed_path_is_unresolved():
@@ -166,9 +202,37 @@ def test_one_primary_owner_and_no_atom_left():
     assert guard([], "c:1", excluded={"c:1": "outside the boundary for a reason"}) == []
 
 
+def test_a_routine_and_a_remap_are_bound_to_their_shipped_files(tmp_path):
+    base = tmp_path / "examples/sim_config"
+    (base / "subs").mkdir(parents=True)
+    (base / "py").mkdir()
+    (base / "p.ini").write_text("[RS274NGC]\nSUBROUTINE_PATH = subs:~/linuxcnc/macros\n"
+                                "REMAP=M600 modalgroup=6 ngc=m600\nREMAP=M535 modalgroup=10 python=touch\n"
+                                "[PYTHON]\nPATH_APPEND = py\n")
+    (base / "subs" / "probe_a.ngc").write_text("o<probe_a> sub\n")
+    (base / "subs" / "m600.ngc").write_text("o<m600> sub\n")
+    (base / "py" / "remap.py").write_text("def touch(self):\n    pass\n")
+    atoms = ["routine:probe_a", "routine:M600", "remap:M600", "remap:M535"]
+    assert fn.routine_problems(atoms, tmp_path) == []
+    (base / "subs" / "probe_a.ngc").unlink()
+    (base / "py" / "remap.py").write_text("def other(self):\n    pass\n")
+    assert fn.routine_problems(atoms, tmp_path) == [
+        "routine:probe_a: no shipped file in any profile's SUBROUTINE_PATH (nor a remap of it)",
+        "remap:M535: p.ini remaps it to python=touch, which it does not ship"]
+
+
+def test_every_statement_names_its_scope():
+    st = lambda **k: [{"id": "F", "area": "x", "name": "n", "atoms": ["c:1"], "statements": [{"id": "S1", "kind": "Daten", "text": "t", **k}]}]
+    assert guard(st(applies=["alle"]), "c:1") == [] and guard(st(applies=["Plane"]), "c:1") == []
+    assert guard(st(), "c:1") == ['F.S1: no applies — a mode, a profile, "alle" or "offen"']
+    assert guard(st(applies=["Lathe"]), "c:1") == ['F.S1: applies to \'Lathe\' — neither a mode, a profile, "alle" nor "offen"']
+
+
 def test_evidence_is_bound_to_a_file_and_its_title(tmp_path):
     (tmp_path / "scripts").mkdir()
-    (tmp_path / "scripts" / "t.py").write_text("def test_x():\n    'the named title'\n")
+    (tmp_path / "scripts" / "t.py").write_text("def test_x():\n    'the named title'\n    f'${rel} a family'\n")
     assert fn.evidence_problems({"layer": "script", "file": "t.py", "title": "the named title"}, tmp_path) == []
+    assert fn.evidence_problems({"layer": "script", "file": "t.py", "title": "${rel} a family", "instances": ["a"]}, tmp_path) == []
+    assert fn.evidence_problems({"layer": "script", "file": "t.py", "title": "${rel} a family"}, tmp_path)
     assert fn.evidence_problems({"layer": "script", "file": "t.py", "title": "another"}, tmp_path)
     assert fn.evidence_problems({"layer": "script", "file": "gone.py", "title": "x"}, tmp_path)

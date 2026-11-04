@@ -2965,7 +2965,9 @@
    "forms": [
     "JSON.stringify({ cmd: literal, … })",
     "text beginning {\"cmd\":\"literal\"",
-    "relay of an identifier or property (a WsCommand)"
+    "a const bound to one of those",
+    "relay: msg.payload in case \"send\"",
+    "relay: a const bound to preOpenQueue.shift(), the queue only case \"send\" fills"
    ],
    "atoms": [
     {

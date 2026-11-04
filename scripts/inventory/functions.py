@@ -57,6 +57,9 @@ APP_PLACES = (
     ("|MachineInput:macroParam|", "Dialog"), ("|MachineBtn:shutdown|", "Dialog"),
 )
 MODES = ("Machine", "TCP", "Plane")
+# A statement's scope beside the modes and the profile ids: every mode and
+# profile on purpose, or not decided yet (Codex R270).
+SCOPE_WORDS = ("alle", "offen")
 
 
 def place_of(atom: str) -> str | None:
@@ -149,9 +152,11 @@ def problems(web: dict, py: dict, fns: dict, root: Path = ROOT) -> list[str]:
         for s in f.get("statements", []):
             if s.get("kind") not in STATEMENT_KINDS:
                 out.append(f"{fid}.{s.get('id')}: unknown statement kind {s.get('kind')!r}")
+            if not s.get("applies"):
+                out.append(f"{fid}.{s.get('id')}: no applies — a mode, a profile, \"alle\" or \"offen\"")
             for x in s.get("applies", []):
-                if x not in MODES and x not in profiles:
-                    out.append(f"{fid}.{s.get('id')}: applies to {x!r} — neither a kinematics mode nor a profile")
+                if x not in MODES and x not in profiles and x not in SCOPE_WORDS:
+                    out.append(f"{fid}.{s.get('id')}: applies to {x!r} — neither a mode, a profile, \"alle\" nor \"offen\"")
             for e in s.get("evidence", []):
                 out += [f"{fid}.{s['id']}: {p}" for p in evidence_problems(e, root)]
     for a, why in fns.get("excludedAtoms", {}).items():
@@ -163,8 +168,70 @@ def problems(web: dict, py: dict, fns: dict, root: Path = ROOT) -> list[str]:
             out.append(f"excludedAtoms: {a!r} needs its reason")
     out += [f"{a}: a control without a place (PLACES / APP_PLACES)" for a in all_ids
             if a.startswith("control:") and place_of(a) is None]
+    out += routine_problems(all_ids, root)
     unowned = [a for a in all_ids if a not in owner and a not in fns.get("excludedAtoms", {})]
     out += [f"{a}: no function claims it (found by {', '.join(ids[a])})" for a in unowned]
+    return out
+
+
+def _ini_values(text: str) -> dict[tuple[str, str], list[str]]:
+    """(section, key) → every value, in order — REMAP and PATH_APPEND repeat."""
+    out: dict[tuple[str, str], list[str]] = {}
+    sec = ""
+    for line in text.splitlines():
+        t = line.strip()
+        if t.startswith("[") and t.endswith("]"):
+            sec = t[1:-1]
+        elif "=" in t and not t.startswith("#"):
+            k, v = t.split("=", 1)
+            out.setdefault((sec, k.strip()), []).append(v.strip())
+    return out
+
+
+def routine_homes(root: Path = ROOT) -> dict[str, dict]:
+    """Per example profile: its SUBROUTINE_PATH folders in the repository
+    (relative to the INI's folder; `~` entries are the user's folders, not
+    shipped), its remaps (code → `ngc=` file or `python=` function) and the
+    functions its Python remap modules define."""
+    out: dict[str, dict] = {}
+    base = root / "examples/sim_config"
+    for ini in sorted(base.glob("*.ini")):
+        v = _ini_values(ini.read_text())
+        dirs = [base / e for p in v.get(("RS274NGC", "SUBROUTINE_PATH"), []) for e in p.split(":") if e and not e.startswith("~")]
+        remaps = {}
+        for r in v.get(("RS274NGC", "REMAP"), []):
+            words = dict(w.split("=", 1) for w in r.split()[1:] if "=" in w)
+            impl = ("ngc", words["ngc"]) if "ngc" in words else ("python", words.get("python", ""))
+            remaps[r.split()[0].upper()] = impl
+        py = {m.group(1) for d in v.get(("PYTHON", "PATH_APPEND"), []) for f in sorted((base / d).glob("*.py"))
+              for m in re.finditer(r"^def (\w+)\(", f.read_text(), re.M)}
+        out[ini.name] = {"dirs": dirs, "remaps": remaps, "python": py}
+    return out
+
+
+def routine_problems(all_ids: list[str], root: Path = ROOT) -> list[str]:
+    """Every routine the UI or the gateway names has its shipped file in some
+    profile — an M-code through that profile's remap — and every example
+    remap its implementation (Codex R270 FI-I05)."""
+    homes = routine_homes(root)
+
+    def impl_ok(h: dict, impl: tuple[str, str]) -> bool:
+        kind, name = impl
+        return any((d / f"{name}.ngc").is_file() for d in h["dirs"]) if kind == "ngc" else name in h["python"]
+
+    out = []
+    for a in all_ids:
+        if a.startswith("routine:"):
+            name = a.split(":", 1)[1]
+            found = [p for p, h in homes.items() if (name.upper() in h["remaps"] and impl_ok(h, h["remaps"][name.upper()]))
+                     or any((d / f"{name}.ngc").is_file() for d in h["dirs"])]
+            if not found:
+                out.append(f"{a}: no shipped file in any profile's SUBROUTINE_PATH (nor a remap of it)")
+        elif a.startswith("remap:"):
+            code = a.split(":", 1)[1]
+            for p, h in homes.items():
+                if code in h["remaps"] and not impl_ok(h, h["remaps"][code]):
+                    out.append(f"{a}: {p} remaps it to {h['remaps'][code][0]}={h['remaps'][code][1]}, which it does not ship")
     return out
 
 
@@ -179,6 +246,8 @@ def evidence_problems(e: dict, root: Path) -> list[str]:
         return [f"evidence file {layer}/{file} does not exist"]
     if not title or title not in path.read_text():
         return [f"evidence {layer}/{file}: the title {title!r} is not in the file"]
+    if "${" in title and not e.get("instances"):
+        return [f"evidence {layer}/{file}: the parametric title {title!r} names no instances"]
     return []
 
 
@@ -221,9 +290,11 @@ def render(web: dict, py: dict, fns: dict) -> str:
                 continue
             lines += [f"### {f['name']}", ""]
             for s in f["statements"]:
-                ev = "; ".join(f"{e['layer']}: `{e['file']}` — {e['title']}" for e in s.get("evidence", [])) or "**offen**"
+                ev = "; ".join(f"{e['layer']}: `{e['file']}` — {e['title']}"
+                               + (f" (je: {', '.join(e['instances'])})" if e.get("instances") else "")
+                               for e in s.get("evidence", [])) or "**offen**"
                 gap = f" — Lücke: {s['gap']}" if s.get("gap") else ""
-                applies = f" — gilt für: {', '.join(s['applies'])}" if s.get("applies") else ""
+                applies = f" — gilt für: {', '.join(s.get('applies', ['offen']))}"
                 lines.append(f"- **{s['id']} ({s['kind']}):** {s['text']}{applies}\n  - Beleg: {ev}{gap}")
             lines.append("")
     by_place: dict[str, list[str]] = {}

@@ -98,44 +98,46 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ### Werkzeuglänge messen (M600) und Werkzeug entladen
 
-- **S1 (Daten):** Direkte Messung: Messen sendet EIN mdi mit den Toolsetter-Werten in vars (#3004–#3007, #3009, #3010, #3013, #3100–#3115).
+- **S1 (Daten):** Direkte Messung: Messen sendet EIN mdi mit den Toolsetter-Werten in vars (#3004–#3007, #3009, #3010, #3013, #3100–#3115). — gilt für: alle
   - Beleg: browser: `toolsetter-setup.spec.ts` — Measure Current is ONE command: the values ride the mdi
-- **S2 (Daten):** Vormessung beim Start ab Zeile: EIN auto_run mit pre_tool und probe_vars aus derselben Abbildung.
+- **S2 (Daten):** Vormessung beim Start ab Zeile: EIN auto_run mit pre_tool und probe_vars aus derselben Abbildung. — gilt für: alle
   - Beleg: browser: `run-hold.spec.ts` — Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values
-- **S3 (Ablehnung):** Ohne eingerichteten Toolsetter (Sektion vom Server bestätigt) bleiben Messen und Entladen aus — mit Grund.
+- **S3 (Ablehnung):** Ohne eingerichteten Toolsetter (Sektion vom Server bestätigt) bleiben Messen und Entladen aus — mit Grund. — gilt für: alle
   - Beleg: browser: `toolsetter-setup.spec.ts` — without the server's settings, and without a saved section, Measure Current and Unload (M600) stay off
-- **S4 (Daten):** Die Var-Nummern sind die, die tool_touch_off.ngc liest.
+- **S4 (Daten):** Die Var-Nummern sind die, die tool_touch_off.ngc liest. — gilt für: alle
   - Beleg: unit: `toolsetterSetup.test.ts` — writes the var numbers tool_touch_off.ngc reads
-- **S5 (Wirkung):** Auf echtem LinuxCNC landet die gemessene Länge in der Werkzeugtabelle und im G43-Offset.
+- **S5 (Wirkung):** Auf echtem LinuxCNC landet die gemessene Länge in der Werkzeugtabelle und im G43-Offset. — gilt für: offen
   - Beleg: **offen** — Lücke: nativer Lauf offen (nach Schritt 7)
 
 ## Antasten und Flächenkompensation
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut** `F-PROBE` | Tab „Probing“ | 87 | 3 | 2 | 1 |
+| **Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut** `F-PROBE` | Tab „Probing“ | 87 | 4 | 3 | 1 |
 | **Taster kalibrieren** `F-PROBECAL` | Tab „Probing“ | 15 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Fläche abtasten (Surface-Scan)** `F-SURFACE` | Tab „Probing“ | 6 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Flächenkompensation ein/aus und Interpolation umschalten** `F-COMP` | Dialog, Tab „Probing“ | 13 | 4 | 0 | 4 |
 
 ### Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut
 
-- **S1 (Daten):** Ein Antast-Button sendet genau ein mdi mit O<probe_…> CALL und genau den Var-Nummern der Zuordnung; jeder Wert endlich.
-  - Beleg: browser: `probe-click.spec.ts` — : a held probe button sends its routine with the panel's numbers
-- **S2 (Daten):** Jede Var-Nummer, die das Panel schreibt, ist in jeder ausgelieferten Var-Datei deklariert.
+- **S1 (Daten):** Ein Antast-Button sendet genau ein mdi mit O<probe_…> CALL und genau den Var-Nummern der Zuordnung; jeder Wert endlich. — gilt für: alle
+  - Beleg: browser: `probe-click.spec.ts` — ${form.sub}: a held probe button sends its routine with the panel's numbers (je: Outside, Boss/Pocket, Ridge/Valley, Angle, Calibrate)
+- **S2 (Daten):** Jede Var-Nummer, die das Panel und der Toolsetter schreiben, ist in der Var-Datei jedes Beispielprofils deklariert. — gilt für: alle
+  - Beleg: unit: `probeVarFiles.test.ts` — ${rel} declares every number the probe panel and the toolsetter write (je: xyz3/sim.var, xyzabc6/sim.var, xyzac5/sim.var)
+- **S2b (Daten):** Jedes Beispielprofil liefert seine Var-Datei aus. — gilt für: alle
   - Beleg: unit: `probeVarFiles.test.ts` — are found: one per example profile
-- **S3 (Wirkung):** Auf echtem LinuxCNC setzt ein Z-Antasten G54 Z auf den erwarteten Wert (Platte, Werkzeug, Toleranz je Messgröße).
+- **S3 (Wirkung):** Auf echtem LinuxCNC setzt ein Z-Antasten G54 Z auf den erwarteten Wert (Platte, Werkzeug, Toleranz je Messgröße). — gilt für: offen
   - Beleg: **offen** — Lücke: Schritt 7, der Antast-Live-Check
 
 ### Flächenkompensation ein/aus und Interpolation umschalten
 
-- **S1 (Unbekannt):** „AN“ erscheint nur aus einem gelesenen Pin; ein unbekannter Wert erscheint als unbekannt, nie als AUS.
+- **S1 (Unbekannt):** „AN“ erscheint nur aus einem gelesenen Pin; ein unbekannter Wert erscheint als unbekannt, nie als AUS. — gilt für: alle
   - Beleg: **offen** — Lücke: App.vue macht aus fehlendem eoffset_enabled mit !! ein AUS — das erste Lückenpaket
-- **S2 (Unbekannt):** Die angezeigte Interpolation ist die, die der Status meldet; eine unbekannte erscheint nie als Cubic.
+- **S2 (Unbekannt):** Die angezeigte Interpolation ist die, die der Status meldet; eine unbekannte erscheint nie als Cubic. — gilt für: alle
   - Beleg: **offen** — Lücke: ProbePanel.vue wählt mit compMethod ?? 2 Cubic — das erste Lückenpaket
-- **S3 (Ablehnung):** Ein Umschalten, das HAL nicht zustellt, antwortet nicht ok.
+- **S3 (Ablehnung):** Ein Umschalten, das HAL nicht zustellt, antwortet nicht ok. — gilt für: alle
   - Beleg: **offen** — Lücke: gateway.py ignoriert das Ergebnis von _hal_send — das erste Lückenpaket
-- **S4 (Wirkung):** Auf echtem LinuxCNC wirkt AN/AUS, und die drei Methoden unterscheiden sich an bekannten Punkten einer nicht ebenen Fläche.
+- **S4 (Wirkung):** Auf echtem LinuxCNC wirkt AN/AUS, und die drei Methoden unterscheiden sich an bekannten Punkten einer nicht ebenen Fläche. — gilt für: 3axis_xyz
   - Beleg: **offen** — Lücke: nativer Lauf offen
 
 ## Makros
@@ -148,9 +150,9 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ### Makros verwalten: anlegen, bearbeiten, umbenennen, löschen, importieren, herunterladen
 
-- **S1 (Ablehnung):** Speichern ist an die gelesene Revision gebunden; ein Konflikt oder eine Ablehnung zeigt ihren Grund, der Entwurf bleibt.
+- **S1 (Ablehnung):** Speichern ist an die gelesene Revision gebunden; ein Konflikt oder eine Ablehnung zeigt ihren Grund, der Entwurf bleibt. — gilt für: alle
   - Beleg: browser: `macros.spec.ts` — Save's refusal: a conflict rebases Keep editing on the gateway's revision
-- **S2 (Wirkung):** Umbenennen verschiebt die Datei und ihren Platz auf der Leiste in einem Schritt.
+- **S2 (Wirkung):** Umbenennen verschiebt die Datei und ihren Platz auf der Leiste in einem Schritt. — gilt für: alle
   - Beleg: browser: `macros.spec.ts` — a rename moves the file and its place on the bar
 
 ## 3D-Ansicht, Simulation, Kamera
@@ -191,7 +193,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ### Verbindung: Anmeldung, Herzschlag, Wiederverbindung, Auslieferung
 
-- **S1 (Wirkung):** Mehrere Clients gleichzeitig: Nach dem Laden eines Programms holen mehrere Clients die Vorschau, und der Herzschlag-Abstand des Gateways bleibt sicher unter der Grenze von 500 ms.
+- **S1 (Wirkung):** Mehrere Clients gleichzeitig: Nach dem Laden eines Programms holen mehrere Clients die Vorschau, und der Herzschlag-Abstand des Gateways bleibt sicher unter der Grenze von 500 ms. — gilt für: alle
   - Beleg: **offen** — Lücke: neues perf_matrix-Szenario mit Protokoll-Clients statt Browsern (deren Simulation läuft auf den Client-Geräten, nicht im Gateway); native Stufe. Vorhanden: fanout (8 Clients), reconnect_storm (12 Verbindungen), preview_publish (ein Client) — Operator 2026-11-04
 
 ## Nach Bedienort
