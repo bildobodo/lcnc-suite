@@ -1,0 +1,107 @@
+{
+  "kind": "round",
+  "note": "",
+  "base": "8064302b58c88f68d1b8e9822b8a70189aad53db",
+  "head": "151d048e1e13c253ae53a3b06370c51a5ae653ca",
+  "uncommitted": 0,
+  "plan": [
+    "selection-guards",
+    "lint",
+    "build",
+    "unit-light",
+    "backend"
+  ],
+  "env": {
+    "nproc": 6,
+    "arch": "aarch64",
+    "node": "v22.23.2",
+    "playwright": "Version 1.60.0"
+  },
+  "selection": {
+    "unmatched": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [],
+      "related": []
+    },
+    "browser": {
+      "run": [],
+      "reasons": [
+        "no path selects a browser spec"
+      ]
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "scripts/inventory/functions.json: scripts and their tests ride the backend gate",
+        "scripts/inventory/functions.py: scripts and their tests ride the backend gate"
+      ]
+    },
+    "firefox": {
+      "needed": false
+    },
+    "live": {}
+  },
+  "verdict": "PASS",
+  "resources": {
+    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/inv-statements-gate.service",
+    "cpu_s": 507,
+    "memory_peak_mb": 2019
+  },
+  "checks": [
+    {
+      "name": "selection-guards",
+      "command": "/home/cnc/lcnc-suite-inv/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-inv/scripts/test_select/test_selector.py",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 3
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 9
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 17
+    },
+    {
+      "name": "unit-light",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/claude-work/teststrat/measure/inv-statements.gate-round.logs/unit-light.json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 71,
+      "files": 162,
+      "tests": 2601,
+      "passed": 2601,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 2601
+    },
+    {
+      "name": "backend",
+      "command": "/home/cnc/lcnc-suite-inv/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-inv/scripts/test_suite.py offline --component backend --out-dir /home/cnc/claude-work/teststrat/measure/inv-statements.gate-round.logs/backend",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 83
+    }
+  ],
+  "omitted": [
+    {
+      "check": "unit-heavy",
+      "reason": "no heavy file changed, reached or read for"
+    },
+    {
+      "check": "browser",
+      "reason": "no path selects a browser spec"
+    }
+  ],
+  "pending": []
+}

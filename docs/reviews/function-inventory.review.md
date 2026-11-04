@@ -1460,3 +1460,34 @@ Claudes Gate an `8064302b` ist mit PASS für Selektor, Lint, Build und 2601 leic
 Belege: [Prüflog](function-inventory.r274.codex-checks.txt), [Vitest-Ergebnisse](function-inventory.r274.codex-web-results.json), [Stand/Hash- und Gegenwächter-Abgleich](function-inventory.r274.codex-audit.json). Produktquellen und frühere Belege unverändert; keine Live-Zugriffe.
 
 Das Agreement gilt für **Schritt 1: Quellinventar, Zuordnung und statische Belegverweise innerhalb der vereinbarten Adaptergrenzen**. Offene Varianten und fehlende Prüfaussagen bleiben sichtbar; tatsächliche Testlauf-Bindung, Messungen und native Stufe folgen in den vereinbarten späteren Paketen. Daraus folgt noch keine vollständige Funktions- oder Variantenabdeckung.
+
+---
+
+## Claude · Aussagen für die Maschinenfunktionen · Anfrage R275 · 4. November 2026
+
+**Stand:** `feat/inventory-statements` **`151d048e`**, Basis `8064302b` (Schritt 1, jetzt auf development, Merge-Gate PASS `f0070ec7`).
+
+**Auftrag des Operators:** Die Aussagen für alle Funktionen, zuerst die mit Maschinenwirkung. Am Ende eine kurze Liste der offenen.
+
+**Umfang:**
+- **79 Aussagen über 36 Funktionen:**
+  - Sicherheit: Arm, Not-Halt, Auslösung, Maschine ein, Abort;
+  - Betriebsart, Jog, Anfahren, Spindel;
+  - Programm: Halten, Revisionen, Start ab Zeile, Laden, Upload, Editor;
+  - MDI, Werkzeugwechsel, Import, G30, Nullpunkte, TWP, Makros, Settings, Toolsetter, Kalibrieren.
+- **Belege:** Jeder Beleg ist ein Test, dessen Rumpf ich gelesen habe. Die Prüfung ist die Aussage, nicht nur der Titel.
+- **Eine Korrektur dabei:** „Plane läuft nur mit Ebene und G59“ hatte zuerst nur den positiven Fall. Jetzt ist auch `test_plane_kins_without_a_plane_refuses` dabei.
+- **Live-Belege** sind als `live: true` gekennzeichnet und erscheinen als „live, nicht im Gate“: `perf_matrix.py sigstop_trip` und die Rückzüge aus `twp_buttons_check.py`.
+
+**Die Tabelle beginnt jetzt mit „Offene Aussagen“:** 17 ohne Beleg, jede mit der Schicht, die den Bruch sehen würde.
+- **Browser:** die Sendeform der Override-Schieber, von Flood/Mist, von Satz ausblenden/optionalem Halt und des Surface-Scans.
+- **Kompensation:** die drei Lücken. Das Paket ist in Arbeit.
+- **Nativ:** Jog-Richtung, Override, Kühlmittel, Start ab Zeile, M6 mit Bestätigung, Werkzeuglänge, Antasten, Surface-Scan, Kompensationswirkung und mehrere Clients.
+
+23 Funktionen haben noch keine Aussagen (Anzeige, Einstellungen, Diagnose, Eingabehilfen, Systemverträge). Sie stehen benannt in der Tabelle.
+
+**Nicht versucht:** Einen Test für „ein freigegebener Client trennt sich → Jog-Stopp und Abort“ (Sicherheitsschicht 1 in `CLAUDE.md`) fand ich nicht. Ich habe die Aussage aber nicht formuliert: Die Regel „Armed ist Autorisierung, kein Totmann“ sagt, dass Lebendzeichen eines Clients nie eine Bewegung abbrechen. Welche Fassung gilt, würde ich erst klären.
+
+**Gate:** an `151d048e`, Basis `8064302b`: **PASS**. Gelaufen sind Selektor-Wächter, Lint, Build, der leichte Unit-Satz und das Backend samt Inventar-Wächter. Der Bericht liegt unter `docs/reviews/function-inventory.r275.gate-round.json`.
+
+**Erbeten:** `agreement` oder `findings`. Gemeint ist vor allem: Trägt jede Aussage ihren Beleg, und fehlt eine Aussage mit Maschinenwirkung?
