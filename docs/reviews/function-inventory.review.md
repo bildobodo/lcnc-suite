@@ -771,3 +771,78 @@ Die Formulierung „`complete: false`, solange … ungelöster Eintrag **ohne Gr
 Datei, Form und Ausdruckshash sind für die Bindung angenommen. Der neue Wrapper-Gegenfall soll auch **mit** einem technischen Grund unvollständig bleiben. Das ist eine Korrektur des Urteils, kein zusätzlicher Quellenadapter.
 
 Die Inventar-Grundlage kann wie vereinbart unabhängig weitergebaut werden. Für das Gesamt-Agreement fehlen nur die obigen begrenzten Vertragskorrekturen; Reihenfolge, manuelle Übernahme und Toleranzkonzept werden nicht erneut geöffnet.
+
+---
+
+## Claude · Planfassung 3 · Anfrage R269 · 4. November 2026 · die drei Korrekturen aus R268
+
+Alle drei Gegenproben übernehme ich, wie sie sind. Dazu kommt eine eigene Korrektur am Launcher-Weg.
+
+### FI265-02 Rest A · drei Identitäten; nur ein einzelner, belegter Serverkontakt zählt
+
+**Drei getrennte Identitäten:**
+- die **Browser-Anfrage**: die ID aus dem Ereignis `request`;
+- die **Weiterleitungskette**: die ID ihrer ersten Anfrage plus Hop-Nummer, über `redirectedFrom`;
+- die **testseitige Fetch-Operation**: eine eigene ID je `route.fetch`, in der umhüllten Route vergeben und als Header mitgegeben.
+
+**Zuordnungsregel:**
+- Einer Browser-Anfrage wird ein Serverkontakt nur zugeordnet, wenn der Mock unter ihrer ID **genau einen** Kontakt protokolliert hat und sie zu keiner Kette mit mehr als einem Hop gehört.
+- Mehrere Kontakte unter derselben ID bestätigen keine einzelne Antwort.
+- Eine Ergänzung aus URL, Abschlussreihenfolge oder einem einzelnen Eintrag unter der Ketten-ID gibt es nicht.
+
+**Ergebnis je Fall, deine drei Gegenproben:**
+
+| Fall | Beobachtung | Weg |
+|---|---|---|
+| Server 302, dann 200 | eine Kette `real-1` → `real-2`; zwei Kontakte unter `real-1` | beide Hops **unbekannt / unvollständig** |
+| `route.fulfill(302)`, Folgeanfrage zum Server | `synthetic-1` ersetzt; `synthetic-2` ohne Route-Aufruf, Serverkontakt ohne ID | `synthetic-1` **im Browser ersetzt**, `synthetic-2` **unbekannt / unvollständig**; der Mock-Eintrag ohne ID steht als nicht zuordenbar im Bericht |
+| `route.fetch()` über 302, dann `fulfill` | eine Browser-Anfrage `fetch-1`, eine Fetch-Operation mit zwei Serverkontakten | **Antwort ersetzt** ist belegt (der `fulfill`); **Serverkontakt** ist unbekannt / unvollständig (zwei Kontakte unter einer Operation) |
+
+**Verwertbar bleiben:** die eindeutig belegten direkten Anfragen und `fetch` plus `fulfill` **ohne** Weiterleitung als hybrider Weg. Alle drei Fälle werden in der Umsetzung als Gegenfälle gehalten, einschließlich der fehlenden ID beim synthetischen 302.
+
+### FI265-04 Rest A · echte Kopie; das wirksame Schreibziel geprüft, nicht der Name
+
+**`node_modules` als echte Kopie** (`cp -a`, 220 MB; ext4 kann kein Copy-on-write). Ein gemeinsames `node_modules` gibt es im Lauf nicht mehr. Der Gegenfall dazu:
+- Im Ausgangsbaum liegt schon eine `.tmp/*.tsbuildinfo`.
+- Die Kopie schreibt über `ts.sys.writeFile` in ihre eigene.
+- Hash und Inode der Ausgangsdatei bleiben unverändert.
+
+**Die Prüfung vor dem ersten Schreiben** löst jedes Ziel zu seiner Datei auf (`realpath`). Bei einer schon vorhandenen Datei vergleicht sie dazu Gerät und Inode mit allen Dateien außerhalb des Laufverzeichnisses, die der Lauf kennt. Ein gemeinsamer Inode ist ein Abbruch, auch wenn der Name innen liegt. Die Hashes der Ausgangsbestände kommen noch einmal danach, als zweiter Nachweis.
+
+**Wirksame Schreibziele, vollständiger:**
+
+| Ziel | Quelle | Behandlung |
+|---|---|---|
+| `PARAMETER_FILE`, `TOOL_TABLE`, **`POSITION_FILE`** | Kopie-INI | im Laufverzeichnis, Symlinks aufgelöst |
+| `PROGRAM_PREFIX`, `TOOL_LIBRARY_DIR`, `WEBUI_MACRO_DIR` | Kopie-INI, über die neuen Installer-Optionen | im Laufverzeichnis |
+| Logs | `lcnc_paths.resolve()` — **`LCNC_LOG_DIR` hat Vorrang** | Die Unit setzt `LCNC_LOG_DIR=<lauf>/logs` ausdrücklich, und die Vorprüfung berechnet den wirksamen Pfad mit derselben reinen Funktion und Umgebung. Nach dem Start muss `LCNC_RESOLVED_LOG_DIR` des Launchers (aus `/proc/<pid>/environ`) derselbe sein. |
+| `settings.json` | `BASE_DIR` des Gateways | der eigene Baum |
+| Python-Bytecode | Import aus venv und Baum | `PYTHONPYCACHEPREFIX=<lauf>/pycache`: kein `.pyc` landet im gemeinsamen venv |
+| Laufzeitdateien in `/tmp` | `/tmp/webui-*.sock`, `/tmp/lcnc-fifo.*`, LinuxCNCs `mktemp /tmp/linuxcnc.{debug,print}.*` | Einzelinstanz-Plumbing, kein Bestand. Sie sind im Bericht benannt; Voraussetzung ist, dass die LAN-Sim gestoppt ist. |
+
+**Gegenfälle:**
+- eine Positionsdatei, die nach außen verlinkt ist;
+- ein `LCNC_LOG_DIR` aus der Umgebung des Orchestrators, das nach außen zeigt;
+- dazu die schon genannten: `PROGRAM_PREFIX` außen und ein Symlink nach außen.
+
+Alle brechen vor dem ersten Schreiben ab. Die Profilprüfung bleibt.
+
+**Eigene Korrektur am Launcher-Weg:** Mein `PATH=<lauf>/bin:…` aus Planfassung 2 entfällt. Er wäre zerbrechlich gewesen, denn das `linuxcnc`-Skript stellt `$HOME/.local/bin` vor den `PATH`, wenn er es nicht enthält (Zeilen 66–68). Dort zeigt `lcnc-suite` auf `~/lcnc-suite`. Der Installer schreibt `DISPLAY` aber schon absolut als `<repo>/lcnc-suite` (`install_examples.py:343`), mit `--repo <tree>` also den Launcher des Laufbaums. **Nachweis nach dem Start:** Kommandozeile und Arbeitsverzeichnis des Gateway-Prozesses liegen im Laufbaum.
+
+### FI265-01 · ungelöst bleibt ungelöst; Ausschluss ist eine eigene Klasse
+
+Drei Klassen im Ergebnis jedes Adapters:
+
+| Klasse | Bedeutung | Vollständigkeit |
+|---|---|---|
+| `unresolved` | eine Stelle, die eine Pflichtquelle verbergen kann | **`complete: false`**, auch mit Erklärung. Ein technischer Grund löst nichts auf. |
+| `excluded` | ausdrücklich außerhalb der deklarierten Inventurgrenze, an Datei, Form und Ausdruckshash gebunden, mit Grund | sichtbar, **kein** Abdeckungsbeleg, keine Lücke der Vollständigkeit |
+| `variantsOpen` | ein Atom steht, nur seine Varianten sind nicht abgeleitet, etwa eine `v-for`-Familie über einen lokalen Wert | sichtbar benannt, keine Lücke der Vollständigkeit |
+
+**Beispiele aus dem ersten Generatorlauf:**
+- `excluded`: die Syntaxtexte von `gcodeReference.ts` (`O<name> call [arg1] …`) und der Code des Inventars selbst.
+- `variantsOpen`: 44 Familien, etwa `op in outsideGrid`.
+
+Der Gegenfall mit einem neuen Wrapper bleibt `complete: false`, auch wenn ihm ein technischer Grund beigegeben ist.
+
+**Erbeten:** `agreement`, oder `findings`.
