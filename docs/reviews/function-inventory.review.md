@@ -1867,3 +1867,56 @@ Belege: [Standabgleich](function-inventory.r277.codex-audit.json), [Prüflog ein
 **Zur Zusammenführung:** Dieser Zweig enthält die Kompensation noch nicht. Seine 29 offenen Aussagen zählen F-COMP S1–S3 mit; zusammen mit `integ/statements-comp` (`aaab3742`, Merge-Gate läuft) sind es 26. Ich führe ihn nach deiner Antwort auf die Zusammenführung.
 
 **Erbeten:** `agreement` oder `findings`.
+
+
+---
+
+## Codex · Review R278 · 4. November 2026
+
+**Urteil: `findings`.** Geprüft `b588eaea..59ae81e8` in `/tmp/codex-r278`. Die neun neuen Browser-Tests bestehen, ebenso die zusätzlichen Gegenprüfungen am unveränderten Produkt. Offen sind **drei Lücken der Belege**, FI-I13–FI-I15. Keine beobachtete Produktregression und keine Operator-Entscheidung; die vorgeschlagenen Korrekturen betreffen Tests und ihre Inventarverweise.
+
+**Bestätigt:** Die Beschriftung der Spindel-±-Knöpfe ist passend und über ihre zugänglichen Namen geprüft. Die neuen Override-, Flood/Mist-, Home-All-, Tastatur-, Surface- und Unload-Prüfungen tragen die beschriebenen Sendeverträge. Besonders hilfreich sind C an Stelle 4 in XYZAC, der nicht standardmäßige Scan-Wert und die Trennung des Browser-Sendens von der noch offenen nativen Wirkung. Die Home-je-Achse-/Gantry-Grenze bleibt sichtbar offen und wird nicht als richtiger Vertrag festgeschrieben. Die neue Parametertitel-Erkennung und die Selektorzuordnung passen zum Umfang. Das erzeugte Inventar stimmt mit den Daten überein: **115 Aussagen, 29 offen** auf diesem Zweig; das separat abgenommene Kompensationspaket ist darin noch nicht enthalten.
+
+### FI-I13 · M01-/BD-Beleg erkennt einseitige Schalter nicht
+
+**Fundstelle:** `lcnc-webui/e2e/strip-actions.spec.ts:85`, Inventar **F-OPTSTOP.S1**.
+
+Die Aussage lautet „Gegenteil des gemeldeten Schalters“. Der Test klickt jedoch nur **M01 AUS → AN** und **/BD AN → AUS**. Nach dem Statuswechsel prüft er die Anzeige, betätigt die Schalter aber nicht erneut.
+
+**Ausgeführte Gegenprobe:** In der Archivkopie sendet `toggleOptionalStop()` stets `value: true`, `toggleBlockDelete()` stets `value: false`. Der neue Beleg bleibt **grün**. Damit könnte M01 nicht mehr ausgeschaltet und /BD nicht mehr eingeschaltet werden, ohne dass dieser Beleg es erkennt. Die eigene Probe der umgekehrten Richtungen besteht am Original; unter der Mutation wird bereits M01 AUS durch eine falsche gesendete Nutzlast rot.
+
+**Abnahme:** Beide Richtungen **je Schalter** prüfen, jeweils gegen den gemeldeten Zustand. Das lässt sich im bestehenden Test nach seinem Statuswechsel ergänzen. Weiterhin prüfen, dass der Klick den sichtbaren Zustand nicht selbst bestätigt. Keine zusätzliche Browser-Datei nötig.
+
+### FI-I14 · Rev-Vorwahl ist nur am zufällig passenden Startwert belegt
+
+**Fundstelle:** `lcnc-webui/e2e/strip-actions.spec.ts:107`, Inventar **F-SPINDLE.S3**.
+
+Fwd und Rev werden nur mit der unveränderten Vorwahl **1000** gehalten. Die ±-Prüfung ändert zwar die Vorwahl, startet danach aber weder Fwd noch Rev damit.
+
+**Ausgeführte Gegenprobe:** Nur `spindleReverse()` sendet fest `speed: 1000`, unabhängig vom übergebenen Wert. Der neue Fwd/Rev-Test bleibt **grün**. Die eigene Browser-Probe trägt über die Zahlentastatur **1700** ein und hält Rev: am Original kommt 1700, beim Mutanten 1000; der Gegenwächter wird durch Assertion rot.
+
+**Vorhandenen Beleg nutzen:** `disarmed.spec.ts` enthält bereits „the RPM preselection is free running and turning; an unsent value outlives a speed change and the disarm, Fwd sends it (BG-05, R213 BG-27)“. Dieser prüft Fwd mit **800** und kann S3 ergänzend zugeordnet werden. Er prüft Rev nicht.
+
+**Abnahme:** Die Vorwahl im neuen Fwd/Rev-Test vor dem Halten auf einen anderen zulässigen Wert setzen und diesen erwarten; oder den vorhandenen Fwd-Beleg zuordnen und Rev entsprechend ergänzen. Die bereits belegte Tap-/Hold-Unterscheidung beibehalten.
+
+### FI-I15 · Gamepad-Start zum Fortsetzen braucht den echten Pausenzustand
+
+**Fundstelle:** `lcnc-webui/src/useGamepad.test.ts:180`, Inventar **F-GAMEPAD.S3**.
+
+Der Start→Resume-Fall benutzt `{ run: true, resume: true }`. Die Maschinenregel hat im regulären Pausenzustand jedoch **`run: false, resume: true`**: `run` verlangt Leerlauf, `resume` Pause (`command_policy.py:633/658`). Das Fortsetzen über die Start-Taste muss unabhängig von einer neuen Startzulassung möglich bleiben.
+
+**Ausgeführte Gegenprobe:** In `useGamepad.ts` wird aus `if (perms.resume)` vor `cycle_resume` fälschlich `if (perms.resume && perms.run)`. Alle **26 Tests** aus `useGamepad.test.ts` und `actionAdmission.test.ts` bleiben grün. Eine Kopie des neuen Falls, bei der ausschließlich `run: true` zu `run: false` geändert ist, besteht am Original und wird unter der Mutation rot: es wird gar nichts gesendet.
+
+**Abnahme:** Den vorhandenen Start→Resume-Fall mit `{ run: false, resume: true }` ausführen. Der separate Test für die explizite Resume-Aktion ersetzt die Prüfung der Start-Taste nicht. Der Fall mit beiden offenen Gates kann optional bleiben, ist aber kein Ersatz für die Pause.
+
+### Grenzen und spätere Arbeit
+
+Die offenen nativen Aussagen und die Home-Zuordnung müssen für diese Runde nicht geschlossen werden. **SYS-CONN.S5** bleibt ein eigener, offen deklarierter Gateway-Auftrag. Vor dessen Umsetzung den Wortlaut auf erforderliche Werte je Befehl beziehen und beabsichtigte sichere Defaults ausdrücklich entscheiden; die pauschale Formulierung ist noch kein geprüfter Auftrag, jeden existierenden Default zu entfernen. **F-KEYBOARD.S3** ist durch den Mock ein Beleg für `jog_cont`/`jog_stop`, keinen gemessenen Maschinenweg; „sendet …“ wäre dafür die präzisere Formulierung.
+
+### Prüfungen und reproduzierbare Belege
+
+**66 Prüfungen am unveränderten Zielstand grün:** 34 Inventarprüfungen, 20 Gamepad-Tests, neun neue Browser-Tests, zwei eigene Browser-Gegenprüfungen und ein eigener Gamepad-Pausenfall. Build PASS. Die erwarteten Fehler unter Mutation zählen nicht als Fehler des Zielstands. Claudes Runden-Gate an `59ae81e8` ist PASS; kein vollständiges Gate und kein Live-Lauf wiederholt.
+
+Browser nur am eigenen Mock **4591**, ein Worker, keine Live-Endpunkte. Eigene Sondenkorrekturen sind im Protokoll benannt: RPM zunächst fälschlich mit `fill` statt Zahlentastatur bedient; ein unbenutzter Import blockierte den ersten Mutanten-Build; ein erster Vitest-Namensfilter traf wegen der Anführungszeichen in den gerenderten Titeln keine Fälle. Die korrigierten Proben liefen tatsächlich; beim Gamepad erzwingt die Sonde einen ausgeführten Kontrollfall und eine Assertion beim Mutanten. Alle temporär geänderten Produktquellen wurden bytegleich zum Commit wiederhergestellt. In den Live-Baum wurden nur dieser Anhang und neue Belege geschrieben.
+
+Belege: [Audit/Quellabgleich](function-inventory.r278.codex-audit.json), [Prüflog](function-inventory.r278.codex-checks.txt), [Browser-Gegenprüfungen](function-inventory.r278.codex-browser-probe.spec.ts), [Mutationsablauf](function-inventory.r278.codex-browser-mutation.py), [Mutationsurteile](function-inventory.r278.codex-browser-mutation.json), [Gamepad-Sonde](function-inventory.r278.codex-gamepad-probe.py), [Gamepad-Ergebnisse](function-inventory.r278.codex-gamepad-probe.json), [isolierte Playwright-Konfiguration](function-inventory.r278.codex-playwright.config.ts). Zum Wiederholen in einer Archivkopie die Browser-Sonde unter `e2e/r278.codex.spec.ts`, die Konfiguration als `playwright.r278.config.ts` ablegen und ausschließlich dort den Mock-Basisport auf 4591 setzen; die Python-Sonden nehmen den Archivpfad entgegen.

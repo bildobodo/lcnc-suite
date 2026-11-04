@@ -1,0 +1,59 @@
+{
+  "target": "59ae81e8",
+  "mutations": [
+    [
+      "value: !optionalStopOn.value",
+      "value: true"
+    ],
+    [
+      "value: !blockDeleteOn.value",
+      "value: false"
+    ],
+    [
+      "function spindleReverse(speed: number) {\n  fire({ cmd: \"spindle_reverse\", speed }",
+      "function spindleReverse(_speed: number) {\n  fire({ cmd: \"spindle_reverse\", speed: 1000 }"
+    ]
+  ],
+  "source_sha_before": "2110be0018f72aaade3788664aa44a86be4ad8877b1bbd59f89fcadab33372c1",
+  "build_exit": 0,
+  "browser_exit": 1,
+  "stats": {
+    "startTime": "2026-11-04T22:34:49.078Z",
+    "duration": 46898.18,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "title": "R278: M01 can turn OFF and block delete can turn ON from their reported states",
+      "ok": false,
+      "statuses": [
+        "failed"
+      ]
+    },
+    {
+      "title": "R278: Reverse sends the edited RPM preselection rather than the initial default",
+      "ok": false,
+      "statuses": [
+        "failed"
+      ]
+    },
+    {
+      "title": "M01 and /BD send the opposite of the reported switch; the switch shows the status",
+      "ok": true,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "title": "Fwd and Rev send the preselected speed on a hold — a tap sends nothing",
+      "ok": true,
+      "statuses": [
+        "passed"
+      ]
+    }
+  ],
+  "source_sha_after": "2110be0018f72aaade3788664aa44a86be4ad8877b1bbd59f89fcadab33372c1"
+}

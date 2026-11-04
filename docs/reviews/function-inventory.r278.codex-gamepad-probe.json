@@ -1,0 +1,28 @@
+{
+  "target": "59ae81e8",
+  "test_change": [
+    "{ action: \"start\", open: { run: true, resume: true }",
+    "{ action: \"start\", open: { run: false, resume: true }"
+  ],
+  "sha_before": "202f8875a6a0cd0775f25aff7d419630a53e8ea386e9138184c6186f9ea9eccf",
+  "baseline_paused_case": {
+    "exit": 0,
+    "stdout": "\n RUN  v4.1.8 /tmp/codex-r278/lcnc-webui\n\n\n Test Files  1 passed (1)\n      Tests  1 passed | 19 skipped (20)\n   Start at  23:36:13\n   Duration  524ms (transform 296ms, setup 0ms, import 405ms, tests 5ms, environment 0ms)\n\n",
+    "stderr": ""
+  },
+  "mutation": [
+    "if (perms.resume) deps.fire({ cmd: \"cycle_resume\" }, ACTION_GATES.resume);",
+    "if (perms.resume && perms.run) deps.fire({ cmd: \"cycle_resume\" }, ACTION_GATES.resume);"
+  ],
+  "existing_tests_with_mutation": {
+    "exit": 0,
+    "stdout": "\n RUN  v4.1.8 /tmp/codex-r278/lcnc-webui\n\n\n Test Files  2 passed (2)\n      Tests  26 passed (26)\n   Start at  23:36:14\n   Duration  783ms (transform 340ms, setup 0ms, import 553ms, tests 26ms, environment 0ms)\n\n",
+    "stderr": ""
+  },
+  "paused_case_with_mutation": {
+    "exit": 1,
+    "stdout": "\n RUN  v4.1.8 /tmp/codex-r278/lcnc-webui\n\n ❯ src/r278Gamepad.test.ts (20 tests | 1 failed | 19 skipped) 10ms\n     × 'start' ('cycle_resume'): exactly its command under its control's gate; closed, nothing 9ms\n\n Test Files  1 failed (1)\n      Tests  1 failed | 19 skipped (20)\n   Start at  23:36:15\n   Duration  484ms (transform 281ms, setup 0ms, import 376ms, tests 10ms, environment 0ms)\n\n",
+    "stderr": "\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  src/r278Gamepad.test.ts > useGamepad button actions (the function inventory's F-GAMEPAD S3) > 'start' ('cycle_resume'): exactly its command under its control's gate; closed, nothing\nAssertionError: expected [] to deeply equal [ { cmd: 'cycle_resume', …(2) } ]\n\n- Expected\n+ Received\n\n- [\n-   {\n-     \"cmd\": \"cycle_resume\",\n-     \"gate\": \"resume\",\n-     \"how\": \"fire\",\n-   },\n- ]\n+ []\n\n ❯ src/r278Gamepad.test.ts:192:48\n    190|   ];\n    191|   it.each(CASES)(\"$action ($want.cmd): exactly its command under its c…\n    192|     expect(press(action, open, { coolantOn })).toEqual([want]);\n       |                                                ^\n    193|     const closed = Object.fromEntries(Object.keys(open).map(k => [k, f…\n    194|     expect(press(action, closed, { coolantOn }), \"its gate closed\").to…\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n"
+  },
+  "sha_after": "202f8875a6a0cd0775f25aff7d419630a53e8ea386e9138184c6186f9ea9eccf"
+}

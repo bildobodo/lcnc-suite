@@ -1,0 +1,118 @@
+{
+  "target": "59ae81e81ad2caeb2fb6e635cd10e395802fcbe5",
+  "base": "b588eaea",
+  "verdict": "findings",
+  "findings": {
+    "FI-I13": "F-OPTSTOP.S1: the two switches each exercised in only one direction",
+    "FI-I14": "F-SPINDLE.S3: reverse only exercised with initial 1000 RPM",
+    "FI-I15": "F-GAMEPAD.S3: Start->Resume case has run=true instead of real paused run=false"
+  },
+  "checks_original": {
+    "inventory": 34,
+    "gamepad": 20,
+    "new_browser": 9,
+    "own_browser_counterchecks": 2,
+    "own_paused_gamepad_case": 1,
+    "total": 66,
+    "build": "PASS"
+  },
+  "mutations": {
+    "browser_existing_pass": 2,
+    "browser_counterchecks_fail": 2,
+    "gamepad_existing_pass": 26,
+    "gamepad_paused_countercheck_fail": 1
+  },
+  "changed_statements": [
+    [
+      "F-HOME",
+      "S2"
+    ],
+    [
+      "F-HOME",
+      "S2b"
+    ],
+    [
+      "F-HOME",
+      "S2c"
+    ],
+    [
+      "F-OVERRIDE",
+      "S1"
+    ],
+    [
+      "F-SPINDLE",
+      "S3"
+    ],
+    [
+      "F-COOLANT",
+      "S1"
+    ],
+    [
+      "F-OPTSTOP",
+      "S1"
+    ],
+    [
+      "F-TOOLMEASURE",
+      "S6"
+    ],
+    [
+      "F-TOOLMEASURE",
+      "S6b"
+    ],
+    [
+      "F-SURFACE",
+      "S1"
+    ],
+    [
+      "F-KEYBOARD",
+      "S3"
+    ],
+    [
+      "F-GAMEPAD",
+      "S3"
+    ],
+    [
+      "SYS-CONN",
+      "S5"
+    ]
+  ],
+  "inventory": {
+    "statements": 115,
+    "gaps": 29,
+    "validator": "PASS",
+    "rendered_table_equal": true
+  },
+  "own_harness_corrections": [
+    "Direct fill of RPM readonly field changed to app keypad (baseline then PASS)",
+    "Unused Page type removed from own browser probe before mutant build",
+    "Quoted Vitest field values included in name filter, executable-case guard added"
+  ],
+  "sources_restored_to_target": {
+    "docs/decisions.md": "280ad6a495d96a444df3810b0cee2b65cceb7ee7bd837973df8fcbadf5a94c6d",
+    "docs/inventory/funktionen.md": "32a44e54b649d49232e3d1cb19a402d07320189239349a79c329043ab2c07475",
+    "docs/reviews/browser-gaps.parametric-title.red.txt": "441cf2a0fae3adb3f8a6e693ffb9a35c4ccb17d2aa57640be966994d1b615b56",
+    "docs/reviews/browser-gaps.red.txt": "5a2ae1fc83e31b5285dffe0fe7bbe999ac60546b8b54760f078bcf44854e663b",
+    "lcnc-webui/e2e/keyboard-guards.spec.ts": "e919973ae9d0fd4cc731e5a1aeb317ca05b85af6750e1ea6c414fc25c96bb16f",
+    "lcnc-webui/e2e/probe-click.spec.ts": "e7df8bc1a7d7768cfce9431dc0ada210bbc6f0480184d169f5ff4c89b47896a1",
+    "lcnc-webui/e2e/strip-actions.spec.ts": "93c3124ce2eff8b690c717fbde839f63944a781b976637d8a56ca612a48c5c70",
+    "lcnc-webui/e2e/toolsetter-setup.spec.ts": "54aad8cb6be4bacbafd930a0210e6e51b2e2bffa06888940f8501058aa0296e6",
+    "lcnc-webui/src/SpindleStrip.vue": "f843188804ca216095b30f27d5828525044adf01baac784eee9b4dd7fb5d89d8",
+    "lcnc-webui/src/useGamepad.test.ts": "95b90501dbf6584a1bd5179edad1bc1ffa546915167bf7da739fc7ea983cc23e",
+    "scripts/inventory/functions.json": "3ee3e1f3820cfa3954aabb86f5e39570f4be754fe68eabe70a238532fd465bd0",
+    "scripts/inventory/functions.py": "88cd9d5cee59c9e1f94617aa1109015c2770a621ff95f62533b11ae754396bd9",
+    "scripts/inventory/test_inventory.py": "1da27f687e3cbfdbddee937d98158c2f283101ca08f3bfd99bad43de7f0d4a95",
+    "scripts/test_select/rules.py": "3e33d8da483491cf83955f13607e78d9c7aa9ae9b9e4925d8ca19e98654fde09",
+    "lcnc-webui/src/App.vue": "2110be0018f72aaade3788664aa44a86be4ad8877b1bbd59f89fcadab33372c1",
+    "lcnc-webui/src/useGamepad.ts": "202f8875a6a0cd0775f25aff7d419630a53e8ea386e9138184c6186f9ea9eccf",
+    "lcnc-webui/src/actionAdmission.test.ts": "b529cac57aaa9af1433c1ab86c0326ba62be7c606b4ee81948d6b4a0895dff0f",
+    "lcnc-webui/e2e/disarmed.spec.ts": "3c580eb872bd49a4c1696b8728f8015b5fa9db292d3fa78f47b51d82d42e4f72"
+  },
+  "runtime_boundaries": [
+    "archive only",
+    "no live endpoints",
+    "mock port 4591",
+    "one worker",
+    "no full gate rerun",
+    "temporary mutations restored"
+  ]
+}

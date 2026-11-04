@@ -1,0 +1,228 @@
+===== Inventory checks =====
+..................................                                       [100%]
+34 passed in 2.44s
+
+
+===== Unit tests =====
+JSON report written to /tmp/codex-r278/units.json
+
+
+===== Nine new browser tests =====
+
+Running 9 tests using 1 worker
+
+(node:104356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:104356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [e2e] › e2e/keyboard-guards.spec.ts:789:1 › every bound jog key jogs its own axis in its direction and stops it on release; a key of an absent axis sends nothing (6.2s)
+  ✓  2 [e2e] › e2e/probe-click.spec.ts:60:1 › Surface: a held Start Scan sends O<surface_scan> CALL with the panel's numbers (5.1s)
+  ✓  3 [e2e] › e2e/strip-actions.spec.ts:43:1 › each override slider sends its own factor; its 100 % button sends 1.0 (3.6s)
+  ✓  4 [e2e] › e2e/strip-actions.spec.ts:63:1 › Flood and Mist send on against the reported off, off against the reported on — the switch shows the status (3.7s)
+  ✓  5 [e2e] › e2e/strip-actions.spec.ts:85:1 › M01 and /BD send the opposite of the reported switch; the switch shows the status (2.6s)
+  ✓  6 [e2e] › e2e/strip-actions.spec.ts:107:1 › Fwd and Rev send the preselected speed on a hold — a tap sends nothing (5.1s)
+  ✓  7 [e2e] › e2e/strip-actions.spec.ts:124:1 › ± move the preselection while the spindle stands, and send increase / decrease while it turns (3.0s)
+  ✓  8 [e2e] › e2e/strip-actions.spec.ts:146:1 › Home All sends home_all on a hold — a tap sends nothing (3.6s)
+  ✓  9 [e2e] › e2e/toolsetter-setup.spec.ts:170:1 › Unload is ONE command: T0 M600 with the setter's values in M600 mode, tool_change 0 in the standard mode (3.7s)
+
+  9 passed (38.5s)
+
+
+===== Own probes initial run: direct fill of readonly RPM field was a harness error =====
+
+Running 2 tests using 1 worker
+
+(node:108429) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:108429) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [e2e] › e2e/r278.codex.spec.ts:12:1 › R278: M01 can turn OFF and block delete can turn ON from their reported states (3.0s)
+  ✘  2 [e2e] › e2e/r278.codex.spec.ts:35:1 › R278: Reverse sends the edited RPM preselection rather than the initial default (33.3s)
+
+
+  1) [e2e] › e2e/r278.codex.spec.ts:35:1 › R278: Reverse sends the edited RPM preselection rather than the initial default 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.fill: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('[data-strip="spindle"]').locator('input.spRpmInput')[22m
+    [2m    - locator resolved to <input min="0" readonly step="10" lang="en" type="text" max="99999" value="1000" inputmode="none" name="stripInput" data-v-df83289a="" autocomplete="off" data-control="stripInput" aria-label="Spindle speed" data-input-area="input-14" class="spRpmInput inputField"/>[22m
+    [2m    - fill("1700")[22m
+    [2m  - attempting fill action[22m
+    [2m    2 × waiting for element to be visible, enabled and editable[22m
+    [2m      - element is not editable[22m
+    [2m    - retrying fill action[22m
+    [2m    - waiting 20ms[22m
+    [2m    2 × waiting for element to be visible, enabled and editable[22m
+    [2m      - element is not editable[22m
+    [2m    - retrying fill action[22m
+    [2m      - waiting 100ms[22m
+    [2m    60 × waiting for element to be visible, enabled and editable[22m
+    [2m       - element is not editable[22m
+    [2m     - retrying fill action[22m
+    [2m       - waiting 500ms[22m
+
+
+      37 |   const sp = page.locator('[data-strip="spindle"]');
+      38 |   const rpm = sp.locator('input.spRpmInput');
+    > 39 |   await rpm.fill('1700');
+         |             ^
+      40 |   await expect(rpm).toHaveValue('1700');
+      41 |   await ctl({ op: 'clearCmds' });
+      42 |   const reverse = sp.getByRole('button', { name: 'Rev', exact: true });
+        at /tmp/codex-r278/lcnc-webui/e2e/r278.codex.spec.ts:39:13
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r278.codex-R278-Reverse-se-84560-er-than-the-initial-default-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r278.codex-R278-Reverse-se-84560-er-than-the-initial-default-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r278.codex-R278-Reverse-se-84560-er-than-the-initial-default-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r278.codex-R278-Reverse-se-84560-er-than-the-initial-default-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [e2e] › e2e/r278.codex.spec.ts:35:1 › R278: Reverse sends the edited RPM preselection rather than the initial default 
+  1 passed (41.7s)
+
+
+===== Own Rev probe using the app keypad =====
+
+Running 1 test using 1 worker
+
+(node:111589) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:111589) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [e2e] › e2e/r278.codex.spec.ts:35:1 › R278: Reverse sends the edited RPM preselection rather than the initial default (5.9s)
+
+  1 passed (7.0s)
+
+
+===== First mutant build: unused import in the own probe, removed =====
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+e2e/r278.codex.spec.ts(1,29): error TS6133: 'Page' is declared but its value is never read.
+
+
+
+===== Browser mutations: existing two pass; independent two fail by assertion =====
+
+Running 4 tests using 1 worker
+
+  ✘  1 [e2e] › e2e/r278.codex.spec.ts:12:1 › R278: M01 can turn OFF and block delete can turn ON from their reported states (15.1s)
+  ✘  2 [e2e] › e2e/r278.codex.spec.ts:35:1 › R278: Reverse sends the edited RPM preselection rather than the initial default (16.8s)
+  ✓  3 [e2e] › e2e/strip-actions.spec.ts:85:1 › M01 and /BD send the opposite of the reported switch; the switch shows the status (4.3s)
+  ✓  4 [e2e] › e2e/strip-actions.spec.ts:107:1 › Fwd and Rev send the preselected speed on a hold — a tap sends nothing (6.3s)
+
+
+  1) [e2e] › e2e/r278.codex.spec.ts:12:1 › R278: M01 can turn OFF and block delete can turn ON from their reported states 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 1[39m
+
+    [2m  Array [[22m
+    [2m    Object {[22m
+    [2m      "cmd": "set_optional_stop",[22m
+    [32m-     "value": false,[39m
+    [31m+     "value": true,[39m
+    [2m    },[22m
+    [2m  ][22m
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      22 |   await ctl({ op: 'clearCmds' });
+      23 |   await m01.click();
+    > 24 |   await expect.poll(commands).toEqual([{ cmd: 'set_optional_stop', value: false }]);
+         |                               ^
+      25 |   await expect(m01).toBeChecked();
+      26 |   await ctl({ op: 'clearCmds' });
+      27 |   await bd.click();
+        at /tmp/codex-r278/lcnc-webui/e2e/r278.codex.spec.ts:24:31
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r278.codex-R278-M01-can-tu-2972b--from-their-reported-states-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r278.codex-R278-M01-can-tu-2972b--from-their-reported-states-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r278.codex-R278-M01-can-tu-2972b--from-their-reported-states-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r278.codex-R278-M01-can-tu-2972b--from-their-reported-states-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [e2e] › e2e/r278.codex.spec.ts:35:1 › R278: Reverse sends the edited RPM preselection rather than the initial default 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 1[39m
+
+    [2m  Array [[22m
+    [2m    Object {[22m
+    [2m      "cmd": "spindle_reverse",[22m
+    [32m-     "speed": 1700,[39m
+    [31m+     "speed": 1000,[39m
+    [2m    },[22m
+    [2m  ][22m
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      51 |   await page.waitForTimeout(700);
+      52 |   await page.mouse.up();
+    > 53 |   await expect.poll(commands).toEqual([{ cmd: 'spindle_reverse', speed: 1700 }]);
+         |                               ^
+      54 | });
+      55 |
+        at /tmp/codex-r278/lcnc-webui/e2e/r278.codex.spec.ts:53:31
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r278.codex-R278-Reverse-se-84560-er-than-the-initial-default-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r278.codex-R278-Reverse-se-84560-er-than-the-initial-default-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r278.codex-R278-Reverse-se-84560-er-than-the-initial-default-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r278.codex-R278-Reverse-se-84560-er-than-the-initial-default-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [e2e] › e2e/r278.codex.spec.ts:12:1 › R278: M01 can turn OFF and block delete can turn ON from their reported states 
+    [e2e] › e2e/r278.codex.spec.ts:35:1 › R278: Reverse sends the edited RPM preselection rather than the initial default 
+  2 passed (46.9s)
+
+(node:114634) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:114634) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:115063) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:115063) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:115539) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:115539) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Original build: npm run build PASS. Mutant build after own unused import removed: PASS. Browser: independent mock at 4591, one worker, no live servers.
+Gamepad first title filter matched no tests because Vitest prints quoted field values; that first probe is not counted. Corrected filter requires one executed baseline case and an AssertionError on the mutant, recorded in codex-gamepad-probe.json.
