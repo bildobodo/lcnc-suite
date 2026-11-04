@@ -82,12 +82,14 @@ class TestSuiteRunner(unittest.TestCase):
         # + parity-compare (the parity gate's comparison: two-way, coverage on
         # a probe's braking range — docs/reviews/parity-ef.plan.md F4)
         # + test-select (the test selector's guards, test strategy step 3)
-        self.assertEqual(len(commands), 11)
+        # + inventory (the function inventory's guard, Codex R265–R269)
+        self.assertEqual(len(commands), 12)
         self.assertIn("audit-css", [name for name, _, _ in commands])
         self.assertIn("review-handshake", [name for name, _, _ in commands])
         self.assertIn("readback-target", [name for name, _, _ in commands])
         self.assertIn("parity-compare", [name for name, _, _ in commands])
         self.assertIn("test-select", [name for name, _, _ in commands])
+        self.assertIn("inventory", [name for name, _, _ in commands])
         self.assertNotIn("viewer-ab-report", [name for name, _, _ in commands])
         self.assertFalse(any("sim_parity" in str(command) for _, command, _ in commands))
 

@@ -1,0 +1,3775 @@
+{
+ "adapters": {
+  "controls": {
+   "source": "lcnc-webui/src/**/*.vue templates",
+   "forms": [
+    "catalog component",
+    "raw control",
+    "role=button",
+    "element with an action event",
+    "<ChoiceGroup label=\"…\">: the instance is the control"
+   ],
+   "limit": "templates only — global listeners, keys and the gamepad are their own adapters",
+   "atoms": [
+    {
+     "id": "control:App.vue|div|@click=mdiText = entry.text",
+     "family": [
+      "(entry, i) in mdiHistory"
+     ]
+    },
+    {
+     "id": "control:App.vue|div|@click=openMessages"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:abort|@click=fire({ cmd: 'abort' }, 'abort')"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:abort|@click=fire({ cmd: 'abort' }, 'abort')#2"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:abort|@click=fire({ cmd: 'abort' }, 'abort')#3"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:bannerAbort|@click=fire({ cmd: 'abort' }, 'abort')"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:bannerAck|@click=acknowledgeSafetyTrip"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:bannerAction|@click=openMessages"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:bannerAction|@click=reloadPage"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:bannerHome|@click=homeAll"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:bannerReload|@click=loadFile(activeFile)"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:bannerReload|@click=loadFile(programUnconfirmed)"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:dialogCancel|@click=cancelCompToggle"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:dialogCancel|@click=clearMessagesAsk = false"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:dialogCancel|@click=macroParamDialog = null"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:dialogCancel|@click=settingsDiscard = null"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:dialogCancel|@click=showShutdownConfirm = false"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:dialogCancel|@click=tabLeaveAsk = null"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:dialogDanger|@click=clearAllMessages(); clearMessagesAsk = false"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:dialogDanger|@click=confirmSettingsDiscard"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:dialogDanger|@click=confirmTabLeave"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:dialogReady|@click=confirmCompToggle"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:fileBrowse|@click=toolTableRef?.toggleImportBrowser()"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:fileBrowse|@click=toolTableRef?.uploadLibrary()"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:fileDownload|@click=toolTableRef?.downloadTable()"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:headerIcon|@click=messagesDialogOpen ? closeMessages() : openMessages()"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:headerIcon|@click=openDialog('settings')"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:headerIcon|@click=openGcodeRef()"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:headerIcon|@click=showShutdownConfirm = true"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:headerIcon|@click=toggleFullscreen"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:macroExecute|@click=confirmMacroParams"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:mdi|@click=handleMdiSend"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:settingInlineMd|@click=clearMdiHistory"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:shutdown|@click=send({ cmd: 'shutdown' }); showShutdownConfirm = false"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:simTrip|@click=send({ cmd: 'simulate_probe_trip' })"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:toolChangeConfirm|@click=confirmToolChange"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:toolMeasure|@click=measureAuto"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:toolOp|@click=toolTableRef?.openAdd()"
+    },
+    {
+     "id": "control:App.vue|MachineBtn:toolUnload|@click=unloadTool"
+    },
+    {
+     "id": "control:App.vue|MachineInput:macroParam|v-model=macroParamDialog.values[p.key]",
+     "family": [
+      "p in dialogFile.params"
+     ]
+    },
+    {
+     "id": "control:App.vue|MachineInput:mdiText|@keydown=onMdiKeydown v-model=mdiText"
+    },
+    {
+     "id": "control:App.vue|MachineSelect:tabSelect|v-model=probeView"
+    },
+    {
+     "id": "control:Btn.vue|button|"
+    },
+    {
+     "id": "control:CameraPip.vue|div|@pointerdown=onDragStart"
+    },
+    {
+     "id": "control:CameraPip.vue|div|@pointerdown=onResizeStart"
+    },
+    {
+     "id": "control:CameraPip.vue|MachineBtn:close|@click.stop=close"
+    },
+    {
+     "id": "control:CameraPip.vue|MachineBtn:windowToggle|@click.stop=toggleMinimize"
+    },
+    {
+     "id": "control:ChoiceGroup.vue|MachineChoice:{o.gate}|@choose=el => choose(o, el)",
+     "family": [
+      "(o, i) in options"
+     ]
+    },
+    {
+     "id": "control:CodeEditor.vue|div|@pointerup=onPointerUp"
+    },
+    {
+     "id": "control:DebugTab.vue|MachineBtn:inline|@click=downloadTimingCsv"
+    },
+    {
+     "id": "control:DebugTab.vue|MachineBtn:inline|@click=resetTimingStats"
+    },
+    {
+     "id": "control:DebugTab.vue|MachineBtn:inline|@click=toggleTimingLog"
+    },
+    {
+     "id": "control:DetailsPopover.vue|MachineBtn:{props.type}|@click=toggle @pointerdown=onPointerDown"
+    },
+    {
+     "id": "control:DialogFrame.vue|div|@click.self=requestClose('backdrop')"
+    },
+    {
+     "id": "control:DialogFrame.vue|MachineBtn:close|@click=requestClose('x')"
+    },
+    {
+     "id": "control:FileBrowser.vue|button|@click=select(entry) @pointerdown=entry.type === 'file' && fileBlock && explainAt($event, fileBlock) :disabled=busy || (entry.type === 'file' && !!fileBlock)",
+     "family": [
+      "entry in files"
+     ]
+    },
+    {
+     "id": "control:FileBrowser.vue|MachineBtn:inline|@click=browse(subdir.split('/').slice(0, -1).join('/'))"
+    },
+    {
+     "id": "control:FileBrowser.vue|MachineBtn:retry|@click=browse(failedDirectory)"
+    },
+    {
+     "id": "control:FloatingOverlays.vue|button|@click=inputGlyph.open?.() @pointerdown.prevent="
+    },
+    {
+     "id": "control:GamepadMapWizard.vue|MachineBtn:dialogCancel|@click=emit('cancel')"
+    },
+    {
+     "id": "control:GamepadMapWizard.vue|MachineBtn:dialogSettingConfirm|@click=save"
+    },
+    {
+     "id": "control:GamepadMapWizard.vue|MachineBtn:inlineMd|@click=requestRestart"
+    },
+    {
+     "id": "control:GamepadMapWizard.vue|MachineBtn:inlineMd|@click=skip"
+    },
+    {
+     "id": "control:GamepadTab.vue|MachineBtn:dialogCancel|@click=removeConfirm = false"
+    },
+    {
+     "id": "control:GamepadTab.vue|MachineBtn:dialogSettingDanger|@click=removeProfile"
+    },
+    {
+     "id": "control:GamepadTab.vue|MachineBtn:profileRemove|@click=requestRemoveProfile"
+    },
+    {
+     "id": "control:GamepadTab.vue|MachineBtn:settingInlineMd|@click=showWizard = true"
+    },
+    {
+     "id": "control:GamepadTab.vue|MachineSelect:inputConfig|@update:modelValue=onGpMappingChanged v-model=gpMapping[key]",
+     "family": [
+      "(label, key) in GP_BTN_LABELS"
+     ]
+    },
+    {
+     "id": "control:GamepadTab.vue|MachineSlider:inputConfig|@update:modelValue=(v: number | undefined) => emit('setGamepadConfig', { ...gamepadConfig!, deadZone: v ?? 0.15 })"
+    },
+    {
+     "id": "control:GamepadTab.vue|MachineToggle:inputConfig|@update:modelValue=setInverted(a.letter, $event)",
+     "family": [
+      "a in stickAxes"
+     ]
+    },
+    {
+     "id": "control:GamepadTab.vue|MachineToggle:inputConfig|v-model=gpButtonsEnabled"
+    },
+    {
+     "id": "control:GamepadTab.vue|MachineToggle:inputConfig|v-model=gpJogEnabled"
+    },
+    {
+     "id": "control:GcodePanel.vue|div|@click=item.kind === 'main' && onLineClick(item.lineNum)",
+     "family": [
+      "(item, i) in visibleLines"
+     ]
+    },
+    {
+     "id": "control:GcodePanel.vue|input|@change=onFileSelect"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:{isPaused ? 'resume' : 'pause'}|@click=isPaused ? emit('cycleResume') : emit('cyclePause')"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:abort|@click=emit('abort')"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:close|@click=downloadError = null"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:close|@click=saveError = null"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:close|@click=uploadError = null"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:dialogCancel|@click=showDiscardConfirm = false"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:dialogCancel|@click=showRunDialog = false"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:dialogCancel|@click=uploadConflict = null"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:dialogConfirm|@click=confirmRunFromLine"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:dialogDanger|@click=confirmDiscard"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:fileDiscard|@click=discardEdit"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:fileDownload|@click=downloadProgram"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:fileOp|@click=reloadFile"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:fileOp|@click=toggleBrowser"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:fileOp|@click=unloadFile"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:fileSave|@click=saveEdit"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:inline|@click=emit('showStats')"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:inline|@click=keepEditing"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:inlineDanger|@click=discardEdit"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:sourceDanger|@click=uploadReplace"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:sourceOp|@click=($refs.fileInput as HTMLInputElement).click()"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:sourceOp|@click=enterEdit"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:sourceOp|@click=uploadRename"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:start|@click=onStartClick"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineBtn:step|@click=emit('cycleStep')"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineInput:displaySettingNum|v-model.number=dialogSpindleSpeed"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineInput:uploadName|v-model=uploadConflict.newName"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineRadio:displaySetting|@update:modelValue=dialogSpindleDir = 'forward'"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineRadio:displaySetting|@update:modelValue=dialogSpindleDir = 'off'"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineRadio:displaySetting|@update:modelValue=dialogSpindleDir = 'reverse'"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineToggle:blockDelete|v-model=blockDeleteModel"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineToggle:displaySetting|v-model=dialogSafeZ"
+    },
+    {
+     "id": "control:GcodePanel.vue|MachineToggle:optionalStop|v-model=optionalStopModel"
+    },
+    {
+     "id": "control:GcodePanel.vue|span|@click=interactive && onTokenClick($event, token) @mouseenter=interactive && onTokenMouseEnter($event, token) @mouseleave=interactive && onTokenMouseLeave()",
+     "family": [
+      "(item, i) in visibleLines",
+      "(token, ti) in item.tokens"
+     ]
+    },
+    {
+     "id": "control:GcodeReferenceDialog.vue|button|@click=toggleSort('code')"
+    },
+    {
+     "id": "control:GcodeReferenceDialog.vue|button|@click=toggleSort('name')"
+    },
+    {
+     "id": "control:GcodeReferenceDialog.vue|MachineInput:search|v-model=search"
+    },
+    {
+     "id": "control:GcodeReferenceDialog.vue|MachineSelect:filter|v-model=filterGroup"
+    },
+    {
+     "id": "control:HalshowTab.vue|MachineBtn:inline|@click=collapseAllHal"
+    },
+    {
+     "id": "control:HalshowTab.vue|MachineBtn:inline|@click=expandAllHal"
+    },
+    {
+     "id": "control:HalshowTab.vue|MachineBtn:inline|@click=toggleHalGroup(group)",
+     "family": [
+      "[group, pins] of pinGroups"
+     ]
+    },
+    {
+     "id": "control:HalshowTab.vue|MachineBtn:inline|@click=toggleHalGroup(group)#2",
+     "family": [
+      "[group, params] of paramGroups"
+     ]
+    },
+    {
+     "id": "control:HalshowTab.vue|MachineInput:search|v-model=halSearch"
+    },
+    {
+     "id": "control:HelpIcon.vue|span|@click.prevent.stop=toggle @keydown=onKeydown @pointerdown=onPointerDown"
+    },
+    {
+     "id": "control:JogStrip.vue|ChoiceGroup:Jog step|@choose=v => emit('update:jogIncrement', Number(v))"
+    },
+    {
+     "id": "control:JogStrip.vue|ChoiceGroup:Kinematics frame| :act=frameAct"
+    },
+    {
+     "id": "control:JogStrip.vue|ChoiceGroup:Task mode| :act=modeAct"
+    },
+    {
+     "id": "control:JogStrip.vue|div|@focusin=onStepFocusin @focusout=onStepFocusout @keydown=onStepKeydown @pointerdown=holdStep"
+    },
+    {
+     "id": "control:JogStrip.vue|MachineBtn:{btn.axis < 0 ? 'jogStop' : 'jog'}|@contextmenu.prevent= @keydown=onJogKey(btn, $event) @pointercancel.prevent=stopJog(btn, $event) @pointerdown.prevent=startJog(btn, $event) @pointerleave.prevent=stopJog(btn, $event) @pointermove=slideOffCheck @pointerup.prevent=stopJog(btn, $event)",
+     "family": [
+      "btn in xyBtns"
+     ]
+    },
+    {
+     "id": "control:JogStrip.vue|MachineBtn:jog|@contextmenu.prevent= @pointercancel.prevent=stopAxisJog(ra.index, -1, $event) @pointerdown.prevent=startAxisJog(ra.index, -1, angularJogVel, $event) @pointerleave.prevent=stopAxisJog(ra.index, -1, $event) @pointermove=slideOffCheck @pointerup.prevent=stopAxisJog(ra.index, -1, $event)",
+     "family": [
+      "(ra, i) in abcAxes"
+     ]
+    },
+    {
+     "id": "control:JogStrip.vue|MachineBtn:jog|@contextmenu.prevent= @pointercancel.prevent=stopAxisJog(ra.index, -1, $event) @pointerdown.prevent=startAxisJog(ra.index, -1, jogVel, $event) @pointerleave.prevent=stopAxisJog(ra.index, -1, $event) @pointermove=slideOffCheck @pointerup.prevent=stopAxisJog(ra.index, -1, $event)",
+     "family": [
+      "(ra, i) in uvwAxes"
+     ]
+    },
+    {
+     "id": "control:JogStrip.vue|MachineBtn:jog|@contextmenu.prevent= @pointercancel.prevent=stopAxisJog(ra.index, 1, $event) @pointerdown.prevent=startAxisJog(ra.index, 1, angularJogVel, $event) @pointerleave.prevent=stopAxisJog(ra.index, 1, $event) @pointermove=slideOffCheck @pointerup.prevent=stopAxisJog(ra.index, 1, $event)",
+     "family": [
+      "(ra, i) in abcAxes"
+     ]
+    },
+    {
+     "id": "control:JogStrip.vue|MachineBtn:jog|@contextmenu.prevent= @pointercancel.prevent=stopAxisJog(ra.index, 1, $event) @pointerdown.prevent=startAxisJog(ra.index, 1, jogVel, $event) @pointerleave.prevent=stopAxisJog(ra.index, 1, $event) @pointermove=slideOffCheck @pointerup.prevent=stopAxisJog(ra.index, 1, $event)",
+     "family": [
+      "(ra, i) in uvwAxes"
+     ]
+    },
+    {
+     "id": "control:JogStrip.vue|MachineBtn:jog|@contextmenu.prevent= @pointercancel.prevent=stopAxisJog(zAxis.index, -1, $event) @pointerdown.prevent=startAxisJog(zAxis.index, -1, jogVel, $event) @pointerleave.prevent=stopAxisJog(zAxis.index, -1, $event) @pointermove=slideOffCheck @pointerup.prevent=stopAxisJog(zAxis.index, -1, $event)"
+    },
+    {
+     "id": "control:JogStrip.vue|MachineBtn:jog|@contextmenu.prevent= @pointercancel.prevent=stopAxisJog(zAxis.index, 1, $event) @pointerdown.prevent=startAxisJog(zAxis.index, 1, jogVel, $event) @pointerleave.prevent=stopAxisJog(zAxis.index, 1, $event) @pointermove=slideOffCheck @pointerup.prevent=stopAxisJog(zAxis.index, 1, $event)"
+    },
+    {
+     "id": "control:JogStrip.vue|MachineBtn:jogSpeedReset|@click=emit('resetAngularJogVel')"
+    },
+    {
+     "id": "control:JogStrip.vue|MachineBtn:jogSpeedReset|@click=emit('resetJogVel')"
+    },
+    {
+     "id": "control:JogStrip.vue|MachineSelect:jogIncrement|@update:modelValue=(v: string | number | undefined) => { if (v != null) emit('update:jogIncrement', Number(v)) }"
+    },
+    {
+     "id": "control:JogStrip.vue|MachineSlider:jogSpeed|@update:modelValue=(v: number | undefined) => { if (v != null) emit('update:angularJogVel', v) }"
+    },
+    {
+     "id": "control:JogStrip.vue|MachineSlider:jogSpeed|@update:modelValue=(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }"
+    },
+    {
+     "id": "control:KeyboardTab.vue|MachineBtn:listActionSetting|@click.stop=unbindKey(action)",
+     "family": [
+      "action in LINEAR_JOG_ACTIONS"
+     ]
+    },
+    {
+     "id": "control:KeyboardTab.vue|MachineBtn:listActionSetting|@click.stop=unbindKey(action)#2",
+     "family": [
+      "action in ROTARY_JOG_ACTIONS"
+     ]
+    },
+    {
+     "id": "control:KeyboardTab.vue|MachineBtn:listActionSetting|@click.stop=unbindKey(action)#3",
+     "family": [
+      "action in COMMAND_ACTIONS"
+     ]
+    },
+    {
+     "id": "control:KeyboardTab.vue|MachineToggle:inputConfig|@update:modelValue=saveKb() v-model=kbConfig.buttonsEnabled"
+    },
+    {
+     "id": "control:KeyboardTab.vue|MachineToggle:inputConfig|@update:modelValue=saveKb() v-model=kbConfig.jogEnabled"
+    },
+    {
+     "id": "control:KeyboardTab.vue|td|@click=startCapture(action, $event)",
+     "family": [
+      "action in LINEAR_JOG_ACTIONS"
+     ]
+    },
+    {
+     "id": "control:KeyboardTab.vue|td|@click=startCapture(action, $event)#2",
+     "family": [
+      "action in ROTARY_JOG_ACTIONS"
+     ]
+    },
+    {
+     "id": "control:KeyboardTab.vue|td|@click=startCapture(action, $event)#3",
+     "family": [
+      "action in COMMAND_ACTIONS"
+     ]
+    },
+    {
+     "id": "control:MachineBtn.vue|span|@click=explain @keydown=gateExplain.onKeydown"
+    },
+    {
+     "id": "control:MachineChoice.vue|button|@click=activate"
+    },
+    {
+     "id": "control:MachineColor.vue|input|v-model=model :disabled=isDisabled"
+    },
+    {
+     "id": "control:MachineInput.vue|input|@click=onTextClick @focus=onTextFocus @focusout=onTextFocusOut @input=onNativeInput @pointerdown=explain :disabled=isDisabled"
+    },
+    {
+     "id": "control:MachineInput.vue|input|@click=openKeypadFromInput @keydown.enter.prevent=openKeypadFromInput @keydown.space.prevent=openKeypadFromInput @pointerdown=onNumberPointerDown :disabled=isDisabled"
+    },
+    {
+     "id": "control:MachineRadio.vue|input|@pointerdown=explain v-model=model :disabled=isDisabled"
+    },
+    {
+     "id": "control:MachineSelect.vue|select|@pointerdown=explain v-model=model :disabled=isDisabled"
+    },
+    {
+     "id": "control:MachineSlider.vue|input|@contextmenu.prevent= @input=onInput @pointerdown=explain :disabled=isDisabled"
+    },
+    {
+     "id": "control:MachineToggle.vue|input|@change=onChange :disabled=isDisabled"
+    },
+    {
+     "id": "control:MachineToggle.vue|span|@click=explain @keydown=explainKey"
+    },
+    {
+     "id": "control:MacroBar.vue|MachineBtn:abort|@click=fire({ cmd: 'abort' }, 'abort')"
+    },
+    {
+     "id": "control:MacroBar.vue|MachineBtn:macro|@click=emit('run', b.item)",
+     "family": [
+      "b in shown"
+     ]
+    },
+    {
+     "id": "control:MacrosPanel.vue|button|@click=sortAsc = !sortAsc"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:abort|@click=fire({ cmd: 'abort' }, 'abort')"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:close|@click=note = null"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:dialogCancel|@click=closeEditor"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:dialogCancel|@click=deleteAsk = null"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:dialogCancel|@click=discardAsk = null"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:dialogCancel|@click=replaceAsk = null"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:dialogDanger|@click=confirmDiscard"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:fileDownload|@click=downloadSelected"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:fileSave|@click=save"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:inline|@click=keepEditing"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:inline|@click=reload"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:listActionSetting|@click=moveOnBar(f.name, -1)",
+     "family": [
+      "f in shownRows"
+     ]
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:listActionSetting|@click=moveOnBar(f.name, 1)",
+     "family": [
+      "f in shownRows"
+     ]
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:listActionSource|@click=deleteAsk = f",
+     "family": [
+      "f in shownRows"
+     ]
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:listActionSource|@click=openEdit(f)",
+     "family": [
+      "f in shownRows"
+     ]
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:macroRun|@click=selected && emit('run', selected)"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:retry|@click=reloadMacroFiles"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:settingInline|@click=removeFromBar(n)",
+     "family": [
+      "n in missing"
+     ]
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:sourceDanger|@click=confirmDelete"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:sourceDanger|@click=confirmReplace"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:sourceOp|@click=openNew"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineBtn:sourceOp|@click=pickImport"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineInput:macroEdit|v-model=descModel"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineInput:macroEdit|v-model=nameModel"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineInput:macroEdit|v-model=titleModel"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineInput:macroSearch|v-model=searchText"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineSelect:macroSearch|v-model=barFilter"
+    },
+    {
+     "id": "control:MacrosPanel.vue|MachineToggle:protectedSetting|@update:modelValue=setOnBar(f.name, !!$event)",
+     "family": [
+      "f in shownRows"
+     ]
+    },
+    {
+     "id": "control:MacrosPanel.vue|td|@click.stop=",
+     "family": [
+      "f in shownRows"
+     ]
+    },
+    {
+     "id": "control:MacrosPanel.vue|td|@click.stop=#2",
+     "family": [
+      "f in shownRows"
+     ]
+    },
+    {
+     "id": "control:MacrosPanel.vue|td|@click.stop=#3",
+     "family": [
+      "f in shownRows"
+     ]
+    },
+    {
+     "id": "control:MacrosPanel.vue|td|@click.stop=#4",
+     "family": [
+      "f in shownRows"
+     ]
+    },
+    {
+     "id": "control:MacrosPanel.vue|tr|@click=selectedName = f.name",
+     "family": [
+      "f in shownRows"
+     ]
+    },
+    {
+     "id": "control:MessagesDialog.vue|button|@click=toggleSort('source')"
+    },
+    {
+     "id": "control:MessagesDialog.vue|button|@click=toggleSort('time')"
+    },
+    {
+     "id": "control:MessagesDialog.vue|button|@click=toggleSort('type')"
+    },
+    {
+     "id": "control:MessagesDialog.vue|MachineBtn:inline|@click=copyShown"
+    },
+    {
+     "id": "control:MessagesDialog.vue|MachineBtn:inline|@click=emit('clearAll')"
+    },
+    {
+     "id": "control:MessagesDialog.vue|MachineBtn:listAction|@click=emit('copy', messageLine(m, time(m.ts)))",
+     "family": [
+      "m in rows"
+     ]
+    },
+    {
+     "id": "control:MessagesDialog.vue|MachineBtn:listAction|@click=emit('dismiss', m.id)",
+     "family": [
+      "m in rows"
+     ]
+    },
+    {
+     "id": "control:MessagesDialog.vue|MachineInput:search|v-model=search"
+    },
+    {
+     "id": "control:MessagesDialog.vue|MachineSelect:filter|v-model=filter"
+    },
+    {
+     "id": "control:MoreMenu.vue|div|@click.capture=onClick @focusout=onFocusOut @keydown=onKeydown"
+    },
+    {
+     "id": "control:MoreMenu.vue|MachineBtn:more|"
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numClose|@click=hide @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numClr|@click=clear @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numDel|@click=del @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numDiscard|@click=cancel @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numEq|@click=evalExpr @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('.') @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('0') @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('1') @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('2') @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('3') @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('4') @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('5') @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('6') @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('7') @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('8') @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numKey|@click=append('9') @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numKey|@click=confirm @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numOp|@click=append('-') @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numOp|@click=append('(') @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numOp|@click=append(')') @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numOp|@click=append('*') @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numOp|@click=append('/') @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numOp|@click=append('+') @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:NumberKeypadStrip.vue|MachineBtn:numOp|@click=negate @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:OffsetPanel.vue|MachineBtn:offsetCell|",
+     "family": [
+      "row in props.wcsTable",
+      "axis in offsetColumns"
+     ]
+    },
+    {
+     "id": "control:OffsetPanel.vue|MachineBtn:wcsClear|@click=clearSelected"
+    },
+    {
+     "id": "control:OffsetPanel.vue|MachineBtn:wcsClearAll|@click=clearAll"
+    },
+    {
+     "id": "control:OffsetPanel.vue|td|@click=startEditCell(row.name as string, axis, Number(row[axis]), $event)",
+     "family": [
+      "row in props.wcsTable",
+      "axis in offsetColumns"
+     ]
+    },
+    {
+     "id": "control:OffsetPanel.vue|tr|@click=pinned = row.name as string",
+     "family": [
+      "row in props.wcsTable"
+     ]
+    },
+    {
+     "id": "control:OverridesStrip.vue|MachineBtn:overrideReset|@click=emit('overridePreset', 'feed', 100)"
+    },
+    {
+     "id": "control:OverridesStrip.vue|MachineBtn:overrideReset|@click=emit('overridePreset', 'rapid', 100)"
+    },
+    {
+     "id": "control:OverridesStrip.vue|MachineBtn:overrideReset|@click=emit('overridePreset', 'spindle', 100)"
+    },
+    {
+     "id": "control:OverridesStrip.vue|MachineSlider:feedOverride|@change=emit('feedChange') @update:model-value=onFeedSlider(Number($event))"
+    },
+    {
+     "id": "control:OverridesStrip.vue|MachineSlider:rapidOverride|@change=emit('rapidChange') @update:model-value=onRapidSlider(Number($event))"
+    },
+    {
+     "id": "control:OverridesStrip.vue|MachineSlider:spindleOverride|@change=emit('spindleSliderChange') @update:model-value=onSpindleSlider(Number($event))"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineBtn:abort|@click=emit('abort')"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineBtn:dialogCancel|@click=resetTarget = null"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineBtn:dialogDanger|@click=confirmReset"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineBtn:probeCell|@click=runAngleProbe(op)",
+     "family": [
+      "op in angleGrid"
+     ]
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineBtn:probeCell|@click=runBossProbe(op)",
+     "family": [
+      "op in bossGrid"
+     ]
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineBtn:probeCell|@click=runCalProbe('probe_cal_round_boss')"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineBtn:probeCell|@click=runCalProbe('probe_cal_round_pocket')"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineBtn:probeCell|@click=runCalProbe('probe_cal_square_boss')"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineBtn:probeCell|@click=runCalProbe('probe_cal_square_pocket')"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineBtn:probeCell|@click=runGridProbe(op)",
+     "family": [
+      "op in outsideGrid"
+     ]
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineBtn:probeCell|@click=runGridProbe(op)#2",
+     "family": [
+      "op in insideGrid"
+     ]
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineBtn:probeCell|@click=runRidgeProbe(op)",
+     "family": [
+      "op in ridgeGrid"
+     ]
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineBtn:probeReset|@click=resetCal"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineBtn:retry|@click=emit('getCompGrid')"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineBtn:retry|@click=emit('getProbeResults')"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineBtn:simTrip|@click=emit('simTrip')"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineBtn:surfaceRefresh|@click=refreshSurface"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineBtn:surfaceScan|@click=runSurfaceScan"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineInput:probeParam|@change=saveParams v-model.number=params[f.key]",
+     "family": [
+      "f in PROBE_HINT_FIELDS.boss"
+     ],
+     "members": [
+      "diameterHint",
+      "xHintBP",
+      "yHintBP"
+     ]
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineInput:probeParam|@change=saveParams v-model.number=params[f.key]#2",
+     "family": [
+      "f in PROBE_HINT_FIELDS.angle"
+     ],
+     "members": [
+      "edgeWidth"
+     ]
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineInput:probeParam|@change=saveParams v-model.number=params[f.key]#3",
+     "family": [
+      "f in [CAL_ROUND_FIELD]"
+     ],
+     "members": [
+      "calDiameter"
+     ]
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineInput:probeParam|@change=saveParams v-model.number=params[f.key]#4",
+     "family": [
+      "f in CAL_RECT_FIELDS"
+     ],
+     "members": [
+      "xCalWidth",
+      "yCalWidth"
+     ]
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineInput:probeParam|@change=saveParams v-model.number=params[f.key]#5",
+     "family": [
+      "f in PROBE_HINT_FIELDS.ridge"
+     ],
+     "members": [
+      "xHintRV",
+      "yHintRV"
+     ]
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineInput:probeParam|@change=saveParams v-model.number=params[f.key]#6",
+     "family": [
+      "f in PROBE_COMMON_FIELDS"
+     ],
+     "members": [
+      "probeTool",
+      "slowFr",
+      "traverseFr",
+      "fastFr",
+      "maxXYDistance",
+      "xyClearance",
+      "maxZDistance",
+      "zClearance",
+      "extraProbeDepth",
+      "stepOffWidth"
+     ]
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineInput:scanParam|@change=saveParams v-model.number=params[f.key]",
+     "family": [
+      "f in SCAN_FIELDS"
+     ],
+     "members": [
+      "scanX0",
+      "scanX1",
+      "scanY0",
+      "scanY1",
+      "scanXProbes",
+      "scanYProbes",
+      "scanSafeZ",
+      "scanDepthZ"
+     ]
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineRadio:compMethod|@update:modelValue=setMethod(Number(id))",
+     "family": [
+      "(label, id) in METHOD_LABELS"
+     ]
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineRadio:probeParam|v-model.number=calAxis"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineRadio:probeParam|v-model.number=calAxis#2"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineRadio:probeParam|v-model.number=calAxis#3"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineToggle:compToggle|@update:modelValue=onCompToggle"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineToggle:probeParam|@update:model-value=saveParams v-model=autoZero"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineToggle:probeParam|v-model=setRotation"
+    },
+    {
+     "id": "control:ProbePanel.vue|MachineToggle:viewerSetting|@update:modelValue=emit('toggleSurfaceLayer', $event!)"
+    },
+    {
+     "id": "control:SafetyStrip.vue|MachineBtn:activeCodes|@click=emit('openActiveCodes')"
+    },
+    {
+     "id": "control:SafetyStrip.vue|MachineBtn:arm|@click=emit('arm', !armed)"
+    },
+    {
+     "id": "control:SafetyStrip.vue|MachineBtn:estop|@click=isEstop ? emit('estopReset') : emit('estop')"
+    },
+    {
+     "id": "control:SafetyStrip.vue|MachineBtn:machineOn|@click=isEnabled ? emit('machineOff') : emit('machineOn')"
+    },
+    {
+     "id": "control:ScrubBar.vue|MachineBtn:scrub|@click=emit('open-sim-tab')"
+    },
+    {
+     "id": "control:ScrubBar.vue|MachineBtn:scrub|@click=togglePlay"
+    },
+    {
+     "id": "control:ScrubBar.vue|MachineSelect:simSpeed|v-model=speedChoice"
+    },
+    {
+     "id": "control:ScrubBar.vue|MachineSlider:scrubPos|@input=onScrubInput v-model=sPos"
+    },
+    {
+     "id": "control:ScrubBar.vue|MachineToggle:simToggle|v-model=simToggleModel"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineBtn:dialogCancel|@click=resetTarget = null"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineBtn:dialogDanger|@click=confirmReset"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineBtn:inline|@click=onPaletteModeChange('auto')"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineBtn:inline|@click=onPaletteModeChange('auto')#2"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineBtn:listAction|@click=resetMachineColor(part.id)",
+     "family": [
+      "part in machineParts"
+     ]
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineBtn:resetDisplay|@click=resetTarget = 'display'"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineBtn:resetDisplay|@click=resetTarget = 'viewer'"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineBtn:resetProtected|@click=resetTarget = 'gamepad'"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineBtn:resetProtected|@click=resetTarget = 'keyboard'"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineBtn:resetProtected|@click=resetTarget = 'machine'"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineColor:cameraSetting|@update:modelValue=saveCamTracked v-model=camOverlayColor"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineColor:viewerSetting|@update:modelValue=onColorChange(row.role as UserRole, $event!)",
+     "family": [
+      "row in PALETTE_ROWS"
+     ]
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineColor:viewerSetting|@update:modelValue=onMachineColorChange(part.id, $event!)",
+     "family": [
+      "part in machineParts"
+     ]
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineInput:cameraSetting|@change=saveCamTracked v-model.number=camCircleRadius"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineInput:cameraSetting|@change=saveCamTracked v-model.number=camGridSpacing"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineInput:protectedSetting|@change=saveMachine() v-model=spindleLoadPin"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineInput:protectedSettingNum|@change=saveMachine() v-model.number=rflSpindleRpm"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:displaySetting|@update:modelValue=setTheme('auto') v-model=themeMode"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:displaySetting|@update:modelValue=setTheme('dark') v-model=themeMode"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:displaySetting|@update:modelValue=setTheme('hc-dark') v-model=themeMode"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:displaySetting|@update:modelValue=setTheme('hc-light') v-model=themeMode"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:displaySetting|@update:modelValue=setTheme('light') v-model=themeMode"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:protectedSetting|@update:modelValue=saveMachine() v-model.number=autoDisarmMin",
+     "family": [
+      "m in [0, 5, 10, 20, 30]"
+     ]
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:protectedSetting|@update:modelValue=saveMachine() v-model=rflSpindleDir"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:protectedSetting|@update:modelValue=saveMachine() v-model=rflSpindleDir#2"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:protectedSetting|@update:modelValue=saveMachine() v-model=rflSpindleDir#3"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:protectedSetting|@update:modelValue=saveMachine() v-model=spindleFeedbackUnit"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:protectedSetting|@update:modelValue=saveMachine() v-model=spindleFeedbackUnit#2"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:protectedSetting|@update:modelValue=saveMachine() v-model=toolChangeMode"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:protectedSetting|@update:modelValue=saveMachine() v-model=toolChangeMode#2"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=hud.scale = s.value; save()",
+     "family": [
+      "s in HUD_SCALES"
+     ]
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=onPaletteModeChange('auto')"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=onPaletteModeChange('custom')"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=onPreviewModeChange('part')"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=onPreviewModeChange('programmed')"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=onProjectionChange('parallel')"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=onProjectionChange('perspective')"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=onTrackModeChange('none')"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=onTrackModeChange('tool')"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineRadio:viewerSetting|@update:modelValue=onTrackModeChange('wcs')"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineSlider:cameraSetting|@update:modelValue=saveCamTracked v-model=camOverlayOpacity"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineToggle:cameraSetting|@update:modelValue=saveCamTracked v-model=camShowCircle"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineToggle:cameraSetting|@update:modelValue=saveCamTracked v-model=camShowCrosshair"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineToggle:cameraSetting|@update:modelValue=saveCamTracked v-model=camShowGrid"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineToggle:displaySetting|@update:modelValue=saveKeepAwake v-model=keepAwake"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineToggle:displaySetting|@update:modelValue=saveStartFullscreen v-model=startFullscreen"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineToggle:protectedSetting|@update:modelValue=saveMachine() v-model=runFromLine"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineToggle:viewerSetting|@update:modelValue=hud[t.key] = $event!; save()",
+     "family": [
+      "t in HUD_TOGGLES"
+     ]
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineToggle:viewerSetting|@update:modelValue=onLayerChange(HUD_LAYER, $event!)"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineToggle:viewerSetting|@update:modelValue=onLayerChange(lf.key, $event!)",
+     "family": [
+      "(col, ci) in LAYER_COLUMNS",
+      "g in col",
+      "lf in g.rows"
+     ]
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineToggle:viewerSetting|@update:modelValue=onLayerOnTopChange(lf.key as OnTopLayer, $event!)",
+     "family": [
+      "(col, ci) in LAYER_COLUMNS",
+      "g in col",
+      "lf in g.rows"
+     ]
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineToggle:viewerSetting|@update:modelValue=setMachineEdges(machineEdgesOn); save() v-model=machineEdgesOn"
+    },
+    {
+     "id": "control:SetupActions.vue|MachineBtn:{isHomed ? 'unhome' : 'home'}|@click=isHomed ? emit('unhomeAll') : emit('homeAll')"
+    },
+    {
+     "id": "control:SetupActions.vue|MachineBtn:goTo|@click=emit('goToG30')"
+    },
+    {
+     "id": "control:SetupActions.vue|MachineBtn:goTo|@click=emit('goToHome')"
+    },
+    {
+     "id": "control:SetupActions.vue|MachineBtn:goZero|@click=emit('goToZero')"
+    },
+    {
+     "id": "control:SetupActions.vue|MachineBtn:twpCapture|@click=emit('twpCapture')"
+    },
+    {
+     "id": "control:SetupActions.vue|MachineBtn:twpClear|@click=emit('twpClear')"
+    },
+    {
+     "id": "control:SetupActions.vue|MachineBtn:twpReorient|@click=emit('twpOrient')"
+    },
+    {
+     "id": "control:SetupActions.vue|MachineBtn:zero|@click=emit('zeroAll')"
+    },
+    {
+     "id": "control:SetupStrip.vue|ChoiceGroup:Work offset| :act=v => wcsAct(String(v))"
+    },
+    {
+     "id": "control:SetupStrip.vue|MachineBtn:{homedJoints[a.index] ? 'unhome' : 'home'}|@click=homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)",
+     "family": [
+      "(chunk, ci) in axisChunks",
+      "a in chunk"
+     ]
+    },
+    {
+     "id": "control:SetupStrip.vue|MachineBtn:{isRotaryAxis(a.letter) ? 'zeroRotary' : 'zero'}|@click=emit('setAxis', a.index, 0, expectNow())",
+     "family": [
+      "(chunk, ci) in axisChunks",
+      "a in chunk"
+     ]
+    },
+    {
+     "id": "control:SetupStrip.vue|MachineInput:{isRotaryAxis(a.letter) ? 'touchoffRotary' : 'touchoff'}|@input=emit('setAxis', a.index, +($event.target as HTMLInputElement).value, expectNow())",
+     "family": [
+      "(chunk, ci) in axisChunks",
+      "a in chunk"
+     ]
+    },
+    {
+     "id": "control:SimPanel.vue|MachineBtn:scrub|@click=simStep(KINDS[filter], -1)"
+    },
+    {
+     "id": "control:SimPanel.vue|MachineBtn:scrub|@click=simStep(KINDS[filter], 1)"
+    },
+    {
+     "id": "control:SimPanel.vue|MachineSelect:filter|v-model=filter"
+    },
+    {
+     "id": "control:SimPanel.vue|span|@keydown=onPickKey($event, r)",
+     "family": [
+      "r in renderedRows"
+     ]
+    },
+    {
+     "id": "control:SimPanel.vue|tr|@click=show(r, $event)",
+     "family": [
+      "r in renderedRows"
+     ]
+    },
+    {
+     "id": "control:SpindleStrip.vue|MachineBtn:spindleDecrease|@click=emit('spindleDecrease')"
+    },
+    {
+     "id": "control:SpindleStrip.vue|MachineBtn:spindleFwd|@click=emit('spindleFwd', rpmInput)"
+    },
+    {
+     "id": "control:SpindleStrip.vue|MachineBtn:spindleIncrease|@click=emit('spindleIncrease')"
+    },
+    {
+     "id": "control:SpindleStrip.vue|MachineBtn:spindleRev|@click=emit('spindleRev', rpmInput)"
+    },
+    {
+     "id": "control:SpindleStrip.vue|MachineBtn:spindleStop|@click=emit('spindleStop')"
+    },
+    {
+     "id": "control:SpindleStrip.vue|MachineInput:stripInput|@input=emit('update:rpmInput', +($event.target as HTMLInputElement).value)"
+    },
+    {
+     "id": "control:SpindleStrip.vue|MachineToggle:coolant|@update:modelValue=emit('toggleFlood')"
+    },
+    {
+     "id": "control:SpindleStrip.vue|MachineToggle:coolant|@update:modelValue=emit('toggleMist')"
+    },
+    {
+     "id": "control:TabNav.vue|MachineBtn:{variant === 'main' ? 'tabMain' : 'tabSub'}|@click=emit('update:modelValue', t.id)",
+     "family": [
+      "t in tabs"
+     ]
+    },
+    {
+     "id": "control:TabPanel.vue|MachineSelect:tabSelect|@update:model-value=onSelect"
+    },
+    {
+     "id": "control:TextKeypadStrip.vue|MachineBtn:numClose|@click=closeTextSessionByOperator('closed by the operator') @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:TextKeypadStrip.vue|MachineBtn:numKey|@click=insert(k) @contextmenu.prevent= @pointerdown.prevent=",
+     "family": [
+      "(k, i) in keys"
+     ]
+    },
+    {
+     "id": "control:TextKeypadStrip.vue|MachineBtn:numKey|@click=target?.enter() @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:TextKeypadStrip.vue|MachineBtn:numOp|@click=inputSession.shift = !inputSession.shift @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:TextKeypadStrip.vue|MachineBtn:numOp|@click=insert(' ') @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:TextKeypadStrip.vue|MachineBtn:numOp|@click=setPage(p) @contextmenu.prevent= @pointerdown.prevent=",
+     "family": [
+      "p in PAGE_ORDER"
+     ]
+    },
+    {
+     "id": "control:TextKeypadStrip.vue|MachineBtn:numOp|@click=target?.backspace() @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:TextKeypadStrip.vue|MachineBtn:numOp|@click=target?.clear?.() @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:TextKeypadStrip.vue|MachineBtn:numOp|@click=target?.moveCursor?.(-1) @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:TextKeypadStrip.vue|MachineBtn:numOp|@click=target?.moveCursor?.(1) @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:TextKeypadStrip.vue|MachineBtn:numOp|@click=target?.redo?.() @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:TextKeypadStrip.vue|MachineBtn:numOp|@click=target?.tab?.() @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:TextKeypadStrip.vue|MachineBtn:numOp|@click=target?.undo?.() @contextmenu.prevent= @pointerdown.prevent="
+    },
+    {
+     "id": "control:ThreeViewer.vue|MachineBtn:viewerQuickToggle|@click=emit('open-settings', 'viewer')"
+    },
+    {
+     "id": "control:ThreeViewer.vue|MachineBtn:viewerQuickToggle|@click=togglePip"
+    },
+    {
+     "id": "control:ThreeViewer.vue|MachineBtn:viewPreset|@click=resetBackplot"
+    },
+    {
+     "id": "control:ThreeViewer.vue|MachineBtn:viewPreset|@click=setView('reset')"
+    },
+    {
+     "id": "control:ThreeViewer.vue|MachineBtn:windowToggle|@click=notesOpen = !notesOpen"
+    },
+    {
+     "id": "control:ToolsetterSettings.vue|MachineBtn:g30Capture|@click=captureG30"
+    },
+    {
+     "id": "control:ToolsetterSettings.vue|MachineBtn:g30Read|@click=refreshG30"
+    },
+    {
+     "id": "control:ToolsetterSettings.vue|MachineBtn:g30Save|@click=saveG30"
+    },
+    {
+     "id": "control:ToolsetterSettings.vue|MachineBtn:resetProtected|@click=emit('resetSection', 'toolsetter')"
+    },
+    {
+     "id": "control:ToolsetterSettings.vue|MachineInput:toolsetterParam|@change=saveTsParams(f.key) v-model.number=tsParams[f.key]",
+     "family": [
+      "f in TS_POSITION_FIELDS"
+     ],
+     "members": [
+      "touchX",
+      "touchY",
+      "touchZ"
+     ]
+    },
+    {
+     "id": "control:ToolsetterSettings.vue|MachineInput:toolsetterParam|@change=saveTsParams(f.key) v-model.number=tsParams[f.key]#2",
+     "family": [
+      "f in TS_PROBE_FIELDS"
+     ],
+     "members": [
+      "fastFeed",
+      "slowFeed",
+      "traverseFeed",
+      "maxZTravel",
+      "retractDist",
+      "spindleZeroHeight"
+     ]
+    },
+    {
+     "id": "control:ToolsetterSettings.vue|MachineInput:toolsetterParam|@change=saveTsParams(f.key) v-model.number=tsParams[f.key]#3",
+     "family": [
+      "f in TS_OPTION_FIELDS"
+     ],
+     "members": [
+      "toolMinDis",
+      "addReps"
+     ]
+    },
+    {
+     "id": "control:ToolsetterSettings.vue|MachineInput:toolsetterParam|@change=saveTsParams(f.key) v-model.number=tsParams[f.key]#4",
+     "family": [
+      "f in TS_OFFSET_FIELDS"
+     ],
+     "members": [
+      "offsetDiameter",
+      "offsetValue"
+     ]
+    },
+    {
+     "id": "control:ToolsetterSettings.vue|MachineInput:toolsetterParam|@change=saveTsParams(f.key) v-model.number=tsParams[f.key]#5",
+     "family": [
+      "f in TS_FINDER_FIELDS"
+     ],
+     "members": [
+      "finderTouchX",
+      "finderTouchY",
+      "finderDiffZ"
+     ]
+    },
+    {
+     "id": "control:ToolsetterSettings.vue|MachineInput:toolsetterParam|@update:modelValue=v => editDraft(a.letter, v)",
+     "family": [
+      "a in g30Axes"
+     ]
+    },
+    {
+     "id": "control:ToolsetterSettings.vue|MachineRadio:toolsetterParam|@update:modelValue=saveTsParams('brakeAfter') v-model.number=tsParams.brakeAfter",
+     "family": [
+      "v in [0, 1, 2]"
+     ]
+    },
+    {
+     "id": "control:ToolsetterSettings.vue|MachineRadio:toolsetterParam|@update:modelValue=saveTsParams('offsetDirection') v-model.number=tsParams.offsetDirection",
+     "family": [
+      "v in [0, 1, 2, 3]"
+     ]
+    },
+    {
+     "id": "control:ToolsetterSettings.vue|MachineRadio:toolsetterParam|@update:modelValue=saveTsParams('spindleStopM') v-model.number=tsParams.spindleStopM",
+     "family": [
+      "v in [5, 500]"
+     ]
+    },
+    {
+     "id": "control:ToolsetterSettings.vue|MachineToggle:toolsetterParam|v-model=tsDisablePrePos"
+    },
+    {
+     "id": "control:ToolsetterSettings.vue|MachineToggle:toolsetterParam|v-model=tsGoBackToStart"
+    },
+    {
+     "id": "control:ToolsetterSettings.vue|MachineToggle:toolsetterParam|v-model=tsLastTry"
+    },
+    {
+     "id": "control:ToolsetterSettings.vue|MachineToggle:toolsetterParam|v-model=tsUseToolTable"
+    },
+    {
+     "id": "control:ToolStrip.vue|MachineBtn:nav|@click=emit('openToolTable')"
+    },
+    {
+     "id": "control:ToolStrip.vue|MachineBtn:retry|@click=fetchTools"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|button|@click=toggleSort('D')"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|button|@click=toggleSort('T')"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|button|@click=toggleSort('Z')"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|input|@change=onImportFileSelect"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:close|@click=downloadError = null"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:close|@click=importError = null"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:close|@click=importResult = null"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:dialogCancel|@click=cancelDelete"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:dialogCancel|@click=cancelImport"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:dialogCancel|@click=closeEditModal"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:dialogCancel|@click=replaceConfirm = false"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:dialogCancel|@click=showEditDiscard = false"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:dialogDanger|@click=confirmEditDiscard"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:fileBrowse|@click=previewImportFile(importFile)"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:listActionTool|@click.stop=openEdit(tool)",
+     "family": [
+      "tool in filteredTools"
+     ]
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:listActionTool|@click.stop=requestDelete(tool.T)",
+     "family": [
+      "tool in filteredTools"
+     ]
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:retry|@click=fetchTools"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:toolDanger|@click=confirmDelete"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:toolDanger|@click=confirmImport"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:toolLoad|@click.stop=requestToolChange(tool.T)",
+     "family": [
+      "tool in filteredTools"
+     ]
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:toolSave|@click=requestImport"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineBtn:toolSave|@click=saveEdit"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineInput:toolEdit|v-model=editForm.description"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineInput:toolEdit|v-model=editForm.holder"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineInput:toolEdit|v-model=editForm.material"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.body_length"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.corner_radius"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.D"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.flute_length"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.flutes"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.oal"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.P"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.point_angle"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.shaft_diameter"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.T"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.taper_angle"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.tip_diameter"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineInput:toolEditNum|v-model.number=editForm.Z"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineInput:toolSearch|v-model=searchText"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineSelect:toolEdit|v-model=editForm.type"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineSelect:toolEdit|v-model=importMode"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineSelect:toolSearch|v-model=filterType"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|MachineToggle:toolEdit|v-model=showNominalHolder"
+    },
+    {
+     "id": "control:ToolTablePanel.vue|tr|@click=onToolTap(tool, $event)",
+     "family": [
+      "tool in filteredTools"
+     ]
+    },
+    {
+     "id": "control:ViewCube.vue|canvas|@click=onClick @pointerleave=onPointerLeave @pointermove=onPointerMove"
+    }
+   ],
+   "unresolved": [],
+   "variantsOpen": [
+    {
+     "file": "App.vue",
+     "form": "v-for family",
+     "expr": "(entry, i) in mdiHistory"
+    },
+    {
+     "file": "App.vue",
+     "form": "v-for family",
+     "expr": "p in dialogFile.params"
+    },
+    {
+     "file": "ChoiceGroup.vue",
+     "form": "v-for family",
+     "expr": "(o, i) in options"
+    },
+    {
+     "file": "FileBrowser.vue",
+     "form": "v-for family",
+     "expr": "entry in files"
+    },
+    {
+     "file": "GamepadTab.vue",
+     "form": "v-for family",
+     "expr": "(label, key) in GP_BTN_LABELS"
+    },
+    {
+     "file": "GamepadTab.vue",
+     "form": "v-for family",
+     "expr": "a in stickAxes"
+    },
+    {
+     "file": "GcodePanel.vue",
+     "form": "v-for family",
+     "expr": "(item, i) in visibleLines"
+    },
+    {
+     "file": "GcodePanel.vue",
+     "form": "v-for family",
+     "expr": "(token, ti) in item.tokens"
+    },
+    {
+     "file": "HalshowTab.vue",
+     "form": "v-for family",
+     "expr": "[group, params] of paramGroups"
+    },
+    {
+     "file": "HalshowTab.vue",
+     "form": "v-for family",
+     "expr": "[group, pins] of pinGroups"
+    },
+    {
+     "file": "JogStrip.vue",
+     "form": "v-for family",
+     "expr": "(ra, i) in abcAxes"
+    },
+    {
+     "file": "JogStrip.vue",
+     "form": "v-for family",
+     "expr": "(ra, i) in uvwAxes"
+    },
+    {
+     "file": "JogStrip.vue",
+     "form": "v-for family",
+     "expr": "btn in xyBtns"
+    },
+    {
+     "file": "KeyboardTab.vue",
+     "form": "v-for family",
+     "expr": "action in COMMAND_ACTIONS"
+    },
+    {
+     "file": "KeyboardTab.vue",
+     "form": "v-for family",
+     "expr": "action in LINEAR_JOG_ACTIONS"
+    },
+    {
+     "file": "KeyboardTab.vue",
+     "form": "v-for family",
+     "expr": "action in ROTARY_JOG_ACTIONS"
+    },
+    {
+     "file": "MacroBar.vue",
+     "form": "v-for family",
+     "expr": "b in shown"
+    },
+    {
+     "file": "MacrosPanel.vue",
+     "form": "v-for family",
+     "expr": "f in shownRows"
+    },
+    {
+     "file": "MacrosPanel.vue",
+     "form": "v-for family",
+     "expr": "n in missing"
+    },
+    {
+     "file": "MessagesDialog.vue",
+     "form": "v-for family",
+     "expr": "m in rows"
+    },
+    {
+     "file": "OffsetPanel.vue",
+     "form": "v-for family",
+     "expr": "axis in offsetColumns"
+    },
+    {
+     "file": "OffsetPanel.vue",
+     "form": "v-for family",
+     "expr": "row in props.wcsTable"
+    },
+    {
+     "file": "ProbePanel.vue",
+     "form": "v-for family",
+     "expr": "(label, id) in METHOD_LABELS"
+    },
+    {
+     "file": "ProbePanel.vue",
+     "form": "v-for family",
+     "expr": "op in angleGrid"
+    },
+    {
+     "file": "ProbePanel.vue",
+     "form": "v-for family",
+     "expr": "op in bossGrid"
+    },
+    {
+     "file": "ProbePanel.vue",
+     "form": "v-for family",
+     "expr": "op in insideGrid"
+    },
+    {
+     "file": "ProbePanel.vue",
+     "form": "v-for family",
+     "expr": "op in outsideGrid"
+    },
+    {
+     "file": "ProbePanel.vue",
+     "form": "v-for family",
+     "expr": "op in ridgeGrid"
+    },
+    {
+     "file": "SettingsPanel.vue",
+     "form": "v-for family",
+     "expr": "lf in g.rows"
+    },
+    {
+     "file": "SettingsPanel.vue",
+     "form": "v-for family",
+     "expr": "m in [0, 5, 10, 20, 30]"
+    },
+    {
+     "file": "SettingsPanel.vue",
+     "form": "v-for family",
+     "expr": "part in machineParts"
+    },
+    {
+     "file": "SettingsPanel.vue",
+     "form": "v-for family",
+     "expr": "row in PALETTE_ROWS"
+    },
+    {
+     "file": "SettingsPanel.vue",
+     "form": "v-for family",
+     "expr": "s in HUD_SCALES"
+    },
+    {
+     "file": "SettingsPanel.vue",
+     "form": "v-for family",
+     "expr": "t in HUD_TOGGLES"
+    },
+    {
+     "file": "SetupStrip.vue",
+     "form": "v-for family",
+     "expr": "a in chunk"
+    },
+    {
+     "file": "SimPanel.vue",
+     "form": "v-for family",
+     "expr": "r in renderedRows"
+    },
+    {
+     "file": "TabNav.vue",
+     "form": "v-for family",
+     "expr": "t in tabs"
+    },
+    {
+     "file": "TextKeypadStrip.vue",
+     "form": "v-for family",
+     "expr": "(k, i) in keys"
+    },
+    {
+     "file": "TextKeypadStrip.vue",
+     "form": "v-for family",
+     "expr": "p in PAGE_ORDER"
+    },
+    {
+     "file": "ToolsetterSettings.vue",
+     "form": "v-for family",
+     "expr": "a in g30Axes"
+    },
+    {
+     "file": "ToolsetterSettings.vue",
+     "form": "v-for family",
+     "expr": "v in [0, 1, 2, 3]"
+    },
+    {
+     "file": "ToolsetterSettings.vue",
+     "form": "v-for family",
+     "expr": "v in [0, 1, 2]"
+    },
+    {
+     "file": "ToolsetterSettings.vue",
+     "form": "v-for family",
+     "expr": "v in [5, 500]"
+    },
+    {
+     "file": "ToolTablePanel.vue",
+     "form": "v-for family",
+     "expr": "tool in filteredTools"
+    }
+   ]
+  },
+  "catalogs": {
+   "source": "machineControls.ts BUTTON_TYPES, INPUT_DEFS",
+   "forms": [
+    "catalog key"
+   ],
+   "atoms": [
+    {
+     "id": "buttonType:abort"
+    },
+    {
+     "id": "buttonType:activeCodes"
+    },
+    {
+     "id": "buttonType:arm"
+    },
+    {
+     "id": "buttonType:bannerAbort"
+    },
+    {
+     "id": "buttonType:bannerAck"
+    },
+    {
+     "id": "buttonType:bannerAction"
+    },
+    {
+     "id": "buttonType:bannerHome"
+    },
+    {
+     "id": "buttonType:bannerReload"
+    },
+    {
+     "id": "buttonType:close"
+    },
+    {
+     "id": "buttonType:detailsIcon"
+    },
+    {
+     "id": "buttonType:dialogCancel"
+    },
+    {
+     "id": "buttonType:dialogConfirm"
+    },
+    {
+     "id": "buttonType:dialogDanger"
+    },
+    {
+     "id": "buttonType:dialogReady"
+    },
+    {
+     "id": "buttonType:dialogReadyDanger"
+    },
+    {
+     "id": "buttonType:dialogSettingConfirm"
+    },
+    {
+     "id": "buttonType:dialogSettingDanger"
+    },
+    {
+     "id": "buttonType:estop"
+    },
+    {
+     "id": "buttonType:fileBrowse"
+    },
+    {
+     "id": "buttonType:fileDiscard"
+    },
+    {
+     "id": "buttonType:fileDownload"
+    },
+    {
+     "id": "buttonType:fileOp"
+    },
+    {
+     "id": "buttonType:fileSave"
+    },
+    {
+     "id": "buttonType:flood"
+    },
+    {
+     "id": "buttonType:g30Capture"
+    },
+    {
+     "id": "buttonType:g30Read"
+    },
+    {
+     "id": "buttonType:g30Save"
+    },
+    {
+     "id": "buttonType:goTo"
+    },
+    {
+     "id": "buttonType:goZero"
+    },
+    {
+     "id": "buttonType:headerIcon"
+    },
+    {
+     "id": "buttonType:home"
+    },
+    {
+     "id": "buttonType:inline"
+    },
+    {
+     "id": "buttonType:inlineDanger"
+    },
+    {
+     "id": "buttonType:inlineMd"
+    },
+    {
+     "id": "buttonType:inlineXs"
+    },
+    {
+     "id": "buttonType:jog"
+    },
+    {
+     "id": "buttonType:jogSpeedReset"
+    },
+    {
+     "id": "buttonType:jogStop"
+    },
+    {
+     "id": "buttonType:listAction"
+    },
+    {
+     "id": "buttonType:listActionSetting"
+    },
+    {
+     "id": "buttonType:listActionSource"
+    },
+    {
+     "id": "buttonType:listActionTool"
+    },
+    {
+     "id": "buttonType:machineOn"
+    },
+    {
+     "id": "buttonType:macro"
+    },
+    {
+     "id": "buttonType:macroExecute"
+    },
+    {
+     "id": "buttonType:macroRun"
+    },
+    {
+     "id": "buttonType:mdi"
+    },
+    {
+     "id": "buttonType:mist"
+    },
+    {
+     "id": "buttonType:more"
+    },
+    {
+     "id": "buttonType:nav"
+    },
+    {
+     "id": "buttonType:numClose"
+    },
+    {
+     "id": "buttonType:numClr"
+    },
+    {
+     "id": "buttonType:numDel"
+    },
+    {
+     "id": "buttonType:numDiscard"
+    },
+    {
+     "id": "buttonType:numEq"
+    },
+    {
+     "id": "buttonType:numKey"
+    },
+    {
+     "id": "buttonType:numOp"
+    },
+    {
+     "id": "buttonType:offsetCell"
+    },
+    {
+     "id": "buttonType:overlayToggle"
+    },
+    {
+     "id": "buttonType:overridePreset"
+    },
+    {
+     "id": "buttonType:overrideReset"
+    },
+    {
+     "id": "buttonType:pause"
+    },
+    {
+     "id": "buttonType:probe"
+    },
+    {
+     "id": "buttonType:probeCell"
+    },
+    {
+     "id": "buttonType:probeReset"
+    },
+    {
+     "id": "buttonType:profileRemove"
+    },
+    {
+     "id": "buttonType:resetDisplay"
+    },
+    {
+     "id": "buttonType:resetProtected"
+    },
+    {
+     "id": "buttonType:resume"
+    },
+    {
+     "id": "buttonType:retry"
+    },
+    {
+     "id": "buttonType:scrub"
+    },
+    {
+     "id": "buttonType:settingInline"
+    },
+    {
+     "id": "buttonType:settingInlineMd"
+    },
+    {
+     "id": "buttonType:shutdown"
+    },
+    {
+     "id": "buttonType:simTrip"
+    },
+    {
+     "id": "buttonType:sourceDanger"
+    },
+    {
+     "id": "buttonType:sourceOp"
+    },
+    {
+     "id": "buttonType:spindleDecrease"
+    },
+    {
+     "id": "buttonType:spindleFwd"
+    },
+    {
+     "id": "buttonType:spindleIncrease"
+    },
+    {
+     "id": "buttonType:spindleRev"
+    },
+    {
+     "id": "buttonType:spindleStop"
+    },
+    {
+     "id": "buttonType:start"
+    },
+    {
+     "id": "buttonType:step"
+    },
+    {
+     "id": "buttonType:surfaceRefresh"
+    },
+    {
+     "id": "buttonType:surfaceScan"
+    },
+    {
+     "id": "buttonType:tabMain"
+    },
+    {
+     "id": "buttonType:tabSub"
+    },
+    {
+     "id": "buttonType:toolChangeConfirm"
+    },
+    {
+     "id": "buttonType:toolDanger"
+    },
+    {
+     "id": "buttonType:toolLoad"
+    },
+    {
+     "id": "buttonType:toolMeasure"
+    },
+    {
+     "id": "buttonType:toolOp"
+    },
+    {
+     "id": "buttonType:toolSave"
+    },
+    {
+     "id": "buttonType:toolUnload"
+    },
+    {
+     "id": "buttonType:twpCapture"
+    },
+    {
+     "id": "buttonType:twpClear"
+    },
+    {
+     "id": "buttonType:twpReorient"
+    },
+    {
+     "id": "buttonType:unhome"
+    },
+    {
+     "id": "buttonType:viewerQuickToggle"
+    },
+    {
+     "id": "buttonType:viewPreset"
+    },
+    {
+     "id": "buttonType:wcs"
+    },
+    {
+     "id": "buttonType:wcsClear"
+    },
+    {
+     "id": "buttonType:wcsClearAll"
+    },
+    {
+     "id": "buttonType:windowToggle"
+    },
+    {
+     "id": "buttonType:zero"
+    },
+    {
+     "id": "buttonType:zeroRotary"
+    },
+    {
+     "id": "inputDef:blockDelete"
+    },
+    {
+     "id": "inputDef:cameraColor"
+    },
+    {
+     "id": "inputDef:cameraSetting"
+    },
+    {
+     "id": "inputDef:compMethod"
+    },
+    {
+     "id": "inputDef:compToggle"
+    },
+    {
+     "id": "inputDef:coolant"
+    },
+    {
+     "id": "inputDef:displaySetting"
+    },
+    {
+     "id": "inputDef:displaySettingNum"
+    },
+    {
+     "id": "inputDef:feedOverride"
+    },
+    {
+     "id": "inputDef:filter"
+    },
+    {
+     "id": "inputDef:inputConfig"
+    },
+    {
+     "id": "inputDef:jogAxis"
+    },
+    {
+     "id": "inputDef:jogFrame"
+    },
+    {
+     "id": "inputDef:jogIncrement"
+    },
+    {
+     "id": "inputDef:jogSpeed"
+    },
+    {
+     "id": "inputDef:jogWheel"
+    },
+    {
+     "id": "inputDef:macroEdit"
+    },
+    {
+     "id": "inputDef:macroParam"
+    },
+    {
+     "id": "inputDef:macroSearch"
+    },
+    {
+     "id": "inputDef:mdiText"
+    },
+    {
+     "id": "inputDef:modeCoord"
+    },
+    {
+     "id": "inputDef:modeManual"
+    },
+    {
+     "id": "inputDef:optionalStop"
+    },
+    {
+     "id": "inputDef:planeFrame"
+    },
+    {
+     "id": "inputDef:probeParam"
+    },
+    {
+     "id": "inputDef:protectedSetting"
+    },
+    {
+     "id": "inputDef:protectedSettingNum"
+    },
+    {
+     "id": "inputDef:rapidOverride"
+    },
+    {
+     "id": "inputDef:scanParam"
+    },
+    {
+     "id": "inputDef:scrubPos"
+    },
+    {
+     "id": "inputDef:search"
+    },
+    {
+     "id": "inputDef:simSpeed"
+    },
+    {
+     "id": "inputDef:simToggle"
+    },
+    {
+     "id": "inputDef:spindleOverride"
+    },
+    {
+     "id": "inputDef:stripInput"
+    },
+    {
+     "id": "inputDef:tabSelect"
+    },
+    {
+     "id": "inputDef:toolEdit"
+    },
+    {
+     "id": "inputDef:toolEditNum"
+    },
+    {
+     "id": "inputDef:toolSearch"
+    },
+    {
+     "id": "inputDef:toolsetterParam"
+    },
+    {
+     "id": "inputDef:touchoff"
+    },
+    {
+     "id": "inputDef:touchoffRotary"
+    },
+    {
+     "id": "inputDef:uploadName"
+    },
+    {
+     "id": "inputDef:viewerColor"
+    },
+    {
+     "id": "inputDef:viewerSetting"
+    },
+    {
+     "id": "inputDef:viewerSettingNum"
+    },
+    {
+     "id": "inputDef:wcsSelect"
+    }
+   ],
+   "unresolved": []
+  },
+  "keyboard": {
+   "source": "defaults.ts KeyboardAction",
+   "forms": [
+    "union of string literals (template literals resolved by the checker)"
+   ],
+   "atoms": [
+    {
+     "id": "key:abort"
+    },
+    {
+     "id": "key:cycle"
+    },
+    {
+     "id": "key:estop"
+    },
+    {
+     "id": "key:jog_a+"
+    },
+    {
+     "id": "key:jog_a-"
+    },
+    {
+     "id": "key:jog_b+"
+    },
+    {
+     "id": "key:jog_b-"
+    },
+    {
+     "id": "key:jog_c+"
+    },
+    {
+     "id": "key:jog_c-"
+    },
+    {
+     "id": "key:jog_u+"
+    },
+    {
+     "id": "key:jog_u-"
+    },
+    {
+     "id": "key:jog_v+"
+    },
+    {
+     "id": "key:jog_v-"
+    },
+    {
+     "id": "key:jog_w+"
+    },
+    {
+     "id": "key:jog_w-"
+    },
+    {
+     "id": "key:jog_x+"
+    },
+    {
+     "id": "key:jog_x-"
+    },
+    {
+     "id": "key:jog_y+"
+    },
+    {
+     "id": "key:jog_y-"
+    },
+    {
+     "id": "key:jog_z+"
+    },
+    {
+     "id": "key:jog_z-"
+    }
+   ],
+   "unresolved": []
+  },
+  "gamepad": {
+   "source": "defaults.ts GamepadAction, GamepadMapping",
+   "forms": [
+    "union of string literals",
+    "interface properties"
+   ],
+   "limit": "`none` is a choice, not a command",
+   "atoms": [
+    {
+     "id": "pad:abort"
+    },
+    {
+     "id": "pad:dead_man"
+    },
+    {
+     "id": "pad:estop"
+    },
+    {
+     "id": "pad:flood_toggle"
+    },
+    {
+     "id": "pad:home_all"
+    },
+    {
+     "id": "pad:mist_toggle"
+    },
+    {
+     "id": "pad:none"
+    },
+    {
+     "id": "pad:pause"
+    },
+    {
+     "id": "pad:resume"
+    },
+    {
+     "id": "pad:spindle_stop"
+    },
+    {
+     "id": "pad:start"
+    },
+    {
+     "id": "pad:z_mod"
+    },
+    {
+     "id": "padButton:btn_a"
+    },
+    {
+     "id": "padButton:btn_b"
+    },
+    {
+     "id": "padButton:btn_back"
+    },
+    {
+     "id": "padButton:btn_lb"
+    },
+    {
+     "id": "padButton:btn_ls"
+    },
+    {
+     "id": "padButton:btn_lt"
+    },
+    {
+     "id": "padButton:btn_rb"
+    },
+    {
+     "id": "padButton:btn_rs"
+    },
+    {
+     "id": "padButton:btn_rt"
+    },
+    {
+     "id": "padButton:btn_start"
+    },
+    {
+     "id": "padButton:btn_x"
+    },
+    {
+     "id": "padButton:btn_y"
+    }
+   ],
+   "unresolved": []
+  },
+  "commands": {
+   "source": "lcnc.ts WsCommand",
+   "forms": [
+    "union member with a literal cmd"
+   ],
+   "atoms": [
+    {
+     "id": "cmd:abort",
+     "members": []
+    },
+    {
+     "id": "cmd:add_tool",
+     "members": [
+      "body_length",
+      "corner_radius",
+      "description",
+      "diameter",
+      "flute_length",
+      "flutes",
+      "holder",
+      "material",
+      "oal",
+      "pocket",
+      "point_angle",
+      "remark",
+      "shaft_diameter",
+      "taper_angle",
+      "tip_diameter",
+      "tool_number",
+      "type",
+      "z_offset"
+     ]
+    },
+    {
+     "id": "cmd:arm",
+     "members": [
+      "armed"
+     ]
+    },
+    {
+     "id": "cmd:auto_run",
+     "members": [
+      "entry_units",
+      "entry_wcs",
+      "entry_x",
+      "entry_y",
+      "file",
+      "line",
+      "pre_tool",
+      "probe_vars",
+      "safe_z",
+      "source",
+      "spindle_dir",
+      "spindle_speed",
+      "version"
+     ]
+    },
+    {
+     "id": "cmd:auto_step",
+     "members": []
+    },
+    {
+     "id": "cmd:capture_g30",
+     "members": []
+    },
+    {
+     "id": "cmd:clear_wcs",
+     "members": [
+      "target"
+     ]
+    },
+    {
+     "id": "cmd:client_diag",
+     "members": [
+      "data"
+     ]
+    },
+    {
+     "id": "cmd:confirm_tool_change",
+     "members": [
+      "request"
+     ]
+    },
+    {
+     "id": "cmd:cycle_pause",
+     "members": []
+    },
+    {
+     "id": "cmd:cycle_resume",
+     "members": []
+    },
+    {
+     "id": "cmd:cycle_start",
+     "members": []
+    },
+    {
+     "id": "cmd:delete_tool",
+     "members": [
+      "tool_number"
+     ]
+    },
+    {
+     "id": "cmd:estop",
+     "members": []
+    },
+    {
+     "id": "cmd:estop_reset",
+     "members": []
+    },
+    {
+     "id": "cmd:flood_off",
+     "members": []
+    },
+    {
+     "id": "cmd:flood_on",
+     "members": []
+    },
+    {
+     "id": "cmd:get_comp_grid",
+     "members": []
+    },
+    {
+     "id": "cmd:get_probe_results",
+     "members": []
+    },
+    {
+     "id": "cmd:get_probe_vars",
+     "members": [
+      "vars"
+     ]
+    },
+    {
+     "id": "cmd:get_tool_table",
+     "members": []
+    },
+    {
+     "id": "cmd:get_wcs_table",
+     "members": []
+    },
+    {
+     "id": "cmd:go_to_zero",
+     "members": []
+    },
+    {
+     "id": "cmd:halshow_live",
+     "members": [
+      "on"
+     ]
+    },
+    {
+     "id": "cmd:heartbeat",
+     "members": []
+    },
+    {
+     "id": "cmd:home",
+     "members": [
+      "joint"
+     ]
+    },
+    {
+     "id": "cmd:home_all",
+     "members": []
+    },
+    {
+     "id": "cmd:jog_cont",
+     "members": [
+      "axis",
+      "vel"
+     ]
+    },
+    {
+     "id": "cmd:jog_cont_multi",
+     "members": [
+      "axes"
+     ]
+    },
+    {
+     "id": "cmd:jog_incr",
+     "members": [
+      "axis",
+      "distance",
+      "vel"
+     ]
+    },
+    {
+     "id": "cmd:jog_incr_multi",
+     "members": [
+      "axes"
+     ]
+    },
+    {
+     "id": "cmd:jog_stop",
+     "members": [
+      "axis"
+     ]
+    },
+    {
+     "id": "cmd:jog_stop_multi",
+     "members": [
+      "axes"
+     ]
+    },
+    {
+     "id": "cmd:list_probe_macros",
+     "members": []
+    },
+    {
+     "id": "cmd:load_file",
+     "members": [
+      "path"
+     ]
+    },
+    {
+     "id": "cmd:machine_off",
+     "members": []
+    },
+    {
+     "id": "cmd:machine_on",
+     "members": []
+    },
+    {
+     "id": "cmd:mdi",
+     "members": [
+      "text",
+      "vars"
+     ]
+    },
+    {
+     "id": "cmd:mist_off",
+     "members": []
+    },
+    {
+     "id": "cmd:mist_on",
+     "members": []
+    },
+    {
+     "id": "cmd:read_g30",
+     "members": []
+    },
+    {
+     "id": "cmd:renumber_tool",
+     "members": [
+      "body_length",
+      "corner_radius",
+      "description",
+      "diameter",
+      "flute_length",
+      "flutes",
+      "holder",
+      "material",
+      "oal",
+      "old_tool_number",
+      "pocket",
+      "point_angle",
+      "remark",
+      "shaft_diameter",
+      "taper_angle",
+      "tip_diameter",
+      "tool_number",
+      "type",
+      "z_offset"
+     ]
+    },
+    {
+     "id": "cmd:reparse_preview",
+     "members": []
+    },
+    {
+     "id": "cmd:run_macro",
+     "members": [
+      "args",
+      "name",
+      "revision"
+     ]
+    },
+    {
+     "id": "cmd:safety_trip_ack",
+     "members": []
+    },
+    {
+     "id": "cmd:save_settings",
+     "members": [
+      "data",
+      "section"
+     ]
+    },
+    {
+     "id": "cmd:save_tool",
+     "members": [
+      "body_length",
+      "corner_radius",
+      "description",
+      "diameter",
+      "flute_length",
+      "flutes",
+      "holder",
+      "material",
+      "oal",
+      "pocket",
+      "point_angle",
+      "remark",
+      "shaft_diameter",
+      "taper_angle",
+      "tip_diameter",
+      "tool_number",
+      "type",
+      "z_offset"
+     ]
+    },
+    {
+     "id": "cmd:set_block_delete",
+     "members": [
+      "value"
+     ]
+    },
+    {
+     "id": "cmd:set_compensation",
+     "members": [
+      "enable"
+     ]
+    },
+    {
+     "id": "cmd:set_compensation_method",
+     "members": [
+      "method"
+     ]
+    },
+    {
+     "id": "cmd:set_feed_override",
+     "members": [
+      "scale"
+     ]
+    },
+    {
+     "id": "cmd:set_g30",
+     "members": [
+      "based_on",
+      "values"
+     ]
+    },
+    {
+     "id": "cmd:set_kins_mode",
+     "members": [
+      "mode"
+     ]
+    },
+    {
+     "id": "cmd:set_mode",
+     "members": [
+      "mode"
+     ]
+    },
+    {
+     "id": "cmd:set_optional_stop",
+     "members": [
+      "value"
+     ]
+    },
+    {
+     "id": "cmd:set_probe_vars",
+     "members": [
+      "vars"
+     ]
+    },
+    {
+     "id": "cmd:set_rapid_override",
+     "members": [
+      "scale"
+     ]
+    },
+    {
+     "id": "cmd:set_spindle_override",
+     "members": [
+      "scale"
+     ]
+    },
+    {
+     "id": "cmd:set_wcs",
+     "members": [
+      "a",
+      "b",
+      "c",
+      "r",
+      "target",
+      "u",
+      "v",
+      "w",
+      "x",
+      "y",
+      "z"
+     ]
+    },
+    {
+     "id": "cmd:shutdown",
+     "members": []
+    },
+    {
+     "id": "cmd:simulate_probe_trip",
+     "members": []
+    },
+    {
+     "id": "cmd:spindle_decrease",
+     "members": []
+    },
+    {
+     "id": "cmd:spindle_forward",
+     "members": [
+      "speed"
+     ]
+    },
+    {
+     "id": "cmd:spindle_increase",
+     "members": []
+    },
+    {
+     "id": "cmd:spindle_reverse",
+     "members": [
+      "speed"
+     ]
+    },
+    {
+     "id": "cmd:spindle_stop",
+     "members": []
+    },
+    {
+     "id": "cmd:tab_visibility",
+     "members": [
+      "hidden"
+     ]
+    },
+    {
+     "id": "cmd:timing_log",
+     "members": [
+      "enable"
+     ]
+    },
+    {
+     "id": "cmd:tool_change",
+     "members": [
+      "tool_number"
+     ]
+    },
+    {
+     "id": "cmd:touchoff",
+     "members": [
+      "axes",
+      "expect"
+     ]
+    },
+    {
+     "id": "cmd:twp_capture",
+     "members": []
+    },
+    {
+     "id": "cmd:unhome",
+     "members": [
+      "joint"
+     ]
+    },
+    {
+     "id": "cmd:unhome_all",
+     "members": []
+    },
+    {
+     "id": "cmd:unload_file",
+     "members": []
+    }
+   ],
+   "unresolved": []
+  },
+  "frames": {
+   "source": "wsWorker.ts <socket>.send(…)",
+   "forms": [
+    "JSON.stringify({ cmd: literal, … })",
+    "text beginning {\"cmd\":\"literal\"",
+    "a const bound to one of those",
+    "relay: msg.payload in case \"send\"",
+    "relay: the one const bound to preOpenQueue.shift(), the queue only case \"send\" fills with msg.payload alone"
+   ],
+   "atoms": [
+    {
+     "id": "frame:heartbeat"
+    },
+    {
+     "id": "frame:hello"
+    },
+    {
+     "id": "frame:tab_visibility"
+    }
+   ],
+   "unresolved": []
+  },
+  "settings": {
+   "source": "defaults.ts registerSection<T>",
+   "forms": [
+    "registerSection<T>(\"literal\", …) — the properties of T"
+   ],
+   "atoms": [
+    {
+     "id": "setting:camera.circleRadius"
+    },
+    {
+     "id": "setting:camera.gridSpacing"
+    },
+    {
+     "id": "setting:camera.overlayColor"
+    },
+    {
+     "id": "setting:camera.overlayOpacity"
+    },
+    {
+     "id": "setting:camera.pipHeight"
+    },
+    {
+     "id": "setting:camera.pipVisible"
+    },
+    {
+     "id": "setting:camera.pipWidth"
+    },
+    {
+     "id": "setting:camera.pipX"
+    },
+    {
+     "id": "setting:camera.pipY"
+    },
+    {
+     "id": "setting:camera.showCircle"
+    },
+    {
+     "id": "setting:camera.showCrosshair"
+    },
+    {
+     "id": "setting:camera.showGrid"
+    },
+    {
+     "id": "setting:display.keepAwake"
+    },
+    {
+     "id": "setting:display.startFullscreen"
+    },
+    {
+     "id": "setting:display.theme"
+    },
+    {
+     "id": "setting:gamepad.buttonsEnabled"
+    },
+    {
+     "id": "setting:gamepad.deadZone"
+    },
+    {
+     "id": "setting:gamepad.invertX"
+    },
+    {
+     "id": "setting:gamepad.invertY"
+    },
+    {
+     "id": "setting:gamepad.invertZ"
+    },
+    {
+     "id": "setting:gamepad.jogEnabled"
+    },
+    {
+     "id": "setting:gamepad.mapping"
+    },
+    {
+     "id": "setting:gamepad.profiles"
+    },
+    {
+     "id": "setting:keyboard.buttonsEnabled"
+    },
+    {
+     "id": "setting:keyboard.jogEnabled"
+    },
+    {
+     "id": "setting:keyboard.mapping"
+    },
+    {
+     "id": "setting:machine.autoDisarmMin"
+    },
+    {
+     "id": "setting:machine.rflSafeZ"
+    },
+    {
+     "id": "setting:machine.rflSpindleDir"
+    },
+    {
+     "id": "setting:machine.rflSpindleRpm"
+    },
+    {
+     "id": "setting:machine.runFromLine"
+    },
+    {
+     "id": "setting:machine.spindleFeedbackUnit"
+    },
+    {
+     "id": "setting:machine.spindleLoadPin"
+    },
+    {
+     "id": "setting:machine.toolChangeMode"
+    },
+    {
+     "id": "setting:macros.bar"
+    },
+    {
+     "id": "setting:macros.macros"
+    },
+    {
+     "id": "setting:mdi.history"
+    },
+    {
+     "id": "setting:panels.tabs"
+    },
+    {
+     "id": "setting:probe.autoZero"
+    },
+    {
+     "id": "setting:probe.calDiameter"
+    },
+    {
+     "id": "setting:probe.calOffset"
+    },
+    {
+     "id": "setting:probe.diameterHint"
+    },
+    {
+     "id": "setting:probe.edgeWidth"
+    },
+    {
+     "id": "setting:probe.extraProbeDepth"
+    },
+    {
+     "id": "setting:probe.fastFr"
+    },
+    {
+     "id": "setting:probe.maxXYDistance"
+    },
+    {
+     "id": "setting:probe.maxZDistance"
+    },
+    {
+     "id": "setting:probe.probeTool"
+    },
+    {
+     "id": "setting:probe.scanDepthZ"
+    },
+    {
+     "id": "setting:probe.scanSafeZ"
+    },
+    {
+     "id": "setting:probe.scanX0"
+    },
+    {
+     "id": "setting:probe.scanX1"
+    },
+    {
+     "id": "setting:probe.scanXProbes"
+    },
+    {
+     "id": "setting:probe.scanY0"
+    },
+    {
+     "id": "setting:probe.scanY1"
+    },
+    {
+     "id": "setting:probe.scanYProbes"
+    },
+    {
+     "id": "setting:probe.slowFr"
+    },
+    {
+     "id": "setting:probe.stepOffWidth"
+    },
+    {
+     "id": "setting:probe.traverseFr"
+    },
+    {
+     "id": "setting:probe.wcoRotation"
+    },
+    {
+     "id": "setting:probe.xCalWidth"
+    },
+    {
+     "id": "setting:probe.xHintBP"
+    },
+    {
+     "id": "setting:probe.xHintRV"
+    },
+    {
+     "id": "setting:probe.xyClearance"
+    },
+    {
+     "id": "setting:probe.yCalWidth"
+    },
+    {
+     "id": "setting:probe.yHintBP"
+    },
+    {
+     "id": "setting:probe.yHintRV"
+    },
+    {
+     "id": "setting:probe.zClearance"
+    },
+    {
+     "id": "setting:toolsetter.addReps"
+    },
+    {
+     "id": "setting:toolsetter.brakeAfter"
+    },
+    {
+     "id": "setting:toolsetter.disablePrePos"
+    },
+    {
+     "id": "setting:toolsetter.fastFeed"
+    },
+    {
+     "id": "setting:toolsetter.finderDiffZ"
+    },
+    {
+     "id": "setting:toolsetter.finderTouchX"
+    },
+    {
+     "id": "setting:toolsetter.finderTouchY"
+    },
+    {
+     "id": "setting:toolsetter.goBackToStart"
+    },
+    {
+     "id": "setting:toolsetter.lastTry"
+    },
+    {
+     "id": "setting:toolsetter.maxZTravel"
+    },
+    {
+     "id": "setting:toolsetter.offsetDiameter"
+    },
+    {
+     "id": "setting:toolsetter.offsetDirection"
+    },
+    {
+     "id": "setting:toolsetter.offsetValue"
+    },
+    {
+     "id": "setting:toolsetter.retractDist"
+    },
+    {
+     "id": "setting:toolsetter.slowFeed"
+    },
+    {
+     "id": "setting:toolsetter.spindleStopM"
+    },
+    {
+     "id": "setting:toolsetter.spindleZeroHeight"
+    },
+    {
+     "id": "setting:toolsetter.toolMinDis"
+    },
+    {
+     "id": "setting:toolsetter.touchX"
+    },
+    {
+     "id": "setting:toolsetter.touchY"
+    },
+    {
+     "id": "setting:toolsetter.touchZ"
+    },
+    {
+     "id": "setting:toolsetter.traverseFeed"
+    },
+    {
+     "id": "setting:toolsetter.useToolTable"
+    },
+    {
+     "id": "setting:viewer.colors"
+    },
+    {
+     "id": "setting:viewer.hud"
+    },
+    {
+     "id": "setting:viewer.layers"
+    },
+    {
+     "id": "setting:viewer.machineColors"
+    },
+    {
+     "id": "setting:viewer.machineEdges"
+    },
+    {
+     "id": "setting:viewer.onTop"
+    },
+    {
+     "id": "setting:viewer.paletteMode"
+    },
+    {
+     "id": "setting:viewer.paletteOrigin"
+    },
+    {
+     "id": "setting:viewer.previewMode"
+    },
+    {
+     "id": "setting:viewer.projection"
+    },
+    {
+     "id": "setting:viewer.trackingMode"
+    }
+   ],
+   "unresolved": []
+  },
+  "listeners": {
+   "source": "addEventListener on window / document in every script",
+   "forms": [
+    "window.addEventListener(\"literal\", …)",
+    "document.addEventListener(\"literal\", …)",
+    "document.documentElement.addEventListener(\"literal\", …)",
+    "document.body.addEventListener(\"literal\", …)",
+    "globalThis.addEventListener(\"literal\", …)",
+    "self.addEventListener(\"literal\", …)"
+   ],
+   "limit": "listeners on elements belong to their component's controls",
+   "atoms": [
+    {
+     "id": "listener:App.vue:document.focusin"
+    },
+    {
+     "id": "listener:App.vue:document.fullscreenchange"
+    },
+    {
+     "id": "listener:App.vue:document.keydown"
+    },
+    {
+     "id": "listener:App.vue:document.pointerdown"
+    },
+    {
+     "id": "listener:App.vue:document.visibilitychange"
+    },
+    {
+     "id": "listener:App.vue:window.blur"
+    },
+    {
+     "id": "listener:defaults.ts:document.visibilitychange"
+    },
+    {
+     "id": "listener:DetailsPopover.vue:window.resize"
+    },
+    {
+     "id": "listener:FloatingOverlays.vue:window.keydown"
+    },
+    {
+     "id": "listener:FloatingOverlays.vue:window.pointerdown"
+    },
+    {
+     "id": "listener:FloatingOverlays.vue:window.resize"
+    },
+    {
+     "id": "listener:FloatingOverlays.vue:window.scroll"
+    },
+    {
+     "id": "listener:GcodePanel.vue:window.blur"
+    },
+    {
+     "id": "listener:GcodePanel.vue:window.resize"
+    },
+    {
+     "id": "listener:HelpIcon.vue:window.resize"
+    },
+    {
+     "id": "listener:inputSession.ts:document.click"
+    },
+    {
+     "id": "listener:inputSession.ts:document.focusin"
+    },
+    {
+     "id": "listener:inputSession.ts:document.pointercancel"
+    },
+    {
+     "id": "listener:inputSession.ts:document.pointerdown"
+    },
+    {
+     "id": "listener:inputSession.ts:document.pointermove"
+    },
+    {
+     "id": "listener:inputSession.ts:document.pointerup"
+    },
+    {
+     "id": "listener:inputSession.ts:document.visibilitychange"
+    },
+    {
+     "id": "listener:inputSession.ts:window.blur"
+    },
+    {
+     "id": "listener:JogStrip.vue:document.pointerdown"
+    },
+    {
+     "id": "listener:JogStrip.vue:window.blur"
+    },
+    {
+     "id": "listener:JogStrip.vue:window.keyup"
+    },
+    {
+     "id": "listener:JogStrip.vue:window.pointercancel"
+    },
+    {
+     "id": "listener:JogStrip.vue:window.pointerup"
+    },
+    {
+     "id": "listener:KeyboardTab.vue:window.click"
+    },
+    {
+     "id": "listener:KeyboardTab.vue:window.keydown"
+    },
+    {
+     "id": "listener:lcncWs.ts:document.visibilitychange"
+    },
+    {
+     "id": "listener:MachineBtn.vue:document.visibilitychange"
+    },
+    {
+     "id": "listener:MachineBtn.vue:window.blur"
+    },
+    {
+     "id": "listener:MachineInput.vue:document.scroll"
+    },
+    {
+     "id": "listener:MachineInput.vue:window.resize"
+    },
+    {
+     "id": "listener:modalRegistry.ts:document.focusout"
+    },
+    {
+     "id": "listener:modalRegistry.ts:document.keydown"
+    },
+    {
+     "id": "listener:modalRegistry.ts:document.pointerdown"
+    },
+    {
+     "id": "listener:MoreMenu.vue:window.resize"
+    },
+    {
+     "id": "listener:MoreMenu.vue:window.scroll"
+    },
+    {
+     "id": "listener:ThreeViewer.vue:document.visibilitychange"
+    },
+    {
+     "id": "listener:touchDetect.ts:document.contextmenu"
+    },
+    {
+     "id": "listener:touchDetect.ts:document.pointerdown"
+    },
+    {
+     "id": "listener:useGamepad.ts:window.gamepadconnected"
+    },
+    {
+     "id": "listener:useGamepad.ts:window.gamepaddisconnected"
+    },
+    {
+     "id": "listener:useJogPointers.ts:document.pointercancel"
+    },
+    {
+     "id": "listener:useJogPointers.ts:document.pointerup"
+    },
+    {
+     "id": "listener:useJogPointers.ts:document.visibilitychange"
+    },
+    {
+     "id": "listener:useJogPointers.ts:window.blur"
+    },
+    {
+     "id": "listener:useKeyboardShortcuts.ts:window.keydown"
+    },
+    {
+     "id": "listener:useKeyboardShortcuts.ts:window.keyup"
+    },
+    {
+     "id": "listener:viewerPerf.ts:document.visibilitychange"
+    },
+    {
+     "id": "listener:viewerPerf.ts:window.keydown"
+    },
+    {
+     "id": "listener:viewerPerf.ts:window.pointerdown"
+    },
+    {
+     "id": "listener:wakeLock.ts:document.visibilitychange"
+    },
+    {
+     "id": "listener:ws/telemetry.ts:window.beforeunload"
+    },
+    {
+     "id": "listener:ws/telemetry.ts:window.error"
+    },
+    {
+     "id": "listener:ws/telemetry.ts:window.pagehide"
+    },
+    {
+     "id": "listener:ws/telemetry.ts:window.unhandledrejection"
+    }
+   ],
+   "unresolved": []
+  },
+  "routines": {
+   "source": "every script literal and template in src",
+   "forms": [
+    "O<name> CALL literal",
+    "App.vue O<${macro}> CALL ← ProbePanel.vue emit(\"runProbe\"): a literal, op.macro (the tables' macro: literals), runCalProbe('…')",
+    "toolsetterMdi(label, text) M-codes"
+   ],
+   "limit": "routines the gateway starts itself (→ Zero, run from line, macros) are the gateway's adapter",
+   "atoms": [
+    {
+     "id": "routine:go_to_g30",
+     "members": [
+      "App.vue"
+     ]
+    },
+    {
+     "id": "routine:go_to_home",
+     "members": [
+      "App.vue"
+     ]
+    },
+    {
+     "id": "routine:M600",
+     "members": [
+      "App.vue",
+      "ToolTablePanel.vue"
+     ]
+    },
+    {
+     "id": "routine:probe_back_left_inside_corner",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_back_left_top_corner",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_back_right_inside_corner",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_back_right_top_corner",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_back_top_side",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_cal_reset",
+     "members": [
+      "ProbePanel.vue"
+     ]
+    },
+    {
+     "id": "routine:probe_cal_round_boss",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_cal_round_pocket",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_cal_square_boss",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_cal_square_pocket",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_corner_x_minus_edge_angle",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_corner_x_plus_edge_angle",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_corner_y_minus_edge_angle",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_corner_y_plus_edge_angle",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_front_left_inside_corner",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_front_left_top_corner",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_front_right_inside_corner",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_front_right_top_corner",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_front_top_side",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_left_top_side",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_rect_boss",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_rect_pocket",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_rect_pocket_center_start",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_ridge_x",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_ridge_y",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_right_top_side",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_round_boss",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_round_pocket",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_round_pocket_center_start",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_top_back_edge_angle",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_top_front_edge_angle",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_top_left_edge_angle",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_top_right_edge_angle",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_valley_x",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_valley_x_center_start",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_valley_y",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_valley_y_center_start",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:probe_z_minus_wco",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:surface_scan",
+     "members": [
+      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+     ]
+    },
+    {
+     "id": "routine:twp_reorient",
+     "members": [
+      "App.vue"
+     ]
+    }
+   ],
+   "unresolved": [],
+   "excluded": [
+    {
+     "file": "gcodeReference.ts",
+     "form": "o<…> call",
+     "expr": "O<name> call",
+     "why": "the G-code reference's syntax text, not a call"
+    }
+   ]
+  }
+ },
+ "excludedFiles": {
+  "inventory/": "the inventory's own adapters — their literals name forms, not functions"
+ }
+}

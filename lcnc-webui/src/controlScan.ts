@@ -28,6 +28,13 @@ const CATALOG_ATTR: Record<string, "type" | "gate"> = {
   MachineBtn: "type", MachineInput: "gate", MachineToggle: "gate", MachineSelect: "gate",
   MachineSlider: "gate", MachineRadio: "gate", MachineColor: "gate", MachineChoice: "gate",
 };
+/** The catalog components, by their PascalCase name. */
+export const CATALOG_COMPONENTS: readonly string[] = Object.keys(CATALOG_ATTR);
+
+/** A component tag in either spelling Vue accepts: `machine-input` → `MachineInput`. */
+export function pascalTag(name: string): string {
+  return name.includes("-") ? name.split("-").map((p) => (p[0] ?? "").toUpperCase() + p.slice(1)).join("") : name;
+}
 const RAW_CONTROLS = new Set(["button", "input", "select", "textarea"]);
 /** Events that make a raw element a control — matched on the event NAME:
  *  `@click.self`, `v-on:click.stop` and `@click` are one event (R213 BG-30). */
@@ -50,7 +57,23 @@ export interface ControlUsage {
   entry: string;
   /** The catalog gate(s) the entry resolves to ("raw" for a raw control). */
   gates: string[];
+  /** The `v-for` expressions on the control and around it, outermost first:
+   *  one template node, a family of rendered controls (function inventory). */
+  families: string[];
 }
+
+export interface ScanOptions {
+  /** Every control, not only those a disarmed client can operate (the
+   *  function inventory, Codex R265 FI265-01). */
+  all?: boolean;
+  /** Components whose INSTANCE is the control (tag → the attribute that names
+   *  it): a ChoiceGroup acts through its `:act`, an attribute no event scan
+   *  sees. Its key is `file|Tag:<name>|<handlers and :act>`. */
+  components?: Record<string, string>;
+}
+
+/** Elements that never take a closing tag. */
+const VOID_TAGS = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
 
 interface Tag { name: string; attrs: Record<string, string>; start: number; end: number; selfClosing: boolean; closing: boolean }
 
@@ -134,13 +157,39 @@ function gateNames(attrs: Record<string, string>): string[] {
   return [];
 }
 
-/** The controls of one `.vue` file a disarmed client can operate. */
-export function scanControls(file: string, sfc: string): ControlUsage[] {
+/** The script expressions of a template: every directive's value (`@…`,
+ *  `:…`, `v-…`) and every `{{ … }}` interpolation, comments skipped — for a
+ *  parser to read the calls they make (the function inventory). */
+export function templateExpressions(sfc: string): string[] {
+  const { text } = templateOf(sfc);
+  const out: string[] = [];
+  for (const t of tags(text)) {
+    for (const [k, v] of Object.entries(t.attrs)) if (/^(?:@|:|v-)/.test(k) && v) out.push(v);
+  }
+  for (const m of text.replace(/<!--[\s\S]*?-->/g, "").matchAll(/\{\{([\s\S]*?)\}\}/g)) out.push(m[1] ?? "");
+  return out;
+}
+
+/** The controls of one `.vue` file a disarmed client can operate — or, with
+ *  `all`, every control of it. */
+export function scanControls(file: string, sfc: string, { all = false, components = {} }: ScanOptions = {}): ControlUsage[] {
   const { text, offset } = templateOf(sfc);
   const out: ControlUsage[] = [];
   const gateStack: string[][] = [];
+  // the open elements with their `v-for` — a control's family
+  const open: { name: string; vfor?: string }[] = [];
   const lineAt = (pos: number) => sfc.slice(0, offset + pos).split("\n").length;
-  for (const t of tags(text)) {
+  // a known component in either spelling (`machine-input`); any other
+  // element keeps its name (a raw `<my-el @click>` stays a raw control)
+  const known = (n: string) => n === "Gate" || n in CATALOG_ATTR || n in components;
+  for (const t0 of tags(text)) {
+    const t = known(pascalTag(t0.name)) ? { ...t0, name: pascalTag(t0.name) } : t0;
+    if (t.closing) {
+      const at = open.map((o) => o.name).lastIndexOf(t.name);
+      if (at >= 0) open.length = at;
+    }
+    const leaf = t.selfClosing || VOID_TAGS.has(t.name);
+    if (!t.closing && !leaf) open.push({ name: t.name, vfor: t.attrs["v-for"] });
     if (t.name === "Gate") {
       if (t.closing) gateStack.pop();
       else if (!t.selfClosing) gateStack.push(gateNames(t.attrs));
@@ -148,10 +197,19 @@ export function scanControls(file: string, sfc: string): ControlUsage[] {
     }
     if (t.closing) continue;
     // Inside a Gate that closes for a disarmed client: protected by it.
-    if (gateStack.some((g) => g.length > 0 && g.every((n) => !LIVE_GATES.has(n)))) continue;
+    if (!all && gateStack.some((g) => g.length > 0 && g.every((n) => !LIVE_GATES.has(n)))) continue;
+    const families = [...open.map((o) => o.vfor), leaf ? t.attrs["v-for"] : undefined]
+      .filter((v): v is string => !!v).map(norm);
     const handlers = Object.keys(t.attrs)
       .filter((a) => a.startsWith("@") || a.startsWith("v-on:") || a.startsWith("v-model"))
       .sort().map((a) => `${a}=${norm(t.attrs[a] ?? "")}`).join(" ");
+    const named = components[t.name];
+    if (named !== undefined) {
+      const act = t.attrs[":act"] !== undefined ? ` :act=${norm(t.attrs[":act"])}` : "";
+      out.push({ key: `${file}|${t.name}:${t.attrs[named] ?? `{${norm(t.attrs[`:${named}`] ?? "")}}`}|${handlers}${act}`,
+        file, line: lineAt(t.start), tag: t.name, entry: "", gates: ["component"], families });
+      continue;
+    }
     const attr = CATALOG_ATTR[t.name];
     if (attr) {
       const bound = t.attrs[`:${attr}`];
@@ -160,17 +218,17 @@ export function scanControls(file: string, sfc: string): ControlUsage[] {
       // Skipped only when EVERY value it can take is a catalog entry whose
       // gate closes without arm. A dynamic entry (MachineChoice's o.gate, a
       // variable branch) is listed so the inventory names it.
-      if (gates.length && gates.every((g) => g !== undefined && !LIVE_GATES.has(g))) continue;
+      if (!all && gates.length && gates.every((g) => g !== undefined && !LIVE_GATES.has(g))) continue;
       const entry = bound !== undefined ? `{${norm(bound)}}` : entries[0] ?? "";
       const known = gates.filter((g): g is string => !!g);
-      out.push({ key: `${file}|${t.name}:${entry}|${handlers}`, file, line: lineAt(t.start), tag: t.name, entry, gates: known.length === gates.length && known.length ? known : ["dynamic"] });
+      out.push({ key: `${file}|${t.name}:${entry}|${handlers}`, file, line: lineAt(t.start), tag: t.name, entry, gates: known.length === gates.length && known.length ? known : ["dynamic"], families });
       continue;
     }
     const isRaw = RAW_CONTROLS.has(t.name) || t.attrs.role === "button"
       || (/^[a-z]/.test(t.name) && Object.keys(t.attrs).some((a) => ACTION_EVENTS.has(eventOf(a) ?? "")));
     if (!isRaw) continue;
     const disabled = t.attrs[":disabled"] !== undefined ? ` :disabled=${norm(t.attrs[":disabled"])}` : "";
-    out.push({ key: `${file}|${t.name}|${handlers}${disabled}`, file, line: lineAt(t.start), tag: t.name, entry: "", gates: ["raw"] });
+    out.push({ key: `${file}|${t.name}|${handlers}${disabled}`, file, line: lineAt(t.start), tag: t.name, entry: "", gates: ["raw"], families });
   }
   return out;
 }

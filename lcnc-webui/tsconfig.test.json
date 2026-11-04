@@ -72,6 +72,7 @@
     "src/viteProxyCoverage.test.ts",
     "src/settingsSections.test.ts",
     "src/macroHeader.test.ts",
+    "src/inventory/webAtoms.test.ts",
     "src/viewer/checkBasis.test.ts",
     "src/viewer/collisionRangeOracle.test.ts",
     "scripts/simDump.ts",

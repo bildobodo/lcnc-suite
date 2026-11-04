@@ -400,6 +400,77 @@ def test_a_module_holds_the_selection_of_every_component_it_reaches():
     assert graph_problems() == []
 
 
+def test_test_only_modules_are_reached_by_no_runtime_entry():
+    """controlScan, controlInventory and the inventory's adapters run in tests
+    only: from main.ts, App.vue and every worker, through every runtime import
+    and no cut, none is reached (Codex R270) — their unit-only rule stays true."""
+    rev, _ = graph.importers(SRC)
+    for e in rules.RUNTIME_ENTRIES:
+        assert (SRC / e).is_file(), e
+    test_only = [f for f in graph.sources(SRC) if any(matches(g, f"lcnc-webui/src/{f}") for g in rules.TEST_ONLY_GLOBS)]
+    assert {"controlScan.ts", "controlInventory.ts", "inventory/webAtoms.ts"} <= set(test_only)
+    reached = graph.reached_from(list(rules.RUNTIME_ENTRIES), rev, graph.spawns(SRC))
+    assert len(reached) > 50, "the walk reaches the app"
+    assert {m: " → ".join(reached[m]) for m in test_only if m in reached} == {}
+
+
+def test_the_edge_pattern_agrees_with_the_parser_on_every_source():
+    """graph.py's pattern against TypeScript's parser (importscan.mjs), file by
+    file — a spelling the pattern misses, or an import form neither reads
+    (`require()`, a computed `import()`), fails here (Codex R271 FI-I07)."""
+    assert graph.pattern_disagreements(SRC) == []
+
+
+def test_the_edge_pattern_and_the_parser_see_the_same_spellings(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (tmp_path / "package.json").write_text("{}")
+    (tmp_path / "node_modules").symlink_to(SRC.parent / "node_modules")   # the scanner's TypeScript
+    (src / "x.ts").write_text("export const X = 1;\n")
+    (src / "main.ts").write_text('import{X}from"./x";\nimport"./x";\nexport{X}from"./x";\nimport type { T } from "./x";\n'
+                                 'const m = import("./x");\nconst w = new Worker(new URL("./x.ts", import.meta.url));\n')
+    (src / "bad.ts").write_text('const r = require("./x");\nconst d = import(name);\n')
+    (src / "types.ts").write_text('let t: import("./x").T;\n')   # a type position: no edge, a known excess
+    rev, _ = graph.importers(src)
+    assert graph.reached_from(["main.ts"], rev, graph.spawns(src)).keys() == {"main.ts", "x.ts"}
+    assert graph.pattern_disagreements(src) == ["bad.ts: 1: require() — a form the graph does not read",
+                                                "bad.ts: 2: import() of a computed path"]
+
+
+def test_the_graph_reads_every_source_type_the_build_compiles():
+    """graph.SOURCE_EXT is tsconfig.app.json's `include`, and no other script
+    type sits in src — a reachable file of a type the walk does not read would
+    hide a runtime use (Codex R272 FI-I07)."""
+    include = re.search(r'"include"\s*:\s*\[([^\]]*)\]', (SRC.parent / "tsconfig.app.json").read_text())
+    assert include, "tsconfig.app.json names its include list"
+    built = {Path(g).suffix for g in re.findall(r'"([^"]+)"', include.group(1)) if g.startswith("src/")}
+    assert built == set(graph.SOURCE_EXT)
+    other = sorted(p.relative_to(SRC).as_posix() for p in SRC.rglob("*")
+                   if p.suffix in (".js", ".mjs", ".cjs", ".jsx", ".mts", ".cts"))
+    assert other == []
+
+
+def test_the_runtime_walk_reads_tsx(tmp_path):
+    (tmp_path / "main.ts").write_text('import { a } from "./inventory/r.tsx";\nimport { b } from "./q";\n')
+    (tmp_path / "inventory").mkdir()
+    (tmp_path / "inventory" / "r.tsx").write_text("export const a = 1;\n")
+    (tmp_path / "q.tsx").write_text("export const b = <i />;\n")
+    rev, _ = graph.importers(tmp_path)
+    assert graph.reached_from(["main.ts"], rev, graph.spawns(tmp_path)).keys() == {"main.ts", "inventory/r.tsx", "q.tsx"}
+
+
+def test_the_runtime_walk_sees_a_transitive_import_not_a_type_or_a_comment(tmp_path):
+    (tmp_path / "main.ts").write_text('import "./a";\n')
+    (tmp_path / "a.ts").write_text('// import { x } from "./controlScan";\nimport type { T } from "./controlScan";\n')
+    (tmp_path / "w.ts").write_text('import { scan } from "./controlScan";\n')
+    (tmp_path / "App.vue").write_text('<script setup>\nconst w = new Worker(new URL("./w.ts", import.meta.url));\n</script>\n')
+    (tmp_path / "controlScan.ts").write_text("export const scan = 1;\n")
+    rev, _ = graph.importers(tmp_path)
+    spawned = graph.spawns(tmp_path)
+    assert graph.reached_from(["main.ts"], rev, spawned).keys() == {"main.ts", "a.ts"}
+    assert graph.reached_from(["App.vue"], rev, spawned)["controlScan.ts"] == ["App.vue", "w.ts", "controlScan.ts"]
+
+
 def test_the_cuts_name_real_files():
     for name in graph.CUTS:
         assert (SRC / name).is_file(), name

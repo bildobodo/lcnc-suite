@@ -10288,3 +10288,98 @@ it; the worker proof accepted another run's event log. Both fixed with red-first
 
 **Open.** The pinned Firefox core (step 6), splitting `layout.spec`, Replay (step 5), the probe live
 check. More than three workers was not measured (6 cores, one SwiftShader renderer per worker).
+
+
+## 2026-11-04 — Function inventory, step 1: the sources, their atoms, every function (Codex R265–R269)
+
+The operator's examples (tool import, macro edit, toolsetter values, surface
+compensation and its interpolation, the probe numbers) were random — "zuerst
+diese Liste vervollständigen und dann die Lücken schließen, in vernünftigem
+Rahmen". Codex R265 brainstormed it; R267–R269 agreed four contracts:
+
+1. **Sources (FI265-01).** Complete with respect to the named sources and the
+   recognised forms — one adapter per source family, its forms declared, an
+   empty adapter an error. An unresolved site keeps the inventory incomplete
+   even with an explanation; an exclusion is its own bound class; a family
+   whose members are not derived is named (`variantsOpen`). Counted at
+   98beef82 with parsers, not greps: keyboard 21, gamepad 12, 74 commands,
+   31 HTTP routes, the INI read in seven forms (my first grep missed
+   `find('DISPLAY', 'TOOL_LIBRARY_DIR')`; Codex found the `findall`s, the
+   wrappers and the handed-on read function; the build found `_kini` and the
+   read on the call `linuxcnc.ini(…).find`).
+2. **Measurement (FI265-02)**, step 5: the R251 origin by connection, browser
+   HTTP classified per request (a server contact only when single and proven;
+   redirect hops unknown), route projections for variants, never a query value.
+3. **Statements (FI265-03):** named statements per function, evidence kinds
+   inventoried / triggered / checked / counter-probe / native, results from the
+   run artifacts, displays as a catalog of visible promises.
+4. **Native tier (FI265-04):** one orchestrator, a disposable copy (own tree,
+   paths, settings, a real `node_modules` copy, write targets checked by inode),
+   the return to the LAN sim its own status; the operator took over the sim for
+   manual runs and asked for high feed (2026-11-03) — no timer.
+
+Step 1 (this): 1147 atoms in 17 sources, 55 functions and 4 system contracts,
+every atom owned once, the first statements with their evidence; the table
+`docs/inventory/funktionen.md` for the operator's review before any gap is
+touched. Found while building: the probe calibration routines
+(`runCalProbe('…')`) were missed silently by a first routine adapter, and the
+launcher pattern skipped a quoted argument instead of reporting it — both now
+forms with counter-cases. The first gap package is the compensation
+(Codex R265: the send result ignored, unknown shown as OFF / Cubic).
+
+The operator's look (2026-11-04): nothing missing at first sight; added from
+it — the kinematics mode as its own function and an "applies to" (Machine /
+TCP / Plane or a profile) on every statement, a second view by place (the
+tabs, the 3D view, the settings, the strip), and a multi-client statement with
+its gap: several clients fetching the preview after a load, measured with
+protocol clients (each browser's simulation runs on its own device, not in the
+gateway — browsers on the VM would trip the heartbeat by the VM's own load).
+The view by place showed the mode and the frame "without a control": the
+strip's ChoiceGroups act through `:act`, which no event scan sees —
+`controlScan`'s `components` option makes the instance the control, a spelling
+the scan does not read (kebab-case) is unresolved.
+
+Codex R270 (findings FI-I01..06, all closed with his counter-cases): the INI
+adapter now binds receivers per scope and classifies every factory call and
+every use of a bound name (read, load, a registered wrapper or consumer, a
+truth test — anything else unresolved); a registered wrapper's body is exempt
+only for its own parametric read; `_g30_ini` is a registered factory
+function. Every table `macro:` and every `runCalProbe(…)` is resolved or
+reported one by one; a worker `send` is a relay only on its two proven paths
+(`msg.payload` in `case "send"`, the queue only that clause fills); the
+catalog components are read in both spellings with a written-against-found
+count. Every routine is bound to its shipped file (an M-code through its
+remap; every remap to its ngc file or Python function) — removing
+`probe_cal_round_boss.ngc` turns the guard red. F-PROBE.S2 now names the
+var-declaration tests of all profiles (a parametric title lists its
+instances); every statement names its scope (a mode, a profile, "alle" or
+"offen"). `controlScan.ts` / `controlInventory.ts` are test-only: unit-only
+rule, and a runtime walk from `main.ts`, `App.vue` and every worker their
+creators start, with no cut, must reach neither (`graph.reached_from`).
+
+Codex R271 (rests closed): a registered factory function is checked at the
+same boundary as a factory (a direct read resolves; an attribute target, a
+return or a callback is unresolved); calibration calls are read by the parser
+from the template's expressions (`controlScan.templateExpressions`), every
+mention counted; a relay or frame needs the ONE `const` of its name, a queue
+push exactly `msg.payload`. FI-I07: the graph's edge pattern now reads every
+spelling (`import{x}from"./y"`), and `scripts/test_select/importscan.mjs` proves
+it on TypeScript's parser file by file — a missed edge fails, an excess must
+be a type position's `import("./x").T`, `require()` and a computed `import()`
+are refused; the guard's file set is the rule's own glob list
+(`TEST_ONLY_GLOBS`), so a new runtime file under `inventory/` fails too.
+
+Codex R272 (two rests closed): a frame's or relay's binding is the one AT the
+send — the nearest enclosing block, case clause or file that declares the
+name; a parameter, a loop head, a catch clause or two declarations bind
+nothing proven, an inner function's or a left block's `const` is never
+reached. The graph reads every source type the build compiles
+(`graph.SOURCE_EXT` = `tsconfig.app.json` include: `.ts`, `.tsx`, `.vue`; a
+guard holds the two equal and finds no other script type in `src`), so a
+`.tsx` file reached from the app is scanned and fails the test-only guard.
+
+Codex R273: the binding at the send is the TypeScript checker's own symbol,
+in a program over the worker's text alone (no lib, no import resolution, no
+disk) — only its one declaration as a `const` of a plain name with an
+initializer is a proven value; a binding pattern, a function-wide `var`, a
+`let`, a parameter, a catch or loop binding are unresolved.

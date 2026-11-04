@@ -119,6 +119,11 @@ READ_SITES: dict[str, tuple[Read, ...]] = {
         Read("readFileSync(registryPath(slot)", 1, None, "this run's slot-owner registry (a temp file it wrote)")),
 }
 
+# Modules only tests import: a runtime walk from the app's and the workers'
+# entries, with no cut, must not reach one (Codex R270) — so their unit-only
+# rule can never hide a change to what runs.
+RUNTIME_ENTRIES = ("main.ts", "App.vue")
+
 # Specs only a FULL rule selects, with the reason no narrower source owns them.
 FULL_ONLY = {
     "lifecycle": "the connection's lifecycle: lcncWs, the worker and ws/ — central",
@@ -170,6 +175,10 @@ def src(*names: str) -> tuple[str, ...]:
     return tuple(S + n for n in names)
 
 
+# The test-only tools' rule and its guard read ONE list (Codex R271 FI-I07):
+# every file it exempts is a file the runtime walk must not reach.
+TEST_ONLY_GLOBS = src("inventory/**", "controlScan.ts", "controlInventory.ts")
+
 RULES: tuple[Rule, ...] = (
     # ── No product code: decides alone ───────────────────────────────────
     Rule(("docs/**", "*.md", "**/README.md", "subroutines/**/*.md", ".claude/**", "LICENSE",
@@ -186,7 +195,7 @@ RULES: tuple[Rule, ...] = (
              "TextKeypadStrip.vue", "textKeyboardPages.ts", "mathEval.ts", "Btn.vue",
              "MachineBtn.vue", "MachineInput.vue", "MachineToggle.vue", "MachineSlider.vue",
              "MachineSelect.vue", "MachineRadio.vue", "MachineColor.vue", "Gate.vue",
-             "permissions.ts", "machineControls.ts", "controlScan.ts", "controlInventory.ts",
+             "permissions.ts", "machineControls.ts",
              "actionAdmission.ts", "lcnc.ts", "defaults.ts", "settingsSaveStatus.ts",
              "format.ts", "useAxes.ts", "useKeyboardShortcuts.ts", "touchDetect.ts",
              "sidePaneNarrow.ts", "stickyHead.ts", "scrollFade.ts", "helpPlacement.ts",
@@ -219,6 +228,11 @@ RULES: tuple[Rule, ...] = (
          unit_only=True),
     Rule(src("testGlobals.ts", "shims.d.ts"),
          "types and unit-test globals: the build and the light unit set cover them",
+         unit_only=True, final=True),
+    Rule(TEST_ONLY_GLOBS,
+         "test-only tools — the function inventory's adapters, the template scan and the disarmed "
+         "inventory: no app or worker runtime import reaches them (TEST_ONLY, the graph guard); "
+         "the light unit set runs their tests in every round",
          unit_only=True, final=True),
 
     # ── Every component and every module it uses: its rendered surface ───
