@@ -1,0 +1,127 @@
+R271, archive 48b65fd3, isolated /tmp/codex-r271; no live endpoints.
+
+COMMAND: .venv/bin/python -B -m pytest -q scripts/inventory/test_inventory.py scripts/test_select/test_selector.py -k "inventory or test_only or runtime_walk"
+...............................                                          [100%]
+31 passed, 44 deselected in 1.85s
+
+COMMAND: node node_modules/vitest/vitest.mjs run src/inventory/webAtoms.test.ts src/inventory/r270.codex.test.ts src/controlInventory.test.ts --maxWorkers=1
+
+ RUN  v4.1.8 /tmp/codex-r271/lcnc-webui
+
+
+ Test Files  3 passed (3)
+      Tests  32 passed (32)
+   Start at  20:36:37
+   Duration  8.84s (transform 577ms, setup 0ms, import 1.32s, tests 7.23s, environment 0ms)
+
+
+New R271 countercases, intentionally red (raw JSON beside this log):
+
+ RUN  v4.1.8 /tmp/codex-r271/lcnc-webui
+
+ ❯ src/inventory/r271.codex.test.ts (6 tests | 6 failed) 16ms
+   × FI-I03 rest: a reassigned frame is not its initializer 9ms
+   × FI-I03 rest: a reassigned queue value is no longer a relay 2ms
+   × FI-I03 rest: every pushed queue member must have relay provenance 1ms
+   × FI-I02 rest: calibration call with separator " " is not lost 1ms
+   × FI-I02 rest: calibration call with separator "\n" is not lost 1ms
+   × FI-I02 rest: a computed call with separator is unresolved too 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/inventory/r271.codex.test.ts > FI-I03 rest: a reassigned frame is not its initializer
+AssertionError: {"source":"wsWorker.ts <socket>.send(…)","forms":["JSON.stringify({ cmd: literal, … })","text beginning {\"cmd\":\"literal\"","a const bound to one of those","relay: msg.payload in case \"send\"","relay: a const bound to preOpenQueue.shift(), the queue only case \"send\" fills"],"atoms":[{"id":"frame:hello"}],"unresolved":[]}: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/inventory/r271.codex.test.ts:13:103
+     11|   ws.send(own);
+     12| }`}));
+     13|   expect(a.atoms.some(x => x.id === 'frame:new_frame') || a.unresolved…
+       |                                                                                                       ^
+     14| });
+     15|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  src/inventory/r271.codex.test.ts > FI-I03 rest: a reassigned queue value is no longer a relay
+AssertionError: {"source":"wsWorker.ts <socket>.send(…)","forms":["JSON.stringify({ cmd: literal, … })","text beginning {\"cmd\":\"literal\"","a const bound to one of those","relay: msg.payload in case \"send\"","relay: a const bound to preOpenQueue.shift(), the queue only case \"send\" fills"],"atoms":[{"id":"frame:hello"}],"unresolved":[]}: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/inventory/r271.codex.test.ts:24:103
+     22|   ws.send(p);
+     23| }`}));
+     24|   expect(a.atoms.some(x => x.id === 'frame:new_frame') || a.unresolved…
+       |                                                                                                       ^
+     25| });
+     26|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  src/inventory/r271.codex.test.ts > FI-I03 rest: every pushed queue member must have relay provenance
+AssertionError: {"source":"wsWorker.ts <socket>.send(…)","forms":["JSON.stringify({ cmd: literal, … })","text beginning {\"cmd\":\"literal\"","a const bound to one of those","relay: msg.payload in case \"send\"","relay: a const bound to preOpenQueue.shift(), the queue only case \"send\" fills"],"atoms":[{"id":"frame:hello"}],"unresolved":[]}: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/inventory/r271.codex.test.ts:35:103
+     33| function drain() { const p = preOpenQueue.shift(); ws.send(p); }
+     34| `}));
+     35|   expect(a.atoms.some(x => x.id === 'frame:new_frame') || a.unresolved…
+       |                                                                                                       ^
+     36| });
+     37|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  src/inventory/r271.codex.test.ts > FI-I02 rest: calibration call with separator " " is not lost
+ FAIL  src/inventory/r271.codex.test.ts > FI-I02 rest: calibration call with separator "\n" is not lost
+AssertionError: {"names":["probe_cal_a"],"unresolved":[]}: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/inventory/r271.codex.test.ts:43:89
+     41| <script setup>function runCalProbe(macro) { emit('runProbe', { macro }…
+     42|   const a = probeRoutines('ProbePanel.vue', text);
+     43|   expect(a.names.includes('probe_cal_b') || a.unresolved.length > 0, J…
+       |                                                                                         ^
+     44| });
+     45|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  src/inventory/r271.codex.test.ts > FI-I02 rest: a computed call with separator is unresolved too
+AssertionError: {"names":["probe_cal_a"],"unresolved":[]}: expected 0 to be greater than 0
+ ❯ src/inventory/r271.codex.test.ts:51:50
+     49| <script setup>function runCalProbe(macro) { emit('runProbe', { macro }…
+     50|   const a = probeRoutines('ProbePanel.vue', text);
+     51|   expect(a.unresolved.length, JSON.stringify(a)).toBeGreaterThan(0);
+       |                                                  ^
+     52| });
+     53|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed (6)
+   Start at  20:37:28
+   Duration  561ms (transform 182ms, setup 0ms, import 454ms, tests 16ms, environment 0ms)
+
+JSON report written to /tmp/codex-r271/r271.web-results.json

@@ -1,0 +1,38 @@
+[
+  {
+    "case": "registered_factory_direct_read",
+    "source": "import linuxcnc\nini = linuxcnc.ini(path)\na = ini.find('BASE', 'KEPT')\ndef _g30_ini():\n    return linuxcnc.ini(path)\nx = _g30_ini().find('EXTRA', 'DIRECT')\n",
+    "atoms": [
+      {
+        "id": "ini:BASE/KEPT"
+      }
+    ],
+    "unresolved": [],
+    "complete": true,
+    "captured_or_refused": false
+  },
+  {
+    "case": "registered_factory_attribute",
+    "source": "import linuxcnc\nini = linuxcnc.ini(path)\na = ini.find('BASE', 'KEPT')\ndef _g30_ini():\n    return linuxcnc.ini(path)\nholder.cfg = _g30_ini()\nx = holder.cfg.find('EXTRA', 'ATTRIBUTE')\n",
+    "atoms": [
+      {
+        "id": "ini:BASE/KEPT"
+      }
+    ],
+    "unresolved": [],
+    "complete": true,
+    "captured_or_refused": false
+  },
+  {
+    "case": "registered_factory_returned",
+    "source": "import linuxcnc\nini = linuxcnc.ini(path)\na = ini.find('BASE', 'KEPT')\ndef _g30_ini():\n    return linuxcnc.ini(path)\ndef get_cfg():\n    return _g30_ini()\nx = get_cfg().find('EXTRA', 'RETURNED')\n",
+    "atoms": [
+      {
+        "id": "ini:BASE/KEPT"
+      }
+    ],
+    "unresolved": [],
+    "complete": true,
+    "captured_or_refused": false
+  }
+]

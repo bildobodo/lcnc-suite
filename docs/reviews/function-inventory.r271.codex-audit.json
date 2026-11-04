@@ -1,0 +1,66 @@
+{
+  "review": "R271",
+  "product_commit": "48b65fd32d6cd46a115102202050acc446850074",
+  "live_head": "66677741e5ede09a79040b1ffe4e9ce6ddaeac2a",
+  "archive": "/tmp/codex-r271",
+  "scope": "Review only; no live access, build, browser or native machine test",
+  "original_countercases": "R270 web probe unchanged: 4/4 PASS; all six R270 INI cases in repository tests PASS",
+  "baseline_python": {
+    "passed": 31,
+    "deselected": 44
+  },
+  "baseline_web": {
+    "passed": 32,
+    "files": 3
+  },
+  "new_countercases": {
+    "INI": {
+      "missed": 3
+    },
+    "web": {
+      "failed": 6
+    },
+    "runtime_guard": {
+      "sensitivity_red": 1,
+      "silent_pass": 2
+    }
+  },
+  "files": {
+    "scripts/inventory/py_atoms.py": {
+      "sha256": "9279e420babc98a902100d08ca6a4efeb497afbf19d90a4088e5b209e55b6547",
+      "matches_target": true
+    },
+    "scripts/inventory/functions.py": {
+      "sha256": "8b3920eb0ecd855ea364c70c28b8291ab6a8d2945f61b259f1ba66ae4184b2bd",
+      "matches_target": true
+    },
+    "scripts/test_select/graph.py": {
+      "sha256": "05bfeced765cad1c235b15014da30a57151e8834f72f84d338ecfba73f27db3b",
+      "matches_target": true
+    },
+    "scripts/test_select/rules.py": {
+      "sha256": "34b38e7865d1412995c2b9666f242b8ecfd91b41dc1be4b6b33129562a274878",
+      "matches_target": true
+    },
+    "scripts/test_select/test_selector.py": {
+      "sha256": "52988235b4497a29717de0a43b6e5aac02708496d6091d3ac2cfd0bd0781a7b5",
+      "matches_target": true
+    },
+    "lcnc-webui/src/inventory/webAtoms.ts": {
+      "sha256": "07ddf8a3b352d2c27020e66997c154aea030ee98a625efa32a44a6d30319c86b",
+      "matches_target": true
+    },
+    "lcnc-webui/src/main.ts": {
+      "sha256": "a4091b73a5ea01f48a56b40f699f1a4f8dac9511c82413cad4476b10822f44c6",
+      "matches_target": true
+    },
+    "subroutines/probe_basic/probe_cal_round_boss.ngc": {
+      "sha256": "9ecb5147c42309acad0773d4b145241db7aafcb7b35a271336d3605ea3000bfe",
+      "matches_target": true
+    }
+  },
+  "review_prefix": {
+    "length": 119194,
+    "sha256": "8c8cd0ad9a80f6e3dd3e3841cdd3ebf449d35d745f833dbc181ca32bb8ca53e0"
+  }
+}

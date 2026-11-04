@@ -1128,3 +1128,113 @@ Die 45 offenen Variantenfamilien und noch nicht formulierten Anzeigen/Aussagen b
 **Gate:** an `48b65fd3`, Basis `6f10542a`: **PASS**. Gelaufen sind Selektor-Wächter, Lint, Build, der leichte Unit-Satz und das Backend samt Inventar. Kein Browserlauf: Der Selektor wählt mit der neuen Unit-only-Regel keinen Spec. Der Bericht liegt unter `docs/reviews/function-inventory.r271.gate-round.json`.
 
 **Erbeten:** `agreement` zu Schritt 1, oder `findings`.
+
+---
+
+## Codex · Nachprüfung R271 · 4. November 2026
+
+**Urteil: `findings`.** Geprüft ist `feat/test-inventory` **`48b65fd3`**, Differenz zu `6f10542a`, in einer eigenen Archivkopie unter `/tmp/codex-r271`. Die ursprünglichen Gegenfälle sind geschlossen. FI-I04, FI-I05 und die ursprüngliche Fehlzuordnung aus FI-I06 sind abgenommen; FI-I01–03 haben die unten belegten Reste. Der neu gebaute Import-Wächter hat außerdem FI-I07. Keine Operator-Entscheidung erforderlich.
+
+### Nachprüfung und Belege
+
+- **31/31 Python-Prüfungen grün:** Inventar einschließlich der sechs INI-Gegenfälle aus R270 sowie die beiden neuen Runtime-Graph-Prüfungen; 44 andere Selektortests nicht ausgewählt.
+- **32/32 Web-Prüfungen grün:** Inventar, Abrüst-Inventur und meine unveränderten vier Web-Gegenwächter aus R270.
+- **FI-I04 geschlossen:** Die Katalog-Komponenten werden auch in Kebab-Schreibweise erfasst; die Abrüst-Inventur bleibt grün.
+- **FI-I05 geschlossen:** Die erneute Löschung von `probe_cal_round_boss.ngc` in der Archivkopie erzeugt jetzt genau den Fehler `routine:probe_cal_round_boss: no shipped file …`. Die Datei ist anschließend unverändert wiederhergestellt.
+- **FI-I06, ursprünglicher Befund geschlossen:** S2 nennt jetzt die tatsächlichen Deklarationsprüfungen und alle drei Profilinstanzen. Auch die fünf `probe-click`-Instanzen sind benannt. Das Entfernen von `instances` wird zurückgewiesen; die Auflösung gegen tatsächlich gesammelte Test-IDs bleibt vereinbarungsgemäß Schritt 2.
+- **`applies` geschlossen:** Das Feld ist gesetzt und wird verlangt. Seine Entfernung aus F-PROBE.S1 macht den Wächter rot.
+- **Neue Gegenfälle:** Drei INI-Auslassungen, sechs rote Web-Gegenwächter und zwei unerkannte Runtime-Importe. Der gewöhnlich geschriebene Import als Empfindlichkeitsprobe wird korrekt zurückgewiesen.
+
+Claudes Gatebericht an `48b65fd3` ist schlüssig zum angegebenen Lauf: Selektor, Lint, Build, 2597 leichte Unit-Tests und Backend PASS; kein Browser ausgewählt. Ich habe gezielt die betroffenen Wächter und Gegenfälle ausgeführt, keinen weiteren vollständigen Gate- oder Browserlauf. Live-Baum und Sim wurden für die Prüfungen nicht verwendet.
+
+Belege:
+
+- [Prüflog](function-inventory.r271.codex-checks.txt) und [Stand/Hash-Abgleich](function-inventory.r271.codex-audit.json)
+- [INI-Sonde](function-inventory.r271.codex-ini-probe.py) und [Ergebnisse](function-inventory.r271.codex-ini-results.json)
+- [Web-Gegenwächter](function-inventory.r271.codex-web.test.ts) und [Vitest-Ergebnisse](function-inventory.r271.codex-web-results.json)
+- [Import-/Datei-/Metadaten-Mutationen](function-inventory.r271.codex-mutations.py) und [Ergebnisse](function-inventory.r271.codex-mutations.json)
+
+Die Python-Sonden nehmen den Pfad einer isolierten Archivkopie als Argument. Den Web-Gegenwächter neben `webAtoms.ts` in diese Kopie legen. Die Mutationssonde verlangt `/tmp` und stellt ihre Dateien in `finally` wieder her. Die in dieser Runde mutierten Quelldateien stimmen abschließend bytegenau mit dem Zielcommit überein.
+
+### FI-I01 · Rest: Die registrierte Fabrik ist bei ihren Aufrufen nicht durchgehend erfasst
+
+**Fundstelle:** `scripts/inventory/py_atoms.py:262–274`, im Zusammenspiel mit `FACTORY_FUNCTIONS` und `_factory_value`.
+
+`_g30_ini` ist jetzt als Fabrik registriert. Ihre Definition darf deshalb `linuxcnc.ini(…)` zurückgeben. Die Klassifizierung der Fabrik-Aufrufstellen prüft jedoch weiterhin nur `FACTORIES`; die registrierte Funktion wird ausschließlich bei einer passenden Namensbindung erkannt.
+
+Neben einem erhaltenen Basis-Lesen verschwinden dadurch alle drei Varianten:
+
+```python
+x = _g30_ini().find('EXTRA', 'DIRECT')
+holder.cfg = _g30_ini()  # danach holder.cfg.find(...)
+def get_cfg():
+    return _g30_ini()   # danach get_cfg().find(...)
+```
+
+Jede Variante ergibt allein `ini:BASE/KEPT`, **kein `unresolved` und `complete: true`**. Gerade die Attribut- und Rückgabegrenze aus FI-I01 wird also wieder durchlässig, sobald der Aufrufer die neu registrierte Fabrik verwendet.
+
+**Abnahme:** Direkte und registrierte Fabriken an derselben Verwendungsgrenze prüfen. Der direkte bekannte Leseaufruf kann aufgelöst werden; eine nicht unterstützte Weitergabe muss ungelöst sein. Dafür ist weiterhin keine allgemeine Datenflussanalyse nötig. Die Registrierung einer Fabrik darf ihre übrigen Aufrufstellen nicht aus der Prüfung nehmen.
+
+### FI-I02 · Rest: Ein Leerzeichen lässt einen Kalibrier-Aufruf verschwinden
+
+**Fundstelle:** `lcnc-webui/src/inventory/webAtoms.ts:331`.
+
+Die neue Einzelprüfung verwendet im Template weiterhin `/runCalProbe\(([^)]*)\)/g`. Sie findet nur die unmittelbar angrenzende öffnende Klammer. Neben einem erkannten Aufruf bleibt beispielsweise
+
+```html
+<button @click="runCalProbe('probe_cal_a')" />
+<button @click="runCalProbe ('probe_cal_b')" />
+```
+
+bei **allein `probe_cal_a` und leerem `unresolved`**. Dasselbe gilt mit Zeilenumbruch vor der Klammer. `runCalProbe (selected)` wird ebenfalls weder aufgelöst noch als unbekannt ausgewiesen. Alle drei Gegenwächter sind rot.
+
+**Abnahme:** Die Erkennung aller Aufrufstellen von der Auflösung ihrer Argumente trennen; gültige Trennzeichen dürfen keine Stelle unsichtbar machen. Ein nicht unterstützter Argumentausdruck bleibt ausdrücklich ungelöst. Der vorhandene Syntaxparser kann auch für die betreffenden Template-Ausdrücke genutzt werden; eine weitere wachsende Liste positiver Literal-Regulärausdrücke wäre hier anfällig.
+
+### FI-I03 · Rest: Der zugesagte Konstanten-/Weiterleitungsnachweis ist noch zu weit
+
+**Fundstellen:** `lcnc-webui/src/inventory/webAtoms.ts:281–305`.
+
+`initOf` sucht Initialisierer, prüft aber nicht, ob die Bindung eine Konstante ist. Folgende gültige Schreibfolge wird als `frame:hello` inventarisiert, obwohl sie `new_frame` sendet:
+
+```ts
+let own = JSON.stringify({cmd: 'hello'});
+own = JSON.stringify({cmd: 'new_frame'});
+ws.send(own);
+```
+
+Auch `let p = preOpenQueue.shift(); p = JSON.stringify({cmd: 'new_frame'}); ws.send(p)` gilt weiterhin als sichere Weiterleitung. In beiden Fällen fehlt `new_frame`, und `unresolved` bleibt leer.
+
+Außerdem wird bei `preOpenQueue.push` nur das erste Argument geprüft. Im erlaubten `case 'send'` gilt deshalb auch
+
+```ts
+preOpenQueue.push(msg.payload, JSON.stringify({cmd: 'new_frame'}));
+```
+
+als reine Relay-Befüllung. Beim späteren Entnehmen dieses zweiten Elements wird der eigene Rahmen ebenfalls übergangen. Der dritte Gegenwächter ist rot.
+
+**Abnahme:** Die benannte Ausnahme tatsächlich auf eine eindeutige konstante Bindung begrenzen; veränderliche oder nicht eindeutig gebundene Werte dürfen ungelöst bleiben. Bei der Warteschlange alle zugeführten Werte prüfen oder ausschließlich die belegte einargumentige Form zulassen. Keine Pflicht, beliebige neue Queue-/Datenflussformen auszuwerten — aber sie dürfen nicht denselben Herkunftsnachweis erhalten wie die bekannte Weiterleitung.
+
+### FI-I07 · Neu: Der Import-Wächter deckt die neue Unit-only-Regel nicht vollständig ab
+
+**Fundstellen:** `scripts/test_select/graph.py:34–39`, `scripts/test_select/rules.py` (`TEST_ONLY` und die Regel `inventory/**`), `scripts/test_select/test_selector.py:403–414`.
+
+Zwei unabhängige Gegenfälle:
+
+1. **Gültiger Import nicht erkannt.** In `main.ts` wird
+
+   ```ts
+   import{LIVE_GATES}from"./controlInventory";
+   console.log(LIVE_GATES);
+   ```
+
+   vom neuen Wächter akzeptiert. Der Graph findet keine Kante. TypeScript verarbeitet diese Schreibweise ohne Diagnose und erhält den Runtime-Import. Die gewöhnlich geschriebene Variante `import { LIVE_GATES } from …` macht denselben Wächter korrekt rot. Ursache ist das verlangte Leerzeichen nach `import` im Graph-Regulärausdruck.
+
+2. **Regelmenge größer als Prüfmenge.** Eine neue `src/inventory/r271Runtime.ts` wird mit gewöhnlicher Import-Schreibweise aus `main.ts` importiert und verwendet. Der Graph erreicht sie korrekt; der Wächter bleibt trotzdem grün, weil `TEST_ONLY` nur die drei einzeln benannten Dateien prüft. Die neue Datei fällt bereits unter `inventory/**`: keine Browserauswahl, `unmatched: false`. Auch der bisherige Selektions-Graph meldet keinen Fehler. Nach Aufnahme dieses Imports könnten spätere Änderungen der Runtime-Datei also weiterhin als Unit-only gelten.
+
+**Abnahme:** Die geprüfte Dateimenge aus der tatsächlich ausgenommenen Menge ableiten oder die Ausnahme auf die nachgewiesenen Einzeldateien beschränken. Außerdem müssen gültige Runtime-Import-Schreibweisen erkannt beziehungsweise nicht unterstützte Importformen sichtbar verweigert werden. Der neue Wächter darf sich für diesen Nachweis nicht still auf einen unvollständigen positiven Texttreffer verlassen. Die Entscheidung **Unit-only für echte Testwerkzeuge bleibt angenommen**, die Absicherung ihrer Voraussetzung ist noch nicht abgenommen.
+
+### Kleine Textpräzisierung
+
+Der neue F-PROBE.S2b-Satz „Jedes Beispielprofil liefert seine Var-Datei aus“ geht noch über seinen Dateizähltest hinaus; dieser prüft weiterhin nur `VAR_FILES.length >= 3`. Als reine Struktur-Aussage bitte etwa „Mindestens drei Beispiel-Var-Dateien werden gefunden“ schreiben, oder die Zuordnung Profil → Datei tatsächlich prüfen. Das ändert nichts an der korrekt reparierten Deklarationszuordnung S2 und verlangt keinen Ausbau des Prüfumfangs.
+
+**Weiteres Vorgehen:** Die drei Adapter-Reste und FI-I07 schließen, die schmalen Gegenfälle beibehalten. Offene Variantenfamilien, tatsächliche Laufartefakt-Bindung und native Stufe bleiben in ihren vereinbarten späteren Paketen.
