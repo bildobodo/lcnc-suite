@@ -10383,3 +10383,28 @@ in a program over the worker's text alone (no lib, no import resolution, no
 disk) — only its one declaration as a `const` of a plain name with an
 initializer is a proven value; a binding pattern, a function-wide `var`, a
 `let`, a parameter, a catch or loop binding are unresolved.
+
+## 2026-11-04 — Function inventory: statements for the machine functions (Codex R275)
+
+111 statements over 41 functions, each bound to a test read for what it
+checks — Codex read all 79 first ones against their bodies and found the words
+wider than the rules (arm "any write", the G59 reservation without the TWP
+condition, the buttons' hold for the Space key too), evidence carrying part of
+a statement (a mutation that removed the Plane G54 refusal kept both linked
+tests green), and machine actions not yet said (shutdown, sim trip, tool
+edits, home all, spindle fwd/rev, TWP capture's result, reload/unload,
+unload). Each now says its rule; a partial proof is split, the rest an open
+statement with the layer that would see the break; the table's short list
+names 34 open statements and the 18 functions without machine effect.
+
+The disconnect contract (FI-I11), as it is: a client's leaving cancels the
+gateway's handling of its in-flight command (a write begun ends first; a
+command LinuxCNC took is not taken back) and drops its queue; an ARMED
+client's leaving also attempts the jog stop (`_jog_stop_for_client`: every
+joint the gateway booked as jogging — gateway-wide, not that client's own —
+machine enabled, nothing while AUTO runs; R276); an armed client's heartbeat
+timeout disarms it and attempts the same stop; neither aborts a running
+program — armed is authorization, not a dead-man, and the HAL chain owns
+motion abort. CLAUDE.md's safety layers said "jog_stop + abort" for both —
+corrected, with README's "stops all motion". The integration proof (leaving
+and timeout with a running program and a second client) stays open.

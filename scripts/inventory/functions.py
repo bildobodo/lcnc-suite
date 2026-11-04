@@ -271,6 +271,15 @@ def render(web: dict, py: dict, fns: dict) -> str:
               "ihr Katalog sichtbarer Zusagen folgt als eigener Schritt.",
               "- **Belegt** heißt hier: ein benannter Test existiert mit diesem Titel. Ob er lief und bestand, "
               "kommt aus den Laufberichten (nächster Schritt).", ""]
+    open_ = [(f, st) for f in fns["functions"] for st in f.get("statements", []) if not st.get("evidence")]
+    lines += ["## Offene Aussagen", "",
+              f"{len(open_)} Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.", "",
+              "| Funktion | Aussage | Art | gilt für | Lücke |", "|---|---|---|---|---|"]
+    lines += [f"| {f['name']} | {st['text']} | {st['kind']} | {', '.join(st.get('applies', ['offen']))} | {st.get('gap', '—')} |"
+              for f, st in open_]
+    without = [f for f in fns["functions"] if not f.get("statements")]
+    lines += ["", f"**Ohne formulierte Aussagen:** {len(without)} Funktionen ohne eigene Maschinenwirkung — "
+              + ", ".join(f"{f['name']} `{f['id']}`" for f in without), ""]
     for area, title in fns["areas"].items():
         group = [f for f in fns["functions"] if f["area"] == area]
         if not group:
@@ -292,6 +301,7 @@ def render(web: dict, py: dict, fns: dict) -> str:
             for s in f["statements"]:
                 ev = "; ".join(f"{e['layer']}: `{e['file']}` — {e['title']}"
                                + (f" (je: {', '.join(e['instances'])})" if e.get("instances") else "")
+                               + (" (live, nicht im Gate)" if e.get("live") else "")
                                for e in s.get("evidence", [])) or "**offen**"
                 gap = f" — Lücke: {s['gap']}" if s.get("gap") else ""
                 applies = f" — gilt für: {', '.join(s.get('applies', ['offen']))}"
@@ -310,7 +320,57 @@ def render(web: dict, py: dict, fns: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def dump(fns: dict) -> str:
+    """functions.json in its one layout: a function per block, its atoms
+    wrapped, a statement per line — so an edit by script and by hand diff
+    alike (`functions.py --format`)."""
+    j = lambda v: json.dumps(v, ensure_ascii=False)
+
+    def wrapped(key: str, items: list[str]) -> list[str]:
+        head = f'   "{key}": ['
+        lines, cur = [], head
+        for k, x in enumerate(items):
+            piece = j(x) + (", " if k < len(items) - 1 else "")
+            if len(cur) + len(piece) > 118 and cur.strip() not in (head.strip(),):
+                lines.append(cur.rstrip())
+                cur = " " * len(head)
+            cur += piece
+        lines.append(cur + "]")
+        return lines
+
+    out = ["{", ' "areas": {']
+    areas = list(fns["areas"].items())
+    out += [f"  {j(k)}: {j(v)}" + ("," if i < len(areas) - 1 else "") for i, (k, v) in enumerate(areas)]
+    out += [" },", ' "functions": [']
+    for i, f in enumerate(fns["functions"]):
+        block = [f'  {{"id": {j(f["id"])}, "area": {j(f["area"])}, "name": {j(f["name"])},']
+        parts = [wrapped("atoms", f.get("atoms", []))]
+        if "uses" in f:
+            parts.append(wrapped("uses", f["uses"]))
+        if "statements" in f:
+            st = f["statements"]
+            parts.append(['   "statements": ['] + [f"    {j(x)}" + ("," if k < len(st) - 1 else "") for k, x in enumerate(st)] + ["   ]"])
+        for k, part in enumerate(parts):
+            part = list(part)
+            part[-1] += "," if k < len(parts) - 1 else "}"
+            block += part
+        block[-1] += "," if i < len(fns["functions"]) - 1 else ""
+        out += block
+    out += [" ],", f' "excludedAtoms": {j(fns.get("excludedAtoms", {}))}', "}"]
+    return "\n".join(out) + "\n"
+
+
 def main() -> int:
+    if "--format" in sys.argv[1:]:
+        path = HERE / "functions.json"
+        fns = json.loads(path.read_text())
+        text = dump(fns)
+        # the layout is checked before the file is touched (Codex R276
+        # FI-I12): a field dump() does not write is refused, never dropped
+        if json.loads(text) != fns:
+            print("functions.json not formatted — it holds a field the layout does not write (functions.py dump())")
+            return 1
+        path.write_text(text)
     web, py, fns = load()
     found = problems(web, py, fns)
     for p in found:
