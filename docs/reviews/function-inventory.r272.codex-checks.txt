@@ -1,0 +1,83 @@
+R272; archive 9c58b6c4 in /tmp/codex-r272. No live endpoints, no builds or browser runs.
+
+Python: .venv/bin/python -B -m pytest -q -p no:cacheprovider scripts/inventory/test_inventory.py scripts/test_select/test_selector.py -k "inventory or test_only or runtime_walk or edge_pattern"
+.....................................                                    [100%]
+37 passed, 44 deselected in 1.90s
+
+Web: node node_modules/vitest/vitest.mjs run src/inventory/webAtoms.test.ts src/controlInventory.test.ts src/inventory/r270.codex.test.ts src/inventory/r271.codex.test.ts --maxWorkers=1
+
+ RUN  v4.1.8 /tmp/codex-r272/lcnc-webui
+
+
+ Test Files  4 passed (4)
+      Tests  40 passed (40)
+   Start at  20:52:26
+   Duration  6.48s (transform 355ms, setup 0ms, import 973ms, tests 5.27s, environment 0ms)
+
+
+The original R271 INI and mutation scripts were run unchanged against this archive; results beside this file.
+
+New boundary checks (intentionally red):
+
+ RUN  v4.1.8 /tmp/codex-r272/lcnc-webui
+
+ ❯ src/inventory/r272.codex.test.ts (3 tests | 2 failed) 7ms
+   × FI-I03: a local const in a nested helper does not bind the outer parameter 6ms
+   × FI-I03: a const in a sibling block does not bind the outer parameter 1ms
+   ✓ sensitivity: a const visible at the send still names its frame 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/inventory/r272.codex.test.ts > FI-I03: a local const in a nested helper does not bind the outer parameter
+AssertionError: {"actual":["new_frame"],"atoms":[{"id":"frame:hello"}],"unresolved":[]}: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ check src/inventory/r272.codex.test.ts:12:73
+     10|   const ids = new Set(a.atoms.map(x => x.id));
+     11|   expect(actual.every(cmd => ids.has(`frame:${cmd}`)) || a.unresolved.…
+     12|     JSON.stringify({actual, atoms: a.atoms, unresolved: a.unresolved})…
+       |                                                                         ^
+     13| };
+     14|
+ ❯ src/inventory/r272.codex.test.ts:16:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/inventory/r272.codex.test.ts > FI-I03: a const in a sibling block does not bind the outer parameter
+AssertionError: {"actual":["new_frame"],"atoms":[{"id":"frame:hello"}],"unresolved":[]}: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ check src/inventory/r272.codex.test.ts:12:73
+     10|   const ids = new Set(a.atoms.map(x => x.id));
+     11|   expect(actual.every(cmd => ids.has(`frame:${cmd}`)) || a.unresolved.…
+     12|     JSON.stringify({actual, atoms: a.atoms, unresolved: a.unresolved})…
+       |                                                                         ^
+     13| };
+     14|
+ ❯ src/inventory/r272.codex.test.ts:26:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  20:53:20
+   Duration  355ms (transform 116ms, setup 0ms, import 289ms, tests 7ms, environment 0ms)
+
+JSON report written to /tmp/codex-r272/r272.web-results.json
+
+Traceback (most recent call last):
+  File "/tmp/codex-r272/r272.runtime-probe.py", line 40, in <module>
+    assert all(c['runtime_guard'] == 'FAIL' or c['parser_disagreements'] for c in out), 'a runtime source escaped both guards'
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: a runtime source escaped both guards

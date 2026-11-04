@@ -1,0 +1,37 @@
+{
+  "cases": [
+    {
+      "source": "inventory/r272Runtime.ts",
+      "reached": [
+        "main.ts",
+        "inventory/r272Runtime.ts"
+      ],
+      "source_scanned": true,
+      "runtime_guard": "FAIL",
+      "parser_disagreements": [],
+      "ordinary_graph_problems": [],
+      "selection": {
+        "browser": [],
+        "browser_full": false,
+        "unmatched": false
+      }
+    },
+    {
+      "source": "inventory/r272Runtime.tsx",
+      "reached": [
+        "main.ts",
+        "inventory/r272Runtime.tsx"
+      ],
+      "source_scanned": false,
+      "runtime_guard": "PASS",
+      "parser_disagreements": [],
+      "ordinary_graph_problems": [],
+      "selection": {
+        "browser": [],
+        "browser_full": false,
+        "unmatched": false
+      }
+    }
+  ],
+  "restored": true
+}

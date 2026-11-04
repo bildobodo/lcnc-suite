@@ -1,0 +1,60 @@
+{
+  "root": "/tmp/codex-r272",
+  "baseline": {
+    "guard": "PASS",
+    "old_graph_problems": [],
+    "known_target_reached": null,
+    "new_target_reached": null
+  },
+  "mutations": [
+    {
+      "case": "ordinary_import_known_target",
+      "guard": "FAIL",
+      "old_graph_problems": [],
+      "known_target_reached": [
+        "main.ts",
+        "controlInventory.ts"
+      ],
+      "new_target_reached": null
+    },
+    {
+      "case": "compact_import_known_target",
+      "guard": "FAIL",
+      "old_graph_problems": [],
+      "known_target_reached": [
+        "main.ts",
+        "controlInventory.ts"
+      ],
+      "new_target_reached": null
+    },
+    {
+      "case": "ordinary_import_new_target_in_unit_only_glob",
+      "guard": "FAIL",
+      "old_graph_problems": [],
+      "known_target_reached": null,
+      "new_target_reached": [
+        "main.ts",
+        "inventory/r271Runtime.ts"
+      ],
+      "target_selection": {
+        "browser": [],
+        "browser_full": false,
+        "unmatched": false,
+        "rules": [
+          "test-only tools \u2014 the function inventory's adapters, the template scan and the disarmed inventory: no app or worker runtime import reaches them (TEST_ONLY, the graph guard); the light unit set runs their tests in every round"
+        ]
+      }
+    }
+  ],
+  "baseline_inventory_problems": [],
+  "routine_removed_problems": [
+    "routine:probe_cal_round_boss: no shipped file in any profile's SUBROUTINE_PATH (nor a remap of it)"
+  ],
+  "applies_removed_problems": [
+    "F-PROBE.S1: no applies \u2014 a mode, a profile, \"alle\" or \"offen\""
+  ],
+  "instances_removed_problems": [
+    "F-PROBE.S2: evidence unit/probeVarFiles.test.ts: the parametric title '${rel} declares every number the probe panel and the toolsetter write' names no instances"
+  ],
+  "restored": true
+}

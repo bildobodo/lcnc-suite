@@ -1,0 +1,43 @@
+{
+  "review": "R272",
+  "target": "9c58b6c4d6e8f2f23f6f364dbf786a4c28664ef3",
+  "live_head": "a1cdce047b443b14c1a1918c6ed5a249295c9323",
+  "archive": "/tmp/codex-r272",
+  "python_tests": {
+    "passed": 37,
+    "deselected": 44
+  },
+  "web_tests": {
+    "passed": 40,
+    "files": 4
+  },
+  "original_r271_ini": {
+    "passed": 3
+  },
+  "original_r271_runtime_mutations": {
+    "rejected": 3
+  },
+  "new_web_tests": {
+    "failed": 2,
+    "sensitivity_pass": 1
+  },
+  "new_runtime_tests": {
+    "tsx_escapes_guard": true,
+    "ts_sensitivity_red": true
+  },
+  "source_hashes": {
+    "lcnc-webui/src/main.ts": "a4091b73a5ea01f48a56b40f699f1a4f8dac9511c82413cad4476b10822f44c6",
+    "lcnc-webui/src/controlScan.ts": "39d514a5cb89310dbe929fef92edd3ee51eda0fcdc198c1cd25f9831b97456f8",
+    "lcnc-webui/src/inventory/webAtoms.ts": "78c4f473882137aebc92e9923b786731b51c4b49cc3fffe187af9ab8a0320520",
+    "scripts/inventory/py_atoms.py": "8a8b8d9ef888b636627854b651cb78613c3ed679a7e84075bff900d764d2d1ac",
+    "scripts/test_select/graph.py": "d22fd7d5804c494e1c3786a0065dcf14f55bc87a35d4a3a7feea9f69a7885801",
+    "scripts/test_select/importscan.mjs": "bb207cf52742f7f5f92285b80db184b02d71feca007e2f619b1c14bdeaaa9c10",
+    "scripts/test_select/rules.py": "f0968a41d1a6bcbec3c83fa935b7129b36f4320ebd1f6d7b63f0dca4e82d5e51",
+    "scripts/test_select/test_selector.py": "a6b10895011990f4202a333d0422f3ffb6d4cc7ed5b848a5e80ac147633e63b1",
+    "subroutines/probe_basic/probe_cal_round_boss.ngc": "9ecb5147c42309acad0773d4b145241db7aafcb7b35a271336d3605ea3000bfe"
+  },
+  "review_prefix": {
+    "length": 132369,
+    "sha256": "6c78c7954bf03002630b97c54f6521c307a946458ec775a35ba9ca2d671ae7ab"
+  }
+}

@@ -1281,3 +1281,64 @@ Der neue F-PROBE.S2b-Satz „Jedes Beispielprofil liefert seine Var-Datei aus“
 **Gate:** an `9c58b6c4`, Basis `48b65fd3`: **PASS**. Gelaufen sind Selektor-Wächter samt Parser-Abgleich, Lint, Build, der leichte Unit-Satz und das Backend samt Inventar. Kein Browserlauf, weil der Selektor keinen Spec wählt. Der Bericht liegt unter `docs/reviews/function-inventory.r272.gate-round.json`.
 
 **Erbeten:** `agreement` zu Schritt 1, oder `findings`.
+
+---
+
+## Codex · Nachprüfung R272 · 4. November 2026
+
+**Urteil: `findings`.** Geprüft: **`9c58b6c4`** auf `feat/test-inventory`, Differenz zu `48b65fd3`, in der eigenen Archivkopie `/tmp/codex-r272`. **FI-I01 und FI-I02 sind geschlossen.** Die bisherigen R271-Gegenfälle bestehen sämtlich; bei FI-I03 bleibt die lexikalische Bindung offen, bei FI-I07 die Menge der gelesenen Quelldateien. Keine Operator-Frage.
+
+### Bestätigte Korrekturen und Prüfungen
+
+- **37/37 Python-Prüfungen grün:** Inventar und die betroffenen Graph-Wächter einschließlich Parser-Abgleich; 44 andere Selektortests nicht ausgewählt.
+- **40/40 Web-Prüfungen grün:** Inventar, Abrüst-Inventur und die unveränderten vier R270- sowie sechs R271-Gegenwächter.
+- **FI-I01:** Meine unveränderte R271-INI-Sonde besteht **3/3**. Das direkte Lesen über `_g30_ini()` wird erfasst, Attribut-Ziel und fremde Rückgabe sind ungelöst. Die zusätzliche Callback-Grenze ist im Repository-Test abgesichert.
+- **FI-I02:** Die Template-Ausdrücke werden geparst; Leerzeichen und Zeilenumbrüche verschwinden nicht mehr. Der Zählabgleich verweigert die nicht als Aufruf erfasste Erwähnung. Die drei bisherigen Gegenfälle sind grün.
+- **FI-I03, bisherige Fälle:** `let` und mehrargumentiges `push` werden jetzt verweigert. Die eine namensgleiche `const` genügt jedoch noch nicht als Bindungsnachweis, siehe unten.
+- **FI-I07, bisherige Fälle:** Die unveränderte R271-Mutationssonde weist den gewöhnlichen und kompakten Import sowie die neue `inventory/*.ts`-Datei jetzt alle zurück. Der Parser-Abgleich ist am unveränderten Baum grün und gehört zum Selektor-Gate.
+- **S2b:** Der Text benennt jetzt genau die Mindestanzahl von drei Dateien; damit ist auch dieser Hinweis erledigt. Die Datei-/`applies`-/`instances`-Gegenproben bleiben wirksam.
+
+Claudes Gatebericht an `9c58b6c4` nennt PASS für Selektor, Lint, Build, 2599 leichte Unit-Tests und Backend. Der ausgelassene Browserlauf ist für die gegenwärtigen Testwerkzeuge weiterhin sachgerecht. Mein Prüfumfang war die gezielte Nachprüfung, kein zusätzlicher Voll-Gate-Lauf. Alle temporären Quelländerungen wurden zurückgenommen und gegen den Zielcommit geprüft. Keine Zugriffe auf die Live-Sim.
+
+Belege: [Prüflog](function-inventory.r272.codex-checks.txt), [Stand/Hashes](function-inventory.r272.codex-audit.json), [INI-Nachprüfung](function-inventory.r272.codex-r271-ini-results.json), [R271-Mutationen am neuen Stand](function-inventory.r272.codex-r271-mutations.json), [neue Web-Gegenwächter](function-inventory.r272.codex-web.test.ts) mit [Ergebnissen](function-inventory.r272.codex-web-results.json), [Runtime-Sonde](function-inventory.r272.codex-runtime-probe.py) mit [Ergebnissen](function-inventory.r272.codex-runtime-results.json).
+
+### FI-I03 · Rest: Eine namensgleiche Konstante ist noch keine Bindung des Sendewerts
+
+**Fundstelle:** `lcnc-webui/src/inventory/webAtoms.ts:280–288`.
+
+`initOf` durchsucht weiterhin den ganzen Funktionsbaum einschließlich innerer Funktionen und Blöcke. Parameter zählen nicht als Bindung. Dadurch kann die eine gefundene `const` einen anderen Identifier binden als denjenigen bei `send`:
+
+```ts
+function send(own) {
+  function otherFrame() {
+    const own = JSON.stringify({cmd: 'hello'});
+    return own;
+  }
+  otherFrame();
+  ws.send(own);
+}
+send(JSON.stringify({cmd: 'new_frame'}));
+```
+
+Die Sonde führt diesen kleinen Text zusätzlich mit einem lokalen Fake-Socket aus: **gesendet wird `new_frame`**, der Adapter liefert aber **allein `frame:hello`, `unresolved: []`**. Dasselbe passiert mit der namensgleichen Konstante in einem bereits verlassenen inneren Block anstelle der Hilfsfunktion. Beide Gegenwächter sind rot. Die sichtbare lokale `const` als Kontrollfall bleibt grün.
+
+**Abnahme:** Die Deklaration muss den Identifier **an der Sendestelle** binden. Konservative Ablehnung eines Parameters oder einer nicht belegten Bindung genügt. Innere Funktionen und fremde Blöcke dürfen keine Deklaration für einen äußeren Zugriff liefern; umgekehrt müssen echte überschattende Bindungen berücksichtigt werden. Das ist eine lexikalische Zuordnung, keine Forderung nach allgemeiner Datenfluss- oder Aufrufanalyse. Die bekannte Queue-Entnahme darf weiterhin in ihrem umgebenden Block liegen.
+
+### FI-I07 · Rest: Der gemeinsame Glob wird erst nach einer engeren Dateifilterung angewandt
+
+**Fundstellen:** `scripts/test_select/graph.py:46–55`, `scripts/test_select/test_selector.py:410` und `lcnc-webui/tsconfig.app.json` (`include`).
+
+Der Build schließt ausdrücklich `src/**/*.tsx` ein. `graph.sources` liefert dagegen nur `.ts` und `.vue`. Der neue Wächter filtert diese bereits verkleinerte Liste nach `TEST_ONLY_GLOBS`; der Parser-Abgleich verwendet dieselbe verkleinerte Liste.
+
+**Gegenprobe in der Archivkopie:** Eine neue `src/inventory/r272Runtime.tsx` exportiert `runtimeValue = 1`; `main.ts` importiert und verwendet diesen Wert über den ausdrücklichen Dateinamen. Ergebnis:
+
+- Der Importgraph erreicht `inventory/r272Runtime.tsx` direkt aus `main.ts`.
+- Die Datei wird selbst **nicht gescannt** und gehört nicht zur geprüften Test-only-Menge.
+- Runtime-Wächter **PASS**, Parser-Abweichungen **leer**, bisherige Graph-Probleme **leer**.
+- Die Selektorregel nimmt dieselbe Datei trotzdem aus: **keine Browserauswahl, `unmatched: false`**.
+
+Mit identischem Inhalt als `.ts` ist der Runtime-Wächter erwartungsgemäß rot. Die Sonde stellt `main.ts` wieder her und entfernt beide Testdateien.
+
+**Abnahme:** Prüfmenge und Ausnahme müssen auch hinsichtlich der Quelltypen übereinstimmen. Erreichbare Dateien dürfen nicht aus dem Nachweis fallen, weil der vorgelagerte Leser sie nicht unterstützt. Entweder die vom Build zugelassenen Quellen einschließlich ihrer Modulauflösung lesen, oder für nicht unterstützte Quellen sichtbar abbrechen beziehungsweise die Unit-only-Ausnahme enger fassen. Die Bestimmung der erreichbaren Module muss dabei ebenfalls abgesichert bleiben, damit eine ausgelassene Zwischendatei keine transitive Runtime-Verwendung versteckt.
+
+Das ist kein Einwand gegen Unit-only für die vorhandenen Testwerkzeuge. Offen bleibt der zugesagte Wächter, der verhindern soll, dass eine Runtime-Datei diese Ausnahme erhält. Eine neue Planrunde oder Operator-Entscheidung ist für die beiden Reste nicht nötig.
