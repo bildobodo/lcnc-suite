@@ -6,8 +6,10 @@ import "./testGlobals";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { computed, ref } from "vue";
 import { useGamepad } from "./useGamepad";
-import { GAMEPAD_FALLBACK, type GamepadDefaults } from "./defaults";
+import { GAMEPAD_FALLBACK, type GamepadAction, type GamepadDefaults, type GamepadMapping } from "./defaults";
 import type { WsCommand } from "./lcnc";
+import { status } from "./lcncWs";
+import { ACTION_GATES } from "./actionAdmission";
 
 const g = globalThis as any;
 
@@ -143,3 +145,59 @@ describe("useGamepad before homing (button gates package E)", () => {
   });
 });
 
+
+describe("useGamepad button actions (the function inventory's F-GAMEPAD S3)", () => {
+  // A mapped button fires exactly its action, admitted as its screen control
+  // is (actionAdmission.ts ACTION_GATES); its gate closed, nothing — E-Stop
+  // always. Pressed on button 0 (A), every other button unmapped.
+  const BTN_A = 0;
+  type Out = { cmd: string; gate?: string; how: "send" | "fire" };
+  function press(action: GamepadAction, perms: Record<string, boolean>, opts: { coolantOn?: boolean; buttonsEnabled?: boolean } = {}): Out[] {
+    status.value = { type: "status", data: { flood: !!opts.coolantOn, mist: !!opts.coolantOn } } as never;
+    const out: Out[] = [];
+    const none = Object.fromEntries(Object.keys(GAMEPAD_FALLBACK.mapping).map(k => [k, "none"])) as unknown as GamepadMapping;
+    const config = ref<GamepadDefaults>({ ...GAMEPAD_FALLBACK, jogEnabled: false, buttonsEnabled: opts.buttonsEnabled ?? true,
+      mapping: { ...none, btn_a: action } });
+    const pad_ = useGamepad({
+      jogVel: ref(10), angularJogVel: ref(5), jogIncrement: ref(0),
+      permissions: computed(() => perms as never),
+      send: (c) => { out.push({ cmd: c.cmd, how: "send" }); },
+      fire: (c, gate) => { out.push({ cmd: c.cmd, gate, how: "fire" }); },
+      startContext: computed(() => ({ activeFile: "/A.ngc", editing: false, loading: false })),
+      jogAxisRefusal: () => null, config, axes: computed(() => ["X", "Y", "Z"]), gated: ref(false),
+    });
+    pad_.start();
+    const tick = () => { const f = frame; frame = null; f?.(performance.now()); };
+    tick();
+    pressed[BTN_A] = true; tick();
+    pressed[BTN_A] = false; tick();
+    pad_.stop();
+    status.value = null;
+    return out;
+  }
+  const CASES: { action: GamepadAction; open: Record<string, boolean>; want: Out; coolantOn?: boolean }[] = [
+    { action: "start", open: { run: true, resume: false }, want: { cmd: "cycle_start", gate: ACTION_GATES.start, how: "fire" } },
+    { action: "start", open: { run: true, resume: true }, want: { cmd: "cycle_resume", gate: ACTION_GATES.resume, how: "fire" } },
+    { action: "pause", open: { pause: true }, want: { cmd: "cycle_pause", gate: ACTION_GATES.pause, how: "fire" } },
+    { action: "resume", open: { resume: true }, want: { cmd: "cycle_resume", gate: ACTION_GATES.resume, how: "fire" } },
+    { action: "abort", open: { abort: true }, want: { cmd: "abort", gate: ACTION_GATES.abort, how: "fire" } },
+    { action: "spindle_stop", open: { spindleStop: true }, want: { cmd: "spindle_stop", gate: ACTION_GATES.spindleStop, how: "fire" } },
+    { action: "flood_toggle", open: { override: true }, want: { cmd: "flood_on", gate: ACTION_GATES.coolant, how: "fire" } },
+    { action: "flood_toggle", open: { override: true }, coolantOn: true, want: { cmd: "flood_off", gate: ACTION_GATES.coolant, how: "fire" } },
+    { action: "mist_toggle", open: { override: true }, want: { cmd: "mist_on", gate: ACTION_GATES.coolant, how: "fire" } },
+    { action: "mist_toggle", open: { override: true }, coolantOn: true, want: { cmd: "mist_off", gate: ACTION_GATES.coolant, how: "fire" } },
+    { action: "home_all", open: { zero: true }, want: { cmd: "home_all", gate: ACTION_GATES.homeAll, how: "fire" } },
+  ];
+  it.each(CASES)("$action ($want.cmd): exactly its command under its control's gate; closed, nothing", ({ action, open, want, coolantOn }) => {
+    expect(press(action, open, { coolantOn })).toEqual([want]);
+    const closed = Object.fromEntries(Object.keys(open).map(k => [k, false]));
+    expect(press(action, closed, { coolantOn }), "its gate closed").toEqual([]);
+  });
+  it("E-Stop goes out with every gate closed, and with the buttons switched off", () => {
+    expect(press("estop", {})).toEqual([{ cmd: "estop", how: "send" }]);
+    expect(press("estop", {}, { buttonsEnabled: false })).toEqual([{ cmd: "estop", how: "send" }]);
+  });
+  it("buttons switched off: no action but E-Stop", () => {
+    expect(press("home_all", { zero: true }, { buttonsEnabled: false })).toEqual([]);
+  });
+});

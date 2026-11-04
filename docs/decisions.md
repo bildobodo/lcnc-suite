@@ -10408,3 +10408,32 @@ program — armed is authorization, not a dead-man, and the HAL chain owns
 motion abort. CLAUDE.md's safety layers said "jog_stop + abort" for both —
 corrected, with README's "stops all motion". The integration proof (leaving
 and timeout with a running program and a second client) stays open.
+
+## 2026-11-04 — Function inventory: the browser gaps, what the controls send
+
+Nine open statements bound to tests that press the control the operator
+presses: the override sliders and their 100 % buttons, Flood / Mist and
+M01 / /BD (the value sent against the REPORTED state; the switch shows the
+status, never the click), the spindle's Fwd / Rev on a hold and ± (standing
+they move the preselection and send nothing), Home All on a hold, Unload in
+both tool-change modes, the surface scan with a value the server holds, every
+bound jog key on XYZAC (the axis is its place in the axis list: C is 4) and
+every gamepad action under its screen control's gate. A tap on a hold sends
+nothing. Each new guard was made red once: a mutation of the key's axis index,
+the gamepad's Home All gate; the ± test was red against the product.
+
+Found and fixed: the spindle's ± buttons had no accessible name (a glyph
+only) — named "Increase / Decrease spindle speed". A probe over every side
+tab in the three profiles found no other visible button without a name.
+Found and left open, each an open statement: Home per axis sends the axis
+PLACE as the joint and reads `homed_joints` there — right where joint =
+place (every shipped config, B = j[4] and C = j[5] on the TWP kinematics too),
+wrong on a gantry: it needs an axis → joint map from the gateway (F-HOME
+S2b). The gateway runs a command whose value is missing with a default
+(24 `finite_*(msg.get(…, default))`, 9 `bool(msg.get(…))`: `home` without
+`joint` homes all, `"false"` turns M01 on); the WebUI always sends the field
+(`commandShapes.test.ts`), the hardening against other senders is a gateway
+package of its own (SYS-CONN S5; F-COMP S3 was the first case).
+
+The evidence binder now treats vitest's own placeholders (`$field`, `%s`) as
+a parametric title like `${…}`: such a title needs its instances.

@@ -81,7 +81,9 @@
    "uses": ["pad:home_all"],
    "statements": [
     {"id": "S1", "kind": "Bedienbarkeit", "text": "Unhome All ist eine Haltegeste: ein kurzes Tippen sendet nichts und sagt warum, ein vollständiges Halten genau einen Befehl.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "touch-hold.spec.ts", "title": "a short tap sends nothing and says why; a complete hold sends exactly one command"}]},
-    {"id": "S2", "kind": "Wirkung", "text": "Home All und Home je Achse senden ihren Befehl und referenzieren am echten Task.", "applies": ["alle"], "gap": "Browser: kein Spec löst home/home_all aus; nativ"}
+    {"id": "S2", "kind": "Daten", "text": "Home All sendet home_all auf ein Halten; ein Tippen sendet nichts.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "strip-actions.spec.ts", "title": "Home All sends home_all on a hold — a tap sends nothing"}]},
+    {"id": "S2b", "kind": "Daten", "text": "Home je Achse sendet den Joint seiner Achse.", "applies": ["3axis_xyz", "5axis_xyzac", "6axis_twp_xyzabc"], "gap": "Browser: sendet die Achsposition als Joint (SetupStrip a.index) und liest homed_joints an derselben Stelle — richtig, wo Joint = Achsposition (alle ausgelieferten Konfigurationen), falsch, wo nicht (Gantry, eigene Kinematik); braucht eine Achse→Joint-Zuordnung vom Gateway"},
+    {"id": "S2c", "kind": "Wirkung", "text": "Auf echtem LinuxCNC referenzieren Home All und Home je Achse.", "applies": ["offen"], "gap": "nativ (native Stufe)"}
    ]},
   {"id": "F-JOG", "area": "bewegen", "name": "Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren",
    "atoms": ["control:JogStrip.vue|div|*=1", "control:JogStrip.vue|MachineBtn:*=9",
@@ -113,7 +115,7 @@
              "status:data.*_override_enabled=2", "status:data.adaptive_feed_enabled",
              "status:data.feed_hold_enabled", "ini:DISPLAY/MAX_FEED_OVERRIDE", "ini:DISPLAY/*_SPINDLE_OVERRIDE=2"],
    "statements": [
-    {"id": "S1", "kind": "Daten", "text": "Ein Schieber auf 50 % sendet den Faktor 0,5 für genau seinen Override.", "applies": ["alle"], "gap": "Browser: kein Spec prüft, was die Override-Schieber senden (Codex R250: ein kurzer UI-Test 50 % → scale 0.5)"},
+    {"id": "S1", "kind": "Daten", "text": "Ein Schieber sendet seinen Faktor für genau seinen Override (50 % → 0,5); sein 100-%-Knopf sendet 1,0.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "strip-actions.spec.ts", "title": "each override slider sends its own factor; its 100 % button sends 1.0"}]},
     {"id": "S2", "kind": "Wirkung", "text": "Auf echtem LinuxCNC ändert der Override die Geschwindigkeit; in M600 und Surface-Scan ist er abgeschaltet (M50 P0).", "applies": ["offen"], "gap": "nativ (native Stufe)"}
    ]},
   {"id": "F-SPINDLE", "area": "spindel", "name": "Spindel von Hand: Rechts, Links, Stopp, Drehzahl",
@@ -127,7 +129,7 @@
    "statements": [
     {"id": "S1", "kind": "Abbruch", "text": "Spindel-Stopp ist im Leerlauf ohne Arm und ohne Referenz offen; im Lauf gehört die Spindel dem Programm, der Grund nennt die wirksamen Stopps.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_button_gates.py", "title": "test_spindle_stop_at_idle_without_arm_or_homing"}, {"layer": "gateway", "file": "test_button_gates.py", "title": "test_spindle_stop_closed_while_the_program_owns_the_spindle"}]},
     {"id": "S2", "kind": "Ablehnung", "text": "Die Spindel von Hand vor dem Referenzieren nur, wo die Maschine es deklariert (WEBUI_SPINDLE_BEFORE_HOMING = 1), und nur in MANUAL.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "setup-gates.spec.ts", "title": "the manual spindle unhomed where the machine declares it, MANUAL only (Q1)"}, {"layer": "gateway", "file": "test_button_gates_d.py", "title": "test_the_switch_opens_manual_only"}, {"layer": "gateway", "file": "test_button_gates_d.py", "title": "test_unhomed_without_the_switch_keeps_the_homing_rule"}, {"layer": "gateway", "file": "test_button_gates_d.py", "title": "test_spindle_switch"}]},
-    {"id": "S3", "kind": "Daten", "text": "Rechts und Links senden die Drehzahl der Vorwahl; ± ändern sie.", "applies": ["alle"], "gap": "Browser: kein Spec löst spindle_forward/reverse/increase/decrease aus"},
+    {"id": "S3", "kind": "Daten", "text": "Rechts und Links senden auf ein Halten die Drehzahl der Vorwahl, ein Tippen nichts; ± ändern im Stand die Vorwahl und senden nichts, bei drehender Spindel senden sie Erhöhen und Verringern.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "strip-actions.spec.ts", "title": "Fwd and Rev send the preselected speed on a hold — a tap sends nothing"}, {"layer": "browser", "file": "strip-actions.spec.ts", "title": "± move the preselection while the spindle stands, and send increase / decrease while it turns"}]},
     {"id": "S4", "kind": "Wirkung", "text": "Vor dem Referenzieren mit dem Schalter läuft die Spindel in MANUAL; ohne den Schalter wird sie abgelehnt.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_button_gates_d.py", "title": "test_unhomed_with_the_switch_in_manual_runs"}, {"layer": "gateway", "file": "test_button_gates_d.py", "title": "test_unhomed_without_the_switch_is_refused"}]}
    ]},
   {"id": "F-COOLANT", "area": "spindel", "name": "Kühlmittel: Flood und Mist",
@@ -135,7 +137,7 @@
              "status:data.flood", "status:data.mist"],
    "uses": ["pad:flood_toggle", "pad:mist_toggle"],
    "statements": [
-    {"id": "S1", "kind": "Daten", "text": "Flood und Mist senden ihr Ein und Aus, und die Anzeige folgt dem gemeldeten Zustand.", "applies": ["alle"], "gap": "Browser: kein Spec löst flood_on/off oder mist_on/off aus"},
+    {"id": "S1", "kind": "Daten", "text": "Flood und Mist senden Ein gegen das gemeldete Aus und Aus gegen das gemeldete Ein; der Schalter zeigt den gemeldeten Zustand, nie den Klick.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "strip-actions.spec.ts", "title": "Flood and Mist send on against the reported off, off against the reported on — the switch shows the status"}]},
     {"id": "S2", "kind": "Wirkung", "text": "Auf echtem LinuxCNC schalten Flood und Mist ihre HAL-Ausgänge.", "applies": ["offen"], "gap": "nativ (native Stufe)"}
    ]},
   {"id": "F-TOUCHOFF", "area": "koordinaten", "name": "Antippen (Touch-off) und Nullen je Achse",
@@ -243,7 +245,7 @@
              "control:GcodePanel.vue|MachineToggle:optionalStop|*=1", "cmd:set_block_delete",
              "cmd:set_optional_stop", "status:data.block_delete", "status:data.optional_stop"],
    "statements": [
-    {"id": "S1", "kind": "Daten", "text": "Satz ausblenden und optionaler Halt senden ihren Schalter, und die Anzeige folgt dem gemeldeten Zustand.", "applies": ["alle"], "gap": "Browser: kein Spec löst set_block_delete oder set_optional_stop aus"}
+    {"id": "S1", "kind": "Daten", "text": "Satz ausblenden und optionaler Halt senden das Gegenteil des gemeldeten Schalters; die Anzeige folgt dem gemeldeten Zustand, nie dem Klick.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "strip-actions.spec.ts", "title": "M01 and /BD send the opposite of the reported switch; the switch shows the status"}]}
    ]},
   {"id": "F-GCODEVIEW", "area": "programm", "name": "G-Code ansehen, aktive Codes, Codewort-Referenz, Statistik",
    "atoms": ["control:GcodePanel.vue|span|*=1", "control:GcodePanel.vue|MachineBtn:inline|@click=emit('showStats')",
@@ -327,7 +329,8 @@
     {"id": "S4", "kind": "Daten", "text": "Die Abbildung nennt genau 23 Var-Nummern: #3004–#3007, #3009, #3010, #3013, #3100–#3115.", "applies": ["alle"], "evidence": [{"layer": "unit", "file": "toolsetterSetup.test.ts", "title": "writes the var numbers tool_touch_off.ngc reads"}]},
     {"id": "S4b", "kind": "Daten", "text": "Jede Nummer der Abbildung ist die, die tool_touch_off.ngc für ihren Wert liest.", "applies": ["alle"], "gap": "Unit: kein Test gleicht die Abbildung mit den Lesestellen der Routine ab"},
     {"id": "S5", "kind": "Wirkung", "text": "Auf echtem LinuxCNC landet die gemessene Länge in der Werkzeugtabelle und im G43-Offset.", "applies": ["offen"], "gap": "nativer Lauf offen (nach Schritt 7)"},
-    {"id": "S6", "kind": "Wirkung", "text": "Entladen (T0 M600) läuft nur mit eingerichtetem Toolsetter und entlädt das Werkzeug.", "applies": ["alle"], "gap": "Browser: kein Spec löst Entladen aus (die Sperre belegt S3); nativ"}
+    {"id": "S6", "kind": "Daten", "text": "Entladen sendet im M600-Modus EIN mdi T0 M600 mit den Toolsetter-Werten in vars, im Standardmodus tool_change 0.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "toolsetter-setup.spec.ts", "title": "Unload is ONE command: T0 M600 with the setter's values in M600 mode, tool_change 0 in the standard mode"}]},
+    {"id": "S6b", "kind": "Wirkung", "text": "Auf echtem LinuxCNC entlädt Entladen das Werkzeug.", "applies": ["offen"], "gap": "nativ (native Stufe)"}
    ]},
   {"id": "F-TOOLSETTER", "area": "werkzeug", "name": "Toolsetter einrichten (Werkzeuglängen-Messung)",
    "atoms": ["control:ToolsetterSettings.vue|MachineInput:toolsetterParam|@change*=5",
@@ -375,7 +378,7 @@
              "control:ProbePanel.vue|MachineToggle:viewerSetting|*=1", "routine:surface_scan",
              "http:GET /surface_points"],
    "statements": [
-    {"id": "S1", "kind": "Daten", "text": "Der Surface-Scan sendet O<surface_scan> CALL mit den Feldern des Panels in vars.", "applies": ["alle"], "gap": "Browser: probe-click deckt die fünf Antastformen, nicht den Scan"},
+    {"id": "S1", "kind": "Daten", "text": "Der Surface-Scan sendet auf ein Halten EIN mdi O<surface_scan> CALL mit den Werten des Panels in vars (ein vom Server gehaltener Wert kommt an).", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "probe-click.spec.ts", "title": "Surface: a held Start Scan sends O<surface_scan> CALL with the panel's numbers"}]},
     {"id": "S2", "kind": "Wirkung", "text": "Auf echtem LinuxCNC tastet der Scan das Raster ab und liefert die Punkte für die Kompensation.", "applies": ["3axis_xyz"], "gap": "nativ (native Stufe, mit hohem Antastvorschub über die Scan-Variablen)"}
    ]},
   {"id": "F-COMP", "area": "antasten", "name": "Flächenkompensation ein/aus und Interpolation umschalten",
@@ -485,7 +488,7 @@
    "statements": [
     {"id": "S1", "kind": "Bedienbarkeit", "text": "Die Leertaste startet auf der freien Seite das Programm (Cycle Start); aus einem fokussierten Bedienelement, einem offenen Editor oder durch die Fokus-Rückgabe der Zahlentastatur nie.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "keyboard-guards.spec.ts", "title": "positive control: Space on the bare page sends cycle_start"}, {"layer": "browser", "file": "touchoff.spec.ts", "title": "Space on a focused control never reaches the Cycle Start shortcut"}, {"layer": "browser", "file": "keyboard-guards.spec.ts", "title": "editor open: Space never starts the program"}, {"layer": "browser", "file": "keyboard-guards.spec.ts", "title": "keypad OK: Space through the whole focus return never starts the program; Escape still E-Stops"}]},
     {"id": "S2", "kind": "Ablehnung", "text": "Hinter einem Dialog geht nur Escape (E-Stop) durch; Space, Enter und Backspace erreichen die Maschine nicht.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "keyboard-guards.spec.ts", "title": "settings dialog and key capture: only Escape passes, and it cancels the capture"}, {"layer": "browser", "file": "keyboard-guards.spec.ts", "title": "tool dialog, messages and reference dialogs block Space/Enter/Backspace"}]},
-    {"id": "S3", "kind": "Wirkung", "text": "Eine belegte Jog-Taste joggt ihre Achse in ihre Richtung und stoppt beim Loslassen.", "applies": ["alle"], "gap": "Browser: die Jog-Tasten senden jog_cont und beim Loslassen jog_stop — kein Spec prüft das für die Belegung"}
+    {"id": "S3", "kind": "Wirkung", "text": "Eine belegte Jog-Taste joggt ihre Achse (ihre Stelle in der Achsliste) in ihre Richtung und stoppt beim Loslassen; die Taste einer fehlenden Achse sendet nichts.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "keyboard-guards.spec.ts", "title": "every bound jog key jogs its own axis in its direction and stops it on release; a key of an absent axis sends nothing"}]}
    ]},
   {"id": "F-GAMEPAD", "area": "eingabe", "name": "Gamepad-Bedienung, Belegung und Einrichtungs-Assistent",
    "atoms": ["control:GamepadTab.vue|*=9", "control:GamepadMapWizard.vue|*=4", "pad:*=12", "padButton:*=12",
@@ -494,7 +497,7 @@
    "statements": [
     {"id": "S1", "kind": "Abbruch", "text": "Ein Gamepad-Jog stoppt beim Loslassen mit seinem eigenen Stopp — auch wenn Schritt oder Z-Umschalter sich während des Haltens ändern; ein Schritt-Jog sendet keinen Stopp.", "applies": ["alle"], "evidence": [{"layer": "unit", "file": "useGamepad.test.ts", "title": "a continuous D-pad jog stops on release, the stick at rest does not stop it"}, {"layer": "unit", "file": "useGamepad.test.ts", "title": "a step changed mid-hold still stops the continuous jog on release"}, {"layer": "unit", "file": "useGamepad.test.ts", "title": "a Z jog whose modifier is let go first stops Z, not Y"}, {"layer": "unit", "file": "useGamepad.test.ts", "title": "a step jog sends no stop at its release"}]},
     {"id": "S2", "kind": "Ablehnung", "text": "Vor dem Referenzieren startet eine gesperrte Achse weder vom D-Pad noch vom Stick etwas; eine offene joggt.", "applies": ["alle"], "evidence": [{"layer": "unit", "file": "useGamepad.test.ts", "title": "an axis closed before homing starts nothing from the D-pad or the stick; an open one jogs"}]},
-    {"id": "S3", "kind": "Daten", "text": "Eine belegte Gamepad-Taste löst genau ihre Aktion aus (Start, Pause, Fortsetzen, Abort, E-Stop, Spindel-Stopp, Kühlmittel, Home All) über dieselbe Zulassung wie der Knopf.", "applies": ["alle"], "gap": "Unit/Browser: kein Test geht die Tasten-Aktionen durch"}
+    {"id": "S3", "kind": "Daten", "text": "Eine belegte Gamepad-Taste löst genau ihre Aktion aus (Start, Pause, Fortsetzen, Abort, E-Stop, Spindel-Stopp, Kühlmittel, Home All) über dieselbe Zulassung wie der Knopf.", "applies": ["alle"], "evidence": [{"layer": "unit", "file": "useGamepad.test.ts", "title": "$action ($want.cmd): exactly its command under its control's gate; closed, nothing", "instances": ["start", "pause", "resume", "abort", "spindle_stop", "flood_toggle", "mist_toggle", "home_all"]}, {"layer": "unit", "file": "useGamepad.test.ts", "title": "E-Stop goes out with every gate closed, and with the buttons switched off"}]}
    ]},
   {"id": "F-INPUTHELP", "area": "eingabe", "name": "Eingabehilfen: Zahlen- und Text-Tastatur am Bildschirm",
    "atoms": ["control:NumberKeypadStrip.vue|*=24", "control:TextKeypadStrip.vue|*=13",
@@ -523,7 +526,8 @@
     {"id": "S1", "kind": "Wirkung", "text": "Mehrere Clients gleichzeitig: Nach dem Laden eines Programms holen mehrere Clients die Vorschau, und der Herzschlag-Abstand des Gateways bleibt sicher unter der Grenze von 500 ms.", "applies": ["alle"], "gap": "neues perf_matrix-Szenario mit Protokoll-Clients statt Browsern (deren Simulation läuft auf den Client-Geräten, nicht im Gateway); native Stufe. Vorhanden: fanout (8 Clients), reconnect_storm (12 Verbindungen), preview_publish (ein Client) — Operator 2026-11-04"},
     {"id": "S2", "kind": "Abbruch", "text": "Trennt sich ein Client, bricht das Gateway die Bearbeitung seines laufenden Befehls ab (ein angefangenes Schreiben endet zuerst; einen schon zugestellten CNC-Befehl nimmt das nicht zurück) und verwirft die wartenden.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_ws_command_worker.py", "title": "test_disconnect_cancels_inflight_and_traces_drops"}]},
     {"id": "S3", "kind": "Abbruch", "text": "Beim Disarm durch Trennen oder Herzschlag-Ablauf stoppt der Helfer die gebuchten Jogs, ohne Moduswechsel; bei laufendem AUTO sendet er nichts.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_button_gates_e.py", "title": "test_the_disarm_stop"}, {"layer": "gateway", "file": "test_button_gates_e.py", "title": "test_auto_running_sends_nothing"}]},
-    {"id": "S4", "kind": "Abbruch", "text": "Trennt sich ein Client oder läuft sein Herzschlag ab: der passende Jog-Stopp, kein pauschaler Abort eines laufenden Programms (Armed ist Autorisierung, kein Totmann); ein anderer Client bleibt verbunden. Fehlt der letzte Client oder der Gateway-Herzschlag, greift die HAL-Kette (F-ESTOP.S4).", "applies": ["alle"], "gap": "Integrationsbeleg offen: WS-Abgang und Timeout mit laufendem Programm und zweitem Client"}
+    {"id": "S4", "kind": "Abbruch", "text": "Trennt sich ein Client oder läuft sein Herzschlag ab: der passende Jog-Stopp, kein pauschaler Abort eines laufenden Programms (Armed ist Autorisierung, kein Totmann); ein anderer Client bleibt verbunden. Fehlt der letzte Client oder der Gateway-Herzschlag, greift die HAL-Kette (F-ESTOP.S4).", "applies": ["alle"], "gap": "Integrationsbeleg offen: WS-Abgang und Timeout mit laufendem Programm und zweitem Client"},
+    {"id": "S5", "kind": "Ablehnung", "text": "Ein Befehl ohne seinen Wert wird abgelehnt, nie mit einem Standardwert ausgeführt.", "applies": ["alle"], "gap": "Gateway: 24 finite_*(msg.get(…, Standard)) und 9 bool(msg.get(…)) — u. a. home ohne joint referenziert alle (-1), set_optional_stop/set_block_delete machen aus \"false\" Ein, ein Override ohne scale setzt 100 %; der WebUI-Client sendet jedes Feld (commandShapes.test.ts), offen ist die Härtung gegen andere Absender (ein eigenes Gateway-Paket; F-COMP S3 ist der erste Fall)"}
    ]},
   {"id": "SYS-STATUS", "area": "system", "name": "Statusübertragung (Rahmen und gemeinsame Felder)",
    "atoms": ["status:type", "status:data", "status:data.ts", "status:data.inpos", "status:data.current_vel",

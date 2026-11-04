@@ -166,3 +166,24 @@ test("Reset clears the section — no field counts as saved, nothing is pushed",
   await expect(page.getByRole("textbox", { name: "Touch Z", exact: true })).toHaveValue("");
   expect((await sent()).map(c => c.cmd)).not.toContain("set_probe_vars");
 });
+
+test("Unload is ONE command: T0 M600 with the setter's values in M600 mode, tool_change 0 in the standard mode", async ({ page }) => {
+  // The function inventory's F-TOOLMEASURE S6 (the browser half; the gate
+  // without a setup is the first test above).
+  await open(page, { ...M600, toolsetter: SET_UP });
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
+  const unload = page.getByRole("button", { name: "Unload", exact: true });
+  await expect(unload).toBeEnabled();
+  await unload.click();
+  await expect.poll(async () => (await sent()).map(c => c.cmd)).toEqual(["mdi"]);
+  const [mdi] = await sent();
+  expect(mdi.text).toBe("T0 M600");
+  expect(mdi.vars).toMatchObject({ "3100": 0, "3101": 0, "3102": -300, "3004": 200, "3005": 0 });
+  // the standard tool change needs no setter
+  await open(page, { machine: { toolChangeMode: "m6g43" } });
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
+  await expect(unload).toBeEnabled();
+  await unload.click();
+  await expect.poll(async () => (await sent()).map(c => ({ cmd: c.cmd, tool_number: c.tool_number })))
+    .toEqual([{ cmd: "tool_change", tool_number: 0 }]);
+});

@@ -57,11 +57,12 @@ const emit = defineEmits<{
       </div>
 
       <div class="spRpmRow row-controls">
-        <MachineBtn type="spindleDecrease" @click="emit('spindleDecrease')">
+        <!-- a glyph names nothing: the name says the action -->
+        <MachineBtn type="spindleDecrease" aria-label="Decrease spindle speed" title="Decrease spindle speed" @click="emit('spindleDecrease')">
           <Minus :size="14" />
         </MachineBtn>
         <MachineInput gate="stripInput" type="number" class="spRpmInput" label="Spindle speed" context="Spindle speed · RPM" :value="rpmInput" @input="emit('update:rpmInput', +($event.target as HTMLInputElement).value)" :min="minSpindleSpeed" :max="maxSpindleSpeed" :step="STEP_RPM" />
-        <MachineBtn type="spindleIncrease" @click="emit('spindleIncrease')">
+        <MachineBtn type="spindleIncrease" aria-label="Increase spindle speed" title="Increase spindle speed" @click="emit('spindleIncrease')">
           <Plus :size="14" />
         </MachineBtn>
       </div>

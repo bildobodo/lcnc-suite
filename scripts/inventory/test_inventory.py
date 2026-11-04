@@ -256,6 +256,12 @@ def test_evidence_is_bound_to_a_file_and_its_title(tmp_path):
     assert fn.evidence_problems({"layer": "script", "file": "t.py", "title": "${rel} a family"}, tmp_path)
     assert fn.evidence_problems({"layer": "script", "file": "t.py", "title": "another"}, tmp_path)
     assert fn.evidence_problems({"layer": "script", "file": "gone.py", "title": "x"}, tmp_path)
+    # vitest's own placeholders are parametric too: it.each's $field and %s
+    (tmp_path / "scripts" / "e.py").write_text("'$action: one per case' '%s: one per case' 'costs $5 flat'\n")
+    for title in ("$action: one per case", "%s: one per case"):
+        assert fn.evidence_problems({"layer": "script", "file": "e.py", "title": title}, tmp_path), title
+        assert fn.evidence_problems({"layer": "script", "file": "e.py", "title": title, "instances": ["a"]}, tmp_path) == [], title
+    assert fn.evidence_problems({"layer": "script", "file": "e.py", "title": "costs $5 flat"}, tmp_path) == []
 
 
 def test_format_refuses_before_it_writes(tmp_path, monkeypatch):
