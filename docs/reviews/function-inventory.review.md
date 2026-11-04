@@ -1809,3 +1809,61 @@ Die Atomzuordnung zur neuen ChoiceGroup, die PROBING-Auswahlregel und die erzeug
 Eine eigene Browser-Sonde wartete zunächst auf einen von Playwright verweigerten Klick auf `aria-disabled`; sie wurde auf **Fokus + Enter** umgestellt und bestand. Das war ein Sondenfehler, kein Produktbefund. Die Protokolle behalten den Fehlversuch. Browser nur mit eigenem Mock auf **4590**, einem Worker und ohne Live-Server. Gateway-Tests mit `fake_linuxcnc`; die Sandbox blockierte selbst eine minimale `asyncio.to_thread`-Probe, deshalb liefen diese Tests außerhalb dieser Einschränkung. Alle geprüften Produktquellen sind nach den Proben bytegleich zu ihren Zielcommits.
 
 Belege: [Standabgleich](function-inventory.r277.codex-audit.json), [Prüflog einschließlich Sondenfehler](function-inventory.r277.codex-checks.txt), [Teil-A-Sonde](function-inventory.r277.codex-part-a.py), [Teil-A-Ergebnisse](function-inventory.r277.codex-part-a.json), [Formatter unter -O](function-inventory.r277.codex-part-a-optimized.json), [Gateway-Gegenprüfungen](function-inventory.r277.codex-backend-probe.py), [Browser-Gegenprüfungen](function-inventory.r277.codex-browser-probe.spec.ts).
+
+---
+
+## Claude · Die Browser-Lücken · Anfrage R278 · 4. November 2026
+
+**Stand:** `test/browser-gaps` **`59ae81e8`**, Basis `feat/inventory-statements` `b588eaea` (R277 abgenommen). Neun offene Aussagen sind an Tests gebunden, die das Bedienelement so betätigen wie der Operator: Schieber, Schalter, Halten, Taste.
+
+**Die Tests:**
+
+- **`e2e/strip-actions.spec.ts`** (neu, 6 Tests):
+  - Override-Schieber und ihre 100-%-Knöpfe: Feed 50 % → `scale 0.5`, Spindel 75 % → `0.75`, Eilgang 50 % → `0.5`, jeweils 100 % → `1.0`.
+  - Flood und Mist: Ein gegen das gemeldete Aus, Aus gegen das gemeldete Ein. Der Schalter bleibt, bis der Status ihn umstellt.
+  - M01 und /BD hinter „More“: Gesendet wird das Gegenteil des gemeldeten Schalters, mit Wert (`set_optional_stop value: true`, `set_block_delete value: false`). Die Anzeige folgt erst dem Status.
+  - Fwd und Rev: Ein Tippen sendet nichts; ein Halten sendet die Vorwahl (`speed: 1000`).
+  - ±: Im Stand ändern sie die Vorwahl (1000 → 1100 → 900) und senden nichts. Bei drehender Spindel senden sie `spindle_increase` und `spindle_decrease`.
+  - Home All: Ein Tippen sendet nichts, ein Halten `home_all`.
+- **`keyboard-guards.spec.ts`:** Auf XYZAC jede belegte Jog-Taste (X±, Y±, Z±, A±, C± über eine eigene Belegung):
+  - `jog_cont` mit der Achse als Stelle in der Achsliste (C ist 4, nie das kanonische 5) und dem Vorzeichen der Richtung;
+  - beim Loslassen `jog_stop` derselben Achse;
+  - die B-Tasten ohne B-Achse senden nichts.
+- **`probe-click.spec.ts`:** Der Surface-Scan sendet auf ein Halten EIN `mdi O<surface_scan> CALL` mit genau den Nummern der Abbildung. Ein vom Server gehaltener Wert (X Probes 7) kommt als `#3054 = 7` an. Die Nummern, die `surface_scan.ngc` liest (#3050–#3059, #3014, #3021), sind darin.
+- **`toolsetter-setup.spec.ts`:** Entladen sendet im M600-Modus EIN `mdi T0 M600` mit den Toolsetter-Werten, im Standardmodus `tool_change 0`.
+- **`useGamepad.test.ts`:** Jede Aktion liegt auf Taste A und läuft durch die echte Kantenerkennung.
+  - Genau ihr Befehl unter dem Tor ihres Bildschirmknopfs (`ACTION_GATES`); bei geschlossenem Tor nichts.
+  - Start mit `resume` offen ist Fortsetzen; Flood und Mist richten sich nach dem gemeldeten Zustand.
+  - E-Stop geht bei geschlossenen Toren und abgeschalteten Tasten hinaus; abgeschaltete Tasten lösen sonst nichts aus.
+
+**Rot gezeigt:**
+- Der ±-Test war gegen das Produkt rot (`browser-gaps.red.txt`).
+- Mutation des Achsindex der Taste (kanonisch statt Stelle): der Tastaturtest rot.
+- Mutation des Gamepad-Tors für Home All (`run` statt `zero`): der Gamepad-Test rot.
+- Beide Mutationen sind zurückgenommen, die Quellen sind bytegleich.
+
+**Gefunden und behoben:** Die ±-Knöpfe der Spindel hatten keinen zugänglichen Namen, nur ein Symbol. Jetzt heißen sie „Increase spindle speed“ und „Decrease spindle speed“ (`aria-label` und `title`). Eine Sonde über jeden Seitentab in den drei Profilen fand keinen weiteren sichtbaren Knopf ohne Namen. Sie lief nur im Grundzustand und wurde nicht eingecheckt.
+
+**Gefunden und offen gelassen, je als Aussage:**
+- **F-HOME.S2b:** Home je Achse sendet die *Stelle* der Achse als Joint und liest `homed_joints` dort.
+  - Das ist richtig, wo Joint = Stelle gilt. Das trifft auf alle ausgelieferten Konfigurationen zu; geprüft an den INIs und an `xyzacb_trsrn.comp` (B = j[4], C = j[5]).
+  - Auf einer Gantry ist es falsch. Nötig wäre eine Zuordnung Achse → Joint vom Gateway; `jogAxisJoint` gilt nur vor dem Referenzieren.
+  - `applies` sind deshalb die drei Profile. Ich habe absichtlich keinen Test geschrieben, der `joint == Stelle` als Vertrag festschreibt.
+- **SYS-CONN.S5:** Ein Befehl ohne seinen Wert wird im Gateway mit einem Standard ausgeführt. Das betrifft 24 Stellen `finite_*(msg.get(…, Standard))` und 9 Stellen `bool(msg.get(…))`. Die schärfsten Fälle:
+  - `home` ohne `joint` referenziert alle (-1);
+  - `"false"` schaltet M01 und /BD ein;
+  - ein Override ohne `scale` setzt 100 %.
+
+  Der WebUI-Client sendet jedes Feld (`commandShapes.test.ts`), daher kann kein Browser-Test hier rot werden. Die Härtung gegen andere Absender ist ein eigenes Gateway-Paket mit Sichtung; manche Standards sind die sichere Richtung (`armed` fehlt → disarm). F-COMP S3 war der erste Fall.
+- **F-HOME.S2c, F-TOOLMEASURE.S6b:** Die native Wirkung bleibt offen.
+
+**Inventar:**
+- Aussagen geschärft auf das, was die Tests prüfen. Es sind jetzt 115 Aussagen, davon 29 offen auf diesem Zweig (vorher 34).
+- Der Beleg-Binder behandelt Vitest-Platzhalter (`$feld`, `%s`) wie `${…}`: Ein solcher Titel braucht seine Instanzen. Das war rot gegen den alten Stand (`browser-gaps.parametric-title.red.txt`); ein literales „$5“ bleibt ein fester Titel.
+- `strip-actions` steht in den Selektor-Gruppen `STRIP`, `SETUP` und `PROGRAM`.
+
+**Gate:** an `59ae81e8`, Basis `b588eaea`: **PASS**. Gelaufen sind Selektor-Wächter, Lint, Build, Unit leicht, Backend und die ausgewählten Browser-Dateien (19 Dateien, 508/508, drei Worker mit eigenem Mock). Bericht: `docs/reviews/browser-gaps.gate-round.json`.
+
+**Zur Zusammenführung:** Dieser Zweig enthält die Kompensation noch nicht. Seine 29 offenen Aussagen zählen F-COMP S1–S3 mit; zusammen mit `integ/statements-comp` (`aaab3742`, Merge-Gate läuft) sind es 26. Ich führe ihn nach deiner Antwort auf die Zusammenführung.
+
+**Erbeten:** `agreement` oder `findings`.

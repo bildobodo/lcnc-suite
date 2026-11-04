@@ -1,0 +1,251 @@
+{
+  "kind": "round",
+  "note": "",
+  "base": "b588eaea656646405e67dedb7d34e5bde55dd5f6",
+  "head": "59ae81e81ad2caeb2fb6e635cd10e395802fcbe5",
+  "uncommitted": 0,
+  "plan": [
+    "selection-guards",
+    "lint",
+    "build",
+    "unit-light",
+    "backend",
+    "ports-free",
+    "browser"
+  ],
+  "env": {
+    "nproc": 6,
+    "arch": "aarch64",
+    "node": "v22.23.2",
+    "playwright": "Version 1.60.0"
+  },
+  "selection": {
+    "unmatched": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [
+        "lcnc-webui/src/useGamepad.test.ts"
+      ],
+      "related": [
+        "lcnc-webui/src/useGamepad.test.ts"
+      ]
+    },
+    "browser": {
+      "run": [
+        "armed",
+        "choices",
+        "contrast",
+        "dialogs",
+        "disarmed",
+        "input-session",
+        "joint-jog",
+        "keyboard-guards",
+        "layout",
+        "layout-audit",
+        "probe-click",
+        "safety-during-edit",
+        "setup-gates",
+        "setup-layout",
+        "strip-actions",
+        "toolsetter-setup",
+        "touch-hold",
+        "touch-surface",
+        "visual"
+      ],
+      "reasons": []
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "scripts/inventory/functions.json: scripts and their tests ride the backend gate",
+        "scripts/inventory/functions.py: scripts and their tests ride the backend gate",
+        "scripts/inventory/test_inventory.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/rules.py: scripts and their tests ride the backend gate"
+      ]
+    },
+    "firefox": {
+      "needed": false
+    },
+    "live": {
+      "twp-buttons": [
+        "lcnc-webui/src/SpindleStrip.vue"
+      ]
+    }
+  },
+  "browser_specs": [
+    {
+      "file": "layout.spec.ts",
+      "ms": 947693
+    },
+    {
+      "file": "setup-layout.spec.ts",
+      "ms": 314339
+    },
+    {
+      "file": "contrast.spec.ts",
+      "ms": 253172
+    },
+    {
+      "file": "dialogs.spec.ts",
+      "ms": 230907
+    },
+    {
+      "file": "safety-during-edit.spec.ts",
+      "ms": 141390
+    },
+    {
+      "file": "keyboard-guards.spec.ts",
+      "ms": 111282
+    },
+    {
+      "file": "input-session.spec.ts",
+      "ms": 105453
+    },
+    {
+      "file": "choices.spec.ts",
+      "ms": 57608
+    },
+    {
+      "file": "visual.spec.ts",
+      "ms": 51780
+    },
+    {
+      "file": "disarmed.spec.ts",
+      "ms": 39674
+    },
+    {
+      "file": "toolsetter-setup.spec.ts",
+      "ms": 27030
+    },
+    {
+      "file": "strip-actions.spec.ts",
+      "ms": 22852
+    },
+    {
+      "file": "probe-click.spec.ts",
+      "ms": 21445
+    },
+    {
+      "file": "touch-hold.spec.ts",
+      "ms": 16253
+    },
+    {
+      "file": "setup-gates.spec.ts",
+      "ms": 15985
+    },
+    {
+      "file": "joint-jog.spec.ts",
+      "ms": 15747
+    },
+    {
+      "file": "touch-surface.spec.ts",
+      "ms": 7469
+    },
+    {
+      "file": "armed.spec.ts",
+      "ms": 2026
+    },
+    {
+      "file": "layout-audit.spec.ts",
+      "ms": 929
+    }
+  ],
+  "verdict": "PASS",
+  "resources": {
+    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/gaps-round-gate.service",
+    "cpu_s": 3968,
+    "memory_peak_mb": 2354
+  },
+  "checks": [
+    {
+      "name": "selection-guards",
+      "command": "/home/cnc/lcnc-suite-gaps/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-gaps/scripts/test_select/test_selector.py",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 3
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 8
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 16
+    },
+    {
+      "name": "unit-light",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/claude-work/teststrat/measure/gaps.gate-round.logs/unit-light.json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 70,
+      "files": 162,
+      "tests": 2614,
+      "passed": 2614,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 2614
+    },
+    {
+      "name": "backend",
+      "command": "/home/cnc/lcnc-suite-gaps/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-gaps/scripts/test_suite.py offline --component backend --out-dir /home/cnc/claude-work/teststrat/measure/gaps.gate-round.logs/backend",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 81
+    },
+    {
+      "name": "ports-free",
+      "status": "PASS"
+    },
+    {
+      "name": "browser-listing",
+      "status": "PASS",
+      "files": 19
+    },
+    {
+      "name": "browser-selected",
+      "command": "npx playwright test -c playwright.select.config.ts --forbid-only --trace off --reporter=line,json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 1186,
+      "tests": 508,
+      "passed": 508,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    {
+      "name": "browser-executed",
+      "status": "PASS",
+      "tests": 508
+    },
+    {
+      "name": "browser-workers",
+      "status": "PASS",
+      "run": "gate-323046f0-217e-43f7-9d84-d42e9711cb41",
+      "mocks": 3
+    }
+  ],
+  "omitted": [
+    {
+      "check": "unit-heavy",
+      "reason": "no heavy file changed, reached or read for"
+    }
+  ],
+  "pending": [
+    {
+      "check": "twp-buttons",
+      "status": "pending: a live check, run before main",
+      "paths": [
+        "lcnc-webui/src/SpindleStrip.vue"
+      ]
+    }
+  ]
+}
