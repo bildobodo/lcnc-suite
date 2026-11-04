@@ -1238,3 +1238,46 @@ Zwei unabhängige Gegenfälle:
 Der neue F-PROBE.S2b-Satz „Jedes Beispielprofil liefert seine Var-Datei aus“ geht noch über seinen Dateizähltest hinaus; dieser prüft weiterhin nur `VAR_FILES.length >= 3`. Als reine Struktur-Aussage bitte etwa „Mindestens drei Beispiel-Var-Dateien werden gefunden“ schreiben, oder die Zuordnung Profil → Datei tatsächlich prüfen. Das ändert nichts an der korrekt reparierten Deklarationszuordnung S2 und verlangt keinen Ausbau des Prüfumfangs.
 
 **Weiteres Vorgehen:** Die drei Adapter-Reste und FI-I07 schließen, die schmalen Gegenfälle beibehalten. Offene Variantenfamilien, tatsächliche Laufartefakt-Bindung und native Stufe bleiben in ihren vereinbarten späteren Paketen.
+
+---
+
+## Claude · Implementierung Schritt 1, Korrektur 2 · Anfrage R272 · 4. November 2026 · die Reste aus R271
+
+**Stand:** `feat/test-inventory` **`9c58b6c4`**, Basis `48b65fd3`. Deine Gegenfälle aus R271 stehen alle als Tests im Wächter.
+
+**FI-I01 · registrierte Fabrik an derselben Grenze:**
+- **Gleiche Klassifikation:** Ein Aufruf von `_g30_ini()` wird genauso eingeordnet wie `linuxcnc.ini(…)`. Erlaubt sind eine Bindung an Namen, ein direktes Lesen und die Rückgabe innerhalb der registrierten Fabrik selbst.
+- **Ungelöst** ist ein Attribut-Ziel, eine Rückgabe aus einer anderen Funktion oder `_g30_ini` als Wert, etwa als Callback.
+- **Ergebnis deiner Sonde:**
+  - direktes Lesen: `ini:EXTRA/DIRECT`, nichts ungelöst;
+  - Attribut und Rückgabe: je eine ungelöste Stelle, `complete: false`.
+- **Realer Baum:** unverändert 42 INI-Atome, 0 ungelöst.
+
+**FI-I02 · Kalibrier-Aufrufe:**
+- **Erkennung getrennt von der Auflösung:** `controlScan.templateExpressions` liefert alle Direktiv-Werte und Interpolationen des Templates. Der TypeScript-Parser findet darin jeden Aufruf `runCalProbe(…)`, mit Leerzeichen oder Zeilenumbruch. Er löst das Argument auf, nur ein einzelnes Literal, sonst ist es ungelöst.
+- **Zählprobe:** Jede Erwähnung von `runCalProbe` im Template muss ein so gelesener Aufruf sein. Ein Name etwa in einem `title` ist ungelöst.
+
+**FI-I03 · Konstanten und Warteschlange:**
+- **Konstanten:** Eine Bindung gilt nur als belegt, wenn sie die eine `const` dieses Namens in der Funktion ist. Ein `let`, eine zweite Bindung oder keine Bindung ist ungelöst.
+- **Warteschlange:** `preOpenQueue.push` gilt nur mit genau einem Argument `msg.payload` im Zweig `case "send"`.
+- **Ergebnis:** Deine drei Fälle sind ungelöst.
+
+**FI-I07 · Import-Wächter:**
+1. **Schreibweise:** Das Kanten-Muster in `graph.py` liest jetzt `import{x}from"./y"`, `export{x}from"./y"` und `import"./y"`.
+2. **Beweis gegen den Parser:** `scripts/test_select/importscan.mjs` liest jede Quelle mit dem TypeScript-Parser.
+   - `graph.pattern_disagreements` verlangt je Datei: Jede Parser-Kante ist eine Kante des Musters.
+   - Was nur das Muster liest, muss ein Typ-Import an Typposition sein (`import("./x").T`). Am echten Baum sind das genau drei Stellen in `App.vue`, `inputSession.ts` und `ws/bulkData.ts`, ein unschädlicher Überschuss für die Auswahl.
+   - Abgewiesen werden `require()`, `import = require()`, ein `import()` und ein `new URL(…, import.meta.url)` mit berechnetem Pfad.
+   - Ein Gegenfall auf einem kleinen Baum hält alle Schreibweisen und Abweisungen.
+3. **Prüfmenge gleich Regelmenge:** Regel und Wächter lesen dieselbe Liste `rules.TEST_ONLY_GLOBS`. Geprüft wird jede Quelldatei, die die Regel ausnimmt.
+4. **Deine zwei Mutationen,** am echten Baum nachgespielt:
+   - `import{LIVE_GATES}from"./controlScan"` in `main.ts`;
+   - eine neue `src/inventory/r271Runtime.ts`, aus `main.ts` importiert.
+
+   Beide machen den Wächter rot. Die Dateien sind wiederhergestellt, und der Baum ist sauber.
+
+**S2b:** Die Aussage lautet jetzt „Mindestens drei Var-Dateien der Beispielprofile werden gefunden“. Das ist genau die Bedingung des Zähltests.
+
+**Gate:** an `9c58b6c4`, Basis `48b65fd3`: **PASS**. Gelaufen sind Selektor-Wächter samt Parser-Abgleich, Lint, Build, der leichte Unit-Satz und das Backend samt Inventar. Kein Browserlauf, weil der Selektor keinen Spec wählt. Der Bericht liegt unter `docs/reviews/function-inventory.r272.gate-round.json`.
+
+**Erbeten:** `agreement` zu Schritt 1, oder `findings`.
