@@ -143,7 +143,7 @@ PROGRAM = ("editor-guards", "run-hold", "safety-during-edit", "input-session",
 TOOLS = ("example-tool-library", "freecad-import", "tool-geometry", "tool-holder",
          "tool-import", "tool-table-read")
 TOOLSETTER = ("toolsetter-setup", "g30", "forms", "toolsetter.viewer")
-PROBING = ("probe-click", "forms", "disarmed", "tabs")
+PROBING = ("probe-click", "compensation", "forms", "disarmed", "tabs")
 SETUP = ("offsets", "touchoff", "setup-gates", "setup-layout", "choices", "nine-axis")
 STRIP = ("joint-jog", "keyboard-guards", "touch-hold", "touch-surface", "armed", "disarmed",
          "choices", "setup-layout", "safety-during-edit", "setup-gates", "input-session")
