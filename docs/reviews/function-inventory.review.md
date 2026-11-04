@@ -1342,3 +1342,35 @@ Mit identischem Inhalt als `.ts` ist der Runtime-Wächter erwartungsgemäß rot.
 **Abnahme:** Prüfmenge und Ausnahme müssen auch hinsichtlich der Quelltypen übereinstimmen. Erreichbare Dateien dürfen nicht aus dem Nachweis fallen, weil der vorgelagerte Leser sie nicht unterstützt. Entweder die vom Build zugelassenen Quellen einschließlich ihrer Modulauflösung lesen, oder für nicht unterstützte Quellen sichtbar abbrechen beziehungsweise die Unit-only-Ausnahme enger fassen. Die Bestimmung der erreichbaren Module muss dabei ebenfalls abgesichert bleiben, damit eine ausgelassene Zwischendatei keine transitive Runtime-Verwendung versteckt.
 
 Das ist kein Einwand gegen Unit-only für die vorhandenen Testwerkzeuge. Offen bleibt der zugesagte Wächter, der verhindern soll, dass eine Runtime-Datei diese Ausnahme erhält. Eine neue Planrunde oder Operator-Entscheidung ist für die beiden Reste nicht nötig.
+
+---
+
+## Claude · Implementierung Schritt 1, Korrektur 3 · Anfrage R273 · 4. November 2026 · die zwei Reste aus R272
+
+**Stand:** `feat/test-inventory` **`3f717830`**, Basis `9c58b6c4`.
+
+**FI-I03 · die Bindung an der Sendestelle:**
+- **Lexikalische Suche:** `bindingAt` geht vom Identifier bei `send` nach außen. Es nimmt den nächsten umschließenden Block, die `case`/`default`-Klausel oder die Datei, die den Namen deklariert.
+- **Was nichts belegt:**
+  - ein Parameter;
+  - ein Schleifenkopf (`for`, `for…of`, `for…in`);
+  - eine `catch`-Variable;
+  - eine Funktion oder Klasse dieses Namens;
+  - zwei Deklarationen.
+- **Was nie erreicht wird:** Eine `const` in einer inneren Funktion oder in einem schon verlassenen Block.
+- **Was belegt:** Die eine `const` mit Initialisierer ist der belegte Wert.
+- **Deine Fälle:** Hilfsfunktion und verlassener Block sind ungelöst. Die echte Überschattung im selben Block ergibt `frame:hello` und nichts ungelöst.
+- **Weiterhin gültig:** Die Entnahme `const p = preOpenQueue.shift()!` im `while`-Block bleibt eine Weiterleitung.
+
+**FI-I07 · jeder Quelltyp des Builds:**
+- **`graph.SOURCE_EXT`:** Die Liste `.ts`, `.tsx`, `.vue` ist genau die `include`-Liste von `tsconfig.app.json`.
+- **Auflösung und Parser:** `_resolve` versucht auch `.tsx` und `index.tsx`. `importscan.mjs` parst `.tsx` als TSX.
+- **Wächter:** Er hält beide Listen gleich und findet unter `src` keinen anderen Skripttyp (`.js`, `.mjs`, `.cjs`, `.jsx`, `.mts`, `.cts`).
+- **Gegenfall:** ein kleiner Baum mit einer `.tsx`, einmal mit ausdrücklicher Endung importiert und einmal aufgelöst, beide erreicht.
+- **Deine Laufzeit-Sonde** lief auf einer isolierten Kopie des Stands: Für `.ts` und `.tsx` wird die Datei gescannt, und der Wächter schlägt an. Die Kopie ist wiederhergestellt.
+
+**Deine R272-Web-Gegenwächter:** 3/3 grün.
+
+**Gate:** an `3f717830`, Basis `9c58b6c4`: **PASS**. Gelaufen sind Selektor-Wächter samt Quelltyp- und Parser-Abgleich, Lint, Build, der leichte Unit-Satz und das Backend samt Inventar. Kein Browserlauf, weil der Selektor keinen Spec wählt. Der Bericht liegt unter `docs/reviews/function-inventory.r273.gate-round.json`.
+
+**Erbeten:** `agreement` zu Schritt 1, oder `findings`.
