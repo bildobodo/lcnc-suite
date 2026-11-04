@@ -10288,3 +10288,41 @@ it; the worker proof accepted another run's event log. Both fixed with red-first
 
 **Open.** The pinned Firefox core (step 6), splitting `layout.spec`, Replay (step 5), the probe live
 check. More than three workers was not measured (6 cores, one SwiftShader renderer per worker).
+
+
+## 2026-11-04 — Function inventory, step 1: the sources, their atoms, every function (Codex R265–R269)
+
+The operator's examples (tool import, macro edit, toolsetter values, surface
+compensation and its interpolation, the probe numbers) were random — "zuerst
+diese Liste vervollständigen und dann die Lücken schließen, in vernünftigem
+Rahmen". Codex R265 brainstormed it; R267–R269 agreed four contracts:
+
+1. **Sources (FI265-01).** Complete with respect to the named sources and the
+   recognised forms — one adapter per source family, its forms declared, an
+   empty adapter an error. An unresolved site keeps the inventory incomplete
+   even with an explanation; an exclusion is its own bound class; a family
+   whose members are not derived is named (`variantsOpen`). Counted at
+   98beef82 with parsers, not greps: keyboard 21, gamepad 12, 74 commands,
+   31 HTTP routes, the INI read in seven forms (my first grep missed
+   `find('DISPLAY', 'TOOL_LIBRARY_DIR')`; Codex found the `findall`s, the
+   wrappers and the handed-on read function; the build found `_kini` and the
+   read on the call `linuxcnc.ini(…).find`).
+2. **Measurement (FI265-02)**, step 5: the R251 origin by connection, browser
+   HTTP classified per request (a server contact only when single and proven;
+   redirect hops unknown), route projections for variants, never a query value.
+3. **Statements (FI265-03):** named statements per function, evidence kinds
+   inventoried / triggered / checked / counter-probe / native, results from the
+   run artifacts, displays as a catalog of visible promises.
+4. **Native tier (FI265-04):** one orchestrator, a disposable copy (own tree,
+   paths, settings, a real `node_modules` copy, write targets checked by inode),
+   the return to the LAN sim its own status; the operator took over the sim for
+   manual runs and asked for high feed (2026-11-03) — no timer.
+
+Step 1 (this): 1143 atoms in 17 sources, 54 functions and 4 system contracts,
+every atom owned once, the first statements with their evidence; the table
+`docs/inventory/funktionen.md` for the operator's review before any gap is
+touched. Found while building: the probe calibration routines
+(`runCalProbe('…')`) were missed silently by a first routine adapter, and the
+launcher pattern skipped a quoted argument instead of reporting it — both now
+forms with counter-cases. The first gap package is the compensation
+(Codex R265: the send result ignored, unknown shown as OFF / Cubic).

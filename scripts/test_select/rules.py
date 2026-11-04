@@ -220,6 +220,10 @@ RULES: tuple[Rule, ...] = (
     Rule(src("testGlobals.ts", "shims.d.ts"),
          "types and unit-test globals: the build and the light unit set cover them",
          unit_only=True, final=True),
+    Rule(src("inventory/**"),
+         "the function inventory's web adapters and their guard (node-side, never in the bundle): "
+         "the light unit set runs it in every round",
+         unit_only=True, final=True),
 
     # ── Every component and every module it uses: its rendered surface ───
     Rule((S + "**/*.vue", S + "**/*.ts"),

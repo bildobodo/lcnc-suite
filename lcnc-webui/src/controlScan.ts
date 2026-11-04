@@ -50,7 +50,19 @@ export interface ControlUsage {
   entry: string;
   /** The catalog gate(s) the entry resolves to ("raw" for a raw control). */
   gates: string[];
+  /** The `v-for` expressions on the control and around it, outermost first:
+   *  one template node, a family of rendered controls (function inventory). */
+  families: string[];
 }
+
+export interface ScanOptions {
+  /** Every control, not only those a disarmed client can operate (the
+   *  function inventory, Codex R265 FI265-01). */
+  all?: boolean;
+}
+
+/** Elements that never take a closing tag. */
+const VOID_TAGS = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
 
 interface Tag { name: string; attrs: Record<string, string>; start: number; end: number; selfClosing: boolean; closing: boolean }
 
@@ -134,13 +146,22 @@ function gateNames(attrs: Record<string, string>): string[] {
   return [];
 }
 
-/** The controls of one `.vue` file a disarmed client can operate. */
-export function scanControls(file: string, sfc: string): ControlUsage[] {
+/** The controls of one `.vue` file a disarmed client can operate — or, with
+ *  `all`, every control of it. */
+export function scanControls(file: string, sfc: string, { all = false }: ScanOptions = {}): ControlUsage[] {
   const { text, offset } = templateOf(sfc);
   const out: ControlUsage[] = [];
   const gateStack: string[][] = [];
+  // the open elements with their `v-for` — a control's family
+  const open: { name: string; vfor?: string }[] = [];
   const lineAt = (pos: number) => sfc.slice(0, offset + pos).split("\n").length;
   for (const t of tags(text)) {
+    if (t.closing) {
+      const at = open.map((o) => o.name).lastIndexOf(t.name);
+      if (at >= 0) open.length = at;
+    }
+    const leaf = t.selfClosing || VOID_TAGS.has(t.name);
+    if (!t.closing && !leaf) open.push({ name: t.name, vfor: t.attrs["v-for"] });
     if (t.name === "Gate") {
       if (t.closing) gateStack.pop();
       else if (!t.selfClosing) gateStack.push(gateNames(t.attrs));
@@ -148,7 +169,9 @@ export function scanControls(file: string, sfc: string): ControlUsage[] {
     }
     if (t.closing) continue;
     // Inside a Gate that closes for a disarmed client: protected by it.
-    if (gateStack.some((g) => g.length > 0 && g.every((n) => !LIVE_GATES.has(n)))) continue;
+    if (!all && gateStack.some((g) => g.length > 0 && g.every((n) => !LIVE_GATES.has(n)))) continue;
+    const families = [...open.map((o) => o.vfor), leaf ? t.attrs["v-for"] : undefined]
+      .filter((v): v is string => !!v).map(norm);
     const handlers = Object.keys(t.attrs)
       .filter((a) => a.startsWith("@") || a.startsWith("v-on:") || a.startsWith("v-model"))
       .sort().map((a) => `${a}=${norm(t.attrs[a] ?? "")}`).join(" ");
@@ -160,17 +183,17 @@ export function scanControls(file: string, sfc: string): ControlUsage[] {
       // Skipped only when EVERY value it can take is a catalog entry whose
       // gate closes without arm. A dynamic entry (MachineChoice's o.gate, a
       // variable branch) is listed so the inventory names it.
-      if (gates.length && gates.every((g) => g !== undefined && !LIVE_GATES.has(g))) continue;
+      if (!all && gates.length && gates.every((g) => g !== undefined && !LIVE_GATES.has(g))) continue;
       const entry = bound !== undefined ? `{${norm(bound)}}` : entries[0] ?? "";
       const known = gates.filter((g): g is string => !!g);
-      out.push({ key: `${file}|${t.name}:${entry}|${handlers}`, file, line: lineAt(t.start), tag: t.name, entry, gates: known.length === gates.length && known.length ? known : ["dynamic"] });
+      out.push({ key: `${file}|${t.name}:${entry}|${handlers}`, file, line: lineAt(t.start), tag: t.name, entry, gates: known.length === gates.length && known.length ? known : ["dynamic"], families });
       continue;
     }
     const isRaw = RAW_CONTROLS.has(t.name) || t.attrs.role === "button"
       || (/^[a-z]/.test(t.name) && Object.keys(t.attrs).some((a) => ACTION_EVENTS.has(eventOf(a) ?? "")));
     if (!isRaw) continue;
     const disabled = t.attrs[":disabled"] !== undefined ? ` :disabled=${norm(t.attrs[":disabled"])}` : "";
-    out.push({ key: `${file}|${t.name}|${handlers}${disabled}`, file, line: lineAt(t.start), tag: t.name, entry: "", gates: ["raw"] });
+    out.push({ key: `${file}|${t.name}|${handlers}${disabled}`, file, line: lineAt(t.start), tag: t.name, entry: "", gates: ["raw"], families });
   }
   return out;
 }

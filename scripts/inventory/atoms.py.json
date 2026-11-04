@@ -1,0 +1,1010 @@
+{
+ "adapters": {
+  "http": {
+   "source": "lcnc-gateway/*.py (product modules)",
+   "forms": [
+    "@app.get|post|put|delete|websocket|middleware(literal)",
+    "app.mount(literal)"
+   ],
+   "atoms": [
+    {
+     "id": "http:DELETE /macro"
+    },
+    {
+     "id": "http:DELETE /settings"
+    },
+    {
+     "id": "http:GET /"
+    },
+    {
+     "id": "http:GET /camera/status"
+    },
+    {
+     "id": "http:GET /camera/stream"
+    },
+    {
+     "id": "http:GET /comp_grid"
+    },
+    {
+     "id": "http:GET /files"
+    },
+    {
+     "id": "http:GET /g30"
+    },
+    {
+     "id": "http:GET /gcode"
+    },
+    {
+     "id": "http:GET /health"
+    },
+    {
+     "id": "http:GET /index.html"
+    },
+    {
+     "id": "http:GET /macro"
+    },
+    {
+     "id": "http:GET /macros"
+    },
+    {
+     "id": "http:GET /preview"
+    },
+    {
+     "id": "http:GET /ready"
+    },
+    {
+     "id": "http:GET /settings"
+    },
+    {
+     "id": "http:GET /subfile"
+    },
+    {
+     "id": "http:GET /surface_points"
+    },
+    {
+     "id": "http:GET /tool-library-file"
+    },
+    {
+     "id": "http:GET /tool-library-files"
+    },
+    {
+     "id": "http:GET /tool-table"
+    },
+    {
+     "id": "http:MIDDLEWARE http"
+    },
+    {
+     "id": "http:MOUNT /"
+    },
+    {
+     "id": "http:MOUNT /assets"
+    },
+    {
+     "id": "http:POST /import-tool-library"
+    },
+    {
+     "id": "http:POST /import-tool-library/apply"
+    },
+    {
+     "id": "http:POST /import-tool-library/refresh"
+    },
+    {
+     "id": "http:POST /macro-upload"
+    },
+    {
+     "id": "http:POST /settings/{section}"
+    },
+    {
+     "id": "http:POST /telemetry"
+    },
+    {
+     "id": "http:POST /upload"
+    },
+    {
+     "id": "http:PUT /macro"
+    },
+    {
+     "id": "http:PUT /save"
+    },
+    {
+     "id": "http:PUT /settings/{section}"
+    },
+    {
+     "id": "http:WEBSOCKET /ws"
+    }
+   ],
+   "unresolved": []
+  },
+  "ini": {
+   "source": "lcnc-gateway/*.py — every INI read",
+   "forms": [
+    "<ini>.find|findall(S, N) on a name bound from linuxcnc.ini(…) / configparser.ConfigParser(…)",
+    "linuxcnc.ini(…).find(S, N)",
+    "gateway.py:_ini_float(…, S, N)",
+    "gcode_parse_worker.py:_ini_vel(…, S, N)",
+    "gateway_util.py:read_axis_limits(ini_find) — its ini_find(S, N) calls",
+    "an f-string section is a family: its members from the shipped example INIs"
+   ],
+   "limit": "the launcher's reads are the launcher adapter's",
+   "atoms": [
+    {
+     "id": "ini:AXIS_*/MAX_LIMIT",
+     "members": [
+      "lcnc_suite_sim_3axis_xyz.ini:AXIS_X",
+      "lcnc_suite_sim_3axis_xyz.ini:AXIS_Y",
+      "lcnc_suite_sim_3axis_xyz.ini:AXIS_Z",
+      "lcnc_suite_sim_5axis_xyzac.ini:AXIS_A",
+      "lcnc_suite_sim_5axis_xyzac.ini:AXIS_C",
+      "lcnc_suite_sim_5axis_xyzac.ini:AXIS_X",
+      "lcnc_suite_sim_5axis_xyzac.ini:AXIS_Y",
+      "lcnc_suite_sim_5axis_xyzac.ini:AXIS_Z",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:AXIS_A",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:AXIS_B",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:AXIS_C",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:AXIS_X",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:AXIS_Y",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:AXIS_Z"
+     ]
+    },
+    {
+     "id": "ini:AXIS_*/MAX_VELOCITY",
+     "members": [
+      "lcnc_suite_sim_3axis_xyz.ini:AXIS_X",
+      "lcnc_suite_sim_3axis_xyz.ini:AXIS_Y",
+      "lcnc_suite_sim_3axis_xyz.ini:AXIS_Z",
+      "lcnc_suite_sim_5axis_xyzac.ini:AXIS_A",
+      "lcnc_suite_sim_5axis_xyzac.ini:AXIS_C",
+      "lcnc_suite_sim_5axis_xyzac.ini:AXIS_X",
+      "lcnc_suite_sim_5axis_xyzac.ini:AXIS_Y",
+      "lcnc_suite_sim_5axis_xyzac.ini:AXIS_Z",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:AXIS_A",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:AXIS_B",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:AXIS_C",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:AXIS_X",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:AXIS_Y",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:AXIS_Z"
+     ]
+    },
+    {
+     "id": "ini:AXIS_*/MIN_LIMIT",
+     "members": [
+      "lcnc_suite_sim_3axis_xyz.ini:AXIS_X",
+      "lcnc_suite_sim_3axis_xyz.ini:AXIS_Y",
+      "lcnc_suite_sim_3axis_xyz.ini:AXIS_Z",
+      "lcnc_suite_sim_5axis_xyzac.ini:AXIS_A",
+      "lcnc_suite_sim_5axis_xyzac.ini:AXIS_C",
+      "lcnc_suite_sim_5axis_xyzac.ini:AXIS_X",
+      "lcnc_suite_sim_5axis_xyzac.ini:AXIS_Y",
+      "lcnc_suite_sim_5axis_xyzac.ini:AXIS_Z",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:AXIS_A",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:AXIS_B",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:AXIS_C",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:AXIS_X",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:AXIS_Y",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:AXIS_Z"
+     ]
+    },
+    {
+     "id": "ini:AXIS_*/WRAPPED_ROTARY",
+     "members": []
+    },
+    {
+     "id": "ini:DISPLAY/DEBUG"
+    },
+    {
+     "id": "ini:DISPLAY/DEFAULT_ANGULAR_VELOCITY"
+    },
+    {
+     "id": "ini:DISPLAY/DEFAULT_LINEAR_VELOCITY"
+    },
+    {
+     "id": "ini:DISPLAY/DEFAULT_SPINDLE_SPEED"
+    },
+    {
+     "id": "ini:DISPLAY/INCREMENTS"
+    },
+    {
+     "id": "ini:DISPLAY/LOG_DIR"
+    },
+    {
+     "id": "ini:DISPLAY/MAX_ANGULAR_VELOCITY"
+    },
+    {
+     "id": "ini:DISPLAY/MAX_FEED_OVERRIDE"
+    },
+    {
+     "id": "ini:DISPLAY/MAX_LINEAR_VELOCITY"
+    },
+    {
+     "id": "ini:DISPLAY/MAX_SPINDLE_OVERRIDE"
+    },
+    {
+     "id": "ini:DISPLAY/MIN_ANGULAR_VELOCITY"
+    },
+    {
+     "id": "ini:DISPLAY/MIN_LINEAR_VELOCITY"
+    },
+    {
+     "id": "ini:DISPLAY/MIN_SPINDLE_OVERRIDE"
+    },
+    {
+     "id": "ini:DISPLAY/PROGRAM_PREFIX"
+    },
+    {
+     "id": "ini:DISPLAY/TOOL_LIBRARY_DIR"
+    },
+    {
+     "id": "ini:DISPLAY/WEBUI_JOINT_AXES"
+    },
+    {
+     "id": "ini:DISPLAY/WEBUI_JOINT_JOG_BEFORE_HOMING"
+    },
+    {
+     "id": "ini:DISPLAY/WEBUI_JOINT_JOG_MAX_FRACTION"
+    },
+    {
+     "id": "ini:DISPLAY/WEBUI_MACRO_DIR"
+    },
+    {
+     "id": "ini:DISPLAY/WEBUI_SPINDLE_BEFORE_HOMING"
+    },
+    {
+     "id": "ini:EMCIO/RANDOM_TOOLCHANGER"
+    },
+    {
+     "id": "ini:EMCIO/TOOL_CHANGE_POSITION"
+    },
+    {
+     "id": "ini:EMCIO/TOOL_TABLE"
+    },
+    {
+     "id": "ini:HAL/HALCMD",
+     "many": true
+    },
+    {
+     "id": "ini:JOINT_*/MAX_LIMIT",
+     "members": [
+      "lcnc_suite_sim_3axis_xyz.ini:JOINT_0",
+      "lcnc_suite_sim_3axis_xyz.ini:JOINT_1",
+      "lcnc_suite_sim_3axis_xyz.ini:JOINT_2",
+      "lcnc_suite_sim_5axis_xyzac.ini:JOINT_0",
+      "lcnc_suite_sim_5axis_xyzac.ini:JOINT_1",
+      "lcnc_suite_sim_5axis_xyzac.ini:JOINT_2",
+      "lcnc_suite_sim_5axis_xyzac.ini:JOINT_3",
+      "lcnc_suite_sim_5axis_xyzac.ini:JOINT_4",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:JOINT_0",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:JOINT_1",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:JOINT_2",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:JOINT_3",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:JOINT_4",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:JOINT_5"
+     ]
+    },
+    {
+     "id": "ini:JOINT_*/MAX_VELOCITY",
+     "members": [
+      "lcnc_suite_sim_3axis_xyz.ini:JOINT_0",
+      "lcnc_suite_sim_3axis_xyz.ini:JOINT_1",
+      "lcnc_suite_sim_3axis_xyz.ini:JOINT_2",
+      "lcnc_suite_sim_5axis_xyzac.ini:JOINT_0",
+      "lcnc_suite_sim_5axis_xyzac.ini:JOINT_1",
+      "lcnc_suite_sim_5axis_xyzac.ini:JOINT_2",
+      "lcnc_suite_sim_5axis_xyzac.ini:JOINT_3",
+      "lcnc_suite_sim_5axis_xyzac.ini:JOINT_4",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:JOINT_0",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:JOINT_1",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:JOINT_2",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:JOINT_3",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:JOINT_4",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:JOINT_5"
+     ]
+    },
+    {
+     "id": "ini:JOINT_*/MIN_LIMIT",
+     "members": [
+      "lcnc_suite_sim_3axis_xyz.ini:JOINT_0",
+      "lcnc_suite_sim_3axis_xyz.ini:JOINT_1",
+      "lcnc_suite_sim_3axis_xyz.ini:JOINT_2",
+      "lcnc_suite_sim_5axis_xyzac.ini:JOINT_0",
+      "lcnc_suite_sim_5axis_xyzac.ini:JOINT_1",
+      "lcnc_suite_sim_5axis_xyzac.ini:JOINT_2",
+      "lcnc_suite_sim_5axis_xyzac.ini:JOINT_3",
+      "lcnc_suite_sim_5axis_xyzac.ini:JOINT_4",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:JOINT_0",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:JOINT_1",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:JOINT_2",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:JOINT_3",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:JOINT_4",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:JOINT_5"
+     ]
+    },
+    {
+     "id": "ini:KINS/KINEMATICS"
+    },
+    {
+     "id": "ini:RS274NGC/PARAMETER_FILE"
+    },
+    {
+     "id": "ini:RS274NGC/REMAP",
+     "many": true
+    },
+    {
+     "id": "ini:RS274NGC/SUBROUTINE_PATH"
+    },
+    {
+     "id": "ini:SPINDLE_*/INCREMENT",
+     "members": [
+      "lcnc_suite_sim_3axis_xyz.ini:SPINDLE_0",
+      "lcnc_suite_sim_5axis_xyzac.ini:SPINDLE_0",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:SPINDLE_0"
+     ]
+    },
+    {
+     "id": "ini:SPINDLE_*/MAX_FORWARD_VELOCITY",
+     "members": [
+      "lcnc_suite_sim_3axis_xyz.ini:SPINDLE_0",
+      "lcnc_suite_sim_5axis_xyzac.ini:SPINDLE_0",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini:SPINDLE_0"
+     ]
+    },
+    {
+     "id": "ini:SPINDLE_*/MIN_FORWARD_VELOCITY",
+     "members": []
+    },
+    {
+     "id": "ini:TRAJ/LINEAR_UNITS"
+    },
+    {
+     "id": "ini:TRAJ/MAX_ANGULAR_VELOCITY"
+    },
+    {
+     "id": "ini:TRAJ/MAX_LINEAR_VELOCITY"
+    },
+    {
+     "id": "ini:TRAJ/NO_FORCE_HOMING"
+    }
+   ],
+   "unresolved": []
+  },
+  "launcher": {
+   "source": "lcnc-suite (the launcher)",
+   "forms": [
+    "ini_get NAME",
+    "inivar … -sec S -var N",
+    "ini_get's own body (inivar -sec DISPLAY -var \"$1\")"
+   ],
+   "atoms": [
+    {
+     "id": "ini:DISPLAY/CAMERA_FPS",
+     "via": "launcher"
+    },
+    {
+     "id": "ini:DISPLAY/CAMERA_RESOLUTION",
+     "via": "launcher"
+    },
+    {
+     "id": "ini:DISPLAY/CAMERA_SOURCE",
+     "via": "launcher"
+    },
+    {
+     "id": "ini:DISPLAY/WEBUI_ADAPTIVE_POLL",
+     "via": "launcher"
+    },
+    {
+     "id": "ini:DISPLAY/WEBUI_ALLOWED_ORIGINS",
+     "via": "launcher"
+    },
+    {
+     "id": "ini:DISPLAY/WEBUI_ASYNCIO_DEBUG",
+     "via": "launcher"
+    },
+    {
+     "id": "ini:DISPLAY/WEBUI_BROWSER",
+     "via": "launcher"
+    },
+    {
+     "id": "ini:DISPLAY/WEBUI_DEV",
+     "via": "launcher"
+    },
+    {
+     "id": "ini:DISPLAY/WEBUI_GC_FREEZE",
+     "via": "launcher"
+    },
+    {
+     "id": "ini:DISPLAY/WEBUI_HOST",
+     "via": "launcher"
+    },
+    {
+     "id": "ini:DISPLAY/WEBUI_IDLE_POLL_HZ",
+     "via": "launcher"
+    },
+    {
+     "id": "ini:DISPLAY/WEBUI_MACHINE_DIR",
+     "via": "launcher"
+    },
+    {
+     "id": "ini:DISPLAY/WEBUI_PORT",
+     "via": "launcher"
+    },
+    {
+     "id": "ini:DISPLAY/WEBUI_STATUS_DELTA",
+     "via": "launcher"
+    },
+    {
+     "id": "ini:DISPLAY/WEBUI_TOKEN",
+     "via": "launcher"
+    },
+    {
+     "id": "ini:DISPLAY/WEBUI_WIRE_FORMAT",
+     "via": "launcher"
+    },
+    {
+     "id": "ini:DISPLAY/WEBUI_WS_INIT_CONCURRENCY",
+     "via": "launcher"
+    },
+    {
+     "id": "ini:HAL/POSTGUI_HALFILE",
+     "via": "launcher"
+    }
+   ],
+   "unresolved": []
+  },
+  "sections": {
+   "source": "settings_store.py VALID_SECTIONS, FREE_SECTIONS",
+   "forms": [
+    "a literal set"
+   ],
+   "atoms": [
+    {
+     "id": "section:camera",
+     "free": true
+    },
+    {
+     "id": "section:display",
+     "free": true
+    },
+    {
+     "id": "section:gamepad"
+    },
+    {
+     "id": "section:keyboard"
+    },
+    {
+     "id": "section:machine"
+    },
+    {
+     "id": "section:macros"
+    },
+    {
+     "id": "section:mdi"
+    },
+    {
+     "id": "section:panels",
+     "free": true
+    },
+    {
+     "id": "section:probe"
+    },
+    {
+     "id": "section:toolsetter"
+    },
+    {
+     "id": "section:viewer",
+     "free": true
+    }
+   ],
+   "unresolved": []
+  },
+  "status": {
+   "source": "status_runtime.py StatusPayload, ws_fanout.py build_status_envelope",
+   "forms": [
+    "dataclass field",
+    "envelope dict key",
+    "envelope msg[\"key\"] = …"
+   ],
+   "limit": "read = the name appears in a web source; a field read through a computed key shows as unread",
+   "atoms": [
+    {
+     "id": "status:armed"
+    },
+    {
+     "id": "status:clients"
+    },
+    {
+     "id": "status:config_warning"
+    },
+    {
+     "id": "status:data"
+    },
+    {
+     "id": "status:data.active_file"
+    },
+    {
+     "id": "status:data.adaptive_feed_enabled",
+     "unread": true
+    },
+    {
+     "id": "status:data.axis_mask",
+     "unread": true
+    },
+    {
+     "id": "status:data.block_delete"
+    },
+    {
+     "id": "status:data.call_level"
+    },
+    {
+     "id": "status:data.comp_grid_version"
+    },
+    {
+     "id": "status:data.comp_method"
+    },
+    {
+     "id": "status:data.current_line",
+     "unread": true
+    },
+    {
+     "id": "status:data.current_vel"
+    },
+    {
+     "id": "status:data.dtg",
+     "unread": true
+    },
+    {
+     "id": "status:data.emc_enable_in"
+    },
+    {
+     "id": "status:data.enabled"
+    },
+    {
+     "id": "status:data.eoffset_enabled"
+    },
+    {
+     "id": "status:data.eoffset_z"
+    },
+    {
+     "id": "status:data.estop"
+    },
+    {
+     "id": "status:data.feed_hold_enabled",
+     "unread": true
+    },
+    {
+     "id": "status:data.feed_override"
+    },
+    {
+     "id": "status:data.feed_override_enabled"
+    },
+    {
+     "id": "status:data.flood"
+    },
+    {
+     "id": "status:data.g5x_index"
+    },
+    {
+     "id": "status:data.g5x_offset"
+    },
+    {
+     "id": "status:data.g92_offset"
+    },
+    {
+     "id": "status:data.gcodes"
+    },
+    {
+     "id": "status:data.homed"
+    },
+    {
+     "id": "status:data.homed_joints"
+    },
+    {
+     "id": "status:data.homing_active",
+     "unread": true
+    },
+    {
+     "id": "status:data.inpos"
+    },
+    {
+     "id": "status:data.interp_state"
+    },
+    {
+     "id": "status:data.is_enabled"
+    },
+    {
+     "id": "status:data.is_estop"
+    },
+    {
+     "id": "status:data.joint_limits"
+    },
+    {
+     "id": "status:data.joint_pos"
+    },
+    {
+     "id": "status:data.joints_beyond_limit"
+    },
+    {
+     "id": "status:data.kins_pre_rot"
+    },
+    {
+     "id": "status:data.kins_primary_angle"
+    },
+    {
+     "id": "status:data.kins_secondary_angle"
+    },
+    {
+     "id": "status:data.kins_type"
+    },
+    {
+     "id": "status:data.machine_pos"
+    },
+    {
+     "id": "status:data.mcodes"
+    },
+    {
+     "id": "status:data.mist"
+    },
+    {
+     "id": "status:data.motion_line"
+    },
+    {
+     "id": "status:data.motion_mode"
+    },
+    {
+     "id": "status:data.optional_stop"
+    },
+    {
+     "id": "status:data.paused"
+    },
+    {
+     "id": "status:data.permission_reasons"
+    },
+    {
+     "id": "status:data.permissions"
+    },
+    {
+     "id": "status:data.probe_input"
+    },
+    {
+     "id": "status:data.probe_tripped"
+    },
+    {
+     "id": "status:data.probed_position"
+    },
+    {
+     "id": "status:data.probing"
+    },
+    {
+     "id": "status:data.program_elapsed_ms"
+    },
+    {
+     "id": "status:data.program_unconfirmed"
+    },
+    {
+     "id": "status:data.program_units",
+     "unread": true
+    },
+    {
+     "id": "status:data.rapid_override"
+    },
+    {
+     "id": "status:data.read_line",
+     "unread": true
+    },
+    {
+     "id": "status:data.reader_fresh",
+     "unread": true
+    },
+    {
+     "id": "status:data.rotary_abc"
+    },
+    {
+     "id": "status:data.rotary_at_zero"
+    },
+    {
+     "id": "status:data.rotation_xy"
+    },
+    {
+     "id": "status:data.spindle_direction"
+    },
+    {
+     "id": "status:data.spindle_load"
+    },
+    {
+     "id": "status:data.spindle_override"
+    },
+    {
+     "id": "status:data.spindle_override_enabled"
+    },
+    {
+     "id": "status:data.spindle_speed"
+    },
+    {
+     "id": "status:data.spindle_speed_actual"
+    },
+    {
+     "id": "status:data.state"
+    },
+    {
+     "id": "status:data.task_mode"
+    },
+    {
+     "id": "status:data.tool_change_info"
+    },
+    {
+     "id": "status:data.tool_change_requested"
+    },
+    {
+     "id": "status:data.tool_change_seq"
+    },
+    {
+     "id": "status:data.tool_change_tool"
+    },
+    {
+     "id": "status:data.tool_diameter"
+    },
+    {
+     "id": "status:data.tool_length"
+    },
+    {
+     "id": "status:data.tool_number"
+    },
+    {
+     "id": "status:data.tool_offset"
+    },
+    {
+     "id": "status:data.tool_table_z"
+    },
+    {
+     "id": "status:data.ts"
+    },
+    {
+     "id": "status:data.twp_active"
+    },
+    {
+     "id": "status:data.twp_datum"
+    },
+    {
+     "id": "status:data.twp_defined"
+    },
+    {
+     "id": "status:data.twp_plane"
+    },
+    {
+     "id": "status:data.twp_pose_a"
+    },
+    {
+     "id": "status:data.twp_pose_b"
+    },
+    {
+     "id": "status:data.twp_pose_c"
+    },
+    {
+     "id": "status:data.wcs_prov_a"
+    },
+    {
+     "id": "status:data.wcs_table"
+    },
+    {
+     "id": "status:data.work_pos"
+    },
+    {
+     "id": "status:errors"
+    },
+    {
+     "id": "status:preview_origin"
+    },
+    {
+     "id": "status:preview_refresh"
+    },
+    {
+     "id": "status:preview_table_stale"
+    },
+    {
+     "id": "status:preview_tool_basis"
+    },
+    {
+     "id": "status:probe_results"
+    },
+    {
+     "id": "status:reader_stale"
+    },
+    {
+     "id": "status:rfl_status"
+    },
+    {
+     "id": "status:run_basis"
+    },
+    {
+     "id": "status:safety_chain_incomplete"
+    },
+    {
+     "id": "status:safety_trip"
+    },
+    {
+     "id": "status:type"
+    }
+   ],
+   "unresolved": []
+  },
+  "routines": {
+   "source": "lcnc-gateway/*.py string constants",
+   "forms": [
+    "O<name> CALL literal",
+    "macro_files.py o<{name}> call: the macro class"
+   ],
+   "limit": "f-strings building a call are unresolved unless named (the macro class)",
+   "atoms": [
+    {
+     "id": "routine:go_to_zero",
+     "via": [
+      "command_policy.py"
+     ]
+    },
+    {
+     "id": "routine:twp_goto_zero",
+     "via": [
+      "command_policy.py"
+     ]
+    },
+    {
+     "id": "routine:twp_touchoff",
+     "via": [
+      "gateway.py"
+     ]
+    }
+   ],
+   "unresolved": [],
+   "variantsOpen": [
+    {
+     "file": "macro_files.py",
+     "form": "the macro class",
+     "expr": "o<{meta['name']}> call",
+     "hash": "c999731db020"
+    }
+   ]
+  },
+  "remaps": {
+   "source": "examples/sim_config/*.ini REMAP",
+   "forms": [
+    "REMAP=<code> …"
+   ],
+   "atoms": [
+    {
+     "id": "remap:G53.1",
+     "members": [
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     ]
+    },
+    {
+     "id": "remap:G53.3",
+     "members": [
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     ]
+    },
+    {
+     "id": "remap:G53.6",
+     "members": [
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     ]
+    },
+    {
+     "id": "remap:G68.2",
+     "members": [
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     ]
+    },
+    {
+     "id": "remap:G68.3",
+     "members": [
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     ]
+    },
+    {
+     "id": "remap:G68.4",
+     "members": [
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     ]
+    },
+    {
+     "id": "remap:G69",
+     "members": [
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     ]
+    },
+    {
+     "id": "remap:M428",
+     "members": [
+      "lcnc_suite_sim_5axis_xyzac.ini",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     ]
+    },
+    {
+     "id": "remap:M429",
+     "members": [
+      "lcnc_suite_sim_5axis_xyzac.ini",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     ]
+    },
+    {
+     "id": "remap:M430",
+     "members": [
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     ]
+    },
+    {
+     "id": "remap:M469",
+     "members": [
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     ]
+    },
+    {
+     "id": "remap:M530",
+     "members": [
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     ]
+    },
+    {
+     "id": "remap:M535",
+     "members": [
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     ]
+    },
+    {
+     "id": "remap:M600",
+     "members": [
+      "lcnc_suite_sim_3axis_xyz.ini",
+      "lcnc_suite_sim_5axis_xyzac.ini",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     ]
+    },
+    {
+     "id": "remap:M601",
+     "members": [
+      "lcnc_suite_sim_3axis_xyz.ini",
+      "lcnc_suite_sim_5axis_xyzac.ini",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     ]
+    }
+   ],
+   "unresolved": []
+  },
+  "profiles": {
+   "source": "examples/sim_config/profiles.json",
+   "forms": [
+    "profiles[].id"
+   ],
+   "atoms": [
+    {
+     "id": "profile:3axis_xyz",
+     "members": [
+      "3 Axis XYZ",
+      "lcnc_suite_sim_3axis_xyz.ini"
+     ]
+    },
+    {
+     "id": "profile:5axis_xyzac",
+     "members": [
+      "5 Axis XYZAC",
+      "lcnc_suite_sim_5axis_xyzac.ini"
+     ]
+    },
+    {
+     "id": "profile:6axis_twp_xyzabc",
+     "members": [
+      "6 Axis TWP XYZABC",
+      "lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     ]
+    }
+   ],
+   "unresolved": []
+  }
+ },
+ "excludedFiles": {
+  "conftest.py": "a test double or a test-run probe, not product code",
+  "fake_hal.py": "a test double or a test-run probe, not product code",
+  "fake_linuxcnc.py": "a test double or a test-run probe, not product code",
+  "native_pinned_probe.py": "a test double or a test-run probe, not product code",
+  "native_start_probe.py": "a test double or a test-run probe, not product code",
+  "suite_py_bind_probe.py": "a test double or a test-run probe, not product code",
+  "writer_fixture.py": "a test double or a test-run probe, not product code"
+ }
+}

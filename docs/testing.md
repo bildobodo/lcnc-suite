@@ -129,6 +129,40 @@ coverage, 8,000 poses against the compiled LinuxCNC C oracle and demo limits.
 A C compiler and Git LFS assets are required. Installer tests cover fresh
 installs, upgrades, state preservation and retirement outside the chooser.
 
+## Function inventory (Codex R265–R269)
+
+Every operator function, complete with respect to the named sources: the
+atoms the sources declare, each claimed by ONE function, with its statements
+and their evidence. The operator's table is `docs/inventory/funktionen.md`
+(rendered, never edited by hand).
+
+- **Web atoms** — `lcnc-webui/src/inventory/webAtoms.ts` (pure; templates via
+  `controlScan` with `all`, the catalogs, `KeyboardAction` / `GamepadAction` /
+  `WsCommand` / the settings types through the TypeScript checker, the worker's
+  frames, global listeners, the routines the UI names) →
+  `scripts/inventory/atoms.web.json`; `webAtoms.test.ts` (light unit, every
+  round) holds the file and a counter-case per adapter.
+  Regenerate: `INVENTORY_WRITE=1 npx vitest run src/inventory/webAtoms.test.ts`.
+- **Gateway atoms** — `scripts/inventory/py_atoms.py` (`ast` only, no gateway
+  import: HTTP routes, the INI read registry, the launcher, the settings
+  sections, the status message, the routines it starts, the example remaps
+  and profiles) → `scripts/inventory/atoms.py.json`.
+  Regenerate: `python3 -I scripts/inventory/py_atoms.py --write`.
+- **Functions** — `scripts/inventory/functions.json` by hand: an exact atom id
+  or a pattern with its pinned count (`control:NumberKeypadStrip.vue|*=24`); a
+  new atom inside a pattern changes the count and fails. Re-render the table:
+  `python3 -I scripts/inventory/functions.py --write`.
+- **The guard** — `scripts/inventory/test_inventory.py` (backend, offline
+  suite): the gateway atoms current, every atom owned once, every component
+  with controls placed, the table current, no source site `unresolved`. Three
+  classes stay apart: `unresolved` (incomplete, with a reason or without),
+  `excluded` (outside the declared boundary, bound to file, form and
+  expression), `variantsOpen` (a family whose members are not derived).
+
+Evidence is bound statically in this step (the named file holds the title);
+whether it ran and passed comes from the run artifacts with the measurement
+(step 5, Replay).
+
 ## Scoped-CSS / design-token linter
 
 `npm run lint:css` (= `python3 scripts/audit-scoped-css.py`) scans every
