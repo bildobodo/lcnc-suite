@@ -130,6 +130,26 @@ def test_ini_the_literal_in_a_wrapper_body_is_an_atom():
     assert ids(a) == ["ini:BASE/KEPT", "ini:EXTRA/BODY"] and a["unresolved"] == []
 
 
+# Codex R271 FI-I01: a registered factory function at the same boundary as a factory.
+R271_BASE = ("import linuxcnc\ndef _g30_ini():\n    return linuxcnc.ini(p) if p else None\n"
+             "ini = linuxcnc.ini(path)\na = ini.find('BASE', 'KEPT')\n")
+R271_CASES = {
+    "direct_read": R271_BASE + "x = _g30_ini().find('EXTRA', 'DIRECT')\n",
+    "attribute_target": R271_BASE + "holder.cfg = _g30_ini()\nx = holder.cfg.find('EXTRA', 'ATTR')\n",
+    "returned": R271_BASE + "def get_cfg():\n    return _g30_ini()\nx = get_cfg().find('EXTRA', 'RETURN')\n",
+    "handed_as_callback": R271_BASE + "register(_g30_ini)\n",
+}
+
+
+@pytest.mark.parametrize("case", sorted(R271_CASES))
+def test_ini_codex_r271_a_registered_factory_keeps_its_boundary(case):
+    a = ini({"gateway.py": R271_CASES[case]}, {"p.ini": "[BASE]\nKEPT=1\n"})
+    if case == "direct_read":
+        assert ids(a) == ["ini:BASE/KEPT", "ini:EXTRA/DIRECT"] and a["unresolved"] == []
+    else:
+        assert ids(a) == ["ini:BASE/KEPT"] and a["unresolved"], f"{case}: the use disappeared"
+
+
 def test_ini_scopes_a_factory_function_and_truth_tests():
     src = ("import linuxcnc\ndef _g30_ini():\n    return linuxcnc.ini(p) if p else None\n"
            "def f():\n    ini = _g30_ini()\n    if ini and x:\n        return ini.find('AXIS_A', 'WRAPPED_ROTARY')\n"

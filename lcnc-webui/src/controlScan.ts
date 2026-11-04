@@ -157,6 +157,19 @@ function gateNames(attrs: Record<string, string>): string[] {
   return [];
 }
 
+/** The script expressions of a template: every directive's value (`@…`,
+ *  `:…`, `v-…`) and every `{{ … }}` interpolation, comments skipped — for a
+ *  parser to read the calls they make (the function inventory). */
+export function templateExpressions(sfc: string): string[] {
+  const { text } = templateOf(sfc);
+  const out: string[] = [];
+  for (const t of tags(text)) {
+    for (const [k, v] of Object.entries(t.attrs)) if (/^(?:@|:|v-)/.test(k) && v) out.push(v);
+  }
+  for (const m of text.replace(/<!--[\s\S]*?-->/g, "").matchAll(/\{\{([\s\S]*?)\}\}/g)) out.push(m[1] ?? "");
+  return out;
+}
+
 /** The controls of one `.vue` file a disarmed client can operate — or, with
  *  `all`, every control of it. */
 export function scanControls(file: string, sfc: string, { all = false, components = {} }: ScanOptions = {}): ControlUsage[] {

@@ -124,7 +124,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: browser: `probe-click.spec.ts` — ${form.sub}: a held probe button sends its routine with the panel's numbers (je: Outside, Boss/Pocket, Ridge/Valley, Angle, Calibrate)
 - **S2 (Daten):** Jede Var-Nummer, die das Panel und der Toolsetter schreiben, ist in der Var-Datei jedes Beispielprofils deklariert. — gilt für: alle
   - Beleg: unit: `probeVarFiles.test.ts` — ${rel} declares every number the probe panel and the toolsetter write (je: xyz3/sim.var, xyzabc6/sim.var, xyzac5/sim.var)
-- **S2b (Daten):** Jedes Beispielprofil liefert seine Var-Datei aus. — gilt für: alle
+- **S2b (Daten):** Mindestens drei Var-Dateien der Beispielprofile werden gefunden (die Bedingung des Deklarationstests). — gilt für: alle
   - Beleg: unit: `probeVarFiles.test.ts` — are found: one per example profile
 - **S3 (Wirkung):** Auf echtem LinuxCNC setzt ein Z-Antasten G54 Z auf den erwarteten Wert (Platte, Werkzeug, Toleranz je Messgröße). — gilt für: offen
   - Beleg: **offen** — Lücke: Schritt 7, der Antast-Live-Check

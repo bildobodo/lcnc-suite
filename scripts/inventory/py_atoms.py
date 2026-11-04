@@ -259,10 +259,12 @@ def ini_adapter(sources: dict[str, str], example_inis: dict[str, str]) -> dict:
         for n in ast.walk(tree):
             up = parent.get(n)
             # a factory call: bound to names, or read on the spot
-            if isinstance(n, ast.Call) and ast.unparse(n.func) in FACTORIES:
-                f = ast.unparse(n.func)
+            # a factory call — linuxcnc.ini(…), ConfigParser(…) or a registered
+            # factory function, each at the same boundary
+            if isinstance(n, ast.Call) and (ast.unparse(n.func) in FACTORIES or (file, ast.unparse(n.func)) in FACTORY_FUNCTIONS):
+                f = ast.unparse(n.func) if ast.unparse(n.func) in FACTORIES else "linuxcnc.ini"
                 assign = parent.get(up) if isinstance(up, ast.IfExp) else up
-                if isinstance(assign, ast.Assign) and _factory_value(assign.value) is n \
+                if isinstance(assign, ast.Assign) and _factory_value(assign.value, file) is n \
                         and all(isinstance(t, ast.Name) for t in assign.targets):
                     pass
                 elif isinstance(assign, ast.Return) and (file, getattr(fn_of(n), "name", "")) in FACTORY_FUNCTIONS:
@@ -272,6 +274,10 @@ def ini_adapter(sources: dict[str, str], example_inis: dict[str, str]) -> dict:
                     read_call(parent[up], up.attr, f"{f}(…).{up.attr}(S, N)")
                 else:
                     unresolved.append(site(file, "an INI object handed on", ast.unparse(up if up is not None else n)))
+            # a registered factory function named without being called
+            elif isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load) and (file, n.id) in FACTORY_FUNCTIONS \
+                    and not (isinstance(up, ast.Call) and up.func is n):
+                unresolved.append(site(file, "a factory function handed on", ast.unparse(up if up is not None else n)))
             # a name bound from a factory
             elif isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load) and kind(n) not in (None,):
                 k = kind(n)

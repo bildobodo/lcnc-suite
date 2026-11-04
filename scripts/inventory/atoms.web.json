@@ -2967,7 +2967,7 @@
     "text beginning {\"cmd\":\"literal\"",
     "a const bound to one of those",
     "relay: msg.payload in case \"send\"",
-    "relay: a const bound to preOpenQueue.shift(), the queue only case \"send\" fills"
+    "relay: the one const bound to preOpenQueue.shift(), the queue only case \"send\" fills with msg.payload alone"
    ],
    "atoms": [
     {

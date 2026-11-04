@@ -407,11 +407,34 @@ def test_test_only_modules_are_reached_by_no_runtime_entry():
     rev, _ = graph.importers(SRC)
     for e in rules.RUNTIME_ENTRIES:
         assert (SRC / e).is_file(), e
-    for m in rules.TEST_ONLY:
-        assert (SRC / m).is_file(), m
+    test_only = [f for f in graph.sources(SRC) if any(matches(g, f"lcnc-webui/src/{f}") for g in rules.TEST_ONLY_GLOBS)]
+    assert {"controlScan.ts", "controlInventory.ts", "inventory/webAtoms.ts"} <= set(test_only)
     reached = graph.reached_from(list(rules.RUNTIME_ENTRIES), rev, graph.spawns(SRC))
     assert len(reached) > 50, "the walk reaches the app"
-    assert {m: " → ".join(reached[m]) for m in rules.TEST_ONLY if m in reached} == {}
+    assert {m: " → ".join(reached[m]) for m in test_only if m in reached} == {}
+
+
+def test_the_edge_pattern_agrees_with_the_parser_on_every_source():
+    """graph.py's pattern against TypeScript's parser (importscan.mjs), file by
+    file — a spelling the pattern misses, or an import form neither reads
+    (`require()`, a computed `import()`), fails here (Codex R271 FI-I07)."""
+    assert graph.pattern_disagreements(SRC) == []
+
+
+def test_the_edge_pattern_and_the_parser_see_the_same_spellings(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (tmp_path / "package.json").write_text("{}")
+    (tmp_path / "node_modules").symlink_to(SRC.parent / "node_modules")   # the scanner's TypeScript
+    (src / "x.ts").write_text("export const X = 1;\n")
+    (src / "main.ts").write_text('import{X}from"./x";\nimport"./x";\nexport{X}from"./x";\nimport type { T } from "./x";\n'
+                                 'const m = import("./x");\nconst w = new Worker(new URL("./x.ts", import.meta.url));\n')
+    (src / "bad.ts").write_text('const r = require("./x");\nconst d = import(name);\n')
+    (src / "types.ts").write_text('let t: import("./x").T;\n')   # a type position: no edge, a known excess
+    rev, _ = graph.importers(src)
+    assert graph.reached_from(["main.ts"], rev, graph.spawns(src)).keys() == {"main.ts", "x.ts"}
+    assert graph.pattern_disagreements(src) == ["bad.ts: 1: require() — a form the graph does not read",
+                                                "bad.ts: 2: import() of a computed path"]
 
 
 def test_the_runtime_walk_sees_a_transitive_import_not_a_type_or_a_comment(tmp_path):

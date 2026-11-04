@@ -202,6 +202,28 @@ describe("the function inventory's web atoms (Codex R265–R268 FI265-01)", () =
     expect(cal.unresolved.map((u) => u.expr)).toEqual(["runCalProbe(selected)"]);
   });
 
+  it("probe routines: a spaced or line-broken calibration call is read; any other argument unresolved (Codex R271 FI-I02)", () => {
+    const tpl = (extra: string) => PROBE_PANEL.replace("<b @click", `${extra}<b @click`);
+    const spaced = probeRoutines("ProbePanel.vue", tpl(`<i @click="runCalProbe ('probe_cal_b')" /><u @click="runCalProbe\n('probe_cal_c')" />`));
+    expect(spaced.names).toEqual(expect.arrayContaining(["probe_cal_b", "probe_cal_c", "probe_cal_round_boss"]));
+    expect(spaced.unresolved).toEqual([]);
+    const v = probeRoutines("ProbePanel.vue", tpl(`<i @click="runCalProbe (selected)" />`));
+    expect(v.unresolved.map((u) => u.expr)).toEqual(["runCalProbe (selected)"]);
+    // a mention the parser does not read as a call
+    const odd = probeRoutines("ProbePanel.vue", tpl(`<i title="runCalProbe" />`));
+    expect(odd.unresolved.map((u) => u.form)).toEqual(["runCalProbe in the template"]);
+  });
+
+  it("frames: a let, a second binding or a multi-value push is no proven value (Codex R271 FI-I03)", () => {
+    const relayCase = `function onmsg(msg) { switch (msg.type) { case "send": preOpenQueue.push(msg.payload); break; } }`;
+    const a1 = framesAdapter(memory({ "wsWorker.ts": `function f() { let own = JSON.stringify({ cmd: "hello" }); own = JSON.stringify({ cmd: "new_frame" }); ws.send(own); }` }));
+    expect(a1.unresolved.map((u) => u.expr)).toEqual(["ws.send(own)"]);
+    const a2 = framesAdapter(memory({ "wsWorker.ts": `${relayCase} function g() { let p = preOpenQueue.shift(); p = JSON.stringify({ cmd: "new_frame" }); ws.send(p); }` }));
+    expect(a2.unresolved.map((u) => u.expr)).toEqual(["ws.send(p)"]);
+    const a3 = framesAdapter(memory({ "wsWorker.ts": `function onmsg(msg) { switch (msg.type) { case "send": preOpenQueue.push(msg.payload, JSON.stringify({ cmd: "new_frame" })); break; } } ws.send(JSON.stringify({ cmd: "hello" }));` }));
+    expect(a3.unresolved.map((u) => u.form)).toEqual(["the relay queue filled from elsewhere"]);
+  });
+
   it("routines: the macro family without its literals is unresolved", () => {
     const a = routinesAdapter(memory({ "App.vue": "<script setup>emit(`O<${macro}> CALL`)</script>" }));
     expect(a.unresolved).toHaveLength(1);

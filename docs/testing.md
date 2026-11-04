@@ -166,7 +166,11 @@ and their evidence. The operator's table is `docs/inventory/funktionen.md`
 - **Test-only modules** — `controlScan.ts`, `controlInventory.ts` and the
   inventory's adapters have a unit-only rule; `test_selector.py` walks the
   runtime imports from `main.ts`, `App.vue` and every worker a reached module
-  starts, with no cut (`graph.reached_from`), and fails if one is reached.
+  starts, with no cut (`graph.reached_from`), and fails if a file of the
+  rule's own globs (`rules.TEST_ONLY_GLOBS`) is reached. The graph's edge
+  pattern is proven against TypeScript's parser per file
+  (`scripts/test_select/importscan.mjs`, `graph.pattern_disagreements`): a
+  missed edge or a refused form (`require()`, a computed `import()`) fails.
 
 Evidence is bound statically in this step (the named file holds the title);
 whether it ran and passed comes from the run artifacts with the measurement

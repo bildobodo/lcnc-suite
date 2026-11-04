@@ -245,7 +245,7 @@
      "applies": ["alle"],
      "evidence": [{"layer": "unit", "file": "probeVarFiles.test.ts", "title": "${rel} declares every number the probe panel and the toolsetter write",
                    "instances": ["xyz3/sim.var", "xyzabc6/sim.var", "xyzac5/sim.var"]}]},
-    {"id": "S2b", "kind": "Daten", "text": "Jedes Beispielprofil liefert seine Var-Datei aus.",
+    {"id": "S2b", "kind": "Daten", "text": "Mindestens drei Var-Dateien der Beispielprofile werden gefunden (die Bedingung des Deklarationstests).",
      "applies": ["alle"],
      "evidence": [{"layer": "unit", "file": "probeVarFiles.test.ts", "title": "are found: one per example profile"}]},
     {"id": "S3", "kind": "Wirkung", "text": "Auf echtem LinuxCNC setzt ein Z-Antasten G54 Z auf den erwarteten Wert (Platte, Werkzeug, Toleranz je Messgröße).",

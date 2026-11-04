@@ -10356,3 +10356,15 @@ instances); every statement names its scope (a mode, a profile, "alle" or
 "offen"). `controlScan.ts` / `controlInventory.ts` are test-only: unit-only
 rule, and a runtime walk from `main.ts`, `App.vue` and every worker their
 creators start, with no cut, must reach neither (`graph.reached_from`).
+
+Codex R271 (rests closed): a registered factory function is checked at the
+same boundary as a factory (a direct read resolves; an attribute target, a
+return or a callback is unresolved); calibration calls are read by the parser
+from the template's expressions (`controlScan.templateExpressions`), every
+mention counted; a relay or frame needs the ONE `const` of its name, a queue
+push exactly `msg.payload`. FI-I07: the graph's edge pattern now reads every
+spelling (`import{x}from"./y"`), and `scripts/test_select/importscan.mjs` proves
+it on TypeScript's parser file by file — a missed edge fails, an excess must
+be a type position's `import("./x").T`, `require()` and a computed `import()`
+are refused; the guard's file set is the rule's own glob list
+(`TEST_ONLY_GLOBS`), so a new runtime file under `inventory/` fails too.

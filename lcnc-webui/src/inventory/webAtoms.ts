@@ -8,7 +8,7 @@
 // the files the type adapters read (webAtoms.test.ts reads the tree). No line
 // numbers in the result: they move with every edit, the atoms do not.
 import ts from "typescript";
-import { CATALOG_COMPONENTS, scanControls } from "../controlScan";
+import { CATALOG_COMPONENTS, scanControls, templateExpressions } from "../controlScan";
 import { BUTTON_TYPES, INPUT_DEFS } from "../machineControls";
 
 export interface Atom {
@@ -278,10 +278,14 @@ export function framesAdapter(src: WebSources): Adapter {
       return false;
     };
     const fnOf = (n: ts.Node): ts.Node => { let p = n.parent; while (p && !ts.isFunctionLike(p)) p = p.parent; return p ?? sf; };
+    // the initializer of the ONE `const` of that name in the function, or
+    // nothing: a `let`, a second binding or none is no proven value
     const initOf = (id: ts.Identifier): ts.Expression[] => {
-      const out: ts.Expression[] = [];
-      walk(fnOf(id), (d) => { if (ts.isVariableDeclaration(d) && ts.isIdentifier(d.name) && d.name.text === id.text && d.initializer) out.push(d.initializer); });
-      return out;
+      const decls: ts.VariableDeclaration[] = [];
+      walk(fnOf(id), (d) => { if (ts.isVariableDeclaration(d) && ts.isIdentifier(d.name) && d.name.text === id.text) decls.push(d); });
+      const only = decls.length === 1 ? decls[0]! : undefined;
+      const isConst = !!only && ts.isVariableDeclarationList(only.parent) && (only.parent.flags & ts.NodeFlags.Const) !== 0;
+      return isConst && only!.initializer ? [only!.initializer] : [];
     };
     const literalCmd = (e: ts.Expression): string | undefined => {
       const obj = ts.isCallExpression(e) && e.expression.getText(sf) === "JSON.stringify" ? e.arguments[0] : undefined;
@@ -294,7 +298,7 @@ export function framesAdapter(src: WebSources): Adapter {
       if (!ts.isCallExpression(n) || !ts.isPropertyAccessExpression(n.expression)) return;
       const arg = n.arguments[0];
       if (n.expression.getText(sf) === "preOpenQueue.push") {
-        if (!(arg && arg.getText(sf) === "msg.payload" && inSendCase(n)))
+        if (!(n.arguments.length === 1 && arg && arg.getText(sf) === "msg.payload" && inSendCase(n)))
           unresolved.push({ file: rel, form: "the relay queue filled from elsewhere", expr: n.getText(sf).slice(0, 80) });
         return;
       }
@@ -310,7 +314,7 @@ export function framesAdapter(src: WebSources): Adapter {
   }
   return { source: "wsWorker.ts <socket>.send(…)",
     forms: ["JSON.stringify({ cmd: literal, … })", "text beginning {\"cmd\":\"literal\"", "a const bound to one of those",
-      "relay: msg.payload in case \"send\"", "relay: a const bound to preOpenQueue.shift(), the queue only case \"send\" fills"],
+      "relay: msg.payload in case \"send\"", "relay: the one const bound to preOpenQueue.shift(), the queue only case \"send\" fills with msg.payload alone"],
     atoms: sortById([...atoms.values()]), unresolved };
 }
 
@@ -327,19 +331,29 @@ export function probeRoutines(rel: string, text: string): { names: string[]; unr
   const tables: string[] = [];
   const calArgs: string[] = [];
   let fromTables = false, fromCal = false;
-  // every runCalProbe(…) the template calls: a literal, or unresolved
-  for (const m of templateText(text).matchAll(/runCalProbe\(([^)]*)\)/g)) {
-    const lit = /^\s*(['"])([\w-]+)\1\s*$/.exec(m[1]!);
-    if (lit) calArgs.push(lit[2]!);
-    else unresolved.push({ file: rel, form: "runCalProbe(literal)", expr: m[0] });
+  // every runCalProbe(…) the template calls, read by the parser from the
+  // template's expressions: a literal, or unresolved — and every mention of
+  // the name in the template must be one of those calls
+  let parsedCalls = 0;
+  for (const expr of templateExpressions(text)) {
+    walk(ts.createSourceFile("t.ts", expr, ts.ScriptTarget.Latest, true), (n) => {
+      if (!ts.isCallExpression(n) || !ts.isIdentifier(n.expression) || n.expression.text !== "runCalProbe") return;
+      parsedCalls++;
+      const a = n.arguments[0];
+      if (n.arguments.length === 1 && a && ts.isStringLiteralLike(a)) calArgs.push(a.text);
+      else unresolved.push({ file: rel, form: "runCalProbe(literal)", expr: n.getText() });
+    });
   }
+  const mentioned = templateText(text).replace(/<!--[\s\S]*?-->/g, "").match(/\brunCalProbe\b/g)?.length ?? 0;
+  if (mentioned !== parsedCalls)
+    unresolved.push({ file: rel, form: "runCalProbe in the template", expr: `${mentioned} mentioned, ${parsedCalls} read as calls` });
   const isRunProbe = (n: ts.Node) => ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === "emit"
     && !!n.arguments[0] && ts.isStringLiteralLike(n.arguments[0]) && n.arguments[0].text === "runProbe";
   const inRunProbe = (n: ts.Node) => { for (let p = n.parent; p; p = p.parent) if (isRunProbe(p)) return true; return false; };
   for (const sf of parsed(rel, text)) walk(sf, (n) => {
     if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === "runCalProbe") {
       const a = n.arguments[0];
-      if (a && ts.isStringLiteralLike(a)) calArgs.push(a.text);
+      if (n.arguments.length === 1 && a && ts.isStringLiteralLike(a)) calArgs.push(a.text);
       else unresolved.push({ file: rel, form: "runCalProbe(literal)", expr: n.getText(sf).slice(0, 80) });
     }
     if (!isRunProbe(n)) {
