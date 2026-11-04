@@ -1,0 +1,137 @@
+{
+  "target": "fa09223a",
+  "source_hash_before": "3d702be5cde3318f7c84c84bc6c091bb02567ee9969a516be8107d507a912ae3",
+  "mutated_cited_test": {
+    "args": [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "src/toolsetterSetup.test.ts",
+      "--maxWorkers=1",
+      "--allowOnly=false",
+      "--retry=0",
+      "-t",
+      "writes the var numbers"
+    ],
+    "exit": 0,
+    "stdout": "\n RUN  v4.1.8 /tmp/codex-r276/lcnc-webui\n\n\n Test Files  1 passed (1)\n      Tests  1 passed | 4 skipped (5)\n   Start at  22:44:04\n   Duration  101ms (transform 34ms, setup 0ms, import 41ms, tests 2ms, environment 0ms)\n\n",
+    "stderr": ""
+  },
+  "mutated_exact_contract": {
+    "args": [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "src/r276Keyset.test.ts",
+      "--maxWorkers=1",
+      "--allowOnly=false",
+      "--retry=0"
+    ],
+    "exit": 1,
+    "stdout": "\n RUN  v4.1.8 /tmp/codex-r276/lcnc-webui\n\n ❯ src/r276Keyset.test.ts (1 test | 1 failed) 4ms\n   × R276: the 23 toolsetter parameter numbers are exactly the claimed set 3ms\n\n Test Files  1 failed (1)\n      Tests  1 failed (1)\n   Start at  22:44:05\n   Duration  97ms (transform 33ms, setup 0ms, import 39ms, tests 4ms, environment 0ms)\n\n",
+    "stderr": "\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  src/r276Keyset.test.ts > R276: the 23 toolsetter parameter numbers are exactly the claimed set\nAssertionError: expected [ '3004', '3005', '3006', …(20) ] to deeply equal [ '3004', '3005', '3006', …(20) ]\n\n- Expected\n+ Received\n\n@@ -8,11 +8,10 @@\n    \"3013\",\n    \"3100\",\n    \"3101\",\n    \"3102\",\n    \"3103\",\n-   \"3104\",\n    \"3105\",\n    \"3106\",\n    \"3107\",\n    \"3108\",\n    \"3109\",\n@@ -20,6 +19,7 @@\n    \"3111\",\n    \"3112\",\n    \"3113\",\n    \"3114\",\n    \"3115\",\n+   \"3904\",\n  ]\n\n ❯ src/r276Keyset.test.ts:7:69\n      5|   const expected = [3004,3005,3006,3007,3009,3010,3013,\n      6|     ...Array.from({length:16}, (_,i) => 3100+i)].map(String).sort();\n      7|   expect(Object.keys(toolsetterVarMap(TOOLSETTER_FALLBACK)).sort()).to…\n       |                                                                     ^\n      8| });\n      9|\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n"
+  },
+  "restored_exact_contract": {
+    "args": [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "src/r276Keyset.test.ts",
+      "--maxWorkers=1",
+      "--allowOnly=false",
+      "--retry=0"
+    ],
+    "exit": 0,
+    "stdout": "\n RUN  v4.1.8 /tmp/codex-r276/lcnc-webui\n\n\n Test Files  1 passed (1)\n      Tests  1 passed (1)\n   Start at  22:44:05\n   Duration  95ms (transform 34ms, setup 0ms, import 40ms, tests 2ms, environment 0ms)\n\n",
+    "stderr": ""
+  },
+  "source_hash_after": "3d702be5cde3318f7c84c84bc6c091bb02567ee9969a516be8107d507a912ae3",
+  "formatter_current_roundtrip": true,
+  "formatter_current_idempotent": true,
+  "formatter_input_validation": [],
+  "formatter_failure": "AssertionError",
+  "formatter_changed_before_failure": true,
+  "formatter_retains_reviewNote": false,
+  "formatter_empty_uses_failure": "AssertionError",
+  "formatter_empty_uses_changed_before_failure": true,
+  "live_definition_countermodels": [
+    {
+      "case": "Zero ABOVE",
+      "script_line": 427,
+      "expression": "r.get('ok') is True and abs(s.actual_position[2] - 50) < 0.001 and (abs(d[0]) < 0.001) and (abs(d[1]) < 0.001)",
+      "positions": [
+        [
+          10,
+          10,
+          50
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          50
+        ]
+      ],
+      "check_passes": true,
+      "violation": "Z drops below its start then returns"
+    },
+    {
+      "case": "G30 BELOW",
+      "script_line": 453,
+      "expression": "r.get('ok') is True and ran and (hi > -5) and (abs(s.actual_position[0] - 40) < 0.001) and (abs(s.actual_position[1] + 30) < 0.001) and (abs(s.actual_position[2] + 60) < 0.001)",
+      "positions": [
+        [
+          10,
+          10,
+          -60
+        ],
+        [
+          40,
+          -30,
+          -60
+        ],
+        [
+          40,
+          -30,
+          0
+        ],
+        [
+          40,
+          -30,
+          -60
+        ]
+      ],
+      "check_passes": true,
+      "violation": "XY move to the target before the retract to Z0"
+    }
+  ],
+  "disconnect_helper_cases": [
+    {
+      "case": "AUTO idle",
+      "stop_calls": [
+        0
+      ]
+    },
+    {
+      "case": "AUTO running",
+      "stop_calls": []
+    },
+    {
+      "case": "two globally booked jogs",
+      "stop_calls": [
+        0,
+        2
+      ]
+    }
+  ],
+  "disconnect_stop_admission": {
+    "line": 10690,
+    "expression": "client.armed and CMD is not None and (not _shutting_down)",
+    "armed": true,
+    "unarmed": false
+  }
+}

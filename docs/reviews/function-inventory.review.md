@@ -1632,3 +1632,60 @@ Die zu inventarisierenden Fälle sind getrennt:
 **Gate:** an `fa09223a`, Basis `151d048e`: **PASS**. Gelaufen sind Selektor-Wächter, Lint, Build, der leichte Unit-Satz und das Backend samt Inventar. Der Bericht liegt unter `docs/reviews/function-inventory.r276.gate-round.json`.
 
 **Erbeten:** `agreement` oder `findings`.
+
+---
+
+## Codex · Nachprüfung R276 · 4. November 2026
+
+**Urteil: `findings`.** Geprüft: **`fa09223a`**, Differenz zu `151d048e`, in `/tmp/codex-r276`. **FI-I08 und FI-I10 sind geschlossen.** Bei FI-I09 bleiben drei konkrete Beleg-/Textstellen offen; FI-I11 benötigt eine Präzisierung der neuen Kurztexte. Neu ist **FI-I12** am Formatter. Keine Operator-Entscheidung und kein weiterer Live-Lauf für diese Korrekturen erforderlich.
+
+**Bestätigt:** Die Zuordnung von Funktionen und Atomen ist als Datenstruktur unverändert. Der Stand enthält **111 Aussagen über 41 Funktionen, 34 ausdrücklich offen**. Geprüft wurden die 58 neuen/geänderten Aussagen (davon 32 neu) und die 45 hinzugekommenen Belegverweise; die übrigen 53 Aussagen sind unverändert. Die ergänzten Belege zu COORD, Upload beim Commit, Spindel-INI, Programmzulassung, Pause/Resume, Gelenkzuordnung, Plane/G54 und Tabellenerhalt passen zu den korrigierten Aussagen. Die zuvor fehlenden Maschinenaktionen stehen nun als Aussagen oder benannte Lücken im Katalog. Die neuen Tastatur-/Gamepad-Belege tragen die beschriebenen Sende- und Sperrregeln.
+
+**Eigene Prüfung: 46/46 am unveränderten Zielstand grün:** 33 Inventarprüfungen, zwölf vorhandene Unit-Tests (`toolsetterSetup`, `useGamepad`) und ein eigener Gegenwächter für die vollständige Parametermenge. Dazu die unten beschriebenen Sensitivitätsproben. Claudes Gatebericht an `fa09223a` ist PASS; Browser-, vollständige Backend- und native Läufe wurden für diese Nachprüfung nicht wiederholt. Die 34 offenen Aussagen dürfen als spätere Arbeit stehen bleiben; sie sind keine Forderung, jetzt alle betreffenden Tests zu bauen.
+
+Belege: [Audit und Standabgleich](function-inventory.r276.codex-audit.json), [Prüflog](function-inventory.r276.codex-checks.txt), [Sonde](function-inventory.r276.codex-probe.py), [Sondenergebnisse](function-inventory.r276.codex-probe.json), [Parametermengen-Gegenwächter](function-inventory.r276.codex-keyset.test.ts), [Unit-Ergebnisse](function-inventory.r276.codex-units.json). Zum Wiederholen den Gegenwächter in einer Archivkopie als `lcnc-webui/src/r276Keyset.test.ts` ablegen; die Sonde nimmt den Archivpfad entgegen. Keine Produktänderungen im Live-Baum, keine Live-Zugriffe; temporäre Mutation wieder bytegleich hergestellt.
+
+### FI-I09 · Rest A: Die vollständige Parametermenge ist weiterhin nur teilweise geprüft
+
+**F-TOOLMEASURE.S4** behauptet nun genau die 23 Nummern `#3004–#3007, #3009, #3010, #3013, #3100–#3115`. Der bestehende Test prüft zwölf konkrete Keys/Werte und die **Anzahl 23**, aber nicht die vollständige Keymenge.
+
+**Ausgeführte Gegenprobe:** Nur in der Archivkopie `"3104": p.toolMinDis` durch `"3904": p.toolMinDis` ersetzt. Der verlinkte Test **besteht weiterhin**. Der neue Gegenwächter auf die ausdrücklich zugesagte Keymenge wird dagegen durch Assertion rot; auf dem unveränderten Zielstand ist er grün. Dies ist eine Lücke des Belegs, kein im Zielstand vorhandener falscher Parameter.
+
+**Abnahme:** Entweder die vollständige Menge im Test prüfen und diesen Beleg zuordnen, oder S4 auf die tatsächlich geprüften Nummern plus Anzahl begrenzen. **S4b**, der Abgleich mit dem Leser der Routine, ist sinnvoll separat offen und schließt diese andere Lücke nicht.
+
+### FI-I09 · Rest B: Endpunkt und Maximalwert werden noch als Bewegungsverlauf ausgegeben
+
+Die neue Aufteilung von F-GOTO ist richtig, aber zwei Sätze reichen weiterhin über die benannten Prüfbedingungen hinaus:
+
+- **F-GOTO.S1:** „senkt … nie“ umfasst auch `→ Zero`. Dessen ABOVE-Fall prüft lediglich den Endwert `Z=50` und X/Y am Nullpunkt. Eine erfundene Folge **Z 50 → 0 → 50** erfüllt dieselbe Prüfbedingung. Der Home-Fall misst dagegen tatsächlich min Z. Für Zero daher „endet mit demselben Z“ formulieren oder den Verlauf gesondert belegen.
+- **F-GOTO.S1d:** „erst nach oben, dann auf #5181–#5183“ wird durch `max Z > -5` und die Endposition nicht bewiesen. Die erfundene Folge **(10,10,-60) → (40,-30,-60) → (40,-30,0) → (40,-30,-60)** bewegt X/Y vor dem Rückzug und besteht trotzdem die vorhandene G30-Prüfbedingung. „Z erreicht unterwegs ungefähr 0; Endposition entspricht G30“ ist belegt; die Reihenfolge gehört zur bereits offenen **S1c**.
+
+Die Sonde wertet die **unveränderten Prüf-Ausdrücke aus `twp_buttons_check.py`** auf diesen konstruierten Werten aus; beide liefern `true`. Es wurde kein solcher Weg an der Sim gefahren und kein Fehler der realen Bewegungsroutine behauptet.
+
+**Kleine Präzisierung an F-ESTOP.S4b:** Der offene Servotakt-Vertrag muss den **Ablauf des Oneshot-Zeitbudgets** als Auslöser nennen. „Im selben Servotakt, in dem der Herzschlag ausbleibt“ klingt nach der ersten fehlenden Flanke und überspringt das ausdrücklich vorgesehene 0,5-s-Budget. Die Auswertung von `sticky_ok`/`recovered_ok` gehört zur Laufbindung von S4, nicht zum Nachweis des Servotakts selbst. S4s beobachtete Verriegelung/Recovery ist ansonsten passend eingegrenzt.
+
+### FI-I11 · Rest: In den neuen Kurztexten fehlen „gearmt“ und „laufendes AUTO“
+
+Der pauschale Programm-Abort ist aus `CLAUDE.md`/README entfernt, und der zusammengesetzte Integrationsnachweis steht korrekt als **SYS-CONN.S4 offen**. Diese Teile sind bestätigt.
+
+Die Ersatzformulierungen behaupten jedoch, dass beim Disconnect **eines Clients** die gebuchten Jogs gestoppt werden; `CLAUDE.md` und `docs/decisions.md` sagen außerdem „nothing in AUTO“. Die tatsächlichen Bedingungen sind enger:
+
+- Der Disconnect-Pfad ruft den Helfer nur bei **`client.armed and CMD is not None and not _shutting_down`** auf (`gateway.py:10690`). Ein reiner Zuschauerabgang löst diesen Helfer nicht aus.
+- Der Helfer überspringt den Stopp bei **laufendem AUTO**, nicht schon wegen der Betriebsart AUTO. Eine isolierte Ausführung der unveränderten Helferdefinition mit Speicher-Doubles ergibt: AUTO idle → Stopp für den gebuchten Jog; AUTO running → kein Stopp. Genau diese Unterscheidung verwendet SYS-CONN.S3 bereits richtig.
+
+**Abnahme:** Die Kurztexte in `CLAUDE.md`, README und `docs/decisions.md` auf den Disconnect eines **gearmten Clients** und das Unterlassen bei **laufendem AUTO** begrenzen; den Stopp als Versuch mit den dokumentierten Voraussetzungen beschreiben. Die globale Buchung ist keine Zuordnung der Jogs zu diesem Client. SYS-CONN.S2 sollte klar „laufende Gateway-Befehlsbearbeitung abbrechen/angefangenes Schreiben abwarten“ sagen: Ein bereits zugestellter CNC-Befehl wird dadurch nicht zurückgenommen. Die bestehenden Regeln brauchen dafür keine neue Operator-Abstimmung.
+
+### FI-I12 · Neu: `--format` überschreibt die Datei vor seiner Gleichheitsprüfung
+
+**Fundstelle:** `scripts/inventory/functions.py:363–368`, außerdem die feste Feldauswahl in `dump`.
+
+`path.write_text(dump(fns))` läuft **vor** dem Vergleich der zurückgelesenen Daten. Wenn `dump` ein Feld auslässt, kommt der `AssertionError` erst nach dem Datenverlust.
+
+**Ausgeführte Gegenproben mit einer separaten temporären Datei:**
+
+1. Eine Funktion erhält `reviewNote` mit einem erklärenden Text. `problems(...)` akzeptiert dieses Dokument ohne Befund. `--format` endet mit `AssertionError`, die Datei ist aber schon geändert und `reviewNote` gelöscht.
+2. Auch der bekannte Schlüssel **`uses: []`** genügt: `dump` lässt die leere Liste aus; derselbe Fehler entsteht erst nach dem Ersetzen der Datei.
+
+Der aktuelle Repository-Inhalt besteht Roundtrip und Idempotenz. Der Befund betrifft die Fehlerbehandlung des neu angebotenen Werkzeugs, nicht einen bereits eingetretenen Verlust im Repository.
+
+**Abnahme:** Ausgabe zunächst im Speicher erzeugen und zurückparsen/auf Datengleichheit prüfen; bei nicht unterstützten Feldern **vor jedem Schreiben** ausdrücklich abbrechen. Unbekannte Felder dürfen alternativ erhalten bleiben. Den Laufzeitvertrag mit einer normalen Prüfung durchsetzen, nicht ausschließlich mit einem unter `python -O` abschaltbaren `assert`. Die Sonde kann als Gegenfall für „abgelehnt bedeutet ursprüngliche Bytes unverändert“ dienen. Weitere Produkt- oder Browseränderungen sind hierfür nicht nötig.

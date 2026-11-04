@@ -1,0 +1,2039 @@
+{
+  "round": "R276",
+  "base": "151d048e",
+  "target": "fa09223a86e621bdd5dd5b93509bea2aa0160ddd",
+  "boundary": "own /tmp archive, no live I/O; no browser/live rerun; only append review and new evidence in live tree",
+  "counts": {
+    "functions": 59,
+    "with_statements": 41,
+    "statements": 111,
+    "open": 34,
+    "references": 139,
+    "changed_or_new": 58,
+    "new": 32,
+    "unchanged": 53
+  },
+  "atom_and_function_assignments_unchanged": true,
+  "findings": {
+    "FI-I08": "Closed: armed scope, modeCoord exception, TWP capability, capture applies, hold buttons.",
+    "FI-I09": "Mostly closed by stronger references and splitting claims. Remaining F-TOOLMEASURE.S4 exact set; F-GOTO.S1/S1d trajectory stronger than recorded measurements. F-ESTOP.S4b must say oneshot expiry, not first missed heartbeat.",
+    "FI-I10": "Closed for this catalog increment: missing machine actions now statements or named gaps, 34 open. No new native test completion claimed.",
+    "FI-I11": "Policy clarified, integration remains open. Docs still omit armed precondition; nothing in AUTO must say running AUTO; global ownership and cancellation of handler not issued machine motion should be explicit.",
+    "FI-I12": "New formatter writes before equality validation; accepted extra function property lost despite AssertionError, empty uses also rejected only after changing file."
+  },
+  "checked_source_sha256": {
+    "scripts/inventory/functions.py": "ca585646738de6c67d5083f232ac9185a68e62dd5ce4500eb7f1f5d475189cdc",
+    "scripts/inventory/functions.json": "e59b19dd7d1e22a12a5cd3e30aa136084ac84f80a6248d01832926c3a67d6eaa",
+    "docs/inventory/funktionen.md": "b3362ae646f2995a67384ea82472749cfd75af7f2b1c997778ecf5b08280a5cc",
+    "lcnc-webui/src/toolsetterSetup.ts": "3d702be5cde3318f7c84c84bc6c091bb02567ee9969a516be8107d507a912ae3",
+    "lcnc-gateway/gateway.py": "2575459c6a68edae87bd0a97445f8de891a62fdf5867f4187fb25cd585910af4",
+    "scripts/twp_buttons_check.py": "cf14726270b33e67f01f012978a09423a957017ae5b41eec669731eded1643b1",
+    "CLAUDE.md": "51700fa007aa56566889c66a043391ed7d86fd4635d7528185ac561e3939b593",
+    "README.md": "0dc4593fd905394a6553d2aaf7604255ddbe2683ee43bc073287bb0aedca2017",
+    "docs/decisions.md": "d7a6fcf4dd233db0f9200701db71afeaf0f73b840de54cec35e0e551e339edba"
+  },
+  "changed_statements": [
+    {
+      "id": "F-ARM.S1",
+      "old": {
+        "id": "S1",
+        "kind": "Ablehnung",
+        "text": "Ohne Arm lehnt das Gateway jeden Befehl ab, der etwas startet oder schreibt, mit dem Grund „Not armed“.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_command_dispatch.py",
+            "title": "test_not_armed_denied"
+          }
+        ]
+      },
+      "new": {
+        "id": "S1",
+        "kind": "Ablehnung",
+        "text": "Ohne Arm lehnt das Gateway eine arm-pflichtige Aktion ab, mit dem Grund „Not armed“ (geprüft an Cycle Start). Stopps und die Anzeige-Settings sind eigene Regeln ohne Arm.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_command_dispatch.py",
+            "title": "test_not_armed_denied"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-ARM.S3",
+      "old": {
+        "id": "S3",
+        "kind": "Wirkung",
+        "text": "Ein Client, der 3 s keinen Herzschlag sendet, verliert seine Freigabe.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_ws_command_worker.py",
+            "title": "test_hb_stall_disarms_silent_client"
+          }
+        ]
+      },
+      "new": {
+        "id": "S3",
+        "kind": "Wirkung",
+        "text": "Ein Client, der länger als sein Herzschlag-Budget schweigt, verliert seine Freigabe (geprüft mit verkürztem Budget).",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_ws_command_worker.py",
+            "title": "test_hb_stall_disarms_silent_client"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-ARM.S3b",
+      "old": null,
+      "new": {
+        "id": "S3b",
+        "kind": "Daten",
+        "text": "Das Herzschlag-Budget eines Clients ist 3 s.",
+        "applies": [
+          "alle"
+        ],
+        "gap": "Gateway: kein Test bindet den Standardwert _HB_STALL_SEC"
+      }
+    },
+    {
+      "id": "F-ESTOP.S4",
+      "old": {
+        "id": "S4",
+        "kind": "Wirkung",
+        "text": "Bleibt der Herzschlag des Gateways aus, verriegelt HAL den Not-Halt im Servotakt und hält ihn bis zur Quittierung und zum Zurücksetzen.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "script",
+            "file": "perf_matrix.py",
+            "title": "sigstop_trip",
+            "live": true
+          }
+        ]
+      },
+      "new": {
+        "id": "S4",
+        "kind": "Wirkung",
+        "text": "Bleibt der Herzschlag des Gateways aus (SIGSTOP), verriegelt HAL den Not-Halt und hält ihn, bis die Wiederherstellung (Quittieren, Arm, Zurücksetzen) ihn löst.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "script",
+            "file": "perf_matrix.py",
+            "title": "sigstop_trip",
+            "live": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-ESTOP.S4b",
+      "old": null,
+      "new": {
+        "id": "S4b",
+        "kind": "Wirkung",
+        "text": "Der Latch greift im selben Servotakt, in dem der Herzschlag ausbleibt.",
+        "applies": [
+          "alle"
+        ],
+        "gap": "nicht gemessen; ein Live-Lauf muss sticky_ok und recovered_ok auswerten, nicht nur den Exitcode"
+      }
+    },
+    {
+      "id": "F-TRIP.S1",
+      "old": {
+        "id": "S1",
+        "kind": "Daten",
+        "text": "Eine Auslösung nach sauberem Start erscheint genau einmal im Banner; ein schon beim Start gesetzter Latch wird protokolliert, nicht gebannert.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_gateway_util.py",
+            "title": "test_sustained_latch_banners_only_once"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_gateway_util.py",
+            "title": "test_boot_faulted_does_not_banner"
+          }
+        ]
+      },
+      "new": {
+        "id": "S1",
+        "kind": "Daten",
+        "text": "Die Entscheidung über eine Auslösung: nach sauberem Start wird sie genau einmal gemeldet; ein schon beim Start gesetzter Latch gilt als beim Start gesetzt, nicht als neue Auslösung.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_gateway_util.py",
+            "title": "test_sustained_latch_banners_only_once"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_gateway_util.py",
+            "title": "test_boot_faulted_does_not_banner"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-TRIP.S1b",
+      "old": null,
+      "new": {
+        "id": "S1b",
+        "kind": "Bedienbarkeit",
+        "text": "Eine gemeldete Auslösung erscheint im Banner mit Quittieren und wird protokolliert.",
+        "applies": [
+          "alle"
+        ],
+        "gap": "Browser/Gateway: Versand, Banner und Protokolleintrag beobachtet kein Test"
+      }
+    },
+    {
+      "id": "F-MODE.S1",
+      "old": {
+        "id": "S1",
+        "kind": "Ablehnung",
+        "text": "MANUAL ist in E-Stop und unreferenziert wählbar; MDI und AUTO sind gedimmt mit Grund; die schon gewählte Betriebsart sendet nichts.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "browser",
+            "file": "setup-gates.spec.ts",
+            "title": "the task mode per target: MANUAL in E-Stop and unhomed, MDI / AUTO dimmed with the reason; the checked mode sends nothing (BG-04)"
+          }
+        ]
+      },
+      "new": {
+        "id": "S1",
+        "kind": "Ablehnung",
+        "text": "MANUAL ist in E-Stop und unreferenziert wählbar; MDI und AUTO brauchen die Referenz (oder die deklarierte Ausnahme ohne Referenzierpflicht) und sind referenziert auch in E-Stop und ausgeschaltet wählbar; gesperrt mit Grund; die gewählte Betriebsart sendet nichts.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "browser",
+            "file": "setup-gates.spec.ts",
+            "title": "the task mode per target: MANUAL in E-Stop and unhomed, MDI / AUTO dimmed with the reason; the checked mode sends nothing (BG-04)"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_coord_needs_homing_unless_declared"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_coord_homed_in_estop_and_off"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-SHUTDOWN.S1",
+      "old": null,
+      "new": {
+        "id": "S1",
+        "kind": "Ablehnung",
+        "text": "Herunterfahren braucht Arm; ein freigegebener Client fährt die Suite herunter.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_c.py",
+            "title": "test_the_policy_names_arm"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_c.py",
+            "title": "test_a_disarmed_client_cannot_shut_down"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_c.py",
+            "title": "test_an_armed_client_shuts_down"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-SIMTRIP.S1",
+      "old": null,
+      "new": {
+        "id": "S1",
+        "kind": "Ablehnung",
+        "text": "Sim-Trip braucht nur Arm.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_simulate_probe_trip_requires_armed_only"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-SIMTRIP.S2",
+      "old": null,
+      "new": {
+        "id": "S2",
+        "kind": "Wirkung",
+        "text": "Sim-Trip pulst den Antast-Eingang probe-in kurz; eine fehlgeschlagene Zustellung wird gemeldet.",
+        "applies": [
+          "alle"
+        ],
+        "gap": "Gateway: kein Test des Handlers (halcmd sets probe-in); nativ in der Sim"
+      }
+    },
+    {
+      "id": "F-HOME.S1",
+      "old": {
+        "id": "S1",
+        "kind": "Bedienbarkeit",
+        "text": "Referenz aufheben ist eine Haltegeste: ein kurzes Tippen sendet nichts und sagt warum, ein vollständiges Halten genau einen Befehl.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "browser",
+            "file": "touch-hold.spec.ts",
+            "title": "a short tap sends nothing and says why; a complete hold sends exactly one command"
+          }
+        ]
+      },
+      "new": {
+        "id": "S1",
+        "kind": "Bedienbarkeit",
+        "text": "Unhome All ist eine Haltegeste: ein kurzes Tippen sendet nichts und sagt warum, ein vollständiges Halten genau einen Befehl.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "browser",
+            "file": "touch-hold.spec.ts",
+            "title": "a short tap sends nothing and says why; a complete hold sends exactly one command"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-HOME.S2",
+      "old": null,
+      "new": {
+        "id": "S2",
+        "kind": "Wirkung",
+        "text": "Home All und Home je Achse senden ihren Befehl und referenzieren am echten Task.",
+        "applies": [
+          "alle"
+        ],
+        "gap": "Browser: kein Spec löst home/home_all aus; nativ"
+      }
+    },
+    {
+      "id": "F-JOG.S1",
+      "old": {
+        "id": "S1",
+        "kind": "Abbruch",
+        "text": "Ein gestarteter Jog besitzt seinen Stopp: das Loslassen stoppt genau, was das Drücken gestartet hat, auch wenn sich Schritt oder Belegung inzwischen geändert haben.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "unit",
+            "file": "jogGesture.test.ts",
+            "title": "ends a gesture with the stop recorded at its start, whatever changed since"
+          }
+        ]
+      },
+      "new": {
+        "id": "S1",
+        "kind": "Abbruch",
+        "text": "Die Geste merkt sich beim Drücken ihren Stopp: das Loslassen liefert genau den Stopp, den das Drücken gestartet hat, auch wenn Schritt oder Belegung sich inzwischen ändern (Entscheidung, ohne Browser).",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "unit",
+            "file": "jogGesture.test.ts",
+            "title": "ends a gesture with the stop recorded at its start, whatever changed since"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-JOG.S2",
+      "old": {
+        "id": "S2",
+        "kind": "Abbruch",
+        "text": "Ein Jog-Stopp wird nie abgelehnt, auch ohne Arm und im Not-Halt.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_jog_stop_always_allowed"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_dispatch.py",
+            "title": "test_jog_stop_never_policy_denied"
+          }
+        ]
+      },
+      "new": {
+        "id": "S2",
+        "kind": "Abbruch",
+        "text": "Ein Jog-Stopp wird von der Zulassung nie abgelehnt, auch ohne Arm und im Not-Halt (die Zustellung ist eine eigene Aussage).",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_jog_stop_always_allowed"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_dispatch.py",
+            "title": "test_jog_stop_never_policy_denied"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-JOG.S4",
+      "old": {
+        "id": "S4",
+        "kind": "Ablehnung",
+        "text": "Vor dem Referenzieren joggt nur die deklarierte Gelenk-Achse, eine Gantry-Achse und die Diagonalen sind gesperrt, mit Grund.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_e.py",
+            "title": "test_a_gantry_letter_is_closed"
+          },
+          {
+            "layer": "browser",
+            "file": "joint-jog.spec.ts",
+            "title": "before homing every open axis jogs in amber, the diagonals are closed with their reason; homed both are back (package F)"
+          }
+        ]
+      },
+      "new": {
+        "id": "S4",
+        "kind": "Ablehnung",
+        "text": "Vor dem Referenzieren joggt jede Achse ihr deklariertes Gelenk; eine Gantry-Achse und die Diagonalen sind gesperrt, mit Grund (Entscheidung und Anzeige).",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_e.py",
+            "title": "test_a_gantry_letter_is_closed"
+          },
+          {
+            "layer": "browser",
+            "file": "joint-jog.spec.ts",
+            "title": "before homing every open axis jogs in amber, the diagonals are closed with their reason; homed both are back (package F)"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_e.py",
+            "title": "test_the_declared_joint_not_the_index"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_e.py",
+            "title": "test_a_diagonal_is_refused_before_homing"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-GOTO.S1",
+      "old": {
+        "id": "S1",
+        "kind": "Wirkung",
+        "text": "Ein Rückzug senkt Z nie: von unter Z0 auf die Maschinen-Oberkante, von über Z0 unverändert; dann X/Y.",
+        "applies": [
+          "Machine"
+        ],
+        "evidence": [
+          {
+            "layer": "script",
+            "file": "twp_buttons_check.py",
+            "title": "→ Zero from ABOVE Z0 (G53 Z+50): Z unchanged (never lowered), X/Y at work zero",
+            "live": true
+          },
+          {
+            "layer": "script",
+            "file": "twp_buttons_check.py",
+            "title": "→ Home from ABOVE Z0: min Z seen >= +50 (never lowered), X/Y to machine zero",
+            "live": true
+          }
+        ]
+      },
+      "new": {
+        "id": "S1",
+        "kind": "Wirkung",
+        "text": "Von über Z0 senkt ein Rückzug Z nie: → Zero lässt Z unverändert, → Home sieht kein Z unter dem Start.",
+        "applies": [
+          "Machine"
+        ],
+        "evidence": [
+          {
+            "layer": "script",
+            "file": "twp_buttons_check.py",
+            "title": "→ Zero from ABOVE Z0 (G53 Z+50): Z unchanged (never lowered), X/Y at work zero",
+            "live": true
+          },
+          {
+            "layer": "script",
+            "file": "twp_buttons_check.py",
+            "title": "→ Home from ABOVE Z0: min Z seen >= +50 (never lowered), X/Y to machine zero",
+            "live": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-GOTO.S1b",
+      "old": null,
+      "new": {
+        "id": "S1b",
+        "kind": "Wirkung",
+        "text": "Von unter Z0 fahren → Zero und → Home Z auf die Maschinen-Oberkante.",
+        "applies": [
+          "Machine"
+        ],
+        "evidence": [
+          {
+            "layer": "script",
+            "file": "twp_buttons_check.py",
+            "title": "→ Zero from BELOW Z0 (G53 Z-60): Z at machine top exactly, X/Y at work zero, A back to the stamp (0)",
+            "live": true
+          },
+          {
+            "layer": "script",
+            "file": "twp_buttons_check.py",
+            "title": "→ Home from BELOW Z0: Z to machine top, X/Y to machine zero, A 0",
+            "live": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-GOTO.S1c",
+      "old": null,
+      "new": {
+        "id": "S1c",
+        "kind": "Wirkung",
+        "text": "Z ist oben, bevor X/Y fahren.",
+        "applies": [
+          "Machine"
+        ],
+        "gap": "nativ: Verlauf oder Befehlsfolge (die Endpositionen belegen die Reihenfolge nicht)"
+      }
+    },
+    {
+      "id": "F-GOTO.S1d",
+      "old": null,
+      "new": {
+        "id": "S1d",
+        "kind": "Wirkung",
+        "text": "→ G30 von unter Z0 fährt erst nach oben, dann auf #5181–#5183.",
+        "applies": [
+          "Machine"
+        ],
+        "evidence": [
+          {
+            "layer": "script",
+            "file": "twp_buttons_check.py",
+            "title": "→ G30 from BELOW Z0: retracts to the top first (max Z seen ~ 0), then lands on #5181..#5183",
+            "live": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-SPINDLE.S2",
+      "old": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Die Spindel von Hand vor dem Referenzieren nur, wo die Maschine es deklariert (WEBUI_SPINDLE_BEFORE_HOMING = 1), und nur in MANUAL.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "browser",
+            "file": "setup-gates.spec.ts",
+            "title": "the manual spindle unhomed where the machine declares it, MANUAL only (Q1)"
+          }
+        ]
+      },
+      "new": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Die Spindel von Hand vor dem Referenzieren nur, wo die Maschine es deklariert (WEBUI_SPINDLE_BEFORE_HOMING = 1), und nur in MANUAL.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "browser",
+            "file": "setup-gates.spec.ts",
+            "title": "the manual spindle unhomed where the machine declares it, MANUAL only (Q1)"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_the_switch_opens_manual_only"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_unhomed_without_the_switch_keeps_the_homing_rule"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_spindle_switch"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-SPINDLE.S3",
+      "old": null,
+      "new": {
+        "id": "S3",
+        "kind": "Daten",
+        "text": "Rechts und Links senden die Drehzahl der Vorwahl; ± ändern sie.",
+        "applies": [
+          "alle"
+        ],
+        "gap": "Browser: kein Spec löst spindle_forward/reverse/increase/decrease aus"
+      }
+    },
+    {
+      "id": "F-SPINDLE.S4",
+      "old": null,
+      "new": {
+        "id": "S4",
+        "kind": "Wirkung",
+        "text": "Vor dem Referenzieren mit dem Schalter läuft die Spindel in MANUAL; ohne den Schalter wird sie abgelehnt.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_unhomed_with_the_switch_in_manual_runs"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_unhomed_without_the_switch_is_refused"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-TOUCHOFF.S1",
+      "old": {
+        "id": "S1",
+        "kind": "Daten",
+        "text": "Machine: lineare Achsen schreiben in G54–G58, Drehachsen nur in G54; die Hilfszeilen G59–G59.3 sind gesperrt.",
+        "applies": [
+          "Machine"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_identity_linear_into_operator_fixtures"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_rotary_identity_g54_only"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_identity_reserved_rows_refused"
+          }
+        ]
+      },
+      "new": {
+        "id": "S1",
+        "kind": "Daten",
+        "text": "Machine: lineare Achsen schreiben in G54–G58, Drehachsen nur in G54. Auf einer TWP-fähigen Maschine sind G59–G59.3 Hilfszeilen und gesperrt; ohne TWP sind sie gewöhnliche Nullpunkte.",
+        "applies": [
+          "Machine"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_identity_linear_into_operator_fixtures"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_rotary_identity_g54_only"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_identity_reserved_rows_refused"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_non_switchable_g59_to_g59_3_linear_touchoff_is_mdi"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_switchable_non_twp_machine_admits_reserved_fixtures"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-TOUCHOFF.S2",
+      "old": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "TCP: Antippen nur bei Tisch in Nulllage (A = 0); geneigt abgelehnt, Hilfszeilen gesperrt.",
+        "applies": [
+          "TCP"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_tcp_linear_at_datum_allowed"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_tcp_tilted_table_refused"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_tcp_reserved_rows_refused"
+          }
+        ]
+      },
+      "new": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "TCP: Antippen nur bei Tisch in Nulllage (A = 0), geneigt abgelehnt; auf einer TWP-fähigen Maschine sind die Hilfszeilen gesperrt.",
+        "applies": [
+          "TCP"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_tcp_linear_at_datum_allowed"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_tcp_tilted_table_refused"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_tcp_reserved_rows_refused"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-TOUCHOFF.S3",
+      "old": {
+        "id": "S3",
+        "kind": "Daten",
+        "text": "Plane: lineare Achsen gehen über G59 und das Remap in G54, nur mit aktiver Ebene; Drehachsen gesperrt.",
+        "applies": [
+          "Plane"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_plane_mode_linear_routes_to_remap"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_plane_mode_needs_active_plane_and_g59"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_plane_mode_rotary_touchoff_refused"
+          },
+          {
+            "layer": "browser",
+            "file": "touchoff.spec.ts",
+            "title": "Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero XYZ stays open"
+          }
+        ]
+      },
+      "new": {
+        "id": "S3",
+        "kind": "Daten",
+        "text": "Plane: lineare Achsen gehen über G59 an das Remap, nur mit aktiver Ebene; Drehachsen gesperrt (Route und Anzeige).",
+        "applies": [
+          "Plane"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_plane_mode_linear_routes_to_remap"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_plane_mode_needs_active_plane_and_g59"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_plane_mode_rotary_touchoff_refused"
+          },
+          {
+            "layer": "browser",
+            "file": "touchoff.spec.ts",
+            "title": "Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero XYZ stays open"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-TOUCHOFF.S3b",
+      "old": null,
+      "new": {
+        "id": "S3b",
+        "kind": "Wirkung",
+        "text": "Plane: das Remap schreibt den angetippten Wert in G54.",
+        "applies": [
+          "Plane"
+        ],
+        "gap": "kein Test liest G54 nach dem Remap; nativ (scripts/twp_touchoff_plane_check.py, Laufbindung offen)"
+      }
+    },
+    {
+      "id": "F-TWP.S1",
+      "old": {
+        "id": "S1",
+        "kind": "Ablehnung",
+        "text": "Eine Ebene wird nicht erfasst, solange schon eine definiert ist; auf einer umschaltbaren Maschine ohne TWP gibt es kein Erfassen.",
+        "applies": [
+          "Plane"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_refuses_plane_already_defined"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_switchable_non_twp_machine_cannot_capture"
+          }
+        ]
+      },
+      "new": {
+        "id": "S1",
+        "kind": "Ablehnung",
+        "text": "Das Erfassen einer Ebene startet aus Machine oder TCP auf einer TWP-fähigen Maschine; abgelehnt, solange schon eine Ebene definiert ist; ohne TWP-Fähigkeit gibt es kein Erfassen.",
+        "applies": [
+          "Machine",
+          "TCP"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_refuses_plane_already_defined"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_switchable_non_twp_machine_cannot_capture"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-TWP.S2",
+      "old": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Plane läuft nur mit seiner Ebene und G59.",
+        "applies": [
+          "Plane"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_plane_kins_with_its_plane_and_g59_runs"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_plane_kins_without_a_plane_refuses"
+          }
+        ]
+      },
+      "new": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Plane läuft nur mit seiner Ebene und G59.",
+        "applies": [
+          "Plane"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_plane_kins_with_its_plane_and_g59_runs"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_plane_kins_without_a_plane_refuses"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_plane_kins_with_g54_selected_refuses_the_post_m2_state"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_button_gates.py",
+            "title": "test_unknown_current_fixture_cannot_reuse_old_g59"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-TWP.S3",
+      "old": null,
+      "new": {
+        "id": "S3",
+        "kind": "Wirkung",
+        "text": "Erfassen, Ausrichten und Aufheben ändern Ebene und Nullpunkt, wie die Anzeige es sagt.",
+        "applies": [
+          "Machine",
+          "Plane"
+        ],
+        "gap": "nativ: scripts/twp_capture_check.py und twp_reorient_check.py (Laufbindung offen)"
+      }
+    },
+    {
+      "id": "F-LOAD.S1",
+      "old": {
+        "id": "S1",
+        "kind": "Bedienbarkeit",
+        "text": "Ein Programm lädt in E-Stop, ausgeschaltet und unreferenziert: nur Arm und Leerlauf zählen.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "browser",
+            "file": "setup-gates.spec.ts",
+            "title": "a program loads in E-Stop, off and unhomed: programLoad, no power or homing (BG-03)"
+          }
+        ]
+      },
+      "new": {
+        "id": "S1",
+        "kind": "Bedienbarkeit",
+        "text": "Ein Programm lädt in E-Stop, ausgeschaltet und unreferenziert: nur Arm und Leerlauf zählen.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "browser",
+            "file": "setup-gates.spec.ts",
+            "title": "a program loads in E-Stop, off and unhomed: programLoad, no power or homing (BG-03)"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_open_in_estop_off_and_unhomed"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_closed_disarmed_running_or_unread"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-LOAD.S2",
+      "old": null,
+      "new": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Laden und Entladen werden abgelehnt, solange ein Start in Arbeit ist.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_d.py",
+            "title": "test_a_start_in_progress_refuses_load_and_unload"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-LOAD.S3",
+      "old": null,
+      "new": {
+        "id": "S3",
+        "kind": "Wirkung",
+        "text": "Neu laden übernimmt die neue Revision; Entladen leert Programm und Vorschau.",
+        "applies": [
+          "alle"
+        ],
+        "gap": "Browser/Gateway: Reload und Unload als Ergebnis nicht belegt"
+      }
+    },
+    {
+      "id": "F-UPLOAD.S2",
+      "old": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Ein nicht freigegebener Schreiber lädt nichts hoch; geprüft im Moment des Veröffentlichens.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_b.py",
+            "title": "test_a_disarmed_writer_uploads_nothing"
+          }
+        ]
+      },
+      "new": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Ein nicht freigegebener Schreiber lädt nichts hoch; geprüft im Moment des Veröffentlichens.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_b.py",
+            "title": "test_a_disarmed_writer_uploads_nothing"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_b.py",
+            "title": "test_a_disarm_while_the_body_arrives_refuses_at_the_publish"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-RUN.S1",
+      "old": {
+        "id": "S1",
+        "kind": "Bedienbarkeit",
+        "text": "Pause wirkt ohne Arm auf ein laufendes Programm; Fortsetzen braucht Arm.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates.py",
+            "title": "test_pause_of_a_running_sequence_without_arm"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_button_gates.py",
+            "title": "test_resume_still_needs_arm"
+          }
+        ]
+      },
+      "new": {
+        "id": "S1",
+        "kind": "Bedienbarkeit",
+        "text": "Pause wirkt ohne Arm auf ein laufendes Programm; Fortsetzen braucht Arm.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates.py",
+            "title": "test_pause_of_a_running_sequence_without_arm"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_button_gates.py",
+            "title": "test_resume_still_needs_arm"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_button_gates.py",
+            "title": "test_pause_disarmed_pauses_a_running_program"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_button_gates.py",
+            "title": "test_resume_disarmed_is_refused"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-RUN.S3",
+      "old": {
+        "id": "S3",
+        "kind": "Bedienbarkeit",
+        "text": "Start, Einzelschritt und Fortsetzen lösen nur nach vollständigem Halten aus, ein Tippen sagt warum; Pause bleibt ein Tippen.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "browser",
+            "file": "run-hold.spec.ts",
+            "title": "Start, Step and Resume fire on a complete hold only — a tap says why; Pause stays a tap"
+          }
+        ]
+      },
+      "new": {
+        "id": "S3",
+        "kind": "Bedienbarkeit",
+        "text": "Die Knöpfe Start, Einzelschritt und Fortsetzen lösen nur nach vollständigem Halten aus, ein Tippen sagt warum; Pause bleibt ein Tippen. Die Leertaste bleibt sofort (S2).",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "browser",
+            "file": "run-hold.spec.ts",
+            "title": "Start, Step and Resume fire on a complete hold only — a tap says why; Pause stays a tap"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-RFL.S2",
+      "old": {
+        "id": "S2",
+        "kind": "Wirkung",
+        "text": "Der sichere Z-Schritt vor dem Start hebt Z von unten auf Maschinen-Oberkante und senkt es nie; liegt Z schon oben, entfällt er.",
+        "applies": [
+          "Machine"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_rfl_guard.py",
+            "title": "test_safe_z_reached_from_below_starts"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_rfl_guard.py",
+            "title": "test_safe_z_above_zero_skips_mdi"
+          }
+        ]
+      },
+      "new": {
+        "id": "S2",
+        "kind": "Wirkung",
+        "text": "Der sichere Z-Schritt vor dem Start hebt Z von unten auf Maschinen-Oberkante und senkt es nie; liegt Z schon oben, entfällt er (die gesendete Befehlsfolge gegen ein simuliertes STAT).",
+        "applies": [
+          "Machine"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_rfl_guard.py",
+            "title": "test_safe_z_reached_from_below_starts"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_rfl_guard.py",
+            "title": "test_safe_z_above_zero_skips_mdi"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-TOOLEDIT.S1",
+      "old": null,
+      "new": {
+        "id": "S1",
+        "kind": "Ablehnung",
+        "text": "Werkzeug bearbeiten wird abgelehnt, solange ein Programm läuft.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_command_dispatch.py",
+            "title": "test_tool_edit_denied_while_running"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-TOOLEDIT.S2",
+      "old": null,
+      "new": {
+        "id": "S2",
+        "kind": "Daten",
+        "text": "Anlegen lehnt eine unsinnige oder negative Werkzeugnummer ab.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_command_dispatch.py",
+            "title": "test_add_tool_garbage_number_rejected"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_command_dispatch.py",
+            "title": "test_add_tool_negative_number_rejected"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-TOOLEDIT.S3",
+      "old": null,
+      "new": {
+        "id": "S3",
+        "kind": "Daten",
+        "text": "Umnummerieren begrenzt beide Nummern, die die Oberfläche sendet.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_command_policy.py",
+            "title": "test_renumber_bounds_both_numbers_the_ui_sends"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-TOOLEDIT.S4",
+      "old": null,
+      "new": {
+        "id": "S4",
+        "kind": "Wirkung",
+        "text": "Anlegen, Ändern, Löschen und Umnummerieren ändern genau ihren Datensatz, erhalten die übrigen Werte und laden die Tabelle neu.",
+        "applies": [
+          "alle"
+        ],
+        "gap": "Gateway: kein Test vergleicht die Tabelle vor und nach je Aktion; nativ"
+      }
+    },
+    {
+      "id": "F-TOOLIMPORT.S1",
+      "old": {
+        "id": "S1",
+        "kind": "Daten",
+        "text": "Vorhandene Werkzeuge werden standardmäßig nur in den Metadaten aufgefrischt; die gemessene Länge bleibt.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "browser",
+            "file": "tool-import.spec.ts",
+            "title": "existing tools default to reviewed metadata refresh, not full replacement"
+          }
+        ]
+      },
+      "new": {
+        "id": "S1",
+        "kind": "Daten",
+        "text": "Vorhandene Werkzeuge werden standardmäßig nur in den Metadaten aufgefrischt; die gemessene Länge bleibt.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "browser",
+            "file": "tool-import.spec.ts",
+            "title": "existing tools default to reviewed metadata refresh, not full replacement"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_tool_refresh.py",
+            "title": "test_real_preview_and_refresh_preserve_exact_table_bytes"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-TOOLMEASURE.S1",
+      "old": {
+        "id": "S1",
+        "kind": "Daten",
+        "text": "Direkte Messung: Messen sendet EIN mdi mit den Toolsetter-Werten in vars (#3004–#3007, #3009, #3010, #3013, #3100–#3115).",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "browser",
+            "file": "toolsetter-setup.spec.ts",
+            "title": "Measure Current is ONE command: the values ride the mdi"
+          }
+        ]
+      },
+      "new": {
+        "id": "S1",
+        "kind": "Daten",
+        "text": "Direkte Messung: Messen sendet EIN mdi mit den Toolsetter-Werten in vars (der Sendevertrag; Werte exemplarisch geprüft).",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "browser",
+            "file": "toolsetter-setup.spec.ts",
+            "title": "Measure Current is ONE command: the values ride the mdi"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-TOOLMEASURE.S2",
+      "old": {
+        "id": "S2",
+        "kind": "Daten",
+        "text": "Vormessung beim Start ab Zeile: EIN auto_run mit pre_tool und probe_vars aus derselben Abbildung.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "browser",
+            "file": "run-hold.spec.ts",
+            "title": "Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values"
+          }
+        ]
+      },
+      "new": {
+        "id": "S2",
+        "kind": "Daten",
+        "text": "Vormessung beim Start ab Zeile: EIN auto_run mit pre_tool und probe_vars (der Sendevertrag; Werte exemplarisch geprüft).",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "browser",
+            "file": "run-hold.spec.ts",
+            "title": "Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-TOOLMEASURE.S4",
+      "old": {
+        "id": "S4",
+        "kind": "Daten",
+        "text": "Die Var-Nummern sind die, die tool_touch_off.ngc liest.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "unit",
+            "file": "toolsetterSetup.test.ts",
+            "title": "writes the var numbers tool_touch_off.ngc reads"
+          }
+        ]
+      },
+      "new": {
+        "id": "S4",
+        "kind": "Daten",
+        "text": "Die Abbildung nennt genau 23 Var-Nummern: #3004–#3007, #3009, #3010, #3013, #3100–#3115.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "unit",
+            "file": "toolsetterSetup.test.ts",
+            "title": "writes the var numbers tool_touch_off.ngc reads"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-TOOLMEASURE.S4b",
+      "old": null,
+      "new": {
+        "id": "S4b",
+        "kind": "Daten",
+        "text": "Jede Nummer der Abbildung ist die, die tool_touch_off.ngc für ihren Wert liest.",
+        "applies": [
+          "alle"
+        ],
+        "gap": "Unit: kein Test gleicht die Abbildung mit den Lesestellen der Routine ab"
+      }
+    },
+    {
+      "id": "F-TOOLMEASURE.S6",
+      "old": null,
+      "new": {
+        "id": "S6",
+        "kind": "Wirkung",
+        "text": "Entladen (T0 M600) läuft nur mit eingerichtetem Toolsetter und entlädt das Werkzeug.",
+        "applies": [
+          "alle"
+        ],
+        "gap": "Browser: kein Spec löst Entladen aus (die Sperre belegt S3); nativ"
+      }
+    },
+    {
+      "id": "F-MACROFILES.S2",
+      "old": {
+        "id": "S2",
+        "kind": "Wirkung",
+        "text": "Umbenennen verschiebt die Datei und ihren Platz auf der Leiste in einem Schritt.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "browser",
+            "file": "macros.spec.ts",
+            "title": "a rename moves the file and its place on the bar"
+          }
+        ]
+      },
+      "new": {
+        "id": "S2",
+        "kind": "Wirkung",
+        "text": "Umbenennen verschiebt in der Oberfläche Datei und Platz auf der Leiste in einem Schritt (gegen den Ordner-Mock).",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "browser",
+            "file": "macros.spec.ts",
+            "title": "a rename moves the file and its place on the bar"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-MACROFILES.S3",
+      "old": null,
+      "new": {
+        "id": "S3",
+        "kind": "Wirkung",
+        "text": "Im Gateway ist eine Umbenennung ein Schritt: neue Datei, alte weg, Leiste umgezogen, oder nichts.",
+        "applies": [
+          "alle"
+        ],
+        "gap": "Gateway: Atomarität der Umbenennung nicht belegt"
+      }
+    },
+    {
+      "id": "F-KEYBOARD.S1",
+      "old": null,
+      "new": {
+        "id": "S1",
+        "kind": "Bedienbarkeit",
+        "text": "Die Leertaste startet auf der freien Seite das Programm (Cycle Start); aus einem fokussierten Bedienelement, einem offenen Editor oder durch die Fokus-Rückgabe der Zahlentastatur nie.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "browser",
+            "file": "keyboard-guards.spec.ts",
+            "title": "positive control: Space on the bare page sends cycle_start"
+          },
+          {
+            "layer": "browser",
+            "file": "touchoff.spec.ts",
+            "title": "Space on a focused control never reaches the Cycle Start shortcut"
+          },
+          {
+            "layer": "browser",
+            "file": "keyboard-guards.spec.ts",
+            "title": "editor open: Space never starts the program"
+          },
+          {
+            "layer": "browser",
+            "file": "keyboard-guards.spec.ts",
+            "title": "keypad OK: Space through the whole focus return never starts the program; Escape still E-Stops"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-KEYBOARD.S2",
+      "old": null,
+      "new": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Hinter einem Dialog geht nur Escape (E-Stop) durch; Space, Enter und Backspace erreichen die Maschine nicht.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "browser",
+            "file": "keyboard-guards.spec.ts",
+            "title": "settings dialog and key capture: only Escape passes, and it cancels the capture"
+          },
+          {
+            "layer": "browser",
+            "file": "keyboard-guards.spec.ts",
+            "title": "tool dialog, messages and reference dialogs block Space/Enter/Backspace"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-KEYBOARD.S3",
+      "old": null,
+      "new": {
+        "id": "S3",
+        "kind": "Wirkung",
+        "text": "Eine belegte Jog-Taste joggt ihre Achse in ihre Richtung und stoppt beim Loslassen.",
+        "applies": [
+          "alle"
+        ],
+        "gap": "Browser: die Jog-Tasten senden jog_cont und beim Loslassen jog_stop — kein Spec prüft das für die Belegung"
+      }
+    },
+    {
+      "id": "F-GAMEPAD.S1",
+      "old": null,
+      "new": {
+        "id": "S1",
+        "kind": "Abbruch",
+        "text": "Ein Gamepad-Jog stoppt beim Loslassen mit seinem eigenen Stopp — auch wenn Schritt oder Z-Umschalter sich während des Haltens ändern; ein Schritt-Jog sendet keinen Stopp.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "unit",
+            "file": "useGamepad.test.ts",
+            "title": "a continuous D-pad jog stops on release, the stick at rest does not stop it"
+          },
+          {
+            "layer": "unit",
+            "file": "useGamepad.test.ts",
+            "title": "a step changed mid-hold still stops the continuous jog on release"
+          },
+          {
+            "layer": "unit",
+            "file": "useGamepad.test.ts",
+            "title": "a Z jog whose modifier is let go first stops Z, not Y"
+          },
+          {
+            "layer": "unit",
+            "file": "useGamepad.test.ts",
+            "title": "a step jog sends no stop at its release"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-GAMEPAD.S2",
+      "old": null,
+      "new": {
+        "id": "S2",
+        "kind": "Ablehnung",
+        "text": "Vor dem Referenzieren startet eine gesperrte Achse weder vom D-Pad noch vom Stick etwas; eine offene joggt.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "unit",
+            "file": "useGamepad.test.ts",
+            "title": "an axis closed before homing starts nothing from the D-pad or the stick; an open one jogs"
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-GAMEPAD.S3",
+      "old": null,
+      "new": {
+        "id": "S3",
+        "kind": "Daten",
+        "text": "Eine belegte Gamepad-Taste löst genau ihre Aktion aus (Start, Pause, Fortsetzen, Abort, E-Stop, Spindel-Stopp, Kühlmittel, Home All) über dieselbe Zulassung wie der Knopf.",
+        "applies": [
+          "alle"
+        ],
+        "gap": "Unit/Browser: kein Test geht die Tasten-Aktionen durch"
+      }
+    },
+    {
+      "id": "SYS-CONN.S2",
+      "old": null,
+      "new": {
+        "id": "S2",
+        "kind": "Abbruch",
+        "text": "Trennt sich ein Client, bricht das Gateway seine laufenden Befehle ab und verwirft die wartenden.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_ws_command_worker.py",
+            "title": "test_disconnect_cancels_inflight_and_traces_drops"
+          }
+        ]
+      }
+    },
+    {
+      "id": "SYS-CONN.S3",
+      "old": null,
+      "new": {
+        "id": "S3",
+        "kind": "Abbruch",
+        "text": "Beim Disarm durch Trennen oder Herzschlag-Ablauf stoppt der Helfer die gebuchten Jogs, ohne Moduswechsel; bei laufendem AUTO sendet er nichts.",
+        "applies": [
+          "alle"
+        ],
+        "evidence": [
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_e.py",
+            "title": "test_the_disarm_stop"
+          },
+          {
+            "layer": "gateway",
+            "file": "test_button_gates_e.py",
+            "title": "test_auto_running_sends_nothing"
+          }
+        ]
+      }
+    },
+    {
+      "id": "SYS-CONN.S4",
+      "old": null,
+      "new": {
+        "id": "S4",
+        "kind": "Abbruch",
+        "text": "Trennt sich ein Client oder läuft sein Herzschlag ab: der passende Jog-Stopp, kein pauschaler Abort eines laufenden Programms (Armed ist Autorisierung, kein Totmann); ein anderer Client bleibt verbunden. Fehlt der letzte Client oder der Gateway-Herzschlag, greift die HAL-Kette (F-ESTOP.S4).",
+        "applies": [
+          "alle"
+        ],
+        "gap": "Integrationsbeleg offen: WS-Abgang und Timeout mit laufendem Programm und zweitem Client"
+      }
+    }
+  ],
+  "new_references_read": [
+    {
+      "statement": "F-MODE.S1",
+      "claim": "MANUAL ist in E-Stop und unreferenziert wählbar; MDI und AUTO brauchen die Referenz (oder die deklarierte Ausnahme ohne Referenzierpflicht) und sind referenziert auch in E-Stop und ausgeschaltet wählbar; gesperrt mit Grund; die gewählte Betriebsart sendet nichts.",
+      "layer": "gateway",
+      "file": "test_button_gates_d.py",
+      "title": "test_coord_needs_homing_unless_declared"
+    },
+    {
+      "statement": "F-MODE.S1",
+      "claim": "MANUAL ist in E-Stop und unreferenziert wählbar; MDI und AUTO brauchen die Referenz (oder die deklarierte Ausnahme ohne Referenzierpflicht) und sind referenziert auch in E-Stop und ausgeschaltet wählbar; gesperrt mit Grund; die gewählte Betriebsart sendet nichts.",
+      "layer": "gateway",
+      "file": "test_button_gates_d.py",
+      "title": "test_coord_homed_in_estop_and_off"
+    },
+    {
+      "statement": "F-SHUTDOWN.S1",
+      "claim": "Herunterfahren braucht Arm; ein freigegebener Client fährt die Suite herunter.",
+      "layer": "gateway",
+      "file": "test_button_gates_c.py",
+      "title": "test_the_policy_names_arm"
+    },
+    {
+      "statement": "F-SHUTDOWN.S1",
+      "claim": "Herunterfahren braucht Arm; ein freigegebener Client fährt die Suite herunter.",
+      "layer": "gateway",
+      "file": "test_button_gates_c.py",
+      "title": "test_a_disarmed_client_cannot_shut_down"
+    },
+    {
+      "statement": "F-SHUTDOWN.S1",
+      "claim": "Herunterfahren braucht Arm; ein freigegebener Client fährt die Suite herunter.",
+      "layer": "gateway",
+      "file": "test_button_gates_c.py",
+      "title": "test_an_armed_client_shuts_down"
+    },
+    {
+      "statement": "F-SIMTRIP.S1",
+      "claim": "Sim-Trip braucht nur Arm.",
+      "layer": "gateway",
+      "file": "test_command_policy.py",
+      "title": "test_simulate_probe_trip_requires_armed_only"
+    },
+    {
+      "statement": "F-JOG.S4",
+      "claim": "Vor dem Referenzieren joggt jede Achse ihr deklariertes Gelenk; eine Gantry-Achse und die Diagonalen sind gesperrt, mit Grund (Entscheidung und Anzeige).",
+      "layer": "gateway",
+      "file": "test_button_gates_e.py",
+      "title": "test_the_declared_joint_not_the_index"
+    },
+    {
+      "statement": "F-JOG.S4",
+      "claim": "Vor dem Referenzieren joggt jede Achse ihr deklariertes Gelenk; eine Gantry-Achse und die Diagonalen sind gesperrt, mit Grund (Entscheidung und Anzeige).",
+      "layer": "gateway",
+      "file": "test_button_gates_e.py",
+      "title": "test_a_diagonal_is_refused_before_homing"
+    },
+    {
+      "statement": "F-GOTO.S1b",
+      "claim": "Von unter Z0 fahren → Zero und → Home Z auf die Maschinen-Oberkante.",
+      "layer": "script",
+      "file": "twp_buttons_check.py",
+      "title": "→ Zero from BELOW Z0 (G53 Z-60): Z at machine top exactly, X/Y at work zero, A back to the stamp (0)",
+      "live": true
+    },
+    {
+      "statement": "F-GOTO.S1b",
+      "claim": "Von unter Z0 fahren → Zero und → Home Z auf die Maschinen-Oberkante.",
+      "layer": "script",
+      "file": "twp_buttons_check.py",
+      "title": "→ Home from BELOW Z0: Z to machine top, X/Y to machine zero, A 0",
+      "live": true
+    },
+    {
+      "statement": "F-GOTO.S1d",
+      "claim": "→ G30 von unter Z0 fährt erst nach oben, dann auf #5181–#5183.",
+      "layer": "script",
+      "file": "twp_buttons_check.py",
+      "title": "→ G30 from BELOW Z0: retracts to the top first (max Z seen ~ 0), then lands on #5181..#5183",
+      "live": true
+    },
+    {
+      "statement": "F-SPINDLE.S2",
+      "claim": "Die Spindel von Hand vor dem Referenzieren nur, wo die Maschine es deklariert (WEBUI_SPINDLE_BEFORE_HOMING = 1), und nur in MANUAL.",
+      "layer": "gateway",
+      "file": "test_button_gates_d.py",
+      "title": "test_the_switch_opens_manual_only"
+    },
+    {
+      "statement": "F-SPINDLE.S2",
+      "claim": "Die Spindel von Hand vor dem Referenzieren nur, wo die Maschine es deklariert (WEBUI_SPINDLE_BEFORE_HOMING = 1), und nur in MANUAL.",
+      "layer": "gateway",
+      "file": "test_button_gates_d.py",
+      "title": "test_unhomed_without_the_switch_keeps_the_homing_rule"
+    },
+    {
+      "statement": "F-SPINDLE.S2",
+      "claim": "Die Spindel von Hand vor dem Referenzieren nur, wo die Maschine es deklariert (WEBUI_SPINDLE_BEFORE_HOMING = 1), und nur in MANUAL.",
+      "layer": "gateway",
+      "file": "test_button_gates_d.py",
+      "title": "test_spindle_switch"
+    },
+    {
+      "statement": "F-SPINDLE.S4",
+      "claim": "Vor dem Referenzieren mit dem Schalter läuft die Spindel in MANUAL; ohne den Schalter wird sie abgelehnt.",
+      "layer": "gateway",
+      "file": "test_button_gates_d.py",
+      "title": "test_unhomed_with_the_switch_in_manual_runs"
+    },
+    {
+      "statement": "F-SPINDLE.S4",
+      "claim": "Vor dem Referenzieren mit dem Schalter läuft die Spindel in MANUAL; ohne den Schalter wird sie abgelehnt.",
+      "layer": "gateway",
+      "file": "test_button_gates_d.py",
+      "title": "test_unhomed_without_the_switch_is_refused"
+    },
+    {
+      "statement": "F-TOUCHOFF.S1",
+      "claim": "Machine: lineare Achsen schreiben in G54–G58, Drehachsen nur in G54. Auf einer TWP-fähigen Maschine sind G59–G59.3 Hilfszeilen und gesperrt; ohne TWP sind sie gewöhnliche Nullpunkte.",
+      "layer": "gateway",
+      "file": "test_command_policy.py",
+      "title": "test_non_switchable_g59_to_g59_3_linear_touchoff_is_mdi"
+    },
+    {
+      "statement": "F-TOUCHOFF.S1",
+      "claim": "Machine: lineare Achsen schreiben in G54–G58, Drehachsen nur in G54. Auf einer TWP-fähigen Maschine sind G59–G59.3 Hilfszeilen und gesperrt; ohne TWP sind sie gewöhnliche Nullpunkte.",
+      "layer": "gateway",
+      "file": "test_command_policy.py",
+      "title": "test_switchable_non_twp_machine_admits_reserved_fixtures"
+    },
+    {
+      "statement": "F-TWP.S2",
+      "claim": "Plane läuft nur mit seiner Ebene und G59.",
+      "layer": "gateway",
+      "file": "test_command_policy.py",
+      "title": "test_plane_kins_with_g54_selected_refuses_the_post_m2_state"
+    },
+    {
+      "statement": "F-TWP.S2",
+      "claim": "Plane läuft nur mit seiner Ebene und G59.",
+      "layer": "gateway",
+      "file": "test_button_gates.py",
+      "title": "test_unknown_current_fixture_cannot_reuse_old_g59"
+    },
+    {
+      "statement": "F-LOAD.S1",
+      "claim": "Ein Programm lädt in E-Stop, ausgeschaltet und unreferenziert: nur Arm und Leerlauf zählen.",
+      "layer": "gateway",
+      "file": "test_button_gates_d.py",
+      "title": "test_open_in_estop_off_and_unhomed"
+    },
+    {
+      "statement": "F-LOAD.S1",
+      "claim": "Ein Programm lädt in E-Stop, ausgeschaltet und unreferenziert: nur Arm und Leerlauf zählen.",
+      "layer": "gateway",
+      "file": "test_button_gates_d.py",
+      "title": "test_closed_disarmed_running_or_unread"
+    },
+    {
+      "statement": "F-LOAD.S2",
+      "claim": "Laden und Entladen werden abgelehnt, solange ein Start in Arbeit ist.",
+      "layer": "gateway",
+      "file": "test_button_gates_d.py",
+      "title": "test_a_start_in_progress_refuses_load_and_unload"
+    },
+    {
+      "statement": "F-UPLOAD.S2",
+      "claim": "Ein nicht freigegebener Schreiber lädt nichts hoch; geprüft im Moment des Veröffentlichens.",
+      "layer": "gateway",
+      "file": "test_button_gates_b.py",
+      "title": "test_a_disarm_while_the_body_arrives_refuses_at_the_publish"
+    },
+    {
+      "statement": "F-RUN.S1",
+      "claim": "Pause wirkt ohne Arm auf ein laufendes Programm; Fortsetzen braucht Arm.",
+      "layer": "gateway",
+      "file": "test_button_gates.py",
+      "title": "test_pause_disarmed_pauses_a_running_program"
+    },
+    {
+      "statement": "F-RUN.S1",
+      "claim": "Pause wirkt ohne Arm auf ein laufendes Programm; Fortsetzen braucht Arm.",
+      "layer": "gateway",
+      "file": "test_button_gates.py",
+      "title": "test_resume_disarmed_is_refused"
+    },
+    {
+      "statement": "F-TOOLEDIT.S1",
+      "claim": "Werkzeug bearbeiten wird abgelehnt, solange ein Programm läuft.",
+      "layer": "gateway",
+      "file": "test_command_dispatch.py",
+      "title": "test_tool_edit_denied_while_running"
+    },
+    {
+      "statement": "F-TOOLEDIT.S2",
+      "claim": "Anlegen lehnt eine unsinnige oder negative Werkzeugnummer ab.",
+      "layer": "gateway",
+      "file": "test_command_dispatch.py",
+      "title": "test_add_tool_garbage_number_rejected"
+    },
+    {
+      "statement": "F-TOOLEDIT.S2",
+      "claim": "Anlegen lehnt eine unsinnige oder negative Werkzeugnummer ab.",
+      "layer": "gateway",
+      "file": "test_command_dispatch.py",
+      "title": "test_add_tool_negative_number_rejected"
+    },
+    {
+      "statement": "F-TOOLEDIT.S3",
+      "claim": "Umnummerieren begrenzt beide Nummern, die die Oberfläche sendet.",
+      "layer": "gateway",
+      "file": "test_command_policy.py",
+      "title": "test_renumber_bounds_both_numbers_the_ui_sends"
+    },
+    {
+      "statement": "F-TOOLIMPORT.S1",
+      "claim": "Vorhandene Werkzeuge werden standardmäßig nur in den Metadaten aufgefrischt; die gemessene Länge bleibt.",
+      "layer": "gateway",
+      "file": "test_tool_refresh.py",
+      "title": "test_real_preview_and_refresh_preserve_exact_table_bytes"
+    },
+    {
+      "statement": "F-KEYBOARD.S1",
+      "claim": "Die Leertaste startet auf der freien Seite das Programm (Cycle Start); aus einem fokussierten Bedienelement, einem offenen Editor oder durch die Fokus-Rückgabe der Zahlentastatur nie.",
+      "layer": "browser",
+      "file": "keyboard-guards.spec.ts",
+      "title": "positive control: Space on the bare page sends cycle_start"
+    },
+    {
+      "statement": "F-KEYBOARD.S1",
+      "claim": "Die Leertaste startet auf der freien Seite das Programm (Cycle Start); aus einem fokussierten Bedienelement, einem offenen Editor oder durch die Fokus-Rückgabe der Zahlentastatur nie.",
+      "layer": "browser",
+      "file": "touchoff.spec.ts",
+      "title": "Space on a focused control never reaches the Cycle Start shortcut"
+    },
+    {
+      "statement": "F-KEYBOARD.S1",
+      "claim": "Die Leertaste startet auf der freien Seite das Programm (Cycle Start); aus einem fokussierten Bedienelement, einem offenen Editor oder durch die Fokus-Rückgabe der Zahlentastatur nie.",
+      "layer": "browser",
+      "file": "keyboard-guards.spec.ts",
+      "title": "editor open: Space never starts the program"
+    },
+    {
+      "statement": "F-KEYBOARD.S1",
+      "claim": "Die Leertaste startet auf der freien Seite das Programm (Cycle Start); aus einem fokussierten Bedienelement, einem offenen Editor oder durch die Fokus-Rückgabe der Zahlentastatur nie.",
+      "layer": "browser",
+      "file": "keyboard-guards.spec.ts",
+      "title": "keypad OK: Space through the whole focus return never starts the program; Escape still E-Stops"
+    },
+    {
+      "statement": "F-KEYBOARD.S2",
+      "claim": "Hinter einem Dialog geht nur Escape (E-Stop) durch; Space, Enter und Backspace erreichen die Maschine nicht.",
+      "layer": "browser",
+      "file": "keyboard-guards.spec.ts",
+      "title": "settings dialog and key capture: only Escape passes, and it cancels the capture"
+    },
+    {
+      "statement": "F-KEYBOARD.S2",
+      "claim": "Hinter einem Dialog geht nur Escape (E-Stop) durch; Space, Enter und Backspace erreichen die Maschine nicht.",
+      "layer": "browser",
+      "file": "keyboard-guards.spec.ts",
+      "title": "tool dialog, messages and reference dialogs block Space/Enter/Backspace"
+    },
+    {
+      "statement": "F-GAMEPAD.S1",
+      "claim": "Ein Gamepad-Jog stoppt beim Loslassen mit seinem eigenen Stopp — auch wenn Schritt oder Z-Umschalter sich während des Haltens ändern; ein Schritt-Jog sendet keinen Stopp.",
+      "layer": "unit",
+      "file": "useGamepad.test.ts",
+      "title": "a continuous D-pad jog stops on release, the stick at rest does not stop it"
+    },
+    {
+      "statement": "F-GAMEPAD.S1",
+      "claim": "Ein Gamepad-Jog stoppt beim Loslassen mit seinem eigenen Stopp — auch wenn Schritt oder Z-Umschalter sich während des Haltens ändern; ein Schritt-Jog sendet keinen Stopp.",
+      "layer": "unit",
+      "file": "useGamepad.test.ts",
+      "title": "a step changed mid-hold still stops the continuous jog on release"
+    },
+    {
+      "statement": "F-GAMEPAD.S1",
+      "claim": "Ein Gamepad-Jog stoppt beim Loslassen mit seinem eigenen Stopp — auch wenn Schritt oder Z-Umschalter sich während des Haltens ändern; ein Schritt-Jog sendet keinen Stopp.",
+      "layer": "unit",
+      "file": "useGamepad.test.ts",
+      "title": "a Z jog whose modifier is let go first stops Z, not Y"
+    },
+    {
+      "statement": "F-GAMEPAD.S1",
+      "claim": "Ein Gamepad-Jog stoppt beim Loslassen mit seinem eigenen Stopp — auch wenn Schritt oder Z-Umschalter sich während des Haltens ändern; ein Schritt-Jog sendet keinen Stopp.",
+      "layer": "unit",
+      "file": "useGamepad.test.ts",
+      "title": "a step jog sends no stop at its release"
+    },
+    {
+      "statement": "F-GAMEPAD.S2",
+      "claim": "Vor dem Referenzieren startet eine gesperrte Achse weder vom D-Pad noch vom Stick etwas; eine offene joggt.",
+      "layer": "unit",
+      "file": "useGamepad.test.ts",
+      "title": "an axis closed before homing starts nothing from the D-pad or the stick; an open one jogs"
+    },
+    {
+      "statement": "SYS-CONN.S2",
+      "claim": "Trennt sich ein Client, bricht das Gateway seine laufenden Befehle ab und verwirft die wartenden.",
+      "layer": "gateway",
+      "file": "test_ws_command_worker.py",
+      "title": "test_disconnect_cancels_inflight_and_traces_drops"
+    },
+    {
+      "statement": "SYS-CONN.S3",
+      "claim": "Beim Disarm durch Trennen oder Herzschlag-Ablauf stoppt der Helfer die gebuchten Jogs, ohne Moduswechsel; bei laufendem AUTO sendet er nichts.",
+      "layer": "gateway",
+      "file": "test_button_gates_e.py",
+      "title": "test_the_disarm_stop"
+    },
+    {
+      "statement": "SYS-CONN.S3",
+      "claim": "Beim Disarm durch Trennen oder Herzschlag-Ablauf stoppt der Helfer die gebuchten Jogs, ohne Moduswechsel; bei laufendem AUTO sendet er nichts.",
+      "layer": "gateway",
+      "file": "test_button_gates_e.py",
+      "title": "test_auto_running_sends_nothing"
+    }
+  ],
+  "tests": {
+    "inventory": "33/33",
+    "repository_units": "12/12 (toolsetterSetup and useGamepad)",
+    "own_keyset": "1/1 on original target; fails by assertion on mutation",
+    "countermodels": "existing live-check expressions only, fabricated trajectories, no machine run",
+    "formatter": "actual current roundtrip/idempotence true; validated extra-field and empty-uses refusal change their files before failing"
+  }
+}
