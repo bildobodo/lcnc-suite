@@ -535,3 +535,182 @@ Der Override allein beschleunigt zudem weder die M600-Antastung noch den Surface
 ### Freigegebene Richtung und nächster Schritt
 
 Die Aufteilung in Inventar-Grundlage, Replay/Firefox und native Kernfolge ist angenommen. Die Inventardaten müssen nicht auf HTTP-Instrumentierung oder den Orchestrator warten; die drei Pakete können mit ihren jeweiligen Voraussetzungen getrennt gebaut und reviewed werden. Für das vollständige Plan-Agreement bitte die **INI-Lesewege, eindeutige HTTP-Zuordnung samt Varianten sowie Pfadisolation und messgrößenbezogene Toleranzen** nachtragen. Keine neue Timer- oder Maschinenaktion ist Teil dieser Planrunde.
+
+---
+
+## Claude · Planfassung 2 · Anfrage R268 · 4. November 2026 · die Reste aus R267
+
+FI265-03 bleibt geschlossen. Die Korrektur zur Werkzeugmessung ist unten übernommen. Alle Fundstellen wieder an `98beef82`, mit `ast` gezählt.
+
+### FI265-01 Rest · INI: eine Registry der Leseformen, Empfänger über die Bindung
+
+**Deine Gegenprüfung trifft, und meine eigene Nachzählung fand noch eine Stelle.** `gateway.py:2515` liest `_kini.findall("HAL", "HALCMD")`. Meine Liste der Empfängernamen enthielt `_kini` nicht. Empfängernamen reichen also nicht.
+
+**Empfänger:**
+- Ein INI-Objekt ist ein Name, der in seinem Gültigkeitsbereich an `linuxcnc.ini(...)` gebunden wird. Für `lcnc_paths.py` ist es ein Name, der an `configparser.ConfigParser(...)` gebunden wird.
+- Geht das Ergebnis von `linuxcnc.ini(...)` anderswohin, ist es „ungelöst“: in ein Attribut, eine Rückgabe oder ein Argument.
+
+**Die Registry, gezählt an `98beef82`:**
+
+| Form | Aufrufe | Fundstellen, Familien |
+|---|---|---|
+| `<ini>.find(S, N)` mit zwei Literalen | 28 | — |
+| `<ini>.find` mit dynamischer Sektion | 2 | `AXIS_{letter}/WRAPPED_ROTARY`, `JOINT_{j}/MAX_VELOCITY` |
+| `<ini>.findall(S, N)` | **6** | `RS274NGC/REMAP` ×3, `HAL/HALCMD` ×3 (`gateway.py:2515,4554,7060`, `gcode_parse_worker.py:241,311,595`) |
+| Wrapper `_ini_float(ini, S, N)` (`gateway.py:2939`) | 18 | darunter `SPINDLE_{i}` × 3 Schlüssel und `AXIS_*`/`JOINT_*` × `MIN_LIMIT`/`MAX_LIMIT` |
+| Wrapper `_ini_vel(S, N)` (`gcode_parse_worker.py:882`) | 5 | darunter `AXIS_{l}/MAX_VELOCITY` |
+| weitergereichte Lesefunktion `read_axis_limits(ini.find, …)` | 2 | `gateway.py:9332`, `gcode_parse_worker.py:561` → `gateway_util.read_axis_limits(ini_find, …)`, Lesemenge aus den Aufrufen von `ini_find` in seinem Rumpf |
+| `cp.get("DISPLAY", "LOG_DIR")` | 1 | `lcnc_paths.py:51` |
+| Launcher `ini_get NAME` | 17 Namen | dazu `inivar … -sec HAL -var POSTGUI_HALFILE -num` |
+
+**Keine Leseform:** `_ini_dir_path` löst einen schon gelesenen Wert zu einem Pfad auf, ist also ausdrücklich ein Verbraucher. Die Rümpfe der Wrapper (`ini.find(section, key)` in `_ini_float` und `_ini_vel`) sind Wrapper-Rümpfe, ihre Lesemenge ergibt sich aus ihren Aufrufstellen.
+
+**Familien:** Eine f-String-Sektion über Achsbuchstaben, Gelenk- oder Spindelindizes ist **ein** Atom mit seinem Schlüssel. Seine Mitglieder werden je Profil aus der INI des Beispiels aufgelöst und als Varianten geführt. Eine Familie verschwindet nie, weil ihr Argument nicht literal ist.
+
+**Wächter auf unbekannte Verwendung:** Keine allgemeine Datenflussanalyse. „Ungelöst“ wird:
+- jeder Zugriff auf `.find`, `.findall` oder `.get` eines Empfängers außerhalb der registrierten Formen;
+- jede Weitergabe einer Lesefunktion an einen nicht registrierten Verbraucher;
+- jeder Aufruf eines registrierten Wrappers mit einem Argument, das weder Literal noch bekannte Familie ist;
+- jede Funktion, die einen Empfänger nicht-literal liest und nicht registriert ist, also ein neuer Wrapper.
+
+**Vollständigkeitsurteil:** Die Zusammenfassung trägt `complete: false`, solange ein Pflichtadapter einen ungelösten Eintrag ohne Grund hat. Ein Grund ist an genau diese Stelle gebunden: Datei, Form und ein Hash des Ausdrucks, keine Zeilennummer. Eine aktuelle `atoms.json` heißt nicht vollständig.
+
+**Abnahme:**
+- Deine fünf Fundstellen und `_kini` erscheinen aufgelöst, mit ihren Familien.
+- Ein neuer Wrapper `_ini_int` erscheint als ungelöst.
+- Eine weitergereichte Lesefunktion an einen neuen Verbraucher erscheint als ungelöst.
+
+**Statusfelder:** Nehme ich die Typmenge, werden ungenutzte Felder als solche ausgewiesen.
+
+### FI265-02 Rest A · Jede Anfrage mit eigener Identität; Serverkontakt und Ersetzung getrennt
+
+**Instrumentierung nur im Test, ohne Produkt- oder Spec-Änderung:**
+
+1. **IDs im Browser:** Jede Anfrage bekommt beim Ereignis `request` im Kontext eine ID: Herkunft plus laufende Nummer, eine `WeakMap` von Request auf ID. Weiterleitungen bilden über `redirectedFrom` eine Kette mit Hop-Nummer.
+2. **Die Route-Methoden umhüllt:** Das Fixture umhüllt `route` und `unroute` an Seite und Kontext, für die Fixture-Seite und für jeden Kontext aus `newContext()`. Neue Seiten erfasst `context.on("page")`. Jeder Handler eines Specs erhält eine umhüllte Route, deren `fulfill`, `continue`, `fallback`, `fetch` und `abort` gegen die ID der Anfrage protokolliert werden. Heute nutzen 32 Spec-Dateien 87 `page.route` und 102 `context.route`, dazu 69 `fulfill`, 7 `abort`, 2 `continue` und 1 `fetch`.
+3. **Die Kennung im Netzweg:**
+   - Das Fixture registriert als Erstes eine Auffangroute über alles; sie hat damit die niedrigste Priorität. Sie setzt jede Anfrage, die kein Spec-Handler erledigt hat, mit dem Header `x-e2e-req: <id>` fort.
+   - Die umhüllten `continue` und `fetch` setzen denselben Header.
+   - Der Mock protokolliert diesen Header zu jeder bedienten Anfrage.
+   - Die Zuordnung läuft nie über Reihenfolge oder gleiche URLs.
+4. **Cache und Service Worker ausgeschlossen, hergestellt und geprüft:**
+   - Ist das Routing aktiv, schaltet Playwright den HTTP-Cache ab. Das steht in der Dokumentation zu `route`, und die Auffangroute ist immer aktiv.
+   - In `playwright.config.ts` kommt `serviceWorkers: "block"` dazu. Am Testende prüft das Fixture, dass kein Service Worker registriert ist.
+5. **Klassifikation je ID:**
+
+| Beobachtung | Weg |
+|---|---|
+| Mock hat die ID protokolliert, kein `fulfill` | **vom Mock bedient** |
+| `fulfill`, kein Serverkontakt | **im Browser ersetzt** |
+| `fetch` mit Serverkontakt, dann `fulfill` | **vom Server geholt, Antwort ersetzt** (der Fall in `collisions.viewer.spec.ts`) |
+| `abort` | **abgebrochen** |
+| alles andere, etwa eine Antwort ohne Route- und ohne Mock-Eintrag oder eine Mock-ID, die der Browser nie sah | **unbekannt / unvollständig**, nie Abdeckung |
+
+6. **Transport und Ergebnis getrennt:** Der Transport ist `finished` oder `failed`, das Ergebnis der HTTP-Status. Ein 404 oder 503 vom Mock ist bedient, mit seinem Status.
+
+**Ein eigener Fund dazu:** `wsWorker.ts:221` holt `/ready` aus dem Worker mit `credentials: "omit"`, ohne Cookie. Ob Chromium die Anfragen dedizierter Worker über `context.route` leitet und meldet, prüft der erste Implementierungsschritt mit einem Gegenfall. Tut er es nicht, steht `/ready` als benannter Weg „unbekannt“ im Bericht und nicht als Abdeckung. Dasselbe gilt für die Cookie-Frage beim WS-Handschlag aus dem Worker, wie in R251 vorgesehen.
+
+**Gegenfälle:**
+- zwei `GET /g30` im selben Test, eine ersetzt und eine vom Mock bedient, mit vertauschter Abschlussreihenfolge (die ersetzte verzögert);
+- der vorhandene `fetch`-plus-`fulfill`-Fall;
+- ein 404 vom Mock;
+- eine Weiterleitung über einen Route-`fulfill` mit 302, deren Folgeanfrage den Mock erreicht.
+
+Jeder erscheint mit dem richtigen Weg je ID.
+
+### FI265-02 Rest B · eine freigegebene semantische Projektion je Route
+
+**Die Projektion je Route:**
+- Der Reporter führt eine Tabelle `routeProjection`: Methode und Pfadvorlage → eine kleine Funktion → ein Variantensatz.
+- **Was sie lesen darf:** Schlüsselnamen der Query, Werte nur aus aufgezählten Klassen, Header-Namen, Schlüssel eines JSON-Rumpfs.
+- **Was nie protokolliert wird:** rohe Query-Werte, Dateiinhalte, Tokens. Pfadparameter erscheinen als ihr Vorlagenname, außer sie sind aufgezählt wie die Settings-Sektion.
+- Eine Route ohne Projektion erscheint als „Variante nicht abgeleitet“, benannt.
+- Erst nach der Projektion werden Wiederholungen zusammengefasst.
+
+**Erste Einträge:**
+- `PUT /macro`: `operation` = `rename`, wenn `rename_from` vorhanden ist (`macroFolder.ts:97`), sonst `save`. Dazu `base` = `new` | `revision` und bei der Umbenennung `rename_base` = `revision`.
+- `PUT|POST /settings/{section}`: die Sektion aus `VALID_SECTIONS`.
+- `POST /upload`: `overwrite` = `0` | `1`.
+- `DELETE /macro`, `POST /macro-upload`, `POST /import-tool-library[/refresh|/apply]`: im Bau aus den Handlern abgeleitet, je mit Gegenfall.
+
+**Gegenfall:**
+- Speichern und Umbenennen im selben Test erscheinen als zwei Varianten.
+- Ein Test mit einem erfundenen Token durchsucht alle Belegdateien byteweise: Der Wert erscheint nirgends.
+
+### FI265-03 · die Korrektur zur Werkzeugmessung, übernommen
+
+Ein Vertrag „Werkzeuglänge messen“ mit **zwei Bedienvarianten**, beide nur bei eingerichtetem Toolsetter, also mit der vom Server bestätigten Sektion:
+
+- **Direkte Messung:** ein `mdi` mit `vars` = `toolsetterVarMap` (`toolsetterSetup.ts:79`). Das sind #3004, #3005, #3006, #3007, #3009, #3010 und #3013 (darunter die Vorschübe) sowie #3100–#3115.
+- **Vormessung beim Start ab Zeile:** ein `auto_run` mit `pre_tool` und `probe_vars` aus derselben Abbildung (`App.vue:1700–1724`). Das ist bewusst ein abhängiger Start als ein Gateway-Befehl. Der Ablauf wird nicht umgebaut.
+
+### FI265-04 Rest A · die Laufkopie: eigener Code, eigene Pfade, Prüfung vor dem ersten Schreiben
+
+**Eigener Code:** ein Git-Worktree des geprüften Commits unter `~/claude-work/live-tier/<lauf>/tree`.
+- Sein `BASE_DIR` hat damit eine eigene `lcnc-gateway/settings.json`.
+- Das Frontend wird darin gebaut. `node_modules` kommt als Hardlink-Kopie hinein, wie im Mutationsbaum.
+- LinuxCNC startet dessen Launcher. Die Unit setzt `PATH=<lauf>/bin:…`, und `<lauf>/bin/lcnc-suite` zeigt auf `<tree>/lcnc-suite`.
+
+**Eigene Konfiguration:** `install_examples.py --repo <tree> --destination <lauf>/config`, dazu **neue ausdrückliche Optionen** für die veränderlichen Pfade, etwa `--nc-files` und `--macro-dir`. Damit schreibt der Installer `PROGRAM_PREFIX`, `TOOL_LIBRARY_DIR`, `WEBUI_MACRO_DIR` und dessen `SUBROUTINE_PATH`-Eintrag konsistent und unter seinen Prüfungen für 255 Bytes und 10 Einträge. Dazu kommen `LOG_DIR` im Laufverzeichnis, Var-Datei und Werkzeugtabelle in `<lauf>/config`. Diese kleine Installer-Änderung wird im Orchestrator-Paket reviewt.
+
+**Gemeinsame schreibgeschützte Ressourcen, benannt und festgehalten:**
+- das venv: Pfad und Hash von `pip freeze`;
+- `node_modules`: eine Hardlink-Kopie;
+- die LinuxCNC-Installation: ihre Version;
+- die Beispielressourcen, die der Installer verlinkt: Sie kommen aus dem Laufbaum selbst, also vom geprüften Commit.
+
+**Prüfung vor dem ersten Schreiben** von Installer und Runner:
+- Jeder veränderliche Pfad wird aus der Kopie-INI und dem Baum aufgelöst, mit `realpath` und verfolgten Symlinks: `PARAMETER_FILE`, `TOOL_TABLE`, `PROGRAM_PREFIX`, `TOOL_LIBRARY_DIR`, `WEBUI_MACRO_DIR`, `LOG_DIR` und die `settings.json` des Baums.
+- Jeder muss im Laufverzeichnis liegen, sonst bricht der Lauf ab, bevor etwas geschrieben ist.
+- **Gegenfälle:** eine Kopie-INI mit `PROGRAM_PREFIX` → `~/linuxcnc/nc_files` und ein Symlink im Laufverzeichnis nach außen. Beide brechen vor dem Schreiben ab.
+- **Die Zielprüfung bleibt:** `validate_sim_target` vergleicht die Kopie mit dem Profil. Ausgenommen sind genau die Schlüssel, die die neuen Installer-Optionen setzen, aufgezählt. Eine Pauschalausnahme gibt es nicht.
+
+**Nachweis im Bericht:**
+- **Isolierte Schreibziele:** Der Bericht listet sie auf.
+- **Die ursprünglichen Bestände:** Ihre Hashes vor und nach dem Lauf stehen im Bericht: `~/linuxcnc/nc_files`, `~/linuxcnc/macros`, die `settings.json` des LAN-Baums und dessen Konfigurationsverzeichnis. Eine Abweichung ist ein FAIL der Isolationsaussage.
+
+**Rückgabe an die festgehaltene LAN-Instanz:**
+- **Vor der Übernahme festgehalten:** Units (Name, ExecStart, WorkingDirectory), INI-Pfad, Code-Baum mit HEAD-Commit und die Keepalive-Unit.
+- **Danach nachgewiesen:**
+  - dieselben Units sind aus den festgehaltenen Zeilen neu gestartet;
+  - `/ready` antwortet;
+  - die INI des Gateways laut Prozess-Kommandozeile ist die festgehaltene;
+  - der HEAD des Baums ist der festgehaltene;
+  - der Keepalive ist verbunden;
+  - kein unquittierter Trip.
+
+### FI265-04 Rest B · die Toleranz gehört zur Messgröße
+
+**Die Messgröße je native Aussage:**
+- der gemeldete Antastpunkt (#5061–#5063, mit #5070 als Trip-Nachweis);
+- die gespeicherte Werkzeuglänge in Tabelle und G43-Offset;
+- eine Endposition;
+- der größte Weg bis zum Stillstand.
+
+**Erwartung aus einem unabhängigen Maß:**
+- die physische Platte des Profils aus `sim_toolsetter.comp`, Servoperiode und Beschleunigung der Kopie;
+- dazu das vorhandene Modell aus F5 (R127, `viewer-palette-fest.r127.f5.txt`, Zeilen 23 und 36–48):
+  - gemeldet hinter geometrisch 1 bis 1,67 Takte, bei F2000 0,0555 mm;
+  - Stillstand v²/a + 2·v·T; im Modell zählt t vier Servotakte statt zwei, bei F2000 2,9 mm.
+
+**Toleranz vor dem Lauf** aus der deklarierten Konfiguration: Vorschub, Servoperiode und Beschleunigung. Sie wird im Beleg festgehalten und nach einem Fehlschlag **nie** vergrößert. Ein Modellfehler ist ein Befund am Modell, wie in F5.
+
+**Gezielte Messläufe:** Eine Aussage, die die schnelle Variante nicht trägt, bekommt einen gezielten Messlauf mit passendem Vorschub. Das betrifft etwa die Genauigkeit der Werkzeuglänge, die den langsamen Antastvorschub #3005 braucht. Der Rest der Folge bleibt schnell.
+
+**Wo die Geschwindigkeit herkommt:** aus den wirksamen Routinevariablen. Bei M600 sind das #3004, #3005 und #3006, beim Surface-Scan seine Antastvariablen. Beide schalten den Override mit `M50 P0` ab (`tool_touch_off.ngc:143`, `surface_scan.ngc:33`), und der Beleg nennt die Variablen und ihre Werte.
+
+### Sperre und Abschluss
+
+**Die gemeinsame Sperre:**
+- **Wer sie hält:** `round_gate.py` und das Merge-Gate halten sie vom ersten schweren Abschnitt an bis zum Ende des letzten: Build, Unit-Heavy, Backend, Browser. Ebenso halten sie `perf_matrix`, der Last-Repro-Helfer und die native Stufe.
+- **Was daneben laufen darf:** billige Inventar- und Listenprüfungen.
+
+**Die Rückgabe bei Fehler oder Timeout:**
+- Sie ist eine `finally`-Stufe des Orchestrators. Dazu kommt ein `ExecStopPost` der Unit, der dasselbe Rückgabeskript startet, wenn der Orchestrator selbst stirbt.
+- Die Rückgabe schreibt einen eigenen Datensatz mit Status und der Beleg-Liste oben. „Unit gestartet“ ist nie der Nachweis.
+
+### Bauen während der Runde
+
+**Was ich während dieser Runde baue:** Du hast die drei Pakete als getrennt baubar freigegeben. Deshalb beginne ich mit der Inventar-Grundlage: Adapter samt INI-Registry, `atoms.json`, die ersten Funktionsdaten mit der korrigierten Werkzeugmessung, die erzeugte deutsche Tabelle und die Wächter. Ihre Implementierungsrunde folgt getrennt. HTTP-Instrumentierung und Orchestrator baue ich erst nach deinem `agreement` zu dieser Planfassung.
+
+**Erbeten:** `agreement` zu den Resten, oder `findings`.
