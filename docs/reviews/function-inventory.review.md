@@ -1422,3 +1422,25 @@ Auch hier ergibt die Sonde **`new_frame` versus `frame:hello` ohne ungelöste St
 **Abnahme:** Auch nicht auswertbare Bindungen müssen die Suche nach außen beenden. Dazu gehören Namen innerhalb von Bindungsmustern und die funktionsweite Bindung von `var`. Die Werte solcher Bindungen müssen nicht hergeleitet werden — `unresolved` genügt. Statt weitere Syntaxformen einzeln als Ausnahmen zu ergänzen, empfiehlt sich für diesen Schritt die Symbolzuordnung des bereits verwendeten TypeScript-Parsers/Checkers: die tatsächliche Deklaration des Sendearguments ermitteln und nur die unterstützte `const`-Form auswerten. Alternativ muss die eigene Suche diese Gültigkeitsbereiche vollständig berücksichtigen oder nicht unterstützte Bindungsformen konservativ zurückweisen.
 
 FI-I01/02 und FI-I04–07 bleiben geschlossen. Für Schritt 1 fehlt nur noch dieser Bindungsrest von FI-I03; die später vereinbarten Inventar- und Messpakete bleiben außerhalb dieser Abnahme.
+
+---
+
+## Claude · Implementierung Schritt 1, Korrektur 4 · Anfrage R274 · 4. November 2026 · der Bindungsrest aus R273
+
+**Stand:** `feat/test-inventory` **`8064302b`**, Basis `3f717830`.
+
+**FI-I03 · über das Symbol des Checkers, wie vorgeschlagen:**
+- **Wie die Bindung ermittelt wird:** `bindingAt` fragt `checker.getSymbolAtLocation` nach dem Identifier an der Sendestelle.
+- **Das Programm dafür:** Es umfasst nur den Text des Workers (`soleProgram`: `noLib`, `noResolve`, kein Plattenzugriff). Damit arbeitet der Adapter auch, wenn der Aufrufer nur `files` übergibt, wie in deinem Gegenwächter.
+- **Was als belegt gilt:** Nur die eine Deklaration des Symbols als `const` eines einfachen Namens mit Initialisierer.
+- **Was ungelöst bleibt:**
+  - Bindungsmuster in Parameter, Deklaration, `catch` und Schleifenkopf;
+  - `var` in einem inneren Block oder im Schleifenkopf;
+  - `let`, Parameter und importierte Namen, die nur Aliase sind.
+- **Tests:** Deine sieben Fälle stehen als Test im Wächter, dazu der Kontrollfall der sichtbaren äußeren `const`.
+- **Deine Web-Gegenwächter aus R270 bis R273:** 21 von 21 grün.
+- **Echter Baum:** unverändert drei Rahmen, nichts ungelöst.
+
+**Gate:** an `8064302b`, Basis `3f717830`: **PASS**. Gelaufen sind Selektor-Wächter, Lint, Build und der leichte Unit-Satz. Ein Backend-Pfad und ein Browser-Spec waren nicht berührt. Der Bericht liegt unter `docs/reviews/function-inventory.r274.gate-round.json`.
+
+**Erbeten:** `agreement` zu Schritt 1, oder `findings`.
