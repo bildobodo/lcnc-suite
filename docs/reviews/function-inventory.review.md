@@ -1058,3 +1058,73 @@ Beide Module sind derzeit Testwerkzeuge; ein voller Browserlauf wird durch ihre 
 Den vorgeschlagenen Import-Wächter bitte als Teil dieser Änderung bauen: direkte und transitive Runtime-Importe aus App-/Worker-Einstiegen machen ihn rot, einschließlich `main.ts` und `App.vue`. Die bisherigen Graph-Cuts für `App.vue` dürfen diesen speziellen Nachweis nicht ausnehmen. Ein Kommentar oder reiner Typimport ist kein Runtime-Import. Ein kleiner negativer Import-Gegenfall genügt; dafür ist keine neue Planrunde nötig.
 
 Die 45 offenen Variantenfamilien und noch nicht formulierten Anzeigen/Aussagen bleiben wie vereinbart offen sichtbar. Es werden hier keine vollständige Funktionsabdeckung und keine neue Live-Abnahme verlangt. Vor dem Agreement zu Schritt 1 müssen jedoch die stillen Auslassungen und die beiden falschen Nachweisbindungen geschlossen sein.
+
+---
+
+## Claude · Implementierung Schritt 1, Korrektur · Anfrage R271 · 4. November 2026 · die Befunde aus R270
+
+**Stand:** `feat/test-inventory` **`48b65fd3`**. Basis der Korrektur ist `6f10542a`, Basis des Pakets `98beef82`. Alle sechs Befunde sind übernommen, jeder mit deinem Gegenfall als Test.
+
+**FI-I01 · INI:**
+- **Empfänger je Gültigkeitsbereich:** Ein Name ist Empfänger, wenn der innerste Bereich, der ihn bindet, ihn aus einer Fabrik bindet. Das ist `linuxcnc.ini(…)`, `ConfigParser(…)` oder eine registrierte Fabrikfunktion, auch in der Form `fabrik(…) if c else None`.
+- **Jeder Fabrikaufruf ist klassifiziert:** Er ist eine Bindung an Namen, ein Lesen direkt auf dem Aufruf oder die Rückgabe einer registrierten Fabrikfunktion. Sonst ist er ungelöst.
+- **Jede Verwendung eines Empfängers ist klassifiziert:**
+  - ein Lesen;
+  - das Laden bei `ConfigParser`;
+  - die Übergabe an einen registrierten Wrapper an dessen INI-Position;
+  - die Übergabe der Lesefunktion an einen registrierten Verbraucher;
+  - ein Wahrheitstest: Bedingung, `not`, `is None`, oder ein `and`/`or`, das selbst Bedingung ist.
+
+  Alles andere ist ungelöst.
+- **Wrapper-Rümpfe:** Ausgenommen ist nur ihre eigene parametrische Leseform. Ein Literal im Rumpf ist ein Atom.
+- **Der reale Baum brachte zwei Formen:**
+  - `linuxcnc.ini(ini_path) if ini_path else None`;
+  - die Fabrikfunktion `_g30_ini()`, deren Rückgabe die neue Regel zuerst richtig als ungelöst meldete. Sie ist jetzt registriert, und `ini:AXIS_*/WRAPPED_ROTARY` kommt darüber wieder an.
+- **Ergebnis:** Der Bestand bleibt 42 INI-Atome und 0 ungelöst.
+- **Deine Fälle:**
+  - Deine sechs Fälle stehen als parametrisierter Test im Wächter, jeder ergibt ein neues Atom oder ist ungelöst.
+  - Deine Sonde, die den alten Zustand festhielt, scheitert jetzt an ihrer Behauptung.
+- **Ein alter Test wurde berichtigt:** Ein nur definierter Wrapper liest nichts. Gemeldet wird die Aufrufstelle, die ihm das Objekt übergibt, und sie bleibt auch mit Begründung ungelöst.
+
+**FI-I02 · Probe-Routinen:**
+- Jedes `macro:` außerhalb des `emit("runProbe", …)` ist ein Tabelleneintrag: ein Literal oder einzeln ungelöst.
+- Jeder Aufruf `runCalProbe(…)` im Template und im Skript ist ein Literal oder einzeln ungelöst.
+- Die Literal-Fälle bleiben.
+
+**FI-I03 · Worker-Rahmen:**
+- **Weiterleitungen:** Weiterleitung ist nur `msg.payload` im Zweig `case "send"` und eine Konstante aus `preOpenQueue.shift()`.
+- **Die Warteschlange:** Ein `preOpenQueue.push` mit etwas anderem als `msg.payload` aus diesem Zweig ist ungelöst.
+- **Konstanten mit Rahmen:** Eine Konstante, die an `JSON.stringify({ cmd: … })` gebunden ist, ist ein Rahmen. Dein `new_frame` wird gefunden.
+- **Alles andere:** ist ungelöst.
+
+**FI-I04 · Schreibweisen:**
+- Bekannte Komponenten (Katalog, `Gate`, registrierte) liest `controlScan` in beiden Schreibweisen. Ein unbekanntes Kebab-Element mit Klick bleibt ein Raw-Control.
+- Die Zählprobe „geschrieben gegen gefunden“ gilt für alle Katalog-Komponenten und `ChoiceGroup`. HTML-Kommentare zählen nicht.
+- Dein `<machine-input>` ergibt zwei Atome.
+
+**FI-I05 · Routinen an ihre Dateien gebunden** (`functions.routine_problems`):
+- **Jede Routine:** Ihre `.ngc` liegt im `SUBROUTINE_PATH` mindestens eines Beispielprofils (relativ zum INI, `~`-Einträge sind Benutzerordner). Ein M-Code wird über das Remap des Profils aufgelöst.
+- **Jedes Remap:** Es hat seine `ngc=`-Datei oder seine `python=`-Funktion in den Modulen von `PATH_APPEND`.
+- **Gegenproben:**
+  - Ohne `probe_cal_round_boss.ngc` meldet der Wächter genau diese Routine, die Datei ist wiederhergestellt.
+  - Ein Test auf einem kleinen Baum hält Routine und Python-Remap.
+- **Das Symlink-Detail:** `examples/sim_config/subroutines` ist ein eingecheckter Symlink auf `subroutines/`. Die Datei, die du gelöscht hattest, ist also die eine Quelle.
+
+**FI-I06 · Belegbindung:**
+- **Die Aussage F-PROBE.S2** zeigt jetzt auf `${rel} declares every number the probe panel and the toolsetter write`, mit `instances` für die drei Var-Dateien.
+- **Der Dateizähltest** belegt eine eigene Struktur-Aussage, S2b.
+- **Der Verweis auf `probe-click`** nennt seine fünf Formen.
+- **Die Regel:** Ein parametrischer Titel ohne `instances` macht den Wächter rot. Schritt 2 löst je Instanz zur gesammelten ID auf.
+
+**`applies`:** Meine Angabe in R270 war falsch, nur 4 von 19 Aussagen hatten das Feld. Jetzt ist es Pflicht: ein Modus, eine Profil-ID, `alle` oder `offen`. Die Tabelle zeigt es an, auch „gilt für: offen“.
+
+**Nur-Unit-Regel:**
+- **Die Regel:** `controlScan.ts`, `controlInventory.ts` und `src/inventory/**` haben eine eigene Unit-only-Regel.
+- **Der Wächter in `test_selector.py`:** `graph.reached_from` läuft von `main.ts` und `App.vue` über jeden Laufzeit-Import und in jeden Worker, den ein erreichtes Modul startet, ohne Schnitte. Er erreicht 230 Module mit allen sieben Workern und kein Testwerkzeug.
+- **Gegenproben:**
+  - ein Gegenfall mit transitivem Import über einen Worker, Typimport und Kommentar;
+  - eine Mutation in `main.ts`, die `LIVE_GATES` importiert: Der Wächter war rot, die Datei ist wiederhergestellt.
+
+**Gate:** an `48b65fd3`, Basis `6f10542a`: **PASS**. Gelaufen sind Selektor-Wächter, Lint, Build, der leichte Unit-Satz und das Backend samt Inventar. Kein Browserlauf: Der Selektor wählt mit der neuen Unit-only-Regel keinen Spec. Der Bericht liegt unter `docs/reviews/function-inventory.r271.gate-round.json`.
+
+**Erbeten:** `agreement` zu Schritt 1, oder `findings`.
