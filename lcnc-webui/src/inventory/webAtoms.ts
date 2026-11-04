@@ -261,6 +261,24 @@ export function listenersAdapter(src: WebSources): Adapter {
     limit: "listeners on elements belong to their component's controls", atoms: sortById([...atoms.values()]), unresolved: dedupe(unresolved) };
 }
 
+/** A program over ONE source text and nothing else (no lib, no imports
+ *  resolved, no disk): enough for the checker to bind a file's own names. */
+function soleProgram(name: string, text: string): ts.Program {
+  const sf = ts.createSourceFile(name, text, ts.ScriptTarget.Latest, true);
+  const host: ts.CompilerHost = {
+    getSourceFile: (f) => (f === name ? sf : undefined),
+    getDefaultLibFileName: () => "lib.d.ts",
+    writeFile: () => {},
+    getCurrentDirectory: () => "/",
+    getCanonicalFileName: (f) => f,
+    useCaseSensitiveFileNames: () => true,
+    getNewLine: () => "\n",
+    fileExists: (f) => f === name,
+    readFile: (f) => (f === name ? text : undefined),
+  };
+  return ts.createProgram([name], { noLib: true, noResolve: true, target: ts.ScriptTarget.ES2022 }, host);
+}
+
 /** The worker's own frames: every `<socket>.send(arg)` in wsWorker.ts —
  *  `JSON.stringify({ cmd: "…", … })` (also through a const bound to it), a
  *  literal or template text with a literal `"cmd":"…"`, or one of the two
@@ -272,35 +290,22 @@ export function framesAdapter(src: WebSources): Adapter {
   const atoms = new Map<string, Atom>();
   const unresolved: Unresolved[] = [];
   const frame = (cmd: string) => atoms.set(cmd, { id: `frame:${cmd}` });
-  for (const sf of parsed(rel, src.files[rel] ?? "")) {
+  const program = soleProgram(rel, src.files[rel] ?? "");
+  const checker = program.getTypeChecker();
+  for (const sf of [program.getSourceFile(rel)!]) {
     const inSendCase = (n: ts.Node) => {
       for (let p = n.parent; p; p = p.parent) if (ts.isCaseClause(p)) return ts.isStringLiteralLike(p.expression) && p.expression.text === "send";
       return false;
     };
-    // the declaration that binds the identifier AT the send: the nearest
-    // enclosing block, case clause or the file that declares it (Codex R272
-    // FI-I03). A parameter, a loop head, a catch clause, a function or class
-    // of the name, or two declarations bind nothing proven; an inner
-    // function's or a left block's const is never reached; one `const` with
-    // its initializer is the proven value.
+    // the value an identifier at the send is bound to, by the checker's own
+    // symbol (Codex R273 FI-I03): only its ONE declaration as a `const` of a
+    // plain name with an initializer is a proven value — a parameter, a
+    // binding pattern, a `var`, a `let`, a catch or a loop binding is not
     const bindingAt = (id: ts.Identifier): ts.Expression | undefined => {
-      const named = (n: ts.BindingName) => ts.isIdentifier(n) && n.text === id.text;
-      for (let p: ts.Node | undefined = id.parent; p; p = p.parent) {
-        if (ts.isFunctionLike(p) && p.parameters.some((q) => named(q.name))) return undefined;
-        if (ts.isCatchClause(p) && p.variableDeclaration && named(p.variableDeclaration.name)) return undefined;
-        if ((ts.isForOfStatement(p) || ts.isForInStatement(p) || ts.isForStatement(p)) && p.initializer
-            && ts.isVariableDeclarationList(p.initializer) && p.initializer.declarations.some((d) => named(d.name))) return undefined;
-        const stmts = ts.isBlock(p) || ts.isSourceFile(p) || ts.isCaseClause(p) || ts.isDefaultClause(p) ? p.statements : undefined;
-        if (!stmts) continue;
-        const decls = stmts.flatMap((st) => ts.isVariableStatement(st)
-          ? st.declarationList.declarations.filter((d) => named(d.name)).map((d) => ({ d, list: st.declarationList })) : []);
-        if (stmts.some((st) => (ts.isFunctionDeclaration(st) || ts.isClassDeclaration(st)) && st.name?.text === id.text) || decls.length > 1) return undefined;
-        if (decls.length === 1) {
-          const { d, list } = decls[0]!;
-          return (list.flags & ts.NodeFlags.Const) !== 0 && d.initializer ? d.initializer : undefined;
-        }
-      }
-      return undefined;
+      const decls = checker.getSymbolAtLocation(id)?.declarations ?? [];
+      const d = decls.length === 1 ? decls[0]! : undefined;
+      if (!d || !ts.isVariableDeclaration(d) || !ts.isIdentifier(d.name) || !ts.isVariableDeclarationList(d.parent)) return undefined;
+      return (d.parent.flags & ts.NodeFlags.Const) !== 0 ? d.initializer : undefined;
     };
     const literalCmd = (e: ts.Expression): string | undefined => {
       const obj = ts.isCallExpression(e) && e.expression.getText(sf) === "JSON.stringify" ? e.arguments[0] : undefined;

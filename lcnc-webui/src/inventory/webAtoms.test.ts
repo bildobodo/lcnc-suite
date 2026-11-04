@@ -234,6 +234,23 @@ describe("the function inventory's web atoms (Codex R265–R268 FI265-01)", () =
     expect([a.atoms.map((x) => x.id), a.unresolved]).toEqual([["frame:hello"], []]);
   });
 
+  it("frames: by the checker's symbol — a binding pattern, a function-wide var, a loop or catch binding is no proven value (Codex R273 FI-I03)", () => {
+    const outer = `const own = JSON.stringify({ cmd: "hello" });\n`;
+    const cases = [
+      "function send({ own }) { ws.send(own); }",
+      "function send([own]) { ws.send(own); }",
+      "function send(x) { const { own } = x; ws.send(own); }",
+      "function send() { try { f(); } catch ({ own }) { ws.send(own); } }",
+      "function send(xs) { for (const { own } of xs) ws.send(own); }",
+      "function send() { if (c) { var own = JSON.stringify({ cmd: \"new_frame\" }); } ws.send(own); }",
+      "function send(xs) { for (var own of xs) {} ws.send(own); }",
+    ];
+    for (const c of cases) expect(framesAdapter(memory({ "wsWorker.ts": outer + c })).unresolved.map((u) => u.expr), c).toEqual(["ws.send(own)"]);
+    // the outer const itself, seen at the send: a proven frame
+    const seen = framesAdapter(memory({ "wsWorker.ts": outer + "function send() { ws.send(own); }" }));
+    expect([seen.atoms.map((x) => x.id), seen.unresolved]).toEqual([["frame:hello"], []]);
+  });
+
   it("routines: the macro family without its literals is unresolved", () => {
     const a = routinesAdapter(memory({ "App.vue": "<script setup>emit(`O<${macro}> CALL`)</script>" }));
     expect(a.unresolved).toHaveLength(1);

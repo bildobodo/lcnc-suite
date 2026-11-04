@@ -10377,3 +10377,9 @@ reached. The graph reads every source type the build compiles
 (`graph.SOURCE_EXT` = `tsconfig.app.json` include: `.ts`, `.tsx`, `.vue`; a
 guard holds the two equal and finds no other script type in `src`), so a
 `.tsx` file reached from the app is scanned and fails the test-only guard.
+
+Codex R273: the binding at the send is the TypeScript checker's own symbol,
+in a program over the worker's text alone (no lib, no import resolution, no
+disk) — only its one declaration as a `const` of a plain name with an
+initializer is a proven value; a binding pattern, a function-wide `var`, a
+`let`, a parameter, a catch or loop binding are unresolved.
