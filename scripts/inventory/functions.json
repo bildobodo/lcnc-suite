@@ -17,22 +17,45 @@
  "functions": [
   {"id": "F-ARM", "area": "sicherheit", "name": "Freigeben (Arm) und Sperren",
    "atoms": ["control:SafetyStrip.vue|MachineBtn:arm|*=1", "cmd:arm", "status:armed", "status:clients",
-             "control:SettingsPanel.vue|MachineRadio:protectedSetting|*autoDisarmMin*=1", "setting:machine.autoDisarmMin"]},
+             "control:SettingsPanel.vue|MachineRadio:protectedSetting|*autoDisarmMin*=1", "setting:machine.autoDisarmMin"],
+   "statements": [
+    {"id": "S1", "kind": "Ablehnung", "text": "Ohne Arm lehnt das Gateway jeden Befehl ab, der etwas startet oder schreibt, mit dem Grund „Not armed“.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_command_dispatch.py", "title": "test_not_armed_denied"}]},
+    {"id": "S2", "kind": "Ablehnung", "text": "Arm geht erst, wenn eine Sicherheits-Auslösung quittiert ist; der Grund steht am Knopf.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_button_gates_d.py", "title": "test_arming_waits_for_the_acknowledgement"}, {"layer": "browser", "file": "setup-gates.spec.ts", "title": "the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)"}]},
+    {"id": "S3", "kind": "Wirkung", "text": "Ein Client, der 3 s keinen Herzschlag sendet, verliert seine Freigabe.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_ws_command_worker.py", "title": "test_hb_stall_disarms_silent_client"}]}
+   ]},
   {"id": "F-ESTOP", "area": "sicherheit", "name": "Not-Halt auslösen und zurücksetzen",
    "atoms": ["control:SafetyStrip.vue|MachineBtn:estop|*=1", "cmd:estop", "cmd:estop_reset",
              "status:data.estop", "status:data.is_estop", "status:data.emc_enable_in"],
-   "uses": ["key:estop", "pad:estop"]},
+   "uses": ["key:estop", "pad:estop"],
+   "statements": [
+    {"id": "S1", "kind": "Bedienbarkeit", "text": "Escape löst genau einen Not-Halt aus, auch bei offener Zahlentastatur, und nie ein Zurücksetzen.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "keyboard-guards.spec.ts", "title": "number keypad open: Space/Backspace send nothing, Escape sends exactly estop"}, {"layer": "browser", "file": "keyboard-guards.spec.ts", "title": "repeated Escape in E-Stop never sends estop_reset"}]},
+    {"id": "S2", "kind": "Daten", "text": "Eine offene Sicherheitskette in HAL gilt als Not-Halt, auch wenn LinuxCNC selbst keinen meldet.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_command_dispatch.py", "title": "test_safety_chain_open_forces_estop_and_disables"}]},
+    {"id": "S3", "kind": "Ablehnung", "text": "Zurücksetzen braucht Arm und die quittierte Auslösung.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_button_gates_d.py", "title": "test_reset_needs_arm_and_the_acknowledgement"}]},
+    {"id": "S4", "kind": "Wirkung", "text": "Bleibt der Herzschlag des Gateways aus, verriegelt HAL den Not-Halt im Servotakt und hält ihn bis zur Quittierung und zum Zurücksetzen.", "applies": ["alle"], "evidence": [{"layer": "script", "file": "perf_matrix.py", "title": "sigstop_trip", "live": true}]}
+   ]},
   {"id": "F-TRIP", "area": "sicherheit", "name": "Sicherheits-Auslösung quittieren, Sicherheitskette",
    "atoms": ["control:App.vue|MachineBtn:bannerAck|*=1", "cmd:safety_trip_ack", "status:safety_trip",
-             "status:safety_chain_incomplete", "status:reader_stale", "status:data.reader_fresh"]},
+             "status:safety_chain_incomplete", "status:reader_stale", "status:data.reader_fresh"],
+   "statements": [
+    {"id": "S1", "kind": "Daten", "text": "Eine Auslösung nach sauberem Start erscheint genau einmal im Banner; ein schon beim Start gesetzter Latch wird protokolliert, nicht gebannert.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_gateway_util.py", "title": "test_sustained_latch_banners_only_once"}, {"layer": "gateway", "file": "test_gateway_util.py", "title": "test_boot_faulted_does_not_banner"}]}
+   ]},
   {"id": "F-POWER", "area": "sicherheit", "name": "Maschine ein und aus",
    "atoms": ["control:SafetyStrip.vue|MachineBtn:machineOn|*=1", "cmd:machine_on", "cmd:machine_off",
-             "status:data.enabled", "status:data.is_enabled", "status:data.state"]},
+             "status:data.enabled", "status:data.is_enabled", "status:data.state"],
+   "statements": [
+    {"id": "S1", "kind": "Ablehnung", "text": "Maschine ein wird im Not-Halt abgelehnt.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_command_dispatch.py", "title": "test_machine_on_denied_in_estop"}]}
+   ]},
   {"id": "F-ABORT", "area": "sicherheit", "name": "Abbrechen (Abort)",
    "atoms": ["control:*|MachineBtn:abort|*=7", "control:App.vue|MachineBtn:bannerAbort|*=1", "cmd:abort"],
-   "uses": ["key:abort", "pad:abort"]},
+   "uses": ["key:abort", "pad:abort"],
+   "statements": [
+    {"id": "S1", "kind": "Abbruch", "text": "Abort ist in jedem Zustand offen: ohne Arm, im Not-Halt, bei unbekanntem Zustand und im Lauf; ohne Arm erreicht er die Steuerung.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_button_gates.py", "title": "test_abort_in_any_state"}, {"layer": "gateway", "file": "test_button_gates.py", "title": "test_abort_disarmed_reaches_the_controller"}]}
+   ]},
   {"id": "F-MODE", "area": "sicherheit", "name": "Betriebsart: Manuell, MDI, Automatik",
-   "atoms": ["control:JogStrip.vue|ChoiceGroup:Task mode|*=1", "cmd:set_mode", "status:data.task_mode", "status:data.interp_state"]},
+   "atoms": ["control:JogStrip.vue|ChoiceGroup:Task mode|*=1", "cmd:set_mode", "status:data.task_mode", "status:data.interp_state"],
+   "statements": [
+    {"id": "S1", "kind": "Ablehnung", "text": "MANUAL ist in E-Stop und unreferenziert wählbar; MDI und AUTO sind gedimmt mit Grund; die schon gewählte Betriebsart sendet nichts.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "setup-gates.spec.ts", "title": "the task mode per target: MANUAL in E-Stop and unhomed, MDI / AUTO dimmed with the reason; the checked mode sends nothing (BG-04)"}]}
+   ]},
   {"id": "F-SHUTDOWN", "area": "sicherheit", "name": "Herunterfahren",
    "atoms": ["control:App.vue|MachineBtn:headerIcon|@click=showShutdownConfirm = true",
              "control:App.vue|MachineBtn:dialogCancel|@click=showShutdownConfirm = false",
@@ -44,32 +67,58 @@
    "atoms": ["control:SetupActions.vue|MachineBtn:{isHomed*=1", "control:SetupStrip.vue|MachineBtn:{homedJoints*=1",
              "control:App.vue|MachineBtn:bannerHome|*=1", "cmd:home", "cmd:home_all", "cmd:unhome", "cmd:unhome_all",
              "status:data.homed", "status:data.homed_joints", "status:data.homing_active", "ini:TRAJ/NO_FORCE_HOMING"],
-   "uses": ["pad:home_all"]},
+   "uses": ["pad:home_all"],
+   "statements": [
+    {"id": "S1", "kind": "Bedienbarkeit", "text": "Referenz aufheben ist eine Haltegeste: ein kurzes Tippen sendet nichts und sagt warum, ein vollständiges Halten genau einen Befehl.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "touch-hold.spec.ts", "title": "a short tap sends nothing and says why; a complete hold sends exactly one command"}]}
+   ]},
   {"id": "F-JOG", "area": "bewegen", "name": "Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren",
    "atoms": ["control:JogStrip.vue|div|*=1", "control:JogStrip.vue|MachineBtn:*=9", "control:JogStrip.vue|MachineSelect:*=1",
              "control:JogStrip.vue|MachineSlider:*=2", "control:JogStrip.vue|ChoiceGroup:Jog step|*=1", "cmd:jog_*=6", "listener:JogStrip.vue:*=5", "listener:useJogPointers.ts:*=4",
              "ini:DISPLAY/*_LINEAR_VELOCITY=3", "ini:DISPLAY/*_ANGULAR_VELOCITY=3", "ini:DISPLAY/INCREMENTS",
              "ini:DISPLAY/WEBUI_JOINT_*=3"],
-   "uses": ["key:jog_x+", "padButton:btn_lb"]},
+   "uses": ["key:jog_x+", "padButton:btn_lb"],
+   "statements": [
+    {"id": "S1", "kind": "Abbruch", "text": "Ein gestarteter Jog besitzt seinen Stopp: das Loslassen stoppt genau, was das Drücken gestartet hat, auch wenn sich Schritt oder Belegung inzwischen geändert haben.", "applies": ["alle"], "evidence": [{"layer": "unit", "file": "jogGesture.test.ts", "title": "ends a gesture with the stop recorded at its start, whatever changed since"}]},
+    {"id": "S2", "kind": "Abbruch", "text": "Ein Jog-Stopp wird nie abgelehnt, auch ohne Arm und im Not-Halt.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_command_policy.py", "title": "test_jog_stop_always_allowed"}, {"layer": "gateway", "file": "test_command_dispatch.py", "title": "test_jog_stop_never_policy_denied"}]},
+    {"id": "S3", "kind": "Daten", "text": "Eine negative Jog-Geschwindigkeit bleibt erhalten: das Vorzeichen ist die Richtung.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_command_policy.py", "title": "test_jog_velocity_is_SIGNED_and_must_survive_the_clamp"}]},
+    {"id": "S4", "kind": "Ablehnung", "text": "Vor dem Referenzieren joggt nur die deklarierte Gelenk-Achse, eine Gantry-Achse und die Diagonalen sind gesperrt, mit Grund.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_button_gates_e.py", "title": "test_a_gantry_letter_is_closed"}, {"layer": "browser", "file": "joint-jog.spec.ts", "title": "before homing every open axis jogs in amber, the diagonals are closed with their reason; homed both are back (package F)"}]},
+    {"id": "S5", "kind": "Wirkung", "text": "Auf echtem LinuxCNC bewegt jeder Jog-Knopf seine Achse in seine Richtung und hält am Loslassen.", "applies": ["offen"], "gap": "nativ: Achse, Richtung und Stopp je Knopf am echten Task (die native Stufe)"}
+   ]},
   {"id": "F-GOTO", "area": "bewegen", "name": "Anfahren: G30, Maschinennull, Werkstücknull",
    "atoms": ["control:SetupActions.vue|MachineBtn:goTo|*=2", "control:SetupActions.vue|MachineBtn:goZero|*=1",
-             "cmd:go_to_zero", "routine:go_to_g30", "routine:go_to_home", "routine:go_to_zero", "routine:twp_goto_zero"]},
+             "cmd:go_to_zero", "routine:go_to_g30", "routine:go_to_home", "routine:go_to_zero", "routine:twp_goto_zero"],
+   "statements": [
+    {"id": "S1", "kind": "Wirkung", "text": "Ein Rückzug senkt Z nie: von unter Z0 auf die Maschinen-Oberkante, von über Z0 unverändert; dann X/Y.", "applies": ["Machine"], "evidence": [{"layer": "script", "file": "twp_buttons_check.py", "title": "→ Zero from ABOVE Z0 (G53 Z+50): Z unchanged (never lowered), X/Y at work zero", "live": true}, {"layer": "script", "file": "twp_buttons_check.py", "title": "→ Home from ABOVE Z0: min Z seen >= +50 (never lowered), X/Y to machine zero", "live": true}]},
+    {"id": "S2", "kind": "Wirkung", "text": "→ Zero nach einem Jog der Drehachse bringt den Tisch auf den Stempelwinkel zurück, X/Y lesen null.", "applies": ["Machine"], "evidence": [{"layer": "script", "file": "twp_buttons_check.py", "title": "→ Zero after jogging A away: table returns to A 20 and X/Y read zero (tip on the datum)", "live": true}]}
+   ]},
 
   {"id": "F-OVERRIDE", "area": "spindel", "name": "Overrides: Vorschub, Eilgang, Spindel",
    "atoms": ["control:OverridesStrip.vue|*=6", "cmd:set_*_override=3", "status:data.*_override=3",
              "status:data.*_override_enabled=2", "status:data.adaptive_feed_enabled", "status:data.feed_hold_enabled",
-             "ini:DISPLAY/MAX_FEED_OVERRIDE", "ini:DISPLAY/*_SPINDLE_OVERRIDE=2"]},
+             "ini:DISPLAY/MAX_FEED_OVERRIDE", "ini:DISPLAY/*_SPINDLE_OVERRIDE=2"],
+   "statements": [
+    {"id": "S1", "kind": "Daten", "text": "Ein Schieber auf 50 % sendet den Faktor 0,5 für genau seinen Override.", "applies": ["alle"], "gap": "Browser: kein Spec prüft, was die Override-Schieber senden (Codex R250: ein kurzer UI-Test 50 % → scale 0.5)"},
+    {"id": "S2", "kind": "Wirkung", "text": "Auf echtem LinuxCNC ändert der Override die Geschwindigkeit; in M600 und Surface-Scan ist er abgeschaltet (M50 P0).", "applies": ["offen"], "gap": "nativ (native Stufe)"}
+   ]},
   {"id": "F-SPINDLE", "area": "spindel", "name": "Spindel von Hand: Rechts, Links, Stopp, Drehzahl",
    "atoms": ["control:SpindleStrip.vue|MachineBtn:*=5", "control:SpindleStrip.vue|MachineInput:*=1", "cmd:spindle_*=5",
              "status:data.spindle_direction", "status:data.spindle_speed", "status:data.spindle_speed_actual",
              "status:data.spindle_load", "ini:DISPLAY/DEFAULT_SPINDLE_SPEED", "ini:DISPLAY/WEBUI_SPINDLE_BEFORE_HOMING",
              "ini:SPINDLE_*=3", "setting:machine.spindleFeedbackUnit", "setting:machine.spindleLoadPin",
              "control:SettingsPanel.vue|*spindleFeedbackUnit*=2", "control:SettingsPanel.vue|*spindleLoadPin*=1"],
-   "uses": ["pad:spindle_stop"]},
+   "uses": ["pad:spindle_stop"],
+   "statements": [
+    {"id": "S1", "kind": "Abbruch", "text": "Spindel-Stopp ist im Leerlauf ohne Arm und ohne Referenz offen; im Lauf gehört die Spindel dem Programm, der Grund nennt die wirksamen Stopps.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_button_gates.py", "title": "test_spindle_stop_at_idle_without_arm_or_homing"}, {"layer": "gateway", "file": "test_button_gates.py", "title": "test_spindle_stop_closed_while_the_program_owns_the_spindle"}]},
+    {"id": "S2", "kind": "Ablehnung", "text": "Die Spindel von Hand vor dem Referenzieren nur, wo die Maschine es deklariert (WEBUI_SPINDLE_BEFORE_HOMING = 1), und nur in MANUAL.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "setup-gates.spec.ts", "title": "the manual spindle unhomed where the machine declares it, MANUAL only (Q1)"}]}
+   ]},
   {"id": "F-COOLANT", "area": "spindel", "name": "Kühlmittel: Flood und Mist",
    "atoms": ["control:SpindleStrip.vue|MachineToggle:coolant|*=2", "cmd:flood_*=2", "cmd:mist_*=2",
              "status:data.flood", "status:data.mist"],
-   "uses": ["pad:flood_toggle", "pad:mist_toggle"]},
+   "uses": ["pad:flood_toggle", "pad:mist_toggle"],
+   "statements": [
+    {"id": "S1", "kind": "Daten", "text": "Flood und Mist senden ihr Ein und Aus, und die Anzeige folgt dem gemeldeten Zustand.", "applies": ["alle"], "gap": "Browser: kein Spec löst flood_on/off oder mist_on/off aus"},
+    {"id": "S2", "kind": "Wirkung", "text": "Auf echtem LinuxCNC schalten Flood und Mist ihre HAL-Ausgänge.", "applies": ["offen"], "gap": "nativ (native Stufe)"}
+   ]},
 
   {"id": "F-TOUCHOFF", "area": "koordinaten", "name": "Antippen (Touch-off) und Nullen je Achse",
    "atoms": ["control:SetupStrip.vue|MachineBtn:{isRotaryAxis*=1", "control:SetupStrip.vue|MachineInput:*=1",
@@ -95,7 +144,12 @@
    ]},
   {"id": "F-WCS", "area": "koordinaten", "name": "Nullpunkte: aktives System wählen (G54 …), Tabelle bearbeiten und löschen",
    "atoms": ["control:SetupStrip.vue|ChoiceGroup:Work offset|*=1", "control:OffsetPanel.vue|*=5", "cmd:get_wcs_table", "cmd:set_wcs", "cmd:clear_wcs",
-             "status:data.wcs_table", "status:data.wcs_prov_a", "status:data.rotation_xy"]},
+             "status:data.wcs_table", "status:data.wcs_prov_a", "status:data.rotation_xy"],
+   "statements": [
+    {"id": "S1", "kind": "Unbekannt", "text": "Unbekannt ist nie null: die Zusammenfassung nennt, was unbekannt ist, und sagt „none“ nur, wenn alles bekannt ist.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "offsets.spec.ts", "title": "unknown is never zero: the summary names what is unknown, and says 'none' only when all is known"}]},
+    {"id": "S2", "kind": "Ablehnung", "text": "Ein Nullpunkt wird bei aktiver Flächenkompensation nicht geschrieben.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_command_policy.py", "title": "test_touchoff_blocked_with_eoffset"}]},
+    {"id": "S3", "kind": "Bedienbarkeit", "text": "Die aktive Zeile ist benannt, nicht nur gefärbt; ein Klick auf eine Zeile wählt sie für Löschen und wechselt nie das System.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "offsets.spec.ts", "title": "the active fixture is named, not only tinted; a row click selects for Clear and never switches the WCS"}]}
+   ]},
   {"id": "F-KINS", "area": "koordinaten", "name": "Kinematik-Modus umschalten: Machine, TCP, Plane",
    "atoms": ["control:JogStrip.vue|ChoiceGroup:Kinematics frame|*=1", "cmd:set_kins_mode", "status:data.kins_type"],
    "uses": ["control:ChoiceGroup.vue|MachineChoice:{o.gate}|@choose=el => choose(o, el)"],
@@ -109,13 +163,20 @@
              "routine:twp_reorient", "routine:twp_touchoff", "status:data.twp_*=7", "status:data.kins_*_angle=2",
              "status:data.kins_pre_rot",
              "status:data.rotary_abc", "status:data.rotary_at_zero", "remap:G53.*=3", "remap:G68.*=3", "remap:G69",
-             "remap:M4*=4", "remap:M5*=2"]},
+             "remap:M4*=4", "remap:M5*=2"],
+   "statements": [
+    {"id": "S1", "kind": "Ablehnung", "text": "Eine Ebene wird nicht erfasst, solange schon eine definiert ist; auf einer umschaltbaren Maschine ohne TWP gibt es kein Erfassen.", "applies": ["Plane"], "evidence": [{"layer": "gateway", "file": "test_command_policy.py", "title": "test_refuses_plane_already_defined"}, {"layer": "gateway", "file": "test_command_policy.py", "title": "test_switchable_non_twp_machine_cannot_capture"}]},
+    {"id": "S2", "kind": "Ablehnung", "text": "Plane läuft nur mit seiner Ebene und G59.", "applies": ["Plane"], "evidence": [{"layer": "gateway", "file": "test_command_policy.py", "title": "test_plane_kins_with_its_plane_and_g59_runs"}, {"layer": "gateway", "file": "test_command_policy.py", "title": "test_plane_kins_without_a_plane_refuses"}]}
+   ]},
 
   {"id": "F-LOAD", "area": "programm", "name": "Programm laden, neu laden, entladen",
    "atoms": ["control:GcodePanel.vue|MachineBtn:fileOp|*=3", "control:FileBrowser.vue|*=3",
              "control:App.vue|MachineBtn:bannerReload|*=2", "cmd:load_file", "cmd:unload_file", "http:GET /files",
              "http:GET /gcode", "http:GET /subfile", "status:data.active_file", "status:data.program_unconfirmed",
-             "ini:DISPLAY/PROGRAM_PREFIX"]},
+             "ini:DISPLAY/PROGRAM_PREFIX"],
+   "statements": [
+    {"id": "S1", "kind": "Bedienbarkeit", "text": "Ein Programm lädt in E-Stop, ausgeschaltet und unreferenziert: nur Arm und Leerlauf zählen.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "setup-gates.spec.ts", "title": "a program loads in E-Stop, off and unhomed: programLoad, no power or homing (BG-03)"}]}
+   ]},
   {"id": "F-UPLOAD", "area": "programm", "name": "Programm hochladen (mit Umbenennen oder Ersetzen)",
    "atoms": ["control:GcodePanel.vue|input|@change=onFileSelect",
              "control:GcodePanel.vue|MachineBtn:sourceOp|@click=($refs.fileInput as HTMLInputElement).click()",
@@ -123,7 +184,11 @@
              "control:GcodePanel.vue|MachineBtn:sourceDanger|@click=uploadReplace",
              "control:GcodePanel.vue|MachineInput:uploadName|v-model=uploadConflict.newName",
              "control:GcodePanel.vue|MachineBtn:dialogCancel|@click=uploadConflict = null",
-             "control:GcodePanel.vue|MachineBtn:close|@click=uploadError = null", "http:POST /upload"]},
+             "control:GcodePanel.vue|MachineBtn:close|@click=uploadError = null", "http:POST /upload"],
+   "statements": [
+    {"id": "S1", "kind": "Ablehnung", "text": "Ein Upload ersetzt ein vorhandenes Programm nie ohne ausdrückliches Ersetzen (409); das Original bleibt unberührt; mit Ersetzen wird es ersetzt.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_upload_conflict.py", "title": "test_same_name_without_flag_is_409_and_original_untouched"}, {"layer": "gateway", "file": "test_upload_conflict.py", "title": "test_same_name_with_flag_replaces"}]},
+    {"id": "S2", "kind": "Ablehnung", "text": "Ein nicht freigegebener Schreiber lädt nichts hoch; geprüft im Moment des Veröffentlichens.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_button_gates_b.py", "title": "test_a_disarmed_writer_uploads_nothing"}]}
+   ]},
   {"id": "F-EDIT", "area": "programm", "name": "Programm bearbeiten und speichern",
    "atoms": ["control:GcodePanel.vue|MachineBtn:sourceOp|@click=enterEdit",
              "control:GcodePanel.vue|MachineBtn:fileSave|@click=saveEdit",
@@ -133,7 +198,11 @@
              "control:GcodePanel.vue|MachineBtn:dialogCancel|@click=showDiscardConfirm = false",
              "control:GcodePanel.vue|MachineBtn:dialogDanger|@click=confirmDiscard",
              "control:GcodePanel.vue|MachineBtn:close|@click=saveError = null",
-             "control:CodeEditor.vue|div|@pointerup=onPointerUp", "http:PUT /save"]},
+             "control:CodeEditor.vue|div|@pointerup=onPointerUp", "http:PUT /save"],
+   "statements": [
+    {"id": "S1", "kind": "Daten", "text": "Der Editor bleibt an die Datei gebunden, auf der er geöffnet wurde: eine Änderung von außen zeigt den Konflikt, Speichern schreibt nur diese Datei.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "editor-guards.spec.ts", "title": "external program change keeps buffer A, shows the conflict, saves A only"}]},
+    {"id": "S2", "kind": "Ablehnung", "text": "Verwerfen schließt einen sauberen Editor sofort, einen geänderten erst nach Rückfrage; „Weiter bearbeiten“ behält die Änderung.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "editor-guards.spec.ts", "title": "discard: clean closes at once, dirty asks and Keep editing keeps the edit"}]}
+   ]},
   {"id": "F-PROGDOWNLOAD", "area": "programm", "name": "Programm herunterladen",
    "atoms": ["control:GcodePanel.vue|MachineBtn:fileDownload|@click=downloadProgram",
              "control:GcodePanel.vue|MachineBtn:close|@click=downloadError = null"]},
@@ -142,7 +211,13 @@
              "control:GcodePanel.vue|MachineBtn:{isPaused*=1", "cmd:cycle_*=3", "cmd:auto_step",
              "status:data.paused", "status:data.current_line", "status:data.motion_line", "status:data.read_line",
              "status:data.program_elapsed_ms", "status:data.call_level", "status:data.motion_mode", "status:data.dtg"],
-   "uses": ["key:cycle", "pad:start", "pad:pause", "pad:resume"]},
+   "uses": ["key:cycle", "pad:start", "pad:pause", "pad:resume"],
+   "statements": [
+    {"id": "S1", "kind": "Bedienbarkeit", "text": "Pause wirkt ohne Arm auf ein laufendes Programm; Fortsetzen braucht Arm.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_button_gates.py", "title": "test_pause_of_a_running_sequence_without_arm"}, {"layer": "gateway", "file": "test_button_gates.py", "title": "test_resume_still_needs_arm"}]},
+    {"id": "S2", "kind": "Bedienbarkeit", "text": "Start über die Tastatur wartet auf den Programmtext wie der Knopf: eine Zulassung, nur die Geste unterscheidet sich.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "setup-gates.spec.ts", "title": "Start by the shortcut waits for the program text like the button (one admission, BG-10)"}]},
+    {"id": "S3", "kind": "Bedienbarkeit", "text": "Start, Einzelschritt und Fortsetzen lösen nur nach vollständigem Halten aus, ein Tippen sagt warum; Pause bleibt ein Tippen.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "run-hold.spec.ts", "title": "Start, Step and Resume fire on a complete hold only — a tap says why; Pause stays a tap"}]},
+    {"id": "S4", "kind": "Abbruch", "text": "Eine neue Revision desselben Programms bricht ein laufendes Halten ab; solange ihr Text lädt, startet ein Halten nichts.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "run-hold.spec.ts", "title": "a new revision of the same program cancels a Start, Step or Resume hold — at its arrival, the text still loading"}, {"layer": "browser", "file": "run-hold.spec.ts", "title": "while a revision's text is still loading, Start and Step wait — a hold there runs nothing"}]}
+   ]},
   {"id": "F-RFL", "area": "programm", "name": "Start ab Zeile (mit Vormessung, sicherem Z, Spindel)",
    "atoms": ["control:GcodePanel.vue|div|@click=item.kind === 'main' && onLineClick(item.lineNum)",
              "control:GcodePanel.vue|MachineBtn:dialogConfirm|@click=confirmRunFromLine",
@@ -150,10 +225,18 @@
              "control:GcodePanel.vue|MachineInput:displaySettingNum|*=1", "control:GcodePanel.vue|MachineRadio:displaySetting|*=3",
              "control:GcodePanel.vue|MachineToggle:displaySetting|*=1", "cmd:auto_run", "setting:machine.runFromLine",
              "setting:machine.rfl*=3", "control:SettingsPanel.vue|*runFromLine*=1", "control:SettingsPanel.vue|*rflSpindle*=4",
-             "status:rfl_status", "status:run_basis"]},
+             "status:rfl_status", "status:run_basis"],
+   "statements": [
+    {"id": "S1", "kind": "Daten", "text": "Start ab Zeile ist EIN auto_run, gebunden an das gezeigte Programm, seine Version und die Zeile; die Aktion im Dialog ist ein Halten.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "run-hold.spec.ts", "title": "Run from line: Start only opens the dialog on a tap; the dialog's action is a hold bound to the program and the line"}, {"layer": "browser", "file": "run-hold.spec.ts", "title": "Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values and its program — nothing waits in the browser (Codex R16 XZ-07)"}]},
+    {"id": "S2", "kind": "Wirkung", "text": "Der sichere Z-Schritt vor dem Start hebt Z von unten auf Maschinen-Oberkante und senkt es nie; liegt Z schon oben, entfällt er.", "applies": ["Machine"], "evidence": [{"layer": "gateway", "file": "test_rfl_guard.py", "title": "test_safe_z_reached_from_below_starts"}, {"layer": "gateway", "file": "test_rfl_guard.py", "title": "test_safe_z_above_zero_skips_mdi"}]},
+    {"id": "S3", "kind": "Wirkung", "text": "Auf echtem LinuxCNC startet der Lauf ab der gewählten Zeile mit dem richtigen Werkzeug, Spindel und Startpunkt.", "applies": ["offen"], "gap": "nativ: ein Testprogramm ab Zeile mit Vormessung (native Stufe)"}
+   ]},
   {"id": "F-OPTSTOP", "area": "programm", "name": "Satz ausblenden und optionaler Halt",
    "atoms": ["control:GcodePanel.vue|MachineToggle:blockDelete|*=1", "control:GcodePanel.vue|MachineToggle:optionalStop|*=1",
-             "cmd:set_block_delete", "cmd:set_optional_stop", "status:data.block_delete", "status:data.optional_stop"]},
+             "cmd:set_block_delete", "cmd:set_optional_stop", "status:data.block_delete", "status:data.optional_stop"],
+   "statements": [
+    {"id": "S1", "kind": "Daten", "text": "Satz ausblenden und optionaler Halt senden ihren Schalter, und die Anzeige folgt dem gemeldeten Zustand.", "applies": ["alle"], "gap": "Browser: kein Spec löst set_block_delete oder set_optional_stop aus"}
+   ]},
   {"id": "F-GCODEVIEW", "area": "programm", "name": "G-Code ansehen, aktive Codes, Codewort-Referenz, Statistik",
    "atoms": ["control:GcodePanel.vue|span|*=1", "control:GcodePanel.vue|MachineBtn:inline|@click=emit('showStats')",
              "control:GcodeReferenceDialog.vue|*=4", "control:App.vue|MachineBtn:headerIcon|@click=openGcodeRef()",
@@ -166,7 +249,10 @@
   {"id": "F-MDI", "area": "mdi", "name": "MDI-Befehl senden, Verlauf",
    "atoms": ["control:App.vue|MachineBtn:mdi|*=1", "control:App.vue|MachineInput:mdiText|*=1",
              "control:App.vue|div|@click=mdiText = entry.text", "control:App.vue|MachineBtn:settingInlineMd|@click=clearMdiHistory",
-             "cmd:mdi", "setting:mdi.history"]},
+             "cmd:mdi", "setting:mdi.history"],
+   "statements": [
+    {"id": "S1", "kind": "Ablehnung", "text": "MDI wird abgelehnt, solange ein Programm läuft; ein zu langer Befehl wird abgelehnt, nicht abgeschnitten.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_command_dispatch.py", "title": "test_mdi_denied_while_running"}, {"layer": "gateway", "file": "test_command_policy.py", "title": "test_mdi_length_rejected_not_truncated"}]}
+   ]},
 
   {"id": "F-TOOLTABLE", "area": "werkzeug", "name": "Werkzeugtabelle ansehen, suchen, sortieren",
    "atoms": ["control:ToolTablePanel.vue|button|*=3", "control:ToolTablePanel.vue|MachineInput:toolSearch|*=1",
@@ -192,14 +278,24 @@
              "control:ToolTablePanel.vue|MachineBtn:dialogCancel|@click=replaceConfirm = false",
              "control:ToolTablePanel.vue|MachineSelect:toolEdit|v-model=importMode",
              "control:ToolTablePanel.vue|MachineBtn:close|@click=import*=2", "control:App.vue|MachineBtn:fileBrowse|*=2",
-             "http:POST /import-tool-library*=3", "http:GET /tool-library-file*=2", "ini:DISPLAY/TOOL_LIBRARY_DIR"]},
+             "http:POST /import-tool-library*=3", "http:GET /tool-library-file*=2", "ini:DISPLAY/TOOL_LIBRARY_DIR"],
+   "statements": [
+    {"id": "S1", "kind": "Daten", "text": "Vorhandene Werkzeuge werden standardmäßig nur in den Metadaten aufgefrischt; die gemessene Länge bleibt.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "tool-import.spec.ts", "title": "existing tools default to reviewed metadata refresh, not full replacement"}]},
+    {"id": "S2", "kind": "Ablehnung", "text": "Vollständiges Ersetzen erfordert die ausdrückliche Wahl dieser Art und zeigt die Längen, die ersetzt werden; eine veraltete Prüfung fällt nie auf Ersetzen zurück.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "tool-import.spec.ts", "title": "full replacement requires selecting that mode and shows length replacement"}, {"layer": "browser", "file": "tool-import.spec.ts", "title": "stale review stays visible as an error and never falls back to replacement"}]},
+    {"id": "S3", "kind": "Daten", "text": "Die FreeCAD-Vorschau behält gemessene Offsets, zeigt eine eigene Form und erklärt neue Längen.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "freecad-import.spec.ts", "title": "FreeCAD preview retains measured offsets, renders a custom shape, and explains new lengths"}]},
+    {"id": "S4", "kind": "Ablehnung", "text": "Ein Import schreibt die Tabelle nicht, solange ein Werkzeugwechsel angefordert ist (409), und nicht für einen nicht freigegebenen Schreiber.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_button_gates_b.py", "title": "test_a_pending_tool_change_replaces_nothing"}, {"layer": "gateway", "file": "test_button_gates_b.py", "title": "test_a_disarmed_writer_replaces_nothing"}]}
+   ]},
   {"id": "F-TOOLDOWNLOAD", "area": "werkzeug", "name": "Werkzeugtabelle herunterladen",
    "atoms": ["control:App.vue|MachineBtn:fileDownload|*=1", "control:ToolTablePanel.vue|MachineBtn:close|@click=downloadError = null"]},
   {"id": "F-TOOLCHANGE", "area": "werkzeug", "name": "Werkzeugwechsel (M6) mit Bestätigung",
    "atoms": ["control:ToolTablePanel.vue|MachineBtn:toolLoad|*=1", "control:App.vue|MachineBtn:toolChangeConfirm|*=1",
              "cmd:tool_change", "cmd:confirm_tool_change", "status:data.tool_change_*=4", "status:data.tool_number",
              "setting:machine.toolChangeMode", "control:SettingsPanel.vue|*toolChangeMode*=2",
-             "ini:EMCIO/RANDOM_TOOLCHANGER", "ini:EMCIO/TOOL_CHANGE_POSITION"]},
+             "ini:EMCIO/RANDOM_TOOLCHANGER", "ini:EMCIO/TOOL_CHANGE_POSITION"],
+   "statements": [
+    {"id": "S1", "kind": "Ablehnung", "text": "Bestätigen ist nur offen für einen freigegebenen Client mit einer offenen Anforderung; ohne Anforderung mit dem Grund „No tool change pending“.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_button_gates.py", "title": "test_open_for_an_armed_client_with_a_pending_request"}, {"layer": "gateway", "file": "test_button_gates.py", "title": "test_closed_without_a_request"}, {"layer": "gateway", "file": "test_button_gates.py", "title": "test_closed_disarmed"}]},
+    {"id": "S2", "kind": "Wirkung", "text": "Auf echtem LinuxCNC wartet M6 bis zur ausdrücklichen Bestätigung und läuft dann mit dem neuen Werkzeug weiter.", "applies": ["offen"], "gap": "nativ: ohne automatische Bestätigung (FI265-04), native Stufe"}
+   ]},
   {"id": "F-TOOLMEASURE", "area": "werkzeug", "name": "Werkzeuglänge messen (M600) und Werkzeug entladen",
    "atoms": ["control:App.vue|MachineBtn:toolMeasure|*=1", "control:App.vue|MachineBtn:toolUnload|*=1",
              "routine:M600", "remap:M600", "remap:M601", "status:data.tool_length", "status:data.tool_offset",
@@ -225,10 +321,17 @@
   {"id": "F-TOOLSETTER", "area": "werkzeug", "name": "Toolsetter einrichten (Werkzeuglängen-Messung)",
    "atoms": ["control:ToolsetterSettings.vue|MachineInput:toolsetterParam|@change*=5", "control:ToolsetterSettings.vue|MachineRadio:*=3",
              "control:ToolsetterSettings.vue|MachineToggle:*=4", "control:ToolsetterSettings.vue|MachineBtn:resetProtected|*=1",
-             "setting:toolsetter.*=23"]},
+             "setting:toolsetter.*=23"],
+   "statements": [
+    {"id": "S1", "kind": "Daten", "text": "Die Einrichtung zählt erst, wenn der Server die Sektion bestätigt hat; eine Teil-Sektion nennt, was fehlt, und eine Änderung speichert nur dieses Feld.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "toolsetter-setup.spec.ts", "title": "a save the server never confirmed is no setup; its confirmation is"}, {"layer": "browser", "file": "toolsetter-setup.spec.ts", "title": "a partial section: the form names what is missing, shows unset fields empty, and a change saves only that field"}]}
+   ]},
   {"id": "F-G30", "area": "werkzeug", "name": "Werkzeugwechselposition G30 lesen, übernehmen, speichern",
    "atoms": ["control:ToolsetterSettings.vue|MachineBtn:g30*=3", "control:ToolsetterSettings.vue|MachineInput:toolsetterParam|@update:modelValue*=1",
-             "cmd:*_g30=3", "http:GET /g30"]},
+             "cmd:*_g30=3", "http:GET /g30"],
+   "statements": [
+    {"id": "S1", "kind": "Ablehnung", "text": "Speichern prüft das Fenster, bevor sich etwas bewegt, und verlangt die Basis, auf der der Entwurf beruht.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_g30.py", "title": "test_out_of_the_window_is_refused_before_anything_moves"}, {"layer": "gateway", "file": "test_g30.py", "title": "test_a_write_without_its_basis_is_refused"}]},
+    {"id": "S2", "kind": "Ablehnung", "text": "Hat der Interpreter G30 inzwischen geändert, ist das ein Konflikt („G30 changed meanwhile — reload“); ein anders zurückgelesener Wert ist nicht bestätigt.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_g30.py", "title": "test_a_value_the_interpreter_changed_meanwhile_is_a_conflict"}, {"layer": "gateway", "file": "test_g30.py", "title": "test_a_value_read_back_differently_is_not_confirmed"}]}
+   ]},
 
   {"id": "F-PROBE", "area": "antasten", "name": "Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut",
    "atoms": ["control:ProbePanel.vue|MachineBtn:probeCell|@click=run*Probe(op)*=5", "control:ProbePanel.vue|MachineInput:probeParam|*=6",
@@ -255,10 +358,17 @@
   {"id": "F-PROBECAL", "area": "antasten", "name": "Taster kalibrieren",
    "atoms": ["control:ProbePanel.vue|MachineBtn:probeCell|@click=runCalProbe*=4", "control:ProbePanel.vue|MachineRadio:probeParam|*=3",
              "control:ProbePanel.vue|MachineBtn:probeReset|*=1", "control:ProbePanel.vue|MachineBtn:dialogCancel|*=1",
-             "control:ProbePanel.vue|MachineBtn:dialogDanger|*=1", "routine:probe_cal_*=5"]},
+             "control:ProbePanel.vue|MachineBtn:dialogDanger|*=1", "routine:probe_cal_*=5"],
+   "statements": [
+    {"id": "S1", "kind": "Daten", "text": "Kalibrieren sendet seine Routine mit der Achswahl #3036 und den Zahlen der Kalibrier-Zuordnung.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "probe-click.spec.ts", "title": "${form.sub}: a held probe button sends its routine with the panel's numbers", "instances": ["Calibrate"]}]}
+   ]},
   {"id": "F-SURFACE", "area": "antasten", "name": "Fläche abtasten (Surface-Scan)",
    "atoms": ["control:ProbePanel.vue|MachineBtn:surface*=2", "control:ProbePanel.vue|MachineInput:scanParam|*=1",
-             "control:ProbePanel.vue|MachineToggle:viewerSetting|*=1", "routine:surface_scan", "http:GET /surface_points"]},
+             "control:ProbePanel.vue|MachineToggle:viewerSetting|*=1", "routine:surface_scan", "http:GET /surface_points"],
+   "statements": [
+    {"id": "S1", "kind": "Daten", "text": "Der Surface-Scan sendet O<surface_scan> CALL mit den Feldern des Panels in vars.", "applies": ["alle"], "gap": "Browser: probe-click deckt die fünf Antastformen, nicht den Scan"},
+    {"id": "S2", "kind": "Wirkung", "text": "Auf echtem LinuxCNC tastet der Scan das Raster ab und liefert die Punkte für die Kompensation.", "applies": ["3axis_xyz"], "gap": "nativ (native Stufe, mit hohem Antastvorschub über die Scan-Variablen)"}
+   ]},
   {"id": "F-COMP", "area": "antasten", "name": "Flächenkompensation ein/aus und Interpolation umschalten",
    "atoms": ["control:ProbePanel.vue|MachineToggle:compToggle|*=1", "control:ProbePanel.vue|MachineRadio:compMethod|*=1",
              "control:App.vue|MachineBtn:dialogReady|@click=confirmCompToggle", "control:App.vue|MachineBtn:dialogCancel|@click=cancelCompToggle",
@@ -299,7 +409,11 @@
   {"id": "F-MACRORUN", "area": "makros", "name": "Makro starten (Tab, Leiste, Parameter-Dialog)",
    "atoms": ["control:MacrosPanel.vue|MachineBtn:macroRun|*=1", "control:MacroBar.vue|MachineBtn:macro|*=1",
              "control:App.vue|MachineBtn:macroExecute|*=1", "control:App.vue|MachineInput:macroParam|*=1",
-             "control:App.vue|MachineBtn:dialogCancel|@click=macroParamDialog = null", "cmd:run_macro"]},
+             "control:App.vue|MachineBtn:dialogCancel|@click=macroParamDialog = null", "cmd:run_macro"],
+   "statements": [
+    {"id": "S1", "kind": "Bedienbarkeit", "text": "Ein Makro auf der Leiste läuft auf ein Halten, gebunden an seine Revision; ein ungespeicherter Entwurf sperrt genau dieses Makro.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "macros.spec.ts", "title": "the Macros tab lists the folder; a file put on the bar runs on a hold bound to its revision"}, {"layer": "browser", "file": "macros.spec.ts", "title": "an unsaved draft blocks the run of THAT macro on the bar and in the tab; Save restores it at the new revision"}]},
+    {"id": "S2", "kind": "Daten", "text": "Ein Makro mit Parametern öffnet seinen Dialog mit den Feldern des Kopfs; Ausführen ist ein Halten und sendet Zahlen.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "macros.spec.ts", "title": "a macro file with parameters opens its dialog with the header's fields; Execute holds and sends numbers"}]}
+   ]},
   {"id": "F-MACROBAR", "area": "makros", "name": "Makro-Leiste einrichten",
    "atoms": ["control:MacrosPanel.vue|MachineBtn:listActionSetting|*=2", "control:MacrosPanel.vue|MachineBtn:settingInline|*=1",
              "control:MacrosPanel.vue|MachineToggle:*=1", "control:MacrosPanel.vue|MachineSelect:*=1", "setting:macros.*=2"]},
@@ -332,7 +446,10 @@
              "control:App.vue|MachineBtn:dialogCancel|@click=settingsDiscard = null",
              "control:App.vue|MachineBtn:dialogDanger|@click=confirmSettingsDiscard",
              "control:App.vue|MachineBtn:dialogCancel|@click=tabLeaveAsk = null", "control:App.vue|MachineBtn:dialogDanger|@click=confirmTabLeave",
-             "cmd:save_settings", "http:*/settings=2", "http:*/settings/{section}=2", "section:*=11", "listener:defaults.ts:*=1"]},
+             "cmd:save_settings", "http:*/settings=2", "http:*/settings/{section}=2", "section:*=11", "listener:defaults.ts:*=1"],
+   "statements": [
+    {"id": "S1", "kind": "Ablehnung", "text": "Eine geschützte Sektion speichert nur ein freigegebener Schreiber (403 sonst); Anzeige-Sektionen brauchen kein Arm.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_button_gates_b.py", "title": "test_a_protected_section_needs_an_armed_writer"}, {"layer": "gateway", "file": "test_button_gates_b.py", "title": "test_a_display_section_needs_no_arm"}]}
+   ]},
   {"id": "F-DISPLAY", "area": "oberflaeche", "name": "Darstellung: Farbschema, Vollbild, Bildschirm wach halten",
    "atoms": ["control:SettingsPanel.vue|MachineRadio:displaySetting|*=5", "control:SettingsPanel.vue|MachineToggle:displaySetting|*=2",
              "control:App.vue|MachineBtn:headerIcon|@click=toggleFullscreen", "setting:display.*=3",

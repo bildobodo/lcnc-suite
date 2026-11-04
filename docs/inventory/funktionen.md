@@ -11,43 +11,155 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **Anzeigen** (was die Oberfläche zusagt, etwa „Kompensation bestätigt aktiv“) haben keine Quelle mit Atomen; ihr Katalog sichtbarer Zusagen folgt als eigener Schritt.
 - **Belegt** heißt hier: ein benannter Test existiert mit diesem Titel. Ob er lief und bestand, kommt aus den Laufberichten (nächster Schritt).
 
+## Offene Aussagen
+
+17 Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.
+
+| Funktion | Aussage | Art | gilt für | Lücke |
+|---|---|---|---|---|
+| Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren | Auf echtem LinuxCNC bewegt jeder Jog-Knopf seine Achse in seine Richtung und hält am Loslassen. | Wirkung | offen | nativ: Achse, Richtung und Stopp je Knopf am echten Task (die native Stufe) |
+| Overrides: Vorschub, Eilgang, Spindel | Ein Schieber auf 50 % sendet den Faktor 0,5 für genau seinen Override. | Daten | alle | Browser: kein Spec prüft, was die Override-Schieber senden (Codex R250: ein kurzer UI-Test 50 % → scale 0.5) |
+| Overrides: Vorschub, Eilgang, Spindel | Auf echtem LinuxCNC ändert der Override die Geschwindigkeit; in M600 und Surface-Scan ist er abgeschaltet (M50 P0). | Wirkung | offen | nativ (native Stufe) |
+| Kühlmittel: Flood und Mist | Flood und Mist senden ihr Ein und Aus, und die Anzeige folgt dem gemeldeten Zustand. | Daten | alle | Browser: kein Spec löst flood_on/off oder mist_on/off aus |
+| Kühlmittel: Flood und Mist | Auf echtem LinuxCNC schalten Flood und Mist ihre HAL-Ausgänge. | Wirkung | offen | nativ (native Stufe) |
+| Start ab Zeile (mit Vormessung, sicherem Z, Spindel) | Auf echtem LinuxCNC startet der Lauf ab der gewählten Zeile mit dem richtigen Werkzeug, Spindel und Startpunkt. | Wirkung | offen | nativ: ein Testprogramm ab Zeile mit Vormessung (native Stufe) |
+| Satz ausblenden und optionaler Halt | Satz ausblenden und optionaler Halt senden ihren Schalter, und die Anzeige folgt dem gemeldeten Zustand. | Daten | alle | Browser: kein Spec löst set_block_delete oder set_optional_stop aus |
+| Werkzeugwechsel (M6) mit Bestätigung | Auf echtem LinuxCNC wartet M6 bis zur ausdrücklichen Bestätigung und läuft dann mit dem neuen Werkzeug weiter. | Wirkung | offen | nativ: ohne automatische Bestätigung (FI265-04), native Stufe |
+| Werkzeuglänge messen (M600) und Werkzeug entladen | Auf echtem LinuxCNC landet die gemessene Länge in der Werkzeugtabelle und im G43-Offset. | Wirkung | offen | nativer Lauf offen (nach Schritt 7) |
+| Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut | Auf echtem LinuxCNC setzt ein Z-Antasten G54 Z auf den erwarteten Wert (Platte, Werkzeug, Toleranz je Messgröße). | Wirkung | offen | Schritt 7, der Antast-Live-Check |
+| Fläche abtasten (Surface-Scan) | Der Surface-Scan sendet O<surface_scan> CALL mit den Feldern des Panels in vars. | Daten | alle | Browser: probe-click deckt die fünf Antastformen, nicht den Scan |
+| Fläche abtasten (Surface-Scan) | Auf echtem LinuxCNC tastet der Scan das Raster ab und liefert die Punkte für die Kompensation. | Wirkung | 3axis_xyz | nativ (native Stufe, mit hohem Antastvorschub über die Scan-Variablen) |
+| Flächenkompensation ein/aus und Interpolation umschalten | „AN“ erscheint nur aus einem gelesenen Pin; ein unbekannter Wert erscheint als unbekannt, nie als AUS. | Unbekannt | alle | App.vue macht aus fehlendem eoffset_enabled mit !! ein AUS — das erste Lückenpaket |
+| Flächenkompensation ein/aus und Interpolation umschalten | Die angezeigte Interpolation ist die, die der Status meldet; eine unbekannte erscheint nie als Cubic. | Unbekannt | alle | ProbePanel.vue wählt mit compMethod ?? 2 Cubic — das erste Lückenpaket |
+| Flächenkompensation ein/aus und Interpolation umschalten | Ein Umschalten, das HAL nicht zustellt, antwortet nicht ok. | Ablehnung | alle | gateway.py ignoriert das Ergebnis von _hal_send — das erste Lückenpaket |
+| Flächenkompensation ein/aus und Interpolation umschalten | Auf echtem LinuxCNC wirkt AN/AUS, und die drei Methoden unterscheiden sich an bekannten Punkten einer nicht ebenen Fläche. | Wirkung | 3axis_xyz | nativer Lauf offen |
+| Verbindung: Anmeldung, Herzschlag, Wiederverbindung, Auslieferung | Mehrere Clients gleichzeitig: Nach dem Laden eines Programms holen mehrere Clients die Vorschau, und der Herzschlag-Abstand des Gateways bleibt sicher unter der Grenze von 500 ms. | Wirkung | alle | neues perf_matrix-Szenario mit Protokoll-Clients statt Browsern (deren Simulation läuft auf den Client-Geräten, nicht im Gateway); native Stufe. Vorhanden: fanout (8 Clients), reconnect_storm (12 Verbindungen), preview_publish (ein Client) — Operator 2026-11-04 |
+
+**Ohne formulierte Aussagen:** 23 Funktionen (Anzeige, Einstellungen, Diagnose, Eingabehilfen und Systemverträge — folgen)
+
 ## Sicherheit und Maschinenzustand
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Freigeben (Arm) und Sperren** `F-ARM` | Einstellungen, Leiste › Sicherheit | 6 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Not-Halt auslösen und zurücksetzen** `F-ESTOP` | Leiste › Sicherheit | 6 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Sicherheits-Auslösung quittieren, Sicherheitskette** `F-TRIP` | Banner | 6 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Maschine ein und aus** `F-POWER` | Leiste › Sicherheit | 6 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Abbrechen (Abort)** `F-ABORT` | Banner, Makro-Leiste, Tab „Macros“, Tab „Probing“, Tab „Program“, Tab-Kopf (Abort) | 9 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Betriebsart: Manuell, MDI, Automatik** `F-MODE` | Leiste › Jog | 4 | 0 | 0 | Aussagen noch nicht formuliert |
+| **Freigeben (Arm) und Sperren** `F-ARM` | Einstellungen, Leiste › Sicherheit | 6 | 3 | 3 | 0 |
+| **Not-Halt auslösen und zurücksetzen** `F-ESTOP` | Leiste › Sicherheit | 6 | 4 | 4 | 0 |
+| **Sicherheits-Auslösung quittieren, Sicherheitskette** `F-TRIP` | Banner | 6 | 1 | 1 | 0 |
+| **Maschine ein und aus** `F-POWER` | Leiste › Sicherheit | 6 | 1 | 1 | 0 |
+| **Abbrechen (Abort)** `F-ABORT` | Banner, Makro-Leiste, Tab „Macros“, Tab „Probing“, Tab „Program“, Tab-Kopf (Abort) | 9 | 1 | 1 | 0 |
+| **Betriebsart: Manuell, MDI, Automatik** `F-MODE` | Leiste › Jog | 4 | 1 | 1 | 0 |
 | **Herunterfahren** `F-SHUTDOWN` | Dialog, Kopfzeile | 4 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Antast-Auslösung simulieren (nur Sim)** `F-SIMTRIP` | Tab „Probing“ | 3 | 0 | 0 | Aussagen noch nicht formuliert |
+
+### Freigeben (Arm) und Sperren
+
+- **S1 (Ablehnung):** Ohne Arm lehnt das Gateway jeden Befehl ab, der etwas startet oder schreibt, mit dem Grund „Not armed“. — gilt für: alle
+  - Beleg: gateway: `test_command_dispatch.py` — test_not_armed_denied
+- **S2 (Ablehnung):** Arm geht erst, wenn eine Sicherheits-Auslösung quittiert ist; der Grund steht am Knopf. — gilt für: alle
+  - Beleg: gateway: `test_button_gates_d.py` — test_arming_waits_for_the_acknowledgement; browser: `setup-gates.spec.ts` — the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)
+- **S3 (Wirkung):** Ein Client, der 3 s keinen Herzschlag sendet, verliert seine Freigabe. — gilt für: alle
+  - Beleg: gateway: `test_ws_command_worker.py` — test_hb_stall_disarms_silent_client
+
+### Not-Halt auslösen und zurücksetzen
+
+- **S1 (Bedienbarkeit):** Escape löst genau einen Not-Halt aus, auch bei offener Zahlentastatur, und nie ein Zurücksetzen. — gilt für: alle
+  - Beleg: browser: `keyboard-guards.spec.ts` — number keypad open: Space/Backspace send nothing, Escape sends exactly estop; browser: `keyboard-guards.spec.ts` — repeated Escape in E-Stop never sends estop_reset
+- **S2 (Daten):** Eine offene Sicherheitskette in HAL gilt als Not-Halt, auch wenn LinuxCNC selbst keinen meldet. — gilt für: alle
+  - Beleg: gateway: `test_command_dispatch.py` — test_safety_chain_open_forces_estop_and_disables
+- **S3 (Ablehnung):** Zurücksetzen braucht Arm und die quittierte Auslösung. — gilt für: alle
+  - Beleg: gateway: `test_button_gates_d.py` — test_reset_needs_arm_and_the_acknowledgement
+- **S4 (Wirkung):** Bleibt der Herzschlag des Gateways aus, verriegelt HAL den Not-Halt im Servotakt und hält ihn bis zur Quittierung und zum Zurücksetzen. — gilt für: alle
+  - Beleg: script: `perf_matrix.py` — sigstop_trip (live, nicht im Gate)
+
+### Sicherheits-Auslösung quittieren, Sicherheitskette
+
+- **S1 (Daten):** Eine Auslösung nach sauberem Start erscheint genau einmal im Banner; ein schon beim Start gesetzter Latch wird protokolliert, nicht gebannert. — gilt für: alle
+  - Beleg: gateway: `test_gateway_util.py` — test_sustained_latch_banners_only_once; gateway: `test_gateway_util.py` — test_boot_faulted_does_not_banner
+
+### Maschine ein und aus
+
+- **S1 (Ablehnung):** Maschine ein wird im Not-Halt abgelehnt. — gilt für: alle
+  - Beleg: gateway: `test_command_dispatch.py` — test_machine_on_denied_in_estop
+
+### Abbrechen (Abort)
+
+- **S1 (Abbruch):** Abort ist in jedem Zustand offen: ohne Arm, im Not-Halt, bei unbekanntem Zustand und im Lauf; ohne Arm erreicht er die Steuerung. — gilt für: alle
+  - Beleg: gateway: `test_button_gates.py` — test_abort_in_any_state; gateway: `test_button_gates.py` — test_abort_disarmed_reaches_the_controller
+
+### Betriebsart: Manuell, MDI, Automatik
+
+- **S1 (Ablehnung):** MANUAL ist in E-Stop und unreferenziert wählbar; MDI und AUTO sind gedimmt mit Grund; die schon gewählte Betriebsart sendet nichts. — gilt für: alle
+  - Beleg: browser: `setup-gates.spec.ts` — the task mode per target: MANUAL in E-Stop and unhomed, MDI / AUTO dimmed with the reason; the checked mode sends nothing (BG-04)
 
 ## Referenzieren und Bewegen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Referenzieren und Referenz aufheben** `F-HOME` | Banner, Leiste › Setup | 11 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren** `F-JOG` | Leiste › Jog | 39 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Anfahren: G30, Maschinennull, Werkstücknull** `F-GOTO` | Leiste › Setup | 8 | 0 | 0 | Aussagen noch nicht formuliert |
+| **Referenzieren und Referenz aufheben** `F-HOME` | Banner, Leiste › Setup | 11 | 1 | 1 | 0 |
+| **Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren** `F-JOG` | Leiste › Jog | 39 | 5 | 4 | 1 |
+| **Anfahren: G30, Maschinennull, Werkstücknull** `F-GOTO` | Leiste › Setup | 8 | 2 | 2 | 0 |
+
+### Referenzieren und Referenz aufheben
+
+- **S1 (Bedienbarkeit):** Referenz aufheben ist eine Haltegeste: ein kurzes Tippen sendet nichts und sagt warum, ein vollständiges Halten genau einen Befehl. — gilt für: alle
+  - Beleg: browser: `touch-hold.spec.ts` — a short tap sends nothing and says why; a complete hold sends exactly one command
+
+### Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren
+
+- **S1 (Abbruch):** Ein gestarteter Jog besitzt seinen Stopp: das Loslassen stoppt genau, was das Drücken gestartet hat, auch wenn sich Schritt oder Belegung inzwischen geändert haben. — gilt für: alle
+  - Beleg: unit: `jogGesture.test.ts` — ends a gesture with the stop recorded at its start, whatever changed since
+- **S2 (Abbruch):** Ein Jog-Stopp wird nie abgelehnt, auch ohne Arm und im Not-Halt. — gilt für: alle
+  - Beleg: gateway: `test_command_policy.py` — test_jog_stop_always_allowed; gateway: `test_command_dispatch.py` — test_jog_stop_never_policy_denied
+- **S3 (Daten):** Eine negative Jog-Geschwindigkeit bleibt erhalten: das Vorzeichen ist die Richtung. — gilt für: alle
+  - Beleg: gateway: `test_command_policy.py` — test_jog_velocity_is_SIGNED_and_must_survive_the_clamp
+- **S4 (Ablehnung):** Vor dem Referenzieren joggt nur die deklarierte Gelenk-Achse, eine Gantry-Achse und die Diagonalen sind gesperrt, mit Grund. — gilt für: alle
+  - Beleg: gateway: `test_button_gates_e.py` — test_a_gantry_letter_is_closed; browser: `joint-jog.spec.ts` — before homing every open axis jogs in amber, the diagonals are closed with their reason; homed both are back (package F)
+- **S5 (Wirkung):** Auf echtem LinuxCNC bewegt jeder Jog-Knopf seine Achse in seine Richtung und hält am Loslassen. — gilt für: offen
+  - Beleg: **offen** — Lücke: nativ: Achse, Richtung und Stopp je Knopf am echten Task (die native Stufe)
+
+### Anfahren: G30, Maschinennull, Werkstücknull
+
+- **S1 (Wirkung):** Ein Rückzug senkt Z nie: von unter Z0 auf die Maschinen-Oberkante, von über Z0 unverändert; dann X/Y. — gilt für: Machine
+  - Beleg: script: `twp_buttons_check.py` — → Zero from ABOVE Z0 (G53 Z+50): Z unchanged (never lowered), X/Y at work zero (live, nicht im Gate); script: `twp_buttons_check.py` — → Home from ABOVE Z0: min Z seen >= +50 (never lowered), X/Y to machine zero (live, nicht im Gate)
+- **S2 (Wirkung):** → Zero nach einem Jog der Drehachse bringt den Tisch auf den Stempelwinkel zurück, X/Y lesen null. — gilt für: Machine
+  - Beleg: script: `twp_buttons_check.py` — → Zero after jogging A away: table returns to A 20 and X/Y read zero (tip on the datum) (live, nicht im Gate)
 
 ## Spindel, Kühlmittel, Overrides
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Overrides: Vorschub, Eilgang, Spindel** `F-OVERRIDE` | Leiste › Overrides | 19 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Spindel von Hand: Rechts, Links, Stopp, Drehzahl** `F-SPINDLE` | Einstellungen, Leiste › Spindel | 25 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Kühlmittel: Flood und Mist** `F-COOLANT` | Leiste › Spindel | 8 | 0 | 0 | Aussagen noch nicht formuliert |
+| **Overrides: Vorschub, Eilgang, Spindel** `F-OVERRIDE` | Leiste › Overrides | 19 | 2 | 0 | 2 |
+| **Spindel von Hand: Rechts, Links, Stopp, Drehzahl** `F-SPINDLE` | Einstellungen, Leiste › Spindel | 25 | 2 | 2 | 0 |
+| **Kühlmittel: Flood und Mist** `F-COOLANT` | Leiste › Spindel | 8 | 2 | 0 | 2 |
+
+### Overrides: Vorschub, Eilgang, Spindel
+
+- **S1 (Daten):** Ein Schieber auf 50 % sendet den Faktor 0,5 für genau seinen Override. — gilt für: alle
+  - Beleg: **offen** — Lücke: Browser: kein Spec prüft, was die Override-Schieber senden (Codex R250: ein kurzer UI-Test 50 % → scale 0.5)
+- **S2 (Wirkung):** Auf echtem LinuxCNC ändert der Override die Geschwindigkeit; in M600 und Surface-Scan ist er abgeschaltet (M50 P0). — gilt für: offen
+  - Beleg: **offen** — Lücke: nativ (native Stufe)
+
+### Spindel von Hand: Rechts, Links, Stopp, Drehzahl
+
+- **S1 (Abbruch):** Spindel-Stopp ist im Leerlauf ohne Arm und ohne Referenz offen; im Lauf gehört die Spindel dem Programm, der Grund nennt die wirksamen Stopps. — gilt für: alle
+  - Beleg: gateway: `test_button_gates.py` — test_spindle_stop_at_idle_without_arm_or_homing; gateway: `test_button_gates.py` — test_spindle_stop_closed_while_the_program_owns_the_spindle
+- **S2 (Ablehnung):** Die Spindel von Hand vor dem Referenzieren nur, wo die Maschine es deklariert (WEBUI_SPINDLE_BEFORE_HOMING = 1), und nur in MANUAL. — gilt für: alle
+  - Beleg: browser: `setup-gates.spec.ts` — the manual spindle unhomed where the machine declares it, MANUAL only (Q1)
+
+### Kühlmittel: Flood und Mist
+
+- **S1 (Daten):** Flood und Mist senden ihr Ein und Aus, und die Anzeige folgt dem gemeldeten Zustand. — gilt für: alle
+  - Beleg: **offen** — Lücke: Browser: kein Spec löst flood_on/off oder mist_on/off aus
+- **S2 (Wirkung):** Auf echtem LinuxCNC schalten Flood und Mist ihre HAL-Ausgänge. — gilt für: offen
+  - Beleg: **offen** — Lücke: nativ (native Stufe)
 
 ## Werkstück-Koordinaten und Ebenen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
 | **Antippen (Touch-off) und Nullen je Achse** `F-TOUCHOFF` | Leiste › Setup | 9 | 3 | 3 | 0 |
-| **Nullpunkte: aktives System wählen (G54 …), Tabelle bearbeiten und löschen** `F-WCS` | Leiste › Setup, Tab „Offsets“ | 12 | 0 | 0 | Aussagen noch nicht formuliert |
+| **Nullpunkte: aktives System wählen (G54 …), Tabelle bearbeiten und löschen** `F-WCS` | Leiste › Setup, Tab „Offsets“ | 12 | 3 | 3 | 0 |
 | **Kinematik-Modus umschalten: Machine, TCP, Plane** `F-KINS` | Leiste › Jog | 3 | 1 | 1 | 0 |
-| **Geschwenkte Ebene (TWP): erfassen, aufheben, neu ausrichten** `F-TWP` | Leiste › Setup | 31 | 0 | 0 | Aussagen noch nicht formuliert |
+| **Geschwenkte Ebene (TWP): erfassen, aufheben, neu ausrichten** `F-TWP` | Leiste › Setup | 31 | 2 | 2 | 0 |
 
 ### Antippen (Touch-off) und Nullen je Achse
 
@@ -58,30 +170,95 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S3 (Daten):** Plane: lineare Achsen gehen über G59 und das Remap in G54, nur mit aktiver Ebene; Drehachsen gesperrt. — gilt für: Plane
   - Beleg: gateway: `test_command_policy.py` — test_plane_mode_linear_routes_to_remap; gateway: `test_command_policy.py` — test_plane_mode_needs_active_plane_and_g59; gateway: `test_command_policy.py` — test_plane_mode_rotary_touchoff_refused; browser: `touchoff.spec.ts` — Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero XYZ stays open
 
+### Nullpunkte: aktives System wählen (G54 …), Tabelle bearbeiten und löschen
+
+- **S1 (Unbekannt):** Unbekannt ist nie null: die Zusammenfassung nennt, was unbekannt ist, und sagt „none“ nur, wenn alles bekannt ist. — gilt für: alle
+  - Beleg: browser: `offsets.spec.ts` — unknown is never zero: the summary names what is unknown, and says 'none' only when all is known
+- **S2 (Ablehnung):** Ein Nullpunkt wird bei aktiver Flächenkompensation nicht geschrieben. — gilt für: alle
+  - Beleg: gateway: `test_command_policy.py` — test_touchoff_blocked_with_eoffset
+- **S3 (Bedienbarkeit):** Die aktive Zeile ist benannt, nicht nur gefärbt; ein Klick auf eine Zeile wählt sie für Löschen und wechselt nie das System. — gilt für: alle
+  - Beleg: browser: `offsets.spec.ts` — the active fixture is named, not only tinted; a row click selects for Clear and never switches the WCS
+
 ### Kinematik-Modus umschalten: Machine, TCP, Plane
 
 - **S1 (Bedienbarkeit):** Die Kinematik-Auswahl zeigt den Rahmen, den der gemeldete Typ bedeutet, und sendet Rahmen. — gilt für: Machine, TCP, Plane
   - Beleg: browser: `touchoff.spec.ts` — kinematics selector shows the FRAME the raw type means, and emits frames
 
+### Geschwenkte Ebene (TWP): erfassen, aufheben, neu ausrichten
+
+- **S1 (Ablehnung):** Eine Ebene wird nicht erfasst, solange schon eine definiert ist; auf einer umschaltbaren Maschine ohne TWP gibt es kein Erfassen. — gilt für: Plane
+  - Beleg: gateway: `test_command_policy.py` — test_refuses_plane_already_defined; gateway: `test_command_policy.py` — test_switchable_non_twp_machine_cannot_capture
+- **S2 (Ablehnung):** Plane läuft nur mit seiner Ebene und G59. — gilt für: Plane
+  - Beleg: gateway: `test_command_policy.py` — test_plane_kins_with_its_plane_and_g59_runs; gateway: `test_command_policy.py` — test_plane_kins_without_a_plane_refuses
+
 ## Programm
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Programm laden, neu laden, entladen** `F-LOAD` | Banner, Tab „Program“, Tab „Program“ › Dateien | 16 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Programm hochladen (mit Umbenennen oder Ersetzen)** `F-UPLOAD` | Tab „Program“ | 8 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Programm bearbeiten und speichern** `F-EDIT` | Editor, Tab „Program“ | 10 | 0 | 0 | Aussagen noch nicht formuliert |
+| **Programm laden, neu laden, entladen** `F-LOAD` | Banner, Tab „Program“, Tab „Program“ › Dateien | 16 | 1 | 1 | 0 |
+| **Programm hochladen (mit Umbenennen oder Ersetzen)** `F-UPLOAD` | Tab „Program“ | 8 | 2 | 2 | 0 |
+| **Programm bearbeiten und speichern** `F-EDIT` | Editor, Tab „Program“ | 10 | 2 | 2 | 0 |
 | **Programm herunterladen** `F-PROGDOWNLOAD` | Tab „Program“ | 2 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Programm starten, pausieren, fortsetzen, Einzelschritt** `F-RUN` | Tab „Program“ | 15 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Start ab Zeile (mit Vormessung, sicherem Z, Spindel)** `F-RFL` | Einstellungen, Tab „Program“ | 20 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Satz ausblenden und optionaler Halt** `F-OPTSTOP` | Tab „Program“ | 6 | 0 | 0 | Aussagen noch nicht formuliert |
+| **Programm starten, pausieren, fortsetzen, Einzelschritt** `F-RUN` | Tab „Program“ | 15 | 4 | 4 | 0 |
+| **Start ab Zeile (mit Vormessung, sicherem Z, Spindel)** `F-RFL` | Einstellungen, Tab „Program“ | 20 | 3 | 2 | 1 |
+| **Satz ausblenden und optionaler Halt** `F-OPTSTOP` | Tab „Program“ | 6 | 1 | 0 | 1 |
 | **G-Code ansehen, aktive Codes, Codewort-Referenz, Statistik** `F-GCODEVIEW` | G-Code-Referenz, Kopfzeile, Leiste › Sicherheit, Tab „Program“ | 13 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Vorschau des Werkzeugwegs** `F-PREVIEW` | Einstellungen | 9 | 0 | 0 | Aussagen noch nicht formuliert |
+
+### Programm laden, neu laden, entladen
+
+- **S1 (Bedienbarkeit):** Ein Programm lädt in E-Stop, ausgeschaltet und unreferenziert: nur Arm und Leerlauf zählen. — gilt für: alle
+  - Beleg: browser: `setup-gates.spec.ts` — a program loads in E-Stop, off and unhomed: programLoad, no power or homing (BG-03)
+
+### Programm hochladen (mit Umbenennen oder Ersetzen)
+
+- **S1 (Ablehnung):** Ein Upload ersetzt ein vorhandenes Programm nie ohne ausdrückliches Ersetzen (409); das Original bleibt unberührt; mit Ersetzen wird es ersetzt. — gilt für: alle
+  - Beleg: gateway: `test_upload_conflict.py` — test_same_name_without_flag_is_409_and_original_untouched; gateway: `test_upload_conflict.py` — test_same_name_with_flag_replaces
+- **S2 (Ablehnung):** Ein nicht freigegebener Schreiber lädt nichts hoch; geprüft im Moment des Veröffentlichens. — gilt für: alle
+  - Beleg: gateway: `test_button_gates_b.py` — test_a_disarmed_writer_uploads_nothing
+
+### Programm bearbeiten und speichern
+
+- **S1 (Daten):** Der Editor bleibt an die Datei gebunden, auf der er geöffnet wurde: eine Änderung von außen zeigt den Konflikt, Speichern schreibt nur diese Datei. — gilt für: alle
+  - Beleg: browser: `editor-guards.spec.ts` — external program change keeps buffer A, shows the conflict, saves A only
+- **S2 (Ablehnung):** Verwerfen schließt einen sauberen Editor sofort, einen geänderten erst nach Rückfrage; „Weiter bearbeiten“ behält die Änderung. — gilt für: alle
+  - Beleg: browser: `editor-guards.spec.ts` — discard: clean closes at once, dirty asks and Keep editing keeps the edit
+
+### Programm starten, pausieren, fortsetzen, Einzelschritt
+
+- **S1 (Bedienbarkeit):** Pause wirkt ohne Arm auf ein laufendes Programm; Fortsetzen braucht Arm. — gilt für: alle
+  - Beleg: gateway: `test_button_gates.py` — test_pause_of_a_running_sequence_without_arm; gateway: `test_button_gates.py` — test_resume_still_needs_arm
+- **S2 (Bedienbarkeit):** Start über die Tastatur wartet auf den Programmtext wie der Knopf: eine Zulassung, nur die Geste unterscheidet sich. — gilt für: alle
+  - Beleg: browser: `setup-gates.spec.ts` — Start by the shortcut waits for the program text like the button (one admission, BG-10)
+- **S3 (Bedienbarkeit):** Start, Einzelschritt und Fortsetzen lösen nur nach vollständigem Halten aus, ein Tippen sagt warum; Pause bleibt ein Tippen. — gilt für: alle
+  - Beleg: browser: `run-hold.spec.ts` — Start, Step and Resume fire on a complete hold only — a tap says why; Pause stays a tap
+- **S4 (Abbruch):** Eine neue Revision desselben Programms bricht ein laufendes Halten ab; solange ihr Text lädt, startet ein Halten nichts. — gilt für: alle
+  - Beleg: browser: `run-hold.spec.ts` — a new revision of the same program cancels a Start, Step or Resume hold — at its arrival, the text still loading; browser: `run-hold.spec.ts` — while a revision's text is still loading, Start and Step wait — a hold there runs nothing
+
+### Start ab Zeile (mit Vormessung, sicherem Z, Spindel)
+
+- **S1 (Daten):** Start ab Zeile ist EIN auto_run, gebunden an das gezeigte Programm, seine Version und die Zeile; die Aktion im Dialog ist ein Halten. — gilt für: alle
+  - Beleg: browser: `run-hold.spec.ts` — Run from line: Start only opens the dialog on a tap; the dialog's action is a hold bound to the program and the line; browser: `run-hold.spec.ts` — Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values and its program — nothing waits in the browser (Codex R16 XZ-07)
+- **S2 (Wirkung):** Der sichere Z-Schritt vor dem Start hebt Z von unten auf Maschinen-Oberkante und senkt es nie; liegt Z schon oben, entfällt er. — gilt für: Machine
+  - Beleg: gateway: `test_rfl_guard.py` — test_safe_z_reached_from_below_starts; gateway: `test_rfl_guard.py` — test_safe_z_above_zero_skips_mdi
+- **S3 (Wirkung):** Auf echtem LinuxCNC startet der Lauf ab der gewählten Zeile mit dem richtigen Werkzeug, Spindel und Startpunkt. — gilt für: offen
+  - Beleg: **offen** — Lücke: nativ: ein Testprogramm ab Zeile mit Vormessung (native Stufe)
+
+### Satz ausblenden und optionaler Halt
+
+- **S1 (Daten):** Satz ausblenden und optionaler Halt senden ihren Schalter, und die Anzeige folgt dem gemeldeten Zustand. — gilt für: alle
+  - Beleg: **offen** — Lücke: Browser: kein Spec löst set_block_delete oder set_optional_stop aus
 
 ## MDI
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **MDI-Befehl senden, Verlauf** `F-MDI` | Tab „MDI“ | 6 | 0 | 0 | Aussagen noch nicht formuliert |
+| **MDI-Befehl senden, Verlauf** `F-MDI` | Tab „MDI“ | 6 | 1 | 1 | 0 |
+
+### MDI-Befehl senden, Verlauf
+
+- **S1 (Ablehnung):** MDI wird abgelehnt, solange ein Programm läuft; ein zu langer Befehl wird abgelehnt, nicht abgeschnitten. — gilt für: alle
+  - Beleg: gateway: `test_command_dispatch.py` — test_mdi_denied_while_running; gateway: `test_command_policy.py` — test_mdi_length_rejected_not_truncated
 
 ## Werkzeuge
 
@@ -89,12 +266,30 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 |---|---|---|---|---|---|
 | **Werkzeugtabelle ansehen, suchen, sortieren** `F-TOOLTABLE` | Leiste › Werkzeug, Tab „Tools“ | 13 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Werkzeug anlegen, bearbeiten, löschen, umnummerieren** `F-TOOLEDIT` | Tab „Tools“ | 31 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Werkzeugbibliothek importieren (Fusion 360, FreeCAD)** `F-TOOLIMPORT` | Tab „Tools“ | 17 | 0 | 0 | Aussagen noch nicht formuliert |
+| **Werkzeugbibliothek importieren (Fusion 360, FreeCAD)** `F-TOOLIMPORT` | Tab „Tools“ | 17 | 4 | 4 | 0 |
 | **Werkzeugtabelle herunterladen** `F-TOOLDOWNLOAD` | Tab „Tools“ | 2 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Werkzeugwechsel (M6) mit Bestätigung** `F-TOOLCHANGE` | Dialog, Einstellungen, Tab „Tools“ | 14 | 0 | 0 | Aussagen noch nicht formuliert |
+| **Werkzeugwechsel (M6) mit Bestätigung** `F-TOOLCHANGE` | Dialog, Einstellungen, Tab „Tools“ | 14 | 2 | 1 | 1 |
 | **Werkzeuglänge messen (M600) und Werkzeug entladen** `F-TOOLMEASURE` | Tab „Tools“ | 8 | 5 | 4 | 1 |
-| **Toolsetter einrichten (Werkzeuglängen-Messung)** `F-TOOLSETTER` | Tab „Probing“ › Toolsetter | 36 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Werkzeugwechselposition G30 lesen, übernehmen, speichern** `F-G30` | Tab „Probing“ › Toolsetter | 8 | 0 | 0 | Aussagen noch nicht formuliert |
+| **Toolsetter einrichten (Werkzeuglängen-Messung)** `F-TOOLSETTER` | Tab „Probing“ › Toolsetter | 36 | 1 | 1 | 0 |
+| **Werkzeugwechselposition G30 lesen, übernehmen, speichern** `F-G30` | Tab „Probing“ › Toolsetter | 8 | 2 | 2 | 0 |
+
+### Werkzeugbibliothek importieren (Fusion 360, FreeCAD)
+
+- **S1 (Daten):** Vorhandene Werkzeuge werden standardmäßig nur in den Metadaten aufgefrischt; die gemessene Länge bleibt. — gilt für: alle
+  - Beleg: browser: `tool-import.spec.ts` — existing tools default to reviewed metadata refresh, not full replacement
+- **S2 (Ablehnung):** Vollständiges Ersetzen erfordert die ausdrückliche Wahl dieser Art und zeigt die Längen, die ersetzt werden; eine veraltete Prüfung fällt nie auf Ersetzen zurück. — gilt für: alle
+  - Beleg: browser: `tool-import.spec.ts` — full replacement requires selecting that mode and shows length replacement; browser: `tool-import.spec.ts` — stale review stays visible as an error and never falls back to replacement
+- **S3 (Daten):** Die FreeCAD-Vorschau behält gemessene Offsets, zeigt eine eigene Form und erklärt neue Längen. — gilt für: alle
+  - Beleg: browser: `freecad-import.spec.ts` — FreeCAD preview retains measured offsets, renders a custom shape, and explains new lengths
+- **S4 (Ablehnung):** Ein Import schreibt die Tabelle nicht, solange ein Werkzeugwechsel angefordert ist (409), und nicht für einen nicht freigegebenen Schreiber. — gilt für: alle
+  - Beleg: gateway: `test_button_gates_b.py` — test_a_pending_tool_change_replaces_nothing; gateway: `test_button_gates_b.py` — test_a_disarmed_writer_replaces_nothing
+
+### Werkzeugwechsel (M6) mit Bestätigung
+
+- **S1 (Ablehnung):** Bestätigen ist nur offen für einen freigegebenen Client mit einer offenen Anforderung; ohne Anforderung mit dem Grund „No tool change pending“. — gilt für: alle
+  - Beleg: gateway: `test_button_gates.py` — test_open_for_an_armed_client_with_a_pending_request; gateway: `test_button_gates.py` — test_closed_without_a_request; gateway: `test_button_gates.py` — test_closed_disarmed
+- **S2 (Wirkung):** Auf echtem LinuxCNC wartet M6 bis zur ausdrücklichen Bestätigung und läuft dann mit dem neuen Werkzeug weiter. — gilt für: offen
+  - Beleg: **offen** — Lücke: nativ: ohne automatische Bestätigung (FI265-04), native Stufe
 
 ### Werkzeuglänge messen (M600) und Werkzeug entladen
 
@@ -109,13 +304,25 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S5 (Wirkung):** Auf echtem LinuxCNC landet die gemessene Länge in der Werkzeugtabelle und im G43-Offset. — gilt für: offen
   - Beleg: **offen** — Lücke: nativer Lauf offen (nach Schritt 7)
 
+### Toolsetter einrichten (Werkzeuglängen-Messung)
+
+- **S1 (Daten):** Die Einrichtung zählt erst, wenn der Server die Sektion bestätigt hat; eine Teil-Sektion nennt, was fehlt, und eine Änderung speichert nur dieses Feld. — gilt für: alle
+  - Beleg: browser: `toolsetter-setup.spec.ts` — a save the server never confirmed is no setup; its confirmation is; browser: `toolsetter-setup.spec.ts` — a partial section: the form names what is missing, shows unset fields empty, and a change saves only that field
+
+### Werkzeugwechselposition G30 lesen, übernehmen, speichern
+
+- **S1 (Ablehnung):** Speichern prüft das Fenster, bevor sich etwas bewegt, und verlangt die Basis, auf der der Entwurf beruht. — gilt für: alle
+  - Beleg: gateway: `test_g30.py` — test_out_of_the_window_is_refused_before_anything_moves; gateway: `test_g30.py` — test_a_write_without_its_basis_is_refused
+- **S2 (Ablehnung):** Hat der Interpreter G30 inzwischen geändert, ist das ein Konflikt („G30 changed meanwhile — reload“); ein anders zurückgelesener Wert ist nicht bestätigt. — gilt für: alle
+  - Beleg: gateway: `test_g30.py` — test_a_value_the_interpreter_changed_meanwhile_is_a_conflict; gateway: `test_g30.py` — test_a_value_read_back_differently_is_not_confirmed
+
 ## Antasten und Flächenkompensation
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
 | **Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut** `F-PROBE` | Tab „Probing“ | 87 | 4 | 3 | 1 |
-| **Taster kalibrieren** `F-PROBECAL` | Tab „Probing“ | 15 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Fläche abtasten (Surface-Scan)** `F-SURFACE` | Tab „Probing“ | 6 | 0 | 0 | Aussagen noch nicht formuliert |
+| **Taster kalibrieren** `F-PROBECAL` | Tab „Probing“ | 15 | 1 | 1 | 0 |
+| **Fläche abtasten (Surface-Scan)** `F-SURFACE` | Tab „Probing“ | 6 | 2 | 0 | 2 |
 | **Flächenkompensation ein/aus und Interpolation umschalten** `F-COMP` | Dialog, Tab „Probing“ | 13 | 4 | 0 | 4 |
 
 ### Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut
@@ -128,6 +335,18 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: unit: `probeVarFiles.test.ts` — are found: one per example profile
 - **S3 (Wirkung):** Auf echtem LinuxCNC setzt ein Z-Antasten G54 Z auf den erwarteten Wert (Platte, Werkzeug, Toleranz je Messgröße). — gilt für: offen
   - Beleg: **offen** — Lücke: Schritt 7, der Antast-Live-Check
+
+### Taster kalibrieren
+
+- **S1 (Daten):** Kalibrieren sendet seine Routine mit der Achswahl #3036 und den Zahlen der Kalibrier-Zuordnung. — gilt für: alle
+  - Beleg: browser: `probe-click.spec.ts` — ${form.sub}: a held probe button sends its routine with the panel's numbers (je: Calibrate)
+
+### Fläche abtasten (Surface-Scan)
+
+- **S1 (Daten):** Der Surface-Scan sendet O<surface_scan> CALL mit den Feldern des Panels in vars. — gilt für: alle
+  - Beleg: **offen** — Lücke: Browser: probe-click deckt die fünf Antastformen, nicht den Scan
+- **S2 (Wirkung):** Auf echtem LinuxCNC tastet der Scan das Raster ab und liefert die Punkte für die Kompensation. — gilt für: 3axis_xyz
+  - Beleg: **offen** — Lücke: nativ (native Stufe, mit hohem Antastvorschub über die Scan-Variablen)
 
 ### Flächenkompensation ein/aus und Interpolation umschalten
 
@@ -145,7 +364,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
 | **Makros verwalten: anlegen, bearbeiten, umbenennen, löschen, importieren, herunterladen** `F-MACROFILES` | Tab „Macros“ | 33 | 2 | 2 | 0 |
-| **Makro starten (Tab, Leiste, Parameter-Dialog)** `F-MACRORUN` | Dialog, Makro-Leiste, Tab „Macros“ | 6 | 0 | 0 | Aussagen noch nicht formuliert |
+| **Makro starten (Tab, Leiste, Parameter-Dialog)** `F-MACRORUN` | Dialog, Makro-Leiste, Tab „Macros“ | 6 | 2 | 2 | 0 |
 | **Makro-Leiste einrichten** `F-MACROBAR` | Tab „Macros“ | 7 | 0 | 0 | Aussagen noch nicht formuliert |
 
 ### Makros verwalten: anlegen, bearbeiten, umbenennen, löschen, importieren, herunterladen
@@ -154,6 +373,13 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: browser: `macros.spec.ts` — Save's refusal: a conflict rebases Keep editing on the gateway's revision
 - **S2 (Wirkung):** Umbenennen verschiebt die Datei und ihren Platz auf der Leiste in einem Schritt. — gilt für: alle
   - Beleg: browser: `macros.spec.ts` — a rename moves the file and its place on the bar
+
+### Makro starten (Tab, Leiste, Parameter-Dialog)
+
+- **S1 (Bedienbarkeit):** Ein Makro auf der Leiste läuft auf ein Halten, gebunden an seine Revision; ein ungespeicherter Entwurf sperrt genau dieses Makro. — gilt für: alle
+  - Beleg: browser: `macros.spec.ts` — the Macros tab lists the folder; a file put on the bar runs on a hold bound to its revision; browser: `macros.spec.ts` — an unsaved draft blocks the run of THAT macro on the bar and in the tab; Save restores it at the new revision
+- **S2 (Daten):** Ein Makro mit Parametern öffnet seinen Dialog mit den Feldern des Kopfs; Ausführen ist ein Halten und sendet Zahlen. — gilt für: alle
+  - Beleg: browser: `macros.spec.ts` — a macro file with parameters opens its dialog with the header's fields; Execute holds and sends numbers
 
 ## 3D-Ansicht, Simulation, Kamera
 
@@ -168,11 +394,16 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Einstellungen öffnen, speichern, verwerfen, zurücksetzen** `F-SETTINGS` | Dialog, Einstellungen, Kopfzeile | 26 | 0 | 0 | Aussagen noch nicht formuliert |
+| **Einstellungen öffnen, speichern, verwerfen, zurücksetzen** `F-SETTINGS` | Dialog, Einstellungen, Kopfzeile | 26 | 1 | 1 | 0 |
 | **Darstellung: Farbschema, Vollbild, Bildschirm wach halten** `F-DISPLAY` | Einstellungen, Kopfzeile | 13 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Meldungen: Nachrichtenzentrale, Filter, Kopieren, Löschen** `F-MESSAGES` | Banner, Dialog, Kopfzeile, Meldungen | 15 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Navigation: Tabs und Seitenleiste** `F-TABS` | Tabs | 3 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Diagnose: HAL-Anzeige, Timing, Telemetrie** `F-DIAG` | Banner, Einstellungen › Debug, Einstellungen › HAL | 23 | 0 | 0 | Aussagen noch nicht formuliert |
+
+### Einstellungen öffnen, speichern, verwerfen, zurücksetzen
+
+- **S1 (Ablehnung):** Eine geschützte Sektion speichert nur ein freigegebener Schreiber (403 sonst); Anzeige-Sektionen brauchen kein Arm. — gilt für: alle
+  - Beleg: gateway: `test_button_gates_b.py` — test_a_protected_section_needs_an_armed_writer; gateway: `test_button_gates_b.py` — test_a_display_section_needs_no_arm
 
 ## Tastatur, Gamepad, Eingabehilfen
 

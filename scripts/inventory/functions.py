@@ -271,6 +271,14 @@ def render(web: dict, py: dict, fns: dict) -> str:
               "ihr Katalog sichtbarer Zusagen folgt als eigener Schritt.",
               "- **Belegt** heißt hier: ein benannter Test existiert mit diesem Titel. Ob er lief und bestand, "
               "kommt aus den Laufberichten (nächster Schritt).", ""]
+    open_ = [(f, st) for f in fns["functions"] for st in f.get("statements", []) if not st.get("evidence")]
+    lines += ["## Offene Aussagen", "",
+              f"{len(open_)} Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.", "",
+              "| Funktion | Aussage | Art | gilt für | Lücke |", "|---|---|---|---|---|"]
+    lines += [f"| {f['name']} | {st['text']} | {st['kind']} | {', '.join(st.get('applies', ['offen']))} | {st.get('gap', '—')} |"
+              for f, st in open_]
+    lines += ["", f"**Ohne formulierte Aussagen:** {sum(1 for f in fns['functions'] if not f.get('statements'))} Funktionen "
+              "(Anzeige, Einstellungen, Diagnose, Eingabehilfen und Systemverträge — folgen)", ""]
     for area, title in fns["areas"].items():
         group = [f for f in fns["functions"] if f["area"] == area]
         if not group:
@@ -292,6 +300,7 @@ def render(web: dict, py: dict, fns: dict) -> str:
             for s in f["statements"]:
                 ev = "; ".join(f"{e['layer']}: `{e['file']}` — {e['title']}"
                                + (f" (je: {', '.join(e['instances'])})" if e.get("instances") else "")
+                               + (" (live, nicht im Gate)" if e.get("live") else "")
                                for e in s.get("evidence", [])) or "**offen**"
                 gap = f" — Lücke: {s['gap']}" if s.get("gap") else ""
                 applies = f" — gilt für: {', '.join(s.get('applies', ['offen']))}"
