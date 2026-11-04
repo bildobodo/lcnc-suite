@@ -224,6 +224,16 @@ describe("the function inventory's web atoms (Codex R265–R268 FI265-01)", () =
     expect(a3.unresolved.map((u) => u.form)).toEqual(["the relay queue filled from elsewhere"]);
   });
 
+  it("frames: the binding is the one at the send — not a parameter's namesake in an inner function or a left block (Codex R272 FI-I03)", () => {
+    const inner = `function send(own) { function otherFrame() { const own = JSON.stringify({ cmd: "hello" }); return own; } otherFrame(); ws.send(own); }`;
+    expect(framesAdapter(memory({ "wsWorker.ts": inner })).unresolved.map((u) => u.expr)).toEqual(["ws.send(own)"]);
+    const left = `function f(own) { { const own = JSON.stringify({ cmd: "hello" }); void own; } ws.send(own); }`;
+    expect(framesAdapter(memory({ "wsWorker.ts": left })).unresolved.map((u) => u.expr)).toEqual(["ws.send(own)"]);
+    const shadow = `function f(own) { if (x) { const own = JSON.stringify({ cmd: "hello" }); ws.send(own); } }`;
+    const a = framesAdapter(memory({ "wsWorker.ts": shadow }));
+    expect([a.atoms.map((x) => x.id), a.unresolved]).toEqual([["frame:hello"], []]);
+  });
+
   it("routines: the macro family without its literals is unresolved", () => {
     const a = routinesAdapter(memory({ "App.vue": "<script setup>emit(`O<${macro}> CALL`)</script>" }));
     expect(a.unresolved).toHaveLength(1);

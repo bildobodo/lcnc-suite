@@ -171,6 +171,8 @@ and their evidence. The operator's table is `docs/inventory/funktionen.md`
   pattern is proven against TypeScript's parser per file
   (`scripts/test_select/importscan.mjs`, `graph.pattern_disagreements`): a
   missed edge or a refused form (`require()`, a computed `import()`) fails.
+  The graph reads every source type the build compiles (`graph.SOURCE_EXT` =
+  `tsconfig.app.json` include), a guard holds the two lists equal.
 
 Evidence is bound statically in this step (the named file holds the title);
 whether it ran and passed comes from the run artifacts with the measurement

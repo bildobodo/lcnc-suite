@@ -43,14 +43,20 @@ EDGE = re.compile(
     re.M | re.S)
 
 
+# Every source type the app's build compiles (tsconfig.app.json `include`) —
+# a guard holds the two equal, so no reachable file falls out of the walk
+# (Codex R272 FI-I07).
+SOURCE_EXT = (".ts", ".tsx", ".vue")
+
+
 def sources(src: Path) -> list[str]:
     return sorted(p.relative_to(src).as_posix() for p in src.rglob("*")
-                  if p.suffix in (".ts", ".vue") and not p.name.endswith((".test.ts", ".d.ts")))
+                  if p.suffix in SOURCE_EXT and not p.name.endswith((".test.ts", ".test.tsx", ".d.ts")))
 
 
 def _resolve(src: Path, importer: str, rel: str) -> str | None:
     p = (src / importer).parent / rel
-    for cand in (p, Path(f"{p}.ts"), Path(f"{p}.vue"), p / "index.ts"):
+    for cand in (p, Path(f"{p}.ts"), Path(f"{p}.tsx"), Path(f"{p}.vue"), p / "index.ts", p / "index.tsx"):
         if cand.is_file():
             return Path(os.path.normpath(cand)).relative_to(src).as_posix()
     return None

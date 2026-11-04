@@ -437,6 +437,28 @@ def test_the_edge_pattern_and_the_parser_see_the_same_spellings(tmp_path):
                                                 "bad.ts: 2: import() of a computed path"]
 
 
+def test_the_graph_reads_every_source_type_the_build_compiles():
+    """graph.SOURCE_EXT is tsconfig.app.json's `include`, and no other script
+    type sits in src — a reachable file of a type the walk does not read would
+    hide a runtime use (Codex R272 FI-I07)."""
+    include = re.search(r'"include"\s*:\s*\[([^\]]*)\]', (SRC.parent / "tsconfig.app.json").read_text())
+    assert include, "tsconfig.app.json names its include list"
+    built = {Path(g).suffix for g in re.findall(r'"([^"]+)"', include.group(1)) if g.startswith("src/")}
+    assert built == set(graph.SOURCE_EXT)
+    other = sorted(p.relative_to(SRC).as_posix() for p in SRC.rglob("*")
+                   if p.suffix in (".js", ".mjs", ".cjs", ".jsx", ".mts", ".cts"))
+    assert other == []
+
+
+def test_the_runtime_walk_reads_tsx(tmp_path):
+    (tmp_path / "main.ts").write_text('import { a } from "./inventory/r.tsx";\nimport { b } from "./q";\n')
+    (tmp_path / "inventory").mkdir()
+    (tmp_path / "inventory" / "r.tsx").write_text("export const a = 1;\n")
+    (tmp_path / "q.tsx").write_text("export const b = <i />;\n")
+    rev, _ = graph.importers(tmp_path)
+    assert graph.reached_from(["main.ts"], rev, graph.spawns(tmp_path)).keys() == {"main.ts", "inventory/r.tsx", "q.tsx"}
+
+
 def test_the_runtime_walk_sees_a_transitive_import_not_a_type_or_a_comment(tmp_path):
     (tmp_path / "main.ts").write_text('import "./a";\n')
     (tmp_path / "a.ts").write_text('// import { x } from "./controlScan";\nimport type { T } from "./controlScan";\n')

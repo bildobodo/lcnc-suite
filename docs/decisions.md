@@ -10368,3 +10368,12 @@ it on TypeScript's parser file by file — a missed edge fails, an excess must
 be a type position's `import("./x").T`, `require()` and a computed `import()`
 are refused; the guard's file set is the rule's own glob list
 (`TEST_ONLY_GLOBS`), so a new runtime file under `inventory/` fails too.
+
+Codex R272 (two rests closed): a frame's or relay's binding is the one AT the
+send — the nearest enclosing block, case clause or file that declares the
+name; a parameter, a loop head, a catch clause or two declarations bind
+nothing proven, an inner function's or a left block's `const` is never
+reached. The graph reads every source type the build compiles
+(`graph.SOURCE_EXT` = `tsconfig.app.json` include: `.ts`, `.tsx`, `.vue`; a
+guard holds the two equal and finds no other script type in `src`), so a
+`.tsx` file reached from the app is scanned and fails the test-only guard.

@@ -277,15 +277,30 @@ export function framesAdapter(src: WebSources): Adapter {
       for (let p = n.parent; p; p = p.parent) if (ts.isCaseClause(p)) return ts.isStringLiteralLike(p.expression) && p.expression.text === "send";
       return false;
     };
-    const fnOf = (n: ts.Node): ts.Node => { let p = n.parent; while (p && !ts.isFunctionLike(p)) p = p.parent; return p ?? sf; };
-    // the initializer of the ONE `const` of that name in the function, or
-    // nothing: a `let`, a second binding or none is no proven value
-    const initOf = (id: ts.Identifier): ts.Expression[] => {
-      const decls: ts.VariableDeclaration[] = [];
-      walk(fnOf(id), (d) => { if (ts.isVariableDeclaration(d) && ts.isIdentifier(d.name) && d.name.text === id.text) decls.push(d); });
-      const only = decls.length === 1 ? decls[0]! : undefined;
-      const isConst = !!only && ts.isVariableDeclarationList(only.parent) && (only.parent.flags & ts.NodeFlags.Const) !== 0;
-      return isConst && only!.initializer ? [only!.initializer] : [];
+    // the declaration that binds the identifier AT the send: the nearest
+    // enclosing block, case clause or the file that declares it (Codex R272
+    // FI-I03). A parameter, a loop head, a catch clause, a function or class
+    // of the name, or two declarations bind nothing proven; an inner
+    // function's or a left block's const is never reached; one `const` with
+    // its initializer is the proven value.
+    const bindingAt = (id: ts.Identifier): ts.Expression | undefined => {
+      const named = (n: ts.BindingName) => ts.isIdentifier(n) && n.text === id.text;
+      for (let p: ts.Node | undefined = id.parent; p; p = p.parent) {
+        if (ts.isFunctionLike(p) && p.parameters.some((q) => named(q.name))) return undefined;
+        if (ts.isCatchClause(p) && p.variableDeclaration && named(p.variableDeclaration.name)) return undefined;
+        if ((ts.isForOfStatement(p) || ts.isForInStatement(p) || ts.isForStatement(p)) && p.initializer
+            && ts.isVariableDeclarationList(p.initializer) && p.initializer.declarations.some((d) => named(d.name))) return undefined;
+        const stmts = ts.isBlock(p) || ts.isSourceFile(p) || ts.isCaseClause(p) || ts.isDefaultClause(p) ? p.statements : undefined;
+        if (!stmts) continue;
+        const decls = stmts.flatMap((st) => ts.isVariableStatement(st)
+          ? st.declarationList.declarations.filter((d) => named(d.name)).map((d) => ({ d, list: st.declarationList })) : []);
+        if (stmts.some((st) => (ts.isFunctionDeclaration(st) || ts.isClassDeclaration(st)) && st.name?.text === id.text) || decls.length > 1) return undefined;
+        if (decls.length === 1) {
+          const { d, list } = decls[0]!;
+          return (list.flags & ts.NodeFlags.Const) !== 0 && d.initializer ? d.initializer : undefined;
+        }
+      }
+      return undefined;
     };
     const literalCmd = (e: ts.Expression): string | undefined => {
       const obj = ts.isCallExpression(e) && e.expression.getText(sf) === "JSON.stringify" ? e.arguments[0] : undefined;
@@ -304,8 +319,7 @@ export function framesAdapter(src: WebSources): Adapter {
       }
       if (n.expression.name.text !== "send" || !arg) return;
       if (arg.getText(sf) === "msg.payload" && inSendCase(n)) return;   // relay: the main thread's command
-      const bound = ts.isIdentifier(arg) ? initOf(arg) : [];
-      const only = bound.length === 1 ? bound[0]! : undefined;
+      const only = ts.isIdentifier(arg) ? bindingAt(arg) : undefined;
       if (only && only.getText(sf).replace(/!$/, "") === "preOpenQueue.shift()") return;   // relay: the queue of the same
       const cmd = literalCmd(only ?? arg);
       if (cmd) return void frame(cmd);

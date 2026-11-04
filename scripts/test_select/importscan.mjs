@@ -31,7 +31,7 @@ const out = {};
 for (const rel of files) {
   const imports = [], workers = [], typeImports = [], refused = [];
   for (const body of scripts(rel, readFileSync(join(src, rel), "utf8"))) {
-    const sf = ts.createSourceFile(rel, body, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+    const sf = ts.createSourceFile(rel, body, ts.ScriptTarget.Latest, true, rel.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
     const line = n => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
     const rel_ = s => s && ts.isStringLiteralLike(s) && /^\.{1,2}\//.test(s.text) ? s.text : null;
     const visit = n => {
