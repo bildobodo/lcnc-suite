@@ -1,0 +1,30 @@
+{
+  "review": "R274",
+  "target": "8064302b58c88f68d1b8e9822b8a70189aad53db",
+  "live_head": "74b579ff3a545dc3c8b030c0da882cfb4efb04fb",
+  "archive": "/tmp/codex-r274",
+  "verdict": "agreement",
+  "scope": "Function inventory step 1, final FI-I03 re-review; later stages remain separate",
+  "tests": {
+    "files": 6,
+    "passed": 53,
+    "failed": 0,
+    "unchanged_codex_counterexamples": 21
+  },
+  "source_hashes": {
+    "lcnc-webui/src/inventory/webAtoms.ts": "72218ea303b07cbf394dee2c3843643fa72f3edea521fc92224b0b7e2f06e07a",
+    "lcnc-webui/src/inventory/webAtoms.test.ts": "31b32b251b5021acc568ee6cc4b815c3119c21b9820d6c0de054fe68758d18ee",
+    "lcnc-webui/src/controlScan.ts": "39d514a5cb89310dbe929fef92edd3ee51eda0fcdc198c1cd25f9831b97456f8",
+    "lcnc-webui/src/controlInventory.ts": "e95f27fe7a6b251d63e3e6c533b5fa8c781bab09a01020a00675977918a47dfc"
+  },
+  "copied_probes": {
+    "270": "7d0cbbbab110e6543759ec9a7c498bbe900c54887ad7d3bf0e539c4e85642b69",
+    "271": "ca56500376da18c29866b1c12ed52f911563b279011c7245289509bffda6c2fb",
+    "272": "ab08ba0ccb705395c54cfc209142d0a4e9f27d5756da6cb3fda2ee28cf4832a3",
+    "273": "665e82a7ae96451b21c3d122adb8c3e63ac03d6ccd45cf08fa1568c8190d9a0b"
+  },
+  "review_prefix": {
+    "length": 147096,
+    "sha256": "6732c76ca782e2ca240fd6931793d67942ee3d3c4ba0ddcc46e52d088d3094ce"
+  }
+}

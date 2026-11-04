@@ -1,0 +1,48 @@
+R274; own archive 8064302b at /tmp/codex-r274. No live endpoint, build or checkout.
+
+Launch correction: the first command was issued at archive root instead of lcnc-webui; Node could not find Vitest, no tests ran. Original output:
+node:internal/modules/cjs/loader:1433
+  throw err;
+  ^
+
+Error: Cannot find module '/tmp/codex-r274/node_modules/vitest/vitest.mjs'
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1430:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)
+    at Function._load (node:internal/modules/cjs/loader:1216:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+    at node:internal/main/run_main_module:36:49 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v22.23.2
+
+Corrected cwd: /tmp/codex-r274/lcnc-webui
+COMMAND: nice -n 10 node node_modules/vitest/vitest.mjs run src/inventory/webAtoms.test.ts src/controlInventory.test.ts src/inventory/r270.codex.test.ts src/inventory/r271.codex.test.ts src/inventory/r272.codex.test.ts src/inventory/r273.codex.test.ts --maxWorkers=1 --reporter=default --reporter=json --outputFile.json=/tmp/codex-r274/web-results.json
+
+ RUN  v4.1.8 /tmp/codex-r274/lcnc-webui
+
+ ✓ src/inventory/r273.codex.test.ts (8 tests) 17ms
+ ✓ src/inventory/webAtoms.test.ts (24 tests) 7673ms
+     ✓ are the committed atoms.web.json  1167ms
+     ✓ counts what Codex counted: keyboard 21, gamepad 12 actions, every WsCommand  350ms
+     ✓ keyboard: a template-literal family resolves, one letter more is two actions more  576ms
+     ✓ frames: a JSON object, a text frame, a const bound to one; the two proven relays; any other send unresolved (Codex R270 FI-I03)  410ms
+     ✓ the inventory's own files are outside the boundary, and say so  809ms
+     ✓ frames: a let, a second binding or a multi-value push is no proven value (Codex R271 FI-I03)  586ms
+     ✓ frames: the binding is the one at the send — not a parameter's namesake in an inner function or a left block (Codex R272 FI-I03)  585ms
+     ✓ frames: by the checker's symbol — a binding pattern, a function-wide var, a loop or catch binding is no proven value (Codex R273 FI-I03)  1462ms
+     ✓ an adapter that finds nothing fails — no answer is never an empty inventory  496ms
+ ✓ src/inventory/r270.codex.test.ts (4 tests) 18ms
+ ✓ src/inventory/r271.codex.test.ts (6 tests) 16ms
+ ✓ src/inventory/r272.codex.test.ts (3 tests) 14ms
+ ✓ src/controlInventory.test.ts (8 tests) 6ms
+
+ Test Files  6 passed (6)
+      Tests  53 passed (53)
+   Start at  21:10:10
+   Duration  9.45s (transform 378ms, setup 0ms, import 1.36s, tests 7.74s, environment 0ms)
+
+JSON report written to /tmp/codex-r274/web-results.json

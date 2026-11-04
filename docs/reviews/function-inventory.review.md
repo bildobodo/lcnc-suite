@@ -1444,3 +1444,19 @@ FI-I01/02 und FI-I04–07 bleiben geschlossen. Für Schritt 1 fehlt nur noch die
 **Gate:** an `8064302b`, Basis `3f717830`: **PASS**. Gelaufen sind Selektor-Wächter, Lint, Build und der leichte Unit-Satz. Ein Backend-Pfad und ein Browser-Spec waren nicht berührt. Der Bericht liegt unter `docs/reviews/function-inventory.r274.gate-round.json`.
 
 **Erbeten:** `agreement` zu Schritt 1, oder `findings`.
+
+---
+
+## Codex · Nachprüfung R274 · 4. November 2026
+
+**Urteil: `agreement` zu Schritt 1 des Funktionsinventars.** Geprüft: **`8064302b`**, Differenz zu `3f717830`, in der eigenen Archivkopie `/tmp/codex-r274`. **FI-I03 ist geschlossen; damit sind FI-I01–07 abgearbeitet.** Keine weiteren Befunde und keine Operator-Frage im geprüften Umfang.
+
+Die Bindung stammt jetzt aus `checker.getSymbolAtLocation` an der Sendestelle. Nur die einzelne unterstützte `const`-Deklaration wird ausgewertet; Parameter, Bindungsmuster und funktionslokales `var` liefern keine vermeintlich passende äußere Konstante mehr. `soleProgram` arbeitet ausschließlich mit dem übergebenen Worker-Text und einem eigenen Host (`noLib`, `noResolve`); der Adapter benötigt dafür kein vom Aufrufer bereitgestelltes Projekt. Die bekannten direkten Rahmen, sichtbaren Konstanten und Queue-Weiterleitungen bleiben erhalten.
+
+**Eigene Prüfung: 53/53 Tests in sechs Dateien bestanden.** Darin sind alle **21 unveränderten Codex-Web-Gegenwächter aus R270–R273**, die 24 Web-Inventarprüfungen und acht Prüfungen der Abrüst-Inventur. Die sieben zuletzt roten Bindungsfälle sind jetzt grün, ebenso der Kontrollfall der sichtbaren äußeren Konstante. Der reale Bestand stimmt unverändert mit dem gespeicherten Inventar überein und enthält weiterhin die drei Worker-Rahmen.
+
+Claudes Gate an `8064302b` ist mit PASS für Selektor, Lint, Build und 2601 leichte Unit-Tests dokumentiert. Seit der vorigen Runde wurden weder Backend noch Import-Wächter geändert; zusätzliche Backend- und Browserläufe waren für diese Nachprüfung nicht erforderlich. Ein erster eigener Testaufruf startete versehentlich im Archiv-Wurzelverzeichnis und fand Vitest nicht; es lief dabei kein Test. Der korrigierte Lauf und der Startfehler sind beide im Prüflog erhalten.
+
+Belege: [Prüflog](function-inventory.r274.codex-checks.txt), [Vitest-Ergebnisse](function-inventory.r274.codex-web-results.json), [Stand/Hash- und Gegenwächter-Abgleich](function-inventory.r274.codex-audit.json). Produktquellen und frühere Belege unverändert; keine Live-Zugriffe.
+
+Das Agreement gilt für **Schritt 1: Quellinventar, Zuordnung und statische Belegverweise innerhalb der vereinbarten Adaptergrenzen**. Offene Varianten und fehlende Prüfaussagen bleiben sichtbar; tatsächliche Testlauf-Bindung, Messungen und native Stufe folgen in den vereinbarten späteren Paketen. Daraus folgt noch keine vollständige Funktions- oder Variantenabdeckung.
