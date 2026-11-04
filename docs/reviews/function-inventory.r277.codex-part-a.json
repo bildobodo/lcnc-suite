@@ -1,0 +1,44 @@
+{
+  "target": "b588eaea",
+  "optimized": false,
+  "inventory_problems": [],
+  "roundtrip": true,
+  "idempotent": true,
+  "formatter_cases": [
+    {
+      "case": "function_extra",
+      "exit": 1,
+      "unchanged_bytes": true,
+      "equal_data": true,
+      "stdout": "functions.json not formatted — it holds a field the layout does not write (functions.py dump())\n"
+    },
+    {
+      "case": "root_extra",
+      "exit": 1,
+      "unchanged_bytes": true,
+      "equal_data": true,
+      "stdout": "functions.json not formatted — it holds a field the layout does not write (functions.py dump())\n"
+    },
+    {
+      "case": "empty_uses",
+      "exit": 0,
+      "unchanged_bytes": false,
+      "equal_data": true,
+      "stdout": ""
+    },
+    {
+      "case": "empty_statements",
+      "exit": 0,
+      "unchanged_bytes": false,
+      "equal_data": true,
+      "stdout": ""
+    }
+  ],
+  "source_sha_before": "3d702be5cde3318f7c84c84bc6c091bb02567ee9969a516be8107d507a912ae3",
+  "key_mutation": {
+    "exit": 1,
+    "stdout": "\n RUN  v4.1.8 /tmp/codex-r277/a/lcnc-webui\n\n ❯ src/toolsetterSetup.test.ts (5 tests | 1 failed | 4 skipped) 7ms\n     × writes the var numbers tool_touch_off.ngc reads 6ms\n\n Test Files  1 failed (1)\n      Tests  1 failed | 4 skipped (5)\n   Start at  23:00:43\n   Duration  190ms (transform 72ms, setup 0ms, import 82ms, tests 7ms, environment 0ms)\n\n",
+    "stderr": "\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  src/toolsetterSetup.test.ts > toolsetterVarMap > writes the var numbers tool_touch_off.ngc reads\nAssertionError: expected [ '3004', '3005', '3006', …(20) ] to deeply equal [ '3004', '3005', '3006', …(20) ]\n\n- Expected\n+ Received\n\n@@ -8,11 +8,10 @@\n    \"3013\",\n    \"3100\",\n    \"3101\",\n    \"3102\",\n    \"3103\",\n-   \"3104\",\n    \"3105\",\n    \"3106\",\n    \"3107\",\n    \"3108\",\n    \"3109\",\n@@ -20,6 +19,7 @@\n    \"3111\",\n    \"3112\",\n    \"3113\",\n    \"3114\",\n    \"3115\",\n+   \"3904\",\n  ]\n\n ❯ src/toolsetterSetup.test.ts:69:35\n     67|     // kept the count)\n     68|     const set = [3004, 3005, 3006, 3007, 3009, 3010, 3013, ...Array.fr…\n     69|     expect(Object.keys(m).sort()).toEqual(set.map(String).sort());\n       |                                   ^\n     70|   });\n     71| });\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n"
+  },
+  "source_sha_after": "3d702be5cde3318f7c84c84bc6c091bb02567ee9969a516be8107d507a912ae3"
+}

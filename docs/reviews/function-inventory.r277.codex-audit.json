@@ -1,0 +1,73 @@
+{
+  "parts": {
+    "a": {
+      "target": "b588eaea656646405e67dedb7d34e5bde55dd5f6",
+      "base": "fa09223a",
+      "sources": {
+        "scripts/inventory/functions.py": "85677719c1b1afea4f9fe5510f615771cf77bd0b290c42f5109ad5336843651b",
+        "scripts/inventory/functions.json": "15e1f7101f5f31841cd58c4a91cf8fb9ee7902a000f1866e7a77de1e5b7d2bef",
+        "scripts/inventory/test_inventory.py": "25100dc5fe709cc8d4ab12b1c8192c6d58feb07829a1fdb16db0af74d8f3245c",
+        "lcnc-webui/src/toolsetterSetup.ts": "3d702be5cde3318f7c84c84bc6c091bb02567ee9969a516be8107d507a912ae3",
+        "lcnc-webui/src/toolsetterSetup.test.ts": "a3f74a7baea558d4670982f741c3cd36ec2c13b3277066474b69eea716d48444",
+        "CLAUDE.md": "38a6cf1be6bd74ffae7157f88df3e97bbaf09b048b7ee26a136c75123318dd66",
+        "README.md": "f11e684c18522e4dad18998cae51413a75fa77cadbe70568103fe71be1c80ca1",
+        "docs/decisions.md": "2803bc4d3134b8afb44026e183788e9f6634b8acaaf6f1418a671413f9a06b96"
+      },
+      "functions": 59,
+      "statements": 111,
+      "gaps": 34
+    },
+    "b": {
+      "target": "b3e1597499ed5024039b6b8d69538bcbd833cba1",
+      "base": "f0070ec7",
+      "sources": {
+        "lcnc-gateway/gateway.py": "b9c16d62b126d9af31711e5304f5a563e45ed976c882cf926a9354f97b790daa",
+        "lcnc-gateway/hal_bridge.py": "45ffa71c50c9fa980c6e27abfa9778463ebbbdf549d5474fd0814305429d2f6b",
+        "lcnc-gateway/test_compensation.py": "89382b34f5948e8b6a020606189478a50c4e88f755bf169c6961469d0a442987",
+        "lcnc-webui/src/App.vue": "289a10ec188a7d107890713ea85dafd51ffee79d4a33397cf9e690ab455bbf6c",
+        "lcnc-webui/src/ProbePanel.vue": "306d1f319b93ae7ead1fd6f572db854ddaecf2c1b53d322b4bbf64f3d5c37614",
+        "lcnc-webui/e2e/compensation.spec.ts": "791c12a7862fe3f2bb065e318f9fac67d4105f253f8c2364ad434e9f47d1b58f",
+        "lcnc-webui/e2e/run-hold.spec.ts": "084e0e5f92ac6f79ce735c56a8a965b1b19720a9c5081f4fe1559ac84b8a9fe5",
+        "lcnc-webui/src/radioNames.test.ts": "9942d69c8997bf4e6943fe39689b9de90ee1847cb637ca1ed853f21c38286a5f",
+        "scripts/inventory/functions.json": "31108abe9f2bd595e5124746b4b15909a6f4aa9219502ab2113bd5959c0c5ccd",
+        "scripts/inventory/atoms.web.json": "4464f22d6382c1dddeb13e93e44fd9a4c9e325ae61590efe852a4120e6ab6344",
+        "scripts/test_select/rules.py": "8a985fa286393cfe7a1d654587e3dc3ae3659129502aa865183cc51ab9268ffb"
+      },
+      "functions": 59,
+      "statements": 20,
+      "gaps": 4
+    }
+  },
+  "verdict": "agreement",
+  "closed": [
+    "FI-I09",
+    "FI-I11",
+    "FI-I12"
+  ],
+  "new_findings": [],
+  "checks": {
+    "A_inventory": 34,
+    "A_toolsetter": 5,
+    "B_compensation_backend": 4,
+    "B_independent_backend": 3,
+    "B_compensation_browser": 3,
+    "B_independent_browser": 4,
+    "total_passed": 53,
+    "build": "PASS",
+    "mutation": "3104->3904: assertion failure; source restored",
+    "formatter": "four cases in normal Python and four under -O"
+  },
+  "limitations": [
+    "No live machine access; native F-COMP.S4 remains open",
+    "No full gate rerun; two reviewed branches still separate",
+    "Browser test harness changed only mock port 4500->4590 and config: workers=1, webServer=[], retries=0",
+    "One own browser probe initially failed on Playwright click actionability; corrected to focus+Enter"
+  ],
+  "evidence_files": [
+    "part-a.py",
+    "part-a.json",
+    "part-a-optimized.json",
+    "backend-probe.py",
+    "browser-probe.spec.ts"
+  ]
+}

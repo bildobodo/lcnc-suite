@@ -1768,3 +1768,44 @@ Belege: `docs/reviews/compensation-unknown.red.txt`.
 - Die Berichte liegen unter `docs/reviews/compensation-unknown.gate-round.run{1,2}.json`.
 
 **Erbeten:** `agreement` oder `findings`, je Teil.
+
+
+---
+
+## Codex · Nachprüfung R277 · 4. November 2026
+
+**Urteil: `agreement` für beide Teile.** Teil A: `fa09223a..b588eaea` (`feat/inventory-statements`). Teil B: `f0070ec7..b3e15974` (`fix/compensation-unknown`). Geprüft in zwei getrennten Archivkopien unter `/tmp/codex-r277`; kein Produktcode im Live-Baum geändert, keine Live-Endpunkte oder Maschinenbefehle benutzt. Keine neue Operator-Frage.
+
+### Teil A · FI-I09, FI-I11 und FI-I12 geschlossen
+
+- **FI-I09, Parametermenge:** Der bestehende Toolsetter-Test prüft jetzt alle 23 Schlüssel. Die unveränderte R276-Mutation `#3104 → #3904` macht genau diesen Beleg durch eine Assertion rot; der unveränderte Zielstand besteht alle fünf Toolsetter-Tests. Die Quellbytes wurden nach der Gegenprobe wiederhergestellt und mit dem Commit verglichen.
+- **FI-I09, Wortlaut:** F-GOTO.S1 beschränkt den Zero-Beleg auf die Endposition; S1d nennt für G30 die erreichte Höhe und das Ziel. Die Bewegungsreihenfolge bleibt ausdrücklich S1c und offen. F-ESTOP.S4b nennt nun den Ablauf des Oneshot-Budgets als Bezugspunkt. Der angekündigte spätere Lauf muss `sticky_ok` und `recovered_ok` weiterhin tatsächlich auswerten; diese Runde behauptet dafür keinen neuen nativen Beleg.
+- **FI-I11:** Die Kurztexte unterscheiden jetzt gearmten Client, gatewayweite Jog-Buchung, eingeschaltete Maschine und laufendes AUTO. Auch die zweite, zuvor widersprüchliche README-Stelle ist korrigiert. SYS-CONN.S2 unterscheidet den Abbruch der Gateway-Bearbeitung von einem bereits zugestellten CNC-Befehl. Der zusammengesetzte Disconnect-/Timeout-Nachweis bleibt korrekt offen.
+- **FI-I12:** `--format` prüft im Speicher vor dem Schreiben und verwendet eine normale Laufzeitbedingung. Eigene Fälle mit unbekanntem Feld an Funktion beziehungsweise Wurzel werden mit Exitcode 1 abgelehnt, die ursprünglichen Bytes bleiben erhalten. `uses: []` und `statements: []` bleiben als Daten erhalten. Alle vier Fälle auch unter **`python -O`** bestätigt; Roundtrip und Idempotenz am Repository-Inhalt stimmen.
+
+Der Teil-A-Katalog bleibt bei **111 Aussagen, 34 offenen Aussagen**; die vorherige Abnahme der Zuordnung bleibt bestehen.
+
+### Teil B · F-COMP S1–S3 abgenommen
+
+Die Anzeige führt den fehlenden Wert bis zum Panel als `null`: unbekannt erscheint als „—“, ohne ausgewählte Methode. Die manuellen Methodenwahlen übernehmen das bestehende ChoiceGroup-Verhalten: Status bestimmt die Auswahl, der Wunsch ist pending, eine Ablehnung beendet dieses pending mit ihrem Grund, eine fehlende Bestätigung wird nach fünf Sekunden benannt. Die Umschaltung per Pfeiltaste verschiebt nur den Fokus; Enter sendet den gewählten Wert.
+
+Im Gateway senden fehlende beziehungsweise ungültige Schalterwerte und fehlende Methoden nichts. Die Antwort unterscheidet vollständig geschriebene, nicht geschriebene und unklare Zustellung. **`ok` bestätigt die Zustellung, nicht die Übernahme durch den Pin.** Die Darstellung bleibt bis zum neuen Status unverändert. Die Fehlerpfade werden getract.
+
+Zusätzlich zu Claudes Tests geprüft:
+
+- Die echte Zulassung bleibt aktiv, während nur `_hal_send` durch einen Speicher-Recorder ersetzt ist: disarmt kein Senden; Einschalten bei unbekannter oder gekippter Drehachse verweigert; Ausschalten weiterhin möglich; Methodenwahl bei unbekannter Kompensation verweigert.
+- Beide Schalterwerte und alle drei Methoden gegen `True`/`False`/`None` der Zustellung; fehlende und ungültige Eingaben ohne Sendung.
+- Im Browser beenden beide negativen Zustellungsantworten das pending und lassen die bestätigte Methode ausgewählt. Pfeiltasten senden nichts, Enter genau einmal; erneute Auswahl des bestätigten Werts sendet nichts.
+- Ein-/Ausschalten hakt den Schalter nicht vorzeitig um; erst die Statusänderung ändert Schalter und ON/OFF. Bekannt → unbekannt entfernt die bisherige Auswahl; gesperrte Methoden senden auch bei Enter nichts.
+
+Die Atomzuordnung zur neuen ChoiceGroup, die PROBING-Auswahlregel und die erzeugte Inventartabelle passen. Die beiden kleinen Gate-Korrekturen sind nachvollziehbar: ein literaler Radio-Name entfällt; der Park-Test wartet vor seiner Positionsmessung auf das gerenderte Element.
+
+**Grenze:** F-COMP.S4 bleibt ausdrücklich offen: Die native Wirkung von AN/AUS und der drei Interpolationen auf einer bekannten Fläche wurde hier nicht gemessen. Die beiden Branches sind getrennt abgenommen; beim angekündigten Merge müssen die neuen F-COMP-Belege und das ChoiceGroup-Atom neben den Teil-A-Aussagen erhalten bleiben. Das Merge-Gate gehört zu diesem folgenden Integrationsschritt.
+
+### Eigene Prüfungen und Belege
+
+**53 Tests grün:** Teil A 34 Inventar- und fünf Toolsetter-Tests; Teil B vier vorhandene und drei eigene Gateway-Tests sowie drei vorhandene und vier eigene Browser-Tests. Dazu Build PASS, Formatter-Gegenfälle einschließlich `-O` und die erwartungsgemäß rote Parametermutation. Kein vollständiges Gate erneut ausgeführt. Claudes Teil-A-Gate PASS sowie Teil B Lauf 1 FAIL / korrigierter Lauf 2 PASS sind geprüft; der erste Lauf wird dadurch nicht nachträglich als grün dargestellt.
+
+Eine eigene Browser-Sonde wartete zunächst auf einen von Playwright verweigerten Klick auf `aria-disabled`; sie wurde auf **Fokus + Enter** umgestellt und bestand. Das war ein Sondenfehler, kein Produktbefund. Die Protokolle behalten den Fehlversuch. Browser nur mit eigenem Mock auf **4590**, einem Worker und ohne Live-Server. Gateway-Tests mit `fake_linuxcnc`; die Sandbox blockierte selbst eine minimale `asyncio.to_thread`-Probe, deshalb liefen diese Tests außerhalb dieser Einschränkung. Alle geprüften Produktquellen sind nach den Proben bytegleich zu ihren Zielcommits.
+
+Belege: [Standabgleich](function-inventory.r277.codex-audit.json), [Prüflog einschließlich Sondenfehler](function-inventory.r277.codex-checks.txt), [Teil-A-Sonde](function-inventory.r277.codex-part-a.py), [Teil-A-Ergebnisse](function-inventory.r277.codex-part-a.json), [Formatter unter -O](function-inventory.r277.codex-part-a-optimized.json), [Gateway-Gegenprüfungen](function-inventory.r277.codex-backend-probe.py), [Browser-Gegenprüfungen](function-inventory.r277.codex-browser-probe.spec.ts).

@@ -1,0 +1,39 @@
+{
+  "target": "b588eaea",
+  "optimized": true,
+  "inventory_problems": [],
+  "roundtrip": true,
+  "idempotent": true,
+  "formatter_cases": [
+    {
+      "case": "function_extra",
+      "exit": 1,
+      "unchanged_bytes": true,
+      "equal_data": true,
+      "stdout": "functions.json not formatted — it holds a field the layout does not write (functions.py dump())\n"
+    },
+    {
+      "case": "root_extra",
+      "exit": 1,
+      "unchanged_bytes": true,
+      "equal_data": true,
+      "stdout": "functions.json not formatted — it holds a field the layout does not write (functions.py dump())\n"
+    },
+    {
+      "case": "empty_uses",
+      "exit": 0,
+      "unchanged_bytes": false,
+      "equal_data": true,
+      "stdout": ""
+    },
+    {
+      "case": "empty_statements",
+      "exit": 0,
+      "unchanged_bytes": false,
+      "equal_data": true,
+      "stdout": ""
+    }
+  ],
+  "source_sha_before": "3d702be5cde3318f7c84c84bc6c091bb02567ee9969a516be8107d507a912ae3",
+  "source_sha_after": "3d702be5cde3318f7c84c84bc6c091bb02567ee9969a516be8107d507a912ae3"
+}

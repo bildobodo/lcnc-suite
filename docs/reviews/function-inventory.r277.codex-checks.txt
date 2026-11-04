@@ -1,0 +1,125 @@
+===== Part A inventory tests =====
+..................................                                       [100%]
+34 passed in 1.79s
+
+
+===== Part A toolsetter test suite =====
+JSON report written to /tmp/codex-r277/a/units.json
+
+
+===== Part B backend tests =====
+....                                                           [100%]
+[GC] +121ms gen=2 duration=12.7ms collected=403 uncollectable=0
+[GC] +131ms gen=2 duration=10.0ms collected=0 uncollectable=0
+[GC] +140ms gen=2 duration=9.2ms collected=0 uncollectable=0
+[GC] +154ms gen=2 duration=13.7ms collected=0 uncollectable=0
+[GC] +165ms gen=2 duration=10.9ms collected=0 uncollectable=0
+[GC] +176ms gen=2 duration=10.8ms collected=0 uncollectable=0
+
+
+===== Part B independent backend probes =====
+...                                         [100%]
+[GC] +91ms gen=2 duration=10.6ms collected=439 uncollectable=0
+[GC] +98ms gen=2 duration=6.9ms collected=0 uncollectable=0
+[GC] +109ms gen=2 duration=10.9ms collected=0 uncollectable=0
+[GC] +118ms gen=2 duration=9.4ms collected=0 uncollectable=0
+[GC] +130ms gen=2 duration=11.5ms collected=0 uncollectable=0
+[GC] +137ms gen=2 duration=7.3ms collected=0 uncollectable=0
+
+
+===== Part B original browser tests =====
+
+Running 3 tests using 1 worker
+
+(node:47000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:47000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [e2e] › e2e/compensation.spec.ts:27:1 › unread pins are never OFF or Cubic: the state reads —, no method is checked, the switch is not on (2.8s)
+  ✓  2 [e2e] › e2e/compensation.spec.ts:34:1 › the reported state: ON with its method checked, OFF once the status says so (2.4s)
+  ✓  3 [e2e] › e2e/compensation.spec.ts:43:1 › a chosen method is sent once and pending; the reported one stays checked, 'Not confirmed' after 5 s (8.2s)
+
+  3 passed (14.1s)
+
+
+===== Part B independent browser probes: first run (harness timeout on aria-disabled click) =====
+
+Running 4 tests using 1 worker
+
+(node:48253) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:48253) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [e2e] › e2e/r277.codex.spec.ts:22:1 › R277: failed and unclear method replies release pending, preserve the reported choice, and do not retry (2.4s)
+  ✓  2 [e2e] › e2e/r277.codex.spec.ts:36:1 › R277: method arrow navigation sends nothing; Enter sends once; selecting the confirmed choice sends nothing (3.0s)
+  ✓  3 [e2e] › e2e/r277.codex.spec.ts:52:1 › R277: enable and disable wait for the status, rejection keeps the displayed state (3.0s)
+  ✘  4 [e2e] › e2e/r277.codex.spec.ts:75:1 › R277: losing known pins removes both selected states; closed gates cannot send (30.8s)
+
+
+  1) [e2e] › e2e/r277.codex.spec.ts:75:1 › R277: losing known pins removes both selected states; closed gates cannot send 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.sidePane').getByRole('radio', { name: 'Cubic', exact: true })[22m
+    [2m    - locator resolved to <button role="radio" type="button" tabindex="-1" aria-checked="false" aria-disabled="true" class="choice dimmed" data-control="compMethod">Cubic</button>[22m
+    [2m  - attempting click action[22m
+    [2m    2 × waiting for element to be visible, enabled and stable[22m
+    [2m      - element is not enabled[22m
+    [2m    - retrying click action[22m
+    [2m    - waiting 20ms[22m
+    [2m    2 × waiting for element to be visible, enabled and stable[22m
+    [2m      - element is not enabled[22m
+    [2m    - retrying click action[22m
+    [2m      - waiting 100ms[22m
+    [2m    51 × waiting for element to be visible, enabled and stable[22m
+    [2m       - element is not enabled[22m
+    [2m     - retrying click action[22m
+    [2m       - waiting 500ms[22m
+
+
+      87 |     await expect(method(page, label)).toHaveAttribute('aria-disabled', 'true');
+      88 |   }
+    > 89 |   await method(page, 'Cubic').click();
+         |                               ^
+      90 |   expect(await sent()).toEqual([]);
+      91 | });
+      92 |
+        at /tmp/codex-r277/b/lcnc-webui/e2e/r277.codex.spec.ts:89:31
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r277.codex-R277-losing-kno-78b01-es-closed-gates-cannot-send-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r277.codex-R277-losing-kno-78b01-es-closed-gates-cannot-send-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r277.codex-R277-losing-kno-78b01-es-closed-gates-cannot-send-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r277.codex-R277-losing-kno-78b01-es-closed-gates-cannot-send-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [e2e] › e2e/r277.codex.spec.ts:75:1 › R277: losing known pins removes both selected states; closed gates cannot send 
+  3 passed (40.8s)
+
+
+===== Part B corrected unknown-state test: keyboard activation =====
+
+Running 1 test using 1 worker
+
+(node:51782) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:51782) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [e2e] › e2e/r277.codex.spec.ts:75:1 › R277: losing known pins removes both selected states; closed gates cannot send (2.1s)
+
+  1 passed (2.7s)
+
+
+Build: npm run build, exit 0, ✓ built in 9.82s
+
+Environment note: sandboxed asyncio.to_thread also hung in a minimal reproduction; backend tests run outside that restriction with fake_linuxcnc installed by conftest. Browser on a dedicated mock at :4590, workers=1, no webServer and no live endpoints. First unknown-state probe timed out because Playwright refuses locator.click on aria-disabled. Changed probe to focus+Enter. An intermediate rerun was interrupted after a patch matched the wrong occurrence; product code unchanged. Only the corrected case rerun; the other three passed unchanged.
