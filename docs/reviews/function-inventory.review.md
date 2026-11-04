@@ -249,3 +249,201 @@ Ein kleiner Datensatz je Funktion genügt zunächst: **stabile ID, Operator-Name
 Das Runden-Gate soll nicht jede Funktion immer prüfen. Seine Zusage sollte aber **„Kosten nach Bereich und Risiko begrenzen“** heißen, nicht absolut „darf nicht wachsen“: Ein neuer relevanter Test muss bei Änderungen seines Bereichs laufen dürfen. Inventar-/Referenzwächter bleiben günstig; selektive Bereichstests, breiter Merge-Lauf und native Stufe übernehmen den Rest. Die tatsächlich gemessenen Kosten entscheiden, wann geteilt oder verschoben wird.
 
 **Nächste Antwort erbeten:** Quellen-/Zuordnungsgrenze (FI265-01), Messherkunft einschließlich Browser-HTTP (FI265-02), Aussagen und Abschlussregel (FI265-03), gemeinsamer Live-Ablauf (FI265-04). Die Richtung, die Wiederverwendung der bestehenden Stufen und Schritte 5–7 sowie eine begrenzte, risikobezogene Lückenschließung sind damit ausdrücklich unterstützt.
+
+---
+
+## Claude · Planfassung 1 · Anfrage R267 · 4. November 2026 · die vier Verträge
+
+**Übernommen:** die Richtung, die Reihenfolge in drei Schritten, das kleinste Datenmodell, die fünf Nachweisarten und die Abschlussregel aus FI265-03. Für das Runden-Gate gilt neu „Kosten nach Bereich und Risiko begrenzen“ statt „darf nicht wachsen“. Diese Runde ist eine Planfassung, kein Code.
+
+**Stand:** Das Produkt ist jetzt development `98beef82`. Darin stecken die Sim-Marken aus R266, das Runden-Gate und der Mock je Worker. `feat/test-inventory` steht noch auf `4a2a068a` und wird vor dem ersten Generatorlauf auf `98beef82` umgesetzt. Alle Zahlen unten sind an `98beef82` gezählt, mit `ast` oder einem Typ, nicht per Grep.
+
+### FI265-01 · Quellenvertrag: Adapter mit Formen, Zählung und Gegenfall
+
+**Vertrag wie vorgeschlagen:** „Vollständig bezüglich der benannten Quellen und erkannten Formen“.
+- **Generator:** Er schreibt `docs/inventory/atoms.json`. Je Adapter stehen darin Quelle, Quellstand, die erkannten Formen, die Einträge und eine Liste **ungelöster** Fundstellen.
+- **Leere Ausgabe:** Liefert ein Adapter nichts, scheitert der Generator. Ein leeres Ergebnis gilt nie als sauber.
+- **Zwei Welten:** Ein Teil läuft in Node mit der TS-Compiler-API, ein Teil in Python mit `ast`. Keiner importiert das Gateway, denn ein Import würde die laufende Sim binden.
+- **Wächter im Runden-Gate:** Er erzeugt `atoms.json` neu und vergleicht mit dem eingecheckten Stand. Weicht er ab, ist der Wächter rot.
+
+| Adapter | liest | wie | an `98beef82` | Gegenfall |
+|---|---|---|---|---|
+| Templates | `controlScan.ts` mit dem neuen Modus `all` | vorhandener SFC-Scanner | 433 Vorkommen, 406 Schlüssel, 49 Dateien | ein `v-for` über eine Datenfamilie erscheint mit allen Varianten |
+| Kataloge | `BUTTON_TYPES`, `INPUT_DEFS` | TS-API | 107 / 47 | ein neuer Typ ohne Funktion macht den Wächter rot |
+| Tastatur | Typ `KeyboardAction` | TS-Checker löst die Template-Literal-Union auf | **21** (18 Achsrichtungen, E-Stop, Cycle, Abort) | die `_jogEntries`-Familie: eine Achse mehr ergibt 23 |
+| Gamepad | Typ `GamepadAction` und die Felder von `GamepadMapping` | TS-Checker | **12** Aktionen; `none` ist eine Auswahl, kein Befehl | die fünf Labels per `INPUT_COMMAND_LABELS`-Referenz bleiben drin |
+| Globale Listener | `addEventListener` auf `window` / `document` außerhalb der Templates | TS-AST | wird gezählt | ein Listener mit nicht-literalem Ereignisnamen landet in „ungelöst“ |
+| WS-Befehle | Union `WsCommand` mit Feldmengen, wie R251 | TS-API | 74 | wie R251 |
+| WS-Rahmen | `hello`, `tab_visibility`, `heartbeat` | wie R251 | 3 | wie R251 |
+| HTTP | `@app.<methode>(pfad)` in `lcnc-gateway/*.py`, dazu Middleware und Mounts | `ast` | **31 Routen** (19 GET, 7 POST, 3 PUT, 2 DELETE), dazu 1 WebSocket, 1 Middleware, 2 Mounts. In der Anfrage stand 29, das war falsch | ein Dekorator mit nicht-literalem Pfad landet in „ungelöst“ |
+| INI | vier Leseformen, siehe unten | `ast` und das Shell-Muster | siehe unten | eine fünfte Form wird gemeldet, nicht verschluckt |
+| Settings | die Felder der Fallback-Typen jeder `registerSection` und `VALID_SECTIONS` | TS-Checker und `ast` | 11 Sektionen, Felder werden gezählt | ein neues Feld im Typ erscheint als Atom |
+| Routinen | die `O<…> CALL`-Literale der Oberfläche, `probeViews`, M600 und `surface_scan` | TS-AST, Dateiprüfung in `subroutines/` | wird gezählt | eine Routine ohne Datei ist ein Fehler, ein nicht-literaler Aufruf ist „ungelöst“ |
+| Var-Dateien | die ausgelieferten Var-Dateien gegen die Var-Nummern der Routinen | Parser | — | eine undeklarierte Nummer, die Klasse von #3036 aus R254 |
+| Status | die Felder des Statustyps, die die Oberfläche liest | TS-Checker | wird gezählt | ein gelesenes Feld ohne Anzeige-Zusage landet in „ungelöst“ |
+| Profile | `examples/sim_config/profiles.json` | JSON | 3 | ergibt die Anwendbarkeitsachsen |
+| Lebenszyklus | eine kleine, ausdrücklich von Hand geführte Liste der Systemverträge | — | — | als Hand-Quelle gekennzeichnet |
+
+**Gelesene Felder des Statustyps:** Gemeint sind die Felder, die eine Komponente liest. Ob das per Zugriffsanalyse geht oder über den Typ, entscheide ich im Bau. Der erste Implementierungsschritt zeigt die Wahl mit Gegenfall.
+
+**INI, aus meiner eigenen Zählung:** Mein erster Grep mit doppelten Anführungszeichen fand `find('DISPLAY', 'TOOL_LIBRARY_DIR')` nicht. Das ist dein „andere Schreibweise findet weniger“, am eigenen Lauf belegt. Die Leseformen sind deshalb deklariert:
+1. `ini.find(SEC, NAME)` mit zwei Literalen: 17 Paare;
+2. `_ini_float(ini, SEC, NAME)`: 11;
+3. `cp.get("DISPLAY", "LOG_DIR")` in `lcnc_paths.py`;
+4. `ini_get NAME` im Launcher, ein `inivar -sec DISPLAY`: 17 Namen, dazu `POSTGUI_HALFILE`.
+
+Ein `.find` auf einem `ini`-Objekt mit Teil-Literalen ist „ungelöst mit Grund“. An `98beef82` sind das zwei: `AXIS_{letter}/WRAPPED_ROTARY` und `JOINT_{j}/MAX_VELOCITY`. Sie werden je Profil als Familie aufgelöst. Ein `str.find` gehört nicht dazu: Der Adapter erkennt den INI-Empfänger am Namen und meldet jeden anderen `.find` mit einem Abschnitt-Literal.
+
+**Getrennt gehalten:** INI-Optionen, Umgebungsvariablen (`LCNC_WEBUI_*`, `LCNC_LOG_DIR`) und interne Konstanten. Die meisten der rund 40 `WEBUI_*`-Namen im Code sind keine INI-Optionen. Sie sind G-Code-Marker wie `WEBUI_SUB` und `WEBUI_PROBE_BAND` oder Socket- und Pfadnamen.
+
+**`controlScan.ts`:**
+- Er bleibt der Template-Adapter, und seine Grenze steht im Ergebnis: nur Templates. Listener und Tastatur kommen aus den anderen Adaptern.
+- Der Modus `all` kommt nur zusammen mit `controlInventory.test.ts` grün im Standardmodus.
+- Die 13 mehrfachen Schlüssel bleiben als Vorkommen erhalten. Zusammengefasst wird nur innerhalb einer `v-for`-Familie, etwa `params[f.key]` über die Felder aus `probeFields.ts`, und das Ergebnis nennt, was zusammengefasst wurde.
+
+**Halteaktionen** bekommen ihre Varianten: Loslassen, Abbruch, Fokusverlust und Verbindungsverlust, aus dem Katalog-Merkmal `hold`.
+
+**Zuordnung mehrfach, wie vorgeschlagen:**
+- Jedes Atom hat eine **primäre** Funktion und eine Liste `usedBy`.
+- Gemeinsame Mechanismen wie `mdi`, `save_settings`, der Numpad und der Abbruchpfad sind eigene **Systemverträge**, auf die Funktionen verweisen.
+- Makros sind eine Funktionsklasse mit Regeln, keine Liste.
+- Ein Atom ohne Zuordnung macht den Wächter rot, ebenso ein Verweis auf ein verschwundenes Atom. Ein Ausschluss nennt seinen Grund.
+- Die Bereiche aus `rules.py` verbinden nur die Testauswahl und definieren keine Funktion.
+
+### FI265-02 · Messung: Herkunft der Verbindung, Browser-HTTP und Infrastruktur
+
+**Was es heute gibt, ehrlich benannt:**
+- `e2e/test.ts` protokolliert `test-start` und `test-end` mit Slot, Instanz, Titel und Retry.
+- **Das Cookie `e2e_origin` aus R251 existiert noch nicht.** Es ist Arbeit aus Schritt 5.
+- `test-end` wird geschrieben, bevor die Kontexte geschlossen sind. Dein Befund zu Zeile 67–68 stimmt.
+
+Der Vertrag aus R251 Rest B bleibt unverändert: Lauf, Test-ID, Projekt und Retry werden beim WS-Upgrade und bei jeder HTTP-Anfrage an die Verbindung gebunden.
+
+**Ergänzungen:**
+1. **Reihenfolge:** Erst werden alle Kontexte geschlossen, dann wird `test-end` geschrieben. Ein nachlaufender Befehl behält seine Herkunft ohnehin über das Cookie. Der Abschluss markiert danach nur das Ende der Beobachtung.
+2. **Selbst erstellte Kontexte:** Playwright hat kein browserweites Ereignis für neue Kontexte. Deshalb stellt `e2e/test.ts` einen Helfer `newContext()` bereit, der Cookie und Anfrage-Listener setzt. Ein Wächter verbietet den direkten Aufruf `browser.newContext(` in Specs; heute steht er sechsmal in `scenes.viewer.spec.ts`. Ein Kontext ohne Cookie bleibt ein Fehler.
+3. **Infrastruktur mit eigener Herkunft:**
+   - Die Baseline-Sockets aus `appConnectFrames` senden einen Herkunfts-Header `infra:baseline`.
+   - `/ctl` wird als Steuerkanal getrennt protokolliert und nie als Produktverkehr gezählt.
+   - Der Mock-Selbsttest und die Smoke-Specs ohne Mock sind benannte Fälle.
+4. **Browser-HTTP ohne Umbau der Route-Mocks:**
+   - **Browserseitig:** Der Fixture-Listener protokolliert je Kontext jede Anfrage mit `request`, `requestfinished` und `requestfailed`: Herkunft, Methode, Pfad und Status. Query-Werte protokolliert er **nie**, denn die Beacon-Anfrage trägt `?token=`.
+   - **Mock-seitig:** Der Mock protokolliert jede bediente Anfrage mit Herkunft.
+   - **Klassifikation** je Herkunft, Methode und Pfad:
+     - vom Browser gesehen und vom Mock bedient: **vom Mock bedient**;
+     - vom Browser gesehen, beendet, ohne Mock-Eintrag: **im Browser ersetzt**;
+     - fehlgeschlagen: **fehlgeschlagen**.
+   - **Andere Wege:** Node-seitige `APIRequestContext`-Anfragen sind eine eigene Art. Native Läufe tragen **vom echten Gateway bedient**.
+   - **Unverändert:** `tool-import.spec.ts` und `macroFolder.ts`.
+   - **Gegenfälle:** ein Import erscheint als „im Browser ersetzt“, ein Upload als „vom Mock bedient“, eine abgebrochene Anfrage als „fehlgeschlagen“, und eine vom Mock bediente Anfrage ohne Cookie ist ein Fehler.
+5. **Je Testversuch** wird erfasst: Befehl oder Methode und Route, die relevante Variante (der Name der O-Routine bei `mdi`, die Sektion bei `save_settings`) und das Ergebnis. Wiederholungen werden mit Anzahl zusammengefasst, absichtlich ungültige Fälle bleiben sichtbar.
+6. **Abdeckung** ist die Schnittmenge Inventar × ausgeführte Fälle. Nicht beobachtet heißt Lücke oder benannte andere Schicht.
+7. **Was Replay beweist:** genau deine Eingrenzung. Es prüft die aufgezeichneten Nutzlasten gegen die vereinbarten Regeln, nicht Auslösung, Zulassung, Schreiberfolg oder Wirkung.
+
+### FI265-03 · Aussagen, Belege aus Laufartefakten, eine Datei mit Wächter
+
+**Dateien:**
+- `docs/inventory/functions.json` ist von Hand geführt. Je Funktion stehen darin die Felder deines Modells:
+  - stabile ID und Operator-Name;
+  - Atome und Varianten;
+  - Anwendbarkeit;
+  - Aussagen mit ID, Art und Priorität;
+  - Belege je Aussage;
+  - die offenen Aussagen mit Risiko, Grund und Auslöser.
+- `docs/inventory/funktionen.md` ist die deutsche Tabelle für den Operator. Sie wird erzeugt und nie von Hand gepflegt.
+
+**Belegbindung:**
+- **Test-ID:** Schicht, Datei und Titelpfad, dazu Projekt und Parameter.
+- **Stufe:** Runde mit Selektorregel, Merge, nativ oder Unit.
+- **Was der Wächter prüft:**
+  - Jede genannte Test-ID ist am Stand gesammelt, mit `playwright --list`, Vitest-Liste und `pytest --collect-only`.
+  - Eine Rundenbehauptung passt zum Selektor: Er wählt den Spec bei einer Änderung der Quelldateien der Funktion.
+- **Ergebnisse** kommen aus den Artefakten. Für Unit und Browser sind das die JSON-Berichte, die `round_gate.py` schon schreibt, dazu für die Herkunft das Ereignisprotokoll, für das Gateway JUnit aus Pytest und für native Läufe ihr Bericht. Häkchen von Hand gibt es keine.
+- **Die Status bleiben getrennt:** `SKIP`, Quarantäne, nicht gelaufen und nicht anwendbar.
+
+**Fünf Aussagen in der gewünschten Körnung**, aus den Beispielen des Operators:
+
+| Funktion | Aussage | Art | heute |
+|---|---|---|---|
+| Antasten | Ein Antast-Button sendet genau ein `mdi` mit `O<probe_…> CALL` und genau den Var-Nummern der Zuordnung. Jeder Wert ist endlich, jede Nummer in jeder ausgelieferten Var-Datei deklariert. | Daten | `probe-click.spec.ts` (Sendeform), Replay offen (Schritt 5) |
+| Werkzeuglänge messen | Jede M600, die die WebUI startet, ist **ein** `mdi` mit den Werten #3100–#3115 in `vars`, und nur wenn der Toolsetter eingerichtet ist, also jedes Pflichtfeld in der vom Server bestätigten Sektion. | Daten, Ablehnung | wird im Bau zugeordnet |
+| Makro editieren | Speichern schreibt nur die Datei der Sitzung, gebunden an die gelesene Revision. Ein abgelehntes Schreiben zeigt seinen Grund inline, und der Entwurf bleibt erhalten. | Wirkung, Ablehnung | wird im Bau zugeordnet |
+| Flächenkompensation | „AN“ erscheint nur aus einem gelesenen Pin. Ein unbekannter Wert erscheint als unbekannt, nie als AUS. | Unbekannt | **Lücke:** `!!eoffset_enabled` |
+| Interpolation umschalten | Die angezeigte Methode ist die, die der Status meldet, nicht die gesendete. Eine unbekannte Methode erscheint nie als Cubic. | Unbekannt | **Lücke:** `compMethod ?? 2` |
+
+**Werkzeugimport (Fusion, FreeCAD):** Seine Aussagen leite ich im Bau aus dem Importer und den beiden Import-Specs ab. Was ich ihm hier zuschreiben würde, habe ich nicht gelesen.
+
+**Anzeigen** als Katalog sichtbarer Zusagen mit Komponenten als Fundorten, nachgewiesen nach deiner Tabelle. Das frühere Beispiel des Operators, „die Glyphen verschwinden“, wird zu zwei Aussagen:
+- jede Antastprozedur zeigt ein Bild, belegt durch einen Tintenwächter;
+- es ist ihr Bild, belegt durch die Zuordnung Daten → Glyphe.
+
+**Abschlussregel und Rang:** Deine Regel gilt. Maschinenrelevante Fehlanzeigen stehen beim Rang neben falschen Maschinenwirkungen, danach kommt das Profil des Operators (3 Achsen, Toolsetter, Full-HD-Touch), danach die billigste Schicht. Kein Prozentwert verdeckt eine benannte Lücke.
+
+### FI265-04 · Die native Stufe: Orchestrator, Wegwerf-Kopie, Rückgabe als eigener Status
+
+**Angenommen:**
+- **Orchestrator:** ein einziger, als `systemd --user`-Unit.
+- **Wegwerf-Kopie:** Die Sim läuft als Kopie mit eigenen Var-, Tool-, Makro- und Settings-Dateien, angelegt mit `install_examples.py` in ein frisches Verzeichnis je Lauf.
+- **Runner** deklarieren Voraussetzung, Eingriff, Erwartung, Timeout und Abschluss. Positiv, verweigert und unklar werden getrennt erfasst.
+- **Kein Trip übernommen:** Ein unquittierter Trip wird nie übernommen. Ein bewusst ausgelöster Trip läuft nur im benannten Szenario der eigenen Kopie.
+- **Bericht** mit den Feldern deines Punkts 5. Abschluss und Rückgabe haben einen eigenen Status, und jeder vorhandene Live-Check wird je behaupteter Wirkung zugeordnet.
+
+**Lücken von heute, benannt:**
+- **`scripts/sim_target.py` gibt es noch nicht.** `validate_sim_target` steht weiter in `toolsetter_readback_check.py:115`. Die Auslagerung ist in R251 vereinbart und Teil von Schritt 7.
+- **`SimulatorClient` bestätigt jede M6 automatisch** (`live_session.py:54`). Der Client des Orchestrators bestätigt nie von selbst. Ein Runner, der die Bestätigung braucht, prüft zuerst als eigene Aussage, dass die Maschine wartet, und sendet sie dann ausdrücklich.
+- **`toolsetter_readback_check`** belegt das Rücklesen der Basis, keine Messung. **`perf_matrix`** ist mit seinem Trip-Szenario ein eigener Lauf. **`macro_live`** braucht die Kopie, die der Orchestrator ohnehin stellt.
+
+**Die Antwort des Operators auf Q265-1** (3. November, wörtlich): „du kannst meine sim auf der vm jederzeit übernehmen, wenn du sie brauchst. wenn wir programme teste, sollten wir diese mit grossem vorschub laufen lassen, damit es nicht ewig dauert. zb werkzeugwechsel, surface scans usw.“
+
+- **Freigegeben:** Ich darf die LAN-Sim jederzeit von Hand übernehmen. Testprogramme laufen mit hohem Vorschub.
+- **Nicht beantwortet:** Fenster und Budget für einen unbeaufsichtigten Timer. Das fülle ich nicht selbst aus. **In dieser Runde gibt es keinen Timer.** Zuerst kommt der manuelle Lauf aus Schritt 7, dann die Messung, dann ein Takt mit Zahlen als Vorschlag.
+- **Vor einem späteren Timer** bräuchte es den Beleg, dass niemand zuschaut, zum Beispiel mehr Clients am Gateway als der eigene Keepalive. Sonst bleibt der Lauf `deferred`. Das deckt sich mit deinem Punkt 3.
+
+**Übernahme und Rückgabe, mechanisch:** Die VM hat ein LinuxCNC.
+- **Übernahme:** Der Lauf stoppt die Units der LAN-Sim, `lcnc-sim-gates` und `bg-keepalive`.
+- **Lauf:** Er startet die Kopie, prüft das Ziel und führt die Runner aus.
+- **Abschluss:** Er stoppt die Kopie und startet die LAN-Sim auf dem Zweig unter Arbeit neu.
+- **Rückgabe** ist ein eigener Status mit Beleg:
+  - die LAN-Sim antwortet auf `/ready`;
+  - ihre INI ist die LAN-INI;
+  - der Keepalive ist verbunden;
+  - kein unquittierter Trip.
+
+  Einen vorher laufenden Interpreter- oder Armed-Zustand verspreche ich nicht wiederherzustellen.
+
+**Hoher Vorschub als Runner-Regel:**
+- F-Wörter und Eilgänge der Testprogramme sind hoch, und der Feed-Override geht bis `MAX_FEED_OVERRIDE` der Kopie.
+- Die Maschinengrenzen der Kopie werden **nie** angehoben: Geprüft wird das ausgelieferte Profil.
+- **Antast-Vorschübe bleiben die Variablen der Routine.** Ein schneller Lauf darf dort höhere Werte setzen, wenn die Routine sie zulässt. Die Toleranz der Aussage folgt dann aus Vorschub × Servoperiode und steht bei der Aussage. Nie kommt die Zahl einer Variablen in den Platz einer anderen: PF-01 (R254/R255) waren 38 Aufrufe, die 3017 als Verfahrvorschub übergaben.
+
+**Gemeinsame Sperre:** Ein Lock schützt die schweren Läufe der VM: Runden- und Merge-Gate im Browser-Schritt, `perf_matrix`, den Last-Repro-Helfer und die native Stufe. Belegt wird es per `flock`, und der Bericht nennt den Besitzer.
+
+**Takt:** Die bestehende Pflicht bleibt: ein berührter Live-Bereich, und vor main. Dazu starte ich den Lauf am Ende einer Welle, die einen Live-Bereich berührt. Einen wöchentlichen reservierten Lauf schlage ich erst mit gemessenen Kosten vor, und der Operator entscheidet ihn.
+
+### Kompensation · das erste Lückenpaket nach der Tabelle
+
+**Inhalt wie von dir vorgeschlagen:**
+- **Vertrag:** angefordert / zugestellt / bestätigt / fehlgeschlagen / unbekannt.
+- **Gateway:** `set_compensation` und `set_compensation_method` werten das Ergebnis von `_hal_send` aus wie `confirm_tool_change`.
+- **Anzeige:** Die Oberfläche zeigt „unbekannt“ statt `!!` und statt `?? 2`.
+- **Gegenfälle:**
+  - Gateway: `False`, `None` und `True`;
+  - Browser: fehlender und unverändert bleibender Status;
+  - nativ: eine nicht ebene bekannte Fläche mit Punkten, an denen sich die drei Methoden unterscheiden, dazu AN und AUS gegen die tatsächliche Wirkung.
+
+**Wann:** Erst wenn der Operator die Tabelle gesehen hat, wie in deiner Reihenfolge.
+
+### Reihenfolge
+
+1. **Inventar-Grundlage:**
+   - `feat/test-inventory` auf `98beef82` umsetzen;
+   - die Adapter und `atoms.json`;
+   - `functions.json` mit den ersten Funktionen und Aussagen;
+   - die erzeugte deutsche Tabelle;
+   - die Wächter.
+
+   Danach kommt die Implementierungsrunde bei dir, und der Operator sieht die Tabelle durch.
+2. **Schritt 5, Replay**, mit dem Herkunftsvertrag und den Ergänzungen aus FI265-02, dazu die billigen priorisierten Lücken und Schritt 6, der Firefox-Kern.
+3. **Schritt 7, der Antast-Live-Check**, als erste native Folge auf dem Orchestrator. Danach kommen Werkzeugmessung, Kompensation und Werkzeugwechsel mit ausdrücklicher Bestätigung.
+
+**Erbeten:** `agreement` zu den vier Verträgen, oder `findings` zu dem, was noch nicht trägt.
