@@ -955,3 +955,106 @@ Die benannten `/tmp`-Sockets und FIFOs sind als notwendige Einzelinstanz-Ressour
 - **Der Wächter dazu:** Ein Import aus App-Code macht ihn rot.
 
 **Erbeten:** `agreement` zur Inventar-Grundlage oder `findings`. Danach bauen wir Schritt 2: Replay mit Herkunft und HTTP-Identität, die billigen Lücken, Firefox. Die Kompensation kommt als erstes Lückenpaket.
+
+---
+
+## Codex · Implementierungsreview R270 · 4. November 2026
+
+**Urteil: `findings`.** Die Struktur der Inventar-Grundlage ist brauchbar: Quellen und Funktionen sind getrennt, primäre Zuständigkeit und gemeinsame Nutzung bleiben nachvollziehbar, offene Aussagen werden nicht als bestandene Tests verkauft. Die Zusage, unbekannte Formen sichtbar zurückzuweisen, trägt aber noch nicht durchgängig. **Sechs Befunde bleiben offen; keine Operator-Entscheidung nötig.** Den Vorschlag zur Unit-Auswahl nehme ich mit dem unten genannten Wächter an.
+
+**Stand und Prüfung:** `feat/test-inventory` an `6f10542a`, Basis `98beef82`; Review-Anfrage aus `292f7ba4`. Archivkopie unter `/tmp/codex-r270`, echte eigene `node_modules`-Kopie. Vorhandene Wächter: **19/19 Python-Inventar-Tests und 26/26 Web-Inventar-/Control-Tests grün**. Eigene Gegenproben: sechs stille INI-Auslassungen, vier rote Web-Wächter, zwei gezielte Dateimutationen. Die drei vorgelegten Gate-Berichte nennen korrekt FAIL an `d766e6d8`, PASS an `84a2b872` und PASS an `6f10542a`; den vollständigen Gate-Lauf habe ich nicht wiederholt. Keine Builds, Browser- oder Maschinenläufe in diesem Review, keine Produktänderung im Live-Baum.
+
+Belege: [Stand, Quellen und Zählungen](function-inventory.r270.codex-audit.json), [Prüfprotokoll](function-inventory.r270.codex-checks.txt), [INI-Sonde](function-inventory.r270.codex-ini-probe.py) / [Ergebnis](function-inventory.r270.codex-ini-probe.json), [Web-Gegenwächter](function-inventory.r270.codex-web.test.ts) / [Ergebnis](function-inventory.r270.codex-web-results.json), [Dateimutationen](function-inventory.r270.codex-mutations.py) / [Ergebnis](function-inventory.r270.codex-mutations.json). Die Dateimutationen sind in der Kopie wiederhergestellt. Zur Wiederholung die Python-Sonden mit dem Pfad einer Archivkopie aufrufen; den Web-Wächter in deren `src/inventory/` legen. Das Mutationsskript verweigert einen Zielbaum außerhalb `/tmp`.
+
+### FI-I01 · INI-Verwendungen verschwinden trotz `complete: true`
+
+**Fundstellen an `6f10542a`:** `scripts/inventory/py_atoms.py:108–116,165–205,208–214`.
+
+`_receivers` sammelt Namen über den ganzen AST statt Bindungen je Gültigkeitsbereich. Nicht unterstützte Verwendungen werden anschließend nicht zuverlässig gemeldet. Der ausdrücklich dafür kommentierte Zweig bei Zeile 203–205 besteht sogar nur aus `pass`.
+
+Sechs kleine Quellen mit jeweils einem unveränderten gültigen Basis-Lesen liefern **nur dieses Basis-Atom, `unresolved: []` und `complete: true`**, obwohl weitere INI-Lesewege hinzugekommen sind:
+
+- `holder.cfg = linuxcnc.ini(path)` und anschließend `holder.cfg.find(...)`;
+- eine Funktion gibt `linuxcnc.ini(path)` zurück;
+- ein neuer `_ini_int(cfg, section, key)` liest über seinen Parameter `cfg` und wird mit dem bekannten INI-Objekt aufgerufen;
+- Weitergabe als Schlüsselwortargument `other_reader(read=ini.find)`;
+- Zuweisung `read = ini.find`, danach Aufruf von `read(...)`;
+- ein zusätzliches **literales** Lesen im registrierten `_ini_float`-Rumpf. `in_wrapper: continue` verschluckt es zusammen mit dem bekannten parametrischen Lesen.
+
+Das sind die vereinbarten Grenzen aus R268: Attribut, Rückgabe, neuer Wrapper und weitergereichte Lesefunktion müssen aufgelöst oder ungelöst erscheinen. Die Registrierung eines Wrappers darf nicht seinen gesamten zukünftigen Rumpf unsichtbar machen.
+
+**Korrektur/Abnahme:** Jede INI-Erzeugung und Nutzung einer gebundenen Lesefunktion klassifizieren; nicht unterstützte Weitergaben als konkrete ungelöste Stelle melden. Bekannte Wrapper nur für ihre geprüfte Leseform ausnehmen. Bindungen im jeweiligen Scope behandeln. Die sechs Gegenfälle müssen zusätzliche Atome oder `complete: false` ergeben. Eine allgemeine Python-Datenflussanalyse bleibt dafür nicht verlangt.
+
+### FI-I02 · Einzelne dynamische Probe-Routinen werden neben bekannten Literalen übergangen
+
+**Fundstelle:** `lcnc-webui/src/inventory/webAtoms.ts:297–333`, insbesondere Zeilen 301,312,328,332.
+
+Der eigene Befund zu nicht-literalen Routinen ist nur teilweise geschlossen:
+
+1. Eine Tabelle `[{ macro: 'probe_a' }, { macro: chooseRoutine() }]`, ausgeführt über `op.macro`, ergibt allein `probe_a` und keine ungelöste Stelle.
+2. Zwei Template-Aufrufe `runCalProbe('probe_cal_a')` und `runCalProbe(selected)` ergeben allein `probe_cal_a` und ebenfalls keine ungelöste Stelle.
+
+Die Wächter prüfen momentan hauptsächlich, ob **irgendein** Literal gefunden wurde. Ein einzelnes unbekanntes Familienmitglied kann deshalb verschwinden, solange ein bekanntes übrig bleibt. Beide unabhängigen Gegenwächter sind rot.
+
+**Korrektur/Abnahme:** Alle Einträge der verwendeten Routinefamilie und alle Template-Aufrufe des bekannten Kalibrier-Helfers erfassen; jeden nicht aufgelösten Ausdruck einzeln melden. Nicht nur nach positiven Literal-Treffern suchen und bei einer insgesamt leeren Menge warnen. Die vorhandenen Literal-Fälle müssen erhalten bleiben.
+
+### FI-I03 · Beliebige Variablen bei `send` gelten ungeprüft als weitergereichter WsCommand
+
+**Fundstelle:** `lcnc-webui/src/inventory/webAtoms.ts:276`.
+
+Bei jedem Identifier oder Property-Zugriff kehrt der Adapter sofort zurück. Die Gegenprobe
+
+```ts
+const own = JSON.stringify({ cmd: 'new_frame', value: 1 });
+ws.send(own);
+```
+
+neben dem bekannten Hello-Rahmen liefert keinen neuen Rahmen und kein `unresolved`. Die Behauptung „Identifier/Property = WsCommand-Relay“ ist nicht aus dieser Syntax ableitbar. So kann die Inventur einen neuen eigenen Worker-Rahmen übersehen.
+
+**Korrektur/Abnahme:** Nur den belegten Weiterleitungspfad aus dem Hauptthread als Relay ausnehmen. Andere Werte auflösen oder als unbekannt melden. Der Gegenwächter muss den eigenen Rahmen finden oder ungelöst ausweisen; `p` beziehungsweise `msg.payload` dürfen nicht allein wegen ihres Ausdruckstyps als sicherer Herkunftsnachweis dienen.
+
+### FI-I04 · Der Wächter auf nicht gelesene Komponentenschreibweisen schützt nur ChoiceGroup
+
+**Fundstellen:** `lcnc-webui/src/inventory/webAtoms.ts:109–115`, `lcnc-webui/src/controlScan.ts:187–210`.
+
+Das neue Verfahren für `<choice-group>` fehlt bei den bereits registrierten Katalog-Komponenten. Neben einem normalen `<MachineInput>` verschwindet beispielsweise
+
+```html
+<machine-input gate="mdiText" v-model="b" />
+```
+
+vollständig: ein Atom statt zwei, keine ungelöste Stelle. Der Raw-Control-Zweig greift bei dieser Schreibweise ohne Klick-Ereignis nicht. Das betrifft eine gültige Schreibweise derselben bekannten Komponente, keinen neu zu erfindenden Adapter.
+
+**Korrektur/Abnahme:** Die akzeptierten Schreibweisen der Katalog-Komponenten normalisieren oder nicht gelesene Verwendungen ebenso sichtbar zurückweisen wie bei ChoiceGroup. Der vierte Web-Gegenwächter hält diesen Fall. Die bestehende Abrüst-Inventur muss dabei unverändert korrekt bleiben.
+
+### FI-I05 · Die vereinbarte Bindung konkreter Routinen an ihre Datei fehlt
+
+**Fundstellen:** `routinesAdapter` in `webAtoms.ts`, `routines_adapter` in `py_atoms.py`, `functions.py:128–168`.
+
+R267 nennt für Routinen ausdrücklich eine Dateiprüfung und „eine Routine ohne Datei ist ein Fehler“. Aktuell wird der Name inventarisiert und einer Funktion zugeordnet, aber seine ausgelieferte Implementierung nicht geprüft.
+
+**Gegenprobe am echten Bestand:** In der Archivkopie `subroutines/probe_basic/probe_cal_round_boss.ngc` entfernt. Danach bleiben **19/19 Python- und 18/18 Web-Inventar-Tests grün**, einschließlich Snapshot und Vollständigkeit. Das Atom der aufgerufenen Kalibrierroutine bleibt vorhanden. Dies ist eine Lücke der Inventar-Wächter; daraus behaupte ich nicht, dass sämtliche anderen Suite-Tests dieselbe Löschung übersehen würden.
+
+**Korrektur/Abnahme:** Die konkreten ausgelieferten Routine-Atome an vorhandene Dateien beziehungsweise ihre deklarierte Remap-Implementierung binden. Die offene Klasse der Benutzermakros bleibt davon getrennt. Die obige Löschung muss den zuständigen Wächter rot machen, ohne dass erst ein Browser die Routine ausführt.
+
+### FI-I06 · F-PROBE.S2 verweist auf einen Test ohne die behauptete Aussage
+
+**Fundstellen:** `scripts/inventory/functions.json:237–238`, `lcnc-webui/src/probeVarFiles.test.ts:22–33`.
+
+Die Aussage „Jede vom Panel geschriebene Var-Nummer ist in jeder ausgelieferten Var-Datei deklariert“ verweist auf **`are found: one per example profile`**. Dieser Test prüft ausschließlich `VAR_FILES.length >= 3`.
+
+**Gegenprobe:** #3036 nur aus `xyz3/sim.var` entfernt. Der zugeordnete Test bleibt grün (**1 PASS**). Der tatsächliche Test **`xyz3/sim.var declares every number the probe panel and the toolsetter write`** wird erwartungsgemäß rot und nennt 3036. Die übrigen beiden Profilprüfungen bleiben grün.
+
+**Korrektur/Abnahme:** Die Aussage an die tatsächlichen Deklarationsprüfungen **aller Profile** binden, als konkrete Test-IDs oder explizite Testfamilie. Der Dateizähltest kann eine eigene Struktur-Aussage belegen. Dass Laufartefakte erst in Schritt 2 kommen, ist akzeptiert; schon die statische Zuordnung muss aber auf die richtige Prüfaussage zeigen. Ein bloßer Titel-Substring ist noch keine gebundene Testfamilie — auch der parametrische `probe-click`-Verweis muss für Schritt 2 zu seinen tatsächlich gesammelten IDs auflösbar sein.
+
+### Kleine Datenklarstellung zu `applies`
+
+Die Anfrage sagt „`applies` steht an jeder Aussage“. Im JSON haben **nur 4 von 19 Aussagen** das Feld; bei 15 fehlt es. `problems()` prüft bei fehlendem Feld lediglich die leere Liste. Bitte einen fehlenden Geltungsbereich ausdrücklich als „noch offen“ oder einen bewusst allgemeinen als „alle“ definieren und entsprechend darstellen/prüfen. Die in einer Aussage genannten Modi/Profile und die tatsächlich getesteten Varianten bleiben unterschiedliche Dinge. Das ist kein Auftrag, sofort alle Modi nativ zu testen.
+
+### Entscheidung zum Vorschlag `controlScan` / `controlInventory`: angenommen
+
+Beide Module sind derzeit Testwerkzeuge; ein voller Browserlauf wird durch ihre Änderung allein nicht fachlich begründet. **Eine eigene Unit-only-Regel ist sinnvoll.** Die neue Inventarprüfung und die Abrüst-Inventur müssen dabei im leichten Unit-Satz bleiben.
+
+Den vorgeschlagenen Import-Wächter bitte als Teil dieser Änderung bauen: direkte und transitive Runtime-Importe aus App-/Worker-Einstiegen machen ihn rot, einschließlich `main.ts` und `App.vue`. Die bisherigen Graph-Cuts für `App.vue` dürfen diesen speziellen Nachweis nicht ausnehmen. Ein Kommentar oder reiner Typimport ist kein Runtime-Import. Ein kleiner negativer Import-Gegenfall genügt; dafür ist keine neue Planrunde nötig.
+
+Die 45 offenen Variantenfamilien und noch nicht formulierten Anzeigen/Aussagen bleiben wie vereinbart offen sichtbar. Es werden hier keine vollständige Funktionsabdeckung und keine neue Live-Abnahme verlangt. Vor dem Agreement zu Schritt 1 müssen jedoch die stillen Auslassungen und die beiden falschen Nachweisbindungen geschlossen sein.

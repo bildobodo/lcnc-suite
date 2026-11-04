@@ -1,0 +1,59 @@
+{
+  "head": "6f10542ae62550a5e21136d33ecb555952861fba",
+  "mutations_restored": true,
+  "results": [
+    {
+      "case": "missing-routine-backend",
+      "command": [
+        "/home/cnc/lcnc-suite-dev/lcnc-gateway/.venv/bin/python",
+        "-B",
+        "-m",
+        "pytest",
+        "scripts/inventory/test_inventory.py",
+        "-q"
+      ],
+      "exit": 0,
+      "log": "missing-routine-backend.txt"
+    },
+    {
+      "case": "missing-routine-web",
+      "command": [
+        "node",
+        "/tmp/codex-r270/lcnc-webui/node_modules/vitest/vitest.mjs",
+        "run",
+        "src/inventory/webAtoms.test.ts",
+        "--maxWorkers=1"
+      ],
+      "exit": 0,
+      "log": "missing-routine-web.txt"
+    },
+    {
+      "case": "wrong-evidence-title",
+      "command": [
+        "node",
+        "/tmp/codex-r270/lcnc-webui/node_modules/vitest/vitest.mjs",
+        "run",
+        "src/probeVarFiles.test.ts",
+        "--maxWorkers=1",
+        "-t",
+        "are found: one per example profile"
+      ],
+      "exit": 0,
+      "log": "wrong-evidence-title.txt"
+    },
+    {
+      "case": "actual-number-guard",
+      "command": [
+        "node",
+        "/tmp/codex-r270/lcnc-webui/node_modules/vitest/vitest.mjs",
+        "run",
+        "src/probeVarFiles.test.ts",
+        "--maxWorkers=1",
+        "-t",
+        "declares every number"
+      ],
+      "exit": 1,
+      "log": "actual-number-guard.txt"
+    }
+  ]
+}

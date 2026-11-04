@@ -1,0 +1,43 @@
+{
+  "implementation_head": "6f10542ae62550a5e21136d33ecb555952861fba",
+  "review_head": "292f7ba44f8f37a9084949c09e16441219d773ef",
+  "sources": {
+    "scripts/inventory/py_atoms.py": "37b443a199fd7eda2eaa068beb9707ec94fc8a1397b9a9db24d034804f13361b",
+    "scripts/inventory/functions.py": "feb8285f0d09e90ac137e4b1e426969d4b473886852754f9a8cd8ba4b8fbf1c9",
+    "scripts/inventory/functions.json": "95cfc0e68487e23fda21e52946ca87392893184e259d844115d8bf3e34447f44",
+    "lcnc-webui/src/inventory/webAtoms.ts": "023216e87e2c7f50781cd24e1c5826a2758b3f4ba876ea0a253d85e5227ce41a",
+    "lcnc-webui/src/controlScan.ts": "9e9441b8ee827c7a7364b13e1844bac4da00cbe623af0cd7a266e1dff600a8df",
+    "lcnc-webui/src/probeVarFiles.test.ts": "30f46e9caf48432ab58f8579563208c6e0542ae1cd2ff9846bbe77897fb806c1"
+  },
+  "baseline": {
+    "python_inventory": 19,
+    "web_inventory_and_control": 26,
+    "all_pass": true
+  },
+  "counterexamples": {
+    "ini_missing_sources": 6,
+    "red_web_guards": 4,
+    "missing_ngc_inventory_tests_still_pass": 37,
+    "deleted_var_3036_named_evidence_passes": true,
+    "deleted_var_3036_actual_assertion_fails": true
+  },
+  "statements": 19,
+  "without_applies": [
+    "F-TOOLMEASURE.S1",
+    "F-TOOLMEASURE.S2",
+    "F-TOOLMEASURE.S3",
+    "F-TOOLMEASURE.S4",
+    "F-TOOLMEASURE.S5",
+    "F-PROBE.S1",
+    "F-PROBE.S2",
+    "F-PROBE.S3",
+    "F-COMP.S1",
+    "F-COMP.S2",
+    "F-COMP.S3",
+    "F-COMP.S4",
+    "F-MACROFILES.S1",
+    "F-MACROFILES.S2",
+    "SYS-CONN.S1"
+  ],
+  "limitations": "No full gate, app build, browser or live-machine runs in this review; claimed gate JSON read separately."
+}

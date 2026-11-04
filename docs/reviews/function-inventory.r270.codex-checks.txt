@@ -1,0 +1,172 @@
+R270 isolated review checks at 6f10542a
+Archive: /tmp/codex-r270; dependencies copied with cp -a.
+No builds, browser or machine commands.
+
+Harness notes: system Python had no pytest, so tests used the existing dev venv with -B.
+The first mutation harness used a space-only match for #3036 and stopped at its own precondition because the var file uses tabs; corrected to split whitespace, files restored in finally, then the complete probe rerun. This was not a product failure.
+
+--- pytest ---
+...................                                                      [100%]
+19 passed in 0.89s
+
+--- unit ---
+
+ RUN  v4.1.8 /tmp/codex-r270/lcnc-webui
+
+
+ Test Files  2 passed (2)
+      Tests  26 passed (26)
+   Start at  20:06:58
+   Duration  4.80s (transform 316ms, setup 0ms, import 578ms, tests 4.10s, environment 0ms)
+
+
+--- web-probe ---
+
+ RUN  v4.1.8 /tmp/codex-r270/lcnc-webui
+
+ ❯ src/inventory/r270.codex.test.ts (4 tests | 4 failed) 9ms
+   × R270: one computed routine beside a literal cannot disappear 6ms
+   × R270: one computed calibration call beside a literal cannot disappear 1ms
+   × R270: a local frame variable is not automatically a relayed WsCommand 1ms
+   × R270: a catalog input in kebab-case is read or explicitly unresolved 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/inventory/r270.codex.test.ts > R270: one computed routine beside a literal cannot disappear
+AssertionError: {"names":["probe_a"],"unresolved":[]}: expected [] to not deeply equal []
+
+Compared values have no visual difference.
+
+ ❯ src/inventory/r270.codex.test.ts:12:47
+     10| </script>`;
+     11|   const a = probeRoutines('ProbePanel.vue', text);
+     12|   expect(a.unresolved, JSON.stringify(a)).not.toEqual([]);
+       |                                               ^
+     13| });
+     14| it('R270: one computed calibration call beside a literal cannot disapp…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/inventory/r270.codex.test.ts > R270: one computed calibration call beside a literal cannot disappear
+AssertionError: {"names":["probe_cal_a"],"unresolved":[]}: expected [] to not deeply equal []
+
+Compared values have no visual difference.
+
+ ❯ src/inventory/r270.codex.test.ts:18:47
+     16| <script setup>function runCalProbe(macro) { emit('runProbe', { macro }…
+     17|   const a = probeRoutines('ProbePanel.vue', text);
+     18|   expect(a.unresolved, JSON.stringify(a)).not.toEqual([]);
+       |                                               ^
+     19| });
+     20| it('R270: a local frame variable is not automatically a relayed WsComm…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/inventory/r270.codex.test.ts > R270: a local frame variable is not automatically a relayed WsCommand
+AssertionError: {"source":"wsWorker.ts <socket>.send(…)","forms":["JSON.stringify({ cmd: literal, … })","text beginning {\"cmd\":\"literal\"","relay of an identifier or property (a WsCommand)"],"atoms":[{"id":"frame:hello"}],"unresolved":[]}: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/inventory/r270.codex.test.ts:23:97
+     21|   const a = framesAdapter(src({'wsWorker.ts': `ws.send(JSON.stringify(…
+     22| const own = JSON.stringify({cmd: 'new_frame', value: 1}); ws.send(own)…
+     23|   expect(a.atoms.some(a=>a.id==='frame:new_frame') || a.unresolved.len…
+       |                                                                                                 ^
+     24| });
+     25| it('R270: a catalog input in kebab-case is read or explicitly unresolv…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/inventory/r270.codex.test.ts > R270: a catalog input in kebab-case is read or explicitly unresolved
+AssertionError: {"source":"lcnc-webui/src/**/*.vue templates","forms":["catalog component","raw control","role=button","element with an action event","<ChoiceGroup label=\"…\">: the instance is the control"],"limit":"templates only — global listeners, keys and the gamepad are their own adapters","atoms":[{"id":"control:P.vue|MachineInput:mdiText|v-model=a"}],"unresolved":[],"variantsOpen":[]}: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/inventory/r270.codex.test.ts:28:74
+     26|   const a = controlsAdapter(src({'P.vue': `<template><MachineInput gat…
+     27| <machine-input gate="mdiText" v-model="b"/></template>`}));
+     28|   expect(a.atoms.length===2 || a.unresolved.length>0, JSON.stringify(a…
+       |                                                                          ^
+     29| });
+     30|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed (4)
+   Start at  20:09:21
+   Duration  341ms (transform 115ms, setup 0ms, import 274ms, tests 9ms, environment 0ms)
+
+JSON report written to /tmp/codex-r270/web-probe.json
+
+--- missing-routine-backend ---
+...................                                                      [100%]
+19 passed in 0.88s
+
+--- missing-routine-web ---
+
+ RUN  v4.1.8 /tmp/codex-r270/lcnc-webui
+
+
+ Test Files  1 passed (1)
+      Tests  18 passed (18)
+   Start at  20:11:01
+   Duration  4.39s (transform 125ms, setup 0ms, import 286ms, tests 4.05s, environment 0ms)
+
+
+--- wrong-evidence-title ---
+
+ RUN  v4.1.8 /tmp/codex-r270/lcnc-webui
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 6 skipped (7)
+   Start at  20:11:05
+   Duration  100ms (transform 39ms, setup 0ms, import 45ms, tests 1ms, environment 0ms)
+
+
+--- actual-number-guard ---
+
+ RUN  v4.1.8 /tmp/codex-r270/lcnc-webui
+
+ ❯ src/probeVarFiles.test.ts (7 tests | 1 failed | 4 skipped) 4ms
+     × xyz3/sim.var declares every number the probe panel and the toolsetter write 3ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed | 4 skipped (7)
+   Start at  20:11:06
+   Duration  102ms (transform 36ms, setup 0ms, import 44ms, tests 4ms, environment 0ms)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/probeVarFiles.test.ts > the shipped var files > xyz3/sim.var declares every number the probe panel and the toolsetter write
+AssertionError: expected [ 3036 ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   3036,
++ ]
+
+ ❯ src/probeVarFiles.test.ts:32:54
+     30|       .map(l => l.trim().split(/\s+/)[0]).filter(t => t && /^\d+$/.tes…
+     31|     it(`${rel} declares every number the probe panel and the toolsette…
+     32|       expect(WRITTEN.filter(n => !nums.includes(n))).toEqual([]);
+       |                                                      ^
+     33|     });
+     34|     it(`${rel} is in ascending order, as LinuxCNC reads it`, () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

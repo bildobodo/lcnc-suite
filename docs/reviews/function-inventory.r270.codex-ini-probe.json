@@ -1,0 +1,68 @@
+[
+  {
+    "case": "attribute_receiver",
+    "source": "import linuxcnc\nini = linuxcnc.ini(path)\na = ini.find('BASE', 'KEPT')\nholder.cfg = linuxcnc.ini(path)\nx = holder.cfg.find('EXTRA', 'ATTRIBUTE')\n",
+    "atoms": [
+      {
+        "id": "ini:BASE/KEPT"
+      }
+    ],
+    "unresolved": [],
+    "complete": true
+  },
+  {
+    "case": "returned_receiver",
+    "source": "import linuxcnc\nini = linuxcnc.ini(path)\na = ini.find('BASE', 'KEPT')\ndef make_cfg():\n    return linuxcnc.ini(path)\nx = make_cfg().find('EXTRA', 'RETURN')\n",
+    "atoms": [
+      {
+        "id": "ini:BASE/KEPT"
+      }
+    ],
+    "unresolved": [],
+    "complete": true
+  },
+  {
+    "case": "new_wrapper_other_parameter",
+    "source": "import linuxcnc\nini = linuxcnc.ini(path)\na = ini.find('BASE', 'KEPT')\ndef _ini_int(cfg, section, key):\n    return int(cfg.find(section, key))\nx = _ini_int(ini, 'EXTRA', 'WRAPPER')\n",
+    "atoms": [
+      {
+        "id": "ini:BASE/KEPT"
+      }
+    ],
+    "unresolved": [],
+    "complete": true
+  },
+  {
+    "case": "reader_via_keyword",
+    "source": "import linuxcnc\nini = linuxcnc.ini(path)\na = ini.find('BASE', 'KEPT')\nother_reader(read=ini.find)\n",
+    "atoms": [
+      {
+        "id": "ini:BASE/KEPT"
+      }
+    ],
+    "unresolved": [],
+    "complete": true
+  },
+  {
+    "case": "reader_assigned",
+    "source": "import linuxcnc\nini = linuxcnc.ini(path)\na = ini.find('BASE', 'KEPT')\nread = ini.find\nx = read('EXTRA', 'ALIAS')\n",
+    "atoms": [
+      {
+        "id": "ini:BASE/KEPT"
+      }
+    ],
+    "unresolved": [],
+    "complete": true
+  },
+  {
+    "case": "registered_wrapper_added_literal",
+    "source": "import linuxcnc\nini = linuxcnc.ini(path)\na = ini.find('BASE', 'KEPT')\ndef _ini_float(ini, section, key):\n    side = ini.find('EXTRA', 'BODY')\n    return float(ini.find(section, key))\nx = _ini_float(ini, 'BASE', 'KEPT')\n",
+    "atoms": [
+      {
+        "id": "ini:BASE/KEPT"
+      }
+    ],
+    "unresolved": [],
+    "complete": true
+  }
+]
