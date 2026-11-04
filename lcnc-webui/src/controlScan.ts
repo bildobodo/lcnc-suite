@@ -59,6 +59,10 @@ export interface ScanOptions {
   /** Every control, not only those a disarmed client can operate (the
    *  function inventory, Codex R265 FI265-01). */
   all?: boolean;
+  /** Components whose INSTANCE is the control (tag → the attribute that names
+   *  it): a ChoiceGroup acts through its `:act`, an attribute no event scan
+   *  sees. Its key is `file|Tag:<name>|<handlers and :act>`. */
+  components?: Record<string, string>;
 }
 
 /** Elements that never take a closing tag. */
@@ -148,7 +152,7 @@ function gateNames(attrs: Record<string, string>): string[] {
 
 /** The controls of one `.vue` file a disarmed client can operate — or, with
  *  `all`, every control of it. */
-export function scanControls(file: string, sfc: string, { all = false }: ScanOptions = {}): ControlUsage[] {
+export function scanControls(file: string, sfc: string, { all = false, components = {} }: ScanOptions = {}): ControlUsage[] {
   const { text, offset } = templateOf(sfc);
   const out: ControlUsage[] = [];
   const gateStack: string[][] = [];
@@ -175,6 +179,13 @@ export function scanControls(file: string, sfc: string, { all = false }: ScanOpt
     const handlers = Object.keys(t.attrs)
       .filter((a) => a.startsWith("@") || a.startsWith("v-on:") || a.startsWith("v-model"))
       .sort().map((a) => `${a}=${norm(t.attrs[a] ?? "")}`).join(" ");
+    const named = components[t.name];
+    if (named !== undefined) {
+      const act = t.attrs[":act"] !== undefined ? ` :act=${norm(t.attrs[":act"])}` : "";
+      out.push({ key: `${file}|${t.name}:${t.attrs[named] ?? `{${norm(t.attrs[`:${named}`] ?? "")}}`}|${handlers}${act}`,
+        file, line: lineAt(t.start), tag: t.name, entry: "", gates: ["component"], families });
+      continue;
+    }
     const attr = CATALOG_ATTR[t.name];
     if (attr) {
       const bound = t.attrs[`:${attr}`];

@@ -92,15 +92,29 @@ function parsed(rel: string, text: string): ts.SourceFile[] {
 
 // ── Template controls ───────────────────────────────────────────────────
 
-/** Every template control (`controlScan` with `all`). Identical keys in one
- *  file stay apart (`#2` …): two places to operate are two atoms. */
+/** Components whose instance is the control, and the attribute naming it. */
+export const ACTING_COMPONENTS: Record<string, string> = { ChoiceGroup: "label" };
+
+/** Every template control (`controlScan` with `all` and the acting
+ *  components). Identical keys in one file stay apart (`#2` …): two places to
+ *  operate are two atoms. An acting component's tag the scan did not turn
+ *  into an atom is unresolved. */
 export function controlsAdapter(src: WebSources): Adapter {
   const atoms: Atom[] = [];
+  const unresolved: Unresolved[] = [];
   const variantsOpen: Unresolved[] = [];
   for (const [rel, text] of Object.entries(src.files)) {
     if (!rel.endsWith(".vue")) continue;
     const seen = new Map<string, number>();
-    for (const u of scanControls(rel, text, { all: true })) {
+    const usages = scanControls(rel, text, { all: true, components: ACTING_COMPONENTS });
+    for (const tag of Object.keys(ACTING_COMPONENTS)) {
+      // both spellings Vue accepts: the scan reads the PascalCase one
+      const kebab = tag.replace(/(?<!^)([A-Z])/g, "-$1").toLowerCase();
+      const written = templateText(text).match(new RegExp(`<(?:${tag}|${kebab})\\b`, "g"))?.length ?? 0;
+      const found = usages.filter((u) => u.tag === tag).length;
+      if (written !== found) unresolved.push({ file: rel, form: `<${tag}>`, expr: `${written} written, ${found} found` });
+    }
+    for (const u of usages) {
       const n = (seen.get(u.key) ?? 0) + 1;
       seen.set(u.key, n);
       const atom: Atom = { id: `control:${u.key}${n > 1 ? `#${n}` : ""}` };
@@ -113,8 +127,10 @@ export function controlsAdapter(src: WebSources): Adapter {
       atoms.push(atom);
     }
   }
-  return { source: "lcnc-webui/src/**/*.vue templates", forms: ["catalog component", "raw control", "role=button", "element with an action event"],
-    limit: "templates only — global listeners, keys and the gamepad are their own adapters", atoms: sortById(atoms), unresolved: [],
+  return { source: "lcnc-webui/src/**/*.vue templates",
+    forms: ["catalog component", "raw control", "role=button", "element with an action event",
+      ...Object.entries(ACTING_COMPONENTS).map(([t, a]) => `<${t} ${a}="…">: the instance is the control`)],
+    limit: "templates only — global listeners, keys and the gamepad are their own adapters", atoms: sortById(atoms), unresolved: dedupe(unresolved),
     variantsOpen: dedupe(variantsOpen) };
 }
 

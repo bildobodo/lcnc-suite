@@ -10318,7 +10318,7 @@ Rahmen". Codex R265 brainstormed it; R267–R269 agreed four contracts:
    the return to the LAN sim its own status; the operator took over the sim for
    manual runs and asked for high feed (2026-11-03) — no timer.
 
-Step 1 (this): 1143 atoms in 17 sources, 54 functions and 4 system contracts,
+Step 1 (this): 1147 atoms in 17 sources, 55 functions and 4 system contracts,
 every atom owned once, the first statements with their evidence; the table
 `docs/inventory/funktionen.md` for the operator's review before any gap is
 touched. Found while building: the probe calibration routines
@@ -10326,3 +10326,15 @@ touched. Found while building: the probe calibration routines
 launcher pattern skipped a quoted argument instead of reporting it — both now
 forms with counter-cases. The first gap package is the compensation
 (Codex R265: the send result ignored, unknown shown as OFF / Cubic).
+
+The operator's look (2026-11-04): nothing missing at first sight; added from
+it — the kinematics mode as its own function and an "applies to" (Machine /
+TCP / Plane or a profile) on every statement, a second view by place (the
+tabs, the 3D view, the settings, the strip), and a multi-client statement with
+its gap: several clients fetching the preview after a load, measured with
+protocol clients (each browser's simulation runs on its own device, not in the
+gateway — browsers on the VM would trip the heartbeat by the VM's own load).
+The view by place showed the mode and the frame "without a control": the
+strip's ChoiceGroups act through `:act`, which no event scan sees —
+`controlScan`'s `components` option makes the instance the control, a spelling
+the scan does not read (kebab-case) is unresolved.

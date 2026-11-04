@@ -46,6 +46,28 @@ PLACES = {
                                           "MachineRadio.vue", "MachineSelect.vue", "MachineSlider.vue", "MachineToggle.vue")},
 }
 
+# App.vue holds controls of several places: the first fragment of its key
+# that matches names the place (an App control matching none fails).
+APP_PLACES = (
+    ("|MachineBtn:mdi|", "Tab „MDI“"), ("|MachineInput:mdiText|", "Tab „MDI“"), ("|div|@click=mdiText", "Tab „MDI“"),
+    ("clearMdiHistory", "Tab „MDI“"), ("|MachineBtn:toolChangeConfirm|", "Dialog"), ("|MachineBtn:banner", "Banner"),
+    ("|MachineBtn:headerIcon|", "Kopfzeile"), ("|div|@click=openMessages", "Kopfzeile"), ("|MachineBtn:tool", "Tab „Tools“"),
+    ("toolTableRef", "Tab „Tools“"), ("|MachineSelect:tabSelect|", "Tab „Probing“"), ("|MachineBtn:simTrip|", "Tab „Probing“"),
+    ("|MachineBtn:abort|", "Tab-Kopf (Abort)"), ("|MachineBtn:dialog", "Dialog"), ("|MachineBtn:macroExecute|", "Dialog"),
+    ("|MachineInput:macroParam|", "Dialog"), ("|MachineBtn:shutdown|", "Dialog"),
+)
+MODES = ("Machine", "TCP", "Plane")
+
+
+def place_of(atom: str) -> str | None:
+    """The place of a control atom (None for an App control no fragment names)."""
+    key = atom.split(":", 1)[1]
+    file = key.split("|", 1)[0]
+    if file == "App.vue":
+        return next((p for frag, p in APP_PLACES if frag in key), None)
+    return PLACES.get(file)
+
+
 EVIDENCE_LAYERS = {"browser": "lcnc-webui/e2e", "unit": "lcnc-webui/src", "gateway": "lcnc-gateway", "script": "scripts"}
 STATEMENT_KINDS = ("Daten", "Wirkung", "Ablehnung", "Abbruch", "Unbekannt", "Bedienbarkeit", "Zeichnung")
 
@@ -107,6 +129,7 @@ def problems(web: dict, py: dict, fns: dict, root: Path = ROOT) -> list[str]:
     out: list[str] = []
     ids = atom_ids(web, py)
     all_ids = sorted(ids)
+    profiles = {a.split(":", 1)[1] for a in all_ids if a.startswith("profile:")}
     owner: dict[str, str] = {}
     seen_fn: set[str] = set()
     for f in fns["functions"]:
@@ -126,6 +149,9 @@ def problems(web: dict, py: dict, fns: dict, root: Path = ROOT) -> list[str]:
         for s in f.get("statements", []):
             if s.get("kind") not in STATEMENT_KINDS:
                 out.append(f"{fid}.{s.get('id')}: unknown statement kind {s.get('kind')!r}")
+            for x in s.get("applies", []):
+                if x not in MODES and x not in profiles:
+                    out.append(f"{fid}.{s.get('id')}: applies to {x!r} — neither a kinematics mode nor a profile")
             for e in s.get("evidence", []):
                 out += [f"{fid}.{s['id']}: {p}" for p in evidence_problems(e, root)]
     for a, why in fns.get("excludedAtoms", {}).items():
@@ -135,8 +161,8 @@ def problems(web: dict, py: dict, fns: dict, root: Path = ROOT) -> list[str]:
             out.append(f"excludedAtoms: {a!r} is also claimed by {owner[a]}")
         if len(why) < 10:
             out.append(f"excludedAtoms: {a!r} needs its reason")
-    files = {a.split(":", 1)[1].split("|", 1)[0] for a in all_ids if a.startswith("control:")}
-    out += [f"{f}: a component with controls has no place name (PLACES)" for f in sorted(files - PLACES.keys())]
+    out += [f"{a}: a control without a place (PLACES / APP_PLACES)" for a in all_ids
+            if a.startswith("control:") and place_of(a) is None]
     unowned = [a for a in all_ids if a not in owner and a not in fns.get("excludedAtoms", {})]
     out += [f"{a}: no function claims it (found by {', '.join(ids[a])})" for a in unowned]
     return out
@@ -183,7 +209,7 @@ def render(web: dict, py: dict, fns: dict) -> str:
         lines += [f"## {title}", "", "| Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |", "|---|---|---|---|---|---|"]
         for f in group:
             got = claimed(f.get("atoms", []), all_ids, f["id"], [])
-            places = sorted({PLACES.get(a.split(":", 1)[1].split("|", 1)[0], "?") for a in got if a.startswith("control:")})
+            places = sorted({place_of(a) or "?" for a in got if a.startswith("control:")})
             st = f.get("statements", [])
             proven = sum(1 for s in st if s.get("evidence"))
             open_ = [s for s in st if not s.get("evidence")]
@@ -197,8 +223,19 @@ def render(web: dict, py: dict, fns: dict) -> str:
             for s in f["statements"]:
                 ev = "; ".join(f"{e['layer']}: `{e['file']}` — {e['title']}" for e in s.get("evidence", [])) or "**offen**"
                 gap = f" — Lücke: {s['gap']}" if s.get("gap") else ""
-                lines.append(f"- **{s['id']} ({s['kind']}):** {s['text']}  \n  Beleg: {ev}{gap}")
+                applies = f" — gilt für: {', '.join(s['applies'])}" if s.get("applies") else ""
+                lines.append(f"- **{s['id']} ({s['kind']}):** {s['text']}{applies}\n  - Beleg: {ev}{gap}")
             lines.append("")
+    by_place: dict[str, list[str]] = {}
+    for f in fns["functions"]:
+        for p in sorted({place_of(a) or "?" for a in claimed(f.get("atoms", []), all_ids, f["id"], []) if a.startswith("control:")}):
+            by_place.setdefault(p, []).append(f"{f['name']} `{f['id']}`")
+    lines += ["## Nach Bedienort", "", "Dieselben Funktionen, geordnet nach dem Ort, an dem man sie bedient.", "",
+              "| Bedienort | Funktionen |", "|---|---|"]
+    lines += [f"| {p} | {'<br>'.join(by_place[p])} |" for p in sorted(by_place)]
+    without = [f"{f['name']} `{f['id']}`" for f in fns["functions"]
+               if not any(a.startswith("control:") for a in claimed(f.get("atoms", []), all_ids, f["id"], []))]
+    lines += ["", f"**Ohne eigenes Bedienelement** (über Befehle, Tasten, Einstellungen oder das Gateway): {', '.join(without)}", ""]
     return "\n".join(lines) + "\n"
 
 

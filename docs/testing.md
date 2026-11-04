@@ -137,7 +137,8 @@ and their evidence. The operator's table is `docs/inventory/funktionen.md`
 (rendered, never edited by hand).
 
 - **Web atoms** — `lcnc-webui/src/inventory/webAtoms.ts` (pure; templates via
-  `controlScan` with `all`, the catalogs, `KeyboardAction` / `GamepadAction` /
+  `controlScan` with `all` and the acting components — a `ChoiceGroup` instance is
+  the control at its place —, the catalogs, `KeyboardAction` / `GamepadAction` /
   `WsCommand` / the settings types through the TypeScript checker, the worker's
   frames, global listeners, the routines the UI names) →
   `scripts/inventory/atoms.web.json`; `webAtoms.test.ts` (light unit, every
@@ -158,6 +159,8 @@ and their evidence. The operator's table is `docs/inventory/funktionen.md`
   classes stay apart: `unresolved` (incomplete, with a reason or without),
   `excluded` (outside the declared boundary, bound to file, form and
   expression), `variantsOpen` (a family whose members are not derived).
+  The table has a view by place and a statement's `applies` (Machine / TCP /
+  Plane or a profile id) is checked.
 
 Evidence is bound statically in this step (the named file holds the title);
 whether it ran and passed comes from the run artifacts with the measurement

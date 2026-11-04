@@ -112,6 +112,14 @@ describe("the function inventory's web atoms (Codex R265–R268 FI265-01)", () =
     expect(a.variantsOpen).toEqual([{ file: "P.vue", form: "v-for family", expr: "f in other" }]);
   });
 
+  it("controls: a ChoiceGroup instance is the control at its place; one the scan misses is unresolved", () => {
+    const vue = `<template><div><ChoiceGroup label="Task mode" :options="o" :act="modeAct" /></div></template>`;
+    expect(controlsAdapter(memory({ "J.vue": vue })).atoms.map((x) => x.id)).toEqual(["control:J.vue|ChoiceGroup:Task mode| :act=modeAct"]);
+    // the kebab-case spelling Vue accepts too: written, not read by the scan
+    const broken = controlsAdapter(memory({ "K.vue": "<template><div><choice-group label=\"x\" :act=\"a\" /></div></template>" }));
+    expect(broken.unresolved.map((u) => u.form)).toEqual(["<ChoiceGroup>"]);
+  });
+
   it("controls: a family inside a v-for element is the element's, outermost first", () => {
     const vue = `<template><ul><li v-for="row in rows"><input v-for="c in row.cells" @input="set(c)"></li></ul><input @input="x"></template>`;
     const a = controlsAdapter(memory({ "T.vue": vue }));

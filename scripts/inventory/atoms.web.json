@@ -6,7 +6,8 @@
     "catalog component",
     "raw control",
     "role=button",
-    "element with an action event"
+    "element with an action event",
+    "<ChoiceGroup label=\"…\">: the instance is the control"
    ],
    "limit": "templates only — global listeners, keys and the gamepad are their own adapters",
    "atoms": [
@@ -394,6 +395,15 @@
     },
     {
      "id": "control:HelpIcon.vue|span|@click.prevent.stop=toggle @keydown=onKeydown @pointerdown=onPointerDown"
+    },
+    {
+     "id": "control:JogStrip.vue|ChoiceGroup:Jog step|@choose=v => emit('update:jogIncrement', Number(v))"
+    },
+    {
+     "id": "control:JogStrip.vue|ChoiceGroup:Kinematics frame| :act=frameAct"
+    },
+    {
+     "id": "control:JogStrip.vue|ChoiceGroup:Task mode| :act=modeAct"
     },
     {
      "id": "control:JogStrip.vue|div|@focusin=onStepFocusin @focusout=onStepFocusout @keydown=onStepKeydown @pointerdown=holdStep"
@@ -1233,6 +1243,9 @@
     },
     {
      "id": "control:SetupActions.vue|MachineBtn:zero|@click=emit('zeroAll')"
+    },
+    {
+     "id": "control:SetupStrip.vue|ChoiceGroup:Work offset| :act=v => wcsAct(String(v))"
     },
     {
      "id": "control:SetupStrip.vue|MachineBtn:{homedJoints[a.index] ? 'unhome' : 'home'}|@click=homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)",
