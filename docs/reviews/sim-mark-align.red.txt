@@ -1,0 +1,23 @@
+Sim tab marks on their row's line (operator 2026-11-03: "im sim tab scheinen die blauen punkte,
+gelben dreiecke und kreuze noch nicht ganz auf einer linie mit der übrigen zeile zu sein. anders als
+beim program tab") — red before, green after
+
+The cause: in the Sim tab the mark is an inline SVG straight in its table cell — it stands on the
+text's baseline, each size (× 12, ▲ 11, ● 10 px) at its own height above the line's middle. The
+Program tab's mark sits in `.lineMark` (inline-flex, align-items: center) inside the flex row
+`.codeLine`: centred on the line.
+
+The guard (sim-panel.viewer.spec.ts "a mark's glyph sits on its row's line — in the Sim tab as in
+the Program tab", desktop and touch-fullhd): each glyph's box centre against its row's line
+number's text box centre (a Range over the label; the fonts' content box is centred on their
+figures), |d| <= 0.75 px — the Sim tab's six rows (two collisions, two limits, two tool changes),
+the summary line's three glyphs beside their words, and the Program tab's five marked lines as the
+reference.
+
+Before (SimPanel.vue without `.colKind svg { display: block; margin-inline: auto; }`), both
+viewports: 2/2 failed:
+  Sim tab: glyph centre to line centre [-1,-2,-1,-1.5,-2,-1.5]   (above the line, by kind)
+After, the values (threshold forced below zero once to print them; restored):
+  desktop       Sim tab [0.25 ×6]  summary [0.5 ×3]  Program tab [0.5 ×5]
+  touch-fullhd  Sim tab [0.25 ×6]  summary [0.5 ×3]  Program tab [0.59 ×5]
+  the guard as committed: 2/2 passed.
