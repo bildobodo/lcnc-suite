@@ -121,7 +121,7 @@ BY USING THIS SOFTWARE, YOU EXPRESSLY ACKNOWLEDGE AND ASSUME ALL RISKS ASSOCIATE
 - **Full Machine Control**: E-stop, enable, jog, MDI, auto run
 - **Three-Layer Safety System**:
   - Connection-level arming to prevent accidental commands (`require_armed()` gates all motion)
-  - Disconnect handler: stops all motion when an armed client disconnects
+  - Disconnect handler: when a client disconnects, its pending commands are dropped and the jogs it may have started are stopped — a running program is not aborted by one client leaving (the HAL watchdog below owns motion abort)
   - Heartbeat watchdog: client sends 1 s heartbeat; gateway disarms after 3 s timeout
   - HAL watchdog: `webui-safety` HAL component + retriggerable `oneshot` monostable — machine enters ESTOP when all clients disconnect, the gateway crashes, or the gateway stalls ≥ 0.5 s. A servo-thread `estop_latch` (`webui-hb-latch`) latches the ESTOP in the same ~1 ms cycle the oneshot expires — owned by HAL, so trips survive gateway *and* watchdog freezes — until the operator acknowledges the sticky safety-trip banner and clicks E-Stop Reset
   - E-Stop button forces HAL pin LOW for defense-in-depth alongside software command
