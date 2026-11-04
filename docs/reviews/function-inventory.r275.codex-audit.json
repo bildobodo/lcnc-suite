@@ -1,0 +1,1556 @@
+{
+  "round": "R275",
+  "target": "151d048e1e13c253ae53a3b06370c51a5ae653ca",
+  "base": "8064302b58c88f68d1b8e9822b8a70189aad53db",
+  "boundary": "Review of statements/evidence, not a native machine approval. Referenced test bodies read; browser and live tests NOT rerun. No product edits or live endpoints.",
+  "checks": {
+    "inventory": "33/33 PASS",
+    "pure_command_policy": "136/136 PASS",
+    "mutation": "G59-guard removed in archive: 2/2 cited PASS, 1 unlinked countercase ERROR because refusal became None; restored byte for byte"
+  },
+  "counts": {
+    "functions": 59,
+    "statements": 79,
+    "evidence_references": 94,
+    "with_statements": 36,
+    "review_categories": {
+      "nacharbeit": 23,
+      "innerhalb_der_genannten_pruefschicht": 39,
+      "offen_wie_deklariert": 17
+    }
+  },
+  "statements": [
+    {
+      "id": "F-ARM.S1",
+      "text": "Ohne Arm lehnt das Gateway jeden Befehl ab, der etwas startet oder schreibt, mit dem Grund „Not armed“.",
+      "applies": [
+        "alle"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I08",
+      "note": "Der Satz behauptet alle Schreibbefehle. Anzeige-Settings speichern ohne Arm (F-SETTINGS.S1); Stopps sind ausdrücklich erlaubt. Der Beleg sendet nur cycle_start.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_command_dispatch.py",
+          "title": "test_not_armed_denied"
+        }
+      ]
+    },
+    {
+      "id": "F-ARM.S2",
+      "text": "Arm geht erst, wenn eine Sicherheits-Auslösung quittiert ist; der Grund steht am Knopf.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Policy + UI-Grund/Recovery-Abfolge abgebildet.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_button_gates_d.py",
+          "title": "test_arming_waits_for_the_acknowledgement"
+        },
+        {
+          "layer": "browser",
+          "file": "setup-gates.spec.ts",
+          "title": "the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)"
+        }
+      ]
+    },
+    {
+      "id": "F-ARM.S3",
+      "text": "Ein Client, der 3 s keinen Herzschlag sendet, verliert seine Freigabe.",
+      "applies": [
+        "alle"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I09",
+      "note": "Der Test überschreibt _HB_STALL_SEC mit 1.0 und beweist Disarm nach Timeout, nicht die festgeschriebenen 3 s. Zeitbudget gesondert binden oder Satz ohne Zahl.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_ws_command_worker.py",
+          "title": "test_hb_stall_disarms_silent_client"
+        }
+      ]
+    },
+    {
+      "id": "F-ESTOP.S1",
+      "text": "Escape löst genau einen Not-Halt aus, auch bei offener Zahlentastatur, und nie ein Zurücksetzen.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Sendeform des Escape im Browser belegt; bereits aktiver E-Stop sendet nichts. Empfehlenswert: dies im Wortlaut nennen, keine native HAL-Wirkung beanspruchen.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "keyboard-guards.spec.ts",
+          "title": "number keypad open: Space/Backspace send nothing, Escape sends exactly estop"
+        },
+        {
+          "layer": "browser",
+          "file": "keyboard-guards.spec.ts",
+          "title": "repeated Escape in E-Stop never sends estop_reset"
+        }
+      ]
+    },
+    {
+      "id": "F-ESTOP.S2",
+      "text": "Eine offene Sicherheitskette in HAL gilt als Not-Halt, auch wenn LinuxCNC selbst keinen meldet.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Policy-State-Merge bei offener HAL-Kette geprüft.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_command_dispatch.py",
+          "title": "test_safety_chain_open_forces_estop_and_disables"
+        }
+      ]
+    },
+    {
+      "id": "F-ESTOP.S3",
+      "text": "Zurücksetzen braucht Arm und die quittierte Auslösung.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Reset-Policy: unquittiert und disarmt verweigert, quittiert/gearmt offen.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_button_gates_d.py",
+          "title": "test_reset_needs_arm_and_the_acknowledgement"
+        }
+      ]
+    },
+    {
+      "id": "F-ESTOP.S4",
+      "text": "Bleibt der Herzschlag des Gateways aus, verriegelt HAL den Not-Halt im Servotakt und hält ihn bis zur Quittierung und zum Zurücksetzen.",
+      "applies": [
+        "alle"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I09",
+      "note": "sigstop_trip prüft Sticky/Recovery nach Sleeps, nicht Servotakt oder Verweigerung ohne Quittierung. Es liefert Ergebnisfelder; ein falsches sticky_ok/recovered_ok macht seinen Runner nicht automatisch rot. Bei Laufbindung Felder auswerten.",
+      "evidence": [
+        {
+          "layer": "script",
+          "file": "perf_matrix.py",
+          "title": "sigstop_trip",
+          "live": true
+        }
+      ]
+    },
+    {
+      "id": "F-TRIP.S1",
+      "text": "Eine Auslösung nach sauberem Start erscheint genau einmal im Banner; ein schon beim Start gesetzter Latch wird protokolliert, nicht gebannert.",
+      "applies": [
+        "alle"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I09",
+      "note": "Pure evaluate_trip_latch-Tests prüfen announce/boot_faulted. Sichtbares Banner, einmaliger Versand und Protokollierung sind nicht mitgebunden; Satz auf Entscheidungssignale begrenzen oder weitere Schicht belegen.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_gateway_util.py",
+          "title": "test_sustained_latch_banners_only_once"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_gateway_util.py",
+          "title": "test_boot_faulted_does_not_banner"
+        }
+      ]
+    },
+    {
+      "id": "F-POWER.S1",
+      "text": "Maschine ein wird im Not-Halt abgelehnt.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Realer Dispatcher unter Fake-Binding verweigert machine_on im E-Stop.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_command_dispatch.py",
+          "title": "test_machine_on_denied_in_estop"
+        }
+      ]
+    },
+    {
+      "id": "F-ABORT.S1",
+      "text": "Abort ist in jedem Zustand offen: ohne Arm, im Not-Halt, bei unbekanntem Zustand und im Lauf; ohne Arm erreicht er die Steuerung.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Policy-Gegenfälle plus CMD.abort-Aufruf unter Fake-Binding. Kein nativer Bremswegnachweis beansprucht.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_button_gates.py",
+          "title": "test_abort_in_any_state"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_button_gates.py",
+          "title": "test_abort_disarmed_reaches_the_controller"
+        }
+      ]
+    },
+    {
+      "id": "F-MODE.S1",
+      "text": "MANUAL ist in E-Stop und unreferenziert wählbar; MDI und AUTO sind gedimmt mit Grund; die schon gewählte Betriebsart sendet nichts.",
+      "applies": [
+        "alle"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I08",
+      "note": "MDI/AUTO sind auch unreferenziert mit coord_without_homing erlaubt; referenziert sogar in E-Stop/Power off. Browser injiziert modeCoord=false, der Satz verallgemeinert diesen Fall.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "setup-gates.spec.ts",
+          "title": "the task mode per target: MANUAL in E-Stop and unhomed, MDI / AUTO dimmed with the reason; the checked mode sends nothing (BG-04)"
+        }
+      ]
+    },
+    {
+      "id": "F-HOME.S1",
+      "text": "Referenz aufheben ist eine Haltegeste: ein kurzes Tippen sendet nichts und sagt warum, ein vollständiges Halten genau einen Befehl.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Im Beleg genau Unhome All. Diese Benennung präzisieren; Home selbst ist damit noch keine erfasste Wirkung.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "touch-hold.spec.ts",
+          "title": "a short tap sends nothing and says why; a complete hold sends exactly one command"
+        }
+      ]
+    },
+    {
+      "id": "F-JOG.S1",
+      "text": "Ein gestarteter Jog besitzt seinen Stopp: das Loslassen stoppt genau, was das Drücken gestartet hat, auch wenn sich Schritt oder Belegung inzwischen geändert haben.",
+      "applies": [
+        "alle"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I09",
+      "note": "Unit belegt gespeicherte Stopp-Nachricht einer kontinuierlichen Geste, nicht die Verbindung sämtlicher Release-Ereignisse zur Zustellung. Geste/continuous nennen oder vorhandene UI-/Handler-Gegenfälle anbinden.",
+      "evidence": [
+        {
+          "layer": "unit",
+          "file": "jogGesture.test.ts",
+          "title": "ends a gesture with the stop recorded at its start, whatever changed since"
+        }
+      ]
+    },
+    {
+      "id": "F-JOG.S2",
+      "text": "Ein Jog-Stopp wird nie abgelehnt, auch ohne Arm und im Not-Halt.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Als Policy-Aussage getragen (nie policy-denied), nicht als universelle Zustellgarantie bei ungültigem Payload/Verbindungsfehler.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_command_policy.py",
+          "title": "test_jog_stop_always_allowed"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_command_dispatch.py",
+          "title": "test_jog_stop_never_policy_denied"
+        }
+      ]
+    },
+    {
+      "id": "F-JOG.S3",
+      "text": "Eine negative Jog-Geschwindigkeit bleibt erhalten: das Vorzeichen ist die Richtung.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Signed continuous/incremental velocities mit Clamp geprüft.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_command_policy.py",
+          "title": "test_jog_velocity_is_SIGNED_and_must_survive_the_clamp"
+        }
+      ]
+    },
+    {
+      "id": "F-JOG.S4",
+      "text": "Vor dem Referenzieren joggt nur die deklarierte Gelenk-Achse, eine Gantry-Achse und die Diagonalen sind gesperrt, mit Grund.",
+      "applies": [
+        "alle"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I09",
+      "note": "Belege tragen Gantry-Zulassung und die dargestellten Diagonalen. Kein Jog wird im Browser gedrückt; tatsächliche Gelenkzuordnung ist damit noch nicht belegt. Für Aussage als Zulassungs-/UI-Regel genügt Präzisierung.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_button_gates_e.py",
+          "title": "test_a_gantry_letter_is_closed"
+        },
+        {
+          "layer": "browser",
+          "file": "joint-jog.spec.ts",
+          "title": "before homing every open axis jogs in amber, the diagonals are closed with their reason; homed both are back (package F)"
+        }
+      ]
+    },
+    {
+      "id": "F-JOG.S5",
+      "text": "Auf echtem LinuxCNC bewegt jeder Jog-Knopf seine Achse in seine Richtung und hält am Loslassen.",
+      "applies": [
+        "offen"
+      ],
+      "review": "offen_wie_deklariert",
+      "finding": null,
+      "note": "nativ: Achse, Richtung und Stopp je Knopf am echten Task (die native Stufe)",
+      "evidence": []
+    },
+    {
+      "id": "F-GOTO.S1",
+      "text": "Ein Rückzug senkt Z nie: von unter Z0 auf die Maschinen-Oberkante, von über Z0 unverändert; dann X/Y.",
+      "applies": [
+        "Machine"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I09",
+      "note": "Nur ABOVE-Belege verlinkt; BELOW fehlt. Zero-ABOVE misst nur Endposition, Home-ABOVE min Z; beide beweisen nicht Z vor XY. G30 fehlt in diesem Satzbeleg ebenfalls. Native Fälle/Profil und zeitliche Aussage trennen.",
+      "evidence": [
+        {
+          "layer": "script",
+          "file": "twp_buttons_check.py",
+          "title": "→ Zero from ABOVE Z0 (G53 Z+50): Z unchanged (never lowered), X/Y at work zero",
+          "live": true
+        },
+        {
+          "layer": "script",
+          "file": "twp_buttons_check.py",
+          "title": "→ Home from ABOVE Z0: min Z seen >= +50 (never lowered), X/Y to machine zero",
+          "live": true
+        }
+      ]
+    },
+    {
+      "id": "F-GOTO.S2",
+      "text": "→ Zero nach einem Jog der Drehachse bringt den Tisch auf den Stempelwinkel zurück, X/Y lesen null.",
+      "applies": [
+        "Machine"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Native Prüfdefinition für A=20, Datum und Rückkehr; live markiert. Kein aktueller Lauf behauptet.",
+      "evidence": [
+        {
+          "layer": "script",
+          "file": "twp_buttons_check.py",
+          "title": "→ Zero after jogging A away: table returns to A 20 and X/Y read zero (tip on the datum)",
+          "live": true
+        }
+      ]
+    },
+    {
+      "id": "F-OVERRIDE.S1",
+      "text": "Ein Schieber auf 50 % sendet den Faktor 0,5 für genau seinen Override.",
+      "applies": [
+        "alle"
+      ],
+      "review": "offen_wie_deklariert",
+      "finding": null,
+      "note": "Browser: kein Spec prüft, was die Override-Schieber senden (Codex R250: ein kurzer UI-Test 50 % → scale 0.5)",
+      "evidence": []
+    },
+    {
+      "id": "F-OVERRIDE.S2",
+      "text": "Auf echtem LinuxCNC ändert der Override die Geschwindigkeit; in M600 und Surface-Scan ist er abgeschaltet (M50 P0).",
+      "applies": [
+        "offen"
+      ],
+      "review": "offen_wie_deklariert",
+      "finding": null,
+      "note": "nativ (native Stufe)",
+      "evidence": []
+    },
+    {
+      "id": "F-SPINDLE.S1",
+      "text": "Spindel-Stopp ist im Leerlauf ohne Arm und ohne Referenz offen; im Lauf gehört die Spindel dem Programm, der Grund nennt die wirksamen Stopps.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Offene/geschlossene Stop-Policy und alternative Stopps im Grund geprüft.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_button_gates.py",
+          "title": "test_spindle_stop_at_idle_without_arm_or_homing"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_button_gates.py",
+          "title": "test_spindle_stop_closed_while_the_program_owns_the_spindle"
+        }
+      ]
+    },
+    {
+      "id": "F-SPINDLE.S2",
+      "text": "Die Spindel von Hand vor dem Referenzieren nur, wo die Maschine es deklariert (WEBUI_SPINDLE_BEFORE_HOMING = 1), und nur in MANUAL.",
+      "applies": [
+        "alle"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I09",
+      "note": "Browser setzt spindleManual selbst. Weder INI-Wert noch Backend-Entscheidung geprüft. TestSpindleBeforeHoming + TestIniFacts.test_spindle_switch vorhanden.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "setup-gates.spec.ts",
+          "title": "the manual spindle unhomed where the machine declares it, MANUAL only (Q1)"
+        }
+      ]
+    },
+    {
+      "id": "F-COOLANT.S1",
+      "text": "Flood und Mist senden ihr Ein und Aus, und die Anzeige folgt dem gemeldeten Zustand.",
+      "applies": [
+        "alle"
+      ],
+      "review": "offen_wie_deklariert",
+      "finding": null,
+      "note": "Browser: kein Spec löst flood_on/off oder mist_on/off aus",
+      "evidence": []
+    },
+    {
+      "id": "F-COOLANT.S2",
+      "text": "Auf echtem LinuxCNC schalten Flood und Mist ihre HAL-Ausgänge.",
+      "applies": [
+        "offen"
+      ],
+      "review": "offen_wie_deklariert",
+      "finding": null,
+      "note": "nativ (native Stufe)",
+      "evidence": []
+    },
+    {
+      "id": "F-TOUCHOFF.S1",
+      "text": "Machine: lineare Achsen schreiben in G54–G58, Drehachsen nur in G54; die Hilfszeilen G59–G59.3 sind gesperrt.",
+      "applies": [
+        "Machine"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I08",
+      "note": "G59..G59.3 sind nur auf TWP-Maschinen reserviert. Plain/Trivkins und Nicht-TWP lassen lineares Touch-off dort zu. Die Belege prüfen die Route, keine ausgeführte Offset-Schreibung.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_command_policy.py",
+          "title": "test_identity_linear_into_operator_fixtures"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_command_policy.py",
+          "title": "test_rotary_identity_g54_only"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_command_policy.py",
+          "title": "test_identity_reserved_rows_refused"
+        }
+      ]
+    },
+    {
+      "id": "F-TOUCHOFF.S2",
+      "text": "TCP: Antippen nur bei Tisch in Nulllage (A = 0); geneigt abgelehnt, Hilfszeilen gesperrt.",
+      "applies": [
+        "TCP"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I08",
+      "note": "Die Reservierung gehört zur TWP-Fähigkeit, nicht zum Rahmen TCP allein. Alle drei Belege verwenden die TWP-Fixture.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_command_policy.py",
+          "title": "test_tcp_linear_at_datum_allowed"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_command_policy.py",
+          "title": "test_tcp_tilted_table_refused"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_command_policy.py",
+          "title": "test_tcp_reserved_rows_refused"
+        }
+      ]
+    },
+    {
+      "id": "F-TOUCHOFF.S3",
+      "text": "Plane: lineare Achsen gehen über G59 und das Remap in G54, nur mit aktiver Ebene; Drehachsen gesperrt.",
+      "applies": [
+        "Plane"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I09",
+      "note": "Policy liefert plane/mdi, Browser prüft offene/geschlossene Controls. Der G54-Wert nach dem Remap wird nicht beobachtet. Route von tatsächlichem Schreiben trennen.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_command_policy.py",
+          "title": "test_plane_mode_linear_routes_to_remap"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_command_policy.py",
+          "title": "test_plane_mode_needs_active_plane_and_g59"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_command_policy.py",
+          "title": "test_plane_mode_rotary_touchoff_refused"
+        },
+        {
+          "layer": "browser",
+          "file": "touchoff.spec.ts",
+          "title": "Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero XYZ stays open"
+        }
+      ]
+    },
+    {
+      "id": "F-WCS.S1",
+      "text": "Unbekannt ist nie null: die Zusammenfassung nennt, was unbekannt ist, und sagt „none“ nur, wenn alles bekannt ist.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Browser prüft bekannte Null, unbekanntes Enable/Offset und G52/G92.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "offsets.spec.ts",
+          "title": "unknown is never zero: the summary names what is unknown, and says 'none' only when all is known"
+        }
+      ]
+    },
+    {
+      "id": "F-WCS.S2",
+      "text": "Ein Nullpunkt wird bei aktiver Flächenkompensation nicht geschrieben.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Policy-Verweigerung set_wcs bei eoffset; als Zulassungsregel zu lesen, kein nativer Schreibtest.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_command_policy.py",
+          "title": "test_touchoff_blocked_with_eoffset"
+        }
+      ]
+    },
+    {
+      "id": "F-WCS.S3",
+      "text": "Die aktive Zeile ist benannt, nicht nur gefärbt; ein Klick auf eine Zeile wählt sie für Löschen und wechselt nie das System.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "UI-aktive Zeile, Auswahl und keine gesendete WCS-Umschaltung geprüft.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "offsets.spec.ts",
+          "title": "the active fixture is named, not only tinted; a row click selects for Clear and never switches the WCS"
+        }
+      ]
+    },
+    {
+      "id": "F-KINS.S1",
+      "text": "Die Kinematik-Auswahl zeigt den Rahmen, den der gemeldete Typ bedeutet, und sendet Rahmen.",
+      "applies": [
+        "Machine",
+        "TCP",
+        "Plane"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Frame/Raw-Type-Interpretation und ausgehender semantischer Frame geprüft.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "touchoff.spec.ts",
+          "title": "kinematics selector shows the FRAME the raw type means, and emits frames"
+        }
+      ]
+    },
+    {
+      "id": "F-TWP.S1",
+      "text": "Eine Ebene wird nicht erfasst, solange schon eine definiert ist; auf einer umschaltbaren Maschine ohne TWP gibt es kein Erfassen.",
+      "applies": [
+        "Plane"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I08",
+      "note": "applies=Plane passt nicht zu den beiden Belegen: Capture wird in der Machine-Fixture kins_type=0 geprüft. Capture aus TCP ist ebenfalls ein definierter Fall.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_command_policy.py",
+          "title": "test_refuses_plane_already_defined"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_command_policy.py",
+          "title": "test_switchable_non_twp_machine_cannot_capture"
+        }
+      ]
+    },
+    {
+      "id": "F-TWP.S2",
+      "text": "Plane läuft nur mit seiner Ebene und G59.",
+      "applies": [
+        "Plane"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I09",
+      "note": "Fehlende aktive Ebene und falsches G54 werden im Negativfall zusammen gesetzt. Entfernte G59-Sperre: beide verlinkten Tests grün, vorhandener isolierter G54-Test rot.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_command_policy.py",
+          "title": "test_plane_kins_with_its_plane_and_g59_runs"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_command_policy.py",
+          "title": "test_plane_kins_without_a_plane_refuses"
+        }
+      ]
+    },
+    {
+      "id": "F-LOAD.S1",
+      "text": "Ein Programm lädt in E-Stop, ausgeschaltet und unreferenziert: nur Arm und Leerlauf zählen.",
+      "applies": [
+        "alle"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I09",
+      "note": "Browser belegt den Sendeweg bei gesetztem programLoad; Arm/Idle werden nicht als Ablehnungen getestet. TestProgramLoad in test_button_gates_d.py ergänzt genau diese Gegenfälle.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "setup-gates.spec.ts",
+          "title": "a program loads in E-Stop, off and unhomed: programLoad, no power or homing (BG-03)"
+        }
+      ]
+    },
+    {
+      "id": "F-UPLOAD.S1",
+      "text": "Ein Upload ersetzt ein vorhandenes Programm nie ohne ausdrückliches Ersetzen (409); das Original bleibt unberührt; mit Ersetzen wird es ersetzt.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Handler, Konflikt und echte temporäre Datei vor/nach Upload geprüft.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_upload_conflict.py",
+          "title": "test_same_name_without_flag_is_409_and_original_untouched"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_upload_conflict.py",
+          "title": "test_same_name_with_flag_replaces"
+        }
+      ]
+    },
+    {
+      "id": "F-UPLOAD.S2",
+      "text": "Ein nicht freigegebener Schreiber lädt nichts hoch; geprüft im Moment des Veröffentlichens.",
+      "applies": [
+        "alle"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I09",
+      "note": "Disarm ist im verlinkten Test schon vor dem Upload gesetzt. Der vorhandene test_a_disarm_while_the_body_arrives_refuses_at_the_publish trägt den Commit-Zeitpunkt.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_button_gates_b.py",
+          "title": "test_a_disarmed_writer_uploads_nothing"
+        }
+      ]
+    },
+    {
+      "id": "F-EDIT.S1",
+      "text": "Der Editor bleibt an die Datei gebunden, auf der er geöffnet wurde: eine Änderung von außen zeigt den Konflikt, Speichern schreibt nur diese Datei.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Browser-Sendeadresse/Buffer-Konflikt A gegen B, keine ungewollte Neuladung geprüft.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "editor-guards.spec.ts",
+          "title": "external program change keeps buffer A, shows the conflict, saves A only"
+        }
+      ]
+    },
+    {
+      "id": "F-EDIT.S2",
+      "text": "Verwerfen schließt einen sauberen Editor sofort, einen geänderten erst nach Rückfrage; „Weiter bearbeiten“ behält die Änderung.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Clean/dirty, Rückfrage und erhaltener Entwurf geprüft.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "editor-guards.spec.ts",
+          "title": "discard: clean closes at once, dirty asks and Keep editing keeps the edit"
+        }
+      ]
+    },
+    {
+      "id": "F-RUN.S1",
+      "text": "Pause wirkt ohne Arm auf ein laufendes Programm; Fortsetzen braucht Arm.",
+      "applies": [
+        "alle"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I09",
+      "note": "Verlinkt sind nur Policy-Flags; vorhandene Handler-Tests prüfen AUTO_PAUSE ohne Arm und kein AUTO-Aufruf bei verweigertem Resume.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_button_gates.py",
+          "title": "test_pause_of_a_running_sequence_without_arm"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_button_gates.py",
+          "title": "test_resume_still_needs_arm"
+        }
+      ]
+    },
+    {
+      "id": "F-RUN.S2",
+      "text": "Start über die Tastatur wartet auf den Programmtext wie der Knopf: eine Zulassung, nur die Geste unterscheidet sich.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Browser-Space und Start-Gate während zurückgehaltenem Programmtext; positiver Kontrollfall.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "setup-gates.spec.ts",
+          "title": "Start by the shortcut waits for the program text like the button (one admission, BG-10)"
+        }
+      ]
+    },
+    {
+      "id": "F-RUN.S3",
+      "text": "Start, Einzelschritt und Fortsetzen lösen nur nach vollständigem Halten aus, ein Tippen sagt warum; Pause bleibt ein Tippen.",
+      "applies": [
+        "alle"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I08",
+      "note": "Halten beschreibt die Schaltflächen, nicht sämtliche Auslösewege: F-RUN.S2 startet per Space. Bedienelement/Geste nennen.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "run-hold.spec.ts",
+          "title": "Start, Step and Resume fire on a complete hold only — a tap says why; Pause stays a tap"
+        }
+      ]
+    },
+    {
+      "id": "F-RUN.S4",
+      "text": "Eine neue Revision desselben Programms bricht ein laufendes Halten ab; solange ihr Text lädt, startet ein Halten nichts.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Mid-hold Revision für Start/Step/Resume geprüft. Weiteres Halten während Textladung wird zusätzlich an Start geprüft, trotz weiter gefasstem Testtitel.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "run-hold.spec.ts",
+          "title": "a new revision of the same program cancels a Start, Step or Resume hold — at its arrival, the text still loading"
+        },
+        {
+          "layer": "browser",
+          "file": "run-hold.spec.ts",
+          "title": "while a revision's text is still loading, Start and Step wait — a hold there runs nothing"
+        }
+      ]
+    },
+    {
+      "id": "F-RFL.S1",
+      "text": "Start ab Zeile ist EIN auto_run, gebunden an das gezeigte Programm, seine Version und die Zeile; die Aktion im Dialog ist ein Halten.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Browser prüft genau einen auto_run mit Zeile/Datei/Version/Source und Haltegeste.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "run-hold.spec.ts",
+          "title": "Run from line: Start only opens the dialog on a tap; the dialog's action is a hold bound to the program and the line"
+        },
+        {
+          "layer": "browser",
+          "file": "run-hold.spec.ts",
+          "title": "Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values and its program — nothing waits in the browser (Codex R16 XZ-07)"
+        }
+      ]
+    },
+    {
+      "id": "F-RFL.S2",
+      "text": "Der sichere Z-Schritt vor dem Start hebt Z von unten auf Maschinen-Oberkante und senkt es nie; liegt Z schon oben, entfällt er.",
+      "applies": [
+        "Machine"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Gateway-Befehlsfolge mit vorgegebenem Fake-STAT, keine gemessene Z-Bewegung. Entsprechend als Befehlsfolge benennen; native Wirkung bereits S3 offen.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_rfl_guard.py",
+          "title": "test_safe_z_reached_from_below_starts"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_rfl_guard.py",
+          "title": "test_safe_z_above_zero_skips_mdi"
+        }
+      ]
+    },
+    {
+      "id": "F-RFL.S3",
+      "text": "Auf echtem LinuxCNC startet der Lauf ab der gewählten Zeile mit dem richtigen Werkzeug, Spindel und Startpunkt.",
+      "applies": [
+        "offen"
+      ],
+      "review": "offen_wie_deklariert",
+      "finding": null,
+      "note": "nativ: ein Testprogramm ab Zeile mit Vormessung (native Stufe)",
+      "evidence": []
+    },
+    {
+      "id": "F-OPTSTOP.S1",
+      "text": "Satz ausblenden und optionaler Halt senden ihren Schalter, und die Anzeige folgt dem gemeldeten Zustand.",
+      "applies": [
+        "alle"
+      ],
+      "review": "offen_wie_deklariert",
+      "finding": null,
+      "note": "Browser: kein Spec löst set_block_delete oder set_optional_stop aus",
+      "evidence": []
+    },
+    {
+      "id": "F-MDI.S1",
+      "text": "MDI wird abgelehnt, solange ein Programm läuft; ein zu langer Befehl wird abgelehnt, nicht abgeschnitten.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Dispatcher verweigert im Lauf; Payloadvalidator verweigert Überlänge statt Kürzung.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_command_dispatch.py",
+          "title": "test_mdi_denied_while_running"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_command_policy.py",
+          "title": "test_mdi_length_rejected_not_truncated"
+        }
+      ]
+    },
+    {
+      "id": "F-TOOLIMPORT.S1",
+      "text": "Vorhandene Werkzeuge werden standardmäßig nur in den Metadaten aufgefrischt; die gemessene Länge bleibt.",
+      "applies": [
+        "alle"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I09",
+      "note": "Browser interceptet /refresh und prüft UI-Text keep Z; realer Erhalt der Tabelle nicht dort geprüft. Vorhanden: test_tool_refresh.py::test_real_preview_and_refresh_preserve_exact_table_bytes.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "tool-import.spec.ts",
+          "title": "existing tools default to reviewed metadata refresh, not full replacement"
+        }
+      ]
+    },
+    {
+      "id": "F-TOOLIMPORT.S2",
+      "text": "Vollständiges Ersetzen erfordert die ausdrückliche Wahl dieser Art und zeigt die Längen, die ersetzt werden; eine veraltete Prüfung fällt nie auf Ersetzen zurück.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "UI-Artwahl/Bestätigung, Längenhinweis und kein Ersatz-Fallback bei 409 geprüft.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "tool-import.spec.ts",
+          "title": "full replacement requires selecting that mode and shows length replacement"
+        },
+        {
+          "layer": "browser",
+          "file": "tool-import.spec.ts",
+          "title": "stale review stays visible as an error and never falls back to replacement"
+        }
+      ]
+    },
+    {
+      "id": "F-TOOLIMPORT.S3",
+      "text": "Die FreeCAD-Vorschau behält gemessene Offsets, zeigt eine eigene Form und erklärt neue Längen.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Ausdrücklich Vorschau: vorhandene Werte/Shape/Darstellung und Refresh-Sendeweg mit Mock geprüft.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "freecad-import.spec.ts",
+          "title": "FreeCAD preview retains measured offsets, renders a custom shape, and explains new lengths"
+        }
+      ]
+    },
+    {
+      "id": "F-TOOLIMPORT.S4",
+      "text": "Ein Import schreibt die Tabelle nicht, solange ein Werkzeugwechsel angefordert ist (409), und nicht für einen nicht freigegebenen Schreiber.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Fake-Gateway-Persistenz verweigert Pending-Toolchange und disarmten Schreiber.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_button_gates_b.py",
+          "title": "test_a_pending_tool_change_replaces_nothing"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_button_gates_b.py",
+          "title": "test_a_disarmed_writer_replaces_nothing"
+        }
+      ]
+    },
+    {
+      "id": "F-TOOLCHANGE.S1",
+      "text": "Bestätigen ist nur offen für einen freigegebenen Client mit einer offenen Anforderung; ohne Anforderung mit dem Grund „No tool change pending“.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Bestätigungs-Policy: offene Anfrage, bekannt false/unknown, Arm + Grund geprüft.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_button_gates.py",
+          "title": "test_open_for_an_armed_client_with_a_pending_request"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_button_gates.py",
+          "title": "test_closed_without_a_request"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_button_gates.py",
+          "title": "test_closed_disarmed"
+        }
+      ]
+    },
+    {
+      "id": "F-TOOLCHANGE.S2",
+      "text": "Auf echtem LinuxCNC wartet M6 bis zur ausdrücklichen Bestätigung und läuft dann mit dem neuen Werkzeug weiter.",
+      "applies": [
+        "offen"
+      ],
+      "review": "offen_wie_deklariert",
+      "finding": null,
+      "note": "nativ: ohne automatische Bestätigung (FI265-04), native Stufe",
+      "evidence": []
+    },
+    {
+      "id": "F-TOOLMEASURE.S1",
+      "text": "Direkte Messung: Messen sendet EIN mdi mit den Toolsetter-Werten in vars (#3004–#3007, #3009, #3010, #3013, #3100–#3115).",
+      "applies": [
+        "alle"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I09",
+      "note": "Die genaue Liste aller 23 vars ist im Browser nicht asserted; toMatchObject prüft nur fünf Werte. Auf geprüfte Sendefelder begrenzen oder vollständige Zuordnung binden.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "toolsetter-setup.spec.ts",
+          "title": "Measure Current is ONE command: the values ride the mdi"
+        }
+      ]
+    },
+    {
+      "id": "F-TOOLMEASURE.S2",
+      "text": "Vormessung beim Start ab Zeile: EIN auto_run mit pre_tool und probe_vars aus derselben Abbildung.",
+      "applies": [
+        "alle"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I09",
+      "note": "Browser belegt pre_tool und exemplarische probe_vars, nicht Gleichheit mit der vollständigen gemeinsamen Abbildung.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "run-hold.spec.ts",
+          "title": "Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values"
+        }
+      ]
+    },
+    {
+      "id": "F-TOOLMEASURE.S3",
+      "text": "Ohne eingerichteten Toolsetter (Sektion vom Server bestätigt) bleiben Messen und Entladen aus — mit Grund.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Serversektion fehlt/unbestätigt: UI-Aktionen gesperrt, nichts gesendet.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "toolsetter-setup.spec.ts",
+          "title": "without the server's settings, and without a saved section, Measure Current and Unload (M600) stay off"
+        }
+      ]
+    },
+    {
+      "id": "F-TOOLMEASURE.S4",
+      "text": "Die Var-Nummern sind die, die tool_touch_off.ngc liest.",
+      "applies": [
+        "alle"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I09",
+      "note": "Unit prüft feste Nummern/23 Keys; liest tool_touch_off.ngc nicht. Deshalb ist die Gleichheit mit dem Empfänger noch nicht belegt.",
+      "evidence": [
+        {
+          "layer": "unit",
+          "file": "toolsetterSetup.test.ts",
+          "title": "writes the var numbers tool_touch_off.ngc reads"
+        }
+      ]
+    },
+    {
+      "id": "F-TOOLMEASURE.S5",
+      "text": "Auf echtem LinuxCNC landet die gemessene Länge in der Werkzeugtabelle und im G43-Offset.",
+      "applies": [
+        "offen"
+      ],
+      "review": "offen_wie_deklariert",
+      "finding": null,
+      "note": "nativer Lauf offen (nach Schritt 7)",
+      "evidence": []
+    },
+    {
+      "id": "F-TOOLSETTER.S1",
+      "text": "Die Einrichtung zählt erst, wenn der Server die Sektion bestätigt hat; eine Teil-Sektion nennt, was fehlt, und eine Änderung speichert nur dieses Feld.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Bestätigung, Teilsektion und Payload mit vorhandenem + neuem Feld geprüft. Nur dieses Feld meint keine zusätzlich erfundenen Defaults, keine Ein-Key-Payload.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "toolsetter-setup.spec.ts",
+          "title": "a save the server never confirmed is no setup; its confirmation is"
+        },
+        {
+          "layer": "browser",
+          "file": "toolsetter-setup.spec.ts",
+          "title": "a partial section: the form names what is missing, shows unset fields empty, and a change saves only that field"
+        }
+      ]
+    },
+    {
+      "id": "F-G30.S1",
+      "text": "Speichern prüft das Fenster, bevor sich etwas bewegt, und verlangt die Basis, auf der der Entwurf beruht.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Fenster-/Basis-Verweigerungen vor CMD-Aufrufen unter Fake-Binding.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_g30.py",
+          "title": "test_out_of_the_window_is_refused_before_anything_moves"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_g30.py",
+          "title": "test_a_write_without_its_basis_is_refused"
+        }
+      ]
+    },
+    {
+      "id": "F-G30.S2",
+      "text": "Hat der Interpreter G30 inzwischen geändert, ist das ein Konflikt („G30 changed meanwhile — reload“); ein anders zurückgelesener Wert ist nicht bestätigt.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Interpreter-Konflikt und abweichendes Rücklesen unter Fake-Binding geprüft.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_g30.py",
+          "title": "test_a_value_the_interpreter_changed_meanwhile_is_a_conflict"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_g30.py",
+          "title": "test_a_value_read_back_differently_is_not_confirmed"
+        }
+      ]
+    },
+    {
+      "id": "F-PROBE.S1",
+      "text": "Ein Antast-Button sendet genau ein mdi mit O<probe_…> CALL und genau den Var-Nummern der Zuordnung; jeder Wert endlich.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Sendeform an je erster Zelle der benannten Formen, endliche Werte/Keymenge. Keine Aussage zu jeder Routine oder richtiger Richtung daraus ableiten.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "probe-click.spec.ts",
+          "title": "${form.sub}: a held probe button sends its routine with the panel's numbers",
+          "instances": [
+            "Outside",
+            "Boss/Pocket",
+            "Ridge/Valley",
+            "Angle",
+            "Calibrate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "F-PROBE.S2",
+      "text": "Jede Var-Nummer, die das Panel und der Toolsetter schreiben, ist in der Var-Datei jedes Beispielprofils deklariert.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Map-Keys in entdeckten Beispiel-var-Dateien, parametrische Instanzen gebunden; Mengenbedingung separat S2b.",
+      "evidence": [
+        {
+          "layer": "unit",
+          "file": "probeVarFiles.test.ts",
+          "title": "${rel} declares every number the probe panel and the toolsetter write",
+          "instances": [
+            "xyz3/sim.var",
+            "xyzabc6/sim.var",
+            "xyzac5/sim.var"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "F-PROBE.S2b",
+      "text": "Mindestens drei Var-Dateien der Beispielprofile werden gefunden (die Bedingung des Deklarationstests).",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Mindestens drei gefundene Dateien geprüft.",
+      "evidence": [
+        {
+          "layer": "unit",
+          "file": "probeVarFiles.test.ts",
+          "title": "are found: one per example profile"
+        }
+      ]
+    },
+    {
+      "id": "F-PROBE.S3",
+      "text": "Auf echtem LinuxCNC setzt ein Z-Antasten G54 Z auf den erwarteten Wert (Platte, Werkzeug, Toleranz je Messgröße).",
+      "applies": [
+        "offen"
+      ],
+      "review": "offen_wie_deklariert",
+      "finding": null,
+      "note": "Schritt 7, der Antast-Live-Check",
+      "evidence": []
+    },
+    {
+      "id": "F-PROBECAL.S1",
+      "text": "Kalibrieren sendet seine Routine mit der Achswahl #3036 und den Zahlen der Kalibrier-Zuordnung.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Calibrate-Instanz zählt #3036 in der Keymenge; kein nativer Kalibriererfolg beansprucht.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "probe-click.spec.ts",
+          "title": "${form.sub}: a held probe button sends its routine with the panel's numbers",
+          "instances": [
+            "Calibrate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "F-SURFACE.S1",
+      "text": "Der Surface-Scan sendet O<surface_scan> CALL mit den Feldern des Panels in vars.",
+      "applies": [
+        "alle"
+      ],
+      "review": "offen_wie_deklariert",
+      "finding": null,
+      "note": "Browser: probe-click deckt die fünf Antastformen, nicht den Scan",
+      "evidence": []
+    },
+    {
+      "id": "F-SURFACE.S2",
+      "text": "Auf echtem LinuxCNC tastet der Scan das Raster ab und liefert die Punkte für die Kompensation.",
+      "applies": [
+        "3axis_xyz"
+      ],
+      "review": "offen_wie_deklariert",
+      "finding": null,
+      "note": "nativ (native Stufe, mit hohem Antastvorschub über die Scan-Variablen)",
+      "evidence": []
+    },
+    {
+      "id": "F-COMP.S1",
+      "text": "„AN“ erscheint nur aus einem gelesenen Pin; ein unbekannter Wert erscheint als unbekannt, nie als AUS.",
+      "applies": [
+        "alle"
+      ],
+      "review": "offen_wie_deklariert",
+      "finding": null,
+      "note": "App.vue macht aus fehlendem eoffset_enabled mit !! ein AUS — das erste Lückenpaket",
+      "evidence": []
+    },
+    {
+      "id": "F-COMP.S2",
+      "text": "Die angezeigte Interpolation ist die, die der Status meldet; eine unbekannte erscheint nie als Cubic.",
+      "applies": [
+        "alle"
+      ],
+      "review": "offen_wie_deklariert",
+      "finding": null,
+      "note": "ProbePanel.vue wählt mit compMethod ?? 2 Cubic — das erste Lückenpaket",
+      "evidence": []
+    },
+    {
+      "id": "F-COMP.S3",
+      "text": "Ein Umschalten, das HAL nicht zustellt, antwortet nicht ok.",
+      "applies": [
+        "alle"
+      ],
+      "review": "offen_wie_deklariert",
+      "finding": null,
+      "note": "gateway.py ignoriert das Ergebnis von _hal_send — das erste Lückenpaket",
+      "evidence": []
+    },
+    {
+      "id": "F-COMP.S4",
+      "text": "Auf echtem LinuxCNC wirkt AN/AUS, und die drei Methoden unterscheiden sich an bekannten Punkten einer nicht ebenen Fläche.",
+      "applies": [
+        "3axis_xyz"
+      ],
+      "review": "offen_wie_deklariert",
+      "finding": null,
+      "note": "nativer Lauf offen",
+      "evidence": []
+    },
+    {
+      "id": "F-MACROFILES.S1",
+      "text": "Speichern ist an die gelesene Revision gebunden; ein Konflikt oder eine Ablehnung zeigt ihren Grund, der Entwurf bleibt.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Browser prüft Revision in PUT, Konflikt und Buffererhalt mit Folder-Mock.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "macros.spec.ts",
+          "title": "Save's refusal: a conflict rebases Keep editing on the gateway's revision"
+        }
+      ]
+    },
+    {
+      "id": "F-MACROFILES.S2",
+      "text": "Umbenennen verschiebt die Datei und ihren Platz auf der Leiste in einem Schritt.",
+      "applies": [
+        "alle"
+      ],
+      "review": "nacharbeit",
+      "finding": "FI-I09",
+      "note": "Browser arbeitet mit Folder-Mock. UI-Rename/Leistenplatz belegt; reale Datei-/Settings-Atomizität in einem Schritt nicht durch diesen Test.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "macros.spec.ts",
+          "title": "a rename moves the file and its place on the bar"
+        }
+      ]
+    },
+    {
+      "id": "F-MACRORUN.S1",
+      "text": "Ein Makro auf der Leiste läuft auf ein Halten, gebunden an seine Revision; ein ungespeicherter Entwurf sperrt genau dieses Makro.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Browser-Hold + Revision und genau betroffener Entwurf geprüft.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "macros.spec.ts",
+          "title": "the Macros tab lists the folder; a file put on the bar runs on a hold bound to its revision"
+        },
+        {
+          "layer": "browser",
+          "file": "macros.spec.ts",
+          "title": "an unsaved draft blocks the run of THAT macro on the bar and in the tab; Save restores it at the new revision"
+        }
+      ]
+    },
+    {
+      "id": "F-MACRORUN.S2",
+      "text": "Ein Makro mit Parametern öffnet seinen Dialog mit den Feldern des Kopfs; Ausführen ist ein Halten und sendet Zahlen.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "Browser-Dialogfeld/Hold/ausgehende Zahlen, kein natives Makroresultat beansprucht.",
+      "evidence": [
+        {
+          "layer": "browser",
+          "file": "macros.spec.ts",
+          "title": "a macro file with parameters opens its dialog with the header's fields; Execute holds and sends numbers"
+        }
+      ]
+    },
+    {
+      "id": "F-SETTINGS.S1",
+      "text": "Eine geschützte Sektion speichert nur ein freigegebener Schreiber (403 sonst); Anzeige-Sektionen brauchen kein Arm.",
+      "applies": [
+        "alle"
+      ],
+      "review": "innerhalb_der_genannten_pruefschicht",
+      "finding": null,
+      "note": "HTTP-Handler prüft Viewer ohne Arm und geschützte Sektion ohne/mit armed conn_key.",
+      "evidence": [
+        {
+          "layer": "gateway",
+          "file": "test_button_gates_b.py",
+          "title": "test_a_protected_section_needs_an_armed_writer"
+        },
+        {
+          "layer": "gateway",
+          "file": "test_button_gates_b.py",
+          "title": "test_a_display_section_needs_no_arm"
+        }
+      ]
+    },
+    {
+      "id": "SYS-CONN.S1",
+      "text": "Mehrere Clients gleichzeitig: Nach dem Laden eines Programms holen mehrere Clients die Vorschau, und der Herzschlag-Abstand des Gateways bleibt sicher unter der Grenze von 500 ms.",
+      "applies": [
+        "alle"
+      ],
+      "review": "offen_wie_deklariert",
+      "finding": null,
+      "note": "neues perf_matrix-Szenario mit Protokoll-Clients statt Browsern (deren Simulation läuft auf den Client-Geräten, nicht im Gateway); native Stufe. Vorhanden: fanout (8 Clients), reconnect_storm (12 Verbindungen), preview_publish (ein Client) — Operator 2026-11-04",
+      "evidence": []
+    }
+  ],
+  "functions_without_statements": [
+    {
+      "id": "F-SHUTDOWN",
+      "name": "Herunterfahren"
+    },
+    {
+      "id": "F-SIMTRIP",
+      "name": "Antast-Auslösung simulieren (nur Sim)"
+    },
+    {
+      "id": "F-PROGDOWNLOAD",
+      "name": "Programm herunterladen"
+    },
+    {
+      "id": "F-GCODEVIEW",
+      "name": "G-Code ansehen, aktive Codes, Codewort-Referenz, Statistik"
+    },
+    {
+      "id": "F-PREVIEW",
+      "name": "Vorschau des Werkzeugwegs"
+    },
+    {
+      "id": "F-TOOLTABLE",
+      "name": "Werkzeugtabelle ansehen, suchen, sortieren"
+    },
+    {
+      "id": "F-TOOLEDIT",
+      "name": "Werkzeug anlegen, bearbeiten, löschen, umnummerieren"
+    },
+    {
+      "id": "F-TOOLDOWNLOAD",
+      "name": "Werkzeugtabelle herunterladen"
+    },
+    {
+      "id": "F-MACROBAR",
+      "name": "Makro-Leiste einrichten"
+    },
+    {
+      "id": "F-SIM",
+      "name": "Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab"
+    },
+    {
+      "id": "F-VIEW",
+      "name": "3D-Ansicht bedienen: Ansichten, Würfel, Spur löschen, Hinweise"
+    },
+    {
+      "id": "F-VIEWSET",
+      "name": "3D-Ansicht einstellen: Ebenen, Farben, Projektion, Verfolgung, HUD"
+    },
+    {
+      "id": "F-CAMERA",
+      "name": "Kamerabild (Bild im Bild) und Überlagerung"
+    },
+    {
+      "id": "F-DISPLAY",
+      "name": "Darstellung: Farbschema, Vollbild, Bildschirm wach halten"
+    },
+    {
+      "id": "F-MESSAGES",
+      "name": "Meldungen: Nachrichtenzentrale, Filter, Kopieren, Löschen"
+    },
+    {
+      "id": "F-TABS",
+      "name": "Navigation: Tabs und Seitenleiste"
+    },
+    {
+      "id": "F-DIAG",
+      "name": "Diagnose: HAL-Anzeige, Timing, Telemetrie"
+    },
+    {
+      "id": "F-KEYBOARD",
+      "name": "Tastatur-Bedienung und Tastenbelegung"
+    },
+    {
+      "id": "F-GAMEPAD",
+      "name": "Gamepad-Bedienung, Belegung und Einrichtungs-Assistent"
+    },
+    {
+      "id": "F-INPUTHELP",
+      "name": "Eingabehilfen: Zahlen- und Text-Tastatur am Bildschirm"
+    },
+    {
+      "id": "SYS-CONTROLS",
+      "name": "Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe"
+    },
+    {
+      "id": "SYS-STATUS",
+      "name": "Statusübertragung (Rahmen und gemeinsame Felder)"
+    },
+    {
+      "id": "SYS-CONFIG",
+      "name": "Maschinenkonfiguration lesen: Achsen, Gelenke, Grenzen, Kinematik, Remaps, Profile"
+    }
+  ],
+  "missing_machine_statements": {
+    "F-SHUTDOWN": "Admission + request_process_shutdown; existing test_button_gates_c.py",
+    "F-SIMTRIP": "Sim-only visibility/admission, commanded pulse, failure reporting; native simulated contact separately open",
+    "F-TOOLEDIT": "Create/edit/delete/renumber + preservation of unrelated values + reload; existing test_tool_files/tool_store/button_gates_b",
+    "F-HOME": "Home start/which joints + handling active homing; native direction/sequence gap",
+    "F-SPINDLE": "FWD/REV/RPM send/dispatch, native result gap",
+    "F-TWP": "Capture/Orient/Clear data or effect, beyond rejection only",
+    "F-LOAD": "Reload/unload, not just load",
+    "F-TOOLMEASURE": "Unload is a distinct action, not just its setup gate"
+  },
+  "disconnect": {
+    "settled": "No global CMD.abort from individual client heartbeat/disconnect; attempted stop of globally booked jogs, no per-client ownership. Last client grace and HAL safety are separate.",
+    "gap": "Actual WS cleanup/heartbeat to jog stop/no abort integration, including another connected client; existing tests only separately cover cleanup and stop helper.",
+    "doc_drift": "CLAUDE.md lines 98/99 incorrectly promise abort.",
+    "operator_question": "None to record existing rule and doc drift. A proposed policy change would require operator choice."
+  }
+}

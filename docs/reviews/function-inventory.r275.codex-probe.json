@@ -1,0 +1,96 @@
+{
+  "target": "151d048e",
+  "policy_sha256_before": "77a54802ab358214a294cb5f38d5da19d62624c4d5bff7e9c373ec896fcaacc3",
+  "baseline": {
+    "tests": [
+      "test_command_policy"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": "........................................................................................................................................\n----------------------------------------------------------------------\nRan 136 tests in 0.410s\n\nOK\n"
+  },
+  "missing_g59_guard_cited_tests": {
+    "tests": [
+      "test_command_policy.TestKinsRunnable.test_plane_kins_with_its_plane_and_g59_runs",
+      "test_command_policy.TestKinsRunnable.test_plane_kins_without_a_plane_refuses"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": "..\n----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK\n"
+  },
+  "missing_g59_guard_unlinked_countercase": {
+    "tests": [
+      "test_command_policy.TestKinsRunnable.test_plane_kins_with_g54_selected_refuses_the_post_m2_state"
+    ],
+    "exit": 1,
+    "stdout": "",
+    "stderr": "E\n======================================================================\nERROR: test_plane_kins_with_g54_selected_refuses_the_post_m2_state (test_command_policy.TestKinsRunnable.test_plane_kins_with_g54_selected_refuses_the_post_m2_state)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/codex-r275/lcnc-gateway/test_command_policy.py\", line 935, in test_plane_kins_with_g54_selected_refuses_the_post_m2_state\n    self.assertIn(\"without G59\", r)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.13/unittest/case.py\", line 1171, in assertIn\n    if member not in container:\n       ^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: argument of type 'NoneType' is not iterable\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (errors=1)\n"
+  },
+  "policy_sha256_after": "77a54802ab358214a294cb5f38d5da19d62624c4d5bff7e9c373ec896fcaacc3",
+  "machine_frame_reserved_fixtures": [
+    {
+      "twp_capable": false,
+      "fixture": 6,
+      "route": [
+        "mdi",
+        null
+      ]
+    },
+    {
+      "twp_capable": false,
+      "fixture": 7,
+      "route": [
+        "mdi",
+        null
+      ]
+    },
+    {
+      "twp_capable": false,
+      "fixture": 8,
+      "route": [
+        "mdi",
+        null
+      ]
+    },
+    {
+      "twp_capable": false,
+      "fixture": 9,
+      "route": [
+        "mdi",
+        null
+      ]
+    },
+    {
+      "twp_capable": true,
+      "fixture": 6,
+      "route": [
+        null,
+        "G59–G59.3 are reserved — touch off in G54–G58"
+      ]
+    },
+    {
+      "twp_capable": true,
+      "fixture": 7,
+      "route": [
+        null,
+        "G59–G59.3 are reserved — touch off in G54–G58"
+      ]
+    },
+    {
+      "twp_capable": true,
+      "fixture": 8,
+      "route": [
+        null,
+        "G59–G59.3 are reserved — touch off in G54–G58"
+      ]
+    },
+    {
+      "twp_capable": true,
+      "fixture": 9,
+      "route": [
+        null,
+        "G59–G59.3 are reserved — touch off in G54–G58"
+      ]
+    }
+  ]
+}
