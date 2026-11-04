@@ -1,0 +1,4 @@
+FI-I13 M01 always on, /BD always off: red (as required):     Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+FI-I14 Rev always 1000: red (as required):     Error: spindle_reverse
+App.vue restored byte for byte
+rebuilt from the restored source

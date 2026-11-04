@@ -102,6 +102,18 @@ test("M01 and /BD send the opposite of the reported switch; the switch shows the
   await ctl({ op: "status_delta", data: { optional_stop: true, block_delete: false } });
   await expect(m01).toBeChecked();
   await expect(bd).not.toBeChecked();
+  // and back: each switch in its other direction, against the new report (Codex R278 FI-I13)
+  await ctl({ op: "clearCmds" });
+  await m01.click();
+  await expect.poll(sent).toEqual([{ cmd: "set_optional_stop", value: false }]);
+  await expect(m01, "still on until reported").toBeChecked();
+  await ctl({ op: "clearCmds" });
+  await bd.click();
+  await expect.poll(sent).toEqual([{ cmd: "set_block_delete", value: true }]);
+  await expect(bd, "not on before the status says so").not.toBeChecked();
+  await ctl({ op: "status_delta", data: { optional_stop: false, block_delete: true } });
+  await expect(m01).not.toBeChecked();
+  await expect(bd).toBeChecked();
 });
 
 test("Fwd and Rev send the preselected speed on a hold — a tap sends nothing", async ({ page }) => {
@@ -114,12 +126,25 @@ test("Fwd and Rev send the preselected speed on a hold — a tap sends nothing",
   await press(page, rev, TAP_MS);
   await page.waitForTimeout(300);
   expect(await sent(), "a tap sends nothing").toEqual([]);
-  await press(page, fwd, HOLD_MS);
-  await expect.poll(sent).toEqual([{ cmd: "spindle_forward", speed: 1000 }]);
-  await ctl({ op: "clearCmds" });
-  await press(page, rev, HOLD_MS);
-  await expect.poll(sent).toEqual([{ cmd: "spindle_reverse", speed: 1000 }]);
+  // each direction sends the field's value, typed on the keypad — not the
+  // start value (Codex R278 FI-I14)
+  for (const [btn, cmd, rpm] of [[fwd, "spindle_forward", "1700"], [rev, "spindle_reverse", "1300"]] as const) {
+    await preselect(page, rpm);
+    await ctl({ op: "clearCmds" });
+    await press(page, btn, HOLD_MS);
+    await expect.poll(sent, cmd).toEqual([{ cmd, speed: Number(rpm) }]);
+  }
 });
+
+/** The RPM preselection through its keypad, as the operator enters it. */
+async function preselect(page: Page, rpm: string) {
+  await strip(page, "spindle").locator("input.spRpmInput").click();
+  const pad = page.locator(".nkStrip");
+  for (const d of rpm) await pad.getByRole("button", { name: d, exact: true }).click();
+  await expect(pad.locator(".nkExpr")).toHaveText(rpm);
+  await pad.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(strip(page, "spindle").locator("input.spRpmInput")).toHaveValue(rpm);
+}
 
 test("± move the preselection while the spindle stands, and send increase / decrease while it turns", async ({ page }) => {
   await open(page, { spindle_direction: 0 });

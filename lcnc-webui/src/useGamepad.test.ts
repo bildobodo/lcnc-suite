@@ -177,7 +177,8 @@ describe("useGamepad button actions (the function inventory's F-GAMEPAD S3)", ()
   }
   const CASES: { action: GamepadAction; open: Record<string, boolean>; want: Out; coolantOn?: boolean }[] = [
     { action: "start", open: { run: true, resume: false }, want: { cmd: "cycle_start", gate: ACTION_GATES.start, how: "fire" } },
-    { action: "start", open: { run: true, resume: true }, want: { cmd: "cycle_resume", gate: ACTION_GATES.resume, how: "fire" } },
+    // a real pause: run is closed (idle needed), resume open — Start resumes (Codex R278 FI-I15)
+    { action: "start", open: { run: false, resume: true }, want: { cmd: "cycle_resume", gate: ACTION_GATES.resume, how: "fire" } },
     { action: "pause", open: { pause: true }, want: { cmd: "cycle_pause", gate: ACTION_GATES.pause, how: "fire" } },
     { action: "resume", open: { resume: true }, want: { cmd: "cycle_resume", gate: ACTION_GATES.resume, how: "fire" } },
     { action: "abort", open: { abort: true }, want: { cmd: "abort", gate: ACTION_GATES.abort, how: "fire" } },
