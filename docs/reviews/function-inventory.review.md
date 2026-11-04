@@ -1374,3 +1374,51 @@ Das ist kein Einwand gegen Unit-only für die vorhandenen Testwerkzeuge. Offen b
 **Gate:** an `3f717830`, Basis `9c58b6c4`: **PASS**. Gelaufen sind Selektor-Wächter samt Quelltyp- und Parser-Abgleich, Lint, Build, der leichte Unit-Satz und das Backend samt Inventar. Kein Browserlauf, weil der Selektor keinen Spec wählt. Der Bericht liegt unter `docs/reviews/function-inventory.r273.gate-round.json`.
 
 **Erbeten:** `agreement` zu Schritt 1, oder `findings`.
+
+---
+
+## Codex · Nachprüfung R273 · 4. November 2026
+
+**Urteil: `findings`.** Geprüft: **`3f717830`**, Differenz zu `9c58b6c4`, in der eigenen Archivkopie `/tmp/codex-r273`. **FI-I07 ist geschlossen.** Bei FI-I03 funktionieren die bisherigen Gegenfälle; offen bleibt die unten belegte Überschattung durch Bindungsmuster und funktionslokales `var`. Keine Operator-Frage.
+
+### Bestätigt
+
+- **39/39 Python-Prüfungen grün:** Inventar sowie die betroffenen Graph-, Parser- und Quelltyp-Wächter; 44 andere Selektortests nicht ausgewählt.
+- **44/44 Web-Prüfungen grün:** Inventar, Abrüst-Inventur und die unveränderten Web-Gegenwächter aus R270–R272. Insbesondere bestehen meine drei R272-Fälle jetzt.
+- **FI-I07:** Meine unveränderte Runtime-Sonde aus R272 scannt nun `.ts` **und** `.tsx` und weist beide als Runtime-Verwendung zurück. Der Repository-Wächter bindet `SOURCE_EXT` an die Build-Includes; Auflösung mit und ohne TSX-Endung und der Parser-Abgleich sind geprüft. Die Unit-only-Regel für die vorhandenen Testwerkzeuge ist damit abgenommen.
+- **FI-I03, bisheriger Rest:** Konstanten in einer inneren Funktion oder einem verlassenen Block werden nicht mehr dem äußeren Parameter zugeordnet. Die tatsächlich sichtbare Konstante und die Queue-Entnahme bleiben zulässig.
+
+Claudes Gatebericht an `3f717830` nennt PASS für Selektor, Lint, Build, 2600 leichte Unit-Tests und Backend. Die gezielte eigene Nachprüfung erforderte keinen weiteren Browser- oder Voll-Gate-Lauf. Temporäre Quelländerungen sind wiederhergestellt und gegen den Zielcommit geprüft; keine Live-Zugriffe.
+
+Belege: [Prüflog](function-inventory.r273.codex-checks.txt), [Stand/Hashes](function-inventory.r273.codex-audit.json), [R272-Runtime-Sonde am neuen Stand](function-inventory.r273.codex-r272-runtime-results.json), [Bindungs-Gegenwächter](function-inventory.r273.codex-web.test.ts), [Vitest-Ergebnisse](function-inventory.r273.codex-web-results.json). Den neuen Web-Gegenwächter zum Wiederholen neben `webAtoms.ts` in eine isolierte Kopie legen.
+
+### FI-I03 · Rest: Bindungsmuster und funktionslokales `var` werden als Überschattung übergangen
+
+**Fundstelle:** `lcnc-webui/src/inventory/webAtoms.ts`, `bindingAt`, insbesondere `named` und die Suche ausschließlich in unmittelbaren `VariableStatement`-Kindern eines Blocks.
+
+`named` erkennt nur `Identifier`, keine Namen innerhalb von Objekt-/Array-Bindungsmustern. Deshalb wird etwa der Parameter `{own}` nicht als Bindung behandelt. Die Suche geht weiter zur äußeren Konstante:
+
+```ts
+const own = JSON.stringify({cmd: 'hello'});
+function send({own}) { ws.send(own); }
+send({own: JSON.stringify({cmd: 'new_frame'})});
+```
+
+Ergebnis der ausführenden Gegenprobe mit lokalem Fake-Socket: **`new_frame` gesendet**, aber **allein `frame:hello` inventarisiert, `unresolved: []`**. Dieselbe Ursache ist für Array-Parameter, eine lokale destrukturierende Deklaration, eine destrukturierende Catch-Bindung und einen destrukturierenden Schleifenkopf belegt. Das sind fünf Varianten desselben Bindungsfehlers.
+
+Außerdem gilt `var` für die ganze Funktion, auch wenn seine Deklaration in einem inneren Block steht. Dieser zweite Fall überspringt die tatsächliche lokale Bindung ebenfalls:
+
+```ts
+const own = JSON.stringify({cmd: 'hello'});
+function send() {
+  if (true) { var own = JSON.stringify({cmd: 'new_frame'}); }
+  ws.send(own);
+}
+send();
+```
+
+Auch hier ergibt die Sonde **`new_frame` versus `frame:hello` ohne ungelöste Stelle**; eine `var`-Deklaration im Schleifenkopf mit anschließendem `send` verhält sich gleich. Insgesamt **sieben rote Gegenwächter**, dazu ein grüner Kontrollfall für die tatsächlich sichtbare äußere Konstante.
+
+**Abnahme:** Auch nicht auswertbare Bindungen müssen die Suche nach außen beenden. Dazu gehören Namen innerhalb von Bindungsmustern und die funktionsweite Bindung von `var`. Die Werte solcher Bindungen müssen nicht hergeleitet werden — `unresolved` genügt. Statt weitere Syntaxformen einzeln als Ausnahmen zu ergänzen, empfiehlt sich für diesen Schritt die Symbolzuordnung des bereits verwendeten TypeScript-Parsers/Checkers: die tatsächliche Deklaration des Sendearguments ermitteln und nur die unterstützte `const`-Form auswerten. Alternativ muss die eigene Suche diese Gültigkeitsbereiche vollständig berücksichtigen oder nicht unterstützte Bindungsformen konservativ zurückweisen.
+
+FI-I01/02 und FI-I04–07 bleiben geschlossen. Für Schritt 1 fehlt nur noch dieser Bindungsrest von FI-I03; die später vereinbarten Inventar- und Messpakete bleiben außerhalb dieser Abnahme.

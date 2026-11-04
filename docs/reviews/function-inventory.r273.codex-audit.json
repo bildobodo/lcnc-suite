@@ -1,0 +1,33 @@
+{
+  "review": "R273",
+  "target": "3f7178304288352eaebfdf6ce8eada5e28a4361f",
+  "live_head": "95f4ab14008104dc5773a73737f8a540e43261ae",
+  "archive": "/tmp/codex-r273",
+  "baseline_python": {
+    "passed": 39,
+    "deselected": 44
+  },
+  "baseline_web": {
+    "passed": 44,
+    "files": 5
+  },
+  "runtime_probe": {
+    "ts_refused": true,
+    "tsx_refused": true
+  },
+  "binding_counterexamples": {
+    "failed": 7,
+    "positive_control_pass": 1
+  },
+  "source_hashes": {
+    "lcnc-webui/src/main.ts": "a4091b73a5ea01f48a56b40f699f1a4f8dac9511c82413cad4476b10822f44c6",
+    "lcnc-webui/src/inventory/webAtoms.ts": "915026428868caf8d99331b02382df8d65d98a1083e3f74e119b1a2cad79eeb5",
+    "scripts/test_select/graph.py": "ca10a0a2f3359ed8efbee92e8a7050ddce898eefaec1233622948473452ef69a",
+    "scripts/test_select/importscan.mjs": "763f6b926c3a168817b01dd4ace1f479babc19ce447fdda3d1d070d492b8d82f",
+    "scripts/test_select/test_selector.py": "c9b37e94f0f952764e99f60a04675e9c545dc7d31dd1c53ebebe8865621e6dd8"
+  },
+  "review_prefix": {
+    "length": 140970,
+    "sha256": "9a582b1fa56205bc09c2d61582b26ec5d7fa536c61252447644cbb069684ecf5"
+  }
+}

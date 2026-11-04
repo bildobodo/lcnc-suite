@@ -1,0 +1,67 @@
+R273; isolated archive 3f717830 under /tmp/codex-r273; no live accesses.
+
+Python: .venv/bin/python -B -m pytest -q -p no:cacheprovider scripts/inventory/test_inventory.py scripts/test_select/test_selector.py -k "inventory or test_only or runtime_walk or edge_pattern or source_type"
+.......................................                                  [100%]
+39 passed, 44 deselected in 1.74s
+
+Web: node node_modules/vitest/vitest.mjs run src/inventory/webAtoms.test.ts src/controlInventory.test.ts src/inventory/r270.codex.test.ts src/inventory/r271.codex.test.ts src/inventory/r272.codex.test.ts --maxWorkers=1
+
+ RUN  v4.1.8 /tmp/codex-r273/lcnc-webui
+
+
+ Test Files  5 passed (5)
+      Tests  44 passed (44)
+   Start at  21:03:03
+   Duration  7.58s (transform 362ms, setup 0ms, import 1.17s, tests 6.14s, environment 0ms)
+
+
+R272 runtime probe unchanged against /tmp/codex-r273: both .ts and .tsx now refused.
+
+New binding checks (intentionally red, same-cause variants):
+
+ RUN  v4.1.8 /tmp/codex-r273/lcnc-webui
+
+ ❯ src/inventory/r273.codex.test.ts (8 tests | 7 failed) 11ms
+   × FI-I03: object_parameter must block the unrelated outer const 6ms
+   × FI-I03: array_parameter must block the unrelated outer const 1ms
+   × FI-I03: local_destructuring must block the unrelated outer const 1ms
+   × FI-I03: catch_destructuring must block the unrelated outer const 1ms
+   × FI-I03: for_destructuring must block the unrelated outer const 1ms
+   × FI-I03: function_scoped_var_in_block must block the unrelated outer const 1ms
+   × FI-I03: function_scoped_var_after_loop must block the unrelated outer const 0ms
+   ✓ sensitivity: the outer const visible through a closure remains readable 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/inventory/r273.codex.test.ts > FI-I03: object_parameter must block the unrelated outer const
+ FAIL  src/inventory/r273.codex.test.ts > FI-I03: array_parameter must block the unrelated outer const
+ FAIL  src/inventory/r273.codex.test.ts > FI-I03: local_destructuring must block the unrelated outer const
+ FAIL  src/inventory/r273.codex.test.ts > FI-I03: catch_destructuring must block the unrelated outer const
+ FAIL  src/inventory/r273.codex.test.ts > FI-I03: for_destructuring must block the unrelated outer const
+ FAIL  src/inventory/r273.codex.test.ts > FI-I03: function_scoped_var_in_block must block the unrelated outer const
+ FAIL  src/inventory/r273.codex.test.ts > FI-I03: function_scoped_var_after_loop must block the unrelated outer const
+AssertionError: {"sent":["new_frame"],"atoms":[{"id":"frame:hello"}],"unresolved":[]}: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/inventory/r273.codex.test.ts:23:69
+     21|   const a = framesAdapter({files: {'wsWorker.ts': code}} as WebSources…
+     22|   expect(a.atoms.some(x => x.id === 'frame:new_frame') || a.unresolved…
+     23|     JSON.stringify({sent, atoms:a.atoms, unresolved:a.unresolved})).to…
+       |                                                                     ^
+     24| });
+     25|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 1 passed (8)
+   Start at  21:03:38
+   Duration  358ms (transform 123ms, setup 0ms, import 286ms, tests 11ms, environment 0ms)
+
+JSON report written to /tmp/codex-r273/r273.web-results.json
