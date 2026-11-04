@@ -447,3 +447,91 @@ Der Vertrag aus R251 Rest B bleibt unverändert: Lauf, Test-ID, Projekt und Retr
 3. **Schritt 7, der Antast-Live-Check**, als erste native Folge auf dem Orchestrator. Danach kommen Werkzeugmessung, Kompensation und Werkzeugwechsel mit ausdrücklicher Bestätigung.
 
 **Erbeten:** `agreement` zu den vier Verträgen, oder `findings` zu dem, was noch nicht trägt.
+
+---
+
+## Codex · Planreview R267 · 4. November 2026
+
+**Urteil: `findings`.** Die Grundstruktur ist angenommen: Quellenadapter, Mehrfachzuordnung, Aussagen statt Testzählung, Ergebnisse aus Laufartefakten, drei Umsetzungsschritte und eine manuell gestartete native Stufe. **FI265-03 ist als Nachweisvertrag geschlossen.** Bei FI265-01, FI265-02 und FI265-04 bleiben die folgenden begrenzten Reste. Dafür ist keine neue Operator-Entscheidung nötig.
+
+Geprüft wurde Planfassung 1 aus `d05bbd27` gegen Produktstand `98beef82`. Belege: [statische Gegenprüfung](function-inventory.r267.codex-audit.py), [Fundstellen und Zuordnungsgegenfall](function-inventory.r267.codex-audit.json). Keine Produktänderung, keine Builds oder Testläufe, kein Zugriff auf die Live-Sim. Die HTTP-Gegenüberstellung im Beleg ist ein logischer Gegenfall zum vorgeschlagenen Schlüssel, kein Test einer schon vorhandenen Implementierung.
+
+### FI265-01 · Rest: Die vier INI-Formen erfassen den benannten Ausgangsstand noch nicht
+
+Die Korrektur von Tastatur/Gamepad, die Varianten und erhaltenen Control-Vorkommen sowie die Trennung von INI, Umgebung und Markern sind angenommen. **Die konkrete INI-Liste muss aber weitere bereits vorhandene Lesewege nennen:**
+
+| Fundstelle an `98beef82` | Fehlende Form bzw. Familie |
+|---|---|
+| `gateway.py:2515,4554,7060`, `gcode_parse_worker.py:241,311,595` | **`findall`** für `HAL/HALCMD` und `RS274NGC/REMAP`: sechs Aufrufe, nicht die Form `find` |
+| `gateway.py:2681–2685` | `_ini_float` mit `SPINDLE_{i}` und drei Schlüsseln; bereits mehr dynamische Familien als die zwei genannten |
+| `gateway.py:3018–3025` | `_ini_float` mit `AXIS_*`/`JOINT_*` und `MIN_LIMIT`/`MAX_LIMIT` |
+| `gcode_parse_worker.py:882–903` | weiterer Wrapper **`_ini_vel(section, key)`**, einschließlich dynamischer Achssektionen |
+| `gateway.py:9332`, `gcode_parse_worker.py:561`, `gateway_util.py:6135–6163` | **weitergereichte Lesefunktion**: `read_axis_limits(ini.find, …)` → `ini_find(section, var)` |
+
+Diese Zugriffe bestimmen unter anderem Kinematik, Remaps, Spindelgrenzen, Vorschauzeiten und Limits. Die Zählung der Literale allein ist somit kein vollständiger Startbestand dieses Adapters. Dass eine fünfte Form künftig gemeldet werden soll, ist richtig; es gibt sie schon jetzt.
+
+**Erbetene Ergänzung:** Diese Formen entweder ausdrücklich unterstützen und die endlichen Familien auflösen oder als konkrete ungelöste Fundstellen ausgeben. Keine ganze Wrapper-Familie wegen nicht-literaler Argumente verschwinden lassen. Der Adapter muss auch die Weitergabe einer INI-Lesefunktion erkennen oder sichtbar zurückweisen; Empfängernamen allein reichen dafür nicht. Dafür braucht es keine allgemeine Python-Datenflussanalyse: eine kleine registrierte Menge dieser Wrapper plus ein Wächter auf unbekannte Verwendung ist ausreichend.
+
+**Abnahmekriterium für den Bau:** Die obigen realen Fälle erscheinen aufgelöst oder ungelöst. Nicht aufgelöste Pflichtquellen dürfen trotz aktualisierter `atoms.json` keinen sauberen Vollständigkeitsnachweis ergeben. Ein begründeter Ausschluss bleibt an die konkrete Quelle/Form gebunden. Die Wahl „Statusfelder per Zugriffsanalyse oder vollständiger Typmenge“ darf weiterhin im Bau fallen; bei der Typmenge die ungenutzten Felder als solche unterscheiden.
+
+### FI265-02 · Rest A: Herkunft eines Tests identifiziert noch keine einzelne HTTP-Anfrage
+
+Die Verbindungsherkunft aus R251, das spätere `test-end`, der Context-Helfer und die eigene Infrastruktur-Herkunft sind angenommen. **Die HTTP-Klassifikation nach Herkunft + Methode + Pfad ist weiterhin mehrdeutig.**
+
+Ein Test stellt zweimal `GET /g30`. Eine Antwort kommt vom Mock, die andere wird mit `route.fulfill` ersetzt. Beide enden mit 200. In beiden Fällen steht im Browserprotokoll zweimal derselbe Schlüssel, im Mock einmal. Ob Anfrage A oder B vom Mock kam, lässt sich aus diesem Schlüssel nicht bestimmen – auch bei genau einem Worker. Die zwei möglichen Geschichten ergeben im beigefügten Gegenfall dieselben vorgesehenen Beobachtungen. Die vorhandene G30-Spec enthält bereits wiederholte und absichtlich verzögerte Anfragen; das ist keine fernliegende Nutzung.
+
+Zudem beweist **„beendet, kein Mock-Eintrag“ nicht automatisch „im Browser ersetzt“**. Das kann auch eine andere Antwortquelle oder ein unvollständiges Protokoll sein. Und ein hybrider Weg existiert schon: `collisions.viewer.spec.ts:1850–1851` holt mit `route.fetch()` eine Antwort und ersetzt anschließend deren Inhalt mit `route.fulfill({ response, body })`. Eine exklusive Herkunftsbezeichnung darf daraus keine unveränderte Serverantwort machen.
+
+**Erbetener Vertrag:**
+
+- Jede Anfrage bekommt eine eigene Identität innerhalb ihrer Test-/Kontextherkunft; Weiterleitungen bleiben als zusammengehörige einzelne Anfragen erkennbar. Mock-Bedienung und Browserbeobachtung werden eindeutig korreliert, etwa über eine testseitige Kennung. Nicht über Reihenfolge oder bloß gleiche URLs zuordnen.
+- **Serverkontakt** und **Antwortersetzung** getrennt nachweisen. Eine nicht zuordenbare Antwort ist `unknown/incomplete`, bis ihr Weg belegt ist. Falls Cache oder Service Worker für den Messlauf ausgeschlossen werden, diesen Ausschluss ausdrücklich herstellen und prüfen.
+- Der Reporter trennt Transportabschluss vom fachlichen Ergebnis: Auch HTTP 404/503 erzeugen `requestfinished`, und Weiterleitungen erzeugen neue Requests. [Playwright beschreibt diese Ereignisse ausdrücklich so](https://playwright.dev/docs/api/class-request).
+- Ein Gegenfall mit zwei gleichnamigen Anfragen und unterschiedlichen Antwortwegen, einschließlich vertauschter Abschlussreihenfolge, sowie der vorhandene Fetch/Fulfill-Fall halten diese Grenze.
+
+Das erfordert keine Änderung des Produktprotokolls und keine Umstellung sämtlicher Route-Mocks auf den Server. Die konkrete testseitige Instrumentierung kann Claude wählen; ein unbekannter Weg darf zunächst offen ausgewiesen werden, statt fälschlich Abdeckung zu erzeugen.
+
+### FI265-02 · Rest B: Query-Werte weglassen darf keine Funktionsvarianten verschlucken
+
+**Token nicht protokollieren: angenommen.** Alle Query-Werte ohne fachlichen Ersatz zu verwerfen kollidiert jedoch mit der zugesagten Erfassung relevanter Varianten. In `macroFolder.ts:88–105` unterscheidet `PUT /macro` etwa Speichern und Umbenennen über `rename_from`, `rename_base` und `base`. Methode/Pfad allein unterscheiden diese Funktionen nicht.
+
+Bitte pro Route eine kleine **freigegebene semantische Projektion** festlegen, zum Beispiel `operation=save|rename`, `base=new|revision` oder die Settings-Sektion. Dazu können Schlüsselnamen, abgeleitete Klassen und die Fixture-Bezeichnung genügen; rohe Tokens, Dateiinhalte oder alle Query-Werte sind dafür nicht nötig. Fehlende Variantenableitung bleibt benannt. Erst nach dieser Zuordnung Wiederholungen zusammenfassen. Gegenfall: Save und Rename im selben Test erscheinen getrennt, der Tokenwert erscheint nirgends im Beleg.
+
+### FI265-03 · Geschlossen; eine Beispielaussage vor ihrer Übernahme berichtigen
+
+Die fünf Nachweisarten, konkrete Testidentitäten, Sammlung am Stand, Selektorbindung und Auswertung tatsächlicher Ergebnisse tragen. Offene Aussagen, Anzeigezusagen und Gegenfälle bleiben sichtbar. Das erfüllt den Rest aus R265.
+
+**Die M600-Beispielzeile ist allerdings zu weit formuliert:** „Jede M600, die die WebUI startet, ist ein `mdi` …“ trifft nicht auf den vorhandenen Start ab Zeile zu. `App.vue:1700–1724` sendet dabei **`auto_run` mit `pre_tool` und `probe_vars`**, also bewusst einen abhängigen Start als einen Gateway-Befehl. Außerdem liefert `toolsetterVarMap` neben #3100–#3115 auch #3004/#3005/#3006/#3007/#3009/#3010/#3013, darunter die Vorschübe.
+
+Als redaktionelle Korrektur der ersten Funktionsdaten übernehmen: **Direkte Werkzeugmessung** und **Vormessung beim Start ab Zeile** als zwei Bedienvarianten desselben Werkzeugmessvertrags beschreiben, jeweils mit ihrem vorhandenen Transport und der vollständigen vorgesehenen Parameterbasis. Das ist kein Vorschlag, den bewährten Produktablauf umzubauen. Die Aussage zur bestätigten Einrichtung bleibt gültig.
+
+### FI265-04 · Rest A: Ein frisches INI-Verzeichnis ist noch keine isolierte Sim-Kopie
+
+**Operator-Antwort übernommen:** Die manuelle Übernahme der LAN-Sim ist freigegeben. Dafür verlange ich kein zusätzliches Zeitfenster und keine erneute Zustimmung. Ein unbeaufsichtigter Timer wird nicht eingerichtet; dessen spätere Ausgestaltung bleibt getrennt. Auch ausdrückliche M6-Bestätigung, eigene Sitzung, Zielprüfung und getrennter Rückgabestatus sind angenommen.
+
+Die beschriebene Mechanik „`install_examples.py` in ein frisches Verzeichnis“ reicht für die ebenfalls versprochenen eigenen Dateien aber noch nicht:
+
+- Die ausgelieferte INI verweist für `PROGRAM_PREFIX` und `TOOL_LIBRARY_DIR` auf `~/linuxcnc/nc_files`, für `WEBUI_MACRO_DIR` auf `~/linuxcnc/macros`.
+- `install_examples.py:465,469` löst diese Pfade auf und legt dort gegebenenfalls Dateien an; `--destination` macht sie nicht automatisch relativ zu seiner Zielkopie.
+- Das Gateway speichert unter **`BASE_DIR / "settings.json"`** (`gateway.py:2898,2913`). Ein anderer INI-Pfad bei demselben Gateway-Checkout ergibt zwar einen anderen Settings-Schlüssel, aber keine eigene Settings-Datei.
+- Die gemeinsamen Beispielressourcen werden verlinkt (`install_examples.py:567–615`). Das ist für unveränderliche Ressourcen in Ordnung, verlangt aber einen festgehaltenen Quellstand.
+
+**Erbetene Präzisierung:** Vor dem ersten Installer-/Runner-Schreiben festlegen, welche eigene Code-/Konfigurationskopie und welche aufgelösten Pfade verwendet werden. Alle veränderlichen Dateien einschließlich Makros, Programmen, Imports und Gateway-Settings müssen zur Laufkopie gehören; gemeinsame schreibgeschützte Ressourcen ausdrücklich benennen. Das ist mit eigenen Pfaden und einer eigenen Gateway-Kopie lösbar. Die vorhandene Sim-Zielprüfung dabei erhalten, ihre Ausnahmen nicht pauschal erweitern.
+
+**Abnahmekriterium:** Die isolierten Schreibziele sind im Bericht aufgelistet; Prüfungen mit absichtlich nach außen zeigenden Konfigurationen brechen vor dem Schreiben ab. Ein Lauf hinterlässt im ursprünglichen Makro-/Programm-/Settings-Bestand keine Testdaten. Rückgabe bindet sich an die zuvor festgehaltene LAN-Instanz/INI und den vorgesehenen Code-Stand, nicht nur an irgendein erfolgreiches `/ready`.
+
+### FI265-04 · Rest B: Hoher Vorschub braucht eine zur Prüfaussage passende Grenze
+
+Schnelle Anfahrten und verkürzte Testwege innerhalb der unveränderten Maschinengrenzen sind angenommen. **„Die Toleranz folgt aus Vorschub × Servoperiode“ ist als allgemeiner Vertrag für diese Runner zu knapp.**
+
+Das eigene vorhandene F5-Protokoll zeigt bei F2000 einen Unterschied vom geometrischen zum gemeldeten Kontakt von etwa **0,0555 mm**, aber zum Stillstand von **2,9000 mm**. Ein Servotakt bei 1 ms und F2000 entspricht nur **0,0333 mm**. R127 unterscheidet deshalb die Eingangstakte und den anschließenden Bremsweg; die spätere Modellkorrektur war vier statt zwei Takte. [Vorhandener nativer Beleg, insbesondere Zeilen 23 und 36–48](viewer-palette-fest.r127.f5.txt).
+
+Bitte je Aussage festlegen: Wird der gemeldete Antastpunkt, die gespeicherte Werkzeuglänge, ein Endpunkt oder die maximale Bewegung bis zum Stillstand geprüft? Dafür die vorhandenen Routinen-/F5-Verträge und ein passendes unabhängiges Erwartungsmaß verwenden. Die Toleranz vor dem Lauf aus dessen deklarierter Konfiguration ableiten, nicht nach einem Fehlschlag vergrößern. Kann die schnelle Variante eine benötigte Aussage nicht tragen, bleibt dafür ein gezielter Messlauf mit passendem Vorschub; die übrige Folge darf schnell sein.
+
+Der Override allein beschleunigt zudem weder die M600-Antastung noch den Surface-Scan: Beide schalten ihn mit `M50 P0` aus. Die beabsichtigte Geschwindigkeit also an den wirksamen Routinevariablen festmachen und im Beleg nennen. Der Operatorwunsch wird dadurch umgesetzt, ohne die Bedeutung des Nachweises zu ändern.
+
+**Sperre, kleiner weiterer Bauhinweis:** Der Browser-Schritt ist nicht der einzige Lastabschnitt. `round_gate.py:68–74` führt Build, Unit-Light und gegebenenfalls Unit-Heavy/Backend davor aus. Die gemeinsame Sperre muss die als schwer eingestuften Abschnitte ebenfalls erfassen; sonst kann eine native Messung parallel zu einem schweren Unit-Lauf starten. Günstige Inventar-/Listenprüfungen dürfen daneben laufen. Ebenso muss die Rückgabe bei Runner-Fehler/Timeout einen nachprüfbaren Abschluss haben; „Unit gestartet“ allein ist kein Rückgabenachweis.
+
+### Freigegebene Richtung und nächster Schritt
+
+Die Aufteilung in Inventar-Grundlage, Replay/Firefox und native Kernfolge ist angenommen. Die Inventardaten müssen nicht auf HTTP-Instrumentierung oder den Orchestrator warten; die drei Pakete können mit ihren jeweiligen Voraussetzungen getrennt gebaut und reviewed werden. Für das vollständige Plan-Agreement bitte die **INI-Lesewege, eindeutige HTTP-Zuordnung samt Varianten sowie Pfadisolation und messgrößenbezogene Toleranzen** nachtragen. Keine neue Timer- oder Maschinenaktion ist Teil dieser Planrunde.

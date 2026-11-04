@@ -1,0 +1,472 @@
+{
+  "kind": "static plan review evidence; no live or browser experiment",
+  "product": "98beef82061e0581fbe41533d761f7b27eb35ea0",
+  "plan": "d05bbd274305735822e99360d8c6a7791c5969ce",
+  "ini_counterexamples": [
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "line": 3018,
+      "category": "INI helper / dynamic family / callable handed on",
+      "call": "_ini_float(ini, sec_axis, 'MIN_LIMIT')"
+    },
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "line": 3019,
+      "category": "INI helper / dynamic family / callable handed on",
+      "call": "_ini_float(ini, sec_axis, 'MAX_LIMIT')"
+    },
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "line": 9332,
+      "category": "INI helper / dynamic family / callable handed on",
+      "call": "read_axis_limits(ini.find, int(getattr(STAT, 'axis_mask', 0) or 0))"
+    },
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "line": 2681,
+      "category": "INI helper / dynamic family / callable handed on",
+      "call": "_ini_float(ini, section, 'MAX_FORWARD_VELOCITY')"
+    },
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "line": 3024,
+      "category": "INI helper / dynamic family / callable handed on",
+      "call": "_ini_float(ini, sec_joint, 'MIN_LIMIT')"
+    },
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "line": 3025,
+      "category": "INI helper / dynamic family / callable handed on",
+      "call": "_ini_float(ini, sec_joint, 'MAX_LIMIT')"
+    },
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "line": 2515,
+      "category": "INI repeated values: outside the four listed forms",
+      "call": "_kini.findall('HAL', 'HALCMD')"
+    },
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "line": 2684,
+      "category": "INI helper / dynamic family / callable handed on",
+      "call": "_ini_float(ini, section, 'MIN_FORWARD_VELOCITY')"
+    },
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "line": 2685,
+      "category": "INI helper / dynamic family / callable handed on",
+      "call": "_ini_float(ini, section, 'INCREMENT')"
+    },
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "line": 4554,
+      "category": "INI repeated values: outside the four listed forms",
+      "call": "ini.findall('RS274NGC', 'REMAP')"
+    },
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "line": 7060,
+      "category": "INI repeated values: outside the four listed forms",
+      "call": "_ini.findall('RS274NGC', 'REMAP')"
+    },
+    {
+      "path": "lcnc-gateway/gcode_parse_worker.py",
+      "line": 561,
+      "category": "INI helper / dynamic family / callable handed on",
+      "call": "read_axis_limits(ini.find, s.axis_mask)"
+    },
+    {
+      "path": "lcnc-gateway/gcode_parse_worker.py",
+      "line": 241,
+      "category": "INI repeated values: outside the four listed forms",
+      "call": "ini.findall('RS274NGC', 'REMAP')"
+    },
+    {
+      "path": "lcnc-gateway/gcode_parse_worker.py",
+      "line": 902,
+      "category": "INI helper / dynamic family / callable handed on",
+      "call": "_ini_vel('TRAJ', 'MAX_LINEAR_VELOCITY')"
+    },
+    {
+      "path": "lcnc-gateway/gcode_parse_worker.py",
+      "line": 904,
+      "category": "INI helper / dynamic family / callable handed on",
+      "call": "_ini_vel('TRAJ', 'MAX_ANGULAR_VELOCITY')"
+    },
+    {
+      "path": "lcnc-gateway/gcode_parse_worker.py",
+      "line": 311,
+      "category": "INI repeated values: outside the four listed forms",
+      "call": "ini.findall('HAL', 'HALCMD')"
+    },
+    {
+      "path": "lcnc-gateway/gcode_parse_worker.py",
+      "line": 894,
+      "category": "INI helper / dynamic family / callable handed on",
+      "call": "_ini_vel(f'AXIS_{_axl}', 'MAX_VELOCITY')"
+    },
+    {
+      "path": "lcnc-gateway/gcode_parse_worker.py",
+      "line": 1740,
+      "category": "INI helper / dynamic family / callable handed on",
+      "call": "_ini_vel('TRAJ', 'MAX_LINEAR_VELOCITY')"
+    },
+    {
+      "path": "lcnc-gateway/gcode_parse_worker.py",
+      "line": 595,
+      "category": "INI repeated values: outside the four listed forms",
+      "call": "ini.findall('HAL', 'HALCMD')"
+    },
+    {
+      "path": "lcnc-gateway/gcode_parse_worker.py",
+      "line": 1739,
+      "category": "INI helper / dynamic family / callable handed on",
+      "call": "_ini_vel(f'AXIS_{_l}', 'MAX_VELOCITY')"
+    },
+    {
+      "path": "lcnc-gateway/gateway_util.py",
+      "line": 6153,
+      "category": "INI helper / dynamic family / callable handed on",
+      "call": "ini_find(section, var)"
+    }
+  ],
+  "source_excerpts": [
+    {
+      "path": "scripts/install_examples.py",
+      "sha256": "6749dea61e951b22e3d083de54473ad91511410fe062c03abc27f3fbf6919306",
+      "matches": [
+        {
+          "line": 430,
+          "text": "def install(repo, destination, backup_root, settings_path=None, report=None):"
+        },
+        {
+          "line": 440,
+          "text": "    settings_path = Path(settings_path) if settings_path else repo / \"lcnc-gateway/settings.json\""
+        },
+        {
+          "line": 465,
+          "text": "            macro_dir = resolve_directory(rendered[\"DISPLAY\", \"WEBUI_MACRO_DIR\"], destination)"
+        },
+        {
+          "line": 469,
+          "text": "        library_dir = resolve_directory(rendered[\"DISPLAY\", \"TOOL_LIBRARY_DIR\"], destination)"
+        },
+        {
+          "line": 567,
+          "text": "    for rel in catalog[\"shared\"]:"
+        },
+        {
+          "line": 615,
+          "text": "        (destination / rel).symlink_to(target, target_is_directory=True)"
+        }
+      ]
+    },
+    {
+      "path": "examples/sim_config/lcnc_suite_sim_3axis_xyz.ini",
+      "sha256": "f337bcf1725a46b4e936f9dcd5f64492cc53f0756394796f54363900b518de06",
+      "matches": [
+        {
+          "line": 8,
+          "text": "TOOL_LIBRARY_DIR = ~/linuxcnc/nc_files"
+        },
+        {
+          "line": 152,
+          "text": "PROGRAM_PREFIX = ~/linuxcnc/nc_files"
+        },
+        {
+          "line": 156,
+          "text": "WEBUI_MACRO_DIR = ~/linuxcnc/macros"
+        },
+        {
+          "line": 165,
+          "text": "PARAMETER_FILE = xyz3/sim.var"
+        },
+        {
+          "line": 211,
+          "text": "TOOL_TABLE = xyz3/tool.tbl"
+        }
+      ]
+    },
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "sha256": "2575459c6a68edae87bd0a97445f8de891a62fdf5867f4187fb25cd585910af4",
+      "matches": [
+        {
+          "line": 2898,
+          "text": "SETTINGS_PATH = BASE_DIR / \"settings.json\""
+        },
+        {
+          "line": 2913,
+          "text": "_settings_store = SettingsStore(SETTINGS_PATH, _current_ini_path,"
+        }
+      ]
+    },
+    {
+      "path": "lcnc-webui/src/App.vue",
+      "sha256": "2110be0018f72aaade3788664aa44a86be4ad8877b1bbd59f89fcadab33372c1",
+      "matches": [
+        {
+          "line": 1310,
+          "text": "  return fireWithVars(label, toolsetterVarMap(setup.values), line, \"machineFrame\");"
+        },
+        {
+          "line": 1700,
+          "text": "function runFromLine(opts: import(\"./gcodeRfl\").RflRunOptions) {"
+        },
+        {
+          "line": 1710,
+          "text": "    probeVars = toolsetterVarMap(setup.values);"
+        },
+        {
+          "line": 1713,
+          "text": "    cmd: \"auto_run\","
+        },
+        {
+          "line": 1724,
+          "text": "    probe_vars: probeVars,"
+        }
+      ]
+    },
+    {
+      "path": "lcnc-webui/src/toolsetterSetup.ts",
+      "sha256": "3d702be5cde3318f7c84c84bc6c091bb02567ee9969a516be8107d507a912ae3",
+      "matches": [
+        {
+          "line": 81,
+          "text": "    \"3004\": p.fastFeed, \"3005\": p.slowFeed, \"3006\": p.traverseFeed,"
+        },
+        {
+          "line": 82,
+          "text": "    \"3007\": p.maxZTravel, \"3009\": p.retractDist, \"3010\": p.spindleZeroHeight,"
+        },
+        {
+          "line": 83,
+          "text": "    \"3013\": p.offsetDirection,"
+        },
+        {
+          "line": 84,
+          "text": "    \"3100\": p.touchX, \"3101\": p.touchY, \"3102\": p.touchZ,"
+        },
+        {
+          "line": 89,
+          "text": "    \"3115\": p.finderDiffZ,"
+        }
+      ]
+    },
+    {
+      "path": "lcnc-webui/e2e/macroFolder.ts",
+      "sha256": "182dd7d9d2c92228731eedc20b6030345d5c06d0d323a75ac1981fc9bb112f78",
+      "matches": [
+        {
+          "line": 78,
+          "text": "  await page.route(\"**/macros\", r => r.fulfill({ json: folder.list() }));"
+        },
+        {
+          "line": 79,
+          "text": "  await page.route(/\\/macro\\?/, async r => {"
+        },
+        {
+          "line": 81,
+          "text": "    const name = url.searchParams.get(\"name\")!;"
+        },
+        {
+          "line": 88,
+          "text": "    const base = url.searchParams.get(\"base\")!;"
+        },
+        {
+          "line": 97,
+          "text": "    if (method === \"PUT\" && url.searchParams.has(\"rename_from\")) {"
+        },
+        {
+          "line": 100,
+          "text": "      const from = url.searchParams.get(\"rename_from\")!, old = folder.files.get(from);"
+        },
+        {
+          "line": 101,
+          "text": "      const refused = against(name, \"new\") ?? against(from, url.searchParams.get(\"rename_base\")!);"
+        }
+      ]
+    },
+    {
+      "path": "lcnc-webui/e2e/collisions.viewer.spec.ts",
+      "sha256": "a586e59994c0f3cac12b0e3b29de044f2831a902229d9f34f163df197bd98530",
+      "matches": [
+        {
+          "line": 1850,
+          "text": "    const r = await route.fetch();"
+        },
+        {
+          "line": 1851,
+          "text": "    await route.fulfill({ response: r, body: FAIL_HOOK + await r.text() });"
+        }
+      ]
+    },
+    {
+      "path": "subroutines/tool_length_probe/tool_touch_off.ngc",
+      "sha256": "9d180577d1909b178f2921d3c96dd78536037b9f8312b862bd93354d6be51de2",
+      "matches": [
+        {
+          "line": 143,
+          "text": "M50 P0"
+        }
+      ]
+    },
+    {
+      "path": "subroutines/surfacemap/surface_scan.ngc",
+      "sha256": "32de0de2edf04f78152fafcc6327dcae1fa4bac05880c4e0b47c9c12cb05258e",
+      "matches": [
+        {
+          "line": 33,
+          "text": "  M50 P0                  (Disable feedrate override during probing)"
+        }
+      ]
+    },
+    {
+      "path": "scripts/test_select/round_gate.py",
+      "sha256": "0757995183473b64fbb2a45b694a7d846f8a07effec468b846bdcd17156323a8",
+      "matches": [
+        {
+          "line": 68,
+          "text": "    steps = [\"selection-guards\", \"lint\", \"build\", \"unit-light\"]"
+        },
+        {
+          "line": 70,
+          "text": "        steps.append(\"unit-heavy\")"
+        },
+        {
+          "line": 74,
+          "text": "        steps += [\"ports-free\", \"browser\"]"
+        }
+      ]
+    },
+    {
+      "path": "docs/reviews/viewer-palette-fest.r127.f5.txt",
+      "sha256": "3817c621def7be60aec0d2abba79055778da69b1b91035d0918ff42631d0a038",
+      "matches": [
+        {
+          "line": 23,
+          "text": "F2000  +10    G64       -234.0555  -236.9000      0.0555       2.9000            2.8444   -0.0556"
+        },
+        {
+          "line": 36,
+          "text": "P_geo → P_rep: 1 bis 1,67 Takte (das Signal wird ein bis zwei Takte nach dem Kontakt gelesen);"
+        },
+        {
+          "line": 37,
+          "text": "P_rep → Q = v²/a + 2·v·T exakt in allen G64-Fällen (Bremsen mit der halben Beschleunigung, zwei Takte nach"
+        },
+        {
+          "line": 38,
+          "text": "dem Lesen). Das Modell zählte die Takte nur einmal. Korrektur: t = 4 Servotakte (zwei bis zum Lesen, zwei bis"
+        },
+        {
+          "line": 48,
+          "text": "F2000  +10    G64       -234.0555  -236.9000      0.0555       2.9000            2.9111    0.0111"
+        },
+        {
+          "line": 69,
+          "text": "F2000  +10    G64       -234.0444  -239.6667      0.0444       5.6667            5.6889    0.0222"
+        },
+        {
+          "line": 90,
+          "text": "F2000  +10    G64       -234.0444  -236.3333      0.0444       2.3333            2.3556    0.0223"
+        }
+      ]
+    }
+  ],
+  "http_key_counterexample": {
+    "histories": [
+      [
+        {
+          "origin": "run/test/project/retry",
+          "method": "GET",
+          "path": "/g30",
+          "status": 200,
+          "request": "A",
+          "actual": "browser replacement"
+        },
+        {
+          "origin": "run/test/project/retry",
+          "method": "GET",
+          "path": "/g30",
+          "status": 200,
+          "request": "B",
+          "actual": "mock served"
+        }
+      ],
+      [
+        {
+          "origin": "run/test/project/retry",
+          "method": "GET",
+          "path": "/g30",
+          "status": 200,
+          "request": "A",
+          "actual": "mock served"
+        },
+        {
+          "origin": "run/test/project/retry",
+          "method": "GET",
+          "path": "/g30",
+          "status": 200,
+          "request": "B",
+          "actual": "browser replacement"
+        }
+      ]
+    ],
+    "observations_under_proposed_key": [
+      {
+        "browser_finished": [
+          {
+            "origin": "run/test/project/retry",
+            "method": "GET",
+            "path": "/g30",
+            "status": 200
+          },
+          {
+            "origin": "run/test/project/retry",
+            "method": "GET",
+            "path": "/g30",
+            "status": 200
+          }
+        ],
+        "mock_served": [
+          {
+            "origin": "run/test/project/retry",
+            "method": "GET",
+            "path": "/g30",
+            "status": 200
+          }
+        ]
+      },
+      {
+        "browser_finished": [
+          {
+            "origin": "run/test/project/retry",
+            "method": "GET",
+            "path": "/g30",
+            "status": 200
+          },
+          {
+            "origin": "run/test/project/retry",
+            "method": "GET",
+            "path": "/g30",
+            "status": 200
+          }
+        ],
+        "mock_served": [
+          {
+            "origin": "run/test/project/retry",
+            "method": "GET",
+            "path": "/g30",
+            "status": 200
+          }
+        ]
+      }
+    ],
+    "indistinguishable": true
+  },
+  "references": [
+    "https://playwright.dev/docs/api/class-request",
+    "https://playwright.dev/docs/api/class-route"
+  ]
+}
