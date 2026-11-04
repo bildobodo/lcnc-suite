@@ -95,6 +95,8 @@ interface ViewerDiag {
   holdPartFrameReplies?: (on: boolean) => void;
   setBakeDebounceMs?: (ms: number) => void;
   failNextPartFrameReply?: () => void;
+  /** How many part-frame replies are queued, without releasing them (a spec's signal). */
+  heldPartFrameReplies?: () => number;
   releasePartFrameReplies?: () => number;
   projectRole?: (role: string) => { x: number; y: number; dx: number; dy: number; length: number } | null;
   projectRoleSegments?: (role: string) => { x: number; y: number; dx: number; dy: number; length: number }[];

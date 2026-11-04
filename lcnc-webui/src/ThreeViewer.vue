@@ -2137,6 +2137,7 @@ async function buildFromInit(init: ViewerInit) {
         holdPartFrameReplies: (on: boolean) => { _pfHoldReplies = on; },
         setBakeDebounceMs: (ms: number) => { _pfWcsDebounceMs = ms; },
         failNextPartFrameReply: () => { _pfFailNext = true; },
+        heldPartFrameReplies: () => _pfHeldReplies.length,
         releasePartFrameReplies: () => {
           const q = _pfHeldReplies.splice(0);
           for (const ev of q) _pfOnReply(ev);

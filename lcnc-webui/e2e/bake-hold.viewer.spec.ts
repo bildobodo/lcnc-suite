@@ -101,7 +101,15 @@ async function waitClear(page: Page) {
 const waitHold = (page: Page, state: Basis["hold"]) =>
   expect.poll(async () => (await basis(page)).hold, { timeout: 10_000 }).toBe(state);
 /** The 300 ms re-bake timer has fired (and found the hold). */
-const pastDebounce = (page: Page) => page.waitForTimeout(700);
+/** A change during a hold, past its debounce: the re-bake came and was HELD —
+ *  the hold's own flag (bakeHold.ts sets `held` when a bake meets a hold). A
+ *  signal, never a fixed wait: the 700 ms wait ran short under the merge
+ *  gate's load (2026-11-05, A→B→A read `held` false). */
+const heldBake = (page: Page) => expect.poll(async () => (await basis(page)).held, { timeout: 10_000 }).toBe(true);
+/** A change with no hold while the part-frame replies are kept out: the
+ *  re-bake was asked for and its reply waits in the queue. */
+const replyKept = (page: Page) => expect.poll(() => page.evaluate(() => window.__viewerDiag!.heldPartFrameReplies!()),
+  { timeout: 10_000 }).toBeGreaterThan(0);
 // E1: the check
 const activity = (page: Page) => page.evaluate(() => window.__viewerDiag!.getCollisionActivity!());
 const holdLog = (page: Page) => page.evaluate(() => window.__viewerDiag!.getCollisionHoldLog!());
@@ -144,7 +152,7 @@ test("A→B→A held across the supersede gap and the loading: muted until the m
   await waitHold(page, "parsing");
   const g1 = await builds(page);
   await setZ(page, 0);                           // back to A — held
-  await pastDebounce(page);
+  await heldBake(page);
   let b = await basis(page);
   expect(b.held).toBe(true);
   expect(b.behind, "drawn B, wanted A").toBe(true);
@@ -182,7 +190,7 @@ test("the adoption ends the hold: the next offset change re-bakes at once, no wi
   await waitHold(page, "parsing");
   const g0 = await builds(page);
   await setZ(page, -10);                         // held
-  await pastDebounce(page);
+  await heldBake(page);
   expect(await builds(page)).toBe(g0);
   await parse(null);                             // the parse ends, then its publication arrives
   await waitHold(page, "after_parse");
@@ -216,7 +224,7 @@ test("the supersede window runs out: ONE catch-up bake — only when a change wa
   await parse(2);
   await waitHold(page, "parsing");
   await setZ(page, -10);
-  await pastDebounce(page);
+  await heldBake(page);
   expect((await basis(page)).held).toBe(true);
   await parse(null);
   await waitHold(page, "after_parse");
@@ -234,7 +242,7 @@ test("only THIS decode's failure ends the loading with its catch-up; a surface-p
   await parse(1);
   await waitHold(page, "parsing");
   await setZ(page, -10);
-  await pastDebounce(page);
+  await heldBake(page);
   const g0 = await builds(page);
   // another channel's failure (the mixed previewLoadError) changes nothing
   await ctl({ op: "raw", frame: { type: "surface_points_ready", version: 7 } });
@@ -253,7 +261,7 @@ test("the loading has a bound: 20 s without its adoption, one catch-up", async (
   await parse(1);
   await waitHold(page, "parsing");
   await setZ(page, -10);
-  await pastDebounce(page);
+  await heldBake(page);
   const g0 = await builds(page);
   await parse(null);
   await publish(103);                      // arrives, never answered
@@ -284,7 +292,7 @@ test("admitted at every refresh: a run already going holds nothing; a run beginn
   await expect.poll(async () => (await basis(page)).admission, { timeout: 10_000 }).toBeNull();
   await waitHold(page, "parsing");
   await setZ(page, -20);
-  await pastDebounce(page);
+  await heldBake(page);
   g = await builds(page);
   await ctl({ op: "status_delta", envelope: RUN, data: { task_mode: 2, interp_state: 2 } });
   await waitHold(page, "free");
@@ -300,7 +308,7 @@ test("a run or the simulation beginning in the gap or the loading ends the hold 
   await parse(1);
   await waitHold(page, "parsing");
   await setZ(page, -10);
-  await pastDebounce(page);
+  await heldBake(page);
   let g = await builds(page);
   await parse(null);
   await waitHold(page, "after_parse");
@@ -313,7 +321,7 @@ test("a run or the simulation beginning in the gap or the loading ends the hold 
   await parse(2);
   await waitHold(page, "parsing");
   await setZ(page, -20);
-  await pastDebounce(page);
+  await heldBake(page);
   g = await builds(page);
   await parse(null);
   await publish(101);
@@ -332,7 +340,7 @@ test("a lost connection in a hold catches up", async ({ page, context }) => {
   await parse(1);
   await waitHold(page, "parsing");
   await setZ(page, -10);
-  await pastDebounce(page);
+  await heldBake(page);
   const g = await builds(page);
   await ctl({ op: "refuseWs", on: true });
   await ctl({ op: "shutdownClose" });
@@ -347,11 +355,11 @@ test("a reply asked for before the hold is drawn with its own anchor; a later he
   const z0 = await boxZ(page);
   await page.evaluate(() => window.__viewerDiag!.holdPartFrameReplies!(true));
   await setZ(page, -10);
-  await pastDebounce(page);                // the bake for −10 is asked for, its reply kept out
+  await replyKept(page);                  // the bake for −10 is asked for, its reply kept out
   await parse(1);
   await waitHold(page, "parsing");
   await setZ(page, -20);                         // held
-  await pastDebounce(page);
+  await heldBake(page);
   await page.evaluate(() => window.__viewerDiag!.holdPartFrameReplies!(false));
   expect(await page.evaluate(() => window.__viewerDiag!.releasePartFrameReplies!())).toBe(1);
   await expect.poll(() => boxZ(page)).toBeCloseTo(z0 - 10, 3);
@@ -421,7 +429,7 @@ test("a programmed path with a rewritten epoch is held while the program re-pars
   await parse(1);
   await waitHold(page, "parsing");
   await setZ(page, -10);
-  await pastDebounce(page);
+  await heldBake(page);
   b = await basis(page);
   expect(b.held).toBe(true);
   expect(b.behind).toBe(true);
@@ -484,11 +492,11 @@ for (const state of ["after_parse", "loading"] as const) {
     // a reply asked for before the hold, still out at the teardown
     await page.evaluate(() => window.__viewerDiag!.holdPartFrameReplies!(true));
     await setZ(page, -5);
-    await pastDebounce(page);
+    await replyKept(page);
     await parse(1);
     await waitHold(page, "parsing");
     await setZ(page, -10);
-    await pastDebounce(page);
+    await heldBake(page);
     expect((await basis(page)).held).toBe(true);
     await parse(null);
     if (state === "loading") await publish(104);   // arrives, never answered
@@ -541,7 +549,7 @@ for (const c of BUSY) {
     await ctl({ op: "status_delta", data: IDLE });
     await waitHold(page, "parsing");
     await setZ(page, -20);
-    await pastDebounce(page);
+    await heldBake(page);
     expect((await basis(page)).held).toBe(true);
     g = await builds(page);
     await parse(null);
