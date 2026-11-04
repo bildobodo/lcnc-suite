@@ -846,3 +846,32 @@ Drei Klassen im Ergebnis jedes Adapters:
 Der Gegenfall mit einem neuen Wrapper bleibt `complete: false`, auch wenn ihm ein technischer Grund beigegeben ist.
 
 **Erbeten:** `agreement`, oder `findings`.
+
+---
+
+## Codex · Planreview R269 · 4. November 2026
+
+**Urteil: `agreement` zur Planfassung 3.** Die Reste aus R268 sind auf Vertragsebene geschlossen. FI265-01 bis FI265-04 sind damit als Baugrundlage angenommen; HTTP-Instrumentierung und Orchestrator können neben der Inventar-Grundlage umgesetzt werden. **Keine offene Operator-Frage und keine weitere Planrunde erforderlich.** Die Implementierungen und ihre Nachweise werden anschließend getrennt geprüft.
+
+Geprüft: `8f4c0d4a..b65fbfa9`, die drei HTTP-Gegenfälle aus [R268](function-inventory.r268.codex-probe.json) und die vorhandenen Pfad-/Launcher-Helfer. Ergänzend eine [kleine lokale Sonde](function-inventory.r269.codex-probe.py) mit [Ergebnis](function-inventory.r269.codex-probe.json) zu den unten genannten Bauhinweisen. Nur eigene Hilfsprozesse unter `/tmp`; kein Build, kein Browserlauf, kein Gateway-Import, keine Live-Sim oder Maschinenbefehle.
+
+### Die geschlossenen Punkte
+
+| Vertrag | Entscheidung |
+|---|---|
+| **FI265-02: HTTP-Zuordnung** | Browser-Anfrage, Redirect-Kette und Fetch-Operation sind getrennt. Genau ein belegter direkter Kontakt darf zugeordnet werden; mehrdeutige oder kennungslose Kontakte bleiben sichtbar unvollständig. Die drei R268-Fälle haben jetzt die richtige konservative Auswertung. Direkte Anfragen und eindeutig zugeordnete Fetch/Fulfill-Fälle bleiben nutzbar. |
+| **FI265-04: Schreibisolation** | Die echte `node_modules`-Kopie beseitigt den Hardlink-Gegenfall. Prüfung vorhandener Dateien nach Gerät/Inode, private Positionsdatei, ausdrücklich gesetzter Log-Pfad und privater Python-Cache ergänzen den Pfadvertrag sinnvoll. Der absolute `DISPLAY`-Launcher aus `--repo` bindet die Ausführung an den eigenen Code-Baum. |
+| **FI265-01: Vollständigkeit** | `unresolved` bleibt auch mit technischem Grund unvollständig. Ein begründeter Ausschluss ist eine getrennte, gebundene Klasse und kein Abdeckungsnachweis. Damit ist die Abschwächung aus R268 beseitigt. |
+| **Bereits angenommene Teile** | Semantische HTTP-Projektionen, Aussagen aus Laufartefakten, beide M600-Bedienwege, messgrößenbezogene Toleranzen, gemeinsame Lastsperre und gesonderter Rückgabenachweis bleiben angenommen. |
+
+Die Entscheidung, Redirects zunächst begrenzt und offen auszuweisen, ist angemessen. Der Reporter soll die **beobachteten** zwei Serverkontakte einer Fetch-Operation erhalten; unbekannt ist deren eindeutige Zuordnung zur ersetzten Browserantwort. Aus dieser Grenze wird weder ein erfolgreicher Replay-Nachweis noch die Behauptung, es habe keinen Serverkontakt gegeben.
+
+### Bauhinweise innerhalb des angenommenen Vertrags
+
+**1. Die zugesagte reine Log-Vorprüfung braucht den reinen Teil des Helfers.** Das heutige `lcnc_paths.resolve()` ist nicht rein: Es ruft über `_try_use()` bereits `os.makedirs` auf. Die Sonde fängt diesen Aufruf ab, ohne ein Log-Verzeichnis anzulegen. Die heutige Auswahl `_requested()` schreibt dagegen nicht. Im Orchestrator-Paket die Pfadauswahl als reinen Helfer verwenden beziehungsweise dafür freilegen, danach Pfad-/Inode-Zulassung und erst anschließend Verzeichnisse anlegen oder `resolve()` zur Nutzung aufrufen. So wird der bereits vereinbarte Vertrag „vor dem ersten Schreiben“ umgesetzt; den heutigen `resolve()`-Aufruf nicht als Vorprüfung verwenden.
+
+**2. Den aufgelösten Log-Pfad am gestarteten Kind nachweisen.** Der Launcher exportiert `LCNC_RESOLVED_LOG_DIR` erst während seiner Ausführung. In der lokalen Bash-Gegenprobe fehlt ein solcher später Export in `/proc/<shell-pid>/environ`, während ihn das danach gestartete Kind korrekt erbt. Für den geplanten Nachweis deshalb etwa die Startumgebung des eindeutig identifizierten Gateway-Kindes lesen und mit dem zugelassenen Pfad vergleichen; das Eltern-Bash-`environ` ist dafür kein verlässlicher Messpunkt. Es genügt, die benötigten Variablen auszulesen, nicht die komplette Prozessumgebung in den Bericht zu kopieren.
+
+**3. `variantsOpen` beschreibt eine Grenze der Variantenauflösung.** Als vollständig erfasste Quellenfamilie mit offen benannten Mitgliedern ist die Klasse angenommen. Das bedeutet keine vollständige Aufzählung oder Abdeckung aller Bedienvarianten. Die erzeugte Tabelle muss die offenen Familien neben `unresolved` und `excluded` erkennen lassen; die Zahl 44 darf nicht hinter einem allgemeinen „alle Funktionen vollständig“-Urteil verschwinden. Bereits vereinbarte Wächter für konkret aufgelöste Datenfamilien bleiben bestehen. Das setzt die bisherige Trennung von Quelleninventur und Funktions-/Aussagenabdeckung fort.
+
+Die benannten `/tmp`-Sockets und FIFOs sind als notwendige Einzelinstanz-Ressourcen akzeptiert. Ihre Nutzung setzt die vereinbarte Übernahme voraus; ein unbekannter fremder Besitzer ist kein wegzuräumender Testrest. Die Abnahme des Orchestrators prüft Isolation, Fehlschlag und Rückgabe anhand der dafür vorgesehenen Gegenfälle. Für diese Planrunde ist damit Agreement erreicht.

@@ -1,0 +1,17 @@
+{
+  "review_head": "b65fbfa97730e19d397a711540be1bced97ec59d",
+  "source_sha256": "30da9ab5ced96d93b8166e7d960401fbcb22a7da818768baac04eb175f2a45ec",
+  "path_probe": {
+    "requested": "/tmp/r269-only-a-marker",
+    "requested_mkdir_calls": 0,
+    "resolve_mkdir_calls": [
+      "/tmp/r269-only-a-marker"
+    ],
+    "mkdir_intercepted_no_write": true
+  },
+  "environment_probe": {
+    "shell_proc_marker": [],
+    "child_marker": "owned-marker"
+  },
+  "meaning": "Use a pure path selector before admission; inspect the inherited environment of the launched child, not a late export in the shell proc environ."
+}
