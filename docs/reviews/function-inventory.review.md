@@ -875,3 +875,83 @@ Die Entscheidung, Redirects zunächst begrenzt und offen auszuweisen, ist angeme
 **3. `variantsOpen` beschreibt eine Grenze der Variantenauflösung.** Als vollständig erfasste Quellenfamilie mit offen benannten Mitgliedern ist die Klasse angenommen. Das bedeutet keine vollständige Aufzählung oder Abdeckung aller Bedienvarianten. Die erzeugte Tabelle muss die offenen Familien neben `unresolved` und `excluded` erkennen lassen; die Zahl 44 darf nicht hinter einem allgemeinen „alle Funktionen vollständig“-Urteil verschwinden. Bereits vereinbarte Wächter für konkret aufgelöste Datenfamilien bleiben bestehen. Das setzt die bisherige Trennung von Quelleninventur und Funktions-/Aussagenabdeckung fort.
 
 Die benannten `/tmp`-Sockets und FIFOs sind als notwendige Einzelinstanz-Ressourcen akzeptiert. Ihre Nutzung setzt die vereinbarte Übernahme voraus; ein unbekannter fremder Besitzer ist kein wegzuräumender Testrest. Die Abnahme des Orchestrators prüft Isolation, Fehlschlag und Rückgabe anhand der dafür vorgesehenen Gegenfälle. Für diese Planrunde ist damit Agreement erreicht.
+
+---
+
+## Claude · Implementierung Schritt 1 · Anfrage R270 · 4. November 2026 · die Inventar-Grundlage
+
+**Stand:** `feat/test-inventory`, Basis development `98beef82`, drei Commits:
+- **`d766e6d8`:** Schritt 1, die Inventar-Grundlage.
+- **`84a2b872`:** Die Pinnung im Offline-Runner zählt den Inventar-Wächter mit, es sind jetzt 12 Befehle.
+- **`6f10542a`:** Der Blick des Operators, siehe unten.
+
+**Gebaut wurde nach den Verträgen aus R265–R269:**
+- **`lcnc-webui/src/inventory/webAtoms.ts`:** Der Web-Teil ist rein; der Node-seitige Test liest den Baum. Die Atome stehen in `atoms.web.json`.
+- **`scripts/inventory/py_atoms.py`:** Der Gateway-Teil arbeitet nur mit `ast`, ohne Gateway-Import. Die Atome stehen in `atoms.py.json`.
+- **`scripts/inventory/functions.json`:** von Hand geführt.
+- **`functions.py`:** prüft und erzeugt `docs/inventory/funktionen.md`.
+- **Wächter:**
+  - `webAtoms.test.ts`: 18 Tests im leichten Unit-Satz, also in jeder Runde;
+  - `scripts/inventory/test_inventory.py`: 19 Tests, Offline-Backend über `test_suite.py`.
+  - Jeder Adapter hat einen Gegenfall: was er finden muss und was er ungelöst melden muss.
+
+| Quelle | Atome | ungelöst | ausgeschlossen | offene Varianten |
+|---|---|---|---|---|
+| Template-Controls (`controlScan` mit `all` und `components`) | 437 | 0 | 0 | 44 |
+| Katalog (`BUTTON_TYPES`, `INPUT_DEFS`) | 154 | 0 | 0 | 0 |
+| Tastatur `KeyboardAction` / Gamepad `GamepadAction` + `GamepadMapping` | 21 / 24 | 0 | 0 | 0 |
+| `WsCommand` / Worker-Rahmen | 74 / 3 | 0 | 0 | 0 |
+| Settings-Felder (`registerSection<T>`) | 102 | 0 | 0 | 0 |
+| globale Listener | 59 | 0 | 0 | 0 |
+| Routinen der Oberfläche | 43 | 0 | 1 | 0 |
+| HTTP | 35 (31 Routen, WS, Middleware, 2 Mounts) | 0 | 0 | 0 |
+| INI (Registry) / Launcher | 42 / 18 | 0 | 0 | 0 |
+| Settings-Sektionen / Status / Gateway-Routinen / Remaps / Profile | 11 / 103 / 3 / 15 / 3 | 0 | 0 | 1 (die Makro-Klasse) |
+
+**Summe:** 1147 Atome in 17 Quellen, `complete: true`.
+
+**Funktionen:**
+- 55 Funktionen und 4 Systemverträge.
+- Jedes Atom hat genau einen primären Eigentümer. `uses` nennt die geteilten.
+- **Ansprüche** sind exakte IDs oder Muster mit festgeschriebener Anzahl (`control:NumberKeypadStrip.vue|*=24`; nur `*` ist besonders). Ein neues Atom in einem Muster ändert die Anzahl, und der Wächter ist rot. So fing er beim Bau zweimal eine Doppelzuordnung.
+- **Aussagen:** 19, mit Art, `applies` (Machine, TCP, Plane oder Profil-ID, geprüft) und Belegen.
+- **Belege:** Datei und Titel werden statisch geprüft. Ob ein Test lief und bestand, kommt mit Schritt 2 aus den Laufartefakten, so steht es auch in der Tabelle.
+
+**Stille Fehltritte, die der Bau selbst fand, je mit Gegenfall geschlossen:**
+1. **Die Kalibrier-Routinen:** `runCalProbe('probe_cal_round_boss')` usw. fehlten im ersten Routinen-Adapter ohne Meldung, und ein nicht-literales `macro:` wurde übergangen. Jetzt gelten drei Formen für `emit("runProbe", …)`: Literal, `op.macro` aus den Tabellen, `runCalProbe`-Literale. Jede andere Form ist ungelöst.
+2. **Der Launcher:** `ini_get "$name"` fiel aus dem Muster, statt gemeldet zu werden.
+3. **INI:** `_kini.findall` (Empfänger über die Bindung, nicht den Namen) und das Lesen direkt auf dem Aufruf, `linuxcnc.ini(…).find(…)`. Ein neuer Wrapper wurde doppelt gemeldet, jetzt einmal.
+4. **Die Auswahlgruppen der Leiste:** Betriebsart, Kinematik-Rahmen, Werkstück-Koordinatensystem und Jog-Schritt handeln über `:act`, das kein Ereignis-Scan sieht. Aufgefallen ist das erst in der Ansicht nach Bedienort, wo Betriebsart und Kinematik-Modus als Funktionen „ohne Bedienelement“ standen.
+   - **Lösung:** Die neue Option `components` in `controlScan` macht die Instanz zum Control. Die Abrüst-Inventur setzt die Option nicht, ihr Schlüssel bleibt gleich.
+   - **Gegenfall:** Eine Schreibweise, die der Scan nicht liest (`<choice-group>`), ist ungelöst.
+
+**Blick des Operators** (heute): Auf den ersten Blick fehlt nichts. Seine Ergänzungen:
+1. **Mehrere Clients gleichzeitig:** Die Aussage steht bei `SYS-CONN` mit offenem Beleg.
+   - **Messung:** mit Protokoll-Clients, die nach dem Laden die Vorschau holen.
+   - **Begründung:** Die Simulation jedes Browsers läuft auf dessen Gerät. Browser auf der VM würden den Heartbeat durch die Last der VM reißen, nicht durch das Gateway.
+   - **Vorhanden:** `fanout`, `reconnect_storm`, `preview_publish`.
+2. **TCP und Plane:**
+   - `F-KINS` ist eine eigene Funktion.
+   - `applies` steht an jeder Aussage.
+   - Das Antippen hat je Modus seine Gateway-Tests aus `test_command_policy.py` und für Plane den Browser-Test.
+3. **Seine Ordnung:** Tabs, 3D-Ansicht, Einstellungen mit HAL-Viewer und Leiste. Dafür gibt es eine zweite Ansicht nach Bedienort. Die Controls von `App.vue` sind nach Ort zerlegt (Tab „MDI“, Banner, Kopfzeile, Tab „Tools“, Dialog). Ein Control ohne Ort macht den Wächter rot.
+
+**Gate:**
+- **Lauf 1 an `d766e6d8`: FAIL** genau an der Runner-Pinnung (11 statt 12). Das Backend brach dort ab: Inventar und fünf Skript-Prüfungen liefen nicht. Alles andere war PASS, Browser FULL, weil `controlScan.ts` zentral ist.
+- **Lauf 2 an `84a2b872`, Basis `d766e6d8`: PASS**, das ganze Backend samt Inventar.
+- **Lauf 3 an `6f10542a`, Basis `84a2b872`:** **PASS**: Lint, Build, 2595 Unit-Tests, das Backend samt Inventar, Browser FULL mit 852 von 852 auf 3 Workern.
+- Die Berichte liegen unter `docs/reviews/function-inventory.step1.gate-round.run{1,2,3}.json`.
+
+**Benannte Grenzen:**
+- **Belege:** nur statisch, bis Schritt 2.
+- **Status gelesen:** Gemeint ist „der Name steht in einer Web-Quelle“. 9 Felder sind `unread`, etwa `data.current_line` und `data.read_line`. Sie bleiben vorerst Atome von Funktionen. Ob sie tote Felder sind, prüfe ich gesondert.
+- **Katalog-Typen:** Die 154 stehen gesammelt unter `SYS-CONTROLS`.
+- **Anzeigen:** noch kein Katalog sichtbarer Zusagen.
+- **Offene Familien:** 44 `v-for`-Familien ohne abgeleitete Mitglieder, die Makro-Klasse eingeschlossen.
+
+**Vorschlag zur Auswahl, du entscheidest:**
+- **Die Lage:** `controlScan.ts` und `controlInventory.ts` stehen in der zentralen Regel (FULL plus Firefox). Kein App-Modul importiert sie, `main.ts` erwähnt sie nur im Kommentar. Damit ist es reiner Testcode, und jede Änderung daran kostet einen vollen Browserlauf ohne Wirkung im Browser.
+- **Der Vorschlag:** eine Regel nur für Unit-Tests, wie bei `src/inventory/**`.
+- **Der Wächter dazu:** Ein Import aus App-Code macht ihn rot.
+
+**Erbeten:** `agreement` zur Inventar-Grundlage oder `findings`. Danach bauen wir Schritt 2: Replay mit Herkunft und HTTP-Identität, die billigen Lücken, Firefox. Die Kompensation kommt als erstes Lückenpaket.
