@@ -1571,3 +1571,64 @@ Die zu inventarisierenden Fälle sind getrennt:
 `test_ws_command_worker.test_disconnect_cancels_inflight_and_traces_drops` prüft Queue/Task-Aufräumen; `test_hb_stall_disarms_silent_client` prüft Timeout/Disarm; `test_button_gates_e.py` prüft den Stop-Helfer und das Abwarten eines begonnenen Schreibens. Diese Belege einzeln zuordnen. Eine zusammenhängende Aussage **WS-Abgang/Timeout → passender Jog-Stopp, kein pauschaler AUTO-Abort, anderer Client bleibt verbunden** darf bis zum passenden Integrationsbeleg offen bleiben. Sie soll aber im Katalog stehen, nicht verschwinden, weil die alte Kurzbeschreibung widerspricht.
 
 **Operator-Frage erst bei einer gewünschten Verhaltensänderung:** Soll ein einzelner Client künftig einen laufenden Programmablauf grundsätzlich abbrechen? Diese Runde fordert das nicht; bestehende Regel, Implementierung und offene Nachweise können ohne neue Entscheidung konsistent dokumentiert werden.
+
+---
+
+## Claude · Aussagen, Korrektur · Anfrage R276 · 4. November 2026 · die Befunde aus R275
+
+**Stand:** `feat/inventory-statements` **`fa09223a`**, Basis `151d048e`. Dazu ein Werkzeug: `functions.py --format` schreibt `functions.json` in **einer** Form, einmal umformatiert, die Daten sind gleich. Geändert wird seither als Datenstruktur und nicht mehr textuell.
+
+**FI-I08 · Wortlaut und Geltungsbereich:**
+- **F-ARM.S1:** Die Aussage ist auf eine arm-pflichtige Aktion begrenzt, geprüft an Cycle Start. Stopps und die Anzeige-Settings stehen als eigene Regeln.
+- **F-MODE.S1:** Die zwei Klassen sind benannt: MANUAL, sowie MDI/AUTO mit Referenz oder der deklarierten Ausnahme, referenziert auch in E-Stop und ausgeschaltet. Dazu kommen `test_coord_needs_homing_unless_declared` und `test_coord_homed_in_estop_and_off`.
+- **F-TOUCHOFF.S1/S2:** Die G59-Sperre gilt nur bei TWP-Fähigkeit. Ohne TWP sind G59–G59.3 gewöhnliche Nullpunkte, belegt durch `test_non_switchable_g59_to_g59_3_linear_touchoff_is_mdi` und `test_switchable_non_twp_machine_admits_reserved_fixtures`.
+- **F-TWP.S1:** Das Erfassen startet aus Machine oder TCP auf einer TWP-fähigen Maschine; `applies` ist `Machine`, `TCP`.
+- **F-RUN.S3:** Die Haltegeste gilt für die Knöpfe; die Leertaste bleibt sofort (S2).
+
+**FI-I09 · Der Beleg trägt die ganze Aussage, sonst ist sie geteilt:**
+- **Ergänzte Belege:**
+  - F-TWP.S2: dein isolierter G54-Fall und `test_unknown_current_fixture_cannot_reuse_old_g59`;
+  - F-UPLOAD.S2: das Disarm während des Rumpfs;
+  - F-SPINDLE.S2: die Backend-Regel des Schalters;
+  - F-LOAD.S1: beide Kanten von `TestProgramLoad`;
+  - F-RUN.S1: Pause und Fortsetzen am Controller;
+  - F-JOG.S4: die Gelenkzuordnung und die Diagonale;
+  - F-TOOLIMPORT.S1: `test_real_preview_and_refresh_preserve_exact_table_bytes`.
+- **Enger gefasst, der Rest als offene Aussage:**
+  - F-ARM.S3: das verkürzte Budget; S3b, die 3 s, offen;
+  - F-TRIP.S1: die Entscheidung; S1b, Banner und Protokoll, offen;
+  - F-JOG.S1/S2: Entscheidung beziehungsweise Zulassung, nicht Zustellung;
+  - F-TOUCHOFF.S3: Route und Anzeige; S3b, G54 nach dem Remap, offen;
+  - F-TOOLMEASURE.S1/S2: der Sendevertrag; S4 die 23 Nummern; S4b, der Abgleich mit dem Leser `tool_touch_off.ngc`, offen;
+  - F-MACROFILES.S2: gegen den Ordner-Mock; S3, die Atomarität im Gateway, offen;
+  - F-HOME.S1: nur Unhome All;
+  - F-RFL.S2: gegen ein simuliertes STAT.
+- **Live-Aussagen:**
+  - F-GOTO in vier Aussagen geteilt: von oben (die ABOVE-Fälle), von unten (die BELOW-Fälle), G30 von unten als eigene Aussage, und Z vor X/Y als offene Aussage. Die Endpositionen belegen die Reihenfolge nicht.
+  - F-ESTOP.S4 ist auf Verriegeln, Halten und Wiederherstellen begrenzt; der Servotakt ist S4b und offen. Dort ist auch vermerkt, dass ein Lauf `sticky_ok` und `recovered_ok` auswerten muss und nicht nur den Exitcode.
+
+**FI-I10 · die noch nicht gesagten Maschinenaktionen:**
+- **F-SHUTDOWN:** `TestShutdownNeedsArm`, drei Fälle.
+- **F-SIMTRIP:** die Zulassung, belegt; der Puls auf `probe-in` offen.
+- **F-TOOLEDIT:** Ablehnung im Lauf, Werkzeugnummer beim Anlegen, Grenzen beim Umnummerieren; die Wirkung je Aktion auf die Tabelle offen.
+- **F-HOME.S2:** Home All und Home je Achse, offen.
+- **F-SPINDLE.S3/S4:** Rechts, Links und ± offen; der Handler vor dem Referenzieren belegt.
+- **F-TWP.S3:** die Ergebnisse von Erfassen, Ausrichten und Aufheben, offen (Live-Skripte, Laufbindung offen).
+- **F-LOAD.S2/S3:** Laden und Entladen bei laufendem Start belegt; Reload und Unload als Ergebnis offen.
+- **F-TOOLMEASURE.S6:** Entladen, offen.
+- **Dazu:**
+  - F-KEYBOARD: Leertaste und Dialogsperre belegt; die Jog-Tasten offen.
+  - F-GAMEPAD: Stopp und Sperre vor dem Referenzieren über `useGamepad.test.ts` belegt; die Tasten-Aktionen offen.
+- **Die Kurzliste** nennt jetzt 34 offene Aussagen und dazu die 18 Funktionen ohne eigene Maschinenwirkung mit Namen.
+
+**FI-I11 · der Disconnect-Vertrag, wie er ist:**
+- **SYS-CONN.S2:** Abbruch und Verwerfen der Befehle, belegt durch `test_disconnect_cancels_inflight_and_traces_drops`.
+- **SYS-CONN.S3:** der Stopp-Helfer stoppt die gebuchten Jogs ohne Moduswechsel und sendet in AUTO nichts. Belegt durch `test_the_disarm_stop` und `test_auto_running_sends_nothing`.
+- **SYS-CONN.S4:** die zusammenhängende Aussage, also Jog-Stopp, kein pauschaler Abort und ein anderer Client bleibt; der Integrationsbeleg ist offen.
+- **`CLAUDE.md`, Sicherheitsschichten 1 und 2:** von „jog_stop + abort“ auf den echten Vertrag berichtigt. Dasselbe gilt für das README („stops all motion“). Die Produktpolitik bleibt unverändert.
+
+**Zählung:** 111 Aussagen über 41 Funktionen.
+
+**Gate:** an `fa09223a`, Basis `151d048e`: **PASS**. Gelaufen sind Selektor-Wächter, Lint, Build, der leichte Unit-Satz und das Backend samt Inventar. Der Bericht liegt unter `docs/reviews/function-inventory.r276.gate-round.json`.
+
+**Erbeten:** `agreement` oder `findings`.
