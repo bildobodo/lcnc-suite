@@ -142,17 +142,22 @@ class SimulatorClient:
             time.sleep(0.1)
         raise RuntimeError("Simulator homing did not complete")
 
-    def close(self):
+    def close(self, strict=False):
+        """Abort and disarm, then close. `strict` (the native stage) raises a
+        failed abort / disarm — its own ending must not be silent (R287)."""
+        failure = None
         if self.ws:
             try:
                 self.request("abort")
                 self.request("arm", armed=False)
-            except Exception:
-                pass  # socket loss itself triggers the gateway's stop path
+            except Exception as e:
+                failure = e  # socket loss itself triggers the gateway's stop path
             self.stop.set()
             self.ws.close()
         for thread in self.threads:
             thread.join(timeout=3)
+        if strict and failure is not None:
+            raise RuntimeError(f"the client's ending failed: {failure}")
 
 
 def gateway_load(path, token):

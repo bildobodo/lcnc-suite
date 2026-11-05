@@ -175,25 +175,61 @@ class SystemHost:
         if r.returncode:
             raise RuntimeError(r.stderr.strip() or f"git worktree remove exited {r.returncode}")
 
-    def keepalive_connected_since(self, since, unit="bg-keepalive"):
-        """THE recorded keepalive (R286 FI-I21: not "a client"): its unit's
-        MainPID holds an established connection to the gateway's port, and
-        the returned gateway counts a client after `since`."""
-        end = time.monotonic() + 15
+    def invocation(self, unit):
+        """The InvocationID of the unit's running incarnation, None when it does not run."""
+        if not self.is_active(unit):
+            return None
+        out = subprocess.run(["systemctl", "--user", "show", unit, "-p", "InvocationID", "--value"],
+                             capture_output=True, text=True).stdout.strip()
+        return out or None
+
+    def process_alive(self, pid, start):
+        """The process `pid` with that start time still exists (a reused pid is another process)."""
+        try:
+            return int(Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[19]) == start
+        except (OSError, IndexError, ValueError):
+            return False
+
+    def keepalive_heartbeat_since(self, since, unit="bg-keepalive"):
+        """A FRESH heartbeat of THE recorded keepalive at the RETURNED gateway
+        (R287 FI-I21; a TCP connection and another counted client are none):
+        its beat file (written on every pong — the gateway's answer to a
+        heartbeat) names the unit's MainPID, its pongs grow after `since`,
+        and its TCP pair ends at the returned gateway's process."""
+        spec = self.unit(unit)
+        script = next((a for a in spec["ExecStart"] if a.endswith(".py")), None)
+        if not script:
+            return False
+        beat = Path(script).with_suffix(".beat.json")
+        end = time.monotonic() + 20
+        seen = None
         while time.monotonic() < end:
             main = subprocess.run(["systemctl", "--user", "show", unit, "-p", "MainPID", "--value"],
                                   capture_output=True, text=True).stdout.strip()
-            ss = subprocess.run(["ss", "-Htnp", "state", "established", "( dport = :8000 )"],
-                                capture_output=True, text=True).stdout
+            try:
+                b = json.loads(beat.read_text())
+            except (OSError, ValueError):
+                b = None
             gw = next((p for p in read_procs() if "gateway:app" in p["cmdline"]), None)
-            if main not in ("", "0") and f"pid={main}," in ss and gw and self._tree:
-                trace = Path(self._tree) / "runlogs/trace.ndjson"
-                try:
-                    with trace.open(errors="replace") as f:
-                        f.seek(max(0, trace.stat().st_size - 2_000_000))
-                        if clients_since(f, gw["pid"], since):
-                            return True
-                except OSError:
-                    pass
-            time.sleep(1)
+            if b and gw and str(b.get("pid")) == main and b.get("t_wall", 0) > since:
+                if seen is not None and b["pongs"] > seen and self._pair(int(main), b["local_port"], gw["pid"]):
+                    return True
+                seen = b["pongs"] if seen is None else seen
+            time.sleep(1.5)
         return False
+
+    @staticmethod
+    def _pair(client_pid, local_port, gateway_pid):
+        """The TCP connection 127.0.0.1:local_port ↔ 127.0.0.1:8000: its client
+        end held by the keepalive, its server end by the returned gateway."""
+        out = subprocess.run(["ss", "-Htnp", "state", "established"], capture_output=True, text=True).stdout
+        client = server = False
+        for line in out.splitlines():
+            if f"127.0.0.1:{local_port} " in line and "127.0.0.1:8000" in line:
+                cols = line.split()
+                local, peer = cols[2], cols[3]
+                if local.endswith(f":{local_port}") and f"pid={client_pid}," in line:
+                    client = True
+                if local.endswith(":8000") and peer.endswith(f":{local_port}") and f"pid={gateway_pid}," in line:
+                    server = True
+        return client and server

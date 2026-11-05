@@ -44,38 +44,42 @@ def eval_home(case: str, expected: list[bool], observed: list[bool] | None, comp
     return _row(case, "FAIL" if wrong else "PASS", "; ".join(wrong) or "as expected", expected=expected, observed=observed)
 
 
-ANCHOR_AGE = 0.1             # s: the anchor frame at most this long after the jog_stop reply
-
-
 def _finite(*values) -> bool:
     return all(isinstance(v, (int, float)) and math.isfinite(v) for v in values)
 
 
-def eval_jog(case: str, axis: int, sign: int, p0: float, anchor: float, samples: list[tuple],
-             anchor_age: float = 0.0) -> dict:
-    """A continuous jog, then jog_stop. `p0` before the jog, `anchor` the
-    position in the first status frame after the jog_stop REPLY (the
-    measuring anchor, R284) and `anchor_age` how long after the reply that
-    frame came; `samples` (seconds after the reply, position, |current_vel|).
-    An unknown or non-finite value is never a standstill (R286 FI-I23)."""
+def eval_jog(case: str, axis: int, sign: int, p0: float, before, samples: list[tuple]) -> dict:
+    """A continuous jog, then jog_stop; the path is measured FROM THE REPLY
+    to jog_stop (R284), whose position no status frame shows exactly. It is
+    bracketed (R287 FI-I23 — the unseen travel never vanishes): `before` =
+    (seconds before the reply ≤ 0, position) of the last status frame before
+    it, `samples` (seconds after the reply, position, |current_vel|). The
+    motion runs in its sign, so the position at the reply lies between the
+    frame before and the first after: the braking travel lies between
+    |stop − first after| and |stop − before|. Upper bound within the bound:
+    PASS; lower bound beyond it: FAIL; between: incomplete — the frames do
+    not resolve it. Unknown or non-finite values are never a standstill."""
     bound = brake_bound(axis)
-    measured = {"axis": "XYZ"[axis], "sign": sign, "bound_mm": round(bound, 3), "anchor_age_s": anchor_age}
-    if not _finite(p0, anchor, anchor_age):
-        return _row(case, "incomplete", "the start or the anchor position is unknown", **measured)
-    if anchor_age > ANCHOR_AGE:
-        return _row(case, "incomplete", f"the anchor frame came {anchor_age:.3f} s after the jog_stop reply "
-                    f"(bound {ANCHOR_AGE} s)", **measured)
-    measured["travel"] = round(sign * (anchor - p0), 4)
+    measured = {"axis": "XYZ"[axis], "sign": sign, "bound_mm": round(bound, 3)}
+    if before is None:
+        return _row(case, "incomplete", "no status frame before the jog_stop reply", **measured)
+    t_b, p_b = before
+    if not _finite(p0, t_b, p_b):
+        return _row(case, "incomplete", "the start or the position before the reply is unknown", **measured)
+    measured.update(travel=round(sign * (p_b - p0), 4), before_s=round(t_b, 4))
     samples = [(t, p, v) for t, p, v in samples if _finite(t, p, v)]
     if not samples:
         return _row(case, "incomplete", "no sample with known values after jog_stop", **measured)
-    if sign * (anchor - p0) < JOG_MIN_TRAVEL:
-        return _row(case, "FAIL", f"moved {anchor - p0:+.3f} mm — not ≥ {JOG_MIN_TRAVEL} in its sign", **measured)
+    if sign * (p_b - p0) < JOG_MIN_TRAVEL:
+        return _row(case, "FAIL", f"moved {p_b - p0:+.3f} mm — not ≥ {JOG_MIN_TRAVEL} in its sign", **measured)
     stop = next(((t, p) for t, p, v in samples if abs(v) <= STANDSTILL), None)
     if stop is None or stop[0] > STOP_WITHIN:
         return _row(case, "FAIL", f"no standstill within {STOP_WITHIN} s of the jog_stop reply", **measured)
-    brake = abs(stop[1] - anchor)
-    measured.update(stop_s=round(stop[0], 4), brake_mm=round(brake, 4))
-    if brake > bound:
-        return _row(case, "FAIL", f"braked {brake:.3f} mm past the anchor, bound {bound:.3f}", **measured)
-    return _row(case, "PASS", "moved in its sign, stopped within its bounds", **measured)
+    upper, lower = abs(stop[1] - p_b), abs(stop[1] - samples[0][1])
+    measured.update(stop_s=round(stop[0], 4), brake_upper_mm=round(upper, 4), brake_lower_mm=round(lower, 4))
+    if upper <= bound:
+        return _row(case, "PASS", "moved in its sign, stopped within its bounds", **measured)
+    if lower > bound:
+        return _row(case, "FAIL", f"braked at least {lower:.3f} mm past the reply, bound {bound:.3f}", **measured)
+    return _row(case, "incomplete", f"the braking travel lies between {lower:.3f} and {upper:.3f} mm — the status "
+                f"frames do not resolve it against {bound:.3f}", **measured)

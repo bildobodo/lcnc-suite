@@ -125,15 +125,16 @@ def test_the_process_proof_names_a_helper_outside_the_run_tree(tmp_path):
     ini = config / "lcnc_suite_sim_3axis_xyz.ini"
     good = [
         {"cmdline": ["bash", str(tree / "lcnc-suite"), "-ini", str(ini)]},
-        {"cmdline": ["python3", "-m", "uvicorn", "gateway:app", "--app-dir", str(tree / "lcnc-gateway")]},
-        {"cmdline": ["python3", str(tree / "lcnc-gateway/hal_reader.py")]},
-        {"cmdline": ["python3", str(tree / "lcnc-gateway/hal_watchdog.py")]},
-        {"cmdline": ["python3", str(tree / "subroutines/surfacemap/compensation.py"), "probe-results.txt", "cubic"]},
-        {"cmdline": ["python3", "sim_toolsetter/sim_toolsetter_feed.py"], "cwd": str(tree)},
+        {"cmdline": ["python3", "-m", "uvicorn", "gateway:app", "--app-dir", str(tree / "lcnc-gateway")], "exe": "/usr/bin/python3"},
+        {"cmdline": ["python3", str(tree / "lcnc-gateway/hal_reader.py")], "exe": "/usr/bin/python3"},
+        {"cmdline": ["python3", str(tree / "lcnc-gateway/hal_watchdog.py")], "exe": "/usr/bin/python3"},
+        {"cmdline": ["python3", str(tree / "subroutines/surfacemap/compensation.py"), "probe-results.txt", "cubic"],
+         "exe": "/usr/bin/python3"},
+        {"cmdline": ["python3", "sim_toolsetter/sim_toolsetter_feed.py"], "cwd": str(tree), "exe": "/usr/bin/python3"},
     ]
     assert lt.process_problems(good, tree, ini) == []
     bad = [dict(p) for p in good]
-    bad[2] = {"cmdline": ["python3", "/home/cnc/lcnc-suite/lcnc-gateway/hal_reader.py"]}
+    bad[2] = {"cmdline": ["python3", "/home/cnc/lcnc-suite/lcnc-gateway/hal_reader.py"], "exe": "/usr/bin/python3"}
     assert any("hal_reader.py" in p for p in lt.process_problems(bad, tree, ini))
     assert any("hal_watchdog.py" in p and "not running" in p for p in lt.process_problems(good[:3] + good[4:], tree, ini))
 
@@ -161,18 +162,21 @@ class FakeHost:
         self.owner_ok = True
         self.removed = []
         self.test_instance = None        # the run's own LinuxCNC while native-sim runs
+        self.invocations = {}
 
     def unit(self, name): return self.units[name]
     def is_active(self, name): return self.active.get(name, False)
 
     def stop(self, name):
         self.active[name] = False
-        if name == "native-sim":
+        if name.startswith("native-sim"):
             self.test_instance = None
         if name == "lcnc-sim-gates":
             self.instance = ()
     def unit_owns(self, unit, pid): return self.owner_ok
     def remove_tree(self, tree, of): self.removed.append(tree)
+    def invocation(self, unit): return self.invocations.get(unit) if self.active.get(unit) else None
+    def process_alive(self, pid, start): return bool(self.test_instance) and self.test_instance[1:] == (pid, start)
     def start(self, name, spec):
         if name in self.fail_start:
             raise RuntimeError(f"{name} did not start")
@@ -188,7 +192,7 @@ class FakeHost:
     def tree_dir(self): return "/lan-tree"
     def file_hashes(self): return dict(self.hashes)
     def lan_trip(self): return self.trip
-    def keepalive_connected_since(self, t): return self.heartbeat_seen
+    def keepalive_heartbeat_since(self, t): return self.heartbeat_seen
 
 
 def test_a_complete_restore_proves_every_point():
@@ -279,28 +283,28 @@ def test_home_all_and_home_per_joint():
 
 
 def _jog(sign=1, axis=0, moved=15.0, brake=1.5, stop_at=0.12, vel=50.0):
-    """A jog as measured: start 300, the anchor (jog_stop's reply) `moved` on,
-    standstill `brake` further at `stop_at` s after the anchor."""
-    p0, anchor = 300.0, 300.0 + sign * moved
-    samples = [(0.02, anchor + sign * brake * 0.5, vel * 0.5), (stop_at, anchor + sign * brake, 0.0)]
-    return nc.eval_jog(f"jog-{'xyz'[axis]}{'+' if sign > 0 else '-'}", axis, sign, p0, anchor, samples)
+    """A jog as measured: start 300, the last frame before jog_stop's reply
+    `moved` on (5 ms before it), standstill `brake` further at `stop_at` s."""
+    p0, before = 300.0, 300.0 + sign * moved
+    samples = [(0.02, before + sign * brake * 0.5, vel * 0.5), (stop_at, before + sign * brake, 0.0)]
+    return nc.eval_jog(f"jog-{'xyz'[axis]}{'+' if sign > 0 else '-'}", axis, sign, p0, (-0.005, before), samples)
 
 
 def test_a_jog_moves_in_its_sign_and_stops_within_its_bounds():
     assert _jog()["status"] == "PASS"
     assert _jog(sign=-1)["status"] == "PASS"
     assert _jog(axis=2, brake=2.4)["status"] == "PASS", "Z brakes on 600 mm/s² (OFFSET_AV_RATIO 0.2)"
-    assert _jog(axis=0, brake=2.4)["status"] == "FAIL", "X: 2.1 mm"
+    assert _jog(axis=0, brake=2.4)["status"] != "PASS", "X: 2.1 mm"
 
 
 def test_a_jog_with_the_wrong_sign_or_no_stop_is_red():
-    inverted = nc.eval_jog("jog-x+", 0, 1, 300.0, 285.0, [(0.1, 284.0, 0.0)])
+    inverted = nc.eval_jog("jog-x+", 0, 1, 300.0, (-0.01, 285.0), [(0.1, 284.0, 0.0)])
     assert inverted["status"] == "FAIL" and "sign" in inverted["detail"]
     late = _jog(stop_at=0.7)
     assert late["status"] == "FAIL" and "0.5 s" in late["detail"]
-    moving = nc.eval_jog("jog-x+", 0, 1, 300.0, 315.0, [(0.1, 316.0, 20.0), (0.45, 316.5, 5.0)])
+    moving = nc.eval_jog("jog-x+", 0, 1, 300.0, (-0.01, 315.0), [(0.1, 316.0, 20.0), (0.45, 316.5, 5.0)])
     assert moving["status"] == "FAIL", "no standstill sample within 0.5 s"
-    assert nc.eval_jog("jog-x+", 0, 1, 300.0, 315.0, [])["status"] == "incomplete"
+    assert nc.eval_jog("jog-x+", 0, 1, 300.0, (-0.01, 315.0), [])["status"] == "incomplete"
 
 
 # ── The orchestrator's ending (R282 FI282-01: the two closing counter-cases) ──
@@ -332,11 +336,12 @@ class FileHost(FakeHost):
             self.active, self.instance = st["active"], tuple(st["instance"])
             self.test_instance = tuple(st["test"]) if st.get("test") else None
             self.last = st.get("last", 100)
+            self.invocations = st.get("invocations", {})
 
     def _save(self):
         self.path.write_text(json.dumps({"active": self.active, "instance": list(self.instance),
                                          "test": list(self.test_instance) if self.test_instance else None,
-                                         "last": getattr(self, "last", 100)}))
+                                         "last": getattr(self, "last", 100), "invocations": self.invocations}))
 
     def stop(self, name):
         super().stop(name)
@@ -423,11 +428,29 @@ def test_a_home_whose_completion_never_came_is_red_with_the_right_bits():
 
 def test_an_unknown_or_non_finite_jog_value_is_never_a_standstill():
     nan = float("nan")
-    assert nc.eval_jog("jog-x+", 0, 1, 300.0, nan, [(0.1, 301.0, 0.0)])["status"] == "incomplete"
-    assert nc.eval_jog("jog-x+", 0, 1, 300.0, 315.0, [(0.01, 315.0, None), (0.02, 315.0, nan)])["status"] == "incomplete"
-    # an anchor frame older than its bound: the anchor is not proven
-    stale = nc.eval_jog("jog-x+", 0, 1, 300.0, 315.0, [(0.1, 316.0, 0.0)], anchor_age=0.25)
-    assert stale["status"] == "incomplete" and "anchor" in stale["detail"]
+    assert nc.eval_jog("jog-x+", 0, 1, 300.0, (-0.01, nan), [(0.1, 301.0, 0.0)])["status"] == "incomplete"
+    assert nc.eval_jog("jog-x+", 0, 1, 300.0, (-0.01, 315.0), [(0.01, 315.0, None), (0.02, 315.0, nan)])["status"] == "incomplete"
+    assert nc.eval_jog("jog-x+", 0, 1, 300.0, None, [(0.1, 316.0, 0.0)])["status"] == "incomplete", "no frame before the reply"
+
+
+def test_the_unseen_travel_before_the_first_frame_never_vanishes():
+    """Codex R287 FI-I23: the reply at 315, the first frame 90 ms later at
+    318.4875 (27.5 mm/s), standstill at 320 — 5 mm of real braking, which
+    the later frame as anchor reported as 1.5125 → PASS. The bracket: the
+    upper bound from the frame BEFORE the reply, the lower from the first
+    after; between them the evidence is incomplete, never a PASS."""
+    for sign in (1, -1):
+        before = (-0.005, 300 + sign * 15)
+        samples = [(0.09, 300 + sign * 18.4875, 27.5), (0.2, 300 + sign * 20, 0.0)]
+        r = nc.eval_jog("jog-x", 0, sign, 300.0, before, samples)
+        assert r["status"] == "incomplete", r
+        assert (r["brake_upper_mm"], r["brake_lower_mm"]) == (5.0, 1.5125), r
+    # the whole range above the bound: FAIL; the whole range within it: PASS
+    over = nc.eval_jog("jog-x+", 0, 1, 300.0, (-0.005, 315.0), [(0.01, 317.6, 5.0), (0.2, 320.0, 0.0)])
+    assert over["status"] == "FAIL"
+    within = nc.eval_jog("jog-x+", 0, 1, 300.0, (-0.005, 315.0), [(0.01, 315.4, 20.0), (0.2, 316.5, 0.0)])
+    assert within["status"] == "PASS"
+
 
 
 def test_the_client_takes_only_status_frames_as_status():
@@ -492,11 +515,14 @@ def test_a_run_folder_that_exists_already_is_refused_before_anything(tmp_path):
 
 
 # ── R286 FI-I19 / FI-I21: the test instance ends first, the return is bound ──
-def _started_test(h, run):
-    """The run's own instance up: native-sim active, holding the VM's LinuxCNC."""
-    h.active["native-sim"] = True
+def _started_test(h, run, unit="native-sim-r1"):
+    """The run's own instance up: its unit active (owned: its invocation
+    recorded), holding the VM's LinuxCNC."""
+    h.active[unit] = True
+    h.invocations[unit] = "inv-1"
     h.test_instance = ("linuxcncsvr", 900, 9000)
-    state = {"test_unit": "native-sim", "tree": str(run / "tree"), "tree_of": "/wt"}
+    state = {"test_unit": unit, "test_unit_invocation": "inv-1", "test_instance": [900, 9000],
+             "tree": str(run / "tree"), "tree_of": "/wt"}
     (run / "state.json").write_text(json.dumps(state))
     return state
 
@@ -517,26 +543,30 @@ def test_a_kill_after_the_test_start_ends_the_test_instance_before_the_lan_retur
     got = json.loads(out.read_text())
     assert got["outcome"] == "complete" and got["isolation"] == [] and got["cleanup"] == []
     assert json.loads(state.read_text())["test"] is None, "the test instance ended first"
-    assert json.loads((run / "state.json").read_text())["tree_removed"] is True
+    assert json.loads((run / "state.json").read_text())["test_ended"] is True
 
 
 def test_a_test_instance_that_does_not_end_keeps_the_lan_down_and_says_so(tmp_path, monkeypatch):
     h = FakeHost()
     pre = rl.record(h)
     rl.stop_lan(h, pre)
-    h.test_instance = ("linuxcncsvr", 900, 9000)      # native-sim gone, its LinuxCNC still there
+    h.test_instance = ("linuxcncsvr", 900, 9000)      # its unit gone, its LinuxCNC still there
     monkeypatch.setattr(rl, "TEST_END_S", 0.1)
-    out = rl.restore(h, pre, {"test_unit": "native-sim"})
+    out = rl.restore(h, pre, {"test_unit": "native-sim-r1", "test_unit_invocation": "inv-1", "test_instance": [900, 9000],
+                              "tree": "/run/tree", "tree_of": "/wt"})
     assert out["outcome"] == "not_returned" and any("still runs" in r for r in out["reasons"])
     assert h.started == [], "never a second LinuxCNC beside it"
+    assert h.removed == [], "the tree stays while its processes live"
 
 
 def test_a_restore_interrupted_after_the_test_end_is_completed_by_the_next(tmp_path):
     h = FakeHost()
     pre = rl.record(h)
     rl.stop_lan(h, pre)
-    state = {"test_unit": "native-sim", "tree": "/run/tree", "tree_of": "/wt"}
-    h.active["native-sim"], h.test_instance = True, ("linuxcncsvr", 900, 9000)
+    state = {"test_unit": "native-sim-r1", "test_unit_invocation": "inv-1", "test_instance": [900, 9000],
+             "tree": "/run/tree", "tree_of": "/wt"}
+    h.active["native-sim-r1"], h.invocations["native-sim-r1"] = True, "inv-1"
+    h.test_instance = ("linuxcncsvr", 900, 9000)
     h.fail_start.add("lcnc-sim-gates")
     first = tmp_path / "restore.json"
     assert rl.restore(h, pre, state, first)["outcome"] == "not_returned"
@@ -590,3 +620,68 @@ def test_the_second_restore_keeps_the_first_isolation_failure_and_an_unproven_on
     unknown = rl.restore(h, pre, {}, tmp_path / "none.json")
     assert unknown["isolation"] is None
     assert nr.verdict({"rows": [{"status": "PASS"}], "restore": unknown}) == "FAIL"
+
+
+
+# ── R287: the double ending, ownership, a partial return, the repeat's proofs ──
+def test_the_normal_double_ending_recognises_the_returned_lan(tmp_path):
+    """finally, then ExecStopPost — with the test unit and the tree in the state (R287 FI-I19 A)."""
+    h = FakeHost()
+    run = tmp_path / "run"
+    run.mkdir()
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    state = _started_test(h, run)
+    first = run / "restore.json"
+    a = rl.restore(h, pre, state, first)
+    b = rl.restore(h, pre, state, first)
+    assert a["outcome"] == "complete" and b["outcome"] == "complete" and b["repeat_of"] == "complete", b
+    assert h.removed == [str(run / "tree")], "removed once"
+
+
+def test_a_failure_after_the_lan_start_resumes_and_starts_the_keepalive(tmp_path):
+    h = FakeHost()
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    state, first = {}, tmp_path / "restore.json"
+    h.fail_start.add("bg-keepalive")
+    assert rl.restore(h, pre, state, first)["outcome"] == "not_returned"
+    assert h.active["lcnc-sim-gates"] and state["isolation"] == [], "the isolation proven before the LAN start, kept"
+    h.fail_start.clear()
+    out = rl.restore(h, pre, state, first)
+    assert out["outcome"] == "complete" and out["isolation"] == [] and h.active["bg-keepalive"], out
+
+
+def test_an_intended_unit_that_was_never_ours_is_left_alone(tmp_path):
+    """systemd-run failed (the name existed): the intent is no ownership (R287 FI-I19 B)."""
+    h = FakeHost()
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    h.active["native-sim-r1"], h.invocations["native-sim-r1"] = True, "someone-elses"
+    out = rl.restore(h, pre, {"test_unit_intent": "native-sim-r1"})
+    assert h.active["native-sim-r1"], "a unit the run never owned is not stopped"
+    # owned once, but now another incarnation of that name runs: not stopped either
+    out = rl.restore(h, pre, {"test_unit": "native-sim-r1", "test_unit_invocation": "inv-1"})
+    assert h.active["native-sim-r1"]
+
+
+def test_the_repeat_restore_proves_the_current_state_again(tmp_path):
+    h = FakeHost()
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    first = tmp_path / "restore.json"
+    assert rl.restore(h, pre, {}, first)["outcome"] == "complete"
+    h.head = "moved"
+    again = rl.restore(h, pre, {}, first)
+    assert again["outcome"] == "not_returned" and any("HEAD" in r for r in again["reasons"])
+    h.head = "abc"
+    h.units["bg-keepalive"] = {**h.units["bg-keepalive"], "ExecStart": ["/py", "other.py"]}
+    again = rl.restore(h, pre, {}, first)
+    assert again["outcome"] == "not_returned" and any("another command" in r for r in again["reasons"])
+
+
+def test_an_unknown_interpreter_is_named():
+    """R287 FI-I18: /proc/<pid>/exe unreadable → no proof, never silence."""
+    tree, ini = Path("/run/tree"), Path("/run/configs/sim/lcnc_suite_sim_3axis_xyz.ini")
+    procs = [{"cmdline": ["python3", str(tree / "lcnc-gateway/hal_reader.py")], "exe": None, "cwd": "/"}]
+    assert any("interpreter unknown" in p for p in lt.process_problems(procs, tree, ini))

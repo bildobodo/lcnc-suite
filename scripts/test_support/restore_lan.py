@@ -60,65 +60,69 @@ TEST_END_S = 60
 
 
 def end_test_resources(host, state: dict) -> list[str]:
-    """The run's OWN test instance and tree (state.json, R286 FI-I19), ended
-    before the LAN instance comes back — from `finally` and from ExecStopPost
-    alike. The VM runs one LinuxCNC: while the test instance lives, the LAN
-    cannot return. Every failure is named, none ignored."""
+    """The run's OWN test instance and tree (state.json, R286/R287 FI-I19),
+    ended before the LAN instance returns — from `finally` and from
+    ExecStopPost alike. Ownership is proven, not intended: only a unit the
+    run STARTED (`test_unit` with the InvocationID it got, written after a
+    successful start) and only while that incarnation runs is stopped; the
+    wait is for the recorded test instance (pid and start) alone — never
+    "no LinuxCNC at all", which the returned LAN instance never satisfies;
+    the tree goes only once that instance has ended. Every failure is named."""
+    if state.get("test_ended"):
+        return []
     reasons = []
     unit = state.get("test_unit")
-    if unit and host.is_active(unit):
+    if unit and host.invocation(unit) == state.get("test_unit_invocation"):
         try:
             host.stop(unit)
         except Exception as e:  # noqa: BLE001
             reasons.append(f"the test unit {unit} did not stop: {e}")
-    if unit:
+    inst = state.get("test_instance")
+    if inst:
         end = time.monotonic() + TEST_END_S
-        while host.lan_instance() and time.monotonic() < end:
+        while host.process_alive(*inst) and time.monotonic() < end:
             time.sleep(0.2)
-        if host.lan_instance():
-            reasons.append(f"a LinuxCNC instance {list(host.lan_instance())} still runs after the test unit stopped")
-    tree = state.get("tree")
-    if tree and state.get("tree_of") and not state.get("tree_removed"):
-        try:
-            host.remove_tree(tree, state["tree_of"])
-            state["tree_removed"] = True
-        except Exception as e:  # noqa: BLE001
-            reasons.append(f"the run tree {tree} was not removed: {e}")
+        if host.process_alive(*inst):
+            reasons.append(f"the test instance {inst} still runs")
+    if not reasons:
+        tree = state.get("tree")
+        if tree and state.get("tree_of"):
+            try:
+                host.remove_tree(tree, state["tree_of"])
+            except Exception as e:  # noqa: BLE001
+                reasons.append(f"the run tree {tree} was not removed: {e}")
+    if not reasons:
+        state["test_ended"] = True
     return reasons
 
 
 def restore(host, pre: dict, state: dict | None = None, first: Path | None = None) -> dict:
-    """End the run's own test resources, start what was recorded, prove it.
-    `first` (the run's restore.json) binds the outcome: the restore that
-    returned the LAN writes it, a later one (ExecStopPost after `finally`)
-    recognises THAT return — the same instance, still running — and keeps
-    its isolation verdict; without one, an isolation it cannot prove stays
-    unknown (None), never "proven"."""
-    state = state or {}
+    """End the run's own test resources, start what was recorded and is not
+    running, prove it. Phases bind in `state` (the run's state.json): the
+    isolation is compared ONCE, before the LAN instance runs again, and kept;
+    a partial return (the LAN up, the keepalive not) resumes. `first` (the
+    run's restore.json) is written by the restore that returned the LAN; a
+    later one proves the CURRENT state again — the same instance, every
+    other proof — and keeps the first's isolation verdict. An isolation never
+    proven stays None (unknown)."""
+    state = {} if state is None else state
     cleanup = end_test_resources(host, state)
     earlier = json.loads(first.read_text()) if first and first.is_file() else None
-    reasons: list[str] = []
     since = time.time()
-    lan_down = any(not host.is_active(n) for n in pre["units"])
-    if earlier and not lan_down:
-        return _reproven(host, pre, earlier, cleanup)
-    isolation: list[str] | None = None
-    if lan_down and not cleanup:
+    reasons = list(cleanup)
+    if not reasons and "isolation" not in state and all(not host.is_active(n) for n in pre["units"]):
         # the isolation claim (its own verdict — the LAN comes back either
         # way): the operator's files as the stop left them, compared BEFORE
         # the LAN instance runs again (it writes its own state)
         hashes = host.file_hashes()
-        isolation = [f"{k} changed" for k in pre.get("hashes", {}) if hashes.get(k) != pre["hashes"][k]]
+        state["isolation"] = [f"{k} changed" for k in pre.get("hashes", {}) if hashes.get(k) != pre["hashes"][k]]
         if "hashes" not in pre:
-            isolation.append("no hashes recorded after the stop (stop_lan)")
-    if cleanup:
-        reasons += cleanup
+            state["isolation"].append("no hashes recorded after the stop (stop_lan)")
+    isolation = earlier.get("isolation") if earlier else state.get("isolation")
     for name, spec in pre["units"].items():
         if reasons:
             break                       # the test instance still holds the VM's LinuxCNC
         if host.is_active(name):
-            if host.unit(name)["ExecStart"] != spec["ExecStart"]:
-                reasons.append(f"{name} runs another command than recorded")
             continue
         try:
             host.start(name, spec)
@@ -128,27 +132,37 @@ def restore(host, pre: dict, state: dict | None = None, first: Path | None = Non
         reasons.append(f"the LAN gateway's /ready did not answer within {READY_S} s")
     instance = list(host.lan_instance() or ())
     if not reasons:
-        reasons += _proofs(host, pre, instance, since)
+        reasons += _proofs(host, pre, instance, since, earlier)
     out = _outcome(host, reasons, instance, isolation, cleanup)
-    if first and out["outcome"] != "not_returned":
+    if earlier:
+        out["repeat_of"] = earlier.get("outcome")
+    elif first and out["outcome"] != "not_returned":
         _write(first, out)
     return out
 
 
-def _proofs(host, pre, instance, since) -> list[str]:
+def _proofs(host, pre, instance, since, earlier=None) -> list[str]:
+    """Every current proof of the return. The first return needs a NEW
+    instance of the restored unit; a later one THAT instance, still running."""
     reasons = []
+    gateway_unit = next(iter(pre["units"]))
     if not instance:
         reasons.append("no LinuxCNC instance found")
-    elif instance[1:] == list(pre["instance"])[1:]:
+    elif earlier is not None and instance != earlier.get("instance"):
+        reasons.append(f"the instance {instance} is not the one the restore returned ({earlier.get('instance')})")
+    elif earlier is None and instance[1:] == list(pre["instance"])[1:]:
         reasons.append("the instance is the one recorded before the stop — not a new one")
-    elif not host.unit_owns(next(iter(pre["units"])), instance[1]):
-        reasons.append(f"the instance {instance} does not belong to {next(iter(pre['units']))}")
+    elif not host.unit_owns(gateway_unit, instance[1]):
+        reasons.append(f"the instance {instance} does not belong to {gateway_unit}")
+    for name, spec in pre["units"].items():
+        if host.unit(name)["ExecStart"] != spec["ExecStart"]:
+            reasons.append(f"{name} runs another command than recorded")
     if host.gateway_ini() != pre["ini"]:
         reasons.append(f"the gateway runs {host.gateway_ini()}, recorded {pre['ini']}")
     if host.tree_head() != pre["head"]:
         reasons.append(f"the LAN tree's HEAD is {host.tree_head()}, recorded {pre['head']}")
-    if "bg-keepalive" in pre["units"] and not host.keepalive_connected_since(since):
-        reasons.append("the recorded keepalive is not connected to the returned LAN instance")
+    if "bg-keepalive" in pre["units"] and not host.keepalive_heartbeat_since(since):
+        reasons.append("no fresh heartbeat of the recorded keepalive reached the returned gateway")
     return reasons
 
 
@@ -160,20 +174,6 @@ def _outcome(host, reasons, instance, isolation, cleanup) -> dict:
     if trip:
         return {"outcome": "lan_started_trip_unacked", "trip": trip, **base}
     return {"outcome": "complete", **base}
-
-
-def _reproven(host, pre, earlier, cleanup) -> dict:
-    """A later restore of the same run: the earlier return still stands —
-    the SAME instance runs, the keepalive is there; its isolation verdict
-    stays what it was."""
-    instance = list(host.lan_instance() or ())
-    reasons = list(cleanup)
-    if instance != earlier.get("instance"):
-        reasons.append(f"the instance {instance} is not the one the restore returned ({earlier.get('instance')})")
-    if "bg-keepalive" in pre["units"] and not host.keepalive_connected_since(0):
-        reasons.append("the recorded keepalive is not connected")
-    out = _outcome(host, reasons, instance, earlier.get("isolation"), cleanup)
-    return {**out, "repeat_of": earlier.get("outcome")}
 
 
 def _write(path: Path, obj) -> None:

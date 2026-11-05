@@ -10532,3 +10532,18 @@ temporary files are created exclusively (a link at a temporary name is never
 followed), a mutable file sharing its inode is named, the run folder is new.
 A home case needs its completion, a jog its known values and a fresh anchor
 (the first status frame after the jog_stop reply, at most 0.1 s later).
+
+Codex R287, the rests: a unit NAME intended is no unit owned — one name per
+run (`native-sim-<run>`), and the state records the unit as the run's only
+after its start, with the InvocationID that start gave; only that
+incarnation is stopped, the wait is for the recorded test instance (pid and
+start) alone — the returned LAN instance never satisfied "no LinuxCNC at
+all", and a second ending blocked on it —, the tree goes only after that
+end. The isolation is compared once, before the LAN runs again, and kept in
+the state, so a partial return (the LAN up, the keepalive not) resumes; a
+repeat restore proves every current point again. The keepalive's heartbeat
+is its pongs (the local keepalive writes a beat file per pong) on a TCP pair
+whose server end the returned gateway holds — a connection alone, or another
+counted client, is none. The jog's travel from the reply is bracketed by the
+status frames before and after it: within the bound PASS, beyond FAIL,
+between incomplete; an unreadable interpreter is named.

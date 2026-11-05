@@ -281,10 +281,15 @@ def process_problems(procs: list[dict], tree: Path, ini: Path, venv: Path | None
             out.append(f"sim_toolsetter_feed.py runs {script}, not the run's")
     # each suite process's interpreter: the system's or the named venv (R269's shared resources)
     for p in procs:
-        exe = p.get("exe") or ""
+        exe = p.get("exe")
         suite = any(Path(a).name in {Path(h).name for h in SUITE_HELPERS} | {"sim_toolsetter_feed.py"}
                     for a in p["cmdline"][:3]) or "gateway:app" in p["cmdline"]
-        if suite and exe and not (exe.startswith(SYSTEM_PREFIXES) or (venv and exe.startswith(str(venv)))):
+        if not suite:
+            continue
+        if not exe:
+            # an unreadable /proc/<pid>/exe is no proof (R287 FI-I18) — never silence
+            out.append(f"{p['cmdline'][:2]}: interpreter unknown (/proc/{p.get('pid')}/exe not read)")
+        elif not (exe.startswith(SYSTEM_PREFIXES) or (venv and exe.startswith(str(venv)))):
             out.append(f"{p['cmdline'][:2]} runs on the interpreter {exe}")
     return out
 

@@ -191,13 +191,24 @@ def start_copy():
         env = {"PATH": ctx["path"], "LCNC_LOG_DIR": str(run / "logs"), "PYTHONPYCACHEPREFIX": str(run / "pycache"),
                "LCNC_WEBUI_BROWSER": "0", "LCNC_WEBUI_HOST": "127.0.0.1", "LCNC_WEBUI_DEV": "0"}
         (run / "logs").mkdir(exist_ok=True)
-        subprocess.run(["systemctl", "--user", "reset-failed", UNIT], capture_output=True)
-        ctx["state"]["test_unit"] = UNIT
+        # one unit name per run, never reused: a name intended is no unit owned
+        # (R287 FI-I19 B) — ownership is the InvocationID the START gave
+        unit = f"{UNIT}-{run.name}"
+        ctx["state"]["test_unit_intent"] = unit
         save_state(ctx)
-        subprocess.run(["systemd-run", "--user", f"--unit={UNIT}", "-p", f"WorkingDirectory={ctx['config']}"]
+        subprocess.run(["systemd-run", "--user", f"--unit={unit}", "-p", f"WorkingDirectory={ctx['config']}"]
                        + [f"-E{k}={v}" for k, v in env.items()] + ["linuxcnc", str(ini)], check=True, capture_output=True)
+        from test_support.system_host import SystemHost
+        sh = SystemHost()
+        ctx["state"].update(test_unit=unit, test_unit_invocation=sh.invocation(unit))
+        save_state(ctx)
         if not rl_host_ready(180):
             raise Refused("the copy's gateway did not answer /ready within 180 s")
+        inst = sh.lan_instance()
+        if not inst or not sh.unit_owns(unit, inst[1]):
+            raise Refused(f"no LinuxCNC instance of {unit} found")
+        ctx["state"]["test_instance"] = [inst[1], inst[2]]
+        save_state(ctx)
         procs = lt.read_procs()
         problems = lt.process_problems(procs, ctx["tree"], ini, venv=(HERE.parent / "lcnc-gateway/.venv").resolve())
         gw = next((p for p in procs if "gateway:app" in p["cmdline"]), None)
@@ -231,7 +242,7 @@ def _stop_copy(ctx):
     one code for `finally` and ExecStopPost."""
     client = ctx.pop("client", None)
     if client:
-        client.close()
+        client.close(strict=True)
 
 
 def save_state(ctx):
@@ -303,11 +314,16 @@ def jog_cases(joints: int):
                 c.request("jog_stop", axis=axis)
                 t_reply = time.monotonic()
                 time.sleep(1.0)
-                after = [(t - t_reply, st) for t, st in list(frames) if t >= t_reply]
-                # the anchor: the FIRST status frame after the reply, with its age (R286 FI-I23)
-                anchor, age = (_pos(after[0][1], axis), after[0][0]) if after else (float("nan"), float("nan"))
-                samples = [(t, _pos(st, axis), _vel(st)) for t, st in after]
-                rows.append(nc.eval_jog(case, axis, sign, p0, anchor, samples, anchor_age=age))
+                if c.error:
+                    raise RuntimeError(f"{case}: the session ended — {c.error}")
+                seen = list(frames)
+                # the bracket around the reply (R287 FI-I23): the last frame before it, every one after
+                prior = [(t - t_reply, st) for t, st in seen if t < t_reply]
+                before = (prior[-1][0], _pos(prior[-1][1], axis)) if prior else None
+                samples = [(t - t_reply, _pos(st, axis), _vel(st)) for t, st in seen if t >= t_reply]
+                rows.append(nc.eval_jog(case, axis, sign, p0, before, samples))
+        if c.error:
+            raise RuntimeError(f"the session ended after the jogs — {c.error}")
         return rows
     return ("jog", step)
 
