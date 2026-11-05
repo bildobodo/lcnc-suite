@@ -176,6 +176,15 @@ class FakeHost:
     def unit_owns(self, unit, pid): return self.owner_ok
     def remove_tree(self, tree, of): self.removed.append(tree)
     def invocation(self, unit): return self.invocations.get(unit) if self.active.get(unit) else None
+    def unit_if_exists(self, unit): return self.units.get(unit) if self.active.get(unit) else None
+    def unit_instance(self, unit):
+        return self.test_instance if self.active.get(unit) and unit.startswith("native-sim") else None
+
+    def run_test_unit(self, unit, wd, ini):
+        """What `systemd-run --unit=<unit>` does: the unit and its instance exist."""
+        self.units[unit] = {"ExecStart": ["linuxcnc", str(ini)], "WorkingDirectory": str(wd)}
+        self.active[unit], self.invocations[unit] = True, "inv-crash"
+        self.test_instance = ("linuxcncsvr", 900, 9000)
     def process_alive(self, pid, start): return bool(self.test_instance) and self.test_instance[1:] == (pid, start)
     def start(self, name, spec):
         if name in self.fail_start:
@@ -294,16 +303,16 @@ def test_a_jog_moves_in_its_sign_and_stops_within_its_bounds():
     assert _jog()["status"] == "PASS"
     assert _jog(sign=-1)["status"] == "PASS"
     assert _jog(axis=2, brake=2.4)["status"] == "PASS", "Z brakes on 600 mm/s² (OFFSET_AV_RATIO 0.2)"
-    assert _jog(axis=0, brake=2.4)["status"] != "PASS", "X: 2.1 mm"
+    assert _jog(axis=0, brake=2.4)["status"] == "incomplete", "X: 2.1 mm — beyond by the frame before, unproven"
 
 
 def test_a_jog_with_the_wrong_sign_or_no_stop_is_red():
     inverted = nc.eval_jog("jog-x+", 0, 1, 300.0, (-0.01, 285.0), [(0.1, 284.0, 0.0)])
     assert inverted["status"] == "FAIL" and "sign" in inverted["detail"]
     late = _jog(stop_at=0.7)
-    assert late["status"] == "FAIL" and "0.5 s" in late["detail"]
+    assert late["status"] == "incomplete" and "0.5 s" in late["detail"], "a late RECEIPT proves no late standstill"
     moving = nc.eval_jog("jog-x+", 0, 1, 300.0, (-0.01, 315.0), [(0.1, 316.0, 20.0), (0.45, 316.5, 5.0)])
-    assert moving["status"] == "FAIL", "no standstill sample within 0.5 s"
+    assert moving["status"] == "incomplete", "no standstill received within 0.5 s — not proven either way"
     assert nc.eval_jog("jog-x+", 0, 1, 300.0, (-0.01, 315.0), [])["status"] == "incomplete"
 
 
@@ -445,9 +454,10 @@ def test_the_unseen_travel_before_the_first_frame_never_vanishes():
         r = nc.eval_jog("jog-x", 0, sign, 300.0, before, samples)
         assert r["status"] == "incomplete", r
         assert (r["brake_upper_mm"], r["brake_lower_mm"]) == (5.0, 1.5125), r
-    # the whole range above the bound: FAIL; the whole range within it: PASS
+    # beyond the bound by the frame before: no PASS — and no FAIL either, frames
+    # received after the reply may have been captured before it (R288)
     over = nc.eval_jog("jog-x+", 0, 1, 300.0, (-0.005, 315.0), [(0.01, 317.6, 5.0), (0.2, 320.0, 0.0)])
-    assert over["status"] == "FAIL"
+    assert over["status"] == "incomplete"
     within = nc.eval_jog("jog-x+", 0, 1, 300.0, (-0.005, 315.0), [(0.01, 315.4, 20.0), (0.2, 316.5, 0.0)])
     assert within["status"] == "PASS"
 
@@ -685,3 +695,82 @@ def test_an_unknown_interpreter_is_named():
     tree, ini = Path("/run/tree"), Path("/run/configs/sim/lcnc_suite_sim_3axis_xyz.ini")
     procs = [{"cmdline": ["python3", str(tree / "lcnc-gateway/hal_reader.py")], "exe": None, "cwd": "/"}]
     assert any("interpreter unknown" in p for p in lt.process_problems(procs, tree, ini))
+
+
+
+# ── R288 FI-I19 B / A: a start whose record was lost; phases on disk ─────
+def _intent(run):
+    return {"test_unit_intent": "native-sim-r1", "test_unit_wd": str(run / "configs/sim"),
+            "test_ini": str(run / "configs/sim/x.ini"), "tree": str(run / "tree"), "tree_of": "/wt"}
+
+
+def test_a_start_whose_ownership_was_never_written_is_still_ended_first(tmp_path):
+    """Killed after systemd-run started the unit, before its ownership was
+    written: the intent is resolved against the unit itself (R288 FI-I19 B)."""
+    run = tmp_path / "run"
+    run.mkdir()
+    h = FakeHost()
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    state = _intent(run)
+    h.run_test_unit("native-sim-r1", state["test_unit_wd"], state["test_ini"])
+    out = rl.restore(h, pre, state, run / "restore.json")
+    assert out["outcome"] == "complete", out
+    assert not h.active["native-sim-r1"] and h.test_instance is None, "the run's own unit ended first"
+    assert h.removed == [str(run / "tree")]
+
+
+def test_an_intended_name_running_something_else_is_unresolved_and_blocks(tmp_path):
+    run = tmp_path / "run"
+    run.mkdir()
+    h = FakeHost()
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    h.run_test_unit("native-sim-r1", "/elsewhere", "/other.ini")
+    out = rl.restore(h, pre, _intent(run), run / "restore.json")
+    assert out["outcome"] == "not_returned" and any("unresolved" in r for r in out["reasons"]), out
+    assert h.active["native-sim-r1"] and h.removed == [] and h.started == [], "neither stopped, nor the tree, nor the LAN"
+
+
+def test_the_phases_are_on_disk_before_the_lan_starts(tmp_path):
+    """R288 FI-I19 A: killed right after the LAN start, the next restore
+    reads state.json from the FILE — the isolation proven before it stays."""
+    state_path = tmp_path / "state.json"
+    h = FakeHost()
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    h.hashes.update(nc_files="changed")
+    seen = {}
+
+    class Killed(BaseException):
+        pass
+
+    def start(name, spec, _orig=h.start):
+        _orig(name, spec)
+        seen.update(json.loads(state_path.read_text()))
+        raise Killed()
+    h.start = start
+    with pytest.raises(Killed):
+        rl.restore(h, pre, {}, tmp_path / "restore.json", save=lambda st: state_path.write_text(json.dumps(st)))
+    assert seen.get("isolation") == ["nc_files changed"] and seen.get("test_ended") is True, seen
+    del h.start
+    h.hashes.update(nc_files="h1", config="the LAN wrote its own state")
+    out = rl.restore(h, pre, json.loads(state_path.read_text()), tmp_path / "restore.json")
+    assert out["isolation"] == ["nc_files changed"], "the proof made before the LAN ran, not a later hash"
+
+
+
+def test_a_frame_received_after_the_reply_may_be_captured_before_it():
+    """Codex R288 FI-I23: 50 mm/s, 750 mm/s²; the reply at 315, the frame
+    received 5 ms before it captured at 311.7 (−66 ms), the one received 5 ms
+    after it captured at 313.35 (−33 ms), standstill 316.667 — 1.667 mm of
+    real braking, within 2.067. The receipt order gives no lower bound: no
+    FAIL; the upper bound (316.667 − 311.7 = 4.967) gives no PASS."""
+    for sign in (1, -1):
+        r = nc.eval_jog("jog-x", 0, sign, 300.0, (-0.005, 300 + sign * 11.7),
+                        [(0.005, 300 + sign * 13.35, 50.0), (0.08, 300 + sign * 16.667, 0.0)])
+        assert r["status"] == "incomplete", r
+    wrong_way = nc.eval_jog("jog-x+", 0, 1, 300.0, (-0.01, 290.0), [(0.1, 289.0, 0.0)])
+    assert wrong_way["status"] == "FAIL", "a proven wrong direction stays a FAIL"
+    short = nc.eval_jog("jog-x+", 0, 1, 300.0, (-0.01, 302.0), [(0.1, 303.0, 0.0)])
+    assert short["status"] == "incomplete", "a frame before the reply may be stale: 2 mm proves no short jog"

@@ -56,9 +56,11 @@ def eval_jog(case: str, axis: int, sign: int, p0: float, before, samples: list[t
     it, `samples` (seconds after the reply, position, |current_vel|). The
     motion runs in its sign, so the position at the reply lies between the
     frame before and the first after: the braking travel lies between
-    |stop − first after| and |stop − before|. Upper bound within the bound:
-    PASS; lower bound beyond it: FAIL; between: incomplete — the frames do
-    not resolve it. Unknown or non-finite values are never a standstill."""
+    |stop − first after| and |stop − before| — but a frame RECEIVED after the
+    reply may have been CAPTURED before it (R288): only the upper bound holds.
+    Within the bound: PASS; a proven wrong direction: FAIL; anything else
+    incomplete. `brake_lower_mm` is reported, never decided on. Unknown or
+    non-finite values are never a standstill."""
     bound = brake_bound(axis)
     measured = {"axis": "XYZ"[axis], "sign": sign, "bound_mm": round(bound, 3)}
     if before is None:
@@ -70,16 +72,23 @@ def eval_jog(case: str, axis: int, sign: int, p0: float, before, samples: list[t
     samples = [(t, p, v) for t, p, v in samples if _finite(t, p, v)]
     if not samples:
         return _row(case, "incomplete", "no sample with known values after jog_stop", **measured)
-    if sign * (p_b - p0) < JOG_MIN_TRAVEL:
-        return _row(case, "FAIL", f"moved {p_b - p0:+.3f} mm — not ≥ {JOG_MIN_TRAVEL} in its sign", **measured)
+    travel = sign * (p_b - p0)
+    if travel < -0.01:
+        return _row(case, "FAIL", f"moved {p_b - p0:+.3f} mm — against its sign", **measured)
+    if travel < JOG_MIN_TRAVEL:
+        return _row(case, "incomplete", f"moved {p_b - p0:+.3f} mm by the frame before the reply — it may be stale, "
+                    f"≥ {JOG_MIN_TRAVEL} not shown", **measured)
+    # a frame RECEIVED within the time was captured within it; a later receipt
+    # proves nothing about when the machine stood (R288): no FAIL from it
     stop = next(((t, p) for t, p, v in samples if abs(v) <= STANDSTILL), None)
     if stop is None or stop[0] > STOP_WITHIN:
-        return _row(case, "FAIL", f"no standstill within {STOP_WITHIN} s of the jog_stop reply", **measured)
-    upper, lower = abs(stop[1] - p_b), abs(stop[1] - samples[0][1])
-    measured.update(stop_s=round(stop[0], 4), brake_upper_mm=round(upper, 4), brake_lower_mm=round(lower, 4))
+        return _row(case, "incomplete", f"no standstill received within {STOP_WITHIN} s of the jog_stop reply",
+                    **measured)
+    upper = abs(stop[1] - p_b)
+    measured.update(stop_s=round(stop[0], 4), brake_upper_mm=round(upper, 4),
+                    brake_lower_mm=round(abs(stop[1] - samples[0][1]), 4))
     if upper <= bound:
         return _row(case, "PASS", "moved in its sign, stopped within its bounds", **measured)
-    if lower > bound:
-        return _row(case, "FAIL", f"braked at least {lower:.3f} mm past the reply, bound {bound:.3f}", **measured)
-    return _row(case, "incomplete", f"the braking travel lies between {lower:.3f} and {upper:.3f} mm — the status "
-                f"frames do not resolve it against {bound:.3f}", **measured)
+    return _row(case, "incomplete", f"the braking travel from the reply is at most {upper:.3f} mm by the frame "
+                f"before it; status frames give no lower bound (their capture time is not known) — not "
+                f"resolved against {bound:.3f}", **measured)

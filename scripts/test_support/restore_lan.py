@@ -67,12 +67,32 @@ def end_test_resources(host, state: dict) -> list[str]:
     successful start) and only while that incarnation runs is stopped; the
     wait is for the recorded test instance (pid and start) alone — never
     "no LinuxCNC at all", which the returned LAN instance never satisfies;
-    the tree goes only once that instance has ended. Every failure is named."""
+    the tree goes only once that instance has ended. An intent whose
+    ownership was never written is resolved against the unit itself. Every
+    failure is named."""
     if state.get("test_ended"):
         return []
     reasons = []
     unit = state.get("test_unit")
-    if unit and host.invocation(unit) == state.get("test_unit_invocation"):
+    owned = bool(unit) and host.invocation(unit) == state.get("test_unit_invocation")
+    if not unit and state.get("test_unit_intent"):
+        # killed after the start, before its ownership was written (R288
+        # FI-I19 B): resolve the intent against the unit itself — this run's
+        # folder and INI make it the run's; anything else stays unresolved
+        unit = state["test_unit_intent"]
+        spec = host.unit_if_exists(unit)
+        if spec is None:
+            unit = None                 # never started: nothing to end
+        elif spec.get("WorkingDirectory") == state.get("test_unit_wd") and \
+                (spec.get("ExecStart") or [None])[-1] == state.get("test_ini"):
+            owned = True
+        else:
+            return [f"a unit {unit} runs that this run intended but cannot prove its own — unresolved"]
+    if unit and owned:
+        if not state.get("test_instance"):
+            inst = host.unit_instance(unit)     # its LinuxCNC, read before the stop ends its cgroup
+            if inst:
+                state["test_instance"] = [inst[1], inst[2]]
         try:
             host.stop(unit)
         except Exception as e:  # noqa: BLE001
@@ -96,7 +116,7 @@ def end_test_resources(host, state: dict) -> list[str]:
     return reasons
 
 
-def restore(host, pre: dict, state: dict | None = None, first: Path | None = None) -> dict:
+def restore(host, pre: dict, state: dict | None = None, first: Path | None = None, save=None) -> dict:
     """End the run's own test resources, start what was recorded and is not
     running, prove it. Phases bind in `state` (the run's state.json): the
     isolation is compared ONCE, before the LAN instance runs again, and kept;
@@ -119,6 +139,10 @@ def restore(host, pre: dict, state: dict | None = None, first: Path | None = Non
         if "hashes" not in pre:
             state["isolation"].append("no hashes recorded after the stop (stop_lan)")
     isolation = earlier.get("isolation") if earlier else state.get("isolation")
+    if save:
+        # the phases reached and the isolation proof on DISK before the LAN
+        # runs again (R288 FI-I19 A): a later hash would read its own writes
+        save(state)
     for name, spec in pre["units"].items():
         if reasons:
             break                       # the test instance still holds the VM's LinuxCNC
@@ -199,7 +223,7 @@ def main(argv=None, host_factory=None) -> int:
     # under the ONE heavy lock: the killed run's lock is gone already (R286 FI-I19)
     from test_support.heavy_lock import heavy_lock
     with heavy_lock("restore_lan", wait=600):
-        out = restore(host_factory(pre), pre, state, first=run / "restore.json")
+        out = restore(host_factory(pre), pre, state, first=run / "restore.json", save=lambda st: _write(state_path, st))
     if state_path.is_file() or state:
         _write(state_path, state)
     a.out.write_text(json.dumps(out, indent=2) + "\n")

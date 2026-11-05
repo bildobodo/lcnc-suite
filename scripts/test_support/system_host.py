@@ -183,6 +183,21 @@ class SystemHost:
                              capture_output=True, text=True).stdout.strip()
         return out or None
 
+    def unit_if_exists(self, unit):
+        """The unit's recorded properties while it runs, None otherwise."""
+        return self.unit(unit) if self.is_active(unit) else None
+
+    def unit_instance(self, unit):
+        """The linuxcncsvr in the unit's own cgroup: (name, pid, start ticks), or None."""
+        for d in Path("/proc").glob("[0-9]*"):
+            try:
+                if (d / "comm").read_text().strip() == "linuxcncsvr" and \
+                        f"/{unit}.service" in (d / "cgroup").read_text():
+                    return ("linuxcncsvr", int(d.name), int((d / "stat").read_text().rsplit(")", 1)[1].split()[19]))
+            except (OSError, IndexError, ValueError):
+                continue
+        return None
+
     def process_alive(self, pid, start):
         """The process `pid` with that start time still exists (a reused pid is another process)."""
         try:

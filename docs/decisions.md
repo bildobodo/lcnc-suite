@@ -10547,3 +10547,16 @@ whose server end the returned gateway holds — a connection alone, or another
 counted client, is none. The jog's travel from the reply is bracketed by the
 status frames before and after it: within the bound PASS, beyond FAIL,
 between incomplete; an unreadable interpreter is named.
+
+Codex R288, the rests: a start whose ownership was never written (killed
+between systemd-run and the record) is resolved against the unit itself —
+this run's folder and INI make it the run's, anything else stays unresolved
+and keeps the tree and the LAN back; the restore writes its phases and the
+isolation proof to state.json BEFORE the LAN runs again; the local keepalive
+decodes the gateway's MessagePack pongs. Status frames carry their RECEIPT
+time, not their capture time: a frame received before the jog_stop reply was
+captured before it (an upper bound of the travel from the reply), one
+received after it may not have been — so the frames decide PASS (upper bound
+within the bound) or a proven wrong direction, everything else stays
+incomplete. The servo-sampled measurement (Q288-1) comes under its own
+contract later; until then an incomplete jog is honest.

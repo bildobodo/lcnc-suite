@@ -92,7 +92,8 @@ def run(host, steps, run_dir: Path) -> dict:
                 cleanup()
             except Exception as e:  # noqa: BLE001
                 report["cleanup_error"] = f"{type(e).__name__}: {e}"
-        report["restore"] = rl.restore(host, pre, ctx["state"], first=run_dir / "restore.json")
+        report["restore"] = rl.restore(host, pre, ctx["state"], first=run_dir / "restore.json",
+                                       save=lambda st: write_json(run_dir / "state.json", st))
         write_json(run_dir / "state.json", ctx["state"])
         report["ended"] = time.time()
         write_json(run_dir / "report.json", report)
@@ -194,7 +195,8 @@ def start_copy():
         # one unit name per run, never reused: a name intended is no unit owned
         # (R287 FI-I19 B) — ownership is the InvocationID the START gave
         unit = f"{UNIT}-{run.name}"
-        ctx["state"]["test_unit_intent"] = unit
+        # what identifies the start if this process dies before its ownership is written (R288)
+        ctx["state"].update(test_unit_intent=unit, test_unit_wd=str(ctx["config"]), test_ini=str(ini))
         save_state(ctx)
         subprocess.run(["systemd-run", "--user", f"--unit={unit}", "-p", f"WorkingDirectory={ctx['config']}"]
                        + [f"-E{k}={v}" for k, v in env.items()] + ["linuxcnc", str(ini)], check=True, capture_output=True)
