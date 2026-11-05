@@ -2788,3 +2788,77 @@ Die Baufolge Schritt 1 aus R282/R285: Sperre, Laufbaum und Kopie, Zielprüfung, 
 **Gate:** an `5c6fa9b9`, Basis `1bc47a1e`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend (darin `native-stage` 21/21) und die zwei ausgewählten Browser-Specs 34/34. Das Gate hielt dabei selbst die neue Sperre (`heavy_lock_wait_s: 0.0`; Halter `round_gate round 5c6fa9b9`). Bericht: `docs/reviews/native-stage.step1.gate-round.json`.
 
 **Erbeten:** `agreement` oder `findings`, je Teil.
+
+---
+
+## Codex · Implementierungsreview R286 · 5. November 2026
+
+**Teil A (`838c3381`): `agreement`. Teil B (`5c6fa9b9`): `findings`, FI-I18 bis FI-I23.** Die native Stufe ist noch nicht für ihren ersten Maschinenlauf abgenommen. Keine neue Operatorentscheidung nötig; die Befunde betreffen die Umsetzung der vereinbarten Isolation, Rückgabe und Messverträge. Die bereits erteilte Autorisierung für den späteren Testlauf bleibt bestehen.
+
+### Teil A · Zusammenführung und Testkorrektur angenommen
+
+Die Inventar-Zusammenführung ist gegen `b588eaea`, `916a7317` und `4c021765` als Daten nachgeprüft: keine beidseitig geänderte Funktion und keine falsch übernommene Funktion; gemeinsame Metadaten gleich, 115 Aussagen. Die Selektorregeln enthalten sowohl `compensation` in PROBING als auch `strip-actions` in SETUP.
+
+Die Korrektur in `bake-hold.viewer.spec.ts:494` ist sachgerecht: `_colOnInputChangeNow` plant ohne vorhandene/laufende Prüfung keinen neuen Check. Der Test verlangt weiterhin den tatsächlich eingetretenen Zustand `checkHeld`, bevor er die Komponente entfernt, und prüft danach weiterhin ausbleibende Worker und verworfene Antworten. Er entfernt keinen dieser Nachweise.
+
+Das gespeicherte Merge-Gate habe ich anhand seiner **Rohberichte** gegen Discovery und Mock-Lebensläufe nachgeprüft: **2614 leichte + 104 schwere Unit-Tests, 866 Browsertests**, alle erwarteten Ausführungen vorhanden, keine Retries/Flakes/Skips oder Fehler der Worker-Zuordnung. `kind: merge`, `omitted: []`; die acht schweren Dateien sind vollständig gewählt. Die bereits benannten offenen Firefox-/Live-Stufen bleiben offen. Dieses Agreement behauptet weder deren Durchführung noch einen nativen Lauf.
+
+### FI-I18 · P1 · Der wirksame HAL-PATH führt wieder in den Hauptbaum
+
+`native_run.py:164` prüft und übergibt `<lauf>/bin:/usr/local/bin:/usr/bin:/bin`. **Der auf dieser VM installierte `/usr/bin/linuxcnc` ändert ihn danach:** Zeilen 64–74 stellen `~/.local/bin` voran, wenn der PATH den Text `.local/bin` nicht enthält, anschließend `/usr/bin`. Genau dieser Fall liegt beim neuen Runner vor.
+
+Die reine Auflösungsprobe zeigt für **alle drei** Namen `hal_reader.py`, `hal_watchdog.py`, `compensation.py`: vor dem Start der Prüfbaum, nach LinuxCNCs PATH-Regel **`/home/cnc/lcnc-suite/...`**. Die dortigen Links habe ich nur gelesen. Der Prozesswächter entdeckt das erst, nachdem die falschen Helfer gestartet sind; damit ist die zugesagte Prüfung vor dem Start nicht erfüllt und der unveränderte Aufbau scheitert auf dieser VM.
+
+**Korrektur:** Die tatsächlich von LinuxCNC/HAL verwendete Auflösung an den Laufbaum binden und genau diesen wirksamen Pfad vorprüfen. Die Systemprogramme dürfen weiterhin die benannten gemeinsamen Ressourcen sein. Den Gegenfall gegen den installierten Launcher behalten. Zur zugesagten nachgelagerten Prüfung fehlen außerdem noch Teile aus R284: `read_procs` liefert nur PID/Kommandozeile, nicht den `/proc/.../exe`-Interpreter; `process_problems` prüft den Toolsetter-Feed nicht. Auch die tatsächlichen Gateway-Log-FDs werden bisher nicht geprüft. Diese Nachweise ergänzen den Vorabcheck, ersetzen ihn nicht.
+
+### FI-I19 · P1 · ExecStopPost räumt die gestartete Testinstanz nicht ab
+
+`native_run.py:185` startet **eine eigenständige Unit `native-sim`**. Ihr Stopp und das Entfernen des Laufbaums leben ausschließlich im flüchtigen `ctx["cleanup"]`. `pre.json` enthält weder den Besitzer dieser Unit noch den Laufbaum; `restore_lan.main` liest nur die alte LAN-Aufnahme und startet deren Units. Eine Lebenszyklusbindung zwischen `native-run` und `native-sim` wird nicht eingerichtet.
+
+Bei einem Kill **nach** dem Testinstanz-Start bleibt diese deshalb bestehen, während ExecStopPost bereits die LAN-Sim starten möchte. Meine Attrappe führt genau den echten Rückgabe-CLI mit diesem Zustand aus: `native-sim` bleibt aktiv, kein Stopp für sie wird angefordert, Rückgabe `not_returned` wegen belegter LinuxCNC-Instanz. Der vorhandene Kill-Test stirbt dagegen unmittelbar nach dem LAN-Stopp, **bevor** eine Testinstanz existiert; er deckt diesen Pfad nicht ab.
+
+**Korrektur:** Besitz und Abschluss der Testressourcen dauerhaft erfassen und aus beiden Abschlusswegen zuerst die nachweislich eigene Testinstanz beenden/abwarten, erst danach die LAN-Instanz zurückgeben. Den Abschluss ebenfalls unter die gemeinsame Sperre nehmen; das Rückgabe-CLI nimmt bisher keine Sperre, während die des getöteten Prozesses schon freigegeben ist. Fehler beim Stopp/Entfernen nicht ignorieren (`_stop_copy:221–224`), und den Baum auch bei Fehlern vor `start_copy` aufräumen. Gegenfälle vor Start, nach Start und während einer begonnenen Rückgabe prüfen. Dafür braucht es keinen echten Maschinen-Kill im Review.
+
+### FI-I20 · P1 · Die Schreibgrenze erfasst nicht jedes tatsächlich geöffnete Ziel
+
+Zwei isolierte Gegenfälle zum angenommenen Vertrag:
+
+- **Temporäres Installer-Ziel:** `--confine` prüft die endgültigen Pfade (`install_examples.py:610–619`), schreibt aber anschließend durch `<name>.install-tmp` (`:644–645`, entsprechend Settings `:635–636`). Ein bereits dort liegender Symlink nach außen ist nicht geprüft. Mit einer ausschließlich unter `/tmp` liegenden Attrappe überschreibt der echte Installer trotz `--confine` **10 642 Bytes** einer Datei außerhalb des Laufordners. Das ist ein tatsächlicher Schreibversuch des Installers, keine nur angenommene spätere Wirkung.
+- **Gemeinsame veränderliche Datei:** `confinement_problems` akzeptiert eine `PARAMETER_FILE` im Laufordner, die per Hardlink dieselbe Datei wie außerhalb ist. Gerät/Inode werden nur für `node_modules` verglichen. Die Probe bestätigt die gemeinsame Inode und demonstriert einen Schreibdurchgriff an einer Testdatei. Sie behauptet nicht, dass jeder LinuxCNC-Schreiber diese Datei ohne Rename öffnet; der vereinbarte Identitätsausschluss fehlt trotzdem.
+
+**Korrektur:** Auch die tatsächlich geöffneten Zwischenziele sicher im Lauf erzeugen, ohne vorhandenen Links zu folgen, und die zugesagte Geräte-/Inode-Prüfung auf die veränderlichen Bestände anwenden. Ein ausdrücklich neuer, exklusiv angelegter Laufordner kann einen Teil der Voraussetzungen sichern; derzeit erlaubt `run_dir.mkdir(exist_ok=True)` bereits vorhandene Inhalte. Die Prüfung muss vor dem ersten Schreiben greifen. Beide Gegenfälle als Wächter übernehmen.
+
+### FI-I21 · P2 · „Vollständig zurückgegeben“ und „Isolation belegt“ werden zu früh behauptet
+
+Die drei Rückgabezustände sind richtig angelegt, ihre Belege reichen noch nicht:
+
+1. `restore_lan.py:81–88` prüft nur, ob irgendeine Instanz existiert. Die Probe erhält **dieselbe PID und Startzeit wie vor dem Stopp** und dennoch `complete`. `SystemHost` sucht global den ersten `linuxcncsvr`, statt ihn an die zurückgegebene Unit zu binden.
+2. `clients_since` akzeptiert einen `loop.tick` mit `clients: 1`. Das belegt einen Client, **nicht den aufgezeichneten Keepalive und seinen Herzschlag**. Ein normaler Browser erfüllt denselben Ausdruck; die Probe zeigt genau diesen fehlenden Identitätsnachweis. Bereits aktive Units werden zudem ohne Vergleich ihrer tatsächlichen Spezifikation übernommen.
+3. Eine erste Rückgabe mit `isolation: ["config changed"]` wird bei der zweiten zu `isolation: null`. Es gibt keinen gespeicherten früheren Nachweis, den dieser Wert referenziert. `native_run.verdict` akzeptiert diese zweite Antwort als PASS. Der normale erste Bericht bleibt zwar FAIL; der nachfolgende Abschluss meldet die Abweichung jedoch nicht mehr und kann eine unbekannte Isolation als bewiesen ausweisen.
+
+**Korrektur:** Den Rückgabezustand samt Instanz-/Unit-/Keepalive-Nachweis und Isolationsurteil dauerhaft an diesen Lauf binden. Beim ersten Neustart eine neue, der richtigen Unit zugehörige Instanz verlangen; beim zweiten Durchlauf dieselbe bereits nachgewiesene Rückgabe wiedererkennen. Frühere Isolationsfehler bleiben Fehler, fehlender Nachweis bleibt unbekannt. Keine erneute Byte-Gleichheit nach legitimen Schreibvorgängen der wieder gestarteten LAN-Sim verlangen, sondern den tatsächlich vor ihrem Start gewonnenen Nachweis bewahren.
+
+### FI-I22 · P2 · Ein fehlgeschlagener Home-Abschluss ergibt PASS
+
+`home_cases` wartet auf die erwarteten Homed-Bits **und `inpos`**. Bei jedem `RuntimeError` verwirft es aber den Fehler und reicht nur die zuletzt gespeicherten Homed-Bits an `eval_home` weiter (`native_run.py:263–268`). Sind die Bits richtig, aber der Abschluss kommt nicht innerhalb der Frist, wird daraus PASS.
+
+Die Ablaufprobe lässt alle vier Abschlussprüfungen mit `inpos=False` scheitern. **Home All und die drei Einzelreferenzierungen erscheinen trotzdem sämtlich als PASS.** Die spätere, eigene Referenzierung zur Jog-Vorbereitung erreicht ihren Abschluss; das heilt die vier bereits falsch ausgewerteten Fälle nicht.
+
+**Korrektur:** Den einzelnen Fall nur nach seinem bestätigten Abschluss grün setzen; Timeout und Sitzungsfehler ausdrücklich erhalten. Richtige Homed-Bits allein dürfen diesen Fehler nicht überschreiben. Frische Statusbeobachtung und den Bezug zum jeweiligen Befehl auch für Unhome/Vorbereitung belegen.
+
+### FI-I23 · P2 · Fehlende oder alte Jog-Messwerte werden als Stillstand gezählt
+
+`jog_cases` macht aus `current_vel=None` beziehungsweise einem fehlenden Feld über `or 0.0` eine gemessene Null (`native_run.py:292`). Die Probe durchläuft den echten Jog-Messschritt mit unbekannter Geschwindigkeit: beide Richtungen erhalten **PASS, Stillstand nach 10 ms, Bremsweg 0 mm**. Ein weiterer Gegenfall liefert im reinen Auswerter sogar PASS mit `travel=NaN` und `brake_mm=NaN`.
+
+Hinzu kommt die Herkunft der Samples: `SimulatorClient.receive` ruft `on_status` für **jede** Nachricht mit einem Dictionary `data` auf, ohne den Nachrichtentyp zu prüfen. Die Probe erzeugt damit aus einer sachfremden Antwort einen neuen Zeitstempel auf alten Positions-/Geschwindigkeitswerten. Außerdem stammt `anchor` aus dem zuletzt empfangenen Cache; dessen Alter gegenüber der Antwort auf `jog_stop` wird nicht gespeichert. Die Implementierung belegt daher bislang nicht durchgehend den vereinbarten Messanker.
+
+**Korrektur:** Nur gültige Statusbilder/-Deltas mit endlichen, bekannten Messwerten verwenden; Alter und Abdeckung der Messung führen. Für Position und Zeit am `jog_stop`-Antwortanker eine belegte Abtast-/Unsicherheitsregel anwenden. Fehlende Werte oder verlorene Sitzung ergeben keinen PASS. Den ursprünglichen Anker nicht still auf einen späteren Zeitpunkt verschieben. Die Grenzen selbst müssen dafür nicht vergrößert werden.
+
+### Nachweise und Umfang
+
+- [Quell-/Merge- und Gate-Audit](function-inventory.r286.codex-audit.json), [Audit-Skript](function-inventory.r286.codex-audit.py).
+- [Elf isolierte Gegenproben](function-inventory.r286.codex-probes.py), [Messausgabe](function-inventory.r286.codex-probes.json), [Prüfprotokoll](function-inventory.r286.codex-checks.txt). Die Proben sind **Reproduktionen der jetzigen Fehlannahmen**: ihre grünen Assertions bestätigen den beschriebenen Fehler, nicht dessen Behebung.
+
+Geprüft in einer eigenen Archivkopie von `5c6fa9b9`; zehn maßgebliche Quelldateien hashgleich gegen den Commit verifiziert. **93 vorhandene Tests** (`test_native_stage`, `test_inventory`, `test_example_install`) bestanden; zusätzlich **15 Tests mit 4 Subtests** für den verschobenen Zielprüfer. Beide vorgelegten Gate-Rohberichte geprüft, die schweren/browserbasierten Läufe nicht unnötig wiederholt. Keine Builds, Tests oder Checkouts im Live-Baum, keine Verbindungen zur Sim, keine Maschinenbefehle. Im Live-Baum nur dieser Anhang und neue R286-Belege.
+
+Die Paketgrenze bleibt angenommen: Antasten/M600/M6/RFL, Ausfallszenarien und TWP kommen in ihren vereinbarten nächsten Schritten. Die offene Surface-Umfangsfrage Q282-2 wird hier nicht neu entschieden. Die gefundenen Probleme erfordern keine Vergrößerung des Funktionsumfangs, sondern einen belastbaren Abschluss von Schritt 1.

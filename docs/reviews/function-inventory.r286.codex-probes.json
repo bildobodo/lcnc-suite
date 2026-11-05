@@ -1,0 +1,244 @@
+{
+  "launcher_PATH": {
+    "resolutions": {
+      "hal_reader.py": {
+        "preflight": "/tmp/codex-r286/lcnc-gateway/hal_reader.py",
+        "launch": "/home/cnc/lcnc-suite/lcnc-gateway/hal_reader.py"
+      },
+      "hal_watchdog.py": {
+        "preflight": "/tmp/codex-r286/lcnc-gateway/hal_watchdog.py",
+        "launch": "/home/cnc/lcnc-suite/lcnc-gateway/hal_watchdog.py"
+      },
+      "compensation.py": {
+        "preflight": "/tmp/codex-r286/subroutines/surfacemap/compensation.py",
+        "launch": "/home/cnc/lcnc-suite/subroutines/surfacemap/compensation.py"
+      }
+    },
+    "installed_linuxcnc_sha256": "57994a16a81f3e9698c1750d144705019c36694acd56a44e1df5500811c5c345",
+    "rule_lines": [
+      "LINUXCNC_CONFIG_PATH=\"~/linuxcnc/configs:/usr/local/etc/linuxcnc/configs:/usr/share/doc/linuxcnc/examples/sample-configs\"",
+      "HALLIB_PATH=.:$HALLIB_DIR; export HALLIB_PATH",
+      "# put ~.local/bin in PATH if missing. See:",
+      "if [ -d $HOME/.local/bin ]; then",
+      "    if [[ \"$PATH\" != *\".local/bin\"* ]]; then",
+      "        PATH=$HOME/.local/bin:$PATH",
+      "PATH=$LINUXCNC_BIN_DIR:$PATH",
+      "[ -d $LINUXCNC_HOME/scripts ] && PATH=$LINUXCNC_HOME/scripts:$PATH",
+      "\t    LD_LIBRARY_PATH=$LINUXCNC_HOME/lib",
+      "\t    LD_LIBRARY_PATH=$LINUXCNC_HOME/lib:\"$LD_LIBRARY_PATH\"",
+      "    PYTHONPATH=$LINUXCNC_HOME/lib/python",
+      "    PYTHONPATH=$LINUXCNC_HOME/lib/python:\"$PYTHONPATH\"",
+      "            HALLIB_PATH=$(cd $OPTARG;pwd):$HALLIB_PATH",
+      "export PATH=$CONFIG_DIR/bin:$PATH"
+    ]
+  },
+  "kill_after_start": {
+    "restore": {
+      "outcome": "not_returned",
+      "reasons": [
+        "lcnc-sim-gates did not start: LinuxCNC already occupied by native-sim"
+      ],
+      "instance": [
+        "linuxcncsvr",
+        100,
+        5000
+      ],
+      "isolation": []
+    },
+    "native_running": true,
+    "stopped": [
+      "bg-keepalive",
+      "lcnc-sim-gates"
+    ],
+    "pre_keys": [
+      "at",
+      "hashes",
+      "head",
+      "ini",
+      "instance",
+      "tree",
+      "units"
+    ]
+  },
+  "mutable_hardlink": {
+    "issues": [],
+    "same_inode": true,
+    "outside_file_changed": true,
+    "outside_is_only_test_fixture": true
+  },
+  "installer_temp_escape": {
+    "outside_changed": true,
+    "bytes_written": 10642,
+    "confine": "/tmp/pytest-of-cnc/pytest-853/test_install_temporary_target_0/run",
+    "only_tmp_fixture": true
+  },
+  "old_instance": {
+    "outcome": "complete",
+    "instance": [
+      "linuxcncsvr",
+      100,
+      5000
+    ],
+    "isolation": []
+  },
+  "isolation_lost_on_repeat": {
+    "first": {
+      "outcome": "complete",
+      "instance": [
+        "linuxcncsvr",
+        101,
+        5001
+      ],
+      "isolation": [
+        "config changed"
+      ]
+    },
+    "second": {
+      "outcome": "complete",
+      "instance": [
+        "linuxcncsvr",
+        101,
+        5001
+      ],
+      "isolation": null
+    },
+    "run_verdict_using_second": "PASS"
+  },
+  "any_client_counts": {
+    "event": {
+      "tag": "loop.tick",
+      "pid": 42,
+      "clients": 1,
+      "t_wall_ns": 2000000000
+    },
+    "contains_keepalive_or_heartbeat_identity": false,
+    "accepted": true
+  },
+  "home_timeouts": {
+    "failed_completion_waits": [
+      "home-all",
+      "home-joint-0",
+      "home-joint-1",
+      "home-joint-2"
+    ],
+    "rows": [
+      {
+        "case": "home-all",
+        "status": "PASS",
+        "detail": "as expected",
+        "expected": [
+          true,
+          true,
+          true
+        ],
+        "observed": [
+          true,
+          true,
+          true
+        ]
+      },
+      {
+        "case": "home-joint-0",
+        "status": "PASS",
+        "detail": "as expected",
+        "expected": [
+          true,
+          false,
+          false
+        ],
+        "observed": [
+          true,
+          false,
+          false
+        ]
+      },
+      {
+        "case": "home-joint-1",
+        "status": "PASS",
+        "detail": "as expected",
+        "expected": [
+          false,
+          true,
+          false
+        ],
+        "observed": [
+          false,
+          true,
+          false
+        ]
+      },
+      {
+        "case": "home-joint-2",
+        "status": "PASS",
+        "detail": "as expected",
+        "expected": [
+          false,
+          false,
+          true
+        ],
+        "observed": [
+          false,
+          false,
+          true
+        ]
+      }
+    ]
+  },
+  "jog_unknown_velocity": {
+    "velocity": null,
+    "rows": [
+      {
+        "case": "jog-x+",
+        "status": "PASS",
+        "detail": "moved in its sign, stopped within its bounds",
+        "axis": "X",
+        "sign": 1,
+        "travel": 15.0,
+        "bound_mm": 2.067,
+        "stop_s": 0.01,
+        "brake_mm": 0.0
+      },
+      {
+        "case": "jog-x-",
+        "status": "PASS",
+        "detail": "moved in its sign, stopped within its bounds",
+        "axis": "X",
+        "sign": -1,
+        "travel": 15.0,
+        "bound_mm": 2.067,
+        "stop_s": 0.01,
+        "brake_mm": 0.0
+      }
+    ]
+  },
+  "nonstatus_sample": [
+    {
+      "joint_pos": [
+        315,
+        300,
+        -50
+      ],
+      "current_vel": 0
+    },
+    {
+      "joint_pos": [
+        315,
+        300,
+        -50
+      ],
+      "current_vel": 0,
+      "value": "unrelated"
+    }
+  ],
+  "jog_nan": {
+    "case": "jog-x+",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "X",
+    "sign": 1,
+    "travel": "nan",
+    "bound_mm": 2.067,
+    "stop_s": 0.01,
+    "brake_mm": "nan"
+  }
+}

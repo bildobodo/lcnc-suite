@@ -1,0 +1,159 @@
+{
+  "reviewed": {
+    "A": "838c3381",
+    "B": "5c6fa9b9"
+  },
+  "gates": {
+    "A": {
+      "head": "838c3381c81a1572fdcf863a9bd50500d96e51e4",
+      "kind": "merge",
+      "verdict": "PASS",
+      "omitted": [],
+      "pending": [
+        {
+          "check": "firefox-core",
+          "status": "pending: the pinned Mozilla target is not built yet (step 6)"
+        },
+        {
+          "check": "perf-matrix",
+          "status": "pending: a live check, run before main",
+          "paths": [
+            "lcnc-gateway/gateway.py",
+            "lcnc-gateway/hal_bridge.py"
+          ]
+        },
+        {
+          "check": "probe-live",
+          "status": "pending: a live check, run before main",
+          "paths": [
+            "lcnc-webui/src/ProbePanel.vue"
+          ]
+        },
+        {
+          "check": "twp-buttons",
+          "status": "pending: a live check, run before main",
+          "paths": [
+            "lcnc-gateway/gateway.py",
+            "lcnc-webui/src/SpindleStrip.vue"
+          ]
+        }
+      ],
+      "unit-light": {
+        "listed": 2614,
+        "ran": 2614,
+        "passed": 2614,
+        "issues": []
+      },
+      "unit-heavy": {
+        "listed": 104,
+        "ran": 104,
+        "passed": 104,
+        "issues": []
+      },
+      "browser": {
+        "stats": {
+          "startTime": "2026-11-05T03:30:29.065Z",
+          "duration": 1688051.946,
+          "expected": 866,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "execution_issues": [],
+        "worker_issues": []
+      },
+      "sha256": {
+        "playwright.json": "6e902feb77efd667a7d56c98d6dced33c3d3a171a1491e6fd400c89a6d2639d2",
+        "list-run.json": "247b103682180c8cf5a033f7076d9451b9156aaab8819dcb71e2d72f66aa02e9",
+        "mock-events.jsonl": "cb671e58caa36e4fbc9ab3be9f9cab75444fbdca667f87f6ff94cd90e3d1ea7b",
+        "unit-light.json": "8b556dafc25fc83b32965fb5f504f5b83314da2ace54a74545d4c3bfb3a044ee"
+      },
+      "all_heavy_selected": true
+    },
+    "B": {
+      "head": "5c6fa9b9bb430b10d9d1179570e185466c1d8987",
+      "kind": "round",
+      "verdict": "PASS",
+      "omitted": [
+        {
+          "check": "unit-heavy",
+          "reason": "no heavy file changed, reached or read for"
+        }
+      ],
+      "pending": [],
+      "unit-light": {
+        "listed": 2614,
+        "ran": 2614,
+        "passed": 2614,
+        "issues": []
+      },
+      "browser": {
+        "stats": {
+          "startTime": "2026-11-05T04:02:10.388Z",
+          "duration": 236205.525,
+          "expected": 34,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "execution_issues": [],
+        "worker_issues": []
+      },
+      "sha256": {
+        "playwright.json": "acc3e5b39cd4ac65fa8c1c7e30c98d835888c0faef5a9a2df9985a7baece1e63",
+        "list-run.json": "b0152a158196b212d32f2dbda55dc2ac5553690ab5fde67c3a90526579c5bc02",
+        "mock-events.jsonl": "36c96fd07bb4484567b242d0be124ba5219cef505b3dad8d489f8a18b09fc7de",
+        "unit-light.json": "f86d65cb184e75438fec93e3aabeab418ddef6a9ca7e262302b26f6c2070e909"
+      }
+    }
+  },
+  "merge": {
+    "both_changed": [],
+    "wrong_merge": [],
+    "function_count": 59,
+    "statements": 115,
+    "shared_metadata_equal": true
+  },
+  "source_hashes": {
+    "scripts/native_run.py": {
+      "sha256": "7b72ea31a083f795c01185df4cea34a6a93f248f7a808fe70371e80d852b7be1",
+      "matches_5c6fa9b9": true
+    },
+    "scripts/test_support/live_target.py": {
+      "sha256": "eb09e1bc80a4a1bc9b885aaf06e6288b991f8df392fffaace9ca8fb7ce58541a",
+      "matches_5c6fa9b9": true
+    },
+    "scripts/test_support/native_cases.py": {
+      "sha256": "25ad17a1a7881df6439c8ada8e5ae269b2ff68bf63eca17f8626733b25ea2573",
+      "matches_5c6fa9b9": true
+    },
+    "scripts/test_support/system_host.py": {
+      "sha256": "802b803a7184a9ee9685233c4af6cbae091451e9aa69e58e0a0d9c9c6a7fb93a",
+      "matches_5c6fa9b9": true
+    },
+    "scripts/test_support/restore_lan.py": {
+      "sha256": "ed1688e656d857f5da18d84923ca7c715af810799274624e239144e70a7b016b",
+      "matches_5c6fa9b9": true
+    },
+    "scripts/test_support/live_session.py": {
+      "sha256": "602174292a3e7d71f55982c81c44f7398a6626938f3240a02fa5292187d10453",
+      "matches_5c6fa9b9": true
+    },
+    "scripts/install_examples.py": {
+      "sha256": "135d3225b9af90335e153de1dda515422161822875e63652d530a48e22f37807",
+      "matches_5c6fa9b9": true
+    },
+    "scripts/test_native_stage.py": {
+      "sha256": "7ac2dbebd30338719318f832d20f74cfd950cbd495cded268b03dd195ebc4abb",
+      "matches_5c6fa9b9": true
+    },
+    "scripts/inventory/functions.py": {
+      "sha256": "1636b9c86ef8749c133c5efc09d330643823c140fd771fe9f47dbd76c89b6c4e",
+      "matches_5c6fa9b9": true
+    },
+    "lcnc-webui/e2e/bake-hold.viewer.spec.ts": {
+      "sha256": "2f1f9b9954f3b65f745fbca0283b1a1ce6bf1e153e173fa35db781e327ca3c17",
+      "matches_5c6fa9b9": true
+    }
+  }
+}

@@ -1,0 +1,28 @@
+R286 Codex review — 2026-11-05
+Source: git archive 5c6fa9b9 in /tmp/codex-r286. Part A integrated head 838c3381.
+No live endpoints, LinuxCNC commands, systemd commands or builds executed.
+No tests in the live checkout. Python imports use -B. SystemHost never instantiated.
+
+Existing tests (working directory /tmp/codex-r286):
+/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider scripts/test_native_stage.py scripts/inventory/test_inventory.py lcnc-gateway/test_example_install.py
+Exit 0, 93 tests passed (progress 72/93 = 77%, final 100%).
+The initial attempt using system python3 could not start: No module named pytest.
+It ran no tests; the installed venv interpreter above supplied pytest.
+
+Relocated target checker:
+/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_toolsetter_readback_check.py
+...............                                                      [100%]
+15 passed, 4 subtests passed in 0.03s
+
+Independent counterexamples:
+/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' test_r286_probes.py
+...........                                                              [100%]
+11 passed in 0.05s
+
+The counterexample assertions describe the CURRENT undesired acceptance. Their PASS means reproduction, not a fixed product. All writes and fake units are isolated fixtures. The installed /usr/bin/linuxcnc and ~/.local/bin symlinks are only read for the PATH counterexample; LinuxCNC is never executed.
+
+Stored gate audit:
+python3 -B r286_audit.py
+Exit 0. Source hashes match 5c6fa9b9. Both saved listings/executions and mock worker event logs pass consistency checks. Unit A 2614+104, browser A 866; unit B 2614, browser B 34. This is verification of Claude's artifacts, not a repeated full gate. See codex-audit.json for pending/omitted items and hashes.
+
+Reproduction: create a fresh archive of 5c6fa9b9 at /tmp/codex-r286, copy codex-probes.py there as test_r286_probes.py and codex-audit.py as r286_audit.py, then run the commands above. The audit reads the stored raw reports from the paths named in its source. The probes use the reviewed VM launcher only as a read-only fixture; no systemd or machine access is needed.
