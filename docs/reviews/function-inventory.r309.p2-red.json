@@ -1,0 +1,72 @@
+{
+ "run": "p2-20261105T213813",
+ "commit": "3e4f7c8048b01ad0f761cc5b1f008ea041338f17",
+ "steps": [
+  "tree",
+  "copy",
+  "start",
+  "connect",
+  "experiment"
+ ],
+ "error": null,
+ "restore": {
+  "outcome": "complete",
+  "isolation": [],
+  "cleanup": []
+ },
+ "setup": {
+  "interp": {
+   "3004": 2000.0,
+   "3005": 200.0,
+   "3006": 500.0,
+   "3007": 180.0,
+   "3009": 3.0,
+   "3010": 180.0,
+   "3013": 0.0,
+   "3100": 10.0,
+   "3101": 10.0,
+   "3102": -180.0,
+   "3103": 1.0,
+   "3104": 2.0,
+   "3105": 0.0,
+   "3106": 1.0,
+   "3107": 5.0,
+   "3108": 0.0,
+   "3109": 0.0,
+   "3110": 0.0,
+   "3111": 0.0,
+   "3112": 0.0,
+   "3113": 0.0,
+   "3114": 0.0,
+   "3115": 0.0
+  },
+  "t1_table": 50.0
+ },
+ "rows": [
+  {
+   "case": "save-while-off",
+   "status": "PASS",
+   "detail": "the section saved with touchZ -179.0",
+   "reply": {
+    "type": "reply",
+    "ok": true,
+    "cmd": "save_settings"
+   }
+  },
+  {
+   "case": "interp-3102-after",
+   "status": "PASS",
+   "detail": "the interpreter holds -180.0; the saved section says -179.0",
+   "interp": -180.0
+  },
+  {
+   "case": "program-m600",
+   "status": "PASS",
+   "detail": "T1 measured 49.995217 (table before 50.0) — against the interpreter's old #3102",
+   "length": 49.995217,
+   "l0": 50.0,
+   "against": "the interpreter's old #3102",
+   "errors": []
+  }
+ ]
+}
