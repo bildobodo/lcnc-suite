@@ -13,7 +13,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Offene Aussagen
 
-22 Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.
+21 Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.
 
 | Funktion | Aussage | Art | gilt für | Lücke |
 |---|---|---|---|---|
@@ -30,7 +30,6 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | Antippen (Touch-off) und Nullen je Achse | Plane: das Remap schreibt den angetippten Wert in G54. | Wirkung | Plane | kein Test liest G54 nach dem Remap; nativ (scripts/twp_touchoff_plane_check.py, Laufbindung offen) |
 | Geschwenkte Ebene (TWP): erfassen, aufheben, neu ausrichten | Erfassen, Ausrichten und Aufheben ändern Ebene und Nullpunkt, wie die Anzeige es sagt. | Wirkung | Machine, Plane | nativ: scripts/twp_capture_check.py und twp_reorient_check.py (Laufbindung offen) |
 | Programm laden, neu laden, entladen | Neu laden übernimmt die neue Revision; Entladen leert Programm und Vorschau. | Wirkung | alle | Browser/Gateway: Reload und Unload als Ergebnis nicht belegt |
-| Start ab Zeile (mit Vormessung, sicherem Z, Spindel) | Auf echtem LinuxCNC startet der Lauf ab der gewählten Zeile mit dem richtigen Werkzeug, Spindel und Startpunkt. | Wirkung | offen | nativ: Werkzeug, Versatz, Spindel-Sollwert und die Bewegung der Startzeile in Schritt 2b; der Startpunkt erst mit Schritt 2c, die Servo-Messung (Q288-1) (Codex R292 FI292-01) |
 | Werkzeug anlegen, bearbeiten, löschen, umnummerieren | Anlegen, Ändern, Löschen und Umnummerieren ändern genau ihren Datensatz, erhalten die übrigen Werte und laden die Tabelle neu. | Wirkung | alle | Gateway: kein Test vergleicht die Tabelle vor und nach je Aktion; nativ |
 | Werkzeuglänge messen (M600) und Werkzeug entladen | Jede Nummer der Abbildung ist die, die tool_touch_off.ngc für ihren Wert liest. | Daten | alle | Unit: kein Test gleicht die Abbildung mit den Lesestellen der Routine ab |
 | Fläche abtasten (Surface-Scan) | Auf echtem LinuxCNC tastet der Scan das Raster ab und liefert die Punkte für die Kompensation. | Wirkung | 3axis_xyz | nativ (native Stufe, mit hohem Antastvorschub über die Scan-Variablen) |
@@ -249,7 +248,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | **Programm bearbeiten und speichern** `F-EDIT` | Editor, Tab „Program“ | 10 | 2 | 2 | 0 |
 | **Programm herunterladen** `F-PROGDOWNLOAD` | Tab „Program“ | 2 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Programm starten, pausieren, fortsetzen, Einzelschritt** `F-RUN` | Tab „Program“ | 15 | 4 | 4 | 0 |
-| **Start ab Zeile (mit Vormessung, sicherem Z, Spindel)** `F-RFL` | Einstellungen, Tab „Program“ | 20 | 3 | 2 | 1 |
+| **Start ab Zeile (mit Vormessung, sicherem Z, Spindel)** `F-RFL` | Einstellungen, Tab „Program“ | 20 | 3 | 3 | 0 |
 | **Satz ausblenden und optionaler Halt** `F-OPTSTOP` | Tab „Program“ | 6 | 1 | 1 | 0 |
 | **G-Code ansehen, aktive Codes, Codewort-Referenz, Statistik** `F-GCODEVIEW` | G-Code-Referenz, Kopfzeile, Leiste › Sicherheit, Tab „Program“ | 13 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Vorschau des Werkzeugwegs** `F-PREVIEW` | Einstellungen | 9 | 0 | 0 | Aussagen noch nicht formuliert |
@@ -294,8 +293,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: browser: `run-hold.spec.ts` — Run from line: Start only opens the dialog on a tap; the dialog's action is a hold bound to the program and the line; browser: `run-hold.spec.ts` — Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values and its program — nothing waits in the browser (Codex R16 XZ-07)
 - **S2 (Wirkung):** Der sichere Z-Schritt vor dem Start hebt Z von unten auf Maschinen-Oberkante und senkt es nie; liegt Z schon oben, entfällt er (die gesendete Befehlsfolge gegen ein simuliertes STAT). — gilt für: Machine
   - Beleg: gateway: `test_rfl_guard.py` — test_safe_z_reached_from_below_starts; gateway: `test_rfl_guard.py` — test_safe_z_above_zero_skips_mdi
-- **S3 (Wirkung):** Auf echtem LinuxCNC startet der Lauf ab der gewählten Zeile mit dem richtigen Werkzeug, Spindel und Startpunkt. — gilt für: offen
-  - Beleg: **offen** — Lücke: nativ: Werkzeug, Versatz, Spindel-Sollwert und die Bewegung der Startzeile in Schritt 2b; der Startpunkt erst mit Schritt 2c, die Servo-Messung (Q288-1) (Codex R292 FI292-01)
+- **S3 (Wirkung):** Auf echtem LinuxCNC startet Start ab Zeile mit Vormessung das Programm an der gewählten Zeile: seine erste Bewegung ist diese Zeile, mit dem gemessenen Werkzeug, seiner Länge und dem Spindel-Sollwert; die Zeile und das Programm laufen bis zu ihrem Ende, keine frühere Zeile in den empfangenen Bildern; der Einstieg (sichere Z-Stufe ohne Absenken, XY auf dem Einstieg). — gilt für: 3axis_xyz
+  - Beleg: native: `native_run.py` — rfl-line; native: `native_run.py` — rfl-line.counter-line+1; native: `native_run.py` — rfl-no-earlier-line; native: `native_run.py` — rfl-start-point — Lücke: der native Lauf steht aus (gebaut: Schritt 2b); der Einstieg bleibt unvollständig bis Schritt 2c, die Servo-Messung (Q288-1) — Codex R292 FI292-01
 
 ### Satz ausblenden und optionaler Halt
 

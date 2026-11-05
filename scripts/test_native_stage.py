@@ -1433,3 +1433,129 @@ def test_the_m600_step_refuses_a_counter_that_failed_for_another_reason(monkeypa
     assert calls == [-180, -179], "the counter ran with #3102 planted 1 mm up"
     assert [by[k]["status"] for k in ("m600-unload", "m600-t1", "m600-t1-override-lock")] == ["PASS"] * 3, rows
     assert by["m600-t1.counter-3102"]["status"] == "FAIL" and by["m600-t1.counter-3102"]["errors"] == no_contact
+
+
+# ── step 2b: run from line (Codex R292 FI292-01) ─────────────────────────
+L = 7                       # "G1 X200 F3000"
+L0 = 50.0
+
+
+def _rfl_frame(t, line, xyz, *, mode=2, level=0, vel=50.0, interp=2, tool=1, offset=50.0, table=50.0,
+               sdir=1, speed=1000.0):
+    return (t, {"task_mode": mode, "call_level": level, "motion_line": line, "current_vel": vel, "interp_state": interp,
+                "inpos": vel == 0.0, "joint_pos": list(xyz), "tool_number": tool, "tool_offset": [0, 0, offset],
+                "tool_table_z": table, "spindle_direction": sdir, "spindle_speed": speed})
+
+
+def _rfl_run(**witness):
+    """A clean run: measuring (MDI, subroutine), safe Z up, XY to the entry,
+    then the program from line 7 to its end."""
+    hist = [(0.0, {"phase": "measuring", "ok": None}), (20.0, {"phase": "safe_z", "ok": None}),
+            (21.0, {"phase": "positioning", "ok": None}), (23.0, {"phase": "starting", "ok": None}),
+            (23.2, {"phase": "running", "ok": True})]
+    frames = [_rfl_frame(5.0, 120, (10, 10, -128), mode=3, level=2, vel=3.0, tool=1, offset=0.0),   # inside M600
+              _rfl_frame(20.1, 0, (10, 10, -100), mode=3, vel=80.0), _rfl_frame(20.9, 0, (10, 10, 0.0), mode=3, vel=0.0),
+              _rfl_frame(21.5, 0, (60, 60, 0.0), mode=3, vel=100.0), _rfl_frame(22.9, 0, (100, 100, 0.0), mode=3, vel=0.0),
+              _rfl_frame(23.3, L, (101, 100, -0.5), **witness), _rfl_frame(24.3, L, (150, 100, -25)),
+              _rfl_frame(25.3, 8, (200, 101, -50)), _rfl_frame(27.3, 9, (200, 200, -40)),
+              _rfl_frame(28.0, 11, (200, 200, 0.0), vel=0.0, interp=1)]
+    return hist, frames
+
+
+def _line(hist, frames, line=L):
+    return nc.eval_rfl_line("rfl-line", hist, frames, line=line, tool=1, l0=L0, spindle_speed=1000.0,
+                            end_point=(200.0, None, -100 + L0), final=(200.0, 200.0, -50 + L0), line_holds={1: 100.0})
+
+
+def test_the_run_from_line_witness_is_a_motion_of_line_l_with_its_tool_and_spindle():
+    hist, frames = _rfl_run()
+    r = _line(hist, frames)
+    assert r["status"] == "PASS" and r["witness_line"] == L, r
+
+
+@pytest.mark.parametrize("change, part", [
+    ({"line": 6}, "line 6"),                       # an earlier line moved first
+    ({"tool": 99}, "T99"),
+    ({"offset": 40.0}, "offset"),                  # applied ≠ the table's
+    ({"table": 50.004, "offset": 50.004}, "L0"),   # measured outside L0 ± 0.002
+    ({"sdir": -1}, "spindle"), ({"speed": 800.0}, "spindle"),
+])
+def test_a_witness_that_contradicts_the_start_fails(change, part):
+    hist, frames = _rfl_run()
+    line = change.pop("line", L)
+    frames[5] = _rfl_frame(23.3, line, (101, 100, -0.5), **change)
+    r = _line(hist, frames)
+    assert r["status"] == "FAIL" and part in r["detail"], r
+
+
+def test_line_l_must_reach_its_end_and_the_program_its_own():
+    hist, frames = _rfl_run()
+    frames[7] = _rfl_frame(25.3, 8, (199.0, 101, -50))
+    assert "end" in _line(hist, frames)["detail"] and _line(hist, frames)["status"] == "FAIL"
+    hist, frames = _rfl_run()
+    frames[-1] = _rfl_frame(28.0, 11, (200, 150, 0.0), vel=0.0, interp=1)
+    assert _line(hist, frames)["status"] == "FAIL"
+    hist, frames = _rfl_run()
+    frames[6] = _rfl_frame(24.3, L, (150, 102, -25))          # line 7 moved Y, which it holds
+    assert _line(hist, frames)["status"] == "FAIL" and "joint 1" in _line(hist, frames)["detail"]
+    hist, frames = _rfl_run()
+    assert _line(hist, frames[:-1])["status"] == "incomplete", "the program's end not received"
+
+
+def test_a_failed_phase_fails_and_no_start_is_incomplete():
+    hist, frames = _rfl_run()
+    bad = hist[:2] + [(20.5, {"phase": "safe_z_failed", "ok": False, "error": "Z not reached"})]
+    assert _line(bad, frames)["status"] == "FAIL"
+    assert _line(hist[:3], frames)["status"] == "incomplete", "running is the start message"
+    assert _line(hist, frames[:5])["status"] == "incomplete", "no motion of the program after the start"
+
+
+def test_the_line_counter_is_anchored_at_the_witness_of_l():
+    hist, frames = _rfl_run()
+    base = _line(hist, frames)
+    c = nc.counter("rfl-line.counter-line+1", _line(hist, frames, line=L + 1), base)
+    assert c["status"] == "PASS" and "line 7" in c["inner"]["detail"], c
+    no_witness = nc.counter("x", _line(hist, frames[:5], line=L + 1), _line(hist, frames[:5]))
+    assert no_witness["status"] == "incomplete", "no witness of L: no counter-proof"
+
+
+def test_no_earlier_line_is_said_of_the_observed_main_program_frames_only():
+    hist, frames = _rfl_run()
+    r = nc.eval_rfl_no_earlier("rfl-no-earlier-line", hist, frames, line=L)
+    assert r["status"] == "PASS" and r["scope"] == "observed frames", r
+    frames.insert(5, _rfl_frame(23.25, 5, (100, 100, 0.0), vel=0.0))     # line 5 shown after the start
+    assert nc.eval_rfl_no_earlier("rfl-no-earlier-line", hist, frames, line=L)["status"] == "FAIL"
+    assert nc.eval_rfl_no_earlier("x", hist, frames[:5], line=L)["status"] == "incomplete"
+
+
+def test_the_start_point_fails_on_an_observed_contradiction_and_is_otherwise_unproven():
+    hist, frames = _rfl_run()
+    r = nc.eval_rfl_start_point("rfl-start-point", hist, frames, entry_xy=(100.0, 100.0))
+    assert r["status"] == "incomplete" and "2c" in r["detail"], r
+    lowered = list(frames)
+    lowered[2] = _rfl_frame(20.9, 0, (10, 10, -101.0), mode=3, vel=0.0)      # below its start in the safe-Z stage
+    assert nc.eval_rfl_start_point("x", hist, lowered, entry_xy=(100.0, 100.0))["status"] == "FAIL"
+    off = list(frames)
+    off[4] = _rfl_frame(22.9, 0, (100, 99.5, 0.0), mode=3, vel=0.0)          # the entry not reached
+    assert nc.eval_rfl_start_point("x", hist, off, entry_xy=(100.0, 100.0))["status"] == "FAIL"
+    dipped = list(frames)
+    dipped[3] = _rfl_frame(21.5, 0, (60, 60, -5.0), mode=3, vel=100.0)       # XY moved below the safe height
+    assert nc.eval_rfl_start_point("x", hist, dipped, entry_xy=(100.0, 100.0))["status"] == "FAIL"
+
+
+def test_the_run_from_line_program_is_what_its_constants_say():
+    lines = nr.RFL_PROGRAM.splitlines()
+    assert lines[nr.RFL_LINE - 1] == "G1 X200 F3000" and lines[nr.RFL_LINE] == "G1 Y200"
+    assert "G0 X100 Y100" in lines[:nr.RFL_LINE - 1] and "G54" in lines[1] and "G21" in lines[1]
+    assert f"G0 Z{nr.RFL_Z_LINE:g}" in lines[:nr.RFL_LINE - 1] and f"G0 Z{nr.RFL_Z_END:g}" in lines[nr.RFL_LINE:]
+    # T1 with L0 = 50 keeps every joint Z inside its window (MAX_LIMIT 0.1)
+    assert nr.RFL_Z_LINE + 50 <= 0 and nr.RFL_Z_END + 50 <= 0
+
+
+def test_a_subroutines_motion_is_never_the_witness_of_the_program_line():
+    """A remap or subroutine numbers ITS file: motion_line 3 at call_level 1
+    is no line 3 of the program (R292: call_level 0 only)."""
+    hist, frames = _rfl_run()
+    frames.insert(5, _rfl_frame(23.25, 3, (100, 100, -0.2), level=1, vel=5.0))
+    r = _line(hist, frames)
+    assert r["status"] == "PASS" and r["witness_line"] == L, r

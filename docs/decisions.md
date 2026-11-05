@@ -10622,3 +10622,19 @@ witness is a motion of line L itself with its tool, offset and the spindle
 SET value; the start point (no lowering in the safe-Z stage) waits for the
 servo measurement, step 2c, together with the override plateau and the
 retract path.
+
+Native stage step 2b (built after R292, offline; the run owed): run from
+line as FI292-01 corrected the contract. The run writes its program into
+the copy's nc_files, loads it with load_file and waits for the published
+origin whose source is its OWN hash of what it wrote; ONE auto_run as the
+UI sends it (file, version, source, line 7, pre_tool T1 with the toolsetter
+values, the spindle's set value, entry X100 Y100 in G54/G21, safe Z). The
+witness is the first frame of the program itself (AUTO, call_level 0 — a
+remap numbers its own file) moving after `running`: its line is 7, with T1,
+the applied offset = the table's measured length = L0 ± 0.002, the spindle
+forward at its set value; line 7 holds the axis it does not move and ends
+where its next line does not move; the program ends where it ends. "No
+earlier line" is said of the received frames only. The start point fails
+on an observed contradiction (Z lowered in the safe-Z stage, XY below the
+safe height, the entry missed) and is otherwise incomplete until step 2c.
+The L+1 counter re-judges the same witness. F-RFL.S3 is bound to the four.

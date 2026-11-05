@@ -18,8 +18,11 @@ override lock, #3102 planted 1 mm off, the reset read back) and the M6 hold.
 The client confirms nothing itself: every routine runs under the M6 helper
 (test_support/tool_change.py) with its declared changes, fed the frames the
 client RECEIVED, in order (R292 FI-I24); a routine ends on the interpreter
-seen busy, then idle, AND its effect, judged on every frame (FI-I25). Run
-from line is step 2b (contract FI292-01); its start point, the override
+seen busy, then idle, AND its effect, judged on every frame (FI-I25).
+Step 2b, run from line (contract FI292-01): the run writes and loads its
+program, sends ONE auto_run as the UI does and judges the frames received
+(the witness of line 7, the line's and the program's end, no earlier line
+seen, the start point, the L+1 counter). The start point, the override
 plateau and the retract path wait for the servo measurement, step 2c.
 
 Never imports linuxcnc or hal: the gateway by its WebSocket, HAL by halcmd.
@@ -66,7 +69,8 @@ JOG_CASES = (("jog-x+", 0, 1), ("jog-x-", 0, -1), ("jog-y+", 1, 1), ("jog-y-", 1
 #: what a case reads from a status frame — kept per frame, the rest is not
 FRAME_KEYS = ("joint_pos", "current_vel", "interp_state", "inpos", "feed_override_enabled", "tool_number",
               "tool_offset", "tool_table_z", "tool_change_requested", "tool_change_seq", "tool_change_tool",
-              "g5x_index", "g5x_offset")
+              "g5x_index", "g5x_offset", "motion_line", "call_level", "task_mode", "spindle_direction",
+              "spindle_speed")
 # step 2a (plan R283–R285 FI282-05): the probe tool T99 at L0 = 50, started
 # 8 mm over its contact (joint Z = plate + L0) inside #3020 = 10; the miss 15
 # mm over it; the toolsetter's values as the copy ships them, #3005 slow 20
@@ -77,6 +81,24 @@ TOOLSETTER_VARS = (3004, 3005, 3006, 3007, 3009, 3010, 3013) + tuple(range(3100,
 M600_SLOW = 20.0
 MEASURED_TOOL = 1       # its case ids below name it literally ("m600-t1")
 HOLD_S = 5.0
+# step 2b, run from line (Codex R292 FI292-01): the program the run writes
+# into the copy's nc_files. Line 7 starts from the entry the dialog derives
+# (X100 Y100 in G54, G21 — scanEntryPositionBefore); every Z keeps the joint
+# within its window with T1's 50 mm (program Z + length ≤ 0)
+RFL_PROGRAM = "\n".join([
+    "(native stage: run from line - Codex R292 FI292-01)",
+    "G21 G90 G94 G17 G54",
+    "T1 M600",
+    "S1000 M3",
+    "G0 X100 Y100",
+    "G0 Z-100",
+    "G1 X200 F3000",
+    "G1 Y200",
+    "G0 Z-50",
+    "M5",
+    "M2"]) + "\n"
+RFL_FILE, RFL_LINE, RFL_ENTRY, RFL_SPEED = "native_rfl.ngc", 7, (100.0, 100.0), 1000.0
+RFL_Z_LINE, RFL_Z_END = -100.0, -50.0
 SHORT_GRACE = 2.0       # s: a block too short to show busy ends after this idle time (the gateway's own rule)
 DEBUG_WAIT = 3.0        # s for a DEBUG line to come back through the error channel, per attempt
 
@@ -619,6 +641,76 @@ def m6_hold_case():
     return ("m6-hold", step)
 
 
+def rfl_cases():
+    """F-RFL.S3 on the real task (Codex R292 FI292-01): EIN auto_run as the
+    UI sends it — the loaded file, its published version and source (checked
+    against the run's own hash of what it wrote), line 7 with the
+    pre-measurement of T1 (the one change declared), the spindle's set
+    value, the entry G54/G21. Judged on the frames RECEIVED: the witness (the
+    first motion of the program itself is line 7, with its tool, length and
+    spindle), line 7's end and the program's, no earlier line in what was
+    seen, the start point (incomplete until step 2c), the L+1 counter."""
+    def step(ctx):
+        import hashlib
+        from test_support import tool_change as tc
+        c, frames, rows = ctx["client"], ctx["frames"], []
+        tool = MEASURED_TOOL
+        l0 = _tool_z(c, tool)
+        if l0 is None:
+            raise Refused(f"T{tool} has no row in the copy's table")
+        ts = {**_vars(c, TOOLSETTER_VARS), 3005: M600_SLOW}
+        for line in ("G54", "G92.1", "G10 L2 P1 X0 Y0 Z0"):
+            _short(c, line)
+        path = ctx["config"] / NC_FILES / RFL_FILE
+        path.write_text(RFL_PROGRAM)
+        digest = hashlib.sha256(RFL_PROGRAM.encode()).hexdigest()
+        c.request("load_file", path=str(path))
+        end = time.monotonic() + 60
+        while not (c.preview_origin and c.preview_origin.get("source") == digest
+                   and Path(str(c.preview_origin.get("file"))).resolve() == path.resolve()):
+            if time.monotonic() > end:
+                raise Refused(f"the published origin is not the program written: {c.preview_origin}")
+            time.sleep(0.1)
+        origin = dict(c.preview_origin)
+        ctx["report"]["rfl_origin"] = {"file": origin["file"], "version": origin["version"], "source": digest,
+                                       "before": {k: c.status.get(k) for k in ("tool_number", "joint_pos")}}
+        changes = tc.ToolChanges([tool])
+        refusal = changes.precheck(c.status)
+        if refusal:
+            raise RuntimeError(f"run from line: {refusal}")
+        cursor, hist_from = len(c.frames), len(c.rfl_history)
+        c.request("auto_run", line=RFL_LINE, file=origin["file"], version=origin["version"], source=origin["source"],
+                  spindle_dir="forward", spindle_speed=int(RFL_SPEED), pre_tool=tool,
+                  probe_vars={str(k): v for k, v in ts.items()}, safe_z=True, entry_x=RFL_ENTRY[0],
+                  entry_y=RFL_ENTRY[1], entry_wcs="G54", entry_units="G21")
+        seen = {"program": False}
+
+        def ran(st):
+            seen["program"] = seen["program"] or (st.get("task_mode") == nc.MODE_AUTO and st.get("call_level") == 0
+                                                  and isinstance(st.get("motion_line"), int)
+                                                  and st["motion_line"] >= RFL_LINE)
+            return seen["program"]
+        routine_end = tc.RoutineEnd()
+
+        def done(t, st):
+            effect = ran(st)
+            return routine_end(t, st) and effect
+        tc.serve(c, changes, done, 300.0, cursor=cursor)
+        hist, run_frames = c.rfl_history[hist_from:], frames[cursor:]
+        ctx["report"]["rfl_history"] = hist
+        line = nc.eval_rfl_line("rfl-line", hist, run_frames, line=RFL_LINE, tool=tool, l0=l0, spindle_speed=RFL_SPEED,
+                                end_point=(200.0, None, RFL_Z_LINE + l0), final=(200.0, 200.0, RFL_Z_END + l0),
+                                line_holds={1: RFL_ENTRY[1]})
+        planted = nc.eval_rfl_line("rfl-line", hist, run_frames, line=RFL_LINE + 1, tool=tool, l0=l0,
+                                   spindle_speed=RFL_SPEED, end_point=(200.0, None, RFL_Z_LINE + l0),
+                                   final=(200.0, 200.0, RFL_Z_END + l0), line_holds={1: RFL_ENTRY[1]})
+        rows += [line, nc.counter("rfl-line.counter-line+1", planted, line),
+                 nc.eval_rfl_no_earlier("rfl-no-earlier-line", hist, run_frames, line=RFL_LINE),
+                 nc.eval_rfl_start_point("rfl-start-point", hist, run_frames, entry_xy=RFL_ENTRY)]
+        return rows
+    return ("rfl", step)
+
+
 def _pos(st, axis):
     pos = st.get("joint_pos")
     return pos[axis] if isinstance(pos, list) and len(pos) > axis else None
@@ -648,7 +740,7 @@ def main(argv=None) -> int:
     with heavy_lock("native_run", wait=0):
         report = run(SystemHost(), [make_tree(a.commit, a.profile), make_copy(a.profile), start_copy(),
                                     connect_client(), home_cases(joints), jog_cases(joints),
-                                    probe_cases(), m600_cases(), m6_hold_case()], a.run_dir)
+                                    probe_cases(), m600_cases(), m6_hold_case(), rfl_cases()], a.run_dir)
     report["verdict"] = verdict(report)
     write_json(a.run_dir / "report.json", report)
     print(f"native_run: {report['verdict']} — restore {report['restore']['outcome']} → {a.run_dir / 'report.json'}")
