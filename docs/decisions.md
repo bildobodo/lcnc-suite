@@ -10782,3 +10782,30 @@ top under the new offset (each value derived in its test). The XYZAC corpus's
 M600 runs with `#3106 = 0` — no truth changes. Owed: the live proof on the
 fixed routine (the experiment again: A and C must complete at the call's X/Y,
 joint Z 0) and a permanent from-the-top case in the native stage.
+
+## 2026-11-05 — Native stage 2c-b: the run-from-line start point from the servo stream (Codex R309–R310)
+
+`motion.program-line` is the executing trajectory segment's line (run 9,
+G64): an MDI line shows 0, a routine its own file lines, the program its
+lines. It carries no file or phase, and with blending a line number does not
+separate the axes (Codex R309, tp.c 2.9.4). So:
+- the samples are attributed through the TEXTS' line sets — the bundled
+  routine's motion lines and its wrapper's (`servo_cases.motion_lines`, from
+  the run tree; 28 lines 211…601, the wrapper none) and the program's 1…N,
+  checked disjoint — never by a receipt time;
+- the test program carries `G61.1` on line 7 itself (exact stop, modal;
+  a skipped line would not set it), so each line's axes are its own;
+- `eval_rfl_start_servo`: FAIL on a moving program line before L anywhere in
+  the attempt (a later routine line never cuts it, R310), a descent in the
+  entry against the highest Z known before it, L starting off the entry X/Y
+  or below the safe height, motion after the FIRST confirmed rest at the
+  entry (the anchor, 10 samples), L moving Y or Z; incomplete for line sets
+  that meet, no L, no anchor, an unattributed motion, a routine line after
+  the program began, a section problem, the self-check (L+1 only Y, L+2 only
+  Z) — never over a FAIL. A counter re-judges it against the entry planted
+  1 mm off in X. The zero region after the routine includes its run-out; it
+  is not the routine's exact end.
+Run 9's G64 stream: the start checks out (start at 100/100/0, the anchor at
+n 345445), the self-check fails at line 8's blend — incomplete, as R309
+predicted. F-RFL.S3 binds the start point and its counter; the native run
+with G61.1 is owed.

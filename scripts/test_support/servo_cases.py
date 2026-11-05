@@ -6,6 +6,7 @@ is incomplete. Times only by receipt; positions in mm, velocities in mm/s."""
 from __future__ import annotations
 
 import math
+import re
 import statistics
 
 from test_support.native_cases import JOG_MIN_TRAVEL, STOP_WITHIN, _row, brake_bound
@@ -181,3 +182,141 @@ def eval_retract_path(case: str, sec: dict, start, target) -> dict:
         return _row(case, "incomplete", "the rise, the arrival or the rest at the end not shown", **m)
     descent = "no descent (the target's Z is up)" if up_target else "the descent after X/Y arrived"
     return _row(case, "PASS", f"Z up first, then X/Y; {descent}; at rest on the target", **m)
+
+
+_MOTION_WORD = re.compile(r"(?i)\bG0*[0-3](?![\d.])|\bG38\.[2-5]|\bG28(?![\d.])|\bG30(?![\d.])")
+
+
+def motion_lines(text: str) -> frozenset:
+    """The 1-based lines of a G-code text with a motion word outside comments
+    (G0–G3, G38.2–.5, G28, G30) — the lines `motion.program-line` can show
+    while the text moves. Taken from the TEXT, never from a path (R310)."""
+    out = set()
+    for i, raw in enumerate(text.splitlines(), 1):
+        code = re.sub(r"\([^)]*\)", "", raw.split(";", 1)[0])
+        if _MOTION_WORD.search(code):
+            out.add(i)
+    return frozenset(out)
+
+
+def eval_rfl_start_servo(case: str, sec: dict, line: int, entry_xy, safe_z: float,
+                         routine_lines: frozenset, program_lines: frozenset) -> dict:
+    """F-RFL.S3's start point from the servo stream (2c-b, Codex R309–R310).
+    Each sample is attributed by `motion.program-line` (the executing
+    segment's line) through the TEXTS' line sets — the pre-measurement
+    routine's motion lines, the program's lines, 0 for an MDI line or rest —
+    never by a receipt time. The program runs with G61.1 (exact stop), so a
+    line's axes are its own.
+    FAIL (a known contradiction, whatever else is unread):
+    1. a program line 1…L−1 moving — anywhere in the attempt;
+    2. in the entry (after the last routine sample before L) a known Z below
+       the highest known Z before it by more than STILL_POS (a descent; small
+       steps add up);
+    3. L's first sample off the entry X/Y (PATH_TOL) or below the safe height;
+    4. a known motion after the FIRST confirmed rest at the entry (the
+       anchor — STILL_BLOCK samples at rest, in position, at the entry, on
+       the safe height) before L;
+    5. L moving Y or Z.
+    incomplete: line sets that meet, no sample of L, the start unread, no
+    anchor, a moving sample on a line no text names, a routine line after the
+    program began (the phase order), a section problem, the self-check (L+1
+    moves only Y, L+2 only Z) failing — never over a FAIL."""
+    samples = sec.get("samples") or []
+    measured = {"line": line, "entry_xy": list(entry_xy), "safe_z": safe_z, "samples": len(samples)}
+    meet = routine_lines & program_lines
+    if meet:
+        return _row(case, "incomplete", f"the routine's lines meet the program's ({sorted(meet)[:5]}) — no mapping",
+                    **measured)
+
+    def ln(v):
+        return int(v[6]) if len(v) > 6 and _f(v[6]) else None
+
+    def kv(v, i):
+        return v[i] if len(v) > i and _f(v[i]) else None
+
+    def moving(v):
+        return any(kv(v, i) is not None and abs(v[i]) > VEL_ZERO for i in (3, 4, 5))
+
+    fails, gaps = [], []
+    for _t, n, v in samples:                                            # 1
+        if ln(v) is not None and 1 <= ln(v) < line and ln(v) in program_lines and moving(v):
+            fails.append(f"line {ln(v)} moved before line {line} (sample {n})")
+            break
+    first_prog = next((i for i, (_t, _n, v) in enumerate(samples) if ln(v) in program_lines), None)
+    if first_prog is not None and any(ln(v) in routine_lines for _t, _n, v in samples[first_prog:]):
+        gaps.append("a routine line after the program began — the phase order is not explained")
+    for _t, n, v in samples:
+        if ln(v) not in (None, 0) and ln(v) not in routine_lines and ln(v) not in program_lines and moving(v):
+            gaps.append(f"a motion on line {ln(v)}, which no text names — not attributed (sample {n})")
+            break
+    first_l = next((i for i, (_t, _n, v) in enumerate(samples) if ln(v) == line), None)
+    if first_l is None:
+        if fails:
+            return _row(case, "FAIL", fails[0], **measured)
+        return _row(case, "incomplete", f"no sample of line {line}", **measured)
+    last_r = max((i for i in range(first_l) if ln(samples[i][2]) in routine_lines), default=-1)
+    entry = samples[last_r + 1:first_l]
+    zmax = None
+    for _t, n, v in entry:                                              # 2
+        z = kv(v, 2)
+        if z is None:
+            continue
+        if zmax is not None and z < zmax - STILL_POS:
+            fails.append(f"a descent before line {line}: Z {z:.3f} below the earlier {zmax:.3f} (sample {n})")
+            break
+        zmax = z if zmax is None else max(zmax, z)
+    _t0, n0, v0 = samples[first_l]                                      # 3
+    x0, y0, z0 = kv(v0, 0), kv(v0, 1), kv(v0, 2)
+    if (x0 is not None and abs(x0 - entry_xy[0]) > PATH_TOL) or (y0 is not None and abs(y0 - entry_xy[1]) > PATH_TOL):
+        fails.append(f"line {line} started at X {x0} Y {y0}, not the entry X {entry_xy[0]:g} Y {entry_xy[1]:g}")
+    if z0 is not None and z0 < safe_z - PATH_TOL:
+        fails.append(f"line {line} started at Z {z0:.3f}, below the safe height")
+    if None in (x0, y0, z0):
+        gaps.append(f"line {line}'s first sample not read")
+    measured["start"] = [x0, y0, z0]
+    anchor = None                                                       # 4
+    for i in range(len(entry) - STILL_BLOCK + 1):
+        block = [v for _t, _n, v in entry[i:i + STILL_BLOCK]]
+        if not all(all(kv(v, k) is not None for k in range(6)) and not moving(v) and kv(v, 7) == 1 for v in block):
+            continue
+        p0 = block[0]
+        if any(abs(v[k] - p0[k]) > STILL_POS for v in block for k in (0, 1, 2)):
+            continue
+        if abs(p0[0] - entry_xy[0]) > PATH_TOL or abs(p0[1] - entry_xy[1]) > PATH_TOL or p0[2] < safe_z - PATH_TOL:
+            continue
+        anchor = i
+        break
+    if anchor is None:
+        gaps.append("no confirmed rest at the entry before the start")
+    else:
+        p0 = entry[anchor][2]
+        measured["anchor_n"] = entry[anchor][1]
+        for _t, n, v in entry[anchor:]:
+            if moving(v) or any(kv(v, k) is not None and abs(v[k] - p0[k]) > STILL_POS for k in (0, 1, 2)):
+                fails.append(f"moved after reaching the entry (sample {n})")
+                break
+    for _t, n, v in samples[first_l:]:                                  # 5
+        if ln(v) != line:
+            continue
+        hit = [ax for k, ax in ((1, "Y"), (2, "Z")) if kv(v, k) is not None and kv(v0, k) is not None
+               and abs(v[k] - v0[k]) > STILL_POS]
+        if hit:
+            fails.append(f"line {line} moved {hit[0]} (sample {n})")
+            break
+    if sec.get("problems"):
+        gaps.append("the section: " + "; ".join(sec["problems"]))
+    for nxt, fixed in ((line + 1, (0, 2)), (line + 2, (0, 1))):        # the mapping's self-check
+        seg = [v for _t, _n, v in samples if ln(v) == nxt]
+        if not seg:
+            gaps.append(f"self-check: no sample of line {nxt}")
+            continue
+        b = seg[0]
+        if any(kv(v, k) is not None and kv(b, k) is not None and abs(v[k] - b[k]) > STILL_POS
+               for v in seg for k in fixed):
+            gaps.append(f"self-check: line {nxt} moved an axis not its own — program-line not as expected")
+    if fails:
+        return _row(case, "FAIL", fails[0], **measured)
+    if gaps:
+        return _row(case, "incomplete", gaps[0], **measured)
+    return _row(case, "PASS", f"line {line} started at the entry X/Y on the safe height, at rest since reaching it;"
+                              " no earlier line moved", **measured)

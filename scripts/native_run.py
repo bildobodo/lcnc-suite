@@ -117,13 +117,18 @@ RFL_PROGRAM = "\n".join([
     "S1000 M3",
     "G0 X100 Y100",
     "G0 Z-100",
-    "G1 X200 F3000",
+    "G61.1 G1 X200 F3000",
     "G1 Y200",
     "G0 Z-80",
     "M5",
     "M2"]) + "\n"
 RFL_FILE, RFL_LINE, RFL_ENTRY, RFL_SPEED = "native_rfl.ngc", 7, (100.0, 100.0), 1000.0
 RFL_Z_LINE, RFL_Z_END = -100.0, -80.0
+#: 2c-b (Codex R309–R310): G61.1 on line 7 itself (exact stop, modal: 8 and 9
+#: too — a skipped line would not set it), so each line's axes are its own in
+#: the servo stream; the routine's motion lines (from the run tree's text)
+#: never meet the program's 1…N
+ROUTINE_TEXTS = ("subroutines/tool_length_probe/tool_touch_off.ngc", "subroutines/tool_length_probe/m600.ngc")
 RFL_SAFE_Z = 0.0        # the joint Z the safe-Z step leaves (G53 Z0) — lines 7 and 8 run there
 RFL_DEADLINE = 300.0    # s: the pre-measurement, the entry and the program
 # step 2c (plan Codex R299–R301)
@@ -988,9 +993,8 @@ def rfl_cases():
         if refusal:
             raise RuntimeError(f"run from line: {refusal}")
         cursor, hist_from, err_from = len(c.frames), len(c.rfl_history), len(c.errors)
-        # the servo stream of the whole attempt is recorded for 2c-b (R299):
-        # the start point's evaluator comes once the run showed how
-        # motion.program-line counts MDI and remap lines — not judged here
+        # the servo stream of the whole attempt: the start point (2c-b, Codex
+        # R309–R310) is judged from it, attributed by the texts' line sets
         box: dict = {}
         with (_section(ctx, "rfl") if "servo" in ctx else _no_section()) as box:
             # ONE outcome of the attempt from the auto_run on (R295 FI-I31): a
@@ -1047,8 +1051,18 @@ def rfl_cases():
         line = _with_outcome(nc.eval_rfl_line("rfl-line", hist, run_frames, line=RFL_LINE, **common), outcome)
         planted = nc.eval_rfl_line("rfl-line", hist, run_frames, line=RFL_LINE + 1, **common)
         rows += [line, nc.counter("rfl-line.counter-line+1", planted, line),
-                 nc.eval_rfl_no_earlier("rfl-no-earlier-line", hist, run_frames, line=RFL_LINE),
-                 nc.eval_rfl_start_point("rfl-start-point", hist, run_frames, entry_xy=RFL_ENTRY)]
+                 nc.eval_rfl_no_earlier("rfl-no-earlier-line", hist, run_frames, line=RFL_LINE)]
+        if "section" in box:
+            from test_support import servo_cases as sc
+            r_lines = frozenset().union(*(sc.motion_lines((ctx["tree"] / rel).read_text()) for rel in ROUTINE_TEXTS))
+            judge = dict(line=RFL_LINE, safe_z=RFL_SAFE_Z, routine_lines=r_lines,
+                         program_lines=frozenset(range(1, len(RFL_PROGRAM.splitlines()) + 1)))
+            start = sc.eval_rfl_start_servo("rfl-start-point", box["section"], entry_xy=RFL_ENTRY, **judge)
+            off = sc.eval_rfl_start_servo("rfl-start-point", box["section"],
+                                          entry_xy=(RFL_ENTRY[0] + 1, RFL_ENTRY[1]), **judge)
+            rows += [start, nc.counter("rfl-start-point.counter-entry-x+1", off, start)]
+        else:
+            rows.append(nc.eval_rfl_start_point("rfl-start-point", hist, run_frames, entry_xy=RFL_ENTRY))
         if "error" in box:
             why = outcome["detail"] if outcome is not None else "the attempt's own outcome stands in the rows"
             raise StepFailed(rows, f"the run from line ended: {why}; the servo measurement failed — {box['error']}")

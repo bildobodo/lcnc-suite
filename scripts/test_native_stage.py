@@ -1499,7 +1499,7 @@ def test_the_m600_step_refuses_a_counter_that_failed_for_another_reason(monkeypa
 
 
 # ── step 2b: run from line (Codex R292 FI292-01) ─────────────────────────
-L = 7                       # "G1 X200 F3000"
+L = 7                       # "G61.1 G1 X200 F3000"
 L0 = 50.0
 
 
@@ -1612,7 +1612,7 @@ def test_the_start_point_fails_on_an_observed_contradiction_and_is_otherwise_unp
 
 def test_the_run_from_line_program_is_what_its_constants_say():
     lines = nr.RFL_PROGRAM.splitlines()
-    assert lines[nr.RFL_LINE - 1] == "G1 X200 F3000" and lines[nr.RFL_LINE] == "G1 Y200"
+    assert lines[nr.RFL_LINE - 1] == "G61.1 G1 X200 F3000" and lines[nr.RFL_LINE] == "G1 Y200"
     assert "G0 X100 Y100" in lines[:nr.RFL_LINE - 1] and "G54" in lines[1] and "G21" in lines[1]
     assert f"G0 Z{nr.RFL_Z_LINE:g}" in lines[:nr.RFL_LINE - 1] and f"G0 Z{nr.RFL_Z_END:g}" in lines[nr.RFL_LINE:]
     # T1 with L0 = 50 keeps every joint Z inside its window (MAX_LIMIT 0.1)
@@ -1846,7 +1846,9 @@ class RflClient(FrameClient):
 
 def _rfl_step(tmp_path, client):
     (tmp_path / nr.NC_FILES).mkdir()
-    ctx = {"client": client, "frames": client.frames, "config": tmp_path, "report": {}}
+    # the run tree: this checkout (the routine's texts give its motion lines — 2c-b)
+    ctx = {"client": client, "frames": client.frames, "config": tmp_path, "report": {},
+           "tree": Path(__file__).resolve().parent.parent}
     return ctx, nr.rfl_cases()[1]
 
 
@@ -3279,3 +3281,133 @@ def test_only_a_known_claim_refusal_is_asked_again(monkeypatch, kind, asked):
     except RuntimeError:
         pass
     assert C.n == asked
+
+
+# ── 2c-b: the run-from-line start point from the servo stream (R309/R310) ──
+R_LINES = frozenset({308, 341, 453, 587, 601})        # the routine's motion lines (a sample of them)
+P_LINES = frozenset(range(1, 12))                     # the program's lines 1…11
+
+
+def _seg(line, frm, to, n=20, inpos=0):
+    """n samples moving linearly frm → to on `line` (vel-cmd along it)."""
+    out = []
+    for i in range(n):
+        f = i / max(n - 1, 1)
+        p = tuple(a + (b - a) * f for a, b in zip(frm, to))
+        v = tuple((b - a) for a, b in zip(frm, to))
+        out.append((line, (*p, *v), inpos))
+    return out
+
+
+def _rest(line, at, n=15):
+    return [(line, (*at, 0.0, 0.0, 0.0), 1) for _ in range(n)]
+
+
+def _rfl_servo(*parts, n0=1000):
+    """(line, (x, y, z, vx, vy, vz), inpos) rows → a servo section."""
+    rows = [r for p in parts for r in p]
+    samples = [(i * 0.001, n0 + i, (*v, line, inpos, 7)) for i, (line, v, inpos) in enumerate(rows)]
+    return {"samples": samples, "problems": []}
+
+
+def _good(**over):
+    parts = {"measure": _seg(587, (10, 10, -127), (10, 10, 0)) + _seg(601, (10, 10, 0), (0, 0, 0)),
+             "runout": [(0, (0, 0, 0, -0.01, -0.01, 0), 0)] * 2,
+             "entry": _seg(0, (0, 0, 0), (100, 100, 0)),
+             "rest": _rest(0, (100, 100, 0)),
+             "l7": _seg(7, (100, 100, 0), (200, 100, 0)) + _rest(7, (200, 100, 0), 3),
+             "l8": _seg(8, (200, 100, 0), (200, 200, 0)) + _rest(8, (200, 200, 0), 3),
+             "l9": _seg(9, (200, 200, 0), (200, 200, -30)) + _rest(9, (200, 200, -30), 3),
+             "end": _rest(0, (200, 200, -30), 5)}
+    parts.update(over)
+    return _rfl_servo(*parts.values())
+
+
+def _start(sec, entry=(100.0, 100.0)):
+    return sc.eval_rfl_start_servo("rfl-start-point", sec, line=7, entry_xy=entry, safe_z=0.0,
+                                   routine_lines=R_LINES, program_lines=P_LINES)
+
+
+def test_the_start_point_from_the_servo_stream_passes_a_clean_entry():
+    r = _start(_good())
+    assert r["status"] == "PASS", r
+
+
+@pytest.mark.parametrize("name, over, status, part", [
+    # R309/R310 counter-cases: each a known contradiction — FAIL
+    ("line 6 moved before line 7", {"rest": _rest(0, (100, 100, 0)) + _seg(6, (100, 100, 0), (100, 100, -5))
+                                    + _seg(0, (100, 100, -5), (100, 100, 0)) + _rest(0, (100, 100, 0))}, "FAIL", "line 6"),
+    ("Z sank before line 7", {"entry": _seg(0, (0, 0, 0), (100, 100, -20))}, "FAIL", "descent"),
+    ("small steps add up to a descent", {"entry": _seg(0, (0, 0, 0), (100, 100, 0)) + _seg(0, (100, 100, 0), (100, 100, -0.05), n=50)},
+     "FAIL", "descent"),
+    ("line 7 starts beside the entry", {"rest": _rest(0, (99.5, 100, 0)), "l7": _seg(7, (99.5, 100, 0), (200, 100, 0))},
+     "FAIL", "entry"),
+    ("an excursion after the anchor", {"rest": _rest(0, (100, 100, 0)) + _seg(0, (100, 100, 0), (100.02, 100, 0), n=5)
+                                       + _seg(0, (100.02, 100, 0), (100, 100, 0), n=5) + _rest(0, (100, 100, 0))},
+     "FAIL", "after reaching the entry"),
+    ("line 7 moves Z", {"l7": _seg(7, (100, 100, 0), (200, 100, -1))}, "FAIL", "line 7 moved"),
+    # R310: a later routine line never cuts a known earlier program motion
+    ("line 6 moved before a later routine line", {"measure": _seg(587, (10, 10, -127), (10, 10, 0))
+                                                  + _seg(6, (10, 10, 0), (10, 10, -3)) + _seg(601, (10, 10, -3), (0, 0, 0))},
+     "FAIL", "line 6"),
+    ("line 6 moved before the first routine line", {"measure": _seg(6, (10, 10, -100), (10, 10, -127))
+                                                    + _seg(587, (10, 10, -127), (10, 10, 0)) + _seg(601, (10, 10, 0), (0, 0, 0))},
+     "FAIL", "line 6"),
+    # missing proofs: incomplete
+    ("no line 7", {"l7": [], "l8": [], "l9": []}, "incomplete", "line 7"),
+    ("no rest at the entry", {"rest": []}, "incomplete", "rest"),
+    ("a routine line after the program began", {"end": _seg(601, (200, 200, -30), (200, 200, 0))}, "incomplete", "order"),
+    ("an unattributed motion", {"entry": _seg(0, (0, 0, 0), (100, 100, 0)) + [(44, (100, 100, 0, 1.0, 0, 0), 0)] * 3},
+     "incomplete", "attribut"),
+    ("line 8 moves X: the mapping fails its self-check", {"l8": _seg(8, (200, 100, 0), (202, 200, 0))}, "incomplete", "self-check"),
+])
+def test_the_start_point_counter_cases(name, over, status, part):
+    r = _start(_good(**over))
+    assert r["status"] == status and part in r["detail"], (name, r)
+
+
+def test_a_self_check_failure_never_lowers_a_known_fail():
+    r = _start(_good(entry=_seg(0, (0, 0, 0), (100, 100, -20)), l8=_seg(8, (200, 100, 0), (202, 200, 0))))
+    assert r["status"] == "FAIL" and "descent" in r["detail"], r
+
+
+def test_the_receipt_times_do_not_decide():
+    sec = _good(entry=_seg(0, (0, 0, 0), (100, 100, -20)))
+    shifted = {"samples": [(t + 5.0, n, v) for t, n, v in sec["samples"]], "problems": []}
+    assert _start(sec)["status"] == _start(shifted)["status"] == "FAIL"
+
+
+def test_a_section_problem_is_incomplete_and_a_planted_entry_fails():
+    bad = {**_good(), "problems": ["a number gap"]}
+    assert _start(bad)["status"] == "incomplete"
+    assert _start(_good(), entry=(101.0, 100.0))["status"] == "FAIL"
+
+
+def test_the_routine_lines_come_from_its_text_and_never_meet_the_program():
+    text = "G21\n(LOG,x)\nG53 G1 Z0\n#1=2\nG38.2 Z-10\nG0 X1 ; G1 in a comment\nM2\n"
+    assert sc.motion_lines(text) == frozenset({3, 5, 6})
+    r = sc.eval_rfl_start_servo("x", _good(), line=7, entry_xy=(100.0, 100.0), safe_z=0.0,
+                                routine_lines=frozenset({7, 600}), program_lines=P_LINES)
+    assert r["status"] == "incomplete" and "meet" in r["detail"], r
+
+
+def test_the_run_from_line_step_judges_its_start_from_the_servo_stream(tmp_path, monkeypatch):
+    """2c-b at the whole step: the attempt's servo section judged with the run
+    tree's routine lines — a clean entry PASS, the counter (entry planted
+    1 mm off in X) refused; an entry that sinks before line 7 FAIL."""
+    monkeypatch.setattr(nr, "SHORT_GRACE", 0.02)
+    for stream, status in ((_good(), "PASS"), (_good(entry=_seg(0, (0, 0, 0), (100, 100, -20))), "FAIL")):
+        hist, frames = _rfl_run()
+        c = RflClient(frames, hist)
+        (tmp_path / status).mkdir()
+        ctx, step = _rfl_step(tmp_path / status, c)
+        ctx["run"] = tmp_path / status
+        ctx["servo"] = FakeMeasurement([stream])
+        by = {}
+        try:
+            by = {r["case"]: r for r in step(ctx)}
+        except nr.StepFailed as e:
+            by = {r["case"]: r for r in e.rows}
+        assert by["rfl-start-point"]["status"] == status, by["rfl-start-point"]
+        if status == "PASS":
+            assert by["rfl-start-point.counter-entry-x+1"]["status"] == "PASS"
