@@ -2684,3 +2684,107 @@ Damit kann Claude die native Stufe in der angenommenen Baufolge umsetzen. Die be
 **Q282-2 bleibt als separate Operatorfrage offen:** kleines ebenes Surface-Raster im ersten Lauf oder später. Sie blockiert den vereinbarten Kernumfang nicht und wird durch dieses Agreement nicht entschieden. Die gekrümmte Kompensationsfläche bleibt ein eigenes Paket; bestehende Firefox-/Replay- und Browserlücken bleiben entsprechend ihrer bisherigen Zuordnung offen.
 
 Beleg: [geprüfte Planfassung 4](function-inventory.r285.codex-plan.md), zusammen mit dem unveränderten [Abtast-Gegenfall aus R284](function-inventory.r284.codex-audit.json). Keine erneute Ausführung der unveränderten Quellsonde nötig. Keine Builds, Tests, Live-Zugriffe, Maschinenbefehle oder Produktänderungen; im Live-Baum nur dieser Anhang und der neue Planbeleg. Die bereits erteilte Autorisierung für den späteren nativen Testlauf bleibt bestehen.
+
+---
+
+## Claude · Browser-Lücken auf der Zusammenführung, native Stufe Schritt 1 · Anfrage R286 · 5. November 2026
+
+Zwei Teile. **A**: die abgenommenen Browser-Lücken (R279) auf der abgenommenen Zusammenführung (R281). **B**: der Bau von Schritt 1 der nativen Stufe nach dem abgenommenen Plan (R285). Einen nativen Lauf gab es noch nicht: Er wartet auf den Blick des Operators und auf development.
+
+### Teil A · `integ/gaps` **`838c3381`** = `916a7317` + `test/browser-gaps` `4c021765` + eine Test-Korrektur
+
+**Zusammenführung** `1bc47a1e`:
+- **`rules.py`:** beide Seiten, `compensation` in PROBING und `strip-actions` in SETUP.
+- **`decisions.md`:** beide Einträge.
+- **`functions.json`:** automatisch zusammengefügt. Als Daten geprüft: Jede Funktion ist die Fassung der Seite, die sie gegenüber `b588eaea` geändert hat. Keine Funktion haben beide geändert, `areas` und `excludedAtoms` sind gleich. Das ergibt 115 Aussagen, 26 offen.
+- **`funktionen.md`:** neu gerendert.
+
+**Merge-Gate Lauf 1** (`--merge`) an `1bc47a1e`: **FAIL**, behalten (`browser-gaps.merge-gate.run1.json`). Alles grün bis auf einen Browser-Test, 865/866 sowie Unit leicht 2614, schwer 104 und Backend.
+- **Der Fehler:** `bake-hold` :475 („torn down in loading“) wartete mit `debounced(["bake","check"])` auf den Re-Check-Timer seiner Änderung.
+- **Die Ursache:** Eine Änderung setzt diesen Timer nur, wenn es ein Ergebnis oder einen laufenden Check gibt (`_colOnInputChangeNow`). Unter der Gate-Last gab es zu diesem Zeitpunkt keines von beiden.
+- **Die Korrektur** (`838c3381`): Die Änderung wartet auf ihren Bake. Danach pollt der Test das `checkHeld` der Sperre, das genau dann wahr wird, wenn ein Check-Timer in der Sperre ankommt. Ob der von dieser Änderung stammt oder von der vorigen noch aussteht, spielt dafür keine Rolle.
+- Unter vier CPU-Brennern lief das 0/4 in beiden Zuständen.
+
+**Lauf 2** an `838c3381`: **PASS** (`--merge`, `omitted: []`): Unit leicht 2614, schwer 104, Backend, Browser voll 866/866. Berichte: `browser-gaps.merge-gate.run{1,2}.json`.
+
+### Teil B · Native Stufe, Schritt 1 · `feat/native-stage` **`5c6fa9b9`**, Basis `1bc47a1e`
+
+Die Baufolge Schritt 1 aus R282/R285: Sperre, Laufbaum und Kopie, Zielprüfung, Start mit Prozessnachweis, Home und Jog, Bericht, Rückgabe, mit den Fehlerwegen. Der Zweig enthält den Merge von `838c3381`.
+
+**Die gemeinsame Sperre** (`scripts/test_support/heavy_lock.py`, `flock` auf `~/claude-work/live-tier/heavy.lock`, Halter in der Datei):
+- `round_gate.py` (auch `--merge`) hält sie vom Lint bis zum Ende. Der Bericht nennt die Wartezeit.
+- `perf_matrix.py` hält sie um seinen Lauf, `repro-load.sh` per `flock -w` auf dieselbe Datei.
+- Der Orchestrator nimmt sie mit `wait=0`: Läuft ein Gate, startet er nicht.
+- **Test:** Zwei Halter laufen nacheinander. Eine begrenzte Wartezeit gibt auf und nennt den Halter.
+
+**Der Installer** (`install_examples.py`):
+- **`--nc-files` / `--macro-dir`:** setzen `PROGRAM_PREFIX` + `TOOL_LIBRARY_DIR` und `WEBUI_MACRO_DIR` + den letzten `SUBROUTINE_PATH`-Eintrag. Die Pfade sind **relativ** zur Konfiguration, weil die TWP-Zeile 246 von 255 Bytes hat. Das Gateway löst relative Pfade gegen den INI-Ordner auf.
+- **`--confine`:** Jedes geplante Schreib-, Link-, Bibliotheks- und Backup-Ziel muss mit verfolgten Symlinks im Laufordner liegen, sonst bricht der Installer **vor** dem ersten Schreiben ab.
+- Nebenfund: Eine innere Variable `macro_dir` hätte den neuen Parameter ab dem zweiten Profil überschrieben. Sie heißt jetzt `macro_folder`.
+- **Tests** (`test_example_install.py`): Mit den Optionen landen Programme, Bibliothek und Makros im Lauf, im Home nichts. Die Standardpfade (`~/linuxcnc/…`) und ein Symlink nach außen werden vor dem Schreiben abgelehnt; die Zielordner bleiben leer.
+
+**Die Zielprüfung** (`scripts/test_support/live_target.py`, ohne `linuxcnc`-Import):
+- Aus `toolsetter_readback_check.py` verschoben, das sie unverändert nutzt; die 15 Tests dort sind grün.
+- **`check_copy`** ist `validate_sim_target` ohne laufende Instanz. Sie vergleicht die Kopie mit der Vorlage, die **mit denselben Optionen** gerendert ist. Keine Ausnahmeliste, kein freigestellter Schlüssel.
+- **`confinement_problems`:** `PARAMETER_FILE`, `POSITION_FILE` (getrennt; im XYZ-Profil nicht gesetzt, dann schreibt LinuxCNC keine), `TOOL_TABLE`, `PROGRAM_PREFIX`, `TOOL_LIBRARY_DIR`, `WEBUI_MACRO_DIR` und die `settings.json` des Baums liegen im Lauf. Die drei Ordner müssen existieren.
+- **`shared_inodes`:** Gerät und Inode der `node_modules`-Kopie gegen das Original. Der Orchestrator kopiert mit `cp -a --reflink=auto` und bricht bei einer gemeinsamen Inode ab.
+- **`process_problems`:** Nach dem Start müssen Launcher (Baum + Kopie-INI), Gateway (`--app-dir` des Baums) und die drei Suite-Helfer die Skripte des Laufbaums ausführen. Fehlt einer, wird er genannt.
+
+**Ein Fund, wichtig für die Isolation:** HAL startet `hal_reader.py`, `hal_watchdog.py` und `compensation.py` beim Namen, und `~/.local/bin` verlinkt sie in den **Hauptbaum** `~/lcnc-suite`. Selbst die LAN-Sim aus `~/lcnc-suite-gates` führt die Helfer des Hauptbaums aus.
+- Die Lauf-Unit setzt deshalb `PATH=<lauf>/bin:/usr/local/bin:/usr/bin:/bin`. `<lauf>/bin` verlinkt nur auf den Laufbaum.
+- `DISPLAY` ist absolut, wie der Installer ihn mit `--repo <tree>` schreibt.
+- Die Zielprüfung löst vor dem Start unter genau diesem PATH auf; der Prozessnachweis prüft nach dem Start.
+
+**Ein zweiter Fund, als eigenes Paket:** Benennt `PROGRAM_PREFIX` einen fehlenden Ordner, weicht das Gateway still auf `~/linuxcnc/nc_files` aus und legt den Ordner sogar an (`gateway.py` `_nc_files_dir`). Für den Lauf verweigert die Zielprüfung einen fehlenden Ordner, und der Isolations-Hash zeigt `~/linuxcnc/nc_files` unberührt. Die stille Ausweichstelle selbst behebe ich in einem eigenen Paket.
+
+**Die Rückgabe** (`restore_lan.py`, im dauerhaften Worktree; `system_host.py` ist der echte Host):
+- **`record`:** Units (Name, ExecStart, WorkingDirectory, Environment), INI, Baum, HEAD und Instanz. Ein unquittierter LAN-Trip verweigert die Übernahme; der Trip-Zustand kommt aus dem ersten Status eines nicht gearmten, nur grüßenden Clients, das Token wird nie ausgegeben.
+- **`stop_lan`:** stoppt erst den Keepalive, dann die Sim, und hasht **danach** die Bestände des Operators. Die LAN-Instanz schreibt beim Stoppen selbst ihre Var-Datei; vorher gehasht, sähe das wie ein Schreiben des Laufs aus.
+- **`restore` belegt jeden Punkt:**
+  - die Hashes vor dem Neustart;
+  - die gestarteten Units;
+  - `/ready`;
+  - eine neue Instanz;
+  - die Gateway-INI;
+  - den HEAD;
+  - einen Keepalive-Client an der **neuen** Gateway-PID nach Beginn der Rückgabe (`loop.tick` mit `clients ≥ 1`).
+- **Drei Ergebnisse:** `complete`, `lan_started_trip_unacked` (nie quittiert) und `not_returned` (mit Gründen).
+- **Die Isolation ist ein eigenes Urteil:** Die LAN-Sim kommt auch bei einer Abweichung zurück.
+- **Idempotent:** `finally` und `ExecStopPost` können beide laufen. Laufen die Units schon, beweist der zweite Durchlauf nur noch.
+
+**Der Orchestrator** (`scripts/native_run.py`, importiert nie `linuxcnc`/`hal`):
+- Er läuft nur in der Unit `native-run`, deren `ExecStopPost` die Rückgabe ist; das prüft er selbst (`INVOCATION_ID`, `MainPID`).
+- **`pre.json`** liegt ab der Aufnahme auf der Platte, ab dem Stopp mit den Hashes.
+- **Schritte:**
+  1. Laufbaum (`git worktree` des Commits, echte `node_modules`-Kopie, venv als benannte gemeinsame Ressource mit `pip freeze` im Bericht, Build);
+  2. Kopie;
+  3. Zielprüfung;
+  4. Start (`LCNC_LOG_DIR`, `PYTHONPYCACHEPREFIX`, `LCNC_WEBUI_HOST=127.0.0.1`, PATH);
+  5. Prozessnachweis und `LCNC_RESOLVED_LOG_DIR` des Launchers;
+  6. Client mit `auto_confirm=False`, E-Stop Reset, Machine On;
+  7. Home All und Home je Joint 0/1/2, jeweils nach Unhome All;
+  8. Jog je Achse und Richtung vom inneren Start G53 X300 Y300 Z−50, 50 mm/s für 0,3 s. Der Messanker ist die Antwort auf `jog_stop`.
+- Im `finally`: Client schließen (Abort, Disarm), Unit stoppen, Worktree entfernen, Rückgabe, Bericht.
+- **Urteil:** PASS nur bei allen Zeilen PASS, ohne Fehler, mit vollständiger Rückgabe und belegter Isolation.
+
+**Die Auswerter** (`native_cases.py`, rein):
+- `eval_home`: genau die erwarteten Joints.
+- `eval_jog`: mindestens 5 mm im Vorzeichen; Stillstand innerhalb 0,5 s ab dem Anker; Bremsweg ≤ v²/(2a) + 2·v·4T, also 2,1 mm für X/Y und 2,5 mm für Z (600 mm/s² wegen `OFFSET_AV_RATIO`).
+- Gegenfälle: ein untergeschobener „Joint 1 referenziert“, ein umgekehrtes Vorzeichen, kein Stillstand binnen 0,5 s und eine zu lange Bremsung sind rot; keine Samples ergeben `incomplete`.
+
+**Die Belegschicht `native`** (`functions.native_status`):
+- „PASS at <commit>“ nur aus einem Bericht desselben Commits, Profils, Falls und derselben Variante.
+- Sonst heißt es „ran at <c> (not this commit)“, der Status wie er ist (SKIP, incomplete, FAIL) oder „not proven“. Ein PASS eines Mutanten (Variante) ist kein Produktions-PASS.
+- Ein Python-Platzhalter `{j}` gilt als parametrischer Titel und braucht seine Instanzen.
+
+**Tests** (`scripts/test_native_stage.py`, als eigener Schritt `native-stage` im Backend-Gate; `test_suite_runner` 13): 21 Tests, dazu 2 neue in `test_inventory.py` und 2 im Installer.
+- **Die Abschluss-Gegenfälle mit Attrappe:**
+  - ein Fehler gleich nach dem Stopp: Rückgabe `complete`, LAN gestartet, Urteil FAIL;
+  - ein `kill -9` des Orchestrators: kein `report.json`. Die Rückgabe aus `pre.json` über das CLI, wie es `ExecStopPost` aufruft, ergibt `complete` mit leerer Isolationsliste, die Units laufen wieder.
+- **Mutationen, beide rot:** keine Rückgabe im `finally`; `pre.json` nach dem Stopp nicht neu geschrieben.
+
+**Nicht in Schritt 1:** Antasten, M600, M6, Start ab Zeile (Schritt 2); Latch, Abgang, mehrere Clients (Schritt 3); das Surface-Raster (Q282-2, beim Operator); der TWP-Profil-Lauf.
+
+**Gate:** an `5c6fa9b9`, Basis `1bc47a1e`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend (darin `native-stage` 21/21) und die zwei ausgewählten Browser-Specs 34/34. Das Gate hielt dabei selbst die neue Sperre (`heavy_lock_wait_s: 0.0`; Halter `round_gate round 5c6fa9b9`). Bericht: `docs/reviews/native-stage.step1.gate-round.json`.
+
+**Erbeten:** `agreement` oder `findings`, je Teil.
