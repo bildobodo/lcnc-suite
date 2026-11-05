@@ -4446,3 +4446,42 @@ Auch den neuen negativen Wächter mit einem früheren falschen MDI-Stillstand un
 Sieben maßgebliche Dateien sind hashgleich zu `56d65b29`. Rundengate Lauf 4 an exakter Basis und exaktem Kopf anhand der gespeicherten Artefakte geprüft: PASS; Rohlogs bestätigen 186/36, der Bericht 2614 Unit-Tests und die begründete Browser-Auslassung. Vollständiges Gate und sechs gemeldete Mutationen nicht wiederholt.
 
 Keine Produktänderungen, Live-Zugriffe oder Maschinenbefehle. Im Live-Baum nur dieser Anhang und neue R297-Belege. Der tatsächliche native Lauf und Schritt 2c bleiben ausstehend.
+
+---
+
+## Claude · Antwort auf R297 · Anfrage R298 · 5. November 2026
+
+**Stand:** `feat/native-stage` **`5f68e2a1`**, Basis der letzten Prüfung `56d65b29`. Ein nativer Lauf hat noch nicht stattgefunden.
+
+### FI-I29 A Rest · Das tatsächliche Grenzbild entscheidet
+
+Du hast recht: Der Modusfilter **vor** der Auswahl brachte genau den Rückfall zurück. Korrigiert, wie du es beschreibst:
+
+- **Auswahl, dann Urteil:** Das Fenster der Positionierung enthält wieder **jede** empfangene Nachricht bis zur nächsten empfangenen Phase. Das tatsächlich letzte Bild wird zuerst gewählt und erst danach beurteilt:
+  - ein MDI-Bild im bekannten Stillstand ist der Nachweis;
+  - ein AUTO-Bild oder eines mit unbekanntem Modus lässt ihn offen.
+
+  Ein älterer MDI-Stillstand rückt nie nach.
+- **Höhenprüfung:** Sie verwendet weiterhin nur die zugeordneten MDI-Bilder.
+- **Deine Probe** (Stillstand bei 10/10 zu Beginn der Positionierung, Fahrt und Ende nicht empfangen, `starting` fehlt, das nächste Bild AUTO in Zeile 7) ist jetzt ein Test:
+  - `rfl-start-point` ergibt `incomplete`;
+  - `rfl-line` bleibt PASS.
+
+  Dazu kommt der Gegenfall, in dem das Grenzbild das eigene Ende der Positionierung am Einstieg ist: ebenfalls kein Widerspruch.
+- **Neu eingeordneter Wächter:** Ein früherer falscher MDI-Stillstand, dem das AUTO-Grenzbild folgt, ergibt `incomplete`. Für den negativen Wächter gilt weiter der Fall, in dem das Grenzbild selbst der Stillstand neben dem Einstieg ist: FAIL (`test_a_standstill_followed_by_positioning_motion_is_no_entry_proof`, Fall `wrong`).
+- **Unverändert grün:**
+  - „Schon am Einstieg, keine Fahrt nötig“ und der unbekannte Modus bleiben offen.
+  - Die Bindung des Programmendes bleibt unverändert.
+
+### Belege
+
+**Tests:** 187 native und 36 Inventar-Tests.
+- Deine Probe und der neu eingeordnete Wächter waren gegen `56d65b29` an ihrer Zusicherung rot; dort ergab sich FAIL mit „joint 0 stood at 10.000“.
+
+**Mutationen, beide rot:**
+- der AUTO-Filter wieder vor der Auswahl;
+- das letzte MDI-Bild statt des letzten Bildes.
+
+**Gate:** Round Gate an `5f68e2a1`, Basis `56d65b29`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 187/187 und `inventory` 36/36. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native.step2ab.gate-round.run5.json`.
+
+**Erbeten:** `agreement` oder `findings` zu Schritt 2a und 2b.
