@@ -1,0 +1,719 @@
+{
+ "varMap": {
+  "fastFeed": 3004,
+  "slowFeed": 3005,
+  "traverseFeed": 3006,
+  "maxZTravel": 3007,
+  "retractDist": 3009,
+  "spindleZeroHeight": 3010,
+  "offsetDirection": 3013,
+  "touchX": 3100,
+  "touchY": 3101,
+  "touchZ": 3102,
+  "useToolTable": 3103,
+  "toolMinDis": 3104,
+  "brakeAfter": 3105,
+  "goBackToStart": 3106,
+  "spindleStopM": 3107,
+  "disablePrePos": 3108,
+  "addReps": 3109,
+  "lastTry": 3110,
+  "offsetDiameter": 3111,
+  "offsetValue": 3112,
+  "finderTouchX": 3113,
+  "finderTouchY": 3114,
+  "finderDiffZ": 3115
+ },
+ "defaults": {
+  "fastFeed": 0,
+  "slowFeed": 0,
+  "traverseFeed": 0,
+  "maxZTravel": 0,
+  "retractDist": 0,
+  "spindleZeroHeight": 0,
+  "offsetDirection": 0,
+  "touchX": 0,
+  "touchY": 0,
+  "touchZ": 0,
+  "useToolTable": 0,
+  "toolMinDis": 0,
+  "brakeAfter": 0,
+  "goBackToStart": 0,
+  "spindleStopM": 5,
+  "disablePrePos": 0,
+  "addReps": 0,
+  "lastTry": 0,
+  "offsetDiameter": 0,
+  "offsetValue": 0,
+  "finderTouchX": 0,
+  "finderTouchY": 0,
+  "finderDiffZ": 0
+ },
+ "required": [
+  "touchX",
+  "touchY",
+  "touchZ",
+  "fastFeed",
+  "slowFeed",
+  "traverseFeed",
+  "maxZTravel",
+  "retractDist",
+  "spindleZeroHeight"
+ ],
+ "optionValues": {
+  "offsetDirection": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "brakeAfter": [
+   0,
+   1,
+   2
+  ],
+  "spindleStopM": [
+   5,
+   500
+  ],
+  "useToolTable": [
+   0,
+   1
+  ],
+  "goBackToStart": [
+   0,
+   1
+  ],
+  "disablePrePos": [
+   0,
+   1
+  ],
+  "lastTry": [
+   0,
+   1
+  ]
+ },
+ "bounds": {
+  "touchX": {},
+  "touchY": {},
+  "touchZ": {},
+  "fastFeed": {
+   "min": 1
+  },
+  "slowFeed": {
+   "min": 0
+  },
+  "traverseFeed": {
+   "min": 1
+  },
+  "maxZTravel": {
+   "min": 1
+  },
+  "retractDist": {
+   "min": 0.1
+  },
+  "spindleZeroHeight": {
+   "min": 0.1
+  },
+  "toolMinDis": {
+   "min": 0
+  },
+  "addReps": {
+   "min": 0,
+   "integer": true
+  },
+  "offsetDiameter": {
+   "min": 0
+  },
+  "offsetValue": {
+   "min": 0,
+   "max": 100
+  },
+  "finderTouchX": {},
+  "finderTouchY": {},
+  "finderDiffZ": {}
+ },
+ "cases": [
+  {
+   "section": {},
+   "ok": false,
+   "missing": [
+    "touchX",
+    "touchY",
+    "touchZ",
+    "fastFeed",
+    "slowFeed",
+    "traverseFeed",
+    "maxZTravel",
+    "retractDist",
+    "spindleZeroHeight"
+   ],
+   "invalid": [],
+   "values": null
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "touchZ": -180,
+    "fastFeed": 2000,
+    "slowFeed": 20,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "retractDist": 3,
+    "spindleZeroHeight": 180
+   },
+   "ok": true,
+   "missing": [],
+   "invalid": [],
+   "values": {
+    "3004": 2000.0,
+    "3005": 20.0,
+    "3006": 500.0,
+    "3007": 180.0,
+    "3009": 3.0,
+    "3010": 180.0,
+    "3013": 0.0,
+    "3100": 10.0,
+    "3101": 10.5,
+    "3102": -180.0,
+    "3103": 0.0,
+    "3104": 0.0,
+    "3105": 0.0,
+    "3106": 0.0,
+    "3107": 5.0,
+    "3108": 0.0,
+    "3109": 0.0,
+    "3110": 0.0,
+    "3111": 0.0,
+    "3112": 0.0,
+    "3113": 0.0,
+    "3114": 0.0,
+    "3115": 0.0
+   }
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "touchZ": -180,
+    "fastFeed": 2000,
+    "slowFeed": 20,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "retractDist": 3,
+    "spindleZeroHeight": 180,
+    "goBackToStart": 1,
+    "spindleStopM": 500,
+    "addReps": 2,
+    "offsetValue": 100
+   },
+   "ok": true,
+   "missing": [],
+   "invalid": [],
+   "values": {
+    "3004": 2000.0,
+    "3005": 20.0,
+    "3006": 500.0,
+    "3007": 180.0,
+    "3009": 3.0,
+    "3010": 180.0,
+    "3013": 0.0,
+    "3100": 10.0,
+    "3101": 10.5,
+    "3102": -180.0,
+    "3103": 0.0,
+    "3104": 0.0,
+    "3105": 0.0,
+    "3106": 1.0,
+    "3107": 500.0,
+    "3108": 0.0,
+    "3109": 2.0,
+    "3110": 0.0,
+    "3111": 0.0,
+    "3112": 100.0,
+    "3113": 0.0,
+    "3114": 0.0,
+    "3115": 0.0
+   }
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "touchZ": -180,
+    "fastFeed": 2000,
+    "slowFeed": 20,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "retractDist": 3,
+    "spindleZeroHeight": 180,
+    "unknownKey": "x"
+   },
+   "ok": true,
+   "missing": [],
+   "invalid": [],
+   "values": {
+    "3004": 2000.0,
+    "3005": 20.0,
+    "3006": 500.0,
+    "3007": 180.0,
+    "3009": 3.0,
+    "3010": 180.0,
+    "3013": 0.0,
+    "3100": 10.0,
+    "3101": 10.5,
+    "3102": -180.0,
+    "3103": 0.0,
+    "3104": 0.0,
+    "3105": 0.0,
+    "3106": 0.0,
+    "3107": 5.0,
+    "3108": 0.0,
+    "3109": 0.0,
+    "3110": 0.0,
+    "3111": 0.0,
+    "3112": 0.0,
+    "3113": 0.0,
+    "3114": 0.0,
+    "3115": 0.0
+   }
+  },
+  {
+   "section": "not a dict",
+   "ok": false,
+   "missing": [
+    "touchX",
+    "touchY",
+    "touchZ",
+    "fastFeed",
+    "slowFeed",
+    "traverseFeed",
+    "maxZTravel",
+    "retractDist",
+    "spindleZeroHeight"
+   ],
+   "invalid": [],
+   "values": null
+  },
+  {
+   "section": {
+    "touchY": 10.5,
+    "touchZ": -180,
+    "fastFeed": 2000,
+    "slowFeed": 20,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "retractDist": 3,
+    "spindleZeroHeight": 180
+   },
+   "ok": false,
+   "missing": [
+    "touchX"
+   ],
+   "invalid": [],
+   "values": null
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchZ": -180,
+    "fastFeed": 2000,
+    "slowFeed": 20,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "retractDist": 3,
+    "spindleZeroHeight": 180
+   },
+   "ok": false,
+   "missing": [
+    "touchY"
+   ],
+   "invalid": [],
+   "values": null
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "fastFeed": 2000,
+    "slowFeed": 20,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "retractDist": 3,
+    "spindleZeroHeight": 180
+   },
+   "ok": false,
+   "missing": [
+    "touchZ"
+   ],
+   "invalid": [],
+   "values": null
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "touchZ": -180,
+    "slowFeed": 20,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "retractDist": 3,
+    "spindleZeroHeight": 180
+   },
+   "ok": false,
+   "missing": [
+    "fastFeed"
+   ],
+   "invalid": [],
+   "values": null
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "touchZ": -180,
+    "fastFeed": 2000,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "retractDist": 3,
+    "spindleZeroHeight": 180
+   },
+   "ok": false,
+   "missing": [
+    "slowFeed"
+   ],
+   "invalid": [],
+   "values": null
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "touchZ": -180,
+    "fastFeed": 2000,
+    "slowFeed": 20,
+    "maxZTravel": 180,
+    "retractDist": 3,
+    "spindleZeroHeight": 180
+   },
+   "ok": false,
+   "missing": [
+    "traverseFeed"
+   ],
+   "invalid": [],
+   "values": null
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "touchZ": -180,
+    "fastFeed": 2000,
+    "slowFeed": 20,
+    "traverseFeed": 500,
+    "retractDist": 3,
+    "spindleZeroHeight": 180
+   },
+   "ok": false,
+   "missing": [
+    "maxZTravel"
+   ],
+   "invalid": [],
+   "values": null
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "touchZ": -180,
+    "fastFeed": 2000,
+    "slowFeed": 20,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "spindleZeroHeight": 180
+   },
+   "ok": false,
+   "missing": [
+    "retractDist"
+   ],
+   "invalid": [],
+   "values": null
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "touchZ": -180,
+    "fastFeed": 2000,
+    "slowFeed": 20,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "retractDist": 3
+   },
+   "ok": false,
+   "missing": [
+    "spindleZeroHeight"
+   ],
+   "invalid": [],
+   "values": null
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "touchZ": -180,
+    "fastFeed": 2000,
+    "slowFeed": 20,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "retractDist": 3,
+    "spindleZeroHeight": 180,
+    "addReps": 1.5
+   },
+   "ok": false,
+   "missing": [],
+   "invalid": [
+    "addReps"
+   ],
+   "values": null
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "touchZ": -180,
+    "fastFeed": 2000,
+    "slowFeed": 20,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "retractDist": 3,
+    "spindleZeroHeight": 180,
+    "offsetValue": 101
+   },
+   "ok": false,
+   "missing": [],
+   "invalid": [
+    "offsetValue"
+   ],
+   "values": null
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "touchZ": -180,
+    "fastFeed": 0,
+    "slowFeed": 20,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "retractDist": 3,
+    "spindleZeroHeight": 180
+   },
+   "ok": false,
+   "missing": [],
+   "invalid": [
+    "fastFeed"
+   ],
+   "values": null
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "touchZ": -180,
+    "fastFeed": 2000,
+    "slowFeed": 0,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "retractDist": 3,
+    "spindleZeroHeight": 180
+   },
+   "ok": true,
+   "missing": [],
+   "invalid": [],
+   "values": {
+    "3004": 2000.0,
+    "3005": 0.0,
+    "3006": 500.0,
+    "3007": 180.0,
+    "3009": 3.0,
+    "3010": 180.0,
+    "3013": 0.0,
+    "3100": 10.0,
+    "3101": 10.5,
+    "3102": -180.0,
+    "3103": 0.0,
+    "3104": 0.0,
+    "3105": 0.0,
+    "3106": 0.0,
+    "3107": 5.0,
+    "3108": 0.0,
+    "3109": 0.0,
+    "3110": 0.0,
+    "3111": 0.0,
+    "3112": 0.0,
+    "3113": 0.0,
+    "3114": 0.0,
+    "3115": 0.0
+   }
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "touchZ": -180,
+    "fastFeed": 2000,
+    "slowFeed": 20,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "retractDist": 0.05,
+    "spindleZeroHeight": 180
+   },
+   "ok": false,
+   "missing": [],
+   "invalid": [
+    "retractDist"
+   ],
+   "values": null
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "touchZ": -180,
+    "fastFeed": 2000,
+    "slowFeed": 20,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "retractDist": 3,
+    "spindleZeroHeight": 180,
+    "spindleStopM": 6
+   },
+   "ok": false,
+   "missing": [],
+   "invalid": [
+    "spindleStopM"
+   ],
+   "values": null
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "touchZ": -180,
+    "fastFeed": 2000,
+    "slowFeed": 20,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "retractDist": 3,
+    "spindleZeroHeight": 180,
+    "goBackToStart": 2
+   },
+   "ok": false,
+   "missing": [],
+   "invalid": [
+    "goBackToStart"
+   ],
+   "values": null
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "touchZ": "x",
+    "fastFeed": 2000,
+    "slowFeed": 20,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "retractDist": 3,
+    "spindleZeroHeight": 180
+   },
+   "ok": false,
+   "missing": [],
+   "invalid": [
+    "touchZ"
+   ],
+   "values": null
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "touchZ": true,
+    "fastFeed": 2000,
+    "slowFeed": 20,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "retractDist": 3,
+    "spindleZeroHeight": 180
+   },
+   "ok": false,
+   "missing": [],
+   "invalid": [
+    "touchZ"
+   ],
+   "values": null
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "touchZ": null,
+    "fastFeed": 2000,
+    "slowFeed": 20,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "retractDist": 3,
+    "spindleZeroHeight": 180
+   },
+   "ok": false,
+   "missing": [],
+   "invalid": [
+    "touchZ"
+   ],
+   "values": null
+  },
+  {
+   "section": {
+    "touchX": 10,
+    "touchY": 10.5,
+    "touchZ": -180.1234567,
+    "fastFeed": 2000,
+    "slowFeed": 20,
+    "traverseFeed": 500,
+    "maxZTravel": 180,
+    "retractDist": 3,
+    "spindleZeroHeight": 180
+   },
+   "ok": true,
+   "missing": [],
+   "invalid": [],
+   "values": {
+    "3004": 2000.0,
+    "3005": 20.0,
+    "3006": 500.0,
+    "3007": 180.0,
+    "3009": 3.0,
+    "3010": 180.0,
+    "3013": 0.0,
+    "3100": 10.0,
+    "3101": 10.5,
+    "3102": -180.123457,
+    "3103": 0.0,
+    "3104": 0.0,
+    "3105": 0.0,
+    "3106": 0.0,
+    "3107": 5.0,
+    "3108": 0.0,
+    "3109": 0.0,
+    "3110": 0.0,
+    "3111": 0.0,
+    "3112": 0.0,
+    "3113": 0.0,
+    "3114": 0.0,
+    "3115": 0.0
+   }
+  }
+ ]
+}
