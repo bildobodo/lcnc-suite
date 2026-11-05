@@ -1,0 +1,510 @@
+[
+  {
+    "case": "R288 creation gap closed for active unit",
+    "restore": {
+      "outcome": "complete",
+      "instance": [
+        "linuxcncsvr",
+        101,
+        5101
+      ],
+      "isolation": [],
+      "cleanup": []
+    }
+  },
+  {
+    "case": "R288 restore phase durability closed",
+    "disk_at_lan_start": {
+      "test_ended": true,
+      "isolation": []
+    },
+    "resume": {
+      "outcome": "complete",
+      "instance": [
+        "linuxcncsvr",
+        101,
+        5101
+      ],
+      "isolation": [],
+      "cleanup": []
+    },
+    "run_pass": true
+  },
+  {
+    "case": "R288 binary pong proof closed",
+    "received_pongs": 3,
+    "beat_exists": true
+  },
+  {
+    "case": "keeper JSON control",
+    "pongs": 3
+  },
+  {
+    "case": "R288 delayed status closed",
+    "sign": 1,
+    "actual_brake_from_reply_mm": 1.6666666666666667,
+    "true_limit_mm": 2.066666666666667,
+    "post_receipt_sample_source_time_s": -0.033,
+    "out": {
+      "case": "delayed",
+      "status": "incomplete",
+      "detail": "the braking travel from the reply is at most 4.967 mm by the frame before it; status frames give no lower bound (their capture time is not known) \u2014 not resolved against 2.067",
+      "axis": "X",
+      "sign": 1,
+      "bound_mm": 2.067,
+      "travel": 11.7,
+      "before_s": -0.005,
+      "stop_s": 0.08,
+      "brake_upper_mm": 4.9667,
+      "first_after_mm": 3.3167
+    }
+  },
+  {
+    "case": "R288 delayed status closed",
+    "sign": -1,
+    "actual_brake_from_reply_mm": 1.6666666666666667,
+    "true_limit_mm": 2.066666666666667,
+    "post_receipt_sample_source_time_s": -0.033,
+    "out": {
+      "case": "delayed",
+      "status": "incomplete",
+      "detail": "the braking travel from the reply is at most 4.967 mm by the frame before it; status frames give no lower bound (their capture time is not known) \u2014 not resolved against 2.067",
+      "axis": "X",
+      "sign": -1,
+      "bound_mm": 2.067,
+      "travel": 11.7,
+      "before_s": -0.005,
+      "stop_s": 0.08,
+      "brake_upper_mm": 4.9667,
+      "first_after_mm": 3.3167
+    }
+  },
+  {
+    "case": "R287 analytic brake closed",
+    "sign": 1,
+    "out": {
+      "case": "r287",
+      "status": "incomplete",
+      "detail": "the braking travel from the reply is at most 5.000 mm by the frame before it; status frames give no lower bound (their capture time is not known) \u2014 not resolved against 2.067",
+      "axis": "X",
+      "sign": 1,
+      "bound_mm": 2.067,
+      "travel": 15,
+      "before_s": -0.001,
+      "stop_s": 0.2,
+      "brake_upper_mm": 5,
+      "first_after_mm": 1.5125
+    }
+  },
+  {
+    "case": "R287 analytic brake closed",
+    "sign": -1,
+    "out": {
+      "case": "r287",
+      "status": "incomplete",
+      "detail": "the braking travel from the reply is at most 5.000 mm by the frame before it; status frames give no lower bound (their capture time is not known) \u2014 not resolved against 2.067",
+      "axis": "X",
+      "sign": -1,
+      "bound_mm": 2.067,
+      "travel": 15,
+      "before_s": -0.001,
+      "stop_s": 0.2,
+      "brake_upper_mm": 5,
+      "first_after_mm": 1.5125
+    }
+  },
+  {
+    "case": "current proofs repeated",
+    "out": {
+      "outcome": "not_returned",
+      "reasons": [
+        "bg-keepalive runs another command than recorded",
+        "the LAN tree's HEAD is changed, recorded abc"
+      ],
+      "instance": [
+        "linuxcncsvr",
+        101,
+        5101
+      ],
+      "isolation": [],
+      "cleanup": [],
+      "repeat_of": "complete"
+    }
+  },
+  {
+    "case": "R289 transitional/nonempty unit closed",
+    "phase": "activating",
+    "out": {
+      "outcome": "not_returned",
+      "reasons": [
+        "the test unit native-sim-r290-owned has not ended (activating, 2 processes)"
+      ],
+      "instance": [
+        "linuxcncsvr",
+        900,
+        9000
+      ],
+      "isolation": null,
+      "cleanup": [
+        "the test unit native-sim-r290-owned has not ended (activating, 2 processes)"
+      ]
+    }
+  },
+  {
+    "case": "R289 transitional/nonempty unit closed",
+    "phase": "deactivating",
+    "out": {
+      "outcome": "not_returned",
+      "reasons": [
+        "the test unit native-sim-r290-owned has not ended (deactivating, 2 processes)"
+      ],
+      "instance": [
+        "linuxcncsvr",
+        900,
+        9000
+      ],
+      "isolation": null,
+      "cleanup": [
+        "the test unit native-sim-r290-owned has not ended (deactivating, 2 processes)"
+      ]
+    }
+  },
+  {
+    "case": "R289 transitional/nonempty unit closed",
+    "phase": "reloading",
+    "out": {
+      "outcome": "not_returned",
+      "reasons": [
+        "the test unit native-sim-r290-owned has not ended (reloading, 2 processes)"
+      ],
+      "instance": [
+        "linuxcncsvr",
+        900,
+        9000
+      ],
+      "isolation": null,
+      "cleanup": [
+        "the test unit native-sim-r290-owned has not ended (reloading, 2 processes)"
+      ]
+    }
+  },
+  {
+    "case": "R289 transitional/nonempty unit closed",
+    "phase": "failed",
+    "out": {
+      "outcome": "not_returned",
+      "reasons": [
+        "the test unit native-sim-r290-owned has not ended (failed, 2 processes)"
+      ],
+      "instance": [
+        "linuxcncsvr",
+        900,
+        9000
+      ],
+      "isolation": null,
+      "cleanup": [
+        "the test unit native-sim-r290-owned has not ended (failed, 2 processes)"
+      ]
+    }
+  },
+  {
+    "case": "R289 query failure closed",
+    "out": {
+      "outcome": "not_returned",
+      "reasons": [
+        "the test unit native-sim-r290-owned was not read (Command '['systemctl', '--user', 'show', 'native-sim-r290-owned', '-p', 'LoadState', '-p', 'ActiveState', '-p', 'InvocationID', '-p', 'ControlGroup', '-p', 'ExecStart', '-p', 'WorkingDirectory', '--no-pager']' returned non-zero exit status 1.) \u2014 unresolved"
+      ],
+      "instance": [
+        "linuxcncsvr",
+        900,
+        9000
+      ],
+      "isolation": null,
+      "cleanup": [
+        "the test unit native-sim-r290-owned was not read (Command '['systemctl', '--user', 'show', 'native-sim-r290-owned', '-p', 'LoadState', '-p', 'ActiveState', '-p', 'InvocationID', '-p', 'ControlGroup', '-p', 'ExecStart', '-p', 'WorkingDirectory', '--no-pager']' returned non-zero exit status 1.) \u2014 unresolved"
+      ]
+    }
+  },
+  {
+    "case": "R289 kill during stop closed",
+    "on_disk_at_kill": {
+      "test_unit_intent": "native-sim-r290-owned",
+      "test_unit": "native-sim-r290-owned",
+      "test_unit_invocation": "inv-crash",
+      "test_unit_wd": "/tmp/pytest-of-cnc/pytest-939/test_positive_kill_during_stop0/r290-owned/config",
+      "test_ini": "/tmp/pytest-of-cnc/pytest-939/test_positive_kill_during_stop0/r290-owned/config/test.ini",
+      "tree": "/tmp/pytest-of-cnc/pytest-939/test_positive_kill_during_stop0/r290-owned/tree",
+      "tree_of": "/source",
+      "test_instance": [
+        900,
+        9000
+      ]
+    },
+    "while_stopping": {
+      "outcome": "not_returned",
+      "reasons": [
+        "the test unit native-sim-r290-owned has not ended (deactivating, 2 processes)"
+      ],
+      "instance": [
+        "linuxcncsvr",
+        900,
+        9000
+      ],
+      "isolation": null,
+      "cleanup": [
+        "the test unit native-sim-r290-owned has not ended (deactivating, 2 processes)"
+      ]
+    },
+    "after_end": {
+      "outcome": "complete",
+      "instance": [
+        "linuxcncsvr",
+        101,
+        5101
+      ],
+      "isolation": [],
+      "cleanup": []
+    },
+    "tree_removals": 1
+  },
+  {
+    "case": "R289 reverse and restart closed",
+    "sign": 1,
+    "reverse": {
+      "case": "reverse",
+      "status": "FAIL",
+      "detail": "moved -2.150 mm between +0.060 s and +0.200 s \u2014 against its sign",
+      "axis": "X",
+      "sign": 1,
+      "bound_mm": 2.067,
+      "travel": 15,
+      "before_s": -0.005
+    },
+    "restart": {
+      "case": "restart",
+      "status": "FAIL",
+      "detail": "moved again after its standstill at +0.010 s: 325.000 mm, 50.000 mm/s at +0.200 s",
+      "axis": "X",
+      "sign": 1,
+      "bound_mm": 2.067,
+      "travel": 15,
+      "before_s": -0.005
+    }
+  },
+  {
+    "case": "R289 reverse and restart closed",
+    "sign": -1,
+    "reverse": {
+      "case": "reverse",
+      "status": "FAIL",
+      "detail": "moved +2.150 mm between +0.060 s and +0.200 s \u2014 against its sign",
+      "axis": "X",
+      "sign": -1,
+      "bound_mm": 2.067,
+      "travel": 15,
+      "before_s": -0.005
+    },
+    "restart": {
+      "case": "restart",
+      "status": "FAIL",
+      "detail": "moved again after its standstill at +0.010 s: 275.000 mm, 50.000 mm/s at +0.200 s",
+      "axis": "X",
+      "sign": -1,
+      "bound_mm": 2.067,
+      "travel": 15,
+      "before_s": -0.005
+    }
+  },
+  {
+    "case": "FI-I23 partially unknown frame hides contradiction",
+    "sign": 1,
+    "unknown": "speed",
+    "discarded_sample": [
+      0.2,
+      325,
+      null
+    ],
+    "out": {
+      "case": "partial-frame",
+      "status": "PASS",
+      "detail": "moved in its sign, stopped within its bounds",
+      "axis": "X",
+      "sign": 1,
+      "bound_mm": 2.067,
+      "travel": 15,
+      "before_s": -0.005,
+      "stop_s": 0.01,
+      "brake_upper_mm": 0.4,
+      "first_after_mm": 0.0
+    }
+  },
+  {
+    "case": "FI-I23 partially unknown frame hides contradiction",
+    "sign": -1,
+    "unknown": "speed",
+    "discarded_sample": [
+      0.2,
+      275,
+      null
+    ],
+    "out": {
+      "case": "partial-frame",
+      "status": "PASS",
+      "detail": "moved in its sign, stopped within its bounds",
+      "axis": "X",
+      "sign": -1,
+      "bound_mm": 2.067,
+      "travel": 15,
+      "before_s": -0.005,
+      "stop_s": 0.01,
+      "brake_upper_mm": 0.4,
+      "first_after_mm": 0.0
+    }
+  },
+  {
+    "case": "FI-I23 partially unknown frame hides contradiction",
+    "sign": 1,
+    "unknown": "position",
+    "discarded_sample": [
+      0.2,
+      null,
+      50
+    ],
+    "out": {
+      "case": "partial-frame",
+      "status": "PASS",
+      "detail": "moved in its sign, stopped within its bounds",
+      "axis": "X",
+      "sign": 1,
+      "bound_mm": 2.067,
+      "travel": 15,
+      "before_s": -0.005,
+      "stop_s": 0.01,
+      "brake_upper_mm": 0.4,
+      "first_after_mm": 0.0
+    }
+  },
+  {
+    "case": "FI-I23 partially unknown frame hides contradiction",
+    "sign": -1,
+    "unknown": "position",
+    "discarded_sample": [
+      0.2,
+      null,
+      50
+    ],
+    "out": {
+      "case": "partial-frame",
+      "status": "PASS",
+      "detail": "moved in its sign, stopped within its bounds",
+      "axis": "X",
+      "sign": -1,
+      "bound_mm": 2.067,
+      "travel": 15,
+      "before_s": -0.005,
+      "stop_s": 0.01,
+      "brake_upper_mm": 0.4,
+      "first_after_mm": 0.0
+    }
+  },
+  {
+    "case": "FI-I23 accumulated backward drift accepted",
+    "sign": 1,
+    "step_mm": -0.009,
+    "steps": 9,
+    "total_reversal_mm": 0.081,
+    "observed_path_from_before_mm": 2.121,
+    "out": {
+      "case": "backward-drift",
+      "status": "PASS",
+      "detail": "moved in its sign, stopped within its bounds",
+      "axis": "X",
+      "sign": 1,
+      "bound_mm": 2.067,
+      "travel": 15,
+      "before_s": -0.005,
+      "stop_s": 0.307,
+      "brake_upper_mm": 1.959,
+      "first_after_mm": 0.081
+    }
+  },
+  {
+    "case": "FI-I23 accumulated backward drift accepted",
+    "sign": -1,
+    "step_mm": -0.009,
+    "steps": 9,
+    "total_reversal_mm": 0.081,
+    "observed_path_from_before_mm": 2.121,
+    "out": {
+      "case": "backward-drift",
+      "status": "PASS",
+      "detail": "moved in its sign, stopped within its bounds",
+      "axis": "X",
+      "sign": -1,
+      "bound_mm": 2.067,
+      "travel": 15,
+      "before_s": -0.005,
+      "stop_s": 0.307,
+      "brake_upper_mm": 1.959,
+      "first_after_mm": 0.081
+    }
+  },
+  {
+    "case": "bounded noise positive control",
+    "out": {
+      "case": "noise",
+      "status": "PASS",
+      "detail": "moved in its sign, stopped within its bounds",
+      "axis": "X",
+      "sign": 1,
+      "bound_mm": 2.067,
+      "travel": 15,
+      "before_s": -0.005,
+      "stop_s": 0.109,
+      "brake_upper_mm": 1.5,
+      "first_after_mm": 0.0
+    }
+  },
+  {
+    "case": "working directory start wiring",
+    "shown": "!/home/cnc",
+    "passed": "-/home/cnc",
+    "command": [
+      "systemd-run",
+      "--user",
+      "--unit=r290-readback",
+      "-p",
+      "WorkingDirectory=-/home/cnc",
+      "/py",
+      "keeper.py"
+    ]
+  },
+  {
+    "case": "working directory start wiring",
+    "shown": "/plain",
+    "passed": "/plain",
+    "command": [
+      "systemd-run",
+      "--user",
+      "--unit=r290-readback",
+      "-p",
+      "WorkingDirectory=/plain",
+      "/py",
+      "keeper.py"
+    ]
+  },
+  {
+    "case": "working directory start wiring",
+    "shown": "",
+    "passed": "/",
+    "command": [
+      "systemd-run",
+      "--user",
+      "--unit=r290-readback",
+      "-p",
+      "WorkingDirectory=/",
+      "/py",
+      "keeper.py"
+    ]
+  }
+]

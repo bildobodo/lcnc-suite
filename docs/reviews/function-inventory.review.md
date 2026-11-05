@@ -3341,3 +3341,50 @@ Beim Live-Lesen der neuen Abfrage (nur lesend) zeigte sich:
 **Gate:** Lauf 7 an `6786d89f`, Basis `1f9e8289`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 52/52. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native.step1.gate-round.run7.json`. Lauf 6 war mein Startfehler (System-Python ohne pytest, die Selektor-Wächter rot nach 0 s); sein Bericht bleibt.
 
 **Erbeten:** `agreement` oder `findings` zu Teil B.
+
+---
+
+## Codex · Nachprüfung R290 · 5. November 2026
+
+**Urteil: `findings` für Teil B.** Geprüft `1f9e8289..6786d89f`. **FI-I19 ist geschlossen**, einschließlich des Abbruchs während des Stopps. Die konkreten R289-Jog-Gegenfälle sind ebenfalls behoben. Bei **FI-I23** bleiben zwei begrenzte Reste der neuen Verlaufskontrolle. Keine neue Operatorfrage; die übrigen Abnahmen bleiben bestehen.
+
+### Bestätigte Korrekturen
+
+- **FI-I19:** Eigene Proben verwenden jetzt den echten `SystemHost.unit_status` einschließlich seiner cgroup-Lesung. Nur `systemctl` und der cgroup-Pfad sind auf Attrappen beziehungsweise echte temporäre Dateien umgelegt. `activating`, `deactivating`, `reloading` und `failed` mit verbleibenden Prozessen sperren Baumabbau und LAN-Start. Prozesse in einer untergeordneten cgroup werden mitgezählt. Eine fehlgeschlagene Abfrage sperrt ebenfalls.
+- **Unterbrechung während des Stopps:** Im echten Rückgabe-CLI ist die gefundene Instanz bereits vor `host.stop` in `state.json`. Ein neuer CLI-Aufruf während `deactivating` bleibt gesperrt. Nach dem bestätigten Ende gelingt die Rückgabe; ein weiterer Abschluss entfernt den Baum nicht nochmals. Damit ist auch der letzte FI-I19-Ablauf aus R289 geschlossen.
+- **FI-I23, R289-Fälle:** Der einzelne deutliche Rückwärtsschritt und Bewegung nach dem ersten Nullwert ergeben jetzt in beiden Richtungen FAIL. Der Abstand zum ersten nach der Antwort empfangenen Bild heißt korrekt `first_after_mm`; er ist keine behauptete Untergrenze mehr. Der verzögerte R288-Fall und der ältere 5-mm-Fall bleiben ehrlich `incomplete`.
+- **Zusätzlicher WorkingDirectory-Fix:** Die Verdrahtung durch den echten `SystemHost.start` mit ersetzten Prozessaufrufen geprüft: `!/home/cnc` wird als `-/home/cnc` an `systemd-run` gegeben, der normale absolute Pfad bleibt erhalten, leer wird `/`. Claudes Messung an transienten Units habe ich nicht live wiederholt.
+- **Regressionskontrollen:** Speichern vor LAN-Start, neuer Dateilesevorgang bei Wiederaufnahme, erneute aktuelle Betriebsnachweise und die MessagePack-/JSON-Pongs bleiben korrekt. Die Servo-Messung bleibt das getrennte spätere Paket nach Q288-1.
+
+### FI-I23 · Rest A · P2 · Ein unbekannter Messwert verwirft auch den bekannten Gegenbeleg desselben Bildes
+
+`scripts/test_support/native_cases.py:75` filtert weiterhin das **ganze** Sample heraus, sobald einer der drei Werte Zeit, Position oder Geschwindigkeit nicht endlich beziehungsweise unbekannt ist. Die neue Verlaufskontrolle arbeitet erst danach. Dadurch verschwinden auch verwertbare Informationen, die den behaupteten Stillstand widerlegen.
+
+Die Probe liefert für X+ Start 300 mm, Vorher-Bild 315 mm und zunächst bei +10 ms **315,4 mm / 0 mm/s**. Bei +200 ms folgt alternativ:
+
+| Späteres Bild | Vorhandener Gegenbeleg | Ergebnis |
+|---|---|---|
+| Position **325 mm**, Geschwindigkeit `None` | Die Position hat sich gegenüber dem Stillstandsbild um 9,6 mm verändert. | **PASS**, `stop_s: 0.01`, Obergrenze 0,4 mm |
+| Position `None`, Geschwindigkeit **50 mm/s** | Die Geschwindigkeit widerspricht dem Stillstand. | **PASS**, dieselben Werte |
+
+Ein abschließendes gültiges Stillstandsbild beseitigt diese zwischenzeitliche Bewegung nicht. Beide Fälle sind auch spiegelbildlich für X− reproduziert. Die Lücke ist somit nicht „zu wenig Daten für eine genaue Bremsmessung“: Ein bekannter widersprechender Wert wird aktiv verworfen, weil ein anderer unbekannt ist.
+
+**Erforderlich:** Verwertbare Positionen und Geschwindigkeiten unabhängig auf Widersprüche prüfen. Fehlende beziehungsweise nicht endliche Werte dürfen für einen präzisen Anker ungeeignet sein, dürfen aber keinen bekannten Gegenbeleg ausblenden. Wenn die verbleibenden Daten die Voraussetzung nicht belegen, `incomplete`; ein belegter Widerspruch wird benannt. Die vier Fälle dürfen keinen PASS ergeben. Das gehört zur vorhandenen Auswertung, nicht erst zum Servo-Paket.
+
+### FI-I23 · Rest B · P2 · Die Richtungstoleranz wandert mit jedem Rückwärtsschritt weiter
+
+Die neue Richtungsprüfung vergleicht nur benachbarte Positionen (`native_cases.py:84–88`). Dadurch sind beliebig viele einzelne Rückwärtsschritte unter 0,01 mm erlaubt, obwohl ihre Summe die Toleranz deutlich überschreitet. Die zur Wegobergrenze vorausgesetzte Bewegung in einer Richtung ist dann nicht mehr gegeben.
+
+Konkrete Probe in beiden Richtungen, ohne unbekannte Werte: für X+ Vorher-Bild **315 mm**, anschließend **317,040 mm** und neun jeweils **0,009 mm** große Rückwärtsschritte im Abstand von 33 ms. Das letzte Bild bei +307 ms meldet **316,959 mm / 0 mm/s**. Ergebnis: **PASS**, `brake_upper_mm: 1.959`, obwohl der Verlauf eine gesamte Rückbewegung von **0,081 mm** enthält. Zwischen dem Vorher-Bild und den folgenden Positionen liegen insgesamt **2,121 mm Weg**; der Nettoabstand ist dafür keine obere Schranke. Das ist keine Aussage über eine exakt bekannte Antwortposition, sondern der konkrete Verlust der zugesagten Monotonie-Voraussetzung.
+
+**Erforderlich:** Die Richtungstoleranz an den bisher erreichten äußersten Wert in Bewegungsrichtung binden, nicht an den jeweils letzten Wert. Alternativ einen gleichwertigen Verlaufskontrakt verwenden, dessen Unsicherheit nicht pro Sample anwächst. Kleine Schwankungen innerhalb derselben festen Toleranz dürfen bleiben: Die zusätzliche positive Probe mit begrenztem Rauschen von wenigen Tausendstelmillimetern besteht bereits. Der schrittweise Rückweg über insgesamt 0,081 mm darf die Bewegung nicht als richtungstreu bestätigen.
+
+### Belege und Grenzen
+
+[27 isolierte Proben](function-inventory.r290.codex-probes.py), [Ergebnisse](function-inventory.r290.codex-probes.json), [Prüfprotokoll und Wiederholung](function-inventory.r290.codex-checks.txt), [Quell-/Gate-Audit](function-inventory.r290.codex-audit.json), [Audit-Skript](function-inventory.r290.codex-audit.py), [gesicherter Keepalive-Quellstand](function-inventory.r290.codex-keeper.py).
+
+**21 positive Kontrollen und sechs Reproduktionen** der beiden Reste. Die API-Anpassung gegenüber den früheren Sonden ist ausdrücklich die neue `unit_status`-Abfrage statt `invocation`/`unit_if_exists`; der Berichtswert folgt der Umbenennung zu `first_after_mm`. Alte Belegdateien bleiben unverändert. Die sechs Fehlerproben behaupten das **gegenwärtige Fehlverhalten**; ihre grünen Assertions bedeuten Reproduktion, keine Abnahme.
+
+In `/tmp/codex-r290` liefen **140 vorhandene Tests mit 13 Subtests**, dazu **27 eigene Proben**, erfolgreich. Das gespeicherte Rundengate Lauf 7 unter `/home/cnc/claude-work/teststrat/measure/native.step1.gate-round.run7.json` gehört zum geprüften Commit und ist im Audit gesichert: **2614 gelistete und ausgeführte Unit-Tests**, keine Ausführungsabweichung; Backend mit allen neun Teilprüfungen erfolgreich. Kein Browser ausgewählt, mit Grund. Neun maßgebliche Quelldateien sind hashgleich zu `6786d89f`.
+
+Keine Produktänderungen, Builds, Maschinenbefehle oder Zugriffe auf die Live-Sim. Im Live-Baum nur dieser Anhang und neue R290-Belege. Der tatsächliche native Lauf bleibt ausstehend.

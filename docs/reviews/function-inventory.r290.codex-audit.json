@@ -1,0 +1,348 @@
+{
+  "head": "6786d89f083d4e3db738593d5154f8c2a60f1eca",
+  "base": "1f9e828989e487ed98688f33ad58d5f284534ad5",
+  "kind": "round",
+  "verdict": "PASS",
+  "omitted": [
+    {
+      "check": "unit-heavy",
+      "reason": "no heavy file changed, reached or read for"
+    },
+    {
+      "check": "browser",
+      "reason": "no path selects a browser spec"
+    }
+  ],
+  "pending": [],
+  "heavy_lock_wait_s": 0.0,
+  "round_gate": {
+    "kind": "round",
+    "note": "",
+    "base": "1f9e828989e487ed98688f33ad58d5f284534ad5",
+    "head": "6786d89f083d4e3db738593d5154f8c2a60f1eca",
+    "uncommitted": 0,
+    "plan": [
+      "selection-guards",
+      "lint",
+      "build",
+      "unit-light",
+      "backend"
+    ],
+    "env": {
+      "nproc": 6,
+      "arch": "aarch64",
+      "node": "v22.23.2",
+      "playwright": "Version 1.60.0"
+    },
+    "selection": {
+      "unmatched": [],
+      "unit": {
+        "light": "every unit file but HEAVY_UNIT \u2014 every round",
+        "heavy": [],
+        "heavy_reasons": [],
+        "changed": [],
+        "related": []
+      },
+      "browser": {
+        "run": [],
+        "reasons": [
+          "no path selects a browser spec"
+        ]
+      },
+      "backend": {
+        "run": true,
+        "reasons": [
+          "scripts/native_run.py: scripts and their tests ride the backend gate",
+          "scripts/test_native_stage.py: scripts and their tests ride the backend gate",
+          "scripts/test_support/native_cases.py: scripts and their tests ride the backend gate",
+          "scripts/test_support/restore_lan.py: scripts and their tests ride the backend gate",
+          "scripts/test_support/system_host.py: scripts and their tests ride the backend gate"
+        ]
+      },
+      "firefox": {
+        "needed": false
+      },
+      "live": {}
+    },
+    "heavy_lock_wait_s": 0.0,
+    "verdict": "PASS",
+    "resources": {
+      "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/native-round-gate7.service",
+      "cpu_s": 383,
+      "memory_peak_mb": 2065
+    },
+    "checks": [
+      {
+        "name": "selection-guards",
+        "command": "/home/cnc/lcnc-suite-native/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-native/scripts/test_select/test_selector.py",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 3
+      },
+      {
+        "name": "lint",
+        "command": "npm run lint",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 8
+      },
+      {
+        "name": "build",
+        "command": "npm run build",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 14
+      },
+      {
+        "name": "unit-light",
+        "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/claude-work/teststrat/measure/native.step1.gate-round.run7.logs/unit-light.json",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 51,
+        "files": 162,
+        "tests": 2614,
+        "passed": 2614,
+        "failed": 0,
+        "skipped": 0,
+        "listed": 2614
+      },
+      {
+        "name": "backend",
+        "command": "/home/cnc/lcnc-suite-native/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-native/scripts/test_suite.py offline --component backend --out-dir /home/cnc/claude-work/teststrat/measure/native.step1.gate-round.run7.logs/backend",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 83
+      }
+    ],
+    "omitted": [
+      {
+        "check": "unit-heavy",
+        "reason": "no heavy file changed, reached or read for"
+      },
+      {
+        "check": "browser",
+        "reason": "no path selects a browser spec"
+      }
+    ],
+    "pending": []
+  },
+  "unit-light": {
+    "listed": 2614,
+    "ran": 2614,
+    "passed": 2614,
+    "issues": []
+  },
+  "backend": {
+    "mode": "offline",
+    "started": "2026-11-05T05:49:08.804588+00:00",
+    "root": "/home/cnc/lcnc-suite-native",
+    "gates": [
+      {
+        "name": "backend",
+        "command": [
+          "/home/cnc/lcnc-suite-native/lcnc-gateway/.venv/bin/python3",
+          "-m",
+          "pytest"
+        ],
+        "cwd": "/home/cnc/lcnc-suite-native/lcnc-gateway",
+        "log": "backend.log",
+        "started": "2026-11-05T05:49:08.814645+00:00",
+        "status": "pass",
+        "exit_code": 0,
+        "seconds": 69.27,
+        "finished": "2026-11-05T05:50:18.088905+00:00",
+        "notes": []
+      },
+      {
+        "name": "5axis-model",
+        "command": [
+          "/home/cnc/lcnc-suite-native/lcnc-gateway/.venv/bin/python3",
+          "/home/cnc/lcnc-suite-native/scripts/test_5axis_xyzac.py"
+        ],
+        "cwd": "/home/cnc/lcnc-suite-native",
+        "log": "5axis-model.log",
+        "started": "2026-11-05T05:50:18.089155+00:00",
+        "status": "pass",
+        "exit_code": 0,
+        "seconds": 0.73,
+        "finished": "2026-11-05T05:50:18.823416+00:00",
+        "notes": []
+      },
+      {
+        "name": "audit-css",
+        "command": [
+          "/home/cnc/lcnc-suite-native/lcnc-gateway/.venv/bin/python3",
+          "-m",
+          "pytest",
+          "/home/cnc/lcnc-suite-native/scripts/test_audit_scoped_css.py"
+        ],
+        "cwd": "/home/cnc/lcnc-suite-native",
+        "log": "audit-css.log",
+        "started": "2026-11-05T05:50:18.823585+00:00",
+        "status": "pass",
+        "exit_code": 0,
+        "seconds": 1.19,
+        "finished": "2026-11-05T05:50:20.018069+00:00",
+        "notes": []
+      },
+      {
+        "name": "review-handshake",
+        "command": [
+          "/home/cnc/lcnc-suite-native/lcnc-gateway/.venv/bin/python3",
+          "-m",
+          "pytest",
+          "/home/cnc/lcnc-suite-native/scripts/test_review_handshake.py"
+        ],
+        "cwd": "/home/cnc/lcnc-suite-native",
+        "log": "review-handshake.log",
+        "started": "2026-11-05T05:50:20.018207+00:00",
+        "status": "pass",
+        "exit_code": 0,
+        "seconds": 4.54,
+        "finished": "2026-11-05T05:50:24.561487+00:00",
+        "notes": []
+      },
+      {
+        "name": "readback-target",
+        "command": [
+          "/home/cnc/lcnc-suite-native/lcnc-gateway/.venv/bin/python3",
+          "-m",
+          "pytest",
+          "/home/cnc/lcnc-suite-native/scripts/test_toolsetter_readback_check.py"
+        ],
+        "cwd": "/home/cnc/lcnc-suite-native",
+        "log": "readback-target.log",
+        "started": "2026-11-05T05:50:24.561705+00:00",
+        "status": "pass",
+        "exit_code": 0,
+        "seconds": 0.17,
+        "finished": "2026-11-05T05:50:24.727416+00:00",
+        "notes": []
+      },
+      {
+        "name": "parity-compare",
+        "command": [
+          "/home/cnc/lcnc-suite-native/lcnc-gateway/.venv/bin/python3",
+          "-m",
+          "pytest",
+          "/home/cnc/lcnc-suite-native/scripts/test_parity_compare.py"
+        ],
+        "cwd": "/home/cnc/lcnc-suite-native",
+        "log": "parity-compare.log",
+        "started": "2026-11-05T05:50:24.727570+00:00",
+        "status": "pass",
+        "exit_code": 0,
+        "seconds": 0.17,
+        "finished": "2026-11-05T05:50:24.893404+00:00",
+        "notes": []
+      },
+      {
+        "name": "test-select",
+        "command": [
+          "/home/cnc/lcnc-suite-native/lcnc-gateway/.venv/bin/python3",
+          "-m",
+          "pytest",
+          "/home/cnc/lcnc-suite-native/scripts/test_select/test_selector.py"
+        ],
+        "cwd": "/home/cnc/lcnc-suite-native",
+        "log": "test-select.log",
+        "started": "2026-11-05T05:50:24.893561+00:00",
+        "status": "pass",
+        "exit_code": 0,
+        "seconds": 2.64,
+        "finished": "2026-11-05T05:50:27.528907+00:00",
+        "notes": []
+      },
+      {
+        "name": "inventory",
+        "command": [
+          "/home/cnc/lcnc-suite-native/lcnc-gateway/.venv/bin/python3",
+          "-m",
+          "pytest",
+          "/home/cnc/lcnc-suite-native/scripts/inventory/test_inventory.py"
+        ],
+        "cwd": "/home/cnc/lcnc-suite-native",
+        "log": "inventory.log",
+        "started": "2026-11-05T05:50:27.529090+00:00",
+        "status": "pass",
+        "exit_code": 0,
+        "seconds": 1.13,
+        "finished": "2026-11-05T05:50:28.664045+00:00",
+        "notes": []
+      },
+      {
+        "name": "native-stage",
+        "command": [
+          "/home/cnc/lcnc-suite-native/lcnc-gateway/.venv/bin/python3",
+          "-m",
+          "pytest",
+          "/home/cnc/lcnc-suite-native/scripts/test_native_stage.py"
+        ],
+        "cwd": "/home/cnc/lcnc-suite-native",
+        "log": "native-stage.log",
+        "started": "2026-11-05T05:50:28.664213+00:00",
+        "status": "pass",
+        "exit_code": 0,
+        "seconds": 2.71,
+        "finished": "2026-11-05T05:50:31.372895+00:00",
+        "notes": []
+      }
+    ],
+    "commit": "6786d89f083d4e3db738593d5154f8c2a60f1eca",
+    "tracked_changes": [],
+    "runner_sha256": "3e245ae23da513dc4e6a335737423771978778021821d1a5c7aaaad500c8f2d6",
+    "status": "pass",
+    "changed_file_sha256": {},
+    "not_run": [],
+    "finished": "2026-11-05T05:50:31.373047+00:00"
+  },
+  "raw_sha256": {
+    "unit-light.list.json": "952830e22005376ed3dc77babf3f3b70ab0016b25a74b5111bc70bbb960609bc",
+    "unit-light.json": "36e74bf746048c88d30dd67939f6e9cc4135a24cb5a162785346c78d74bfb211",
+    "backend/report.json": "850158613f65c6a526fef378f93c31b1711488d51ae2decef6927497f88b6384"
+  },
+  "source_hashes": {
+    "scripts/native_run.py": {
+      "sha256": "a8e006c219fa8d14ec00c7d2a3a317815ae8b0c3cec69216570241fe0887c326",
+      "matches_6786d89f": true
+    },
+    "scripts/test_native_stage.py": {
+      "sha256": "181ba1f37649e7c082abdbe0ff30db7e199f75d41c8794f58aff222a8e4cfd72",
+      "matches_6786d89f": true
+    },
+    "scripts/install_examples.py": {
+      "sha256": "ddddf2206ad6dccf3f6b19e8161cc1cd2291c78f47ef8ea572172cffa37875be",
+      "matches_6786d89f": true
+    },
+    "scripts/test_support/live_target.py": {
+      "sha256": "890d49ae9f6b58025e1c12133852652d5c1323614986e8888bd59b248b4440e5",
+      "matches_6786d89f": true
+    },
+    "scripts/test_support/native_cases.py": {
+      "sha256": "34d753b847672a18ef1bdf66fc3530d9174d4afcf409f06ae5bcab03998fbfe3",
+      "matches_6786d89f": true
+    },
+    "scripts/test_support/system_host.py": {
+      "sha256": "0bcf161418b5d219fa06871e85bacf5e902eb92f622beb4ff92910dd128c3f81",
+      "matches_6786d89f": true
+    },
+    "scripts/test_support/restore_lan.py": {
+      "sha256": "7982c2e6329f0edf66d05ef64116b2852764e69eaa739b60716309b489295729",
+      "matches_6786d89f": true
+    },
+    "scripts/test_support/live_session.py": {
+      "sha256": "c4f25abe08d6d7c6d25944bd20471ab9b9bf3e59b10248842fbe921d8f62297b",
+      "matches_6786d89f": true
+    },
+    "scripts/test_support/heavy_lock.py": {
+      "sha256": "70ec11c3ac73abb92ed0556252a659e6f5b658f676544f9d8147d14341008527",
+      "matches_6786d89f": true
+    }
+  },
+  "external_keeper": {
+    "path": "/home/cnc/claude-work/bg/keepalive_ini.py",
+    "sha256": "5bd7e950df5325b992f82654eabca94573469ff9048784d770fbe5e3188f9e62",
+    "tested": "only drain function AST; no top-level or socket execution",
+    "not_in_commit": true
+  }
+}
