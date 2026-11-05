@@ -1,0 +1,71 @@
+{
+  "part_a": {
+    "base": "838c3381",
+    "head": "1c32325c",
+    "archive": "/tmp/codex-r307-a",
+    "tests": "115 passed, 77 subtests passed in 11.92s",
+    "command": "gateway venv python3 -B -m pytest -q -p no:cacheprovider -o addopts='' test_m600_preview_worker.py test_start_dep_worker.py test_tool_touch_off_paths.py",
+    "cwd": "/tmp/codex-r307-a/lcnc-gateway"
+  },
+  "part_b": {
+    "base": "8b248869",
+    "head": "d54c1b2f",
+    "archive": "/tmp/codex-r307-b",
+    "tests": "307 passed in 11.43s (271 native + 36 inventory)",
+    "command": "gateway venv python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py",
+    "cwd": "/tmp/codex-r307-b"
+  },
+  "review_prefix_bytes": 609885,
+  "review_prefix_sha256": "5ab92d24282ca48bb0782a5058380d1162f8929f2b436b0ffbf857b611002571",
+  "live_head": "6aaf6f67c977d8a75c6f701962cec16025575143",
+  "gates_read": [
+    {
+      "path": "/home/cnc/claude-work/teststrat/measure/m600-return.gate-round.run1.json",
+      "sha256": "e3cb71829b5c2ba7cc9d96c7ec904ce502b6dfb484352047af40e7f34572a380",
+      "base": "838c3381c81a1572fdcf863a9bd50500d96e51e4",
+      "head": "7e7eb91cfbaeedc7903b6268d73fed2b83a70a5d",
+      "uncommitted": 0,
+      "verdict": "FAIL"
+    },
+    {
+      "path": "/home/cnc/claude-work/teststrat/measure/m600-return.gate-round.run2.json",
+      "sha256": "5c993ea744ea90b7ce0a7c408032c9f5e26feb3c68a850d98f2891752cf61aa6",
+      "base": "838c3381c81a1572fdcf863a9bd50500d96e51e4",
+      "head": "1c32325c5da3efd0d52a20cd266c8683313b40c4",
+      "uncommitted": 0,
+      "verdict": "PASS"
+    },
+    {
+      "path": "/home/cnc/claude-work/teststrat/measure/native.r306-fixes.gate-round.run1.json",
+      "sha256": "718b34b7ec6fb123a93bccd920ebca22588897b69b803f537b49af729d8cbaa9",
+      "base": "8b2488691cdd0817ae038cf4a54b238b124c88bc",
+      "head": "d54c1b2fb776e113021d23ba728514d9fe186172",
+      "uncommitted": 0,
+      "verdict": "PASS"
+    }
+  ],
+  "source_sha256": {
+    "a/subroutines/tool_length_probe/tool_touch_off.ngc": "4990c7b303cb43bf0aa8cb11948277072874558f5902d3c48a59133ec555097d",
+    "a/lcnc-gateway/gcode_canon.py": "f70bca4badbe3f1fc6a2610bdf5707f5a06eac48461cc75bf7afc6dd38113042",
+    "a/lcnc-gateway/gateway_util.py": "6f2bcd423ba8aa98c8fc11dc4a8c410dda561f842f7b473de189f341383a71f9",
+    "a/lcnc-gateway/test_tool_touch_off_paths.py": "5a5672ba1b9a42690ed1a0069b73ab9a4dc495d1217ff6e2685df7266c4f4f42",
+    "b/scripts/native_run.py": "2bb4e5cfce382caa5d70c686486b2158c414ddf5c10cb6413b99cfa6ca3b4f63",
+    "b/scripts/test_native_stage.py": "d0361b8b8df3be2f6d1fa0a20ee060956617b943ae39d17b847c7b9ed078c375"
+  },
+  "evidence_sha256": {
+    "function-inventory.r307.codex-a-probe.json": "5a05b958115b47d5e201ebf632587d85a3ec10182f0a7d12e68b13f88b739603",
+    "function-inventory.r307.codex-a-probe.py": "1896bf1cd3f7b445649f6fbf5c2bcab1a9b8b01f1550be05a1ab5474e8547262",
+    "function-inventory.r307.codex-a-tests.txt": "81a169b51a49d51900ae9cb533f5162cf0c8374910ff0a370576002a77dfd151",
+    "function-inventory.r307.codex-b-probe.json": "77283f00a9c4f3d6e155421677271661219f4fdcfb767c811718fc159100a0cf",
+    "function-inventory.r307.codex-b-probe.py": "a934b09312999df7269a6d8c2573d12586de8d8eb1c3e4646d33400706707fbe",
+    "function-inventory.r307.codex-b-tests.txt": "94ff7498626ce59128fd04b0e0704f2cb74029dcf5ebac1fe71b241864c8e569",
+    "function-inventory.r307.codex-live-audit.json": "c7426f9c1ee51e891bdf24ab249580db82e0ded211e44b6fc382234e6240d006",
+    "function-inventory.r307.codex-r306-rerun.json": "0aee91cc8919d53cf544483992d5924c67d7fc7c920a795ffd412f00b5ef3c81"
+  },
+  "limits": [
+    "No machine, network or HAL commands, no live sim access.",
+    "Offline native interpreter probes use native_start_probe.py: synthetic STAT, private tool mmap, command raises.",
+    "No product source changes or tests/builds/checkouts in live tree. Review append and new evidence only."
+  ],
+  "live_experiment_product_matches_a": true
+}

@@ -1,0 +1,104 @@
+{
+  "head": "d54c1b2f",
+  "checks": [
+    {
+      "name": "old_errors_and_completed_M6_excluded",
+      "expected": true,
+      "actual": true,
+      "conforms": true,
+      "detail": {
+        "errors": [
+          [
+            3,
+            "accepted attempt note"
+          ]
+        ],
+        "t0": 100.12,
+        "t_done": 100.14000000000001,
+        "accepted": 100.12,
+        "served": [],
+        "confirmed": [],
+        "attempts": 2
+      }
+    },
+    {
+      "name": "pending_M6_blocks_retry",
+      "expected": true,
+      "actual": true,
+      "conforms": true,
+      "detail": {
+        "exception": "G49: a tool change request is open before the sequence (seq 999, T2)",
+        "attempts": 1,
+        "confirmed": []
+      }
+    },
+    {
+      "name": "new_M6_during_accepted_request_kept",
+      "expected": true,
+      "actual": true,
+      "conforms": true,
+      "detail": {
+        "errors": [
+          [
+            3,
+            "accepted attempt note"
+          ]
+        ],
+        "t0": 100.12,
+        "t_done": 100.14000000000001,
+        "accepted": 100.12,
+        "served": [
+          {
+            "tool": 1,
+            "seq": 123
+          }
+        ],
+        "confirmed": [
+          123
+        ],
+        "attempts": 2
+      }
+    },
+    {
+      "name": "normal_return_has_each_row_once",
+      "expected": true,
+      "actual": true,
+      "conforms": true,
+      "detail": {
+        "names": [
+          "jog-x+.servo",
+          "jog-x+",
+          "jog-x-.servo",
+          "jog-x-",
+          "jog-y+.servo",
+          "jog-y+",
+          "jog-y-.servo",
+          "jog-y-",
+          "jog-z+.servo",
+          "jog-z+",
+          "jog-z-.servo",
+          "jog-z-"
+        ],
+        "error": null
+      }
+    },
+    {
+      "name": "every_jog_audit_has_reply_time",
+      "expected": true,
+      "actual": true,
+      "conforms": true,
+      "detail": {
+        "reply_times": [
+          1185837.492781935,
+          1185837.492831144,
+          1185837.49286456,
+          1185837.492889894,
+          1185837.492912602,
+          1185837.49293281
+        ]
+      }
+    }
+  ],
+  "conforming": 5,
+  "contrary": 0
+}

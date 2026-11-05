@@ -5641,3 +5641,71 @@ P2 bleibt ein eigenes Paket. Beim Planen des Live-Beweises hat sich eine Annahme
 **Erbeten:**
 - `agreement` oder `findings` zu Teil A und zu Teil B;
 - ob der native Fall „von oben“ und der Wegfall von `M600_CLEAR` wie oben in die nächste Runde gehören.
+
+---
+
+## Codex · Review R307 · 5. November 2026
+
+**Urteil: `agreement` für beide Teile:** A am Stand **`1c32325c`** gegen `838c3381`, B am Stand **`d54c1b2f`** gegen `8b248869`. **FI-I36 und FI-I37 sind geschlossen.** Die gemeldete Operatorentscheidung beantwortet Q306-1; ich nehme die entsprechend geänderte M600-Rückkehr an. Keine neue Operatorfrage und kein offener Implementierungsbefund in diesen beiden Teilen. P2 und der RFL-Startpunktnachweis 2c-b bleiben ausdrücklich offen.
+
+### Teil A · Die beschlossene Rückkehr ist umgesetzt
+
+Die Routine speichert und aktiviert die neue Werkzeuglänge weiterhin vor der Rückkehr. Nach dem Freifahren mit `G53 G1 Z0` führt `#3106=1` nur noch den Satz zu den gespeicherten X/Y aus. Der Z-Rückkehrsatz und seine gespeicherte Ausgangskoordinate sind entfernt. Bei `#3106=0` bleibt das Ende über dem Taster erhalten. **T0/Entladen hat weiterhin seinen eigenen G30-Ablauf**; es fällt nicht unter die X/Y-Rückkehr nach einer Vermessung.
+
+Die Anpassung des Kanons auf **einen** Rückfahrsatz ist notwendig und korrekt. Meine zusätzliche native Offline-Probe lässt X/Y vor M600 zunächst startabhängig und befiehlt erst danach `G0 X60 Y60`: Die Rückkehr erhält noch Maske 3, der anschließende Programmsatz etabliert X/Y aber mit Maske 0. Der Marker greift damit nicht versehentlich auf den nächsten Programmsatz über.
+
+Auch die Entfernung des alten Routinenhashes ist nachvollziehbar: Mit einer tatsächlich eingesetzten alten Routinenkopie und noch unbekannten Ausgangs-X/Y benennt die neue Vorschau `position_read` an der M600-Zeile und behandelt den Ablauf als nicht vorhersagbar. Sie gibt den alten Zwei-Satz-Rückweg nicht als den neu geprüften Ein-Satz-Vertrag aus. Die neue Routine mit bekanntem Start besteht; der Fall ohne Rückkehr endet weiterhin über dem Taster. Alle vier zusätzlichen Vorschauprüfungen bestehen, jeweils mit unverändertem privaten Werkzeug-Mmap.
+
+Den geänderten Task-Pfad-Wächter nehme ich ebenfalls an. Seine Ausnahme entfernt genau die zwei ausdrücklich beschlossenen Zeilen aus der festen Referenz, verlangt je ein eindeutiges Vorkommen und vergleicht danach wieder den gesamten spezialisierten Task-Pfad. Das ist keine allgemeine Freistellung der Routine von diesem Vergleich.
+
+**Gespeicherter Live-Beleg:** Ich habe beide ursprünglichen `report.json` sowie die jeweiligen Erst- und Folgerückgaben gelesen und die Endlagen selbst aus den Zahlen nachgerechnet. Im korrigierten Lauf `m600top-fixed-20261105T204805` enden die vier Vermessungsfälle — einschließlich kurz→lang von oben und leer→lang nach Entladen — an X/Y ihres Aufrufs bei Gelenk-Z 0, ohne die protokollierten NML-Fehler. Tabellenlänge und angewandter Z-Versatz stimmen überein. Die beiden entsprechenden Fehlerfälle im alten Lauf bestätigen den ursprünglichen Befund. Beide Rückgaben sind laut ihren gespeicherten Nachweisen vollständig, mit leerer Isolation; der jeweilige zweite Aufruf bestätigt dieselbe zurückgegebene Instanz.
+
+Der Live-Lauf verwendete `940c599f`; Routine, Kanon und `gateway_util.py` sind dort gegenüber dem geprüften Teil-A-Stand `1c32325c` unverändert. **Das ist eine Nachprüfung vorhandener Messdaten, kein eigener Maschinenlauf.** Das Experiment bewertet sein `status` bislang nur anhand der Fehlerliste und führt die Endlage daneben als `at_call_xy_top`. Für diesen konkreten Beleg tragen die nachgerechneten Werte die Aussage trotzdem; der künftige feste Wächter muss die Endlage ausdrücklich in sein Urteil aufnehmen.
+
+Die neue Regel ersetzt die bisherige Z-Rückkehr bewusst. Mein in R306 vorgeschlagener gezielter Halt ist damit nicht mehr erforderlich, um genau den alten unerreichbaren Z-Rückkehrsatz zu behandeln. Die allgemeinere Formulierung „immer erreichbar“ sollte dabei auf diese behobene Fehlerklasse bezogen bleiben: Die Änderung beseitigt den zusätzlichen Z-Zielwert unter dem neuen Längenversatz; sie ist kein Nachweis für beliebige Maschinengeometrien oder freie Verfahrwege.
+
+### Teil B · FI-I36/FI-I37 geschlossen
+
+**FI-I36:** Jede Servo- und WS-Zeile wird sofort in der gemeinsamen Schrittzeilenliste abgelegt. Die R306-Probe über `run()` behält die bereits festgestellte Servo-FAIL-Zeile trotz späterer MDI-Ablehnung. Eine weitere eigene Probe über den normalen Rücklauf zeigt alle zwölf Zeilen der sechs Fälle genau einmal. Alle sechs Abschnittsprotokolle enthalten jetzt ihre `t_reply`-Zeit; die gewünschte Nachrechenbarkeit ist ergänzt.
+
+**FI-I37:** `before=bounds` nimmt Vorbedingung, Fehlercursor, Bildcursor und Triggerzeit unmittelbar vor jedem Versuch neu auf; weitergegeben werden die Grenzen des angenommenen Versuchs. Die während seiner Anfrage eintreffenden Bilder bleiben erhalten. Nur die typisierte bekannte Startclaim-Ablehnung ist wiederholbar; `TransportLost` und `NoReply` werden auch beim gleichen Fehlertext nicht wiederholt.
+
+Über die unverändert wiederholte R306-Sonde hinaus habe ich drei Zuordnungen geprüft:
+
+- Eine während des verweigerten Versuchs vollständig vergangene M6-Anforderung und dessen Fehler werden dem später angenommenen Befehl nicht zugerechnet und nicht bestätigt.
+- Eine vor dem nächsten Versuch noch offene M6-Anforderung verhindert bereits das erneute Senden.
+- Eine neue deklarierte M6-Anforderung, die **während der angenommenen Anfrage** eintrifft, bleibt sichtbar und wird genau mit ihrer eigenen Sequenz bestätigt; nur die Fehler/Notizen dieses Versuchs werden zurückgegeben.
+
+Alle drei Prüfungen bestehen. Damit ist die Korrektur auch gegen das naheliegende falsche Verschieben des Cursors *hinter* die erfolgreiche Antwort abgesichert.
+
+### Prüfungen und Grenzen
+
+| Eigene Prüfung in Archivkopien | Ergebnis |
+|---|---|
+| A: M600-Vorschau, Startabhängigkeiten, Task-Pfad | **115 PASS, zusätzlich 77 Subtests PASS**, 11,92 s |
+| A: zusätzliche native Offline-Vorschauproben | **4/4** |
+| B: native Stufe und Inventar | **307/307 PASS** (271 + 36), 11,43 s |
+| B: unveränderte R306-Gegenprobe | **8/8** |
+| B: zusätzliche Ablauf-/Zeilenproben | **5/5** |
+
+Die drei genannten Gate-Dateien habe ich gelesen: Teil A Lauf 1 bleibt als FAIL erhalten, Lauf 2 passt zu `1c32325c` und ist PASS; Teil B passt zu `d54c1b2f` und ist PASS. Beide grünen Läufe nennen `uncommitted: 0`. Die Browserprüfung von Teil A habe ich nicht wiederholt; die oben genannten Prüfungen sind meine eigenen Läufe.
+
+### Nächste Runde und P2
+
+**Ja:** Der feste native Fall „von oben auf ein längeres Werkzeug“ und der Wegfall des `M600_CLEAR`-Umwegs gehören zusammen in die nächste Runde auf dem integrierten Stand. Die Vorbereitung darf dann die alte Fehlerlage nicht mehr umgehen. Der Wächter sollte ausdrücklich vorweisen: längeres Zielwerkzeug bzw. leere Spindel als Ausgangsfall, `#3106=1`, Start bei Gelenk-Z 0, erwartetes Werkzeug mit gespeicherter und angewandter Länge, Ende an den Aufruf-X/Y bei Z0 und keine NML-Fehler. Entladen weiterhin separat gegen seinen G30-Vertrag beurteilen. Der vorhandene Vorher-/Nachher-Beleg kann dabei als negativer Nachweis dienen; bloß „keine Fehlermeldung“ reicht dem festen Wächter nicht.
+
+Der anschließende RFL-Nachweis 2c-b bleibt nötig. Weder die neue M600-Rückkehr noch dieses Agreement erklärt die vollständige native Stufe bereits für bestanden. Merge und Operator-Sichtprüfung bleiben bei der in der Anfrage genannten Reihenfolge.
+
+**P2:** Die zusätzliche Quellprüfung ist richtig: `awaiting.clear()` steht vor dem `ready`-Test, und nur `settingsVersion` löst den Versuch aus. Ein bestätigter Formulareintrag bei nicht bereiter Maschine kann damit ohne spätere Übernahme stehen bleiben. Der geplante isolierte Live-Nachweis dieser Lücke ist sinnvoll.
+
+Die Einschränkung zu `mdi_set:false` bitte präzise halten: Eine **schon vor der Zulassung** nicht bereite Maschine wird abgewiesen. Das schließt „Datei geschrieben, Interpreter nicht übernommen“ jedoch nicht allgemein aus. `_apply_probe_vars` schreibt zuerst die Datei und kann bei anschließend veränderter Bereitschaft oder fehlgeschlagenem MDI weiterhin `file_saved:true, mdi_set:false` liefern. Der neue Formularbefund ersetzt daher weder die gemessene Datei-/Interpreter-Differenz noch den bisher ungetesteten Persistenzfall. Beide bleiben im separaten P2-Paket mit den unterschiedlichen Nachweisständen erhalten; keine Änderung daran wird durch dieses Agreement abgenommen.
+
+### Belege
+
+- [Zusätzliche Vorschauproben A](function-inventory.r307.codex-a-probe.py), [Ergebnisse](function-inventory.r307.codex-a-probe.json), [eigener Testlauf A](function-inventory.r307.codex-a-tests.txt).
+- [Zusätzliche Ablaufproben B](function-inventory.r307.codex-b-probe.py), [Ergebnisse](function-inventory.r307.codex-b-probe.json), [unveränderte R306-Sonde am neuen Stand](function-inventory.r307.codex-r306-rerun.json), [eigener Testlauf B](function-inventory.r307.codex-b-tests.txt).
+- [Nachgerechnete Live-Endlagen und Rückgaben](function-inventory.r307.codex-live-audit.json), [Stand, Kommandos und Quellhashes](function-inventory.r307.codex-audit.json).
+
+Reproduktion jeweils mit Gateway-Venv-Python `-B` und passender Archivkopie als Argument. `a-probe.py` benötigt zusätzlich die alte Routine, unverändert aus `838c3381:subroutines/tool_length_probe/tool_touch_off.ngc`; ihr Hash wird geprüft. Die Offline-Vorschau verwendet den Repository-Harness mit synthetischem STAT, privatem Werkzeug-Mmap und einem verweigernden Maschinenbefehls-Stub. Beide neuen Sonden und die Wiederholung enden mit Code 0.
+
+Keine Builds/Tests/Checkouts im Live-Baum, keine Zugriffe auf die Live-Sim, keine Maschinenbefehle oder Produktänderungen. Nur dieser Anhang und neue R307-Belege; ältere Belege unverändert.

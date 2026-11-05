@@ -1,0 +1,313 @@
+{
+  "note": "Recomputed final-position predicates from stored live reports, not a new machine run or a servo-path replay. Unload has its own G30 endpoint contract.",
+  "runs": [
+    {
+      "run": "/home/cnc/claude-work/live-tier/m600top-20261105T195231",
+      "commit": "8b2488691cdd0817ae038cf4a54b238b124c88bc",
+      "report_sha256": "c1f38bbf3578487b361e0c1cf794bf9bd33a9029bd35db08b6d5d158437c3747",
+      "error": null,
+      "rows": [
+        {
+          "case": "load-short-from-low",
+          "reported_status": "PASS",
+          "errors": [],
+          "before_xyz": [
+            10.0,
+            10.0,
+            -119.99999999999999
+          ],
+          "after_xyz": [
+            10.0,
+            10.0,
+            -98.00044999999992
+          ],
+          "tool_after": 3,
+          "offset_z": 21.999550000000056,
+          "table_z": 21.999550000000056,
+          "table_matches_applied": true,
+          "at_call_xy": true,
+          "z_at_zero": false,
+          "measuring_return_contract": true
+        },
+        {
+          "case": "A-short-to-long-from-top",
+          "reported_status": "FAIL",
+          "errors": [
+            [
+              11,
+              "Linear move on line 596 would exceed Z's positive limit"
+            ],
+            [
+              11,
+              "Linear move on line 596 would exceed joint 2's positive limit"
+            ],
+            [
+              11,
+              "invalid params in linear command"
+            ]
+          ],
+          "before_xyz": [
+            10.0,
+            10.0,
+            0.0
+          ],
+          "after_xyz": [
+            10.0,
+            10.0,
+            -103.83249999999997
+          ],
+          "tool_after": 4,
+          "offset_z": 73.16835000000006,
+          "table_z": 73.16835000000006,
+          "table_matches_applied": true,
+          "at_call_xy": true,
+          "z_at_zero": false,
+          "measuring_return_contract": true
+        },
+        {
+          "case": "B-long-to-short-from-top",
+          "reported_status": "PASS",
+          "errors": [],
+          "before_xyz": [
+            10.0,
+            10.0,
+            0.0
+          ],
+          "after_xyz": [
+            10.0,
+            10.0,
+            -51.16924999999995
+          ],
+          "tool_after": 3,
+          "offset_z": 21.999100000000112,
+          "table_z": 21.999100000000112,
+          "table_matches_applied": true,
+          "at_call_xy": true,
+          "z_at_zero": false,
+          "measuring_return_contract": true
+        },
+        {
+          "case": "C-unload",
+          "reported_status": "PASS",
+          "errors": [],
+          "before_xyz": [
+            10.0,
+            10.0,
+            -51.16924999999995
+          ],
+          "after_xyz": [
+            0.0,
+            0.0,
+            -8.881784197001252e-15
+          ],
+          "tool_after": 0,
+          "offset_z": 0.0,
+          "table_z": 0.0,
+          "table_matches_applied": true,
+          "at_call_xy": false,
+          "z_at_zero": true,
+          "measuring_return_contract": false
+        },
+        {
+          "case": "C-empty-to-long",
+          "reported_status": "FAIL",
+          "errors": [
+            [
+              11,
+              "Linear move on line 596 would exceed Z's positive limit"
+            ],
+            [
+              11,
+              "Linear move on line 596 would exceed joint 2's positive limit"
+            ],
+            [
+              11,
+              "invalid params in linear command"
+            ]
+          ],
+          "before_xyz": [
+            0.0,
+            0.0,
+            -8.881784197001252e-15
+          ],
+          "after_xyz": [
+            10.0,
+            10.0,
+            -103.83159999999988
+          ],
+          "tool_after": 4,
+          "offset_z": 73.16790000000012,
+          "table_z": 73.16790000000012,
+          "table_matches_applied": true,
+          "at_call_xy": false,
+          "z_at_zero": false,
+          "measuring_return_contract": true
+        }
+      ],
+      "restore": {
+        "outcome": "complete",
+        "instance": [
+          "linuxcncsvr",
+          1723508,
+          118085920
+        ],
+        "isolation": [],
+        "cleanup": []
+      },
+      "restore_post": {
+        "outcome": "complete",
+        "instance": [
+          "linuxcncsvr",
+          1723508,
+          118085920
+        ],
+        "isolation": [],
+        "cleanup": [],
+        "repeat_of": "complete"
+      },
+      "same_returned_instance": true,
+      "all_measuring_returns_match": false
+    },
+    {
+      "run": "/home/cnc/claude-work/live-tier/m600top-fixed-20261105T204805",
+      "commit": "940c599f61ae281c4cfc31a280873c0e93881b7d",
+      "report_sha256": "b560a4cbe9ba724accf3287c9979b935e49dbb73a109d828d7eca10a17200e8b",
+      "error": null,
+      "rows": [
+        {
+          "case": "load-short-from-low",
+          "reported_status": "PASS",
+          "errors": [],
+          "before_xyz": [
+            10.0,
+            10.0,
+            -119.99999999999999
+          ],
+          "after_xyz": [
+            10.0,
+            10.0,
+            0.0
+          ],
+          "tool_after": 3,
+          "offset_z": 21.999550000000056,
+          "table_z": 21.999550000000056,
+          "table_matches_applied": true,
+          "at_call_xy": true,
+          "z_at_zero": true,
+          "measuring_return_contract": true
+        },
+        {
+          "case": "A-short-to-long-from-top",
+          "reported_status": "PASS",
+          "errors": [],
+          "before_xyz": [
+            10.0,
+            10.0,
+            0.0
+          ],
+          "after_xyz": [
+            10.0,
+            10.0,
+            0.0
+          ],
+          "tool_after": 4,
+          "offset_z": 73.16835000000006,
+          "table_z": 73.16835000000006,
+          "table_matches_applied": true,
+          "at_call_xy": true,
+          "z_at_zero": true,
+          "measuring_return_contract": true
+        },
+        {
+          "case": "B-long-to-short-from-top",
+          "reported_status": "PASS",
+          "errors": [],
+          "before_xyz": [
+            10.0,
+            10.0,
+            0.0
+          ],
+          "after_xyz": [
+            10.0,
+            10.0,
+            0.0
+          ],
+          "tool_after": 3,
+          "offset_z": 21.999100000000112,
+          "table_z": 21.999100000000112,
+          "table_matches_applied": true,
+          "at_call_xy": true,
+          "z_at_zero": true,
+          "measuring_return_contract": true
+        },
+        {
+          "case": "C-unload",
+          "reported_status": "PASS",
+          "errors": [],
+          "before_xyz": [
+            10.0,
+            10.0,
+            0.0
+          ],
+          "after_xyz": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "tool_after": 0,
+          "offset_z": 0.0,
+          "table_z": 0.0,
+          "table_matches_applied": true,
+          "at_call_xy": false,
+          "z_at_zero": true,
+          "measuring_return_contract": false
+        },
+        {
+          "case": "C-empty-to-long",
+          "reported_status": "PASS",
+          "errors": [],
+          "before_xyz": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "after_xyz": [
+            0.0,
+            0.0,
+            -1.7763568394002505e-15
+          ],
+          "tool_after": 4,
+          "offset_z": 73.16790000000012,
+          "table_z": 73.16790000000012,
+          "table_matches_applied": true,
+          "at_call_xy": true,
+          "z_at_zero": true,
+          "measuring_return_contract": true
+        }
+      ],
+      "restore": {
+        "outcome": "complete",
+        "instance": [
+          "linuxcncsvr",
+          1793680,
+          118419316
+        ],
+        "isolation": [],
+        "cleanup": []
+      },
+      "restore_post": {
+        "outcome": "complete",
+        "instance": [
+          "linuxcncsvr",
+          1793680,
+          118419316
+        ],
+        "isolation": [],
+        "cleanup": [],
+        "repeat_of": "complete"
+      },
+      "same_returned_instance": true,
+      "all_measuring_returns_match": true
+    }
+  ]
+}

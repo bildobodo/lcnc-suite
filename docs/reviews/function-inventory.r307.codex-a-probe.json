@@ -1,0 +1,254 @@
+{
+  "head": "1c32325c",
+  "harness_sha256": "2bfd25b0ce755e2a2e8744212931bcb56578b10a27c5e3e5940cef1c4b5ba198",
+  "old_routine_sha256": "9d180577d1909b178f2921d3c96dd78536037b9f8312b862bd93354d6be51de2",
+  "checks": [
+    {
+      "case": "known_top_longer",
+      "program": "G21 G90\nG53 G0 X50 Y50 Z0\nT2 M600\nG0 X60 Y60\nM2\n",
+      "old_routine": false,
+      "parse_error": null,
+      "violations": [],
+      "probe_unpredicted": null,
+      "rapid_dep": null,
+      "feed_dep": null,
+      "position_read_lines": null,
+      "last_events": [
+        [
+          23,
+          "R",
+          [
+            10.0,
+            10.0,
+            -177.0
+          ]
+        ],
+        [
+          24,
+          "F",
+          [
+            10.0,
+            10.0,
+            -80.0
+          ]
+        ],
+        [
+          26,
+          "F",
+          [
+            50.0,
+            50.0,
+            -80.0
+          ]
+        ],
+        [
+          28,
+          "R",
+          [
+            60.0,
+            60.0,
+            -80.0
+          ]
+        ]
+      ],
+      "mmap_unchanged": true,
+      "conforms": true
+    },
+    {
+      "case": "following_move_establishes_xy",
+      "program": "G21 G90\nG53 G0 Z0\nT2 M600\nG0 X60 Y60\nM2\n",
+      "old_routine": false,
+      "parse_error": null,
+      "violations": [],
+      "probe_unpredicted": null,
+      "rapid_dep": [
+        3,
+        3,
+        0,
+        0
+      ],
+      "feed_dep": [
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        3
+      ],
+      "position_read_lines": null,
+      "last_events": [
+        [
+          23,
+          "R",
+          [
+            10.0,
+            10.0,
+            -177.0
+          ]
+        ],
+        [
+          24,
+          "F",
+          [
+            10.0,
+            10.0,
+            -80.0
+          ]
+        ],
+        [
+          26,
+          "F",
+          [
+            0.0,
+            0.0,
+            -80.0
+          ]
+        ],
+        [
+          28,
+          "R",
+          [
+            60.0,
+            60.0,
+            -80.0
+          ]
+        ]
+      ],
+      "mmap_unchanged": true,
+      "conforms": true
+    },
+    {
+      "case": "old_copy_unknown_xy",
+      "program": "G21 G90\nG53 G0 Z0\nT2 M600\nG0 X60 Y60\nM2\n",
+      "old_routine": true,
+      "parse_error": null,
+      "violations": [],
+      "probe_unpredicted": [
+        [
+          2,
+          -1,
+          "position_read",
+          3
+        ]
+      ],
+      "rapid_dep": [
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "feed_dep": [],
+      "position_read_lines": [
+        3
+      ],
+      "last_events": [
+        [
+          24,
+          "R",
+          [
+            10.0,
+            10.0,
+            -80.0
+          ]
+        ],
+        [
+          26,
+          "R",
+          [
+            0.0,
+            0.0,
+            -80.0
+          ]
+        ],
+        [
+          28,
+          "R",
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        [
+          30,
+          "R",
+          [
+            60.0,
+            60.0,
+            0.0
+          ]
+        ]
+      ],
+      "mmap_unchanged": true,
+      "conforms": true
+    },
+    {
+      "case": "return_disabled",
+      "program": "G21 G90\nG53 G0 X50 Y50 Z0\nT2 M600\nM2\n",
+      "old_routine": false,
+      "parse_error": null,
+      "violations": [],
+      "probe_unpredicted": null,
+      "rapid_dep": null,
+      "feed_dep": null,
+      "position_read_lines": null,
+      "last_events": [
+        [
+          20,
+          "F",
+          [
+            10.0,
+            10.0,
+            -100.0
+          ]
+        ],
+        [
+          22,
+          "F",
+          [
+            10.0,
+            10.0,
+            -97.0
+          ]
+        ],
+        [
+          23,
+          "R",
+          [
+            10.0,
+            10.0,
+            -177.0
+          ]
+        ],
+        [
+          24,
+          "F",
+          [
+            10.0,
+            10.0,
+            -80.0
+          ]
+        ]
+      ],
+      "mmap_unchanged": true,
+      "conforms": true
+    }
+  ],
+  "conforming": 4,
+  "contrary": 0
+}

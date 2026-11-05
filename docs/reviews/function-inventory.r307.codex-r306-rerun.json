@@ -1,0 +1,146 @@
+{
+  "executed_head": "d54c1b2fb776e113021d23ba728514d9fe186172",
+  "source": "function-inventory.r306.codex-probe.py",
+  "source_sha256": "9c46fbce675626c434879529566a9649da2c60017b5208d4a12e2d0564cb0d5b",
+  "note": "Unchanged source; embedded head in result identifies source round, not this execution.",
+  "result": {
+    "head": "8b248869",
+    "tests": [
+      {
+        "name": "known_other_axis_violation_control",
+        "expected": "FAIL",
+        "actual": "FAIL",
+        "conforms": true,
+        "detail": {
+          "case": "jog-x+.servo",
+          "status": "FAIL",
+          "detail": "joint 1 moved +1.000 mm during the jog of joint 0",
+          "axis": "X",
+          "sign": 1,
+          "bound_mm": 2.067,
+          "problems": [],
+          "samples": 2
+        }
+      },
+      {
+        "name": "completed_servo_FAIL_survives_next_case_refusal",
+        "expected": true,
+        "actual": true,
+        "conforms": true,
+        "detail": {
+          "rows": [
+            {
+              "case": "jog-x+.servo",
+              "status": "FAIL",
+              "detail": "joint 1 moved +1.000 mm during the jog of joint 0",
+              "axis": "X",
+              "sign": 1,
+              "bound_mm": 2.067,
+              "problems": [],
+              "samples": 2
+            },
+            {
+              "case": "jog-x+",
+              "status": "incomplete",
+              "detail": "no status frame before the jog_stop reply",
+              "axis": "X",
+              "sign": 1,
+              "bound_mm": 2.067,
+              "informational": true
+            }
+          ],
+          "error": "Refused: mdi refused: Not armed — press Arm",
+          "sections": [
+            {
+              "case": "jog-x+.servo",
+              "samples": 2
+            }
+          ]
+        }
+      },
+      {
+        "name": "retry_pre_send_idle_cannot_complete",
+        "expected": false,
+        "actual": false,
+        "conforms": true,
+        "detail": {
+          "exception": "ToolChangeError",
+          "message": "not done within 0.2 s",
+          "accepted_at": 102.19999999999987,
+          "attempts": 23,
+          "final_status": {
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "interp_state": 2,
+            "inpos": false
+          }
+        }
+      },
+      {
+        "name": "accepted_busy_not_done_control",
+        "expected": false,
+        "actual": false,
+        "conforms": true,
+        "detail": {
+          "exception": "ToolChangeError",
+          "message": "not done within 0.2 s",
+          "accepted_at": 100.0,
+          "attempts": 1,
+          "final_status": {
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "interp_state": 2,
+            "inpos": false
+          }
+        }
+      },
+      {
+        "name": "fresh_completion_control",
+        "expected": true,
+        "actual": true,
+        "conforms": true,
+        "detail": {
+          "t0": 100.0,
+          "t_done": 100.2,
+          "accepted_at": 100.0,
+          "attempts": 1,
+          "final_status": {
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "interp_state": 1,
+            "inpos": true
+          }
+        }
+      },
+      {
+        "name": "retry_type_Refused",
+        "expected": 2,
+        "actual": 2,
+        "conforms": true,
+        "detail": {
+          "exception": "Refused"
+        }
+      },
+      {
+        "name": "retry_type_TransportLost",
+        "expected": 1,
+        "actual": 1,
+        "conforms": true,
+        "detail": {
+          "exception": "TransportLost"
+        }
+      },
+      {
+        "name": "retry_type_NoReply",
+        "expected": 1,
+        "actual": 1,
+        "conforms": true,
+        "detail": {
+          "exception": "NoReply"
+        }
+      }
+    ],
+    "conforming": 8,
+    "contrary": 0
+  }
+}
