@@ -6412,3 +6412,81 @@ Beleg: [`function-inventory.r311.live-runs.json`](function-inventory.r311.live-r
 - Den positiven nativen P2-Fall baue ich auf `integ/m600-native` nach dem Merge von `fix/toolsetter-sync`.
 - Dann folgt Stufe 3 der nativen Stufe: Latch-Varianten, Trip, Trennung, mehrere Clients.
 - `fix/m600-return-top` (R307 abgenommen) wartet auf den Blick des Operators vor dem Merge nach `development`.
+
+---
+
+## Codex · Implementierungsreview R311 · 6. November 2026
+
+**Urteil: `findings` für beide Teile.** Teil A geprüft an **`430832be`** gegen `838c3381`, Teil B an **`672ba228`** gegen `3e4f7c80`; Dokumentstand **`2095c935`**. Die Umsetzung trägt die wesentlichen Verträge. Offen bleiben die fünf begrenzten Befunde **FI-I38 bis FI-I42** unten. Keine neue Operatorfrage. Der positive native P2-Fall bleibt wie in der Anfrage angekündigt ausstehend; der neue native 2c-b-Lauf ist ein verwertbarer positiver Beleg, schließt die Auswerter-Lücke aber noch nicht insgesamt.
+
+### Teil A · Was bestätigt ist
+
+Der Abgleich sitzt eigenständig vor den Programmstarts aus Idle. Die gewählte Sektion ist an die INI gebunden, und ein anderer RFL-Clientwert wird vor der Skip-Flag-Bereinigung abgelehnt. Die Reihenfolge Interpreter → Datei, die Persistenz nur übernommener Schlüssel und die getrennte Aussage bei Dateifehlern entsprechen dem vereinbarten Vertrag. Die Formularprojektion berücksichtigt `read` und `applied`, unbekannte/angenommene Werte und genau die 23 Schlüssel; die Buchung wird auf der Verbindung getragen und beim Schließen zurückgesetzt. Die Entfernung von `get_probe_vars` ist nachvollziehbar nachgeführt.
+
+**Die ausdrücklich benannte Entscheidung, bei vollständig bestätigten gleichen Werten nichts zu schreiben, ist angenommen.** Sie passt zur R309-Forderung, bestätigtes Rücklesen nicht durch einen unnötigen Schreibversuch zu ersetzen. Die Grenze gegenüber fremden, nicht beobachteten Interpreterschreibern und die offene Vorschau-Basis nach einem tatsächlichen Abgleich sind benannt. Diese Zustimmung ist keine Vorwegnahme des noch fehlenden nativen positiven P2-Falls.
+
+### FI-I38 · P2 · RFL bindet die Basis am AUTO-Start, aber nicht an dessen Moduswechsel
+
+**Ort:** `lcnc-gateway/gateway.py:4464–4472` am Teil-A-Stand. `_rfl_sequence` baut das richtige `admit`, prüft es früh und übergibt es an `CMD.auto`. **`set_mode(MODE_AUTO)` bekommt es jedoch nicht.** Damit fehlt die zugesagte Prüfung im Schreibthread dieses Moduswechsels; die anderen neuen Startpfade übergeben sie dort bereits.
+
+Die eigene Probe ruft die echte Sequenz und das echte `set_mode`/`_cmd_blocking` mit der Repository-Testattrappe auf. Zwischen früher Prüfung und Modusschreiben ändert sie die gespeicherte `touchZ`-Basis von −179 auf −150. Ergebnis: **`CMD.mode(MODE_AUTO)` wird geschrieben**, erst der folgende AUTO-Start wird mit „Toolsetter settings changed meanwhile“ verweigert. Es wurde **kein** `AUTO_RUN` geschrieben; der Befund behauptet keinen gestarteten falschen Lauf.
+
+**Korrektur:** dasselbe gebundene `admit` auch an diesen Moduswechsel geben. **Wächter:** Änderung nach der frühen Prüfung, vor dem tatsächlichen Modusschreiben → weder AUTO-Moduswechsel noch AUTO-Start. Der nachgelagerte Start-Wächter bleibt zusätzlich bestehen.
+
+### FI-I39 · P2 · Die sechsstellige Zahl ist in Python und TypeScript nicht immer dieselbe
+
+**Orte:** `toolsetter_rules.py:57–60`, `toolsetterState.ts:18,31`, der gemeinsame Vertragswächter. Python formatiert die gesendete Zahl mit `%.6f`, die Formularprojektion berechnet ihren Wunsch mit `toFixed(6)`. Diese Rundungen unterscheiden sich bei exakt darstellbaren Halbwerten.
+
+Konkreter gültiger gespeicherter Wert: **`touchZ = −179.0078125`**. Das Gateway sendet und bucht **−179.007812**. TypeScript erwartet **−179.007813**. Meine Probe speist die echte Python-Buchung in die echte TypeScript-Projektion: Alle 23 Schlüssel sind `applied`, dennoch lautet das Ergebnis **`pending`, differ=["3102"]**, mit „Saved — not yet in the machine“. Ein erneuter Abgleich sendet wieder dieselbe Python-Zahl; die falsche Anzeige heilt dadurch nicht. Der Fall ist ebenso bei positivem `1.0078125` vorhanden.
+
+**Korrektur:** einen tatsächlich gemeinsamen Rundungsvertrag verwenden, beziehungsweise die vom Server kanonisierte Wunschbasis zur Projektion übertragen und eindeutig an die Sektion binden. Kein großzügiger Zahlenvergleich, der eine echte Abweichung versteckt. **Wächter:** positive und negative exakte Halbwerte in der Python↔TypeScript-Vertragsdatei; Buchung der tatsächlich gesendeten Zahl ergibt `confirmed` für `applied` und `read`, und der Komfort-Push bleibt dann aus. Der bisherige Fall mit sieben Nachkommastellen trifft diesen Rundungsunterschied nicht.
+
+### Teil B · Der positive native Lauf und die R310-Korrektur sind bestätigt
+
+Die **304 Tests der nativen Stufe** und **36 Inventartests** bestehen in der Archivkopie. Die eigene frühe-Zeile-6-Probe, gefolgt von einer späteren Routinenzeile und korrektem Einstieg, ergibt jetzt **FAIL**: Der konkrete Rest aus R310 ist behoben. Erster Ruheanker, kumulierter Z-Abfall innerhalb der Einfahrt und FAIL-Vorrang vor einer fehlgeschlagenen Selbstprüfung sind umgesetzt.
+
+Die ursprüngliche Aufzeichnung aus **`20261105T232301`** habe ich unabhängig nachgerechnet, mit den gespeicherten Abschnittsfehlern und den Zeilenmengen aus dem geprüften Code:
+
+- **50 170** fortlaufende Abtastungen, eigene Marke, keine protokollierten Abschnittsfehler; `rfl_errors=[]`.
+- Einstieg von L bei **n=345573**, Lage **(100,100,0)**; erster Ruheanker **n=345381**.
+- Positive Auswertung **PASS**, Gegenprobe X+1 **FAIL** mit dem benannten falschen Einstieg.
+- Fremdachsen in Zeile 7: **0 mm**; Rest in Zeile 8 beziehungsweise 9: **0,000286 mm**, unter der vereinbarten 0,001-mm-Grenze. Die Präzisierung zur nicht mathematisch exakten Achsentrennung ist angenommen.
+- Bericht: Wiederherstellung `complete`, Isolation leer. Das ist eine Nachrechnung gespeicherter Daten, kein von mir neu ausgeführter Maschinenlauf.
+
+### FI-I40 · 2c-b · Der erste Abwärtsschritt nach der Routine fällt aus dem Vergleich
+
+**Ort:** `scripts/test_support/servo_cases.py:257–267`. `entry` beginnt **nach** der letzten Routinenabtastung. `zmax` beginnt mit `None`; deshalb wird die erste Einfahrtsabtastung ohne Vergleich zur bekannten Lage direkt davor als neue Ausgangshöhe übernommen.
+
+Die eigene Gegenprobe endet in Routinenzeile 601 bei **Z=0**, hat unmittelbar danach bei Kennung 0 **Z=−0,002** und eine bekannte negative Z-Geschwindigkeit, fährt dann wieder hoch, erreicht den richtigen Einstieg, steht und startet L korrekt. Der echte Auswerter liefert **PASS**. Damit ist gerade der vereinbarte Wächter „Abstieg unmittelbar nach der letzten Routinenabtastung“ nicht erfüllt. Die vorhandenen Tests beginnen ihren sinkenden Bereich bei Z=0; sie verlieren den ersten Schritt daher nicht.
+
+**Korrektur:** den Übergang an der Grenze mit dem bekannten vorherigen Z in die Abfallsprüfung aufnehmen; einen nicht bekannten Grenzwert nicht als bewiesenen sicheren Übergang behandeln. Die spätere Prüfung gegen das kumulierte Maximum bleibt. **Wächter:** dieser Grenzabstieg, auch als Summe kleiner Schritte über die Grenze; späterer korrekter Einstieg darf ihn nicht verdecken. Ein gültiger XY-Auslauf bei konstantem Z bleibt zulässig.
+
+### FI-I41 · 2c-b · Ohne Routinenbeleg wird der gesamte Anfang still zur Einfahrt
+
+**Ort:** dieselbe Grenzbildung, `last_r = … default=-1`. Fehlt jede Routinenabtastung, wertet der Auswerter ab Abschnittsbeginn weiter, statt den fehlenden Phasenbeleg zu benennen. Die eigene Probe entfernt aus dem sonst regulären festen Fall die Routinenabtastungen: richtige Einfahrt, Ruhe und L/8/9 bleiben. Ergebnis erneut **PASS**.
+
+Im hier vereinbarten festen Versuch mit Vormessung ist das Ende der Routine aber eine erforderliche Zuordnungsgrundlage. R310 verlangt ausdrücklich, fehlende Grenzbelege offenzuhalten. Das ist kein allgemeiner Auftrag, einen RFL-Fall ohne Vormessung abzulehnen; ein solcher Fall bräuchte einen eigenen, expliziten Vertrag.
+
+**Korrektur/Wächter:** keine beobachtete Routine im festen Vormessungsfall → `incomplete` mit Grund. Ein unabhängig bekannter Widerspruch, etwa die frühe bewegte Zeile 6, bleibt **FAIL**. Keine positive Ersatzgrenze bei Index −1.
+
+### FI-I42 · 2c-b · Die zugesagte Bindung an den geprüften Routinentext fehlt
+
+**Ort:** `scripts/native_run.py:1055–1059`. Der Schritt liest nach dem Lauf beliebige Texte aus `ROUTINE_TEXTS`, baut daraus Mengen und prüft deren Disjunktheit. Einen Vergleich mit den vereinbarten Routinen-/Wrapper-Hashes gibt es dort nicht. `MARKED_POS_ROUTINES` gehört zur Vorschau-Erkennung; die neue Auswertung benutzt diese Bindung nicht.
+
+Die eigene Probe führt den gesamten bestehenden RFL-Schritt mit dessen Testclient aus und zeigt ihm eine **separate temporäre Routinenkopie**: Nach Zeile 601 ist eine Achszeile `X25` im noch aktiven G1 eingefügt, ohne Verschiebung der übrigen Zeilennummern. Der Hash weicht ab; `motion_lines` erfasst diese modale Fahrt ohne erneutes G-Wort nicht. Bei unverändertem Teststrom bleibt `rfl-start-point` trotzdem **PASS**. Das ist ein Nachweis der fehlenden Vorab-Ablehnung, **keine Behauptung**, dass diese geänderte Routine nativ gelaufen sei.
+
+Die schmale Textsuche ist für den vereinbarten **festen geprüften Text** ausreichend. Ihre Zulassung sollte sich nicht still zu einer allgemeinen G-Code-Analyse erweitern.
+
+**Korrektur:** erwartete Hashes der geprüften Routine und des Wrappers sowie den Programmbezug explizit vor der Zuordnung prüfen und im Beleg benennen; nicht passende oder nicht lesbare Quellen → `incomplete`. **Wächter:** geänderter Routinentext mit unveränderten bisherigen G-Wort-Zeilen, geänderter Wrapper, fehlende Quelle; jeweils kein positiver Startpunktnachweis. Der bestehende Vergleich des geladenen Programmhashs bleibt erhalten.
+
+### Prüfungen, Belege und nächste Runde
+
+- Teil A: **42/42** ausgewählte bestehende Gateway-Tests (`test_toolsetter_sync`, `test_toolsetter_basis`, `test_toolsetter_rules`) grün. Die ursprünglichen Versuche innerhalb der Sandbox blockierten auch bei einem minimalen `asyncio.to_thread(print, …)`; der erfolgreiche Lauf und die Gateway-Gegenprobe liefen deshalb außerhalb der Sandbox, weiterhin nur in der Archivkopie mit **`fake_linuxcnc`**.
+- Teil B: **304/304 + 36/36** bestehende Tests grün; zusätzliche Gegenproben und Nachrechnung wie oben. Keine Wiederholung des vollständigen Browser-Gates; die neue Formularprojektion wurde direkt mit den echten TypeScript-Modulen ausgeführt.
+- [Gesicherte Anfrage](function-inventory.r311.codex-request.md), [Prüfstände und Grenzen](function-inventory.r311.codex-checks.json).
+- Teil A: [Gateway-Probe](function-inventory.r311.codex-a.py), [Ergebnis/Buchung](function-inventory.r311.codex-a.json), [TypeScript-Probe](function-inventory.r311.codex-state.cjs), [Projektionsergebnis](function-inventory.r311.codex-state.json).
+- Teil B: [Auswerter-/Schrittprobe und native Nachrechnung](function-inventory.r311.codex-b.py), [Ergebnisse](function-inventory.r311.codex-b.json).
+
+Die neuen Proben halten die **beobachteten offenen Fehler** am Prüfstand fest; ihr erfolgreicher Prozessabschluss ist keine Produktabnahme. Bitte die Gegenfälle in erwartungsgebundene Wächter überführen. Für Teil A bleibt anschließend der angekündigte positive native P2-Fall nötig. Für Teil B kann Lauf 10 als positiver Datensatz erhalten bleiben; nach den Korrekturen müssen derselbe Datensatz und die neuen negativen Fälle gemeinsam stimmen, bevor die Lücke „2c-b“ vollständig geschlossen wird.
+
+Keine Produktänderung, kein Checkout/Build/Test im Live-Baum, keine Verbindung zum Live-Gateway und keine Maschinenbefehle. Nur dieser Anhang und neue R311-Belege; frühere Belege unverändert.

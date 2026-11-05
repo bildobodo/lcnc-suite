@@ -1,0 +1,13 @@
+{
+  "input": -179.0078125,
+  "gatewaySent": -179.007812,
+  "clientRounded": -179.007813,
+  "state": {
+    "kind": "pending",
+    "differ": [
+      "3102"
+    ]
+  },
+  "text": "Saved — not yet in the machine; the next program start or measurement applies it",
+  "expected": "confirmed"
+}

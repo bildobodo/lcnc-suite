@@ -1,0 +1,131 @@
+{
+  "basis_changed_at_rfl_auto_switch": {
+    "writes": [
+      {
+        "cmd": "mode",
+        "args": [
+          2
+        ]
+      }
+    ],
+    "phase": {
+      "phase": "failed",
+      "ok": false,
+      "error": "Toolsetter settings changed meanwhile \u2014 start again",
+      "ts": 1793920702417
+    },
+    "expected": "No AUTO mode write after the basis changed; the write-thread admit must reject it."
+  },
+  "rounding": {
+    "section": {
+      "touchX": 10,
+      "touchY": 10,
+      "touchZ": -179.0078125,
+      "fastFeed": 2000,
+      "slowFeed": 20,
+      "traverseFeed": 500,
+      "maxZTravel": 180,
+      "retractDist": 3,
+      "spindleZeroHeight": 180
+    },
+    "booking": {
+      "version": 1,
+      "keys": {
+        "3004": {
+          "value": 2000.0,
+          "origin": "applied"
+        },
+        "3005": {
+          "value": 20.0,
+          "origin": "applied"
+        },
+        "3006": {
+          "value": 500.0,
+          "origin": "applied"
+        },
+        "3007": {
+          "value": 180.0,
+          "origin": "applied"
+        },
+        "3009": {
+          "value": 3.0,
+          "origin": "applied"
+        },
+        "3010": {
+          "value": 180.0,
+          "origin": "applied"
+        },
+        "3013": {
+          "value": 0.0,
+          "origin": "applied"
+        },
+        "3100": {
+          "value": 10.0,
+          "origin": "applied"
+        },
+        "3101": {
+          "value": 10.0,
+          "origin": "applied"
+        },
+        "3102": {
+          "value": -179.007812,
+          "origin": "applied"
+        },
+        "3103": {
+          "value": 0.0,
+          "origin": "applied"
+        },
+        "3104": {
+          "value": 0.0,
+          "origin": "applied"
+        },
+        "3105": {
+          "value": 0.0,
+          "origin": "applied"
+        },
+        "3106": {
+          "value": 0.0,
+          "origin": "applied"
+        },
+        "3107": {
+          "value": 5.0,
+          "origin": "applied"
+        },
+        "3108": {
+          "value": 0.0,
+          "origin": "applied"
+        },
+        "3109": {
+          "value": 0.0,
+          "origin": "applied"
+        },
+        "3110": {
+          "value": 0.0,
+          "origin": "applied"
+        },
+        "3111": {
+          "value": 0.0,
+          "origin": "applied"
+        },
+        "3112": {
+          "value": 0.0,
+          "origin": "applied"
+        },
+        "3113": {
+          "value": 0.0,
+          "origin": "applied"
+        },
+        "3114": {
+          "value": 0.0,
+          "origin": "applied"
+        },
+        "3115": {
+          "value": 0.0,
+          "origin": "applied"
+        }
+      }
+    },
+    "expected": "confirmed",
+    "sent_3102": -179.007812
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "round": "R311",
+  "document_head": "2095c935bdc1152e8f4d0868ddffea9d5f150c30",
+  "refs": {
+    "a_base": "838c3381c81a1572fdcf863a9bd50500d96e51e4",
+    "a_head": "430832be3dd387ec093b6bfcc9f5539e66e05304",
+    "b_base": "3e4f7c8048b01ad0f761cc5b1f008ea041338f17",
+    "b_head": "672ba228083e863599111c9ea932f5720191ecf4"
+  },
+  "review_prefix_bytes": 695886,
+  "review_prefix_sha256": "83d632abd7a4230bf6c4b409ba2e2fe08d3ffdcd11edf30da235f9926c1dc04a",
+  "verdict": "findings",
+  "findings": {
+    "FI-I38": "RFL AUTO mode write lacks basis admit; actual AUTO_RUN is refused",
+    "FI-I39": "Python and TypeScript canonicalisation differ at exact halfway values",
+    "FI-I40": "Z descent at the R-to-zero boundary omitted from comparison",
+    "FI-I41": "Missing routine boundary falls back to section start and passes",
+    "FI-I42": "Routine hash precondition is not enforced before attribution"
+  },
+  "checks": [
+    {
+      "cwd": "/tmp/codex-r311-a/lcnc-gateway",
+      "command": "/home/cnc/lcnc-suite-tsync/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider test_toolsetter_sync.py test_toolsetter_basis.py test_toolsetter_rules.py",
+      "result": "42 passed, exit 0",
+      "sandbox": "outside sandbox: fake_linuxcnc, no live transport"
+    },
+    {
+      "cwd": "/tmp/codex-r311-b",
+      "command": "/home/cnc/lcnc-suite-tsync/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider scripts/test_native_stage.py",
+      "result": "304 passed in 10.51s, exit 0"
+    },
+    {
+      "cwd": "/tmp/codex-r311-b",
+      "command": "/home/cnc/lcnc-suite-tsync/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider scripts/inventory/test_inventory.py",
+      "result": "36 passed in 1.10s, exit 0"
+    }
+  ],
+  "probes": [
+    {
+      "command": "PY -B function-inventory.r311.codex-a.py ARCHIVE_A OUT_JSON",
+      "exit": 0,
+      "meaning": "asserts observed mode-write defect, exports actual server booking",
+      "actual_archive": "/tmp/codex-r311-a"
+    },
+    {
+      "command": "node function-inventory.r311.codex-state.cjs ARCHIVE_A NODE_MODULES A_JSON",
+      "exit": 0,
+      "meaning": "asserts observed false pending from actual TS state function"
+    },
+    {
+      "command": "PY -B function-inventory.r311.codex-b.py ARCHIVE_B LIVE_RUN_DIR",
+      "exit": 0,
+      "meaning": "asserts observed open countercases and recorded positive/negative results",
+      "actual_archive": "/tmp/codex-r311-b",
+      "actual_live_run_dir": "/home/cnc/claude-work/live-tier/20261105T232301"
+    }
+  ],
+  "environment_note": "Inside sandbox the minimal asyncio.run(asyncio.to_thread(print,...)) printed from the thread but did not return before timeout. Gateway tests/probe succeeded outside sandbox. Native offline tests and TS probe ran in sandbox. Timed-out sandbox test processes ended; no live service touched.",
+  "evidence_sha256": {
+    "function-inventory.r311.codex-a.py": "e309bcceaccaf7d9421e88c60865ef6ba6daec37197a2f8f880f0e72d16484ec",
+    "function-inventory.r311.codex-a.json": "4306548a76530eda95140820491c952b80be4deb12ad16144ad6638df3f4ab7d",
+    "function-inventory.r311.codex-state.cjs": "ef80a5566bb47cced7277a4f39fbe28c6999d17cf236c7650b3fc186669b63d5",
+    "function-inventory.r311.codex-state.json": "78eeef86bc344819ad7ea50082493c2ddd7b4ef77cdb271c2100089b31671659",
+    "function-inventory.r311.codex-b.py": "f1eec71127ef11e95f335ae3db19c3bae1266fd88cf820fecb153b1db2029bf3",
+    "function-inventory.r311.codex-b.json": "00490ea9220a781b1d47035a9c6401bad75025a95520485339ad5f7122c50810",
+    "function-inventory.r311.codex-request.md": "2c25027ceb215c17cea5fe724c1a0a090dc95b1816c9fb0c7f1052307e2e3dfe"
+  },
+  "saved_run_inputs": {
+    "report.json": "17bea6f17c2310dbc4ff128c507e89552b8120cdd1c6cd6e4a81cf6cdf6f8740",
+    "servo-rfl.jsonl": "c8eab0da8a06a0086717c1aa27a0bd48153d2d202fdaa4dece0f28054e4aa5a2"
+  },
+  "scope_limits": [
+    "No new native run; persisted recording only",
+    "No product edits, builds, tests or checkouts in live tree",
+    "No live gateway connection or machine commands",
+    "P2 positive native case still outstanding as declared by author",
+    "Existing full gate reports not independently rerun; targeted tests and counterprobes as listed"
+  ]
+}
