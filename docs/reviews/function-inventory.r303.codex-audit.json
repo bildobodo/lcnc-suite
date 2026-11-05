@@ -1,0 +1,70 @@
+{
+  "round": "R303",
+  "date": "2026-11-05",
+  "base": "dbff671d5d2425575e3b42afb09de1198582cd36",
+  "head": "06fbca5641df8b504d7a4d604dbc0bdb145217f3",
+  "live_review_head": "8da05193224081c492f2b9bbd2bd05a0a059b004",
+  "archive": "/tmp/codex-r303",
+  "verdict": "findings",
+  "closed": [
+    "FI-I33",
+    "FI-I35"
+  ],
+  "remaining": [
+    "FI-I32",
+    "FI-I34",
+    "FI-I31"
+  ],
+  "repo_tests": {
+    "result": "280 passed in 9.80s",
+    "command": "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py",
+    "exit": 0
+  },
+  "probes": {
+    "r302_rerun": {
+      "conforming": 16,
+      "contrary": 0,
+      "exit": 0,
+      "adaptations": [
+        "Fake HAL now answers show thread with fixture.SHOW_THREAD",
+        "The directly composed WS row gets informational=True as native_run.jog_cases now sets it"
+      ]
+    },
+    "r303": {
+      "conforming": 6,
+      "contrary": 7,
+      "exit": 1
+    }
+  },
+  "findings": {
+    "FI-I32": [
+      "top_transition_z_missing",
+      "arrival_transition_x_missing"
+    ],
+    "FI-I34": [
+      "section_audit_failed_end",
+      "effective_period_(1000000, 2000000)",
+      "effective_period_(2000000, 2000000)"
+    ],
+    "FI-I31": [
+      "rfl_refusal_disk_full",
+      "goto_known_violation_end_read_failed"
+    ]
+  },
+  "reviewed_gate": "/home/cnc/claude-work/teststrat/measure/native.step2c.gate-round.run2.json",
+  "review_before_sha256": "ff274fba41f377abdaf14f29647300a63c0edfa4db2485a9552ded889c6e0a95",
+  "source_sha256": {
+    "scripts/native_run.py": "0e7d30a47c1ef5493d496f3cd89e44d2cf4c62457b4028dcf19393efb64a3ee3",
+    "scripts/test_support/servo.py": "9860394b174c6b30a4400ba4d70f2310b8faf1013eb82c60033fefd502a54743",
+    "scripts/test_support/servo_cases.py": "79930a409fc4c6a63cea6a594950a473cf0fbd3d637ace1c7b84ac1f37d84656",
+    "scripts/test_native_stage.py": "a2da7d12e7afa8b186c38a67f8205344da4a1c4666853f36a07c9c6c12d860e4",
+    "docs/decisions.md": "dc012e67442fc38afdfe75bf6ab539f2fc7212fcc952eb531d2684f51e366ca2"
+  },
+  "boundary": {
+    "product_changed": false,
+    "live_builds_or_tests": false,
+    "live_or_machine_access": false,
+    "native_run": false,
+    "old_evidence_changed": false
+  }
+}

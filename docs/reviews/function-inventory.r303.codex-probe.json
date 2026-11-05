@@ -1,0 +1,577 @@
+{
+  "head": "06fbca56",
+  "tests": [
+    {
+      "name": "zero_base",
+      "expected": "PASS",
+      "actual": "PASS",
+      "conforms": true,
+      "detail": {
+        "row": {
+          "case": "zero_base",
+          "status": "PASS",
+          "detail": "Z up first, then X/Y; no descent (the target's Z is up); at rest on the target",
+          "start": [
+            200.0,
+            200.0,
+            -60.0
+          ],
+          "target": [
+            100.0,
+            100.0,
+            0.0
+          ],
+          "problems": []
+        },
+        "hidden_indices": [],
+        "axis": 2
+      }
+    },
+    {
+      "name": "top_transition_z_missing",
+      "expected": "incomplete",
+      "actual": "FAIL",
+      "conforms": false,
+      "detail": {
+        "row": {
+          "case": "top_transition_z_missing",
+          "status": "FAIL",
+          "detail": "X moved -2.000 mm before Z was up (sample 160)",
+          "start": [
+            200.0,
+            200.0,
+            -60.0
+          ],
+          "target": [
+            100.0,
+            100.0,
+            0.0
+          ],
+          "problems": [
+            "a non-finite channel value"
+          ]
+        },
+        "hidden_indices": [
+          59,
+          60
+        ],
+        "axis": 2
+      }
+    },
+    {
+      "name": "g30_base",
+      "expected": "PASS",
+      "actual": "PASS",
+      "conforms": true,
+      "detail": {
+        "row": {
+          "case": "g30_base",
+          "status": "PASS",
+          "detail": "Z up first, then X/Y; the descent after X/Y arrived; at rest on the target",
+          "start": [
+            200.0,
+            200.0,
+            -60.0
+          ],
+          "target": [
+            0.0,
+            0.0,
+            -20.0
+          ],
+          "problems": []
+        },
+        "hidden_indices": [],
+        "axis": 0
+      }
+    },
+    {
+      "name": "arrival_transition_x_missing",
+      "expected": "incomplete",
+      "actual": "FAIL",
+      "conforms": false,
+      "detail": {
+        "row": {
+          "case": "arrival_transition_x_missing",
+          "status": "FAIL",
+          "detail": "Z at -0.400 while X/Y moved (sample 210)",
+          "start": [
+            200.0,
+            200.0,
+            -60.0
+          ],
+          "target": [
+            0.0,
+            0.0,
+            -20.0
+          ],
+          "problems": [
+            "a non-finite channel value"
+          ]
+        },
+        "hidden_indices": [
+          109,
+          110
+        ],
+        "axis": 0
+      }
+    },
+    {
+      "name": "effective_period_(1000000, 1000000)",
+      "expected": "clean",
+      "actual": "clean",
+      "conforms": true,
+      "detail": {
+        "read_periods": [
+          1000000,
+          1000000
+        ],
+        "integrity": {
+          "enable_start": true,
+          "enable_end": true,
+          "overruns_start": 0,
+          "overruns_end": 0,
+          "depth_end": 0,
+          "depth": 65536,
+          "period_ns": 1000000,
+          "ini_period_ns": 1000000,
+          "thread_start": [
+            "motion-command-handler",
+            "motion-controller",
+            "sampler.0"
+          ],
+          "thread_end": [
+            "motion-command-handler",
+            "motion-controller",
+            "sampler.0"
+          ],
+          "reader_overrun": false,
+          "reader_alive": true
+        },
+        "problems": []
+      }
+    },
+    {
+      "name": "effective_period_(1000000, 2000000)",
+      "expected": "flawed",
+      "actual": "clean",
+      "conforms": false,
+      "detail": {
+        "read_periods": [
+          1000000,
+          2000000
+        ],
+        "integrity": {
+          "enable_start": true,
+          "enable_end": true,
+          "overruns_start": 0,
+          "overruns_end": 0,
+          "depth_end": 0,
+          "depth": 65536,
+          "period_ns": 1000000,
+          "ini_period_ns": 1000000,
+          "thread_start": [
+            "motion-command-handler",
+            "motion-controller",
+            "sampler.0"
+          ],
+          "thread_end": [
+            "motion-command-handler",
+            "motion-controller",
+            "sampler.0"
+          ],
+          "reader_overrun": false,
+          "reader_alive": true
+        },
+        "problems": []
+      }
+    },
+    {
+      "name": "effective_period_(2000000, 2000000)",
+      "expected": "flawed",
+      "actual": "clean",
+      "conforms": false,
+      "detail": {
+        "read_periods": [
+          2000000,
+          2000000
+        ],
+        "integrity": {
+          "enable_start": true,
+          "enable_end": true,
+          "overruns_start": 0,
+          "overruns_end": 0,
+          "depth_end": 0,
+          "depth": 65536,
+          "period_ns": 1000000,
+          "ini_period_ns": 1000000,
+          "thread_start": [
+            "motion-command-handler",
+            "motion-controller",
+            "sampler.0"
+          ],
+          "thread_end": [
+            "motion-command-handler",
+            "motion-controller",
+            "sampler.0"
+          ],
+          "reader_overrun": false,
+          "reader_alive": true
+        },
+        "problems": []
+      }
+    },
+    {
+      "name": "section_audit_base",
+      "expected": true,
+      "actual": true,
+      "conforms": true,
+      "detail": {
+        "error": null,
+        "records": [
+          {
+            "case": "jog-x+.servo",
+            "attempt": 1,
+            "start_mark": 3,
+            "end_mark": 4,
+            "first_n": 0,
+            "end_n": 1,
+            "integrity": {
+              "enable_start": true,
+              "enable_end": true,
+              "overruns_start": 0,
+              "overruns_end": 0,
+              "depth_end": 0,
+              "depth": 65536,
+              "period_ns": 1000000,
+              "ini_period_ns": 1000000,
+              "thread_start": [
+                "motion-command-handler",
+                "motion-controller",
+                "sampler.0"
+              ],
+              "thread_end": [
+                "motion-command-handler",
+                "motion-controller",
+                "sampler.0"
+              ],
+              "reader_overrun": false,
+              "reader_alive": true
+            },
+            "problems": [],
+            "hal": [
+              [
+                "getp",
+                "sampler.0.enable"
+              ],
+              [
+                "getp",
+                "sampler.0.overruns"
+              ],
+              [
+                "show",
+                "thread",
+                "servo-thread"
+              ],
+              [
+                "sets",
+                "natv-mark",
+                "3"
+              ],
+              [
+                "sets",
+                "natv-mark",
+                "4"
+              ],
+              [
+                "getp",
+                "sampler.0.enable"
+              ],
+              [
+                "getp",
+                "sampler.0.overruns"
+              ],
+              [
+                "getp",
+                "sampler.0.curr-depth"
+              ],
+              [
+                "show",
+                "thread",
+                "servo-thread"
+              ]
+            ],
+            "samples": 1,
+            "file": "servo-jog-x+.servo.jsonl"
+          }
+        ],
+        "files": [
+          "servo-jog-x+.servo.jsonl"
+        ],
+        "samples_already_received": 2,
+        "gate_open": null
+      }
+    },
+    {
+      "name": "section_audit_failed_end",
+      "expected": true,
+      "actual": false,
+      "conforms": false,
+      "detail": {
+        "error": "RuntimeError: injected: overruns unavailable at end",
+        "records": [],
+        "files": [],
+        "samples_already_received": 2,
+        "gate_open": null
+      }
+    },
+    {
+      "name": "rfl_refusal_write_ok",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "conforms": true,
+      "detail": {
+        "error": "StepFailed: the run from line ended: auto_run refused: known controller refusal",
+        "rows": [
+          {
+            "case": "rfl-line",
+            "status": "FAIL",
+            "detail": "auto_run refused: known controller refusal; no `running` received",
+            "line": 7,
+            "end_point": [
+              200.0,
+              null,
+              -50.0
+            ],
+            "final": [
+              200.0,
+              200.0,
+              0.0
+            ],
+            "line_holds": {
+              "1": 100.0
+            },
+            "end_from": 8,
+            "errors": [],
+            "cause": "refused"
+          },
+          {
+            "case": "rfl-line.counter-line+1",
+            "status": "incomplete",
+            "counter": true,
+            "inner": {
+              "case": "rfl-line",
+              "status": "incomplete",
+              "detail": "no `running` received",
+              "line": 8,
+              "end_point": [
+                200.0,
+                null,
+                -50.0
+              ],
+              "final": [
+                200.0,
+                200.0,
+                0.0
+              ],
+              "line_holds": {
+                "1": 100.0
+              },
+              "end_from": 9,
+              "errors": []
+            },
+            "detail": "the measurement it re-judges did not pass: auto_run refused: known controller refusal; no `running` received"
+          },
+          {
+            "case": "rfl-no-earlier-line",
+            "status": "incomplete",
+            "detail": "no frame of the program received after the start",
+            "scope": "observed frames",
+            "frames": 0,
+            "lines": []
+          },
+          {
+            "case": "rfl-start-point",
+            "status": "incomplete",
+            "detail": "no contradiction in the received frames; the path between them needs the servo measurement (step 2c)",
+            "entry": [
+              100.0,
+              100.0
+            ]
+          }
+        ],
+        "report": {
+          "rfl_origin": {
+            "file": "/tmp/codex-r303-rfl-h2gimkop/nc_files/native_rfl.ngc",
+            "version": 3,
+            "source": "2f8053909fafd55e2460d55b5cd8b97eacacc75e91a2f6e194b415cf18907159",
+            "before": {
+              "tool_number": null,
+              "joint_pos": null
+            }
+          },
+          "servo_sections": [
+            {
+              "case": "rfl",
+              "attempt": 1,
+              "start_mark": 3,
+              "end_mark": 4,
+              "first_n": 0,
+              "end_n": 1,
+              "integrity": {
+                "enable_start": true,
+                "enable_end": true,
+                "overruns_start": 0,
+                "overruns_end": 0,
+                "depth_end": 0,
+                "depth": 65536,
+                "period_ns": 1000000,
+                "ini_period_ns": 1000000,
+                "thread_start": [
+                  "motion-command-handler",
+                  "motion-controller",
+                  "sampler.0"
+                ],
+                "thread_end": [
+                  "motion-command-handler",
+                  "motion-controller",
+                  "sampler.0"
+                ],
+                "reader_overrun": false,
+                "reader_alive": true
+              },
+              "problems": [],
+              "hal": [
+                [
+                  "getp",
+                  "sampler.0.enable"
+                ],
+                [
+                  "getp",
+                  "sampler.0.overruns"
+                ],
+                [
+                  "show",
+                  "thread",
+                  "servo-thread"
+                ],
+                [
+                  "sets",
+                  "natv-mark",
+                  "3"
+                ],
+                [
+                  "sets",
+                  "natv-mark",
+                  "4"
+                ],
+                [
+                  "getp",
+                  "sampler.0.enable"
+                ],
+                [
+                  "getp",
+                  "sampler.0.overruns"
+                ],
+                [
+                  "getp",
+                  "sampler.0.curr-depth"
+                ],
+                [
+                  "show",
+                  "thread",
+                  "servo-thread"
+                ]
+              ],
+              "samples": 1,
+              "file": "servo-rfl.jsonl"
+            }
+          ],
+          "rfl_history": [],
+          "rfl_errors": []
+        }
+      }
+    },
+    {
+      "name": "rfl_refusal_disk_full",
+      "expected": "FAIL",
+      "actual": "row missing",
+      "conforms": false,
+      "detail": {
+        "error": "OSError: [Errno 28] injected full evidence filesystem",
+        "rows": [],
+        "report": {
+          "rfl_origin": {
+            "file": "/tmp/codex-r303-rfl-sj_tkw54/nc_files/native_rfl.ngc",
+            "version": 3,
+            "source": "2f8053909fafd55e2460d55b5cd8b97eacacc75e91a2f6e194b415cf18907159",
+            "before": {
+              "tool_number": null,
+              "joint_pos": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "xy_first_before_end_error",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "conforms": true,
+      "detail": {
+        "case": "goto-zero",
+        "status": "FAIL",
+        "detail": "X moved -2.000 mm before Z was up (sample 110)",
+        "start": [
+          200.0,
+          200.0,
+          -60.0
+        ],
+        "target": [
+          100.0,
+          100.0,
+          0.0
+        ],
+        "problems": []
+      }
+    },
+    {
+      "name": "goto_known_violation_end_read_failed",
+      "expected": "FAIL",
+      "actual": "row missing",
+      "conforms": false,
+      "detail": {
+        "error": "StepFailed: goto-zero: the servo measurement failed — RuntimeError: injected: overruns unavailable at end",
+        "rows": [],
+        "report": {
+          "goto": {
+            "targets": {
+              "goto-zero": [
+                100.0,
+                100.0,
+                0.0
+              ],
+              "goto-home": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "goto-g30": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "g64": "G64 P0.001",
+            "g54": [
+              100.0,
+              100.0
+            ]
+          }
+        },
+        "collected": 131
+      }
+    }
+  ],
+  "conforming": 6,
+  "contrary": 7
+}
