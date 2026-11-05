@@ -72,7 +72,9 @@ def run(host, steps, run_dir: Path) -> dict:
     pre = rl.record(host)                     # raises TakeOverRefused: nothing touched
     pre_path = run_dir / "pre.json"
     write_json(pre_path, pre)
-    ctx = {"run": run_dir, "pre": pre, "report": report}
+    # what the run OWNS — its tree, its test unit — on disk before each exists
+    # (R286 FI-I19): ExecStopPost ends them from here when this process died
+    ctx = {"run": run_dir, "pre": pre, "report": report, "state": {}}
     try:
         rl.stop_lan(host, pre)
         write_json(pre_path, pre)             # with the hashes the stop left
@@ -90,19 +92,21 @@ def run(host, steps, run_dir: Path) -> dict:
                 cleanup()
             except Exception as e:  # noqa: BLE001
                 report["cleanup_error"] = f"{type(e).__name__}: {e}"
-        report["restore"] = rl.restore(host, pre)
+        report["restore"] = rl.restore(host, pre, ctx["state"], first=run_dir / "restore.json")
+        write_json(run_dir / "state.json", ctx["state"])
         report["ended"] = time.time()
         write_json(run_dir / "report.json", report)
     return report
 
 
 def verdict(report: dict) -> str:
-    """PASS only with every row PASS, no error, the LAN returned complete and
-    its isolation proven (an empty list — None was proven elsewhere)."""
+    """PASS only with every row PASS, no error, the run's own resources ended,
+    the LAN returned complete and its isolation proven (an empty list)."""
     if report.get("error") or report.get("cleanup_error"):
         return "FAIL"
     r = report.get("restore", {})
-    if r.get("outcome") != "complete" or r.get("isolation"):
+    # isolation: [] is proven; a list names what changed; None was never proven (R286 FI-I21)
+    if r.get("outcome") != "complete" or r.get("isolation") != [] or r.get("cleanup"):
         return "FAIL"
     rows = report.get("rows", [])
     if not rows or any(x["status"] != "PASS" for x in rows):
@@ -125,9 +129,10 @@ def make_tree(commit: str, profile: str):
     def step(ctx):
         run = ctx["run"]
         tree = run / "tree"
+        ctx["state"].update(tree=str(tree), tree_of=str(HERE.parent))
+        save_state(ctx)
         subprocess.run(["git", "-C", str(HERE.parent), "worktree", "add", "--detach", str(tree), commit],
                        check=True, capture_output=True)
-        ctx["cleanup_tree"] = tree
         src = HERE.parent / "lcnc-webui/node_modules"
         subprocess.run(["cp", "-a", "--reflink=auto", str(src), str(tree / "lcnc-webui/node_modules")], check=True)
         same = lt.shared_inodes(tree / "lcnc-webui/node_modules", src)
@@ -187,9 +192,10 @@ def start_copy():
                "LCNC_WEBUI_BROWSER": "0", "LCNC_WEBUI_HOST": "127.0.0.1", "LCNC_WEBUI_DEV": "0"}
         (run / "logs").mkdir(exist_ok=True)
         subprocess.run(["systemctl", "--user", "reset-failed", UNIT], capture_output=True)
+        ctx["state"]["test_unit"] = UNIT
+        save_state(ctx)
         subprocess.run(["systemd-run", "--user", f"--unit={UNIT}", "-p", f"WorkingDirectory={ctx['config']}"]
                        + [f"-E{k}={v}" for k, v in env.items()] + ["linuxcnc", str(ini)], check=True, capture_output=True)
-        ctx["cleanup"] = lambda: _stop_copy(ctx)
         if not rl_host_ready(180):
             raise Refused("the copy's gateway did not answer /ready within 180 s")
         procs = lt.read_procs()
@@ -220,16 +226,16 @@ def _launcher_env(ini: Path) -> dict:
 
 
 def _stop_copy(ctx):
+    """The client's own end (abort, disarm, close) — its failure is named.
+    The test unit and the tree are the restore's (rl.end_test_resources),
+    one code for `finally` and ExecStopPost."""
     client = ctx.pop("client", None)
     if client:
-        try:
-            client.close()        # aborts and disarms its own instance, then closes
-        except Exception:  # noqa: BLE001
-            pass
-    subprocess.run(["systemctl", "--user", "stop", UNIT], capture_output=True)
-    tree = ctx.get("cleanup_tree")
-    if tree:
-        subprocess.run(["git", "-C", str(HERE.parent), "worktree", "remove", "--force", str(tree)], capture_output=True)
+        client.close()
+
+
+def save_state(ctx):
+    write_json(ctx["run"] / "state.json", ctx["state"])
 
 
 def connect_client():
@@ -239,8 +245,8 @@ def connect_client():
         frames: list = []
         client = SimulatorClient(token, session="native-stage", auto_confirm=False,
                                  on_status=lambda t, st: frames.append((t, st)))
+        ctx.update(client=client, frames=frames, cleanup=lambda: _stop_copy(ctx))
         client.start()
-        ctx.update(client=client, frames=frames)
         client.request("estop_reset")
         _wait(client, lambda s: s.get("is_estop") is False, 10, "E-Stop reset")
         client.request("machine_on")

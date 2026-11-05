@@ -151,19 +151,31 @@ class FakeHost:
         self.fail_start = set()
         self.started = []
         self.heartbeat_seen = True
+        self.owner_ok = True
+        self.removed = []
+        self.test_instance = None        # the run's own LinuxCNC while native-sim runs
 
     def unit(self, name): return self.units[name]
-    def is_active(self, name): return self.active[name]
-    def stop(self, name): self.active[name] = False
+    def is_active(self, name): return self.active.get(name, False)
+
+    def stop(self, name):
+        self.active[name] = False
+        if name == "native-sim":
+            self.test_instance = None
+        if name == "lcnc-sim-gates":
+            self.instance = ()
+    def unit_owns(self, unit, pid): return self.owner_ok
+    def remove_tree(self, tree, of): self.removed.append(tree)
     def start(self, name, spec):
         if name in self.fail_start:
             raise RuntimeError(f"{name} did not start")
         self.started.append(name)
         self.active[name] = True
         if name == "lcnc-sim-gates":
-            self.instance = ("linuxcncsvr", self.instance[1] + 1, self.instance[2] + 1)
+            self.last = getattr(self, "last", 100) + 1
+            self.instance = ("linuxcncsvr", self.last, 5000 + self.last)
     def wait_ready(self, timeout): return self.ready
-    def lan_instance(self): return self.instance
+    def lan_instance(self): return self.test_instance or self.instance
     def gateway_ini(self): return "lan.ini"
     def tree_head(self): return self.head
     def tree_dir(self): return "/lan-tree"
@@ -311,9 +323,13 @@ class FileHost(FakeHost):
         if path.exists():
             st = json.loads(path.read_text())
             self.active, self.instance = st["active"], tuple(st["instance"])
+            self.test_instance = tuple(st["test"]) if st.get("test") else None
+            self.last = st.get("last", 100)
 
     def _save(self):
-        self.path.write_text(json.dumps({"active": self.active, "instance": list(self.instance)}))
+        self.path.write_text(json.dumps({"active": self.active, "instance": list(self.instance),
+                                         "test": list(self.test_instance) if self.test_instance else None,
+                                         "last": getattr(self, "last", 100)}))
 
     def stop(self, name):
         super().stop(name)
@@ -345,7 +361,8 @@ def test_a_killed_orchestrator_is_restored_by_the_unit_from_pre_json(tmp_path):
     assert rl.main(["--from", str(run / "pre.json"), "--out", str(out)], host_factory=lambda pre: FileHost(state)) == 0
     restored = json.loads(out.read_text())
     assert restored["outcome"] == "complete" and restored["isolation"] == [], restored
-    assert json.loads(state.read_text())["active"] == {"lcnc-sim-gates": True, "bg-keepalive": True}
+    assert {k: v for k, v in json.loads(state.read_text())["active"].items() if k != "native-sim"} == \
+        {"lcnc-sim-gates": True, "bg-keepalive": True}
 
 
 # ── R286 FI-I18: the PATH LinuxCNC's own launcher builds ─────────────────
@@ -465,3 +482,104 @@ def test_a_run_folder_that_exists_already_is_refused_before_anything(tmp_path):
     with pytest.raises(FileExistsError):
         nr.run(h, [], tmp_path / "run")
     assert h.started == [] and all(h.active.values()), "nothing recorded, nothing stopped"
+
+
+# ── R286 FI-I19 / FI-I21: the test instance ends first, the return is bound ──
+def _started_test(h, run):
+    """The run's own instance up: native-sim active, holding the VM's LinuxCNC."""
+    h.active["native-sim"] = True
+    h.test_instance = ("linuxcncsvr", 900, 9000)
+    state = {"test_unit": "native-sim", "tree": str(run / "tree"), "tree_of": "/wt"}
+    (run / "state.json").write_text(json.dumps(state))
+    return state
+
+
+def test_a_kill_after_the_test_start_ends_the_test_instance_before_the_lan_returns(tmp_path):
+    state, run = tmp_path / "lan.json", tmp_path / "run"
+    h = FileHost(state)
+    run.mkdir()
+    pre = rl.record(h)
+    (run / "pre.json").write_text(json.dumps(pre))
+    rl.stop_lan(h, pre)
+    (run / "pre.json").write_text(json.dumps(pre))
+    _started_test(h, run)
+    h._save()
+    # the orchestrator dies here; ExecStopPost runs the restore
+    out = run / "restore-post.json"
+    assert rl.main(["--from", str(run / "pre.json"), "--out", str(out)], host_factory=lambda pre: FileHost(state)) == 0
+    got = json.loads(out.read_text())
+    assert got["outcome"] == "complete" and got["isolation"] == [] and got["cleanup"] == []
+    assert json.loads(state.read_text())["test"] is None, "the test instance ended first"
+    assert json.loads((run / "state.json").read_text())["tree_removed"] is True
+
+
+def test_a_test_instance_that_does_not_end_keeps_the_lan_down_and_says_so(tmp_path):
+    h = FakeHost()
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    h.test_instance = ("linuxcncsvr", 900, 9000)      # native-sim gone, its LinuxCNC still there
+    rl.TEST_END_S = 0.1
+    out = rl.restore(h, pre, {"test_unit": "native-sim"})
+    assert out["outcome"] == "not_returned" and any("still runs" in r for r in out["reasons"])
+    assert h.started == [], "never a second LinuxCNC beside it"
+
+
+def test_a_restore_interrupted_after_the_test_end_is_completed_by_the_next(tmp_path):
+    h = FakeHost()
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    state = {"test_unit": "native-sim", "tree": "/run/tree", "tree_of": "/wt"}
+    h.active["native-sim"], h.test_instance = True, ("linuxcncsvr", 900, 9000)
+    h.fail_start.add("lcnc-sim-gates")
+    first = tmp_path / "restore.json"
+    assert rl.restore(h, pre, state, first)["outcome"] == "not_returned"
+    assert not first.exists(), "no return to bind"
+    h.fail_start.clear()
+    out = rl.restore(h, pre, state, first)
+    assert out["outcome"] == "complete" and h.removed == ["/run/tree"], "the tree removed once"
+
+
+@pytest.mark.parametrize("break_it, reason", [
+    (lambda h: setattr(h, "owner_ok", False), "does not belong"),
+])
+def test_the_returned_instance_must_be_the_restored_units(break_it, reason):
+    h = FakeHost()
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    break_it(h)
+    out = rl.restore(h, pre)
+    assert out["outcome"] == "not_returned" and any(reason in r for r in out["reasons"]), out
+
+
+def test_the_same_instance_as_before_the_stop_is_no_return():
+    h = FakeHost()
+    pre = rl.record(h)
+    # nothing was stopped: the recorded instance itself still runs
+    out = rl.restore(h, pre)
+    assert out["outcome"] == "not_returned" and any("not a new one" in r for r in out["reasons"])
+
+
+def test_a_running_unit_with_another_command_is_no_return():
+    h = FakeHost()
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    h.start("lcnc-sim-gates", pre["units"]["lcnc-sim-gates"])
+    h.units["lcnc-sim-gates"] = {**h.units["lcnc-sim-gates"], "ExecStart": ["/usr/bin/env", "linuxcnc", "other.ini"]}
+    out = rl.restore(h, pre)
+    assert out["outcome"] == "not_returned" and any("another command" in r for r in out["reasons"])
+
+
+def test_the_second_restore_keeps_the_first_isolation_failure_and_an_unproven_one_stays_unknown(tmp_path):
+    h = FakeHost()
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    h.hashes.update(config="changed")
+    first = tmp_path / "restore.json"
+    assert rl.restore(h, pre, {}, first)["isolation"] == ["config changed"]
+    again = rl.restore(h, pre, {}, first)
+    assert again["isolation"] == ["config changed"] and again["repeat_of"] == "complete"
+    assert nr.verdict({"rows": [{"status": "PASS"}], "restore": again}) == "FAIL"
+    # no first record and the LAN already up: the isolation was never proven
+    unknown = rl.restore(h, pre, {}, tmp_path / "none.json")
+    assert unknown["isolation"] is None
+    assert nr.verdict({"rows": [{"status": "PASS"}], "restore": unknown}) == "FAIL"

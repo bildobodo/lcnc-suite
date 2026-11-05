@@ -10516,3 +10516,19 @@ folder makes the gateway fall back to `~/linuxcnc/nc_files` and create it
 silently (`gateway.py` `_nc_files_dir`) — the run's target check refuses a
 missing folder, and the isolation hash shows `~/linuxcnc/nc_files` untouched.
 
+Codex R286 (FI-I18–I23), closed before any run: the installed `linuxcnc`
+script puts `~/.local/bin` first when PATH holds no ".local/bin" — the run's
+bin is `<run>/.local/bin` and the pre-check uses the PATH the launcher's own
+rule builds (`live_target.linuxcnc_path`, read from the script, an unknown
+rule refused); the process proof adds the toolsetter feed, the interpreters
+and the gateway's open log files. The run's OWN resources (test unit, tree)
+are on disk in `state.json` before each exists, and the restore — from
+`finally` and from ExecStopPost under the heavy lock — ends them first (the VM
+runs one LinuxCNC), proves a NEW instance owned by the restored unit, the
+recorded keepalive by its connection, and binds its outcome in `restore.json`:
+a later restore recognises that return and keeps its isolation verdict, an
+unproven isolation stays unknown and fails the verdict. The installer's
+temporary files are created exclusively (a link at a temporary name is never
+followed), a mutable file sharing its inode is named, the run folder is new.
+A home case needs its completion, a jog its known values and a fresh anchor
+(the first status frame after the jog_stop reply, at most 0.1 s later).

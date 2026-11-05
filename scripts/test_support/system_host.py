@@ -158,19 +158,42 @@ class SystemHost:
                     return msg.get("safety_trip") or msg["data"].get("safety_trip")
         raise RuntimeError("the LAN gateway sent no status within 10 s")
 
-    def keepalive_connected_since(self, since):
-        gw = next((p for p in read_procs() if "gateway:app" in p["cmdline"]), None)
-        if not gw or not self._tree:
+    def unit_owns(self, unit, pid):
+        """The process lives in the unit's own cgroup (R286 FI-I21: not the
+        first linuxcncsvr found anywhere)."""
+        try:
+            return f"/{unit}.service" in Path(f"/proc/{pid}/cgroup").read_text()
+        except OSError:
             return False
-        trace = Path(self._tree) / "runlogs/trace.ndjson"
+
+    def remove_tree(self, tree, of):
+        if not Path(tree).exists():
+            subprocess.run(["git", "-C", str(of), "worktree", "prune"], check=True, capture_output=True)
+            return
+        r = subprocess.run(["git", "-C", str(of), "worktree", "remove", "--force", str(tree)],
+                           capture_output=True, text=True)
+        if r.returncode:
+            raise RuntimeError(r.stderr.strip() or f"git worktree remove exited {r.returncode}")
+
+    def keepalive_connected_since(self, since, unit="bg-keepalive"):
+        """THE recorded keepalive (R286 FI-I21: not "a client"): its unit's
+        MainPID holds an established connection to the gateway's port, and
+        the returned gateway counts a client after `since`."""
         end = time.monotonic() + 15
         while time.monotonic() < end:
-            try:
-                with trace.open(errors="replace") as f:
-                    f.seek(max(0, trace.stat().st_size - 2_000_000))
-                    if clients_since(f, gw["pid"], since):
-                        return True
-            except OSError:
-                pass
+            main = subprocess.run(["systemctl", "--user", "show", unit, "-p", "MainPID", "--value"],
+                                  capture_output=True, text=True).stdout.strip()
+            ss = subprocess.run(["ss", "-Htnp", "state", "established", "( dport = :8000 )"],
+                                capture_output=True, text=True).stdout
+            gw = next((p for p in read_procs() if "gateway:app" in p["cmdline"]), None)
+            if main not in ("", "0") and f"pid={main}," in ss and gw and self._tree:
+                trace = Path(self._tree) / "runlogs/trace.ndjson"
+                try:
+                    with trace.open(errors="replace") as f:
+                        f.seek(max(0, trace.stat().st_size - 2_000_000))
+                        if clients_since(f, gw["pid"], since):
+                            return True
+                except OSError:
+                    pass
             time.sleep(1)
         return False
