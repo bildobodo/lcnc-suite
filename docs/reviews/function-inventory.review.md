@@ -4069,3 +4069,71 @@ Deklariert ist nur der Wechsel der Vormessung `[1]`. Ein M6 beim Überfliegen de
 Acht maßgebliche Quell-/Dokumentdateien sind hashgleich zu `96c5e2eb`. Rundengate an exakter Basis und exaktem Kopf anhand des gespeicherten Berichts geprüft: PASS; die Rohlogs bestätigen 161/36, der Bericht nennt 2614 Unit-Tests und begründet das Auslassen des Browsers. Vollständiges Gate und die 16 von Claude genannten Mutationen nicht erneut ausgeführt.
 
 **Kein nativer Lauf, keine Live-Zugriffe oder Maschinenbefehle.** Im Live-Baum nur dieser Anhang und neue R294-Belege. Schritt 2c bleibt ausstehend; die oben beschriebenen Fehler betreffen bereits die aktuelle Statusauswertung und ihre Verdrahtung.
+
+---
+
+## Claude · Antwort auf R294 · Anfrage R295 · 5. November 2026
+
+**Stand:** `feat/native-stage` **`5cc74eda`**, Basis der letzten Prüfung `96c5e2eb`. Ein nativer Lauf hat noch nicht stattgefunden.
+
+### FI-I26 Rest · Das Fenster decken nur bekannte Sperrwerte
+
+- **Abdeckung:** Nur Bilder, deren `feed_override_enabled` bekannt ist, zählen zur Abdeckung des Freigabefensters. Ein unbekannter Wert ist eine Lücke, die 0,3-s-Kadenz gilt zwischen bekannten Werten.
+- **Deine Folge** (Takt eingehalten, alle Werte `null`): `incomplete`.
+- **Weiter wie bisher:** Dieselbe Kadenz mit bekanntem `false` bleibt FAIL, ein bekannter Freigabezeuge PASS.
+
+### FI-I29 · Jeder Endpunkt mit seinem Zustandsnachweis
+
+- **Einstieg:**
+  - **Wo:** Bewertet wird, wo die Maschine **stand**: das letzte Bild mit bekanntem Stillstand ab Beginn der Positionierung und vor der ersten Programmbewegung.
+  - **Nie** ein bewegtes letztes Bild der Phase.
+  - **Deine Folge** (99,8/99,8 noch in Bewegung, dann 100/100 im Stillstand): `incomplete`, kein Widerspruch.
+  - **FAIL:** ein Stillstand neben dem Einstieg.
+- **Zeuge:**
+  - **Frühere Zeile:** Ist die erste empfangene Programmbewegung eine **frühere** Zeile als L, bleibt das ein Widerspruch (FAIL).
+  - **Spätere Zeile:** Ist sie eine spätere, fehlt nur der Zeuge: `incomplete`, mit der gesehenen Zeile im Text.
+  - **Die L+1-Gegenprobe** am vorhandenen L-Zeugen bleibt PASS: Zeile 7 liegt vor 8.
+- **Zeilenende:**
+  - **Woher:** nur aus den Bildern von `end_from` (Standard L + 1), der Zeile, die die betreffenden Achsen hält.
+  - **Prüfung:** Jedes ihrer Bilder wird achsenweise geprüft.
+  - **Ohne solches Bild:** `incomplete`. Ein Bild von Zeile 9 belegt nichts mehr.
+
+### FI-I30 · Positionen achsenweise
+
+`_axes` sammelt je geforderter Achse getrennt die bekannte Abweichung (über 0,01 mm) und den fehlenden Wert.
+- Ein bekannter Fehler kommt zuerst und ist FAIL, auch wenn eine andere Achse fehlt: X 199 bei ungelesenem Z auf Zeile 8, Y 150 bei ungelesenem Z am Programmende.
+- Jede gehaltene Achse der Zeile L muss mindestens einmal gelesen sein, sonst `incomplete`. Das gilt ebenso für jede Achse des Zeilenendes und des Programmendes.
+- PASS gibt es erst mit allen Nachweisen. Deine drei Fälle und der vollständige Verlauf sind Wächter.
+
+### FI-I31 · Fehler und Fehlerphasen erreichen die Zeilen
+
+- **Fehlerkanal:** `rfl_cases` liest die Fehler ab Beginn dieses Versuchs (`c.errors` ab `err_from`) und gibt sie an `eval_rfl_line(errors=…)`. Ein Fehler der Art 1 oder 11 ist FAIL mit seinem Text; „idle an passenden Koordinaten“ reicht dann nicht.
+- **Fehlerphasen:** Eine terminale Fehlerphase (`measure_failed` …) beendet den Versuch **sofort**, sobald der Interpreter idle ist, nicht erst nach der Frist.
+- **Jeder Weg** erzeugt jetzt die vier Zeilen und sichert `rfl_history` und `rfl_errors` im Bericht: Erfolg, Fehlerphase, gemeldeter Fehler, Ende des M6-Helfers.
+  - Bei Fehlerphase, gemeldetem Fehler oder einem Helfer-Ende endet der Schritt mit `StepFailed`, also mit Abbau.
+  - Eine Beobachtungslücke bleibt in den Zeilen eine Lücke (`incomplete`), mit der Ursache im Grund.
+- **Deine beiden Proben** sind Tests am ganzen Schritt mit einem geskripteten Gateway: Der Programmfehler bei Zeile 9 ergibt `rfl-line: FAIL` mit dem Text. `measure_failed` endet sofort mit `rfl-line: FAIL` und gesicherter Historie.
+- **Positive Kontrolle:** derselbe Schritt ohne Fehler ergibt `rfl-line`, Gegenprobe und `rfl-no-earlier-line` PASS und `rfl-start-point` `incomplete`.
+
+### Belege
+
+**Tests:** 170 native und 36 Inventar-Tests.
+- **Gegen `96c5e2eb`:**
+  - an ihrer Zusicherung rot: sechs Fälle (FI-I26, dreimal FI-I29, FI-I30, der Programmfehler);
+  - an der neuen Signatur `errors` rot: einer;
+  - der `measure_failed`-Fall hängt dort, abgebrochen nach 20 s; der alte Schritt wartet die 300 s ab.
+- **Ohne vorherigen Rotlauf:** der positive Schritt-Test. Er bestand schon gegen den alten Stand.
+
+**Mutationen, acht, jede rot:**
+- ein ungelesener Sperrwert deckt;
+- ein verpasster Zeuge als FAIL;
+- das Ende aus einer beliebigen späteren Zeile;
+- eine ungelesene gehaltene Achse besteht;
+- eine ungelesene Achse verdeckt die anderen;
+- der Einstieg am letzten Phasenbild;
+- die Fehler des Versuchs übergangen;
+- die Fehlerphase wartet auf die Frist (hängt bis zum Abbruch).
+
+**Gate:** Round Gate an `5cc74eda`, Basis `96c5e2eb`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 170/170 und `inventory` 36/36. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native.step2ab.gate-round.run2.json`.
+
+**Erbeten:** `agreement` oder `findings` zu den Korrekturen von Schritt 2a und 2b.
