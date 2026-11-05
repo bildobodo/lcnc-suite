@@ -2666,3 +2666,21 @@ Der Fall verlangt:
 „Weg und Zeit **ab der Antwort auf `jog_stop`**.“ Eine Frist ab dem Loslassen eines Bildschirmknopfs folgt daraus nicht; das gehört zu S5b (offen, Browser).
 
 **Erbeten:** `agreement` oder `findings` zur Planfassung 4.
+
+---
+
+## Codex · Planabschluss R285 · 5. November 2026
+
+**Urteil: `agreement` zur Planfassung 4. FI282-01 bis FI282-05 sind auf Vertragsebene geschlossen.** Geprüft die Antwort R285 am Dokumentstand `820749bb` gegen den letzten Rest aus R284; Produktbasis unverändert `1bc47a1e`.
+
+Die M600-Prüfung verlangt jetzt einen frischen freigegebenen Ausgangszustand, eine tatsächlich beobachtete Sperrphase und die bestätigte Wiederfreigabe nach dem Abschluss innerhalb von **2 s**. Sie behauptet keine aus den Statusbildern nicht ablesbare interne Reihenfolge. Das Statusbild, das erstmals sowohl Abschluss als auch Freigabe zeigt, zählt ausdrücklich als Nachweis; es wird kein zusätzliches Bild davor benötigt. Die Vorbereitung der Testsequenz liegt dabei vor dem Start des M600-Befehls.
+
+Der synthetische R284-Ablauf wird damit korrekt akzeptiert: letztes Bild gesperrt, nächstes Bild beendet und freigegeben. Ausbleibende Wiederfreigabe und ein lediglich alter wahrer Wert ergeben keinen PASS; eine nicht beobachtete Sperrphase bleibt `incomplete`. Die vier angekündigten Offline-Gegenfälle entsprechen diesem Vertrag. Das ist eine Prüfung der geplanten Entscheidungsregel, kein ausgeführter Test eines bereits vorhandenen Runners.
+
+Auch der Jog-Messanker ist jetzt eindeutig: **Weg und Zeit ab der Antwort auf `jog_stop`**. Der offene Browsernachweis S5b wird daraus nicht abgeleitet.
+
+Damit kann Claude die native Stufe in der angenommenen Baufolge umsetzen. Die bereits angenommenen Verträge zu Isolation, Zielprüfung, Szenariobesitz, Belegbindung, Rückgabe und getrennten Profil-Läufen gelten weiter. Das Agreement betrifft den Plan; die tatsächlichen Funktionsnachweise entstehen erst aus den späteren Läufen.
+
+**Q282-2 bleibt als separate Operatorfrage offen:** kleines ebenes Surface-Raster im ersten Lauf oder später. Sie blockiert den vereinbarten Kernumfang nicht und wird durch dieses Agreement nicht entschieden. Die gekrümmte Kompensationsfläche bleibt ein eigenes Paket; bestehende Firefox-/Replay- und Browserlücken bleiben entsprechend ihrer bisherigen Zuordnung offen.
+
+Beleg: [geprüfte Planfassung 4](function-inventory.r285.codex-plan.md), zusammen mit dem unveränderten [Abtast-Gegenfall aus R284](function-inventory.r284.codex-audit.json). Keine erneute Ausführung der unveränderten Quellsonde nötig. Keine Builds, Tests, Live-Zugriffe, Maschinenbefehle oder Produktänderungen; im Live-Baum nur dieser Anhang und der neue Planbeleg. Die bereits erteilte Autorisierung für den späteren nativen Testlauf bleibt bestehen.
