@@ -329,6 +329,9 @@ def connect_client():
         client = SimulatorClient(token, session="native-stage", auto_confirm=False, keep=FRAME_KEYS)
         ctx.update(client=client, frames=client.frames, cleanup=lambda: _stop_copy(ctx))
         client.start()
+        # the gateway refuses every command with a state gate until its first
+        # poll ("Machine status not read yet", BG-12) — live run 2026-11-05
+        _wait(client, lambda s: s.get("is_estop") is not None, 30, "the gateway's first status")
         client.request("estop_reset")
         _wait(client, lambda s: s.get("is_estop") is False, 10, "E-Stop reset")
         client.request("machine_on")

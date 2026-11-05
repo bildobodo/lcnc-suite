@@ -2825,3 +2825,44 @@ def test_a_known_descent_after_the_proven_arrival_fails_with_x_or_y_unread(unrea
             _nan(sec, i, unread)
     r = sc.eval_retract_path("goto-zero", sec, start=START, target=ZERO)
     assert r["status"] == "FAIL" and "up target" in r["detail"], r
+
+
+class _FreshGatewayClient:
+    """A client of a gateway that has not polled yet: every command whose
+    gate needs a state is refused until its first status arrives (the
+    gateway's "Machine status not read yet — wait", BG-12) — which comes
+    after a few reads of the status, as frames arrive after the connect."""
+    instances: list = []
+
+    def __init__(self, token, session=None, auto_confirm=False, keep=()):
+        self.error, self.frames, self.sent, self._reads = None, [], [], 0
+        self._status = {"is_estop": True, "is_enabled": False}
+        _FreshGatewayClient.instances.append(self)
+
+    @property
+    def status(self):
+        self._reads += 1
+        return dict(self._status) if self._reads > 3 else {}
+
+    def start(self): pass
+
+    def request(self, cmd, **kw):
+        from test_support.live_session import Refused
+        if self._reads <= 3:
+            raise Refused(f"{cmd} refused: Machine status not read yet — wait")
+        self.sent.append(cmd)
+        self._status.update({"estop_reset": {"is_estop": False}, "machine_on": {"is_enabled": True}}.get(cmd, {}))
+        return {"ok": True}
+
+
+def test_the_connect_step_waits_for_the_gateways_first_status(tmp_path, monkeypatch):
+    """Live run 2026-11-05 (second): the copy's gateway answered /ready, the
+    client connected and sent estop_reset at once — refused, "Machine status
+    not read yet — wait". The step waits for the first status first."""
+    from test_support import live_session
+    monkeypatch.setattr(live_session, "SimulatorClient", _FreshGatewayClient)
+    ini = tmp_path / "a.ini"
+    ini.write_text("[DISPLAY]\nWEBUI_TOKEN = t\n")
+    _, step = nr.connect_client()
+    assert step({"ini": ini}) == []
+    assert _FreshGatewayClient.instances[-1].sent == ["estop_reset", "machine_on"]
