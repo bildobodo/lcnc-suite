@@ -1,0 +1,15 @@
+{
+  "gamepad_exit": 1,
+  "gamepad_restored": true,
+  "build_exit": 0,
+  "browser_exit": 1,
+  "browser_stats": {
+    "startTime": "2026-11-05T00:46:24.976Z",
+    "duration": 38006.371,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  },
+  "app_restored": true
+}

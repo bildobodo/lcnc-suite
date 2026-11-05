@@ -1,0 +1,556 @@
+R279 — archives A 4c021765 / B 501482aa; copied node_modules.
+Ports A 4592, B 4593; workers 1, no preview/live endpoints, retries 0.
+Baseline builds/unit/browser logs, then deliberate test failures.
+Product source bytes restored; source-audit verifies all tracked files, LFS by sha256.
+
+===== a-build.txt =====
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2129 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-BmstqZf7.css                 8.14 kB │ gzip:   2.08 kB
+dist/static/index-BC9QLtqI.css                      98.05 kB │ gzip:  17.88 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-CEMYfmfx.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-9FfH9zIk.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-Db56c8Qw.js                279.03 kB │ gzip: 105.09 kB
+dist/static/index-CKt5hJgj.js                      673.53 kB │ gzip: 216.91 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.24s
+
+===== a-unit.txt =====
+
+ RUN  v4.1.8 /tmp/codex-r279/a/lcnc-webui
+
+
+ Test Files  2 passed (2)
+      Tests  26 passed (26)
+   Start at  01:44:37
+   Duration  391ms (transform 155ms, setup 0ms, import 271ms, tests 13ms, environment 0ms)
+
+
+===== a-browser.txt =====
+
+Running 6 tests using 1 worker
+
+(node:322485) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:322485) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [e2e] › e2e/strip-actions.spec.ts:43:1 › each override slider sends its own factor; its 100 % button sends 1.0 (2.6s)
+  ✓  2 [e2e] › e2e/strip-actions.spec.ts:63:1 › Flood and Mist send on against the reported off, off against the reported on — the switch shows the status (3.4s)
+  ✓  3 [e2e] › e2e/strip-actions.spec.ts:85:1 › M01 and /BD send the opposite of the reported switch; the switch shows the status (2.7s)
+  ✓  4 [e2e] › e2e/strip-actions.spec.ts:119:1 › Fwd and Rev send the preselected speed on a hold — a tap sends nothing (5.5s)
+  ✓  5 [e2e] › e2e/strip-actions.spec.ts:149:1 › ± move the preselection while the spindle stands, and send increase / decrease while it turns (2.8s)
+  ✓  6 [e2e] › e2e/strip-actions.spec.ts:171:1 › Home All sends home_all on a hold — a tap sends nothing (3.6s)
+
+  6 passed (21.2s)
+
+===== a-mut-gamepad.txt =====
+
+ RUN  v4.1.8 /tmp/codex-r279/a/lcnc-webui
+
+ ❯ src/useGamepad.test.ts (20 tests | 1 failed) 26ms
+     × 'start' ('cycle_resume'): exactly its command under its control's gate; closed, nothing 8ms
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 25 passed (26)
+   Start at  01:45:56
+   Duration  675ms (transform 265ms, setup 0ms, import 451ms, tests 34ms, environment 0ms)
+
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/useGamepad.test.ts > useGamepad button actions (the function inventory's F-GAMEPAD S3) > 'start' ('cycle_resume'): exactly its command under its control's gate; closed, nothing
+AssertionError: expected [] to deeply equal [ { cmd: 'cycle_resume', …(2) } ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "cmd": "cycle_resume",
+-     "gate": "resume",
+-     "how": "fire",
+-   },
+- ]
++ []
+
+ ❯ src/useGamepad.test.ts:193:48
+    191|   ];
+    192|   it.each(CASES)("$action ($want.cmd): exactly its command under its c…
+    193|     expect(press(action, open, { coolantOn })).toEqual([want]);
+       |                                                ^
+    194|     const closed = Object.fromEntries(Object.keys(open).map(k => [k, f…
+    195|     expect(press(action, closed, { coolantOn }), "its gate closed").to…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+===== a-mut-build.txt =====
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2129 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.32 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-BmstqZf7.css                 8.14 kB │ gzip:   2.08 kB
+dist/static/index-B-iFr-41.css                      98.05 kB │ gzip:  17.88 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-B9D4fyTf.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-MXoTMmAY.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-BKXsghtL.js                279.03 kB │ gzip: 105.08 kB
+dist/static/index-DgYdbmBv.js                      673.52 kB │ gzip: 216.92 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+✓ built in 9.38s
+
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+===== a-mut-browser.txt =====
+
+Running 2 tests using 1 worker
+
+  ✘  1 [e2e] › e2e/strip-actions.spec.ts:85:1 › M01 and /BD send the opposite of the reported switch; the switch shows the status (15.4s)
+  ✘  2 [e2e] › e2e/strip-actions.spec.ts:119:1 › Fwd and Rev send the preselected speed on a hold — a tap sends nothing (19.4s)
+
+
+  1) [e2e] › e2e/strip-actions.spec.ts:85:1 › M01 and /BD send the opposite of the reported switch; the switch shows the status 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Array [
+        Object {
+          "cmd": "set_optional_stop",
+    -     "value": false,
+    +     "value": true,
+        },
+      ]
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      106 |   await ctl({ op: "clearCmds" });
+      107 |   await m01.click();
+    > 108 |   await expect.poll(sent).toEqual([{ cmd: "set_optional_stop", value: false }]);
+          |                           ^
+      109 |   await expect(m01, "still on until reported").toBeChecked();
+      110 |   await ctl({ op: "clearCmds" });
+      111 |   await bd.click();
+        at /tmp/codex-r279/a/lcnc-webui/e2e/strip-actions.spec.ts:108:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-actions-M01-and-BD-s-74552-the-switch-shows-the-status-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-actions-M01-and-BD-s-74552-the-switch-shows-the-status-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-actions-M01-and-BD-s-74552-the-switch-shows-the-status-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-actions-M01-and-BD-s-74552-the-switch-shows-the-status-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [e2e] › e2e/strip-actions.spec.ts:119:1 › Fwd and Rev send the preselected speed on a hold — a tap sends nothing 
+
+    Error: spindle_reverse
+
+    spindle_reverse
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Array [
+        Object {
+          "cmd": "spindle_reverse",
+    -     "speed": 1300,
+    +     "speed": 1000,
+        },
+      ]
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      133 |     await ctl({ op: "clearCmds" });
+      134 |     await press(page, btn, HOLD_MS);
+    > 135 |     await expect.poll(sent, cmd).toEqual([{ cmd, speed: Number(rpm) }]);
+          |                                  ^
+      136 |   }
+      137 | });
+      138 |
+        at /tmp/codex-r279/a/lcnc-webui/e2e/strip-actions.spec.ts:135:34
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/strip-actions-Fwd-and-Rev--551e4--hold-—-a-tap-sends-nothing-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/strip-actions-Fwd-and-Rev--551e4--hold-—-a-tap-sends-nothing-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/strip-actions-Fwd-and-Rev--551e4--hold-—-a-tap-sends-nothing-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/strip-actions-Fwd-and-Rev--551e4--hold-—-a-tap-sends-nothing-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [e2e] › e2e/strip-actions.spec.ts:85:1 › M01 and /BD send the opposite of the reported switch; the switch shows the status 
+    [e2e] › e2e/strip-actions.spec.ts:119:1 › Fwd and Rev send the preselected speed on a hold — a tap sends nothing 
+
+(node:324732) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:324732) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:325183) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:325183) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+===== b-build.txt =====
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2129 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-D0KGS3DD.css                 8.14 kB │ gzip:   2.08 kB
+dist/static/index-OEDOSYns.css                      98.05 kB │ gzip:  17.88 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-htyqaN_a.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-8c80BOMb.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-BTxBD9P6.js                279.20 kB │ gzip: 105.16 kB
+dist/static/index-Cjy0HpbI.js                      673.32 kB │ gzip: 216.87 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.75s
+
+===== b-unit.txt =====
+
+ RUN  v4.1.8 /tmp/codex-r279/b/lcnc-webui
+
+
+ Test Files  1 passed (1)
+      Tests  24 passed (24)
+   Start at  01:45:09
+   Duration  8.26s (transform 169ms, setup 0ms, import 372ms, tests 7.82s, environment 0ms)
+
+
+===== b-inventory.txt =====
+..................................                                       [100%]
+34 passed in 2.44s
+
+===== b-browser.txt =====
+
+Running 31 tests using 1 worker
+
+(node:323215) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:323215) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [e2e] › e2e/bake-hold.viewer.spec.ts:139:1 › an offset change without a parse re-bakes once, at the new offsets (3.8s)
+  ✓   2 [e2e] › e2e/bake-hold.viewer.spec.ts:149:1 › A→B→A held across the supersede gap and the loading: muted until the matching path is DRAWN (VP193-01) (5.5s)
+  ✓   3 [e2e] › e2e/bake-hold.viewer.spec.ts:190:1 › the adoption ends the hold: the next offset change re-bakes at once, no window left to wait out (5.2s)
+  ✓   4 [e2e] › e2e/bake-hold.viewer.spec.ts:214:1 › the supersede window runs out: ONE catch-up bake — only when a change was held (19.0s)
+  ✓   5 [e2e] › e2e/bake-hold.viewer.spec.ts:242:1 › only THIS decode's failure ends the loading with its catch-up; a surface-points failure does not (5.0s)
+  ✓   6 [e2e] › e2e/bake-hold.viewer.spec.ts:260:1 › the loading has a bound: 20 s without its adoption, one catch-up (26.0s)
+  ✓   7 [e2e] › e2e/bake-hold.viewer.spec.ts:278:1 › admitted at every refresh: a run already going holds nothing; a run beginning in a hold catches up (8.0s)
+  ✓   8 [e2e] › e2e/bake-hold.viewer.spec.ts:304:1 › a run or the simulation beginning in the gap or the loading ends the hold at once — no parse in the status says so (9.7s)
+  ✓   9 [e2e] › e2e/bake-hold.viewer.spec.ts:335:1 › a lost connection in a hold catches up (7.2s)
+  ✓  10 [e2e] › e2e/bake-hold.viewer.spec.ts:349:1 › a reply asked for before the hold is drawn with its own anchor; a later held change keeps the path muted (8.3s)
+  ✓  11 [e2e] › e2e/bake-hold.viewer.spec.ts:371:1 › the adoption consumes a pending re-bake: no second bake after it (10.3s)
+  ✓  12 [e2e] › e2e/bake-hold.viewer.spec.ts:385:1 › a programmed path: the plain epoch of the active fixture is never held nor behind — it follows at once, the check waits (E1) (9.0s)
+  ✓  13 [e2e] › e2e/bake-hold.viewer.spec.ts:419:1 › a programmed path with a rewritten epoch is held while the program re-parses (4.9s)
+  ✓  14 [e2e] › e2e/bake-hold.viewer.spec.ts:437:1 › a failed part-frame bake: the programmed fallback is drawn, named, and MUTED until the part frame is drawn again (5.9s)
+  ✓  15 [e2e] › e2e/bake-hold.viewer.spec.ts:456:1 › a scene rebuild leaves no key vouching for the new geometry: behind until the path is drawn again (5.4s)
+  ✓  16 [e2e] › e2e/bake-hold.viewer.spec.ts:475:3 › the viewer torn down in after_parse with a change held: no worker after it, no reply applied (11.5s)
+  ✓  17 [e2e] › e2e/bake-hold.viewer.spec.ts:475:3 › the viewer torn down in loading with a change held: no worker after it, no reply applied (25.3s)
+  ✓  18 [e2e] › e2e/bake-hold.viewer.spec.ts:530:3 › an AUTO run without a run basis: no hold begins, and one in after_parse ends at once with its catch-up (4.5s)
+  ✓  19 [e2e] › e2e/bake-hold.viewer.spec.ts:530:3 › an MDI executing: no hold begins, and one in loading ends at once with its catch-up (5.8s)
+  ✓  20 [e2e] › e2e/bake-hold.viewer.spec.ts:530:3 › an unknown interpreter state: no hold begins, and one in after_parse ends at once with its catch-up (5.8s)
+  ✓  21 [e2e] › e2e/bake-hold.viewer.spec.ts:568:1 › E1: an offset change without a parse re-checks once, at the new offsets (8.0s)
+  ✓  22 [e2e] › e2e/bake-hold.viewer.spec.ts:579:1 › E1: a running check pauses at the parse signal; later changes start none; the adoption starts ONE check at the live offsets (13.4s)
+  ✓  23 [e2e] › e2e/bake-hold.viewer.spec.ts:620:1 › E1: the supersede gap sends the check's hold once — not at every window (6.4s)
+  ✓  24 [e2e] › e2e/bake-hold.viewer.spec.ts:638:1 › E1: a parse that ends without a publication — a noted restart checks once after the gap; without one the paused check goes on (21.4s)
+  ✓  25 [e2e] › e2e/bake-hold.viewer.spec.ts:672:1 › E1: a run beginning in a hold with a noted restart — the catch-up goes through the auto check: none in the run, one at idle (15.4s)
+  ✓  26 [e2e] › e2e/bake-hold.viewer.spec.ts:702:1 › E1: a check parked by a rotary jog under the hold goes on after the hold — never left paused (14.6s)
+  ✓  27 [e2e] › e2e/bake-hold.viewer.spec.ts:728:1 › E1: the re-parse line's help names the collision check (4.0s)
+  ✓  28 [e2e] › e2e/compensation.spec.ts:27:1 › unread pins are never OFF or Cubic: the state reads —, no method is checked, the switch is not on (2.3s)
+  ✓  29 [e2e] › e2e/compensation.spec.ts:34:1 › the reported state: ON with its method checked, OFF once the status says so (2.3s)
+  ✓  30 [e2e] › e2e/compensation.spec.ts:43:1 › a chosen method is sent once and pending; the reported one stays checked, 'Not confirmed' after 5 s (7.9s)
+  ✓  31 [e2e] › e2e/sim-panel.viewer.spec.ts:1092:1 › the list scrolled away: the next marked row snaps to the middle, its highlight in view at once (4.0s)
+
+  31 passed (4.8m)
+
+===== frame-browser.txt =====
+
+Running 3 tests using 1 worker
+
+(node:329698) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:329698) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FRAME-AUDIT [{"key":"L40@40","inView":false,"atFrame":"L40@40","at":1793839825232.5,"dropped":false},{"key":"L40@40","inView":false,"atFrame":"L40@40","at":1793839825241.7,"dropped":false},{"key":"L42@42","inView":false,"atFrame":"L40@40","at":1793839825261,"dropped":true},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825280.5999,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825291.7998,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825306.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825324.0999,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825341.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825358.2,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825375,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825389.9,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825406.2998,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825423.0999,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825440,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825457.5999,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825472.9,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825489.7998,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825506.2998,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825524,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825541.2998,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825556.2998,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825573.7998,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825590.0999,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825607.0999,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825626.4,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825639.4,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825658.2998,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825672.9,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839825694,"dropped":false}]
+  ✓  1 [e2e] › e2e/r279-frame-probe.spec.ts:17:1 › R279 RAF input: the list scrolled away: the next marked row snaps to the middle, its highlight in view at once (3.6s)
+(node:330066) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:330066) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FRAME-AUDIT [{"key":"L42@42","inView":false,"atFrame":"L40@40","at":1793839829543.8,"dropped":true},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829565.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829576.2002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829590.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829608.7002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829625.1,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829642.1,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829656.2002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829673.7002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829690.6,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829707.6,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829724.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829740.1,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829758.4001,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829774,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829789.9001,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829807.2002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829823.9001,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829840.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829856.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829873,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829889.6,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829906.9001,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829923.6,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829939.9001,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829957.6,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839829975,"dropped":false}]
+  ✓  2 [e2e] › e2e/r279-frame-probe.spec.ts:17:1 › R279 RAF input: the list scrolled away: the next marked row snaps to the middle, its highlight in view at once (3.9s)
+(node:330255) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:330255) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FRAME-AUDIT [{"key":"L40@40","inView":false,"atFrame":"L40@40","at":1793839833873.3,"dropped":false},{"key":"L42@42","inView":false,"atFrame":"L40@40","at":1793839833896.1,"dropped":true},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839833913.7,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839833924,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839833939.9,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839833957.7,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839833974.1,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839833989.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839834006.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839834023.2,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839834040.4,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839834056.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839834074.2,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839834090.2,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839834106.1,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839834123.1,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839834139.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839834157.4,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839834174.1,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839834189.9,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839834206.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839834223.2,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839834239.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839834256.2,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839834272.6,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839834289.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839834306.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839834327,"dropped":false}]
+  ✓  3 [e2e] › e2e/r279-frame-probe.spec.ts:17:1 › R279 RAF input: the list scrolled away: the next marked row snaps to the middle, its highlight in view at once (3.9s)
+
+  3 passed (12.8s)
+
+===== capture-browser.txt =====
+
+Running 1 test using 1 worker
+
+(node:330756) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:330756) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FRAME-AUDIT [{"key":"L40@40","inView":false,"atFrame":"L40@40","at":1793839857409.1,"dropped":false},{"key":"L42@42","inView":false,"atFrame":"L40@40","at":1793839857425.4,"dropped":true},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857446,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857456.7,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857472.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857489,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857505.6,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857522.4,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857539,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857557,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857572.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857588.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857605.4,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857622.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857639.6,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857655.7,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857672.4,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857689.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857705.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857723.1,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857739.1,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857756.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857773.9,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857790.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857805.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857822.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857839,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839857856,"dropped":false}]
+  ✓  1 [e2e] › e2e/r279-frame-capture.spec.ts:17:1 › R279 RAF input: the list scrolled away: the next marked row snaps to the middle, its highlight in view at once (4.1s)
+
+  1 passed (4.7s)
+
+===== old-frame-browser.txt =====
+
+Running 3 tests using 1 worker
+
+(node:331852) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:331852) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FRAME-AUDIT [{"key":"L40@40","inView":false,"atFrame":"L40@40","at":1793839914770.6,"dropped":false},{"key":"L42@42","inView":false,"atFrame":"L40@40","at":1793839914789.1,"dropped":true},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839914809.2002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839914822.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839914836.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839914853.2002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839914874.6,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839914886.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839914902.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839914919.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839914936.4001,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839914953.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839914970.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839914986,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839915002.7002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839915019.6,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839915037.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839915053,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839915069.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839915087,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839915102.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839915120.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839915137.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839915153.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839915171.1,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839915186.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839915203.1,"dropped":false}]
+  ✘  1 [e2e] › e2e/r279-frame-before.spec.ts:17:1 › R279 RAF input: the list scrolled away: the next marked row snaps to the middle, its highlight in view at once (4.0s)
+(node:332057) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:332057) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FRAME-AUDIT [{"key":"L40@40","inView":false,"atFrame":"L40@40","at":1793839919688.1,"dropped":false},{"key":"L42@42","inView":false,"atFrame":"L40@40","at":1793839919705.5,"dropped":true},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839919727,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839919738.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839919752.7002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839919769.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839919786.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839919802.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839919822.7002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839919836.4001,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839919862.9001,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839919869.1,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839919886.7002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839919902.9001,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839919920.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839919937.1,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839919954.7002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839919969.7002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839919986.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839920005.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839920020.7002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839920037,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839920053,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839920070,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839920086.2002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839920102.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839920121.5,"dropped":false}]
+  ✘  2 [e2e] › e2e/r279-frame-before.spec.ts:17:1 › R279 RAF input: the list scrolled away: the next marked row snaps to the middle, its highlight in view at once (4.1s)
+(node:332240) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:332240) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FRAME-AUDIT [{"key":"L40@40","inView":false,"atFrame":"L40@40","at":1793839924726.6,"dropped":false},{"key":"L42@42","inView":false,"atFrame":"L40@40","at":1793839924738.9001,"dropped":true},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839924758.7002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839924771.7002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839924786.7002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839924803,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839924819.9001,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839924836.9001,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839924854.1,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839924870.1,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839924886.4001,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839924902.7002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839924919.6,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839924937.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839924953.1,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839924969.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839924986,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839925002.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839925019.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839925037,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839925054.1,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839925069.2002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839925086,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839925103,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839925120.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839925136.7002,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839925155.4001,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793839925170.2002,"dropped":false}]
+  ✘  3 [e2e] › e2e/r279-frame-before.spec.ts:17:1 › R279 RAF input: the list scrolled away: the next marked row snaps to the middle, its highlight in view at once (4.2s)
+
+
+  1) [e2e] › e2e/r279-frame-before.spec.ts:17:1 › R279 RAF input: the list scrolled away: the next marked row snaps to the middle, its highlight in view at once 
+
+    Error: the next row's highlight in view in every painted frame
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "inView": false,
+    +     "key": "L42@42",
+    +   },
+    + ]
+
+      87 |   test.info().annotations.push({ type: "fh05", description: `${next.length} frames of ${target}, ${next.filter(f => !f.inView).length} with the highlight out of view` });
+      88 |   expect(next.length, "the new row was drawn").toBeGreaterThan(5);
+    > 89 |   expect(next.filter(f => !f.inView), "the next row's highlight in view in every painted frame").toEqual([]);
+         |                                                                                                  ^
+      90 | });
+      91 |
+      92 |
+        at /tmp/codex-r279/b/lcnc-webui/e2e/r279-frame-before.spec.ts:89:98
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r279-frame-before-R279-RAF-cbac1-s-highlight-in-view-at-once-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r279-frame-before-R279-RAF-cbac1-s-highlight-in-view-at-once-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r279-frame-before-R279-RAF-cbac1-s-highlight-in-view-at-once-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r279-frame-before-R279-RAF-cbac1-s-highlight-in-view-at-once-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [e2e] › e2e/r279-frame-before.spec.ts:17:1 › R279 RAF input: the list scrolled away: the next marked row snaps to the middle, its highlight in view at once 
+
+    Error: the next row's highlight in view in every painted frame
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "inView": false,
+    +     "key": "L42@42",
+    +   },
+    + ]
+
+      87 |   test.info().annotations.push({ type: "fh05", description: `${next.length} frames of ${target}, ${next.filter(f => !f.inView).length} with the highlight out of view` });
+      88 |   expect(next.length, "the new row was drawn").toBeGreaterThan(5);
+    > 89 |   expect(next.filter(f => !f.inView), "the next row's highlight in view in every painted frame").toEqual([]);
+         |                                                                                                  ^
+      90 | });
+      91 |
+      92 |
+        at /tmp/codex-r279/b/lcnc-webui/e2e/r279-frame-before.spec.ts:89:98
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r279-frame-before-R279-RAF-cbac1-s-highlight-in-view-at-once-e2e-repeat1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r279-frame-before-R279-RAF-cbac1-s-highlight-in-view-at-once-e2e-repeat1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r279-frame-before-R279-RAF-cbac1-s-highlight-in-view-at-once-e2e-repeat1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r279-frame-before-R279-RAF-cbac1-s-highlight-in-view-at-once-e2e-repeat1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [e2e] › e2e/r279-frame-before.spec.ts:17:1 › R279 RAF input: the list scrolled away: the next marked row snaps to the middle, its highlight in view at once 
+
+    Error: the next row's highlight in view in every painted frame
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "inView": false,
+    +     "key": "L42@42",
+    +   },
+    + ]
+
+      87 |   test.info().annotations.push({ type: "fh05", description: `${next.length} frames of ${target}, ${next.filter(f => !f.inView).length} with the highlight out of view` });
+      88 |   expect(next.length, "the new row was drawn").toBeGreaterThan(5);
+    > 89 |   expect(next.filter(f => !f.inView), "the next row's highlight in view in every painted frame").toEqual([]);
+         |                                                                                                  ^
+      90 | });
+      91 |
+      92 |
+        at /tmp/codex-r279/b/lcnc-webui/e2e/r279-frame-before.spec.ts:89:98
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r279-frame-before-R279-RAF-cbac1-s-highlight-in-view-at-once-e2e-repeat2/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r279-frame-before-R279-RAF-cbac1-s-highlight-in-view-at-once-e2e-repeat2/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r279-frame-before-R279-RAF-cbac1-s-highlight-in-view-at-once-e2e-repeat2/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r279-frame-before-R279-RAF-cbac1-s-highlight-in-view-at-once-e2e-repeat2/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    [e2e] › e2e/r279-frame-before.spec.ts:17:1 › R279 RAF input: the list scrolled away: the next marked row snaps to the middle, its highlight in view at once 
+    [e2e] › e2e/r279-frame-before.spec.ts:17:1 › R279 RAF input: the list scrolled away: the next marked row snaps to the middle, its highlight in view at once 
+    [e2e] › e2e/r279-frame-before.spec.ts:17:1 › R279 RAF input: the list scrolled away: the next marked row snaps to the middle, its highlight in view at once 
+

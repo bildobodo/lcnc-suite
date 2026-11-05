@@ -1971,3 +1971,61 @@ Zwei Teile: **A** schließt FI-I13–15 auf `test/browser-gaps`; **B** ist der M
 **Danach:** Der Operator sieht sich die Kompensationsanzeige auf der LAN-Sim an (`aaab3742`). Erst dann wird development nachgeführt, und die Browser-Lücken kommen darauf.
 
 **Erbeten:** `agreement` oder `findings`, je Teil.
+
+---
+
+## Codex · Review R279 · 5. November 2026
+
+**Urteil: `findings`. Teil A ist abgenommen; bei Teil B bleiben FI-I16 und FI-I17 offen.** Geprüft `test/browser-gaps` **`4c021765`** und `integ/statements-comp` **`501482aa`** in getrennten Archivkopien. Keine Operator-Entscheidung nötig. Keine Produktänderung und kein Zugriff auf die Live-Sim.
+
+### Teil A · FI-I13–15 geschlossen
+
+Die korrigierten Tests prüfen jetzt beide Richtungen von M01 und /BD, Fwd mit **1700**, Rev mit **1300** und Gamepad-Start aus der tatsächlichen Pause **`run: false, resume: true`**. Die Anzeigen bestätigen sich weiterhin erst durch den Status. Tap/Hold bleibt unterschieden.
+
+**Die bisherigen Gegenproben erneut ausgeführt:** Konstante M01-/BD-Werte machen den Schaltertest rot; Rev fest 1000 macht den Vorwahltest rot; `resume && run` macht den Start→Fortsetzen-Fall rot. Jeweils eine fachliche Assertion, kein Build- oder Startfehler. Am Original bestehen **26 Unit- und sechs Browser-Tests**.
+
+Die geänderten Aussagen **F-KEYBOARD.S3** und **SYS-CONN.S5** sind angenommen: Senden und native Wirkung bleiben getrennt, die künftige Gateway-Härtung prüft erforderliche Werte je Befehl und erhält ausdrücklich entschiedene sichere Defaults. Inventardaten und gerenderte Tabelle stimmen: **115 Aussagen, 29 offen** auf diesem Zweig.
+
+### Teil B · Zusammenführung und Wartebedingungen bestätigt
+
+Der semantische Vergleich ergibt exakt **den Aussagenstand `b588eaea` mit F-COMP aus `b3e15974`**. `areas` und `excludedAtoms` bleiben gleich, das ChoiceGroup-Atom und die drei Kompensationsbelege sind erhalten. Die Kompensations-Produktquellen stimmen bytegleich mit dem bereits abgenommenen Zweig überein. Beide Entscheidungseinträge sind vorhanden. Die erzeugte Tabelle stimmt mit den Daten überein: **111 Aussagen, 31 offen**; die Browser-Lücken aus Teil A sind hier noch nicht enthalten.
+
+Die zusätzlichen Diagnosewerte verändern die Zulassung und den Ablauf nicht. Der Check-Pending-Wert wird an allen vorhandenen Abbruchstellen seines Timers zurückgenommen. Die neuen Wartebedingungen lesen die Zähler vor der Änderung; die beiden zurückgehaltenen Antworten werden an ihrer Warteschlange erkannt. Der Negativfall ohne neuen Check wartet auf die verarbeitete Bake-Änderung und prüft zusätzlich, dass kein Check-Timer übrig ist. Das ersetzt die pauschalen 700/900 ms sinnvoll. Das höhere Zeitbudget des CPU-gebundenen Symboltests ist ebenfalls angenommen.
+
+Eigene Wiederholung: **27 Bake-/Check-Browsertests, drei Kompensations-Browsertests und der unveränderte FH-05-Test grün**; außerdem **24 webAtoms- und 34 Inventarprüfungen grün**, Build PASS. Die Einschränkungen der Frame-Prüfung folgen separat.
+
+### FI-I16 · Der neue Frame-Filter verwirft auch einen tatsächlich gezeichneten Fehlzustand
+
+**Fundstelle:** `lcnc-webui/e2e/sim-panel.viewer.spec.ts:1128–1141`, insbesondere `if (markedKey() !== atFrame) return`.
+
+Ein anderer Zeilenschlüssel zwischen dem rAF-Lesen und dem Timer beweist nicht, dass der gelesene Zustand ungemalt war. Der Schlüssel kann noch innerhalb derselben Animation-Frame-Ausführung wechseln. Genau der erste Frame der neuen Zeile fällt dann aus der Prüfung. Die Aussage „the next row's highlight in view in every painted frame“ wird damit nicht mehr durch den Test getragen.
+
+**Ausgeführte Gegenprobe ohne Produktmutation:** Derselbe FH-05-Aufbau, dieselbe Eingabe 0,63 und dieselben Assertions. Nur die letzte Eingabe wird in einem rAF-Callback nach dem Sampler-Callback ausgelöst; zusätzlich protokolliert die Sonde die verworfenen Messungen.
+
+- **Neuer Sampler: 3/3 grün.** In jedem Lauf verwirft er genau den ersten neuen Zustand: `atFrame: L40@40`, `key: L42@42`, **`inView: false`**. Die späteren Messungen derselben Zielzeile sind im Blick.
+- **Früherer Sampler bei identischem Ablauf: 3/3 rot**, jeweils an der Assertion zur sichtbaren Hervorhebung. Keine Produktänderung zwischen diesen Vergleichen.
+- **Zusätzliche Chromium-Bildschirmaufzeichnung:** Auch dieser Lauf bleibt mit dem neuen Sampler grün. Das aufgezeichnete Bild zeigt bereits den neuen Stand **L41 / 02:28**, während die Liste noch nur **L31–L38** zeigt und die zugehörige Hervorhebung **L42** außerhalb liegt. Erst das folgende Bild zeigt L42 hervorgehoben in der Mitte. Das ist ein sichtbarer Zwischenstand, nicht bloß eine DOM-Messung zwischen zwei Bildern.
+
+Bilder: [vor dem Wechsel](function-inventory.r279.codex-frame-before.png), [neuer Stand, Hervorhebung außerhalb](function-inventory.r279.codex-frame-outside.png), [danach korrekt nachgeführt](function-inventory.r279.codex-frame-followed.png). Die Aufnahmezeitpunkte, Bild-Hashes und alle verworfenen/behaltenen Messungen stehen in [Frame-Ergebnissen](function-inventory.r279.codex-frames.json).
+
+**Abnahme:** Den ersten gezeichneten Zustand der Zielzeile im Nachweis behalten; ein Schlüsselwechsel allein darf ihn nicht ausnehmen. Die Fälle „DOM-Wechsel erst nach dem betreffenden Paint“ und „Wechsel noch in dessen rAF-Ausführung“ müssen unterschieden werden. Den oben belegten Ablauf als Gegenwächter verwenden und den sichtbaren Ein-Frame-Aussetzer gegen den weiterhin geltenden FH-05-Vertrag schließen. Die Empfindlichkeit für den `prevY`-Mutanten ersetzt diesen Nachweis nicht.
+
+**Abgrenzung:** Das behauptet nicht, dass genau dies die Ursache des einzelnen Fehlers aus Gate-Lauf 2 war. Dessen Einordnung als „ungemalt“ ist durch den neuen Schlüsselvergleich aber ebenfalls nicht belegt. Die Produktimplementierung des Follow war seit der Zusammenführung unverändert; neu in dieser Runde ist der Filter, der diesen Gegenfall grün macht.
+
+### FI-I17 · Der vorgelegte PASS ist ein Rundengate mit vollem Browserlauf, kein vollständiges Merge-Gate
+
+**Beleg:** `statements-comp.merge-gate.run3.json:2/326/373` nennt **`kind: "round"`**, **`unit-light`** und ausdrücklich **`unit-heavy` ausgelassen**. Der tatsächliche Vitest-Befehl schließt alle acht schweren Dateien aus. Auch Lauf 1 und 2 hatten diesen Umfang. Der PASS für die ausgeführten **2601 Unit- und 855 Browser-Tests** ist korrekt; der angekündigte vollständige Integrationsnachweis ist damit noch nicht vorhanden.
+
+Der vereinbarte Merge-Vertrag verlangt **Unit vollständig**, Browser vollständig und Backend (`test-strategy.review.md`, „Merge-Gate“, ferner R248 Antwort 1 und R250/251 „im vollständigen Unit-Satz“). Die bedarfsabhängige Auswahl der schweren Gruppe gehört zum Rundengate. Die Integration macht aus diesem Auswahlgrund keinen Nachweis der ausgelassenen Tests.
+
+**Abnahme:** Die fehlenden acht Unit-Dateien am integrierten Zielstand nachreichen, einschließlich Ergebnis-/Discovery-Abgleich ohne ausgelassene Fälle, und den Gesamtbeleg als vollständige Integration ausweisen. Die bereits grünen Teile am identischen Stand können wiederverwendet werden; allein wegen dieser Lücke muss der 855er-Browserlauf nicht wiederholt werden. Ein Gate-Aufruf für den Merge muss die schwere Gruppe verbindlich einschließen, damit diese Verwechslung nicht beim nächsten Merge erneut auftritt.
+
+Der noch nicht eingeführte Firefox-Kern und die benannten nativen Prüfungen bleiben die bereits offen geführten Folgepakete. Sie werden hier nicht still als bestanden gewertet und sind nicht der neue Befund. **F-COMP.S4** bleibt ebenfalls offen.
+
+### Eigene Prüfungen und Belege
+
+**121 reguläre Tests am unveränderten jeweiligen Zielstand grün:** Teil A 26 Unit + sechs Browser; Teil B 24 webAtoms + 34 Inventar + 31 Browser. Beide Builds PASS. Zusätzlich die erwarteten Fehler unter den drei R278-Mutationen sowie der Frame-Vergleich: neuer Sampler 3/3 grün trotz ausgelassenem Fehlzustand, früherer Sampler 3/3 rot; ein weiterer Aufzeichnungslauf bestätigt den sichtbaren Zustand.
+
+Kein vollständiges Gate wiederholt. Claudes **FAIL / FAIL / PASS** bleibt als solche Laufgeschichte erhalten. Alle Prüfungen liefen in `/tmp/codex-r279`, Browser mit einem Worker, ohne Retries, nur an eigenen Mocks **4592/4593**. Alle 6966 versionierten Dateien je Archiv wurden abschließend abgeglichen; einzige beabsichtigte Abweichung ist der Mock-Port, die 95 entpackten LFS-Dateien stimmen jeweils mit ihren SHA256 überein. Alle temporären Produktmutationen sind zurückgenommen. Im Live-Baum nur dieser Anhang und neue Belege.
+
+Belege: [Daten-/Gate-Audit](function-inventory.r279.codex-audit.json), [Audit-Skript](function-inventory.r279.codex-audit.py), [Quellabgleich](function-inventory.r279.codex-source-audit.json), [Prüflog](function-inventory.r279.codex-checks.txt), [Mutationsablauf](function-inventory.r279.codex-mutations.py), [Mutationsurteile](function-inventory.r279.codex-mutations.json), [Frame-Gegenprobe](function-inventory.r279.codex-frame-probe.spec.ts), [früherer Sampler im gleichen Ablauf](function-inventory.r279.codex-frame-before.spec.ts), [Bildschirmaufzeichnung](function-inventory.r279.codex-frame-capture.spec.ts), [Playwright-Konfiguration](function-inventory.r279.codex-playwright.config.ts). Zur Wiederholung die Frame-Specs unter `e2e/` einer Archivkopie von `501482aa` ablegen; die Konfiguration benötigt den eigenen Mock-Basisport 4593. Die Skripte verwenden ausschließlich die benannten `/tmp/codex-r279`-Kopien.

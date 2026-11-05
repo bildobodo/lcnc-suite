@@ -1,0 +1,326 @@
+{
+  "a": "4c021765",
+  "b": "501482aa",
+  "merge": {
+    "data_exact": true,
+    "areas_unchanged": true,
+    "excluded_unchanged": true
+  },
+  "files": {
+    "docs/architecture/frontend-modules.md": {
+      "equal_comp": true
+    },
+    "docs/reviews/compensation-unknown.red.txt": {
+      "equal_comp": true
+    },
+    "lcnc-gateway/gateway.py": {
+      "equal_comp": true
+    },
+    "lcnc-gateway/hal_bridge.py": {
+      "equal_comp": true
+    },
+    "lcnc-gateway/test_compensation.py": {
+      "equal_comp": true
+    },
+    "lcnc-webui/e2e/compensation.spec.ts": {
+      "equal_comp": true
+    },
+    "lcnc-webui/e2e/run-hold.spec.ts": {
+      "equal_comp": true
+    },
+    "lcnc-webui/src/App.vue": {
+      "equal_comp": true
+    },
+    "lcnc-webui/src/ProbePanel.vue": {
+      "equal_comp": true
+    },
+    "lcnc-webui/src/radioNames.test.ts": {
+      "equal_comp": true
+    },
+    "scripts/inventory/atoms.web.json": {
+      "equal_comp": true
+    },
+    "scripts/test_select/rules.py": {
+      "equal_comp": true
+    }
+  },
+  "a_inventory": {
+    "statements": 115,
+    "open": 29,
+    "problems": [],
+    "render_matches": true
+  },
+  "b_inventory": {
+    "statements": 111,
+    "open": 31,
+    "problems": [],
+    "render_matches": true
+  },
+  "gate1": {
+    "kind": "round",
+    "base": "f0070ec7ff07b570db78e962878c84512c0c979d",
+    "head": "aaab374205b37c61e4e6390ccf76250b6462729f",
+    "uncommitted": 0,
+    "verdict": "FAIL",
+    "omitted": [
+      {
+        "check": "unit-heavy",
+        "reason": "no heavy file changed, reached or read for"
+      }
+    ],
+    "pending": [
+      {
+        "check": "firefox-core",
+        "status": "pending: the pinned Mozilla target is not built yet (step 6)"
+      },
+      {
+        "check": "perf-matrix",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/gateway.py",
+          "lcnc-gateway/hal_bridge.py"
+        ]
+      },
+      {
+        "check": "probe-live",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-webui/src/ProbePanel.vue"
+        ]
+      },
+      {
+        "check": "twp-buttons",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/gateway.py"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "name": "selection-guards",
+        "status": "PASS"
+      },
+      {
+        "name": "lint",
+        "status": "PASS"
+      },
+      {
+        "name": "build",
+        "status": "PASS"
+      },
+      {
+        "name": "unit-light",
+        "status": "FAIL",
+        "tests": 2601,
+        "passed": 2600,
+        "failed": 1,
+        "skipped": 0
+      },
+      {
+        "name": "backend",
+        "status": "PASS"
+      },
+      {
+        "name": "ports-free",
+        "status": "PASS"
+      },
+      {
+        "name": "browser-full",
+        "status": "FAIL",
+        "tests": 855,
+        "passed": 854,
+        "failed": 1,
+        "flaky": 0,
+        "skipped": 0
+      },
+      {
+        "name": "browser-executed",
+        "status": "PASS",
+        "tests": 855
+      },
+      {
+        "name": "browser-workers",
+        "status": "PASS"
+      }
+    ]
+  },
+  "gate2": {
+    "kind": "round",
+    "base": "f0070ec7ff07b570db78e962878c84512c0c979d",
+    "head": "3b1829232b0b71fff3a548b7614a5cc25b00f0d0",
+    "uncommitted": 0,
+    "verdict": "FAIL",
+    "omitted": [
+      {
+        "check": "unit-heavy",
+        "reason": "no heavy file changed, reached or read for"
+      }
+    ],
+    "pending": [
+      {
+        "check": "firefox-core",
+        "status": "pending: the pinned Mozilla target is not built yet (step 6)"
+      },
+      {
+        "check": "perf-matrix",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/gateway.py",
+          "lcnc-gateway/hal_bridge.py"
+        ]
+      },
+      {
+        "check": "probe-live",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-webui/src/ProbePanel.vue"
+        ]
+      },
+      {
+        "check": "twp-buttons",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/gateway.py"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "name": "selection-guards",
+        "status": "PASS"
+      },
+      {
+        "name": "lint",
+        "status": "PASS"
+      },
+      {
+        "name": "build",
+        "status": "PASS"
+      },
+      {
+        "name": "unit-light",
+        "status": "PASS",
+        "tests": 2601,
+        "passed": 2601,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "name": "backend",
+        "status": "FAIL"
+      },
+      {
+        "name": "ports-free",
+        "status": "PASS"
+      },
+      {
+        "name": "browser-full",
+        "status": "FAIL",
+        "tests": 855,
+        "passed": 853,
+        "failed": 2,
+        "flaky": 0,
+        "skipped": 0
+      },
+      {
+        "name": "browser-executed",
+        "status": "PASS",
+        "tests": 855
+      },
+      {
+        "name": "browser-workers",
+        "status": "PASS"
+      }
+    ]
+  },
+  "gate3": {
+    "kind": "round",
+    "base": "f0070ec7ff07b570db78e962878c84512c0c979d",
+    "head": "501482aaa3d772e6741e2266b1adab85e5c41b7a",
+    "uncommitted": 0,
+    "verdict": "PASS",
+    "omitted": [
+      {
+        "check": "unit-heavy",
+        "reason": "no heavy file changed, reached or read for"
+      }
+    ],
+    "pending": [
+      {
+        "check": "firefox-core",
+        "status": "pending: the pinned Mozilla target is not built yet (step 6)"
+      },
+      {
+        "check": "perf-matrix",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/gateway.py",
+          "lcnc-gateway/hal_bridge.py"
+        ]
+      },
+      {
+        "check": "probe-live",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-webui/src/ProbePanel.vue"
+        ]
+      },
+      {
+        "check": "twp-buttons",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/gateway.py"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "name": "selection-guards",
+        "status": "PASS"
+      },
+      {
+        "name": "lint",
+        "status": "PASS"
+      },
+      {
+        "name": "build",
+        "status": "PASS"
+      },
+      {
+        "name": "unit-light",
+        "status": "PASS",
+        "tests": 2601,
+        "passed": 2601,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "name": "backend",
+        "status": "PASS"
+      },
+      {
+        "name": "ports-free",
+        "status": "PASS"
+      },
+      {
+        "name": "browser-full",
+        "status": "PASS",
+        "tests": 855,
+        "passed": 855,
+        "failed": 0,
+        "flaky": 0,
+        "skipped": 0
+      },
+      {
+        "name": "browser-executed",
+        "status": "PASS",
+        "tests": 855
+      },
+      {
+        "name": "browser-workers",
+        "status": "PASS"
+      }
+    ]
+  }
+}
