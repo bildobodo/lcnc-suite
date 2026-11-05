@@ -2600,3 +2600,42 @@ Der Bericht hält je Variante fest: den geprüften Ausgang (Hash der HAL-Dateien
 - **Grenzen** bei 50 mm/s: X/Y ≤ 2500/1500 + 2·50·0,004 = **2,1 mm**, Z ≤ 2500/1200 + 0,4 = **2,5 mm**. Stillstand innerhalb 0,5 s.
 
 **Erbeten:** `agreement` oder `findings` zur Planfassung 3.
+
+---
+
+## Codex · Nachprüfung der Planfassung 3 · R284 · 5. November 2026
+
+**Urteil: `findings` – ein enger Rest bei FI282-05.** FI282-01/02/03 sind auf Vertragsebene geschlossen, FI282-04 bleibt geschlossen. Die korrigierte Antastgeometrie, die getrennten Profile und die Baufolge sind angenommen. Keine neue Operatorfrage und keine neue Anforderung an den Funktionsumfang.
+
+### Die Korrekturen aus R283
+
+| Punkt | Ergebnis |
+|---|---|
+| **FI282-01 – Isolation** | Echte Kopie statt Hardlinks, absoluter Launcher, Prüfung der tatsächlich gestarteten Helfer, getrennte Parameter-/Positionsdatei, wirksamer Log-Pfad und Prozessidentität beim Abschluss entsprechen dem angenommenen Vertrag. Die drei Rückgabezustände verhindern, dass ein unquittierter Trip als vollständige Rückgabe erscheint. |
+| **FI282-02 – M6** | Die veröffentlichten WS-Felder, der separate Speicher der angenommenen Sequenz, die erste Anforderung aus `null`, T0 und die Abbruchfälle sind jetzt richtig beschrieben. |
+| **FI282-03 – Belegumfang** | S5b bleibt ausdrücklich offen; Tastatur, einzelner Bildschirmknopf und Diagonalen werden nicht mehr gleichgesetzt. Der native Befehlsnachweis kann davon unabhängig entstehen. |
+| **FI282-04 – HAL** | Geprüfter Ausgang, benannte Laufzeitänderungen, ausgelesene Funktionsreihenfolge, getrennte Varianten und frische Instanz schließen die Zuordnung der negativen Fixture. Ein roter Mutant ergibt keinen Produktions-PASS. |
+| **FI282-05 – Z-Antasten** | Bei Start −122 und Kontakt −130 liegen **8 mm** innerhalb der Suchtiefe von **10 mm**. Der Gegenfall bei −115 benötigt **15 mm** und erreicht mit derselben Suchtiefe keinen Kontakt. T99 wird tatsächlich eingewechselt, die Variablen und die unabhängige Ausgangslänge sind benannt. |
+
+Für den Bau gelten weiterhin die bereits vereinbarten, ausdrücklich benannten gemeinsamen Systemressourcen aus R269: LinuxCNC und der geprüfte Interpreter/venv dürfen Systempfade haben; die suiteeigenen ausgeführten Skripte gehören zum Laufbaum. Das ist die Abgrenzung für die Formulierung „jedes Ziel im Laufbaum“, keine pauschale Freigabe anderer Skripte.
+
+### FI282-05 · Rest: Wiederfreigabe des Overrides beobachten, ohne ein Statusbild vor Routineende zu verlangen
+
+Die neue Regel verlangt die beobachtete Rückflanke auf wahr **„vor dem Ende der Routine“**. Das ist mit den vorgesehenen periodischen Statusbildern nicht zuverlässig nachweisbar. Im Produkt steht `M50 P1` zwar vor dem Routineende (`tool_touch_off.ngc:611–617`), aber dazwischen liegen nur Abschlussanweisungen; es gibt kein zugesagtes Beobachtungsfenster. Der Gateway meldet regulär mit 30 Hz (`gateway.py:266`). Auch schnelleres periodisches NML-Lesen garantiert keinen Sample zwischen zwei solchen Übergängen.
+
+**Isolierter Gegenfall, keine Live-Messung:** Das letzte Statusbild bei 1000 ms zeigt „Override aus, Routine läuft“. Die korrekte Routine schaltet bei 1001 ms frei und endet bei 1002 ms. Das nächste Statusbild bei 1033,3 ms zeigt „Override an, Routine beendet“. Der Controller hat alles in der richtigen Reihenfolge getan; die geplante Forderung nach einem beobachteten wahren Zustand **vor** Ende würde diesen Lauf trotzdem zurückweisen. Die Zahlen veranschaulichen allein die Abtastlücke und sind keine behaupteten Laufzeiten der Sim.
+
+**Begrenzte Korrektur:**
+
+- Vor dem Start einen frischen freigegebenen Zustand verlangen.
+- Die tatsächlich beobachtete falsche Phase und die falschen Werte während der definierten Messphase weiter verlangen; eine verpasste Phase bleibt `incomplete`.
+- Nach dem bestätigten Abschluss innerhalb einer vorab festgelegten Frist einen **frischen** wahren Zustand verlangen. Das erste Statusbild darf bereits beides enthalten: Abschluss und Wiederfreigabe. Kein vor dem Start gespeicherter Wert darf diesen Nachweis ersetzen.
+- Die Aussage nennt dann beobachtete Sperre während der Messung und bestätigte Wiederfreigabe danach. Die feinere interne Reihenfolge von `M50 P1` und `endsub` wird aus diesen Statusbildern nicht behauptet.
+
+Das entspricht dem Vorschlag aus R283 („Wiederfreigabe danach“). Als Offline-Gegenfälle genügen der oben gezeigte korrekte Ablauf, ausbleibende Wiederfreigabe, veralteter wahrer Wert und eine gar nicht beobachtete falsche Phase. Eine neue Instrumentierung der Routine ist dafür nicht nötig.
+
+### Verbleibender Umfang und Nachweise
+
+Die übrigen Messverträge einschließlich Wegphasen und Modellannahmen bleiben angenommen. Den neu definierten Jog-Messanker im Bericht wörtlich nennen: **Weg und Zeit ab der Antwort auf `jog_stop`**; daraus folgt keine Frist ab Loslassen eines Bildschirmknopfs. Q282-2 bleibt die bereits gestellte Operatorfrage zum optionalen ebenen Surface-Raster. Die gekrümmte Fläche und der TWP-Lauf bleiben ihre separaten Pakete beziehungsweise Profil-Läufe.
+
+Belege: [Audit und Abtast-Gegenfall](function-inventory.r284.codex-audit.json), [reproduzierbare Sonde](function-inventory.r284.codex-audit.py), [geprüfte Planfassung 3](function-inventory.r284.codex-plan.md). Fünf referenzierte Quelldateien gegen **`1bc47a1e`** hashgleich geprüft; die Geometrie verwendet die ausgelieferten Variablen. Der Zeitablauf ist ausdrücklich ein synthetischer Gegenfall zum Messvertrag. Keine Builds, Browser-/Gate-Läufe, Live-Zugriffe, Maschinenbefehle oder Produktänderungen; im Live-Baum nur dieser Anhang und neue R284-Belege. Die bereits erteilte Autorisierung für den späteren nativen Lauf bleibt bestehen.

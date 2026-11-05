@@ -1,0 +1,91 @@
+{
+  "source_commit": "1bc47a1e",
+  "kind": "offline plan counterexample",
+  "files": {
+    "lcnc-gateway/gateway.py": "b9c16d62b126d9af31711e5304f5a563e45ed976c882cf926a9354f97b790daa",
+    "lcnc-gateway/status_runtime.py": "93bd0fb450d19f658450d75879acb91198efceb471d1f3e871b07e57fa0ec5a8",
+    "subroutines/tool_length_probe/tool_touch_off.ngc": "9d180577d1909b178f2921d3c96dd78536037b9f8312b862bd93354d6be51de2",
+    "examples/sim_config/xyz3/sim.var": "9487c15b466bf725f971dd9db5667e3a344bb6e1e62971b9059dc833a1d3a08c",
+    "subroutines/probe_basic/probe_z_minus_wco.ngc": "f627bc0142833d5656a12f56435901bae87669ca1ceca387d67137ade1487dc6"
+  },
+  "sources": {
+    "lcnc-gateway/gateway.py": [
+      {
+        "line": 266,
+        "text": "POLL_HZ = 30  # status update rate"
+      }
+    ],
+    "lcnc-gateway/status_runtime.py": [
+      {
+        "line": 1308,
+        "text": "            feed_override_enabled=bool(safe_get(\"feed_override_enabled\", True)),"
+      }
+    ],
+    "subroutines/tool_length_probe/tool_touch_off.ngc": [
+      {
+        "line": 177,
+        "text": "  M50 P1"
+      },
+      {
+        "line": 197,
+        "text": ";    M50 P1"
+      },
+      {
+        "line": 220,
+        "text": "  M50 P1"
+      },
+      {
+        "line": 611,
+        "text": "M50 P1"
+      },
+      {
+        "line": 617,
+        "text": "o<tool_touch_off> endsub"
+      }
+    ]
+  },
+  "probe_geometry": [
+    {
+      "start_joint_z": -122,
+      "contact_joint_z": -130,
+      "distance_to_contact_mm": 8,
+      "search_depth_mm": 10.0,
+      "end_joint_z_if_no_contact": -132.0,
+      "contact_reachable": true
+    },
+    {
+      "start_joint_z": -115,
+      "contact_joint_z": -130,
+      "distance_to_contact_mm": 15,
+      "search_depth_mm": 10.0,
+      "end_joint_z_if_no_contact": -125.0,
+      "contact_reachable": false
+    }
+  ],
+  "periodic_status_counterexample": {
+    "kind": "synthetic timing example, not a live measurement",
+    "m50_p1_ms": 1001.0,
+    "routine_end_ms": 1002.0,
+    "observations": [
+      {
+        "ms": 966.6666667,
+        "feed_override_enabled": false,
+        "routine_active": true
+      },
+      {
+        "ms": 1000.0,
+        "feed_override_enabled": false,
+        "routine_active": true
+      },
+      {
+        "ms": 1033.3333333,
+        "feed_override_enabled": true,
+        "routine_active": false
+      }
+    ],
+    "correct_order_in_controller": true,
+    "true_observed_before_end": false,
+    "true_observed_after_end": true,
+    "conclusion": "The requirement to observe the return edge before routine end rejects a valid execution between polls."
+  }
+}
