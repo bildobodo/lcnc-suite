@@ -10692,3 +10692,21 @@ the proof, the program's frame or one of unknown mode there leaves it
 unproven, and no earlier MDI standstill takes its place (filtering before
 the choice brought exactly that fallback back). An earlier wrong standstill
 followed by the program's boundary frame proves no wrong end point.
+
+Native stage step 2c (built after R301, offline; the run owed): the servo
+measurement as the plan R299–R301 agreed. A sampler loaded into the TEST
+instance at run time (the copy unchanged, every halcmd change reported)
+records the joints' pos-fb and vel-cmd, program-line, in-position and a
+mark the run sets; `stdbuf -oL halsampler -t` is read with receipt times.
+ONE halcmd gate owns the measurement: no change while a section is open.
+Each attempt is a section between its own marks — the start awaited before
+the trigger, the end read after the post window; any flaw (no end mark, a
+number gap, a non-finite value, enable, overruns, the FIFO at its depth,
+the effective period) is incomplete. Time only by receipt. The jog's servo
+rows keep the whole contract (≥ 5 mm in its sign, the upper bound from the
+last sample received before the reply, the FIRST confirmed standstill as
+the fixed reference received within 0.5 s, nothing after it); the override
+plateau's two runs are two sections, the speed from adjacent samples; the
+retract path's phases and its XY-first counter. F-JOG.S5, F-OVERRIDE.S2 and
+F-GOTO.S1c are bound to these rows; the run-from-line attempt's servo stream
+is recorded for 2c-b.

@@ -2075,3 +2075,407 @@ def test_the_boundary_frame_itself_decides_never_an_earlier_standstill():
     ended = frames[:3] + [_rfl_frame(23.3, 0, (100, 100, 0.0), mode=3, vel=0.0)] + frames[3:]
     ended[4:] = [(t + 0.1, st) for t, st in ended[4:]]
     assert nc.eval_rfl_start_point("x", hist, ended, entry_xy=(100.0, 100.0))["status"] == "incomplete"
+
+
+# ── step 2c: the servo measurement (plan Codex R299–R301) ────────────────
+from test_support import servo as sv  # noqa: E402
+from test_support import servo_cases as sc  # noqa: E402
+
+SHOW_PIN = """Component Pins:
+Owner   Type  Dir         Value  Name
+    45  float OUT             0  joint.0.pos-fb ==> sim-ts-x
+    45  float OUT             0  joint.0.vel-cmd
+    45  s32   OUT             0  motion.program-line
+"""
+SHOW_THREAD = """Realtime Threads:
+     Period  FP     Name               (     Time, Max-Time )
+    1000000  YES          servo-thread (     2917, 40753937 )
+                  1 motion-command-handler
+                  2 motion-controller
+                  3 sampler.0
+"""
+
+
+def test_the_halcmd_answers_are_read_as_printed():
+    assert sv.signal_of(SHOW_PIN, "joint.0.pos-fb") == "sim-ts-x"
+    assert sv.signal_of(SHOW_PIN, "joint.0.vel-cmd") is None
+    assert sv.thread_of(SHOW_THREAD) == {"period_ns": 1000000, "functions": ["motion-command-handler",
+                                                                             "motion-controller", "sampler.0"]}
+    assert sv.parse_line("12 1.5 2.5 -3.0 0.0 0.0 50.0 7 1 5\n") == (12, (1.5, 2.5, -3.0, 0.0, 0.0, 50.0, 7, 1, 5))
+    assert sv.parse_line("overrun\n") is None and sv.parse_line("12 1.5 nan\n") is None
+
+
+def test_the_one_halcmd_gate_refuses_a_change_while_a_section_is_open():
+    """R301: the run owns the sampler — while a section is open only the
+    mark and reading commands pass."""
+    calls = []
+    gate = sv.HalGate(run=lambda argv: calls.append(argv) or "")
+    gate("setp", "sampler.0.enable", "1")
+    gate.open_section = 3
+    gate("sets", sv.MARK_SIGNAL, "7")
+    gate("getp", "sampler.0.overruns")
+    gate("show", "thread", "servo-thread")
+    for change in (("setp", "sampler.0.enable", "0"), ("delf", "sampler.0", "servo-thread"),
+                   ("sets", "other-signal", "1"), ("linksp", sv.MARK_SIGNAL, "x")):
+        with pytest.raises(sv.GateRefused):
+            gate(*change)
+    assert [c[1] for c in calls] == ["setp", "sets", "getp", "show"]
+
+
+def _samples(rows, t0=0.0, n0=100, dt=0.001, mark=1):
+    """rows: (x, y, z, vx, vy, vz) per servo period → (t_recv, n, values) with the mark."""
+    return [(t0 + i * dt, n0 + i, (*r, 0, 1, mark)) for i, r in enumerate(rows)]
+
+
+def _ok(**k):
+    base = {"enable_start": True, "enable_end": True, "overruns_start": 0, "overruns_end": 0, "depth_end": 10,
+            "depth": 65536, "period_ns": 1000000, "ini_period_ns": 1000000, "reader_overrun": False,
+            "reader_alive": True}
+    base.update(k)
+    return base
+
+
+def test_a_section_is_its_marks_and_its_integrity():
+    stream = _samples([(0, 0, 0, 0, 0, 0)] * 5, mark=3) + _samples([(1, 0, 0, 0, 0, 0)] * 5, n0=105, mark=4)
+    s = sv.section(stream, start_mark=3, end_mark=4, integrity=_ok())
+    assert s["problems"] == [] and len(s["samples"]) == 5 and s["first_n"] == 100 and s["end_n"] == 105
+
+
+@pytest.mark.parametrize("name, stream, integrity, problem", [
+    ("truncated end, no gap", _samples([(0, 0, 0, 0, 0, 0)] * 5, mark=3), _ok(), "end mark"),
+    ("backlog: a later restart unread", _samples([(0, 0, 0, 0, 0, 0)] * 5, mark=3), _ok(reader_alive=False), "end mark"),
+    ("a number gap", _samples([(0, 0, 0, 0, 0, 0)] * 2, mark=3) + _samples([(0, 0, 0, 0, 0, 0)] * 2, n0=110, mark=3)
+     + _samples([(0, 0, 0, 0, 0, 0)], n0=112, mark=4), _ok(), "gap"),
+    ("a non-finite value", _samples([(0, 0, 0, 0, 0, 0), (float("nan"), 0, 0, 0, 0, 0)], mark=3)
+     + _samples([(0, 0, 0, 0, 0, 0)], n0=102, mark=4), _ok(), "finite"),
+    ("enable false", _samples([(0, 0, 0, 0, 0, 0)], mark=3) + _samples([(0, 0, 0, 0, 0, 0)], n0=101, mark=4),
+     _ok(enable_end=False), "enable"),
+    ("the effective period", _samples([(0, 0, 0, 0, 0, 0)], mark=3) + _samples([(0, 0, 0, 0, 0, 0)], n0=101, mark=4),
+     _ok(period_ns=2000000), "period"),
+    ("overruns rose", _samples([(0, 0, 0, 0, 0, 0)], mark=3) + _samples([(0, 0, 0, 0, 0, 0)], n0=101, mark=4),
+     _ok(overruns_end=1), "overrun"),
+    ("the FIFO at its depth", _samples([(0, 0, 0, 0, 0, 0)], mark=3) + _samples([(0, 0, 0, 0, 0, 0)], n0=101, mark=4),
+     _ok(depth_end=65536), "depth"),
+    ("the reader said overrun", _samples([(0, 0, 0, 0, 0, 0)], mark=3) + _samples([(0, 0, 0, 0, 0, 0)], n0=101, mark=4),
+     _ok(reader_overrun=True), "overrun"),
+])
+def test_every_flaw_of_a_section_is_named(name, stream, integrity, problem):
+    s = sv.section(stream, start_mark=3, end_mark=4, integrity=integrity)
+    assert any(problem in p for p in s["problems"]), (name, s["problems"])
+
+
+def test_a_foreign_mark_never_belongs_to_the_section():
+    """The previous attempt's samples (mark 2) are no part of attempt 3/4."""
+    stream = _samples([(9, 9, 9, 0, 0, 0)] * 3, mark=2) + _samples([(0, 0, 0, 0, 0, 0)] * 3, n0=103, mark=3) \
+        + _samples([(0, 0, 0, 0, 0, 0)], n0=106, mark=4)
+    s = sv.section(stream, start_mark=3, end_mark=4, integrity=_ok())
+    assert all(v[0] == 0 for _, _, v in s["samples"]) and s["problems"] == []
+
+
+def _jog_stream(sign=1, axis=0, latency=0.002, creep_s=0.0, restart=False, delay_at=None, delay_s=0.0,
+                other=0.0, mark=3, still_ms=100):
+    """A jog in servo samples (1 ms): standing at 300 for `still_ms`, 300 ms at
+    50 mm/s, the stop at the reply, 66.7 ms of braking at 750 mm/s², then
+    standstill (an optional creep at 0.01 mm/s first, an optional restart).
+    Receipt = capture + `latency`; `delay_at` puts `delay_s` of late
+    invocations before that sample number (no number gap). → (samples, t_reply)"""
+    v, a, T = 50.0, (750.0, 750.0, 600.0)[axis], 0.001
+    rows, t, p = [], 0.0, 300.0
+    def add(p, vel):
+        pos = [300.0, 300.0, -50.0]
+        pos[axis] = p
+        pos[(axis + 1) % 3] += other * abs(p - 300.0) / 15.0     # another axis drifting with the jog
+        vels = [0.0, 0.0, 0.0]
+        vels[axis] = vel
+        rows.append((*pos, *vels))
+    for _ in range(still_ms):
+        add(p, 0.0)
+    for _ in range(300):
+        p += sign * v * T
+        add(p, sign * v)
+    t_stop = (still_ms + 300) * T
+    vel = v
+    while vel > 0:
+        vel = max(0.0, vel - a * T)
+        p += sign * vel * T
+        add(p, sign * vel)
+    for _ in range(int(creep_s / T)):
+        p += sign * 0.01 * T
+        add(p, sign * 0.01)
+    for k in range(200):
+        if restart and 33 <= k < 53:
+            p += sign * 0.05
+            add(p, sign * 50.0)
+        else:
+            add(p, 0.0)
+    out, extra = [], 0.0
+    for i, r in enumerate(rows):
+        if delay_at is not None and i == delay_at:
+            extra += delay_s
+        out.append((i * T + extra + latency, 1000 + i, (*r, 0, 1, mark)))
+    return out, t_stop + 0.0025          # the reply 2.5 ms after the stop's capture; samples arrive `latency` late
+
+
+def _jog_servo(samples, t_reply, sign=1, axis=0, problems=()):
+    return sc.eval_jog_servo("jog-x+.servo", axis, sign, {"samples": samples, "problems": list(problems)}, t_reply)
+
+
+@pytest.mark.parametrize("sign, axis", [(1, 0), (-1, 0), (1, 2), (-1, 1)])
+def test_a_clean_jog_in_servo_samples_passes(sign, axis):
+    s, t_reply = _jog_stream(sign=sign, axis=axis)
+    r = _jog_servo(s, t_reply, sign, axis)
+    assert r["status"] == "PASS" and r["travel_mm"] >= 5 and r["brake_upper_mm"] <= r["bound_mm"], r
+
+
+def test_no_motion_is_no_jog_proof():
+    s, t_reply = _jog_stream()
+    still = [(t, n, (300.0, 300.0, -50.0, 0.0, 0.0, 0.0, 0, 1, 3)) for t, n, _ in s]
+    assert _jog_servo(still, t_reply)["status"] == "incomplete"
+
+
+@pytest.mark.parametrize("sign", [1, -1])
+def test_a_creep_past_half_a_second_is_no_timely_standstill(sign):
+    """Codex R299: braking, then 0.01 mm/s until 1.0 s — the travel stays
+    under the bound, the standstill does not come within 0.5 s."""
+    s, t_reply = _jog_stream(sign=sign, creep_s=1.0)
+    r = _jog_servo(s, t_reply, sign)
+    assert r["status"] == "incomplete" and "0.5" in r["detail"], r
+
+
+def test_late_servo_invocations_are_no_time_proof():
+    """Codex R300: 67 samples to the standstill, 480 ms of late invocations
+    among them — the receipt is past reply + 0.5 s: incomplete, whatever 67 × T says."""
+    s, t_reply = _jog_stream(delay_at=420, delay_s=0.48)
+    assert _jog_servo(s, t_reply)["status"] == "incomplete"
+
+
+@pytest.mark.parametrize("sign", [1, -1])
+def test_motion_after_the_first_standstill_fails_even_with_a_later_rest(sign):
+    """Codex R300: standstill, a restart, a new rest — the FIRST confirmed
+    standstill is the reference."""
+    s, t_reply = _jog_stream(sign=sign, restart=True)
+    r = _jog_servo(s, t_reply, sign)
+    assert r["status"] == "FAIL" and "after its standstill" in r["detail"], r
+
+
+def test_a_jog_against_its_sign_or_moving_another_axis_fails():
+    s, t_reply = _jog_stream(sign=-1)
+    assert _jog_servo(s, t_reply, sign=1)["status"] == "FAIL"
+    s, t_reply = _jog_stream(other=0.05)
+    assert _jog_servo(s, t_reply)["status"] == "FAIL"
+
+
+def test_a_late_reading_makes_the_upper_bound_unproven_never_a_failure():
+    s, t_reply = _jog_stream(latency=0.06)            # the anchor captured 60 ms before the reply
+    r = _jog_servo(s, t_reply)
+    assert r["status"] == "incomplete" and r["brake_upper_mm"] > r["bound_mm"], r
+
+
+def test_a_flawed_section_is_incomplete_but_a_seen_contradiction_stays_one():
+    s, t_reply = _jog_stream()
+    assert _jog_servo(s, t_reply, problems=["end mark not received"])["status"] == "incomplete"
+    s, t_reply = _jog_stream(restart=True)
+    assert _jog_servo(s, t_reply, problems=["end mark not received"])["status"] == "FAIL"
+
+
+def _plateau(speed, n=4000, x0=100.0, gap_at=None):
+    rows, x = [], x0
+    for i in range(n):
+        x += speed * 0.001
+        rows.append((x, 300.0, -50.0, speed, 0.0, 0.0))
+    s = _samples(rows)
+    if gap_at is not None:
+        s = s[:gap_at] + [(t, nn + 5, v) for t, nn, v in s[gap_at:]]
+    return {"samples": s, "problems": []}
+
+
+@pytest.mark.parametrize("speed, expected, status", [(100.0, 100.0, "PASS"), (50.0, 50.0, "PASS"),
+                                                    (50.0, 100.0, "FAIL"), (106.0, 100.0, "FAIL"), (96.0, 100.0, "PASS")])
+def test_the_plateau_median_from_adjacent_servo_samples(speed, expected, status):
+    r = sc.eval_plateau("override-plateau-100", _plateau(speed), expected, period_s=0.001)
+    assert r["status"] == status, r
+
+
+def test_the_plateau_needs_its_window_and_holds_its_counter():
+    short = _plateau(100.0, n=1600)                                  # reaches 260: in the window, but…
+    short["samples"] = [x for x in short["samples"] if x[2][0] < 151]   # …fewer than 20 samples kept
+    assert sc.eval_plateau("p", short, 100.0, period_s=0.001)["status"] == "incomplete"
+    flawed = _plateau(100.0)
+    flawed["problems"] = ["a number gap"]
+    assert sc.eval_plateau("p", flawed, 100.0, period_s=0.001)["status"] == "incomplete"
+    gapped = _plateau(100.0, gap_at=2000)       # the pair across the gap is never used
+    assert sc.eval_plateau("p", gapped, 100.0, period_s=0.001)["status"] == "PASS"
+    base = sc.eval_plateau("override-plateau-100", _plateau(100.0), 100.0, period_s=0.001)
+    planted = sc.eval_plateau("override-plateau-100", _plateau(100.0), 75.0, period_s=0.001)
+    assert nc.counter("override-plateau.counter-75", planted, base)["status"] == "PASS"
+
+
+def _path(points, steps=50, vel=10.0):
+    """Linear servo path through `points` (x, y, z), `steps` samples per leg, a rest at the end."""
+    rows = []
+    for (a, b) in zip(points, points[1:]):
+        for k in range(1, steps + 1):
+            f = k / steps
+            rows.append((*(a[i] + (b[i] - a[i]) * f for i in range(3)), vel, vel, vel))
+    rows += [(*points[-1], 0.0, 0.0, 0.0)] * 20
+    return {"samples": _samples([(*points[0], 0.0, 0.0, 0.0)] * 10 + rows), "problems": []}
+
+
+START, ZERO = (200.0, 200.0, -60.0), (100.0, 100.0, 0.0)
+
+
+@pytest.mark.parametrize("points, status", [
+    ([START, (200, 200, 0), ZERO], "PASS"),                        # Z up first, then X/Y
+    ([START, (100, 100, -60), ZERO], "FAIL"),                      # X/Y first
+    ([START, (200, 200, 0), (150, 150, -0.02), ZERO], "FAIL"),     # Z dips while X/Y move
+    ([START, (200, 200, 0), (100, 100.5, 0)], "FAIL"),             # ends off its target
+    ([START, START], "incomplete"),                                # no motion
+])
+def test_the_retract_path_rises_first_then_moves_and_ends_at_its_target(points, status):
+    r = sc.eval_retract_path("goto-zero", _path(points), start=START, target=ZERO)
+    assert r["status"] == status, r
+
+
+def test_the_g30_descent_comes_only_after_x_y_arrived():
+    g30 = (0.0, 0.0, -20.0)
+    ok = sc.eval_retract_path("goto-g30", _path([START, (200, 200, 0), (0, 0, 0), g30]), start=START, target=g30)
+    assert ok["status"] == "PASS", ok
+    early = sc.eval_retract_path("goto-g30", _path([START, (200, 200, 0), (50, 50, -10), g30]), start=START, target=g30)
+    assert early["status"] == "FAIL", early
+    flat = sc.eval_retract_path("goto-g30", _path([START, (200, 200, 0), (0, 0, 0)]), start=START, target=(0, 0, 0))
+    assert flat["status"] == "PASS" and "no descent" in flat["detail"], flat
+
+
+def test_the_xy_first_counter_is_refused_against_a_passing_zero():
+    base = sc.eval_retract_path("goto-zero", _path([START, (200, 200, 0), ZERO]), start=START, target=ZERO)
+    xy_first = sc.eval_retract_path("goto-zero", _path([START, (100, 100, -60), ZERO]), start=START, target=ZERO)
+    assert nc.counter("goto-zero.counter-xy-first", xy_first, base)["status"] == "PASS"
+
+
+# ── step 2c wiring: the whole steps against a scripted client and a fake measurement ──
+class FakeMeasurement:
+    """The run's Measurement surface: each end() hands the next prepared section."""
+
+    def __init__(self, sections):
+        self.sections, self.begun, self.ended = list(sections), 0, 0
+
+    def begin(self):
+        self.begun += 1
+        return {"k": self.begun}
+
+    def end(self, attempt):
+        self.ended += 1
+        return self.sections.pop(0)
+
+
+class MotionClient(FrameClient):
+    """G53 moves land where they say; set_feed_override shows in the status;
+    read_g30 answers the copy's zeros."""
+
+    def __init__(self):
+        super().__init__([(0.0, {**_IDLE, "joint_pos": [0.0, 0.0, 0.0], "feed_override": 1.0})])
+        self.pos, self.fo = [0.0, 0.0, 0.0], 1.0
+
+    def _frames(self, busy=True):
+        t = self.frames[-1][0]
+        st = {**_IDLE, "joint_pos": list(self.pos), "feed_override": self.fo}
+        self.frames += ([(t + 0.1, {**st, "interp_state": 2, "inpos": False})] if busy else []) + \
+            [(t + 1.0, st), (t + 2.0, st), (t + 3.0, st)]
+
+    def request(self, cmd, **kw):
+        import re
+        self.sent.append((cmd, kw))
+        if cmd == "mdi":
+            if "G53" in kw["text"]:
+                for a, v in re.findall(r"([XYZ])(-?[\d.]+)", kw["text"]):
+                    self.pos["XYZ".index(a)] = float(v)
+            self._frames()
+        elif cmd == "go_to_zero":
+            self._frames()
+        elif cmd == "set_feed_override":
+            self.fo = kw["scale"]
+            self._frames(busy=False)
+        elif cmd == "read_g30":
+            return {"ok": True, "confirmed": True, "values": {"X": 0.0, "Y": 0.0, "Z": 0.0}}
+        return {"ok": True}
+
+
+def test_a_servo_section_ends_on_every_path():
+    calls = []
+    gate = sv.HalGate(run=lambda argv: calls.append(argv) or ("TRUE" if argv[1] == "getp" and "enable" in argv[2]
+                                                               else "0"))
+
+    class EchoReader:
+        def __init__(self):
+            self.samples, self.overrun, self.alive = [], False, True
+
+        def wait_for_mark(self, mark, deadline_s, since=0):
+            self.samples.append((time.monotonic(), len(self.samples), (0.0,) * 8 + (mark,)))
+            return len(self.samples) - 1
+    m = sv.Measurement(gate, EchoReader(), ini_period_ns=1000000, period_ns=1000000)
+    ctx = {"servo": m}
+    with pytest.raises(ZeroDivisionError):
+        with nr._section(ctx) as box:
+            assert gate.open_section == 1
+            1 / 0
+    assert gate.open_section is None and "section" in box, "the end mark set, the gate open again"
+    assert [c[1:3] for c in calls if c[1] == "sets"] == [["sets", sv.MARK_SIGNAL], ["sets", sv.MARK_SIGNAL]]
+
+
+def test_the_plateau_step_gives_its_rows(monkeypatch):
+    monkeypatch.setattr(nr, "SHORT_GRACE", 0.02)
+    c = MotionClient()
+    ctx = {"client": c, "servo": FakeMeasurement([_plateau(100.0), _plateau(50.0)]), "servo_period_s": 0.001,
+           "report": {}}
+    rows = nr.plateau_cases()[1](ctx)
+    assert [(r["case"], r["status"]) for r in rows] == [("override-plateau-100", "PASS"), ("override-plateau-50", "PASS"),
+                                                        ("override-plateau.counter-75", "PASS")], rows
+    overrides = [kw["scale"] for cmd, kw in c.sent if cmd == "set_feed_override"]
+    assert overrides == [1.0, 0.5, 1.0], "set before each move, put back after"
+
+
+def test_the_goto_step_gives_its_rows(monkeypatch):
+    monkeypatch.setattr(nr, "SHORT_GRACE", 0.02)
+    c = MotionClient()
+    home = (0.0, 0.0, 0.0)
+    sections = [_path([START, (200, 200, 0), ZERO]), _path([START, (200, 200, 0), home]),
+                _path([START, (200, 200, 0), home]), _path([START, (100, 100, -60), ZERO])]
+    ctx = {"client": c, "servo": FakeMeasurement(sections), "report": {}}
+    rows = nr.goto_cases()[1](ctx)
+    assert [(r["case"], r["status"]) for r in rows] == [("goto-zero", "PASS"), ("goto-home", "PASS"), ("goto-g30", "PASS"),
+                                                        ("goto-zero.counter-xy-first", "PASS")], rows
+    assert ctx["report"]["goto"]["targets"]["goto-zero"] == (100.0, 100.0, 0.0)
+    assert ("go_to_zero", {}) in c.sent and any(kw.get("text") == "G64 P0.001" for _, kw in c.sent)
+
+
+def test_the_run_from_line_step_records_its_servo_stream(tmp_path, monkeypatch):
+    monkeypatch.setattr(nr, "SHORT_GRACE", 0.02)
+    hist, frames = _rfl_run()
+    c = RflClient(frames, hist)
+    ctx, step = _rfl_step(tmp_path, c)
+    ctx["run"] = tmp_path
+    ctx["servo"] = FakeMeasurement([{"samples": _samples([(1.0, 2.0, 3.0, 0, 0, 0)] * 3), "problems": []}])
+    by = {r["case"]: r["status"] for r in step(ctx)}
+    assert by["rfl-start-point"] == "incomplete" and ctx["servo"].ended == 1
+    lines = (tmp_path / "servo-rfl.jsonl").read_text().splitlines()
+    assert len(lines) == 3 and ctx["report"]["rfl_servo"]["samples"] == 3
+
+
+def test_a_clean_but_short_jog_is_no_proof_of_its_minimum_travel():
+    """FI299-02: under 5 mm by the anchor, everything else in order: incomplete."""
+    s, t_reply = _jog_stream()
+    short = [(t, n, (300.0 + (v[0] - 300.0) * 0.2, *v[1:])) for t, n, v in s]     # 3 mm instead of 15
+    r = _jog_servo(short, t_reply)
+    assert r["status"] == "incomplete" and "5.0 not shown" in r["detail"], r
+
+
+def test_only_adjacent_samples_make_a_speed():
+    """Every other sample missing (numbers in steps of two): no adjacent pair
+    — never a speed from two samples apart (it would read double)."""
+    sec = _plateau(100.0)
+    sec["samples"] = [(t, 2 * n, v) for t, n, v in sec["samples"]]
+    assert sc.eval_plateau("p", sec, 200.0, period_s=0.001)["status"] == "incomplete"
+
+
+def test_every_jog_case_has_its_servo_case():
+    assert set(nr.JOG_SERVO_CASES) == {c for c, _, _ in nr.JOG_CASES}

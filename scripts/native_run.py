@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from contextlib import contextmanager
 import os
 import shutil
 import subprocess
@@ -66,6 +67,9 @@ JOG_START = (300.0, 300.0, -50.0)   # G53, inner: away from every limit (R283 FI
 HOME_CASES = (("home-all", None), ("home-joint-0", 0), ("home-joint-1", 1), ("home-joint-2", 2))
 JOG_CASES = (("jog-x+", 0, 1), ("jog-x-", 0, -1), ("jog-y+", 1, 1), ("jog-y-", 1, -1), ("jog-z+", 2, 1),
              ("jog-z-", 2, -1))
+#: the same jogs judged from servo samples (step 2c) — F-JOG.S5 binds these
+JOG_SERVO_CASES = {"jog-x+": "jog-x+.servo", "jog-x-": "jog-x-.servo", "jog-y+": "jog-y+.servo",
+                   "jog-y-": "jog-y-.servo", "jog-z+": "jog-z+.servo", "jog-z-": "jog-z-.servo"}
 #: what a case reads from a status frame — kept per frame, the rest is not
 FRAME_KEYS = ("joint_pos", "current_vel", "interp_state", "inpos", "feed_override_enabled", "tool_number",
               "tool_offset", "tool_table_z", "tool_change_requested", "tool_change_seq", "tool_change_tool",
@@ -101,6 +105,9 @@ RFL_PROGRAM = "\n".join([
 RFL_FILE, RFL_LINE, RFL_ENTRY, RFL_SPEED = "native_rfl.ngc", 7, (100.0, 100.0), 1000.0
 RFL_Z_LINE, RFL_Z_END = -100.0, -50.0
 RFL_DEADLINE = 300.0    # s: the pre-measurement, the entry and the program
+# step 2c (plan Codex R299–R301)
+PLATEAU_START, PLATEAU_END, PLATEAU_FEED = (100.0, 300.0, -50.0), 500.0, 6000.0
+GOTO_START, GOTO_G54 = (200.0, 200.0, -60.0), (100.0, 100.0)
 SHORT_GRACE = 2.0       # s: a block too short to show busy ends after this idle time (the gateway's own rule)
 DEBUG_WAIT = 3.0        # s for a DEBUG line to come back through the error channel, per attempt
 
@@ -310,6 +317,9 @@ def _stop_copy(ctx):
     """The client's own end (abort, disarm, close) — its failure is named.
     The test unit and the tree are the restore's (rl.end_test_resources),
     one code for `finally` and ExecStopPost."""
+    reader = ctx.pop("servo_reader", None)
+    if reader:
+        reader.stop()
     client = ctx.pop("client", None)
     if client:
         client.close(strict=True)
@@ -332,6 +342,45 @@ def connect_client():
         _wait(client, lambda s: s.get("is_enabled") is True, 10, "machine on")
         return []
     return ("connect", step)
+
+
+def servo_device():
+    """Step 2c (plan Codex R299–R301): the sampler loaded and wired into the
+    TEST instance at run time, its reader started; the halcmd changes, the
+    wiring and the thread as read back go into the report."""
+    def step(ctx):
+        from test_support import servo as sv
+        ini_period = int(float((lt.ini_values(ctx["ini"].read_text()).get(("EMCMOT", "SERVO_PERIOD")) or ["0"])[-1]))
+        gate = sv.HalGate()
+        ctx["report"]["servo"] = setup = sv.setup(gate)
+        reader = sv.Reader()
+        reader.start()
+        ctx["servo_reader"] = reader
+        ctx["servo"] = sv.Measurement(gate, reader, ini_period_ns=ini_period, period_ns=setup["thread"]["period_ns"])
+        ctx["servo_period_s"] = setup["thread"]["period_ns"] / 1e9
+        return []
+    return ("servo", step)
+
+
+@contextmanager
+def _section(ctx):
+    """ONE attempt's servo section: the start mark awaited before the body
+    runs, the end mark set and read after it — on every path, so the gate
+    closes; the section is in the yielded box afterwards."""
+    m = ctx["servo"]
+    attempt = m.begin()
+    box: dict = {}
+    try:
+        yield box
+    finally:
+        box["section"] = m.end(attempt)
+
+
+def _servo_prep(c):
+    """The common preparation of every 2c case (R300): units, the fixture,
+    no G92, no tool offset — read back where the status shows it."""
+    for line in ("G21", "G90", "G94", "G54", "G92.1", "G49"):
+        _short(c, line)
 
 
 def _wait(client, pred, timeout, what):
@@ -370,20 +419,27 @@ def home_cases(joints: int):
 
 def jog_cases(joints: int):
     def step(ctx):
-        c, frames, rows = ctx["client"], ctx["frames"], []
+        c, frames, rows, servo_rows = ctx["client"], ctx["frames"], [], []
         start = "G53 G0 " + " ".join(f"{a}{v:g}" for a, v in zip("XYZ", JOG_START))
         if {axis for _, axis, _ in JOG_CASES} != set(range(joints)):
             raise Refused(f"the jog cases do not name the profile's {joints} axes")
+        if "servo" in ctx:
+            _servo_prep(c)
         for case, axis, sign in JOG_CASES:
             c.request("mdi", text=start)
             _wait(c, lambda s: s.get("inpos") and s.get("interp_state") == 1 and _near(s, JOG_START), 30, "the jog start")
             c.request("set_mode", mode=1)   # MANUAL for the jog
             p0 = c.status["joint_pos"][axis]
-            c.request("jog_cont", axis=axis, vel=sign * nc.JOG_SPEED)
-            time.sleep(0.3)
-            c.request("jog_stop", axis=axis)
-            t_reply = time.monotonic()
-            time.sleep(1.0)
+            box = {}
+            with (_section(ctx) if "servo" in ctx else _no_section()) as box:
+                c.request("jog_cont", axis=axis, vel=sign * nc.JOG_SPEED)
+                time.sleep(0.3)
+                c.request("jog_stop", axis=axis)
+                t_reply = time.monotonic()
+                time.sleep(1.0)             # the post window: 1.0 s from the reply (R300)
+            if "section" in box:
+                from test_support import servo_cases as sc
+                servo_rows.append(sc.eval_jog_servo(JOG_SERVO_CASES[case], axis, sign, box["section"], t_reply))
             if c.error:
                 raise RuntimeError(f"{case}: the session ended — {c.error}")
             seen = list(frames)
@@ -394,8 +450,86 @@ def jog_cases(joints: int):
             rows.append(nc.eval_jog(case, axis, sign, p0, before, samples))
         if c.error:
             raise RuntimeError(f"the session ended after the jogs — {c.error}")
-        return rows
+        return rows + servo_rows
     return ("jog", step)
+
+
+@contextmanager
+def _no_section():
+    yield {}
+
+
+def plateau_cases():
+    """F-OVERRIDE.S2 (R283, R299–R301): G1 X100 → X500 F6000 twice, override
+    1.0 then 0.5 (confirmed in the status before the move), each its own
+    servo section; the median speed in X 150…450 from adjacent samples; the
+    first section re-judged against a planted 75 mm/s."""
+    def step(ctx):
+        from test_support import servo_cases as sc
+        c, rows = ctx["client"], []
+        _servo_prep(c)
+        sections = {}
+        for scale, case in ((1.0, "override-plateau-100"), (0.5, "override-plateau-50")):
+            _to(c, *PLATEAU_START)
+            c.request("set_feed_override", scale=scale)
+            _wait(c, lambda st: isinstance(st.get("feed_override"), (int, float))
+                  and abs(st["feed_override"] - scale) < 1e-9, 10, f"feed override {scale}")
+            with _section(ctx) as box:
+                _routine(c, f"G53 G1 X{PLATEAU_END:g} F{PLATEAU_FEED:g}", deadline=60.0,
+                         extra=lambda st: _near(st, (PLATEAU_END, PLATEAU_START[1], PLATEAU_START[2])))
+                time.sleep(0.5)                 # the post window (R300)
+            sections[case] = box["section"]
+            rows.append(sc.eval_plateau(case, box["section"], 100.0 * scale, ctx["servo_period_s"]))
+        c.request("set_feed_override", scale=1.0)
+        planted = sc.eval_plateau("override-plateau-100", sections["override-plateau-100"], 75.0,
+                                  ctx["servo_period_s"])
+        rows.append(nc.counter("override-plateau.counter-75", planted, rows[0]))
+        return rows
+    return ("plateau", step)
+
+
+def goto_cases():
+    """F-GOTO.S1c (R284, R299–R301): → Zero (gateway command), → Home and
+    → G30 (their routines by mdi) from G53 X200 Y200 Z−60, each its own servo
+    section judged by phase: Z up first with X/Y still, then X/Y with Z up,
+    a G30 descent only after X/Y arrived, at rest on the target; an MDI pair
+    moving X/Y first is refused against a passing → Zero."""
+    def step(ctx):
+        from test_support import servo_cases as sc
+        from test_support import tool_change as tc
+        c, rows = ctx["client"], []
+        _servo_prep(c)
+        for line in (f"G10 L2 P1 X{GOTO_G54[0]:g} Y{GOTO_G54[1]:g} Z0", "G54", "G64 P0.001"):
+            _short(c, line)
+        g30 = c.request("read_g30")
+        if not g30.get("confirmed"):
+            raise Refused(f"G30 not read: {g30}")
+        targets = {"goto-zero": (GOTO_G54[0], GOTO_G54[1], 0.0), "goto-home": (0.0, 0.0, 0.0),
+                   "goto-g30": tuple(float(g30["values"][a]) for a in "XYZ")}
+        ctx["report"]["goto"] = {"targets": targets, "g64": "G64 P0.001", "g54": GOTO_G54}
+
+        def zero():
+            cursor = len(c.frames)
+            c.request("go_to_zero")
+            tc.serve(c, tc.ToolChanges([]), tc.RoutineEnd(), 60.0, cursor=cursor)
+        triggers = {"goto-zero": zero,
+                    "goto-home": lambda: _routine(c, "O<go_to_home> CALL", deadline=60.0),
+                    "goto-g30": lambda: _routine(c, "O<go_to_g30> CALL", deadline=60.0)}
+        for case, fire in triggers.items():
+            _to(c, *GOTO_START)
+            with _section(ctx) as box:
+                fire()
+                time.sleep(0.5)                 # the post window (R300)
+            rows.append(sc.eval_retract_path(case, box["section"], start=GOTO_START, target=targets[case]))
+        _to(c, *GOTO_START)
+        with _section(ctx) as box:
+            _routine(c, f"G53 G0 X{GOTO_G54[0]:g} Y{GOTO_G54[1]:g}", deadline=60.0)
+            _routine(c, "G53 G0 Z0", deadline=60.0)
+            time.sleep(0.5)
+        xy_first = sc.eval_retract_path("goto-zero", box["section"], start=GOTO_START, target=targets["goto-zero"])
+        rows.append(nc.counter("goto-zero.counter-xy-first", xy_first, rows[0]))
+        return rows
+    return ("goto", step)
 
 
 def plate_from_hal(texts: list[str]) -> dict:
@@ -702,48 +836,60 @@ def rfl_cases():
         if refusal:
             raise RuntimeError(f"run from line: {refusal}")
         cursor, hist_from, err_from = len(c.frames), len(c.rfl_history), len(c.errors)
-        # ONE outcome of the attempt from the auto_run on (R295 FI-I31): a
-        # known refusal or contradiction, an observed failure, a missing
-        # observation — carried into the line's row on every path
-        outcome = None
-        try:
-            c.request("auto_run", line=RFL_LINE, file=origin["file"], version=origin["version"],
-                      source=origin["source"], spindle_dir="forward", spindle_speed=int(RFL_SPEED), pre_tool=tool,
-                      probe_vars={str(k): v for k, v in ts.items()}, safe_z=True, entry_x=RFL_ENTRY[0],
-                      entry_y=RFL_ENTRY[1], entry_wcs="G54", entry_units="G21")
-        except ls.Refused as e:
-            outcome = {"status": "FAIL", "cause": "refused", "detail": f"auto_run refused: {e}"}
-        except (ls.NoReply, ls.TransportLost) as e:
-            # no answer or a lost transport is no refusal (R296 FI-I31 A/B)
-            outcome = {"status": "incomplete", "cause": "unobserved", "detail": f"auto_run not answered: {e}"}
-        seen = {"program": False}
-
-        def ran(st):
-            seen["program"] = seen["program"] or (st.get("task_mode") == nc.MODE_AUTO and st.get("call_level") == 0
-                                                  and isinstance(st.get("motion_line"), int)
-                                                  and st["motion_line"] >= RFL_LINE)
-            return seen["program"]
-
-        def failed_phase():
-            return next((p for _, p in c.rfl_history[hist_from:] if nc.rfl_failed(p)), None)
-
-        def known_failure():
-            return failed_phase() is not None or nc._failures([(k, x) for _, k, x in c.errors[err_from:]])
-        routine_end = tc.RoutineEnd()
-
-        def done(t, st):
-            effect, end = ran(st), routine_end(t, st)
-            # a known failure of THIS attempt ends it once idle — no program
-            # witness is waited for (R294/R295 FI-I31)
-            if known_failure() and st.get("interp_state") == 1:
-                return True
-            return end and effect
-        if outcome is None:
+        # the servo stream of the whole attempt is recorded for 2c-b (R299):
+        # the start point's evaluator comes once the run showed how
+        # motion.program-line counts MDI and remap lines — not judged here
+        box: dict = {}
+        with (_section(ctx) if "servo" in ctx else _no_section()) as box:
+            # ONE outcome of the attempt from the auto_run on (R295 FI-I31): a
+            # known refusal or contradiction, an observed failure, a missing
+            # observation — carried into the line's row on every path
+            outcome = None
             try:
-                tc.serve(c, changes, done, RFL_DEADLINE, cursor=cursor)
-            except tc.ToolChangeError as e:
-                outcome = {"status": "incomplete" if e.cause == "unobserved" else "FAIL", "cause": e.cause,
-                           "detail": f"the attempt's tool changes ended: {e}"}
+                c.request("auto_run", line=RFL_LINE, file=origin["file"], version=origin["version"],
+                          source=origin["source"], spindle_dir="forward", spindle_speed=int(RFL_SPEED), pre_tool=tool,
+                          probe_vars={str(k): v for k, v in ts.items()}, safe_z=True, entry_x=RFL_ENTRY[0],
+                          entry_y=RFL_ENTRY[1], entry_wcs="G54", entry_units="G21")
+            except ls.Refused as e:
+                outcome = {"status": "FAIL", "cause": "refused", "detail": f"auto_run refused: {e}"}
+            except (ls.NoReply, ls.TransportLost) as e:
+                # no answer or a lost transport is no refusal (R296 FI-I31 A/B)
+                outcome = {"status": "incomplete", "cause": "unobserved", "detail": f"auto_run not answered: {e}"}
+            seen = {"program": False}
+
+            def ran(st):
+                seen["program"] = seen["program"] or (st.get("task_mode") == nc.MODE_AUTO and st.get("call_level") == 0
+                                                      and isinstance(st.get("motion_line"), int)
+                                                      and st["motion_line"] >= RFL_LINE)
+                return seen["program"]
+
+            def failed_phase():
+                return next((p for _, p in c.rfl_history[hist_from:] if nc.rfl_failed(p)), None)
+
+            def known_failure():
+                return failed_phase() is not None or nc._failures([(k, x) for _, k, x in c.errors[err_from:]])
+            routine_end = tc.RoutineEnd()
+
+            def done(t, st):
+                effect, end = ran(st), routine_end(t, st)
+                # a known failure of THIS attempt ends it once idle — no program
+                # witness is waited for (R294/R295 FI-I31)
+                if known_failure() and st.get("interp_state") == 1:
+                    return True
+                return end and effect
+            if outcome is None:
+                try:
+                    tc.serve(c, changes, done, RFL_DEADLINE, cursor=cursor)
+                except tc.ToolChangeError as e:
+                    outcome = {"status": "incomplete" if e.cause == "unobserved" else "FAIL", "cause": e.cause,
+                               "detail": f"the attempt's tool changes ended: {e}"}
+        if "section" in box:
+            servo_file = ctx["run"] / "servo-rfl.jsonl"
+            with servo_file.open("w") as f:
+                for t, n, vals in box["section"]["samples"]:
+                    f.write(json.dumps([t, n, list(vals)]) + "\n")
+            ctx["report"]["rfl_servo"] = {"file": servo_file.name, "samples": len(box["section"]["samples"]),
+                                          "problems": box["section"]["problems"]}
         # the rows on EVERY path, from what was received since this attempt began
         hist, run_frames = list(c.rfl_history[hist_from:]), frames[cursor:]
         errors = [(k, x) for _, k, x in c.errors[err_from:]]
@@ -795,7 +941,8 @@ def main(argv=None) -> int:
     joints = PROFILES[a.profile][1]
     with heavy_lock("native_run", wait=0):
         report = run(SystemHost(), [make_tree(a.commit, a.profile), make_copy(a.profile), start_copy(),
-                                    connect_client(), home_cases(joints), jog_cases(joints),
+                                    connect_client(), servo_device(), home_cases(joints), jog_cases(joints),
+                                    plateau_cases(), goto_cases(),
                                     probe_cases(), m600_cases(), m6_hold_case(), rfl_cases()], a.run_dir)
     report["verdict"] = verdict(report)
     write_json(a.run_dir / "report.json", report)
