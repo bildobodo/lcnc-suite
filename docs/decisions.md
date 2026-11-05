@@ -10674,3 +10674,14 @@ missing reply or a lost transport (unobserved), the M6 helper's cause, an
 observed error of kind 1/11 or a failed phase (ending the attempt once
 idle, no program witness waited for) — carried into the line's row before
 its counter, with the history and the errors on every path.
+
+Codex R296: the gateway sends its LAST run-from-line phase, so a short phase
+may never be received — the stages (safe Z, the entry move) run as MDI and
+only their MDI frames are theirs: a frame of the started program (AUTO) at
+or before a skipped phase's boundary never reaches the height or the entry
+check, a frame of unknown mode is no proof. Every negative phase counts
+(`ok: false`, named or not — flag_clear_failed was missing). The client
+types its ends at its boundary: Refused (the gateway answered ok: false),
+NoReply, TransportLost (the library's ConnectionClosed, an OSError, a closed
+reader) — a programming error stays itself; only Refused is a refusal, at
+the auto_run and at the M6 confirmation alike, which is never repeated.

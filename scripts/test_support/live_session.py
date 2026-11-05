@@ -11,6 +11,20 @@ import time
 from urllib.parse import urlencode
 
 
+class Refused(RuntimeError):
+    """The gateway ANSWERED ok: false — a known refusal."""
+
+
+class NoReply(RuntimeError):
+    """No reply within the time — nothing is known of the command's fate."""
+
+
+class TransportLost(RuntimeError):
+    """The connection failed or closed while sending or waiting (R296 FI-I31:
+    the library's ConnectionClosed is no RuntimeError — typed here, at the
+    boundary; a programming error is none of these and stays itself)."""
+
+
 class SimulatorClient:
     def __init__(self, token, session="test-suite-live-twp", auto_confirm=True, on_status=None, keep=None):
         self.token = token
@@ -45,7 +59,11 @@ class SimulatorClient:
         self.frames: list = []
 
     def send(self, command):
-        self.ws.send(json.dumps(command))
+        from websockets.exceptions import ConnectionClosed
+        try:
+            self.ws.send(json.dumps(command))
+        except (ConnectionClosed, OSError) as e:
+            raise TransportLost(f"the connection closed while sending: {e!r}") from e
 
     def start(self):
         from websockets.sync.client import connect
@@ -112,11 +130,13 @@ class SimulatorClient:
                 self.error = str(exc)
 
     def request(self, cmd, **kwargs):
+        if self.error:
+            raise TransportLost(self.error)
         self.send({"cmd": cmd, **kwargs})
         deadline = time.monotonic() + 30
         while time.monotonic() < deadline:
             if self.error:
-                raise RuntimeError(self.error)
+                raise TransportLost(self.error)
             try:
                 reply = self.replies.get(timeout=0.5)
             except queue.Empty:
@@ -125,9 +145,9 @@ class SimulatorClient:
             # Await hello before sending arm so their replies cannot shift.
             if reply.get("cmd") == cmd or (cmd in ("hello", "arm") and "cmd" not in reply):
                 if not reply["ok"]:
-                    raise RuntimeError(f"{cmd} refused: {reply.get('error')}")
+                    raise Refused(f"{cmd} refused: {reply.get('error')}")
                 return reply
-        raise RuntimeError(f"No gateway reply to {cmd}")
+        raise NoReply(f"No gateway reply to {cmd}")
 
     def prepare(self, joint_count=6):
         import linuxcnc

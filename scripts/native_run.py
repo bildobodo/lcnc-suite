@@ -674,6 +674,7 @@ def rfl_cases():
     seen, the start point (incomplete until step 2c), the L+1 counter."""
     def step(ctx):
         import hashlib
+        from test_support import live_session as ls
         from test_support import tool_change as tc
         c, frames, rows = ctx["client"], ctx["frames"], []
         tool = MEASURED_TOOL
@@ -710,11 +711,11 @@ def rfl_cases():
                       source=origin["source"], spindle_dir="forward", spindle_speed=int(RFL_SPEED), pre_tool=tool,
                       probe_vars={str(k): v for k, v in ts.items()}, safe_z=True, entry_x=RFL_ENTRY[0],
                       entry_y=RFL_ENTRY[1], entry_wcs="G54", entry_units="G21")
-        except RuntimeError as e:
-            # the gateway's refusal is known; no reply or a lost transport is not
-            refused = str(e).startswith("auto_run refused:")
-            outcome = {"status": "FAIL" if refused else "incomplete", "cause": "refused" if refused else "unobserved",
-                       "detail": f"auto_run {'refused' if refused else 'not answered'}: {e}"}
+        except ls.Refused as e:
+            outcome = {"status": "FAIL", "cause": "refused", "detail": f"auto_run refused: {e}"}
+        except (ls.NoReply, ls.TransportLost) as e:
+            # no answer or a lost transport is no refusal (R296 FI-I31 A/B)
+            outcome = {"status": "incomplete", "cause": "unobserved", "detail": f"auto_run not answered: {e}"}
         seen = {"program": False}
 
         def ran(st):
@@ -724,7 +725,7 @@ def rfl_cases():
             return seen["program"]
 
         def failed_phase():
-            return next((p for _, p in c.rfl_history[hist_from:] if p.get("phase") in nc.RFL_FAILED), None)
+            return next((p for _, p in c.rfl_history[hist_from:] if nc.rfl_failed(p)), None)
 
         def known_failure():
             return failed_phase() is not None or nc._failures([(k, x) for _, k, x in c.errors[err_from:]])

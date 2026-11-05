@@ -371,8 +371,16 @@ def eval_unload(case: str, served: list[dict], tool_after, offset_after) -> dict
 # ── step 2b: run from line (Codex R292 FI292-01) ─────────────────────────
 MODE_AUTO = 2
 POS_TOL = 0.01                # mm: a position reached / an entry stood at
-RFL_FAILED = {"measure_failed", "flag_failed", "safe_z_failed", "positioning_failed", "program_changed", "failed",
-              "aborted"}
+RFL_FAILED = {"measure_failed", "flag_failed", "flag_clear_failed", "safe_z_failed", "positioning_failed",
+              "program_changed", "failed", "aborted"}
+MODE_MDI = 3
+
+
+def rfl_failed(phase: dict) -> bool:
+    """A negative phase: every one the gateway sends (`ok: false`), named or
+    not — the gateway sends its LAST phase, so none before it may be relied
+    on (R296 FI-I31 C)."""
+    return phase.get("phase") in RFL_FAILED or phase.get("ok") is False
 
 
 def _main(st) -> bool:
@@ -394,7 +402,7 @@ def _phases(history):
 
 
 def _started(history):
-    bad = next(((t, p) for t, p in history if p.get("phase") in RFL_FAILED), None)
+    bad = next(((t, p) for t, p in history if rfl_failed(p)), None)
     running = next((t for t, p in history if p.get("phase") == "running" and p.get("ok") is True), None)
     return bad, running
 
@@ -563,10 +571,14 @@ def eval_rfl_start_point(case: str, history, frames, entry_xy) -> dict:
     between them: without one it stays incomplete until step 2c."""
     ph = {p: (a, b) for p, a, b in _phases(history)}
     measured = {"entry": list(entry_xy)}
+    # the stages run as MDI: a frame of the started program (AUTO) is never
+    # theirs — a phase may be skipped in transmission, so its boundary frame
+    # can already be the program's (R296 FI-I29 A)
+    mdi = lambda st: st.get("task_mode") == MODE_MDI  # noqa: E731
     z_safe = None
     if "safe_z" in ph:
         a, b = ph["safe_z"]
-        zs = [z for t, st in frames if a <= t < b for z in [_z(st)] if z is not None]
+        zs = [z for t, st in frames if a <= t < b and mdi(st) for z in [_z(st)] if z is not None]
         if zs:
             z_safe = zs[-1]
             measured.update(safe_z_start=zs[0], safe_z_end=zs[-1])
@@ -575,14 +587,16 @@ def eval_rfl_start_point(case: str, history, frames, entry_xy) -> dict:
                 return _row(case, "FAIL", f"Z lowered to {low:.3f} in the safe-Z stage (from {zs[0]:.3f})", **measured)
     if "positioning" in ph:
         a, b = ph["positioning"]
-        win = [(t, st) for t, st in frames if a <= t <= b]
+        win = [(t, st) for t, st in frames if a <= t <= b and st.get("task_mode") != MODE_AUTO]
         if z_safe is not None:
-            low = next((z for _, st in win for z in [_z(st)] if z is not None and z < z_safe - POS_TOL), None)
+            low = next((z for _, st in win if mdi(st) for z in [_z(st)] if z is not None and z < z_safe - POS_TOL),
+                       None)
             if low is not None:
                 return _row(case, "FAIL", f"XY moved with Z at {low:.3f}, below the safe height {z_safe:.3f}",
                             **measured)
         last = win[-1][1] if win and b != math.inf else None
-        if last is not None and _finite(last.get("current_vel")) and abs(last["current_vel"]) <= STANDSTILL:
+        if last is not None and mdi(last) and _finite(last.get("current_vel")) \
+                and abs(last["current_vel"]) <= STANDSTILL:
             wrong, _ = _axes(last.get("joint_pos"), {0: entry_xy[0], 1: entry_xy[1]})
             if wrong:
                 j, have, want = wrong[0]

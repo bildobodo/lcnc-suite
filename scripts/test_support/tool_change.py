@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import time
 
+from test_support.live_session import NoReply, Refused, TransportLost
+
 HOLD_GAP_S = 0.1          # s between two received frames: 20 Hz with one late tick (30 Hz while M6 waits)
 INTERP_IDLE = 1
 
@@ -174,9 +176,13 @@ def serve(client, changes: ToolChanges, done, deadline_s: float, cursor: int, ti
             if act:
                 try:
                     client.request("confirm_tool_change", request=act[1])
-                except RuntimeError as e:
+                except Refused as e:
                     raise ToolChangeError(f"the confirmation of request {act[1]} was refused: {e}",
                                           "refused") from None
+                except (NoReply, TransportLost) as e:
+                    # no answer is no refusal (R296 FI-I31 A): never confirmed again
+                    raise ToolChangeError(f"the confirmation of request {act[1]} not answered: {e}",
+                                          "unobserved") from None
             finished = done(t, st)
             if changes.idle() and finished:
                 changes.ended_at = t
