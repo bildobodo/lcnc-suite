@@ -5537,3 +5537,107 @@ Mein Gegenvorschlag für das Paket: **Entwurf, übernommener Interpreterwert und
 Reproduktion der neuen Skripte mit Gateway-Venv-Python `-B`, Archivkopie von `8b248869` als erstem Argument; für `live-audit.py` zusätzlich der gespeicherte Laufordner. Die neue Gegenprobe endet wegen der Befunde mit Code 1, die Nachrechnung mit Code 0. In der Anfrage nennen die sechs Punkte jeweils die **Korrekturcommits**; die tatsächlich ausgeführten Stände der ersten sechs Läufe stehen korrekt in `live-runs.json` jeweils davor. Der sechste Lauf lief auf `2fde381b`, erst der siebte auf `8b248869`.
 
 Keine Tests/Builds im Live-Baum, keine Live-Zugriffe, Maschinenbefehle oder Produktänderungen. Nur dieser Anhang und neue R306-Belege; ältere Belege unverändert.
+
+---
+
+## Claude · Antwort auf R306 · Anfrage R307 · 5. November 2026
+
+Zwei Teile. **Teil A** ist das Produktpaket P1 mit der Operatorentscheidung zu Q306-1. **Teil B** schließt FI-I36 und FI-I37.
+
+### Teil A · P1: Die Rückfahrt von M600 endet oben an X/Y des Aufrufs
+
+**Stand:** `fix/m600-return-top` **`1c32325c`**, Basis `development` = `838c3381`.
+
+**Q306-1, die Entscheidung des Operators:**
+- Mit `#3106 = 1` fährt M600 nach dem Messen auf X/Y des Aufrufs in der obersten Z-Lage; Z bleibt oben.
+- Jeder Abstieg nach der Messung gehört dem Programm. Dieselbe Regel gilt schon für Start ab Zeile.
+- Den Längenversatz berührt das nicht: Die Routine speichert die Länge und setzt G43 vor der Rückfahrt, mit `#3106` 0 wie 1.
+
+Deinen benannten Halt habe ich nicht übernommen, und zwar aus zwei Gründen:
+- Eine Rückfahrt, die immer erreichbar ist, braucht keinen Halt.
+- Eine Routine, die mit einem **neuen** Werkzeug nie selbst absenkt, kann eine falsche Messung nicht ins Werkstück tragen.
+
+Damit gibt die Suite die Z-Rückkehr des Upstream-Autors auf; sein Handbuch nennt die volle Aufruflage.
+
+**Wie es dazu kam:**
+- Der Operator bezweifelte den Befund: Er wechsle seit Langem mit M600 von der obersten Lage aus, auch von kurz auf lang, ohne Fehler.
+- Seine Maschinenkonfiguration hat `#3106 = 0`. Dort lief die Rückfahrt nie, deshalb gab es auch nie den Fehler.
+- Dieselbe Fehlerklasse fand ich am 27.09. an der XYZAC-Sim. Damals wurde `#3106` nur in dieser Vorlage abgeschaltet; das 3-Achs-Beispiel blieb auf 1.
+- Die März-Untersuchung `5115b4b0` war ein anderer Fehler: die negative Grenze in der Suchfahrt, behoben durch Klemmen, Ursache nie bestätigt.
+
+**Live vorher und nachher**, je eine eigene 3-Achs-Kopie über `run()` mit Rückgabe, Rückgabe jeweils `complete` und Isolation leer. Beleg: [function-inventory.r307.m600-experiment.json](function-inventory.r307.m600-experiment.json), das Skript daneben ([.py](function-inventory.r307.m600-experiment.py)).
+
+| Fall (`#3106 = 1`, G30 = 0/0/0) | `8b248869` (alte Routine) | `940c599f` (Integration mit der Korrektur) |
+|---|---|---|
+| T3 22 mm, G43 aktiv, Spindel G53 Z0, dann `T4 M600` (73 mm) | FAIL: „would exceed Z's positive limit“, Zeile 596; Spindel bleibt am Taster bei −103,8 | PASS, Ende X10 Y10 Gelenk-Z 0, G43 73,168 |
+| T4 oben, dann `T3 M600` | PASS, Spitze zurück auf alter Höhe | PASS, Ende oben an X10 Y10 |
+| Entladen (endet auf G30 = oben), dann `T4 M600` | FAIL wie oben | PASS, Ende X0 Y0 Gelenk-Z 0 |
+
+Neu sichtbar wurde dabei: LinuxCNC lehnt den Satz schon beim Einreihen ab. Das vorausgehende Freifahren auf `G53 Z0` lief deshalb nie, und die Spindel blieb unten am Taster stehen.
+
+**Änderungen:**
+- **Routine `tool_touch_off.ngc`:**
+  - −20− speichert nur noch X/Y.
+  - −210− behält den einen Satz `G1 X Y` nach dem Freifahren `G53 G1 Z0`.
+  - Die Änderung ist mit `;lcnc-suite:` kommentiert.
+- **Vorschau:** Der Kanon gibt den gespeicherten Zustand an **einen** Rückfahrsatz weiter (`_pos_return = 1`).
+- **Pin:** `MARKED_POS_ROUTINES` enthält **nur noch** den neuen SHA-256. Der alte ist bewusst entfernt: Eine ältere Kopie anderswo gilt dann als unmarkiert (vorsichtig) und wird nie mit falscher Satzzahl modelliert.
+- **Doku:** der Hilfetext im Formular, die `#3106`-Zeilen in CLAUDE.md und README, die Zeilen im gebündelten Handbuch, das XYZAC-README (Begründung überholt, Wert bleibt 0) und `decisions.md`.
+
+**Wächter:**
+- **`m600_top_longer`:** `T2 M600` (80 mm) von G53 Z0 ohne Werkzeug, `MAX_LIMIT` 50. Vorher ein Z-Verstoß in Zeile 596 mit Wert 80, jetzt keiner, Ende oben.
+- **`m600_known`, `m600_result`, `e_m600_return`:** Sie enden oben unter dem neuen Versatz, jeder Wert im Test hergeleitet:
+  - in G54 Z10 / G92 Z−5 ergibt sich −80 − 10 + 5 = −85;
+  - die letzten zwei Vorschübe sind das Freifahren am Taster (Maske 0) und der eine Rückfahrsatz (Maske 3).
+- **Rot:** gegen `838c3381` an den Zusicherungen.
+- **Task-Pfad-Wächter `test_tool_touch_off_paths`:** Er vergleicht den Task-Pfad mit der Referenz vor dem Vorschau-Zweig. Er benennt jetzt die zwei **beschlossenen** Entfernungen (`DECIDED_REMOVALS`), jede muss genau einmal greifen. Ein zweiter Test zeigt, dass genau diese zwei Zeilen den Unterschied ausmachen und sonst nichts entschuldigt ist.
+
+**Gate:**
+- Lauf 1 an `7e7eb91c`: **FAIL**, aufbewahrt. Der Task-Pfad-Wächter hielt die beschlossene Änderung für eine unerlaubte; behoben in `1c32325c`.
+- Lauf 2 an `1c32325c`: **PASS**. Geprüft wurden Selektor-Wächter, Lint, Build, Unit leicht, Backend und die ausgewählten Browser-Specs (wegen des geänderten Hilfetexts). Bericht: `m600-return.gate-round.run2.json`; Lauf 1 liegt daneben als `.run1.json`.
+
+**Paritätskorpus:** Das einzige M600-Programm im Korpus läuft auf XYZAC mit `#3106 = 0`; an seiner Wahrheit ändert sich nichts.
+
+**Noch offen:**
+- **Nativ:** Der feste Fall „von oben auf ein längeres Werkzeug“ im nativen Lauf. Dazu entfällt in `m600_cases` der Umweg über die Startlage `-(L0 + 20)` für die korrigierte Routine. Beides kommt auf `integ/m600-native` (native Stufe plus Korrektur, jetzt `6ea55208`), sobald Teil A abgenommen ist.
+- **Merge:** Der Merge nach `development` wartet auf deine Abnahme und den Blick des Operators.
+
+### Teil B · FI-I36 und FI-I37
+
+**Stand:** `feat/native-stage` **`d54c1b2f`**, Basis `8b248869`.
+
+**FI-I36:**
+- Der Jog-Schritt legt jede beurteilte Zeile sofort in die Zeilen des Schritts, auch die Servozeile. Die lokale Liste `servo_rows` ist weg.
+- Doppelte Zeilen gibt es nicht: Die normale Rückkehr gibt dieselbe Liste zurück.
+- Das Abschnittsprotokoll enthält jetzt die `jog_stop`-Antwortzeit (`t_reply`), wie gewünscht.
+- **Wächter:** deine Probe über `run()`. Der erste Abschnitt zeigt Y-Bewegung im X-Jog, und vor dem zweiten Fall kommt „Not armed“. Die FAIL-Zeile bleibt, und `t_reply` steht im Protokoll.
+
+**FI-I37:**
+- Cursor für Bilder und Fehler, die Triggerzeit und die Vorbedingung des Starts entstehen unmittelbar vor **jedem** Versuch (`_when_free(before=…)`). Gilt der Versuch als angenommen, werden seine Werte verwendet.
+- Erneut gestellt wird nur noch eine `live_session.Refused` wegen der Startsperre. `TransportLost` und `NoReply` beenden den Lauf, gleich welcher Text.
+- **Wächter**, deine Proben als Tests: 22 Ablehnungen mit Idle-Bildern, danach busy ohne Abschluss ergibt keinen Abschluss. Kommt ein echter Abschluss nach der Wiederholung, liegt `t_done` nach der Annahme. Dazu zwei Kontrollen ohne Wiederholung und die Typprüfung in drei Varianten.
+- **Rot** gegen `8b248869` an den Zusicherungen, 271 native Tests.
+
+**Gate:** Round Gate an `d54c1b2f`, Basis `8b248869`: **PASS**. Geprüft wurden Selektor-Wächter, Lint, Build, Unit leicht und Backend mit `native-stage` 271/271 sowie `inventory` 36/36. Bericht: `native.r306-fixes.gate-round.run1.json`.
+
+### P2
+
+P2 bleibt ein eigenes Paket. Beim Planen des Live-Beweises hat sich eine Annahme verschoben; das Folgende ist **aus dem Code gelesen, noch nicht live geprüft**.
+
+**Die Ausgangslage:** `set_probe_vars` hat das Gate `ready`. Ohne bereite Maschine lehnt das Gateway es ab, und die Oberfläche sendet es dann gar nicht. Den Fall „nur die Datei geschrieben“ (`mdi_set: false`) erreicht die Oberfläche praktisch nicht. Der Teil, den ich in R306 nur geschlossen hatte, trifft so also nicht zu.
+
+**Die eigentliche Lücke** liegt im Formular `ToolsetterSettings.pushWhenConfirmed`:
+- Es sendet die bestätigten Werte **einmal**, wenn der Server das Speichern bestätigt (`watch(settingsVersion)`).
+- Ist die Maschine in diesem Moment nicht `ready`, wird `awaiting` geleert und ohne Meldung abgebrochen. Später versucht es das Formular nie wieder.
+- `cycle_start` trägt keine Taster-Werte. Ein M600 **im Programm** misst also mit den älteren Werten im Interpreter, obwohl das Formular die neuen zeigt.
+- Alle M600, die die Oberfläche selbst startet, tragen die Werte: Measure Current, Unload, eine Tabellenladung im M600-Modus und Start ab Zeile mit Vormessung.
+
+**Dazu kommen:**
+- die Reihenfolge Datei → MDI in `_apply_probe_vars`, gemessen in Lauf 5;
+- `get_probe_vars` als ungeprüftes Lesen der Datei, das keine Oberfläche nutzt.
+
+**Als Nächstes:** der Live-Beweis der Lücke. Ich speichere den Taster-Abschnitt bei ausgeschalteter Maschine, schalte sie ein, referenziere, lese den Wert im Interpreter und lasse danach ein Programm-M600 messen. Dein Vorschlag fließt in die Korrektur ein: Entwurf, übernommener Wert und Persistenz getrennt ausweisen; aktive Werte bestätigt lesen.
+
+**Erbeten:**
+- `agreement` oder `findings` zu Teil A und zu Teil B;
+- ob der native Fall „von oben“ und der Wegfall von `M600_CLEAR` wie oben in die nächste Runde gehören.

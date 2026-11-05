@@ -1,0 +1,681 @@
+{
+ "before_8b248869": {
+  "run": "m600top-20261105T195231",
+  "commit": "8b2488691cdd0817ae038cf4a54b238b124c88bc",
+  "steps": [
+   "tree",
+   "copy",
+   "start",
+   "connect",
+   "experiment"
+  ],
+  "error": null,
+  "restore": {
+   "outcome": "complete",
+   "isolation": [],
+   "cleanup": []
+  },
+  "setup": {
+   "plate": {
+    "x": 10.0,
+    "y": 10.0,
+    "z": -180.0
+   },
+   "lengths": {
+    "3": 22.0,
+    "4": 73.1688
+   },
+   "g30": {
+    "5181": 0.0,
+    "5182": 0.0,
+    "5183": 0.0
+   }
+  },
+  "vars_3106": 1.0,
+  "rows": [
+   {
+    "case": "load-short-from-low",
+    "status": "PASS",
+    "detail": "no error",
+    "before": {
+     "joint_pos": [
+      10.0,
+      10.0,
+      -119.99999999999999,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 0,
+     "offset_z": 0.0,
+     "table_z": null
+    },
+    "after": {
+     "joint_pos": [
+      10.0,
+      10.0,
+      -98.00044999999992,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 3,
+     "offset_z": 21.999550000000056,
+     "table_z": 21.999550000000056
+    },
+    "errors": []
+   },
+   {
+    "case": "at-top-with-short",
+    "status": "PASS",
+    "detail": "",
+    "state": {
+     "joint_pos": [
+      10.0,
+      10.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 3,
+     "offset_z": 21.999550000000056,
+     "table_z": 21.999550000000056
+    }
+   },
+   {
+    "case": "A-short-to-long-from-top",
+    "status": "FAIL",
+    "detail": "Linear move on line 596 would exceed Z's positive limit; Linear move on line 596 would exceed joint 2's positive limit; invalid params in linear command",
+    "before": {
+     "joint_pos": [
+      10.0,
+      10.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 3,
+     "offset_z": 21.999550000000056,
+     "table_z": 21.999550000000056
+    },
+    "after": {
+     "joint_pos": [
+      10.0,
+      10.0,
+      -103.83249999999997,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 4,
+     "offset_z": 73.16835000000006,
+     "table_z": 73.16835000000006
+    },
+    "errors": [
+     [
+      11,
+      "Linear move on line 596 would exceed Z's positive limit"
+     ],
+     [
+      11,
+      "Linear move on line 596 would exceed joint 2's positive limit"
+     ],
+     [
+      11,
+      "invalid params in linear command"
+     ]
+    ]
+   },
+   {
+    "case": "B-long-to-short-from-top",
+    "status": "PASS",
+    "detail": "no error",
+    "before": {
+     "joint_pos": [
+      10.0,
+      10.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 4,
+     "offset_z": 73.16835000000006,
+     "table_z": 73.16835000000006
+    },
+    "after": {
+     "joint_pos": [
+      10.0,
+      10.0,
+      -51.16924999999995,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 3,
+     "offset_z": 21.999100000000112,
+     "table_z": 21.999100000000112
+    },
+    "errors": []
+   },
+   {
+    "case": "C-unload",
+    "status": "PASS",
+    "detail": "no error",
+    "before": {
+     "joint_pos": [
+      10.0,
+      10.0,
+      -51.16924999999995,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 3,
+     "offset_z": 21.999100000000112,
+     "table_z": 21.999100000000112
+    },
+    "after": {
+     "joint_pos": [
+      0.0,
+      0.0,
+      -8.881784197001252e-15,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 0,
+     "offset_z": 0.0,
+     "table_z": 0.0
+    },
+    "errors": []
+   },
+   {
+    "case": "C-empty-to-long",
+    "status": "FAIL",
+    "detail": "Linear move on line 596 would exceed Z's positive limit; Linear move on line 596 would exceed joint 2's positive limit; invalid params in linear command",
+    "before": {
+     "joint_pos": [
+      0.0,
+      0.0,
+      -8.881784197001252e-15,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 0,
+     "offset_z": 0.0,
+     "table_z": 0.0
+    },
+    "after": {
+     "joint_pos": [
+      10.0,
+      10.0,
+      -103.83159999999988,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 4,
+     "offset_z": 73.16790000000012,
+     "table_z": 73.16790000000012
+    },
+    "errors": [
+     [
+      11,
+      "Linear move on line 596 would exceed Z's positive limit"
+     ],
+     [
+      11,
+      "Linear move on line 596 would exceed joint 2's positive limit"
+     ],
+     [
+      11,
+      "invalid params in linear command"
+     ]
+    ]
+   }
+  ]
+ },
+ "after_940c599f": {
+  "run": "m600top-fixed-20261105T204805",
+  "commit": "940c599f61ae281c4cfc31a280873c0e93881b7d",
+  "steps": [
+   "tree",
+   "copy",
+   "start",
+   "connect",
+   "experiment"
+  ],
+  "error": null,
+  "restore": {
+   "outcome": "complete",
+   "isolation": [],
+   "cleanup": []
+  },
+  "setup": {
+   "plate": {
+    "x": 10.0,
+    "y": 10.0,
+    "z": -180.0
+   },
+   "lengths": {
+    "3": 22.0,
+    "4": 73.1688
+   },
+   "g30": {
+    "5181": 0.0,
+    "5182": 0.0,
+    "5183": 0.0
+   }
+  },
+  "vars_3106": 1.0,
+  "rows": [
+   {
+    "case": "load-short-from-low",
+    "status": "PASS",
+    "detail": "no error",
+    "at_call_xy_top": true,
+    "before": {
+     "joint_pos": [
+      10.0,
+      10.0,
+      -119.99999999999999,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 0,
+     "offset_z": 0.0,
+     "table_z": null
+    },
+    "after": {
+     "joint_pos": [
+      10.0,
+      10.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 3,
+     "offset_z": 21.999550000000056,
+     "table_z": 21.999550000000056
+    },
+    "errors": []
+   },
+   {
+    "case": "at-top-with-short",
+    "status": "PASS",
+    "detail": "",
+    "state": {
+     "joint_pos": [
+      10.0,
+      10.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 3,
+     "offset_z": 21.999550000000056,
+     "table_z": 21.999550000000056
+    }
+   },
+   {
+    "case": "A-short-to-long-from-top",
+    "status": "PASS",
+    "detail": "no error",
+    "at_call_xy_top": true,
+    "before": {
+     "joint_pos": [
+      10.0,
+      10.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 3,
+     "offset_z": 21.999550000000056,
+     "table_z": 21.999550000000056
+    },
+    "after": {
+     "joint_pos": [
+      10.0,
+      10.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 4,
+     "offset_z": 73.16835000000006,
+     "table_z": 73.16835000000006
+    },
+    "errors": []
+   },
+   {
+    "case": "B-long-to-short-from-top",
+    "status": "PASS",
+    "detail": "no error",
+    "at_call_xy_top": true,
+    "before": {
+     "joint_pos": [
+      10.0,
+      10.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 4,
+     "offset_z": 73.16835000000006,
+     "table_z": 73.16835000000006
+    },
+    "after": {
+     "joint_pos": [
+      10.0,
+      10.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 3,
+     "offset_z": 21.999100000000112,
+     "table_z": 21.999100000000112
+    },
+    "errors": []
+   },
+   {
+    "case": "C-unload",
+    "status": "PASS",
+    "detail": "no error",
+    "at_call_xy_top": false,
+    "before": {
+     "joint_pos": [
+      10.0,
+      10.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 3,
+     "offset_z": 21.999100000000112,
+     "table_z": 21.999100000000112
+    },
+    "after": {
+     "joint_pos": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 0,
+     "offset_z": 0.0,
+     "table_z": 0.0
+    },
+    "errors": []
+   },
+   {
+    "case": "C-empty-to-long",
+    "status": "PASS",
+    "detail": "no error",
+    "at_call_xy_top": true,
+    "before": {
+     "joint_pos": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 0,
+     "offset_z": 0.0,
+     "table_z": 0.0
+    },
+    "after": {
+     "joint_pos": [
+      0.0,
+      0.0,
+      -1.7763568394002505e-15,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "tool": 4,
+     "offset_z": 73.16790000000012,
+     "table_z": 73.16790000000012
+    },
+    "errors": []
+   }
+  ]
+ }
+}
