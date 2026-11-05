@@ -1797,6 +1797,11 @@ def test_an_error_of_the_attempt_fails_the_line():
     assert r["status"] == "FAIL" and "reported" in r["detail"], r
 
 
+# the 3-axis copy's toolsetter values (examples/sim_config/xyz3/sim.var): a set-up section
+_TS_SHIPPED = {n: 0 for n in nr.TOOLSETTER_VARS} | {3004: 2000, 3006: 500, 3007: 180, 3009: 3, 3010: 180,
+                                                     3102: -180, 3106: 1, 3107: 5}
+
+
 class RflClient(FrameClient):
     """The whole rfl_cases step against a scripted gateway: the run's frames,
     phases and errors arrive with the auto_run (times relative to it)."""
@@ -1804,7 +1809,7 @@ class RflClient(FrameClient):
     def __init__(self, run_frames, history, errors=(), refuse=None, after_confirm=()):
         super().__init__([(0.0, {**_IDLE, "tool_number": 99, "task_mode": 3})])
         self.rfl_history, self.preview_origin = [], None
-        self.table, self.vars = 50.0, {n: 0 for n in nr.TOOLSETTER_VARS} | {3102: -180}
+        self.table, self.vars = 50.0, dict(_TS_SHIPPED)
         self.run_frames, self.history, self.run_errors = run_frames, history, list(errors)
         self.refuse, self.after_confirm = refuse or {}, list(after_confirm)
 
@@ -1820,8 +1825,8 @@ class RflClient(FrameClient):
             return {"ok": True}
         if cmd == "get_tool_table":
             return {"tools": [{"T": 1, "Z": self.table}]}
-        if cmd == "get_probe_vars":
-            return {"vars": {str(k): self.vars[k] for k in kw["vars"]}}
+        if cmd == "save_settings":
+            return {"ok": True}
         if cmd == "mdi":
             self.frames += [(t + 1.0, {**_IDLE, "task_mode": 3}), (t + 2.0, {**_IDLE, "task_mode": 3})]
             if kw["text"].startswith("(DEBUG,"):
@@ -1862,6 +1867,24 @@ def test_the_whole_run_from_line_step_gives_its_four_rows(tmp_path, monkeypatch)
                   "rfl-start-point": "incomplete"}, by
     run = next(kw for cmd, kw in c.sent if cmd == "auto_run")
     assert (run["line"], run["pre_tool"], run["entry_wcs"], run["entry_units"]) == (7, 1, "G54", "G21")
+    # P2: the dialog's values must be the server's section — saved before the start, the same numbers
+    cmds = [cmd for cmd, _ in c.sent]
+    saved = next(kw for cmd, kw in c.sent if cmd == "save_settings")
+    assert cmds.index("save_settings") < cmds.index("auto_run") and saved["section"] == "toolsetter"
+    assert saved["data"]["touchZ"] == run["probe_vars"]["3102"] == -180 and saved["data"]["slowFeed"] == 20.0
+
+
+def test_run_from_line_refuses_a_copy_whose_toolsetter_is_not_set_up(tmp_path, monkeypatch):
+    """P2: run from line with a pre-measurement needs the server's section —
+    values the gateway's rule calls invalid end the step before anything starts."""
+    monkeypatch.setattr(nr, "SHORT_GRACE", 0.02)
+    hist, frames = _rfl_run()
+    c = RflClient(frames, hist)
+    c.vars = {n: 0 for n in nr.TOOLSETTER_VARS} | {3102: -180}
+    ctx, step = _rfl_step(tmp_path, c)
+    with pytest.raises(nr.Refused, match="would not be set up"):
+        step(ctx)
+    assert [cmd for cmd, _ in c.sent if cmd in ("save_settings", "auto_run")] == []
 
 
 def test_a_program_error_reaches_the_line_row(tmp_path, monkeypatch):
@@ -3411,3 +3434,212 @@ def test_the_run_from_line_step_judges_its_start_from_the_servo_stream(tmp_path,
         assert by["rfl-start-point"]["status"] == status, by["rfl-start-point"]
         if status == "PASS":
             assert by["rfl-start-point.counter-entry-x+1"]["status"] == "PASS"
+
+
+# ── P2 on the real task: the section saved while off reaches the program's M600 (Codex R308–R309) ──
+
+def _ts_judge(**over):
+    args = dict(l0=50.0, old_3102=-180.0, new_3102=-179.0, length=49.0005, g43=49.0005,
+                note={"digest": "d", "set_up": True, "synced": True}, interp_before=-180.0, interp_after=-179.0,
+                errors=())
+    args.update(over)
+    return nc.eval_ts_sync("ts-sync-program-m600", **args)
+
+
+@pytest.mark.parametrize("over, status, part", [
+    ({}, "PASS", "applied at the start"),
+    ({"length": 49.9995, "g43": 49.9995}, "FAIL", "old #3102"),              # the live red case (R309)
+    ({"length": 48.5, "g43": 48.5}, "FAIL", "expected 49"),
+    ({"errors": [(11, "Unable to find …")]}, "FAIL", "reported"),
+    ({"note": None}, "FAIL", "names no toolsetter sync"),
+    ({"note": {"digest": "d", "set_up": True, "synced": False}}, "FAIL", "nothing was written"),
+    ({"interp_before": -179.0}, "incomplete", "prove nothing"),
+    ({"g43": 48.0}, "FAIL", "applied G43"),
+    ({"interp_after": -180.0}, "FAIL", "after the start"),
+    ({"interp_after": None}, "incomplete", "not read"),
+    ({"length": None}, "incomplete", "not read"),
+    ({"errors": [(13, "NATIVE1 P3102=-179.000000")]}, "PASS", "applied"),     # a DEBUG line is no failure
+])
+def test_the_program_start_measures_only_with_the_new_basis(over, status, part):
+    r = _ts_judge(**over)
+    assert r["status"] == status and part in r["detail"], r
+
+
+def test_the_old_basis_counter_refuses_the_new_length():
+    base = _ts_judge()
+    c = nc.counter("ts-sync-program-m600.counter-old-basis", _ts_judge(new_3102=-180.0), base)
+    assert c["status"] == "PASS" and "refused" in c["detail"], c
+
+
+_TS_VALUES = {k: 0.0 for k in nc.TS_KEYS} | {"3102": -179.0}
+
+
+def _booking(version, origin="applied", **values):
+    keys = {k: {"value": v, "origin": origin} for k, v in (_TS_VALUES | {"3102": -180.0}).items()}
+    for k, v in values.items():
+        keys[k[1:]] = v if isinstance(v, dict) else {"value": v, "origin": origin}
+    return {"version": version, "keys": keys}
+
+
+@pytest.mark.parametrize("before, after, status, part", [
+    (_booking(4), _booking(5, k3102=-179.0), "PASS", "every key"),
+    (_booking(4), _booking(5, "read", k3102=-179.0), "PASS", "every key"),
+    (None, _booking(5, k3102=-179.0), "incomplete", "not received"),
+    (_booking(4, k3102=-179.0), _booking(5, k3102=-179.0), "incomplete", "already"),
+    (_booking(4), _booking(5), "FAIL", "other numbers"),                                       # #3102 still old
+    (_booking(4), _booking(5, k3102=-179.0, k3005={"value": 0.0, "origin": "assumed"}), "incomplete", "not confirmed"),
+    (_booking(4), _booking(4, k3102=-179.0), "FAIL", "version"),
+])
+def test_the_booking_shows_the_old_number_before_and_the_section_after(before, after, status, part):
+    r = nc.eval_ts_booking("ts-sync-booking", _TS_VALUES, before, after)
+    assert r["status"] == status and part in r["detail"], r
+
+
+@pytest.mark.parametrize("note, v0, v1, status", [
+    ({"synced": False}, 5, 5, "PASS"),
+    ({"synced": True}, 5, 6, "FAIL"),
+    (None, 5, 5, "FAIL"),
+    ({"synced": False}, 5, 6, "FAIL"),
+    ({"synced": False}, None, 5, "incomplete"),
+])
+def test_a_second_start_with_the_same_section_writes_nothing(note, v0, v1, status):
+    assert nc.eval_ts_stable("ts-sync-stable", note, v0, v1)["status"] == status
+
+
+class TsClient(FrameClient):
+    """The ts-sync step against a scripted gateway with the sim's physics: the
+    physical T1 length IS its table length, M600 measures it + |#3102| −
+    |the plate|. `sync`: the gateway applies the saved section at a program
+    start (P2) — "none" sends no note and writes nothing (the old gateway),
+    "claim" says it synced but writes nothing, "always" writes on every start."""
+    PLATE = -180.0
+
+    def __init__(self, sync="p2"):
+        self.base = {**_IDLE, "is_enabled": True, "homed_joints": [True] * 3, "tool_number": 99,
+                     "tool_offset": [0.0, 0.0, 50.0], "tool_table_z": 50.0, "task_mode": 1}
+        super().__init__([(0.0, dict(self.base))])
+        self.sync, self.table, self.vars = sync, {1: 50.0}, dict(_TS_SHIPPED)
+        self.section, self.preview_origin = None, None
+        self.toolsetter_booking = {"version": 3, "keys": {str(k): {"value": float(v), "origin": "applied"}
+                                                          for k, v in self.vars.items()}}
+        self.after_confirm, self.starts = [], 0
+
+    def _frames(self, *states, dt=1.0):
+        t = self.frames[-1][0]
+        for i, st in enumerate(states):
+            self.base.update(st)
+            self.frames.append((t + dt * (i + 1), dict(self.base)))
+
+    def _book(self, vals):
+        keys = dict(self.toolsetter_booking["keys"])
+        changed = False
+        for k, v in vals.items():
+            new = {"value": float(v), "origin": "applied"}
+            changed = changed or keys.get(str(k)) != new
+            keys[str(k)] = new
+            self.vars[int(k)] = float(v)
+        if changed:
+            self.toolsetter_booking = {"version": self.toolsetter_booking["version"] + 1, "keys": keys}
+
+    def request(self, cmd, **kw):
+        import hashlib
+        import re
+        self.sent.append((cmd, kw))
+        if cmd == "get_tool_table":
+            return {"tools": [{"T": t, "Z": z} for t, z in self.table.items()]}
+        if cmd == "mdi":
+            m = re.match(r"G43 H(\d+)", kw["text"])
+            if m:
+                self.base["tool_offset"] = [0.0, 0.0, self.table[int(m.group(1))]]
+            self._frames({}, {})
+            if kw["text"].startswith("(DEBUG,"):
+                tag = kw["text"][len("(DEBUG,"):].split()[0]
+                vals = " ".join(f"P{n}={self.vars[int(n)]:.6f}" for n in re.findall(r"#(\d+)", kw["text"]))
+                self.errors.append((self.frames[-1][0], 13, f"{tag} {vals}"))
+            return {"ok": True}
+        if cmd == "set_probe_vars":
+            self._book(kw["vars"])
+            return {"ok": True, "mdi_set": True}
+        if cmd == "save_settings":
+            self.section = dict(kw["data"])
+            return {"ok": True}
+        if cmd in ("machine_off", "machine_on"):
+            self._frames({"is_enabled": cmd == "machine_on"})
+            return {"ok": True}
+        if cmd == "load_file":
+            self.preview_origin = {"file": kw["path"], "version": 1,
+                                   "source": hashlib.sha256(Path(kw["path"]).read_text().encode()).hexdigest()}
+            return {"ok": True}
+        if cmd == "save_tool":
+            self.table[kw["tool_number"]] = kw["z_offset"]
+            return {"ok": True}
+        if cmd == "cycle_start":
+            self.starts += 1
+            import toolsetter_rules as tr
+            want = {str(k): v for k, v in tr.setup(self.section)["values"].items()}
+            differ = any(self.toolsetter_booking["keys"].get(k, {}).get("value") != v for k, v in want.items())
+            write = self.sync == "always" or (self.sync == "p2" and differ)
+            if write:
+                self._book(want)
+            note = None if self.sync == "none" else {"digest": "d", "set_up": True,
+                                                       "synced": write or self.sync == "claim"}
+            text = Path(self.preview_origin["file"]).read_text()
+            if "M600" in text:
+                measured = self.table[1] + abs(self.vars[3102]) - abs(self.PLATE)
+                self._frames({"interp_state": 2, "inpos": False},
+                             {"tool_change_requested": True, "tool_change_seq": self.starts, "tool_change_tool": 1})
+                self.after_confirm = [{"tool_change_requested": False, "tool_change_seq": None, "tool_number": 1},
+                                      {"interp_state": 2, "inpos": False},
+                                      {"interp_state": 1, "inpos": True, "tool_table_z": measured,
+                                       "tool_offset": [0.0, 0.0, measured]}]
+                self.table[1] = measured
+            else:
+                self._frames({"interp_state": 2}, {"interp_state": 1}, {})
+            return {"ok": True, "toolsetter": note} if note else {"ok": True}
+        if cmd == "confirm_tool_change":
+            self._frames(*self.after_confirm)
+            return {"ok": True}
+        raise AssertionError((cmd, kw))
+
+
+def _ts_step(tmp_path, client):
+    (tmp_path / nr.NC_FILES).mkdir()
+    ctx = {"client": client, "frames": client.frames, "config": tmp_path, "report": {},
+           "plate": {"z": TsClient.PLATE}, "tree": Path(__file__).resolve().parent.parent}
+    return ctx, nr.ts_sync_cases()[1]
+
+
+@pytest.fixture
+def _ts_rules_on_path(monkeypatch):
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parent.parent / "lcnc-gateway"))
+    monkeypatch.setattr(nr, "SHORT_GRACE", 0.02)
+
+
+@pytest.mark.parametrize("sync, rows", [
+    ("p2", {"ts-sync-program-m600": "PASS", "ts-sync-program-m600.counter-old-basis": "PASS",
+            "ts-sync-booking": "PASS", "ts-sync-stable": "PASS"}),
+    ("none", {"ts-sync-program-m600": "FAIL", "ts-sync-program-m600.counter-old-basis": "incomplete",
+              "ts-sync-booking": "FAIL", "ts-sync-stable": "FAIL"}),
+    ("claim", {"ts-sync-program-m600": "FAIL", "ts-sync-program-m600.counter-old-basis": "incomplete",
+               "ts-sync-booking": "FAIL", "ts-sync-stable": "FAIL"}),
+    ("always", {"ts-sync-program-m600": "PASS", "ts-sync-program-m600.counter-old-basis": "PASS",
+                "ts-sync-booking": "PASS", "ts-sync-stable": "FAIL"}),
+])
+def test_the_whole_ts_sync_step(tmp_path, _ts_rules_on_path, sync, rows):
+    """The step at its whole course: the saved-while-off section applied by
+    the start (PASS); the old gateway (no note, nothing written — the R309
+    red case, measured with the old #3102); one that claims a sync it did not
+    write; one that writes again on the same section."""
+    c = TsClient(sync)
+    ctx, step = _ts_step(tmp_path, c)
+    by = {r["case"]: r for r in step(ctx)}
+    assert {k: r["status"] for k, r in by.items()} == rows, {k: (r["status"], r["detail"]) for k, r in by.items()}
+    if sync == "claim":
+        assert "old #3102" in by["ts-sync-program-m600"]["detail"], by["ts-sync-program-m600"]
+    # the course: the section saved, the machine off, the moved section saved, on, the program started
+    cmds = [cmd for cmd, _ in c.sent if cmd in ("save_settings", "machine_off", "machine_on", "cycle_start")]
+    assert cmds[:5] == ["save_settings", "machine_off", "save_settings", "machine_on", "cycle_start"], cmds
+    saves = [kw["data"]["touchZ"] for cmd, kw in c.sent if cmd == "save_settings"]
+    assert saves == [-180.0, -179.0, -180.0] and c.section["slowFeed"] == 20.0
+    # put back: T1's length, #3102 and the offset
+    assert c.table[1] == 50.0 and c.vars[3102] == -180.0 and c.base["tool_offset"][2] == 50.0

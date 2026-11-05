@@ -130,6 +130,12 @@ RFL_Z_LINE, RFL_Z_END = -100.0, -80.0
 #: never meet the program's 1…N
 ROUTINE_TEXTS = ("subroutines/tool_length_probe/tool_touch_off.ngc", "subroutines/tool_length_probe/m600.ngc")
 RFL_SAFE_Z = 0.0        # the joint Z the safe-Z step leaves (G53 Z0) — lines 7 and 8 run there
+#: P2 (Codex R308–R309): a PROGRAM's M600 after a section saved with the
+#: machine off; then a program with no motion — the same section, no write
+TS_FILE, TS_IDLE_FILE = "native_ts_sync.ngc", "native_ts_idle.ngc"
+TS_PROGRAM = f"G21 G90\nT{MEASURED_TOOL} M600\nM2\n"
+TS_IDLE_PROGRAM = "G21 G90\nM2\n"
+TS_DEADLINE = 240.0
 RFL_DEADLINE = 300.0    # s: the pre-measurement, the entry and the program
 # step 2c (plan Codex R299–R301)
 PLATEAU_START, PLATEAU_END, PLATEAU_FEED = (100.0, 300.0, -50.0), 500.0, 6000.0
@@ -757,6 +763,50 @@ def _set_tool_length(c, tool, length):
         raise Refused(f"T{tool}'s length {length} not read back from the table (read {back})")
 
 
+def _rules(ctx):
+    """The run tree's toolsetter rule (P2): the gateway that runs judges the
+    section with exactly this file."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("toolsetter_rules_run",
+                                                  Path(ctx["tree"]) / "lcnc-gateway" / "toolsetter_rules.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _save_toolsetter(ctx, c, values) -> dict:
+    """The toolsetter section as the form saves it ({var: number} → the form's
+    keys) — since P2 what a program start and run from line apply. Judged set
+    up by the run tree's rule first; returns {"var": the canonical number}."""
+    tr = _rules(ctx)
+    inv = {v: k for k, v in tr.VAR_MAP.items()}
+    section = {inv[int(k)]: v for k, v in values.items()}
+    setup = tr.setup(section)
+    if not setup["ok"]:
+        raise Refused(f"the toolsetter section would not be set up: {setup}")
+    reply = _when_free(c, "save_settings", section="toolsetter", data=section)
+    if not reply or reply.get("ok") is False:
+        raise Refused(f"the toolsetter section was not saved: {reply}")
+    return {str(k): v for k, v in setup["values"].items()}
+
+
+def _load_program(ctx, c, name, text, timeout=60.0):
+    """Write and load a program; wait until the gateway published exactly it
+    (its file and the run's own hash of the text)."""
+    import hashlib
+    path = ctx["config"] / NC_FILES / name
+    path.write_text(text)
+    digest = hashlib.sha256(text.encode()).hexdigest()
+    c.request("load_file", path=str(path))
+    end = time.monotonic() + timeout
+    while not (c.preview_origin and c.preview_origin.get("source") == digest
+               and Path(str(c.preview_origin.get("file"))).resolve() == path.resolve()):
+        if time.monotonic() > end:
+            raise Refused(f"the published origin is not the program written: {c.preview_origin}")
+        time.sleep(0.1)
+    return path
+
+
 def _to(c, x, y, z):
     """G53 move with NO tool offset applied — the joint start proven whatever
     G53 does with an active offset (G49 first), then waited for in joint space."""
@@ -942,6 +992,85 @@ def m6_hold_case():
     return ("m6-hold", step)
 
 
+def ts_sync_cases():
+    """P2 on the real task (Codex R308–R309): the toolsetter section saved
+    with the machine OFF (the live red case — the form sends nothing then)
+    reaches the interpreter at the PROGRAM start: Cycle Start's sync writes
+    it before AUTO, and the program's T1 M600 measures with it — L0 (the
+    table before) + |new #3102| − |old|, ± M600_TOL at #3005 = 20; only the
+    new basis passes, an NML error is a FAIL; a counter re-judges it against
+    the old basis. The booking this connection received says what the form
+    projects (old #3102 before, every key the section's number after); a
+    second start with the same section writes nothing. Put back: T1's length
+    (the sim's physical one), the section, #3102, the applied offset."""
+    def step(ctx):
+        from test_support import tool_change as tc
+        c, plate, rows = ctx["client"], ctx["plate"], ctx.setdefault("rows", [])
+        tool = MEASURED_TOOL
+        l0 = _tool_z(c, tool)
+        if l0 is None:
+            raise Refused(f"T{tool} has no row in the copy's table")
+        ts = {**_vars(c, TOOLSETTER_VARS), 3005: M600_SLOW}
+        if abs(ts[3102] - plate["z"]) > nc.SAME:
+            raise Refused(f"#3102 {ts[3102]} is not the plate {plate['z']} — the copy's setup differs")
+        # the machine holds the copy's values (an MDI write, booked applied),
+        # the server the same section
+        _when_free(c, "set_probe_vars", vars={str(k): v for k, v in ts.items()})
+        _save_toolsetter(ctx, c, ts)
+        new = {**ts, 3102: plate["z"] + 1}
+        c.request("machine_off")
+        _wait(c, lambda s: s.get("is_enabled") is False, 10, "machine off")
+        values = _save_toolsetter(ctx, c, new)
+        c.request("machine_on")
+        _wait(c, lambda s: s.get("is_enabled") is True, 10, "machine on")
+        if not all(c.status.get("homed_joints") or [False]):
+            c.request("home_all")
+            _wait(c, lambda s: all(s.get("homed_joints") or [False]) and s.get("inpos"), 60, "homed again")
+        before = _vars(c, [3102])[3102]
+        _load_program(ctx, c, TS_FILE, TS_PROGRAM)
+        changes = tc.ToolChanges([tool])
+        refusal = changes.precheck(c.status)
+        if refusal:
+            raise RuntimeError(f"ts-sync: {refusal}")
+        booking_before = c.toolsetter_booking
+        cursor, err_from = len(c.frames), len(c.errors)
+        reply = _when_free(c, "cycle_start")
+        end = tc.RoutineEnd()
+        tc.serve(c, changes, lambda t, st: end(t, st) and st.get("tool_number") == tool, TS_DEADLINE, cursor=cursor)
+        st = c.status
+        length, g43 = st.get("tool_table_z"), (st.get("tool_offset") or [None] * 3)[2]
+        errors = [(k, x) for _, k, x in c.errors[err_from:]]
+        after = _vars(c, [3102])[3102]
+        note = (reply or {}).get("toolsetter")
+
+        def judge(new_3102):
+            return nc.eval_ts_sync("ts-sync-program-m600", l0, ts[3102], new_3102, length, g43, note, before, after,
+                                   errors=errors)
+        row = judge(new[3102])
+        rows += [row, nc.counter("ts-sync-program-m600.counter-old-basis", judge(ts[3102]), row),
+                 nc.eval_ts_booking("ts-sync-booking", values, booking_before, c.toolsetter_booking)]
+        # the same section again: the named decision — nothing written
+        _load_program(ctx, c, TS_IDLE_FILE, TS_IDLE_PROGRAM)
+        v0, cursor = (c.toolsetter_booking or {}).get("version"), len(c.frames)
+        reply = _when_free(c, "cycle_start")
+        tc.serve(c, tc.ToolChanges([]), tc.RoutineEnd(require_busy=False, grace=SHORT_GRACE), 30.0, cursor=cursor)
+        rows.append(nc.eval_ts_stable("ts-sync-stable", (reply or {}).get("toolsetter"), v0,
+                                      (c.toolsetter_booking or {}).get("version")))
+        # put back, read back
+        _set_tool_length(c, tool, l0)
+        _save_toolsetter(ctx, c, ts)
+        _when_free(c, "set_probe_vars", vars={"3102": plate["z"]})
+        back = _vars(c, [3102])[3102]
+        if back is None or abs(back - plate["z"]) > nc.SAME:
+            raise Refused(f"#3102 not put back: {back}")
+        _short(c, f"G43 H{tool}")
+        off = (c.status.get("tool_offset") or [None] * 3)[2]
+        if off is None or abs(off - l0) > nc.SAME:
+            raise Refused(f"T{tool}'s offset not put back: {off}")
+        return rows
+    return ("ts-sync", step)
+
+
 def _with_outcome(row: dict, outcome: dict | None) -> dict:
     """The attempt's outcome in its line's row: a known refusal or
     contradiction makes it a FAIL, a missing observation incomplete — a FAIL
@@ -973,6 +1102,8 @@ def rfl_cases():
         if l0 is None:
             raise Refused(f"T{tool} has no row in the copy's table")
         ts = {**_vars(c, TOOLSETTER_VARS), 3005: M600_SLOW}
+        # the dialog's values must be the server's section (P2): saved first
+        _save_toolsetter(ctx, c, ts)
         for line in ("G54", "G92.1", "G10 L2 P1 X0 Y0 Z0"):
             _short(c, line)
         path = ctx["config"] / NC_FILES / RFL_FILE
@@ -1106,7 +1237,8 @@ def main(argv=None) -> int:
         report = run(SystemHost(), [make_tree(a.commit, a.profile), make_copy(a.profile), start_copy(),
                                     connect_client(), servo_device(), home_cases(joints), jog_cases(joints),
                                     plateau_cases(), goto_cases(),
-                                    probe_cases(), m600_cases(), m6_hold_case(), rfl_cases()], a.run_dir)
+                                    probe_cases(), m600_cases(), m6_hold_case(), ts_sync_cases(),
+                                    rfl_cases()], a.run_dir)
     report["verdict"] = verdict(report)
     write_json(a.run_dir / "report.json", report)
     print(f"native_run: {report['verdict']} — restore {report['restore']['outcome']} → {a.run_dir / 'report.json'}")

@@ -307,6 +307,110 @@ def eval_m600_counter(case: str, base, true_3102: float, planted_3102: float, le
                 **measured)
 
 
+#: the toolsetter section's keys as the booking names them (toolsetterVarMap)
+TS_KEYS = tuple(str(k) for k in (3004, 3005, 3006, 3007, 3009, 3010, 3013) + tuple(range(3100, 3116)))
+
+
+def eval_ts_sync(case: str, l0, old_3102: float, new_3102: float, length, g43, note, interp_before, interp_after,
+                 errors=(), tol: float = M600_TOL) -> dict:
+    """P2 on the real task (Codex R308–R309): the toolsetter section saved
+    while the machine was OFF with #3102 moved reaches the interpreter at the
+    PROGRAM start — a program's T<n> M600 measures with it. Expected from the
+    table length before (l0) and the deliberate delta, never from an earlier
+    measurement: l0 + |new| − |old| (the routine takes ABS[#3102], as the
+    #3102 counter), ± tol per measurement. Only the NEW basis passes; a length
+    at l0 is the old #3102 (the live red case, R309). The start's reply must
+    say it wrote (`toolsetter.synced` — the booking held the old number), the
+    applied G43 is the length, and the interpreter holds the new #3102 after.
+    An error of the routine is a FAIL; an interpreter that held the new value
+    before the start proves nothing (incomplete)."""
+    expected = l0 + abs(new_3102) - abs(old_3102) if _finite(l0, new_3102, old_3102) else None
+    measured = {"l0": l0, "old_3102": old_3102, "new_3102": new_3102, "expected": expected, "length": length,
+                "g43": g43, "toolsetter": note, "interp_before": interp_before, "interp_after": interp_after,
+                "tol_mm": tol, "errors": list(errors)}
+    failed = _failures(errors)
+    if failed:
+        return _row(case, "FAIL", f"the program reported: {failed[0]}", **measured)
+    if not _finite(interp_before) or abs(interp_before - old_3102) > SAME:
+        return _row(case, "incomplete", f"the interpreter held #3102 {interp_before} before the start, not the old "
+                    f"{old_3102:g} — the start would prove nothing", **measured)
+    if not isinstance(note, dict):
+        return _row(case, "FAIL", "the start's reply names no toolsetter sync", **measured)
+    if note.get("synced") is not True:
+        return _row(case, "FAIL", f"the start's reply says nothing was written ({note}) — the booking held the old "
+                    f"#3102", **measured)
+    if _finite(g43, length) and abs(g43 - length) > SAME:
+        return _row(case, "FAIL", f"the applied G43 {g43:.4f} is not the measured {length:.4f}", **measured)
+    if _finite(length, expected):
+        measured["deviation_mm"] = round(length - expected, 6)
+        if abs(length - expected) > tol:
+            stale = _finite(l0) and abs(length - l0) <= tol
+            return _row(case, "FAIL", (f"length {length:.4f} is the old #3102's ({l0:g}) — the saved section did "
+                                       f"not reach the interpreter" if stale else
+                                       f"length {length:.4f} — expected {expected:g} ± {tol:g}"), **measured)
+    if _finite(interp_after) and abs(interp_after - new_3102) > SAME:
+        return _row(case, "FAIL", f"the interpreter holds #3102 {interp_after:g} after the start, the section "
+                    f"{new_3102:g}", **measured)
+    if not _finite(length, g43, expected, interp_after):
+        return _row(case, "incomplete", "the length, the applied offset, L0 or #3102 after the start not read",
+                    **measured)
+    return _row(case, "PASS", f"saved while off, applied at the start: #3102 {old_3102:g} → {new_3102:g}, length "
+                f"{length:.4f} within {expected:g} ± {tol:g} (the old basis gives {l0:g})", **measured)
+
+
+def eval_ts_booking(case: str, values: dict, before, after) -> dict:
+    """What the form's machine line is projected from (P2, R309 FI308-04):
+    the gateway's booking as THIS connection received it. Before the start
+    #3102 is booked with the old number (the form: saved, not yet in the
+    machine); after it every one of the 23 keys holds the section's number
+    as applied or read (the form: confirmed), at a higher version. `values`:
+    {key: the section's canonical number}. A number that differs after the
+    sync is a FAIL; a booking not received, or a key only assumed or unknown,
+    is incomplete — the form would say "not confirmed", which the sync did
+    not cause."""
+    measured = {"before": before, "after": after}
+    if not isinstance(before, dict) or not isinstance(after, dict):
+        return _row(case, "incomplete", "the booking was not received before and after the start", **measured)
+    kb, ka = before.get("keys") or {}, after.get("keys") or {}
+    old = (kb.get("3102") or {}).get("value")
+    if old is not None and abs(old - values["3102"]) <= SAME:
+        return _row(case, "incomplete", f"#3102 was booked {old:g} before the start — the section's number already",
+                    **measured)
+    differ = [k for k in TS_KEYS if (ka.get(k) or {}).get("value") is not None
+              and abs(ka[k]["value"] - values[k]) > SAME]
+    if differ:
+        return _row(case, "FAIL", f"after the start the booking holds other numbers than the section: {differ}",
+                    **measured)
+    open_ = [k for k in TS_KEYS if (ka.get(k) or {}).get("origin") not in ("applied", "read")
+             or (ka.get(k) or {}).get("value") is None]
+    if open_:
+        return _row(case, "incomplete", f"after the start {len(open_)} of {len(TS_KEYS)} keys not confirmed: "
+                    f"{open_[:5]}", **measured)
+    if not (isinstance(after.get("version"), int) and isinstance(before.get("version"), int)
+            and after["version"] > before["version"]):
+        return _row(case, "FAIL", f"the booking's version did not rise ({before.get('version')} → "
+                    f"{after.get('version')}) with #3102 changed", **measured)
+    return _row(case, "PASS", f"#3102 booked {old} before, every key the section's number as applied or read after "
+                f"(version {before['version']} → {after['version']})", **measured)
+
+
+def eval_ts_stable(case: str, note, version_before, version_after) -> dict:
+    """A second start with the same section writes nothing (the named P2
+    decision): its reply says `synced: false` and the booking's version
+    stays. A start that wrote again is a FAIL."""
+    measured = {"toolsetter": note, "version_before": version_before, "version_after": version_after}
+    if not isinstance(note, dict):
+        return _row(case, "FAIL", "the start's reply names no toolsetter sync", **measured)
+    if note.get("synced") is not False:
+        return _row(case, "FAIL", f"the same section was written again ({note})", **measured)
+    if not (isinstance(version_before, int) and isinstance(version_after, int)):
+        return _row(case, "incomplete", "the booking's version not received around the start", **measured)
+    if version_after != version_before:
+        return _row(case, "FAIL", f"the booking changed ({version_before} → {version_after}) on a start that "
+                    f"wrote nothing", **measured)
+    return _row(case, "PASS", f"nothing written, the booking stayed at version {version_before}", **measured)
+
+
 def eval_override_lock(case: str, frames: list[tuple], t_trigger: float) -> dict:
     """F-OVERRIDE.S2b (R285, R292 FI-I26): during M600's measuring phase the
     status says the feed override is LOCKED, after the routine's end it is
