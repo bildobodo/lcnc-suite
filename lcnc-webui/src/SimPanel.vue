@@ -501,17 +501,22 @@ function followSoon() {
   if (followRaf || waitTimer) return;
   followRaf = requestAnimationFrame(() => {
     followRaf = 0;
-    const key = marked.value;
-    const r = key ? follow(true) : false;
-    if (typeof r === "number") {
-      holdHighlight();   // the band holds where it stands (a list that just filled had no hold)
-      waitTimer = window.setTimeout(() => { waitTimer = 0; followSoon(); }, r);
-      return;
-    }
-    if (key && r) followed = key;
-    else { if (!key) followed = null; endBand(); }   // no marked row: no band held for it
-    shownMarked = key;
+    followNow();
   });
+}
+/** The follow itself; false while the marked row cannot be followed yet. */
+function followNow(): boolean | number {
+  const key = marked.value;
+  const r = key ? follow(true) : false;
+  if (typeof r === "number") {
+    holdHighlight();   // the band holds where it stands (a list that just filled had no hold)
+    waitTimer = window.setTimeout(() => { waitTimer = 0; followSoon(); }, r);
+    return r;
+  }
+  if (key && r) followed = key;
+  else { if (!key) followed = null; endBand(); }   // no marked row: no band held for it
+  shownMarked = key;
+  return r;
 }
 /** A new marked row: until the list follows it (the next frame) the
  *  highlight stays where it stood — the new row's own look showed it a row
@@ -546,13 +551,22 @@ function holdHighlight() {
   }
   bandKey.value = key;
 }
-watch([marked, rows], () => {
+watch([marked, rows], (_now, [, rowsBefore]) => {
   // the marked row rendered — unless that would drop the focused row: it then
   // comes with the portions, and the list follows once it is whole
   measureRowH();   // the spacers before the marked row's place is read
   if (marked.value) admitRow(rows.value.findIndex(r => r.key === marked.value), focusedIndex());
   restoreAnchor();
-  if (marked.value !== followed) { holdHighlight(); followSoon(); }
+  if (marked.value === followed) return;
+  holdHighlight();
+  // No highlight in view to hold (the list scrolled away, the first follow):
+  // the row SNAPS now, before this frame's paint — in the next frame, a marked
+  // row changed inside an animation frame (the scrub's play) was painted out
+  // of view for one frame (Codex R279 FI-I16). Only when the marked row alone
+  // changed: new rows are followed in the next frame (their layout, plan 3.6).
+  const snapNow = rows.value === rowsBefore && bandKey.value !== marked.value && !followRaf && !waitTimer;
+  if (snapNow && followNow() !== false) return;
+  followSoon();
 }, { flush: "post" });
 watch(listComplete, whole => { if (whole && marked.value !== followed) followSoon(); });
 // A hidden tab has no height: it catches up when it shows (or resizes).

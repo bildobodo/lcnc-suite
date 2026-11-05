@@ -552,6 +552,20 @@ def test_every_round_runs_the_selection_guards_first():
     assert round_gate.plan(ui_only)[-2:] == ["ports-free", "browser"]
 
 
+def test_a_merge_runs_what_a_round_may_leave_out():
+    """Codex R279 FI-I17: a merge gate is the full offline gate — every heavy
+    unit file, the backend and the whole browser run, whatever the change
+    selects; a round with a full browser run was taken for one."""
+    docs_only = {"unit": {"heavy": [], "heavy_reasons": {}}, "backend": {"run": False, "reasons": ["x"]},
+                 "browser": {"run": [], "reasons": ["y"]}}
+    m = round_gate.as_merge(docs_only)
+    assert m["unit"]["heavy"] == sorted(HEAVY_UNIT)
+    assert m["backend"]["run"] is True and m["browser"]["run"] == FULL
+    assert round_gate.plan(m) == ["selection-guards", "lint", "build", "unit-light", "unit-heavy", "backend",
+                                  "ports-free", "browser"]
+    assert docs_only["unit"]["heavy"] == [], "the round's selection itself is left as it was"
+
+
 def test_the_gate_configs_start_their_own_servers_and_refuse_a_focused_test():
     for name in ("playwright.gate.config.ts", "playwright.select.config.ts"):
         text = (ROOT / "lcnc-webui" / name).read_text()

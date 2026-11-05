@@ -10431,3 +10431,31 @@ open. What the red-first tests found against development f0070ec7:
 
 Owed: the native effect (F-COMP S4: on/off and the three methods on a known
 non-flat surface) in the native tier.
+
+## 2026-11-05 — The merge gate of the statements and the compensation (Codex R279)
+
+Three runs on `integ/statements-comp`, two FAIL kept. Each failure was a test
+that waited a fixed time instead of reading a signal: `bake-hold` waited 700
+and 900 ms for the viewer's re-bake (300 ms) and re-check (400 ms) debounce
+timers — under three workers that ran short. The spec now takes each timer's
+firing count before the change and waits until that timer fired
+(`__viewerDiag.getDebounceFired`, read-only); a change that schedules no
+re-check — nothing left to check — waits on its bake and reads
+`checkTimerPending` false. Under four CPU burners: 2/2 red at that negative
+before, 54/54 after.
+
+The Sim tab's FH-05 test failed once with one frame of 25 out of view. A
+first fix dropped samples whose marked row changed after their frame — and
+Codex showed it dropped a PAINTED miss (R279 FI-I16): a marked row changed
+inside an animation frame (the scrub's play) was followed only in the NEXT
+frame, so that frame showed the new row out of view. The list now snaps at
+once, before the paint, when the marked row alone changed and no highlight in
+view is held (new rows still wait for the frame: their layout, plan 3.6); the
+test runs the scrub in a task and inside a frame — the frame variant red 3/3
+on the old list. The code panel follows synchronously in its watcher: not
+affected.
+
+A round whose change selects the full browser run is no merge gate: it left
+out the eight heavy unit files (FI-I17). `round_gate.py --merge` runs every
+heavy file, the backend and the whole browser run, `kind: "merge"`.
+

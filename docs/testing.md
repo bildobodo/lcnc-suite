@@ -17,8 +17,12 @@ Playwright Chromium with `npx playwright install --with-deps chromium` there.
 
 An implementation round runs the **round gate**: only the checks its change
 needs, chosen from a named base, with the proof of what ran. A merge runs the
-**full** offline gate on the integrated state (`test_suite.py offline`, or the
-round gate's FULL path); a full run already made on the identical state is
+**full** offline gate on the integrated state: `round_gate.py --merge` (every
+heavy unit file, the backend and the whole browser run, whatever the change
+selects; the record says `kind: "merge"` and keeps the round's selection
+beside it) or `test_suite.py offline`. A round whose change happens to select
+the full browser run is NO merge gate — its heavy unit files may be left out
+(Codex R279 FI-I17). A full run already made on the identical state is
 reused. Live checks (`live-twp`, `twp_buttons_check.py`, the macro and
 toolsetter read-backs, `perf_matrix.py`, the probe live check) stay owed before
 main and stand as `pending` in the record.
@@ -26,7 +30,13 @@ main and stand as `pending` in the record.
 ```
 lcnc-gateway/.venv/bin/python3 scripts/test_select/round_gate.py \
     --base <the package's last accepted commit> --out docs/reviews/<topic>.gate-round.json
+lcnc-gateway/.venv/bin/python3 scripts/test_select/round_gate.py --merge \
+    --base <the development commit merged into> --out <a NEW path per run>
 ```
+
+`--out` names a fresh record per run: the backend's evidence folder is never
+replaced (`test_suite.py` refuses an existing one — a second run on the same
+path failed its backend for that alone, 2026-11-05).
 
 The tree must be clean. In order, never two at once: the selector's own
 guards (`scripts/test_select/test_selector.py` — red guards end the gate before

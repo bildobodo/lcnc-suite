@@ -1089,7 +1089,7 @@ test("playback at ×100 with normal motion: the marked row's highlight never lea
 // Codex R244 FH-05: a step needs a highlight in view to start from. With the
 // list scrolled away by hand, the next marked row's band began off screen
 // and glided in; such a follow snaps — the row in the middle at once.
-test("the list scrolled away: the next marked row snaps to the middle, its highlight in view at once", async ({ page, context }) => {
+for (const inFrame of [false, true]) test(`the list scrolled away: the next marked row snaps to the middle, its highlight in view at once${inFrame ? " — the scrub inside an animation frame (Codex R279 FI-I16)" : ""}`, async ({ page, context }) => {
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: LONG_PREVIEW }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: LONG_TEXT }));
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
@@ -1124,13 +1124,7 @@ test("the list scrolled away: the next marked row snaps to the middle, its highl
     const sc = document.querySelector(".simPanel .simTable") as HTMLElement;
     const w = window as unknown as { __fh: { key: string | null; inView: boolean }[]; __fhOn: boolean };
     w.__fh = []; w.__fhOn = true;
-    const markedKey = () => sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow")?.dataset.simRow ?? null;
-    // `atFrame`: the marked row when the frame was drawn. A task that ran
-    // between that paint and this sample (the scrub's) changed the DOM: what
-    // the sample would read no frame showed — dropped (the merge gate of
-    // 2026-11-05 read one such state, the new row before its next-frame snap).
-    const sample = (atFrame: string | null) => {
-      if (markedKey() !== atFrame) return;
+    const sample = () => {
       const tr = sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow");
       const band = sc.querySelector(".simFollowBand");
       const hl = band && band.getClientRects().length ? band : tr;
@@ -1138,10 +1132,19 @@ test("the list scrolled away: the next marked row snaps to the middle, its highl
       const r = hl?.getBoundingClientRect();
       w.__fh.push({ key: tr?.dataset.simRow ?? null, inView: !!r && r.top >= head.bottom - 1 && r.bottom <= b.bottom + 1 });
     };
-    const f = () => { const k = markedKey(); setTimeout(() => sample(k), 0); if (w.__fhOn) requestAnimationFrame(f); };
+    const f = () => { setTimeout(sample, 0); if (w.__fhOn) requestAnimationFrame(f); };
     requestAnimationFrame(f);
   });
-  await scrub(0.63);
+  // in a task (the test's evaluate) or inside an animation frame after the
+  // sampler's, as the scrub's play moves the position: the frame that first
+  // shows the new row is painted with its highlight in view either way
+  if (inFrame) await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => {
+    const el = document.querySelector<HTMLInputElement>(".scrubBar .sliderInput")!;
+    el.value = String(Number(el.max) * 0.63);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    resolve();
+  })));
+  else await scrub(0.63);
   await page.waitForTimeout(400);
   await page.evaluate(() => { (window as unknown as { __fhOn: boolean }).__fhOn = false; });
   const frames = await page.evaluate(() => (window as unknown as { __fh: { key: string | null; inView: boolean }[] }).__fh);

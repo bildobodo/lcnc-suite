@@ -1,0 +1,13 @@
+R279 FI-I16 — sim-panel :1092, the scrub inside an animation frame, repeat 3, against the list BEFORE the fix (501482aa's SimPanel.vue):
+    Error: the next row's highlight in view in every painted frame
+    test-results/sim-panel.viewer-the-list--13e95-on-frame-Codex-R279-FI-I16--e2e/test-failed-1.png
+    Error: the next row's highlight in view in every painted frame
+    test-results/sim-panel.viewer-the-list--13e95-on-frame-Codex-R279-FI-I16--e2e-repeat1/test-failed-1.png
+    Error: the next row's highlight in view in every painted frame
+
+With the fix: both variants × 3: 6 passed; the whole sim-panel.viewer.spec.ts 63/63.
+
+R279 FI-I17 — test_a_merge_runs_what_a_round_may_leave_out before as_merge existed:
+E       AttributeError: module 'test_select.round_gate' has no attribute 'as_merge'
+scripts/test_select/test_selector.py:561: AttributeError
+1 failed, 50 deselected in 0.05s

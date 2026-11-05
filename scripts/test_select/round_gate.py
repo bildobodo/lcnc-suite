@@ -62,6 +62,19 @@ def resources() -> dict:
         return {"error": f"cgroup accounting unread: {e}"}
 
 
+MERGE_REASON = "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+
+
+def as_merge(sel: dict) -> dict:
+    """A merge runs everything a round may leave out — every heavy unit
+    file, the backend, the whole browser run — whatever the change selects.
+    The round's selection is kept beside it in the record."""
+    return {**sel,
+            "unit": {**sel["unit"], "heavy": sorted(HEAVY_UNIT), "heavy_reasons": {f: [MERGE_REASON] for f in HEAVY_UNIT}},
+            "backend": {"run": True, "reasons": [MERGE_REASON]},
+            "browser": {"run": FULL, "reasons": [MERGE_REASON]}}
+
+
 def plan(sel: dict) -> list[str]:
     """The checks of a round, in order. The selection guards are first in
     EVERY round — a UI-only round too, whose backend run they used to ride."""
@@ -241,11 +254,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--base", required=True)
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--note", default="")
+    ap.add_argument("--merge", action="store_true",
+                    help="the merge gate: every heavy unit file, the backend and the whole browser run")
     a = ap.parse_args(argv)
     out = a.out if a.out.is_absolute() else ROOT / a.out
     logs = out.with_suffix(".logs")
     logs.mkdir(parents=True, exist_ok=True)
-    record: dict = {"kind": "round", "note": a.note}
+    record: dict = {"kind": "merge" if a.merge else "round", "note": a.note}
 
     def finish(verdict: str, **extra) -> int:
         record.update(verdict=verdict, resources=resources(), **extra)
@@ -267,6 +282,9 @@ def main(argv: list[str] | None = None) -> int:
         sel = selector.select(ROOT, a.base, "HEAD", selector.vitest_changed(ROOT, a.base))
     except selector.SelectError as e:
         return finish("FAIL", checks=checks, why=[str(e)])
+    if a.merge:
+        record["round_selection"] = {k: sel[k] for k in ("unit", "browser", "backend")}
+        sel = as_merge(sel)
     (logs / "selection.json").write_text(json.dumps(sel, indent=2, ensure_ascii=False) + "\n")
     record.update(base=sel["base"], head=sel["head"], uncommitted=0, plan=plan(sel), env={
         "nproc": os.cpu_count(), "arch": platform.machine(),
