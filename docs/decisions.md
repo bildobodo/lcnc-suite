@@ -10560,3 +10560,20 @@ received after it may not have been — so the frames decide PASS (upper bound
 within the bound) or a proven wrong direction, everything else stays
 incomplete. The servo-sampled measurement (Q288-1) comes under its own
 contract later; until then an incomplete jog is honest.
+
+Codex R289, the rests: not active is not ended. systemd's `is-active` says no
+to activating, deactivating and reloading (measured: a unit in its stop is
+`deactivating`, its cgroup still holds its processes), so the ending reads
+the unit in ONE query (`unit_status`: load and active state, the
+InvocationID — a failed unit keeps it —, command, folder, the pids of its
+cgroup tree) and tells existence, the running incarnation, a transition and
+a failed query apart: an unread unit is unresolved and releases nothing; a
+unit that still runs is stopped only when it is the run's; the instance
+found here is written to state.json BEFORE the stop, so a restore after an
+abort during the stop waits for exactly it; only the confirmed end — the
+unit gone or inactive / failed with an empty cgroup, and the recorded
+instance gone — releases the tree and the LAN start. The jog: the whole
+collected course decides — frames arrive in capture order, so a step back
+anywhere is a reversal, and motion after the standstill is no stop: both
+FAIL; the distance from the first frame after the reply is reported as
+`first_after_mm`, no bound.

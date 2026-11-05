@@ -202,7 +202,10 @@ def start_copy():
                        + [f"-E{k}={v}" for k, v in env.items()] + ["linuxcnc", str(ini)], check=True, capture_output=True)
         from test_support.system_host import SystemHost
         sh = SystemHost()
-        ctx["state"].update(test_unit=unit, test_unit_invocation=sh.invocation(unit))
+        invocation = sh.unit_status(unit)["invocation"]
+        if not invocation:
+            raise Refused(f"{unit} started without an InvocationID — its ownership is not proven")
+        ctx["state"].update(test_unit=unit, test_unit_invocation=invocation)
         save_state(ctx)
         if not rl_host_ready(180):
             raise Refused("the copy's gateway did not answer /ready within 180 s")

@@ -24,6 +24,15 @@ def parse_exec_start(value: str) -> list[str]:
     return value[start:value.index(" ;", start)].split()
 
 
+def settable_wd(shown: str) -> str:
+    """`systemctl show`'s WorkingDirectory in the form `systemd-run -p` takes:
+    it SHOWS a missing-ok folder as "!<dir>" but SETS it as "-<dir>"
+    (measured; "!" is refused) — empty is "/"."""
+    if not shown:
+        return "/"
+    return "-" + shown[1:] if shown.startswith("!") else shown
+
+
 def clients_since(trace_lines, pid: int, since: float) -> bool:
     """A loop.tick of gateway `pid` after `since` (wall seconds) with a client
     connected: the keepalive holds the returned instance's HAL heartbeat up."""
@@ -75,7 +84,7 @@ class SystemHost:
 
     def start(self, name, spec):
         subprocess.run(["systemctl", "--user", "reset-failed", name], capture_output=True)
-        cmd = ["systemd-run", "--user", f"--unit={name}", "-p", f"WorkingDirectory={spec['WorkingDirectory'] or '/'}"]
+        cmd = ["systemd-run", "--user", f"--unit={name}", "-p", f"WorkingDirectory={settable_wd(spec['WorkingDirectory'])}"]
         cmd += [f"-E{e}" for e in spec.get("Environment", [])]
         subprocess.run(cmd + spec["ExecStart"], check=True, capture_output=True)
         for _ in range(50):
@@ -175,17 +184,28 @@ class SystemHost:
         if r.returncode:
             raise RuntimeError(r.stderr.strip() or f"git worktree remove exited {r.returncode}")
 
-    def invocation(self, unit):
-        """The InvocationID of the unit's running incarnation, None when it does not run."""
-        if not self.is_active(unit):
-            return None
-        out = subprocess.run(["systemctl", "--user", "show", unit, "-p", "InvocationID", "--value"],
-                             capture_output=True, text=True).stdout.strip()
-        return out or None
-
-    def unit_if_exists(self, unit):
-        """The unit's recorded properties while it runs, None otherwise."""
-        return self.unit(unit) if self.is_active(unit) else None
+    def unit_status(self, unit):
+        """systemd's view of the unit in ONE query (R289 FI-I19 B): LoadState,
+        ActiveState, the InvocationID (kept by a failed unit too), its
+        command and folder, and the pids of its cgroup tree. A failed query
+        raises — unknown is never "not running"."""
+        out = subprocess.run(["systemctl", "--user", "show", unit, "-p", "LoadState", "-p", "ActiveState",
+                              "-p", "InvocationID", "-p", "ControlGroup", "-p", "ExecStart", "-p", "WorkingDirectory",
+                              "--no-pager"], capture_output=True, text=True, check=True).stdout
+        props = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
+        if not props.get("LoadState") or not props.get("ActiveState"):
+            raise RuntimeError(f"systemctl show {unit}: no LoadState / ActiveState")
+        pids = []
+        if props.get("ControlGroup"):
+            for procs in Path("/sys/fs/cgroup" + props["ControlGroup"]).rglob("cgroup.procs"):
+                try:
+                    pids += [int(x) for x in procs.read_text().split()]
+                except FileNotFoundError:
+                    continue                # a sub-cgroup removed while read
+        return {"load": props["LoadState"], "active": props["ActiveState"],
+                "invocation": props.get("InvocationID") or None,
+                "exec": parse_exec_start(props["ExecStart"]) if props.get("ExecStart") else [],
+                "wd": props.get("WorkingDirectory", ""), "pids": pids}
 
     def unit_instance(self, unit):
         """The linuxcncsvr in the unit's own cgroup: (name, pid, start ticks), or None."""

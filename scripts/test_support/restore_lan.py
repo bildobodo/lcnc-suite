@@ -59,61 +59,90 @@ def stop_lan(host, pre: dict) -> None:
 TEST_END_S = 60
 
 
-def end_test_resources(host, state: dict) -> list[str]:
-    """The run's OWN test instance and tree (state.json, R286/R287 FI-I19),
+def _unit_view(host, unit):
+    """systemd's view of the unit, or the reason it was not read — an
+    unread unit is unresolved, never "not running" (R289 FI-I19 B)."""
+    try:
+        return host.unit_status(unit), None
+    except Exception as e:  # noqa: BLE001
+        return None, f"the test unit {unit} was not read ({e}) — unresolved"
+
+
+def _unit_ended(st) -> bool:
+    """The unit's confirmed end: gone, or inactive / failed with an EMPTY
+    cgroup. Not active is not ended: activating, deactivating, reloading
+    still hold their processes (`is-active` says no to all three — measured)."""
+    return st["load"] == "not-found" or (st["active"] in ("inactive", "failed") and not st["pids"])
+
+
+def end_test_resources(host, state: dict, save=None) -> list[str]:
+    """The run's OWN test instance and tree (state.json, R286–R289 FI-I19),
     ended before the LAN instance returns — from `finally` and from
-    ExecStopPost alike. Ownership is proven, not intended: only a unit the
-    run STARTED (`test_unit` with the InvocationID it got, written after a
-    successful start) and only while that incarnation runs is stopped; the
-    wait is for the recorded test instance (pid and start) alone — never
-    "no LinuxCNC at all", which the returned LAN instance never satisfies;
-    the tree goes only once that instance has ended. An intent whose
-    ownership was never written is resolved against the unit itself. Every
-    failure is named."""
+    ExecStopPost alike. Existence, the running incarnation, a transition and
+    a failed query are told apart: an unread unit releases nothing; a unit
+    that still runs is stopped only when it is the run's (`test_unit` with
+    the InvocationID its start gave, or — killed before that was written —
+    an intent whose unit runs this run's folder and INI), else unresolved.
+    The test instance found here is written (`save`) BEFORE the stop, so a
+    new restore after an abort during the stop waits for exactly it. Only the
+    CONFIRMED end — the unit ended (`_unit_ended`) and the recorded instance
+    (pid and start) gone — releases the tree and, by the empty reasons, the
+    LAN start. Every failure is named."""
     if state.get("test_ended"):
         return []
-    reasons = []
-    unit = state.get("test_unit")
-    owned = bool(unit) and host.invocation(unit) == state.get("test_unit_invocation")
-    if not unit and state.get("test_unit_intent"):
-        # killed after the start, before its ownership was written (R288
-        # FI-I19 B): resolve the intent against the unit itself — this run's
-        # folder and INI make it the run's; anything else stays unresolved
-        unit = state["test_unit_intent"]
-        spec = host.unit_if_exists(unit)
-        if spec is None:
-            unit = None                 # never started: nothing to end
-        elif spec.get("WorkingDirectory") == state.get("test_unit_wd") and \
-                (spec.get("ExecStart") or [None])[-1] == state.get("test_ini"):
-            owned = True
-        else:
-            return [f"a unit {unit} runs that this run intended but cannot prove its own — unresolved"]
-    if unit and owned:
-        if not state.get("test_instance"):
-            inst = host.unit_instance(unit)     # its LinuxCNC, read before the stop ends its cgroup
-            if inst:
-                state["test_instance"] = [inst[1], inst[2]]
-        try:
-            host.stop(unit)
-        except Exception as e:  # noqa: BLE001
-            reasons.append(f"the test unit {unit} did not stop: {e}")
-    inst = state.get("test_instance")
-    if inst:
-        end = time.monotonic() + TEST_END_S
-        while host.process_alive(*inst) and time.monotonic() < end:
-            time.sleep(0.2)
-        if host.process_alive(*inst):
-            reasons.append(f"the test instance {inst} still runs")
-    if not reasons:
-        tree = state.get("tree")
-        if tree and state.get("tree_of"):
+    unit = state.get("test_unit") or state.get("test_unit_intent")
+    stop_error = None
+    if unit:
+        st, err = _unit_view(host, unit)
+        if err:
+            return [err]
+        if not _unit_ended(st):
+            if state.get("test_unit"):
+                own = st["invocation"] == state.get("test_unit_invocation")
+            else:
+                own = st.get("wd") == state.get("test_unit_wd") and \
+                    (st.get("exec") or [None])[-1] == state.get("test_ini")
+            if not own:
+                return [f"a unit {unit} runs ({st['active']}) that this run cannot prove its own — unresolved"]
+            if not state.get("test_instance"):
+                inst = host.unit_instance(unit)     # its LinuxCNC, read before the stop ends its cgroup
+                if inst:
+                    state["test_instance"] = [inst[1], inst[2]]
+            if save:
+                save(state)                         # on disk before the stop (R289)
             try:
-                host.remove_tree(tree, state["tree_of"])
-            except Exception as e:  # noqa: BLE001
-                reasons.append(f"the run tree {tree} was not removed: {e}")
-    if not reasons:
-        state["test_ended"] = True
-    return reasons
+                host.stop(unit)
+            except Exception as e:  # noqa: BLE001 — judged by the confirmed end below
+                stop_error = str(e)
+    reasons = []
+    end = time.monotonic() + TEST_END_S
+    while True:
+        st, err = _unit_view(host, unit) if unit else ({"load": "not-found"}, None)
+        inst = state.get("test_instance")
+        alive = bool(inst) and host.process_alive(*inst)
+        if not err and _unit_ended(st) and not alive:
+            break
+        if time.monotonic() >= end:
+            if err:
+                reasons.append(err)
+            elif not _unit_ended(st):
+                reasons.append(f"the test unit {unit} has not ended ({st['active']}, {len(st['pids'])} processes)")
+            else:
+                reasons.append(f"the test instance {inst} still runs")
+            if stop_error:
+                reasons.append(f"the test unit {unit} did not stop: {stop_error}")
+            return reasons
+        time.sleep(0.2)
+    if stop_error:
+        state["test_stop_error"] = stop_error       # the end is confirmed; the error stays on record
+    tree = state.get("tree")
+    if tree and state.get("tree_of"):
+        try:
+            host.remove_tree(tree, state["tree_of"])
+        except Exception as e:  # noqa: BLE001
+            return [f"the run tree {tree} was not removed: {e}"]
+    state["test_ended"] = True
+    return []
 
 
 def restore(host, pre: dict, state: dict | None = None, first: Path | None = None, save=None) -> dict:
@@ -126,7 +155,7 @@ def restore(host, pre: dict, state: dict | None = None, first: Path | None = Non
     other proof — and keeps the first's isolation verdict. An isolation never
     proven stays None (unknown)."""
     state = {} if state is None else state
-    cleanup = end_test_resources(host, state)
+    cleanup = end_test_resources(host, state, save)
     earlier = json.loads(first.read_text()) if first and first.is_file() else None
     since = time.time()
     reasons = list(cleanup)

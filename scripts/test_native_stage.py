@@ -165,7 +165,9 @@ class FakeHost:
         self.invocations = {}
 
     def unit(self, name): return self.units[name]
-    def is_active(self, name): return self.active.get(name, False)
+    def is_active(self, name):
+        """`systemctl is-active`: 0 for "active" alone — activating and deactivating are not (measured)."""
+        return self.active.get(name, False) and getattr(self, "states", {}).get(name, "active") == "active"
 
     def stop(self, name):
         self.active[name] = False
@@ -175,8 +177,18 @@ class FakeHost:
             self.instance = ()
     def unit_owns(self, unit, pid): return self.owner_ok
     def remove_tree(self, tree, of): self.removed.append(tree)
-    def invocation(self, unit): return self.invocations.get(unit) if self.active.get(unit) else None
-    def unit_if_exists(self, unit): return self.units.get(unit) if self.active.get(unit) else None
+
+    def unit_status(self, unit):
+        """systemd's view: LoadState, ActiveState, InvocationID, the pids of its cgroup."""
+        if getattr(self, "query_fails", False):
+            raise RuntimeError("systemctl show failed")
+        active = getattr(self, "states", {}).get(unit) or ("active" if self.active.get(unit) else "inactive")
+        alive = bool(self.test_instance) and unit.startswith("native-sim") and active != "inactive"
+        spec = self.units.get(unit, {})
+        loaded = unit in self.units or self.active.get(unit) or unit in getattr(self, "states", {})
+        return {"load": "loaded" if loaded else "not-found", "active": active,
+                "invocation": self.invocations.get(unit), "exec": spec.get("ExecStart", []),
+                "wd": spec.get("WorkingDirectory", ""), "pids": [self.test_instance[1]] if alive else []}
     def unit_instance(self, unit):
         return self.test_instance if self.active.get(unit) and unit.startswith("native-sim") else None
 
@@ -346,11 +358,13 @@ class FileHost(FakeHost):
             self.test_instance = tuple(st["test"]) if st.get("test") else None
             self.last = st.get("last", 100)
             self.invocations = st.get("invocations", {})
+            self.units = st.get("units", self.units)
 
     def _save(self):
         self.path.write_text(json.dumps({"active": self.active, "instance": list(self.instance),
                                          "test": list(self.test_instance) if self.test_instance else None,
-                                         "last": getattr(self, "last", 100), "invocations": self.invocations}))
+                                         "last": getattr(self, "last", 100), "invocations": self.invocations,
+                                         "units": self.units}))
 
     def stop(self, name):
         super().stop(name)
@@ -453,7 +467,7 @@ def test_the_unseen_travel_before_the_first_frame_never_vanishes():
         samples = [(0.09, 300 + sign * 18.4875, 27.5), (0.2, 300 + sign * 20, 0.0)]
         r = nc.eval_jog("jog-x", 0, sign, 300.0, before, samples)
         assert r["status"] == "incomplete", r
-        assert (r["brake_upper_mm"], r["brake_lower_mm"]) == (5.0, 1.5125), r
+        assert (r["brake_upper_mm"], r["first_after_mm"]) == (5.0, 1.5125), r
     # beyond the bound by the frame before: no PASS — and no FAIL either, frames
     # received after the reply may have been captured before it (R288)
     over = nc.eval_jog("jog-x+", 0, 1, 300.0, (-0.005, 315.0), [(0.01, 317.6, 5.0), (0.2, 320.0, 0.0)])
@@ -774,3 +788,97 @@ def test_a_frame_received_after_the_reply_may_be_captured_before_it():
     assert wrong_way["status"] == "FAIL", "a proven wrong direction stays a FAIL"
     short = nc.eval_jog("jog-x+", 0, 1, 300.0, (-0.01, 302.0), [(0.1, 303.0, 0.0)])
     assert short["status"] == "incomplete", "a frame before the reply may be stale: 2 mm proves no short jog"
+
+
+
+# ── R289 FI-I19 B: not active is not ended ───────────────────────────────
+def _owned_state(run):
+    return {"test_unit": "native-sim-r1", "test_unit_invocation": "inv-1", "test_unit_wd": str(run / "configs/sim"),
+            "test_ini": str(run / "configs/sim/x.ini"), "tree": str(run / "tree"), "tree_of": "/wt"}
+
+
+@pytest.mark.parametrize("state_name", ["activating", "deactivating"])
+def test_a_unit_in_transition_with_a_live_process_keeps_the_tree_and_the_lan_back(tmp_path, monkeypatch, state_name):
+    monkeypatch.setattr(rl, "TEST_END_S", 0.2)
+    h = FakeHost()
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    run = tmp_path / "run"
+    h.run_test_unit("native-sim-r1", run / "configs/sim", run / "configs/sim/x.ini")
+    h.invocations["native-sim-r1"] = "inv-1"
+    h.states = {"native-sim-r1": state_name}
+    h.stop = lambda name: None          # the unit does not finish its stop in time
+    out = rl.restore(h, pre, _owned_state(run), tmp_path / "restore.json")
+    assert out["outcome"] == "not_returned", out
+    assert h.removed == [] and h.started == [], "neither the tree nor the LAN while its process lives"
+
+
+def test_a_failed_unit_query_is_unresolved_and_blocks(tmp_path):
+    h = FakeHost()
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    h.query_fails = True
+    out = rl.restore(h, pre, _owned_state(tmp_path / "run"), tmp_path / "restore.json")
+    assert out["outcome"] == "not_returned" and any("not read" in r for r in out["reasons"]), out
+    assert h.removed == [] and h.started == []
+
+
+def test_an_abort_during_the_stop_leaves_the_found_instance_on_disk(tmp_path, monkeypatch):
+    """R289: the instance found by the ending is written BEFORE the stop; a
+    new CLI that meets the unit `deactivating` waits for exactly that process."""
+    monkeypatch.setattr(rl, "TEST_END_S", 0.2)
+    state_path = tmp_path / "state.json"
+    h = FakeHost()
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    run = tmp_path / "run"
+    h.run_test_unit("native-sim-r1", run / "configs/sim", run / "configs/sim/x.ini")
+    h.invocations["native-sim-r1"] = "inv-1"
+
+    class Killed(BaseException):
+        pass
+
+    def dies_in_the_stop(name):
+        h.states = {name: "deactivating"}
+        raise Killed()
+    h.stop = dies_in_the_stop
+    with pytest.raises(Killed):
+        rl.restore(h, pre, _owned_state(run), tmp_path / "restore.json",
+                   save=lambda st: state_path.write_text(json.dumps(st)))
+    on_disk = json.loads(state_path.read_text())
+    assert on_disk["test_instance"] == [900, 9000], "found and written before the stop"
+    h.stop = lambda name: None          # `systemctl stop` joins the pending stop job, which has not ended
+    out = rl.restore(h, pre, on_disk, tmp_path / "restore.json")
+    assert out["outcome"] == "not_returned" and h.removed == [] and h.started == [], "still deactivating, alive"
+    h.states, h.test_instance = {"native-sim-r1": "inactive"}, None      # its stop finished
+    out = rl.restore(h, pre, on_disk, tmp_path / "restore.json")
+    assert out["outcome"] == "complete" and h.removed == [str(run / "tree")], out
+
+
+# ── R289 FI-I23: the whole collected course decides ──────────────────────
+def test_a_course_that_contradicts_the_stop_never_passes():
+    back = nc.eval_jog("jog-x+", 0, 1, 300.0, (-0.005, 315.0), [(0.06, 316.65, 5.0), (0.2, 314.5, 0.0)])
+    assert back["status"] == "FAIL" and "against" in back["detail"], back
+    back_neg = nc.eval_jog("jog-x-", 0, -1, 300.0, (-0.005, 285.0), [(0.06, 283.35, 5.0), (0.2, 285.5, 0.0)])
+    assert back_neg["status"] == "FAIL", back_neg
+    again = nc.eval_jog("jog-x+", 0, 1, 300.0, (-0.005, 315.0),
+                        [(0.01, 315.4, 0.0), (0.2, 325.0, 50.0), (0.45, 337.5, 50.0), (0.8, 355.0, 50.0)])
+    assert again["status"] == "FAIL" and "after its standstill" in again["detail"], again
+    again_neg = nc.eval_jog("jog-x-", 0, -1, 300.0, (-0.005, 285.0),
+                            [(0.01, 284.6, 0.0), (0.2, 275.0, 50.0), (0.45, 262.5, 50.0)])
+    assert again_neg["status"] == "FAIL" and "after its standstill" in again_neg["detail"], again_neg
+    ok = nc.eval_jog("jog-x+", 0, 1, 300.0, (-0.005, 315.0), [(0.01, 315.4, 20.0), (0.2, 316.5, 0.0), (0.8, 316.5, 0.0)])
+    assert ok["status"] == "PASS" and "first_after_mm" in ok and "brake_lower_mm" not in ok
+
+
+def test_a_shown_working_directory_is_given_back_in_the_form_systemd_run_takes():
+    """Measured 2026-11-05: `systemctl show` prints a missing-ok folder as
+    "!/home/cnc" (the keepalive's — systemd-run's default), `systemd-run -p`
+    refuses "!" ("expects an absolute path or '~'") and takes "-/home/cnc",
+    which shows as "!/home/cnc" again: the restore would not start the
+    keepalive, and the LAN sim with no client trips."""
+    from test_support.system_host import settable_wd
+    assert settable_wd("!/home/cnc") == "-/home/cnc"
+    assert settable_wd("!~") == "-~"
+    assert settable_wd("/home/cnc/linuxcnc/configs/x") == "/home/cnc/linuxcnc/configs/x"
+    assert settable_wd("") == "/"
