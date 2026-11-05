@@ -564,8 +564,15 @@ watch([marked, rows], (_now, [, rowsBefore]) => {
   // row changed inside an animation frame (the scrub's play) was painted out
   // of view for one frame (Codex R279 FI-I16). Only when the marked row alone
   // changed: new rows are followed in the next frame (their layout, plan 3.6).
-  const snapNow = rows.value === rowsBefore && bandKey.value !== marked.value && !followRaf && !waitTimer;
-  if (snapNow && followNow() !== false) return;
+  // A follow already planned for the next frame is taken over (Codex R280:
+  // the held band scrolled away and a further row before that frame — the
+  // planned follow kept the snap off for a frame); a row waiting for its step
+  // keeps its timer.
+  if (rows.value === rowsBefore && bandKey.value !== marked.value && !waitTimer) {
+    cancelAnimationFrame(followRaf);
+    followRaf = 0;
+    if (followNow() !== false) return;
+  }
   followSoon();
 }, { flush: "post" });
 watch(listComplete, whole => { if (whole && marked.value !== followed) followSoon(); });

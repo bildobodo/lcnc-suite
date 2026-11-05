@@ -10452,7 +10452,9 @@ frame, so that frame showed the new row out of view. The list now snaps at
 once, before the paint, when the marked row alone changed and no highlight in
 view is held (new rows still wait for the frame: their layout, plan 3.6); the
 test runs the scrub in a task and inside a frame — the frame variant red 3/3
-on the old list. The code panel follows synchronously in its watcher: not
+on the old list. A follow already planned for the next frame is taken over
+the same way (Codex R280: the held band scrolled away and a further row came
+before that frame — the planned follow kept the snap off; red 3/3 before). The code panel follows synchronously in its watcher: not
 affected.
 
 A round whose change selects the full browser run is no merge gate: it left

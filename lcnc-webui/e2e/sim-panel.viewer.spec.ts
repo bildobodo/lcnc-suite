@@ -1157,6 +1157,73 @@ for (const inFrame of [false, true]) test(`the list scrolled away: the next mark
   expect(next.filter(f => !f.inView), "the next row's highlight in view in every painted frame").toEqual([]);
 });
 
+// Codex R280 (the rest of FI-I16): a follow already planned for the next
+// frame — a first new row whose band is held — and before that frame the band
+// scrolled away by hand and a further row: the planned follow is taken over,
+// the further row snaps at once. Both changes run in one animation frame
+// after the sampler's, as the scrub's play would.
+test("a follow already planned, the held band scrolled away, a further row in the same frame: it snaps, its highlight in view", async ({ page, context }) => {
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: LONG_PREVIEW }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: LONG_TEXT }));
+  await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await ctl({ op: "status_delta", data: { active_file: "/long.ngc", is_enabled: false, enabled: false } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5402, file: "/long.ngc" } });
+  await simShow(page, "limit");
+  await expect(page.locator('.simPanel tr[data-sim-row="L57@57"]')).toHaveCount(1, { timeout: 15_000 });
+  await settleLayout(page);
+  await page.locator('.simPanel tr[data-sim-row="L8@8"]').click();
+  await expect(page.locator(".simBanner")).toBeVisible();
+  await page.locator(".scrubBar .sliderInput").evaluate((el: HTMLInputElement) => {
+    el.value = String(Number(el.max) * 0.6);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await page.waitForTimeout(500);
+  type Read = { key: string | null; band: boolean; inView: boolean };
+  const result = await page.evaluate(async () => {
+    const sc = document.querySelector<HTMLElement>(".simPanel .simTable")!;
+    const el = document.querySelector<HTMLInputElement>(".scrubBar .sliderInput")!;
+    const move = (f: number) => { el.value = String(Number(el.max) * f); el.dispatchEvent(new Event("input", { bubbles: true })); };
+    const read = () => {
+      const tr = sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow");
+      const band = sc.querySelector<HTMLElement>(".simFollowBand");
+      const hl = band && band.getClientRects().length ? band : tr;
+      const h = sc.querySelector("thead")!.getBoundingClientRect(), v = sc.getBoundingClientRect(), r = hl?.getBoundingClientRect();
+      return { key: tr?.dataset.simRow ?? null, band: !!band?.getClientRects().length,
+        inView: !!r && r.top >= h.bottom - 1 && r.bottom <= v.bottom + 1 };
+    };
+    // every painted frame, sampled after the paint
+    const samples: ReturnType<typeof read>[] = [];
+    let on = true;
+    const sample = () => { setTimeout(() => samples.push(read()), 0); if (on) requestAnimationFrame(sample); };
+    requestAnimationFrame(sample);
+    const steps = await new Promise<{ first: Read; off: Read; after: Read }>(resolve => requestAnimationFrame(async () => {
+      move(0.62); await Promise.resolve(); await Promise.resolve();   // the follow planned, its band held
+      const first = read();
+      const band = sc.querySelector<HTMLElement>(".simFollowBand");
+      const hl = band && band.getClientRects().length ? band : sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow")!;
+      const r = hl.getBoundingClientRect(), v = sc.getBoundingClientRect();
+      sc.scrollTop -= v.bottom - r.top + r.height;                     // the band a row below the view
+      const off = read();
+      move(0.64); await Promise.resolve(); await Promise.resolve();   // a further row before the next frame
+      resolve({ first, off, after: read() });
+    }));
+    await new Promise(r => setTimeout(r, 400));
+    on = false;
+    return { ...steps, samples };
+  });
+  expect(result.first.band, "the first change planned a follow with its band held").toBe(true);
+  expect(result.first.inView).toBe(true);
+  expect(result.off.inView, "the band scrolled out of view").toBe(false);
+  const target = result.samples.at(-1)?.key ?? null;
+  expect(target, "a further row").not.toBe(result.first.key);
+  const next = result.samples.filter(f => f.key === target);
+  test.info().annotations.push({ type: "fh05", description: `${next.length} frames of ${target}, ${next.filter(f => !f.inView).length} with the highlight out of view` });
+  expect(next.length, "the further row was drawn").toBeGreaterThan(5);
+  expect(next.filter(f => !f.inView), "the further row's highlight in view in every painted frame").toEqual([]);
+});
+
 // Codex R245 (the rest of FH-05): a row WAITING for its step, its band held
 // on the row before — the list scrolled away from that band by hand, then a
 // new row comes. The held band is out of view: the wait for it ends and the
