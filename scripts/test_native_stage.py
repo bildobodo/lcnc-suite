@@ -3411,3 +3411,93 @@ def test_the_run_from_line_step_judges_its_start_from_the_servo_stream(tmp_path,
         assert by["rfl-start-point"]["status"] == status, by["rfl-start-point"]
         if status == "PASS":
             assert by["rfl-start-point.counter-entry-x+1"]["status"] == "PASS"
+
+
+# ── Codex R311: the boundary into the entry, a missing routine, the checked texts ──
+
+_BACK_UP = _seg(0, (0, 0, -0.002), (0, 0, 0)) + _seg(0, (0, 0, 0), (100, 100, 0))
+
+
+@pytest.mark.parametrize("over, status, part", [
+    # FI-I40: the first step after the routine's last sample (Z 0) goes down,
+    # then back up — the correct start later must not hide it
+    ({"runout": [(0, (0, 0, -0.002, 0, 0, -0.5), 0)], "entry": _BACK_UP}, "FAIL", "descent"),
+    # …as small steps across the boundary that add up past STILL_POS
+    # (each step 0.0006, under STILL_POS alone; the climb back from the lowest)
+    ({"runout": [(0, (0, 0, -0.0006, 0, 0, -0.1), 0), (0, (0, 0, -0.0012, 0, 0, -0.1), 0)],
+      "entry": _seg(0, (0, 0, -0.0012), (0, 0, 0)) + _seg(0, (0, 0, 0), (100, 100, 0))}, "FAIL", "descent"),
+    # the routine's last Z unread: no proven step into the entry
+    ({"measure": _seg(587, (10, 10, -127), (10, 10, 0)) + _seg(601, (10, 10, 0), (0, 0, 0))[:-1]
+      + [(601, (0, 0, None, 0, 0, 0), 0)]}, "incomplete", "not proven"),
+    # an XY run-out at a constant Z stays allowed
+    ({"runout": [(0, (0, 0, 0, -0.02, -0.02, 0), 0)] * 3}, "PASS", "at rest"),
+    # FI-I41: no routine sample — the boundary is not proven…
+    ({"measure": [], "runout": []}, "incomplete", "routine"),
+    # …but a known contradiction stays one
+    ({"measure": _seg(6, (10, 10, -100), (10, 10, -127)), "runout": []}, "FAIL", "line 6 moved"),
+    ({"measure": [], "runout": [], "l7": _seg(7, (100, 100, 0), (200, 100, -1))}, "FAIL", "line 7 moved"),
+])
+def test_the_entry_starts_at_the_routines_end(over, status, part):
+    r = _start(_good(**over))
+    assert r["status"] == status and part in r["detail"], r
+
+
+def _tree_with(tmp_path, change):
+    """A run tree holding the routine texts, `change`d: {rel: text | None (missing)}."""
+    root = Path(__file__).resolve().parent.parent
+    tree = tmp_path / "tree"
+    for rel in nr.ROUTINE_TEXTS:
+        (tree / rel).parent.mkdir(parents=True, exist_ok=True)
+        text = change.get(rel, (root / rel).read_text())
+        if text is not None:
+            (tree / rel).write_text(text)
+    return tree
+
+
+_TTO, _M600 = list(nr.ROUTINE_TEXTS)
+
+
+def _with_line_after(rel, n, extra):
+    lines = (Path(__file__).resolve().parent.parent / rel).read_text().splitlines(keepends=True)
+    return "".join(lines[:n] + [extra + "\n"] + lines[n:])
+
+
+@pytest.mark.parametrize("change, part", [
+    # the R311 probe: a modal axis word after line 601 — the word scan misses it, the hash does not
+    ({_TTO: _with_line_after(_TTO, 601, "X25")}, "not the checked one"),
+    ({_M600: _with_line_after(_M600, 1, "(a changed wrapper)")}, "not the checked one"),
+    ({_M600: None}, "not readable"),
+])
+def test_routine_texts_not_the_checked_ones_map_nothing(tmp_path, monkeypatch, change, part):
+    """FI-I42: the attribution reads only the checked texts — a changed routine,
+    a changed wrapper, a missing one: no start-point claim either way."""
+    monkeypatch.setattr(nr, "SHORT_GRACE", 0.02)
+    hist, frames = _rfl_run()
+    c = RflClient(frames, hist)
+    ctx, step = _rfl_step(tmp_path, c)
+    ctx.update(run=tmp_path, servo=FakeMeasurement([_good()]), tree=_tree_with(tmp_path, change))
+    by = {r["case"]: r for r in step(ctx)}
+    assert by["rfl-start-point"]["status"] == "incomplete" and part in by["rfl-start-point"]["detail"], by
+    assert by["rfl-start-point.counter-entry-x+1"]["status"] == "incomplete"
+
+
+def test_the_checked_texts_are_the_shipped_ones_and_the_previews_pin(tmp_path, monkeypatch):
+    """The pins are the shipped texts; the routine's is the preview's
+    MARKED_POS_ROUTINES (read from the source, never by importing the
+    gateway); the clean step names every source it judged with."""
+    import hashlib
+    import re
+    root = Path(__file__).resolve().parent.parent
+    for rel, sha in nr.ROUTINE_TEXTS.items():
+        assert hashlib.sha256((root / rel).read_bytes()).hexdigest() == sha, rel
+    util = (root / "lcnc-gateway" / "gateway_util.py").read_text()
+    marked = re.search(r"MARKED_POS_ROUTINES = frozenset\(\{([^}]*)\}\)", util).group(1)
+    assert nr.ROUTINE_TEXTS[_TTO] in marked
+    monkeypatch.setattr(nr, "SHORT_GRACE", 0.02)
+    hist, frames = _rfl_run()
+    c = RflClient(frames, hist)
+    ctx, step = _rfl_step(tmp_path, c)
+    ctx.update(run=tmp_path, servo=FakeMeasurement([_good()]))
+    row = next(r for r in step(ctx) if r["case"] == "rfl-start-point")
+    assert row["status"] == "PASS", row
+    assert row["sources"] == {**nr.ROUTINE_TEXTS, "program": hashlib.sha256(nr.RFL_PROGRAM.encode()).hexdigest()}

@@ -10809,3 +10809,18 @@ Run 9's G64 stream: the start checks out (start at 100/100/0, the anchor at
 n 345445), the self-check fails at line 8's blend — incomplete, as R309
 predicted. F-RFL.S3 binds the start point and its counter; the native run
 with G61.1 is owed.
+
+**Run 10 and Codex R311 (2026-11-06).** The native run with G61.1
+(20261105T232301, 672ba228): the start point PASS, its counter refused; under
+G61.1 the line switch leaves at most 0.000286 mm of the previous axis
+(under STILL_POS). R311's corrections: the descent starts at the routine's
+LAST known Z — the first step out of it counts, also as small steps that add
+up; an unread Z there is no proven step (FI-I40). No routine sample before L
+leaves the boundary unproven — only the rules that need none (an earlier
+program line, L's start, L's own axes) can fail, else incomplete (FI-I41).
+The routine and its wrapper are read only as the CHECKED texts
+(`ROUTINE_TEXTS`: path → sha256; the routine's is MARKED_POS_ROUTINES'): a
+changed, a missing or an unreadable one maps nothing — a modal axis word the
+narrow scan would miss cannot slip in (FI-I42); the row names the sources
+and the program's hash. Run 10's stored stream re-judged with the corrected
+evaluator: PASS, the counter refused.
