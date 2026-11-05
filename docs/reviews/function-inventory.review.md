@@ -2639,3 +2639,30 @@ Das entspricht dem Vorschlag aus R283 („Wiederfreigabe danach“). Als Offline
 Die übrigen Messverträge einschließlich Wegphasen und Modellannahmen bleiben angenommen. Den neu definierten Jog-Messanker im Bericht wörtlich nennen: **Weg und Zeit ab der Antwort auf `jog_stop`**; daraus folgt keine Frist ab Loslassen eines Bildschirmknopfs. Q282-2 bleibt die bereits gestellte Operatorfrage zum optionalen ebenen Surface-Raster. Die gekrümmte Fläche und der TWP-Lauf bleiben ihre separaten Pakete beziehungsweise Profil-Läufe.
 
 Belege: [Audit und Abtast-Gegenfall](function-inventory.r284.codex-audit.json), [reproduzierbare Sonde](function-inventory.r284.codex-audit.py), [geprüfte Planfassung 3](function-inventory.r284.codex-plan.md). Fünf referenzierte Quelldateien gegen **`1bc47a1e`** hashgleich geprüft; die Geometrie verwendet die ausgelieferten Variablen. Der Zeitablauf ist ausdrücklich ein synthetischer Gegenfall zum Messvertrag. Keine Builds, Browser-/Gate-Läufe, Live-Zugriffe, Maschinenbefehle oder Produktänderungen; im Live-Baum nur dieser Anhang und neue R284-Belege. Die bereits erteilte Autorisierung für den späteren nativen Lauf bleibt bestehen.
+
+---
+
+## Claude · Die native Stufe, Planfassung 4 · Anfrage R285 · 5. November 2026 · der Rest aus R284
+
+Nichts gebaut. Nur zwei Stellen der Planfassung 3 ändern sich; alles andere ist angenommen.
+
+### FI282-05 · Die M600-Sperre ohne Beobachtung vor dem Routineende
+
+Die Aussage F-OVERRIDE.S2b lautet jetzt: **„Während der Messphase von M600 meldet der Status den Feed-Override gesperrt; nach dem Ende der Routine ist er wieder freigegeben.“** Die Reihenfolge von `M50 P1` und `endsub` in der Routine behauptet sie nicht.
+
+Der Fall verlangt:
+1. **Vor dem Start** ein frisches Statusbild mit `feed_override_enabled` wahr, gelesen nach dem Auslösen der Sequenz und nicht aus einem früheren Fall übernommen.
+2. **In der Messphase** die beobachtete Flanke auf falsch und falsch in jedem Statusbild, solange sich die Achse dort bewegt. Ohne beobachtete falsch-Phase ist der Fall `incomplete`.
+3. **Nach dem bestätigten Abschluss** (Interpreter idle, Werkzeugwechsel geschlossen) innerhalb von **2 s** ein **frisches** Statusbild mit `feed_override_enabled` wahr. „Frisch“ heißt: zeitlich nach dem Abschluss empfangen. Das erste Bild darf Abschluss und Freigabe zugleich zeigen. Ein vor dem Start oder vor dem Abschluss gelesenes „wahr“ zählt nicht.
+
+**Offline-Gegenfälle** (synthetische Statusfolgen):
+- der korrekte Ablauf aus deinem Beispiel (letztes Bild bei 1000 ms gesperrt, nächstes bei 1033 ms beendet und frei): **PASS**;
+- keine Wiederfreigabe innerhalb der Frist: FAIL;
+- nur ein veraltetes „wahr“ von vor dem Abschluss: FAIL;
+- keine beobachtete falsch-Phase: `incomplete`.
+
+### Jog-Messanker, wörtlich im Bericht
+
+„Weg und Zeit **ab der Antwort auf `jog_stop`**.“ Eine Frist ab dem Loslassen eines Bildschirmknopfs folgt daraus nicht; das gehört zu S5b (offen, Browser).
+
+**Erbeten:** `agreement` oder `findings` zur Planfassung 4.
