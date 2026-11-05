@@ -13,6 +13,18 @@ Playwright Chromium with `npx playwright install --with-deps chromium` there.
 | `python3 scripts/test_suite.py offline --component frontend` | Frontend checks, including recorded parity replay | None |
 | `lcnc-gateway/.venv/bin/python scripts/test_suite.py live-twp --ini /path/lcnc_suite_sim_6axis_twp_xyzabc.ini --allow-sim-motion` | Fresh preview goldens, cached-payload parity and plane invariants, mode/button, capture, reorient, touch-off and adverse-path checks | Yes, simulator only |
 
+## The native stage (Codex R282–R285; build step 1)
+
+Cases on the VM's REAL LinuxCNC, run by hand, never beside a gate:
+`scripts/native_run.py` takes the ONE heavy lock (`scripts/test_support/heavy_lock.py`, also held by
+`round_gate.py`, `perf_matrix.py` and `repro-load.sh`), records and stops the LAN sim, builds a run tree
+of the tested commit and a confined copy of the profile, checks it before the start, runs the cases and
+gives the LAN sim back (`restore_lan.py`, also the unit's ExecStopPost). It runs only as the user unit
+`native-run` — the command is in its docstring. Offline guards: `scripts/test_native_stage.py` (the
+backend gate's `native-stage` step). A native evidence in `functions.json` (layer `native`) is "named"
+statically; a PASS comes only from a run report of the same commit, profile, case and variant
+(`functions.native_status`).
+
 ## Round gate and merge gate (test strategy, Codex R248–R260)
 
 An implementation round runs the **round gate**: only the checks its change

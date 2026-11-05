@@ -10489,3 +10489,30 @@ package of its own (SYS-CONN S5; F-COMP S3 was the first case).
 
 The evidence binder now treats vitest's own placeholders (`$field`, `%s`) as
 a parametric title like `${…}`: such a title needs its instances.
+
+## 2026-11-05 — The native stage, build step 1: the vertical slice (plan Codex R282–R285)
+
+The orchestrator and everything it stands on, built offline; no native run yet
+(it waits for the operator's look and development). One heavy lock serializes
+the gates, perf_matrix, the load repro and the native stage. The run tree is a
+worktree of the tested commit with a REAL node_modules copy (a hard-link copy
+shares inodes, and the build writes `node_modules/.tmp`); the copy is
+installed with `--nc-files` / `--macro-dir` RELATIVE (the TWP SUBROUTINE_PATH
+has 9 bytes left of 255) and `--confine` (every write in the run, links
+followed, refused before the first one). The target check moved to
+`test_support/live_target.py` (no linuxcnc import); `check_copy` compares the
+copy with the template rendered with the same options — no exempted key. The
+HAL starts `hal_reader.py`, `hal_watchdog.py`, `compensation.py` by name, and
+`~/.local/bin` links them into the MAIN checkout: the run's unit gets
+`PATH=<run>/bin` with links to the run tree's, checked before and after the
+start. The restore records the LAN instance, hashes the operator's files AFTER
+the stop (the instance writes its own state as it stops) and proves units,
+`/ready`, a new instance, its INI, the tree's HEAD and a keepalive client on
+the new gateway — three outcomes; the isolation is its own verdict, the LAN
+comes back either way.
+
+Found while building, for its own package: a PROGRAM_PREFIX naming a missing
+folder makes the gateway fall back to `~/linuxcnc/nc_files` and create it
+silently (`gateway.py` `_nc_files_dir`) — the run's target check refuses a
+missing folder, and the isolation hash shows `~/linuxcnc/nc_files` untouched.
+
