@@ -13,7 +13,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Offene Aussagen
 
-31 Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.
+26 Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.
 
 | Funktion | Aussage | Art | gilt für | Lücke |
 |---|---|---|---|---|
@@ -21,33 +21,28 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | Not-Halt auslösen und zurücksetzen | Läuft das Budget des Oneshots (0,5 s) ohne Herzschlag ab, verriegelt der Latch im selben Servotakt. | Wirkung | alle | nicht gemessen: der Abstand zwischen dem Ablauf von oneshot.0.out und fault-out im Servotakt (halsampler) |
 | Sicherheits-Auslösung quittieren, Sicherheitskette | Eine gemeldete Auslösung erscheint im Banner mit Quittieren und wird protokolliert. | Bedienbarkeit | alle | Browser/Gateway: Versand, Banner und Protokolleintrag beobachtet kein Test |
 | Antast-Auslösung simulieren (nur Sim) | Sim-Trip pulst den Antast-Eingang probe-in kurz; eine fehlgeschlagene Zustellung wird gemeldet. | Wirkung | alle | Gateway: kein Test des Handlers (halcmd sets probe-in); nativ in der Sim |
-| Referenzieren und Referenz aufheben | Home All und Home je Achse senden ihren Befehl und referenzieren am echten Task. | Wirkung | alle | Browser: kein Spec löst home/home_all aus; nativ |
+| Referenzieren und Referenz aufheben | Home je Achse sendet den Joint seiner Achse. | Daten | 3axis_xyz, 5axis_xyzac, 6axis_twp_xyzabc | Browser: sendet die Achsposition als Joint (SetupStrip a.index) und liest homed_joints an derselben Stelle — richtig, wo Joint = Achsposition (alle ausgelieferten Konfigurationen), falsch, wo nicht (Gantry, eigene Kinematik); braucht eine Achse→Joint-Zuordnung vom Gateway |
+| Referenzieren und Referenz aufheben | Auf echtem LinuxCNC referenzieren Home All und Home je Achse. | Wirkung | offen | nativ (native Stufe) |
 | Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren | Auf echtem LinuxCNC bewegt jeder Jog-Knopf seine Achse in seine Richtung und hält am Loslassen. | Wirkung | offen | nativ: Achse, Richtung und Stopp je Knopf am echten Task (die native Stufe) |
 | Anfahren: G30, Maschinennull, Werkstücknull | Z ist oben, bevor X/Y fahren (→ Zero, → Home, → G30). | Wirkung | Machine | nativ: Verlauf oder Befehlsfolge (die Endpositionen belegen die Reihenfolge nicht) |
-| Overrides: Vorschub, Eilgang, Spindel | Ein Schieber auf 50 % sendet den Faktor 0,5 für genau seinen Override. | Daten | alle | Browser: kein Spec prüft, was die Override-Schieber senden (Codex R250: ein kurzer UI-Test 50 % → scale 0.5) |
 | Overrides: Vorschub, Eilgang, Spindel | Auf echtem LinuxCNC ändert der Override die Geschwindigkeit; in M600 und Surface-Scan ist er abgeschaltet (M50 P0). | Wirkung | offen | nativ (native Stufe) |
-| Spindel von Hand: Rechts, Links, Stopp, Drehzahl | Rechts und Links senden die Drehzahl der Vorwahl; ± ändern sie. | Daten | alle | Browser: kein Spec löst spindle_forward/reverse/increase/decrease aus |
-| Kühlmittel: Flood und Mist | Flood und Mist senden ihr Ein und Aus, und die Anzeige folgt dem gemeldeten Zustand. | Daten | alle | Browser: kein Spec löst flood_on/off oder mist_on/off aus |
 | Kühlmittel: Flood und Mist | Auf echtem LinuxCNC schalten Flood und Mist ihre HAL-Ausgänge. | Wirkung | offen | nativ (native Stufe) |
 | Antippen (Touch-off) und Nullen je Achse | Plane: das Remap schreibt den angetippten Wert in G54. | Wirkung | Plane | kein Test liest G54 nach dem Remap; nativ (scripts/twp_touchoff_plane_check.py, Laufbindung offen) |
 | Geschwenkte Ebene (TWP): erfassen, aufheben, neu ausrichten | Erfassen, Ausrichten und Aufheben ändern Ebene und Nullpunkt, wie die Anzeige es sagt. | Wirkung | Machine, Plane | nativ: scripts/twp_capture_check.py und twp_reorient_check.py (Laufbindung offen) |
 | Programm laden, neu laden, entladen | Neu laden übernimmt die neue Revision; Entladen leert Programm und Vorschau. | Wirkung | alle | Browser/Gateway: Reload und Unload als Ergebnis nicht belegt |
 | Start ab Zeile (mit Vormessung, sicherem Z, Spindel) | Auf echtem LinuxCNC startet der Lauf ab der gewählten Zeile mit dem richtigen Werkzeug, Spindel und Startpunkt. | Wirkung | offen | nativ: ein Testprogramm ab Zeile mit Vormessung (native Stufe) |
-| Satz ausblenden und optionaler Halt | Satz ausblenden und optionaler Halt senden ihren Schalter, und die Anzeige folgt dem gemeldeten Zustand. | Daten | alle | Browser: kein Spec löst set_block_delete oder set_optional_stop aus |
 | Werkzeug anlegen, bearbeiten, löschen, umnummerieren | Anlegen, Ändern, Löschen und Umnummerieren ändern genau ihren Datensatz, erhalten die übrigen Werte und laden die Tabelle neu. | Wirkung | alle | Gateway: kein Test vergleicht die Tabelle vor und nach je Aktion; nativ |
 | Werkzeugwechsel (M6) mit Bestätigung | Auf echtem LinuxCNC wartet M6 bis zur ausdrücklichen Bestätigung und läuft dann mit dem neuen Werkzeug weiter. | Wirkung | offen | nativ: ohne automatische Bestätigung (FI265-04), native Stufe |
 | Werkzeuglänge messen (M600) und Werkzeug entladen | Jede Nummer der Abbildung ist die, die tool_touch_off.ngc für ihren Wert liest. | Daten | alle | Unit: kein Test gleicht die Abbildung mit den Lesestellen der Routine ab |
 | Werkzeuglänge messen (M600) und Werkzeug entladen | Auf echtem LinuxCNC landet die gemessene Länge in der Werkzeugtabelle und im G43-Offset. | Wirkung | offen | nativer Lauf offen (nach Schritt 7) |
-| Werkzeuglänge messen (M600) und Werkzeug entladen | Entladen (T0 M600) läuft nur mit eingerichtetem Toolsetter und entlädt das Werkzeug. | Wirkung | alle | Browser: kein Spec löst Entladen aus (die Sperre belegt S3); nativ |
+| Werkzeuglänge messen (M600) und Werkzeug entladen | Auf echtem LinuxCNC entlädt Entladen das Werkzeug. | Wirkung | offen | nativ (native Stufe) |
 | Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut | Auf echtem LinuxCNC setzt ein Z-Antasten G54 Z auf den erwarteten Wert (Platte, Werkzeug, Toleranz je Messgröße). | Wirkung | offen | Schritt 7, der Antast-Live-Check |
-| Fläche abtasten (Surface-Scan) | Der Surface-Scan sendet O<surface_scan> CALL mit den Feldern des Panels in vars. | Daten | alle | Browser: probe-click deckt die fünf Antastformen, nicht den Scan |
 | Fläche abtasten (Surface-Scan) | Auf echtem LinuxCNC tastet der Scan das Raster ab und liefert die Punkte für die Kompensation. | Wirkung | 3axis_xyz | nativ (native Stufe, mit hohem Antastvorschub über die Scan-Variablen) |
 | Flächenkompensation ein/aus und Interpolation umschalten | Auf echtem LinuxCNC wirkt AN/AUS, und die drei Methoden unterscheiden sich an bekannten Punkten einer nicht ebenen Fläche. | Wirkung | 3axis_xyz | nativer Lauf offen |
 | Makros verwalten: anlegen, bearbeiten, umbenennen, löschen, importieren, herunterladen | Im Gateway ist eine Umbenennung ein Schritt: neue Datei, alte weg, Leiste umgezogen, oder nichts. | Wirkung | alle | Gateway: Atomarität der Umbenennung nicht belegt |
-| Tastatur-Bedienung und Tastenbelegung | Eine belegte Jog-Taste joggt ihre Achse in ihre Richtung und stoppt beim Loslassen. | Wirkung | alle | Browser: die Jog-Tasten senden jog_cont und beim Loslassen jog_stop — kein Spec prüft das für die Belegung |
-| Gamepad-Bedienung, Belegung und Einrichtungs-Assistent | Eine belegte Gamepad-Taste löst genau ihre Aktion aus (Start, Pause, Fortsetzen, Abort, E-Stop, Spindel-Stopp, Kühlmittel, Home All) über dieselbe Zulassung wie der Knopf. | Daten | alle | Unit/Browser: kein Test geht die Tasten-Aktionen durch |
 | Verbindung: Anmeldung, Herzschlag, Wiederverbindung, Auslieferung | Mehrere Clients gleichzeitig: Nach dem Laden eines Programms holen mehrere Clients die Vorschau, und der Herzschlag-Abstand des Gateways bleibt sicher unter der Grenze von 500 ms. | Wirkung | alle | neues perf_matrix-Szenario mit Protokoll-Clients statt Browsern (deren Simulation läuft auf den Client-Geräten, nicht im Gateway); native Stufe. Vorhanden: fanout (8 Clients), reconnect_storm (12 Verbindungen), preview_publish (ein Client) — Operator 2026-11-04 |
 | Verbindung: Anmeldung, Herzschlag, Wiederverbindung, Auslieferung | Trennt sich ein Client oder läuft sein Herzschlag ab: der passende Jog-Stopp, kein pauschaler Abort eines laufenden Programms (Armed ist Autorisierung, kein Totmann); ein anderer Client bleibt verbunden. Fehlt der letzte Client oder der Gateway-Herzschlag, greift die HAL-Kette (F-ESTOP.S4). | Abbruch | alle | Integrationsbeleg offen: WS-Abgang und Timeout mit laufendem Programm und zweitem Client |
+| Verbindung: Anmeldung, Herzschlag, Wiederverbindung, Auslieferung | Ein Befehl, dessen Wert die Handlung bestimmt, wird ohne diesen Wert abgelehnt: home ohne joint, set_optional_stop / set_block_delete ohne Wahrheitswert, ein Override ohne scale, spindle_forward / spindle_reverse ohne speed; wo ein Standard die sichere Richtung ist (arm ohne armed → entwaffnen), ist er ausdrücklich so entschieden. | Ablehnung | alle | Gateway: heute führt es diese Befehle mit einem Standard aus (home ohne joint referenziert alle, "false" schaltet M01 ein, ein Override ohne scale setzt 100 %); 24 finite_*(msg.get(…, Standard)) und 9 bool(msg.get(…)) sind je Befehl zu sichten, bevor ein Standard entfällt — ein eigenes Gateway-Paket (F-COMP S3 war der erste Fall); der WebUI-Client sendet jedes Feld (commandShapes.test.ts) |
 
 **Ohne formulierte Aussagen:** 18 Funktionen ohne eigene Maschinenwirkung — Programm herunterladen `F-PROGDOWNLOAD`, G-Code ansehen, aktive Codes, Codewort-Referenz, Statistik `F-GCODEVIEW`, Vorschau des Werkzeugwegs `F-PREVIEW`, Werkzeugtabelle ansehen, suchen, sortieren `F-TOOLTABLE`, Werkzeugtabelle herunterladen `F-TOOLDOWNLOAD`, Makro-Leiste einrichten `F-MACROBAR`, Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab `F-SIM`, 3D-Ansicht bedienen: Ansichten, Würfel, Spur löschen, Hinweise `F-VIEW`, 3D-Ansicht einstellen: Ebenen, Farben, Projektion, Verfolgung, HUD `F-VIEWSET`, Kamerabild (Bild im Bild) und Überlagerung `F-CAMERA`, Darstellung: Farbschema, Vollbild, Bildschirm wach halten `F-DISPLAY`, Meldungen: Nachrichtenzentrale, Filter, Kopieren, Löschen `F-MESSAGES`, Navigation: Tabs und Seitenleiste `F-TABS`, Diagnose: HAL-Anzeige, Timing, Telemetrie `F-DIAG`, Eingabehilfen: Zahlen- und Text-Tastatur am Bildschirm `F-INPUTHELP`, Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe `SYS-CONTROLS`, Statusübertragung (Rahmen und gemeinsame Felder) `SYS-STATUS`, Maschinenkonfiguration lesen: Achsen, Gelenke, Grenzen, Kinematik, Remaps, Profile `SYS-CONFIG`
 
@@ -126,7 +121,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Referenzieren und Referenz aufheben** `F-HOME` | Banner, Leiste › Setup | 11 | 2 | 1 | 1 |
+| **Referenzieren und Referenz aufheben** `F-HOME` | Banner, Leiste › Setup | 11 | 4 | 2 | 2 |
 | **Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren** `F-JOG` | Leiste › Jog | 39 | 5 | 4 | 1 |
 | **Anfahren: G30, Maschinennull, Werkstücknull** `F-GOTO` | Leiste › Setup | 8 | 5 | 4 | 1 |
 
@@ -134,8 +129,12 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 - **S1 (Bedienbarkeit):** Unhome All ist eine Haltegeste: ein kurzes Tippen sendet nichts und sagt warum, ein vollständiges Halten genau einen Befehl. — gilt für: alle
   - Beleg: browser: `touch-hold.spec.ts` — a short tap sends nothing and says why; a complete hold sends exactly one command
-- **S2 (Wirkung):** Home All und Home je Achse senden ihren Befehl und referenzieren am echten Task. — gilt für: alle
-  - Beleg: **offen** — Lücke: Browser: kein Spec löst home/home_all aus; nativ
+- **S2 (Daten):** Home All sendet home_all auf ein Halten; ein Tippen sendet nichts. — gilt für: alle
+  - Beleg: browser: `strip-actions.spec.ts` — Home All sends home_all on a hold — a tap sends nothing
+- **S2b (Daten):** Home je Achse sendet den Joint seiner Achse. — gilt für: 3axis_xyz, 5axis_xyzac, 6axis_twp_xyzabc
+  - Beleg: **offen** — Lücke: Browser: sendet die Achsposition als Joint (SetupStrip a.index) und liest homed_joints an derselben Stelle — richtig, wo Joint = Achsposition (alle ausgelieferten Konfigurationen), falsch, wo nicht (Gantry, eigene Kinematik); braucht eine Achse→Joint-Zuordnung vom Gateway
+- **S2c (Wirkung):** Auf echtem LinuxCNC referenzieren Home All und Home je Achse. — gilt für: offen
+  - Beleg: **offen** — Lücke: nativ (native Stufe)
 
 ### Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren
 
@@ -167,14 +166,14 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Overrides: Vorschub, Eilgang, Spindel** `F-OVERRIDE` | Leiste › Overrides | 19 | 2 | 0 | 2 |
-| **Spindel von Hand: Rechts, Links, Stopp, Drehzahl** `F-SPINDLE` | Einstellungen, Leiste › Spindel | 25 | 4 | 3 | 1 |
-| **Kühlmittel: Flood und Mist** `F-COOLANT` | Leiste › Spindel | 8 | 2 | 0 | 2 |
+| **Overrides: Vorschub, Eilgang, Spindel** `F-OVERRIDE` | Leiste › Overrides | 19 | 2 | 1 | 1 |
+| **Spindel von Hand: Rechts, Links, Stopp, Drehzahl** `F-SPINDLE` | Einstellungen, Leiste › Spindel | 25 | 4 | 4 | 0 |
+| **Kühlmittel: Flood und Mist** `F-COOLANT` | Leiste › Spindel | 8 | 2 | 1 | 1 |
 
 ### Overrides: Vorschub, Eilgang, Spindel
 
-- **S1 (Daten):** Ein Schieber auf 50 % sendet den Faktor 0,5 für genau seinen Override. — gilt für: alle
-  - Beleg: **offen** — Lücke: Browser: kein Spec prüft, was die Override-Schieber senden (Codex R250: ein kurzer UI-Test 50 % → scale 0.5)
+- **S1 (Daten):** Ein Schieber sendet seinen Faktor für genau seinen Override (50 % → 0,5); sein 100-%-Knopf sendet 1,0. — gilt für: alle
+  - Beleg: browser: `strip-actions.spec.ts` — each override slider sends its own factor; its 100 % button sends 1.0
 - **S2 (Wirkung):** Auf echtem LinuxCNC ändert der Override die Geschwindigkeit; in M600 und Surface-Scan ist er abgeschaltet (M50 P0). — gilt für: offen
   - Beleg: **offen** — Lücke: nativ (native Stufe)
 
@@ -184,15 +183,15 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: gateway: `test_button_gates.py` — test_spindle_stop_at_idle_without_arm_or_homing; gateway: `test_button_gates.py` — test_spindle_stop_closed_while_the_program_owns_the_spindle
 - **S2 (Ablehnung):** Die Spindel von Hand vor dem Referenzieren nur, wo die Maschine es deklariert (WEBUI_SPINDLE_BEFORE_HOMING = 1), und nur in MANUAL. — gilt für: alle
   - Beleg: browser: `setup-gates.spec.ts` — the manual spindle unhomed where the machine declares it, MANUAL only (Q1); gateway: `test_button_gates_d.py` — test_the_switch_opens_manual_only; gateway: `test_button_gates_d.py` — test_unhomed_without_the_switch_keeps_the_homing_rule; gateway: `test_button_gates_d.py` — test_spindle_switch
-- **S3 (Daten):** Rechts und Links senden die Drehzahl der Vorwahl; ± ändern sie. — gilt für: alle
-  - Beleg: **offen** — Lücke: Browser: kein Spec löst spindle_forward/reverse/increase/decrease aus
+- **S3 (Daten):** Rechts und Links senden auf ein Halten die Drehzahl der Vorwahl, ein Tippen nichts; ± ändern im Stand die Vorwahl und senden nichts, bei drehender Spindel senden sie Erhöhen und Verringern. — gilt für: alle
+  - Beleg: browser: `strip-actions.spec.ts` — Fwd and Rev send the preselected speed on a hold — a tap sends nothing; browser: `strip-actions.spec.ts` — ± move the preselection while the spindle stands, and send increase / decrease while it turns
 - **S4 (Wirkung):** Vor dem Referenzieren mit dem Schalter läuft die Spindel in MANUAL; ohne den Schalter wird sie abgelehnt. — gilt für: alle
   - Beleg: gateway: `test_button_gates_d.py` — test_unhomed_with_the_switch_in_manual_runs; gateway: `test_button_gates_d.py` — test_unhomed_without_the_switch_is_refused
 
 ### Kühlmittel: Flood und Mist
 
-- **S1 (Daten):** Flood und Mist senden ihr Ein und Aus, und die Anzeige folgt dem gemeldeten Zustand. — gilt für: alle
-  - Beleg: **offen** — Lücke: Browser: kein Spec löst flood_on/off oder mist_on/off aus
+- **S1 (Daten):** Flood und Mist senden Ein gegen das gemeldete Aus und Aus gegen das gemeldete Ein; der Schalter zeigt den gemeldeten Zustand, nie den Klick. — gilt für: alle
+  - Beleg: browser: `strip-actions.spec.ts` — Flood and Mist send on against the reported off, off against the reported on — the switch shows the status
 - **S2 (Wirkung):** Auf echtem LinuxCNC schalten Flood und Mist ihre HAL-Ausgänge. — gilt für: offen
   - Beleg: **offen** — Lücke: nativ (native Stufe)
 
@@ -249,7 +248,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | **Programm herunterladen** `F-PROGDOWNLOAD` | Tab „Program“ | 2 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Programm starten, pausieren, fortsetzen, Einzelschritt** `F-RUN` | Tab „Program“ | 15 | 4 | 4 | 0 |
 | **Start ab Zeile (mit Vormessung, sicherem Z, Spindel)** `F-RFL` | Einstellungen, Tab „Program“ | 20 | 3 | 2 | 1 |
-| **Satz ausblenden und optionaler Halt** `F-OPTSTOP` | Tab „Program“ | 6 | 1 | 0 | 1 |
+| **Satz ausblenden und optionaler Halt** `F-OPTSTOP` | Tab „Program“ | 6 | 1 | 1 | 0 |
 | **G-Code ansehen, aktive Codes, Codewort-Referenz, Statistik** `F-GCODEVIEW` | G-Code-Referenz, Kopfzeile, Leiste › Sicherheit, Tab „Program“ | 13 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Vorschau des Werkzeugwegs** `F-PREVIEW` | Einstellungen | 9 | 0 | 0 | Aussagen noch nicht formuliert |
 
@@ -298,8 +297,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ### Satz ausblenden und optionaler Halt
 
-- **S1 (Daten):** Satz ausblenden und optionaler Halt senden ihren Schalter, und die Anzeige folgt dem gemeldeten Zustand. — gilt für: alle
-  - Beleg: **offen** — Lücke: Browser: kein Spec löst set_block_delete oder set_optional_stop aus
+- **S1 (Daten):** Satz ausblenden und optionaler Halt senden das Gegenteil des gemeldeten Schalters; die Anzeige folgt dem gemeldeten Zustand, nie dem Klick. — gilt für: alle
+  - Beleg: browser: `strip-actions.spec.ts` — M01 and /BD send the opposite of the reported switch; the switch shows the status
 
 ## MDI
 
@@ -321,7 +320,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | **Werkzeugbibliothek importieren (Fusion 360, FreeCAD)** `F-TOOLIMPORT` | Tab „Tools“ | 17 | 4 | 4 | 0 |
 | **Werkzeugtabelle herunterladen** `F-TOOLDOWNLOAD` | Tab „Tools“ | 2 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Werkzeugwechsel (M6) mit Bestätigung** `F-TOOLCHANGE` | Dialog, Einstellungen, Tab „Tools“ | 14 | 2 | 1 | 1 |
-| **Werkzeuglänge messen (M600) und Werkzeug entladen** `F-TOOLMEASURE` | Tab „Tools“ | 8 | 7 | 4 | 3 |
+| **Werkzeuglänge messen (M600) und Werkzeug entladen** `F-TOOLMEASURE` | Tab „Tools“ | 8 | 8 | 5 | 3 |
 | **Toolsetter einrichten (Werkzeuglängen-Messung)** `F-TOOLSETTER` | Tab „Probing“ › Toolsetter | 36 | 1 | 1 | 0 |
 | **Werkzeugwechselposition G30 lesen, übernehmen, speichern** `F-G30` | Tab „Probing“ › Toolsetter | 8 | 2 | 2 | 0 |
 
@@ -368,8 +367,10 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: **offen** — Lücke: Unit: kein Test gleicht die Abbildung mit den Lesestellen der Routine ab
 - **S5 (Wirkung):** Auf echtem LinuxCNC landet die gemessene Länge in der Werkzeugtabelle und im G43-Offset. — gilt für: offen
   - Beleg: **offen** — Lücke: nativer Lauf offen (nach Schritt 7)
-- **S6 (Wirkung):** Entladen (T0 M600) läuft nur mit eingerichtetem Toolsetter und entlädt das Werkzeug. — gilt für: alle
-  - Beleg: **offen** — Lücke: Browser: kein Spec löst Entladen aus (die Sperre belegt S3); nativ
+- **S6 (Daten):** Entladen sendet im M600-Modus EIN mdi T0 M600 mit den Toolsetter-Werten in vars, im Standardmodus tool_change 0. — gilt für: alle
+  - Beleg: browser: `toolsetter-setup.spec.ts` — Unload is ONE command: T0 M600 with the setter's values in M600 mode, tool_change 0 in the standard mode
+- **S6b (Wirkung):** Auf echtem LinuxCNC entlädt Entladen das Werkzeug. — gilt für: offen
+  - Beleg: **offen** — Lücke: nativ (native Stufe)
 
 ### Toolsetter einrichten (Werkzeuglängen-Messung)
 
@@ -389,7 +390,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 |---|---|---|---|---|---|
 | **Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut** `F-PROBE` | Tab „Probing“ | 87 | 4 | 3 | 1 |
 | **Taster kalibrieren** `F-PROBECAL` | Tab „Probing“ | 15 | 1 | 1 | 0 |
-| **Fläche abtasten (Surface-Scan)** `F-SURFACE` | Tab „Probing“ | 6 | 2 | 0 | 2 |
+| **Fläche abtasten (Surface-Scan)** `F-SURFACE` | Tab „Probing“ | 6 | 2 | 1 | 1 |
 | **Flächenkompensation ein/aus und Interpolation umschalten** `F-COMP` | Dialog, Tab „Probing“ | 13 | 4 | 3 | 1 |
 
 ### Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut
@@ -410,8 +411,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ### Fläche abtasten (Surface-Scan)
 
-- **S1 (Daten):** Der Surface-Scan sendet O<surface_scan> CALL mit den Feldern des Panels in vars. — gilt für: alle
-  - Beleg: **offen** — Lücke: Browser: probe-click deckt die fünf Antastformen, nicht den Scan
+- **S1 (Daten):** Der Surface-Scan sendet auf ein Halten EIN mdi O<surface_scan> CALL mit den Werten des Panels in vars (ein vom Server gehaltener Wert kommt an). — gilt für: alle
+  - Beleg: browser: `probe-click.spec.ts` — Surface: a held Start Scan sends O<surface_scan> CALL with the panel's numbers
 - **S2 (Wirkung):** Auf echtem LinuxCNC tastet der Scan das Raster ab und liefert die Punkte für die Kompensation. — gilt für: 3axis_xyz
   - Beleg: **offen** — Lücke: nativ (native Stufe, mit hohem Antastvorschub über die Scan-Variablen)
 
@@ -478,8 +479,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Tastatur-Bedienung und Tastenbelegung** `F-KEYBOARD` | Einstellungen, Einstellungen › Tastatur | 37 | 3 | 2 | 1 |
-| **Gamepad-Bedienung, Belegung und Einrichtungs-Assistent** `F-GAMEPAD` | Einstellungen, Einstellungen › Gamepad | 48 | 3 | 2 | 1 |
+| **Tastatur-Bedienung und Tastenbelegung** `F-KEYBOARD` | Einstellungen, Einstellungen › Tastatur | 37 | 3 | 3 | 0 |
+| **Gamepad-Bedienung, Belegung und Einrichtungs-Assistent** `F-GAMEPAD` | Einstellungen, Einstellungen › Gamepad | 48 | 3 | 3 | 0 |
 | **Eingabehilfen: Zahlen- und Text-Tastatur am Bildschirm** `F-INPUTHELP` | Tastatur-Symbol am Feld, Texttastatur, Zahlentastatur | 52 | 0 | 0 | Aussagen noch nicht formuliert |
 
 ### Tastatur-Bedienung und Tastenbelegung
@@ -488,8 +489,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: browser: `keyboard-guards.spec.ts` — positive control: Space on the bare page sends cycle_start; browser: `touchoff.spec.ts` — Space on a focused control never reaches the Cycle Start shortcut; browser: `keyboard-guards.spec.ts` — editor open: Space never starts the program; browser: `keyboard-guards.spec.ts` — keypad OK: Space through the whole focus return never starts the program; Escape still E-Stops
 - **S2 (Ablehnung):** Hinter einem Dialog geht nur Escape (E-Stop) durch; Space, Enter und Backspace erreichen die Maschine nicht. — gilt für: alle
   - Beleg: browser: `keyboard-guards.spec.ts` — settings dialog and key capture: only Escape passes, and it cancels the capture; browser: `keyboard-guards.spec.ts` — tool dialog, messages and reference dialogs block Space/Enter/Backspace
-- **S3 (Wirkung):** Eine belegte Jog-Taste joggt ihre Achse in ihre Richtung und stoppt beim Loslassen. — gilt für: alle
-  - Beleg: **offen** — Lücke: Browser: die Jog-Tasten senden jog_cont und beim Loslassen jog_stop — kein Spec prüft das für die Belegung
+- **S3 (Daten):** Eine belegte Jog-Taste sendet jog_cont für ihre Achse (ihre Stelle in der Achsliste) in ihre Richtung und beim Loslassen jog_stop derselben Achse; die Taste einer fehlenden Achse sendet nichts (die Wirkung am Task: F-JOG S5). — gilt für: alle
+  - Beleg: browser: `keyboard-guards.spec.ts` — every bound jog key jogs its own axis in its direction and stops it on release; a key of an absent axis sends nothing
 
 ### Gamepad-Bedienung, Belegung und Einrichtungs-Assistent
 
@@ -498,14 +499,14 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S2 (Ablehnung):** Vor dem Referenzieren startet eine gesperrte Achse weder vom D-Pad noch vom Stick etwas; eine offene joggt. — gilt für: alle
   - Beleg: unit: `useGamepad.test.ts` — an axis closed before homing starts nothing from the D-pad or the stick; an open one jogs
 - **S3 (Daten):** Eine belegte Gamepad-Taste löst genau ihre Aktion aus (Start, Pause, Fortsetzen, Abort, E-Stop, Spindel-Stopp, Kühlmittel, Home All) über dieselbe Zulassung wie der Knopf. — gilt für: alle
-  - Beleg: **offen** — Lücke: Unit/Browser: kein Test geht die Tasten-Aktionen durch
+  - Beleg: unit: `useGamepad.test.ts` — $action ($want.cmd): exactly its command under its control's gate; closed, nothing (je: start, pause, resume, abort, spindle_stop, flood_toggle, mist_toggle, home_all); unit: `useGamepad.test.ts` — E-Stop goes out with every gate closed, and with the buttons switched off
 
 ## Systemverträge (gemeinsame Mechanismen)
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
 | **Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe** `SYS-CONTROLS` | Auswahlgruppen, Detailkarte, Menü „More“, jeder Dialog, jedes Bedienelement, „?“-Hilfe | 190 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Verbindung: Anmeldung, Herzschlag, Wiederverbindung, Auslieferung** `SYS-CONN` | — | 26 | 4 | 2 | 2 |
+| **Verbindung: Anmeldung, Herzschlag, Wiederverbindung, Auslieferung** `SYS-CONN` | — | 26 | 5 | 2 | 3 |
 | **Statusübertragung (Rahmen und gemeinsame Felder)** `SYS-STATUS` | — | 9 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Maschinenkonfiguration lesen: Achsen, Gelenke, Grenzen, Kinematik, Remaps, Profile** `SYS-CONFIG` | — | 19 | 0 | 0 | Aussagen noch nicht formuliert |
 
@@ -519,6 +520,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: gateway: `test_button_gates_e.py` — test_the_disarm_stop; gateway: `test_button_gates_e.py` — test_auto_running_sends_nothing
 - **S4 (Abbruch):** Trennt sich ein Client oder läuft sein Herzschlag ab: der passende Jog-Stopp, kein pauschaler Abort eines laufenden Programms (Armed ist Autorisierung, kein Totmann); ein anderer Client bleibt verbunden. Fehlt der letzte Client oder der Gateway-Herzschlag, greift die HAL-Kette (F-ESTOP.S4). — gilt für: alle
   - Beleg: **offen** — Lücke: Integrationsbeleg offen: WS-Abgang und Timeout mit laufendem Programm und zweitem Client
+- **S5 (Ablehnung):** Ein Befehl, dessen Wert die Handlung bestimmt, wird ohne diesen Wert abgelehnt: home ohne joint, set_optional_stop / set_block_delete ohne Wahrheitswert, ein Override ohne scale, spindle_forward / spindle_reverse ohne speed; wo ein Standard die sichere Richtung ist (arm ohne armed → entwaffnen), ist er ausdrücklich so entschieden. — gilt für: alle
+  - Beleg: **offen** — Lücke: Gateway: heute führt es diese Befehle mit einem Standard aus (home ohne joint referenziert alle, "false" schaltet M01 ein, ein Override ohne scale setzt 100 %); 24 finite_*(msg.get(…, Standard)) und 9 bool(msg.get(…)) sind je Befehl zu sichten, bevor ein Standard entfällt — ein eigenes Gateway-Paket (F-COMP S3 war der erste Fall); der WebUI-Client sendet jedes Feld (commandShapes.test.ts)
 
 ## Nach Bedienort
 

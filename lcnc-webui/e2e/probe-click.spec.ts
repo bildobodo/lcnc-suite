@@ -56,3 +56,24 @@ for (const form of FORMS) {
     expect([0, 1], `${form.sub}: #3030 is a mode`).toContain(mdi.vars!['3030']);
   });
 }
+
+test("Surface: a held Start Scan sends O<surface_scan> CALL with the panel's numbers", async ({ page }) => {
+  // The function inventory's F-SURFACE S1: the scan's values are the panel's
+  // — one the server holds (X Probes 7) arrives as #3054, not the default 5.
+  await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === 'desktop')!);
+  await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { probe: { scanXProbes: 7 } } } });
+  const side = page.locator('.sidePane');
+  await side.getByRole('tab', { name: 'Probing', exact: true }).click();
+  await side.getByRole('tab', { name: 'Surface', exact: true }).click();
+  await expect(side.getByLabel('X Probes', { exact: true })).toHaveValue('7');
+  await ctl({ op: 'clearCmds' });
+  await hold(page, side.getByRole('button', { name: 'Start Scan', exact: true }));
+  await expect.poll(async () => (await sent()).filter(c => c.cmd === 'mdi').length, { message: 'one mdi' }).toBe(1);
+  const mdi = (await sent()).find(c => c.cmd === 'mdi')!;
+  expect(mdi.text).toBe('O<surface_scan> CALL');
+  expect(Object.keys(mdi.vars ?? {}).sort(), 'exactly the numbers its map names').toEqual(MAP);
+  // what surface_scan.ngc reads: the grid #3050–#3059, the probe tool #3014, the retract #3021
+  for (const n of [...Array.from({ length: 10 }, (_, i) => String(3050 + i)), '3014', '3021']) expect(MAP, n).toContain(n);
+  expect(mdi.vars!['3054'], 'X Probes from the panel').toBe(7);
+  expect(Object.entries(mdi.vars!).filter(([, v]) => !Number.isFinite(v)), 'every value finite').toEqual([]);
+});

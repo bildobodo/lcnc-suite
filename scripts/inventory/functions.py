@@ -235,6 +235,11 @@ def routine_problems(all_ids: list[str], root: Path = ROOT) -> list[str]:
     return out
 
 
+# A title one test function renders per case: a template literal's ${…},
+# vitest it.each's $field and its printf %s / %d / %i / %f / %j / %o / %#.
+PARAMETRIC = re.compile(r"\$\{|\$[A-Za-z_]|%[sdifjoO#]")
+
+
 def evidence_problems(e: dict, root: Path) -> list[str]:
     """Step 1 binds a named test STATICALLY: its file exists and holds its
     title. Whether it ran and passed comes from the run artifacts (step 2)."""
@@ -246,7 +251,7 @@ def evidence_problems(e: dict, root: Path) -> list[str]:
         return [f"evidence file {layer}/{file} does not exist"]
     if not title or title not in path.read_text():
         return [f"evidence {layer}/{file}: the title {title!r} is not in the file"]
-    if "${" in title and not e.get("instances"):
+    if PARAMETRIC.search(title) and not e.get("instances"):
         return [f"evidence {layer}/{file}: the parametric title {title!r} names no instances"]
     return []
 

@@ -1,0 +1,5 @@
+E           AssertionError: $action: one per case
+E           assert []
+E            +  where [] = <function evidence_problems at 0xffffaad48900>({'file': 'e.py', 'layer': 'script', 'title': '$action: one per case'}, PosixPath('/tmp/pytest-of-cnc/pytest-773/test_evidence_is_bound_to_a_fi0'))
+E            +    where <function evidence_problems at 0xffffaad48900> = fn.evidence_problems
+FAILED scripts/inventory/test_inventory.py::test_evidence_is_bound_to_a_file_and_its_title

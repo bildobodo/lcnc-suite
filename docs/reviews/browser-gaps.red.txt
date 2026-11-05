@@ -1,0 +1,8 @@
+[1/1] [e2e] › e2e/strip-actions.spec.ts:124:1 › ± move the preselection while the spindle stands, and send increase / decrease while it turns
+  1) [e2e] › e2e/strip-actions.spec.ts:124:1 › ± move the preselection while the spindle stands, and send increase / decrease while it turns 
+    Error: locator.click: Test timeout of 30000ms exceeded.
+      - waiting for locator('[data-strip="spindle"]').getByRole('button', { name: 'Increase spindle speed', exact: true })
+    test-results/strip-actions-±-move-the-p-c912e-ase-decrease-while-it-turns-e2e/test-failed-1.png
+    Error Context: test-results/strip-actions-±-move-the-p-c912e-ase-decrease-while-it-turns-e2e/error-context.md
+  1 failed
+    [e2e] › e2e/strip-actions.spec.ts:124:1 › ± move the preselection while the spindle stands, and send increase / decrease while it turns 

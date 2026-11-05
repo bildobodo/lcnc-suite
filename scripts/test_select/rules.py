@@ -139,14 +139,14 @@ VIEWER = ("bake-hold.viewer", "collisions.viewer", "fatpaths.viewer", "findings.
           "toolsetter.viewer", "viewcube.viewer", "viewer", "frames")
 PROGRAM = ("editor-guards", "run-hold", "safety-during-edit", "input-session",
            "keyboard-guards", "feedback-channels", "disarmed", "tabs", "select-writes",
-           "sim-panel.viewer")
+           "sim-panel.viewer", "strip-actions")
 TOOLS = ("example-tool-library", "freecad-import", "tool-geometry", "tool-holder",
          "tool-import", "tool-table-read")
 TOOLSETTER = ("toolsetter-setup", "g30", "forms", "toolsetter.viewer")
 PROBING = ("probe-click", "compensation", "forms", "disarmed", "tabs")
-SETUP = ("offsets", "touchoff", "setup-gates", "setup-layout", "choices", "nine-axis")
+SETUP = ("offsets", "touchoff", "setup-gates", "setup-layout", "choices", "nine-axis", "strip-actions")
 STRIP = ("joint-jog", "keyboard-guards", "touch-hold", "touch-surface", "armed", "disarmed",
-         "choices", "setup-layout", "safety-during-edit", "setup-gates", "input-session")
+         "choices", "setup-layout", "safety-during-edit", "setup-gates", "input-session", "strip-actions")
 SETTINGS = ("forms", "appearance", "select-writes", "tabs", "disarmed", "feedback-channels",
             "keyboard-guards", "scenes.viewer")
 MACROS = ("macros", "run-hold", "disarmed")
