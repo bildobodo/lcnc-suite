@@ -5709,3 +5709,93 @@ Die Einschränkung zu `mdi_set:false` bitte präzise halten: Eine **schon vor de
 Reproduktion jeweils mit Gateway-Venv-Python `-B` und passender Archivkopie als Argument. `a-probe.py` benötigt zusätzlich die alte Routine, unverändert aus `838c3381:subroutines/tool_length_probe/tool_touch_off.ngc`; ihr Hash wird geprüft. Die Offline-Vorschau verwendet den Repository-Harness mit synthetischem STAT, privatem Werkzeug-Mmap und einem verweigernden Maschinenbefehls-Stub. Beide neuen Sonden und die Wiederholung enden mit Code 0.
 
 Keine Builds/Tests/Checkouts im Live-Baum, keine Zugriffe auf die Live-Sim, keine Maschinenbefehle oder Produktänderungen. Nur dieser Anhang und neue R307-Belege; ältere Belege unverändert.
+
+---
+
+## Claude · Antwort auf R307 · Anfrage R308 · 5. November 2026
+
+Zwei Teile. **Teil A** ist der feste native Fall „von oben auf ein längeres Werkzeug“ auf dem integrierten Stand, wie in R307 vereinbart. **Teil B** ist der Plan für P2; gebaut ist dafür noch nichts.
+
+### Teil A · Der feste native Fall auf `integ/m600-native`
+
+**Stand:** `integ/m600-native` **`3e4f7c80`**. Die Basis `6ea55208` ist der Merge der beiden in R307 abgenommenen Stände: `feat/native-stage` `d54c1b2f` und `fix/m600-return-top` `1c32325c`.
+
+**`3891ba24`, kein Umweg mehr:**
+- `m600_cases` fährt vor dem T1-M600 nicht mehr nach unten; `M600_CLEAR` ist entfernt.
+- T1 misst dort, wo das Entladen die Spindel lässt: auf G30, in der Kopie ganz oben. Das ist auch der Ablauf des Operators: immer M600, oft von maximaler Höhe.
+- Die neue Zeile `m600-t1-return` mit Gegenprobe `m600-t1-return.counter-x+1` (Aufruf 1 mm in X versetzt) bewertet das Ende.
+- F-TOOLMEASURE.S7 bindet beide Zeilen und den Vorschautest von oben.
+
+**`3e4f7c80`, der Wächter zeigt, was er beweist (deine R307-Liste):**
+
+| Bedingung | sonst |
+|---|---|
+| `#3106` aus dem Interpreter gelesen, = 1 | `incomplete` (Rückfahrt nicht an) |
+| Aufruf bei Gelenk-Z = Oberkante; dort angewandte Länge (leere Spindel 0) kürzer als die gespeicherte neue | `incomplete` (kein Steigen zu beweisen) |
+| Zielwerkzeug in der Spindel; gespeicherte = angewandte Länge | FAIL bei bekanntem Widerspruch, sonst `incomplete` |
+| Ende an X/Y des Aufrufs, Gelenk-Z = Oberkante (0,001 mm) | FAIL |
+| kein NML-Fehler der Art 1/11 | FAIL |
+
+„Kein Fehler“ allein ergibt kein PASS. Das Entladen wird weiter getrennt gegen seinen G30-Vertrag bewertet (`m600-unload`).
+
+**Wächter:**
+- **14 Auswerterfälle**, darunter ein bekannter Widerspruch vor einem ungelesenen Wert, `#3106` 0 bzw. ungelesen, das kürzere Zielwerkzeug, der fremde Werkzeugtausch und eine abweichende angewandte Länge.
+- **Der Schritt** ohne Umweg (die Gegenprobe endet 20 mm tiefer und ergibt FAIL).
+- **Rot** an `6ea55208` beim Umweg und an `3891ba24` an der neuen Schnittstelle.
+- 285 native und 36 Inventar-Tests.
+
+**Live auf dem echten Task:**
+- **Lauf 8** (`3891ba24`, `20261105T211916`): **30 PASS**, `rfl-start-point` `incomplete` (2c-b), Rückgabe `complete`, Isolation leer.
+- **Lauf 9** (`3e4f7c80`, `20261105T212704`): **30 PASS**, `rfl-start-point` `incomplete`, Rückgabe `complete`, Isolation leer. Die Zeile: „from the top, T0 0.000 mm → T1 49.9996 mm stored and applied; back at the call's X/Y, Z stayed up“, die Gegenprobe greift (X endete 0,000, Aufruf geplant bei 1,000).
+
+Die Zeilen beider Läufe stehen gekürzt in [function-inventory.r308.live-runs.json](function-inventory.r308.live-runs.json), die Rohdaten in den Laufordnern unter `~/claude-work/live-tier/`.
+
+**Gate:** Round Gate an `3e4f7c80`, Basis `6ea55208`: **PASS**. Geprüft wurden Selektor-Wächter, Lint, Build, Unit leicht und Backend mit `native-stage` 285/285 sowie `inventory` 36/36. Bericht: `integ-m600-native.gate-round.run1.json`.
+
+Der Merge der M600-Korrektur nach `development` wartet auf den Blick des Operators. Danach kommen 2c-b und Schritt 3.
+
+### Teil B · P2, der Plan (nichts gebaut)
+
+**Drei Befunde, mit verschiedenen Nachweisständen:**
+
+1. **Formular sendet nur im Moment der Bestätigung** (Code gelesen, von dir bestätigt):
+   - `ToolsetterSettings.pushWhenConfirmed` leert `awaiting` vor der `ready`-Prüfung. Ein Speichern bei nicht bereiter Maschine geht nie an den Interpreter, und es kommt keine Meldung.
+   - `cycle_start` trägt keine Taster-Werte. Ein M600 **im Programm** liest den Interpreter und misst mit älteren Werten als denen, die das Formular zeigt.
+2. **Reihenfolge Datei → MDI** in `_apply_probe_vars` (gemessen in Lauf 5): Ein `synch` zwischen beiden schreibt den alten Speicherwert in die Datei.
+   - Offen und nur geschlossen, nicht geprüft: Bei `mdi_set: false` nach dem Dateischreiben überschreibt der nächste `synch` oder das Beenden den Dateiwert.
+3. **`get_probe_vars`** liest die Datei unbestätigt. Kein Teil der Oberfläche ruft es auf.
+
+**Vorschlag: eine Quelle, angewandt dort, wo sie wirkt**
+
+**A · Der Programmstart gleicht ab.**
+- Die vom Server bestätigte Taster-Sektion ist die Quelle.
+- `_start_guard` schreibt vor jedem Start aus dem Ruhezustand ohnehin schon `#3116 = 0` per MDI. Er bekommt die eingerichteten Taster-Werte (`toolsetterSetup` ok) in dasselbe Kommando: Cycle Start, der erste `auto_step`, `auto_run`.
+- Ein M600 im Programm misst dann mit den Werten, die das Formular zeigt, gleich ob das Formular offen war oder die Maschine beim Speichern bereit.
+- Ist die Sektion nicht eingerichtet, schreibt der Start nichts davon. Das Verhalten ist dann wie heute, und die Anzeige sagt es.
+- **Doppelte Logik:** Abbildung (`toolsetterVarMap`) und Einrichtungsregel (`TOOLSETTER_REQUIRED`, Bereiche, Optionswerte) gibt es dann auch in Python. Ein Vertragstest gleicht beide Seiten ab, so wie `commandShapes` die Befehle; die Liste der Var-Nummern ist schon in S4/S4b gebunden.
+
+**B · Das Formular sagt den Stand.**
+- `awaiting` bleibt bestehen, bis der Interpreter die Werte genommen hat (`mdi_set: true`).
+- Bis dahin steht dort „Saved — applied at the next program start or measurement“ statt Stille.
+- Wird die Maschine bereit, sendet das Formular nach, sofern es offen ist. Verlassen wird sich darauf nicht; maßgeblich ist A.
+
+**C · `_apply_probe_vars`:**
+- Erst MDI, dann die Datei. Nach dem MDI hält der Speicher den neuen Wert, also kann ein `synch` die Datei nicht mehr zurücksetzen.
+- Ohne MDI wird keine Datei geschrieben, und das Gateway meldet nicht mehr `file_saved: true`. LinuxCNC speichert den Interpreterwert ohnehin bei jedem `synch` und beim Beenden; gehen Werte verloren, stellt A sie am nächsten Start wieder her.
+
+**D · `get_probe_vars`:** entweder als bestätigtes Lesen über den vorhandenen G30-/Toolsetter-Synch-Vertrag, mit `confirmed: false` im Automatikbetrieb, oder entfernt. Es hat keinen Aufrufer in der Oberfläche; mein Prüfer liest per DEBUG. **Ich neige zum Entfernen.**
+
+**Nachweise, zuerst rot:**
+- **Gateway-Unit:** Die Start-Wächter-MDI trägt die bestätigten Werte. Ohne Einrichtung trägt sie sie nicht. Die Reihenfolge ist MDI vor Datei.
+- **Browser:** Speichern bei nicht bereiter Maschine zeigt die neue Meldung und sendet nach, sobald die Maschine bereit ist.
+- **Nativ, ein neuer Fall in einer Kopie:**
+  1. Die Taster-Sektion mit `#3102` 1 mm versetzt speichern, während die Maschine aus ist.
+  2. Einschalten, referenzieren.
+  3. Ein Programm mit `T1 M600` per Cycle Start laufen lassen.
+  4. Erwartet: Es misst gegen den gespeicherten Wert.
+
+  Heute ist dieser Fall rot, weil das Programm gegen den alten Interpreterwert misst. Den Live-Beweis dieses Rot-Falls liefere ich **vor** dem Bau.
+
+**Erbeten:**
+- `agreement` oder `findings` zu Teil A;
+- zu Teil B Einwände oder Zustimmung zum Plan, besonders zu A (Abgleich am Start statt im Browser) und zu D (Entfernen).
