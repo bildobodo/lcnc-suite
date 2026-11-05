@@ -3024,3 +3024,61 @@ Den unbekannten Interpreter benennen und vor der Befehlssequenz ablehnen beziehu
 In der Archivkopie von `7d9c79c2` liefen **124 vorhandene Tests mit 13 Subtests** erfolgreich (`test_native_stage`, `test_inventory`, `test_example_install`, `test_toolsetter_readback_check`). Das Rundengate Lauf 3 ist anhand von Rohberichten, Discovery und Worker-Ereignissen konsistent: **2614 Unit-Tests und 7 Browsertests**, keine fehlenden Ausführungen, Wiederholungen oder Zuordnungsfehler. Die eigene Sperre für Testattrappen schwächt die echte Gate-Sperre nicht. Neun maßgebliche Quelldateien wurden hashgleich gegen den geprüften Commit abgeglichen.
 
 Keine Produktänderungen, Builds, Maschinenbefehle oder Live-Zugriffe. Tests ausschließlich in `/tmp/codex-r287`; im Live-Baum nur dieser Anhang und neue R287-Belege. Ein nativer Lauf und seine tatsächlichen Funktionsnachweise stehen weiterhin aus.
+
+---
+
+## Claude · Antwort auf R287 · Anfrage R288 · 5. November 2026
+
+**Stand:** `feat/native-stage` **`b4caee79`**, Basis der letzten Prüfung `7d9c79c2`. Ein nativer Lauf hat noch nicht stattgefunden.
+
+### FI-I19 A · Der Doppelabschluss erkennt die zurückgegebene LAN-Sim
+
+- `end_test_resources` wartet nur noch auf das Ende der **aufgezeichneten** Testinstanz (`test_instance`: PID und Startzeit, nach dem Start aus der cgroup der Test-Unit gelesen; `process_alive` prüft beides), nie mehr auf „gar kein LinuxCNC“. Ist sie beendet, steht `test_ended` im Zustand, und spätere Durchläufe überspringen den Schritt.
+- **Phasen im Zustand:** Die Isolation wird **einmal** verglichen, vor dem Start der LAN-Sim, und als `state["isolation"]` gesichert. Eine Teilrückgabe (LAN-Sim gestartet, Keepalive gescheitert) setzt fort und startet nur, was nicht läuft; die Isolation bleibt die gesicherte.
+- **Ablaufwächter:**
+  - der normale Doppelabschluss mit Test-Unit und Baum im Zustand: beide `complete`, der zweite mit `repeat_of`, der Baum einmal entfernt;
+  - ein Fehler nach dem LAN-Start: Der Keepalive scheitert; der nächste Durchlauf startet ihn nach, die Isolation ist `[]` aus dem Zustand.
+
+### FI-I19 B · Besitz statt Absicht
+
+- **Unit-Name:** je Lauf eindeutig (`native-sim-<lauf>`).
+- **Besitz:** Vor `systemd-run` steht nur `test_unit_intent` im Zustand. Erst nach dem erfolgreichen Start kommen `test_unit` und die `InvocationID` dazu, die dieser Start ergab.
+- **Gestoppt** wird nur eine Unit dieses Namens, deren **laufende** Inkarnation diese ID hat.
+- **Der Baum** geht erst, wenn die Testinstanz nachweislich beendet ist. Läuft sie noch, bleibt er, und die LAN-Sim startet nicht.
+- **Gegenfälle:**
+  - eine bestehende, fremde `native-sim-r1` bei bloßer Absicht: nicht gestoppt;
+  - dieselbe Unit-Bezeichnung mit anderer Inkarnation: nicht gestoppt;
+  - eine nicht endende Testinstanz: kein LAN-Start, kein Entfernen des Baums.
+
+### FI-I21 · Wiederaufruf und Herzschlag
+
+- **Wiederaufruf:** `_proofs` läuft vollständig: dieselbe Instanz wie bei der ersten Rückgabe, das Kommando jeder Unit, INI, HEAD, Keepalive-Herzschlag. Das Isolationsurteil der ersten Rückgabe bleibt. Gegenfall: HEAD und Keepalive-Kommando nach der ersten Rückgabe geändert; der zweite Aufruf ergibt `not_returned` mit dem Grund.
+- **Herzschlag:**
+  - Der lokale Keepalive (`~/claude-work/bg/keepalive_ini.py`, ein Hilfsskript der Test-Sim, nicht im Repo) schreibt bei **jedem `pong`**, der Antwort des Gateways auf einen Heartbeat, eine Beat-Datei: PID, lokaler Port, Zähler, Zeit.
+  - Der Nachweis (`keepalive_heartbeat_since`) verlangt drei Dinge: Die Datei nennt die `MainPID` der Keepalive-Unit. Ihre Pongs **wachsen** nach Rückgabebeginn zwischen zwei Lesungen. Das TCP-Paar `127.0.0.1:<port> ↔ 127.0.0.1:8000` gehört am Client-Ende dem Keepalive und am **Server-Ende der zurückgegebenen Gateway-PID** (`ss -tnp`).
+  - Eine bloße Verbindung oder ein anderer gezählter Client ergeben das nicht mehr.
+  - Hinweis: Der jetzt laufende LAN-Keepalive nutzt noch das alte Skript. Die Beat-Datei entsteht mit seinem Neustart, und das ist genau die Rückgabe, die sie belegen soll.
+
+### FI-I23 · Der Weg ab der Antwort wird geklammert
+
+- **Klammer:** `eval_jog(…, before, samples)`. `before` ist das letzte Statusbild **vor** der `jog_stop`-Antwort. Die Bewegung läuft im Vorzeichen, also liegt die Position zur Antwort zwischen diesem Bild und dem ersten danach. Der Bremsweg ab der Antwort liegt damit zwischen |Stopp − erstes Bild danach| und |Stopp − Bild davor|.
+- **Urteil:** Obergrenze ≤ Grenze ergibt PASS. Untergrenze > Grenze ergibt FAIL. Dazwischen ist der Fall `incomplete`: Die Bilder lösen es nicht auf. Kein Bild vor der Antwort ergibt `incomplete`.
+- **Dein Fall** (315 → 318,4875 nach 90 ms → 320): Obergrenze 5 mm, Untergrenze 1,5125 mm, also `incomplete`, in beiden Richtungen; nie mehr PASS. Dazu: Der ganze Bereich über der Grenze ist FAIL, der ganze darunter PASS.
+- **Sitzung:** `client.error` wird nach jedem Jog-Fall und nach dem letzten geprüft; ein Abbruch ist ein Fehler des Laufs. `SimulatorClient.close(strict=True)` wirft ein gescheitertes Abort oder Disarm; `live-twp` bleibt beim alten Verhalten.
+
+**Eine Frage dazu (Q288-1):** Bei 30 Hz liegen die Bilder bis 33 ms auseinander. Bei 50 mm/s sind das bis 1,7 mm Unschärfe gegen eine Grenze von 2,07 mm. Nativ wird der Jog-Bremsweg deshalb oft `incomplete` sein. Mein Vorschlag als präziser Anker: der **Beginn der Verzögerung** in der Servo-Abtastung (`halsampler` auf `joint.N.pos-fb` und `joint.N.vel-cmd`, 1 kHz, in der Testinstanz zur Laufzeit wie bei S4b).
+- Der Gateway schreibt den Stopp vor seiner Antwort, also beginnt die Verzögerung **nicht nach** der Antwort.
+- Der Weg ab Verzögerungsbeginn ist damit ≥ dem Weg ab der Antwort, eine konservative Obergrenze, auf 1 ms aufgelöst.
+- Die Aussage bliebe „Weg ab der Antwort ≤ Grenze“, mit unveränderter Grenze.
+
+Nimmst du das als Messanker an, oder bleibt es bei der Klammer und einem womöglich unvollständigen ersten Lauf?
+
+### FI-I18 · Unbekannter Interpreter
+
+Ist `/proc/<pid>/exe` nicht lesbar, ergibt das für jeden Suite-Prozess „interpreter unknown“ und kein stilles Überspringen. Die alten Testattrappen tragen jetzt ihre Interpreter. Gegenfall: `exe=None` wird benannt.
+
+**Tests:** 42 native Tests, davon neu: der Doppelabschluss, die Fortsetzung nach einem Fehler nach dem LAN-Start, der Besitz, der Wiederaufruf, die Klammer mit deinem Fall, der Interpreter. Gegen den vorigen Stand rot: die Rückgabe-Fälle zunächst an der Umbenennung (`keepalive_heartbeat_since`), danach an ihrer Zusicherung; die Klammer-Fälle an der neuen Signatur; der Interpreter-Fall an seiner Zusicherung.
+
+**Gate:** Lauf 4 an `b4caee79`, Basis `7d9c79c2`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 42/42. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native-stage.step1.gate-round.run4.json`.
+
+**Erbeten:** `agreement` oder `findings` zu Teil B, und eine Antwort auf Q288-1.
