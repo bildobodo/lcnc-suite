@@ -1,0 +1,213 @@
+{
+  "hold_cache_recount": {
+    "row": {
+      "case": "m6-hold",
+      "status": "PASS",
+      "detail": "held 5 s waiting, then T99 with its length",
+      "tool_before": 1,
+      "tool_after": 99,
+      "offset_after": 50,
+      "samples": 102,
+      "max_gap_s": 0.05
+    },
+    "actual_status_receipts": [
+      0.0,
+      5.04999999999999
+    ],
+    "requests": [
+      [
+        5.04999999999999,
+        "confirm_tool_change",
+        {
+          "request": 9
+        }
+      ]
+    ]
+  },
+  "completed_m6_not_seen_busy": {
+    "error": "not done within 0.2 s",
+    "served": [
+      {
+        "tool": 99,
+        "seq": 10
+      }
+    ],
+    "seen_busy": false
+  },
+  "override_released_while_still_moving": {
+    "row": {
+      "case": "early-release",
+      "status": "PASS",
+      "detail": "locked through the measuring phase, free after the routine",
+      "free_s": 1.033,
+      "locked_from_s": 0.2,
+      "locked_to_s": 0.2,
+      "done_s": 1.033
+    },
+    "frames": [
+      [
+        0.03,
+        {
+          "tool_change_requested": false,
+          "tool_change_seq": null,
+          "tool_number": 1,
+          "interp_state": 2,
+          "inpos": true,
+          "feed_override_enabled": true,
+          "current_vel": 0
+        }
+      ],
+      [
+        0.2,
+        {
+          "tool_change_requested": false,
+          "tool_change_seq": null,
+          "tool_number": 1,
+          "interp_state": 2,
+          "inpos": false,
+          "feed_override_enabled": false,
+          "current_vel": 1
+        }
+      ],
+      [
+        0.4,
+        {
+          "tool_change_requested": false,
+          "tool_change_seq": null,
+          "tool_number": 1,
+          "interp_state": 2,
+          "inpos": false,
+          "feed_override_enabled": true,
+          "current_vel": 1
+        }
+      ],
+      [
+        0.8,
+        {
+          "tool_change_requested": false,
+          "tool_change_seq": null,
+          "tool_number": 1,
+          "interp_state": 2,
+          "inpos": false,
+          "feed_override_enabled": true,
+          "current_vel": 1
+        }
+      ],
+      [
+        1.033,
+        {
+          "tool_change_requested": false,
+          "tool_change_seq": null,
+          "tool_number": 1,
+          "interp_state": 1,
+          "inpos": true,
+          "feed_override_enabled": true,
+          "current_vel": 0
+        }
+      ]
+    ]
+  },
+  "override_before_release_window_elapsed": {
+    "at_completion": {
+      "case": "completion",
+      "status": "FAIL",
+      "detail": "not free within 2.0 s of the completion",
+      "locked_from_s": 0.2,
+      "locked_to_s": 1.033,
+      "done_s": 1.033
+    },
+    "after_33ms": {
+      "case": "completion",
+      "status": "PASS",
+      "detail": "locked through the measuring phase, free after the routine",
+      "free_s": 1.066,
+      "locked_from_s": 0.2,
+      "locked_to_s": 1.033,
+      "done_s": 1.033
+    }
+  },
+  "m600_counter_passes_for_other_failure": {
+    "rows": [
+      {
+        "case": "m600-unload",
+        "status": "PASS",
+        "detail": "the spindle empty, no length applied",
+        "served": [
+          {
+            "tool": 0,
+            "seq": 1
+          }
+        ],
+        "tool_after": 0,
+        "offset_after": 0
+      },
+      {
+        "case": "m600-t1",
+        "status": "PASS",
+        "detail": "length 50.0000 within 50 \u00b1 0.002, applied as measured",
+        "l0": 50,
+        "length": 50,
+        "g43": 50,
+        "tol_mm": 0.002,
+        "deviation_mm": 0,
+        "table_on_disk": 50
+      },
+      {
+        "case": "m600-t1-override-lock",
+        "status": "PASS",
+        "detail": "locked through the measuring phase, free after the routine",
+        "free_s": 1.033,
+        "locked_from_s": 0.2,
+        "locked_to_s": 0.2,
+        "done_s": 1.033
+      },
+      {
+        "case": "m600-t1.counter-3102",
+        "status": "PASS",
+        "detail": "the planted value is refused: the applied G43 0.0000 is not the measured 50.0000",
+        "counter": true,
+        "inner": {
+          "case": "m600-t1",
+          "status": "FAIL",
+          "detail": "the applied G43 0.0000 is not the measured 50.0000",
+          "l0": 50,
+          "length": 50,
+          "g43": 0,
+          "tol_mm": 0.002,
+          "deviation_mm": 0,
+          "table_on_disk": 50
+        }
+      }
+    ],
+    "counter_errors_returned_by_routine": [
+      "G38.2 move finished without making contact."
+    ]
+  },
+  "known_contradictions_with_unknown_partners": [
+    {
+      "case": "known-write-without-contact",
+      "status": "FAIL",
+      "detail": "G54 Z changed 0.0000 \u2192 -1.0000 without a contact",
+      "contact": 0,
+      "g54_before": 0,
+      "g54_after": -1
+    },
+    {
+      "case": "same-known-write-contact-unread",
+      "status": "incomplete",
+      "detail": "#5070 or G54 Z not read",
+      "contact": null,
+      "g54_before": 0,
+      "g54_after": -1
+    },
+    {
+      "case": "known-bad-length-offset-unread",
+      "status": "incomplete",
+      "detail": "L0, the measured length or the applied offset not read",
+      "l0": 50,
+      "length": 60,
+      "g43": null,
+      "tol_mm": 0.002
+    }
+  ]
+}

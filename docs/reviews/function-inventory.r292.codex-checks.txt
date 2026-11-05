@@ -1,0 +1,20 @@
+R292 — archive of e8e4184b; source hashes in codex-audit.json.
+No native run, no connections, no builds, no product edits.
+
+Existing tests (cwd /tmp/codex-r292):
+/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py
+153 passed in 5.03s
+
+Own counterexamples, after creating an archive of e8e4184b in /tmp/codex-r292:
+/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B /home/cnc/lcnc-suite/docs/reviews/function-inventory.r292.codex-probes.py /tmp/codex-r292
+Result: codex-probes.json (exit 0).
+The script asserts the reproduced defects at the reviewed commit. A corrected
+implementation should change the relevant observations, hence these assertions.
+An initial development run unexpectedly timed out in RoutineEnd; this became
+the separate completed_m6_not_seen_busy probe. The hold freshness probe uses
+an independent completion predicate to test freshness without masking it by
+that timeout. All machines, clients' transport, and clocks are synthetic.
+
+Claimed gate: native.step2a.gate-round.run1.json checked for exact base/head,
+PASS, its declared omissions, and native-stage/inventory raw log totals.
+This gate was read, not rerun. The 19 announced mutations were not rerun.

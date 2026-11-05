@@ -1,0 +1,88 @@
+{
+  "review": "R292",
+  "base": "a249b7c8ddc7d0eb8df49350f23b28a8fcac147d",
+  "head": "e8e4184b2d818d06ba57df17b058ac508044a49a",
+  "archive": "/tmp/codex-r292",
+  "source_sha256": {
+    "scripts/native_run.py": "cc5ee5d4ee06f4859c6861dc2e154647898d3d06880a0aec3f7d95fb9ff502f6",
+    "scripts/test_support/tool_change.py": "2022417bfea67521652328d830edd3873c718be80cba3c4a8672715fbcebe254",
+    "scripts/test_support/native_cases.py": "391b434c6db719e79a9f4ecb5d4f9a6814dc34195f306f9a7db925c401ba6b7c",
+    "scripts/test_support/live_session.py": "5a2c468fb594e3f8b1c08fd93075690b8e4d934d712549dfdc1c0e8559c9090e",
+    "scripts/test_native_stage.py": "231fbb32e1e46a5417ee58e038777a99ce713f91f034002a892cdc603541fb65",
+    "scripts/inventory/functions.json": "36cf23500d5ed9a8df4605c6e249e60c3f4d28159581147195f7edf5c62a4f27",
+    "lcnc-gateway/gateway.py": "b9c16d62b126d9af31711e5304f5a563e45ed976c882cf926a9354f97b790daa"
+  },
+  "reported_gate": {
+    "path": "/home/cnc/claude-work/teststrat/measure/native.step2a.gate-round.run1.json",
+    "sha256": "a5505740f88b71acd116907570c4158f04992c9b1b0551ea84094bf11083894e",
+    "verdict": "PASS",
+    "checks": [
+      {
+        "name": "selection-guards",
+        "command": "/home/cnc/lcnc-suite-native/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-native/scripts/test_select/test_selector.py",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 3
+      },
+      {
+        "name": "lint",
+        "command": "npm run lint",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 7
+      },
+      {
+        "name": "build",
+        "command": "npm run build",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 14
+      },
+      {
+        "name": "unit-light",
+        "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/claude-work/teststrat/measure/native.step2a.gate-round.run1.logs/unit-light.json",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 49,
+        "files": 162,
+        "tests": 2614,
+        "passed": 2614,
+        "failed": 0,
+        "skipped": 0,
+        "listed": 2614
+      },
+      {
+        "name": "backend",
+        "command": "/home/cnc/lcnc-suite-native/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-native/scripts/test_suite.py offline --component backend --out-dir /home/cnc/claude-work/teststrat/measure/native.step2a.gate-round.run1.logs/backend",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 84
+      }
+    ],
+    "omitted": [
+      {
+        "check": "unit-heavy",
+        "reason": "no heavy file changed, reached or read for"
+      },
+      {
+        "check": "browser",
+        "reason": "no path selects a browser spec"
+      }
+    ],
+    "native_stage_log_sha256": "9b6b4c0423a601c5fa5a5c53d71e482a7677277283576ae1ee6c5453ef44fd7f",
+    "inventory_log_sha256": "e355f11656136049fe00bac28295c0ffe971c1e40722eb32817cbd9c870cd0a5"
+  },
+  "own_tests": {
+    "command": "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py",
+    "cwd": "/tmp/codex-r292",
+    "result": "153 passed in 5.03s"
+  },
+  "own_probes": {
+    "script": "function-inventory.r292.codex-probes.py",
+    "sha256": "7140a179d2d03f64b82816ec94d556a033e944bc2aaffc1ef160d95e6c60d5f1",
+    "result": "function-inventory.r292.codex-probes.json",
+    "result_sha256": "ae821493d4fbfaab694383a8b9396678fa1b2fa15dd8d98192d432572353c669",
+    "scope": "synthetic counterexamples only; no native run, no machine commands or live endpoints",
+    "assertions": "assert the reproduced behavior at e8e4184b; these are not green acceptance tests for the proposed fixes"
+  }
+}

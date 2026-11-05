@@ -3633,3 +3633,79 @@ M2
 **Gate:** Round Gate an `e8e4184b`, Basis `a249b7c8`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 117/117 und `inventory` 36/36. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native.step2a.gate-round.run1.json`.
 
 **Erbeten:** `agreement` oder `findings` zu Teil A, Zustimmung oder Befunde zum Vertrag in Teil B, eine Antwort auf Q292-1.
+
+---
+
+## Codex · Implementierungs- und Vertragsreview R292 · 5. November 2026
+
+**Urteil: `findings`.** Geprüft **`a249b7c8..e8e4184b`** auf `feat/native-stage` sowie Teil B der Anfrage. Schritt 1 bleibt abgenommen. Für Schritt 2a bleiben **FI-I24 bis FI-I28**; der Vertrag für Start ab Zeile braucht **FI292-01**. **Q292-1 ist unten beantwortet; dafür ist keine neue Operatorentscheidung nötig.**
+
+Die Trennung der Inventaraussagen, die wörtlichen Fallkennungen, die unabhängige Platte, die ausdrückliche M6-Deklaration und die Bindung nativer Nachweise an einen tatsächlich ausgeführten Lauf sind sinnvoll. Die vorhandenen **117 nativen und 36 Inventar-Tests bestehen auch in meiner Archivkopie**. Die folgenden Gegenfälle liegen außerhalb ihrer bisherigen Zusicherungen. Sie sind synthetische Offline-Proben, keine Behauptung über einen ausgeführten nativen Lauf.
+
+### FI-I24 · Der M6-Halt zählt Cache-Zugriffe als neue Statusbilder
+
+**P1 · `scripts/test_support/tool_change.py:155` und `:100`; `live_session.py:take`.** `serve` versieht alle 50 ms eine Kopie von `client.status` mit der aktuellen Zeit. `_hold` zählt diese Kopien als Samples und prüft ihre Schleifenabstände. Der Eingang einer neuen Statusmeldung ist daran nicht beteiligt.
+
+**Eigene Gegenprobe:** Der echte `SimulatorClient.take` erhält genau ein offenes M6-Bild bei 0 s; bis zur Bestätigung kommt keines mehr. Die Verbindung bleibt offen. Nach der Bestätigung kommt das Abschlussbild bei 5,05 s. Trotzdem meldet die Halteauswertung **PASS mit 102 Samples und `max_gap_s=0.05`**. Tatsächlich liegt zwischen den zwei empfangenen Bildern eine Lücke von 5,05 s. Damit wird die zugesagte durchgängige Beobachtung nicht geprüft. Ebenso können widersprechende empfangene Zwischenbilder zwischen zwei Cache-Abfragen verschwinden.
+
+**Erforderlich:** Eingangsnummer und Empfangszeit je Statusbild, einmalige Verarbeitung in Empfangsreihenfolge, Lücken anhand dieser Bilder. Während eines unzureichend beobachteten Halts keine Bestätigung als erfolgreich geprüften Halt buchen. Eine Queue beziehungsweise ein Cursor über die ohnehin empfangenen Bilder genügt; ein hochfrequenteres Polling des Caches genügt nicht. Anfang und Ende der gehaltenen Folge im Beleg festhalten.
+
+### FI-I25 · Der Abschlussprüfer sieht einen wartenden M6 nicht
+
+**P2 · `tool_change.py:162`; `native_run.py:594–596` und Vorbereitung von `probe_cases`.** `done(t, st)` wird wegen `changes.idle() and …` nur ausgewertet, wenn der M6-Helfer keinen offenen Wechsel mehr hat. Während `hold` oder `confirmed` sieht `RoutineEnd` somit gerade die Bilder nicht, in denen M6 den Interpreter beschäftigt hält.
+
+**Eigene Gegenprobe:** Erste Beobachtung: neue Anforderung, Interpreter beschäftigt. Bestätigung gelingt. Nächste Beobachtung: Werkzeug 99, Anforderung geschlossen, Interpreter idle/inpos. Der Helfer bucht den Wechsel korrekt als `served`; **`RoutineEnd.seen_busy` bleibt dennoch false, und `serve` läuft in den Timeout**. Das ist eine gültige beobachtete Folge; ein zusätzliches kurzes Beschäftigt-Bild zwischen Ende des Wechsels und Abschluss darf keine versteckte Voraussetzung sein.
+
+**Erforderlich:** Beobachtung von Abschluss und Wirkung bei jedem zugehörigen Bild; nur die *Rückkehr* aus `serve` zusätzlich an den geschlossenen Wechsel binden. Die positive Gegenprobe muss den realen Weg `serve → RoutineEnd` einschließlich eines gehaltenen Wechsels prüfen, nicht nur beide Helfer einzeln.
+
+### FI-I26 · Override-Sperrphase und Wiederfreigabefrist werden nicht vollständig geprüft
+
+**P1 · `scripts/test_support/native_cases.py:201–230`; Aufrufer `native_run.py:561–563`.** Zwei Teile desselben R285-Vertrags fehlen:
+
+**A — Dauerhaft zu früh frei ergibt PASS.** Die Sperrphase wird aus dem ersten und letzten *falschen* Wert definiert. Gegenprobe: frei bei 0,03 s, gesperrt bei 0,2 s, wieder frei bei 0,4 und 0,8 s **während der Bewegung**, Abschluss/frei bei 1,033 s. Ergebnis: **PASS, „locked through the measuring phase“**. Weil nach 0,2 s kein weiteres falsches Bild kommt, wird die verbotene Freigabe außerhalb des selbst definierten Intervalls geprüft — also gar nicht. `current_vel` wird nicht ausgewertet.
+
+**B — Die Zwei-Sekunden-Frist wird nicht abgewartet.** `m600_cases` wertet unmittelbar nach Routineende und Tabellenlesen den bisherigen Puffer aus. Enthält das Abschlussbild noch „gesperrt“, lautet das Urteil bereits „not free within 2.0 s“. Ein frisches freies Bild **33 ms später** macht dieselbe Folge korrekt zu PASS, kommt aber gegebenenfalls erst nach dieser Auswertung an.
+
+**Erforderlich:** Die zu prüfende Bewegungs-/Messphase unabhängig vom letzten gesperrten Bild bestimmen, wie R285 verlangt. Frische Freigabe nach dem bestätigten Abschluss bis zum tatsächlichen Fristende sammeln; vorher ist fehlende Freigabe noch kein Fristverstoß. Fehlende Beobachtung von einer beobachteten Verletzung unterscheiden. Der gültige Übergang „letztes Bewegungsbild gesperrt → nächstes Bild abgeschlossen und frei“ bleibt zulässig.
+
+### FI-I27 · Ein fehlgeschlagenes Antasten kann die M600-Gegenprobe bestehen
+
+**P1 · `native_run.py:554–565`; `native_cases.py:142`.** `nc.counter` kehrt jeden FAIL um. Bei der zweiten, eigenständig ausgeführten M600-Messung wird nicht geprüft, ob gerade die gepflanzte Änderung von #3102 die Ablehnung verursacht hat; auch `r["errors"]` dieses Aufrufs wird verworfen.
+
+**Eigene Gegenprobe am vollständigen `m600_cases`-Schritt mit simulierten externen Operationen:** Die normale Messung besteht. Die Gegenmessung bricht nach dem Werkzeugwechsel ohne Kontakt ab, lässt die Tabellenlänge bei **50 statt einer um ungefähr 1 mm veränderten Länge** und G43 auf 0. Der innere FAIL lautet „the applied G43 … is not the measured …“. Daraus wird **`m600-t1.counter-3102: PASS`**, und **alle vier Zeilen des Schritts stehen auf PASS**. Der zurückgegebene Kontaktfehler taucht in diesen Zeilen nicht auf.
+
+**Erforderlich:** Die Gegenprobe muss zunächst ihren eigenen gültigen Ablauf und die gelesenen Ergebnisse nachweisen. Dann muss die unabhängige Referenzprüfung **wegen der erwarteten Längenabweichung** scheitern, bei konsistent angewandter gemessener Länge. Hier bewirkt #3102 = −179 statt −180 nach der Routineformel eine Länge ungefähr **L₀ − 1 mm**, innerhalb der zuvor festgelegten Messunsicherheit. Ein Antastabbruch, falsches G43 oder eine beliebige andere Fehlfunktion bleibt ein Fehler des Gegenlaufs. Fehler und Rücklesewerte dieses Laufs im Bericht behalten; das allgemeine Umkehren von FAIL reicht dafür nicht.
+
+### FI-I28 · Bekannte Widersprüche werden durch einen unbekannten Partnerwert verdeckt
+
+**P2 · `native_cases.py:157–160`, `:175–176`, `:191–192`, auch `eval_unload`/`eval_m6_hold`.** Die neuen Auswerter kehren bei irgendeinem unbekannten benötigten Wert vor den bereits möglichen Widerspruchsprüfungen zurück. Das ist dieselbe Unterscheidung, die Schritt 1 in FI-I23 ausdrücklich gelöst hat.
+
+**Eigene Gegenfälle:**
+- Fehlschuss: G54 verändert sich nachweislich von 0 auf −1. Bei gelesenem #5070 = 0 ist das FAIL; fehlt nur das Rücklesen von #5070, wird derselbe bekannte unerlaubte Schreibeffekt `incomplete`.
+- M600: L₀ = 50, gelesene Länge = 60, angewandter Offset unbekannt: `incomplete`, obwohl die Länge die festgelegte Grenze bereits verletzt.
+
+**Erforderlich:** Jede Teilbehauptung prüfen, sobald ihre eigenen Werte bekannt sind. Ein bekannter Widerspruch ergibt FAIL; nur ohne Widerspruch und mit fehlendem erforderlichem Nachweis bleibt `incomplete`. Das verlangt weder Ersatzwerte noch zusätzliche Messgenauigkeit.
+
+### FI292-01 · Vertrag „Start ab Zeile“: beobachtete Zustände und bewiesenen Einstieg getrennt führen
+
+**Antwort auf Q292-1: Punkt 5 bleibt für die vollständige Aussage zunächst `incomplete`.** Statusbilder dürfen die *beobachteten* Einstiegspunkte und Z-Werte dokumentieren. Sie beweisen weder den Zustand unmittelbar vor dem ersten Bewegungsschritt noch „Z senkt nie“ zwischen den Bildern. Der spätere Servo-Nachweis braucht weiterhin die in Q288-1 vereinbarte Zuordnung zum Ereignis, erkennbare Lücken und feste Toleranzen. Ein dichterer Datenstrom allein schafft diese Zuordnung nicht.
+
+Den Bau von Teil B halte ich mit folgenden Vertragskorrekturen für sinnvoll:
+
+1. **Anforderung vollständig binden:** `file` als vollständigen geladenen Pfad ausdrücklich neben `version` und `source` nennen; ohne `file` verweigert der vorhandene Handler (`gateway.py:5385`). Den Programminhalt selbst hashen und den übernommenen Ursprung dazu prüfen. `entry_wcs=G54` und `entry_units=G21` mitführen. Den beobachteten Ausgangszustand des konkreten Falls festhalten.
+2. **`running` ist eine Startmeldung, kein Abschlussbeleg.** `_rfl_sequence` setzt sie unmittelbar nach `CMD.auto`, ohne auf die erste Bewegung zu warten (`gateway.py:4465–4474`). Mindestens eine Bewegung **der tatsächlich gewählten Hauptprogrammzeile L** und deren erwartete Wirkung verlangen, anschließend den geplanten Abschluss des Testprogramms. Werkzeug und Offset müssen zu diesem Zeugen gehören. `spindle_speed` belegt hier den **Sollwert**, nicht eine gemessene Drehzahl.
+3. **Keine frühere Zeile nur für den zugeordneten Programmlauf formulieren.** Vormessung und Positionierung sind MDI-Teilschritte desselben `auto_run` und gehören nicht in eine undifferenzierte Rohzeilennummer-Prüfung. Ein nicht beobachtetes früheres Bild beweist zudem nicht, dass keine frühere Zeile ausgeführt wurde. Entweder diese Aussage ausdrücklich auf die beobachtete Folge begrenzen und die Ausführungslücke benennen, oder einen eigenen Ausführungszeugen für sie verwenden.
+4. **Die Gegenprobe an L verankern.** „Erstes Bild mit `motion_line >= L`“ lässt auch eine zuerst beobachtete spätere Zeile zu. Für die L+1-Gegenprobe muss ein tatsächlich L zugeordneter Zeuge vorliegen, dessen Identität durch die falsche Erwartung verletzt wird. Wenn dieser Zeuge fehlt, ist das `incomplete`, kein erfolgreicher Gegenbeweis. Keine erfolgreiche Gegenprobe allein aufgrund eines anderen Fehlers, siehe FI-I27.
+5. **Wegphasen benennen:** Die M600-Vormessung darf absichtlich abwärts antasten. „Nie senken“ gehört zur *safe_z*-Stufe, mit deren eigenem Startanker und dem passenden Koordinatenrahmen; nicht zur gesamten Folge ab dem Benutzerbefehl. XY-Einstieg, sichere Z-Stufe und anschließende programmierte Bewegung getrennt auswerten.
+
+Damit können Werkzeug, angewandter Offset, Spindelsollzustand und beobachtete Programmbewegung eigene native Ergebnisse bekommen. **F-RFL.S3 als ganze Aussage bleibt offen, solange der behauptete Startpunkt/Weg nicht belegt ist.** Das ist kein Grund, die übrigen Ergebnisse wegzulassen oder einen Operator um eine schwächere Beweisregel zu bitten.
+
+**Teil C:** Plateau-Messung und Rückzugsweg zusammen mit dem bereits vorgesehenen Messpaket bearbeiten: einverstanden. Den Bauschritt ausdrücklich in der Folge führen, damit diese beiden Inventarlücken einen zugeordneten nächsten Schritt haben. Latch/Abgang/Mehrclient danach sowie getrennte Profil-Läufe bleiben unverändert. Die ältere optionale Flächenfrage Q282-2 bleibt separat; diese Runde erzeugt keine neue Operatorfrage.
+
+### Nachweise und Prüfgrenze
+
+[Eigene Gegenproben](function-inventory.r292.codex-probes.py), [beobachtete Ergebnisse](function-inventory.r292.codex-probes.json), [Prüfprotokoll](function-inventory.r292.codex-checks.txt), [Quell- und Gate-Abgleich](function-inventory.r292.codex-audit.json).
+
+Archivkopie `/tmp/codex-r292`; sieben maßgebliche Dateien hashgleich zu `e8e4184b`. Eigener Lauf der vorhandenen Tests: **153 PASS**. Der angekündigte Rundengate-Bericht `native.step2a.gate-round.run1.json` ist an Basis und Kopf gebunden und meldet PASS; die Rohlogs bestätigen 117 native und 36 Inventar-Tests. Er nennt 2614 Unit-Tests und begründet das Auslassen des Browsers. Den vollständigen Gate und die 19 Mutationen habe ich nicht erneut ausgeführt. Die eigenen Proben reproduzieren gezielt die oben benannten Fehlentscheidungen; ihr erfolgreicher Skriptlauf ist **keine Abnahme** dieser Fehlentscheidungen.
+
+Keine Produktänderungen, Builds, Zugriffe auf die Live-Sim oder Maschinenbefehle. Im Live-Baum nur dieser Anhang und neue R292-Belege. Der tatsächliche native Lauf steht weiterhin aus.
