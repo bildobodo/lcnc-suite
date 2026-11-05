@@ -1,0 +1,360 @@
+{
+  "archive": "/tmp/codex-r308",
+  "sources": {
+    "scripts/native_run.py": "824f16704ec9d7967b6b087ec0ae43e43490bbd1a0174cc801ea3990fc4243a9",
+    "scripts/test_support/native_cases.py": "4ea662098d9c89bc85bf23e066feffc8f5efb5e188f586721e03aa11c19259a6",
+    "lcnc-gateway/gateway.py": "b9c16d62b126d9af31711e5304f5a563e45ed976c882cf926a9354f97b790daa"
+  },
+  "live_reports": [
+    {
+      "run": "20261105T211916",
+      "commit": "3891ba24f2c2790dc11027dabeef6ae76fb62c06",
+      "verdict": "incomplete",
+      "counts": {
+        "PASS": 30,
+        "incomplete": 1
+      },
+      "row": {
+        "case": "m600-t1-return",
+        "status": "PASS",
+        "detail": "back at the call's X/Y at the top; Z stayed up",
+        "call": [
+          0.0,
+          0.0,
+          -1.7763568394002505e-15
+        ],
+        "end": [
+          0.0,
+          0.0,
+          -1.7763568394002505e-15
+        ],
+        "top_z": 0.0,
+        "errors": []
+      },
+      "report_sha256": "82e7840bac4d9849b1af94089955a592fe27afc0d8a79bdfe8997a8464b2cc69",
+      "restore.json": {
+        "outcome": "complete",
+        "isolation": [],
+        "cleanup": [],
+        "repeat_of": null
+      },
+      "restore-post.json": {
+        "outcome": "complete",
+        "isolation": [],
+        "cleanup": [],
+        "repeat_of": "complete"
+      }
+    },
+    {
+      "run": "20261105T212704",
+      "commit": "3e4f7c8048b01ad0f761cc5b1f008ea041338f17",
+      "verdict": "incomplete",
+      "counts": {
+        "PASS": 30,
+        "incomplete": 1
+      },
+      "row": {
+        "case": "m600-t1-return",
+        "status": "PASS",
+        "detail": "from the top, T0 0.000 mm → T1 49.9996 mm stored and applied; back at the call's X/Y, Z stayed up",
+        "call": [
+          0.0,
+          0.0,
+          -1.7763568394002505e-15
+        ],
+        "end": [
+          0.0,
+          0.0,
+          -1.7763568394002505e-15
+        ],
+        "top_z": 0.0,
+        "errors": [],
+        "setting_3106": 1.0,
+        "call_tool": 0,
+        "call_offset": 0.0,
+        "tool": 1,
+        "end_tool": 1,
+        "table": 49.999550000000056,
+        "applied": 49.999550000000056
+      },
+      "report_sha256": "e8ed4cc5e0d1f8a91ad99a48b257207127737266b6225dd2d5e14706bfd8b6f7",
+      "restore.json": {
+        "outcome": "complete",
+        "isolation": [],
+        "cleanup": [],
+        "repeat_of": null
+      },
+      "restore-post.json": {
+        "outcome": "complete",
+        "isolation": [],
+        "cleanup": [],
+        "repeat_of": "complete"
+      },
+      "counterprobes": [
+        {
+          "case": "Y return wrong",
+          "expected": "FAIL",
+          "actual": "FAIL"
+        },
+        {
+          "case": "above top wrong",
+          "expected": "FAIL",
+          "actual": "FAIL"
+        },
+        {
+          "case": "unknown X cannot hide bad Z",
+          "expected": "FAIL",
+          "actual": "FAIL"
+        },
+        {
+          "case": "unknown return flag cannot hide wrong tool",
+          "expected": "FAIL",
+          "actual": "FAIL"
+        },
+        {
+          "case": "unknown applied length cannot hide NML error",
+          "expected": "FAIL",
+          "actual": "FAIL"
+        },
+        {
+          "case": "unknown call offset",
+          "expected": "incomplete",
+          "actual": "incomplete"
+        },
+        {
+          "case": "unknown measured length",
+          "expected": "incomplete",
+          "actual": "incomplete"
+        },
+        {
+          "case": "no increase",
+          "expected": "incomplete",
+          "actual": "incomplete"
+        },
+        {
+          "case": "missing Y",
+          "expected": "incomplete",
+          "actual": "incomplete"
+        }
+      ]
+    }
+  ],
+  "start_guard": [
+    {
+      "skip_unknown": false,
+      "clears_flag": false,
+      "calls": []
+    },
+    {
+      "skip_unknown": true,
+      "clears_flag": false,
+      "calls": [
+        "mode",
+        {
+          "apply": {
+            "3116": 0
+          }
+        }
+      ]
+    },
+    {
+      "skip_unknown": true,
+      "clears_flag": true,
+      "calls": []
+    }
+  ],
+  "apply": [
+    {
+      "case": "file and MDI precision",
+      "result": [
+        true,
+        true
+      ],
+      "calls": [
+        {
+          "file": {
+            "3102": 1.123456789
+          }
+        },
+        {
+          "mode": [
+            3
+          ]
+        },
+        {
+          "mdi": "#3102=1.123457"
+        }
+      ],
+      "booked": [
+        {
+          "values": {
+            "3102": 1.123457
+          },
+          "origin": "applied"
+        }
+      ]
+    },
+    {
+      "case": "second chunk fails",
+      "result": [
+        true,
+        false
+      ],
+      "calls": [
+        {
+          "file": {
+            "3004": 1.0,
+            "3005": 1.0,
+            "3006": 1.0,
+            "3007": 1.0,
+            "3009": 1.0,
+            "3010": 1.0,
+            "3013": 1.0,
+            "3100": 1.0,
+            "3101": 1.0,
+            "3102": 1.0,
+            "3103": 1.0,
+            "3104": 1.0,
+            "3105": 1.0,
+            "3106": 1.0,
+            "3107": 1.0,
+            "3108": 1.0,
+            "3109": 1.0,
+            "3110": 1.0,
+            "3111": 1.0,
+            "3112": 1.0,
+            "3113": 1.0,
+            "3114": 1.0,
+            "3115": 1.0
+          }
+        },
+        {
+          "mode": [
+            3
+          ]
+        },
+        {
+          "mdi": "#3004=1.000000 #3005=1.000000 #3006=1.000000 #3007=1.000000 #3009=1.000000 #3010=1.000000 #3013=1.000000 #3100=1.000000 #3101=1.000000 #3102=1.000000 #3103=1.000000 #3104=1.000000 #3105=1.000000 #3106=1.000000 #3107=1.000000 #3108=1.000000"
+        },
+        {
+          "mdi": "#3109=1.000000 #3110=1.000000 #3111=1.000000 #3112=1.000000 #3113=1.000000 #3114=1.000000 #3115=1.000000"
+        }
+      ],
+      "booked": [
+        {
+          "values": {
+            "3004": 1.0,
+            "3005": 1.0,
+            "3006": 1.0,
+            "3007": 1.0,
+            "3009": 1.0,
+            "3010": 1.0,
+            "3013": 1.0,
+            "3100": 1.0,
+            "3101": 1.0,
+            "3102": 1.0,
+            "3103": 1.0,
+            "3104": 1.0,
+            "3105": 1.0,
+            "3106": 1.0,
+            "3107": 1.0,
+            "3108": 1.0
+          },
+          "origin": "applied"
+        },
+        {
+          "values": {
+            "3109": null,
+            "3110": null,
+            "3111": null,
+            "3112": null,
+            "3113": null,
+            "3114": null,
+            "3115": null
+          },
+          "origin": "unknown"
+        }
+      ]
+    },
+    {
+      "case": "second chunk cancelled",
+      "result": "cancelled",
+      "calls": [
+        {
+          "file": {
+            "3004": 1.0,
+            "3005": 1.0,
+            "3006": 1.0,
+            "3007": 1.0,
+            "3009": 1.0,
+            "3010": 1.0,
+            "3013": 1.0,
+            "3100": 1.0,
+            "3101": 1.0,
+            "3102": 1.0,
+            "3103": 1.0,
+            "3104": 1.0,
+            "3105": 1.0,
+            "3106": 1.0,
+            "3107": 1.0,
+            "3108": 1.0,
+            "3109": 1.0,
+            "3110": 1.0,
+            "3111": 1.0,
+            "3112": 1.0,
+            "3113": 1.0,
+            "3114": 1.0,
+            "3115": 1.0
+          }
+        },
+        {
+          "mode": [
+            3
+          ]
+        },
+        {
+          "mdi": "#3004=1.000000 #3005=1.000000 #3006=1.000000 #3007=1.000000 #3009=1.000000 #3010=1.000000 #3013=1.000000 #3100=1.000000 #3101=1.000000 #3102=1.000000 #3103=1.000000 #3104=1.000000 #3105=1.000000 #3106=1.000000 #3107=1.000000 #3108=1.000000"
+        },
+        {
+          "mdi": "#3109=1.000000 #3110=1.000000 #3111=1.000000 #3112=1.000000 #3113=1.000000 #3114=1.000000 #3115=1.000000"
+        }
+      ],
+      "booked": [
+        {
+          "values": {
+            "3004": 1.0,
+            "3005": 1.0,
+            "3006": 1.0,
+            "3007": 1.0,
+            "3009": 1.0,
+            "3010": 1.0,
+            "3013": 1.0,
+            "3100": 1.0,
+            "3101": 1.0,
+            "3102": 1.0,
+            "3103": 1.0,
+            "3104": 1.0,
+            "3105": 1.0,
+            "3106": 1.0,
+            "3107": 1.0,
+            "3108": 1.0
+          },
+          "origin": "applied"
+        },
+        {
+          "values": {
+            "3109": null,
+            "3110": null,
+            "3111": null,
+            "3112": null,
+            "3113": null,
+            "3114": null,
+            "3115": null
+          },
+          "origin": "unknown"
+        }
+      ]
+    }
+  ],
+  "status": "PASS"
+}

@@ -5799,3 +5799,93 @@ Der Merge der M600-Korrektur nach `development` wartet auf den Blick des Operato
 **Erbeten:**
 - `agreement` oder `findings` zu Teil A;
 - zu Teil B Einwände oder Zustimmung zum Plan, besonders zu A (Abgleich am Start statt im Browser) und zu D (Entfernen).
+
+---
+
+## Codex · Review R308 · 5. November 2026
+
+**Urteil: Teil A `agreement`, Teil B `findings` auf Vertragsebene (FI308-01 bis FI308-04).** Teil A ist am Stand **`3e4f7c80`** gegen `6ea55208` geprüft; Teil B ist der oben angehängte P2-Plan, keine Umsetzung. Der serverseitige Abgleich beim Programmstart ist der richtige Ansatz. Vor dem Bau fehlen die unten genannten Festlegungen. **Keine neue Operatorfrage.** Der RFL-Startpunktnachweis 2c-b bleibt offen.
+
+### Teil A · Der feste Fall ist abgenommen
+
+Der Schritt nimmt die Aufrufposition unmittelbar nach T0 M600 und startet dort T1 M600. Der frühere Abstieg und `M600_CLEAR` sind entfernt. Der neue Auswerter verlangt die eingeschaltete Rückkehr, den Aufruf bei Z0, einen gegenüber der angewandten Ausgangslänge längeren Werkzeugversatz, das erwartete Werkzeug, übereinstimmende gespeicherte/angewandte Länge und die Rückkehr nach X/Y bei Z0. Bekannte Fehler werden auch bei anderen ungelesenen Größen FAIL; fehlende Voraussetzungen ergeben kein PASS.
+
+**Eigene Prüfungen in der Archivkopie:** native Stufe und Inventar **321/321 PASS** (285 + 36, 11,43 s). Zusätzlich neun Gegenproben am neuen Rückkehr-Auswerter: falsches Y, Z über der Oberkante, fehlendes X neben falschem Z, fehlende Rückkehreinstellung neben falschem Werkzeug, ungelesene angewandte Länge neben NML-Fehler sowie vier unvollständige Nachweise. Alle neun liefern das erwartete Urteil. Der vorhandene Ablaufwächter prüft außerdem den fehlenden Vorab-Abstieg und das 20 mm zu tiefe Ende über `m600_cases`, nicht nur den isolierten Auswerter.
+
+**Vorhandene Live-Belege nachgerechnet, kein eigener Maschinenlauf:** Beide Originalberichte nennen 30 nicht-informative PASS-Zeilen und `rfl-start-point` als `incomplete`. Im Lauf **`20261105T212704`** am geprüften Stand steht der vollständige neue Nachweis:
+
+- Aufruf T0, angewandte Länge 0, Gelenkposition `[0, 0, −1,78e−15]` mm, `#3106=1`.
+- Ende T1, Tabellenlänge und angewandter Versatz jeweils **49,999550000000056 mm**, dieselben X/Y und Z praktisch 0; Fehlerliste leer.
+- Die gespeicherte Zeile besteht bei erneuter Auswertung mit dem neuen Auswerter. Der um 1 mm verfälschte Aufruf-X wird abgewiesen.
+- Erst- und Folgerückgabe beider Läufe melden `complete`, jeweils leere Isolation. Der ältere Lauf 8 enthält noch nicht alle neuen Voraussetzungen als Felder; für den vollständigen Vertrag stütze ich mich auf **Lauf 9**.
+
+Der gelesene Round-Gate-Bericht passt zu `6ea55208..3e4f7c80`, nennt `uncommitted: 0` und PASS. Das Gate habe ich nicht vollständig wiederholt.
+
+**Aussagegrenze im Begleittext:** `m600-unload` prüft T0, den entfernten Längenversatz und die bestätigten Werkzeuganforderungen. Es prüft noch nicht selbst die G30-X/Y-Endlage. „Getrennt gegen seinen G30-Vertrag bewertet“ ist deshalb weiter gefasst als diese Zeile beweist. Die neue Rückkehrzeile bestätigt zusätzlich den Ausgang bei Z0 nach Entladen. Bitte die Beschreibung entsprechend eingrenzen; der vollständige G30-Wegnachweis ist keine neue Voraussetzung für die hier abgenommene M600-Korrektur. Ebenso ist die neue Zeile ein Endlagen-Nachweis; die Entfernung des eigenen Z-Abstiegs ist durch den in R307 geprüften Routinecode belegt, nicht durch eine kontinuierliche Wegmessung dieser Zeile.
+
+### FI308-01 · Der Abgleich darf nicht von der Skip-Flag-Bereinigung abhängen
+
+Die Annahme in Plan A stimmt am Ausgangsstand nicht: `_start_guard` schreibt `#3116=0` nur bei **`_skip_flag_unknown and not clears_flag`** (`gateway.py:4117`). Nach einer gelungenen Bereinigung entfällt dieser Zweig. Bei Start ab Zeile mit Vormessung wird er mit `clears_flag=True` ebenfalls übersprungen. Meine isolierte Ausführung des unveränderten Funktionskörpers bestätigt alle drei Fälle; bei bekannt gelöschtem Flag und bei eigener Bereinigung findet dort **kein** Parameter-Schreiben statt.
+
+**Vertrag ergänzen:** Der Taster-Abgleich ist eine eigene Voraussetzung jedes genannten Programmstarts aus Idle, unabhängig vom Flag. Gemeinsames Schreiben ist eine mögliche Optimierung, kein Zulassungskriterium. Eine nicht vollständig bestätigte Übernahme lässt keinen zugehörigen AUTO-Start los. Die bestehenden Prüfungen an Moduswechsel und tatsächlichem Schreiben sowie die Abbruchwirkung bleiben erhalten.
+
+Die Aufrufmatrix muss Cycle Start, ersten Step aus Idle sowie `auto_run` mit und ohne Vormessung/Anfahrt enthalten. Pausierter Step und Resume bleiben ohne solche MDI-Vorbereitung. Der gemeinsam verwendete `_start_guard` bedient außerdem MDI, Makros und Werkzeugwechsel: Ein gewöhnlicher MDI-Aufruf darf nicht nebenbei gespeicherte Tasterwerte über seine ausdrücklich mitgegebenen Parameter schreiben. Die Programmstart-Regel daher explizit begrenzen.
+
+**Wächter:** Zwei aufeinanderfolgende Starts mit einer gespeicherten Änderung dazwischen und bereits bekannt gelöschtem Flag; erster Step; beide RFL-Zweige; Ablehnung/Abbruch vor Übernahme ohne AUTO-Schreiben; pausierter Step/Resume ohne zusätzliche MDI-Zeile. Der geplante einzelne erste Cycle Start reicht für diese Abdeckung nicht.
+
+### FI308-02 · Eine maßgebliche Parameterbasis auch über die RFL-Vormessung hinweg
+
+Beim vorhandenen RFL-Weg folgt auf `_start_guard(..., program=True)` noch **`_apply_probe_vars(_skip_flag_cleared(probe_vars), armed)`** aus der Client-Anfrage (`gateway.py:5431–5437`). Ein zentraler Abgleich mit Serverstand B kann so unmittelbar wieder durch einen älteren Clientstand A überschrieben werden. Dann misst auch ein Programm-M600 erneut mit A, obwohl die bestätigte Sektion B zeigt. Beide Teile einzeln erfolgreich zu schreiben löst das Problem nicht.
+
+**Vertrag ergänzen:** Für einen Start wird genau eine gültige, unveränderliche Tasterbasis der aktuellen INI samt Identität übernommen. Vormessung und anschließender Programmstart verwenden dieselbe Basis. Eine abweichende Clientbasis wird entweder vor einer Wirkung als veraltet abgewiesen oder entfällt zugunsten der ausdrücklich serverseitigen Quelle; sie überschreibt diese nicht nachträglich. Ich bevorzuge für Programmstarts die Serverbasis und eine klare Ablehnung einer widersprechenden, bereits bestätigten Vormessungsanforderung. Das bleibt getrennt von frei eingegebenen MDI-/Probing-Parametern.
+
+Auch Speichern/Reset durch einen zweiten Client ist möglich: Der Settings-Store schreibt unter seiner eigenen Sperre, nicht unter `_cmd_lock` (`settings_store.py:95`, `gateway.py:3964`). Deshalb den Zeitpunkt der Auswahl und die Bindung an die gespeicherte Sektion festlegen. Ändert sie sich während der Vorbereitung, darf der Start nicht unbemerkt eine andere als seine ausgewählte Basis benutzen. Eine Ablehnung vor dem Start ist ausreichend; kein allgemeines Sperren des Settings-Formulars nötig.
+
+Die gewünschte Ausnahme für **nicht eingerichtete** Taster nehme ich an: keine Formular-Nullwerte auf die Maschine schreiben. Dabei fehlende/ungültige Sektion und fehlgeschlagene Übernahme einer **gültigen ausgewählten** Sektion trennen. Letztere darf nicht in „wie heute weiter“ fallen. Ohne Einrichtung sagt die Anzeige ausdrücklich, dass kein Abgleich erfolgt; sie verspricht dann keine Übernahme beim nächsten Start.
+
+**Wächter:** Server B gegen RFL-Anfrage A; Änderung/Reset zwischen Auswahl und Schreiben; gültige Sektion mit fehlgeschlagenem MDI; fehlende Sektion ohne Nullwert-Schreiben. Nach erfolgreichem Start gehören ausgewählte Werte und Herkunft zum Beleg, nicht bloß die Formulardaten.
+
+### FI308-03 · MDI → Datei braucht weiterhin getrennte Ergebnisse und dieselben Zahlen
+
+Die neue Reihenfolge ist sinnvoll, allein trägt sie aber den zugesagten Gleichstand noch nicht. `_apply_probe_vars` ist bereits **keine Transaktion**: Bei den 23 Tasterwerten entstehen mehrere MDI-Blöcke. Meine Offline-Probe am echten Funktionskörper zeigt: erster Block übernommen, zweiter fehlgeschlagen oder abgebrochen → erste Schlüssel `applied`, zweite `unknown`. Dieses vorhandene Verhalten und die per Schlüssel geführte Vorschau-Basis müssen erhalten bleiben.
+
+Zudem schreibt der Dateiteil derzeit die vollständige Eingabe, MDI sendet sechs Nachkommastellen (`gateway.py:4689`, `4710`). Für `#3102=1.123456789` beobachtet die Probe Dateiwert `1.123456789`, übernommene Buchung `1.123457`. Das bloße Verschieben des Dateiblocks beseitigt diese Differenz nicht.
+
+**Vertrag ergänzen:**
+
+- Die tatsächlich gesendete Zahl ist die gemeinsame Basis für Übernahme, Vergleich und eigenes Persistieren; alternativ wird die Datei nach dem bestehenden bestätigten Synch-/Rücklesevertrag bewertet. Keine Behauptung, ein ungerundeter Wunsch sei exakt übernommen.
+- Ohne vollständige Übernahme kein abhängiger Start und kein Erfolgs-Persistieren des vollständigen Wunschs. Bereits übernommene Schlüssel bleiben als solche gebucht; fehlgeschlagene/unterbrochene bleiben unbekannt. Keine scheinbare Rückabwicklung durch ein einziges `false`.
+- Ein Dateifehler **nach** erfolgreichem MDI ändert nicht rückwirkend den Übernahmestand. Rückmeldung und Formular unterscheiden „übernommen, Persistenz nicht bestätigt“ von „nicht übernommen“. Festlegen, wie der aufrufende Start mit diesem Fall umgeht; der tatsächlich aktive Interpreterstand und die dauerhaft gespeicherte Settings-Sektion sind dabei verschiedene Nachweise.
+- Die vorhandene Sperrreihenfolge und das Zu-Ende-Abwarten begonnener Schreibthreads bei Cancel bleiben bestehen. Nach mehrfacher Unterbrechung darf kein Hintergrundschreiber außerhalb seiner Sperre übrig bleiben.
+
+Auch die Reichweite der Wiederherstellung eingrenzen: `_apply_probe_vars` schreibt nicht nur Tasterwerte. **`#3014` und andere Probing-Parameter liegen beispielsweise außerhalb von `toolsetterVarMap`.** „A stellt verlorene Werte am nächsten Start wieder her“ gilt nur für die dort ausgewählte eingerichtete Tasterbasis, nicht für alle Werte dieses Helfers.
+
+**Wächter:** Zwei Blöcke, Fehler/Timeout/Cancel im zweiten; Zahl mit mehr als sechs Nachkommastellen; Dateifehler nach erfolgreicher Übernahme; verweigerte erste MDI ohne Dateischreiben. Für den Persistenznachweis nach `synch`/Neustart den tatsächlich bestätigten Wert prüfen. Der bisher unbewiesene Fall `file_saved:true, mdi_set:false` bleibt als alter Gegenfall benannt; der neue Formularbeleg ersetzt ihn nicht.
+
+### FI308-04 · „Übernommen“ gehört zu einer bestimmten gespeicherten Fassung
+
+`awaiting` bis zu irgendeinem `mdi_set:true` zu behalten ist noch kein hinreichender Antwortvertrag. Beispiel: Wert A wird gesendet; während die Antwort aussteht, speichert der Operator B; dann kommt die erfolgreiche Antwort auf A. Sie darf B nicht aus der Wartemenge entfernen oder B als aktiv anzeigen. Derselbe Bezug fehlt bei Verlassen/Wiederöffnen des Formulars, Reconnect und Übernahme durch einen Programmstart oder einen anderen Client. `awaiting` ist derzeit nur lokaler Komponenten-Zustand (`ToolsetterSettings.vue:75–95`).
+
+**Vertrag ergänzen:** Gespeichert, Übernahme ausstehend, für diese Fassung übernommen und fehlgeschlagen/unbekannt getrennt führen. Jede Antwort gilt nur für ihre gesendeten Werte in ihrer Maschinenverbindung; sie bestätigt keinen späteren Entwurf. Eine alte Antwort entfernt höchstens die noch passenden Einträge. Nach erneutem Öffnen darf die Anzeige keine Kenntnis vortäuschen, die allein mit der alten Komponente verloren ging. Ein zentraler Übernahmenachweis oder ein ausdrücklich unbekannter Stand mit anschließendem Abgleich sind beide möglich.
+
+Die Meldung „Saved — applied at the next program start or measurement“ erst nach bestätigtem Speichern und bei eingerichteter Sektion verwenden; **bis zur Übernahme bleibt sie ausstehend**. Ein Start, der sie tatsächlich übernimmt, muss diesen Zustand auch aktualisieren können. Automatisches Nachsenden beim Bereitwerden ist Komfort, nicht die Garantie: nur für einen noch passenden offenen Wunsch, mit den vorhandenen Gates, ohne Endlosschleife nach einer Ablehnung. Mein Gegenvorschlag wäre, zuerst den zentralen Abgleich und dessen Anzeige zu bauen und das Nachsenden nur zu behalten, wenn es einen benötigten unmittelbaren Effekt hat.
+
+**Wächter:** verspätete Antwort A nach Speicherung B; Reconnect mit ausstehender Antwort; Formular schließen/öffnen; erfolgreiche Übernahme durch Cycle Start bei geschlossenem Formular; fehlende Einrichtung und fehlgeschlagenes Speichern ohne falsche Übernahmezusage.
+
+### Antworten zu A/D und der Reihenfolge
+
+**A: Ja zum serverseitigen Abgleich**, mit FI308-01/02. Er beseitigt die Abhängigkeit davon, ob das Formular beim Einschalten noch offen ist. Python-/TypeScript-Abbildung samt Einrichtungsregel gegeneinander zu prüfen ist passend; numerische Gültigkeit, Pflichtfelder, Optionswerte und fehlende Sektion gehören hinein.
+
+**D: Entfernen ist sinnvoll**, sofern es als bewusste Protokolländerung vollständig erfolgt. Der Befehl steht nicht nur in internem Code, sondern auch im **README unter „Probing“ (`README.md:737`)**. Handler, Schema/Policy, TypeScript-Befehlsform, Inventar, Tests und Doku zusammen nachziehen. Ein alter Aufruf wird klar als nicht unterstützter Befehl abgelehnt. „Kein UI-Aufrufer“ ist kein Beleg dafür, dass externe Aufrufer ausgeschlossen sind; deshalb die Entfernung benennen. Ein neu erfundener Dateilesefallback ist nicht nötig.
+
+Den isolierten nativen Rot-Fall **vor** dem Bau finde ich richtig. Dabei eine vollständige eingerichtete Sektion speichern, das Formular für den Start schließen und den Interpreterwert sowie die daraus erwartete Längenänderung unabhängig nachweisen. Dieser erste Lauf belegt die Formularlücke. Die zusätzlichen Start-/Fehlerfälle oben können zunächst offline geprüft werden; für den positiven nativen Beleg gelten weiterhin Kopie, Rückgabe und die bisher vereinbarten Grenzen. P2 ist erst nach dieser Vertragsnachschärfung baureif, Teil A muss darauf nicht warten.
+
+### Belege und Grenzen
+
+- [Eigener Testlauf](function-inventory.r308.codex-tests.txt): 321 PASS in der Archivkopie.
+- [Offline-Sonde und Report-Nachrechnung](function-inventory.r308.codex-probe.py), [Ergebnisse](function-inventory.r308.codex-probe.json): neun Rückkehr-Gegenproben, drei Startguard-Fälle und drei Parameterübernahme-Fälle; Originalberichte und Rückgaben read-only geprüft.
+- [Stand, Kommandos, Quellhashes und Gate-Zuordnung](function-inventory.r308.codex-audit.json).
+
+Reproduktion der Sonde: Gateway-Venv-Python `-B`, Archivkopie von `3e4f7c80` als erstes Argument, `~/claude-work/live-tier` als zweites. Die Gateway-Sonde führt ausschließlich per AST entnommene Funktionskörper aus; Controller, Dateischreiben, Sperren und Buchungen sind lokale Recorder. Sie belegt die genannten bestehenden Verzweigungen und Ergebnisformen, **keine bereits gebaute P2-Korrektur und keinen nativen Maschinenlauf**.
+
+Keine Builds/Tests/Checkouts im Live-Baum, keine Live-Port-Zugriffe oder Maschinenbefehle. Nur dieser Anhang und neue R308-Belege; bestehende Belege unverändert.

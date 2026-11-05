@@ -1,0 +1,27 @@
+{
+  "scope": "R308 A 6ea55208..3e4f7c80; B P2 plan in live review tail",
+  "archive": "/tmp/codex-r308",
+  "live_head": "a80f8ee638b814f2a1474b95382c92f1d2bebc54",
+  "review_prefix_bytes": 626658,
+  "review_prefix_sha256": "294b7ebac8a0b058a3f392cedf8a6c6a11220a393e6cf346a2d6ab6f746e53ea",
+  "product_diff": " docs/inventory/funktionen.md         |  4 +-\n scripts/inventory/functions.json     |  3 +-\n scripts/native_run.py                | 36 ++++++++++++-----\n scripts/test_native_stage.py         | 76 +++++++++++++++++++++++++++---------\n scripts/test_support/native_cases.py | 48 +++++++++++++++++++++++\n 5 files changed, 137 insertions(+), 30 deletions(-)\n",
+  "tests": {
+    "cwd": "/tmp/codex-r308",
+    "command": "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py",
+    "result": "321 passed in 11.43s"
+  },
+  "probe": {
+    "cwd": "/tmp/codex-r308",
+    "command": "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B function-inventory.r308.codex-probe.py /tmp/codex-r308 /home/cnc/claude-work/live-tier",
+    "result": "PASS; 9 evaluator counterprobes, 3 start-guard cases, 3 apply cases; report 8/9 read-only"
+  },
+  "claude_gate": {
+    "path": "/home/cnc/claude-work/teststrat/measure/integ-m600-native.gate-round.run1.json",
+    "sha256": "55655b0bfafdb40c8144258f6d63065ecd43a196d4bba7c6264b205194587d3e",
+    "head": "3e4f7c8048b01ad0f761cc5b1f008ea041338f17",
+    "base": "6ea552087878ecb93ed835b9d472dba0db64d060",
+    "uncommitted": 0,
+    "verdict": "PASS"
+  },
+  "boundaries": "Only offline tests in archive; no live port, LinuxCNC, HAL, service or machine access; reports read-only; live append and new evidence only."
+}
