@@ -1124,7 +1124,13 @@ test("the list scrolled away: the next marked row snaps to the middle, its highl
     const sc = document.querySelector(".simPanel .simTable") as HTMLElement;
     const w = window as unknown as { __fh: { key: string | null; inView: boolean }[]; __fhOn: boolean };
     w.__fh = []; w.__fhOn = true;
-    const sample = () => {
+    const markedKey = () => sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow")?.dataset.simRow ?? null;
+    // `atFrame`: the marked row when the frame was drawn. A task that ran
+    // between that paint and this sample (the scrub's) changed the DOM: what
+    // the sample would read no frame showed — dropped (the merge gate of
+    // 2026-11-05 read one such state, the new row before its next-frame snap).
+    const sample = (atFrame: string | null) => {
+      if (markedKey() !== atFrame) return;
       const tr = sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow");
       const band = sc.querySelector(".simFollowBand");
       const hl = band && band.getClientRects().length ? band : tr;
@@ -1132,7 +1138,7 @@ test("the list scrolled away: the next marked row snaps to the middle, its highl
       const r = hl?.getBoundingClientRect();
       w.__fh.push({ key: tr?.dataset.simRow ?? null, inView: !!r && r.top >= head.bottom - 1 && r.bottom <= b.bottom + 1 });
     };
-    const f = () => { setTimeout(sample, 0); if (w.__fhOn) requestAnimationFrame(f); };
+    const f = () => { const k = markedKey(); setTimeout(() => sample(k), 0); if (w.__fhOn) requestAnimationFrame(f); };
     requestAnimationFrame(f);
   });
   await scrub(0.63);

@@ -101,11 +101,19 @@ async function waitClear(page: Page) {
 const waitHold = (page: Page, state: Basis["hold"]) =>
   expect.poll(async () => (await basis(page)).hold, { timeout: 10_000 }).toBe(state);
 /** The 300 ms re-bake timer has fired (and found the hold). */
-/** A change during a hold, past its debounce: the re-bake came and was HELD —
- *  the hold's own flag (bakeHold.ts sets `held` when a bake meets a hold). A
- *  signal, never a fixed wait: the 700 ms wait ran short under the merge
- *  gate's load (2026-11-05, A→B→A read `held` false). */
-const heldBake = (page: Page) => expect.poll(async () => (await basis(page)).held, { timeout: 10_000 }).toBe(true);
+/** The re-bake (300 ms) and re-check (400 ms) debounce timers' firing counts. */
+type Fired = { bake: number; check: number };
+const fired = (page: Page) => page.evaluate(() => window.__viewerDiag!.getDebounceFired!()) as Promise<Fired>;
+/** Run `change`, then wait until each named debounce timer has FIRED since —
+ *  its own count taken before the change, a signal, never a fixed wait: the
+ *  700 / 900 ms waits ran short under the merge gate's load (2026-11-05). */
+async function debounced(page: Page, kinds: keyof Fired | (keyof Fired)[], change: () => Promise<unknown>) {
+  const before = await fired(page);
+  await change();
+  for (const kind of Array.isArray(kinds) ? kinds : [kinds])
+    await expect.poll(async () => (await fired(page))[kind], { timeout: 10_000, message: `the ${kind} timer fired` })
+      .toBeGreaterThan(before[kind]);
+}
 /** A change with no hold while the part-frame replies are kept out: the
  *  re-bake was asked for and its reply waits in the queue. */
 const replyKept = (page: Page) => expect.poll(() => page.evaluate(() => window.__viewerDiag!.heldPartFrameReplies!()),
@@ -123,8 +131,6 @@ async function waitChecked(page: Page) {
   await expect.poll(async () => { const a = await activity(page); return !a.busy && !a.resumable && a.result; },
                     { timeout: 30_000 }).toBe(true);
 }
-/** The 400 ms re-check timer has fired (and found the hold). */
-const pastCheckDebounce = (page: Page) => page.waitForTimeout(900);
 
 test.afterEach(async () => {
   await ctl({ op: "reset" });
@@ -151,8 +157,7 @@ test("A→B→A held across the supersede gap and the loading: muted until the m
   await parse(1);
   await waitHold(page, "parsing");
   const g1 = await builds(page);
-  await setZ(page, 0);                           // back to A — held
-  await heldBake(page);
+  await debounced(page, "bake", () => setZ(page, 0));                           // back to A — held
   let b = await basis(page);
   expect(b.held).toBe(true);
   expect(b.behind, "drawn B, wanted A").toBe(true);
@@ -189,8 +194,7 @@ test("the adoption ends the hold: the next offset change re-bakes at once, no wi
   await parse(1);
   await waitHold(page, "parsing");
   const g0 = await builds(page);
-  await setZ(page, -10);                         // held
-  await heldBake(page);
+  await debounced(page, "bake", () => setZ(page, -10));                         // held
   expect(await builds(page)).toBe(g0);
   await parse(null);                             // the parse ends, then its publication arrives
   await waitHold(page, "after_parse");
@@ -223,8 +227,7 @@ test("the supersede window runs out: ONE catch-up bake — only when a change wa
   // a held change: one catch-up at the live offsets
   await parse(2);
   await waitHold(page, "parsing");
-  await setZ(page, -10);
-  await heldBake(page);
+  await debounced(page, "bake", () => setZ(page, -10));
   expect((await basis(page)).held).toBe(true);
   await parse(null);
   await waitHold(page, "after_parse");
@@ -241,8 +244,7 @@ test("only THIS decode's failure ends the loading with its catch-up; a surface-p
   await prepare(page, context, { bad: [102] });
   await parse(1);
   await waitHold(page, "parsing");
-  await setZ(page, -10);
-  await heldBake(page);
+  await debounced(page, "bake", () => setZ(page, -10));
   const g0 = await builds(page);
   // another channel's failure (the mixed previewLoadError) changes nothing
   await ctl({ op: "raw", frame: { type: "surface_points_ready", version: 7 } });
@@ -260,8 +262,7 @@ test("the loading has a bound: 20 s without its adoption, one catch-up", async (
   await prepare(page, context, { stall: [103] });
   await parse(1);
   await waitHold(page, "parsing");
-  await setZ(page, -10);
-  await heldBake(page);
+  await debounced(page, "bake", () => setZ(page, -10));
   const g0 = await builds(page);
   await parse(null);
   await publish(103);                      // arrives, never answered
@@ -291,8 +292,7 @@ test("admitted at every refresh: a run already going holds nothing; a run beginn
   await parse(2);
   await expect.poll(async () => (await basis(page)).admission, { timeout: 10_000 }).toBeNull();
   await waitHold(page, "parsing");
-  await setZ(page, -20);
-  await heldBake(page);
+  await debounced(page, "bake", () => setZ(page, -20));
   g = await builds(page);
   await ctl({ op: "status_delta", envelope: RUN, data: { task_mode: 2, interp_state: 2 } });
   await waitHold(page, "free");
@@ -307,8 +307,7 @@ test("a run or the simulation beginning in the gap or the loading ends the hold 
   // the supersede gap: the parse has ended, no preview_refresh in the status
   await parse(1);
   await waitHold(page, "parsing");
-  await setZ(page, -10);
-  await heldBake(page);
+  await debounced(page, "bake", () => setZ(page, -10));
   let g = await builds(page);
   await parse(null);
   await waitHold(page, "after_parse");
@@ -320,8 +319,7 @@ test("a run or the simulation beginning in the gap or the loading ends the hold 
   // the loading: the newer version arrived and is never answered
   await parse(2);
   await waitHold(page, "parsing");
-  await setZ(page, -20);
-  await heldBake(page);
+  await debounced(page, "bake", () => setZ(page, -20));
   g = await builds(page);
   await parse(null);
   await publish(101);
@@ -339,8 +337,7 @@ test("a lost connection in a hold catches up", async ({ page, context }) => {
   await prepare(page, context);
   await parse(1);
   await waitHold(page, "parsing");
-  await setZ(page, -10);
-  await heldBake(page);
+  await debounced(page, "bake", () => setZ(page, -10));
   const g = await builds(page);
   await ctl({ op: "refuseWs", on: true });
   await ctl({ op: "shutdownClose" });
@@ -358,8 +355,7 @@ test("a reply asked for before the hold is drawn with its own anchor; a later he
   await replyKept(page);                  // the bake for −10 is asked for, its reply kept out
   await parse(1);
   await waitHold(page, "parsing");
-  await setZ(page, -20);                         // held
-  await heldBake(page);
+  await debounced(page, "bake", () => setZ(page, -20));                         // held
   await page.evaluate(() => window.__viewerDiag!.holdPartFrameReplies!(false));
   expect(await page.evaluate(() => window.__viewerDiag!.releasePartFrameReplies!())).toBe(1);
   await expect.poll(() => boxZ(page)).toBeCloseTo(z0 - 10, 3);
@@ -402,10 +398,11 @@ test("a programmed path: the plain epoch of the active fixture is never held nor
   // admitted without the path scope (E1): the hold is the check's too
   await waitHold(page, "parsing");
   expect((await basis(page)).admission).toBeNull();
-  await sendZ(-10);
-  // the drawn path follows its live anchor AT ONCE — geometry, not a build
-  await expect.poll(() => boxZ(page), { timeout: 3_000 }).toBeCloseTo(z0 - 10, 3);
-  await pastCheckDebounce(page);
+  await debounced(page, "check", async () => {
+    await sendZ(-10);
+    // the drawn path follows its live anchor AT ONCE — geometry, not a build
+    await expect.poll(() => boxZ(page), { timeout: 3_000 }).toBeCloseTo(z0 - 10, 3);
+  });
   const after = await basis(page);
   expect(after.behind, "never behind: nothing to bake").toBe(false);
   expect(after.held, "no bake asked for, none noted").toBe(false);
@@ -428,8 +425,7 @@ test("a programmed path with a rewritten epoch is held while the program re-pars
   const g = await builds(page);
   await parse(1);
   await waitHold(page, "parsing");
-  await setZ(page, -10);
-  await heldBake(page);
+  await debounced(page, "bake", () => setZ(page, -10));
   b = await basis(page);
   expect(b.held).toBe(true);
   expect(b.behind).toBe(true);
@@ -495,8 +491,7 @@ for (const state of ["after_parse", "loading"] as const) {
     await replyKept(page);
     await parse(1);
     await waitHold(page, "parsing");
-    await setZ(page, -10);
-    await heldBake(page);
+    await debounced(page, ["bake", "check"], () => setZ(page, -10));
     expect((await basis(page)).held).toBe(true);
     await parse(null);
     if (state === "loading") await publish(104);   // arrives, never answered
@@ -548,8 +543,7 @@ for (const c of BUSY) {
     // idle again: the same parse holds
     await ctl({ op: "status_delta", data: IDLE });
     await waitHold(page, "parsing");
-    await setZ(page, -20);
-    await heldBake(page);
+    await debounced(page, "bake", () => setZ(page, -20));
     expect((await basis(page)).held).toBe(true);
     g = await builds(page);
     await parse(null);
@@ -601,14 +595,15 @@ test("E1: a running check pauses at the parse signal; later changes start none; 
   let a = await activity(page);
   expect([a.busy, a.result], "still held by the re-parse").toEqual([true, false]);
   // a later change: the paused check ends with its findings, the restart is noted
-  await setZ(page, -10);
-  await pastCheckDebounce(page);
+  await debounced(page, "check", () => setZ(page, -10));
   a = await activity(page);
   expect(a.starts, "no check starts in the hold").toBe(s0 + 1);
   expect([a.busy, a.result]).toEqual([false, false]);
   expect((await basis(page)).checkHeld).toBe(true);
-  await setZ(page, -20);
-  await pastCheckDebounce(page);
+  // nothing left to re-check (the paused check ended): this change sets no
+  // re-check timer — its bake timer fired (the change was taken), none is set
+  await debounced(page, "bake", () => setZ(page, -20));
+  expect(await page.evaluate(() => window.__viewerDiag!.checkTimerPending!()), "no re-check timer for the third change").toBe(false);
   expect((await activity(page)).starts, "nor at a third change").toBe(s0 + 1);
   // the publication: ONE check of the new version, at the live offsets
   await parse(null);
@@ -648,8 +643,7 @@ test("E1: a parse that ends without a publication — a noted restart checks onc
   let s0 = (await activity(page)).starts;
   await parse(1);
   await waitHold(page, "parsing");
-  await setZ(page, -10);
-  await pastCheckDebounce(page);
+  await debounced(page, "check", () => setZ(page, -10));
   expect((await activity(page)).starts).toBe(s0);
   await parse(null);
   await waitHold(page, "after_parse");
@@ -682,19 +676,20 @@ test("E1: a run beginning in a hold with a noted restart — the catch-up goes t
   const s0 = (await activity(page)).starts;
   await parse(1);
   await waitHold(page, "parsing");
-  await setZ(page, -10);
-  await pastCheckDebounce(page);
+  await debounced(page, "check", () => setZ(page, -10));
   expect((await basis(page)).checkHeld).toBe(true);
   // an AUTO run without a run basis: the hold ends, its check is held by the run
-  await ctl({ op: "status_delta", data: { task_mode: 2, interp_state: 2 } });
-  await waitHold(page, "free");
-  await pastCheckDebounce(page);
+  await debounced(page, "check", async () => {
+    await ctl({ op: "status_delta", data: { task_mode: 2, interp_state: 2 } });
+    await waitHold(page, "free");
+  });
   expect((await activity(page)).starts, "no baseline check in the run").toBe(s0);
   // idle again with the parse still in the status: the hold begins anew and
   // the run's held check is noted in it — still none beside the parse
-  await ctl({ op: "status_delta", data: { task_mode: 1, interp_state: 1 } });
-  await waitHold(page, "parsing");
-  await pastCheckDebounce(page);
+  await debounced(page, "check", async () => {
+    await ctl({ op: "status_delta", data: { task_mode: 1, interp_state: 1 } });
+    await waitHold(page, "parsing");
+  });
   expect((await activity(page)).starts, "none beside the parse").toBe(s0);
   expect((await basis(page)).checkHeld).toBe(true);
   // the parse ends without a publication: one check after the gap

@@ -97,6 +97,10 @@ interface ViewerDiag {
   failNextPartFrameReply?: () => void;
   /** How many part-frame replies are queued, without releasing them (a spec's signal). */
   heldPartFrameReplies?: () => number;
+  /** How often the re-bake and the re-check debounce timers fired (a spec's signal). */
+  getDebounceFired?: () => { bake: number; check: number };
+  /** Whether a re-check timer is set — a spec's proof that a change scheduled none. */
+  checkTimerPending?: () => boolean;
   releasePartFrameReplies?: () => number;
   projectRole?: (role: string) => { x: number; y: number; dx: number; dy: number; length: number } | null;
   projectRoleSegments?: (role: string) => { x: number; y: number; dx: number; dy: number; length: number }[];
