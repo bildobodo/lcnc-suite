@@ -320,7 +320,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | **Werkzeugtabelle herunterladen** `F-TOOLDOWNLOAD` | Tab „Tools“ | 2 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Werkzeugwechsel (M6) mit Bestätigung** `F-TOOLCHANGE` | Dialog, Einstellungen, Tab „Tools“ | 14 | 2 | 2 | 0 |
 | **Werkzeuglänge messen (M600) und Werkzeug entladen** `F-TOOLMEASURE` | Tab „Tools“ | 8 | 9 | 8 | 1 |
-| **Toolsetter einrichten (Werkzeuglängen-Messung)** `F-TOOLSETTER` | Tab „Probing“ › Toolsetter | 36 | 1 | 1 | 0 |
+| **Toolsetter einrichten (Werkzeuglängen-Messung)** `F-TOOLSETTER` | Tab „Probing“ › Toolsetter | 36 | 5 | 5 | 0 |
 | **Werkzeugwechselposition G30 lesen, übernehmen, speichern** `F-G30` | Tab „Probing“ › Toolsetter | 8 | 2 | 2 | 0 |
 
 ### Werkzeug anlegen, bearbeiten, löschen, umnummerieren
@@ -371,12 +371,20 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S6b (Wirkung):** Auf echtem LinuxCNC entlädt T0 M600 das Werkzeug: die Spindel leer, keine Länge mehr aktiv. — gilt für: 3axis_xyz
   - Beleg: native: `native_run.py` — m600-unload — Lücke: der native Lauf steht aus (gebaut: Schritt 2a)
 - **S7 (Wirkung):** Mit Rückfahrt (#3106 = 1) endet M600 oben an X/Y des Aufrufs, auch von der obersten Lage auf ein längeres Werkzeug: kein Endlagenfehler, kein eigener Abstieg. — gilt für: 3axis_xyz
-  - Beleg: native: `native_run.py` — m600-t1-return; native: `native_run.py` — m600-t1-return.counter-x+1; gateway: `test_m600_preview_worker.py` — test_the_return_from_the_top_with_a_longer_tool_stays_inside_the_travel — Lücke: der native Lauf steht aus (gebaut)
+  - Beleg: native: `native_run.py` — m600-t1-return; native: `native_run.py` — m600-t1-return.counter-x+1; gateway: `test_m600_preview_worker.py` — test_the_return_from_the_top_with_a_longer_tool_stays_inside_the_travel
 
 ### Toolsetter einrichten (Werkzeuglängen-Messung)
 
 - **S1 (Daten):** Die Einrichtung zählt erst, wenn der Server die Sektion bestätigt hat; eine Teil-Sektion nennt, was fehlt, und eine Änderung speichert nur dieses Feld. — gilt für: alle
   - Beleg: browser: `toolsetter-setup.spec.ts` — a save the server never confirmed is no setup; its confirmation is; browser: `toolsetter-setup.spec.ts` — a partial section: the form names what is missing, shows unset fields empty, and a change saves only that field
+- **S2 (Wirkung):** Jeder Programmstart aus Idle (Cycle Start, der erste Schritt, auto_run und Start ab Zeile) übernimmt zuerst die vom Server bestätigte Sektion in den Interpreter, gebunden an Sektion und INI; ohne vollständige Übernahme kein Start; sind alle Zahlen schon als übernommen oder rückgelesen gebucht, wird nichts geschrieben; MDI, Werkzeugwechsel, pausierter Schritt und Resume gleichen nicht ab. — gilt für: alle
+  - Beleg: gateway: `test_toolsetter_sync.py` — test_cycle_start_applies_the_saved_section_first; gateway: `test_toolsetter_sync.py` — test_the_first_step_from_idle_syncs; gateway: `test_toolsetter_sync.py` — test_a_direct_run_from_line_syncs; gateway: `test_toolsetter_sync.py` — test_a_chunk_not_taken_refuses_the_start; gateway: `test_toolsetter_sync.py` — test_a_section_changed_between_choice_and_write_refuses; gateway: `test_toolsetter_sync.py` — test_a_booked_basis_writes_nothing_and_a_change_between_starts_writes_again; gateway: `test_toolsetter_sync.py` — test_a_confirmed_read_back_with_the_sections_numbers_writes_nothing; gateway: `test_toolsetter_sync.py` — test_a_paused_step_and_a_resume_never_sync; gateway: `test_toolsetter_sync.py` — test_mdi_and_a_tool_change_never_sync
+- **S2b (Ablehnung):** Start ab Zeile mit Dialogwerten, die nicht die bestätigte Sektion sind, wird vor jeder Wirkung abgelehnt — nicht einmal das Skip-Flag wird geschrieben. — gilt für: alle
+  - Beleg: gateway: `test_toolsetter_sync.py` — test_run_from_line_with_other_client_values_is_refused_before_any_effect
+- **S2c (Wirkung):** Auf echtem LinuxCNC erreicht eine bei ausgeschalteter Maschine gespeicherte Sektion den Interpreter beim Programmstart: das M600 des Programms misst mit dem neuen #3102 (Länge = Tabelle vorher + Delta ± 0,002; die alte Basis fällt durch), die Buchung zeigt danach jede Zahl der Sektion als übernommen, ein zweiter Start schreibt nichts. — gilt für: 3axis_xyz
+  - Beleg: native: `native_run.py` — ts-sync-program-m600; native: `native_run.py` — ts-sync-program-m600.counter-old-basis; native: `native_run.py` — ts-sync-booking; native: `native_run.py` — ts-sync-stable — Lücke: der native Lauf steht aus (gebaut)
+- **S3 (Daten):** Das Formular zeigt, was die Maschine hält — aus der Buchung des Gateways je Verbindung: im Interpreter bestätigt, gespeichert und noch nicht übernommen, nicht bestätigt (n von 23), noch nicht bekannt; ohne Einrichtung kein Abgleich; ein Speichern, das die Rücklesung schon bestätigt, sendet nichts. — gilt für: alle
+  - Beleg: browser: `toolsetter-setup.spec.ts` — the machine line follows the gateway's booking: not known, confirmed, pending, not confirmed; browser: `toolsetter-setup.spec.ts` — not set up: no machine line beyond the setup note, which says nothing is synced; browser: `toolsetter-setup.spec.ts` — a save while the machine is not ready sends nothing; the line says it is not yet in the machine; browser: `toolsetter-setup.spec.ts` — a save the read-back already confirms pushes nothing; one it does not gets the convenience push (Codex R309); unit: `toolsetterState.test.ts` — equal numbers only assumed: not confirmed — the file's numbers are no proof; unit: `toolsetterState.test.ts` — one key unknown beside taken ones: not confirmed, the part named; unit: `ws/statusStore.test.ts` — belongs to its connection — a new one shows none until its own arrives
 
 ### Werkzeugwechselposition G30 lesen, übernehmen, speichern
 
