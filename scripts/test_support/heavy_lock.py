@@ -20,8 +20,9 @@ from typing import Iterator, Optional
 LOCK = Path(os.environ.get("LCNC_HEAVY_LOCK", str(Path.home() / "claude-work/live-tier/heavy.lock")))
 
 
-def holder_of(path: Path = LOCK) -> str:
+def holder_of(path: Optional[Path] = None) -> str:
     """Who holds (or last held) the lock — the line its holder wrote."""
+    path = LOCK if path is None else path
     try:
         return path.read_text().strip() or "unknown"
     except OSError:
@@ -29,10 +30,12 @@ def holder_of(path: Path = LOCK) -> str:
 
 
 @contextmanager
-def heavy_lock(who: str, wait: Optional[float] = None, path: Path = LOCK) -> Iterator[None]:
+def heavy_lock(who: str, wait: Optional[float] = None, path: Optional[Path] = None) -> Iterator[None]:
     """Hold the heavy lock for the block. `wait` None waits as long as it
     takes (a gate waits for the other gate); a number of seconds gives up with
-    TimeoutError naming the holder."""
+    TimeoutError naming the holder. `path` None: the module's LOCK, read at
+    the call (a test sets its own — inside a gate, the gate holds the real one)."""
+    path = LOCK if path is None else path
     path.parent.mkdir(parents=True, exist_ok=True)
     fd = os.open(path, os.O_RDWR | os.O_CREAT, 0o644)
     try:

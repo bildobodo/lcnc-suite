@@ -18,6 +18,13 @@ sys.path.insert(0, str(HERE))
 from test_support import heavy_lock as hl  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def own_heavy_lock(tmp_path, monkeypatch):
+    """Each test its own lock file: inside a gate the gate holds the real one
+    (the restore CLI waited 600 s for it in the round gate of 2026-11-05)."""
+    monkeypatch.setattr(hl, "LOCK", tmp_path / "test-heavy.lock")
+
+
 def test_two_holders_of_the_heavy_lock_run_one_after_the_other(tmp_path):
     """One lock for the gates, the load runs and the native stage (R269):
     a second holder waits for the first, a bounded wait gives up with the
@@ -513,12 +520,12 @@ def test_a_kill_after_the_test_start_ends_the_test_instance_before_the_lan_retur
     assert json.loads((run / "state.json").read_text())["tree_removed"] is True
 
 
-def test_a_test_instance_that_does_not_end_keeps_the_lan_down_and_says_so(tmp_path):
+def test_a_test_instance_that_does_not_end_keeps_the_lan_down_and_says_so(tmp_path, monkeypatch):
     h = FakeHost()
     pre = rl.record(h)
     rl.stop_lan(h, pre)
     h.test_instance = ("linuxcncsvr", 900, 9000)      # native-sim gone, its LinuxCNC still there
-    rl.TEST_END_S = 0.1
+    monkeypatch.setattr(rl, "TEST_END_S", 0.1)
     out = rl.restore(h, pre, {"test_unit": "native-sim"})
     assert out["outcome"] == "not_returned" and any("still runs" in r for r in out["reasons"])
     assert h.started == [], "never a second LinuxCNC beside it"
