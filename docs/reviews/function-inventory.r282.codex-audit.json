@@ -1,0 +1,361 @@
+{
+  "reviewed_commit": "1bc47a1e",
+  "kind": "static-plan-audit",
+  "live_connections": 0,
+  "machine_commands": 0,
+  "files": {
+    "scripts/install_examples.py": "6749dea61e951b22e3d083de54473ad91511410fe062c03abc27f3fbf6919306",
+    "lcnc-gateway/gateway.py": "b9c16d62b126d9af31711e5304f5a563e45ed976c882cf926a9354f97b790daa",
+    "scripts/test_support/live_session.py": "91000c7d5caaacf0e860d26e66fa73a3a36c574d830f10234b6c5577b6aab2a8",
+    "scripts/perf_matrix.py": "d574d8002cf6ae7d16feed77a532e42c5356d1bfab9bf02c29dcf18e09290776",
+    "scripts/macro_live_check.py": "caf0363838217ce73417e441c02b1f1d884ee3b8e8cdd4ab9f69ed0ed99a1399",
+    "scripts/test_suite.py": "5fd184580b29be96f246b1a1aba0d162e3c41cf4b6a217e4f2dcc832a7bbf02a",
+    "scripts/toolsetter_readback_check.py": "4332bd233d000aa43faf38bd0e5b3e80979278630b440a5b82d724217c1116f2",
+    "scripts/inventory/functions.py": "88cd9d5cee59c9e1f94617aa1109015c2770a621ff95f62533b11ae754396bd9",
+    "scripts/inventory/functions.json": "7f5ae14dd55fad471bbebc4235d45674a6d0e1a6ec84f46ad686ffabdffbafe5",
+    "lcnc-webui/src/App.vue": "289a10ec188a7d107890713ea85dafd51ffee79d4a33397cf9e690ab455bbf6c",
+    "subroutines/tool_length_probe/tool_touch_off.ngc": "9d180577d1909b178f2921d3c96dd78536037b9f8312b862bd93354d6be51de2",
+    "subroutines/probe_basic/probe_z_minus_wco.ngc": "f627bc0142833d5656a12f56435901bae87669ca1ceca387d67137ade1487dc6",
+    "examples/sim_config/sim_toolsetter/sim_toolsetter.comp": "ca0580ff55d914f2fc4292707c803785e0420d5c67c0e396178872e5b96715a7",
+    "examples/sim_config/lcnc_suite_sim_3axis_xyz.ini": "f337bcf1725a46b4e936f9dcd5f64492cc53f0756394796f54363900b518de06",
+    "examples/sim_config/hallib/lcnc_webui.hal": "ae989d84fbd7cd7183dc167f6cd36b6d9ad93fb93df3df4f9dcb76ae0a4ae1d5"
+  },
+  "sources": {
+    "launcher": [
+      {
+        "line": 343,
+        "text": "    managed[(\"DISPLAY\", \"DISPLAY\")] = str(repo / \"lcnc-suite\")"
+      },
+      {
+        "line": 629,
+        "text": "    ap.add_argument(\"--repo\", type=Path, default=ROOT)"
+      }
+    ],
+    "gateway_paths": [
+      {
+        "line": 267,
+        "text": "BASE_DIR = Path(__file__).resolve().parent"
+      },
+      {
+        "line": 2784,
+        "text": "TOOL_LIBRARY_PATH = BASE_DIR / \"tool_library.json\""
+      },
+      {
+        "line": 2911,
+        "text": "SETTINGS_PATH = BASE_DIR / \"settings.json\""
+      }
+    ],
+    "auto_confirmation": [
+      {
+        "line": 43,
+        "text": "        confirmed = None"
+      },
+      {
+        "line": 51,
+        "text": "                    if requested and seq != confirmed:"
+      },
+      {
+        "line": 54,
+        "text": "                        self.send({\"cmd\": \"confirm_tool_change\", \"request\": seq})"
+      },
+      {
+        "line": 55,
+        "text": "                        confirmed = seq"
+      }
+    ],
+    "m600_requests": [
+      {
+        "line": 217,
+        "text": "  M6 T#<tool_selected>"
+      },
+      {
+        "line": 278,
+        "text": "  M6 T#<tool_selected> "
+      }
+    ],
+    "trip_recovery": [
+      {
+        "line": 433,
+        "text": "@scenario(\"sigstop_trip\")"
+      },
+      {
+        "line": 442,
+        "text": "    os.kill(pid, signal.SIGSTOP)"
+      },
+      {
+        "line": 444,
+        "text": "    os.kill(pid, signal.SIGCONT)"
+      },
+      {
+        "line": 449,
+        "text": "    res[\"sticky_ok\"] = (res[\"latch_after_resume\"] == \"TRUE\")"
+      },
+      {
+        "line": 454,
+        "text": "        await v.send({\"cmd\": \"safety_trip_ack\"})"
+      },
+      {
+        "line": 461,
+        "text": "        res[\"recovered_ok\"] = (res[\"latch_after_reset\"] == \"FALSE\")"
+      }
+    ],
+    "ui_goto_routes": [
+      {
+        "line": 2715,
+        "text": "        @goToG30=\"fire({ cmd: 'mdi', text: 'O<go_to_g30> CALL' }, 'machineFrame')\""
+      },
+      {
+        "line": 2716,
+        "text": "        @goToHome=\"fire({ cmd: 'mdi', text: 'O<go_to_home> CALL' }, 'machineFrame')\""
+      },
+      {
+        "line": 2717,
+        "text": "        @goToZero=\"fire({ cmd: 'go_to_zero' }, 'goZero')\""
+      }
+    ],
+    "macro_sampler": [
+      {
+        "line": 238,
+        "text": "async def run_sampled(gw, name, args=()):"
+      },
+      {
+        "line": 241,
+        "text": "    samples = [tuple(poll().actual_position[:3])]"
+      },
+      {
+        "line": 244,
+        "text": "    while time.monotonic() - t0 < 120:"
+      },
+      {
+        "line": 246,
+        "text": "        samples.append(tuple(p.actual_position[:3]))"
+      },
+      {
+        "line": 249,
+        "text": "        await asyncio.sleep(0.005)"
+      },
+      {
+        "line": 250,
+        "text": "    return await task, samples"
+      },
+      {
+        "line": 253,
+        "text": "def retract_first(samples, target_xy, tol):"
+      },
+      {
+        "line": 358,
+        "text": "        while time.monotonic() - t0 < 120:"
+      }
+    ],
+    "hb_measure_boundary": [
+      {
+        "line": 703,
+        "text": "        _hal_send({\"heartbeat\": _hal_last_hb, \"connected\": True})"
+      },
+      {
+        "line": 787,
+        "text": "        if _hb_pre_send_gap > 100:"
+      },
+      {
+        "line": 790,
+        "text": "                f\"pre-send-to-pre-send gap {_hb_pre_send_gap:.0f}ms \""
+      },
+      {
+        "line": 797,
+        "text": "            _hal_send({\"heartbeat\": _hal_last_hb, \"connected\": not _estop_hold})"
+      },
+      {
+        "line": 7684,
+        "text": "        _hal_send({\"heartbeat\": False, \"connected\": False})"
+      }
+    ],
+    "latch_order": [
+      {
+        "line": 27,
+        "text": "addf oneshot.0 servo-thread"
+      },
+      {
+        "line": 28,
+        "text": "setp oneshot.0.width 0.5"
+      },
+      {
+        "line": 49,
+        "text": "addf webui-hb-latch servo-thread"
+      }
+    ]
+  },
+  "statements": [
+    {
+      "function": "F-ESTOP",
+      "id": "S4",
+      "kind": "Wirkung",
+      "text": "Bleibt der Herzschlag des Gateways aus (SIGSTOP), verriegelt HAL den Not-Halt und hält ihn, bis die Wiederherstellung (Quittieren, Arm, Zurücksetzen) ihn löst.",
+      "applies": [
+        "alle"
+      ],
+      "evidence": [
+        {
+          "layer": "script",
+          "file": "perf_matrix.py",
+          "title": "sigstop_trip",
+          "live": true
+        }
+      ]
+    },
+    {
+      "function": "F-ESTOP",
+      "id": "S4b",
+      "kind": "Wirkung",
+      "text": "Läuft das Budget des Oneshots (0,5 s) ohne Herzschlag ab, verriegelt der Latch im selben Servotakt.",
+      "applies": [
+        "alle"
+      ],
+      "gap": "nicht gemessen: der Abstand zwischen dem Ablauf von oneshot.0.out und fault-out im Servotakt (halsampler)"
+    },
+    {
+      "function": "F-HOME",
+      "id": "S2c",
+      "kind": "Wirkung",
+      "text": "Auf echtem LinuxCNC referenzieren Home All und Home je Achse.",
+      "applies": [
+        "offen"
+      ],
+      "gap": "nativ (native Stufe)"
+    },
+    {
+      "function": "F-JOG",
+      "id": "S5",
+      "kind": "Wirkung",
+      "text": "Auf echtem LinuxCNC bewegt jeder Jog-Knopf seine Achse in seine Richtung und hält am Loslassen.",
+      "applies": [
+        "offen"
+      ],
+      "gap": "nativ: Achse, Richtung und Stopp je Knopf am echten Task (die native Stufe)"
+    },
+    {
+      "function": "F-GOTO",
+      "id": "S1c",
+      "kind": "Wirkung",
+      "text": "Z ist oben, bevor X/Y fahren (→ Zero, → Home, → G30).",
+      "applies": [
+        "Machine"
+      ],
+      "gap": "nativ: Verlauf oder Befehlsfolge (die Endpositionen belegen die Reihenfolge nicht)"
+    },
+    {
+      "function": "F-OVERRIDE",
+      "id": "S2",
+      "kind": "Wirkung",
+      "text": "Auf echtem LinuxCNC ändert der Override die Geschwindigkeit; in M600 und Surface-Scan ist er abgeschaltet (M50 P0).",
+      "applies": [
+        "offen"
+      ],
+      "gap": "nativ (native Stufe)"
+    },
+    {
+      "function": "F-TOOLMEASURE",
+      "id": "S5",
+      "kind": "Wirkung",
+      "text": "Auf echtem LinuxCNC landet die gemessene Länge in der Werkzeugtabelle und im G43-Offset.",
+      "applies": [
+        "offen"
+      ],
+      "gap": "nativer Lauf offen (nach Schritt 7)"
+    },
+    {
+      "function": "F-TOOLMEASURE",
+      "id": "S6b",
+      "kind": "Wirkung",
+      "text": "Auf echtem LinuxCNC entlädt Entladen das Werkzeug.",
+      "applies": [
+        "offen"
+      ],
+      "gap": "nativ (native Stufe)"
+    },
+    {
+      "function": "F-PROBE",
+      "id": "S3",
+      "kind": "Wirkung",
+      "text": "Auf echtem LinuxCNC setzt ein Z-Antasten G54 Z auf den erwarteten Wert (Platte, Werkzeug, Toleranz je Messgröße).",
+      "applies": [
+        "offen"
+      ],
+      "gap": "Schritt 7, der Antast-Live-Check"
+    },
+    {
+      "function": "F-SURFACE",
+      "id": "S2",
+      "kind": "Wirkung",
+      "text": "Auf echtem LinuxCNC tastet der Scan das Raster ab und liefert die Punkte für die Kompensation.",
+      "applies": [
+        "3axis_xyz"
+      ],
+      "gap": "nativ (native Stufe, mit hohem Antastvorschub über die Scan-Variablen)"
+    },
+    {
+      "function": "F-COMP",
+      "id": "S4",
+      "kind": "Wirkung",
+      "text": "Auf echtem LinuxCNC wirkt AN/AUS, und die drei Methoden unterscheiden sich an bekannten Punkten einer nicht ebenen Fläche.",
+      "applies": [
+        "3axis_xyz"
+      ],
+      "gap": "nativer Lauf offen"
+    },
+    {
+      "function": "SYS-CONN",
+      "id": "S1",
+      "kind": "Wirkung",
+      "text": "Mehrere Clients gleichzeitig: Nach dem Laden eines Programms holen mehrere Clients die Vorschau, und der Herzschlag-Abstand des Gateways bleibt sicher unter der Grenze von 500 ms.",
+      "applies": [
+        "alle"
+      ],
+      "gap": "neues perf_matrix-Szenario mit Protokoll-Clients statt Browsern (deren Simulation läuft auf den Client-Geräten, nicht im Gateway); native Stufe. Vorhanden: fanout (8 Clients), reconnect_storm (12 Verbindungen), preview_publish (ein Client) — Operator 2026-11-04"
+    },
+    {
+      "function": "SYS-CONN",
+      "id": "S4",
+      "kind": "Abbruch",
+      "text": "Trennt sich ein Client oder läuft sein Herzschlag ab: der passende Jog-Stopp, kein pauschaler Abort eines laufenden Programms (Armed ist Autorisierung, kein Totmann); ein anderer Client bleibt verbunden. Fehlt der letzte Client oder der Gateway-Herzschlag, greift die HAL-Kette (F-ESTOP.S4).",
+      "applies": [
+        "alle"
+      ],
+      "gap": "Integrationsbeleg offen: WS-Abgang und Timeout mit laufendem Programm und zweitem Client"
+    }
+  ],
+  "pure_predicate_limit": {
+    "input": [
+      [
+        10,
+        10,
+        -20
+      ],
+      [
+        10,
+        10,
+        -20
+      ]
+    ],
+    "target": [
+      100,
+      100
+    ],
+    "tol_mm": 0.003,
+    "result": [
+      true,
+      true,
+      0.0,
+      -20
+    ],
+    "interpretation": "No-motion samples satisfy the path predicate. Existing macro callers add end-position checks; the new runner must likewise prove execution and complete observation. This is not a product defect."
+  },
+  "profile_units": {
+    "startup": "F100 S50 G21 G17 G40 G49 G54 G64 P0.001 G80 G90 G91.1 G92.1 G94 G97 G98",
+    "traj_limit_mm_per_second": 100.0,
+    "g94_feed_mm_per_minute_for_that_limit": 6000.0,
+    "half_override_plateau_mm_per_second": 50.0,
+    "servo_period_ns": 1000000,
+    "axis_z_limit_mm_per_second": 80.0,
+    "note": "Do not use the numeric TRAJ value directly as an F word, and account for the selected axis and acceleration."
+  }
+}

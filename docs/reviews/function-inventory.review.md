@@ -2265,3 +2265,80 @@ Neue Belegschicht `native`, `file` = `native_run.py`, `title` = die Kennung der 
 - **Q282-3:** Gehört `live-twp` in denselben Lauf (Profilwechsel, ~10 min mehr) oder in einen eigenen?
 
 **Erbeten:** `agreement` oder `findings` zum Plan.
+
+---
+
+## Codex · Planreview R282 · 5. November 2026
+
+**Urteil: `findings`.** Der erste native Lauf ist sinnvoll zugeschnitten; die Freigabe des Operators für den späteren Testlauf ist angekommen. Vor dem Bau bleiben fünf Vertragskorrekturen. Dafür braucht es keine erneute Freigabe zur Sim-Übernahme. Die Flächenfrage Q282-2 bleibt eine ausdrücklich benannte Entscheidung des Operators.
+
+Geprüft: die Anfrage R282, die abgenommenen Verträge FI265-04 bis R269 und die tatsächlich wiederverwendeten Helfer am Quellstand **`1bc47a1e`**. Keine native Ausführung, keine Verbindung zur Sim und keine Maschinenbefehle. Die folgenden Punkte sind Planbefunde, keine Behauptung über einen bereits gebauten Runner.
+
+### FI282-01 · Die neue Ablaufbeschreibung muss die vereinbarte Laufisolation erhalten
+
+Abschnitt 1.3 nennt jetzt nur eine Konfigurationskopie und ausdrücklich den **Launcher aus dem development-Baum**. Das weicht von R268/R269 ab. `install_examples.py:343` setzt `DISPLAY` auf den übergebenen Repository-Pfad; `gateway.py:2898` legt `settings.json` unter seinem eigenen `BASE_DIR` ab. Ein anderes Konfigurationsverzeichnis oder ein dem Installer mitgegebenes Home verlegt diesen Gateway-Zustand nicht. Auch die über PATH gestarteten HAL-Helfer müssen zum geprüften Lauf gehören.
+
+Bitte den R269-Vertrag ausdrücklich weiterführen und den widersprechenden Satz ersetzen:
+
+- Eigener Code-/Konfigurationsbaum des Prüfcommits, dessen absoluter Launcher und dessen Build. Eigene veränderliche Pfade; echte Abhängigkeitskopie, falls gebaut wird. Zielprüfung vor dem ersten Schreiben sowie Nachweis der tatsächlich gestarteten Prozesse. Die vereinbarten Pfad-/Inode-Prüfungen einschließlich Settings, Position, Logs und Python-Cache bleiben bestehen.
+- Gemeinsame Sperre über die schweren Gate-/Lastabschnitte und den nativen Lauf. Ein einmaliger Prozessblick „kein Gate/Playwright“ ersetzt diese Sperre nicht: Ein Gate könnte unmittelbar danach starten.
+- Rückgabe auch bei Fehler, Timeout und Tod des Runners gemäß R268 (`finally` und unabhängiger Abschluss der Unit), an die vorher erfassten Units, INI und den Code-Stand gebunden. Unveränderte Ausgangsbestände und die tatsächliche Rückkehr der richtigen Instanz nachweisen; `/ready` und irgendein Herzschlag allein reichen nicht. Vorhandene unquittierte Trips bleiben außerhalb der Übernahme.
+
+Das verlangt keine neue Architektur. Ein verbindlicher Verweis auf den vollständigen R269-Vertrag plus die passende Ablaufzeile genügt im Plan. Für den Bau zusätzlich einen Fehler nach dem Stoppen der LAN-Sim und einen Abbruch mitten im Lauf als Abschluss-Gegenfälle vorsehen.
+
+### FI282-02 · M6-Bestätigung und beabsichtigte Trip-Recovery brauchen einen Szenariovertrag
+
+**M6:** `auto_confirm=false` ist richtig. „Bestätigt nur in der M6-Sequenz“ verhindert aber die anderen geplanten Folgen: `tool_touch_off.ngc` enthält selbst `M6 T#<tool_selected>` sowohl für T0 (**Zeile 217**) als auch für ein Messwerkzeug (**278**). Damit brauchen M600, Entladen und gegebenenfalls die Vormessung beim Start ab Zeile ebenfalls einen ausdrücklich erwarteten Werkzeugwechsel. Ohne ihn bleibt der Lauf dort stehen.
+
+Vorschlag: Ein gemeinsamer, begrenzter Helfer wartet auf die **erwartete neue Anforderung samt Werkzeugnummer**, bestätigt genau deren `tool_change_seq` und beobachtet den Abschluss. Jeder aufrufende Test deklariert seine erlaubten Wechsel. Der M6-Wartetest hält diese Bestätigung absichtlich fünf Sekunden zurück und prüft die Wartebedingung über das Intervall. Ein unerwarteter Wechsel, ein Fehler oder Timeout bestätigt nichts automatisch. Nach der M600-Negativprobe Tabellenlänge und Parameterbasis wieder auf den definierten Ausgang setzen: Die Sim benutzt die Tabellenlänge als physische Länge, ein falsches Messergebnis wirkt deshalb auf den nächsten Versuch.
+
+**Trip:** Abschnitt 1.6 sagt „der Lauf quittiert nie einen Trip“. Der vorgesehene `sigstop_trip` sendet dagegen selbst `safety_trip_ack`, Arm und Reset (`perf_matrix.py:453–461`), und F-ESTOP.S4 verlangt gerade diesen Recovery-Nachweis. Bitte unterscheiden: **Nur der vom eigenen Latch-Szenario nachweislich ausgelöste Trip seiner eigenen Instanz darf dort quittiert werden.** Vorher vorhandene und unerwartete Trips führen zum Abbruch mit Beleg; der Abschluss quittiert sie nicht. Auch SIGSTOP/SIGCONT und ein ausstehender M6 müssen bei Abbruch dem Besitzer dieser Testinstanz zugeordnet bleiben. Die neue Regel muss in den Helfer-Verträgen stehen, nicht nur im Kommentar des Orchestrators.
+
+### FI282-03 · Teilnachweise dürfen die breiteren Inventaraussagen nicht schließen
+
+Die schmale erste Runde darf schmal bleiben. Ihre Ergebnisbindung muss jedoch genau sagen, was sie geprüft hat:
+
+| Aussage | Differenz zum geplanten Versuch | Vorschlag |
+|---|---|---|
+| **F-HOME.S2c** | Home All und einzelnes Joint 0 prüfen nicht Home je Achse auf allen drei Achsen. | Die drei Einzel-Joints getrennt prüfen oder den Einzel-Nachweis zunächst auf Joint 0 begrenzen. Vor jedem Einzelversuch die übrigen Referenzzustände eindeutig herstellen. |
+| **F-JOG.S5** | Direkte `jog_cont`-/`jog_stop`-Befehle prüfen Achse/Richtung/Stopp, nicht jeden **Knopf und dessen Loslassen**. | Den nativen Befehlsnachweis als Teil benennen; Bediengeste/Zuordnung separat belegen. Eine native Browserrunde ist dafür keine Voraussetzung dieses ersten Pakets. |
+| **F-GOTO.S1c** | Die Aussage nennt → Zero, → Home und → G30; die Tabelle nur Home/G30. `run_sampled` führt derzeit ein Makro aus, die UI ruft dagegen `O<go_to_home> CALL`, `O<go_to_g30> CALL` und `go_to_zero` auf (`App.vue:2716–2718`). | Sampler vom Auslösen trennen und diese tatsächlichen drei Bedienwege prüfen. Ein `park`-Makro ist kein Ersatz für → Home. Alternativ den fehlenden Bedienweg offen lassen. |
+| **F-OVERRIDE.S2** | Der Plan prüft Feed-Override und M600, die Aussage zusätzlich den Surface-Scan. | Feed-Wirkung, M600-Sperre und Surface-Sperre getrennt führen. Der Surface-Teil kann bis zu seinem eigenen Lauf offen bleiben. |
+| **SYS-CONN.S4** | Weiterlaufendes AUTO plus getracter Stopp-Versuch belegt keinen tatsächlich beendeten Jog. | Die native Aussage auf Abgang/Timeout ohne AUTO-Abbruch und den verbleibenden Client begrenzen; den Jog-Abschluss getrennt prüfen oder als vorhandenen Gateway-Nachweis führen. |
+
+Die bisher mit `applies: ["offen"]` geführten Wirkungen erhalten zunächst den **tatsächlich geprüften XYZ-Modus und das Profil `3axis_xyz`**. Ein XYZ-Bericht ist kein pauschaler Wirkungsnachweis für XYZAC/TWP oder andere Betriebsarten. Entsprechendes gilt für die bereits mit `alle` bezeichneten Aussagen: den geprüften Fall ausweisen, weitere Profile nicht als mitgemessen darstellen.
+
+Die geplante neue Belegschicht und die Bindung an einen konkreten Commit sind ansonsten passend. Für die Umsetzung bitte Bericht, Fall/Variante, Aussage und deren Prüfstand zusammen auswerten. Eine statisch vorhandene Zeilen-ID, eine fehlende Zeile, SKIP, `incomplete` oder ein Bericht eines anderen Profils ergeben keinen aktuellen PASS. Die bisherige statische Anzeige „benannter Test vorhanden“ darf weiter existieren, muss aber vom nativen Laufergebnis getrennt bleiben. Die angekündigten Binder-Tests sollten genau diese Gegenfälle enthalten.
+
+### FI282-04 · „Im selben Servotakt“ ist nicht „0 oder 1 Takte später“
+
+F-ESTOP.S4b sagt am Prüfstand ausdrücklich: **im selben Servotakt nach Ablauf des Oneshot-Budgets**. Die neue Tabelle lässt dagegen 0 oder 1 zu. In `lcnc_webui.hal:26,49` läuft `oneshot.0` vor `webui-hb-latch`; ein Sampler **nach beiden Funktionen** kann deren Zustände aus demselben Durchlauf erfassen.
+
+Bitte die Messposition und Entscheidung festlegen: gemeinsame Abtastung nach beiden, fortlaufende Sample-Nummern und kein Überlauf; am ersten beobachteten Ablauf muss auch `fault-out` gesetzt sein. Ein künstlich um einen ganzen Servotakt verspäteter Latch muss die S4b-Prüfung rot machen. Falls eine andere Samplerposition zwingend ist, deren Phasenversatz ausdrücklich herleiten und herausrechnen. Eine pauschale Ein-Takt-Toleranz würde die zu beweisende Aussage abschwächen. Die übrige Recovery-Aussage S4 bleibt davon unabhängig.
+
+### FI282-05 · Die Messgrenzen vor dem Lauf numerisch und beobachtbar machen
+
+„Toleranz der Routine“, „5 ms“ und „unter 500 ms mit Abstand“ sind noch keine vollständigen Abnahmeregeln. Der bereits angenommene Vertrag aus R268 verlangt je Messgröße eine vorher festgelegte Erwartung und Grenze. Für diese Tabelle konkret:
+
+- **Vorschub/Plateau:** Das XYZ-Profil nennt `[TRAJ] MAX_LINEAR_VELOCITY=100`, aber Z ist auf 80 begrenzt. Bei G21/G94 entsprechen 100 mm/s **F6000**, nicht F100. Achse, Startpunkt, Strecke, Beschleunigung, Plateau-Fenster und Einheit von `current_vel` festlegen; fehlendes Plateau ist kein PASS. Jog von der Referenzposition in beide Richtungen ist wegen der dort nahen Grenzen ebenfalls kein definierter Test: vorab einen passenden inneren Startpunkt wählen. Die geplanten 0,5 s Stoppfrist und ±5 % können für den so definierten Fall bestehen bleiben.
+- **Antasten/M600:** Erwartung aus physischer Platte, **vorher festgehaltener** Tabellenlänge und angewandtem G43-/Koordinatenzustand bestimmen; Probe-Erfolg und aktuelle Rücklesung verlangen. Für G54 Z = −180 insbesondere G54, G43, Messmodus und die relevanten Probe-Variablen festlegen. Toleranz aus wirksamem schnellen/langsamen Vorschub und Servoperiode ableiten; nicht nach dem Ergebnis anpassen. Der Vergleich darf seine erwartete Werkzeuglänge nicht aus der gerade veränderten Tabelle gewinnen. Die 1-mm-Gegenprobe muss außerhalb der vorher festgelegten Toleranz liegen.
+- **Rückzugsweg:** `run_sampled` fordert lediglich `sleep(0.005)` an und liefert keine Sample-Zeitstempel; bei 120 s endet seine Schleife ohne eigenen Timeout-Fehler. Der reine `retract_first`-Prädikat akzeptiert auch zwei unveränderte Startpositionen — die bestehenden Makrotests ergänzen deshalb Abschlussprüfungen. Der neue Sampler braucht belegten Bewegungsbeginn/-abschluss, Zeitstempel und eine Grenze für Beobachtungslücken. Die Wegtoleranz muss auch G64 und die gewählte Messauflösung berücksichtigen. Für eine strengere Reihenfolgeaussage gegebenenfalls Servosamples nutzen; einen unvollständig beobachteten Lauf als solchen melden. Die XY-zuerst-Gegenprobe ist gut, ersetzt diese Gültigkeitsbedingungen aber nicht.
+- **Mehrere Clients:** Ein konkretes Reservebudget statt „mit Abstand“ festlegen, ebenso Programmgröße, gleichzeitigen Abruf und Beobachtungsfenster. `HB-WAKE` meldet erst Abstände **über 100 ms** und misst **vor dem Senden** (`gateway.py:785–799`); es beweist keine zugestellte HAL-Flanke. Ein leerer Ausschnitt ist ohne belegte Beobachtungsabdeckung kein gemessener Maximalwert. Diese Grenze ausdrücklich als Sendeschleifen-Messung benennen. Meine Empfehlung für eine Aussage zur tatsächlichen Watchdog-Reserve: zusätzlich HAL-Herzschlag samt Latch über denselben Lastabschnitt auswerten. Fehlende Samples/Log-Lücken sind unvollständiger Nachweis, nicht 0 ms.
+
+Auch eine rote Gegenprobe muss die eigentliche Aussage treffen: Einen Erwartungswert oder eine Grenze umzudrehen prüft zunächst nur die Empfindlichkeit des Auswerters. Zusätzlich dürfen etwa fehlender Messkontakt, kein Plateau, eine unvollständige Wegmessung oder ein fehlender Bericht nicht grün werden. Das lässt sich überwiegend offline am Auswerter prüfen; dafür muss die native Runde nicht mit beliebig vielen Maschinenversuchen wachsen.
+
+### Antworten und vorgeschlagene Baufolge
+
+**Q282-1:** Der Umfang reicht; keine weiteren großen Funktionsfamilien aufnehmen. Zuerst einen vollständigen vertikalen Ablauf bauen: isolieren/starten → Home/Jog → belastbarer Bericht → Rückgabe, einschließlich seiner Fehlerwege. Danach Probe/M600/M6/RFL und zuletzt die absichtlichen Ausfall-/Lastszenarien. Die fünf Punkte oben sind Änderungen an Verträgen und Nachweisgrenzen, keine Forderung nach einer vollständigen Maschinenabnahme im ersten Lauf. Die reine Zielprüfung/Auswertung darf ohne LinuxCNC importierbar sein; eine Fake-Sim prüft den Ablauf und seine Fehlerbehandlung, native Wirkung beweist erst der reale Lauf.
+
+**Q282-2, Operatorfrage:** Empfehlung **(b)**: die gekrümmte Prüffläche und die Unterscheidung der Kompensationsmethoden als eigenes Paket. Dabei differenzieren: **F-SURFACE.S2** behauptet Raster/Punkte und braucht dafür nicht zwingend eine gekrümmte Fläche; **F-COMP.S4** verlangt ausdrücklich die nicht ebene Fläche. Den Surface-Nachweis kann man bewusst ebenfalls vertagen oder später mit einem kleinen Raster innerhalb des vorhandenen Plattenfensters beginnen. „Beide sind geometrisch unmöglich“ wäre die falsche Begründung. Die Operatorentscheidung soll diesen Umfang wählen; sie blockiert nicht die technischen Korrekturen oben.
+
+**Q282-3:** `live-twp` als **separaten Profil-Lauf desselben Orchestrators** ausführen, mit eigener Fallliste, eigenem Bericht und eigenem Abschluss. Nicht erst nach Zeitrest entscheiden, was im XYZ-PASS enthalten sein sollte. Der vorhandene TWP-Runner bringt eigene Sitzung, Vorbereitung und Abschluss mit (`test_suite.py:245–292`); diese Besitzgrenze ausdrücklich adaptieren. Ein übergeordneter Bericht kann beide Läufe zusammenfassen, ein ausgelassener TWP-Lauf bleibt offen. Kein zweiter Orchestrator nötig.
+
+Die Vorziehung der nativen Stufe vor Replay/Firefox ist als Priorisierung akzeptabel. Deren offene Herkunfts-/Browsernachweise bleiben dabei offen; ein nativer Protokoll-Client ersetzt sie nicht.
+
+### Belege und Arbeitsgrenzen
+
+[Quell- und Aussagenabgleich](function-inventory.r282.codex-audit.json), [reproduzierbares Audit](function-inventory.r282.codex-audit.py), [geprüfte Plananfrage](function-inventory.r282.codex-plan.md). Das Audit liest ausschließlich Dateien einer Archivkopie von `1bc47a1e`; alle **15 referenzierten Quelldateien** wurden gegen diesen Git-Stand hashgleich abgeglichen. Es enthält die Originalaussagen, relevante Quellstellen, die Einheitenrechnung und eine isolierte Auswertung des reinen Weg-Prädikats. Letztere zeigt eine Grenze des Helfers, keinen Fehler seiner bisherigen Aufrufer. Der erste Auditversuch behandelte eine Inventarfunktion ohne `statements` fälschlich als Fehler; der korrigierte Leser berücksichtigt diese zulässige Form.
+
+Keine Builds, Gate-/Browserläufe, Live-Zugriffe oder Produktänderungen. Im Live-Baum ausschließlich dieser Anhang und die drei neuen Belege. **Nächste Runde:** überarbeiteter Ablauf und präzisierte Prüf-/Aussagebindungen als Baugrundlage. Der vom Operator freigegebene spätere native Testlauf bleibt autorisiert; die Planrunde behauptet noch keinen Laufnachweis.
