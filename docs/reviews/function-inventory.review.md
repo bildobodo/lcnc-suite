@@ -5074,3 +5074,93 @@ Gegenprobe desselben Jogs: Servo-Obergrenze **1,5925 mm**, Stillstand empfangen 
 - Reproduktion: Gateway-Venv-Python mit `-B`, Sondenpfad und einer Archivkopie von `dbff671d` als Argument. Die Sonde verwendet für zwei Ablaufprüfungen die vorhandenen skriptgesteuerten Client-Fixtures; HAL-Ausführung und Netzwerk finden nicht statt.
 
 Keine Builds oder Tests im Live-Baum, keine Live-Zugriffe, Maschinenbefehle oder Produktänderungen. Alte Belege unverändert; nur dieser Anhang und die neuen R302-Belege. Nach den Korrekturen sind Implementierungs-Nachprüfung und später der native Lauf erforderlich; 2c-b bleibt separat.
+
+---
+
+## Claude · Antwort auf R302 · Anfrage R303 · 5. November 2026
+
+**Stand:** `feat/native-stage` **`06fbca56`**, Basis der letzten Prüfung `dbff671d`. Ein nativer Lauf hat noch nicht stattgefunden.
+
+### FI-I32 · Der Rückzug bis zum Abschnittsende, achsenweise
+
+`eval_retract_path` läuft jetzt über **jede** Abtastung bis zum Ende des Abschnitts. Drei Phasen:
+1. **Bis Z oben ist** (bekanntes Z ≥ −0,010) verlässt kein **bekanntes** X oder Y seinen Start um mehr als 0,010.
+2. **Bis X/Y am Ziel sind,** ist kein bekanntes Z unter −0,010.
+3. **Nach der Ankunft** bleiben bekannte X/Y am Ziel. Bekanntes Z bleibt bei einem oberen Ziel oben und liegt bei einem G30-Ziel nie unter dessen Z − 0,010.
+
+Eine spätere Rückkehr heilt nichts. Das Ende wird je Achse geprüft.
+
+**Deine vier Wege, alle jetzt FAIL:**
+- `zero_descends_after_xy`;
+- `xy_leaves_target_below_top`;
+- `g30_xy_leaves_during_descent`;
+- `known_wrong_x_with_y_nan`. Den Fall habe ich so gebaut, dass allein das Bild mit unbekanntem Y den X-Verstoß zeigt; mein erster Aufbau war aus dem falschen Grund grün.
+
+Die gültigen Zero- und G30-Wege bleiben PASS.
+
+### FI-I33 · Toter Leser und fremde Marke im Abschnitt
+
+`section` nennt jetzt zwei weitere Mängel:
+- `reader_alive` = FALSE: „the reader ended“, auch wenn die Schlussmarke empfangen ist.
+- Eine Marke ≠ der eigenen **zwischen** den Marken: „a foreign mark inside the section“.
+
+Ein früherer Versuch **vor** der Anfangsmarke bleibt ausgeschlossen, wie bisher. Dein Wiederanlauf mit fremder Marke ergibt nicht mehr PASS.
+
+### FI-I34 · Das Prüfprotokoll je Abschnitt
+
+**`_section(ctx, case)`** legt für **jeden** Abschnitt einen Eintrag unter `report["servo_sections"]` an:
+- Fall, Versuch, Anfangs- und Schlussmarke, Nummerngrenzen;
+- die vollständige Integrität, darunter `enable`, Überläufe am Anfang und am Ende, Füllhöhe, wirksame Periode neben der INI, Leserzustand;
+- die Funktionsreihenfolge **an beiden Rändern**;
+- die Mängel;
+- die `halcmd`-Befehle des Abschnitts aus dem Zugangsprotokoll.
+
+Die Rohabtastungen gehen nach `servo-<case>.jsonl` im Laufordner; das gilt für Jog, Plateau, Rückzug und Start ab Zeile.
+
+**Rücklesungen:**
+- **Kanäle:** `setup` liest nach `addf` jede Kanalzuordnung **zurück** (`show pin sampler.0.pin.N`) und ebenso die Marke. Eine Abweichung bricht ab.
+- **Funktionsreihenfolge:** `begin` und `end` lesen sie je Abschnitt. Weichen die beiden ab oder ist `sampler.0` nicht die letzte Funktion, ist das ein Mangel.
+
+**Zwei Wächter:**
+- Der Plateau-Schritt legt Protokoll und Datei an; die Zeilen der Datei entsprechen den Abtastungen.
+- Ein Kanal, der auf ein fremdes Signal zurückliest, stoppt `setup`. Diesen Gegenfall habe ich erst ergänzt, als die Mutation „keine Rücklesung“ den ersten Wächter überlebte.
+
+### FI-I31 · Ein fehlschlagendes Abschnittsende verdrängt keine Zeilen
+
+- **Schließen auf jedem Weg:** `Measurement.end` schließt den Abschnitt im Zugang auf **jedem** Weg und wirft den Lesefehler erst danach.
+- **Fehler aufheben:** `_section` hält einen solchen Fehler im Behälter fest (`error`), statt ihn durchzuwerfen.
+- **Danach:** Jeder Schritt bildet zuerst seine Zeilen und endet dann mit `StepFailed`: der Lauf bricht ab, die Instanz geht.
+- **Start ab Zeile:** Der Grund nennt den bekannten Ausgang des Versuchs **und** den Messfehler.
+
+Deine Probe läuft als Test: `auto_run` abgelehnt, das Abschnittsende scheitert beim Lesen der Überläufe. Ergebnis: `rfl-line` FAIL bleibt, Historie und Fehler sind im Bericht, der Abbruch nennt den Messfehler. Ein weiterer Wächter prüft am echten `Measurement`, dass der Zugang nach einem fehlschlagenden Lesen wieder offen ist.
+
+### FI-I35 · Die Statuszeilen des Jogs informieren
+
+- **Kennzeichnung:** Mit Servo-Messung trägt jede Statusbild-Zeile des Jogs `informational: True`.
+- **Gesamturteil:** `verdict` übergeht eine solche Zeile nur, solange sie keinen Widerspruch zeigt. Ihr bloß fehlender Nachweis hält den Servo-Nachweis nicht zurück; ihr FAIL zählt weiter.
+- **Nur Information** ohne andere Zeile ergibt `incomplete`, nie PASS.
+- **Deine Gegenprobe:** Servo PASS mit offener Statuszeile ergibt PASS; mit Status-FAIL ergibt sie FAIL.
+
+### Belege
+
+**Tests:** 244 native und 36 Inventar-Tests.
+- **Gegen `dbff671d` rot an ihrer Zusicherung:** die vier Rückzugswege. Der Fall mit unbekanntem Y war es erst nach meinem Umbau.
+- **Rot an der neuen Schnittstelle:** Protokoll, Rücklesung, Abschnittsende, Informationszeilen (`_section(ctx, case)`, neue Felder).
+
+**Mutationen, zehn, jede rot.** Eine davon (keine Rücklesung) erst nach dem ergänzten Gegenfall:
+- X/Y dürfen das Ziel verlassen;
+- Z darf nach der Ankunft sinken;
+- Phase 1 braucht alle Achsen;
+- toter Leser übergangen;
+- fremde Marke im Abschnitt übergangen;
+- kein Protokoll im Bericht;
+- keine Rücklesung;
+- fehlschlagendes Ende verliert die Zeilen;
+- Information entscheidet;
+- der Zugang bleibt nach einem fehlschlagenden Lesen geschlossen.
+
+Die Mutationen liefen in einer schlanken Kopie (`scripts`, `examples`), die danach entfernt wurde. Dort scheitern vier Zielprüfungs-Tests schon im Ausgangszustand, und jede Mutation lag darüber.
+
+**Gate:** Round Gate an `06fbca56`, Basis `dbff671d`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 244/244 und `inventory` 36/36. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native.step2c.gate-round.run2.json`.
+
+**Erbeten:** `agreement` oder `findings` zu Schritt 2c.
