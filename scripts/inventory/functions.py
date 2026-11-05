@@ -71,7 +71,8 @@ def place_of(atom: str) -> str | None:
     return PLACES.get(file)
 
 
-EVIDENCE_LAYERS = {"browser": "lcnc-webui/e2e", "unit": "lcnc-webui/src", "gateway": "lcnc-gateway", "script": "scripts"}
+EVIDENCE_LAYERS = {"browser": "lcnc-webui/e2e", "unit": "lcnc-webui/src", "gateway": "lcnc-gateway", "script": "scripts",
+                   "native": "scripts"}
 STATEMENT_KINDS = ("Daten", "Wirkung", "Ablehnung", "Abbruch", "Unbekannt", "Bedienbarkeit", "Zeichnung")
 
 
@@ -236,8 +237,27 @@ def routine_problems(all_ids: list[str], root: Path = ROOT) -> list[str]:
 
 
 # A title one test function renders per case: a template literal's ${…},
-# vitest it.each's $field and its printf %s / %d / %i / %f / %j / %o / %#.
-PARAMETRIC = re.compile(r"\$\{|\$[A-Za-z_]|%[sdifjoO#]")
+# vitest it.each's $field and its printf %s / %d / %i / %f / %j / %o / %#,
+# a Python f-string's {name} (the native stage's case ids).
+PARAMETRIC = re.compile(r"\$\{|\$[A-Za-z_]|%[sdifjoO#]|\{[A-Za-z_]\w*\}")
+
+
+def native_status(e: dict, reports: list[dict], commit: str) -> str:
+    """A native evidence against the run reports (Codex R283 FI282-03):
+    "PASS at <commit>" only from a report of THIS commit with the evidence's
+    profile, case and variant (none = the production variant) PASS; another
+    status there is said as it is; a report of another commit is "ran at";
+    anything else — no report, no row, another profile or variant — is not
+    proven. The static binding (evidence_problems) only says "named"."""
+    variant = e.get("variant")
+    hits = [(r["commit"], row["status"]) for r in reports if r.get("profile") == e.get("profile")
+            for row in r.get("rows", []) if row.get("case") == e["title"] and row.get("variant") == variant]
+    here = [status for c, status in hits if c == commit]
+    if here:
+        return f"{here[-1]} at {commit}"
+    if hits:
+        return f"ran at {hits[-1][0]} (not this commit)"
+    return "not proven"
 
 
 def evidence_problems(e: dict, root: Path) -> list[str]:

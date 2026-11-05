@@ -139,8 +139,9 @@ def make_tree(commit: str, profile: str):
         if b.returncode:
             raise Refused(f"the run tree's build failed: {b.stdout[-400:]}{b.stderr[-400:]}")
         ctx["tree"] = tree
-        ctx["commit"] = subprocess.run(["git", "-C", str(tree), "rev-parse", "HEAD"],
-                                       capture_output=True, text=True, check=True).stdout.strip()
+        ctx["commit"] = ctx["report"]["commit"] = subprocess.run(["git", "-C", str(tree), "rev-parse", "HEAD"],
+                                                                 capture_output=True, text=True, check=True).stdout.strip()
+        ctx["report"]["profile"] = profile
         return []
     return ("tree", step)
 

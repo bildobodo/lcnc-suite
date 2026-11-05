@@ -283,3 +283,28 @@ def test_format_refuses_before_it_writes(tmp_path, monkeypatch):
     path.write_text(json.dumps(empty))
     fn.main()
     assert json.loads(path.read_text()) == empty, "uses: [] written as it is"
+
+
+def test_a_native_evidence_passes_only_from_a_report_of_its_own_commit_profile_case_and_variant():
+    """Codex R283 FI282-03: "named" is the static binding; a PASS needs the
+    run report of the SAME commit, profile, case and variant — a missing row,
+    SKIP, incomplete, another commit, profile or variant is none."""
+    e = {"layer": "native", "file": "native_run.py", "title": "home-all", "profile": "3axis_xyz"}
+    rep = {"commit": "c1", "profile": "3axis_xyz", "rows": [{"case": "home-all", "status": "PASS"}]}
+    assert fn.native_status(e, [rep], "c1") == "PASS at c1"
+    assert fn.native_status(e, [rep], "c2") == "ran at c1 (not this commit)"
+    assert fn.native_status(e, [{**rep, "profile": "5axis_xyzac"}], "c1") == "not proven"
+    assert fn.native_status(e, [{**rep, "rows": []}], "c1") == "not proven"
+    for status in ("SKIP", "incomplete", "FAIL"):
+        assert fn.native_status(e, [{**rep, "rows": [{"case": "home-all", "status": status}]}], "c1") == f"{status} at c1"
+    other = {**rep, "rows": [{"case": "home-all", "status": "PASS", "variant": "delayed-latch"}]}
+    assert fn.native_status(e, [other], "c1") == "not proven", "a mutant's PASS is no production PASS"
+    assert fn.native_status(e, [], "c1") == "not proven"
+
+
+def test_a_python_placeholder_is_a_parametric_title_too(tmp_path):
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "n.py").write_text('case = f"home-joint-{j}"\n')
+    e = {"layer": "native", "file": "n.py", "title": "home-joint-{j}"}
+    assert fn.evidence_problems(e, tmp_path), "named instances needed"
+    assert fn.evidence_problems({**e, "instances": ["0", "1", "2"]}, tmp_path) == []
