@@ -1512,22 +1512,26 @@ def _rfl_frame(t, line, xyz, *, mode=2, level=0, vel=50.0, interp=2, tool=1, off
 
 def _rfl_run(**witness):
     """A clean run: measuring (MDI, subroutine), safe Z up, XY to the entry,
-    then the program from line 7 to its end."""
+    then the program from line 7 to its end — Z descends only by the
+    program's own words (the dialog's contract): lines 7 and 8 run at the
+    safe height, line 9 (G0 Z-80) takes T1's joint to -30 (live run
+    2026-11-05: line 7 at joint 0, where the entry left it)."""
     hist = [(0.0, {"phase": "measuring", "ok": None}), (20.0, {"phase": "safe_z", "ok": None}),
             (21.0, {"phase": "positioning", "ok": None}), (23.0, {"phase": "starting", "ok": None}),
             (23.2, {"phase": "running", "ok": True})]
     frames = [_rfl_frame(5.0, 120, (10, 10, -128), mode=3, level=2, vel=3.0, tool=1, offset=0.0),   # inside M600
               _rfl_frame(20.1, 0, (10, 10, -100), mode=3, vel=80.0), _rfl_frame(20.9, 0, (10, 10, 0.0), mode=3, vel=0.0),
               _rfl_frame(21.5, 0, (60, 60, 0.0), mode=3, vel=100.0), _rfl_frame(22.9, 0, (100, 100, 0.0), mode=3, vel=0.0),
-              _rfl_frame(23.3, L, (101, 100, -0.5), **witness), _rfl_frame(24.3, L, (150, 100, -25)),
-              _rfl_frame(25.3, 8, (200, 101, -50)), _rfl_frame(27.3, 9, (200, 200, -40)),
-              _rfl_frame(28.0, 11, (200, 200, 0.0), vel=0.0, interp=1)]
+              _rfl_frame(23.3, L, (101, 100, 0.0), **witness), _rfl_frame(24.3, L, (150, 100, 0.0)),
+              _rfl_frame(25.3, 8, (200, 101, 0.0)), _rfl_frame(27.3, 9, (200, 200, -15)),
+              _rfl_frame(28.0, 11, (200, 200, -30.0), vel=0.0, interp=1)]
     return hist, frames
 
 
 def _line(hist, frames, line=L):
     return nc.eval_rfl_line("rfl-line", hist, frames, line=line, tool=1, l0=L0, spindle_speed=1000.0,
-                            end_point=(200.0, None, -100 + L0), final=(200.0, 200.0, -50 + L0), line_holds={1: 100.0})
+                            end_point=(200.0, None, nr.RFL_SAFE_Z), final=(200.0, 200.0, nr.RFL_Z_END + L0),
+                            line_holds={1: 100.0, 2: nr.RFL_SAFE_Z})
 
 
 def test_the_run_from_line_witness_is_a_motion_of_line_l_with_its_tool_and_spindle():
@@ -1788,8 +1792,8 @@ def test_the_entry_is_judged_where_the_machine_stood_not_at_the_phases_last_fram
 def test_an_error_of_the_attempt_fails_the_line():
     hist, frames = _rfl_run()
     r = nc.eval_rfl_line("rfl-line", hist, frames, line=L, tool=1, l0=L0, spindle_speed=1000.0,
-                         end_point=(200.0, None, -100 + L0), final=(200.0, 200.0, -50 + L0), line_holds={1: 100.0},
-                         errors=[(11, "Probe tripped during non-probe move")])
+                         end_point=(200.0, None, nr.RFL_SAFE_Z), final=(200.0, 200.0, nr.RFL_Z_END + L0),
+                         line_holds={1: 100.0, 2: nr.RFL_SAFE_Z}, errors=[(11, "Probe tripped during non-probe move")])
     assert r["status"] == "FAIL" and "reported" in r["detail"], r
 
 
@@ -1916,14 +1920,14 @@ def test_a_standstill_followed_by_positioning_motion_is_no_entry_proof():
 
 
 def test_the_program_end_is_the_completion_the_step_confirmed():
-    """Codex R295 FI-I29 B: idle at 5.2 s still moving at Z −40 (not in
+    """Codex R295 FI-I29 B: idle at 5.2 s still moving at Z −20 (not in
     position), the confirmed rest at the end point later — the end is the
     rest, as the step's own RoutineEnd has it."""
     hist, frames = _rfl_run()
-    frames[-1:] = [_rfl_frame(27.9, 11, (200, 200, -40.0), vel=50.0, interp=1),
-                   _rfl_frame(28.6, 11, (200, 200, 0.0), vel=0.0, interp=1)]
+    frames[-1:] = [_rfl_frame(27.9, 11, (200, 200, -20.0), vel=50.0, interp=1),
+                   _rfl_frame(28.6, 11, (200, 200, -30.0), vel=0.0, interp=1)]
     assert _line(hist, frames)["status"] == "PASS", _line(hist, frames)
-    frames[-1] = _rfl_frame(28.6, 11, (200, 190, 0.0), vel=0.0, interp=1)
+    frames[-1] = _rfl_frame(28.6, 11, (200, 190, -30.0), vel=0.0, interp=1)
     assert _line(hist, frames)["status"] == "FAIL"
 
 
@@ -2116,9 +2120,9 @@ def test_the_boundary_frame_itself_decides_never_an_earlier_standstill():
             (21.0, {"phase": "positioning", "ok": None}), (23.3, {"phase": "running", "ok": True})]
     frames = [_rfl_frame(20.1, 0, (10, 10, -100), mode=3, vel=80.0), _rfl_frame(20.9, 0, (10, 10, 0.0), mode=3, vel=0.0),
               _rfl_frame(21.1, 0, (10, 10, 0.0), mode=3, vel=0.0),
-              _rfl_frame(23.3, L, (101, 100, -0.5)), _rfl_frame(24.3, L, (150, 100, -25)),
-              _rfl_frame(25.3, 8, (200, 101, -50)), _rfl_frame(27.3, 9, (200, 200, -40)),
-              _rfl_frame(28.0, 11, (200, 200, 0.0), vel=0.0, interp=1)]
+              _rfl_frame(23.3, L, (101, 100, 0.0)), _rfl_frame(24.3, L, (150, 100, 0.0)),
+              _rfl_frame(25.3, 8, (200, 101, 0.0)), _rfl_frame(27.3, 9, (200, 200, -15)),
+              _rfl_frame(28.0, 11, (200, 200, -30.0), vel=0.0, interp=1)]
     r = nc.eval_rfl_start_point("rfl-start-point", hist, frames, entry_xy=(100.0, 100.0))
     assert r["status"] == "incomplete", r
     assert _line(hist, frames)["status"] == "PASS"
@@ -3109,3 +3113,15 @@ def test_parameters_are_read_from_the_interpreter_not_the_var_file(monkeypatch):
     assert all(len(a) <= nr.VARS_PER_READ for a in asked) and sum(map(len, asked)) == len(nr.TOOLSETTER_VARS)
     with pytest.raises(RuntimeError, match="3999"):
         nr._vars(FileOnly(), [3102, 3999])
+
+
+def test_line_7_plunging_to_the_skipped_depth_is_a_fail():
+    """The model the fifth live run disproved, kept as the counter-case: line
+    7 diving from the safe height to the skipped G0 Z-100 (a diagonal entry)
+    breaks the dialog's contract that Z descends only by the program's own
+    words — line 7 holds Z."""
+    hist, frames = _rfl_run()
+    frames[5] = _rfl_frame(23.3, L, (101, 100, -0.5))
+    frames[6] = _rfl_frame(24.3, L, (150, 100, -25))
+    r = _line(hist, frames)
+    assert r["status"] == "FAIL", r

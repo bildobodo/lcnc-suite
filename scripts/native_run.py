@@ -104,7 +104,11 @@ M6_DEADLINE = 60.0      # s for the held change to complete
 # step 2b, run from line (Codex R292 FI292-01): the program the run writes
 # into the copy's nc_files. Line 7 starts from the entry the dialog derives
 # (X100 Y100 in G54, G21 — scanEntryPositionBefore); every Z keeps the joint
-# within its window with T1's 50 mm (program Z + length ≤ 0)
+# within its window with T1's 50 mm (program Z + length ≤ 0). Z descends only
+# by the program's own words (the dialog: "Z descends from safe height per the
+# program's own words"): lines 7 and 8 run at the safe height the entry left,
+# line 9 takes the joint to -30 (live run 2026-11-05 — the first expectation,
+# line 7 at the skipped G0 Z-100, was the test's error)
 RFL_PROGRAM = "\n".join([
     "(native stage: run from line - Codex R292 FI292-01)",
     "G21 G90 G94 G17 G54",
@@ -114,11 +118,12 @@ RFL_PROGRAM = "\n".join([
     "G0 Z-100",
     "G1 X200 F3000",
     "G1 Y200",
-    "G0 Z-50",
+    "G0 Z-80",
     "M5",
     "M2"]) + "\n"
 RFL_FILE, RFL_LINE, RFL_ENTRY, RFL_SPEED = "native_rfl.ngc", 7, (100.0, 100.0), 1000.0
-RFL_Z_LINE, RFL_Z_END = -100.0, -50.0
+RFL_Z_LINE, RFL_Z_END = -100.0, -80.0
+RFL_SAFE_Z = 0.0        # the joint Z the safe-Z step leaves (G53 Z0) — lines 7 and 8 run there
 RFL_DEADLINE = 300.0    # s: the pre-measurement, the entry and the program
 # step 2c (plan Codex R299–R301)
 PLATEAU_START, PLATEAU_END, PLATEAU_FEED = (100.0, 300.0, -50.0), 500.0, 6000.0
@@ -997,8 +1002,9 @@ def rfl_cases():
         errors = [(k, x) for _, k, x in c.errors[err_from:]]
         ctx["report"]["rfl_history"] = hist
         ctx["report"]["rfl_errors"] = errors
-        common = dict(tool=tool, l0=l0, spindle_speed=RFL_SPEED, end_point=(200.0, None, RFL_Z_LINE + l0),
-                      final=(200.0, 200.0, RFL_Z_END + l0), line_holds={1: RFL_ENTRY[1]}, errors=errors,
+        common = dict(tool=tool, l0=l0, spindle_speed=RFL_SPEED, end_point=(200.0, None, RFL_SAFE_Z),
+                      final=(200.0, 200.0, RFL_Z_END + l0), line_holds={1: RFL_ENTRY[1], 2: RFL_SAFE_Z},
+                      errors=errors,
                       ended_at=changes.ended_at)
         line = _with_outcome(nc.eval_rfl_line("rfl-line", hist, run_frames, line=RFL_LINE, **common), outcome)
         planted = nc.eval_rfl_line("rfl-line", hist, run_frames, line=RFL_LINE + 1, **common)
