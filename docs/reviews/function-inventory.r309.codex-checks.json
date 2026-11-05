@@ -1,0 +1,35 @@
+{
+  "review": "R309",
+  "kind": "plan only; no product tests or live run",
+  "live_doc_head": "4c13163c532a06fa26ba41b2433af4d5c3b5caea",
+  "code_reference": "3e4f7c8048b01ad0f761cc5b1f008ea041338f17",
+  "archive": "/tmp/codex-r308",
+  "review_prefix_bytes": 654763,
+  "review_prefix_sha256": "141ef674fedb019c9956c90501a42c369d6b10e2c2ae37e351e3d9f5146e27b3",
+  "plan_sha256": "57248ad5b7074572b236d9bd775b6dba89d5cb58013ab5f634825b9cf92ebe25",
+  "command": "python3 -B function-inventory.r309.codex-audit.py /tmp/codex-r308 /home/cnc/claude-work/live-tier",
+  "source_package": "linuxcnc-uspace 1:2.9.4-2+deb13u1 (read-only dpkg-query)",
+  "web_sources": [
+    {
+      "url": "https://linuxcnc.org/docs/2.9/html/man/man9/motion.9.html",
+      "supports": "Pin description: current program line; no file/phase identity"
+    },
+    {
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/motion/control.c#L1837",
+      "supports": "program_line = emcmotStatus->id"
+    },
+    {
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/tp/tp.c#L2816-L2822",
+      "supports": "In a parabolic blend, status selects current or next segment by relative velocity"
+    },
+    {
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/tp/tp.c#L3081-L3091",
+      "supports": "Split cycle status can select either segment"
+    },
+    {
+      "url": "https://linuxcnc.org/docs/2.9/html/gcode/g-code.html#gcode:g61.1",
+      "supports": "G61.1 stops at the end of each programmed segment"
+    }
+  ],
+  "boundaries": "Saved reports read-only; no live socket, HAL, process control or product changes; synthetic countermodels explicitly labelled."
+}

@@ -6040,3 +6040,95 @@ Daraus folgen drei Regeln:
 **F-RFL.S3:** Die Lücke „2c-b“ fällt weg. Die Aussage bindet `rfl-start-point` und die Gegenprobe.
 
 **Erbeten:** `agreement` oder `findings` zu beiden Plänen. Gebaut wird erst danach; Teil A und Teil B kommen in eigenen Runden.
+
+---
+
+## Codex · Planreview R309 · 5. November 2026
+
+**Urteil: `findings` zu beiden Plänen.** Geprüft ist die Anfrage am Dokumentstand **`4c13163c`**, mit **`3e4f7c80`** als unverändertem Codebezug. **FI308-01 bis FI308-03 sind auf Vertragsebene geschlossen.** Bei Teil A bleibt ein begrenzter Rest von **FI308-04**; bei Teil B fehlen **FI309-01 bis FI309-03**. Keine neue Operatorfrage, keine Rücknahme der Abnahme von R308 Teil A. Beide Umsetzungen stehen noch aus.
+
+### Teil A · Der wesentliche P2-Vertrag ist jetzt tragfähig
+
+| R308-Punkt | Beurteilung |
+|---|---|
+| **FI308-01** | Eigenständiger Abgleich bei jedem genannten Start aus Idle, unabhängig von `#3116`; kein Abgleich bei pausiertem Step/Resume oder gewöhnlichen MDI-/Makro-/Werkzeugbefehlen; ohne vollständige Übernahme kein AUTO-Start: angenommen. |
+| **FI308-02** | Einmal ausgewählte Serverbasis der aktuellen INI, Vergleich mit RFL-Clientwerten vor einer Wirkung, dieselbe Basis für Vormessung und Start, erneute Zulassung beim Schreiben: angenommen. |
+| **FI308-03** | Kanonische gesendete Zahlen, Buchung je Block, getrennte Schlüssel-/Persistenzangabe, keine Rückabwicklung bereits übernommener Werte, bestehende Sperr-/Abbruchregeln und begrenzte Wiederherstellungsreichweite: angenommen. Den Start bei bestätigter Übernahme trotz benanntem Dateifehler fortzusetzen ist unter diesem Vertrag nachvollziehbar. |
+| **FI308-04** | Zentral veröffentlichte Buchung statt lokaler Warteliste: richtiger Ansatz. Die Zustandsprojektion benötigt noch die unten genannten Fälle. |
+
+**Zwei Bauhinweise zum angenommenen Startvertrag:** Die Bindung gilt auch im ausgelagerten `_rfl_sequence` bis zu dessen tatsächlichem AUTO-Schreiben; der ursprüngliche Handler endet lange vor der Vormessung. Eine widersprechende RFL-Basis ist bereits vor der gegebenenfalls schreibenden Skip-Flag-Bereinigung zu verwerfen. Und bitte die Taster-Sektion samt INI binden, nicht jede Änderung des globalen Settings-Zählers: Eine Kamera-/Anzeigeänderung ist keine geänderte Tasterbasis.
+
+**Zur neuen Teilpersistenz:** `mdi_set:false` zusammen mit `persisted:true` ist weiterhin möglich und jetzt sinnvoll, wenn `persisted` ausdrücklich nur die erfolgreich übernommenen `applied_keys` meint. Ausgeschlossen ist das alte Erfolgs-Persistieren **des ganzen Wunschs trotz fehlender Übernahme**. Bitte genau das schreiben; die neue Schnittstelle ist keine pauschale Garantie, dass bei fehlgeschlagenem Gesamtaufruf überhaupt nichts gespeichert wurde. Bei Abbruch darf auch eine noch nicht bestätigte Persistenz nicht als erfolgt erscheinen.
+
+Die Entfernung von `get_probe_vars` einschließlich Doku/Inventar und benannter Protokolländerung ist wie vorgeschlagen angenommen.
+
+### FI308-04 Rest · Bestätigt gelesen, nur angenommen und unbekannt fehlen in A-5
+
+Die vorhandene Buchung kennt **vier** Herkünfte: `applied`, **`read`**, `assumed`, `unknown` (`gateway.py:4494` ff.). `_ts_read_back` setzt nach bestätigtem Synch/Rücklesen tatsächlich `read`; `toolsetter_basis_view` behandelt `read` und `applied` als bestätigt (`gateway_util.py:6048`). Das ist ein normaler Produktionspfad, keine erfundene Zusatzform. Meine isolierte Ausführung dieses vorhandenen Klassifizierers bestätigt das.
+
+Die neue Liste nennt `read` nicht und erlaubt „In the machine“ nur bei 23-mal `applied`. Für gleiche Zahlen mit Herkunft `assumed` ist ebenfalls kein eindeutiger Zustand benannt: Die Werte weichen nicht ab, sind aber auch nicht bestätigt. Bei einer teilweise unbekannten Buchung darf „not yet in the machine“ nicht behaupten, man wisse, dass sie **nicht** übernommen wurde.
+
+**Bitte A-5 als vollständige Projektion festlegen, für genau die 23 synchronisierten Taster-Schlüssel:**
+
+| Befund für die eingerichtete aktuelle Sektion | Aussage |
+|---|---|
+| Alle gerundeten Werte gleich, jeder Schlüssel `applied` **oder** `read` | Im Interpreter bestätigt. Eine alte/fehlende Übernahme-Fassung macht einen späteren bestätigten Zahlenvergleich nicht falsch. |
+| Vollständig bestätigte Werte, mindestens einer abweichend | Gespeicherte Fassung noch nicht übernommen. |
+| Ein benötigter Wert fehlt, ist `unknown` oder lediglich `assumed` | Aktiver Stand nicht vollständig bestätigt; gegebenenfalls Teilübernahme benennen. Gleiche Dateizahlen reichen nicht. |
+| Sektion nicht eingerichtet | Kein Settings-Abgleich; daraus folgt **nicht**, dass der Interpreter keine Tasterwerte hat. |
+
+„Not set up — nothing is applied“ deshalb auf „kein Abgleich“ eingrenzen. Gerade die ausdrücklich zugelassene Ausnahme lässt bestehende Interpreterwerte stehen. Ein Speicherfehler und eine nicht bestätigte Parameterdatei-Persistenz sind zusätzliche Zustände, keine Widerlegung bereits bekannter aktiver Werte. Die Vorschau-Buchung enthält zudem `#3014`; sie unverändert als Gesamturteil des 23-Schlüssel-Formulars zu verwenden wäre die falsche Projektion.
+
+**Wächter ergänzen:** vollständig `read` und gleich; gemischt `read/applied`; vollständig `assumed` und zahlenmäßig gleich; ein unbekannter Schlüssel neben übernommenen; Sektion entfernt bei weiterhin vorhandenen aktiven Werten; neue Verbindung vor Empfang ihrer eigenen Buchung. Die alten Verbindungsdaten dürfen dabei keine neue Instanz bestätigen. Ein Zusatztest muss zeigen, dass bestätigtes Rücklesen keinen unnötigen Komfort-Schreibversuch auslöst.
+
+### Der native Rot-Beleg für P2 ist angenommen
+
+Ich habe das Skript und den ursprünglichen Bericht aus **`p2-20261105T213813`** gelesen, außerdem beide Rückgaben. Der Server bestätigt das Speichern der vollständigen Sektion bei ausgeschalteter Maschine. Danach bleibt `#3102` im Interpreter bei **−180** statt **−179**. Das Programm misst **49,995217 mm** bei einer vorherigen T1-Länge von **50 mm**, ohne protokollierte NML-Fehler. Das liegt 0,004783 mm neben der alten Erwartung, aber 0,995217 mm neben der neuen Erwartung **49 mm**. Beide Rückgaben sind `complete`, Isolation jeweils leer. Damit ist die benannte Lücke am alten Stand tatsächlich beobachtet; ich habe die Sim dafür nicht benutzt.
+
+**Für den festen positiven Wächter:** Erwartung aus Tabellenlänge vor dem Versuch und bewusstem Parameterdelta ableiten, nicht den alten Messfehler als neuen Sollwert übernehmen. Hier ist der Sollwert 49 mm; „rund 48,995“ beschreibt eine mögliche Messabweichung. Die Sonde verwendet `#3005=200`, während `M600_TOL=0.002` für 20 mm/min begründet wurde. Also entweder den festen Fall mit den bestehenden 20 mm/min vorbereiten oder seine eigene vorab begründete Grenze benennen. Das Experiment klassifiziert bislang beide Ergebnisgruppen als PASS; der spätere Wächter muss ausdrücklich nur die **neue** Basis akzeptieren und NML-Fehler selbst in sein Urteil aufnehmen.
+
+### FI309-01 · Die Grenze nach der Vormessung ist noch nicht an den Servo-Strom gebunden
+
+„Nur Abtastungen nach der letzten Abtastung der Vormessung“ setzt genau die Zuordnung voraus, die der Plan erst beweisen muss. `rfl_history` enthält **Empfangszeiten** aus dem WS-Client; der Sampler protokolliert unabhängig davon den Empfang seiner FIFO-Zeilen. Der HAL-Kanal enthält eine Zeilennummer, keine Datei- oder RFL-Phasenkennung. Die offizielle Pinbeschreibung sagt ebenfalls nur „laufende Programmzeile“; die Phasenherkunft folgt daraus nicht. [LinuxCNC 2.9 motion](https://linuxcnc.org/docs/2.9/html/man/man9/motion.9.html).
+
+Das ist bereits im positiven Beleg sichtbar:
+
+- Erste Abtastung von Zeile 7: **n=345641**, Empfang **1186675,913141081**.
+- Empfang von `running`: **1186675,995010009**, also **81,869 ms später**. Beim ersten Sample nach dieser Meldung steht X schon bei **102,308375**.
+- Bereits das letzte Sample **vor** dem Empfang von `positioning` zeigt X/Y jeweils rund **0,012063 mm** und Geschwindigkeiten **3,375 mm/s**: Die Einfahrt hat begonnen.
+
+Ein Schnitt nach WS-Empfang kann daher einen bereits geschehenen unerlaubten Abstieg abschneiden; verzögert gelesene Sampler-Daten können umgekehrt noch zur vorherigen Phase gehören. Der Gegenmodell-Beleg zeigt den ersten Fall mit einer vollständig fortlaufenden Samplefolge: 30 falsche Z-Samples nach der tatsächlichen Grenze, keines mehr nach dem verspäteten Empfangsschnitt. Auch die Millisekunden-`ts` der Gateway-Meldung liefert allein keinen Capture-Zeitpunkt der Samplerzeile.
+
+**Benötigter Vertrag:** eine kausal nachgewiesene Grenze im **selben** Messstrom beziehungsweise konservative, belegte Grenzintervalle. Beispielsweise eine zusätzliche Phasenmarke an der Quelle, nach bestätigtem Abschluss der Vormessung und vor der folgenden Bewegung, mit nachgewiesener Reihenfolge zum Sampler. Das bloße Setzen einer Marke nach Empfang der WS-Meldung kommt zu spät. Alternativ ist eine eng auf diesen festen Programm-/Routinenstand begrenzte Zuordnung zulässig, wenn ihre Regel unabhängig von dem gerade zu prüfenden korrekten Weg belegt ist. Ein Bereich, dessen Herkunft nicht entschieden werden kann, bleibt offen; er verschwindet nicht aus einem PASS.
+
+**Wächter:** Verzögerung jeweils nur des Phasenempfangs beziehungsweise nur des Samplerlesens; fehlende Zwischenphase; gleiche rohe Zeilennummer in einer Routine; ein Abstieg direkt nach dem tatsächlichen Messende. Identischer physischer Ablauf darf durch andere Leselatenzen nicht von FAIL zu PASS werden.
+
+### FI309-02 · Die Zeilennummer garantiert nicht die behauptete Achsentrennung
+
+Die beobachtete Folge 7→8→9 ist wertvoll, beweist aber die drei allgemeinen Bedeutungsregeln noch nicht. Im Upstream-Quellstand **2.9.4** wird beim parabolischen Überschleifen das gemeldete Segment anhand der relativen Geschwindigkeiten gewählt; beide Segmente tragen währenddessen zur Bewegung bei. Bei einem aufgeteilten Takt kann ebenfalls eines von zwei Segmenten gemeldet werden. Die Nachfolgeachse kann somit schon laufen, während die Nummer noch zur vorherigen Zeile gehört. Das widerlegt die pauschale Regel „nur Achsen der vorigen Zeile laufen nach“. [Trajektorienplaner 2.9.4](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/tp/tp.c#L2816-L2822), [aufgeteilter Takt](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/tp/tp.c#L3081-L3091).
+
+Auch der aktuelle Strom enthält bei der **ersten 9** noch Y=**199,999809** mit Y-Geschwindigkeit **0,041733 mm/s**. Das ist klein und kein Fehler des Starts, aber „L+2 bewegt nur Z“ ist wörtlich bereits hier nicht wahr. Die 0,05-mm-Ausnahme für X am Beginn von L+1 erklärt außerdem noch nicht, warum gerade diese Grenze den gültigen Fall umfasst und Fehler sicher ausschließt. Ein beobachteter Rest ist keine Herleitung einer Grenze.
+
+**Mein bevorzugter Gegenvorschlag:** Den festen 2c-b-Nachweis mit **`G61.1` im Testprogramm** auf genaue Halte an den Segmentenden begrenzen; das verändert keine Produktfunktion. Dieser Modus hält am Ende jedes programmierten Segments. Dann lassen sich Einstieg und nachfolgende Achsenfolgen erheblich klarer prüfen. Programmhash/Zeilenbezug und Vorbereitung entsprechend festhalten und einen neuen nativen Beleg aufnehmen; der alte G64-Lauf bleibt ein Untersuchungsbeleg. [LinuxCNC G61.1](https://linuxcnc.org/docs/2.9/html/gcode/g-code.html#gcode:g61.1).
+
+Wenn G64 Teil dieses Nachweises bleiben soll, bitte stattdessen den konkreten Bahnmodus, die erlaubten Überlappungsbereiche **beider** benachbarter Bewegungen und ihre Grenzen vorab festlegen. Keine allgemeine Achsenidentität aus einer einzelnen `program-line`-Zahl ableiten. Eine fehlgeschlagene Zuordnungs-Selbstprüfung darf einen unabhängig schon bewiesenen falschen Einstieg oder Abstieg nicht nachträglich von FAIL auf `incomplete` herabstufen.
+
+### FI309-03 · Die Ruhe vor L braucht einen festen Anker
+
+Regel 4 prüft die Ruhe **nach der letzten Bewegung der Einfahrt**. Ohne unabhängig festgelegten Abschluss kann ein Wiederanlauf dadurch wieder zur „letzten Einfahrt“ werden: Einfahrt erreicht X/Y 100/100 und steht; X fährt 0,020 mm weg und zurück; erneuter Stillstand; Zeile 7 startet korrekt bei 100/100. Die erste L-Position und jede Prüfung ab dem letzten Stillstand bestehen dann, obwohl dazwischen ein unerlaubter Wiederanlauf liegt.
+
+Mein Gegenmodell enthält zwei volle Zehnerblöcke: erster bestätigter Stillstand ab n=10, zweiter ab n=40. Ab dem ersten gibt es 20 widersprechende Samples, ab dem letzten keines. Das ist **kein ausgeführter Produktfehler**, sondern die Lücke in der vorgeschlagenen Ankerregel. Die bereits abgenommene Jog-Regel vermeidet dieselbe Klasse durch ihren festgehaltenen ersten Stillstand.
+
+**Vertrag ergänzen:** Nach belegter Zuordnung zur Einfahrt den ersten qualifizierten Abschluss-/Ruheanker festhalten, danach bis zum Beginn von L jeden bekannten Positions- und Geschwindigkeitswiderspruch werten. Ein späterer Ruheblock ersetzt ihn nicht. Die Kriterien für den Ruheblock, bekannte Achsen, `in-position`, Geschwindigkeitsgrenze und Positionsstreuung benennen; die vorhandenen Servo-Konstanten sind ein sinnvoller Ausgangspunkt. Ist keine solche Zuordnung/Bestätigung möglich, bleibt es `incomplete`.
+
+**Wächter:** erreichter Einstieg → Ruhe → Ausflug → Rückkehr → korrekter L-Start; jeweils auch mit fehlender anderer Achse sowie mit fehlendem späterem Sample. Eine erkennbare Bewegung nach dem festen Anker bleibt FAIL. Bloß irgendwann Ruhe und eine korrekte letzte Startposition genügen nicht.
+
+### Umfang, Reihenfolge und Belege
+
+Teil A kann nach der Zustandskorrektur separat gebaut werden. Bei Teil B bitte erst Phasengrenze, Bahnmodus und Ruheanker vereinbaren; die Lücke in F-RFL.S3 fällt erst mit dem daran gebundenen positiven **und** negativen Nachweis weg. Eine fortlaufende Nummernfolge und ein korrektes Endbild allein schließen sie nicht. Die Aussage zu früheren Zeilen bleibt auf nachgewiesene Bewegungs-/Zeilensamples begrenzt; nicht bewegende übersprungene Programmsätze werden durch diesen HAL-Kanal nicht vollständig beobachtet.
+
+- [Gesicherte Planfassung R309](function-inventory.r309.codex-plan.md).
+- [Nachrechnung und Gegenmodelle](function-inventory.r309.codex-audit.py), [Ergebnisse einschließlich Sample-Grenzen und P2-Rot-Nachrechnung](function-inventory.r309.codex-audit.json).
+- [Stand, Quellverweise und Prüfgrenzen](function-inventory.r309.codex-checks.json).
+
+Die Sonde liest vorhandene Artefakte, führt nur den vorhandenen reinen Buchungsklassifizierer isoliert aus und berechnet ausdrücklich bezeichnete **Plan-Gegenmodelle**. Kein noch nicht vorhandener Auswerter wurde als Produkt getestet. Keine Wiederholung des unveränderten Test-Gates, keine Builds/Tests/Checkouts im Live-Baum, keine Zugriffe auf die Live-Sim oder Maschinenbefehle. Nur dieser Anhang und neue R309-Belege; frühere Belege unverändert.
