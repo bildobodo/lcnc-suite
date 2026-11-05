@@ -11,3 +11,11 @@ R279 FI-I17 — test_a_merge_runs_what_a_round_may_leave_out before as_merge exi
 E       AttributeError: module 'test_select.round_gate' has no attribute 'as_merge'
 scripts/test_select/test_selector.py:561: AttributeError
 1 failed, 50 deselected in 0.05s
+
+R280 FI-I16 rest — 'a follow already planned …', repeat 3, against 9da5318a's SimPanel.vue:
+    Error: the further row's highlight in view in every painted frame
+    test-results/sim-panel.viewer-a-follow--fcea1-snaps-its-highlight-in-view-e2e/test-failed-1.png
+    Error: the further row's highlight in view in every painted frame
+    test-results/sim-panel.viewer-a-follow--fcea1-snaps-its-highlight-in-view-e2e-repeat1/test-failed-1.png
+    Error: the further row's highlight in view in every painted frame
+With the take-over: 3 passed; the whole sim-panel.viewer.spec.ts 64/64.
