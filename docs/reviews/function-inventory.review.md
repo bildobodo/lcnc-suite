@@ -4407,3 +4407,42 @@ Die letzte Mutation überlebte zunächst. Rot wurde sie erst mit dem neuen Fall 
 **Gate:** Round Gate an `56d65b29`, Basis `843ec16e`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 186/186 und `inventory` 36/36. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native.step2ab.gate-round.run4.json`.
 
 **Erbeten:** `agreement` oder `findings` zu Schritt 2a und 2b.
+
+---
+
+## Codex · Nachprüfung R297 · 5. November 2026
+
+**Urteil: `findings` am Stand `56d65b29`, geprüft gegen `843ec16e`. FI-I31 ist geschlossen; ein Rest bei FI-I29 A bleibt.** Die anderen bereits geschlossenen Befunde bleiben geschlossen. Keine neue Operatorfrage.
+
+### Bestätigt
+
+- Alle sieben konkreten R296-Gegenfälle bestehen mit den korrigierten Erwartungen. Die neuen Client-Typen erreichen sowohl `auto_run` als auch die M6-Bestätigung; keine Bestätigung wird wiederholt. Beobachtungslücke und ausdrückliche Ablehnung bleiben getrennt, einschließlich der tatsächlichen WebSocket-Schließung beim Senden.
+- Zusätzlich direkt am echten `SimulatorClient.request → send` geprüft: erfolgreicher Reply, negativer Reply, Ablauf der Antwortfrist, `ConnectionClosedError`, `BrokenPipeError`, Leserabbruch vor und während des Wartens sowie ein `ValueError` als Programmierfehler. Die ersten sieben Wege liefern ihren vorgesehenen Ausgang; der Programmierfehler wird nicht als Transportverlust ausgegeben.
+- `flag_clear_failed` und auch eine noch unbenannte Phase mit `ok: false` erreichen den vollständigen Schritt als zeitnaher FAIL mit Belegen. **FI-I31 ist damit geschlossen.**
+- Die bisherigen R295-Grenzfälle bleiben ebenfalls grün. Der neue Modusfilter verhindert die konkret gemeldete Übernahme der Programmhöhe in die Positionierungsprüfung.
+
+### FI-I29 A Rest · Der AUTO-Filter führt wieder auf einen früheren Stillstand zurück
+
+**P2 · `scripts/test_support/native_cases.py:590–600`.** `win` entfernt zunächst alle AUTO-Bilder; erst danach wird mit `win[-1]` der letzte Zeitpunkt für den Einstiegsnachweis gewählt. So wird zwar das Programmbild selbst ausgeschlossen, aber ein früheres MDI-Bild rückt an seine Stelle. Das widerspricht dem ausdrücklich vereinbarten Verzicht auf einen Rückfall auf einen früheren Stillstand.
+
+**Eigene Probe am vollständigen `rfl_cases`, über den echten Empfangsreduzierer:**
+
+1. Safe-Z ist beendet. Beim Beginn von `positioning` wird noch der Stillstand bei **XY 10/10** empfangen.
+2. Die Bewegung und ihr Endstillstand werden nicht empfangen. Auch `starting` fehlt; das nächste empfangene Phasenbild ist bereits **AUTO / `running`**, Zeile 7 bei **X 101/Y 100**.
+3. Der übrige Programmlauf samt bestätigtem Endpunkt wird korrekt beobachtet.
+
+Ergebnis: `rfl-line`, Gegenprobe und `rfl-no-earlier-line` sind PASS. **`rfl-start-point` ist FAIL: „joint 0 stood at 10.000“**. Der Auswerter hat den Stillstand vor der Positionierungsfahrt als deren Endpunkt verwendet. Belegt ist hier lediglich, dass das passende Abschlussbild fehlt; die Wegzeile muss `incomplete` bleiben.
+
+**Konkrete Korrekturrichtung:** Die tatsächliche letzte Nachricht des Zeitfensters vor der Auswahl nicht nach Modus ausdünnen. Danach getrennt prüfen, ob genau dieses Grenzbild überhaupt als Positionierungsabschluss verwendbar ist. Ist es AUTO oder nicht zuordenbar, fehlt der Einstiegsnachweis; kein Rückgriff auf ältere MDI-Stillstände. Die Höhenprüfung darf weiterhin nur ihre zugeordneten MDI-Bilder verwenden. Damit bleiben „schon am Einstieg, keine Fahrt nötig“ und der unbekannte Modus korrekt offen, ohne einen Startpunkt zu erfinden.
+
+Auch den neuen negativen Wächter mit einem früheren falschen MDI-Stillstand und anschließendem AUTO-Grenzbild entsprechend einordnen: Ein solcher früherer Stillstand allein beweist keinen falschen **Endpunkt**. Für diese negative Zusicherung braucht der Test einen tatsächlich dem Positionierungsabschluss zugeordneten Beleg. Die bereits abgenommene Bindung des Programmendes bleibt unverändert.
+
+### Nachweise und Prüfgrenze
+
+[Neue Proben](function-inventory.r297.codex-probes.py), [Ergebnisse](function-inventory.r297.codex-probes.json), [R296-Nachprüfung](function-inventory.r297.codex-regression.py), [Nachprüfungsergebnisse](function-inventory.r297.codex-regression.json), [R295-Nachprüfung](function-inventory.r297.codex-earlier-regression.py), [Ergebnisse der älteren Fälle](function-inventory.r297.codex-earlier-regression.json), [Prüfprotokoll](function-inventory.r297.codex-checks.txt), [Quell-/Gate-Abgleich](function-inventory.r297.codex-audit.json).
+
+**222 vorhandene Tests grün** in `/tmp/codex-r297` (186 native, 36 Inventar). Neue Kopien der bisherigen Sonden, angepasst an die typisierten Client-Ausgänge: acht positive Kontrollen und sieben korrigierte R296-Fälle sowie sechs positive Kontrollen und neun korrigierte R295-Fälle. Hinzu kommen **elf neue positive Kontrollen und ein reproduzierter Restfall**. Alte Belege unverändert; die Restfall-Assertion dokumentiert das aktuelle Fehlverhalten, nicht das gewünschte Urteil.
+
+Sieben maßgebliche Dateien sind hashgleich zu `56d65b29`. Rundengate Lauf 4 an exakter Basis und exaktem Kopf anhand der gespeicherten Artefakte geprüft: PASS; Rohlogs bestätigen 186/36, der Bericht 2614 Unit-Tests und die begründete Browser-Auslassung. Vollständiges Gate und sechs gemeldete Mutationen nicht wiederholt.
+
+Keine Produktänderungen, Live-Zugriffe oder Maschinenbefehle. Im Live-Baum nur dieser Anhang und neue R297-Belege. Der tatsächliche native Lauf und Schritt 2c bleiben ausstehend.

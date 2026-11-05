@@ -1,0 +1,35 @@
+R297 Codex review, 2026-11-05
+Base 843ec16e; head 56d65b291c69d4fde69816501734fd69d7ab7706.
+Own archive workspace /tmp/codex-r297; no product edits.
+
+Existing tests, once:
+  cwd /tmp/codex-r297
+  /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py
+  222 passed in 5.62s (186 native-stage + 36 inventory).
+
+Regression commands, with the same venv python3 -B:
+  function-inventory.r297.codex-regression.py /tmp/codex-r297
+    Exit 0: 8 positive controls + 7 corrected R296 counterexamples.
+  function-inventory.r297.codex-earlier-regression.py /tmp/codex-r297
+    Exit 0: 6 positive controls + 9 corrected R295 cases.
+  New copies only: expected corrected verdicts and fixture exception types
+  adapted to Refused / NoReply / TransportLost; old evidence untouched.
+
+New probes:
+  function-inventory.r297.codex-probes.py /tmp/codex-r297
+    Exit 0: 11 positive controls + one reproduced counterexample.
+  Complete RFL step uses real SimulatorClient.take, ToolChanges, RoutineEnd
+  and serve. Real request/send boundary checked for successful reply, refusal,
+  no reply, library close, OSError, reader closed before/during request, and
+  a programming exception. Only transport and clock/empty inbox are replaced;
+  no socket is opened. An unknown negative phase is checked through the step.
+  Counterexample assertions capture reviewed behavior, not acceptance behavior.
+
+Saved round gate:
+  /home/cnc/claude-work/teststrat/measure/native.step2ab.gate-round.run4.json
+  Exact head/base, clean input, PASS. Raw native/inventory logs confirm 186/36;
+  unit-light 2614, browser omitted with selector reason. Full gate and six
+  reported mutations not repeated. Seven files hash-match requested commit.
+
+No native run, live accesses, machine commands, builds, or product changes.
+Only the review appendix and new R297 evidence are written in the live tree.
