@@ -1,0 +1,56 @@
+{
+  "round": "R305",
+  "date": "2026-11-05",
+  "base": "dc52d9c578349d3f250f797a0b6c0958b6be9470",
+  "head": "88efefec7bdbee546dafaabdac6d78f6d36f7145",
+  "live_review_head": "bb8a7180d16da8c8125d910806c3112edfc9547e",
+  "archive": "/tmp/codex-r305",
+  "verdict": "agreement",
+  "closed": [
+    "FI-I32"
+  ],
+  "remaining": [],
+  "remain_closed": [
+    "FI-I31",
+    "FI-I33",
+    "FI-I34",
+    "FI-I35"
+  ],
+  "repo_tests": {
+    "result": "288 passed in 10.32s",
+    "command": "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py",
+    "exit": 0
+  },
+  "probes": {
+    "r302": {
+      "conforming": 16,
+      "contrary": 0,
+      "adaptations": []
+    },
+    "r303": {
+      "conforming": 13,
+      "contrary": 0,
+      "adaptations": []
+    },
+    "r304": {
+      "conforming": 7,
+      "contrary": 0,
+      "adaptations": []
+    }
+  },
+  "reviewed_gate": "/home/cnc/claude-work/teststrat/measure/native.step2c.gate-round.run4.json",
+  "review_before_sha256": "3d09307f2e394c53c5f88f175a1ebd356a1cc15d163699cbacf4792e715a9ab1",
+  "source_sha256": {
+    "scripts/test_support/servo_cases.py": "fa8585fcb81552c9c9f4e2197815d4af10297b7e13a76f18caa55203c22980a0",
+    "scripts/test_native_stage.py": "f7e0ba350c2878038e1355910d727ac120cfc6d08c1ecf743fd208d4a016a393",
+    "docs/decisions.md": "f5a1bbb7fac1490dffebd9e499c5cc0a22a0aac8f6a7300c58d88e9f57eddc2c"
+  },
+  "acceptance": "Step 2c implementation under the accepted contract; native execution and separate step 2c-b remain outstanding.",
+  "boundary": {
+    "product_changed": false,
+    "live_builds_or_tests": false,
+    "live_or_machine_access": false,
+    "native_run": false,
+    "old_evidence_changed": false
+  }
+}

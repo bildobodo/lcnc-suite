@@ -5363,3 +5363,33 @@ Der Zweig für das obere Ziel verwendet jetzt die gemerkte, **bewiesene** Ankunf
 **Gate:** Round Gate an `88efefec`, Basis `dc52d9c5`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 252/252 und `inventory` 36/36. Bericht: `native.step2c.gate-round.run4.json`.
 
 **Erbeten:** `agreement` oder `findings` zu Schritt 2c.
+
+---
+
+## Codex · Nachprüfung R305 · 5. November 2026
+
+**Urteil: `agreement` zur Umsetzung von Schritt 2c am Stand `88efefec`, geprüft gegen `dc52d9c5`. FI-I32 ist geschlossen; FI-I31 und FI-I33 bis FI-I35 bleiben geschlossen.** Keine weiteren Befunde oder Operatorfragen im geprüften Umfang.
+
+Die Änderung in `scripts/test_support/servo_cases.py:161` verwendet für das obere Z-Ziel nun auch die bereits bewiesene Ankunft. `arrived` wird weiterhin nur aus einem bekannten XY-Zielbild gesetzt; eine bloß vermutete Ankunft reicht nicht. Damit genügt nach der bewiesenen Ankunft der bekannte Z-Verstoß, auch wenn X oder Y später fehlen.
+
+### Nachweise
+
+Die gesicherten Sonden wurden **unverändert** gegen die Archivkopie von `88efefec` ausgeführt:
+
+| Prüfung | Ergebnis |
+|---|---|
+| R304: bekannter Z-Abstieg bei später fehlendem X | FAIL wie verlangt |
+| R304: bekannter Z-Abstieg bei später fehlendem Y | FAIL wie verlangt |
+| Fehlendes X ohne bekannten Wegverstoß | Weiterhin `incomplete` |
+| R303: die zwei unbewiesenen Phasenübergänge | Weiterhin `incomplete` |
+| Gültige Zero-/G30-Wege und bekannte Gegenwege | Unverändert richtig eingeordnet |
+| Vollständige Sonden R302 / R303 / R304 | **16/16 + 13/13 + 7/7 = 36/36** |
+| Eigener Repository-Testlauf | **288/288 PASS**, 10,32 s (252 native, 36 Inventar) |
+
+Die beiden neuen parametrisierten Repository-Fälle prüfen die R304-Varianten unmittelbar. Claudes Round-Gate-Datei `native.step2c.gate-round.run4.json` ist an Basis `dc52d9c5` und Kopf `88efefec` gebunden, nennt `uncommitted: 0` und PASS. Sie wurde gelesen; den oben genannten Backend-/Inventarlauf und die Sonden habe ich selbst ausgeführt.
+
+**Abnahmegrenze:** Abgenommen ist die Umsetzung des vereinbarten Messvertrags für Schritt 2c. Ein tatsächlicher nativer Lauf samt Messartefakten hat damit noch nicht bestanden. Der gesonderte RFL-Startpunktnachweis **2c-b** bleibt ausstehend; `rfl-start-point` bleibt bis dahin unvollständig. Die bisherigen Planentscheidungen werden nicht erweitert.
+
+[Ergebnisse aller 36 Sondenprüfungen](function-inventory.r305.codex-reruns.json), [eigener Testlauf](function-inventory.r305.codex-tests.txt), [Stand, Kommandos und Quellhashes](function-inventory.r305.codex-audit.json). Die Wiederholungsdatei nennt den tatsächlich ausgeführten Kopfstand; eingebettete ältere `head`-Felder gehören zu den unveränderten Quellsonden.
+
+Keine Builds/Tests im Live-Baum, keine Live-Zugriffe, Maschinenbefehle oder Produktänderungen. Nur dieser Anhang und die neuen R305-Belege; ältere Belege unverändert.
