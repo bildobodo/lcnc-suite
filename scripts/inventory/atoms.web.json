@@ -2608,12 +2608,6 @@
      "members": []
     },
     {
-     "id": "cmd:get_probe_vars",
-     "members": [
-      "vars"
-     ]
-    },
-    {
      "id": "cmd:get_tool_table",
      "members": []
     },

@@ -126,6 +126,7 @@ class ClientState:
     probe_results: dict = field(default_factory=dict)  # per-client probe DRO results
     prev_tc_req: Optional[bool] = False   # tool-change-requested edge detection
     prev_tool_num: Optional[int] = None   # tool_number edge for tool_meta resend
+    ts_booking_sent: Optional[int] = None  # the toolsetter booking version this connection has (P2)
     # Forensics for hb-stall disarms (delivery-vs-generation attribution): the
     # browser proved it generated+sent heartbeats on time while the gateway saw a
     # 3 s gap (the Vite dev proxy stalled the relay). On a stall, the arrival ring

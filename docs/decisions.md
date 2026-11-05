@@ -10809,3 +10809,54 @@ Run 9's G64 stream: the start checks out (start at 100/100/0, the anchor at
 n 345445), the self-check fails at line 8's blend — incomplete, as R309
 predicted. F-RFL.S3 binds the start point and its counter; the native run
 with G61.1 is owed.
+
+## 2026-11-05 — The toolsetter's values reach the interpreter at every program start (P2, Codex R306–R309)
+
+**What was wrong (live, 2026-11-05, a 3-axis copy):** the toolsetter section
+saved while the machine was off never reached the interpreter — the form
+pushed only at the save's confirmation and only when ready, then forgot it —
+and Cycle Start carries no toolsetter values: a program's M600 measured
+against the interpreter's old `#3102` (49.995 mm instead of 49.0), the form
+showing the new one. Besides: `set_probe_vars` wrote the parameter file
+before its MDI, and the mode switch's synch saved the interpreter's older
+value over it (a read right after showed −179 for −180); `get_probe_vars`
+read that file unconfirmed.
+
+**The contract (Codex R308 FI308-01..03, R309 FI308-04):**
+- ONE source: the server's confirmed `toolsetter` section of the current INI,
+  judged in the gateway by the form's rule (`toolsetter_rules.py`, held to
+  `toolsetterSetup.ts` by one contract file and tests on both sides).
+- Every program start from idle (Cycle Start, the first step, `auto_run`
+  direct and run from line) applies it first — its own condition, whatever
+  the skip flag. Not set up: no sync, said. Every key already booked
+  applied/read with the section's number: nothing written (no booking change,
+  no re-parse — the booking is the evidence; another writer of the
+  interpreter is not seen, a named limit). A chunk not taken: the start is
+  refused. MDI, a macro, a tool change, a paused step and a resume never sync.
+- One basis per start: chosen once, bound by a digest of the section and the
+  INI (never the store's global counter) to every write up to AUTO; run from
+  line refuses dialog values that are not that section before anything is
+  written, and its background sequence re-binds before its AUTO write.
+- `_apply_probe_vars`: the interpreter first (per chunk, booked as before),
+  then the file with ONLY the taken keys and their sent numbers (6
+  decimals); nothing taken, nothing written; a file failure after the
+  take-over leaves it standing. Replies name `mdi_set`, `applied_keys`,
+  `persisted` (no `file_saved`).
+- The form's machine line is projected from the section and the gateway's
+  booking (`toolsetter_booking`, per connection, first frame and changes):
+  applied or read and equal — confirmed; confirmed, some differ — saved, not
+  yet in the machine; missing / unknown / only assumed — not confirmed (n of
+  23); not set up — no sync; no booking yet — not known. Never from a reply.
+
+**Protocol change:** `get_probe_vars` is removed (handler, policy, the
+TypeScript command form, the contract tests, the README, the inventory). An
+old caller gets "Unknown cmd". No WebUI caller used it; the native stage reads
+the interpreter by a tagged DEBUG line.
+
+**Consequence, named:** a start that changes the booking (a section changed
+since the last sync) bumps the toolsetter version — a run of a program that
+calls the routine then starts with its toolsetter basis open (the preview
+predicted the M600 with the old values; the run check names it). A stable
+machine (booking applied or read back with the section's numbers) writes
+nothing and stays verified. The preview's M600 prediction still uses the
+booking, not the saved section — a follow-up, not built.

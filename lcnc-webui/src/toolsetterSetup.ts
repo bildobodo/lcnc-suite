@@ -30,7 +30,7 @@ export const TOOLSETTER_REQUIRED = [
   "maxZTravel", "retractDist", "spindleZeroHeight",
 ] as const satisfies readonly (keyof ToolsetterDefaults)[];
 
-const OPTION_VALUES: Partial<Record<keyof ToolsetterDefaults, readonly number[]>> = {
+export const OPTION_VALUES: Partial<Record<keyof ToolsetterDefaults, readonly number[]>> = {
   offsetDirection: [0, 1, 2, 3], brakeAfter: [0, 1, 2], spindleStopM: [5, 500],
   useToolTable: [0, 1], goBackToStart: [0, 1], disablePrePos: [0, 1], lastTry: [0, 1],
 };

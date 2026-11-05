@@ -524,10 +524,19 @@ class TestG30Exclusive(_G30Case):
             real_write(path, values)
             order.append("write ended")
 
+        g30_sent = threading.Event()
+
         def snap(path, keys):
-            order.append("g30 read")
+            # the G30 command's reads only: the first handler reads the file
+            # itself before its write (the toolsetter booking, _ts_ensure —
+            # its MDI goes first since P2)
+            if g30_sent.is_set():
+                order.append("g30 read")
             return real_snap(path, keys)
 
+        # the file is written once the interpreter took the values (P2, Codex
+        # R308–R309 FI308-03): the machine on, so the MDI goes first
+        gateway.STAT.enabled = True
         gateway.STAT.ini_filename = os.path.join(self.tmp.name, "sim.ini")
         with open(gateway.STAT.ini_filename, "w") as f:
             f.write("[RS274NGC]\nPARAMETER_FILE = sim.var\n")
@@ -550,6 +559,7 @@ class TestG30Exclusive(_G30Case):
                 while not started.is_set():
                     await asyncio.sleep(0.005)
                 first.cancel()
+                g30_sent.set()
                 g30 = asyncio.ensure_future(gateway.handle_command({"cmd": "read_g30"}, True))
                 await asyncio.sleep(0.2)
                 release.set()

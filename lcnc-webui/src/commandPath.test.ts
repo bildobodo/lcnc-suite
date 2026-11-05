@@ -24,7 +24,7 @@ const NO_GATE_NEEDED = new Set([
   // the gateway maps them to gate "always" or handles them pre-dispatch.
   "arm", "estop", "estop_reset", "safety_trip_ack", "heartbeat", "hello",
   // Read-only queries and telemetry.
-  "get_tool_table", "get_probe_results", "get_comp_grid", "get_probe_vars",
+  "get_tool_table", "get_probe_results", "get_comp_grid",
   "get_wcs_table", "list_probe_macros", "client_diag", "timing_log",
   "halshow_live", "halshow_refresh", "tab_visibility", "save_settings",
   "get_settings",

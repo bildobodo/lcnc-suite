@@ -256,7 +256,7 @@ RULES: tuple[Rule, ...] = (
          "the probing panel and its glyphs", browser=PROBING, firefox=True,
          live=("probe-live",)),
     Rule(src("ToolsetterSettings.vue", "toolsetterSetup.ts", "toolsetterVars.ts",
-             "g30Form.ts", "g30Shared.ts"),
+             "g30Form.ts", "g30Shared.ts", "toolsetterState.ts"),
          "the toolsetter form and G30", browser=TOOLSETTER, live=("toolsetter-readback",)),
     Rule(src("ToolTablePanel.vue", "ToolPreview.vue", "ToolStrip.vue", "toolHolder.ts",
              "toolImportSummary.ts", "toolPreviewNotice.ts", "toolUnits.ts", "toolTypes.ts"),
@@ -300,6 +300,11 @@ RULES: tuple[Rule, ...] = (
     Rule(src("toolsetterSetup.ts", "toolsetterVars.ts", "probeFields.ts"),
          "the toolsetter's values: the form, the measure from the table, run from line, the setter in 3D",
          browser=TOOLSETTER + TOOLS + PROGRAM + VIEWER + PROBING),
+    # P2: the form's set-up rule IS the gateway's (toolsetter_rules.py) — one
+    # contract file, held by a vitest and a backend test
+    Rule(src("toolsetterRules.contract.json"),
+         "the toolsetter rule shared with the gateway (program starts apply the section)",
+         browser=TOOLSETTER, backend=True),
     Rule(src("viewer/activeFixtureFrame.ts", "viewer/programZero.ts", "viewer/twpPlaneFrame.ts"),
          "the work frame: the viewer's marker and the Setup section", browser=VIEWER + SETUP),
     Rule(src("viewer/colourMath.ts", "viewer/customContrast.ts", "viewer/palette.ts",

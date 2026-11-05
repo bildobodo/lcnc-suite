@@ -50,7 +50,8 @@ const storedLine = (page: Page) => page.locator(".g30Stored");
 /** The G30 section's inline result — in the Toolsetter procedure, never a
  *  note of a hidden pane (the Macros tab's folder note is one). */
 const note = (page: Page, kind: string) =>
-  page.getByRole("tabpanel", { name: "Toolsetter", exact: true }).locator(`.statusNote.${kind}`);
+  // the G30 notes — not the toolsetter's machine line (.tsMachine, P2)
+  page.getByRole("tabpanel", { name: "Toolsetter", exact: true }).locator(`.statusNote.${kind}:not(.tsMachine)`);
 /** Answer the request the page sent for `cmd` — a reply held back so the
  *  operator (or the status) can act while it is out. */
 async function deliver(cmd: string, result: Record<string, unknown>) {
@@ -137,7 +138,7 @@ test("a save's confirmation never replaces an entry typed while it was out", asy
   await expect.poll(async () => (await sent()).map(c => c.cmd)).toContain("set_g30");
   await enter(page, "X", 120);                      // typed while the save is out
   await deliver("set_g30", { ok: true, confirmed: true, values: { ...STORED, X: 110 } });
-  await expect(page.locator(".tsPanel .statusNote.warn")).toHaveText("G30 saved — your newer entry is still a draft");
+  await expect(page.locator(".tsPanel .statusNote.warn:not(.tsMachine)")).toHaveText("G30 saved — your newer entry is still a draft");
   await expect(field(page, "X")).toHaveValue("120");
   await expect(storedLine(page)).toHaveText("Stored: confirmed by LinuxCNC · draft not saved");
   // the next save is based on what LinuxCNC confirmed
@@ -153,7 +154,7 @@ test("a capture answered after the frame changed takes nothing over", async ({ p
   await ctl({ op: "status_delta", data: { kins_type: 1 } });
   await page.waitForTimeout(300);                   // the status has landed
   await deliver("capture_g30", { ok: true, confirmed: true, values: STORED, current: { X: 10, Y: 20, Z: -5 }, units: "mm" });
-  await expect(page.locator(".tsPanel .statusNote.warn")).toHaveText("Capture dropped — units or kinematics changed");
+  await expect(page.locator(".tsPanel .statusNote.warn:not(.tsMachine)")).toHaveText("Capture dropped — units or kinematics changed");
   expect(await values(page)).toEqual(["100", "0", "-26.275"]);
 });
 
@@ -163,14 +164,14 @@ test("a capture answered after the draft was edited takes nothing over; a refres
   await expect.poll(async () => (await sent()).map(c => c.cmd)).toContain("capture_g30");
   await enter(page, "Y", 5);
   await deliver("capture_g30", { ok: true, confirmed: true, values: STORED, current: { X: 10, Y: 20, Z: -5 }, units: "mm" });
-  await expect(page.locator(".tsPanel .statusNote.warn")).toHaveText("Capture dropped — the draft was edited meanwhile");
+  await expect(page.locator(".tsPanel .statusNote.warn:not(.tsMachine)")).toHaveText("Capture dropped — the draft was edited meanwhile");
   expect(await values(page)).toEqual(["100", "5", "-26.275"]);
   await ctl({ op: "clearCmds" });
   await page.getByRole("button", { name: "Refresh", exact: true }).click();
   await expect.poll(async () => (await sent()).map(c => c.cmd)).toContain("read_g30");
   await enter(page, "Y", 6);
   await deliver("read_g30", { ok: true, confirmed: true, values: { ...STORED, X: 105 } });
-  await expect(page.locator(".tsPanel .statusNote.warn")).toHaveText("Stored G30 refreshed — your newer entry stays a draft");
+  await expect(page.locator(".tsPanel .statusNote.warn:not(.tsMachine)")).toHaveText("Stored G30 refreshed — your newer entry stays a draft");
   expect(await values(page)).toEqual(["100", "6", "-26.275"]);
   await expect(storedLine(page)).toHaveText("Stored: confirmed by LinuxCNC · draft not saved");
 });

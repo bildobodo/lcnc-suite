@@ -88,6 +88,20 @@ class _RecordingCmd:
         return None
 
 
+def _ts_section(case, **over):
+    """A confirmed toolsetter section in the server's store (P2, Codex
+    R308–R309): a run from line's pre-measurement carries exactly its
+    values — returned as the dialog sends them (toolsetterVarMap)."""
+    import toolsetter_rules as tr
+    sec = {"touchX": 150, "touchY": 10, "touchZ": -300, "fastFeed": 2000, "slowFeed": 20, "traverseFeed": 500,
+           "maxZTravel": 180, "retractDist": 3, "spindleZeroHeight": 180, **over}
+    p = unittest.mock.patch.object(gateway._settings_store, "load_section",
+                                   lambda name: dict(sec) if name == "toolsetter" else None, create=True)
+    p.start()
+    case.addCleanup(p.stop)
+    return {str(k): v for k, v in tr.setup(sec)["values"].items()}
+
+
 class TestPolicyStateMerge(unittest.TestCase):
     """_policy_state_from_payload — the estop/enabled merge that moved
     server-side from the frontend isEstop/isEnabled computeds (issue #14)."""
@@ -518,9 +532,12 @@ class TestHandlerExecution(unittest.TestCase):
         with self.subTest(start="auto_run with a pre-measurement: the values carry the clear"):
             cmd = self._rcs()
             gateway._skip_flag_unknown = True
-            r, spawned = self._auto_run(pre_tool=5, probe_vars={"3100": 150})
+            vals = _ts_section(self)          # the server's section, the dialog's values (P2)
+            r, spawned = self._auto_run(pre_tool=5, probe_vars=vals)
             self.assertTrue(r["ok"], r)
-            self.assertEqual((self._mdis(cmd), len(spawned)), (["#3100=150.000000 #3116=0.000000"], 1))
+            sent = " ".join(self._mdis(cmd))
+            self.assertTrue("#3100=150.000000" in sent and "#3116=0.000000" in sent, sent)
+            self.assertEqual(len(spawned), 1)
             self.assertFalse(gateway._skip_flag_unknown)
 
     def test_a_start_whose_clear_is_refused_starts_nothing(self):
@@ -1201,7 +1218,7 @@ class TestHandlerExecution(unittest.TestCase):
         cmd = self._rcs()
         text_a = gateway.program_source(self.prog)
         Path(self.prog).write_text("T8 M600\nG0 X80 Y90\nG1 X81\nG1 X82\nM2\n")
-        vars_ = {"3100": 150, "3102": -300}
+        vars_ = _ts_section(self)             # the server's section (P2)
         r, spawned = self._auto_run(published=text_a, source=text_a, pre_tool=5, probe_vars=vars_)
         self.assertFalse(r["ok"], r)
         self.assertIn("Program changed", r["error"])
@@ -1231,14 +1248,18 @@ class TestHandlerExecution(unittest.TestCase):
         self.assertFalse(r["ok"], r)
         self.assertIn("Toolsetter", r["error"])
         self.assertEqual((self._mdis(cmd), spawned), ([], []), "no values, no measurement")
-        r, spawned = self._auto_run(pre_tool=5, probe_vars={"3100": 150, "3102": -300})
+        vals = _ts_section(self)              # the server's section — the dialog sends exactly it (P2)
+        r, spawned = self._auto_run(pre_tool=5, probe_vars=vals)
         self.assertTrue(r["ok"], r)
-        self.assertEqual(self._mdis(cmd), ["#3100=150.000000 #3102=-300.000000 #3116=0.000000"])
+        sent = " ".join(self._mdis(cmd))
+        for word in ("#3100=150.000000", "#3102=-300.000000", "#3116=0.000000"):
+            self.assertIn(word, sent)
+        self.assertEqual(len(self._mdis(cmd)), 2, "23 keys and the flag: two chunks")
         self.assertEqual(len(spawned), 1, "then the measuring sequence")
         self.assertEqual(spawned[0][1]["program"], (self.prog, gateway.program_source(self.prog)),
                          "bound to the program's text")
         cmd = self._rcs(rc=3)
-        r, spawned = self._auto_run(pre_tool=5, probe_vars={"3100": 150})
+        r, spawned = self._auto_run(pre_tool=5, probe_vars=vals)
         self.assertFalse(r["ok"], r)
         self.assertIn("not taken over", r["error"])
         self.assertEqual(spawned, [])

@@ -112,7 +112,6 @@ export type WsCommand =
   | { cmd: "read_g30" }
   | { cmd: "capture_g30" }
   | { cmd: "set_g30"; values: Record<string, number>; based_on: Record<string, number> }
-  | { cmd: "get_probe_vars"; vars: number[] }
   | { cmd: "get_probe_results" }
   | { cmd: "get_comp_grid" }
   // Surface compensation

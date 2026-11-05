@@ -734,12 +734,11 @@ Clients should send a heartbeat every 1 second. If the gateway doesn't receive a
 #### Probing
 ```json
 {"cmd": "set_probe_vars", "vars": {"3014": 50.0, "3015": 5.0}}
-{"cmd": "get_probe_vars", "nums": ["3014", "3015", "3032"]}
 {"cmd": "list_probe_macros"}
 {"cmd": "simulate_probe_trip"}
 ```
 
-`set_probe_vars` writes variables to the LinuxCNC parameter file and sets them via MDI. `probe_results` (including `cal_offset`) are parsed in real-time from ProbeBasic's `DEBUG EVAL` messages on the LinuxCNC error channel and included in `status` messages automatically.
+`set_probe_vars` sets the variables in the interpreter via MDI, then writes the keys it took into the LinuxCNC parameter file (the reply names `mdi_set`, `applied_keys`, `persisted`). There is no read of the parameter file: `get_probe_vars` was removed (2026-11-05) — the file is what LinuxCNC last saved, not what the interpreter holds; the toolsetter's state rides the status as `toolsetter_booking`. `probe_results` (including `cal_offset`) are parsed in real-time from ProbeBasic's `DEBUG EVAL` messages on the LinuxCNC error channel and included in `status` messages automatically.
 
 ### Error Handling
 
