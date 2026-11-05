@@ -491,12 +491,17 @@ for (const state of ["after_parse", "loading"] as const) {
     await replyKept(page);
     await parse(1);
     await waitHold(page, "parsing");
-    await debounced(page, ["bake", "check"], () => setZ(page, -10));
+    await debounced(page, "bake", () => setZ(page, -10));
     expect((await basis(page)).held).toBe(true);
     await parse(null);
     if (state === "loading") await publish(104);   // arrives, never answered
     await waitHold(page, state);
-    expect((await basis(page)).checkHeld, "a check restart noted too (E1)").toBe(true);
+    // The check's restart is noted when its timer comes in the hold — set by
+    // this change, or still pending from the one before: whether a change
+    // sets one depends on a result or a running check at that moment (the
+    // merge gate of 2026-11-05 met none there). The hold's own flag is the signal.
+    await expect.poll(async () => (await basis(page)).checkHeld, { message: "a check restart noted too (E1)", timeout: 10_000 })
+      .toBe(true);
     const partFrame = (log: string[], kind: string) => log.filter(l => l.startsWith(kind) && l.includes("partFrameWorker")).length;
     const checker = (log: string[]) => log.filter(l => l.startsWith("create") && l.includes("collisionWorker")).length;
     const before = await page.evaluate(() => {
