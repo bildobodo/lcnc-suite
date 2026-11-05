@@ -244,3 +244,23 @@ test("a save while the machine is not ready sends nothing; the line says it is n
   await expect(line).toContainText("Saved — not yet in the machine");
   expect((await sent()).map(c => c.cmd), "nothing pushed while not ready").not.toContain("set_probe_vars");
 });
+
+test("a save the read-back already confirms pushes nothing; one it does not gets the convenience push (Codex R309)", async ({ page }) => {
+  await open(page, { toolsetter: SET_UP });
+  await ctl({ op: "status_delta", data: {}, envelope: { toolsetter_booking: bookingOf({ ...SET_UP, touchZ: -299 }, "read") } });
+  const line = await toolsetterTab(page);
+  await expect(line).toContainText("Saved — not yet in the machine");
+  const touchZ = page.getByRole("textbox", { name: "Touch Z", exact: true });
+  for (const value of ["-299", "-298"]) {
+    await touchZ.click();
+    await page.keyboard.press("Control+A");
+    await page.keyboard.type(value);
+    await page.keyboard.press("Enter");
+    await expect(touchZ).toHaveValue(value);
+    if (value === "-299") await expect(line, "the read-back holds the saved number").toHaveText("In the machine — confirmed");
+  }
+  // the second push is the signal that every earlier one has arrived (one worker, in order)
+  const pushes = async () => (await sent()).filter(c => c.cmd === "set_probe_vars").map(c => (c.vars as Record<string, number>)["3102"]);
+  await expect.poll(pushes).toContain(-298);
+  expect(await pushes(), "nothing pushed for the save the read-back confirmed").toEqual([-298]);
+});

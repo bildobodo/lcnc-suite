@@ -139,6 +139,17 @@ class TestProgramStartSync(unittest.TestCase):
         self.assertTrue(self._send({"cmd": "cycle_start"})["ok"])
         self.assertTrue(any("#3102=-178.000000" in t for t in self.toolsetter_mdis()[first:]))
 
+    def test_a_confirmed_read_back_with_the_sections_numbers_writes_nothing(self):
+        # Codex R309 FI308-04: a read-back that confirmed the section's numbers
+        # (origin read, never applied by this gateway) needs no write either
+        import toolsetter_rules as tr
+        gateway._ts_book(tr.setup(SECTION)["values"], "read")
+        r = self._send({"cmd": "cycle_start"})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.toolsetter_mdis(), [], "read back equal: nothing written")
+        self.assertEqual(r["toolsetter"]["synced"], False)
+        self.assertEqual(self.cmd.args_of("auto"), (AUTO_RUN, 0))
+
     # ── what refuses (FI308-02) ──
     def test_not_set_up_writes_nothing_and_starts(self):
         self.section = {}
