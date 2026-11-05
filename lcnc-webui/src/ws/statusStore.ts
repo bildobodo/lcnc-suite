@@ -63,6 +63,18 @@ export interface WsStatus {
   // (noteBulkData), keyed by field name. Consumers react on the version EDGE:
   // the values themselves are on every frame, so presence means nothing.
   bulk_versions?: Record<string, number>;
+  // The gateway's toolsetter booking (P2, Codex R308–R309 FI308-04): sent on
+  // a connection's first frame and on every change, carried in between,
+  // dropped with the connection. The toolsetter form projects its state from it.
+  toolsetter_booking?: ToolsetterBooking | null;
+}
+
+/** Per parameter number, what the gateway knows the interpreter holds and
+ *  where from: applied (an MDI it took), read (a confirmed read-back),
+ *  assumed (the parameter file, unconfirmed), unknown. */
+export interface ToolsetterBooking {
+  version: number;
+  keys: Record<string, { value: number | null; origin: string }>;
 }
 
 export const status = shallowRef<WsStatus | null>(null);
@@ -382,7 +394,8 @@ export function notePong(): void {
 // Status batching + one-shot tool_meta carry-over. Module scope so they
 // persist across the relay (previously closure-locals inside connectWs).
 let _pendingStatus: any = null;
-let _lastRflTs = 0;   // dedupe for rfl_status frames (same phase repeats per tick)
+let _lastRflTs = 0;
+let _tsBooking: ToolsetterBooking | null = null;   // carried toolsetter booking (P2)   // dedupe for rfl_status frames (same phase repeats per tick)
 let _flushScheduled = false;
 // The oldest socket receipt among the frames folded into the pending status,
 // and per flushed status object the receipt it carries (Codex R182 VP182-01:
@@ -455,6 +468,11 @@ export function handleStatusMessage(msg: any, rx?: number): void {
   // before the rAF fires, the one-shot tool_meta would be lost forever.
   // tool_meta lives at top level; tool_number stays inside data (it comes
   // from linuxcnc.stat).
+  // The toolsetter booking rides only on a change: carried until the next
+  // one, connection-scoped (resetOnClose) — an old connection's booking
+  // never confirms a new instance (P2).
+  if (msg.toolsetter_booking !== undefined) _tsBooking = msg.toolsetter_booking;
+  else if (_tsBooking) msg.toolsetter_booking = _tsBooking;
   if (msg.tool_meta && msg.data?.tool_number != null) {
     _lastToolMeta = { num: msg.data.tool_number, meta: msg.tool_meta };
   } else if (_lastToolMeta && msg.data?.tool_number === _lastToolMeta.num && !msg.tool_meta) {
@@ -713,6 +731,7 @@ export function resetOnClose(): void {
   _parseSeenOff(null, "closed");
   latency.value = null;
   networkLatency.value = null;
+  _tsBooking = null;   // the booking was this connection's (P2)
   _heartbeatSentAt = _rtSentAt = 0;
   // The carry deliberately SURVIVES a reconnect: the surface map on screen did
   // not stop being true because the socket blipped, and the gateway re-pings

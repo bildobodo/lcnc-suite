@@ -496,3 +496,23 @@ describe("timing stats", () => {
     expect(timingStats.value).toBeNull();
   });
 });
+
+describe("the toolsetter booking (P2, Codex R308–R309 FI308-04)", () => {
+  const booking = { version: 3, keys: { "3102": { value: -179, origin: "applied" } } };
+  it("is carried across frames that do not repeat it", () => {
+    handleStatusMessage({ type: "status", data: { tool_number: 1 }, toolsetter_booking: booking });
+    flushRaf();
+    expect(status.value?.toolsetter_booking).toEqual(booking);
+    handleStatusMessage({ type: "status", data: { tool_number: 1 } });
+    flushRaf();
+    expect(status.value?.toolsetter_booking).toEqual(booking);
+  });
+  it("belongs to its connection — a new one shows none until its own arrives", () => {
+    handleStatusMessage({ type: "status", data: { tool_number: 1 }, toolsetter_booking: booking });
+    flushRaf();
+    resetOnClose();
+    handleStatusMessage({ type: "status", data: { tool_number: 1 } });
+    flushRaf();
+    expect(status.value?.toolsetter_booking ?? null).toBeNull();
+  });
+});

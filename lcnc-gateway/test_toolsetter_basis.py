@@ -477,3 +477,23 @@ class TestTakeOverThenFile(_BasisCase):
         self.assertTrue(r["ok"], r)
         self.assertEqual((r["mdi_set"], r["applied_keys"], r["persisted"]), (True, ["3102"], True))
         self.assertNotIn("file_saved", r)
+
+
+class TestBookingOnTheWire(_BasisCase):
+    """P2 (Codex R308–R309 FI308-04): the form's state comes from the
+    gateway's booking, published per connection — on its first frame and on
+    every booking change, never on every frame."""
+
+    def test_a_connection_gets_the_booking_first_and_then_only_on_a_change(self):
+        client = gateway.ClientState(ip="t", ws=None, armed=True)
+        first = gateway._ts_booking_for(client)
+        self.assertIsNotNone(first, "a new connection's first frame carries it")
+        self.assertEqual(set(first["keys"]), {str(k) for k in TOOLSETTER_BASIS_KEYS})
+        self.assertEqual(first["keys"]["3102"], {"value": FILE[3102], "origin": "assumed"})
+        self.assertIsNone(gateway._ts_booking_for(client), "unchanged: not again")
+        _run(gateway._apply_probe_vars({"3102": -170.0}, True))
+        again = gateway._ts_booking_for(client)
+        self.assertEqual(again["keys"]["3102"], {"value": -170.0, "origin": "applied"})
+        self.assertGreater(again["version"], first["version"])
+        other = gateway.ClientState(ip="u", ws=None, armed=False)
+        self.assertEqual(gateway._ts_booking_for(other), again, "another connection gets the current one")

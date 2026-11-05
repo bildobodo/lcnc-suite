@@ -4770,6 +4770,22 @@ async def _apply_probe_vars_detail(vars_to_set: Dict[str, Any], armed: bool,
     return {"mdi_set": mdi_ok, "applied_keys": sorted(applied), "persisted": persisted, "file_error": file_error}
 
 
+def _ts_booking_for(client) -> Optional[Dict[str, Any]]:
+    """The toolsetter booking for this connection's next frame (P2, Codex
+    R308–R309 FI308-04): {"version", "keys": {var: {"value", "origin"}}} when
+    the connection has not seen this version — its first frame, and every
+    booking change — else None (never on every frame). The form projects its
+    state from it; the client drops it with the connection."""
+    if not _ts_basis:
+        _ts_ensure()
+    if client.ts_booking_sent == _ts_basis_version:
+        return None
+    client.ts_booking_sent = _ts_basis_version
+    return {"version": _ts_basis_version,
+            "keys": {str(k): {"value": e.get("value"), "origin": e.get("origin")}
+                     for k, e in sorted(_ts_basis.items()) if k in TOOLSETTER_BASIS_KEYS}}
+
+
 def _toolsetter_basis() -> Dict[str, Any]:
     """The toolsetter basis a PROGRAM start applies (P2, Codex R308–R309):
     the server's confirmed `toolsetter` section of the current INI, read under
@@ -10070,6 +10086,12 @@ async def ws_endpoint(ws: WebSocket):
                         probe_results=client.probe_results,
                         rfl_status=_rfl_status,
                     )
+
+                    # The toolsetter booking: on the connection's first frame and
+                    # on every change (P2) — beside `data`, like tool_meta.
+                    _booking = _ts_booking_for(client)
+                    if _booking is not None:
+                        status_msg["toolsetter_booking"] = _booking
 
                     # Inject tool_meta on tool_number change or library edit (for
                     # 3D rendering). Lives at top level — sibling of `data` — so
