@@ -294,9 +294,9 @@ def start_copy():
         problems += lt.log_problems(lt.open_files(gw["pid"]), run / "logs") if gw else []
         if problems:
             raise Refused("process proof: " + "; ".join(problems))
-        log_env = _launcher_env(ini).get("LCNC_RESOLVED_LOG_DIR")
-        if log_env is None or Path(log_env).resolve() != (run / "logs").resolve():
-            raise Refused(f"the launcher logs to {log_env}, not the run's folder")
+        problems = lt.launcher_log_problems(procs, run / "logs", lt.proc_env)
+        if problems:
+            raise Refused("; ".join(problems))
         return []
     return ("start", step)
 
@@ -304,15 +304,6 @@ def start_copy():
 def rl_host_ready(timeout) -> bool:
     from test_support.system_host import SystemHost
     return SystemHost().wait_ready(timeout)
-
-
-def _launcher_env(ini: Path) -> dict:
-    for p in lt.read_procs():
-        c = p["cmdline"]
-        if len(c) >= 4 and c[1].endswith("/lcnc-suite") and c[2] == "-ini" and Path(c[3]).resolve() == ini.resolve():
-            raw = Path(f"/proc/{p['pid']}/environ").read_bytes()
-            return dict(kv.split("=", 1) for kv in raw.decode(errors="replace").split("\0") if "=" in kv)
-    return {}
 
 
 def _stop_copy(ctx):

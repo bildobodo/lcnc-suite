@@ -304,6 +304,34 @@ def log_problems(open_files: list[str], logs: Path) -> list[str]:
     return [f"the gateway writes {f}" for f in named if not Path(f).resolve().is_relative_to(logs)]
 
 
+def launcher_log_problems(procs: list[dict], logs: Path, read_env) -> list[str]:
+    """The folder the launcher resolved for its logs (LCNC_RESOLVED_LOG_DIR)
+    is the run's. Read where the export shows: a shell's /proc/<pid>/environ
+    is its START environment, so the launcher's own never holds what it
+    exports later — the gateway it starts after the export carries it (live
+    run 2026-11-05: the launcher's read gave None while every log was in the
+    run). `read_env(pid)` → the process's environment as a dict."""
+    logs = Path(logs).resolve()
+    gws = [p for p in procs if "gateway:app" in p["cmdline"]]
+    if not gws:
+        return ["the gateway is not running — the launcher's log folder unread"]
+    out = []
+    for p in gws:
+        d = read_env(p["pid"]).get("LCNC_RESOLVED_LOG_DIR")
+        if d is None or Path(d).resolve() != logs:
+            out.append(f"the launcher logs to {d}, not the run's folder")
+    return out
+
+
+def proc_env(pid: int) -> dict:
+    """/proc/<pid>/environ as a dict; a process gone or unreadable is {}."""
+    try:
+        raw = Path(f"/proc/{pid}/environ").read_bytes()
+    except OSError:
+        return {}
+    return dict(kv.split("=", 1) for kv in raw.decode(errors="replace").split("\0") if "=" in kv)
+
+
 def read_procs() -> list[dict]:
     """Every process's command line, from /proc (the orchestrator's read)."""
     out = []

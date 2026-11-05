@@ -172,16 +172,25 @@ def restore(host, pre: dict, state: dict | None = None, first: Path | None = Non
         # the phases reached and the isolation proof on DISK before the LAN
         # runs again (R288 FI-I19 A): a later hash would read its own writes
         save(state)
+    # the gateway unit first; a later one (the keepalive) only once the
+    # gateway answers: the keepalive connects ONCE and ends on a refused
+    # connection (live run 2026-11-05: started beside the gateway it was gone
+    # before /ready, the first return lacked its heartbeat)
+    gateway_unit, ready = next(iter(pre["units"])), None
     for name, spec in pre["units"].items():
         if reasons:
             break                       # the test instance still holds the VM's LinuxCNC
+        if name != gateway_unit:
+            ready = host.wait_ready(READY_S) if ready is None else ready
+            if not ready:
+                break
         if host.is_active(name):
             continue
         try:
             host.start(name, spec)
         except Exception as e:  # noqa: BLE001 — a unit that did not start is a named reason
             reasons.append(f"{name} did not start: {e}")
-    if not reasons and not host.wait_ready(READY_S):
+    if not reasons and not (host.wait_ready(READY_S) if ready is None else ready):
         reasons.append(f"the LAN gateway's /ready did not answer within {READY_S} s")
     instance = list(host.lan_instance() or ())
     if not reasons:

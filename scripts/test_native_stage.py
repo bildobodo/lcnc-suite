@@ -206,7 +206,16 @@ class FakeHost:
         if name == "lcnc-sim-gates":
             self.last = getattr(self, "last", 100) + 1
             self.instance = ("linuxcncsvr", self.last, 5000 + self.last)
-    def wait_ready(self, timeout): return self.ready
+            self.answered = False
+        if name == "bg-keepalive" and getattr(self, "connect_once", False):
+            # the live keepalive connects ONCE: before the gateway answers it
+            # ends on the refused connection, its unit failed, no heartbeat
+            alive = getattr(self, "answered", True)
+            self.active[name] = self.heartbeat_seen = alive
+    def wait_ready(self, timeout):
+        if self.ready:
+            self.answered = True
+        return self.ready
     def lan_instance(self): return self.test_instance or self.instance
     def gateway_ini(self): return "lan.ini"
     def tree_head(self): return self.head
@@ -224,6 +233,20 @@ def test_a_complete_restore_proves_every_point():
     assert out["outcome"] == "complete" and out["isolation"] == [], out
     assert h.started == ["lcnc-sim-gates", "bg-keepalive"]
     assert out["instance"] != pre["instance"], "a new LinuxCNC instance"
+
+
+def test_the_keepalive_starts_only_once_the_returned_gateway_answers():
+    """Live run 2026-11-05: the keepalive connects ONCE and ends on a refused
+    connection. Started beside the gateway it was gone before /ready, the
+    first return lacked its heartbeat (not_returned), and only the
+    ExecStopPost's second return, 23 s later, brought it back."""
+    h = FakeHost()
+    h.connect_once = True
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    out = rl.restore(h, pre)
+    assert out["outcome"] == "complete", out
+    assert h.started == ["lcnc-sim-gates", "bg-keepalive"]
 
 
 def test_a_trip_after_the_return_is_named_apart_and_never_acknowledged():
@@ -516,6 +539,24 @@ def test_the_process_proof_checks_the_feed_the_interpreters_and_the_gateways_log
     assert lt.log_problems([str(logs / "trace.ndjson"), "/home/cnc/lcnc-suite-gates/runlogs/trace.ndjson"], logs)
     assert lt.log_problems([], logs), "no log file open at all is no proof"
 
+
+
+def test_the_launcher_log_folder_is_read_from_the_gateway_it_started():
+    """Live run 2026-11-05: a shell's /proc/<pid>/environ is its START
+    environment, so the launcher's own never shows LCNC_RESOLVED_LOG_DIR,
+    which it exports later; the gateway it starts after the export carries
+    it. The run read the launcher's, got None and refused a start whose
+    logs were all in the run's folder."""
+    logs = Path("/run/x/logs")
+    procs = [{"pid": 10, "cmdline": ["bash", "/run/x/tree/lcnc-suite", "-ini", "/run/x/configs/sim/a.ini"]},
+             {"pid": 11, "cmdline": ["python3", "-m", "uvicorn", "gateway:app", "--app-dir", "/run/x/tree/lcnc-gateway"]}]
+    envs = {10: {"PATH": "/run/x/bin", "LCNC_LOG_DIR": "/run/x/logs"}, 11: {"LCNC_RESOLVED_LOG_DIR": "/run/x/logs"}}
+    assert lt.launcher_log_problems(procs, logs, envs.__getitem__) == []
+    envs[11] = {"LCNC_RESOLVED_LOG_DIR": "/home/cnc/lcnc-suite-gates/runlogs"}
+    assert any("runlogs" in p for p in lt.launcher_log_problems(procs, logs, envs.__getitem__))
+    envs[11] = {}
+    assert lt.launcher_log_problems(procs, logs, envs.__getitem__), "an unread folder is no proof"
+    assert lt.launcher_log_problems(procs[:1], logs, envs.__getitem__), "no gateway, nothing read"
 
 def test_a_mutable_file_hardlinked_to_one_outside_is_named(tmp_path, monkeypatch):
     run, config = _install_copy(tmp_path, monkeypatch)
