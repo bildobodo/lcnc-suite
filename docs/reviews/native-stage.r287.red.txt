@@ -1,0 +1,25 @@
+R287 — red against the previous state of feat/native-stage (as seen while building, 2026-11-05)
+
+FI-I18  test_the_effective_path_follows_the_installed_launchers_rule, test_the_installed_launcher_…:
+        AttributeError: module 'test_support.live_target' has no attribute 'linuxcnc_path'
+FI-I18  test_the_process_proof_checks_the_feed_the_interpreters_and_the_gateways_logs:
+        assert any(... 'sim_toolsetter_feed.py' ...) → False (the feed outside the run went unnoticed)
+FI-I20  test_a_link_waiting_at_a_temporary_name_is_never_followed:
+        AssertionError: '3004\t2000.000000\n3005\t200.000000\n…' != "the operator's file"
+        (the installer wrote 10 642 bytes through the link)
+FI-I20  test_a_mutable_file_hardlinked_to_one_outside_is_named: assert any(... 'inode' ...) → False
+FI-I20  test_a_run_folder_that_exists_already_is_refused_before_anything: Failed: DID NOT RAISE FileExistsError
+FI-I22  test_a_home_whose_completion_never_came_is_red_with_the_right_bits:
+        TypeError: eval_home() got an unexpected keyword argument 'completed'
+FI-I23  test_an_unknown_or_non_finite_jog_value_is_never_a_standstill: AssertionError: assert 'PASS' == 'incomplete'
+FI-I23  test_the_client_takes_only_status_frames_as_status: AttributeError (no SimulatorClient.take)
+
+FI-I19 / FI-I21 — the seven restore tests against restore_lan.py of 80ddf18b (partly already at the new signature):
+FAILED scripts/test_native_stage.py::test_a_kill_after_the_test_start_ends_the_test_instance_before_the_lan_returns
+FAILED scripts/test_native_stage.py::test_a_test_instance_that_does_not_end_keeps_the_lan_down_and_says_so
+FAILED scripts/test_native_stage.py::test_a_restore_interrupted_after_the_test_end_is_completed_by_the_next
+FAILED scripts/test_native_stage.py::test_the_returned_instance_must_be_the_restored_units[<lambda>-does not belong]
+FAILED scripts/test_native_stage.py::test_the_same_instance_as_before_the_stop_is_no_return
+FAILED scripts/test_native_stage.py::test_a_running_unit_with_another_command_is_no_return
+FAILED scripts/test_native_stage.py::test_the_second_restore_keeps_the_first_isolation_failure_and_an_unproven_one_stays_unknown
+7 failed, 29 deselected in 0.06s

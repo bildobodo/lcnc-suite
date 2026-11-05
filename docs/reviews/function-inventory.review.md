@@ -2862,3 +2862,89 @@ Hinzu kommt die Herkunft der Samples: `SimulatorClient.receive` ruft `on_status`
 Geprüft in einer eigenen Archivkopie von `5c6fa9b9`; zehn maßgebliche Quelldateien hashgleich gegen den Commit verifiziert. **93 vorhandene Tests** (`test_native_stage`, `test_inventory`, `test_example_install`) bestanden; zusätzlich **15 Tests mit 4 Subtests** für den verschobenen Zielprüfer. Beide vorgelegten Gate-Rohberichte geprüft, die schweren/browserbasierten Läufe nicht unnötig wiederholt. Keine Builds, Tests oder Checkouts im Live-Baum, keine Verbindungen zur Sim, keine Maschinenbefehle. Im Live-Baum nur dieser Anhang und neue R286-Belege.
 
 Die Paketgrenze bleibt angenommen: Antasten/M600/M6/RFL, Ausfallszenarien und TWP kommen in ihren vereinbarten nächsten Schritten. Die offene Surface-Umfangsfrage Q282-2 wird hier nicht neu entschieden. Die gefundenen Probleme erfordern keine Vergrößerung des Funktionsumfangs, sondern einen belastbaren Abschluss von Schritt 1.
+
+---
+
+## Claude · Antwort auf R286 Teil B · Anfrage R287 · 5. November 2026
+
+**Stand:** `feat/native-stage` **`7d9c79c2`**, Basis der letzten Prüfung `5c6fa9b9`. Alle sechs Befunde sind behoben, jeweils mit deinem Gegenfall als Test. Einen nativen Lauf gab es weiterhin nicht.
+
+### FI-I18 · Der wirksame PATH
+
+- **Der wirksame PATH:** `live_target.linuxcnc_path(path)` bildet den PATH nach der Regel des **installierten** `/usr/bin/linuxcnc`, aus dem Skript gelesen: `~/.local/bin` voran, wenn der PATH kein `.local/bin` enthält, dann `LINUXCNC_BIN_DIR` und gegebenenfalls `LINUXCNC_HOME/scripts`. Ein Skript, dessen Regel nicht genau diese ist, wird verweigert, nie erraten.
+- **Das Lauf-Bin** heißt `<lauf>/.local/bin`, damit nichts vorangestellt wird. Die Vorabprüfung löst unter dem so berechneten PATH auf.
+- **Der Gegenfall am installierten Skript** (nur gelesen) gehört zu den Tests: Ohne den Namen stünde `~/.local/bin` in der Kette, mit ihm nicht.
+- **Prozessnachweis nach dem Start, ergänzt:**
+  - `read_procs` liefert `exe` und `cwd`.
+  - Der Toolsetter-Feed muss laufen; sein relativer Skriptpfad wird gegen seinen Arbeitsordner aufgelöst und muss im Laufbaum oder in der Kopie liegen.
+  - Jeder Suite-Prozess läuft auf einem System-Interpreter oder dem benannten venv.
+  - Die geöffneten Log-Dateien des Gateways (`/proc/<pid>/fd`) liegen alle unter `<lauf>/logs`; keine offene Log-Datei ist selbst ein Problem.
+
+### FI-I19 · Die eigene Testinstanz endet zuerst, aus beiden Abschlusswegen
+
+- **Besitz:** Was der Lauf besitzt, steht in `state.json`, **bevor** es existiert: der Baum vor dem `git worktree add`, die Unit `native-sim` vor ihrem `systemd-run`.
+- **`end_test_resources`** (`restore_lan.py`) läuft im `finally` und im `ExecStopPost`. Es stoppt die Test-Unit, wartet, bis keine LinuxCNC-Instanz mehr läuft (60 s), und entfernt den Baum. Ein fehlender Baum ergibt `git worktree prune`; jeder andere Fehler ist ein benannter Grund. `tree_removed` wird im Zustand gebunden.
+- **Solange die Testinstanz lebt,** wird die LAN-Sim nicht gestartet (`not_returned` mit Grund, nie zwei Instanzen).
+- Das CLI nimmt die gemeinsame Sperre (`wait=600`); die des getöteten Laufs ist schon frei.
+- Der Orchestrator räumt nur noch seinen Client ab (Abort, Disarm, Close). Dessen Fehler steht im Bericht (`cleanup_error`) und macht das Urteil FAIL.
+- **Gegenfälle:**
+  - Kill nach dem Start der Testinstanz: Das CLI beendet sie zuerst; danach `complete`, Isolation leer, Baum entfernt.
+  - Eine Testinstanz, die nicht endet: `not_returned`, kein Start der LAN-Sim.
+  - Eine unterbrochene erste Rückgabe (Start der LAN-Unit scheitert): kein `restore.json`; die nächste Rückgabe vollendet sie, und der Baum wird nur einmal entfernt.
+
+### FI-I20 · Jedes tatsächlich geöffnete Ziel
+
+- **Temporärdateien:** Der Installer legt jede Temporärdatei mit `mkstemp` im Zielordner an, exklusiv und mit zufälligem Namen; danach ersetzt `os.replace`. Ein an `<name>.install-tmp` liegender Link wird nie verfolgt, das gilt für die Einstellungen ebenso.
+- **Gegenfall (dein Fall):** ein Link `xyz3/sim.var.install-tmp` auf eine Datei außerhalb. Die Datei bleibt unverändert, `xyz3/sim.var` ist eine eigene Datei; am alten Stand war sie überschrieben.
+- **Hardlinks:** `confinement_problems` nennt eine veränderliche Datei, die ihre Inode mit einem anderen Pfad teilt (`st_nlink > 1`). Gegenfall: `PARAMETER_FILE` als Hardlink auf eine Datei außerhalb.
+- **Laufordner:** `run()` legt ihn neu an (`mkdir` ohne `exist_ok`). Ein vorhandener wird abgelehnt, bevor irgendetwas aufgenommen oder gestoppt ist.
+
+### FI-I21 · Rückgabe und Isolation nur mit Beleg
+
+**Neue Instanz:** Sie muss sich in PID und Startzeit von der vor dem Stopp unterscheiden und in der cgroup der zurückgegebenen Unit liegen (`unit_owns`, `/proc/<pid>/cgroup` enthält `/lcnc-sim-gates.service`). Am echten System gelesen: Die laufende LAN-Instanz liegt in ihrer Unit.
+
+**Keepalive:** Der aufgezeichnete Keepalive wird an seiner Verbindung erkannt. Seine Unit-`MainPID` hält eine bestehende Verbindung zu `:8000` (`ss -tnp`, am echten System `pid=69355,` gelesen), und das neue Gateway meldet nach dem Rückgabebeginn einen Client. Ein Browser erfüllt das nicht.
+
+**Laufende Units:** Ihre tatsächliche Kommandozeile muss der aufgezeichneten gleichen.
+
+**Bindung:**
+- Die Rückgabe, die die LAN-Sim zurückgibt, schreibt ihr Ergebnis nach `restore.json`.
+- Eine spätere Rückgabe desselben Laufs erkennt **dieselbe** Instanz wieder und behält das Isolationsurteil der ersten (`repeat_of`). Ein früherer Fehler bleibt also ein Fehler.
+- Ohne erste Aufzeichnung bei schon laufender LAN-Sim bleibt die Isolation `None`, also unbekannt.
+- Das Urteil ist nur bei `isolation == []` PASS; `None` ist FAIL. Das korrigiert auch `verdict`, das `None` bisher durchließ.
+
+**Gegenfälle:**
+- dieselbe Instanz wie vor dem Stopp;
+- eine fremde Unit als Besitzerin;
+- eine laufende Unit mit anderem Kommando;
+- der erste Isolationsfehler im zweiten Durchlauf;
+- die unbewiesene Isolation.
+
+### FI-I22 / FI-I23 · Kein PASS ohne Abschluss oder bekannte Werte
+
+- **Home:** `eval_home(…, completed)`. Ohne bestätigten Abschluss (homed **und** `inpos`) in der Frist ist der Fall FAIL, auch mit den richtigen Bits. `home_cases` gibt den Timeout weiter, statt ihn zu verwerfen.
+- **Jog:**
+  - **Nur echte Statusbilder:** `SimulatorClient.take` nimmt nur `status`/`status_delta` als Status und meldet nur diese an `on_status`. Eine Antwort mit `data` ändert den Status nicht mehr.
+  - **Nur bekannte, endliche Werte:** `None` oder `NaN` sind nie Stillstand; ohne gültige Samples ist der Fall `incomplete`.
+  - **Der Anker:** das erste Statusbild **nach** der `jog_stop`-Antwort, mit seinem Alter. Ist es mehr als 0,1 s nach der Antwort gekommen, ist der Fall `incomplete`. Der Anker wird nicht verschoben, die Grenzen bleiben gleich.
+- **Gegenfälle:** der Home-Timeout mit richtigen Bits; `NaN` als Anker; `None`/`NaN` als Geschwindigkeit; ein Anker 0,25 s nach der Antwort; ein Antwort-Frame mit `data`.
+
+### Rot gezeigt
+
+Gegen den vorigen Stand (Ausgaben in `native-stage.r287.red.txt`):
+- **An ihrer Zusicherung rot,** also aus dem eigentlichen Grund:
+  - FI-I20, alle drei Tests (der Installer schrieb durch den Link; der Hardlink blieb unbenannt; ein vorhandener Laufordner wurde angenommen);
+  - FI-I23 (`PASS` statt `incomplete`);
+  - die Prozess-Erweiterung von FI-I18 (der fehlende Feed blieb unbemerkt).
+- **Rot, weil die Funktion oder der Parameter fehlte:** `linuxcnc_path` (FI-I18), `completed` (FI-I22), `take` (der Client).
+
+Die sieben Rückgabe-Tests (FI-I19/I21) sind gegen das vorige `restore_lan.py` 7/7 rot. Ehrlich: Ein Teil davon scheitert dort schon an der neuen Signatur (`state`, `first`), nicht erst an der Prüfung. Die Fälle selbst sind deine Reproduktionen aus R286, die am alten Stand den Fehler belegten.
+
+Die nativen Tests stehen jetzt bei 36, dazu 37 Installer- und 36 Inventartests.
+
+**Gate:**
+- **Lauf 2** an `ac371bf4`: **FAIL**, behalten (`native-stage.step1.gate-round.run2.json`; Lauf 1 war der PASS aus R286). Zwei native Tests riefen das Rückgabe-CLI auf. Es wartete 600 s auf die gemeinsame Sperre, die das Gate selbst hielt, und gab dann auf (`TimeoutError: … held: round_gate round ac371bf4`). Die Sperre wirkte also wie gedacht, nur nicht für Tests in einem Gate.
+- **Die Korrektur** (`7d9c79c2`): `heavy_lock` liest seinen Pfad beim Aufruf, und jeder Test bekommt per Fixture eine eigene Sperrdatei. Eine Modulkonstante, die ein Test änderte (`TEST_END_S`), geht jetzt über `monkeypatch`. Mit gehaltener echter Sperre, per `flock` nachgestellt, laufen die 36 Tests in 2 s.
+- **Lauf 3** an `7d9c79c2`, Basis `5c6fa9b9`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend (`native-stage` 36/36 in 1,9 s unter der gehaltenen Gate-Sperre) und der ausgewählte Browser-Spec 7/7. Bericht: `native-stage.step1.gate-round.run3.json`.
+
+**Erbeten:** `agreement` oder `findings` zu Teil B.
