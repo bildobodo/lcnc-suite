@@ -401,3 +401,79 @@ class TestRemapBodies(_BasisCase):
         self.assertTrue(self._mdi("G0 X1")["ok"])
         self.assertEqual({self.origin(k) for k in TOOLSETTER_BASIS_KEYS}, {"assumed"})
 
+
+
+class TestTakeOverThenFile(_BasisCase):
+    """P2 (Codex R308–R309 FI308-03): the interpreter first, then the file
+    with exactly the keys it took and their SENT numbers. The file used to
+    be written first — the mode switch's synch then saved the interpreter's
+    OLDER value over it (live run 5, 2026-11-05: -180 read back after -179
+    was set)."""
+
+    def file_value(self, k):
+        with open(self.path) as f:
+            for line in f:
+                parts = line.split()
+                if parts and parts[0] == str(k):
+                    return float(parts[1])
+        return None
+
+    def test_a_set_survives_the_synch_of_its_own_mode_switch(self):
+        gateway.STAT.task_mode = gateway.linuxcnc.MODE_MANUAL
+        persisted, mdi_ok = _run(gateway._apply_probe_vars({"3102": -179.0}, True))
+        self.assertTrue(mdi_ok and persisted)
+        self.assertIn(("mode", gateway.linuxcnc.MODE_MDI), self.task.calls, "the switch synched")
+        self.assertEqual(self.task.params[3102], -179.0)
+        self.assertEqual(self.file_value(3102), -179.0, "the file holds the value the interpreter took")
+
+    def test_only_the_chunks_taken_reach_the_file(self):
+        vals = {str(k): 1000.0 + k for k in TOOLSETTER_BASIS_KEYS}
+        calls, mdi = [], self.task.mdi
+
+        def failing_second(text):
+            calls.append(text)
+            mdi(text)
+            if len(calls) == 2:
+                self.task._last = 3      # RCS_ERROR
+        failing_second.__name__ = "mdi"
+        self.task.mdi = failing_second
+        r = _run(gateway._apply_probe_vars_detail(vals, True))
+        first = [int(w[1:].split("=")[0]) for w in calls[0].split()]
+        second = [int(w[1:].split("=")[0]) for w in calls[1].split()]
+        self.assertFalse(r["mdi_set"])
+        self.assertTrue(r["persisted"])
+        self.assertEqual(sorted(r["applied_keys"]), sorted(str(k) for k in first))
+        for k in first:
+            self.assertEqual(self.file_value(k), 1000.0 + k, k)
+        for k in second:
+            self.assertEqual(self.file_value(k), FILE[k], f"{k}: not taken, the file keeps its value")
+
+    def test_nothing_taken_writes_nothing(self):
+        self.task.mdi_rc = 3                  # every chunk RCS_ERROR
+        before = self.file_value(3102)
+        r = _run(gateway._apply_probe_vars_detail({"3102": -170.0}, True))
+        self.assertEqual((r["mdi_set"], r["persisted"], r["applied_keys"]), (False, False, []))
+        self.assertEqual(self.file_value(3102), before)
+
+    def test_the_sent_number_is_the_booking_and_the_file(self):
+        r = _run(gateway._apply_probe_vars_detail({"3102": -180.1234567}, True))
+        self.assertTrue(r["mdi_set"] and r["persisted"])
+        self.assertEqual(self.value(3102), -180.123457)
+        self.assertEqual(self.file_value(3102), -180.123457)
+        self.assertEqual(self.task.params[3102], -180.123457)
+
+    def test_a_file_failure_after_the_take_over_keeps_the_take_over(self):
+        def broken(*a, **k):
+            raise OSError(28, "No space left on device")
+        with unittest.mock.patch.object(gateway, "_write_var_file_updates", broken):
+            r = _run(gateway._apply_probe_vars_detail({"3102": -170.0}, True))
+        self.assertTrue(r["mdi_set"])
+        self.assertFalse(r["persisted"])
+        self.assertIn("No space left", r["file_error"])
+        self.assertEqual((self.origin(3102), self.value(3102)), ("applied", -170.0))
+
+    def test_the_reply_names_the_take_over_and_the_persistence(self):
+        r = self.send({"cmd": "set_probe_vars", "vars": {"3102": -175.0}})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual((r["mdi_set"], r["applied_keys"], r["persisted"]), (True, ["3102"], True))
+        self.assertNotIn("file_saved", r)

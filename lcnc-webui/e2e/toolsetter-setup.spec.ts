@@ -132,7 +132,7 @@ test("Measure Current is ONE command: the values ride the mdi — a refusal says
   await expect(page.locator(".bannerContent")).toContainText("Measure Current not started — Parameters not taken over — nothing started");
   expect((await sent()).map(c => c.cmd), "one command, refused").toEqual(["mdi"]);
   await page.waitForTimeout(400);   // the latch after the refused command
-  await ctl({ op: "replies", replies: { mdi: { ok: true, file_saved: true, mdi_set: true } } });
+  await ctl({ op: "replies", replies: { mdi: { ok: true, persisted: true, mdi_set: true } } });
   await ctl({ op: "clearCmds" });
   await hold(page, measure);
   await expect.poll(async () => (await sent()).map(c => c.cmd)).toEqual(["mdi"]);
@@ -149,7 +149,7 @@ test("an abort while the reply is outstanding leaves nothing to send: a late suc
   const [pending] = await sent();   // the mock withholds the reply
   await page.locator(".sidePane").getByRole("button", { name: "Abort", exact: true }).click();
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: { ...M600, toolsetter: {} } } });
-  await ctl({ op: "raw", frame: { type: "reply", cmd: "mdi", req_id: pending.req_id, ok: true, file_saved: true, mdi_set: true } });
+  await ctl({ op: "raw", frame: { type: "reply", cmd: "mdi", req_id: pending.req_id, ok: true, persisted: true, mdi_set: true } });
   await page.waitForTimeout(500);
   expect((await sent()).map(c => c.cmd)).toEqual(["mdi", "abort"]);
 });

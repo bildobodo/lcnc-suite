@@ -108,6 +108,7 @@ from gateway_util import (
     wcs_stamp_decision,
     PROV_STAMPED,
 )
+from toolsetter_rules import canonical as canonical_param, setup as toolsetter_setup  # noqa: E402 — P2, the form's rule
 from command_policy import gate_refusal, NOT_ARMED, STATE_UNKNOWN, MACHINE_BUSY, MOTION_UNKNOWN, MACHINE_MOVING, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
 from tool_table import (
     parse_tool_table,
@@ -4664,73 +4665,76 @@ def _ts_drift_reason() -> Optional[str]:
     return "toolsetter"
 
 
-async def _apply_probe_vars(vars_to_set: Dict[str, Any], armed: bool):
-    """The routine parameters (#3004–#3115 …) into the var file AND the
-    interpreter — the var file is read only at LinuxCNC's start, so the
-    interpreter half decides whether a routine reads them. Returns
-    (file_saved, mdi_set). Caller holds _cmd_lock. A cancel (abort/estop
-    preemption) propagates: CancelledError is no Exception.
+async def _apply_probe_vars(vars_to_set: Dict[str, Any], armed: bool,
+                            admit: Optional[Callable[[], Optional[str]]] = None):
+    """(persisted, mdi_set) of _apply_probe_vars_detail — the four callers'
+    pair; `persisted` covers only the keys the interpreter took."""
+    r = await _apply_probe_vars_detail(vars_to_set, armed, admit)
+    return r["persisted"], r["mdi_set"]
 
-    1) Always write the var file (persistence across restarts). 2) Set them
-    in the interpreter via MDI (armed + machine on + not running), in chunks
-    ≤ 250 chars for LinuxCNC's 256-char MDI buffer; mdi_set only when every
-    chunk ended RCS_DONE. A taken #3116=0 makes the skip flag known clear."""
+
+async def _apply_probe_vars_detail(vars_to_set: Dict[str, Any], armed: bool,
+                                   admit: Optional[Callable[[], Optional[str]]] = None) -> Dict[str, Any]:
+    """The routine parameters (#3004–#3115 …) into the INTERPRETER, then the
+    keys it took into the var file (P2, Codex R308–R309 FI308-03). Caller
+    holds _cmd_lock. A cancel (abort/estop preemption) propagates:
+    CancelledError is no Exception, and nothing is claimed persisted.
+
+    1) One canonical number per key — the MDI's `#n=%.6f`, the booking's and
+       the file's (the writer formats `%.6f` too).
+    2) MDI (armed + machine on + not running), in chunks ≤ 250 chars for
+       LinuxCNC's 256-char buffer; `admit` at the switch and each write
+       (default: the interpreter KNOWN idle). Each chunk is booked: RCS_DONE
+       applied, a failure / timeout / cut unknown — no transaction, a taken
+       chunk is not rolled back (Codex R103); a chunk never sent keeps its
+       booking.
+    3) The var file gets ONLY the taken chunks' keys with their sent numbers,
+       AFTER the interpreter holds them: the mode switch's synch saves the
+       interpreter's values, and written first the file lost the new value to
+       it (live run 5, 2026-11-05). Nothing taken, no file write.
+
+    {"mdi_set": every chunk taken, "applied_keys": the keys taken,
+    "persisted": the file holds exactly those, "file_error": why not}. A file
+    failure after the take-over leaves the take-over as it is ("applied,
+    persistence not confirmed"). A taken #3116=0 makes the skip flag known
+    clear."""
     global _skip_flag_unknown
-    file_ok = False
-    ini_path = getattr(STAT, "ini_filename", None)
-    if ini_path:
-        ini = linuxcnc.ini(ini_path)
-        var_file = ini.find("RS274NGC", "PARAMETER_FILE")
-        if var_file:
-            if not os.path.isabs(var_file):
-                var_file = os.path.join(os.path.dirname(ini_path), var_file)
-            # Keys are bounds-checked against the machine's var file by
-            # COMMAND_SCHEMA; values get the same finite_* type claim as
-            # every other payload number (a bare cast here wrote
-            # arbitrary #N=inf into the parameter file).
-            str_vars = {str(k): finite_float(v) for k, v in vars_to_set.items()}
-            _trace.emit("probe.set_vars", vars=str_vars)
-            async with _get_var_file_lock():
-                await _var_file_thread(_write_var_file_updates, var_file, str_vars)
-                _status_runtime.mark_var_file_written(var_file)
-            file_ok = True
+    admit = admit or _interp_idle_refusal
+    vals = {str(k): canonical_param(finite_float(v)) for k, v in vars_to_set.items()}
+    _trace.emit("probe.set_vars", vars=vals)
+    applied: Dict[str, float] = {}
     mdi_ok = False
     STAT.poll()
     if armed and bool(safe_get("enabled", False)) and not reject_if_auto_running():
-        # The toolsetter basis is booked PER CHUNK: a chunk that ended
-        # RCS_DONE is the interpreter's (applied); one that failed, timed out
-        # or was cut short is unknown — the take-over is no transaction, an
-        # earlier chunk is not rolled back (Codex R103). A chunk never sent
-        # leaves its keys as booked: the interpreter did not change.
         _ts_ensure()
         inflight: Optional[Dict[int, Optional[float]]] = None
         try:
-            items = [(f"#{k}={finite_float(v):.6f}", int(k), float(f"{finite_float(v):.6f}"))
-                     for k, v in vars_to_set.items()]
             chunks: List[tuple] = []
             current, booked = "", {}
-            for item, key, val in items:
+            for k, v in vals.items():
+                item = f"#{k}={v:.6f}"
                 if current and len(current) + 1 + len(item) > 250:
                     chunks.append((current, booked))
-                    current, booked = item, {key: val}
+                    current, booked = item, {int(k): v}
                 else:
                     current = f"{current} {item}".strip() if current else item
-                    booked[key] = val
+                    booked[int(k)] = v
             if current:
                 chunks.append((current, booked))
             # Not running by a current read at each write, as by the poll
             # above (Codex R217 — the executor queue lies between them).
-            await set_mode(linuxcnc.MODE_MDI, admit=_interp_idle_refusal)
+            await set_mode(linuxcnc.MODE_MDI, admit=admit)
             mdi_ok = True
             for chunk, booked in chunks:
                 inflight = booked
-                ret = await _cmd_blocking(CMD.mdi, chunk, wait=5, admit=_interp_idle_refusal)
+                ret = await _cmd_blocking(CMD.mdi, chunk, wait=5, admit=admit)
                 inflight = None
                 if _cmd_rc_failed(ret):   # success is RCS_DONE (1), not 0
                     mdi_ok = False
                     _ts_book({k: None for k in booked}, "unknown")
                 else:
                     _ts_book(booked, "applied")
+                    applied.update({str(k): v for k, v in booked.items()})
         except asyncio.CancelledError:
             if inflight is not None:
                 _ts_book({k: None for k in inflight}, "unknown")
@@ -4741,10 +4745,25 @@ async def _apply_probe_vars(vars_to_set: Dict[str, Any], armed: bool):
                 _ts_book({k: None for k in inflight}, "unknown")
             _trace.emit("probe.mdi_set_failed", level="warn",
                         exc=type(e).__name__, msg=str(e))
-    if mdi_ok and any(str(k) == "3116" and finite_float(v) == 0 for k, v in vars_to_set.items()):
+    persisted, file_error = False, None
+    if applied:
+        var_file = _resolve_var_file_path()
+        if not var_file:
+            file_error = "no PARAMETER_FILE"
+        else:
+            try:
+                async with _get_var_file_lock():
+                    await _var_file_thread(_write_var_file_updates, var_file, applied)
+                    _status_runtime.mark_var_file_written(var_file)
+                persisted = True
+            except Exception as e:  # noqa: BLE001 — the take-over stands; the file's failure is named
+                file_error = f"{type(e).__name__}: {e}"
+                _trace.emit("probe.set_vars_file_failed", level="warn", msg=file_error)
+    if mdi_ok and vals.get("3116") == 0:
         _skip_flag_unknown = False
-    _trace.emit("probe.set_vars_result", file_saved=file_ok, mdi_set=mdi_ok)
-    return file_ok, mdi_ok
+    _trace.emit("probe.set_vars_result", mdi_set=mdi_ok, applied=sorted(applied), persisted=persisted,
+                file_error=file_error)
+    return {"mdi_set": mdi_ok, "applied_keys": sorted(applied), "persisted": persisted, "file_error": file_error}
 
 
 async def handle_command(msg: Dict[str, Any], armed: bool, conn_key: Optional[str] = None):
@@ -4983,11 +5002,11 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                 return refused
             reply = {"ok": True}
             if vars_to_set is not None:
-                file_ok, mdi_ok = await _apply_probe_vars(_skip_flag_cleared(vars_to_set), armed)
+                persisted, mdi_ok = await _apply_probe_vars(_skip_flag_cleared(vars_to_set), armed)
                 if not mdi_ok:
                     return {"ok": False, "error": "Parameters not taken over — nothing started",
-                            "file_saved": file_ok, "mdi_set": False}
-                reply.update(file_saved=file_ok, mdi_set=True)
+                            "persisted": persisted, "mdi_set": False}
+                reply.update(persisted=persisted, mdi_set=True)
             if "3116" in text:
                 # The operator's own line names the flag: no longer known.
                 _skip_flag_unknown = True
@@ -5813,8 +5832,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             vars_to_set = msg.get("vars", {})
             if not vars_to_set or not isinstance(vars_to_set, dict):
                 return {"ok": False, "error": "Missing vars dict"}
-            file_ok, mdi_ok = await _apply_probe_vars(vars_to_set, armed)
-            return {"ok": True, "file_saved": file_ok, "mdi_set": mdi_ok}
+            r = await _apply_probe_vars_detail(vars_to_set, armed)
+            return {"ok": True, **r}
 
         if cmd == "get_probe_vars":
             var_nums = msg.get("vars", [])
