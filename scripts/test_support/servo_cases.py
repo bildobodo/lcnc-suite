@@ -199,8 +199,30 @@ def motion_lines(text: str) -> frozenset:
     return frozenset(out)
 
 
+def routine_sources(tree, texts: dict) -> tuple:
+    """The routine texts the attribution reads, bound to the checked ones
+    (Codex R311 FI-I42): {relative path: sha256} → (their motion lines, {path:
+    sha read}, None) — or (None, {…}, why) when a text is missing,
+    unreadable or not the checked text. A text that differs may move on a
+    line the narrow word scan does not see (a modal axis word): no mapping."""
+    import hashlib
+    from pathlib import Path
+    lines, read = frozenset(), {}
+    for rel, want in texts.items():
+        try:
+            data = (Path(tree) / rel).read_bytes()
+        except OSError as e:
+            read[rel] = None
+            return None, read, f"the routine text {rel} is not readable ({e.__class__.__name__})"
+        read[rel] = hashlib.sha256(data).hexdigest()
+        if read[rel] != want:
+            return None, read, f"the routine text {rel} is not the checked one (sha {read[rel][:12]}…)"
+        lines |= motion_lines(data.decode())
+    return lines, read, None
+
+
 def eval_rfl_start_servo(case: str, sec: dict, line: int, entry_xy, safe_z: float,
-                         routine_lines: frozenset, program_lines: frozenset) -> dict:
+                         routine_lines, program_lines: frozenset, sources=None, source_problem=None) -> dict:
     """F-RFL.S3's start point from the servo stream (2c-b, Codex R309–R310).
     Each sample is attributed by `motion.program-line` (the executing
     segment's line) through the TEXTS' line sets — the pre-measurement
@@ -220,9 +242,19 @@ def eval_rfl_start_servo(case: str, sec: dict, line: int, entry_xy, safe_z: floa
     incomplete: line sets that meet, no sample of L, the start unread, no
     anchor, a moving sample on a line no text names, a routine line after the
     program began (the phase order), a section problem, the self-check (L+1
-    moves only Y, L+2 only Z) failing — never over a FAIL."""
+    moves only Y, L+2 only Z) failing — never over a FAIL.
+    The fixed case has a pre-measurement (R311): no routine sample before L
+    leaves the boundary unproven — rules 2 and 4 are not judged, the row
+    incomplete unless 1, 3 or 5 fails; the descent of rule 2 starts at the
+    routine's last known Z (FI-I40), an unread one is no proven step. Routine
+    texts not the checked ones (`source_problem`, routine_sources) map
+    nothing: incomplete, no claim either way (FI-I42)."""
     samples = sec.get("samples") or []
     measured = {"line": line, "entry_xy": list(entry_xy), "safe_z": safe_z, "samples": len(samples)}
+    if sources is not None:
+        measured["sources"] = sources
+    if source_problem or routine_lines is None:
+        return _row(case, "incomplete", source_problem or "the routine texts not read — no mapping", **measured)
     meet = routine_lines & program_lines
     if meet:
         return _row(case, "incomplete", f"the routine's lines meet the program's ({sorted(meet)[:5]}) — no mapping",
@@ -254,9 +286,18 @@ def eval_rfl_start_servo(case: str, sec: dict, line: int, entry_xy, safe_z: floa
         if fails:
             return _row(case, "FAIL", fails[0], **measured)
         return _row(case, "incomplete", f"no sample of line {line}", **measured)
-    last_r = max((i for i in range(first_l) if ln(samples[i][2]) in routine_lines), default=-1)
-    entry = samples[last_r + 1:first_l]
-    zmax = None
+    last_r = max((i for i in range(first_l) if ln(samples[i][2]) in routine_lines), default=None)
+    if last_r is None:
+        # no routine sample: the boundary is not proven, so neither is an
+        # entry — 2 and 4 are not judged (R311 FI-I41)
+        gaps.append(f"no sample of the pre-measurement's routine before line {line} — the boundary is not proven")
+        entry, zmax = [], None
+    else:
+        entry = samples[last_r + 1:first_l]
+        # the step out of the routine counts: from its last known Z (FI-I40)
+        zmax = kv(samples[last_r][2], 2)
+        if zmax is None:
+            gaps.append("Z at the routine's last sample not read — the step into the entry is not proven")
     for _t, n, v in entry:                                              # 2
         z = kv(v, 2)
         if z is None:
@@ -287,7 +328,8 @@ def eval_rfl_start_servo(case: str, sec: dict, line: int, entry_xy, safe_z: floa
         anchor = i
         break
     if anchor is None:
-        gaps.append("no confirmed rest at the entry before the start")
+        if last_r is not None:          # without a boundary its gap is already named
+            gaps.append("no confirmed rest at the entry before the start")
     else:
         p0 = entry[anchor][2]
         measured["anchor_n"] = entry[anchor][1]

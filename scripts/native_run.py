@@ -128,7 +128,12 @@ RFL_Z_LINE, RFL_Z_END = -100.0, -80.0
 #: too — a skipped line would not set it), so each line's axes are its own in
 #: the servo stream; the routine's motion lines (from the run tree's text)
 #: never meet the program's 1…N
-ROUTINE_TEXTS = ("subroutines/tool_length_probe/tool_touch_off.ngc", "subroutines/tool_length_probe/m600.ngc")
+#: — each text bound to the one checked (Codex R311 FI-I42): the routine is
+#: MARKED_POS_ROUTINES' (gateway_util), the wrapper has no motion line
+ROUTINE_TEXTS = {
+    "subroutines/tool_length_probe/tool_touch_off.ngc":
+        "4990c7b303cb43bf0aa8cb11948277072874558f5902d3c48a59133ec555097d",
+    "subroutines/tool_length_probe/m600.ngc": "acbaeb68313eb7f769eea45f5b1bf83455d55976515857f47811c1d0d773e919"}
 RFL_SAFE_Z = 0.0        # the joint Z the safe-Z step leaves (G53 Z0) — lines 7 and 8 run there
 #: P2 (Codex R308–R309): a PROGRAM's M600 after a section saved with the
 #: machine off; then a program with no motion — the same section, no write
@@ -1185,9 +1190,10 @@ def rfl_cases():
                  nc.eval_rfl_no_earlier("rfl-no-earlier-line", hist, run_frames, line=RFL_LINE)]
         if "section" in box:
             from test_support import servo_cases as sc
-            r_lines = frozenset().union(*(sc.motion_lines((ctx["tree"] / rel).read_text()) for rel in ROUTINE_TEXTS))
-            judge = dict(line=RFL_LINE, safe_z=RFL_SAFE_Z, routine_lines=r_lines,
-                         program_lines=frozenset(range(1, len(RFL_PROGRAM.splitlines()) + 1)))
+            r_lines, sources, problem = sc.routine_sources(ctx["tree"], ROUTINE_TEXTS)
+            sources = {**sources, "program": ctx["report"]["rfl_origin"]["source"]}
+            judge = dict(line=RFL_LINE, safe_z=RFL_SAFE_Z, routine_lines=r_lines, sources=sources,
+                         source_problem=problem, program_lines=frozenset(range(1, len(RFL_PROGRAM.splitlines()) + 1)))
             start = sc.eval_rfl_start_servo("rfl-start-point", box["section"], entry_xy=RFL_ENTRY, **judge)
             off = sc.eval_rfl_start_servo("rfl-start-point", box["section"],
                                           entry_xy=(RFL_ENTRY[0] + 1, RFL_ENTRY[1]), **judge)
