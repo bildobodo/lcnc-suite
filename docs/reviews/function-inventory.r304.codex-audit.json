@@ -1,0 +1,66 @@
+{
+  "round": "R304",
+  "date": "2026-11-05",
+  "base": "06fbca5641df8b504d7a4d604dbc0bdb145217f3",
+  "head": "dc52d9c578349d3f250f797a0b6c0958b6be9470",
+  "live_review_head": "27ad13ee931db786cd9d685448f9cf8d05759dd6",
+  "archive": "/tmp/codex-r304",
+  "verdict": "findings",
+  "closed": [
+    "FI-I31",
+    "FI-I34"
+  ],
+  "remaining": [
+    "FI-I32"
+  ],
+  "remain_closed": [
+    "FI-I33",
+    "FI-I35"
+  ],
+  "repo_tests": {
+    "result": "286 passed in 10.27s",
+    "command": "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py",
+    "exit": 0
+  },
+  "probes": {
+    "r302_rerun": {
+      "conforming": 16,
+      "contrary": 0,
+      "exit": 0,
+      "adaptations": []
+    },
+    "r303_rerun": {
+      "conforming": 13,
+      "contrary": 0,
+      "exit": 0,
+      "adaptations": []
+    },
+    "r304": {
+      "conforming": 5,
+      "contrary": 2,
+      "exit": 1
+    }
+  },
+  "findings": {
+    "FI-I32": [
+      "zero_known_descent_missing_X",
+      "zero_known_descent_missing_Y"
+    ]
+  },
+  "reviewed_gate": "/home/cnc/claude-work/teststrat/measure/native.step2c.gate-round.run3.json",
+  "review_before_sha256": "d02bd84205462d7b2b5eba722cb2a43cffccd782aa46cae24eebaf7b261837b2",
+  "source_sha256": {
+    "scripts/native_run.py": "6b15f6ec8bf6b15b1551f395346537e82b0f2ada002c5efcccee34abbec53e8a",
+    "scripts/test_support/servo.py": "37e6d2a601c2157b7473a0f103024b37e3dbd43f79ace8619a7ccdc62746d0a5",
+    "scripts/test_support/servo_cases.py": "2b311231e72fd83764468cbc0b9a77ebb74cca95cc021e5214545468d2af343e",
+    "scripts/test_native_stage.py": "06a2c207d19b13753233339ea17e8dfcf8391aba01241f35c27c10a36719fdb6",
+    "docs/decisions.md": "2de486be2316225d0398e6bfe2c2ad11ddf79ee605333f81e9434e7ac4f3b8ab"
+  },
+  "boundary": {
+    "product_changed": false,
+    "live_builds_or_tests": false,
+    "live_or_machine_access": false,
+    "native_run": false,
+    "old_evidence_changed": false
+  }
+}

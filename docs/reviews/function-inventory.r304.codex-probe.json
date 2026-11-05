@@ -1,0 +1,197 @@
+{
+  "head": "dc52d9c5",
+  "tests": [
+    {
+      "name": "zero_base",
+      "expected": "PASS",
+      "actual": "PASS",
+      "conforms": true,
+      "detail": {
+        "case": "zero_base",
+        "status": "PASS",
+        "detail": "Z up first, then X/Y; no descent (the target's Z is up); at rest on the target",
+        "start": [
+          200.0,
+          200.0,
+          -60.0
+        ],
+        "target": [
+          100.0,
+          100.0,
+          0.0
+        ],
+        "problems": []
+      },
+      "proven_arrival_n": 209,
+      "hidden_axis": null,
+      "hidden_samples": 0,
+      "min_known_z_after_arrival": 0.0
+    },
+    {
+      "name": "zero_known_descent",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "conforms": true,
+      "detail": {
+        "case": "zero_known_descent",
+        "status": "FAIL",
+        "detail": "Z at -0.020 on the target — an up target keeps Z up (sample 210)",
+        "start": [
+          200.0,
+          200.0,
+          -60.0
+        ],
+        "target": [
+          100.0,
+          100.0,
+          0.0
+        ],
+        "problems": []
+      },
+      "proven_arrival_n": 209,
+      "hidden_axis": null,
+      "hidden_samples": 0,
+      "min_known_z_after_arrival": -1.0
+    },
+    {
+      "name": "zero_known_descent_missing_X",
+      "expected": "FAIL",
+      "actual": "incomplete",
+      "conforms": false,
+      "detail": {
+        "case": "zero_known_descent_missing_X",
+        "status": "incomplete",
+        "detail": "the section is flawed: a non-finite channel value",
+        "start": [
+          200.0,
+          200.0,
+          -60.0
+        ],
+        "target": [
+          100.0,
+          100.0,
+          0.0
+        ],
+        "problems": [
+          "a non-finite channel value"
+        ]
+      },
+      "proven_arrival_n": 209,
+      "hidden_axis": 0,
+      "hidden_samples": 99,
+      "min_known_z_after_arrival": -1.0
+    },
+    {
+      "name": "zero_known_descent_missing_Y",
+      "expected": "FAIL",
+      "actual": "incomplete",
+      "conforms": false,
+      "detail": {
+        "case": "zero_known_descent_missing_Y",
+        "status": "incomplete",
+        "detail": "the section is flawed: a non-finite channel value",
+        "start": [
+          200.0,
+          200.0,
+          -60.0
+        ],
+        "target": [
+          100.0,
+          100.0,
+          0.0
+        ],
+        "problems": [
+          "a non-finite channel value"
+        ]
+      },
+      "proven_arrival_n": 209,
+      "hidden_axis": 1,
+      "hidden_samples": 99,
+      "min_known_z_after_arrival": -1.0
+    },
+    {
+      "name": "zero_missing_x_no_violation",
+      "expected": "incomplete",
+      "actual": "incomplete",
+      "conforms": true,
+      "detail": {
+        "case": "zero_missing_x_no_violation",
+        "status": "incomplete",
+        "detail": "the section is flawed: a non-finite channel value",
+        "start": [
+          200.0,
+          200.0,
+          -60.0
+        ],
+        "target": [
+          100.0,
+          100.0,
+          0.0
+        ],
+        "problems": [
+          "a non-finite channel value"
+        ]
+      },
+      "proven_arrival_n": 209,
+      "hidden_axis": 0,
+      "hidden_samples": 20,
+      "min_known_z_after_arrival": 0.0
+    },
+    {
+      "name": "g30_base",
+      "expected": "PASS",
+      "actual": "PASS",
+      "conforms": true,
+      "detail": {
+        "case": "g30_base",
+        "status": "PASS",
+        "detail": "Z up first, then X/Y; the descent after X/Y arrived; at rest on the target",
+        "start": [
+          200.0,
+          200.0,
+          -60.0
+        ],
+        "target": [
+          0.0,
+          0.0,
+          -20.0
+        ],
+        "problems": []
+      },
+      "proven_arrival_n": 209,
+      "hidden_axis": null,
+      "hidden_samples": 0,
+      "min_known_z_after_arrival": -20.0
+    },
+    {
+      "name": "g30_known_undershoot_missing_x",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "conforms": true,
+      "detail": {
+        "case": "g30_known_undershoot_missing_x",
+        "status": "FAIL",
+        "detail": "Z at -20.020 below the target's -20 (sample 260)",
+        "start": [
+          200.0,
+          200.0,
+          -60.0
+        ],
+        "target": [
+          0.0,
+          0.0,
+          -20.0
+        ],
+        "problems": [
+          "a non-finite channel value"
+        ]
+      },
+      "proven_arrival_n": 209,
+      "hidden_axis": 0,
+      "hidden_samples": 99,
+      "min_known_z_after_arrival": -21.0
+    }
+  ],
+  "conforming": 5,
+  "contrary": 2
+}

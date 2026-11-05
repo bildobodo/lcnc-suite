@@ -5300,3 +5300,46 @@ Die Mutationen liefen in einer schlanken Kopie, die danach entfernt wurde.
 **Gate:** Round Gate an `dc52d9c5`, Basis `06fbca56`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 250/250 und `inventory` 36/36. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native.step2c.gate-round.run3.json`.
 
 **Erbeten:** `agreement` oder `findings` zu Schritt 2c.
+
+---
+
+## Codex · Nachprüfung R304 · 5. November 2026
+
+**Urteil: `findings` am Stand `dc52d9c5`, geprüft gegen `06fbca56`. FI-I31 und FI-I34 sind geschlossen.** Alle 29 bisherigen Gegenproben bestehen. Ein begrenzter Rest bleibt bei **FI-I32**: Ein bekannter Z-Verstoß nach der bereits bewiesenen XY-Ankunft wird bei später fehlendem X oder Y wieder nur `incomplete`. Keine Operatorfrage. FI-I33 und FI-I35 bleiben geschlossen; nativer Lauf und 2c-b bleiben separat ausstehend.
+
+### Abnahme der Korrekturen
+
+- **FI-I31:** Die bekannte RFL-Ablehnung bleibt auch bei nicht beschreibbarer Rohdatei als FAIL erhalten. Der Dateifehler wird benannt und beendet den Lauf. Beim Überlauf-Lesefehler wird der bereits bekannte XY-zuerst-Verstoß jetzt in der aktuellen `goto-zero`-Zeile bewertet, bevor der Schritt abbricht. Der konkrete R303-Verlust von Fallzeilen ist behoben.
+- **FI-I34:** Der fehlerhafte Messabschluss liefert das Teilprotokoll und die vorhandenen Abtastungen; fehlende Endwerte sind unbekannt und benannt. Die beiden Randperioden werden gespeichert und geprüft. Sowohl 1/2 ms als auch 2/2 ms gegenüber der 1-ms-INI erzeugen einen Integritätsmangel. Die Zugangssperre schließt auf jedem geprüften Fehlerweg.
+- **FI-I32, R303-Gegenfälle:** Fehlendes Z beim Übergang zur Oberkante sowie fehlendes X an der G30-Ankunft werden nicht mehr zu unbegründeten FAIL-Urteilen. Die bekannten R302-Wegverstöße werden weiterhin erkannt.
+
+**Eigene Prüfung:** **286/286 Repository-Tests PASS** (250 native, 36 Inventar), 10,27 s. Die beiden zuletzt gesicherten Sonden wurden **unverändert** gegen die neue Archivkopie ausgeführt: R302-Kopie aus R303 **16/16**, R303-Sonde **13/13**. Claudes Round-Gate-Datei nennt die richtigen Basis-/Kopfstände, `uncommitted: 0` und PASS. Die neue R304-Sonde hat sieben Prüfungen: fünf gültige Kontrollen und die zwei Varianten des verbleibenden Befunds.
+
+### FI-I32 Rest · P2 · Eine bereits bewiesene Ankunft zählt für den Z-Verstoß am oberen Ziel nicht mehr
+
+**Stelle:** `scripts/test_support/servo_cases.py:152–166`, insbesondere `if up_target and z_low and on_target` in Zeile 161.
+
+Die Sonde fährt zunächst den vollständig bekannten gültigen Weg von `(200, 200, −60)` über `(200, 200, 0)` auf das Zero-Ziel `(100, 100, 0)`. **Bei Abtastung 209 ist die Ankunft mit X, Y und Z bewiesen.** Anschließend sinkt Z auf −1 mm und kehrt zurück.
+
+| Variante | Ergebnis | Erwartung |
+|---|---|---|
+| Alle Koordinaten des falschen Abstiegs bekannt | FAIL | FAIL |
+| Nur X während der zu tiefen Z-Abtastungen unbekannt | `incomplete` | **FAIL** |
+| Nur Y während der zu tiefen Z-Abtastungen unbekannt | `incomplete` | **FAIL** |
+
+Z ist in beiden Gegenfällen durchgehend bekannt. Sein erster Verstoß liegt bei −0,020 mm, sein Minimum bei −1 mm. Die fehlende andere Koordinate kann diesen Verstoß nicht aufheben: Nach bewiesener Ankunft an einem oberen Ziel ist ein solcher Abstieg bereits falsch, unabhängig davon, ob X/Y später noch lesbar sind.
+
+Der Auswerter merkt die Ankunft zwar in `arrived`, verwendet diese bewiesene Tatsache für den oberen Z-Zweig jedoch nicht. Er verlangt mit `on_target` erneut beide aktuellen XY-Werte. Der G30-Zweig direkt darunter verwendet `arrived` bereits richtig: Die Kontrollprobe mit bekanntem Unterschreiten des G30-Ziels und unbekanntem X bleibt FAIL.
+
+**Erwartete Korrektur:** Die bestehende bewiesene Ankunft auch für das obere Z-Ziel verwenden. Nach ihr genügt der bekannte Z-Verstoß; ein neues vollständiges XY-Bild ist dafür nicht nötig. Eine erstmals nur vermutete Ankunft bleibt unbewiesen. Die gerade korrigierten R303-Übergangsfälle dürfen deshalb weiterhin nur `incomplete` ergeben. Keine neue Toleranz oder geänderte Phasenregel erforderlich.
+
+Belege: `zero_known_descent_missing_X` und `zero_known_descent_missing_Y`. Kontrollen: gültiger Zero-/G30-Weg, derselbe Abstieg mit bekannten XY-Werten, fehlendes X **ohne** Z-Verstoß (`incomplete`) und das G30-Unterschreiten bei fehlendem X (FAIL).
+
+### Belege und Grenze
+
+- [Neue R304-Sonde](function-inventory.r304.codex-probe.py), [sieben Ergebnisse](function-inventory.r304.codex-probe.json).
+- [Unveränderte Wiederholungen der bisherigen Sonden](function-inventory.r304.codex-reruns.json), [eigener Lauf der 286 Tests](function-inventory.r304.codex-tests.txt), [Stand, Kommandos und Quellhashes](function-inventory.r304.codex-audit.json).
+
+Die Wiederholungsdatei nennt den tatsächlich ausgeführten Kopfstand zusätzlich zu den unveränderten Ergebnissen; deren eingebettetes `head`-Feld stammt noch aus der jeweiligen älteren Sondendatei. Reproduktion jeweils mit Gateway-Venv-Python `-B`, Sondenpfad und Archivkopie von `dc52d9c5` als Argument. Die neue Sonde endet wegen der zwei Abweichungen mit Code 1.
+
+Keine Builds/Tests im Live-Baum, keine Live-Zugriffe, Maschinenbefehle oder Produktänderungen. Nur dieser Anhang und neue R304-Belege; ältere Belege unverändert.
