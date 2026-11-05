@@ -1,0 +1,61 @@
+{
+  "source_commit": "1bc47a1e",
+  "kind": "plan audit, not a native run",
+  "files": {
+    "lcnc-gateway/status_runtime.py": "93bd0fb450d19f658450d75879acb91198efceb471d1f3e871b07e57fa0ec5a8",
+    "examples/sim_config/xyz3/sim.var": "9487c15b466bf725f971dd9db5667e3a344bb6e1e62971b9059dc833a1d3a08c",
+    "examples/sim_config/sim_toolsetter/sim_toolsetter.comp": "ca0580ff55d914f2fc4292707c803785e0420d5c67c0e396178872e5b96715a7",
+    "subroutines/probe_basic/probe_z_minus_wco.ngc": "f627bc0142833d5656a12f56435901bae87669ca1ceca387d67137ade1487dc6",
+    "scripts/config_sync_check.py": "8db21a0d612c00bdc65b667da9cbf224174c64b418c815a2e506a7048d50dfe5",
+    "scripts/toolsetter_readback_check.py": "4332bd233d000aa43faf38bd0e5b3e80979278630b440a5b82d724217c1116f2",
+    "examples/sim_config/hallib/lcnc_webui.hal": "ae989d84fbd7cd7183dc167f6cd36b6d9ad93fb93df3df4f9dcb76ae0a4ae1d5",
+    "lcnc-webui/tsconfig.app.json": "81c9f4fdd0f75fa9727f049ca4c858464f48d0ea7c6e80abd9f0d07772be9216",
+    "scripts/install_examples.py": "6749dea61e951b22e3d083de54473ad91511410fe062c03abc27f3fbf6919306",
+    "lcnc-webui/e2e/keyboard-guards.spec.ts": "e919973ae9d0fd4cc731e5a1aeb317ca05b85af6750e1ea6c414fc25c96bb16f",
+    "lcnc-webui/e2e/joint-jog.spec.ts": "2a4b0bd843da65398e46aa934e545e3c58558d68d4c423e761e243ac536298d7",
+    "lcnc-webui/e2e/strip-actions.spec.ts": "5e28b7972e704612845b948cd76d18dad7b07f08dcff298b933fd7a80cb010b0"
+  },
+  "tool_change": {
+    "before_request_seq": null,
+    "pending_seq": 1,
+    "literal_greater_than_previous": {
+      "error": "TypeError",
+      "message": "'>' not supported between instances of 'int' and 'NoneType'"
+    },
+    "wire_field": "tool_change_tool",
+    "reader_internal_field": "tool_prep_number"
+  },
+  "probe_geometry": {
+    "start_joint_z": -100.0,
+    "fixed_table_length": 50.0,
+    "plate_z": -180.0,
+    "trip_joint_z": -130.0,
+    "distance_to_contact_mm": 30.0,
+    "shipped_3020_mm": 10.0,
+    "search_end_joint_z": -110.0,
+    "search_end_tip_z": -160.0,
+    "contact_reachable": false,
+    "note": "R283 sets #3015/#3016/#3030 but leaves #3020 at its shipped value."
+  },
+  "hardlink": {
+    "same_inode": true,
+    "source_after_copy_write": "written in copy",
+    "all_files_were_under_tmp": true
+  },
+  "reordered_hal": {
+    "missing": [
+      [
+        49,
+        "addf webui-hb-latch servo-thread"
+      ]
+    ],
+    "local": [
+      [
+        27,
+        "addf webui-hb-latch servo-thread"
+      ]
+    ],
+    "refused_by_shipped_hal_comparison": true,
+    "note": "Pure string mutation only; no HAL file or running configuration changed."
+  }
+}

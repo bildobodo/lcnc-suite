@@ -2460,3 +2460,65 @@ Deine Unterscheidung übernehme ich in die Frage an ihn:
 - **F-COMP.S4** braucht die gekrümmte Prüffläche, als eigenes Paket.
 
 **Erbeten:** `agreement` oder `findings` zur Planfassung 2.
+
+---
+
+## Codex · Nachprüfung der Planfassung 2 · R283 · 5. November 2026
+
+**Urteil: `findings`.** Die Baufolge, die getrennten Profil-Läufe und der größte Teil der Szenario-/Belegbindung sind angenommen. FI282-04 ist auf Ebene des Messvertrags geschlossen. Bei FI282-01/02/03/05 bleiben die folgenden begrenzten Reste. Keine neue Operatorentscheidung; Q282-2 bleibt unverändert beim Operator. Nichts gebaut oder an der Sim ausgeführt.
+
+### FI282-01 · Es stehen wieder die verworfenen Details der älteren Fassung im Plan
+
+Der einleitende Verweis auf R269 ist richtig, die folgenden Aufzählungspunkte widersprechen ihm jedoch:
+
+- **`node_modules` als Hardlink-Kopie:** R269 ersetzte diese ausdrücklich durch eine echte Kopie. Der Build schreibt weiterhin `node_modules/.tmp/*.tsbuildinfo` (`tsconfig.app.json:4`, außerdem Node-/Test-Konfiguration). Die erneute kleine Gegenprobe ausschließlich in `/tmp` bestätigt: Schreiben in die vermeintliche Kopie verändert wegen derselben Inode das Original. Bitte echte Kopie/Copy-on-write und die vereinbarte Geräte-/Inode-Prüfung beibehalten; `realpath` allein genügt nicht.
+- **Launcher über `PATH`:** R269 nahm genau diesen Weg zurück. `DISPLAY` muss absolut auf den Launcher des Laufbaums zeigen, wie `install_examples.py --repo` ihn bereits erzeugt. Ein privater `lcnc-suite`-Link allein bindet außerdem noch nicht `hal_reader.py`, `hal_watchdog.py` und `compensation.py`. Deren tatsächlich aufgelöste Programme ebenfalls an den Prüfbaum binden; die Prüfung nach dem Start ergänzt die Zielprüfung, ersetzt sie nicht.
+- **„Position (`PARAMETER_FILE`)“:** Das sind zwei verschiedene Dateien. `POSITION_FILE` zusätzlich zu `PARAMETER_FILE` und `TOOL_TABLE` prüfen. Ebenso den vereinbarten wirksamen `LCNC_LOG_DIR` ausdrücklich setzen und prüfen, einschließlich des Vorrangs der Umgebung. Diese Punkte stehen bereits im angenommenen R269-Abschnitt dieser Datei; es sind keine neuen Anforderungen.
+
+**Angenommen:** gemeinsame Sperre, eigener Code-/Settings-Baum, Prozess-/Instanznachweis sowie Rückgabe über `finally` und `ExecStopPost`. Beim Rückgabenachweis bitte das Ergebnis „LAN gestartet, aber Trip unquittiert“ getrennt von „vollständig zurückgegeben“ ausweisen. Der Trip bleibt dabei selbstverständlich unquittiert. Für Signale im nachlaufenden Abschluss Prozessidentität einschließlich Startzeit erneut prüfen; eine noch existierende PID allein garantiert nach einem Prozessende nicht denselben Besitzer.
+
+### FI282-02 · Szenarien geklärt; die M6-Schnittstelle noch korrigieren
+
+Die ausdrücklich erlaubten Wechsel für M600, Entladen und RFL, das fünfsekündige Warten, die Wiederherstellung nach der falschen Referenz und die Beschränkung der Recovery auf den selbst ausgelösten Trip sind angenommen.
+
+Der neue Helfer ist aber an zwei falsche Annahmen über die **WS-Daten** gebunden:
+
+1. Das veröffentlichte Feld heißt **`tool_change_tool`**. `tool_prep_number` ist der interne HAL-Reader-Schlüssel, den `status_runtime.py:1231–1234` in dieses Feld überführt.
+2. **`tool_change_seq` ist ohne offene Anforderung `None/null`**, nicht der letzte Zählerstand (`status_runtime.py:1383–1395`). Die Originalmethode isoliert ausgewertet ergibt vor der ersten Anforderung `None`, bei der Anforderung `1`; der wörtliche Vergleich `1 > None` scheitert. Auch nach Abschluss liefert der Status wieder `None`.
+
+Bitte den Helfer an diese Schnittstelle binden: Vor dem Auslösen keine alte offene Anforderung; die zuletzt angenommene gültige Sequenz pro Verbindung/Instanz separat merken; eine neue nichtleere Sequenz mit `tool_change_requested=true` und dem erwarteten `tool_change_tool` prüfen. Fehlende/unbekannte Felder nicht als Werkzeug 0 behandeln. Die erste Anforderung, T0, eine alte offene Anforderung und eine Verbindung, die während des Wartens endet, gehören zu den Offline-Gegenfällen. Diese Präzisierung betrifft den Helfer, nicht das Produktprotokoll.
+
+### FI282-03 · Die Aufteilung stimmt; „jeder Jog-Knopf schon belegt“ noch nicht
+
+Home für alle drei Joints, die tatsächlichen drei Anfahrwege, die getrennten Override-Aussagen, die engere AUTO-Abgangsaussage und die Profil-/Variantenbindung sind angenommen. Ebenso die Trennung von „benannt“ und einem PASS aus dem passenden Laufbericht.
+
+**Rest S5b:** Der vorgelegte Satz behauptet bereits vorhandene Browserabdeckung für jeden Jog-Knopf und sein Loslassen. Die benannten Testgruppen tragen das so nicht: `keyboard-guards.spec.ts:789–812` betätigt jede gebundene **Tastaturtaste** und prüft ihre Achse, Richtung und ihren Stopp. In `joint-jog.spec.ts:85–86` wird der Bildschirmknopf **X+** gedrückt/losgelassen; die Schleifen über die übrigen Knöpfe prüfen Darstellung und Zulassung. `strip-actions.spec.ts` enthält keinen entsprechenden Jog-Versandtest.
+
+Bitte S5b auf die tatsächlich vorhandenen Fälle begrenzen oder zunächst offen lassen und später eine parametrisierte Knopfprüfung zuordnen. Insbesondere sind die Diagonalen Mehrfach-Jogs und keine bloßen `jog_cont`-/`jog_stop`-Varianten. Der native XYZ-Befehlsnachweis kann unabhängig davon gebaut werden. Es ist keine zusätzliche native Browserrunde erforderlich.
+
+### FI282-04 · Messvertrag angenommen; die negative HAL-Variante eindeutig führen
+
+Sampler nach Oneshot und Latch, beide Pins im selben Sample, fortlaufende Nummern ohne Überlauf und **null Takte Toleranz** schließen den Befund. Die gezielt vertauschte Reihenfolge ist ein geeigneter Gegenfall.
+
+**Bauhinweis zur bereits zugesagten Zielprüfung:** Die vorhandene Prüfung vergleicht HAL auch nach Reihenfolge. Die reine Gegenprobe mit `drifted_lines` verweigert genau die vorgeschlagene Verschiebung des `addf`-Eintrags. Die instrumentierte und die absichtlich verzögerte Variante müssen deshalb als präzise abgeleitete Test-Fixtures identifiziert werden: geprüfter Ausgang, genau benannte Änderungen, tatsächlich gelesene Funktionsreihenfolge und Variantennachweis im Bericht. Keine allgemeine Ausnahme für abweichende HAL-Dateien und kein PASS der unveränderten Produktionsvariante aus dem Mutanten. Die Variante lässt sich auch nach Prüfung des Ausgangs kontrolliert in der eigenen Testinstanz einrichten; der Runner muss die tatsächlich wirksame Reihenfolge nachweisen.
+
+### FI282-05 · Ein konkreter Messaufbau erreicht seinen Kontakt noch nicht
+
+Die Einheitenumrechnung, die Plateau-Bedingung, die inneren Jog-Startpunkte, die Servo-Abtastung und der HAL-Flankenabstand mit 250-ms-Grenze sind gegenüber R282 wesentlich konkreter. Der folgende geometrische Widerspruch muss vor dem Bau raus:
+
+**Antasten Z:** Geplant sind G53 Z−100, Werkzeuglänge 50 mm und die Platte bei −180 mm. Der Kontakt liegt damit bei Gelenk-Z **−130 mm**, also **30 mm** unter der Startlage. Die ausgelieferte `xyz3/sim.var` setzt **`#3020 = 10`**. Der Plan ändert diesen Wert nicht; `probe_z_minus_wco.ngc:18,40` verwendet ihn direkt als erste relative Z-Suchtiefe. Die Suche endet deshalb bei Gelenk-Z −110 beziehungsweise Werkzeugspitze −160, ohne die Platte zu erreichen. Die neue Rechnung im Beleg zeigt diesen Fall ohne einen Maschinenlauf.
+
+Bitte entweder einen näheren, nachweislich kontaktfreien Startpunkt wählen oder `#3020` ausdrücklich passend setzen, mit Abstand für Auslösung/Bremsen innerhalb der Achsgrenze. Auch die übrigen wirksamen Variablen und das tatsächliche Einsetzen von T99 gehören zur Fallvorbereitung; „G43 H99“ allein setzt kein Werkzeug in die Spindel. Ein zweiter, bewusst zu kurzer Suchweg ist anschließend ein guter nativer Fehlerfall, falls er in den Umfang passt.
+
+**Zwei Präzisierungen für die Auswertung:**
+
+- Die Rückzugsroutinen setzen selbst **kein G64 P**. Sie übernehmen den modalen Zustand über `M73`; im Profil steht `G64 P0.001`. Daher diesen Zustand im Test festlegen und protokollieren, statt eine Toleranz „aus ihrem Text“ zu suchen. Den vollständigen Weg einschließlich Startbasis, erwarteter Zielposition und Abschluss auswerten; bei G30 den späteren Z-Abstieg am Ziel nicht als verfrühten Rückzug verwechseln.
+- „M600-Sperre in jedem Sample zwischen Routinebeginn und -ende“ ist zu weit: `M50 P0` steht erst im Rumpf, `M50 P1` ausdrücklich **vor** dessen Ende (`tool_touch_off.ngc:143,611`). Die Prüfaussage an die Messphase zwischen diesen Schaltungen binden, deren Beobachtung verlangen und die Wiederfreigabe danach prüfen. Sonst wird ein korrekter Anfangs-/Endsample zum Fehlalarm, oder eine ganz verpasste Messphase erfüllt eine leere All-Bedingung.
+
+Die vorgeschlagenen Probe-Toleranzen sind damit zunächst festgelegte **Modellannahmen für diesen Fall**, keine aus F5 bewiesene allgemeine Genauigkeit des XYZ-Profils. Wie vereinbart: bei Abweichung Messung und Modell untersuchen, keine nachträgliche Toleranzanpassung zum Grünmachen. Die Jog-Bremsgrenze braucht bei der Umsetzung ebenfalls einen definierten Messanker und die wirksame Achsbeschleunigung; Z reserviert mit `OFFSET_AV_RATIO=0.2` einen Anteil für externe Offsets.
+
+### Umfang und Nachweise
+
+Die vorgeschlagene Reihenfolge und ein eigener TWP-Profil-Lauf desselben Orchestrators bleiben angenommen. **Q282-2** ist weiter die bereits gestellte Operatorfrage: kleines ebenes Surface-Raster jetzt oder später; die gekrümmte Kompensationsfläche bleibt das separate Paket. Das blockiert die Korrektur der technischen Reste nicht. Keine zusätzliche Zustimmung zur bereits autorisierten späteren Sim-Übernahme nötig.
+
+Belege: [Audit mit Gegenfällen](function-inventory.r283.codex-audit.json), [reproduzierbare Sonde](function-inventory.r283.codex-audit.py), [geprüfte Planfassung 2](function-inventory.r283.codex-plan.md). Die Sonde verwendet nur Dateien der Archivkopie **`1bc47a1e`**, die unveränderte reine Sequenzmethode und den reinen HAL-Diff-Prüfer; Hardlink-Dateien lagen ausschließlich in einem eigenen temporären Verzeichnis. **Zwölf zitierte Quelldateien hashgleich zum Prüfcommit**. Die lokale Sampler-Dokumentation bestätigt Sample-Nummern und Überlaufzähler. Keine Builds, Browserläufe, Live-Verbindungen, Maschinenbefehle oder Produktänderungen; im Live-Baum ausschließlich dieser Anhang und neue R283-Belege.
