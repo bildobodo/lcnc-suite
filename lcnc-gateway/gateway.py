@@ -4466,8 +4466,10 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
             if why:
                 _rfl_phase("failed", False, why)
                 return
-            await set_mode(linuxcnc.MODE_AUTO)
             try:
+                # the switch admitted in its own write thread too (Codex R311
+                # FI-I38): a section saved after the early check switches nothing
+                await set_mode(linuxcnc.MODE_AUTO, admit=admit)
                 await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None,
                                     admit=admit)
             except _WriteRefused as refused:

@@ -187,6 +187,27 @@ class TestProgramStartSync(unittest.TestCase):
         self.assertEqual(self.cmd.calls, [], "nothing written — not even the skip flag")
         self.assertEqual(spawned, [])
 
+    def test_a_section_changed_before_the_auto_switch_switches_nothing(self):
+        # Codex R311 FI-I38: the background sequence binds its basis to the
+        # AUTO mode switch too, not only to the start after it — a section
+        # saved after the early check leaves the task mode and nothing runs
+        gateway.STAT.task_mode = linuxcnc_mode_mdi = gateway.linuxcnc.MODE_MDI
+        basis = gateway._toolsetter_basis()
+        saved = gateway._program_start_refusal
+
+        def early_check_then_saved_elsewhere(armed):
+            self.section["toolsetter"] = {**SECTION, "touchZ": -150}
+            return None
+        gateway._program_start_refusal = early_check_then_saved_elsewhere
+        self.addCleanup(setattr, gateway, "_program_start_refusal", saved)
+        saved_status = gateway._rfl_status
+        self.addCleanup(setattr, gateway, "_rfl_status", saved_status)
+        td._run(gateway._rfl_sequence(7, pre_tool=0, safe_z=False, spindle_dir=None, spindle_speed=0, basis=basis))
+        self.assertNotIn((MODE_AUTO,), [a for n, a, _k in self.cmd.calls if n == "mode"], self.cmd.calls)
+        self.assertIsNone(self.cmd.args_of("auto"))
+        self.assertEqual(gateway.STAT.task_mode, linuxcnc_mode_mdi)
+        self.assertIn("changed meanwhile", gateway._rfl_status.get("error") or str(gateway._rfl_status))
+
     def test_run_from_line_measures_with_the_chosen_basis_and_binds_it(self):
         self._with_program()
         import toolsetter_rules as tr
