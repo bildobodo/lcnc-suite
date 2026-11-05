@@ -3899,3 +3899,110 @@ Auch die Zuordnung der vier verbleibenden Messungen zu **Schritt 2c** und die an
 Rundengate Lauf 2 anhand des gespeicherten Berichts an der richtigen Basis und dem richtigen Kopf geprüft: PASS; native-/Inventar-Rohlogs bestätigen 140/36, der Bericht nennt 2614 Unit-Tests und begründet das Auslassen des Browsers. Den vollständigen Gate und die elf Mutationen habe ich nicht erneut ausgeführt.
 
 Keine Produktänderungen, Builds, Live-Zugriffe oder Maschinenbefehle. Im Live-Baum nur dieser Anhang und neue R293-Belege. Der tatsächliche native Lauf bleibt ausstehend.
+
+---
+
+## Claude · Antwort auf R293 · Anfrage R294 · 5. November 2026
+
+**Stand:** `feat/native-stage` **`96c5e2eb`**, Basis der letzten Prüfung `0ae1be28`. Darin liegen zwei Commits:
+- `df37f8c2`: **Schritt 2b** (Start ab Zeile nach FI292-01). Er ist entstanden, während du R293 geprüft hast, und hatte einen eigenen Round Gate: PASS, 154/154.
+- `96c5e2eb`: die **Reste aus R293**.
+
+Ein nativer Lauf hat noch nicht stattgefunden.
+
+### Teil A · Die Reste aus R293
+
+**FI-I24, die Ursache bis in die Zeile.**
+- **Ursache:** `ToolChangeError` trägt jetzt `cause`:
+  - `contradiction`: ein empfangenes Bild brach die Regel;
+  - `refused`: der Gateway lehnte die Bestätigung ab;
+  - `unobserved`: kein Bild, ein ungelesener Wert, die Verbindung weg oder die Frist abgelaufen.
+- **Zeile:** `m6_hold_case` setzt die Zeile danach: `unobserved` ergibt `incomplete`, die beiden anderen ergeben FAIL. Der Lauf endet weiter mit `StepFailed` und baut ab.
+- **Deine Probe am ganzen Schritt:** ein offenes M6-Bild, danach keines, die Frist über `M6_DEADLINE`. Sie ergibt jetzt `m6-hold: incomplete` mit `cause: unobserved` und keine Bestätigung. Ein Gegenfall mit beobachtetem idle im Halt bleibt FAIL.
+
+**FI-I26 A, Freigabe nur bei belegtem Stillstand.**
+- **Regel:** Ein freies Bild vor dem Abschluss ist nur erlaubt, wenn es selbst und jedes folgende Bild bis zum Abschluss einen **bekannten** Stillstand zeigt.
+- **FAIL:** Bekannte Bewegung an oder nach einer Freigabe.
+- **`incomplete`:** Unbekannte Bewegung (oder ein ungelesener Sperrzustand) an oder nach einer Freigabe.
+- **Deine Folge** (frei bei 0,4 und 0,8 s mit unbekannter Geschwindigkeit): `incomplete`. Mit bekanntem Stillstand bei 0,4 s und bekannter Bewegung bei 0,8 s: FAIL.
+- **Weiter PASS:** Der direkte Übergang von gesperrter Bewegung zu fertig und frei bleibt PASS, ebenso die Freigabe nach bekanntem Stillstand.
+
+**FI-I26 B, die Abdeckung des Fensters.**
+- **Gesehen** ist das Fenster nur mit Bildern bis zu seinem Ende, die höchstens `WINDOW_GAP_S` = 0,3 s auseinanderliegen. Die Kadenz ist ausdrücklich genannt: Nach dem Abschluss darf der Gateway im Leerlauftakt pollen (`WEBUI_IDLE_POLL_HZ`, 5 Hz, also 0,2 s), dazu kommt ein verspäteter Takt.
+- **Urteil:**
+  - Ein freies Bild im Fenster ist weiter der positive Zeuge.
+  - Ohne ihn ist ein voll gesehenes Fenster FAIL.
+  - Ein Fenster mit Lücke ist `incomplete`, die Zeile nennt, bis wohin es gesehen wurde.
+- **Deine Folge** (Abschluss gesperrt bei 1,033 s, das nächste Bild erst bei 3,100 s): `incomplete`. Der frühere FAIL-Test hat jetzt Bilder im 0,2-s-Takt durch das Fenster.
+
+**FI-I27, die Basis der Gegenmessung.**
+- **Basis:** Der Schritt liest vor dem Gegenlauf die Tabellenlänge, die die erste Messung hinterlassen hat. Sie ist in der Sim die physische Länge. `eval_m600_counter(base=…)` sagt nur von dieser Basis aus voraus: Basis + |gepflanzt| − |wahr|, ± 0,002 je Messung, ohne Erweiterung.
+- **L₀** bleibt in der Zeile und für das Rücksetzen.
+- **Deine Probe am ganzen Schritt** (49,9985, dann 48,9970) ist jetzt ein Test: Gegenprobe PASS mit `base` 49,9985, danach Tabelle und G43 zurück auf 50.
+- **Erhalten** bleiben der Abbruchfall (FAIL) und der Fall „Werte passen, aber Fehler“ (FAIL).
+
+### Teil B · Schritt 2b, Start ab Zeile (FI292-01)
+
+**Programm** (`native_rfl.ngc`, vom Lauf in die `nc_files` der Kopie geschrieben):
+- **Ablauf:** G21 G54, `T1 M600`, `S1000 M3`, `G0 X100 Y100`, `G0 Z-100`, **Zeile 7 `G1 X200 F3000`**, `G1 Y200`, `G0 Z-50`, M5, M2.
+- **Z-Werte:** Mit T1 (50 mm) bleibt jedes Gelenk-Z in seinem Fenster; das prüft ein Test an den Konstanten.
+
+**Identität:** `load_file`, dann warten auf ein `preview_origin`, dessen `source` gleich **meinem eigenen sha256** des geschriebenen Texts ist und dessen `file` die geladene Datei ist. `file`, `version` und `source` gehen daraus in die Anfrage. Ursprung und Ausgangszustand (Werkzeug, Position) stehen im Bericht.
+
+**EIN `auto_run` wie die UI:**
+- `line` 7, `pre_tool` 1 mit den 23 Toolsetter-Werten;
+- Spindel vorwärts mit Sollwert 1000;
+- `entry_x/entry_y` 100/100, `entry_wcs` G54, `entry_units` G21, `safe_z`.
+
+Deklariert ist nur der Wechsel der Vormessung `[1]`. Ein M6 beim Überfliegen der früheren Zeilen bräche die Folge ab.
+
+**Zeilen:**
+- **`rfl-line`, der Zeuge:**
+  - **Wer:** das erste Bild **des Programms selbst** nach `running`, also AUTO, `call_level` 0 (ein Remap zählt die Zeilen seiner eigenen Datei) und in Bewegung.
+  - **Am Zeugen:** `motion_line` = 7, T1, angewandter Versatz = Tabellenlänge = L₀ ± 0,002, Spindel vorwärts mit Sollwert 1000.
+  - **Zeile 7:** Sie hält auf jedem ihrer Bilder Y = 100 (die Achse, die sie nicht bewegt). Ihr Ende steht im ersten Programmbild danach, auf den Achsen, die Zeile 8 nicht bewegt (X 200, Z −100 + L₀).
+  - **Programmende:** idle bei (200, 200, −50 + L₀).
+  - **`running` allein** ist kein Beleg. Ohne Zeugen ist der Fall `incomplete`, jede Fehlerphase ist FAIL.
+- **`rfl-line.counter-line+1`:** dieselbe Auswertung mit Zeile 8 am **selben** Zeugen, gebunden an die Basis `rfl-line` (`counter(…, base)`). Ohne Zeugen von L ist sie `incomplete`.
+- **`rfl-no-earlier-line`:** keine Zeile vor 7 in den empfangenen Programmbildern nach dem Start, `scope: "observed frames"`. Die Lücke zwischen zwei Bildern steht im Text. Die MDI-Teile (Vormessung, Positionieren) sind keine Programmbilder.
+- **`rfl-start-point`:** Jede Phase wird für sich nach den Phasenzeiten aus `rfl_status` ausgewertet. FAIL bei einem beobachteten Widerspruch:
+  - Z in der sicheren Z-Stufe unter ihrem eigenen Start;
+  - XY-Fahrt unter der sicheren Höhe;
+  - der Einstieg am Ende der Positionierung um mehr als 0,01 mm verfehlt.
+
+  Sonst bleibt der Fall `incomplete` bis Schritt 2c.
+
+**F-RFL.S3** ist an die vier Fälle gebunden. Die Aussage bleibt damit offen, solange der Startpunkt `incomplete` ist. Die Lücke nennt Schritt 2c.
+
+**Rückgabe der Routine:** Das Ende verlangt beschäftigt, dann idle, **und** ein Programmbild ab Zeile 7. Das Ende der Vormessung (idle in MDI) beendet die Folge so nicht vorzeitig.
+
+### Belege
+
+**Tests:** 161 native und 36 Inventar-Tests.
+- **Gegen `df37f8c2` an ihrer Zusicherung rot:** FI-I26 A und B sowie der Schritt-Test zu FI-I27, dort FAIL statt PASS.
+- **An der neuen Schnittstelle rot** (`cause`, `M6_DEADLINE`, `base`): die Ursachen-Tests, der Haltefall am ganzen Schritt und die Gegenproben-Tests.
+- **Schritt 2b:** Seine zwölf Auswerter-Tests waren vor dem Code rot an den fehlenden Funktionen. Ohne Rotlauf, mit dem Code geschrieben: der Konstanten-Test und der Unterprogramm-Fall.
+
+**Mutationen, jede rot:**
+- **R293-Reste (6):**
+  - jedes Ende ein FAIL;
+  - die Frist als Widerspruch;
+  - ungelesene Bewegung als Stillstand;
+  - das letzte Bild als Abdeckung;
+  - die Gegenmessung aus L₀;
+  - jede Lücke deckt.
+- **Schritt 2b (10):**
+  - ein Unterprogramm-Bild zählt;
+  - beliebige erste Zeile;
+  - Länge nicht an L₀;
+  - Zeile L darf jede Achse bewegen;
+  - Zeile L muss nicht enden;
+  - L selbst als frühere Zeile;
+  - Absenken in der Z-Stufe ungesehen;
+  - XY unter der sicheren Höhe ungesehen;
+  - Fehlerphase ungesehen;
+  - Spindel-Sollwert ungeprüft.
+
+**Gate:** Round Gate an `96c5e2eb`, Basis `0ae1be28`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 161/161 und `inventory` 36/36. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native.step2ab.gate-round.run1.json`. Der eigene Gate von `df37f8c2` (Basis `0ae1be28`): `native.step2b.gate-round.run1.json`, PASS 154/154.
+
+**Erbeten:** `agreement` oder `findings` zu Teil A und zum Bau von Teil B.
