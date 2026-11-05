@@ -89,6 +89,13 @@ PROBE_OVER, MISS_OVER = 8.0, 15.0
 PROBE_VARS = (3014, 3015, 3016, 3017, 3020, 3021, 3030)          # what probe_z_minus_wco reads
 TOOLSETTER_VARS = (3004, 3005, 3006, 3007, 3009, 3010, 3013) + tuple(range(3100, 3116))   # toolsetterVarMap
 M600_SLOW = 20.0
+#: T1 M600 starts at G53 Z -(L0 + this): its return (#3106 = 1, mode 1) puts
+#: the new tool's TIP at the start Z taken under T0 — from the top that asks
+#: for the spindle at +L ("would exceed Z's positive limit", live run 2026-11-05)
+M600_CLEAR = 20.0
+#: a write or start right after a routine waits this long for the gateway to
+#: release the routine's start claim (~0.3 s after an error, live run 2026-11-05)
+CLAIM_WAIT_S = 3.0
 MEASURED_TOOL = 1       # its case ids below name it literally ("m600-t1")
 HOLD_S = 5.0
 M6_DEADLINE = 60.0      # s for the held change to complete
@@ -157,10 +164,12 @@ def run(host, steps, run_dir: Path) -> dict:
         write_json(pre_path, pre)             # with the hashes the stop left
         for name, fn in steps:
             report["steps"].append(name)
+            ctx["rows"] = []            # the step's rows as it measures them: kept on ANY exception
             rows = fn(ctx) or []
             report["rows"] += rows
     except Exception as e:  # noqa: BLE001 — every failure ends in the restore and the report
-        report["rows"] += getattr(e, "rows", [])
+        rows = getattr(e, "rows", None)
+        report["rows"] += rows if rows is not None else ctx.get("rows", [])
         report["error"] = f"{type(e).__name__}: {e}"
         report["traceback"] = traceback.format_exc()
     finally:
@@ -431,7 +440,7 @@ def _wait(client, pred, timeout, what):
 
 def home_cases(joints: int):
     def step(ctx):
-        c, rows = ctx["client"], []
+        c, rows = ctx["client"], ctx.setdefault("rows", [])
         if len(HOME_CASES) != joints + 1:
             raise Refused(f"the home cases name {len(HOME_CASES) - 1} joints, the profile has {joints}")
         try:
@@ -473,7 +482,7 @@ def _home_joints(c, joints: int):
 
 def jog_cases(joints: int):
     def step(ctx):
-        c, frames, rows, servo_rows = ctx["client"], ctx["frames"], [], []
+        c, frames, rows, servo_rows = ctx["client"], ctx["frames"], ctx.setdefault("rows", []), []
         start = "G53 G0 " + " ".join(f"{a}{v:g}" for a, v in zip("XYZ", JOG_START))
         if {axis for _, axis, _ in JOG_CASES} != set(range(joints)):
             raise Refused(f"the jog cases do not name the profile's {joints} axes")
@@ -524,7 +533,7 @@ def plateau_cases():
     first section re-judged against a planted 75 mm/s."""
     def step(ctx):
         from test_support import servo_cases as sc
-        c, rows = ctx["client"], []
+        c, rows = ctx["client"], ctx.setdefault("rows", [])
         _servo_prep(c)
         sections = {}
         for scale, case in ((1.0, "override-plateau-100"), (0.5, "override-plateau-50")):
@@ -557,7 +566,7 @@ def goto_cases():
     def step(ctx):
         from test_support import servo_cases as sc
         from test_support import tool_change as tc
-        c, rows = ctx["client"], []
+        c, rows = ctx["client"], ctx.setdefault("rows", [])
         _servo_prep(c)
         for line in (f"G10 L2 P1 X{GOTO_G54[0]:g} Y{GOTO_G54[1]:g} Z0", "G54", "G64 P0.001"):
             _short(c, line)
@@ -634,7 +643,7 @@ def _routine(c, text, vars=None, declared=(), hold_s=0.0, deadline=120.0, requir
         raise RuntimeError(f"{text}: {refusal}")
     seen, cursor = len(c.errors), len(c.frames)
     t0 = time.monotonic()
-    c.request("mdi", text=text, **({"vars": {str(k): v for k, v in vars.items()}} if vars else {}))
+    _when_free(c, "mdi", text=text, **({"vars": {str(k): v for k, v in vars.items()}} if vars else {}))
     end = tc.RoutineEnd(require_busy=require_busy, grace=SHORT_GRACE)
 
     def done(t, st):
@@ -681,8 +690,24 @@ def _tool_z(c, tool):
     return None if row is None else row.get("Z")
 
 
+def _when_free(c, cmd, **kw):
+    """A write or a start right after a routine: the gateway refuses it while
+    the routine's start claim is held ("A program or macro is starting or
+    running — wait") and releases the claim on its next status proof — asked
+    again for CLAIM_WAIT_S; any other refusal ends it at once. A refused
+    command was not sent, so asking again sends it once."""
+    end = time.monotonic() + CLAIM_WAIT_S
+    while True:
+        try:
+            return c.request(cmd, **kw)
+        except RuntimeError as e:
+            if "starting or running" not in str(e) or time.monotonic() >= end:
+                raise
+            time.sleep(0.1)
+
+
 def _set_tool_length(c, tool, length):
-    c.request("save_tool", tool_number=tool, z_offset=length)
+    _when_free(c, "save_tool", tool_number=tool, z_offset=length)
     back = _tool_z(c, tool)
     if back is None or abs(back - length) > nc.SAME:
         raise Refused(f"T{tool}'s length {length} not read back from the table (read {back})")
@@ -701,7 +726,7 @@ def probe_cases():
     G54 Z = the plate; started beyond the search depth it records no contact
     and sets nothing; a planted plate 1 mm off is refused."""
     def step(ctx):
-        c, rows = ctx["client"], []
+        c, rows = ctx["client"], ctx.setdefault("rows", [])
         plate = ctx["plate"] = plate_from_hal(_hal_texts(ctx["ini"]))
         ctx["report"]["plate"] = plate
         _set_tool_length(c, PROBE_TOOL, PROBE_L0)
@@ -747,6 +772,12 @@ def probe_cases():
         planted = nc.eval_probe_z("probe-z", contact, g54, expected=plate["z"] + 1, errors=errors)
         rows += [hit, nc.counter("probe-z.counter-plate-1", planted, hit)]
         _short(c, "G10 L2 P1 Z0")
+        # a G38.2 ending without contact aborts the routine and leaves #5070
+        # as the LAST probe wrote it — 1 from the hit (live run 2026-11-05):
+        # planted 0 and read back, its read after the miss is evidence again
+        _short(c, "#5070=0")
+        if _read_params(c, [5070])[5070] != 0:
+            raise Refused("#5070 not planted 0 before the miss")
         contact, before, after, errors = probe_from(MISS_OVER)
         rows.append(nc.eval_probe_miss("probe-z-miss", contact, before, after, errors))
         rows[-1]["vars_read_back"] = {str(k): v for k, v in _vars(c, PROBE_VARS).items()}
@@ -762,7 +793,7 @@ def m600_cases():
     length and #3102 are put back and read back (a reset that fails ends the
     run: the sim's physical length IS the table length)."""
     def step(ctx):
-        c, frames, plate, rows = ctx["client"], ctx["frames"], ctx["plate"], []
+        c, frames, plate, rows = ctx["client"], ctx["frames"], ctx["plate"], ctx.setdefault("rows", [])
         tool = MEASURED_TOOL
         l0 = _tool_z(c, tool)
         if l0 is None:
@@ -776,6 +807,7 @@ def m600_cases():
             u = _routine(c, "T0 M600", vars=vars_, declared=[0], deadline=120.0,
                          extra=lambda st: st.get("tool_number") == 0)
             unload = (u, c.status.get("tool_number"), (c.status.get("tool_offset") or [None] * 3)[2])
+            _to(c, plate["x"], plate["y"], -(l0 + M600_CLEAR))
             r = _routine(c, f"T{tool} M600", vars=vars_, declared=[tool], deadline=180.0,
                          extra=lambda st: st.get("tool_number") == tool)
             st = c.status
@@ -806,7 +838,7 @@ def m600_cases():
         rows.append(crow)
         # the reset, read back: the table length, #3102, the applied offset
         _set_tool_length(c, tool, l0)
-        c.request("set_probe_vars", vars={"3102": plate["z"]})
+        _when_free(c, "set_probe_vars", vars={"3102": plate["z"]})
         back = _vars(c, [3102])[3102]
         if back is None or abs(back - plate["z"]) > nc.SAME:
             raise Refused(f"#3102 not put back: {back}")
@@ -874,7 +906,7 @@ def rfl_cases():
         import hashlib
         from test_support import live_session as ls
         from test_support import tool_change as tc
-        c, frames, rows = ctx["client"], ctx["frames"], []
+        c, frames, rows = ctx["client"], ctx["frames"], ctx.setdefault("rows", [])
         tool = MEASURED_TOOL
         l0 = _tool_z(c, tool)
         if l0 is None:

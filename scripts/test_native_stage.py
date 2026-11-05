@@ -1489,6 +1489,7 @@ def test_the_m600_step_refuses_a_counter_that_failed_for_another_reason(monkeypa
         client.status["tool_offset"] = [0, 0, client.table]
     monkeypatch.setattr(nr, "_routine", routine)
     monkeypatch.setattr(nr, "_short", short)
+    monkeypatch.setattr(nr, "_to", lambda client, x, y, z: None)
     rows = nr.m600_cases()[1]({"client": c, "frames": frames, "plate": {"x": 10, "y": 10, "z": -180}})
     by = {r["case"]: r for r in rows}
     assert calls == [-180, -179], "the counter ran with #3102 planted 1 mm up"
@@ -1718,6 +1719,7 @@ def test_the_m600_step_predicts_the_counter_from_the_length_the_first_measuremen
         client.status["tool_offset"] = [0, 0, client.table]
     monkeypatch.setattr(nr, "_routine", routine)
     monkeypatch.setattr(nr, "_short", short)
+    monkeypatch.setattr(nr, "_to", lambda client, x, y, z: None)
     rows = nr.m600_cases()[1]({"client": c, "frames": frames, "plate": {"x": 10, "y": 10, "z": -180}})
     by = {r["case"]: r for r in rows}
     assert by["m600-t1"]["status"] == "PASS", by["m600-t1"]
@@ -2939,3 +2941,135 @@ def test_a_home_step_that_cannot_go_on_keeps_its_rows(monkeypatch):
     with pytest.raises(nr.StepFailed) as e:
         step({"client": c})
     assert [(r["case"], r["status"]) for r in e.value.rows] == [("home-all", "PASS"), ("home-joint-0", "FAIL")]
+
+
+# ── the fourth live run (2026-11-05): the rows of a failing step, the stale
+#    #5070 after a miss, the M600 return, the start claim after an error ──
+def test_a_step_that_raises_keeps_the_rows_it_measured(tmp_path):
+    """The m600 step raised at its reset (a refused save_tool) and its four
+    measured rows were lost: a step's rows live in ctx["rows"], kept on any
+    exception."""
+    def step(ctx):
+        ctx["rows"].append({"case": "m600-t1", "status": "PASS"})
+        raise RuntimeError("save_tool refused: A program or macro is starting or running — wait")
+    report = nr.run(FakeHost(), [("m600", step)], tmp_path / "run")
+    assert report["rows"] == [{"case": "m600-t1", "status": "PASS"}] and "save_tool" in report["error"]
+
+
+def _claim_client(refusals, text="A program or macro is starting or running — wait"):
+    from test_support.live_session import Refused
+
+    class C:
+        asked = 0
+        table = None
+
+        def request(self, cmd, **kw):
+            self.asked += 1
+            if cmd == "get_tool_table":
+                return {"tools": [{"T": 1, "Z": self.table}]}
+            if self.asked <= refusals:
+                raise Refused(f"{cmd} refused: {text}")
+            self.table = kw.get("z_offset")
+            return {"ok": True}
+    return C()
+
+
+def test_a_write_after_an_errored_routine_waits_for_the_released_start_claim(monkeypatch):
+    """Live: a T1 M600 ended in an error, the next save_tool came before the
+    gateway released the routine's start claim (~0.3 s after the error) —
+    refused "starting or running — wait". The write is asked again while the
+    claim is held; any other refusal ends it at once."""
+    monkeypatch.setattr(nr, "CLAIM_WAIT_S", 1.0)
+    c = _claim_client(2)
+    nr._set_tool_length(c, 1, 48.9991)
+    assert c.table == 48.9991
+    other = _claim_client(1, text="Not armed — press Arm")
+    with pytest.raises(RuntimeError, match="Not armed"):
+        nr._set_tool_length(other, 1, 48.9991)
+    assert other.asked == 1, "another refusal is not asked again"
+    monkeypatch.setattr(nr, "CLAIM_WAIT_S", 0.2)
+    with pytest.raises(RuntimeError, match="starting or running"):
+        nr._set_tool_length(_claim_client(10 ** 6), 1, 48.9991)
+
+
+def test_the_probe_miss_reads_a_planted_5070(monkeypatch):
+    """Live: a G38.2 that ends without contact aborts its routine and leaves
+    #5070 as the LAST probe wrote it — 1 from the hit before; the miss was
+    judged FAIL on that stale 1. #5070 is planted 0 and read back before the
+    miss (rs274: #5070 is writable), so its read after is evidence."""
+    from test_support import tool_change as tc
+    params, g54, probes = {5070: 0.0, 5063: 0.0}, {"z": 0.0}, []
+
+    class Client:
+        frames = []
+        status = {"tool_offset": [0, 0, nr.PROBE_L0], "tool_number": nr.PROBE_TOOL}
+
+        def request(self, cmd, **kw):
+            if cmd == "get_probe_vars":
+                return {"vars": {str(k): 1.0 for k in kw["vars"]}}
+            return {"ok": True}
+
+    def short(c, text):
+        if text.startswith("#5070="):
+            params[5070] = float(text.split("=")[1])
+        if text == "G10 L2 P1 Z0":
+            g54["z"] = 0.0
+
+    def routine(c, text, vars=None, **kw):
+        probes.append(text)
+        if len(probes) == 1:                       # the hit: contact, G54 Z = the plate
+            params[5070], g54["z"] = 1.0, -180.0
+            return {"errors": []}
+        return {"errors": [(11, "G38.2 move finished without making contact.")]}   # #5070 untouched
+    for name, fn in {"plate_from_hal": lambda t: {"x": 10.0, "y": 10.0, "z": -180.0}, "_hal_texts": lambda ini: "",
+                     "_set_tool_length": lambda c, t, l: None, "_short": short, "_routine": routine,
+                     "_to": lambda c, x, y, z: None, "_g54_z": lambda st: g54["z"],
+                     "_read_params": lambda c, nums, tries=3: {n: params[n] for n in nums}}.items():
+        monkeypatch.setattr(nr, name, fn)
+    monkeypatch.setattr(tc, "serve", lambda *a, **k: [])
+    monkeypatch.setattr(tc.ToolChanges, "precheck", lambda self, st: None)
+    rows = nr.probe_cases()[1]({"client": Client(), "ini": Path("x.ini"), "report": {}, "rows": []})
+    by = {r["case"]: r for r in rows}
+    assert by["probe-z"]["status"] == "PASS", by["probe-z"]
+    assert by["probe-z-miss"]["status"] == "PASS", by["probe-z-miss"]
+
+
+def test_each_t1_measurement_starts_where_its_return_is_reachable(monkeypatch):
+    """Live: the unload (T0 M600) leaves the spindle at G53 Z0; T1 M600 from
+    there measured, then its return to the start (#3106 = 1, mode 1: the TIP
+    to the start Z taken under T0) asked for the spindle at +49 — "would
+    exceed Z's positive limit", the routine ended in an error. Each T1
+    measurement starts at G53 Z -(L0 + M600_CLEAR), with no offset."""
+    order = []
+
+    class Client:
+        def __init__(self):
+            self.status = {"tool_number": 99, "tool_offset": [0, 0, 50], "tool_table_z": 50.0}
+            self.vars = {n: 0 for n in nr.TOOLSETTER_VARS} | {3102: -180}
+            self.table = 50.0
+
+        def request(self, cmd, **kw):
+            if cmd == "get_tool_table":
+                return {"tools": [{"T": 1, "Z": self.table}]}
+            if cmd == "get_probe_vars":
+                return {"vars": {str(k): self.vars[k] for k in kw["vars"]}}
+            if cmd in ("save_tool", "set_probe_vars"):
+                self.table = kw.get("z_offset", self.table)
+                self.vars.update({int(k): v for k, v in kw.get("vars", {}).items()})
+                return {"ok": True}
+            raise AssertionError((cmd, kw))
+    c = Client()
+
+    def routine(client, text, vars=None, **kw):
+        order.append(text)
+        tool = 0 if text == "T0 M600" else 1
+        client.status.update(tool_number=tool, tool_offset=[0, 0, 0 if tool == 0 else client.table])
+        return {"t0": 0, "t_done": time.monotonic() - 10, "served": [{"tool": tool, "seq": len(order)}], "errors": []}
+    monkeypatch.setattr(nr, "_routine", routine)
+    monkeypatch.setattr(nr, "_short", lambda client, text: client.status.__setitem__("tool_offset", [0, 0, client.table]))
+    monkeypatch.setattr(nr, "_to", lambda client, x, y, z: order.append(("to", x, y, z)))
+    nr.m600_cases()[1]({"client": c, "frames": [], "plate": {"x": 10, "y": 10, "z": -180}})
+    t1 = [i for i, o in enumerate(order) if o == "T1 M600"]
+    assert len(t1) == 2, order
+    for i in t1:
+        assert order[i - 1] == ("to", 10, 10, -(50.0 + nr.M600_CLEAR)), order
