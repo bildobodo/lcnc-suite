@@ -12,7 +12,7 @@ from urllib.parse import urlencode
 
 
 class SimulatorClient:
-    def __init__(self, token, session="test-suite-live-twp", auto_confirm=True, on_status=None):
+    def __init__(self, token, session="test-suite-live-twp", auto_confirm=True, on_status=None, keep=None):
         self.token = token
         # live-twp confirms every simulated M6 itself; the native stage never
         # does (plan Codex R282–R284): its cases confirm the one request they
@@ -38,6 +38,11 @@ class SimulatorClient:
         self.rfl_history: list = []       # (monotonic s, rfl_status) on each change
         self.preview_origin = None
         self.probe_results: dict = {}
+        # every status frame RECEIVED, in receipt order: (monotonic s, the
+        # `keep` fields of the merged status) — a case reads frames, never
+        # re-reads of `status` (R292 FI-I24: a cache read is no observation)
+        self.keep = tuple(keep) if keep else None
+        self.frames: list = []
 
     def send(self, command):
         self.ws.send(json.dumps(command))
@@ -83,6 +88,8 @@ class SimulatorClient:
                 self.preview_origin = msg["preview_origin"]
             if isinstance(msg.get("probe_results"), dict):
                 self.probe_results.update(msg["probe_results"])
+            if self.keep is not None:
+                self.frames.append((now, {k: self.status.get(k) for k in self.keep}))
             if self.on_status:
                 self.on_status(now, dict(self.status))
             requested = self.status.get("tool_change_requested", False)

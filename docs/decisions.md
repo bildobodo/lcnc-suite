@@ -10602,3 +10602,23 @@ F-TOOLMEASURE.S5/S6b are rewritten as the plan agreed and bound to their
 cases. Owed and named: the feed-override plateau (STAT at 50 Hz) and the
 retract path (servo sampling, Q288-1) — no build step owns them yet; Run
 from line waits for its contract.
+
+Codex R292, step 2a: the hold judges the frames RECEIVED (a cursor over the
+client's frames in receipt order, each once — a re-read of the status cache
+is no observation; a stretch with no frame leaves the hold unobserved,
+incomplete, never contradicted); the end check sees every frame, the busy
+ones while M6 waits too, only the return waits for no change pending; the
+override's measuring phase is the motion's (locked from the first locked
+frame through the last frame with motion before the completion), and the
+2 s after the completion are waited for — a window not observed to its end
+is incomplete; a counter-probe holds only on its own valid run (the probe
+plant re-judges a measurement that passed against the true plate; the
+#3102 counter is its own run, clean, applied as measured, deviating by
+exactly |planted| − |true|); every evaluator judges a part as soon as its
+own values are known, an error of kind 1/11 from the routine is a FAIL.
+Run from line (FI292-01): built next as step 2b — the request names the
+loaded file, version, source, G54/G21; `running` is a start message, the
+witness is a motion of line L itself with its tool, offset and the spindle
+SET value; the start point (no lowering in the safe-Z stage) waits for the
+servo measurement, step 2c, together with the override plateau and the
+retract path.

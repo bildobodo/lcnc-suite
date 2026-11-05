@@ -16,9 +16,11 @@ Build step 2a (plan R283–R285): Z probing on the plate (+ the miss beyond the
 search depth, a planted plate 1 mm off), M600 (unload T0, measure T1 with the
 override lock, #3102 planted 1 mm off, the reset read back) and the M6 hold.
 The client confirms nothing itself: every routine runs under the M6 helper
-(test_support/tool_change.py) with its declared changes; a routine ends on
-the interpreter seen busy, then idle, AND its effect. Run from line: its
-contract is proposed (R292), not built.
+(test_support/tool_change.py) with its declared changes, fed the frames the
+client RECEIVED, in order (R292 FI-I24); a routine ends on the interpreter
+seen busy, then idle, AND its effect, judged on every frame (FI-I25). Run
+from line is step 2b (contract FI292-01); its start point, the override
+plateau and the retract path wait for the servo measurement, step 2c.
 
 Never imports linuxcnc or hal: the gateway by its WebSocket, HAL by halcmd.
 It runs only as a user unit whose ExecStopPost is the restore, so a killed
@@ -297,10 +299,8 @@ def connect_client():
     def step(ctx):
         from test_support.live_session import SimulatorClient
         token = (lt.ini_values(ctx["ini"].read_text()).get(("DISPLAY", "WEBUI_TOKEN")) or [""])[-1]
-        frames: list = []
-        client = SimulatorClient(token, session="native-stage", auto_confirm=False,
-                                 on_status=lambda t, st: frames.append((t, {k: st.get(k) for k in FRAME_KEYS})))
-        ctx.update(client=client, frames=frames, cleanup=lambda: _stop_copy(ctx))
+        client = SimulatorClient(token, session="native-stage", auto_confirm=False, keep=FRAME_KEYS)
+        ctx.update(client=client, frames=client.frames, cleanup=lambda: _stop_copy(ctx))
         client.start()
         client.request("estop_reset")
         _wait(client, lambda s: s.get("is_estop") is False, 10, "E-Stop reset")
@@ -410,7 +410,7 @@ def _routine(c, text, vars=None, declared=(), hold_s=0.0, deadline=120.0, requir
     refusal = changes.precheck(c.status)
     if refusal:
         raise RuntimeError(f"{text}: {refusal}")
-    seen = len(c.errors)
+    seen, cursor = len(c.errors), len(c.frames)
     t0 = time.monotonic()
     c.request("mdi", text=text, **({"vars": {str(k): v for k, v in vars.items()}} if vars else {}))
     end = tc.RoutineEnd(require_busy=require_busy, grace=SHORT_GRACE)
@@ -420,8 +420,9 @@ def _routine(c, text, vars=None, declared=(), hold_s=0.0, deadline=120.0, requir
         # routine runs (the probe's M50 P0), never only on idle frames
         effect = extra(st) if extra else True
         return end(t, st) and effect
-    served = tc.serve(c, changes, done, deadline)
-    return {"t0": t0, "served": served, "changes": changes, "errors": [x for _, _, x in c.errors[seen:]]}
+    served = tc.serve(c, changes, done, deadline, cursor=cursor)
+    return {"t0": t0, "t_done": changes.ended_at, "served": served, "changes": changes,
+            "errors": [(k, x) for _, k, x in c.errors[seen:]]}
 
 
 def _short(c, text):
@@ -490,9 +491,10 @@ def probe_cases():
         refusal = changes.precheck(c.status)
         if refusal:
             raise RuntimeError(f"T{PROBE_TOOL}: {refusal}")
+        cursor = len(c.frames)
         c.request("tool_change", tool_number=PROBE_TOOL)
         end = tc.RoutineEnd()
-        tc.serve(c, changes, lambda t, st: end(t, st) and st.get("tool_number") == PROBE_TOOL, 60.0)
+        tc.serve(c, changes, lambda t, st: end(t, st) and st.get("tool_number") == PROBE_TOOL, 60.0, cursor=cursor)
         shipped = _vars(c, PROBE_VARS)
         probe_vars = {**shipped, 3030: 0}
 
@@ -515,11 +517,13 @@ def probe_cases():
             p = _read_params(c, [5070, 5063])
             return p[5070], before, _g54_z(c.status), r["errors"]
 
-        contact, _, g54, _ = probe_from(PROBE_OVER)
-        hit = nc.eval_probe_z("probe-z", contact, g54, expected=plate["z"])
+        contact, _, g54, errors = probe_from(PROBE_OVER)
+        hit = nc.eval_probe_z("probe-z", contact, g54, expected=plate["z"], errors=errors)
         hit["vars_sent"] = {str(k): v for k, v in probe_vars.items()}
-        rows += [hit, nc.counter("probe-z.counter-plate-1", nc.eval_probe_z("probe-z", contact, g54,
-                                                                              expected=plate["z"] + 1))]
+        # the same measurement against a plate planted 1 mm off: refused only
+        # because of the plant — it passed against the true one (R292 FI-I27)
+        planted = nc.eval_probe_z("probe-z", contact, g54, expected=plate["z"] + 1, errors=errors)
+        rows += [hit, nc.counter("probe-z.counter-plate-1", planted, hit)]
         _short(c, "G10 L2 P1 Z0")
         contact, before, after, errors = probe_from(MISS_OVER)
         rows.append(nc.eval_probe_miss("probe-z-miss", contact, before, after, errors))
@@ -545,24 +549,34 @@ def m600_cases():
         if abs(ts[3102] - plate["z"]) > nc.SAME:
             raise Refused(f"#3102 {ts[3102]} is not the plate {plate['z']} — the copy's setup differs")
 
-        def measure(vars_, case, unload_case=None):
+        def measure(vars_):
+            """T0 M600 then T1 M600 with `vars_`: each from another spindle tool."""
             u = _routine(c, "T0 M600", vars=vars_, declared=[0], deadline=120.0,
                          extra=lambda st: st.get("tool_number") == 0)
-            if unload_case:
-                rows.append(nc.eval_unload(unload_case, u["served"], c.status.get("tool_number"),
-                                           (c.status.get("tool_offset") or [None] * 3)[2]))
+            unload = (u, c.status.get("tool_number"), (c.status.get("tool_offset") or [None] * 3)[2])
             r = _routine(c, f"T{tool} M600", vars=vars_, declared=[tool], deadline=180.0,
                          extra=lambda st: st.get("tool_number") == tool)
             st = c.status
-            row = nc.eval_m600(case, l0, st.get("tool_table_z"), (st.get("tool_offset") or [None] * 3)[2])
-            row["table_on_disk"] = _tool_z(c, tool)
-            return row, r
+            return unload, r, st.get("tool_table_z"), (st.get("tool_offset") or [None] * 3)[2], st.get("tool_number")
 
-        row, r = measure(ts, "m600-t1", unload_case="m600-unload")
+        unload, r, length, g43, _ = measure(ts)
+        rows.append(nc.eval_unload("m600-unload", unload[0]["served"], unload[1], unload[2]))
+        row = nc.eval_m600("m600-t1", l0, length, g43, errors=r["errors"])
+        row["table_on_disk"] = _tool_z(c, tool)
         rows.append(row)
+        # the release window is WAITED for (R292 FI-I26 B): a free frame at or
+        # after the completion, or the window's end — then judged
+        until = r["t_done"] + nc.RELEASE_WITHIN + 0.1
+        while time.monotonic() < until and not any(t >= r["t_done"] and st.get("feed_override_enabled") is True
+                                                    for t, st in frames[-50:]):
+            time.sleep(0.05)
         rows.append(nc.eval_override_lock("m600-t1-override-lock", [f for f in frames if f[0] >= r["t0"]], r["t0"]))
-        counter_row, _ = measure({**ts, 3102: plate["z"] + 1}, "m600-t1")
-        rows.append(nc.counter("m600-t1.counter-3102", counter_row))
+        # the #3102 counter-probe: its OWN run, judged on its own (R292 FI-I27)
+        _, rc, length_c, g43_c, tool_c = measure({**ts, 3102: plate["z"] + 1})
+        crow = nc.eval_m600_counter("m600-t1.counter-3102", l0, true_3102=plate["z"], planted_3102=plate["z"] + 1,
+                                    length=length_c, g43=g43_c, tool_after=tool_c, tool=tool, errors=rc["errors"])
+        crow["table_on_disk"] = _tool_z(c, tool)
+        rows.append(crow)
         # the reset, read back: the table length, #3102, the applied offset
         _set_tool_length(c, tool, l0)
         c.request("set_probe_vars", vars={"3102": plate["z"]})
@@ -590,10 +604,12 @@ def m6_hold_case():
         if refusal:
             raise RuntimeError(f"m6-hold: {refusal}")
         before = c.status.get("tool_number")
+        cursor = len(c.frames)
         c.request("tool_change", tool_number=PROBE_TOOL)
         end = tc.RoutineEnd()
         try:
-            tc.serve(c, changes, lambda t, st: end(t, st) and st.get("tool_number") == PROBE_TOOL, 60.0)
+            tc.serve(c, changes, lambda t, st: end(t, st) and st.get("tool_number") == PROBE_TOOL, 60.0,
+                     cursor=cursor)
         except tc.ToolChangeError as e:
             raise StepFailed([{"case": "m6-hold", "status": "FAIL", "detail": str(e), "holds": changes.holds}],
                              f"the M6 sequence ended: {e}") from None

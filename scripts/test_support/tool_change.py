@@ -8,17 +8,19 @@ lost connection: nothing is confirmed and the sequence ends with
 ToolChangeError (the run tears its instance down).
 
 The hold (F-TOOLCHANGE.S2): the confirmation waits `hold_s`, and every
-sample of that interval must show the request still open (the same
-sequence), the interpreter not idle and the spindle tool unchanged; the
-sampling itself must not leave a gap (20 Hz → at most HOLD_GAP_S).
+RECEIVED status frame of that interval must show the request still open
+(the same sequence), the interpreter not idle and the spindle tool
+unchanged. A stretch with no frame is no observation: its gap is recorded
+(the hold then is not proven — incomplete), never a contradiction.
 
-Pure over status snapshots (`step`), so every rule runs offline; `serve`
-drives it against a live client."""
+Pure over status frames (`step`), so every rule runs offline; `serve`
+feeds it the client's received frames in their order, each once (R292
+FI-I24: a re-read of the status cache is no new frame)."""
 from __future__ import annotations
 
 import time
 
-HOLD_GAP_S = 0.1          # 20 Hz sampling, one late tick tolerated
+HOLD_GAP_S = 0.1          # s between two received frames: 20 Hz with one late tick (30 Hz while M6 waits)
 INTERP_IDLE = 1
 
 
@@ -42,6 +44,7 @@ class ToolChanges:
         self.confirmed: list = []     # the sequence numbers this helper confirmed
         self.served: list[dict] = []  # changes confirmed AND completed
         self.holds: list[dict] = []
+        self.ended_at = None          # receipt time of the frame that ended `serve`
 
     def precheck(self, st) -> str | None:
         """Before the sequence triggers anything: no request open. An unread
@@ -99,10 +102,7 @@ class ToolChanges:
 
     def _hold(self, t, st, req, seq):
         h, cur = self.holds[-1], self.current
-        gap = t - h["last_t"]
-        h["max_gap_s"] = max(h["max_gap_s"], gap)
-        if gap > HOLD_GAP_S:
-            raise ToolChangeError(f"a gap of {gap:.3f} s in the hold's sampling — no hold, not confirmed")
+        h["max_gap_s"] = max(h["max_gap_s"], t - h["last_t"])   # unobserved, judged by the evaluator
         if req is not True or seq != cur["seq"]:
             raise ToolChangeError(f"the request ended or changed during the hold (requested {req}, seq {seq}) — "
                                   f"not confirmed")
@@ -144,24 +144,33 @@ class RoutineEnd:
         return self.seen_busy or (not self.require_busy and t - self.t0 >= self.grace)
 
 
-def serve(client, changes: ToolChanges, done, deadline_s: float, tick: float = 0.05) -> list[dict]:
-    """Drive `changes` against the live client at 20 Hz until `done(t, st)`
-    with no change pending. A lost connection, a refused confirmation or the
-    deadline end the sequence with ToolChangeError."""
+def serve(client, changes: ToolChanges, done, deadline_s: float, cursor: int, tick: float = 0.02) -> list[dict]:
+    """Feed the client's RECEIVED frames from `cursor` (taken before the
+    trigger) to `changes` and to `done(t, st)`, in order, each once: `done`
+    sees every frame — the busy ones while M6 waits too (R292 FI-I25) —
+    and the return waits for no change pending. A lost connection, a
+    refused confirmation or the deadline end the sequence with
+    ToolChangeError. `changes.ended_at` is the receipt time of the frame
+    that ended it."""
     end = time.monotonic() + deadline_s
     while True:
         if client.error:
             raise ToolChangeError(f"the connection ended while waiting — nothing confirmed ({client.error})")
-        t, st = time.monotonic(), dict(client.status)
-        act = changes.step(t, st)
-        if act:
-            try:
-                client.request("confirm_tool_change", request=act[1])
-            except RuntimeError as e:
-                raise ToolChangeError(f"the confirmation of request {act[1]} was refused: {e}") from None
-        if changes.idle() and done(t, st):
-            return changes.served
-        if t > end:
+        frames = client.frames
+        while cursor < len(frames):
+            t, st = frames[cursor]
+            cursor += 1
+            act = changes.step(t, st)
+            if act:
+                try:
+                    client.request("confirm_tool_change", request=act[1])
+                except RuntimeError as e:
+                    raise ToolChangeError(f"the confirmation of request {act[1]} was refused: {e}") from None
+            finished = done(t, st)
+            if changes.idle() and finished:
+                changes.ended_at = t
+                return changes.served
+        if time.monotonic() > end:
             raise ToolChangeError(f"not done within {deadline_s} s" + ("" if changes.idle() else
                                                                         f" — T{changes.current['tool']} pending"))
         time.sleep(tick)

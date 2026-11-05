@@ -23,14 +23,14 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | Antast-Auslösung simulieren (nur Sim) | Sim-Trip pulst den Antast-Eingang probe-in kurz; eine fehlgeschlagene Zustellung wird gemeldet. | Wirkung | alle | Gateway: kein Test des Handlers (halcmd sets probe-in); nativ in der Sim |
 | Referenzieren und Referenz aufheben | Home je Achse sendet den Joint seiner Achse. | Daten | 3axis_xyz, 5axis_xyzac, 6axis_twp_xyzabc | Browser: sendet die Achsposition als Joint (SetupStrip a.index) und liest homed_joints an derselben Stelle — richtig, wo Joint = Achsposition (alle ausgelieferten Konfigurationen), falsch, wo nicht (Gantry, eigene Kinematik); braucht eine Achse→Joint-Zuordnung vom Gateway |
 | Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren | Jeder Jog-Knopf und sein Loslassen senden jog_cont / jog_stop seiner Achse und Richtung (die Diagonalen als Mehrfach-Jog sind eine eigene Aussage). | Daten | alle | Browser: je Bildschirm-Knopf Achse und Richtung, parametrisiert; belegt sind bisher die Tastatur je Belegung und der Knopf X+ |
-| Anfahren: G30, Maschinennull, Werkstücknull | Z ist oben, bevor X/Y fahren (→ Zero, → Home, → G30). | Wirkung | Machine | nativ: Verlauf oder Befehlsfolge (die Endpositionen belegen die Reihenfolge nicht) |
-| Overrides: Vorschub, Eilgang, Spindel | Auf echtem LinuxCNC ändert der Feed-Override die Bahngeschwindigkeit (G1 F6000: Plateau 100 mm/s, mit 0,5 dann 50 mm/s, je ± 5 %). | Wirkung | 3axis_xyz | nativ: die Plateau-Messung (STAT mit 50 Hz) — noch keinem Bauschritt zugeordnet |
+| Anfahren: G30, Maschinennull, Werkstücknull | Z ist oben, bevor X/Y fahren (→ Zero, → Home, → G30). | Wirkung | Machine | nativ: der Weg aus der Servo-Abtastung — Schritt 2c, die Servo-Messung (Q288-1) |
+| Overrides: Vorschub, Eilgang, Spindel | Auf echtem LinuxCNC ändert der Feed-Override die Bahngeschwindigkeit (G1 F6000: Plateau 100 mm/s, mit 0,5 dann 50 mm/s, je ± 5 %). | Wirkung | 3axis_xyz | nativ: die Plateau-Messung — Schritt 2c, die Servo-Messung (Q288-1) |
 | Overrides: Vorschub, Eilgang, Spindel | Während des Surface-Scans meldet der Status den Feed-Override gesperrt; nach dem Ende ist er wieder freigegeben. | Wirkung | offen | nativ: der Surface-Scan-Lauf (Q282-2) |
 | Kühlmittel: Flood und Mist | Auf echtem LinuxCNC schalten Flood und Mist ihre HAL-Ausgänge. | Wirkung | offen | nativ (native Stufe) |
 | Antippen (Touch-off) und Nullen je Achse | Plane: das Remap schreibt den angetippten Wert in G54. | Wirkung | Plane | kein Test liest G54 nach dem Remap; nativ (scripts/twp_touchoff_plane_check.py, Laufbindung offen) |
 | Geschwenkte Ebene (TWP): erfassen, aufheben, neu ausrichten | Erfassen, Ausrichten und Aufheben ändern Ebene und Nullpunkt, wie die Anzeige es sagt. | Wirkung | Machine, Plane | nativ: scripts/twp_capture_check.py und twp_reorient_check.py (Laufbindung offen) |
 | Programm laden, neu laden, entladen | Neu laden übernimmt die neue Revision; Entladen leert Programm und Vorschau. | Wirkung | alle | Browser/Gateway: Reload und Unload als Ergebnis nicht belegt |
-| Start ab Zeile (mit Vormessung, sicherem Z, Spindel) | Auf echtem LinuxCNC startet der Lauf ab der gewählten Zeile mit dem richtigen Werkzeug, Spindel und Startpunkt. | Wirkung | offen | nativ: ein Testprogramm ab Zeile mit Vormessung (native Stufe) |
+| Start ab Zeile (mit Vormessung, sicherem Z, Spindel) | Auf echtem LinuxCNC startet der Lauf ab der gewählten Zeile mit dem richtigen Werkzeug, Spindel und Startpunkt. | Wirkung | offen | nativ: Werkzeug, Versatz, Spindel-Sollwert und die Bewegung der Startzeile in Schritt 2b; der Startpunkt erst mit Schritt 2c, die Servo-Messung (Q288-1) (Codex R292 FI292-01) |
 | Werkzeug anlegen, bearbeiten, löschen, umnummerieren | Anlegen, Ändern, Löschen und Umnummerieren ändern genau ihren Datensatz, erhalten die übrigen Werte und laden die Tabelle neu. | Wirkung | alle | Gateway: kein Test vergleicht die Tabelle vor und nach je Aktion; nativ |
 | Werkzeuglänge messen (M600) und Werkzeug entladen | Jede Nummer der Abbildung ist die, die tool_touch_off.ngc für ihren Wert liest. | Daten | alle | Unit: kein Test gleicht die Abbildung mit den Lesestellen der Routine ab |
 | Fläche abtasten (Surface-Scan) | Auf echtem LinuxCNC tastet der Scan das Raster ab und liefert die Punkte für die Kompensation. | Wirkung | 3axis_xyz | nativ (native Stufe, mit hohem Antastvorschub über die Scan-Variablen) |
@@ -143,7 +143,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S4 (Ablehnung):** Vor dem Referenzieren joggt jede Achse ihr deklariertes Gelenk; eine Gantry-Achse und die Diagonalen sind gesperrt, mit Grund (Entscheidung und Anzeige). — gilt für: alle
   - Beleg: gateway: `test_button_gates_e.py` — test_a_gantry_letter_is_closed; browser: `joint-jog.spec.ts` — before homing every open axis jogs in amber, the diagonals are closed with their reason; homed both are back (package F); gateway: `test_button_gates_e.py` — test_the_declared_joint_not_the_index; gateway: `test_button_gates_e.py` — test_a_diagonal_is_refused_before_homing
 - **S5 (Wirkung):** Auf echtem LinuxCNC bewegen die Jog-Befehle des Gateways (jog_cont / jog_stop) jede Achse in ihrem Vorzeichen und halten sie an: Weg ab der Antwort auf jog_stop höchstens v²/2a + 2·v·4T (X/Y 2,1 mm, Z 2,5 mm bei 50 mm/s), Stillstand binnen 0,5 s. — gilt für: 3axis_xyz
-  - Beleg: native: `native_run.py` — jog-x+; native: `native_run.py` — jog-x-; native: `native_run.py` — jog-y+; native: `native_run.py` — jog-y-; native: `native_run.py` — jog-z+; native: `native_run.py` — jog-z- — Lücke: der native Lauf steht aus (gebaut: Schritt 1); der Bremsweg bleibt aus Statusbildern oft unvollständig, bis die Servo-Abtastung (Q288-1) ihn auflöst
+  - Beleg: native: `native_run.py` — jog-x+; native: `native_run.py` — jog-x-; native: `native_run.py` — jog-y+; native: `native_run.py` — jog-y-; native: `native_run.py` — jog-z+; native: `native_run.py` — jog-z- — Lücke: der native Lauf steht aus (gebaut: Schritt 1); der Bremsweg bleibt aus Statusbildern oft unvollständig bis Schritt 2c, die Servo-Messung (Q288-1)
 - **S5b (Daten):** Jeder Jog-Knopf und sein Loslassen senden jog_cont / jog_stop seiner Achse und Richtung (die Diagonalen als Mehrfach-Jog sind eine eigene Aussage). — gilt für: alle
   - Beleg: **offen** — Lücke: Browser: je Bildschirm-Knopf Achse und Richtung, parametrisiert; belegt sind bisher die Tastatur je Belegung und der Knopf X+
 
@@ -154,7 +154,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S1b (Wirkung):** Von unter Z0 fahren → Zero und → Home Z auf die Maschinen-Oberkante. — gilt für: Machine
   - Beleg: script: `twp_buttons_check.py` — → Zero from BELOW Z0 (G53 Z-60): Z at machine top exactly, X/Y at work zero, A back to the stamp (0) (live, nicht im Gate); script: `twp_buttons_check.py` — → Home from BELOW Z0: Z to machine top, X/Y to machine zero, A 0 (live, nicht im Gate)
 - **S1c (Wirkung):** Z ist oben, bevor X/Y fahren (→ Zero, → Home, → G30). — gilt für: Machine
-  - Beleg: **offen** — Lücke: nativ: Verlauf oder Befehlsfolge (die Endpositionen belegen die Reihenfolge nicht)
+  - Beleg: **offen** — Lücke: nativ: der Weg aus der Servo-Abtastung — Schritt 2c, die Servo-Messung (Q288-1)
 - **S1d (Wirkung):** → G30 von unter Z0 erreicht unterwegs ungefähr Z0 und endet auf #5181–#5183 (die Reihenfolge: S1c). — gilt für: Machine
   - Beleg: script: `twp_buttons_check.py` — → G30 from BELOW Z0: retracts to the top first (max Z seen ~ 0), then lands on #5181..#5183 (live, nicht im Gate)
 - **S2 (Wirkung):** → Zero nach einem Jog der Drehachse bringt den Tisch auf den Stempelwinkel zurück, X/Y lesen null. — gilt für: Machine
@@ -173,7 +173,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S1 (Daten):** Ein Schieber sendet seinen Faktor für genau seinen Override (50 % → 0,5); sein 100-%-Knopf sendet 1,0. — gilt für: alle
   - Beleg: browser: `strip-actions.spec.ts` — each override slider sends its own factor; its 100 % button sends 1.0
 - **S2 (Wirkung):** Auf echtem LinuxCNC ändert der Feed-Override die Bahngeschwindigkeit (G1 F6000: Plateau 100 mm/s, mit 0,5 dann 50 mm/s, je ± 5 %). — gilt für: 3axis_xyz
-  - Beleg: **offen** — Lücke: nativ: die Plateau-Messung (STAT mit 50 Hz) — noch keinem Bauschritt zugeordnet
+  - Beleg: **offen** — Lücke: nativ: die Plateau-Messung — Schritt 2c, die Servo-Messung (Q288-1)
 - **S2b (Wirkung):** Während der Messphase von M600 meldet der Status den Feed-Override gesperrt; nach dem Ende der Routine ist er wieder freigegeben (frisch empfangen, binnen 2 s). — gilt für: 3axis_xyz
   - Beleg: native: `native_run.py` — m600-t1-override-lock — Lücke: der native Lauf steht aus (gebaut: Schritt 2a)
 - **S2c (Wirkung):** Während des Surface-Scans meldet der Status den Feed-Override gesperrt; nach dem Ende ist er wieder freigegeben. — gilt für: offen
@@ -295,7 +295,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S2 (Wirkung):** Der sichere Z-Schritt vor dem Start hebt Z von unten auf Maschinen-Oberkante und senkt es nie; liegt Z schon oben, entfällt er (die gesendete Befehlsfolge gegen ein simuliertes STAT). — gilt für: Machine
   - Beleg: gateway: `test_rfl_guard.py` — test_safe_z_reached_from_below_starts; gateway: `test_rfl_guard.py` — test_safe_z_above_zero_skips_mdi
 - **S3 (Wirkung):** Auf echtem LinuxCNC startet der Lauf ab der gewählten Zeile mit dem richtigen Werkzeug, Spindel und Startpunkt. — gilt für: offen
-  - Beleg: **offen** — Lücke: nativ: ein Testprogramm ab Zeile mit Vormessung (native Stufe)
+  - Beleg: **offen** — Lücke: nativ: Werkzeug, Versatz, Spindel-Sollwert und die Bewegung der Startzeile in Schritt 2b; der Startpunkt erst mit Schritt 2c, die Servo-Messung (Q288-1) (Codex R292 FI292-01)
 
 ### Satz ausblenden und optionaler Halt
 

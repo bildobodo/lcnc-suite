@@ -998,17 +998,12 @@ def test_declared_changes_are_taken_in_their_order_and_may_be_skipped():
 
 
 def test_the_connection_ending_while_waiting_confirms_nothing():
-    class Client:
-        error = "Simulator WebSocket closed during the gate"
-        status = _st(True, 1, 1)
-        sent = []
-
-        def request(self, *a, **k):
-            self.sent.append((a, k))
+    c = FrameClient([(0.0, _st(True, 1, 1))])
+    c.error = "Simulator WebSocket closed during the gate"
     ch = tc.ToolChanges([1])
     with pytest.raises(tc.ToolChangeError, match="connection"):
-        tc.serve(Client(), ch, done=lambda t, st: False, deadline_s=1.0)
-    assert Client.sent == [] and ch.confirmed == []
+        tc.serve(c, ch, done=lambda t, st: False, deadline_s=1.0, cursor=0)
+    assert c.sent == [] and ch.confirmed == []
 
 
 def test_a_request_replaced_before_its_completion_is_refused():
@@ -1045,82 +1040,136 @@ def test_the_hold_fails_on_any_sample_that_breaks_it(change, reason):
     assert ch.confirmed == []
 
 
-def test_a_hold_with_a_gap_in_its_sampling_is_no_hold():
+def test_a_gap_in_the_holds_frames_is_unobserved_never_a_proven_hold():
+    """R292 FI-I24: a stretch with no frame is no observation — the hold is
+    not proven (incomplete), and no sample in it contradicts anything."""
     ch = tc.ToolChanges([99], hold_s=5.0)
-    with pytest.raises(tc.ToolChangeError, match="gap"):
-        for t in [0.0, 0.05, 0.1, 1.5] + [1.5 + 0.05 * k for k in range(1, 80)]:
-            ch.step(t, _st(True, 9, 99, number=1))
-    assert ch.confirmed == []
+    acts = [ch.step(t, _st(True, 9, 99, number=1)) for t in [0.0, 0.05, 0.1, 1.5] + [1.5 + 0.05 * k for k in range(1, 80)]]
+    assert ("confirm", 9) in acts and ch.holds[0]["max_gap_s"] == pytest.approx(1.4)
+    assert nc.eval_m6_hold("m6-hold", ch.holds, 1, 99, 50.0, 99, 50.0, 5.0)["status"] == "incomplete"
 
 
 # ── step 2: the evaluators (plan R283–R285 FI282-05) ─────────────────────
 def test_a_counter_probe_passes_only_when_its_planted_value_is_refused():
-    wrong = nc.eval_probe_z("probe-z", 1, -180.0004, expected=-179.0)
-    assert wrong["status"] == "FAIL"
-    c = nc.counter("probe-z.counter-179", wrong)
+    """R292 FI-I27: the planted value must be the reason — the measurement it
+    re-judges passed against the true value, and fails against the planted."""
+    good = nc.eval_probe_z("probe-z", 1, -180.0004, expected=-180.0)
+    c = nc.counter("probe-z.counter-plate-1", nc.eval_probe_z("probe-z", 1, -180.0004, expected=-179.0), good)
     assert c["status"] == "PASS" and c["inner"]["status"] == "FAIL" and c["counter"] is True
-    passed = nc.counter("probe-z.counter-179", nc.eval_probe_z("probe-z", 1, -179.0, expected=-179.0))
-    assert passed["status"] == "FAIL", "a planted wrong value that passes: the check does not hold"
-    unknown = nc.counter("probe-z.counter-179", nc.eval_probe_z("probe-z", None, -180.0, expected=-179.0))
-    assert unknown["status"] == "incomplete"
+    same = nc.counter("probe-z.counter-plate-1", nc.eval_probe_z("probe-z", 1, -179.0, expected=-179.0),
+                      nc.eval_probe_z("probe-z", 1, -179.0, expected=-180.0))
+    assert same["status"] == "incomplete", "a base that failed proves nothing"
+    passed = nc.counter("probe-z.counter-plate-1", nc.eval_probe_z("probe-z", 1, -180.0, expected=-180.0), good)
+    assert passed["status"] == "FAIL", "a planted value that passes: the check does not hold"
+    nocontact = nc.eval_probe_z("probe-z", 0, -180.0, expected=-180.0)
+    assert nc.counter("x", nc.eval_probe_z("probe-z", 0, -180.0, expected=-179.0), nocontact)["status"] == "incomplete"
 
 
-@pytest.mark.parametrize("contact, g54, status", [
-    (1, -180.0004, "PASS"), (1, -180.0031, "FAIL"), (1, -179.9969, "FAIL"),
-    (0, -180.0, "FAIL"), (None, -180.0, "incomplete"), (1, None, "incomplete"), (1, float("nan"), "incomplete"),
+@pytest.mark.parametrize("contact, g54, errors, status", [
+    (1, -180.0004, [], "PASS"), (1, -180.0031, [], "FAIL"), (1, -179.9969, [], "FAIL"),
+    (0, -180.0, [], "FAIL"), (None, -180.0, [], "incomplete"), (1, None, [], "incomplete"),
+    (1, float("nan"), [], "incomplete"),
+    (None, -175.0, [], "FAIL"),                  # R292 FI-I28: a known G54 out of bounds, the contact unread
+    (0, None, [], "FAIL"),                       # a known "no contact", G54 unread
+    (1, -180.0, [(11, "Probe tripped during non-probe move")], "FAIL"),
+    (1, -180.0, [(13, "Probing: retry 1")], "PASS"),     # a DEBUG line is no failure
 ])
-def test_the_z_probe_needs_its_contact_and_the_plate_within_its_tolerance(contact, g54, status):
-    r = nc.eval_probe_z("probe-z", contact, g54, expected=-180.0)
+def test_the_z_probe_needs_its_contact_and_the_plate_within_its_tolerance(contact, g54, errors, status):
+    r = nc.eval_probe_z("probe-z", contact, g54, expected=-180.0, errors=errors)
     assert r["status"] == status, r
 
 
 @pytest.mark.parametrize("contact, before, after, errors, status", [
-    (0, 0.0, 0.0, ["G38.2 move finished without making contact."], "PASS"),
-    (1, 0.0, 0.0, ["G38.2 move finished without making contact."], "FAIL"),
-    (0, 0.0, -180.0, ["G38.2 move finished without making contact."], "FAIL"),
+    (0, 0.0, 0.0, [(11, "G38.2 move finished without making contact.")], "PASS"),
+    (1, 0.0, 0.0, [(11, "G38.2 move finished without making contact.")], "FAIL"),
+    (0, 0.0, -180.0, [(11, "G38.2 move finished without making contact.")], "FAIL"),
     (0, 0.0, 0.0, [], "incomplete"),                        # the error may have ridden a skipped tick
-    (None, 0.0, 0.0, ["G38.2 move finished without making contact."], "incomplete"),
+    (None, 0.0, 0.0, [(11, "G38.2 move finished without making contact.")], "incomplete"),
+    (None, 0.0, -1.0, [(11, "G38.2 move finished without making contact.")], "FAIL"),                      # R292 FI-I28: G54 changed, #5070 unread
+    (1, None, None, [(11, "G38.2 move finished without making contact.")], "FAIL"),                        # a contact, G54 unread
 ])
 def test_a_probe_without_contact_reports_none_and_sets_nothing(contact, before, after, errors, status):
     r = nc.eval_probe_miss("probe-z-miss", contact, before, after, errors)
     assert r["status"] == status, r
 
 
-@pytest.mark.parametrize("length, g43, status", [
-    (50.0015, 50.0015, "PASS"), (50.0025, 50.0025, "FAIL"), (49.0, 49.0, "FAIL"),
-    (50.0, 0.0, "FAIL"), (None, 50.0, "incomplete"), (50.0, None, "incomplete"),
+@pytest.mark.parametrize("length, g43, errors, status", [
+    (50.0015, 50.0015, [], "PASS"), (50.0025, 50.0025, [], "FAIL"), (49.0, 49.0, [], "FAIL"),
+    (50.0, 0.0, [], "FAIL"), (None, 50.0, [], "incomplete"), (50.0, None, [], "incomplete"),
+    (60.0, None, [], "FAIL"),                    # R292 FI-I28: the length already out of bounds, G43 unread
+    (50.0, 50.0, [(11, "Tool length offset probe failed!")], "FAIL"),
 ])
-def test_m600_measures_the_length_and_applies_the_same(length, g43, status):
-    r = nc.eval_m600("m600-t1", 50.0, length, g43)
+def test_m600_measures_the_length_and_applies_the_same(length, g43, errors, status):
+    r = nc.eval_m600("m600-t1", 50.0, length, g43, errors=errors)
+    assert r["status"] == status, r
+
+
+@pytest.mark.parametrize("length, g43, tool, errors, status", [
+    (49.0005, 49.0005, 1, [], "PASS"),           # #3102 one mm up: the length one mm short, applied as measured
+    (50.0, 0.0, 1, [(11, "G38.2 move finished without making contact.")], "FAIL"),   # Codex R292: an aborted run
+    (50.0, 50.0, 1, [], "FAIL"),                 # the plant changed nothing: the check would not see it
+    (49.0, 50.0, 1, [], "FAIL"),                 # measured and applied differ
+    (49.0, 49.0, 0, [], "FAIL"),                 # not the tool it measured
+    (47.5, 47.5, 1, [], "FAIL"),                 # neither the true nor the planted reference
+    (None, 49.0, 1, [], "incomplete"),
+    (49.0005, 49.0005, 1, [(11, "Slow Tool Length Offset Probe Failed!")], "FAIL"),   # the values fit, the run did not
+])
+def test_the_m600_counter_needs_its_own_run_and_the_predicted_deviation(length, g43, tool, errors, status):
+    r = nc.eval_m600_counter("m600-t1.counter-3102", 50.0, true_3102=-180.0, planted_3102=-179.0, length=length,
+                             g43=g43, tool_after=tool, tool=1, errors=errors)
     assert r["status"] == status, r
 
 
 def _lock(seq, done_at):
-    """(t, status): feed_override_enabled per frame, done = interp idle + no request from `done_at` on."""
+    """(t, status): feed_override_enabled per frame (and optionally its
+    |current_vel|; by default moving until done), done = interp idle + no
+    request from `done_at` on."""
     out = []
-    for t, en in seq:
+    for item in seq:
+        t, en = item[0], item[1]
         done = done_at is not None and t >= done_at
-        out.append((t, {"feed_override_enabled": en, "interp_state": 1 if done else 2,
+        vel = item[2] if len(item) > 2 else (0.0 if done else 5.0)
+        out.append((t, {"feed_override_enabled": en, "interp_state": 1 if done else 2, "current_vel": vel,
                         "tool_change_seq": None, "tool_change_requested": False}))
     return out
 
 
 def test_the_m600_lock_as_codex_drew_it_passes():
-    frames = _lock([(0.03, True), (0.2, False), (0.6, False), (1.0, False), (1.033, True)], done_at=1.033)
+    frames = _lock([(0.03, True, 0.0), (0.2, False), (0.6, False), (1.0, False), (1.033, True)], done_at=1.033)
     r = nc.eval_override_lock("m600-lock", frames, t_trigger=0.0)
     assert r["status"] == "PASS", r
 
 
 def test_no_release_within_two_seconds_of_the_completion_fails():
-    frames = _lock([(0.03, True), (0.2, False), (1.0, False), (1.033, False), (2.0, False), (3.1, False)], done_at=1.033)
+    frames = _lock([(0.03, True, 0.0), (0.2, False), (1.0, False), (1.033, False), (2.0, False), (3.1, False)],
+                   done_at=1.033)
     assert nc.eval_override_lock("m600-lock", frames, t_trigger=0.0)["status"] == "FAIL"
 
 
+def test_a_window_not_observed_to_its_end_is_not_yet_a_failure():
+    """R292 FI-I26 B: the completion frame still locked, the 2 s not yet past —
+    incomplete; a fresh free frame 33 ms later makes the same course a PASS."""
+    early = _lock([(0.03, True, 0.0), (0.2, False), (1.0, False), (1.033, False)], done_at=1.033)
+    assert nc.eval_override_lock("m600-lock", early, t_trigger=0.0)["status"] == "incomplete"
+    later = early + _lock([(1.066, True)], done_at=1.033)
+    assert nc.eval_override_lock("m600-lock", later, t_trigger=0.0)["status"] == "PASS"
+
+
+def test_free_while_the_axis_still_moves_fails_even_without_a_later_locked_frame():
+    """R292 FI-I26 A: locked at 0.2, free again at 0.4 and 0.8 while moving —
+    the phase is the motion's, not the span between locked frames."""
+    frames = _lock([(0.03, True, 0.0), (0.2, False), (0.4, True), (0.8, True), (1.033, True)], done_at=1.033)
+    assert nc.eval_override_lock("m600-lock", frames, t_trigger=0.0)["status"] == "FAIL"
+    after_motion = _lock([(0.03, True, 0.0), (0.2, False), (0.9, False), (0.95, True, 0.0), (1.033, True)],
+                         done_at=1.033)
+    assert nc.eval_override_lock("m600-lock", after_motion, t_trigger=0.0)["status"] == "PASS", \
+        "free once the axis stands, before the routine's end: allowed"
+
+
 def test_only_a_stale_true_from_before_the_completion_fails():
-    # released at 0.9, completed at 1.033 — but no frame AFTER the completion shows it
-    frames = _lock([(0.03, True), (0.2, False), (0.9, True)], done_at=None)
-    frames.append((1.033, {"feed_override_enabled": False, "interp_state": 1, "tool_change_seq": None,
-                           "tool_change_requested": False}))
+    # free at 0.9 while still moving, completed at 1.033 locked — and locked through the window
+    frames = _lock([(0.03, True, 0.0), (0.2, False), (0.9, True)], done_at=None)
+    frames += _lock([(1.033, False), (3.2, False)], done_at=1.033)
     assert nc.eval_override_lock("m600-lock", frames, t_trigger=0.0)["status"] == "FAIL"
 
 
@@ -1130,7 +1179,7 @@ def test_no_observed_locked_phase_is_incomplete():
 
 
 def test_a_release_inside_the_measuring_phase_fails_and_a_stale_start_is_incomplete():
-    flicker = _lock([(0.03, True), (0.2, False), (0.4, True), (0.6, False), (1.033, True)], done_at=1.033)
+    flicker = _lock([(0.03, True, 0.0), (0.2, False), (0.4, True), (0.6, False), (1.033, True)], done_at=1.033)
     assert nc.eval_override_lock("m600-lock", flicker, t_trigger=0.0)["status"] == "FAIL"
     stale = _lock([(-0.5, True), (0.2, False), (1.033, True)], done_at=1.033)   # the only true is from before the trigger
     assert nc.eval_override_lock("m600-lock", stale, t_trigger=0.0)["status"] == "incomplete"
@@ -1187,8 +1236,9 @@ def _hold(samples=101, gap=0.05):
 
 @pytest.mark.parametrize("holds, after, offset, status", [
     (_hold(), 99, 50.0, "PASS"),
-    (_hold(samples=60), 99, 50.0, "FAIL"),           # 5 s at 20 Hz is ≥ 90 samples
-    (_hold(gap=0.2), 99, 50.0, "FAIL"),
+    (_hold(samples=60), 99, 50.0, "incomplete"),     # 5 s at 20 Hz is ≥ 90 received frames — fewer: unobserved
+    (_hold(gap=0.2), 99, 50.0, "incomplete"),     # R292 FI-I24: unobserved, not contradicted
+    (_hold(gap=0.2), 1, 50.0, "FAIL"),            # a known contradiction stays one
     ([], 99, 50.0, "FAIL"),                          # no request ever held: M6 did not wait for anything
     (_hold(), 1, 50.0, "FAIL"),                      # it did not go on with the new tool
     (_hold(), 99, 40.0, "FAIL"),                     # nor with its length
@@ -1199,52 +1249,89 @@ def test_m6_waits_held_and_goes_on_with_the_new_tool(holds, after, offset, statu
     assert r["status"] == status, r
 
 
-class ScriptedClient:
-    """A live client's surface for the case helpers: each status READ shows
-    the next scripted frame (the last one stays); requests are recorded."""
+class FrameClient:
+    """A live client's surface for the case helpers: the frames it RECEIVED,
+    in order, each (t, status) — `status` the latest; requests recorded and
+    answered with scripted arrivals (`on[cmd]`: the frames that cmd brings)."""
 
-    def __init__(self, frames):
-        self.frames, self.i, self.sent, self.errors, self.error = list(frames), 0, [], [], None
+    def __init__(self, frames=(), on=None):
+        self.frames, self.sent, self.errors, self.error = list(frames), [], [], None
+        self.on = {k: list(v) for k, v in (on or {}).items()}
 
     @property
     def status(self):
-        st = self.frames[min(self.i, len(self.frames) - 1)]
-        self.i += 1
-        return dict(st)
+        return dict(self.frames[-1][1]) if self.frames else {}
 
     def request(self, cmd, **kw):
         self.sent.append((cmd, kw))
+        self.frames += self.on.pop(cmd, [])
         return {"ok": True}
+
+
+_IDLE = {"tool_change_requested": False, "tool_change_seq": None, "inpos": True, "interp_state": 1}
 
 
 def test_a_routine_ends_on_its_started_effect_seen_while_it_runs():
     """The start latch (the probe's M50 P0) shows only WHILE it runs: a
     done-check that evaluates it only on idle frames never ends."""
-    base = {"tool_change_requested": False, "tool_change_seq": None, "inpos": True}
-    frames = [{**base, "interp_state": 1, "feed_override_enabled": True}] * 2 + \
-             [{**base, "interp_state": 2, "feed_override_enabled": False, "inpos": False}] * 3 + \
-             [{**base, "interp_state": 2, "feed_override_enabled": True}] + \
-             [{**base, "interp_state": 1, "feed_override_enabled": True}] * 3
+    run = [{**_IDLE, "feed_override_enabled": True}] + \
+          [{**_IDLE, "interp_state": 2, "feed_override_enabled": False, "inpos": False}] * 3 + \
+          [{**_IDLE, "interp_state": 2, "feed_override_enabled": True}] + \
+          [{**_IDLE, "feed_override_enabled": True}] * 3
+    c = FrameClient([(0.0, {**_IDLE, "feed_override_enabled": True})],
+                    on={"mdi": [(0.1 * (k + 1), st) for k, st in enumerate(run)]})
     seen = {"on": False}
 
     def ran(st):
         seen["on"] = seen["on"] or st.get("feed_override_enabled") is False
         return seen["on"]
-    c = ScriptedClient(frames)
     r = nr._routine(c, "O<probe_z_minus_wco> CALL", vars={3030: 0}, deadline=2.0, extra=ran)
     assert c.sent[0] == ("mdi", {"text": "O<probe_z_minus_wco> CALL", "vars": {"3030": 0}}) and r["served"] == []
 
 
-class EchoClient(ScriptedClient):
+def test_a_held_change_ends_its_routine_on_the_real_path():
+    """R292 FI-I25: serve → RoutineEnd with a held change: busy only while M6
+    waits, the next frame after the confirmation already idle, in position,
+    the new tool — a valid course that must end."""
+    held = [(0.033 * k, _st(True, 9, 99, number=1, interp=4, inpos=True)) for k in range(1, 160)]
+    c = FrameClient([(0.0, {**_IDLE, "tool_number": 1})],
+                    on={"tool_change": held, "confirm_tool_change": [(5.4, {**_IDLE, "tool_number": 99})]})
+    changes = tc.ToolChanges([99], hold_s=5.0)
+    cursor = len(c.frames)
+    c.request("tool_change", tool_number=99)
+    end = tc.RoutineEnd()
+    served = tc.serve(c, changes, lambda t, st: end(t, st) and st.get("tool_number") == 99, 2.0, cursor=cursor)
+    assert served == [{"tool": 99, "seq": 9}] and changes.holds[0]["samples"] >= 150
+
+
+def test_the_hold_counts_received_frames_never_reads_of_the_cache():
+    """R292 FI-I24 on the real client: ONE open M6 frame, then none — the
+    cache read every 50 ms used to make that 102 samples and a PASS."""
+    from test_support.live_session import SimulatorClient
+    c = SimulatorClient("t", auto_confirm=False, keep=("tool_change_requested", "tool_change_seq", "tool_change_tool",
+                                                      "tool_number", "interp_state", "inpos"))
+    c.send = lambda command: None
+    c.take({"type": "status", "data": {**_st(True, 9, 99, number=1, interp=4), "inpos": True}})
+    assert len(c.frames) == 1
+    changes = tc.ToolChanges([99], hold_s=5.0)
+    with pytest.raises(tc.ToolChangeError, match="not done"):
+        tc.serve(c, changes, lambda t, st: False, 0.6, cursor=0)
+    assert changes.confirmed == [] and changes.holds[0]["samples"] == 1, "one frame received: one sample"
+
+
+class EchoClient(FrameClient):
     """The interpreter answers a DEBUG line through the error channel —
-    except the attempts listed as lost (a skipped status tick)."""
+    except the attempts listed as lost (a skipped status tick); every request
+    brings two idle frames a second apart (the idle status cadence)."""
 
     def __init__(self, lost=()):
-        super().__init__([{"interp_state": 1, "inpos": True, "tool_change_requested": False, "tool_change_seq": None}])
+        super().__init__([(0.0, dict(_IDLE))])
         self.lost, self.debug = set(lost), 0
 
     def request(self, cmd, **kw):
         super().request(cmd, **kw)
+        t = self.frames[-1][0]
+        self.frames += [(t + 1.0, dict(_IDLE)), (t + 2.0, dict(_IDLE))]
         text = kw.get("text", "")
         if text.startswith("(DEBUG,"):
             self.debug += 1
@@ -1281,3 +1368,68 @@ def test_a_late_frame_still_showing_the_served_request_is_not_confirmed_again():
     ch = tc.ToolChanges([1, 1])
     acts = _feed(ch, [_st(True, 1, 1), _st(number=1), _st(True, 1, 1, number=1), _st(number=1)])
     assert acts == [("confirm", 1), None, None, None] and ch.confirmed == [1], acts
+
+
+def test_a_change_without_a_hold_ends_its_routine_when_the_next_frame_is_already_done():
+    """Codex R292 FI-I25 as drawn: one busy frame with the new request, the
+    confirmation, the next frame idle, in position, the new tool."""
+    c = FrameClient([(0.0, {**_IDLE, "tool_number": 1})],
+                    on={"tool_change": [(0.03, _st(True, 10, 99, number=1, interp=4, inpos=True))],
+                        "confirm_tool_change": [(0.06, {**_IDLE, "tool_number": 99})]})
+    changes, cursor = tc.ToolChanges([99]), 1
+    c.request("tool_change", tool_number=99)
+    end = tc.RoutineEnd()
+    assert tc.serve(c, changes, end, 1.0, cursor=cursor) == [{"tool": 99, "seq": 10}] and end.seen_busy
+
+
+def test_the_m600_step_refuses_a_counter_that_failed_for_another_reason(monkeypatch):
+    """Codex R292 FI-I27 at the whole step: the counter run aborts without a
+    contact (length unchanged, G43 cancelled) — its row FAILs with the
+    routine's error kept, the other three rows stand on their own."""
+    lock = lambda t, en, idle=False, vel=0.0: (t, {"feed_override_enabled": en, "interp_state": 1 if idle else 2,  # noqa: E731
+                                                    "current_vel": vel, "tool_change_seq": None,
+                                                    "tool_change_requested": False})
+
+    class Client:
+        def __init__(self):
+            self.status = {"tool_number": 99, "tool_offset": [0, 0, 50], "tool_table_z": 50}
+            self.vars = {n: 0 for n in nr.TOOLSETTER_VARS} | {3102: -180}
+            self.table = 50.0
+
+        def request(self, cmd, **kw):
+            if cmd == "get_tool_table":
+                return {"tools": [{"T": 1, "Z": self.table}]}
+            if cmd == "get_probe_vars":
+                return {"vars": {str(k): self.vars[k] for k in kw["vars"]}}
+            if cmd == "save_tool":
+                self.table = kw["z_offset"]
+                return {"ok": True}
+            if cmd == "set_probe_vars":
+                self.vars.update({int(k): v for k, v in kw["vars"].items()})
+                return {"ok": True}
+            raise AssertionError((cmd, kw))
+    c, frames, calls = Client(), [], []
+    no_contact = [(11, "G38.2 move finished without making contact.")]
+
+    def routine(client, text, vars=None, **kw):
+        past = time.monotonic() - 10
+        if text == "T0 M600":
+            client.status.update(tool_number=0, tool_offset=[0, 0, 0])
+            return {"t0": 0, "t_done": past, "served": [{"tool": 0, "seq": 1}], "errors": []}
+        calls.append(vars[3102])
+        first = len(calls) == 1
+        client.status.update(tool_number=1, tool_table_z=50.0, tool_offset=[0, 0, 50.0] if first else [0, 0, 0])
+        if first:
+            frames.extend([lock(0.03, True), lock(0.2, False, vel=1.0), lock(1.033, True, idle=True)])
+        return {"t0": 0, "t_done": past, "served": [{"tool": 1, "seq": 2}], "errors": [] if first else no_contact}
+
+    def short(client, text):
+        assert text == "G43 H1"
+        client.status["tool_offset"] = [0, 0, client.table]
+    monkeypatch.setattr(nr, "_routine", routine)
+    monkeypatch.setattr(nr, "_short", short)
+    rows = nr.m600_cases()[1]({"client": c, "frames": frames, "plate": {"x": 10, "y": 10, "z": -180}})
+    by = {r["case"]: r for r in rows}
+    assert calls == [-180, -179], "the counter ran with #3102 planted 1 mm up"
+    assert [by[k]["status"] for k in ("m600-unload", "m600-t1", "m600-t1-override-lock")] == ["PASS"] * 3, rows
+    assert by["m600-t1.counter-3102"]["status"] == "FAIL" and by["m600-t1.counter-3102"]["errors"] == no_contact
