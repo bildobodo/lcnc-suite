@@ -29,6 +29,15 @@ class SimulatorClient:
         self.status = {}
         self.error = None
         self.threads = []
+        # the envelope beside `data` (native stage step 2): the error channel
+        # rides ONE status tick and is gone after it, so every frame's errors
+        # are kept with their receipt time; the run-from-line progress, the
+        # published program's origin and the probe widgets' values as last sent
+        self.errors: list = []            # (monotonic s, kind, text)
+        self.rfl_status = None
+        self.rfl_history: list = []       # (monotonic s, rfl_status) on each change
+        self.preview_origin = None
+        self.probe_results: dict = {}
 
     def send(self, command):
         self.ws.send(json.dumps(command))
@@ -63,9 +72,19 @@ class SimulatorClient:
         its arrival time; a reply goes to the queue. Returns the request seq
         last confirmed."""
         if msg.get("type") in ("status", "status_delta") and isinstance(msg.get("data"), dict):
+            now = time.monotonic()
             self.status.update(msg["data"])
+            for kind, text in msg.get("errors") or []:
+                self.errors.append((now, kind, text))
+            if "rfl_status" in msg and msg["rfl_status"] != self.rfl_status:
+                self.rfl_status = msg["rfl_status"]
+                self.rfl_history.append((now, msg["rfl_status"]))
+            if "preview_origin" in msg:
+                self.preview_origin = msg["preview_origin"]
+            if isinstance(msg.get("probe_results"), dict):
+                self.probe_results.update(msg["probe_results"])
             if self.on_status:
-                self.on_status(time.monotonic(), dict(self.status))
+                self.on_status(now, dict(self.status))
             requested = self.status.get("tool_change_requested", False)
             seq = self.status.get("tool_change_seq")
             if self.auto_confirm and requested and seq != confirmed:

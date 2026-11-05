@@ -21,7 +21,9 @@ Cases on the VM's REAL LinuxCNC, run by hand, never beside a gate:
 of the tested commit and a confined copy of the profile, checks it before the start, runs the cases and
 gives the LAN sim back (`restore_lan.py`, also the unit's ExecStopPost). It runs only as the user unit
 `native-run` — the command is in its docstring. Offline guards: `scripts/test_native_stage.py` (the
-backend gate's `native-stage` step). A native evidence in `functions.json` (layer `native`) is "named"
+backend gate's `native-stage` step). Step 2a adds Z probing, M600 with the override lock and the M6 hold;
+every routine runs under the M6 helper `test_support/tool_change.py` (nothing confirmed unless declared).
+A native evidence in `functions.json` (layer `native`) is "named"
 statically; a PASS comes only from a run report of the same commit, profile, case and variant
 (`functions.native_status`).
 

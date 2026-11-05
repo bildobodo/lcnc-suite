@@ -929,3 +929,355 @@ def test_the_upper_bound_runs_to_the_furthest_point_not_the_net_distance(sign):
     p = lambda d: 300 + sign * d
     r = nc.eval_jog("jog", 0, sign, 300.0, (-0.005, p(15.0)), [(0.02, p(17.070), 3.0), (0.06, p(17.062), 0.0)])
     assert r["status"] == "incomplete" and r["brake_upper_mm"] == 2.07, r
+
+
+# ── step 2: the M6 helper at the real interface (plan R284 FI282-02) ─────
+from test_support import tool_change as tc  # noqa: E402
+
+
+def _st(requested=False, seq=None, tool=None, number=0, interp=2, **extra):
+    st = {"tool_change_requested": requested, "tool_change_seq": seq, "tool_number": number, "interp_state": interp}
+    if tool is not None or requested:
+        st["tool_change_tool"] = tool
+    st.update(extra)
+    return st
+
+
+def _feed(changes, frames, t0=0.0, dt=0.05):
+    """Each (status) at 20 Hz; the actions the helper asked for."""
+    out = []
+    for i, st in enumerate(frames):
+        out.append(changes.step(t0 + i * dt, st))
+    return out
+
+
+def test_the_first_request_null_to_one_is_confirmed_once_and_completes():
+    ch = tc.ToolChanges([1])
+    assert ch.precheck(_st()) is None
+    acts = _feed(ch, [_st(), _st(True, 1, 1), _st(True, 1, 1), _st(False, None, None, number=1)])
+    assert acts == [None, ("confirm", 1), None, None], acts
+    assert ch.served == [{"tool": 1, "seq": 1}] and ch.idle()
+
+
+def test_tool_zero_is_a_tool_and_a_missing_tool_field_never_is():
+    ch = tc.ToolChanges([0])
+    assert _feed(ch, [_st(True, 4, 0, number=1), _st(number=0)]) == [("confirm", 4), None]
+    missing = tc.ToolChanges([0])
+    with pytest.raises(tc.ToolChangeError, match="unknown"):
+        _feed(missing, [{"tool_change_requested": True, "tool_change_seq": 5, "tool_number": 1}])
+    assert missing.confirmed == [], "never confirmed"
+
+
+def test_an_old_open_request_before_the_trigger_refuses_the_sequence():
+    ch = tc.ToolChanges([1])
+    assert "open" in ch.precheck(_st(True, 7, 3))
+    assert "open" in ch.precheck(_st(False, 7, None)), "a sequence number without a request is no clean start"
+    assert "unknown" in ch.precheck({"tool_change_seq": None, "tool_number": 0}), "an unread request is no clean start"
+
+
+def test_a_wrong_or_undeclared_tool_is_never_confirmed():
+    ch = tc.ToolChanges([1])
+    with pytest.raises(tc.ToolChangeError, match="T3"):
+        _feed(ch, [_st(True, 2, 3)])
+    assert ch.confirmed == []
+    after = tc.ToolChanges([1])
+    _feed(after, [_st(True, 2, 1), _st(number=1)])
+    with pytest.raises(tc.ToolChangeError, match="undeclared"):
+        _feed(after, [_st(True, 3, 1, number=1)])
+    assert after.confirmed == [2]
+
+
+def test_declared_changes_are_taken_in_their_order_and_may_be_skipped():
+    ch = tc.ToolChanges([0, 1, 5])
+    _feed(ch, [_st(True, 1, 1, number=0), _st(number=1), _st(True, 2, 5, number=1), _st(number=5)])
+    assert [s["tool"] for s in ch.served] == [1, 5], "0 skipped: allowed is not required"
+    back = tc.ToolChanges([1, 5])
+    _feed(back, [_st(True, 1, 5), _st(number=5)])
+    with pytest.raises(tc.ToolChangeError, match="T1"):
+        _feed(back, [_st(True, 2, 1, number=5)])     # 1 came before 5: not after it
+
+
+def test_the_connection_ending_while_waiting_confirms_nothing():
+    class Client:
+        error = "Simulator WebSocket closed during the gate"
+        status = _st(True, 1, 1)
+        sent = []
+
+        def request(self, *a, **k):
+            self.sent.append((a, k))
+    ch = tc.ToolChanges([1])
+    with pytest.raises(tc.ToolChangeError, match="connection"):
+        tc.serve(Client(), ch, done=lambda t, st: False, deadline_s=1.0)
+    assert Client.sent == [] and ch.confirmed == []
+
+
+def test_a_request_replaced_before_its_completion_is_refused():
+    ch = tc.ToolChanges([1, 2])
+    _feed(ch, [_st(True, 1, 1)])
+    with pytest.raises(tc.ToolChangeError, match="before"):
+        _feed(ch, [_st(True, 2, 2)])
+
+
+# the hold sequence (R283 FI282-02): 5 s held, the whole interval checked at 20 Hz
+def _held(n, **change):
+    return [_st(True, 9, 99, number=1, interp=2)] * n + ([_st(True, 9, 99, number=1, interp=2, **change)] if change else [])
+
+
+def test_the_hold_confirms_only_after_its_whole_interval():
+    ch = tc.ToolChanges([99], hold_s=5.0)
+    acts = _feed(ch, _held(101) + [_st(number=99)])
+    assert acts[:100] == [None] * 100 and acts[100] == ("confirm", 9), acts[95:]
+    assert ch.holds[0]["samples"] >= 100 and ch.holds[0]["max_gap_s"] <= 0.06
+
+
+@pytest.mark.parametrize("change, reason", [
+    ({"interp_state": 1}, "idle"),
+    ({"tool_number": 5}, "tool"),
+    ({"tool_change_requested": False}, "request"),
+    ({"tool_change_seq": 10}, "request"),
+])
+def test_the_hold_fails_on_any_sample_that_breaks_it(change, reason):
+    ch = tc.ToolChanges([99], hold_s=5.0)
+    frames = _held(40)
+    frames[20] = {**frames[20], **change}
+    with pytest.raises(tc.ToolChangeError, match=reason):
+        _feed(ch, frames)
+    assert ch.confirmed == []
+
+
+def test_a_hold_with_a_gap_in_its_sampling_is_no_hold():
+    ch = tc.ToolChanges([99], hold_s=5.0)
+    with pytest.raises(tc.ToolChangeError, match="gap"):
+        for t in [0.0, 0.05, 0.1, 1.5] + [1.5 + 0.05 * k for k in range(1, 80)]:
+            ch.step(t, _st(True, 9, 99, number=1))
+    assert ch.confirmed == []
+
+
+# ── step 2: the evaluators (plan R283–R285 FI282-05) ─────────────────────
+def test_a_counter_probe_passes_only_when_its_planted_value_is_refused():
+    wrong = nc.eval_probe_z("probe-z", 1, -180.0004, expected=-179.0)
+    assert wrong["status"] == "FAIL"
+    c = nc.counter("probe-z.counter-179", wrong)
+    assert c["status"] == "PASS" and c["inner"]["status"] == "FAIL" and c["counter"] is True
+    passed = nc.counter("probe-z.counter-179", nc.eval_probe_z("probe-z", 1, -179.0, expected=-179.0))
+    assert passed["status"] == "FAIL", "a planted wrong value that passes: the check does not hold"
+    unknown = nc.counter("probe-z.counter-179", nc.eval_probe_z("probe-z", None, -180.0, expected=-179.0))
+    assert unknown["status"] == "incomplete"
+
+
+@pytest.mark.parametrize("contact, g54, status", [
+    (1, -180.0004, "PASS"), (1, -180.0031, "FAIL"), (1, -179.9969, "FAIL"),
+    (0, -180.0, "FAIL"), (None, -180.0, "incomplete"), (1, None, "incomplete"), (1, float("nan"), "incomplete"),
+])
+def test_the_z_probe_needs_its_contact_and_the_plate_within_its_tolerance(contact, g54, status):
+    r = nc.eval_probe_z("probe-z", contact, g54, expected=-180.0)
+    assert r["status"] == status, r
+
+
+@pytest.mark.parametrize("contact, before, after, errors, status", [
+    (0, 0.0, 0.0, ["G38.2 move finished without making contact."], "PASS"),
+    (1, 0.0, 0.0, ["G38.2 move finished without making contact."], "FAIL"),
+    (0, 0.0, -180.0, ["G38.2 move finished without making contact."], "FAIL"),
+    (0, 0.0, 0.0, [], "incomplete"),                        # the error may have ridden a skipped tick
+    (None, 0.0, 0.0, ["G38.2 move finished without making contact."], "incomplete"),
+])
+def test_a_probe_without_contact_reports_none_and_sets_nothing(contact, before, after, errors, status):
+    r = nc.eval_probe_miss("probe-z-miss", contact, before, after, errors)
+    assert r["status"] == status, r
+
+
+@pytest.mark.parametrize("length, g43, status", [
+    (50.0015, 50.0015, "PASS"), (50.0025, 50.0025, "FAIL"), (49.0, 49.0, "FAIL"),
+    (50.0, 0.0, "FAIL"), (None, 50.0, "incomplete"), (50.0, None, "incomplete"),
+])
+def test_m600_measures_the_length_and_applies_the_same(length, g43, status):
+    r = nc.eval_m600("m600-t1", 50.0, length, g43)
+    assert r["status"] == status, r
+
+
+def _lock(seq, done_at):
+    """(t, status): feed_override_enabled per frame, done = interp idle + no request from `done_at` on."""
+    out = []
+    for t, en in seq:
+        done = done_at is not None and t >= done_at
+        out.append((t, {"feed_override_enabled": en, "interp_state": 1 if done else 2,
+                        "tool_change_seq": None, "tool_change_requested": False}))
+    return out
+
+
+def test_the_m600_lock_as_codex_drew_it_passes():
+    frames = _lock([(0.03, True), (0.2, False), (0.6, False), (1.0, False), (1.033, True)], done_at=1.033)
+    r = nc.eval_override_lock("m600-lock", frames, t_trigger=0.0)
+    assert r["status"] == "PASS", r
+
+
+def test_no_release_within_two_seconds_of_the_completion_fails():
+    frames = _lock([(0.03, True), (0.2, False), (1.0, False), (1.033, False), (2.0, False), (3.1, False)], done_at=1.033)
+    assert nc.eval_override_lock("m600-lock", frames, t_trigger=0.0)["status"] == "FAIL"
+
+
+def test_only_a_stale_true_from_before_the_completion_fails():
+    # released at 0.9, completed at 1.033 — but no frame AFTER the completion shows it
+    frames = _lock([(0.03, True), (0.2, False), (0.9, True)], done_at=None)
+    frames.append((1.033, {"feed_override_enabled": False, "interp_state": 1, "tool_change_seq": None,
+                           "tool_change_requested": False}))
+    assert nc.eval_override_lock("m600-lock", frames, t_trigger=0.0)["status"] == "FAIL"
+
+
+def test_no_observed_locked_phase_is_incomplete():
+    frames = _lock([(0.03, True), (0.5, True), (1.0, True)], done_at=1.0)
+    assert nc.eval_override_lock("m600-lock", frames, t_trigger=0.0)["status"] == "incomplete"
+
+
+def test_a_release_inside_the_measuring_phase_fails_and_a_stale_start_is_incomplete():
+    flicker = _lock([(0.03, True), (0.2, False), (0.4, True), (0.6, False), (1.033, True)], done_at=1.033)
+    assert nc.eval_override_lock("m600-lock", flicker, t_trigger=0.0)["status"] == "FAIL"
+    stale = _lock([(-0.5, True), (0.2, False), (1.033, True)], done_at=1.033)   # the only true is from before the trigger
+    assert nc.eval_override_lock("m600-lock", stale, t_trigger=0.0)["status"] == "incomplete"
+
+
+def test_a_routine_ends_only_after_it_was_seen_busy_unless_told_otherwise():
+    end = tc.RoutineEnd()
+    assert [end(t, {"interp_state": s, "inpos": True}) for t, s in [(0, 1), (3.0, 1), (3.1, 2), (3.2, 1)]] == \
+        [False, False, False, True]
+    short = tc.RoutineEnd(require_busy=False, grace=2.0)
+    assert [short(t, {"interp_state": 1, "inpos": True}) for t in (0, 1.0, 2.0)] == [False, False, True]
+    moving = tc.RoutineEnd()
+    assert [moving(t, {"interp_state": s, "inpos": p}) for t, s, p in [(0, 2, False), (1, 1, False), (2, 1, True)]] == \
+        [False, False, True]
+
+
+def test_a_failed_step_keeps_the_rows_it_measured(tmp_path):
+    h = FakeHost()
+
+    def step(ctx):
+        raise nr.StepFailed([{"case": "m6-hold", "status": "FAIL", "detail": "an undeclared tool change"}],
+                            "the M6 sequence ended — the instance goes down")
+    report = nr.run(h, [("m6", step)], tmp_path / "run")
+    assert report["rows"] == [{"case": "m6-hold", "status": "FAIL", "detail": "an undeclared tool change"}]
+    assert "the M6 sequence ended" in report["error"] and nr.verdict(report) == "FAIL"
+
+
+# ── step 2: the client keeps the envelope (errors ride one tick only) ─────
+def test_the_client_harvests_every_frames_errors_and_the_envelope():
+    from test_support.live_session import SimulatorClient
+    c = SimulatorClient("t", auto_confirm=False)
+    c.take({"type": "status", "data": {"interp_state": 2}, "errors": [[11, "G38.2 move finished without making contact."]],
+            "rfl_status": {"phase": "measuring", "ok": None}, "preview_origin": {"version": 4, "source": "ab"}})
+    c.take({"type": "status_delta", "data": {}, "errors": [], "probe_results": {"z_minus": -180.0}})
+    c.take({"type": "status_delta", "data": {"interp_state": 1}, "errors": [[13, "a note"]]})
+    assert [(k, x) for _, k, x in c.errors] == [(11, "G38.2 move finished without making contact."), (13, "a note")]
+    assert c.rfl_status == {"phase": "measuring", "ok": None} and [p["phase"] for _, p in c.rfl_history] == ["measuring"]
+    assert c.preview_origin == {"version": 4, "source": "ab"} and c.probe_results == {"z_minus": -180.0}
+    assert c.status["interp_state"] == 1
+    c.take({"type": "reply", "cmd": "mdi", "ok": True, "errors": [[1, "not an envelope"]]})
+    assert len(c.errors) == 2, "a reply is no status frame"
+
+
+def test_the_plate_comes_from_the_copys_hal_and_must_be_whole():
+    hal = "loadrt foo\nsetp sim-toolsetter.0.plate-x 10\nsetp sim-toolsetter.0.plate-y 10\n  setp sim-toolsetter.0.plate-z -180\n"
+    assert nr.plate_from_hal(["# none", hal]) == {"x": 10.0, "y": 10.0, "z": -180.0}
+    with pytest.raises(nr.Refused, match="plate"):
+        nr.plate_from_hal(["setp sim-toolsetter.0.plate-x 10\nsetp sim-toolsetter.0.plate-y 10\n"])
+
+
+def _hold(samples=101, gap=0.05):
+    return [{"tool": 99, "seq": 3, "t0": 0.0, "last_t": 5.0, "samples": samples, "max_gap_s": gap, "tool_before": 1}]
+
+
+@pytest.mark.parametrize("holds, after, offset, status", [
+    (_hold(), 99, 50.0, "PASS"),
+    (_hold(samples=60), 99, 50.0, "FAIL"),           # 5 s at 20 Hz is ≥ 90 samples
+    (_hold(gap=0.2), 99, 50.0, "FAIL"),
+    ([], 99, 50.0, "FAIL"),                          # no request ever held: M6 did not wait for anything
+    (_hold(), 1, 50.0, "FAIL"),                      # it did not go on with the new tool
+    (_hold(), 99, 40.0, "FAIL"),                     # nor with its length
+    (_hold(), 99, None, "incomplete"),
+])
+def test_m6_waits_held_and_goes_on_with_the_new_tool(holds, after, offset, status):
+    r = nc.eval_m6_hold("m6-hold", holds, 1, after, offset, 99, 50.0, 5.0)
+    assert r["status"] == status, r
+
+
+class ScriptedClient:
+    """A live client's surface for the case helpers: each status READ shows
+    the next scripted frame (the last one stays); requests are recorded."""
+
+    def __init__(self, frames):
+        self.frames, self.i, self.sent, self.errors, self.error = list(frames), 0, [], [], None
+
+    @property
+    def status(self):
+        st = self.frames[min(self.i, len(self.frames) - 1)]
+        self.i += 1
+        return dict(st)
+
+    def request(self, cmd, **kw):
+        self.sent.append((cmd, kw))
+        return {"ok": True}
+
+
+def test_a_routine_ends_on_its_started_effect_seen_while_it_runs():
+    """The start latch (the probe's M50 P0) shows only WHILE it runs: a
+    done-check that evaluates it only on idle frames never ends."""
+    base = {"tool_change_requested": False, "tool_change_seq": None, "inpos": True}
+    frames = [{**base, "interp_state": 1, "feed_override_enabled": True}] * 2 + \
+             [{**base, "interp_state": 2, "feed_override_enabled": False, "inpos": False}] * 3 + \
+             [{**base, "interp_state": 2, "feed_override_enabled": True}] + \
+             [{**base, "interp_state": 1, "feed_override_enabled": True}] * 3
+    seen = {"on": False}
+
+    def ran(st):
+        seen["on"] = seen["on"] or st.get("feed_override_enabled") is False
+        return seen["on"]
+    c = ScriptedClient(frames)
+    r = nr._routine(c, "O<probe_z_minus_wco> CALL", vars={3030: 0}, deadline=2.0, extra=ran)
+    assert c.sent[0] == ("mdi", {"text": "O<probe_z_minus_wco> CALL", "vars": {"3030": 0}}) and r["served"] == []
+
+
+class EchoClient(ScriptedClient):
+    """The interpreter answers a DEBUG line through the error channel —
+    except the attempts listed as lost (a skipped status tick)."""
+
+    def __init__(self, lost=()):
+        super().__init__([{"interp_state": 1, "inpos": True, "tool_change_requested": False, "tool_change_seq": None}])
+        self.lost, self.debug = set(lost), 0
+
+    def request(self, cmd, **kw):
+        super().request(cmd, **kw)
+        text = kw.get("text", "")
+        if text.startswith("(DEBUG,"):
+            self.debug += 1
+            if self.debug not in self.lost:
+                tag = text[7:].split()[0]
+                self.errors.append((time.monotonic(), 13, f"{tag} P5070=1.000000 P5063=-130.000000"))
+        return {"ok": True}
+
+
+def test_parameters_without_a_status_field_are_read_through_a_tagged_debug_line(monkeypatch):
+    monkeypatch.setattr(nr, "SHORT_GRACE", 0.02)
+    monkeypatch.setattr(nr, "DEBUG_WAIT", 0.2)
+    c = EchoClient()
+    assert nr._read_params(c, [5070, 5063]) == {5070: 1.0, 5063: -130.0}
+    assert c.sent[0][1]["text"].endswith(" P5070=#5070 P5063=#5063)")
+    lost_once = EchoClient(lost={1})
+    assert nr._read_params(lost_once, [5070])[5070] == 1.0 and lost_once.debug == 2, "a lost tick is read again"
+    never = EchoClient(lost={1, 2, 3})
+    assert nr._read_params(never, [5070]) == {5070: None}, "unread stays unknown, never 0"
+
+
+@pytest.mark.parametrize("served, after, offset, status", [
+    ([{"tool": 0, "seq": 4}], 0, 0.0, "PASS"),
+    ([], 0, 0.0, "PASS"),               # nothing was in the spindle: allowed, not required
+    ([{"tool": 0, "seq": 4}], 1, 0.0, "FAIL"),
+    ([{"tool": 0, "seq": 4}], 0, 50.0, "FAIL"),   # the old length still applied
+    ([{"tool": 0, "seq": 4}], 0, None, "incomplete"),
+])
+def test_unloading_leaves_the_spindle_empty_and_no_length_applied(served, after, offset, status):
+    assert nc.eval_unload("m600-unload", served, after, offset)["status"] == status
+
+
+def test_a_late_frame_still_showing_the_served_request_is_not_confirmed_again():
+    ch = tc.ToolChanges([1, 1])
+    acts = _feed(ch, [_st(True, 1, 1), _st(number=1), _st(True, 1, 1, number=1), _st(number=1)])
+    assert acts == [("confirm", 1), None, None, None] and ch.confirmed == [1], acts

@@ -129,3 +129,143 @@ def eval_jog(case: str, axis: int, sign: int, p0: float, before, samples: list[t
     return _row(case, "incomplete", f"the braking travel from the reply is at most {upper:.3f} mm by the frame "
                 f"before it; status frames give no lower bound (their capture time is not known) — not "
                 f"resolved against {bound:.3f}", **measured)
+
+
+# ── step 2a: probe, M600, the override lock (plan R283–R285 FI282-05) ────
+PROBE_TOL = 0.003             # mm: (1.67 T)·v_slow + 1 µm — a model assumption for THIS case, never widened
+M600_TOL = 0.002              # mm: (1.67 T)·v_slow(20 mm/min) + 1 µm
+SAME = 1e-6                   # the applied G43 is the table value itself
+RELEASE_WITHIN = 2.0          # s after the confirmed completion (R285)
+NO_CONTACT = "without making contact"
+
+
+def counter(case: str, inner: dict) -> dict:
+    """A planted wrong value (a counter-probe): the check holds only when its
+    evaluation REFUSES it — PASS iff the inner row is FAIL; an inner PASS is
+    this row's FAIL, an unresolved one stays incomplete."""
+    status = {"FAIL": "PASS", "PASS": "FAIL"}.get(inner["status"], "incomplete")
+    detail = {"PASS": "the planted value is refused", "FAIL": "the planted wrong value PASSED — the check does not hold"
+              }.get(status, "the planted value was not decided")
+    return {"case": case, "status": status, "detail": f"{detail}: {inner['detail']}", "counter": True, "inner": inner}
+
+
+def eval_probe_z(case: str, contact, g54_z, expected: float, tol: float = PROBE_TOL) -> dict:
+    """Z probing writes G54 Z = the plate (expected, from the independent
+    measure — the copy's HAL, never the table after the attempt) ± tol; the
+    contact (#5070 = 1) is required."""
+    measured = {"expected": expected, "tol_mm": tol, "contact": contact, "g54_z": g54_z}
+    if contact is None or not _finite(contact):
+        return _row(case, "incomplete", "#5070 not read", **measured)
+    if not _finite(g54_z):
+        return _row(case, "incomplete", "G54 Z not read", **measured)
+    if contact != 1:
+        return _row(case, "FAIL", f"no contact recorded (#5070 = {contact:g})", **measured)
+    dev = g54_z - expected
+    measured["deviation_mm"] = round(dev, 6)
+    if abs(dev) <= tol:
+        return _row(case, "PASS", f"G54 Z {g54_z:.4f} within {expected:g} ± {tol:g}", **measured)
+    return _row(case, "FAIL", f"G54 Z {g54_z:.4f} — expected {expected:g} ± {tol:g}", **measured)
+
+
+def eval_probe_miss(case: str, contact, g54_before, g54_after, errors: list[str]) -> dict:
+    """No contact within the search depth: no contact recorded (#5070 = 0),
+    G54 Z unchanged, LinuxCNC's own error in the error channel — whose
+    absence is incomplete (a skipped status tick loses its errors)."""
+    measured = {"contact": contact, "g54_before": g54_before, "g54_after": g54_after}
+    if contact is None or not _finite(contact, g54_before, g54_after):
+        return _row(case, "incomplete", "#5070 or G54 Z not read", **measured)
+    if contact != 0:
+        return _row(case, "FAIL", f"a contact recorded (#5070 = {contact:g}) beyond the search depth", **measured)
+    if abs(g54_after - g54_before) > SAME:
+        return _row(case, "FAIL", f"G54 Z changed {g54_before:.4f} → {g54_after:.4f} without a contact", **measured)
+    said = [e for e in errors if NO_CONTACT in e]
+    if not said:
+        return _row(case, "incomplete", f"no error saying \"{NO_CONTACT}\" received", **measured)
+    return _row(case, "PASS", "no contact, nothing set, the error said so", error=said[0], **measured)
+
+
+def eval_m600(case: str, l0, length, g43, tol: float = M600_TOL) -> dict:
+    """T<n> M600: the table length measured = L0 (recorded BEFORE) ± tol, and
+    the applied G43 offset is that same length."""
+    measured = {"l0": l0, "length": length, "g43": g43, "tol_mm": tol}
+    if not _finite(l0, length, g43):
+        return _row(case, "incomplete", "L0, the measured length or the applied offset not read", **measured)
+    measured["deviation_mm"] = round(length - l0, 6)
+    if abs(length - l0) > tol:
+        return _row(case, "FAIL", f"length {length:.4f} — expected {l0:g} ± {tol:g}", **measured)
+    if abs(g43 - length) > SAME:
+        return _row(case, "FAIL", f"the applied G43 {g43:.4f} is not the measured {length:.4f}", **measured)
+    return _row(case, "PASS", f"length {length:.4f} within {l0:g} ± {tol:g}, applied as measured", **measured)
+
+
+def eval_override_lock(case: str, frames: list[tuple], t_trigger: float) -> dict:
+    """F-OVERRIDE.S2b (R285): during M600's measuring phase the status says
+    the feed override is LOCKED, after the routine's end it is FREE again.
+    `frames` = (receipt time, merged status). Required: (1) a frame received
+    after the trigger showing it free before the locked phase; (2) the
+    observed edge to locked and locked in every frame of that phase; (3)
+    within RELEASE_WITHIN s of the confirmed completion (interpreter idle, no
+    tool change open) a frame RECEIVED at or after it showing it free — the
+    completion frame itself may. No observed locked phase: incomplete."""
+    fresh = [(t, st) for t, st in frames if t >= t_trigger]
+    en = [(t, st.get("feed_override_enabled")) for t, st in fresh]
+    locked = [i for i, (_, e) in enumerate(en) if e is False]
+    if not locked:
+        return _row(case, "incomplete", "no frame showed the override locked")
+    first, last = locked[0], locked[-1]
+    if not any(e is True for _, e in en[:first]):
+        return _row(case, "incomplete", "no frame after the trigger showed it free before the lock",
+                    locked_from_s=round(en[first][0] - t_trigger, 3))
+    inside = [t for t, e in en[first:last + 1] if e is not False]
+    if inside:
+        return _row(case, "FAIL", f"not locked at {inside[0] - t_trigger:+.3f} s inside the measuring phase")
+    done = next((t for t, st in fresh[first:] if st.get("interp_state") == 1 and st.get("tool_change_seq") is None
+                 and st.get("tool_change_requested") is False), None)
+    measured = {"locked_from_s": round(en[first][0] - t_trigger, 3), "locked_to_s": round(en[last][0] - t_trigger, 3)}
+    if done is None:
+        return _row(case, "incomplete", "no confirmed completion received", **measured)
+    measured["done_s"] = round(done - t_trigger, 3)
+    free = next((t for t, e in en if done <= t <= done + RELEASE_WITHIN and e is True), None)
+    if free is None:
+        return _row(case, "FAIL", f"not free within {RELEASE_WITHIN} s of the completion", **measured)
+    return _row(case, "PASS", "locked through the measuring phase, free after the routine",
+                free_s=round(free - t_trigger, 3), **measured)
+
+
+def eval_m6_hold(case: str, holds: list[dict], tool_before, tool_after, offset_after, tool: int, length: float,
+                 hold_s: float) -> dict:
+    """F-TOOLCHANGE.S2: M6 waited for the explicit confirmation — ONE hold of
+    `hold_s` with ≥ 90 % of its 20 Hz samples and no gap past 0.1 s (the
+    helper refused every sample that broke it) — and went on with the new
+    tool: in the spindle, its length applied."""
+    measured = {"tool_before": tool_before, "tool_after": tool_after, "offset_after": offset_after}
+    if len(holds) != 1:
+        return _row(case, "FAIL", f"{len(holds)} held requests — M6 raised none to hold" if not holds
+                    else f"{len(holds)} held requests, one expected", **measured)
+    h = holds[0]
+    measured.update(samples=h["samples"], max_gap_s=round(h["max_gap_s"], 3))
+    if h["samples"] < 0.9 * hold_s * 20 or h["max_gap_s"] > 0.1:
+        return _row(case, "FAIL", f"the hold is not shown: {h['samples']} samples, a gap up to "
+                    f"{h['max_gap_s']:.3f} s", **measured)
+    if not _finite(offset_after):
+        return _row(case, "incomplete", "the applied offset after the change not read", **measured)
+    if tool_after != tool:
+        return _row(case, "FAIL", f"T{tool_after} in the spindle after the change, T{tool} expected", **measured)
+    if abs(offset_after - length) > SAME:
+        return _row(case, "FAIL", f"the applied offset {offset_after} is not T{tool}'s length {length}", **measured)
+    return _row(case, "PASS", f"held {hold_s:g} s waiting, then T{tool} with its length", **measured)
+
+
+def eval_unload(case: str, served: list[dict], tool_after, offset_after) -> dict:
+    """T0 M600 (F-TOOLMEASURE.S6b): the spindle empty (T0) and no length
+    applied afterwards; the change to T0 the only one confirmed."""
+    measured = {"served": served, "tool_after": tool_after, "offset_after": offset_after}
+    if not _finite(offset_after):
+        return _row(case, "incomplete", "the applied offset after the unload not read", **measured)
+    if any(c["tool"] != 0 for c in served):
+        return _row(case, "FAIL", "a change to another tool than T0 confirmed", **measured)
+    if tool_after != 0:
+        return _row(case, "FAIL", f"T{tool_after} in the spindle after the unload", **measured)
+    if abs(offset_after) > SAME:
+        return _row(case, "FAIL", f"a length {offset_after} still applied after the unload", **measured)
+    return _row(case, "PASS", "the spindle empty, no length applied", **measured)

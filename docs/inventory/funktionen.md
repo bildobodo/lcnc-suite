@@ -13,7 +13,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Offene Aussagen
 
-26 Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.
+22 Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.
 
 | Funktion | Aussage | Art | gilt für | Lücke |
 |---|---|---|---|---|
@@ -22,21 +22,17 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | Sicherheits-Auslösung quittieren, Sicherheitskette | Eine gemeldete Auslösung erscheint im Banner mit Quittieren und wird protokolliert. | Bedienbarkeit | alle | Browser/Gateway: Versand, Banner und Protokolleintrag beobachtet kein Test |
 | Antast-Auslösung simulieren (nur Sim) | Sim-Trip pulst den Antast-Eingang probe-in kurz; eine fehlgeschlagene Zustellung wird gemeldet. | Wirkung | alle | Gateway: kein Test des Handlers (halcmd sets probe-in); nativ in der Sim |
 | Referenzieren und Referenz aufheben | Home je Achse sendet den Joint seiner Achse. | Daten | 3axis_xyz, 5axis_xyzac, 6axis_twp_xyzabc | Browser: sendet die Achsposition als Joint (SetupStrip a.index) und liest homed_joints an derselben Stelle — richtig, wo Joint = Achsposition (alle ausgelieferten Konfigurationen), falsch, wo nicht (Gantry, eigene Kinematik); braucht eine Achse→Joint-Zuordnung vom Gateway |
-| Referenzieren und Referenz aufheben | Auf echtem LinuxCNC referenzieren Home All und Home je Achse. | Wirkung | offen | nativ (native Stufe) |
-| Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren | Auf echtem LinuxCNC bewegt jeder Jog-Knopf seine Achse in seine Richtung und hält am Loslassen. | Wirkung | offen | nativ: Achse, Richtung und Stopp je Knopf am echten Task (die native Stufe) |
+| Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren | Jeder Jog-Knopf und sein Loslassen senden jog_cont / jog_stop seiner Achse und Richtung (die Diagonalen als Mehrfach-Jog sind eine eigene Aussage). | Daten | alle | Browser: je Bildschirm-Knopf Achse und Richtung, parametrisiert; belegt sind bisher die Tastatur je Belegung und der Knopf X+ |
 | Anfahren: G30, Maschinennull, Werkstücknull | Z ist oben, bevor X/Y fahren (→ Zero, → Home, → G30). | Wirkung | Machine | nativ: Verlauf oder Befehlsfolge (die Endpositionen belegen die Reihenfolge nicht) |
-| Overrides: Vorschub, Eilgang, Spindel | Auf echtem LinuxCNC ändert der Override die Geschwindigkeit; in M600 und Surface-Scan ist er abgeschaltet (M50 P0). | Wirkung | offen | nativ (native Stufe) |
+| Overrides: Vorschub, Eilgang, Spindel | Auf echtem LinuxCNC ändert der Feed-Override die Bahngeschwindigkeit (G1 F6000: Plateau 100 mm/s, mit 0,5 dann 50 mm/s, je ± 5 %). | Wirkung | 3axis_xyz | nativ: die Plateau-Messung (STAT mit 50 Hz) — noch keinem Bauschritt zugeordnet |
+| Overrides: Vorschub, Eilgang, Spindel | Während des Surface-Scans meldet der Status den Feed-Override gesperrt; nach dem Ende ist er wieder freigegeben. | Wirkung | offen | nativ: der Surface-Scan-Lauf (Q282-2) |
 | Kühlmittel: Flood und Mist | Auf echtem LinuxCNC schalten Flood und Mist ihre HAL-Ausgänge. | Wirkung | offen | nativ (native Stufe) |
 | Antippen (Touch-off) und Nullen je Achse | Plane: das Remap schreibt den angetippten Wert in G54. | Wirkung | Plane | kein Test liest G54 nach dem Remap; nativ (scripts/twp_touchoff_plane_check.py, Laufbindung offen) |
 | Geschwenkte Ebene (TWP): erfassen, aufheben, neu ausrichten | Erfassen, Ausrichten und Aufheben ändern Ebene und Nullpunkt, wie die Anzeige es sagt. | Wirkung | Machine, Plane | nativ: scripts/twp_capture_check.py und twp_reorient_check.py (Laufbindung offen) |
 | Programm laden, neu laden, entladen | Neu laden übernimmt die neue Revision; Entladen leert Programm und Vorschau. | Wirkung | alle | Browser/Gateway: Reload und Unload als Ergebnis nicht belegt |
 | Start ab Zeile (mit Vormessung, sicherem Z, Spindel) | Auf echtem LinuxCNC startet der Lauf ab der gewählten Zeile mit dem richtigen Werkzeug, Spindel und Startpunkt. | Wirkung | offen | nativ: ein Testprogramm ab Zeile mit Vormessung (native Stufe) |
 | Werkzeug anlegen, bearbeiten, löschen, umnummerieren | Anlegen, Ändern, Löschen und Umnummerieren ändern genau ihren Datensatz, erhalten die übrigen Werte und laden die Tabelle neu. | Wirkung | alle | Gateway: kein Test vergleicht die Tabelle vor und nach je Aktion; nativ |
-| Werkzeugwechsel (M6) mit Bestätigung | Auf echtem LinuxCNC wartet M6 bis zur ausdrücklichen Bestätigung und läuft dann mit dem neuen Werkzeug weiter. | Wirkung | offen | nativ: ohne automatische Bestätigung (FI265-04), native Stufe |
 | Werkzeuglänge messen (M600) und Werkzeug entladen | Jede Nummer der Abbildung ist die, die tool_touch_off.ngc für ihren Wert liest. | Daten | alle | Unit: kein Test gleicht die Abbildung mit den Lesestellen der Routine ab |
-| Werkzeuglänge messen (M600) und Werkzeug entladen | Auf echtem LinuxCNC landet die gemessene Länge in der Werkzeugtabelle und im G43-Offset. | Wirkung | offen | nativer Lauf offen (nach Schritt 7) |
-| Werkzeuglänge messen (M600) und Werkzeug entladen | Auf echtem LinuxCNC entlädt Entladen das Werkzeug. | Wirkung | offen | nativ (native Stufe) |
-| Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut | Auf echtem LinuxCNC setzt ein Z-Antasten G54 Z auf den erwarteten Wert (Platte, Werkzeug, Toleranz je Messgröße). | Wirkung | offen | Schritt 7, der Antast-Live-Check |
 | Fläche abtasten (Surface-Scan) | Auf echtem LinuxCNC tastet der Scan das Raster ab und liefert die Punkte für die Kompensation. | Wirkung | 3axis_xyz | nativ (native Stufe, mit hohem Antastvorschub über die Scan-Variablen) |
 | Flächenkompensation ein/aus und Interpolation umschalten | Auf echtem LinuxCNC wirkt AN/AUS, und die drei Methoden unterscheiden sich an bekannten Punkten einer nicht ebenen Fläche. | Wirkung | 3axis_xyz | nativer Lauf offen |
 | Makros verwalten: anlegen, bearbeiten, umbenennen, löschen, importieren, herunterladen | Im Gateway ist eine Umbenennung ein Schritt: neue Datei, alte weg, Leiste umgezogen, oder nichts. | Wirkung | alle | Gateway: Atomarität der Umbenennung nicht belegt |
@@ -121,8 +117,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Referenzieren und Referenz aufheben** `F-HOME` | Banner, Leiste › Setup | 11 | 4 | 2 | 2 |
-| **Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren** `F-JOG` | Leiste › Jog | 39 | 5 | 4 | 1 |
+| **Referenzieren und Referenz aufheben** `F-HOME` | Banner, Leiste › Setup | 11 | 4 | 3 | 1 |
+| **Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren** `F-JOG` | Leiste › Jog | 39 | 6 | 5 | 1 |
 | **Anfahren: G30, Maschinennull, Werkstücknull** `F-GOTO` | Leiste › Setup | 8 | 5 | 4 | 1 |
 
 ### Referenzieren und Referenz aufheben
@@ -133,8 +129,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: browser: `strip-actions.spec.ts` — Home All sends home_all on a hold — a tap sends nothing
 - **S2b (Daten):** Home je Achse sendet den Joint seiner Achse. — gilt für: 3axis_xyz, 5axis_xyzac, 6axis_twp_xyzabc
   - Beleg: **offen** — Lücke: Browser: sendet die Achsposition als Joint (SetupStrip a.index) und liest homed_joints an derselben Stelle — richtig, wo Joint = Achsposition (alle ausgelieferten Konfigurationen), falsch, wo nicht (Gantry, eigene Kinematik); braucht eine Achse→Joint-Zuordnung vom Gateway
-- **S2c (Wirkung):** Auf echtem LinuxCNC referenzieren Home All und Home je Achse. — gilt für: offen
-  - Beleg: **offen** — Lücke: nativ (native Stufe)
+- **S2c (Wirkung):** Auf echtem LinuxCNC (3 Achsen, Modus Machine) referenziert Home All alle drei Joints; Home je Achse referenziert nach Unhome All genau seinen Joint (0, 1, 2), erst nach bestätigtem Abschluss. — gilt für: 3axis_xyz
+  - Beleg: native: `native_run.py` — home-all; native: `native_run.py` — home-joint-0; native: `native_run.py` — home-joint-1; native: `native_run.py` — home-joint-2 — Lücke: der native Lauf steht aus (gebaut: Schritt 1)
 
 ### Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren
 
@@ -146,8 +142,10 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: gateway: `test_command_policy.py` — test_jog_velocity_is_SIGNED_and_must_survive_the_clamp
 - **S4 (Ablehnung):** Vor dem Referenzieren joggt jede Achse ihr deklariertes Gelenk; eine Gantry-Achse und die Diagonalen sind gesperrt, mit Grund (Entscheidung und Anzeige). — gilt für: alle
   - Beleg: gateway: `test_button_gates_e.py` — test_a_gantry_letter_is_closed; browser: `joint-jog.spec.ts` — before homing every open axis jogs in amber, the diagonals are closed with their reason; homed both are back (package F); gateway: `test_button_gates_e.py` — test_the_declared_joint_not_the_index; gateway: `test_button_gates_e.py` — test_a_diagonal_is_refused_before_homing
-- **S5 (Wirkung):** Auf echtem LinuxCNC bewegt jeder Jog-Knopf seine Achse in seine Richtung und hält am Loslassen. — gilt für: offen
-  - Beleg: **offen** — Lücke: nativ: Achse, Richtung und Stopp je Knopf am echten Task (die native Stufe)
+- **S5 (Wirkung):** Auf echtem LinuxCNC bewegen die Jog-Befehle des Gateways (jog_cont / jog_stop) jede Achse in ihrem Vorzeichen und halten sie an: Weg ab der Antwort auf jog_stop höchstens v²/2a + 2·v·4T (X/Y 2,1 mm, Z 2,5 mm bei 50 mm/s), Stillstand binnen 0,5 s. — gilt für: 3axis_xyz
+  - Beleg: native: `native_run.py` — jog-x+; native: `native_run.py` — jog-x-; native: `native_run.py` — jog-y+; native: `native_run.py` — jog-y-; native: `native_run.py` — jog-z+; native: `native_run.py` — jog-z- — Lücke: der native Lauf steht aus (gebaut: Schritt 1); der Bremsweg bleibt aus Statusbildern oft unvollständig, bis die Servo-Abtastung (Q288-1) ihn auflöst
+- **S5b (Daten):** Jeder Jog-Knopf und sein Loslassen senden jog_cont / jog_stop seiner Achse und Richtung (die Diagonalen als Mehrfach-Jog sind eine eigene Aussage). — gilt für: alle
+  - Beleg: **offen** — Lücke: Browser: je Bildschirm-Knopf Achse und Richtung, parametrisiert; belegt sind bisher die Tastatur je Belegung und der Knopf X+
 
 ### Anfahren: G30, Maschinennull, Werkstücknull
 
@@ -166,7 +164,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Overrides: Vorschub, Eilgang, Spindel** `F-OVERRIDE` | Leiste › Overrides | 19 | 2 | 1 | 1 |
+| **Overrides: Vorschub, Eilgang, Spindel** `F-OVERRIDE` | Leiste › Overrides | 19 | 4 | 2 | 2 |
 | **Spindel von Hand: Rechts, Links, Stopp, Drehzahl** `F-SPINDLE` | Einstellungen, Leiste › Spindel | 25 | 4 | 4 | 0 |
 | **Kühlmittel: Flood und Mist** `F-COOLANT` | Leiste › Spindel | 8 | 2 | 1 | 1 |
 
@@ -174,8 +172,12 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 - **S1 (Daten):** Ein Schieber sendet seinen Faktor für genau seinen Override (50 % → 0,5); sein 100-%-Knopf sendet 1,0. — gilt für: alle
   - Beleg: browser: `strip-actions.spec.ts` — each override slider sends its own factor; its 100 % button sends 1.0
-- **S2 (Wirkung):** Auf echtem LinuxCNC ändert der Override die Geschwindigkeit; in M600 und Surface-Scan ist er abgeschaltet (M50 P0). — gilt für: offen
-  - Beleg: **offen** — Lücke: nativ (native Stufe)
+- **S2 (Wirkung):** Auf echtem LinuxCNC ändert der Feed-Override die Bahngeschwindigkeit (G1 F6000: Plateau 100 mm/s, mit 0,5 dann 50 mm/s, je ± 5 %). — gilt für: 3axis_xyz
+  - Beleg: **offen** — Lücke: nativ: die Plateau-Messung (STAT mit 50 Hz) — noch keinem Bauschritt zugeordnet
+- **S2b (Wirkung):** Während der Messphase von M600 meldet der Status den Feed-Override gesperrt; nach dem Ende der Routine ist er wieder freigegeben (frisch empfangen, binnen 2 s). — gilt für: 3axis_xyz
+  - Beleg: native: `native_run.py` — m600-t1-override-lock — Lücke: der native Lauf steht aus (gebaut: Schritt 2a)
+- **S2c (Wirkung):** Während des Surface-Scans meldet der Status den Feed-Override gesperrt; nach dem Ende ist er wieder freigegeben. — gilt für: offen
+  - Beleg: **offen** — Lücke: nativ: der Surface-Scan-Lauf (Q282-2)
 
 ### Spindel von Hand: Rechts, Links, Stopp, Drehzahl
 
@@ -319,8 +321,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | **Werkzeug anlegen, bearbeiten, löschen, umnummerieren** `F-TOOLEDIT` | Tab „Tools“ | 31 | 4 | 3 | 1 |
 | **Werkzeugbibliothek importieren (Fusion 360, FreeCAD)** `F-TOOLIMPORT` | Tab „Tools“ | 17 | 4 | 4 | 0 |
 | **Werkzeugtabelle herunterladen** `F-TOOLDOWNLOAD` | Tab „Tools“ | 2 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Werkzeugwechsel (M6) mit Bestätigung** `F-TOOLCHANGE` | Dialog, Einstellungen, Tab „Tools“ | 14 | 2 | 1 | 1 |
-| **Werkzeuglänge messen (M600) und Werkzeug entladen** `F-TOOLMEASURE` | Tab „Tools“ | 8 | 8 | 5 | 3 |
+| **Werkzeugwechsel (M6) mit Bestätigung** `F-TOOLCHANGE` | Dialog, Einstellungen, Tab „Tools“ | 14 | 2 | 2 | 0 |
+| **Werkzeuglänge messen (M600) und Werkzeug entladen** `F-TOOLMEASURE` | Tab „Tools“ | 8 | 8 | 7 | 1 |
 | **Toolsetter einrichten (Werkzeuglängen-Messung)** `F-TOOLSETTER` | Tab „Probing“ › Toolsetter | 36 | 1 | 1 | 0 |
 | **Werkzeugwechselposition G30 lesen, übernehmen, speichern** `F-G30` | Tab „Probing“ › Toolsetter | 8 | 2 | 2 | 0 |
 
@@ -350,8 +352,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 - **S1 (Ablehnung):** Bestätigen ist nur offen für einen freigegebenen Client mit einer offenen Anforderung; ohne Anforderung mit dem Grund „No tool change pending“. — gilt für: alle
   - Beleg: gateway: `test_button_gates.py` — test_open_for_an_armed_client_with_a_pending_request; gateway: `test_button_gates.py` — test_closed_without_a_request; gateway: `test_button_gates.py` — test_closed_disarmed
-- **S2 (Wirkung):** Auf echtem LinuxCNC wartet M6 bis zur ausdrücklichen Bestätigung und läuft dann mit dem neuen Werkzeug weiter. — gilt für: offen
-  - Beleg: **offen** — Lücke: nativ: ohne automatische Bestätigung (FI265-04), native Stufe
+- **S2 (Wirkung):** Auf echtem LinuxCNC wartet M6 bis zur ausdrücklichen Bestätigung (5 s gehalten: Anforderung offen, Interpreter nicht idle, Werkzeug unverändert, mit 20 Hz geprüft) und läuft dann mit dem neuen Werkzeug und seiner Länge weiter. — gilt für: 3axis_xyz
+  - Beleg: native: `native_run.py` — m6-hold — Lücke: der native Lauf steht aus (gebaut: Schritt 2a)
 
 ### Werkzeuglänge messen (M600) und Werkzeug entladen
 
@@ -365,12 +367,12 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: unit: `toolsetterSetup.test.ts` — writes the var numbers tool_touch_off.ngc reads
 - **S4b (Daten):** Jede Nummer der Abbildung ist die, die tool_touch_off.ngc für ihren Wert liest. — gilt für: alle
   - Beleg: **offen** — Lücke: Unit: kein Test gleicht die Abbildung mit den Lesestellen der Routine ab
-- **S5 (Wirkung):** Auf echtem LinuxCNC landet die gemessene Länge in der Werkzeugtabelle und im G43-Offset. — gilt für: offen
-  - Beleg: **offen** — Lücke: nativer Lauf offen (nach Schritt 7)
+- **S5 (Wirkung):** Auf echtem LinuxCNC landet die gemessene Länge in der Werkzeugtabelle (die Länge vor der Messung ± 0,002 mm) und als derselbe Wert im G43-Offset; ein um 1 mm versetztes #3102 fällt durch. — gilt für: 3axis_xyz
+  - Beleg: native: `native_run.py` — m600-t1; native: `native_run.py` — m600-t1.counter-3102 — Lücke: der native Lauf steht aus (gebaut: Schritt 2a)
 - **S6 (Daten):** Entladen sendet im M600-Modus EIN mdi T0 M600 mit den Toolsetter-Werten in vars, im Standardmodus tool_change 0. — gilt für: alle
   - Beleg: browser: `toolsetter-setup.spec.ts` — Unload is ONE command: T0 M600 with the setter's values in M600 mode, tool_change 0 in the standard mode
-- **S6b (Wirkung):** Auf echtem LinuxCNC entlädt Entladen das Werkzeug. — gilt für: offen
-  - Beleg: **offen** — Lücke: nativ (native Stufe)
+- **S6b (Wirkung):** Auf echtem LinuxCNC entlädt T0 M600 das Werkzeug: die Spindel leer, keine Länge mehr aktiv. — gilt für: 3axis_xyz
+  - Beleg: native: `native_run.py` — m600-unload — Lücke: der native Lauf steht aus (gebaut: Schritt 2a)
 
 ### Toolsetter einrichten (Werkzeuglängen-Messung)
 
@@ -388,7 +390,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut** `F-PROBE` | Tab „Probing“ | 87 | 4 | 3 | 1 |
+| **Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut** `F-PROBE` | Tab „Probing“ | 87 | 4 | 4 | 0 |
 | **Taster kalibrieren** `F-PROBECAL` | Tab „Probing“ | 15 | 1 | 1 | 0 |
 | **Fläche abtasten (Surface-Scan)** `F-SURFACE` | Tab „Probing“ | 6 | 2 | 1 | 1 |
 | **Flächenkompensation ein/aus und Interpolation umschalten** `F-COMP` | Dialog, Tab „Probing“ | 13 | 4 | 3 | 1 |
@@ -401,8 +403,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: unit: `probeVarFiles.test.ts` — ${rel} declares every number the probe panel and the toolsetter write (je: xyz3/sim.var, xyzabc6/sim.var, xyzac5/sim.var)
 - **S2b (Daten):** Mindestens drei Var-Dateien der Beispielprofile werden gefunden (die Bedingung des Deklarationstests). — gilt für: alle
   - Beleg: unit: `probeVarFiles.test.ts` — are found: one per example profile
-- **S3 (Wirkung):** Auf echtem LinuxCNC setzt ein Z-Antasten G54 Z auf den erwarteten Wert (Platte, Werkzeug, Toleranz je Messgröße). — gilt für: offen
-  - Beleg: **offen** — Lücke: Schritt 7, der Antast-Live-Check
+- **S3 (Wirkung):** Auf echtem LinuxCNC setzt Z-Antasten (probe_z_minus_wco, #3030 = 0) G54 Z auf die Platte aus der HAL der Kopie (−180 ± 0,003 mm, Kontakt #5070 = 1); eine um 1 mm versetzte Erwartung fällt durch; ohne Kontakt in der Suchtiefe meldet es keinen Kontakt, setzt nichts, und LinuxCNC meldet den Fehler. — gilt für: 3axis_xyz
+  - Beleg: native: `native_run.py` — probe-z; native: `native_run.py` — probe-z.counter-plate-1; native: `native_run.py` — probe-z-miss — Lücke: der native Lauf steht aus (gebaut: Schritt 2a)
 
 ### Taster kalibrieren
 

@@ -10585,3 +10585,20 @@ FURTHEST point reached, not the previous frame, so small steps back never add
 up unseen. One pass names the earliest contradiction; the upper bound runs to
 the furthest point (never the net distance); an unknown position before the
 standstill leaves the course unshown (incomplete).
+
+Native stage step 2a (built after R291, offline; the run still owed): Z
+probing, M600, the M6 hold and the override lock as the plan R283–R285
+fixed them. The client confirms nothing: every routine runs under the M6
+helper with the changes it declares (allowed, in order, not required); a
+routine's end is the interpreter seen busy, then idle, AND its effect seen
+on any frame (the probe's own M50 P0 — a late frame from between the vars'
+MDIs and the call would otherwise end it); a counter-probe (a planted wrong
+plate or #3102) passes only when its evaluation refuses it. Parameters with
+no status field (#5070, #5063) come back through a tagged DEBUG line, read
+again when a skipped status tick lost it. The case ids are literal tables —
+the binder finds a native evidence's title in native_run.py. The statements
+F-HOME.S2c, F-JOG.S5/S5b, F-PROBE.S3, F-TOOLCHANGE.S2, F-OVERRIDE.S2/S2b/S2c,
+F-TOOLMEASURE.S5/S6b are rewritten as the plan agreed and bound to their
+cases. Owed and named: the feed-override plateau (STAT at 50 Hz) and the
+retract path (servo sampling, Q288-1) — no build step owns them yet; Run
+from line waits for its contract.
