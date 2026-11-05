@@ -651,6 +651,18 @@ def m6_hold_case():
     return ("m6-hold", step)
 
 
+def _with_outcome(row: dict, outcome: dict | None) -> dict:
+    """The attempt's outcome in its line's row: a known refusal or
+    contradiction makes it a FAIL, a missing observation incomplete — a FAIL
+    the evaluator found stays one; the cause is kept (R295 FI-I31)."""
+    if not outcome:
+        return row
+    if row["status"] == "FAIL":
+        return {**row, "cause": outcome["cause"], "detail": f"{row['detail']}; {outcome['detail']}"}
+    return {**row, "status": outcome["status"], "cause": outcome["cause"],
+            "detail": f"{outcome['detail']}; {row['detail']}"}
+
+
 def rfl_cases():
     """F-RFL.S3 on the real task (Codex R292 FI292-01): EIN auto_run as the
     UI sends it — the loaded file, its published version and source (checked
@@ -689,10 +701,20 @@ def rfl_cases():
         if refusal:
             raise RuntimeError(f"run from line: {refusal}")
         cursor, hist_from, err_from = len(c.frames), len(c.rfl_history), len(c.errors)
-        c.request("auto_run", line=RFL_LINE, file=origin["file"], version=origin["version"], source=origin["source"],
-                  spindle_dir="forward", spindle_speed=int(RFL_SPEED), pre_tool=tool,
-                  probe_vars={str(k): v for k, v in ts.items()}, safe_z=True, entry_x=RFL_ENTRY[0],
-                  entry_y=RFL_ENTRY[1], entry_wcs="G54", entry_units="G21")
+        # ONE outcome of the attempt from the auto_run on (R295 FI-I31): a
+        # known refusal or contradiction, an observed failure, a missing
+        # observation — carried into the line's row on every path
+        outcome = None
+        try:
+            c.request("auto_run", line=RFL_LINE, file=origin["file"], version=origin["version"],
+                      source=origin["source"], spindle_dir="forward", spindle_speed=int(RFL_SPEED), pre_tool=tool,
+                      probe_vars={str(k): v for k, v in ts.items()}, safe_z=True, entry_x=RFL_ENTRY[0],
+                      entry_y=RFL_ENTRY[1], entry_wcs="G54", entry_units="G21")
+        except RuntimeError as e:
+            # the gateway's refusal is known; no reply or a lost transport is not
+            refused = str(e).startswith("auto_run refused:")
+            outcome = {"status": "FAIL" if refused else "incomplete", "cause": "refused" if refused else "unobserved",
+                       "detail": f"auto_run {'refused' if refused else 'not answered'}: {e}"}
         seen = {"program": False}
 
         def ran(st):
@@ -703,37 +725,42 @@ def rfl_cases():
 
         def failed_phase():
             return next((p for _, p in c.rfl_history[hist_from:] if p.get("phase") in nc.RFL_FAILED), None)
+
+        def known_failure():
+            return failed_phase() is not None or nc._failures([(k, x) for _, k, x in c.errors[err_from:]])
         routine_end = tc.RoutineEnd()
 
         def done(t, st):
             effect, end = ran(st), routine_end(t, st)
-            # a known terminal failure ends the attempt NOW, once idle (R294 FI-I31)
-            if failed_phase() is not None and st.get("interp_state") == 1:
+            # a known failure of THIS attempt ends it once idle — no program
+            # witness is waited for (R294/R295 FI-I31)
+            if known_failure() and st.get("interp_state") == 1:
                 return True
             return end and effect
-        ended = None
-        try:
-            tc.serve(c, changes, done, RFL_DEADLINE, cursor=cursor)
-        except tc.ToolChangeError as e:
-            ended = e
+        if outcome is None:
+            try:
+                tc.serve(c, changes, done, RFL_DEADLINE, cursor=cursor)
+            except tc.ToolChangeError as e:
+                outcome = {"status": "incomplete" if e.cause == "unobserved" else "FAIL", "cause": e.cause,
+                           "detail": f"the attempt's tool changes ended: {e}"}
         # the rows on EVERY path, from what was received since this attempt began
         hist, run_frames = list(c.rfl_history[hist_from:]), frames[cursor:]
         errors = [(k, x) for _, k, x in c.errors[err_from:]]
         ctx["report"]["rfl_history"] = hist
         ctx["report"]["rfl_errors"] = errors
         common = dict(tool=tool, l0=l0, spindle_speed=RFL_SPEED, end_point=(200.0, None, RFL_Z_LINE + l0),
-                      final=(200.0, 200.0, RFL_Z_END + l0), line_holds={1: RFL_ENTRY[1]}, errors=errors)
-        line = nc.eval_rfl_line("rfl-line", hist, run_frames, line=RFL_LINE, **common)
+                      final=(200.0, 200.0, RFL_Z_END + l0), line_holds={1: RFL_ENTRY[1]}, errors=errors,
+                      ended_at=changes.ended_at)
+        line = _with_outcome(nc.eval_rfl_line("rfl-line", hist, run_frames, line=RFL_LINE, **common), outcome)
         planted = nc.eval_rfl_line("rfl-line", hist, run_frames, line=RFL_LINE + 1, **common)
         rows += [line, nc.counter("rfl-line.counter-line+1", planted, line),
                  nc.eval_rfl_no_earlier("rfl-no-earlier-line", hist, run_frames, line=RFL_LINE),
                  nc.eval_rfl_start_point("rfl-start-point", hist, run_frames, entry_xy=RFL_ENTRY)]
-        if ended is not None or failed_phase() is not None or nc._failures(errors):
-            # a known failure or an unfinished attempt: the instance goes down;
-            # a gap stays a gap in the rows
-            why = (f"{ended} ({ended.cause})" if ended is not None else
-                   f"phase {failed_phase().get('phase')}" if failed_phase() is not None else
-                   f"the attempt reported: {nc._failures(errors)[0]}")
+        if outcome is not None or known_failure():
+            # the instance goes down; a gap stays a gap in the rows
+            why = outcome["detail"] if outcome is not None else (
+                f"phase {failed_phase().get('phase')}" if failed_phase() is not None else
+                f"the attempt reported: {nc._failures(errors)[0]}")
             raise StepFailed(rows, f"the run from line ended: {why}")
         return rows
     return ("rfl", step)

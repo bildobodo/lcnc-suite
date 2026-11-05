@@ -423,8 +423,13 @@ def _axes(pos, target: dict):
     return bad, missing
 
 
+def _at_rest(st) -> bool:
+    """The completion as the step's RoutineEnd has it: idle AND in position (R295)."""
+    return st.get("interp_state") == 1 and st.get("inpos") is True
+
+
 def eval_rfl_line(case: str, history, frames, line: int, tool: int, l0, spindle_speed: float, end_point,
-                  final, line_holds=None, end_from=None, errors=(), tol: float = M600_TOL) -> dict:
+                  final, line_holds=None, end_from=None, errors=(), ended_at=None, tol: float = M600_TOL) -> dict:
     """F-RFL.S3, its observable parts (FI292-01): `running` is only the start
     message; the WITNESS is the first frame of the program itself (AUTO,
     call_level 0) moving after it — its motion_line is `line` (an earlier
@@ -434,7 +439,9 @@ def eval_rfl_line(case: str, history, frames, line: int, tool: int, l0, spindle_
     axes (`line_holds` {joint: value}, each read at least once on its
     frames) and its end shows on the frames of `end_from` (default L + 1) —
     a line that holds those axes; then the program ends idle at `final`.
-    Positions are judged per axis (R294 FI-I30); an error of kind 1/11 in
+    The program's end is the completion the step confirmed (`ended_at`, or
+    idle and in position — R295). Positions are judged per axis (R294
+    FI-I30); an error of kind 1/11 in
     the attempt is a FAIL (FI-I31). A known contradiction is FAIL, a missing
     proof incomplete."""
     line_holds = line_holds or {}
@@ -496,7 +503,10 @@ def eval_rfl_line(case: str, history, frames, line: int, tool: int, l0, spindle_
             return _row(case, "FAIL", f"line {line} did not reach its end: joint {j} at {have:.3f} on line {end_from}, "
                         f"{want:g} expected", **measured)
         end_seen |= set(end_target) - set(missing)
-    done = next((st for _, st in rest if st.get("interp_state") == 1), None)
+    # the program's end is the completion the step confirmed (`ended_at`) —
+    # else the same rule: idle AND in position, never a first idle frame (R295)
+    done = next((st for t, st in rest if t >= ended_at), None) if ended_at is not None else \
+        next((st for _, st in rest if _at_rest(st)), None)
     final_seen = set()
     if done is not None:
         wrong, missing = _axes(done.get("joint_pos"), dict(enumerate(final)))
@@ -536,18 +546,27 @@ def eval_rfl_no_earlier(case: str, history, frames, line: int) -> dict:
                 f"between two frames is not seen", **measured)
 
 
+def _z(st):
+    pos = st.get("joint_pos")
+    return pos[2] if isinstance(pos, list) and len(pos) > 2 and _finite(pos[2]) else None
+
+
 def eval_rfl_start_point(case: str, history, frames, entry_xy) -> dict:
     """The start point (FI292-01 5): the safe-Z stage never lowers Z below
-    its own start, the XY entry moves at that height and ends at the entry —
-    each phase on its own frames. Status frames can show a contradiction,
-    never prove the path between them: without one it stays incomplete
-    until the servo measurement (step 2c)."""
+    its own start, the XY entry moves at that height, and where the
+    positioning ENDED the machine stands at the entry. Each phase on its own
+    frames, by the phase times the same stream carried; each check needs
+    only its own axes known (R295 FI-I30). The entry's proof is the LAST
+    frame received up to the next phase, at a known standstill — a standstill
+    followed by motion, or a frame of the started program, is none (R295
+    FI-I29 A). Status frames can show a contradiction, never prove the path
+    between them: without one it stays incomplete until step 2c."""
     ph = {p: (a, b) for p, a, b in _phases(history)}
     measured = {"entry": list(entry_xy)}
     z_safe = None
     if "safe_z" in ph:
         a, b = ph["safe_z"]
-        zs = [st["joint_pos"][2] for t, st in frames if a <= t < b and _off(st.get("joint_pos"), (0, 0, 0)) is not None]
+        zs = [z for t, st in frames if a <= t < b for z in [_z(st)] if z is not None]
         if zs:
             z_safe = zs[-1]
             measured.update(safe_z_start=zs[0], safe_z_end=zs[-1])
@@ -556,20 +575,15 @@ def eval_rfl_start_point(case: str, history, frames, entry_xy) -> dict:
                 return _row(case, "FAIL", f"Z lowered to {low:.3f} in the safe-Z stage (from {zs[0]:.3f})", **measured)
     if "positioning" in ph:
         a, b = ph["positioning"]
-        ps = [st["joint_pos"] for t, st in frames if a <= t < b and _off(st.get("joint_pos"), (0, 0, 0)) is not None]
-        if ps and z_safe is not None:
-            low = next((p[2] for p in ps if p[2] < z_safe - POS_TOL), None)
+        win = [(t, st) for t, st in frames if a <= t <= b]
+        if z_safe is not None:
+            low = next((z for _, st in win for z in [_z(st)] if z is not None and z < z_safe - POS_TOL), None)
             if low is not None:
                 return _row(case, "FAIL", f"XY moved with Z at {low:.3f}, below the safe height {z_safe:.3f}",
                             **measured)
-        # where the machine STOOD before the program moved (R294 FI-I29): the
-        # last frame at a known standstill from the positioning on, before the
-        # first program motion — a moving last frame of the phase is no end
-        first_motion = next((t for t, st in frames if t >= a and _main(st) and _moving(st)), math.inf)
-        stood = [st for t, st in frames if a <= t < first_motion and _finite(st.get("current_vel"))
-                 and abs(st["current_vel"]) <= STANDSTILL]
-        if stood:
-            wrong, missing = _axes(stood[-1].get("joint_pos"), {0: entry_xy[0], 1: entry_xy[1]})
+        last = win[-1][1] if win and b != math.inf else None
+        if last is not None and _finite(last.get("current_vel")) and abs(last["current_vel"]) <= STANDSTILL:
+            wrong, _ = _axes(last.get("joint_pos"), {0: entry_xy[0], 1: entry_xy[1]})
             if wrong:
                 j, have, want = wrong[0]
                 return _row(case, "FAIL", f"the entry {list(entry_xy)} not reached: joint {j} stood at {have:.3f}",

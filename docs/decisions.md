@@ -10661,3 +10661,16 @@ hidden by an unread one, an axis never read is no proof); the attempt's
 errors (kind 1/11) and a failed phase reach the rows — a failed phase ends
 the attempt at once, and every path (a failure, a helper's end) keeps its
 rows, the history and the errors before the instance goes down.
+
+Codex R295: the entry's proof is the LAST frame received up to the next
+phase (the phase times ride the same stream), at a known standstill — a
+standstill followed by motion, or a frame of the started program, is none;
+already standing at the entry needs no observed move. The program's end is
+the completion the step confirmed (idle AND in position), never a first
+idle frame. Each path check needs only its own axes (a known Z below the
+safe height is seen with X unread). From the auto_run on the attempt has ONE
+outcome — the gateway's refusal (known, "auto_run refused:") apart from a
+missing reply or a lost transport (unobserved), the M6 helper's cause, an
+observed error of kind 1/11 or a failed phase (ending the attempt once
+idle, no program witness waited for) — carried into the line's row before
+its counter, with the history and the errors on every path.

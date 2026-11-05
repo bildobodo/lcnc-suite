@@ -1751,16 +1751,23 @@ class RflClient(FrameClient):
     """The whole rfl_cases step against a scripted gateway: the run's frames,
     phases and errors arrive with the auto_run (times relative to it)."""
 
-    def __init__(self, run_frames, history, errors=()):
+    def __init__(self, run_frames, history, errors=(), refuse=None, after_confirm=()):
         super().__init__([(0.0, {**_IDLE, "tool_number": 99, "task_mode": 3})])
         self.rfl_history, self.preview_origin = [], None
         self.table, self.vars = 50.0, {n: 0 for n in nr.TOOLSETTER_VARS} | {3102: -180}
         self.run_frames, self.history, self.run_errors = run_frames, history, list(errors)
+        self.refuse, self.after_confirm = refuse or {}, list(after_confirm)
 
     def request(self, cmd, **kw):
         import hashlib
         self.sent.append((cmd, kw))
         t = self.frames[-1][0]
+        if cmd in self.refuse:
+            raise RuntimeError(self.refuse[cmd])
+        if cmd == "confirm_tool_change":
+            self.frames += [(t + ft, {"tool_change_requested": False, "tool_change_seq": None, **st})
+                            for ft, st in self.after_confirm]
+            return {"ok": True}
         if cmd == "get_tool_table":
             return {"tools": [{"T": 1, "Z": self.table}]}
         if cmd == "get_probe_vars":
@@ -1773,7 +1780,7 @@ class RflClient(FrameClient):
                                    "source": hashlib.sha256(nr.RFL_PROGRAM.encode()).hexdigest()}
             return {"ok": True}
         if cmd == "auto_run":
-            self.frames += [(t + ft, dict(st, tool_change_requested=False, tool_change_seq=None))
+            self.frames += [(t + ft, {"tool_change_requested": False, "tool_change_seq": None, **st})
                             for ft, st in self.run_frames]
             self.rfl_history += [(t + ht, p) for ht, p in self.history]
             self.errors += [(t + et, k, x) for et, k, x in self.run_errors]
@@ -1833,3 +1840,94 @@ def test_a_failed_pre_measurement_ends_the_step_at_once_with_its_row(tmp_path, m
     line = next(r for r in e.value.rows if r["case"] == "rfl-line")
     assert line["status"] == "FAIL" and "measure_failed" in line["detail"], line
     assert [p["phase"] for _, p in ctx["report"]["rfl_history"]] == ["measuring", "measure_failed"]
+
+
+
+# ── R295: the entry bound to the positioning's end; one completion; per axis; one attempt outcome ──
+def test_a_standstill_followed_by_positioning_motion_is_no_entry_proof():
+    """Codex R295 FI-I29 A: standing at 10/10 when the positioning begins,
+    then moving at 60/60 and 99.8/99.8, the end not received — the standstill
+    before the move proves nothing; nor does a later program frame."""
+    hist, frames = _rfl_run()
+    frames[3] = _rfl_frame(21.1, 0, (10, 10, 0.0), mode=3, vel=0.0)
+    frames[4] = _rfl_frame(21.5, 0, (60, 60, 0.0), mode=3, vel=100.0)
+    frames.insert(5, _rfl_frame(22.9, 0, (99.8, 99.8, 0.0), mode=3, vel=20.0))
+    assert nc.eval_rfl_start_point("x", hist, frames, entry_xy=(100.0, 100.0))["status"] == "incomplete"
+    no_program = [f for f in frames if f[1]["task_mode"] != 2 or f[1]["interp_state"] == 1]
+    assert nc.eval_rfl_start_point("x", hist, no_program, entry_xy=(100.0, 100.0))["status"] == "incomplete"
+    already = list(_rfl_run()[1])
+    already[3] = _rfl_frame(21.5, 0, (100, 100, 0.0), mode=3, vel=0.0)          # no move needed
+    assert nc.eval_rfl_start_point("x", hist, already, entry_xy=(100.0, 100.0))["status"] == "incomplete"
+    wrong = list(_rfl_run()[1])
+    wrong[4] = _rfl_frame(22.9, 0, (100, 99.5, 0.0), mode=3, vel=0.0)            # stood beside it: a proof
+    assert nc.eval_rfl_start_point("x", hist, wrong, entry_xy=(100.0, 100.0))["status"] == "FAIL"
+
+
+def test_the_program_end_is_the_completion_the_step_confirmed():
+    """Codex R295 FI-I29 B: idle at 5.2 s still moving at Z −40 (not in
+    position), the confirmed rest at the end point later — the end is the
+    rest, as the step's own RoutineEnd has it."""
+    hist, frames = _rfl_run()
+    frames[-1:] = [_rfl_frame(27.9, 11, (200, 200, -40.0), vel=50.0, interp=1),
+                   _rfl_frame(28.6, 11, (200, 200, 0.0), vel=0.0, interp=1)]
+    assert _line(hist, frames)["status"] == "PASS", _line(hist, frames)
+    frames[-1] = _rfl_frame(28.6, 11, (200, 190, 0.0), vel=0.0, interp=1)
+    assert _line(hist, frames)["status"] == "FAIL"
+
+
+def test_a_known_z_violation_is_seen_with_x_unread():
+    """Codex R295 FI-I30: Z −81 in the safe-Z stage that began at −80 — X
+    unread in that frame changes nothing."""
+    hist, frames = _rfl_run()
+    frames[1] = _rfl_frame(20.1, 0, (10, 10, -80.0), mode=3, vel=80.0)
+    frames.insert(2, (20.5, {**_rfl_frame(20.5, 0, (0, 10, -81.0), mode=3, vel=80.0)[1],
+                             "joint_pos": [None, 10, -81.0]}))
+    assert nc.eval_rfl_start_point("x", hist, frames, entry_xy=(100.0, 100.0))["status"] == "FAIL"
+
+
+def _request(tool, seq):
+    return _rfl_frame(2.0, 278, (10, 10, 0.0), mode=3, level=2, vel=0.0, tool=99) [1] | \
+        {"tool_change_requested": True, "tool_change_seq": seq, "tool_change_tool": tool}
+
+
+@pytest.mark.parametrize("arrange, status, cause", [
+    (dict(run_frames=[(2.0, _request(2, 5))]), "FAIL", "contradiction"),                 # T2, T1 declared
+    (dict(run_frames=[(2.0, _request(1, 5))],
+          refuse={"confirm_tool_change": "confirm_tool_change refused: Tool change request changed — confirm again"}),
+     "FAIL", "refused"),
+    (dict(run_frames=[], refuse={"auto_run": "auto_run refused: Program changed — confirm Run from line again"}),
+     "FAIL", "refused"),
+    (dict(run_frames=[], refuse={"auto_run": "No gateway reply to auto_run"}), "incomplete", "unobserved"),
+])
+def test_every_end_of_the_attempt_reaches_the_line_row(tmp_path, monkeypatch, arrange, status, cause):
+    """Codex R295 FI-I31: from the auto_run on ONE outcome — a known
+    contradiction or refusal is the line's FAIL, a missing answer incomplete;
+    the history and the errors are in the report on every path."""
+    monkeypatch.setattr(nr, "SHORT_GRACE", 0.02)
+    monkeypatch.setattr(nr, "RFL_DEADLINE", 1.0)
+    c = RflClient(history=[(0.0, {"phase": "measuring", "ok": None})], **arrange)
+    ctx, step = _rfl_step(tmp_path, c)
+    with pytest.raises(nr.StepFailed) as e:
+        step(ctx)
+    line = next(r for r in e.value.rows if r["case"] == "rfl-line")
+    assert (line["status"], line.get("cause")) == (status, cause), line
+    assert next(r for r in e.value.rows if r["case"] == "rfl-line.counter-line+1")["status"] == "incomplete"
+    assert "rfl_history" in ctx["report"] and "rfl_errors" in ctx["report"]
+    assert not any(cmd == "confirm_tool_change" for cmd, _ in c.sent) or cause == "refused"
+
+
+def test_an_error_in_the_pre_measurement_ends_the_attempt_at_once(tmp_path, monkeypatch):
+    """Codex R295 FI-I31: kind 11 while measuring, then idle — no terminal
+    phase received; the known error ends it now, not at the deadline."""
+    monkeypatch.setattr(nr, "SHORT_GRACE", 0.02)
+    frames = [_rfl_frame(2.0, 120, (10, 10, -128), mode=3, level=2, vel=3.0),
+              _rfl_frame(4.1, 0, (10, 10, -100), mode=3, vel=0.0, interp=1)]
+    c = RflClient(frames, [(0.0, {"phase": "measuring", "ok": None})],
+                  errors=[(4.0, 11, "Tool length offset probe failed!")])
+    ctx, step = _rfl_step(tmp_path, c)
+    t0 = time.monotonic()
+    with pytest.raises(nr.StepFailed) as e:
+        step(ctx)
+    assert time.monotonic() - t0 < 5.0
+    line = next(r for r in e.value.rows if r["case"] == "rfl-line")
+    assert line["status"] == "FAIL" and "probe failed" in line["detail"], line
