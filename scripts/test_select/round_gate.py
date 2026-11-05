@@ -35,6 +35,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from test_select import proof, selector  # noqa: E402
 from test_select.rules import FULL, HEAVY_UNIT  # noqa: E402
+from test_support.heavy_lock import heavy_lock  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "lcnc-webui"
@@ -292,38 +293,43 @@ def main(argv: list[str] | None = None) -> int:
     record["selection"] = {k: sel[k] for k in ("unmatched", "unit", "browser", "backend", "firefox", "live")}
     omitted = []
 
-    checks.append(run("lint", ["npm", "run", "lint"], WEB, logs))
-    checks.append(run("build", ["npm", "run", "build"], WEB, logs))
-    checks.append(unit("unit-light", [], [f.removeprefix("lcnc-webui/") for f in HEAVY_UNIT], logs))
+    # The heavy sections hold the ONE heavy lock (Codex R269): another gate, a
+    # load run or the native stage waits for this one, and this one for them.
+    lock_from = time.monotonic()
+    with heavy_lock(f"round_gate {record['kind']} {sel['head'][:8]}"):
+        record["heavy_lock_wait_s"] = round(time.monotonic() - lock_from, 1)
+        checks.append(run("lint", ["npm", "run", "lint"], WEB, logs))
+        checks.append(run("build", ["npm", "run", "build"], WEB, logs))
+        checks.append(unit("unit-light", [], [f.removeprefix("lcnc-webui/") for f in HEAVY_UNIT], logs))
 
-    heavy = sel["unit"]["heavy"]
-    if heavy:
-        c = unit("unit-heavy", [f.removeprefix("lcnc-webui/") for f in heavy], [], logs)
-        if c.get("files") != len(heavy):
-            fail(c, f"{c.get('files')} heavy files ran, {len(heavy)} selected")
-        c["selected"] = heavy
-        checks.append(c)
-    else:
-        omitted.append({"check": "unit-heavy", "reason": "no heavy file changed, reached or read for"})
+        heavy = sel["unit"]["heavy"]
+        if heavy:
+            c = unit("unit-heavy", [f.removeprefix("lcnc-webui/") for f in heavy], [], logs)
+            if c.get("files") != len(heavy):
+                fail(c, f"{c.get('files')} heavy files ran, {len(heavy)} selected")
+            c["selected"] = heavy
+            checks.append(c)
+        else:
+            omitted.append({"check": "unit-heavy", "reason": "no heavy file changed, reached or read for"})
 
-    if sel["backend"]["run"]:
-        checks.append(run("backend", [sys.executable, str(ROOT / "scripts/test_suite.py"), "offline", "--component",
-                                      "backend", "--out-dir", str(logs / "backend")], ROOT, logs))
-    else:
-        omitted.append({"check": "backend", "reason": "; ".join(sel["backend"]["reasons"])})
+        if sel["backend"]["run"]:
+            checks.append(run("backend", [sys.executable, str(ROOT / "scripts/test_suite.py"), "offline", "--component",
+                                          "backend", "--out-dir", str(logs / "backend")], ROOT, logs))
+        else:
+            omitted.append({"check": "backend", "reason": "; ".join(sel["backend"]["reasons"])})
 
-    if sel["browser"]["run"]:
-        busy = [p for p in ports() if listening(p)]
-        checks.append({"name": "ports-free", "status": "FAIL" if busy else "PASS",
-                       **({"why": [f"port {p} already serves something: a foreign server would be tested in "
-                                   f"place of this tree's" for p in busy]} if busy else {})})
-        if not busy:
-            checks += browser(sel, logs)
-        report = logs / "playwright.json"
-        if report.is_file() and report.stat().st_size:
-            record["browser_specs"] = spec_times(report)
-    else:
-        omitted.append({"check": "browser", "reason": "; ".join(sel["browser"]["reasons"])})
+        if sel["browser"]["run"]:
+            busy = [p for p in ports() if listening(p)]
+            checks.append({"name": "ports-free", "status": "FAIL" if busy else "PASS",
+                           **({"why": [f"port {p} already serves something: a foreign server would be tested in "
+                                       f"place of this tree's" for p in busy]} if busy else {})})
+            if not busy:
+                checks += browser(sel, logs)
+            report = logs / "playwright.json"
+            if report.is_file() and report.stat().st_size:
+                record["browser_specs"] = spec_times(report)
+        else:
+            omitted.append({"check": "browser", "reason": "; ".join(sel["browser"]["reasons"])})
 
     pending = []
     if sel["firefox"].get("needed"):
