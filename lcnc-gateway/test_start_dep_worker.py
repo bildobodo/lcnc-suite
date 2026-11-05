@@ -394,10 +394,13 @@ class TestTheRoutine(unittest.TestCase):
         # 11: #3106 = 1 — after the measurement X/Y are dependent again, to
         # the end (the program never commands them); #3106 = 0 — the setter
         # position stays known. The trip point and offset_z read known axes:
-        # the measurement is predicted in both.
+        # the measurement is predicted in both. The last two feeds: the drive
+        # free G53 Z0 above the setter (X/Y known) and the ONE return move to
+        # the saved X/Y at the top (dependent again) — Z stays up since
+        # 2026-11-05, the second return move (to the start Z) is gone.
         r = probe("e_m600_return")
         self.assertEqual(r["rapid_dep"], [3, 3, 0, 3])
-        self.assertEqual(r["feed_dep"][-2:], [3, 3])
+        self.assertEqual(r["feed_dep"][-2:], [0, 3])
         self.assertIsNotNone(r["toollen_table"])
         r = probe("e_m600_no_return")
         self.assertEqual(r["rapid_dep"], [3, 3])

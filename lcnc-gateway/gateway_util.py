@@ -4480,8 +4480,9 @@ _PROBE_BAND_MARKER = re.compile(r"^\s*WEBUI_PROBE_BAND\s*$", re.IGNORECASE)
 _PROBE_BAND_END_MARKER = re.compile(r"^\s*WEBUI_PROBE_BAND_END\s*$", re.IGNORECASE)
 _PROBE_NOTE_MARKER = re.compile(r"^\s*WEBUI_PROBE_NOTE\s*=\s*([a-z_]+)\s*$", re.IGNORECASE)
 # The routine's position reads (docs/reviews/parity-ef.plan.md E4): the
-# preview canon takes the state of X, Y, Z at a save, hands it to the two
-# return moves, and requires known axes where the routine reads them.
+# preview canon takes the state of X, Y, Z at a save, hands it to the return
+# move (X/Y at the top of travel since 2026-11-05 — Z stays up), and requires
+# known axes where the routine reads them.
 _POS_SAVE_MARKER = re.compile(r"^\s*WEBUI_POS_SAVE\s*$", re.IGNORECASE)
 _POS_RETURN_MARKER = re.compile(r"^\s*WEBUI_POS_RETURN\s*$", re.IGNORECASE)
 _POS_READ_MARKER = re.compile(r"^\s*WEBUI_POS_READ\s*=\s*([XYZABCUVW]+)\s*$", re.IGNORECASE)
@@ -4523,7 +4524,7 @@ def unmarked_position_reads(text):
 #: nothing for the text scan, its markers act in the canon. Any edit of the
 #: routine changes the hash; the guard (test_start_dep_worker) then fails
 #: until it is checked again.
-MARKED_POS_ROUTINES = frozenset({"9d180577d1909b178f2921d3c96dd78536037b9f8312b862bd93354d6be51de2"})  # subroutines/tool_length_probe/tool_touch_off.ngc
+MARKED_POS_ROUTINES = frozenset({"4990c7b303cb43bf0aa8cb11948277072874558f5902d3c48a59133ec555097d"})  # subroutines/tool_length_probe/tool_touch_off.ngc
 
 
 #: The suite's TWP Python remaps (docs/reviews/parity-ef.plan.md E4a,

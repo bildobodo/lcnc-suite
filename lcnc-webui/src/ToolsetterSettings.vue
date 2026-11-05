@@ -358,7 +358,7 @@ watch(settingsVersion, () => { void pushWhenConfirmed(); });
     </FormField>
     <div class="toggleGrid wide">
       <MachineToggle gate="toolsetterParam" v-model="tsUseToolTable" label="Use Tool Table" help="Starts the search just above the expected tip — faster. Off for new or unmeasured tools." />
-      <MachineToggle gate="toolsetterParam" v-model="tsGoBackToStart" label="Return to Start" help="Return to where M600 was called after measuring." />
+      <MachineToggle gate="toolsetterParam" v-model="tsGoBackToStart" label="Return to Start" help="After measuring: back to the X/Y where M600 was called, at the top. Z stays up; the program descends." />
       <MachineToggle gate="toolsetterParam" v-model="tsDisablePrePos" label="Skip G30 Pre-Position" help="Go straight to the setter without the G30 move — only if nothing is in the way." />
       <MachineToggle gate="toolsetterParam" v-model="tsLastTry" label="Last Try Without Table" help="The last retry ignores the tool table and starts from spindle zero height." />
     </div>
