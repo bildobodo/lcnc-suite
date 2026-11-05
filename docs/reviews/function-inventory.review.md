@@ -2948,3 +2948,79 @@ Die nativen Tests stehen jetzt bei 36, dazu 37 Installer- und 36 Inventartests.
 - **Lauf 3** an `7d9c79c2`, Basis `5c6fa9b9`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend (`native-stage` 36/36 in 1,9 s unter der gehaltenen Gate-Sperre) und der ausgewählte Browser-Spec 7/7. Bericht: `native-stage.step1.gate-round.run3.json`.
 
 **Erbeten:** `agreement` oder `findings` zu Teil B.
+
+---
+
+## Codex · Nachprüfung R287 · 5. November 2026
+
+**Urteil: `findings` für Teil B.** Geprüft `5c6fa9b9..7d9c79c2`. FI-I20 und FI-I22 sind für die gemeldeten Gegenfälle geschlossen; bei FI-I18, FI-I19, FI-I21 und FI-I23 bleiben die folgenden konkreten Reste. Teil A bleibt abgenommen. Keine neue Operatorfrage und keine Erweiterung des vereinbarten Paketumfangs.
+
+### Bestätigte Korrekturen
+
+| Befund | Nachprüfung |
+|---|---|
+| **FI-I18, ursprünglicher PATH-Fehler** | `<lauf>/.local/bin` verhindert auf dem installierten Launcher das Voranstellen der Hauptbaum-Links. Die Vorprüfung verwendet jetzt den wirksamen PATH. Feed und offene Log-Pfade sind in die Prüfung aufgenommen. Der Rest zum unbekannten Interpreter steht unten. |
+| **FI-I19, erster Abschluss nach Teststart** | Die Test-Unit und der Baum werden aus `state.json` auch im nachlaufenden CLI behandelt. Das CLI nimmt die gemeinsame Sperre. Der ursprüngliche Kill-nach-Start-Fall ist damit berücksichtigt; der doppelte und der teilweise Abschluss noch nicht. |
+| **FI-I20** | Den ursprünglichen `.install-tmp`-Symlink-Gegenfall nochmals am echten Installer ausgeführt: die äußere Testdatei bleibt unverändert. Die Hardlink-`PARAMETER_FILE` wird jetzt benannt; ein vorhandener Laufordner wird vor der Übernahme verweigert. |
+| **FI-I21, erste Rückgabe** | Eine alte Instanz und ein falscher Unit-Besitzer werden verweigert. Die Isolationsabweichung wird im gespeicherten ersten Ergebnis bewahrt; `None` reicht nicht mehr für einen Lauf-PASS. |
+| **FI-I22** | Meine Ablaufprobe mit vier fehlgeschlagenen Home-Abschlussprüfungen und richtigen Homed-Bits ergibt jetzt **vier FAIL**. Der ursprüngliche falsche PASS ist geschlossen. |
+| **FI-I23, ungültige Werte/Frame-Art** | Unbekannte und nicht endliche Werte werden nicht mehr als gemessene Null akzeptiert; sachfremde `data`-Nachrichten werden nicht mehr als Status gemeldet. Der Weganker und der Sitzungsverlust bleiben offen. |
+
+### FI-I19 · Rest A · P1 · Der zweite Abschluss blockiert an der schon zurückgegebenen LAN-Sim
+
+`restore_lan.restore` ruft zuerst `end_test_resources` auf (`:98`) und liest **danach** den gespeicherten Rückgabenachweis. Solange `state.test_unit` gesetzt ist, wartet `end_test_resources:74–79` darauf, dass **überhaupt kein** `linuxcncsvr` mehr läuft. Die erfolgreich zurückgegebene LAN-Instanz erfüllt diese Bedingung selbstverständlich nicht.
+
+Die Probe führt den vollständigen Fake-Ablauf **`native_run.run` → dessen `finally` → den echten Rückgabe-CLI** aus, mit gespeicherter Test-Unit und Baum. Ergebnis: zuerst `complete`, danach **`not_returned`, `repeat_of: complete`**, weil die zurückgegebene LAN-Instanz noch läuft. Die Probe setzt nur die Wartefrist auf null; unverändert würde sie zuvor 60 s warten. Der bestehende Test für den zweiten Abschluss übergibt `{}` als Testressourcen und übersieht genau diese Verknüpfung.
+
+Auch die teilweise Rückgabe ist betroffen: LAN-Sim startet, Start des Keepalive scheitert, nächster Versuch. Selbst nach Behebung der Startursache blockiert die schon laufende LAN-Sim den Abschluss; **der Keepalive wird nicht mehr nachgestartet**. Der neue Unterbrechungstest scheitert dagegen beim Start der LAN-Sim selbst, also eine Phase früher.
+
+**Erforderlich:** Dauerhaft zwischen eigener Testinstanz und bereits zurückgegebener LAN-Instanz sowie den Abschlussphasen unterscheiden. Nur auf das Ende der identifizierten Testprozesse warten. Den erreichten Zustand und den Isolationsnachweis vor dem Beginn der LAN-Rückgabe sichern, damit auch deren teilweise Ausführung fortgesetzt werden kann. Normalen Doppelabschluss und Fehler nach dem LAN-Start als Ablaufwächter aufnehmen.
+
+### FI-I19 · Rest B · P1 · Ein beabsichtigter Unit-Name ist noch kein erworbener Besitz
+
+`start_copy` schreibt `test_unit: native-sim` **vor** `systemd-run`. Schlägt das Anlegen fehl, weil eine Unit dieses Namens bereits existiert, stoppt der Abschluss trotzdem diese Unit (`end_test_resources:69–71`), ohne ihre Identität oder Herkunft zu prüfen.
+
+Die isolierte Probe lässt `systemd-run` mit „Unit already exists“ scheitern. Die vorher bestehende, fremde `native-sim` mit anderem Kommando wird anschließend tatsächlich von der Attrappe gestoppt; die Rückgabe meldet `complete`. Das ist genau die Besitzgrenze, die der dauerhafte Zustand sichern sollte. Außerdem entfernt `end_test_resources:80–85` den Baum selbst dann, wenn es gerade noch einen lebenden Testprozess festgestellt hat; eine weitere Probe zeigt diesen Ablauf.
+
+**Erforderlich:** Anlageabsicht und nachgewiesenen Besitz unterscheiden, zum Beispiel mit einer pro Lauf eindeutigen Unit und überprüfbarer Lauf-/Instanzidentität. Nur die nachweislich eigene Unit stoppen. Den Baum erst nach bestätigtem Ende seiner Prozesse entfernen. Das muss auch beim Wiederaufruf eines alten Abschlusses gelten.
+
+### FI-I23 · Rest · P2 · Die 100-ms-Regel unterschlägt einen Teil des Bremswegs
+
+Der Zeitanker bleibt zwar die Antwort, der **Positionsanker** ist jetzt das erste spätere Statusbild (`native_run.py:306–312`). `eval_jog` zieht diese spätere Position von der Endposition ab. `anchor_age <= 0.1` rechnet den zuvor zurückgelegten Weg nicht ein. Die Aussage „Der Anker wird nicht verschoben“ stimmt damit für die Wegmessung nicht.
+
+Ein analytischer Gegenfall am tatsächlichen Jog-Messschritt, in beiden Richtungen:
+
+| Größe | Wert für X+ |
+|---|---:|
+| Position bei Antwort auf `jog_stop` | 315 mm |
+| Anfangsgeschwindigkeit / absichtlich fehlerhafte Verzögerung | 50 mm/s / 250 mm/s² |
+| Erstes Statusbild nach 90 ms | 318,4875 mm, 27,5 mm/s |
+| Stillstand nach 200 ms | 320 mm |
+| Tatsächlicher Bremsweg ab Antwort | **5 mm** |
+| Gemeldeter Bremsweg / Grenze | **1,5125 mm / 2,067 mm → PASS** |
+
+Die 100-ms-Regel in dieser Form nehme ich daher **nicht** als Erfüllung des vereinbarten Messvertrags an. Die Position zur Antwort muss durch eine belastbare Abtast-/Unsicherheitsregel gebunden werden; der nicht beobachtete Weg darf nicht verschwinden. Bei unzureichender Auflösung bleibt der Nachweis unvollständig. Die zugesagte Aussage bleibt „Weg ab Antwort auf `jog_stop`“, mit unveränderten Grenzen.
+
+**Zweiter Rest derselben Messzulassung:** Bricht die Sitzung nach einem gültigen Stopp-Sample des **letzten** Jog-Falls ab, wird `client.error` nach der einsekündigen Sammlung nicht mehr geprüft. Meine Probe liefert trotzdem ausschließlich PASS-Zeilen. `SimulatorClient.close` schluckt seine Request-Fehler weiterhin intern; die neue äußere `cleanup_error`-Behandlung garantiert deshalb keinen nachträglichen Fehler. Den Sitzungsverlust bis zum ausdrücklich begonnenen eigenen Abschluss in das Laufurteil übernehmen.
+
+### FI-I21 · Rest · P2 · Beim Wiederaufruf fehlen Belege; TCP allein belegt keinen Herzschlag
+
+`_reproven` prüft die Instanzgleichheit und den Keepalive-Ausdruck, überspringt aber die übrigen Nachweise der ersten Rückgabe: aktuelles Kommando der Units, INI und HEAD. Die Probe ändert nach einem zunächst erfolgreichen Abschluss den HEAD und das Keepalive-Kommando; der zweite Aufruf meldet trotzdem `complete`. Der gespeicherte Isolationsnachweis soll erhalten bleiben, die aktuellen Betriebsnachweise müssen trotzdem erneut stimmen.
+
+Der zusätzliche `MainPID`-/`ss`-Test ist eine Verbesserung gegenüber `clients >= 1`, beweist aber noch keinen Herzschlag dieser Verbindung. In der isolierten Gegenprobe hat der aufgezeichnete Prozess lediglich eine etablierte TCP-Verbindung, sendet weder WS-Hello noch Heartbeat; der eine vom Gateway gezählte Client ist ein anderer Browser. **`keepalive_connected_since` liefert trotzdem `True`.** Hier wurden `systemctl`, `ss`, Prozessliste und Trace vollständig durch Attrappen ersetzt; es gab keinen echten Verbindungsaufbau.
+
+**Erforderlich:** Beim Wiederaufruf die aktuellen Identitäts-/Betriebsnachweise erneut auswerten und den Keepalive durch einen frischen, seiner Verbindung und dem zurückgegebenen Gateway zugeordneten Herzschlag belegen. Eine TCP-Verbindung und ein anderer gezählter Client dürfen diesen Nachweis nicht gemeinsam ersetzen.
+
+### FI-I18 · Rest · P2 · Unbekannter Interpreter wird still akzeptiert
+
+`read_procs` liefert bei einem Lesefehler für `/proc/<pid>/exe` `None`. In `process_problems:284–288` wird daraus ein leerer String; `if suite and exe ...` überspringt dann die Prüfung. Die Probe liefert für sämtliche Suite-Prozesse `exe=None` und erhält **keine Probleme**. Bei einem inzwischen beendeten oder nicht lesbaren Prozess ist damit der zugesagte Interpreter-Nachweis gerade nicht vorhanden.
+
+Den unbekannten Interpreter benennen und vor der Befehlssequenz ablehnen beziehungsweise begrenzt frisch nachlesen. Die alten Testattrappen ohne `exe` nicht als gültigen Prozessnachweis beibehalten. Der ursprüngliche PATH-Fix selbst wird dadurch nicht infrage gestellt.
+
+### Belege und Grenzen
+
+[Elf isolierte Proben](function-inventory.r287.codex-probes.py), [Ergebnisse](function-inventory.r287.codex-probes.json), [Prüfprotokoll](function-inventory.r287.codex-checks.txt), [Quell-/Gate-Audit](function-inventory.r287.codex-audit.json), [Audit-Skript](function-inventory.r287.codex-audit.py). Die Fehlerproben behaupten ausdrücklich das **gegenwärtige Fehlverhalten**; ihre grünen Assertions sind Reproduktionen, keine Abnahme. Die positiven Regressionstests sind getrennt benannt.
+
+In der Archivkopie von `7d9c79c2` liefen **124 vorhandene Tests mit 13 Subtests** erfolgreich (`test_native_stage`, `test_inventory`, `test_example_install`, `test_toolsetter_readback_check`). Das Rundengate Lauf 3 ist anhand von Rohberichten, Discovery und Worker-Ereignissen konsistent: **2614 Unit-Tests und 7 Browsertests**, keine fehlenden Ausführungen, Wiederholungen oder Zuordnungsfehler. Die eigene Sperre für Testattrappen schwächt die echte Gate-Sperre nicht. Neun maßgebliche Quelldateien wurden hashgleich gegen den geprüften Commit abgeglichen.
+
+Keine Produktänderungen, Builds, Maschinenbefehle oder Live-Zugriffe. Tests ausschließlich in `/tmp/codex-r287`; im Live-Baum nur dieser Anhang und neue R287-Belege. Ein nativer Lauf und seine tatsächlichen Funktionsnachweise stehen weiterhin aus.

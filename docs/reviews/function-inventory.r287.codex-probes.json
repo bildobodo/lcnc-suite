@@ -1,0 +1,272 @@
+{
+  "second_close_rejects_restored_LAN": {
+    "first": {
+      "outcome": "complete",
+      "instance": [
+        "linuxcncsvr",
+        101,
+        5101
+      ],
+      "isolation": [],
+      "cleanup": []
+    },
+    "second": {
+      "outcome": "not_returned",
+      "reasons": [
+        "a LinuxCNC instance ['linuxcncsvr', 101, 5101] still runs after the test unit stopped"
+      ],
+      "instance": [
+        "linuxcncsvr",
+        101,
+        5101
+      ],
+      "isolation": [],
+      "cleanup": [
+        "a LinuxCNC instance ['linuxcncsvr', 101, 5101] still runs after the test unit stopped"
+      ],
+      "repeat_of": "complete"
+    },
+    "LAN_active": true
+  },
+  "partial_restore": {
+    "first": {
+      "outcome": "not_returned",
+      "reasons": [
+        "bg-keepalive did not start: bg-keepalive did not start"
+      ],
+      "instance": [
+        "linuxcncsvr",
+        101,
+        5101
+      ],
+      "isolation": [],
+      "cleanup": []
+    },
+    "second": {
+      "outcome": "not_returned",
+      "reasons": [
+        "a LinuxCNC instance ['linuxcncsvr', 101, 5101] still runs after the test unit stopped"
+      ],
+      "instance": [
+        "linuxcncsvr",
+        101,
+        5101
+      ],
+      "isolation": null,
+      "cleanup": [
+        "a LinuxCNC instance ['linuxcncsvr', 101, 5101] still runs after the test unit stopped"
+      ]
+    },
+    "keepalive_active": false
+  },
+  "tree_removed_with_live_process": {
+    "restore": {
+      "outcome": "not_returned",
+      "reasons": [
+        "a LinuxCNC instance ['linuxcncsvr', 900, 9000] still runs after the test unit stopped"
+      ],
+      "instance": [
+        "linuxcncsvr",
+        900,
+        9000
+      ],
+      "isolation": null,
+      "cleanup": [
+        "a LinuxCNC instance ['linuxcncsvr', 900, 9000] still runs after the test unit stopped"
+      ]
+    },
+    "removed": [
+      "/fake/tree"
+    ]
+  },
+  "foreign_unit_stopped_after_failed_creation": {
+    "state": {
+      "test_unit": "native-sim"
+    },
+    "stopped": [
+      "bg-keepalive",
+      "lcnc-sim-gates",
+      "native-sim"
+    ],
+    "restore": {
+      "outcome": "complete",
+      "instance": [
+        "linuxcncsvr",
+        101,
+        5101
+      ],
+      "isolation": [],
+      "cleanup": []
+    }
+  },
+  "repeat_skips_proofs": {
+    "second": {
+      "outcome": "complete",
+      "instance": [
+        "linuxcncsvr",
+        101,
+        5101
+      ],
+      "isolation": [],
+      "cleanup": [],
+      "repeat_of": "complete"
+    },
+    "recorded_head": "abc",
+    "current_head": "another-code-revision",
+    "current_keepalive": {
+      "ExecStart": [
+        "/foreign/client"
+      ],
+      "WorkingDirectory": "/foreign"
+    }
+  },
+  "keepalive_without_heartbeat": {
+    "accepted": true,
+    "gateway_event": {
+      "tag": "loop.tick",
+      "pid": 88,
+      "clients": 1,
+      "t_wall_ns": 2000000000
+    },
+    "scenario": "PID 77 has TCP connected but sends no WS hello or heartbeat; the counted client is a different browser",
+    "all_external_calls_stubbed": true
+  },
+  "unknown_interpreters_accepted": {
+    "problems": [],
+    "exe_values": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "braking_undercount": {
+    "actual_brake_mm": 5,
+    "deceleration_mm_s2": 250,
+    "rows": [
+      {
+        "case": "jog-x+",
+        "status": "PASS",
+        "detail": "moved in its sign, stopped within its bounds",
+        "axis": "X",
+        "sign": 1,
+        "bound_mm": 2.067,
+        "anchor_age_s": 0.09000000000000341,
+        "travel": 18.4875,
+        "stop_s": 0.2,
+        "brake_mm": 1.5125
+      },
+      {
+        "case": "jog-x-",
+        "status": "PASS",
+        "detail": "moved in its sign, stopped within its bounds",
+        "axis": "X",
+        "sign": -1,
+        "bound_mm": 2.067,
+        "anchor_age_s": 0.09000000000000341,
+        "travel": 18.4875,
+        "stop_s": 0.2,
+        "brake_mm": 1.5125
+      }
+    ]
+  },
+  "lost_session_after_last_jog": {
+    "error": "Simulator WebSocket closed during the gate",
+    "rows": [
+      {
+        "case": "jog-x+",
+        "status": "PASS",
+        "detail": "moved in its sign, stopped within its bounds",
+        "axis": "X",
+        "sign": 1,
+        "bound_mm": 2.067,
+        "anchor_age_s": 0.010000000000005116,
+        "travel": 15.0,
+        "stop_s": 0.01,
+        "brake_mm": 0.0
+      },
+      {
+        "case": "jog-x-",
+        "status": "PASS",
+        "detail": "moved in its sign, stopped within its bounds",
+        "axis": "X",
+        "sign": -1,
+        "bound_mm": 2.067,
+        "anchor_age_s": 0.010000000000005116,
+        "travel": 15.0,
+        "stop_s": 0.01,
+        "brake_mm": 0.0
+      }
+    ]
+  },
+  "FI_I20_regressions_closed": {
+    "outside_unchanged": true,
+    "hardlink_issues": [
+      "PARAMETER_FILE = xyz3/sim.var shares its inode with 1 other path(s)"
+    ]
+  },
+  "FI_I22_regression_closed": [
+    {
+      "case": "home-all",
+      "status": "FAIL",
+      "detail": "no confirmed completion (homed and in position) within the time",
+      "expected": [
+        true,
+        true,
+        true
+      ],
+      "observed": [
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "case": "home-joint-0",
+      "status": "FAIL",
+      "detail": "no confirmed completion (homed and in position) within the time",
+      "expected": [
+        true,
+        false,
+        false
+      ],
+      "observed": [
+        true,
+        false,
+        false
+      ]
+    },
+    {
+      "case": "home-joint-1",
+      "status": "FAIL",
+      "detail": "no confirmed completion (homed and in position) within the time",
+      "expected": [
+        false,
+        true,
+        false
+      ],
+      "observed": [
+        false,
+        true,
+        false
+      ]
+    },
+    {
+      "case": "home-joint-2",
+      "status": "FAIL",
+      "detail": "no confirmed completion (homed and in position) within the time",
+      "expected": [
+        false,
+        false,
+        true
+      ],
+      "observed": [
+        false,
+        false,
+        true
+      ]
+    }
+  ]
+}

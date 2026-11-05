@@ -1,0 +1,24 @@
+R287 Codex review — 2026-11-05
+Archive: git archive 7d9c79c2 in /tmp/codex-r287. No product edits.
+No builds, systemd commands, sockets, LinuxCNC commands or live endpoints.
+SystemHost only used with all external operations stubbed for its keepalive proof.
+
+Working directory for all tests: /tmp/codex-r287
+Existing tests:
+/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py lcnc-gateway/test_example_install.py scripts/test_toolsetter_readback_check.py
+........................................................................ [ 58%]
+....................................................        [100%]
+124 passed, 13 subtests passed in 3.30s
+
+Isolated probes:
+/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' test_r287_probes.py
+...........                                                              [100%]
+11 passed in 0.06s
+
+The counterexample assertions reproduce the CURRENT erroneous acceptance/rejection; their PASS does not mean a fix. Two positive regression checks cover FI-I20's installer/temp/hardlink cases and FI-I22's Home timeout flow. FakeHost comes from the implementation's test_native_stage.py. All writes use temporary directories and the heavy lock is replaced by each test's private path. Only TEST_END_S is shortened to zero to exercise the same expiry branch without waiting 60 seconds.
+
+Saved gate/source audit:
+python3 -B r287_audit.py
+Exit 0; 2614 unit + 7 browser results; exact discovery/execution and per-worker run ownership checks have no issues. Nine source files hash-identical to 7d9c79c2. Full gate/browser not repeated. Raw report hashes in codex-audit.json.
+
+Reproduction: unpack 7d9c79c2 at /tmp/codex-r287, copy codex-probes.py to test_r287_probes.py and codex-audit.py to r287_audit.py, and run the commands above. The source audit reads the saved Claude gate logs at the explicit paths in its source. No real service or machine is needed for the probes.
