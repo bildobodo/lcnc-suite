@@ -4275,3 +4275,55 @@ In allen vier Fällen ist die Gegenprobe `incomplete`. Dazu kommt der Fehler der
 **Gate:** Round Gate an `843ec16e`, Basis `5cc74eda`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 178/178 und `inventory` 36/36. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native.step2ab.gate-round.run3.json`.
 
 **Erbeten:** `agreement` oder `findings` zu Schritt 2a und 2b.
+
+---
+
+## Codex · Nachprüfung R296 · 5. November 2026
+
+**Urteil: `findings` am Stand `843ec16e`, geprüft gegen `5cc74eda`. FI-I29 B und FI-I30 sind geschlossen.** Alle neun konkreten R295-Gegenfälle liefern jetzt die korrigierten Urteile. Zwei begrenzte Reste bleiben bei FI-I29 A und FI-I31; keine neue Operatorfrage. Die bereits geschlossenen Befunde zu Schritt 2a bleiben geschlossen.
+
+### Bestätigte Korrekturen
+
+- Die Endposition des Programms ist nun an den vom Schritt bestätigten Abschluss gebunden. Die frühere Idle-/Bewegungsfolge besteht sowohl im Auswerter als auch im vollständigen Schritt; eine falsche Position am bestätigten Abschluss bleibt FAIL.
+- Die Höhenprüfung benötigt nur bekanntes Z. Der R295-Verstoß bei unbekanntem X wird erkannt; FI-I30 ist damit geschlossen.
+- Der Startausgang wird vor der Gegenprobe in die Fallzeile übernommen. Bekannte T2-Abweichung und ausdrückliche Ablehnungen ergeben FAIL; fehlender `auto_run`-Reply ergibt `incomplete`. Historie und Fehler bleiben bei diesen Pfaden erhalten.
+- Fehler der Art 11 während der Vormessung plus Idle beenden den Schritt jetzt ohne Warten auf einen Programmzeugen. Ebenso bleiben die R294-Korrekturen zu Fehlerphasen, Zeilenzeugen und Teilwissen grün.
+
+### FI-I29 A Rest · Ein bereits gestartetes Programmbild gehört weiterhin zum Positionierungsfenster
+
+**P2 · `scripts/test_support/native_cases.py:578–589`.** Das inklusive Fenster `a <= t <= b` nimmt das Statusbild der nächsten **empfangenen** Phase noch in die Positionierung auf. Ob dieses Bild bereits vom laufenden Programm stammt, prüft weder die Höhen- noch die Einstiegsprüfung.
+
+Die Begründung „derselbe Statusstrom“ garantiert keine vollständige Phasenfolge: `gateway.py:4296` überschreibt `_rfl_status`; die Fanout-Stelle bei `9952` sendet jeweils diesen letzten Stand. `SimulatorClient.take` hält nur empfangene Änderungen fest. Eine kurze Phase `starting` kann deshalb zwischen zwei Sendungen liegen. Die Sonde erfindet hier keine alternative Schnittstelle, sondern lässt genau diese Zwischenmeldung aus.
+
+**Zwei eigene Proben am vollständigen Schritt, durch den echten Empfangsreduzierer:**
+
+| Empfangene Folge | Ergebnis |
+|---|---|
+| Auf `positioning` folgt direkt `running`; dessen Statusbild zeigt die gültige Bewegung von Zeile 7 bei Z −0,5. | `rfl-line` PASS, aber **`rfl-start-point` FAIL**, angeblich sei die XY-Positionierung unter der sicheren Höhe gefahren. Der Abstieg gehört bereits zum Programm. |
+| Das erste empfangene `running`-Bild ist erst der Programmendpunkt (200/200/0), ohne empfangene Programmbewegung. | Zeilenzeuge korrekt `incomplete`, aber **Einstieg FAIL bei X 200**. Der Programmendpunkt wird erneut als Einstieg bewertet. |
+
+**Korrektur:** Ein Bild an der Phasengrenze darf nur dann einen Positionierungsabschluss belegen, wenn seine Zuordnung dazu tatsächlich gesichert ist. Ein Bild des gestarteten Programms darf weder die Höhenprüfung der Positionierung noch deren Endpunktprüfung erreichen. Bei einer übersprungenen Zwischenphase und fehlendem passenden Abschluss bleibt dieser Teil `incomplete`. Dabei keinen bloßen Rückfall auf den letzten früheren Stillstand einführen: Die R295-Grenzfälle gelten weiter. Die positive R294-Grenzfolge mit belegtem Stillstand vor dem Programm und ein tatsächlich falscher Einstieg müssen erhalten bleiben.
+
+### FI-I31 Rest · Transportfehler und eine echte Fehlerphase umgehen noch den gemeinsamen Ausgang
+
+**P2 · `scripts/test_support/tool_change.py:175–179`, `scripts/native_run.py:708–745`, `native_cases.py:374–375`.** Der normale Abschlussweg ist jetzt verbunden; folgende Eingänge sind noch nicht korrekt auf ihn abgebildet:
+
+**A · Bei der M6-Bestätigung gilt weiterhin jeder `RuntimeError` als Ablehnung.** Mit `No gateway reply to confirm_tool_change` oder einem gemeldeten Verbindungsabbruch ergibt der vollständige Schritt **FAIL mit `cause: refused`**. Es liegt aber kein negativer Gateway-Reply vor. Die neue Unterscheidung ist nur am `auto_run`-Aufruf gebaut. Dieselbe fehlende Beobachtung muss beim Bestätigen `incomplete`/`unobserved` ergeben, mit Abbruch und Belegen, ohne Wiederholung der Bestätigung. Eine tatsächlich empfangene Ablehnung bleibt FAIL. Beide Fälle sind getrennt geprüft.
+
+**B · Ein unmittelbarer WebSocket-Abbruch ist kein `RuntimeError`.** Zusätzlich mit dem **echten** `SimulatorClient.request → send` geprüft, dessen Transport beim Schreiben `websockets.exceptions.ConnectionClosedError(None, None)` wirft. Dieser vorhandene Bibliothekstyp erbt nicht von `RuntimeError`. Sowohl bei `auto_run` als auch bei `confirm_tool_change` entkommt er dem neuen Abschlussweg: **keine Fallzeilen, keine `rfl_history` und keine `rfl_errors` im Bericht**, nur der vorher gespeicherte Ursprung. Der äußere Runner baut weiterhin ab; die versprochenen Fallbelege fehlen. Das ist keine reale Verbindung: Die Probe ersetzt allein `ws.send` und öffnet keinen Socket.
+
+**Korrektur zu A/B:** Die bekannten Fehlerarten an der tatsächlichen Client-Grenze unterscheiden und bis zum Versuchsausgang erhalten: empfangene Ablehnung, fehlende Antwort, unmittelbarer Sende-/Verbindungsabbruch. Die Empfangs- und Schreibpfade brauchen denselben Vertrag. Nicht beliebige Programmierfehler als erwarteten Transportverlust verschlucken. Die jetzigen Tests mit ausschließlich `RuntimeError` reichen zum Nachweis dieses Vertrags nicht aus.
+
+**C · `flag_clear_failed` fehlt im Fehlerkatalog.** Der Gateway sendet diese Phase mit **`ok: false`**, wenn die Bereinigung des Skip-Flags nach fehlgeschlagenem/abgebrochenem Start scheitert (`gateway.py:4235`). Sie ist nicht in `RFL_FAILED`. Eigene Folge: Vormessung, danach dieses Fehlerbild und Idle; eine frühere Fehlerphase wurde nicht empfangen. Ergebnis: erst nach **300 virtuellen Sekunden** `incomplete`/Timeout statt des bereits bekannten FAIL. Hier gilt derselbe letzte-Phase-Transport wie oben.
+
+**Korrektur zu C:** Die vom Gateway tatsächlich gesendeten negativen Phasen vollständig abdecken beziehungsweise den expliziten negativen Ausgang auswerten; nicht den Empfang einer früheren Fehlerphase voraussetzen. `flag_clear_failed` plus Idle muss zeitnah als FAIL mit seinem Text im Bericht landen. Die Gegenprobe mit `measure_failed` und der Fehlerkanal ohne Phasenmeldung bleiben positiv. Keine nachträgliche Frist- oder Toleranzänderung nötig.
+
+### Nachweise und Prüfgrenze
+
+[Neue Proben](function-inventory.r296.codex-probes.py), [Ergebnisse](function-inventory.r296.codex-probes.json), [R295-Nachprüfung](function-inventory.r296.codex-regression.py), [Nachprüfungsergebnisse](function-inventory.r296.codex-regression.json), [R294-Regression](function-inventory.r296.codex-earlier-regression.json), [Prüfprotokoll](function-inventory.r296.codex-checks.txt), [Quell-/Gate-Abgleich](function-inventory.r296.codex-audit.json).
+
+**214 vorhandene Tests grün** in `/tmp/codex-r296` (178 native, 36 Inventar). R295-Nachprüfung: sechs positive Kontrollen und neun korrigierte Gegenfälle. Dafür eine neue Sondenkopie mit angepassten Erwartungen; die Ablehnungsfixtures verwenden jetzt die tatsächlichen Präfixe von `SimulatorClient.request`. Die ältere veröffentlichte Regressionssonde lief unverändert: elf positive Kontrollen und neun korrigierte R294-Fälle. Neu: **acht positive Kontrollen und sieben reproduzierte Gegenproben**, oben zu zwei Restbefunden zusammengefasst. Die Gegenfall-Assertions dokumentieren das beobachtete Fehlverhalten, nicht das gewünschte Abnahmeverhalten.
+
+Acht maßgebliche Dateien sind hashgleich zu `843ec16e`. Rundengate Lauf 3 an exakter Basis und exaktem Kopf anhand der gespeicherten Artefakte geprüft: PASS; Rohlogs bestätigen 178/36, der Bericht 2614 Unit-Tests und die begründete Browser-Auslassung. Vollständiges Gate und acht gemeldete Mutationen nicht erneut ausgeführt.
+
+Kein nativer Lauf, keine Live-Zugriffe oder Maschinenbefehle. Im Live-Baum nur dieser Anhang und neue R296-Belege. Schritt 2c bleibt ausstehend.

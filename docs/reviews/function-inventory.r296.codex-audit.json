@@ -1,0 +1,211 @@
+{
+  "base": "5cc74eda",
+  "head": "843ec16e4adfa9065f0fd4cb3cfd8292b8141524",
+  "source_checks": [
+    {
+      "path": "scripts/native_run.py",
+      "sha256": "505465a33ee39934953335ae59a75f6b35163cc4e5f017f95188a96848d68755",
+      "matches_commit": true
+    },
+    {
+      "path": "scripts/test_native_stage.py",
+      "sha256": "b18de6506c75e496c977dee93adc359a7a19b4f52f9672b81366c1564e743013",
+      "matches_commit": true
+    },
+    {
+      "path": "scripts/test_support/native_cases.py",
+      "sha256": "f4ececddf0d1b046a4e2e40ad2eae1c2506255d9cf6a0232eac805385a584337",
+      "matches_commit": true
+    },
+    {
+      "path": "scripts/test_support/tool_change.py",
+      "sha256": "58eb8d97e7deec0fefb9bffff7d5290b93ab7e67f3b7c636d83be63d27193006",
+      "matches_commit": true
+    },
+    {
+      "path": "scripts/test_support/live_session.py",
+      "sha256": "c3f8872ad66d1ffd8381b7fc989506a16258fbae08205dba3f7a874b2699dfb6",
+      "matches_commit": true
+    },
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "sha256": "b9c16d62b126d9af31711e5304f5a563e45ed976c882cf926a9354f97b790daa",
+      "matches_commit": true
+    },
+    {
+      "path": "lcnc-gateway/ws_fanout.py",
+      "sha256": "7a7807aaba49cc7785338ff8c6f4bcff6150d185cb0d9839ac4b3b9586d47907",
+      "matches_commit": true
+    },
+    {
+      "path": "docs/decisions.md",
+      "sha256": "2303b6cdf65ad9aebd9f7b43fdf807c93143309f4797cd9127848a5462b6e384",
+      "matches_commit": true
+    }
+  ],
+  "gate": {
+    "path": "/home/cnc/claude-work/teststrat/measure/native.step2ab.gate-round.run3.json",
+    "sha256": "7971b66a2a55d10d454f32e47252a9a9cf40f650b142d16b665cd968b3260530",
+    "report": {
+      "kind": "round",
+      "note": "",
+      "base": "5cc74eda03683e6f74e7291119b6026d0c166501",
+      "head": "843ec16e4adfa9065f0fd4cb3cfd8292b8141524",
+      "uncommitted": 0,
+      "plan": [
+        "selection-guards",
+        "lint",
+        "build",
+        "unit-light",
+        "backend"
+      ],
+      "env": {
+        "nproc": 6,
+        "arch": "aarch64",
+        "node": "v22.23.2",
+        "playwright": "Version 1.60.0"
+      },
+      "selection": {
+        "unmatched": [],
+        "unit": {
+          "light": "every unit file but HEAVY_UNIT \u2014 every round",
+          "heavy": [],
+          "heavy_reasons": [],
+          "changed": [],
+          "related": []
+        },
+        "browser": {
+          "run": [],
+          "reasons": [
+            "no path selects a browser spec"
+          ]
+        },
+        "backend": {
+          "run": true,
+          "reasons": [
+            "scripts/native_run.py: scripts and their tests ride the backend gate",
+            "scripts/test_native_stage.py: scripts and their tests ride the backend gate",
+            "scripts/test_support/native_cases.py: scripts and their tests ride the backend gate"
+          ]
+        },
+        "firefox": {
+          "needed": false
+        },
+        "live": {}
+      },
+      "heavy_lock_wait_s": 0.0,
+      "verdict": "PASS",
+      "resources": {
+        "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/native-round-gate14.service",
+        "cpu_s": 377,
+        "memory_peak_mb": 2356
+      },
+      "checks": [
+        {
+          "name": "selection-guards",
+          "command": "/home/cnc/lcnc-suite-native/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-native/scripts/test_select/test_selector.py",
+          "status": "PASS",
+          "exit": 0,
+          "seconds": 3
+        },
+        {
+          "name": "lint",
+          "command": "npm run lint",
+          "status": "PASS",
+          "exit": 0,
+          "seconds": 7
+        },
+        {
+          "name": "build",
+          "command": "npm run build",
+          "status": "PASS",
+          "exit": 0,
+          "seconds": 14
+        },
+        {
+          "name": "unit-light",
+          "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/claude-work/teststrat/measure/native.step2ab.gate-round.run3.logs/unit-light.json",
+          "status": "PASS",
+          "exit": 0,
+          "seconds": 50,
+          "files": 162,
+          "tests": 2614,
+          "passed": 2614,
+          "failed": 0,
+          "skipped": 0,
+          "listed": 2614
+        },
+        {
+          "name": "backend",
+          "command": "/home/cnc/lcnc-suite-native/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-native/scripts/test_suite.py offline --component backend --out-dir /home/cnc/claude-work/teststrat/measure/native.step2ab.gate-round.run3.logs/backend",
+          "status": "PASS",
+          "exit": 0,
+          "seconds": 84
+        }
+      ],
+      "omitted": [
+        {
+          "check": "unit-heavy",
+          "reason": "no heavy file changed, reached or read for"
+        },
+        {
+          "check": "browser",
+          "reason": "no path selects a browser spec"
+        }
+      ],
+      "pending": []
+    }
+  },
+  "raw_logs": {
+    "native-stage.log": {
+      "sha256": "ff156c8bf2bf87baf888c958883d8e5c1f4f3657f504e5a9efd163dec85dadc6",
+      "tail": [
+        "...............................................................          [100%]",
+        "",
+        "============================= 178 passed in 4.56s =============================="
+      ]
+    },
+    "inventory.log": {
+      "sha256": "8283d2198f5697e75bd5365b60895a15ced79d22612f8c54150ea27cfd90c4a1",
+      "tail": [
+        "scripts/inventory/test_inventory.py .................................... [100%]",
+        "",
+        "============================== 36 passed in 1.03s =============================="
+      ]
+    }
+  },
+  "own_tests": {
+    "command": "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py",
+    "cwd": "/tmp/codex-r296",
+    "exit": 0,
+    "output": "........................................................................ [ 33%]\n........................................................................ [ 67%]\n......................................................................   [100%]\n214 passed in 5.64s\n"
+  },
+  "own_probes": {
+    "r296_probes.json": {
+      "positive": 8,
+      "findings": 7
+    },
+    "r296_regression.json": {
+      "positive": 6,
+      "corrected_r295_cases": 9
+    },
+    "r294_regression.json": {
+      "positive": 11,
+      "corrected_r294_cases": 9
+    }
+  },
+  "limits": [
+    "No native run, live access or machine commands.",
+    "All tests in archive; no product edits.",
+    "Saved gate inspected, not rerun; eight mutations reported by Claude not repeated."
+  ],
+  "review_append": {
+    "prefix_bytes": 475817,
+    "prefix_sha256": "e3f3b80a5da624cf3a41106127f2b96c0c0b305fee525cdd5ae89d5cdac5ee32"
+  },
+  "earlier_regression_script": {
+    "path": "/home/cnc/lcnc-suite/docs/reviews/function-inventory.r295.codex-regression.py",
+    "sha256": "cd83896bdf2d54cac02840831c4bf30b8189522d43fb637c9851595b7c7f5320",
+    "unchanged": true
+  }
+}

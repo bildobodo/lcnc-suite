@@ -1,0 +1,44 @@
+R296 Codex review, 2026-11-05
+Base 5cc74eda; head 843ec16e4adfa9065f0fd4cb3cfd8292b8141524.
+Archive workspace /tmp/codex-r296. No product edits.
+
+Existing tests, once:
+  cwd /tmp/codex-r296
+  /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py
+  214 passed in 5.64s (178 native-stage + 36 inventory).
+
+R295 regression:
+  python3 -B function-inventory.r296.codex-regression.py /tmp/codex-r296
+  Exit 0: 6 positive controls and 9 corrected R295 counterexamples.
+  New copy of R295 evidence. Expected outcomes adapted; rejection fixtures
+  use the actual SimulatorClient.request prefixes ('auto_run refused:' and
+  'confirm_tool_change refused:'). Old evidence untouched.
+
+Earlier R294 regression:
+  python3 -B docs/reviews/function-inventory.r295.codex-regression.py /tmp/codex-r296
+  Exit 0, script unchanged: 11 positive controls and 9 corrected R294 cases.
+
+New probes:
+  /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B function-inventory.r296.codex-probes.py /tmp/codex-r296
+  Exit 0: 8 positive controls and 7 reproduced counterexamples in two rests.
+  Complete rfl_cases with real SimulatorClient.take, ToolChanges, RoutineEnd
+  and serve. For send failures also the actual SimulatorClient.request/send
+  methods; only ws.send is replaced with a transport raising the installed
+  websockets.exceptions.ConnectionClosedError(None, None). It is not a
+  RuntimeError. No socket is opened. Virtual clock, no live waits.
+  Assertions describe reviewed behavior, including defects; required fields
+  state the corrected outcomes.
+
+Source check:
+  _rfl_phase keeps the latest state, the status envelope carries it, the
+  client records only phase changes it received. No queue delivering every
+  intermediate phase exists on this route.
+  Gateway also emits flag_clear_failed, ok false (cleanup after a failed or
+  aborted start); native_cases.RFL_FAILED omits it.
+
+Saved gate inspected:
+  /home/cnc/claude-work/teststrat/measure/native.step2ab.gate-round.run3.json
+  Exact base/head, clean input, PASS; raw native/inventory logs 178/36.
+  Reported 2614 unit-light. Browser omission has selector reason.
+  Full gate and eight reported mutations not rerun. Eight reviewed files
+  hash-match requested commit. No native run, live accesses or machine commands.
