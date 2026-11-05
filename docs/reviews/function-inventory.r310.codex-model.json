@@ -1,0 +1,435 @@
+{
+  "kind": "Plan-only audit; countermodels are not executions of an unbuilt product evaluator",
+  "routine_sha256": "4990c7b303cb43bf0aa8cb11948277072874558f5902d3c48a59133ec555097d",
+  "wrapper_sha256": "acbaeb68313eb7f769eea45f5b1bf83455d55976515857f47811c1d0d773e919",
+  "motion_rows": [
+    {
+      "line": 211,
+      "code": "G53 G1 F#<traverse_fr> Z0"
+    },
+    {
+      "line": 214,
+      "code": "G53 G1 F#<traverse_fr> X#5181 Y#5182"
+    },
+    {
+      "line": 215,
+      "code": "G53 G1 F#<traverse_fr> Z#5183"
+    },
+    {
+      "line": 241,
+      "code": "G53 G1 F#<traverse_fr> Z0"
+    },
+    {
+      "line": 247,
+      "code": "G53 G1 F#<traverse_fr> X#5181 Y#5182"
+    },
+    {
+      "line": 248,
+      "code": "G53 G1 F#<traverse_fr> Z#5183"
+    },
+    {
+      "line": 251,
+      "code": "G53 G1 F#<traverse_fr> X#<finder_touch_x_coords> Y#<finder_touch_y_coords>"
+    },
+    {
+      "line": 254,
+      "code": "G53 G1 F#<traverse_fr> X#<tool_touch_x_coords> Y#<tool_touch_y_coords>"
+    },
+    {
+      "line": 284,
+      "code": "G53 G1 F#<traverse_fr> Z0"
+    },
+    {
+      "line": 287,
+      "code": "G53 G1 F#<traverse_fr> X#<finder_touch_x_coords> Y#<finder_touch_y_coords>"
+    },
+    {
+      "line": 295,
+      "code": "G53 G1 F#<traverse_fr> X[#<tool_touch_x_coords>-#<offset_distance>] Y#<tool_touch_y_coords>"
+    },
+    {
+      "line": 298,
+      "code": "G53 G1 F#<traverse_fr> X[#<tool_touch_x_coords>+#<offset_distance>] Y#<tool_touch_y_coords>"
+    },
+    {
+      "line": 301,
+      "code": "G53 G1 F#<traverse_fr> X#<tool_touch_x_coords> Y[#<tool_touch_y_coords>-#<offset_distance>]"
+    },
+    {
+      "line": 304,
+      "code": "G53 G1 F#<traverse_fr> X#<tool_touch_x_coords> Y[#<tool_touch_y_coords>+#<offset_distance>]"
+    },
+    {
+      "line": 308,
+      "code": "G53 G1 F#<traverse_fr> X#<tool_touch_x_coords> Y#<tool_touch_y_coords>"
+    },
+    {
+      "line": 341,
+      "code": "G53 G1 F#<traverse_fr> Z#<probe_start_pos_z>"
+    },
+    {
+      "line": 453,
+      "code": "G38.3 Z-[#<z_max_travel>]"
+    },
+    {
+      "line": 456,
+      "code": "G1 F#<fast_probe_fr> Z-[#<probe_start_pos_z> - #<preview_trip_z>]"
+    },
+    {
+      "line": 472,
+      "code": "G1 Z-[#<pv_h_fast>]"
+    },
+    {
+      "line": 475,
+      "code": "G1 F#<traverse_fr> Z[#<retract_distance>]"
+    },
+    {
+      "line": 479,
+      "code": "G1 Z[#<pv_h_fast>]"
+    },
+    {
+      "line": 520,
+      "code": "G38.2 Z-[#<retract_distance> * 2]"
+    },
+    {
+      "line": 523,
+      "code": "G1 F#<slow_probe_fr> Z-[#<retract_distance>]"
+    },
+    {
+      "line": 536,
+      "code": "G1 Z-[#<pv_h_slow>]"
+    },
+    {
+      "line": 540,
+      "code": "G1 F#<traverse_fr> Z[#<retract_distance>]"
+    },
+    {
+      "line": 543,
+      "code": "G1 Z[#<pv_h_slow>]"
+    },
+    {
+      "line": 587,
+      "code": "G53 G1 F#<traverse_fr> Z0"
+    },
+    {
+      "line": 601,
+      "code": "G1 F#<traverse_fr> X[#<stop_position_x>] Y[#<stop_position_y>]"
+    }
+  ],
+  "program_lines": 11,
+  "source_sets_disjoint": true,
+  "old_program_sha256": "ef6cb29fcbd5448c4dd29e059a0c7f7d3cf17fc26c1924b58dec82674fc765bb",
+  "proposed_program_sha256": "623c541452bd24ad4bfd2075287ff68081e0785eff09c53366f00526bcc95773",
+  "proposed_program": "(native stage: run from line - Codex R292 FI292-01)\nG21 G90 G94 G17 G54\nT1 M600\nS1000 M3\nG0 X100 Y100\nG0 Z-100\nG61.1 G1 X200 F3000\nG1 Y200\nG0 Z-80\nM5\nM2\n",
+  "phase_countermodel": {
+    "stream": [
+      {
+        "n": 0,
+        "line": 308,
+        "pos": [
+          10,
+          10,
+          0
+        ],
+        "vel": [
+          1,
+          1,
+          0
+        ],
+        "inpos": false
+      },
+      {
+        "n": 1,
+        "line": 6,
+        "pos": [
+          10,
+          10,
+          -1
+        ],
+        "vel": [
+          0,
+          0,
+          -1
+        ],
+        "inpos": false
+      },
+      {
+        "n": 2,
+        "line": 587,
+        "pos": [
+          10,
+          10,
+          -0.5
+        ],
+        "vel": [
+          0,
+          0,
+          1
+        ],
+        "inpos": false
+      },
+      {
+        "n": 3,
+        "line": 601,
+        "pos": [
+          0,
+          0,
+          0
+        ],
+        "vel": [
+          -1,
+          -1,
+          0
+        ],
+        "inpos": false
+      },
+      {
+        "n": 4,
+        "line": 0,
+        "pos": [
+          100,
+          100,
+          0
+        ],
+        "vel": [
+          0,
+          0,
+          0
+        ],
+        "inpos": true
+      },
+      {
+        "n": 5,
+        "line": 0,
+        "pos": [
+          100,
+          100,
+          0
+        ],
+        "vel": [
+          0,
+          0,
+          0
+        ],
+        "inpos": true
+      },
+      {
+        "n": 6,
+        "line": 0,
+        "pos": [
+          100,
+          100,
+          0
+        ],
+        "vel": [
+          0,
+          0,
+          0
+        ],
+        "inpos": true
+      },
+      {
+        "n": 7,
+        "line": 0,
+        "pos": [
+          100,
+          100,
+          0
+        ],
+        "vel": [
+          0,
+          0,
+          0
+        ],
+        "inpos": true
+      },
+      {
+        "n": 8,
+        "line": 0,
+        "pos": [
+          100,
+          100,
+          0
+        ],
+        "vel": [
+          0,
+          0,
+          0
+        ],
+        "inpos": true
+      },
+      {
+        "n": 9,
+        "line": 0,
+        "pos": [
+          100,
+          100,
+          0
+        ],
+        "vel": [
+          0,
+          0,
+          0
+        ],
+        "inpos": true
+      },
+      {
+        "n": 10,
+        "line": 0,
+        "pos": [
+          100,
+          100,
+          0
+        ],
+        "vel": [
+          0,
+          0,
+          0
+        ],
+        "inpos": true
+      },
+      {
+        "n": 11,
+        "line": 0,
+        "pos": [
+          100,
+          100,
+          0
+        ],
+        "vel": [
+          0,
+          0,
+          0
+        ],
+        "inpos": true
+      },
+      {
+        "n": 12,
+        "line": 0,
+        "pos": [
+          100,
+          100,
+          0
+        ],
+        "vel": [
+          0,
+          0,
+          0
+        ],
+        "inpos": true
+      },
+      {
+        "n": 13,
+        "line": 0,
+        "pos": [
+          100,
+          100,
+          0
+        ],
+        "vel": [
+          0,
+          0,
+          0
+        ],
+        "inpos": true
+      },
+      {
+        "n": 14,
+        "line": 7,
+        "pos": [
+          100,
+          100,
+          0
+        ],
+        "vel": [
+          1,
+          0,
+          0
+        ],
+        "inpos": false
+      }
+    ],
+    "last_r_n": 3,
+    "first_program_n": 1,
+    "known_early_program_samples": [
+      {
+        "n": 1,
+        "line": 6,
+        "pos": [
+          10,
+          10,
+          -1
+        ],
+        "vel": [
+          0,
+          0,
+          -1
+        ],
+        "inpos": false
+      }
+    ],
+    "after_last_r_filter": [],
+    "literal_entry_window": [],
+    "required_verdict": "FAIL; a later R may not erase an earlier main-file motion"
+  },
+  "r309_rest_countermodel_under_new_anchor": {
+    "anchor_n": 10,
+    "known_violations": 20,
+    "model_verdict": "FAIL"
+  },
+  "recorded_g64_run": {
+    "sha256": "4e81b3364ae42722b0e6e997d8ef07285b835a5a1a294732c432bcd673508374",
+    "last_r": [
+      1186669.8404625,
+      339573,
+      [
+        0.000447,
+        0.000447,
+        -0.0,
+        -0.192441,
+        -0.192441,
+        0.0,
+        601,
+        1,
+        27
+      ]
+    ],
+    "first_zero_after_r": [
+      1186669.8404635,
+      339574,
+      [
+        8.8e-05,
+        8.8e-05,
+        -0.0,
+        -0.017555,
+        -0.017555,
+        0.0,
+        0,
+        1,
+        27
+      ]
+    ],
+    "first_program": [
+      1186675.913141081,
+      345641,
+      [
+        100.0,
+        100.0,
+        0.0,
+        0.09375,
+        0.0,
+        0.0,
+        7,
+        0,
+        27
+      ]
+    ],
+    "all_between_zero": true,
+    "remaining_xy_velocity_after_r": [
+      -0.017555,
+      -0.017555
+    ],
+    "scope": "Positive structural check only; not a G61.1 acceptance run"
+  },
+  "result": "PASS: source checks and countermodel assertions hold"
+}

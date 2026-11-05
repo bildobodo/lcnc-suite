@@ -6212,3 +6212,53 @@ Diese Werte entsprechen den Servo-Konstanten des Jogs. Ein späterer Ruheblock e
 **Die Reichweite der Aussage:** Sie beruht auf beobachteten Bewegungsabtastungen. Übersprungene Sätze ohne Bewegung beobachtet dieser HAL-Kanal nicht; der Text von F-RFL.S3 sagt das. Die Lücke „2c-b“ fällt erst mit dem positiven nativen Beleg **und** den negativen Wächtern weg.
 
 **Erbeten:** `agreement` oder `findings` zur Planfassung 2.
+
+---
+
+## Codex · Planreview R310 · 5. November 2026
+
+**Urteil: `findings`, begrenzt auf FI309-01. FI309-02 und FI309-03 sind auf Vertragsebene geschlossen.** Geprüft ist die Planfassung 2 am Dokumentstand **`428d6344`**, Codebezug unverändert **`3e4f7c80`**. Teil A/P2 gehört nicht zu dieser Runde. Keine neue Operatorfrage; die Umsetzung und der neue native Nachweis stehen noch aus.
+
+### Angenommene Korrekturen
+
+- **FI309-01, Ansatz:** Die eng auf die gebundenen Dateien begrenzte Quellenzuordnung ist als Alternative zur zusätzlichen Phasenmarke angenommen. Ich habe die **28** Fahrsatzzeilen **211…601**, den bewegungslosen Wrapper und die disjunkten Programmzeilen **1…11** am angegebenen Stand nachvollzogen. Routinenhash: `4990c7b303cb43bf0aa8cb11948277072874558f5902d3c48a59133ec555097d`. Empfangszeiten werden für diese Zuordnung nicht benötigt. Der verbleibende Fehler liegt in der zeitlichen Auswertung dieser Zuordnung, nicht in der Wahl dieses Ansatzes.
+- **FI309-02:** `G61.1` in **Zeile 7 selbst**, unveränderte Zeilennummern, neuer Programmhash und ein neuer nativer Lauf: angenommen. Ebenso die getrennte Bewertung der eigentlichen Startregel und der Selbstprüfung 8/9, mit Vorrang eines bereits bekannten FAIL. Der bisherige G64-Lauf bleibt Untersuchungsbeleg.
+- **FI309-03:** Der erste vollständige qualifizierte Zehnerblock vor L wird festgehalten; ein späterer Block ersetzt ihn nicht. Bekannte Widersprüche bleiben trotz unbekannter anderer Werte oder späterer Lücken FAIL. Angenommen. Auf dem unveränderten R309-Gegenmodell bleibt der Anker bei **n=10**; die **20** widersprechenden Abtastungen werden damit nicht mehr durch die spätere Ruhe verdeckt.
+
+### FI309-01 Rest · Eine spätere Routinenzeile darf einen bekannten früheren Programmfehler nicht abschneiden
+
+Die neue Quellenregel erkennt jede Zahl 1…11 unabhängig von ihrer zeitlichen Lage als Programmzeile. Regel 1 der Zusammenfassung prüft eine Bewegung aus 1…L−1 aber weiterhin nur **nach der global letzten Routinenabtastung**. Damit kann eine spätere Routinenkennung eine vorher schon eindeutig zugeordnete falsche Programmbewegung aus der Fehlerprüfung entfernen.
+
+Das neue, ausdrücklich synthetische Gegenmodell hat folgende Reihenfolge innerhalb des eigenen Versuchs:
+
+| Abtastung | Kennung | Aussage |
+|---|---:|---|
+| n=0 | 308 | Routine bewegt sich. |
+| n=1 | **6** | **Programm bewegt Z abwärts**, obwohl erst ab L=7 gestartet werden soll. |
+| n=2…3 | 587, 601 | Danach erscheinen wieder Routinenzeilen. |
+| n=4…13 | 0 | Zehn ruhende Abtastungen am richtigen Einstieg. |
+| n=14 | 7 | Richtiger Einstieg in L. |
+
+Die Mengen sind disjunkt; n=1 ist nach der eigenen Quellenregel ein bekannter Widerspruch. Der globale Schnitt liegt dennoch bei n=3, sodass Regel 1 ihn nicht mehr sieht. Wörtlich genommen liegt die **erste Programmabtastung vor der letzten Routinenabtastung**: Das definierte Einfahrtsfenster ist leer und die Auswertung kann bei `incomplete` statt dem bekannten FAIL landen. Ich behaupte hier **keinen bereits ausgeführten Produktfehler und kein durch den Wortlaut zwingendes PASS**. Ein Suchen nach der ersten Programmabtastung *erst nach* dem letzten R wäre jedoch ebenfalls falsch: Damit würde nur noch der gute Schluss ausgewertet.
+
+**Nötige kleine Vertragskorrektur:**
+
+1. Bekannte Bewegungen aus Programmzeilen **1…L−1 im gesamten gebundenen Versuch** prüfen, unabhängig von einer späteren Routinenzeile. Der Quellenbeleg steht bereits fest; dafür ist kein Ende der Messphase nötig.
+2. Die zulässige Phasenreihenfolge ausdrücklich prüfen. Eine Rückkehr zur Routine nach bereits beobachteter Programmbewegung darf vergangene Zuordnungen und Fehler nicht umschreiben. Eine nicht erklärbare Reihenfolge macht den Abschnitt mindestens unvollständig; ein schon bewiesener falscher Programmsatz bleibt **FAIL**.
+3. Fehlende oder widersprüchliche Grenzbelege benennen, ohne durch einen beliebig gewählten späteren Schnitt eine neue positive Teilfolge zu erzeugen.
+
+**Wächter:** die obige Folge; eine frühe bewegte Zeile 6 noch vor der ersten Routinenkennung; jeweils der korrekte spätere Einstieg sowie verschobene Empfangszeiten. Die bekannte frühere Programmbewegung muss FAIL bleiben. Zusätzlich die reguläre Folge Routine → Nullbereich/Einfahrt → L positiv erhalten.
+
+### Zwei Präzisierungen für den Bau
+
+Die letzte **gemeldete Routinenzeile** ist kein Beleg für den letzten physischen Bewegungsanteil der Routine. Im vorhandenen G64-Strom folgt auf die letzte 601 bei **n=339573** eine Nullkennung bei **n=339574**, deren X/Y-Geschwindigkeiten noch jeweils **−0,017555 mm/s** betragen. Der Nullbereich umfasst hier also auch den kurzen Auslauf. Das widerlegt die enge Quellenzuordnung nicht; bitte ihn aber nicht als bewiesenen exakten Abschluss der Routine beschreiben. Im festen Fall bleibt dieser XY-Auslauf vor dem Ruheanker zulässig; der neue native Lauf muss die vereinbarten Regeln selbst erfüllen.
+
+Beim Abfall von Z zählt der Abstand zu einem vorher bekannten höheren Z innerhalb der zugeordneten Einfahrt, nicht nur die Differenz zweier Nachbarsamples: Viele kleine Abwärtsschritte dürfen einen insgesamt unerlaubten Abstieg nicht verbergen. Der vollständige Ruheblock muss vor der ersten L-Abtastung liegen. Das sind Bauhinweise innerhalb des vereinbarten Umfangs, keine zusätzlichen Operatorentscheidungen.
+
+### Belege und Prüfgrenzen
+
+- [Gesicherte Planfassung R310](function-inventory.r310.codex-plan.md).
+- [Quellprüfung und Plan-Gegenmodelle](function-inventory.r310.codex-model.py), [Ergebnisse](function-inventory.r310.codex-model.json).
+- [Stände, Eingaben und Grenzen](function-inventory.r310.codex-checks.json).
+
+Die Sonde liest die Archivkopie, den bestehenden R309-Beleg und die gespeicherte Servo-Aufzeichnung; sie berechnet Plan-Gegenmodelle. Ihr PASS bezeichnet bestandene **Audit-Assertions**, keine Abnahme eines noch nicht gebauten Auswerters. F-RFL.S3 bleibt bis zum neuen positiven nativen Nachweis samt negativen Wächtern entsprechend begrenzt. Keine Builds/Tests/Checkouts im Live-Baum, keine Live-Sim-Zugriffe und keine Maschinenbefehle. Nur dieser Anhang und neue R310-Belege; ältere Belege unverändert.

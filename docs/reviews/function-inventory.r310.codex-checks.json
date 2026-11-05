@@ -1,0 +1,34 @@
+{
+  "round": "R310",
+  "review_document_head": "428d6344a63ad791f4cbafe93b932e7337d1b978",
+  "code_ref": "3e4f7c8048b01ad0f761cc5b1f008ea041338f17",
+  "review_prefix_bytes": 674942,
+  "review_prefix_sha256": "721b1a3ffb9e00db1d39517c96bba671d32af45b17d8d3246273482c0dbd59dd",
+  "input_evidence": {
+    "r309_audit_sha256": "a6caaaafd4818922493535fb1cea6f72bb728edb1fe2ee2b7dd1462d458c5e9d",
+    "servo_record": "/home/cnc/claude-work/live-tier/20261105T212704/servo-rfl.jsonl",
+    "servo_sha256": "4e81b3364ae42722b0e6e997d8ef07285b835a5a1a294732c432bcd673508374"
+  },
+  "command": "python3 -B /tmp/r310-model.py /tmp/codex-r308 /home/cnc/claude-work/live-tier /home/cnc/lcnc-suite/docs/reviews",
+  "exit_code": 0,
+  "assertion_result": "PASS (audit assertions, not a product gate)",
+  "evidence_sha256": {
+    "function-inventory.r310.codex-plan.md": "86e810961129b09dca2ee8eb79d6b64271f57988ce0d4e411e45a261a98c48c9",
+    "function-inventory.r310.codex-model.py": "2bf03238530a73821ab191c9656b7267d5970b570193cbd2af497bf2cf8d1e75",
+    "function-inventory.r310.codex-model.json": "ceafae35ce39cf19e081c6dde2b28e4ff4b0560dc5aaeeb0ec7592321af4dcd4"
+  },
+  "verdict": "findings",
+  "closed_on_plan_level": [
+    "FI309-02",
+    "FI309-03"
+  ],
+  "open": [
+    "FI309-01: known early program motion must not be dropped by a later routine sample"
+  ],
+  "limits": [
+    "Plan only; no evaluator implementation tested",
+    "Archived source and existing recordings read; no live machine or network access",
+    "No product edits, builds, tests, or checkouts in live workspace",
+    "Countermodel is synthetic, not a claimed native execution"
+  ]
+}
