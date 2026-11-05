@@ -10649,3 +10649,15 @@ seen only with frames through it at most WINDOW_GAP_S = 0.3 s apart (the
 idle poll, 5 Hz, plus one late tick); a frame after a gap is no coverage.
 The #3102 counter predicts from ITS base — the length the first measurement
 left, the sim's physical length — never from L0, which stays for the reset.
+
+Codex R294: the release window is covered only by frames that SAY the lock
+(an unread value is a gap). Run from line: an end point needs its own state
+proof — the entry where the machine STOOD (the last known standstill before
+the program moves, never a moving last frame of the phase), line L's end
+only on the frames of L + 1 (the line that holds those axes; a later line
+proves nothing), a missed witness of L incomplete (an observed EARLIER line
+stays a contradiction); positions per axis (a known wrong axis is never
+hidden by an unread one, an axis never read is no proof); the attempt's
+errors (kind 1/11) and a failed phase reach the rows — a failed phase ends
+the attempt at once, and every path (a failure, a helper's end) keeps its
+rows, the history and the errors before the instance goes down.

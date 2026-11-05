@@ -100,6 +100,7 @@ RFL_PROGRAM = "\n".join([
     "M2"]) + "\n"
 RFL_FILE, RFL_LINE, RFL_ENTRY, RFL_SPEED = "native_rfl.ngc", 7, (100.0, 100.0), 1000.0
 RFL_Z_LINE, RFL_Z_END = -100.0, -50.0
+RFL_DEADLINE = 300.0    # s: the pre-measurement, the entry and the program
 SHORT_GRACE = 2.0       # s: a block too short to show busy ends after this idle time (the gateway's own rule)
 DEBUG_WAIT = 3.0        # s for a DEBUG line to come back through the error channel, per attempt
 
@@ -687,7 +688,7 @@ def rfl_cases():
         refusal = changes.precheck(c.status)
         if refusal:
             raise RuntimeError(f"run from line: {refusal}")
-        cursor, hist_from = len(c.frames), len(c.rfl_history)
+        cursor, hist_from, err_from = len(c.frames), len(c.rfl_history), len(c.errors)
         c.request("auto_run", line=RFL_LINE, file=origin["file"], version=origin["version"], source=origin["source"],
                   spindle_dir="forward", spindle_speed=int(RFL_SPEED), pre_tool=tool,
                   probe_vars={str(k): v for k, v in ts.items()}, safe_z=True, entry_x=RFL_ENTRY[0],
@@ -699,23 +700,41 @@ def rfl_cases():
                                                   and isinstance(st.get("motion_line"), int)
                                                   and st["motion_line"] >= RFL_LINE)
             return seen["program"]
+
+        def failed_phase():
+            return next((p for _, p in c.rfl_history[hist_from:] if p.get("phase") in nc.RFL_FAILED), None)
         routine_end = tc.RoutineEnd()
 
         def done(t, st):
-            effect = ran(st)
-            return routine_end(t, st) and effect
-        tc.serve(c, changes, done, 300.0, cursor=cursor)
-        hist, run_frames = c.rfl_history[hist_from:], frames[cursor:]
+            effect, end = ran(st), routine_end(t, st)
+            # a known terminal failure ends the attempt NOW, once idle (R294 FI-I31)
+            if failed_phase() is not None and st.get("interp_state") == 1:
+                return True
+            return end and effect
+        ended = None
+        try:
+            tc.serve(c, changes, done, RFL_DEADLINE, cursor=cursor)
+        except tc.ToolChangeError as e:
+            ended = e
+        # the rows on EVERY path, from what was received since this attempt began
+        hist, run_frames = list(c.rfl_history[hist_from:]), frames[cursor:]
+        errors = [(k, x) for _, k, x in c.errors[err_from:]]
         ctx["report"]["rfl_history"] = hist
-        line = nc.eval_rfl_line("rfl-line", hist, run_frames, line=RFL_LINE, tool=tool, l0=l0, spindle_speed=RFL_SPEED,
-                                end_point=(200.0, None, RFL_Z_LINE + l0), final=(200.0, 200.0, RFL_Z_END + l0),
-                                line_holds={1: RFL_ENTRY[1]})
-        planted = nc.eval_rfl_line("rfl-line", hist, run_frames, line=RFL_LINE + 1, tool=tool, l0=l0,
-                                   spindle_speed=RFL_SPEED, end_point=(200.0, None, RFL_Z_LINE + l0),
-                                   final=(200.0, 200.0, RFL_Z_END + l0), line_holds={1: RFL_ENTRY[1]})
+        ctx["report"]["rfl_errors"] = errors
+        common = dict(tool=tool, l0=l0, spindle_speed=RFL_SPEED, end_point=(200.0, None, RFL_Z_LINE + l0),
+                      final=(200.0, 200.0, RFL_Z_END + l0), line_holds={1: RFL_ENTRY[1]}, errors=errors)
+        line = nc.eval_rfl_line("rfl-line", hist, run_frames, line=RFL_LINE, **common)
+        planted = nc.eval_rfl_line("rfl-line", hist, run_frames, line=RFL_LINE + 1, **common)
         rows += [line, nc.counter("rfl-line.counter-line+1", planted, line),
                  nc.eval_rfl_no_earlier("rfl-no-earlier-line", hist, run_frames, line=RFL_LINE),
                  nc.eval_rfl_start_point("rfl-start-point", hist, run_frames, entry_xy=RFL_ENTRY)]
+        if ended is not None or failed_phase() is not None or nc._failures(errors):
+            # a known failure or an unfinished attempt: the instance goes down;
+            # a gap stays a gap in the rows
+            why = (f"{ended} ({ended.cause})" if ended is not None else
+                   f"phase {failed_phase().get('phase')}" if failed_phase() is not None else
+                   f"the attempt reported: {nc._failures(errors)[0]}")
+            raise StepFailed(rows, f"the run from line ended: {why}")
         return rows
     return ("rfl", step)
 

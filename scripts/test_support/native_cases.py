@@ -311,12 +311,13 @@ def eval_override_lock(case: str, frames: list[tuple], t_trigger: float) -> dict
                     free_s=round(free - t_trigger, 3), **measured)
     # no release seen: a FAIL only if the window was SEEN — frames through
     # it with no gap past WINDOW_GAP_S (a frame after it is no coverage)
-    times = [t for t, _ in fresh[done:]]
+    # only frames that SAY the lock cover it (R294 FI-I26: an unread value is a gap)
+    times = [t for (t, _), e in zip(fresh[done:], en[done:]) if e is not None]
     seen_to = t_done
-    for t in times[1:]:
+    for t in times:
         if t - seen_to > WINDOW_GAP_S:
             break
-        seen_to = t
+        seen_to = max(seen_to, t)
     measured["window_seen_to_s"] = round(seen_to - t_trigger, 3)
     if seen_to >= t_done + RELEASE_WITHIN:
         return _row(case, "FAIL", f"not free within {RELEASE_WITHIN} s of the completion", **measured)
@@ -409,19 +410,40 @@ def _off(pos, target, n=None) -> float | None:
     return max(abs(a - b) for a, b in pairs)
 
 
+def _axes(pos, target: dict):
+    """Per axis (R294 FI-I30): the KNOWN deviations past POS_TOL and the
+    axes not read — a wrong axis is never hidden by an unread one."""
+    bad, missing = [], []
+    for j, want in target.items():
+        have = pos[j] if isinstance(pos, list) and len(pos) > j else None
+        if not _finite(have):
+            missing.append(j)
+        elif abs(have - want) > POS_TOL:
+            bad.append((j, have, want))
+    return bad, missing
+
+
 def eval_rfl_line(case: str, history, frames, line: int, tool: int, l0, spindle_speed: float, end_point,
-                  final, line_holds=None, tol: float = M600_TOL) -> dict:
+                  final, line_holds=None, end_from=None, errors=(), tol: float = M600_TOL) -> dict:
     """F-RFL.S3, its observable parts (FI292-01): `running` is only the start
     message; the WITNESS is the first frame of the program itself (AUTO,
-    call_level 0) moving after it — its motion_line is `line`, and with it
-    the tool, its applied offset = the table's measured length = L0 ± tol,
-    the spindle forward at its SET value. Line L moves only its axes (every
-    frame of L holds `line_holds` {joint: value}) and reaches its end (the
-    first program frame past L stands at `end_point` on the axes the next
-    line does not move — None: not checkable there), then the program ends
-    idle at `final`. A known contradiction is FAIL, a missing part incomplete."""
+    call_level 0) moving after it — its motion_line is `line` (an earlier
+    line is a contradiction, a later one only shows the witness was missed),
+    and with it the tool, its applied offset = the table's measured length =
+    L0 ± tol, the spindle forward at its SET value. Line L moves only its
+    axes (`line_holds` {joint: value}, each read at least once on its
+    frames) and its end shows on the frames of `end_from` (default L + 1) —
+    a line that holds those axes; then the program ends idle at `final`.
+    Positions are judged per axis (R294 FI-I30); an error of kind 1/11 in
+    the attempt is a FAIL (FI-I31). A known contradiction is FAIL, a missing
+    proof incomplete."""
     line_holds = line_holds or {}
-    measured = {"line": line, "end_point": list(end_point), "final": list(final), "line_holds": line_holds}
+    end_from = line + 1 if end_from is None else end_from
+    measured = {"line": line, "end_point": list(end_point), "final": list(final), "line_holds": line_holds,
+                "end_from": end_from, "errors": list(errors)}
+    failed = _failures(errors)
+    if failed:
+        return _row(case, "FAIL", f"the attempt reported: {failed[0]}", **measured)
     bad, running = _started(history)
     if bad:
         return _row(case, "FAIL", f"the run from line failed in {bad[1].get('phase')}: {bad[1].get('error')}",
@@ -438,9 +460,12 @@ def eval_rfl_line(case: str, history, frames, line: int, tool: int, l0, spindle_
                     spindle_direction=w.get("spindle_direction"), spindle_speed=w.get("spindle_speed"))
     if w.get("motion_line") is None:
         return _row(case, "incomplete", "the first motion's line not read", **measured)
-    if w["motion_line"] != line:
-        return _row(case, "FAIL", f"the first motion of the program is line {w['motion_line']}, not line {line}",
+    if w["motion_line"] < line:
+        return _row(case, "FAIL", f"the first motion of the program is line {w['motion_line']}, before line {line}",
                     **measured)
+    if w["motion_line"] > line:
+        return _row(case, "incomplete", f"no frame of line {line} received — the first program motion seen is line "
+                    f"{w['motion_line']}", **measured)
     off, table = measured["offset"], measured["table"]
     if w.get("tool_number") is not None and w["tool_number"] != tool:
         return _row(case, "FAIL", f"T{w['tool_number']} at the witness, T{tool} expected", **measured)
@@ -452,33 +477,44 @@ def eval_rfl_line(case: str, history, frames, line: int, tool: int, l0, spindle_
         return _row(case, "FAIL", f"the spindle direction {w['spindle_direction']}, forward expected", **measured)
     if _finite(w.get("spindle_speed")) and abs(w["spindle_speed"] - spindle_speed) > SAME:
         return _row(case, "FAIL", f"the spindle set to {w['spindle_speed']}, {spindle_speed:g} expected", **measured)
-    rest = after[wi + 1:]
-    for t, st in [after[wi]] + rest:
-        pos = st.get("joint_pos")
-        if _main(st) and st.get("motion_line") == line and isinstance(pos, list):
-            moved = [(j, pos[j]) for j, v in line_holds.items() if len(pos) > j and _finite(pos[j])
-                     and abs(pos[j] - v) > POS_TOL]
-            if moved:
-                return _row(case, "FAIL", f"line {line} moved joint {moved[0][0]} to {moved[0][1]:.3f} "
-                            f"(it holds {line_holds[moved[0][0]]:g})", **measured)
-    past = next(((t, st) for t, st in rest if _main(st) and isinstance(st.get("motion_line"), int)
-                 and st["motion_line"] > line), None)
-    if past is not None:
-        d = _off(past[1].get("joint_pos"), end_point)
-        measured["end_off_mm"] = d
-        if d is not None and d > POS_TOL:
-            return _row(case, "FAIL", f"line {line} did not reach its end {list(end_point)} (off {d:.3f} mm)",
-                        **measured)
-    done = next(((t, st) for t, st in rest if st.get("interp_state") == 1), None)
+    rest = [(t, st) for t, st in after[wi:]]
+    own = [st for _, st in rest if _main(st) and st.get("motion_line") == line]
+    held_seen = set()
+    for st in own:
+        moved, missing = _axes(st.get("joint_pos"), line_holds)
+        if moved:
+            j, have, want = moved[0]
+            return _row(case, "FAIL", f"line {line} moved joint {j} to {have:.3f} (it holds {want:g})", **measured)
+        held_seen |= set(line_holds) - set(missing)
+    end_target = {j: v for j, v in enumerate(end_point) if v is not None}
+    ends = [st for _, st in rest if _main(st) and st.get("motion_line") == end_from]
+    end_seen = set()
+    for st in ends:
+        wrong, missing = _axes(st.get("joint_pos"), end_target)
+        if wrong:
+            j, have, want = wrong[0]
+            return _row(case, "FAIL", f"line {line} did not reach its end: joint {j} at {have:.3f} on line {end_from}, "
+                        f"{want:g} expected", **measured)
+        end_seen |= set(end_target) - set(missing)
+    done = next((st for _, st in rest if st.get("interp_state") == 1), None)
+    final_seen = set()
     if done is not None:
-        d = _off(done[1].get("joint_pos"), final)
-        measured["final_off_mm"] = d
-        if d is not None and d > POS_TOL:
-            return _row(case, "FAIL", f"the program ended {d:.3f} mm off its end {list(final)}", **measured)
-    if past is None or done is None or measured.get("end_off_mm") is None or measured.get("final_off_mm") is None:
-        return _row(case, "incomplete", "line L's end or the program's end not received", **measured)
+        wrong, missing = _axes(done.get("joint_pos"), dict(enumerate(final)))
+        if wrong:
+            j, have, want = wrong[0]
+            return _row(case, "FAIL", f"the program ended with joint {j} at {have:.3f}, {want:g} expected", **measured)
+        final_seen = set(range(len(final))) - set(missing)
+    open_ = []
+    if held_seen != set(line_holds):
+        open_.append(f"line {line}'s held joints {sorted(set(line_holds) - held_seen)} never read")
+    if end_seen != set(end_target):
+        open_.append(f"its end not shown by a frame of line {end_from}")
+    if done is None or final_seen != set(range(len(final))):
+        open_.append("the program's end not received in full")
     if not _finite(off, table, l0, w.get("spindle_speed")) or None in (w.get("tool_number"), w.get("spindle_direction")):
-        return _row(case, "incomplete", "a part of the witness not read", **measured)
+        open_.append("a part of the witness not read")
+    if open_:
+        return _row(case, "incomplete", "; ".join(open_), **measured)
     return _row(case, "PASS", f"the program started at line {line} with T{tool}, its length, the spindle at "
                 f"{spindle_speed:g}; line {line} and the program ran to their ends", **measured)
 
@@ -521,15 +557,22 @@ def eval_rfl_start_point(case: str, history, frames, entry_xy) -> dict:
     if "positioning" in ph:
         a, b = ph["positioning"]
         ps = [st["joint_pos"] for t, st in frames if a <= t < b and _off(st.get("joint_pos"), (0, 0, 0)) is not None]
-        if ps:
-            if z_safe is not None:
-                low = next((p[2] for p in ps if p[2] < z_safe - POS_TOL), None)
-                if low is not None:
-                    return _row(case, "FAIL", f"XY moved with Z at {low:.3f}, below the safe height {z_safe:.3f}",
-                                **measured)
-            d = _off(ps[-1], entry_xy, n=2)
-            measured["entry_off_mm"] = d
-            if d is not None and d > POS_TOL:
-                return _row(case, "FAIL", f"the entry {list(entry_xy)} not reached (off {d:.3f} mm)", **measured)
+        if ps and z_safe is not None:
+            low = next((p[2] for p in ps if p[2] < z_safe - POS_TOL), None)
+            if low is not None:
+                return _row(case, "FAIL", f"XY moved with Z at {low:.3f}, below the safe height {z_safe:.3f}",
+                            **measured)
+        # where the machine STOOD before the program moved (R294 FI-I29): the
+        # last frame at a known standstill from the positioning on, before the
+        # first program motion — a moving last frame of the phase is no end
+        first_motion = next((t for t, st in frames if t >= a and _main(st) and _moving(st)), math.inf)
+        stood = [st for t, st in frames if a <= t < first_motion and _finite(st.get("current_vel"))
+                 and abs(st["current_vel"]) <= STANDSTILL]
+        if stood:
+            wrong, missing = _axes(stood[-1].get("joint_pos"), {0: entry_xy[0], 1: entry_xy[1]})
+            if wrong:
+                j, have, want = wrong[0]
+                return _row(case, "FAIL", f"the entry {list(entry_xy)} not reached: joint {j} stood at {have:.3f}",
+                            **measured)
     return _row(case, "incomplete", "no contradiction in the received frames; the path between them needs the "
                 "servo measurement (step 2c)", **measured)

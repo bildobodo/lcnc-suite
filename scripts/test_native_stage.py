@@ -1681,3 +1681,155 @@ def test_the_m600_step_predicts_the_counter_from_the_length_the_first_measuremen
     assert by["m600-t1"]["status"] == "PASS", by["m600-t1"]
     assert by["m600-t1.counter-3102"]["status"] == "PASS" and by["m600-t1.counter-3102"]["base"] == 49.9985, rows
     assert c.table == 50.0 and c.status["tool_offset"][2] == 50.0, "L0 restored and applied"
+
+
+# ── R294: the window needs known values; ends need their proof; per axis; errors reach the rows ──
+def test_frames_without_a_lock_value_do_not_cover_the_window():
+    """Codex R294 FI-I26: the cadence holds, but no frame after the
+    completion says whether the override is locked or free: incomplete."""
+    window = [(1.033 + 0.2 * k, None) for k in range(12)]
+    frames = _lock([(0.03, True, 0.0), (0.2, False), (1.0, False)] + window, done_at=1.033)
+    r = nc.eval_override_lock("m600-lock", frames, t_trigger=0.0)
+    assert r["status"] == "incomplete", r
+
+
+def test_a_missed_witness_of_l_is_incomplete_and_an_earlier_line_a_contradiction():
+    """Codex R294 FI-I29: both frames of line 7 missed, the first program
+    motion received is line 8 — no witness, no proof of a wrong start."""
+    hist, frames = _rfl_run()
+    del frames[5:7]
+    r = _line(hist, frames)
+    assert r["status"] == "incomplete" and "line 8" in r["detail"], r
+
+
+def test_line_ls_end_comes_only_from_the_line_that_holds_its_axes():
+    """Codex R294 FI-I29: line 8's frame missed — line 9 already moves Z: its
+    position proves nothing about line 7's end."""
+    hist, frames = _rfl_run()
+    del frames[7]
+    r = _line(hist, frames)
+    assert r["status"] == "incomplete", r
+
+
+def test_positions_are_judged_per_axis():
+    """Codex R294 FI-I30: an axis line 7 holds, never read, is no PASS; a
+    known wrong axis beside an unread one is a FAIL."""
+    hist, frames = _rfl_run()
+    for i in (5, 6):
+        t, st = frames[i]
+        frames[i] = (t, {**st, "joint_pos": [st["joint_pos"][0], None, st["joint_pos"][2]]})
+    assert _line(hist, frames)["status"] == "incomplete"
+    hist, frames = _rfl_run()
+    frames[7] = _rfl_frame(25.3, 8, (199.0, 101, None))
+    assert _line(hist, frames)["status"] == "FAIL"
+    hist, frames = _rfl_run()
+    frames[-1] = _rfl_frame(28.0, 11, (200, 150, None), vel=0.0, interp=1)
+    assert _line(hist, frames)["status"] == "FAIL"
+
+
+def test_the_entry_is_judged_where_the_machine_stood_not_at_the_phases_last_frame():
+    """Codex R294 FI-I29: the last positioning frame still moves at
+    99.8/99.8, the next one stands at 100/100 — no contradiction."""
+    hist, frames = _rfl_run()
+    frames[4] = _rfl_frame(22.9, 0, (99.8, 99.8, 0.0), mode=3, vel=20.0)
+    frames.insert(5, _rfl_frame(23.0, 0, (100, 100, 0.0), mode=3, vel=0.0))
+    r = nc.eval_rfl_start_point("rfl-start-point", hist, frames, entry_xy=(100.0, 100.0))
+    assert r["status"] == "incomplete", r
+    frames[5] = _rfl_frame(23.0, 0, (99.5, 100, 0.0), mode=3, vel=0.0)     # standing beside the entry
+    assert nc.eval_rfl_start_point("x", hist, frames, entry_xy=(100.0, 100.0))["status"] == "FAIL"
+
+
+def test_an_error_of_the_attempt_fails_the_line():
+    hist, frames = _rfl_run()
+    r = nc.eval_rfl_line("rfl-line", hist, frames, line=L, tool=1, l0=L0, spindle_speed=1000.0,
+                         end_point=(200.0, None, -100 + L0), final=(200.0, 200.0, -50 + L0), line_holds={1: 100.0},
+                         errors=[(11, "Probe tripped during non-probe move")])
+    assert r["status"] == "FAIL" and "reported" in r["detail"], r
+
+
+class RflClient(FrameClient):
+    """The whole rfl_cases step against a scripted gateway: the run's frames,
+    phases and errors arrive with the auto_run (times relative to it)."""
+
+    def __init__(self, run_frames, history, errors=()):
+        super().__init__([(0.0, {**_IDLE, "tool_number": 99, "task_mode": 3})])
+        self.rfl_history, self.preview_origin = [], None
+        self.table, self.vars = 50.0, {n: 0 for n in nr.TOOLSETTER_VARS} | {3102: -180}
+        self.run_frames, self.history, self.run_errors = run_frames, history, list(errors)
+
+    def request(self, cmd, **kw):
+        import hashlib
+        self.sent.append((cmd, kw))
+        t = self.frames[-1][0]
+        if cmd == "get_tool_table":
+            return {"tools": [{"T": 1, "Z": self.table}]}
+        if cmd == "get_probe_vars":
+            return {"vars": {str(k): self.vars[k] for k in kw["vars"]}}
+        if cmd == "mdi":
+            self.frames += [(t + 1.0, {**_IDLE, "task_mode": 3}), (t + 2.0, {**_IDLE, "task_mode": 3})]
+            return {"ok": True}
+        if cmd == "load_file":
+            self.preview_origin = {"file": kw["path"], "version": 3,
+                                   "source": hashlib.sha256(nr.RFL_PROGRAM.encode()).hexdigest()}
+            return {"ok": True}
+        if cmd == "auto_run":
+            self.frames += [(t + ft, dict(st, tool_change_requested=False, tool_change_seq=None))
+                            for ft, st in self.run_frames]
+            self.rfl_history += [(t + ht, p) for ht, p in self.history]
+            self.errors += [(t + et, k, x) for et, k, x in self.run_errors]
+            return {"ok": True, "rfl": "started"}
+        raise AssertionError((cmd, kw))
+
+
+def _rfl_step(tmp_path, client):
+    (tmp_path / nr.NC_FILES).mkdir()
+    ctx = {"client": client, "frames": client.frames, "config": tmp_path, "report": {}}
+    return ctx, nr.rfl_cases()[1]
+
+
+def test_the_whole_run_from_line_step_gives_its_four_rows(tmp_path, monkeypatch):
+    monkeypatch.setattr(nr, "SHORT_GRACE", 0.02)
+    hist, frames = _rfl_run()
+    c = RflClient(frames, hist)
+    ctx, step = _rfl_step(tmp_path, c)
+    by = {r["case"]: r["status"] for r in step(ctx)}
+    assert by == {"rfl-line": "PASS", "rfl-line.counter-line+1": "PASS", "rfl-no-earlier-line": "PASS",
+                  "rfl-start-point": "incomplete"}, by
+    run = next(kw for cmd, kw in c.sent if cmd == "auto_run")
+    assert (run["line"], run["pre_tool"], run["entry_wcs"], run["entry_units"]) == (7, 1, "G54", "G21")
+
+
+def test_a_program_error_reaches_the_line_row(tmp_path, monkeypatch):
+    """Codex R294 FI-I31 1: an error of kind 11 while line 9 runs — idle at
+    the right coordinates is no clean run."""
+    monkeypatch.setattr(nr, "SHORT_GRACE", 0.02)
+    hist, frames = _rfl_run()
+    c = RflClient(frames, hist, errors=[(27.5, 11, "Unexpected realtime delay")])
+    ctx, step = _rfl_step(tmp_path, c)
+    try:
+        rows = step(ctx)
+    except nr.StepFailed as e:
+        rows = e.rows
+    line = next(r for r in rows if r["case"] == "rfl-line")
+    assert line["status"] == "FAIL" and "Unexpected realtime delay" in line["detail"], line
+    assert next(r for r in rows if r["case"] == "rfl-line.counter-line+1")["status"] != "PASS"
+
+
+def test_a_failed_pre_measurement_ends_the_step_at_once_with_its_row(tmp_path, monkeypatch):
+    """Codex R294 FI-I31 2: measure_failed, then idle in MDI — AUTO never
+    comes. The step ends now (not after 300 s), keeps the history and says
+    FAIL with the phase."""
+    monkeypatch.setattr(nr, "SHORT_GRACE", 0.02)
+    hist = [(0.0, {"phase": "measuring", "ok": None}),
+            (5.0, {"phase": "measure_failed", "ok": False, "error": "verification failed"})]
+    frames = [_rfl_frame(2.0, 120, (10, 10, -128), mode=3, level=2, vel=3.0),
+              _rfl_frame(5.1, 0, (10, 10, -100), mode=3, vel=0.0, interp=1)]
+    c = RflClient(frames, hist)
+    ctx, step = _rfl_step(tmp_path, c)
+    t0 = time.monotonic()
+    with pytest.raises(nr.StepFailed) as e:
+        step(ctx)
+    assert time.monotonic() - t0 < 5.0
+    line = next(r for r in e.value.rows if r["case"] == "rfl-line")
+    assert line["status"] == "FAIL" and "measure_failed" in line["detail"], line
+    assert [p["phase"] for _, p in ctx["report"]["rfl_history"]] == ["measuring", "measure_failed"]
