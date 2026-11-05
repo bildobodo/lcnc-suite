@@ -1,0 +1,36 @@
+{
+  "model_only": true,
+  "bound_xy_mm": 2.066666666666667,
+  "late_creep": {
+    "brake_upper_mm": 1.6760000666666883,
+    "reverse": false,
+    "ten_zero_samples": true,
+    "distance_conditions_pass": true,
+    "pre_reply_signed_travel_mm": 14.0,
+    "first_zero_s": 1.0,
+    "original_time_condition": false,
+    "required": "not PASS: 0.5 s standstill requirement remains"
+  },
+  "no_jog": {
+    "brake_upper_mm": 0.0,
+    "reverse": false,
+    "ten_zero_samples": true,
+    "distance_conditions_pass": true,
+    "pre_reply_signed_travel_mm": 0.0,
+    "original_minimum_travel_condition": false,
+    "required": "not PASS: no observed movement of at least 5 mm in the commanded direction"
+  },
+  "unread_suffix": {
+    "observed_first": 0,
+    "observed_last": 1000,
+    "consecutive_observed_ids": true,
+    "overruns": 0,
+    "unread_samples": 100,
+    "fifo_capacity": 65536,
+    "full": false,
+    "hidden_restart_mm": 1.0,
+    "same_observations_for_good_and_bad_suffix": true,
+    "required": "drain through a source-visible end marker of this attempt before any PASS"
+  },
+  "monotone_anchor_controls": 3
+}

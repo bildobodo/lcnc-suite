@@ -1,0 +1,106 @@
+{
+  "review_revision": "45200835bd1ec7128ad24f338de10c2c381c96a0",
+  "code_revision": "5f68e2a16ec18813c4de10e045e16d172983ea7c",
+  "plan_sha256": "e1b096121e9c7e17deea81cf35a1e0596996133111478de7f761371fa873ac68",
+  "source_checks": [
+    {
+      "file": "scripts/test_support/native_cases.py",
+      "sha256": "a41a79533bc1341dd7cec14122c05e84fc038575ceb9d2d678987173ed9aac20"
+    },
+    {
+      "file": "scripts/native_run.py",
+      "sha256": "e51c236990bcd0cf5107beb89240c4f00358f820f16124cec766109db91bc249"
+    },
+    {
+      "file": "scripts/inventory/functions.json",
+      "sha256": "bff4f2a7e9dac5a920698d422ec330b90088c368924e250d8d7ec996c46e4340"
+    },
+    {
+      "file": "examples/sim_config/hallib/core_sim_3.hal",
+      "sha256": "adc3ecc57b2ea6423e4a3268de97af5398a4ae2323b61af0ee2b90fb59bc13a9"
+    },
+    {
+      "file": "examples/sim_config/lcnc_suite_sim_3axis_xyz.ini",
+      "sha256": "f337bcf1725a46b4e936f9dcd5f64492cc53f0756394796f54363900b518de06"
+    },
+    {
+      "file": "subroutines/probe_basic/go_to_home.ngc",
+      "sha256": "f41ccb3a95104c44063cdeb380a4209c01e920c52d32a3f7ee1ced609f4caaf6"
+    },
+    {
+      "file": "subroutines/probe_basic/go_to_zero.ngc",
+      "sha256": "7f9ba151bea5f537a95d33390ff274d5159a9643e483fc1853ff38d6d2f3ec51"
+    },
+    {
+      "file": "subroutines/tool_length_probe/go_to_g30.ngc",
+      "sha256": "85ab576d827ce448ad4144fcd751abd16ede057c82b91160736e950133938eb2"
+    },
+    {
+      "file": "/usr/share/man/man9/sampler.9.gz",
+      "sha256": "819e9c123c10d5593eacef7aae852ec5310329c2af65dd3242b13986bf32b5ab"
+    },
+    {
+      "file": "/usr/share/man/man1/halsampler.1.gz",
+      "sha256": "15432e22d91e0aae0b8672d5176ce3f64b7bb068efd0e7c2ae42a46c0fa3ab52"
+    }
+  ],
+  "primary_web_sources": [
+    "https://linuxcnc.org/docs/2.9/html/man/man9/sampler.9.html",
+    "https://linuxcnc.org/docs/2.9/html/man/man1/halsampler.1.html",
+    "https://linuxcnc.org/docs/2.9/html/man/man9/motion.9.html",
+    "https://raw.githubusercontent.com/LinuxCNC/linuxcnc/v2.9.4/src/hal/components/sampler.c"
+  ],
+  "scope": "plan review only; no implementation or live machine tested",
+  "sources_notes": [
+    "Local sampler documentation confirms FIFO, sample numbering, enable and overruns.",
+    "Current 2.9 motion reference only names program-line generally; no phase provenance inferred.",
+    "core_sim_3.hal returns motor-pos-cmd to motor-pos-fb; conclusions concern the simulated commanded path."
+  ],
+  "contract_counterexamples": {
+    "command": "python3 -B function-inventory.r299.codex-reasoning.py",
+    "exit": 0,
+    "script_sha256": "a11a400b8a77dc56bdff7fbc06f4f6a9eb47ba1f04009a422c212a284f75f488",
+    "results": {
+      "model_only": true,
+      "bound_xy_mm": 2.066666666666667,
+      "late_creep": {
+        "brake_upper_mm": 1.6760000666666883,
+        "reverse": false,
+        "ten_zero_samples": true,
+        "distance_conditions_pass": true,
+        "pre_reply_signed_travel_mm": 14.0,
+        "first_zero_s": 1.0,
+        "original_time_condition": false,
+        "required": "not PASS: 0.5 s standstill requirement remains"
+      },
+      "no_jog": {
+        "brake_upper_mm": 0.0,
+        "reverse": false,
+        "ten_zero_samples": true,
+        "distance_conditions_pass": true,
+        "pre_reply_signed_travel_mm": 0.0,
+        "original_minimum_travel_condition": false,
+        "required": "not PASS: no observed movement of at least 5 mm in the commanded direction"
+      },
+      "unread_suffix": {
+        "observed_first": 0,
+        "observed_last": 1000,
+        "consecutive_observed_ids": true,
+        "overruns": 0,
+        "unread_samples": 100,
+        "fifo_capacity": 65536,
+        "full": false,
+        "hidden_restart_mm": 1.0,
+        "same_observations_for_good_and_bad_suffix": true,
+        "required": "drain through a source-visible end marker of this attempt before any PASS"
+      },
+      "monotone_anchor_controls": 3
+    },
+    "limits": "Illustrations of the written rules, not tests of a built sampler"
+  },
+  "review_append": {
+    "prefix_bytes": 506507,
+    "prefix_sha256": "d387be30395b90673c952f9cc9296d828ad1dab029b7771c9b76cd5d0ea9e787",
+    "append_sha256": "899bed9cc25c1cb4c9e9726bd3e941f45ef58f2d81511037c16fd099e400bb1f"
+  }
+}

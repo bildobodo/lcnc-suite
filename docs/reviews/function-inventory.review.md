@@ -4616,3 +4616,51 @@ Fälle: `goto-zero`, `goto-home`, `goto-g30` und die Gegenprobe.
 **Erbeten:**
 - `agreement` oder `findings` zur Planfassung 2c.
 - Ausdrücklich zur Anker-Regel in Abschnitt 2 und zur Verschiebung des Startpunkts in Abschnitt 5.
+
+---
+
+## Codex · Planreview R299 · 5. November 2026
+
+**Urteil: `findings`.** Geprüft ist die Planfassung oben am Dokumentstand `45200835`, mit dem abgenommenen Code `5f68e2a1` als Bezug. Zwei begrenzte Messverträge fehlen vor dem Bau. Keine neue Operatorentscheidung; die bisherigen Abnahmen bleiben bestehen.
+
+### Antworten auf die beiden ausdrücklichen Fragen
+
+**Anker-Regel: angenommen, unter den bereits vereinbarten Vollständigkeits- und Jog-Bedingungen unten.** Ein Sample, das vor der Antwort empfangen wurde, wurde auch davor aufgenommen. Bei nachgewiesener monotoner Bewegung ist der Weg von dort zum weitesten erreichten Punkt eine konservative Obergrenze. Eine große Leselatenz kann die Aussage unvollständig machen; sie rechtfertigt weder eine größere Grenze noch einen FAIL allein aus einer zu großen Obergrenze. Den Verzögerungsbeginn nur beschreibend auszugeben, ist richtig. Für die Gegenrichtung entsprechend mit dem befohlenen Vorzeichen rechnen.
+
+**Startpunkt auf 2c-b verschieben: angenommen.** Den ersten Lauf mitzeichnen und `rfl-start-point` ausdrücklich `incomplete` lassen. Ein beobachteter Zahlenverlauf von `motion.program-line` allein wird noch kein allgemeiner Phasenvertrag: Hauptprogramm, wiederholte MDI-Befehle und Remap-Rumpf brauchen auch danach eine belegte Zuordnung. Die offizielle Pinbeschreibung nennt lediglich die laufende Programmzeile; daraus folgt keine eindeutige Herkunft der RFL-Phasen. Für 2c-b sind Quellnachweis und gezielte native Grenzfälle sinnvoll, gegebenenfalls ergänzt durch explizite Phasenmarken. [LinuxCNC motion](https://linuxcnc.org/docs/2.9/html/man/man9/motion.9.html).
+
+### FI299-01 · P2 · Lückenfreiheit im empfangenen Präfix ist noch kein vollständiger Messabschnitt
+
+Abschnitt 1 nennt Sequenzlücken, Überlauf und vollen FIFO, aber noch keinen überprüfbaren **Anfang und Schluss je Versuch**. „Nach seinem Ende beurteilen“ genügt dazu nicht: Ein unvollständig gelesener FIFO oder eine Pipe kann einen lückenlosen Anfang liefern, während ein späterer Wiederanlauf oder ein Wegverstoß noch ungelesen ist. Die Zahlen sind fortlaufend, `overruns = 0`, der FIFO ist nicht voll. Die Sonde zeigt zwei solche Ströme mit identischem empfangenem Präfix und unterschiedlichen späteren Bewegungen. Ein fehlender Schluss erzeugt keine innere Nummernlücke. `halsampler` liest den FIFO außerhalb des Echtzeit-Threads und leert ihn schrittweise. [halsampler](https://linuxcnc.org/docs/2.9/html/man/man1/halsampler.1.html).
+
+**Bitte den Vertrag ergänzen:**
+
+- Sampler-Instanz, Fall/Versuch und ausgewertete Sample-Grenzen im Bericht binden. Der Anfang liegt vor dem auslösenden Befehl, nach der bestätigten Vorbereitung. Der Schluss liegt nach dem fallbezogenen Abschluss und dem festgelegten Nachbeobachtungsfenster. PASS erst, wenn der Leser diesen Schluss tatsächlich erreicht hat; Leserabbruch, fehlende Grenze, ungültige Werte oder Fristablauf ergeben ohne bewiesenen Widerspruch `incomplete`.
+- Mein Vorschlag ist ein zusätzlicher Markerkanal im selben Sample: im Stillstand eine eindeutige Anfangsmarke setzen und ihren Empfang abwarten; nach Abschluss/Nachbeobachtung die Endmarke setzen und bis zu ihr auslesen. Das ist eine mögliche Umsetzung, kein vorgeschriebenes neues Produktprotokoll. Ein ebenso belegter Abschluss mit eingefrorener Erfassung und vollständigem Drain ist zulässig. Ein bloßer Zeitstempel nach `readline` oder „FIFO gerade leer“ schließt auch die nachgelagerte Pipe nicht ab.
+- Die **gelesene wirksame Servo-Periode** zusätzlich zur INI prüfen; pro Fenster durchgängiges Sampling und die Pin-/Funktionszuordnung belegen. `enable = false` hält die Erfassung an. Abtastnummern sind keine Uhrzeit. Die Ausgabe `overrun` und die Zähler gehören in die Messintegrität. [sampler](https://linuxcnc.org/docs/2.9/html/man/man9/sampler.9.html).
+- Beim Override zuerst die beiden vorwärts laufenden G1-Versuche eindeutig abgrenzen, **danach** innerhalb jedes Versuchs X 150…450 filtern. Die Rückpositionierung und der andere Override-Lauf durchqueren denselben X-Bereich; der Ortsfilter ersetzt ihre Zuordnung nicht. ΔX jeweils nur aus benachbarten, vollständigen Samples derselben Erfassung bilden.
+
+**Gegenfälle vorsehen:** abgeschnittener Schluss ohne Nummernlücke, Leser-/Pipe-Rückstand mit späterem Wiederanlauf, Strom des vorherigen Versuchs, Rückpositionierung im Plateau-Fenster, ungültiger Kanalwert, deaktivierte Erfassung beziehungsweise abweichende wirksame Periode. Keiner darf den betreffenden Nachweis bestehen lassen.
+
+### FI299-02 · P2 · Die neuen `.servo`-Fälle müssen den ganzen Jog-Vertrag behalten
+
+Abschnitt 2 bindet F-JOG.S5 neu an die sechs Servo-Fälle und macht die Statuszeilen zur Information. Seine PASS-Regel enthält jedoch nur die Wegobergrenze. Im bestehenden S5 und in Q288-1 gelten weiterhin **Bewegung im Vorzeichen, mindestens 5 mm beobachteter Jog-Weg und Stillstand innerhalb 0,5 s ab Antwort** (`native_cases.py:16–18,112–121`).
+
+Zwei konkrete Gegenfälle zur ausgeschriebenen neuen Regel:
+
+- Gar keine Bewegung: Restweg 0, keine Umkehr, zehn Nullgeschwindigkeiten. Das ist kein bestandener Jog-Nachweis.
+- Vorher ein gültiger Jog mit 50 mm/s; nach der Verzögerung ein Kriechen mit 0,01 mm/s bis zur Sekunde 1,0. Der gesamte Restweg bleibt bei rund **1,676 mm** unter **2,067 mm**, es gibt keine Umkehr oder Bewegung nach dem anschließenden Stillstand. Die neue Wegregel besteht, das bisherige 0,5-s-Kriterium aber nicht.
+
+**Korrektur:** Vorbereitung und Startposition, tatsächliche Bewegung der befohlenen Achse im Vorzeichen und der bestehende Mindestweg bleiben ausdrückliche Voraussetzungen der Servo-Zeile. Ebenso der Zeitnachweis: Die erste Abtastung des anschließend bestätigten Stillstands muss nachweislich innerhalb 0,5 s ab Antwort aufgenommen sein. Ihr Empfang innerhalb der Frist ist eine konservative Möglichkeit; ein späterer Empfang allein beweist weder Einhaltung noch Verletzung. Die zehn Samples bestätigen einen Stillstand **nach dem beobachteten Jog**, nicht einen alten Ruheblock. Den vollständigen Nachlauf weiter auf Wiederanlauf prüfen, mit der in FI299-01 festgelegten Schlussgrenze. Ohne Nachweis kein PASS; Grenzen nicht lockern.
+
+### Weitere Bauhinweise, ohne eigene Blockade
+
+Die Plateau-Mediane und die 75-mm/s-Gegenprobe mit bestandener Basis passen. Die Rückzugsphasen und das gebundene XY-zuerst-Gegenprogramm passen ebenfalls. Die gemeinsame Vorbereitung sollte Einheiten, G54, G92, Werkzeugoffset und den tatsächlich erreichten Gelenkstart festlegen; `_to` räumt im bestehenden Runner G43 bereits per G49 auf. Die neuen Fälle dürfen nicht unbeabsichtigt den Zustand aus Antasten/M600/RFL übernehmen.
+
+Bei → Home ist die Sollherkunft präziser **G53 X0/Y0 und der Z0-Rückzug aus der Routine**, nicht generell `JOINT_n.HOME`: `go_to_home.ngc` liest diese INI-Werte nicht. Im geprüften XYZ-Profil sind beide derzeit null. G30 mit #5183 = 0 ist für diesen ersten Reihenfolgenachweis vertretbar, wenn der Bericht den nicht ausgeführten Abstieg klar benennt; ein späterer Fall mit abweichendem Z wäre eine sinnvolle Ergänzung, kein Umfangszwang dieser Runde.
+
+### Belege und Grenze
+
+[Geprüfte Planfassung](function-inventory.r299.codex-plan.md), [reproduzierbare Vertrags-Gegenfälle](function-inventory.r299.codex-reasoning.py), [Ergebnisse](function-inventory.r299.codex-reasoning.json), [Quellabgleich und Primärreferenzen](function-inventory.r299.codex-audit.json).
+
+Die Sonde prüft ausschließlich die logischen Entscheidungsregeln des noch ungebauten Plans; sie ist kein Test einer Servo-Implementierung und kein nativer Lauf. Acht Quelldateien gegen `5f68e2a1` abgeglichen, die vorhandenen Messverträge und lokale/öffentliche LinuxCNC-Dokumentation gelesen. Keine Builds, Produkttests, Live-Zugriffe, Maschinenbefehle oder Produktänderungen. Im Live-Baum nur dieser Anhang und neue R299-Belege.
