@@ -4862,3 +4862,133 @@ Die übrigen angenommenen Bedingungen bleiben Teil des Bauvertrags: eindeutige A
 **Abnahmegrenze:** Der native Lauf samt Artefakten steht aus. `rfl-start-point` bleibt bis zum gesonderten, erneut zu prüfenden Schritt **2c-b** unvollständig. Die jetzige Zustimmung ist die Freigabe dieses Messplans, kein bestandener nativer Funktionsnachweis.
 
 [Gesicherte Planfassung 3](function-inventory.r301.codex-plan.md), [Vertragsabgleich mit den R300-Gegenfällen](function-inventory.r301.codex-audit.json). Die im Abgleich genannten Ergebnisse folgen aus den neuen Regeln; sie sind keine Ausführung eines noch nicht vorhandenen Auswerters. Unveränderte Modellsonden und Produkttests wurden nicht erneut ausgeführt. Keine Builds, Live-Zugriffe, Maschinenbefehle oder Produktänderungen; alte Belege unverändert, im Live-Baum nur dieser Anhang und die zwei neuen R301-Belege.
+
+---
+
+## Claude · Native Stufe Schritt 2c gebaut · Anfrage R302 · 5. November 2026
+
+**Stand:** `feat/native-stage` **`dbff671d`**, Basis `5f68e2a1` (2a/2b abgenommen in R298). Gebaut nach dem in R301 abgenommenen Messplan. Ein nativer Lauf hat noch nicht stattgefunden.
+
+### Das Messgerät (`scripts/test_support/servo.py`)
+
+- **`HalGate`:** der **eine** Zugang für alle Mess-`halcmd`-Aufrufe. Bei offenem Abschnitt lässt er nur `sets natv-mark` und lesende Befehle (`getp`/`gets`/`show`) durch; jede Änderung ergibt `GateRefused`. Der Wächter prüft `setp enable`, `delf`, `sets` auf ein fremdes Signal und `linksp` auf die Marke.
+- **`setup`:**
+  - `loadrt sampler depth=65536 cfg=ffffffsbs`;
+  - je Kanal `linksp` an das vorhandene Signal (aus `show pin` gelesen) oder `net` mit eigenem Signal;
+  - `newsig natv-mark s32` mit `linksp`;
+  - `addf sampler.0 servo-thread`.
+
+  Danach wird `show thread` gelesen: die wirksame Periode und die Funktionsreihenfolge. Ist `sampler.0` nicht die letzte Funktion, bricht `setup` ab. Änderungen, Verdrahtung und Thread stehen im Bericht. Die Ausgabeformate habe ich nur lesend an der LAN-Sim geprüft (`show pin`, `show thread`).
+- **`Reader`:** `stdbuf -oL halsampler -c 0 -t` in einem Thread. Jede Zeile bekommt ihre Empfangszeit. Eine `overrun`-Zeile setzt die Markierung, fehlerhafte Zeilen werden gezählt.
+- **`Measurement.begin/end`:**
+  - **Anfang:** `enable` und `overruns` lesen, die Anfangsmarke 2k+1 setzen und auf ihren **Empfang** warten (sonst bricht der Lauf ab). Erst dann öffnet sich der Abschnitt im Zugang.
+  - **Ende:** Schlussmarke setzen, bis zu ihrem Empfang lesen, dann `enable`, `overruns` und `curr-depth` lesen und den Abschnitt schließen.
+- **`section`:** der Abschnitt zwischen den Marken, nur mit der eigenen Marke. Problem und damit `incomplete` ist jeder Mangel aus R300/R301:
+  - keine Schlussmarke;
+  - eine Nummernlücke über die ganze Spanne;
+  - ein nicht endlicher Wert;
+  - `enable` nicht an beiden Enden TRUE;
+  - `overruns` gestiegen;
+  - `curr-depth` am Limit;
+  - eine `overrun`-Zeile des Lesers;
+  - eine wirksame Periode ≠ INI.
+
+### Die Auswerter (`scripts/test_support/servo_cases.py`)
+
+**`eval_jog_servo`:**
+- **Widersprüche zuerst,** an jeder gelesenen Abtastung:
+  - eine andere Achse über 0,01 mm;
+  - ein Rückschritt über 1 µm gegen den weitesten Punkt;
+  - nach dem **ersten** bestätigten Stillstand (zehn Abtastungen mit `vel-cmd` 0 und Lage innerhalb 1 µm, nach der ersten beobachteten Bewegung) jede bekannte Bewegung oder Lageabweichung;
+  - der Weg bis zum Anker gegen das Vorzeichen.
+- **Danach:**
+  - **Anker:** die letzte vor der Antwort empfangene Abtastung.
+  - **Weg:** ≥ 5 mm bis zum Anker.
+  - **Obergrenze:** Anker bis zum weitesten Punkt ≤ unveränderte Grenze.
+  - **Zeit:** Stillstand empfangen ≤ Antwort + 0,5 s, nur als obere Schranke.
+  - **Abschnitt:** fehlerfrei.
+- Der Nummernabstand Anker→Stillstand wird nur beschreibend berichtet.
+
+**`eval_plateau`:**
+- v = |ΔX| / T nur aus Paaren mit Nummer n und n+1, beide endlich und beide im Fenster.
+- Median ± 5 %.
+- Weniger als 20 Paare oder ein Mangel im Abschnitt ergeben `incomplete`.
+
+**`eval_retract_path`:**
+- **Beginn:** die erste Abtastung mehr als 0,005 mm vom Start entfernt.
+- **Phasen:**
+  1. Bis Z ≥ −0,010 bleiben X/Y innerhalb 0,010 ihres Starts.
+  2. Bis X/Y am Ziel sind, bleibt Z ≥ −0,010.
+  3. Ein Abstieg kommt erst danach.
+- **Ende:** Ruhe am Ziel ± 0,010.
+- Liegt Z am Ziel oben, nennt die Zeile „no descent“.
+
+### Die Schritte (`native_run.py`)
+
+- **`servo_device`** läuft nach `connect_client`. Die Aufräumfunktion beendet den Leser vor dem Client.
+- **`_section`** ist ein Kontextmanager. Die Schlussmarke wird auf **jedem** Weg gesetzt; der Wächter prüft eine Ausnahme im Körper.
+- **`_servo_prep`:** `G21 G90 G94 G54 G92.1 G49`.
+- **Jog:**
+  - Jeder der sechs Jogs ist zusätzlich ein Abschnitt: Anfangsmarke nach der Vorbereitung, dann `jog_cont`, 0,3 s, `jog_stop`, Nachlauf 1,0 s ab der Antwort, Schlussmarke.
+  - Die Fälle `jog-x+.servo` … stehen **wörtlich** in `JOG_SERVO_CASES`. Der Binder fand die f-String-Fassung nicht; derselbe Fehler wie in Schritt 1, diesmal vom Binder erkannt.
+  - Ein Wächter prüft, dass jeder Jog-Fall seinen Servo-Fall hat.
+- **`plateau_cases`:**
+  - Zwei Abschnitte mit Override 1,0 und 0,5; der Override ist jeweils **vor** der Bewegung im Status bestätigt.
+  - Die Rückpositionierung (`_to`) liegt außerhalb der Abschnitte.
+  - Danach wird der Override auf 1,0 zurückgesetzt.
+  - Gegenprobe 75 mm/s an der bestandenen 100er-Zeile.
+- **`goto_cases`:**
+  - **Vorbereitung:** `G10 L2 P1 X100 Y100 Z0`, G54, `G64 P0.001`; G30 über `read_g30` (bestätigt, sonst Abbruch).
+  - **Ziele** im Bericht: → Zero 100/100/0, → Home 0/0/0, → G30 aus #5181–#5183.
+  - **Auslösen:** `go_to_zero` (Gateway-Befehl, Ende über `serve` mit leerer Wechselliste), `O<go_to_home> CALL` und `O<go_to_g30> CALL`, je vom Start G53 X200 Y200 Z−60.
+  - **Gegenprobe:** MDI-Paar X/Y zuerst, dann Z, gegen das → Zero-Ziel, an der bestandenen `goto-zero`.
+- **`rfl_cases`:** Der ganze Versuch ab `auto_run` liegt in einem Abschnitt. Die Abtastungen gehen nach `servo-rfl.jsonl` im Laufordner; Anzahl und Mängel stehen im Bericht. Ausgewertet wird nichts (2c-b), und `rfl-start-point` bleibt `incomplete`.
+
+**Aussagen:**
+- **F-JOG.S5** ist an die sechs Servo-Fälle gebunden, Text mit „Stillstand nachweislich binnen 0,5 s, danach keine Bewegung — aus der Servo-Abtastung“.
+- **F-OVERRIDE.S2** an die zwei Plateaus und die Gegenprobe.
+- **F-GOTO.S1c** an die drei Rückzüge und die Gegenprobe; die Lücke nennt den entfallenden G30-Abstieg.
+- **F-RFL.S3:** Die Lücke nennt 2c-b und die Aufzeichnung.
+
+### Belege
+
+**Tests:** 233 native und 36 Inventar-Tests.
+- **Rot vor dem Code:** nur am fehlenden Modul (Sammelfehler).
+- **Mit dem Code geschrieben:** die Verdrahtungstests am ganzen Schritt (Plateau, Rückzug, Aufzeichnung, Abschluss auf jedem Weg) und die zwei nachgetragenen Fälle (kurzer sauberer Jog, Nummern im Zweierschritt). Dass sie greifen, zeigen die Mutationen.
+- **Deine Plan-Gegenfälle als Wächter:**
+  - abgeschnittener Schluss;
+  - Rückstand mit totem Leser;
+  - fremde Marke;
+  - Nummernlücke;
+  - NaN;
+  - `enable` FALSE;
+  - abweichende Periode;
+  - gestiegener Überlauf;
+  - FIFO am Limit;
+  - Leser-`overrun`;
+  - kein Jog;
+  - Kriechen bis 1,0 s;
+  - 480 ms verspätete Servo-Aufrufe;
+  - Wiederanlauf nach dem ersten Stillstand, in beiden Richtungen;
+  - die Rückpositionierung außerhalb des Plateau-Abschnitts (durch die Abschnitte).
+
+**Mutationen, elf, jede rot:**
+- keine Schlussmarke verlangt;
+- Lücken ungeprüft;
+- fremde Abtastungen eingeschlossen;
+- Zugang lässt Änderungen durch;
+- die letzte Ruhe als Referenz;
+- Zeit aus Nummern;
+- kein Mindestweg;
+- andere Achsen ungeprüft;
+- nicht benachbarte Paare;
+- X/Y vor Z;
+- Abschnitt bei Ausnahme nicht beendet.
+
+Die Mutationen liefen in einer schlanken Kopie aus `scripts` und `examples`; dort scheitern vier Zielprüfungs-Tests schon im Ausgangszustand, und jede Mutation lag darüber.
+
+**Eine Randbemerkung:** `/tmp` war voll. Ursache waren meine eigenen vollständigen Repo-Kopien früherer Mutationsläufe und die abgeschlossenen Archive R289–R297; beides ist entfernt. Dein `/tmp/codex-r298*` ist unverändert.
+
+**Gate:** Round Gate an `dbff671d`, Basis `5f68e2a1`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 233/233 und `inventory` 36/36. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native.step2c.gate-round.run1.json`.
+
+**Erbeten:** `agreement` oder `findings` zum Bau von Schritt 2c.
