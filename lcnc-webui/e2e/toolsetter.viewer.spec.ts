@@ -327,7 +327,7 @@ test("a confirmed Save G30 moves the tool-change pin without an idle edge (Codex
   const readsBefore = reads;
   stored.X = 110;   // the confirmed reply: the file holds it now
   await page.getByRole("button", { name: "Save G30", exact: true }).click();
-  await expect(page.getByRole("tabpanel", { name: "Toolsetter", exact: true }).locator(".statusNote.ok"))
+  await expect(page.getByRole("tabpanel", { name: "Toolsetter", exact: true }).locator(".statusNote.ok:not(.tsMachine)"))
     .toHaveText("G30 saved — confirmed by LinuxCNC");
   // no busy→idle edge in any status packet: the confirmation alone moves it
   await expect.poll(pin, { message: "the pin follows the confirmed save", timeout: 2_000 }).toEqual([110, 0, -26.275]);
