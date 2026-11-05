@@ -43,7 +43,7 @@ def record(host, units=UNITS) -> dict:
     if trip:
         raise TakeOverRefused(f"the LAN instance has an unacknowledged trip ({trip}) — the operator's to acknowledge")
     return {"units": {u: host.unit(u) for u in units if host.is_active(u)},
-            "ini": host.gateway_ini(), "head": host.tree_head(),
+            "ini": host.gateway_ini(), "head": host.tree_head(), "tree": host.tree_dir(),
             "instance": list(host.lan_instance()), "at": time.time()}
 
 
@@ -103,7 +103,7 @@ def main() -> int:
     a = ap.parse_args()
     from system_host import SystemHost   # noqa: E402 — the real host, beside this file
     pre = json.loads(a.pre.read_text())
-    out = restore(SystemHost(pre.get("lan")), pre)
+    out = restore(SystemHost(pre), pre)
     a.out.write_text(json.dumps(out, indent=2) + "\n")
     print(f"restore: {out['outcome']}")
     return 0 if out["outcome"] == "complete" else 1

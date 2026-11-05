@@ -4,6 +4,7 @@ evaluators — every pure part, without LinuxCNC (the orchestrator never
 imports linuxcnc or hal: a bare import binds the running sim)."""
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 import time
@@ -164,6 +165,7 @@ class FakeHost:
     def lan_instance(self): return self.instance
     def gateway_ini(self): return "lan.ini"
     def tree_head(self): return self.head
+    def tree_dir(self): return "/lan-tree"
     def file_hashes(self): return dict(self.hashes)
     def lan_trip(self): return self.trip
     def keepalive_connected_since(self, t): return self.heartbeat_seen
@@ -229,3 +231,53 @@ def test_a_lan_trip_before_the_take_over_refuses_it():
     h.trip = {"reason": "heartbeat"}
     with pytest.raises(rl.TakeOverRefused, match="unacknowledged trip"):
         rl.record(h)
+
+
+from test_support import system_host as sh  # noqa: E402
+
+
+def test_the_exec_start_line_and_the_trace_proof():
+    line = "{ path=/usr/bin/env ; argv[]=/usr/bin/env -u DISPLAY LCNC_WEBUI_BROWSER=0 linuxcnc lan.ini ; ignore_errors=no ; }"
+    assert sh.parse_exec_start(line) == ["/usr/bin/env", "-u", "DISPLAY", "LCNC_WEBUI_BROWSER=0", "linuxcnc", "lan.ini"]
+    tick = lambda pid, t, n: json.dumps({"tag": "loop.tick", "pid": pid, "t_wall_ns": int(t * 1e9), "clients": n})  # noqa: E731
+    assert sh.clients_since([tick(7, 105, 1)], 7, 100)
+    assert not sh.clients_since([tick(7, 99, 1)], 7, 100), "before the restore began"
+    assert not sh.clients_since([tick(6, 105, 1)], 7, 100), "the old gateway"
+    assert not sh.clients_since([tick(7, 105, 0)], 7, 100), "no client"
+
+
+# ── The case evaluators (R283/R284 FI282-05: bounds before the run) ──────
+from test_support import native_cases as nc  # noqa: E402
+
+
+def test_home_all_and_home_per_joint():
+    assert nc.eval_home("home-all", [True, True, True], [True, True, True])["status"] == "PASS"
+    assert nc.eval_home("home-joint-0", [True, False, False], [True, False, False])["status"] == "PASS"
+    planted = nc.eval_home("home-joint-0", [True, False, False], [True, True, False])
+    assert planted["status"] == "FAIL" and "joint 1" in planted["detail"]
+    assert nc.eval_home("home-joint-2", [False, False, True], None)["status"] == "incomplete"
+
+
+def _jog(sign=1, axis=0, moved=15.0, brake=1.5, stop_at=0.12, vel=50.0):
+    """A jog as measured: start 300, the anchor (jog_stop's reply) `moved` on,
+    standstill `brake` further at `stop_at` s after the anchor."""
+    p0, anchor = 300.0, 300.0 + sign * moved
+    samples = [(0.02, anchor + sign * brake * 0.5, vel * 0.5), (stop_at, anchor + sign * brake, 0.0)]
+    return nc.eval_jog(f"jog-{'xyz'[axis]}{'+' if sign > 0 else '-'}", axis, sign, p0, anchor, samples)
+
+
+def test_a_jog_moves_in_its_sign_and_stops_within_its_bounds():
+    assert _jog()["status"] == "PASS"
+    assert _jog(sign=-1)["status"] == "PASS"
+    assert _jog(axis=2, brake=2.4)["status"] == "PASS", "Z brakes on 600 mm/s² (OFFSET_AV_RATIO 0.2)"
+    assert _jog(axis=0, brake=2.4)["status"] == "FAIL", "X: 2.1 mm"
+
+
+def test_a_jog_with_the_wrong_sign_or_no_stop_is_red():
+    inverted = nc.eval_jog("jog-x+", 0, 1, 300.0, 285.0, [(0.1, 284.0, 0.0)])
+    assert inverted["status"] == "FAIL" and "sign" in inverted["detail"]
+    late = _jog(stop_at=0.7)
+    assert late["status"] == "FAIL" and "0.5 s" in late["detail"]
+    moving = nc.eval_jog("jog-x+", 0, 1, 300.0, 315.0, [(0.1, 316.0, 20.0), (0.45, 316.5, 5.0)])
+    assert moving["status"] == "FAIL", "no standstill sample within 0.5 s"
+    assert nc.eval_jog("jog-x+", 0, 1, 300.0, 315.0, [])["status"] == "incomplete"
