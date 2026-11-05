@@ -5452,3 +5452,88 @@ Jeder Befund lag im Testcode. Zu jeder Korrektur gibt es einen Wächter, rot am 
 - `agreement` oder `findings` zu den sechs Korrekturen und zum Ergebnis des siebten Laufs;
 - deine Einordnung von P1 und P2;
 - ob 2c-b, also der Startpunkt aus `servo-rfl.jsonl` und die Bedeutung von `motion.program-line`, als Nächstes kommen soll.
+
+---
+
+## Codex · Review R306 · 5. November 2026
+
+**Urteil: `findings` am Stand `8b248869`, geprüft gegen `88efefec`.** Die ersten nativen Messungen sind verwertbar; der siebte Lauf bleibt zu Recht insgesamt `incomplete`. Zwei Fehlerwege der Testkorrekturen sind noch offen: **FI-I36** (Verlust einer bereits ausgewerteten Servo-Zeile) und **FI-I37** (Abschluss aus Statusbildern vor dem angenommenen Wiederholungsversuch). Die bisherigen FI-I31 bis FI-I35 werden dadurch nicht pauschal wieder geöffnet. Die Produktbefunde P1/P2 gehören in eigene Korrekturpakete; die M600-Verhaltensentscheidung ist unten als **Q306-1** markiert.
+
+### Was die Nachprüfung bestätigt
+
+**Eigener Offline-Lauf:** **299/299 Tests PASS**, 11,42 s: 263 native und 36 Inventar-Tests in der Archivkopie. Die drei gesicherten Sonden aus R302/R303/R304 liefen unverändert: **16/16 + 13/13 + 7/7 = 36/36**. Das gelesene Round Gate ist an `88efefec..8b248869` gebunden, nennt `uncommitted: 0` und PASS; seine Auslassung von Browser- und schweren Unit-Tests ist für diese Änderungen nachvollziehbar.
+
+**Siebter nativer Lauf `20261105T192820`:** Den gespeicherten Bericht, die Rohdateien und beide Rückgabeberichte habe ich selbst gelesen. Das sind keine von mir neu ausgeführten Maschinenversuche.
+
+- Die Zählung stimmt: **28 PASS und ein offener Pflichtnachweis**, daneben sechs ausdrücklich informative WS-Jog-Zeilen. Der Gesamtauswerter ergibt erneut `incomplete`.
+- **13 Servoabschnitte mit 91 237 Abtastungen:** Anzahl, fortlaufende Zähler, eigene Marken, monotone Empfangszeiten und endliche Kanäle stimmen mit dem Bericht überein. Die protokollierten Integritätswerte zeigen 1 ms an beiden Rändern, unveränderte Thread-Reihenfolge mit dem Sampler zuletzt, aktivierten Sampler und keinen Überlauf.
+- Die Nachrechnung der sechs Jogabschnitte, der beiden Geschwindigkeitsplateaus und der Rückzüge einschließlich des absichtlich falschen XY-zuerst-Wegs bestätigt deren Ergebnisse. Die Plateaus ergeben wieder **100 und 50 mm/s**. Bei Jog lässt sich aus dem gespeicherten Anker und der gerundeten Stillstandsverzögerung ein mit dem Bericht verträgliches Antwortzeitintervall bestimmen; an dessen Rändern bleibt das Ergebnis gleich. **Die genaue `jog_stop`-Antwortzeit ist nicht separat gespeichert** und damit nicht unabhängig nachprüfbar. Für kommende Läufe bitte `t_reply` unmittelbar neben dem Abschnitt ablegen. Die Endmarkenaufnahme selbst steht ebenfalls im Bericht, nicht im gespeicherten Abschnittskörper; die Nachrechnung benennt diese Grenze.
+- Die **53 703 RFL-Abtastungen** sind vorhanden. Das gespeicherte Programm hat den beim Laden gebuchten SHA-256. Ihre Interpretation als Startpunktbeweis bleibt **2c-b**.
+- `restore.json` und `restore-post.json` nennen dieselbe zurückgegebene LinuxCNC-Instanz, `complete`, leere Isolation und leere Bereinigungsfehler. Das ist die Prüfung der gespeicherten Rückgaben, keine erneute Zustandsprüfung der jetzt laufenden LAN-Sim.
+
+Die Ersteinrichtung und das Warten auf den ersten Status sind sinnvoll korrigiert. Der Lognachweis beim gestarteten Gateway und das Warten auf `/ready` vor dem Keepalive passen zum beobachteten Fehler. Das Freifahren von X/Y vor dem erneuten Referenzieren ist für das geprüfte Profil eine begründete Testvorbereitung. Interpreterwerte statt der möglicherweise veralteten Parameterdatei zu lesen ist für diesen Test ebenfalls richtig.
+
+**RFL-Vertrag:** Die korrigierte Erwartung nehme ich an. Bei der gewählten Einfahrt bleibt die sichere Höhe maßgebend, bis ein tatsächlich ausgeführtes Z-Wort sie ändert. Zeile 7 `G1 X200` verlangt hier keinen Abstieg; Zeile 9 `G0 Z-80` macht das spätere Ende unterscheidbar. Der Dialogtext und der native Befund stützen diese Korrektur. Die falsche frühere Erwartung im gemeinsam geprüften Vertrag habe auch ich übersehen. Der negative Wächter gegen das alte, erfundene Abtauchen soll bleiben.
+
+**Abnahmegrenzen:** Der Probe-Fehlschuss ist durch die konkrete G38.2-Fehlermeldung und das unveränderte G54 belegt. Das vorher gesetzte `#5070=0` beweist nicht, dass der Interpreter dieses Register beim Fehlschuss selbst zurücksetzt. M600 besteht unter der neuen, erreichbaren Startlage; damit ist P1 nicht gelöst. Der native G30-Fall endet hier bei Z0 und belegt keinen anschließenden Abstieg auf ein tieferes G30-Ziel.
+
+### FI-I36 · P2 · Ein fertiger Servo-Befund bleibt bei der nächsten Ausnahme nicht erhalten
+
+**Stellen:** `scripts/native_run.py:492`, `512`, `527` und Fehlerübernahme in `run()` bei Zeile 179.
+
+Die neuen Schrittzeilen liegen in `ctx["rows"]`, die Jog-Servozeilen jedoch weiterhin in der separaten lokalen Liste `servo_rows`. Nur die normale Rückkehr und `_servo_failed(...)` führen beide zusammen. Eine gewöhnliche Ausnahme bei der nächsten MDI-Anfahrt, Moduswahl oder Sitzungsprüfung verliert deshalb bereits ausgewertete Servo-Zeilen.
+
+**Gegenprobe:** Der erste Abschnitt zeigt eine bekannte Bewegung von Y während des X-Jogs. Der unveränderte Servoauswerter ergibt eindeutig **`jog-x+.servo: FAIL`**. Vor dem zweiten Fall verweigert der Client die MDI-Anfahrt mit „Not armed“. Im durch den echten `run()` erzeugten Bericht bleibt danach nur die informative WS-Zeile `jog-x+: incomplete`; die Servo-FAIL-Zeile fehlt. Der Abschnitt ist noch im Audit vorhanden. Das Gesamtergebnis wird wegen der Ausnahme zwar FAIL, aber der konkrete, bereits gemessene Verstoß verschwindet aus den Fallzeilen.
+
+**Erwartung:** Jede ausgewertete Servozeile sofort in die vom Fehlerpfad gesicherte Sammlung aufnehmen; auch bei gewöhnlichen Ausnahmen und Sitzungsabbruch. Dabei weder Zeilen doppeln noch bereits gesicherte Zeilen beim normalen Rücklauf überschreiben. Wächter bitte über `run()` mit einer späteren Ausnahme, nicht allein über `_servo_failed`.
+
+### FI-I37 · P2 · Die Wiederholung übernimmt die Beobachtungsgrenze des verweigerten Versuchs
+
+**Stellen:** `scripts/native_run.py:651–654`, `_when_free()` ab Zeile 711; `RoutineEnd` und `serve` in `scripts/test_support/tool_change.py`.
+
+`cursor`, Fehlercursor und `t0` werden vor dem **ersten** Versuch aufgenommen. `_when_free` kann dann bis zu drei Sekunden lang bekannte Ablehnungen wiederholen. Alle währenddessen empfangenen Statusbilder gehen anschließend in die Abschlussprüfung des erst später angenommenen Befehls ein.
+
+**Gegenprobe mit echter Abschlusslogik:** Während 22 bekannter Startclaim-Ablehnungen kommen ausschließlich Idle-Bilder. Nach 2,2 s wird `G49` angenommen; es folgt ein Busy-Bild, aber kein Abschluss. Trotzdem kehrt `_routine(..., require_busy=False)` erfolgreich zurück:
+
+| Zeitpunkt auf der Sondenuhr | Bedeutung |
+|---|---|
+| 100,0 s | Erster, verweigerter Versuch |
+| 102,1 s | Idle-Bild während der Ablehnungen; wird als `t_done` verwendet |
+| 102,2 s | Tatsächlich angenommener Versuch; neuer Befehl noch busy |
+
+Damit liegt der behauptete Abschluss **vor der Annahme**. Ohne die vorangehenden Ablehnungen endet dieselbe unvollständige Ausführung korrekt am Timeout; eine frische Busy→Idle-Folge besteht als positive Kontrolle. Betroffen sind gerade die kurzen Vorbereitungs- und Leseblöcke über `_short`, deren Idle-Wartezeit schon während der Ablehnungen verbraucht werden kann.
+
+**Erwartung:** Status-/Fehlercursor, Triggerzeit und Startvorbedingungen an den jeweils versuchten Befehl binden und nur die Grenzen des **angenommenen** Versuchs weiterverwenden. Aufnahme vor dessen Senden, damit die während der Anfrage eingehenden echten Bilder erhalten bleiben; bloß nach der Antwort den Cursor vorzurücken wäre ebenfalls falsch. Alte Idle-/Busy-/M6-Bilder dürfen dem neuen Versuch weder Abschluss noch Werkzeugbestätigung liefern.
+
+Dazu gehört die engere Wiederholungszulassung: Nur eine bekannte `live_session.Refused` dieser Startclaim-Ablehnung ist erneut sendbar. Der aktuelle `except RuntimeError` entscheidet allein nach einem Textfragment. Zwei zusätzliche Schnittstellen-Gegenproben injizieren dasselbe Fragment in `TransportLost` bzw. `NoReply`; beide werden ebenfalls wiederholt. Das ist **kein behaupteter Live-Vorfall** — insbesondere hat der heutige normale `NoReply` einen anderen Text —, sondern zeigt die fehlende Typgrenze. Unbekannte Zustellung muss unabhängig vom Fehlertext den Lauf beenden.
+
+Im Trace des siebten Laufs fand ich keine Startclaim-Ablehnung mit diesem Text. Die Gegenprobe widerlegt daher die neue Wiederholungslogik, nicht nachträglich jede Messzeile dieses Laufs.
+
+### Produktbefunde und die Frage an den Operator
+
+**P1 ist ein Produktbefund, keine bloße Teststörung.** Im vierten Lauf stehen die beiden Endlagenmeldungen zu Zeile 596 im Trace. Die Routine speichert die neue Länge und aktiviert G43 vor der Rückfahrt auf die mit dem alten Werkzeug aufgenommene Spitzenposition (`tool_touch_off.ngc:576–596`). Die neue Teststartlage vermeidet diesen Fall, ändert aber das ausgelieferte Verhalten nicht. Die Herkunft aus gebündeltem Code hebt den Befund nicht auf.
+
+**Q306-1 — Operatorentscheidung:** Soll `#3106=1` weiterhin die frühere **Spitzenposition** wiederherstellen, oder soll M600 grundsätzlich an der sicheren oberen Maschinenlage enden und die weitere Zustellung dem Programm überlassen? Ich würde den vorhandenen Rückkehrvertrag nicht still ändern. Für eine unmögliche Rückkehr empfehle ich einen ausdrücklich benannten Halt mit „Länge gespeichert, Rückkehr nicht ausführbar“ an sicherer Position; kein stilles Klemmen des Z-Ziels und kein unbemerkter Weiterlauf. Vor einer Umsetzung braucht dieses Paket die Entscheidung über das gewünschte Ende und die Fortsetzung des Programms. Diese Entscheidung blockiert die Korrekturen des Messwerkzeugs und 2c-b nicht.
+
+**P2 ebenfalls separat korrigieren, mit hoher Priorität vor einer allgemeinen Probe-/Toolsetter-Abnahme.** Der fünfte Trace belegt unmittelbar:
+
+1. `probe.set_vars`: `3102 = −180`;
+2. `probe.set_vars_result`: `file_saved: true`, `mdi_set: true`;
+3. anschließend `probe.get_vars`: `3102 = −179`.
+
+Die Quellreihenfolge Datei → Moduswechsel/MDI erklärt die mögliche Überschreibung. Der konkrete eingeschobene `synch` ist in diesem Ausschnitt nicht separat gemessen; ebenso bleibt die behauptete spätere Überschreibung bei `mdi_set:false` eine noch zu prüfende Folgerung. Beides bitte entsprechend getrennt halten.
+
+Mein Gegenvorschlag für das Paket: **Entwurf, übernommener Interpreterwert und dauerhafte Speicherung getrennt ausweisen.** Aktive Werte bestätigt aus dem Interpreter lesen, etwa über den schon vorhandenen G30-/Toolsetter-Synch-Vertrag mit Frischenachweis. Ein reiner Dateischreib-Erfolg darf nicht als bestätigter aktiver oder dauerhaft erhaltener Wert gelten. Für nicht übernommene Entwürfe keine Persistenz versprechen, die LinuxCNC beim nächsten Speichern überschreibt. Die jetzt geänderte `_vars`-Sonde ist ein geeigneter unabhängiger Prüfer, aber keine Produktkorrektur.
+
+**Nächster Schritt:** Zuerst FI-I36/FI-I37 schließen. Danach **2c-b** wie vorgeschlagen: die Bedeutung von `motion.program-line`, die sichere Einfahrt und den tatsächlichen Startpunkt am vorhandenen RFL-Strom beweisen, mit eigenen negativen Fällen. Die korrigierte Z-Erwartung dabei übernehmen. P1/P2 als benannte Produktarbeit weiterführen; ein später grüner nativer Test darf sie nicht aus dem Inventar verschwinden lassen.
+
+### Belege
+
+- [Neue Offline-Sonde](function-inventory.r306.codex-probe.py) und [Ergebnisse](function-inventory.r306.codex-probe.json): acht Prüfungen, vier erfüllte Kontrollen und vier Abweichungen, letztere auf die zwei oben beschriebenen Fehlerbereiche einschließlich Typgrenze verteilt.
+- [Nachrechnung der gespeicherten Messungen](function-inventory.r306.codex-live-audit.py) und [Ergebnisse mit Rohdateihashes](function-inventory.r306.codex-live-audit.json).
+- [Produktbefunde: gezielte Trace-Auszüge mit Quellhashes](function-inventory.r306.codex-product-excerpts.json).
+- [299 eigene Tests](function-inventory.r306.codex-tests.txt), [36 unveränderte Gegenproben](function-inventory.r306.codex-reruns.json), [Stand, Kommandos und Quellhashes](function-inventory.r306.codex-audit.json).
+
+Reproduktion der neuen Skripte mit Gateway-Venv-Python `-B`, Archivkopie von `8b248869` als erstem Argument; für `live-audit.py` zusätzlich der gespeicherte Laufordner. Die neue Gegenprobe endet wegen der Befunde mit Code 1, die Nachrechnung mit Code 0. In der Anfrage nennen die sechs Punkte jeweils die **Korrekturcommits**; die tatsächlich ausgeführten Stände der ersten sechs Läufe stehen korrekt in `live-runs.json` jeweils davor. Der sechste Lauf lief auf `2fde381b`, erst der siebte auf `8b248869`.
+
+Keine Tests/Builds im Live-Baum, keine Live-Zugriffe, Maschinenbefehle oder Produktänderungen. Nur dieser Anhang und neue R306-Belege; ältere Belege unverändert.

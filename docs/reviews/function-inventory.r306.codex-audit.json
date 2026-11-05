@@ -1,0 +1,49 @@
+{
+  "base": "88efefec7bdbee546dafaabdac6d78f6d36f7145",
+  "head": "8b2488691cdd0817ae038cf4a54b238b124c88bc",
+  "live_head": "423cd0d27c7d04ddc45b4a8a8ab2633e868523e3",
+  "archive": "/tmp/codex-r306",
+  "review_prefix_bytes": 588246,
+  "review_prefix_sha256": "ee507adc83b1f280afca967a70ef5c00bb151f232c7e9f3b52d274836df48786",
+  "tests": {
+    "command": "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py",
+    "cwd": "/tmp/codex-r306",
+    "passed": 299,
+    "seconds": 11.42
+  },
+  "gate_read": {
+    "path": "/home/cnc/claude-work/teststrat/measure/native.live-fixes.gate-round.run1.json",
+    "sha256": "ffca20900c6581b317a3990122e847b4b348306b8a06e74c5b6e98e7279a3ad0",
+    "base": "88efefec7bdbee546dafaabdac6d78f6d36f7145",
+    "head": "8b2488691cdd0817ae038cf4a54b238b124c88bc",
+    "uncommitted": 0,
+    "verdict": "PASS",
+    "plan": [
+      "selection-guards",
+      "lint",
+      "build",
+      "unit-light",
+      "backend"
+    ]
+  },
+  "source_sha256": {
+    "scripts/native_run.py": "42903b19ac0df2b9651632a4d116356b3f0908d749a57bbd9d97481fccdd306d",
+    "scripts/test_native_stage.py": "0664e39a500a0ba5b43615d44245da57a9d4a2cf1894fb7f5b2918137384b41d",
+    "scripts/test_support/live_target.py": "56b756ac6476ae2edfbd574880ee4f4aa9de570003fc997f95569462d6aa1687",
+    "scripts/test_support/restore_lan.py": "357dabcca16e9455a4f1347bb409c7ed39f195cbda097f3fc8426ef00c0e43c7"
+  },
+  "boundaries": [
+    "No builds, tests or product edits in live tree.",
+    "No simulator, HAL, network or machine access.",
+    "New review evidence only; pre-existing evidence unchanged."
+  ],
+  "evidence_sha256": {
+    "function-inventory.r306.codex-live-audit.json": "985340c265b94b76331fa829bd2a8f051448c8ff4fe9c1d9deefef75e13f0ab1",
+    "function-inventory.r306.codex-live-audit.py": "1925e0f8723bc2f908b1b8e2ed0e1fc277850ef50d8e94c4bde19e634eb60e06",
+    "function-inventory.r306.codex-probe.json": "d12e1a828529a238f271eed2fc4a2a4d160d1e33b1fb95c3e3a5c56a480b4500",
+    "function-inventory.r306.codex-probe.py": "9c46fbce675626c434879529566a9649da2c60017b5208d4a12e2d0564cb0d5b",
+    "function-inventory.r306.codex-product-excerpts.json": "5ada1d9c4fb3e8e2e1ecde913278657da2cfa632bb62be9a7107b7ebbd406e04",
+    "function-inventory.r306.codex-reruns.json": "b74cdaa3189e3dfffa7eae18a3b63f905cddd7fe4884f31dda69c9033036e433",
+    "function-inventory.r306.codex-tests.txt": "0e385001de718d9cd1f3d9e3cc1f29071ab6b7cb9fee9981e29d41db109af959"
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "note": "Excerpts from already recorded traces; read only, no live access. Proof of the mismatch, not an independent replay of the inferred synch ordering.",
+  "runs": [
+    {
+      "run": "20261105T185633",
+      "trace": "/home/cnc/claude-work/live-tier/20261105T185633/logs/trace.ndjson",
+      "sha256": "b11a695e50f3bcbc7f3ab85f8a7d733e639954cd7ccf789b05c9354b0fb7c2e9",
+      "excerpts": [
+        {
+          "t_wall_ns": 1793901625216263282,
+          "t_mono_ms": 211784.397,
+          "proc": "gateway",
+          "pid": 1651025,
+          "tag": "nml.error",
+          "level": "warn",
+          "kind": 11,
+          "text": "Linear move on line 596 would exceed Z's positive limit"
+        },
+        {
+          "t_wall_ns": 1793901625251201349,
+          "t_mono_ms": 211819.335,
+          "proc": "gateway",
+          "pid": 1651025,
+          "tag": "nml.error",
+          "level": "warn",
+          "kind": 11,
+          "text": "Linear move on line 596 would exceed joint 2's positive limit"
+        },
+        {
+          "t_wall_ns": 1793901665414257224,
+          "t_mono_ms": 251982.391,
+          "proc": "gateway",
+          "pid": 1651025,
+          "tag": "nml.error",
+          "level": "warn",
+          "kind": 11,
+          "text": "Linear move on line 596 would exceed Z's positive limit"
+        },
+        {
+          "t_wall_ns": 1793901665448005152,
+          "t_mono_ms": 252016.139,
+          "proc": "gateway",
+          "pid": 1651025,
+          "tag": "nml.error",
+          "level": "warn",
+          "kind": 11,
+          "text": "Linear move on line 596 would exceed joint 2's positive limit"
+        }
+      ]
+    },
+    {
+      "run": "20261105T190727",
+      "trace": "/home/cnc/claude-work/live-tier/20261105T190727/logs/trace.ndjson",
+      "sha256": "2167ee43c3e0f6173f11c645bca90b9ea6548502c2c5df739a2316a5c6ba72d0",
+      "excerpts": [
+        {
+          "t_wall_ns": 1793902372305191311,
+          "t_mono_ms": 304912.829,
+          "proc": "gateway",
+          "pid": 1663289,
+          "tag": "probe.set_vars",
+          "level": "info",
+          "vars": {
+            "3102": -180.0
+          }
+        },
+        {
+          "t_wall_ns": 1793902372305598728,
+          "t_mono_ms": 304913.237,
+          "proc": "gateway",
+          "pid": 1663289,
+          "tag": "toolsetter.basis",
+          "level": "info",
+          "origin": "assumed",
+          "keys": [
+            3102
+          ],
+          "version": 21
+        },
+        {
+          "t_wall_ns": 1793902372376505926,
+          "t_mono_ms": 304984.144,
+          "proc": "gateway",
+          "pid": 1663289,
+          "tag": "toolsetter.basis",
+          "level": "info",
+          "origin": "applied",
+          "keys": [
+            3102
+          ],
+          "version": 22
+        },
+        {
+          "t_wall_ns": 1793902372376866926,
+          "t_mono_ms": 304984.505,
+          "proc": "gateway",
+          "pid": 1663289,
+          "tag": "probe.set_vars_result",
+          "level": "info",
+          "file_saved": true,
+          "mdi_set": true
+        },
+        {
+          "t_wall_ns": 1793902372377456386,
+          "t_mono_ms": 304985.095,
+          "proc": "gateway",
+          "pid": 1663289,
+          "tag": "probe.get_vars",
+          "level": "info",
+          "vars": {
+            "3102": -179.0
+          }
+        }
+      ]
+    }
+  ]
+}

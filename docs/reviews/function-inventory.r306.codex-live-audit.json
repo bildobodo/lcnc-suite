@@ -1,0 +1,619 @@
+{
+  "code_head": "8b2488691cdd0817ae038cf4a54b238b124c88bc",
+  "run": "/home/cnc/claude-work/live-tier/20261105T192820",
+  "profile": "3axis_xyz",
+  "report_sha256": "42953aeb195da6d5742fbdcaa8ed707086e78f1a6b1dd0922e409c2346133ed8",
+  "reported_verdict": "incomplete",
+  "recomputed_verdict": "incomplete",
+  "row_counts": {
+    "PASS": 28,
+    "incomplete": 7
+  },
+  "effective_row_counts": {
+    "PASS": 28,
+    "incomplete": 1
+  },
+  "sections": [
+    {
+      "case": "jog-x+.servo",
+      "file": "servo-jog-x+.servo.jsonl",
+      "sha256": "cac83c8aee19f9036135e1b43224318e6ed97d3dd242b496bc5dcf9d459315cf",
+      "samples": 1369,
+      "checks": {
+        "sample_count": true,
+        "first_n": true,
+        "end_boundary_n": true,
+        "consecutive_n": true,
+        "receipt_monotonic": true,
+        "own_mark_only": true,
+        "finite_channels": true,
+        "both_enabled": true,
+        "overrun_unchanged_zero": true,
+        "period_edges_ini": true,
+        "same_thread_sampler_last": true,
+        "fifo_below_capacity": true,
+        "no_reported_problem": true,
+        "response_interval_exists": true,
+        "same_result_at_response_bounds": true
+      },
+      "compatible_response_time": [
+        1179243.704287846,
+        1179243.704387846
+      ],
+      "recomputed": [
+        {
+          "status": "PASS",
+          "travel_mm": 15.6299,
+          "brake_upper_mm": 0.8701,
+          "standstill_n": 36784,
+          "standstill_received_s": 0.0547
+        },
+        {
+          "status": "PASS",
+          "travel_mm": 15.6299,
+          "brake_upper_mm": 0.8701,
+          "standstill_n": 36784,
+          "standstill_received_s": 0.0547
+        },
+        {
+          "status": "PASS",
+          "travel_mm": 15.6299,
+          "brake_upper_mm": 0.8701,
+          "standstill_n": 36784,
+          "standstill_received_s": 0.0547
+        }
+      ]
+    },
+    {
+      "case": "jog-x-.servo",
+      "file": "servo-jog-x-.servo.jsonl",
+      "sha256": "288129f20d9daa028db6da9f08c7c571b0287a9de5d9a733b88c031e53289d82",
+      "samples": 1368,
+      "checks": {
+        "sample_count": true,
+        "first_n": true,
+        "end_boundary_n": true,
+        "consecutive_n": true,
+        "receipt_monotonic": true,
+        "own_mark_only": true,
+        "finite_channels": true,
+        "both_enabled": true,
+        "overrun_unchanged_zero": true,
+        "period_edges_ini": true,
+        "same_thread_sampler_last": true,
+        "fifo_below_capacity": true,
+        "no_reported_problem": true,
+        "response_interval_exists": true,
+        "same_result_at_response_bounds": true
+      },
+      "compatible_response_time": [
+        1179245.6803931552,
+        1179245.680493155
+      ],
+      "recomputed": [
+        {
+          "status": "PASS",
+          "travel_mm": 15.0244,
+          "brake_upper_mm": 1.2256,
+          "standstill_n": 38761,
+          "standstill_received_s": 0.055
+        },
+        {
+          "status": "PASS",
+          "travel_mm": 15.0244,
+          "brake_upper_mm": 1.2256,
+          "standstill_n": 38761,
+          "standstill_received_s": 0.055
+        },
+        {
+          "status": "PASS",
+          "travel_mm": 15.0244,
+          "brake_upper_mm": 1.2256,
+          "standstill_n": 38761,
+          "standstill_received_s": 0.055
+        }
+      ]
+    },
+    {
+      "case": "jog-y+.servo",
+      "file": "servo-jog-y+.servo.jsonl",
+      "sha256": "700c530aeb32ce706dbbf7c03da145ad3337396d1ed4252b9f3184ec14ade4c2",
+      "samples": 1359,
+      "checks": {
+        "sample_count": true,
+        "first_n": true,
+        "end_boundary_n": true,
+        "consecutive_n": true,
+        "receipt_monotonic": true,
+        "own_mark_only": true,
+        "finite_channels": true,
+        "both_enabled": true,
+        "overrun_unchanged_zero": true,
+        "period_edges_ini": true,
+        "same_thread_sampler_last": true,
+        "fifo_below_capacity": true,
+        "no_reported_problem": true,
+        "response_interval_exists": true,
+        "same_result_at_response_bounds": true
+      },
+      "compatible_response_time": [
+        1179247.640459433,
+        1179247.6405594328
+      ],
+      "recomputed": [
+        {
+          "status": "PASS",
+          "travel_mm": 15.4799,
+          "brake_upper_mm": 0.8701,
+          "standstill_n": 40720,
+          "standstill_received_s": 0.0535
+        },
+        {
+          "status": "PASS",
+          "travel_mm": 15.4799,
+          "brake_upper_mm": 0.8701,
+          "standstill_n": 40720,
+          "standstill_received_s": 0.0534
+        },
+        {
+          "status": "PASS",
+          "travel_mm": 15.4799,
+          "brake_upper_mm": 0.8701,
+          "standstill_n": 40720,
+          "standstill_received_s": 0.0534
+        }
+      ]
+    },
+    {
+      "case": "jog-y-.servo",
+      "file": "servo-jog-y-.servo.jsonl",
+      "sha256": "1055b7b74abe1243c16518ac486b56a45edb67f4e3ff021270a66807f9d00b4e",
+      "samples": 1353,
+      "checks": {
+        "sample_count": true,
+        "first_n": true,
+        "end_boundary_n": true,
+        "consecutive_n": true,
+        "receipt_monotonic": true,
+        "own_mark_only": true,
+        "finite_channels": true,
+        "both_enabled": true,
+        "overrun_unchanged_zero": true,
+        "period_edges_ini": true,
+        "same_thread_sampler_last": true,
+        "fifo_below_capacity": true,
+        "no_reported_problem": true,
+        "response_interval_exists": true,
+        "same_result_at_response_bounds": true
+      },
+      "compatible_response_time": [
+        1179249.588020672,
+        1179249.588120672
+      ],
+      "recomputed": [
+        {
+          "status": "PASS",
+          "travel_mm": 14.7061,
+          "brake_upper_mm": 0.9439,
+          "standstill_n": 42669,
+          "standstill_received_s": 0.0563
+        },
+        {
+          "status": "PASS",
+          "travel_mm": 14.7061,
+          "brake_upper_mm": 0.9439,
+          "standstill_n": 42669,
+          "standstill_received_s": 0.0563
+        },
+        {
+          "status": "PASS",
+          "travel_mm": 14.7061,
+          "brake_upper_mm": 0.9439,
+          "standstill_n": 42669,
+          "standstill_received_s": 0.0563
+        }
+      ]
+    },
+    {
+      "case": "jog-z+.servo",
+      "file": "servo-jog-z+.servo.jsonl",
+      "sha256": "0299e0e47eb229a7d91beda4f245aa13e621af3c53d79fc3c8718a6d153f60a8",
+      "samples": 1355,
+      "checks": {
+        "sample_count": true,
+        "first_n": true,
+        "end_boundary_n": true,
+        "consecutive_n": true,
+        "receipt_monotonic": true,
+        "own_mark_only": true,
+        "finite_channels": true,
+        "both_enabled": true,
+        "overrun_unchanged_zero": true,
+        "period_edges_ini": true,
+        "same_thread_sampler_last": true,
+        "fifo_below_capacity": true,
+        "no_reported_problem": true,
+        "response_interval_exists": true,
+        "same_result_at_response_bounds": true
+      },
+      "compatible_response_time": [
+        1179251.517814371,
+        1179251.5179143709
+      ],
+      "recomputed": [
+        {
+          "status": "PASS",
+          "travel_mm": 14.5699,
+          "brake_upper_mm": 1.6801,
+          "standstill_n": 44620,
+          "standstill_received_s": 0.0703
+        },
+        {
+          "status": "PASS",
+          "travel_mm": 14.5699,
+          "brake_upper_mm": 1.6801,
+          "standstill_n": 44620,
+          "standstill_received_s": 0.0703
+        },
+        {
+          "status": "PASS",
+          "travel_mm": 14.5699,
+          "brake_upper_mm": 1.6801,
+          "standstill_n": 44620,
+          "standstill_received_s": 0.0703
+        }
+      ]
+    },
+    {
+      "case": "jog-z-.servo",
+      "file": "servo-jog-z-.servo.jsonl",
+      "sha256": "8facaf4782a6a0870b7555aa6f88ed943f905218292e0e02ee4e3e90203e68a1",
+      "samples": 1355,
+      "checks": {
+        "sample_count": true,
+        "first_n": true,
+        "end_boundary_n": true,
+        "consecutive_n": true,
+        "receipt_monotonic": true,
+        "own_mark_only": true,
+        "finite_channels": true,
+        "both_enabled": true,
+        "overrun_unchanged_zero": true,
+        "period_edges_ini": true,
+        "same_thread_sampler_last": true,
+        "fifo_below_capacity": true,
+        "no_reported_problem": true,
+        "response_interval_exists": true,
+        "same_result_at_response_bounds": true
+      },
+      "compatible_response_time": [
+        1179253.510352272,
+        1179253.510452272
+      ],
+      "recomputed": [
+        {
+          "status": "PASS",
+          "travel_mm": 14.2879,
+          "brake_upper_mm": 1.9121,
+          "standstill_n": 46617,
+          "standstill_received_s": 0.0764
+        },
+        {
+          "status": "PASS",
+          "travel_mm": 14.2879,
+          "brake_upper_mm": 1.9121,
+          "standstill_n": 46617,
+          "standstill_received_s": 0.0764
+        },
+        {
+          "status": "PASS",
+          "travel_mm": 14.2879,
+          "brake_upper_mm": 1.9121,
+          "standstill_n": 46617,
+          "standstill_received_s": 0.0763
+        }
+      ]
+    },
+    {
+      "case": "override-plateau-100",
+      "file": "servo-override-plateau-100.jsonl",
+      "sha256": "dc02f1bb7437cdb9949132270044d70fab88b3c02bb2f933b033593a53654353",
+      "samples": 4826,
+      "checks": {
+        "sample_count": true,
+        "first_n": true,
+        "end_boundary_n": true,
+        "consecutive_n": true,
+        "receipt_monotonic": true,
+        "own_mark_only": true,
+        "finite_channels": true,
+        "both_enabled": true,
+        "overrun_unchanged_zero": true,
+        "period_edges_ini": true,
+        "same_thread_sampler_last": true,
+        "fifo_below_capacity": true,
+        "no_reported_problem": true,
+        "same_verdict": true
+      },
+      "recomputed": {
+        "case": "override-plateau-100",
+        "status": "PASS",
+        "detail": "median 100.00 mm/s within 100 ± 5%",
+        "expected": 100.0,
+        "tol": 0.05,
+        "pairs": 2999,
+        "problems": [],
+        "median": 100.0
+      }
+    },
+    {
+      "case": "override-plateau-50",
+      "file": "servo-override-plateau-50.jsonl",
+      "sha256": "ae598c6f3209e38aa817f60f5f77c772d0eaf3a2998251d5cbb470720dcbaace",
+      "samples": 8709,
+      "checks": {
+        "sample_count": true,
+        "first_n": true,
+        "end_boundary_n": true,
+        "consecutive_n": true,
+        "receipt_monotonic": true,
+        "own_mark_only": true,
+        "finite_channels": true,
+        "both_enabled": true,
+        "overrun_unchanged_zero": true,
+        "period_edges_ini": true,
+        "same_thread_sampler_last": true,
+        "fifo_below_capacity": true,
+        "no_reported_problem": true,
+        "same_verdict": true
+      },
+      "recomputed": {
+        "case": "override-plateau-50",
+        "status": "PASS",
+        "detail": "median 50.00 mm/s within 50 ± 5%",
+        "expected": 50.0,
+        "tol": 0.05,
+        "pairs": 5999,
+        "problems": [],
+        "median": 50.0
+      }
+    },
+    {
+      "case": "goto-zero",
+      "file": "servo-goto-zero.jsonl",
+      "sha256": "5150102adae4152873a24f28839fe5fd3d9e71b68c87166c5c048293d01e318e",
+      "samples": 3196,
+      "checks": {
+        "sample_count": true,
+        "first_n": true,
+        "end_boundary_n": true,
+        "consecutive_n": true,
+        "receipt_monotonic": true,
+        "own_mark_only": true,
+        "finite_channels": true,
+        "both_enabled": true,
+        "overrun_unchanged_zero": true,
+        "period_edges_ini": true,
+        "same_thread_sampler_last": true,
+        "fifo_below_capacity": true,
+        "no_reported_problem": true,
+        "same_verdict": true
+      },
+      "recomputed": {
+        "case": "goto-zero",
+        "status": "PASS",
+        "detail": "Z up first, then X/Y; no descent (the target's Z is up); at rest on the target",
+        "start": [
+          200.0,
+          200.0,
+          -60.0
+        ],
+        "target": [
+          100.0,
+          100.0,
+          0.0
+        ],
+        "problems": []
+      }
+    },
+    {
+      "case": "goto-home",
+      "file": "servo-goto-home.jsonl",
+      "sha256": "fd3029c7b8e65dc74969383e58f58f64c607ec54a46452a5be31f9ac0e5c4850",
+      "samples": 4647,
+      "checks": {
+        "sample_count": true,
+        "first_n": true,
+        "end_boundary_n": true,
+        "consecutive_n": true,
+        "receipt_monotonic": true,
+        "own_mark_only": true,
+        "finite_channels": true,
+        "both_enabled": true,
+        "overrun_unchanged_zero": true,
+        "period_edges_ini": true,
+        "same_thread_sampler_last": true,
+        "fifo_below_capacity": true,
+        "no_reported_problem": true,
+        "same_verdict": true
+      },
+      "recomputed": {
+        "case": "goto-home",
+        "status": "PASS",
+        "detail": "Z up first, then X/Y; no descent (the target's Z is up); at rest on the target",
+        "start": [
+          200.0,
+          200.0,
+          -60.0
+        ],
+        "target": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "problems": []
+      }
+    },
+    {
+      "case": "goto-g30",
+      "file": "servo-goto-g30.jsonl",
+      "sha256": "f4b35753293cfae26a36b7f95c4ec27aaf1c389f4d39e84bcaebfa9edc2cff9c",
+      "samples": 4612,
+      "checks": {
+        "sample_count": true,
+        "first_n": true,
+        "end_boundary_n": true,
+        "consecutive_n": true,
+        "receipt_monotonic": true,
+        "own_mark_only": true,
+        "finite_channels": true,
+        "both_enabled": true,
+        "overrun_unchanged_zero": true,
+        "period_edges_ini": true,
+        "same_thread_sampler_last": true,
+        "fifo_below_capacity": true,
+        "no_reported_problem": true,
+        "same_verdict": true
+      },
+      "recomputed": {
+        "case": "goto-g30",
+        "status": "PASS",
+        "detail": "Z up first, then X/Y; no descent (the target's Z is up); at rest on the target",
+        "start": [
+          200.0,
+          200.0,
+          -60.0
+        ],
+        "target": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "problems": []
+      }
+    },
+    {
+      "case": "goto-zero.counter-xy-first",
+      "file": "servo-goto-zero.counter-xy-first.jsonl",
+      "sha256": "144fd8977760b4e78f57f6362e0fe5a78b6fca7478deef9f1131d9faddf23a3d",
+      "samples": 3385,
+      "checks": {
+        "sample_count": true,
+        "first_n": true,
+        "end_boundary_n": true,
+        "consecutive_n": true,
+        "receipt_monotonic": true,
+        "own_mark_only": true,
+        "finite_channels": true,
+        "both_enabled": true,
+        "overrun_unchanged_zero": true,
+        "period_edges_ini": true,
+        "same_thread_sampler_last": true,
+        "fifo_below_capacity": true,
+        "no_reported_problem": true,
+        "same_verdict": true
+      },
+      "recomputed": {
+        "case": "goto-zero.counter-xy-first",
+        "status": "FAIL",
+        "detail": "X moved -0.012 mm with Z at -60.000 (sample 135095)",
+        "start": [
+          200.0,
+          200.0,
+          -60.0
+        ],
+        "target": [
+          100.0,
+          100.0,
+          0.0
+        ],
+        "problems": []
+      }
+    },
+    {
+      "case": "rfl",
+      "file": "servo-rfl.jsonl",
+      "sha256": "c6abaab594c64086dd9bbb04aadd8a72898181a9290abd8b56cde03ca10a7f42",
+      "samples": 53703,
+      "checks": {
+        "sample_count": true,
+        "first_n": true,
+        "end_boundary_n": true,
+        "consecutive_n": true,
+        "receipt_monotonic": true,
+        "own_mark_only": true,
+        "finite_channels": true,
+        "both_enabled": true,
+        "overrun_unchanged_zero": true,
+        "period_edges_ini": true,
+        "same_thread_sampler_last": true,
+        "fifo_below_capacity": true,
+        "no_reported_problem": true
+      },
+      "program_line_counts": {
+        "0": 5617,
+        "241": 2548,
+        "248": 1713,
+        "308": 1704,
+        "341": 15388,
+        "453": 231,
+        "475": 388,
+        "520": 3106,
+        "540": 388,
+        "595": 15255,
+        "596": 2548,
+        "7": 2065,
+        "8": 2069,
+        "9": 683
+      },
+      "evaluation": "deferred to 2c-b"
+    }
+  ],
+  "limits": [
+    "No machine or simulator rerun. Non-servo row verdicts below come from the saved report.",
+    "Raw section files contain their body; end-marker receipt and integrity edge readings are recorded in report.json.",
+    "Jog response timestamps are not separately stored. Re-evaluation uses the reported anchor and rounded standstill delay to bound the compatible timestamp; it cannot independently prove which reply was received then.",
+    "The RFL program-line interpretation and start-point verdict remain for 2c-b."
+  ],
+  "restore.json": {
+    "sha256": "a79c4ec1ac6e24ce2bb6db7f83a14629e015cc5633a6414299784c37aac1fd89",
+    "saved_result": {
+      "outcome": "complete",
+      "instance": [
+        "linuxcncsvr",
+        1693252,
+        117959717
+      ],
+      "isolation": [],
+      "cleanup": []
+    }
+  },
+  "restore-post.json": {
+    "sha256": "9b1fb4b64d3419451549cefd4492de7ec8bf748b4c8c33979c61f89496e9f1f4",
+    "saved_result": {
+      "outcome": "complete",
+      "instance": [
+        "linuxcncsvr",
+        1693252,
+        117959717
+      ],
+      "isolation": [],
+      "cleanup": [],
+      "repeat_of": "complete"
+    }
+  },
+  "same_returned_instance": true,
+  "isolation": {
+    "pre_sha256": "f6228e3056942e128e51402560a1cad82fcbbedbee81d91644675bac4ca52a4f",
+    "state_sha256": "8e3061c58293147d432fe5cbfd7de2602b55001beebc91477f1dce92d66d49b3",
+    "recorded_hash_count": 4,
+    "saved_isolation": [],
+    "test_ended": true
+  },
+  "rfl_program": {
+    "text": "(native stage: run from line - Codex R292 FI292-01)\nG21 G90 G94 G17 G54\nT1 M600\nS1000 M3\nG0 X100 Y100\nG0 Z-100\nG1 X200 F3000\nG1 Y200\nG0 Z-80\nM5\nM2\n",
+    "sha256": "ef6cb29fcbd5448c4dd29e059a0c7f7d3cf17fc26c1924b58dec82674fc765bb",
+    "matches_loaded_source": true
+  },
+  "all_checks_pass": true
+}
