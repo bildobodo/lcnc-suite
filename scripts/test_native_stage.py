@@ -3125,3 +3125,119 @@ def test_line_7_plunging_to_the_skipped_depth_is_a_fail():
     frames[6] = _rfl_frame(24.3, L, (150, 100, -25))
     r = _line(hist, frames)
     assert r["status"] == "FAIL", r
+
+
+# ── Codex R306: FI-I36 (a finished servo row) and FI-I37 (the retry's bounds) ──
+def test_a_finished_servo_row_survives_a_later_refusal(tmp_path, monkeypatch):
+    """FI-I36: the first section shows Y moving in the X jog — jog-x+.servo
+    FAIL. The second case's start is refused ("Not armed"); the report must
+    still hold that FAIL (the servo rows lived in a local list only the
+    normal return and a failing section end handed on). The section's audit
+    keeps the jog_stop reply time beside it (Codex's request for the
+    recomputation)."""
+    from test_support import live_session as ls
+
+    class JogClient:
+        error, frames = None, []
+        status = {"joint_pos": list(nr.JOG_START)}
+        mdis = 0
+
+        def request(self, cmd, **kw):
+            if cmd == "mdi":
+                JogClient.mdis += 1
+                if JogClient.mdis == 2:
+                    raise ls.Refused("mdi refused: Not armed — press Arm")
+            return {"ok": True}
+    bad = {"samples": _samples([(300., 300., -50., 0., 0., 0.), (300., 301., -50., 0., 0., 0.)]), "problems": []}
+    c = JogClient()
+
+    def setup(ctx):
+        ctx.update(client=c, frames=[], servo=FakeMeasurement([bad]))
+    monkeypatch.setattr(nr, "_servo_prep", lambda c: None)
+    monkeypatch.setattr(nr, "_wait", lambda *a: None)
+    monkeypatch.setattr(nr.time, "sleep", lambda s: None)
+    out = nr.run(FakeHost(), [("setup", setup), nr.jog_cases(3)], tmp_path / "run")
+    assert any(r["case"] == "jog-x+.servo" and r["status"] == "FAIL" for r in out["rows"]), out["rows"]
+    assert "Not armed" in out["error"]
+    assert isinstance(out["servo_sections"][0].get("t_reply"), float), out["servo_sections"][0]
+
+
+class _Clock:
+    def __init__(self):
+        self.t = 100.0
+
+    def monotonic(self):
+        return self.t
+
+    def sleep(self, s):
+        self.t += s
+
+
+class _RetriedClient:
+    """Refused for the start claim `refusals` times — idle frames arrive
+    meanwhile — then accepted: busy, and done only when `finish`."""
+    error = None
+
+    def __init__(self, clock, refusals, finish):
+        self.clock, self.refusals, self.finish, self.n = clock, refusals, finish, 0
+        self.frames, self.errors, self.sent_at = [], [], None
+        self.status = {"tool_change_requested": False, "tool_change_seq": None, "interp_state": 1, "inpos": True}
+
+    def request(self, cmd, **kw):
+        from test_support import live_session as ls
+        self.n += 1
+        if self.n <= self.refusals:
+            self.frames.append((self.clock.t, dict(self.status)))
+            raise ls.Refused(f"{cmd} refused: A program or macro is starting or running — wait")
+        self.sent_at = self.clock.t
+        self.status = {**self.status, "interp_state": 2, "inpos": False}
+        self.frames.append((self.clock.t, dict(self.status)))
+        if self.finish:
+            self.clock.t += 0.2
+            self.status = {**self.status, "interp_state": 1, "inpos": True}
+            self.frames.append((self.clock.t, dict(self.status)))
+        return {"ok": True}
+
+
+@pytest.mark.parametrize("refusals, finish, completes", [(22, False, False), (0, False, False), (22, True, True), (0, True, True)])
+def test_a_retried_block_ends_only_on_frames_after_its_acceptance(monkeypatch, refusals, finish, completes):
+    """FI-I37: 2.2 s of start-claim refusals bring only idle frames; the
+    accepted G49 then shows busy and never completes. Its end may come only
+    from frames received after the ACCEPTED send — the refused attempts'
+    idle frames gave it a completion before its acceptance. Controls: no
+    refusal, and a real completion after the retry."""
+    clock = _Clock()
+    monkeypatch.setattr(nr.time, "monotonic", clock.monotonic)
+    monkeypatch.setattr(nr.time, "sleep", clock.sleep)
+    c = _RetriedClient(clock, refusals, finish)
+    if completes:
+        out = nr._routine(c, "G49", require_busy=False, deadline=0.5)
+        assert out["t_done"] >= c.sent_at and out["t0"] <= c.sent_at
+    else:
+        with pytest.raises(RuntimeError):
+            nr._routine(c, "G49", require_busy=False, deadline=0.5)
+    assert c.n == refusals + 1
+
+
+@pytest.mark.parametrize("kind, asked", [("Refused", 2), ("TransportLost", 1), ("NoReply", 1)])
+def test_only_a_known_claim_refusal_is_asked_again(monkeypatch, kind, asked):
+    """FI-I37: the type decides, never the text — a lost transport or a
+    missing reply carrying the same words is an unknown delivery and ends
+    the run at once."""
+    from test_support import live_session as ls
+    cls = getattr(ls, kind)
+
+    class C:
+        n = 0
+
+        def request(self, cmd, **kw):
+            C.n += 1
+            if C.n == 1:
+                raise cls("A program or macro is starting or running — wait")
+            return {"ok": True}
+    monkeypatch.setattr(nr.time, "sleep", lambda s: None)
+    try:
+        nr._when_free(C(), "mdi", text="G49")
+    except RuntimeError:
+        pass
+    assert C.n == asked

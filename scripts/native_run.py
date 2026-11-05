@@ -400,6 +400,8 @@ def _section(ctx, case: str):
             sec = None
             box["error"] = f"{type(e).__name__}: {e}"
         record = {"case": case, "attempt": attempt.get("k"), "end_error": box.get("error")}
+        if "t_reply" in box:
+            record["t_reply"] = box["t_reply"]     # the reply the case is judged from (R306)
         if sec is not None:
             box["section"] = sec
             if sec.get("end_error"):
@@ -489,7 +491,9 @@ def _home_joints(c, joints: int):
 
 def jog_cases(joints: int):
     def step(ctx):
-        c, frames, rows, servo_rows = ctx["client"], ctx["frames"], ctx.setdefault("rows", []), []
+        # every row as it is judged into the step's rows — a servo row too,
+        # kept on any later exception (Codex R306 FI-I36)
+        c, frames, rows = ctx["client"], ctx["frames"], ctx.setdefault("rows", [])
         start = "G53 G0 " + " ".join(f"{a}{v:g}" for a, v in zip("XYZ", JOG_START))
         if {axis for _, axis, _ in JOG_CASES} != set(range(joints)):
             raise Refused(f"the jog cases do not name the profile's {joints} axes")
@@ -505,12 +509,12 @@ def jog_cases(joints: int):
                 c.request("jog_cont", axis=axis, vel=sign * nc.JOG_SPEED)
                 time.sleep(0.3)
                 c.request("jog_stop", axis=axis)
-                t_reply = time.monotonic()
+                t_reply = box["t_reply"] = time.monotonic()   # in the section's audit (R306)
                 time.sleep(1.0)             # the post window: 1.0 s from the reply (R300)
             if "section" in box:
                 from test_support import servo_cases as sc
-                servo_rows.append(sc.eval_jog_servo(JOG_SERVO_CASES[case], axis, sign, box["section"], t_reply))
-            _servo_failed(box, rows + servo_rows, case)
+                rows.append(sc.eval_jog_servo(JOG_SERVO_CASES[case], axis, sign, box["section"], t_reply))
+            _servo_failed(box, rows, case)
             if c.error:
                 raise RuntimeError(f"{case}: the session ended — {c.error}")
             seen = list(frames)
@@ -524,7 +528,7 @@ def jog_cases(joints: int):
             rows.append({**row, "informational": True} if "servo" in ctx else row)
         if c.error:
             raise RuntimeError(f"the session ended after the jogs — {c.error}")
-        return rows + servo_rows
+        return rows
     return ("jog", step)
 
 
@@ -645,12 +649,16 @@ def _routine(c, text, vars=None, declared=(), hold_s=0.0, deadline=120.0, requir
     served and the errors received meanwhile."""
     from test_support import tool_change as tc
     changes = tc.ToolChanges(list(declared), hold_s=hold_s)
-    refusal = changes.precheck(c.status)
-    if refusal:
-        raise RuntimeError(f"{text}: {refusal}")
-    seen, cursor = len(c.errors), len(c.frames)
-    t0 = time.monotonic()
-    _when_free(c, "mdi", text=text, **({"vars": {str(k): v for k, v in vars.items()}} if vars else {}))
+
+    def bounds():
+        # the start's conditions, the frame and error cursors and the trigger
+        # time of THIS attempt: a refused one's frames end nothing (FI-I37)
+        refusal = changes.precheck(c.status)
+        if refusal:
+            raise RuntimeError(f"{text}: {refusal}")
+        return len(c.errors), len(c.frames), time.monotonic()
+    _, (seen, cursor, t0) = _when_free(c, "mdi", before=bounds,
+                                       text=text, **({"vars": {str(k): v for k, v in vars.items()}} if vars else {}))
     end = tc.RoutineEnd(require_busy=require_busy, grace=SHORT_GRACE)
 
     def done(t, st):
@@ -708,18 +716,30 @@ def _tool_z(c, tool):
     return None if row is None else row.get("Z")
 
 
-def _when_free(c, cmd, **kw):
+def _claim_refused(e) -> bool:
+    """A KNOWN refusal for the start claim alone — the gateway answered and
+    sent nothing. A lost transport or a missing reply is an unknown delivery
+    whatever its text, never asked again (Codex R306 FI-I37)."""
+    from test_support.live_session import Refused as SessionRefused
+    return isinstance(e, SessionRefused) and "starting or running" in str(e)
+
+
+def _when_free(c, cmd, before=None, **kw):
     """A write or a start right after a routine: the gateway refuses it while
     the routine's start claim is held ("A program or macro is starting or
     running — wait") and releases the claim on its next status proof — asked
     again for CLAIM_WAIT_S; any other refusal ends it at once. A refused
-    command was not sent, so asking again sends it once."""
+    command was not sent, so asking again sends it once. `before()` runs
+    right before EACH attempt and its value is the accepted attempt's
+    (a routine binds its frame and error bounds there — FI-I37)."""
     end = time.monotonic() + CLAIM_WAIT_S
     while True:
+        mark = before() if before else None
         try:
-            return c.request(cmd, **kw)
+            reply = c.request(cmd, **kw)
+            return (reply, mark) if before else reply
         except RuntimeError as e:
-            if "starting or running" not in str(e) or time.monotonic() >= end:
+            if not _claim_refused(e) or time.monotonic() >= end:
                 raise
             time.sleep(0.1)
 
