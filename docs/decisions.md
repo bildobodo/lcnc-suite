@@ -10735,3 +10735,7 @@ its audit and samples kept — and the periods READ at both ends are checked
 against the INI. Writing the samples may fail: named, the rows kept. Every
 step forms its CURRENT case's row from the section before a failing end
 ends the run.
+
+Codex R304: after the PROVEN arrival at an up target the known Z alone
+decides — a descent there is a FAIL with X or Y unread in that frame, as
+the G30 branch already judged it; a merely assumed arrival stays unproven.

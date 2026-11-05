@@ -158,7 +158,8 @@ def eval_retract_path(case: str, sec: dict, start, target) -> dict:
             j, v = off_start[0]
             return _row(case, "FAIL", f"{'XY'[j]} moved {v - start[j]:+.3f} mm with Z at {z:.3f} (sample {s[1]})",
                         **m)
-        if up_target and z_low and on_target:
+        if up_target and z_low and (on_target or arrived):
+            # after the PROVEN arrival the known Z alone decides (R304)
             return _row(case, "FAIL", f"Z at {z:.3f} on the target — an up target keeps Z up (sample {s[1]})", **m)
         if arrived and not up_target and _f(z) and z < target[2] - PATH_TOL:
             return _row(case, "FAIL", f"Z at {z:.3f} below the target's {target[2]:g} (sample {s[1]})", **m)

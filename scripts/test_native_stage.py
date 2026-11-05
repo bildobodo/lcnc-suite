@@ -2770,3 +2770,17 @@ def test_the_current_case_is_judged_before_a_failing_end_ends_the_step(monkeypat
     with pytest.raises(nr.StepFailed) as e:
         nr.goto_cases()[1](ctx)
     assert [(r["case"], r["status"]) for r in e.value.rows] == [("goto-zero", "FAIL")], e.value.rows
+
+
+@pytest.mark.parametrize("unread", [0, 1])
+def test_a_known_descent_after_the_proven_arrival_fails_with_x_or_y_unread(unread):
+    """Codex R304 FI-I32: on the Zero target (proven, every axis read), Z
+    sinks to −1 and back with X (or Y) unread meanwhile — still FAIL."""
+    sec = _path([START, (200, 200, 0), ZERO, (100, 100, -1), ZERO])
+    rows = sec["samples"]
+    arrived = next(i for i, (_, _, v) in enumerate(rows) if abs(v[0] - 100) <= 0.01 and abs(v[1] - 100) <= 0.01)
+    for i in range(arrived + 1, len(rows)):
+        if rows[i][2][2] < -0.010:
+            _nan(sec, i, unread)
+    r = sc.eval_retract_path("goto-zero", sec, start=START, target=ZERO)
+    assert r["status"] == "FAIL" and "up target" in r["detail"], r
