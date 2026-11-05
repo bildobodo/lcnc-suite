@@ -2071,3 +2071,53 @@ Zum Gate-Lauf 2: Ob dessen einzelner Fehlframe derselbe Ablauf war, ist nicht be
 **Merge-Gate Lauf 4** (`--merge`) an `9da5318a`, Basis `f0070ec7`: **PASS**, `kind: "merge"`, nichts ausgelassen. Lint, Build, Unit leicht 2601/2601, Unit schwer 104/104 in 8 Dateien, Backend, Browser voll 856/856 auf drei Workern. Bericht: `docs/reviews/statements-comp.merge-gate.run4.json`.
 
 **Erbeten:** `agreement` oder `findings`.
+
+---
+
+## Codex · Nachprüfung R280 · 5. November 2026
+
+**Urteil: `findings`. FI-I17 ist geschlossen. Bei FI-I16 bleibt ein belegter Randfall mit bereits geplantem Follow offen.** Geprüft `501482aa..9da5318a` in isolierten Archivkopien. Teil A aus R279 bleibt abgenommen; keine neue Operatorfrage.
+
+### FI-I17 · Vollständiges Merge-Gate bestätigt
+
+`--merge` erweitert die Auswahl vor der Ausführung verbindlich auf alle acht schweren Unit-Dateien, Backend und den vollständigen Browserlauf. Die ursprüngliche Rundenauswahl bleibt im Bericht erhalten. Die neue Auswahl ist unabhängig davon, ob der normale Wähler nur Dokumentation, einen schmalen Bereich oder bereits alle Browser-Specs wählen würde. Aufruf und Abgrenzung sind dokumentiert.
+
+**Die Rohberichte von Lauf 4 unabhängig neu ausgewertet:**
+
+- Leichte Unit-Gruppe: **2601 gelistet = 2601 ausgeführt und bestanden**.
+- Schwere Unit-Gruppe: **104 gelistet = 104 ausgeführt und bestanden**, genau die acht Dateien aus `HEAVY_UNIT`.
+- Browser: **856 gelistet = 856 ausgeführt und bestanden**, keine Skips oder Flakies; Laufkennung und Worker-/Mock-Lebenszyklen passen zum Ergebnisbericht.
+- Bericht an **`9da5318a`**, `kind: "merge"`, `omitted: []`; Build, Lint und Backend PASS.
+
+Zusätzlich bestehen die **51 Selektor-Wächter** in einer sauberen eigenen Kopie. Die schon benannten Firefox-/Live-Folgepakete und F-COMP.S4 bleiben offen, wie vereinbart. Der zuvor fehlende Offline-Integrationsnachweis ist jetzt vorhanden.
+
+### FI-I16 · Ursprünglicher Ablauf geschlossen, Rest bei einem schon vorgemerkten Follow
+
+**Bestätigt:** Der Schlüssel-Filter ist entfernt. Beide Repository-Varianten (Eingabe im Task und im rAF) bestehen. Auch die **ungefilterte R279-Gegenprobe**, unverändert bis auf Ausgabepfade, besteht. Die Korrektur trifft damit den ursprünglichen Fehler. Der gesamte Sim-Panel-Spec bleibt grün.
+
+**Rest-Fundstelle:** `lcnc-webui/src/SimPanel.vue:567` (`!followRaf`), zusammen mit `holdHighlight():532–538` und `followSoon():501`.
+
+Wenn ein vorheriger Zeilenwechsel bereits einen Follow für den nächsten Frame vorgemerkt hat, blockiert dessen Kennung den neuen synchronen Sprung. Wird die gehaltene Hervorhebung inzwischen aus dem Blick gescrollt, räumt `holdHighlight()` zwar Wartezeit und Glide auf und beendet das Band, lässt aber `followRaf` bestehen. `snapNow` bleibt falsch; das anschließende `followSoon()` kehrt wegen derselben Kennung sofort zurück. Der schon geplante Rückruf repariert die Position erst im nächsten Frame.
+
+**Neue Gegenprobe am unveränderten Produkt, 3/3 durch Assertion rot:**
+
+1. Die Liste ist vollständig, Position 0,60 und ihre Hervorhebung stehen im Blick.
+2. Innerhalb eines rAF setzt die Sonde die Position auf **0,62** und lässt den Vue-Flush fertig werden. Nun ist **L41** markiert, das gehaltene Band ist sichtbar; der Follow wartet auf den nächsten Frame.
+3. Die Sonde scrollt dieses Band eine Zeile unter den sichtbaren Bereich und setzt noch vor dem nächsten Frame auf **0,64**. Es werden keine neuen Listendaten veröffentlicht.
+4. **L42** ist jetzt markiert, das Band ist beendet, die Hervorhebung liegt im ersten gezeichneten Zustand außerhalb. Erst der vorgemerkte Follow bringt sie in den Blick.
+
+In jedem der drei Läufe: vor dem Scrollen `band: true, inView: true`; danach `inView: false`; nach dem zweiten Wechsel `key: L42@42, band: false, inView: false`. Jeweils genau **eine** Messung der Zielzeile außerhalb, alle späteren im Blick. Der Test prüft auch diese Voraussetzungen und eine tatsächlich gewechselte Zielzeile; er wird nicht wegen eines fehlenden Elements oder Timeouts rot.
+
+**Bildschirmaufzeichnung als zusätzlicher Nachweis:** Das neue **L41 / 02:31** erscheint bereits in Kopf und Zeitleiste, während die Liste noch L31–L38 ohne die Zielhervorhebung zeigt. Im folgenden Bild steht L42 hervorgehoben in der Mitte: [vorher](function-inventory.r280.codex-frame-before.png), [neuer Stand mit Hervorhebung außerhalb](function-inventory.r280.codex-frame-outside.png), [nach dem verzögerten Follow](function-inventory.r280.codex-frame-followed.png). Auch der Aufzeichnungslauf wird an derselben Assertion rot. Das ist ein gezielt hergestellter Ablauf mit zwei schnellen Positionswechseln und einem Scrollen dazwischen; die Probe macht keine Aussage über seine Häufigkeit beim Operator.
+
+**Abnahme des Rests:** Bei unveränderten Listendaten und verlorener sichtbarer Hervorhebung muss auch ein schon vorgemerkter Follow vorgezogen beziehungsweise ersetzt werden können. Den bisherigen Rückruf dabei sauber abbrechen/übernehmen, damit kein zweiter Follow oder eine neue Wartezeit nachläuft. Die bestehende Faltung für neue Listendaten und das Halten einer weiterhin sichtbaren Hervorhebung können bestehen bleiben. Den beschriebenen Fall neben den jetzt grünen Task-/rAF-Fällen aufnehmen. Keine erneute Ausnahme im Sampler.
+
+### Eigene Prüfungen und Belege
+
+**115 reguläre Prüfungen grün:** 63 Sim-Panel-Browsertests, die ungefilterte R279-Probe und 51 Selektor-Wächter. Build PASS. Zusätzlich drei neue Ablauf-Gegenproben und ein Aufzeichnungslauf, die den obigen Rest reproduzieren. Kein vollständiges Gate wiederholt; dessen Rohberichte wurden wie oben beschrieben nachgeprüft.
+
+Die ersten Selektor-Versuche waren wegen der Sondenumgebung rot: zunächst fehlender Git-Kontext und Socket-Sandbox, dann die zusätzlichen Sondendateien, der absichtlich abweichende Mock-Port und ein noch fehlender HEAD. In einer separaten unveränderten Archivkopie mit eigenem temporärem Git-Commit: **51/51 grün**. Die Fehlversuche bleiben im Protokoll und sind keine Produktbefunde.
+
+Tests nur in `/tmp/codex-r280` und `/tmp/codex-r280-guards`; eigene Mocks auf **4594/4595**, je ein Worker, keine Retries. Kein Zugriff auf die Live-Suite, keine Maschinenbefehle, keine Produktmutation. Abschlussvergleich aller **6967 versionierten Dateien** je Kopie: ausschließlich der eigene Mock-Port weicht ab; alle 95 entpackten LFS-Dateien stimmen mit ihrer SHA256 überein. Im Live-Baum nur dieser Anhang und neue Belege.
+
+Belege: [Gate-Auswertung](function-inventory.r280.codex-gate-audit.json), [Auswertungsskript](function-inventory.r280.codex-gate-audit.py), [Prüflog](function-inventory.r280.codex-checks.txt), [Quellabgleich](function-inventory.r280.codex-source-audit.json), [R279-Probe am neuen Stand](function-inventory.r280.codex-prior-probe.spec.ts), [Gegenprobe des ausstehenden Follow](function-inventory.r280.codex-pending-probe.spec.ts), [Aufzeichnungssonde](function-inventory.r280.codex-pending-capture.spec.ts), [Messungen und Bild-Metadaten](function-inventory.r280.codex-results.json), [Playwright-Konfiguration](function-inventory.r280.codex-playwright.config.ts). Die Specs gehören unter `e2e/` einer Archivkopie von `9da5318a`; Mock-Basisport passend auf 4594 oder 4595 setzen, Ausgaben bleiben unter `/tmp/codex-r280`.

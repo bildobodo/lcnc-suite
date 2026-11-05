@@ -1,0 +1,752 @@
+{
+  "commit": "9da5318a",
+  "product_mutations": false,
+  "runs": [
+    {
+      "first": {
+        "key": "L41@41",
+        "band": true,
+        "inView": true,
+        "at": 1793843247104.1
+      },
+      "off": {
+        "key": "L41@41",
+        "band": true,
+        "inView": false,
+        "at": 1793843247104.1
+      },
+      "after": {
+        "key": "L42@42",
+        "band": false,
+        "inView": false,
+        "at": 1793843247107.1
+      },
+      "samples": [
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": false,
+          "at": 1793843247111.8
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247129
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247139.8
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247155.3
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247170.7
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247194.4001
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247205.7
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247224.4001
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247242.5
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247253.8
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247271
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247287.3
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247306.3
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247320.7
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247337.8
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247353.7
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247370.4001
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247387.5
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247403.4001
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247421.5
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247438.4001
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247453.8
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247470.6
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247487.4001
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843247504.9001
+        }
+      ]
+    },
+    {
+      "first": {
+        "key": "L41@41",
+        "band": true,
+        "inView": true,
+        "at": 1793843254171.2
+      },
+      "off": {
+        "key": "L41@41",
+        "band": true,
+        "inView": false,
+        "at": 1793843254171.2
+      },
+      "after": {
+        "key": "L42@42",
+        "band": false,
+        "inView": false,
+        "at": 1793843254173.3
+      },
+      "samples": [
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": false,
+          "at": 1793843254178.1
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254196.5
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254208.7
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254221.3
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254237.8
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254254.2
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254270.4001
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254287
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254309.7
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254326.3
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254341.1
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254355.4001
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254371.4001
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254389.7
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254404.2
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254420.9001
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254441.5
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254454.9001
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254470.8
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254487.9001
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254504.9001
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254521.3
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254538.2
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254554.6
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843254571.7
+        }
+      ]
+    },
+    {
+      "first": {
+        "key": "L41@41",
+        "band": true,
+        "inView": true,
+        "at": 1793843261220.4
+      },
+      "off": {
+        "key": "L41@41",
+        "band": true,
+        "inView": false,
+        "at": 1793843261220.5
+      },
+      "after": {
+        "key": "L42@42",
+        "band": false,
+        "inView": false,
+        "at": 1793843261223.0999
+      },
+      "samples": [
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": false,
+          "at": 1793843261231.0999
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261246.5999
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261257.2
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261270.7
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261287
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261304.2998
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261320.5
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261337.9
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261358
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261382.9
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261388.2998
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261404.2998
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261420.5999
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261436.9
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261455.4
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261471
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261487.4
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261510.0999
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261546.2
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261554
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261570.4
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261588.7998
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261606.5999
+        },
+        {
+          "key": "L42@42",
+          "band": false,
+          "inView": true,
+          "at": 1793843261626
+        }
+      ]
+    }
+  ],
+  "capture": {
+    "first": {
+      "key": "L41@41",
+      "band": true,
+      "inView": true,
+      "at": 1793843276104.2
+    },
+    "off": {
+      "key": "L41@41",
+      "band": true,
+      "inView": false,
+      "at": 1793843276104.3
+    },
+    "after": {
+      "key": "L42@42",
+      "band": false,
+      "inView": false,
+      "at": 1793843276106.6
+    },
+    "samples": [
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": false,
+        "at": 1793843276112.9
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276138.9
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276159.1
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276177.4
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276206.1
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276212.2
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276225.8
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276249.9
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276268.7
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276275
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276291.3
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276304.8
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276324.7
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276341.8
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276360.5
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276371.8
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276390.8
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276405
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276423.2
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276441.9
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276460.2
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276475.8
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276494.3
+      },
+      {
+        "key": "L42@42",
+        "band": false,
+        "inView": true,
+        "at": 1793843276505.8
+      }
+    ]
+  },
+  "stats": {
+    "browser": {
+      "startTime": "2026-11-05T01:44:23.216Z",
+      "duration": 252124.60199999998,
+      "expected": 64,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "pending-browser": {
+      "startTime": "2026-11-05T01:47:21.738Z",
+      "duration": 21493.327999999998,
+      "expected": 0,
+      "skipped": 0,
+      "unexpected": 3,
+      "flaky": 0
+    },
+    "capture-browser": {
+      "startTime": "2026-11-05T01:47:50.356Z",
+      "duration": 7769.87,
+      "expected": 0,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    }
+  },
+  "images": [
+    {
+      "n": 3,
+      "metadata": {
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "deviceWidth": 1280,
+        "deviceHeight": 800,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1793843276.15025
+      },
+      "file": "function-inventory.r280.codex-frame-before.png",
+      "sha256": "208bbd736a34c0cbd151ffee6c69b3c927195601caa3ffc14861f3676dbde20a"
+    },
+    {
+      "n": 4,
+      "metadata": {
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "deviceWidth": 1280,
+        "deviceHeight": 800,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1793843276.170943
+      },
+      "file": "function-inventory.r280.codex-frame-outside.png",
+      "sha256": "ed34d6bcdaf39bde10bd525f6ba5c88edca0eb7b60ee86fd71e18fc5556893e4"
+    },
+    {
+      "n": 5,
+      "metadata": {
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "deviceWidth": 1280,
+        "deviceHeight": 800,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1793843276.188914
+      },
+      "file": "function-inventory.r280.codex-frame-followed.png",
+      "sha256": "85c975c1b4d4af5152f2e19c8fc4927d4397c03166458c2238b79557e93e6e49"
+    }
+  ]
+}

@@ -1,0 +1,655 @@
+R280: isolated archives of 9da5318a. Browser ports 4594 / 4595, 1 worker each, no retries.
+Selector first attempts failed due to archive/harness state (no git, socket sandbox; then own mock port/probes and no HEAD). Clean dedicated archive: 51/51.
+No product mutation. Pending-follow probes intentionally expose the remaining failure.
+
+===== build.txt =====
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2129 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-D0KGS3DD.css                 8.14 kB │ gzip:   2.08 kB
+dist/static/index-tH86Rqzk.css                      98.05 kB │ gzip:  17.87 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-hfwnM1h9.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-BpWiL5BV.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-nYKhsec2.js                279.20 kB │ gzip: 105.16 kB
+dist/static/index-C7sonXnN.js                      673.41 kB │ gzip: 216.96 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.72s
+
+===== selector.txt =====
+..FF....F.................................F........                      [100%]
+=================================== FAILURES ===================================
+_________________ test_every_rule_glob_matches_a_tracked_file __________________
+
+    def test_every_rule_glob_matches_a_tracked_file():
+>       files = tracked()
+                ^^^^^^^^^
+
+scripts/test_select/test_selector.py:52: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/test_select/test_selector.py:31: in tracked
+    out = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = True, timeout = None, check = True
+popenargs = (['git', 'ls-files'],)
+kwargs = {'cwd': PosixPath('/tmp/codex-r280'), 'stderr': -1, 'stdout': -1, 'text': True}
+process = <Popen: returncode: 128 args: ['git', 'ls-files']>, stdout = ''
+stderr = 'fatal: not a git repository (or any parent up to mount point /)\nStopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).\n'
+retcode = 128
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['git', 'ls-files']' returned non-zero exit status 128.
+
+/usr/lib/python3.13/subprocess.py:577: CalledProcessError
+_____________________ test_every_tracked_source_has_a_rule _____________________
+
+    def test_every_tracked_source_has_a_rule():
+        """No tracked file falls to the fail-closed default: a new file comes
+        with its rule (the default stays as the runtime's safety net)."""
+>       unmatched = [f for f in tracked() if decide(f).unmatched
+                                ^^^^^^^^^
+                     and not re.search(r"\.(spec|test)\.ts$", f)
+                     and not f.startswith("lcnc-webui/e2e/")]
+
+scripts/test_select/test_selector.py:60: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/test_select/test_selector.py:31: in tracked
+    out = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = True, timeout = None, check = True
+popenargs = (['git', 'ls-files'],)
+kwargs = {'cwd': PosixPath('/tmp/codex-r280'), 'stderr': -1, 'stdout': -1, 'text': True}
+process = <Popen: returncode: 128 args: ['git', 'ls-files']>, stdout = ''
+stderr = 'fatal: not a git repository (or any parent up to mount point /)\nStopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).\n'
+retcode = 128
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['git', 'ls-files']' returned non-zero exit status 128.
+
+/usr/lib/python3.13/subprocess.py:577: CalledProcessError
+_____________ test_the_real_chain_reaches_the_spec_two_helpers_up ______________
+
+    def test_the_real_chain_reaches_the_spec_two_helpers_up():
+        """probe-click.spec → layout-fixtures → macroFolder → macro_refusals.json
+        (Codex R256 TS256-01): a change to the helper or to its data selects
+        probe-click, not only macroFolder's direct importers."""
+>       g = selector.E2EGraph(ROOT, "HEAD")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scripts/test_select/test_selector.py:154: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/test_select/selector.py:97: in __init__
+    for p in git(repo, "ls-tree", "-r", "--name-only", head, "--", E2E).splitlines()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+repo = PosixPath('/tmp/codex-r280')
+args = ('ls-tree', '-r', '--name-only', 'HEAD', '--', 'lcnc-webui/e2e/')
+r = CompletedProcess(args=['git', 'ls-tree', '-r', '--name-only', 'HEAD', '--', 'lcnc-webui/e2e/'], returncode=128, stdout...ory (or any parent up to mount point /)\nStopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).\n')
+
+    def git(repo: Path, *args: str) -> str:
+        r = subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True)
+        if r.returncode != 0:
+>           raise SelectError(f"git {' '.join(args)}: {r.stderr.strip()}")
+E           test_select.selector.SelectError: git ls-tree -r --name-only HEAD -- lcnc-webui/e2e/: fatal: not a git repository (or any parent up to mount point /)
+E           Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+
+scripts/test_select/selector.py:47: SelectError
+________________________ test_a_listening_port_is_seen _________________________
+
+    def test_a_listening_port_is_seen():
+>       with socket.socket() as s:
+             ^^^^^^^^^^^^^^^
+
+scripts/test_select/test_selector.py:582: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <socket.socket fd=-1, family=0, type=0, proto=0>
+family = <AddressFamily.AF_INET: 2>, type = <SocketKind.SOCK_STREAM: 1>
+proto = 0, fileno = None
+
+    def __init__(self, family=-1, type=-1, proto=-1, fileno=None):
+        # For user code address family and type values are IntEnum members, but
+        # for the underlying _socket.socket they're just integers. The
+        # constructor of _socket.socket converts the given argument to an
+        # integer automatically.
+        if fileno is None:
+            if family == -1:
+                family = AF_INET
+            if type == -1:
+                type = SOCK_STREAM
+            if proto == -1:
+                proto = 0
+>       _socket.socket.__init__(self, family, type, proto, fileno)
+E       PermissionError: [Errno 1] Operation not permitted
+
+/usr/lib/python3.13/socket.py:233: PermissionError
+=========================== short test summary info ============================
+FAILED scripts/test_select/test_selector.py::test_every_rule_glob_matches_a_tracked_file
+FAILED scripts/test_select/test_selector.py::test_every_tracked_source_has_a_rule
+FAILED scripts/test_select/test_selector.py::test_the_real_chain_reaches_the_spec_two_helpers_up
+FAILED scripts/test_select/test_selector.py::test_a_listening_port_is_seen - ...
+4 failed, 47 passed in 3.01s
+
+===== selector-rerun.txt =====
+F.......F......................................F..F                      [100%]
+=================================== FAILURES ===================================
+_________ test_every_spec_is_named_by_a_rule_or_owned_by_the_full_run __________
+
+    def test_every_spec_is_named_by_a_rule_or_owned_by_the_full_run():
+        named = set().union(*(set(r.browser) for r in RULES if r.browser != FULL))
+>       assert sorted(spec_names() - named - set(FULL_ONLY)) == []
+E       AssertionError: assert ['r280-prior-probe'] == []
+E         
+E         Left contains one more item: 'r280-prior-probe'
+E         Use -v to get more diff
+
+/tmp/codex-r280/scripts/test_select/test_selector.py:42: AssertionError
+_____________ test_the_real_chain_reaches_the_spec_two_helpers_up ______________
+
+    def test_the_real_chain_reaches_the_spec_two_helpers_up():
+        """probe-click.spec → layout-fixtures → macroFolder → macro_refusals.json
+        (Codex R256 TS256-01): a change to the helper or to its data selects
+        probe-click, not only macroFolder's direct importers."""
+>       g = selector.E2EGraph(ROOT, "HEAD")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/codex-r280/scripts/test_select/test_selector.py:154: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/codex-r280/scripts/test_select/selector.py:97: in __init__
+    for p in git(repo, "ls-tree", "-r", "--name-only", head, "--", E2E).splitlines()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+repo = PosixPath('/tmp/codex-r280')
+args = ('ls-tree', '-r', '--name-only', 'HEAD', '--', 'lcnc-webui/e2e/')
+r = CompletedProcess(args=['git', 'ls-tree', '-r', '--name-only', 'HEAD', '--', 'lcnc-webui/e2e/'], returncode=128, stdout='', stderr='fatal: Not a valid object name HEAD\n')
+
+    def git(repo: Path, *args: str) -> str:
+        r = subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True)
+        if r.returncode != 0:
+>           raise SelectError(f"git {' '.join(args)}: {r.stderr.strip()}")
+E           test_select.selector.SelectError: git ls-tree -r --name-only HEAD -- lcnc-webui/e2e/: fatal: Not a valid object name HEAD
+
+/tmp/codex-r280/scripts/test_select/selector.py:47: SelectError
+_____ test_a_worker_slot_is_a_whole_index_in_range_and_nothing_else_binds ______
+
+    def test_a_worker_slot_is_a_whole_index_in_range_and_nothing_else_binds():
+        probe = ("import('" + (E2E / "mockSlot.mjs").as_uri() + "').then(m => console.log(JSON.stringify("
+                 "[undefined, '0', '3', '15', '16', '-1', '1.5', ' 2', '', 'x'].map(i => m.mockUrl(i)))))")
+        out = json.loads(subprocess.run(["node", "-e", probe], capture_output=True, text=True, check=True).stdout)
+        u = "http://mock-unbound.invalid/"
+>       assert out == [u, "http://localhost:4500/", "http://localhost:4503/", "http://localhost:4515/", u, u, u, u, u, u]
+E       AssertionError: assert ['http://mock...nvalid/', ...] == ['http://mock...nvalid/', ...]
+E         
+E         At index 1 diff: 'http://localhost:4594/' != 'http://localhost:4500/'
+E         Use -v to get more diff
+
+/tmp/codex-r280/scripts/test_select/test_selector.py:644: AssertionError
+_________ test_the_ports_checked_are_the_preview_and_every_worker_slot _________
+
+    def test_the_ports_checked_are_the_preview_and_every_worker_slot():
+        assert round_gate.ports(3) == [4173, 4500, 4501, 4502]
+        assert round_gate.ports(1) == [4173, 4500]
+        mock_slot = (E2E / "mockSlot.mjs").read_text()
+>       assert f"MOCK_BASE_PORT = {round_gate.SLOT_BASE};" in mock_slot, "one slot base"
+E       AssertionError: one slot base
+E       assert 'MOCK_BASE_PORT = 4500;' in '// The mock a worker talks to (per-worker mock, Codex R261/R262 PM261-02):\n// one slot per Playwright parallel index...(index) {\n  const slot = slotOf(index);\n  return slot === null ? UNBOUND : `http://localhost:${portOf(slot)}/`;\n}\n'
+
+/tmp/codex-r280/scripts/test_select/test_selector.py:747: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../tmp/codex-r280/scripts/test_select/test_selector.py::test_every_spec_is_named_by_a_rule_or_owned_by_the_full_run
+FAILED ../../../tmp/codex-r280/scripts/test_select/test_selector.py::test_the_real_chain_reaches_the_spec_two_helpers_up
+FAILED ../../../tmp/codex-r280/scripts/test_select/test_selector.py::test_a_worker_slot_is_a_whole_index_in_range_and_nothing_else_binds
+FAILED ../../../tmp/codex-r280/scripts/test_select/test_selector.py::test_the_ports_checked_are_the_preview_and_every_worker_slot
+4 failed, 47 passed in 3.72s
+
+===== selector-clean.txt =====
+...................................................                      [100%]
+51 passed in 5.22s
+
+===== browser.txt =====
+
+Running 64 tests using 1 worker
+
+(node:414387) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:414387) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FRAME-AUDIT [{"key":"L40@40","inView":false,"atFrame":"L40@40","at":1793843066795.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L40@40","at":1793843066812.8,"dropped":true},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843066833.6,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843066843.6,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843066860.1,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843066877.4,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843066893.2,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843066910.7,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843066926.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843066944.1,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843066961.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843066977.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843066994,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843067010.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843067027.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843067043.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843067061.2,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843067080.6,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843067094.2,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843067110.6,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843067126.7,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843067143.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843067161.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843067177.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843067193.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843067210.6,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793843067227.5,"dropped":false}]
+  ✓   1 [e2e] › e2e/r280-prior-probe.spec.ts:17:1 › R279 RAF input: the list scrolled away: the next marked row snaps to the middle, its highlight in view at once (3.5s)
+  ✓   2 [e2e] › e2e/sim-panel.viewer.spec.ts:46:1 › the list is the timeline's marks: one row each, in timeline order, each kind in its words (2.7s)
+  ✓   3 [e2e] › e2e/sim-panel.viewer.spec.ts:92:3 › desktop: a mark's glyph sits on its row's line — in the Sim tab as in the Program tab (2.6s)
+  ✓   4 [e2e] › e2e/sim-panel.viewer.spec.ts:92:3 › touch-fullhd: a mark's glyph sits on its row's line — in the Sim tab as in the Program tab (2.4s)
+  ✓   5 [e2e] › e2e/sim-panel.viewer.spec.ts:115:1 › a row shows its finding; the steps go through the shown kind; the next row follows the position (3.1s)
+  ✓   6 [e2e] › e2e/sim-panel.viewer.spec.ts:147:1 › a long list is a window: 400 rows, the count and the steps reach every target, one mark per column (plan 4.4) (4.5s)
+  ✓   7 [e2e] › e2e/sim-panel.viewer.spec.ts:296:1 › a long list fills in portions: the first at once, the rest a portion a frame — the height and the columns never move (Codex R164 VP-I120) (3.7s)
+  ✓   8 [e2e] › e2e/sim-panel.viewer.spec.ts:309:1 › the spacers' row height is measured where the rows are seen — never in a hidden tab (5.1s)
+  ✓   9 [e2e] › e2e/sim-panel.viewer.spec.ts:364:1 › a list that begins to fill in a hidden tab and is shown between its portions: measured once seen (2.9s)
+  ✓  10 [e2e] › e2e/sim-panel.viewer.spec.ts:381:1 › a size change after a list was measured: the next list fills at its own pitch (Codex R165) (3.9s)
+  ✓  11 [e2e] › e2e/sim-panel.viewer.spec.ts:393:1 › between the portions: the keys reach a row not yet rendered, a filter change and a new program begin anew, nothing stale stays (Codex R164 VP-I120) (4.8s)
+  ✓  12 [e2e] › e2e/sim-panel.viewer.spec.ts:427:1 › the list keeps ONE tab stop while it fills around a focus far from the regular one — Tab enters it, the focus stays (Codex R165 VP-I121) (3.8s)
+  ✓  13 [e2e] › e2e/sim-panel.viewer.spec.ts:467:1 › a moved window keeps the picture: the row shown before stays where it was, then the list glides (plan 4.4) (6.5s)
+  ✓  14 [e2e] › e2e/sim-panel.viewer.spec.ts:517:1 › a new result keeps the list where it was scrolled; a new position brings it back (5.7s)
+  ✓  15 [e2e] › e2e/sim-panel.viewer.spec.ts:578:1 › a limit row stands at its own move and reads its origin's line, never a raw number's (3.4s)
+  ✓  16 [e2e] › e2e/sim-panel.viewer.spec.ts:654:3 › code marks: a called file's limit marks its call (2.5s)
+  ✓  17 [e2e] › e2e/sim-panel.viewer.spec.ts:654:3 › code marks: a record with no place marks no raw number (2.8s)
+  ✓  18 [e2e] › e2e/sim-panel.viewer.spec.ts:654:3 › code marks: a move no line of the program shows marks nothing (2.6s)
+  ✓  19 [e2e] › e2e/sim-panel.viewer.spec.ts:663:1 › a row with more stretches than its record carries says how many the timeline shows (2.8s)
+  ✓  20 [e2e] › e2e/sim-panel.viewer.spec.ts:674:1 › a row of two capped axes says each axis's numbers (2.7s)
+  ✓  21 [e2e] › e2e/sim-panel.viewer.spec.ts:692:1 › the timeline: no progress lane over the track, opaque findings, ticks without a light edge, glyphs apart (3.6s)
+  ✓  22 [e2e] › e2e/sim-panel.viewer.spec.ts:745:1 › the rows' keys move the focus, never a jog; Enter shows; the machine on explains at the row (3.9s)
+  ✓  23 [e2e] › e2e/sim-panel.viewer.spec.ts:767:1 › stepping through the findings never changes the bar: the same box, the same timeline (12.3s)
+  ✓  24 [e2e] › e2e/sim-panel.viewer.spec.ts:801:1 › a result change under the focus keeps it in the panel; no arrow jogs (4.3s)
+  ✓  25 [e2e] › e2e/sim-panel.viewer.spec.ts:832:1 › a part left out of the check stays marked, with or without moving pairs (3.4s)
+  ✓  26 [e2e] › e2e/sim-panel.viewer.spec.ts:870:1 › the bar's coverage after the check: 100 % where the route was checked, nothing where nothing was (3.4s)
+  ✓  27 [e2e] › e2e/sim-panel.viewer.spec.ts:913:1 › the steps through mixed kinds follow the list's own order, ties included (4.5s)
+  ✓  28 [e2e] › e2e/sim-panel.viewer.spec.ts:939:1 › a tool change shown after a finding ends the finding's reveal, the stored layer untouched (3.5s)
+  ✓  29 [e2e] › e2e/sim-panel.viewer.spec.ts:970:1 › a tool change shown after a finding on a hidden rapid ends the rapids' reveal (3.2s)
+  ✓  30 [e2e] › e2e/sim-panel.viewer.spec.ts:1010:1 › the list follows the position: the marked row stays in the middle of its view (2.9s)
+  ✓  31 [e2e] › e2e/sim-panel.viewer.spec.ts:1052:1 › playback at ×100 with normal motion: the marked row's highlight never leaves the list's view (7.9s)
+  ✓  32 [e2e] › e2e/sim-panel.viewer.spec.ts:1092:38 › the list scrolled away: the next marked row snaps to the middle, its highlight in view at once (4.9s)
+  ✓  33 [e2e] › e2e/sim-panel.viewer.spec.ts:1092:38 › the list scrolled away: the next marked row snaps to the middle, its highlight in view at once — the scrub inside an animation frame (Codex R279 FI-I16) (3.9s)
+  ✓  34 [e2e] › e2e/sim-panel.viewer.spec.ts:1167:1 › a row waiting for its step, the list scrolled away: the next row snaps, its highlight in view (4.7s)
+  ✓  35 [e2e] › e2e/sim-panel.viewer.spec.ts:1238:1 › playback at ×50: the marked row's highlight stands still while the list steps under it, on a row between the steps (5.6s)
+  ✓  36 [e2e] › e2e/sim-panel.viewer.spec.ts:1298:1 › the summary line is always there: a re-check moves nothing under it (3.9s)
+  ✓  37 [e2e] › e2e/sim-panel.viewer.spec.ts:1324:1 › the summary names each kind: words in the wide pane, the glyph and the number narrow; a capped list says so (6.6s)
+  ✓  38 [e2e] › e2e/sim-panel.viewer.spec.ts:1372:1 › a predicted measurement: the summary's "?" says where the toolsetter values come from (3.0s)
+  ✓  39 [e2e] › e2e/sim-panel.viewer.spec.ts:1385:1 › a tool measurement the preview cannot predict: the summary, the time and the rows say what is not known (3.1s)
+  ✓  40 [e2e] › e2e/sim-panel.viewer.spec.ts:1412:1 › a measurement without a verified call line is on no row: the "?" points to Program Stats (3.4s)
+  ✓  41 [e2e] › e2e/sim-panel.viewer.spec.ts:1425:1 › the summary's "?" answers in its whole hit area, at the right edge of a full line (3.0s)
+  ✓  42 [e2e] › e2e/sim-panel.viewer.spec.ts:1457:3 › the check basis card by touch (step 4 plan 1c) › a tap opens the card in the window; its trigger and a tap outside close it; nothing is sent (3.2s)
+  ✓  43 [e2e] › e2e/sim-panel.viewer.spec.ts:1511:5 › the summary keeps every statement in its line (Codex R136 VP-I94) › a mixed result of 200 findings — desktop (3.9s)
+  ✓  44 [e2e] › e2e/sim-panel.viewer.spec.ts:1511:5 › the summary keeps every statement in its line (Codex R136 VP-I94) › a mixed result of 200 findings — touch-landscape (3.6s)
+  ✓  45 [e2e] › e2e/sim-panel.viewer.spec.ts:1511:5 › the summary keeps every statement in its line (Codex R136 VP-I94) › a mixed result of 200 findings — touch-portrait at 150 % (5.3s)
+  ✓  46 [e2e] › e2e/sim-panel.viewer.spec.ts:1575:1 › the scrub bar: the speed beside Play is the ONE speed (none in the Sim tab), the link opens the Sim tab, no band over the track (4.2s)
+  ✓  47 [e2e] › e2e/sim-panel.viewer.spec.ts:1603:3 › the scrub bar: Play and the Sim tab link as tall as the speed select, live and dimmed (desktop) (3.9s)
+  ✓  48 [e2e] › e2e/sim-panel.viewer.spec.ts:1603:3 › the scrub bar: Play and the Sim tab link as tall as the speed select, live and dimmed (touch-landscape) (3.7s)
+  ✓  49 [e2e] › e2e/sim-panel.viewer.spec.ts:1657:3 › the bar's time slot holds still from the simulation to a run's start: short (4.9s)
+  ✓  50 [e2e] › e2e/sim-panel.viewer.spec.ts:1657:3 › the bar's time slot holds still from the simulation to a run's start: two hours (3.7s)
+  ✓  51 [e2e] › e2e/sim-panel.viewer.spec.ts:1657:3 › the bar's time slot holds still from the simulation to a run's start: 30 h with an unknown end (4.1s)
+  ✓  52 [e2e] › e2e/sim-panel.viewer.spec.ts:1657:3 › the bar's time slot holds still from the simulation to a run's start: 30 h with an unknown end, narrow at 150 % (4.7s)
+  ✓  53 [e2e] › e2e/sim-panel.viewer.spec.ts:1694:1 › a program near an hour with an entry move: one time form in the bar, the Sim tab and the Program tab, through the simulation's end and a run's start (4.4s)
+  ✓  54 [e2e] › e2e/sim-panel.viewer.spec.ts:1740:3 › a new publication takes its own time form: a 2 h program's entry move holds nothing of a 2 min one (the same file, a new version) (3.8s)
+  ✓  55 [e2e] › e2e/sim-panel.viewer.spec.ts:1740:3 › a new publication takes its own time form: a 2 h program's entry move holds nothing of a 2 min one (another file) (3.5s)
+  ✓  56 [e2e] › e2e/sim-panel.viewer.spec.ts:1755:1 › a distance axis is no time: 4000 mm without a time axis leave the Program tab's clock in its estimate's form (3.1s)
+  ✓  57 [e2e] › e2e/sim-panel.viewer.spec.ts:1779:3 › the scrub bar's timeline holds 3 : 1 against the card over the page and over geometry, and against its thumb, in and out of the simulation (light) (3.3s)
+  ✓  58 [e2e] › e2e/sim-panel.viewer.spec.ts:1779:3 › the scrub bar's timeline holds 3 : 1 against the card over the page and over geometry, and against its thumb, in and out of the simulation (dark) (3.1s)
+  ✓  59 [e2e] › e2e/sim-panel.viewer.spec.ts:1779:3 › the scrub bar's timeline holds 3 : 1 against the card over the page and over geometry, and against its thumb, in and out of the simulation (hc-light) (3.2s)
+  ✓  60 [e2e] › e2e/sim-panel.viewer.spec.ts:1779:3 › the scrub bar's timeline holds 3 : 1 against the card over the page and over geometry, and against its thumb, in and out of the simulation (hc-dark) (3.1s)
+  ✓  61 [e2e] › e2e/sim-panel.viewer.spec.ts:1800:1 › a portrait viewer: two rows — Sim, Play, the speed and the link above, the timeline with the coverage and the time below (2.8s)
+  ✓  62 [e2e] › e2e/sim-panel.viewer.spec.ts:1821:3 › a 2 min program at 150 % portrait: two rows, the timeline keeps 120 px, the time whole (2.8s)
+  ✓  63 [e2e] › e2e/sim-panel.viewer.spec.ts:1821:3 › a 6 h program at 150 % portrait: two rows, the timeline keeps 120 px, the time whole (2.8s)
+  ✓  64 [e2e] › e2e/sim-panel.viewer.spec.ts:1821:3 › a 30 h program at 150 % portrait: two rows, the timeline keeps 120 px, the time whole (2.7s)
+
+  64 passed (4.2m)
+
+===== pending-browser.txt =====
+
+Running 3 tests using 1 worker
+
+(node:421175) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:421175) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [e2e] › e2e/r280-pending-probe.spec.ts:17:1 › R280 pending follow: a further row must snap when the held band leaves the view (5.6s)
+(node:421426) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:421426) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [e2e] › e2e/r280-pending-probe.spec.ts:17:1 › R280 pending follow: a further row must snap when the held band leaves the view (5.9s)
+(node:421691) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:421691) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 [e2e] › e2e/r280-pending-probe.spec.ts:17:1 › R280 pending follow: a further row must snap when the held band leaves the view (5.5s)
+
+
+  1) [e2e] › e2e/r280-pending-probe.spec.ts:17:1 › R280 pending follow: a further row must snap when the held band leaves the view 
+
+    Error: the first frame too: a pending follow cannot leave the next highlight off screen
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 8
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "at": 1793843247111.8,
+    +     "band": false,
+    +     "inView": false,
+    +     "key": "L42@42",
+    +   },
+    + ]
+
+      73 |   const next=result.samples.filter((s:any)=>s.key===target);
+      74 |   expect(next.length).toBeGreaterThan(5);
+    > 75 |   expect(next.filter((s:any)=>!s.inView),'the first frame too: a pending follow cannot leave the next highlight off screen').toEqual([]);
+         |                                                                                                                              ^
+      76 | });
+      77 |
+        at /tmp/codex-r280-guards/lcnc-webui/e2e/r280-pending-probe.spec.ts:75:126
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r280-pending-probe-R280-pe-a65de-e-held-band-leaves-the-view-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r280-pending-probe-R280-pe-a65de-e-held-band-leaves-the-view-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r280-pending-probe-R280-pe-a65de-e-held-band-leaves-the-view-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r280-pending-probe-R280-pe-a65de-e-held-band-leaves-the-view-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [e2e] › e2e/r280-pending-probe.spec.ts:17:1 › R280 pending follow: a further row must snap when the held band leaves the view 
+
+    Error: the first frame too: a pending follow cannot leave the next highlight off screen
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 8
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "at": 1793843254178.1,
+    +     "band": false,
+    +     "inView": false,
+    +     "key": "L42@42",
+    +   },
+    + ]
+
+      73 |   const next=result.samples.filter((s:any)=>s.key===target);
+      74 |   expect(next.length).toBeGreaterThan(5);
+    > 75 |   expect(next.filter((s:any)=>!s.inView),'the first frame too: a pending follow cannot leave the next highlight off screen').toEqual([]);
+         |                                                                                                                              ^
+      76 | });
+      77 |
+        at /tmp/codex-r280-guards/lcnc-webui/e2e/r280-pending-probe.spec.ts:75:126
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r280-pending-probe-R280-pe-a65de-e-held-band-leaves-the-view-e2e-repeat1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r280-pending-probe-R280-pe-a65de-e-held-band-leaves-the-view-e2e-repeat1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r280-pending-probe-R280-pe-a65de-e-held-band-leaves-the-view-e2e-repeat1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r280-pending-probe-R280-pe-a65de-e-held-band-leaves-the-view-e2e-repeat1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [e2e] › e2e/r280-pending-probe.spec.ts:17:1 › R280 pending follow: a further row must snap when the held band leaves the view 
+
+    Error: the first frame too: a pending follow cannot leave the next highlight off screen
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 8
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "at": 1793843261231.0999,
+    +     "band": false,
+    +     "inView": false,
+    +     "key": "L42@42",
+    +   },
+    + ]
+
+      73 |   const next=result.samples.filter((s:any)=>s.key===target);
+      74 |   expect(next.length).toBeGreaterThan(5);
+    > 75 |   expect(next.filter((s:any)=>!s.inView),'the first frame too: a pending follow cannot leave the next highlight off screen').toEqual([]);
+         |                                                                                                                              ^
+      76 | });
+      77 |
+        at /tmp/codex-r280-guards/lcnc-webui/e2e/r280-pending-probe.spec.ts:75:126
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r280-pending-probe-R280-pe-a65de-e-held-band-leaves-the-view-e2e-repeat2/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r280-pending-probe-R280-pe-a65de-e-held-band-leaves-the-view-e2e-repeat2/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r280-pending-probe-R280-pe-a65de-e-held-band-leaves-the-view-e2e-repeat2/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r280-pending-probe-R280-pe-a65de-e-held-band-leaves-the-view-e2e-repeat2/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    [e2e] › e2e/r280-pending-probe.spec.ts:17:1 › R280 pending follow: a further row must snap when the held band leaves the view 
+    [e2e] › e2e/r280-pending-probe.spec.ts:17:1 › R280 pending follow: a further row must snap when the held band leaves the view 
+    [e2e] › e2e/r280-pending-probe.spec.ts:17:1 › R280 pending follow: a further row must snap when the held band leaves the view 
+
+===== capture-browser.txt =====
+
+Running 1 test using 1 worker
+
+(node:422120) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:422120) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [e2e] › e2e/r280-pending-capture.spec.ts:17:1 › R280 pending follow: a further row must snap when the held band leaves the view (5.9s)
+
+
+  1) [e2e] › e2e/r280-pending-capture.spec.ts:17:1 › R280 pending follow: a further row must snap when the held band leaves the view 
+
+    Error: the first frame too: a pending follow cannot leave the next highlight off screen
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 8
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "at": 1793843276112.9,
+    +     "band": false,
+    +     "inView": false,
+    +     "key": "L42@42",
+    +   },
+    + ]
+
+      83 |   const next=result.samples.filter((s:any)=>s.key===target);
+      84 |   expect(next.length).toBeGreaterThan(5);
+    > 85 |   expect(next.filter((s:any)=>!s.inView),'the first frame too: a pending follow cannot leave the next highlight off screen').toEqual([]);
+         |                                                                                                                              ^
+      86 | });
+      87 |
+        at /tmp/codex-r280-guards/lcnc-webui/e2e/r280-pending-capture.spec.ts:85:126
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r280-pending-capture-R280--34705-e-held-band-leaves-the-view-e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r280-pending-capture-R280--34705-e-held-band-leaves-the-view-e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r280-pending-capture-R280--34705-e-held-band-leaves-the-view-e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r280-pending-capture-R280--34705-e-held-band-leaves-the-view-e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [e2e] › e2e/r280-pending-capture.spec.ts:17:1 › R280 pending follow: a further row must snap when the held band leaves the view 
+

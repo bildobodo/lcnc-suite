@@ -1,0 +1,16 @@
+{
+  "/tmp/codex-r280": {
+    "tracked_files": 6967,
+    "changed": [
+      "lcnc-webui/e2e/mockSlot.mjs"
+    ],
+    "lfs_verified": 95
+  },
+  "/tmp/codex-r280-guards": {
+    "tracked_files": 6967,
+    "changed": [
+      "lcnc-webui/e2e/mockSlot.mjs"
+    ],
+    "lfs_verified": 95
+  }
+}
