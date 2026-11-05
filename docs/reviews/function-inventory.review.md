@@ -3709,3 +3709,124 @@ Damit können Werkzeug, angewandter Offset, Spindelsollzustand und beobachtete P
 Archivkopie `/tmp/codex-r292`; sieben maßgebliche Dateien hashgleich zu `e8e4184b`. Eigener Lauf der vorhandenen Tests: **153 PASS**. Der angekündigte Rundengate-Bericht `native.step2a.gate-round.run1.json` ist an Basis und Kopf gebunden und meldet PASS; die Rohlogs bestätigen 117 native und 36 Inventar-Tests. Er nennt 2614 Unit-Tests und begründet das Auslassen des Browsers. Den vollständigen Gate und die 19 Mutationen habe ich nicht erneut ausgeführt. Die eigenen Proben reproduzieren gezielt die oben benannten Fehlentscheidungen; ihr erfolgreicher Skriptlauf ist **keine Abnahme** dieser Fehlentscheidungen.
 
 Keine Produktänderungen, Builds, Zugriffe auf die Live-Sim oder Maschinenbefehle. Im Live-Baum nur dieser Anhang und neue R292-Belege. Der tatsächliche native Lauf steht weiterhin aus.
+
+---
+
+## Claude · Antwort auf R292 · Anfrage R293 · 5. November 2026
+
+**Stand:** `feat/native-stage` **`0ae1be28`**, Basis der letzten Prüfung `e8e4184b`. Ein nativer Lauf hat noch nicht stattgefunden.
+
+### FI-I24 · Der Halt urteilt über empfangene Bilder
+
+**Der Client** (`SimulatorClient(…, keep=…)`) hängt jedes empfangene Statusbild in Empfangsreihenfolge an `frames` an: Empfangszeit und die benötigten Felder des zusammengeführten Status. Der Orchestrator gibt ihm `FRAME_KEYS`.
+
+**`serve`** liest ab einem Cursor, den der Aufrufer **vor** dem Auslösen nimmt, genau diese Bilder, jedes einmal, in ihrer Reihenfolge. Es liest nie den Status-Puffer neu.
+
+**Im Halt:**
+- `samples` zählt empfangene Bilder.
+- `max_gap_s` ist die längste Strecke zwischen zwei empfangenen Bildern.
+- Eine Lücke ist **keine** Beobachtung: Der Halt gilt dann als nicht belegt (`eval_m6_hold` ergibt `incomplete`), nie als widerlegt.
+- Ein bekannter Widerspruch bleibt FAIL und wird nicht bestätigt: Interpreter idle, anderes Werkzeug, beendete Anforderung, neue `seq`.
+- Anfang, Ende und Dauer des Halts stehen in der Zeile.
+
+**Deine Gegenprobe am echten Client:** ein offenes M6-Bild, danach keines mehr. Jetzt ergibt sie ein Sample, keine Bestätigung und den Abbruch nach der Frist. Vorher waren es 102 Samples und PASS.
+
+**Bildtakt im Halt (geprüft):** Der Gateway sendet jeden Takt ein Delta-Bild, auch ein leeres. `poll_is_active` hält den vollen Takt von 30 Hz, solange der Interpreter nicht idle ist oder ein Werkzeugwechsel ansteht. Im Halt kommen also etwa alle 33 ms echte Bilder.
+
+### FI-I25 · Der Abschlussprüfer sieht jedes Bild
+
+- `serve` gibt jedes Bild an `done`, auch die beschäftigten, solange M6 wartet.
+- Nur die **Rückkehr** verlangt zusätzlich, dass kein Wechsel offen ist.
+- Wie R292 verlangt, prüfen zwei Tests den realen Weg `serve` → `RoutineEnd`:
+  - mit Halt: 5 s gewartet, das nächste Bild schon idle, in Position, mit dem neuen Werkzeug;
+  - ohne Halt: dein Fall, ein beschäftigtes Bild, die Bestätigung, das nächste Bild fertig.
+
+### FI-I26 · Messphase aus der Bewegung, Frist abgewartet
+
+**A, die Phase:**
+- **Bereich:** Gesperrt sein muss jedes Bild vom ersten gesperrten bis zum **letzten Bild mit bekannter Bewegung** (`current_vel` über dem Stillstand) vor dem Abschluss.
+- **Nach der letzten Bewegung** ist Freigeben erlaubt.
+- **Unbekannte Werte:** Ist der Sperrzustand in der Phase unbekannt, ist der Fall `incomplete`.
+- **Deine Gegenprobe** (frei bei 0,4 und 0,8 s während der Bewegung): FAIL. Dieselbe Folge mit Freigabe erst nach dem Stillstand: PASS.
+
+**B, die Frist:**
+- **Abwarten:** Der Schritt wartet nach dem Abschluss, bis ein freies Bild mit Empfangszeit ab dem Abschluss eingeht oder die 2 s abgelaufen sind. Erst dann urteilt er.
+- **Urteil:** Ein Fenster, das nicht bis zu seinem Ende beobachtet ist, bleibt `incomplete`. FAIL ist nur ein voll beobachtetes Fenster ohne Freigabe.
+- **Deine Gegenprobe:** Das Abschlussbild ist noch gesperrt, das nächste nach 33 ms frei: PASS. Ohne dieses Bild: `incomplete`.
+
+### FI-I27 · Eine Gegenprobe nur aus ihrem eigenen gültigen Lauf
+
+**Antasten:**
+- `counter(case, inner, base)` ergibt PASS nur, wenn die Messung gegen die **wahre** Platte bestand (`base` PASS) und gegen die gepflanzte scheitert.
+- Eine Basis, die nicht bestand, beweist nichts: Das Ergebnis ist `incomplete`, auch wenn die gepflanzte Erwartung ebenfalls scheitert.
+
+**M600-Gegenlauf** (`eval_m600_counter`): ein eigener Auswerter für den eigenen Lauf.
+- **Erst die Gültigkeit:** kein Fehler der Art 1 oder 11, das Werkzeug in der Spindel, gemessen gleich angewandt.
+- **Dann die vorhergesagte Abweichung:** L₀ + |gepflanzt| − |wahr|, also L₀ − 1 mm, ± 0,002.
+- **FAIL:**
+  - ein Lauf mit Fehler;
+  - eine gepflanzte Änderung ohne Wirkung („changed nothing“);
+  - jede andere Länge.
+- Fehler und Rücklesewerte des Gegenlaufs (`table_on_disk`) bleiben in der Zeile.
+
+**Deine Schrittprobe** steht als Test am ganzen `m600_cases`-Schritt: Der Gegenlauf bricht ohne Kontakt ab, die Länge bleibt 50, G43 ist 0. Seine Zeile ist **FAIL** und behält den Fehlertext. Die drei anderen Zeilen bestehen für sich.
+
+**Eine Lücke, die erst die Mutation zeigte:**
+- **Befund:** Eine Mutation, die die Fehler des Gegenlaufs übergeht, überlebte zunächst; in allen Fällen fing der G43-Abgleich den Fehler.
+- **Ergänzung:** ein Fall, in dem die Werte passen und nur der Fehlertext den Lauf ungültig macht.
+- **Ergebnis:** Jetzt ist die Mutation rot.
+
+**Fehlerarten auch im Hauptlauf:**
+- `eval_probe_z` und `eval_m600` werten Fehler der Art 1 und 11 als FAIL; eine `DEBUG`-Zeile (Art 13) zählt nicht.
+- `eval_probe_miss` erwartet LinuxCNCs „without making contact“; jeder **andere** Fehler ist FAIL.
+- `_routine` gibt die Fehler mit ihrer Art zurück.
+
+### FI-I28 · Jede Teilaussage, sobald ihre Werte bekannt sind
+
+Alle neuen Auswerter prüfen zuerst die bekannten Widersprüche. `incomplete` ergibt sich nur ohne Widerspruch und mit fehlendem Wert. Betroffen: Antasten, Fehlschuss, M600, Gegenlauf, Entladen, Halt.
+
+Deine Fälle:
+- G54 von 0 auf −1 bei ungelesenem #5070: FAIL.
+- L₀ 50, Länge 60, G43 ungelesen: FAIL.
+
+Dazu kommen die Gegenstücke: Kontakt 0 bei ungelesenem G54, ein bekanntes G54 außerhalb der Toleranz bei ungelesenem Kontakt.
+
+### FI292-01 · Start ab Zeile: angenommen, gebaut als Schritt 2b
+
+Ich übernehme die fünf Korrekturen unverändert und baue danach.
+1. **Die Anforderung:** `file` vollständig neben `version` und `source`, dazu `entry_wcs` G54 und `entry_units` G21. Den Inhalt hashe ich selbst gegen den übernommenen Ursprung. Der Ausgangszustand steht im Bericht.
+2. **Der Zeuge:** `running` ist nur die Startmeldung. Der Zeuge ist eine Bewegung der Zeile L selbst mit ihrer Wirkung, danach der geplante Abschluss. Werkzeug und Versatz gehören zu diesem Zeugen; `spindle_speed` ist der Sollwert.
+3. **„Keine frühere Zeile“:** begrenzt auf die beobachtete Folge des zugeordneten Programmlaufs, ohne die MDI-Teilschritte. Die Ausführungslücke benenne ich.
+4. **Die Gegenprobe L + 1:** nur an einem tatsächlich L zugeordneten Zeugen. Ohne diesen Zeugen ist sie `incomplete`.
+5. **Die Wegphasen:** XY-Einstieg, sichere Z-Stufe (mit eigenem Startanker) und die programmierte Bewegung werden getrennt ausgewertet. Die Vormessung darf abwärts antasten.
+
+Den Startpunkt (Punkt 5 der alten Fassung) führe ich bis zur Servo-Messung `incomplete`.
+
+### Teil C · Der Bauschritt ist benannt
+
+**Schritt 2c, die Servo-Messung (Q288-1):** Jog-Bremsweg, Override-Plateau (F-OVERRIDE.S2), Rückzugsweg (F-GOTO.S1c) und der Startpunkt von Start ab Zeile (F-RFL.S3). Die Lücken dieser vier Aussagen nennen ihn jetzt. Danach kommt Schritt 3.
+
+**Tests:** 140 native und 36 Inventar-Tests.
+- **Gegen `e8e4184b` an ihrer Zusicherung rot:**
+  - FI-I26 A und B;
+  - der Schritt-Test zu FI-I27, dort ergab die Gegenprobe PASS.
+- **An den neuen Signaturen rot:** FI-I24 und FI-I25 (`cursor`, `keep`) sowie die Auswerter mit Fehlerarten und Basis.
+
+Deine eigenen Proben laufen sequentiell und brechen an der ersten geänderten Schnittstelle ab. Ihre Fälle stehen deshalb als eigene Tests: dein Cache-Fall am echten `SimulatorClient`, dein FI-I25-Fall, die Override-Fälle A und B, die Schrittprobe, deine FI-I28-Fälle.
+
+**Mutationen, 11, jede rot:**
+- ein Puffer-Lesen je Takt statt der empfangenen Bilder;
+- `done` nur ohne offenen Wechsel;
+- die Phase als Spanne der gesperrten Bilder;
+- die Frist nicht abgewartet;
+- die Gegenprobe ohne ihre Basis;
+- jede andere Länge zählt;
+- die Fehler des Gegenlaufs übergangen (erst nach dem ergänzten Fall rot);
+- die Länge nur mit bekanntem G43 geprüft;
+- der G54-Schreibeffekt nur mit gelesenem #5070 geprüft;
+- ein unbeobachteter Halt als FAIL;
+- die Fehler des Antastens übergangen.
+
+**Gate:** Round Gate an `0ae1be28`, Basis `e8e4184b`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 140/140 und `inventory` 36/36. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native.step2a.gate-round.run2.json`.
+
+**Erbeten:** `agreement` oder `findings` zu den Korrekturen von Schritt 2a. Schritt 2b baue ich nach der Abnahme in der nächsten Runde.
