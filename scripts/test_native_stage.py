@@ -1490,6 +1490,7 @@ def test_the_m600_step_refuses_a_counter_that_failed_for_another_reason(monkeypa
     monkeypatch.setattr(nr, "_routine", routine)
     monkeypatch.setattr(nr, "_short", short)
     monkeypatch.setattr(nr, "_to", lambda client, x, y, z: None)
+    monkeypatch.setattr(nr, "_vars", lambda client, nums: {n: client.vars[n] for n in nums})
     rows = nr.m600_cases()[1]({"client": c, "frames": frames, "plate": {"x": 10, "y": 10, "z": -180}})
     by = {r["case"]: r for r in rows}
     assert calls == [-180, -179], "the counter ran with #3102 planted 1 mm up"
@@ -1720,6 +1721,7 @@ def test_the_m600_step_predicts_the_counter_from_the_length_the_first_measuremen
     monkeypatch.setattr(nr, "_routine", routine)
     monkeypatch.setattr(nr, "_short", short)
     monkeypatch.setattr(nr, "_to", lambda client, x, y, z: None)
+    monkeypatch.setattr(nr, "_vars", lambda client, nums: {n: client.vars[n] for n in nums})
     rows = nr.m600_cases()[1]({"client": c, "frames": frames, "plate": {"x": 10, "y": 10, "z": -180}})
     by = {r["case"]: r for r in rows}
     assert by["m600-t1"]["status"] == "PASS", by["m600-t1"]
@@ -1818,6 +1820,12 @@ class RflClient(FrameClient):
             return {"vars": {str(k): self.vars[k] for k in kw["vars"]}}
         if cmd == "mdi":
             self.frames += [(t + 1.0, {**_IDLE, "task_mode": 3}), (t + 2.0, {**_IDLE, "task_mode": 3})]
+            if kw["text"].startswith("(DEBUG,"):
+                # the interpreter's answer to a tagged read: its line in the error channel
+                import re
+                tag = kw["text"][len("(DEBUG,"):].split()[0]
+                vals = " ".join(f"P{n}={self.vars[int(n)]:.6f}" for n in re.findall(r"#(\d+)", kw["text"]))
+                self.errors.append((t + 1.0, 13, f"{tag} {vals}"))
             return {"ok": True}
         if cmd == "load_file":
             self.preview_origin = {"file": kw["path"], "version": 3,
@@ -3024,7 +3032,7 @@ def test_the_probe_miss_reads_a_planted_5070(monkeypatch):
     for name, fn in {"plate_from_hal": lambda t: {"x": 10.0, "y": 10.0, "z": -180.0}, "_hal_texts": lambda ini: "",
                      "_set_tool_length": lambda c, t, l: None, "_short": short, "_routine": routine,
                      "_to": lambda c, x, y, z: None, "_g54_z": lambda st: g54["z"],
-                     "_read_params": lambda c, nums, tries=3: {n: params[n] for n in nums}}.items():
+                     "_read_params": lambda c, nums, tries=3: {n: params.get(n, 1.0) for n in nums}}.items():
         monkeypatch.setattr(nr, name, fn)
     monkeypatch.setattr(tc, "serve", lambda *a, **k: [])
     monkeypatch.setattr(tc.ToolChanges, "precheck", lambda self, st: None)
@@ -3068,8 +3076,36 @@ def test_each_t1_measurement_starts_where_its_return_is_reachable(monkeypatch):
     monkeypatch.setattr(nr, "_routine", routine)
     monkeypatch.setattr(nr, "_short", lambda client, text: client.status.__setitem__("tool_offset", [0, 0, client.table]))
     monkeypatch.setattr(nr, "_to", lambda client, x, y, z: order.append(("to", x, y, z)))
+    monkeypatch.setattr(nr, "_vars", lambda client, nums: {n: client.vars[n] for n in nums})
     nr.m600_cases()[1]({"client": c, "frames": [], "plate": {"x": 10, "y": 10, "z": -180}})
     t1 = [i for i, o in enumerate(order) if o == "T1 M600"]
     assert len(t1) == 2, order
     for i in t1:
         assert order[i - 1] == ("to", 10, 10, -(50.0 + nr.M600_CLEAR)), order
+
+
+def test_parameters_are_read_from_the_interpreter_not_the_var_file(monkeypatch):
+    """Live run 2026-11-05 (fifth): the reset wrote #3102 = -180 and its MDI
+    set the interpreter, but get_probe_vars read -179 — it reads the var
+    FILE, which an interp synch had rewritten from the interpreter's memory
+    between the file write and the MDI. A routine reads the interpreter:
+    _vars reads there (a tagged DEBUG line, in portions under LinuxCNC's
+    255-character line); a number not read ends the run."""
+    interp, asked = {3102: -180.0, 3100: 10.0}, []
+
+    class FileOnly:
+        def request(self, cmd, **kw):
+            assert cmd == "get_probe_vars"
+            return {"vars": {str(k): -179.0 for k in kw["vars"]}}   # the file before the next synch
+
+    def read_params(c, nums, tries=3):
+        asked.append(list(nums))
+        return {n: interp.get(n) for n in nums}
+    monkeypatch.setattr(nr, "_read_params", read_params)
+    assert nr._vars(FileOnly(), [3102, 3100]) == {3102: -180.0, 3100: 10.0}
+    asked.clear()
+    interp.update({n: 1.0 for n in nr.TOOLSETTER_VARS})
+    nr._vars(FileOnly(), nr.TOOLSETTER_VARS)
+    assert all(len(a) <= nr.VARS_PER_READ for a in asked) and sum(map(len, asked)) == len(nr.TOOLSETTER_VARS)
+    with pytest.raises(RuntimeError, match="3999"):
+        nr._vars(FileOnly(), [3102, 3999])

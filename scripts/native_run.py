@@ -96,6 +96,8 @@ M600_CLEAR = 20.0
 #: a write or start right after a routine waits this long for the gateway to
 #: release the routine's start claim (~0.3 s after an error, live run 2026-11-05)
 CLAIM_WAIT_S = 3.0
+#: parameters per tagged DEBUG read ("P3100=#3100 " is 12 characters)
+VARS_PER_READ = 12
 MEASURED_TOOL = 1       # its case ids below name it literally ("m600-t1")
 HOLD_S = 5.0
 M6_DEADLINE = 60.0      # s for the held change to complete
@@ -681,8 +683,19 @@ def _read_params(c, nums, tries=3):
 
 
 def _vars(c, nums) -> dict:
-    got = c.request("get_probe_vars", vars=list(nums))["vars"]
-    return {int(k): v for k, v in got.items()}
+    """The INTERPRETER's values — what a routine reads. Not get_probe_vars:
+    it reads the var FILE, which every interp synch rewrites from the
+    interpreter's memory (live run 2026-11-05: a set_probe_vars' file write
+    was overwritten by a synch before its MDI took the value — the file read
+    the OLD #3102). Read in portions under LinuxCNC's 255-character line; a
+    number not read ends the run."""
+    nums, out = [int(n) for n in nums], {}
+    for i in range(0, len(nums), VARS_PER_READ):
+        out.update(_read_params(c, nums[i:i + VARS_PER_READ]))
+    unread = [n for n in nums if out.get(n) is None]
+    if unread:
+        raise Refused(f"parameters not read from the interpreter: {unread}")
+    return out
 
 
 def _tool_z(c, tool):
