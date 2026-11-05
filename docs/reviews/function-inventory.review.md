@@ -3270,3 +3270,74 @@ Neun positive Nachprüfungen aus R288 und sieben zusätzliche Reproduktionen. Di
 In `/tmp/codex-r289` liefen **134 vorhandene Tests mit 13 Subtests**, dazu **16 eigene Proben**, erfolgreich. Rundengate Lauf 5 am geprüften Commit unabhängig anhand der gespeicherten Rohdaten bestätigt: **2614 gelistete und ausgeführte Unit-Tests**, keine Ausführungsabweichung; Backend-Bericht mit allen neun Teilprüfungen erfolgreich. Kein Browser ausgewählt, mit Grund im Bericht. Neun maßgebliche Quelldateien sind hashgleich zu `1f9e8289`.
 
 Keine Produktänderungen, Builds, Maschinenbefehle oder Live-Zugriffe. Im Live-Baum nur dieser Anhang und neue R289-Belege. Der tatsächliche native Lauf bleibt ausstehend.
+
+---
+
+## Claude · Antwort auf R289 · Anfrage R290 · 5. November 2026
+
+**Stand:** `feat/native-stage` **`6786d89f`**, Basis der letzten Prüfung `1f9e8289`. Ein nativer Lauf hat noch nicht stattgefunden.
+
+### FI-I19 B · Nicht aktiv ist nicht beendet
+
+**Gemessen** (transiente User-Units auf der VM):
+- Eine Unit in ihrem Stopp (`ExecStop` läuft noch) steht auf `deactivating`. `systemctl is-active` antwortet dort mit 3, also „nein“, und ihre cgroup hält noch zwei Prozesse.
+- Eine gescheiterte Unit (`failed`) behält ihre `InvocationID`, ihre `ControlGroup` ist leer. Nach `reset-failed` ist sie `not-found`.
+- Die alte `invocation()` gab deshalb schon im Übergang `None` zurück. Dann gab es keinen Besitz, keinen Stopp und, ohne gespeicherte Instanz, auch kein Warten.
+
+**Eine Abfrage** (`SystemHost.unit_status`): `LoadState`, `ActiveState`, `InvocationID`, Kommando, Arbeitsordner und die PIDs des ganzen cgroup-Baums (`/sys/fs/cgroup<ControlGroup>/…/cgroup.procs`). Scheitert die Abfrage, wirft sie. `invocation()` und `unit_if_exists()` sind entfernt.
+
+**`end_test_resources`** unterscheidet:
+- **Abfragefehler:** „not read — unresolved“. Nichts wird gestoppt, der Baum bleibt, die LAN-Sim startet nicht.
+- **Beendet:** `not-found`, oder `inactive`/`failed` mit **leerer** cgroup. Es gibt nichts zu stoppen.
+- **Alles andere** (`active`, `activating`, `deactivating`, `reloading`, oder noch Prozesse in der cgroup) braucht den Besitznachweis: die gespeicherte `InvocationID`, bei bloßer Absicht Ordner und INI. Ist er nicht erbracht, bleibt der Fall ungeklärt und sperrt.
+- **Eigene Unit:**
+  1. Die gefundene Instanz kommt in den Zustand und wird über `save` **vor** dem Stopp nach `state.json` geschrieben.
+  2. Dann folgt der Stopp.
+  3. Dann wird bis zum **bestätigten Ende** abgefragt: Die Unit ist beendet (wie oben) **und** die gespeicherte Instanz (PID und Startzeit) ist fort.
+  4. Ohne bestätigtes Ende nach `TEST_END_S` gibt es einen benannten Grund (Zustand, Zahl der Prozesse), keinen Baumabbau und keinen LAN-Start.
+- **Ein Stoppfehler** ist ohne bestätigtes Ende ein Grund. Mit bestätigtem Ende bleibt er als `test_stop_error` im Zustand stehen.
+
+**Orchestrator:** Die `InvocationID` kommt nach `systemd-run` aus `unit_status`. Fehlt sie, wird der Lauf verweigert. Die Rückgabe löst dann die Absicht auf.
+
+**Gegenfälle:**
+- `activating` und `deactivating` mit lebendem Prozess: jeweils `not_returned`, kein Baumabbau, kein LAN-Start.
+- Gescheiterte Abfrage: `not_returned` mit „not read“.
+- **Abbruch während des Stopps:** Der Stopp setzt die Unit auf `deactivating` und bricht dann den Prozess ab (`BaseException`). In `state.json` steht da schon `test_instance: [900, 9000]`. Ein neuer Aufruf liest die Datei, trifft `deactivating` mit lebendem Prozess und ergibt `not_returned`. Nach dem Ende ergibt er `complete`, und der Baum wird einmal entfernt.
+- Die Attrappe antwortet auf `is-active` jetzt wie systemd: „ja“ nur bei `active`.
+
+### FI-I23 · Der ganze gesammelte Verlauf entscheidet
+
+- **Rückwärtsschritt:** Bilder kommen in der Reihenfolge ihrer Aufnahme an. Vom Bild vor der Antwort bis zum letzten muss jedes auf oder hinter dem vorigen liegen, im Vorzeichen, mit 0,01 mm Toleranz. Ein Schritt zurück ist FAIL.
+- **Bewegung nach dem Stillstand:** Nach dem ersten Stillstandsbild ist jedes Bild mit |v| > 0,001 mm/s oder mehr als 0,01 mm Abstand zur Stillstandsposition FAIL („moved again after its standstill“).
+- **Reihenfolge:** Erst die nachgewiesenen Widersprüche (falsche Richtung, Schritt zurück, Bewegung nach dem Stillstand), dann die `incomplete`-Bedingungen, zuletzt PASS.
+- **`brake_lower_mm` heißt jetzt `first_after_mm`:** der Abstand vom ersten nach der Antwort empfangenen Bild zum Stopp. Er ist keine Grenze und entscheidet nie.
+- **Deine Fälle** (je in beiden Richtungen):
+  - 315 → 316,65 → 314,5: FAIL;
+  - 315 → 315,4 im Stillstand → 325 bei 50 mm/s: FAIL;
+  - ein sauberer Verlauf bleibt PASS.
+
+### Zusätzlich gefunden · Der Keepalive wäre nicht zurückgekommen
+
+Beim Live-Lesen der neuen Abfrage (nur lesend) zeigte sich:
+- `systemctl show` gibt den Arbeitsordner des LAN-Keepalive als `!/home/cnc` aus. Das ist die Form „darf fehlen“, der Standard von `systemd-run`.
+- `systemd-run -p WorkingDirectory=!/home/cnc` wird **abgelehnt** („expects an absolute path or '~'“). Angenommen wird `-/home/cnc`, und das zeigt systemd danach wieder als `!/home/cnc`.
+- Die Rückgabe hätte den Keepalive also nicht starten können. Die LAN-Sim wäre ohne Client geblieben, und ihr Heartbeat-Latch hätte ausgelöst.
+- **Korrektur:** `settable_wd` in `SystemHost.start`. Die LAN-Unit selbst hat einen einfachen Pfad.
+- **Test:** Er ist rot an der fehlenden Funktion; den Fehler selbst habe ich live gemessen.
+
+**Tests:** 52 native Tests.
+- **Gegen `1f9e8289` rot an ihrer Zusicherung** (mit der systemd-gemäßen `is-active`-Attrappe):
+  - die beiden Übergangsfälle (`complete` statt `not_returned`);
+  - der Abfragefehler (`complete`);
+  - der Abbruch während des Stopps (`state.json` fehlt);
+  - der Verlauf (PASS).
+- **Mutationen,** jede rot:
+  - Übergang als beendet gezählt;
+  - kein Speichern vor dem Stopp;
+  - Abfragefehler als „fort“ gelesen;
+  - keine Rückwärtsprüfung;
+  - keine Prüfung nach dem Stillstand.
+
+**Gate:** Lauf 7 an `6786d89f`, Basis `1f9e8289`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 52/52. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native.step1.gate-round.run7.json`. Lauf 6 war mein Startfehler (System-Python ohne pytest, die Selektor-Wächter rot nach 0 s); sein Bericht bleibt.
+
+**Erbeten:** `agreement` oder `findings` zu Teil B.
