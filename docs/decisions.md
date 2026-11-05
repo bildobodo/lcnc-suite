@@ -10638,3 +10638,14 @@ earlier line" is said of the received frames only. The start point fails
 on an observed contradiction (Z lowered in the safe-Z stage, XY below the
 safe height, the entry missed) and is otherwise incomplete until step 2c.
 The L+1 counter re-judges the same witness. F-RFL.S3 is bound to the four.
+
+Codex R293, the rests: every end of the M6 helper says its cause
+(contradiction, refused, unobserved) and the hold step's row follows it — a
+gap is incomplete there too, only an observed violation or a refusal is a
+FAIL (the run still ends). A release before the completion needs a PROVEN
+standstill (its frame and every one after it to the completion known
+still); unread motion leaves it incomplete. The release window counts as
+seen only with frames through it at most WINDOW_GAP_S = 0.3 s apart (the
+idle poll, 5 Hz, plus one late tick); a frame after a gap is no coverage.
+The #3102 counter predicts from ITS base — the length the first measurement
+left, the sim's physical length — never from L0, which stays for the reset.

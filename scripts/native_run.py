@@ -81,6 +81,7 @@ TOOLSETTER_VARS = (3004, 3005, 3006, 3007, 3009, 3010, 3013) + tuple(range(3100,
 M600_SLOW = 20.0
 MEASURED_TOOL = 1       # its case ids below name it literally ("m600-t1")
 HOLD_S = 5.0
+M6_DEADLINE = 60.0      # s for the held change to complete
 # step 2b, run from line (Codex R292 FI292-01): the program the run writes
 # into the copy's nc_files. Line 7 starts from the entry the dialog derives
 # (X100 Y100 in G54, G21 — scanEntryPositionBefore); every Z keeps the joint
@@ -593,10 +594,15 @@ def m600_cases():
                                                     for t, st in frames[-50:]):
             time.sleep(0.05)
         rows.append(nc.eval_override_lock("m600-t1-override-lock", [f for f in frames if f[0] >= r["t0"]], r["t0"]))
-        # the #3102 counter-probe: its OWN run, judged on its own (R292 FI-I27)
+        # the #3102 counter-probe: its OWN run, judged on its own (R292 FI-I27),
+        # predicted from ITS base — the length the first measurement left,
+        # which IS the sim's physical length (R293); L0 stays for the reset
+        base_c = _tool_z(c, tool)
         _, rc, length_c, g43_c, tool_c = measure({**ts, 3102: plate["z"] + 1})
-        crow = nc.eval_m600_counter("m600-t1.counter-3102", l0, true_3102=plate["z"], planted_3102=plate["z"] + 1,
-                                    length=length_c, g43=g43_c, tool_after=tool_c, tool=tool, errors=rc["errors"])
+        crow = nc.eval_m600_counter("m600-t1.counter-3102", base=base_c, true_3102=plate["z"],
+                                    planted_3102=plate["z"] + 1, length=length_c, g43=g43_c, tool_after=tool_c,
+                                    tool=tool, errors=rc["errors"])
+        crow["l0"] = l0
         crow["table_on_disk"] = _tool_z(c, tool)
         rows.append(crow)
         # the reset, read back: the table length, #3102, the applied offset
@@ -630,11 +636,14 @@ def m6_hold_case():
         c.request("tool_change", tool_number=PROBE_TOOL)
         end = tc.RoutineEnd()
         try:
-            tc.serve(c, changes, lambda t, st: end(t, st) and st.get("tool_number") == PROBE_TOOL, 60.0,
+            tc.serve(c, changes, lambda t, st: end(t, st) and st.get("tool_number") == PROBE_TOOL, M6_DEADLINE,
                      cursor=cursor)
         except tc.ToolChangeError as e:
-            raise StepFailed([{"case": "m6-hold", "status": "FAIL", "detail": str(e), "holds": changes.holds}],
-                             f"the M6 sequence ended: {e}") from None
+            # the run ends either way; the ROW says whether a frame disproved
+            # the hold or the frames never showed it (R293 FI-I24)
+            status = "incomplete" if e.cause == "unobserved" else "FAIL"
+            raise StepFailed([{"case": "m6-hold", "status": status, "detail": str(e), "cause": e.cause,
+                               "holds": changes.holds}], f"the M6 sequence ended: {e}") from None
         st = c.status
         return [nc.eval_m6_hold("m6-hold", changes.holds, before, st.get("tool_number"),
                                 (st.get("tool_offset") or [None] * 3)[2], PROBE_TOOL, PROBE_L0, HOLD_S)]

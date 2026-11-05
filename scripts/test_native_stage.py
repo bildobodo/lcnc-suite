@@ -1115,8 +1115,8 @@ def test_m600_measures_the_length_and_applies_the_same(length, g43, errors, stat
     (49.0005, 49.0005, 1, [(11, "Slow Tool Length Offset Probe Failed!")], "FAIL"),   # the values fit, the run did not
 ])
 def test_the_m600_counter_needs_its_own_run_and_the_predicted_deviation(length, g43, tool, errors, status):
-    r = nc.eval_m600_counter("m600-t1.counter-3102", 50.0, true_3102=-180.0, planted_3102=-179.0, length=length,
-                             g43=g43, tool_after=tool, tool=1, errors=errors)
+    r = nc.eval_m600_counter("m600-t1.counter-3102", base=50.0, true_3102=-180.0, planted_3102=-179.0,
+                             length=length, g43=g43, tool_after=tool, tool=1, errors=errors)
     assert r["status"] == status, r
 
 
@@ -1141,9 +1141,29 @@ def test_the_m600_lock_as_codex_drew_it_passes():
 
 
 def test_no_release_within_two_seconds_of_the_completion_fails():
-    frames = _lock([(0.03, True, 0.0), (0.2, False), (1.0, False), (1.033, False), (2.0, False), (3.1, False)],
-                   done_at=1.033)
+    window = [(1.033 + 0.2 * k, False) for k in range(12)]           # the idle cadence, through 3.233 s
+    frames = _lock([(0.03, True, 0.0), (0.2, False), (1.0, False)] + window, done_at=1.033)
     assert nc.eval_override_lock("m600-lock", frames, t_trigger=0.0)["status"] == "FAIL"
+
+
+def test_a_frame_after_the_window_is_no_coverage_of_it():
+    """Codex R293 FI-I26 B: locked at the completion, no frame for two
+    seconds, a locked one at 3.1 s — the window was not seen: incomplete."""
+    frames = _lock([(0.03, True, 0.0), (0.2, False), (1.0, False), (1.033, False), (3.1, False)], done_at=1.033)
+    r = nc.eval_override_lock("m600-lock", frames, t_trigger=0.0)
+    assert r["status"] == "incomplete" and "gap" in r["detail"], r
+
+
+def test_a_release_after_unknown_motion_is_no_proven_standstill():
+    """Codex R293 FI-I26 A: free at 0.4 and 0.8 s with the motion unread —
+    whether the axis stood there is not shown: incomplete; free at a known
+    standstill followed by known motion: FAIL."""
+    unknown = _lock([(0.03, True, 0.0), (0.2, False), (0.4, True, None), (0.8, True, None), (1.033, True)],
+                    done_at=1.033)
+    assert nc.eval_override_lock("m600-lock", unknown, t_trigger=0.0)["status"] == "incomplete"
+    resumed = _lock([(0.03, True, 0.0), (0.2, False), (0.4, True, 0.0), (0.8, True, 3.0), (1.033, True)],
+                    done_at=1.033)
+    assert nc.eval_override_lock("m600-lock", resumed, t_trigger=0.0)["status"] == "FAIL"
 
 
 def test_a_window_not_observed_to_its_end_is_not_yet_a_failure():
@@ -1559,3 +1579,105 @@ def test_a_subroutines_motion_is_never_the_witness_of_the_program_line():
     frames.insert(5, _rfl_frame(23.25, 3, (100, 100, -0.2), level=1, vel=5.0))
     r = _line(hist, frames)
     assert r["status"] == "PASS" and r["witness_line"] == L, r
+
+
+
+def test_the_counter_predicts_from_its_own_base_not_the_first_measurements():
+    """Codex R293 FI-I27: the first measurement left 49.9985 (within ± 0.002
+    of L0 50); the sim's physical length IS the table's — the counter run
+    starts from 49.9985 and gives 48.9970: within its own prediction."""
+    r = nc.eval_m600_counter("m600-t1.counter-3102", base=49.9985, true_3102=-180.0, planted_3102=-179.0,
+                             length=48.9970, g43=48.9970, tool_after=1, tool=1)
+    assert r["status"] == "PASS" and r["base"] == 49.9985, r
+
+
+# ── R293 FI-I24: a gap is no contradiction, up to the step's row ──────────
+def test_every_end_of_the_m6_helper_says_its_cause():
+    with pytest.raises(tc.ToolChangeError) as e:
+        _feed(tc.ToolChanges([1]), [_st(True, 2, 3)])
+    assert e.value.cause == "contradiction"
+    ch = tc.ToolChanges([99], hold_s=5.0)
+    with pytest.raises(tc.ToolChangeError) as e:
+        _feed(ch, [_st(True, 9, 99, number=1), _st(True, 9, 99, number=1, interp=1)])
+    assert e.value.cause == "contradiction"
+    c = FrameClient([(0.0, _st(True, 1, 1))])
+    with pytest.raises(tc.ToolChangeError) as e:
+        tc.serve(c, tc.ToolChanges([1], hold_s=5.0), lambda t, st: False, 0.2, cursor=0)
+    assert e.value.cause == "unobserved"
+    c.error = "closed"
+    with pytest.raises(tc.ToolChangeError) as e:
+        tc.serve(c, tc.ToolChanges([1]), lambda t, st: False, 0.2, cursor=0)
+    assert e.value.cause == "unobserved"
+
+    class Refusing(FrameClient):
+        def request(self, cmd, **kw):
+            raise RuntimeError("confirm_tool_change refused: Tool change request changed — confirm again")
+    with pytest.raises(tc.ToolChangeError) as e:
+        tc.serve(Refusing([(0.0, _st(True, 1, 1))]), tc.ToolChanges([1]), lambda t, st: False, 0.2, cursor=0)
+    assert e.value.cause == "refused"
+
+
+@pytest.mark.parametrize("arrive, status", [
+    ([(0.03, _st(True, 9, 99, number=1, interp=4))], "incomplete"),           # one frame, then none: unobserved
+    ([(0.03, _st(True, 9, 99, number=1, interp=4)), (0.06, _st(True, 9, 99, number=1, interp=1))], "FAIL"),
+])
+def test_the_hold_step_tells_a_gap_from_a_contradiction(monkeypatch, arrive, status):
+    """Codex R293 FI-I24 at the whole m6_hold_case: the run still ends (the
+    instance goes down), but only an observed violation is a FAIL."""
+    monkeypatch.setattr(nr, "M6_DEADLINE", 0.3)
+    c = FrameClient([(0.0, {**_IDLE, "tool_number": 1})], on={"tool_change": arrive})
+    with pytest.raises(nr.StepFailed) as e:
+        nr.m6_hold_case()[1]({"client": c})
+    assert e.value.rows[0]["case"] == "m6-hold" and e.value.rows[0]["status"] == status, e.value.rows
+    assert not any(cmd == "confirm_tool_change" for cmd, _ in c.sent)
+
+
+def test_the_m600_step_predicts_the_counter_from_the_length_the_first_measurement_left(monkeypatch):
+    """Codex R293 FI-I27 at the whole step: the first measurement leaves
+    49.9985 (the sim's physical length from then on), the counter run gives
+    48.9970 — PASS against its own base; L0 is what the reset restores."""
+    lock = lambda t, en, idle=False, vel=0.0: (t, {"feed_override_enabled": en, "interp_state": 1 if idle else 2,  # noqa: E731
+                                                    "current_vel": vel, "tool_change_seq": None,
+                                                    "tool_change_requested": False})
+
+    class Client:
+        def __init__(self):
+            self.status = {"tool_number": 99, "tool_offset": [0, 0, 50], "tool_table_z": 50.0}
+            self.vars = {n: 0 for n in nr.TOOLSETTER_VARS} | {3102: -180}
+            self.table = 50.0
+
+        def request(self, cmd, **kw):
+            if cmd == "get_tool_table":
+                return {"tools": [{"T": 1, "Z": self.table}]}
+            if cmd == "get_probe_vars":
+                return {"vars": {str(k): self.vars[k] for k in kw["vars"]}}
+            if cmd == "save_tool":
+                self.table = kw["z_offset"]
+                return {"ok": True}
+            if cmd == "set_probe_vars":
+                self.vars.update({int(k): v for k, v in kw["vars"].items()})
+                return {"ok": True}
+            raise AssertionError((cmd, kw))
+    c, frames, measured = Client(), [], iter([49.9985, 48.9970])
+
+    def routine(client, text, vars=None, **kw):
+        past = time.monotonic() - 10
+        if text == "T0 M600":
+            client.status.update(tool_number=0, tool_offset=[0, 0, 0])
+            return {"t0": 0, "t_done": past, "served": [{"tool": 0, "seq": 1}], "errors": []}
+        length = next(measured)
+        client.table = length                       # G10 L1: the table — the sim's physical length
+        client.status.update(tool_number=1, tool_table_z=length, tool_offset=[0, 0, length])
+        if not frames:
+            frames.extend([lock(0.03, True), lock(0.2, False, vel=1.0), lock(1.033, True, idle=True)])
+        return {"t0": 0, "t_done": past, "served": [{"tool": 1, "seq": 2}], "errors": []}
+
+    def short(client, text):
+        client.status["tool_offset"] = [0, 0, client.table]
+    monkeypatch.setattr(nr, "_routine", routine)
+    monkeypatch.setattr(nr, "_short", short)
+    rows = nr.m600_cases()[1]({"client": c, "frames": frames, "plate": {"x": 10, "y": 10, "z": -180}})
+    by = {r["case"]: r for r in rows}
+    assert by["m600-t1"]["status"] == "PASS", by["m600-t1"]
+    assert by["m600-t1.counter-3102"]["status"] == "PASS" and by["m600-t1.counter-3102"]["base"] == 49.9985, rows
+    assert c.table == 50.0 and c.status["tool_offset"][2] == 50.0, "L0 restored and applied"

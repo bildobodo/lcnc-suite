@@ -25,7 +25,15 @@ INTERP_IDLE = 1
 
 
 class ToolChangeError(RuntimeError):
-    """The sequence's tool changes did not go as declared — nothing more is confirmed."""
+    """The sequence's tool changes did not go as declared — nothing more is
+    confirmed. `cause` tells what ended it (R293 FI-I24): "contradiction" (a
+    received frame broke the rule), "refused" (the gateway refused the
+    confirmation) or "unobserved" (no frame, a value unread, the connection
+    gone, the deadline) — only the first two disprove anything."""
+
+    def __init__(self, message: str, cause: str = "contradiction"):
+        super().__init__(message)
+        self.cause = cause
 
 
 def _tool(st):
@@ -77,7 +85,8 @@ class ToolChanges:
         if req is True and seq is not None and seq != self.last_seq:
             tool = _tool(st)
             if tool is None:
-                raise ToolChangeError(f"request seq {seq}: the requested tool is unknown — not confirmed")
+                raise ToolChangeError(f"request seq {seq}: the requested tool is unknown — not confirmed",
+                                      "unobserved")
             if tool not in self.remaining:
                 if not self.remaining:
                     raise ToolChangeError(f"an undeclared tool change: T{tool} (every declared change "
@@ -108,7 +117,7 @@ class ToolChanges:
                                   f"not confirmed")
         interp = st.get("interp_state")
         if interp is None:
-            raise ToolChangeError("the interpreter state unknown during the hold — not confirmed")
+            raise ToolChangeError("the interpreter state unknown during the hold — not confirmed", "unobserved")
         if interp == INTERP_IDLE:
             raise ToolChangeError("the interpreter went idle during the hold — M6 did not wait")
         if st.get("tool_number") != h["tool_before"]:
@@ -155,7 +164,8 @@ def serve(client, changes: ToolChanges, done, deadline_s: float, cursor: int, ti
     end = time.monotonic() + deadline_s
     while True:
         if client.error:
-            raise ToolChangeError(f"the connection ended while waiting — nothing confirmed ({client.error})")
+            raise ToolChangeError(f"the connection ended while waiting — nothing confirmed ({client.error})",
+                                  "unobserved")
         frames = client.frames
         while cursor < len(frames):
             t, st = frames[cursor]
@@ -165,12 +175,14 @@ def serve(client, changes: ToolChanges, done, deadline_s: float, cursor: int, ti
                 try:
                     client.request("confirm_tool_change", request=act[1])
                 except RuntimeError as e:
-                    raise ToolChangeError(f"the confirmation of request {act[1]} was refused: {e}") from None
+                    raise ToolChangeError(f"the confirmation of request {act[1]} was refused: {e}",
+                                          "refused") from None
             finished = done(t, st)
             if changes.idle() and finished:
                 changes.ended_at = t
                 return changes.served
         if time.monotonic() > end:
             raise ToolChangeError(f"not done within {deadline_s} s" + ("" if changes.idle() else
-                                                                        f" — T{changes.current['tool']} pending"))
+                                                                        f" — T{changes.current['tool']} pending"),
+                                  "unobserved")
         time.sleep(tick)

@@ -136,6 +136,10 @@ PROBE_TOL = 0.003             # mm: (1.67 T)·v_slow + 1 µm — a model assumpt
 M600_TOL = 0.002              # mm: (1.67 T)·v_slow(20 mm/min) + 1 µm
 SAME = 1e-6                   # the applied G43 is the table value itself
 RELEASE_WITHIN = 2.0          # s after the confirmed completion (R285)
+# the release window is SEEN only with frames through it: after the
+# completion the gateway may poll at its idle rate (WEBUI_IDLE_POLL_HZ, 5 Hz
+# → 0.2 s) — one late tick on top (R293 FI-I26 B)
+WINDOW_GAP_S = 0.3
 NO_CONTACT = "without making contact"
 ERROR_KINDS = (1, 11)         # NML_ERROR, OPERATOR_ERROR — a DEBUG / text line (12, 13) is no failure
 
@@ -223,16 +227,17 @@ def eval_m600(case: str, l0, length, g43, tol: float = M600_TOL, errors=()) -> d
     return _row(case, "PASS", f"length {length:.4f} within {l0:g} ± {tol:g}, applied as measured", **measured)
 
 
-def eval_m600_counter(case: str, l0, true_3102: float, planted_3102: float, length, g43, tool_after, tool: int,
+def eval_m600_counter(case: str, base, true_3102: float, planted_3102: float, length, g43, tool_after, tool: int,
                       errors=(), tol: float = M600_TOL) -> dict:
     """The #3102 counter-probe, its OWN run (R292 FI-I27): it ran clean (no
     error, the tool in the spindle, its measured length applied) and its
-    length deviates from L0 by exactly what the plant predicts — the routine
-    takes ABS[#3102] + #5063 − offset, so L0 + |planted| − |true| — which
-    the check against L0 refuses. A planted value that changes nothing, a
-    failed run or any other length is this row's FAIL."""
-    predicted = None if not _finite(l0) else l0 + abs(planted_3102) - abs(true_3102)
-    measured = {"l0": l0, "planted_3102": planted_3102, "predicted": predicted, "length": length, "g43": g43,
+    length deviates from ITS base — the table length it started from, which
+    the sim takes as the physical one (R293) — by exactly what the plant
+    predicts: the routine takes ABS[#3102] + #5063 − offset, so base +
+    |planted| − |true|, ± tol per measurement. A planted value that changes
+    nothing, a failed run or any other length is this row's FAIL."""
+    predicted = None if not _finite(base) else base + abs(planted_3102) - abs(true_3102)
+    measured = {"base": base, "planted_3102": planted_3102, "predicted": predicted, "length": length, "g43": g43,
                 "tool_after": tool_after, "errors": list(errors), "counter": True}
     failed = _failures(errors)
     if failed:
@@ -241,16 +246,16 @@ def eval_m600_counter(case: str, l0, true_3102: float, planted_3102: float, leng
         return _row(case, "FAIL", f"T{tool_after} in the spindle after the counter run, T{tool} expected", **measured)
     if _finite(g43, length) and abs(g43 - length) > SAME:
         return _row(case, "FAIL", f"the counter run applied {g43:.4f}, measured {length:.4f}", **measured)
-    if _finite(l0, length):
-        if abs(length - l0) <= tol:
+    if _finite(base, length):
+        if abs(length - base) <= tol:
             return _row(case, "FAIL", f"the planted #3102 {planted_3102:g} changed nothing (length {length:.4f}) — "
                         f"the check would not see it", **measured)
         if abs(length - predicted) > tol:
-            return _row(case, "FAIL", f"length {length:.4f} is neither L0 {l0:g} nor the planted {predicted:g}",
-                        **measured)
-    if not _finite(l0, length, g43) or tool_after is None:
-        return _row(case, "incomplete", "L0, the length, the applied offset or the tool not read", **measured)
-    return _row(case, "PASS", f"the planted #3102 gave {length:.4f} as predicted — refused against L0 {l0:g}",
+            return _row(case, "FAIL", f"length {length:.4f} is neither its base {base:g} nor the planted "
+                        f"{predicted:g}", **measured)
+    if not _finite(base, length, g43) or tool_after is None:
+        return _row(case, "incomplete", "the base, the length, the applied offset or the tool not read", **measured)
+    return _row(case, "PASS", f"the planted #3102 gave {length:.4f} as predicted from {base:g} — refused against it",
                 **measured)
 
 
@@ -278,17 +283,24 @@ def eval_override_lock(case: str, frames: list[tuple], t_trigger: float) -> dict
                  and fresh[i][1].get("tool_change_seq") is None
                  and fresh[i][1].get("tool_change_requested") is False), None)
     stop = len(fresh) if done is None else done
-    moving = [i for i in range(first, stop) if _finite(fresh[i][1].get("current_vel"))
-              and abs(fresh[i][1]["current_vel"]) > STANDSTILL]
-    last_move = moving[-1] if moving else first
-    measured = {"locked_from_s": round(fresh[first][0] - t_trigger, 3),
-                "moving_to_s": round(fresh[last_move][0] - t_trigger, 3)}
-    free_inside = [i for i in range(first, last_move + 1) if en[i] is True]
-    if free_inside:
-        return _row(case, "FAIL", f"free at {fresh[free_inside[0]][0] - t_trigger:+.3f} s while the axis moves in "
-                    f"the measuring phase", **measured)
-    if any(en[i] is None for i in range(first, last_move + 1)):
-        return _row(case, "incomplete", "the lock not read in the measuring phase", **measured)
+    vel = [fresh[i][1].get("current_vel") for i in range(len(fresh))]
+    measured = {"locked_from_s": round(fresh[first][0] - t_trigger, 3)}
+    # a release before the completion is allowed only at a PROVEN standstill:
+    # its frame and every one after it to the completion stand still, known
+    # (R293 FI-I26 A — unread motion never shortens the phase)
+    unproven = None
+    for i in range(first, stop):
+        if en[i] is not False:
+            later = [j for j in range(i, stop) if _finite(vel[j]) and abs(vel[j]) > STANDSTILL]
+            if en[i] is True and later:
+                return _row(case, "FAIL", f"free at {fresh[i][0] - t_trigger:+.3f} s while the axis moves in the "
+                            f"measuring phase (at {fresh[later[0]][0] - t_trigger:+.3f} s)", **measured)
+            if unproven is None and (en[i] is None or any(not _finite(vel[j]) for j in range(i, stop))):
+                unproven = i
+    if unproven is not None:
+        what = "the lock not read" if en[unproven] is None else "free with the motion unread"
+        return _row(case, "incomplete", f"{what} at {fresh[unproven][0] - t_trigger:+.3f} s in the measuring phase",
+                    **measured)
     if done is None:
         return _row(case, "incomplete", "no confirmed completion received", **measured)
     t_done = fresh[done][0]
@@ -297,10 +309,19 @@ def eval_override_lock(case: str, frames: list[tuple], t_trigger: float) -> dict
     if free is not None:
         return _row(case, "PASS", "locked through the measuring phase, free after the routine",
                     free_s=round(free - t_trigger, 3), **measured)
-    if fresh[-1][0] > t_done + RELEASE_WITHIN:
+    # no release seen: a FAIL only if the window was SEEN — frames through
+    # it with no gap past WINDOW_GAP_S (a frame after it is no coverage)
+    times = [t for t, _ in fresh[done:]]
+    seen_to = t_done
+    for t in times[1:]:
+        if t - seen_to > WINDOW_GAP_S:
+            break
+        seen_to = t
+    measured["window_seen_to_s"] = round(seen_to - t_trigger, 3)
+    if seen_to >= t_done + RELEASE_WITHIN:
         return _row(case, "FAIL", f"not free within {RELEASE_WITHIN} s of the completion", **measured)
-    return _row(case, "incomplete", f"the {RELEASE_WITHIN} s after the completion not observed to their end",
-                **measured)
+    return _row(case, "incomplete", f"the {RELEASE_WITHIN} s after the completion not seen: a gap after "
+                f"{seen_to - t_done:.3f} s of them (frames at most {WINDOW_GAP_S} s apart)", **measured)
 
 
 def eval_m6_hold(case: str, holds: list[dict], tool_before, tool_after, offset_after, tool: int, length: float,
