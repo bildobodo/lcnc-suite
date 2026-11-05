@@ -2010,9 +2010,13 @@ def test_a_program_frame_at_a_skipped_phase_boundary_is_no_positioning_frame():
     end_first = [f for f in frames if f[0] < 23.3] + [_rfl_frame(23.3, 11, (200, 200, 0.0), vel=0.0, interp=1)]
     r = nc.eval_rfl_start_point("x", hist, end_first, entry_xy=(100.0, 100.0))
     assert r["status"] == "incomplete", r
+    # an EARLIER wrong MDI standstill, then the program's frame at the boundary:
+    # the earlier standstill proves no wrong END point (Codex R297) — the
+    # wrong entry stays a FAIL where the boundary frame IS the positioning's
+    # end (test_a_standstill_followed_by_positioning_motion_is_no_entry_proof)
     wrong = list(frames)
-    wrong[4] = _rfl_frame(22.9, 0, (100, 99.5, 0.0), mode=3, vel=0.0)    # a real wrong entry stays one
-    assert nc.eval_rfl_start_point("x", hist, wrong, entry_xy=(100.0, 100.0))["status"] == "FAIL"
+    wrong[4] = _rfl_frame(22.9, 0, (100, 99.5, 0.0), mode=3, vel=0.0)
+    assert nc.eval_rfl_start_point("x", hist, wrong, entry_xy=(100.0, 100.0))["status"] == "incomplete"
     unassigned = list(frames)
     unassigned[4] = _rfl_frame(22.9, 0, (100, 99.5, 0.0), mode=None, vel=0.0)   # whose frame is it? not known
     assert nc.eval_rfl_start_point("x", hist, unassigned, entry_xy=(100.0, 100.0))["status"] == "incomplete"
@@ -2049,3 +2053,25 @@ def test_program_frames_before_the_running_message_are_not_the_safe_z_stages():
               _rfl_frame(23.3, L, (11, 10, -0.5)), _rfl_frame(23.4, L, (30, 10, -45.0))]
     r = nc.eval_rfl_start_point("x", hist, frames, entry_xy=(100.0, 100.0))
     assert r["status"] == "incomplete", r
+
+
+
+def test_the_boundary_frame_itself_decides_never_an_earlier_standstill():
+    """Codex R297 FI-I29 A: standing at 10/10 when the positioning begins,
+    its move and its end never received, `starting` skipped — the next frame
+    is the program's (AUTO, line 7 at X 101): no proof of the entry, and the
+    standstill BEFORE the move is no end point (the whole step as Codex ran it)."""
+    hist = [(0.0, {"phase": "measuring", "ok": None}), (20.0, {"phase": "safe_z", "ok": None}),
+            (21.0, {"phase": "positioning", "ok": None}), (23.3, {"phase": "running", "ok": True})]
+    frames = [_rfl_frame(20.1, 0, (10, 10, -100), mode=3, vel=80.0), _rfl_frame(20.9, 0, (10, 10, 0.0), mode=3, vel=0.0),
+              _rfl_frame(21.1, 0, (10, 10, 0.0), mode=3, vel=0.0),
+              _rfl_frame(23.3, L, (101, 100, -0.5)), _rfl_frame(24.3, L, (150, 100, -25)),
+              _rfl_frame(25.3, 8, (200, 101, -50)), _rfl_frame(27.3, 9, (200, 200, -40)),
+              _rfl_frame(28.0, 11, (200, 200, 0.0), vel=0.0, interp=1)]
+    r = nc.eval_rfl_start_point("rfl-start-point", hist, frames, entry_xy=(100.0, 100.0))
+    assert r["status"] == "incomplete", r
+    assert _line(hist, frames)["status"] == "PASS"
+    # the same, the boundary frame the positioning's own end at the entry: no contradiction either
+    ended = frames[:3] + [_rfl_frame(23.3, 0, (100, 100, 0.0), mode=3, vel=0.0)] + frames[3:]
+    ended[4:] = [(t + 0.1, st) for t, st in ended[4:]]
+    assert nc.eval_rfl_start_point("x", hist, ended, entry_xy=(100.0, 100.0))["status"] == "incomplete"

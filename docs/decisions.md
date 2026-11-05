@@ -10685,3 +10685,10 @@ types its ends at its boundary: Refused (the gateway answered ok: false),
 NoReply, TransportLost (the library's ConnectionClosed, an OSError, a closed
 reader) — a programming error stays itself; only Refused is a refusal, at
 the auto_run and at the M6 confirmation alike, which is never repeated.
+
+Codex R297: the entry's proof is the ACTUAL last frame of the positioning
+window — chosen first, then judged: an MDI frame at a known standstill is
+the proof, the program's frame or one of unknown mode there leaves it
+unproven, and no earlier MDI standstill takes its place (filtering before
+the choice brought exactly that fallback back). An earlier wrong standstill
+followed by the program's boundary frame proves no wrong end point.

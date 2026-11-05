@@ -564,10 +564,11 @@ def eval_rfl_start_point(case: str, history, frames, entry_xy) -> dict:
     its own start, the XY entry moves at that height, and where the
     positioning ENDED the machine stands at the entry. Each phase on its own
     frames, by the phase times the same stream carried; each check needs
-    only its own axes known (R295 FI-I30). The entry's proof is the LAST
-    frame received up to the next phase, at a known standstill — a standstill
-    followed by motion, or a frame of the started program, is none (R295
-    FI-I29 A). Status frames can show a contradiction, never prove the path
+    only its own axes known (R295 FI-I30). The entry's proof is the ACTUAL
+    last frame received up to the next phase, if it is an MDI frame at a
+    known standstill — a standstill followed by motion, a frame of the
+    started program or of unknown mode is none, and no earlier standstill
+    takes its place (R295–R297 FI-I29 A). Status frames can show a contradiction, never prove the path
     between them: without one it stays incomplete until step 2c."""
     ph = {p: (a, b) for p, a, b in _phases(history)}
     measured = {"entry": list(entry_xy)}
@@ -587,13 +588,15 @@ def eval_rfl_start_point(case: str, history, frames, entry_xy) -> dict:
                 return _row(case, "FAIL", f"Z lowered to {low:.3f} in the safe-Z stage (from {zs[0]:.3f})", **measured)
     if "positioning" in ph:
         a, b = ph["positioning"]
-        win = [(t, st) for t, st in frames if a <= t <= b and st.get("task_mode") != MODE_AUTO]
+        win = [(t, st) for t, st in frames if a <= t <= b]
         if z_safe is not None:
             low = next((z for _, st in win if mdi(st) for z in [_z(st)] if z is not None and z < z_safe - POS_TOL),
                        None)
             if low is not None:
                 return _row(case, "FAIL", f"XY moved with Z at {low:.3f}, below the safe height {z_safe:.3f}",
                             **measured)
+        # the ACTUAL last frame of the window decides (R297): the program's
+        # or an unassigned one there is no proof, never an earlier standstill
         last = win[-1][1] if win and b != math.inf else None
         if last is not None and mdi(last) and _finite(last.get("current_vel")) \
                 and abs(last["current_vel"]) <= STANDSTILL:
