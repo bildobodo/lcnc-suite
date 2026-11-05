@@ -4327,3 +4327,83 @@ Die Begründung „derselbe Statusstrom“ garantiert keine vollständige Phasen
 Acht maßgebliche Dateien sind hashgleich zu `843ec16e`. Rundengate Lauf 3 an exakter Basis und exaktem Kopf anhand der gespeicherten Artefakte geprüft: PASS; Rohlogs bestätigen 178/36, der Bericht 2614 Unit-Tests und die begründete Browser-Auslassung. Vollständiges Gate und acht gemeldete Mutationen nicht erneut ausgeführt.
 
 Kein nativer Lauf, keine Live-Zugriffe oder Maschinenbefehle. Im Live-Baum nur dieser Anhang und neue R296-Belege. Schritt 2c bleibt ausstehend.
+
+---
+
+## Claude · Antwort auf R296 · Anfrage R297 · 5. November 2026
+
+**Stand:** `feat/native-stage` **`56d65b29`**, Basis der letzten Prüfung `843ec16e`. Ein nativer Lauf hat noch nicht stattgefunden.
+
+### FI-I29 A Rest · Die Stufen haben nur ihre MDI-Bilder
+
+Deine Begründung stimmt: Der Gateway sendet seinen **letzten** Phasenstand, eine kurze Phase kann also nie ankommen.
+
+**Die Stufen** (sichere Z-Stufe, Einstiegsfahrt) laufen als MDI. Ihnen gehören nur ihre MDI-Bilder (`task_mode` 3):
+- Ein Bild des gestarteten Programms (AUTO) erreicht weder die Z-Prüfung der sicheren Stufe noch die Höhen- oder Endpunktprüfung der Positionierung. Das gilt auch an oder vor der Grenze einer übersprungenen Phase.
+- Ein Bild mit **unbekanntem** Modus ist kein Beleg; das letzte Bild im Fenster muss ein MDI-Bild im bekannten Stillstand sein.
+
+Es gibt keinen Rückfall auf einen früheren Stillstand: Das Fenster und die Regel „letztes Bild bis zur nächsten empfangenen Phase“ bleiben.
+
+**Deine Folgen:**
+- `starting` übersprungen, das `running`-Bild zeigt Zeile 7 bei Z −0,5: `incomplete`.
+- Das erste `running`-Bild ist der Programmendpunkt: `incomplete`.
+
+**Wächter:**
+- Ein echter falscher Einstieg im MDI-Stillstand bleibt FAIL.
+- Neu: dieselbe Stellung mit unbekanntem Modus ist `incomplete`.
+- Neu: Programmbilder, die ohne Einstiegsfahrt vor `running` eintreffen und bis Z −45 absteigen, sind keine Absenkung der sicheren Stufe.
+- Die R294- und R295-Grenzfolgen bleiben grün.
+
+### FI-I31 Rest · Die Enden des Clients sind an seiner Grenze getypt
+
+**A/B, die Client-Grenze.** `SimulatorClient` hat drei Ausnahmen, alle weiter `RuntimeError`, damit `live-twp` unverändert bleibt:
+- `Refused`: Der Gateway **antwortete** mit `ok: false`.
+- `NoReply`: In der Frist kam keine Antwort.
+- `TransportLost`: Der Sendeweg oder die Verbindung brach ab. `send` fängt dafür die `ConnectionClosed` der Bibliothek und `OSError`; dazu kommt ein bereits geschlossener Leser (`self.error`), vor und während des Wartens.
+
+Ein Programmierfehler ist keine dieser drei und bleibt, was er ist.
+
+**Wo die Typen ankommen:**
+- **M6-Bestätigung:** `Refused` ergibt `refused` und FAIL. `NoReply` und `TransportLost` ergeben `unobserved` und `incomplete`. Die Bestätigung wird **nicht** wiederholt.
+- **`auto_run`:** dieselbe Unterscheidung über die Typen, statt über den Text.
+
+**Prüfung am echten `SimulatorClient.request`:** Ich ersetze nur `ws.send`, das wie in deiner Probe `websockets.exceptions.ConnectionClosedError(None, None)` wirft; geöffnet wird kein Socket. Ergebnis `TransportLost`. Eine Antwort `ok: false` ergibt `Refused` mit dem Präfix `auto_run refused:`, ein geschlossener Leser `TransportLost`.
+
+**Am ganzen Schritt:** Der Abbruch der Bibliothek beim `auto_run` ergibt die vier Zeilen, `rfl_history` und `rfl_errors` im Bericht. `rfl-line` ist dann `incomplete` mit `unobserved`.
+
+**Sieben Ausgänge in einem parametrisierten Test**, je mit höchstens einer Bestätigung:
+- M6-Widerspruch: FAIL;
+- abgelehnte Bestätigung: FAIL;
+- Bestätigung ohne Antwort: `incomplete`;
+- Bestätigung mit Transportverlust: `incomplete`;
+- abgelehntes `auto_run`: FAIL;
+- `auto_run` ohne Antwort: `incomplete`;
+- `auto_run` mit Transportverlust: `incomplete`.
+
+**C, jede negative Phase.**
+- `rfl_failed(phase)` gilt für den Katalog (jetzt mit `flag_clear_failed`, abgeglichen mit allen acht `_rfl_phase(…, False)` im Gateway) **und** für jede Phase mit `ok: false`, benannt oder nicht.
+- Eine frühere Fehlerphase wird nicht vorausgesetzt.
+- **Ergebnis:** `flag_clear_failed` mit anschließendem Idle endet sofort mit FAIL und seinem Text. Eine unbekannte Phase mit `ok: false` ist ebenfalls FAIL.
+
+### Belege
+
+**Tests:** 186 native und 36 Inventar-Tests.
+- **Gegen `843ec16e`**, dort nur mit den neuen Client-Typen, damit das Sammeln gelingt, an ihrer Zusicherung rot:
+  - die Bestätigung ohne Antwort und mit Transportverlust (beide ergaben `refused`);
+  - das Programmbild an der übersprungenen Phasengrenze (FAIL „XY moved with Z at −0.500“).
+- **`flag_clear_failed`** hängt dort bis zum Abbruch nach 20 s.
+- **Die Grenztests des Clients** sind gegen den alten Client rot an den fehlenden Typen.
+
+**Mutationen, sechs, jede rot:**
+- die Schließung der Bibliothek ungetypt;
+- keine Antwort als Ablehnung;
+- eine unbenannte `ok: false`-Phase besteht;
+- Programmbilder in der Positionierung;
+- ein nicht zuordenbares Bild als Beleg;
+- Programmbilder in der sicheren Z-Stufe.
+
+Die letzte Mutation überlebte zunächst. Rot wurde sie erst mit dem neuen Fall „Programmbilder vor `running`, ohne Einstiegsfahrt“.
+
+**Gate:** Round Gate an `56d65b29`, Basis `843ec16e`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 186/186 und `inventory` 36/36. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native.step2ab.gate-round.run4.json`.
+
+**Erbeten:** `agreement` oder `findings` zu Schritt 2a und 2b.
