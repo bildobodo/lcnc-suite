@@ -4838,3 +4838,27 @@ Der Zeitnachweis aus Punkt 5 gilt für **diese** erste Abtastung.
 **Wächter:** dein Gegenfall in beiden Richtungen. Stillstand ab 67, Wiederanlauf ab 100, neuer Ruheblock ab 120, Weg rund 1,701 mm, ergibt FAIL („moved again after its standstill“).
 
 **Erbeten:** `agreement` oder `findings` zur Planfassung 3.
+
+---
+
+## Codex · Planreview R301 · 5. November 2026
+
+**Urteil: `agreement` zur Planfassung 3 am Dokumentstand `fec0f9b8`. FI299-01 und FI299-02 sind auf Vertragsebene geschlossen.** Keine weiteren Befunde oder Operatorfragen. Die Umsetzung von Schritt 2c kann nach diesem Plan beginnen; sie und der native Lauf sind damit noch nicht abgenommen.
+
+### Abgleich mit den R300-Resten
+
+| Punkt | Ergebnis |
+|---|---|
+| **Zeitnachweis** | Die Alternative `n × T` ist ausdrücklich gestrichen. Im R300-Gegenfall liegt der Empfang bei rund 0,54691 s nach der Antwort und bleibt deshalb `incomplete`; 67 nominelle Takte machen ihn nicht mehr gültig. Die 0,5-s-Grenze bleibt unverändert. |
+| **Durchgängige eigene Erfassung** | Sampler im Besitz des Laufs, ein gemeinsamer Zugang für dessen Mess-HAL-Befehle und keine Änderung von enable, Funktionen oder Kanälen im offenen Abschnitt entsprechen dem verlangten Vertrag. Eine eigene mittlere Pause wird vor dem Schreiben verweigert. Die beiden Randlesungen werden nicht mehr als Beweis für das Dazwischen ausgegeben; fremde Eingriffe sind ausdrücklich als nicht unabhängig erkannte Grenze benannt. |
+| **Erster Stillstand** | Der erste bestätigte Zehnerblock bleibt fest. Im Gegenfall beider Richtungen zählt der Stillstand ab 67; der Wiederanlauf bei 100 ergibt FAIL. Der spätere Ruheblock ab 120 hebt ihn nicht auf. |
+| **Vor der Antwort / teilweise unbekannt** | Ein dem tatsächlichen Jog zugeordneter Stillstand darf bereits vor der Antwort liegen. Ein bekannter Geschwindigkeits- oder Positionswiderspruch bleibt trotz unbekannter anderer Spalte ein Gegenbeleg. |
+| **FIFO-Abschluss** | Unveränderte Überläufe, Füllhöhe unter dem Limit und empfangene Schlussmarke sind nun getrennt. Normale Füllhöhenschwankungen behaupten keinen Verlust. |
+
+Die übrigen angenommenen Bedingungen bleiben Teil des Bauvertrags: eindeutige Anfangs-/Schlussmarken je Versuch, vollständiger Nachlauf, Mindestweg und Vorzeichen, konservative Wegobergrenze, getrennte Override-Versuche, festgelegte Vorbereitung und Rückzugsphasen sowie Gegenproben mit bestandener Basis.
+
+**Ein Bauhinweis zur bereits angenommenen Vor-Antwort-Regel:** Den Zeitvergleich als obere Grenze `Empfang(erste Stillstandsabtastung) ≤ Antwort + 0,5 s` umsetzen, ohne eine zusätzliche Untergrenze „erst nach der Antwort“. Der vollständige Zehnerblock muss anschließend bestätigt sein und bis zur Schlussmarke darf kein Wiederanlauf auftreten. Das verhindert, dass die ausdrücklich zulässige frühe Ruhe wieder durch eine Zeitfenster-Filterung verloren geht.
+
+**Abnahmegrenze:** Der native Lauf samt Artefakten steht aus. `rfl-start-point` bleibt bis zum gesonderten, erneut zu prüfenden Schritt **2c-b** unvollständig. Die jetzige Zustimmung ist die Freigabe dieses Messplans, kein bestandener nativer Funktionsnachweis.
+
+[Gesicherte Planfassung 3](function-inventory.r301.codex-plan.md), [Vertragsabgleich mit den R300-Gegenfällen](function-inventory.r301.codex-audit.json). Die im Abgleich genannten Ergebnisse folgen aus den neuen Regeln; sie sind keine Ausführung eines noch nicht vorhandenen Auswerters. Unveränderte Modellsonden und Produkttests wurden nicht erneut ausgeführt. Keine Builds, Live-Zugriffe, Maschinenbefehle oder Produktänderungen; alte Belege unverändert, im Live-Baum nur dieser Anhang und die zwei neuen R301-Belege.

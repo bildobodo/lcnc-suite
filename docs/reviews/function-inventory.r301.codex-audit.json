@@ -1,0 +1,142 @@
+{
+  "kind": "plan/document review, no implementation executed",
+  "review_revision": "fec0f9b8ef0574e6ce956fd13065986bee19c4f2",
+  "code_revision": "5f68e2a16ec18813c4de10e045e16d172983ea7c",
+  "plan_sha256": "cf39b448faf4fb8b69161920e02e64ce56702285052782114db1abc7e7ae5480",
+  "unchanged_code_checks": [
+    {
+      "file": "scripts/test_support/native_cases.py",
+      "sha256": "a41a79533bc1341dd7cec14122c05e84fc038575ceb9d2d678987173ed9aac20"
+    },
+    {
+      "file": "scripts/inventory/functions.json",
+      "sha256": "bff4f2a7e9dac5a920698d422ec330b90088c368924e250d8d7ec996c46e4340"
+    },
+    {
+      "file": "scripts/native_run.py",
+      "sha256": "e51c236990bcd0cf5107beb89240c4f00358f820f16124cec766109db91bc249"
+    }
+  ],
+  "prior_evidence": [
+    {
+      "file": "docs/reviews/function-inventory.r299.codex-plan.md",
+      "sha256": "e1b096121e9c7e17deea81cf35a1e0596996133111478de7f761371fa873ac68"
+    },
+    {
+      "file": "docs/reviews/function-inventory.r300.codex-plan.md",
+      "sha256": "f7bcd19e19567285920a9a15d481ed50a647cc1f3b7e0802971f4303f211aa2f"
+    },
+    {
+      "file": "docs/reviews/function-inventory.r300.codex-reasoning.json",
+      "sha256": "29be843ad8a574f7bf2bac91488c9fae8de8177ca71d736b30ddcfed8be13882"
+    }
+  ],
+  "contract_evaluation": [
+    {
+      "finding": "FI299-01 time",
+      "prior_counterexample": {
+        "configured_period_s": 0.001,
+        "number_gap": 67,
+        "nominal_n_times_T_s": 0.067,
+        "capture_after_reply_s": 0.5468999999999999,
+        "receipt_after_reply_s": 0.5469099999999999,
+        "numbers_consecutive": true,
+        "enable_at_both_edges": true,
+        "overruns": 0,
+        "rule_5a": false,
+        "rule_5b": true,
+        "required": "No PASS from 5b: nominal invocation count is not an elapsed-time upper bound."
+      },
+      "new_contract_result": "incomplete",
+      "reason": "receipt 0.54691 s after the reply exceeds 0.5 s; the alternative n*T branch is explicitly deleted"
+    },
+    {
+      "finding": "FI299-01 continuity",
+      "prior_counterexample": {
+        "enable_at_start": true,
+        "enable_at_end": true,
+        "observed_sample_numbers": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "observed_servo_invocations": [
+          0,
+          1,
+          7,
+          8
+        ],
+        "hidden_disabled_invocations": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "overruns": 0,
+        "required": "Need a no-disable ownership invariant or independent continuity witness; two reads do not prove it."
+      },
+      "new_contract_result": "own intervening mutation refused before execution",
+      "reason": "all own measurement halcmd operations go through one gate; mutation of enable/function/channels while open is forbidden; external mutation explicitly outside independent detection"
+    },
+    {
+      "finding": "FI299-02 restart",
+      "prior_counterexamples": [
+        {
+          "sign": 1,
+          "first_confirmed_stop_sample": 67,
+          "restart_sample": 100,
+          "last_moving_sample": 119,
+          "stop_if_selected_after_last_move": 120,
+          "brake_upper_mm": 1.7006666666666774,
+          "pre_reply_signed_travel_mm": 14.0,
+          "bound_mm": 2.066666666666667,
+          "restart_after_selected_final_stop": false,
+          "required": "FAIL: latch the first confirmed stop, then reject this restart."
+        },
+        {
+          "sign": -1,
+          "first_confirmed_stop_sample": 67,
+          "restart_sample": 100,
+          "last_moving_sample": 119,
+          "stop_if_selected_after_last_move": 120,
+          "brake_upper_mm": 1.7006666666666774,
+          "pre_reply_signed_travel_mm": 14.0,
+          "bound_mm": 2.066666666666667,
+          "restart_after_selected_final_stop": false,
+          "required": "FAIL: latch the first confirmed stop, then reject this restart."
+        }
+      ],
+      "new_contract_result": "FAIL in both directions",
+      "reason": "first confirmed rest beginning at 67 is fixed; motion at 100 is a contradiction; final rest at 120 cannot reset it"
+    },
+    {
+      "control": "pre-reply rest",
+      "new_contract_result": "eligible for the time upper bound if it belongs to this observed jog and its ten-sample block is confirmed",
+      "reason": "the plan explicitly permits rest before the reply; no new movement behind the anchor is required"
+    },
+    {
+      "control": "partial unknown following stop",
+      "new_contract_result": "known velocity or position contradiction remains FAIL",
+      "reason": "unknown partner cannot mask a known contradiction"
+    },
+    {
+      "control": "FIFO depth",
+      "new_contract_result": "normal depth changes are not data loss",
+      "reason": "overruns unchanged; depth below limit; received end marker establishes drain through the output chain"
+    }
+  ],
+  "limits": [
+    "This is approval of the plan, not a test of an implementation.",
+    "Prior model probes not rerun because neither their input nor a built implementation has changed.",
+    "No live access, HAL/LinuxCNC imports, builds, product tests or machine commands.",
+    "Native run and step 2c-b remain pending.",
+    "Counterexample results listed here are deductions from the amended contract, not observed product outputs."
+  ],
+  "review_append": {
+    "prefix_bytes": 531577,
+    "prefix_sha256": "953d4add3e2fc24fae762e79ea632f47c447f67fe94e955e2c035d9daf99e9d5",
+    "append_sha256": "ddc57cd49b49faa3158248a6c43d38b552a819c1dfa45069c82e91199340ba88"
+  }
+}
