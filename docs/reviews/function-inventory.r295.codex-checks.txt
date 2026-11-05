@@ -1,0 +1,39 @@
+R295 Codex review, 2026-11-05
+Base 96c5e2eb; head 5cc74eda03683e6f74e7291119b6026d0c166501.
+Archive workspace /tmp/codex-r295. Product sources unchanged.
+
+Existing tests, once:
+  cwd /tmp/codex-r295
+  /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py
+  206 passed in 5.61s (170 native-stage + 36 inventory).
+
+R294 regression:
+  python3 -B function-inventory.r295.codex-regression.py /tmp/codex-r295
+  Exit 0. 11 positive controls + 9 corrected R294 counterexamples.
+  Copied from immutable function-inventory.r294.codex-probes.py. Only the
+  expected corrected outcomes (including StepFailed instead of ToolChangeError),
+  report group name and documentation changed. No product patch used.
+
+Earlier regression, script unchanged:
+  python3 -B docs/reviews/function-inventory.r294.codex-regression.py /tmp/codex-r295
+  Exit 0. 18 positive controls + 4 corrected R293 cases.
+  Results in function-inventory.r295.codex-earlier-regression.json.
+
+New probes:
+  python3 -B function-inventory.r295.codex-probes.py /tmp/codex-r295
+  Exit 0. 6 positive controls + 9 reproduced counterprobes, grouped in 3 rests.
+  Assertions describe CURRENT behavior, including defects; required fields
+  give the corrected verdicts. No network, machine commands or systemd.
+  Complete RFL step exercised with SimulatorClient.take, ToolChanges,
+  RoutineEnd and serve, against synthetic transport and a virtual clock.
+  The 300-second deadline is virtual, not a live wait.
+
+Gate review:
+  /home/cnc/claude-work/teststrat/measure/native.step2ab.gate-round.run2.json
+  Exact head and base, clean input, PASS. Selection guards, lint, build,
+  2614 unit-light and backend PASS. Native/inventory raw logs confirm 170/36.
+  Browser omitted with selector reason. Full gate and the eight reported
+  mutations not rerun. Seven reviewed files hash-match the requested commit.
+
+No native run or live access. Review appendix and fresh evidence only in
+the live workspace. Old evidence unchanged.

@@ -4137,3 +4137,68 @@ Acht maßgebliche Quell-/Dokumentdateien sind hashgleich zu `96c5e2eb`. Rundenga
 **Gate:** Round Gate an `5cc74eda`, Basis `96c5e2eb`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 170/170 und `inventory` 36/36. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native.step2ab.gate-round.run2.json`.
 
 **Erbeten:** `agreement` oder `findings` zu den Korrekturen von Schritt 2a und 2b.
+
+---
+
+## Codex · Nachprüfung R295 · 5. November 2026
+
+**Urteil: `findings` am Stand `5cc74eda`, geprüft gegen `96c5e2eb`. FI-I26 ist geschlossen.** Alle neun konkreten R294-Gegenfälle liefern jetzt die erwarteten Urteile. Bei FI-I29, FI-I30 und FI-I31 bleiben die nachfolgend belegten Reste. Keine neue Operatorfrage; Schritt 2c und der tatsächliche native Lauf bleiben separat ausstehend.
+
+### Bestätigte Korrekturen
+
+- Das Freigabefenster zählt bekannte Sperrwerte; unbekannte Werte verdecken keine Beobachtungslücke mehr. Bekannte Sperre durch das Fenster bleibt FAIL, rechtzeitige Freigabe PASS.
+- Ein fehlender L-Zeuge ergibt `incomplete`; die beobachtete frühere Zeile bleibt FAIL. Das Ende von L wird nur noch aus der dafür vorgesehenen Folgezeile abgeleitet. Die L+1-Gegenprobe bleibt an die wahre Messung gebunden.
+- Die drei R294-Fälle zu gehaltenen Achsen und teilweise unbekannten Endpositionen sind im **Zeilenauswerter** korrigiert: fehlender Nachweis wird offen genannt, bekannte Abweichung bleibt FAIL.
+- Der Programmfehler aus dem Fehlerkanal erreicht nun `rfl-line`; die Gegenprobe kann ihn nicht bestehen. `measure_failed` beendet den vollständigen Schritt zeitnah mit FAIL-Zeile und erhaltener Historie. Der unveränderte gültige Ablauf ergibt drei bestandene beobachtbare Zeilen und die bis zur Servo-Messung offene Wegzeile.
+- Auch die älteren R293-Korrekturen bestehen erneut, einschließlich der eigenen Basis der Gegenmessung und der typisierten Ursache beim M6-Halten.
+
+### FI-I29 Rest A · Der letzte beobachtete Stillstand kann vor der Positionierungsfahrt liegen
+
+**P2 · `scripts/test_support/native_cases.py:568–575`.** Die neue Auswahl nimmt jeden bekannten Stillstand ab Beginn der Positionierungsphase. Sie prüft nicht, ob danach noch Positionierungsbewegung beobachtet wurde.
+
+**Eigene Folge:** Bei Phasenbeginn steht die Maschine noch bei XY **10/10**. Danach kommen bewegte Bilder bei **60/60** und **99,8/99,8**. Der Stillstand am erreichten Einstieg wird nicht empfangen; das nächste Programmbild zeigt Zeile 7 bei X 101/Y 100. Ergebnis: **FAIL, Einstieg bei X 10 verfehlt**. Bewertet wurde der Stillstand **vor** der Fahrt, obwohl die späteren Bilder genau diese Zuordnung widerlegen.
+
+**Zweite Grenze:** Fehlen sämtliche bewegten Programmbilder, wird `first_motion` unendlich. Dann bewertet dieselbe Auswahl den später empfangenen **Programmendpunkt (200/200)** als Einstieg und meldet ebenfalls FAIL. Auch die obere Grenze des Einstiegsfensters darf nicht vom zufälligen Empfang einer bewegten Programmzeile abhängen.
+
+**Korrektur:** Ein Einstiegsnachweis muss dem Abschluss der Positionierung zugeordnet sein. Ein Stillstand, auf den noch Positionierungsbewegung folgt, ist kein solcher Nachweis; ein Stillstand des bereits gestarteten Programms ebenfalls nicht. Fehlt das passende Abschlussbild, bleibt der Wegfall `incomplete`. Der gültige Fall „bereits am Einstieg, keine Fahrt nötig“ soll weiterhin möglich bleiben; kein pauschaler Zwang zu einer beobachteten Bewegung. Die bisherige positive R294-Folge und ein tatsächlich belegter falscher Einstieg bleiben Wächter.
+
+### FI-I29 Rest B · Der Zeilenauswerter verwendet ein früheres Idle-Bild als Programmende
+
+**P2 · `native_cases.py:499–505`.** Der vollständige Schritt wartet mit `RoutineEnd` auf Idle **und** `inpos`. Die nachgelagerte Auswertung wählt dagegen erneut das erste Bild mit `interp_state == 1` und verliert diese Bindung.
+
+**Eigene Folge, auch am vollständigen `rfl_cases`:** Bei 5,2 s ist der Interpreter idle, die letzte Bewegung aber noch bei Z **−40**, Geschwindigkeit 50, `inpos: false`. Bei 6,0 s folgt der bestätigte Stillstand am richtigen Endpunkt **(200, 200, 0)**. Der Schritt beendet sein Warten korrekt beim letzten Bild; `rfl-line` wird anschließend trotzdem **FAIL, Z −40 statt 0**, weil es das frühere Bild bewertet.
+
+**Korrektur:** Den für den Ablauf bestätigten Abschluss beziehungsweise dessen Bild auch an die Endpunktauswertung binden. Kein zweiter, schwächerer Abschlussbegriff. Ohne passenden Abschluss bleibt der Nachweis offen; eine Abweichung am tatsächlich bestätigten Abschluss bleibt FAIL. Die Probe verwendet nur Zustände, die bereits die vorhandene Trennung von Idle und `inpos` im Helfer vorsieht; sie behauptet keine live gemessene Häufigkeit.
+
+### FI-I30 Rest · Die Wegprüfung verwirft bekannte Z-Verstöße bei unbekanntem X
+
+**P2 · `native_cases.py:550`, `559`.** `_axes` korrigiert den Zeilenauswerter und die neue XY-Endpunktprüfung. Die übrige Wegprüfung filtert jedoch weiter mit `_off(..., (0, 0, 0))` und verwirft dadurch das gesamte Bild, sobald irgendeine Achse fehlt.
+
+**Eigene Folge:** Safe-Z beginnt mit bekanntem Z **−80**. In derselben Phase wird **Z −81** empfangen, X ist dabei unbekannt, Y bekannt. Danach erreicht Z 0. Mit bekanntem X lautet das Urteil korrekt FAIL. Wird ausschließlich X durch `null` ersetzt, lautet es **`incomplete`, „no contradiction“**. Der bekannte Z-Abstieg verschwindet, obwohl seine Beurteilung X nicht benötigt.
+
+**Korrektur:** Auch Safe-Z und die Höhenprüfung während XY benötigen nur die für ihre Aussage relevanten bekannten Achsen. Fehlendes X/Y darf einen belegten Z-Verstoß nicht verdecken. Die fehlende Servo-Messung begrenzt weiterhin die positive Wegzusage; sie hebt einen bereits beobachteten Widerspruch nicht auf. Das ist derselbe Teilwissen-Vertrag wie im korrigierten Zeilenauswerter.
+
+### FI-I31 Rest · Die Ursache des Helfer-Endes und die Startablehnung sind noch nicht durchgängig gebunden
+
+**P2 · `scripts/native_run.py:691–695`, `708–737`.** Der neue gemeinsame Nachlauf verbessert die beiden alten Fälle. Vier eigene Gegenproben zeigen die verbleibenden Grenzen:
+
+| Ablauf am vollständigen Schritt | Ergebnis |
+|---|---|
+| Während der Vormessung wird **T2** angefordert, deklariert ist nur T1. | `ToolChangeError` nennt `contradiction`; der Schritt wirft `StepFailed`, aber **alle vier Fallzeilen sind `incomplete`**. |
+| Zulässige T1-Anforderung, deren Bestätigung der Gateway ausdrücklich verweigert. | Helfer-Ursache `refused`; ebenfalls vier `incomplete`-Zeilen, keine FAIL-Zeile für die bekannte Ablehnung. |
+| Der Gateway verweigert bereits `auto_run`. | `RuntimeError` **vor** dem geschützten Abschnitt; keine Fallzeilen und keine `rfl_history`/`rfl_errors` im Bericht. |
+| Fehler der Art 11 während der Vormessung, anschließend Idle; keine terminale RFL-Phasenmeldung empfangen. | Die Zeile wird am Ende korrekt FAIL, aber erst nach **300 virtuellen Sekunden**; der Abbruchgrund nennt vorrangig Timeout/`unobserved`. |
+
+Der Gesamtaufruf scheitert in diesen Fällen weiterhin; es geht um den erhaltenen **Funktionsnachweis und die konkrete Ursache**, nicht um ein fälschliches Gesamt-PASS. Der positive Gegenfall „angefordertes Werkzeug unbekannt“ bleibt zu Recht `incomplete` und endet ohne Bestätigung.
+
+**Korrektur:** Ab dem Absenden von `auto_run` einen gemeinsamen Versuchsausgang führen: bekannte Ablehnung/Widerspruch, beobachteter Fehler, fehlende Beobachtung oder bestätigter Abschluss. Diesen Ausgang vor der Gegenprobe in die zugehörige Fallzeile übernehmen und auf jedem dieser Wege die Belege sichern. Die bereits vorhandene Helfer-Ursache soll dabei erhalten bleiben; ein fehlender Reply oder Transportverlust darf nicht pauschal zur bekannten Ablehnung werden. Ein bekannter Fehler dieses Versuchs plus beobachtetes Idle braucht keinen noch ausstehenden Programmzeugen, um den Abbau einzuleiten. Die vier Fälle oben, die beiden bereits korrigierten R294-Abläufe und ein ungestörter Lauf sollten denselben Abschlussweg prüfen.
+
+### Nachweise und Grenzen
+
+[Neue Proben](function-inventory.r295.codex-probes.py), [Ergebnisse](function-inventory.r295.codex-probes.json), [R294-Nachprüfung](function-inventory.r295.codex-regression.py), [Nachprüfungsergebnisse](function-inventory.r295.codex-regression.json), [ältere Regression](function-inventory.r295.codex-earlier-regression.json), [Prüfprotokoll](function-inventory.r295.codex-checks.txt), [Quell-/Gate-Abgleich](function-inventory.r295.codex-audit.json).
+
+**206 vorhandene Tests grün** in `/tmp/codex-r295` (170 native, 36 Inventar). Die R294-Sonde wurde nur in einer neuen Kopie an die korrigierten Erwartungen angepasst: **11 positive Kontrollen und neun korrigierte Gegenfälle**. Die veröffentlichte ältere Regressionssonde lief unverändert: 18 positive Kontrollen und vier korrigierte R293-Fälle. Hinzu kommen sechs neue positive Kontrollen und **neun Gegenproben** zu den drei Restbefunden; eine Endpunktfolge ist sowohl rein als auch am vollständigen Schritt geprüft. Die Gegenfall-Assertions dokumentieren das aktuelle Fehlverhalten; die erwartete Korrektur steht jeweils daneben.
+
+Sieben maßgebliche Dateien sind hashgleich zu `5cc74eda`. Rundengate Lauf 2 an exakter Basis und exaktem Kopf anhand des gespeicherten Berichts geprüft: PASS; Rohlogs bestätigen 170/36, der Bericht 2614 Unit-Tests und die begründete Browser-Auslassung. Den vollständigen Gate und die acht gemeldeten Mutationen nicht wiederholt.
+
+Keine Produktänderungen, Live-Zugriffe oder Maschinenbefehle. Im Live-Baum nur dieser Anhang und neue R295-Belege. Der tatsächliche native Lauf ist weiterhin nicht erfolgt.

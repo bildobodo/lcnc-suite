@@ -1,0 +1,666 @@
+{
+  "positive": {
+    "held": {
+      "served": [
+        {
+          "tool": 99,
+          "seq": 9
+        }
+      ],
+      "row": {
+        "case": "hold",
+        "status": "PASS",
+        "detail": "held 5 s waiting, then T99 with its length",
+        "tool_before": 1,
+        "tool_after": 99,
+        "offset_after": 50,
+        "samples": 152,
+        "max_gap_s": 0.04,
+        "held_s": 5.04,
+        "first_t": 0.04,
+        "last_t": 5.07999999999998
+      },
+      "seen_busy": true,
+      "received": 154,
+      "sent": [
+        [
+          0.0,
+          "tool_change",
+          {
+            "tool_number": 99
+          }
+        ],
+        [
+          5.07999999999998,
+          "confirm_tool_change",
+          {
+            "request": 9
+          }
+        ]
+      ]
+    },
+    "immediate": {
+      "served": [
+        {
+          "tool": 99,
+          "seq": 9
+        }
+      ],
+      "row": null,
+      "seen_busy": true,
+      "received": 3,
+      "sent": [
+        [
+          0.0,
+          "tool_change",
+          {
+            "tool_number": 99
+          }
+        ],
+        [
+          0.04,
+          "confirm_tool_change",
+          {
+            "request": 9
+          }
+        ]
+      ]
+    },
+    "frozen": {
+      "error": "not done within 8.0 s \u2014 T99 pending",
+      "samples": 1,
+      "confirmed": [],
+      "received": 2,
+      "sent": [
+        [
+          0.0,
+          "tool_change",
+          {
+            "tool_number": 99
+          }
+        ]
+      ]
+    },
+    "bad_between_reads": {
+      "error": "the interpreter went idle during the hold \u2014 M6 did not wait",
+      "samples": 69,
+      "confirmed": [],
+      "received": 71,
+      "sent": [
+        [
+          0.0,
+          "tool_change",
+          {
+            "tool_number": 99
+          }
+        ]
+      ]
+    },
+    "override_valid": {
+      "case": "override_valid",
+      "status": "PASS",
+      "detail": "locked through the measuring phase, free after the routine",
+      "free_s": 1.033,
+      "locked_from_s": 0.2,
+      "done_s": 1.033
+    },
+    "old_early_release": {
+      "case": "old_early_release",
+      "status": "FAIL",
+      "detail": "free at +0.400 s while the axis moves in the measuring phase (at +0.400 s)",
+      "locked_from_s": 0.2
+    },
+    "waiting_release": {
+      "case": "waiting_release",
+      "status": "incomplete",
+      "detail": "the 2.0 s after the completion not seen: a gap after 0.000 s of them (frames at most 0.3 s apart)",
+      "locked_from_s": 0.2,
+      "done_s": 1.033,
+      "window_seen_to_s": 1.033
+    },
+    "release_33ms_later": {
+      "case": "release_33ms_later",
+      "status": "PASS",
+      "detail": "locked through the measuring phase, free after the routine",
+      "free_s": 1.066,
+      "locked_from_s": 0.2,
+      "done_s": 1.033
+    },
+    "probe_contact": {
+      "case": "x",
+      "status": "FAIL",
+      "detail": "no contact recorded (#5070 = 0)",
+      "expected": -180,
+      "tol_mm": 0.003,
+      "contact": 0,
+      "g54_z": null,
+      "errors": []
+    },
+    "probe_position": {
+      "case": "x",
+      "status": "FAIL",
+      "detail": "G54 Z -175.0000 \u2014 expected -180 \u00b1 0.003",
+      "expected": -180,
+      "tol_mm": 0.003,
+      "contact": null,
+      "g54_z": -175,
+      "errors": [],
+      "deviation_mm": 5
+    },
+    "miss_write": {
+      "case": "x",
+      "status": "FAIL",
+      "detail": "G54 Z changed 0.0000 \u2192 -1.0000 without a contact",
+      "contact": null,
+      "g54_before": 0,
+      "g54_after": -1,
+      "errors": []
+    },
+    "m600_length": {
+      "case": "x",
+      "status": "FAIL",
+      "detail": "length 60.0000 \u2014 expected 50 \u00b1 0.002",
+      "l0": 50,
+      "length": 60,
+      "g43": null,
+      "tol_mm": 0.002,
+      "errors": [],
+      "deviation_mm": 10
+    },
+    "unload_tool": {
+      "case": "x",
+      "status": "FAIL",
+      "detail": "T1 in the spindle after the unload",
+      "served": [],
+      "tool_after": 1,
+      "offset_after": null
+    },
+    "unload_offset": {
+      "case": "x",
+      "status": "FAIL",
+      "detail": "a length 50 still applied after the unload",
+      "served": [],
+      "tool_after": null,
+      "offset_after": 50
+    },
+    "good_counter": {
+      "case": "good_counter",
+      "status": "PASS",
+      "detail": "the planted #3102 gave 49.0005 as predicted from 50 \u2014 refused against it",
+      "base": 50,
+      "planted_3102": -179,
+      "predicted": 49,
+      "length": 49.0005,
+      "g43": 49.0005,
+      "tool_after": 1,
+      "errors": [],
+      "counter": true
+    },
+    "abort_counter": {
+      "case": "abort_counter",
+      "status": "FAIL",
+      "detail": "the counter run failed: G38.2 move finished without making contact.",
+      "base": 50,
+      "planted_3102": -179,
+      "predicted": 49,
+      "length": 50,
+      "g43": 0,
+      "tool_after": 1,
+      "errors": [
+        [
+          11,
+          "G38.2 move finished without making contact."
+        ]
+      ],
+      "counter": true
+    },
+    "fitting_values_but_error": {
+      "case": "fitting_values_but_error",
+      "status": "FAIL",
+      "detail": "the counter run failed: Slow Tool Length Offset Probe Failed!",
+      "base": 50,
+      "planted_3102": -179,
+      "predicted": 49,
+      "length": 49,
+      "g43": 49,
+      "tool_after": 1,
+      "errors": [
+        [
+          11,
+          "Slow Tool Length Offset Probe Failed!"
+        ]
+      ],
+      "counter": true
+    },
+    "driver_waits_for_received_release": {
+      "rows": [
+        {
+          "case": "m600-unload",
+          "status": "PASS",
+          "detail": "the spindle empty, no length applied",
+          "served": [
+            {
+              "tool": 0,
+              "seq": 1
+            }
+          ],
+          "tool_after": 0,
+          "offset_after": 0
+        },
+        {
+          "case": "m600-t1",
+          "status": "PASS",
+          "detail": "length 50.0000 within 50 \u00b1 0.002, applied as measured",
+          "l0": 50.0,
+          "length": 50.0,
+          "g43": 50.0,
+          "tol_mm": 0.002,
+          "errors": [],
+          "deviation_mm": 0.0,
+          "table_on_disk": 50.0
+        },
+        {
+          "case": "m600-t1-override-lock",
+          "status": "PASS",
+          "detail": "locked through the measuring phase, free after the routine",
+          "free_s": 1.083,
+          "locked_from_s": 0.2,
+          "done_s": 1.033
+        },
+        {
+          "case": "m600-t1.counter-3102",
+          "status": "PASS",
+          "detail": "the planted #3102 gave 49.0000 as predicted from 50 \u2014 refused against it",
+          "base": 50.0,
+          "planted_3102": -179,
+          "predicted": 49.0,
+          "length": 49.0,
+          "g43": 49.0,
+          "tool_after": 1,
+          "errors": [],
+          "counter": true,
+          "l0": 50.0,
+          "table_on_disk": 49.0
+        }
+      ],
+      "release_after_completion_s": 0.050000000000000044
+    }
+  },
+  "closed_r293_cases": {
+    "hold_step_timeout_claims_fail": {
+      "rows": [
+        {
+          "case": "m6-hold",
+          "status": "incomplete",
+          "detail": "not done within 60.0 s \u2014 T99 pending",
+          "cause": "unobserved",
+          "holds": [
+            {
+              "tool": 99,
+              "seq": 9,
+              "t0": 0.04,
+              "last_t": 0.04,
+              "samples": 1,
+              "max_gap_s": 0.0,
+              "tool_before": 1
+            }
+          ]
+        }
+      ],
+      "sent": [
+        [
+          0.0,
+          "tool_change",
+          {
+            "tool_number": 99
+          }
+        ]
+      ],
+      "received": 2,
+      "error": "the M6 sequence ended: not done within 60.0 s \u2014 T99 pending"
+    },
+    "unknown_motion_is_treated_as_standstill": {
+      "row": {
+        "case": "unknown-motion",
+        "status": "incomplete",
+        "detail": "free with the motion unread at +0.400 s in the measuring phase",
+        "locked_from_s": 0.2
+      },
+      "frames": [
+        [
+          0.03,
+          {
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "interp_state": 2,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_offset": [
+              0,
+              0,
+              50
+            ],
+            "tool_table_z": 50,
+            "current_vel": 0
+          }
+        ],
+        [
+          0.2,
+          {
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "interp_state": 2,
+            "inpos": false,
+            "feed_override_enabled": false,
+            "tool_offset": [
+              0,
+              0,
+              50
+            ],
+            "tool_table_z": 50,
+            "current_vel": 1
+          }
+        ],
+        [
+          0.4,
+          {
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "interp_state": 2,
+            "inpos": null,
+            "feed_override_enabled": true,
+            "tool_offset": [
+              0,
+              0,
+              50
+            ],
+            "tool_table_z": 50,
+            "current_vel": null
+          }
+        ],
+        [
+          0.8,
+          {
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "interp_state": 2,
+            "inpos": null,
+            "feed_override_enabled": true,
+            "tool_offset": [
+              0,
+              0,
+              50
+            ],
+            "tool_table_z": 50,
+            "current_vel": null
+          }
+        ],
+        [
+          1.033,
+          {
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "interp_state": 1,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_offset": [
+              0,
+              0,
+              50
+            ],
+            "tool_table_z": 50,
+            "current_vel": 0
+          }
+        ]
+      ]
+    },
+    "release_window_with_no_frames_inside": {
+      "row": {
+        "case": "release-window-gap",
+        "status": "incomplete",
+        "detail": "the 2.0 s after the completion not seen: a gap after 0.000 s of them (frames at most 0.3 s apart)",
+        "locked_from_s": 0.2,
+        "done_s": 1.033,
+        "window_seen_to_s": 1.033
+      },
+      "frames": [
+        [
+          0.03,
+          {
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "interp_state": 2,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_offset": [
+              0,
+              0,
+              50
+            ],
+            "tool_table_z": 50,
+            "current_vel": 0
+          }
+        ],
+        [
+          0.2,
+          {
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "interp_state": 2,
+            "inpos": false,
+            "feed_override_enabled": false,
+            "tool_offset": [
+              0,
+              0,
+              50
+            ],
+            "tool_table_z": 50,
+            "current_vel": 1
+          }
+        ],
+        [
+          1.0,
+          {
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "interp_state": 2,
+            "inpos": false,
+            "feed_override_enabled": false,
+            "tool_offset": [
+              0,
+              0,
+              50
+            ],
+            "tool_table_z": 50,
+            "current_vel": 1
+          }
+        ],
+        [
+          1.033,
+          {
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "interp_state": 1,
+            "inpos": true,
+            "feed_override_enabled": false,
+            "tool_offset": [
+              0,
+              0,
+              50
+            ],
+            "tool_table_z": 50,
+            "current_vel": 0
+          }
+        ],
+        [
+          3.1,
+          {
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "interp_state": 1,
+            "inpos": true,
+            "feed_override_enabled": false,
+            "tool_offset": [
+              0,
+              0,
+              50
+            ],
+            "tool_table_z": 50,
+            "current_vel": 0
+          }
+        ]
+      ]
+    },
+    "counter_uses_original_not_own_basis": {
+      "rows": [
+        {
+          "case": "m600-unload",
+          "status": "PASS",
+          "detail": "the spindle empty, no length applied",
+          "served": [
+            {
+              "tool": 0,
+              "seq": 1
+            }
+          ],
+          "tool_after": 0,
+          "offset_after": 0
+        },
+        {
+          "case": "m600-t1",
+          "status": "PASS",
+          "detail": "length 49.9985 within 50 \u00b1 0.002, applied as measured",
+          "l0": 50.0,
+          "length": 49.9985,
+          "g43": 49.9985,
+          "tol_mm": 0.002,
+          "errors": [],
+          "deviation_mm": -0.0015,
+          "table_on_disk": 49.9985
+        },
+        {
+          "case": "m600-t1-override-lock",
+          "status": "PASS",
+          "detail": "locked through the measuring phase, free after the routine",
+          "free_s": 1.033,
+          "locked_from_s": 0.2,
+          "done_s": 1.033
+        },
+        {
+          "case": "m600-t1.counter-3102",
+          "status": "PASS",
+          "detail": "the planted #3102 gave 48.9970 as predicted from 49.9985 \u2014 refused against it",
+          "base": 49.9985,
+          "planted_3102": -179,
+          "predicted": 48.99850000000001,
+          "length": 48.99700000000001,
+          "g43": 48.99700000000001,
+          "tool_after": 1,
+          "errors": [],
+          "counter": true,
+          "l0": 50.0,
+          "table_on_disk": 48.99700000000001
+        }
+      ],
+      "measurements": [
+        {
+          "table_before": 50.0,
+          "reference": -180,
+          "result": 49.9985,
+          "own_error_mm": -0.0015
+        },
+        {
+          "table_before": 49.9985,
+          "reference": -179,
+          "result": 48.99700000000001,
+          "own_error_mm": -0.0015
+        }
+      ],
+      "sent": [
+        [
+          "get_tool_table",
+          {}
+        ],
+        [
+          "get_probe_vars",
+          {
+            "vars": [
+              3004,
+              3005,
+              3006,
+              3007,
+              3009,
+              3010,
+              3013,
+              3100,
+              3101,
+              3102,
+              3103,
+              3104,
+              3105,
+              3106,
+              3107,
+              3108,
+              3109,
+              3110,
+              3111,
+              3112,
+              3113,
+              3114,
+              3115
+            ]
+          }
+        ],
+        [
+          "get_tool_table",
+          {}
+        ],
+        [
+          "get_tool_table",
+          {}
+        ],
+        [
+          "get_tool_table",
+          {}
+        ],
+        [
+          "save_tool",
+          {
+            "tool_number": 1,
+            "z_offset": 50.0
+          }
+        ],
+        [
+          "get_tool_table",
+          {}
+        ],
+        [
+          "set_probe_vars",
+          {
+            "vars": {
+              "3102": -180
+            }
+          }
+        ],
+        [
+          "get_probe_vars",
+          {
+            "vars": [
+              3102
+            ]
+          }
+        ]
+      ]
+    }
+  }
+}
