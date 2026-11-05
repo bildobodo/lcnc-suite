@@ -2866,3 +2866,76 @@ def test_the_connect_step_waits_for_the_gateways_first_status(tmp_path, monkeypa
     _, step = nr.connect_client()
     assert step({"ini": ini}) == []
     assert _FreshGatewayClient.instances[-1].sent == ["estop_reset", "machine_on"]
+
+
+class HomingClient(MotionClient):
+    """The 3-axis sim's homing (simulated_home_probe_basic.hal + the profile):
+    a switch closes at motor X ≥ 1, Y ≥ 0.5, Z ≥ 2; homing searches up to it
+    and latches there at the joint coordinate HOME_OFFSET (X, Y 0, Z 1), then
+    goes to HOME 0 — a homed X or Y rests ON its switch. A home with its
+    shared switch closed is refused, nothing moves (LinuxCNC's "Cannot home
+    while shared home switch is closed", live run 2026-11-05)."""
+    SWITCH, HOME_OFFSET = (1.0, 0.5, 2.0), (0.0, 0.0, 1.0)
+
+    def __init__(self, refuse_from=None):
+        self.homed, self.offset, self.refusals, self.refuse_from, self.homes = [False] * 3, [0.0] * 3, [], refuse_from, 0
+        super().__init__()
+        self._frames(busy=False)
+
+    def closed(self, j):
+        return self.pos[j] + self.offset[j] >= self.SWITCH[j]
+
+    def _frames(self, busy=True):
+        t = self.frames[-1][0]
+        st = {**_IDLE, "joint_pos": list(self.pos), "feed_override": self.fo, "homed_joints": list(self.homed)}
+        self.frames += ([(t + 0.1, {**st, "interp_state": 2, "inpos": False})] if busy else []) + \
+            [(t + 1.0, st), (t + 2.0, st)]
+
+    def request(self, cmd, **kw):
+        from test_support.live_session import Refused
+        if cmd in ("home", "home_all", "unhome_all"):
+            self.sent.append((cmd, kw))
+            if cmd == "unhome_all":
+                self.homed = [False] * 3
+            self.homes += cmd != "unhome_all"
+            for j in ([kw["joint"]] if cmd == "home" else range(3) if cmd == "home_all" else ()):
+                if self.closed(j) or (self.refuse_from is not None and self.homes >= self.refuse_from):
+                    self.refusals.append(j)
+                    continue
+                self.offset[j] = self.SWITCH[j] + 0.01 - self.HOME_OFFSET[j]   # the latch is HOME_OFFSET
+                self.pos[j], self.homed[j] = 0.0, True                          # then to HOME 0
+            self._frames(busy=False)
+            return {"ok": True}
+        if cmd == "mdi" and not all(self.homed):
+            raise Refused("mdi refused: Machine not homed")     # the ready gate
+        return super().request(cmd, **kw)
+
+
+def _short_waits(monkeypatch):
+    orig = nr._wait
+    monkeypatch.setattr(nr, "_wait", lambda c, pred, timeout, what: orig(c, pred, min(timeout, 0.3), what))
+    monkeypatch.setattr(nr, "SHORT_GRACE", 0.02)
+
+
+def test_each_home_case_starts_where_linuxcnc_can_home(monkeypatch):
+    """Live run 2026-11-05 (third): after Home All the sim's X and Y rest on
+    their shared home switches; the next case's home was refused, and so was
+    the closing Home All for the jogs. Each case starts with every joint
+    homed, X and Y moved off their switches, then all unhomed."""
+    _short_waits(monkeypatch)
+    c = HomingClient()
+    _, step = nr.home_cases(3)
+    rows = step({"client": c})
+    assert [(r["case"], r["status"]) for r in rows] == [(case, "PASS") for case, _ in nr.HOME_CASES], rows
+    assert c.homed == [True] * 3 and c.refusals == [], "homed for the jogs, no home refused"
+
+
+def test_a_home_step_that_cannot_go_on_keeps_its_rows(monkeypatch):
+    """A failure after a measured case ends the run with the rows (FI-I31's
+    rule): the third run's rows were lost with the final wait's error."""
+    _short_waits(monkeypatch)
+    c = HomingClient(refuse_from=5)      # three single homes and the Home All case, then every home refused
+    _, step = nr.home_cases(3)
+    with pytest.raises(nr.StepFailed) as e:
+        step({"client": c})
+    assert [(r["case"], r["status"]) for r in e.value.rows] == [("home-all", "PASS"), ("home-joint-0", "FAIL")]

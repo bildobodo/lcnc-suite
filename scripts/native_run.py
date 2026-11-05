@@ -65,6 +65,12 @@ JOG_START = (300.0, 300.0, -50.0)   # G53, inner: away from every limit (R283 FI
 #: the case ids, LITERAL: a native evidence names its case and the binder
 #: finds the title in this file (an f-string over expressions it cannot)
 HOME_CASES = (("home-all", None), ("home-joint-0", 0), ("home-joint-1", 1), ("home-joint-2", 2))
+#: where X and Y leave their sim home switches open: the switches close at
+#: motor X > 1, Y > 0.5 (simulated_home_probe_basic.hal, hysteresis 0.02) and
+#: a homed X or Y rests ON its latch (HOME = HOME_OFFSET = 0) — LinuxCNC
+#: refuses a home with its shared switch closed ("Cannot home while shared
+#: home switch is closed", live run 2026-11-05); the X/Y limit is -0.1
+HOME_OFF_SWITCH = (-0.08, -0.08, 0.0)
 JOG_CASES = (("jog-x+", 0, 1), ("jog-x-", 0, -1), ("jog-y+", 1, 1), ("jog-y-", 1, -1), ("jog-z+", 2, 1),
              ("jog-z-", 2, -1))
 #: the same jogs judged from servo samples (step 2c) — F-JOG.S5 binds these
@@ -428,22 +434,41 @@ def home_cases(joints: int):
         c, rows = ctx["client"], []
         if len(HOME_CASES) != joints + 1:
             raise Refused(f"the home cases name {len(HOME_CASES) - 1} joints, the profile has {joints}")
-        for case, joint in HOME_CASES:
-            c.request("unhome_all")
-            _wait(c, lambda s: s.get("homed_joints") is not None and not any(s["homed_joints"]), 15, "unhomed")
-            expected = [True] * joints if joint is None else [j == joint for j in range(joints)]
-            c.request("home_all") if joint is None else c.request("home", joint=joint)
-            try:
-                st = _wait(c, lambda s: (s.get("homed_joints") or []) == expected and s.get("inpos"), 60, case)
-                observed, completed = st.get("homed_joints"), True
-            except RuntimeError:
-                # the bits alone are no PASS: the completion never came (R286 FI-I22)
-                observed, completed = c.status.get("homed_joints"), False
-            rows.append(nc.eval_home(case, expected, observed, completed))
-        c.request("home_all")
-        _wait(c, lambda s: all(s.get("homed_joints") or [False]) and s.get("inpos"), 60, "homed for the jogs")
+        try:
+            for case, joint in HOME_CASES:
+                # each case from a start LinuxCNC homes from: every joint
+                # homed, X and Y off their switches, then all unhomed
+                _home_joints(c, joints)
+                _to(c, *HOME_OFF_SWITCH)
+                c.request("unhome_all")
+                _wait(c, lambda s: s.get("homed_joints") is not None and not any(s["homed_joints"]), 15, "unhomed")
+                expected = [True] * joints if joint is None else [j == joint for j in range(joints)]
+                c.request("home_all") if joint is None else c.request("home", joint=joint)
+                try:
+                    st = _wait(c, lambda s: (s.get("homed_joints") or []) == expected and s.get("inpos"), 60, case)
+                    observed, completed = st.get("homed_joints"), True
+                except RuntimeError:
+                    # the bits alone are no PASS: the completion never came (R286 FI-I22)
+                    observed, completed = c.status.get("homed_joints"), False
+                rows.append(nc.eval_home(case, expected, observed, completed))
+            _home_joints(c, joints)         # homed for the jogs
+        except StepFailed:
+            raise
+        except RuntimeError as e:
+            # the measured cases stay in the report (FI-I31's rule for every step)
+            raise StepFailed(rows, f"the home step: {e}") from e
         return rows
     return ("home", step)
+
+
+def _home_joints(c, joints: int):
+    """Every joint homed: each one not homed ALONE, in joint order — a Home
+    All would re-home the homed ones, which may rest on their switch."""
+    for j in range(joints):
+        if not (c.status.get("homed_joints") or [False] * joints)[j]:
+            c.request("home", joint=j)
+            _wait(c, lambda s, j=j: (s.get("homed_joints") or [False] * joints)[j] and s.get("inpos"), 60,
+                  f"joint {j} homed")
 
 
 def jog_cases(joints: int):
