@@ -127,3 +127,105 @@ def test_the_process_proof_names_a_helper_outside_the_run_tree(tmp_path):
     bad[2] = {"cmdline": ["python3", "/home/cnc/lcnc-suite/lcnc-gateway/hal_reader.py"]}
     assert any("hal_reader.py" in p for p in lt.process_problems(bad, tree, ini))
     assert any("hal_watchdog.py" in p and "not running" in p for p in lt.process_problems(good[:3] + good[4:], tree, ini))
+
+
+# ── The restore to the LAN instance (R268/R269, R283/R284: three outcomes) ──
+from test_support import restore_lan as rl  # noqa: E402
+
+
+class FakeHost:
+    """The LAN instance as the restore sees it: units, readiness, processes,
+    the tree's HEAD, the hashes of the operator's files, the trip state."""
+
+    def __init__(self):
+        self.units = {"lcnc-sim-gates": {"ExecStart": ["/usr/bin/env", "linuxcnc", "lan.ini"], "WorkingDirectory": "/cfg"},
+                      "bg-keepalive": {"ExecStart": ["/py", "keepalive.py", "lan.ini"], "WorkingDirectory": "/"}}
+        self.active = {"lcnc-sim-gates": True, "bg-keepalive": True}
+        self.instance = ("linuxcncsvr", 100, 5000)       # (name, pid, start ticks)
+        self.head = "abc"
+        self.hashes = {"nc_files": "h1", "macros": "h2", "settings": "h3", "config": "h4"}
+        self.trip = None
+        self.ready = True
+        self.fail_start = set()
+        self.started = []
+        self.heartbeat_seen = True
+
+    def unit(self, name): return self.units[name]
+    def is_active(self, name): return self.active[name]
+    def stop(self, name): self.active[name] = False
+    def start(self, name, spec):
+        if name in self.fail_start:
+            raise RuntimeError(f"{name} did not start")
+        self.started.append(name)
+        self.active[name] = True
+        if name == "lcnc-sim-gates":
+            self.instance = ("linuxcncsvr", self.instance[1] + 1, self.instance[2] + 1)
+    def wait_ready(self, timeout): return self.ready
+    def lan_instance(self): return self.instance
+    def gateway_ini(self): return "lan.ini"
+    def tree_head(self): return self.head
+    def file_hashes(self): return dict(self.hashes)
+    def lan_trip(self): return self.trip
+    def keepalive_connected_since(self, t): return self.heartbeat_seen
+
+
+def test_a_complete_restore_proves_every_point():
+    h = FakeHost()
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    out = rl.restore(h, pre)
+    assert out["outcome"] == "complete" and out["isolation"] == [], out
+    assert h.started == ["lcnc-sim-gates", "bg-keepalive"]
+    assert out["instance"] != pre["instance"], "a new LinuxCNC instance"
+
+
+def test_a_trip_after_the_return_is_named_apart_and_never_acknowledged():
+    h = FakeHost()
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    h.trip = {"reason": "heartbeat"}
+    out = rl.restore(h, pre)
+    assert out["outcome"] == "lan_started_trip_unacked"
+    assert not hasattr(h, "acked"), "the restore never acknowledges a trip"
+
+
+@pytest.mark.parametrize("break_it, reason", [
+    (lambda h: h.fail_start.add("lcnc-sim-gates"), "did not start"),
+    (lambda h: setattr(h, "ready", False), "/ready"),
+    (lambda h: setattr(h, "head", "zzz"), "HEAD"),
+    (lambda h: setattr(h, "heartbeat_seen", False), "keepalive"),
+])
+def test_a_restore_that_cannot_prove_a_point_says_not_returned(break_it, reason):
+    h = FakeHost()
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    break_it(h)
+    out = rl.restore(h, pre)
+    assert out["outcome"] == "not_returned" and any(reason in r for r in out["reasons"]), out
+
+
+def test_a_changed_file_of_the_operator_fails_the_isolation_and_the_lan_still_comes_back():
+    h = FakeHost()
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    h.hashes.update(nc_files="changed")
+    out = rl.restore(h, pre)
+    assert out["outcome"] == "complete" and out["isolation"] == ["nc_files changed"]
+    assert h.started == ["lcnc-sim-gates", "bg-keepalive"]
+
+
+def test_a_second_restore_finds_the_lan_returned_and_starts_nothing():
+    """finally AND ExecStopPost both run it: the second one only proves."""
+    h = FakeHost()
+    pre = rl.record(h)
+    rl.stop_lan(h, pre)
+    rl.restore(h, pre)
+    h.started.clear()
+    assert rl.restore(h, pre)["outcome"] == "complete" and h.started == []
+
+
+def test_a_lan_trip_before_the_take_over_refuses_it():
+    h = FakeHost()
+    h.trip = {"reason": "heartbeat"}
+    with pytest.raises(rl.TakeOverRefused, match="unacknowledged trip"):
+        rl.record(h)
