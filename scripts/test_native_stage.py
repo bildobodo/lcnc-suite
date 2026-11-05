@@ -444,3 +444,24 @@ def test_the_process_proof_checks_the_feed_the_interpreters_and_the_gateways_log
     assert lt.log_problems([str(logs / "trace.ndjson"), "/dev/null"], logs) == []
     assert lt.log_problems([str(logs / "trace.ndjson"), "/home/cnc/lcnc-suite-gates/runlogs/trace.ndjson"], logs)
     assert lt.log_problems([], logs), "no log file open at all is no proof"
+
+
+def test_a_mutable_file_hardlinked_to_one_outside_is_named(tmp_path, monkeypatch):
+    run, config = _install_copy(tmp_path, monkeypatch)
+    ini = config / "lcnc_suite_sim_3axis_xyz.ini"
+    tree = run / "tree"
+    (tree / "lcnc-gateway").mkdir(parents=True)
+    outside = tmp_path / "outside.var"
+    outside.write_text("5220 1\n")
+    var = config / "xyz3/sim.var"
+    var.unlink()
+    var.hardlink_to(outside)
+    assert any("PARAMETER_FILE" in p and "inode" in p for p in lt.confinement_problems(ini, run, tree))
+
+
+def test_a_run_folder_that_exists_already_is_refused_before_anything(tmp_path):
+    h = FakeHost()
+    (tmp_path / "run").mkdir()
+    with pytest.raises(FileExistsError):
+        nr.run(h, [], tmp_path / "run")
+    assert h.started == [] and all(h.active.values()), "nothing recorded, nothing stopped"

@@ -205,6 +205,20 @@ class ExampleInstallTest(unittest.TestCase):
         self.assertEqual(list(outside.iterdir()), [], "nothing written through the link")
         self.assertEqual([p.name for p in (run / "configs/sim").iterdir()], ["nc_files"])
 
+    def test_a_link_waiting_at_a_temporary_name_is_never_followed(self):
+        """Codex R286 FI-I20: the installer wrote through `<name>.install-tmp`;
+        a link already lying there led the write out of the run (10 642
+        bytes over a file outside). Temporary files are created anew."""
+        run = self.base / "run"
+        dest = run / "configs/sim"
+        (dest / "xyz3").mkdir(parents=True)
+        outside = self.base / "outside.txt"
+        outside.write_text("the operator's file")
+        (dest / "xyz3/sim.var.install-tmp").symlink_to(outside)
+        installer.install(ROOT, dest, run / "config-backups/sim", nc_files="nc_files", macro_dir="macros", confine=run)
+        self.assertEqual(outside.read_text(), "the operator's file")
+        self.assertTrue((dest / "xyz3/sim.var").is_file() and not (dest / "xyz3/sim.var").is_symlink())
+
     def test_upgrade_migrates_state_settings_and_archives_retired_profiles(self):
         self.dest.mkdir(parents=True)
         profile = CATALOG["profiles"][0]

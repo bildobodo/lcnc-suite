@@ -12,6 +12,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -431,6 +432,26 @@ def assert_stopped():
             raise RuntimeError("Stop LinuxCNC before updating the installed examples")
 
 
+def _replace_with(path, content, mode):
+    """Write `content` to `path` by a rename from a NEW temporary file in
+    its folder, created exclusively (mkstemp: O_CREAT|O_EXCL) — a link lying
+    at a temporary name is never followed (Codex R286 FI-I20: a fixed
+    `<name>.install-tmp` led the write out of the run); the rename replaces
+    a link at `path` itself, never what it leads to."""
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".install-tmp")
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(content)
+        os.chmod(tmp, mode)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
 def confined(path, root, link=False):
     """Whether `path` stays in `root` once every link on the way is
     followed: the deepest existing ancestor resolved, the rest appended. A
@@ -632,19 +653,14 @@ def install(repo, destination, backup_root, settings_path=None, report=None, nc_
         if settings_changed:
             shutil.copy2(settings_path, backup / "settings.json")
     if settings_changed:
-        tmp = Path(settings_path).with_name(Path(settings_path).name + ".install-tmp")
-        tmp.write_text(json.dumps(settings, indent=2) + "\n")
-        os.chmod(tmp, Path(settings_path).stat().st_mode & 0o777)
-        tmp.replace(settings_path)
+        _replace_with(Path(settings_path), (json.dumps(settings, indent=2) + "\n").encode(),
+                      Path(settings_path).stat().st_mode & 0o777)
     destination.mkdir(parents=True, exist_ok=True)
     for rel, content in writes.items():
         path = destination / rel
         path.parent.mkdir(parents=True, exist_ok=True)
         # Replace via rename; never write through an old symlink into a checkout.
-        tmp = path.with_name(path.name + ".install-tmp")
-        tmp.write_bytes(content)
-        tmp.chmod(0o600 if path.suffix == ".ini" else 0o644)
-        tmp.replace(path)
+        _replace_with(path, content, 0o600 if path.suffix == ".ini" else 0o644)
     for path in retired + [destination / rel for rel in links]:
         if path.is_symlink() or path.is_file():
             path.unlink()

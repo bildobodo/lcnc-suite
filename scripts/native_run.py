@@ -65,7 +65,9 @@ def run(host, steps, run_dir: Path) -> dict:
     is a list of (name, fn(ctx)) — fn returns rows or raises. pre.json is on
     disk from the record on, with the hashes from the stop on: whatever kills
     this process, ExecStopPost restores from it."""
-    run_dir.mkdir(parents=True, exist_ok=True)
+    # a NEW, empty run folder — nothing in it was put there before the run (R286 FI-I20)
+    run_dir.parent.mkdir(parents=True, exist_ok=True)
+    run_dir.mkdir()
     report: dict = {"started": time.time(), "steps": [], "rows": []}
     pre = rl.record(host)                     # raises TakeOverRefused: nothing touched
     pre_path = run_dir / "pre.json"

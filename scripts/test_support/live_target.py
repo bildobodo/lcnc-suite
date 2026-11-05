@@ -209,6 +209,10 @@ def confinement_problems(ini: Path, run: Path, tree: Path) -> list[str]:
         p = p if p.is_absolute() else ini.parent / p
         if not _within(p, run):
             out.append(f"{key[1]} = {values[-1]} lies outside the run")
+        elif p.is_file() and p.stat().st_nlink > 1:
+            # the same file as another path (a hard link): a write in place
+            # reaches it (Codex R286 FI-I20)
+            out.append(f"{key[1]} = {values[-1]} shares its inode with {p.stat().st_nlink - 1} other path(s)")
         elif key in MUST_EXIST and not p.is_dir():
             out.append(f"{key[1]} = {values[-1]} is missing (the gateway would fall back to ~/linuxcnc/nc_files)")
     if not _within(Path(tree) / "lcnc-gateway/settings.json", run):
