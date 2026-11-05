@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { toolsetterMachineState } from "./toolsetterState";
 import { toolsetterSetup, toolsetterVarMap } from "./toolsetterSetup";
 import type { ToolsetterBooking } from "./ws/statusStore";
+import contract from "./toolsetterRules.contract.json";
 
 const SECTION = { touchX: 10, touchY: 10, touchZ: -179, fastFeed: 2000, slowFeed: 20, traverseFeed: 500,
   maxZTravel: 180, retractDist: 3, spindleZeroHeight: 180 };
@@ -44,6 +45,16 @@ describe("toolsetterMachineState", () => {
   it("no booking on this connection yet: not known", () => {
     expect(toolsetterMachineState(setup, null).kind).toBe("unknown");
     expect(toolsetterMachineState(setup, undefined).kind).toBe("unknown");
+  });
+  it("the numbers the gateway sent, exact ties included, are confirmed — applied or read (Codex R311 FI-I39)", () => {
+    // the contract's tie case: the gateway's canonical numbers, as it books them
+    const tie = contract.cases.find(c => c.ok && (c.section as Record<string, unknown>).touchZ === -179.0078125)!;
+    const tieSetup = toolsetterSetup(tie.section);
+    for (const origin of ["applied", "read"]) {
+      const keys: ToolsetterBooking["keys"] = {};
+      for (const [k, v] of Object.entries(tie.values!)) keys[k] = { value: v, origin };
+      expect(toolsetterMachineState(tieSetup, { version: 1, keys }).kind, origin).toBe("confirmed");
+    }
   });
   it("a value with more than six decimals compares as the number the machine got", () => {
     const fine = toolsetterSetup({ ...SECTION, touchZ: -179.1234567 });

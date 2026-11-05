@@ -10851,10 +10851,14 @@ read that file unconfirmed.
 - One basis per start: chosen once, bound by a digest of the section and the
   INI (never the store's global counter) to every write up to AUTO; run from
   line refuses dialog values that are not that section before anything is
-  written, and its background sequence re-binds before its AUTO write.
+  written, and its background sequence re-binds before its AUTO switch and
+  its AUTO write (R311 FI-I38: the switch had no admit).
 - `_apply_probe_vars`: the interpreter first (per chunk, booked as before),
   then the file with ONLY the taken keys and their sent numbers (6
-  decimals); nothing taken, nothing written; a file failure after the
+  decimals, rounded as the form's toFixed(6) rounds — an exact binary tie
+  away from zero; %.6f rounds it to even, and the form showed "not yet in
+  the machine" for a value it held, R311 FI-I39); nothing taken, nothing
+  written; a file failure after the
   take-over leaves it standing. Replies name `mdi_set`, `applied_keys`,
   `persisted` (no `file_saved`).
 - The form's machine line is projected from the section and the gateway's

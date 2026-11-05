@@ -22,6 +22,15 @@ class TestToolsetterRules(unittest.TestCase):
         self.assertEqual(r["values"][3102], -180.123457)           # the sent number, 6 decimals
         self.assertEqual(r["values"][3107], 5)                     # an unsaved option takes its default
 
+    def test_an_exact_tie_rounds_as_the_form_rounds(self):
+        # Codex R311 FI-I39: %.6f rounds −179.0078125 to even (…812), the
+        # form's toFixed(6) away from zero (…813) — the booking showed
+        # "not yet in the machine" for a value the machine held
+        for v, want in ((-179.0078125, -179.007813), (1.0078125, 1.007813), (-0.0078125, -0.007813),
+                        (-179.0234375, -179.023438), (-180.1234567, -180.123457), (0.1, 0.1)):
+            self.assertEqual(tr.canonical(v), want, v)
+            self.assertEqual(f"{tr.canonical(v):.6f}", f"{want:.6f}", v)   # the MDI's text of that number
+
     def test_a_missing_or_invalid_field_is_no_set_up(self):
         r = tr.setup({})
         self.assertFalse(r["ok"])

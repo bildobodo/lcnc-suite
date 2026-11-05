@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import math
 import sys
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 #: The form's keys → the parameter numbers tool_touch_off.ngc reads
@@ -50,14 +51,19 @@ BOUNDS = {
     "offsetDiameter": {"min": 0}, "offsetValue": {"min": 0, "max": 100},
     "finderTouchX": {}, "finderTouchY": {}, "finderDiffZ": {},
 }
+_SIX = Decimal("0.000001")
 UNSET_REASON = "Toolsetter not set up — Probing › Toolsetter"
 INVALID_REASON = "Toolsetter values invalid — Probing › Toolsetter"
 
 
 def canonical(v: float) -> float:
-    """The number a parameter MDI sends (`#n=%.6f`): the one value for the
-    booking, the comparison and the file (R309 A-4)."""
-    return float(f"{float(v):.6f}")
+    """The number a parameter MDI sends (`#n=%.6f` of this value): the one
+    value for the booking, the comparison, the file and the form (R309 A-4).
+    Rounded as JavaScript's toFixed(6) rounds — the exact binary value to
+    six decimals, a tie away from zero (ECMA-262 Number.prototype.toFixed:
+    "pick the larger n" of |x|) — where %.6f would round a tie to even:
+    −179.0078125 is −179.007813 on both sides (Codex R311 FI-I39)."""
+    return float(Decimal(float(v)).quantize(_SIX, rounding=ROUND_HALF_UP))
 
 
 def _valid(key: str, v) -> bool:
@@ -97,7 +103,11 @@ def _cases() -> list:
     out += [{**good, "addReps": 1.5}, {**good, "offsetValue": 101}, {**good, "fastFeed": 0}, {**good, "slowFeed": 0},
             {**good, "retractDist": 0.05}, {**good, "spindleStopM": 6}, {**good, "goBackToStart": 2},
             {**good, "touchZ": "x"}, {**good, "touchZ": True}, {**good, "touchZ": None},
-            {**good, "touchZ": -180.1234567}]
+            {**good, "touchZ": -180.1234567},
+            # exact binary ties at the sixth decimal (Codex R311 FI-I39): %.6f
+            # rounds them to even, toFixed(6) away from zero — one rule for both
+            {**good, "touchZ": -179.0078125, "touchX": 1.0078125, "touchY": -0.0078125,
+             "finderTouchX": -179.0234375, "finderTouchY": 2.0000005}]
     return out
 
 
