@@ -147,10 +147,41 @@ def _flat(nodes):
             yield f"O{n[1]}{n[2]}{n[3]}"
 
 
+#: The task-path changes DECIDED since the reference, each a line of the
+#: reference that is gone (applied to it before the comparison, each found
+#: exactly once): M600's return goes to the call's X/Y at the top of travel
+#: and Z stays up — no Z saved at -20-, no Z return at -210- (operator
+#: 2026-11-05, Codex R306 Q306-1).
+DECIDED_REMOVALS = (
+    "#<stop_position_z> = #5422          ;current Z position in the current coordinate system",
+    "    G1 F#<traverse_fr> Z[#<stop_position_z>]",
+)
+
+
+def _decided(text):
+    lines = text.splitlines()
+    for gone in DECIDED_REMOVALS:
+        assert lines.count(gone) == 1, f"a decided removal no longer matches the reference: {gone!r}"
+        lines.remove(gone)
+    return "\n".join(lines) + "\n"
+
+
 def test_task_path_is_the_routine_before_the_preview_branch():
-    old = _specialise(_tree(OLD.read_text(encoding="utf-8")), 1)
+    """…with the decided changes alone (DECIDED_REMOVALS)."""
+    old = _specialise(_tree(_decided(OLD.read_text(encoding="utf-8"))), 1)
     new = _specialise(_tree(NEW.read_text(encoding="utf-8")), 1)
     assert new == old
+
+
+def test_the_decided_removals_are_what_differs():
+    """Without them the comparison fails: the routine's task path really lost
+    the Z save and the Z return, nothing else is excused."""
+    old = _specialise(_tree(OLD.read_text(encoding="utf-8")), 1)
+    new = _specialise(_tree(NEW.read_text(encoding="utf-8")), 1)
+    assert new != old
+    flat_old, flat_new = list(_flat(old)), list(_flat(new))
+    gone = [x for x in flat_old if x not in flat_new]
+    assert gone == ["#<STOP_POSITION_Z>=#5422", "G1F#<TRAVERSE_FR>Z[#<STOP_POSITION_Z>]"], gone
 
 
 def test_the_preview_path_reaches_no_probe_no_pause_no_m50_no_log():
