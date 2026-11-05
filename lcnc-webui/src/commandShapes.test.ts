@@ -63,7 +63,7 @@ const SERVER_ONLY: Record<string, string> = {
 };
 /** Commands the UI sends that have no gate entry — each with its reason. */
 const UNGATED: Record<string, string> = {
-  get_tool_table: "a read", list_probe_macros: "a read", get_probe_vars: "a read", get_probe_results: "a read",
+  get_tool_table: "a read", list_probe_macros: "a read", get_probe_results: "a read",
   get_comp_grid: "a read", get_wcs_table: "a read",
   heartbeat: "the worker's frame, handled by the reader", tab_visibility: "the worker's frame, handled by the reader",
   save_settings: "admitted per section by the settings store (BG-19), not by a command gate",
@@ -80,7 +80,7 @@ const UNBOUNDED: Record<string, string> = {
   "load_file.path": "the handler admits only paths inside PROGRAM_PREFIX",
   "jog_incr.distance": "bounded by the handler against the axis window",
   "set_optional_stop.value": "a boolean", "set_block_delete.value": "a boolean", "set_compensation.enable": "a boolean",
-  "get_probe_vars.vars": "a read of var numbers", "confirm_tool_change.request": "matched against the pending request (BG-17)",
+  "confirm_tool_change.request": "matched against the pending request (BG-17)",
   "clear_wcs.target": "an enum the handler checks", "set_wcs.target": "an enum the handler checks",
   "save_settings.section": "checked against _VALID_SETTINGS_SECTIONS",
   "timing_log.enable": "a boolean", "halshow_live.on": "a boolean", "tab_visibility.hidden": "a boolean",

@@ -189,3 +189,37 @@ class TestProgramStartSync(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestGetProbeVarsRemoved(unittest.TestCase):
+    """P2 (Codex R309 D): get_probe_vars read the parameter file unconfirmed —
+    a file an interp synch rewrites — and no WebUI caller used it. Removed as
+    a protocol change: an old caller gets the plain refusal, never values."""
+
+    def test_an_old_call_is_refused_and_answers_no_values(self):
+        import os
+        import tempfile
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        ini = os.path.join(tmp.name, "m.ini")
+        with open(ini, "w") as f:
+            f.write("[RS274NGC]\nPARAMETER_FILE = m.var\n")
+        with open(os.path.join(tmp.name, "m.var"), "w") as f:
+            f.write("3102\t-180.000000\n")
+
+        class _Ini:     # the binding's ini reader: the file above (the old handler read it)
+            def __init__(self, path):
+                pass
+
+            def find(self, section, var):
+                return "m.var" if (section, var) == ("RS274NGC", "PARAMETER_FILE") else None
+        saved = getattr(gateway.STAT, "ini_filename", None)
+        self.addCleanup(lambda: setattr(gateway.STAT, "ini_filename", saved))
+        gateway.STAT.ini_filename = ini
+        gateway._shared_status = td._payload()
+        with unittest.mock.patch.object(gateway.linuxcnc, "ini", _Ini, create=True):
+            r = td._run(gateway.handle_command({"cmd": "get_probe_vars", "vars": [3102]}, True))
+        self.assertFalse(r["ok"], r)
+        self.assertNotIn("vars", r)
+        import command_policy
+        self.assertNotIn("get_probe_vars", command_policy.READ_ONLY_COMMANDS)

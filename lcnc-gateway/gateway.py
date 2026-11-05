@@ -5951,23 +5951,6 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             r = await _apply_probe_vars_detail(vars_to_set, armed)
             return {"ok": True, **r}
 
-        if cmd == "get_probe_vars":
-            var_nums = msg.get("vars", [])
-            if not var_nums or not isinstance(var_nums, list):
-                return {"ok": False, "error": "Missing vars list"}
-            ini_path = getattr(STAT, "ini_filename", None)
-            if not ini_path:
-                return {"ok": False, "error": "No INI file"}
-            ini = linuxcnc.ini(ini_path)
-            var_file = ini.find("RS274NGC", "PARAMETER_FILE")
-            if not var_file:
-                return {"ok": False, "error": "No PARAMETER_FILE in INI"}
-            if not os.path.isabs(var_file):
-                var_file = os.path.join(os.path.dirname(ini_path), var_file)
-            result = await asyncio.to_thread(_read_var_file, var_file, {str(v) for v in var_nums})
-            _trace.emit("probe.get_vars", vars=result)
-            return {"ok": True, "vars": result}
-
         if cmd == "reparse_preview":
             require_armed(armed)
             # Re-parse the loaded program against the CURRENT work offsets.
