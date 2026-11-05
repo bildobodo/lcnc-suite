@@ -1,0 +1,50 @@
+R288 review verification, 2026-11-05
+Source: archive of b4caee79d0570b03dbb6853899491edc6e492011 in /tmp/codex-r288.
+No product edits or live service access; all SystemHost/systemd operations in probes are fakes.
+
+Existing checks:
+/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py lcnc-gateway/test_example_install.py scripts/test_toolsetter_readback_check.py
+........................................................................ [ 55%]
+..........................................................  [100%]
+130 passed, 13 subtests passed in 3.27s
+
+Own probes (fault assertions reproduce behavior; positive controls named separately):
+/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' test_r288_probes.py
+.........                                                                [100%]
+9 passed in 0.04s
+
+Replay: create a new archive of b4caee79; copy codex-probes.py into its root as test_r288_probes.py and codex-keeper.py as r288-keepalive-source.py. Run the command above from that archive, using the installed venv Python. The keeper test only executes the drain function AST; do NOT run the keeper file itself. Outputs r288-probes.json there. codex-audit.py likewise runs from the archive root; its saved gate paths are local evidence paths, not network sources.
+
+Saved gate/source audit:
+{
+  "head": "b4caee79d0570b03dbb6853899491edc6e492011",
+  "base": "7d9c79c241afa5bf4bfc8f4be8195053d79362d0",
+  "kind": "round",
+  "verdict": "PASS",
+  "omitted": [
+    {
+      "check": "unit-heavy",
+      "reason": "no heavy file changed, reached or read for"
+    },
+    {
+      "check": "browser",
+      "reason": "no path selects a browser spec"
+    }
+  ],
+  "pending": [],
+  "heavy_lock_wait_s": 0.0,
+  "unit-light": {
+    "listed": 2614,
+    "ran": 2614,
+    "passed": 2614,
+    "issues": []
+  },
+  "external_keeper": {
+    "path": "/home/cnc/claude-work/bg/keepalive_ini.py",
+    "sha256": "90e1bce00764087988e70958aedead960939e5d813d6395565d6457510199670",
+    "tested": "only drain function AST; no top-level or socket execution",
+    "not_in_commit": true
+  }
+}
+All source hashes match: True
+backend report keys: ['mode', 'started', 'root', 'gates', 'commit', 'tracked_changes', 'runner_sha256', 'status', 'changed_file_sha256', 'not_run', 'finished']

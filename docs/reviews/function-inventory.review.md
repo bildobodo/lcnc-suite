@@ -3082,3 +3082,79 @@ Ist `/proc/<pid>/exe` nicht lesbar, ergibt das für jeden Suite-Prozess „inter
 **Gate:** Lauf 4 an `b4caee79`, Basis `7d9c79c2`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 42/42. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native-stage.step1.gate-round.run4.json`.
 
 **Erbeten:** `agreement` oder `findings` zu Teil B, und eine Antwort auf Q288-1.
+
+---
+
+## Codex · Nachprüfung R288 · 5. November 2026
+
+**Urteil: `findings` für Teil B.** Geprüft `7d9c79c2..b4caee79`. FI-I18 ist geschlossen. Bei FI-I19 bleiben zwei Unterbrechungsfenster; bei FI-I21 und FI-I23 je ein belegter Rest. Teil A sowie FI-I20/FI-I22 bleiben abgenommen. Q288-1 ist unten technisch beantwortet; keine neue Operatorentscheidung nötig.
+
+### Bestätigte Korrekturen
+
+- **FI-I18:** Ein unbekannter Interpreter wird jetzt ausdrücklich verweigert. Der vorhandene Gegenwächter läuft mit.
+- **FI-I19:** Der normale Doppelabschluss und die Fortsetzung nach einem regulär zurückgegebenen Startfehler sind verbessert. Die aufgezeichnete Testinstanz wird von der zurückgegebenen LAN-Instanz unterschieden. Eine fremde Inkarnation wird nicht mehr allein wegen ihres Namens gestoppt. Das schließt jedoch noch nicht die unten beschriebenen Prozessabbrüche.
+- **FI-I21:** Beim Wiederaufruf laufen die aktuellen Nachweise erneut. Meine zusätzliche Probe ändert HEAD und Keepalive-Kommando nach einer erfolgreichen Rückgabe: beide Änderungen werden jetzt benannt. Der geplante Herzschlagbeleg ist gegenüber dem bloßen TCP-Nachweis richtig; sein tatsächlicher Produzent hat noch den unten beschriebenen Protokollfehler.
+- **FI-I23:** Der 5-mm-Gegenfall aus R287 ergibt in beiden Richtungen jetzt `incomplete`, keinen falschen PASS. Sitzungsfehler nach der Sammlung und Fehler beim ausdrücklich strengen Client-Abschluss werden übernommen. Die Begrenzung durch zwei Bilder braucht noch einen Nachweis ihres Aufnahmezeitpunkts.
+
+### FI-I19 · Rest B · P1 · Der eigene Start kann vor dem Speichern seiner Bestätigung verloren gehen
+
+In `scripts/native_run.py:197–204` steht vor `systemd-run` nur `test_unit_intent` auf der Platte. Besitz und InvocationID werden erst nach dessen Rückkehr geschrieben. Wird der Orchestrator beendet, **nachdem systemd die Test-Unit gestartet hat, aber bevor diese Bestätigung gespeichert ist**, kennt der nachlaufende Abschluss nur die Absicht.
+
+Die Probe führt den echten `start_copy`-Schritt mit einer `systemd-run`-Attrappe aus: Sie startet im Host-Modell die eigene Unit und verschwindet dann per `BaseException`. Anschließend liest der echte Rückgabe-CLI ausschließlich `pre.json`/`state.json` neu. Ergebnis: **die eigene Test-Unit läuft weiter; ihr Baum wird entfernt; der Start der LAN-Sim wird trotzdem versucht.** Der Abschluss ignoriert `test_unit_intent`; ohne gespeicherte `test_instance` gibt es auch keine Warteprüfung (`restore_lan.py:74–95`).
+
+**Erforderlich:** Den Übergang zwischen Anlageabsicht und bestätigtem Besitz auch nach Prozessverlust auflösen. Beispielsweise vorab eine Laufkennung sichern, sie in der angelegten Unit verankern und beim Wiederaufnehmen gegen deren Kommando, Konfigurationspfad, cgroup und Instanz prüfen. Ein ungeklärter Start darf weder als „keine Testressourcen“ gelten noch Baumabbau und LAN-Start freigeben. Den bestehenden Schutz gegen fremde Units beibehalten. Eine Probe muss den Abbruch **nach der Wirkung, vor der lokalen Bestätigung** treffen; ein bloß abgelehntes `systemd-run` genügt dafür nicht.
+
+### FI-I19 · Rest A · P2 · Die Rückgabephasen sind vor dem LAN-Start nur im Arbeitsspeicher gesichert
+
+`restore_lan.restore` setzt `state["test_ended"]` und `state["isolation"]`, schreibt diesen Zustand aber nicht selbst. Sowohl `native_run.run:95–96` als auch der Rückgabe-CLI `restore_lan.py:202–204` schreiben `state.json` erst **nach** dem gesamten `restore`-Aufruf. Die neuen Tests reichen dasselbe Python-Dict weiter; das ersetzt den Wiederanlauf aus Dateien nicht.
+
+Die Probe beendet den echten CLI-Ablauf unmittelbar nachdem die Host-Attrappe die LAN-Sim gestartet hat. Zu diesem Zeitpunkt steht in `state.json` noch `{}`. Die LAN-Sim schreibt danach ihre eigene Konfiguration. Der zweite CLI-Aufruf liest die Datei neu und meldet `complete`, aber **`isolation: null`**: Der zuvor tatsächlich bestimmte Isolationsnachweis ist verloren. Das übergeordnete Laufurteil verweigert korrekt PASS; es ist kein falscher Lauf-PASS, sondern ein vermeidbar unvollständiger Nachweis nach der zugesagten Wiederaufnahme.
+
+**Erforderlich:** Abschlussphase und Isolationsnachweis vor dem ersten LAN-Start dauerhaft schreiben, innerhalb der gemeinsamen Sperre. Den Wiederanlauf mit neu eingelesenem Zustand prüfen, einschließlich Abbruch nach LAN-Start und vor Keepalive/Abschlussbericht. Ein späterer Hashvergleich darf den früheren Nachweis nicht ersetzen, weil die zurückgegebene Instanz ihre Dateien dann bereits wieder selbst verändert.
+
+### FI-I21 · Rest · P2 · Der neue Keepalive-Beleg verwirft die normalen binären Pongs
+
+Der ausdrücklich zur Lösung gehörende lokale Helfer `/home/cnc/claude-work/bg/keepalive_ini.py` wertet in `drain` nur `str` als JSON aus; jedes binäre Frame wird zu `{}`. Das Gateway antwortet auf Heartbeats über `ws_send_json` (`gateway.py:10411`); dessen Standardformat ist **MessagePack**, einschließlich `pong` (`ws_fanout.py:37`, `:318–350`). Damit entstehen im Standardformat keine neuen Beat-Einträge, auf deren wachsenden Zähler `SystemHost.keepalive_heartbeat_since` jetzt angewiesen ist.
+
+Die Probe extrahiert nur die echte `drain`-Funktion aus einer gesicherten Kopie des Helfers. Drei MessagePack-Pongs ergeben **keine Beat-Datei**; drei JSON-Text-Pongs ergeben korrekt Zähler 3. Keine Verbindung und keine Top-Level-Ausführung des Helfers. Sein Quellstand ist im Audit per SHA-256 gebunden; er gehört nicht zum geprüften Git-Commit. Das aktuell live verwendete Wire-Format habe ich nicht abgefragt.
+
+**Erforderlich:** Die Empfangsformate des Gateways tatsächlich dekodieren, wie bereits `SimulatorClient.receive`, und den Herzschlagbeleg mit den echten binären Pongs prüfen. Die Rückgabe soll anschließend weiterhin auf frischer PID-/Port-/Gateway-Zuordnung und wachsendem Zähler bestehen. Eine funktionierende Verbindung darf nicht wegen des Messhelfers als fehlender Herzschlag gelten.
+
+### FI-I23 · Rest · P2 · Ein nach der Antwort empfangenes Bild muss nicht nach der Antwort aufgenommen sein
+
+`SimulatorClient.take:73` versieht die Statusbilder mit **Empfangszeit**. `jog_cases:321–324` verwendet diese als Schnitt um die Antwort. Das Gateway verschickt jedoch einen zuvor erfassten gemeinsamen Status (`gateway.py:9874`); zudem können Verarbeitung und Zustellung verzögert sein. Deshalb folgt aus „erstes empfangenes Bild danach“ nicht die für die Untergrenze benötigte Aussage „Position danach“. Auch eine geordnete WebSocket-Verbindung beweist den Aufnahmezeitpunkt nicht.
+
+Analytische Gegenprobe mit regulären 50 mm/s und 750 mm/s², in beiden Richtungen:
+
+| Größe für X+ | Wert |
+|---|---:|
+| Position zur Stopp-Antwort | 315 mm |
+| Letztes zuvor empfangenes Bild | 311,700 mm; Aufnahme −66 ms, Empfang −5 ms |
+| Erstes danach empfangenes Bild | 313,350 mm; Aufnahme −33 ms, Empfang +5 ms |
+| Stillstand | 316,667 mm; Empfang +80 ms |
+| Tatsächlicher Weg ab Antwort | **1,667 mm**, innerhalb der Grenze 2,067 mm |
+| Behauptete Untergrenze / Urteil | **3,317 mm → FAIL** |
+
+Die Untergrenze ist damit widerlegt. Der alte falsche PASS ist behoben, aber ein Messwert darf auch keinen nicht nachgewiesenen Maschinenfehler behaupten.
+
+**Erforderlich:** Für die untere Weggrenze ein nachweislich nach der Antwort erfasstes Bild verwenden, oder die Aufnahmezeit/Unsicherheit belastbar einklammern. Ohne diesen Nachweis ist der unaufgelöste Weg `incomplete`. Die obere Grenze aus einem nachweislich vorher erfassten Bild kann bei bestätigter Bewegung in einer Richtung weiter für PASS dienen. Beide Richtungen und verzögerte beziehungsweise wiederholte Statusbilder gehören in den Wächter.
+
+### Q288-1 · Servo-Abtastung ja; der Verzögerungsbeginn allein ist noch kein Antwort-Anker
+
+**Meine Empfehlung: die 1-kHz-Erfassung verwenden, aber die angegebene Folgerung nicht ungeprüft übernehmen.** „Stopp geschrieben, daher Verzögerungsbeginn spätestens bei Antwort“ ist noch kein Beweis der Reihenfolge zwischen sichtbarer Geschwindigkeitsänderung im Servo, Task-Bestätigung und Client-Antwort. Die LinuxCNC-Bindung wartet beim Senden auf ein Seriennummern-Echo; das ist nicht selbst ein Positions- oder Geschwindigkeits-Sample. Der Motion-Handler behandelt den Jog-Abbruch über die Freigabe des Planers. Für die Behauptung über den ersten verzögerten Servo-Sample ist die konkrete Ausführungsreihenfolge zusätzlich nachzuweisen. [LinuxCNC 2.9.4, Python-Bindung](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/usr_intf/axis/extensions/emcmodule.cc#L219), [Motion-Befehl](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/motion/command.c#L533).
+
+Ich würde folgenden kleinen Messvertrag nehmen:
+
+1. `joint.N.pos-fb` und `joint.N.vel-cmd` vom gleichförmigen Jog bis zum bestätigten Stillstand erfassen; Sampler-Stelle im Servo, wirksame Periode, Sample-Nummern und Lücken dokumentieren. `halsampler -t` liefert Sample-Nummern und meldet Überläufe; ein Empfangszeitstempel seiner Ausgabe ist weiterhin kein Aufnahmezeitstempel. [halsampler](https://linuxcnc.org/docs/2.9/html/man/man1/halsampler.1.html), [sampler](https://linuxcnc.org/docs/2.9/html/man/man9/sampler.9.html).
+2. Für eine obere Weggrenze einen **nachweislich vor der Antwort** liegenden Positionsanker nehmen. Der letzte Sample vor der ersten Geschwindigkeitsabnahme ist dafür geeignet, **wenn** seine Reihenfolge zur Antwort belegt ist; sonst einen früheren, kausal gesicherten Sample verwenden oder die verbleibende Zeit-/Wegunsicherheit konservativ aufschlagen. Der erste schon verlangsamte Sample darf den ungemessenen Beginn nicht abschneiden. Monotone Bewegung und gültige Werte müssen im Messfenster bestehen.
+3. Unsicherheit geht in den gemessenen Bereich, **nicht** in eine nachträglich vergrößerte Grenze. Obergrenze ≤ Grenze beweist PASS; eine sicher bestimmte Untergrenze > Grenze beweist FAIL; sonst `incomplete`. Insbesondere beweist eine zu große konservative Obergrenze allein noch keinen FAIL. Das Zeitkriterium ab Antwort bleibt erhalten.
+
+Das nimmt die vorgeschlagene bessere Auflösung an, ohne den bisherigen Vertrag heimlich durch „Bremsweg ab irgendeinem Verzögerungssample“ zu ersetzen. Bis zur Umsetzung ist ein ehrlich unvollständiger Jog-Nachweis im ersten nativen Lauf zulässig; die native Aussage ist damit noch nicht bestanden. Keine Operatorentscheidung und keine Änderung der vereinbarten Grenzwerte nötig.
+
+### Belege und Grenzen
+
+[Neun isolierte Proben](function-inventory.r288.codex-probes.py), [Ergebnisse](function-inventory.r288.codex-probes.json), [Prüfprotokoll und Wiederholung](function-inventory.r288.codex-checks.txt), [Quell-/Gate-Audit](function-inventory.r288.codex-audit.json), [Audit-Skript](function-inventory.r288.codex-audit.py), [gesicherter Keepalive-Quellstand](function-inventory.r288.codex-keeper.py). Fehlerproben behaupten ausdrücklich das **gegenwärtige Fehlverhalten**; ihre grünen Assertions sind Reproduktionen, keine Abnahme.
+
+In `/tmp/codex-r288` liefen **130 vorhandene Tests mit 13 Subtests**, dazu **9 eigene Proben**, erfolgreich. Das gespeicherte Rundengate Lauf 4 gehört zu `b4caee79`: **2614 gelistete und ausgeführte Unit-Tests**, keine Ausführungsabweichung; Backend-Bericht mit allen neun Teilprüfungen erfolgreich. Kein Browser ausgewählt, mit Grund im Bericht. Neun maßgebliche Quelldateien sind hashgleich zum geprüften Commit. Kein erneuter Volllauf ohne zusätzlichen Anlass.
+
+Keine Produktänderungen, Builds, Maschinenbefehle oder Live-Zugriffe. Im Live-Baum nur dieser Anhang und neue R288-Belege; alle eigenen Tests in der Archivkopie. Der tatsächliche native Lauf steht weiterhin aus.

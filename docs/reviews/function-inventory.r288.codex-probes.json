@@ -1,0 +1,142 @@
+[
+  {
+    "case": "FI-I19 creation acknowledgment gap",
+    "disk_before_restore": {
+      "tree": "/tmp/pytest-of-cnc/pytest-902/test_reproduction_creation_ack0/r288-start-gap/tree",
+      "tree_of": "/source",
+      "test_unit_intent": "native-sim-r288-start-gap"
+    },
+    "own_test_still_running": true,
+    "tree_removed": true,
+    "lan_start_attempted": true,
+    "restore": {
+      "outcome": "not_returned",
+      "reasons": [
+        "the LAN gateway's /ready did not answer within 120 s"
+      ],
+      "instance": [
+        "linuxcncsvr",
+        777,
+        9000
+      ],
+      "isolation": [],
+      "cleanup": []
+    }
+  },
+  {
+    "case": "FI-I19 restore phase durability",
+    "disk_at_lan_start": {},
+    "resume": {
+      "outcome": "complete",
+      "instance": [
+        "linuxcncsvr",
+        101,
+        5101
+      ],
+      "isolation": null,
+      "cleanup": []
+    },
+    "run_pass": false
+  },
+  {
+    "case": "FI-I21 default MessagePack pongs",
+    "received_pongs": 3,
+    "beat_exists": false
+  },
+  {
+    "case": "keeper JSON control",
+    "pongs": 3
+  },
+  {
+    "case": "FI-I23 receipt is not sample time",
+    "sign": 1,
+    "actual_brake_from_reply_mm": 1.6666666666666667,
+    "true_limit_mm": 2.066666666666667,
+    "post_receipt_sample_source_time_s": -0.033,
+    "out": {
+      "case": "delayed",
+      "status": "FAIL",
+      "detail": "braked at least 3.317 mm past the reply, bound 2.067",
+      "axis": "X",
+      "sign": 1,
+      "bound_mm": 2.067,
+      "travel": 11.7,
+      "before_s": -0.005,
+      "stop_s": 0.08,
+      "brake_upper_mm": 4.9667,
+      "brake_lower_mm": 3.3167
+    }
+  },
+  {
+    "case": "FI-I23 receipt is not sample time",
+    "sign": -1,
+    "actual_brake_from_reply_mm": 1.6666666666666667,
+    "true_limit_mm": 2.066666666666667,
+    "post_receipt_sample_source_time_s": -0.033,
+    "out": {
+      "case": "delayed",
+      "status": "FAIL",
+      "detail": "braked at least 3.317 mm past the reply, bound 2.067",
+      "axis": "X",
+      "sign": -1,
+      "bound_mm": 2.067,
+      "travel": 11.7,
+      "before_s": -0.005,
+      "stop_s": 0.08,
+      "brake_upper_mm": 4.9667,
+      "brake_lower_mm": 3.3167
+    }
+  },
+  {
+    "case": "R287 analytic brake closed",
+    "sign": 1,
+    "out": {
+      "case": "r287",
+      "status": "incomplete",
+      "detail": "the braking travel lies between 1.512 and 5.000 mm \u2014 the status frames do not resolve it against 2.067",
+      "axis": "X",
+      "sign": 1,
+      "bound_mm": 2.067,
+      "travel": 15,
+      "before_s": -0.001,
+      "stop_s": 0.2,
+      "brake_upper_mm": 5,
+      "brake_lower_mm": 1.5125
+    }
+  },
+  {
+    "case": "R287 analytic brake closed",
+    "sign": -1,
+    "out": {
+      "case": "r287",
+      "status": "incomplete",
+      "detail": "the braking travel lies between 1.512 and 5.000 mm \u2014 the status frames do not resolve it against 2.067",
+      "axis": "X",
+      "sign": -1,
+      "bound_mm": 2.067,
+      "travel": 15,
+      "before_s": -0.001,
+      "stop_s": 0.2,
+      "brake_upper_mm": 5,
+      "brake_lower_mm": 1.5125
+    }
+  },
+  {
+    "case": "current proofs repeated",
+    "out": {
+      "outcome": "not_returned",
+      "reasons": [
+        "bg-keepalive runs another command than recorded",
+        "the LAN tree's HEAD is changed, recorded abc"
+      ],
+      "instance": [
+        "linuxcncsvr",
+        101,
+        5101
+      ],
+      "isolation": [],
+      "cleanup": [],
+      "repeat_of": "complete"
+    }
+  }
+]
