@@ -1032,7 +1032,7 @@ ships the full set seeded):
 | #3103 | use_tool_table | 1 = use tool table for positioning |
 | #3104 | tool_min_dis | Min distance for known-tool re-probe |
 | #3105 | brake_after_M600 | 0 = none, 1 = M00, 2 = M01 |
-| #3106 | go_back_to_start_pos | 1 = return to start after measurement |
+| #3106 | go_back_to_start_pos | 1 = back to the call's X/Y at the top of travel; Z stays up |
 | #3107 | spindle_stop_m | M-code to stop spindle (5 or 500) |
 | #3108 | disable_pre_pos | Disable G30 pre-change positioning |
 | #3109 | addreps | Extra retry count on probe fail |

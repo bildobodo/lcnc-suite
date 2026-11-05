@@ -10739,3 +10739,46 @@ ends the run.
 Codex R304: after the PROVEN arrival at an up target the known Z alone
 decides — a descent there is a FAIL with X or Y unread in that frame, as
 the G30 branch already judged it; a merely assumed arrival stays unproven.
+
+## 2026-11-05 — M600's return: the call's X/Y at the top of travel, Z stays up (operator, Codex R306 Q306-1)
+
+With "Return to start position" (`#3106 = 1`, every M600 runs in mode 1 through
+`m600.ngc`) the bundled `tool_touch_off.ngc` stored the new length, applied its
+G43 and then put the new tool's TIP back at the Z it had taken under the OLD
+tool's offset (`#5422` at -20-). From near the top of travel with a longer tool
+that needs the spindle nose above Z0 — LinuxCNC refuses the queued move ("Linear
+move on line 596 would exceed Z's positive limit"), and because it refuses when
+the block is queued, the drive-free `G53 G1 Z0` before it never ran: the
+routine ended with the spindle down at the setter. Measured live on a 3-axis
+copy (`~/claude-work/m600_top_experiment.py`, 2026-11-05): T3 22 mm at G53 Z0 →
+T4 73 mm FAIL, spindle at −103.8; T4 → T3 from the top PASS; unload (ends on
+G30 = the top) → T4 FAIL. The same class was met on the XYZAC sim on
+2026-09-27 and answered there by switching `#3106` off in that template only;
+the 3-axis template kept 1. (The March investigation, 5115b4b0, was another
+error: an intermittent NEGATIVE-limit refusal during the probe search, answered
+by clamping the travel; its cause was never confirmed.) The operator's machine
+has `#3106 = 0` and never ran the return.
+
+**Decision (operator):** the return goes to the X/Y where M600 was called, at
+the top of travel; Z stays up. Every descent after the measurement is the
+program's — the rule run from line already has ("Z descends from safe height
+per the program's own words"). The length offset is not touched by this: the
+routine stores and applies it before the return, with `#3106` 0 or 1. Codex's
+named halt ("length stored, return not possible") was not taken: a return that
+can always be reached needs no halt, and a routine that never descends on its
+own with a NEW tool cannot carry a wrong measurement into the work. The
+upstream author's return (the full call position) is given up for Z.
+
+**Changes:** `tool_touch_off.ngc` -20- saves X/Y only, -210- keeps the one
+`G1 X Y` (after the drive-free `G53 G1 Z0`); the preview canon hands the saved
+state to ONE return move (`_pos_return = 1`); `MARKED_POS_ROUTINES` holds the
+new sha256 only — an old copy elsewhere now reads as unmarked (conservative),
+never modelled with the wrong number of return moves. The Toolsetter form's
+help, CLAUDE.md / README's `#3106` rows, the bundled manual's rows and the XYZAC
+README say it. Guards: the preview of `T2 M600` from G53 Z0 with no tool (80 mm,
+`MAX_LIMIT` 50) had a Z violation at line 596 and now none, ending at the top
+(`m600_top_longer`); `m600_known` / `m600_result` / `e_m600_return` end at the
+top under the new offset (each value derived in its test). The XYZAC corpus's
+M600 runs with `#3106 = 0` — no truth changes. Owed: the live proof on the
+fixed routine (the experiment again: A and C must complete at the call's X/Y,
+joint Z 0) and a permanent from-the-top case in the native stage.

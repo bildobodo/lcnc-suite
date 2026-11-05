@@ -55,9 +55,13 @@ class TestPredictedMeasurement(unittest.TestCase):
         # G43 H applies it; the retract G53 Z0 is program Z −80 under it
         self.assertAlmostEqual(tool_rows(r, 2)[-1][3], 80.0, places=9)
         self.assertEqual(feeds_at(r, 10, 10)[6], -80)
-        # back to where the program stood (in its frame: under the new offset)
-        self.assertEqual(feeds_at(r, 50, 50)[-2:], [-80, -100])
-        self.assertEqual(path(r)[-1][2], (60, 60, -100))
+        # back to the start's X/Y at the top of travel (#3106 = 1): Z stays up
+        # under the new offset — never down to the start's -100; every
+        # descent after the measurement is the program's (operator
+        # 2026-11-05, Codex Q306-1)
+        self.assertEqual(feeds_at(r, 50, 50)[-1:], [-80])
+        self.assertNotIn(-100, feeds_at(r, 50, 50)[1:])
+        self.assertEqual(path(r)[-1][2], (60, 60, -80))
         # one tool change, to T2 — the routine's M6, at the M600 line (its
         # unique call site; the sub file's own line would collide)
         self.assertEqual(r["tool_change_lines"], [[3, 2]])
@@ -131,7 +135,10 @@ class TestPredictedMeasurement(unittest.TestCase):
         self._clean(r)
         self.assertEqual(feeds_at(r, 10, 10)[:6], [-5, -100, -105, -102, -105, -102])
         self.assertAlmostEqual(tool_rows(r, 2)[-1][3], 80.0, places=9)
-        self.assertEqual([p for _, k, p, _ in path(r)][-2:], [(5, 50, -95), (5, -105, -95)])
+        # after the measurement Z stays at the top (#3106 = 1 returns X/Y only):
+        # the nose at machine 0, T2's tip at −80, program −80 − 10 (G54) + 5
+        # (G92) = −85 — the program's X5 and Y[#5063] run there
+        self.assertEqual([p for _, k, p, _ in path(r)][-2:], [(5, 50, -85), (5, -105, -85)])
 
     def test_t0_unloads_without_a_probe(self):
         r = probe("m600_t0")
@@ -170,6 +177,16 @@ class TestPredictedMeasurement(unittest.TestCase):
         g43 = [row for row in r["tlo_events"] if row[3] != 0]
         self.assertEqual(len(g43), 2)
         self.assertEqual(r["toollen_table"], [[g43[0][0], 2, 80.0, 3]])
+
+    def test_the_return_from_the_top_with_a_longer_tool_stays_inside_the_travel(self):
+        """The return ends at the start's X/Y at the top: from G53 Z0 with no
+        tool, T2 (80 mm) used to send the nose to +80 past MAX_LIMIT 50 — the
+        live sims refused it ("would exceed Z's positive limit", the spindle
+        left down at the setter). Now no violation, the end at the top."""
+        r = probe("m600_top_longer")
+        self._clean(r)
+        self.assertEqual(feeds_at(r, 50, 50)[-1:], [-80])
+        self.assertEqual(path(r)[-1][2], (60, 60, -80))
 
     def test_the_limits_after_a_predicted_measurement_are_checked(self):
         r = probe("m600_known_then_high")

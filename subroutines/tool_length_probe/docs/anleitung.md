@@ -133,7 +133,7 @@ In der Datei "tool_touch_off.ngc" die folgenden Parameter unter "-1- Fixed param
 |   |   |
 |  `OPTION: ALLGMEIN` | |
 | #<brake_after_M600>  | Bei ">0" warten auf Bestätigung, dass das Programm nach der Vermessung weiter arbeiten darf. 1 = M00, 2 = M01 . Siehe "Fall 2.1 und 2.2" |
-| #<go_back_to_start_pos>  | Bei "1" fährt die Maschine, bei der Automatischen Vermessung, zur Position zurück an der die Routine gestartet wurde. |
+| #<go_back_to_start_pos>  | Bei "1" fährt die Maschine, bei der Automatischen Vermessung, zur Position zurück an der die Routine gestartet wurde. lcnc-suite: zurück auf dieses X/Y in der obersten Z-Lage; Z bleibt oben, abwärts fährt das Programm (2026-11-05). |
 | #<spindle_stop_m>  | M-Befehlnummer zum stoppen der Spindel. Standard 5 (M5), optional 500 (M500 / m500.ngc). |
 | #<disable_pre_pos> | Deaktiviert die Werkzeugwechselposition an der G30-Koordinaten. Werkzeug wird über Werkzeugtaster gewechselt. |
 | #< addreps> | Anzahl zusätzlicher Vermessungsversuche. Bei fehlerhafter schneller Vermessung fährt die Maschine wieder an die Werkzeugwechselposition und das Werkzeug kann neu eingestellt werden. |

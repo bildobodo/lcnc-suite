@@ -133,7 +133,7 @@ Adjust the following parameters under "-2- Fixed parameters" in the "tool_touch_
 |  |  |
 | ` OPTIONS: GENERALLY ` |
 | #<brake_after_M600>  | If ">0" wait for confirmation that the program may continue to work after the measurement. 1 = M00, 2 = M01 . See "Case 2.1 and 2.2"|
-| #<go_back_to_start_pos>  | With "1" the machine drives back to the position where the routine was started during automatic measurement.|
+| #<go_back_to_start_pos>  | With "1" the machine drives back to the position where the routine was started during automatic measurement. lcnc-suite: back to that X/Y at the top of travel; Z stays up, the program descends (2026-11-05).|
 | #<spindle_stop_m>  | M-code number to stop the spindle. Default 5 (M5), optional 500 (M500/m500.ngc).|
 | #<disable_pre_pos> | Disables the tool change position at the G30-coordinate. Tool will be changed above the tool probe. |
 | #< addreps> | Number of extra repetitions. If fast probe failed, the machine moves back to the tool change position and the tool can be readjusted. |

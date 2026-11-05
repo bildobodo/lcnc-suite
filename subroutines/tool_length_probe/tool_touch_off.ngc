@@ -146,11 +146,11 @@ o<501> endif
 
 
 ;-20- Save the stop position in the current coordinate system
-;lcnc-suite: (WEBUI_POS_SAVE) - the preview takes what X, Y, Z are here (known,
-;start-dependent or unknown) and hands it to the return at -210 (silent in task)
+;lcnc-suite: (WEBUI_POS_SAVE) - the preview takes what X, Y are here (known,
+;start-dependent or unknown) and hands it to the return at -210 (silent in task).
+;No Z: the return stays at the top of travel (see -210-)
 #<stop_position_x> = #5420 (WEBUI_POS_SAVE) ;current X position in the current coordinate system
 #<stop_position_y> = #5421 (WEBUI_POS_SAVE) ;current Y position in the current coordinate system
-#<stop_position_z> = #5422 (WEBUI_POS_SAVE) ;current Z position in the current coordinate system
 #<offset_z> = 0                     ;Stores the current Z position in the current coordinate system, will be set later
 
 
@@ -589,11 +589,16 @@ G53 G1 F#<traverse_fr> Z0 (Send spindle to home zero position)
 
 ;-210- Return to hold position and choose pause
 ;Runs only in automatic mode.
+;lcnc-suite: the return goes to the -20- X/Y at the top of travel and Z stays
+;there; every descent after the measurement is the program's. Upstream put the
+;new tool's TIP back at the start Z (under the old tool's offset): from near the
+;top with a longer tool that asked for the spindle past the Z limit ("would
+;exceed Z's positive limit", the spindle left down at the setter) - operator
+;decision 2026-11-05 (Codex R306 Q306-1)
 o<140> if [#<mode> EQ 1]
   o<141> if [#<go_back_to_start_pos> EQ 1]
-    (WEBUI_POS_RETURN) ;lcnc-suite: the next two moves return to the -20- position, silent in task
+    (WEBUI_POS_RETURN) ;lcnc-suite: the next move returns to the -20- X/Y at the top, silent in task
     G1 F#<traverse_fr> X[#<stop_position_x>] Y[#<stop_position_y>]
-    G1 F#<traverse_fr> Z[#<stop_position_z>]
   o<141> endif
   
   ;Selects the type of pause after the survey.

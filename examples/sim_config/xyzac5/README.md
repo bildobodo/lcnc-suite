@@ -98,11 +98,12 @@ table-riding frame otherwise. The simulated toolsetter surface is G53
 X150 Y0 Z−300 (`#3100`–`#3102`, beside the blank); a probe contact is
 triggered from the UI in the simulation.
 
-"Return to start position" (`#3106`) is off: the routine ends at the top of
-travel and the program's next move positions the tool. Returning the tip to
-a start at the top of travel after measuring a longer tool would need the
-spindle nose above Z0 — LinuxCNC refuses that move (the measured length is
-stored either way). An M600 that ends in an error or is aborted under TCP
+"Return to start position" (`#3106`) is off here: the routine ends at the top
+of travel above the setter and the program's next move positions the tool.
+(It was switched off because the routine used to return the new tool's TIP to
+the start Z — from the top with a longer tool LinuxCNC refused that move. Since
+2026-11-05 the return goes to the start's X/Y at the top and Z stays up, so
+`#3106 = 1` is safe here too.) An M600 that ends in an error or is aborted under TCP
 stays in identity kinematics; the mode chip shows Machine. The WebUI writes
 its own Probing → Toolsetter values into these parameters (the form, Measure
 Current, Unload), so set them there once for this config.
