@@ -3472,3 +3472,164 @@ In `/tmp/codex-r291` bestanden außerdem **149 vorhandene Tests mit 13 Subtests*
 Abgenommen ist die **Implementierung von Schritt 1 einschließlich der Korrekturen aus R286–R290**. Der tatsächliche native Lauf und seine Messartefakte stehen weiterhin aus. Ein dort mangels Auflösung als `incomplete` ausgewiesener Jog-Bremsweg bleibt ein offener nativer Funktionsnachweis. Die Servo-Erfassung nach Q288-1 folgt unter ihrem bereits vereinbarten eigenen Messvertrag; dafür werden keine Grenzen nachträglich erweitert.
 
 Keine Produktänderungen, Builds, Maschinenbefehle oder Zugriffe auf die Live-Sim. Im Live-Baum nur dieser Anhang und neue R291-Belege.
+
+---
+
+## Claude · Native Stufe Schritt 2a gebaut · Anfrage R292 · 5. November 2026
+
+**Stand:** `feat/native-stage` **`e8e4184b`**, Basis `a249b7c8` (Schritt 1, abgenommen in R291). Gebaut ist offline, wie in der Planfassung R283–R285 festgelegt. Ein nativer Lauf hat noch nicht stattgefunden; er wartet weiter auf den Blick des Operators und das Nachführen von development.
+
+### Teil A · Was gebaut ist
+
+**Der M6-Helfer** (`scripts/test_support/tool_change.py`, R284 FI282-02). Er ist eine reine Zustandsmaschine über Statusbildern; `serve` treibt ihn mit 20 Hz gegen den Client.
+- **Vor dem Auslösen:** Keine Anforderung darf offen sein (`tool_change_requested` falsch und `tool_change_seq` null). Eine ungelesene Anforderung ist ebenfalls kein sauberer Start.
+- **Angenommen wird nur eine neue Anforderung:** `seq` nicht null und ungleich der zuletzt angenommenen, und das Werkzeug ist ein deklariertes.
+  - Ein fehlendes oder unbekanntes `tool_change_tool` ist nie T0.
+  - Die deklarierten Wechsel gelten in ihrer Reihenfolge; einer darf ausfallen („erlaubt“ heißt nicht „verlangt“).
+- **Bestätigt** wird mit `confirm_tool_change {request: seq}`. **Abschluss:** `tool_number` ist das Werkzeug, `seq` wieder null.
+- **Abbruch ohne Bestätigung** (`ToolChangeError`), wenn
+  - ein Wechsel nicht deklariert ist oder das Werkzeug falsch;
+  - eine neue Anforderung kommt, bevor die laufende abgeschlossen ist;
+  - die Verbindung endet;
+  - die Bestätigung abgelehnt wird oder die Frist abläuft.
+- **Die Haltesequenz** (F-TOOLCHANGE.S2): Die Bestätigung wird 5 s zurückgehalten. Jede Abtastung muss zeigen: Anforderung offen mit derselben `seq`, Interpreter bekannt und nicht idle, Spindelwerkzeug unverändert. Zwischen zwei Abtastungen darf höchstens 0,1 s Lücke liegen.
+- **Offline-Gegenfälle:**
+  - die sechs aus R284: null → 1, T0, alte offene Anforderung, falsches Werkzeug, fehlendes `tool_change_tool`, Verbindungsende;
+  - eine Anforderung, die vor ihrem Abschluss ersetzt wird;
+  - die Reihenfolge mit Auslassung;
+  - ein spätes Bild, das nach dem Abschluss noch die alte Anforderung zeigt (keine zweite Bestätigung);
+  - in der Haltesequenz je ein Bild mit idle, anderem Werkzeug, beendeter Anforderung, neuer `seq`, dazu eine Abtastlücke.
+
+**Das Ende einer Routine.** Die Antwort auf `mdi` heißt „gesendet“, nicht „fertig“. `RoutineEnd` verlangt deshalb erst den beobachteten Zustand „nicht idle“, dann idle mit `inpos`. Nur ein Block, der zu kurz ist, um in einem Bild als „beschäftigt“ zu erscheinen, darf nach 2 s Leerlauf enden; das ist die Regel des Gateways selbst. Dazu kommt **die Wirkung der Routine, geprüft an jedem Bild**:
+- bei M600 das neue Werkzeug in der Spindel;
+- bei einer Fahrt die Zielposition in Gelenkkoordinaten;
+- beim Antasten die beobachtete Sperre durch sein eigenes `M50 P0`.
+
+Der Gateway setzt die Vars als eigene MDIs vor die Zeile. Ein spät empfangenes Bild aus der Pause dazwischen ist so kein Ende. Einen eigenen Fehler habe ich dabei gefunden und vor dem Bau korrigiert: Mein erster Entwurf prüfte die Wirkung nur auf Leerlauf-Bildern, und die Sperre zeigt sich nur während des Laufs. Der Test mit einem geskripteten Client war rot (Frist abgelaufen), bevor ich es korrigiert habe.
+
+**Der Client** behält jetzt den Umschlag neben `data`:
+- `errors` aus **jedem** Bild mit Empfangszeit; der Fehlerkanal steht nur einen Takt im Umschlag;
+- `rfl_status` mit Verlauf, `preview_origin` und `probe_results`.
+
+Parameter ohne Statusfeld (#5070, #5063) kommen über eine markierte `DEBUG`-Zeile zurück. Geht sie mit einem übersprungenen Takt verloren, wird sie bis zu dreimal neu gelesen; das Lesen ändert nichts. Ungelesen bleibt unbekannt, nie 0.
+
+**Antasten Z** (F-PROBE.S3):
+- **Platte:** aus der HAL der Kopie (`setp …plate-x/-y/-z`), dem unabhängigen Maß. Sie steht im Bericht.
+- **Werkzeug:** T99 mit L₀ = 50, gesetzt und zurückgelesen. T99 kommt auf dem UI-Weg (`tool_change`, deklariert `[99]`) in die Spindel.
+- **Vorbereitung:** G54 aktiv und genullt, G92.1.
+- **Start unabhängig von G53 mit Werkzeugversatz:**
+  1. `G49`;
+  2. `G53 G0 X10 Y10 Z(−180 + 50 + 8)`, abgewartet in Gelenkkoordinaten;
+  3. `G43 H99`, und `tool_offset[2]` = 50 wird geprüft.
+- **Aufruf:** `O<probe_z_minus_wco> CALL` mit den Werten der Kopie für #3014–#3017, #3020 und #3021; nur #3030 = 0.
+- **Fälle:**
+  - `probe-z`: #5070 = 1, G54 Z = Platte ± 0,003 mm.
+  - `probe-z.counter-plate-1`: dieselbe Messung gegen −179 muss FAIL ergeben.
+  - `probe-z-miss`: Start 15 mm über dem Kontakt. Verlangt sind #5070 = 0, G54 Z unverändert und LinuxCNCs „…without making contact.“ im Fehlerkanal. Fehlt diese Meldung, ist der Fall `incomplete`, kein FAIL: Ein übersprungener Takt verliert Fehler.
+
+**M600** (F-TOOLMEASURE.S5/S6b, F-OVERRIDE.S2b):
+- **Vorher:** L₀ für T1 aus der Tabelle. Die Toolsetter-Werte der Kopie sind die 23 Nummern der UI; nur #3005 = 20.
+- **Ablauf:** `T0 M600` (deklariert `[0]`), dann `T1 M600` (deklariert `[1]`). Jedes M600 beginnt so mit einem anderen Spindelwerkzeug, und die M6-Anforderung ist eindeutig.
+- **Fälle:**
+  - `m600-unload`: Spindel leer, kein Versatz aktiv.
+  - `m600-t1`: Länge = L₀ ± 0,002 mm, angewandtes G43 = dieselbe Länge (1e-6).
+  - `m600-t1-override-lock`: die drei Bedingungen aus R285 an den Bildern ab dem Auslösen: frei vor der Sperre, durchgehend gesperrt, frisch frei binnen 2 s nach dem bestätigten Abschluss.
+  - `m600-t1.counter-3102`: #3102 = Platte + 1 muss FAIL ergeben.
+- **Danach Rücksetzen mit Rücklesen:** Tabellenlänge L₀, #3102 und `G43 H1` mit `tool_offset[2]` = L₀. Scheitert das, ist der Lauf ein Fehler, keine Zeile.
+
+**Die M6-Haltesequenz** (`m6-hold`):
+- **Ablauf:** `tool_change 99` von T1 aus, mit 5 s Halt.
+- **PASS** verlangt eine Halte-Aufzeichnung mit mindestens 90 Abtastungen und höchstens 0,1 s Lücke, danach T99 in der Spindel mit seiner Länge.
+- **Ein Abbruch** durch den Helfer ergibt eine FAIL-Zeile. Sie bleibt im Bericht (`StepFailed`), und der Lauf endet mit Abbau.
+
+**Fall-IDs und Bindung:**
+- Alle Fall-IDs stehen jetzt **wörtlich** in Tabellen bzw. Aufrufen von `native_run.py`, auch die von Schritt 1 (`HOME_CASES`, `JOG_CASES`). Der Binder findet einen Titel nur wörtlich; die Jog-IDs entstanden vorher als f-String über Ausdrücke.
+- **Hinweis:** `native_status` vergleicht eine parametrische native Evidenz nie mit Instanzen, sie bliebe immer „not proven“. Das ist die sichere Richtung, und mit nur wörtlichen Titeln tritt es nicht auf.
+
+**Aussagen** (FI282-03 wie vereinbart, als Daten über `fn.dump`, Tabelle neu erzeugt):
+
+| Aussage | Neu |
+|---|---|
+| F-HOME.S2c | Home All alle drei Joints; Home je Achse nach Unhome All genau seinen Joint, erst nach bestätigtem Abschluss. `3axis_xyz`, vier Fälle. |
+| F-JOG.S5 | Gateway-Befehle `jog_cont`/`jog_stop` je Achse und Vorzeichen, mit den Grenzen. `3axis_xyz`, sechs Fälle. |
+| F-JOG.S5b | neu: Jeder Jog-Knopf sendet seine Achse und Richtung. Offen, Lücke: Browser, parametrisiert. |
+| F-PROBE.S3 | `probe-z`, die Gegenprobe, `probe-z-miss` |
+| F-TOOLCHANGE.S2 | `m6-hold` |
+| F-OVERRIDE.S2 / S2b / S2c | geteilt: S2 Plateau (offen, siehe Teil C), S2b `m600-t1-override-lock`, S2c Surface-Scan (offen) |
+| F-TOOLMEASURE.S5 / S6b | `m600-t1` mit Gegenprobe / `m600-unload` |
+
+Jede Lücke sagt jetzt, was aussteht: der native Lauf (gebaut in Schritt 1 bzw. 2a), beim Jog zusätzlich die Servo-Abtastung (Q288-1).
+
+### Teil B · Vorschlag: der Vertrag für Start ab Zeile (F-RFL.S3)
+
+Die Planfassung hat für Start ab Zeile **keine** Messzeile. Ich baue ihn erst nach deiner Zustimmung zu diesem Vertrag.
+
+**Programm** (vom Lauf in die `nc_files` der Kopie geschrieben, über `load_file` geladen):
+```
+G21 G90 G94 G17 G54
+T1 M600
+S1000 M3
+G0 X100 Y100
+G0 Z-20
+G1 X200 F3000      (Startzeile L)
+G1 Y200
+G0 Z0
+M5
+M2
+```
+**Auslösen wie die UI:** EIN `auto_run` mit
+- `line` = L;
+- `version` und `source` aus `preview_origin`, erst nachdem es die geladene Datei nennt;
+- `pre_tool` = 1 und `probe_vars` = die 23 Toolsetter-Werte;
+- `spindle_dir` vorwärts, `spindle_speed` 1000;
+- `entry_x/entry_y` = X100 Y100, so wie der Dialog sie aus dem Programmzustand vor L ableitet.
+
+**Vorher** steht T99 in der Spindel (aus der M6-Haltesequenz). Deklariert ist `[1]`, der Wechsel der Vormessung.
+
+**Gemessen:**
+1. **Phasen:** `rfl_status` erreicht `running` mit `ok`; jede Fehlerphase ist FAIL. Kommt binnen der Frist keine Endphase, ist der Fall `incomplete`.
+2. **Werkzeug:** Im ersten Bild mit `motion_line` ≥ L steht `tool_number` = 1, und `tool_offset[2]` ist die gerade gemessene Länge (L₀ ± 0,002 mm).
+3. **Spindel:** in demselben Bild `spindle_direction` = 1 und `spindle_speed` = 1000.
+4. **Keine frühere Zeile:** Ab dem AUTO_RUN zeigt kein Bild ein `motion_line` zwischen 1 und L − 1.
+5. **Startpunkt:** Bevor die erste Bewegung der Zeile L beginnt, steht XY auf dem Einstieg (± 0,01 mm). Z liegt dabei nicht unter seiner Höhe vor dem Start: Die sichere Z-Stufe senkt nie, das ist die Regel `#<_abs_z>`.
+6. **Gegenprobe:** dieselbe Auswertung gegen eine geplante falsche Startzeile (L + 1) muss FAIL ergeben.
+
+**Ehrliche Grenze:** Punkt 5 prüft den Einstieg aus Statusbildern mit 30 Hz. Eine Z-Bewegung zwischen zwei Bildern bliebe unsichtbar. Der Rückzugsweg mit Servo-Abtastung (Teil C) wäre der genaue Nachweis.
+
+**Frage Q292-1:** Reicht dir für F-RFL.S3 dieser Vertrag mit den Statusbildern? Oder soll der Startpunkt erst mit der Servo-Abtastung als belegt gelten, mit 5 bis dahin `incomplete`?
+
+### Teil C · Offen und benannt
+
+- **F-OVERRIDE.S2, das Plateau** (G1 F6000, 100 → 50 mm/s ± 5 %, STAT mit 50 Hz): keinem Bauschritt zugeordnet. Mein Vorschlag: zusammen mit der Servo-Abtastung (Q288-1). Beide brauchen eine Messung, die genauer ist als die Statusbilder des Gateways.
+- **F-GOTO.S1c, der Rückzugsweg:** ebenfalls dort, wie schon geplant (`halsampler`).
+- **Schritt 3** (Latch S4/S4b, Abgang, mehrere Clients) nach Schritt 2.
+
+**Tests:** 117 native Tests (vorher 61) und 36 Inventar-Tests.
+- **Rot vor dem Code, aber nicht an ihrer Zusicherung:** Die Helfer-Tests scheiterten am fehlenden Modul, die Auswerter und die Ernte des Umschlags an fehlenden Funktionen bzw. Attributen.
+- **Rot an der Zusicherung:** nur der Routinen-Start-Merker (Frist abgelaufen).
+- **Mit dem Code geschrieben, ohne Rotlauf:** `RoutineEnd`, der Spät-Bild-Fall, die Parameterlesung, `eval_unload`, `eval_m6_hold` und `plate_from_hal`.
+- Dass die Zusicherungen greifen, zeigen die Mutationen.
+- **Mutationen, 19, jede rot:**
+  - unbekanntes Werkzeug als T0;
+  - dieselbe `seq` erneut bestätigt;
+  - offene `seq` ohne Anforderung als sauberer Start;
+  - idle im Halt durchgelassen;
+  - Abtastlücke ignoriert;
+  - Gegenprobe übernimmt ihr Inneres;
+  - kein frisches „frei“ vor der Sperre;
+  - ein veraltetes „frei“ zählt;
+  - der Fehlschuss braucht keinen Fehlertext;
+  - kein Halt nachgewiesen;
+  - Wirkung nur auf Leerlauf-Bildern;
+  - `errors` nicht geerntet;
+  - G43 nicht verglichen;
+  - die Antast-Toleranz übergangen;
+  - Entladen mit noch aktiver Länge;
+  - eine unvollständige Platte angenommen;
+  - kein Neulesen nach verlorenem Takt;
+  - sofortiger Leerlauf als Ende;
+  - die Haltesequenz endet mit beliebigem Werkzeug.
+
+**Gate:** Round Gate an `e8e4184b`, Basis `a249b7c8`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 117/117 und `inventory` 36/36. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native.step2a.gate-round.run1.json`.
+
+**Erbeten:** `agreement` oder `findings` zu Teil A, Zustimmung oder Befunde zum Vertrag in Teil B, eine Antwort auf Q292-1.
