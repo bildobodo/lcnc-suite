@@ -10577,3 +10577,11 @@ collected course decides — frames arrive in capture order, so a step back
 anywhere is a reversal, and motion after the standstill is no stop: both
 FAIL; the distance from the first frame after the reply is reported as
 `first_after_mm`, no bound.
+
+Codex R290, the rests: every KNOWN value is evidence — a frame with one
+unknown value is no stop anchor, but its known position or velocity still
+contradicts a standstill; and the direction tolerance is fixed against the
+FURTHEST point reached, not the previous frame, so small steps back never add
+up unseen. One pass names the earliest contradiction; the upper bound runs to
+the furthest point (never the net distance); an unknown position before the
+standstill leaves the course unshown (incomplete).

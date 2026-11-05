@@ -882,3 +882,50 @@ def test_a_shown_working_directory_is_given_back_in_the_form_systemd_run_takes()
     assert settable_wd("!~") == "-~"
     assert settable_wd("/home/cnc/linuxcnc/configs/x") == "/home/cnc/linuxcnc/configs/x"
     assert settable_wd("") == "/"
+
+
+
+# ── R290 FI-I23: every known value counts, the tolerance is fixed ────────
+@pytest.mark.parametrize("sign", [1, -1])
+@pytest.mark.parametrize("later", ["position known", "velocity known"])
+def test_a_known_value_contradicts_the_standstill_even_when_its_partner_is_unknown(sign, later):
+    """Codex R290 rest A: 315.4 at standstill after 10 ms, then a frame whose
+    position (325, velocity unknown) or velocity (50, position unknown) says
+    it moved — dropping the whole frame made it a PASS."""
+    p = lambda d: 300 + sign * d
+    frame = (0.2, p(25.0), None) if later == "position known" else (0.2, None, 50.0)
+    for tail in ([], [(0.5, p(15.4), 0.0)]):      # alone, and with a valid standstill frame after it
+        r = nc.eval_jog("jog", 0, sign, 300.0, (-0.005, p(15.0)), [(0.01, p(15.4), 0.0), frame] + tail)
+        # the EARLIEST contradiction is named — 325 then back to 315.4 is a step back too, but later
+        assert r["status"] == "FAIL" and "after its standstill at +0.010 s" in r["detail"] \
+            and "at +0.200 s" in r["detail"], (tail, r)
+
+
+@pytest.mark.parametrize("sign", [1, -1])
+def test_small_backward_steps_cannot_add_up_past_the_tolerance(sign):
+    """Codex R290 rest B: 317.040, then nine steps of 0.009 back to 316.959
+    at standstill — each under 0.01, together 0.081 from the furthest point."""
+    p = lambda d: 300 + sign * d
+    samples = [(0.01, p(17.040), 20.0)] + [(0.01 + 0.033 * k, p(17.040 - 0.009 * k), 5.0) for k in range(1, 9)]
+    samples.append((0.307, p(16.959), 0.0))
+    r = nc.eval_jog("jog", 0, sign, 300.0, (-0.005, p(15.0)), samples)
+    assert r["status"] == "FAIL" and "furthest" in r["detail"], r
+    # noise of a few thousandths around the furthest point stays a PASS
+    ok = nc.eval_jog("jog", 0, sign, 300.0, (-0.005, p(15.0)),
+                     [(0.01, p(16.5), 20.0), (0.04, p(16.497), 1.0), (0.07, p(16.499), 0.0), (0.2, p(16.498), 0.0)])
+    assert ok["status"] == "PASS" and ok["brake_upper_mm"] == 1.5, ok
+
+
+def test_an_unknown_position_before_the_standstill_leaves_the_course_unshown():
+    r = nc.eval_jog("jog", 0, 1, 300.0, (-0.005, 315.0), [(0.03, None, 30.0), (0.1, 316.5, 0.0)])
+    assert r["status"] == "incomplete" and "unknown" in r["detail"], r
+
+
+@pytest.mark.parametrize("sign", [1, -1])
+def test_the_upper_bound_runs_to_the_furthest_point_not_the_net_distance(sign):
+    """R290: 2.070 mm to the furthest point (past the 2.067 bound), back
+    0.008 within the tolerance to 2.062 at standstill — the net distance
+    would pass, the travel did not."""
+    p = lambda d: 300 + sign * d
+    r = nc.eval_jog("jog", 0, sign, 300.0, (-0.005, p(15.0)), [(0.02, p(17.070), 3.0), (0.06, p(17.062), 0.0)])
+    assert r["status"] == "incomplete" and r["brake_upper_mm"] == 2.07, r
