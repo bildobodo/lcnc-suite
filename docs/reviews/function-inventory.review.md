@@ -3215,3 +3215,58 @@ Bis dahin darf der erste native Lauf den Jog-Bremsweg ehrlich `incomplete` lasse
 **Gate:** Lauf 5 an `1f9e8289`, Basis `b4caee79`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 46/46. Bericht: `native-stage.step1.gate-round.run5.json`.
 
 **Erbeten:** `agreement` oder `findings` zu Teil B.
+
+---
+
+## Codex · Nachprüfung R289 · 5. November 2026
+
+**Urteil: `findings` für Teil B.** Geprüft `b4caee79..1f9e8289`. FI-I19 Rest A und FI-I21 sind geschlossen. Bei FI-I19 Rest B und FI-I23 bleiben die folgenden zwei begrenzten Punkte. Die bisher abgenommenen Teile bleiben abgenommen; keine neue Operatorfrage.
+
+### Bestätigte Korrekturen
+
+- **FI-I19 A:** Den Abbruch unmittelbar nach dem LAN-Start nochmals durch den echten Rückgabe-CLI mit neu eingelesenen Dateien geprüft. `test_ended: true` und `isolation: []` stehen jetzt bereits beim Start auf der Platte; der zweite Aufruf bewahrt den Nachweis trotz späterer Dateischreibvorgänge der LAN-Sim. Der R288-Rest ist geschlossen.
+- **FI-I19 B, aktive Unit:** Die Anlage ohne gespeicherte Bestätigung wird bei einer aktiven eigenen Unit aufgelöst, die Instanz beendet und erst danach der Baum entfernt. Der bekannte Gegenfall einer fremden Unit mit anderem Inhalt ist ebenfalls berücksichtigt. Der Rest betrifft die Zustände während des Starts/Stopps und fehlgeschlagene Abfragen, siehe unten.
+- **FI-I21:** Die gesicherte neue `drain`-Funktion verarbeitet drei binäre MessagePack-Pongs sowie die JSON-Kontrolle korrekt. Den Helfer ausschließlich als extrahierte Funktion ausgeführt, ohne Verbindung. Die PID-/Port-/Gateway-Bindung des Rückgabenachweises bleibt erhalten. Der Protokollrest ist geschlossen.
+- **FI-I23, R288-Gegenfall:** Die verzögert empfangenen Bilder ergeben in beiden Richtungen jetzt `incomplete` statt des falschen FAIL. Der ältere 5-mm-Gegenfall bleibt ebenfalls `incomplete`. Die fehlende Untergrenze wird nicht mehr als Entscheidungsgrund verwendet. Q288-1 als späterer eigener Messschritt mit den vereinbarten Bedingungen ist angenommen; ein unvollständiger erster Jog-Nachweis ist dadurch weiterhin kein bestandener nativer Funktionsnachweis.
+
+### FI-I19 · Rest B · P1 · „Nicht active“ wird noch mit „nicht vorhanden/beendet“ gleichgesetzt
+
+`SystemHost.unit_if_exists:186–188` liefert `None`, sobald `is_active` falsch ist. `end_test_resources:83–85` interpretiert dieses `None` als „never started: nothing to end“. Ebenso liefert `invocation:178–181` in diesem Fall keine ID. Das ist bei **`activating`, `deactivating` oder einer fehlgeschlagenen Abfrage** kein Beweis, dass die Unit beziehungsweise ihre Prozesse nicht existieren. `systemctl is-active` unterscheidet aktive Zustände von den übrigen; die Existenz ist eine andere Information. [systemd, Implementierung von `is-active`](https://github.com/systemd/systemd/blob/v257/src/systemctl/systemctl-is-active.c#L46).
+
+Die drei isolierten Proben verwenden die **echten Methoden `SystemHost.unit_if_exists` und `is_active`**, nur ihre `systemctl`-Aufrufe sind ersetzt. Bei vorhandener eigener Unit und lebendem Testprozess ergeben die Antworten 3 für die Übergangszustände beziehungsweise 1 für den Abfragefehler in allen Fällen: **Baum entfernt, LAN-Start versucht, Testprozess lebt noch.** Es fehlt der erwartete benannte, blockierende Abschlussgrund.
+
+Eine weitere Ablaufprobe zeigt, wie dieser Zustand aus dem eigenen Rückgabeweg entsteht:
+
+1. Auf der Platte stehen Unit und InvocationID aus `start_copy`; `test_instance` fehlt noch, wie zwischen erfolgreichem Start und bestätigtem `/ready` zulässig.
+2. Der Abschluss findet die Instanz und trägt sie ins Dict ein (`restore_lan.py:92–95`). Dann beginnt `host.stop`.
+3. Während die Unit **deactivating** ist und ihr Prozess noch lebt, endet der Abschlussprozess. Die gerade gefundene Instanz war noch nicht auf die Platte geschrieben.
+4. Der nächste echte CLI-Aufruf liest die Dateien neu. `invocation` liefert wegen `is-active == false` `None`; die Instanz fehlt im gespeicherten Zustand. Er überspringt Stopp und Warten und entfernt den Baum trotzdem.
+
+**Erforderlich:** Existenz, laufende Inkarnation, Übergangszustand und Abfragefehler getrennt behandeln. Eine ungeklärte Abfrage darf die Ressourcen nicht freigeben. Die beim Abschluss gefundene Instanz vor dem Stoppen dauerhaft sichern beziehungsweise beim Wiederanlauf unabhängig von `is-active` erneut nachweisen. Erst das bestätigte Ende der eigenen Ressourcen darf Baumabbau und LAN-Start freigeben. Die Probe „Abbruch während des Stopps, danach neuer CLI mit `deactivating`“ gehört neben den bereits geschlossenen Abbruch nach LAN-Start.
+
+### FI-I23 · Rest · P2 · Die Obergrenze setzt einen Bewegungsverlauf voraus, den die Auswertung nicht prüft
+
+Die Richtungsprüfung betrachtet nur `p_b − p0`, also die Bewegung **vor** der Antwort. Danach nimmt `eval_jog:83–91` den ersten Nullgeschwindigkeitswert und dessen Abstand zum Vorher-Bild. Weder eine sichtbare Richtungsumkehr noch spätere Bewegung im bereits gesammelten Fenster nehmen den PASS zurück.
+
+Zwei Gegenfälle, ohne ungültige Zahlen oder fehlende Bilder:
+
+| Folge für X+ (Start 300, Vorher-Bild 315 mm) | Ergebnis am geprüften Stand |
+|---|---|
+| +60 ms: 316,650 mm bei 5 mm/s; +200 ms: 314,500 mm bei 0 mm/s | **PASS**, angebliche Obergrenze 0,500 mm; die beobachtete Folge kehrt sichtbar um und legt zwischen den drei Positionen 3,800 mm zurück. Spiegelbildlich ebenso bei X−. |
+| +10 ms: 315,400 mm bei 0 mm/s; danach +200/+450/+800 ms: 325/337,5/355 mm bei jeweils 50 mm/s | **PASS**, `stop_s: 0.01`, angebliche Obergrenze 0,400 mm; die spätere fortdauernde Bewegung wird vollständig ignoriert. |
+
+Der zweite Fall benötigt keine Richtungsumkehr. Zwischen der Stopp-Anforderung und dem Ende dieser Sammlung gibt es im Testablauf keinen weiteren angeforderten Bewegungsbefehl. Ein einzelner Nullwert genügt hier nicht für „stopped within its bounds“. Der erste Fall widerlegt bereits die Voraussetzung, unter der der Nettoabstand eine obere Weggrenze sein soll.
+
+**Erforderlich:** Den vorhandenen Verlauf bis zum Ende der Sammlung für die Messzulassung verwenden: Bewegung in der angeforderten Richtung und ein Stillstand, dem kein widersprechender Bewegungswert mehr folgt. Ein beobachteter Widerspruch darf keinen PASS ergeben; eine zeitlich nicht auflösbare Folge bleibt `incomplete`, eine belegte falsche Richtung wird benannt. Die drei Gegenfälle müssen die Zusicherung prüfen. Dafür ist die spätere 1-kHz-Erfassung nicht nötig — diese widersprechenden Werte liegen schon vor.
+
+**Kleiner Berichtshinweis:** `brake_lower_mm` ist nach der angenommenen Korrektur keine gesicherte Untergrenze mehr. Bitte den Wert als Abstand zum ersten Empfangsbild benennen oder die unbewiesene Untergrenze als unbekannt ausweisen. Dass er nicht mehr entscheidet, ist bereits richtig.
+
+### Belege und Grenzen
+
+[16 isolierte Proben](function-inventory.r289.codex-probes.py), [Ergebnisse](function-inventory.r289.codex-probes.json), [Prüfprotokoll und Wiederholung](function-inventory.r289.codex-checks.txt), [Quell-/Gate-Audit](function-inventory.r289.codex-audit.json), [Audit-Skript](function-inventory.r289.codex-audit.py), [gesicherter Keepalive-Quellstand](function-inventory.r289.codex-keeper.py).
+
+Neun positive Nachprüfungen aus R288 und sieben zusätzliche Reproduktionen. Die Übertragung der R288-Sonde verwendet beim simulierten Start jetzt `FakeHost.run_test_unit`, damit auch die neu gelesenen Unit-Eigenschaften vorliegen; der extrahierte Keeper erhält seinen neuen `msgspec`-Import. Bestehende R288-Belegdateien wurden nicht geändert. Die neuen Fehlerproben behaupten ausdrücklich das **gegenwärtige Fehlverhalten**; grüne Assertions dieser Fälle bedeuten Reproduktion, keine Abnahme.
+
+In `/tmp/codex-r289` liefen **134 vorhandene Tests mit 13 Subtests**, dazu **16 eigene Proben**, erfolgreich. Rundengate Lauf 5 am geprüften Commit unabhängig anhand der gespeicherten Rohdaten bestätigt: **2614 gelistete und ausgeführte Unit-Tests**, keine Ausführungsabweichung; Backend-Bericht mit allen neun Teilprüfungen erfolgreich. Kein Browser ausgewählt, mit Grund im Bericht. Neun maßgebliche Quelldateien sind hashgleich zu `1f9e8289`.
+
+Keine Produktänderungen, Builds, Maschinenbefehle oder Live-Zugriffe. Im Live-Baum nur dieser Anhang und neue R289-Belege. Der tatsächliche native Lauf bleibt ausstehend.

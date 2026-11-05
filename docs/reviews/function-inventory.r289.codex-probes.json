@@ -1,0 +1,336 @@
+[
+  {
+    "case": "R288 creation gap closed for active unit",
+    "restore": {
+      "outcome": "complete",
+      "instance": [
+        "linuxcncsvr",
+        101,
+        5101
+      ],
+      "isolation": [],
+      "cleanup": []
+    }
+  },
+  {
+    "case": "R288 restore phase durability closed",
+    "disk_at_lan_start": {
+      "test_ended": true,
+      "isolation": []
+    },
+    "resume": {
+      "outcome": "complete",
+      "instance": [
+        "linuxcncsvr",
+        101,
+        5101
+      ],
+      "isolation": [],
+      "cleanup": []
+    },
+    "run_pass": true
+  },
+  {
+    "case": "R288 binary pong proof closed",
+    "received_pongs": 3,
+    "beat_exists": true
+  },
+  {
+    "case": "keeper JSON control",
+    "pongs": 3
+  },
+  {
+    "case": "R288 delayed status closed",
+    "sign": 1,
+    "actual_brake_from_reply_mm": 1.6666666666666667,
+    "true_limit_mm": 2.066666666666667,
+    "post_receipt_sample_source_time_s": -0.033,
+    "out": {
+      "case": "delayed",
+      "status": "incomplete",
+      "detail": "the braking travel from the reply is at most 4.967 mm by the frame before it; status frames give no lower bound (their capture time is not known) \u2014 not resolved against 2.067",
+      "axis": "X",
+      "sign": 1,
+      "bound_mm": 2.067,
+      "travel": 11.7,
+      "before_s": -0.005,
+      "stop_s": 0.08,
+      "brake_upper_mm": 4.9667,
+      "brake_lower_mm": 3.3167
+    }
+  },
+  {
+    "case": "R288 delayed status closed",
+    "sign": -1,
+    "actual_brake_from_reply_mm": 1.6666666666666667,
+    "true_limit_mm": 2.066666666666667,
+    "post_receipt_sample_source_time_s": -0.033,
+    "out": {
+      "case": "delayed",
+      "status": "incomplete",
+      "detail": "the braking travel from the reply is at most 4.967 mm by the frame before it; status frames give no lower bound (their capture time is not known) \u2014 not resolved against 2.067",
+      "axis": "X",
+      "sign": -1,
+      "bound_mm": 2.067,
+      "travel": 11.7,
+      "before_s": -0.005,
+      "stop_s": 0.08,
+      "brake_upper_mm": 4.9667,
+      "brake_lower_mm": 3.3167
+    }
+  },
+  {
+    "case": "R287 analytic brake closed",
+    "sign": 1,
+    "out": {
+      "case": "r287",
+      "status": "incomplete",
+      "detail": "the braking travel from the reply is at most 5.000 mm by the frame before it; status frames give no lower bound (their capture time is not known) \u2014 not resolved against 2.067",
+      "axis": "X",
+      "sign": 1,
+      "bound_mm": 2.067,
+      "travel": 15,
+      "before_s": -0.001,
+      "stop_s": 0.2,
+      "brake_upper_mm": 5,
+      "brake_lower_mm": 1.5125
+    }
+  },
+  {
+    "case": "R287 analytic brake closed",
+    "sign": -1,
+    "out": {
+      "case": "r287",
+      "status": "incomplete",
+      "detail": "the braking travel from the reply is at most 5.000 mm by the frame before it; status frames give no lower bound (their capture time is not known) \u2014 not resolved against 2.067",
+      "axis": "X",
+      "sign": -1,
+      "bound_mm": 2.067,
+      "travel": 15,
+      "before_s": -0.001,
+      "stop_s": 0.2,
+      "brake_upper_mm": 5,
+      "brake_lower_mm": 1.5125
+    }
+  },
+  {
+    "case": "current proofs repeated",
+    "out": {
+      "outcome": "not_returned",
+      "reasons": [
+        "bg-keepalive runs another command than recorded",
+        "the LAN tree's HEAD is changed, recorded abc"
+      ],
+      "instance": [
+        "linuxcncsvr",
+        101,
+        5101
+      ],
+      "isolation": [],
+      "cleanup": [],
+      "repeat_of": "complete"
+    }
+  },
+  {
+    "case": "FI-I19 non-active interpreted as nonexistent",
+    "phase": "activating",
+    "is_active_returncode": 3,
+    "live_process": [
+      "linuxcncsvr",
+      900,
+      9000
+    ],
+    "removed": [
+      "/tmp/pytest-of-cnc/pytest-915/test_reproduction_unit_not_act0/r289-transition/tree"
+    ],
+    "lan_starts": [
+      "lcnc-sim-gates",
+      "bg-keepalive"
+    ],
+    "restore": {
+      "outcome": "not_returned",
+      "reasons": [
+        "the LAN gateway's /ready did not answer within 120 s"
+      ],
+      "instance": [
+        "linuxcncsvr",
+        900,
+        9000
+      ],
+      "isolation": [],
+      "cleanup": []
+    }
+  },
+  {
+    "case": "FI-I19 non-active interpreted as nonexistent",
+    "phase": "deactivating",
+    "is_active_returncode": 3,
+    "live_process": [
+      "linuxcncsvr",
+      900,
+      9000
+    ],
+    "removed": [
+      "/tmp/pytest-of-cnc/pytest-915/test_reproduction_unit_not_act1/r289-transition/tree"
+    ],
+    "lan_starts": [
+      "lcnc-sim-gates",
+      "bg-keepalive"
+    ],
+    "restore": {
+      "outcome": "not_returned",
+      "reasons": [
+        "the LAN gateway's /ready did not answer within 120 s"
+      ],
+      "instance": [
+        "linuxcncsvr",
+        900,
+        9000
+      ],
+      "isolation": [],
+      "cleanup": []
+    }
+  },
+  {
+    "case": "FI-I19 non-active interpreted as nonexistent",
+    "phase": "query failed",
+    "is_active_returncode": 1,
+    "live_process": [
+      "linuxcncsvr",
+      900,
+      9000
+    ],
+    "removed": [
+      "/tmp/pytest-of-cnc/pytest-915/test_reproduction_unit_not_act2/r289-transition/tree"
+    ],
+    "lan_starts": [
+      "lcnc-sim-gates",
+      "bg-keepalive"
+    ],
+    "restore": {
+      "outcome": "not_returned",
+      "reasons": [
+        "the LAN gateway's /ready did not answer within 120 s"
+      ],
+      "instance": [
+        "linuxcncsvr",
+        900,
+        9000
+      ],
+      "isolation": [],
+      "cleanup": []
+    }
+  },
+  {
+    "case": "FI-I23 observed reversal accepted",
+    "sign": 1,
+    "observed_path_from_before_mm": 3.7999999999999545,
+    "out": {
+      "case": "reversal",
+      "status": "PASS",
+      "detail": "moved in its sign, stopped within its bounds",
+      "axis": "X",
+      "sign": 1,
+      "bound_mm": 2.067,
+      "travel": 15,
+      "before_s": -0.005,
+      "stop_s": 0.2,
+      "brake_upper_mm": 0.5,
+      "brake_lower_mm": 2.15
+    }
+  },
+  {
+    "case": "FI-I23 observed reversal accepted",
+    "sign": -1,
+    "observed_path_from_before_mm": 3.7999999999999545,
+    "out": {
+      "case": "reversal",
+      "status": "PASS",
+      "detail": "moved in its sign, stopped within its bounds",
+      "axis": "X",
+      "sign": -1,
+      "bound_mm": 2.067,
+      "travel": 15,
+      "before_s": -0.005,
+      "stop_s": 0.2,
+      "brake_upper_mm": 0.5,
+      "brake_lower_mm": 2.15
+    }
+  },
+  {
+    "case": "FI-I23 motion after first zero accepted",
+    "samples": [
+      [
+        0.01,
+        315.4,
+        0
+      ],
+      [
+        0.2,
+        325,
+        50
+      ],
+      [
+        0.45,
+        337.5,
+        50
+      ],
+      [
+        0.8,
+        355,
+        50
+      ]
+    ],
+    "out": {
+      "case": "moving-again",
+      "status": "PASS",
+      "detail": "moved in its sign, stopped within its bounds",
+      "axis": "X",
+      "sign": 1,
+      "bound_mm": 2.067,
+      "travel": 15,
+      "before_s": -0.005,
+      "stop_s": 0.01,
+      "brake_upper_mm": 0.4,
+      "brake_lower_mm": 0.0
+    }
+  },
+  {
+    "case": "FI-I19 kill during stop and fresh CLI",
+    "state_at_kill": {
+      "test_unit_intent": "native-sim-r289-killed-stop",
+      "test_unit": "native-sim-r289-killed-stop",
+      "test_unit_invocation": "inv-crash",
+      "test_unit_wd": "/tmp/pytest-of-cnc/pytest-915/test_reproduction_kill_during_0/r289-killed-stop/config",
+      "test_ini": "/tmp/pytest-of-cnc/pytest-915/test_reproduction_kill_during_0/r289-killed-stop/config/test.ini",
+      "tree": "/tmp/pytest-of-cnc/pytest-915/test_reproduction_kill_during_0/r289-killed-stop/tree",
+      "tree_of": "/source"
+    },
+    "resume_phase": "deactivating",
+    "live_process": [
+      "linuxcncsvr",
+      900,
+      9000
+    ],
+    "removed": [
+      "/tmp/pytest-of-cnc/pytest-915/test_reproduction_kill_during_0/r289-killed-stop/tree"
+    ],
+    "lan_starts": [
+      "lcnc-sim-gates",
+      "bg-keepalive"
+    ],
+    "restore": {
+      "outcome": "not_returned",
+      "reasons": [
+        "the LAN gateway's /ready did not answer within 120 s"
+      ],
+      "instance": [
+        "linuxcncsvr",
+        900,
+        9000
+      ],
+      "isolation": [],
+      "cleanup": []
+    }
+  }
+]
