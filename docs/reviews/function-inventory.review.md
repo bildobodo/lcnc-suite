@@ -3437,3 +3437,38 @@ Keine Produktänderungen, Builds, Maschinenbefehle oder Zugriffe auf die Live-Si
 **Gate:** Lauf 8 an `a249b7c8`, Basis `6786d89f`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 61/61. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native.step1.gate-round.run8.json`.
 
 **Erbeten:** `agreement` oder `findings` zu Teil B.
+
+---
+
+## Codex · Nachprüfung R291 · 5. November 2026
+
+**Urteil: `agreement` für die Implementierung der nativen Stufe, Schritt 1, am Stand `a249b7c8`.** Geprüft `6786d89f..a249b7c8`. Beide R290-Reste von **FI-I23 sind geschlossen**. Damit sind die Implementierungsbefunde **FI-I18 bis FI-I23** erledigt. Teil A bleibt abgenommen. Keine offene Operatorfrage in dieser Runde.
+
+### Bestätigte Korrekturen
+
+| Gegenfall / Zusicherung | Eigene Nachprüfung |
+|---|---|
+| **FI-I23 Rest A: bekannte Bewegung bei unbekanntem Partnerwert** | Die vier R290-Gegenfälle ergeben jetzt FAIL, in beiden Richtungen. Eine bekannte Position bleibt trotz unbekannter Geschwindigkeit wirksam; eine bekannte Geschwindigkeit trotz unbekannter Position ebenfalls. Benannt wird jeweils die Bewegung bei +0,2 s nach dem Stillstandsbild bei +0,01 s. |
+| **FI-I23 Rest B: viele kleine Rückwärtsschritte** | Die neun Schritte à 0,009 mm ergeben jetzt in beiden Richtungen FAIL. Bereits der zweite Schritt liegt 0,018 mm hinter dem weitesten Punkt und wird benannt. Die feste Toleranz wandert nicht mehr mit. |
+| **Begrenztes Rauschen** | Die positive R290-Probe mit Schwankungen von wenigen Tausendstelmillimetern bleibt PASS. |
+| **Obergrenze bis zum weitesten Punkt** | 2,070 mm bis zum weitesten Punkt, anschließend 0,008 mm zurück: in beiden Richtungen `incomplete` mit `brake_upper_mm: 2.07`. Der kleinere Nettoabstand erzeugt keinen PASS mehr. |
+| **Teilweise nicht endliche Werte** | Ein bekannter Positionswiderspruch bleibt auch bei unendlicher Geschwindigkeit wirksam. Ein bekannter Geschwindigkeitswiderspruch bleibt bei unbekannter Position und nicht endlichem Zeitstempel wirksam. Die Ausgabe benennt die unbekannten Werte, ohne einen Anker daraus zu machen. |
+| **Unvollständiger Verlauf** | Eine nicht endliche Position vor dem Stillstandsanker und eine leere Samplefolge ergeben `incomplete`. |
+
+Der gemeinsame Durchlauf benennt den ersten Widerspruch. Die Berichtsfelder bleiben konsistent: `first_after_mm` ist ein beschreibender Abstand; die Wegprüfung verwendet den weitesten erreichten Punkt. Die entsprechende Ergänzung in `docs/decisions.md` stimmt mit der Umsetzung überein.
+
+### Regression und Belege
+
+Die **27 R290-Proben** wurden in einer neuen Kopie wiederholt: die 21 positiven Kontrollen bleiben grün; die sechs ehemaligen Fehlerreproduktionen erwarten jetzt ausdrücklich **FAIL** statt des alten falschen PASS und sind damit positive Wächter. Dazu kommen **neun weitere Grenzprüfungen** zu weitestem Punkt, nicht endlichen beziehungsweise teilweise unbekannten Werten und leerer Folge. Alle **36 eigenen Proben** bestehen. Alte Belegdateien wurden nicht verändert.
+
+Die unveränderten Rückgabewege sind dabei ebenfalls erneut geprüft: tatsächliche `unit_status`-Leselogik mit temporären cgroup-Dateien, Übergangszustände und Abfragefehler, Speichern vor dem Stopp, Wiederaufnahme aus Dateien, bestätigtes Ende vor Baumabbau, Doppelabschluss, Keepalive-Formate und WorkingDirectory-Umsetzung.
+
+[36 eigene Proben](function-inventory.r291.codex-probes.py), [Ergebnisse](function-inventory.r291.codex-probes.json), [Prüfprotokoll und Wiederholung](function-inventory.r291.codex-checks.txt), [Quell-/Gate-Audit](function-inventory.r291.codex-audit.json), [Audit-Skript](function-inventory.r291.codex-audit.py), [gesicherter Keepalive-Quellstand](function-inventory.r291.codex-keeper.py).
+
+In `/tmp/codex-r291` bestanden außerdem **149 vorhandene Tests mit 13 Subtests** (`test_native_stage`, `test_inventory`, `test_example_install`, `test_toolsetter_readback_check`). Rundengate Lauf 8 am geprüften Commit unabhängig anhand der gespeicherten Rohdaten bestätigt: **2614 gelistete und ausgeführte Unit-Tests**, keine Ausführungsabweichung; Backend mit allen neun Teilprüfungen erfolgreich. Kein Browser ausgewählt, mit Grund im Bericht. Neun maßgebliche Quelldateien sind hashgleich zu `a249b7c8`.
+
+### Geltungsbereich des Agreements
+
+Abgenommen ist die **Implementierung von Schritt 1 einschließlich der Korrekturen aus R286–R290**. Der tatsächliche native Lauf und seine Messartefakte stehen weiterhin aus. Ein dort mangels Auflösung als `incomplete` ausgewiesener Jog-Bremsweg bleibt ein offener nativer Funktionsnachweis. Die Servo-Erfassung nach Q288-1 folgt unter ihrem bereits vereinbarten eigenen Messvertrag; dafür werden keine Grenzen nachträglich erweitert.
+
+Keine Produktänderungen, Builds, Maschinenbefehle oder Zugriffe auf die Live-Sim. Im Live-Baum nur dieser Anhang und neue R291-Belege.

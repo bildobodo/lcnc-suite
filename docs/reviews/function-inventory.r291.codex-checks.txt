@@ -1,0 +1,52 @@
+R291 review verification, 2026-11-05
+Source: archive of a249b7c8ddc7d0eb8df49350f23b28a8fcac147d in /tmp/codex-r291.
+No product edits or live service access; SystemHost/systemd commands in probes are fakes,
+with actual temporary cgroup files to check the recursive reader.
+
+Existing checks:
+/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py lcnc-gateway/test_example_install.py scripts/test_toolsetter_readback_check.py
+........................................................................ [ 48%]
+............................................................... [ 90%]
+..............                                                       [100%]
+149 passed, 13 subtests passed in 3.97s
+
+Own probes (all positive now; the six former R290 reproductions now expect FAIL):
+/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' test_r291_probes.py
+....................................                                     [100%]
+36 passed in 0.07s
+
+Replay: create a new archive of a249b7c8; copy codex-probes.py into its root as test_r291_probes.py and codex-keeper.py as r291-keepalive-source.py. Run the command above from that archive using the installed venv Python. The keeper test only executes the drain function AST; do NOT run the keeper file itself. Outputs r291-probes.json there. codex-audit.py likewise runs from the archive root; saved gate paths are local evidence, not network sources.
+
+Saved gate/source audit:
+{
+  "head": "a249b7c8ddc7d0eb8df49350f23b28a8fcac147d",
+  "base": "6786d89f083d4e3db738593d5154f8c2a60f1eca",
+  "kind": "round",
+  "verdict": "PASS",
+  "omitted": [
+    {
+      "check": "unit-heavy",
+      "reason": "no heavy file changed, reached or read for"
+    },
+    {
+      "check": "browser",
+      "reason": "no path selects a browser spec"
+    }
+  ],
+  "pending": [],
+  "heavy_lock_wait_s": 0.0,
+  "unit-light": {
+    "listed": 2614,
+    "ran": 2614,
+    "passed": 2614,
+    "issues": []
+  },
+  "external_keeper": {
+    "path": "/home/cnc/claude-work/bg/keepalive_ini.py",
+    "sha256": "5bd7e950df5325b992f82654eabca94573469ff9048784d770fbe5e3188f9e62",
+    "tested": "only drain function AST; no top-level or socket execution",
+    "not_in_commit": true
+  }
+}
+All source hashes match: True
+backend report keys: ['mode', 'started', 'root', 'gates', 'commit', 'tracked_changes', 'runner_sha256', 'status', 'changed_file_sha256', 'not_run', 'finished']
