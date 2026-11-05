@@ -4351,7 +4351,8 @@ def _rfl_entry_reached(entry: dict):
 
 async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
                         spindle_dir: Optional[str], spindle_speed: int,
-                        entry: Optional[dict] = None, program=None) -> None:
+                        entry: Optional[dict] = None, program=None,
+                        basis: Optional[Dict[str, Any]] = None) -> None:
     global _skip_flag_unknown
     flag_armed = False
 
@@ -4458,14 +4459,17 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
             # The handler's admission is minutes old: the same current read
             # decides — early, and again at the write itself, after the mode
             # switch (button gates BG-09 / BG-12, Codex R206).
-            why = _program_start_refusal(True)
+            # …and the toolsetter basis the handler chose, unchanged up to
+            # the AUTO write (P2, Codex R309)
+            admit = _basis_admit(basis, lambda: _program_start_refusal(True))
+            why = admit()
             if why:
                 _rfl_phase("failed", False, why)
                 return
             await set_mode(linuxcnc.MODE_AUTO)
             try:
                 await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None,
-                                    admit=lambda: _program_start_refusal(True))
+                                    admit=admit)
             except _WriteRefused as refused:
                 _rfl_phase("failed", False, str(refused))
                 return
@@ -4764,6 +4768,69 @@ async def _apply_probe_vars_detail(vars_to_set: Dict[str, Any], armed: bool,
     _trace.emit("probe.set_vars_result", mdi_set=mdi_ok, applied=sorted(applied), persisted=persisted,
                 file_error=file_error)
     return {"mdi_set": mdi_ok, "applied_keys": sorted(applied), "persisted": persisted, "file_error": file_error}
+
+
+def _toolsetter_basis() -> Dict[str, Any]:
+    """The toolsetter basis a PROGRAM start applies (P2, Codex R308–R309):
+    the server's confirmed `toolsetter` section of the current INI, read under
+    the store's lock and judged by the form's rule (toolsetter_rules). Its
+    digest binds it — the section and the INI, never the store's global
+    counter (a camera save is no other basis). {"ok": True, "ini", "digest",
+    "values": {var: canonical}}, or {"ok": False, "reason", …}: no sync."""
+    ini = _current_ini_path()
+    section = _settings_store.load_section("toolsetter")
+    digest = hashlib.sha256(json.dumps({"ini": ini, "section": section}, sort_keys=True,
+                                       default=str).encode()).hexdigest()[:16]
+    r = toolsetter_setup(section)
+    if not r["ok"]:
+        return {"ok": False, "reason": r["reason"], "ini": ini, "digest": digest}
+    return {"ok": True, "ini": ini, "digest": digest, "values": r["values"]}
+
+
+def _basis_refusal(basis: Dict[str, Any]) -> Optional[str]:
+    """None while the section a start chose is still the stored one."""
+    if _toolsetter_basis()["digest"] != basis["digest"]:
+        return "Toolsetter settings changed meanwhile — start again"
+    return None
+
+
+def _basis_admit(basis: Optional[Dict[str, Any]], admit: Callable[[], Optional[str]]) -> Callable[[], Optional[str]]:
+    """`admit` and the chosen basis unchanged — for the AUTO switch and write."""
+    if not basis:
+        return admit
+    return lambda: _basis_refusal(basis) or admit()
+
+
+async def _toolsetter_sync(armed: bool, basis: Dict[str, Any]):
+    """A program start's toolsetter sync (P2, Codex R308–R309 FI308-01/02):
+    the chosen basis into the interpreter BEFORE the start — its own
+    condition, whatever the skip flag. Returns (refusal | None, note).
+    - Not set up: no sync — the interpreter keeps what it has, the note says so.
+    - Every key booked applied/read with the basis's number: nothing written
+      (no booking change, no re-parse; the booking is the evidence — another
+      writer of the interpreter is not seen, a named limit).
+    - Else written, admitted at the switch and each chunk on the chosen
+      basis and an idle interpreter; not every chunk taken → the start is
+      refused, the chunks booked as they ended."""
+    note = {"digest": basis["digest"], "set_up": bool(basis.get("ok")), "synced": False}
+    if not basis.get("ok"):
+        _trace.emit("toolsetter.sync", set_up=False, why=basis.get("reason"), digest=basis["digest"])
+        return None, note
+    _ts_ensure()
+    vals = basis["values"]
+    if all((_ts_basis.get(k) or {}).get("origin") in ("applied", "read")
+           and (_ts_basis.get(k) or {}).get("value") == v for k, v in vals.items()):
+        _trace.emit("toolsetter.sync", set_up=True, wrote=False, digest=basis["digest"])
+        return None, note
+    r = await _apply_probe_vars_detail({str(k): v for k, v in vals.items()}, armed,
+                                       admit=lambda: _basis_refusal(basis) or _interp_idle_refusal())
+    _trace.emit("toolsetter.sync", set_up=True, wrote=True, taken=r["mdi_set"], digest=basis["digest"],
+                values={str(k): v for k, v in vals.items()}, persisted=r["persisted"], file_error=r["file_error"])
+    if not r["mdi_set"]:
+        return {"ok": False, "error": _basis_refusal(basis) or "Toolsetter values not taken — nothing started",
+                "toolsetter": note}, note
+    note.update(synced=True, persisted=r["persisted"], file_error=r["file_error"])
+    return None, note
 
 
 async def handle_command(msg: Dict[str, Any], armed: bool, conn_key: Optional[str] = None):
@@ -5364,16 +5431,21 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                 # Idle → start program and step. A paused program is one a
                 # start already cleared the skip flag for — or run from
                 # line's own, whose skim owns it; no MDI while paused.
+                basis = _toolsetter_basis()      # as Cycle Start (P2)
                 refused = await _start_guard(armed, program=True)
                 if refused:
                     return refused
-                admit = _start_admit("step", armed)   # as Cycle Start
+                refused, ts_note = await _toolsetter_sync(armed, basis)
+                if refused:
+                    return refused
+                admit = _basis_admit(basis, _start_admit("step", armed))   # as Cycle Start
                 why = admit()
                 if why:
                     return {"ok": False, "error": why}
                 await set_mode(linuxcnc.MODE_AUTO, admit=admit)
                 await _cmd_blocking(CMD.auto, linuxcnc.AUTO_STEP, wait=None,
                                     admit=admit)
+                return {"ok": True, "toolsetter": ts_note}
             return {"ok": True}
 
         if cmd == "auto_run":
@@ -5434,6 +5506,18 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                 # The pre-measurement is an M600: it reads the toolsetter's
                 # values from the interpreter, never the var file's leftovers.
                 return {"ok": False, "error": "Toolsetter parameters missing — not started"}
+            # ONE basis for the pre-measurement and the program (P2, Codex
+            # R308–R309 FI308-02): the server's section, chosen now. The
+            # dialog's values must be that section — else refused here, before
+            # anything is written (the skip flag's clear included).
+            basis = _toolsetter_basis()
+            if pre_tool:
+                if not basis["ok"]:
+                    return {"ok": False, "error": f"{basis['reason']} — not started"}
+                sent = {str(k): canonical_param(finite_float(v)) for k, v in probe_vars.items() if str(k) != "3116"}
+                if sent != {str(k): v for k, v in basis["values"].items()}:
+                    _trace.emit("toolsetter.rfl_values_refused", digest=basis["digest"])
+                    return {"ok": False, "error": "Toolsetter values changed — confirm Run from line again"}
 
             if pre_tool or safe_z or entry:
                 # RFL guard path (see _rfl_sequence): long-running — the
@@ -5451,15 +5535,27 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                 if refused:
                     return refused
                 if pre_tool:
-                    # In this handler: an abort cancels it here too.
-                    _file_ok, mdi_ok = await _apply_probe_vars(_skip_flag_cleared(probe_vars), armed)
+                    # In this handler: an abort cancels it here too. The chosen
+                    # basis, with the skip flag's clear, admitted on it.
+                    _p, mdi_ok = await _apply_probe_vars(
+                        _skip_flag_cleared({str(k): v for k, v in basis["values"].items()}), armed,
+                        admit=lambda: _basis_refusal(basis) or _interp_idle_refusal())
                     if not mdi_ok:
-                        return {"ok": False, "error": "Toolsetter parameters not taken over — not started"}
+                        return {"ok": False, "error": _basis_refusal(basis)
+                                or "Toolsetter parameters not taken over — not started"}
+                    ts_note = {"digest": basis["digest"], "set_up": True, "synced": True}
+                else:
+                    refused, ts_note = await _toolsetter_sync(armed, basis)
+                    if refused:
+                        return refused
                 _rfl_start(start_line, pre_tool, safe_z, spindle_dir, spindle_speed, entry,
-                           program=identity)
-                return {"ok": True, "rfl": "started"}
+                           program=identity, basis=basis)
+                return {"ok": True, "rfl": "started", "toolsetter": ts_note}
 
             refused = await _start_guard(armed, program=True)
+            if refused:
+                return refused
+            refused, ts_note = await _toolsetter_sync(armed, basis)
             if refused:
                 return refused
             if spindle_dir and spindle_speed > 0:
@@ -5468,10 +5564,10 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                     await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_FORWARD, spindle_speed, wait=None)
                 elif spindle_dir == "reverse":
                     await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_REVERSE, spindle_speed, wait=None)
-            await set_mode(linuxcnc.MODE_AUTO)
-            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None,
-                                admit=lambda: _program_start_refusal(armed))
-            return {"ok": True}
+            admit = _basis_admit(basis, lambda: _program_start_refusal(armed))
+            await set_mode(linuxcnc.MODE_AUTO, admit=admit)
+            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None, admit=admit)
+            return {"ok": True, "toolsetter": ts_note}
 
         # jog left intact (even if you're not using it right now)
         if cmd == "jog_cont":
@@ -5584,21 +5680,25 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
 
         if cmd == "cycle_start":
             require_armed(armed)
+            basis = _toolsetter_basis()          # chosen once, bound to the write (P2)
             refused = await _start_guard(armed, program=True)
+            if refused:
+                return refused
+            refused, ts_note = await _toolsetter_sync(armed, basis)
             if refused:
                 return refused
             # The switch to AUTO aborts an MDI started since the snapshot
             # (Codex R216's rule): the class on a current read first, then at
             # the switch's write and at the start's, each with the kinematics
-            # (Codex R217).
-            admit = _start_admit("run", armed)
+            # (Codex R217) — and the chosen toolsetter basis unchanged.
+            admit = _basis_admit(basis, _start_admit("run", armed))
             why = admit()
             if why:
                 return {"ok": False, "error": why}
             await set_mode(linuxcnc.MODE_AUTO, admit=admit)
             await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, 0, wait=None,  # Start from beginning
                                 admit=admit)
-            return {"ok": True}
+            return {"ok": True, "toolsetter": ts_note}
 
         if cmd == "cycle_pause":
             # Interrupting a running sequence is a stop (BG-08); resuming it
