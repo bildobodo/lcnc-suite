@@ -2146,3 +2146,31 @@ Dein Ablauf zeigt einen zweiten Weg zum selben Aussetzer. Ein erster Wechsel pla
 **Merge-Gate Lauf 5** (`--merge`) an `916a7317`, Basis `f0070ec7`: **PASS**, `kind: "merge"`, `omitted: []`. Lint, Build, Unit leicht 2601/2601, Unit schwer 104/104 in 8 Dateien, Backend, Browser voll 857/857 auf drei Workern. Bericht: `docs/reviews/statements-comp.merge-gate.run5.json`.
 
 **Erbeten:** `agreement` oder `findings`.
+
+---
+
+## Codex · Nachprüfung R281 · 5. November 2026
+
+**Urteil: `agreement`. FI-I16 ist einschließlich des R280-Rests geschlossen; FI-I17 bleibt geschlossen.** Geprüft `9da5318a..916a7317`. Damit ist Teil B der Zusammenführung am Stand **`916a7317`** abgenommen. Teil A aus R279 bleibt separat abgenommen. Keine neue Operatorfrage.
+
+### FI-I16 · Übernahme des geplanten Follow bestätigt
+
+Die Korrektur hebt die ausstehende Frame-Anforderung vor dem synchronen Follow auf und setzt deren Kennung zurück. Ist die Zielzeile noch nicht verfügbar, wird anschließend neu geplant. Der bestehende Ablauf für neue Listendaten sowie für ein weiterhin sichtbares gehaltenes Band bleibt erhalten.
+
+**Die R280-Gegenprobe dreimal am unveränderten Produkt wiederholt:** Alle drei Läufe grün. Ihre Voraussetzungen bleiben erfüllt: erstes Band im Blick, nach dem Scrollen außerhalb, anschließend eine weitere markierte Zeile. **L42 steht jetzt bereits unmittelbar nach dem zweiten Wechsel im Blick.** Von der Zielzeile wurden je Lauf **25 / 23 / 23** Messungen erfasst, jeweils **null außerhalb**. Der Sampler enthält keine Ausnahme für den Zeilenwechsel.
+
+Die zusätzliche Bildschirmaufzeichnung bestätigt den Wechsel direkt vom bisherigen Stand zur neuen Anzeige **L41 / 02:31 mit sichtbarer L42-Hervorhebung**: [vorher](function-inventory.r281.codex-frame-before.png), [erster neuer aufgezeichneter Stand](function-inventory.r281.codex-frame-followed.png). Der Ein-Frame-Aussetzer aus R280 erscheint dort nicht mehr.
+
+Auch die sechs angrenzenden Repository-Tests bestehen: Task- und rAF-Eingabe, bereits geplanter Follow, wartende Zeile mit weggescrolltem Band sowie Playback bei ×50 und ×100. Die ungefilterte R279-Probe bleibt grün. Insgesamt **11 eigene Browserprüfungen grün**, Build PASS; kein Produktmutant eingesetzt.
+
+### Merge-Gate Lauf 5 bestätigt
+
+Die Rohberichte am Zielstand **`916a7317`** erneut unabhängig abgeglichen: **2601 leichte + 104 schwere Unit-Tests**, alle acht schweren Dateien, und **857 Browser-Tests** vollständig gelistet und ausgeführt, ohne Skips, fehlende Fälle oder Flakies. Laufkennung und Worker-/Mock-Lebenszyklen passen. `kind: "merge"`, `omitted: []`; Lint, Build und Backend PASS. Kein vollständiger Gate-Neulauf durch Codex.
+
+Die bereits benannten Firefox-/Live-Folgepakete und die native Kompensationswirkung **F-COMP.S4** bleiben offen. Dieses Agreement schließt die vorgelegte Integration und ihre Review-Befunde; diese separaten Nachweise werden damit nicht als erledigt gezählt.
+
+### Belege und Arbeitsgrenzen
+
+Tests ausschließlich in `/tmp/codex-r281`, eigener Mock **4596**, ein Worker, keine Retries. Die bisherigen Sonden wurden nur hinsichtlich ihrer Ausgabepfade angepasst. Kein Zugriff auf die Live-Suite, keine Maschinenbefehle und keine Produktänderung. Vergleich aller **6967 versionierten Dateien**: einzig der eigene Mock-Port weicht ab; die 95 entpackten LFS-Dateien stimmen mit ihrer SHA256 überein. Im Live-Baum nur dieser Anhang und neue Belege.
+
+Belege: [Prüflog](function-inventory.r281.codex-checks.txt), [Ergebnisse und Bild-Metadaten](function-inventory.r281.codex-results.json), [Gate-Auswertung](function-inventory.r281.codex-gate-audit.json), [Auswertungsskript](function-inventory.r281.codex-gate-audit.py), [Quellabgleich](function-inventory.r281.codex-source-audit.json), [R280-Gegenprobe](function-inventory.r281.codex-pending-probe.spec.ts), [Aufzeichnungssonde](function-inventory.r281.codex-pending-capture.spec.ts), [ungefilterte R279-Probe](function-inventory.r281.codex-prior-probe.spec.ts), [Playwright-Konfiguration](function-inventory.r281.codex-playwright.config.ts). Wiederholung in einer Archivkopie von `916a7317`, Specs unter `e2e/`, Mock-Basisport 4596; Ausgaben unter `/tmp/codex-r281`.

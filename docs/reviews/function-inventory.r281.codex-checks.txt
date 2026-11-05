@@ -1,0 +1,99 @@
+R281: isolated archive 916a7317; own mock 4596; one worker, retries 0; no product mutation.
+Six targeted repository browser tests, R280 probe three times, capture + R279 unfiltered probe.
+
+===== build.txt =====
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2129 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-D0KGS3DD.css                 8.14 kB │ gzip:   2.08 kB
+dist/static/index-DcS3bcTR.css                      98.05 kB │ gzip:  17.87 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-CrScDO1t.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-BBJpXZgl.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-BEiuITOD.js                279.20 kB │ gzip: 105.16 kB
+dist/static/index-rWpLgy9X.js                      673.43 kB │ gzip: 216.96 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 7.80s
+
+===== browser.txt =====
+
+Running 6 tests using 1 worker
+
+(node:501924) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:501924) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [e2e] › e2e/sim-panel.viewer.spec.ts:1052:1 › playback at ×100 with normal motion: the marked row's highlight never leaves the list's view (8.1s)
+  ✓  2 [e2e] › e2e/sim-panel.viewer.spec.ts:1092:38 › the list scrolled away: the next marked row snaps to the middle, its highlight in view at once (5.0s)
+  ✓  3 [e2e] › e2e/sim-panel.viewer.spec.ts:1092:38 › the list scrolled away: the next marked row snaps to the middle, its highlight in view at once — the scrub inside an animation frame (Codex R279 FI-I16) (6.2s)
+  ✓  4 [e2e] › e2e/sim-panel.viewer.spec.ts:1165:1 › a follow already planned, the held band scrolled away, a further row in the same frame: it snaps, its highlight in view (5.6s)
+  ✓  5 [e2e] › e2e/sim-panel.viewer.spec.ts:1234:1 › a row waiting for its step, the list scrolled away: the next row snaps, its highlight in view (8.1s)
+  ✓  6 [e2e] › e2e/sim-panel.viewer.spec.ts:1305:1 › playback at ×50: the marked row's highlight stands still while the list steps under it, on a row between the steps (8.7s)
+
+  6 passed (43.0s)
+
+===== pending-browser.txt =====
+
+Running 3 tests using 1 worker
+
+(node:504652) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:504652) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [e2e] › e2e/r281-pending-probe.spec.ts:17:1 › R280 pending follow: a further row must snap when the held band leaves the view (7.2s)
+(node:504891) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:504891) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [e2e] › e2e/r281-pending-probe.spec.ts:17:1 › R280 pending follow: a further row must snap when the held band leaves the view (7.6s)
+(node:505168) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:505168) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [e2e] › e2e/r281-pending-probe.spec.ts:17:1 › R280 pending follow: a further row must snap when the held band leaves the view (7.2s)
+
+  3 passed (25.4s)
+
+===== capture-browser.txt =====
+
+Running 2 tests using 1 worker
+
+(node:505481) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:505481) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [e2e] › e2e/r281-pending-capture.spec.ts:17:1 › R280 pending follow: a further row must snap when the held band leaves the view (7.4s)
+FRAME-AUDIT [{"key":"L40@40","inView":false,"atFrame":"L40@40","at":1793846350188.2,"dropped":false},{"key":"L40@40","inView":false,"atFrame":"L40@40","at":1793846350206.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L40@40","at":1793846350223.2,"dropped":true},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350252.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350266.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350276.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350291.4,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350309.7,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350320.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350336.9,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350354.7,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350376.9,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350384.2,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350399.4,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350419.3,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350434.0999,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350458.2,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350466.4,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350483,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350500,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350515.5999,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350539.2,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350554.5,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350565.7,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350581.2,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350600.0999,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350618.0999,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350636.9,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350663.4,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350667.8,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350690.5999,"dropped":false},{"key":"L42@42","inView":true,"atFrame":"L42@42","at":1793846350708.5,"dropped":false}]
+  ✓  2 [e2e] › e2e/r281-prior-probe.spec.ts:17:1 › R279 RAF input: the list scrolled away: the next marked row snaps to the middle, its highlight in view at once (7.0s)
+
+  2 passed (15.9s)
+
