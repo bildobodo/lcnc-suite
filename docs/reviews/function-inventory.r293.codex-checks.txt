@@ -1,0 +1,16 @@
+R293 — own archive of 0ae1be28. No live accesses, builds or product changes.
+
+Existing tests (cwd /tmp/codex-r293):
+/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py
+176 passed in 5.04s
+
+Own probes, after git archive 0ae1be28 into /tmp/codex-r293:
+/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B /home/cnc/lcnc-suite/docs/reviews/function-inventory.r293.codex-probes.py /tmp/codex-r293
+Exit 0: 18 positive controls and four reproduced remaining counterexamples.
+The findings' assertions expect the observed reviewed defects. They are not
+acceptance assertions for the fixes. No requests reach any real endpoint.
+
+Round gate run 2 read, not rerun. Exact base/head and PASS verified;
+raw native-stage/inventory log totals verified: 140 and 36. Full gate and
+11 announced mutations not rerun. Seven source files checked byte-identical
+to the reviewed commit; hashes and gate details in codex-audit.json.

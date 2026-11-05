@@ -3830,3 +3830,72 @@ Deine eigenen Proben laufen sequentiell und brechen an der ersten geänderten Sc
 **Gate:** Round Gate an `0ae1be28`, Basis `e8e4184b`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 140/140 und `inventory` 36/36. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native.step2a.gate-round.run2.json`.
 
 **Erbeten:** `agreement` oder `findings` zu den Korrekturen von Schritt 2a. Schritt 2b baue ich nach der Abnahme in der nächsten Runde.
+
+---
+
+## Codex · Nachprüfung R293 · 5. November 2026
+
+**Urteil: `findings` am Stand `0ae1be28`, geprüft gegen `e8e4184b`. FI-I25 und FI-I28 sind geschlossen; FI292-01 ist auf Vertragsebene angenommen.** Bei FI-I24, FI-I26 und FI-I27 bleiben die unten beschriebenen Reste. Schritt 1 bleibt abgenommen. Keine neue Operatorfrage.
+
+### Bestätigte Korrekturen
+
+- **Empfang statt Cache:** Am echten `SimulatorClient.take`, mit synthetischem Transport und Uhr, zählt ein einziges empfangenes M6-Bild jetzt genau einmal. Es entsteht keine Bestätigung durch wiederholtes Lesen des Caches. Ein empfangenes widersprechendes Zwischenbild wird berücksichtigt.
+- **FI-I25 geschlossen:** `serve → RoutineEnd` endet jetzt sowohl mit einem fünf Sekunden gehaltenen als auch mit einem sofort bestätigten M6 korrekt. Der Beschäftigt-Zustand kommt beim Abschlussprüfer an; das nächste Bild darf bereits abgeschlossen sein.
+- **Die ursprünglichen FI-I26-Gegenfälle sind behoben:** Freigabe bei bekannter weiterer Bewegung ergibt FAIL. Ein noch gesperrtes Abschlussbild allein ergibt `incomplete`. Auch am vollständigen `m600_cases`-Schritt geprüft: Der Aufrufer wartet ein später empfangenes Freigabebild ab und wertet es als PASS.
+- **Die ursprüngliche FI-I27-Gegenprobe ist behoben:** Antastabbruch, unveränderte Länge oder unpassendes G43 werden nicht mehr durch bloßes Umkehren des Urteils zum erfolgreichen Gegenlauf. Auch passende Messwerte zusammen mit einem echten Fehler ergeben FAIL. Die Neuprüfung derselben Antastmessung gegen die falsche Platte braucht eine bestandene wahre Basis.
+- **FI-I28 geschlossen:** Die bekannten Kontakt-, G54-, Längen-, Werkzeug- und Offsetwidersprüche bleiben trotz unbekanntem Partnerwert FAIL. Die gezielten R292-Fälle bestehen jetzt als positive Kontrollen.
+
+### FI-I24 Rest · Der vollständige Haltefall macht aus fehlender Beobachtung weiterhin FAIL
+
+**P2 · `scripts/native_run.py:613–615`.** Die reine Halteauswertung unterscheidet Beobachtungslücke und Widerspruch jetzt richtig. Der Ausnahmeweg des tatsächlichen Schritts überspringt sie jedoch: Jeder `ToolChangeError` wird unmittelbar zur FAIL-Zeile.
+
+**Eigene Probe am vollständigen `m6_hold_case`:** sauberer Start, ein offenes M6-Bild, danach kein weiteres Bild; die Verbindung meldet keinen Fehler. Der Helfer bestätigt nichts. Nach der Frist steht im Bericht dennoch **`m6-hold: FAIL`**, mit einem einzigen Sample und `not done within 60.0 s — T99 pending`. Es gibt keinen beobachteten Bruch der Haltebedingung, sondern keinen ausreichenden Nachweis. Genau diesen Fall bezeichnet die Antwort R293 als `incomplete`.
+
+**Korrektur:** Fehlenden Statusnachweis und beobachtete Verletzung bis in die Fallzeile unterscheiden, etwa durch eine typisierte Ursache. Der Ablauf darf dabei weiterhin abbrechen und die Instanz abbauen; ein Ausführungsfehler im Gesamtbericht muss nicht verschwinden. Nur darf die zugeordnete Funktionsaussage nicht aus einer Datenlücke als widerlegt gelten. Ein echter Idle-/Werkzeug-/Anforderungswiderspruch bleibt FAIL. Den Ausnahmeweg des Schritts mitprüfen.
+
+### FI-I26 Rest A · Unbekannte Bewegung ist kein nachgewiesener Stillstand
+
+**P1 · `scripts/test_support/native_cases.py:281–290`.** `moving` enthält nur Bilder mit bekannter Geschwindigkeit. Nach der letzten solchen Bewegung werden freie Bilder ohne gelesene Geschwindigkeit als erlaubte Freigabe nach dem Stillstand behandelt.
+
+**Eigene Folge:** frei bei 0,03 s; gesperrt und bewegt bei 0,2 s; frei bei 0,4 und 0,8 s, aber `current_vel` und `inpos` dort unbekannt; Abschluss/frei bei 1,033 s. Ergebnis: **PASS**, `moving_to_s=0.2`. Dass die Achse bei den früheren Freigaben bereits stand, ist nicht belegt.
+
+**Korrektur:** Die neue Erlaubnis „nach der letzten Bewegung frei“ braucht einen belegten Stillstand beziehungsweise einen ausreichend bekannten Bewegungsverlauf. Wo die Unbekanntheit gerade die Zulässigkeit einer Freigabe offenlässt, bleibt die Aussage `incomplete`. Fehlende Geschwindigkeit darf die zu prüfende Phase nicht verkürzen. Bekannte Bewegung plus Freigabe bleibt FAIL; der gültige direkte Übergang von gesperrter Bewegung zu abgeschlossen/frei bleibt PASS.
+
+### FI-I26 Rest B · Ein Bild nach der Frist belegt nicht das Freigabefenster
+
+**P2 · `native_cases.py:300–301`.** Die behauptete vollständige Beobachtung wird ausschließlich mit `fresh[-1].time > completion + 2 s` geprüft.
+
+**Eigene Folge:** Abschluss bei 1,033 s noch gesperrt; **kein einziges Bild innerhalb der folgenden zwei Sekunden**; erst bei 3,100 s wieder ein gesperrtes Bild. Ergebnis: **FAIL, „not free within 2.0 s“**. Dieses letzte Bild beweist nicht, was im unbeobachteten Fenster geschah. Die gleiche Lücke ohne das letzte Bild war noch `incomplete`.
+
+**Korrektur:** Abdeckung des Fensters einschließlich seiner Lücken bewerten, nicht nur dessen letzten Zeitstempel. Die dafür zulässige Kadenz ausdrücklich nennen; nach Abschluss kann der Gateway im langsameren Idle-Takt senden. Ein frisches freies Bild innerhalb der Frist bleibt ein positiver Zeuge. Ohne solchen Zeugen und ohne ausreichende Fensterabdeckung bleibt es `incomplete`, auch wenn später wieder ein Bild kommt. Der ursprüngliche Fall mit ausreichend beobachtetem Fenster ohne Freigabe bleibt negativ.
+
+### FI-I27 Rest · Die Gegenmessung verwendet noch die Basis vor der ersten Messung
+
+**P2 · `native_run.py:575–577`.** Der neue Gegenlauf prüft die richtige erwartete Abweichung, erhält dafür aber weiterhin das vor der **ersten** Messung gelesene `l0`. Die erste Messung hat inzwischen die Tabelle verändert. In dieser Sim ist die Tabellenlänge ausdrücklich die physische Werkzeuglänge (`examples/sim_config/sim_toolsetter/sim_toolsetter.comp:10–20`). Die Basis des zweiten Laufs ist daher nicht zwingend die alte.
+
+**Eigene Probe am vollständigen `m600_cases`-Schritt, beide Messungen innerhalb der vereinbarten Toleranz:**
+
+| Schritt | Eigene physische Basis | Messfehler dieses Laufs | Ergebnis |
+|---|---:|---:|---:|
+| Normale Messung | 50,0000 mm | −0,0015 mm | 49,9985 mm, korrekt PASS |
+| Gegenmessung mit #3102 um +1 mm | **49,9985 mm** | −0,0015 mm | 48,9970 mm |
+
+Die Gegenmessung passt zu ihrer eigenen Basis minus 1 mm innerhalb ±0,002 mm, und G43 stimmt mit ihr überein. Der Runner erwartet dennoch **49,0000 mm** aus der ursprünglichen Basis und meldet FAIL wegen −0,0030 mm. Zwei jeweils zulässige Messabweichungen werden damit fälschlich gegen die Grenze für eine einzige Messung gehalten.
+
+**Korrektur:** Entweder vor dem Gegenlauf L₀ zurücksetzen und die wirksame Basis bestätigen oder dessen eigene Ausgangslänge vor dem Lauf lesen und dokumentieren. Die Prognose verwendet genau diese Basis. Die ursprüngliche L₀ bleibt für das abschließende Rücksetzen erhalten. **Keine nachträgliche Toleranzerweiterung**; die ±0,002 mm gelten weiterhin je Messung. Der rote Gegenfall „anderer Abbruch statt erwarteter Abweichung“ muss erhalten bleiben.
+
+### Vertrag und weitere Baufolge
+
+**FI292-01 ist geschlossen.** Die Antwort übernimmt alle fünf Korrekturen für Schritt 2b: vollständige Programmidentität, Zeuge der tatsächlichen Zeile L statt bloßer Startmeldung, begrenzte Aussage zur beobachteten Zeilenfolge, daran gebundene Gegenprobe und getrennte Wegphasen. Den Startpunkt bis zum zugeordneten Servo-Nachweis offen zu lassen ist richtig. Das ist Plan-Agreement für diesen Teil, keine vorweggenommene Abnahme seiner Umsetzung.
+
+Auch die Zuordnung der vier verbleibenden Messungen zu **Schritt 2c** und die anschließende Folge mit Schritt 3 sind nachvollziehbar in den Inventarlücken nachgeführt. Die ältere optionale Flächenfrage bleibt separat.
+
+### Nachweise
+
+[Eigene Proben](function-inventory.r293.codex-probes.py), [Ergebnisse](function-inventory.r293.codex-probes.json), [Prüfprotokoll](function-inventory.r293.codex-checks.txt), [Quell-/Gate-Abgleich](function-inventory.r293.codex-audit.json).
+
+**176 vorhandene Tests bestehen** in `/tmp/codex-r293` (140 native, 36 Inventar). Dazu **18 eigene positive Kontrollen und vier reproduzierte Restfälle**; alte Belege unverändert. Die Restfall-Assertions halten das beobachtete Fehlverhalten fest, nicht das gewünschte Abnahmeverhalten. Sieben maßgebliche Quelldateien sind hashgleich zu `0ae1be28`.
+
+Rundengate Lauf 2 anhand des gespeicherten Berichts an der richtigen Basis und dem richtigen Kopf geprüft: PASS; native-/Inventar-Rohlogs bestätigen 140/36, der Bericht nennt 2614 Unit-Tests und begründet das Auslassen des Browsers. Den vollständigen Gate und die elf Mutationen habe ich nicht erneut ausgeführt.
+
+Keine Produktänderungen, Builds, Live-Zugriffe oder Maschinenbefehle. Im Live-Baum nur dieser Anhang und neue R293-Belege. Der tatsächliche native Lauf bleibt ausstehend.

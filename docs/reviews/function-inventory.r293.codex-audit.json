@@ -1,0 +1,110 @@
+{
+  "review": "R293",
+  "base": "e8e4184b2d818d06ba57df17b058ac508044a49a",
+  "head": "0ae1be28962e06cfc69fdcf670da691c048487af",
+  "source_sha256": {
+    "scripts/native_run.py": "be3eb1d80f67290bfd70083a4f7b94028f08e8bf2e431c4650044de7f84aee0e",
+    "scripts/test_support/tool_change.py": "6e90d09bd4184a010b6fe3a6bcabdd023e3b6af409533760705b29c629b501d2",
+    "scripts/test_support/native_cases.py": "a41cdce7f3a65b3d0629b5b3eca7580aa6639e54e7378213859098ef86156074",
+    "scripts/test_support/live_session.py": "c3f8872ad66d1ffd8381b7fc989506a16258fbae08205dba3f7a874b2699dfb6",
+    "scripts/test_native_stage.py": "eed4ba97f4ab60b477805fb8fb9cdcc9609677cf09563c51ae349381b2ed3f5b",
+    "scripts/inventory/functions.json": "05d598462744d28cb6802659bcca154b71bbe77790d0303fae466fde1e915b50",
+    "examples/sim_config/sim_toolsetter/sim_toolsetter.comp": "ca0580ff55d914f2fc4292707c803785e0420d5c67c0e396178872e5b96715a7"
+  },
+  "own_tests": {
+    "archive": "/tmp/codex-r293",
+    "command": "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py",
+    "result": "176 passed in 5.04s"
+  },
+  "own_probes": {
+    "positive_controls": [
+      "held",
+      "immediate",
+      "frozen",
+      "bad_between_reads",
+      "override_valid",
+      "old_early_release",
+      "waiting_release",
+      "release_33ms_later",
+      "probe_contact",
+      "probe_position",
+      "miss_write",
+      "m600_length",
+      "unload_tool",
+      "unload_offset",
+      "good_counter",
+      "abort_counter",
+      "fitting_values_but_error",
+      "driver_waits_for_received_release"
+    ],
+    "remaining_counterexamples": [
+      "hold_step_timeout_claims_fail",
+      "unknown_motion_is_treated_as_standstill",
+      "release_window_with_no_frames_inside",
+      "counter_uses_original_not_own_basis"
+    ],
+    "script_sha256": "8dadb3667a88e27afdb204d627b81dde5de104907d1c0dbbad9957a430ae887b",
+    "results_sha256": "12b0c75d1646a229dedb9716df05e19cc2ab05cfad035d9007da9bbbb87a042d",
+    "note": "Findings assert observed defects, not desired acceptance behavior. Fake clocks and transports only."
+  },
+  "claimed_gate": {
+    "file": "/home/cnc/claude-work/teststrat/measure/native.step2a.gate-round.run2.json",
+    "sha256": "58125f5808c2216202b444c940c58e6d4262f18296c9711db6e41cd9643b392c",
+    "verdict": "PASS",
+    "checks": [
+      {
+        "name": "selection-guards",
+        "command": "/home/cnc/lcnc-suite-native/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-native/scripts/test_select/test_selector.py",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 3
+      },
+      {
+        "name": "lint",
+        "command": "npm run lint",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 7
+      },
+      {
+        "name": "build",
+        "command": "npm run build",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 13
+      },
+      {
+        "name": "unit-light",
+        "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/claude-work/teststrat/measure/native.step2a.gate-round.run2.logs/unit-light.json",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 50,
+        "files": 162,
+        "tests": 2614,
+        "passed": 2614,
+        "failed": 0,
+        "skipped": 0,
+        "listed": 2614
+      },
+      {
+        "name": "backend",
+        "command": "/home/cnc/lcnc-suite-native/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-native/scripts/test_suite.py offline --component backend --out-dir /home/cnc/claude-work/teststrat/measure/native.step2a.gate-round.run2.logs/backend",
+        "status": "PASS",
+        "exit": 0,
+        "seconds": 84
+      }
+    ],
+    "omitted": [
+      {
+        "check": "unit-heavy",
+        "reason": "no heavy file changed, reached or read for"
+      },
+      {
+        "check": "browser",
+        "reason": "no path selects a browser spec"
+      }
+    ],
+    "native_log_sha256": "bd52b98df9318cc19351afbfe803d607bbab38631a65b54ac05a9f8648ccacc1",
+    "inventory_log_sha256": "0176d98c1654d0a724d080757ce7c14d282b6b23b52bfc6049acc5e81977bdd6"
+  }
+}
