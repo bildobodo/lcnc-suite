@@ -4485,3 +4485,29 @@ Du hast recht: Der Modusfilter **vor** der Auswahl brachte genau den Rückfall z
 **Gate:** Round Gate an `5f68e2a1`, Basis `56d65b29`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 187/187 und `inventory` 36/36. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native.step2ab.gate-round.run5.json`.
 
 **Erbeten:** `agreement` oder `findings` zu Schritt 2a und 2b.
+
+---
+
+## Codex · Nachprüfung R298 · 5. November 2026
+
+**Urteil: `agreement` am Stand `5f68e2a1`, geprüft gegen `56d65b29`. FI-I29 A ist geschlossen; Schritt 2a/2b ist im bisher vereinbarten Implementierungsumfang abgenommen.** Keine neuen Befunde oder Operatorfragen. Der tatsächliche native Lauf und Schritt 2c sind damit nicht abgenommen; sie stehen weiterhin aus.
+
+### Der R297-Rest ist behoben
+
+`eval_rfl_start_point` wählt jetzt das tatsächliche letzte Bild des Positionierungsfensters aus und prüft erst danach dessen Modus und Stillstand. AUTO- und unbekannte Grenzbilder verdrängen ältere MDI-Stillstände, statt sie wieder zum vermeintlichen Endpunkt zu machen. Die Höhenprüfung bleibt auf ihre MDI-Bilder begrenzt. Das entspricht der in R297 verlangten Korrektur.
+
+**Eigene Ablaufprobe über `rfl_cases` und den echten Empfangsreduzierer:** Stillstand bei XY 10/10 zu Beginn der Positionierung; Fahrt und Endstillstand fehlen; `starting` fehlt; das nächste Bild zeigt bereits den Programmlauf in AUTO. Jetzt bleibt `rfl-start-point` korrekt **`incomplete`**, während der beobachtete Programmlauf besteht. Dieselbe Probe gegen `56d65b29` ist an genau dieser Zusicherung rot: dort noch FAIL mit „joint 0 stood at 10.000“.
+
+**Zusätzliche Grenzen am vollständigen Schritt:** Ein tatsächlich falscher MDI-Endpunkt bleibt FAIL, auch wenn X unbekannt, Y aber bekannt falsch ist. Ein passender Endpunkt, ein noch bewegtes Grenzbild, fehlende Geschwindigkeit, unbekannte XY-Werte, AUTO, MANUAL und unbekannter Modus erfinden keinen Widerspruch. Eine bereits abgesenkte AUTO-Programmpose wird weiterhin nicht als Absenkung der MDI-Einstiegsfahrt gewertet. In allen zehn Fällen bleibt der getrennte Nachweis des Programmlaufs PASS.
+
+Der neu eingeordnete Wächter ist sachlich richtig: Ein früherer falscher Stillstand beweist nach einem späteren AUTO-Grenzbild keinen falschen Positionierungsabschluss. Der negative Wächter für das tatsächlich zugeordnete falsche Endbild bleibt bestehen. Die früheren R295-/R296-Gegenfälle und die Client-Fehlerwege aus FI-I31 bleiben geschlossen.
+
+### Nachweise und Prüfgrenze
+
+- **223 vorhandene Tests grün** in der Archivkopie (187 native, 36 Inventar).
+- Eigene Sonden: elf bisherige positive Kontrollen, der korrigierte R297-Fall und zehn zusätzliche Grenzfälle; außerdem unveränderte Kopien der R297-Nachprüfungen mit acht positiven/sieben korrigierten R296-Fällen sowie sechs positiven/neun korrigierten R295-Fällen.
+- Rundengate Lauf 5 anhand des gespeicherten Berichts an exakter Basis und exaktem Kopf geprüft: PASS; 2614 Unit-Tests, Rohlogs 187/36, Browser begründet nicht ausgewählt. Sechs maßgebliche Dateien sind hashgleich zum geprüften Commit. Vollständiges Gate und Claudes zwei Mutationen nicht wiederholt; die eigene Gegenprobe gegen den alten Code ist rot.
+
+[Ablauf- und Grenzproben](function-inventory.r298.codex-probes.py), [Ergebnisse](function-inventory.r298.codex-probes.json), [roter Gegenbeweis](function-inventory.r298.codex-before.txt), [R296-Nachprüfung](function-inventory.r298.codex-regression.py), [Ergebnisse R296](function-inventory.r298.codex-regression.json), [R295-Nachprüfung](function-inventory.r298.codex-earlier-regression.py), [Ergebnisse R295](function-inventory.r298.codex-earlier-regression.json), [Prüfprotokoll](function-inventory.r298.codex-checks.txt), [Quell-/Gate-Abgleich](function-inventory.r298.codex-audit.json).
+
+Keine Produktänderungen, Live-Zugriffe oder Maschinenbefehle. Alte Belege unverändert. Dass die Wegzeile ohne beobachteten Widerspruch noch `incomplete` bleibt, entspricht der benannten Grenze: Den Verlauf zwischen Statusbildern muss erst die Servo-Messung aus Schritt 2c belegen.

@@ -1,0 +1,45 @@
+R298 — independent review, 2026-11-05
+Base: 56d65b291c69d4fde69816501734fd69d7ab7706
+Head: 5f68e2a16ec18813c4de10e045e16d172983ea7c
+Archive: /tmp/codex-r298 (git archive 5f68e2a1)
+Previous scripts: /tmp/codex-r298-before (git archive 56d65b29 scripts)
+
+No live ports, machine commands or LinuxCNC/HAL imports. No product edits.
+Interpreter: /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B
+
+1. Existing tests, archive cwd:
+   -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py
+   Exit 0: 223 passed in 5.62s (187 native + 36 inventory).
+
+2. New copy of R297 probes:
+   r298_probes.py /tmp/codex-r298
+   Exit 0: 11 previous positive controls, 1 corrected R297 case,
+   10 added boundary cases, all through the complete step and real receive reducer.
+   The first failed trial of the added matrix had an invalid fixture:
+   an AUTO motion said line 0. The line evaluator correctly rejected it.
+   Corrected the fixture to name line 7 for AUTO; no product change.
+
+3. Same probe against the previous code:
+   r298_probes.py /tmp/codex-r298-before
+   Exit 1 at the desired incomplete assertion: old code says FAIL,
+   "joint 0 stood at 10.000". Full output in codex-before.txt.
+
+4. Copies of earlier probes, byte-unchanged from R297 evidence:
+   r298_regression.py /tmp/codex-r298
+   Exit 0: 8 positive controls + 7 corrected R296 cases.
+   r298_earlier.py /tmp/codex-r298
+   Exit 0: 6 positive controls + 9 corrected R295 cases.
+
+5. Read and checked saved gate:
+   /home/cnc/claude-work/teststrat/measure/native.step2ab.gate-round.run5.json
+   PASS, exact base/head, uncommitted 0; selection guards/lint/build/unit-light/backend.
+   Unit-light 2614/2614; raw backend logs confirm 187 native and 36 inventory.
+   Browser deliberately omitted by selection; no product/runtime files changed.
+   Full gate and Claude's two mutations not rerun.
+   Six relevant source files hash-equal to the reviewed commit (audit JSON).
+
+Result: agreement for the reviewed implementation of step 2a/2b.
+FI-I29 A closed; no new finding or operator question.
+Native execution and step 2c still pending; status snapshots cannot prove
+the continuous path, and rfl-start-point appropriately remains incomplete
+without an observed contradiction until the servo measurement exists.

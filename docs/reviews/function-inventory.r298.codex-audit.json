@@ -1,0 +1,222 @@
+{
+  "base": "56d65b291c69d4fde69816501734fd69d7ab7706",
+  "head": "5f68e2a16ec18813c4de10e045e16d172983ea7c",
+  "source_checks": [
+    {
+      "file": "scripts/test_support/native_cases.py",
+      "sha256": "a41a79533bc1341dd7cec14122c05e84fc038575ceb9d2d678987173ed9aac20",
+      "matches_commit": true
+    },
+    {
+      "file": "scripts/test_native_stage.py",
+      "sha256": "c065587bd97a2ff46d874c11201fdbbb7e678169722df1c0770811e091a61cdf",
+      "matches_commit": true
+    },
+    {
+      "file": "docs/decisions.md",
+      "sha256": "e41ef5806e0df8f3c35d8d16b1ea19710b209f85f9eff8e5835b46da6c906453",
+      "matches_commit": true
+    },
+    {
+      "file": "scripts/native_run.py",
+      "sha256": "e51c236990bcd0cf5107beb89240c4f00358f820f16124cec766109db91bc249",
+      "matches_commit": true
+    },
+    {
+      "file": "scripts/test_support/live_session.py",
+      "sha256": "a91320ce6d80af6f9c22e3a4a528b876e78be3b95099eed41d6715d3823b68c3",
+      "matches_commit": true
+    },
+    {
+      "file": "scripts/test_support/tool_change.py",
+      "sha256": "a43413abd9684eb3bde53b83691496fdbc66a5f65caad0779a56ab05904f495b",
+      "matches_commit": true
+    }
+  ],
+  "saved_gate": {
+    "path": "/home/cnc/claude-work/teststrat/measure/native.step2ab.gate-round.run5.json",
+    "sha256": "3164c18cf4838d132ed51104168c34173d3cc3e12cc7aa0e94c071397893516b",
+    "report": {
+      "kind": "round",
+      "note": "",
+      "base": "56d65b291c69d4fde69816501734fd69d7ab7706",
+      "head": "5f68e2a16ec18813c4de10e045e16d172983ea7c",
+      "uncommitted": 0,
+      "plan": [
+        "selection-guards",
+        "lint",
+        "build",
+        "unit-light",
+        "backend"
+      ],
+      "env": {
+        "nproc": 6,
+        "arch": "aarch64",
+        "node": "v22.23.2",
+        "playwright": "Version 1.60.0"
+      },
+      "selection": {
+        "unmatched": [],
+        "unit": {
+          "light": "every unit file but HEAVY_UNIT — every round",
+          "heavy": [],
+          "heavy_reasons": [],
+          "changed": [],
+          "related": []
+        },
+        "browser": {
+          "run": [],
+          "reasons": [
+            "no path selects a browser spec"
+          ]
+        },
+        "backend": {
+          "run": true,
+          "reasons": [
+            "scripts/test_native_stage.py: scripts and their tests ride the backend gate",
+            "scripts/test_support/native_cases.py: scripts and their tests ride the backend gate"
+          ]
+        },
+        "firefox": {
+          "needed": false
+        },
+        "live": {}
+      },
+      "heavy_lock_wait_s": 0.0,
+      "verdict": "PASS",
+      "resources": {
+        "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/native-round-gate16.service",
+        "cpu_s": 378,
+        "memory_peak_mb": 2403
+      },
+      "checks": [
+        {
+          "name": "selection-guards",
+          "command": "/home/cnc/lcnc-suite-native/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-native/scripts/test_select/test_selector.py",
+          "status": "PASS",
+          "exit": 0,
+          "seconds": 3
+        },
+        {
+          "name": "lint",
+          "command": "npm run lint",
+          "status": "PASS",
+          "exit": 0,
+          "seconds": 7
+        },
+        {
+          "name": "build",
+          "command": "npm run build",
+          "status": "PASS",
+          "exit": 0,
+          "seconds": 14
+        },
+        {
+          "name": "unit-light",
+          "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/claude-work/teststrat/measure/native.step2ab.gate-round.run5.logs/unit-light.json",
+          "status": "PASS",
+          "exit": 0,
+          "seconds": 51,
+          "files": 162,
+          "tests": 2614,
+          "passed": 2614,
+          "failed": 0,
+          "skipped": 0,
+          "listed": 2614
+        },
+        {
+          "name": "backend",
+          "command": "/home/cnc/lcnc-suite-native/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-native/scripts/test_suite.py offline --component backend --out-dir /home/cnc/claude-work/teststrat/measure/native.step2ab.gate-round.run5.logs/backend",
+          "status": "PASS",
+          "exit": 0,
+          "seconds": 83
+        }
+      ],
+      "omitted": [
+        {
+          "check": "unit-heavy",
+          "reason": "no heavy file changed, reached or read for"
+        },
+        {
+          "check": "browser",
+          "reason": "no path selects a browser spec"
+        }
+      ],
+      "pending": []
+    },
+    "logs": [
+      {
+        "path": "/home/cnc/claude-work/teststrat/measure/native.step2ab.gate-round.run5.logs/backend/native-stage.log",
+        "sha256": "ef6ba3cf94d6bdf3b9de42e4e145db23b8ceecd7ed6db75246fe699adcf25cea",
+        "tail": [
+          "........................................................................ [ 61%]",
+          "........................................................................ [100%]",
+          "",
+          "============================= 187 passed in 4.59s =============================="
+        ]
+      },
+      {
+        "path": "/home/cnc/claude-work/teststrat/measure/native.step2ab.gate-round.run5.logs/backend/inventory.log",
+        "sha256": "81e6037e5510094c7d4f4991cf8c4ce8baa7ae3cb673ba4ea7ff2db70ea186fe",
+        "tail": [
+          "",
+          "scripts/inventory/test_inventory.py .................................... [100%]",
+          "",
+          "============================== 36 passed in 1.04s =============================="
+        ]
+      }
+    ]
+  },
+  "own_existing_tests": {
+    "command": "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py",
+    "cwd": "/tmp/codex-r298",
+    "exit": 0,
+    "output": "........................................................................ [ 32%]\n........................................................................ [ 64%]\n........................................................................ [ 96%]\n.......                                                                  [100%]\n223 passed in 5.62s\n"
+  },
+  "probes": {
+    "r298_probes": {
+      "exit": 0,
+      "groups": {
+        "positive": 11,
+        "corrected": 1,
+        "boundary_matrix": 10
+      },
+      "script_sha256": "b263dc7b193a5536feb83ccd7b5d5cca8c9c639ced5a30db09aba94861898b78",
+      "result_sha256": "964f0589f6f40ad1ec1214b13030df80137a075b31397556da4e03f157905096"
+    },
+    "r298_regression": {
+      "exit": 0,
+      "groups": {
+        "positive": 8,
+        "corrected_r296_cases": 7
+      },
+      "script_sha256": "5492320797dcaf2c4c3b5032be6798cf76d0d17403a63bf748b9a5bb85f9e45c",
+      "result_sha256": "8db912da8ab1d33ebf72278c007af57da1a1e7acb503ddd104eccb2e61dae773"
+    },
+    "r298_earlier": {
+      "exit": 0,
+      "groups": {
+        "positive": 6,
+        "corrected_r295_cases": 9
+      },
+      "script_sha256": "2bbb17266e9888857579d29ef4fee67e733d334cfd623f72354eed948f946213",
+      "result_sha256": "09d8b6fc5c1bcfa4c8871dd2003ba9b47d14aa8b2a1d81f395551b835364e8f4"
+    }
+  },
+  "baseline_counterproof": {
+    "base": "56d65b291c69d4fde69816501734fd69d7ab7706",
+    "exit": 1,
+    "output": "Traceback (most recent call last):\n  File \"/tmp/codex-r298/r298_probes.py\", line 146, in <module>\n    assert by['rfl-start-point']['status'] == 'incomplete', by['rfl-start-point']\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: {'case': 'rfl-start-point', 'status': 'FAIL', 'detail': 'the entry [100.0, 100.0] not reached: joint 0 stood at 10.000', 'entry': [100.0, 100.0], 'safe_z_start': -80, 'safe_z_end': 0}\n"
+  },
+  "limits": [
+    "No LinuxCNC/HAL imports, live ports or machine commands",
+    "No product edits; tests in archive only",
+    "Complete gate and Claudes two mutations not rerun; saved gate audited",
+    "Native run and step 2c remain pending"
+  ],
+  "review_append": {
+    "prefix_bytes": 496409,
+    "prefix_sha256": "dfb5981eb36ed187d4d696180532321e521264dbfbfb8f866e5f3ce1958e433d",
+    "append_sha256": "05d633a0e0e773e2b081c2d4b2ff6e9e94481c9ee01b2549800d04b1b5434dc2"
+  }
+}

@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/tmp/codex-r298/r298_probes.py", line 146, in <module>
+    assert by['rfl-start-point']['status'] == 'incomplete', by['rfl-start-point']
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'case': 'rfl-start-point', 'status': 'FAIL', 'detail': 'the entry [100.0, 100.0] not reached: joint 0 stood at 10.000', 'entry': [100.0, 100.0], 'safe_z_start': -80, 'safe_z_end': 0}
