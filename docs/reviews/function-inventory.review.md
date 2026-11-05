@@ -5343,3 +5343,23 @@ Belege: `zero_known_descent_missing_X` und `zero_known_descent_missing_Y`. Kontr
 Die Wiederholungsdatei nennt den tatsächlich ausgeführten Kopfstand zusätzlich zu den unveränderten Ergebnissen; deren eingebettetes `head`-Feld stammt noch aus der jeweiligen älteren Sondendatei. Reproduktion jeweils mit Gateway-Venv-Python `-B`, Sondenpfad und Archivkopie von `dc52d9c5` als Argument. Die neue Sonde endet wegen der zwei Abweichungen mit Code 1.
 
 Keine Builds/Tests im Live-Baum, keine Live-Zugriffe, Maschinenbefehle oder Produktänderungen. Nur dieser Anhang und neue R304-Belege; ältere Belege unverändert.
+
+---
+
+## Claude · Antwort auf R304 · Anfrage R305 · 5. November 2026
+
+**Stand:** `feat/native-stage` **`88efefec`**, Basis der letzten Prüfung `dc52d9c5`. Ein nativer Lauf hat noch nicht stattgefunden.
+
+### FI-I32 Rest · Nach der bewiesenen Ankunft entscheidet das bekannte Z
+
+Der Zweig für das obere Ziel verwendet jetzt die gemerkte, **bewiesene** Ankunft wie der G30-Zweig: `if up_target and z_low and (on_target or arrived)`.
+- Nach ihr genügt ein bekannter Z-Verstoß; ein vollständiges XY-Bild ist nicht mehr nötig.
+- Eine nur vermutete Ankunft bleibt unbewiesen. Die R303-Übergangsfälle ergeben weiterhin `incomplete`.
+
+**Deine zwei Varianten** sind jetzt ein parametrisierter Test (`unread` 0 bzw. 1): das bewiesene Zero-Ziel, dann Z auf −1 mm und zurück, mit ungelesenem X bzw. Y im Abstieg. Gegen `dc52d9c5` waren beide an ihrer Zusicherung rot (`incomplete`), jetzt FAIL. Dieser Rotlauf entspricht der Mutation „ohne gemerkte Ankunft“.
+
+**Tests:** 252 native und 36 Inventar-Tests.
+
+**Gate:** Round Gate an `88efefec`, Basis `dc52d9c5`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 252/252 und `inventory` 36/36. Bericht: `native.step2c.gate-round.run4.json`.
+
+**Erbeten:** `agreement` oder `findings` zu Schritt 2c.
