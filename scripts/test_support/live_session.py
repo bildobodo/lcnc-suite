@@ -12,8 +12,14 @@ from urllib.parse import urlencode
 
 
 class SimulatorClient:
-    def __init__(self, token, session="test-suite-live-twp"):
+    def __init__(self, token, session="test-suite-live-twp", auto_confirm=True, on_status=None):
         self.token = token
+        # live-twp confirms every simulated M6 itself; the native stage never
+        # does (plan Codex R282–R284): its cases confirm the one request they
+        # expect, by its sequence and tool
+        self.auto_confirm = auto_confirm
+        # each status frame, as it arrives: on_status(monotonic seconds, merged status)
+        self.on_status = on_status
         # hello's session id keys the gateway's armed-resume hold: a second
         # client must never share the main one's
         self.session = session
@@ -46,9 +52,11 @@ class SimulatorClient:
                 msg = msgspec.msgpack.decode(raw) if isinstance(raw, bytes) else json.loads(raw)
                 if isinstance(msg.get("data"), dict):
                     self.status.update(msg["data"])
+                    if self.on_status:
+                        self.on_status(time.monotonic(), dict(self.status))
                     requested = self.status.get("tool_change_requested", False)
                     seq = self.status.get("tool_change_seq")
-                    if requested and seq != confirmed:
+                    if self.auto_confirm and requested and seq != confirmed:
                         # once per request, naming the request it answers
                         # (button gates BG-17)
                         self.send({"cmd": "confirm_tool_change", "request": seq})

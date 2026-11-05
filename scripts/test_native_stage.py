@@ -281,3 +281,67 @@ def test_a_jog_with_the_wrong_sign_or_no_stop_is_red():
     moving = nc.eval_jog("jog-x+", 0, 1, 300.0, 315.0, [(0.1, 316.0, 20.0), (0.45, 316.5, 5.0)])
     assert moving["status"] == "FAIL", "no standstill sample within 0.5 s"
     assert nc.eval_jog("jog-x+", 0, 1, 300.0, 315.0, [])["status"] == "incomplete"
+
+
+# ── The orchestrator's ending (R282 FI282-01: the two closing counter-cases) ──
+import native_run as nr  # noqa: E402
+
+
+def test_a_failure_right_after_the_lan_stop_still_restores_and_reports(tmp_path):
+    h = FakeHost()
+
+    def boom(ctx):
+        raise RuntimeError("the run tree could not be made")
+    report = nr.run(h, [("tree", boom)], tmp_path / "run")
+    assert "the run tree could not be made" in report["error"]
+    assert report["restore"]["outcome"] == "complete"
+    assert h.started == ["lcnc-sim-gates", "bg-keepalive"]
+    assert nr.verdict(report) == "FAIL"
+    assert json.loads((tmp_path / "run/report.json").read_text())["restore"]["outcome"] == "complete"
+
+
+class FileHost(FakeHost):
+    """A FakeHost whose state lives in a file: the killed run and the
+    ExecStopPost restore see the same LAN."""
+
+    def __init__(self, path):
+        super().__init__()
+        self.path = path
+        if path.exists():
+            st = json.loads(path.read_text())
+            self.active, self.instance = st["active"], tuple(st["instance"])
+
+    def _save(self):
+        self.path.write_text(json.dumps({"active": self.active, "instance": list(self.instance)}))
+
+    def stop(self, name):
+        super().stop(name)
+        self._save()
+
+    def start(self, name, spec):
+        super().start(name, spec)
+        self._save()
+
+
+def test_a_killed_orchestrator_is_restored_by_the_unit_from_pre_json(tmp_path):
+    state, run = tmp_path / "lan.json", tmp_path / "run"
+    code = (
+        "import sys, time, json; sys.path[:0] = [sys.argv[1], sys.argv[2]]\n"
+        "import native_run as nr, test_native_stage as t\n"
+        "from pathlib import Path\n"
+        "h = t.FileHost(Path(sys.argv[3]))\n"
+        "def hang(ctx):\n"
+        "    print('stopped', flush=True); time.sleep(60)\n"
+        "nr.run(h, [('hang', hang)], Path(sys.argv[4]))\n")
+    p = subprocess.Popen([sys.executable, "-c", code, str(HERE), str(HERE), str(state), str(run)],
+                         stdout=subprocess.PIPE, text=True)
+    assert p.stdout.readline().strip() == "stopped"
+    assert json.loads(state.read_text())["active"] == {"lcnc-sim-gates": False, "bg-keepalive": False}
+    p.kill()
+    p.wait(timeout=5)
+    assert not (run / "report.json").exists(), "killed: no finally ran"
+    out = run / "restore-post.json"
+    assert rl.main(["--from", str(run / "pre.json"), "--out", str(out)], host_factory=lambda pre: FileHost(state)) == 0
+    restored = json.loads(out.read_text())
+    assert restored["outcome"] == "complete" and restored["isolation"] == [], restored
+    assert json.loads(state.read_text())["active"] == {"lcnc-sim-gates": True, "bg-keepalive": True}

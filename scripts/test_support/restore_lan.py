@@ -96,14 +96,18 @@ def restore(host, pre: dict) -> dict:
     return {"outcome": "complete", "instance": instance, "isolation": isolation}
 
 
-def main() -> int:
+def main(argv=None, host_factory=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--from", dest="pre", type=Path, required=True)
     ap.add_argument("--out", type=Path, required=True)
-    a = ap.parse_args()
-    from system_host import SystemHost   # noqa: E402 — the real host, beside this file
+    a = ap.parse_args(argv)
+    if host_factory is None:
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))   # scripts/
+        from test_support.system_host import SystemHost
+        host_factory = SystemHost
     pre = json.loads(a.pre.read_text())
-    out = restore(SystemHost(pre), pre)
+    out = restore(host_factory(pre), pre)
     a.out.write_text(json.dumps(out, indent=2) + "\n")
     print(f"restore: {out['outcome']}")
     return 0 if out["outcome"] == "complete" else 1

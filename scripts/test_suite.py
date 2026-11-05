@@ -134,6 +134,7 @@ def offline_commands(component):
         commands.append(("parity-compare", [python(), "-m", "pytest", str(ROOT / "scripts/test_parity_compare.py")], ROOT))
         commands.append(("test-select", [python(), "-m", "pytest", str(ROOT / "scripts/test_select/test_selector.py")], ROOT))
         commands.append(("inventory", [python(), "-m", "pytest", str(ROOT / "scripts/inventory/test_inventory.py")], ROOT))
+        commands.append(("native-stage", [python(), "-m", "pytest", str(ROOT / "scripts/test_native_stage.py")], ROOT))
     if component in ("all", "frontend"):
         for name, cmd in (("lint", ["npm", "run", "lint"]),
                           ("build", ["npm", "run", "build"]),
