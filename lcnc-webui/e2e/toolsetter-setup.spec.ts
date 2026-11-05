@@ -1,5 +1,6 @@
 import { test, expect, type Page, type Locator } from "./test";
 import { ctl, MOCK, publishToolTable } from "./ctl";
+import { toolsetterSetup, toolsetterVarMap } from "../src/toolsetterSetup";
 
 // Codex review R15 B1: the toolsetter's values reach the machine only when it
 // is SET UP — every required field in the section the SERVER confirmed, each
@@ -186,4 +187,60 @@ test("Unload is ONE command: T0 M600 with the setter's values in M600 mode, tool
   await unload.click();
   await expect.poll(async () => (await sent()).map(c => ({ cmd: c.cmd, tool_number: c.tool_number })))
     .toEqual([{ cmd: "tool_change", tool_number: 0 }]);
+});
+
+// P2 (Codex R308–R309 FI308-04): the form says what the machine holds — from
+// the gateway's booking (toolsetter_booking), never from a reply or its own
+// memory. The booking rides the status envelope; the mock sets it per test.
+function bookingOf(section: Record<string, number>, origin: string, over: Record<string, number> = {}) {
+  const s = toolsetterSetup(section);
+  if (!s.ok) throw new Error("not set up");
+  const keys: Record<string, { value: number; origin: string }> = {};
+  for (const [k, v] of Object.entries(toolsetterVarMap(s.values))) keys[k] = { value: over[k] ?? v, origin };
+  return { version: 1, keys };
+}
+
+async function toolsetterTab(page: Page) {
+  await page.getByRole("tab", { name: "Probing", exact: true }).click();
+  await page.getByRole("tab", { name: "Toolsetter", exact: true }).click();
+  return page.locator(".tsPanel .tsMachine");
+}
+
+test("the machine line follows the gateway's booking: not known, confirmed, pending, not confirmed", async ({ page }) => {
+  await open(page, { toolsetter: SET_UP });
+  const line = await toolsetterTab(page);
+  await expect(line).toHaveText("Machine values not known yet");
+  await ctl({ op: "status_delta", data: {}, envelope: { toolsetter_booking: bookingOf(SET_UP, "applied") } });
+  await expect(line).toHaveText("In the machine — confirmed");
+  await expect(line).toHaveClass(/\bok\b/);
+  await ctl({ op: "status_delta", data: {}, envelope: { toolsetter_booking: bookingOf(SET_UP, "read", { "3102": -299 }) } });
+  await expect(line).toContainText("Saved — not yet in the machine");
+  await ctl({ op: "status_delta", data: {}, envelope: { toolsetter_booking: bookingOf(SET_UP, "assumed") } });
+  await expect(line, "equal numbers only assumed are no proof").toContainText("Machine values not confirmed (0 of 23)");
+});
+
+test("not set up: no machine line beyond the setup note, which says nothing is synced", async ({ page }) => {
+  await open(page, { toolsetter: { touchZ: -300 } });
+  await toolsetterTab(page);
+  await ctl({ op: "status_delta", data: {}, envelope: { toolsetter_booking: bookingOf(SET_UP, "read") } });
+  await expect(page.locator(".tsPanel .tsMachine")).toHaveCount(0);
+  await expect(page.locator(".tsPanel .statusNote.warn")).toContainText("nothing is synced with the machine");
+});
+
+test("a save while the machine is not ready sends nothing; the line says it is not yet in the machine", async ({ page }) => {
+  await open(page, { toolsetter: SET_UP });
+  await ctl({ op: "status_delta", data: { permissions: { ...PERMS_ALL, ready: false } },
+              envelope: { toolsetter_booking: bookingOf(SET_UP, "applied") } });
+  const line = await toolsetterTab(page);
+  await expect(line).toHaveText("In the machine — confirmed");
+  const touchZ = page.getByRole("textbox", { name: "Touch Z", exact: true });
+  await touchZ.click();
+  await page.keyboard.press("Control+A");
+  await page.keyboard.type("-299");
+  await page.keyboard.press("Enter");
+  await expect(touchZ).toHaveValue("-299");
+  await expect.poll(async () => (await sent()).filter(c => c.cmd === "save_settings").at(-1)?.data)
+    .toMatchObject({ touchZ: -299 });
+  await expect(line).toContainText("Saved — not yet in the machine");
+  expect((await sent()).map(c => c.cmd), "nothing pushed while not ready").not.toContain("set_probe_vars");
 });
