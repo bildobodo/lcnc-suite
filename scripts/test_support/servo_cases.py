@@ -124,42 +124,59 @@ def eval_plateau(case: str, sec: dict, expected: float, period_s: float, tol: fl
 
 
 def eval_retract_path(case: str, sec: dict, start, target) -> dict:
-    """F-GOTO.S1c (R284): from the first sample 0.005 mm off the start, (1) Z
-    rises to ≥ −0.010 with X/Y within 0.010 of their start; (2) X/Y travel to
-    the target with Z ≥ −0.010; (3) a descent to the target's Z only after
-    X/Y arrived; the end at rest on the target ± 0.010. A phase not shown is
-    incomplete, a violation FAIL."""
+    """F-GOTO.S1c (R284, R302 FI-I32): from the first sample with a KNOWN
+    axis 0.005 mm off the start, to the END of the section — (1) until Z is
+    up (≥ −0.010) no known X/Y leaves its start by 0.010; (2) until X/Y are on
+    the target no known Z is below −0.010; (3) after X/Y arrived they STAY on
+    the target, Z stays up for an up target and never below a G30 target's
+    Z; the end at rest on the target ± 0.010. Each check needs only its own
+    known axes; a violation anywhere is FAIL (a later return does not mend
+    it), a phase or the rest not shown incomplete."""
     samples, problems = sec["samples"], list(sec["problems"])
-    pos = lambda s: s[2][:3]            # noqa: E731
     m = {"start": list(start), "target": list(target), "problems": problems}
-    known = [s for s in samples if _f(*pos(s))]
-    bi = next((i for i, s in enumerate(known) if max(abs(a - b) for a, b in zip(pos(s), start)) > MOVE_EPS), None)
+    P = lambda s, j: s[2][j]            # noqa: E731
+    bi = next((i for i, s in enumerate(samples)
+               if any(_f(P(s, j)) and abs(P(s, j) - start[j]) > MOVE_EPS for j in range(3))), None)
     if bi is None:
         return _row(case, "incomplete", "no motion of the routine in the section", **m)
-    path = known[bi:]
-    ji = next((i for i, s in enumerate(path) if pos(s)[2] >= Z_TOP), None)
-    for s in path[:len(path) if ji is None else ji]:
-        x, y, _ = pos(s)
-        if max(abs(x - start[0]), abs(y - start[1])) > PATH_TOL:
-            return _row(case, "FAIL", f"X/Y moved {max(abs(x - start[0]), abs(y - start[1])):.3f} mm before Z was "
-                        f"up (sample {s[1]})", **m)
-    ki = None
-    if ji is not None:
-        ki = next((i for i in range(ji, len(path)) if max(abs(pos(path[i])[0] - target[0]),
-                                                        abs(pos(path[i])[1] - target[1])) <= PATH_TOL), None)
-        for s in path[ji:len(path) if ki is None else ki + 1]:
-            if pos(s)[2] < Z_TOP:
-                return _row(case, "FAIL", f"Z at {pos(s)[2]:.3f} while X/Y moved (sample {s[1]})", **m)
+    up_target = target[2] >= Z_TOP
+    phase = 1
+    for s in samples[bi:]:
+        x, y, z = P(s, 0), P(s, 1), P(s, 2)
+        if phase == 1:
+            if _f(z) and z >= Z_TOP:
+                phase = 2
+            else:
+                for j, v in ((0, x), (1, y)):
+                    if _f(v) and abs(v - start[j]) > PATH_TOL:
+                        return _row(case, "FAIL", f"{'XY'[j]} moved {v - start[j]:+.3f} mm before Z was up "
+                                    f"(sample {s[1]})", **m)
+                continue
+        if phase == 2:
+            if _f(x, y) and max(abs(x - target[0]), abs(y - target[1])) <= PATH_TOL:
+                phase = 3
+            else:
+                if _f(z) and z < Z_TOP:
+                    return _row(case, "FAIL", f"Z at {z:.3f} while X/Y moved (sample {s[1]})", **m)
+                continue
+        for j, v in ((0, x), (1, y)):
+            if _f(v) and abs(v - target[j]) > PATH_TOL:
+                return _row(case, "FAIL", f"{'XY'[j]} left the target ({v:.3f}) after arriving (sample {s[1]})", **m)
+        if _f(z) and up_target and z < Z_TOP:
+            return _row(case, "FAIL", f"Z left the top ({z:.3f}) after X/Y arrived (sample {s[1]})", **m)
+        if _f(z) and not up_target and z < target[2] - PATH_TOL:
+            return _row(case, "FAIL", f"Z at {z:.3f} below the target's {target[2]:g} (sample {s[1]})", **m)
     last = samples[-1]
     at_rest = all(_f(v) and abs(v) <= VEL_ZERO for v in last[2][3:6])
-    if at_rest and _f(*pos(last)):
-        off = max(abs(a - b) for a, b in zip(pos(last), target))
-        m["end_off_mm"] = round(off, 4)
-        if off > PATH_TOL:
-            return _row(case, "FAIL", f"ended {off:.3f} mm off its target", **m)
+    if at_rest:
+        for j in range(3):
+            v = P(last, j)
+            if _f(v) and abs(v - target[j]) > PATH_TOL:
+                m["end_off_mm"] = round(abs(v - target[j]), 4)
+                return _row(case, "FAIL", f"ended {abs(v - target[j]):.3f} mm off its target on {'XYZ'[j]}", **m)
     if problems:
         return _row(case, "incomplete", f"the section is flawed: {problems[0]}", **m)
-    if ji is None or ki is None or not at_rest:
+    if phase < 3 or not at_rest or not _f(*[P(last, j) for j in range(3)]):
         return _row(case, "incomplete", "a phase or the rest at the end not shown", **m)
-    descent = "no descent (the target's Z is up)" if target[2] >= Z_TOP else "the descent after X/Y arrived"
+    descent = "no descent (the target's Z is up)" if up_target else "the descent after X/Y arrived"
     return _row(case, "PASS", f"Z up first, then X/Y; {descent}; at rest on the target", **m)

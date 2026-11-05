@@ -128,10 +128,21 @@ def setup(gate: HalGate) -> dict:
     gate("newsig", MARK_SIGNAL, "s32")
     gate("linksp", MARK_SIGNAL, f"sampler.0.pin.{MARK_INDEX}")
     gate("addf", "sampler.0", "servo-thread")
+    # the wiring READ BACK from the sampler's own pins (R302 FI-I34)
+    for w in wiring:
+        pin = f"sampler.0.pin.{w['channel']}"
+        w["read_back"] = signal_of(gate("show", "pin", pin), pin)
+        if w["read_back"] != w["signal"]:
+            raise RuntimeError(f"{pin} reads back on {w['read_back']}, wired to {w['signal']}")
+    mark_pin = f"sampler.0.pin.{MARK_INDEX}"
+    mark_read_back = signal_of(gate("show", "pin", mark_pin), mark_pin)
+    if mark_read_back != MARK_SIGNAL:
+        raise RuntimeError(f"{mark_pin} reads back on {mark_read_back}, not {MARK_SIGNAL}")
     thread = thread_of(gate("show", "thread", "servo-thread"))
     if not thread["functions"] or thread["functions"][-1] != "sampler.0":
         raise RuntimeError(f"sampler.0 is not the servo thread's last function: {thread['functions']}")
-    return {"changes": [list(c) for c in gate.log], "wiring": wiring, "thread": thread}
+    return {"changes": [list(c) for c in gate.log], "wiring": wiring, "mark_read_back": mark_read_back,
+            "thread": thread}
 
 
 class Reader:
@@ -204,7 +215,13 @@ def section(stream, start_mark: int, end_mark: int, integrity: dict) -> dict:
     span = stream[si:] if ei is None else stream[si:ei + 1]
     if ei is None:
         problems.append("end mark not received — the section's end unread")
-    body = [s for s in (span if ei is None else span[:-1]) if s[2][MARK_INDEX] == start_mark]
+    inner = span if ei is None else span[:-1]
+    body = [s for s in inner if s[2][MARK_INDEX] == start_mark]
+    foreign = [s for s in inner if s[2][MARK_INDEX] != start_mark]
+    if foreign:
+        # another mark BETWEEN the marks breaks the coverage (R302 FI-I33);
+        # one before the start is another attempt's and never reaches here
+        problems.append(f"a foreign mark inside the section ({foreign[0][2][MARK_INDEX]} at sample {foreign[0][1]})")
     gaps = [(a[1], b[1]) for a, b in zip(span, span[1:]) if b[1] != a[1] + 1]
     if gaps:
         problems.append(f"a number gap ({gaps[0][0]} → {gaps[0][1]})")
@@ -218,6 +235,14 @@ def section(stream, start_mark: int, end_mark: int, integrity: dict) -> dict:
         problems.append("the FIFO at its depth")
     if integrity.get("reader_overrun"):
         problems.append("the reader reported an overrun")
+    if integrity.get("reader_alive") is False:
+        problems.append("the reader ended")
+    ts, te = integrity.get("thread_start"), integrity.get("thread_end")
+    if ts is not None or te is not None:
+        if ts != te:
+            problems.append("the servo thread's functions changed during the section")
+        elif not ts or ts[-1] != "sampler.0":
+            problems.append("sampler.0 is not the servo thread's last function")
     if integrity.get("period_ns") != integrity.get("ini_period_ns"):
         problems.append(f"the effective period {integrity.get('period_ns')} ns differs from the INI's "
                         f"{integrity.get('ini_period_ns')}")
@@ -243,8 +268,10 @@ class Measurement:
         self.k += 1
         start, end = 2 * self.k + 1, 2 * self.k + 2
         attempt = {"k": self.k, "start": start, "end": end, "since": len(self.reader.samples),
+                   "log_from": len(self.gate.log),
                    "enable_start": self._getp("sampler.0.enable") == "TRUE",
-                   "overruns_start": int(self._getp("sampler.0.overruns"))}
+                   "overruns_start": int(self._getp("sampler.0.overruns")),
+                   "thread_start": thread_of(self.gate("show", "thread", "servo-thread"))["functions"]}
         self.gate("sets", MARK_SIGNAL, start)
         if self.reader.wait_for_mark(start, self.mark_wait_s, attempt["since"]) is None:
             raise RuntimeError(f"servo: the start mark {start} was not received — the measurement is broken")
@@ -252,13 +279,24 @@ class Measurement:
         return attempt
 
     def end(self, attempt: dict) -> dict:
-        self.gate("sets", MARK_SIGNAL, attempt["end"])
-        self.reader.wait_for_mark(attempt["end"], self.mark_wait_s, attempt["since"])
-        integrity = {"enable_start": attempt["enable_start"], "enable_end": self._getp("sampler.0.enable") == "TRUE",
-                     "overruns_start": attempt["overruns_start"],
-                     "overruns_end": int(self._getp("sampler.0.overruns")),
-                     "depth_end": int(self._getp("sampler.0.curr-depth")), "depth": DEPTH,
-                     "period_ns": self.period_ns, "ini_period_ns": self.ini_period_ns,
-                     "reader_overrun": self.reader.overrun, "reader_alive": self.reader.alive}
-        self.gate.open_section = None
-        return section(self.reader.samples[attempt["since"]:], attempt["start"], attempt["end"], integrity)
+        """The end mark, read until received, the integrity read at this end;
+        the section closes in the gate on EVERY path (R302 FI-I31) — a
+        failing read raises after it."""
+        try:
+            self.gate("sets", MARK_SIGNAL, attempt["end"])
+            self.reader.wait_for_mark(attempt["end"], self.mark_wait_s, attempt["since"])
+            integrity = {"enable_start": attempt["enable_start"],
+                         "enable_end": self._getp("sampler.0.enable") == "TRUE",
+                         "overruns_start": attempt["overruns_start"],
+                         "overruns_end": int(self._getp("sampler.0.overruns")),
+                         "depth_end": int(self._getp("sampler.0.curr-depth")), "depth": DEPTH,
+                         "period_ns": self.period_ns, "ini_period_ns": self.ini_period_ns,
+                         "thread_start": attempt["thread_start"],
+                         "thread_end": thread_of(self.gate("show", "thread", "servo-thread"))["functions"],
+                         "reader_overrun": self.reader.overrun, "reader_alive": self.reader.alive}
+        finally:
+            self.gate.open_section = None
+        sec = section(self.reader.samples[attempt["since"]:], attempt["start"], attempt["end"], integrity)
+        sec.update(attempt=attempt["k"], start_mark=attempt["start"], end_mark=attempt["end"],
+                   hal=[list(c) for c in self.gate.log[attempt["log_from"]:]])
+        return sec

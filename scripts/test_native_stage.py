@@ -2402,8 +2402,8 @@ class MotionClient(FrameClient):
 
 def test_a_servo_section_ends_on_every_path():
     calls = []
-    gate = sv.HalGate(run=lambda argv: calls.append(argv) or ("TRUE" if argv[1] == "getp" and "enable" in argv[2]
-                                                               else "0"))
+    gate = sv.HalGate(run=lambda argv: calls.append(argv) or (
+        SHOW_THREAD if argv[1] == "show" else "TRUE" if argv[1] == "getp" and "enable" in argv[2] else "0"))
 
     class EchoReader:
         def __init__(self):
@@ -2413,12 +2413,15 @@ def test_a_servo_section_ends_on_every_path():
             self.samples.append((time.monotonic(), len(self.samples), (0.0,) * 8 + (mark,)))
             return len(self.samples) - 1
     m = sv.Measurement(gate, EchoReader(), ini_period_ns=1000000, period_ns=1000000)
-    ctx = {"servo": m}
+    ctx = {"servo": m, "report": {}}
     with pytest.raises(ZeroDivisionError):
-        with nr._section(ctx) as box:
+        with nr._section(ctx, "jog-x+.servo") as box:
             assert gate.open_section == 1
             1 / 0
     assert gate.open_section is None and "section" in box, "the end mark set, the gate open again"
+    assert box["section"]["integrity"]["thread_start"] == box["section"]["integrity"]["thread_end"] == \
+        ["motion-command-handler", "motion-controller", "sampler.0"]
+    assert ctx["report"]["servo_sections"][0]["case"] == "jog-x+.servo"
     assert [c[1:3] for c in calls if c[1] == "sets"] == [["sets", sv.MARK_SIGNAL], ["sets", sv.MARK_SIGNAL]]
 
 
@@ -2458,7 +2461,8 @@ def test_the_run_from_line_step_records_its_servo_stream(tmp_path, monkeypatch):
     by = {r["case"]: r["status"] for r in step(ctx)}
     assert by["rfl-start-point"] == "incomplete" and ctx["servo"].ended == 1
     lines = (tmp_path / "servo-rfl.jsonl").read_text().splitlines()
-    assert len(lines) == 3 and ctx["report"]["rfl_servo"]["samples"] == 3
+    rec = next(a for a in ctx["report"]["servo_sections"] if a["case"] == "rfl")
+    assert len(lines) == 3 and rec["samples"] == 3 and rec["file"] == "servo-rfl.jsonl"
 
 
 def test_a_clean_but_short_jog_is_no_proof_of_its_minimum_travel():
@@ -2479,3 +2483,180 @@ def test_only_adjacent_samples_make_a_speed():
 
 def test_every_jog_case_has_its_servo_case():
     assert set(nr.JOG_SERVO_CASES) == {c for c, _, _ in nr.JOG_CASES}
+
+
+# ── R302: the retract to its end and per axis; integrity; the audit; a failing end; informational rows ──
+def _xyz_path(points, steps=50, nan_at=None):
+    sec = _path(points, steps)
+    if nan_at is not None:
+        i, axis = nan_at
+        t, n, v = sec["samples"][i]
+        v = list(v)
+        v[axis] = float("nan")
+        sec["samples"][i] = (t, n, tuple(v))
+    return sec
+
+
+@pytest.mark.parametrize("name, points, target", [
+    ("zero_descends_after_xy", [START, (200, 200, 0), ZERO, (100, 100, -5), ZERO], ZERO),
+    ("xy_leaves_target_below_top", [START, (200, 200, 0), ZERO, (100, 100, -3), (110, 100, -3), (100, 100, -3), ZERO],
+     ZERO),
+    ("g30_xy_leaves_during_descent", [START, (200, 200, 0), (0, 0, 0), (0, 0, -10), (10, 0, -10), (0, 0, -20)],
+     (0.0, 0.0, -20.0)),
+])
+def test_the_retract_is_checked_to_the_end_of_its_section(name, points, target):
+    """Codex R302 FI-I32 A: the first XY arrival does not end the check — an
+    up target keeps Z up, a G30 descent keeps X/Y on the target."""
+    r = sc.eval_retract_path("goto-x", _xyz_path(points), start=START, target=target)
+    assert r["status"] == "FAIL", (name, r)
+
+
+def test_a_known_wrong_x_is_seen_with_y_unread():
+    """Codex R302 FI-I32 B: X 1 mm off its start while Z is still low, Y NaN."""
+    sec = _path([START, (200, 200, 0), ZERO])
+    rows = sec["samples"]
+    t, n, v = rows[12]                                   # Z still near −60: the rise has just begun
+    rows[12] = (t, n, (201.0, float("nan"), v[2], *v[3:]))
+    r = sc.eval_retract_path("goto-zero", sec, start=START, target=ZERO)
+    assert r["status"] == "FAIL" and "before Z was up" in r["detail"], r
+
+
+def test_a_dead_reader_or_a_foreign_mark_inside_is_a_flaw():
+    """Codex R302 FI-I33: the reader ended though the end mark came; a
+    foreign mark BETWEEN the marks breaks the coverage (before them it is
+    another attempt's)."""
+    stream = _samples([(0, 0, 0, 0, 0, 0)] * 5, mark=3) + _samples([(0, 0, 0, 0, 0, 0)], n0=105, mark=4)
+    assert any("reader" in p for p in sv.section(stream, 3, 4, _ok(reader_alive=False))["problems"])
+    inside = _samples([(0, 0, 0, 0, 0, 0)] * 2, mark=3) + _samples([(0, 0, 0, 0, 0, 0)], n0=102, mark=99) \
+        + _samples([(0, 0, 0, 0, 0, 0)] * 2, n0=103, mark=3) + _samples([(0, 0, 0, 0, 0, 0)], n0=105, mark=4)
+    assert any("foreign" in p for p in sv.section(inside, 3, 4, _ok())["problems"])
+    s, t_reply = _jog_stream(restart=True)
+    s = [(t, n, (*v[:8], 99 if 1600 <= n < 1610 else v[8])) for t, n, v in s] + \
+        [(s[-1][0] + 0.001, s[-1][1] + 1, (*s[-1][2][:8], 4))]
+    sec = sv.section(s, 3, 4, _ok())
+    assert sc.eval_jog_servo("jog-x+.servo", 0, 1, sec, t_reply)["status"] != "PASS"
+
+
+class AuditMeasurement(FakeMeasurement):
+    """end() returns sections carrying their audit as the real Measurement does."""
+
+    def end(self, attempt):
+        sec = super().end(attempt)
+        return {**sec, "attempt": attempt["k"], "start_mark": 2 * attempt["k"] + 1, "end_mark": 2 * attempt["k"] + 2,
+                "first_n": sec["samples"][0][1], "end_n": sec["samples"][-1][1] + 1,
+                "integrity": _ok(thread_start=["sampler.0"], thread_end=["sampler.0"]), "hal": [["sets", "natv-mark", "3"]]}
+
+
+def test_every_section_is_in_the_report_with_its_audit_and_its_samples(tmp_path, monkeypatch):
+    """Codex R302 FI-I34: per attempt — the case, its marks, its number
+    bounds, its integrity, the HAL commands — in the report, the raw samples
+    in a file beside it."""
+    monkeypatch.setattr(nr, "SHORT_GRACE", 0.02)
+    c = MotionClient()
+    ctx = {"client": c, "servo": AuditMeasurement([_plateau(100.0), _plateau(50.0)]), "servo_period_s": 0.001,
+           "report": {}, "run": tmp_path}
+    nr.plateau_cases()[1](ctx)
+    audit = ctx["report"]["servo_sections"]
+    assert [a["case"] for a in audit] == ["override-plateau-100", "override-plateau-50"]
+    a = audit[0]
+    assert {"attempt", "start_mark", "end_mark", "first_n", "end_n", "integrity", "problems", "hal", "file"} <= set(a)
+    assert a["integrity"]["thread_start"] == ["sampler.0"]
+    assert len((tmp_path / a["file"]).read_text().splitlines()) == len(_plateau(100.0)["samples"])
+
+
+def test_setup_reads_the_wiring_back_and_each_section_reads_the_thread_at_both_ends():
+    shown = {}
+
+    def run(argv):
+        verb = argv[1]
+        if verb == "show" and argv[2] == "pin":
+            pin = argv[3]
+            if pin.startswith("sampler.0.pin."):
+                i = int(pin.rsplit(".", 1)[1])
+                sig = shown.get(i, "")
+                return f"    9  float IN  0  {pin} <== {sig}\n" if sig else f"    9  float IN  0  {pin}\n"
+            return f"    4  float OUT  0  {pin}\n"
+        if verb == "net":
+            shown[int(argv[4].rsplit(".", 1)[1])] = argv[2]
+        if verb == "linksp":
+            shown[int(argv[3].rsplit(".", 1)[1])] = argv[2]
+        if verb == "show" and argv[2] == "thread":
+            return SHOW_THREAD
+        return ""
+    gate = sv.HalGate(run=run)
+    rep = sv.setup(gate)
+    assert [w["read_back"] for w in rep["wiring"]] == [w["signal"] for w in rep["wiring"]]
+    assert rep["mark_read_back"] == sv.MARK_SIGNAL
+
+
+def test_a_failing_section_end_keeps_the_run_from_line_rows(tmp_path, monkeypatch):
+    """Codex R302 FI-I31: the auto_run refused, then the section's end fails
+    reading the overruns — the rows, the history and the errors stay, the
+    gate closes, the step still ends the run."""
+    monkeypatch.setattr(nr, "SHORT_GRACE", 0.02)
+
+    class BrokenEnd(FakeMeasurement):
+        def end(self, attempt):
+            raise RuntimeError("halcmd getp sampler.0.overruns: no such pin")
+    c = RflClient([], [(0.0, {"phase": "measuring", "ok": None})],
+                  refuse={"auto_run": ls.Refused("auto_run refused: Program changed — confirm again")})
+    ctx, step = _rfl_step(tmp_path, c)
+    ctx["run"], ctx["servo"] = tmp_path, BrokenEnd([])
+    with pytest.raises(nr.StepFailed) as e:
+        step(ctx)
+    line = next(r for r in e.value.rows if r["case"] == "rfl-line")
+    assert line["status"] == "FAIL" and "servo" in str(e.value) and "rfl_history" in ctx["report"]
+
+
+def test_the_status_jog_rows_inform_and_never_hold_back_the_servo_proof():
+    """Codex R302 FI-I35: the servo row decides; the status row's missing
+    proof does not; a known contradiction there still does."""
+    restore = {"outcome": "complete", "isolation": [], "cleanup": []}
+    servo = {"case": "jog-x+.servo", "status": "PASS"}
+    info_open = {"case": "jog-x+", "status": "incomplete", "informational": True}
+    info_fail = {"case": "jog-x+", "status": "FAIL", "informational": True}
+    assert nr.verdict({"rows": [servo, info_open], "restore": restore}) == "PASS"
+    assert nr.verdict({"rows": [servo, info_fail], "restore": restore}) == "FAIL"
+    assert nr.verdict({"rows": [info_open], "restore": restore}) == "incomplete", "information alone proves nothing"
+
+
+def test_a_failing_read_at_the_end_still_closes_the_section_in_the_gate():
+    """R302 FI-I31: Measurement.end raises after reading fails — the gate is open again."""
+    state = {"fail": False}
+
+    def run(argv):
+        if argv[1] == "show":
+            return SHOW_THREAD
+        if argv[1] == "getp" and argv[2] == "sampler.0.overruns" and state["fail"]:
+            raise RuntimeError("halcmd getp sampler.0.overruns: no such pin")
+        return "TRUE" if argv[1] == "getp" and "enable" in argv[2] else "0"
+    gate = sv.HalGate(run=run)
+
+    class EchoReader:
+        samples, overrun, alive = [], False, True
+
+        def wait_for_mark(self, mark, deadline_s, since=0):
+            self.samples.append((time.monotonic(), len(self.samples), (0.0,) * 8 + (mark,)))
+            return len(self.samples) - 1
+    m = sv.Measurement(gate, EchoReader(), ini_period_ns=1000000, period_ns=1000000)
+    attempt = m.begin()
+    state["fail"] = True
+    with pytest.raises(RuntimeError, match="overruns"):
+        m.end(attempt)
+    assert gate.open_section is None
+
+
+def test_a_channel_that_reads_back_on_another_signal_stops_the_setup():
+    def run(argv):
+        if argv[1] == "show" and argv[2] == "pin":
+            pin = argv[3]
+            if pin == "sampler.0.pin.3":
+                return f"    9  float IN  0  {pin} <== someone-else\n"
+            if pin.startswith("sampler.0.pin."):
+                i = int(pin.rsplit(".", 1)[1])
+                sig = sv.MARK_SIGNAL if i == sv.MARK_INDEX else f"natv-ch{i}"
+                return f"    9  float IN  0  {pin} <== {sig}\n"
+            return f"    4  float OUT  0  {pin}\n"
+        return SHOW_THREAD if argv[1] == "show" else ""
+    with pytest.raises(RuntimeError, match="reads back"):
+        sv.setup(sv.HalGate(run=run))

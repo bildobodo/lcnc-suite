@@ -10710,3 +10710,16 @@ plateau's two runs are two sections, the speed from adjacent samples; the
 retract path's phases and its XY-first counter. F-JOG.S5, F-OVERRIDE.S2 and
 F-GOTO.S1c are bound to these rows; the run-from-line attempt's servo stream
 is recorded for 2c-b.
+
+Codex R302, step 2c: the retract path is checked to the END of its section
+(after X/Y arrived they stay on the target, Z stays up for an up target and
+never below a G30 target's Z — a later return mends nothing), each check
+with only its own known axes. A dead reader and a foreign mark BETWEEN the
+marks are flaws of the section. Each section's audit — case, attempt,
+marks, number bounds, integrity incl. the servo thread read at both ends,
+the HAL commands — goes into report["servo_sections"], its raw samples into
+servo-<case>.jsonl; the setup reads the channels' wiring back from the
+sampler's own pins. A section whose END fails keeps the rows measured so far
+(the gate closes on every path) and ends the run after them. With the servo
+measurement the status-frame jog rows are informational: their missing
+proof never holds back the servo proof, a contradiction still counts.

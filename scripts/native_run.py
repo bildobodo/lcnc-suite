@@ -181,7 +181,9 @@ def verdict(report: dict) -> str:
     # isolation: [] is proven; a list names what changed; None was never proven (R286 FI-I21)
     if r.get("outcome") != "complete" or r.get("isolation") != [] or r.get("cleanup"):
         return "FAIL"
-    rows = report.get("rows", [])
+    # an informational row (the status-frame jog beside its servo row, R302
+    # FI-I35) decides only with a contradiction — its missing proof never
+    rows = [x for x in report.get("rows", []) if not (x.get("informational") and x["status"] != "FAIL")]
     if not rows or any(x["status"] != "PASS" for x in rows):
         return "FAIL" if any(x["status"] == "FAIL" for x in rows) else "incomplete"
     return "PASS"
@@ -363,17 +365,41 @@ def servo_device():
 
 
 @contextmanager
-def _section(ctx):
-    """ONE attempt's servo section: the start mark awaited before the body
-    runs, the end mark set and read after it — on every path, so the gate
-    closes; the section is in the yielded box afterwards."""
+def _section(ctx, case: str):
+    """ONE attempt's servo section for `case`: the start mark awaited before
+    the body runs, the end mark set and read after it — on every path, so
+    the gate closes. The section is in the yielded box afterwards, its audit
+    (marks, number bounds, integrity, the HAL commands) in the report and its
+    raw samples in a file beside it (R302 FI-I34). A failing END is kept as
+    the box's "error" — the caller ends the run AFTER its rows (FI-I31)."""
     m = ctx["servo"]
     attempt = m.begin()
     box: dict = {}
     try:
         yield box
     finally:
-        box["section"] = m.end(attempt)
+        try:
+            sec = m.end(attempt)
+        except Exception as e:  # noqa: BLE001 — named and ends the run after the rows
+            box["error"] = f"{type(e).__name__}: {e}"
+        else:
+            box["section"] = sec
+            record = {"case": case, "attempt": sec.get("attempt"), "start_mark": sec.get("start_mark"),
+                      "end_mark": sec.get("end_mark"), "first_n": sec.get("first_n"), "end_n": sec.get("end_n"),
+                      "integrity": sec.get("integrity"), "problems": sec.get("problems"), "hal": sec.get("hal"),
+                      "samples": len(sec["samples"]), "file": None}
+            if ctx.get("run"):
+                record["file"] = f"servo-{case}.jsonl"
+                with (ctx["run"] / record["file"]).open("w") as f:
+                    for t, n, vals in sec["samples"]:
+                        f.write(json.dumps([t, n, list(vals)]) + "\n")
+            ctx.setdefault("report", {}).setdefault("servo_sections", []).append(record)
+
+
+def _servo_failed(box, rows, what):
+    """A section whose END failed: the rows measured so far stay, the run ends."""
+    if "error" in box:
+        raise StepFailed(rows, f"{what}: the servo measurement failed — {box['error']}")
 
 
 def _servo_prep(c):
@@ -431,12 +457,13 @@ def jog_cases(joints: int):
             c.request("set_mode", mode=1)   # MANUAL for the jog
             p0 = c.status["joint_pos"][axis]
             box = {}
-            with (_section(ctx) if "servo" in ctx else _no_section()) as box:
+            with (_section(ctx, JOG_SERVO_CASES[case]) if "servo" in ctx else _no_section()) as box:
                 c.request("jog_cont", axis=axis, vel=sign * nc.JOG_SPEED)
                 time.sleep(0.3)
                 c.request("jog_stop", axis=axis)
                 t_reply = time.monotonic()
                 time.sleep(1.0)             # the post window: 1.0 s from the reply (R300)
+            _servo_failed(box, rows + servo_rows, case)
             if "section" in box:
                 from test_support import servo_cases as sc
                 servo_rows.append(sc.eval_jog_servo(JOG_SERVO_CASES[case], axis, sign, box["section"], t_reply))
@@ -447,7 +474,10 @@ def jog_cases(joints: int):
             prior = [(t - t_reply, st) for t, st in seen if t < t_reply]
             before = (prior[-1][0], _pos(prior[-1][1], axis)) if prior else None
             samples = [(t - t_reply, _pos(st, axis), _vel(st)) for t, st in seen if t >= t_reply]
-            rows.append(nc.eval_jog(case, axis, sign, p0, before, samples))
+            row = nc.eval_jog(case, axis, sign, p0, before, samples)
+            # with the servo measurement the status row informs: its missing
+            # proof never holds back the servo row, a contradiction still counts (R302 FI-I35)
+            rows.append({**row, "informational": True} if "servo" in ctx else row)
         if c.error:
             raise RuntimeError(f"the session ended after the jogs — {c.error}")
         return rows + servo_rows
@@ -474,10 +504,11 @@ def plateau_cases():
             c.request("set_feed_override", scale=scale)
             _wait(c, lambda st: isinstance(st.get("feed_override"), (int, float))
                   and abs(st["feed_override"] - scale) < 1e-9, 10, f"feed override {scale}")
-            with _section(ctx) as box:
+            with _section(ctx, case) as box:
                 _routine(c, f"G53 G1 X{PLATEAU_END:g} F{PLATEAU_FEED:g}", deadline=60.0,
                          extra=lambda st: _near(st, (PLATEAU_END, PLATEAU_START[1], PLATEAU_START[2])))
                 time.sleep(0.5)                 # the post window (R300)
+            _servo_failed(box, rows, case)
             sections[case] = box["section"]
             rows.append(sc.eval_plateau(case, box["section"], 100.0 * scale, ctx["servo_period_s"]))
         c.request("set_feed_override", scale=1.0)
@@ -517,15 +548,17 @@ def goto_cases():
                     "goto-g30": lambda: _routine(c, "O<go_to_g30> CALL", deadline=60.0)}
         for case, fire in triggers.items():
             _to(c, *GOTO_START)
-            with _section(ctx) as box:
+            with _section(ctx, case) as box:
                 fire()
                 time.sleep(0.5)                 # the post window (R300)
+            _servo_failed(box, rows, case)
             rows.append(sc.eval_retract_path(case, box["section"], start=GOTO_START, target=targets[case]))
         _to(c, *GOTO_START)
-        with _section(ctx) as box:
+        with _section(ctx, "goto-zero.counter-xy-first") as box:
             _routine(c, f"G53 G0 X{GOTO_G54[0]:g} Y{GOTO_G54[1]:g}", deadline=60.0)
             _routine(c, "G53 G0 Z0", deadline=60.0)
             time.sleep(0.5)
+        _servo_failed(box, rows, "goto-zero.counter-xy-first")
         xy_first = sc.eval_retract_path("goto-zero", box["section"], start=GOTO_START, target=targets["goto-zero"])
         rows.append(nc.counter("goto-zero.counter-xy-first", xy_first, rows[0]))
         return rows
@@ -840,7 +873,7 @@ def rfl_cases():
         # the start point's evaluator comes once the run showed how
         # motion.program-line counts MDI and remap lines — not judged here
         box: dict = {}
-        with (_section(ctx) if "servo" in ctx else _no_section()) as box:
+        with (_section(ctx, "rfl") if "servo" in ctx else _no_section()) as box:
             # ONE outcome of the attempt from the auto_run on (R295 FI-I31): a
             # known refusal or contradiction, an observed failure, a missing
             # observation — carried into the line's row on every path
@@ -883,13 +916,6 @@ def rfl_cases():
                 except tc.ToolChangeError as e:
                     outcome = {"status": "incomplete" if e.cause == "unobserved" else "FAIL", "cause": e.cause,
                                "detail": f"the attempt's tool changes ended: {e}"}
-        if "section" in box:
-            servo_file = ctx["run"] / "servo-rfl.jsonl"
-            with servo_file.open("w") as f:
-                for t, n, vals in box["section"]["samples"]:
-                    f.write(json.dumps([t, n, list(vals)]) + "\n")
-            ctx["report"]["rfl_servo"] = {"file": servo_file.name, "samples": len(box["section"]["samples"]),
-                                          "problems": box["section"]["problems"]}
         # the rows on EVERY path, from what was received since this attempt began
         hist, run_frames = list(c.rfl_history[hist_from:]), frames[cursor:]
         errors = [(k, x) for _, k, x in c.errors[err_from:]]
@@ -903,6 +929,9 @@ def rfl_cases():
         rows += [line, nc.counter("rfl-line.counter-line+1", planted, line),
                  nc.eval_rfl_no_earlier("rfl-no-earlier-line", hist, run_frames, line=RFL_LINE),
                  nc.eval_rfl_start_point("rfl-start-point", hist, run_frames, entry_xy=RFL_ENTRY)]
+        if "error" in box:
+            why = outcome["detail"] if outcome is not None else "the attempt's own outcome stands in the rows"
+            raise StepFailed(rows, f"the run from line ended: {why}; the servo measurement failed — {box['error']}")
         if outcome is not None or known_failure():
             # the instance goes down; a gap stays a gap in the rows
             why = outcome["detail"] if outcome is not None else (
