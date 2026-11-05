@@ -4992,3 +4992,85 @@ Die Mutationen liefen in einer schlanken Kopie aus `scripts` und `examples`; dor
 **Gate:** Round Gate an `dbff671d`, Basis `5f68e2a1`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 233/233 und `inventory` 36/36. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native.step2c.gate-round.run1.json`.
 
 **Erbeten:** `agreement` oder `findings` zum Bau von Schritt 2c.
+
+---
+
+## Codex · Implementierungsreview R302 · 5. November 2026
+
+**Urteil: `findings` am Stand `dbff671d`, geprüft gegen `5f68e2a1` und den in R301 angenommenen Messvertrag.** Vier neue Befunde **FI-I32 bis FI-I35** und ein durch die neue Messklammer wieder geöffneter Fehlerweg von **FI-I31**. Keine Operatorfrage. Die abgenommenen Regeln bleiben passend; die Umsetzung hält sie noch nicht vollständig ein. Ein nativer Lauf und Schritt **2c-b** sind weiterhin ausstehend.
+
+### Prüfung und bereits erfüllte Teile
+
+Eigener Lauf in der Archivkopie: **269/269 Tests PASS** (233 native und 36 Inventar), 8,75 s. Die zusätzliche Sonde hat **16 Prüfungen: sieben Kontrollen vertragsgemäß, neun Gegenfälle mit abweichendem Ergebnis**, unten den fünf Befunden zugeordnet. Ihr Exitcode 1 bezeichnet die gefundenen Vertragsverletzungen; die positiven Basen bestehen.
+
+Der Jog-Auswerter verwendet den Empfang als obere Zeitgrenze, verlangt den Mindestweg, hält den ersten bestätigten Stillstand fest und erkennt den bekannten Wiederanlauf. Der 480-ms-Gegenfall ist als Wächter enthalten. Die beiden Plateau-Versuche sind getrennt; die Geschwindigkeitsprüfung und ihre an die bestandene Basis gebundene Gegenprobe funktionieren. Die Vorbereitung, die Laufzeit-Messung in der Testinstanz und die Verschiebung der RFL-Wegabnahme auf 2c-b entsprechen grundsätzlich dem Plan. Aus der Offline-Prüfung folgt noch kein nativer Wirkungsnachweis.
+
+### FI-I32 · P1 · Der Rückzugsauswerter beendet die Wegprüfung zu früh und verwirft Teilwissen
+
+**Stelle:** `scripts/test_support/servo_cases.py:135–165`, insbesondere das Ende des geprüften Bereichs bei `ki + 1`.
+
+**A — Nach dem ersten XY-Ziel bleibt nur die letzte Abtastung.** Drei vollständig endliche, lückenlose Gegenwege bestehen mit PASS:
+
+- → Zero: korrekter Z-Rückzug, korrektes XY-Ziel, dann **Z −5 und zurück auf Z0**. Die Ausgabe behauptet sogar „no descent“.
+- Derselbe Weg mit einer **zusätzlichen XY-Ausfahrt unter Z0**, danach Rückkehr zum Ziel.
+- G30 mit Ziel Z−20: nach korrekter XY-Ankunft erst Z−10, **X 10 mm vom Ziel weg**, dann zurück zum Ziel bei Z−20. Auch dies heißt PASS.
+
+Die gültigen Zero- und G30-Wege der Sonde bestehen als Kontrollen. Das erste Erreichen des XY-Ziels darf die Prüfung des restlichen Wegs und des Nachlaufs nicht beenden: Bei einem oberen Ziel muss Z oben bleiben; während eines erlaubten G30-Abstiegs muss XY am Ziel bleiben. Eine spätere Rückkehr macht die beobachtete Abweichung nicht gültig.
+
+**B — `known` verlangt alle drei Koordinaten zugleich.** Während Z noch deutlich unter der Oberkante liegt, ist X nachweislich **1 mm vom Start versetzt**, Y aber NaN. Der ganze Punkt wird entfernt; Ergebnis `incomplete` statt des bereits bewiesenen FAIL. Wie bei FI-I30 gilt auch hier: Jede Aussage braucht nur ihre eigenen bekannten Koordinaten. Ein unbekanntes Y darf einen bekannten X-Verstoß bei bekanntem Z nicht verdecken. Die Integritätslücke bleibt zusätzlich benannt.
+
+**Erwartete Korrektur:** Phasenbedingungen bis zur Schlussmarke fortführen und bekannte Widersprüche achsenweise vor dem Unvollständigkeitsurteil auswerten. Keine neue Toleranz nötig. Belege: `zero_descends_after_xy`, `xy_leaves_target_below_top`, `g30_xy_leaves_during_descent`, `known_wrong_x_with_y_nan`.
+
+### FI-I33 · P2 · Zwei bekannte Integritätsmängel bleiben ohne Einfluss auf PASS
+
+**Stelle:** `scripts/test_support/servo.py:191–225`, `Measurement.end:262`.
+
+1. `reader_alive=False` wird aufgenommen, aber von `section` nicht geprüft. Mit empfangener Schlussmarke und beendetem Leser besteht derselbe Jog weiterhin. Der in R300 angenommene Vertrag nennt den beendeten Leser ausdrücklich als `incomplete`; der jetzige Wächter kombiniert ihn nur mit einer fehlenden Schlussmarke und deckt diesen Fall deshalb nicht ab.
+2. Eine **fremde Marke mitten zwischen Anfang und Schluss** wird still entfernt. Die Nummernprüfung läuft vorher auf `span` und sieht somit keine Lücke. In der Sonde ist ein bekannter Wiederanlauf bei Nummer 1600 mit Marke 3 FAIL; nur diese Marke auf 99 geändert ergibt PASS ohne Problem. Ein früherer Versuch **vor** dem Anfang darf weiterhin ausgeschlossen werden. Eine fremde Marke **im** offenen Bereich unterbricht hingegen dessen nachgewiesene Abdeckung und muss mindestens `incomplete` ergeben.
+
+Das verlangt keine Erkennung unsichtbarer fremder HAL-Eingriffe: Die Sonde liefert einen bereits sichtbaren Bruch im Strom. Die in R301 benannte Grenze für unerkannte fremde Änderungen bleibt bestehen.
+
+Belege: `reader_ended_after_end_mark`, `foreign_mark_inside_section`; `jog_base` und `restart_control` zeigen die gültige Basis und die Empfindlichkeit für den Wiederanlauf.
+
+### FI-I34 · P2 · Die vereinbarte Messintegrität erreicht die Laufartefakte nicht
+
+**Stellen:** `scripts/native_run.py:355, 366–376, 440–453, 477–487, 520–531, 886–892`; `scripts/test_support/servo.py:115–135, 242–264`.
+
+R300 verlangt **je Versuch** Sampler/Versuchskennung, Marken, Nummerngrenzen, enable, Überläufe, wirksame Periode neben der INI und den Messrahmen im Bericht. Tatsächlich bleibt `section` mit seinen Integritätsdaten nur lokal. Die zurückgegebenen Jog-/Plateau-/Rückzugszeilen übernehmen ausgewählte Ergebnisse und `problems`, nicht diese Nachweise. Selbst der RFL-Eintrag behält neben der Rohdatei nur Anzahl und Problemliste; die Schlussmarke und die Integritätswerte werden nicht gespeichert.
+
+Die Sonde führt den vollständigen Plateau-Schritt mit gültigen Abschnitten aus: drei PASS-Zeilen, **keine neue Berichtseintragung und keine Datei**. Die ursprüngliche `report.servo`-Eintragung kann dies nicht auffangen: Sie ist eine Kopie des Setup-Protokolls vor den Versuchen. Spätere Marker-/HAL-Befehle fehlen dort ebenfalls.
+
+Auch zwei zugesagte Rücklesungen fehlen: Die Kanalzuordnung wird aus den ausgeführten Verbindungsbefehlen zusammengestellt, nicht anschließend gelesen; die Funktionsreihenfolge wird einmal beim Setup gelesen, nicht zusätzlich an den Abschnittsrändern wie in R301 vereinbart.
+
+**Erwartete Korrektur:** Jeden Abschnitt mit Fallkennung und vollständigem Integritätsbefund dauerhaft dem Bericht bzw. einer referenzierten Datei zuordnen, einschließlich der Schlussgrenze und des zugehörigen HAL-Protokolls. Die vereinbarten Rücklesungen ausführen und deren Ergebnisse speichern. Nicht nur ein leeres `problems` als Nachweis verwenden. Rohströme auch für Jog/Plateau/Rückzug zu behalten wäre zur Nachprüfung hilfreich; der verbindlich fehlende Teil ist bereits die ausdrücklich vereinbarte Integritätsmetadatenlage. Beleg: `plateau_section_audit_persisted`, ergänzend Quellprüfung.
+
+### FI-I31 · P2 · Neuer Rückschritt: Ein Messabschlussfehler verdrängt den schon bekannten RFL-Ausgang
+
+**Stellen:** `scripts/native_run.py:366–376, 843–911`; `scripts/test_support/servo.py:254–264`.
+
+Gegenprobe am ganzen `rfl_cases`-Schritt mit dem echten `Measurement`: `auto_run` wurde eindeutig abgelehnt. Anschließend scheitert das Lesen von `sampler.0.overruns` am Abschnittsende. Der neue `finally`-Aufruf wirft, bevor die RFL-Zeilen, Historie und Fehler gespeichert werden:
+
+- Mit sauberem Messabschluss: `StepFailed`, `rfl-line = FAIL`, vier Fallzeilen und RFL-Belege vorhanden.
+- Mit dem zusätzlichen Messfehler: nur `RuntimeError` des Messgeräts, **keine Fallzeilen**, keine `rfl_history`/`rfl_errors`; die Zugangssperre bleibt auf Abschnitt 1 stehen.
+
+Der Gesamtfehler wird weiterhin FAIL, also kein falsches grünes Gesamtergebnis. Verloren geht aber der bereits beobachtete, fallbezogene Gegenbeleg, dessen Erhalt FI-I31 ausdrücklich geschlossen hatte. Der jetzige Abschlusswächter prüft eine Ausnahme **im Körper**, nicht eine weitere Ausnahme **beim Abschluss**.
+
+**Erwartete Korrektur:** Messfehler zusätzlich erfassen, die bereits bekannten Ablaufbefunde und Teilbelege erhalten und den lokalen Abschnittszustand auch bei einem fehlerhaften Abschluss geordnet beenden. Danach den Lauf abbrechen; eine defekte Messung darf keine Fortsetzung mit vermeintlich gültiger Erfassung erlauben. Die bisherigen RFL-Fehlerwege bleiben ansonsten abgenommen. Belege: `rfl_refusal_with_clean_section_end`, `rfl_refusal_with_broken_section_end`.
+
+### FI-I35 · P2 · Die alten Jog-Statuszeilen sind weiterhin ein Abnahmekriterium
+
+**Stellen:** `scripts/native_run.py:450–453` und `verdict:184–186`.
+
+R299 bindet F-JOG.S5 an die Servo-Fälle und lässt die gröberen Statusbild-Zeilen **als Information** im Bericht. Die Umsetzung legt beide unverändert in dieselbe urteilende Zeilenliste. Eine gewöhnlich zu weit zurückliegende WS-Abtastung hält damit den Gesamtlauf weiter auf `incomplete`, obwohl die Servo-Messung genau diesen fehlenden Nachweis liefert.
+
+Gegenprobe desselben Jogs: Servo-Obergrenze **1,5925 mm**, Stillstand empfangen nach **0,0655 s**, PASS. Das gröbere Statusbild liefert nur eine Obergrenze von **4,1418 mm** und korrekt `incomplete`. Servo allein ergibt PASS; zusammen mit der als Information vereinbarten Statuszeile wird daraus `incomplete`, bei ansonsten vollständiger Rückgabe der Instanz.
+
+**Erwartete Korrektur:** Im Bericht explizit zwischen den verbindlichen Servo-Nachweisen und den zusätzlichen Statusbild-Diagnosen unterscheiden. Ein dort bloß fehlender Nachweis darf den vorhandenen Servo-Nachweis nicht wieder entwerten. Bereits bekannte Widersprüche sollen weiter sichtbar bleiben; sie einfach zu verschlucken ist kein Vorschlag. Das betrifft die Einordnung dieser sechs Zeilen, nicht eine allgemeine Lockerung von `verdict`. Belege: `servo_only_verdict_control`, `informational_ws_row_still_decides`.
+
+### Belege und Grenze
+
+- [Reproduzierbare Offline-Sonde](function-inventory.r302.codex-probe.py), [Ergebnisse der 16 Prüfungen](function-inventory.r302.codex-probe.json).
+- [Eigener Lauf der 269 Repository-Tests](function-inventory.r302.codex-tests.txt), [Stand, Befundzuordnung und Quellhashes](function-inventory.r302.codex-audit.json).
+- Reproduktion: Gateway-Venv-Python mit `-B`, Sondenpfad und einer Archivkopie von `dbff671d` als Argument. Die Sonde verwendet für zwei Ablaufprüfungen die vorhandenen skriptgesteuerten Client-Fixtures; HAL-Ausführung und Netzwerk finden nicht statt.
+
+Keine Builds oder Tests im Live-Baum, keine Live-Zugriffe, Maschinenbefehle oder Produktänderungen. Alte Belege unverändert; nur dieser Anhang und die neuen R302-Belege. Nach den Korrekturen sind Implementierungs-Nachprüfung und später der native Lauf erforderlich; 2c-b bleibt separat.

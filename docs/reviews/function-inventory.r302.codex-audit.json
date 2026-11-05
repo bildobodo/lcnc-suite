@@ -1,0 +1,57 @@
+{
+  "round": "R302",
+  "date": "2026-11-05",
+  "base": "5f68e2a16ec18813c4de10e045e16d172983ea7c",
+  "head": "dbff671d5d2425575e3b42afb09de1198582cd36",
+  "live_review_head": "a30b8bad8ee6f037a9fe37db0fb1a17a5c1617a4",
+  "archive": "/tmp/codex-r302",
+  "verdict": "findings",
+  "repo_tests": {
+    "result": "269 passed in 8.75s",
+    "command": "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py",
+    "initial_command_error": "First invocation named nonexistent scripts/inventory/test_functions.py; no tests collected; corrected to test_inventory.py."
+  },
+  "probes": {
+    "command": "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B <evidence>/function-inventory.r302.codex-probe.py /tmp/codex-r302",
+    "exit_code": 1,
+    "conforming": 7,
+    "contrary": 9
+  },
+  "findings": {
+    "FI-I32": [
+      "zero_descends_after_xy",
+      "xy_leaves_target_below_top",
+      "g30_xy_leaves_during_descent",
+      "known_wrong_x_with_y_nan"
+    ],
+    "FI-I33": [
+      "reader_ended_after_end_mark",
+      "foreign_mark_inside_section"
+    ],
+    "FI-I34": [
+      "plateau_section_audit_persisted"
+    ],
+    "FI-I31-regression": [
+      "rfl_refusal_with_broken_section_end"
+    ],
+    "FI-I35": [
+      "informational_ws_row_still_decides"
+    ]
+  },
+  "review_before_sha256": "f0c85647c4400384b700877f9838fcfd8a23e04a6015124d5a69acf43a656f1a",
+  "source_sha256": {
+    "scripts/native_run.py": "e40a35d27185841d3c53cdc94ca1d02c759d03e879c6aa6f8ef394998dae75f0",
+    "scripts/test_support/servo.py": "1d6968ff2e8a43fb1b315d3930e69af049387f6daea33e805887a6bdfd2e6066",
+    "scripts/test_support/servo_cases.py": "be7a015fae536cdd8502aa41f68b398079a0c70e4260afc9f667196e903c10d0",
+    "scripts/test_native_stage.py": "0710e4ac976e674780e877de0f22b95a2817bb0e39bb743217bcf3d880991801",
+    "scripts/inventory/functions.json": "f636a131b20229b453a74bb5203a24efc41725201d7ddd11cad125d066a2ab85",
+    "docs/decisions.md": "b05869040d9473488ac915088c4bfa158a92441799613ae7dc8effa5e7a1deeb"
+  },
+  "boundary": {
+    "product_changed": false,
+    "live_builds_or_tests": false,
+    "live_or_machine_access": false,
+    "native_run": false,
+    "old_evidence_changed": false
+  }
+}
