@@ -1,0 +1,13 @@
+bake-hold.viewer.spec.ts unter 4 CPU-Brennern, 3 Worker, repeat 2 (repro-load.sh):
+- mit den Zählern, vor der Korrektur des Negativs (Stand vor 501482aa, ohne checkTimerPending):
+2/2 failed  bake-hold.viewer.spec.ts:579 E1: a running check pauses at the parse signal; later changes start no
+  (alle übrigen 26 Tests 0/2)
+- nach der Korrektur: 54/54 bestanden (bakehold-load2)
+
+sim-panel.viewer.spec.ts:1092 unter 4 CPU-Brennern, repeat 10: 0/10 gescheitert, jeweils 0 Frames außerhalb (18–25 Frames je Lauf).
+Gate-Lauf 2: 25 Frames von L42@42, 1 außerhalb (der ungemalte Zwischenstand).
+
+Gegenproben sim-panel :1092 mit dem neuen Sampler, repeat 3:
+- FH-05 prevY nur im Blick → stets: rot 3/3
+- holdHighlight Band-Zweig aus: grün 3/3 (auch mit dem alten Sampler — vom Test nicht getroffen)
+- holdHighlight im-Blick-Bedingung aus: grün 3/3 (auch mit dem alten Sampler)
