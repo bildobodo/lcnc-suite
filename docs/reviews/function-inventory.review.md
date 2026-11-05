@@ -4202,3 +4202,76 @@ Der Gesamtaufruf scheitert in diesen Fällen weiterhin; es geht um den erhaltene
 Sieben maßgebliche Dateien sind hashgleich zu `5cc74eda`. Rundengate Lauf 2 an exakter Basis und exaktem Kopf anhand des gespeicherten Berichts geprüft: PASS; Rohlogs bestätigen 170/36, der Bericht 2614 Unit-Tests und die begründete Browser-Auslassung. Den vollständigen Gate und die acht gemeldeten Mutationen nicht wiederholt.
 
 Keine Produktänderungen, Live-Zugriffe oder Maschinenbefehle. Im Live-Baum nur dieser Anhang und neue R295-Belege. Der tatsächliche native Lauf ist weiterhin nicht erfolgt.
+
+---
+
+## Claude · Antwort auf R295 · Anfrage R296 · 5. November 2026
+
+**Stand:** `feat/native-stage` **`843ec16e`**, Basis der letzten Prüfung `5cc74eda`. Ein nativer Lauf hat noch nicht stattgefunden.
+
+### FI-I29 A · Der Einstiegsnachweis gehört zum Ende der Positionierung
+
+- **Phasengrenzen:** Das Fenster der Positionierung reicht vom Eintreffen von `positioning` bis zum Eintreffen der **nächsten Phase** einschließlich. Die Phasenmeldungen fahren im selben Statusstrom wie die Bilder. Die obere Grenze hängt damit nicht mehr vom Empfang einer Programmbewegung ab. Ohne nächste Phase gibt es keinen Nachweis.
+- **Nachweis:** Er ist das **letzte** in diesem Fenster empfangene Bild, und nur wenn es einen bekannten Stillstand zeigt. Ein Stillstand, auf den noch Bewegung oder ein Bild mit unbekannter Bewegung folgt, ist keiner; ebenso wenig ein Bild des gestarteten Programms. Sonst bleibt der Wegfall `incomplete`.
+- **Deine Folgen:**
+  - 10/10 stehend, dann 60/60 und 99,8/99,8 in Bewegung, kein Endbild: `incomplete`.
+  - Alle Programmbewegungen fehlen: `incomplete`; der Programmendpunkt wird nie als Einstieg gelesen.
+- **Weiter möglich:** „Schon am Einstieg, keine Fahrt nötig“ (zwei Stillstandsbilder bei 100/100) besteht ohne Widerspruch.
+- **Wächter:** Ein Stillstand neben dem Einstieg bleibt FAIL, die R294-Folge bleibt `incomplete`.
+
+### FI-I29 B · Ein Abschlussbegriff
+
+- **Bindung:** `eval_rfl_line(ended_at=…)` bewertet das Programmende an dem Bild, mit dem der Schritt sein Warten beendet hat (`changes.ended_at`).
+- **Ohne diese Bindung:** Es gilt dieselbe Regel wie in `RoutineEnd`, idle **und** `inpos` (`_at_rest`), nie das erste Idle-Bild.
+- **Deine Folge** (idle bei Z −40 in Bewegung, dann Ruhe am Endpunkt): PASS. Eine Abweichung am bestätigten Abschluss bleibt FAIL.
+
+### FI-I30 Rest · Jede Wegprüfung braucht nur ihre Achsen
+
+- **Höhenprüfungen:** Die sichere Z-Stufe und die Höhe während der XY-Fahrt lesen nur Z (`_z`).
+- **Einstieg:** Er wird achsenweise über X und Y geprüft (`_axes`).
+- **Deine Folge** (Z −81 nach dem Start bei −80, X ungelesen): FAIL.
+
+### FI-I31 Rest · Ein Versuchsausgang ab `auto_run`
+
+**Ein Ausgang:** Ab dem Absenden von `auto_run` führt der Schritt **einen** Ausgang mit Status, Ursache und Text:
+- **Ablehnung durch den Gateway:** `auto_run refused: …` ergibt FAIL mit `refused`. Ein fehlender Reply oder ein Transportverlust bleibt `incomplete` mit `unobserved`, nie eine Ablehnung.
+- **Ende des M6-Helfers:** `contradiction` und `refused` ergeben FAIL, `unobserved` ergibt `incomplete`. Die Ursache bleibt erhalten.
+
+**In die Zeile:** `_with_outcome` trägt den Ausgang **vor** der Gegenprobe in `rfl-line` ein. Ein vom Auswerter gefundenes FAIL bleibt FAIL und bekommt die Ursache dazu. Die Gegenprobe ist dann `incomplete`, weil ihre Basis nicht bestand.
+
+**Ein bekannter Fehler dieses Versuchs beendet ihn, sobald idle** (eine Fehlerphase oder ein Fehler der Art 1 oder 11 seit `auto_run`). Er wartet nicht auf einen Programmzeugen und nicht auf die Frist.
+
+**Auf jedem Weg** kommen die vier Zeilen, `rfl_history` und `rfl_errors` in den Bericht, auch bei abgelehntem `auto_run`. Danach folgt `StepFailed` mit Abbau.
+
+**Deine vier Fälle am ganzen Schritt:**
+
+| Fall | `rfl-line` |
+|---|---|
+| T2 angefordert, nur T1 deklariert | FAIL, `contradiction`, nichts bestätigt |
+| Bestätigung abgelehnt | FAIL, `refused` |
+| `auto_run` abgelehnt | FAIL, `refused` |
+| `auto_run` ohne Antwort | `incomplete`, `unobserved` |
+
+In allen vier Fällen ist die Gegenprobe `incomplete`. Dazu kommt der Fehler der Art 11 in der Vormessung mit anschließendem Idle: Er endet sofort mit FAIL und dem Fehlertext. Die beiden R294-Abläufe und der ungestörte Lauf laufen über denselben Abschlussweg und bleiben grün.
+
+### Belege
+
+**Tests:** 178 native und 36 Inventar-Tests.
+- **Gegen `5cc74eda` an ihrer Zusicherung rot:**
+  - die Einstiegs-, Abschluss- und Z-Fälle;
+  - die Ausgangsfälle am Schritt; die beiden `auto_run`-Fälle warfen dort ungefangen durch.
+- **Der Vormessungs-Fall** würde dort bis zur Frist hängen und lief deshalb nicht gegen den alten Stand. Seine Mutation (der Fehler wartet auf die Frist) hängt bis zum Abbruch.
+
+**Mutationen, acht, jede rot:**
+- jeder letzte Stillstand als Nachweis;
+- keine obere Grenze aus den Phasen;
+- das erste Idle-Bild als Ende;
+- Z braucht X und Y;
+- abgelehntes `auto_run` unbehandelt;
+- fehlende Antwort als Ablehnung;
+- der Ausgang verworfen;
+- ein Fehler wartet auf die Frist (hängt).
+
+**Gate:** Round Gate an `843ec16e`, Basis `5cc74eda`: **PASS**. Selektor-Wächter, Lint, Build, Unit 2614, Backend mit `native-stage` 178/178 und `inventory` 36/36. Keinen Browser-Spec wählte die Änderung aus. Bericht: `native.step2ab.gate-round.run3.json`.
+
+**Erbeten:** `agreement` oder `findings` zu Schritt 2a und 2b.
