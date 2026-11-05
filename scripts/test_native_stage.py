@@ -3046,46 +3046,69 @@ def test_the_probe_miss_reads_a_planted_5070(monkeypatch):
     assert by["probe-z-miss"]["status"] == "PASS", by["probe-z-miss"]
 
 
-def test_each_t1_measurement_starts_where_its_return_is_reachable(monkeypatch):
-    """Live: the unload (T0 M600) leaves the spindle at G53 Z0; T1 M600 from
-    there measured, then its return to the start (#3106 = 1, mode 1: the TIP
-    to the start Z taken under T0) asked for the spindle at +49 — "would
-    exceed Z's positive limit", the routine ended in an error. Each T1
-    measurement starts at G53 Z -(L0 + M600_CLEAR), with no offset."""
+def test_each_t1_measurement_starts_where_the_unload_left_it_and_its_return_is_judged(monkeypatch):
+    """With M600's return at the top (2026-11-05) the T1 measurement starts
+    where the unload left the spindle — on G30, the top in the copy — as in
+    the operator's own flow; no detour down. The return row reads the call's
+    joint position before the send and the end at the completion: at the
+    call's X/Y, Z at the top. A T1 ending 20 mm down is a FAIL."""
     order = []
 
     class Client:
         def __init__(self):
-            self.status = {"tool_number": 99, "tool_offset": [0, 0, 50], "tool_table_z": 50.0}
+            self.status = {"tool_number": 99, "tool_offset": [0, 0, 50], "tool_table_z": 50.0,
+                           "joint_pos": [10.0, 10.0, -60.0]}
             self.vars = {n: 0 for n in nr.TOOLSETTER_VARS} | {3102: -180}
             self.table = 50.0
+            self.t1_end_z = 0.0
 
         def request(self, cmd, **kw):
             if cmd == "get_tool_table":
                 return {"tools": [{"T": 1, "Z": self.table}]}
-            if cmd == "get_probe_vars":
-                return {"vars": {str(k): self.vars[k] for k in kw["vars"]}}
             if cmd in ("save_tool", "set_probe_vars"):
                 self.table = kw.get("z_offset", self.table)
                 self.vars.update({int(k): v for k, v in kw.get("vars", {}).items()})
                 return {"ok": True}
             raise AssertionError((cmd, kw))
-    c = Client()
 
     def routine(client, text, vars=None, **kw):
         order.append(text)
-        tool = 0 if text == "T0 M600" else 1
-        client.status.update(tool_number=tool, tool_offset=[0, 0, 0 if tool == 0 else client.table])
-        return {"t0": 0, "t_done": time.monotonic() - 10, "served": [{"tool": tool, "seq": len(order)}], "errors": []}
+        if text == "T0 M600":       # the unload ends on G30 = 0/0/0
+            client.status.update(tool_number=0, tool_offset=[0, 0, 0], joint_pos=[0.0, 0.0, 0.0])
+        else:
+            client.status.update(tool_number=1, tool_offset=[0, 0, client.table],
+                                 joint_pos=[0.0, 0.0, client.t1_end_z])
+        return {"t0": 0, "t_done": time.monotonic() - 10, "served": [{"tool": 1, "seq": len(order)}], "errors": []}
     monkeypatch.setattr(nr, "_routine", routine)
     monkeypatch.setattr(nr, "_short", lambda client, text: client.status.__setitem__("tool_offset", [0, 0, client.table]))
     monkeypatch.setattr(nr, "_to", lambda client, x, y, z: order.append(("to", x, y, z)))
     monkeypatch.setattr(nr, "_vars", lambda client, nums: {n: client.vars[n] for n in nums})
-    nr.m600_cases()[1]({"client": c, "frames": [], "plate": {"x": 10, "y": 10, "z": -180}})
-    t1 = [i for i, o in enumerate(order) if o == "T1 M600"]
-    assert len(t1) == 2, order
-    for i in t1:
-        assert order[i - 1] == ("to", 10, 10, -(50.0 + nr.M600_CLEAR)), order
+    c = Client()
+    rows = nr.m600_cases()[1]({"client": c, "frames": [], "plate": {"x": 10, "y": 10, "z": -180}})
+    assert [o for o in order if isinstance(o, str)] == ["T0 M600", "T1 M600", "T0 M600", "T1 M600"], order
+    assert not [o for o in order if isinstance(o, tuple)], "no detour down before a T1 measurement"
+    by = {r["case"]: r for r in rows}
+    assert by["m600-t1-return"]["status"] == "PASS", by["m600-t1-return"]
+    assert by["m600-t1-return.counter-x+1"]["status"] == "PASS"
+    order.clear()
+    c = Client()
+    c.t1_end_z = -20.0
+    rows = nr.m600_cases()[1]({"client": c, "frames": [], "plate": {"x": 10, "y": 10, "z": -180}})
+    assert {r["case"]: r for r in rows}["m600-t1-return"]["status"] == "FAIL"
+
+
+@pytest.mark.parametrize("call, end, errors, status, part", [
+    ((0, 0, 0), (0, 0, 0), (), "PASS", "top"),
+    ((0, 0, 0), (0, 0, -20), (), "FAIL", "Z ended"),
+    ((0, 0, 0), (1, 0, 0), (), "FAIL", "X ended"),
+    ((0, 0, 0), (0, 0, 0), ((11, "Linear move on line 596 would exceed Z's positive limit"),), "FAIL", "596"),
+    ((None, 0, 0), (0, 0, -20), (), "FAIL", "Z ended"),          # a known contradiction beats an unread value
+    ((None, 0, 0), (0, 0, 0), (), "incomplete", "not read"),
+    ((0, 0, -60), (0, 0, 0), (), "incomplete", "not the top"),     # no climb to prove from below
+])
+def test_the_m600_return_is_judged_at_the_top_and_the_calls_xy(call, end, errors, status, part):
+    r = nc.eval_m600_return("m600-t1-return", call, end, 0.0, errors=errors)
+    assert r["status"] == status and part in r["detail"], r
 
 
 def test_parameters_are_read_from_the_interpreter_not_the_var_file(monkeypatch):

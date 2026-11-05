@@ -319,7 +319,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | **Werkzeugbibliothek importieren (Fusion 360, FreeCAD)** `F-TOOLIMPORT` | Tab „Tools“ | 17 | 4 | 4 | 0 |
 | **Werkzeugtabelle herunterladen** `F-TOOLDOWNLOAD` | Tab „Tools“ | 2 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Werkzeugwechsel (M6) mit Bestätigung** `F-TOOLCHANGE` | Dialog, Einstellungen, Tab „Tools“ | 14 | 2 | 2 | 0 |
-| **Werkzeuglänge messen (M600) und Werkzeug entladen** `F-TOOLMEASURE` | Tab „Tools“ | 8 | 8 | 7 | 1 |
+| **Werkzeuglänge messen (M600) und Werkzeug entladen** `F-TOOLMEASURE` | Tab „Tools“ | 8 | 9 | 8 | 1 |
 | **Toolsetter einrichten (Werkzeuglängen-Messung)** `F-TOOLSETTER` | Tab „Probing“ › Toolsetter | 36 | 1 | 1 | 0 |
 | **Werkzeugwechselposition G30 lesen, übernehmen, speichern** `F-G30` | Tab „Probing“ › Toolsetter | 8 | 2 | 2 | 0 |
 
@@ -370,6 +370,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: browser: `toolsetter-setup.spec.ts` — Unload is ONE command: T0 M600 with the setter's values in M600 mode, tool_change 0 in the standard mode
 - **S6b (Wirkung):** Auf echtem LinuxCNC entlädt T0 M600 das Werkzeug: die Spindel leer, keine Länge mehr aktiv. — gilt für: 3axis_xyz
   - Beleg: native: `native_run.py` — m600-unload — Lücke: der native Lauf steht aus (gebaut: Schritt 2a)
+- **S7 (Wirkung):** Mit Rückfahrt (#3106 = 1) endet M600 oben an X/Y des Aufrufs, auch von der obersten Lage auf ein längeres Werkzeug: kein Endlagenfehler, kein eigener Abstieg. — gilt für: 3axis_xyz
+  - Beleg: native: `native_run.py` — m600-t1-return; native: `native_run.py` — m600-t1-return.counter-x+1; gateway: `test_m600_preview_worker.py` — test_the_return_from_the_top_with_a_longer_tool_stays_inside_the_travel — Lücke: der native Lauf steht aus (gebaut)
 
 ### Toolsetter einrichten (Werkzeuglängen-Messung)
 

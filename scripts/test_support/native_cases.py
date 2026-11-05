@@ -152,6 +152,37 @@ def _failures(errors) -> list[str]:
     return [text for kind, text in errors if kind in ERROR_KINDS]
 
 
+RETURN_TOL = 0.001            # mm: the return's own target, at rest
+
+
+def eval_m600_return(case: str, call, end, top_z: float, errors=()) -> dict:
+    """M600's return with #3106 = 1 (operator 2026-11-05): after the
+    measurement the spindle is at the top of travel (`top_z`, the routine's
+    drive-free G53 Z0) at the X/Y where M600 was called — Z never descends
+    on its own. `call` / `end`: joint positions (x, y, z), the call's read
+    before the send, the end's at the confirmed completion. A routine error
+    is a FAIL; a known contradiction wins over an unread value; the case
+    proves the climb only from the top (a call below it is incomplete)."""
+    measured = {"call": None if call is None else list(call), "end": None if end is None else list(end),
+                "top_z": top_z, "errors": list(errors)}
+
+    def known(p, i):
+        return p is not None and len(p) > i and _finite(p[i])
+    fail = _failures(errors)
+    if fail:
+        return _row(case, "FAIL", f"the routine reported: {fail[0]}", **measured)
+    if known(end, 2) and abs(end[2] - top_z) > RETURN_TOL:
+        return _row(case, "FAIL", f"Z ended at {end[2]:.3f}, the top is {top_z:g}", **measured)
+    for i, axis in ((0, "X"), (1, "Y")):
+        if known(end, i) and known(call, i) and abs(end[i] - call[i]) > RETURN_TOL:
+            return _row(case, "FAIL", f"{axis} ended at {end[i]:.3f}, the call was at {call[i]:.3f}", **measured)
+    if not all(known(end, i) and known(call, i) for i in range(3)):
+        return _row(case, "incomplete", "a position not read", **measured)
+    if abs(call[2] - top_z) > RETURN_TOL:
+        return _row(case, "incomplete", f"the call was at Z {call[2]:.3f}, not the top — no climb to prove", **measured)
+    return _row(case, "PASS", "back at the call's X/Y at the top; Z stayed up", **measured)
+
+
 def counter(case: str, inner: dict, base: dict) -> dict:
     """A planted wrong value re-judging a measurement: it holds only when
     the measurement passed against the TRUE value (`base`) and fails

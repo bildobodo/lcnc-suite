@@ -89,10 +89,11 @@ PROBE_OVER, MISS_OVER = 8.0, 15.0
 PROBE_VARS = (3014, 3015, 3016, 3017, 3020, 3021, 3030)          # what probe_z_minus_wco reads
 TOOLSETTER_VARS = (3004, 3005, 3006, 3007, 3009, 3010, 3013) + tuple(range(3100, 3116))   # toolsetterVarMap
 M600_SLOW = 20.0
-#: T1 M600 starts at G53 Z -(L0 + this): its return (#3106 = 1, mode 1) puts
-#: the new tool's TIP at the start Z taken under T0 — from the top that asks
-#: for the spindle at +L ("would exceed Z's positive limit", live run 2026-11-05)
-M600_CLEAR = 20.0
+#: M600's return (#3106 = 1) ends at the top of travel — the routine's
+#: drive-free G53 Z0 (Z0 is the top on every config); since 2026-11-05 it
+#: never puts the new TIP back at the start Z (from the top with a longer tool
+#: that asked for the spindle past the Z limit — the first live runs)
+M600_TOP_Z = 0.0
 #: a write or start right after a routine waits this long for the gateway to
 #: release the routine's start claim (~0.3 s after an error, live run 2026-11-05)
 CLAIM_WAIT_S = 3.0
@@ -841,21 +842,32 @@ def m600_cases():
             raise Refused(f"#3102 {ts[3102]} is not the plate {plate['z']} — the copy's setup differs")
 
         def measure(vars_):
-            """T0 M600 then T1 M600 with `vars_`: each from another spindle tool."""
+            """T0 M600 then T1 M600 with `vars_`: each from another spindle
+            tool; T1 from where the unload left the spindle (G30 — the top in
+            the copy), the operator's own flow. Returns the call's and the
+            end's joint positions too."""
             u = _routine(c, "T0 M600", vars=vars_, declared=[0], deadline=120.0,
                          extra=lambda st: st.get("tool_number") == 0)
             unload = (u, c.status.get("tool_number"), (c.status.get("tool_offset") or [None] * 3)[2])
-            _to(c, plate["x"], plate["y"], -(l0 + M600_CLEAR))
+            call = list((c.status.get("joint_pos") or [None] * 3)[:3])
             r = _routine(c, f"T{tool} M600", vars=vars_, declared=[tool], deadline=180.0,
                          extra=lambda st: st.get("tool_number") == tool)
             st = c.status
-            return unload, r, st.get("tool_table_z"), (st.get("tool_offset") or [None] * 3)[2], st.get("tool_number")
+            end = list((st.get("joint_pos") or [None] * 3)[:3])
+            return (unload, r, st.get("tool_table_z"), (st.get("tool_offset") or [None] * 3)[2],
+                    st.get("tool_number"), call, end)
 
-        unload, r, length, g43, _ = measure(ts)
+        unload, r, length, g43, _, call, end = measure(ts)
         rows.append(nc.eval_unload("m600-unload", unload[0]["served"], unload[1], unload[2]))
         row = nc.eval_m600("m600-t1", l0, length, g43, errors=r["errors"])
         row["table_on_disk"] = _tool_z(c, tool)
         rows.append(row)
+        # the return (#3106 = 1): from the top with the longer T1, back at the
+        # call's X/Y and Z still up; re-judged against a call planted 1 mm off in X
+        back = nc.eval_m600_return("m600-t1-return", call, end, M600_TOP_Z, errors=r["errors"])
+        planted = nc.eval_m600_return("m600-t1-return", [None if call[0] is None else call[0] + 1, *call[1:]],
+                                      end, M600_TOP_Z, errors=r["errors"])
+        rows += [back, nc.counter("m600-t1-return.counter-x+1", planted, back)]
         # the release window is WAITED for (R292 FI-I26 B): a free frame at or
         # after the completion, or the window's end — then judged
         until = r["t_done"] + nc.RELEASE_WITHIN + 0.1
@@ -867,7 +879,7 @@ def m600_cases():
         # predicted from ITS base — the length the first measurement left,
         # which IS the sim's physical length (R293); L0 stays for the reset
         base_c = _tool_z(c, tool)
-        _, rc, length_c, g43_c, tool_c = measure({**ts, 3102: plate["z"] + 1})
+        _, rc, length_c, g43_c, tool_c, _, _ = measure({**ts, 3102: plate["z"] + 1})
         crow = nc.eval_m600_counter("m600-t1.counter-3102", base=base_c, true_3102=plate["z"],
                                     planted_3102=plate["z"] + 1, length=length_c, g43=g43_c, tool_after=tool_c,
                                     tool=tool, errors=rc["errors"])
