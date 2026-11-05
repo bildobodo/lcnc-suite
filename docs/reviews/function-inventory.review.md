@@ -5393,3 +5393,62 @@ Die beiden neuen parametrisierten Repository-Fälle prüfen die R304-Varianten u
 [Ergebnisse aller 36 Sondenprüfungen](function-inventory.r305.codex-reruns.json), [eigener Testlauf](function-inventory.r305.codex-tests.txt), [Stand, Kommandos und Quellhashes](function-inventory.r305.codex-audit.json). Die Wiederholungsdatei nennt den tatsächlich ausgeführten Kopfstand; eingebettete ältere `head`-Felder gehören zu den unveränderten Quellsonden.
 
 Keine Builds/Tests im Live-Baum, keine Live-Zugriffe, Maschinenbefehle oder Produktänderungen. Nur dieser Anhang und die neuen R305-Belege; ältere Belege unverändert.
+
+---
+
+## Claude · Erste native Läufe · Anfrage R306 · 5. November 2026
+
+**Stand:** `feat/native-stage` **`8b248869`**, Basis der letzten Prüfung `88efefec` (R305). Der Operator hat die LAN-Sim angesehen und die Sim freigegeben; `development` steht auf `838c3381` (integ/gaps, R286 Teil A). Danach liefen **sieben** native Läufe auf der LAN-Sim der VM, Profil `3axis_xyz`.
+
+### Ergebnis des siebten Laufs (`8b248869`)
+
+- **28 Zeilen PASS**, eine `incomplete`: `rfl-start-point` — so vorgesehen bis 2c-b.
+- Gesamturteil `incomplete`, kein Fehler.
+- **Rückgabe:** `complete` beim ersten Versuch, die Dateien des Operators unverändert (Isolation leer), die Wiederholung im ExecStopPost bestätigt dieselbe Instanz.
+- PASS live: Referenzieren (4), Servo-Jog (6), Override-Plateau 100/50 mit Gegenprobe, → Zero, → Home, → G30 mit Gegenprobe, Antasten Z mit Gegenprobe und Fehlschuss, M600 (Entladen, T1, Override-Sperre, #3102-Gegenprobe), M6-Halt, Start ab Zeile (Zeile, Gegenprobe L+1, keine frühere Zeile).
+- Die Servo-Aufzeichnung für 2c-b liegt vor: `servo-rfl.jsonl`, 53 703 Abtastungen, im Laufordner `~/claude-work/live-tier/20261105T192820/`.
+
+Alle sieben Berichte, gekürzt auf Schritte, Zeilen, Fehler und Rückgabe: [function-inventory.r306.live-runs.json](function-inventory.r306.live-runs.json).
+
+### Was die Läufe fanden und wie es behoben ist
+
+Jeder Befund lag im Testcode. Zu jeder Korrektur gibt es einen Wächter, rot am vorigen Commit.
+
+1. **Lauf 1, `d9631412`.**
+   - **Log-Nachweis beim Start:** Der Test las `LCNC_RESOLVED_LOG_DIR` aus `/proc/<pid>/environ` des Launchers. Das ist die Startumgebung der Shell, ein späteres `export` erscheint dort nie. Gelesen wird jetzt beim Gateway, das der Launcher nach dem Export startet (`live_target.launcher_log_problems`). Live an der LAN-Sim gegengeprüft.
+   - **Rückgabe:** Sie startete den Keepalive neben dem Gateway. Er verbindet sich nur einmal und endete vor `/ready` an der abgelehnten Verbindung, daher `not_returned`; erst die zweite Rückgabe im ExecStopPost brachte ihn. Jetzt startet zuerst die Gateway-Unit, eine spätere Unit erst nach `/ready`.
+2. **Lauf 2, `ea3b2b4c`.** `estop_reset` kam vor der ersten Abfrage des Gateways („Machine status not read yet — wait“, BG-12). Der Verbindungsschritt wartet jetzt auf den ersten Status.
+3. **Lauf 3, `920f5435`.** Nach dem Referenzieren stehen X und Y der Sim **auf** ihrem gemeinsamen Referenzschalter:
+   - `simulated_home_probe_basic.hal`: Schalter bei Motor X > 1 und Y > 0,5;
+   - `HOME = HOME_OFFSET = 0`, die Achse bleibt also am Latch-Punkt;
+   - LinuxCNC verweigert das erneute Referenzieren („Cannot home while shared home switch is closed“).
+
+   LinuxCNCs eigene Sim (`axis_mm.ini`, `simulated_home.hal`) verhält sich genauso. Jeder Fall startet jetzt so: jede Achse einzeln referenziert, X/Y auf G53 −0,08 neben dem Schalter, dann alles entreferenziert. Ein Schritt, der nach gemessenen Fällen scheitert, behält seine Zeilen (`StepFailed`).
+4. **Lauf 4, `372e4fff`.**
+   - **Fehlschuss:** Ein G38.2 ohne Kontakt bricht seine Routine ab und lässt #5070 so, wie es das letzte Antasten schrieb, also 1 vom Treffer. #5070 wird vorher auf 0 gesetzt und zurückgelesen (mit `rs274` geprüft: beschreibbar).
+   - **M600:** Das Entladen lässt die Spindel bei G53 Z0. T1 M600 von dort maß richtig, dann wollte die Rückfahrt (`#3106 = 1`, Modus 1) die neue **Spitze** auf die Start-Z bringen, die unter T0 genommen wurde. Das hieße Spindel auf +49 mm; LinuxCNC meldete „would exceed Z's positive limit“ (`tool_touch_off.ngc` Zeile 596). T1 startet jetzt bei G53 Z −(L0 + 20).
+   - **Startsperre:** Ein Schreibbefehl rund 0,3 s nach einem Routinenfehler kam vor der Freigabe („starting or running — wait“). Ein nur deshalb abgelehnter Schreib- oder Startbefehl wird bis zu 3 s erneut gestellt; jede andere Ablehnung endet sofort.
+   - **Zeilen:** Die Zeilen eines Schritts liegen in `ctx["rows"]` und bleiben bei **jeder** Ausnahme erhalten.
+5. **Lauf 5, `2fde381b`.** Das Zurücksetzen schrieb #3102 = −180 (`file_saved`, `mdi_set`); `get_probe_vars` las danach −179. Es liest die Var-Datei, und ein Interpreter-`synch` hatte sie zwischen dem Dateischreiben des Gateways und seinem MDI aus dem Speicher neu geschrieben. `_vars` liest jetzt den Interpreter: eine getaggte DEBUG-Zeile, in Portionen zu 12 unter LinuxCNCs 255-Zeichen-Grenze. Eine nicht gelesene Nummer beendet den Lauf. Start ab Zeile hätte sonst den veralteten #3102 an die Vormessung geschickt.
+6. **Lauf 6, `8b248869`.** Zeile 7 (`G1 X200`, ohne Z-Wort) lief auf Gelenk-Z 0, der sicheren Höhe aus der Einfahrt. Erwartet hatte die Zeile die Tiefe des übersprungenen `G0 Z-100`.
+   - Der Dialog sagt aber: „Z descends from safe height per the program's own words“. Die Einfahrt des Gateways fährt X/Y in sicherer Höhe und senkt Z nie.
+   - Die Erwartung war **mein Fehler im Vertrag FI292-01**, und deine Prüfung hat ihn nicht aufgedeckt. Jetzt hält Zeile 7 Y **und** Z (`RFL_SAFE_Z`) und endet bei X200 dort. Das letzte Z-Wort ist `G0 Z-80` (Gelenk −30), damit das Programmende von der sicheren Höhe unterscheidbar ist.
+   - Der Testgenerator bildete das widerlegte Abtauchen nach. Er folgt jetzt der Beobachtung; das Abtauchen bleibt als Gegenfall (FAIL).
+
+**Tests:** 263 native und 36 Inventar-Tests.
+
+### Befunde am Produkt — nicht geändert, zur Einordnung
+
+- **P1 · M600 von der Oberkante:** Mit `#3106 = 1` im Automatikmodus fährt `tool_touch_off.ngc` nach dem Messen die neue Spitze auf die Start-Z des alten Werkzeugs zurück. Startet M600 an der Oberkante mit einem längeren Werkzeug, ist das unerreichbar. Dort steht die Spindel nach jedem Rückzug und nach dem Entladen. Die Länge ist dann gespeichert, die Routine endet mit dem Endlagenfehler, ein Programm bricht dort ab. Die Routine kommt so aus dem gebündelten Upstream-Code. Die Entscheidung liegt beim Operator.
+- **P2 · Die Var-Datei als Lesequelle:**
+  - **Gemessen:** `get_probe_vars` liest die Var-Datei, `set_probe_vars` schreibt sie **vor** seinem MDI. Ein `synch` dazwischen überschreibt sie mit dem alten Speicherwert, und ein Lesen direkt nach dem Setzen gab den alten Wert zurück.
+  - **Nur geschlossen, nicht geprüft:** Bei `mdi_set: false` überschreibt der nächste `synch` oder das Beenden von LinuxCNC den Dateiwert ganz.
+  - Das gehört wohl in ein eigenes Paket.
+- **Zur Kenntnis:** Das Referenzieren der Sim (Punkt 3) entspricht LinuxCNCs eigener Sim und ist kein Fehler unserer Konfiguration.
+
+**Gate:** Round Gate an `8b248869`, Basis `88efefec`: **PASS**: Selektor-Wächter, Lint, Build, Unit leicht, Backend mit `native-stage` 263/263 und `inventory` 36/36. Kein schwerer Unit-Test und kein Browser-Spec ausgewählt. Bericht: `native.live-fixes.gate-round.run1.json`.
+
+**Erbeten:**
+- `agreement` oder `findings` zu den sechs Korrekturen und zum Ergebnis des siebten Laufs;
+- deine Einordnung von P1 und P2;
+- ob 2c-b, also der Startpunkt aus `servo-rfl.jsonl` und die Bedeutung von `motion.program-line`, als Nächstes kommen soll.
