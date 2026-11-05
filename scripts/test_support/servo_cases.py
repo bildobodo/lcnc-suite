@@ -124,14 +124,17 @@ def eval_plateau(case: str, sec: dict, expected: float, period_s: float, tol: fl
 
 
 def eval_retract_path(case: str, sec: dict, start, target) -> dict:
-    """F-GOTO.S1c (R284, R302 FI-I32): from the first sample with a KNOWN
-    axis 0.005 mm off the start, to the END of the section — (1) until Z is
-    up (≥ −0.010) no known X/Y leaves its start by 0.010; (2) until X/Y are on
-    the target no known Z is below −0.010; (3) after X/Y arrived they STAY on
-    the target, Z stays up for an up target and never below a G30 target's
-    Z; the end at rest on the target ± 0.010. Each check needs only its own
-    known axes; a violation anywhere is FAIL (a later return does not mend
-    it), a phase or the rest not shown incomplete."""
+    """F-GOTO.S1c (R284, R302/R303 FI-I32): from the first sample with a
+    KNOWN axis 0.005 mm off the start to the END of the section, every sample
+    judged on its own KNOWN values — never on a phase it is only assumed to
+    be in: Z known below −0.010 while a known X/Y is off its start AND a known
+    X/Y is off the target (X/Y moved with Z down — before the rise, or Z sank
+    during the travel); an up target with Z known below the top while X/Y
+    are known on it; a G30 target's Z undershot in its descent; after X/Y were PROVEN on
+    the target (the one remembered fact), a known X/Y off it. The end at rest
+    on the target ± 0.010. A violation is FAIL; an unread position anywhere
+    on the path, a rise or an arrival not shown, or the rest missing leaves it
+    incomplete — an unknown transition is unproven, never a failure."""
     samples, problems = sec["samples"], list(sec["problems"])
     m = {"start": list(start), "target": list(target), "problems": problems}
     P = lambda s, j: s[2][j]            # noqa: E731
@@ -140,32 +143,27 @@ def eval_retract_path(case: str, sec: dict, start, target) -> dict:
     if bi is None:
         return _row(case, "incomplete", "no motion of the routine in the section", **m)
     up_target = target[2] >= Z_TOP
-    phase = 1
+    arrived = z_up = unread = False
     for s in samples[bi:]:
         x, y, z = P(s, 0), P(s, 1), P(s, 2)
-        if phase == 1:
-            if _f(z) and z >= Z_TOP:
-                phase = 2
-            else:
-                for j, v in ((0, x), (1, y)):
-                    if _f(v) and abs(v - start[j]) > PATH_TOL:
-                        return _row(case, "FAIL", f"{'XY'[j]} moved {v - start[j]:+.3f} mm before Z was up "
-                                    f"(sample {s[1]})", **m)
-                continue
-        if phase == 2:
-            if _f(x, y) and max(abs(x - target[0]), abs(y - target[1])) <= PATH_TOL:
-                phase = 3
-            else:
-                if _f(z) and z < Z_TOP:
-                    return _row(case, "FAIL", f"Z at {z:.3f} while X/Y moved (sample {s[1]})", **m)
-                continue
-        for j, v in ((0, x), (1, y)):
-            if _f(v) and abs(v - target[j]) > PATH_TOL:
-                return _row(case, "FAIL", f"{'XY'[j]} left the target ({v:.3f}) after arriving (sample {s[1]})", **m)
-        if _f(z) and up_target and z < Z_TOP:
-            return _row(case, "FAIL", f"Z left the top ({z:.3f}) after X/Y arrived (sample {s[1]})", **m)
-        if _f(z) and not up_target and z < target[2] - PATH_TOL:
+        unread = unread or not _f(x, y, z)
+        off_start = [(j, v) for j, v in ((0, x), (1, y)) if _f(v) and abs(v - start[j]) > PATH_TOL]
+        off_target = [(j, v) for j, v in ((0, x), (1, y)) if _f(v) and abs(v - target[j]) > PATH_TOL]
+        on_target = _f(x, y) and not off_target
+        z_low = _f(z) and z < Z_TOP
+        if arrived and off_target:
+            j, v = off_target[0]
+            return _row(case, "FAIL", f"{'XY'[j]} left the target ({v:.3f}) after arriving (sample {s[1]})", **m)
+        if z_low and off_start and off_target:
+            j, v = off_start[0]
+            return _row(case, "FAIL", f"{'XY'[j]} moved {v - start[j]:+.3f} mm with Z at {z:.3f} (sample {s[1]})",
+                        **m)
+        if up_target and z_low and on_target:
+            return _row(case, "FAIL", f"Z at {z:.3f} on the target — an up target keeps Z up (sample {s[1]})", **m)
+        if arrived and not up_target and _f(z) and z < target[2] - PATH_TOL:
             return _row(case, "FAIL", f"Z at {z:.3f} below the target's {target[2]:g} (sample {s[1]})", **m)
+        z_up = z_up or (_f(z) and z >= Z_TOP)
+        arrived = arrived or on_target
     last = samples[-1]
     at_rest = all(_f(v) and abs(v) <= VEL_ZERO for v in last[2][3:6])
     if at_rest:
@@ -176,7 +174,9 @@ def eval_retract_path(case: str, sec: dict, start, target) -> dict:
                 return _row(case, "FAIL", f"ended {abs(v - target[j]):.3f} mm off its target on {'XYZ'[j]}", **m)
     if problems:
         return _row(case, "incomplete", f"the section is flawed: {problems[0]}", **m)
-    if phase < 3 or not at_rest or not _f(*[P(last, j) for j in range(3)]):
-        return _row(case, "incomplete", "a phase or the rest at the end not shown", **m)
+    if unread:
+        return _row(case, "incomplete", "a position unread on the path — its order not shown", **m)
+    if not (z_up and arrived and at_rest and _f(*[P(last, j) for j in range(3)])):
+        return _row(case, "incomplete", "the rise, the arrival or the rest at the end not shown", **m)
     descent = "no descent (the target's Z is up)" if up_target else "the descent after X/Y arrived"
     return _row(case, "PASS", f"Z up first, then X/Y; {descent}; at rest on the target", **m)

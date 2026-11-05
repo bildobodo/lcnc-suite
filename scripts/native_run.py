@@ -381,19 +381,28 @@ def _section(ctx, case: str):
         try:
             sec = m.end(attempt)
         except Exception as e:  # noqa: BLE001 — named and ends the run after the rows
+            sec = None
             box["error"] = f"{type(e).__name__}: {e}"
-        else:
+        record = {"case": case, "attempt": attempt.get("k"), "end_error": box.get("error")}
+        if sec is not None:
             box["section"] = sec
-            record = {"case": case, "attempt": sec.get("attempt"), "start_mark": sec.get("start_mark"),
-                      "end_mark": sec.get("end_mark"), "first_n": sec.get("first_n"), "end_n": sec.get("end_n"),
-                      "integrity": sec.get("integrity"), "problems": sec.get("problems"), "hal": sec.get("hal"),
-                      "samples": len(sec["samples"]), "file": None}
+            if sec.get("end_error"):
+                box["error"] = sec["end_error"]
+            record.update(start_mark=sec.get("start_mark"), end_mark=sec.get("end_mark"), first_n=sec.get("first_n"),
+                          end_n=sec.get("end_n"), integrity=sec.get("integrity"), problems=sec.get("problems"),
+                          hal=sec.get("hal"), samples=len(sec["samples"]), file=None, end_error=box.get("error"))
             if ctx.get("run"):
-                record["file"] = f"servo-{case}.jsonl"
-                with (ctx["run"] / record["file"]).open("w") as f:
-                    for t, n, vals in sec["samples"]:
-                        f.write(json.dumps([t, n, list(vals)]) + "\n")
-            ctx.setdefault("report", {}).setdefault("servo_sections", []).append(record)
+                name = f"servo-{case}.jsonl"
+                try:
+                    with (ctx["run"] / name).open("w") as f:
+                        for t, n, vals in sec["samples"]:
+                            f.write(json.dumps([t, n, list(vals)]) + "\n")
+                    record["file"] = name
+                except OSError as e:
+                    # the samples not written: named, kept in memory, the run ends after the rows (R303)
+                    record["file_error"] = f"{type(e).__name__}: {e}"
+                    box.setdefault("error", f"the servo samples not written — {record['file_error']}")
+        ctx.setdefault("report", {}).setdefault("servo_sections", []).append(record)
 
 
 def _servo_failed(box, rows, what):
@@ -463,10 +472,10 @@ def jog_cases(joints: int):
                 c.request("jog_stop", axis=axis)
                 t_reply = time.monotonic()
                 time.sleep(1.0)             # the post window: 1.0 s from the reply (R300)
-            _servo_failed(box, rows + servo_rows, case)
             if "section" in box:
                 from test_support import servo_cases as sc
                 servo_rows.append(sc.eval_jog_servo(JOG_SERVO_CASES[case], axis, sign, box["section"], t_reply))
+            _servo_failed(box, rows + servo_rows, case)
             if c.error:
                 raise RuntimeError(f"{case}: the session ended — {c.error}")
             seen = list(frames)
@@ -508,9 +517,10 @@ def plateau_cases():
                 _routine(c, f"G53 G1 X{PLATEAU_END:g} F{PLATEAU_FEED:g}", deadline=60.0,
                          extra=lambda st: _near(st, (PLATEAU_END, PLATEAU_START[1], PLATEAU_START[2])))
                 time.sleep(0.5)                 # the post window (R300)
+            if "section" in box:
+                sections[case] = box["section"]
+                rows.append(sc.eval_plateau(case, box["section"], 100.0 * scale, ctx["servo_period_s"]))
             _servo_failed(box, rows, case)
-            sections[case] = box["section"]
-            rows.append(sc.eval_plateau(case, box["section"], 100.0 * scale, ctx["servo_period_s"]))
         c.request("set_feed_override", scale=1.0)
         planted = sc.eval_plateau("override-plateau-100", sections["override-plateau-100"], 75.0,
                                   ctx["servo_period_s"])
@@ -551,16 +561,18 @@ def goto_cases():
             with _section(ctx, case) as box:
                 fire()
                 time.sleep(0.5)                 # the post window (R300)
+            if "section" in box:
+                rows.append(sc.eval_retract_path(case, box["section"], start=GOTO_START, target=targets[case]))
             _servo_failed(box, rows, case)
-            rows.append(sc.eval_retract_path(case, box["section"], start=GOTO_START, target=targets[case]))
         _to(c, *GOTO_START)
         with _section(ctx, "goto-zero.counter-xy-first") as box:
             _routine(c, f"G53 G0 X{GOTO_G54[0]:g} Y{GOTO_G54[1]:g}", deadline=60.0)
             _routine(c, "G53 G0 Z0", deadline=60.0)
             time.sleep(0.5)
+        if "section" in box:
+            xy_first = sc.eval_retract_path("goto-zero", box["section"], start=GOTO_START, target=targets["goto-zero"])
+            rows.append(nc.counter("goto-zero.counter-xy-first", xy_first, rows[0]))
         _servo_failed(box, rows, "goto-zero.counter-xy-first")
-        xy_first = sc.eval_retract_path("goto-zero", box["section"], start=GOTO_START, target=targets["goto-zero"])
-        rows.append(nc.counter("goto-zero.counter-xy-first", xy_first, rows[0]))
         return rows
     return ("goto", step)
 

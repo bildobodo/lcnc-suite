@@ -10723,3 +10723,15 @@ sampler's own pins. A section whose END fails keeps the rows measured so far
 (the gate closes on every path) and ends the run after them. With the servo
 measurement the status-frame jog rows are informational: their missing
 proof never holds back the servo proof, a contradiction still counts.
+
+Codex R303: the retract path is judged sample by sample on KNOWN values
+only — no phase it is merely assumed to be in (an unknown transition is
+unproven, never a failure): X/Y off their start and off the target with Z
+known down, Z known down on an up target, after the PROVEN arrival (the one
+remembered fact) X/Y off the target or Z under a G30 target's Z. An unread
+position on the path leaves it incomplete. A section whose end cannot be
+read still comes back — the values it could not read unknown and named,
+its audit and samples kept — and the periods READ at both ends are checked
+against the INI. Writing the samples may fail: named, the rows kept. Every
+step forms its CURRENT case's row from the section before a failing end
+ends the run.

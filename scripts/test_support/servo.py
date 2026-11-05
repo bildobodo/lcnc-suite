@@ -246,6 +246,13 @@ def section(stream, start_mark: int, end_mark: int, integrity: dict) -> dict:
     if integrity.get("period_ns") != integrity.get("ini_period_ns"):
         problems.append(f"the effective period {integrity.get('period_ns')} ns differs from the INI's "
                         f"{integrity.get('ini_period_ns')}")
+    for end in ("period_ns_start", "period_ns_end"):
+        # the period READ at each end of the section (R303 FI-I34 B)
+        if end in integrity and integrity[end] != integrity.get("ini_period_ns"):
+            problems.append(f"the period read at the section's {end.split('_')[2]} ({integrity[end]} ns) differs "
+                            f"from the INI's {integrity.get('ini_period_ns')}")
+    if integrity.get("end_read_errors"):
+        problems.append(f"the end's integrity not read: {integrity['end_read_errors'][0]}")
     return {"samples": body, "problems": problems, "first_n": body[0][1] if body else None,
             "end_n": stream[ei][1] if ei is not None else None, "integrity": integrity}
 
@@ -271,7 +278,7 @@ class Measurement:
                    "log_from": len(self.gate.log),
                    "enable_start": self._getp("sampler.0.enable") == "TRUE",
                    "overruns_start": int(self._getp("sampler.0.overruns")),
-                   "thread_start": thread_of(self.gate("show", "thread", "servo-thread"))["functions"]}
+                   "thread_start": thread_of(self.gate("show", "thread", "servo-thread"))}
         self.gate("sets", MARK_SIGNAL, start)
         if self.reader.wait_for_mark(start, self.mark_wait_s, attempt["since"]) is None:
             raise RuntimeError(f"servo: the start mark {start} was not received — the measurement is broken")
@@ -280,23 +287,40 @@ class Measurement:
 
     def end(self, attempt: dict) -> dict:
         """The end mark, read until received, the integrity read at this end;
-        the section closes in the gate on EVERY path (R302 FI-I31) — a
-        failing read raises after it."""
+        the section closes in the gate on EVERY path. A read that fails leaves
+        its value unknown (None) and is named — the section and its audit
+        still come back, with `end_error` set; the caller ends the run after
+        its rows (R302/R303 FI-I31, FI-I34)."""
+        errors = []
+
+        def read(what, fn):
+            try:
+                return fn()
+            except Exception as e:  # noqa: BLE001 — named, the value stays unknown
+                errors.append(f"{what}: {e}")
+                return None
         try:
-            self.gate("sets", MARK_SIGNAL, attempt["end"])
+            read("the end mark", lambda: self.gate("sets", MARK_SIGNAL, attempt["end"]))
             self.reader.wait_for_mark(attempt["end"], self.mark_wait_s, attempt["since"])
-            integrity = {"enable_start": attempt["enable_start"],
-                         "enable_end": self._getp("sampler.0.enable") == "TRUE",
-                         "overruns_start": attempt["overruns_start"],
-                         "overruns_end": int(self._getp("sampler.0.overruns")),
-                         "depth_end": int(self._getp("sampler.0.curr-depth")), "depth": DEPTH,
-                         "period_ns": self.period_ns, "ini_period_ns": self.ini_period_ns,
-                         "thread_start": attempt["thread_start"],
-                         "thread_end": thread_of(self.gate("show", "thread", "servo-thread"))["functions"],
-                         "reader_overrun": self.reader.overrun, "reader_alive": self.reader.alive}
+            enable = read("enable", lambda: self._getp("sampler.0.enable"))
+            overruns = read("overruns", lambda: int(self._getp("sampler.0.overruns")))
+            depth = read("curr-depth", lambda: int(self._getp("sampler.0.curr-depth")))
+            thread_end = read("the servo thread", lambda: thread_of(self.gate("show", "thread", "servo-thread")))
         finally:
             self.gate.open_section = None
+        ts = attempt["thread_start"]
+        integrity = {"enable_start": attempt["enable_start"], "enable_end": None if enable is None else enable == "TRUE",
+                     "overruns_start": attempt["overruns_start"], "overruns_end": overruns,
+                     "depth_end": depth, "depth": DEPTH, "period_ns": self.period_ns,
+                     "ini_period_ns": self.ini_period_ns,
+                     "period_ns_start": ts["period_ns"], "period_ns_end": None if thread_end is None else
+                     thread_end["period_ns"],
+                     "thread_start": ts["functions"], "thread_end": None if thread_end is None else
+                     thread_end["functions"],
+                     "reader_overrun": self.reader.overrun, "reader_alive": self.reader.alive,
+                     "end_read_errors": errors}
         sec = section(self.reader.samples[attempt["since"]:], attempt["start"], attempt["end"], integrity)
         sec.update(attempt=attempt["k"], start_mark=attempt["start"], end_mark=attempt["end"],
-                   hal=[list(c) for c in self.gate.log[attempt["log_from"]:]])
+                   hal=[list(c) for c in self.gate.log[attempt["log_from"]:]],
+                   end_error="; ".join(errors) or None)
         return sec

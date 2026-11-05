@@ -2518,7 +2518,7 @@ def test_a_known_wrong_x_is_seen_with_y_unread():
     t, n, v = rows[12]                                   # Z still near −60: the rise has just begun
     rows[12] = (t, n, (201.0, float("nan"), v[2], *v[3:]))
     r = sc.eval_retract_path("goto-zero", sec, start=START, target=ZERO)
-    assert r["status"] == "FAIL" and "before Z was up" in r["detail"], r
+    assert r["status"] == "FAIL" and "with Z at" in r["detail"], r
 
 
 def test_a_dead_reader_or_a_foreign_mark_inside_is_a_flaw():
@@ -2641,9 +2641,8 @@ def test_a_failing_read_at_the_end_still_closes_the_section_in_the_gate():
     m = sv.Measurement(gate, EchoReader(), ini_period_ns=1000000, period_ns=1000000)
     attempt = m.begin()
     state["fail"] = True
-    with pytest.raises(RuntimeError, match="overruns"):
-        m.end(attempt)
-    assert gate.open_section is None
+    sec = m.end(attempt)
+    assert "overruns" in sec["end_error"] and gate.open_section is None
 
 
 def test_a_channel_that_reads_back_on_another_signal_stops_the_setup():
@@ -2660,3 +2659,114 @@ def test_a_channel_that_reads_back_on_another_signal_stops_the_setup():
         return SHOW_THREAD if argv[1] == "show" else ""
     with pytest.raises(RuntimeError, match="reads back"):
         sv.setup(sv.HalGate(run=run))
+
+
+# ── R303: unknown transitions, the partial audit, the read periods, the rows before the abort ──
+def _nan(sec, i, axis):
+    t, n, v = sec["samples"][i]
+    v = list(v)
+    v[axis] = float("nan")
+    sec["samples"][i] = (t, n, tuple(v))
+    return sec
+
+
+def test_an_unknown_phase_transition_is_unproven_never_a_failure():
+    """Codex R303 FI-I32: a valid → Zero with Z unread where it reaches the
+    top and at the first X/Y step; a valid → G30 with X unread at the arrival
+    and the first descent — incomplete, not FAIL."""
+    zero = _path([START, (200, 200, 0), ZERO])
+    rows = zero["samples"]
+    top = next(i for i, (_, _, v) in enumerate(rows) if v[2] >= -0.010)
+    for i in (top, top + 1):
+        _nan(zero, i, 2)
+    r = sc.eval_retract_path("goto-zero", zero, start=START, target=ZERO)
+    assert r["status"] == "incomplete", r
+    g30_target = (0.0, 0.0, -20.0)
+    g30 = _path([START, (200, 200, 0), (0, 0, 0), g30_target])
+    arrive = next(i for i, (_, _, v) in enumerate(g30["samples"]) if abs(v[0]) <= 0.01 and abs(v[1]) <= 0.01)
+    for i in (arrive, arrive + 1):
+        _nan(g30, i, 0)
+    r = sc.eval_retract_path("goto-g30", g30, start=START, target=g30_target)
+    assert r["status"] == "incomplete", r
+
+
+class _HalSeq:
+    """A HAL whose `show thread` answers a scripted period per call and whose
+    `getp sampler.0.overruns` may fail from a given call on."""
+
+    def __init__(self, periods=(1000000,), fail_overruns_from=None):
+        self.periods, self.calls, self.overruns_calls = list(periods), 0, 0
+        self.fail_from = fail_overruns_from
+
+    def __call__(self, argv):
+        if argv[1] == "show":
+            p = self.periods[min(self.calls, len(self.periods) - 1)]
+            self.calls += 1
+            return SHOW_THREAD.replace("1000000", str(p))
+        if argv[1] == "getp" and argv[2] == "sampler.0.overruns":
+            self.overruns_calls += 1
+            if self.fail_from is not None and self.overruns_calls >= self.fail_from:
+                raise RuntimeError("halcmd getp sampler.0.overruns: no such pin")
+        return "TRUE" if argv[1] == "getp" and "enable" in argv[2] else "0"
+
+
+class _MarkReader:
+    def __init__(self):
+        self.samples, self.overrun, self.alive = [], False, True
+
+    def wait_for_mark(self, mark, deadline_s, since=0):
+        self.samples.append((time.monotonic(), len(self.samples), (0.0,) * 8 + (mark,)))
+        return len(self.samples) - 1
+
+
+@pytest.mark.parametrize("periods", [(1000000, 2000000), (2000000, 2000000)])
+def test_the_periods_read_at_the_section_ends_are_checked(periods):
+    """Codex R303 FI-I34 B: the effective period read at either end, not the setup's."""
+    m = sv.Measurement(sv.HalGate(run=_HalSeq(periods)), _MarkReader(), ini_period_ns=1000000, period_ns=1000000)
+    sec = m.end(m.begin())
+    assert sec["integrity"]["period_ns_start"] == periods[0] and sec["integrity"]["period_ns_end"] == periods[1]
+    assert any("period" in p for p in sec["problems"]), sec["problems"]
+
+
+def test_a_failing_end_read_still_gives_its_partial_section_and_audit(tmp_path):
+    """Codex R303 FI-I34 A: the overruns unreadable at the end — the section
+    with what was read, the failure named, the audit and the samples kept,
+    the gate open again, the box's error set (the run ends after the rows)."""
+    gate = sv.HalGate(run=_HalSeq(fail_overruns_from=2))
+    m = sv.Measurement(gate, _MarkReader(), ini_period_ns=1000000, period_ns=1000000)
+    ctx = {"servo": m, "report": {}, "run": tmp_path}
+    with nr._section(ctx, "goto-zero") as box:
+        pass
+    assert gate.open_section is None and "error" in box and "section" in box
+    rec = ctx["report"]["servo_sections"][0]
+    assert rec["case"] == "goto-zero" and rec["end_error"] and rec["integrity"]["overruns_end"] is None
+    assert any("not read" in p for p in rec["problems"]) and (tmp_path / rec["file"]).is_file()
+
+
+def test_a_samples_file_that_cannot_be_written_keeps_the_rows(tmp_path, monkeypatch):
+    """Codex R303 FI-I31 A: the run-from-line samples cannot be written (a
+    directory stands where the file goes) — the auto_run refusal stays the
+    line's FAIL, the write error is named, the run ends."""
+    monkeypatch.setattr(nr, "SHORT_GRACE", 0.02)
+    c = RflClient([], [(0.0, {"phase": "measuring", "ok": None})],
+                  refuse={"auto_run": ls.Refused("auto_run refused: Program changed — confirm again")})
+    ctx, step = _rfl_step(tmp_path, c)
+    ctx["run"] = tmp_path
+    (tmp_path / "servo-rfl.jsonl").mkdir()
+    ctx["servo"] = FakeMeasurement([{"samples": _samples([(1.0, 2.0, 3.0, 0, 0, 0)] * 3), "problems": []}])
+    with pytest.raises(nr.StepFailed) as e:
+        step(ctx)
+    line = next(r for r in e.value.rows if r["case"] == "rfl-line")
+    assert line["status"] == "FAIL" and "not written" in str(e.value)
+    assert ctx["report"]["servo_sections"][0]["file_error"]
+
+
+def test_the_current_case_is_judged_before_a_failing_end_ends_the_step(monkeypatch):
+    """Codex R303 FI-I31 B: → Zero's own section shows X/Y first, then the
+    end's read fails — goto-zero's FAIL is in the rows of the abort."""
+    monkeypatch.setattr(nr, "SHORT_GRACE", 0.02)
+    xy_first = {**_path([START, (100, 100, -60), ZERO]), "end_error": "halcmd getp sampler.0.overruns: no such pin"}
+    ctx = {"client": MotionClient(), "servo": FakeMeasurement([xy_first]), "report": {}}
+    with pytest.raises(nr.StepFailed) as e:
+        nr.goto_cases()[1](ctx)
+    assert [(r["case"], r["status"]) for r in e.value.rows] == [("goto-zero", "FAIL")], e.value.rows
