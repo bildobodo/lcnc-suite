@@ -1,0 +1,36 @@
+R294 Codex review, 2026-11-05
+Base 0ae1be28; reviewed head 96c5e2eb89023f506875bf72f8aa5bce9652d907.
+Review workspace /tmp/codex-r294, extracted with git archive. No product edits.
+
+Own existing tests (already run once before the additional probes):
+  cwd /tmp/codex-r294
+  /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider -o addopts='' scripts/test_native_stage.py scripts/inventory/test_inventory.py
+  197 passed in 5.62s (161 native-stage + 36 inventory).
+
+Independent regression:
+  python3 -B function-inventory.r294.codex-regression.py /tmp/codex-r294
+  Exit 0: 18 positive controls and all four R293 counterexamples now corrected.
+  Derived from immutable R293 evidence: only four expected verdicts, report
+  group name, and documentation changed for this head. Positional counter
+  argument now denotes the counter run's base. No old evidence altered.
+
+Independent new probes:
+  python3 -B function-inventory.r294.codex-probes.py /tmp/codex-r294
+  Exit 0: 11 positive controls and 9 reproduced counterexamples.
+  The assertions on counterexamples describe the observed reviewed behavior,
+  not the expected acceptance behavior. Each result states the required outcome.
+  The complete RFL step uses the real SimulatorClient.take and ToolChanges /
+  RoutineEnd / serve. Only the transport, clock and unrelated preparation
+  commands are substituted. No sockets, systemd, LinuxCNC, HAL or live ports.
+  The 300-second timeout is virtual, not a live wait.
+
+Saved gate reviewed:
+  /home/cnc/claude-work/teststrat/measure/native.step2ab.gate-round.run1.json
+  Exact base/head verified, no uncommitted files, PASS.
+  Selection guards, lint, build, unit-light (2614), backend PASS.
+  Native/inventory raw logs confirm 161/36.
+  Browser omission has a selector reason. Full gate and 16 claimed mutations
+  not repeated. This review does not claim a native machine run.
+
+Eight reviewed source/document files hash-match the requested commit; see audit.
+Live tree changes restricted to the review appendix and new R294 evidence.

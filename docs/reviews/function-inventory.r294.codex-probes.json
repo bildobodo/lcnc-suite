@@ -1,0 +1,4757 @@
+{
+  "positive": {
+    "line_witness_and_ends": {
+      "row": {
+        "case": "rfl-line",
+        "status": "PASS",
+        "detail": "the program started at line 7 with T1, its length, the spindle at 1000; line 7 and the program ran to their ends",
+        "line": 7,
+        "end_point": [
+          200.0,
+          null,
+          -50.0
+        ],
+        "final": [
+          200.0,
+          200.0,
+          0.0
+        ],
+        "line_holds": {
+          "1": 100.0
+        },
+        "witness_t": 2.2,
+        "witness_line": 7,
+        "tool_number": 1,
+        "offset": 50.0,
+        "table": 50.0,
+        "spindle_direction": 1,
+        "spindle_speed": 1000.0,
+        "end_off_mm": 0.0,
+        "final_off_mm": 0.0
+      }
+    },
+    "counter_bound_to_true_witness": {
+      "row": {
+        "case": "counter",
+        "status": "PASS",
+        "detail": "the planted value is refused: the first motion of the program is line 7, not line 8",
+        "counter": true,
+        "inner": {
+          "case": "rfl-line",
+          "status": "FAIL",
+          "detail": "the first motion of the program is line 7, not line 8",
+          "line": 8,
+          "end_point": [
+            200.0,
+            null,
+            -50.0
+          ],
+          "final": [
+            200.0,
+            200.0,
+            0.0
+          ],
+          "line_holds": {
+            "1": 100.0
+          },
+          "witness_t": 2.2,
+          "witness_line": 7,
+          "tool_number": 1,
+          "offset": 50.0,
+          "table": 50.0,
+          "spindle_direction": 1,
+          "spindle_speed": 1000.0
+        }
+      }
+    },
+    "start_path_still_unproven": {
+      "row": {
+        "case": "start",
+        "status": "incomplete",
+        "detail": "no contradiction in the received frames; the path between them needs the servo measurement (step 2c)",
+        "entry": [
+          100,
+          100
+        ],
+        "safe_z_start": -80,
+        "safe_z_end": 0,
+        "entry_off_mm": 0
+      }
+    },
+    "wrong_tool": {
+      "row": {
+        "case": "rfl-line",
+        "status": "FAIL",
+        "detail": "T2 at the witness, T1 expected",
+        "line": 7,
+        "end_point": [
+          200.0,
+          null,
+          -50.0
+        ],
+        "final": [
+          200.0,
+          200.0,
+          0.0
+        ],
+        "line_holds": {
+          "1": 100.0
+        },
+        "witness_t": 2.2,
+        "witness_line": 7,
+        "tool_number": 2,
+        "offset": 50.0,
+        "table": 50.0,
+        "spindle_direction": 1,
+        "spindle_speed": 1000.0
+      }
+    },
+    "wrong_spindle": {
+      "row": {
+        "case": "rfl-line",
+        "status": "FAIL",
+        "detail": "the spindle set to 800, 1000 expected",
+        "line": 7,
+        "end_point": [
+          200.0,
+          null,
+          -50.0
+        ],
+        "final": [
+          200.0,
+          200.0,
+          0.0
+        ],
+        "line_holds": {
+          "1": 100.0
+        },
+        "witness_t": 2.2,
+        "witness_line": 7,
+        "tool_number": 1,
+        "offset": 50.0,
+        "table": 50.0,
+        "spindle_direction": 1,
+        "spindle_speed": 800
+      }
+    },
+    "wrong_length": {
+      "row": {
+        "case": "rfl-line",
+        "status": "FAIL",
+        "detail": "the measured length 51.0 is not L0 50 \u00b1 0.002",
+        "line": 7,
+        "end_point": [
+          200.0,
+          null,
+          -50.0
+        ],
+        "final": [
+          200.0,
+          200.0,
+          0.0
+        ],
+        "line_holds": {
+          "1": 100.0
+        },
+        "witness_t": 2.2,
+        "witness_line": 7,
+        "tool_number": 1,
+        "offset": 51.0,
+        "table": 51.0,
+        "spindle_direction": 1,
+        "spindle_speed": 1000.0
+      }
+    },
+    "held_axis_really_moved": {
+      "row": {
+        "case": "rfl-line",
+        "status": "FAIL",
+        "detail": "line 7 moved joint 1 to 102.000 (it holds 100)",
+        "line": 7,
+        "end_point": [
+          200.0,
+          null,
+          -50.0
+        ],
+        "final": [
+          200.0,
+          200.0,
+          0.0
+        ],
+        "line_holds": {
+          "1": 100.0
+        },
+        "witness_t": 2.2,
+        "witness_line": 7,
+        "tool_number": 1,
+        "offset": 50.0,
+        "table": 50.0,
+        "spindle_direction": 1,
+        "spindle_speed": 1000.0
+      }
+    },
+    "known_failure_phase_evaluator": {
+      "row": {
+        "case": "rfl-line",
+        "status": "FAIL",
+        "detail": "the run from line failed in failed: fault",
+        "line": 7,
+        "end_point": [
+          200.0,
+          null,
+          -50.0
+        ],
+        "final": [
+          200.0,
+          200.0,
+          0.0
+        ],
+        "line_holds": {
+          "1": 100.0
+        }
+      }
+    },
+    "earlier_line_is_a_contradiction": {
+      "row": {
+        "case": "rfl-line",
+        "status": "FAIL",
+        "detail": "the first motion of the program is line 6, not line 7",
+        "line": 7,
+        "end_point": [
+          200.0,
+          null,
+          -50.0
+        ],
+        "final": [
+          200.0,
+          200.0,
+          0.0
+        ],
+        "line_holds": {
+          "1": 100.0
+        },
+        "witness_t": 2.2,
+        "witness_line": 6,
+        "tool_number": 1,
+        "offset": 50.0,
+        "table": 50.0,
+        "spindle_direction": 1,
+        "spindle_speed": 1000.0
+      }
+    },
+    "known_locked_window": {
+      "row": {
+        "case": "override",
+        "status": "FAIL",
+        "detail": "not free within 2.0 s of the completion",
+        "locked_from_s": 0.2,
+        "done_s": 1.033,
+        "window_seen_to_s": 3.233
+      },
+      "frames": [
+        [
+          0.03,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          0.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": false
+          }
+        ],
+        [
+          1.0,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": false
+          }
+        ],
+        [
+          1.033,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": false
+          }
+        ],
+        [
+          1.2329999999999999,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": false
+          }
+        ],
+        [
+          1.4329999999999998,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": false
+          }
+        ],
+        [
+          1.633,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": false
+          }
+        ],
+        [
+          1.833,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": false
+          }
+        ],
+        [
+          2.033,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": false
+          }
+        ],
+        [
+          2.233,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": false
+          }
+        ],
+        [
+          2.433,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": false
+          }
+        ],
+        [
+          2.633,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": false
+          }
+        ],
+        [
+          2.833,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": false
+          }
+        ],
+        [
+          3.033,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": false
+          }
+        ],
+        [
+          3.233,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": false
+          }
+        ]
+      ],
+      "required": "FAIL"
+    },
+    "complete_step_and_request_identity": {
+      "rows": [
+        {
+          "case": "rfl-line",
+          "status": "PASS",
+          "detail": "the program started at line 7 with T1, its length, the spindle at 1000; line 7 and the program ran to their ends",
+          "line": 7,
+          "end_point": [
+            200.0,
+            null,
+            -50.0
+          ],
+          "final": [
+            200.0,
+            200.0,
+            0.0
+          ],
+          "line_holds": {
+            "1": 100.0
+          },
+          "witness_t": 2.2,
+          "witness_line": 7,
+          "tool_number": 1,
+          "offset": 50.0,
+          "table": 50.0,
+          "spindle_direction": 1,
+          "spindle_speed": 1000.0,
+          "end_off_mm": 0.0,
+          "final_off_mm": 0.0
+        },
+        {
+          "case": "rfl-line.counter-line+1",
+          "status": "PASS",
+          "detail": "the planted value is refused: the first motion of the program is line 7, not line 8",
+          "counter": true,
+          "inner": {
+            "case": "rfl-line",
+            "status": "FAIL",
+            "detail": "the first motion of the program is line 7, not line 8",
+            "line": 8,
+            "end_point": [
+              200.0,
+              null,
+              -50.0
+            ],
+            "final": [
+              200.0,
+              200.0,
+              0.0
+            ],
+            "line_holds": {
+              "1": 100.0
+            },
+            "witness_t": 2.2,
+            "witness_line": 7,
+            "tool_number": 1,
+            "offset": 50.0,
+            "table": 50.0,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        },
+        {
+          "case": "rfl-no-earlier-line",
+          "status": "PASS",
+          "detail": "no line before 7 in 5 received frames of the program \u2014 a line between two frames is not seen",
+          "scope": "observed frames",
+          "frames": 5,
+          "lines": [
+            7,
+            8,
+            9,
+            11
+          ]
+        },
+        {
+          "case": "rfl-start-point",
+          "status": "incomplete",
+          "detail": "no contradiction in the received frames; the path between them needs the servo measurement (step 2c)",
+          "entry": [
+            100.0,
+            100.0
+          ],
+          "safe_z_start": -80,
+          "safe_z_end": 0,
+          "entry_off_mm": 0.0
+        }
+      ],
+      "report": {
+        "rfl_origin": {
+          "file": "/tmp/codex-r294-rfl-6wzoq49t/nc_files/native_rfl.ngc",
+          "version": 12,
+          "source": "2f8053909fafd55e2460d55b5cd8b97eacacc75e91a2f6e194b415cf18907159",
+          "before": {
+            "tool_number": 1,
+            "joint_pos": [
+              10,
+              10,
+              -80
+            ]
+          }
+        },
+        "rfl_history": [
+          [
+            0.0,
+            {
+              "phase": "safe_z",
+              "ok": null
+            }
+          ],
+          [
+            1.0,
+            {
+              "phase": "positioning",
+              "ok": null
+            }
+          ],
+          [
+            2.0,
+            {
+              "phase": "starting",
+              "ok": null
+            }
+          ],
+          [
+            2.1,
+            {
+              "phase": "running",
+              "ok": true
+            }
+          ]
+        ]
+      },
+      "elapsed_s": 6.0,
+      "errors": [],
+      "history": [
+        [
+          0.0,
+          {
+            "phase": "safe_z",
+            "ok": null
+          }
+        ],
+        [
+          1.0,
+          {
+            "phase": "positioning",
+            "ok": null
+          }
+        ],
+        [
+          2.0,
+          {
+            "phase": "starting",
+            "ok": null
+          }
+        ],
+        [
+          2.1,
+          {
+            "phase": "running",
+            "ok": true
+          }
+        ]
+      ],
+      "frames": [
+        [
+          -0.1,
+          {
+            "joint_pos": [
+              10,
+              10,
+              -80
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          0,
+          {
+            "joint_pos": [
+              10,
+              10,
+              -80
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          0.0,
+          {
+            "joint_pos": [
+              10,
+              10,
+              -80
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          0.05,
+          {
+            "joint_pos": [
+              10,
+              10,
+              -80
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          0.95,
+          {
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          1.0,
+          {
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          1.5,
+          {
+            "joint_pos": [
+              60,
+              60,
+              0
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          1.99,
+          {
+            "joint_pos": [
+              100,
+              100,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          2.0,
+          {
+            "joint_pos": [
+              100,
+              100,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          2.1,
+          {
+            "joint_pos": [
+              100,
+              100,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          2.2,
+          {
+            "joint_pos": [
+              101,
+              100,
+              -0.5
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 7,
+            "call_level": 0,
+            "task_mode": 2,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          3.2,
+          {
+            "joint_pos": [
+              150,
+              100,
+              -25
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 7,
+            "call_level": 0,
+            "task_mode": 2,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          4.2,
+          {
+            "joint_pos": [
+              200,
+              101,
+              -50
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 8,
+            "call_level": 0,
+            "task_mode": 2,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          5.2,
+          {
+            "joint_pos": [
+              200,
+              200,
+              -40
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 9,
+            "call_level": 0,
+            "task_mode": 2,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          6.0,
+          {
+            "joint_pos": [
+              200,
+              200,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 11,
+            "call_level": 0,
+            "task_mode": 2,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ]
+      ],
+      "sent": [
+        [
+          "get_tool_table",
+          {}
+        ],
+        [
+          "get_probe_vars",
+          {
+            "vars": [
+              3004,
+              3005,
+              3006,
+              3007,
+              3009,
+              3010,
+              3013,
+              3100,
+              3101,
+              3102,
+              3103,
+              3104,
+              3105,
+              3106,
+              3107,
+              3108,
+              3109,
+              3110,
+              3111,
+              3112,
+              3113,
+              3114,
+              3115
+            ]
+          }
+        ],
+        [
+          "load_file",
+          {
+            "path": "/tmp/codex-r294-rfl-6wzoq49t/nc_files/native_rfl.ngc"
+          }
+        ],
+        [
+          "auto_run",
+          {
+            "line": 7,
+            "file": "/tmp/codex-r294-rfl-6wzoq49t/nc_files/native_rfl.ngc",
+            "version": 12,
+            "source": "2f8053909fafd55e2460d55b5cd8b97eacacc75e91a2f6e194b415cf18907159",
+            "spindle_dir": "forward",
+            "spindle_speed": 1000,
+            "pre_tool": 1,
+            "probe_vars": {
+              "3004": 0.0,
+              "3005": 20.0,
+              "3006": 0.0,
+              "3007": 0.0,
+              "3009": 0.0,
+              "3010": 0.0,
+              "3013": 0.0,
+              "3100": 0.0,
+              "3101": 0.0,
+              "3102": -180.0,
+              "3103": 0.0,
+              "3104": 0.0,
+              "3105": 0.0,
+              "3106": 0.0,
+              "3107": 0.0,
+              "3108": 0.0,
+              "3109": 0.0,
+              "3110": 0.0,
+              "3111": 0.0,
+              "3112": 0.0,
+              "3113": 0.0,
+              "3114": 0.0,
+              "3115": 0.0
+            },
+            "safe_z": true,
+            "entry_x": 100.0,
+            "entry_y": 100.0,
+            "entry_wcs": "G54",
+            "entry_units": "G21"
+          }
+        ]
+      ]
+    }
+  },
+  "findings": {
+    "positioning_last_sample_is_still_moving": {
+      "row": {
+        "case": "start",
+        "status": "FAIL",
+        "detail": "the entry [100, 100] not reached (off 0.200 mm)",
+        "entry": [
+          100,
+          100
+        ],
+        "safe_z_start": -80,
+        "safe_z_end": 0,
+        "entry_off_mm": 0.20000000000000284
+      },
+      "history": [
+        [
+          0.0,
+          {
+            "phase": "safe_z",
+            "ok": null
+          }
+        ],
+        [
+          1.0,
+          {
+            "phase": "positioning",
+            "ok": null
+          }
+        ],
+        [
+          2.0,
+          {
+            "phase": "starting",
+            "ok": null
+          }
+        ],
+        [
+          2.1,
+          {
+            "phase": "running",
+            "ok": true
+          }
+        ]
+      ],
+      "frames": [
+        [
+          0.05,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              -80
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          0.95,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          1.5,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              60,
+              60,
+              0
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          1.99,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              99.8,
+              99.8,
+              0
+            ],
+            "current_vel": 20,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          2.0,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              100,
+              100,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          2.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 7,
+            "joint_pos": [
+              101,
+              100,
+              -0.5
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          3.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 7,
+            "joint_pos": [
+              150,
+              100,
+              -25
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          4.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 8,
+            "joint_pos": [
+              200,
+              101,
+              -50
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          5.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 9,
+            "joint_pos": [
+              200,
+              200,
+              -40
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          6.0,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 11,
+            "joint_pos": [
+              200,
+              200,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ]
+      ],
+      "required": "incomplete pending servo proof; no observed failed endpoint"
+    },
+    "first_observed_motion_is_later_than_L": {
+      "row": {
+        "case": "rfl-line",
+        "status": "FAIL",
+        "detail": "the first motion of the program is line 8, not line 7",
+        "line": 7,
+        "end_point": [
+          200.0,
+          null,
+          -50.0
+        ],
+        "final": [
+          200.0,
+          200.0,
+          0.0
+        ],
+        "line_holds": {
+          "1": 100.0
+        },
+        "witness_t": 4.2,
+        "witness_line": 8,
+        "tool_number": 1,
+        "offset": 50.0,
+        "table": 50.0,
+        "spindle_direction": 1,
+        "spindle_speed": 1000.0
+      },
+      "history": [
+        [
+          0.0,
+          {
+            "phase": "safe_z",
+            "ok": null
+          }
+        ],
+        [
+          1.0,
+          {
+            "phase": "positioning",
+            "ok": null
+          }
+        ],
+        [
+          2.0,
+          {
+            "phase": "starting",
+            "ok": null
+          }
+        ],
+        [
+          2.1,
+          {
+            "phase": "running",
+            "ok": true
+          }
+        ]
+      ],
+      "frames": [
+        [
+          0.05,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              -80
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          0.95,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          1.5,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              60,
+              60,
+              0
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          1.99,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              100,
+              100,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          2.0,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              100,
+              100,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          4.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 8,
+            "joint_pos": [
+              200,
+              101,
+              -50
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          5.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 9,
+            "joint_pos": [
+              200,
+              200,
+              -40
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          6.0,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 11,
+            "joint_pos": [
+              200,
+              200,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ]
+      ],
+      "required": "incomplete: line 7 was not observed; not proof of a start at line 8"
+    },
+    "first_past_L_is_already_the_Z_move": {
+      "row": {
+        "case": "rfl-line",
+        "status": "FAIL",
+        "detail": "line 7 did not reach its end [200.0, None, -50.0] (off 10.000 mm)",
+        "line": 7,
+        "end_point": [
+          200.0,
+          null,
+          -50.0
+        ],
+        "final": [
+          200.0,
+          200.0,
+          0.0
+        ],
+        "line_holds": {
+          "1": 100.0
+        },
+        "witness_t": 2.2,
+        "witness_line": 7,
+        "tool_number": 1,
+        "offset": 50.0,
+        "table": 50.0,
+        "spindle_direction": 1,
+        "spindle_speed": 1000.0,
+        "end_off_mm": 10.0
+      },
+      "history": [
+        [
+          0.0,
+          {
+            "phase": "safe_z",
+            "ok": null
+          }
+        ],
+        [
+          1.0,
+          {
+            "phase": "positioning",
+            "ok": null
+          }
+        ],
+        [
+          2.0,
+          {
+            "phase": "starting",
+            "ok": null
+          }
+        ],
+        [
+          2.1,
+          {
+            "phase": "running",
+            "ok": true
+          }
+        ]
+      ],
+      "frames": [
+        [
+          0.05,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              -80
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          0.95,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          1.5,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              60,
+              60,
+              0
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          1.99,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              100,
+              100,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          2.0,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              100,
+              100,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          2.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 7,
+            "joint_pos": [
+              101,
+              100,
+              -0.5
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          3.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 7,
+            "joint_pos": [
+              150,
+              100,
+              -25
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          5.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 9,
+            "joint_pos": [
+              200,
+              200,
+              -40
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          6.0,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 11,
+            "joint_pos": [
+              200,
+              200,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ]
+      ],
+      "required": "incomplete: no compatible endpoint witness"
+    },
+    "held_axis_never_read": {
+      "row": {
+        "case": "rfl-line",
+        "status": "PASS",
+        "detail": "the program started at line 7 with T1, its length, the spindle at 1000; line 7 and the program ran to their ends",
+        "line": 7,
+        "end_point": [
+          200.0,
+          null,
+          -50.0
+        ],
+        "final": [
+          200.0,
+          200.0,
+          0.0
+        ],
+        "line_holds": {
+          "1": 100.0
+        },
+        "witness_t": 2.2,
+        "witness_line": 7,
+        "tool_number": 1,
+        "offset": 50.0,
+        "table": 50.0,
+        "spindle_direction": 1,
+        "spindle_speed": 1000.0,
+        "end_off_mm": 0.0,
+        "final_off_mm": 0.0
+      },
+      "history": [
+        [
+          0.0,
+          {
+            "phase": "safe_z",
+            "ok": null
+          }
+        ],
+        [
+          1.0,
+          {
+            "phase": "positioning",
+            "ok": null
+          }
+        ],
+        [
+          2.0,
+          {
+            "phase": "starting",
+            "ok": null
+          }
+        ],
+        [
+          2.1,
+          {
+            "phase": "running",
+            "ok": true
+          }
+        ]
+      ],
+      "frames": [
+        [
+          0.05,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              -80
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          0.95,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          1.5,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              60,
+              60,
+              0
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          1.99,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              100,
+              100,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          2.0,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              100,
+              100,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          2.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 7,
+            "joint_pos": [
+              101,
+              null,
+              -0.5
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          3.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 7,
+            "joint_pos": [
+              150,
+              null,
+              -25
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          4.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 8,
+            "joint_pos": [
+              200,
+              101,
+              -50
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          5.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 9,
+            "joint_pos": [
+              200,
+              200,
+              -40
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          6.0,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 11,
+            "joint_pos": [
+              200,
+              200,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ]
+      ],
+      "required": "incomplete: no known Y=100 on line 7"
+    },
+    "known_line_end_error_with_unknown_Z": {
+      "row": {
+        "case": "rfl-line",
+        "status": "incomplete",
+        "detail": "line L's end or the program's end not received",
+        "line": 7,
+        "end_point": [
+          200.0,
+          null,
+          -50.0
+        ],
+        "final": [
+          200.0,
+          200.0,
+          0.0
+        ],
+        "line_holds": {
+          "1": 100.0
+        },
+        "witness_t": 2.2,
+        "witness_line": 7,
+        "tool_number": 1,
+        "offset": 50.0,
+        "table": 50.0,
+        "spindle_direction": 1,
+        "spindle_speed": 1000.0,
+        "end_off_mm": null,
+        "final_off_mm": 0.0
+      },
+      "history": [
+        [
+          0.0,
+          {
+            "phase": "safe_z",
+            "ok": null
+          }
+        ],
+        [
+          1.0,
+          {
+            "phase": "positioning",
+            "ok": null
+          }
+        ],
+        [
+          2.0,
+          {
+            "phase": "starting",
+            "ok": null
+          }
+        ],
+        [
+          2.1,
+          {
+            "phase": "running",
+            "ok": true
+          }
+        ]
+      ],
+      "frames": [
+        [
+          0.05,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              -80
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          0.95,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          1.5,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              60,
+              60,
+              0
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          1.99,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              100,
+              100,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          2.0,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              100,
+              100,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          2.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 7,
+            "joint_pos": [
+              101,
+              100,
+              -0.5
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          3.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 7,
+            "joint_pos": [
+              150,
+              100,
+              -25
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          4.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 8,
+            "joint_pos": [
+              199.0,
+              101.0,
+              null
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          5.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 9,
+            "joint_pos": [
+              200,
+              200,
+              -40
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          6.0,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 11,
+            "joint_pos": [
+              200,
+              200,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ]
+      ],
+      "required": "FAIL: the known axis already contradicts its required endpoint"
+    },
+    "known_final_Y_error_with_unknown_Z": {
+      "row": {
+        "case": "rfl-line",
+        "status": "incomplete",
+        "detail": "line L's end or the program's end not received",
+        "line": 7,
+        "end_point": [
+          200.0,
+          null,
+          -50.0
+        ],
+        "final": [
+          200.0,
+          200.0,
+          0.0
+        ],
+        "line_holds": {
+          "1": 100.0
+        },
+        "witness_t": 2.2,
+        "witness_line": 7,
+        "tool_number": 1,
+        "offset": 50.0,
+        "table": 50.0,
+        "spindle_direction": 1,
+        "spindle_speed": 1000.0,
+        "end_off_mm": 0.0,
+        "final_off_mm": null
+      },
+      "history": [
+        [
+          0.0,
+          {
+            "phase": "safe_z",
+            "ok": null
+          }
+        ],
+        [
+          1.0,
+          {
+            "phase": "positioning",
+            "ok": null
+          }
+        ],
+        [
+          2.0,
+          {
+            "phase": "starting",
+            "ok": null
+          }
+        ],
+        [
+          2.1,
+          {
+            "phase": "running",
+            "ok": true
+          }
+        ]
+      ],
+      "frames": [
+        [
+          0.05,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              -80
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          0.95,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          1.5,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              60,
+              60,
+              0
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          1.99,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              100,
+              100,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          2.0,
+          {
+            "task_mode": 3,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              100,
+              100,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          2.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 7,
+            "joint_pos": [
+              101,
+              100,
+              -0.5
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          3.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 7,
+            "joint_pos": [
+              150,
+              100,
+              -25
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          4.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 8,
+            "joint_pos": [
+              200,
+              101,
+              -50
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          5.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 9,
+            "joint_pos": [
+              200,
+              200,
+              -40
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          6.0,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 11,
+            "joint_pos": [
+              200.0,
+              150.0,
+              null
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ]
+      ],
+      "required": "FAIL: the known axis already contradicts its required endpoint"
+    },
+    "unread_lock_through_window": {
+      "row": {
+        "case": "override",
+        "status": "FAIL",
+        "detail": "not free within 2.0 s of the completion",
+        "locked_from_s": 0.2,
+        "done_s": 1.033,
+        "window_seen_to_s": 3.233
+      },
+      "frames": [
+        [
+          0.03,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": true
+          }
+        ],
+        [
+          0.2,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": false
+          }
+        ],
+        [
+          1.0,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": false
+          }
+        ],
+        [
+          1.033,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": null
+          }
+        ],
+        [
+          1.2329999999999999,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": null
+          }
+        ],
+        [
+          1.4329999999999998,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": null
+          }
+        ],
+        [
+          1.633,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": null
+          }
+        ],
+        [
+          1.833,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": null
+          }
+        ],
+        [
+          2.033,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": null
+          }
+        ],
+        [
+          2.233,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": null
+          }
+        ],
+        [
+          2.433,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": null
+          }
+        ],
+        [
+          2.633,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": null
+          }
+        ],
+        [
+          2.833,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": null
+          }
+        ],
+        [
+          3.033,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": null
+          }
+        ],
+        [
+          3.233,
+          {
+            "task_mode": 2,
+            "call_level": 0,
+            "motion_line": 0,
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_number": 1,
+            "tool_table_z": 50.0,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0,
+            "feed_override_enabled": null
+          }
+        ]
+      ],
+      "required": "incomplete: the release value was unknown throughout"
+    },
+    "step_ignores_received_program_error": {
+      "rows": [
+        {
+          "case": "rfl-line",
+          "status": "PASS",
+          "detail": "the program started at line 7 with T1, its length, the spindle at 1000; line 7 and the program ran to their ends",
+          "line": 7,
+          "end_point": [
+            200.0,
+            null,
+            -50.0
+          ],
+          "final": [
+            200.0,
+            200.0,
+            0.0
+          ],
+          "line_holds": {
+            "1": 100.0
+          },
+          "witness_t": 2.2,
+          "witness_line": 7,
+          "tool_number": 1,
+          "offset": 50.0,
+          "table": 50.0,
+          "spindle_direction": 1,
+          "spindle_speed": 1000.0,
+          "end_off_mm": 0.0,
+          "final_off_mm": 0.0
+        },
+        {
+          "case": "rfl-line.counter-line+1",
+          "status": "PASS",
+          "detail": "the planted value is refused: the first motion of the program is line 7, not line 8",
+          "counter": true,
+          "inner": {
+            "case": "rfl-line",
+            "status": "FAIL",
+            "detail": "the first motion of the program is line 7, not line 8",
+            "line": 8,
+            "end_point": [
+              200.0,
+              null,
+              -50.0
+            ],
+            "final": [
+              200.0,
+              200.0,
+              0.0
+            ],
+            "line_holds": {
+              "1": 100.0
+            },
+            "witness_t": 2.2,
+            "witness_line": 7,
+            "tool_number": 1,
+            "offset": 50.0,
+            "table": 50.0,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        },
+        {
+          "case": "rfl-no-earlier-line",
+          "status": "PASS",
+          "detail": "no line before 7 in 5 received frames of the program \u2014 a line between two frames is not seen",
+          "scope": "observed frames",
+          "frames": 5,
+          "lines": [
+            7,
+            8,
+            9
+          ]
+        },
+        {
+          "case": "rfl-start-point",
+          "status": "incomplete",
+          "detail": "no contradiction in the received frames; the path between them needs the servo measurement (step 2c)",
+          "entry": [
+            100.0,
+            100.0
+          ],
+          "safe_z_start": -80,
+          "safe_z_end": 0,
+          "entry_off_mm": 0.0
+        }
+      ],
+      "report": {
+        "rfl_origin": {
+          "file": "/tmp/codex-r294-rfl-nyb_m3q2/nc_files/native_rfl.ngc",
+          "version": 12,
+          "source": "2f8053909fafd55e2460d55b5cd8b97eacacc75e91a2f6e194b415cf18907159",
+          "before": {
+            "tool_number": 1,
+            "joint_pos": [
+              10,
+              10,
+              -80
+            ]
+          }
+        },
+        "rfl_history": [
+          [
+            0.0,
+            {
+              "phase": "safe_z",
+              "ok": null
+            }
+          ],
+          [
+            1.0,
+            {
+              "phase": "positioning",
+              "ok": null
+            }
+          ],
+          [
+            2.0,
+            {
+              "phase": "starting",
+              "ok": null
+            }
+          ],
+          [
+            2.1,
+            {
+              "phase": "running",
+              "ok": true
+            }
+          ]
+        ]
+      },
+      "elapsed_s": 6.0,
+      "errors": [
+        [
+          6.0,
+          11,
+          "known AUTO program failure before M5/M2"
+        ]
+      ],
+      "history": [
+        [
+          0.0,
+          {
+            "phase": "safe_z",
+            "ok": null
+          }
+        ],
+        [
+          1.0,
+          {
+            "phase": "positioning",
+            "ok": null
+          }
+        ],
+        [
+          2.0,
+          {
+            "phase": "starting",
+            "ok": null
+          }
+        ],
+        [
+          2.1,
+          {
+            "phase": "running",
+            "ok": true
+          }
+        ]
+      ],
+      "frames": [
+        [
+          -0.1,
+          {
+            "joint_pos": [
+              10,
+              10,
+              -80
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          0,
+          {
+            "joint_pos": [
+              10,
+              10,
+              -80
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          0.0,
+          {
+            "joint_pos": [
+              10,
+              10,
+              -80
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          0.05,
+          {
+            "joint_pos": [
+              10,
+              10,
+              -80
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          0.95,
+          {
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          1.0,
+          {
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          1.5,
+          {
+            "joint_pos": [
+              60,
+              60,
+              0
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          1.99,
+          {
+            "joint_pos": [
+              100,
+              100,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          2.0,
+          {
+            "joint_pos": [
+              100,
+              100,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          2.1,
+          {
+            "joint_pos": [
+              100,
+              100,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 2,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          2.2,
+          {
+            "joint_pos": [
+              101,
+              100,
+              -0.5
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 7,
+            "call_level": 0,
+            "task_mode": 2,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          3.2,
+          {
+            "joint_pos": [
+              150,
+              100,
+              -25
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 7,
+            "call_level": 0,
+            "task_mode": 2,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          4.2,
+          {
+            "joint_pos": [
+              200,
+              101,
+              -50
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 8,
+            "call_level": 0,
+            "task_mode": 2,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          5.2,
+          {
+            "joint_pos": [
+              200,
+              200,
+              -40
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 9,
+            "call_level": 0,
+            "task_mode": 2,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          6.0,
+          {
+            "joint_pos": [
+              200,
+              200,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 9,
+            "call_level": 0,
+            "task_mode": 2,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ]
+      ],
+      "sent": [
+        [
+          "get_tool_table",
+          {}
+        ],
+        [
+          "get_probe_vars",
+          {
+            "vars": [
+              3004,
+              3005,
+              3006,
+              3007,
+              3009,
+              3010,
+              3013,
+              3100,
+              3101,
+              3102,
+              3103,
+              3104,
+              3105,
+              3106,
+              3107,
+              3108,
+              3109,
+              3110,
+              3111,
+              3112,
+              3113,
+              3114,
+              3115
+            ]
+          }
+        ],
+        [
+          "load_file",
+          {
+            "path": "/tmp/codex-r294-rfl-nyb_m3q2/nc_files/native_rfl.ngc"
+          }
+        ],
+        [
+          "auto_run",
+          {
+            "line": 7,
+            "file": "/tmp/codex-r294-rfl-nyb_m3q2/nc_files/native_rfl.ngc",
+            "version": 12,
+            "source": "2f8053909fafd55e2460d55b5cd8b97eacacc75e91a2f6e194b415cf18907159",
+            "spindle_dir": "forward",
+            "spindle_speed": 1000,
+            "pre_tool": 1,
+            "probe_vars": {
+              "3004": 0.0,
+              "3005": 20.0,
+              "3006": 0.0,
+              "3007": 0.0,
+              "3009": 0.0,
+              "3010": 0.0,
+              "3013": 0.0,
+              "3100": 0.0,
+              "3101": 0.0,
+              "3102": -180.0,
+              "3103": 0.0,
+              "3104": 0.0,
+              "3105": 0.0,
+              "3106": 0.0,
+              "3107": 0.0,
+              "3108": 0.0,
+              "3109": 0.0,
+              "3110": 0.0,
+              "3111": 0.0,
+              "3112": 0.0,
+              "3113": 0.0,
+              "3114": 0.0,
+              "3115": 0.0
+            },
+            "safe_z": true,
+            "entry_x": 100.0,
+            "entry_y": 100.0,
+            "entry_wcs": "G54",
+            "entry_units": "G21"
+          }
+        ]
+      ],
+      "required": "FAIL: the received program error must reach the case verdict, scoped to this attempt"
+    },
+    "failed_phase_times_out_before_evaluator": {
+      "exception": "ToolChangeError",
+      "cause": "unobserved",
+      "error": "not done within 300.0 s",
+      "rows": [],
+      "report": {
+        "rfl_origin": {
+          "file": "/tmp/codex-r294-rfl-a6dh2dxu/nc_files/native_rfl.ngc",
+          "version": 12,
+          "source": "2f8053909fafd55e2460d55b5cd8b97eacacc75e91a2f6e194b415cf18907159",
+          "before": {
+            "tool_number": 1,
+            "joint_pos": [
+              10,
+              10,
+              -80
+            ]
+          }
+        }
+      },
+      "elapsed_s": 300.100000000017,
+      "errors": [],
+      "history": [
+        [
+          0.05,
+          {
+            "phase": "measuring",
+            "ok": null
+          }
+        ],
+        [
+          0.1,
+          {
+            "phase": "measure_failed",
+            "ok": false,
+            "error": "known probe failure"
+          }
+        ]
+      ],
+      "frames": [
+        [
+          -0.1,
+          {
+            "joint_pos": [
+              10,
+              10,
+              -80
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          0,
+          {
+            "joint_pos": [
+              10,
+              10,
+              -80
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          0.05,
+          {
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 50.0,
+            "interp_state": 2,
+            "inpos": false,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ],
+        [
+          0.1,
+          {
+            "joint_pos": [
+              10,
+              10,
+              0
+            ],
+            "current_vel": 0,
+            "interp_state": 1,
+            "inpos": true,
+            "feed_override_enabled": true,
+            "tool_number": 1,
+            "tool_offset": [
+              0,
+              0,
+              50.0
+            ],
+            "tool_table_z": 50.0,
+            "tool_change_requested": false,
+            "tool_change_seq": null,
+            "tool_change_tool": null,
+            "g5x_index": null,
+            "g5x_offset": null,
+            "motion_line": 0,
+            "call_level": 0,
+            "task_mode": 3,
+            "spindle_direction": 1,
+            "spindle_speed": 1000.0
+          }
+        ]
+      ],
+      "sent": [
+        [
+          "get_tool_table",
+          {}
+        ],
+        [
+          "get_probe_vars",
+          {
+            "vars": [
+              3004,
+              3005,
+              3006,
+              3007,
+              3009,
+              3010,
+              3013,
+              3100,
+              3101,
+              3102,
+              3103,
+              3104,
+              3105,
+              3106,
+              3107,
+              3108,
+              3109,
+              3110,
+              3111,
+              3112,
+              3113,
+              3114,
+              3115
+            ]
+          }
+        ],
+        [
+          "load_file",
+          {
+            "path": "/tmp/codex-r294-rfl-a6dh2dxu/nc_files/native_rfl.ngc"
+          }
+        ],
+        [
+          "auto_run",
+          {
+            "line": 7,
+            "file": "/tmp/codex-r294-rfl-a6dh2dxu/nc_files/native_rfl.ngc",
+            "version": 12,
+            "source": "2f8053909fafd55e2460d55b5cd8b97eacacc75e91a2f6e194b415cf18907159",
+            "spindle_dir": "forward",
+            "spindle_speed": 1000,
+            "pre_tool": 1,
+            "probe_vars": {
+              "3004": 0.0,
+              "3005": 20.0,
+              "3006": 0.0,
+              "3007": 0.0,
+              "3009": 0.0,
+              "3010": 0.0,
+              "3013": 0.0,
+              "3100": 0.0,
+              "3101": 0.0,
+              "3102": -180.0,
+              "3103": 0.0,
+              "3104": 0.0,
+              "3105": 0.0,
+              "3106": 0.0,
+              "3107": 0.0,
+              "3108": 0.0,
+              "3109": 0.0,
+              "3110": 0.0,
+              "3111": 0.0,
+              "3112": 0.0,
+              "3113": 0.0,
+              "3114": 0.0,
+              "3115": 0.0
+            },
+            "safe_z": true,
+            "entry_x": 100.0,
+            "entry_y": 100.0,
+            "entry_wcs": "G54",
+            "entry_units": "G21"
+          }
+        ]
+      ],
+      "required": "known failed phase -> promptly retained FAIL row and history, then teardown"
+    }
+  }
+}
