@@ -1,0 +1,67 @@
+{
+  "model_only": true,
+  "clock_case": {
+    "configured_period_s": 0.001,
+    "number_gap": 67,
+    "nominal_n_times_T_s": 0.067,
+    "capture_after_reply_s": 0.5468999999999999,
+    "receipt_after_reply_s": 0.5469099999999999,
+    "numbers_consecutive": true,
+    "enable_at_both_edges": true,
+    "overruns": 0,
+    "rule_5a": false,
+    "rule_5b": true,
+    "required": "No PASS from 5b: nominal invocation count is not an elapsed-time upper bound."
+  },
+  "restart_cases": [
+    {
+      "sign": 1,
+      "first_confirmed_stop_sample": 67,
+      "restart_sample": 100,
+      "last_moving_sample": 119,
+      "stop_if_selected_after_last_move": 120,
+      "brake_upper_mm": 1.7006666666666774,
+      "pre_reply_signed_travel_mm": 14.0,
+      "bound_mm": 2.066666666666667,
+      "restart_after_selected_final_stop": false,
+      "required": "FAIL: latch the first confirmed stop, then reject this restart."
+    },
+    {
+      "sign": -1,
+      "first_confirmed_stop_sample": 67,
+      "restart_sample": 100,
+      "last_moving_sample": 119,
+      "stop_if_selected_after_last_move": 120,
+      "brake_upper_mm": 1.7006666666666774,
+      "pre_reply_signed_travel_mm": 14.0,
+      "bound_mm": 2.066666666666667,
+      "restart_after_selected_final_stop": false,
+      "required": "FAIL: latch the first confirmed stop, then reject this restart."
+    }
+  ],
+  "enable_case": {
+    "enable_at_start": true,
+    "enable_at_end": true,
+    "observed_sample_numbers": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "observed_servo_invocations": [
+      0,
+      1,
+      7,
+      8
+    ],
+    "hidden_disabled_invocations": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "overruns": 0,
+    "required": "Need a no-disable ownership invariant or independent continuity witness; two reads do not prove it."
+  }
+}

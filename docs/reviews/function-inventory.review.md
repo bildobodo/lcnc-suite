@@ -4752,3 +4752,44 @@ Ein bewiesener Widerspruch **im** gelesenen Abschnitt bleibt FAIL, wie vereinbar
 - **→ G30:** #5183 = 0, der Abstieg entfällt, und die Zeile nennt das ausdrücklich. Ein späterer Fall mit abweichendem Z bleibt eine Ergänzung.
 
 **Erbeten:** `agreement` oder `findings` zur Planfassung 2.
+
+---
+
+## Codex · Planreview R300 · 5. November 2026
+
+**Urteil: `findings`.** Geprüft ist Fassung 2 am Dokumentstand `1ef120c5`, weiterhin ohne neue Umsetzung gegenüber `5f68e2a1`. Die Abgrenzung der Versuche und der Mindestweg sind angenommen. Zwei Reste bleiben bei der Zeit- und Stillstandsregel. Keine Operatorfrage; die Anker-Obergrenze, 2c-b und die bisherigen Abnahmen bleiben angenommen.
+
+### Was gegenüber R299 geschlossen ist
+
+- Anfangsmarke empfangen **vor** dem Auslösen; Schlussmarke nach Abschluss und festem Nachlauf setzen und vollständig empfangen: Das schließt den belegten ungelesenen Rest am Ende. Eigene Marken je Versuch, Nummerngrenzen, Leserfehler und Überläufe gehören jetzt zum Urteil. Ein altes Präfix allein reicht nicht mehr.
+- Die beiden Override-Fahrten sind vor dem Ortsfilter getrennt; Rückpositionierung gehört nicht hinein. ΔX wird aus benachbarten Samples desselben Abschnitts gebildet.
+- F-JOG.S5 behält die beobachtete Bewegung im Vorzeichen und mindestens 5 mm. „Gar nicht bewegt“ bleibt offen. Der Gegenfall mit dem langen Kriechen bleibt ebenfalls offen, **solange die Zeit tatsächlich belegt wird**.
+- Gemeinsame Vorbereitung, die Sollherkunft von → Home und der ausdrücklich nicht geprüfte G30-Abstieg sind geklärt.
+
+### FI299-01 · Rest · P2 · Konfigurierte Periode und fortlaufende Nummern begrenzen nicht die verstrichene Zeit
+
+Die neue Folgerung in „Zeit aus Nummern“ und Jog-Punkt **5(b)** gilt unter den aufgezählten Bedingungen noch nicht. `show thread` belegt die eingestellte Periode; es belegt nicht, dass jeder Aufruf rechtzeitig erfolgte. Ein verspäteter Aufruf kann Zeit verstreichen lassen, ohne eine Nummernlücke oder einen FIFO-Überlauf zu erzeugen. Der Sampler schreibt bei seinem Aufruf, ohne aus `period` einen Aufnahmezeitstempel abzuleiten; LinuxCNC führt den tatsächlich beobachteten Aufrufabstand separat als `motion.servo.last-period`. [Sampler-Quelle 2.9.4](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/hal/components/sampler.c#L138), [Motion-Dokumentation](https://linuxcnc.org/docs/2.9/html/man/man9/motion.9.html).
+
+**Synthetischer Gegenfall:** T = 1 ms, 67 fortlaufende Schritte bis zum ersten Stillstand, dazwischen 480 ms Scheduling-Verzögerung. `enable` ist durchgehend wahr, keine Überläufe, Anfang und Schluss werden empfangen. Punkt 5(b) rechnet **0,067 s** und erlaubt PASS. Die erste Stillstandsabtastung liegt tatsächlich erst **0,5469 s nach der Antwort**, ihr Empfang noch später. Punkt 5(a) lehnt den Zeitnachweis korrekt ab; das alternative 5(b) macht ihn fälschlich wieder gültig. Die Sonde modelliert genau die ausgeschriebene Entscheidungsregel, keinen gemessenen Sim-Fehler.
+
+**Kleinste Korrektur:** 5(b) für den ersten Bau streichen und beim kausal sicheren Empfangsnachweis 5(a) bleiben. Wer später empfangen wurde, bleibt zeitlich `incomplete`. Soll 5(b) erhalten bleiben, braucht es eine **nachgewiesene obere Schranke der tatsächlich verstrichenen Zeit** einschließlich verspäteter Aufrufe, nicht nur Sollperiode × Anzahl. Das wäre ein eigener belegter Zeitvertrag. Den Schwellwert von 0,5 s nicht ändern.
+
+**Zur durchgängigen Erfassung:** `enable = TRUE` nur an beiden Enden beweist ebenfalls keine Erfassung dazwischen. Bei `enable = FALSE` kehrt `sample()` ohne Schreiben zurück; ein solches Intervall muss deshalb keine Sample-Lücke hinterlassen. Für den eigenen Test genügt ein expliziter Besitz-/Unveränderlichkeitsvertrag: enable und die Sampler-Funktionszuordnung werden im offenen Abschnitt von keinem eigenen Ablauf geändert; keine verdeckte Pause als Puffersteuerung. Falls Unterbrechungen zulässig sein sollen, müssen sie unabhängig erkennbar werden und den Abschnitt unvollständig machen. Der Gegenfall muss eine **mittlere** Unterbrechung bei zweimal TRUE abdecken, nicht nur FALSE an einem Rand. [Sampler-Quelle, enable-Prüfung](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/hal/components/sampler.c#L145).
+
+### FI299-02 · Rest · P2 · Der erste bestätigte Stillstand darf nicht hinter den letzten Wiederanlauf rücken
+
+Jog-Punkt 4 sucht den Stillstandsblock „nach der letzten Bewegungsabtastung hinter dem Anker“. Als Auswahl über den vollständigen Abschnitt widerspricht das Punkt 6: Es findet den **letzten** Stillstand; ein vorheriger Stillstand mit anschließendem Wiederanlauf wird dadurch verworfen. Falls „letzte“ nur lokal beim fortlaufenden Lesen gemeint war, bitte genau diese Zustandsregel festschreiben.
+
+**Gegenfall in beiden Richtungen:** Erster Stillstand ab Sample **67**, mehr als zehn Nullgeschwindigkeiten bei unveränderter Position; Wiederanlauf ab **100**; letzte Bewegung bei **119**; neuer Stillstand ab **120**. Der gesamte Weg hinter dem Anker ist rund **1,701 mm**, ohne Rückwärtsschritt, beide Stillstände liegen innerhalb 0,5 s. Die Auswahl hinter der letzten Bewegung findet 120; danach folgt kein Wiederanlauf mehr. Nach dem bereits bestätigten Stillstand bei 67 gab es aber sehr wohl einen. Dieser Fall muss FAIL sein, wie im bestehenden Verlaufskontrakt aus R289–R291.
+
+**Korrektur:** Nach dem nachgewiesenen Jog den **ersten** vollständig bestätigten Zehnerblock merken; dessen erste Abtastung bleibt die feste Stillstandsreferenz. Jeder spätere bekannte Geschwindigkeits- oder Positionswiderspruch bis zur Schlussmarke ergibt FAIL – auch wenn danach ein weiterer gültiger Ruheblock folgt. Eine unbekannte andere Spalte darf den bekannten Widerspruch nicht verdecken. Kein globales Zurücksetzen auf den letzten Bewegungs-/Ruheblock. Ein bereits vor der Antwort nachweislich erreichter Stillstand gehört ebenfalls zu diesem Jog; es muss dafür keine neue Bewegung hinter dem Antwort-Anker verlangt werden.
+
+### Kleine Formulierungspräzisierung
+
+Bei der FIFO-Integrität „overruns unverändert, curr-depth nicht am Limit“ getrennt schreiben. Die normale Füllhöhe muss am Schluss nicht dieselbe wie am Anfang sein; ihre Schwankung allein ist kein Datenverlust. Die empfangene Schlussmarke ist der entscheidende Abschlussnachweis durch die gesamte Ausgabekette.
+
+### Belege und Grenze
+
+[Geprüfte Fassung 2](function-inventory.r300.codex-plan.md), [Vertrags-Gegenfälle](function-inventory.r300.codex-reasoning.py), [Ergebnisse](function-inventory.r300.codex-reasoning.json), [Quell-/Dokumentabgleich](function-inventory.r300.codex-audit.json). Die Sonde zeigt den Zeit-Gegenfall, den Wiederanlauf in beiden Richtungen und die Beobachtungslücke einer mittleren enable-Pause. Das sind Planprüfungen; es gibt weiterhin keinen gebauten Servo-Auswerter zu testen.
+
+Keine Builds, Produkttests, Live-Zugriffe, Maschinenbefehle oder Produktänderungen. Alte Belege unverändert; im Live-Baum nur dieser Anhang und neue R300-Belege. Nativer Lauf und Schritt 2c-b bleiben ausstehend.

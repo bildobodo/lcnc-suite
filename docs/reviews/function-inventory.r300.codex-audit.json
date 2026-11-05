@@ -1,0 +1,107 @@
+{
+  "review_revision": "1ef120c53015e2c34f72144fb6ebcb54b63ad656",
+  "code_revision": "5f68e2a16ec18813c4de10e045e16d172983ea7c",
+  "plan_sha256": "f7bcd19e19567285920a9a15d481ed50a647cc1f3b7e0802971f4303f211aa2f",
+  "source_checks": [
+    {
+      "file": "scripts/test_support/native_cases.py",
+      "sha256": "a41a79533bc1341dd7cec14122c05e84fc038575ceb9d2d678987173ed9aac20"
+    },
+    {
+      "file": "scripts/inventory/functions.json",
+      "sha256": "bff4f2a7e9dac5a920698d422ec330b90088c368924e250d8d7ec996c46e4340"
+    },
+    {
+      "file": "scripts/native_run.py",
+      "sha256": "e51c236990bcd0cf5107beb89240c4f00358f820f16124cec766109db91bc249"
+    }
+  ],
+  "primary_sources": [
+    "https://raw.githubusercontent.com/LinuxCNC/linuxcnc/v2.9.4/src/hal/components/sampler.c",
+    "https://linuxcnc.org/docs/2.9/html/man/man9/motion.9.html"
+  ],
+  "scope": "plan review only, no built sampler evaluated; no live access, HAL/LinuxCNC imports or machine commands",
+  "reference_notes": [
+    "Sampler source sample() uses no capture timestamp; the period argument is not used to timestamp rows.",
+    "enable false returns before hal_stream_write; endpoint reads do not prove no intervening pause.",
+    "Motion documentation distinguishes actual invocation timing from the configured period.",
+    "Existing eval_jog retains the first observed stop and rejects later motion."
+  ],
+  "reasoning": {
+    "command": "python3 -B function-inventory.r300.codex-reasoning.py",
+    "exit": 0,
+    "script_sha256": "807b225d5aebdd717d27c1223bb5550185bd9d9ae190515a58923d19f78c1c5d",
+    "results": {
+      "model_only": true,
+      "clock_case": {
+        "configured_period_s": 0.001,
+        "number_gap": 67,
+        "nominal_n_times_T_s": 0.067,
+        "capture_after_reply_s": 0.5468999999999999,
+        "receipt_after_reply_s": 0.5469099999999999,
+        "numbers_consecutive": true,
+        "enable_at_both_edges": true,
+        "overruns": 0,
+        "rule_5a": false,
+        "rule_5b": true,
+        "required": "No PASS from 5b: nominal invocation count is not an elapsed-time upper bound."
+      },
+      "restart_cases": [
+        {
+          "sign": 1,
+          "first_confirmed_stop_sample": 67,
+          "restart_sample": 100,
+          "last_moving_sample": 119,
+          "stop_if_selected_after_last_move": 120,
+          "brake_upper_mm": 1.7006666666666774,
+          "pre_reply_signed_travel_mm": 14.0,
+          "bound_mm": 2.066666666666667,
+          "restart_after_selected_final_stop": false,
+          "required": "FAIL: latch the first confirmed stop, then reject this restart."
+        },
+        {
+          "sign": -1,
+          "first_confirmed_stop_sample": 67,
+          "restart_sample": 100,
+          "last_moving_sample": 119,
+          "stop_if_selected_after_last_move": 120,
+          "brake_upper_mm": 1.7006666666666774,
+          "pre_reply_signed_travel_mm": 14.0,
+          "bound_mm": 2.066666666666667,
+          "restart_after_selected_final_stop": false,
+          "required": "FAIL: latch the first confirmed stop, then reject this restart."
+        }
+      ],
+      "enable_case": {
+        "enable_at_start": true,
+        "enable_at_end": true,
+        "observed_sample_numbers": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "observed_servo_invocations": [
+          0,
+          1,
+          7,
+          8
+        ],
+        "hidden_disabled_invocations": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "overruns": 0,
+        "required": "Need a no-disable ownership invariant or independent continuity witness; two reads do not prove it."
+      }
+    }
+  },
+  "review_append": {
+    "prefix_bytes": 521180,
+    "prefix_sha256": "8d401cd2b721500361d58febfa9c1c4a48c7369f34860c6b2feca6f2298378eb",
+    "append_sha256": "33735ad7d266101dddaacb2fd67a305bac243175095489b0ce40d123a36ab766"
+  }
+}
