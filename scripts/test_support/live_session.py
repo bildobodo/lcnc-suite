@@ -50,24 +50,32 @@ class SimulatorClient:
         try:
             for raw in self.ws:
                 msg = msgspec.msgpack.decode(raw) if isinstance(raw, bytes) else json.loads(raw)
-                if isinstance(msg.get("data"), dict):
-                    self.status.update(msg["data"])
-                    if self.on_status:
-                        self.on_status(time.monotonic(), dict(self.status))
-                    requested = self.status.get("tool_change_requested", False)
-                    seq = self.status.get("tool_change_seq")
-                    if self.auto_confirm and requested and seq != confirmed:
-                        # once per request, naming the request it answers
-                        # (button gates BG-17)
-                        self.send({"cmd": "confirm_tool_change", "request": seq})
-                        confirmed = seq
-                if "ok" in msg:
-                    self.replies.put(msg)
+                confirmed = self.take(msg, confirmed)
             if not self.stop.is_set():
                 self.error = "Simulator WebSocket closed during the gate"
         except Exception as exc:
             if not self.stop.is_set():
                 self.error = str(exc)
+
+    def take(self, msg, confirmed=None):
+        """One message: a STATUS frame (full or delta — never a reply that
+        carries data, R286 FI-I23) updates the status and is reported with
+        its arrival time; a reply goes to the queue. Returns the request seq
+        last confirmed."""
+        if msg.get("type") in ("status", "status_delta") and isinstance(msg.get("data"), dict):
+            self.status.update(msg["data"])
+            if self.on_status:
+                self.on_status(time.monotonic(), dict(self.status))
+            requested = self.status.get("tool_change_requested", False)
+            seq = self.status.get("tool_change_seq")
+            if self.auto_confirm and requested and seq != confirmed:
+                # once per request, naming the request it answers
+                # (button gates BG-17)
+                self.send({"cmd": "confirm_tool_change", "request": seq})
+                confirmed = seq
+        if "ok" in msg:
+            self.replies.put(msg)
+        return confirmed
 
     def heartbeat(self):
         try:

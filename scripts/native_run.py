@@ -156,13 +156,16 @@ def make_copy(profile: str):
                            capture_output=True, text=True)
         if r.returncode:
             raise Refused(f"the copy was refused: {r.stderr.strip()[-400:]}")
-        bin_ = run / "bin"
-        bin_.mkdir()
+        # named .local/bin: the installed `linuxcnc` script puts ~/.local/bin (the
+        # MAIN checkout's links) first when PATH holds no ".local/bin" (R286 FI-I18)
+        bin_ = run / ".local/bin"
+        bin_.mkdir(parents=True)
         for name, rel in HELPERS.items():
             (bin_ / name).symlink_to(tree / rel)
         ini = config / PROFILES[profile][0]
         path = f"{bin_}:/usr/local/bin:/usr/bin:/bin"
-        which = lambda n: shutil.which(n, path=path)  # noqa: E731 — the unit's own PATH
+        effective = lt.linuxcnc_path(path)            # what HAL will search: the launcher's own rule
+        which = lambda n: shutil.which(n, path=effective)  # noqa: E731
         try:
             lt.check_copy(str(ini), str(tree / "examples/sim_config"), which, nc_files=NC_FILES, macro_dir=MACROS)
         except ValueError as e:
@@ -187,7 +190,10 @@ def start_copy():
         ctx["cleanup"] = lambda: _stop_copy(ctx)
         if not rl_host_ready(180):
             raise Refused("the copy's gateway did not answer /ready within 180 s")
-        problems = lt.process_problems(lt.read_procs(), ctx["tree"], ini)
+        procs = lt.read_procs()
+        problems = lt.process_problems(procs, ctx["tree"], ini, venv=(HERE.parent / "lcnc-gateway/.venv").resolve())
+        gw = next((p for p in procs if "gateway:app" in p["cmdline"]), None)
+        problems += lt.log_problems(lt.open_files(gw["pid"]), run / "logs") if gw else []
         if problems:
             raise Refused("process proof: " + "; ".join(problems))
         log_env = _launcher_env(ini).get("LCNC_RESOLVED_LOG_DIR")
@@ -262,10 +268,11 @@ def home_cases(joints: int):
             c.request("home_all") if joint is None else c.request("home", joint=joint)
             try:
                 st = _wait(c, lambda s: (s.get("homed_joints") or []) == expected and s.get("inpos"), 60, case)
-                observed = st.get("homed_joints")
+                observed, completed = st.get("homed_joints"), True
             except RuntimeError:
-                observed = c.status.get("homed_joints")
-            rows.append(nc.eval_home(case, expected, observed))
+                # the bits alone are no PASS: the completion never came (R286 FI-I22)
+                observed, completed = c.status.get("homed_joints"), False
+            rows.append(nc.eval_home(case, expected, observed, completed))
         c.request("home_all")
         _wait(c, lambda s: all(s.get("homed_joints") or [False]) and s.get("inpos"), 60, "homed for the jogs")
         return rows
@@ -286,14 +293,25 @@ def jog_cases(joints: int):
                 c.request("jog_cont", axis=axis, vel=sign * nc.JOG_SPEED)
                 time.sleep(0.3)
                 c.request("jog_stop", axis=axis)
-                t_anchor = time.monotonic()
-                anchor = c.status["joint_pos"][axis]
+                t_reply = time.monotonic()
                 time.sleep(1.0)
-                samples = [(t - t_anchor, st["joint_pos"][axis], abs(st.get("current_vel") or 0.0))
-                           for t, st in list(frames) if t >= t_anchor and st.get("joint_pos")]
-                rows.append(nc.eval_jog(case, axis, sign, p0, anchor, samples))
+                after = [(t - t_reply, st) for t, st in list(frames) if t >= t_reply]
+                # the anchor: the FIRST status frame after the reply, with its age (R286 FI-I23)
+                anchor, age = (_pos(after[0][1], axis), after[0][0]) if after else (float("nan"), float("nan"))
+                samples = [(t, _pos(st, axis), _vel(st)) for t, st in after]
+                rows.append(nc.eval_jog(case, axis, sign, p0, anchor, samples, anchor_age=age))
         return rows
     return ("jog", step)
+
+
+def _pos(st, axis):
+    pos = st.get("joint_pos")
+    return pos[axis] if isinstance(pos, list) and len(pos) > axis else None
+
+
+def _vel(st):
+    v = st.get("current_vel")
+    return abs(v) if isinstance(v, (int, float)) else None   # unknown stays unknown, never 0
 
 
 def _near(st, target, tol=0.01) -> bool:

@@ -241,7 +241,7 @@ SUITE_HELPERS = ("lcnc-gateway/hal_reader.py", "lcnc-gateway/hal_watchdog.py",
                  "subroutines/surfacemap/compensation.py")
 
 
-def process_problems(procs: list[dict], tree: Path, ini: Path) -> list[str]:
+def process_problems(procs: list[dict], tree: Path, ini: Path, venv: Path | None = None) -> list[str]:
     """After the start (R283/R284): the launcher is the tree's with the
     copy's INI, the gateway's app dir the tree's, and each suite helper runs
     the tree's script — not the main checkout's that ~/.local/bin links. A
@@ -265,7 +265,34 @@ def process_problems(procs: list[dict], tree: Path, ini: Path) -> list[str]:
         if not runs:
             out.append(f"{name} is not running")
         out += [f"{name} runs {r}, not the run tree's" for r in runs if r.resolve() != tree / helper]
+    # the tool setter's feed: started by a path relative to the copy (its
+    # sim_toolsetter link leads into the run tree) — resolved where it runs
+    config = Path(ini).resolve().parent
+    feeds = [(p, a) for p in procs for a in p["cmdline"][:3] if Path(a).name == "sim_toolsetter_feed.py"]
+    if not feeds:
+        out.append("sim_toolsetter_feed.py is not running")
+    for p, a in feeds:
+        script = (Path(p.get("cwd") or "/") / a).resolve()
+        if not (script.is_relative_to(tree) or script.is_relative_to(config)):
+            out.append(f"sim_toolsetter_feed.py runs {script}, not the run's")
+    # each suite process's interpreter: the system's or the named venv (R269's shared resources)
+    for p in procs:
+        exe = p.get("exe") or ""
+        suite = any(Path(a).name in {Path(h).name for h in SUITE_HELPERS} | {"sim_toolsetter_feed.py"}
+                    for a in p["cmdline"][:3]) or "gateway:app" in p["cmdline"]
+        if suite and exe and not (exe.startswith(SYSTEM_PREFIXES) or (venv and exe.startswith(str(venv)))):
+            out.append(f"{p['cmdline'][:2]} runs on the interpreter {exe}")
     return out
+
+
+def log_problems(open_files: list[str], logs: Path) -> list[str]:
+    """The gateway's open log files (from /proc/<pid>/fd): at least one, every
+    one under the run's log folder — none in another instance's (R284)."""
+    logs = Path(logs).resolve()
+    named = [f for f in open_files if f.endswith((".ndjson", ".log", ".csv", ".jsonl"))]
+    if not named:
+        return ["the gateway has no log file open"]
+    return [f"the gateway writes {f}" for f in named if not Path(f).resolve().is_relative_to(logs)]
 
 
 def read_procs() -> list[dict]:
@@ -277,5 +304,48 @@ def read_procs() -> list[dict]:
         except OSError:
             continue
         if raw:
-            out.append({"pid": int(d.name), "cmdline": raw.rstrip(b"\0").decode(errors="replace").split("\0")})
+            entry = {"pid": int(d.name), "cmdline": raw.rstrip(b"\0").decode(errors="replace").split("\0")}
+            for key in ("exe", "cwd"):
+                try:
+                    entry[key] = os.readlink(d / key)
+                except OSError:
+                    entry[key] = None
+            out.append(entry)
     return out
+
+
+def open_files(pid: int) -> list[str]:
+    """What a process has open (/proc/<pid>/fd), as paths."""
+    out = []
+    for fd in Path(f"/proc/{pid}/fd").glob("*"):
+        try:
+            out.append(os.readlink(fd))
+        except OSError:
+            pass
+    return out
+
+
+#: The installed launcher's PATH rule, as it reads (LinuxCNC 2.9, R286 FI-I18).
+_LOCAL_BIN_RULE = 'if [[ "$PATH" != *".local/bin"* ]]; then\n        PATH=$HOME/.local/bin:$PATH'
+
+
+def linuxcnc_path(path: str, home: Path | None = None, script: Path = Path("/usr/bin/linuxcnc")) -> str:
+    """The PATH the installed `linuxcnc` script hands to HAL: it puts
+    ~/.local/bin first when PATH holds no ".local/bin" (Debian bug 839155 —
+    on this VM the links into the MAIN checkout), then its own bin dir and,
+    if present, LINUXCNC_HOME/scripts. Read from the script itself; a script
+    whose rule is not this one is refused, never guessed."""
+    import re
+    home = Path.home() if home is None else Path(home)
+    text = Path(script).read_text(errors="replace")
+    bin_dir = re.search(r"^LINUXCNC_BIN_DIR=(\S+)", text, re.M)
+    lc_home = re.search(r"^LINUXCNC_HOME=([^;\s]+)", text, re.M)
+    if not bin_dir or _LOCAL_BIN_RULE not in text or "PATH=$LINUXCNC_BIN_DIR:$PATH" not in text:
+        raise ValueError(f"{script}: not the known PATH rule — the effective PATH cannot be checked")
+    eff = path
+    if (home / ".local/bin").is_dir() and ".local/bin" not in path:
+        eff = f"{home / '.local/bin'}:{eff}"
+    eff = f"{bin_dir.group(1)}:{eff}"
+    if lc_home and "PATH=$LINUXCNC_HOME/scripts:$PATH" in text and Path(lc_home.group(1), "scripts").is_dir():
+        eff = f"{Path(lc_home.group(1), 'scripts')}:{eff}"
+    return eff

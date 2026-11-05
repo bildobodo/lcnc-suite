@@ -122,6 +122,7 @@ def test_the_process_proof_names_a_helper_outside_the_run_tree(tmp_path):
         {"cmdline": ["python3", str(tree / "lcnc-gateway/hal_reader.py")]},
         {"cmdline": ["python3", str(tree / "lcnc-gateway/hal_watchdog.py")]},
         {"cmdline": ["python3", str(tree / "subroutines/surfacemap/compensation.py"), "probe-results.txt", "cubic"]},
+        {"cmdline": ["python3", "sim_toolsetter/sim_toolsetter_feed.py"], "cwd": str(tree)},
     ]
     assert lt.process_problems(good, tree, ini) == []
     bad = [dict(p) for p in good]
@@ -345,3 +346,101 @@ def test_a_killed_orchestrator_is_restored_by_the_unit_from_pre_json(tmp_path):
     restored = json.loads(out.read_text())
     assert restored["outcome"] == "complete" and restored["isolation"] == [], restored
     assert json.loads(state.read_text())["active"] == {"lcnc-sim-gates": True, "bg-keepalive": True}
+
+
+# ── R286 FI-I18: the PATH LinuxCNC's own launcher builds ─────────────────
+LAUNCHER = """LINUXCNC_HOME=/usr; export LINUXCNC_HOME
+LINUXCNC_BIN_DIR=/usr/bin
+if [ -d $HOME/.local/bin ]; then
+    if [[ "$PATH" != *".local/bin"* ]]; then
+        PATH=$HOME/.local/bin:$PATH
+    fi
+fi
+PATH=$LINUXCNC_BIN_DIR:$PATH
+[ -d $LINUXCNC_HOME/scripts ] && PATH=$LINUXCNC_HOME/scripts:$PATH
+"""
+
+
+def test_the_effective_path_follows_the_installed_launchers_rule(tmp_path):
+    home = tmp_path / "home"
+    (home / ".local/bin").mkdir(parents=True)
+    script = tmp_path / "linuxcnc"
+    script.write_text(LAUNCHER)
+    # a PATH without ".local/bin": the launcher puts ~/.local/bin (the main checkout's links) first
+    eff = lt.linuxcnc_path("/run/bin:/usr/bin:/bin", home=home, script=script)
+    assert eff.split(":")[:2] == ["/usr/bin", str(home / ".local/bin")]
+    # the run's bin named .local/bin: nothing prepended but the launcher's own bin dir
+    eff = lt.linuxcnc_path("/run/.local/bin:/usr/bin:/bin", home=home, script=script)
+    assert eff.split(":")[:2] == ["/usr/bin", "/run/.local/bin"]
+    # a launcher whose PATH rule is not the known one: refused, never guessed
+    script.write_text("PATH=/opt/odd:$PATH\n")
+    with pytest.raises(ValueError, match="PATH rule"):
+        lt.linuxcnc_path("/run/.local/bin:/usr/bin", home=home, script=script)
+
+
+def test_the_installed_launcher_would_run_the_main_checkouts_helpers_without_the_run_bin_name():
+    """The counter-case against THIS VM's /usr/bin/linuxcnc (read only)."""
+    import shutil
+    if not Path("/usr/bin/linuxcnc").is_file():
+        pytest.skip("no installed LinuxCNC launcher")
+    eff = lt.linuxcnc_path("/tmp/run/bin:/usr/bin:/bin")
+    if (Path.home() / ".local/bin").is_dir():
+        assert str(Path.home() / ".local/bin") in eff.split(":"), "the launcher's rule as installed"
+    eff = lt.linuxcnc_path("/tmp/run/.local/bin:/usr/bin:/bin")
+    assert str(Path.home() / ".local/bin") not in eff.split(":")
+    assert shutil.which("hal_reader.py", path=eff) in (None, "/tmp/run/.local/bin/hal_reader.py")
+
+
+# ── R286 FI-I22 / FI-I23: no PASS without completion or known values ─────
+def test_a_home_whose_completion_never_came_is_red_with_the_right_bits():
+    timed_out = nc.eval_home("home-all", [True, True, True], [True, True, True], completed=False)
+    assert timed_out["status"] == "FAIL" and "completion" in timed_out["detail"]
+
+
+def test_an_unknown_or_non_finite_jog_value_is_never_a_standstill():
+    nan = float("nan")
+    assert nc.eval_jog("jog-x+", 0, 1, 300.0, nan, [(0.1, 301.0, 0.0)])["status"] == "incomplete"
+    assert nc.eval_jog("jog-x+", 0, 1, 300.0, 315.0, [(0.01, 315.0, None), (0.02, 315.0, nan)])["status"] == "incomplete"
+    # an anchor frame older than its bound: the anchor is not proven
+    stale = nc.eval_jog("jog-x+", 0, 1, 300.0, 315.0, [(0.1, 316.0, 0.0)], anchor_age=0.25)
+    assert stale["status"] == "incomplete" and "anchor" in stale["detail"]
+
+
+def test_the_client_takes_only_status_frames_as_status():
+    from test_support.live_session import SimulatorClient
+    seen = []
+    c = SimulatorClient("", auto_confirm=False, on_status=lambda t, st: seen.append(st))
+    c.take({"type": "status", "data": {"current_vel": 3.0}})
+    c.take({"type": "status_delta", "data": {"current_vel": 1.0}})
+    c.take({"type": "tool_table", "data": {"current_vel": 99.0}})   # a reply carrying data: no status
+    assert [s["current_vel"] for s in seen] == [3.0, 1.0] and c.status["current_vel"] == 1.0
+
+
+def test_the_process_proof_checks_the_feed_the_interpreters_and_the_gateways_logs(tmp_path):
+    tree, config = tmp_path / "run/tree", tmp_path / "run/configs/sim"
+    ini = config / "lcnc_suite_sim_3axis_xyz.ini"
+    feed = tree / "examples/sim_config/sim_toolsetter/sim_toolsetter_feed.py"
+    feed.parent.mkdir(parents=True)
+    feed.write_text("")
+    config.mkdir(parents=True)
+    (config / "sim_toolsetter").symlink_to(feed.parent, target_is_directory=True)
+    py = "/usr/bin/python3.13"
+    procs = [
+        {"cmdline": ["bash", str(tree / "lcnc-suite"), "-ini", str(ini)], "exe": "/usr/bin/bash", "cwd": str(config)},
+        {"cmdline": ["python3", "-m", "uvicorn", "gateway:app", "--app-dir", str(tree / "lcnc-gateway")], "exe": py, "cwd": str(tree)},
+        {"cmdline": ["python3", str(tree / "lcnc-gateway/hal_reader.py")], "exe": py, "cwd": str(config)},
+        {"cmdline": ["python3", str(tree / "lcnc-gateway/hal_watchdog.py")], "exe": py, "cwd": str(config)},
+        {"cmdline": ["python3", str(tree / "subroutines/surfacemap/compensation.py"), "x", "cubic"], "exe": py, "cwd": str(config)},
+        {"cmdline": ["python3", "sim_toolsetter/sim_toolsetter_feed.py"], "exe": py, "cwd": str(config)},
+    ]
+    assert lt.process_problems(procs, tree, ini) == []
+    odd = [dict(p) for p in procs]
+    odd[5] = {**odd[5], "cwd": "/home/cnc/linuxcnc/configs/lcnc_suite_sim_gates"}
+    assert any("sim_toolsetter_feed.py" in p for p in lt.process_problems(odd, tree, ini))
+    odd = [dict(p) for p in procs]
+    odd[2] = {**odd[2], "exe": "/home/x/other-venv/bin/python3"}
+    assert any("interpreter" in p for p in lt.process_problems(odd, tree, ini))
+    logs = tmp_path / "run/logs"
+    assert lt.log_problems([str(logs / "trace.ndjson"), "/dev/null"], logs) == []
+    assert lt.log_problems([str(logs / "trace.ndjson"), "/home/cnc/lcnc-suite-gates/runlogs/trace.ndjson"], logs)
+    assert lt.log_problems([], logs), "no log file open at all is no proof"
