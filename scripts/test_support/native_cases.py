@@ -155,16 +155,22 @@ def _failures(errors) -> list[str]:
 RETURN_TOL = 0.001            # mm: the return's own target, at rest
 
 
-def eval_m600_return(case: str, call, end, top_z: float, errors=()) -> dict:
+def eval_m600_return(case: str, call, end, top_z: float, errors=(), setting=None, call_tool=None,
+                     call_offset=None, tool=None, end_tool=None, table=None, applied=None) -> dict:
     """M600's return with #3106 = 1 (operator 2026-11-05): after the
     measurement the spindle is at the top of travel (`top_z`, the routine's
-    drive-free G53 Z0) at the X/Y where M600 was called — Z never descends
-    on its own. `call` / `end`: joint positions (x, y, z), the call's read
-    before the send, the end's at the confirmed completion. A routine error
-    is a FAIL; a known contradiction wins over an unread value; the case
-    proves the climb only from the top (a call below it is incomplete)."""
+    drive-free G53 Z0) at the X/Y where M600 was called — Z never descends on
+    its own. `call` / `end`: joint positions (x, y, z), the call's read before
+    the send, the end's at the confirmed completion. The case proves the
+    climb the old return could not make (Codex R307): `setting` (#3106) is 1,
+    the call at the top with an applied length (`call_offset`, the empty
+    spindle 0) shorter than the new tool's; the end has the target `tool`,
+    its stored `table` length applied (`applied`), no NML error. A known
+    contradiction is FAIL whatever else is unread; a missing proof is
+    incomplete — "no error" alone is no PASS."""
     measured = {"call": None if call is None else list(call), "end": None if end is None else list(end),
-                "top_z": top_z, "errors": list(errors)}
+                "top_z": top_z, "errors": list(errors), "setting_3106": setting, "call_tool": call_tool,
+                "call_offset": call_offset, "tool": tool, "end_tool": end_tool, "table": table, "applied": applied}
 
     def known(p, i):
         return p is not None and len(p) > i and _finite(p[i])
@@ -176,11 +182,22 @@ def eval_m600_return(case: str, call, end, top_z: float, errors=()) -> dict:
     for i, axis in ((0, "X"), (1, "Y")):
         if known(end, i) and known(call, i) and abs(end[i] - call[i]) > RETURN_TOL:
             return _row(case, "FAIL", f"{axis} ended at {end[i]:.3f}, the call was at {call[i]:.3f}", **measured)
-    if not all(known(end, i) and known(call, i) for i in range(3)):
-        return _row(case, "incomplete", "a position not read", **measured)
+    if end_tool is not None and tool is not None and end_tool != tool:
+        return _row(case, "FAIL", f"T{end_tool} in the spindle, T{tool} expected", **measured)
+    if _finite(table, applied) and abs(table - applied) > SAME:
+        return _row(case, "FAIL", f"{applied:.4f} applied, the stored length is {table:.4f}", **measured)
+    if setting is None or not _finite(setting) or setting != 1:
+        return _row(case, "incomplete", f"#3106 is {setting} — the return is not on", **measured)
+    if not (all(known(end, i) and known(call, i) for i in range(3)) and _finite(call_offset, table, applied)
+            and end_tool is not None and tool is not None):
+        return _row(case, "incomplete", "a position, a tool or a length not read", **measured)
     if abs(call[2] - top_z) > RETURN_TOL:
         return _row(case, "incomplete", f"the call was at Z {call[2]:.3f}, not the top — no climb to prove", **measured)
-    return _row(case, "PASS", "back at the call's X/Y at the top; Z stayed up", **measured)
+    if not table > call_offset:
+        return _row(case, "incomplete", f"T{tool} ({table:.3f} mm) is not longer than the applied {call_offset:.3f} mm"
+                                        " — no climb to prove", **measured)
+    return _row(case, "PASS", f"from the top, T{call_tool} {call_offset:.3f} mm → T{tool} {table:.4f} mm stored and"
+                              " applied; back at the call's X/Y, Z stayed up", **measured)
 
 
 def counter(case: str, inner: dict, base: dict) -> dict:

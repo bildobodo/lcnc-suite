@@ -3058,7 +3058,7 @@ def test_each_t1_measurement_starts_where_the_unload_left_it_and_its_return_is_j
         def __init__(self):
             self.status = {"tool_number": 99, "tool_offset": [0, 0, 50], "tool_table_z": 50.0,
                            "joint_pos": [10.0, 10.0, -60.0]}
-            self.vars = {n: 0 for n in nr.TOOLSETTER_VARS} | {3102: -180}
+            self.vars = {n: 0 for n in nr.TOOLSETTER_VARS} | {3102: -180, 3106: 1}   # the copy's return on
             self.table = 50.0
             self.t1_end_z = 0.0
 
@@ -3097,17 +3097,32 @@ def test_each_t1_measurement_starts_where_the_unload_left_it_and_its_return_is_j
     assert {r["case"]: r for r in rows}["m600-t1-return"]["status"] == "FAIL"
 
 
-@pytest.mark.parametrize("call, end, errors, status, part", [
-    ((0, 0, 0), (0, 0, 0), (), "PASS", "top"),
-    ((0, 0, 0), (0, 0, -20), (), "FAIL", "Z ended"),
-    ((0, 0, 0), (1, 0, 0), (), "FAIL", "X ended"),
-    ((0, 0, 0), (0, 0, 0), ((11, "Linear move on line 596 would exceed Z's positive limit"),), "FAIL", "596"),
-    ((None, 0, 0), (0, 0, -20), (), "FAIL", "Z ended"),          # a known contradiction beats an unread value
-    ((None, 0, 0), (0, 0, 0), (), "incomplete", "not read"),
-    ((0, 0, -60), (0, 0, 0), (), "incomplete", "not the top"),     # no climb to prove from below
+_RET = dict(setting=1.0, call_tool=0, call_offset=0.0, tool=1, end_tool=1, table=49.9996, applied=49.9996)
+
+
+@pytest.mark.parametrize("change, status, part", [
+    ({}, "PASS", "T0 0.000 mm"),
+    ({"end": (0, 0, -20)}, "FAIL", "Z ended"),
+    ({"end": (1, 0, 0)}, "FAIL", "X ended"),
+    ({"errors": ((11, "Linear move on line 596 would exceed Z's positive limit"),)}, "FAIL", "596"),
+    ({"end_tool": 99}, "FAIL", "T99"),
+    ({"applied": 50.0}, "FAIL", "applied"),
+    ({"call": (None, 0, 0), "end": (0, 0, -20)}, "FAIL", "Z ended"),   # a known contradiction beats an unread value
+    ({"call": (None, 0, 0)}, "incomplete", "not read"),
+    ({"call": (0, 0, -60)}, "incomplete", "not the top"),           # no climb to prove from below
+    ({"setting": 0.0}, "incomplete", "#3106"),                        # the return not on
+    ({"setting": None}, "incomplete", "#3106"),
+    ({"call_tool": 3, "call_offset": 73.0}, "incomplete", "not longer"),   # the new tool is no climb
+    ({"call_offset": None}, "incomplete", "not read"),
+    ({"applied": None}, "incomplete", "not read"),
 ])
-def test_the_m600_return_is_judged_at_the_top_and_the_calls_xy(call, end, errors, status, part):
-    r = nc.eval_m600_return("m600-t1-return", call, end, 0.0, errors=errors)
+def test_the_m600_return_is_judged_at_the_top_and_the_calls_xy(change, status, part):
+    """Codex R307: the fixed case shows #3106 = 1, a start from the top with an
+    empty spindle or a shorter applied length (the climb the old return could
+    not make), the target tool with its stored and applied length equal, the
+    end at the call's X/Y at Z0 and no NML error — "no error" alone is no PASS."""
+    args = {"call": (0, 0, 0), "end": (0, 0, 0), "errors": (), **_RET, **change}
+    r = nc.eval_m600_return("m600-t1-return", args.pop("call"), args.pop("end"), 0.0, **args)
     assert r["status"] == status and part in r["detail"], r
 
 

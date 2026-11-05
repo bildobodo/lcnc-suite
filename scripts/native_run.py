@@ -849,7 +849,9 @@ def m600_cases():
             u = _routine(c, "T0 M600", vars=vars_, declared=[0], deadline=120.0,
                          extra=lambda st: st.get("tool_number") == 0)
             unload = (u, c.status.get("tool_number"), (c.status.get("tool_offset") or [None] * 3)[2])
-            call = list((c.status.get("joint_pos") or [None] * 3)[:3])
+            pre = c.status
+            call = (list((pre.get("joint_pos") or [None] * 3)[:3]), pre.get("tool_number"),
+                    (pre.get("tool_offset") or [None] * 3)[2])
             r = _routine(c, f"T{tool} M600", vars=vars_, declared=[tool], deadline=180.0,
                          extra=lambda st: st.get("tool_number") == tool)
             st = c.status
@@ -863,10 +865,14 @@ def m600_cases():
         row["table_on_disk"] = _tool_z(c, tool)
         rows.append(row)
         # the return (#3106 = 1): from the top with the longer T1, back at the
-        # call's X/Y and Z still up; re-judged against a call planted 1 mm off in X
-        back = nc.eval_m600_return("m600-t1-return", call, end, M600_TOP_Z, errors=r["errors"])
-        planted = nc.eval_m600_return("m600-t1-return", [None if call[0] is None else call[0] + 1, *call[1:]],
-                                      end, M600_TOP_Z, errors=r["errors"])
+        # call's X/Y and Z still up; re-judged against a call planted 1 mm off
+        # in X (Codex R307: the setting, the climb, the tool and its length shown)
+        (cpos, ctool, coff), st_end = call, c.status
+        ret = dict(errors=r["errors"], setting=ts.get(3106), call_tool=ctool, call_offset=coff, tool=tool,
+                   end_tool=st_end.get("tool_number"), table=length, applied=g43)
+        back = nc.eval_m600_return("m600-t1-return", cpos, end, M600_TOP_Z, **ret)
+        planted = nc.eval_m600_return("m600-t1-return", [None if cpos[0] is None else cpos[0] + 1, *cpos[1:]],
+                                      end, M600_TOP_Z, **ret)
         rows += [back, nc.counter("m600-t1-return.counter-x+1", planted, back)]
         # the release window is WAITED for (R292 FI-I26 B): a free frame at or
         # after the completion, or the window's end — then judged
