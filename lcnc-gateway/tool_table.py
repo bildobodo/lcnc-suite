@@ -14,7 +14,12 @@ import re
 from gateway_util import atomic_write_bytes
 
 _TOOL_TP_RE = re.compile(r"T(\d+)\s+P(\d+)")
-_TOOL_FIELD_RE = re.compile(r"([XYZD])([+-]?[\d.]+)")
+#: every field a LinuxCNC tool line may carry, in its own order (the offsets
+#: X–W, the diameter, the lathe's front/back angle and orientation) — read and
+#: written back whole: the writer used to drop X/Y and the parser never read
+#: the rest, so rewriting the table for one tool zeroed the others (Codex R321)
+_TOOL_FIELDS = ("X", "Y", "Z", "A", "B", "C", "U", "V", "W", "D", "I", "J", "Q")
+_TOOL_FIELD_RE = re.compile(r"([XYZABCUVWDIJQ])([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)")
 
 # Sidecar metadata fields kept in tool_library.json (beyond tool.tbl's T/P/Z/D).
 _TOOL_META_FIELDS = (
@@ -73,18 +78,24 @@ def parse_tool_table(path: str) -> list:
                 remark = remark.strip()
             else:
                 data_part = line
-            # Extract X/Y/Z/D fields in any order
-            fields = {m.group(1): float(m.group(2)) for m in _TOOL_FIELD_RE.finditer(data_part)}
-            tools.append({
-                "T": int(tp.group(1)),
-                "P": int(tp.group(2)),
-                "X": fields.get("X", 0.0),
-                "Y": fields.get("Y", 0.0),
-                "Z": fields.get("Z", 0.0),
-                "D": fields.get("D", 0.0),
-                "remark": remark,
-            })
+            # every field, in any order; X/Y/Z/D always (0 when absent), the
+            # others only when the line carries them
+            fields = {m.group(1): float(m.group(2)) for m in _TOOL_FIELD_RE.finditer(data_part[tp.end():])}
+            tool = {"T": int(tp.group(1)), "P": int(tp.group(2)),
+                    "X": fields.get("X", 0.0), "Y": fields.get("Y", 0.0),
+                    "Z": fields.get("Z", 0.0), "D": fields.get("D", 0.0)}
+            tool.update({k: v for k, v in fields.items() if k not in tool})
+            tool["remark"] = remark
+            tools.append(tool)
     return tools
+
+
+def _num(v: float, fixed: str) -> str:
+    """The value as `fixed` formats it when that is exactly the value, else in
+    full (a rewrite never rounds a value no one sent)."""
+    v = float(v)
+    text = format(v, fixed)
+    return text if float(text) == v else format(v, "+")
 
 
 def write_tool_table(path: str, tools: list):
@@ -93,10 +104,15 @@ def write_tool_table(path: str, tools: list):
     for t in sorted(tools, key=lambda x: x["T"]):
         tn = t["T"]
         pn = t.get("P", tn)
-        z = t.get("Z", 0.0)
-        d = t.get("D", 0.0)
         remark = t.get("remark", "")
-        line = f"T{tn:<5d} P{pn:<5d} Z{z:+013.6f}  D{d:+012.6f}"
+        line = f"T{tn:<5d} P{pn:<5d}"
+        for k in _TOOL_FIELDS:
+            if k == "Z":
+                line += f" Z{_num(t.get('Z', 0.0), '+013.6f')}"
+            elif k == "D":
+                line += f"  D{_num(t.get('D', 0.0), '+012.6f')}"
+            elif k in t and (k not in ("X", "Y") or t[k]):
+                line += f" {k}{_num(t[k], '+.6f')}"      # X/Y written when not 0; the others as the line had them
         if remark:
             line += f"   ; {remark}"
         lines.append(line + "\n")

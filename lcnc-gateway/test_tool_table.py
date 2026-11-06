@@ -26,6 +26,32 @@ class TestToolTableRoundTrip(unittest.TestCase):
         self.assertAlmostEqual(t["D"], 6.0, places=5)
         self.assertEqual(t["remark"], "endmill")
 
+    def test_every_field_of_a_linuxcnc_line_survives_a_rewrite(self):
+        """Codex R321 FI321-02: the writer dropped X/Y (and the parser never
+        read A–C, U–W, I, J, Q) — rewriting the table to change one tool
+        zeroed the offsets of every other one."""
+        fd, path = tempfile.mkstemp(suffix=".tbl")
+        os.close(fd)
+        try:
+            with open(path, "w") as f:
+                f.write("T1 P8 Z50 D6 ; one\n"
+                        "T2 P5 X3.25 Y-4.5 Z50.1 A1.5 B0 C-2 U0.1 V0.2 W0.3 D6 I12 J34 Q3 ; two\n")
+            before = parse_tool_table(path)
+            tools = [dict(t) for t in before]
+            tools[0]["Z"] = 49.0                         # change T1.Z only
+            write_tool_table(path, tools)
+            after = parse_tool_table(path)
+        finally:
+            os.unlink(path)
+        self.assertEqual(after[1], before[1], "the untouched T2 keeps every value")
+        self.assertEqual((after[1]["X"], after[1]["Y"], after[1]["Q"]), (3.25, -4.5, 3.0))
+        self.assertEqual({k: v for k, v in after[0].items() if k != "Z"}, {k: v for k, v in before[0].items() if k != "Z"})
+        self.assertEqual(after[0]["Z"], 49.0)
+
+    def test_a_value_with_more_decimals_is_not_rounded_by_a_rewrite(self):
+        out = self._roundtrip([{"T": 1, "P": 1, "Z": 12.3456789, "D": 6.0000001, "X": 0.1234567}])
+        self.assertEqual((out[0]["Z"], out[0]["D"], out[0]["X"]), (12.3456789, 6.0000001, 0.1234567))
+
     def test_sorted_by_tool_number(self):
         out = self._roundtrip([{"T": 5, "P": 5, "Z": 0, "D": 0, "remark": ""},
                                {"T": 1, "P": 1, "Z": 0, "D": 0, "remark": ""}])

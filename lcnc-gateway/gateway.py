@@ -5394,7 +5394,10 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                 return {"ok": False, "error": f"Cannot renumber T{old_num} — currently in spindle"}
 
             src["T"] = new_num
-            src["P"] = finite_int(msg.get("pocket", new_num), lo=0)
+            if "pocket" in msg:
+                # a renumber changes the number; an unsent pocket stays (Codex
+                # R321 FI321-02 — it used to become the new tool number)
+                src["P"] = finite_int(msg["pocket"], lo=0)
             src["Z"] = finite_float(msg.get("z_offset", src.get("Z", 0.0)))
             src["D"] = finite_float(msg.get("diameter", src.get("D", 0.0)), lo=0)
             src["remark"] = str(msg.get("remark", src.get("remark", "")))
