@@ -1,0 +1,176 @@
+{
+  "success": {
+    "reply": {
+      "ok": true
+    },
+    "calls": [
+      [
+        "halcmd",
+        "unlinkp",
+        "qtpyvcp.probe-in.out"
+      ],
+      [
+        "halcmd",
+        "sets",
+        "probe-in",
+        "1"
+      ],
+      [
+        "halcmd",
+        "sets",
+        "probe-in",
+        "0"
+      ]
+    ],
+    "final_fake_pin": 0
+  },
+  "high_timed_out_after_write": {
+    "reply": {
+      "ok": false,
+      "error": "simulate_probe_trip: Command '['halcmd', 'sets', 'probe-in', '1']' timed out after 2 seconds"
+    },
+    "calls": [
+      [
+        "halcmd",
+        "unlinkp",
+        "qtpyvcp.probe-in.out"
+      ],
+      [
+        "halcmd",
+        "sets",
+        "probe-in",
+        "1"
+      ]
+    ],
+    "final_fake_pin": 1
+  },
+  "cancel_during_high": {
+    "reply": {
+      "cancelled": true,
+      "lock_free_before_thread_end": true
+    },
+    "calls": [
+      [
+        "halcmd",
+        "unlinkp",
+        "qtpyvcp.probe-in.out"
+      ],
+      [
+        "halcmd",
+        "sets",
+        "probe-in",
+        "1"
+      ]
+    ],
+    "final_fake_pin": 1
+  },
+  "table_roundtrip": {
+    "before": [
+      {
+        "T": 1,
+        "P": 8,
+        "X": 1.25,
+        "Y": -2.5,
+        "Z": 10.0,
+        "D": 6.0,
+        "remark": "edited"
+      },
+      {
+        "T": 2,
+        "P": 9,
+        "X": 3.25,
+        "Y": -4.5,
+        "Z": 20.0,
+        "D": 12.0,
+        "remark": "untouched"
+      }
+    ],
+    "after": [
+      {
+        "T": 1,
+        "P": 8,
+        "X": 0.0,
+        "Y": 0.0,
+        "Z": 11.0,
+        "D": 6.0,
+        "remark": "edited"
+      },
+      {
+        "T": 2,
+        "P": 9,
+        "X": 0.0,
+        "Y": 0.0,
+        "Z": 20.0,
+        "D": 12.0,
+        "remark": "untouched"
+      }
+    ],
+    "bytes_after": ";Tool  Pocket Z Offset     Diameter     Remark\nT1     P8     Z+00011.000000  D+0006.000000   ; edited\nT2     P9     Z+00020.000000  D+0012.000000   ; untouched\n"
+  },
+  "renumber_without_pocket": {
+    "reply": {
+      "ok": true,
+      "tool_number": 7
+    },
+    "before": [
+      {
+        "T": 1,
+        "P": 8,
+        "X": 1.25,
+        "Y": -2.5,
+        "Z": 10.0,
+        "D": 6.0,
+        "remark": "edited"
+      },
+      {
+        "T": 2,
+        "P": 9,
+        "X": 3.25,
+        "Y": -4.5,
+        "Z": 20.0,
+        "D": 12.0,
+        "remark": "untouched"
+      }
+    ],
+    "after": [
+      {
+        "T": 2,
+        "P": 9,
+        "X": 0.0,
+        "Y": 0.0,
+        "Z": 20.0,
+        "D": 12.0,
+        "remark": "untouched"
+      },
+      {
+        "T": 7,
+        "P": 7,
+        "X": 0.0,
+        "Y": 0.0,
+        "Z": 10.0,
+        "D": 6.0,
+        "remark": "edited"
+      }
+    ],
+    "library_after": {
+      "2": {
+        "description": "two"
+      },
+      "7": {
+        "description": "one"
+      }
+    },
+    "cmd_calls": [
+      [
+        "load_tool_table",
+        [],
+        {}
+      ]
+    ]
+  },
+  "source": {
+    "lcnc-gateway/gateway.py": "bd15469d09176d896a4b7312ea4d3d8fbc4a8ec16b9f383911130f5342d5b62c",
+    "lcnc-gateway/tool_table.py": "4a32279e8640b9cbd43475ca5eb23dd466a8c8b388272651b28bfdd7660044f6",
+    "lcnc-gateway/test_command_dispatch.py": "d779ff67bfcf1b40ebef5a81c7c53019a153597e6978393854edfb79df616151"
+  }
+}

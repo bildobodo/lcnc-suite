@@ -1,0 +1,313 @@
+{
+  "round": "R321",
+  "source_commit": "41d0d1ab",
+  "document_commit": "01db79da",
+  "review_prefix": {
+    "bytes": 842016,
+    "sha256": "a72701787c063cba4141175ea8dc6273e2a57e22a1989f717ed877f9d81e64ca"
+  },
+  "request_sha256": "47988a1a6f297aee8d97301d3448692a41d6de94b63b39f3074a8b156424a50c",
+  "claims": {
+    "F-ARM.S3b": {
+      "id": "S3b",
+      "kind": "Daten",
+      "text": "Das Herzschlag-Budget eines Clients ist 3 s.",
+      "applies": [
+        "alle"
+      ],
+      "gap": "Gateway: kein Test bindet den Standardwert _HB_STALL_SEC"
+    },
+    "F-TRIP.S1b": {
+      "id": "S1b",
+      "kind": "Bedienbarkeit",
+      "text": "Eine gemeldete Auslösung erscheint im Banner mit Quittieren und wird protokolliert.",
+      "applies": [
+        "alle"
+      ],
+      "gap": "Browser/Gateway: Versand, Banner und Protokolleintrag beobachtet kein Test"
+    },
+    "F-SIMTRIP.S2": {
+      "id": "S2",
+      "kind": "Wirkung",
+      "text": "Sim-Trip pulst den Antast-Eingang probe-in kurz; eine fehlgeschlagene Zustellung wird gemeldet.",
+      "applies": [
+        "alle"
+      ],
+      "gap": "Gateway: kein Test des Handlers (halcmd sets probe-in); nativ in der Sim"
+    },
+    "F-JOG.S5b": {
+      "id": "S5b",
+      "kind": "Daten",
+      "text": "Jeder Jog-Knopf und sein Loslassen senden jog_cont / jog_stop seiner Achse und Richtung (die Diagonalen als Mehrfach-Jog sind eine eigene Aussage).",
+      "applies": [
+        "alle"
+      ],
+      "evidence": [],
+      "gap": "Browser: je Bildschirm-Knopf Achse und Richtung, parametrisiert; belegt sind bisher die Tastatur je Belegung und der Knopf X+"
+    },
+    "F-LOAD.S3": {
+      "id": "S3",
+      "kind": "Wirkung",
+      "text": "Neu laden übernimmt die neue Revision; Entladen leert Programm und Vorschau.",
+      "applies": [
+        "alle"
+      ],
+      "gap": "Browser/Gateway: Reload und Unload als Ergebnis nicht belegt"
+    },
+    "F-TOOLEDIT.S4": {
+      "id": "S4",
+      "kind": "Wirkung",
+      "text": "Anlegen, Ändern, Löschen und Umnummerieren ändern genau ihren Datensatz, erhalten die übrigen Werte und laden die Tabelle neu.",
+      "applies": [
+        "alle"
+      ],
+      "gap": "Gateway: kein Test vergleicht die Tabelle vor und nach je Aktion; nativ"
+    },
+    "F-TOOLMEASURE.S4b": {
+      "id": "S4b",
+      "kind": "Daten",
+      "text": "Jede Nummer der Abbildung ist die, die tool_touch_off.ngc für ihren Wert liest.",
+      "applies": [
+        "alle"
+      ],
+      "gap": "Unit: kein Test gleicht die Abbildung mit den Lesestellen der Routine ab"
+    },
+    "F-MACROFILES.S3": {
+      "id": "S3",
+      "kind": "Wirkung",
+      "text": "Im Gateway ist eine Umbenennung ein Schritt: neue Datei, alte weg, Leiste umgezogen, oder nichts.",
+      "applies": [
+        "alle"
+      ],
+      "gap": "Gateway: Atomarität der Umbenennung nicht belegt"
+    }
+  },
+  "source_files": {
+    "lcnc-gateway/gateway.py": {
+      "sha256": "bd15469d09176d896a4b7312ea4d3d8fbc4a8ec16b9f383911130f5342d5b62c",
+      "matches_41d0d1ab": true
+    },
+    "lcnc-gateway/tool_table.py": {
+      "sha256": "4a32279e8640b9cbd43475ca5eb23dd466a8c8b388272651b28bfdd7660044f6",
+      "matches_41d0d1ab": true
+    },
+    "lcnc-gateway/test_macros_gateway.py": {
+      "sha256": "b0fb96d764ab94031048d3c1a149db7ba410ecac96369cce761f691458fde7ca",
+      "matches_41d0d1ab": true
+    },
+    "lcnc-gateway/test_bulk_pipeline.py": {
+      "sha256": "55e2e95b02791920d54eb87444ede373b73dc19793becfe9a46ecdf5cf13adba",
+      "matches_41d0d1ab": true
+    },
+    "lcnc-gateway/test_command_dispatch.py": {
+      "sha256": "d779ff67bfcf1b40ebef5a81c7c53019a153597e6978393854edfb79df616151",
+      "matches_41d0d1ab": true
+    },
+    "lcnc-webui/src/toolsetterRules.contract.json": {
+      "sha256": "213779214d242ee78366779a239d3516a42601d8a819c0bae1c2284a5b73bfd2",
+      "matches_41d0d1ab": true
+    },
+    "subroutines/tool_length_probe/tool_touch_off.ngc": {
+      "sha256": "4990c7b303cb43bf0aa8cb11948277072874558f5902d3c48a59133ec555097d",
+      "matches_41d0d1ab": true
+    },
+    "lcnc-webui/src/JogStrip.vue": {
+      "sha256": "fb7d96af4db6100f24cb319a3d4cf155e74e8c841f0785189ec41066751469e6",
+      "matches_41d0d1ab": true
+    },
+    "lcnc-webui/src/GcodePanel.vue": {
+      "sha256": "0e9e8d400b3c8db4f3c3facd7922c18f2cc48b6693b881085a8e99c6580e38f0",
+      "matches_41d0d1ab": true
+    },
+    "lcnc-webui/src/MacrosPanel.vue": {
+      "sha256": "41e56db61e5d1859c09e4f43e879ffb15932918dbed00ad867aaf73d212365cd",
+      "matches_41d0d1ab": true
+    },
+    "lcnc-webui/e2e/mock-gateway.mjs": {
+      "sha256": "01328b2b6ff952eee9ab85f64872205e5f3e66ebbc088b5dcc606953ab3ed4da",
+      "matches_41d0d1ab": true
+    },
+    "lcnc-webui/e2e/macros.spec.ts": {
+      "sha256": "249fbd8c626503858f61448fcaee7df2dd0ce28578781390034d89ca91321768",
+      "matches_41d0d1ab": true
+    },
+    "scripts/inventory/functions.json": {
+      "sha256": "5bef0790daec914097f06d55ce9efef87804de978895ce286dd7b681ad5c441b",
+      "matches_41d0d1ab": true
+    }
+  },
+  "probe_cases": {
+    "success": {
+      "reply": {
+        "ok": true
+      },
+      "calls": [
+        [
+          "halcmd",
+          "unlinkp",
+          "qtpyvcp.probe-in.out"
+        ],
+        [
+          "halcmd",
+          "sets",
+          "probe-in",
+          "1"
+        ],
+        [
+          "halcmd",
+          "sets",
+          "probe-in",
+          "0"
+        ]
+      ],
+      "final_fake_pin": 0
+    },
+    "high_timed_out_after_write": {
+      "reply": {
+        "ok": false,
+        "error": "simulate_probe_trip: Command '['halcmd', 'sets', 'probe-in', '1']' timed out after 2 seconds"
+      },
+      "calls": [
+        [
+          "halcmd",
+          "unlinkp",
+          "qtpyvcp.probe-in.out"
+        ],
+        [
+          "halcmd",
+          "sets",
+          "probe-in",
+          "1"
+        ]
+      ],
+      "final_fake_pin": 1
+    },
+    "cancel_during_high": {
+      "reply": {
+        "cancelled": true,
+        "lock_free_before_thread_end": true
+      },
+      "calls": [
+        [
+          "halcmd",
+          "unlinkp",
+          "qtpyvcp.probe-in.out"
+        ],
+        [
+          "halcmd",
+          "sets",
+          "probe-in",
+          "1"
+        ]
+      ],
+      "final_fake_pin": 1
+    },
+    "table_roundtrip": {
+      "before": [
+        {
+          "T": 1,
+          "P": 8,
+          "X": 1.25,
+          "Y": -2.5,
+          "Z": 10.0,
+          "D": 6.0,
+          "remark": "edited"
+        },
+        {
+          "T": 2,
+          "P": 9,
+          "X": 3.25,
+          "Y": -4.5,
+          "Z": 20.0,
+          "D": 12.0,
+          "remark": "untouched"
+        }
+      ],
+      "after": [
+        {
+          "T": 1,
+          "P": 8,
+          "X": 0.0,
+          "Y": 0.0,
+          "Z": 11.0,
+          "D": 6.0,
+          "remark": "edited"
+        },
+        {
+          "T": 2,
+          "P": 9,
+          "X": 0.0,
+          "Y": 0.0,
+          "Z": 20.0,
+          "D": 12.0,
+          "remark": "untouched"
+        }
+      ],
+      "bytes_after": ";Tool  Pocket Z Offset     Diameter     Remark\nT1     P8     Z+00011.000000  D+0006.000000   ; edited\nT2     P9     Z+00020.000000  D+0012.000000   ; untouched\n"
+    },
+    "renumber_without_pocket": {
+      "reply": {
+        "ok": true,
+        "tool_number": 7
+      },
+      "before": [
+        {
+          "T": 1,
+          "P": 8,
+          "X": 1.25,
+          "Y": -2.5,
+          "Z": 10.0,
+          "D": 6.0,
+          "remark": "edited"
+        },
+        {
+          "T": 2,
+          "P": 9,
+          "X": 3.25,
+          "Y": -4.5,
+          "Z": 20.0,
+          "D": 12.0,
+          "remark": "untouched"
+        }
+      ],
+      "after": [
+        {
+          "T": 2,
+          "P": 9,
+          "X": 0.0,
+          "Y": 0.0,
+          "Z": 20.0,
+          "D": 12.0,
+          "remark": "untouched"
+        },
+        {
+          "T": 7,
+          "P": 7,
+          "X": 0.0,
+          "Y": 0.0,
+          "Z": 10.0,
+          "D": 6.0,
+          "remark": "edited"
+        }
+      ],
+      "library_after": {
+        "2": {
+          "description": "two"
+        },
+        "7": {
+          "description": "one"
+        }
+      },
+      "cmd_calls": [
+        [
+          "load_tool_table",
+          [],
+          {}
+        ]
+      ]
+    }
+  },
+  "probe_exit_code": 0,
+  "method": "Actual gateway handlers under fake LinuxCNC; subprocess.run completely replaced; tool files under /tmp; real renumber handler with admission and metadata storage replaced, outside this probe scope. Read-only source review of the other six plan items. No live endpoint or machine access. No full test gate for a plan round.",
+  "harness_note": "Initial standalone runs did not exit the restricted sandbox while the executor shutdown waited for its socketpair wakeup (interrupted / timeout). The final harness keeps a 5 ms loop wakeup timer until shutdown_default_executor ends. This changes no product code; the final five-case probe exits 0 in under one second."
+}

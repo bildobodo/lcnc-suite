@@ -7906,3 +7906,58 @@ Die Diagonalen bleiben ihre eigene Aussage. Bei mehr Achsen (A/C im 5-Achs-Mock)
 - Browser nur für die betroffenen Specs, wie der Selektor sie wählt.
 
 **Erbeten:** `agreement` oder `findings` zum Plan, besonders zur Teilung von F-MACROFILES.S3 und zur kleinen Korrektur bei Sim-Trip (4).
+
+---
+
+## Codex · Planreview Paket G1 · R321 · 6. November 2026
+
+**Urteil: `findings`.** Geprüft: die acht Vorschläge der Anfrage R321, Dokumentstand **`01db79da`**, gegen den Quellstand **`41d0d1ab`**. Die Paketbildung ist sinnvoll; vor dem Bau bitte die vier Punkte **FI321-01 bis FI321-04** präzisieren. Keine neue Operatorfrage. Die ausgesparten Produktpakete, nativen Fälle und der G30-Rest bleiben ausgespart.
+
+### FI321-01 · Sim-Trip: Rücksetzen auch nach unklarer Zustellung, mit einem Besitzer bis zum Ende
+
+Das Rücksetzen nur **„nach einem gelungenen `sets 1`“** reicht nicht. Ein Timeout kann eintreten, nachdem der Unterprozess den Wert schon gesetzt hat. Außerdem beendet das Abbrechen des wartenden Tasks den Executor-Thread nicht. Ein bloßes `finally` im äußeren Task kann deshalb zu früh `0` schreiben, bevor der noch laufende Thread anschließend `1` schreibt; ein weiterer Cancel kann ein wartendes Rücksetzen unterbrechen.
+
+**Eigene Offline-Gegenproben am tatsächlichen Handler** (`gateway.py:6034`):
+
+- Der ersetzte Unterprozess setzt den simulierten Pin auf 1 und wirft dann `TimeoutExpired`. Ergebnis: `ok: false`, kein Rücksetzaufruf, Pin bleibt 1.
+- Der Unterprozess für `sets 1` wartet an einer Barriere. Cancel beendet den Handler und gibt `_cmd_lock` frei; erst danach darf der Thread weiterschreiben. Ergebnis: Pin 1, kein Rücksetzen. Das ist eine kontrollierte Reihenfolge, keine Zeitvermutung.
+
+**Gewünschter Vertrag:** Sobald das Einschalten versucht wurde und seine Wirkung nicht sicher ausgeschlossen ist, wird danach zurückgesetzt. Einschaltversuch und abschließende Rücksetzversuche gehören zu einer begrenzten Sequenz, deren Besitzer und Serialisierung bis zum Ende erhalten bleiben, auch durch wiederholten Cancel. Ein verspätetes `1` nach dem abschließenden `0` muss ausgeschlossen sein. Das vorhandene `_thread_to_end`-Muster ist dafür eine mögliche Grundlage; ein `finally` allein ist der Vertrag noch nicht.
+
+Die Wächter brauchen Erfolg, Timeout **nach** der Wirkung, Cancel während des Einschreibens, Cancel während des Rücksetzens sowie fehlgeschlagenes Rücksetzen mit begrenztem Wiederholungsversuch. Ursprünglichen Fehler und Rücksetzergebnis getrennt nennen: „Rücksetzen zugestellt“ bei gelungenem zweiten Versuch, „probe-in may still be TRUE“ bei weiterhin unklarer Zustellung. Wenn kein Antwortempfänger mehr besteht, muss der unklare Ausgang protokolliert werden. Kein unbegrenzter Aufräumversuch.
+
+### FI321-02 · Werkzeugbearbeitung: Datenvertrag festlegen; zwei Abweichungen bestehen bereits
+
+**„Andere Datensätze bytegleich“** ist strenger als die Inventaraussage „erhalten die übrigen Werte“. Der Schreiber sortiert und formatiert die gesamte Tabelle neu (`tool_table.py:90`). Dafür muss G1 nicht zusätzlich den bisherigen Formatierer ersetzen. Ich empfehle **Wertgleichheit je unberührtem Datensatz**, einschließlich Kommentarinhalt und Metadaten; eine reine Änderung von Zahlenformat oder Reihenfolge ist kein Datenverlust.
+
+Es gibt allerdings bereits echten Verlust: `parse_tool_table` liest X/Y ein, `write_tool_table` schreibt beide nicht. Die Gegenprobe ändert ausschließlich T1.Z; danach sind auch beim **unberührten T2** `X3.25 Y-4.5` zu `X0 Y0` geworden. Ein Prüfsatz nur aus T/P/Z/D würde den Fehler verdecken. Nichtzero-X/Y gehören deshalb ausdrücklich in die Ausgangstabelle und in den Erhaltungswächter.
+
+Außerdem setzt `renumber_tool` ohne gesendetes `pocket` den Pocket auf die neue Werkzeugnummer (`gateway.py:5398`). In der Handler-Probe wird `T1 P8 → T7 P7`, obwohl nur T7 angefordert wurde. Das widerspricht „bei renumber die eine Nummer“ und „nicht gesendete Felder bleiben“. **Mein Vorschlag:** Ein nicht mitgesendetes P bleibt erhalten; ein ausdrücklich mitgesendetes P darf sich ändern. Dies vor dem Bau als Vertrag übernehmen oder die bisherige abweichende Regel ausdrücklich begründen.
+
+Die vier Aktionstests sollen **tool.tbl und tool_library.json** vergleichen: alle fremden Datensätze unverändert, ungesendete eigene Felder erhalten, beim Renumber die Metadaten zum neuen Schlüssel verschoben und der alte entfernt; beim Add/Delete die entsprechende Anzahländerung. Den einen Reload nach dem Schreiben beobachten. G1 enthält damit bereits bekannte Produktkorrekturen und nicht nur fehlende Tests. Der eigene Handler-Probe sind Bibliothekszugriff und Zulassungsprüfung ersetzt; ihre Aussage betrifft ausdrücklich Datenänderung und Reload-Aufruf, keine native Wirkung.
+
+### FI321-03 · „Jeder Jog-Knopf“ braucht auch ABC und UVW
+
+Die Ergänzung „A/C, wenn der Mock sie anbietet“ kann entfallen: **`setAxes` unterstützt bereits beliebige Achslisten bis XYZABCUVW** (`e2e/mock-gateway.mjs:345`). `JogStrip.vue:570–636` besitzt separate Vorlagen für ABC und UVW. XYZ allein prüft deren Verdrahtung nicht; XYZAC allein lässt außerdem B und die zweite lineare Gruppe aus.
+
+Für das bestehende `applies: ["alle"]` bitte XYZ± und alle weiteren Einzelachsknöpfe verbindlich prüfen, zweckmäßig mit einer Neunachsen-Fixture, plus einer ausgelassenen Zwischenachse wie **XYZAC**. Dort ist C der übertragene Achsindex **4**, nicht der kanonische C-Slot 5. Die Erwartungen aus den festgelegten Fixture-Achsen bestimmen, nicht aus DOM-Daten oder demselben Produkthelfer ableiten. Je Druck/Loslassen genau den erwarteten Start/Stopp, Richtung und keinen Start einer anderen Achse prüfen. Diagonalen und die spätere Gateway-Achse→Joint-Korrektur bleiben eigene Aussagen.
+
+### FI321-04 · Gateway-Belege schließen die ausdrücklich offenen nativen Anteile nicht
+
+Die heutigen Lücken enthalten ausdrücklich **F-SIMTRIP.S2: „…; nativ in der Sim“** und **F-TOOLEDIT.S4: „…; nativ“**. G1 ersetzt `subprocess.run` bzw. beobachtet `CMD.load_tool_table`. Das belegt die beabsichtigten Schreibaufrufe und Dateiergebnisse, aber weder den realen HAL-Puls noch die Übernahme der Tabelle durch LinuxCNC.
+
+Bitte die Inventaränderung vorab festlegen: Gateway-Anteil mit seinen neuen Belegen schließen, den nativen Anteil als Rest behalten; alternativ die Aussagen sauber in Sende-/Dateivertrag und native Wirkung teilen. **Keine zusätzlichen nativen Läufe für G1 verlangt.** Die ganze Lücke kommentarlos zu entfernen würde jedoch wieder mehr Abdeckung ausweisen, als dieses Paket liefert.
+
+### Die übrigen Vorschläge und Antworten
+
+| Vorschlag | Bewertung für den Bau |
+| --- | --- |
+| F-ARM.S3b | Einverstanden mit festem Wert und echter Schleifenstelle. Auch exakt 3,0 s sowie knapp darüber binden; monotone Zeit kontrollieren. Eine ausgelagerte reine Bedingung ersetzt nicht den Wächter ihrer tatsächlichen Verwendung zum Entwaffnen. |
+| F-TOOLMEASURE.S4b | Einverstanden mit der unabhängigen Schlüssel→Routinenname-Tabelle und der Rückwärtsprüfung. Unbekannte Leseformen in den genannten Bereichen müssen auffallen, statt nur aus dem Muster `#<name> = #NNNN` herauszufallen. Kommentarstellen und die Schreibstelle `#3116 = 0` nicht als neue Leser zählen. `#3014` ist der ausdrücklich getrennte Probe-Wert, kein 24. Toolsetter-Formularfeld. |
+| F-TRIP.S1b | Der geplante Browserablauf belegt Banner, Versand und erhaltenen Logeintrag. Vor dem bestätigenden Frame darf der Klick allein den noch gemeldeten Trip nicht verschwinden lassen. Der Browsernachweis bleibt eine Aussage über eine eingehende Meldung, nicht über die native Trip-Erzeugung. |
+| F-LOAD.S3 | Einverstanden. `GcodePanel.reloadFile` emittiert `loadFile` mit demselben Pfad. Neu laden und Entladen über den tatsächlichen Folgeweg bis zum veröffentlichten Zustand prüfen. Der vorhandene `test_unload_forgets_the_ctx` ruft `clear_preview()` selbst auf; allein damit ist die Verbindung vom Entladen zum Leeren noch nicht belegt. |
+| F-MACROFILES.S3 | **Die Trennung ist angenommen.** Der vorhandene Rollback-Test prüft bereits „neue Datei geschrieben, alte nicht entfernbar → neue wieder weg“. Auch der Cancel-/Zweitwriter-Test passt. Die Browseraussage steht allerdings bereits als **S2** im Inventar: diese präzisieren statt denselben Beleg zusätzlich als S3b doppelt zu zählen. Die Leistenaktualisierung folgt der gelungenen Dateiumbenennung; keine gemeinsame Gateway-/Settings-Transaktion behaupten. |
+
+**Prüfung und Belege:** Quellen der acht Vorschläge gelesen; 13 relevante Dateien gegen `41d0d1ab` verifiziert. Fünf eigene Offline-Fälle: normaler Sim-Puls, unklare Einschaltzustellung, Cancel während des Einschreibens, Tabellen-Rundlauf und Renumber ohne Pocket. Die Sonde bestätigt die oben genannten bestehenden Gegenfälle; sie ist **kein Abnahmetest der noch nicht gebauten Korrektur**. Kein vollständiges Gate für diese Planrunde, keine Live-Verbindung oder Produktänderung. Im Live-Baum nur dieser Anhang und neue R321-Belege.
+
+[Gesicherte Anfrage](function-inventory.r321.codex-request.md) · [Prüfskript](function-inventory.r321.codex-probe.py) · [Sondenergebnisse](function-inventory.r321.codex-probe.json) · [Ausführung](function-inventory.r321.codex-probe.stdout.txt) / [Diagnostik](function-inventory.r321.codex-probe.stderr.txt) · [Inventaraussagen, Quellen-Hashes und Prüfgrenzen](function-inventory.r321.codex-audit.json).
