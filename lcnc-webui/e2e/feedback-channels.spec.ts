@@ -282,6 +282,39 @@ test("the banner has two tiers, its why opens with a tap, and every way out of t
   expectNoMachineAction((await recordedCmds()).filter(c => c !== "safety_trip_ack"));
 });
 
+test("a safety trip: the banner with Acknowledge; the click sends the ack, the trip stays until a status without it (F-TRIP.S1b)", async ({ page }) => {
+  // the inventory's F-TRIP.S1b (Codex R321–R322): no optimistic clear — a
+  // send that never arrives must not hide a trip the gateway still holds
+  await openReady(page);
+  const banner = page.locator(".bannerContent");
+  const ack = page.locator(".bannerActions").getByRole("button", { name: "Acknowledge", exact: true });
+  const acts = async () => (await recordedCmds()).filter(c => c !== "get_tool_table");
+  await expect(banner).not.toContainText("SAFETY TRIPPED");
+  await expect(ack).toHaveCount(0);
+
+  const trip = { type: "status_delta", armed: true, data: {}, safety_trip: { reason: "hb_timeout" } };
+  await ctl({ op: "raw", frame: trip });
+  await expect(banner.locator(".bannerError")).toContainText("SAFETY TRIPPED");
+  await ack.click();
+  await expect.poll(acts).toEqual(["safety_trip_ack"]);
+  // The ack has crossed to the mock, so the click's render is long done: read
+  // ONCE, no retry — a local clear would show here, and no frame has come
+  // that could bring the trip back.
+  expect(await banner.textContent(), "after the click, before any status").toContain("SAFETY TRIPPED");
+  expect(await ack.count(), "Acknowledge still offered").toBe(1);
+  // the gateway's own reply (no cmd field, gateway.py's reader), then a
+  // status still carrying the trip (one in flight): it stays
+  await ctl({ op: "raw", frame: { type: "reply", ok: true } });
+  await ctl({ op: "raw", frame: trip });
+  await expect(banner.locator(".bannerError")).toContainText("SAFETY TRIPPED");
+  await expect(ack).toBeVisible();
+  // the status without it confirms: gone
+  await ctl({ op: "raw", frame: { type: "status_delta", armed: true, data: {} } });
+  await expect(banner).not.toContainText("SAFETY TRIPPED");
+  await expect(ack).toHaveCount(0);
+  expect(await acts(), "one acknowledgement, nothing else").toEqual(["safety_trip_ack"]);
+});
+
 test("a program the gateway cannot confirm after a restart is named, not loaded — Load resolves it (Codex R16 XZ-08)", async ({ page }) => {
   await openReady(page);
   const banner = page.locator(".bannerContent");

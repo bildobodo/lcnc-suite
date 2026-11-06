@@ -146,7 +146,8 @@ TOOLSETTER = ("toolsetter-setup", "g30", "forms", "toolsetter.viewer")
 PROBING = ("probe-click", "compensation", "forms", "disarmed", "tabs")
 SETUP = ("offsets", "touchoff", "setup-gates", "setup-layout", "choices", "nine-axis", "strip-actions")
 STRIP = ("joint-jog", "keyboard-guards", "touch-hold", "touch-surface", "armed", "disarmed",
-         "choices", "setup-layout", "safety-during-edit", "setup-gates", "input-session", "strip-actions")
+         "choices", "setup-layout", "safety-during-edit", "setup-gates", "input-session", "strip-actions",
+         "jog-buttons")
 SETTINGS = ("forms", "appearance", "select-writes", "tabs", "disarmed", "feedback-channels",
             "keyboard-guards", "scenes.viewer")
 MACROS = ("macros", "run-hold", "disarmed")

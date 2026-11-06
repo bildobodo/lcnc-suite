@@ -13,25 +13,20 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Offene Aussagen
 
-16 Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.
+11 Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.
 
 | Funktion | Aussage | Art | gilt für | Lücke |
 |---|---|---|---|---|
-| Freigeben (Arm) und Sperren | Das Herzschlag-Budget eines Clients ist 3 s. | Daten | alle | Gateway: kein Test bindet den Standardwert _HB_STALL_SEC |
-| Sicherheits-Auslösung quittieren, Sicherheitskette | Eine gemeldete Auslösung erscheint im Banner mit Quittieren und wird protokolliert. | Bedienbarkeit | alle | Browser/Gateway: Versand, Banner und Protokolleintrag beobachtet kein Test |
-| Antast-Auslösung simulieren (nur Sim) | Sim-Trip pulst den Antast-Eingang probe-in kurz; eine fehlgeschlagene Zustellung wird gemeldet. | Wirkung | alle | Gateway: kein Test des Handlers (halcmd sets probe-in); nativ in der Sim |
+| Sicherheits-Auslösung quittieren, Sicherheitskette | Eine Auslösung und ihre Quittung werden protokolliert. | Daten | alle | Gateway: der Trace trägt safety.tripped und safety.trip_acknowledged, kein Test beobachtet sie; ob das Meldungszentrum die Auslösung verzeichnet, ist offen (Frage an den Betreiber) |
+| Antast-Auslösung simulieren (nur Sim) | In der Sim kommt der Puls am HAL-Pin probe-in an. | Wirkung | alle | Nativ: der HAL-Puls an probe-in in der Sim nicht belegt |
 | Referenzieren und Referenz aufheben | Home je Achse sendet den Joint seiner Achse. | Daten | 3axis_xyz, 5axis_xyzac, 6axis_twp_xyzabc | Browser: sendet die Achsposition als Joint (SetupStrip a.index) und liest homed_joints an derselben Stelle — richtig, wo Joint = Achsposition (alle ausgelieferten Konfigurationen), falsch, wo nicht (Gantry, eigene Kinematik); braucht eine Achse→Joint-Zuordnung vom Gateway |
-| Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren | Jeder Jog-Knopf und sein Loslassen senden jog_cont / jog_stop seiner Achse und Richtung (die Diagonalen als Mehrfach-Jog sind eine eigene Aussage). | Daten | alle | Browser: je Bildschirm-Knopf Achse und Richtung, parametrisiert; belegt sind bisher die Tastatur je Belegung und der Knopf X+ |
 | Overrides: Vorschub, Eilgang, Spindel | Während des Surface-Scans meldet der Status den Feed-Override gesperrt; nach dem Ende ist er wieder freigegeben. | Wirkung | offen | nativ: der Surface-Scan-Lauf (Q282-2) |
 | Kühlmittel: Flood und Mist | Auf echtem LinuxCNC schalten Flood und Mist ihre HAL-Ausgänge. | Wirkung | offen | nativ (native Stufe) |
 | Antippen (Touch-off) und Nullen je Achse | Plane: das Remap schreibt den angetippten Wert in G54. | Wirkung | Plane | kein Test liest G54 nach dem Remap; nativ (scripts/twp_touchoff_plane_check.py, Laufbindung offen) |
 | Geschwenkte Ebene (TWP): erfassen, aufheben, neu ausrichten | Erfassen, Ausrichten und Aufheben ändern Ebene und Nullpunkt, wie die Anzeige es sagt. | Wirkung | Machine, Plane | nativ: scripts/twp_capture_check.py und twp_reorient_check.py (Laufbindung offen) |
-| Programm laden, neu laden, entladen | Neu laden übernimmt die neue Revision; Entladen leert Programm und Vorschau. | Wirkung | alle | Browser/Gateway: Reload und Unload als Ergebnis nicht belegt |
-| Werkzeug anlegen, bearbeiten, löschen, umnummerieren | Anlegen, Ändern, Löschen und Umnummerieren ändern genau ihren Datensatz, erhalten die übrigen Werte und laden die Tabelle neu. | Wirkung | alle | Gateway: kein Test vergleicht die Tabelle vor und nach je Aktion; nativ |
-| Werkzeuglänge messen (M600) und Werkzeug entladen | Jede Nummer der Abbildung ist die, die tool_touch_off.ngc für ihren Wert liest. | Daten | alle | Unit: kein Test gleicht die Abbildung mit den Lesestellen der Routine ab |
+| Werkzeug anlegen, bearbeiten, löschen, umnummerieren | LinuxCNC übernimmt die geschriebene Tabelle. | Wirkung | alle | Nativ: das Neuladen in LinuxCNC nicht belegt |
 | Fläche abtasten (Surface-Scan) | Auf echtem LinuxCNC tastet der Scan das Raster ab und liefert die Punkte für die Kompensation. | Wirkung | 3axis_xyz | nativ (native Stufe, mit hohem Antastvorschub über die Scan-Variablen) |
 | Flächenkompensation ein/aus und Interpolation umschalten | Auf echtem LinuxCNC wirkt AN/AUS, und die drei Methoden unterscheiden sich an bekannten Punkten einer nicht ebenen Fläche. | Wirkung | 3axis_xyz | nativer Lauf offen |
-| Makros verwalten: anlegen, bearbeiten, umbenennen, löschen, importieren, herunterladen | Im Gateway ist eine Umbenennung ein Schritt: neue Datei, alte weg, Leiste umgezogen, oder nichts. | Wirkung | alle | Gateway: Atomarität der Umbenennung nicht belegt |
 | Verbindung: Anmeldung, Herzschlag, Wiederverbindung, Auslieferung | Ein Befehl, dessen Wert die Handlung bestimmt, wird ohne diesen Wert abgelehnt: home ohne joint, set_optional_stop / set_block_delete ohne Wahrheitswert, ein Override ohne scale, spindle_forward / spindle_reverse ohne speed; wo ein Standard die sichere Richtung ist (arm ohne armed → entwaffnen), ist er ausdrücklich so entschieden. | Ablehnung | alle | Gateway: heute führt es diese Befehle mit einem Standard aus (home ohne joint referenziert alle, "false" schaltet M01 ein, ein Override ohne scale setzt 100 %); 24 finite_*(msg.get(…, Standard)) und 9 bool(msg.get(…)) sind je Befehl zu sichten, bevor ein Standard entfällt — ein eigenes Gateway-Paket (F-COMP S3 war der erste Fall); der WebUI-Client sendet jedes Feld (commandShapes.test.ts) |
 
 **Ohne formulierte Aussagen:** 18 Funktionen ohne eigene Maschinenwirkung — Programm herunterladen `F-PROGDOWNLOAD`, G-Code ansehen, aktive Codes, Codewort-Referenz, Statistik `F-GCODEVIEW`, Vorschau des Werkzeugwegs `F-PREVIEW`, Werkzeugtabelle ansehen, suchen, sortieren `F-TOOLTABLE`, Werkzeugtabelle herunterladen `F-TOOLDOWNLOAD`, Makro-Leiste einrichten `F-MACROBAR`, Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab `F-SIM`, 3D-Ansicht bedienen: Ansichten, Würfel, Spur löschen, Hinweise `F-VIEW`, 3D-Ansicht einstellen: Ebenen, Farben, Projektion, Verfolgung, HUD `F-VIEWSET`, Kamerabild (Bild im Bild) und Überlagerung `F-CAMERA`, Darstellung: Farbschema, Vollbild, Bildschirm wach halten `F-DISPLAY`, Meldungen: Nachrichtenzentrale, Filter, Kopieren, Löschen `F-MESSAGES`, Navigation: Tabs und Seitenleiste `F-TABS`, Diagnose: HAL-Anzeige, Timing, Telemetrie `F-DIAG`, Eingabehilfen: Zahlen- und Text-Tastatur am Bildschirm `F-INPUTHELP`, Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe `SYS-CONTROLS`, Statusübertragung (Rahmen und gemeinsame Felder) `SYS-STATUS`, Maschinenkonfiguration lesen: Achsen, Gelenke, Grenzen, Kinematik, Remaps, Profile `SYS-CONFIG`
@@ -40,14 +35,14 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Freigeben (Arm) und Sperren** `F-ARM` | Einstellungen, Leiste › Sicherheit | 6 | 4 | 3 | 1 |
+| **Freigeben (Arm) und Sperren** `F-ARM` | Einstellungen, Leiste › Sicherheit | 6 | 4 | 4 | 0 |
 | **Not-Halt auslösen und zurücksetzen** `F-ESTOP` | Leiste › Sicherheit | 6 | 5 | 5 | 0 |
-| **Sicherheits-Auslösung quittieren, Sicherheitskette** `F-TRIP` | Banner | 6 | 2 | 1 | 1 |
+| **Sicherheits-Auslösung quittieren, Sicherheitskette** `F-TRIP` | Banner | 6 | 3 | 2 | 1 |
 | **Maschine ein und aus** `F-POWER` | Leiste › Sicherheit | 6 | 1 | 1 | 0 |
 | **Abbrechen (Abort)** `F-ABORT` | Banner, Makro-Leiste, Tab „Macros“, Tab „Probing“, Tab „Program“, Tab-Kopf (Abort) | 9 | 1 | 1 | 0 |
 | **Betriebsart: Manuell, MDI, Automatik** `F-MODE` | Leiste › Jog | 4 | 1 | 1 | 0 |
 | **Herunterfahren** `F-SHUTDOWN` | Dialog, Kopfzeile | 4 | 1 | 1 | 0 |
-| **Antast-Auslösung simulieren (nur Sim)** `F-SIMTRIP` | Tab „Probing“ | 3 | 2 | 1 | 1 |
+| **Antast-Auslösung simulieren (nur Sim)** `F-SIMTRIP` | Tab „Probing“ | 3 | 3 | 2 | 1 |
 
 ### Freigeben (Arm) und Sperren
 
@@ -57,8 +52,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: gateway: `test_button_gates_d.py` — test_arming_waits_for_the_acknowledgement; browser: `setup-gates.spec.ts` — the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11)
 - **S3 (Wirkung):** Ein Client, der länger als sein Herzschlag-Budget schweigt, verliert seine Freigabe (geprüft mit verkürztem Budget). — gilt für: alle
   - Beleg: gateway: `test_ws_command_worker.py` — test_hb_stall_disarms_silent_client
-- **S3b (Daten):** Das Herzschlag-Budget eines Clients ist 3 s. — gilt für: alle
-  - Beleg: **offen** — Lücke: Gateway: kein Test bindet den Standardwert _HB_STALL_SEC
+- **S3b (Daten):** Das Herzschlag-Budget eines Clients ist 3 s auf monotoner Zeit; erst darüber entwaffnet die Statusschleife. — gilt für: alle
+  - Beleg: gateway: `test_hb_budget.py` — test_the_budget_is_three_seconds; gateway: `test_hb_budget.py` — test_its_boundary_on_monotonic_time; gateway: `test_hb_budget.py` — test_a_silent_armed_client_is_disarmed_by_the_loop; gateway: `test_hb_budget.py` — test_a_beating_client_stays_armed
 
 ### Not-Halt auslösen und zurücksetzen
 
@@ -77,8 +72,10 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 - **S1 (Daten):** Die Entscheidung über eine Auslösung: nach sauberem Start wird sie genau einmal gemeldet; ein schon beim Start gesetzter Latch gilt als beim Start gesetzt, nicht als neue Auslösung. — gilt für: alle
   - Beleg: gateway: `test_gateway_util.py` — test_sustained_latch_banners_only_once; gateway: `test_gateway_util.py` — test_boot_faulted_does_not_banner
-- **S1b (Bedienbarkeit):** Eine gemeldete Auslösung erscheint im Banner mit Quittieren und wird protokolliert. — gilt für: alle
-  - Beleg: **offen** — Lücke: Browser/Gateway: Versand, Banner und Protokolleintrag beobachtet kein Test
+- **S1b (Bedienbarkeit):** Eine gemeldete Auslösung erscheint im Banner mit Quittieren; der Klick sendet die Quittung, und die Auslösung bleibt sichtbar, bis ein Status ohne sie kommt. — gilt für: alle
+  - Beleg: browser: `feedback-channels.spec.ts` — a safety trip: the banner with Acknowledge; the click sends the ack, the trip stays until a status without it (F-TRIP.S1b)
+- **S1c (Daten):** Eine Auslösung und ihre Quittung werden protokolliert. — gilt für: alle
+  - Beleg: **offen** — Lücke: Gateway: der Trace trägt safety.tripped und safety.trip_acknowledged, kein Test beobachtet sie; ob das Meldungszentrum die Auslösung verzeichnet, ist offen (Frage an den Betreiber)
 
 ### Maschine ein und aus
 
@@ -104,15 +101,17 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 - **S1 (Ablehnung):** Sim-Trip braucht nur Arm. — gilt für: alle
   - Beleg: gateway: `test_command_policy.py` — test_simulate_probe_trip_requires_armed_only
-- **S2 (Wirkung):** Sim-Trip pulst den Antast-Eingang probe-in kurz; eine fehlgeschlagene Zustellung wird gemeldet. — gilt für: alle
-  - Beleg: **offen** — Lücke: Gateway: kein Test des Handlers (halcmd sets probe-in); nativ in der Sim
+- **S2 (Wirkung):** Sim-Trip pulst probe-in in einer Folge in einem Thread: das Rücksetzen folgt jedem versuchten Setzen (höchstens zwei Versuche), das Ergebnis wird getrennt gemeldet, ein Abbruch wartet bis zum Ende. — gilt für: alle
+  - Beleg: gateway: `test_sim_trip.py` — test_a_pulse_sets_then_resets; gateway: `test_sim_trip.py` — test_a_timeout_after_the_effect_is_still_reset; gateway: `test_sim_trip.py` — test_a_failed_set_is_reset_anyway; gateway: `test_sim_trip.py` — test_a_first_reset_that_fails_and_a_second_that_takes; gateway: `test_sim_trip.py` — test_two_failed_resets_say_the_pin_may_still_be_true; gateway: `test_sim_trip.py` — test_a_cancel_while_the_set_runs_waits_for_the_reset; gateway: `test_sim_trip.py` — test_a_cancel_while_the_reset_runs_lets_it_end; gateway: `test_sim_trip.py` — test_the_handler_answers_the_outcome
+- **S2b (Wirkung):** In der Sim kommt der Puls am HAL-Pin probe-in an. — gilt für: alle
+  - Beleg: **offen** — Lücke: Nativ: der HAL-Puls an probe-in in der Sim nicht belegt
 
 ## Referenzieren und Bewegen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
 | **Referenzieren und Referenz aufheben** `F-HOME` | Banner, Leiste › Setup | 11 | 4 | 3 | 1 |
-| **Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren** `F-JOG` | Leiste › Jog | 39 | 6 | 5 | 1 |
+| **Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren** `F-JOG` | Leiste › Jog | 39 | 6 | 6 | 0 |
 | **Anfahren: G30, Maschinennull, Werkstücknull** `F-GOTO` | Leiste › Setup | 8 | 5 | 5 | 0 |
 
 ### Referenzieren und Referenz aufheben
@@ -139,7 +138,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S5 (Wirkung):** Auf echtem LinuxCNC bewegen die Jog-Befehle des Gateways (jog_cont / jog_stop) jede Achse in ihrem Vorzeichen (mindestens 5 mm) und halten sie an: Weg ab der Antwort auf jog_stop höchstens v²/2a + 2·v·4T (X/Y 2,1 mm, Z 2,5 mm bei 50 mm/s), Stillstand nachweislich binnen 0,5 s, danach keine Bewegung — aus der Servo-Abtastung. — gilt für: 3axis_xyz
   - Beleg: native: `native_run.py` — jog-x+.servo; native: `native_run.py` — jog-x-.servo; native: `native_run.py` — jog-y+.servo; native: `native_run.py` — jog-y-.servo; native: `native_run.py` — jog-z+.servo; native: `native_run.py` — jog-z-.servo
 - **S5b (Daten):** Jeder Jog-Knopf und sein Loslassen senden jog_cont / jog_stop seiner Achse und Richtung (die Diagonalen als Mehrfach-Jog sind eine eigene Aussage). — gilt für: alle
-  - Beleg: **offen** — Lücke: Browser: je Bildschirm-Knopf Achse und Richtung, parametrisiert; belegt sind bisher die Tastatur je Belegung und der Knopf X+
+  - Beleg: browser: `jog-buttons.spec.ts` — every jog button on ${name}: its press starts exactly its axis and direction, its release stops exactly it (F-JOG.S5b) (je: XYZABCUVW, XYZAC)
 
 ### Anfahren: G30, Maschinennull, Werkstücknull
 
@@ -238,7 +237,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Programm laden, neu laden, entladen** `F-LOAD` | Banner, Tab „Program“, Tab „Program“ › Dateien | 16 | 3 | 2 | 1 |
+| **Programm laden, neu laden, entladen** `F-LOAD` | Banner, Tab „Program“, Tab „Program“ › Dateien | 16 | 3 | 3 | 0 |
 | **Programm hochladen (mit Umbenennen oder Ersetzen)** `F-UPLOAD` | Tab „Program“ | 8 | 2 | 2 | 0 |
 | **Programm bearbeiten und speichern** `F-EDIT` | Editor, Tab „Program“ | 10 | 2 | 2 | 0 |
 | **Programm herunterladen** `F-PROGDOWNLOAD` | Tab „Program“ | 2 | 0 | 0 | Aussagen noch nicht formuliert |
@@ -255,7 +254,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S2 (Ablehnung):** Laden und Entladen werden abgelehnt, solange ein Start in Arbeit ist. — gilt für: alle
   - Beleg: gateway: `test_button_gates_d.py` — test_a_start_in_progress_refuses_load_and_unload
 - **S3 (Wirkung):** Neu laden übernimmt die neue Revision; Entladen leert Programm und Vorschau. — gilt für: alle
-  - Beleg: **offen** — Lücke: Browser/Gateway: Reload und Unload als Ergebnis nicht belegt
+  - Beleg: browser: `editor-guards.spec.ts` — Reload sends load_file with the loaded program's own path (F-LOAD.S3); gateway: `test_program_reload_unload.py` — test_an_in_place_edit_of_the_same_path_is_an_edge; gateway: `test_program_reload_unload.py` — test_the_poller_decides_its_edge_with_it; gateway: `test_program_reload_unload.py` — test_an_edited_file_reloaded_publishes_its_new_source; gateway: `test_program_reload_unload.py` — test_unload_through_the_websocket_path
 
 ### Programm hochladen (mit Umbenennen oder Ersetzen)
 
@@ -312,11 +311,11 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
 | **Werkzeugtabelle ansehen, suchen, sortieren** `F-TOOLTABLE` | Leiste › Werkzeug, Tab „Tools“ | 13 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Werkzeug anlegen, bearbeiten, löschen, umnummerieren** `F-TOOLEDIT` | Tab „Tools“ | 31 | 4 | 3 | 1 |
+| **Werkzeug anlegen, bearbeiten, löschen, umnummerieren** `F-TOOLEDIT` | Tab „Tools“ | 31 | 5 | 4 | 1 |
 | **Werkzeugbibliothek importieren (Fusion 360, FreeCAD)** `F-TOOLIMPORT` | Tab „Tools“ | 17 | 4 | 4 | 0 |
 | **Werkzeugtabelle herunterladen** `F-TOOLDOWNLOAD` | Tab „Tools“ | 2 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Werkzeugwechsel (M6) mit Bestätigung** `F-TOOLCHANGE` | Dialog, Einstellungen, Tab „Tools“ | 14 | 2 | 2 | 0 |
-| **Werkzeuglänge messen (M600) und Werkzeug entladen** `F-TOOLMEASURE` | Tab „Tools“ | 8 | 9 | 8 | 1 |
+| **Werkzeuglänge messen (M600) und Werkzeug entladen** `F-TOOLMEASURE` | Tab „Tools“ | 8 | 9 | 9 | 0 |
 | **Toolsetter einrichten (Werkzeuglängen-Messung)** `F-TOOLSETTER` | Tab „Probing“ › Toolsetter | 36 | 5 | 5 | 0 |
 | **Werkzeugwechselposition G30 lesen, übernehmen, speichern** `F-G30` | Tab „Probing“ › Toolsetter | 8 | 2 | 2 | 0 |
 
@@ -328,8 +327,10 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: gateway: `test_command_dispatch.py` — test_add_tool_garbage_number_rejected; gateway: `test_command_dispatch.py` — test_add_tool_negative_number_rejected
 - **S3 (Daten):** Umnummerieren begrenzt beide Nummern, die die Oberfläche sendet. — gilt für: alle
   - Beleg: gateway: `test_command_policy.py` — test_renumber_bounds_both_numbers_the_ui_sends
-- **S4 (Wirkung):** Anlegen, Ändern, Löschen und Umnummerieren ändern genau ihren Datensatz, erhalten die übrigen Werte und laden die Tabelle neu. — gilt für: alle
-  - Beleg: **offen** — Lücke: Gateway: kein Test vergleicht die Tabelle vor und nach je Aktion; nativ
+- **S4 (Wirkung):** Anlegen, Ändern, Löschen und Umnummerieren ändern genau ihren Datensatz, erhalten die übrigen Werte (alle Felder, Kommentar, Metadaten) und laden die Tabelle einmal neu. — gilt für: alle
+  - Beleg: gateway: `test_tool_edit_contract.py` — test_save_changes_only_the_sent_fields_of_its_tool; gateway: `test_tool_edit_contract.py` — test_add_adds_one_record_and_keeps_every_other; gateway: `test_tool_edit_contract.py` — test_delete_removes_one_record_and_keeps_every_other; gateway: `test_tool_edit_contract.py` — test_renumber_moves_the_number_and_keeps_an_unsent_pocket; gateway: `test_tool_edit_contract.py` — test_renumber_takes_a_sent_pocket; gateway: `test_tool_table.py` — test_every_field_of_a_linuxcnc_line_survives_a_rewrite; gateway: `test_tool_table.py` — test_a_value_with_more_decimals_is_not_rounded_by_a_rewrite
+- **S4b (Wirkung):** LinuxCNC übernimmt die geschriebene Tabelle. — gilt für: alle
+  - Beleg: **offen** — Lücke: Nativ: das Neuladen in LinuxCNC nicht belegt
 
 ### Werkzeugbibliothek importieren (Fusion 360, FreeCAD)
 
@@ -359,8 +360,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: browser: `toolsetter-setup.spec.ts` — without the server's settings, and without a saved section, Measure Current and Unload (M600) stay off
 - **S4 (Daten):** Die Abbildung nennt genau 23 Var-Nummern: #3004–#3007, #3009, #3010, #3013, #3100–#3115. — gilt für: alle
   - Beleg: unit: `toolsetterSetup.test.ts` — writes the var numbers tool_touch_off.ngc reads
-- **S4b (Daten):** Jede Nummer der Abbildung ist die, die tool_touch_off.ngc für ihren Wert liest. — gilt für: alle
-  - Beleg: **offen** — Lücke: Unit: kein Test gleicht die Abbildung mit den Lesestellen der Routine ab
+- **S4b (Daten):** Jede Nummer der Abbildung ist die, die tool_touch_off.ngc für ihren Wert liest; jede andere Stelle der Bereiche im Code der Routine ist benannt. — gilt für: alle
+  - Beleg: gateway: `test_toolsetter_routine_map.py` — test_every_mapped_number_is_read_into_the_keys_own_variable; gateway: `test_toolsetter_routine_map.py` — test_every_read_of_the_ranges_is_mapped_or_named; gateway: `test_toolsetter_routine_map.py` — test_the_probe_number_is_not_a_toolsetter_field
 - **S5 (Wirkung):** Auf echtem LinuxCNC landet die gemessene Länge in der Werkzeugtabelle (die Länge vor der Messung ± 0,002 mm) und als derselbe Wert im G43-Offset; ein um 1 mm versetztes #3102 fällt durch. — gilt für: 3axis_xyz
   - Beleg: native: `native_run.py` — m600-t1; native: `native_run.py` — m600-t1.counter-3102
 - **S6 (Daten):** Entladen sendet im M600-Modus EIN mdi T0 M600 mit den Toolsetter-Werten in vars, im Standardmodus tool_change 0. — gilt für: alle
@@ -437,7 +438,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Makros verwalten: anlegen, bearbeiten, umbenennen, löschen, importieren, herunterladen** `F-MACROFILES` | Tab „Macros“ | 33 | 3 | 2 | 1 |
+| **Makros verwalten: anlegen, bearbeiten, umbenennen, löschen, importieren, herunterladen** `F-MACROFILES` | Tab „Macros“ | 33 | 3 | 3 | 0 |
 | **Makro starten (Tab, Leiste, Parameter-Dialog)** `F-MACRORUN` | Dialog, Makro-Leiste, Tab „Macros“ | 6 | 2 | 2 | 0 |
 | **Makro-Leiste einrichten** `F-MACROBAR` | Tab „Macros“ | 7 | 0 | 0 | Aussagen noch nicht formuliert |
 
@@ -445,10 +446,10 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 - **S1 (Ablehnung):** Speichern ist an die gelesene Revision gebunden; ein Konflikt oder eine Ablehnung zeigt ihren Grund, der Entwurf bleibt. — gilt für: alle
   - Beleg: browser: `macros.spec.ts` — Save's refusal: a conflict rebases Keep editing on the gateway's revision
-- **S2 (Wirkung):** Umbenennen verschiebt in der Oberfläche Datei und Platz auf der Leiste in einem Schritt (gegen den Ordner-Mock). — gilt für: alle
+- **S2 (Wirkung):** Nach einer gelungenen Umbenennung zieht die Oberfläche den Platz auf der Leiste nach (gegen den Ordner-Mock). — gilt für: alle
   - Beleg: browser: `macros.spec.ts` — a rename moves the file and its place on the bar
-- **S3 (Wirkung):** Im Gateway ist eine Umbenennung ein Schritt: neue Datei, alte weg, Leiste umgezogen, oder nichts. — gilt für: alle
-  - Beleg: **offen** — Lücke: Gateway: Atomarität der Umbenennung nicht belegt
+- **S3 (Wirkung):** Im Gateway ist eine Umbenennung ein Schritt: neue Datei und alte weg, oder nichts. — gilt für: alle
+  - Beleg: gateway: `test_macros_gateway.py` — test_a_rename_is_one_step_bound_to_the_old_revision; gateway: `test_macros_gateway.py` — test_a_rename_whose_old_name_cannot_leave_renames_nothing; gateway: `test_macros_gateway.py` — test_a_cancelled_rename_keeps_a_second_writer_out_until_it_ended
 
 ### Makro starten (Tab, Leiste, Parameter-Dialog)
 
