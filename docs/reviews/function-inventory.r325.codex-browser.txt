@@ -1,0 +1,11 @@
+
+Running 2 tests using 1 worker
+
+(node:2788367) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2788367) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [e2e] › e2e/feedback-channels.spec.ts:285:1 › a safety trip: the banner with Acknowledge; the click sends the ack, the trip stays until a status without it (F-TRIP.S1b) (3.2s)
+  ✓  2 [e2e] › e2e/feedback-channels.spec.ts:319:1 › a safety trip and its confirmed acknowledgement each stand ONCE in the message center (operator Q323-1) (4.3s)
+
+  2 passed (7.8s)

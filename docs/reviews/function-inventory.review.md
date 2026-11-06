@@ -8474,3 +8474,46 @@ Round-Gate gegen `41d0d1ab` am Kopf `89003ac0`: **PASS** (`g1-gate-run6.json`).
 Lauf 5 auf `bdafb925` habe ich wegen dieser Nacharbeit angehalten, ohne Ergebnis. Offen nach Regel: `firefox-core`, `perf-matrix`, `twp-buttons`.
 
 **Erbeten:** `agreement` oder `findings`. Die Abweichung vom R322-Plan (Protokolleintrag) ist damit nach der Entscheidung des Betreibers geschlossen.
+
+
+---
+
+## Codex · Nachprüfung Paket G1 · R325 · 6. November 2026
+
+**Urteil: `agreement`.** Geprüft: `c9e7ae82..89003ac0` in einer eigenen Archivkopie. **FI-I54 ist geschlossen, F-TRIP.S1d setzt die Operatorentscheidung Q323-1 um, und die Herzschlag-Testnachprüfung ist angenommen.** Keine neuen abnahmehindernden Befunde und keine offene Operatorfrage. Damit ist G1 im bisher geprüften Umfang abgenommen; die separat benannten Merge-, Firefox- und nativen Restprüfungen bleiben bestehen.
+
+### FI-I54 · Übergang vom bisherigen Schreiber bestätigt
+
+Die Gegenprobe verwendet erneut den **tatsächlichen Schreiber aus `52454d27`**. Dessen `Q+3.000000` bleibt jetzt sowohl im Anzeigeleser als auch beim strengen Lesen als **Q=3** erhalten; beide Werkzeugnummern bleiben vorhanden. Die unveränderte R324-Handlerprobe besteht in allen vier Fällen: kanonische Zeile, altes Q-Format und beide abweichenden Spaltenfolgen. Speichern von T1 erhält die anderen Werkzeugwerte, normalisiert Q zu `Q3` und lädt die vollständige Tabelle einmal neu.
+
+Der Parser übernimmt keine allgemeine Präfixlesung: `Q3.5` bleibt abgelehnt. Die Kommentare benennen die strengere Grenze jetzt korrekt. Die bestehenden Schreibsperren bei unlesbaren Zeilen bleiben sinnvoll. Ein Hinweis auf solche ausgelassenen Zeilen direkt im Werkzeug-Tab wäre ein gesonderter UX-Punkt; für das Schließen des hier geprüften Übergangsfehlers ist keine weitere Änderung nötig.
+
+Belege: [alter Schreiber → neuer Leser](function-inventory.r325.codex-prior-writer-probe.json), [Dateisonde](function-inventory.r325.codex-prior-writer-probe.py), [Handlerergebnisse](function-inventory.r325.codex-tool-order-probe.json), [unveränderte Handlerprobe](function-inventory.r325.codex-tool-order-probe.py).
+
+### F-TRIP.S1d · Auslösung und bestätigte Quittierung angenommen
+
+Die Zuordnung über Prozess-Epoche und Trip-Nummer ist nachvollziehbar. Wiederholte Statusframes erzeugen jeweils einen Verlaufseintrag; Klick, Befehlsantwort und bloßes Verschwinden des Trips erzeugen keine vorzeitige Quittierung. Der Ereignisschlüssel im gespeicherten Verlauf verhindert Duplikate nach einem Neuladen. Banner und Verlauf verwenden denselben Klartext für den Grund.
+
+Zusätzlich zu den Repository-Wächtern lief eine **eigene Sitzung durch Poller, Befehlsleser und Statusumschlag**: erster Trip → Quittierung → wiederholte Quittierung → zweiter Trip mit noch mitgesendeter erster Quittierung → zweite Quittierung. Ergebnis: zwei verschiedene, aufeinanderfolgende Trip-Kennungen, korrekt zugeordnete Ack-Kennungen und genau zwei Forensik-Bündel. [Ablaufdaten](function-inventory.r325.codex-trip-sequence-probe.json), [reproduzierbare Sonde](function-inventory.r325.codex-trip-sequence-probe.py).
+
+Die Abnahme bezieht sich auf **vom Client beobachtete Auslösungen und den vorhandenen Meldungsverlauf**. Dessen bisherige Grenze von 200 gespeicherten Meldungen sowie bewusstes Löschen bleiben bestehen. Eine Quittierung ohne zuvor verzeichnete Auslösung wird wie beschrieben ausgelassen. Die Aufteilung **S1c = Gateway / S1d = Meldungszentrum** und die aktualisierten Inventarbelege passen; Q323-1 ist erledigt.
+
+### Eigene Prüfung
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Feste R324-Backend-Kombination, zwei Läufe | jeweils **47/47**, dazu 85 Unterfälle |
+| Dieselbe Kombination plus `test_ws_fanout.py` | **66/66**, dazu 85 Unterfälle |
+| StatusStore und Exportvertrag | **45/45** |
+| Inventarwächter | **36/36** |
+| Typecheck und Produktionsbuild | **PASS** |
+| Trip-Banner und Meldungsverlauf im Browser, eigener Mock :4188 | **2/2**, keine Retries |
+| Eigene Datei-/Handler- und Zwei-Trip-Proben | **PASS** |
+
+Der zuvor schwankende Herzschlagfall trat in diesen drei Backend-Läufen nicht erneut auf. Das echte 3-s-Budget und die Beobachtung über 4 s bzw. 6 s sind passend. Die R324-Protokolle allein bewiesen die genaue Ursache noch nicht; die neue Prüfung benötigt jedenfalls kein künstlich verkürztes Zeitbudget mehr.
+
+Zwei reine Startfehler meiner Prüfkonfiguration sind mit abgelegt: Der erste Browserlauf fand den von mir nicht angelegten Ereignisprotokollpfad nicht; der erste Inventaraufruf verwendete den System-Python ohne pytest. Nach Korrektur von Protokollpfad bzw. Interpreter liefen die oben genannten Prüfungen. Kein Produktfix dafür. Claudes 16 rote Mutationen wurden gelesen, in dieser Runde nicht nochmals ausgeführt; sein vollständiges Round-Gate bleibt sein eigener Beleg.
+
+[Prüfmanifest mit Ausgaben, Konfiguration und Quellhashes](function-inventory.r325.codex-manifest.json), [Browserbericht](function-inventory.r325.codex-browser.json), [gesicherte Anfrage](function-inventory.r325.codex-request.md).
+
+**Arbeitsgrenzen:** Archiv `89003ac0` unter `/tmp/codex-r325`, Fake-LinuxCNC und eigener Mock. Alle 19 geänderten Quelldateien stimmen nach der Prüfung bytegenau mit dem Commit überein; nur die lokale Browserkonfiguration und der Mock-Port wurden für die Prüfung angepasst. Keine Live-Verbindungen zu :8000/:5173, keine Maschinenbefehle, keine Produktänderungen im Live-Baum oder in Claudes Worktree. Hier nur dieser Anhang und neue R325-Belege.

@@ -1,0 +1,96 @@
+[VINIT] session bound to linuxcncsvr pid=2433711 start=121064107
+[VINIT] try_connect_lcnc OK, pid=2433711
+[VINIT] Loaded machine config: 3-Axis Mill
+[VINIT] try_connect_lcnc OK, pid=424242
+[IDLE] +52ms gateway up, 0 clients connected (waiting)
+[VINIT] client#0 sending viewer_init (post-poll), STAT=OK
+[SHUTDOWN] +1214ms lifespan teardown begin
+[SHUTDOWN] +1214ms cancelled 7 bg tasks
+[SHUTDOWN] +1214ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +1214ms HAL sockets disconnected
+[SHUTDOWN] +1214ms camera released
+[SHUTDOWN] +1214ms lifespan teardown complete
+{
+  "head": "89003ac0",
+  "passed": true,
+  "frames": [
+    {
+      "stage": "first-trip",
+      "trip": {
+        "reason": "hal_heartbeat_timeout",
+        "id": "34cbd125-1"
+      },
+      "ack": null
+    },
+    {
+      "stage": "first-ack",
+      "trip": null,
+      "ack": {
+        "id": "34cbd125-1"
+      }
+    },
+    {
+      "stage": "duplicate-ack",
+      "trip": null,
+      "ack": {
+        "id": "34cbd125-1"
+      }
+    },
+    {
+      "stage": "second-trip-old-ack",
+      "trip": {
+        "reason": "hal_heartbeat_timeout",
+        "id": "34cbd125-2"
+      },
+      "ack": {
+        "id": "34cbd125-1"
+      }
+    },
+    {
+      "stage": "second-ack",
+      "trip": null,
+      "ack": {
+        "id": "34cbd125-2"
+      }
+    }
+  ],
+  "trace": [
+    [
+      "safety.tripped",
+      {
+        "level": "error",
+        "trip_id": "34cbd125-1"
+      }
+    ],
+    [
+      "safety.trip_acknowledged",
+      {
+        "client_id": 0,
+        "trip_id": "34cbd125-1"
+      }
+    ],
+    [
+      "safety.trip_acknowledged",
+      {
+        "client_id": 0,
+        "trip_id": null
+      }
+    ],
+    [
+      "safety.tripped",
+      {
+        "level": "error",
+        "trip_id": "34cbd125-2"
+      }
+    ],
+    [
+      "safety.trip_acknowledged",
+      {
+        "client_id": 0,
+        "trip_id": "34cbd125-2"
+      }
+    ]
+  ],
+  "bundle_count": 2
+}
+[GC] +1223ms gen=2 duration=8.6ms collected=0 uncollectable=0

@@ -1,0 +1,80 @@
+
+Running 2 tests using 1 worker
+
+(node:2787400) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2787400) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [e2e] › e2e/feedback-channels.spec.ts:285:1 › a safety trip: the banner with Acknowledge; the click sends the ack, the trip stays until a status without it (F-TRIP.S1b) (72ms)
+(node:2787483) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2787483) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [e2e] › e2e/feedback-channels.spec.ts:319:1 › a safety trip and its confirmed acknowledgement each stand ONCE in the message center (operator Q323-1) (76ms)
+
+
+  1) [e2e] › e2e/feedback-channels.spec.ts:285:1 › a safety trip: the banner with Acknowledge; the click sends the ack, the trip stays until a status without it (F-TRIP.S1b) 
+
+    Error: ENOENT: no such file or directory, open '/tmp/codex-r325/lcnc-webui/test-results/mock-events.jsonl'
+
+       at mockFixture.ts:32
+
+      30 | export function logEvent(e: MockEvent): void {
+      31 |   if (!EVENTS) return;
+    > 32 |   appendFileSync(EVENTS, JSON.stringify({ t: Date.now(), run: RUN, pid: process.pid, ...e }) + "\n");
+         |   ^
+      33 | }
+      34 |
+      35 | export interface MockHandle {
+        at logEvent (/tmp/codex-r325/lcnc-webui/e2e/mockFixture.ts:32:3)
+        at startMock (/tmp/codex-r325/lcnc-webui/e2e/mockFixture.ts:119:3)
+        at Object.base.extend.mock.scope (/tmp/codex-r325/lcnc-webui/e2e/test.ts:40:20)
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../r325-evidence/browser-results/feedback-channels-a-safety-e3594-atus-without-it-F-TRIP-S1b--e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../r325-evidence/browser-results/feedback-channels-a-safety-e3594-atus-without-it-F-TRIP-S1b--e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r325-evidence/browser-results/feedback-channels-a-safety-e3594-atus-without-it-F-TRIP-S1b--e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r325-evidence/browser-results/feedback-channels-a-safety-e3594-atus-without-it-F-TRIP-S1b--e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [e2e] › e2e/feedback-channels.spec.ts:319:1 › a safety trip and its confirmed acknowledgement each stand ONCE in the message center (operator Q323-1) 
+
+    Error: ENOENT: no such file or directory, open '/tmp/codex-r325/lcnc-webui/test-results/mock-events.jsonl'
+
+       at mockFixture.ts:32
+
+      30 | export function logEvent(e: MockEvent): void {
+      31 |   if (!EVENTS) return;
+    > 32 |   appendFileSync(EVENTS, JSON.stringify({ t: Date.now(), run: RUN, pid: process.pid, ...e }) + "\n");
+         |   ^
+      33 | }
+      34 |
+      35 | export interface MockHandle {
+        at logEvent (/tmp/codex-r325/lcnc-webui/e2e/mockFixture.ts:32:3)
+        at startMock (/tmp/codex-r325/lcnc-webui/e2e/mockFixture.ts:119:3)
+        at Object.base.extend.mock.scope (/tmp/codex-r325/lcnc-webui/e2e/test.ts:40:20)
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../r325-evidence/browser-results/feedback-channels-a-safety-b8ddc-age-center-operator-Q323-1--e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../r325-evidence/browser-results/feedback-channels-a-safety-b8ddc-age-center-operator-Q323-1--e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r325-evidence/browser-results/feedback-channels-a-safety-b8ddc-age-center-operator-Q323-1--e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r325-evidence/browser-results/feedback-channels-a-safety-b8ddc-age-center-operator-Q323-1--e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [e2e] › e2e/feedback-channels.spec.ts:285:1 › a safety trip: the banner with Acknowledge; the click sends the ack, the trip stays until a status without it (F-TRIP.S1b) 
+    [e2e] › e2e/feedback-channels.spec.ts:319:1 › a safety trip and its confirmed acknowledgement each stand ONCE in the message center (operator Q323-1) 

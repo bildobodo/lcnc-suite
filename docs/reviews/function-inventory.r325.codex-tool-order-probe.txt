@@ -1,0 +1,8 @@
+[VINIT] session bound to linuxcncsvr pid=2433711 start=121064107
+[VINIT] try_connect_lcnc OK, pid=2433711
+[VINIT] Loaded machine config: 3-Axis Mill
+canonical_control reply_ok= True reload_count= 1 untouched_record_kept= True
+prior_writer_Q_decimal reply_ok= True reload_count= 1 untouched_record_kept= True
+pocket_before_tool reply_ok= True reload_count= 1 untouched_record_kept= True
+offset_between_tool_and_pocket reply_ok= True reload_count= 1 untouched_record_kept= True
+[GC] +106ms gen=2 duration=17.8ms collected=0 uncollectable=0

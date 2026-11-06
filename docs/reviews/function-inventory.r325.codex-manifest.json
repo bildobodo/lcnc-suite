@@ -1,0 +1,114 @@
+{
+  "round": "R325",
+  "base": "c9e7ae82",
+  "head": "89003ac0bab25e2cab3b8dde7c93b52b3516f17d",
+  "document_head": "f52cb1f920962a9a95ee66f81706305b1a7c4cca",
+  "archive": "/tmp/codex-r325",
+  "backend_python": "/home/cnc/lcnc-suite-g1/lcnc-gateway/.venv/bin/python3",
+  "backend_files": [
+    "test_tool_table.py",
+    "test_tool_edit_contract.py",
+    "test_program_reload_unload.py",
+    "test_toolsetter_routine_map.py",
+    "test_trip_trace.py",
+    "test_sim_trip.py",
+    "test_hb_budget.py"
+  ],
+  "backend_runs": [
+    {
+      "file": "backend-1.txt",
+      "exit": 0,
+      "passed": 47,
+      "subtests": 85
+    },
+    {
+      "file": "backend-2.txt",
+      "exit": 0,
+      "passed": 47,
+      "subtests": 85
+    },
+    {
+      "file": "backend-3-fanout.txt",
+      "additional_file": "test_ws_fanout.py",
+      "exit": 0,
+      "passed": 66,
+      "subtests": 85
+    }
+  ],
+  "unit": {
+    "files": [
+      "src/ws/statusStore.test.ts",
+      "src/lcncWs.exports.test.ts"
+    ],
+    "passed": 45,
+    "file": "frontend-unit.txt"
+  },
+  "inventory": {
+    "passed": 36,
+    "file": "inventory.txt"
+  },
+  "build": {
+    "exit": 0,
+    "file": "frontend-build.txt"
+  },
+  "browser": {
+    "passed": 2,
+    "failed": 0,
+    "retries": 0,
+    "mock_port": 4188,
+    "file": "browser.json",
+    "command": "LCNC_E2E_EVENTS=/tmp/r325-evidence/mock-events.jsonl node_modules/.bin/playwright test --config=playwright.r325.config.ts"
+  },
+  "probes": {
+    "prior_writer": "52454d27 writer -> 89003ac0 display and strict reader retain both tools, Q=3",
+    "handler": "unchanged R324 tool-order-probe.py: four cases PASS, one reload each, canonical Q3 after edit",
+    "trip_sequence": "two trips, duplicate acknowledgement, old ack alongside new trip: PASS, two forensic bundles"
+  },
+  "source_integrity": {
+    "CLAUDE.md": "0044a5ea5c661cbdaebe9d901d20b4eb18e9569b09dc8a0299e65a47f624e160",
+    "docs/decisions.md": "06bfe068c70b094a2d13ba75f1a9114fd27c89f8ef514564ff2127eb946ad339",
+    "docs/inventory/funktionen.md": "7604f8cb3e37da8aed3b551ce06aa14c1220ae8b6d57ddd64c4f4c9c290ad9dd",
+    "lcnc-gateway/gateway.py": "bb3468ff233529e43a7e04a930725ef68a929c352a649e733bc5647c77187188",
+    "lcnc-gateway/test_hb_budget.py": "e242acddf0c323533a3f63ab739d13063256d04f1025dae01ac1b239689802ba",
+    "lcnc-gateway/test_tool_edit_contract.py": "473881fdb92a7371cba728fe40cc56d65af1797eced6c18961c2849eed641c5f",
+    "lcnc-gateway/test_tool_table.py": "3593fd1180ffdbee27ee473cddc634795c450ab361c87d073515f17f0f0e31b2",
+    "lcnc-gateway/test_trip_trace.py": "5708c470782e36b7287292769a4725b285d9cc9508f6b8e4664808f616ee144f",
+    "lcnc-gateway/test_ws_fanout.py": "faecaf8b134c03d4c7d01fb2f0aff7f72d512e7f46a848b912e68224dea52b8b",
+    "lcnc-gateway/tool_table.py": "2202b73590ee34601a8776d4baadafadfb7e282d45097a5215ecbbf80f66db3e",
+    "lcnc-gateway/ws_fanout.py": "f0e650b8a24b0c26f00931461c3e2e49fb51664f237a9e3f1ef3bbc01df1d552",
+    "lcnc-webui/e2e/feedback-channels.spec.ts": "4bb93f6ec993c465d3a0692ceaac11305496e4f5133b7bbc095d3a858cda1f88",
+    "lcnc-webui/src/App.vue": "8d85962cb8a18c5da3471a65ddca041d37976788bb085e91636863138dbb215c",
+    "lcnc-webui/src/lcncWs.exports.test.ts": "f376901fc8a56f815aa19a6727b791d9b6a0706b043e6c7ddea29eb07f0228f5",
+    "lcnc-webui/src/lcncWs.ts": "f445b520f814ee4432d0f0f02ff288f2dc6c7195c85c9bf9c8238971dc4d0807",
+    "lcnc-webui/src/ws/statusStore.test.ts": "4038ed5d8b2598d43cd0a1e2001e53c694612042c462cff47b6d086a65bd4f03",
+    "lcnc-webui/src/ws/statusStore.ts": "916f9d0087c69a6ee343c2f2ee0aa063c38765b28c375d033de144c183d329a0",
+    "scripts/inventory/atoms.py.json": "224da7a2f87730d3881a4147ad1cc59155e09f0133488c98c119c162ffe6f086",
+    "scripts/inventory/functions.json": "1b955a09e30a2e0e55eb0ddaeea523b58c87c18564892a1c738d8c1af35ab18f"
+  },
+  "copy_only_configuration": [
+    "e2e/mockSlot.mjs: MOCK_BASE_PORT 4500 -> 4188",
+    "playwright.r325.config.ts: no shared preview server, one worker, two trip cases, retries=0"
+  ],
+  "setup_failures": [
+    {
+      "file": "browser-setup-failed.txt",
+      "reason": "own config moved outputDir but left default mock event log under absent test-results; corrected LCNC_E2E_EVENTS; tests had not reached app assertions"
+    },
+    {
+      "file": "inventory-launch-failed.txt",
+      "reason": "initial command used system python/unittest, missing pytest; corrected to backend venv python -m pytest"
+    }
+  ],
+  "claude_mutations": "read 16 reported red mutations; not independently rerun in R325",
+  "limits": [
+    "No live ports 8000/5173, machine commands, or native tool-table loader",
+    "No full round/merge gate rerun",
+    "Client history scope: observed events; existing 200 persisted-message limit and explicit clearing remain"
+  ],
+  "verdict": "agreement",
+  "closed": [
+    "FI-I54",
+    "F-TRIP.S1d / Q323-1",
+    "R324 heartbeat-test instability in the repeated fixed combination"
+  ]
+}

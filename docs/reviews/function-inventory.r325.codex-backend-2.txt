@@ -1,0 +1,9 @@
+.......................... [ 55%]
+.....................             [100%]
+47 passed, 85 subtests passed in 9.51s
+[GC] +9411ms gen=2 duration=10.8ms collected=929 uncollectable=0
+[GC] +9419ms gen=2 duration=7.4ms collected=0 uncollectable=0
+[GC] +9426ms gen=2 duration=7.2ms collected=0 uncollectable=0
+[GC] +9433ms gen=2 duration=7.1ms collected=0 uncollectable=0
+[GC] +9440ms gen=2 duration=7.0ms collected=0 uncollectable=0
+[GC] +9447ms gen=2 duration=7.3ms collected=0 uncollectable=0

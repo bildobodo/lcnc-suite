@@ -1,0 +1,229 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r325/lcnc-webui/playwright.r325.config.ts",
+    "rootDir": "/tmp/codex-r325/lcnc-webui/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "run": "2787373-1793948073536",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/r325-evidence/browser-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "run": "2787373-1793948073536",
+          "actualWorkers": 1
+        },
+        "id": "e2e",
+        "name": "e2e",
+        "testDir": "/tmp/codex-r325/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "feedback-channels.spec.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/tmp/r325-evidence/browser.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "feedback-channels.spec.ts",
+      "file": "feedback-channels.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a safety trip: the banner with Acknowledge; the click sends the ack, the trip stays until a status without it (F-TRIP.S1b)",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 72,
+                  "error": {
+                    "message": "Error: ENOENT: no such file or directory, open '/tmp/codex-r325/lcnc-webui/test-results/mock-events.jsonl'",
+                    "stack": "Error: ENOENT: no such file or directory, open '/tmp/codex-r325/lcnc-webui/test-results/mock-events.jsonl'\n    at logEvent (/tmp/codex-r325/lcnc-webui/e2e/mockFixture.ts:32:3)\n    at startMock (/tmp/codex-r325/lcnc-webui/e2e/mockFixture.ts:119:3)\n    at Object.base.extend.mock.scope (/tmp/codex-r325/lcnc-webui/e2e/test.ts:40:20)",
+                    "location": {
+                      "file": "/tmp/codex-r325/lcnc-webui/e2e/mockFixture.ts",
+                      "column": 3,
+                      "line": 32
+                    },
+                    "snippet": "\u001b[90m   at \u001b[39mmockFixture.ts:32\n\n  30 | export function logEvent(e: MockEvent): void {\n  31 |   if (!EVENTS) return;\n> 32 |   appendFileSync(EVENTS, JSON.stringify({ t: Date.now(), run: RUN, pid: process.pid, ...e }) + \"\\n\");\n     |   ^\n  33 | }\n  34 |\n  35 | export interface MockHandle {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r325/lcnc-webui/e2e/mockFixture.ts",
+                        "column": 3,
+                        "line": 32
+                      },
+                      "message": "Error: ENOENT: no such file or directory, open '/tmp/codex-r325/lcnc-webui/test-results/mock-events.jsonl'\n\n   at mockFixture.ts:32\n\n  30 | export function logEvent(e: MockEvent): void {\n  31 |   if (!EVENTS) return;\n> 32 |   appendFileSync(EVENTS, JSON.stringify({ t: Date.now(), run: RUN, pid: process.pid, ...e }) + \"\\n\");\n     |   ^\n  33 | }\n  34 |\n  35 | export interface MockHandle {\n    at logEvent (/tmp/codex-r325/lcnc-webui/e2e/mockFixture.ts:32:3)\n    at startMock (/tmp/codex-r325/lcnc-webui/e2e/mockFixture.ts:119:3)\n    at Object.base.extend.mock.scope (/tmp/codex-r325/lcnc-webui/e2e/test.ts:40:20)"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T06:54:33.922Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/r325-evidence/browser-results/feedback-channels-a-safety-e3594-atus-without-it-F-TRIP-S1b--e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/r325-evidence/browser-results/feedback-channels-a-safety-e3594-atus-without-it-F-TRIP-S1b--e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/r325-evidence/browser-results/feedback-channels-a-safety-e3594-atus-without-it-F-TRIP-S1b--e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r325/lcnc-webui/e2e/mockFixture.ts",
+                    "column": 3,
+                    "line": 32
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c3afe09414ea81fc7076-270f3eca2a9790739422",
+          "file": "feedback-channels.spec.ts",
+          "line": 285,
+          "column": 1
+        },
+        {
+          "title": "a safety trip and its confirmed acknowledgement each stand ONCE in the message center (operator Q323-1)",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "e2e",
+              "projectName": "e2e",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 76,
+                  "error": {
+                    "message": "Error: ENOENT: no such file or directory, open '/tmp/codex-r325/lcnc-webui/test-results/mock-events.jsonl'",
+                    "stack": "Error: ENOENT: no such file or directory, open '/tmp/codex-r325/lcnc-webui/test-results/mock-events.jsonl'\n    at logEvent (/tmp/codex-r325/lcnc-webui/e2e/mockFixture.ts:32:3)\n    at startMock (/tmp/codex-r325/lcnc-webui/e2e/mockFixture.ts:119:3)\n    at Object.base.extend.mock.scope (/tmp/codex-r325/lcnc-webui/e2e/test.ts:40:20)",
+                    "location": {
+                      "file": "/tmp/codex-r325/lcnc-webui/e2e/mockFixture.ts",
+                      "column": 3,
+                      "line": 32
+                    },
+                    "snippet": "\u001b[90m   at \u001b[39mmockFixture.ts:32\n\n  30 | export function logEvent(e: MockEvent): void {\n  31 |   if (!EVENTS) return;\n> 32 |   appendFileSync(EVENTS, JSON.stringify({ t: Date.now(), run: RUN, pid: process.pid, ...e }) + \"\\n\");\n     |   ^\n  33 | }\n  34 |\n  35 | export interface MockHandle {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r325/lcnc-webui/e2e/mockFixture.ts",
+                        "column": 3,
+                        "line": 32
+                      },
+                      "message": "Error: ENOENT: no such file or directory, open '/tmp/codex-r325/lcnc-webui/test-results/mock-events.jsonl'\n\n   at mockFixture.ts:32\n\n  30 | export function logEvent(e: MockEvent): void {\n  31 |   if (!EVENTS) return;\n> 32 |   appendFileSync(EVENTS, JSON.stringify({ t: Date.now(), run: RUN, pid: process.pid, ...e }) + \"\\n\");\n     |   ^\n  33 | }\n  34 |\n  35 | export interface MockHandle {\n    at logEvent (/tmp/codex-r325/lcnc-webui/e2e/mockFixture.ts:32:3)\n    at startMock (/tmp/codex-r325/lcnc-webui/e2e/mockFixture.ts:119:3)\n    at Object.base.extend.mock.scope (/tmp/codex-r325/lcnc-webui/e2e/test.ts:40:20)"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-06T06:54:34.374Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/r325-evidence/browser-results/feedback-channels-a-safety-b8ddc-age-center-operator-Q323-1--e2e/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/r325-evidence/browser-results/feedback-channels-a-safety-b8ddc-age-center-operator-Q323-1--e2e/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/r325-evidence/browser-results/feedback-channels-a-safety-b8ddc-age-center-operator-Q323-1--e2e/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r325/lcnc-webui/e2e/mockFixture.ts",
+                    "column": 3,
+                    "line": 32
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c3afe09414ea81fc7076-3c3af8d0b4dee7ff4369",
+          "file": "feedback-channels.spec.ts",
+          "line": 319,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-06T06:54:33.538Z",
+    "duration": 1041.9170000000001,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  }
+}
