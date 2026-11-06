@@ -1,0 +1,155 @@
+{
+ "round": "R323",
+ "branch": "feat/g1-guards",
+ "base": "41d0d1ab",
+ "browser_mutants": [
+  {
+   "mutant": "trip-optimistic-clear",
+   "verdict": "RED",
+   "spec": "feedback-channels.spec.ts"
+  },
+  {
+   "mutant": "trip-no-ack-sent",
+   "verdict": "RED",
+   "spec": "feedback-channels.spec.ts"
+  },
+  {
+   "mutant": "trip-never-cleared",
+   "verdict": "RED",
+   "spec": "feedback-channels.spec.ts"
+  },
+  {
+   "mutant": "jog-abc-minus-as-plus",
+   "verdict": "RED",
+   "spec": "jog-buttons.spec.ts"
+  },
+  {
+   "mutant": "jog-canonical-index",
+   "verdict": "RED",
+   "spec": "jog-buttons.spec.ts"
+  },
+  {
+   "mutant": "jog-canonical-index-nine-passes?",
+   "verdict": "GREEN",
+   "spec": "jog-buttons.spec.ts",
+   "note": "control: on XYZABCUVW the canonical index equals the list index — only the XYZAC fixture catches it"
+  },
+  {
+   "mutant": "jog-stop-axis-0",
+   "verdict": "RED",
+   "spec": "jog-buttons.spec.ts"
+  },
+  {
+   "mutant": "jog-no-uvw-buttons",
+   "verdict": "RED",
+   "spec": "jog-buttons.spec.ts"
+  },
+  {
+   "mutant": "jog-xy-y-minus-as-plus",
+   "verdict": "RED",
+   "spec": "jog-buttons.spec.ts"
+  },
+  {
+   "mutant": "reload-sends-nothing",
+   "verdict": "RED",
+   "spec": "editor-guards.spec.ts"
+  },
+  {
+   "mutant": "reload-other-path",
+   "verdict": "RED",
+   "spec": "editor-guards.spec.ts",
+   "note": "first anchored on 'part' (a no-op for the moved test's /B.ngc: GREEN in run 2); re-anchored to .ngc → .NGC, run 3 RED"
+  }
+ ],
+ "gateway_mutants": [
+  {
+   "guard": "test_tool_edit_contract.py + test_tool_table.py",
+   "mutant": "tool_table.py at 41d0d1ab (old parser/writer)",
+   "result": "6 failed, 8 passed"
+  },
+  {
+   "guard": "test_tool_edit_contract.py",
+   "mutant": "renumber: src['P'] = msg.get('pocket', new_num)",
+   "result": "1 failed, 4 passed"
+  },
+  {
+   "guard": "test_sim_trip.py",
+   "mutant": "reset only after a clean set",
+   "result": "3 failed, 5 passed"
+  },
+  {
+   "guard": "test_sim_trip.py",
+   "mutant": "await seq instead of _thread_to_end(seq)",
+   "result": "2 failed, 6 passed"
+  },
+  {
+   "guard": "test_hb_budget.py",
+   "mutant": ">= instead of > in _hb_stalled",
+   "result": "1 failed, 3 passed"
+  },
+  {
+   "guard": "test_hb_budget.py",
+   "mutant": "the status loop computes the stall inline",
+   "result": "2 failed, 2 passed"
+  },
+  {
+   "guard": "test_hb_budget.py",
+   "mutant": "_HB_STALL_SEC = 4.0",
+   "result": "2 failed, 2 passed"
+  },
+  {
+   "guard": "test_toolsetter_routine_map.py",
+   "mutant": "touchZ read from #3101",
+   "result": "2 failed, 3 passed"
+  },
+  {
+   "guard": "test_toolsetter_routine_map.py",
+   "mutant": "an unknown use of #3107 (G0 X[#3107])",
+   "result": "1 failed, 3 passed"
+  },
+  {
+   "guard": "test_toolsetter_routine_map.py",
+   "mutant": "#3008 read into an unnamed variable",
+   "result": "1 failed, 3 passed"
+  },
+  {
+   "guard": "test_program_reload_unload.py",
+   "mutant": "the WS path keeps the preview after unload_file",
+   "result": "1 failed, 3 passed"
+  },
+  {
+   "guard": "test_program_reload_unload.py",
+   "mutant": "the poller computes the file edge inline",
+   "result": "1 failed, 3 passed"
+  },
+  {
+   "guard": "test_program_reload_unload.py",
+   "mutant": "preview_file_changed ignores the mtime",
+   "result": "2 failed, 2 passed"
+  },
+  {
+   "guard": "test_program_reload_unload.py",
+   "mutant": "load_file short-cuts the loaded path (returns ok without program_open)",
+   "result": "1 failed, 4 passed"
+  }
+ ],
+ "method": "browser: ~/claude-work/g1/browser_mut.py — each mutant applied, vite build, the named test run with --retries=0, every file restored from its backup; gateway: pytest on the guard file with the mutant applied, restored from a copy",
+ "head": "52454d27",
+ "trip_rerun": {
+  "note": "the trip test's filter widened to READ_ONLY_CMDS (e3c1baa2); the three trip mutants rerun at 52454d27",
+  "result": [
+   [
+    "trip-optimistic-clear",
+    "RED"
+   ],
+   [
+    "trip-no-ack-sent",
+    "RED"
+   ],
+   [
+    "trip-never-cleared",
+    "RED"
+   ]
+  ]
+ }
+}
