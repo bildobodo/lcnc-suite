@@ -10922,3 +10922,40 @@ is attached to (an attached one is another sampler: refused), the run's end
 unloads the sampler. The gateway answers `safety_trip_ack` without a cmd
 (the client waited 30 s); a write right after an abort meets the start
 claim (the helper asks again, like `_when_free`).
+
+## 2026-11-06 — Package G1: guards for eight inventory gaps, four defects found on the way (Codex R321–R322)
+
+**The tool table keeps every field.** `parse_tool_table` read only T P X Y Z
+D and the writer dropped X/Y: a save of T1 rewrote T2 without its X/Y. The
+parser now reads every field of a LinuxCNC tool line (X Y Z A B C U V W, D,
+I J Q), the writer writes back each field the record holds (Z and D always),
+and a value keeps its decimals (`_num`: fixed format when it equals the
+value, else the shortest exact form). The contract is VALUE equality: format
+and order of the file may change; an untouched record keeps every value, its
+comment and its metadata in `tool_library.json`; the touched record changes
+exactly the sent fields; the table reloads once (`test_tool_edit_contract.py`).
+**Renumber changes only the number:** `renumber_tool` used to set an unsent
+pocket to the new tool number; it keeps it now (the WebUI always sends one).
+
+**Sim-Trip is one sequence in one thread** (`_sim_trip_sequence`): the reset
+follows EVERY attempted set — also a timeout after the pin went TRUE — with
+at most two tries of 2 s; the reply names the outcome apart ("reset
+delivered" / "probe-in may still be TRUE"); the handler owns the thread to
+its end through any number of cancels (`_thread_to_end`), so no late "1"
+follows the final "0", and a cancelled run's outcome goes to the trace
+(`sim_trip.outcome`). The HAL pulse in the sim stays a native gap (S2b).
+
+**The trip banner waits for the gateway.** `acknowledgeSafetyTrip` cleared
+the trip locally before the send; a send that never arrived hid a trip the
+gateway still held until its next status. The click now only sends; the
+first status without `safety_trip` takes the banner away. Whether the
+message center should record a trip is open (F-TRIP.S1c; the gateway traces
+`safety.tripped` and `safety.trip_acknowledged`).
+
+**Extracted to be tested where they act:** `_hb_stalled` (the 3 s budget,
+`>` on monotonic time — exactly 3 s is not a stall) is what the status loop
+disarms through; `gateway_util.preview_file_changed` is the poller's file
+edge (an in-place edit of the same path is an edge by its mtime). The
+routine map's numbers are checked against `tool_touch_off.ngc`'s own reads
+both ways (`test_toolsetter_routine_map.py`). Every guard was shown red on a
+mutant of what it guards.
