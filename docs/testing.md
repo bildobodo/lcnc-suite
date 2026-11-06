@@ -26,6 +26,12 @@ every routine runs under the M6 helper `test_support/tool_change.py` (nothing co
 A native evidence in `functions.json` (layer `native`) is "named"
 statically; a PASS comes only from a run report of the same commit, profile, case and variant
 (`functions.native_status`).
+Step 3 (Codex R313–R316) adds the heartbeat chain and the motion controller's period to the servo
+stream (`servo_time.py`: time only on the checked `rtapi_app` hash), a client that goes away
+(`disconnect-*`, a helper client in its own process, `proto_client.py`), 4 and 8 clients fetching the
+preview (`clients-*`) and the HAL latch as the LAST step (`latch-*`, the gateway stopped through
+`trip.py`, every stop continued by `restore_lan.continue_stopped`). The delayed latch order is a run
+of its own: `native_run.py … --variant latch-delayed` (its rows carry the variant).
 
 ## Round gate and merge gate (test strategy, Codex R248–R260)
 

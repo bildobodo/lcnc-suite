@@ -157,7 +157,7 @@ DISC_WINDOW_S = 3.0                                # observed after W (≥ 2 s p
 #: step 3, many clients (SYS-CONN.S1): the perf matrix's big program (its
 #: random walk, seed 42, 40 MB) without its tool change; N unarmed clients
 #: fetch /preview at once after the load is published
-CLIENTS_N, CLIENTS_MB = (4, 8), 40
+CLIENTS_N, CLIENTS_MB = (("clients-4", 4), ("clients-8", 8)), 40   # literal case ids (R292)
 CLIENTS_PRE_S, CLIENTS_TAIL_S, CLIENTS_POST_S = 1.3, 5.0, 1.3
 CLIENTS_PUBLISH_S = 600.0
 RFL_DEADLINE = 300.0    # s: the pre-measurement, the entry and the program
@@ -1364,8 +1364,7 @@ def disconnect_cases():
 
         def save(_state):
             save_state(ctx)
-        for kind, letter in (("close", "A"), ("heartbeat", "A2")):
-            case = f"disconnect-{kind}"
+        for kind, letter, case in (("close", "A", "disconnect-close"), ("heartbeat", "A2", "disconnect-heartbeat")):
             helper = Helper(ctx, f"native-{letter}-{ctx['run'].name}")
             rec, event, frames_after, w_mark = None, None, [], None
             try:
@@ -1461,8 +1460,7 @@ def clients_cases():
         from test_support.live_session import SimulatorClient
         c, rows = ctx["client"], ctx.setdefault("rows", [])
         token = (lt.ini_values(ctx["ini"].read_text()).get(("DISPLAY", "WEBUI_TOKEN")) or [""])[-1]
-        for n in CLIENTS_N:
-            case = f"clients-{n}"
+        for case, n in CLIENTS_N:
             path = ctx["config"] / NC_FILES / f"native_load_{n}.ngc"
             _gen_load(path, CLIENTS_MB)
             digest = hashlib.sha256(path.read_bytes()).hexdigest()

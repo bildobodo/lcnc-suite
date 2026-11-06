@@ -10879,3 +10879,46 @@ predicted the M600 with the old values; the run check names it). A stable
 machine (booking applied or read back with the section's numbers) writes
 nothing and stays verified. The preview's M600 prediction still uses the
 booking, not the saved section — a follow-up, not built.
+
+## 2026-11-06 — Native stage step 3: the latch, a client that goes away, many clients (Codex R313–R316)
+
+**The servo stream's own time.** The sampler gets, after its mark, the
+heartbeat chain (`oneshot.0.out`, `webui-hb-latch.fault-out`,
+`oneshot.0.in`) and `motion.servo.last-period` (`servo_time.py`). A sample
+number is no time; the controller's periods are: C_k ≤ S_k ≤ C_(k+1) gives
+an edge gap's bounds (upper Σ lp_i..j+1, lower Σ lp_i+2..j−1) and a lower
+duration (Σ lp_a+2..b). The clock is ns of CLOCK_MONOTONIC only on the
+checked binary (`rtapi_app` sha256 1a4bb954…, linuxcnc-uspace
+1:2.9.4-2+deb13u1); no u32 wrap is proven from the run's own receipt and
+mark times (0 ≤ recv − t0 − Σ lp < 2³²). Three verdicts: upper ≤ limit
+PASS, lower > limit FAIL, else incomplete — an upper bound over the limit
+is no proof of an overrun (R315).
+
+**The latch** (F-ESTOP S4/S4b), the main run's LAST step: the test
+instance's gateway stopped (its identity on disk first, `trip.py`) past the
+0.5 s budget; in the outage section fault-out TRUE in the very sample
+oneshot.0.out fell, the heartbeat back while it stays latched, the E-Stop
+Reset before the acknowledgement refused; only the run's own proven trip is
+acknowledged, the recovery judged in its own section. Every recorded stop is
+continued as itself only — also by `restore_lan` (ExecStopPost) before the
+test instance ends. The delayed order (webui-hb-latch before oneshot.0) is a
+run of its own (`--variant latch-delayed`): exactly one cycle late, never a
+production PASS.
+
+**A client goes away** (SYS-CONN.S4): a helper client in its own process,
+bound to its client id by a resume hello with a fresh session
+(`session.resume_denied_no_match`); after the gateway's OWN event for that
+id (ws.disconnect / safety.hb_stall_disarmed) is read, the mark W; from W
+the program runs on ≥ 2 s (lower bound), X travels, no trip, the remaining
+client sees it running. **Many clients** (SYS-CONN.S1): 4 and 8 unarmed
+clients fetch /preview at once after a 40 MB load; every heartbeat gap
+touching the window is judged against 250 ms.
+
+**Found on the way (live).** Every earlier native run left sampler.0's
+stream segment behind (key 0x48534130, nattch 0); the next loadrt attached
+it while the size matched and failed — rtapi_app gone — when step 3's wider
+stream asked for more. The setup now removes a left-over segment nothing
+is attached to (an attached one is another sampler: refused), the run's end
+unloads the sampler. The gateway answers `safety_trip_ack` without a cmd
+(the client waited 30 s); a write right after an abort meets the start
+claim (the helper asks again, like `_when_free`).
