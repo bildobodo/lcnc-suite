@@ -1,0 +1,266 @@
+{
+ "run": "20261106T003055",
+ "booking_rejudged": {
+  "case": "ts-sync-booking",
+  "status": "PASS",
+  "detail": "before every key confirmed at the prepared numbers (the form: not yet in the machine, ['3102']), after every key at the section's (the form: confirmed); version 25 \u2192 30",
+  "old": {
+   "3004": 2000.0,
+   "3005": 20.0,
+   "3006": 500.0,
+   "3007": 180.0,
+   "3009": 3.0,
+   "3010": 180.0,
+   "3013": 0.0,
+   "3100": 10.0,
+   "3101": 10.0,
+   "3102": -180.0,
+   "3103": 1.0,
+   "3104": 2.0,
+   "3105": 0.0,
+   "3106": 1.0,
+   "3107": 5.0,
+   "3108": 0.0,
+   "3109": 0.0,
+   "3110": 0.0,
+   "3111": 0.0,
+   "3112": 0.0,
+   "3113": 0.0,
+   "3114": 0.0,
+   "3115": 0.0
+  },
+  "new": {
+   "3004": 2000.0,
+   "3005": 20.0,
+   "3006": 500.0,
+   "3007": 180.0,
+   "3009": 3.0,
+   "3010": 180.0,
+   "3013": 0.0,
+   "3100": 10.0,
+   "3101": 10.0,
+   "3102": -179.0,
+   "3103": 1.0,
+   "3104": 2.0,
+   "3105": 0.0,
+   "3106": 1.0,
+   "3107": 5.0,
+   "3108": 0.0,
+   "3109": 0.0,
+   "3110": 0.0,
+   "3111": 0.0,
+   "3112": 0.0,
+   "3113": 0.0,
+   "3114": 0.0,
+   "3115": 0.0
+  },
+  "before": {
+   "version": 25,
+   "keys": {
+    "3004": {
+     "value": 2000.0,
+     "origin": "applied"
+    },
+    "3005": {
+     "value": 20.0,
+     "origin": "applied"
+    },
+    "3006": {
+     "value": 500.0,
+     "origin": "applied"
+    },
+    "3007": {
+     "value": 180.0,
+     "origin": "applied"
+    },
+    "3009": {
+     "value": 3.0,
+     "origin": "applied"
+    },
+    "3010": {
+     "value": 180.0,
+     "origin": "applied"
+    },
+    "3013": {
+     "value": 0.0,
+     "origin": "applied"
+    },
+    "3014": {
+     "value": 99.0,
+     "origin": "assumed"
+    },
+    "3100": {
+     "value": 10.0,
+     "origin": "applied"
+    },
+    "3101": {
+     "value": 10.0,
+     "origin": "applied"
+    },
+    "3102": {
+     "value": -180.0,
+     "origin": "applied"
+    },
+    "3103": {
+     "value": 1.0,
+     "origin": "applied"
+    },
+    "3104": {
+     "value": 2.0,
+     "origin": "applied"
+    },
+    "3105": {
+     "value": 0.0,
+     "origin": "applied"
+    },
+    "3106": {
+     "value": 1.0,
+     "origin": "applied"
+    },
+    "3107": {
+     "value": 5.0,
+     "origin": "applied"
+    },
+    "3108": {
+     "value": 0.0,
+     "origin": "applied"
+    },
+    "3109": {
+     "value": 0.0,
+     "origin": "applied"
+    },
+    "3110": {
+     "value": 0.0,
+     "origin": "applied"
+    },
+    "3111": {
+     "value": 0.0,
+     "origin": "applied"
+    },
+    "3112": {
+     "value": 0.0,
+     "origin": "applied"
+    },
+    "3113": {
+     "value": 0.0,
+     "origin": "applied"
+    },
+    "3114": {
+     "value": 0.0,
+     "origin": "applied"
+    },
+    "3115": {
+     "value": 0.0,
+     "origin": "applied"
+    }
+   }
+  },
+  "after": {
+   "version": 30,
+   "keys": {
+    "3004": {
+     "value": 2000.0,
+     "origin": "read"
+    },
+    "3005": {
+     "value": 20.0,
+     "origin": "read"
+    },
+    "3006": {
+     "value": 500.0,
+     "origin": "read"
+    },
+    "3007": {
+     "value": 180.0,
+     "origin": "read"
+    },
+    "3009": {
+     "value": 3.0,
+     "origin": "read"
+    },
+    "3010": {
+     "value": 180.0,
+     "origin": "read"
+    },
+    "3013": {
+     "value": 0.0,
+     "origin": "read"
+    },
+    "3014": {
+     "value": 99.0,
+     "origin": "read"
+    },
+    "3100": {
+     "value": 10.0,
+     "origin": "read"
+    },
+    "3101": {
+     "value": 10.0,
+     "origin": "read"
+    },
+    "3102": {
+     "value": -179.0,
+     "origin": "read"
+    },
+    "3103": {
+     "value": 1.0,
+     "origin": "read"
+    },
+    "3104": {
+     "value": 2.0,
+     "origin": "read"
+    },
+    "3105": {
+     "value": 0.0,
+     "origin": "read"
+    },
+    "3106": {
+     "value": 1.0,
+     "origin": "read"
+    },
+    "3107": {
+     "value": 5.0,
+     "origin": "read"
+    },
+    "3108": {
+     "value": 0.0,
+     "origin": "read"
+    },
+    "3109": {
+     "value": 0.0,
+     "origin": "read"
+    },
+    "3110": {
+     "value": 0.0,
+     "origin": "read"
+    },
+    "3111": {
+     "value": 0.0,
+     "origin": "read"
+    },
+    "3112": {
+     "value": 0.0,
+     "origin": "read"
+    },
+    "3113": {
+     "value": 0.0,
+     "origin": "read"
+    },
+    "3114": {
+     "value": 0.0,
+     "origin": "read"
+    },
+    "3115": {
+     "value": 0.0,
+     "origin": "read"
+    }
+   }
+  },
+  "moved": [
+   "3102"
+  ],
+  "before_unconfirmed": [],
+  "after_unconfirmed": []
+ },
+ "old_from": "examples/sim_config/xyz3/sim.var at 18f3f155 + #3005 = 20 (what the step read and wrote)"
+}
