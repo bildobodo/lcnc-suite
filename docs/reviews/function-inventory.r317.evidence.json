@@ -1,0 +1,3586 @@
+[
+ {
+  "run": "20261106T024127-latch-delayed",
+  "commit": "c5f4e07a45db6c639105d99dad669a5428040cd3",
+  "variant": "latch-delayed",
+  "steps": [
+   "tree",
+   "copy",
+   "start",
+   "connect",
+   "servo",
+   "latch-order",
+   "latch"
+  ],
+  "error": null,
+  "verdict": "PASS",
+  "restore": {
+   "outcome": "complete",
+   "instance": [
+    "linuxcncsvr",
+    2318627,
+    120519912
+   ],
+   "isolation": [],
+   "cleanup": []
+  },
+  "restore_post": {
+   "outcome": "complete",
+   "instance": [
+    "linuxcncsvr",
+    2318627,
+    120519912
+   ],
+   "isolation": [],
+   "cleanup": [],
+   "repeat_of": "complete"
+  },
+  "latch_order": {
+   "before": [
+    "motion-command-handler",
+    "motion-controller",
+    "ddt_x",
+    "ddt_xv",
+    "ddt_y",
+    "ddt_yv",
+    "ddt_z",
+    "ddt_zv",
+    "vel_xy",
+    "vel_xyz",
+    "sim-toolsetter.0",
+    "limit_speed",
+    "lowpass_velocity",
+    "scale_to_rpm",
+    "near_speed",
+    "encoder.capture-position",
+    "sim-encoder.update-speed",
+    "comp_x",
+    "comp_y",
+    "comp_z",
+    "or2_0",
+    "scale.servo",
+    "pwmgen.update",
+    "pwmgen.make-pulses",
+    "oneshot.0",
+    "and2.0",
+    "and2.1",
+    "and2.2",
+    "webui-hb-latch",
+    "time.0",
+    "not.0",
+    "sampler.0"
+   ],
+   "after": [
+    "motion-command-handler",
+    "motion-controller",
+    "ddt_x",
+    "ddt_xv",
+    "ddt_y",
+    "ddt_yv",
+    "ddt_z",
+    "ddt_zv",
+    "vel_xy",
+    "vel_xyz",
+    "sim-toolsetter.0",
+    "limit_speed",
+    "lowpass_velocity",
+    "scale_to_rpm",
+    "near_speed",
+    "encoder.capture-position",
+    "sim-encoder.update-speed",
+    "comp_x",
+    "comp_y",
+    "comp_z",
+    "or2_0",
+    "scale.servo",
+    "pwmgen.update",
+    "pwmgen.make-pulses",
+    "webui-hb-latch",
+    "oneshot.0",
+    "and2.0",
+    "and2.1",
+    "and2.2",
+    "time.0",
+    "not.0",
+    "sampler.0"
+   ]
+  },
+  "stale_stream": null,
+  "servo_unload": "unloaded",
+  "servo_sections": [
+   {
+    "case": "latch-outage",
+    "attempt": 1,
+    "start_mark": 3,
+    "end_mark": 4,
+    "first_n": 23,
+    "end_n": 2488,
+    "problems": [],
+    "samples": 2465,
+    "file": "servo-latch-outage.jsonl",
+    "time_file": "servo-latch-outage.time.json"
+   },
+   {
+    "case": "latch-recovery",
+    "attempt": 2,
+    "start_mark": 5,
+    "end_mark": 6,
+    "first_n": 2506,
+    "end_n": 3876,
+    "problems": [],
+    "samples": 1370,
+    "file": "servo-latch-recovery.jsonl",
+    "time_file": "servo-latch-recovery.time.json"
+   }
+  ],
+  "rows": [
+   {
+    "case": "latch-same-cycle.delayed-order",
+    "status": "PASS",
+    "detail": "the delayed order latched exactly one cycle late (sample 504)",
+    "samples": 2465,
+    "delayed": true,
+    "edge_n": 503,
+    "edge_index": 480,
+    "latch_at_edge": 0,
+    "latch_next": 1,
+    "variant": "latch-delayed"
+   },
+   {
+    "case": "latch-sticky",
+    "status": "PASS",
+    "detail": "the heartbeat returned (sample 936), fault-out stayed TRUE, the reset before the acknowledgement was refused",
+    "samples": 2465,
+    "reset_reply": {
+     "ok": false,
+     "error": "estop_reset refused: Acknowledge the safety trip first"
+    },
+    "resume_index": 913,
+    "heartbeat_edges_after": 45,
+    "variant": "latch-delayed"
+   },
+   {
+    "case": "latch-recovered",
+    "status": "PASS",
+    "detail": "fault-out FALSE from sample 2519 to the end; no trip, E-Stop clear, machine on",
+    "samples": 1370,
+    "cleared_n": 2519,
+    "last_frame": {
+     "safety_trip": null,
+     "is_estop": false,
+     "is_enabled": true
+    },
+    "variant": "latch-delayed"
+   }
+  ]
+ },
+ {
+  "run": "20261106T025844",
+  "commit": "e4104b1bb91e8afc56fb92ea7e0830e4f52c31e5",
+  "variant": null,
+  "steps": [
+   "tree",
+   "copy",
+   "start",
+   "connect",
+   "servo",
+   "home",
+   "jog",
+   "plateau",
+   "goto",
+   "probe",
+   "m600",
+   "m6-hold",
+   "ts-sync",
+   "rfl",
+   "disconnect",
+   "clients",
+   "latch"
+  ],
+  "error": null,
+  "verdict": "PASS",
+  "restore": {
+   "outcome": "complete",
+   "instance": [
+    "linuxcncsvr",
+    2346437,
+    120670522
+   ],
+   "isolation": [],
+   "cleanup": []
+  },
+  "restore_post": {
+   "outcome": "complete",
+   "instance": [
+    "linuxcncsvr",
+    2346437,
+    120670522
+   ],
+   "isolation": [],
+   "cleanup": [],
+   "repeat_of": "complete"
+  },
+  "latch_order": null,
+  "stale_stream": null,
+  "servo_unload": "unloaded",
+  "servo_sections": [
+   {
+    "case": "jog-x+.servo",
+    "attempt": 1,
+    "start_mark": 3,
+    "end_mark": 4,
+    "first_n": 36329,
+    "end_n": 37684,
+    "problems": [],
+    "samples": 1355,
+    "file": "servo-jog-x+.servo.jsonl",
+    "time_file": "servo-jog-x+.servo.time.json"
+   },
+   {
+    "case": "jog-x-.servo",
+    "attempt": 2,
+    "start_mark": 5,
+    "end_mark": 6,
+    "first_n": 38272,
+    "end_n": 39631,
+    "problems": [],
+    "samples": 1359,
+    "file": "servo-jog-x-.servo.jsonl",
+    "time_file": "servo-jog-x-.servo.time.json"
+   },
+   {
+    "case": "jog-y+.servo",
+    "attempt": 3,
+    "start_mark": 7,
+    "end_mark": 8,
+    "first_n": 40248,
+    "end_n": 41605,
+    "problems": [],
+    "samples": 1357,
+    "file": "servo-jog-y+.servo.jsonl",
+    "time_file": "servo-jog-y+.servo.time.json"
+   },
+   {
+    "case": "jog-y-.servo",
+    "attempt": 4,
+    "start_mark": 9,
+    "end_mark": 10,
+    "first_n": 42171,
+    "end_n": 43530,
+    "problems": [],
+    "samples": 1359,
+    "file": "servo-jog-y-.servo.jsonl",
+    "time_file": "servo-jog-y-.servo.time.json"
+   },
+   {
+    "case": "jog-z+.servo",
+    "attempt": 5,
+    "start_mark": 11,
+    "end_mark": 12,
+    "first_n": 44157,
+    "end_n": 45524,
+    "problems": [],
+    "samples": 1367,
+    "file": "servo-jog-z+.servo.jsonl",
+    "time_file": "servo-jog-z+.servo.time.json"
+   },
+   {
+    "case": "jog-z-.servo",
+    "attempt": 6,
+    "start_mark": 13,
+    "end_mark": 14,
+    "first_n": 46150,
+    "end_n": 47513,
+    "problems": [],
+    "samples": 1363,
+    "file": "servo-jog-z-.servo.jsonl",
+    "time_file": "servo-jog-z-.servo.time.json"
+   },
+   {
+    "case": "override-plateau-100",
+    "attempt": 7,
+    "start_mark": 15,
+    "end_mark": 16,
+    "first_n": 64345,
+    "end_n": 69196,
+    "problems": [],
+    "samples": 4851,
+    "file": "servo-override-plateau-100.jsonl",
+    "time_file": "servo-override-plateau-100.time.json"
+   },
+   {
+    "case": "override-plateau-50",
+    "attempt": 8,
+    "start_mark": 17,
+    "end_mark": 18,
+    "first_n": 75620,
+    "end_n": 84310,
+    "problems": [],
+    "samples": 8690,
+    "file": "servo-override-plateau-50.jsonl",
+    "time_file": "servo-override-plateau-50.time.json"
+   },
+   {
+    "case": "goto-zero",
+    "attempt": 9,
+    "start_mark": 19,
+    "end_mark": 20,
+    "first_n": 108437,
+    "end_n": 111665,
+    "problems": [],
+    "samples": 3228,
+    "file": "servo-goto-zero.jsonl",
+    "time_file": "servo-goto-zero.time.json"
+   },
+   {
+    "case": "goto-home",
+    "attempt": 10,
+    "start_mark": 21,
+    "end_mark": 22,
+    "first_n": 115473,
+    "end_n": 120102,
+    "problems": [],
+    "samples": 4629,
+    "file": "servo-goto-home.jsonl",
+    "time_file": "servo-goto-home.time.json"
+   },
+   {
+    "case": "goto-g30",
+    "attempt": 11,
+    "start_mark": 23,
+    "end_mark": 24,
+    "first_n": 125288,
+    "end_n": 129930,
+    "problems": [],
+    "samples": 4642,
+    "file": "servo-goto-g30.jsonl",
+    "time_file": "servo-goto-g30.time.json"
+   },
+   {
+    "case": "goto-zero.counter-xy-first",
+    "attempt": 12,
+    "start_mark": 25,
+    "end_mark": 26,
+    "first_n": 135143,
+    "end_n": 138521,
+    "problems": [],
+    "samples": 3378,
+    "file": "servo-goto-zero.counter-xy-first.jsonl",
+    "time_file": "servo-goto-zero.counter-xy-first.time.json"
+   },
+   {
+    "case": "rfl",
+    "attempt": 13,
+    "start_mark": 27,
+    "end_mark": 28,
+    "first_n": 354975,
+    "end_n": 405066,
+    "problems": [],
+    "samples": 50091,
+    "file": "servo-rfl.jsonl",
+    "time_file": "servo-rfl.time.json"
+   },
+   {
+    "case": "disconnect-close",
+    "attempt": 14,
+    "start_mark": 29,
+    "end_mark": 30,
+    "first_n": 405728,
+    "end_n": 409938,
+    "problems": [],
+    "samples": 4210,
+    "file": "servo-disconnect-close.jsonl",
+    "time_file": "servo-disconnect-close.time.json"
+   },
+   {
+    "case": "disconnect-heartbeat",
+    "attempt": 15,
+    "start_mark": 31,
+    "end_mark": 32,
+    "first_n": 410456,
+    "end_n": 417254,
+    "problems": [],
+    "samples": 6798,
+    "file": "servo-disconnect-heartbeat.jsonl",
+    "time_file": "servo-disconnect-heartbeat.time.json"
+   },
+   {
+    "case": "clients-4",
+    "attempt": 16,
+    "start_mark": 33,
+    "end_mark": 34,
+    "first_n": 418092,
+    "end_n": 442742,
+    "problems": [],
+    "samples": 24650,
+    "file": "servo-clients-4.jsonl",
+    "time_file": "servo-clients-4.time.json"
+   },
+   {
+    "case": "clients-8",
+    "attempt": 17,
+    "start_mark": 35,
+    "end_mark": 36,
+    "first_n": 443433,
+    "end_n": 468185,
+    "problems": [],
+    "samples": 24752,
+    "file": "servo-clients-8.jsonl",
+    "time_file": "servo-clients-8.time.json"
+   },
+   {
+    "case": "latch-outage",
+    "attempt": 18,
+    "start_mark": 37,
+    "end_mark": 38,
+    "first_n": 468279,
+    "end_n": 470752,
+    "problems": [],
+    "samples": 2473,
+    "file": "servo-latch-outage.jsonl",
+    "time_file": "servo-latch-outage.time.json"
+   },
+   {
+    "case": "latch-recovery",
+    "attempt": 19,
+    "start_mark": 39,
+    "end_mark": 40,
+    "first_n": 470775,
+    "end_n": 472017,
+    "problems": [],
+    "samples": 1242,
+    "file": "servo-latch-recovery.jsonl",
+    "time_file": "servo-latch-recovery.time.json"
+   }
+  ],
+  "rows": [
+   {
+    "case": "home-all",
+    "status": "PASS",
+    "detail": "as expected",
+    "expected": [
+     true,
+     true,
+     true
+    ],
+    "observed": [
+     true,
+     true,
+     true
+    ]
+   },
+   {
+    "case": "home-joint-0",
+    "status": "PASS",
+    "detail": "as expected",
+    "expected": [
+     true,
+     false,
+     false
+    ],
+    "observed": [
+     true,
+     false,
+     false
+    ]
+   },
+   {
+    "case": "home-joint-1",
+    "status": "PASS",
+    "detail": "as expected",
+    "expected": [
+     false,
+     true,
+     false
+    ],
+    "observed": [
+     false,
+     true,
+     false
+    ]
+   },
+   {
+    "case": "home-joint-2",
+    "status": "PASS",
+    "detail": "as expected",
+    "expected": [
+     false,
+     false,
+     true
+    ],
+    "observed": [
+     false,
+     false,
+     true
+    ]
+   },
+   {
+    "case": "jog-x+.servo",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "X",
+    "sign": 1,
+    "bound_mm": 2.067,
+    "problems": [],
+    "samples": 1355,
+    "travel_mm": 14.9399,
+    "anchor_n": 36676,
+    "brake_upper_mm": 1.0601,
+    "standstill_n": 36729,
+    "standstill_received_s": 0.0493,
+    "samples_anchor_to_standstill": 53
+   },
+   {
+    "case": "jog-x+",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "X",
+    "sign": 1,
+    "bound_mm": 2.067,
+    "travel": 15.1299,
+    "before_s": -0.0001,
+    "stop_s": 0.069,
+    "brake_upper_mm": 0.8701,
+    "first_after_mm": 0.1106,
+    "informational": true
+   },
+   {
+    "case": "jog-x-.servo",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "X",
+    "sign": -1,
+    "bound_mm": 2.067,
+    "problems": [],
+    "samples": 1359,
+    "travel_mm": 15.2794,
+    "anchor_n": 38629,
+    "brake_upper_mm": 1.0206,
+    "standstill_n": 38681,
+    "standstill_received_s": 0.0539,
+    "samples_anchor_to_standstill": 52
+   },
+   {
+    "case": "jog-x-",
+    "status": "incomplete",
+    "detail": "the braking travel from the reply is at most 2.792 mm by the frame before it; status frames give no lower bound (their capture time is not known) — not resolved against 2.067",
+    "axis": "X",
+    "sign": -1,
+    "bound_mm": 2.067,
+    "travel": 13.5083,
+    "before_s": -0.0272,
+    "stop_s": 0.0759,
+    "brake_upper_mm": 2.7918,
+    "first_after_mm": 0.7651,
+    "informational": true
+   },
+   {
+    "case": "jog-y+.servo",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "Y",
+    "sign": 1,
+    "bound_mm": 2.067,
+    "problems": [],
+    "samples": 1357,
+    "travel_mm": 14.9006,
+    "anchor_n": 40603,
+    "brake_upper_mm": 0.7994,
+    "standstill_n": 40649,
+    "standstill_received_s": 0.0466,
+    "samples_anchor_to_standstill": 46
+   },
+   {
+    "case": "jog-y+",
+    "status": "incomplete",
+    "detail": "the braking travel from the reply is at most 2.292 mm by the frame before it; status frames give no lower bound (their capture time is not known) — not resolved against 2.067",
+    "axis": "Y",
+    "sign": 1,
+    "bound_mm": 2.067,
+    "travel": 13.4083,
+    "before_s": -0.0259,
+    "stop_s": 0.0774,
+    "brake_upper_mm": 2.2918,
+    "first_after_mm": 0.7316,
+    "informational": true
+   },
+   {
+    "case": "jog-y-.servo",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "Y",
+    "sign": -1,
+    "bound_mm": 2.067,
+    "problems": [],
+    "samples": 1359,
+    "travel_mm": 15.2311,
+    "anchor_n": 42527,
+    "brake_upper_mm": 1.2689,
+    "standstill_n": 42585,
+    "standstill_received_s": 0.0639,
+    "samples_anchor_to_standstill": 58
+   },
+   {
+    "case": "jog-y-",
+    "status": "incomplete",
+    "detail": "the braking travel from the reply is at most 2.342 mm by the frame before it; status frames give no lower bound (their capture time is not known) — not resolved against 2.067",
+    "axis": "Y",
+    "sign": -1,
+    "bound_mm": 2.067,
+    "travel": 14.1583,
+    "before_s": -0.0226,
+    "stop_s": 0.0816,
+    "brake_upper_mm": 2.3418,
+    "first_after_mm": 0.7651,
+    "informational": true
+   },
+   {
+    "case": "jog-z+.servo",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "Z",
+    "sign": 1,
+    "bound_mm": 2.483,
+    "problems": [],
+    "samples": 1367,
+    "travel_mm": 14.7447,
+    "anchor_n": 44514,
+    "brake_upper_mm": 1.5053,
+    "standstill_n": 44585,
+    "standstill_received_s": 0.0711,
+    "samples_anchor_to_standstill": 71
+   },
+   {
+    "case": "jog-z+",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "Z",
+    "sign": 1,
+    "bound_mm": 2.483,
+    "travel": 14.5247,
+    "before_s": -0.0001,
+    "stop_s": 0.1021,
+    "brake_upper_mm": 1.7253,
+    "first_after_mm": 0.2495,
+    "informational": true
+   },
+   {
+    "case": "jog-z-.servo",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "Z",
+    "sign": -1,
+    "bound_mm": 2.483,
+    "problems": [],
+    "samples": 1363,
+    "travel_mm": 14.6447,
+    "anchor_n": 46506,
+    "brake_upper_mm": 1.5053,
+    "standstill_n": 46577,
+    "standstill_received_s": 0.074,
+    "samples_anchor_to_standstill": 71
+   },
+   {
+    "case": "jog-z-",
+    "status": "incomplete",
+    "detail": "the braking travel from the reply is at most 3.308 mm by the frame before it; status frames give no lower bound (their capture time is not known) — not resolved against 2.483",
+    "axis": "Z",
+    "sign": -1,
+    "bound_mm": 2.483,
+    "travel": 12.8416,
+    "before_s": -0.0359,
+    "stop_s": 0.1026,
+    "brake_upper_mm": 3.3084,
+    "first_after_mm": 1.6355,
+    "informational": true
+   },
+   {
+    "case": "override-plateau-100",
+    "status": "PASS",
+    "detail": "median 100.00 mm/s within 100 ± 5%",
+    "expected": 100.0,
+    "tol": 0.05,
+    "pairs": 2999,
+    "problems": [],
+    "median": 100.0
+   },
+   {
+    "case": "override-plateau-50",
+    "status": "PASS",
+    "detail": "median 50.00 mm/s within 50 ± 5%",
+    "expected": 50.0,
+    "tol": 0.05,
+    "pairs": 5999,
+    "problems": [],
+    "median": 50.0
+   },
+   {
+    "case": "override-plateau.counter-75",
+    "status": "PASS",
+    "detail": "the planted value is refused: median 100.00 mm/s — expected 75 ± 5%",
+    "counter": true,
+    "inner": {
+     "case": "override-plateau-100",
+     "status": "FAIL",
+     "detail": "median 100.00 mm/s — expected 75 ± 5%",
+     "expected": 75.0,
+     "tol": 0.05,
+     "pairs": 2999,
+     "problems": [],
+     "median": 100.0
+    }
+   },
+   {
+    "case": "goto-zero",
+    "status": "PASS",
+    "detail": "Z up first, then X/Y; no descent (the target's Z is up); at rest on the target",
+    "start": [
+     200.0,
+     200.0,
+     -60.0
+    ],
+    "target": [
+     100.0,
+     100.0,
+     0.0
+    ],
+    "problems": []
+   },
+   {
+    "case": "goto-home",
+    "status": "PASS",
+    "detail": "Z up first, then X/Y; no descent (the target's Z is up); at rest on the target",
+    "start": [
+     200.0,
+     200.0,
+     -60.0
+    ],
+    "target": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "problems": []
+   },
+   {
+    "case": "goto-g30",
+    "status": "PASS",
+    "detail": "Z up first, then X/Y; no descent (the target's Z is up); at rest on the target",
+    "start": [
+     200.0,
+     200.0,
+     -60.0
+    ],
+    "target": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "problems": []
+   },
+   {
+    "case": "goto-zero.counter-xy-first",
+    "status": "PASS",
+    "detail": "the planted value is refused: X moved -0.012 mm with Z at -60.000 (sample 135171)",
+    "counter": true,
+    "inner": {
+     "case": "goto-zero",
+     "status": "FAIL",
+     "detail": "X moved -0.012 mm with Z at -60.000 (sample 135171)",
+     "start": [
+      200.0,
+      200.0,
+      -60.0
+     ],
+     "target": [
+      100.0,
+      100.0,
+      0.0
+     ],
+     "problems": []
+    }
+   },
+   {
+    "case": "probe-z",
+    "status": "PASS",
+    "detail": "G54 Z -180.0011 within -180 ± 0.003",
+    "expected": -180.0,
+    "tol_mm": 0.003,
+    "contact": 1.0,
+    "g54_z": -180.0011166666662,
+    "errors": [],
+    "deviation_mm": -0.001117,
+    "vars_sent": {
+     "3014": 99.0,
+     "3015": 50.0,
+     "3016": 200.0,
+     "3017": 1000.0,
+     "3020": 10.0,
+     "3021": 2.0,
+     "3030": 0
+    }
+   },
+   {
+    "case": "probe-z.counter-plate-1",
+    "status": "PASS",
+    "detail": "the planted value is refused: G54 Z -180.0011 — expected -179 ± 0.003",
+    "counter": true,
+    "inner": {
+     "case": "probe-z",
+     "status": "FAIL",
+     "detail": "G54 Z -180.0011 — expected -179 ± 0.003",
+     "expected": -179.0,
+     "tol_mm": 0.003,
+     "contact": 1.0,
+     "g54_z": -180.0011166666662,
+     "errors": [],
+     "deviation_mm": -1.001117
+    }
+   },
+   {
+    "case": "probe-z-miss",
+    "status": "PASS",
+    "detail": "no contact, nothing set, the error said so",
+    "error": "G38.2 move finished without making contact.",
+    "contact": 0.0,
+    "g54_before": 0.0,
+    "g54_after": 0.0,
+    "errors": [
+     [
+      11,
+      "G38.2 move finished without making contact."
+     ]
+    ],
+    "vars_read_back": {
+     "3014": 99.0,
+     "3015": 50.0,
+     "3016": 200.0,
+     "3017": 1000.0,
+     "3020": 10.0,
+     "3021": 2.0,
+     "3030": 0.0
+    }
+   },
+   {
+    "case": "m600-unload",
+    "status": "PASS",
+    "detail": "the spindle empty, no length applied",
+    "served": [
+     {
+      "tool": 0,
+      "seq": 2
+     }
+    ],
+    "tool_after": 0,
+    "offset_after": 0.0
+   },
+   {
+    "case": "m600-t1",
+    "status": "PASS",
+    "detail": "length 49.9996 within 50 ± 0.002, applied as measured",
+    "l0": 50.0,
+    "length": 49.999550000000056,
+    "g43": 49.999550000000056,
+    "tol_mm": 0.002,
+    "errors": [],
+    "deviation_mm": -0.00045,
+    "table_on_disk": 49.99955
+   },
+   {
+    "case": "m600-t1-return",
+    "status": "PASS",
+    "detail": "from the top, T0 0.000 mm → T1 49.9996 mm stored and applied; back at the call's X/Y, Z stayed up",
+    "call": [
+     0.0,
+     0.0,
+     -1.7763568394002505e-15
+    ],
+    "end": [
+     0.0,
+     0.0,
+     -1.7763568394002505e-15
+    ],
+    "top_z": 0.0,
+    "errors": [],
+    "setting_3106": 1.0,
+    "call_tool": 0,
+    "call_offset": 0.0,
+    "tool": 1,
+    "end_tool": 1,
+    "table": 49.999550000000056,
+    "applied": 49.999550000000056
+   },
+   {
+    "case": "m600-t1-return.counter-x+1",
+    "status": "PASS",
+    "detail": "the planted value is refused: X ended at 0.000, the call was at 1.000",
+    "counter": true,
+    "inner": {
+     "case": "m600-t1-return",
+     "status": "FAIL",
+     "detail": "X ended at 0.000, the call was at 1.000",
+     "call": [
+      1.0,
+      0.0,
+      -1.7763568394002505e-15
+     ],
+     "end": [
+      0.0,
+      0.0,
+      -1.7763568394002505e-15
+     ],
+     "top_z": 0.0,
+     "errors": [],
+     "setting_3106": 1.0,
+     "call_tool": 0,
+     "call_offset": 0.0,
+     "tool": 1,
+     "end_tool": 1,
+     "table": 49.999550000000056,
+     "applied": 49.999550000000056
+    }
+   },
+   {
+    "case": "m600-t1-override-lock",
+    "status": "PASS",
+    "detail": "locked through the measuring phase, free after the routine",
+    "free_s": 39.413,
+    "locked_from_s": 0.291,
+    "done_s": 39.413
+   },
+   {
+    "case": "m600-t1.counter-3102",
+    "status": "PASS",
+    "detail": "the planted #3102 gave 48.9991 as predicted from 49.9995 — refused against it",
+    "base": 49.99955,
+    "planted_3102": -179.0,
+    "predicted": 48.99955,
+    "length": 48.99910000000011,
+    "g43": 48.99910000000011,
+    "tool_after": 1,
+    "errors": [],
+    "counter": true,
+    "l0": 50.0,
+    "table_on_disk": 48.9991
+   },
+   {
+    "case": "m6-hold",
+    "status": "PASS",
+    "detail": "held 5 s waiting, then T99 with its length",
+    "tool_before": 1,
+    "tool_after": 99,
+    "offset_after": 50.0,
+    "samples": 146,
+    "max_gap_s": 0.039,
+    "held_s": 5.017,
+    "first_t": 1206513.591737156,
+    "last_t": 1206518.609075653
+   },
+   {
+    "case": "ts-sync-program-m600",
+    "status": "PASS",
+    "detail": "saved while off, applied at the start: #3102 -180 → -179, length 48.9996 within 49 ± 0.002 (the old basis gives 50)",
+    "l0": 50.0,
+    "old_3102": -180.0,
+    "new_3102": -179.0,
+    "expected": 49.0,
+    "length": 48.999550000000056,
+    "g43": 48.999550000000056,
+    "toolsetter": {
+     "digest": "72098ff505fdeb49",
+     "set_up": true,
+     "synced": true,
+     "persisted": true,
+     "file_error": null
+    },
+    "interp_before": -180.0,
+    "interp_after": -179.0,
+    "tol_mm": 0.002,
+    "errors": [],
+    "deviation_mm": -0.00045
+   },
+   {
+    "case": "ts-sync-program-m600.counter-old-basis",
+    "status": "PASS",
+    "detail": "the planted value is refused: length 48.9996 — expected 50 ± 0.002",
+    "counter": true,
+    "inner": {
+     "case": "ts-sync-program-m600",
+     "status": "FAIL",
+     "detail": "length 48.9996 — expected 50 ± 0.002",
+     "l0": 50.0,
+     "old_3102": -180.0,
+     "new_3102": -180.0,
+     "expected": 50.0,
+     "length": 48.999550000000056,
+     "g43": 48.999550000000056,
+     "toolsetter": {
+      "digest": "72098ff505fdeb49",
+      "set_up": true,
+      "synced": true,
+      "persisted": true,
+      "file_error": null
+     },
+     "interp_before": -180.0,
+     "interp_after": -179.0,
+     "tol_mm": 0.002,
+     "errors": [],
+     "deviation_mm": -1.00045
+    }
+   },
+   {
+    "case": "ts-sync-booking",
+    "status": "PASS",
+    "detail": "before every key confirmed at the prepared numbers (the form: not yet in the machine, ['3102']), after every key at the section's (the form: confirmed); version 25 → 30",
+    "old": {
+     "3004": 2000.0,
+     "3005": 20.0,
+     "3006": 500.0,
+     "3007": 180.0,
+     "3009": 3.0,
+     "3010": 180.0,
+     "3013": 0.0,
+     "3100": 10.0,
+     "3101": 10.0,
+     "3102": -180.0,
+     "3103": 1.0,
+     "3104": 2.0,
+     "3105": 0.0,
+     "3106": 1.0,
+     "3107": 5.0,
+     "3108": 0.0,
+     "3109": 0.0,
+     "3110": 0.0,
+     "3111": 0.0,
+     "3112": 0.0,
+     "3113": 0.0,
+     "3114": 0.0,
+     "3115": 0.0
+    },
+    "new": {
+     "3004": 2000.0,
+     "3005": 20.0,
+     "3006": 500.0,
+     "3007": 180.0,
+     "3009": 3.0,
+     "3010": 180.0,
+     "3013": 0.0,
+     "3100": 10.0,
+     "3101": 10.0,
+     "3102": -179.0,
+     "3103": 1.0,
+     "3104": 2.0,
+     "3105": 0.0,
+     "3106": 1.0,
+     "3107": 5.0,
+     "3108": 0.0,
+     "3109": 0.0,
+     "3110": 0.0,
+     "3111": 0.0,
+     "3112": 0.0,
+     "3113": 0.0,
+     "3114": 0.0,
+     "3115": 0.0
+    },
+    "before": {
+     "version": 25,
+     "keys": {
+      "3004": {
+       "value": 2000.0,
+       "origin": "applied"
+      },
+      "3005": {
+       "value": 20.0,
+       "origin": "applied"
+      },
+      "3006": {
+       "value": 500.0,
+       "origin": "applied"
+      },
+      "3007": {
+       "value": 180.0,
+       "origin": "applied"
+      },
+      "3009": {
+       "value": 3.0,
+       "origin": "applied"
+      },
+      "3010": {
+       "value": 180.0,
+       "origin": "applied"
+      },
+      "3013": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3014": {
+       "value": 99.0,
+       "origin": "assumed"
+      },
+      "3100": {
+       "value": 10.0,
+       "origin": "applied"
+      },
+      "3101": {
+       "value": 10.0,
+       "origin": "applied"
+      },
+      "3102": {
+       "value": -180.0,
+       "origin": "applied"
+      },
+      "3103": {
+       "value": 1.0,
+       "origin": "applied"
+      },
+      "3104": {
+       "value": 2.0,
+       "origin": "applied"
+      },
+      "3105": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3106": {
+       "value": 1.0,
+       "origin": "applied"
+      },
+      "3107": {
+       "value": 5.0,
+       "origin": "applied"
+      },
+      "3108": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3109": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3110": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3111": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3112": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3113": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3114": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3115": {
+       "value": 0.0,
+       "origin": "applied"
+      }
+     }
+    },
+    "after": {
+     "version": 30,
+     "keys": {
+      "3004": {
+       "value": 2000.0,
+       "origin": "read"
+      },
+      "3005": {
+       "value": 20.0,
+       "origin": "read"
+      },
+      "3006": {
+       "value": 500.0,
+       "origin": "read"
+      },
+      "3007": {
+       "value": 180.0,
+       "origin": "read"
+      },
+      "3009": {
+       "value": 3.0,
+       "origin": "read"
+      },
+      "3010": {
+       "value": 180.0,
+       "origin": "read"
+      },
+      "3013": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3014": {
+       "value": 99.0,
+       "origin": "read"
+      },
+      "3100": {
+       "value": 10.0,
+       "origin": "read"
+      },
+      "3101": {
+       "value": 10.0,
+       "origin": "read"
+      },
+      "3102": {
+       "value": -179.0,
+       "origin": "read"
+      },
+      "3103": {
+       "value": 1.0,
+       "origin": "read"
+      },
+      "3104": {
+       "value": 2.0,
+       "origin": "read"
+      },
+      "3105": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3106": {
+       "value": 1.0,
+       "origin": "read"
+      },
+      "3107": {
+       "value": 5.0,
+       "origin": "read"
+      },
+      "3108": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3109": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3110": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3111": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3112": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3113": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3114": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3115": {
+       "value": 0.0,
+       "origin": "read"
+      }
+     }
+    },
+    "moved": [
+     "3102"
+    ],
+    "before_unconfirmed": [],
+    "after_unconfirmed": []
+   },
+   {
+    "case": "ts-sync-stable",
+    "status": "PASS",
+    "detail": "nothing written, the booking stayed at version 30",
+    "toolsetter": {
+     "digest": "72098ff505fdeb49",
+     "set_up": true,
+     "synced": false
+    },
+    "version_before": 30,
+    "version_after": 30,
+    "errors": []
+   },
+   {
+    "case": "rfl-line",
+    "status": "PASS",
+    "detail": "the program started at line 7 with T1, its length, the spindle at 1000; line 7 and the program ran to their ends",
+    "line": 7,
+    "end_point": [
+     200.0,
+     null,
+     0.0
+    ],
+    "final": [
+     200.0,
+     200.0,
+     -30.0
+    ],
+    "line_holds": {
+     "1": 100.0,
+     "2": 0.0
+    },
+    "end_from": 8,
+    "errors": [],
+    "witness_t": 1206629.394142707,
+    "witness_line": 7,
+    "tool_number": 1,
+    "offset": 49.999550000000056,
+    "table": 49.999550000000056,
+    "spindle_direction": 1,
+    "spindle_speed": 1000.0
+   },
+   {
+    "case": "rfl-line.counter-line+1",
+    "status": "PASS",
+    "detail": "the planted value is refused: the first motion of the program is line 7, before line 8",
+    "counter": true,
+    "inner": {
+     "case": "rfl-line",
+     "status": "FAIL",
+     "detail": "the first motion of the program is line 7, before line 8",
+     "line": 8,
+     "end_point": [
+      200.0,
+      null,
+      0.0
+     ],
+     "final": [
+      200.0,
+      200.0,
+      -30.0
+     ],
+     "line_holds": {
+      "1": 100.0,
+      "2": 0.0
+     },
+     "end_from": 9,
+     "errors": [],
+     "witness_t": 1206629.394142707,
+     "witness_line": 7,
+     "tool_number": 1,
+     "offset": 49.999550000000056,
+     "table": 49.999550000000056,
+     "spindle_direction": 1,
+     "spindle_speed": 1000.0
+    }
+   },
+   {
+    "case": "rfl-no-earlier-line",
+    "status": "PASS",
+    "detail": "no line before 7 in 141 received frames of the program — a line between two frames is not seen",
+    "scope": "observed frames",
+    "frames": 141,
+    "lines": [
+     7,
+     8,
+     9
+    ]
+   },
+   {
+    "case": "rfl-start-point",
+    "status": "PASS",
+    "detail": "line 7 started at the entry X/Y on the safe height, at rest since reaching it; no earlier line moved",
+    "line": 7,
+    "entry_xy": [
+     100.0,
+     100.0
+    ],
+    "safe_z": 0.0,
+    "samples": 50091,
+    "sources": {
+     "subroutines/tool_length_probe/tool_touch_off.ngc": "4990c7b303cb43bf0aa8cb11948277072874558f5902d3c48a59133ec555097d",
+     "subroutines/tool_length_probe/m600.ngc": "acbaeb68313eb7f769eea45f5b1bf83455d55976515857f47811c1d0d773e919",
+     "program": "623c541452bd24ad4bfd2075287ff68081e0785eff09c53366f00526bcc95773"
+    },
+    "start": [
+     100.0,
+     100.0,
+     0.0
+    ],
+    "anchor_n": 400115
+   },
+   {
+    "case": "rfl-start-point.counter-entry-x+1",
+    "status": "PASS",
+    "detail": "the planted value is refused: line 7 started at X 100.0 Y 100.0, not the entry X 101 Y 100",
+    "counter": true,
+    "inner": {
+     "case": "rfl-start-point",
+     "status": "FAIL",
+     "detail": "line 7 started at X 100.0 Y 100.0, not the entry X 101 Y 100",
+     "line": 7,
+     "entry_xy": [
+      101.0,
+      100.0
+     ],
+     "safe_z": 0.0,
+     "samples": 50091,
+     "sources": {
+      "subroutines/tool_length_probe/tool_touch_off.ngc": "4990c7b303cb43bf0aa8cb11948277072874558f5902d3c48a59133ec555097d",
+      "subroutines/tool_length_probe/m600.ngc": "acbaeb68313eb7f769eea45f5b1bf83455d55976515857f47811c1d0d773e919",
+      "program": "623c541452bd24ad4bfd2075287ff68081e0785eff09c53366f00526bcc95773"
+     },
+     "start": [
+      100.0,
+      100.0,
+      0.0
+     ]
+    }
+   },
+   {
+    "case": "disconnect-close",
+    "status": "PASS",
+    "detail": "the program ran on for ≥ 3.00 s after the event, X 259 mm, no trip; the remaining client saw it running",
+    "samples": 4210,
+    "event": {
+     "t_wall_ns": 1793930752409514485,
+     "t_mono_ms": 408067.666,
+     "proc": "gateway",
+     "pid": 2337900,
+     "tag": "ws.disconnect",
+     "level": "info",
+     "client_id": 1,
+     "peer": "127.0.0.1",
+     "reason": "WebSocketDisconnect",
+     "cleanup_ms": 0.1,
+     "session_ms": 1353.9,
+     "remaining_clients": 1,
+     "queue_dropped": 0,
+     "inflight_at_drop": null
+    },
+    "frames_after": 87,
+    "w_n": 406932,
+    "travel_mm": 259.476,
+    "window_ns_lower": 3004065357
+   },
+   {
+    "case": "disconnect-heartbeat",
+    "status": "PASS",
+    "detail": "the program ran on for ≥ 3.01 s after the event, X 301 mm, no trip; the remaining client saw it running",
+    "samples": 6798,
+    "event": {
+     "t_wall_ns": 1793930759683411369,
+     "t_mono_ms": 415341.563,
+     "proc": "gateway",
+     "pid": 2337900,
+     "tag": "safety.hb_stall_disarmed",
+     "level": "info",
+     "client_id": 2,
+     "hb_age_ms": 3023,
+     "hb_age_wall_ms": 3023,
+     "last_hb_arrival_ms_ago": 3023,
+     "hb_arrival_gaps_ms": [
+      500
+     ],
+     "frames_rx_total": 8,
+     "inflight_cmd": null,
+     "inflight_ms": null
+    },
+    "frames_after": 88,
+    "w_n": 414245,
+    "travel_mm": 300.8,
+    "window_ns_lower": 3006995551
+   },
+   {
+    "case": "clients-4",
+    "status": "PASS",
+    "detail": "4 clients, 638 heartbeat gaps across the window, the longest ≤ 69.0 ms",
+    "n": 4,
+    "hellos": [
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     },
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     },
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     },
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     }
+    ],
+    "fetches": [
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "2ad4e3b2adc1cf846eafa0088e11042276666f668551a6bbc2af2b111618d0b7"
+     },
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "2ad4e3b2adc1cf846eafa0088e11042276666f668551a6bbc2af2b111618d0b7"
+     },
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "2ad4e3b2adc1cf846eafa0088e11042276666f668551a6bbc2af2b111618d0b7"
+     },
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "2ad4e3b2adc1cf846eafa0088e11042276666f668551a6bbc2af2b111618d0b7"
+     }
+    ],
+    "published": {
+     "ok": true,
+     "file": "native_load_4.ngc",
+     "source": "6e846a456eefb46fd56657b4742601a63db84337748306b0e11d2dd768be12e8",
+     "version": 1793930354
+    },
+    "samples": 24650,
+    "pre_ns": 1309027773,
+    "post_ns": 1310022423,
+    "edges": 714,
+    "pairs": 638,
+    "worst_upper_ns": 68994881,
+    "worst_lower_ns": 65005447
+   },
+   {
+    "case": "clients-8",
+    "status": "PASS",
+    "detail": "8 clients, 645 heartbeat gaps across the window, the longest ≤ 50.0 ms",
+    "n": 8,
+    "hellos": [
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     },
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     },
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     },
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     },
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     },
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     },
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     },
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     }
+    ],
+    "fetches": [
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "bc6e00f648d6bf17656dcd46a91b55429a49584ba9785db500a4b74b6c14aeb7"
+     },
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "bc6e00f648d6bf17656dcd46a91b55429a49584ba9785db500a4b74b6c14aeb7"
+     },
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "bc6e00f648d6bf17656dcd46a91b55429a49584ba9785db500a4b74b6c14aeb7"
+     },
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "bc6e00f648d6bf17656dcd46a91b55429a49584ba9785db500a4b74b6c14aeb7"
+     },
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "bc6e00f648d6bf17656dcd46a91b55429a49584ba9785db500a4b74b6c14aeb7"
+     },
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "bc6e00f648d6bf17656dcd46a91b55429a49584ba9785db500a4b74b6c14aeb7"
+     },
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "bc6e00f648d6bf17656dcd46a91b55429a49584ba9785db500a4b74b6c14aeb7"
+     },
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "bc6e00f648d6bf17656dcd46a91b55429a49584ba9785db500a4b74b6c14aeb7"
+     }
+    ],
+    "published": {
+     "ok": true,
+     "file": "native_load_8.ngc",
+     "source": "6e846a456eefb46fd56657b4742601a63db84337748306b0e11d2dd768be12e8",
+     "version": 1793930355
+    },
+    "samples": 24752,
+    "pre_ns": 1311001137,
+    "post_ns": 1311995703,
+    "edges": 720,
+    "pairs": 645,
+    "worst_upper_ns": 50004217,
+    "worst_lower_ns": 45985699
+   },
+   {
+    "case": "latch-same-cycle",
+    "status": "PASS",
+    "detail": "fault-out TRUE in the sample oneshot.0.out fell (sample 468766)",
+    "samples": 2473,
+    "delayed": false,
+    "edge_n": 468766,
+    "edge_index": 487,
+    "latch_at_edge": 1,
+    "latch_next": 1
+   },
+   {
+    "case": "latch-sticky",
+    "status": "PASS",
+    "detail": "the heartbeat returned (sample 469228), fault-out stayed TRUE, the reset before the acknowledgement was refused",
+    "samples": 2473,
+    "reset_reply": {
+     "ok": false,
+     "error": "estop_reset refused: Acknowledge the safety trip first"
+    },
+    "resume_index": 949,
+    "heartbeat_edges_after": 44
+   },
+   {
+    "case": "latch-recovered",
+    "status": "PASS",
+    "detail": "fault-out FALSE from sample 470782 to the end; no trip, E-Stop clear, machine on",
+    "samples": 1242,
+    "cleared_n": 470782,
+    "last_frame": {
+     "safety_trip": null,
+     "is_estop": false,
+     "is_enabled": true
+    }
+   }
+  ]
+ },
+ {
+  "run": "20261106T030736",
+  "commit": "33630f93be60031032b57a4f4eb1ed23bd458e7b",
+  "variant": null,
+  "steps": [
+   "tree",
+   "copy",
+   "start",
+   "connect",
+   "servo",
+   "home",
+   "jog",
+   "plateau",
+   "goto",
+   "probe",
+   "m600",
+   "m6-hold",
+   "ts-sync",
+   "rfl",
+   "disconnect",
+   "clients",
+   "latch"
+  ],
+  "error": null,
+  "verdict": "PASS",
+  "restore": {
+   "outcome": "complete",
+   "instance": [
+    "linuxcncsvr",
+    2356316,
+    120723718
+   ],
+   "isolation": [],
+   "cleanup": []
+  },
+  "restore_post": {
+   "outcome": "complete",
+   "instance": [
+    "linuxcncsvr",
+    2356316,
+    120723718
+   ],
+   "isolation": [],
+   "cleanup": [],
+   "repeat_of": "complete"
+  },
+  "latch_order": null,
+  "stale_stream": null,
+  "servo_unload": "unloaded",
+  "servo_sections": [
+   {
+    "case": "jog-x+.servo",
+    "attempt": 1,
+    "start_mark": 3,
+    "end_mark": 4,
+    "first_n": 36324,
+    "end_n": 37685,
+    "problems": [],
+    "samples": 1361,
+    "file": "servo-jog-x+.servo.jsonl",
+    "time_file": "servo-jog-x+.servo.time.json"
+   },
+   {
+    "case": "jog-x-.servo",
+    "attempt": 2,
+    "start_mark": 5,
+    "end_mark": 6,
+    "first_n": 38295,
+    "end_n": 39647,
+    "problems": [],
+    "samples": 1352,
+    "file": "servo-jog-x-.servo.jsonl",
+    "time_file": "servo-jog-x-.servo.time.json"
+   },
+   {
+    "case": "jog-y+.servo",
+    "attempt": 3,
+    "start_mark": 7,
+    "end_mark": 8,
+    "first_n": 40256,
+    "end_n": 41613,
+    "problems": [],
+    "samples": 1357,
+    "file": "servo-jog-y+.servo.jsonl",
+    "time_file": "servo-jog-y+.servo.time.json"
+   },
+   {
+    "case": "jog-y-.servo",
+    "attempt": 4,
+    "start_mark": 9,
+    "end_mark": 10,
+    "first_n": 42203,
+    "end_n": 43560,
+    "problems": [],
+    "samples": 1357,
+    "file": "servo-jog-y-.servo.jsonl",
+    "time_file": "servo-jog-y-.servo.time.json"
+   },
+   {
+    "case": "jog-z+.servo",
+    "attempt": 5,
+    "start_mark": 11,
+    "end_mark": 12,
+    "first_n": 44139,
+    "end_n": 45496,
+    "problems": [],
+    "samples": 1357,
+    "file": "servo-jog-z+.servo.jsonl",
+    "time_file": "servo-jog-z+.servo.time.json"
+   },
+   {
+    "case": "jog-z-.servo",
+    "attempt": 6,
+    "start_mark": 13,
+    "end_mark": 14,
+    "first_n": 46146,
+    "end_n": 47508,
+    "problems": [],
+    "samples": 1362,
+    "file": "servo-jog-z-.servo.jsonl",
+    "time_file": "servo-jog-z-.servo.time.json"
+   },
+   {
+    "case": "override-plateau-100",
+    "attempt": 7,
+    "start_mark": 15,
+    "end_mark": 16,
+    "first_n": 64284,
+    "end_n": 69116,
+    "problems": [],
+    "samples": 4832,
+    "file": "servo-override-plateau-100.jsonl",
+    "time_file": "servo-override-plateau-100.time.json"
+   },
+   {
+    "case": "override-plateau-50",
+    "attempt": 8,
+    "start_mark": 17,
+    "end_mark": 18,
+    "first_n": 75594,
+    "end_n": 84296,
+    "problems": [],
+    "samples": 8702,
+    "file": "servo-override-plateau-50.jsonl",
+    "time_file": "servo-override-plateau-50.time.json"
+   },
+   {
+    "case": "goto-zero",
+    "attempt": 9,
+    "start_mark": 19,
+    "end_mark": 20,
+    "first_n": 108352,
+    "end_n": 111555,
+    "problems": [],
+    "samples": 3203,
+    "file": "servo-goto-zero.jsonl",
+    "time_file": "servo-goto-zero.time.json"
+   },
+   {
+    "case": "goto-home",
+    "attempt": 10,
+    "start_mark": 21,
+    "end_mark": 22,
+    "first_n": 115401,
+    "end_n": 120020,
+    "problems": [],
+    "samples": 4619,
+    "file": "servo-goto-home.jsonl",
+    "time_file": "servo-goto-home.time.json"
+   },
+   {
+    "case": "goto-g30",
+    "attempt": 11,
+    "start_mark": 23,
+    "end_mark": 24,
+    "first_n": 125235,
+    "end_n": 129854,
+    "problems": [],
+    "samples": 4619,
+    "file": "servo-goto-g30.jsonl",
+    "time_file": "servo-goto-g30.time.json"
+   },
+   {
+    "case": "goto-zero.counter-xy-first",
+    "attempt": 12,
+    "start_mark": 25,
+    "end_mark": 26,
+    "first_n": 135086,
+    "end_n": 138416,
+    "problems": [],
+    "samples": 3330,
+    "file": "servo-goto-zero.counter-xy-first.jsonl",
+    "time_file": "servo-goto-zero.counter-xy-first.time.json"
+   },
+   {
+    "case": "rfl",
+    "attempt": 13,
+    "start_mark": 27,
+    "end_mark": 28,
+    "first_n": 354715,
+    "end_n": 404820,
+    "problems": [],
+    "samples": 50105,
+    "file": "servo-rfl.jsonl",
+    "time_file": "servo-rfl.time.json"
+   },
+   {
+    "case": "disconnect-close",
+    "attempt": 14,
+    "start_mark": 29,
+    "end_mark": 30,
+    "first_n": 405503,
+    "end_n": 409716,
+    "problems": [],
+    "samples": 4213,
+    "file": "servo-disconnect-close.jsonl",
+    "time_file": "servo-disconnect-close.time.json"
+   },
+   {
+    "case": "disconnect-heartbeat",
+    "attempt": 15,
+    "start_mark": 31,
+    "end_mark": 32,
+    "first_n": 410229,
+    "end_n": 417037,
+    "problems": [],
+    "samples": 6808,
+    "file": "servo-disconnect-heartbeat.jsonl",
+    "time_file": "servo-disconnect-heartbeat.time.json"
+   },
+   {
+    "case": "clients-4",
+    "attempt": 16,
+    "start_mark": 33,
+    "end_mark": 34,
+    "first_n": 417839,
+    "end_n": 442291,
+    "problems": [],
+    "samples": 24452,
+    "file": "servo-clients-4.jsonl",
+    "time_file": "servo-clients-4.time.json"
+   },
+   {
+    "case": "clients-8",
+    "attempt": 17,
+    "start_mark": 35,
+    "end_mark": 36,
+    "first_n": 442984,
+    "end_n": 467621,
+    "problems": [],
+    "samples": 24637,
+    "file": "servo-clients-8.jsonl",
+    "time_file": "servo-clients-8.time.json"
+   },
+   {
+    "case": "latch-outage",
+    "attempt": 18,
+    "start_mark": 37,
+    "end_mark": 38,
+    "first_n": 467710,
+    "end_n": 470179,
+    "problems": [],
+    "samples": 2469,
+    "file": "servo-latch-outage.jsonl",
+    "time_file": "servo-latch-outage.time.json"
+   },
+   {
+    "case": "latch-recovery",
+    "attempt": 19,
+    "start_mark": 39,
+    "end_mark": 40,
+    "first_n": 470199,
+    "end_n": 471451,
+    "problems": [],
+    "samples": 1252,
+    "file": "servo-latch-recovery.jsonl",
+    "time_file": "servo-latch-recovery.time.json"
+   }
+  ],
+  "rows": [
+   {
+    "case": "home-all",
+    "status": "PASS",
+    "detail": "as expected",
+    "expected": [
+     true,
+     true,
+     true
+    ],
+    "observed": [
+     true,
+     true,
+     true
+    ]
+   },
+   {
+    "case": "home-joint-0",
+    "status": "PASS",
+    "detail": "as expected",
+    "expected": [
+     true,
+     false,
+     false
+    ],
+    "observed": [
+     true,
+     false,
+     false
+    ]
+   },
+   {
+    "case": "home-joint-1",
+    "status": "PASS",
+    "detail": "as expected",
+    "expected": [
+     false,
+     true,
+     false
+    ],
+    "observed": [
+     false,
+     true,
+     false
+    ]
+   },
+   {
+    "case": "home-joint-2",
+    "status": "PASS",
+    "detail": "as expected",
+    "expected": [
+     false,
+     false,
+     true
+    ],
+    "observed": [
+     false,
+     false,
+     true
+    ]
+   },
+   {
+    "case": "jog-x+.servo",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "X",
+    "sign": 1,
+    "bound_mm": 2.067,
+    "problems": [],
+    "samples": 1361,
+    "travel_mm": 14.7536,
+    "anchor_n": 36673,
+    "brake_upper_mm": 1.4964,
+    "standstill_n": 36736,
+    "standstill_received_s": 0.0562,
+    "samples_anchor_to_standstill": 63
+   },
+   {
+    "case": "jog-x+",
+    "status": "incomplete",
+    "detail": "the braking travel from the reply is at most 2.792 mm by the frame before it; status frames give no lower bound (their capture time is not known) — not resolved against 2.067",
+    "axis": "X",
+    "sign": 1,
+    "bound_mm": 2.067,
+    "travel": 13.4583,
+    "before_s": -0.0258,
+    "stop_s": 0.0782,
+    "brake_upper_mm": 2.7918,
+    "first_after_mm": 0.7994,
+    "informational": true
+   },
+   {
+    "case": "jog-x-.servo",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "X",
+    "sign": -1,
+    "bound_mm": 2.067,
+    "problems": [],
+    "samples": 1352,
+    "travel_mm": 14.7244,
+    "anchor_n": 38639,
+    "brake_upper_mm": 1.2256,
+    "standstill_n": 38696,
+    "standstill_received_s": 0.0536,
+    "samples_anchor_to_standstill": 57
+   },
+   {
+    "case": "jog-x-",
+    "status": "incomplete",
+    "detail": "the braking travel from the reply is at most 3.942 mm by the frame before it; status frames give no lower bound (their capture time is not known) — not resolved against 2.067",
+    "axis": "X",
+    "sign": -1,
+    "bound_mm": 2.067,
+    "travel": 12.0083,
+    "before_s": -0.0505,
+    "stop_s": 0.0758,
+    "brake_upper_mm": 3.9418,
+    "first_after_mm": 1.3129,
+    "informational": true
+   },
+   {
+    "case": "jog-y+.servo",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "Y",
+    "sign": 1,
+    "bound_mm": 2.067,
+    "problems": [],
+    "samples": 1357,
+    "travel_mm": 15.0299,
+    "anchor_n": 40611,
+    "brake_upper_mm": 0.8701,
+    "standstill_n": 40659,
+    "standstill_received_s": 0.0542,
+    "samples_anchor_to_standstill": 48
+   },
+   {
+    "case": "jog-y+",
+    "status": "incomplete",
+    "detail": "the braking travel from the reply is at most 3.342 mm by the frame before it; status frames give no lower bound (their capture time is not known) — not resolved against 2.067",
+    "axis": "Y",
+    "sign": 1,
+    "bound_mm": 2.067,
+    "travel": 12.5583,
+    "before_s": -0.0496,
+    "stop_s": 0.0677,
+    "brake_upper_mm": 3.3418,
+    "first_after_mm": 0.8701,
+    "informational": true
+   },
+   {
+    "case": "jog-y-.servo",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "Y",
+    "sign": -1,
+    "bound_mm": 2.067,
+    "problems": [],
+    "samples": 1357,
+    "travel_mm": 15.0744,
+    "anchor_n": 42555,
+    "brake_upper_mm": 1.2256,
+    "standstill_n": 42612,
+    "standstill_received_s": 0.0577,
+    "samples_anchor_to_standstill": 57
+   },
+   {
+    "case": "jog-y-",
+    "status": "incomplete",
+    "detail": "the braking travel from the reply is at most 2.892 mm by the frame before it; status frames give no lower bound (their capture time is not known) — not resolved against 2.067",
+    "axis": "Y",
+    "sign": -1,
+    "bound_mm": 2.067,
+    "travel": 13.4083,
+    "before_s": -0.0329,
+    "stop_s": 0.0674,
+    "brake_upper_mm": 2.8918,
+    "first_after_mm": 1.2689,
+    "informational": true
+   },
+   {
+    "case": "jog-z+.servo",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "Z",
+    "sign": 1,
+    "bound_mm": 2.483,
+    "problems": [],
+    "samples": 1357,
+    "travel_mm": 14.5415,
+    "anchor_n": 44481,
+    "brake_upper_mm": 2.0585,
+    "standstill_n": 44564,
+    "standstill_received_s": 0.0774,
+    "samples_anchor_to_standstill": 83
+   },
+   {
+    "case": "jog-z+",
+    "status": "incomplete",
+    "detail": "the braking travel from the reply is at most 3.258 mm by the frame before it; status frames give no lower bound (their capture time is not known) — not resolved against 2.483",
+    "axis": "Z",
+    "sign": 1,
+    "bound_mm": 2.483,
+    "travel": 13.3416,
+    "before_s": -0.0223,
+    "stop_s": 0.0812,
+    "brake_upper_mm": 3.2584,
+    "first_after_mm": 1.1845,
+    "informational": true
+   },
+   {
+    "case": "jog-z-.servo",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "Z",
+    "sign": -1,
+    "bound_mm": 2.483,
+    "problems": [],
+    "samples": 1362,
+    "travel_mm": 14.6645,
+    "anchor_n": 46502,
+    "brake_upper_mm": 1.6355,
+    "standstill_n": 46576,
+    "standstill_received_s": 0.0725,
+    "samples_anchor_to_standstill": 74
+   },
+   {
+    "case": "jog-z-",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "Z",
+    "sign": -1,
+    "bound_mm": 2.483,
+    "travel": 14.7085,
+    "before_s": -0.0,
+    "stop_s": 0.0738,
+    "brake_upper_mm": 1.5915,
+    "first_after_mm": 0.5251,
+    "informational": true
+   },
+   {
+    "case": "override-plateau-100",
+    "status": "PASS",
+    "detail": "median 100.00 mm/s within 100 ± 5%",
+    "expected": 100.0,
+    "tol": 0.05,
+    "pairs": 2999,
+    "problems": [],
+    "median": 100.0
+   },
+   {
+    "case": "override-plateau-50",
+    "status": "PASS",
+    "detail": "median 50.00 mm/s within 50 ± 5%",
+    "expected": 50.0,
+    "tol": 0.05,
+    "pairs": 5999,
+    "problems": [],
+    "median": 50.0
+   },
+   {
+    "case": "override-plateau.counter-75",
+    "status": "PASS",
+    "detail": "the planted value is refused: median 100.00 mm/s — expected 75 ± 5%",
+    "counter": true,
+    "inner": {
+     "case": "override-plateau-100",
+     "status": "FAIL",
+     "detail": "median 100.00 mm/s — expected 75 ± 5%",
+     "expected": 75.0,
+     "tol": 0.05,
+     "pairs": 2999,
+     "problems": [],
+     "median": 100.0
+    }
+   },
+   {
+    "case": "goto-zero",
+    "status": "PASS",
+    "detail": "Z up first, then X/Y; no descent (the target's Z is up); at rest on the target",
+    "start": [
+     200.0,
+     200.0,
+     -60.0
+    ],
+    "target": [
+     100.0,
+     100.0,
+     0.0
+    ],
+    "problems": []
+   },
+   {
+    "case": "goto-home",
+    "status": "PASS",
+    "detail": "Z up first, then X/Y; no descent (the target's Z is up); at rest on the target",
+    "start": [
+     200.0,
+     200.0,
+     -60.0
+    ],
+    "target": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "problems": []
+   },
+   {
+    "case": "goto-g30",
+    "status": "PASS",
+    "detail": "Z up first, then X/Y; no descent (the target's Z is up); at rest on the target",
+    "start": [
+     200.0,
+     200.0,
+     -60.0
+    ],
+    "target": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "problems": []
+   },
+   {
+    "case": "goto-zero.counter-xy-first",
+    "status": "PASS",
+    "detail": "the planted value is refused: X moved -0.012 mm with Z at -60.000 (sample 135107)",
+    "counter": true,
+    "inner": {
+     "case": "goto-zero",
+     "status": "FAIL",
+     "detail": "X moved -0.012 mm with Z at -60.000 (sample 135107)",
+     "start": [
+      200.0,
+      200.0,
+      -60.0
+     ],
+     "target": [
+      100.0,
+      100.0,
+      0.0
+     ],
+     "problems": []
+    }
+   },
+   {
+    "case": "probe-z",
+    "status": "PASS",
+    "detail": "G54 Z -180.0011 within -180 ± 0.003",
+    "expected": -180.0,
+    "tol_mm": 0.003,
+    "contact": 1.0,
+    "g54_z": -180.0011166666662,
+    "errors": [],
+    "deviation_mm": -0.001117,
+    "vars_sent": {
+     "3014": 99.0,
+     "3015": 50.0,
+     "3016": 200.0,
+     "3017": 1000.0,
+     "3020": 10.0,
+     "3021": 2.0,
+     "3030": 0
+    }
+   },
+   {
+    "case": "probe-z.counter-plate-1",
+    "status": "PASS",
+    "detail": "the planted value is refused: G54 Z -180.0011 — expected -179 ± 0.003",
+    "counter": true,
+    "inner": {
+     "case": "probe-z",
+     "status": "FAIL",
+     "detail": "G54 Z -180.0011 — expected -179 ± 0.003",
+     "expected": -179.0,
+     "tol_mm": 0.003,
+     "contact": 1.0,
+     "g54_z": -180.0011166666662,
+     "errors": [],
+     "deviation_mm": -1.001117
+    }
+   },
+   {
+    "case": "probe-z-miss",
+    "status": "PASS",
+    "detail": "no contact, nothing set, the error said so",
+    "error": "G38.2 move finished without making contact.",
+    "contact": 0.0,
+    "g54_before": 0.0,
+    "g54_after": 0.0,
+    "errors": [
+     [
+      11,
+      "G38.2 move finished without making contact."
+     ]
+    ],
+    "vars_read_back": {
+     "3014": 99.0,
+     "3015": 50.0,
+     "3016": 200.0,
+     "3017": 1000.0,
+     "3020": 10.0,
+     "3021": 2.0,
+     "3030": 0.0
+    }
+   },
+   {
+    "case": "m600-unload",
+    "status": "PASS",
+    "detail": "the spindle empty, no length applied",
+    "served": [
+     {
+      "tool": 0,
+      "seq": 2
+     }
+    ],
+    "tool_after": 0,
+    "offset_after": 0.0
+   },
+   {
+    "case": "m600-t1",
+    "status": "PASS",
+    "detail": "length 49.9996 within 50 ± 0.002, applied as measured",
+    "l0": 50.0,
+    "length": 49.999550000000056,
+    "g43": 49.999550000000056,
+    "tol_mm": 0.002,
+    "errors": [],
+    "deviation_mm": -0.00045,
+    "table_on_disk": 49.99955
+   },
+   {
+    "case": "m600-t1-return",
+    "status": "PASS",
+    "detail": "from the top, T0 0.000 mm → T1 49.9996 mm stored and applied; back at the call's X/Y, Z stayed up",
+    "call": [
+     0.0,
+     0.0,
+     -1.7763568394002505e-15
+    ],
+    "end": [
+     0.0,
+     0.0,
+     -1.7763568394002505e-15
+    ],
+    "top_z": 0.0,
+    "errors": [],
+    "setting_3106": 1.0,
+    "call_tool": 0,
+    "call_offset": 0.0,
+    "tool": 1,
+    "end_tool": 1,
+    "table": 49.999550000000056,
+    "applied": 49.999550000000056
+   },
+   {
+    "case": "m600-t1-return.counter-x+1",
+    "status": "PASS",
+    "detail": "the planted value is refused: X ended at 0.000, the call was at 1.000",
+    "counter": true,
+    "inner": {
+     "case": "m600-t1-return",
+     "status": "FAIL",
+     "detail": "X ended at 0.000, the call was at 1.000",
+     "call": [
+      1.0,
+      0.0,
+      -1.7763568394002505e-15
+     ],
+     "end": [
+      0.0,
+      0.0,
+      -1.7763568394002505e-15
+     ],
+     "top_z": 0.0,
+     "errors": [],
+     "setting_3106": 1.0,
+     "call_tool": 0,
+     "call_offset": 0.0,
+     "tool": 1,
+     "end_tool": 1,
+     "table": 49.999550000000056,
+     "applied": 49.999550000000056
+    }
+   },
+   {
+    "case": "m600-t1-override-lock",
+    "status": "PASS",
+    "detail": "locked through the measuring phase, free after the routine",
+    "free_s": 39.461,
+    "locked_from_s": 0.312,
+    "done_s": 39.461
+   },
+   {
+    "case": "m600-t1.counter-3102",
+    "status": "PASS",
+    "detail": "the planted #3102 gave 48.9991 as predicted from 49.9995 — refused against it",
+    "base": 49.99955,
+    "planted_3102": -179.0,
+    "predicted": 48.99955,
+    "length": 48.99910000000011,
+    "g43": 48.99910000000011,
+    "tool_after": 1,
+    "errors": [],
+    "counter": true,
+    "l0": 50.0,
+    "table_on_disk": 48.9991
+   },
+   {
+    "case": "m6-hold",
+    "status": "PASS",
+    "detail": "held 5 s waiting, then T99 with its length",
+    "tool_before": 1,
+    "tool_after": 99,
+    "offset_after": 50.0,
+    "samples": 148,
+    "max_gap_s": 0.04,
+    "held_s": 5.031,
+    "first_t": 1207045.41079694,
+    "last_t": 1207050.441606871
+   },
+   {
+    "case": "ts-sync-program-m600",
+    "status": "PASS",
+    "detail": "saved while off, applied at the start: #3102 -180 → -179, length 48.9996 within 49 ± 0.002 (the old basis gives 50)",
+    "l0": 50.0,
+    "old_3102": -180.0,
+    "new_3102": -179.0,
+    "expected": 49.0,
+    "length": 48.999550000000056,
+    "g43": 48.999550000000056,
+    "toolsetter": {
+     "digest": "42e7a159ca1123e1",
+     "set_up": true,
+     "synced": true,
+     "persisted": true,
+     "file_error": null
+    },
+    "interp_before": -180.0,
+    "interp_after": -179.0,
+    "tol_mm": 0.002,
+    "errors": [],
+    "deviation_mm": -0.00045
+   },
+   {
+    "case": "ts-sync-program-m600.counter-old-basis",
+    "status": "PASS",
+    "detail": "the planted value is refused: length 48.9996 — expected 50 ± 0.002",
+    "counter": true,
+    "inner": {
+     "case": "ts-sync-program-m600",
+     "status": "FAIL",
+     "detail": "length 48.9996 — expected 50 ± 0.002",
+     "l0": 50.0,
+     "old_3102": -180.0,
+     "new_3102": -180.0,
+     "expected": 50.0,
+     "length": 48.999550000000056,
+     "g43": 48.999550000000056,
+     "toolsetter": {
+      "digest": "42e7a159ca1123e1",
+      "set_up": true,
+      "synced": true,
+      "persisted": true,
+      "file_error": null
+     },
+     "interp_before": -180.0,
+     "interp_after": -179.0,
+     "tol_mm": 0.002,
+     "errors": [],
+     "deviation_mm": -1.00045
+    }
+   },
+   {
+    "case": "ts-sync-booking",
+    "status": "PASS",
+    "detail": "before every key confirmed at the prepared numbers (the form: not yet in the machine, ['3102']), after every key at the section's (the form: confirmed); version 25 → 30",
+    "old": {
+     "3004": 2000.0,
+     "3005": 20.0,
+     "3006": 500.0,
+     "3007": 180.0,
+     "3009": 3.0,
+     "3010": 180.0,
+     "3013": 0.0,
+     "3100": 10.0,
+     "3101": 10.0,
+     "3102": -180.0,
+     "3103": 1.0,
+     "3104": 2.0,
+     "3105": 0.0,
+     "3106": 1.0,
+     "3107": 5.0,
+     "3108": 0.0,
+     "3109": 0.0,
+     "3110": 0.0,
+     "3111": 0.0,
+     "3112": 0.0,
+     "3113": 0.0,
+     "3114": 0.0,
+     "3115": 0.0
+    },
+    "new": {
+     "3004": 2000.0,
+     "3005": 20.0,
+     "3006": 500.0,
+     "3007": 180.0,
+     "3009": 3.0,
+     "3010": 180.0,
+     "3013": 0.0,
+     "3100": 10.0,
+     "3101": 10.0,
+     "3102": -179.0,
+     "3103": 1.0,
+     "3104": 2.0,
+     "3105": 0.0,
+     "3106": 1.0,
+     "3107": 5.0,
+     "3108": 0.0,
+     "3109": 0.0,
+     "3110": 0.0,
+     "3111": 0.0,
+     "3112": 0.0,
+     "3113": 0.0,
+     "3114": 0.0,
+     "3115": 0.0
+    },
+    "before": {
+     "version": 25,
+     "keys": {
+      "3004": {
+       "value": 2000.0,
+       "origin": "applied"
+      },
+      "3005": {
+       "value": 20.0,
+       "origin": "applied"
+      },
+      "3006": {
+       "value": 500.0,
+       "origin": "applied"
+      },
+      "3007": {
+       "value": 180.0,
+       "origin": "applied"
+      },
+      "3009": {
+       "value": 3.0,
+       "origin": "applied"
+      },
+      "3010": {
+       "value": 180.0,
+       "origin": "applied"
+      },
+      "3013": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3014": {
+       "value": 99.0,
+       "origin": "assumed"
+      },
+      "3100": {
+       "value": 10.0,
+       "origin": "applied"
+      },
+      "3101": {
+       "value": 10.0,
+       "origin": "applied"
+      },
+      "3102": {
+       "value": -180.0,
+       "origin": "applied"
+      },
+      "3103": {
+       "value": 1.0,
+       "origin": "applied"
+      },
+      "3104": {
+       "value": 2.0,
+       "origin": "applied"
+      },
+      "3105": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3106": {
+       "value": 1.0,
+       "origin": "applied"
+      },
+      "3107": {
+       "value": 5.0,
+       "origin": "applied"
+      },
+      "3108": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3109": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3110": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3111": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3112": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3113": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3114": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3115": {
+       "value": 0.0,
+       "origin": "applied"
+      }
+     }
+    },
+    "after": {
+     "version": 30,
+     "keys": {
+      "3004": {
+       "value": 2000.0,
+       "origin": "read"
+      },
+      "3005": {
+       "value": 20.0,
+       "origin": "read"
+      },
+      "3006": {
+       "value": 500.0,
+       "origin": "read"
+      },
+      "3007": {
+       "value": 180.0,
+       "origin": "read"
+      },
+      "3009": {
+       "value": 3.0,
+       "origin": "read"
+      },
+      "3010": {
+       "value": 180.0,
+       "origin": "read"
+      },
+      "3013": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3014": {
+       "value": 99.0,
+       "origin": "read"
+      },
+      "3100": {
+       "value": 10.0,
+       "origin": "read"
+      },
+      "3101": {
+       "value": 10.0,
+       "origin": "read"
+      },
+      "3102": {
+       "value": -179.0,
+       "origin": "read"
+      },
+      "3103": {
+       "value": 1.0,
+       "origin": "read"
+      },
+      "3104": {
+       "value": 2.0,
+       "origin": "read"
+      },
+      "3105": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3106": {
+       "value": 1.0,
+       "origin": "read"
+      },
+      "3107": {
+       "value": 5.0,
+       "origin": "read"
+      },
+      "3108": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3109": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3110": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3111": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3112": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3113": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3114": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3115": {
+       "value": 0.0,
+       "origin": "read"
+      }
+     }
+    },
+    "moved": [
+     "3102"
+    ],
+    "before_unconfirmed": [],
+    "after_unconfirmed": []
+   },
+   {
+    "case": "ts-sync-stable",
+    "status": "PASS",
+    "detail": "nothing written, the booking stayed at version 30",
+    "toolsetter": {
+     "digest": "42e7a159ca1123e1",
+     "set_up": true,
+     "synced": false
+    },
+    "version_before": 30,
+    "version_after": 30,
+    "errors": []
+   },
+   {
+    "case": "rfl-line",
+    "status": "PASS",
+    "detail": "the program started at line 7 with T1, its length, the spindle at 1000; line 7 and the program ran to their ends",
+    "line": 7,
+    "end_point": [
+     200.0,
+     null,
+     0.0
+    ],
+    "final": [
+     200.0,
+     200.0,
+     -30.0
+    ],
+    "line_holds": {
+     "1": 100.0,
+     "2": 0.0
+    },
+    "end_from": 8,
+    "errors": [],
+    "witness_t": 1207161.082903977,
+    "witness_line": 7,
+    "tool_number": 1,
+    "offset": 49.999550000000056,
+    "table": 49.999550000000056,
+    "spindle_direction": 1,
+    "spindle_speed": 1000.0
+   },
+   {
+    "case": "rfl-line.counter-line+1",
+    "status": "PASS",
+    "detail": "the planted value is refused: the first motion of the program is line 7, before line 8",
+    "counter": true,
+    "inner": {
+     "case": "rfl-line",
+     "status": "FAIL",
+     "detail": "the first motion of the program is line 7, before line 8",
+     "line": 8,
+     "end_point": [
+      200.0,
+      null,
+      0.0
+     ],
+     "final": [
+      200.0,
+      200.0,
+      -30.0
+     ],
+     "line_holds": {
+      "1": 100.0,
+      "2": 0.0
+     },
+     "end_from": 9,
+     "errors": [],
+     "witness_t": 1207161.082903977,
+     "witness_line": 7,
+     "tool_number": 1,
+     "offset": 49.999550000000056,
+     "table": 49.999550000000056,
+     "spindle_direction": 1,
+     "spindle_speed": 1000.0
+    }
+   },
+   {
+    "case": "rfl-no-earlier-line",
+    "status": "PASS",
+    "detail": "no line before 7 in 141 received frames of the program — a line between two frames is not seen",
+    "scope": "observed frames",
+    "frames": 141,
+    "lines": [
+     7,
+     8,
+     9
+    ]
+   },
+   {
+    "case": "rfl-start-point",
+    "status": "PASS",
+    "detail": "line 7 started at the entry X/Y on the safe height, at rest since reaching it; no earlier line moved",
+    "line": 7,
+    "entry_xy": [
+     100.0,
+     100.0
+    ],
+    "safe_z": 0.0,
+    "samples": 50105,
+    "sources": {
+     "subroutines/tool_length_probe/tool_touch_off.ngc": "4990c7b303cb43bf0aa8cb11948277072874558f5902d3c48a59133ec555097d",
+     "subroutines/tool_length_probe/m600.ngc": "acbaeb68313eb7f769eea45f5b1bf83455d55976515857f47811c1d0d773e919",
+     "program": "623c541452bd24ad4bfd2075287ff68081e0785eff09c53366f00526bcc95773"
+    },
+    "start": [
+     100.0,
+     100.0,
+     0.0
+    ],
+    "anchor_n": 399862
+   },
+   {
+    "case": "rfl-start-point.counter-entry-x+1",
+    "status": "PASS",
+    "detail": "the planted value is refused: line 7 started at X 100.0 Y 100.0, not the entry X 101 Y 100",
+    "counter": true,
+    "inner": {
+     "case": "rfl-start-point",
+     "status": "FAIL",
+     "detail": "line 7 started at X 100.0 Y 100.0, not the entry X 101 Y 100",
+     "line": 7,
+     "entry_xy": [
+      101.0,
+      100.0
+     ],
+     "safe_z": 0.0,
+     "samples": 50105,
+     "sources": {
+      "subroutines/tool_length_probe/tool_touch_off.ngc": "4990c7b303cb43bf0aa8cb11948277072874558f5902d3c48a59133ec555097d",
+      "subroutines/tool_length_probe/m600.ngc": "acbaeb68313eb7f769eea45f5b1bf83455d55976515857f47811c1d0d773e919",
+      "program": "623c541452bd24ad4bfd2075287ff68081e0785eff09c53366f00526bcc95773"
+     },
+     "start": [
+      100.0,
+      100.0,
+      0.0
+     ]
+    }
+   },
+   {
+    "case": "disconnect-close",
+    "status": "PASS",
+    "detail": "the program ran on for ≥ 3.01 s after the event, X 260 mm, no trip; the remaining client saw it running",
+    "samples": 4213,
+    "event": {
+     "t_wall_ns": 1793931284117396062,
+     "t_mono_ms": 407996.534,
+     "proc": "gateway",
+     "pid": 2347828,
+     "tag": "ws.disconnect",
+     "level": "info",
+     "client_id": 1,
+     "peer": "127.0.0.1",
+     "reason": "WebSocketDisconnect",
+     "cleanup_ms": 0.1,
+     "session_ms": 1366.5,
+     "remaining_clients": 1,
+     "queue_dropped": 0,
+     "inflight_at_drop": null
+    },
+    "frames_after": 87,
+    "w_n": 406702,
+    "travel_mm": 260.305,
+    "window_ns_lower": 3011999600
+   },
+   {
+    "case": "disconnect-heartbeat",
+    "status": "PASS",
+    "detail": "the program ran on for ≥ 3.01 s after the event, X 301 mm, no trip; the remaining client saw it running",
+    "samples": 6808,
+    "event": {
+     "t_wall_ns": 1793931291375919083,
+     "t_mono_ms": 415255.058,
+     "proc": "gateway",
+     "pid": 2347828,
+     "tag": "safety.hb_stall_disarmed",
+     "level": "info",
+     "client_id": 2,
+     "hb_age_ms": 3003,
+     "hb_age_wall_ms": 3003,
+     "last_hb_arrival_ms_ago": 3003,
+     "hb_arrival_gaps_ms": [
+      501
+     ],
+     "frames_rx_total": 8,
+     "inflight_cmd": null,
+     "inflight_ms": null
+    },
+    "frames_after": 88,
+    "w_n": 414025,
+    "travel_mm": 301.1,
+    "window_ns_lower": 3010049639
+   },
+   {
+    "case": "clients-4",
+    "status": "PASS",
+    "detail": "4 clients, 639 heartbeat gaps across the window, the longest ≤ 74.0 ms",
+    "n": 4,
+    "hellos": [
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     },
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     },
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     },
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     }
+    ],
+    "fetches": [
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "54be2f0ac197ea430e5058df2abff0dab1d4b61b85f895ed41a0897138ac5fd5"
+     },
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "54be2f0ac197ea430e5058df2abff0dab1d4b61b85f895ed41a0897138ac5fd5"
+     },
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "54be2f0ac197ea430e5058df2abff0dab1d4b61b85f895ed41a0897138ac5fd5"
+     },
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "54be2f0ac197ea430e5058df2abff0dab1d4b61b85f895ed41a0897138ac5fd5"
+     }
+    ],
+    "published": {
+     "ok": true,
+     "file": "native_load_4.ngc",
+     "source": "6e846a456eefb46fd56657b4742601a63db84337748306b0e11d2dd768be12e8",
+     "version": 1793930887
+    },
+    "samples": 24452,
+    "pre_ns": 1306054979,
+    "post_ns": 1312993975,
+    "edges": 716,
+    "pairs": 639,
+    "worst_upper_ns": 74013045,
+    "worst_lower_ns": 69989360
+   },
+   {
+    "case": "clients-8",
+    "status": "PASS",
+    "detail": "8 clients, 644 heartbeat gaps across the window, the longest ≤ 57.0 ms",
+    "n": 8,
+    "hellos": [
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     },
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     },
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     },
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     },
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     },
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     },
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     },
+     {
+      "type": "reply",
+      "ok": true,
+      "armed": false
+     }
+    ],
+    "fetches": [
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "9fabf793ba460a35d420f08a616bbc33b820fd6a81a730bd56b455219d974114"
+     },
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "9fabf793ba460a35d420f08a616bbc33b820fd6a81a730bd56b455219d974114"
+     },
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "9fabf793ba460a35d420f08a616bbc33b820fd6a81a730bd56b455219d974114"
+     },
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "9fabf793ba460a35d420f08a616bbc33b820fd6a81a730bd56b455219d974114"
+     },
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "9fabf793ba460a35d420f08a616bbc33b820fd6a81a730bd56b455219d974114"
+     },
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "9fabf793ba460a35d420f08a616bbc33b820fd6a81a730bd56b455219d974114"
+     },
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "9fabf793ba460a35d420f08a616bbc33b820fd6a81a730bd56b455219d974114"
+     },
+     {
+      "status": 200,
+      "bytes": 16082126,
+      "sha256": "9fabf793ba460a35d420f08a616bbc33b820fd6a81a730bd56b455219d974114"
+     }
+    ],
+    "published": {
+     "ok": true,
+     "file": "native_load_8.ngc",
+     "source": "6e846a456eefb46fd56657b4742601a63db84337748306b0e11d2dd768be12e8",
+     "version": 1793930888
+    },
+    "samples": 24637,
+    "pre_ns": 1307014741,
+    "post_ns": 1306035868,
+    "edges": 719,
+    "pairs": 644,
+    "worst_upper_ns": 57000134,
+    "worst_lower_ns": 53015116
+   },
+   {
+    "case": "latch-same-cycle",
+    "status": "PASS",
+    "detail": "fault-out TRUE in the sample oneshot.0.out fell (sample 468204)",
+    "samples": 2469,
+    "delayed": false,
+    "edge_n": 468204,
+    "edge_index": 494,
+    "latch_at_edge": 1,
+    "latch_next": 1
+   },
+   {
+    "case": "latch-sticky",
+    "status": "PASS",
+    "detail": "the heartbeat returned (sample 468623), fault-out stayed TRUE, the reset before the acknowledgement was refused",
+    "samples": 2469,
+    "reset_reply": {
+     "ok": false,
+     "error": "estop_reset refused: Acknowledge the safety trip first"
+    },
+    "resume_index": 913,
+    "heartbeat_edges_after": 46
+   },
+   {
+    "case": "latch-recovered",
+    "status": "PASS",
+    "detail": "fault-out FALSE from sample 470205 to the end; no trip, E-Stop clear, machine on",
+    "samples": 1252,
+    "cleared_n": 470205,
+    "last_frame": {
+     "safety_trip": null,
+     "is_estop": false,
+     "is_enabled": true
+    }
+   }
+  ]
+ },
+ {
+  "run": "20261106T031618-latch-delayed",
+  "commit": "33630f93be60031032b57a4f4eb1ed23bd458e7b",
+  "variant": "latch-delayed",
+  "steps": [
+   "tree",
+   "copy",
+   "start",
+   "connect",
+   "servo",
+   "latch-order",
+   "latch"
+  ],
+  "error": null,
+  "verdict": "PASS",
+  "restore": {
+   "outcome": "complete",
+   "instance": [
+    "linuxcncsvr",
+    2357822,
+    120729104
+   ],
+   "isolation": [],
+   "cleanup": []
+  },
+  "restore_post": {
+   "outcome": "complete",
+   "instance": [
+    "linuxcncsvr",
+    2357822,
+    120729104
+   ],
+   "isolation": [],
+   "cleanup": [],
+   "repeat_of": "complete"
+  },
+  "latch_order": {
+   "before": [
+    "motion-command-handler",
+    "motion-controller",
+    "ddt_x",
+    "ddt_xv",
+    "ddt_y",
+    "ddt_yv",
+    "ddt_z",
+    "ddt_zv",
+    "vel_xy",
+    "vel_xyz",
+    "sim-toolsetter.0",
+    "limit_speed",
+    "lowpass_velocity",
+    "scale_to_rpm",
+    "near_speed",
+    "encoder.capture-position",
+    "sim-encoder.update-speed",
+    "comp_x",
+    "comp_y",
+    "comp_z",
+    "or2_0",
+    "scale.servo",
+    "pwmgen.update",
+    "pwmgen.make-pulses",
+    "oneshot.0",
+    "and2.0",
+    "and2.1",
+    "and2.2",
+    "webui-hb-latch",
+    "time.0",
+    "not.0",
+    "sampler.0"
+   ],
+   "after": [
+    "motion-command-handler",
+    "motion-controller",
+    "ddt_x",
+    "ddt_xv",
+    "ddt_y",
+    "ddt_yv",
+    "ddt_z",
+    "ddt_zv",
+    "vel_xy",
+    "vel_xyz",
+    "sim-toolsetter.0",
+    "limit_speed",
+    "lowpass_velocity",
+    "scale_to_rpm",
+    "near_speed",
+    "encoder.capture-position",
+    "sim-encoder.update-speed",
+    "comp_x",
+    "comp_y",
+    "comp_z",
+    "or2_0",
+    "scale.servo",
+    "pwmgen.update",
+    "pwmgen.make-pulses",
+    "webui-hb-latch",
+    "oneshot.0",
+    "and2.0",
+    "and2.1",
+    "and2.2",
+    "time.0",
+    "not.0",
+    "sampler.0"
+   ]
+  },
+  "stale_stream": null,
+  "servo_unload": "unloaded",
+  "servo_sections": [
+   {
+    "case": "latch-outage",
+    "attempt": 1,
+    "start_mark": 3,
+    "end_mark": 4,
+    "first_n": 23,
+    "end_n": 2488,
+    "problems": [],
+    "samples": 2465,
+    "file": "servo-latch-outage.jsonl",
+    "time_file": "servo-latch-outage.time.json"
+   },
+   {
+    "case": "latch-recovery",
+    "attempt": 2,
+    "start_mark": 5,
+    "end_mark": 6,
+    "first_n": 2512,
+    "end_n": 3875,
+    "problems": [],
+    "samples": 1363,
+    "file": "servo-latch-recovery.jsonl",
+    "time_file": "servo-latch-recovery.time.json"
+   }
+  ],
+  "rows": [
+   {
+    "case": "latch-same-cycle.delayed-order",
+    "status": "PASS",
+    "detail": "the delayed order latched exactly one cycle late (sample 531)",
+    "samples": 2465,
+    "delayed": true,
+    "edge_n": 530,
+    "edge_index": 507,
+    "latch_at_edge": 0,
+    "latch_next": 1,
+    "variant": "latch-delayed"
+   },
+   {
+    "case": "latch-sticky",
+    "status": "PASS",
+    "detail": "the heartbeat returned (sample 936), fault-out stayed TRUE, the reset before the acknowledgement was refused",
+    "samples": 2465,
+    "reset_reply": {
+     "ok": false,
+     "error": "estop_reset refused: Acknowledge the safety trip first"
+    },
+    "resume_index": 913,
+    "heartbeat_edges_after": 45,
+    "variant": "latch-delayed"
+   },
+   {
+    "case": "latch-recovered",
+    "status": "PASS",
+    "detail": "fault-out FALSE from sample 2518 to the end; no trip, E-Stop clear, machine on",
+    "samples": 1363,
+    "cleared_n": 2518,
+    "last_frame": {
+     "safety_trip": null,
+     "is_estop": false,
+     "is_enabled": true
+    },
+    "variant": "latch-delayed"
+   }
+  ]
+ },
+ {
+  "run": "20261106T023951-latch-delayed",
+  "commit": "be83d4623d13cd9c05ef8614627284d787e315d1",
+  "variant": "latch-delayed",
+  "steps": [
+   "tree",
+   "copy",
+   "start",
+   "connect",
+   "servo",
+   "latch-order",
+   "latch"
+  ],
+  "error": "NoReply: No gateway reply to safety_trip_ack",
+  "verdict": "FAIL",
+  "restore": {
+   "outcome": "complete",
+   "instance": [
+    "linuxcncsvr",
+    2316826,
+    120513213
+   ],
+   "isolation": [],
+   "cleanup": []
+  },
+  "restore_post": {
+   "outcome": "complete",
+   "instance": [
+    "linuxcncsvr",
+    2316826,
+    120513213
+   ],
+   "isolation": [],
+   "cleanup": [],
+   "repeat_of": "complete"
+  },
+  "latch_order": {
+   "before": [
+    "motion-command-handler",
+    "motion-controller",
+    "ddt_x",
+    "ddt_xv",
+    "ddt_y",
+    "ddt_yv",
+    "ddt_z",
+    "ddt_zv",
+    "vel_xy",
+    "vel_xyz",
+    "sim-toolsetter.0",
+    "limit_speed",
+    "lowpass_velocity",
+    "scale_to_rpm",
+    "near_speed",
+    "encoder.capture-position",
+    "sim-encoder.update-speed",
+    "comp_x",
+    "comp_y",
+    "comp_z",
+    "or2_0",
+    "scale.servo",
+    "pwmgen.update",
+    "pwmgen.make-pulses",
+    "oneshot.0",
+    "and2.0",
+    "and2.1",
+    "and2.2",
+    "webui-hb-latch",
+    "time.0",
+    "not.0",
+    "sampler.0"
+   ],
+   "after": [
+    "motion-command-handler",
+    "motion-controller",
+    "ddt_x",
+    "ddt_xv",
+    "ddt_y",
+    "ddt_yv",
+    "ddt_z",
+    "ddt_zv",
+    "vel_xy",
+    "vel_xyz",
+    "sim-toolsetter.0",
+    "limit_speed",
+    "lowpass_velocity",
+    "scale_to_rpm",
+    "near_speed",
+    "encoder.capture-position",
+    "sim-encoder.update-speed",
+    "comp_x",
+    "comp_y",
+    "comp_z",
+    "or2_0",
+    "scale.servo",
+    "pwmgen.update",
+    "pwmgen.make-pulses",
+    "webui-hb-latch",
+    "oneshot.0",
+    "and2.0",
+    "and2.1",
+    "and2.2",
+    "time.0",
+    "not.0",
+    "sampler.0"
+   ]
+  },
+  "stale_stream": {
+   "shmid": 622636,
+   "size": 5243008,
+   "cpid": 1640832,
+   "nattch": 0,
+   "removed": true
+  },
+  "servo_unload": "unloaded",
+  "servo_sections": [
+   {
+    "case": "latch-outage",
+    "attempt": 1,
+    "start_mark": 3,
+    "end_mark": 4,
+    "first_n": 22,
+    "end_n": 2490,
+    "problems": [],
+    "samples": 2468,
+    "file": "servo-latch-outage.jsonl",
+    "time_file": "servo-latch-outage.time.json"
+   },
+   {
+    "case": "latch-recovery",
+    "attempt": 2,
+    "start_mark": 5,
+    "end_mark": 6,
+    "first_n": 2508,
+    "end_n": 32601,
+    "problems": [],
+    "samples": 30093,
+    "file": "servo-latch-recovery.jsonl",
+    "time_file": "servo-latch-recovery.time.json"
+   }
+  ],
+  "rows": [
+   {
+    "case": "latch-same-cycle.delayed-order",
+    "status": "PASS",
+    "detail": "the delayed order latched exactly one cycle late (sample 534)",
+    "samples": 2468,
+    "delayed": true,
+    "edge_n": 533,
+    "edge_index": 511,
+    "latch_at_edge": 0,
+    "latch_next": 1,
+    "variant": "latch-delayed"
+   },
+   {
+    "case": "latch-sticky",
+    "status": "PASS",
+    "detail": "the heartbeat returned (sample 936), fault-out stayed TRUE, the reset before the acknowledgement was refused",
+    "samples": 2468,
+    "reset_reply": {
+     "ok": false,
+     "error": "estop_reset refused: Acknowledge the safety trip first"
+    },
+    "resume_index": 914,
+    "heartbeat_edges_after": 45,
+    "variant": "latch-delayed"
+   }
+  ]
+ },
+ {
+  "run": "20261106T023611-latch-delayed",
+  "commit": "c83bcf4ab4dcbacb68317b95a80362207808a4a7",
+  "variant": "latch-delayed",
+  "steps": [
+   "tree",
+   "copy",
+   "start",
+   "connect",
+   "servo"
+  ],
+  "error": "RuntimeError: halcmd loadrt sampler depth=65536 cfg=ffffffsbsbbbu: <commandline>:0: waitpid failed /usr/bin/rtapi_app sampler\n<commandline>:0: /usr/bin/rtapi_app exited without becoming ready\n<commandline>:0: insmod for sampler failed, returned -1",
+  "verdict": "FAIL",
+  "restore": {
+   "outcome": "complete",
+   "instance": [
+    "linuxcncsvr",
+    2311746,
+    120488112
+   ],
+   "isolation": [],
+   "cleanup": []
+  },
+  "restore_post": {
+   "outcome": "complete",
+   "instance": [
+    "linuxcncsvr",
+    2311746,
+    120488112
+   ],
+   "isolation": [],
+   "cleanup": [],
+   "repeat_of": "complete"
+  },
+  "latch_order": null,
+  "stale_stream": null,
+  "servo_unload": null,
+  "servo_sections": [],
+  "rows": []
+ }
+]
