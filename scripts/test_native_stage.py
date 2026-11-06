@@ -3790,6 +3790,7 @@ def test_the_second_starts_errors_reach_its_row(tmp_path, _ts_rules_on_path, err
 from test_support import servo_time as st  # noqa: E402
 
 MS = 1_000_000
+CLOCK_OK = st.clock_contract(st.RTAPI_SHA256, st.PACKAGE_VERSION)
 
 
 def _timed(lps, hb=None, latch=None, hb_ok=None, mark=3, reader_delay=MS):
@@ -3825,7 +3826,7 @@ def _hb_at(n, edges):
 ])
 def test_an_edge_gap_is_judged_by_its_bounds_in_three_ways(lps, i, j, verdict):
     samples, recv, t0 = _timed(lps)
-    rng = st.proven(samples, recv, t0)
+    rng = st.proven(samples, recv, t0, CLOCK_OK)
     assert rng["ok"], rng
     b = st.gap_bounds(samples, rng, i, j)
     assert st.judge(b) == verdict, b
@@ -3835,7 +3836,7 @@ def test_the_same_observation_with_gaps_200_and_200_is_incomplete_too():
     """R315: two courses with the same periods, captures and bits — 300/100 and
     200/200 — are told apart by nothing: the upper bound over 250 is no proof."""
     samples, recv, t0 = _timed([MS] * 202 + [101 * MS] + [MS] * 200)
-    rng = st.proven(samples, recv, t0)
+    rng = st.proven(samples, recv, t0, CLOCK_OK)
     upper, lower = st.gap_bounds(samples, rng, 2, 201)
     assert lower < st.HB_LIMIT_NS < upper and st.judge((upper, lower)) == "incomplete"
 
@@ -3850,13 +3851,13 @@ def test_the_wrap_proof_refuses_what_it_cannot_exclude(lps, recv_shift, why):
     samples, recv, t0 = _timed(lps)
     last = samples[-1][1]
     recv[last] += recv_shift
-    rng = st.proven(samples, recv, t0)
+    rng = st.proven(samples, recv, t0, CLOCK_OK)
     assert not rng["ok"] and why in rng["why"], rng
 
 
 def test_a_period_outside_the_proven_range_gives_no_bound():
     samples, recv, t0 = _timed([MS] * 100)
-    rng = st.proven(samples, recv, t0)
+    rng = st.proven(samples, recv, t0, CLOCK_OK)
     assert st.gap_bounds(samples, rng, 1, 50) is None            # needs lp_1: before lo = 2
     assert st.gap_bounds(samples, rng, 10, 99) is None           # needs lp_100: past hi
     assert st.duration_lower(samples, rng, 0, 99) == 98 * MS     # C_99 − C_1
@@ -3867,7 +3868,7 @@ def test_the_lower_duration_after_a_mark_set_during_a_delay():
     is set during it — the first W sample's period starts before W, so only
     Σ from a+2 counts: 100 W samples at 1 ms are ~98 ms, never 2 s."""
     samples, recv, t0 = _timed([MS] * 50 + [2100 * MS] + [MS] * 100)
-    rng = st.proven(samples, recv, t0)
+    rng = st.proven(samples, recv, t0, CLOCK_OK)
     assert st.duration_lower(samples, rng, 50, 150) == 99 * MS
 
 
@@ -4010,14 +4011,16 @@ def test_the_restore_continues_the_recorded_stops_before_it_ends_the_test_instan
     assert state["stopped"] == []
 
 
-@pytest.mark.parametrize("before, edge, inst_a, inst_b, ok", [
-    (None, 30, [100, 5000], [100, 5000], True),
-    ({"ts": 1}, 30, [100, 5000], [100, 5000], False),       # a trip waited before: never acknowledged
-    (None, None, [100, 5000], [100, 5000], False),          # no own edge
-    (None, 30, [100, 5000], [101, 5001], False),            # another instance
+@pytest.mark.parametrize("before, edge, clear, latched, inst_a, inst_b, ok", [
+    (None, 30, True, 730, [100, 5000], [100, 5000], True),
+    ({"ts": 1}, 30, True, 730, [100, 5000], [100, 5000], False),     # a trip waited before: never acknowledged
+    (None, None, None, None, [100, 5000], [100, 5000], False),      # no own edge
+    (None, 30, False, 730, [100, 5000], [100, 5000], False),        # fault-out not FALSE before (R317 FI-I46)
+    (None, 30, True, None, [100, 5000], [100, 5000], False),        # no own transition to TRUE
+    (None, 30, True, 730, [100, 5000], [101, 5001], False),         # another instance
 ])
-def test_only_the_runs_own_trip_may_be_acknowledged(before, edge, inst_a, inst_b, ok):
-    assert (tp.own_trip(before, edge, inst_a, inst_b) is None) is ok
+def test_only_the_runs_own_trip_may_be_acknowledged(before, edge, clear, latched, inst_a, inst_b, ok):
+    assert (tp.own_trip(before, edge, clear, latched, inst_a, inst_b) is None) is ok
 
 
 class LatchClient(FrameClient):
@@ -4228,7 +4231,7 @@ def _disc(n_before=500, n_w=2600, stop_at=None, creep=False, reverse_at=None, tr
         rows.append((c / 1e9, 1000 + k, v))
         recv[1000 + k] = c + MS
     return {"samples": rows, "problems": list(problems), "phase_first": {W_MARK: n_before}, "recv_ns": recv,
-            "t0_ns": 10_000 * MS}
+            "t0_ns": 10_000 * MS, "clock": CLOCK_OK}
 
 
 RUNNING = [(1.0, {"interp_state": 2, "task_mode": 2})] * 3
@@ -4320,7 +4323,7 @@ def _disc_step(tmp_path, monkeypatch, events=None, sessions=1):
     monkeypatch.setattr(tp, "cont", lambda state, save, rec, **kw: log.append(("cont", rec["pid"])) or "continued")
     (tmp_path / nr.NC_FILES).mkdir()
     ctx = {"client": c, "frames": c.frames, "report": {}, "run": tmp_path, "config": tmp_path,
-           "state": {}, "servo": Meas([_disc(), _disc()])}
+           "state": {}, "servo": Meas([_disc(), _disc()]), "clock": CLOCK_OK}
     return ctx, c, log
 
 
@@ -4367,12 +4370,12 @@ def _hbsec(edges, n=5000, w=(1500, 3500), lps=None, latch_at=None, problems=()):
                                                                      else 0, v_in, lp)))
         recv[4000 + k] = c + MS
     return {"samples": rows, "problems": list(problems), "phase_first": {W1: w[0], W2: w[1]}, "recv_ns": recv,
-            "t0_ns": 10_000 * MS}
+            "t0_ns": 10_000 * MS, "clock": CLOCK_OK}
 
 
 HELLOS = [{"ok": True, "armed": False}] * 4
-FETCHES = [{"status": 200, "sha256": "ab", "bytes": 9}] * 4
-PUB = {"ok": True}
+FETCHES = [{"status": 200, "sha256": "ab", "bytes": 9, "version": 9}] * 4
+PUB = {"ok": True, "version": 9}
 EVERY_100 = set(range(50, 5000, 100))
 
 
@@ -4430,7 +4433,7 @@ def test_the_whole_clients_step(tmp_path, monkeypatch):
     monkeypatch.setattr(ls_mod, "SimulatorClient", Watch)
     monkeypatch.setattr(nr, "_gen_load", lambda path, mb: path.write_text("G21 G90\nM2\n"))
     monkeypatch.setattr(nr, "_fetch_preview", lambda token, version: log.append(("fetch", version)) or
-                        {"status": 200, "bytes": 9, "sha256": "ab"})
+                        {"status": 200, "bytes": 9, "sha256": "ab", "version": version})
     for k in ("CLIENTS_PRE_S", "CLIENTS_TAIL_S", "CLIENTS_POST_S"):
         monkeypatch.setattr(nr, k, 0.0)
     (tmp_path / nr.NC_FILES).mkdir()
@@ -4438,7 +4441,7 @@ def test_the_whole_clients_step(tmp_path, monkeypatch):
     ini.write_text("[DISPLAY]\nWEBUI_TOKEN = t\n")
     c = B([(0.0, dict(_IDLE))])
     ctx = {"client": c, "frames": c.frames, "report": {}, "run": tmp_path, "config": tmp_path, "ini": ini,
-           "state": {}, "servo": Meas([_hbsec(EVERY_100), _hbsec(EVERY_100)])}
+           "state": {}, "servo": Meas([_hbsec(EVERY_100), _hbsec(EVERY_100)]), "clock": CLOCK_OK}
     rows = nr.clients_cases()[1](ctx)
     assert [(r["case"], r["status"]) for r in rows] == [("clients-4", "PASS"), ("clients-8", "PASS")], rows
     assert all("conn_key" not in h for r in rows for h in r["hellos"])
@@ -4460,3 +4463,116 @@ def test_the_helper_asks_again_only_while_the_start_claim_is_held(monkeypatch):
     h.request = lambda cmd, **kw: (_ for _ in ()).throw(nr.Refused("helper load_file: Not armed"))
     with pytest.raises(nr.Refused, match="Not armed"):
         h.when_free("load_file", path="/p")
+
+
+# ── Codex R317: FI-I45..49 ──
+
+def test_no_period_is_a_time_without_the_clock_read_in_the_run():
+    samples, recv, t0 = _timed([MS] * 100)
+    for clock in (None, {}, st.clock_contract("0" * 64, st.PACKAGE_VERSION)):
+        r = st.proven(samples, recv, t0, clock)
+        assert not r["ok"] and ("clock" in r["why"]), r
+
+
+def test_the_servo_step_reads_the_clock_and_every_section_carries_it(tmp_path, monkeypatch):
+    """FI-I45 at the wiring: the run READS the contract; a section gets it —
+    an unproven clock leaves the 4- and 8-client rows open."""
+    from test_support import servo_time as stime
+    reads = []
+    bad = st.clock_contract("0" * 64, st.PACKAGE_VERSION)
+    monkeypatch.setattr(stime, "read_clock_contract", lambda: reads.append(1) or bad)
+    monkeypatch.setattr(sv, "setup", lambda gate, clear=None: {"thread": {"period_ns": 1000000}})
+
+    class Rd:
+        def start(self):
+            pass
+    monkeypatch.setattr(sv, "Reader", Rd)
+    ini = tmp_path / "m.ini"
+    ini.write_text("[EMCMOT]\nSERVO_PERIOD = 1000000\n")
+    ctx = {"ini": ini, "report": {}}
+    nr.servo_device()[1](ctx)
+    assert reads == [1] and ctx["clock"] is bad and ctx["report"]["clock"] is bad
+    box_ctx = {"servo": FakeMeasurement([_hbsec(EVERY_100)]), "clock": bad, "report": {}}
+    with nr._section(box_ctx, "clients-4") as box:
+        pass
+    assert box["section"]["clock"] is bad
+    r = sc.eval_clients("clients-4", box["section"], W1, W2, 4, HELLOS, FETCHES, PUB)
+    assert r["status"] == "incomplete" and "clock" in r["detail"], r
+
+
+def _latch_set_before(sec):
+    rows = [(t, n, v[:10] + (1,) + v[11:]) for t, n, v in sec["samples"]]
+    return {**sec, "samples": rows}
+
+
+@pytest.mark.parametrize("sec", [_latch_set_before(_latch(after=200)), _latch(after=200, early_at=10)])
+def test_a_latch_set_before_the_own_edge_is_never_acknowledged(tmp_path, monkeypatch, sec):
+    """FI-I46: no trip reported before, the same instance, the own edge — but
+    fault-out was TRUE before it (throughout, or a pulse): S4b FAIL and NO
+    recovery command."""
+    c = LatchClient()
+    ctx, _ = _latch_step(tmp_path, monkeypatch, c, [sec, _recovery()])
+    with pytest.raises(nr.StepFailed, match="not FALSE before the own edge"):
+        nr.latch_cases()[1](ctx)
+    assert [cmd for cmd, _ in c.sent if cmd != "estop_reset"] == []        # only the early, refused reset
+
+
+@pytest.mark.parametrize("frames, status, part", [
+    ([(1.0, {})], "incomplete", "state unknown"),
+    ([(1.0, {"interp_state": 2})], "incomplete", "state unknown"),
+    ([(1.0, {"task_mode": 2})], "incomplete", "state unknown"),
+    ([(1.0, {"interp_state": 3, "task_mode": 2})], "FAIL", "saw the program stop"),     # paused
+    ([(1.0, {"interp_state": 2, "task_mode": 3})], "FAIL", "saw the program stop"),     # MDI
+])
+def test_the_remaining_client_must_show_a_known_running_auto(frames, status, part):
+    """FI-I47: a frame missing a field proves nothing about B."""
+    r = sc.eval_disconnect("disconnect-close", _disc(), W_MARK, EVENT, frames, frozenset(range(1, 9)))
+    assert r["status"] == status and part in r["detail"], r
+
+
+@pytest.mark.parametrize("fetches", [
+    [{"status": 200, "sha256": "ab", "bytes": 9, "version": 8}] * 4,                    # all an older preview
+    FETCHES[:3] + [{"status": 200, "sha256": "ab", "bytes": 9, "version": 10}],         # one other
+    [{"status": 200, "sha256": "ab", "bytes": 9}] * 4,                                  # no version said
+])
+def test_every_fetch_must_be_the_published_preview(fetches):
+    """FI-I48: `?v=` is a cache-buster; the served X-Preview-Version binds it."""
+    r = sc.eval_clients("clients-4", _hbsec(EVERY_100), W1, W2, 4, HELLOS, fetches, PUB)
+    assert r["status"] == "incomplete" and "published version" in r["detail"], r
+
+
+def test_a_fetch_keeps_the_version_the_server_says(monkeypatch):
+    import io
+    import urllib.request
+
+    class Resp(io.BytesIO):
+        status, headers = 200, {"X-Preview-Version": "9"}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+    monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=None: Resp(b"preview"))
+    assert nr._fetch_preview("t", 9) == {"status": 200, "bytes": 7, "version": 9,
+                                         "sha256": __import__("hashlib").sha256(b"preview").hexdigest()}
+
+
+def test_a_known_failure_comes_before_a_missing_proof():
+    """FI-I49: the four R317 forms — each was incomplete."""
+    lines = frozenset(range(1, 9))
+    r = sc.eval_disconnect("disconnect-close", _disc(trip_at=800), W_MARK, None, RUNNING, lines)
+    assert r["status"] == "FAIL" and "trip" in r["detail"], r
+    r = sc.eval_disconnect("disconnect-close", {**_disc(), "t0_ns": None}, W_MARK, EVENT,
+                           [(1.0, {"interp_state": 1, "task_mode": 2})], lines)
+    assert r["status"] == "FAIL" and "saw the program stop" in r["detail"], r
+    r = sc.eval_latch_sticky("latch-sticky", {**_latch(release_at=60), "problems": ["the end's integrity not read"]},
+                             REFUSED, [{"ts": 1}])
+    assert r["status"] == "FAIL" and "released" in r["detail"], r
+    r = sc.eval_latch_recovered("latch-recovered", {**_recovery(again_at=30), "problems": ["the end's integrity "
+                                                                                           "not read"]},
+                                [(None, False, True)])
+    assert r["status"] == "FAIL" and "TRUE again" in r["detail"], r
+    # …and a time not proven stays open: the R314 case is no FAIL
+    samples, recv, t0 = _timed([MS] * 202 + [101 * MS] + [MS] * 200)
+    assert st.judge(st.gap_bounds(samples, st.proven(samples, recv, t0, CLOCK_OK), 2, 201)) == "incomplete"

@@ -57,10 +57,14 @@ def _lp(samples, m):
     return v if isinstance(v, int) and not isinstance(v, bool) and v >= 0 else None
 
 
-def proven(samples, recv_ns: dict, t0_ns) -> dict:
+def proven(samples, recv_ns: dict, t0_ns, clock) -> dict:
     """The index range lo … hi whose periods are proven unwrapped (lo = 2:
     C_1 ≥ t0 anchors the sum). `samples` are ONE contiguous span from the
-    first sample with the start mark (the section's integrity says so)."""
+    first sample with the start mark (the section's integrity says so).
+    `clock`: the contract READ in the run (read_clock_contract) — without
+    it, or not ok, no period is a time (R317 FI-I45)."""
+    if not (isinstance(clock, dict) and clock.get("ok")):
+        return {"ok": False, "why": (clock or {}).get("why") or "the servo clock's contract not read in the run"}
     if not isinstance(t0_ns, int) or len(samples) < 3:
         return {"ok": False, "why": "no start time or too few samples for a time proof"}
     b = len(samples) - 1

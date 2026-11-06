@@ -413,6 +413,10 @@ def servo_device():
         ini_period = int(float((lt.ini_values(ctx["ini"].read_text()).get(("EMCMOT", "SERVO_PERIOD")) or ["0"])[-1]))
         gate = sv.HalGate()
         ctx["report"]["servo"] = setup = sv.setup(gate, clear=sv.clear_stale_stream)
+        # the clock the periods are counted in, READ here (R317 FI-I45): every
+        # time verdict needs it — another binary leaves every time row open
+        from test_support import servo_time as stime
+        ctx["clock"] = ctx["report"]["clock"] = stime.read_clock_contract()
         reader = sv.Reader()
         reader.start()
         ctx["servo_reader"] = reader
@@ -445,6 +449,7 @@ def _section(ctx, case: str):
         if "t_reply" in box:
             record["t_reply"] = box["t_reply"]     # the reply the case is judged from (R306)
         if sec is not None:
+            sec["clock"] = ctx.get("clock")        # the time's unit, read in the run (R317 FI-I45)
             box["section"] = sec
             if sec.get("end_error"):
                 box["error"] = sec["end_error"]
@@ -1440,7 +1445,9 @@ def _fetch_preview(token: str, version) -> dict:
     try:
         with urllib.request.urlopen(req, timeout=120) as r:
             body = r.read()
-            return {"status": r.status, "bytes": len(body), "sha256": hashlib.sha256(body).hexdigest()}
+            served = r.headers.get("X-Preview-Version")
+            return {"status": r.status, "bytes": len(body), "sha256": hashlib.sha256(body).hexdigest(),
+                    "version": int(served) if served and served.isdigit() else None}
     except Exception as e:  # noqa: BLE001 — named in the row
         return {"status": getattr(e, "code", None), "error": f"{type(e).__name__}: {e}"}
 
@@ -1591,8 +1598,8 @@ def latch_cases(variant=None):
                                         delayed=delayed)
         rows += [tag(same), tag(sc.eval_latch_sticky("latch-sticky", sec, reset_reply, trip_frames))]
         _servo_failed(box, rows, "the latch outage")
-        why = tp.own_trip(before_trip, same.get("edge_index"), inst_before,
-                          list((sh.unit_instance(unit) or ())[1:]))
+        why = tp.own_trip(before_trip, same.get("edge_index"), same.get("latch_clear_before"),
+                          same.get("latched_after"), inst_before, list((sh.unit_instance(unit) or ())[1:]))
         if why:
             raise StepFailed(rows, f"the trip is not proven the run's own: {why} — not acknowledged")
         with _section(ctx, "latch-recovery") as box:

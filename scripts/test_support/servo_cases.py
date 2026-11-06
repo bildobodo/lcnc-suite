@@ -396,29 +396,35 @@ def eval_latch_same_cycle(case: str, sec: dict, delayed: bool = False) -> dict:
     the edge, TRUE in the next sample; never a production PASS."""
     samples = sec.get("samples") or []
     measured = {"samples": len(samples), "delayed": delayed}
-    if sec.get("problems"):
-        return _row(case, "incomplete", "the section: " + "; ".join(sec["problems"]), **measured)
     e = falling_edge(samples)
     if e is None:
-        return _row(case, "incomplete", "no falling edge of oneshot.0.out after a TRUE in the section", **measured)
-    measured.update(edge_n=samples[e][1], edge_index=e)
+        why = "; ".join(sec.get("problems") or []) or "no falling edge of oneshot.0.out after a TRUE in the section"
+        return _row(case, "incomplete", why, **measured)
     early = next((n for _t, n, v in samples[:e] if _bit(v, LATCH) != 0), None)
+    latched = next((i for i in range(e, len(samples)) if _bit(samples[i][2], LATCH) == 1), None)
+    # the trip's ownership facts (R317 FI-I46): clear before the own edge, its
+    # own transition after it — the latency is this row's question, not theirs
+    measured.update(edge_n=samples[e][1], edge_index=e, latch_clear_before=early is None,
+                    latched_after=None if latched is None else samples[latched][1])
     if early is not None:
         return _row(case, "FAIL", f"fault-out not FALSE before the expiry (sample {early})", **measured)
     at = _bit(samples[e][2], LATCH)
     nxt = _bit(samples[e + 1][2], LATCH) if e + 1 < len(samples) else None
     measured.update(latch_at_edge=at, latch_next=nxt)
+    if not delayed and at == 0:
+        # a known contradiction stays one whatever else is unread (FI-I49)
+        return _row(case, "FAIL", "fault-out FALSE in the sample oneshot.0.out fell" +
+                    (" — one cycle late" if nxt == 1 else ""), **measured)
+    if sec.get("problems"):
+        return _row(case, "incomplete", "the section: " + "; ".join(sec["problems"]), **measured)
     if delayed:
         if at == 0 and nxt == 1:
             return _row(case, "PASS", f"the delayed order latched exactly one cycle late (sample {samples[e + 1][1]})",
                         **measured)
         return _row(case, "FAIL", f"the delayed order did not show the one-cycle delay (at the edge {at}, next {nxt})",
                     **measured)
-    if at == 1:
-        return _row(case, "PASS", f"fault-out TRUE in the sample oneshot.0.out fell (sample {samples[e][1]})",
-                    **measured)
-    return _row(case, "FAIL", "fault-out FALSE in the sample oneshot.0.out fell" +
-                (" — one cycle late" if nxt == 1 else ""), **measured)
+    return _row(case, "PASS", f"fault-out TRUE in the sample oneshot.0.out fell (sample {samples[e][1]})",
+                **measured)
 
 
 def eval_latch_sticky(case: str, sec: dict, reset_reply, trip_frames) -> dict:
@@ -431,20 +437,24 @@ def eval_latch_sticky(case: str, sec: dict, reset_reply, trip_frames) -> dict:
     unacknowledged trip (`trip_frames`: the safety_trip of each frame
     received after the resume). No resume or no frame: incomplete."""
     samples = sec.get("samples") or []
-    measured = {"samples": len(samples), "reset_reply": reset_reply}
-    if sec.get("problems"):
-        return _row(case, "incomplete", "the section: " + "; ".join(sec["problems"]), **measured)
-    e = falling_edge(samples)
-    if e is None:
-        return _row(case, "incomplete", "no falling edge of oneshot.0.out after a TRUE in the section", **measured)
-    latched = next((i for i in range(e, len(samples)) if _bit(samples[i][2], LATCH) == 1), None)
-    if latched is None:
-        return _row(case, "FAIL", "fault-out never TRUE after the expiry", **measured)
-    released = next((samples[i][1] for i in range(latched, len(samples)) if _bit(samples[i][2], LATCH) != 1), None)
-    if released is not None:
-        return _row(case, "FAIL", f"fault-out released before the reset (sample {released})", **measured)
+    measured = {"samples": len(samples), "reset_reply": reset_reply,
+                "trip_frames": [bool(x) for x in trip_frames or []]}
     if isinstance(reset_reply, dict) and reset_reply.get("ok") is not False:
         return _row(case, "FAIL", "E-Stop Reset was accepted before the trip was acknowledged", **measured)
+    e = falling_edge(samples)
+    if e is None:
+        why = "; ".join(sec.get("problems") or []) or "no falling edge of oneshot.0.out after a TRUE in the section"
+        return _row(case, "incomplete", why, **measured)
+    latched = next((i for i in range(e, len(samples)) if _bit(samples[i][2], LATCH) == 1), None)
+    released = None if latched is None else next(
+        (samples[i][1] for i in range(latched, len(samples)) if _bit(samples[i][2], LATCH) == 0), None)
+    if released is not None:
+        # an observed FALSE after it latched is no artefact of what is unread (FI-I49)
+        return _row(case, "FAIL", f"fault-out released before the reset (sample {released})", **measured)
+    if sec.get("problems"):
+        return _row(case, "incomplete", "the section: " + "; ".join(sec["problems"]), **measured)
+    if latched is None:
+        return _row(case, "FAIL", "fault-out never TRUE after the expiry", **measured)
     hb_back = next((i for i in range(e + 1, len(samples)) if _bit(samples[i][2], HB_OK) == 1), None)
     in_edges = [i for i in range(max(e, 1), len(samples)) if samples[i][2][HB_IN] != samples[i - 1][2][HB_IN]]
     measured.update(resume_index=hb_back, heartbeat_edges_after=len(in_edges))
@@ -467,16 +477,18 @@ def eval_latch_recovered(case: str, sec: dict, frames) -> dict:
     E-Stop clear and the machine on (`frames`: (safety_trip, is_estop,
     is_enabled) per frame). A broken or missing section: incomplete."""
     samples = sec.get("samples") or []
-    measured = {"samples": len(samples)}
+    measured = {"samples": len(samples), "frames": [[bool(tr), es, en] for tr, es, en in frames or []]}
+    cleared = next((i for i, (_t, _n, v) in enumerate(samples) if _bit(v, LATCH) == 0), None)
+    again = None if cleared is None else next(
+        (samples[i][1] for i in range(cleared, len(samples)) if _bit(samples[i][2], LATCH) == 1), None)
+    if again is not None:
+        # latched again after the release: observed, whatever else is unread (FI-I49)
+        return _row(case, "FAIL", f"fault-out TRUE again after the reset (sample {again})", **measured)
     if sec.get("problems") or not samples:
         return _row(case, "incomplete", "the recovery section: " + ("; ".join(sec.get("problems") or []) or "empty"),
                     **measured)
-    cleared = next((i for i, (_t, _n, v) in enumerate(samples) if _bit(v, LATCH) == 0), None)
     if cleared is None:
         return _row(case, "FAIL", "fault-out stayed TRUE through the recovery", **measured)
-    again = next((samples[i][1] for i in range(cleared, len(samples)) if _bit(samples[i][2], LATCH) != 0), None)
-    if again is not None:
-        return _row(case, "FAIL", f"fault-out TRUE again after the reset (sample {again})", **measured)
     measured["cleared_n"] = samples[cleared][1]
     if not frames:
         return _row(case, "incomplete", "no frame received in the recovery", **measured)
@@ -493,7 +505,8 @@ from test_support import servo_time as st  # noqa: E402
 
 DISC_WINDOW_NS = 2_000_000_000     # the run on after the event, at least
 DISC_TRAVEL = 10.0                 # mm of X travel in it, at least (a reversal's halt allowed)
-INTERP_IDLE, MODE_AUTO = 1, 2
+INTERP_IDLE, INTERP_PAUSED, MODE_AUTO = 1, 3, 2
+INTERP_RUNNING = (2, 4)            # READING, WAITING — LinuxCNC's running interpreter
 
 
 def eval_disconnect(case: str, sec: dict, w_mark, event, frames_after, program_lines) -> dict:
@@ -501,45 +514,49 @@ def eval_disconnect(case: str, sec: dict, w_mark, event, frames_after, program_l
     disconnect or its heartbeat timeout (`event`, from the trace, bound to the
     client id) — is read, THEN the mark W is set: every W sample is captured
     after it. From W the program runs on for at least 2 s (the lower bound of
-    the controller's periods, servo_time), X travels at least 10 mm, no trip
-    (fault-out FALSE in the whole section), and the frames the remaining
-    client B received after W show the interpreter running in AUTO.
-    FAIL: a trip, a frame of B idle or out of AUTO, the motion ended in W
-    (less travel, or program-line 0 and no motion after it to W's end).
-    incomplete: no event, a section problem, no W, the time unproven or under
-    2 s, no frame of B after W."""
+    the controller's periods, servo_time, on the clock read in the run), X
+    travels at least 10 mm, no trip (fault-out FALSE in the whole section),
+    and every frame the remaining client B received after W shows a KNOWN
+    running interpreter in AUTO (R317 FI-I47: a field missing proves nothing).
+    Known contradictions first, whatever else is missing (FI-I49): a trip; a
+    frame of B idle, paused or out of AUTO; a stop proven in W (line 0, no
+    motion after it); less than 10 mm in a proven 2 s. incomplete: no event,
+    a section problem, no W, the time unproven or under 2 s, no frame of B
+    after W or one with an unknown state."""
     samples = sec.get("samples") or []
-    measured = {"samples": len(samples), "event": event, "frames_after": len(frames_after or [])}
-    if event is None:
-        return _row(case, "incomplete", "no traced disconnect or timeout of this client", **measured)
+    # the frames B received after W, as states (R317: the raw sequence kept beside the verdict)
+    measured = {"samples": len(samples), "event": event, "frames_after": len(frames_after or []),
+                "b_states": [[f.get("interp_state"), f.get("task_mode")] for _t, f in frames_after or []]}
     trip = next((n for _t, n, v in samples if _bit(v, LATCH) == 1), None)
     if trip is not None:
         return _row(case, "FAIL", f"a trip: fault-out TRUE (sample {trip})", **measured)
+    stopped = next(((t, f) for t, f in frames_after or [] if f.get("interp_state") in (INTERP_IDLE, INTERP_PAUSED)
+                    or (f.get("task_mode") is not None and f.get("task_mode") != MODE_AUTO)), None)
+    if stopped is not None:
+        return _row(case, "FAIL", f"the remaining client saw the program stop (interp "
+                    f"{stopped[1].get('interp_state')}, mode {stopped[1].get('task_mode')})", **measured)
+    a = (sec.get("phase_first") or {}).get(w_mark)
+    w = samples[a:] if a is not None else []
+    if w:
+        last_line0 = max((i for i, (_t, _n, v) in enumerate(w) if v[6] == 0), default=None)
+        if last_line0 is not None and not any(_f(w[k][2][0], w[last_line0][2][0])
+                                              and abs(w[k][2][0] - w[last_line0][2][0]) > 0.001
+                                              for k in range(last_line0, len(w))):
+            return _row(case, "FAIL", f"the program stopped after the event (line 0 from sample {w[last_line0][1]}, "
+                        "no motion after it)", **measured)
+    if event is None:
+        return _row(case, "incomplete", "no traced disconnect or timeout of this client", **measured)
     if sec.get("problems"):
         return _row(case, "incomplete", "the section: " + "; ".join(sec["problems"]), **measured)
-    a = (sec.get("phase_first") or {}).get(w_mark)
-    if a is None:
+    if not w:
         return _row(case, "incomplete", "no sample after the event's mark W", **measured)
-    rng = st.proven(samples, sec.get("recv_ns") or {}, sec.get("t0_ns"))
+    rng = st.proven(samples, sec.get("recv_ns") or {}, sec.get("t0_ns"), sec.get("clock"))
     if not rng.get("ok"):
         return _row(case, "incomplete", f"the window's time unproven: {rng.get('why')}", **measured)
-    w = samples[a:]
     xs = [v[0] for _t, _n, v in w if _f(v[0])]
     travel = sum(abs(b - c) for b, c in zip(xs[1:], xs))
-    last_line0 = max((i for i, (_t, _n, v) in enumerate(w) if v[6] == 0), default=None)
-    moved_after = last_line0 is not None and any(abs(w[k][2][0] - w[last_line0][2][0]) > 0.001
-                                                 for k in range(last_line0, len(w)))
-    measured.update(w_n=w[0][1], travel_mm=round(travel, 3))
-    idle = next(((t, s) for t, s in frames_after or [] if s.get("interp_state") == INTERP_IDLE
-                 or s.get("task_mode") not in (None, MODE_AUTO)), None)
-    if idle is not None:
-        return _row(case, "FAIL", f"the remaining client saw the program stop (interp {idle[1].get('interp_state')}, "
-                    f"mode {idle[1].get('task_mode')})", **measured)
-    if last_line0 is not None and not moved_after:
-        return _row(case, "FAIL", f"the program stopped after the event (line 0 from sample {w[last_line0][1]}, "
-                    "no motion after it)", **measured)
     dur = st.duration_lower(samples, rng, a, len(samples) - 1)
-    measured["window_ns_lower"] = dur
+    measured.update(w_n=w[0][1], travel_mm=round(travel, 3), window_ns_lower=dur)
     if dur is None or dur < DISC_WINDOW_NS:
         return _row(case, "incomplete", f"the window after the event is not proven 2 s long ({dur} ns)", **measured)
     if travel < DISC_TRAVEL:
@@ -547,6 +564,9 @@ def eval_disconnect(case: str, sec: dict, w_mark, event, frames_after, program_l
         return _row(case, "FAIL", f"the motion ended after the event (X {travel:.1f} mm in ≥ 2 s)", **measured)
     if not frames_after:
         return _row(case, "incomplete", "no frame of the remaining client after the event", **measured)
+    if any(f.get("interp_state") not in INTERP_RUNNING or f.get("task_mode") != MODE_AUTO for _t, f in frames_after):
+        return _row(case, "incomplete", "a frame of the remaining client after the event with its state unknown",
+                    **measured)
     if any(_f(v[0]) and v[6] not in program_lines and v[6] != 0 for _t, _n, v in w):
         return _row(case, "incomplete", "a line in the window no program text names", **measured)
     return _row(case, "PASS", f"the program ran on for ≥ {dur / 1e9:.2f} s after the event, X {travel:.0f} mm, "
@@ -581,11 +601,16 @@ def eval_clients(case: str, sec: dict, w_start, w_end, n: int, hellos, results, 
         return _row(case, "incomplete", f"not {n} fetches of one preview", **measured)
     if not (published or {}).get("ok"):
         return _row(case, "incomplete", "the expected program was not published", **measured)
+    # each fetch the PUBLISHED preview of that program (R317 FI-I48): `?v=` is
+    # only a cache-buster; the server names what it served (X-Preview-Version)
+    if any(r.get("version") is None or r.get("version") != published.get("version") for r in results):
+        return _row(case, "incomplete", f"a fetch not of the published version {published.get('version')}: "
+                    f"{[r.get('version') for r in results]}", **measured)
     pf = sec.get("phase_first") or {}
     a1, a2 = pf.get(w_start), pf.get(w_end)
     if a1 is None or a2 is None:
         return _row(case, "incomplete", "the window's marks not in the section", **measured)
-    rng = st.proven(samples, sec.get("recv_ns") or {}, sec.get("t0_ns"))
+    rng = st.proven(samples, sec.get("recv_ns") or {}, sec.get("t0_ns"), sec.get("clock"))
     if not rng.get("ok"):
         return _row(case, "incomplete", f"the time unproven: {rng.get('why')}", **measured)
     pre, post = st.duration_lower(samples, rng, 0, a1 - 1), st.duration_lower(samples, rng, a2, len(samples) - 1)
