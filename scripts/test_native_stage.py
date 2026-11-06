@@ -4912,6 +4912,7 @@ class SurfaceSim:
         self.config, self.defect = config, defect
         self._frames, self.errors, self.error, self.sent = [], [], None, []
         self.t, self.xy, self.on, self.method, self.version = 0.0, (518.0, 518.0), False, 2, 1
+        self.zj, self.moves = 0.0, []            # the control point's joint Z (G53 Z0 after the scan)
         self.g54_z, self.free, self.points, self.e = 0.0, True, None, 0.0
         self.tick()
 
@@ -4937,7 +4938,7 @@ class SurfaceSim:
         st = {**_IDLE, "g5x_index": 1, "g5x_offset": [0.0, 0.0, self.g54_z], "g92_offset": [0.0, 0.0, 0.0],
               "rotation_xy": 0.0, "tool_offset": [0.0, 0.0, 50.0], "tool_number": 99, "eoffset_z": self.e,
               "eoffset_enabled": self.on, "comp_method": self.method, "comp_grid_version": self.version,
-              "joint_pos": [self.xy[0], self.xy[1], -113.0 + self.e], "feed_override_enabled": self.free,
+              "joint_pos": [self.xy[0], self.xy[1], self.zj + self.e], "feed_override_enabled": self.free,
               "current_vel": 0.0, **over}
         for _ in range(n):
             self.t += 0.033
@@ -4968,10 +4969,17 @@ class SurfaceSim:
             self.free = True
             self.points = pts
             self.version += 0 if self.defect == "no reload" else 1
-        elif text.startswith(("G0 X", "G1 X")):
+            self.xy, self.zj = (518.0, 518.0), 0.0       # the routine's return: G53 Z0, then X0 Y0 of its grid
+        elif text.startswith(("G0 ", "G1 ")):
+            # a block that goes nowhere never shows busy: its end is never seen
             words = dict((w[0], float(w[1:])) for w in text.split()[1:])
+            to_xy = (words.get("X", self.xy[0]), words.get("Y", self.xy[1]))
+            to_z = -175.0 + 50.0 + words["Z"] if "Z" in words else self.zj
+            if to_xy == self.xy and abs(to_z - self.zj) < 1e-9:
+                raise RuntimeError(f"{text}: no travel — not done within 60.0 s")
+            self.moves.append(text)
             keep = self.e
-            self.xy = (words["X"], words["Y"])
+            self.xy, self.zj = to_xy, to_z
             self.e = keep if (self.defect == "frozen" and text.startswith("G1")) else self._e()
         self.tick()
         return {"t0": t0, "t_done": self.t, "errors": [], "served": []}
@@ -5015,6 +5023,8 @@ def test_the_surface_step_passes_on_a_sim_that_does_what_it_should(monkeypatch, 
     # every method switch a change, the start method (cubic) last and restored
     methods = [kw["method"] for cmd, kw in sim.sent if cmd == "set_compensation_method"]
     assert methods == [0, 1, 2]
+    # from the scan's end (G53 Z0) down to Z12 once, then X/Y only
+    assert sim.moves == ["G0 Z12", "G0 X538 Y550", "G0 X550 Y550", "G1 X518 Y582 F1000"], sim.moves
     after = ctx["report"]["surface_cleanup"]["after"]
     assert after["eoffset_enabled"] is False and after["comp_method"] == 2 and after["g54_z"] == 0.0
 

@@ -106,6 +106,7 @@ COMP_Z, COMP_Q, COMP_A, COMP_B = 12.0, (538.0, 550.0), (550.0, 550.0), (518.0, 5
 COMP_EDGE = ((534.0, 550.0), (550.0, 550.0))      # Q's nearer and farther node
 COMP_FEED = 1000.0                                # mm/min, the XY move A → B with compensation on
 SETTLE_DEADLINE = 20.0      # s for a reading to settle (nc.settled_window), else it is not one
+AT_TOL = 0.001              # mm: a readout move already there is not sent (no travel, no end)
 MAP_RELOAD_S = 15.0         # s after the scan's end for the map's reload (DONE → reload-req → load)
 #: the workpiece's chain in its thread order (hallib/sim_surface.hal)
 SURFACE_CHAIN = ("surf-dx", "surf-dy", "surf-dx2", "surf-dy2", "surf-tilt", "surf-curve", "surf-z")
@@ -1121,12 +1122,20 @@ def _comp_method(c, method: str):
 
 
 def _at(c, xy, feed=None):
-    """To X/Y at program Z COMP_Z (G54, G43 H99): Z first when it is lower."""
-    if feed is None:
+    """To X/Y at program Z COMP_Z (G54 X/Y 0, G43 H99): Z first, then X/Y —
+    each move only when it goes somewhere: a block without travel never
+    shows busy and its end is never seen (live run 2026-11-06, `G0 Z12`
+    already at Z12 waited out its 60 s). The control point's Z is the joint
+    Z minus the external offset."""
+    st = c.status
+    jp = list(st.get("joint_pos") or [None] * 3)[:3]
+    e = st.get("eoffset_z")
+    control = nc.SURFACE_BASE + PROBE_L0 + COMP_Z
+    if feed is None and not (nc._finite(jp[2], e) and abs(jp[2] - e - control) <= AT_TOL):
         _routine(c, f"G0 Z{COMP_Z:g}", deadline=60.0)
-        _routine(c, f"G0 X{xy[0]:g} Y{xy[1]:g}", deadline=60.0)
-    else:
-        _routine(c, f"G1 X{xy[0]:g} Y{xy[1]:g} F{feed:g}", deadline=60.0)
+    if not (nc._finite(jp[0], jp[1]) and abs(jp[0] - xy[0]) <= AT_TOL and abs(jp[1] - xy[1]) <= AT_TOL):
+        move = f"G1 X{xy[0]:g} Y{xy[1]:g} F{feed:g}" if feed else f"G0 X{xy[0]:g} Y{xy[1]:g}"
+        _routine(c, move, deadline=60.0)
 
 
 def _scan_points(path: Path):
