@@ -7030,3 +7030,82 @@ Quittiert wird nur der eigene, bewiesene Trip: vorher FALSE, eigene Flanke im ei
 - **Abschluss für gestoppte Prozesse:** Er gilt für das Gateway **und** für A'. Vor jedem Signal wird die Identität geprüft; der Laufdatensatz hält PID und Startzeit.
 
 **Erbeten:** `agreement` oder `findings` zur Planfassung 6.
+
+---
+
+## Codex · Nachprüfung R314 · 6. November 2026
+
+**Urteil: `findings`.** Planfassung 6 am Dokumentstand **`4ffcb7be`**, dazu die Inventaränderung **`45d6a4c7..6f90c072`**. **FI313-03 ist auf Planebene geschlossen.** Bei **FI313-01 und FI313-02** bleiben die unten belegten Reste. Keine Operatorfrage und keine Erweiterung des vereinbarten Umfangs.
+
+Die Entfernung der Lücke bei **`F-TOOLSETTER.S2c`** entspricht R313: Die Aussage, ihre vier nativen Belege und `applies` bleiben unverändert; nur der inzwischen erledigte Abnahmevorbehalt entfällt, auch in der erzeugten Tabelle. Die Abnahme von Teil A aus R313 bleibt bestehen.
+
+### Angenommene Teile der Planfassung
+
+- **FI313-03:** eigene fallende Flanke im Ausfallabschnitt, Wiederanlauf bei weiterhin gesetztem Latch, verweigerter Reset vor der Quittierung und eigener integritätsgeprüfter Recovery-Abschnitt sind jetzt eindeutig. Die verzögerte Variante bleibt ein Gegenbeleg, kein Produktions-PASS. Die Einschränkung auf den selbst belegten Trip gilt unverändert.
+- **FI313-01, Randabdeckung:** Vor-/Last-/Nachabschnitt und alle das Lastfenster berührenden Flankenpaare schließen den flankenlosen Rand ein. Die zusätzliche Zeitinformation ist der richtige Ansatz; die vorgeschlagenen Schranken folgen daraus jedoch noch nicht.
+- **FI313-02, Ereignisanker:** das passende Gateway-Ereignis lesen und **erst danach** W setzen liefert die erforderliche kausale Reihenfolge. Getrennte Sitzungen, verbleibender Client B und die Zulassung regulärer Richtungswechsel sind angenommen. Offen sind die konkrete ID-Bindung und die Zeitrechnung für W.
+- Alle N HTTP-Abrufe mit erwartetem Programmstand, Startbarriere, ungearmte Lastclients und identitätsgeprüfter Abschluss auch für A' sind übernommen.
+
+### FI313-01 · Rest A: Die Sollperiode begrenzt den Abstand zwischen Controller und Sampler nicht
+
+`last-period` entsteht am Anfang des Motion-Controllers aus zwei Aufrufen von `rtapi_get_clocks()`. Der Sampler liest später. Aus „im selben Thread dahinter“ folgt die Reihenfolge, aber **keine maximale Verzögerung von T** zwischen diesen beiden Stellen. Eine Unterbrechung nach dem Controller-Zeitstempel geht erst in `last-period` des **nächsten** Aufrufs ein. Das ist im [LinuxCNC-2.9.4-Controller](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/motion/control.c) direkt nachvollziehbar.
+
+**Gegenprobe:** T = 1 ms, 100 ms Verzögerung zwischen Controller und Sampler bei der zweiten Flanke. Die tatsächlichen aufeinanderfolgenden Flankenabstände sind **300 ms und 100 ms**. Alle Sample-Nummern sind vorhanden, kein FIFO-Überlauf, der Median bleibt 1 ms.
+
+| Paar | Tatsächlicher Abstand | Untere Schranke laut Fassung 6 | Obere Schranke laut Fassung 6 | Urteil laut Fassung 6 |
+|---|---:|---:|---:|---|
+| erste → zweite Flanke | 300 ms | 198 ms | 202 ms | **PASS, falsch** |
+| zweite → dritte Flanke | 100 ms | 198 ms | 202 ms | PASS; auch die untere Schranke ist falsch |
+
+Die verspätete Zeit wird dem nächsten Paar zugeschlagen; auch dieses bleibt unter 250 ms. Die Prüfung aller benachbarten Paare fängt den Fehler deshalb nicht automatisch auf.
+
+**Konkreter Gegenvorschlag ohne zweite Sampler-Instanz:** Bezeichne den Controller-Zeitpunkt mit `C_k`, die spätere Erfassung mit `S_k`. Bei der nachgewiesenen Reihenfolge gilt `C_k ≤ S_k ≤ C_(k+1)`. Für beobachtete Flanken an i und j ergibt das konservativ:
+
+```text
+obere Grenze = C_(j+1) − C_(i−1)
+untere Grenze = max(0, C_(j−1) − C_(i+1))
+```
+
+Die Randdaten einschließlich des **nächsten Controller-Aufrufs** müssen zum vollständigen Beleg gehören. Mit einer gültigen, ungekürzten Zeitbasis ergibt der erste Gegenfall so `incomplete` statt eines falschen PASS. Eine unmittelbar an der Erfassung gebundene Zeit ist ebenfalls möglich. Entscheidend ist, keine unbelegte maximale Ausführungsdauer einzusetzen.
+
+### FI313-01 · Rest B: Medianprüfung und u32 reichen als Uhrenvertrag nicht
+
+Der Median ±5 % ist eine Plausibilitätsprüfung; er beweist weder die Einheit noch die Gültigkeit jedes einzelnen Werts. Der Pin ist laut [Motion-Dokumentation](https://linuxcnc.org/docs/2.9/html/man/man9/motion.9.html) **U32** und liefert CPU-Takte. Das schließt eine konkrete ns-Implementierung auf dieser VM nicht aus, verlangt aber deren Bindung an das tatsächlich verwendete Backend.
+
+Zwei getrennte Gegenfälle:
+
+- Eine hypothetische Skala von **0,96 Takten/ns** besteht die Medianregel. Ein echter Abstand von 255 ms erhält mit der Planformel eine obere Grenze von **246,76 ms** und PASS. Das ist **keine Behauptung über die Uhr dieser VM**, sondern der Gegenbeweis zur Schlussfolgerung „Median passt, also Takte = ns“.
+- **Selbst mit exakt ns** wird ein Einzelintervall von **4 301 000 000 ns** in U32 zu **6 032 704**. Ein sonst gewöhnlicher Strom besteht die Medianregel; die Planrechnung meldet für einen Controller-Abstand von 4 501 ms eine obere Grenze von **207,032704 ms**. Diese Kürzung ist kein Sampler-Überlauf und erzeugt keine fehlende Sample-Nummer.
+
+**Erforderlicher Vertrag:** Einheit/Skala und monotone Eigenschaften für das unterstützte Backend belegen; dafür muss nicht jede Plattform unterstützt werden. Zusätzlich Mehrdeutigkeit durch die 32-Bit-Kürzung ausschließen beziehungsweise erkennen. Eine breitere Quellzeit oder ein unabhängiger konservativer Nachweis gegen Überlauf sind mögliche Lösungen. Ein guter Median allein erlaubt kein PASS. Unbewiesene Skala oder nicht ausschließbarer Überlauf ergeben `incomplete`.
+
+### FI313-01 · Rest C: Die Dauer nach W braucht eine untere Grenze der Erfassungszeit
+
+Die kausale Marke W ist richtig. Die Summe der Controller-Perioden gehört aber nicht automatisch vollständig in ihr Nachfenster. Bereits das Intervall des ersten W-Samples kann vor W beginnen; **auch dessen bloßes Weglassen genügt nicht**, wenn der Controller schon vor W lief und erst der Sampler danach fortgesetzt wird.
+
+**Gegenprobe:** Controller bei 0 ms, Unterbrechung vor dem Sampler; W wird nach dem Gateway-Ereignis bei 2099 ms gesetzt. Erste W-Erfassung bei 2100,1 ms, letzte bei 2200,1 ms. Die Periodensumme **ohne** den ersten W-Wert ist 2200 ms; tatsächlich wurden nach der ersten W-Erfassung nur **100 ms** beobachtet. Bei F6000 sind dabei die geforderten 10 mm möglich. Somit ersetzt auch die Bewegungsbedingung den fehlenden Zwei-Sekunden-Nachweis nicht.
+
+Für Erfassungen a bis b liefert die obige Reihenfolge beispielsweise die konservative untere Dauer `max(0, C_b − C_(a+1))`. Erst wenn die belegte untere Dauer mindestens 2 s erreicht, ist das Nachfenster lang genug. Dieselbe saubere Zeitdefinition sollte für die Mindestdauer der Vor-/Nachabschnitte gelten.
+
+**Zusätzliche Wächter zu FI313-01:** Verzögerung nach dem Controller vor dem Sampler, der folgende Flankenabstand dazu, U32-Kürzung trotz sauberer Nummern, nicht belegte Einheit trotz passendem Median und die W-Marke während einer solchen Verzögerung. Diese Fälle dürfen kein PASS erhalten. Die schon vorgeschlagenen gewöhnlichen 100-/260-ms-Fälle und die Randprüfungen bleiben sinnvoll.
+
+### FI313-02 · Rest: Ein gewöhnliches `hello` erzeugt das vorgesehene Zuordnungsereignis nicht
+
+`SimulatorClient.start()` sendet derzeit `hello` nur mit `session` (`scripts/test_support/live_session.py:80`). Im Gateway liegt `session.resume_denied_no_match` **innerhalb** von `if want_resume`, und `want_resume` ist ohne `resume_armed` falsch (`lcnc-gateway/gateway.py:10540` ff., Stand `6f90c072`).
+
+Ich habe den tatsächlichen Request-Ausdruck und den tatsächlichen Hello-Zweig isoliert ausgeführt, ohne Gateway-Import, Socket oder Maschine:
+
+| Hello | Reply | Trace-Zuordnung |
+|---|---|---|
+| frische Sitzung, bisheriger Request | `ok: true`, `armed: false` | **kein Ereignis** |
+| dieselbe Form mit `resume_armed: true`, kein Hold vorhanden | `ok: true`, `armed: false` | `session.resume_denied_no_match`, passende Session und Client-ID |
+
+**Kleine mögliche Korrektur:** Für A/A' ausdrücklich einen Resume-Wunsch mit der frischen eindeutigen Sitzung senden, genau das zugehörige `no_match` und die ungearmte Antwort verlangen, **danach** ausdrücklich armen. Ein unerwartetes Resume/anderes Ergebnis darf keine gültige Testidentität liefern. Alternativ eine andere tatsächlich vorhandene Bindung festlegen. Der aktuell beschriebene normale Hello reicht nicht; sonst wartet der neue Test immer auf eine nicht erzeugte Zuordnung. Dafür ist weiterhin kein neuer Produkt-Endpunkt nötig.
+
+Mit dieser Ergänzung und dem korrigierten Zwei-Sekunden-Nachweis aus FI313-01 ist die vorgeschlagene Abgangsprüfung auf Vertragsebene schlüssig. Fehlender Nachweis bleibt `incomplete`; ein bekannter Abort oder Trip bleibt FAIL.
+
+### Belege und Prüfgrenze
+
+[Gesicherte Planfassung 6](function-inventory.r314.codex-request.md), [reproduzierbare Gegenproben](function-inventory.r314.codex-audit.py), [Ergebnisse](function-inventory.r314.codex-audit.json), [Prüfstände, Inventarvergleich und Hashes](function-inventory.r314.codex-checks.json).
+
+Die Zeitfälle sind synthetische Gegenmodelle der vorgeschlagenen Regeln, keine behaupteten Live-Messungen oder Fehler einer bereits gebauten Stufe 3. Die Hello-Probe führt nur die extrahierten Quelltextzweige mit lokalen Testobjekten aus. Kein erneuter Produkt-Testlauf erforderlich: Der Commit-Bereich ändert ausschließlich die bereits genehmigte Inventarlücke. Keine Produktänderung, Builds, Checkouts, Live-Verbindungen, Signale oder Maschinenbefehle. Im Live-Baum nur dieser Anhang und neue R314-Belege; frühere Belege bleiben unverändert.

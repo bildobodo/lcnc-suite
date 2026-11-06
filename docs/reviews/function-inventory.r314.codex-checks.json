@@ -1,0 +1,61 @@
+{
+  "round": "R314",
+  "verdict": "findings",
+  "closed": [
+    "FI313-03"
+  ],
+  "rests": {
+    "FI313-01": [
+      "controller-to-sampler bounds",
+      "clock scale and u32 truncation",
+      "post-W lower duration"
+    ],
+    "FI313-02": [
+      "hello event requires resume_armed"
+    ]
+  },
+  "operator_questions": [],
+  "refs": {
+    "document": "4ffcb7be9a11542408672a11921107ed49ab0d04",
+    "base": "45d6a4c71032731269a8264ad1289990b5ae3fe6",
+    "head": "6f90c07264d0dd0d806df84821051a533d54bc17"
+  },
+  "review_prefix": {
+    "bytes": 759688,
+    "sha256": "8b29bee1965740069c3b2b5c79b51bfedeff9dffb1b50cfac696a4213cda171a"
+  },
+  "append_sha256": "cfe782f306f5cd3cc9df251f968371309478632ea9de1033ef65242dc131fd18",
+  "archive": "/tmp/codex-r314",
+  "check": {
+    "command": "python3 /tmp/r314-evidence/audit.py /tmp/codex-r314",
+    "cwd": "/tmp/codex-r314",
+    "exit_code": 0,
+    "kind": "four synthetic time countermodels and two extracted real hello-branch cases; no runtime gateway import"
+  },
+  "inventory": {
+    "only_files_changed": [
+      "docs/inventory/funktionen.md",
+      "scripts/inventory/functions.json"
+    ],
+    "json_difference_exactly_removes_S2c_gap": true,
+    "removed_gap": "positiver nativer Lauf belegt (Lauf 11, 18f3f155); die korrigierte Bewertung (Codex R312 FI-I43/FI-I44) wartet auf die Abnahme",
+    "old_A_agreement_preserved": true
+  },
+  "source_urls": [
+    "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/motion/control.c",
+    "https://linuxcnc.org/docs/2.9/html/man/man9/motion.9.html"
+  ],
+  "limits": {
+    "product_tests_run": false,
+    "live_connections": false,
+    "machine_commands": false,
+    "signals": false,
+    "product_changes": false,
+    "plan_not_implementation": true
+  },
+  "evidence_sha256": {
+    "function-inventory.r314.codex-request.md": "6b532c5eacf13fe08d7e1dab72ea0c0b202dc60bb9039fec87bf5d5333f9bd63",
+    "function-inventory.r314.codex-audit.py": "b60ea195e2245149a5528f282c84aaea7aa00a6b951d11cf57bea8455b876402",
+    "function-inventory.r314.codex-audit.json": "81e0761a532a5d142536863bcb76494ec71dc10e045ffc314de5dd1a19add07b"
+  }
+}

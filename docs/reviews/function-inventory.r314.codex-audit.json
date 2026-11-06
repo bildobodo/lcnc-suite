@@ -1,0 +1,120 @@
+{
+  "code_commit": "6f90c072",
+  "after_controller_delay": {
+    "median_passes": true,
+    "pairs": [
+      {
+        "i": 1,
+        "j": 201,
+        "actual_ms": 300.0,
+        "v6": {
+          "lower_ms": 198.0,
+          "upper_ms": 202.0,
+          "verdict": "PASS"
+        },
+        "next_controller_envelope": {
+          "lower_ms": 198.0,
+          "upper_ms": 302.0,
+          "verdict": "incomplete"
+        }
+      },
+      {
+        "i": 201,
+        "j": 301,
+        "actual_ms": 100.0,
+        "v6": {
+          "lower_ms": 198.0,
+          "upper_ms": 202.0,
+          "verdict": "PASS"
+        },
+        "next_controller_envelope": {
+          "lower_ms": 98.0,
+          "upper_ms": 202.0,
+          "verdict": "PASS"
+        }
+      }
+    ],
+    "number_gaps": 0,
+    "overflow": false
+  },
+  "u32_wrap": {
+    "long_period_ns": 4301000000,
+    "u32_pin_ns": 6032704,
+    "median_passes": true,
+    "v6": {
+      "lower_ms": 203.032704,
+      "upper_ms": 207.032704,
+      "verdict": "PASS"
+    },
+    "controller_span_ms": 4501.0,
+    "explanation": "u32 truncation is not a sampler FIFO overrun"
+  },
+  "median_unit": {
+    "hypothetical_ticks_per_ns": 0.96,
+    "median_passes": true,
+    "actual_edge_gap_ms": 255,
+    "v6": {
+      "lower_ms": 242.84,
+      "upper_ms": 246.76,
+      "verdict": "PASS"
+    },
+    "scope": "shows that a median is no proof of units; not an assertion about this VM's clock"
+  },
+  "post_event_duration": {
+    "marker_set_ms": 2099,
+    "first_W_capture_ms": 2100.1,
+    "last_W_capture_ms": 2200.1,
+    "v6_sum_ms_even_excluding_first_W_period": 2200.0,
+    "actual_W_observation_ms": 100.0,
+    "motion_mm_at_F6000": 10.0,
+    "conservative_capture_lower_ms": 99.0
+  },
+  "hello_binding": {
+    "gateway_line": 10540,
+    "request_line": 80,
+    "cases": [
+      {
+        "message": {
+          "cmd": "hello",
+          "session": "native-A-r314-test"
+        },
+        "events": [],
+        "replies": [
+          {
+            "type": "reply",
+            "ok": true,
+            "armed": false,
+            "conn_key": "offline"
+          }
+        ]
+      },
+      {
+        "message": {
+          "cmd": "hello",
+          "session": "native-A-r314-test",
+          "resume_armed": true
+        },
+        "events": [
+          {
+            "event": "session.resume_denied_no_match",
+            "client_id": "test-client",
+            "session_id": "native-A-r314-test"
+          }
+        ],
+        "replies": [
+          {
+            "type": "reply",
+            "ok": true,
+            "armed": false,
+            "conn_key": "offline"
+          }
+        ]
+      }
+    ],
+    "real_gateway_imported": false,
+    "source_sha256": {
+      "lcnc-gateway/gateway.py": "bd15469d09176d896a4b7312ea4d3d8fbc4a8ec16b9f383911130f5342d5b62c",
+      "scripts/test_support/live_session.py": "e56e71a9a788e941963673c04b5cddf2c6a4886f7ccfb3cd4f6a66cebdd3186e"
+    }
+  }
+}
