@@ -1,0 +1,478 @@
+[
+  {
+    "run": "20261106T040338",
+    "commit": "e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+    "clock": {
+      "ok": true,
+      "sha256": "1a4bb954a645cc86a4109b363f6c2ce8ad21dbf40d82a7a3fcbe081d070ce6af",
+      "version": "1:2.9.4-2+deb13u1",
+      "why": null
+    },
+    "restore": {
+      "restore.json": {
+        "outcome": "complete",
+        "isolation": [],
+        "cleanup": []
+      },
+      "restore-post.json": {
+        "outcome": "complete",
+        "isolation": [],
+        "cleanup": []
+      }
+    },
+    "results": {
+      "disconnect-close": {
+        "status": "PASS",
+        "detail": "the program ran on for ≥ 3.01 s after the event, X 260 mm, no trip; the remaining client saw it running",
+        "frames_after": 87,
+        "w_n": 404524,
+        "travel_mm": 259.935,
+        "window_ns_lower": 3007993476,
+        "wrap_proof": {
+          "ok": true,
+          "lo": 2,
+          "hi": 4212,
+          "rest_ns": 5059692
+        }
+      },
+      "disconnect-heartbeat": {
+        "status": "PASS",
+        "detail": "the program ran on for ≥ 3.01 s after the event, X 301 mm, no trip; the remaining client saw it running",
+        "frames_after": 87,
+        "w_n": 411822,
+        "travel_mm": 300.6,
+        "window_ns_lower": 3005004197,
+        "wrap_proof": {
+          "ok": true,
+          "lo": 2,
+          "hi": 6803,
+          "rest_ns": 3530477
+        }
+      },
+      "clients-4": {
+        "status": "PASS",
+        "detail": "4 clients, 658 heartbeat gaps across the window, the longest ≤ 54.0 ms",
+        "worst_upper_ns": 53998270,
+        "worst_lower_ns": 49953500,
+        "pre_ns": 1303996895,
+        "post_ns": 1312005542,
+        "pairs": 658,
+        "wrap_proof": {
+          "ok": true,
+          "lo": 2,
+          "hi": 25161,
+          "rest_ns": 13568234
+        }
+      },
+      "clients-8": {
+        "status": "PASS",
+        "detail": "8 clients, 659 heartbeat gaps across the window, the longest ≤ 74.7 ms",
+        "worst_upper_ns": 74669122,
+        "worst_lower_ns": 67989214,
+        "pre_ns": 1312004415,
+        "post_ns": 1310999393,
+        "pairs": 659,
+        "wrap_proof": {
+          "ok": true,
+          "lo": 2,
+          "hi": 25152,
+          "rest_ns": 10925680
+        }
+      },
+      "latch-outage": {
+        "same_cycle": {
+          "case": "latch-same-cycle",
+          "status": "PASS",
+          "detail": "fault-out TRUE in the sample oneshot.0.out fell (sample 467258)",
+          "samples": 2476,
+          "delayed": false,
+          "edge_n": 467258,
+          "edge_index": 486,
+          "latch_clear_before": true,
+          "latched_after": 467258,
+          "section_complete": true,
+          "latch_at_edge": 1,
+          "latch_next": 1
+        },
+        "sticky": {
+          "case": "latch-sticky",
+          "status": "PASS",
+          "detail": "the heartbeat returned (sample 467719), fault-out stayed TRUE, the reset before the acknowledgement was refused",
+          "samples": 2476,
+          "reset_reply": {
+            "ok": false,
+            "error": "estop_reset refused: Acknowledge the safety trip first"
+          },
+          "trip_frames": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "resume_index": 947,
+          "heartbeat_edges_after": 45
+        }
+      },
+      "latch-recovery": {
+        "case": "latch-recovered",
+        "status": "PASS",
+        "detail": "fault-out FALSE from sample 469274 to the end; no trip, E-Stop clear, machine on",
+        "samples": 1234,
+        "frames": [
+          [
+            false,
+            true,
+            false
+          ],
+          [
+            false,
+            false,
+            false
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ]
+        ],
+        "last_frame": {
+          "safety_trip": false,
+          "is_estop": false,
+          "is_enabled": true
+        },
+        "cleared_n": 469274
+      }
+    },
+    "sha256": {
+      "report.json": "4f8cb39273c877b0780deba1fdb4681f352030eb34b738bf3128d96923be2250",
+      "restore.json": "3d7b01e4ceb635b104fed6c01cc1781274e14a1103b0b845d4a3803dea50cfb3",
+      "restore-post.json": "24e3c2c1d7f900b6e7466a2dbf102c0d96765a85c1b3a34ac9193abba33bfb1e",
+      "servo-disconnect-close.jsonl": "a819005a9f4f9a1656eea41f58555183f1126bcbc9ecae5008bcef60f4d92e29",
+      "servo-disconnect-close.time.json": "5edf58d2f9f7edecd1417dcb9c78f1933e46043681a6a7a8315540407d53c614",
+      "servo-disconnect-heartbeat.jsonl": "bf3b32fc498e9c8b43eb2efdbbe5a0b8d7754f2c338ca2e48436c62075d062c9",
+      "servo-disconnect-heartbeat.time.json": "34c94ea52cdccd343716a972b7317ab1a3140a1ccd71398a5802c86a60610f66",
+      "servo-clients-4.jsonl": "c2f0bbfae318e54befcd2fd46606d3920623826219614cc5ca2dbb806490747c",
+      "servo-clients-4.time.json": "24f5ae4135029572e4ea441dd795a21ba0525e8af7130da72949756af78a0393",
+      "servo-clients-8.jsonl": "3379904159626771c169f9f7a0800deab516cbc07e7cfcb7738e365d5d20fa21",
+      "servo-clients-8.time.json": "17d57297a1b3cd9161d9aa0eeef75df4db99a6264ff0ad1ae12a1257801bb9c9",
+      "servo-latch-outage.jsonl": "a8b6a4efedc857afb5ae29e2eeb74182240ddba5b163d29bb4b1a4d8ce473a9a",
+      "servo-latch-outage.time.json": "136027fff5ec0f45cbddb8cafe2e1acc89d842dfa8697bc356c28a00852e35dc",
+      "servo-latch-recovery.jsonl": "899b6cd4779dbce98855e600941cb75403123868dd2e3a10a24e586ff550296b",
+      "servo-latch-recovery.time.json": "1b4b29a9784d6a08f55c60fa1fbcab02412d7992757fecf5883aefb9531cfef7"
+    },
+    "protocol_source": "Saved report: B states, trip flags, recovery frames, HTTP response metadata and reset reply. Bodies not fetched again."
+  },
+  {
+    "run": "20261106T041202-latch-delayed",
+    "commit": "e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+    "clock": {
+      "ok": true,
+      "sha256": "1a4bb954a645cc86a4109b363f6c2ce8ad21dbf40d82a7a3fcbe081d070ce6af",
+      "version": "1:2.9.4-2+deb13u1",
+      "why": null
+    },
+    "restore": {
+      "restore.json": {
+        "outcome": "complete",
+        "isolation": [],
+        "cleanup": []
+      },
+      "restore-post.json": {
+        "outcome": "complete",
+        "isolation": [],
+        "cleanup": []
+      }
+    },
+    "results": {
+      "latch-outage": {
+        "same_cycle": {
+          "case": "latch-same-cycle.delayed-order",
+          "status": "PASS",
+          "detail": "the delayed order latched exactly one cycle late (sample 536)",
+          "samples": 2464,
+          "delayed": true,
+          "edge_n": 535,
+          "edge_index": 504,
+          "latch_clear_before": true,
+          "latched_after": 536,
+          "section_complete": true,
+          "latch_at_edge": 0,
+          "latch_next": 1
+        },
+        "sticky": {
+          "case": "latch-sticky",
+          "status": "PASS",
+          "detail": "the heartbeat returned (sample 943), fault-out stayed TRUE, the reset before the acknowledgement was refused",
+          "samples": 2464,
+          "reset_reply": {
+            "ok": false,
+            "error": "estop_reset refused: Acknowledge the safety trip first"
+          },
+          "trip_frames": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "resume_index": 912,
+          "heartbeat_edges_after": 45
+        }
+      },
+      "latch-recovery": {
+        "case": "latch-recovered",
+        "status": "PASS",
+        "detail": "fault-out FALSE from sample 2532 to the end; no trip, E-Stop clear, machine on",
+        "samples": 1449,
+        "frames": [
+          [
+            false,
+            true,
+            false
+          ],
+          [
+            false,
+            false,
+            false
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            false,
+            false,
+            true
+          ]
+        ],
+        "last_frame": {
+          "safety_trip": false,
+          "is_estop": false,
+          "is_enabled": true
+        },
+        "cleared_n": 2532
+      }
+    },
+    "sha256": {
+      "report.json": "cb877c390a1e57ce927423ab164e03c11c2f04ba4ab189640926a6183e6854be",
+      "restore.json": "e8eab4eb1374e43aa39f970756f03d8b1cd67563d4ce602ec7fe50939e8e019f",
+      "restore-post.json": "eca2bf95f934a710c586e6e9d4d57672f0bbd35b79c67de8774f3b3e40acfbc7",
+      "servo-latch-outage.jsonl": "aaf2b3f69b0d417ece8b498c8595b793157323a1c6e33afe12ba0d724d85565d",
+      "servo-latch-outage.time.json": "38390e175523e9531a7466b349cd351c9adcf0c092a003a0cba7ffb2bfd7a3e4",
+      "servo-latch-recovery.jsonl": "ee23cdcccfb24595c453979320d88228ca75c01a6ceb0f5ba8621e56ab5a697d",
+      "servo-latch-recovery.time.json": "759f8ecaf7a7d2097b76deb3a9a19e291d201dafce2de92920257c443d4212f4"
+    },
+    "protocol_source": "Saved report: B states, trip flags, recovery frames, HTTP response metadata and reset reply. Bodies not fetched again."
+  }
+]

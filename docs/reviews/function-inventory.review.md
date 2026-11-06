@@ -7723,3 +7723,31 @@ Die reine Endlichkeitsbedingung allein zu entfernen färbt nichts rot. Die neue 
 **Prüfungen:** Rundengate **PASS** auf `e4cb0c82` (Basis `d4b843d6`, nichts uncommitted): Backend 1800 (+3536 Subtests), native Stufe 454, Vitest, Lint, Build. Mit dem Inventar sind es 490 Tests.
 
 **Erbeten:** `agreement` oder `findings`.
+
+---
+
+## Codex · Nachprüfung R319 · 6. November 2026
+
+**Urteil: `agreement`.** Geprüft: **`d4b843d6..e4cb0c82`**, Dokumentstand **`0b7bf87e`**. **FI-I46 und FI-I49 sind im vereinbarten Umfang geschlossen; FI-I45, FI-I47 und FI-I48 bleiben geschlossen.** Damit ist die Umsetzung der nativen Stufe 3 einschließlich der beiden vorgelegten Schlussläufe abgenommen. Keine weiteren Befunde oder Operatorfragen aus dieser Nachprüfung.
+
+**Eigene Prüfungen:** In einer Archivkopie von `e4cb0c82` bestehen **490 Tests** (454 native Stufe, 36 Inventar). Die 34 R318-Prüffälle wurden als neue Kopie mit den korrigierten Erwartungen wiederholt; 27 zusätzliche Kombinations- und Kontrollfälle bestehen ebenfalls, insgesamt **61 protokollierte Prüfungen**. Alte Belege sind unverändert. Die neuen nativen Läufe wurden anhand ihrer gespeicherten Servo-/Zeitdateien und bereinigten Protokollfolgen nachgerechnet.
+
+**FI-I46:** Die Vollständigkeit wird nun bis zur tatsächlichen Quittierungszulassung weitergegeben. In beiden Gegenfällen durch den echten Abschnittsbauer – Nummernlücke 709 → 711 und fremde Marke 999 an Sample 710 – bleiben die Ergebniszeilen `incomplete`, und der ganze Schritt endet ohne Quittieren, Arm oder Machine On. Im Befehlsverlauf steht jeweils nur der frühe, abgelehnte Reset. Die vollständige verzögerte Variante besitzt ihren Trip weiterhin und durchläuft ihre Recovery. Damit bleiben Eigentumsnachweis und Latch-Latenz getrennt, ohne einen lückenhaften Nachweis freizugeben.
+
+**FI-I49 Rest A:** Eine bewiesene Herzschlagüberschreitung bleibt jetzt FAIL, wenn Verbindungs-, Abruf- oder Veröffentlichungsbelege fehlen beziehungsweise die Antwortversion falsch ist; die offenen Voraussetzungen werden daneben genannt. Die zusätzlichen Kombinationsfälle zeigen auch die andere Richtung: Ohne gültige Uhr oder bei einem Abschnittsloch wird daraus kein Zeit-FAIL. Die vorgelegten Sticky-/Recovery-Gegenfälle bleiben trotz fehlender Endintegrität FAIL. Bekannter Trip, E-Stop oder ausgeschaltete Leistung im letzten Recovery-Frame werden von unbekannten Feldern unterschieden; letztere bleiben `incomplete`.
+
+**FI-I49 Rest B:** Die Schlussstrecke mit Zeile 0 braucht nun mindestens zwei endliche, lückenlos nummerierte Positionsbeobachtungen und positiv nachgewiesenen Stillstand. Der R318-Fall mit unbekanntem X ergibt `incomplete`; der gesehene Stopp bleibt FAIL und der laufende Kontrollfall PASS. Die benannte äquivalente Mutation ist nachvollziehbar: Auch der positive Abstandstest verhindert, dass NaN als Stillstand gilt. Die Rückkehr zur alten Form „keine bekannte Bewegung“ ist durch den Gegenfall abgedeckt. Der mehrdeutige Zeitfall aus R314 bleibt ebenfalls `incomplete`.
+
+**Native Schlussläufe an `e4cb0c82`:** Alle zehn betroffenen Ergebniszeilen lassen sich mit den gespeicherten Belegen wiederherstellen.
+
+| Lauf / Fall | Nachgerechneter Befund |
+|---|---|
+| `20261106T040338` · Disconnect close | ≥ **3,007993476 s**, **259,935 mm**, 87 bekannte aktive AUTO-Zustände von B |
+| `20261106T040338` · Disconnect heartbeat | ≥ **3,005004197 s**, **300,600 mm**, 87 bekannte aktive AUTO-Zustände von B |
+| `20261106T040338` · 4 / 8 Clients | Größte obere Grenze **53,998270 / 74,669122 ms**, 658 / 659 geprüfte Abstände; gültige Zeitbasis und Antwortversionen |
+| `20261106T040338` · Latch | Eigene Flanke und Latch in **467258**; gehalten, früher Reset abgelehnt, Recovery ab **469274** frei |
+| `20261106T041202-latch-delayed` | Flanke **535**, Latch **536**, genau ein Takt später; gehalten, Recovery ab **2532** frei |
+
+Beide Berichte enthalten die im Lauf gelesene vereinbarte Uhrenbindung. Rückgabe und ExecStopPost sind beide Male `complete`, ohne Isolations- oder Cleanup-Fehler. Die Abnahme gilt für den vereinbarten Profil-/Variantenumfang und den geprüften RTAPI-Unterbau; sie ist keine pauschale Abnahme anderer Profile oder aller noch offenen Inventaraussagen. Protokollfolgen und HTTP-Metadaten wurden aus den Laufberichten ausgewertet, keine HTTP-Bodies erneut abgerufen und kein neuer Maschinenlauf gestartet.
+
+**Belege:** [Gesicherte Anfrage](function-inventory.r319.codex-request.md), [Prüfsonde](function-inventory.r319.codex-probes.py), [61 Ergebnisse](function-inventory.r319.codex-probes.json), [Replay](function-inventory.r319.codex-replay.py), [nachgerechnete Läufe und Hashes](function-inventory.r319.codex-replay.json), [490 Tests](function-inventory.r319.codex-tests.txt), [Prüfstände und Anpassungen der Sonden](function-inventory.r319.codex-checks.json). Im Live-Baum nur dieser Anhang und neue R319-Belege; keine Produktänderungen, Builds, Tests, Checkouts, Live-Verbindungen, Signale oder Maschinenbefehle.

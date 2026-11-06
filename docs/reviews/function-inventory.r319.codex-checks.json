@@ -1,0 +1,68 @@
+{
+  "review": "R319",
+  "verdict": "agreement",
+  "date": "2026-11-06",
+  "document_head": "0b7bf87ee9d712dbc40ff1ab5cfd4cdc5870e1cc",
+  "base": "d4b843d664368b24403502073fbc1bf6ffb492a2",
+  "implementation": "e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+  "archive": "/tmp/codex-r319",
+  "review_prefix": {
+    "bytes": 825308,
+    "sha256": "b50133fcfeeb7651a3f0a9efccd07b5829931a7905ccc2b349d262a9b668234f"
+  },
+  "append_line": 7726,
+  "append_sha256": "e24c4a5b1c3b64db86afa6e3408292e517d1c33b6724c45826d79b7a3eee80fb",
+  "changed_source_matches_commit": true,
+  "source_sha256": {
+    "scripts/native_run.py": "e0c9f6595da59cf056421ad6742d3404419c1b688cde9cf4c744e5b01984aebb",
+    "scripts/test_native_stage.py": "924b9ffe649d06ecc28f133e49fc7f5acdf456bdba22d6b7cfe5e1e4047a0d18",
+    "scripts/test_support/servo_cases.py": "559082540a9a63f135c853f98917a7d3889a68d8e3f864b7142707ac8b1b418b",
+    "scripts/test_support/trip.py": "6a1da11bf4a203806d3c577facd76874475e2604a013b578f8d454cf9b8a485e"
+  },
+  "tests": {
+    "command": "/home/cnc/lcnc-suite-tsync/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider scripts/test_native_stage.py scripts/inventory/test_inventory.py",
+    "cwd": "/tmp/codex-r319",
+    "exit_code": 0,
+    "passed": 490,
+    "seconds": 17.02
+  },
+  "probes": {
+    "command": "/home/cnc/lcnc-suite-tsync/lcnc-gateway/.venv/bin/python3 -B <codex-probes.py> /tmp/codex-r319",
+    "exit_code": 0,
+    "record_count": 61,
+    "adaptations": "New copy of R318 probe; ownership-gap cases must refuse, three suppressed failures must FAIL, unknown-X stop must be incomplete. 27 additional HTTP/time/recovery/tail combinations and controls.",
+    "resolved": [
+      "FI-I46",
+      "FI-I49"
+    ],
+    "still_closed": [
+      "FI-I45",
+      "FI-I47",
+      "FI-I48"
+    ],
+    "no_actual_network_or_signals": true
+  },
+  "replay": {
+    "command": "/home/cnc/lcnc-suite-tsync/lcnc-gateway/.venv/bin/python3 -B <codex-replay.py> /tmp/codex-r319",
+    "exit_code": 0,
+    "runs": [
+      "20261106T040338",
+      "20261106T041202-latch-delayed"
+    ],
+    "adaptations": "R318 replay copied with new run paths and expected commit; report now also includes section_complete.",
+    "scope": "Saved raw servo samples/timing plus sanitized protocol observations and HTTP metadata from run reports; no new native run."
+  },
+  "artifacts_sha256": {
+    "function-inventory.r319.codex-request.md": "72eea9e08813576452c6093509d2654fee9d21baf568c6a6cca59367ad888e18",
+    "function-inventory.r319.codex-probes.py": "a001483569f19320b20d29818d577ef82d273195ae75e429f8f5f2d11fa3f975",
+    "function-inventory.r319.codex-probes.json": "a9305e5eedc548c0d294e6ba6074b00079bc747b011966f7b932048f1cc9bcdd",
+    "function-inventory.r319.codex-replay.py": "970a8181e8d55ce8f7688804d1163316ec8bcd112954fbbaaf2a1cc9d614b643",
+    "function-inventory.r319.codex-replay.json": "e79c98ef06fb8f118b24e1fa0d5517d9c1a00c399774548a6f94ce3376b2014f",
+    "function-inventory.r319.codex-tests.txt": "f43e3bcdbe3507493bd4548ff87955688752f330b531e4ceb9adc2a71f44aa39"
+  },
+  "previous_probes_sha256": {
+    "function-inventory.r318.codex-probes.py": "761cb50dbe5c3ad94afde4dafb17b054cb74b100fae7dd042c5052dc06cd6ece",
+    "function-inventory.r318.codex-replay.py": "1db00410e7647c2bd98ade2e4395634bc2968b41ff8194738f9c26d22656f3aa"
+  },
+  "workspace_changes": "Append review, new R319 evidence and handshake done only."
+}
