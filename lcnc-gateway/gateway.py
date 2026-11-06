@@ -4851,6 +4851,55 @@ async def _toolsetter_sync(armed: bool, basis: Dict[str, Any]):
     return None, note
 
 
+_SIM_TRIP_RESETS = 2          # attempts to put probe-in back to 0
+
+
+def _sim_trip_sequence(run=None) -> Dict[str, Any]:
+    """Sim-Trip's pulse on probe-in, in ONE thread (Codex R321–R322
+    FI321-01): unlink a qtpyvcp writer (a missing pin is no failure), mark
+    the set ATTEMPTED before `sets probe-in 1`, hold 20 ms if it took, then
+    — whenever the set was attempted, whatever came of it (an error, a
+    timeout after the effect) — reset to 0, at most _SIM_TRIP_RESETS tries.
+    Returns {"set": "ok" | why, "resets": [why | "ok", …]}."""
+    run = run or subprocess.run
+    out: Dict[str, Any] = {"set": None, "resets": []}
+    try:
+        res = run(['halcmd', 'unlinkp', 'qtpyvcp.probe-in.out'], capture_output=True, text=True, timeout=2)
+        err = (res.stderr or "").strip()
+        if res.returncode != 0 and err and "does not exist" not in err and "no such" not in err.lower():
+            _trace.emit("halcmd.unlinkp_failed", level="warn", pin="qtpyvcp.probe-in.out",
+                        rc=res.returncode, stderr=err)
+    except Exception as e:  # noqa: BLE001 — traced; the set says whether halcmd works
+        _trace.emit("halcmd.unlinkp_failed", level="warn", pin="qtpyvcp.probe-in.out", exc=type(e).__name__,
+                    msg=str(e))
+    try:
+        run(['halcmd', 'sets', 'probe-in', '1'], capture_output=True, text=True, timeout=2, check=True)
+        out["set"] = "ok"
+        time.sleep(0.02)
+    except Exception as e:  # noqa: BLE001 — a timeout may come after the effect: reset anyway
+        out["set"] = f"{type(e).__name__}: {e}"
+    for _ in range(_SIM_TRIP_RESETS):
+        try:
+            run(['halcmd', 'sets', 'probe-in', '0'], capture_output=True, text=True, timeout=2, check=True)
+            out["resets"].append("ok")
+            break
+        except Exception as e:  # noqa: BLE001 — named; bounded
+            out["resets"].append(f"{type(e).__name__}: {e}")
+    return out
+
+
+def _sim_trip_reply(out: Dict[str, Any]) -> Dict[str, Any]:
+    """The pulse's outcome: ok only when the set and the first reset took;
+    else the first failure, and whether the reset was delivered after all."""
+    failures = ([] if out["set"] == "ok" else [f"set: {out['set']}"]) + \
+        [f"reset: {r}" for r in out["resets"] if r != "ok"]
+    delivered = bool(out["resets"]) and out["resets"][-1] == "ok"
+    if not failures:
+        return {"ok": True}
+    after = "reset delivered" if delivered else "probe-in may still be TRUE"
+    return {"ok": False, "error": f"simulate_probe_trip: {failures[0]} — {after}"}
+
+
 async def handle_command(msg: Dict[str, Any], armed: bool, conn_key: Optional[str] = None):
     # Acquire the CMD lock before dispatching. Every path that touches CMD.*
     # must hold this lock; see _cmd_lock docstring. `armed` is the client's
@@ -6036,31 +6085,18 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
 
         if cmd == "simulate_probe_trip":
             require_armed(armed)
+            # ONE sequence in ONE thread, awaited to its end even through a
+            # repeated cancel (Codex R321–R322 FI321-01): the reset follows
+            # every attempted set, and no late "1" can follow the final "0"
+            seq = asyncio.ensure_future(asyncio.to_thread(_sim_trip_sequence))
             try:
-                _loop = asyncio.get_event_loop()
-                # Unlink any existing writer on probe-in (e.g. qtpyvcp.probe-in.out)
-                # so halcmd sets works. The pin may not exist in non-qtpyvcp
-                # configs — that's fine. Log other failures (halcmd missing,
-                # permission denied, syntax error) so they don't disappear.
-                _unlink_res = await _loop.run_in_executor(None, lambda: subprocess.run(
-                    ['halcmd', 'unlinkp', 'qtpyvcp.probe-in.out'],
-                    capture_output=True, text=True, timeout=2))
-                if _unlink_res.returncode != 0:
-                    _err = (_unlink_res.stderr or "").strip()
-                    if _err and "does not exist" not in _err and "no such" not in _err.lower():
-                        _trace.emit("halcmd.unlinkp_failed", level="warn",
-                                    pin="qtpyvcp.probe-in.out",
-                                    rc=_unlink_res.returncode, stderr=_err)
-                await _loop.run_in_executor(None, lambda: subprocess.run(
-                    ['halcmd', 'sets', 'probe-in', '1'],
-                    capture_output=True, text=True, timeout=2, check=True))
-                await asyncio.sleep(0.02)
-                await _loop.run_in_executor(None, lambda: subprocess.run(
-                    ['halcmd', 'sets', 'probe-in', '0'],
-                    capture_output=True, text=True, timeout=2, check=True))
-                return {"ok": True}
-            except Exception as e:
-                return {"ok": False, "error": f"simulate_probe_trip: {e}"}
+                out = await _thread_to_end(seq)
+            except asyncio.CancelledError:
+                # no one is left to answer: the outcome goes to the trace
+                if seq.done() and not seq.cancelled() and seq.exception() is None:
+                    _trace.emit("sim_trip.outcome", level="warn", cancelled=True, **seq.result())
+                raise
+            return _sim_trip_reply(out)
 
         if cmd == "get_wcs_table":
             return {"ok": True, "table": [row.copy() for row in _wcs_cache]}
