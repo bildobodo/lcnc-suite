@@ -73,7 +73,13 @@ class SimulatorClient:
         except (ConnectionClosed, OSError) as e:
             raise TransportLost(f"the connection closed while sending: {e!r}") from e
 
-    def start(self):
+    def start(self, arm=True, resume=False):
+        """Connect, hello, arm. `arm=False`: a client that only watches (step
+        3's load clients, a helper that arms on its own command); `resume`: the
+        hello asks for an armed resume (`resume_armed`) — with a fresh session
+        the gateway traces session.resume_denied_no_match with this
+        connection's client_id, the one binding of a session to a client id
+        (plan Codex R314–R315). The hello's reply is kept."""
         from websockets.sync.client import connect
         self.ws = connect("ws://127.0.0.1:8000/ws?" + urlencode({"token": self.token}),
                           max_size=None, close_timeout=2)
@@ -81,8 +87,18 @@ class SimulatorClient:
                         threading.Thread(target=self.heartbeat, daemon=True)]
         for thread in self.threads:
             thread.start()
-        self.request("hello", session=self.session)
-        self.request("arm", armed=True)
+        self.hello_reply = self.request("hello", session=self.session, **({"resume_armed": True} if resume else {}))
+        if arm:
+            self.request("arm", armed=True)
+
+    def drop(self):
+        """End the connection WITHOUT abort or disarm — a client that goes
+        away (step 3's disconnect case), unlike close()."""
+        self.stop.set()
+        if self.ws:
+            self.ws.close()
+        for thread in self.threads:
+            thread.join(timeout=3)
 
     def receive(self):
         import msgspec

@@ -4149,3 +4149,49 @@ def test_the_delayed_order_is_moved_through_the_gate_and_read_back():
     after = ctx["report"]["latch_order"]["after"]
     assert after.index("webui-hb-latch") < after.index("oneshot.0") and after[-1] == "sampler.0"
     assert ["delf", "webui-hb-latch", "servo-thread"] in log and ["addf", "webui-hb-latch", "servo-thread", "3"] in log
+
+
+SHM_HEAD = "       key      shmid perms                  size  cpid  lpid nattch   uid   gid  cuid  cgid\n"
+
+
+def _shm(*rows):
+    return SHM_HEAD + "".join(f"{k} {i} 600 {sz} {cp} 0 {na} 1000 1000 1000 1000\n" for k, i, sz, cp, na in rows)
+
+
+def test_a_left_over_stream_segment_is_removed_before_the_sampler_loads():
+    """2026-11-06: an earlier run's sampler.0 segment (5 243 008 bytes, nattch 0)
+    made step 3's wider loadrt fail; the setup removes it — and only it."""
+    table = [_shm((sv.STREAM_KEY, 622636, 5243008, 1640832, 0), (1212238898, 884737, 1048576, 2311749, 8))]
+    removed = []
+
+    def remove(shmid):
+        removed.append(shmid)
+        table[0] = _shm((1212238898, 884737, 1048576, 2311749, 8))
+    got = sv.clear_stale_stream(read=lambda: table[0], remove=remove)
+    assert removed == [622636] and got == {"shmid": 622636, "size": 5243008, "cpid": 1640832, "nattch": 0,
+                                           "removed": True}
+    assert sv.clear_stale_stream(read=lambda: table[0], remove=remove) is None and removed == [622636]
+
+
+def test_an_attached_stream_segment_is_another_sampler_and_refused():
+    with pytest.raises(RuntimeError, match="another sampler"):
+        sv.clear_stale_stream(read=lambda: _shm((sv.STREAM_KEY, 7, 5243008, 1, 1)), remove=lambda shmid: None)
+    with pytest.raises(RuntimeError, match="not removed"):
+        sv.clear_stale_stream(read=lambda: _shm((sv.STREAM_KEY, 7, 5243008, 1, 0)), remove=lambda shmid: None)
+
+
+def test_the_run_unloads_its_sampler_at_its_end():
+    calls = []
+
+    class Reader:
+        def stop(self):
+            calls.append("reader.stop")
+
+    class Client:
+        def close(self, strict=False):
+            calls.append("client.close")
+    gate = sv.HalGate(run=lambda argv: calls.append(argv[1:]) or "")
+    ctx = {"servo_reader": Reader(), "servo": type("M", (), {"gate": gate})(), "client": Client(), "report": {}}
+    nr._stop_copy(ctx)
+    assert calls == ["reader.stop", ["unloadrt", "sampler"], "client.close"] and ctx["report"]["servo_unload"] == \
+        "unloaded"

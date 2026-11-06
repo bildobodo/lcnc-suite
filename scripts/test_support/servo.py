@@ -41,6 +41,43 @@ DEPTH = 65536
 READ_ONLY = ("getp", "gets", "show")
 
 
+#: sampler.0's stream segment (LinuxCNC sampler.so: key 0x48534130, "HSA0").
+#: A test instance torn down without unloading the sampler leaves it behind
+#: (nattch 0); the next run's loadrt then attached it when the size matched —
+#: and failed (rtapi_app gone) when step 3's wider stream asked for more
+#: (2026-11-06, run 20261106T023611). Cleared at setup, unloaded at the end.
+STREAM_KEY = 0x48534130
+
+
+def stream_segment(shm_table: str):
+    """sampler.0's SysV segment in /proc/sysvipc/shm, or None."""
+    lines = shm_table.splitlines()
+    head = lines[0].split() if lines else []
+    for line in lines[1:]:
+        f = dict(zip(head, line.split()))
+        if f.get("key", "").lstrip("-").isdigit() and int(f["key"]) == STREAM_KEY:
+            return {k: int(f[k]) for k in ("shmid", "size", "cpid", "nattch")}
+    return None
+
+
+def clear_stale_stream(read=None, remove=None):
+    """Remove a LEFT-OVER sampler.0 segment (no process attached) before the
+    run's own sampler is loaded; an attached one is another sampler — refused.
+    Returns what was removed, None when there was none."""
+    read = read or (lambda: open("/proc/sysvipc/shm").read())
+    remove = remove or (lambda shmid: subprocess.run(["ipcrm", "-m", str(shmid)], check=True,
+                                                      capture_output=True, timeout=10))
+    seg = stream_segment(read())
+    if seg is None:
+        return None
+    if seg["nattch"] != 0:
+        raise RuntimeError(f"sampler.0's stream segment is attached ({seg}) — another sampler runs")
+    remove(seg["shmid"])
+    if stream_segment(read()) is not None:
+        raise RuntimeError(f"the left-over stream segment {seg} was not removed")
+    return {**seg, "removed": True}
+
+
 class GateRefused(RuntimeError):
     """A change to the measurement's HAL while a section is open."""
 
@@ -118,9 +155,11 @@ def parse_line(line: str):
         return None
 
 
-def setup(gate: HalGate) -> dict:
+def setup(gate: HalGate, clear=None) -> dict:
     """Load and wire the sampler into the running test instance; the report
-    of what changed and the thread as read back afterwards."""
+    of what changed and the thread as read back afterwards. `clear` (the run
+    passes clear_stale_stream): a left-over stream segment removed first."""
+    stale = clear() if clear else None
     gate("loadrt", "sampler", f"depth={DEPTH}", f"cfg={CFG}")
     wiring = []
     for i, pin in enumerate(CHANNELS):
@@ -160,7 +199,7 @@ def setup(gate: HalGate) -> dict:
     if "motion-controller" not in thread["functions"]:
         raise RuntimeError(f"motion-controller is not in the servo thread: {thread['functions']}")
     return {"changes": [list(c) for c in gate.log], "wiring": wiring, "mark_read_back": mark_read_back,
-            "thread": thread}
+            "thread": thread, "stale_stream": stale}
 
 
 class Reader:

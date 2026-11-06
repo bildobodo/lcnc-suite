@@ -357,6 +357,12 @@ def _stop_copy(ctx):
     reader = ctx.pop("servo_reader", None)
     if reader:
         reader.stop()
+        # the stream segment goes with the sampler — never left for the next run
+        try:
+            ctx["servo"].gate("unloadrt", "sampler")
+            ctx["report"]["servo_unload"] = "unloaded"
+        except Exception as e:  # noqa: BLE001 — named; the next run's setup clears it
+            ctx["report"]["servo_unload"] = f"{type(e).__name__}: {e}"
     client = ctx.pop("client", None)
     if client:
         client.close(strict=True)
@@ -392,7 +398,7 @@ def servo_device():
         from test_support import servo as sv
         ini_period = int(float((lt.ini_values(ctx["ini"].read_text()).get(("EMCMOT", "SERVO_PERIOD")) or ["0"])[-1]))
         gate = sv.HalGate()
-        ctx["report"]["servo"] = setup = sv.setup(gate)
+        ctx["report"]["servo"] = setup = sv.setup(gate, clear=sv.clear_stale_stream)
         reader = sv.Reader()
         reader.start()
         ctx["servo_reader"] = reader
