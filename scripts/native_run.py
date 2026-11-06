@@ -146,6 +146,14 @@ TS_DEADLINE = 240.0
 #: post window. A variant is a run of its own — one instance each (R313 point 2)
 LATCH_STOP_S, LATCH_POST_S, RECOVERY_POST_S = 0.9, 1.5, 1.0
 VARIANTS = ("latch-delayed",)
+#: step 3, the disconnect (SYS-CONN.S4): X back and forth at F6000 in the
+#: machine frame (~20 s); a helper client A in its own process starts it and
+#: goes away; the event read from the trace, then the window W
+DISC_FILE = "native_disconnect.ngc"
+DISC_PROGRAM = "\n".join(["G21 G90 G94", "G53 G0 Z0", "G53 G0 X100 Y300", "G53 G1 X600 F6000",
+                           "G53 G1 X100", "G53 G1 X600", "G53 G1 X100", "M2"]) + "\n"
+DISC_EVENT_S = {"close": 10.0, "heartbeat": 8.0}   # the gateway's own event, at most this long after
+DISC_WINDOW_S = 3.0                                # observed after W (≥ 2 s proven from the periods)
 RFL_DEADLINE = 300.0    # s: the pre-measurement, the entry and the program
 # step 2c (plan Codex R299–R301)
 PLATEAU_START, PLATEAU_END, PLATEAU_FEED = (100.0, 300.0, -50.0), 500.0, 6000.0
@@ -1233,6 +1241,161 @@ def rfl_cases():
     return ("rfl", step)
 
 
+class Helper:
+    """A client in its own process (test_support/proto_client.py): it can be
+    dropped or stopped alone. The token goes in its environment."""
+
+    def __init__(self, ctx, session: str):
+        import queue
+        import threading
+        token = (lt.ini_values(ctx["ini"].read_text()).get(("DISPLAY", "WEBUI_TOKEN")) or [""])[-1]
+        self.session, self.lines = session, queue.Queue()
+        self.proc = subprocess.Popen([sys.executable, "-I", str(HERE / "test_support" / "proto_client.py"), session],
+                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1,
+                                     env={**os.environ, "LCNC_NATIVE_TOKEN": token})
+        threading.Thread(target=lambda: [self.lines.put(json.loads(x)) for x in self.proc.stdout], daemon=True).start()
+        self.hello = self._read(30)
+
+    @property
+    def pid(self):
+        return self.proc.pid
+
+    def _read(self, timeout):
+        import queue
+        try:
+            return self.lines.get(timeout=timeout)
+        except queue.Empty:
+            raise Refused(f"the helper {self.session} did not answer within {timeout} s") from None
+
+    def request(self, cmd, timeout=40, **kw):
+        self.proc.stdin.write(json.dumps({"op": "request", "cmd": cmd, "kw": kw}) + "\n")
+        self.proc.stdin.flush()
+        out = self._read(timeout)
+        if "error" in out:
+            raise Refused(f"helper {cmd}: {out['error']}")
+        return out["reply"]
+
+    def drop(self):
+        self.proc.stdin.write(json.dumps({"op": "drop"}) + "\n")
+        self.proc.stdin.flush()
+        return self._read(10)
+
+    def end(self):
+        if self.proc.poll() is None:
+            self.proc.kill()
+        self.proc.wait(timeout=10)
+
+
+def _trace_events(ctx, pred) -> list:
+    """The events of THIS run's gateway (its own log folder) that match."""
+    out = []
+    try:
+        with (ctx["run"] / "logs" / "trace.ndjson").open() as f:
+            for line in f:
+                try:
+                    e = json.loads(line)
+                except ValueError:
+                    continue
+                if pred(e):
+                    out.append(e)
+    except OSError:
+        pass
+    return out
+
+
+def _trace_wait(ctx, pred, timeout):
+    end = time.monotonic() + timeout
+    while True:
+        found = _trace_events(ctx, pred)
+        if found or time.monotonic() > end:
+            return found[0] if found else None
+        time.sleep(0.1)
+
+
+def _bind_helper(ctx, helper) -> int:
+    """The helper's client id (plan Codex R314–R315): its hello asked for a
+    resume with its own fresh session — unarmed, and exactly ONE
+    session.resume_denied_no_match with that session in the trace."""
+    if "error" in helper.hello or (helper.hello.get("reply") or {}).get("armed") is not False:
+        raise Refused(f"the helper's hello is no fresh unarmed session: {helper.hello}")
+    _trace_wait(ctx, lambda e: e.get("tag") == "session.resume_denied_no_match"
+                and e.get("session_id") == helper.session, 5)
+    found = _trace_events(ctx, lambda e: e.get("tag", "").startswith("session.")
+                          and e.get("session_id") == helper.session)
+    if len(found) != 1 or found[0].get("tag") != "session.resume_denied_no_match":
+        raise Refused(f"the helper's session is not bound to one client: {[e.get('tag') for e in found]}")
+    return found[0]["client_id"]
+
+
+def disconnect_cases():
+    """SYS-CONN.S4 on the real task (plan Codex R313–R316): a helper client
+    A in its own process (bound to its client id by its resume hello) arms,
+    loads and starts the program; then it goes away — `close`: it drops its
+    connection (no abort, no disarm); `heartbeat`: A2 is stopped (trip.stop)
+    until the gateway's heartbeat timeout. The gateway's own event for
+    exactly that client id is read from the trace, THEN the mark W is set;
+    the window after it is judged (eval_disconnect); then the run's client B
+    aborts the program."""
+    def step(ctx):
+        from test_support import servo_cases as sc
+        from test_support import trip as tp
+        c, rows, state = ctx["client"], ctx.setdefault("rows", []), ctx["state"]
+        lines = frozenset(range(1, len(DISC_PROGRAM.splitlines()) + 1))
+
+        def save(_state):
+            save_state(ctx)
+        for kind, letter in (("close", "A"), ("heartbeat", "A2")):
+            case = f"disconnect-{kind}"
+            helper = Helper(ctx, f"native-{letter}-{ctx['run'].name}")
+            rec, event, frames_after, w_mark = None, None, [], None
+            try:
+                cid = _bind_helper(ctx, helper)
+                if helper.request("arm", armed=True).get("armed") is not True:
+                    raise Refused(f"the helper {letter} did not arm")
+                path = ctx["config"] / NC_FILES / DISC_FILE
+                path.write_text(DISC_PROGRAM)
+                helper.request("load_file", path=str(path))
+                import hashlib
+                digest = hashlib.sha256(DISC_PROGRAM.encode()).hexdigest()
+                _wait(c, lambda s: (c.preview_origin or {}).get("source") == digest, 60, "the program published")
+                with _section(ctx, case) as box:
+                    helper.request("cycle_start")
+                    _wait(c, lambda s: s.get("interp_state") not in (None, sc.INTERP_IDLE), 10, "the program runs")
+                    time.sleep(1.0)
+                    if kind == "close":
+                        helper.drop()
+                        tag = "ws.disconnect"
+                    else:
+                        rec = tp.stop(state, save, helper.pid, f"the helper client {letter}")
+                        tag = "safety.hb_stall_disarmed"
+                    event = _trace_wait(ctx, lambda e: e.get("tag") == tag and e.get("client_id") == cid,
+                                        DISC_EVENT_S[kind])
+                    if event is not None:
+                        w_mark = ctx["servo"].phase(box["attempt"], 1)
+                        i_f = len(c.frames)
+                        time.sleep(DISC_WINDOW_S)
+                        frames_after = list(c.frames[i_f:])
+                sec = box.get("section") or {"samples": [], "problems": [box.get("error") or "no section"]}
+                rows.append(sc.eval_disconnect(case, sec, w_mark, event, frames_after, lines))
+                _servo_failed(box, rows, case)
+            except Refused as e:
+                rows.append({"case": case, "status": "incomplete", "detail": f"not judged: {e}"})
+            finally:
+                # B ends the program on every path, then the stopped helper is continued
+                c.request("abort")
+                _wait(c, lambda s: s.get("interp_state") == sc.INTERP_IDLE and s.get("inpos"), 15, "B's abort")
+                if rec is not None:
+                    tp.cont(state, save, rec)
+                if kind == "heartbeat" and helper.proc.poll() is None:
+                    try:
+                        helper.drop()
+                    except Refused:
+                        pass
+                helper.end()
+        return rows
+    return ("disconnect", step)
+
+
 def _gateway_pid(ctx) -> int:
     """The gateway of THIS run's test instance: a `gateway:app` process in the
     test unit's own cgroup — never another instance's."""
@@ -1377,7 +1540,7 @@ def main(argv=None) -> int:
     else:
         steps = base + [home_cases(joints), jog_cases(joints), plateau_cases(), goto_cases(),
                         probe_cases(), m600_cases(), m6_hold_case(), ts_sync_cases(), rfl_cases(),
-                        latch_cases()]
+                        disconnect_cases(), latch_cases()]
     with heavy_lock("native_run", wait=0):
         report = run(SystemHost(), steps, a.run_dir)
     report["variant"] = a.variant

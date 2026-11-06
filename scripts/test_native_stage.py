@@ -4204,3 +4204,144 @@ def test_the_acknowledgements_reply_without_a_cmd_is_its_own():
     c = SimulatorClient("t", auto_confirm=False)
     c.send = lambda command: c.replies.put({"type": "reply", "ok": True})
     assert c.request("safety_trip_ack") == {"type": "reply", "ok": True}
+
+
+W_MARK = -101
+
+
+def _disc(n_before=500, n_w=2600, stop_at=None, creep=False, reverse_at=None, trip_at=None, problems=()):
+    """A program moving X at 100 mm/s (0.1 mm per 1 ms sample) on line 4;
+    the mark W from sample n_before. `stop_at` (index in W): from there line
+    0 and no motion (an abort); `creep`: 0.001 mm per sample on line 4;
+    `reverse_at`: the direction turns there (a regular halt, still line 4)."""
+    rows, recv, x, c = [], {}, 100.0, 10_000 * MS
+    for k in range(n_before + n_w):
+        w = k - n_before
+        stopped = stop_at is not None and w >= stop_at
+        step = 0.0 if stopped else (0.001 if creep and w >= 0 else 0.1)
+        if reverse_at is not None and w >= reverse_at:
+            step = -step
+        x += step
+        c += MS
+        v = (x, 300.0, 0.0, step * 1000, 0.0, 0.0, 0 if stopped else 4, 0, W_MARK if w >= 0 else 3,
+             1, 1 if trip_at is not None and k >= trip_at else 0, k // 100 % 2, MS)
+        rows.append((c / 1e9, 1000 + k, v))
+        recv[1000 + k] = c + MS
+    return {"samples": rows, "problems": list(problems), "phase_first": {W_MARK: n_before}, "recv_ns": recv,
+            "t0_ns": 10_000 * MS}
+
+
+RUNNING = [(1.0, {"interp_state": 2, "task_mode": 2})] * 3
+EVENT = {"tag": "ws.disconnect", "client_id": 7}
+
+
+@pytest.mark.parametrize("sec, event, frames, status, part", [
+    (_disc(), EVENT, RUNNING, "PASS", "ran on"),
+    (_disc(reverse_at=1200), EVENT, RUNNING, "PASS", "ran on"),            # a regular reversal in the window
+    (_disc(stop_at=0), EVENT, RUNNING, "FAIL", "stopped after the event"),  # aborted exactly at the timeout
+    (_disc(stop_at=1500), EVENT, RUNNING, "FAIL", "stopped after the event"),
+    (_disc(creep=True), EVENT, RUNNING, "FAIL", "motion ended"),           # line kept, no travel in ≥ 2 s
+    (_disc(trip_at=800), EVENT, RUNNING, "FAIL", "a trip"),
+    (_disc(), EVENT, [(1.0, {"interp_state": 1, "task_mode": 2})], "FAIL", "saw the program stop"),
+    (_disc(), None, RUNNING, "incomplete", "no traced"),                    # no processed timeout / a foreign one
+    (_disc(), EVENT, [], "incomplete", "no frame of the remaining client"),
+    (_disc(n_w=1500), EVENT, RUNNING, "incomplete", "not proven 2 s"),
+    (_disc(problems=["a number gap (1200 → 1202)"]), EVENT, RUNNING, "incomplete", "the section"),
+])
+def test_the_program_runs_on_after_the_clients_own_event(sec, event, frames, status, part):
+    r = sc.eval_disconnect("disconnect-close", sec, W_MARK, event, frames, frozenset(range(1, 9)))
+    assert r["status"] == status and part in r["detail"], r
+
+
+class DiscClient(FrameClient):
+    def __init__(self):
+        super().__init__([(time.monotonic(), {**_IDLE, "interp_state": 1, "task_mode": 1})])
+        self.preview_origin = None
+
+    def run(self):
+        self.frames += [(time.monotonic(), {**_IDLE, "interp_state": 2, "task_mode": 2, "inpos": False})] * 2
+
+    def request(self, cmd, **kw):
+        self.sent.append((cmd, kw))
+        if cmd == "abort":
+            self.frames.append((time.monotonic(), {**_IDLE, "interp_state": 1, "task_mode": 2, "inpos": True}))
+        return {"ok": True}
+
+
+def _disc_step(tmp_path, monkeypatch, events=None, sessions=1):
+    import hashlib
+    c, log, made = DiscClient(), [], []
+
+    class FakeHelper:
+        def __init__(self, ctx, session):
+            self.session, self.pid = session, 5000 + len(made)
+            self.hello = {"op": "hello", "reply": {"type": "reply", "ok": True, "armed": False}}
+            made.append(self)
+
+        def request(self, cmd, **kw):
+            log.append(("helper", cmd))
+            if cmd == "load_file":
+                c.preview_origin = {"source": hashlib.sha256(nr.DISC_PROGRAM.encode()).hexdigest()}
+            if cmd == "cycle_start":
+                c.run()
+            return {"armed": True} if cmd == "arm" else {"ok": True}
+
+        def drop(self):
+            log.append(("helper", "drop"))
+            return {"op": "dropped"}
+
+        def end(self):
+            log.append(("helper", "end"))
+            self.proc = None
+
+    FakeHelper.proc = type("P", (), {"poll": lambda self: 0})()
+    trace = events if events is not None else {"ws.disconnect": 7, "safety.hb_stall_disarmed": 7}
+
+    def trace_events(ctx, pred):
+        out = [{"tag": "session.resume_denied_no_match", "session_id": h.session, "client_id": 7}
+               for h in made[-1:] for _ in range(sessions)]
+        out += [{"tag": t, "client_id": cid} for t, cid in trace.items()]
+        return [e for e in out if pred(e)]
+
+    class Meas(FakeMeasurement):
+        def phase(self, attempt, p):
+            import threading
+            log.append(("phase", p))
+            threading.Timer(0.01, c.run).start()      # B keeps receiving frames in the window
+            return W_MARK
+    monkeypatch.setattr(nr, "Helper", FakeHelper)
+    monkeypatch.setattr(nr, "_trace_events", trace_events)
+    monkeypatch.setattr(nr, "DISC_WINDOW_S", 0.1)
+    monkeypatch.setattr(nr, "DISC_EVENT_S", {"close": 0.2, "heartbeat": 0.2})
+    monkeypatch.setattr(tp, "stop", lambda state, save, pid, what, **kw: log.append(("stop", pid)) or
+                        {"pid": pid, "start": 1, "what": what})
+    monkeypatch.setattr(tp, "cont", lambda state, save, rec, **kw: log.append(("cont", rec["pid"])) or "continued")
+    (tmp_path / nr.NC_FILES).mkdir()
+    ctx = {"client": c, "frames": c.frames, "report": {}, "run": tmp_path, "config": tmp_path,
+           "state": {}, "servo": Meas([_disc(), _disc()])}
+    return ctx, c, log
+
+
+def test_the_whole_disconnect_step(tmp_path, monkeypatch):
+    ctx, c, log = _disc_step(tmp_path, monkeypatch)
+    rows = nr.disconnect_cases()[1](ctx)
+    assert [(r["case"], r["status"]) for r in rows] == [("disconnect-close", "PASS"), ("disconnect-heartbeat", "PASS")], rows
+    # close: the drop, THEN the mark W; heartbeat: the stop, then W, B's abort, then the continue
+    assert log.index(("helper", "drop")) < log.index(("phase", 1))
+    hb = log[log.index(("stop", 5001)):]
+    assert hb[:2] == [("stop", 5001), ("phase", 1)] and ("cont", 5001) in hb
+    assert [cmd for cmd, _ in c.sent].count("abort") == 2
+
+
+def test_no_event_of_this_client_leaves_the_case_open_and_b_still_aborts(tmp_path, monkeypatch):
+    ctx, c, log = _disc_step(tmp_path, monkeypatch, events={"ws.disconnect": 99, "safety.hb_stall_disarmed": 99})
+    rows = nr.disconnect_cases()[1](ctx)
+    assert [r["status"] for r in rows] == ["incomplete", "incomplete"] and ("phase", 1) not in log
+    assert [cmd for cmd, _ in c.sent].count("abort") == 2
+
+
+def test_a_helper_not_bound_to_one_client_starts_nothing(tmp_path, monkeypatch):
+    ctx, c, log = _disc_step(tmp_path, monkeypatch, sessions=2)        # two session events: no identity
+    rows = nr.disconnect_cases()[1](ctx)
+    assert all(r["status"] == "incomplete" and "not bound" in r["detail"] for r in rows)
+    assert ("helper", "cycle_start") not in log

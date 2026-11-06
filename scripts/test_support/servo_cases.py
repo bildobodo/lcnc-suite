@@ -486,3 +486,68 @@ def eval_latch_recovered(case: str, sec: dict, frames) -> dict:
         return _row(case, "FAIL", "the last frame of the recovery is not clear and on", **measured)
     return _row(case, "PASS", f"fault-out FALSE from sample {samples[cleared][1]} to the end; no trip, E-Stop clear, "
                 "machine on", **measured)
+
+
+# ── Step 3: a client goes away, the program runs on (SYS-CONN.S4, plan Codex R313–R316) ──
+from test_support import servo_time as st  # noqa: E402
+
+DISC_WINDOW_NS = 2_000_000_000     # the run on after the event, at least
+DISC_TRAVEL = 10.0                 # mm of X travel in it, at least (a reversal's halt allowed)
+INTERP_IDLE, MODE_AUTO = 1, 2
+
+
+def eval_disconnect(case: str, sec: dict, w_mark, event, frames_after, program_lines) -> dict:
+    """SYS-CONN.S4: the gateway's OWN event for exactly this client — its
+    disconnect or its heartbeat timeout (`event`, from the trace, bound to the
+    client id) — is read, THEN the mark W is set: every W sample is captured
+    after it. From W the program runs on for at least 2 s (the lower bound of
+    the controller's periods, servo_time), X travels at least 10 mm, no trip
+    (fault-out FALSE in the whole section), and the frames the remaining
+    client B received after W show the interpreter running in AUTO.
+    FAIL: a trip, a frame of B idle or out of AUTO, the motion ended in W
+    (less travel, or program-line 0 and no motion after it to W's end).
+    incomplete: no event, a section problem, no W, the time unproven or under
+    2 s, no frame of B after W."""
+    samples = sec.get("samples") or []
+    measured = {"samples": len(samples), "event": event, "frames_after": len(frames_after or [])}
+    if event is None:
+        return _row(case, "incomplete", "no traced disconnect or timeout of this client", **measured)
+    trip = next((n for _t, n, v in samples if _bit(v, LATCH) == 1), None)
+    if trip is not None:
+        return _row(case, "FAIL", f"a trip: fault-out TRUE (sample {trip})", **measured)
+    if sec.get("problems"):
+        return _row(case, "incomplete", "the section: " + "; ".join(sec["problems"]), **measured)
+    a = (sec.get("phase_first") or {}).get(w_mark)
+    if a is None:
+        return _row(case, "incomplete", "no sample after the event's mark W", **measured)
+    rng = st.proven(samples, sec.get("recv_ns") or {}, sec.get("t0_ns"))
+    if not rng.get("ok"):
+        return _row(case, "incomplete", f"the window's time unproven: {rng.get('why')}", **measured)
+    w = samples[a:]
+    xs = [v[0] for _t, _n, v in w if _f(v[0])]
+    travel = sum(abs(b - c) for b, c in zip(xs[1:], xs))
+    last_line0 = max((i for i, (_t, _n, v) in enumerate(w) if v[6] == 0), default=None)
+    moved_after = last_line0 is not None and any(abs(w[k][2][0] - w[last_line0][2][0]) > 0.001
+                                                 for k in range(last_line0, len(w)))
+    measured.update(w_n=w[0][1], travel_mm=round(travel, 3))
+    idle = next(((t, s) for t, s in frames_after or [] if s.get("interp_state") == INTERP_IDLE
+                 or s.get("task_mode") not in (None, MODE_AUTO)), None)
+    if idle is not None:
+        return _row(case, "FAIL", f"the remaining client saw the program stop (interp {idle[1].get('interp_state')}, "
+                    f"mode {idle[1].get('task_mode')})", **measured)
+    if last_line0 is not None and not moved_after:
+        return _row(case, "FAIL", f"the program stopped after the event (line 0 from sample {w[last_line0][1]}, "
+                    "no motion after it)", **measured)
+    dur = st.duration_lower(samples, rng, a, len(samples) - 1)
+    measured["window_ns_lower"] = dur
+    if dur is None or dur < DISC_WINDOW_NS:
+        return _row(case, "incomplete", f"the window after the event is not proven 2 s long ({dur} ns)", **measured)
+    if travel < DISC_TRAVEL:
+        # a 2 s window proven: a running program at F6000 travels far more
+        return _row(case, "FAIL", f"the motion ended after the event (X {travel:.1f} mm in ≥ 2 s)", **measured)
+    if not frames_after:
+        return _row(case, "incomplete", "no frame of the remaining client after the event", **measured)
+    if any(_f(v[0]) and v[6] not in program_lines and v[6] != 0 for _t, _n, v in w):
+        return _row(case, "incomplete", "a line in the window no program text names", **measured)
+    return _row(case, "PASS", f"the program ran on for ≥ {dur / 1e9:.2f} s after the event, X {travel:.0f} mm, "
+                "no trip; the remaining client saw it running", **measured)
