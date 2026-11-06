@@ -358,47 +358,64 @@ def eval_ts_sync(case: str, l0, old_3102: float, new_3102: float, length, g43, n
                 f"{length:.4f} within {expected:g} ± {tol:g} (the old basis gives {l0:g})", **measured)
 
 
-def eval_ts_booking(case: str, values: dict, before, after) -> dict:
-    """What the form's machine line is projected from (P2, R309 FI308-04):
-    the gateway's booking as THIS connection received it. Before the start
-    #3102 is booked with the old number (the form: saved, not yet in the
-    machine); after it every one of the 23 keys holds the section's number
-    as applied or read (the form: confirmed), at a higher version. `values`:
-    {key: the section's canonical number}. A number that differs after the
-    sync is a FAIL; a booking not received, or a key only assumed or unknown,
-    is incomplete — the form would say "not confirmed", which the sync did
-    not cause."""
-    measured = {"before": before, "after": after}
+def eval_ts_booking(case: str, old: dict, new: dict, before, after, canon) -> dict:
+    """What the form's machine line is projected from (P2, R309 FI308-04),
+    as THIS connection received it, judged by the form's own equality — the
+    six canonical digits (`canon`, the run tree's toolsetter_rules.canonical,
+    = toFixed(6)), never a tolerance (R312 FI-I43). Before the start every
+    one of the 23 keys is confirmed (applied or read) at the PREPARED numbers
+    `old` — the form: saved, not yet in the machine, differing in exactly the
+    keys the section moved; after it every key is confirmed at the section's
+    numbers `new` — the form: confirmed — at a higher version. A confirmed
+    number that is not the expected one (before or after) is a FAIL; a key
+    missing, assumed or unknown is incomplete — no proven change of state."""
+    measured = {"old": old, "new": new, "before": before, "after": after}
     if not isinstance(before, dict) or not isinstance(after, dict):
         return _row(case, "incomplete", "the booking was not received before and after the start", **measured)
-    kb, ka = before.get("keys") or {}, after.get("keys") or {}
-    old = (kb.get("3102") or {}).get("value")
-    if old is not None and abs(old - values["3102"]) <= SAME:
-        return _row(case, "incomplete", f"#3102 was booked {old:g} before the start — the section's number already",
+
+    def state(booking, want):
+        keys = booking.get("keys") or {}
+        open_ = [k for k in TS_KEYS if (keys.get(k) or {}).get("origin") not in ("applied", "read")
+                 or not _finite((keys.get(k) or {}).get("value"))]
+        differ = [k for k in TS_KEYS if k not in open_ and canon(keys[k]["value"]) != want[k]]
+        return open_, differ
+    b_open, b_differ = state(before, old)
+    a_open, a_differ = state(after, new)
+    moved = [k for k in TS_KEYS if old[k] != new[k]]
+    measured.update(moved=moved, before_unconfirmed=b_open, after_unconfirmed=a_open)
+    if b_differ:
+        return _row(case, "FAIL", f"before the start the booking holds other confirmed numbers than the prepared "
+                    f"basis: {b_differ}", **measured)
+    if a_differ:
+        return _row(case, "FAIL", f"after the start the booking holds other numbers than the section: {a_differ}",
                     **measured)
-    differ = [k for k in TS_KEYS if (ka.get(k) or {}).get("value") is not None
-              and abs(ka[k]["value"] - values[k]) > SAME]
-    if differ:
-        return _row(case, "FAIL", f"after the start the booking holds other numbers than the section: {differ}",
-                    **measured)
-    open_ = [k for k in TS_KEYS if (ka.get(k) or {}).get("origin") not in ("applied", "read")
-             or (ka.get(k) or {}).get("value") is None]
-    if open_:
-        return _row(case, "incomplete", f"after the start {len(open_)} of {len(TS_KEYS)} keys not confirmed: "
-                    f"{open_[:5]}", **measured)
-    if not (isinstance(after.get("version"), int) and isinstance(before.get("version"), int)
-            and after["version"] > before["version"]):
-        return _row(case, "FAIL", f"the booking's version did not rise ({before.get('version')} → "
-                    f"{after.get('version')}) with #3102 changed", **measured)
-    return _row(case, "PASS", f"#3102 booked {old} before, every key the section's number as applied or read after "
-                f"(version {before['version']} → {after['version']})", **measured)
+    vb, va = before.get("version"), after.get("version")
+    if isinstance(vb, int) and isinstance(va, int) and va <= vb:
+        return _row(case, "FAIL", f"the booking's version did not rise ({vb} → {va}) with {moved} changed", **measured)
+    if b_open:
+        return _row(case, "incomplete", f"before the start {len(b_open)} of {len(TS_KEYS)} keys not confirmed: "
+                    f"{b_open[:5]} — the change of state is not proven", **measured)
+    if a_open:
+        return _row(case, "incomplete", f"after the start {len(a_open)} of {len(TS_KEYS)} keys not confirmed: "
+                    f"{a_open[:5]}", **measured)
+    if not moved or not (isinstance(vb, int) and isinstance(va, int)):
+        return _row(case, "incomplete", "no key moved, or a version not received", **measured)
+    return _row(case, "PASS", f"before every key confirmed at the prepared numbers (the form: not yet in the "
+                f"machine, {moved}), after every key at the section's (the form: confirmed); version {vb} → {va}",
+                **measured)
 
 
-def eval_ts_stable(case: str, note, version_before, version_after) -> dict:
+def eval_ts_stable(case: str, note, version_before, version_after, errors=()) -> dict:
     """A second start with the same section writes nothing (the named P2
     decision): its reply says `synced: false` and the booking's version
-    stays. A start that wrote again is a FAIL."""
-    measured = {"toolsetter": note, "version_before": version_before, "version_after": version_after}
+    stays. A start that wrote again is a FAIL; so is an error of THIS
+    attempt (R312 FI-I44: `errors` from the accepted start on — a DEBUG
+    line is none)."""
+    measured = {"toolsetter": note, "version_before": version_before, "version_after": version_after,
+                "errors": list(errors)}
+    failed = _failures(errors)
+    if failed:
+        return _row(case, "FAIL", f"the second start reported: {failed[0]}", **measured)
     if not isinstance(note, dict):
         return _row(case, "FAIL", "the start's reply names no toolsetter sync", **measured)
     if note.get("synced") is not False:

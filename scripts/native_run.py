@@ -1021,7 +1021,7 @@ def ts_sync_cases():
         # the machine holds the copy's values (an MDI write, booked applied),
         # the server the same section
         _when_free(c, "set_probe_vars", vars={str(k): v for k, v in ts.items()})
-        _save_toolsetter(ctx, c, ts)
+        prepared = _save_toolsetter(ctx, c, ts)
         new = {**ts, 3102: plate["z"] + 1}
         c.request("machine_off")
         _wait(c, lambda s: s.get("is_enabled") is False, 10, "machine off")
@@ -1038,8 +1038,8 @@ def ts_sync_cases():
         if refusal:
             raise RuntimeError(f"ts-sync: {refusal}")
         booking_before = c.toolsetter_booking
-        cursor, err_from = len(c.frames), len(c.errors)
-        reply = _when_free(c, "cycle_start")
+        # the observation bounds of the ACCEPTED start (FI-I37, R312 FI-I44)
+        reply, (cursor, err_from) = _when_free(c, "cycle_start", before=lambda: (len(c.frames), len(c.errors)))
         end = tc.RoutineEnd()
         tc.serve(c, changes, lambda t, st: end(t, st) and st.get("tool_number") == tool, TS_DEADLINE, cursor=cursor)
         st = c.status
@@ -1053,14 +1053,17 @@ def ts_sync_cases():
                                    errors=errors)
         row = judge(new[3102])
         rows += [row, nc.counter("ts-sync-program-m600.counter-old-basis", judge(ts[3102]), row),
-                 nc.eval_ts_booking("ts-sync-booking", values, booking_before, c.toolsetter_booking)]
-        # the same section again: the named decision — nothing written
+                 nc.eval_ts_booking("ts-sync-booking", prepared, values, booking_before, c.toolsetter_booking,
+                                    canon=_rules(ctx).canonical)]
+        # the same section again: the named decision — nothing written; its
+        # own attempt, its errors judged (R312 FI-I44)
         _load_program(ctx, c, TS_IDLE_FILE, TS_IDLE_PROGRAM)
-        v0, cursor = (c.toolsetter_booking or {}).get("version"), len(c.frames)
-        reply = _when_free(c, "cycle_start")
+        v0 = (c.toolsetter_booking or {}).get("version")
+        reply, (cursor, err_from) = _when_free(c, "cycle_start", before=lambda: (len(c.frames), len(c.errors)))
         tc.serve(c, tc.ToolChanges([]), tc.RoutineEnd(require_busy=False, grace=SHORT_GRACE), 30.0, cursor=cursor)
         rows.append(nc.eval_ts_stable("ts-sync-stable", (reply or {}).get("toolsetter"), v0,
-                                      (c.toolsetter_booking or {}).get("version")))
+                                      (c.toolsetter_booking or {}).get("version"),
+                                      errors=[(k, x) for _, k, x in c.errors[err_from:]]))
         # put back, read back
         _set_tool_length(c, tool, l0)
         _save_toolsetter(ctx, c, ts)

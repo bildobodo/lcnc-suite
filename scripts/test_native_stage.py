@@ -3472,39 +3472,57 @@ def test_the_old_basis_counter_refuses_the_new_length():
     assert c["status"] == "PASS" and "refused" in c["detail"], c
 
 
-_TS_VALUES = {k: 0.0 for k in nc.TS_KEYS} | {"3102": -179.0}
+_TS_OLD = {k: 0.0 for k in nc.TS_KEYS} | {"3102": -180.0}
+_TS_NEW = _TS_OLD | {"3102": -179.0}
 
 
-def _booking(version, origin="applied", **values):
-    keys = {k: {"value": v, "origin": origin} for k, v in (_TS_VALUES | {"3102": -180.0}).items()}
+def _canon(v):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lcnc-gateway"))
+    import toolsetter_rules as tr
+    return tr.canonical(v)
+
+
+def _booking(version, origin="applied", base=None, **values):
+    keys = {k: {"value": v, "origin": origin} for k, v in (base or _TS_OLD).items()}
     for k, v in values.items():
         keys[k[1:]] = v if isinstance(v, dict) else {"value": v, "origin": origin}
     return {"version": version, "keys": keys}
 
 
 @pytest.mark.parametrize("before, after, status, part", [
-    (_booking(4), _booking(5, k3102=-179.0), "PASS", "every key"),
-    (_booking(4), _booking(5, "read", k3102=-179.0), "PASS", "every key"),
-    (None, _booking(5, k3102=-179.0), "incomplete", "not received"),
-    (_booking(4, k3102=-179.0), _booking(5, k3102=-179.0), "incomplete", "already"),
-    (_booking(4), _booking(5), "FAIL", "other numbers"),                                       # #3102 still old
-    (_booking(4), _booking(5, k3102=-179.0, k3005={"value": 0.0, "origin": "assumed"}), "incomplete", "not confirmed"),
-    (_booking(4), _booking(4, k3102=-179.0), "FAIL", "version"),
+    (_booking(4), _booking(5, base=_TS_NEW), "PASS", "the form: confirmed"),
+    (_booking(4, "read"), _booking(5, "read", base=_TS_NEW), "PASS", "the form: confirmed"),
+    (_booking(4, k3005={"value": 0.0, "origin": "read"}), _booking(5, base=_TS_NEW), "PASS", "confirmed"),
+    (None, _booking(5, base=_TS_NEW), "incomplete", "not received"),
+    # R312 FI-I43 — the form's equality, no tolerance: a sixth decimal off is "pending" there
+    (_booking(4), _booking(5, base=_TS_NEW, k3102=-178.999999), "FAIL", "other numbers than the section"),
+    # …the before-state bound to the prepared basis: nothing booked, only assumed, a wrong old number
+    ({"version": 4, "keys": {}}, _booking(5, base=_TS_NEW), "incomplete", "not confirmed"),
+    (_booking(4, k3102={"value": -180.0, "origin": "assumed"}), _booking(5, base=_TS_NEW), "incomplete",
+     "not confirmed"),
+    (_booking(4, k3102=-42.0), _booking(5, base=_TS_NEW), "FAIL", "prepared basis"),
+    (_booking(4, base=_TS_NEW), _booking(5, base=_TS_NEW), "FAIL", "prepared basis"),   # the new number already
+    (_booking(4), _booking(5), "FAIL", "other numbers than the section"),                 # #3102 still old
+    (_booking(4), _booking(5, base=_TS_NEW, k3005={"value": 0.0, "origin": "assumed"}), "incomplete",
+     "not confirmed"),
+    (_booking(4), _booking(4, base=_TS_NEW), "FAIL", "version"),
 ])
-def test_the_booking_shows_the_old_number_before_and_the_section_after(before, after, status, part):
-    r = nc.eval_ts_booking("ts-sync-booking", _TS_VALUES, before, after)
+def test_the_booking_shows_the_prepared_numbers_before_and_the_section_after(before, after, status, part):
+    r = nc.eval_ts_booking("ts-sync-booking", _TS_OLD, _TS_NEW, before, after, canon=_canon)
     assert r["status"] == status and part in r["detail"], r
 
 
-@pytest.mark.parametrize("note, v0, v1, status", [
-    ({"synced": False}, 5, 5, "PASS"),
-    ({"synced": True}, 5, 6, "FAIL"),
-    (None, 5, 5, "FAIL"),
-    ({"synced": False}, 5, 6, "FAIL"),
-    ({"synced": False}, None, 5, "incomplete"),
+@pytest.mark.parametrize("note, v0, v1, errors, status", [
+    ({"synced": False}, 5, 5, [], "PASS"),
+    ({"synced": False}, 5, 5, [(11, "near line 2: unknown word")], "FAIL"),     # R312 FI-I44
+    ({"synced": False}, 5, 5, [(13, "NATIVE1 P3102=-179.000000")], "PASS"),     # a DEBUG line is no error
+    ({"synced": True}, 5, 6, [], "FAIL"),
+    (None, 5, 5, [], "FAIL"),
+    ({"synced": False}, 5, 6, [], "FAIL"),
+    ({"synced": False}, None, 5, [], "incomplete"),
 ])
-def test_a_second_start_with_the_same_section_writes_nothing(note, v0, v1, status):
-    assert nc.eval_ts_stable("ts-sync-stable", note, v0, v1)["status"] == status
+def test_a_second_start_with_the_same_section_writes_nothing(note, v0, v1, errors, status):
+    assert nc.eval_ts_stable("ts-sync-stable", note, v0, v1, errors=errors)["status"] == status
 
 
 class TsClient(FrameClient):
@@ -3524,6 +3542,7 @@ class TsClient(FrameClient):
         self.toolsetter_booking = {"version": 3, "keys": {str(k): {"value": float(v), "origin": "applied"}
                                                           for k, v in self.vars.items()}}
         self.after_confirm, self.starts = [], 0
+        self.error_on = {}      # (cmd, the program's text contains) → an error that request brings
 
     def _frames(self, *states, dt=1.0):
         t = self.frames[-1][0]
@@ -3546,6 +3565,11 @@ class TsClient(FrameClient):
         import hashlib
         import re
         self.sent.append((cmd, kw))
+        program = Path(kw.get("path") or (self.preview_origin or {}).get("file") or "/nonexistent")
+        text = program.read_text() if program.is_file() else ""
+        for (on_cmd, part), err in self.error_on.items():
+            if on_cmd == cmd and part in text:
+                self.errors.append((self.frames[-1][0] + 0.5, *err))
         if cmd == "get_tool_table":
             return {"tools": [{"T": t, "Z": z} for t, z in self.table.items()]}
         if cmd == "mdi":
@@ -3736,3 +3760,24 @@ def test_the_checked_texts_are_the_shipped_ones_and_the_previews_pin(tmp_path, m
     row = next(r for r in step(ctx) if r["case"] == "rfl-start-point")
     assert row["status"] == "PASS", row
     assert row["sources"] == {**nr.ROUTINE_TEXTS, "program": hashlib.sha256(nr.RFL_PROGRAM.encode()).hexdigest()}
+
+
+@pytest.mark.parametrize("error_on, stable", [
+    ({("cycle_start", "M2"): (11, "near line 2: unknown word")}, "FAIL"),   # the second start's own error…
+    ({("load_file", "G21 G90\nM2"): (11, "a load error before")}, "PASS"),  # …not one before its attempt
+])
+def test_the_second_starts_errors_reach_its_row(tmp_path, _ts_rules_on_path, error_on, stable):
+    """R312 FI-I44 at the whole step: an NML error of the second start is
+    ts-sync-stable's FAIL and the run's; an error before its accepted
+    attempt is not its own. (The first start's program text has M600: the
+    idle program alone is 'G21 G90 / M2'.)"""
+    c = TsClient("p2")
+    c.error_on = {(cmd, part if cmd == "load_file" else nr.TS_IDLE_PROGRAM): err
+                  for (cmd, part), err in error_on.items()}
+    ctx, step = _ts_step(tmp_path, c)
+    rows = step(ctx)
+    by = {r["case"]: r for r in rows}
+    assert by["ts-sync-stable"]["status"] == stable, by["ts-sync-stable"]
+    assert by["ts-sync-program-m600"]["status"] == "PASS"
+    report = {"rows": rows, "restore": {"outcome": "complete", "isolation": [], "cleanup": []}}
+    assert nr.verdict(report) == ("FAIL" if stable == "FAIL" else "PASS")
