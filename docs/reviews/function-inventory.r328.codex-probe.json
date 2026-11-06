@@ -1,0 +1,751 @@
+{
+  "source": "d28b0843",
+  "flows": {
+    "baseline": {
+      "rows": {
+        "surface-scan": "PASS",
+        "surface-scan.counter-node+1": "PASS",
+        "surface-scan.counter-xy-swapped": "PASS",
+        "surface-override-lock": "PASS",
+        "surface-scan.map": "PASS",
+        "comp-nearest": "PASS",
+        "comp-nearest.counter-linear": "PASS",
+        "comp-linear": "PASS",
+        "comp-linear.counter-cubic": "PASS",
+        "comp-cubic": "PASS",
+        "comp-cubic.counter-nearest": "PASS",
+        "comp-on-off": "PASS",
+        "comp-on-off.counter-gap+0.05": "PASS",
+        "comp-after-xy": "PASS",
+        "comp-after-xy.counter-frozen": "PASS"
+      },
+      "moves": [
+        "G0 Z12",
+        "G0 X538 Y550",
+        "G0 X550 Y550",
+        "G1 X518 Y582 F1000"
+      ],
+      "commands": [
+        [
+          "set_compensation_method",
+          {
+            "method": 0
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation_method",
+          {
+            "method": 1
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation_method",
+          {
+            "method": 2
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ]
+      ],
+      "cleanup_error": null
+    },
+    "late_enable": {
+      "rows": {
+        "surface-scan": "PASS",
+        "surface-scan.counter-node+1": "PASS",
+        "surface-scan.counter-xy-swapped": "PASS",
+        "surface-override-lock": "PASS",
+        "surface-scan.map": "PASS",
+        "comp-nearest": "PASS",
+        "comp-nearest.counter-linear": "PASS",
+        "comp-linear": "PASS",
+        "comp-linear.counter-cubic": "PASS",
+        "comp-cubic": "PASS",
+        "comp-cubic.counter-nearest": "PASS",
+        "comp-on-off": "PASS",
+        "comp-on-off.counter-gap+0.05": "PASS",
+        "comp-after-xy": "incomplete"
+      },
+      "moves": [
+        "G0 Z12",
+        "G0 X538 Y550",
+        "G0 X550 Y550"
+      ],
+      "commands": [
+        [
+          "set_compensation_method",
+          {
+            "method": 0
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation_method",
+          {
+            "method": 1
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation_method",
+          {
+            "method": 2
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ]
+      ],
+      "cleanup_error": null
+    },
+    "missing_version": {
+      "rows": {
+        "surface-scan": "PASS",
+        "surface-scan.counter-node+1": "PASS",
+        "surface-scan.counter-xy-swapped": "PASS",
+        "surface-override-lock": "PASS",
+        "surface-scan.map": "PASS",
+        "comp-nearest": "incomplete",
+        "comp-nearest.counter-linear": "incomplete",
+        "comp-linear": "incomplete",
+        "comp-linear.counter-cubic": "incomplete",
+        "comp-cubic": "incomplete",
+        "comp-cubic.counter-nearest": "incomplete",
+        "comp-on-off": "incomplete",
+        "comp-on-off.counter-gap+0.05": "incomplete",
+        "comp-after-xy": "incomplete"
+      },
+      "moves": [
+        "G0 Z12",
+        "G0 X538 Y550",
+        "G0 X550 Y550"
+      ],
+      "commands": [
+        [
+          "set_compensation_method",
+          {
+            "method": 0
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation_method",
+          {
+            "method": 1
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation_method",
+          {
+            "method": 2
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ]
+      ],
+      "cleanup_error": null
+    },
+    "wrong_arrival": {
+      "rows": {
+        "surface-scan": "PASS",
+        "surface-scan.counter-node+1": "PASS",
+        "surface-scan.counter-xy-swapped": "PASS",
+        "surface-override-lock": "PASS",
+        "surface-scan.map": "PASS",
+        "comp-nearest": "PASS",
+        "comp-nearest.counter-linear": "PASS",
+        "comp-linear": "PASS",
+        "comp-linear.counter-cubic": "PASS",
+        "comp-cubic": "PASS",
+        "comp-cubic.counter-nearest": "PASS",
+        "comp-on-off": "PASS",
+        "comp-on-off.counter-gap+0.05": "PASS",
+        "comp-after-xy": "FAIL",
+        "comp-after-xy.counter-frozen": "incomplete"
+      },
+      "moves": [
+        "G0 Z12",
+        "G0 X538 Y550",
+        "G0 X550 Y550",
+        "G1 X518 Y582 F1000"
+      ],
+      "commands": [
+        [
+          "set_compensation_method",
+          {
+            "method": 0
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation_method",
+          {
+            "method": 1
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation_method",
+          {
+            "method": 2
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ]
+      ],
+      "cleanup_error": null
+    },
+    "no_drain": {
+      "rows": {
+        "surface-scan": "PASS",
+        "surface-scan.counter-node+1": "PASS",
+        "surface-scan.counter-xy-swapped": "PASS",
+        "surface-override-lock": "PASS",
+        "surface-scan.map": "PASS",
+        "comp-nearest": "PASS",
+        "comp-nearest.counter-linear": "PASS",
+        "comp-linear": "incomplete",
+        "comp-cubic": "incomplete",
+        "comp-on-off": "incomplete",
+        "comp-after-xy": "incomplete"
+      },
+      "moves": [
+        "G0 Z12",
+        "G0 X538 Y550"
+      ],
+      "commands": [
+        [
+          "set_compensation_method",
+          {
+            "method": 0
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": true
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation_method",
+          {
+            "method": 2
+          }
+        ]
+      ],
+      "cleanup_error": null
+    },
+    "no_method_reload": {
+      "rows": {
+        "surface-scan": "PASS",
+        "surface-scan.counter-node+1": "PASS",
+        "surface-scan.counter-xy-swapped": "PASS",
+        "surface-override-lock": "PASS",
+        "surface-scan.map": "PASS",
+        "comp-nearest": "incomplete",
+        "comp-linear": "incomplete",
+        "comp-cubic": "incomplete",
+        "comp-on-off": "incomplete",
+        "comp-after-xy": "incomplete"
+      },
+      "moves": [
+        "G0 Z12",
+        "G0 X538 Y550"
+      ],
+      "commands": [
+        [
+          "set_compensation_method",
+          {
+            "method": 0
+          }
+        ],
+        [
+          "set_compensation",
+          {
+            "enable": false
+          }
+        ],
+        [
+          "set_compensation_method",
+          {
+            "method": 2
+          }
+        ]
+      ],
+      "cleanup_error": null
+    }
+  },
+  "override": {
+    "value=False;new_frames=True": {
+      "off": {
+        "settled": true,
+        "enabled": false,
+        "eoffset": 0.0
+      },
+      "method": "done",
+      "g54": "done",
+      "after": {
+        "eoffset_enabled": false,
+        "eoffset_z": 0.0,
+        "comp_method": 2,
+        "g54_z": 0.0,
+        "feed_override_enabled": false
+      },
+      "error": "override: RuntimeError: the override not confirmed free within 0.15 s after M50 P1 (status False); the override not free: False"
+    },
+    "value=None;new_frames=True": {
+      "off": {
+        "settled": true,
+        "enabled": false,
+        "eoffset": 0.0
+      },
+      "method": "done",
+      "g54": "done",
+      "after": {
+        "eoffset_enabled": false,
+        "eoffset_z": 0.0,
+        "comp_method": 2,
+        "g54_z": 0.0,
+        "feed_override_enabled": null
+      },
+      "error": "override: RuntimeError: the override not confirmed free within 0.15 s after M50 P1 (status None); the override not free: None"
+    },
+    "value=True;new_frames=True": {
+      "off": {
+        "settled": true,
+        "enabled": false,
+        "eoffset": 0.0
+      },
+      "method": "done",
+      "g54": "done",
+      "override": {
+        "confirmed_at": 0.066
+      },
+      "after": {
+        "eoffset_enabled": false,
+        "eoffset_z": 0.0,
+        "comp_method": 2,
+        "g54_z": 0.0,
+        "feed_override_enabled": true
+      }
+    },
+    "value=True;new_frames=False": {
+      "off": {
+        "settled": true,
+        "enabled": false,
+        "eoffset": 0.0
+      },
+      "method": "done",
+      "g54": "done",
+      "after": {
+        "eoffset_enabled": false,
+        "eoffset_z": 0.0,
+        "comp_method": 2,
+        "g54_z": 0.0,
+        "feed_override_enabled": true
+      },
+      "error": "override: RuntimeError: the override not confirmed free within 0.15 s after M50 P1 (status True)"
+    }
+  },
+  "native": {
+    "run": "20261106T193428",
+    "commit": "d28b0843",
+    "reported_verdict": "PASS",
+    "duration_s": 714,
+    "scan_sha256": "2543fe35e28a527f2d70490f673ff4268028b935121d16c30b8e65c59dca44a4",
+    "max_scan_residual_mm": 0.0016500000000010395,
+    "references": {
+      "nearest": 4.58455,
+      "linear": 4.93809175,
+      "cubic": 5.069006306113726
+    },
+    "windows": [
+      {
+        "case": "comp-nearest",
+        "frames": 16,
+        "span_s": 0.5126000000163913,
+        "max_gap_s": 0.03640000009909272,
+        "position": [
+          538.0,
+          549.9999999999999
+        ],
+        "version": 3,
+        "enabled": true
+      },
+      {
+        "case": "comp-linear",
+        "frames": 16,
+        "span_s": 0.520299999974668,
+        "max_gap_s": 0.04330000001937151,
+        "position": [
+          538.0,
+          549.9999999999999
+        ],
+        "version": 4,
+        "enabled": true
+      },
+      {
+        "case": "comp-cubic",
+        "frames": 16,
+        "span_s": 0.5196999998297542,
+        "max_gap_s": 0.03619999997317791,
+        "position": [
+          538.0,
+          549.9999999999999
+        ],
+        "version": 5,
+        "enabled": true
+      },
+      {
+        "case": "comp-on-off/0",
+        "frames": 16,
+        "span_s": 0.5203999998047948,
+        "max_gap_s": 0.0368000001180917,
+        "position": [
+          550.0,
+          549.9999999999999
+        ],
+        "version": 5,
+        "enabled": true
+      },
+      {
+        "case": "comp-on-off/1",
+        "frames": 16,
+        "span_s": 0.5175000000745058,
+        "max_gap_s": 0.036099999910220504,
+        "position": [
+          550.0,
+          549.9999999999999
+        ],
+        "version": 5,
+        "enabled": false
+      },
+      {
+        "case": "comp-after-xy/0",
+        "frames": 16,
+        "span_s": 0.5085999998264015,
+        "max_gap_s": 0.03569999989122152,
+        "position": [
+          550.0,
+          549.9999999999999
+        ],
+        "version": 5,
+        "enabled": true
+      },
+      {
+        "case": "comp-after-xy/1",
+        "frames": 16,
+        "span_s": 0.5149000000674278,
+        "max_gap_s": 0.03860000008717179,
+        "position": [
+          518.0,
+          581.9999999999999
+        ],
+        "version": 5,
+        "enabled": true
+      },
+      {
+        "case": "comp-after-xy/2",
+        "frames": 16,
+        "span_s": 0.5187999999616295,
+        "max_gap_s": 0.038699999917298555,
+        "position": [
+          518.0,
+          581.9999999999999
+        ],
+        "version": 5,
+        "enabled": false
+      },
+      {
+        "case": "cleanup/off",
+        "frames": 16,
+        "span_s": 0.5109000001102686,
+        "max_gap_s": 0.03719999990426004,
+        "position": [
+          518.0,
+          581.9999999999999
+        ],
+        "version": 5,
+        "enabled": false
+      }
+    ],
+    "method_switches": [
+      {
+        "to": "nearest",
+        "confirmed": true,
+        "method": 0,
+        "version_before": 1,
+        "version": 2
+      },
+      {
+        "to": "linear",
+        "confirmed": true,
+        "method": 1,
+        "version_before": 3,
+        "version": 4
+      },
+      {
+        "to": "cubic",
+        "confirmed": true,
+        "method": 2,
+        "version_before": 4,
+        "version": 5
+      }
+    ],
+    "restore": {
+      "outcome": "complete",
+      "isolation": []
+    },
+    "limitation": "Re-evaluation of saved frames/numbers, not an independent machine run or a servo-rate trajectory claim."
+  }
+}

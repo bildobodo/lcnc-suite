@@ -1,0 +1,51 @@
+{
+  "round": "R328",
+  "scope": "7c4a3d5c..d28b0843",
+  "reviewed_files": [
+    {
+      "path": "scripts/native_run.py",
+      "sha256": "fe9d0765d5c00874588f9d7567399ca426b42466be0c76c494a9fe86023942fe",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/test_native_stage.py",
+      "sha256": "cdee3c74d282a2cc011bf9c74e1a9dd6a53e884d5743160ac08d4231f5e62f24",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/test_support/native_cases.py",
+      "sha256": "859a519878b998680bbcc8975e5df6e8a2b4f085c7b3a3374d8b12df7eca2a61",
+      "unchanged": true
+    }
+  ],
+  "archive": "/tmp/codex-r328",
+  "tests": {
+    "command": "/home/cnc/lcnc-suite-g1/lcnc-gateway/.venv/bin/python3 -m pytest -o addopts= -q scripts/test_native_stage.py lcnc-gateway/test_sim_toolsetter.py scripts/inventory/test_inventory.py",
+    "cwd": "/tmp/codex-r328",
+    "exit_code": 0,
+    "passed": 541,
+    "seconds": 43.3
+  },
+  "probe": {
+    "command": "/home/cnc/lcnc-suite-g1/lcnc-gateway/.venv/bin/python3 <r328.codex-probe.py> /tmp/codex-r328 docs/reviews/function-inventory.r327.codex-probe.py docs/reviews/function-inventory.r328.evidence.json",
+    "exit_code": 0,
+    "cases": "unchanged R327 injected fault classes; baseline; no drain; no map reload; four override readback cases; nine saved native windows"
+  },
+  "mutations": {
+    "reported": 38,
+    "reported_red": 38,
+    "independently_rerun": false
+  },
+  "native": "Recorded run 20261106T193428; no new native run. Independent arithmetic and accepted-window replay, not a servo-rate trajectory claim.",
+  "work_boundary": "No live port, HAL or machine calls; no tests/builds/checkouts in live checkout or Claude worktree.",
+  "review_prefix": {
+    "length": 950404,
+    "sha256": "35c0e560dd974805487e55884afcb77af73a7cbaacefbbb5fc20fcf86675789f"
+  },
+  "input_hashes": {
+    "function-inventory.r327.codex-probe.py": "3b65ac3b6082f61c625c97e899c8d736514070ac1016cd2adcf04a8c1df1af7e",
+    "function-inventory.r328.evidence.json": "e7b7d6007daaf4fcc1184f26c7f74d605d8f54ae68c2b3bacf324df655863be9",
+    "function-inventory.r328.mutations.json": "d004b08af14037ff1b33970e837abe5471a7acc4f2147e44ed56c6e541613b78",
+    "function-inventory.r328.mutations.py": "b3700f9e90c9df2ad02759fe1ceb6799a7cf97d1b51602bfb61ce1fba5ccf2b3"
+  }
+}
