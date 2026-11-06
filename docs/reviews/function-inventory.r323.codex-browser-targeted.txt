@@ -1,0 +1,16 @@
+
+Running 4 tests using 1 worker
+
+[1A[2K(node:2601873) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:2601873) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/4] [e2e] › e2e/editor-guards.spec.ts:69:1 › Reload sends load_file with the loaded program's own path (F-LOAD.S3)
+[1A[2K[2/4] [e2e] › e2e/feedback-channels.spec.ts:285:1 › a safety trip: the banner with Acknowledge; the click sends the ack, the trip stays until a status without it (F-TRIP.S1b)
+[1A[2K[3/4] [e2e] › e2e/jog-buttons.spec.ts:33:3 › every jog button on XYZABCUVW: its press starts exactly its axis and direction, its release stops exactly it (F-JOG.S5b)
+[1A[2K[4/4] [e2e] › e2e/jog-buttons.spec.ts:33:3 › every jog button on XYZAC: its press starts exactly its axis and direction, its release stops exactly it (F-JOG.S5b)
+[1A[2K  4 passed (11.0s)

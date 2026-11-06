@@ -1,0 +1,107 @@
+[
+  {
+    "case": "tool_no_CMD_reload",
+    "changed_file": "lcnc-gateway/gateway.py",
+    "before": "await _cmd_blocking(CMD.load_tool_table, wait=None)",
+    "after": "pass  # R323 mutation: no CMD reload",
+    "command": [
+      "/home/cnc/lcnc-suite-g1/lcnc-gateway/.venv/bin/python3",
+      "-B",
+      "-m",
+      "pytest",
+      "-o",
+      "addopts=",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "test_tool_edit_contract.py"
+    ],
+    "returncode": 0,
+    "test_output": ".....                                                                    [100%]\n5 passed in 0.27s\n[GC] +124ms gen=2 duration=10.9ms collected=507 uncollectable=0\n[GC] +134ms gen=2 duration=10.0ms collected=0 uncollectable=0\n[GC] +142ms gen=2 duration=7.2ms collected=0 uncollectable=0\n[GC] +149ms gen=2 duration=7.2ms collected=0 uncollectable=0\n[GC] +156ms gen=2 duration=6.9ms collected=0 uncollectable=0\n[GC] +162ms gen=2 duration=6.3ms collected=0 uncollectable=0\n",
+    "source_sha256": "0ebd3df41ce5e90ee07fa737ec70c9f9d3512e893b86e0809f3133e55aa19378"
+  },
+  {
+    "case": "tool_reload_before_write",
+    "changed_file": "lcnc-gateway/gateway.py",
+    "before": "await asyncio.to_thread(_write_tool_table_admitted, tbl_path, tools, conn_key)\n        await _reload_tool_table_and_bump()",
+    "after": "await _reload_tool_table_and_bump()\n        await asyncio.to_thread(_write_tool_table_admitted, tbl_path, tools, conn_key)",
+    "command": [
+      "/home/cnc/lcnc-suite-g1/lcnc-gateway/.venv/bin/python3",
+      "-B",
+      "-m",
+      "pytest",
+      "-o",
+      "addopts=",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "test_tool_edit_contract.py"
+    ],
+    "returncode": 0,
+    "test_output": ".....                                                                    [100%]\n5 passed in 0.24s\n[GC] +91ms gen=2 duration=10.6ms collected=507 uncollectable=0\n[GC] +97ms gen=2 duration=6.6ms collected=0 uncollectable=0\n[GC] +104ms gen=2 duration=6.7ms collected=0 uncollectable=0\n[GC] +111ms gen=2 duration=6.6ms collected=0 uncollectable=0\n[GC] +117ms gen=2 duration=6.3ms collected=0 uncollectable=0\n[GC] +124ms gen=2 duration=6.9ms collected=0 uncollectable=0\n",
+    "source_sha256": "0ebd3df41ce5e90ee07fa737ec70c9f9d3512e893b86e0809f3133e55aa19378"
+  },
+  {
+    "case": "reload_poller_wrong_inputs",
+    "changed_file": "lcnc-gateway/gateway.py",
+    "before": "file_changed = preview_file_changed(st.active_file, _cur_mtime, _bulk.last_file, _bulk.last_mtime)",
+    "after": "file_changed = preview_file_changed(None, None, None, None)",
+    "command": [
+      "/home/cnc/lcnc-suite-g1/lcnc-gateway/.venv/bin/python3",
+      "-B",
+      "-m",
+      "pytest",
+      "-o",
+      "addopts=",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "test_program_reload_unload.py"
+    ],
+    "returncode": 0,
+    "test_output": ".....                                                                    [100%]\n5 passed in 0.30s\n[GC] +156ms gen=2 duration=10.0ms collected=631 uncollectable=0\n[GC] +163ms gen=2 duration=7.0ms collected=0 uncollectable=0\n[GC] +170ms gen=2 duration=6.9ms collected=0 uncollectable=0\n[GC] +176ms gen=2 duration=6.4ms collected=0 uncollectable=0\n[GC] +182ms gen=2 duration=6.0ms collected=0 uncollectable=0\n[GC] +189ms gen=2 duration=6.6ms collected=0 uncollectable=0\n",
+    "source_sha256": "0ebd3df41ce5e90ee07fa737ec70c9f9d3512e893b86e0809f3133e55aa19378"
+  },
+  {
+    "case": "reload_poller_no_schedule",
+    "changed_file": "lcnc-gateway/gateway.py",
+    "before": "_bulk.schedule_refresh(\n                        st.active_file,\n                        _bulk.reparse_pending_reason or (\"file\" if file_changed else \"reparse\"),\n                        _spawn_preview_task)",
+    "after": "pass  # R323 mutation: no refresh scheduled",
+    "command": [
+      "/home/cnc/lcnc-suite-g1/lcnc-gateway/.venv/bin/python3",
+      "-B",
+      "-m",
+      "pytest",
+      "-o",
+      "addopts=",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "test_program_reload_unload.py"
+    ],
+    "returncode": 0,
+    "test_output": ".....                                                                    [100%]\n5 passed in 0.27s\n[GC] +130ms gen=2 duration=14.4ms collected=631 uncollectable=0\n[GC] +138ms gen=2 duration=7.2ms collected=0 uncollectable=0\n[GC] +145ms gen=2 duration=7.1ms collected=0 uncollectable=0\n[GC] +152ms gen=2 duration=7.1ms collected=0 uncollectable=0\n[GC] +159ms gen=2 duration=6.9ms collected=0 uncollectable=0\n[GC] +166ms gen=2 duration=6.6ms collected=0 uncollectable=0\n",
+    "source_sha256": "0ebd3df41ce5e90ee07fa737ec70c9f9d3512e893b86e0809f3133e55aa19378"
+  },
+  {
+    "case": "routine_unlisted_spaced_read",
+    "changed_file": "subroutines/tool_length_probe/tool_touch_off.ngc",
+    "before": "#<tool_touch_x_coords> = #3100",
+    "after": "#<r323_extra> = # 3107\n#<tool_touch_x_coords> = #3100",
+    "command": [
+      "/home/cnc/lcnc-suite-g1/lcnc-gateway/.venv/bin/python3",
+      "-B",
+      "-m",
+      "pytest",
+      "-o",
+      "addopts=",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "test_toolsetter_routine_map.py"
+    ],
+    "returncode": 0,
+    "test_output": "...                   [100%]\n3 passed, 51 subtests passed in 0.01s\n",
+    "source_sha256": "4990c7b303cb43bf0aa8cb11948277072874558f5902d3c48a59133ec555097d"
+  }
+]

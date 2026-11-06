@@ -8177,3 +8177,76 @@ Offen nach Regel: `firefox-core` (Ziel noch nicht gebaut), `perf-matrix` und `tw
 Lauf 1 und 2 habe ich angehalten, ohne Ergebnis, weil ich währenddessen Tests ergänzt hatte (den zweiten `load_file`-Fall, den Inventarbeleg dazu). Nach der Filteränderung im Trip-Test liefen dessen drei Mutanten erneut: alle rot.
 
 **Erbeten:** `agreement` oder `findings` zum Bau.
+
+---
+
+## Codex · Implementierungsreview Paket G1 · R323 · 6. November 2026
+
+**Urteil: `findings`.** Geprüft: `41d0d1ab..52454d27` auf `feat/g1-guards`, Anfrage am Dokumentstand `983219c0`. Vier offene Befunde **FI-I50 bis FI-I53**: ein verbliebener Datenverlust im Tabellenvertrag und drei Lücken in den neuen Wächtern. Die Operatorfrage zum Meldungszentrum bleibt gesondert offen. G1 ist noch nicht insgesamt abgenommen.
+
+### FI-I50 · P1 · Eine andere zulässige Spaltenfolge lässt ein unberührtes Werkzeug verschwinden
+
+**Stelle:** `lcnc-gateway/tool_table.py:17` und `:75–77`; `test_tool_edit_contract.py:55–70`.
+
+Der erweiterte Feldparser erreicht eine Zeile weiterhin nur, wenn sie mit `T<Nummer> P<Nummer>` beginnt. `P5 T2 X3.25 …` oder `T2 X3.25 P5 …` wird still übersprungen. Eine anschließende Änderung an **T1** schreibt dann die Tabelle ohne **T2** zurück. Die LinuxCNC-Formatbeschreibung verlangt T/P und getrennte Einträge, aber keine solche feste Spaltenfolge. [LinuxCNC: Tool Table Format](https://linuxcnc.org/docs/stable/html/gcode/tool-compensation.html#_tool_table_format)
+
+**Eigener Gegenbeweis:** Tatsächlicher `_execute_client_command(save_tool T1, Z49)` mit temporärer Tabelle, realem Persist-/Reload-Helfer und einer ausschließlich aufzeichnenden CMD-Attrappe. Die Kontrollzeile `T2 P5 …` bleibt erhalten. In beiden umgestellten Fällen antwortet der Handler **`ok: true`**, T2 fehlt danach vollständig, und genau diese gekürzte Datei liegt beim Aufruf von `CMD.load_tool_table` vor. Das ist ein bereits vorhandener, durch G1 noch nicht geschlossener Teil des jetzt zugesagten Erhaltsvertrags; keine Behauptung einer neuen Regression.
+
+Der neue Vorher-nachher-Wächter verdeckt diesen Fall: Er bildet bereits seine **Vorher**-Erwartung über denselben Produktparser. Ein dabei ausgelassenes Werkzeug kommt in `assert_others_kept` nicht mehr vor.
+
+**Erwartete Korrektur:** T/P und die übrigen Felder unabhängig von ihrer Position lesen. Eine nicht verstandene Datenzeile darf jedenfalls keinen erfolgreichen, verkürzten Schreibvorgang ermöglichen. Die erwarteten Werkzeugnummern und Werte der Fixture unabhängig vom Produktparser festlegen; beide Spaltenfolgen beim Bearbeiten eines anderen Werkzeugs prüfen.
+
+**Belege:** [Sonde](function-inventory.r323.codex-tool-order-probe.py), [Eingaben, Ausgaben und Datei am Reload](function-inventory.r323.codex-tool-order-probe.json). Keine native Tabellenübernahme geprüft; alle Controller-Objekte sind Attrappen.
+
+### FI-I51 · P2 · Der Tabellenwächter belegt weder den echten Reload-Aufruf noch seine Reihenfolge
+
+**Stelle:** `lcnc-gateway/test_tool_edit_contract.py:53–62`.
+
+Der Test ersetzt `_reload_tool_table_and_bump` vollständig durch einen Zähler. Er kann deshalb weder das fehlende `CMD.load_tool_table` noch ein Neuladen der alten Datei vor dem Schreiben erkennen. Beide eigenen Mutanten bleiben in **allen fünf** Tests grün:
+
+- `tool_no_CMD_reload`: den echten `CMD.load_tool_table`-Aufruf aus dem Helfer entfernen;
+- `tool_reload_before_write`: den Reload in `_persist_tool_edit.section` vor den Schreibvorgang ziehen.
+
+**Erwartete Korrektur:** Den Produkthelfer laufen lassen und nur den Controller-Endpunkt ersetzen. Je Aktion genau einen `CMD.load_tool_table` beobachten und **an diesem Aufruf** den bereits geschriebenen, unabhängig erwarteten Tabellenstand lesen. Das bleibt ein Gateway-Test; die tatsächliche LinuxCNC-Übernahme ist weiterhin **F-TOOLEDIT.S4b**, nicht Bestandteil dieses Befunds. Die beiden Mutanten müssen den Wächter rot machen.
+
+### FI-I52 · P2 · Reload veröffentlicht im Test durch dessen eigenen Aufruf, nicht durch den Poller
+
+**Stelle:** `lcnc-gateway/test_program_reload_unload.py:57–66`, `:134` und `:139–146`.
+
+Nach dem zweiten `load_file` ruft der Test selbst `_publish` auf. Der AST-Wächter bindet nur einen Funktionsnamen und die Weitergabe seiner Ergebnisvariablen. Die Verbindung von den aktuellen Datei-/mtime-Werten bis zur tatsächlichen Planung der Vorschau bleibt unbeobachtet. Zwei Gegenmutanten bestehen jeweils **alle fünf** Tests:
+
+- `reload_poller_wrong_inputs`: `preview_file_changed(None, None, None, None)` an der Produktionsstelle;
+- `reload_poller_no_schedule`: den produktiven `_bulk.schedule_refresh(...)`-Aufruf entfernen.
+
+Damit ist die Aussage **F-LOAD.S3 „Neu laden übernimmt die neue Revision“** noch nicht im vereinbarten Folgeweg belegt. Browser-Versand, `program_open` und das Entladen sind davon zu unterscheiden; für diese Teile fand ich keinen offenen Befund.
+
+**Erwartete Korrektur:** Eine kontrollierte Poller-Iteration mit geladener Datei, geändertem Text/mtime und erneutem `load_file` bis zum geplanten Parse und zur veröffentlichten neuen Quelle/Version ausführen. Der Parse-Worker darf eine Attrappe bleiben; der Test darf die Veröffentlichung nach dem Reload nicht selbst anstoßen. Beide Mutanten müssen scheitern. Alternativ wäre eine kleinere, tatsächlich vom Poller aufgerufene Ablauf-Einheit möglich, wenn die Übergabe der echten Eingaben und die Planung mitgeprüft werden.
+
+### FI-I53 · P2 · Die Rückwärtsprüfung übersieht eine Parameterlesung mit Leerzeichen
+
+**Stelle:** `lcnc-gateway/test_toolsetter_routine_map.py:34`, `:40` und `:68`.
+
+`#<r323_extra> = # 3107` zusätzlich im ausführbaren Routinentext bleibt unentdeckt: **3/3 Tests und 51 Unterfälle grün**. Beide Suchmuster verlangen Ziffern unmittelbar nach `#`; die Kommentarbereinigung entfernt keine inneren Leerzeichen. Die zusätzliche Lesestelle ist deshalb weder zugeordnet noch abgelehnt. LinuxCNC ignoriert Leerzeichen und Tabs außerhalb von Kommentaren, auch innerhalb solcher Schreibweisen. [LinuxCNC: Format of a line](https://linuxcnc.org/docs/stable/html/gcode/overview.html#_format_of_a_line)
+
+**Erwartete Korrektur:** Die Rückwärtsprüfung auf eine gemeinsame, zur akzeptierten Syntax passende Normalisierung aufbauen; unbekannte Parameterformen sichtbar ablehnen statt sie durch eine zu enge Vorauswahl zu übersehen. Mindestens die zusätzliche Lesestelle mit Abstand nach `#` und mit getrennten Ziffern als Gegenfälle aufnehmen. Ein vollständiger Interpreter ist dafür nicht verlangt; eine ausdrücklich begrenzte, bei unbekannten Formen fehlschlagende Prüfung reicht.
+
+**Belege für FI-I51 bis FI-I53:** [Fünf Gegenmutationen mit Testausgaben](function-inventory.r323.codex-mutations.json), [reproduzierbares Skript](function-inventory.r323.codex-mutations.py). Alle Mutationen liefen einzeln ausschließlich in der Archivkopie; die Quellen wurden jeweils wiederhergestellt. Die Ergebnisse betreffen die genannten neuen Wächter, nicht die Behauptung, dass das gesamte Gate jede Mutation überlebt.
+
+### Angenommene Teile und Operatorfrage
+
+- **F-ARM.S3b:** Die Aufteilung in festen 3-s-Wert, exakte Grenzfälle und echte Sitzung mit verkürztem Budget ist wie R322 vereinbart. Die Schleife verwendet den geprüften Helfer.
+- **F-SIMTRIP.S2:** Task statt roher Coroutine, Besitz bis zum Ende trotz wiederholtem Cancel, Rücksetzen nach fehlgeschlagenem Setzen, erfolgreiches zweites Rücksetzen und benannter Ausgang bei Cancel sind umgesetzt und geprüft. **S2b bleibt nativ offen.**
+- **F-JOG.S5b:** Beide unabhängigen Achs-Fixtures prüfen die 28 Start-/Stopp-Paare einschließlich XYZAC-C auf Index 4. Die beiden Browserfälle bestehen auch in meiner Kopie.
+- **F-MACROFILES.S3:** Die Bindung an die vorhandenen Gateway-Belege und die getrennte Browseraussage passen.
+- **F-TRIP.S1b:** Die Anzeige bleibt bis zum bestätigenden Status bestehen; der neue Browserwächter besteht. Für G1 verlange ich keine zusätzliche Sperre gegen den beschriebenen Doppeltipp.
+- **F-TOOLEDIT:** Der Erhalt der zusätzlichen Felder in der bisherigen Spaltenfolge, der nicht gerundete Wert und die nicht gesendete Tasche sind korrigiert. FI-I50/FI-I51 begrenzen die Gesamtaussage; **S4b bleibt nativ offen.**
+
+**Q323-1 an den Operator, noch offen:** Soll das Meldungszentrum eine Auslösung und ihre bestätigte Quittierung im Meldungsverlauf festhalten? **Empfehlung: ja, einmal je Ereignis.** Die Frage wurde in diesem Thread gestellt; bisher liegt keine Antwort vor. Den schon vorhandenen Gateway-Trace würde ich unabhängig davon über den tatsächlichen Trip-/Ack-Pfad prüfen. Die neue offene Inventarzeile S1c macht die Lücke ehrlich sichtbar, ersetzt aber nicht die Zustimmung zur Abweichung vom R322-Plan, der einen Protokolleintrag vorsah. Das hält die technische Nacharbeit an den vier Befunden nicht auf.
+
+### Prüfung und Grenzen
+
+Eigene Archivkopie von **`52454d27`** in `/tmp/codex-r323`, echte Kopie der Node-Abhängigkeiten, eigener Mock auf **4188**. **34 gezielte Backend-Tests, 36 Inventartests, Build und vier gezielte Browsertests bestanden.** Zusätzlich die drei Tabellenfälle und fünf Gegenmutationen oben. Kein vollständiges 874-Test-Gate wiederholt; Claudes Lauf 3 mit 874/874 bleibt dessen gesonderter Beleg. Die ausgewiesenen nativen/Firefox-/Merge-Grenzen werden durch diese Nachprüfung nicht geschlossen.
+
+Keine Produktänderung im Live-Baum oder in Claudes Worktree, keine Maschinenbefehle, keine Verbindung zu :8000/:5173. Im Live-Baum nur dieser Anhang und neue R323-Belege; Handshake anschließend mit `findings`.
+
+Weitere Belege: [Prüfmanifest](function-inventory.r323.codex-manifest.json), [Backend](function-inventory.r323.codex-backend-targeted.txt), [Inventar](function-inventory.r323.codex-inventory-tests.txt), [Build](function-inventory.r323.codex-build.txt), [Browser](function-inventory.r323.codex-browser-targeted.json), [gesicherte Anfrage](function-inventory.r323.codex-request.md).

@@ -1,0 +1,77 @@
+{
+  "review": "R323",
+  "product_commit": "52454d27ae5c79cd2c287e5e5e942437d6c2272a",
+  "document_commit": "983219c085402651d1eee55be71e4eb63191fe3f",
+  "archive": "/tmp/codex-r323",
+  "backend_python": "/home/cnc/lcnc-suite-g1/lcnc-gateway/.venv/bin/python3",
+  "backend": {
+    "tests": 34,
+    "result": "PASS",
+    "files": [
+      "test_hb_budget.py",
+      "test_sim_trip.py",
+      "test_tool_edit_contract.py",
+      "test_tool_table.py",
+      "test_toolsetter_routine_map.py",
+      "test_program_reload_unload.py"
+    ]
+  },
+  "inventory": {
+    "tests": 36,
+    "result": "PASS",
+    "file": "scripts/inventory/test_inventory.py"
+  },
+  "build": {
+    "command": "npm run build",
+    "result": "PASS"
+  },
+  "browser": {
+    "tests": 4,
+    "result": "PASS",
+    "workers": 1,
+    "retries": 0,
+    "mock_port": 4188,
+    "config": "function-inventory.r323.codex-playwright.config.ts",
+    "archive_only_test_adjustment": "e2e/mockSlot.mjs BASE_PORT 4500 -> 4188"
+  },
+  "table_probe": {
+    "cases": 3,
+    "canonical_record_kept": true,
+    "reordered_record_kept": [
+      false,
+      false
+    ],
+    "gateway_reply_ok": [
+      true,
+      true,
+      true
+    ],
+    "controller": "fake_linuxcnc plus recording CMD, real persistence/reload helpers"
+  },
+  "mutations": {
+    "cases": 5,
+    "new_guards_survived": 5,
+    "full_gate_not_run_on_mutations": true
+  },
+  "restored_sources_sha256": {
+    "lcnc-gateway/gateway.py": "0ebd3df41ce5e90ee07fa737ec70c9f9d3512e893b86e0809f3133e55aa19378",
+    "lcnc-gateway/tool_table.py": "f358f79ee76be2c2179ff09c601b672d6a4a71f2c97033ceda78d29d47e7652a",
+    "subroutines/tool_length_probe/tool_touch_off.ngc": "4990c7b303cb43bf0aa8cb11948277072874558f5902d3c48a59133ec555097d"
+  },
+  "limits": [
+    "No native LinuxCNC/table/pulse proof",
+    "No complete round gate rerun",
+    "No live :8000/:5173 access",
+    "No product writes to live or Claude worktree"
+  ],
+  "sources": [
+    "https://linuxcnc.org/docs/stable/html/gcode/tool-compensation.html#_tool_table_format",
+    "https://linuxcnc.org/docs/stable/html/gcode/overview.html#_format_of_a_line"
+  ],
+  "reproduction": [
+    "Archive git revision 52454d27 into an isolated /tmp directory with dependencies.",
+    "Use backend venv to run codex-mutations.py ARCHIVE OUTPUT_DIR (restores each changed file).",
+    "Use backend venv to run codex-tool-order-probe.py ARCHIVE OUTPUT_JSON (no source edits)."
+  ],
+  "execution_note": "Sandboxed asyncio thread wakeups stalled; those own offline processes were stopped, then targeted backend/probes ran with escalation and fake controller objects. No machine commands. The gateway import may print a linuxcncsvr PID discovered via /proc despite fake_linuxcnc being installed."
+}

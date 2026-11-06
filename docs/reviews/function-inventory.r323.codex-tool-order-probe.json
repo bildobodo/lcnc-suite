@@ -1,0 +1,44 @@
+[
+  {
+    "case": "canonical_control",
+    "before": "T1 P8 X0.5 Y-0.25 Z50 D6 ; first\nT2 P5 X3.25 Y-4.5 Z50.1 A1.5 B0 D6 I12 J34 Q3 ; second\nT3 P3 Z42.1234567 D4 ; third\n",
+    "after": ";Tool  Pocket Z Offset     Diameter     Remark\nT1     P8     X+0.500000 Y-0.250000 Z+00049.000000  D+0006.000000   ; first\nT2     P5     X+3.250000 Y-4.500000 Z+00050.100000 A+1.500000 B+0.000000  D+0006.000000 I+12.000000 J+34.000000 Q+3.000000   ; second\nT3     P3     Z+42.1234567  D+0004.000000   ; third\n",
+    "reply": {
+      "type": "reply",
+      "cmd": "save_tool",
+      "ok": true
+    },
+    "reloads": [
+      ";Tool  Pocket Z Offset     Diameter     Remark\nT1     P8     X+0.500000 Y-0.250000 Z+00049.000000  D+0006.000000   ; first\nT2     P5     X+3.250000 Y-4.500000 Z+00050.100000 A+1.500000 B+0.000000  D+0006.000000 I+12.000000 J+34.000000 Q+3.000000   ; second\nT3     P3     Z+42.1234567  D+0004.000000   ; third\n"
+    ],
+    "untouched_record_kept": true
+  },
+  {
+    "case": "pocket_before_tool",
+    "before": "T1 P8 X0.5 Y-0.25 Z50 D6 ; first\nP5 T2 X3.25 Y-4.5 Z50.1 A1.5 B0 D6 I12 J34 Q3 ; second\nT3 P3 Z42.1234567 D4 ; third\n",
+    "after": ";Tool  Pocket Z Offset     Diameter     Remark\nT1     P8     X+0.500000 Y-0.250000 Z+00049.000000  D+0006.000000   ; first\nT3     P3     Z+42.1234567  D+0004.000000   ; third\n",
+    "reply": {
+      "type": "reply",
+      "cmd": "save_tool",
+      "ok": true
+    },
+    "reloads": [
+      ";Tool  Pocket Z Offset     Diameter     Remark\nT1     P8     X+0.500000 Y-0.250000 Z+00049.000000  D+0006.000000   ; first\nT3     P3     Z+42.1234567  D+0004.000000   ; third\n"
+    ],
+    "untouched_record_kept": false
+  },
+  {
+    "case": "offset_between_tool_and_pocket",
+    "before": "T1 P8 X0.5 Y-0.25 Z50 D6 ; first\nT2 X3.25 P5 Y-4.5 Z50.1 A1.5 B0 D6 I12 J34 Q3 ; second\nT3 P3 Z42.1234567 D4 ; third\n",
+    "after": ";Tool  Pocket Z Offset     Diameter     Remark\nT1     P8     X+0.500000 Y-0.250000 Z+00049.000000  D+0006.000000   ; first\nT3     P3     Z+42.1234567  D+0004.000000   ; third\n",
+    "reply": {
+      "type": "reply",
+      "cmd": "save_tool",
+      "ok": true
+    },
+    "reloads": [
+      ";Tool  Pocket Z Offset     Diameter     Remark\nT1     P8     X+0.500000 Y-0.250000 Z+00049.000000  D+0006.000000   ; first\nT3     P3     Z+42.1234567  D+0004.000000   ; third\n"
+    ],
+    "untouched_record_kept": false
+  }
+]
