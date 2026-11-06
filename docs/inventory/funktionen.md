@@ -254,7 +254,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S2 (Ablehnung):** Laden und Entladen werden abgelehnt, solange ein Start in Arbeit ist. — gilt für: alle
   - Beleg: gateway: `test_button_gates_d.py` — test_a_start_in_progress_refuses_load_and_unload
 - **S3 (Wirkung):** Neu laden übernimmt die neue Revision; Entladen leert Programm und Vorschau. — gilt für: alle
-  - Beleg: browser: `editor-guards.spec.ts` — Reload sends load_file with the loaded program's own path (F-LOAD.S3); gateway: `test_program_reload_unload.py` — test_an_in_place_edit_of_the_same_path_is_an_edge; gateway: `test_program_reload_unload.py` — test_the_poller_decides_its_edge_with_it; gateway: `test_program_reload_unload.py` — test_an_edited_file_reloaded_publishes_its_new_source; gateway: `test_program_reload_unload.py` — test_unload_through_the_websocket_path
+  - Beleg: browser: `editor-guards.spec.ts` — Reload sends load_file with the loaded program's own path (F-LOAD.S3); gateway: `test_program_reload_unload.py` — test_an_in_place_edit_of_the_same_path_is_an_edge; gateway: `test_program_reload_unload.py` — test_the_poller_decides_its_edge_with_it; gateway: `test_program_reload_unload.py` — test_an_edited_file_reloaded_publishes_its_new_source; gateway: `test_program_reload_unload.py` — test_the_same_path_loaded_again_opens_it_again_and_publishes_its_new_text; gateway: `test_program_reload_unload.py` — test_unload_through_the_websocket_path
 
 ### Programm hochladen (mit Umbenennen oder Ersetzen)
 
