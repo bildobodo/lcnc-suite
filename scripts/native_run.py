@@ -80,7 +80,8 @@ JOG_SERVO_CASES = {"jog-x+": "jog-x+.servo", "jog-x-": "jog-x-.servo", "jog-y+":
 FRAME_KEYS = ("joint_pos", "current_vel", "interp_state", "inpos", "feed_override_enabled", "tool_number",
               "tool_offset", "tool_table_z", "tool_change_requested", "tool_change_seq", "tool_change_tool",
               "g5x_index", "g5x_offset", "motion_line", "call_level", "task_mode", "spindle_direction",
-              "spindle_speed", "is_estop", "is_enabled")
+              "spindle_speed", "is_estop", "is_enabled", "eoffset_z", "eoffset_enabled", "comp_method",
+              "comp_grid_version", "g92_offset", "rotation_xy")
 # step 2a (plan R283–R285 FI282-05): the probe tool T99 at L0 = 50, started
 # 8 mm over its contact (joint Z = plate + L0) inside #3020 = 10; the miss 15
 # mm over it; the toolsetter's values as the copy ships them, #3005 slow 20
@@ -88,6 +89,26 @@ PROBE_TOOL, PROBE_L0 = 99, 50.0
 PROBE_OVER, MISS_OVER = 8.0, 15.0
 PROBE_VARS = (3014, 3015, 3016, 3017, 3020, 3021, 3030)          # what probe_z_minus_wco reads
 TOOLSETTER_VARS = (3004, 3005, 3006, 3007, 3009, 3010, 3013) + tuple(range(3100, 3116))   # toolsetterVarMap
+#: package G2 (Codex R326): the surface scan as the probe panel starts it —
+#: the grid #3050–#3059 over the workpiece (nc.SCAN_AXIS: 5 × 5, X/Y
+#: 518…582), fast 1500 / slow 50 mm/min, safe Z 15 and depth 25 in the WCS
+#: (G54 Z = nc.SURFACE_BASE), the retract #3021 1 mm; #3014 the copy's
+#: probe tool, checked
+SCAN_VARS = {3050: 518.0, 3051: 582.0, 3052: 518.0, 3053: 582.0, 3054: 5, 3055: 5, 3056: 1500.0, 3057: 50.0,
+             3058: 15.0, 3059: 25.0, 3021: 1.0}
+SCAN_FILE = "probe-results.txt"
+SCAN_DEADLINE = 600.0
+#: the compensation's readouts: program Z 12 under G43 H99 → the control
+#: point −175 + 50 + 12 = −113; Q on the edge (534,550)–(550,550) at a
+#: quarter (no node: there all three methods agree), A the centre node, B a
+#: corner node 7.475 mm lower on the workpiece
+COMP_Z, COMP_Q, COMP_A, COMP_B = 12.0, (538.0, 550.0), (550.0, 550.0), (518.0, 582.0)
+COMP_EDGE = ((534.0, 550.0), (550.0, 550.0))      # Q's nearer and farther node
+COMP_FEED = 1000.0                                # mm/min, the XY move A → B with compensation on
+SETTLE_DEADLINE = 20.0      # s for a reading to settle (nc.settled_window), else it is not one
+MAP_RELOAD_S = 15.0         # s after the scan's end for the map's reload (DONE → reload-req → load)
+#: the workpiece's chain in its thread order (hallib/sim_surface.hal)
+SURFACE_CHAIN = ("surf-dx", "surf-dy", "surf-dx2", "surf-dy2", "surf-tilt", "surf-curve", "surf-z")
 M600_SLOW = 20.0
 #: M600's return (#3106 = 1) ends at the top of travel — the routine's
 #: drive-free G53 Z0 (Z0 is the top on every config); since 2026-11-05 it
@@ -674,13 +695,17 @@ def plate_from_hal(texts: list[str]) -> dict:
     <comp>.plate-x/-y/-z`): the independent measure the probe and M600 are
     held to — never the table or a var after the attempt (R283 FI282-05)."""
     import re
-    found = {}
+    found: dict = {}
+    # instance 0 is the plate; instance 1 the 3-axis workpiece (G2, Codex R326)
     for text in texts:
-        for m in re.finditer(r"^\s*setp\s+\S+\.plate-([xyz])\s+(-?[\d.]+)\s*$", text, re.M):
-            found[m.group(1)] = float(m.group(2))
+        for m in re.finditer(r"^\s*setp\s+sim-toolsetter\.0\.plate-([xyz])\s+(-?[\d.]+)\s*$", text, re.M):
+            found.setdefault(m.group(1), []).append(float(m.group(2)))
+    twice = sorted(k for k, v in found.items() if len(v) > 1)
+    if twice:
+        raise Refused(f"the plate is declared more than once in the copy's HAL ({twice})")
     if set(found) != {"x", "y", "z"}:
         raise Refused(f"the plate is not fully declared in the copy's HAL (found {sorted(found)})")
-    return found
+    return {k: v[0] for k, v in found.items()}
 
 
 def _hal_texts(ini: Path) -> list[str]:
@@ -856,6 +881,19 @@ def _to(c, x, y, z):
              extra=lambda st: _near(st, (x, y, z)))
 
 
+def _probe_tool(c):
+    """T99 the UI's way (tool_change: T99 M6, then G43 H99) — the change declared."""
+    from test_support import tool_change as tc
+    changes = tc.ToolChanges([PROBE_TOOL])
+    refusal = changes.precheck(c.status)
+    if refusal:
+        raise RuntimeError(f"T{PROBE_TOOL}: {refusal}")
+    cursor = len(c.frames)
+    c.request("tool_change", tool_number=PROBE_TOOL)
+    end = tc.RoutineEnd()
+    tc.serve(c, changes, lambda t, st: end(t, st) and st.get("tool_number") == PROBE_TOOL, 60.0, cursor=cursor)
+
+
 def probe_cases():
     """F-PROBE.S3 on the real task: probe_z_minus_wco with #3030 = 0 writes
     G54 Z = the plate; started beyond the search depth it records no contact
@@ -867,16 +905,7 @@ def probe_cases():
         _set_tool_length(c, PROBE_TOOL, PROBE_L0)
         for line in ("G54", "G92.1", "G10 L2 P1 X0 Y0 Z0"):
             _short(c, line)
-        # T99 the UI's way (tool_change: T99 M6, then G43 H99) — the change declared
-        from test_support import tool_change as tc
-        changes = tc.ToolChanges([PROBE_TOOL])
-        refusal = changes.precheck(c.status)
-        if refusal:
-            raise RuntimeError(f"T{PROBE_TOOL}: {refusal}")
-        cursor = len(c.frames)
-        c.request("tool_change", tool_number=PROBE_TOOL)
-        end = tc.RoutineEnd()
-        tc.serve(c, changes, lambda t, st: end(t, st) and st.get("tool_number") == PROBE_TOOL, 60.0, cursor=cursor)
+        _probe_tool(c)
         shipped = _vars(c, PROBE_VARS)
         probe_vars = {**shipped, 3030: 0}
 
@@ -918,6 +947,382 @@ def probe_cases():
         rows[-1]["vars_read_back"] = {str(k): v for k, v in _vars(c, PROBE_VARS).items()}
         return rows
     return ("probe", step)
+
+
+# ── Package G2 (Codex R326): the workpiece, the scan, the compensation ─────
+
+def parse_signals(text: str) -> dict:
+    """`halcmd show sig` → {signal: {"writers": [...], "readers": [...]}}."""
+    sigs, cur = {}, None
+    for line in text.splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[0] in ("<==", "==>", "<=>") and cur is not None:
+            sigs[cur]["writers" if parts[0] == "<==" else "readers"].append(parts[1])
+        elif len(parts) == 3 and parts[0] in ("bit", "float", "s32", "u32", "s64", "u64", "port"):
+            cur = parts[2]
+            sigs[cur] = {"writers": [], "readers": []}
+    return sigs
+
+
+def surface_wiring() -> dict:
+    """Signal → (its one writer, or None for none; the readers it must reach):
+    the workpiece's chain, instance 1 and the whole probe path."""
+    return {
+        "sim-ts-x": ("joint.0.pos-fb", {"sim-toolsetter.0.x", "sim-toolsetter.1.x", "surf-dx.in0"}),
+        "sim-ts-y": ("joint.1.pos-fb", {"sim-toolsetter.0.y", "sim-toolsetter.1.y", "surf-dy.in0"}),
+        "sim-ts-z": ("joint.2.pos-fb", {"sim-toolsetter.0.z", "sim-toolsetter.1.z"}),
+        "sim-ts-length": ("sim-toolsetter-feed.tool-length",
+                          {"sim-toolsetter.0.tool-length", "sim-toolsetter.1.tool-length"}),
+        "sim-ts-enable": ("sim-toolsetter-feed.enable", {"sim-toolsetter.0.enable", "sim-toolsetter.1.enable"}),
+        "surf-dx": ("surf-dx.out", {"surf-dx2.in0", "surf-dx2.in1", "surf-tilt.in0"}),
+        "surf-dy": ("surf-dy.out", {"surf-dy2.in0", "surf-dy2.in1", "surf-tilt.in1"}),
+        "surf-dx2": ("surf-dx2.out", {"surf-curve.in0"}),
+        "surf-dy2": ("surf-dy2.out", {"surf-curve.in1"}),
+        "surf-tilt": ("surf-tilt.out", {"surf-z.in0"}),
+        "surf-curve": ("surf-curve.out", {"surf-z.in1"}),
+        "surf-height": ("surf-z.out", {"sim-toolsetter.1.plate-z"}),
+        "probe-in": (None, {"sim-toolsetter.1.manual"}),
+        "sim-ts-pass": ("sim-toolsetter.1.out", {"sim-toolsetter.0.manual"}),
+        "probe-input": ("sim-toolsetter.0.out", {"motion.probe-input"}),
+    }
+
+
+def surface_constants(s: dict = nc.SURFACE) -> dict:
+    """What the running HAL must hold for f = nc.surface_z — from the literal."""
+    return {"surf-dx.offset": -s["cx"], "surf-dx.gain0": 1.0, "surf-dx.in1": 0.0,
+            "surf-dy.offset": -s["cy"], "surf-dy.gain0": 1.0, "surf-dy.in1": 0.0,
+            "surf-tilt.gain0": s["a"], "surf-tilt.gain1": s["b"], "surf-tilt.offset": 0.0,
+            "surf-curve.gain0": -s["k"], "surf-curve.gain1": -s["k"], "surf-curve.offset": 0.0,
+            "surf-z.gain0": 1.0, "surf-z.gain1": 1.0, "surf-z.offset": s["c"],
+            "sim-toolsetter.1.plate-x": s["cx"], "sim-toolsetter.1.plate-y": s["cy"],
+            "sim-toolsetter.1.radius": s["half"]}
+
+
+def _hal_value(text: str):
+    v = text.strip()
+    if v in ("TRUE", "FALSE"):
+        return v == "TRUE"
+    try:
+        return float(v)
+    except ValueError:
+        return None
+
+
+def surface_fixture_problems(sigs: dict, functions: list, values: dict, length: float) -> list[str]:
+    """The workpiece as the RUNNING HAL has it (Codex R326 Q326-2): every
+    signal with its writer and readers, the thread order (the motion
+    controller, the chain in its order, instance 1, instance 0), the
+    constants equal to the literal, instance 1 fed the probe tool's length
+    and enabled, the compensation without fade. Values alone prove no wiring."""
+    problems = []
+    for sig, (writer, readers) in surface_wiring().items():
+        have = sigs.get(sig)
+        if have is None:
+            problems.append(f"signal {sig} missing")
+            continue
+        if have["writers"] != ([writer] if writer else []):
+            problems.append(f"{sig} written by {have['writers']}, not {writer}")
+        missing = readers - set(have["readers"])
+        if missing:
+            problems.append(f"{sig} does not reach {sorted(missing)}")
+    order = ["motion-controller", *SURFACE_CHAIN, "sim-toolsetter.1", "sim-toolsetter.0"]
+    idx = [functions.index(f) if f in functions else None for f in order]
+    if None in idx:
+        problems.append(f"not in the servo thread: {[f for f, i in zip(order, idx) if i is None]}")
+    elif idx != sorted(idx):
+        problems.append(f"servo thread order {[functions[i] for i in sorted(idx)]}, not {order}")
+    for name, want in {**surface_constants(), "sim-toolsetter.1.tool-length": length,
+                       "sim-toolsetter.1.enable": True, "compensation.fade-height": 0.0}.items():
+        have = values.get(name)
+        if isinstance(want, bool) or isinstance(have, bool):
+            ok = have is want
+        else:
+            ok = isinstance(have, float) and abs(have - want) <= 1e-9
+        if not ok:
+            problems.append(f"{name} = {have}, not {want}")
+    return problems
+
+
+def _surface_fixture(ctx, length: float) -> dict:
+    """The fixture check before the scan: read from the running HAL through
+    the measurement's gate (show/getp only), recorded in the report; any
+    problem ends the run before a probe moves."""
+    from test_support import servo as sv
+    gate = ctx["servo"].gate
+    sigs = parse_signals(gate("show", "sig"))
+    functions = sv.thread_of(gate("show", "thread"))["functions"]
+    names = [*surface_constants(), "sim-toolsetter.1.tool-length", "sim-toolsetter.1.enable",
+             "compensation.fade-height"]
+    values = {n: _hal_value(gate("getp", n)) for n in names}
+    problems = surface_fixture_problems(sigs, functions, values, length)
+    record = {"signals": {s: sigs.get(s) for s in surface_wiring()}, "values": values,
+              "thread": functions, "problems": problems,
+              "latency": "the chain and both instances after the motion controller, instance 1 before 0: a "
+                         "contact reaches motion.probe-input in the next servo period"}
+    ctx["report"]["surface_fixture"] = record
+    if problems:
+        raise Refused("the workpiece fixture: " + "; ".join(problems))
+    return record
+
+
+def _limited(ctx):
+    return _hal_value(ctx["servo"].gate("getp", "motion.eoffset-limited"))
+
+
+def _comp_read(ctx, c, cond) -> dict:
+    """A SETTLED reading from the frames received from now on (nc.settled_window
+    with `cond`), or a reading marked not settled after SETTLE_DEADLINE —
+    missing frames are never a standstill."""
+    i0, end = len(c.frames), time.monotonic() + SETTLE_DEADLINE
+    while time.monotonic() < end:
+        if c.error:
+            raise RuntimeError(c.error)
+        win = nc.settled_window(c.frames[i0:], cond)
+        if win:
+            st = win["status"]
+            return {"settled": True, "eoffset": st.get("eoffset_z"), "joint_z": (st.get("joint_pos") or [None] * 3)[2],
+                    "enabled": st.get("eoffset_enabled"), "method": st.get("comp_method"),
+                    "version": st.get("comp_grid_version"), "window_s": round(win["t_to"] - win["t_from"], 3),
+                    "limited": _limited(ctx)}
+        time.sleep(0.05)
+    st = c.status
+    return {"settled": False, "why": f"no settled window of {nc.SETTLE_S} s within {SETTLE_DEADLINE} s",
+            "eoffset": st.get("eoffset_z"), "joint_z": (st.get("joint_pos") or [None] * 3)[2],
+            "enabled": st.get("eoffset_enabled"), "method": st.get("comp_method")}
+
+
+def _comp_request(c, cmd, **kw):
+    reply = _when_free(c, cmd, **kw)
+    if not reply or reply.get("ok") is False:
+        raise Refused(f"{cmd} {kw}: {reply}")
+
+
+def _comp_off(ctx, c) -> dict:
+    """Off and DRAINED: the enable confirmed off and the offset back to 0."""
+    _comp_request(c, "set_compensation", enable=False)
+    return _comp_read(ctx, c, lambda st: st.get("eoffset_enabled") is False
+                      and nc._finite(st.get("eoffset_z")) and abs(st["eoffset_z"]) < nc.OFF_EOFFSET)
+
+
+def _comp_on(ctx, c, method: str) -> dict:
+    _comp_request(c, "set_compensation", enable=True)
+    idx = nc.METHODS.index(method)
+    return _comp_read(ctx, c, lambda st: st.get("eoffset_enabled") is True and st.get("comp_method") == idx)
+
+
+def _comp_method(c, method: str):
+    """The method confirmed by the status AND its new map: compensation.py
+    reloads on a method change (its grid version advances) — read before
+    the offset may be (Codex R326)."""
+    idx, v0 = nc.METHODS.index(method), c.status.get("comp_grid_version")
+    _comp_request(c, "set_compensation_method", method=idx)
+    _wait(c, lambda s: s.get("comp_method") == idx and nc._finite(s.get("comp_grid_version"))
+          and s["comp_grid_version"] != v0, 15, f"the method {method} and its reloaded map")
+
+
+def _at(c, xy, feed=None):
+    """To X/Y at program Z COMP_Z (G54, G43 H99): Z first when it is lower."""
+    if feed is None:
+        _routine(c, f"G0 Z{COMP_Z:g}", deadline=60.0)
+        _routine(c, f"G0 X{xy[0]:g} Y{xy[1]:g}", deadline=60.0)
+    else:
+        _routine(c, f"G1 X{xy[0]:g} Y{xy[1]:g} F{feed:g}", deadline=60.0)
+
+
+def _scan_points(path: Path):
+    """The result file's rows as numbers (a word that is none stays None — the
+    evaluator names it); None if there is no file."""
+    if not path.is_file():
+        return None
+
+    def num(w):
+        try:
+            return float(w)
+        except ValueError:
+            return None
+    return [[num(w) for w in ln.split()] for ln in path.read_text().splitlines() if ln.strip()]
+
+
+def _comp_python_versions(ctx) -> dict:
+    """The numpy/scipy of the RUNNING compensation process (its own
+    interpreter) — beside the evaluator's (Codex R326 Q326-1)."""
+    out = {"evaluator": nc.scipy_version()}
+    try:
+        pid = subprocess.run(["pgrep", "-f", "compensation.py"], capture_output=True, text=True).stdout.split()[0]
+        exe = os.readlink(f"/proc/{pid}/exe")
+        out["compensation"] = subprocess.run([exe, "-I", "-c", "import scipy; print(scipy.__version__)"],
+                                             capture_output=True, text=True, timeout=30).stdout.strip()
+    except Exception as e:  # noqa: BLE001 — named in the report
+        out["compensation"] = f"not read: {type(e).__name__}: {e}"
+    return out
+
+
+def surface_cases():
+    """F-SURFACE.S2, F-OVERRIDE.S2c, F-COMP.S4 on the real task (Codex R326):
+    the probe tool over the 3-axis workpiece, G54 Z at its base; the scan
+    the panel's way; its file judged against the literal surface; the map's
+    reload; the override locked through the scan; then the compensation:
+    each method at Q, ON/OFF at A, ON after the XY move A → B and OFF at B.
+    Cleanup on every path: compensation off and drained, the method back,
+    G54 Z0, the override free."""
+    def step(ctx):
+        c, frames, rows = ctx["client"], ctx["frames"], ctx.setdefault("rows", [])
+        _probe_tool(c)
+        _set_tool_length(c, PROBE_TOOL, PROBE_L0)
+        for line in ("G21", "G90", "G94", "G54", "G92.1", f"G10 L2 P1 X0 Y0 Z{nc.SURFACE_BASE:g} R0",
+                     f"G43 H{PROBE_TOOL}"):
+            _short(c, line)
+        st = c.status
+        basis = {"g5x_index": st.get("g5x_index"), "g5x_offset": st.get("g5x_offset"),
+                 "g92_offset": st.get("g92_offset"), "rotation_xy": st.get("rotation_xy"),
+                 "tool_offset_z": (st.get("tool_offset") or [None] * 3)[2], "eoffset_z": st.get("eoffset_z"),
+                 "eoffset_enabled": st.get("eoffset_enabled"), "comp_method": st.get("comp_method")}
+        ctx["report"]["surface_basis"] = basis
+        if (basis["g5x_index"] != 1 or not isinstance(basis["g5x_offset"], list)
+                or abs(basis["g5x_offset"][2] - nc.SURFACE_BASE) > nc.SAME
+                or any(abs(v) > nc.SAME for v in (basis["g92_offset"] or [1])[:3])
+                or basis["rotation_xy"] not in (0, 0.0) or basis["tool_offset_z"] is None
+                or abs(basis["tool_offset_z"] - PROBE_L0) > nc.SAME
+                or basis["eoffset_enabled"] is not False or basis["eoffset_z"] is None
+                or abs(basis["eoffset_z"]) >= nc.OFF_EOFFSET or basis["comp_method"] not in (0, 1, 2)):
+            raise Refused(f"the scan's basis is not the planned one: {basis}")
+        _surface_fixture(ctx, PROBE_L0)
+        shipped = _vars(c, [3014])[3014]
+        if shipped != PROBE_TOOL:
+            raise Refused(f"the copy's probe tool #3014 is {shipped}, not T{PROBE_TOOL}")
+        method0 = nc.METHODS[basis["comp_method"]]
+        failure = None
+        try:
+            _scan_and_compensate(ctx, c, frames, method0, rows)
+        except Exception as e:  # noqa: BLE001 — the cleanup first, then the step ends with its rows
+            failure = e
+        cleanup = _surface_cleanup(ctx, c, method0)
+        ctx["report"]["surface_cleanup"] = cleanup
+        if failure is not None:
+            raise StepFailed(rows, f"{type(failure).__name__}: {failure}") from failure
+        if cleanup.get("error"):
+            raise StepFailed(rows, f"the surface cleanup: {cleanup['error']}")
+        return rows
+    return ("surface", step)
+
+
+def _surface_cleanup(ctx, c, method0) -> dict:
+    """Every path: off and drained, the method back, G54 Z0, the override free —
+    each read back; a failure is named (and ends the step)."""
+    out, errors = {}, []
+    for what, fn in (("off", lambda: _comp_off(ctx, c)),
+                     ("method", lambda: c.status.get("comp_method") == nc.METHODS.index(method0)
+                      or _comp_method(c, method0)),
+                     ("g54", lambda: _short(c, "G10 L2 P1 Z0")),
+                     ("override", lambda: _short(c, "M50 P1"))):
+        try:
+            res = fn()
+            out[what] = res if isinstance(res, dict) else "done"
+        except Exception as e:  # noqa: BLE001
+            errors.append(f"{what}: {type(e).__name__}: {e}")
+    st = c.status
+    out["after"] = {"eoffset_enabled": st.get("eoffset_enabled"), "eoffset_z": st.get("eoffset_z"),
+                    "comp_method": st.get("comp_method"), "g54_z": _g54_z(st),
+                    "feed_override_enabled": st.get("feed_override_enabled")}
+    if not (isinstance(out.get("off"), dict) and out["off"].get("settled")):
+        errors.append(f"compensation not confirmed off and drained: {out.get('off')}")
+    if st.get("comp_method") != nc.METHODS.index(method0):
+        errors.append(f"the method not back on {method0}: {st.get('comp_method')}")
+    if _g54_z(st) is None or abs(_g54_z(st)) > nc.SAME:
+        errors.append(f"G54 Z not back on 0: {_g54_z(st)}")
+    if errors:
+        out["error"] = "; ".join(errors)
+    return out
+
+
+def _scan_and_compensate(ctx, c, frames, method0, rows: list) -> None:
+    """The scan and the compensation, each row appended to the step's own
+    list as it is judged (kept on every path)."""
+    import hashlib
+    results = ctx["config"] / SCAN_FILE
+    aside = None
+    if results.exists():
+        aside = results.with_name(f"probe-results.before-{int(time.time())}.txt")
+        results.rename(aside)
+    v_before = c.status.get("comp_grid_version")
+    started = {"seen": False}
+
+    def ran(st):
+        started["seen"] = started["seen"] or st.get("feed_override_enabled") is False
+        return started["seen"]
+    r = _routine(c, "O<surface_scan> CALL", vars={**SCAN_VARS, 3014: PROBE_TOOL}, deadline=SCAN_DEADLINE, extra=ran)
+    points = _scan_points(results)
+    text = results.read_bytes() if results.is_file() else None
+    scan = nc.eval_surface_scan("surface-scan", points, r["errors"])
+    planted_node = nc.eval_surface_scan("surface-scan", points, r["errors"],
+                                        expect=lambda x, y: nc.surface_z(x, y) + (1.0 if (x, y) == COMP_A else 0.0))
+    planted_swap = nc.eval_surface_scan("surface-scan", points, r["errors"], expect=lambda x, y: nc.surface_z(y, x))
+    rows += [scan, nc.counter("surface-scan.counter-node+1", planted_node, scan),
+             nc.counter("surface-scan.counter-xy-swapped", planted_swap, scan)]
+    # the release window is waited for, then judged (as M600's)
+    until = r["t_done"] + nc.RELEASE_WITHIN + 0.1
+    while time.monotonic() < until and not any(t >= r["t_done"] and st.get("feed_override_enabled") is True
+                                                for t, st in frames[-50:]):
+        time.sleep(0.05)
+    rows.append(nc.eval_override_lock("surface-override-lock", [f for f in frames if f[0] >= r["t0"]], r["t0"]))
+    # the map: the gateway's DONE → reload-req → compensation.py loaded the file
+    end = time.monotonic() + MAP_RELOAD_S
+    while time.monotonic() < end and c.status.get("comp_grid_version") == v_before:
+        time.sleep(0.05)
+    rows.append(nc.eval_map_reload("surface-scan.map", v_before, c.status.get("comp_grid_version")))
+    ctx["report"]["surface_scan"] = {
+        "file": str(results), "moved_aside": str(aside) if aside else None,
+        "sha256": hashlib.sha256(text).hexdigest() if text is not None else None,
+        "t0": r["t0"], "t_done": r["t_done"], "version_before": v_before,
+        "version_after": c.status.get("comp_grid_version"), "vars": {str(k): v for k, v in SCAN_VARS.items()},
+        "python": _comp_python_versions(ctx)}
+    if scan["status"] != "PASS":
+        raise StepFailed(rows, f"the scan did not pass ({scan['detail']}) — no compensation on its map")
+    _compensation(ctx, c, points, method0, rows)
+
+
+def _compensation(ctx, c, points, method0, rows: list) -> None:
+    near, far = (nc.point_z(points, *xy) for xy in COMP_EDGE)
+    recorded = {"near": near, "far": far}
+    refs = {m: nc.comp_reference(points, m, COMP_Q) for m in nc.METHODS}
+    f_dev = nc.surface_z(*COMP_Q) - nc.SURFACE_BASE
+    ctx["report"]["comp_refs"] = {"q": list(COMP_Q), "refs": refs, "recorded": recorded, "f_dev": f_dev}
+    control = nc.SURFACE_BASE + PROBE_L0 + COMP_Z
+    _at(c, COMP_Q)
+    # every switch a CHANGE (each one reloads the map): the start method last
+    order = [m for m in nc.METHODS if m != method0] + [method0]
+    readings = {}
+    for m in order:
+        _comp_method(c, m)
+        readings[m] = _comp_on(ctx, c, m)
+        _comp_off(ctx, c)
+    for i, m in enumerate(nc.METHODS):
+        case = {"nearest": "comp-nearest", "linear": "comp-linear", "cubic": "comp-cubic"}[m]
+        row = nc.eval_comp_method(case, m, readings[m], refs, recorded, f_dev, control)
+        other = nc.METHODS[(i + 1) % 3]
+        planted = nc.eval_comp_method(case, m, readings[m], {**refs, m: refs[other]}, recorded, f_dev, control)
+        rows += [row, nc.counter({"nearest": "comp-nearest.counter-linear", "linear": "comp-linear.counter-cubic",
+                                  "cubic": "comp-cubic.counter-nearest"}[m], planted, row)]
+    # ON/OFF in place at A, then ON again and the XY move to B, OFF at B
+    z_a, z_b = nc.point_z(points, *COMP_A), nc.point_z(points, *COMP_B)
+    gap_on = COMP_Z
+    gap_off = {xy: COMP_Z - (nc.surface_z(*xy) - nc.SURFACE_BASE) for xy in (COMP_A, COMP_B)}
+    _at(c, COMP_A)
+    a_on_r = _comp_on(ctx, c, method0)
+    a_off_r = _comp_off(ctx, c)
+    a_on = nc.eval_comp_reading("comp-on-off", a_on_r, True, z_a, gap_on, control, PROBE_L0, COMP_A)
+    a_off = nc.eval_comp_reading("comp-on-off", a_off_r, False, z_a, gap_off[COMP_A], control, PROBE_L0, COMP_A)
+    pair = nc.eval_comp_pair("comp-on-off", a_on, a_off)
+    planted = nc.eval_comp_reading("comp-on-off", a_on_r, True, z_a, gap_on + 0.05, control, PROBE_L0, COMP_A)
+    rows += [pair, nc.counter("comp-on-off.counter-gap+0.05", planted, a_on)]
+    _comp_on(ctx, c, method0)
+    _at(c, COMP_B, feed=COMP_FEED)
+    b_on_r = _comp_read(ctx, c, lambda st: st.get("eoffset_enabled") is True)
+    b_off_r = _comp_off(ctx, c)
+    b_on = nc.eval_comp_reading("comp-after-xy", b_on_r, True, z_b, gap_on, control, PROBE_L0, COMP_B)
+    b_off = nc.eval_comp_reading("comp-after-xy", b_off_r, False, z_b, gap_off[COMP_B], control, PROBE_L0, COMP_B)
+    frozen = nc.eval_comp_reading("comp-after-xy", b_on_r, True, z_a, gap_on, control, PROBE_L0, COMP_B)
+    rows += [nc.eval_comp_pair("comp-after-xy", b_on, b_off), nc.counter("comp-after-xy.counter-frozen", frozen, b_on)]
 
 
 def m600_cases():
@@ -1654,7 +2059,7 @@ def main(argv=None) -> int:
         steps = base + [latch_order(), latch_cases(a.variant)]
     else:
         steps = base + [home_cases(joints), jog_cases(joints), plateau_cases(), goto_cases(),
-                        probe_cases(), m600_cases(), m6_hold_case(), ts_sync_cases(), rfl_cases(),
+                        probe_cases(), surface_cases(), m600_cases(), m6_hold_case(), ts_sync_cases(), rfl_cases(),
                         disconnect_cases(), clients_cases(), latch_cases()]
     with heavy_lock("native_run", wait=0):
         report = run(SystemHost(), steps, a.run_dir)

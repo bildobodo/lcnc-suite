@@ -10990,3 +10990,40 @@ reads as a whole decimal (`Q+3.000000`, what this branch's earlier writer
 wrote) and is written back as `Q3`; a fraction still refuses — LinuxCNC
 would cut it. The heartbeat session runs at the real 3 s budget: a 1 s
 budget flaked when one loaded status tick took ~0.8 s.
+
+## 2026-11-06 — Package G2: the surface scan and the compensation on a curved sim workpiece (operator Q282-2, Codex R326)
+
+**Decision.** The operator answered Q282-2 "alles jetzt": the scan's points
+(F-SURFACE.S2), the override lock during it (F-OVERRIDE.S2c) and the
+compensation methods at known points of a non-flat surface (F-COMP.S4) in
+one package. The 3-axis sim gets a WORKPIECE: the second instance of
+`sim_toolsetter` (`count=2`), its height wired from a chain of stock realtime
+components (`sum2` ×5, `mult2` ×2) computing a tilted paraboloid from the
+joint X/Y — no change to the component, because the installed module is
+system-wide and `sudo` asks for a password (Q326-2: accepted). Order in the
+servo thread: the motion controller, the chain, instance 1, instance 0 — the
+manual trip passes through both in the same period in every profile.
+
+**Why curved.** On the flat plate every point has the same Z: a swapped X/Y
+or a misplaced point would not show, and the three methods agree. On the
+paraboloid each point has its own value and at the test point Q (538, 550),
+a quarter along the edge (534,550)–(550,550), nearest / linear / cubic give
+4.586 / 4.939 / 5.070 mm, the surface 5.054.
+
+**Checks.** The scan file: exactly the 25 nodes in the routine's snake, each
+on the literal surface ± 0.005. The map's reload (the grid version advances
+after DONE). The override locked through the scan INCLUDING its return
+(FI326-01: the routine freed it before its last two moves — `M50 P1` now
+after them). Each method at Q equals its reference from the RECORDED points
+(compensation.py's path written out: rounding, the 1-mm grid, its node,
+scipy griddata, the counts) ± 0.002, and independently: nearest = the nearer
+node, linear = 0.75/0.25 of the edge's nodes (an axis-parallel grid edge is in
+every Delaunay triangulation), cubic ≥ 0.05 from linear and closer to the
+surface than linear (Q326-1: both — an analytic "cubic" passes the
+inequalities and misses the reference by 0.0157). ON holds the tip 12 mm
+above the workpiece at the centre node, OFF drains to 0; after an XY move
+with compensation on the settled offset is the new node's value
+(`comp-after-xy` — FI326-02: end points prove no following DURING a move,
+so none is claimed). The fixture is read from the running HAL before a
+probe moves: every signal's writer and readers, the thread order, the
+constants equal to the literal, instance 1 fed L 50 and enabled, no fade.

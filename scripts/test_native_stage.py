@@ -5,6 +5,7 @@ imports linuxcnc or hal: a bare import binds the running sim)."""
 from __future__ import annotations
 
 import json
+import math
 import subprocess
 import shutil
 import sys
@@ -4644,3 +4645,408 @@ def test_an_unknown_position_is_no_proven_stop():
     # the control: the same stop with X seen standing is a FAIL
     r = sc.eval_disconnect("disconnect-close", _disc(stop_at=500), W_MARK, EVENT, RUNNING, frozenset(range(1, 9)))
     assert r["status"] == "FAIL" and "stopped" in r["detail"], r
+
+
+# ── Package G2 (Codex R326): the workpiece, the scan, the compensation ─────
+
+def test_the_plate_is_instance_0_and_a_second_declaration_is_refused():
+    """Instance 1 (the workpiece) declares plate-x/-y too: the last match used
+    to win — the plate would have been read at X550 Y550."""
+    hal = ("setp sim-toolsetter.0.plate-x 10\nsetp sim-toolsetter.0.plate-y 10\nsetp sim-toolsetter.0.plate-z -180\n"
+           "setp sim-toolsetter.1.plate-x 550\nsetp sim-toolsetter.1.plate-y 550\n")
+    assert nr.plate_from_hal([hal]) == {"x": 10.0, "y": 10.0, "z": -180.0}
+    with pytest.raises(nr.Refused, match="more than once"):
+        nr.plate_from_hal([hal, "setp sim-toolsetter.0.plate-x 11\n"])
+
+
+def _ideal_points():
+    return [[x, y, nc.surface_z(x, y) - nc.SURFACE_BASE] for x, y in nc.scan_order()]
+
+
+def test_the_scan_is_the_grid_in_its_snake_on_the_surface():
+    pts = _ideal_points()
+    assert nc.eval_surface_scan("s", pts)["status"] == "PASS"
+    assert [tuple(p[:2]) for p in pts[:6]] == [(518, 518), (534, 518), (550, 518), (566, 518), (582, 518),
+                                                (582, 534)], "row 2 runs back"
+    near = [[x, y, z + 0.004] for x, y, z in pts]
+    assert nc.eval_surface_scan("s", near)["status"] == "PASS"
+    bad = {
+        "a point missing": pts[:-1],
+        "a point added": pts + [pts[-1]],
+        "not snaked": [[x, y, nc.surface_z(x, y) - nc.SURFACE_BASE] for y in nc.SCAN_AXIS for x in nc.SCAN_AXIS],
+        "off the surface": [p if i != 12 else [p[0], p[1], p[2] + 0.006] for i, p in enumerate(pts)],
+        "a word no number": [p if i != 3 else [p[0], None, p[2]] for i, p in enumerate(pts)],
+        "X/Y swapped": [[y, x, z] for x, y, z in pts],
+    }
+    for name, points in bad.items():
+        assert nc.eval_surface_scan("s", points)["status"] == "FAIL", name
+    assert nc.eval_surface_scan("s", pts, errors=[(11, "Probe tripped during non-probe move")])["status"] == "FAIL"
+    assert nc.eval_surface_scan("s", None)["status"] == "incomplete"
+
+
+def test_the_scan_counters_refuse_their_plants():
+    pts = _ideal_points()
+    base = nc.eval_surface_scan("s", pts)
+    node = nc.eval_surface_scan("s", pts, expect=lambda x, y: nc.surface_z(x, y) + (1.0 if (x, y) == nr.COMP_A else 0))
+    swap = nc.eval_surface_scan("s", pts, expect=lambda x, y: nc.surface_z(y, x))
+    assert nc.counter("c1", node, base)["status"] == "PASS" and nc.counter("c2", swap, base)["status"] == "PASS"
+
+
+def test_the_map_reload_needs_the_version_to_advance():
+    assert nc.eval_map_reload("m", 3, 4)["status"] == "PASS"
+    assert nc.eval_map_reload("m", 3, 3)["status"] == "FAIL"
+    assert nc.eval_map_reload("m", None, 4)["status"] == "incomplete"
+
+
+def test_the_reference_follows_compensations_path_from_the_recorded_points():
+    """The values Codex R326 computed independently (scipy 1.15.3): at Q the
+    three methods 4.5856 / 4.9392 / 5.0701, the surface 5.0544."""
+    refs = {m: nc.comp_reference(_ideal_points(), m, nr.COMP_Q) for m in nc.METHODS}
+    assert refs["nearest"] == pytest.approx(4.5856, abs=1e-4)
+    assert refs["linear"] == pytest.approx(4.9392, abs=1e-4)
+    assert refs["cubic"] == pytest.approx(5.0701, abs=1e-4)
+    assert nc.surface_z(*nr.COMP_Q) - nc.SURFACE_BASE == pytest.approx(5.0544, abs=1e-4)
+    # the 1-mm node: a point off the grid takes its nearest node's value
+    assert nc.comp_reference(_ideal_points(), "linear", (538.3, 549.8)) == pytest.approx(refs["linear"])
+
+
+def _reading(e, method="cubic", enabled=True, z_control=-113.0, **kw):
+    return {"settled": True, "eoffset": e, "joint_z": z_control + e, "enabled": enabled,
+            "method": nc.METHODS.index(method), "limited": False, **kw}
+
+
+def _method_case(method, e, **kw):
+    pts = _ideal_points()
+    refs = {m: nc.comp_reference(pts, m, nr.COMP_Q) for m in nc.METHODS}
+    recorded = {"near": nc.point_z(pts, *nr.COMP_EDGE[0]), "far": nc.point_z(pts, *nr.COMP_EDGE[1])}
+    f_dev = nc.surface_z(*nr.COMP_Q) - nc.SURFACE_BASE
+    reading = kw.pop("reading", None) or _reading(e, method)
+    return nc.eval_comp_method("c", method, reading, kw.pop("refs", refs), recorded, f_dev, -113.0)
+
+
+def test_each_method_is_its_reference_and_the_independent_checks_hold():
+    truncated = {"nearest": 4.585, "linear": 4.939, "cubic": 5.070}
+    for m, e in truncated.items():
+        assert _method_case(m, e)["status"] == "PASS", m
+    # another method's value, or the analytic surface for cubic (Codex R326:
+    # it passes both inequalities and misses the reference by 0.0157)
+    assert _method_case("cubic", 4.939)["status"] == "FAIL"
+    assert _method_case("linear", 4.585)["status"] == "FAIL"
+    assert _method_case("cubic", 5.0544)["status"] == "FAIL"
+    # the joint Z does not carry the offset
+    assert _method_case("cubic", 5.070, reading={**_reading(5.070), "joint_z": -113.0})["status"] == "FAIL"
+
+
+def test_a_wrong_reference_is_caught_by_the_independent_checks():
+    """scipy's value planted wrong for nearest and linear: the recorded nodes
+    (the nearer one; 0.75/0.25 on the edge) still refuse it."""
+    pts = _ideal_points()
+    refs = {m: nc.comp_reference(pts, m, nr.COMP_Q) for m in nc.METHODS}
+    assert _method_case("nearest", 4.700, refs={**refs, "nearest": 4.700})["status"] == "FAIL"
+    assert _method_case("linear", 5.000, refs={**refs, "linear": 5.000})["status"] == "FAIL"
+    assert _method_case("cubic", 4.960, refs={**refs, "cubic": 4.960})["status"] == "FAIL", "within 0.05 of linear"
+
+
+def test_a_reading_that_is_not_one_is_incomplete_and_a_point_that_tells_nothing_too():
+    for reading in ({"settled": False, "why": "frames stopped"}, {**_reading(5.070), "method": 1},
+                    {**_reading(5.070), "enabled": None}, {**_reading(5.070), "limited": True},
+                    {**_reading(5.070), "eoffset": None}):
+        assert _method_case("cubic", 5.070, reading=reading)["status"] == "incomplete", reading
+    flat = {m: 4.939 for m in nc.METHODS}
+    assert _method_case("linear", 4.939, refs=flat)["status"] == "incomplete"
+
+
+def test_on_off_and_after_the_move_the_tip_keeps_its_distance():
+    z_a = nc.surface_z(*nr.COMP_A) - nc.SURFACE_BASE
+    z_b = nc.surface_z(*nr.COMP_B) - nc.SURFACE_BASE
+    gap_off_a = nr.COMP_Z - z_a
+    on = nc.eval_comp_reading("o", _reading(6.0), True, z_a, 12.0, -113.0, 50.0, nr.COMP_A)
+    off = nc.eval_comp_reading("o", _reading(0.0, enabled=False), False, z_a, gap_off_a, -113.0, 50.0, nr.COMP_A)
+    assert on["status"] == "PASS" and off["status"] == "PASS" and on["gap_mm"] == pytest.approx(12.0)
+    assert off["gap_mm"] == pytest.approx(6.0)
+    assert nc.eval_comp_pair("o", on, off)["status"] == "PASS"
+    # off with the offset left in, on 0.05 short, frozen at A after the move to B
+    assert nc.eval_comp_reading("o", _reading(0.003, enabled=False), False, z_a, gap_off_a, -113.0, 50.0,
+                                nr.COMP_A)["status"] == "FAIL"
+    assert nc.eval_comp_reading("o", _reading(6.0), True, z_a, 12.05, -113.0, 50.0, nr.COMP_A)["status"] == "FAIL"
+    b_on = _reading(round(z_b, 3))
+    assert nc.eval_comp_reading("b", b_on, True, z_b, 12.0, -113.0, 50.0, nr.COMP_B)["status"] == "PASS"
+    assert nc.eval_comp_reading("b", b_on, True, z_a, 12.0, -113.0, 50.0, nr.COMP_B)["status"] == "FAIL"
+    assert nc.eval_comp_reading("b", _reading(6.0), True, z_b, 12.0, -113.0, 50.0, nr.COMP_B)["status"] == "FAIL", \
+        "the offset frozen at A's value: the tip 7.475 mm too high at B"
+
+
+def test_a_pair_reports_a_contradiction_before_a_missing_reading():
+    p, f, i = ({"case": "x", "status": s, "detail": s} for s in ("PASS", "FAIL", "incomplete"))
+    assert nc.eval_comp_pair("x", i, f)["status"] == "FAIL"
+    assert nc.eval_comp_pair("x", p, i)["status"] == "incomplete"
+    assert nc.eval_comp_pair("x", p, p)["status"] == "PASS"
+
+
+def _settle_frames(n=20, dt=0.033, e=5.07, z=-107.93, v=4, **over):
+    return [(k * dt, {"eoffset_z": e, "joint_pos": [538.0, 550.0, z], "comp_grid_version": v,
+                      "eoffset_enabled": True, **over}) for k in range(n)]
+
+
+def test_a_settled_window_needs_fresh_quiet_frames_for_half_a_second():
+    on = lambda st: st.get("eoffset_enabled") is True  # noqa: E731
+    assert nc.settled_window(_settle_frames(), on) is not None
+    assert nc.settled_window(_settle_frames(n=10), on) is None, "0.3 s of frames is no window"
+    gap = _settle_frames()
+    gap = gap[:5] + [(t + 0.5, st) for t, st in gap[5:]]
+    assert nc.settled_window(gap[:8], on) is None, "a 0.5 s gap inside the window"
+    drift = [(t, {**st, "eoffset_z": 5.07 - 0.001 * k}) for k, (t, st) in enumerate(_settle_frames())]
+    assert nc.settled_window(drift, on) is None, "the offset still ramps"
+    bumped = _settle_frames()
+    bumped[-3] = (bumped[-3][0], {**bumped[-3][1], "comp_grid_version": 5})
+    assert nc.settled_window(bumped, on) is None, "the map changed inside the window"
+    assert nc.settled_window(_settle_frames(eoffset_enabled=False), on) is None
+    assert nc.settled_window(_settle_frames(e=None), on) is None
+
+
+_SHOW_SIG = """Signals:
+Type          Value  Name     (linked to)
+float      75.76577  sim-ts-x
+                         <== joint.0.pos-fb
+                         ==> sim-toolsetter.0.x
+bit           FALSE  probe-in
+                         ==> sim-toolsetter.0.manual
+"""
+
+
+def test_the_signals_parse_with_their_writer_and_readers():
+    sigs = nr.parse_signals(_SHOW_SIG)
+    assert sigs == {"sim-ts-x": {"writers": ["joint.0.pos-fb"], "readers": ["sim-toolsetter.0.x"]},
+                    "probe-in": {"writers": [], "readers": ["sim-toolsetter.0.manual"]}}
+
+
+def _good_fixture():
+    sigs = {s: {"writers": [w] if w else [], "readers": sorted(r)} for s, (w, r) in nr.surface_wiring().items()}
+    functions = ["motion-command-handler", "motion-controller", "ddt_x", *nr.SURFACE_CHAIN, "sim-toolsetter.1",
+                 "sim-toolsetter.0", "limit_speed"]
+    values = {**{k: float(v) for k, v in nr.surface_constants().items()}, "sim-toolsetter.1.tool-length": 50.0,
+              "sim-toolsetter.1.enable": True, "compensation.fade-height": 0.0}
+    return sigs, functions, values
+
+
+def test_the_fixture_check_reads_wiring_order_and_constants():
+    sigs, functions, values = _good_fixture()
+    assert nr.surface_fixture_problems(sigs, functions, values, 50.0) == []
+    defects = {
+        "plate-z set, not wired": ({**sigs, "surf-height": {"writers": ["surf-z.out"], "readers": []}}, functions, values),
+        "another writer": ({**sigs, "sim-ts-x": {**sigs["sim-ts-x"], "writers": ["joint.0.motor-pos-fb"]}},
+                           functions, values),
+        "probe-in written": ({**sigs, "probe-in": {"writers": ["qtpyvcp.probe-in.out"],
+                                                   "readers": ["sim-toolsetter.1.manual"]}}, functions, values),
+        "the pass-through missing": ({k: v for k, v in sigs.items() if k != "sim-ts-pass"}, functions, values),
+        "instance 0 before 1": (sigs, [f for f in functions if f != "sim-toolsetter.1"][:-1]
+                                + ["sim-toolsetter.1", "limit_speed"], values),
+        "the chain after instance 1": (sigs, ["motion-controller", "sim-toolsetter.1", *nr.SURFACE_CHAIN,
+                                              "sim-toolsetter.0"], values),
+        "the chain before the motion controller": (sigs, [*nr.SURFACE_CHAIN, "motion-controller", "sim-toolsetter.1",
+                                                          "sim-toolsetter.0"], values),
+        "a step missing": (sigs, [f for f in functions if f != "surf-curve"], values),
+        "a constant off": (sigs, functions, {**values, "surf-curve.gain1": -0.0025}),
+        "the length not the probe's": (sigs, functions, {**values, "sim-toolsetter.1.tool-length": 40.0}),
+        "not enabled": (sigs, functions, {**values, "sim-toolsetter.1.enable": False}),
+        "a fade": (sigs, functions, {**values, "compensation.fade-height": 5.0}),
+        "a value not read": (sigs, functions, {**values, "surf-z.offset": None}),
+    }
+    for name, (s, f, v) in defects.items():
+        assert nr.surface_fixture_problems(s, f, v, 50.0), name
+
+
+def test_the_constants_are_the_literal_surface():
+    """f from the chain's constants = nc.surface_z at the window's corners and centre."""
+    k = nr.surface_constants()
+    for x, y in ((510, 510), (550, 550), (590, 510), (538, 566)):
+        dx, dy = x + k["surf-dx.offset"], y + k["surf-dy.offset"]
+        tilt = k["surf-tilt.gain0"] * dx + k["surf-tilt.gain1"] * dy + k["surf-tilt.offset"]
+        curve = k["surf-curve.gain0"] * dx * dx + k["surf-curve.gain1"] * dy * dy + k["surf-curve.offset"]
+        assert tilt + curve + k["surf-z.offset"] == pytest.approx(nc.surface_z(x, y))
+
+
+def test_the_scan_releases_the_override_only_after_its_return():
+    """Codex R326 FI326-01 on the REAL evaluator: the routine freed the
+    override before its last two moves (LOGCLOSE → M50 P1 → G53 Z0 → X/Y) —
+    free while the axis moves is a FAIL; freed after the return, it passes."""
+    def course(release_during_return):
+        frames = [(0.0, {**_IDLE, "feed_override_enabled": True, "current_vel": 0.0})]
+        t = 0.0
+        for k in range(20):                         # probing, locked
+            t += 0.05
+            frames.append((t, {**_IDLE, "interp_state": 2, "feed_override_enabled": False, "current_vel": 20.0,
+                               "inpos": False}))
+        for k in range(6):                          # the return: G53 Z0, then X/Y
+            t += 0.05
+            frames.append((t, {**_IDLE, "interp_state": 2, "feed_override_enabled": release_during_return,
+                               "current_vel": 80.0, "inpos": False}))
+        t += 0.05
+        frames.append((t, {**_IDLE, "feed_override_enabled": True, "current_vel": 0.0}))
+        frames += [(t + 0.1 * k, {**_IDLE, "feed_override_enabled": True, "current_vel": 0.0}) for k in range(1, 25)]
+        return frames
+    assert nc.eval_override_lock("x", course(True), 0.0)["status"] == "FAIL"
+    assert nc.eval_override_lock("x", course(False), 0.0)["status"] == "PASS"
+
+
+def test_the_shipped_scan_frees_the_override_after_its_last_move():
+    """The routine's text: M50 P1 after the last motion line, before DONE."""
+    lines = [ln.split(";")[0].strip() for ln in
+             (HERE.parent / "subroutines/surfacemap/surface_scan.ngc").read_text().splitlines()]
+    code = [ln for ln in lines if ln]
+    release = max(i for i, ln in enumerate(code) if ln.startswith("M50 P1"))
+    done = next(i for i, ln in enumerate(code) if "LCNC_SURFACE_SCAN_DONE" in ln)
+    moves = [i for i, ln in enumerate(code) if ln.startswith(("G0", "G1", "G38"))]
+    assert max(moves) < release < done, (code[max(moves)], code[release])
+    assert sum(ln.startswith("M50 P1") for ln in code) == 1
+
+
+class SurfaceSim:
+    """The surface step's counterpart offline: a client whose status follows
+    the commands — the scan writes its file and reloads the map, the
+    compensation applies compensation.py's value at the X/Y (the reference
+    path, counts truncated) with a ramp-free settle. `defect` plants one
+    wrong behaviour; every request brings 0.66 s of frames."""
+
+    def __init__(self, config: Path, defect=None):
+        self.config, self.defect = config, defect
+        self._frames, self.errors, self.error, self.sent = [], [], None, []
+        self.t, self.xy, self.on, self.method, self.version = 0.0, (518.0, 518.0), False, 2, 1
+        self.g54_z, self.free, self.points, self.e = 0.0, True, None, 0.0
+        self.tick()
+
+    @property
+    def frames(self):
+        """The frames received so far — each look brings the next one, as the
+        status stream of a real client keeps arriving."""
+        self.tick(6)
+        return self._frames
+
+    @property
+    def status(self):
+        return dict(self._frames[-1][1])
+
+    def _e(self):
+        if not self.on or self.points is None:
+            return 0.0
+        m = 2 if self.defect == "method ignored" else self.method
+        v = nc.comp_reference(self.points, nc.METHODS[m], self.xy)
+        return math.trunc(v / 0.001) * 0.001
+
+    def tick(self, n=20, **over):
+        st = {**_IDLE, "g5x_index": 1, "g5x_offset": [0.0, 0.0, self.g54_z], "g92_offset": [0.0, 0.0, 0.0],
+              "rotation_xy": 0.0, "tool_offset": [0.0, 0.0, 50.0], "tool_number": 99, "eoffset_z": self.e,
+              "eoffset_enabled": self.on, "comp_method": self.method, "comp_grid_version": self.version,
+              "joint_pos": [self.xy[0], self.xy[1], -113.0 + self.e], "feed_override_enabled": self.free,
+              "current_vel": 0.0, **over}
+        for _ in range(n):
+            self.t += 0.033
+            self._frames.append((self.t, dict(st)))
+
+    def request(self, cmd, **kw):
+        self.sent.append((cmd, kw))
+        if cmd == "set_compensation":
+            self.on = kw["enable"]
+            self.e = self._e()
+        elif cmd == "set_compensation_method":
+            self.method, self.version = kw["method"], self.version + 1
+            self.e = self._e()
+        self.tick()
+        return {"ok": True}
+
+    def routine(self, text):
+        t0 = self.t
+        if text == "O<surface_scan> CALL":
+            pts = [[x, y, nc.surface_z(x, y) - nc.SURFACE_BASE + (1.0 if self.defect == "scan off" and (x, y)
+                                                                 == nr.COMP_A else 0.0)] for x, y in nc.scan_order()]
+            (self.config / nr.SCAN_FILE).write_text("".join(f"{x:g} {y:g} {z:.6f}\n" for x, y, z in pts))
+            self.tick(2)
+            self.free = False
+            self.tick(30, interp_state=2, current_vel=20.0, inpos=False)
+            self.free = self.defect == "early release"
+            self.tick(6, interp_state=2, current_vel=80.0, inpos=False)
+            self.free = True
+            self.points = pts
+            self.version += 0 if self.defect == "no reload" else 1
+        elif text.startswith(("G0 X", "G1 X")):
+            words = dict((w[0], float(w[1:])) for w in text.split()[1:])
+            keep = self.e
+            self.xy = (words["X"], words["Y"])
+            self.e = keep if (self.defect == "frozen" and text.startswith("G1")) else self._e()
+        self.tick()
+        return {"t0": t0, "t_done": self.t, "errors": [], "served": []}
+
+
+def _surface_step(monkeypatch, tmp_path, defect=None):
+    sim = SurfaceSim(tmp_path, defect)
+
+    def short(c, text):
+        if text.startswith("G10 L2 P1"):
+            sim.g54_z = float(text.split("Z")[1].split()[0])
+        if text == "M50 P1":
+            sim.free = True
+        sim.tick(2)
+    for name, fn in {"_probe_tool": lambda c: None, "_set_tool_length": lambda c, t, l: None, "_short": short,
+                     "_routine": lambda c, text, **kw: sim.routine(text), "_vars": lambda c, nums: {3014: 99.0},
+                     "_surface_fixture": lambda ctx, length: {}, "_limited": lambda ctx: False,
+                     "_comp_python_versions": lambda ctx: {}}.items():
+        monkeypatch.setattr(nr, name, fn)
+    monkeypatch.setattr(nr, "SETTLE_DEADLINE", 2.0)
+    monkeypatch.setattr(nr, "MAP_RELOAD_S", 1.0)
+    ctx = {"client": sim, "frames": sim._frames, "config": tmp_path, "report": {}, "rows": []}
+    try:
+        rows = nr.surface_cases()[1](ctx)
+        error = None
+    except nr.StepFailed as e:
+        rows, error = e.rows, str(e)
+    return {r["case"]: r for r in rows}, ctx, sim, error
+
+
+def test_the_surface_step_passes_on_a_sim_that_does_what_it_should(monkeypatch, tmp_path):
+    by, ctx, sim, error = _surface_step(monkeypatch, tmp_path)
+    assert error is None
+    assert sorted(by) == sorted(["surface-scan", "surface-scan.counter-node+1", "surface-scan.counter-xy-swapped",
+                                 "surface-override-lock", "surface-scan.map", "comp-nearest",
+                                 "comp-nearest.counter-linear", "comp-linear", "comp-linear.counter-cubic",
+                                 "comp-cubic", "comp-cubic.counter-nearest", "comp-on-off",
+                                 "comp-on-off.counter-gap+0.05", "comp-after-xy", "comp-after-xy.counter-frozen"])
+    assert all(r["status"] == "PASS" for r in by.values()), {k: r["detail"] for k, r in by.items()
+                                                             if r["status"] != "PASS"}
+    # every method switch a change, the start method (cubic) last and restored
+    methods = [kw["method"] for cmd, kw in sim.sent if cmd == "set_compensation_method"]
+    assert methods == [0, 1, 2]
+    after = ctx["report"]["surface_cleanup"]["after"]
+    assert after["eoffset_enabled"] is False and after["comp_method"] == 2 and after["g54_z"] == 0.0
+
+
+def test_the_surface_step_names_each_planted_defect(monkeypatch, tmp_path):
+    cases = {"method ignored": ("comp-nearest", "FAIL"), "frozen": ("comp-after-xy", "FAIL"),
+             "no reload": ("surface-scan.map", "FAIL"), "early release": ("surface-override-lock", "FAIL"),
+             "scan off": ("surface-scan", "FAIL")}
+    for i, (defect, (case, status)) in enumerate(cases.items()):
+        sub = tmp_path / str(i)
+        sub.mkdir()
+        by, ctx, sim, error = _surface_step(monkeypatch, sub, defect)
+        assert by[case]["status"] == status, (defect, by[case]["detail"])
+        assert ctx["report"]["surface_cleanup"]["after"]["eoffset_enabled"] is False, defect
+    # a scan that failed starts no compensation and ends the step with its rows
+    assert error and "the scan did not pass" in error and not any(k.startswith("comp-") for k in by)
+
+
+def test_the_expected_wiring_is_the_shipped_hal():
+    """surface_wiring() (what the run requires of the RUNNING HAL) is what the
+    shipped HAL files declare — writer and readers, signal by signal."""
+    sigs = {}
+    for name in ("sim_toolsetter.hal", "sim_surface.hal"):
+        for ln in (HERE.parent / "examples/sim_config/hallib" / name).read_text().splitlines():
+            w = ln.split("#", 1)[0].split()
+            if not w or w[0] != "net":
+                continue
+            s = sigs.setdefault(w[1], {"writers": [], "readers": []})
+            rest = w[2:]
+            i = rest.index("=>") if "=>" in rest else len(rest)
+            s["writers"] += rest[:i]
+            s["readers"] += rest[i + 1:]
+    for sig, (writer, readers) in nr.surface_wiring().items():
+        assert sigs[sig]["writers"] == ([writer] if writer else []), sig
+        assert readers <= set(sigs[sig]["readers"]), (sig, readers - set(sigs[sig]["readers"]))

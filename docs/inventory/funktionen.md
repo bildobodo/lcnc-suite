@@ -13,19 +13,16 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Offene Aussagen
 
-10 Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.
+7 Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.
 
 | Funktion | Aussage | Art | gilt für | Lücke |
 |---|---|---|---|---|
 | Antast-Auslösung simulieren (nur Sim) | In der Sim kommt der Puls am HAL-Pin probe-in an. | Wirkung | alle | Nativ: der HAL-Puls an probe-in in der Sim nicht belegt |
 | Referenzieren und Referenz aufheben | Home je Achse sendet den Joint seiner Achse. | Daten | 3axis_xyz, 5axis_xyzac, 6axis_twp_xyzabc | Browser: sendet die Achsposition als Joint (SetupStrip a.index) und liest homed_joints an derselben Stelle — richtig, wo Joint = Achsposition (alle ausgelieferten Konfigurationen), falsch, wo nicht (Gantry, eigene Kinematik); braucht eine Achse→Joint-Zuordnung vom Gateway |
-| Overrides: Vorschub, Eilgang, Spindel | Während des Surface-Scans meldet der Status den Feed-Override gesperrt; nach dem Ende ist er wieder freigegeben. | Wirkung | offen | nativ: der Surface-Scan-Lauf (Q282-2) |
 | Kühlmittel: Flood und Mist | Auf echtem LinuxCNC schalten Flood und Mist ihre HAL-Ausgänge. | Wirkung | offen | nativ (native Stufe) |
 | Antippen (Touch-off) und Nullen je Achse | Plane: das Remap schreibt den angetippten Wert in G54. | Wirkung | Plane | kein Test liest G54 nach dem Remap; nativ (scripts/twp_touchoff_plane_check.py, Laufbindung offen) |
 | Geschwenkte Ebene (TWP): erfassen, aufheben, neu ausrichten | Erfassen, Ausrichten und Aufheben ändern Ebene und Nullpunkt, wie die Anzeige es sagt. | Wirkung | Machine, Plane | nativ: scripts/twp_capture_check.py und twp_reorient_check.py (Laufbindung offen) |
 | Werkzeug anlegen, bearbeiten, löschen, umnummerieren | LinuxCNC übernimmt die geschriebene Tabelle. | Wirkung | alle | Nativ: das Neuladen in LinuxCNC nicht belegt |
-| Fläche abtasten (Surface-Scan) | Auf echtem LinuxCNC tastet der Scan das Raster ab und liefert die Punkte für die Kompensation. | Wirkung | 3axis_xyz | nativ (native Stufe, mit hohem Antastvorschub über die Scan-Variablen) |
-| Flächenkompensation ein/aus und Interpolation umschalten | Auf echtem LinuxCNC wirkt AN/AUS, und die drei Methoden unterscheiden sich an bekannten Punkten einer nicht ebenen Fläche. | Wirkung | 3axis_xyz | nativer Lauf offen |
 | Verbindung: Anmeldung, Herzschlag, Wiederverbindung, Auslieferung | Ein Befehl, dessen Wert die Handlung bestimmt, wird ohne diesen Wert abgelehnt: home ohne joint, set_optional_stop / set_block_delete ohne Wahrheitswert, ein Override ohne scale, spindle_forward / spindle_reverse ohne speed; wo ein Standard die sichere Richtung ist (arm ohne armed → entwaffnen), ist er ausdrücklich so entschieden. | Ablehnung | alle | Gateway: heute führt es diese Befehle mit einem Standard aus (home ohne joint referenziert alle, "false" schaltet M01 ein, ein Override ohne scale setzt 100 %); 24 finite_*(msg.get(…, Standard)) und 9 bool(msg.get(…)) sind je Befehl zu sichten, bevor ein Standard entfällt — ein eigenes Gateway-Paket (F-COMP S3 war der erste Fall); der WebUI-Client sendet jedes Feld (commandShapes.test.ts) |
 
 **Ohne formulierte Aussagen:** 18 Funktionen ohne eigene Maschinenwirkung — Programm herunterladen `F-PROGDOWNLOAD`, G-Code ansehen, aktive Codes, Codewort-Referenz, Statistik `F-GCODEVIEW`, Vorschau des Werkzeugwegs `F-PREVIEW`, Werkzeugtabelle ansehen, suchen, sortieren `F-TOOLTABLE`, Werkzeugtabelle herunterladen `F-TOOLDOWNLOAD`, Makro-Leiste einrichten `F-MACROBAR`, Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab `F-SIM`, 3D-Ansicht bedienen: Ansichten, Würfel, Spur löschen, Hinweise `F-VIEW`, 3D-Ansicht einstellen: Ebenen, Farben, Projektion, Verfolgung, HUD `F-VIEWSET`, Kamerabild (Bild im Bild) und Überlagerung `F-CAMERA`, Darstellung: Farbschema, Vollbild, Bildschirm wach halten `F-DISPLAY`, Meldungen: Nachrichtenzentrale, Filter, Kopieren, Löschen `F-MESSAGES`, Navigation: Tabs und Seitenleiste `F-TABS`, Diagnose: HAL-Anzeige, Timing, Telemetrie `F-DIAG`, Eingabehilfen: Zahlen- und Text-Tastatur am Bildschirm `F-INPUTHELP`, Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe `SYS-CONTROLS`, Statusübertragung (Rahmen und gemeinsame Felder) `SYS-STATUS`, Maschinenkonfiguration lesen: Achsen, Gelenke, Grenzen, Kinematik, Remaps, Profile `SYS-CONFIG`
@@ -158,7 +155,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Overrides: Vorschub, Eilgang, Spindel** `F-OVERRIDE` | Leiste › Overrides | 19 | 4 | 3 | 1 |
+| **Overrides: Vorschub, Eilgang, Spindel** `F-OVERRIDE` | Leiste › Overrides | 19 | 4 | 4 | 0 |
 | **Spindel von Hand: Rechts, Links, Stopp, Drehzahl** `F-SPINDLE` | Einstellungen, Leiste › Spindel | 25 | 4 | 4 | 0 |
 | **Kühlmittel: Flood und Mist** `F-COOLANT` | Leiste › Spindel | 8 | 2 | 1 | 1 |
 
@@ -170,8 +167,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: native: `native_run.py` — override-plateau-100; native: `native_run.py` — override-plateau-50; native: `native_run.py` — override-plateau.counter-75
 - **S2b (Wirkung):** Während der Messphase von M600 meldet der Status den Feed-Override gesperrt; nach dem Ende der Routine ist er wieder freigegeben (frisch empfangen, binnen 2 s). — gilt für: 3axis_xyz
   - Beleg: native: `native_run.py` — m600-t1-override-lock
-- **S2c (Wirkung):** Während des Surface-Scans meldet der Status den Feed-Override gesperrt; nach dem Ende ist er wieder freigegeben. — gilt für: offen
-  - Beleg: **offen** — Lücke: nativ: der Surface-Scan-Lauf (Q282-2)
+- **S2c (Wirkung):** Während des Surface-Scans einschließlich seiner Rückfahrt meldet der Status den Feed-Override gesperrt; nach dem Ende ist er wieder freigegeben. — gilt für: 3axis_xyz
+  - Beleg: native: `native_run.py` — surface-override-lock
 
 ### Spindel von Hand: Rechts, Links, Stopp, Drehzahl
 
@@ -398,8 +395,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 |---|---|---|---|---|---|
 | **Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut** `F-PROBE` | Tab „Probing“ | 86 | 4 | 4 | 0 |
 | **Taster kalibrieren** `F-PROBECAL` | Tab „Probing“ | 15 | 1 | 1 | 0 |
-| **Fläche abtasten (Surface-Scan)** `F-SURFACE` | Tab „Probing“ | 6 | 2 | 1 | 1 |
-| **Flächenkompensation ein/aus und Interpolation umschalten** `F-COMP` | Dialog, Tab „Probing“ | 13 | 4 | 3 | 1 |
+| **Fläche abtasten (Surface-Scan)** `F-SURFACE` | Tab „Probing“ | 6 | 2 | 2 | 0 |
+| **Flächenkompensation ein/aus und Interpolation umschalten** `F-COMP` | Dialog, Tab „Probing“ | 13 | 4 | 4 | 0 |
 
 ### Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut
 
@@ -421,8 +418,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 - **S1 (Daten):** Der Surface-Scan sendet auf ein Halten EIN mdi O<surface_scan> CALL mit den Werten des Panels in vars (ein vom Server gehaltener Wert kommt an). — gilt für: alle
   - Beleg: browser: `probe-click.spec.ts` — Surface: a held Start Scan sends O<surface_scan> CALL with the panel's numbers
-- **S2 (Wirkung):** Auf echtem LinuxCNC tastet der Scan das Raster ab und liefert die Punkte für die Kompensation. — gilt für: 3axis_xyz
-  - Beleg: **offen** — Lücke: nativ (native Stufe, mit hohem Antastvorschub über die Scan-Variablen)
+- **S2 (Wirkung):** Auf echtem LinuxCNC tastet der Scan das Raster ab und liefert die Punkte für die Kompensation: 5 × 5 Punkte auf dem gewölbten Werkstück der 3-Achs-Sim in der Schlangenfolge, jeder auf der Fläche ± 0,005 mm; danach lädt die Kompensation die neue Karte. — gilt für: 3axis_xyz
+  - Beleg: native: `native_run.py` — surface-scan; native: `native_run.py` — surface-scan.counter-node+1; native: `native_run.py` — surface-scan.counter-xy-swapped; native: `native_run.py` — surface-scan.map
 
 ### Flächenkompensation ein/aus und Interpolation umschalten
 
@@ -432,8 +429,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: browser: `compensation.spec.ts` — unread pins are never OFF or Cubic: the state reads —, no method is checked, the switch is not on; browser: `compensation.spec.ts` — a chosen method is sent once and pending; the reported one stays checked, 'Not confirmed' after 5 s
 - **S3 (Ablehnung):** Ein Umschalten, das HAL nicht zustellt, antwortet nicht ok; ein fehlender Wert schickt nichts (kein stilles AUS, kein stilles Cubic). — gilt für: alle
   - Beleg: gateway: `test_compensation.py` — test_nothing_written_is_not_sent; gateway: `test_compensation.py` — test_an_unclear_send_is_never_ok; gateway: `test_compensation.py` — test_a_missing_value_sends_nothing
-- **S4 (Wirkung):** Auf echtem LinuxCNC wirkt AN/AUS, und die drei Methoden unterscheiden sich an bekannten Punkten einer nicht ebenen Fläche. — gilt für: 3axis_xyz
-  - Beleg: **offen** — Lücke: nativer Lauf offen
+- **S4 (Wirkung):** Auf echtem LinuxCNC wirkt AN/AUS, und die drei Methoden unterscheiden sich an bekannten Punkten einer nicht ebenen Fläche: am Prüfpunkt trägt jede ihren Referenzwert aus den aufgezeichneten Punkten (± 0,002 mm), AN hält die Spitze 12 mm über dem Werkstück, AUS lässt den Offset ablaufen; nach einer XY-Verfahrt erreicht die eingeschwungene Kompensation den neuen Kartenwert. — gilt für: 3axis_xyz
+  - Beleg: native: `native_run.py` — comp-nearest; native: `native_run.py` — comp-nearest.counter-linear; native: `native_run.py` — comp-linear; native: `native_run.py` — comp-linear.counter-cubic; native: `native_run.py` — comp-cubic; native: `native_run.py` — comp-cubic.counter-nearest; native: `native_run.py` — comp-on-off; native: `native_run.py` — comp-on-off.counter-gap+0.05; native: `native_run.py` — comp-after-xy; native: `native_run.py` — comp-after-xy.counter-frozen
 
 ## Makros
 

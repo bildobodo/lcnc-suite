@@ -776,3 +776,244 @@ def eval_rfl_start_point(case: str, history, frames, entry_xy) -> dict:
                             **measured)
     return _row(case, "incomplete", "no contradiction in the received frames; the path between them needs the "
                 "servo measurement (step 2c)", **measured)
+
+
+# ── Package G2 (Codex R326): the workpiece, the scan, the compensation ─────
+
+#: the 3-axis profile's WORKPIECE (hallib/sim_surface.hal) as a LITERAL — the
+#: independent measure the scan and the compensation are held to (the HAL
+#: chain computes the same f; test_sim_toolsetter.py keeps its constants equal)
+SURFACE = {"cx": 550.0, "cy": 550.0, "half": 40.0, "c": -169.0, "a": 0.05, "b": -0.03, "k": 0.0024}
+SURFACE_BASE = -175.0        # G54 Z of the scan: the map holds deviations from it
+SCAN_AXIS = (518.0, 534.0, 550.0, 566.0, 582.0)     # 5 × 5, integer mm (the 1-mm map grid's nodes)
+SCAN_TOL = 0.005             # mm: the slow probe (50 mm/min) moves 0.8 µm per servo period
+GRID_TOL = 1e-6              # mm: X/Y of a probed point = the commanded node
+COMP_TOL = 0.002             # mm: counts × 0.001, truncated or rounded
+GAP_TOL = 0.01               # mm: the tip's distance to the surface (probe ± compensation)
+METHOD_GAP = 0.05            # mm: the reference values at the test point at least this far apart
+OFF_EOFFSET = 0.001          # mm: compensation off — the offset drained
+METHODS = ("nearest", "linear", "cubic")
+
+
+def surface_z(x: float, y: float, s: dict = SURFACE) -> float:
+    """The workpiece's height (G53) at the control point's X/Y."""
+    dx, dy = x - s["cx"], y - s["cy"]
+    return s["c"] + s["a"] * dx + s["b"] * dy - s["k"] * (dx * dx + dy * dy)
+
+
+def scan_order(xs=SCAN_AXIS, ys=SCAN_AXIS) -> list[tuple[float, float]]:
+    """surface_scan.ngc's snake: row by row in Y, X forward, then back."""
+    out = []
+    for r, y in enumerate(ys):
+        out += [(x, y) for x in (xs if r % 2 == 0 else xs[::-1])]
+    return out
+
+
+def eval_surface_scan(case: str, points, errors=(), base: float = SURFACE_BASE, expect=surface_z,
+                      tol: float = SCAN_TOL) -> dict:
+    """F-SURFACE.S2: the scan's result file holds exactly the grid, in the
+    routine's snake order, each Z = the workpiece's height there − the G54 Z
+    of the scan (the map holds deviations) ± tol. `points` = the rows read
+    from the file (None: not read)."""
+    measured = {"tol_mm": tol, "errors": list(errors)}
+    failed = _failures(errors)
+    if failed:
+        return _row(case, "FAIL", f"the routine reported: {failed[0]}", **measured)
+    if points is None:
+        return _row(case, "incomplete", "the result file not read", **measured)
+    grid = scan_order()
+    measured["points"] = len(points)
+    if len(points) != len(grid):
+        return _row(case, "FAIL", f"{len(points)} points, the grid has {len(grid)}", **measured)
+    worst = (0.0, None)
+    for i, (p, (x, y)) in enumerate(zip(points, grid)):
+        if len(p) < 3 or not _finite(*p[:3]):
+            return _row(case, "FAIL", f"point {i + 1} not three numbers: {p}", **measured)
+        if abs(p[0] - x) > GRID_TOL or abs(p[1] - y) > GRID_TOL:
+            return _row(case, "FAIL", f"point {i + 1} at X{p[0]:g} Y{p[1]:g} — the snake's is X{x:g} Y{y:g}",
+                        **measured)
+        dev = p[2] - (expect(x, y) - base)
+        if abs(dev) > abs(worst[0]):
+            worst = (dev, (x, y))
+    measured["worst_mm"] = round(worst[0], 6)
+    measured["worst_at"] = worst[1]
+    if abs(worst[0]) > tol:
+        x, y = worst[1]
+        return _row(case, "FAIL", f"Z at X{x:g} Y{y:g} off the surface by {worst[0]:+.4f} (± {tol:g})", **measured)
+    return _row(case, "PASS", f"{len(grid)} points in the snake, each on the surface within ± {tol:g}", **measured)
+
+
+def eval_map_reload(case: str, before, after) -> dict:
+    """F-SURFACE.S2 "liefert die Punkte für die Kompensation": the
+    compensation's map version (compensation.grid-version) advanced after
+    the scan's end — the gateway's DONE → reload-req → compensation.py loaded
+    the new file."""
+    measured = {"version_before": before, "version_after": after}
+    if not _finite(before, after):
+        return _row(case, "incomplete", "the map version not read", **measured)
+    if after == before:
+        return _row(case, "FAIL", "the map version did not advance after the scan", **measured)
+    return _row(case, "PASS", f"the map reloaded (version {before:g} → {after:g})", **measured)
+
+
+def comp_reference(points, method: str, q, resolution: float = 1.0) -> float:
+    """What compensation.py applies at `q` from the RECORDED points — its
+    path written out here, no product code: X/Y rounded to 0.1, the grid
+    from int(min)…int(max) at `resolution`, the node nearest to `q`,
+    scipy.interpolate.griddata there with `method`, a NaN outside the hull
+    filled by the nearest point; the value before the counts quantization."""
+    import numpy as np
+    from scipy.interpolate import griddata
+    pts = np.asarray(points, dtype=float)
+    xs, ys, zs = np.around(pts[:, 0], 1), np.around(pts[:, 1], 1), pts[:, 2]
+    gx = np.linspace(int(xs.min()), int(xs.max()), int((int(xs.max()) - int(xs.min())) / resolution) + 1)
+    gy = np.linspace(int(ys.min()), int(ys.max()), int((int(ys.max()) - int(ys.min())) / resolution) + 1)
+    node = (gx[np.argmin(np.abs(gx - q[0]))], gy[np.argmin(np.abs(gy - q[1]))])
+    v = float(griddata((xs, ys), zs, [node], method=method)[0])
+    if math.isnan(v):
+        v = float(griddata((xs, ys), zs, [node], method="nearest")[0])
+    return v
+
+
+def scipy_version() -> str:
+    import scipy
+    return scipy.__version__
+
+
+def point_z(points, x: float, y: float):
+    """A recorded point's Z at the node (x, y) — None if not recorded."""
+    return next((p[2] for p in points if abs(p[0] - x) <= GRID_TOL and abs(p[1] - y) <= GRID_TOL), None)
+
+
+def _settled_read(reading: dict, method=None, enabled=True):
+    """The common conditions of a reading: settled, finite, the method and
+    the on/off state confirmed in the frame read — None or the reason."""
+    if not reading.get("settled"):
+        return f"not settled: {reading.get('why', 'no reading')}"
+    if not _finite(reading.get("eoffset"), reading.get("joint_z")):
+        return "the offset or joint Z not read"
+    if reading.get("enabled") is not enabled:
+        return f"compensation {'on' if enabled else 'off'} not confirmed (status {reading.get('enabled')})"
+    if method is not None and reading.get("method") != METHODS.index(method):
+        return f"the method {method} not confirmed (status {reading.get('method')})"
+    if reading.get("limited") is not False:
+        return f"motion.eoffset-limited is {reading.get('limited')}"
+    return None
+
+
+def eval_comp_method(case: str, method: str, reading: dict, refs: dict, recorded: dict, f_dev: float,
+                     z_control: float, tol: float = COMP_TOL) -> dict:
+    """F-COMP.S4, one method at the test point Q on the edge (534,550)–(550,550)
+    at a quarter (Codex R326 Q326-1): the applied offset = the method's
+    reference from the recorded points (`refs`, before quantization) ± tol;
+    independently of scipy: nearest = the nearer node's recorded Z, linear =
+    0.75·z(534,550) + 0.25·z(550,550) (an axis-parallel edge of a regular grid
+    is in every Delaunay triangulation), cubic at least METHOD_GAP from linear
+    AND closer to the surface than linear; the joint Z minus the offset = the
+    commanded control point. Reference values closer than METHOD_GAP leave
+    the test point unfit: incomplete — unless the measured value already
+    contradicts one."""
+    e = reading.get("eoffset")
+    measured = {"method": method, "eoffset": e, "joint_z": reading.get("joint_z"), "z_control": z_control,
+                "refs": {k: round(v, 6) for k, v in refs.items()}, "recorded": recorded, "f_dev": round(f_dev, 6),
+                "tol_mm": tol, "reading": reading}
+    why = _settled_read(reading, method)
+    if why:
+        return _row(case, "incomplete", why, **measured)
+    if abs((reading["joint_z"] - e) - z_control) > tol:
+        return _row(case, "FAIL", f"joint Z − offset {reading['joint_z'] - e:.4f}, commanded {z_control:g}",
+                    **measured)
+    if abs(e - refs[method]) > tol:
+        return _row(case, "FAIL", f"offset {e:.4f}, the {method} reference {refs[method]:.4f} ± {tol:g}", **measured)
+    z0, z1 = recorded.get("near"), recorded.get("far")
+    if not _finite(z0, z1):
+        return _row(case, "incomplete", "the edge's recorded points not read", **measured)
+    if method == "nearest" and abs(e - z0) > tol:
+        return _row(case, "FAIL", f"nearest {e:.4f} is not the nearer node's {z0:.4f}", **measured)
+    if method == "linear" and abs(e - (0.75 * z0 + 0.25 * z1)) > tol:
+        return _row(case, "FAIL", f"linear {e:.4f} is not 0.75·{z0:.4f} + 0.25·{z1:.4f}", **measured)
+    if method == "cubic":
+        lin = 0.75 * z0 + 0.25 * z1
+        if abs(e - lin) < METHOD_GAP:
+            return _row(case, "FAIL", f"cubic {e:.4f} within {METHOD_GAP:g} of linear {lin:.4f}", **measured)
+        if abs(e - f_dev) >= abs(lin - f_dev):
+            return _row(case, "FAIL", f"cubic {e:.4f} not closer to the surface {f_dev:.4f} than linear {lin:.4f}",
+                        **measured)
+    gaps = [abs(refs[a] - refs[b]) for i, a in enumerate(METHODS) for b in METHODS[i + 1:]]
+    measured["min_ref_gap_mm"] = round(min(gaps), 6)
+    if min(gaps) < METHOD_GAP:
+        return _row(case, "incomplete", f"the references lie {min(gaps):.4f} apart (< {METHOD_GAP:g}): the test "
+                    "point does not tell the methods apart", **measured)
+    return _row(case, "PASS", f"{method}: offset {e:.4f} = the reference within ± {tol:g}", **measured)
+
+
+def eval_comp_reading(case: str, reading: dict, enabled: bool, map_z, gap_expected: float, z_control: float,
+                      length: float, at, gap_tol: float = GAP_TOL, tol: float = COMP_TOL) -> dict:
+    """F-COMP.S4 ON/OFF at a node (Codex R326): ON — the offset = the node's
+    recorded Z ± tol; OFF — drained (|offset| < OFF_EOFFSET). Either way the
+    joint Z minus the offset = the commanded control point, and the tip's
+    distance to the workpiece (joint Z − length − f) = `gap_expected` ± gap_tol."""
+    e = reading.get("eoffset")
+    measured = {"enabled": enabled, "at": list(at), "eoffset": e, "joint_z": reading.get("joint_z"),
+                "map_z": map_z, "gap_expected": gap_expected, "z_control": z_control, "reading": reading}
+    why = _settled_read(reading, enabled=enabled)
+    if why:
+        return _row(case, "incomplete", why, **measured)
+    if abs((reading["joint_z"] - e) - z_control) > tol:
+        return _row(case, "FAIL", f"joint Z − offset {reading['joint_z'] - e:.4f}, commanded {z_control:g}",
+                    **measured)
+    if enabled:
+        if not _finite(map_z):
+            return _row(case, "incomplete", "the node's recorded Z not read", **measured)
+        if abs(e - map_z) > tol:
+            return _row(case, "FAIL", f"offset {e:.4f}, the node's map value {map_z:.4f} ± {tol:g}", **measured)
+    elif abs(e) >= OFF_EOFFSET:
+        return _row(case, "FAIL", f"compensation off but the offset is {e:.4f}", **measured)
+    gap = reading["joint_z"] - length - surface_z(*at)
+    measured["gap_mm"] = round(gap, 6)
+    if abs(gap - gap_expected) > gap_tol:
+        return _row(case, "FAIL", f"the tip stands {gap:.4f} above the workpiece, expected {gap_expected:.4f}",
+                    **measured)
+    return _row(case, "PASS", f"{'on' if enabled else 'off'}: the tip {gap:.4f} above the workpiece", **measured)
+
+
+def eval_comp_pair(case: str, on: dict, off: dict) -> dict:
+    """Two readings at one place (ON and OFF, or before and after an XY move)
+    as ONE row: PASS only with both."""
+    for want in ("FAIL", "incomplete"):
+        r = next((r for r in (on, off) if r["status"] == want), None)
+        if r is not None:
+            return {**_row(case, want, r["detail"]), "readings": [on, off]}
+    return {**_row(case, "PASS", f"{on['detail']}; {off['detail']}"), "readings": [on, off]}
+
+
+SETTLE_S, SETTLE_TOL, SETTLE_GAP_S = 0.5, 0.0005, 0.2
+
+
+def settled_window(frames: list[tuple], cond, span: float = SETTLE_S, tol: float = SETTLE_TOL,
+                   gap: float = SETTLE_GAP_S):
+    """The newest frames as a SETTLED reading (Codex R326): fresh frames — at
+    most `gap` s apart — covering `span` s back from the newest, each with
+    `cond` true, a finite offset and joint Z within `tol` of the newest's and
+    the same map version. None otherwise: missing frames are no standstill."""
+    if not frames:
+        return None
+
+    def vals(st):
+        jp = st.get("joint_pos") or []
+        return st.get("eoffset_z"), (jp[2] if len(jp) > 2 else None), st.get("comp_grid_version")
+    t_last, last = frames[-1]
+    e1, z1, v1 = vals(last)
+    if not (_finite(e1, z1) and cond(last)):
+        return None
+    t_prev = t_last
+    for t, st in reversed(frames):
+        if t_prev - t > gap:
+            return None
+        e, z, v = vals(st)
+        if not (cond(st) and _finite(e, z) and abs(e - e1) <= tol and abs(z - z1) <= tol and v == v1):
+            return None
+        if t_last - t >= span:
+            return {"t_from": t, "t_to": t_last, "status": last}
+        t_prev = t
+    return None

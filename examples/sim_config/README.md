@@ -110,6 +110,33 @@ also the next measurement's starting length and the error ADDS UP: a Z set
 `scripts/config_sync_check.py` reports a component that is not installed, with
 the `halcompile` command.
 
+
+### The 3-axis workpiece (surface scan and compensation)
+
+The 3 Axis XYZ profile also has a **workpiece**: a curved second contact surface
+for the surface scan and the compensation methods (`hallib/sim_surface.hal`,
+sourced only by `core_sim_3.hal`). It is the second instance of the same
+component (`loadrt sim_toolsetter count=2`, instance 1) — no reinstall: its
+window is ±40 mm around X550 Y550 (G53) and its height is not a constant but a
+chain of stock realtime components (`sum2`, `mult2`) computing, in the servo
+thread from the joint X/Y,
+
+    f(x, y) = −169 + 0.05·(x − 550) − 0.03·(y − 550) − 0.0024·((x − 550)² + (y − 550)²)
+
+a tilted paraboloid: 6 mm above the base −175 at the centre, its crest
+6.354 mm at (560.42, 543.75). The chain runs after the motion controller and
+before instance 1, which runs before instance 0: a contact reaches
+`motion.probe-input` in the next servo period, and the manual trip passes
+through both instances in every profile (in the 5- and 6-axis profiles
+instance 1 is never enabled and only passes the trip on).
+
+Like the plate, the workpiece is physical: a jog or an MDI move taking the tool
+tip below it inside its window trips "Probe tripped during …". No shipped tool
+reaches it from the top of Z. The 3D view does not draw it. The native stage
+(`scripts/native_run.py`, step `surface`) scans it 5 × 5 over X/Y 518…582
+with G54 Z at the base and checks the scan, the override lock and each
+compensation method against this formula.
+
 ## Updating existing installations
 
 The installer renames the old 3-axis and gantry INIs and carries over their
