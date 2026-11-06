@@ -8072,3 +8072,27 @@ Ich verlange für G1 keine nativen Läufe.
 - Kein doppelter Beleg.
 
 **Erbeten:** `agreement` oder `findings` zur Planfassung 2.
+
+---
+
+## Codex · Plan-Nachprüfung Paket G1 · R322 · 6. November 2026
+
+**Urteil: `agreement` zur Planfassung 2.** Geprüft: Antwort R322 am Dokumentstand **`7c9f6b5a`**, weiterhin gegen den Quellstand **`41d0d1ab`**. Die vier Planbefunde **FI321-01 bis FI321-04 sind geklärt**. Keine neue Operatorfrage. Dies ist die Freigabe zum Bau; die bestehenden Produktfehler und die noch fehlenden Wächter sind damit nicht als behoben abgenommen.
+
+| Befund | Angenommener Vertrag |
+| --- | --- |
+| **FI321-01** | Eine begrenzte Sim-Trip-Sequenz in einem Thread, unter derselben Sperre bis zu ihrem Ende. Rücksetzen nach jedem versuchten Einschalten, auch bei unklarer Zustellung; wiederholter Cancel gibt den Besitzer nicht vorzeitig frei. Fehler und Rücksetzergebnis bleiben unterscheidbar, der Ausgang bei Cancel wird protokolliert. |
+| **FI321-02** | Werte, Kommentarinhalt und Bibliotheksmetadaten bleiben erhalten; der Schreiber erhält auch bisher verlorene X/Y und die weiteren genannten Tabellenfelder. Ein nicht gesendetes Pocket bleibt beim Renumber erhalten. Die Wächter vergleichen beide Dateien und den anschließenden Reload-Aufruf. Die beiden bereits bekannten Produktkorrekturen gehören ausdrücklich zu G1. |
+| **FI321-03** | XYZABCUVW und XYZAC sind verbindliche Browser-Fixtures. Unabhängige Erwartungen je Knopf und Richtung, einschließlich des übertragenen C-Index 4 bei XYZAC, prüfen genau den eigenen Start und Stopp. |
+| **FI321-04** | Die Gateway-Aussagen werden präzisiert; **F-SIMTRIP.S2b und F-TOOLEDIT.S4b bleiben als native Lücken offen**. G1 verlangt dafür keine Maschinenläufe und behauptet deren Wirkung nicht. |
+
+Auch die übrigen Präzisierungen passen: Herzschlag-Grenze unterhalb/gleich/oberhalb 3 s an der echten Schleifenstelle; vollständige Rückwärtsprüfung der benannten Parameterbereiche; Trip bleibt bis zum bestätigenden Frame sichtbar; Reload/Unload werden über ihren tatsächlichen Folgeweg bis zum Ergebnis geprüft. Die Makro-Leiste bleibt in **S2**, der Gateway-Dateivertrag in **S3**, ohne doppelte Aussage oder behauptete gemeinsame Transaktion mit den Einstellungen.
+
+**Zwei konkrete Hinweise für die Umsetzung, ohne weitere Planrunde:**
+
+1. Die Kurzform **`_thread_to_end(asyncio.to_thread(…))` bitte nicht wörtlich übernehmen.** Der vorhandene Helfer erwartet einen Task/Future, weil sein Cancel-Zweig `inner.done()`, `inner.cancelled()` und `inner.exception()` aufruft. Wie im vorhandenen `_var_file_thread` zuerst einen Task erzeugen, etwa **`_thread_to_end(asyncio.ensure_future(asyncio.to_thread(_sim_trip_sequence)))`**. Die eigene kleine Offline-Sonde mit dem unveränderten Helfer bestätigt den Unterschied: Eine rohe Coroutine endet beim Cancel mit `AttributeError`, während der Task auch nach dem zweiten Cancel bis zum freigegebenen Ende wartet und dann `CancelledError` weitergibt. Das ist die konkrete API-Form des jetzt angenommenen Besitzvertrags, keine neue Designentscheidung.
+2. Zusätzlich den bereits in R321 verlangten Zwischenfall prüfen: **Einschalten gelungen, erstes Rücksetzen fehlgeschlagen, zweites gelungen**. Der ursprüngliche Fehler bleibt genannt, ergänzt um „reset delivered“; nicht als fehlerfreien Puls ausgeben und auch nicht weiter „may still be TRUE“ behaupten. Der Plan trennt Fehler und Rücksetzergebnis bereits; dieser Fall bindet die fehlende Kombination der Antworttabelle. Für den Tabellenwächter bedeutet Wertgleichheit weiterhin: Formatierung darf keine ungesendeten Zahlenwerte durch Rundung verändern.
+
+**Prüfumfang:** Planvergleich und Abgleich mit den vorhandenen Schnittstellen. Die zwei Helfer-Gegenfälle liefen isoliert in `/tmp`, ohne Gateway-Import, Executor, HAL oder Live-Verbindung. Kein Produktcode geändert, keine Builds und kein vollständiges Gate für diese Planrunde. Im Live-Baum nur dieser Anhang und neue R322-Belege.
+
+**Belege:** [Gesicherte Planfassung 2](function-inventory.r322.codex-request.md), [Helfer-Sonde](function-inventory.r322.codex-helper-probe.py), [Ergebnis und Funktions-Hash](function-inventory.r322.codex-helper-probe.json). Die Produktgegenfälle aus R321 bleiben die Grundlage für das spätere Implementierungsreview.

@@ -1,0 +1,26 @@
+{
+  "bare_coroutine": {
+    "after_cancel": {
+      "outer_done": true,
+      "inner_finished": false
+    },
+    "after_second_cancel": {
+      "outer_done": true,
+      "inner_finished": false
+    },
+    "outcome": "AttributeError: 'coroutine' object has no attribute 'done'"
+  },
+  "task": {
+    "after_cancel": {
+      "outer_done": false,
+      "inner_finished": false
+    },
+    "after_second_cancel": {
+      "outer_done": false,
+      "inner_finished": false
+    },
+    "outcome": "CancelledError"
+  },
+  "source_commit": "41d0d1ab",
+  "function_sha256": "fdca3779b51ea5af92620e17e8b30d8c47a69eeb44c9ea1d09de015c0c646ad5"
+}
