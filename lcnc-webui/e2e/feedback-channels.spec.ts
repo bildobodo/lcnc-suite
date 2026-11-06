@@ -292,7 +292,7 @@ test("a safety trip: the banner with Acknowledge; the click sends the ack, the t
   await expect(banner).not.toContainText("SAFETY TRIPPED");
   await expect(ack).toHaveCount(0);
 
-  const trip = { type: "status_delta", armed: true, data: {}, safety_trip: { reason: "hb_timeout" } };
+  const trip = { type: "status_delta", armed: true, data: {}, safety_trip: { reason: "hal_heartbeat_timeout", id: "e2e0001-1" } };
   await ctl({ op: "raw", frame: trip });
   await expect(banner.locator(".bannerError")).toContainText("SAFETY TRIPPED");
   await ack.click();
@@ -308,11 +308,50 @@ test("a safety trip: the banner with Acknowledge; the click sends the ack, the t
   await ctl({ op: "raw", frame: trip });
   await expect(banner.locator(".bannerError")).toContainText("SAFETY TRIPPED");
   await expect(ack).toBeVisible();
-  // the status without it confirms: gone
-  await ctl({ op: "raw", frame: { type: "status_delta", armed: true, data: {} } });
+  // the status without it, carrying the gateway's confirmed acknowledgement: gone
+  const confirmed = { type: "status_delta", armed: true, data: {}, safety_trip_acked: { id: "e2e0001-1" } };
+  await ctl({ op: "raw", frame: confirmed });
   await expect(banner).not.toContainText("SAFETY TRIPPED");
   await expect(ack).toHaveCount(0);
   expect(await acts(), "one acknowledgement, nothing else").toEqual(["safety_trip_ack"]);
+});
+
+test("a safety trip and its confirmed acknowledgement each stand ONCE in the message center (operator Q323-1)", async ({ page }) => {
+  await openReady(page);
+  const banner = page.locator(".bannerContent");
+  const center = page.getByRole("dialog", { name: /^Messages/ });
+  const entries = async () => {
+    await page.getByTitle(/^Messages \(\d+\)$/).click();
+    await expect(center).toBeVisible();
+    const texts = (await center.locator("tbody td.msgText").allTextContents()).filter(t => t.startsWith("Safety trip"));
+    await page.getByRole("button", { name: "Close messages", exact: true }).click();
+    await expect(center).toHaveCount(0);
+    return texts.sort();
+  };
+  const TRIPPED = "Safety trip — gateway heartbeat to HAL watchdog lost";
+  const trip = { type: "status_delta", armed: true, data: {}, safety_trip: { reason: "hal_heartbeat_timeout", id: "e2e0002-1" } };
+  for (let i = 0; i < 3; i++) await ctl({ op: "raw", frame: trip });
+  await expect(banner.locator(".bannerError")).toContainText("SAFETY TRIPPED");
+  expect(await entries(), "one entry, however many frames carry the trip").toEqual([TRIPPED]);
+  // the click and the gateway's reply are no confirmation: no entry yet
+  await page.locator(".bannerActions").getByRole("button", { name: "Acknowledge", exact: true }).click();
+  await ctl({ op: "raw", frame: { type: "reply", ok: true } });
+  await ctl({ op: "raw", frame: trip });
+  expect(await entries(), "not before the gateway confirms").toEqual([TRIPPED]);
+  // a status that merely lacks the trip (a restarted gateway) is no acknowledgement
+  await ctl({ op: "raw", frame: { type: "status_delta", armed: true, data: {} } });
+  await expect(banner).not.toContainText("SAFETY TRIPPED");
+  expect(await entries(), "the trip's absence confirms nothing").toEqual([TRIPPED]);
+  for (let i = 0; i < 3; i++) {
+    await ctl({ op: "raw", frame: { type: "status_delta", armed: true, data: {}, safety_trip_acked: { id: "e2e0002-1" } } });
+  }
+  await expect.poll(entries, { message: "the confirmed acknowledgement, once" })
+    .toEqual(["Safety trip acknowledged", TRIPPED].sort());
+  // after a reload the history keeps both and the frames add nothing
+  await page.reload();
+  await expect(page.locator(".safetyStrip")).toBeVisible();
+  await ctl({ op: "raw", frame: { type: "status_delta", armed: true, data: {}, safety_trip_acked: { id: "e2e0002-1" } } });
+  expect(await entries(), "kept across a reload, none twice").toEqual(["Safety trip acknowledged", TRIPPED].sort());
 });
 
 test("a program the gateway cannot confirm after a restart is named, not loaded — Load resolves it (Codex R16 XZ-08)", async ({ page }) => {

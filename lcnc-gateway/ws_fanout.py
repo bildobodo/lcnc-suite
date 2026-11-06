@@ -168,6 +168,7 @@ def build_status_envelope(
     clients_list: Any,
     armed: bool,
     safety_trip: Optional[dict] = None,
+    safety_trip_acked: Optional[dict] = None,
     reader_stale: bool = False,
     safety_chain: Optional[str] = None,
     config_warning: Optional[dict] = None,
@@ -196,6 +197,10 @@ def build_status_envelope(
     }
     if safety_trip is not None:
         msg["safety_trip"] = safety_trip
+    if safety_trip_acked is not None:
+        # the last confirmed acknowledgement ({"id"}) — what a client records
+        # as acknowledged (operator Q323-1), never a trip's mere absence
+        msg["safety_trip_acked"] = safety_trip_acked
     if reader_stale:
         msg["reader_stale"] = True
     if safety_chain is not None:

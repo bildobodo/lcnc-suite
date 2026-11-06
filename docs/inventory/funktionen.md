@@ -4,7 +4,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Vollständigkeit der Quellen
 
-- **Quellen vollständig erfasst:** ja (1146 Atome in 17 Quellen)
+- **Quellen vollständig erfasst:** ja (1147 Atome in 17 Quellen)
 - **Ungelöste Stellen:** 0
 - **Ausgeschlossen (außerhalb der Grenze, mit Grund):** 1
 - **Familien mit offenen Varianten:** 44 — das Atom steht, seine Varianten sind nicht einzeln abgeleitet
@@ -13,11 +13,10 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Offene Aussagen
 
-11 Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.
+10 Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.
 
 | Funktion | Aussage | Art | gilt für | Lücke |
 |---|---|---|---|---|
-| Sicherheits-Auslösung quittieren, Sicherheitskette | Das Meldungszentrum verzeichnet eine Auslösung und ihre Quittung. | Bedienbarkeit | alle | Offen: Frage an den Betreiber (Q323-1), ob das Meldungszentrum sie verzeichnen soll; heute nur Banner und Trace |
 | Antast-Auslösung simulieren (nur Sim) | In der Sim kommt der Puls am HAL-Pin probe-in an. | Wirkung | alle | Nativ: der HAL-Puls an probe-in in der Sim nicht belegt |
 | Referenzieren und Referenz aufheben | Home je Achse sendet den Joint seiner Achse. | Daten | 3axis_xyz, 5axis_xyzac, 6axis_twp_xyzabc | Browser: sendet die Achsposition als Joint (SetupStrip a.index) und liest homed_joints an derselben Stelle — richtig, wo Joint = Achsposition (alle ausgelieferten Konfigurationen), falsch, wo nicht (Gantry, eigene Kinematik); braucht eine Achse→Joint-Zuordnung vom Gateway |
 | Overrides: Vorschub, Eilgang, Spindel | Während des Surface-Scans meldet der Status den Feed-Override gesperrt; nach dem Ende ist er wieder freigegeben. | Wirkung | offen | nativ: der Surface-Scan-Lauf (Q282-2) |
@@ -37,7 +36,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 |---|---|---|---|---|---|
 | **Freigeben (Arm) und Sperren** `F-ARM` | Einstellungen, Leiste › Sicherheit | 6 | 4 | 4 | 0 |
 | **Not-Halt auslösen und zurücksetzen** `F-ESTOP` | Leiste › Sicherheit | 6 | 5 | 5 | 0 |
-| **Sicherheits-Auslösung quittieren, Sicherheitskette** `F-TRIP` | Banner | 6 | 4 | 3 | 1 |
+| **Sicherheits-Auslösung quittieren, Sicherheitskette** `F-TRIP` | Banner | 7 | 4 | 4 | 0 |
 | **Maschine ein und aus** `F-POWER` | Leiste › Sicherheit | 6 | 1 | 1 | 0 |
 | **Abbrechen (Abort)** `F-ABORT` | Banner, Makro-Leiste, Tab „Macros“, Tab „Probing“, Tab „Program“, Tab-Kopf (Abort) | 9 | 1 | 1 | 0 |
 | **Betriebsart: Manuell, MDI, Automatik** `F-MODE` | Leiste › Jog | 4 | 1 | 1 | 0 |
@@ -74,10 +73,10 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: gateway: `test_gateway_util.py` — test_sustained_latch_banners_only_once; gateway: `test_gateway_util.py` — test_boot_faulted_does_not_banner
 - **S1b (Bedienbarkeit):** Eine gemeldete Auslösung erscheint im Banner mit Quittieren; der Klick sendet die Quittung, und die Auslösung bleibt sichtbar, bis ein Status ohne sie kommt. — gilt für: alle
   - Beleg: browser: `feedback-channels.spec.ts` — a safety trip: the banner with Acknowledge; the click sends the ack, the trip stays until a status without it (F-TRIP.S1b)
-- **S1c (Daten):** Das Gateway protokolliert Auslösung und Quittung im Trace (safety.tripped einmal mit dem Forensik-Bündel, safety.trip_acknowledged mit dem Client); nach der Quittung trägt kein Status die Auslösung mehr, der noch gesetzte Latch löst keine zweite aus. — gilt für: alle
+- **S1c (Daten):** Das Gateway protokolliert Auslösung und Quittung im Trace (safety.tripped einmal mit dem Forensik-Bündel, safety.trip_acknowledged mit Client und Trip-Id); jede Auslösung trägt ihre Id, nach der Quittung trägt jeder Status safety_trip_acked mit dieser Id und keine Auslösung mehr, der noch gesetzte Latch löst keine zweite aus. — gilt für: alle
   - Beleg: gateway: `test_trip_trace.py` — test_trip_and_ack_along_the_poller_and_the_reader
-- **S1d (Bedienbarkeit):** Das Meldungszentrum verzeichnet eine Auslösung und ihre Quittung. — gilt für: alle
-  - Beleg: **offen** — Lücke: Offen: Frage an den Betreiber (Q323-1), ob das Meldungszentrum sie verzeichnen soll; heute nur Banner und Trace
+- **S1d (Bedienbarkeit):** Das Meldungszentrum verzeichnet eine Auslösung und ihre bestätigte Quittung je einmal, nach ihrer Id: wiederholte Frames, der Klick, das bloße Fehlen der Auslösung und ein Neuladen fügen nichts hinzu (Betreiber Q323-1). — gilt für: alle
+  - Beleg: browser: `feedback-channels.spec.ts` — a safety trip and its confirmed acknowledgement each stand ONCE in the message center (operator Q323-1); unit: `ws/statusStore.test.ts` — one entry per trip and one per confirmed acknowledgement, whatever the frames repeat; unit: `ws/statusStore.test.ts` — an acknowledgement of a trip this tab did not record is not recorded; unit: `ws/statusStore.test.ts` — a cleared history in this page records the same trip no second time; unit: `ws/statusStore.test.ts` — a reload finds the events in the history and records none twice; gateway: `test_ws_fanout.py` — test_safety_trip_acked_attached_only_when_present
 
 ### Maschine ein und aus
 

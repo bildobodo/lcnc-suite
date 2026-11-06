@@ -1300,7 +1300,17 @@ _halshow_topology_cache: Optional[dict] = None  # built-once HAL graph (P5); HAL
 # good baseline (issue #34). Broadcast to all clients in every status message
 # until a client sends {cmd:"safety_trip_ack"}. Lives server-side (not per-client)
 # so reload / multi-tab all see the same trip.
-_unacked_trip: Optional[dict] = None  # {"reason": str}
+_unacked_trip: Optional[dict] = None  # {"reason": str, "id": str}
+# Each trip's identity (operator Q323-1, Codex R323): the message center
+# records a trip and its confirmed acknowledgement ONCE — repeated frames, a
+# reload and a reconnect must not add another entry, so a client keys them by
+# this id. The epoch makes ids of a restarted gateway new ones.
+_TRIP_EPOCH = os.urandom(4).hex()
+_trip_seq = 0
+# The last CONFIRMED acknowledgement ({"id": the trip's id}), on every status
+# frame until the next one: what a client records as acknowledged — never the
+# mere absence of a trip, which a gateway restart produces too.
+_last_trip_ack: Optional[dict] = None
 _last_fault_latched: Optional[bool] = None  # webui-hb-latch.fault-out at last poll
 _trip_baseline_seen: bool = False  # have we ever seen the latch clear (FALSE)?
 
@@ -1990,7 +2000,7 @@ async def _status_poller():
             # is a pure state machine (unit-tested in gateway_util) that edge-
             # detects a clean FALSE→TRUE only after a known-good baseline, so a
             # boot-faulted latch doesn't spuriously banner.
-            global _last_fault_latched, _trip_baseline_seen, _unacked_trip
+            global _last_fault_latched, _trip_baseline_seen, _unacked_trip, _trip_seq
             _tl = evaluate_trip_latch(
                 _reader_get("trip_latched"), _last_fault_latched, _trip_baseline_seen
             )
@@ -2006,8 +2016,9 @@ async def _status_poller():
                 # which doesn't run when no clients are connected, so "when the
                 # gateway noticed" != "when the trip happened" and would mislead
                 # operators. Drop it; the trace event below carries its own ts.
-                _unacked_trip = {"reason": "hal_heartbeat_timeout"}
-                _trace.emit("safety.tripped", level="error")
+                _trip_seq += 1
+                _unacked_trip = {"reason": "hal_heartbeat_timeout", "id": f"{_TRIP_EPOCH}-{_trip_seq}"}
+                _trace.emit("safety.tripped", level="error", trip_id=_unacked_trip["id"])
                 # Auto-snapshot the trace bus into a forensic bundle so the trip
                 # is reconstructable end-to-end without operator action. Run in
                 # to_thread so the bundler subprocess can't block the asyncio
@@ -9844,7 +9855,7 @@ async def ws_endpoint(ws: WebSocket):
             _trace.emit("ws.auth_rejected", level="warn", peer=_peer_of(ws), reason="token")
             await ws.close(code=1008)
             return
-        global _next_client_id, _estop_hold, _unacked_trip
+        global _next_client_id, _estop_hold, _unacked_trip, _last_trip_ack
         global _last_fault_latched, _trip_baseline_seen
         client_id = _next_client_id
         _next_client_id += 1
@@ -10114,6 +10125,7 @@ async def ws_endpoint(ws: WebSocket):
                         clients_list=_shared_clients_list,
                         armed=client.armed,
                         safety_trip=_unacked_trip,
+                        safety_trip_acked=_last_trip_ack,
                         reader_stale=_reader_is_stale(),
                         safety_chain=_safety_chain_reason(),
                         preview_refresh=_bulk.preview_refresh_status(),
@@ -10676,10 +10688,13 @@ async def ws_endpoint(ws: WebSocket):
                 # clean FALSE→TRUE transition, the still-TRUE level after this ack
                 # produces no edge and the ack sticks; a genuinely new trip
                 # (latch reset → FALSE, then TRUE again) still fires.
+                acked = _unacked_trip["id"] if _unacked_trip is not None else None
+                if acked is not None:
+                    _last_trip_ack = {"id": acked}
                 _unacked_trip = None
                 # Audit: without this, an acknowledged trip is invisible in the
                 # trace — an armed client after a trip looks like a gate bypass.
-                _trace.emit("safety.trip_acknowledged", client_id=client_id)
+                _trace.emit("safety.trip_acknowledged", client_id=client_id, trip_id=acked)
                 await ws_send_json(ws, {"type": "reply", "ok": True})
                 continue
 

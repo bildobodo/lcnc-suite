@@ -51,7 +51,7 @@ export const serverShuttingDown = ref(false);
 // ---------- Barrel re-exports (the stable consumer surface) ----------
 // Status stream, message center, timing stats (split out, A1.5).
 export {
-  status, lcncError, safetyTrip, readerStale, safetyChainIncomplete, configWarning,
+  status, lcncError, safetyTrip, tripReasonLabel, readerStale, safetyChainIncomplete, configWarning,
   previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, type PreviewRefresh,
   previewTableStale, previewBasisPending, previewOrigin, runBasis, statusReceiptOf,
   latency, networkLatency, timingStats, messages, unreadCount,

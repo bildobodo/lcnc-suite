@@ -26,6 +26,11 @@ class TestBuildStatusEnvelope(unittest.TestCase):
         self.assertEqual(msg["type"], "status")
         self.assertTrue(msg["armed"])
 
+    def test_safety_trip_acked_attached_only_when_present(self):
+        ack = {"id": "0a1b2c3d-1"}
+        self.assertIs(build_status_envelope(**self.BASE, safety_trip_acked=ack)["safety_trip_acked"], ack)
+        self.assertNotIn("safety_trip_acked", build_status_envelope(**self.BASE))
+
     def test_safety_trip_attached_only_when_present(self):
         trip = {"ts_ns": 123, "reason": "hb"}
         msg = build_status_envelope(**self.BASE, safety_trip=trip)

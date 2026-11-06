@@ -8,7 +8,7 @@ import { semanticKinsMode } from "./viewer/kins";
 import { runLineState, subExecState, resolveCurrentLine } from "./trackHighlight";
 import { clearSubfileCache } from "./lcncApi";
 import { mainLinesTrusted, type ScrubTrack } from "./viewer/scrubTrack";
-import { connectWs, connected, status, send, request, armed, lastReply, viewerGcode, viewerInit, gcodeContent, gcodeRevision, gcodeTextRevision, gcodeTextSource, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, previewRefusal, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, serverShuttingDown } from "./lcncWs";
+import { connectWs, connected, status, send, request, armed, lastReply, viewerGcode, viewerInit, gcodeContent, gcodeRevision, gcodeTextRevision, gcodeTextSource, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, tripReasonLabel, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, previewRefusal, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, serverShuttingDown } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
 // chunk after first paint instead of blocking the initial bundle (P6). The viewerRef
 // methods are all `?.`-guarded, so calls during the brief load gap safely no-op.
@@ -203,13 +203,8 @@ const STATE_COLORS: Record<MachineStateKey, string> = {
   paused: '--state-warn',
   idle: '--state-ok',
 };
-// Human labels for gateway trip reason codes (status_msg.safety_trip.reason).
-// Unknown codes fall through verbatim — never mask a reason we can't name.
-const TRIP_REASON_LABELS: Record<string, string> = {
-  hal_heartbeat_timeout: 'gateway heartbeat to HAL watchdog lost',
-};
-const safetyTripReasonLabel = computed(() =>
-  safetyTrip.value ? (TRIP_REASON_LABELS[safetyTrip.value.reason] ?? safetyTrip.value.reason) : '');
+// The trip's reason in words — the same as its message-center entry.
+const safetyTripReasonLabel = computed(() => safetyTrip.value ? tripReasonLabel(safetyTrip.value.reason) : '');
 
 // ONE banner line for the machine/system conditions (design wave D1,
 // UI-N23/N24/N26): the state and its one recovery verb on the line, the
