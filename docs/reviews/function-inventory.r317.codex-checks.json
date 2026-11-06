@@ -1,0 +1,71 @@
+{
+  "review": "R317",
+  "verdict": "findings",
+  "date": "2026-11-06",
+  "live_document_head": "3fc8e8d7ddeb4858f13f02d7eb5a2333da57ead9",
+  "base": "6f90c07264d0dd0d806df84821051a533d54bc17",
+  "implementation": "33630f93be60031032b57a4f4eb1ed23bd458e7b",
+  "archive": "/tmp/codex-r317",
+  "review_prefix": {
+    "bytes": 795606,
+    "sha256": "006189edf59526cafc56212ad24d2cc974380d7a70cd337d309211f6cee63946"
+  },
+  "append_line": 7423,
+  "append_sha256": "e9975d8d666c67e7a7a527a75444cb69ee1cf467a2078ce672bdb0ffb3a316b0",
+  "archive_matches_commit_for_all_changed_paths": true,
+  "source_sha256": {
+    "docs/decisions.md": "f49dd9667c3ba6c04ab6e2bd85e7d0e42363d0624369e5b5c5578669310401af",
+    "docs/inventory/funktionen.md": "b288424ba5279cd11e756420b7688e7e813def8caee9cb13d6f8c1fe8b79a85b",
+    "docs/testing.md": "6263b88e43c255d4a3e6927b253121763d4a54df5ff7b1641169d37b098cdef3",
+    "scripts/inventory/functions.json": "1bb5e66e20b9183d973094eac67ef2d551a5002718e5ab7066851a6a59d65ea1",
+    "scripts/native_run.py": "eb502e52e1bce3137cdddfd2f228d496d24feb25323f4f066bb8db9fdf7a4590",
+    "scripts/test_native_stage.py": "fa11d68cca3762025ac90cdf8b4abee553029336b9b0ece273a80af1036c8129",
+    "scripts/test_support/live_session.py": "6a0c648da7ce7b20e31f42f27d38044ee9b6b11656e0bedc6dc88a159bc1ff40",
+    "scripts/test_support/proto_client.py": "d06d67a19690dbf88a20134c9d57c8350132beb065a8e1e5b63902ab4861ef68",
+    "scripts/test_support/restore_lan.py": "a24c3fb11a228ede64561afae554b4d4680dbcfa7a05e7aa02b401b959c2dcaf",
+    "scripts/test_support/servo.py": "3b2da00013bce4c70208c79c70a7b318f4732e32aa7b43d8a577c3a6f0aa961e",
+    "scripts/test_support/servo_cases.py": "36d47881b1954515ad8ee1c6c880c9d983965282cb436ab4651f3ac85249fbdb",
+    "scripts/test_support/servo_time.py": "8a7e42bd8901f4fac8c6c7fb3657a40247a359d1fd9dc889a4793b0537285246",
+    "scripts/test_support/trip.py": "334ee9952bd32d0566a763c750b773f39f2ab9888213e5e02fc8eb238c35cd21"
+  },
+  "tests": {
+    "command": "/home/cnc/lcnc-suite-tsync/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider scripts/test_native_stage.py scripts/inventory/test_inventory.py",
+    "cwd": "/tmp/codex-r317",
+    "exit_code": 0,
+    "passed": 468,
+    "seconds": 16.7
+  },
+  "probes": {
+    "command": "/home/cnc/lcnc-suite-tsync/lcnc-gateway/.venv/bin/python3 -B <codex-probes.py> /tmp/codex-r317",
+    "exit_code": 0,
+    "findings": [
+      "FI-I45",
+      "FI-I46",
+      "FI-I47",
+      "FI-I48",
+      "FI-I49"
+    ],
+    "actual_live_commands": false,
+    "http": "fake urllib response",
+    "trip": "fake signal functions"
+  },
+  "replay": {
+    "command": "/home/cnc/lcnc-suite-tsync/lcnc-gateway/.venv/bin/python3 -B <codex-replay.py> /tmp/codex-r317",
+    "exit_code": 0,
+    "runs": [
+      "20261106T030736",
+      "20261106T031618-latch-delayed"
+    ],
+    "scope": "Saved samples and timing only; report protocol metadata reused where explicitly named. No new native run.",
+    "clock": "Time calculations conditional on the assumed clock; runtime binding absent."
+  },
+  "artifacts_sha256": {
+    "function-inventory.r317.codex-request.md": "4c0239f57b71149bd86dde0ed95bc29e2689440fc4a9d3882d97ad586f421654",
+    "function-inventory.r317.codex-probes.py": "2e7dd5b970f9eb8221299ff5afc424491332155ad79731815ecea54614861a4e",
+    "function-inventory.r317.codex-probes.json": "b759980e40a0e9599ceb087211155699bc6cc3f84dc131f06ce6769d458e4930",
+    "function-inventory.r317.codex-replay.py": "58fa692f6ca8c823e537cb30959d94504927a036ed03b8360c79f3f82c0eabc7",
+    "function-inventory.r317.codex-replay.json": "f8ddd0332618d288102a79e002a74bffb9235b2cfc9e3136cf982e1cd102b3a3",
+    "function-inventory.r317.codex-tests.txt": "7929a35247b867c97b8251618ba48b155310beece658e411cdbe4d03c4c6847e"
+  },
+  "workspace_changes": "Append to review, new R317 evidence, then handshake done only; no product code, build, checkout, live connection or signal."
+}

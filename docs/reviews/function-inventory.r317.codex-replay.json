@@ -1,0 +1,180 @@
+[
+  {
+    "run": "20261106T030736",
+    "commit": "33630f93be60031032b57a4f4eb1ed23bd458e7b",
+    "recorded_verdict": "PASS",
+    "results": {
+      "disconnect-close": {
+        "duration_ns_lower": 3011999600,
+        "travel_mm": 260.305,
+        "wrap_proof": {
+          "ok": true,
+          "lo": 2,
+          "hi": 4212,
+          "rest_ns": 11840471
+        },
+        "latch_false": true,
+        "B_frames": "not saved; not independently replayed"
+      },
+      "disconnect-heartbeat": {
+        "duration_ns_lower": 3010049639,
+        "travel_mm": 301.1,
+        "wrap_proof": {
+          "ok": true,
+          "lo": 2,
+          "hi": 6807,
+          "rest_ns": 8597165
+        },
+        "latch_false": true,
+        "B_frames": "not saved; not independently replayed"
+      },
+      "clients-4": {
+        "arithmetic_and_samples": {
+          "status": "PASS",
+          "worst_upper_ns": 74013045,
+          "worst_lower_ns": 69989360,
+          "pre_ns": 1306054979,
+          "post_ns": 1312993975,
+          "pairs": 639
+        },
+        "wrap_proof": {
+          "ok": true,
+          "lo": 2,
+          "hi": 24451,
+          "rest_ns": 6684822
+        },
+        "protocol_inputs": "reused report metadata"
+      },
+      "clients-8": {
+        "arithmetic_and_samples": {
+          "status": "PASS",
+          "worst_upper_ns": 57000134,
+          "worst_lower_ns": 53015116,
+          "pre_ns": 1307014741,
+          "post_ns": 1306035868,
+          "pairs": 644
+        },
+        "wrap_proof": {
+          "ok": true,
+          "lo": 2,
+          "hi": 24636,
+          "rest_ns": 8721332
+        },
+        "protocol_inputs": "reused report metadata"
+      },
+      "latch-outage": {
+        "same_cycle": {
+          "case": "latch-same-cycle",
+          "status": "PASS",
+          "detail": "fault-out TRUE in the sample oneshot.0.out fell (sample 468204)",
+          "samples": 2469,
+          "delayed": false,
+          "edge_n": 468204,
+          "edge_index": 494,
+          "latch_at_edge": 1,
+          "latch_next": 1
+        },
+        "sticky_hal": true,
+        "trip_frames_and_early_reset": "not replayed from raw protocol"
+      },
+      "latch-recovery": {
+        "latch_clear_from": 470205,
+        "clear_to_end": true,
+        "status_frames": "not saved"
+      }
+    },
+    "sha256": {
+      "report.json": "9ae30bd6c38b172722b639c95c2d92ec68b263ae4dd18a4b514d420c2c1347df",
+      "restore.json": "a69c6cb64f10208e58a127a63e3f7e1ed73656a150cde26e8d874ba43b81484e",
+      "restore-post.json": "9e16f0e076ea2284d5e5e77769fb271c2bf4a9d5a62901dc9ae20b8c7df104f0",
+      "servo-disconnect-close.jsonl": "675946b8d3a6939cf0bbddec535b7865dc29aa5c91060604383dedbd4271cbc4",
+      "servo-disconnect-close.time.json": "ec28f564956c36281afce396eb66edd405156e7ba8342b561d787e97cffdd501",
+      "servo-disconnect-heartbeat.jsonl": "90661ef1cd508b323ae117151c0a8a74fb35d89d77540eca5db0f1ffd4ac2190",
+      "servo-disconnect-heartbeat.time.json": "492df424a7b43e32aa28207a4a6e9ac5f38e9246ec67955bf81de6bee270bd62",
+      "servo-clients-4.jsonl": "70db6ccc20ce02a61a8d0a67b292620df4962b14e67783dcfde67c077c15d5e5",
+      "servo-clients-4.time.json": "5af18b24b6fc65d8245001a1aed52fd4654ecb2476a7e39ead4c3738effbfe6d",
+      "servo-clients-8.jsonl": "3ade810299990a6a3d0133f8dc41200a5f79f38f85840d20665df36145fa2ac4",
+      "servo-clients-8.time.json": "e9918ef9879f2a969b20d33f0657225291e4199b791b36d1220820726b4783f9",
+      "servo-latch-outage.jsonl": "80ac81c7c685b4836683d4e995b624767543acbc61d8fbf369e5330110cc6645",
+      "servo-latch-outage.time.json": "c572551a88412a5e206dd9ee754136ca770630c141205bc96554bad70cbc928d",
+      "servo-latch-recovery.jsonl": "09b5e6c1eb591216230c94ddb605ab7b45d6a43f58f1acb3d546dc4c64426249",
+      "servo-latch-recovery.time.json": "4b86980293b7bf2d7132dd3d32867b889fe8fd116f136fb3a77212d60bfe3f1b"
+    },
+    "clock_metadata_fields": [],
+    "servo_metadata_fields": [
+      "changes",
+      "wiring",
+      "mark_read_back",
+      "thread",
+      "stale_stream"
+    ],
+    "restore": {
+      "restore.json": {
+        "outcome": "complete",
+        "isolation": [],
+        "cleanup": []
+      },
+      "restore-post.json": {
+        "outcome": "complete",
+        "isolation": [],
+        "cleanup": []
+      }
+    }
+  },
+  {
+    "run": "20261106T031618-latch-delayed",
+    "commit": "33630f93be60031032b57a4f4eb1ed23bd458e7b",
+    "recorded_verdict": "PASS",
+    "results": {
+      "latch-outage": {
+        "same_cycle": {
+          "case": "latch-same-cycle.delayed-order",
+          "status": "PASS",
+          "detail": "the delayed order latched exactly one cycle late (sample 531)",
+          "samples": 2465,
+          "delayed": true,
+          "edge_n": 530,
+          "edge_index": 507,
+          "latch_at_edge": 0,
+          "latch_next": 1
+        },
+        "sticky_hal": true,
+        "trip_frames_and_early_reset": "not replayed from raw protocol"
+      },
+      "latch-recovery": {
+        "latch_clear_from": 2518,
+        "clear_to_end": true,
+        "status_frames": "not saved"
+      }
+    },
+    "sha256": {
+      "report.json": "d7247894f5f1f56c9aa965af008946e07a4e2b8fd7d65540ab363810a58efe70",
+      "restore.json": "6f2d9e5108b11a4744cafdd12e32902f9e6775e23caf9fce7800ee6001131053",
+      "restore-post.json": "554bdb05f719e4121ec8a22718dac82657bd869f495fa3832004cd818a62ca46",
+      "servo-latch-outage.jsonl": "2c2c7e9cad9fec9a3b779f4c6a6c2d66a8fe810e58f6617c051ece3f24d8fa2d",
+      "servo-latch-outage.time.json": "f01051e5ffefcc8ef6ae15e98a0ee3de817e3da52cf48ee0817ebb043f241a3d",
+      "servo-latch-recovery.jsonl": "78e91cf8b8e12293d760279331778de223a9a2c0d7af1ae6f2b0ff98d7b0c1d3",
+      "servo-latch-recovery.time.json": "452d2f75a3f0dedb97771b33cfae20fda0d0d999087be6d220cb254be8382143"
+    },
+    "clock_metadata_fields": [],
+    "servo_metadata_fields": [
+      "changes",
+      "wiring",
+      "mark_read_back",
+      "thread",
+      "stale_stream"
+    ],
+    "restore": {
+      "restore.json": {
+        "outcome": "complete",
+        "isolation": [],
+        "cleanup": []
+      },
+      "restore-post.json": {
+        "outcome": "complete",
+        "isolation": [],
+        "cleanup": []
+      }
+    }
+  }
+]

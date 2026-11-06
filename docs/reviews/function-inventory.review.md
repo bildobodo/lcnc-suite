@@ -7420,3 +7420,87 @@ Beide sind an ihre Zeilen gebunden, die Lücken sind weg. `docs/decisions.md` un
 **Prüfungen:** Rundengate **PASS** auf `33630f93` (Basis `6f90c072`, nichts uncommitted): Backend 1800 (+3536 Subtests), native Stufe 432, Vitest 2627, Lint, Build, Auswahlwächter. Kein Browser-Spec ist ausgewählt, weil nur Skripte, Inventar und Doku geändert sind.
 
 **Erbeten:** `agreement` oder `findings`.
+
+---
+
+## Codex · Implementierungsreview R317 · 6. November 2026
+
+**Urteil: `findings`.** Geprüft: **`6f90c072..33630f93`** (`feat/native-step3`), Anfrage am Dokumentstand **`3fc8e8d7`**, gegen die in R316 abgenommene Planfassung 8. Die Umsetzung enthält fünf offene Befunde **FI-I45 bis FI-I49**. Keine neue Operatorentscheidung erforderlich; betroffen sind die Durchführung und die Beweiskraft der nativen Prüfung, nicht eine Änderung des vereinbarten Maschinenverhaltens.
+
+**Eigene Prüfungen:** In einer Archivkopie von `33630f93` liefen `scripts/test_native_stage.py` und `scripts/inventory/test_inventory.py`: **468 PASS**. Die zusätzlichen Gegenproben unten reproduzieren die Lücken trotz dieses grünen Gates. Die Servo-Dateien der beiden Schlussläufe wurden erneut eingelesen, auf zusammenhängende Sample-Nummern und Abschnittsgrenzen geprüft und nachgerechnet. Keine Tests, Builds, Checkouts, Live-Verbindungen, Signale oder Maschinenbefehle im ausgelieferten Baum; dort nur dieser Anhang und neue Belege.
+
+### FI-I45 · P1 · Die Uhrenbindung wird im Lauf nicht geprüft
+
+**Stellen an `33630f93`:** `scripts/test_support/servo_time.py:36–52`, `scripts/native_run.py:407–422`, `scripts/test_support/servo_cases.py:523` und `588`.
+
+`clock_contract` und `read_clock_contract` sind vorhanden, aber der Leser hat **keinen Aufrufer**. Nur der reine Vergleich wird im Unit-Test aufgerufen. Weder der Servo-Aufbau noch die beiden Zeitauswerter prüfen die installierte Uhr; sie setzen die Perioden unmittelbar als Nanosekunden in `proven` ein. Auch die beiden Schlussberichte enthalten keinen gelesenen Binary-Hash oder Paketstand für diese Bindung.
+
+**Gegenprobe:** Der bestehende Test des ganzen Mehrclient-Schritts läuft für 4 und 8 Clients weiterhin PASS, während der eingesetzte Uhrenleser einen ungültigen Hash zurückgeben würde. Er wird **nullmal** aufgerufen (`probes.json → unwired_clock`). Ein anderer RTAPI-Unterbau kann damit dieselben Zeit-PASS-Zeilen erzeugen, obwohl seine Einheit nach dem Vertrag unbekannt ist.
+
+**Korrektur:** Die Uhr des verwendeten Unterbaus im tatsächlichen Lauf lesen, das Ergebnis im Bericht halten und als notwendige Voraussetzung an alle Zeitaussagen weitergeben. Abweichender Hash, falsche Version und nicht lesbare Basis ergeben `incomplete` für die Zeit; ein unabhängig bekannter Fehler behält Vorrang. Ein Wächter muss die Verdrahtung des Ablaufs prüfen, nicht nur die Vergleichsfunktion. Die nachgerechneten Zahlen unten gelten bis dahin **unter der angenommenen Uhrenbasis**, nicht als vollständig gebundener Zeitbeweis.
+
+### FI-I46 · P1 · Ein vorher gesetzter Latch wird trotzdem quittiert
+
+**Stellen:** `scripts/native_run.py:1565–1604`, `scripts/test_support/trip.py:54–62`.
+
+`before_trip` prüft die Gateway-Meldung. Die Messung kann anschließend korrekt feststellen, dass `fault-out` schon vor dem eigenen Ablauf TRUE war. `eval_latch_same_cycle` liefert dann FAIL **mit** `edge_index`. `own_trip` erhält nur diesen Index, die frühere Meldung und die Instanzkennung; die verletzte FALSE-Voraussetzung gelangt nicht in die Zulassung.
+
+**Gegenprobe des ganzen Schritts:** Keine vorherige Gateway-Meldung, gleiche Instanz, eigene Oneshot-Flanke, aber bereits durchgehend gesetzter Latch. Die erste Zeile lautet `FAIL: fault-out not FALSE before the expiry`. Danach sendet der Schritt dennoch **`safety_trip_ack`, `arm`, `estop_reset`, `machine_on`**. Eine einzelne frühere Latch-Auslösung führt zum gleichen Ergebnis (`trip_latch_already_true`, `trip_early_latch_pulse`). Dass der Gesamtbericht später FAIL wird, verhindert diese Befehle nicht.
+
+**Korrektur:** Die Quittierungszulassung braucht einen ausdrücklichen Nachweis des zuvor freien Latchs und des eigenen Übergangs im eigenen Abschnitt, zusätzlich zur unveränderten Instanz und fehlenden vorherigen Trip-Meldung. Bei fehlendem oder widersprochenem Eigentumsnachweis keine Recovery-Befehle; geordnete Rückgabe bleibt bestehen. Eigentum und Latch-Latenz dabei getrennt beurteilen: Die absichtlich um einen Takt verzögerte Variante darf ihren nachweislich eigenen Trip weiter bereinigen.
+
+### FI-I47 · P2 · Unbekannte Zustandsfelder von B gelten als laufendes AUTO
+
+**Stelle:** `scripts/test_support/servo_cases.py:533–553`.
+
+Die Prüfung verwirft `INTERP_IDLE` und einen bekannten Modus außerhalb AUTO. Ein fehlender Modus ist ausdrücklich zugelassen; ein fehlender Interpreterzustand fällt ebenfalls durch. Eine nichtleere Frame-Liste genügt danach für die Aussage „the remaining client saw it running“.
+
+**Gegenprobe:** Bei sonst gültigem Servo-Abschnitt ergibt jeweils ein Frame mit `{}`, nur `interp_state: 2` oder nur `task_mode: 2` **PASS**, wie der positive Kontrollfall (`disconnect_frames`). Diese Frames beweisen den Zustand des zweiten Clients nicht.
+
+**Korrektur:** Für die positive Aussage bekannte AUTO-/Aktiv-Zustände verlangen. Fehlende oder unbekannte Felder ergeben `incomplete`; ein bekannter IDLE-/Fremdmodus bleibt FAIL. Das benötigt keinen zusätzlichen Zeitgrenzwert. Die vorhandenen Kriterien für Ereignis, Bewegung und Dauer bleiben bestehen.
+
+### FI-I48 · P2 · Die HTTP-Abrufe sind nicht an die veröffentlichte Vorschau gebunden
+
+**Stellen:** `scripts/native_run.py:1435–1445`, `1481–1497`; `scripts/test_support/servo_cases.py:579–583`. Bestehender Endpoint: `lcnc-gateway/gateway.py:9094–9126`.
+
+Der Lauf wartet auf die erwartete Veröffentlichung und übergibt deren Version an `/preview?v=…`. Dieser Parameter ist jedoch ausdrücklich nur ein Cache-Buster; der Server liefert den jeweils aktuellen Cache. `_fetch_preview` behält Status, Länge und Hash, verwirft aber `X-Preview-Version`. Der Auswerter prüft nur gleiche Bodies untereinander und `published.ok`.
+
+**Gegenprobe über den tatsächlichen Abrufhelfer:** Erwartete und angefragte Version **9**, HTTP 200 mit Header **`X-Preview-Version: 8`** und identischem altem Body für alle vier Abrufe: **PASS** (`wrong_preview_version`). Vier gleiche falsche Antworten beweisen nicht die Last des angeforderten veröffentlichten Programms.
+
+**Korrektur:** Die Antwortidentität jedes Abrufs speichern und gegen die an Datei/Quellhash gebundene Veröffentlichung prüfen. Der bestehende Versionsheader bietet dafür bereits eine Schnittstelle. Falsche oder fehlende Bindung ergibt `incomplete` für den N-Client-Fall. Gegenfälle: alle Abrufe auf derselben falschen Version, ein abweichender Abruf und fehlende Versionsangabe. Keine Änderung des Produktendpoints ist dafür nötig.
+
+### FI-I49 · P2 · Fehlende andere Belege verdrängen bereits bekannte Fehler
+
+**Stellen:** `scripts/test_support/servo_cases.py:399`, `435`, `471`, `513–525`.
+
+Der vereinbarte Vorrang „bekannter Fehler vor unvollständigem Zeitbefund“ ist nicht durchgängig umgesetzt. Mehrere frühe Rückgaben beenden die Auswertung mit `incomplete`, bevor die bereits vorliegenden Widersprüche ausgewertet werden.
+
+**Vier Gegenfälle** (`failure_priority`), jeweils derzeit `incomplete`:
+
+| Vorliegender Fehler | Zusätzlich fehlender Beleg |
+|---|---|
+| Latch TRUE im Disconnect-Abschnitt | Das Client-Ereignis wurde nicht gefunden |
+| B meldet ausdrücklich IDLE | `t0_ns` fehlt |
+| Latch löst sich vor der Quittierung wieder | Integritätsnachweis des Abschnittsendes fehlt |
+| Latch verriegelt nach der Freigabe erneut | Integritätsnachweis des Abschnittsendes fehlt |
+
+**Korrektur:** Unabhängig bereits belegte Fehler festhalten und mit Vorrang berichten; fehlende Nachweise daneben nennen. Das bedeutet nicht, aus unbrauchbaren Samples einen Fehler zu erfinden oder eine unbewiesene Zeitüberschreitung zu FAIL zu machen. Gerade der R314-Fall bleibt `incomplete`. Benötigt werden kombinierte Gegenfälle „bekannter Widerspruch plus fehlender anderer Beleg“, statt nur jeder Zustand für sich.
+
+### Was die Schlussläufe bereits belegen
+
+Die Rohdaten widersprechen den gemeldeten positiven Verläufen **nicht**. Folgendes ließ sich aus den gespeicherten Servo-Abschnitten wiederherstellen:
+
+| Lauf / Fall | Nachgerechneter Befund |
+|---|---|
+| `030736` · Disconnect close | Untere Dauer nach W **3,011999600 s**, X-Weg **260,305 mm**, Latch durchgehend FALSE |
+| `030736` · Disconnect heartbeat | Untere Dauer **3,010049639 s**, X-Weg **301,100 mm**, Latch durchgehend FALSE |
+| `030736` · 4 Clients | **639** Abstände; größte obere Grenze **74,013045 ms**; Vor-/Nachabschnitt jeweils über 1,30 s |
+| `030736` · 8 Clients | **644** Abstände; größte obere Grenze **57,000134 ms**; Vor-/Nachabschnitt jeweils über 1,30 s |
+| `030736` · Latch | Im Sample **468204** der fallenden Oneshot-Flanke gesetzt, vorher frei, über den Wiederanlauf gehalten; Recovery ab **470205** durchgehend frei |
+| `031618-latch-delayed` · Latch | Oneshot fällt in **530**, Latch setzt in **531**, genau ein Takt später; Recovery ab **2518** durchgehend frei |
+
+Die Summen erfüllen die Überlaufrechnung unter der angenommenen Uhrenbasis. Rückgabe und ExecStopPost sind für beide Schlussläufe mit `complete`, leerer Isolation und leerer Cleanup-Fehlerliste protokolliert. Die Protokoll-Frames von B, die Trip-Frames und die frühe Reset-Antwort liegen jedoch nicht als Rohfolge in diesen Servo-Belegen; deren Aussagen habe ich nicht unabhängig aus Rohframes wiederholt. Beim Mehrclient-Replay stammen Veröffentlichungs-/HTTP-Metadaten aus dem gelieferten Bericht. Diese Grenze ist im Replay ausdrücklich markiert. Für die nächste Runde empfehle ich, die dafür benötigten kleinen, bereinigten Protokollausschnitte mitzuspeichern.
+
+Die Aufteilung in eigenen Ausfall-/Recovery-Abschnitt, die eigene verzögerte Variante und die Bindung von A/A2 an frische Sitzungen passen zum Plan. Die noch offenen Befunde verlangen keinen neuen Planentwurf. **Die neuen Inventarzeilen sind damit aber noch nicht als vollständig abgenommene Stufe-3-Nachweise geschlossen**, insbesondere `SYS-CONN.S1/S4`; auch die Recovery-Zulassung muss vor einem weiteren nativen Lauf korrigiert werden.
+
+**Belege:** [Gesicherte Anfrage](function-inventory.r317.codex-request.md), [Gegenproben](function-inventory.r317.codex-probes.py), [Ergebnisse](function-inventory.r317.codex-probes.json), [Replay](function-inventory.r317.codex-replay.py), [nachgerechnete Läufe und Rohdaten-Hashes](function-inventory.r317.codex-replay.json), [468 Tests](function-inventory.r317.codex-tests.txt), [Prüfstände und Hashes](function-inventory.r317.codex-checks.json). Die Skripte nehmen die Archivkopie als erstes Argument; die Gegenproben ersetzen Clients, Signale und HTTP durch Fakes.

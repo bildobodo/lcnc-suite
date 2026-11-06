@@ -1,0 +1,251 @@
+{
+  "unwired_clock": {
+    "whole_step_existing_assertions": "PASS (clients-4 and clients-8)",
+    "clock_reader_calls": 0,
+    "injected_clock_ok": false
+  },
+  "trip_clean": {
+    "rows": [
+      {
+        "case": "latch-same-cycle",
+        "status": "PASS",
+        "detail": "fault-out TRUE in the sample oneshot.0.out fell (sample 730)"
+      },
+      {
+        "case": "latch-sticky",
+        "status": "PASS",
+        "detail": "the heartbeat returned (sample 750), fault-out stayed TRUE, the reset before the acknowledgement was refused"
+      },
+      {
+        "case": "latch-recovered",
+        "status": "PASS",
+        "detail": "fault-out FALSE from sample 910 to the end; no trip, E-Stop clear, machine on"
+      }
+    ],
+    "commands": [
+      "estop_reset",
+      "safety_trip_ack",
+      "arm",
+      "estop_reset",
+      "machine_on"
+    ],
+    "ack_sent": true
+  },
+  "trip_latch_already_true": {
+    "rows": [
+      {
+        "case": "latch-same-cycle",
+        "status": "FAIL",
+        "detail": "fault-out not FALSE before the expiry (sample 700)"
+      },
+      {
+        "case": "latch-sticky",
+        "status": "PASS",
+        "detail": "the heartbeat returned (sample 750), fault-out stayed TRUE, the reset before the acknowledgement was refused"
+      },
+      {
+        "case": "latch-recovered",
+        "status": "PASS",
+        "detail": "fault-out FALSE from sample 910 to the end; no trip, E-Stop clear, machine on"
+      }
+    ],
+    "commands": [
+      "estop_reset",
+      "safety_trip_ack",
+      "arm",
+      "estop_reset",
+      "machine_on"
+    ],
+    "ack_sent": true
+  },
+  "trip_early_latch_pulse": {
+    "rows": [
+      {
+        "case": "latch-same-cycle",
+        "status": "FAIL",
+        "detail": "fault-out not FALSE before the expiry (sample 710)"
+      },
+      {
+        "case": "latch-sticky",
+        "status": "PASS",
+        "detail": "the heartbeat returned (sample 750), fault-out stayed TRUE, the reset before the acknowledgement was refused"
+      },
+      {
+        "case": "latch-recovered",
+        "status": "PASS",
+        "detail": "fault-out FALSE from sample 910 to the end; no trip, E-Stop clear, machine on"
+      }
+    ],
+    "commands": [
+      "estop_reset",
+      "safety_trip_ack",
+      "arm",
+      "estop_reset",
+      "machine_on"
+    ],
+    "ack_sent": true
+  },
+  "disconnect_frames": {
+    "known_running": {
+      "case": "disconnect-close",
+      "status": "PASS",
+      "detail": "the program ran on for \u2265 2.60 s after the event, X 260 mm, no trip; the remaining client saw it running",
+      "samples": 3100,
+      "event": {
+        "tag": "ws.disconnect",
+        "client_id": 7
+      },
+      "frames_after": 3,
+      "w_n": 1500,
+      "travel_mm": 259.9,
+      "window_ns_lower": 2598000000
+    },
+    "both_absent": {
+      "case": "disconnect-close",
+      "status": "PASS",
+      "detail": "the program ran on for \u2265 2.60 s after the event, X 260 mm, no trip; the remaining client saw it running",
+      "samples": 3100,
+      "event": {
+        "tag": "ws.disconnect",
+        "client_id": 7
+      },
+      "frames_after": 1,
+      "w_n": 1500,
+      "travel_mm": 259.9,
+      "window_ns_lower": 2598000000
+    },
+    "mode_absent": {
+      "case": "disconnect-close",
+      "status": "PASS",
+      "detail": "the program ran on for \u2265 2.60 s after the event, X 260 mm, no trip; the remaining client saw it running",
+      "samples": 3100,
+      "event": {
+        "tag": "ws.disconnect",
+        "client_id": 7
+      },
+      "frames_after": 1,
+      "w_n": 1500,
+      "travel_mm": 259.9,
+      "window_ns_lower": 2598000000
+    },
+    "interpreter_absent": {
+      "case": "disconnect-close",
+      "status": "PASS",
+      "detail": "the program ran on for \u2265 2.60 s after the event, X 260 mm, no trip; the remaining client saw it running",
+      "samples": 3100,
+      "event": {
+        "tag": "ws.disconnect",
+        "client_id": 7
+      },
+      "frames_after": 1,
+      "w_n": 1500,
+      "travel_mm": 259.9,
+      "window_ns_lower": 2598000000
+    }
+  },
+  "wrong_preview_version": {
+    "requested_version": 9,
+    "response_header_version": 8,
+    "fetch_record": {
+      "status": 200,
+      "bytes": 16,
+      "sha256": "3198d71451dbc7c0dbd202a776c6433cf20cb50d318cac35f14733a4391904cc"
+    },
+    "row": {
+      "case": "clients-4",
+      "status": "PASS",
+      "detail": "4 clients, 21 heartbeat gaps across the window, the longest \u2264 102.0 ms",
+      "n": 4,
+      "hellos": [
+        {
+          "ok": true,
+          "armed": false
+        },
+        {
+          "ok": true,
+          "armed": false
+        },
+        {
+          "ok": true,
+          "armed": false
+        },
+        {
+          "ok": true,
+          "armed": false
+        }
+      ],
+      "fetches": [
+        {
+          "status": 200,
+          "bytes": 16,
+          "sha256": "3198d71451dbc7c0dbd202a776c6433cf20cb50d318cac35f14733a4391904cc"
+        },
+        {
+          "status": 200,
+          "bytes": 16,
+          "sha256": "3198d71451dbc7c0dbd202a776c6433cf20cb50d318cac35f14733a4391904cc"
+        },
+        {
+          "status": 200,
+          "bytes": 16,
+          "sha256": "3198d71451dbc7c0dbd202a776c6433cf20cb50d318cac35f14733a4391904cc"
+        },
+        {
+          "status": 200,
+          "bytes": 16,
+          "sha256": "3198d71451dbc7c0dbd202a776c6433cf20cb50d318cac35f14733a4391904cc"
+        }
+      ],
+      "published": {
+        "ok": true,
+        "file": "expected.ngc",
+        "source": "expected-source",
+        "version": 9
+      },
+      "samples": 5000,
+      "pre_ns": 1498000000,
+      "post_ns": 1498000000,
+      "edges": 50,
+      "pairs": 21,
+      "worst_upper_ns": 102000000,
+      "worst_lower_ns": 98000000
+    }
+  },
+  "failure_priority": {
+    "trip_without_event": {
+      "case": "disconnect-close",
+      "status": "incomplete",
+      "detail": "no traced disconnect or timeout of this client",
+      "samples": 3100,
+      "event": null,
+      "frames_after": 3
+    },
+    "idle_with_bad_time": {
+      "case": "disconnect-close",
+      "status": "incomplete",
+      "detail": "the window's time unproven: no start time or too few samples for a time proof",
+      "samples": 3100,
+      "event": {
+        "tag": "ws.disconnect",
+        "client_id": 7
+      },
+      "frames_after": 1
+    },
+    "released_with_bad_end": {
+      "case": "latch-sticky",
+      "status": "incomplete",
+      "detail": "the section: end integrity unread",
+      "samples": 90,
+      "reset_reply": {
+        "ok": false,
+        "error": "Safety trip not acknowledged"
+      }
+    },
+    "relatched_with_bad_end": {
+      "case": "latch-recovered",
+      "status": "incomplete",
+      "detail": "the recovery section: end integrity unread",
+      "samples": 40
+    }
+  }
+}
