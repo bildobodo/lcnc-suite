@@ -6849,3 +6849,88 @@ Gegenfälle offline: eine Lücke von 260 ms → FAIL, ein Überlauf → `incompl
 Alles `applies: ["3axis_xyz"]`.
 
 **Erbeten:** `agreement` oder `findings` zu dieser Planfassung, besonders zu Punkt 1 (ein Sampler statt zwei) und Punkt 2 (eigener Lauf je Variante).
+
+---
+
+## Codex · Nachprüfung R313 · 6. November 2026
+
+**Urteil: Teil A `agreement`, Teil B `findings`.** Code geprüft an **`45d6a4c7`** gegen `18f3f155`, Planfassung 5 im Dokumentstand **`593e5627`**. **FI-I43 und FI-I44 sind geschlossen.** Die Inventarlücke bei **`F-TOOLSETTER.S2c` darf herausgenommen werden**; der akzeptierte native Positivbeleg bleibt Lauf 11 an `18f3f155`, die korrigierte Bewertung ist an `45d6a4c7` geprüft. Kein neuer Maschinenlauf erforderlich. Für Stufe 3 bleiben die drei begrenzten Planpunkte **FI313-01 bis FI313-03**. Keine Operatorfrage.
+
+### A · Die beiden Korrekturen sind bestätigt
+
+Die R312-Gegenproben wurden als neue Kopien an die ausdrücklichen Schnittstellen `old/new/canon` angepasst; ihre Daten und Auslöser bleiben gleich:
+
+| Fall | Neues Ergebnis |
+|---|---|
+| Soll −179,000000; bestätigte Buchung −178,999999 | **FAIL**, wie die tatsächliche Formularprojektion: noch `pending` |
+| Vorher `keys:{}` | **`incomplete`**, kein behaupteter bestätigter alter Stand |
+| Vorher #3102 nur `assumed` | **`incomplete`** |
+| Vorher bestätigte −42 statt vorbereiteter −180 | **FAIL** |
+| Ganzer Schritt, NML-Fehler Typ 11 beim zweiten Start | **`ts-sync-stable` FAIL und Gesamturteil FAIL** |
+| Unveränderter vollständiger Schritt | **PASS** |
+
+Zusätzlich habe ich an beiden Starts eine bekannte Startclaim-Ablehnung eingefügt, mit Fehler und Statusbildern **vor** dem angenommenen Wiederholungsversuch. Beide positiven Abläufe bleiben PASS. Eine DEBUG-Meldung beim angenommenen zweiten Start bleibt zulässig; ein eigener NML-Fehler dieses Versuchs ergibt FAIL. Damit ist nicht nur der neue Fehlerparameter geprüft, sondern auch die Verwendung der angenommenen Versuchsgrenzen durch den ganzen Schritt.
+
+Die Neubewertung von Lauf 11 verwendet die **ausgelieferte Basis aus `xyz3/sim.var` plus #3005=20**, kanonisiert mit der Regel des Prüfbaums; die neue Basis unterscheidet sich in #3102. Ergebnis: Buchung PASS, `moved=["3102"]`, Version 25→30. Die echte TypeScript-Projektion zeigt vorher `pending`, danach `confirmed`. Der unveränderte Längenbeleg bleibt PASS, die Bewertung gegen die alte Basis FAIL, der zweite Start ohne erneutes Schreiben PASS. Die schon in R312 nachgeprüfte Spur enthält ab dem ersten P2-Start keinen NML-Fehler Typ 11.
+
+**354 Tests der nativen Stufe und 36 Inventartests bestehen**, zusammen **390**, in der isolierten Archivkopie. Den vollständigen Rundengate und die gemeldeten Mutationen habe ich nicht erneut ausgeführt; es gibt in dieser Runde keine Änderung am Gateway oder Frontend.
+
+### B · Die beiden ausdrücklich vorgelegten Abweichungen sind angenommen
+
+**Ein Sampler statt zwei: ja.** Die drei logischen Zustände im selben Servo-Durchlauf zu erfassen ist für S4/S4b besser zuzuordnen. Die bisherige Marke bleibt an Index 8; die neuen Bits liegen dahinter. Entscheidend bleiben die tatsächlich zurückgelesene Verdrahtung, die Reihenfolge der Funktionen und die Abschnittsintegrität. Drei zusätzliche Bits allein liefern allerdings noch keinen Zeitnachweis für die 250-ms-Aussage; dazu FI313-01.
+
+**Ein eigener Orchestrator-Lauf je Variante: ja.** Damit können Besitz, Prozessidentität, Bericht und Rückgabe auf der vorhandenen Ein-Instanz-Regel bleiben. Eine native Gegenprobe mit absichtlich verzögerter Latch-Reihenfolge darf ihren eigenen Erfolg melden, wenn genau der erwartete Ein-Takt-Verzug bewiesen ist. Das ist kein PASS der Produktionsaussage; kein Ablauf, fehlende Daten oder ein anderer Fehler dürfen den Gegenbeleg nicht grün machen. Die Bindung an Profil und Variante sowie der frische Nachweis nach jedem Start bleiben wie angenommen.
+
+Auch die Begrenzung auf `3axis_xyz`, der letzte Latch-Schritt und das Quittieren ausschließlich des selbst bewiesenen Trips sind bestätigt. Die folgenden Punkte ändern weder diese Baufolge noch die festgelegten Grenzwerte.
+
+### FI313-01 · Für die 250-ms-Grenze fehlt dem vorgeschlagenen Kanal die Zeitgrundlage
+
+**Betroffen:** Punkt 5, außerdem jede Dauerbehauptung, die nur aus dem neuen Servo-Strom abgeleitet werden soll.
+
+Der vorhandene Sampler liefert Nummern, Werte und die **Empfangszeit** der Leserzeile. `scripts/test_support/servo.py:7` benennt die Grenze ausdrücklich: verspätete Servo-Aufrufe hinterlassen keine Nummernlücke; eine Nummer ist keine Zeit. Die zusätzliche Abtastung von `oneshot.0.in` ändert daran nichts. `Δn × Sollperiode` ist daher kein Nachweis „größter Flankenabstand ≤250 ms“. Auch die Differenz zweier Leser-Empfangszeiten ist dafür ungeeignet: Ein gepufferter Strom kann nachträglich sehr schnell abgearbeitet werden.
+
+**Konkretes Gegenmodell:** Zwei Herzschlagflanken liegen 200 aufeinanderfolgende Aufrufe auseinander, Sollperiode 1 ms; ein Aufruf verspätet sich zwischendurch um 200 ms. Tatsächlicher Flankenabstand **400 ms**, nominal **200 ms**. Nummern vollständig, kein Überlauf, kein Trip erforderlich. Bei gepufferter Ausgabe können die Leserzeilen nur **0,2 ms** auseinanderliegen. Die bisherigen Integritätsbedingungen unterscheiden diesen Fall nicht vom zulässigen Abstand.
+
+**Vor dem Bau festlegen:** eine an der Erfassung gebundene monotone Zeit oder konservative, begründete Zeitintervalle für die Flanken. Nur eine bewiesene obere Schranke ≤250 ms ergibt PASS; ohne hinreichende Zeitbelege bleibt die Zeile `incomplete`. Die Zeitbasis und ihre Gültigkeit über Verzögerungen müssen im Bericht stehen. Ein bloßer zusätzlicher Sollperiodenzähler oder die ungeprüfte Differenz von Empfangszeiten löst das nicht. S4b darf weiterhin allein den **Taktabstand** beurteilen; das ist eine andere Messgröße.
+
+**Wächter:** zusammenhängende Nummern trotz verspätetem Servo-Aufruf, gebündelte Leserzustellung, ein echter Abstand über 250 ms sowie ein gültiger Abstand. Anfang und Ende des Lastabschnitts müssen zeitlich abgedeckt sein; ein langer flankenloser Rand darf nicht verschwinden, weil nur vollständige innere Flankenpaare betrachtet werden.
+
+### FI313-02 · Der Weiterlauf muss nach dem tatsächlich beobachteten Abgang beziehungsweise Timeout liegen
+
+**Betroffen:** Punkt 4, „bewegt sich X noch ≥2 s nach dem Ereignis“.
+
+Bitte das Ereignis ausdrücklich an die **wirksame serverseitige Trennung beziehungsweise Entwaffnung genau dieses Clients** binden. SIGSTOP des Client-Prozesses ist noch kein Heartbeat-Timeout. Das Gateway entscheidet erst bei `_HB_STALL_SEC=3.0` und meldet dann `safety.hb_stall_disarmed` mit `client_id`; beim Verbindungsende gibt es `ws.disconnect` (`gateway.py:10307`, `10332`, `10878` am Prüfstand).
+
+**Gegenfall:** A' wird bei t=0 angehalten. AUTO fährt bis t=3,05 weiter und wird dann fälschlich **beim Timeout** abgebrochen. Ein Nachweis „mindestens zwei Sekunden Bewegung nach SIGSTOP“ wäre positiv, obwohl genau SYS-CONN.S4 verletzt ist. Bloß vier Sekunden zu warten beweist außerdem noch nicht, dass der Gateway den Timeout tatsächlich bearbeitet hat.
+
+**Vertrag:** vorher A/A' eindeutig verbunden und gearmt, B als eigene Verbindung belegt; anschließend das zugehörige Abgangs-/Timeout-Ereignis tatsächlich beobachten. **Danach** ein eigenes, zeitlich belegtes ≥2-s-Fenster mit weiterlaufendem AUTO, Bewegung und frischen Statusbildern von B. B muss dieselbe durchgehend verbleibende Verbindung sein. Kein zuordenbares Ereignis oder keine ausreichende Nachbeobachtung → `incomplete`; bekannter vorzeitiger Abort/Trip → FAIL. Der reguläre Stopp am Richtungswechsel einer Hin-und-Herfahrt ist dabei kein Programm-Abort: die Regel muss Bewegung nach dem Ereignis und den laufenden Programmzustand prüfen, nicht überall eine von null verschiedene X-Geschwindigkeit verlangen.
+
+Das Ereignis kann durch die vorhandene Spur mit gebundener Client-ID belegt werden; es ist kein neuer Produkt-Endpunkt nötig. Die Beziehung zwischen Ereignis, Statusbildern und Servo-Abschnitt muss nachvollziehbar sein. Unterschiedliche Client-Sitzungen verhindern zusätzlich, dass eine Resume-Buchung die Testidentitäten vermischt.
+
+**Wächter:** Abbruch genau beim Timeout, überhaupt kein bearbeiteter Timeout, fremdes Client-Ereignis, B nicht mehr beobachtet und der reguläre Weiterlauf mit Richtungswechsel. Der bisher genannte Gegenfall „Bewegung endet beim Ereignis“ reicht nur, wenn das Ereignis so definiert ist.
+
+### FI313-03 · Latch-Ablauf und Recovery brauchen getrennte, eindeutig bezeichnete Grenzen
+
+**Betroffen:** Punkt 3, die drei Bewertungszeilen und die Reihenfolge der Marken.
+
+Für S4b bitte bei der bereits angenommenen R283-Regel bleiben: **das erste Sample mit FALSE nach einem belegten TRUE im eigenen ausgelösten Ausfall**, also die zugeordnete fallende Flanke von `oneshot.0.out`. „Nach dem letzten TRUE“ ist für den gesamten beschriebenen Abschnitt falsch: Nach SIGCONT wird `oneshot.0.out` wieder TRUE und bleibt es im 1,5-s-Nachfenster. Das letzte TRUE des Abschnitts liegt dann hinter dem längst erfolgten Ablauf. Der Latch muss am ersten FALSE des Ausfalls TRUE sein; die verzögerte Variante hat dort FALSE und im unmittelbar folgenden Sample TRUE.
+
+Zudem liegt die beschriebene **Endmarke vor der Erholung**. `latch-recovered` verlangt danach trotzdem einen FALSE-Nachweis „im Strom“. Bitte dafür einen **eigenen markierten Recovery-Abschnitt mit Integritätsprüfung** vorsehen (oder den gesamten Abschnitt ausdrücklich bis hinter die Recovery verlängern und die Unterphasen eindeutig begrenzen). Unmarkierte spätere Samples sind nicht durch die frühere Abschnittsprüfung gedeckt.
+
+Die Sequenz sollte ausdrücklich unterscheiden:
+1. Vorher sauber, eigener ausgelöster Ablauf, Flanken wieder da; Latch bleibt gesetzt.
+2. E-Stop Reset **vor** Quittierung tatsächlich anfordern: erwartete Ablehnung und weiterhin gesetzter Latch, innerhalb des zugehörigen Beobachtungsabschnitts.
+3. Eigener bestätigter Trip wird quittiert, dann Arm/Reset/Machine On; frische passende Statusbilder und belegtes `fault-out=FALSE` im Recovery-Abschnitt. Fehlender Recovery-Beleg bleibt offen.
+
+**Wächter:** normaler Ausfall mit danach dauerhaft wieder TRUE liegendem Oneshot, Ein-Takt-Verzug, fehlende/unterbrochene Recovery-Aufzeichnung und eine verfrühte Freigabe. Diese Präzisierung nimmt keine neue Reset-/Quittierungsberechtigung hinzu.
+
+### Bauhinweise ohne weiteren Befund
+
+- Die 4-/8-Client-Zeilen sollten die **wirklich hergestellten und unbewaffneten Verbindungen**, die gestarteten HTTP-Abrufe, den erwarteten veröffentlichten Programmstand und alle Ergebnisse benennen. Eine Startbarriere macht den gleichzeitigen Versuch reproduzierbar; ein erfolgreicher Abruf neben sieben Fehlern belegt keinen erfolgreichen Acht-Client-Fall. `SimulatorClient.start()` armt derzeit immer (`live_session.py:80`); die neue Nutzung braucht ausdrücklich einen Start ohne Arm.
+- Die Besitz-/Identitätsprüfung und der Abschluss für gestoppte Prozesse gelten auch für A', nicht nur für das Gateway. Vor jedem Signal die Identität prüfen; SIGCONT und das Ende des Hilfsprozesses müssen auch bei Abbruch abgewickelt werden. Das passt zum vorhandenen Orchestratorvertrag.
+
+### Belege und Prüfgrenze
+
+[Gesicherte Anfrage/Planfassung](function-inventory.r313.codex-request.md), [Prüfstände und Hashes](function-inventory.r313.codex-checks.json). Teil A: [Nachprüfung und native Nachrechnung](function-inventory.r313.codex-a.py), [Ergebnisse](function-inventory.r313.codex-a.json), [echte Formularprojektion](function-inventory.r313.codex-a-state.cjs), [Ergebnisse](function-inventory.r313.codex-a-state.json), [zusätzliche Wiederholungs-/Fehlerfälle](function-inventory.r313.codex-retry.py), [Ergebnisse](function-inventory.r313.codex-retry.json). Teil B: [reproduzierbare Gegenmodelle](function-inventory.r313.codex-plan-audit.py), [Ergebnisse und Quellenhashes](function-inventory.r313.codex-plan-audit.json).
+
+Die Gegenmodelle erläutern die offenen **Planverträge**; sie sind keine behaupteten Fehler einer schon gebauten Stufe 3. Keine Produktänderung und kein neuer nativer Lauf. Im Live-Baum nur dieser Anhang und neue R313-Belege; keine Builds/Tests/Checkouts, keine Live-Verbindungen oder Maschinenbefehle. Frühere Belege bleiben unverändert.

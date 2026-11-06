@@ -1,0 +1,1300 @@
+{
+  "first_retry": {
+    "rows": [
+      {
+        "case": "ts-sync-program-m600",
+        "status": "PASS",
+        "detail": "saved while off, applied at the start: #3102 -180 \u2192 -179, length 49.0000 within 49 \u00b1 0.002 (the old basis gives 50)",
+        "l0": 50.0,
+        "old_3102": -180.0,
+        "new_3102": -179.0,
+        "expected": 49.0,
+        "length": 49.0,
+        "g43": 49.0,
+        "toolsetter": {
+          "digest": "d",
+          "set_up": true,
+          "synced": true
+        },
+        "interp_before": -180.0,
+        "interp_after": -179.0,
+        "tol_mm": 0.002,
+        "errors": [],
+        "deviation_mm": 0.0
+      },
+      {
+        "case": "ts-sync-program-m600.counter-old-basis",
+        "status": "PASS",
+        "detail": "the planted value is refused: length 49.0000 \u2014 expected 50 \u00b1 0.002",
+        "counter": true,
+        "inner": {
+          "case": "ts-sync-program-m600",
+          "status": "FAIL",
+          "detail": "length 49.0000 \u2014 expected 50 \u00b1 0.002",
+          "l0": 50.0,
+          "old_3102": -180.0,
+          "new_3102": -180.0,
+          "expected": 50.0,
+          "length": 49.0,
+          "g43": 49.0,
+          "toolsetter": {
+            "digest": "d",
+            "set_up": true,
+            "synced": true
+          },
+          "interp_before": -180.0,
+          "interp_after": -179.0,
+          "tol_mm": 0.002,
+          "errors": [],
+          "deviation_mm": -1.0
+        }
+      },
+      {
+        "case": "ts-sync-booking",
+        "status": "PASS",
+        "detail": "before every key confirmed at the prepared numbers (the form: not yet in the machine, ['3102']), after every key at the section's (the form: confirmed); version 4 \u2192 5",
+        "old": {
+          "3004": 2000.0,
+          "3005": 20.0,
+          "3006": 500.0,
+          "3007": 180.0,
+          "3009": 3.0,
+          "3010": 180.0,
+          "3013": 0.0,
+          "3100": 0.0,
+          "3101": 0.0,
+          "3102": -180.0,
+          "3103": 0.0,
+          "3104": 0.0,
+          "3105": 0.0,
+          "3106": 1.0,
+          "3107": 5.0,
+          "3108": 0.0,
+          "3109": 0.0,
+          "3110": 0.0,
+          "3111": 0.0,
+          "3112": 0.0,
+          "3113": 0.0,
+          "3114": 0.0,
+          "3115": 0.0
+        },
+        "new": {
+          "3004": 2000.0,
+          "3005": 20.0,
+          "3006": 500.0,
+          "3007": 180.0,
+          "3009": 3.0,
+          "3010": 180.0,
+          "3013": 0.0,
+          "3100": 0.0,
+          "3101": 0.0,
+          "3102": -179.0,
+          "3103": 0.0,
+          "3104": 0.0,
+          "3105": 0.0,
+          "3106": 1.0,
+          "3107": 5.0,
+          "3108": 0.0,
+          "3109": 0.0,
+          "3110": 0.0,
+          "3111": 0.0,
+          "3112": 0.0,
+          "3113": 0.0,
+          "3114": 0.0,
+          "3115": 0.0
+        },
+        "before": {
+          "version": 4,
+          "keys": {
+            "3004": {
+              "value": 2000.0,
+              "origin": "applied"
+            },
+            "3005": {
+              "value": 20.0,
+              "origin": "applied"
+            },
+            "3006": {
+              "value": 500.0,
+              "origin": "applied"
+            },
+            "3007": {
+              "value": 180.0,
+              "origin": "applied"
+            },
+            "3009": {
+              "value": 3.0,
+              "origin": "applied"
+            },
+            "3010": {
+              "value": 180.0,
+              "origin": "applied"
+            },
+            "3013": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3100": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3101": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3102": {
+              "value": -180.0,
+              "origin": "applied"
+            },
+            "3103": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3104": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3105": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3106": {
+              "value": 1.0,
+              "origin": "applied"
+            },
+            "3107": {
+              "value": 5.0,
+              "origin": "applied"
+            },
+            "3108": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3109": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3110": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3111": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3112": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3113": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3114": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3115": {
+              "value": 0.0,
+              "origin": "applied"
+            }
+          }
+        },
+        "after": {
+          "version": 5,
+          "keys": {
+            "3004": {
+              "value": 2000.0,
+              "origin": "applied"
+            },
+            "3005": {
+              "value": 20.0,
+              "origin": "applied"
+            },
+            "3006": {
+              "value": 500.0,
+              "origin": "applied"
+            },
+            "3007": {
+              "value": 180.0,
+              "origin": "applied"
+            },
+            "3009": {
+              "value": 3.0,
+              "origin": "applied"
+            },
+            "3010": {
+              "value": 180.0,
+              "origin": "applied"
+            },
+            "3013": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3100": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3101": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3102": {
+              "value": -179.0,
+              "origin": "applied"
+            },
+            "3103": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3104": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3105": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3106": {
+              "value": 1.0,
+              "origin": "applied"
+            },
+            "3107": {
+              "value": 5.0,
+              "origin": "applied"
+            },
+            "3108": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3109": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3110": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3111": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3112": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3113": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3114": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3115": {
+              "value": 0.0,
+              "origin": "applied"
+            }
+          }
+        },
+        "moved": [
+          "3102"
+        ],
+        "before_unconfirmed": [],
+        "after_unconfirmed": []
+      },
+      {
+        "case": "ts-sync-stable",
+        "status": "PASS",
+        "detail": "nothing written, the booking stayed at version 5",
+        "toolsetter": {
+          "digest": "d",
+          "set_up": true,
+          "synced": false
+        },
+        "version_before": 5,
+        "version_after": 5,
+        "errors": []
+      }
+    ],
+    "verdict": "PASS",
+    "starts": 2,
+    "known_refusal_injected": true
+  },
+  "second_retry": {
+    "rows": [
+      {
+        "case": "ts-sync-program-m600",
+        "status": "PASS",
+        "detail": "saved while off, applied at the start: #3102 -180 \u2192 -179, length 49.0000 within 49 \u00b1 0.002 (the old basis gives 50)",
+        "l0": 50.0,
+        "old_3102": -180.0,
+        "new_3102": -179.0,
+        "expected": 49.0,
+        "length": 49.0,
+        "g43": 49.0,
+        "toolsetter": {
+          "digest": "d",
+          "set_up": true,
+          "synced": true
+        },
+        "interp_before": -180.0,
+        "interp_after": -179.0,
+        "tol_mm": 0.002,
+        "errors": [],
+        "deviation_mm": 0.0
+      },
+      {
+        "case": "ts-sync-program-m600.counter-old-basis",
+        "status": "PASS",
+        "detail": "the planted value is refused: length 49.0000 \u2014 expected 50 \u00b1 0.002",
+        "counter": true,
+        "inner": {
+          "case": "ts-sync-program-m600",
+          "status": "FAIL",
+          "detail": "length 49.0000 \u2014 expected 50 \u00b1 0.002",
+          "l0": 50.0,
+          "old_3102": -180.0,
+          "new_3102": -180.0,
+          "expected": 50.0,
+          "length": 49.0,
+          "g43": 49.0,
+          "toolsetter": {
+            "digest": "d",
+            "set_up": true,
+            "synced": true
+          },
+          "interp_before": -180.0,
+          "interp_after": -179.0,
+          "tol_mm": 0.002,
+          "errors": [],
+          "deviation_mm": -1.0
+        }
+      },
+      {
+        "case": "ts-sync-booking",
+        "status": "PASS",
+        "detail": "before every key confirmed at the prepared numbers (the form: not yet in the machine, ['3102']), after every key at the section's (the form: confirmed); version 4 \u2192 5",
+        "old": {
+          "3004": 2000.0,
+          "3005": 20.0,
+          "3006": 500.0,
+          "3007": 180.0,
+          "3009": 3.0,
+          "3010": 180.0,
+          "3013": 0.0,
+          "3100": 0.0,
+          "3101": 0.0,
+          "3102": -180.0,
+          "3103": 0.0,
+          "3104": 0.0,
+          "3105": 0.0,
+          "3106": 1.0,
+          "3107": 5.0,
+          "3108": 0.0,
+          "3109": 0.0,
+          "3110": 0.0,
+          "3111": 0.0,
+          "3112": 0.0,
+          "3113": 0.0,
+          "3114": 0.0,
+          "3115": 0.0
+        },
+        "new": {
+          "3004": 2000.0,
+          "3005": 20.0,
+          "3006": 500.0,
+          "3007": 180.0,
+          "3009": 3.0,
+          "3010": 180.0,
+          "3013": 0.0,
+          "3100": 0.0,
+          "3101": 0.0,
+          "3102": -179.0,
+          "3103": 0.0,
+          "3104": 0.0,
+          "3105": 0.0,
+          "3106": 1.0,
+          "3107": 5.0,
+          "3108": 0.0,
+          "3109": 0.0,
+          "3110": 0.0,
+          "3111": 0.0,
+          "3112": 0.0,
+          "3113": 0.0,
+          "3114": 0.0,
+          "3115": 0.0
+        },
+        "before": {
+          "version": 4,
+          "keys": {
+            "3004": {
+              "value": 2000.0,
+              "origin": "applied"
+            },
+            "3005": {
+              "value": 20.0,
+              "origin": "applied"
+            },
+            "3006": {
+              "value": 500.0,
+              "origin": "applied"
+            },
+            "3007": {
+              "value": 180.0,
+              "origin": "applied"
+            },
+            "3009": {
+              "value": 3.0,
+              "origin": "applied"
+            },
+            "3010": {
+              "value": 180.0,
+              "origin": "applied"
+            },
+            "3013": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3100": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3101": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3102": {
+              "value": -180.0,
+              "origin": "applied"
+            },
+            "3103": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3104": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3105": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3106": {
+              "value": 1.0,
+              "origin": "applied"
+            },
+            "3107": {
+              "value": 5.0,
+              "origin": "applied"
+            },
+            "3108": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3109": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3110": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3111": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3112": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3113": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3114": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3115": {
+              "value": 0.0,
+              "origin": "applied"
+            }
+          }
+        },
+        "after": {
+          "version": 5,
+          "keys": {
+            "3004": {
+              "value": 2000.0,
+              "origin": "applied"
+            },
+            "3005": {
+              "value": 20.0,
+              "origin": "applied"
+            },
+            "3006": {
+              "value": 500.0,
+              "origin": "applied"
+            },
+            "3007": {
+              "value": 180.0,
+              "origin": "applied"
+            },
+            "3009": {
+              "value": 3.0,
+              "origin": "applied"
+            },
+            "3010": {
+              "value": 180.0,
+              "origin": "applied"
+            },
+            "3013": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3100": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3101": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3102": {
+              "value": -179.0,
+              "origin": "applied"
+            },
+            "3103": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3104": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3105": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3106": {
+              "value": 1.0,
+              "origin": "applied"
+            },
+            "3107": {
+              "value": 5.0,
+              "origin": "applied"
+            },
+            "3108": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3109": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3110": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3111": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3112": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3113": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3114": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3115": {
+              "value": 0.0,
+              "origin": "applied"
+            }
+          }
+        },
+        "moved": [
+          "3102"
+        ],
+        "before_unconfirmed": [],
+        "after_unconfirmed": []
+      },
+      {
+        "case": "ts-sync-stable",
+        "status": "PASS",
+        "detail": "nothing written, the booking stayed at version 5",
+        "toolsetter": {
+          "digest": "d",
+          "set_up": true,
+          "synced": false
+        },
+        "version_before": 5,
+        "version_after": 5,
+        "errors": []
+      }
+    ],
+    "verdict": "PASS",
+    "starts": 2,
+    "known_refusal_injected": true
+  },
+  "second_retry_debug": {
+    "rows": [
+      {
+        "case": "ts-sync-program-m600",
+        "status": "PASS",
+        "detail": "saved while off, applied at the start: #3102 -180 \u2192 -179, length 49.0000 within 49 \u00b1 0.002 (the old basis gives 50)",
+        "l0": 50.0,
+        "old_3102": -180.0,
+        "new_3102": -179.0,
+        "expected": 49.0,
+        "length": 49.0,
+        "g43": 49.0,
+        "toolsetter": {
+          "digest": "d",
+          "set_up": true,
+          "synced": true
+        },
+        "interp_before": -180.0,
+        "interp_after": -179.0,
+        "tol_mm": 0.002,
+        "errors": [],
+        "deviation_mm": 0.0
+      },
+      {
+        "case": "ts-sync-program-m600.counter-old-basis",
+        "status": "PASS",
+        "detail": "the planted value is refused: length 49.0000 \u2014 expected 50 \u00b1 0.002",
+        "counter": true,
+        "inner": {
+          "case": "ts-sync-program-m600",
+          "status": "FAIL",
+          "detail": "length 49.0000 \u2014 expected 50 \u00b1 0.002",
+          "l0": 50.0,
+          "old_3102": -180.0,
+          "new_3102": -180.0,
+          "expected": 50.0,
+          "length": 49.0,
+          "g43": 49.0,
+          "toolsetter": {
+            "digest": "d",
+            "set_up": true,
+            "synced": true
+          },
+          "interp_before": -180.0,
+          "interp_after": -179.0,
+          "tol_mm": 0.002,
+          "errors": [],
+          "deviation_mm": -1.0
+        }
+      },
+      {
+        "case": "ts-sync-booking",
+        "status": "PASS",
+        "detail": "before every key confirmed at the prepared numbers (the form: not yet in the machine, ['3102']), after every key at the section's (the form: confirmed); version 4 \u2192 5",
+        "old": {
+          "3004": 2000.0,
+          "3005": 20.0,
+          "3006": 500.0,
+          "3007": 180.0,
+          "3009": 3.0,
+          "3010": 180.0,
+          "3013": 0.0,
+          "3100": 0.0,
+          "3101": 0.0,
+          "3102": -180.0,
+          "3103": 0.0,
+          "3104": 0.0,
+          "3105": 0.0,
+          "3106": 1.0,
+          "3107": 5.0,
+          "3108": 0.0,
+          "3109": 0.0,
+          "3110": 0.0,
+          "3111": 0.0,
+          "3112": 0.0,
+          "3113": 0.0,
+          "3114": 0.0,
+          "3115": 0.0
+        },
+        "new": {
+          "3004": 2000.0,
+          "3005": 20.0,
+          "3006": 500.0,
+          "3007": 180.0,
+          "3009": 3.0,
+          "3010": 180.0,
+          "3013": 0.0,
+          "3100": 0.0,
+          "3101": 0.0,
+          "3102": -179.0,
+          "3103": 0.0,
+          "3104": 0.0,
+          "3105": 0.0,
+          "3106": 1.0,
+          "3107": 5.0,
+          "3108": 0.0,
+          "3109": 0.0,
+          "3110": 0.0,
+          "3111": 0.0,
+          "3112": 0.0,
+          "3113": 0.0,
+          "3114": 0.0,
+          "3115": 0.0
+        },
+        "before": {
+          "version": 4,
+          "keys": {
+            "3004": {
+              "value": 2000.0,
+              "origin": "applied"
+            },
+            "3005": {
+              "value": 20.0,
+              "origin": "applied"
+            },
+            "3006": {
+              "value": 500.0,
+              "origin": "applied"
+            },
+            "3007": {
+              "value": 180.0,
+              "origin": "applied"
+            },
+            "3009": {
+              "value": 3.0,
+              "origin": "applied"
+            },
+            "3010": {
+              "value": 180.0,
+              "origin": "applied"
+            },
+            "3013": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3100": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3101": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3102": {
+              "value": -180.0,
+              "origin": "applied"
+            },
+            "3103": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3104": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3105": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3106": {
+              "value": 1.0,
+              "origin": "applied"
+            },
+            "3107": {
+              "value": 5.0,
+              "origin": "applied"
+            },
+            "3108": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3109": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3110": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3111": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3112": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3113": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3114": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3115": {
+              "value": 0.0,
+              "origin": "applied"
+            }
+          }
+        },
+        "after": {
+          "version": 5,
+          "keys": {
+            "3004": {
+              "value": 2000.0,
+              "origin": "applied"
+            },
+            "3005": {
+              "value": 20.0,
+              "origin": "applied"
+            },
+            "3006": {
+              "value": 500.0,
+              "origin": "applied"
+            },
+            "3007": {
+              "value": 180.0,
+              "origin": "applied"
+            },
+            "3009": {
+              "value": 3.0,
+              "origin": "applied"
+            },
+            "3010": {
+              "value": 180.0,
+              "origin": "applied"
+            },
+            "3013": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3100": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3101": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3102": {
+              "value": -179.0,
+              "origin": "applied"
+            },
+            "3103": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3104": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3105": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3106": {
+              "value": 1.0,
+              "origin": "applied"
+            },
+            "3107": {
+              "value": 5.0,
+              "origin": "applied"
+            },
+            "3108": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3109": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3110": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3111": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3112": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3113": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3114": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3115": {
+              "value": 0.0,
+              "origin": "applied"
+            }
+          }
+        },
+        "moved": [
+          "3102"
+        ],
+        "before_unconfirmed": [],
+        "after_unconfirmed": []
+      },
+      {
+        "case": "ts-sync-stable",
+        "status": "PASS",
+        "detail": "nothing written, the booking stayed at version 5",
+        "toolsetter": {
+          "digest": "d",
+          "set_up": true,
+          "synced": false
+        },
+        "version_before": 5,
+        "version_after": 5,
+        "errors": [
+          [
+            13,
+            "DEBUG: allowed"
+          ]
+        ]
+      }
+    ],
+    "verdict": "PASS",
+    "starts": 2,
+    "known_refusal_injected": true
+  },
+  "second_retry_nml": {
+    "rows": [
+      {
+        "case": "ts-sync-program-m600",
+        "status": "PASS",
+        "detail": "saved while off, applied at the start: #3102 -180 \u2192 -179, length 49.0000 within 49 \u00b1 0.002 (the old basis gives 50)",
+        "l0": 50.0,
+        "old_3102": -180.0,
+        "new_3102": -179.0,
+        "expected": 49.0,
+        "length": 49.0,
+        "g43": 49.0,
+        "toolsetter": {
+          "digest": "d",
+          "set_up": true,
+          "synced": true
+        },
+        "interp_before": -180.0,
+        "interp_after": -179.0,
+        "tol_mm": 0.002,
+        "errors": [],
+        "deviation_mm": 0.0
+      },
+      {
+        "case": "ts-sync-program-m600.counter-old-basis",
+        "status": "PASS",
+        "detail": "the planted value is refused: length 49.0000 \u2014 expected 50 \u00b1 0.002",
+        "counter": true,
+        "inner": {
+          "case": "ts-sync-program-m600",
+          "status": "FAIL",
+          "detail": "length 49.0000 \u2014 expected 50 \u00b1 0.002",
+          "l0": 50.0,
+          "old_3102": -180.0,
+          "new_3102": -180.0,
+          "expected": 50.0,
+          "length": 49.0,
+          "g43": 49.0,
+          "toolsetter": {
+            "digest": "d",
+            "set_up": true,
+            "synced": true
+          },
+          "interp_before": -180.0,
+          "interp_after": -179.0,
+          "tol_mm": 0.002,
+          "errors": [],
+          "deviation_mm": -1.0
+        }
+      },
+      {
+        "case": "ts-sync-booking",
+        "status": "PASS",
+        "detail": "before every key confirmed at the prepared numbers (the form: not yet in the machine, ['3102']), after every key at the section's (the form: confirmed); version 4 \u2192 5",
+        "old": {
+          "3004": 2000.0,
+          "3005": 20.0,
+          "3006": 500.0,
+          "3007": 180.0,
+          "3009": 3.0,
+          "3010": 180.0,
+          "3013": 0.0,
+          "3100": 0.0,
+          "3101": 0.0,
+          "3102": -180.0,
+          "3103": 0.0,
+          "3104": 0.0,
+          "3105": 0.0,
+          "3106": 1.0,
+          "3107": 5.0,
+          "3108": 0.0,
+          "3109": 0.0,
+          "3110": 0.0,
+          "3111": 0.0,
+          "3112": 0.0,
+          "3113": 0.0,
+          "3114": 0.0,
+          "3115": 0.0
+        },
+        "new": {
+          "3004": 2000.0,
+          "3005": 20.0,
+          "3006": 500.0,
+          "3007": 180.0,
+          "3009": 3.0,
+          "3010": 180.0,
+          "3013": 0.0,
+          "3100": 0.0,
+          "3101": 0.0,
+          "3102": -179.0,
+          "3103": 0.0,
+          "3104": 0.0,
+          "3105": 0.0,
+          "3106": 1.0,
+          "3107": 5.0,
+          "3108": 0.0,
+          "3109": 0.0,
+          "3110": 0.0,
+          "3111": 0.0,
+          "3112": 0.0,
+          "3113": 0.0,
+          "3114": 0.0,
+          "3115": 0.0
+        },
+        "before": {
+          "version": 4,
+          "keys": {
+            "3004": {
+              "value": 2000.0,
+              "origin": "applied"
+            },
+            "3005": {
+              "value": 20.0,
+              "origin": "applied"
+            },
+            "3006": {
+              "value": 500.0,
+              "origin": "applied"
+            },
+            "3007": {
+              "value": 180.0,
+              "origin": "applied"
+            },
+            "3009": {
+              "value": 3.0,
+              "origin": "applied"
+            },
+            "3010": {
+              "value": 180.0,
+              "origin": "applied"
+            },
+            "3013": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3100": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3101": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3102": {
+              "value": -180.0,
+              "origin": "applied"
+            },
+            "3103": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3104": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3105": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3106": {
+              "value": 1.0,
+              "origin": "applied"
+            },
+            "3107": {
+              "value": 5.0,
+              "origin": "applied"
+            },
+            "3108": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3109": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3110": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3111": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3112": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3113": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3114": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3115": {
+              "value": 0.0,
+              "origin": "applied"
+            }
+          }
+        },
+        "after": {
+          "version": 5,
+          "keys": {
+            "3004": {
+              "value": 2000.0,
+              "origin": "applied"
+            },
+            "3005": {
+              "value": 20.0,
+              "origin": "applied"
+            },
+            "3006": {
+              "value": 500.0,
+              "origin": "applied"
+            },
+            "3007": {
+              "value": 180.0,
+              "origin": "applied"
+            },
+            "3009": {
+              "value": 3.0,
+              "origin": "applied"
+            },
+            "3010": {
+              "value": 180.0,
+              "origin": "applied"
+            },
+            "3013": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3100": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3101": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3102": {
+              "value": -179.0,
+              "origin": "applied"
+            },
+            "3103": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3104": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3105": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3106": {
+              "value": 1.0,
+              "origin": "applied"
+            },
+            "3107": {
+              "value": 5.0,
+              "origin": "applied"
+            },
+            "3108": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3109": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3110": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3111": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3112": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3113": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3114": {
+              "value": 0.0,
+              "origin": "applied"
+            },
+            "3115": {
+              "value": 0.0,
+              "origin": "applied"
+            }
+          }
+        },
+        "moved": [
+          "3102"
+        ],
+        "before_unconfirmed": [],
+        "after_unconfirmed": []
+      },
+      {
+        "case": "ts-sync-stable",
+        "status": "FAIL",
+        "detail": "the second start reported: own NML error",
+        "toolsetter": {
+          "digest": "d",
+          "set_up": true,
+          "synced": false
+        },
+        "version_before": 5,
+        "version_after": 5,
+        "errors": [
+          [
+            11,
+            "own NML error"
+          ]
+        ]
+      }
+    ],
+    "verdict": "FAIL",
+    "starts": 2,
+    "known_refusal_injected": true
+  }
+}

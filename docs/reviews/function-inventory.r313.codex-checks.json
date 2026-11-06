@@ -1,0 +1,74 @@
+{
+  "round": "R313",
+  "verdict": "findings",
+  "parts": {
+    "A": "agreement",
+    "B": "findings"
+  },
+  "closed": [
+    "FI-I43",
+    "FI-I44"
+  ],
+  "plan_findings": {
+    "FI313-01": "A source-bound time or conservative time bounds are needed for the 250 ms edge-gap claim.",
+    "FI313-02": "The observed client departure or disarm, not SIGSTOP, must anchor the continuation window.",
+    "FI313-03": "Use the first falling edge of the triggered expiry and an integrity-covered recovery section."
+  },
+  "refs": {
+    "document": "593e562789db5ecf84a51797bd4ced0120b32c97",
+    "base": "18f3f155aae711f7afea728a9bdb01917011573e",
+    "head": "45d6a4c71032731269a8264ad1289990b5ae3fe6"
+  },
+  "archive": "/tmp/codex-r313",
+  "review_prefix": {
+    "bytes": 739111,
+    "sha256": "97d785f2aec5ee7293681a1fa3d201bae00db8e5b6df0207492bac565a6889a8"
+  },
+  "checks": [
+    {
+      "cwd": "/tmp/codex-r313",
+      "command": "/home/cnc/lcnc-suite-tsync/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider scripts/test_native_stage.py scripts/inventory/test_inventory.py",
+      "result": "390 passed in 11.63s, exit 0 (354 native + 36 inventory)"
+    }
+  ],
+  "probes": {
+    "a.py": "R312 countercases adapted only to new old/new/canon interface and corrected expectations; saved run 11 re-evaluated from immutable shipped seed, old #3005=20, new #3102=-179. All expected results pass.",
+    "a-state.cjs": "Actual TypeScript projection confirms saved pending→confirmed; wrong sixth decimal is pending.",
+    "retry.py": "Pure whole-step first/second start retries exclude prior errors, permit DEBUG, reject an own NML error. Four expected results pass.",
+    "plan-audit.py": "Three illustrative countermodels of plan ambiguity, not stage-3 implementation tests."
+  },
+  "probe_environment": {
+    "python": "/home/cnc/lcnc-suite-tsync/lcnc-gateway/.venv/bin/python3 -B",
+    "node_modules": "/home/cnc/lcnc-suite-tsync/lcnc-webui/node_modules",
+    "arguments": "Each script documents its arguments."
+  },
+  "plan_source_hashes": {
+    "scripts/test_support/servo.py": "37e6d2a601c2157b7473a0f103024b37e3dbd43f79ace8619a7ccdc62746d0a5",
+    "scripts/test_support/live_session.py": "e56e71a9a788e941963673c04b5cddf2c6a4886f7ccfb3cd4f6a66cebdd3186e",
+    "lcnc-gateway/gateway.py": "bd15469d09176d896a4b7312ea4d3d8fbc4a8ec16b9f383911130f5342d5b62c",
+    "examples/sim_config/hallib/lcnc_webui.hal": "ae989d84fbd7cd7183dc167f6cd36b6d9ad93fb93df3df4f9dcb76ae0a4ae1d5"
+  },
+  "seed_unchanged_from_18f3f155": true,
+  "evidence_sha256": {
+    "function-inventory.r313.codex-request.md": "a7d8c00b4cef6965e150054d6672cfdf5d30755bd166705ddc22a124543478c7",
+    "function-inventory.r313.codex-a.py": "c2ab40385d5d10acc56b0a79399dcfa69c7edf50060cff921b1feed37847c65c",
+    "function-inventory.r313.codex-a.json": "917af410d6382491c34c3f8d41d9279ea9e83b5e336a294467747896d113efdd",
+    "function-inventory.r313.codex-a-state.cjs": "da70d78e2d62890095c7aeecb913dba34a914f1b6b55b40567983af74dedfd56",
+    "function-inventory.r313.codex-a-state.json": "76cbbf0c3b76f8539c325469135e6fe91c356ae66ede2a3396162fdf80b445ee",
+    "function-inventory.r313.codex-retry.py": "b2ba5486132bca5138c321486ad0487f11087bad93e852ba18dded8010ce6652",
+    "function-inventory.r313.codex-retry.json": "676af0f37134f10e1e9e6edccc4b004103f02a862348f14895ebbf810bebd344",
+    "function-inventory.r313.codex-plan-audit.py": "510c687b1164507a2b8bf952733af10630c20faeb2dcb48db0492e1d24a42da1",
+    "function-inventory.r313.codex-plan-audit.json": "2ac7e3bce07ad5b56c85f4d20f1188e19a20f2de6552bbd712eb2ed1a1d646fc"
+  },
+  "saved_inputs_sha256": {
+    "report.json": "a8f710c324eaac5aeb406ebb885fa228b90611a9932d70448efe7683c0ccae9f",
+    "logs/trace.ndjson": "bed2004d545a5e37e6c3d505c133bdd78a689289e9bc7d7dcf4a2ac9dc6ec9ee"
+  },
+  "limits": [
+    "No product edits, commits, or live connections",
+    "No builds/tests/checkouts in the live tree",
+    "No machine commands or new native run",
+    "No rerun of the full round gate or reported mutations",
+    "Review append and new evidence only"
+  ]
+}

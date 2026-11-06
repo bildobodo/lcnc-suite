@@ -1,0 +1,38 @@
+{
+  "FI313-01": {
+    "sample_numbers": [
+      0,
+      200
+    ],
+    "nominal_period_ns": 1000000,
+    "number_gap": false,
+    "overrun": false,
+    "nominal_edge_gap_ms": 200,
+    "actual_edge_gap_ms": 400,
+    "receipt_edge_gap_ms": 0.2,
+    "fault_out": false,
+    "meaning": "A 400 ms gap can have 200 contiguous nominal 1 ms intervals and 0.2 ms of buffered receipt spacing. No number gap or latch trip distinguishes it from a passing interval."
+  },
+  "FI313-02": {
+    "sigstop_s": 0.0,
+    "gateway_disarm_s": 3.05,
+    "last_motion_s": 3.05,
+    "continues_at_least_2s_after_sigstop": true,
+    "continues_2s_after_disarm": false,
+    "meaning": "A regression aborting AUTO exactly at hb-stall can satisfy a two-second observation anchored to SIGSTOP. The actual expiry must be witnessed and anchor the post-window."
+  },
+  "FI313-03": {
+    "first_falling_edge_n": 500,
+    "fault_at_first_fall": 1,
+    "resumption_n": 901,
+    "global_last_true_n": 2400,
+    "sample_after_global_last_true": null,
+    "meaning": "The last TRUE of the whole section is after recovery of the heartbeat, not the expiry. Recovery of the latch also needs an integrity-covered section after the pre-acknowledgement section closes."
+  },
+  "sources": {
+    "scripts/test_support/servo.py": "37e6d2a601c2157b7473a0f103024b37e3dbd43f79ace8619a7ccdc62746d0a5",
+    "scripts/test_support/live_session.py": "e56e71a9a788e941963673c04b5cddf2c6a4886f7ccfb3cd4f6a66cebdd3186e",
+    "lcnc-gateway/gateway.py": "bd15469d09176d896a4b7312ea4d3d8fbc4a8ec16b9f383911130f5342d5b62c",
+    "examples/sim_config/hallib/lcnc_webui.hal": "ae989d84fbd7cd7183dc167f6cd36b6d9ad93fb93df3df4f9dcb76ae0a4ae1d5"
+  }
+}
