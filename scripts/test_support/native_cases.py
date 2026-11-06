@@ -792,6 +792,7 @@ COMP_TOL = 0.002             # mm: counts × 0.001, truncated or rounded
 GAP_TOL = 0.01               # mm: the tip's distance to the surface (probe ± compensation)
 METHOD_GAP = 0.05            # mm: the reference values at the test point at least this far apart
 OFF_EOFFSET = 0.001          # mm: compensation off — the offset drained
+SITE_TOL = 0.001             # mm: a readout's measured X/Y at its point (Codex R327 FI-I56)
 METHODS = ("nearest", "linear", "cubic")
 
 
@@ -898,11 +899,25 @@ def _settled_read(reading: dict, method=None, enabled=True):
         return f"the method {method} not confirmed (status {reading.get('method')})"
     if reading.get("limited") is not False:
         return f"motion.eoffset-limited is {reading.get('limited')}"
+    if not _finite(reading.get("version")):
+        return f"the map version unknown (status {reading.get('version')})"
+    return None
+
+
+def _site(reading: dict, at):
+    """The reading's MEASURED X/Y at the point it is judged for (Codex R327
+    FI-I56): (status, reason) — unknown is incomplete, known elsewhere a
+    FAIL — or None when it stood there."""
+    x, y = reading.get("x"), reading.get("y")
+    if not _finite(x, y):
+        return "incomplete", "the position not read"
+    if abs(x - at[0]) > SITE_TOL or abs(y - at[1]) > SITE_TOL:
+        return "FAIL", f"measured at X{x:.4f} Y{y:.4f}, not at X{at[0]:g} Y{at[1]:g}"
     return None
 
 
 def eval_comp_method(case: str, method: str, reading: dict, refs: dict, recorded: dict, f_dev: float,
-                     z_control: float, tol: float = COMP_TOL) -> dict:
+                     z_control: float, at, tol: float = COMP_TOL) -> dict:
     """F-COMP.S4, one method at the test point Q on the edge (534,550)–(550,550)
     at a quarter (Codex R326 Q326-1): the applied offset = the method's
     reference from the recorded points (`refs`, before quantization) ± tol;
@@ -910,16 +925,19 @@ def eval_comp_method(case: str, method: str, reading: dict, refs: dict, recorded
     0.75·z(534,550) + 0.25·z(550,550) (an axis-parallel edge of a regular grid
     is in every Delaunay triangulation), cubic at least METHOD_GAP from linear
     AND closer to the surface than linear; the joint Z minus the offset = the
-    commanded control point. Reference values closer than METHOD_GAP leave
-    the test point unfit: incomplete — unless the measured value already
-    contradicts one."""
+    commanded control point; the reading measured AT Q. Reference values
+    closer than METHOD_GAP leave the test point unfit: incomplete — unless
+    the measured value already contradicts one."""
     e = reading.get("eoffset")
-    measured = {"method": method, "eoffset": e, "joint_z": reading.get("joint_z"), "z_control": z_control,
-                "refs": {k: round(v, 6) for k, v in refs.items()}, "recorded": recorded, "f_dev": round(f_dev, 6),
-                "tol_mm": tol, "reading": reading}
+    measured = {"method": method, "at": list(at), "eoffset": e, "joint_z": reading.get("joint_z"),
+                "z_control": z_control, "refs": {k: round(v, 6) for k, v in refs.items()}, "recorded": recorded,
+                "f_dev": round(f_dev, 6), "tol_mm": tol, "reading": reading}
     why = _settled_read(reading, method)
     if why:
         return _row(case, "incomplete", why, **measured)
+    site = _site(reading, at)
+    if site:
+        return _row(case, site[0], site[1], **measured)
     if abs((reading["joint_z"] - e) - z_control) > tol:
         return _row(case, "FAIL", f"joint Z − offset {reading['joint_z'] - e:.4f}, commanded {z_control:g}",
                     **measured)
@@ -952,13 +970,17 @@ def eval_comp_reading(case: str, reading: dict, enabled: bool, map_z, gap_expect
     """F-COMP.S4 ON/OFF at a node (Codex R326): ON — the offset = the node's
     recorded Z ± tol; OFF — drained (|offset| < OFF_EOFFSET). Either way the
     joint Z minus the offset = the commanded control point, and the tip's
-    distance to the workpiece (joint Z − length − f) = `gap_expected` ± gap_tol."""
+    distance to the workpiece (joint Z − length − f at the MEASURED X/Y) =
+    `gap_expected` ± gap_tol, the reading measured at `at` (Codex R327 FI-I56)."""
     e = reading.get("eoffset")
     measured = {"enabled": enabled, "at": list(at), "eoffset": e, "joint_z": reading.get("joint_z"),
                 "map_z": map_z, "gap_expected": gap_expected, "z_control": z_control, "reading": reading}
     why = _settled_read(reading, enabled=enabled)
     if why:
         return _row(case, "incomplete", why, **measured)
+    site = _site(reading, at)
+    if site:
+        return _row(case, site[0], site[1], **measured)
     if abs((reading["joint_z"] - e) - z_control) > tol:
         return _row(case, "FAIL", f"joint Z − offset {reading['joint_z'] - e:.4f}, commanded {z_control:g}",
                     **measured)
@@ -969,7 +991,7 @@ def eval_comp_reading(case: str, reading: dict, enabled: bool, map_z, gap_expect
             return _row(case, "FAIL", f"offset {e:.4f}, the node's map value {map_z:.4f} ± {tol:g}", **measured)
     elif abs(e) >= OFF_EOFFSET:
         return _row(case, "FAIL", f"compensation off but the offset is {e:.4f}", **measured)
-    gap = reading["joint_z"] - length - surface_z(*at)
+    gap = reading["joint_z"] - length - surface_z(reading["x"], reading["y"])
     measured["gap_mm"] = round(gap, 6)
     if abs(gap - gap_expected) > gap_tol:
         return _row(case, "FAIL", f"the tip stands {gap:.4f} above the workpiece, expected {gap_expected:.4f}",
@@ -977,14 +999,15 @@ def eval_comp_reading(case: str, reading: dict, enabled: bool, map_z, gap_expect
     return _row(case, "PASS", f"{'on' if enabled else 'off'}: the tip {gap:.4f} above the workpiece", **measured)
 
 
-def eval_comp_pair(case: str, on: dict, off: dict) -> dict:
-    """Two readings at one place (ON and OFF, or before and after an XY move)
-    as ONE row: PASS only with both."""
+def eval_comp_pair(case: str, *parts: dict) -> dict:
+    """Readings of one case (ON and OFF at a place; ON before an XY move, ON
+    after it, OFF there) as ONE row: PASS only with all; a FAIL before a
+    missing reading."""
     for want in ("FAIL", "incomplete"):
-        r = next((r for r in (on, off) if r["status"] == want), None)
+        r = next((r for r in parts if r["status"] == want), None)
         if r is not None:
-            return {**_row(case, want, r["detail"]), "readings": [on, off]}
-    return {**_row(case, "PASS", f"{on['detail']}; {off['detail']}"), "readings": [on, off]}
+            return {**_row(case, want, r["detail"]), "readings": list(parts)}
+    return {**_row(case, "PASS", "; ".join(r["detail"] for r in parts)), "readings": list(parts)}
 
 
 SETTLE_S, SETTLE_TOL, SETTLE_GAP_S = 0.5, 0.0005, 0.2
@@ -995,25 +1018,33 @@ def settled_window(frames: list[tuple], cond, span: float = SETTLE_S, tol: float
     """The newest frames as a SETTLED reading (Codex R326): fresh frames — at
     most `gap` s apart — covering `span` s back from the newest, each with
     `cond` true, a finite offset and joint Z within `tol` of the newest's and
-    the same map version. None otherwise: missing frames are no standstill."""
+    the same KNOWN map version — an unknown one carries no reading (Codex
+    R327 FI-I57) — and the joint X/Y within `tol` too. None otherwise:
+    missing frames are no standstill. The accepted window is returned with
+    its frames (time and the values judged) as the reading's record."""
     if not frames:
         return None
 
     def vals(st):
-        jp = st.get("joint_pos") or []
-        return st.get("eoffset_z"), (jp[2] if len(jp) > 2 else None), st.get("comp_grid_version")
+        jp = list(st.get("joint_pos") or [])[:3]
+        jp += [None] * (3 - len(jp))
+        return st.get("eoffset_z"), jp[0], jp[1], jp[2], st.get("comp_grid_version")
     t_last, last = frames[-1]
-    e1, z1, v1 = vals(last)
-    if not (_finite(e1, z1) and cond(last)):
+    first = vals(last)
+    if not (_finite(*first) and cond(last)):
         return None
-    t_prev = t_last
+    t_prev, kept = t_last, []
     for t, st in reversed(frames):
         if t_prev - t > gap:
             return None
-        e, z, v = vals(st)
-        if not (cond(st) and _finite(e, z) and abs(e - e1) <= tol and abs(z - z1) <= tol and v == v1):
+        v = vals(st)
+        if not (cond(st) and _finite(*v) and all(abs(a - b) <= tol for a, b in zip(v[:4], first[:4]))
+                and v[4] == first[4]):
             return None
+        kept.append([round(t, 4), *v, st.get("eoffset_enabled"), st.get("comp_method")])
         if t_last - t >= span:
-            return {"t_from": t, "t_to": t_last, "status": last}
+            return {"t_from": t, "t_to": t_last, "status": last,
+                    "frames": kept[::-1], "frame_fields": ["t", "eoffset_z", "x", "y", "z", "version", "enabled",
+                                                           "method"]}
         t_prev = t
     return None

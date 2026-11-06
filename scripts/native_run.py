@@ -107,6 +107,8 @@ COMP_EDGE = ((534.0, 550.0), (550.0, 550.0))      # Q's nearer and farther node
 COMP_FEED = 1000.0                                # mm/min, the XY move A → B with compensation on
 SETTLE_DEADLINE = 20.0      # s for a reading to settle (nc.settled_window), else it is not one
 AT_TOL = 0.001              # mm: a readout move already there is not sent (no travel, no end)
+METHOD_CONFIRM_S = 15.0     # s for a method switch and its reloaded map
+OVERRIDE_CONFIRM_S = 5.0    # s for a status frame after M50 P1 to show the override free
 MAP_RELOAD_S = 15.0         # s after the scan's end for the map's reload (DONE → reload-req → load)
 #: the workpiece's chain in its thread order (hallib/sim_surface.hal)
 SURFACE_CHAIN = ("surf-dx", "surf-dy", "surf-dx2", "surf-dy2", "surf-tilt", "surf-curve", "surf-z")
@@ -1080,16 +1082,21 @@ def _comp_read(ctx, c, cond) -> dict:
             raise RuntimeError(c.error)
         win = nc.settled_window(c.frames[i0:], cond)
         if win:
-            st = win["status"]
-            return {"settled": True, "eoffset": st.get("eoffset_z"), "joint_z": (st.get("joint_pos") or [None] * 3)[2],
-                    "enabled": st.get("eoffset_enabled"), "method": st.get("comp_method"),
-                    "version": st.get("comp_grid_version"), "window_s": round(win["t_to"] - win["t_from"], 3),
-                    "limited": _limited(ctx)}
+            return {"settled": True, **_reading_of(win["status"]), "window_s": round(win["t_to"] - win["t_from"], 3),
+                    "window": {"fields": win["frame_fields"], "frames": win["frames"]}, "limited": _limited(ctx)}
         time.sleep(0.05)
-    st = c.status
     return {"settled": False, "why": f"no settled window of {nc.SETTLE_S} s within {SETTLE_DEADLINE} s",
-            "eoffset": st.get("eoffset_z"), "joint_z": (st.get("joint_pos") or [None] * 3)[2],
-            "enabled": st.get("eoffset_enabled"), "method": st.get("comp_method")}
+            **_reading_of(c.status)}
+
+
+def _reading_of(st: dict) -> dict:
+    """What a reading takes from its frame: the offset, the MEASURED joint
+    X/Y/Z, the on/off state, the method, the map version."""
+    jp = list(st.get("joint_pos") or [])[:3]
+    jp += [None] * (3 - len(jp))
+    return {"eoffset": st.get("eoffset_z"), "x": jp[0], "y": jp[1], "joint_z": jp[2],
+            "enabled": st.get("eoffset_enabled"), "method": st.get("comp_method"),
+            "version": st.get("comp_grid_version")}
 
 
 def _comp_request(c, cmd, **kw):
@@ -1111,14 +1118,22 @@ def _comp_on(ctx, c, method: str) -> dict:
     return _comp_read(ctx, c, lambda st: st.get("eoffset_enabled") is True and st.get("comp_method") == idx)
 
 
-def _comp_method(c, method: str):
+def _comp_method(c, method: str) -> dict:
     """The method confirmed by the status AND its new map: compensation.py
     reloads on a method change (its grid version advances) — read before
-    the offset may be (Codex R326)."""
+    the offset may be (Codex R326). Returns the confirmation, `confirmed`
+    False when it did not come within METHOD_CONFIRM_S."""
     idx, v0 = nc.METHODS.index(method), c.status.get("comp_grid_version")
     _comp_request(c, "set_compensation_method", method=idx)
-    _wait(c, lambda s: s.get("comp_method") == idx and nc._finite(s.get("comp_grid_version"))
-          and s["comp_grid_version"] != v0, 15, f"the method {method} and its reloaded map")
+    end = time.monotonic() + METHOD_CONFIRM_S
+    while time.monotonic() < end:
+        s = c.status
+        if s.get("comp_method") == idx and nc._finite(s.get("comp_grid_version")) and s["comp_grid_version"] != v0:
+            return {"confirmed": True, "method": idx, "version_before": v0, "version": s["comp_grid_version"]}
+        time.sleep(0.05)
+    s = c.status
+    return {"confirmed": False, "method": s.get("comp_method"), "version_before": v0,
+            "version": s.get("comp_grid_version")}
 
 
 def _at(c, xy, feed=None):
@@ -1152,15 +1167,28 @@ def _scan_points(path: Path):
     return [[num(w) for w in ln.split()] for ln in path.read_text().splitlines() if ln.strip()]
 
 
+def mapped_scipy(maps: str, read=lambda path: Path(path).read_text()) -> str:
+    """The scipy a process has LOADED (Codex R327): the package its
+    /proc/<pid>/maps maps its libraries from, the version in that package's
+    version.py — one package, or it is named as not read."""
+    import re
+    roots = sorted({w[-1][:w[-1].index("/scipy/") + len("/scipy/")] for line in maps.splitlines()
+                    if len(w := line.split()) >= 6 and "/scipy/" in w[-1]})
+    if len(roots) != 1:
+        return f"not read: scipy mapped from {roots or 'nowhere'}"
+    m = re.search(r"^version\s*=\s*['\"]([^'\"]+)['\"]", read(roots[0] + "version.py"), re.M)
+    return f"{m.group(1)} ({roots[0]})" if m else f"not read: no version in {roots[0]}version.py"
+
+
 def _comp_python_versions(ctx) -> dict:
-    """The numpy/scipy of the RUNNING compensation process (its own
-    interpreter) — beside the evaluator's (Codex R326 Q326-1)."""
+    """The scipy of the RUNNING compensation process, from what it mapped —
+    beside the evaluator's (Codex R326 Q326-1, R327)."""
     out = {"evaluator": nc.scipy_version()}
     try:
-        pid = subprocess.run(["pgrep", "-f", "compensation.py"], capture_output=True, text=True).stdout.split()[0]
-        exe = os.readlink(f"/proc/{pid}/exe")
-        out["compensation"] = subprocess.run([exe, "-I", "-c", "import scipy; print(scipy.__version__)"],
-                                             capture_output=True, text=True, timeout=30).stdout.strip()
+        pids = subprocess.run(["pgrep", "-f", "compensation.py"], capture_output=True, text=True).stdout.split()
+        if len(pids) != 1:
+            raise RuntimeError(f"{len(pids)} compensation processes")
+        out["compensation"] = mapped_scipy(Path(f"/proc/{pids[0]}/maps").read_text())
     except Exception as e:  # noqa: BLE001 — named in the report
         out["compensation"] = f"not read: {type(e).__name__}: {e}"
     return out
@@ -1188,6 +1216,7 @@ def surface_cases():
                  "eoffset_enabled": st.get("eoffset_enabled"), "comp_method": st.get("comp_method")}
         ctx["report"]["surface_basis"] = basis
         if (basis["g5x_index"] != 1 or not isinstance(basis["g5x_offset"], list)
+                or any(not nc._finite(v) or abs(v) > nc.SAME for v in basis["g5x_offset"][:2])
                 or abs(basis["g5x_offset"][2] - nc.SURFACE_BASE) > nc.SAME
                 or any(abs(v) > nc.SAME for v in (basis["g92_offset"] or [1])[:3])
                 or basis["rotation_xy"] not in (0, 0.0) or basis["tool_offset_z"] is None
@@ -1223,7 +1252,7 @@ def _surface_cleanup(ctx, c, method0) -> dict:
                      ("method", lambda: c.status.get("comp_method") == nc.METHODS.index(method0)
                       or _comp_method(c, method0)),
                      ("g54", lambda: _short(c, "G10 L2 P1 Z0")),
-                     ("override", lambda: _short(c, "M50 P1"))):
+                     ("override", lambda: _override_free(c))):
         try:
             res = fn()
             out[what] = res if isinstance(res, dict) else "done"
@@ -1239,9 +1268,26 @@ def _surface_cleanup(ctx, c, method0) -> dict:
         errors.append(f"the method not back on {method0}: {st.get('comp_method')}")
     if _g54_z(st) is None or abs(_g54_z(st)) > nc.SAME:
         errors.append(f"G54 Z not back on 0: {_g54_z(st)}")
+    if st.get("feed_override_enabled") is not True:
+        errors.append(f"the override not free: {st.get('feed_override_enabled')}")
     if errors:
         out["error"] = "; ".join(errors)
     return out
+
+
+def _override_free(c) -> dict:
+    """M50 P1, then its EFFECT: a status frame received after the block
+    ended shows the override free within OVERRIDE_CONFIRM_S (Codex R327
+    FI-I58 — a block that ended is no proof)."""
+    _short(c, "M50 P1")
+    i0, end = len(c.frames), time.monotonic() + OVERRIDE_CONFIRM_S
+    while time.monotonic() < end:
+        new = c.frames[i0:]
+        if new and new[-1][1].get("feed_override_enabled") is True:
+            return {"confirmed_at": new[-1][0]}
+        time.sleep(0.05)
+    raise RuntimeError(f"the override not confirmed free within {OVERRIDE_CONFIRM_S} s after M50 P1 "
+                       f"(status {c.status.get('feed_override_enabled')})")
 
 
 def _scan_and_compensate(ctx, c, frames, method0, rows: list) -> None:
@@ -1290,48 +1336,93 @@ def _scan_and_compensate(ctx, c, frames, method0, rows: list) -> None:
     _compensation(ctx, c, points, method0, rows)
 
 
+class _Unconfirmed(Exception):
+    """A precondition of the cases still to come not confirmed (Codex R327
+    FI-I55): they are not measured — incomplete, the results so far kept."""
+
+    def __init__(self, what: str, record: dict):
+        super().__init__(what)
+        self.what, self.record = what, record
+
+
+METHOD_CASES = {"nearest": "comp-nearest", "linear": "comp-linear", "cubic": "comp-cubic"}
+METHOD_COUNTERS = {"nearest": "comp-nearest.counter-linear", "linear": "comp-linear.counter-cubic",
+                   "cubic": "comp-cubic.counter-nearest"}
+
+
+def _drained(ctx, c, what: str) -> dict:
+    r = _comp_off(ctx, c)
+    if not r.get("settled"):
+        raise _Unconfirmed(what, r)
+    return r
+
+
 def _compensation(ctx, c, points, method0, rows: list) -> None:
+    """Each method at Q, ON/OFF at A, ON after the move A → B and OFF there.
+    Every step's precondition CONFIRMED before the next command that relies
+    on it — the method and its map before the enable, the drain before the
+    next switch, a confirmed ON at A before the move with it on (Codex R327
+    FI-I55); each reading at its MEASURED X/Y (FI-I56)."""
     near, far = (nc.point_z(points, *xy) for xy in COMP_EDGE)
     recorded = {"near": near, "far": far}
     refs = {m: nc.comp_reference(points, m, COMP_Q) for m in nc.METHODS}
     f_dev = nc.surface_z(*COMP_Q) - nc.SURFACE_BASE
     ctx["report"]["comp_refs"] = {"q": list(COMP_Q), "refs": refs, "recorded": recorded, "f_dev": f_dev}
     control = nc.SURFACE_BASE + PROBE_L0 + COMP_Z
-    _at(c, COMP_Q)
-    # every switch a CHANGE (each one reloads the map): the start method last
-    order = [m for m in nc.METHODS if m != method0] + [method0]
-    readings = {}
-    for m in order:
-        _comp_method(c, m)
-        readings[m] = _comp_on(ctx, c, m)
-        _comp_off(ctx, c)
-    for i, m in enumerate(nc.METHODS):
-        case = {"nearest": "comp-nearest", "linear": "comp-linear", "cubic": "comp-cubic"}[m]
-        row = nc.eval_comp_method(case, m, readings[m], refs, recorded, f_dev, control)
-        other = nc.METHODS[(i + 1) % 3]
-        planted = nc.eval_comp_method(case, m, readings[m], {**refs, m: refs[other]}, recorded, f_dev, control)
-        rows += [row, nc.counter({"nearest": "comp-nearest.counter-linear", "linear": "comp-linear.counter-cubic",
-                                  "cubic": "comp-cubic.counter-nearest"}[m], planted, row)]
-    # ON/OFF in place at A, then ON again and the XY move to B, OFF at B
-    z_a, z_b = nc.point_z(points, *COMP_A), nc.point_z(points, *COMP_B)
-    gap_on = COMP_Z
-    gap_off = {xy: COMP_Z - (nc.surface_z(*xy) - nc.SURFACE_BASE) for xy in (COMP_A, COMP_B)}
-    _at(c, COMP_A)
-    a_on_r = _comp_on(ctx, c, method0)
-    a_off_r = _comp_off(ctx, c)
-    a_on = nc.eval_comp_reading("comp-on-off", a_on_r, True, z_a, gap_on, control, PROBE_L0, COMP_A)
-    a_off = nc.eval_comp_reading("comp-on-off", a_off_r, False, z_a, gap_off[COMP_A], control, PROBE_L0, COMP_A)
-    pair = nc.eval_comp_pair("comp-on-off", a_on, a_off)
-    planted = nc.eval_comp_reading("comp-on-off", a_on_r, True, z_a, gap_on + 0.05, control, PROBE_L0, COMP_A)
-    rows += [pair, nc.counter("comp-on-off.counter-gap+0.05", planted, a_on)]
-    _comp_on(ctx, c, method0)
-    _at(c, COMP_B, feed=COMP_FEED)
-    b_on_r = _comp_read(ctx, c, lambda st: st.get("eoffset_enabled") is True)
-    b_off_r = _comp_off(ctx, c)
-    b_on = nc.eval_comp_reading("comp-after-xy", b_on_r, True, z_b, gap_on, control, PROBE_L0, COMP_B)
-    b_off = nc.eval_comp_reading("comp-after-xy", b_off_r, False, z_b, gap_off[COMP_B], control, PROBE_L0, COMP_B)
-    frozen = nc.eval_comp_reading("comp-after-xy", b_on_r, True, z_a, gap_on, control, PROBE_L0, COMP_B)
-    rows += [nc.eval_comp_pair("comp-after-xy", b_on, b_off), nc.counter("comp-after-xy.counter-frozen", frozen, b_on)]
+    switches = ctx["report"]["comp_method_switches"] = []
+    pending = [METHOD_CASES[m] for m in nc.METHODS] + ["comp-on-off", "comp-after-xy"]
+    try:
+        _at(c, COMP_Q)
+        # every switch a CHANGE (each one reloads the map): the start method last
+        for m in [m for m in nc.METHODS if m != method0] + [method0]:
+            sw = {"to": m, **_comp_method(c, m)}
+            switches.append(sw)
+            if not sw["confirmed"]:
+                raise _Unconfirmed(f"the method {m} and its reloaded map", sw)
+            r = _comp_on(ctx, c, m)
+            i = nc.METHODS.index(m)
+            row = nc.eval_comp_method(METHOD_CASES[m], m, r, refs, recorded, f_dev, control, COMP_Q)
+            planted = nc.eval_comp_method(METHOD_CASES[m], m, r, {**refs, m: refs[nc.METHODS[(i + 1) % 3]]},
+                                          recorded, f_dev, control, COMP_Q)
+            rows += [row, nc.counter(METHOD_COUNTERS[m], planted, row)]
+            pending.remove(METHOD_CASES[m])
+            _drained(ctx, c, f"the compensation off and drained after {m}")
+        # ON/OFF in place at A, then ON again and the XY move to B, OFF at B
+        z_a, z_b = nc.point_z(points, *COMP_A), nc.point_z(points, *COMP_B)
+        gap_on = COMP_Z
+        gap_off = {xy: COMP_Z - (nc.surface_z(*xy) - nc.SURFACE_BASE) for xy in (COMP_A, COMP_B)}
+        _at(c, COMP_A)
+        a_on_r = _comp_on(ctx, c, method0)
+        a_off_r = _comp_off(ctx, c)
+        a_on = nc.eval_comp_reading("comp-on-off", a_on_r, True, z_a, gap_on, control, PROBE_L0, COMP_A)
+        a_off = nc.eval_comp_reading("comp-on-off", a_off_r, False, z_a, gap_off[COMP_A], control, PROBE_L0, COMP_A)
+        planted = nc.eval_comp_reading("comp-on-off", a_on_r, True, z_a, gap_on + 0.05, control, PROBE_L0, COMP_A)
+        rows += [nc.eval_comp_pair("comp-on-off", a_on, a_off), nc.counter("comp-on-off.counter-gap+0.05", planted, a_on)]
+        pending.remove("comp-on-off")
+        if not a_off_r.get("settled"):
+            raise _Unconfirmed("the compensation off and drained at A", a_off_r)
+        # the move is judged only after a CONFIRMED ON at A: else none is sent
+        pre = nc.eval_comp_reading("comp-after-xy", _comp_on(ctx, c, method0), True, z_a, gap_on, control,
+                                   PROBE_L0, COMP_A)
+        if pre["status"] != "PASS":
+            row = nc.eval_comp_pair("comp-after-xy", pre)
+            row["detail"] = f"ON at A before the move: {row['detail']} — no move sent"
+            rows.append(row)
+            pending.remove("comp-after-xy")
+            return
+        _at(c, COMP_B, feed=COMP_FEED)
+        idx = nc.METHODS.index(method0)
+        b_on_r = _comp_read(ctx, c, lambda st: st.get("eoffset_enabled") is True and st.get("comp_method") == idx)
+        b_off_r = _comp_off(ctx, c)
+        b_on = nc.eval_comp_reading("comp-after-xy", b_on_r, True, z_b, gap_on, control, PROBE_L0, COMP_B)
+        b_off = nc.eval_comp_reading("comp-after-xy", b_off_r, False, z_b, gap_off[COMP_B], control, PROBE_L0, COMP_B)
+        frozen = nc.eval_comp_reading("comp-after-xy", b_on_r, True, z_a, gap_on, control, PROBE_L0, COMP_B)
+        rows += [nc.eval_comp_pair("comp-after-xy", pre, b_on, b_off),
+                 nc.counter("comp-after-xy.counter-frozen", frozen, b_on)]
+        pending.remove("comp-after-xy")
+    except _Unconfirmed as u:
+        rows += [nc._row(case, "incomplete", f"{u.what} not confirmed — not measured", precondition=u.record)
+                 for case in pending]
 
 
 def m600_cases():

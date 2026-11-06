@@ -4710,9 +4710,10 @@ def test_the_reference_follows_compensations_path_from_the_recorded_points():
     assert nc.comp_reference(_ideal_points(), "linear", (538.3, 549.8)) == pytest.approx(refs["linear"])
 
 
-def _reading(e, method="cubic", enabled=True, z_control=-113.0, **kw):
-    return {"settled": True, "eoffset": e, "joint_z": z_control + e, "enabled": enabled,
-            "method": nc.METHODS.index(method), "limited": False, **kw}
+def _reading(e, method="cubic", enabled=True, z_control=-113.0, at=None, **kw):
+    at = at or nr.COMP_Q
+    return {"settled": True, "eoffset": e, "x": at[0], "y": at[1], "joint_z": z_control + e, "enabled": enabled,
+            "method": nc.METHODS.index(method), "version": 4, "limited": False, **kw}
 
 
 def _method_case(method, e, **kw):
@@ -4721,7 +4722,7 @@ def _method_case(method, e, **kw):
     recorded = {"near": nc.point_z(pts, *nr.COMP_EDGE[0]), "far": nc.point_z(pts, *nr.COMP_EDGE[1])}
     f_dev = nc.surface_z(*nr.COMP_Q) - nc.SURFACE_BASE
     reading = kw.pop("reading", None) or _reading(e, method)
-    return nc.eval_comp_method("c", method, reading, kw.pop("refs", refs), recorded, f_dev, -113.0)
+    return nc.eval_comp_method("c", method, reading, kw.pop("refs", refs), recorded, f_dev, -113.0, nr.COMP_Q)
 
 
 def test_each_method_is_its_reference_and_the_independent_checks_hold():
@@ -4763,19 +4764,20 @@ def test_on_off_and_after_the_move_the_tip_keeps_its_distance():
     z_a = nc.surface_z(*nr.COMP_A) - nc.SURFACE_BASE
     z_b = nc.surface_z(*nr.COMP_B) - nc.SURFACE_BASE
     gap_off_a = nr.COMP_Z - z_a
-    on = nc.eval_comp_reading("o", _reading(6.0), True, z_a, 12.0, -113.0, 50.0, nr.COMP_A)
-    off = nc.eval_comp_reading("o", _reading(0.0, enabled=False), False, z_a, gap_off_a, -113.0, 50.0, nr.COMP_A)
+    A, B = nr.COMP_A, nr.COMP_B
+    on = nc.eval_comp_reading("o", _reading(6.0, at=A), True, z_a, 12.0, -113.0, 50.0, A)
+    off = nc.eval_comp_reading("o", _reading(0.0, enabled=False, at=A), False, z_a, gap_off_a, -113.0, 50.0, A)
     assert on["status"] == "PASS" and off["status"] == "PASS" and on["gap_mm"] == pytest.approx(12.0)
     assert off["gap_mm"] == pytest.approx(6.0)
     assert nc.eval_comp_pair("o", on, off)["status"] == "PASS"
     # off with the offset left in, on 0.05 short, frozen at A after the move to B
-    assert nc.eval_comp_reading("o", _reading(0.003, enabled=False), False, z_a, gap_off_a, -113.0, 50.0,
-                                nr.COMP_A)["status"] == "FAIL"
-    assert nc.eval_comp_reading("o", _reading(6.0), True, z_a, 12.05, -113.0, 50.0, nr.COMP_A)["status"] == "FAIL"
-    b_on = _reading(round(z_b, 3))
-    assert nc.eval_comp_reading("b", b_on, True, z_b, 12.0, -113.0, 50.0, nr.COMP_B)["status"] == "PASS"
-    assert nc.eval_comp_reading("b", b_on, True, z_a, 12.0, -113.0, 50.0, nr.COMP_B)["status"] == "FAIL"
-    assert nc.eval_comp_reading("b", _reading(6.0), True, z_b, 12.0, -113.0, 50.0, nr.COMP_B)["status"] == "FAIL", \
+    assert nc.eval_comp_reading("o", _reading(0.003, enabled=False, at=A), False, z_a, gap_off_a, -113.0, 50.0,
+                                A)["status"] == "FAIL"
+    assert nc.eval_comp_reading("o", _reading(6.0, at=A), True, z_a, 12.05, -113.0, 50.0, A)["status"] == "FAIL"
+    b_on = _reading(round(z_b, 3), at=B)
+    assert nc.eval_comp_reading("b", b_on, True, z_b, 12.0, -113.0, 50.0, B)["status"] == "PASS"
+    assert nc.eval_comp_reading("b", b_on, True, z_a, 12.0, -113.0, 50.0, B)["status"] == "FAIL"
+    assert nc.eval_comp_reading("b", _reading(6.0, at=B), True, z_b, 12.0, -113.0, 50.0, B)["status"] == "FAIL", \
         "the offset frozen at A's value: the tip 7.475 mm too high at B"
 
 
@@ -4917,6 +4919,7 @@ class SurfaceSim:
         self.t, self.xy, self.on, self.method, self.version = 0.0, (518.0, 518.0), False, 2, 1
         self.zj, self.moves = 0.0, []            # the control point's joint Z (G53 Z0 after the scan)
         self.g54_z, self.free, self.points, self.e = 0.0, True, None, 0.0
+        self.enables = self.offs = 0
         self.tick()
 
     @property
@@ -4938,9 +4941,11 @@ class SurfaceSim:
         return math.trunc(v / 0.001) * 0.001
 
     def tick(self, n=20, **over):
-        st = {**_IDLE, "g5x_index": 1, "g5x_offset": [0.0, 0.0, self.g54_z], "g92_offset": [0.0, 0.0, 0.0],
+        g54_x = 5.0 if self.defect == "g54 x" else 0.0
+        st = {**_IDLE, "g5x_index": 1, "g5x_offset": [g54_x, 0.0, self.g54_z], "g92_offset": [0.0, 0.0, 0.0],
               "rotation_xy": 0.0, "tool_offset": [0.0, 0.0, 50.0], "tool_number": 99, "eoffset_z": self.e,
-              "eoffset_enabled": self.on, "comp_method": self.method, "comp_grid_version": self.version,
+              "eoffset_enabled": self.on, "comp_method": self.method,
+              "comp_grid_version": None if (self.defect == "missing version" and self.on) else self.version,
               "joint_pos": [self.xy[0], self.xy[1], self.zj + self.e], "feed_override_enabled": self.free,
               "current_vel": 0.0, **over}
         for _ in range(n):
@@ -4950,8 +4955,15 @@ class SurfaceSim:
     def request(self, cmd, **kw):
         self.sent.append((cmd, kw))
         if cmd == "set_compensation":
-            self.on = kw["enable"]
-            self.e = self._e()
+            self.enables += kw["enable"] is True
+            self.offs += kw["enable"] is False
+            # the 5th enable is the one before the move (3 methods, ON/OFF at
+            # A); the 1st off drains after nearest — each defect ignores its one
+            ignored = (self.defect == "late enable" and kw["enable"] is True and self.enables == 5) or \
+                      (self.defect == "no drain" and kw["enable"] is False and self.offs == 1)
+            if not ignored:
+                self.on = kw["enable"]
+                self.e = self._e()
         elif cmd == "set_compensation_method":
             self.method, self.version = kw["method"], self.version + 1
             self.e = self._e()
@@ -4985,6 +4997,8 @@ class SurfaceSim:
             self.moves.append(text)
             keep = self.e
             self.xy, self.zj = to_xy, to_z
+            if self.defect == "wrong arrival" and text.startswith("G1"):
+                self.xy = (to_xy[0], to_xy[1] + 0.4)     # Codex R327: 0.4 mm past Y, the 1-mm map value unchanged
             self.e = keep if (self.defect == "frozen" and text.startswith("G1")) else self._e()
         self.tick()
         return {"t0": t0, "t_done": self.t, "errors": [], "served": []}
@@ -5037,6 +5051,7 @@ def test_the_surface_step_passes_on_a_sim_that_does_what_it_should(monkeypatch, 
 def test_the_surface_step_names_each_planted_defect(monkeypatch, tmp_path):
     cases = {"method ignored": ("comp-nearest", "FAIL"), "frozen": ("comp-after-xy", "FAIL"),
              "no reload": ("surface-scan.map", "FAIL"), "early release": ("surface-override-lock", "FAIL"),
+             "wrong arrival": ("comp-after-xy", "FAIL"), "missing version": ("comp-nearest", "incomplete"),
              "scan off": ("surface-scan", "FAIL")}
     for i, (defect, (case, status)) in enumerate(cases.items()):
         sub = tmp_path / str(i)
@@ -5079,3 +5094,113 @@ def test_the_expected_wiring_is_the_shipped_hal():
     for sig, (writer, readers) in nr.surface_wiring().items():
         assert sigs[sig]["writers"] == ([writer] if writer else []), sig
         assert readers <= set(sigs[sig]["readers"]), (sig, readers - set(sigs[sig]["readers"]))
+
+
+
+def test_a_reading_is_judged_at_its_measured_position():
+    """Codex R327 FI-I56: B reached 0.4 mm past Y — the 1-mm map value is
+    still B's, the joint Z consistent; the tip's distance at the MEASURED
+    X/Y is 12.074 and the arrival itself is refused. Unknown X/Y: incomplete."""
+    z_b = nc.surface_z(*nr.COMP_B) - nc.SURFACE_BASE
+    off_b = {**_reading(round(z_b, 3), at=nr.COMP_B), "y": nr.COMP_B[1] + 0.4}
+    row = nc.eval_comp_reading("b", off_b, True, z_b, 12.0, -113.0, 50.0, nr.COMP_B)
+    assert row["status"] == "FAIL" and "not at" in row["detail"]
+    near = {**_reading(round(z_b, 3), at=nr.COMP_B), "y": nr.COMP_B[1] + 0.0005}
+    assert nc.eval_comp_reading("b", near, True, z_b, 12.0, -113.0, 50.0, nr.COMP_B)["status"] == "PASS"
+    for unknown in ({"x": None}, {"y": float("nan")}):
+        r = {**_reading(round(z_b, 3), at=nr.COMP_B), **unknown}
+        assert nc.eval_comp_reading("b", r, True, z_b, 12.0, -113.0, 50.0, nr.COMP_B)["status"] == "incomplete"
+    assert _method_case("cubic", 5.070, reading={**_reading(5.070), "x": 538.5})["status"] == "FAIL"
+    assert _method_case("cubic", 5.070, reading={**_reading(5.070), "x": None})["status"] == "incomplete"
+
+
+def test_an_unknown_map_version_carries_no_reading():
+    """Codex R327 FI-I57: None == None is no stable version."""
+    on = lambda st: st.get("eoffset_enabled") is True  # noqa: E731
+    assert nc.settled_window(_settle_frames(v=None), on) is None
+    late = _settle_frames()
+    late[-4] = (late[-4][0], {**late[-4][1], "comp_grid_version": None})
+    assert nc.settled_window(late, on) is None
+    win = nc.settled_window(_settle_frames(), on)
+    assert win["frames"][0][0] == pytest.approx(win["t_from"], abs=1e-4) and len(win["frames"]) >= 15
+    assert _method_case("cubic", 5.070, reading={**_reading(5.070), "version": None})["status"] == "incomplete"
+    moved = [(t, {**st, "joint_pos": [538.0 + 0.001 * k, 550.0, -107.93]}) for k, (t, st) in enumerate(_settle_frames())]
+    assert nc.settled_window(moved, on) is None, "X still moving"
+
+
+def test_a_row_of_three_readings_takes_the_worst():
+    p, f, i = ({"case": "x", "status": s, "detail": s} for s in ("PASS", "FAIL", "incomplete"))
+    assert nc.eval_comp_pair("x", p, i, f)["status"] == "FAIL"
+    assert nc.eval_comp_pair("x", p, p, i)["status"] == "incomplete"
+    assert nc.eval_comp_pair("x", p)["status"] == "PASS"
+
+
+def test_no_move_without_a_confirmed_enable_and_no_switch_without_a_drain(monkeypatch, tmp_path):
+    """Codex R327 FI-I55: the enable before the move to B not confirmed → no
+    G1 is sent, comp-after-xy incomplete, the results before kept; the drain
+    after nearest not confirmed → no further switch, the rest incomplete."""
+    (tmp_path / "a").mkdir()
+    by, ctx, sim, error = _surface_step(monkeypatch, tmp_path / "a", "late enable")
+    assert error is None and not any(m.startswith("G1") for m in sim.moves), sim.moves
+    assert by["comp-after-xy"]["status"] == "incomplete" and "no move sent" in by["comp-after-xy"]["detail"]
+    assert all(by[k]["status"] == "PASS" for k in ("comp-nearest", "comp-linear", "comp-cubic", "comp-on-off"))
+    (tmp_path / "b").mkdir()
+    by, ctx, sim, error = _surface_step(monkeypatch, tmp_path / "b", "no drain")
+    assert by["comp-nearest"]["status"] == "PASS"
+    assert [kw["method"] for cmd, kw in sim.sent if cmd == "set_compensation_method"][:1] == [0]
+    assert 1 not in [kw["method"] for cmd, kw in sim.sent if cmd == "set_compensation_method"][:-1], \
+        "no switch to linear after the drain failed (the cleanup may put the start method back)"
+    for case in ("comp-linear", "comp-cubic", "comp-on-off", "comp-after-xy"):
+        assert by[case]["status"] == "incomplete" and "drained after nearest" in by[case]["detail"], case
+    assert ctx["report"]["surface_cleanup"]["after"]["eoffset_enabled"] is False
+
+
+def test_the_cleanup_needs_the_override_free_in_a_status_after_the_write(monkeypatch):
+    """Codex R327 FI-I58: M50 P1 ended normally but the status says locked or
+    nothing — the cleanup names it; free in a frame after the write passes."""
+    monkeypatch.setattr(nr, "OVERRIDE_CONFIRM_S", 0.3)
+    monkeypatch.setattr(nr, "_comp_off", lambda ctx, c: {"settled": True, "enabled": False, "eoffset": 0.0})
+    class Streaming:
+        """Status frames keep arriving: each look brings the latest state again."""
+
+        def __init__(self, st):
+            self.f, self.errors, self.error = [(0.0, dict(st))], [], None
+
+        @property
+        def frames(self):
+            self.f.append((self.f[-1][0] + 0.033, dict(self.f[-1][1])))
+            return self.f
+
+        @property
+        def status(self):
+            return dict(self.f[-1][1])
+
+    for after, ok in ((True, True), (False, False), (None, False)):
+        c = Streaming({**_IDLE, "feed_override_enabled": False, "comp_method": 2, "g5x_index": 1,
+                       "g5x_offset": [0.0, 0.0, 0.0]})
+
+        def short(cl, text, after=after):
+            cl.f.append((cl.f[-1][0] + 0.1, {**cl.status, "feed_override_enabled": after}))
+        monkeypatch.setattr(nr, "_short", short)
+        out = nr._surface_cleanup({}, c, "cubic")
+        assert bool(out.get("error")) is (not ok), (after, out)
+        if not ok:
+            assert "override" in out["error"]
+
+
+def test_the_scipy_is_the_one_the_process_mapped():
+    maps = ("ffff0000-ffff1000 r-xp 00000000 fe:01 1 /usr/lib/python3/dist-packages/scipy/spatial/_qhull.so\n"
+            "ffff2000-ffff3000 r-xp 00000000 fe:01 2 /usr/lib/aarch64-linux-gnu/libc.so.6\n")
+    read = {"/usr/lib/python3/dist-packages/scipy/version.py": 'version = "1.15.3"\nfull_version = version\n'}
+    assert nr.mapped_scipy(maps, read.__getitem__) == "1.15.3 (/usr/lib/python3/dist-packages/scipy/)"
+    two = maps + "ffff4000-ffff5000 r-xp 0 fe:01 3 /opt/other/scipy/linalg/_fblas.so\n"
+    assert nr.mapped_scipy(two, read.__getitem__).startswith("not read")
+    assert nr.mapped_scipy("", read.__getitem__).startswith("not read")
+
+
+
+def test_the_scan_needs_its_g54_x_y_at_zero(monkeypatch, tmp_path):
+    """Codex R327: the basis checks G54 X/Y too — the map and the readouts
+    are in the WCS, the points in G53."""
+    with pytest.raises(nr.Refused, match="basis"):
+        _surface_step(monkeypatch, tmp_path, "g54 x")
