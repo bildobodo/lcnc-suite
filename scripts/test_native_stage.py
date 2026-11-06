@@ -2182,7 +2182,10 @@ def test_the_halcmd_answers_are_read_as_printed():
     assert sv.signal_of(SHOW_PIN, "joint.0.vel-cmd") is None
     assert sv.thread_of(SHOW_THREAD) == {"period_ns": 1000000, "functions": ["motion-command-handler",
                                                                              "motion-controller", "sampler.0"]}
-    assert sv.parse_line("12 1.5 2.5 -3.0 0.0 0.0 50.0 7 1 5\n") == (12, (1.5, 2.5, -3.0, 0.0, 0.0, 50.0, 7, 1, 5))
+    # the channels, the mark, then step 3's bits and the controller's period (u32)
+    assert sv.parse_line("12 1.5 2.5 -3.0 0.0 0.0 50.0 7 1 5 1 0 1 1000412\n") == \
+        (12, (1.5, 2.5, -3.0, 0.0, 0.0, 50.0, 7, 1, 5, 1, 0, 1, 1000412))
+    assert sv.parse_line("12 1.5 2.5 -3.0 0.0 0.0 50.0 7 1 5\n") is None      # the 2c width is no sample now
     assert sv.parse_line("overrun\n") is None and sv.parse_line("12 1.5 nan\n") is None
 
 
@@ -2488,7 +2491,7 @@ def test_a_servo_section_ends_on_every_path():
 
     class EchoReader:
         def __init__(self):
-            self.samples, self.overrun, self.alive = [], False, True
+            self.samples, self.overrun, self.alive, self.recv_ns = [], False, True, {}
 
         def wait_for_mark(self, mark, deadline_s, since=0):
             self.samples.append((time.monotonic(), len(self.samples), (0.0,) * 8 + (mark,)))
@@ -2714,7 +2717,7 @@ def test_a_failing_read_at_the_end_still_closes_the_section_in_the_gate():
     gate = sv.HalGate(run=run)
 
     class EchoReader:
-        samples, overrun, alive = [], False, True
+        samples, overrun, alive, recv_ns = [], False, True, {}
 
         def wait_for_mark(self, mark, deadline_s, since=0):
             self.samples.append((time.monotonic(), len(self.samples), (0.0,) * 8 + (mark,)))
@@ -2793,7 +2796,7 @@ class _HalSeq:
 
 class _MarkReader:
     def __init__(self):
-        self.samples, self.overrun, self.alive = [], False, True
+        self.samples, self.overrun, self.alive, self.recv_ns = [], False, True, {}
 
     def wait_for_mark(self, mark, deadline_s, since=0):
         self.samples.append((time.monotonic(), len(self.samples), (0.0,) * 8 + (mark,)))
@@ -3781,3 +3784,98 @@ def test_the_second_starts_errors_reach_its_row(tmp_path, _ts_rules_on_path, err
     assert by["ts-sync-program-m600"]["status"] == "PASS"
     report = {"rows": rows, "restore": {"outcome": "complete", "isolation": [], "cleanup": []}}
     assert nr.verdict(report) == ("FAIL" if stable == "FAIL" else "PASS")
+
+
+# ── Step 3: the servo stream's own time (plan Codex R313–R316) ──
+from test_support import servo_time as st  # noqa: E402
+
+MS = 1_000_000
+
+
+def _timed(lps, hb=None, latch=None, hb_ok=None, mark=3, reader_delay=MS):
+    """A contiguous span: lps[k] = C_k − C_(k−1) (lps[0] the period into the
+    first sample); hb: the oneshot input per sample. The receipts lag the
+    controller by `reader_delay`; t0 lies before C_0."""
+    c, t, samples, recv = 10_000 * MS, [], [], {}
+    for k, lp in enumerate(lps):
+        c += lp
+        v = (0.0,) * 6 + (0, 1, mark, (hb_ok or [1] * len(lps))[k], (latch or [0] * len(lps))[k],
+                          (hb or [0] * len(lps))[k], lp)
+        samples.append((c / 1e9, 500 + k, v))
+        recv[500 + k] = c + reader_delay
+    return samples, recv, 10_000 * MS
+
+
+def _hb_at(n, edges):
+    """The oneshot input toggling at the given sample indices."""
+    out, v = [], 0
+    for k in range(n):
+        if k in edges:
+            v ^= 1
+        out.append(v)
+    return out
+
+
+@pytest.mark.parametrize("lps, i, j, verdict", [
+    ([MS] * 400, 2, 102, "PASS"),                         # 100 ms: 98…102 → PASS
+    ([MS] * 400, 2, 262, "FAIL"),                         # 260 ms: 258…262 → FAIL
+    # R314: 100 ms between the controller and the sampler at the second edge —
+    # the controller's NEXT period (lp at j+1) carries it: 197…301 → incomplete, not FAIL
+    ([MS] * 202 + [101 * MS] + [MS] * 200, 2, 201, "incomplete"),
+])
+def test_an_edge_gap_is_judged_by_its_bounds_in_three_ways(lps, i, j, verdict):
+    samples, recv, t0 = _timed(lps)
+    rng = st.proven(samples, recv, t0)
+    assert rng["ok"], rng
+    b = st.gap_bounds(samples, rng, i, j)
+    assert st.judge(b) == verdict, b
+
+
+def test_the_same_observation_with_gaps_200_and_200_is_incomplete_too():
+    """R315: two courses with the same periods, captures and bits — 300/100 and
+    200/200 — are told apart by nothing: the upper bound over 250 is no proof."""
+    samples, recv, t0 = _timed([MS] * 202 + [101 * MS] + [MS] * 200)
+    rng = st.proven(samples, recv, t0)
+    upper, lower = st.gap_bounds(samples, rng, 2, 201)
+    assert lower < st.HB_LIMIT_NS < upper and st.judge((upper, lower)) == "incomplete"
+
+
+@pytest.mark.parametrize("lps, recv_shift, why", [
+    # one interval of 4 301 000 000 ns cut to u32 (6 032 704) — the numbers clean
+    ([MS] * 50 + [4_301_000_000 % (1 << 32)] + [MS] * 50, 4_301_000_000 - 4_301_000_000 % (1 << 32), "wrap"),
+    ([MS] * 100, -5 * MS, "negative"),                    # receipts before the controller: contradictory
+    ([MS] * 100, (1 << 32), "wrap"),                      # the rest exactly 2³²: not excluded
+])
+def test_the_wrap_proof_refuses_what_it_cannot_exclude(lps, recv_shift, why):
+    samples, recv, t0 = _timed(lps)
+    last = samples[-1][1]
+    recv[last] += recv_shift
+    rng = st.proven(samples, recv, t0)
+    assert not rng["ok"] and why in rng["why"], rng
+
+
+def test_a_period_outside_the_proven_range_gives_no_bound():
+    samples, recv, t0 = _timed([MS] * 100)
+    rng = st.proven(samples, recv, t0)
+    assert st.gap_bounds(samples, rng, 1, 50) is None            # needs lp_1: before lo = 2
+    assert st.gap_bounds(samples, rng, 10, 99) is None           # needs lp_100: past hi
+    assert st.duration_lower(samples, rng, 0, 99) == 98 * MS     # C_99 − C_1
+
+
+def test_the_lower_duration_after_a_mark_set_during_a_delay():
+    """R314 C: the controller ran, then a pause before the sampler; the mark W
+    is set during it — the first W sample's period starts before W, so only
+    Σ from a+2 counts: 100 W samples at 1 ms are ~98 ms, never 2 s."""
+    samples, recv, t0 = _timed([MS] * 50 + [2100 * MS] + [MS] * 100)
+    rng = st.proven(samples, recv, t0)
+    assert st.duration_lower(samples, rng, 50, 150) == 99 * MS
+
+
+@pytest.mark.parametrize("sha, version, ok", [
+    (st.RTAPI_SHA256, st.PACKAGE_VERSION, True),
+    ("0" * 64, st.PACKAGE_VERSION, False),
+    (st.RTAPI_SHA256, "1:2.9.5-1", False),
+])
+def test_the_clock_is_proven_only_on_the_checked_binary(sha, version, ok):
+    c = st.clock_contract(sha, version)
+    assert c["ok"] is ok and (ok or "not proven" in c["why"])

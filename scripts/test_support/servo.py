@@ -28,9 +28,15 @@ import time
 CHANNELS = ("joint.0.pos-fb", "joint.1.pos-fb", "joint.2.pos-fb",
             "joint.0.vel-cmd", "joint.1.vel-cmd", "joint.2.vel-cmd",
             "motion.program-line", "motion.in-position")
-CFG = "ffffffsbs"                 # the channels above, then the mark
 MARK_SIGNAL = "natv-mark"
 MARK_INDEX = len(CHANNELS)
+#: step 3 (Codex R313–R316): after the mark, so every earlier column keeps
+#: its place — the heartbeat chain (oneshot.0's output and input, the
+#: servo-thread latch) and the motion controller's own period, the time the
+#: bounds are built from (servo_time)
+EXTRA = ("oneshot.0.out", "webui-hb-latch.fault-out", "oneshot.0.in", "motion.servo.last-period")
+HB_OK, LATCH, HB_IN, LAST_PERIOD = range(MARK_INDEX + 1, MARK_INDEX + 1 + len(EXTRA))
+CFG = "ffffffsb" + "s" + "bbbu"   # the channels, the mark, the extra channels
 DEPTH = 65536
 READ_ONLY = ("getp", "gets", "show")
 
@@ -127,6 +133,14 @@ def setup(gate: HalGate) -> dict:
         wiring.append({"pin": pin, "signal": sig, "channel": i})
     gate("newsig", MARK_SIGNAL, "s32")
     gate("linksp", MARK_SIGNAL, f"sampler.0.pin.{MARK_INDEX}")
+    for i, pin in enumerate(EXTRA, MARK_INDEX + 1):
+        sig = signal_of(gate("show", "pin", pin), pin)
+        if sig:
+            gate("linksp", sig, f"sampler.0.pin.{i}")
+        else:
+            sig = f"natv-ch{i}"
+            gate("net", sig, pin, f"sampler.0.pin.{i}")
+        wiring.append({"pin": pin, "signal": sig, "channel": i})
     gate("addf", "sampler.0", "servo-thread")
     # the wiring READ BACK from the sampler's own pins (R302 FI-I34)
     for w in wiring:
@@ -141,6 +155,10 @@ def setup(gate: HalGate) -> dict:
     thread = thread_of(gate("show", "thread", "servo-thread"))
     if not thread["functions"] or thread["functions"][-1] != "sampler.0":
         raise RuntimeError(f"sampler.0 is not the servo thread's last function: {thread['functions']}")
+    # the controller stamps C_k before the sampler takes S_k in the same
+    # invocation: C_k ≤ S_k ≤ C_(k+1) (R315)
+    if "motion-controller" not in thread["functions"]:
+        raise RuntimeError(f"motion-controller is not in the servo thread: {thread['functions']}")
     return {"changes": [list(c) for c in gate.log], "wiring": wiring, "mark_read_back": mark_read_back,
             "thread": thread}
 
@@ -151,6 +169,9 @@ class Reader:
     def __init__(self, popen=subprocess.Popen, clock=time.monotonic):
         self.popen, self.clock = popen, clock
         self.samples: list = []
+        # the receipt per sample number in integer ns of CLOCK_MONOTONIC — the
+        # clock of the controller's stamps on the checked backend (R315)
+        self.recv_ns: dict = {}
         self.overrun = False
         self.malformed = 0
         self.alive = False
@@ -173,6 +194,7 @@ class Reader:
                 if parsed is None:
                     self.malformed += 1
                     continue
+                self.recv_ns[parsed[0]] = time.monotonic_ns()
                 self.samples.append((t, parsed[0], parsed[1]))
         finally:
             self.alive = False
@@ -199,14 +221,17 @@ class Reader:
                 self.proc.kill()
 
 
-def section(stream, start_mark: int, end_mark: int, integrity: dict) -> dict:
+def section(stream, start_mark: int, end_mark: int, integrity: dict, phases=()) -> dict:
     """The samples of ONE attempt — between the first sample with its start
     mark and the first with its end mark, its own mark only — and every flaw
     its integrity shows (R300/R301): no end mark received, a number gap, a
     non-finite value, enable not TRUE at either end, the overrun counter
     changed, the FIFO at its depth, the reader's overrun notice, an
-    effective period other than the INI's."""
+    effective period other than the INI's. `phases`: the attempt's own marks
+    inside it (step 3: pre → window → post, the mark W) — their samples belong
+    to the body; `phase_first` gives each one's first body index."""
     problems = []
+    own = (start_mark, *phases)
     si = next((i for i, s in enumerate(stream) if s[2][MARK_INDEX] == start_mark), None)
     if si is None:
         return {"samples": [], "problems": ["start mark not received"], "first_n": None, "end_n": None,
@@ -216,8 +241,8 @@ def section(stream, start_mark: int, end_mark: int, integrity: dict) -> dict:
     if ei is None:
         problems.append("end mark not received — the section's end unread")
     inner = span if ei is None else span[:-1]
-    body = [s for s in inner if s[2][MARK_INDEX] == start_mark]
-    foreign = [s for s in inner if s[2][MARK_INDEX] != start_mark]
+    body = [s for s in inner if s[2][MARK_INDEX] in own]
+    foreign = [s for s in inner if s[2][MARK_INDEX] not in own]
     if foreign:
         # another mark BETWEEN the marks breaks the coverage (R302 FI-I33);
         # one before the start is another attempt's and never reaches here
@@ -253,8 +278,9 @@ def section(stream, start_mark: int, end_mark: int, integrity: dict) -> dict:
                             f"from the INI's {integrity.get('ini_period_ns')}")
     if integrity.get("end_read_errors"):
         problems.append(f"the end's integrity not read: {integrity['end_read_errors'][0]}")
+    phase_first = {m: next((i for i, s in enumerate(body) if s[2][MARK_INDEX] == m), None) for m in phases}
     return {"samples": body, "problems": problems, "first_n": body[0][1] if body else None,
-            "end_n": stream[ei][1] if ei is not None else None, "integrity": integrity}
+            "end_n": stream[ei][1] if ei is not None else None, "integrity": integrity, "phase_first": phase_first}
 
 
 class Measurement:
@@ -279,11 +305,27 @@ class Measurement:
                    "enable_start": self._getp("sampler.0.enable") == "TRUE",
                    "overruns_start": int(self._getp("sampler.0.overruns")),
                    "thread_start": thread_of(self.gate("show", "thread", "servo-thread"))}
+        # every sample with the start mark is captured after this instant:
+        # S_first ≥ t0 (the wrap proof's anchor, R315), integer ns
+        attempt["t0_ns"] = time.monotonic_ns()
+        attempt["phases"] = []
         self.gate("sets", MARK_SIGNAL, start)
         if self.reader.wait_for_mark(start, self.mark_wait_s, attempt["since"]) is None:
             raise RuntimeError(f"servo: the start mark {start} was not received — the measurement is broken")
         self.gate.open_section = self.k
         return attempt
+
+    def phase(self, attempt: dict, p: int) -> int:
+        """An own mark inside the open section (step 3): set NOW, so every
+        sample carrying it is captured after this call began; awaited until
+        received. Its value is the attempt's alone (negative, never another
+        attempt's start or end). Returns the mark."""
+        mark = -(100 * attempt["k"] + p)
+        attempt["phases"].append({"mark": mark, "t_ns": time.monotonic_ns()})
+        self.gate("sets", MARK_SIGNAL, mark)
+        if self.reader.wait_for_mark(mark, self.mark_wait_s, attempt["since"]) is None:
+            raise RuntimeError(f"servo: the phase mark {mark} was not received — the measurement is broken")
+        return mark
 
     def end(self, attempt: dict) -> dict:
         """The end mark, read until received, the integrity read at this end;
@@ -319,8 +361,11 @@ class Measurement:
                      thread_end["functions"],
                      "reader_overrun": self.reader.overrun, "reader_alive": self.reader.alive,
                      "end_read_errors": errors}
-        sec = section(self.reader.samples[attempt["since"]:], attempt["start"], attempt["end"], integrity)
+        sec = section(self.reader.samples[attempt["since"]:], attempt["start"], attempt["end"], integrity,
+                      phases=tuple(p["mark"] for p in attempt.get("phases", ())))
         sec.update(attempt=attempt["k"], start_mark=attempt["start"], end_mark=attempt["end"],
+                   t0_ns=attempt.get("t0_ns"), phases=attempt.get("phases", []),
+                   recv_ns={n: self.reader.recv_ns.get(n) for _t, n, _v in sec["samples"]},
                    hal=[list(c) for c in self.gate.log[attempt["log_from"]:]],
                    end_error="; ".join(errors) or None)
         return sec
