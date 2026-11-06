@@ -4286,6 +4286,8 @@ def _disc_step(tmp_path, monkeypatch, events=None, sessions=1):
                 c.run()
             return {"armed": True} if cmd == "arm" else {"ok": True}
 
+        when_free = request
+
         def drop(self):
             log.append(("helper", "drop"))
             return {"op": "dropped"}
@@ -4444,3 +4446,17 @@ def test_the_whole_clients_step(tmp_path, monkeypatch):
     assert first[:4] == [("start", False)] * 4 and first[4:6] == [("phase", 1), ("B", "load_file")]
     assert first.count(("fetch", 9)) == 4 and first[-1] == ("phase", 2)
     assert sum(1 for e in log if e[0] == "drop") == 12
+
+
+def test_the_helper_asks_again_only_while_the_start_claim_is_held(monkeypatch):
+    """Live run 20261106T024906: A2's load_file right after B's abort was
+    refused 'A program or macro is starting or running — wait'."""
+    monkeypatch.setattr(nr, "CLAIM_WAIT_S", 0.5)
+    h = nr.Helper.__new__(nr.Helper)
+    answers = [nr.Refused("helper load_file: load_file refused: A program or macro is starting or running — wait"),
+               {"ok": True}]
+    h.request = lambda cmd, **kw: (lambda a: (_ for _ in ()).throw(a) if isinstance(a, Exception) else a)(answers.pop(0))
+    assert h.when_free("load_file", path="/p") == {"ok": True} and answers == []
+    h.request = lambda cmd, **kw: (_ for _ in ()).throw(nr.Refused("helper load_file: Not armed"))
+    with pytest.raises(nr.Refused, match="Not armed"):
+        h.when_free("load_file", path="/p")

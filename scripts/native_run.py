@@ -1281,6 +1281,20 @@ class Helper:
             raise Refused(f"helper {cmd}: {out['error']}")
         return out["reply"]
 
+    def when_free(self, cmd, **kw):
+        """A write right after the previous program's abort: the gateway holds
+        the start claim until its next status proof ("starting or running —
+        wait") — asked again for CLAIM_WAIT_S, like _when_free; any other
+        refusal ends it at once."""
+        end = time.monotonic() + CLAIM_WAIT_S
+        while True:
+            try:
+                return self.request(cmd, **kw)
+            except Refused as e:
+                if "starting or running" not in str(e) or time.monotonic() >= end:
+                    raise
+                time.sleep(0.1)
+
     def drop(self):
         self.proc.stdin.write(json.dumps({"op": "drop"}) + "\n")
         self.proc.stdin.flush()
@@ -1360,12 +1374,12 @@ def disconnect_cases():
                     raise Refused(f"the helper {letter} did not arm")
                 path = ctx["config"] / NC_FILES / DISC_FILE
                 path.write_text(DISC_PROGRAM)
-                helper.request("load_file", path=str(path))
+                helper.when_free("load_file", path=str(path))
                 import hashlib
                 digest = hashlib.sha256(DISC_PROGRAM.encode()).hexdigest()
                 _wait(c, lambda s: (c.preview_origin or {}).get("source") == digest, 60, "the program published")
                 with _section(ctx, case) as box:
-                    helper.request("cycle_start")
+                    helper.when_free("cycle_start")
                     _wait(c, lambda s: s.get("interp_state") not in (None, sc.INTERP_IDLE), 10, "the program runs")
                     time.sleep(1.0)
                     if kind == "close":
