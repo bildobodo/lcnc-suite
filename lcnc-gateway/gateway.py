@@ -113,6 +113,7 @@ from command_policy import gate_refusal, NOT_ARMED, STATE_UNKNOWN, MACHINE_BUSY,
 from tool_table import (
     parse_tool_table,
     write_tool_table,
+    ToolTableUnreadable,
     _merge_tool_data,
     _TOOL_META_FIELDS,
     tool_visual_metadata,
@@ -3918,6 +3919,17 @@ def _write_admission_refusal(conn_key=None, *, tool_table: bool = False) -> Opti
     return None
 
 
+async def _tool_table_for_edit(tbl_path: str):
+    """(tools, None) — the table as a tool edit rewrites it, read STRICTLY —
+    or (None, the refusal): a line the reader does not understand would be
+    dropped by the rewrite, so the edit writes nothing (Codex R323 FI-I50)."""
+    try:
+        return await asyncio.to_thread(parse_tool_table, tbl_path, True), None
+    except ToolTableUnreadable as e:
+        _trace.emit("tools.table_unreadable", level="warn", tbl_path=tbl_path, msg=str(e))
+        return None, f"{e} — nothing written"
+
+
 def _write_tool_table_admitted(tbl_path: str, tools: list, conn_key) -> None:
     """A WS tool edit's write, admitted at the write itself, in its thread
     (button gates BG-14): its connection armed NOW (BG-23); the handler
@@ -5335,7 +5347,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             # Update tool.tbl — all file I/O off the loop; _cmd_lock stays held
             # so the read-modify-write is still serialized (B3). ToolLibraryStore
             # is lock-guarded, so an offloaded status-loop read can't race it.
-            tbl_tools = await asyncio.to_thread(parse_tool_table, tbl_path)
+            tbl_tools, refusal = await _tool_table_for_edit(tbl_path)
+            if refusal:
+                return {"ok": False, "error": refusal}
             found = False
             for t in tbl_tools:
                 if t["T"] == tool_num:
@@ -5369,7 +5383,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             if not tbl_path:
                 return {"ok": False, "error": "Tool table path not available"}
 
-            tbl_tools = await asyncio.to_thread(parse_tool_table, tbl_path)
+            tbl_tools, refusal = await _tool_table_for_edit(tbl_path)
+            if refusal:
+                return {"ok": False, "error": refusal}
             for t in tbl_tools:
                 if t["T"] == tool_num:
                     return {"ok": False, "error": f"Tool T{tool_num} already exists"}
@@ -5408,7 +5424,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             if not tbl_path:
                 return {"ok": False, "error": "Tool table path not available"}
 
-            tbl_tools = await asyncio.to_thread(parse_tool_table, tbl_path)
+            tbl_tools, refusal = await _tool_table_for_edit(tbl_path)
+            if refusal:
+                return {"ok": False, "error": refusal}
             new_tools = [t for t in tbl_tools if t["T"] != tool_num]
             if len(new_tools) == len(tbl_tools):
                 return {"ok": False, "error": f"Tool T{tool_num} not found"}
@@ -5429,7 +5447,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             if not tbl_path:
                 return {"ok": False, "error": "Tool table path not available"}
 
-            tbl_tools = await asyncio.to_thread(parse_tool_table, tbl_path)
+            tbl_tools, refusal = await _tool_table_for_edit(tbl_path)
+            if refusal:
+                return {"ok": False, "error": refusal}
             src = next((t for t in tbl_tools if t["T"] == old_num), None)
             if src is None:
                 return {"ok": False, "error": f"Tool T{old_num} not found"}

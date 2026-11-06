@@ -4,7 +4,7 @@ import os
 import tempfile
 import unittest
 
-from tool_table import parse_tool_table, write_tool_table, _merge_tool_data
+from tool_table import parse_tool_table, write_tool_table, _merge_tool_data, ToolTableUnreadable
 
 
 class TestToolTableRoundTrip(unittest.TestCase):
@@ -72,6 +72,56 @@ class TestToolTableRoundTrip(unittest.TestCase):
         finally:
             os.unlink(path)
         self.assertEqual([t["T"] for t in out], [1])
+
+
+class TestTheReaderReadsWhatLinuxCNCReads(unittest.TestCase):
+    """Codex R323 FI-I50: LinuxCNC 2.9.4 (tooldata_read_entry) reads the
+    fields of a line in any order, separated by spaces, the letter in either
+    case, T/P/Q as integers. A line this reader does not read exactly is
+    skipped like LinuxCNC skips it, and raises when read strictly — the read
+    of every edit that writes the table back."""
+
+    def read(self, text, strict=False):
+        fd, path = tempfile.mkstemp(suffix=".tbl")
+        os.close(fd)
+        try:
+            with open(path, "w", newline="") as f:
+                f.write(text)
+            return parse_tool_table(path, strict)
+        finally:
+            os.unlink(path)
+
+    def test_any_order_either_case_and_crlf_read_alike(self):
+        want = [{"T": 2, "P": 5, "X": 3.25, "Y": 0.0, "Z": 50.1, "D": 6.0, "Q": 3, "remark": "two"}]
+        for text in ("T2 P5 X3.25 Z50.1 D6 Q3 ; two\n", "P5 T2 X3.25 Z50.1 D6 Q3 ; two\n",
+                     "T2 X3.25 P5 Z50.1 D6 Q3 ; two\n", "Q3 D6 Z50.1 X3.25 P5 T2 ; two\n",
+                     "t2 p5 x3.25 z50.1 d6 q3 ; two\n", "T2  P5   X3.25 Z50.1 D6 Q3 ; two\r\n"):
+            with self.subTest(text=text):
+                self.assertEqual(self.read(text, strict=True), want)
+
+    def test_orientation_is_written_as_the_integer_linuxcnc_reads(self):
+        fd, path = tempfile.mkstemp(suffix=".tbl")
+        os.close(fd)
+        try:
+            write_tool_table(path, [{"T": 2, "P": 5, "Z": 1.0, "D": 0.0, "Q": 3}])
+            with open(path) as f:
+                text = f.read()
+            self.assertIn(" Q3", text)
+            self.assertEqual(parse_tool_table(path, True)[0]["Q"], 3)
+        finally:
+            os.unlink(path)
+
+    def test_a_line_not_read_exactly_is_skipped_or_refused_by_its_number(self):
+        for name, line in {"unknown field": "T2 P5 E7", "tab inside": "T2\tP5 Z1",
+                           "letter twice": "T2 P5 Z1 Z2", "no tool": "P5 Z1", "no pocket": "T2 Z1",
+                           "orientation not whole": "T2 P5 Q3.5", "junk after the number": "T2 P5 Z1mm",
+                           "a letter alone": "T2 P5 Z"}.items():
+            with self.subTest(name=name):
+                text = "T1 P1 Z0\n" + line + " ; x\n"
+                self.assertEqual([t["T"] for t in self.read(text)], [1], "skipped like LinuxCNC skips it")
+                with self.assertRaises(ToolTableUnreadable) as e:
+                    self.read(text, strict=True)
+                self.assertIn("line 2 not understood", str(e.exception))
 
 
 class TestMergeToolData(unittest.TestCase):

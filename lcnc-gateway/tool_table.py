@@ -13,13 +13,53 @@ import re
 
 from gateway_util import atomic_write_bytes
 
-_TOOL_TP_RE = re.compile(r"T(\d+)\s+P(\d+)")
 #: every field a LinuxCNC tool line may carry, in its own order (the offsets
 #: X–W, the diameter, the lathe's front/back angle and orientation) — read and
 #: written back whole: the writer used to drop X/Y and the parser never read
 #: the rest, so rewriting the table for one tool zeroed the others (Codex R321)
 _TOOL_FIELDS = ("X", "Y", "Z", "A", "B", "C", "U", "V", "W", "D", "I", "J", "Q")
-_TOOL_FIELD_RE = re.compile(r"([XYZABCUVWDIJQ])([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)")
+#: the integer fields (LinuxCNC reads them with %d); the rest are reals (%lf)
+_TOOL_INT_FIELDS = ("T", "P", "Q")
+_INT_RE = re.compile(r"[+-]?\d+\Z")
+_REAL_RE = re.compile(r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?\Z")
+
+
+class ToolTableUnreadable(ValueError):
+    """A tool line this reader does not understand. A rewrite of the table
+    would drop it, so every read-modify-write refuses instead (Codex R323
+    FI-I50)."""
+
+
+def parse_tool_line(data: str) -> dict:
+    """The fields of one tool line's data part (its comment cut off), as
+    LinuxCNC 2.9.4 reads them (tooldata_read_entry, libtooldata.so.0,
+    disassembled 2026-11-06): fields separated by spaces, in ANY order, the
+    letter case-insensitive, T/P/Q integers, the rest reals. LinuxCNC skips a
+    whole line with a field it does not know; this reader is stricter and
+    raises on anything it does not read exactly — a field that is not one
+    letter and one number (a tab inside, a unit, junk after the number), an
+    unknown or repeated letter, a line without T or P."""
+    fields: dict = {}
+    for token in data.split(" "):
+        if not token:
+            continue
+        letter, value = token[0].upper(), token[1:]
+        if letter not in _TOOL_INT_FIELDS and letter not in _TOOL_FIELDS:
+            raise ToolTableUnreadable(f"unknown field {token!r}")
+        if letter in fields:
+            raise ToolTableUnreadable(f"{letter} twice")
+        if letter in _TOOL_INT_FIELDS:
+            if not _INT_RE.match(value):
+                raise ToolTableUnreadable(f"{token!r} is not {letter} and a whole number")
+            fields[letter] = int(value)
+        else:
+            if not _REAL_RE.match(value):
+                raise ToolTableUnreadable(f"{token!r} is not {letter} and a number")
+            fields[letter] = float(value)
+    if "T" not in fields or "P" not in fields:
+        raise ToolTableUnreadable("no T" if "T" not in fields else "no P")
+    return fields
+
 
 # Sidecar metadata fields kept in tool_library.json (beyond tool.tbl's T/P/Z/D).
 _TOOL_META_FIELDS = (
@@ -56,36 +96,33 @@ def tool_visual_metadata(meta: dict) -> dict:
     ) if k in meta}
 
 
-def parse_tool_table(path: str) -> list:
-    """Parse a LinuxCNC tool.tbl file → list of dicts.
+def parse_tool_table(path: str, strict: bool = False) -> list:
+    """Parse a LinuxCNC tool.tbl file → list of dicts (T, P, X, Y, Z, D always
+    — 0 when absent — and every other field the line carries, plus `remark`).
 
-    Handles both column orders: Z before D and D before Z,
-    since LinuxCNC may rewrite the file in either order.
-    """
+    A blank line and a comment line (`;` or `#` first) are no tool. A line
+    `parse_tool_line` does not read is skipped — LinuxCNC skips it too — or,
+    with `strict`, raises ToolTableUnreadable naming it: every path that
+    reads the table to write it back reads strictly, so a line it would drop
+    stops the write."""
     tools = []
     with open(path, "r") as f:
-        for line in f:
-            line = line.strip()
+        for n, raw in enumerate(f, 1):
+            line = raw.strip()
             if not line or line.startswith(";") or line.startswith("#"):
                 continue
-            tp = _TOOL_TP_RE.match(line)
-            if not tp:
+            data, _, remark = line.partition(";")
+            try:
+                fields = parse_tool_line(data.strip())
+            except ToolTableUnreadable as e:
+                if strict:
+                    raise ToolTableUnreadable(f"Tool table line {n} not understood ({e}): {line}") from None
                 continue
-            # Split off remark (everything after ';')
-            remark = ""
-            if ";" in line:
-                data_part, remark = line.split(";", 1)
-                remark = remark.strip()
-            else:
-                data_part = line
-            # every field, in any order; X/Y/Z/D always (0 when absent), the
-            # others only when the line carries them
-            fields = {m.group(1): float(m.group(2)) for m in _TOOL_FIELD_RE.finditer(data_part[tp.end():])}
-            tool = {"T": int(tp.group(1)), "P": int(tp.group(2)),
-                    "X": fields.get("X", 0.0), "Y": fields.get("Y", 0.0),
-                    "Z": fields.get("Z", 0.0), "D": fields.get("D", 0.0)}
-            tool.update({k: v for k, v in fields.items() if k not in tool})
-            tool["remark"] = remark
+            tool = {"T": fields.pop("T"), "P": fields.pop("P"),
+                    "X": fields.pop("X", 0.0), "Y": fields.pop("Y", 0.0),
+                    "Z": fields.pop("Z", 0.0), "D": fields.pop("D", 0.0)}
+            tool.update(fields)
+            tool["remark"] = remark.strip()
             tools.append(tool)
     return tools
 
@@ -111,6 +148,9 @@ def write_tool_table(path: str, tools: list):
                 line += f" Z{_num(t.get('Z', 0.0), '+013.6f')}"
             elif k == "D":
                 line += f"  D{_num(t.get('D', 0.0), '+012.6f')}"
+            elif k == "Q":
+                if k in t:
+                    line += f" Q{int(t[k])}"                 # an integer, as LinuxCNC reads it (%d)
             elif k in t and (k not in ("X", "Y") or t[k]):
                 line += f" {k}{_num(t[k], '+.6f')}"      # X/Y written when not 0; the others as the line had them
         if remark:
