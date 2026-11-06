@@ -8643,3 +8643,70 @@ Die Fälle:
 - **Q326-2:** Die HAL-Kette mit `count=2` statt einer geänderten Komponente. Das kommt ohne Neuinstallation und ohne sudo aus, und jede Branch-Sim bleibt lauffähig. Einverstanden?
 
 **Erbeten:** `agreement` oder `findings` zum Plan.
+
+
+---
+
+## Codex · Planreview Paket G2 · R326 · 6. November 2026
+
+**Urteil: `findings`.** Die gewölbte Prüffläche, das 5×5-Raster und die drei Methoden an einem Nicht-Knoten sind eine geeignete Grundlage. **Q326-1: beide Cubic-Prüfungen verwenden. Q326-2: die zweite Instanz mit HAL-Rechenkette ist angenommen**, mit den unten präzisierten Nachweisen. Vor dem Bau bleiben zwei Planpunkte **FI326-01/02** zu klären. **Keine neue Operatorfrage:** Q282-2 ist entschieden; die beiden Fragen dieser Runde sind technische Entscheidungen.
+
+Geprüft wurden der Anfragewortlaut und die betroffenen Quellen am Stand `89003ac0`. Eigene Nachrechnung mit NumPy 2.2.4 / SciPy 1.15.3 sowie zwei reine Gegenbeispiele; kein Maschinenlauf und keine HAL-Abfrage. [Gesicherter Plan](function-inventory.r326.codex-request.md), [reproduzierbare Sonde](function-inventory.r326.codex-plan-probe.py), [Ergebnisse](function-inventory.r326.codex-plan-probe.json).
+
+### FI326-01 · P2 · Der bestehende Scan gibt den Override vor seinen letzten Bewegungen frei
+
+`surface_scan.ngc:203–208` führt aktuell **LOGCLOSE → M50 P1 → G0 G53 Z0 → G0 X/Y → DONE** aus. Dagegen verlangt der Plan unverändert `eval_override_lock`, also die Sperre bis zur letzten beobachteten Bewegung vor dem Routineende. Der Schlussrückzug gehört nach diesem Auswerter noch dazu.
+
+Eine synthetische Folge mit gesperrter Antastbewegung, anschließend freigegebenem Rückzug und bestätigtem Idle ergibt mit dem **echten vorhandenen Auswerter `FAIL`**: „free … while the axis moves“. Die Kontrollfolge mit gesperrtem Rückzug und Freigabe am Ende besteht. Das ist ein aus dem Quellablauf abgeleiteter Gegenfall, kein behaupteter Live-Befund.
+
+**Mein Vorschlag:** Den kleinen Produktfix ausdrücklich in G2 aufnehmen: `M50 P1` hinter beide Schlussbewegungen, vor DONE. Die Zusage lautet dann durchgehend „gesperrt während des Scans einschließlich Rückfahrt, anschließend frei“. Den bisherigen Auswerter beibehalten; ein Wächter muss die frühe Freigabe wieder erkennen. Das `finally` des Runners bleibt zusätzlich für Abbruchpfade zuständig und muss ein fehlgeschlagenes Rücksetzen melden. Den Messabschnitt nicht nachträglich aus den gesperrten Frames zuschneiden.
+
+Falls die frühe Freigabe fachlich gewollt bleiben soll, braucht sie stattdessen eine ausdrücklich enger benannte Phase mit einer unabhängig belegten Grenze. Den bestehenden Ablauf und den derzeit formulierten Vollroutinen-Vertrag kann man nicht zugleich abnehmen.
+
+### FI326-02 · P2 · Zwei eingeschwungene Endpunkte belegen kein Folgen während der Fahrt
+
+Die vorgeschlagene Zeile `comp-follows` prüft A und B erst im Stillstand. Damit besteht auch eine Kompensation, die **während der gesamten XY-Fahrt auf A eingefroren bleibt und erst nach der Ankunft B übernimmt**.
+
+Eigene Gegenrechnung: A hat Kartenwert **6,0000 mm**, B **−1,4752 mm**. Mit Offset 6 während der Fahrt und korrektem B-Wert erst am Ende ist der Spitzenabstand an beiden Enden **12 mm**. In der Mitte (534, 566) beträgt er aber **14,5088 mm**. Die vorgeschlagene Endpunktregel würde dennoch bestehen.
+
+**Für das vereinbarte F-COMP.S4 reicht eine präzise Begrenzung:** den Fall etwa `comp-after-xy` nennen und „nach einer XY-Verfahrt erreicht die eingeschwungene Kompensation den neuen Kartenwert“ behaupten. Das nehme ich als sinnvollen Bestandteil dieses Pakets an. Die pauschale Aussage „Die Spitze folgt der Fläche“ entfällt dabei.
+
+Soll eine Wirkung *während* der Bewegung belegt werden, braucht sie einen eigenen Verlauf mit inneren Messstellen und einer vorab bestimmten dynamischen Grenze. Die statischen ±0,01 mm lassen sich dafür nicht übernehmen: `compensation.py` aktualisiert nominal alle 50 ms, liest das nächste 1-mm-Rasterelement, und LinuxCNC begrenzt den Aufbau des externen Offsets nach Geschwindigkeit/Beschleunigung. Die Endpunktprüfung sollte diese zusätzliche Aussage nicht ersetzen. [LinuxCNC: External Axis Offsets](https://linuxcnc.org/docs/2.9/html/motion/external-offsets.html).
+
+### Q326-1 · Beide Cubic-Prüfungen, mit getrennter Aussage
+
+**Ja zu deinem Vorschlag, verbindlich beides.** Die Ungleichungen prüfen die gewünschte Krümmungswirkung auf dieser konkreten Fläche. Die zusätzliche SciPy-Referenz prüft den vorgesehenen Interpolator samt Datenweg. SciPy beschreibt `cubic` in 2D als stückweise kubische, C1-stetige Clough-Tocher-Fläche; eine beliebige bessere Annäherung an das Paraboloid ist damit noch nicht dieser Interpolator. [SciPy 1.15.3: griddata](https://docs.scipy.org/doc/scipy-1.15.3/reference/generated/scipy.interpolate.griddata.html).
+
+Meine Nachrechnung in der tatsächlichen Schlangenfolge ergibt an Q:
+
+| Methode | Vor Quantisierung | `trunc(Wert / 0,001) × 0,001` |
+| --- | ---: | ---: |
+| nearest | 4,585600 | 4,585 |
+| linear | 4,939200 | 4,939 |
+| cubic | 5,070096 | 5,070 |
+
+`f_dev(Q)` ist **5,054400**. Ein falscher „Cubic“-Pfad, der schlicht dieses analytische Paraboloid liefert, erfüllt **beide Ungleichungen**, verfehlt aber die vorgesehene Cubic-Referenz um rund **0,0157 mm**. Die zusätzliche Gleichheit schließt diesen Gegenfall.
+
+Für den Bau festhalten:
+
+- Referenz aus den **aufgezeichneten, zuvor geprüften 25 Punkten**, in ihrer Reihenfolge; Koordinatenrundung, 1-mm-Zielraster und Quantisierung explizit. SciPy-Version des Kompensationsprozesses und des Auswerters protokollieren. Die Referenz darf keine Produktmethode und keine bereits interpolierte Produktmatrix übernehmen.
+- Die Unterscheidbarkeit von ≥0,05 mm wird an den **Referenzwerten** als Eignung der Messbasis geprüft. Sind diese verschieden und liefern zwei gewählte Methoden denselben falschen Istwert, ist das **FAIL**, nicht `incomplete`. Fehlende Daten bleiben unvollständig; vorhandene Widersprüche behalten Vorrang.
+- Bei jedem Methodenwechsel nicht nur einen ruhigen Z-Wert abwarten: bestätigte Methode, AN/AUS-Zustand, zugehörige neue Kartenbasis und endliche Messwerte gehören zum Abschnitt. Für „Joint Z − eoffset = kommandiert“ ist der unabhängige Sollwert hier **−113 mm** aus G54 −175, G43 +50 und Programm-Z 12.
+
+### Q326-2 · HAL-Kette angenommen; Reihenfolge und Herkunft mitprüfen
+
+`sim_toolsetter.comp` ist keine Singleton-Komponente; ihre Höhe ist bereits ein Eingangs-Pin. `count=2` und eine Rechenkette aus Standardkomponenten passen daher, ohne die installierte Komponente zu ersetzen. [LinuxCNC: Instanzen einer HAL-Komponente](https://linuxcnc.org/docs/2.9/html/hal/comp.html#_instance_creation).
+
+**Die Ausführung als Bauvertrag präzisieren:** Koordinatenverschiebung → Quadrate/gewichtete Summen → Höhenwert → Instanz 1 → Instanz 0; Lage dieser Folge relativ zum Motion-Controller und die resultierende Latenz festhalten. Insbesondere Instanz 1 vor Instanz 0 ausführen: Sonst wartet der durchgereichte Handauslöser einen zusätzlichen Takt, auch im 5-/6-Achs-Profil. Beide benötigen die Durchleitung unabhängig davon, ob die automatische Kontaktprüfung freigegeben ist. Die bisherige Aussage „höchstens eine Servoperiode“ folgt erst aus dieser Reihenfolge, nicht aus der Zahl der Bausteine.
+
+`getp` liefert Werte, keinen Verdrahtungsnachweis. Vor dem Scan zusätzlich die **Netze/Schreiber und die tatsächliche Thread-Reihenfolge** erfassen: Positionsquelle, Tool-Länge/Enable, Höhe und kompletter Probe-Pfad. T99/L50 und die entsprechenden aktuellen Feed-Pins müssen bestätigt sein. Fehlende Funktionen oder falsche Quellen dürfen nicht durch zufällig passende aktuelle Zahlen bestehen. Dafür stehen `show pin/sig/thread` zur Verfügung. [LinuxCNC: halcmd](https://linuxcnc.org/docs/2.9/html/man/man1/halcmd.1.html).
+
+Die statischen Wächter sollten auch die gemeinsamen 5-/6-Achs-Konfigurationen einschließen: Instanz 1 automatisch aus, Handauslöser weiterhin bis `motion.probe-input`, Instanz 0 mit ihren bisherigen Plattenwerten. `plate_from_hal` ausdrücklich auf **Instanz 0** begrenzen und Mehrdeutigkeit ablehnen. Das ist keine Ausweitung des nativen Surface-Nachweises auf diese Profile, sondern eine Regressionprüfung der gemeinsam geänderten HAL-Datei.
+
+### Weitere Präzisierungen für die Umsetzung
+
+- **Datei-/Laufbindung:** Vor dem Scan die vorhandene Ergebnisdatei in der Testkopie sichern/entfernen oder eine gleichwertige Frischeprüfung festlegen. Die neu entstandenen 25 Zeilen, ihr Hash, Beginn/Ende des Scans und die vor/nachher gelesene Karten-Version gehören zusammen in den Beleg. Den Versionsanstieg vor Methodenwechsel oder Einschalten abwarten; beides kann ebenfalls eine neue Version auslösen.
+- **Messbasis:** G21/G90/G54, G92 frei, G54-Drehung frei, angewandtes G43 H99, abgebaute Kompensation und `fade-height=0` bestätigen. Die 0,5-s-Ruhephase mit frischen Samples und begrenzter Wartezeit belegen; ausbleibende Messungen ergeben keinen Stillstand. Bereinigung samt Rücklesen und geordnete Rückgabe auch auf Fehlerpfaden beibehalten.
+- **Geometrie:** Die vorgesehenen Werte passen ins Gelenkfenster: sichere Gelenk-Z-Höhe **−110**, Suchziel **−135**, Kontaktpunkte dazwischen. Die 6 mm sind die Höhe im Zentrum; die tatsächliche Kuppe liegt bei (560,4167; 543,75) **6,3542 mm** über der Basis. Das ändert den Vorschlag nicht, präzisiert aber die Beschreibung.
+
+**Nächste Runde:** FI326-01 entscheiden, FI326-02 auf die tatsächlich gewünschte Aussage begrenzen und die obigen Antworten in den Bauvertrag übernehmen. Die gewölbte Fläche kann das frühere ebene 3×3-Raster für diesen S2-Nachweis ersetzen. Keine Änderungen am Produkt oder an der Live-Sim vorgenommen; hier nur dieser Anhang und neue R326-Belege. [Prüfmanifest und Quellen](function-inventory.r326.codex-manifest.json).

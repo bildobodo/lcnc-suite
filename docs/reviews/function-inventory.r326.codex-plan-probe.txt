@@ -1,0 +1,159 @@
+{
+  "code_base": "89003ac0",
+  "numpy": "2.2.4",
+  "scipy": "1.15.3",
+  "scope": "pure, no machine/HAL access; synthetic frames and countertrajectory, not observed live",
+  "q": [
+    538.0,
+    550.0
+  ],
+  "q_reference": {
+    "nearest": 4.5856,
+    "linear": 4.9392000000000005,
+    "cubic": 5.0700960244238376
+  },
+  "q_counts_quantized": {
+    "nearest": 4.585,
+    "linear": 4.939,
+    "cubic": 5.07
+  },
+  "q_analytic": 5.0544,
+  "method_min_gap_mm": 0.13089602442383708,
+  "cubic_counter": {
+    "wrong_value": 5.0544,
+    "passes_both_inequalities": true,
+    "passes_scipy_equality_0_002": false
+  },
+  "override": {
+    "frames": [
+      [
+        0.01,
+        {
+          "feed_override_enabled": true,
+          "current_vel": 0,
+          "interp_state": 1,
+          "tool_change_seq": null,
+          "tool_change_requested": false
+        }
+      ],
+      [
+        0.1,
+        {
+          "feed_override_enabled": false,
+          "current_vel": 0,
+          "interp_state": 2,
+          "tool_change_seq": null,
+          "tool_change_requested": false
+        }
+      ],
+      [
+        0.2,
+        {
+          "feed_override_enabled": false,
+          "current_vel": 1,
+          "interp_state": 2,
+          "tool_change_seq": null,
+          "tool_change_requested": false
+        }
+      ],
+      [
+        0.5,
+        {
+          "feed_override_enabled": false,
+          "current_vel": 0,
+          "interp_state": 2,
+          "tool_change_seq": null,
+          "tool_change_requested": false
+        }
+      ],
+      [
+        0.6,
+        {
+          "feed_override_enabled": true,
+          "current_vel": 10,
+          "interp_state": 2,
+          "tool_change_seq": null,
+          "tool_change_requested": false
+        }
+      ],
+      [
+        0.8,
+        {
+          "feed_override_enabled": true,
+          "current_vel": 10,
+          "interp_state": 2,
+          "tool_change_seq": null,
+          "tool_change_requested": false
+        }
+      ],
+      [
+        1.0,
+        {
+          "feed_override_enabled": true,
+          "current_vel": 0,
+          "interp_state": 1,
+          "tool_change_seq": null,
+          "tool_change_requested": false
+        }
+      ]
+    ],
+    "existing_evaluator": {
+      "case": "surface-current-tail",
+      "status": "FAIL",
+      "detail": "free at +0.600 s while the axis moves in the measuring phase (at +0.600 s)",
+      "locked_from_s": 0.1
+    },
+    "locked_return_control": {
+      "case": "surface-locked-return",
+      "status": "PASS",
+      "detail": "locked through the measuring phase, free after the routine",
+      "free_s": 1.0,
+      "locked_from_s": 0.1,
+      "done_s": 1.0
+    }
+  },
+  "follows_counter": {
+    "samples": [
+      {
+        "place": "A",
+        "x": 550.0,
+        "y": 550.0,
+        "joint_z": -107.0,
+        "eoffset": 6.0,
+        "clearance": 12.0
+      },
+      {
+        "place": "middle",
+        "x": 534.0,
+        "y": 566.0,
+        "joint_z": -107.0,
+        "eoffset": 6.0,
+        "clearance": 14.508800000000008
+      },
+      {
+        "place": "B",
+        "x": 518.0,
+        "y": 582.0,
+        "joint_z": -114.4752,
+        "eoffset": -1.4751999999999992,
+        "clearance": 12.0
+      }
+    ],
+    "passes_endpoint_rule": true,
+    "midpoint_error_mm": 2.508800000000008
+  },
+  "geometry": {
+    "true_peak_xy": [
+      560.4166666666666,
+      543.75
+    ],
+    "true_peak_deviation": 6.354166666666666,
+    "grid_deviation_min": -1.4751999999999992,
+    "grid_deviation_max": 6.1856,
+    "window_min_deviation": -4.88,
+    "search_target_joint_z": -135.0,
+    "safe_joint_z": -110.0,
+    "A_off_clearance": 6.0,
+    "B_off_clearance": 13.4752
+  }
+}

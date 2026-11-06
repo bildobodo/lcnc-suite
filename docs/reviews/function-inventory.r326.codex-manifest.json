@@ -1,0 +1,37 @@
+{
+  "round": "R326",
+  "kind": "plan review",
+  "base": "89003ac0",
+  "document_head": "95a9efe1e507191fccf6ea94c15ec2d1271905a5",
+  "code_archive": "/tmp/codex-r325",
+  "checked_sources": {
+    "subroutines/surfacemap/surface_scan.ngc": "32de0de2edf04f78152fafcc6327dcae1fa4bac05880c4e0b47c9c12cb05258e",
+    "subroutines/surfacemap/compensation.py": "495c6c427f6736cee256aa65edbff7105766a1f3fa15f145cbdc600b5f96e261",
+    "examples/sim_config/sim_toolsetter/sim_toolsetter.comp": "ca0580ff55d914f2fc4292707c803785e0420d5c67c0e396178872e5b96715a7",
+    "examples/sim_config/hallib/sim_toolsetter.hal": "ad564a4e38672726dfbab34841e4a9ced85aaffadcc47b52187c406030624211",
+    "examples/sim_config/hallib/core_sim_3.hal": "adc3ecc57b2ea6423e4a3268de97af5398a4ae2323b61af0ee2b90fb59bc13a9",
+    "examples/sim_config/hallib/core_sim_5.hal": "0ead9626947007686682f0da79637769a48205708c65482b1f261770f7a6fb5a",
+    "examples/sim_config/hallib/core_sim_6.hal": "51f0a706f65183b194a43bdee2d4486e7f100ae037a71be545d6d2ec96eba3a5",
+    "examples/sim_config/hallib/lcnc_webui.hal": "ae989d84fbd7cd7183dc167f6cd36b6d9ad93fb93df3df4f9dcb76ae0a4ae1d5",
+    "examples/sim_config/lcnc_suite_sim_3axis_xyz.ini": "f337bcf1725a46b4e936f9dcd5f64492cc53f0756394796f54363900b518de06",
+    "scripts/native_run.py": "e0c9f6595da59cf056421ad6742d3404419c1b688cde9cf4c744e5b01984aebb",
+    "scripts/test_support/native_cases.py": "f2fa0d1ac54b234860ef732384c5beb8cf7e81e92c6c26ebc13fa30cb7c3f48b",
+    "scripts/test_support/servo.py": "3b2da00013bce4c70208c79c70a7b318f4732e32aa7b43d8a577c3a6f0aa961e",
+    "lcnc-gateway/gateway.py": "bb3468ff233529e43a7e04a930725ef68a929c352a649e733bc5647c77187188",
+    "scripts/inventory/functions.json": "1b955a09e30a2e0e55eb0ddaeea523b58c87c18564892a1c738d8c1af35ab18f"
+  },
+  "probe_command": "python3 plan-probe.py /tmp/codex-r325 plan-probe.json",
+  "probe_exit": 0,
+  "sources": [
+    "https://docs.scipy.org/doc/scipy-1.15.3/reference/generated/scipy.interpolate.griddata.html",
+    "https://linuxcnc.org/docs/2.9/html/man/man9/sum2.9.html",
+    "https://linuxcnc.org/docs/2.9/html/man/man1/halcmd.1.html",
+    "https://linuxcnc.org/docs/2.9/html/motion/external-offsets.html",
+    "https://linuxcnc.org/docs/2.9/html/hal/comp.html"
+  ],
+  "limitations": [
+    "No native run, no HAL commands, no live ports 5173/8000",
+    "Countertraces are synthetic witnesses, not observed failures",
+    "No implementation or full test gate in this plan round"
+  ]
+}
