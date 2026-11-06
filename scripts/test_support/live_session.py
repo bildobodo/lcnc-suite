@@ -25,6 +25,11 @@ class TransportLost(RuntimeError):
     boundary; a programming error is none of these and stays itself)."""
 
 
+#: commands the gateway answers with a reply carrying no `cmd` (gateway.py:
+#: the reader's hello and safety_trip_ack, the legacy arm)
+UNNAMED_REPLIES = ("hello", "arm", "safety_trip_ack")
+
+
 class SimulatorClient:
     def __init__(self, token, session="test-suite-live-twp", auto_confirm=True, on_status=None, keep=None):
         self.token = token
@@ -170,9 +175,10 @@ class SimulatorClient:
                 reply = self.replies.get(timeout=0.5)
             except queue.Empty:
                 continue
-            # hello and arm are legacy handshakes without a cmd field.
-            # Await hello before sending arm so their replies cannot shift.
-            if reply.get("cmd") == cmd or (cmd in ("hello", "arm") and "cmd" not in reply):
+            # hello, arm and safety_trip_ack are answered without a cmd field
+            # (the reader's own frames — step 3 found the acknowledgement's);
+            # the client sends one at a time, so their replies cannot shift.
+            if reply.get("cmd") == cmd or (cmd in UNNAMED_REPLIES and "cmd" not in reply):
                 if not reply["ok"]:
                     raise Refused(f"{cmd} refused: {reply.get('error')}")
                 return reply

@@ -4195,3 +4195,12 @@ def test_the_run_unloads_its_sampler_at_its_end():
     nr._stop_copy(ctx)
     assert calls == ["reader.stop", ["unloadrt", "sampler"], "client.close"] and ctx["report"]["servo_unload"] == \
         "unloaded"
+
+
+def test_the_acknowledgements_reply_without_a_cmd_is_its_own():
+    """Live 2026-11-06: the gateway answers safety_trip_ack in its reader with
+    {"type": "reply", "ok": true} — no cmd; the client waited 30 s for it."""
+    from test_support.live_session import SimulatorClient
+    c = SimulatorClient("t", auto_confirm=False)
+    c.send = lambda command: c.replies.put({"type": "reply", "ok": True})
+    assert c.request("safety_trip_ack") == {"type": "reply", "ok": True}
