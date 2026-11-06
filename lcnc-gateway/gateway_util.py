@@ -2176,6 +2176,14 @@ def evaluate_wcs_offset_drift(snap_flat, live_flat, eps=1e-3):
 
 
 
+def preview_file_changed(active_file, mtime, last_file, last_mtime) -> bool:
+    """The poller's file edge (F-LOAD.S3): the loaded program is another path
+    than the published one, or the same path with another mtime — a reload
+    after an in-place edit (the editor's Save, an external edit) re-parses; the
+    same path at the same mtime does not (the Reparse action is for that)."""
+    return bool(active_file) and (active_file != last_file or mtime != last_mtime)
+
+
 def preview_file_edge_action(file_changed, reparse_pending, refresh_running, inflight,
                              active_file, cur_mtime):
     """What the poll loop's file/reparse edge does this tick (pure).

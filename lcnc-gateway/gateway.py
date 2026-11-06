@@ -90,7 +90,7 @@ from gateway_util import (
     evaluate_tlo_drift, evaluate_start_drift,
     TOOLSETTER_BASIS_KEYS, toolsetter_assigned_keys, toolsetter_basis_view, toolsetter_ctx,
     RemapEnv, resolve_subroutine_dirs,
-    evaluate_rotary_drift, drift_gate_open, inflight_stale_reason, preview_file_edge_action,
+    evaluate_rotary_drift, drift_gate_open, inflight_stale_reason, preview_file_changed, preview_file_edge_action,
     midrun_table_gate_open, midrun_table_action,
     rotary_drift_settled,
     evaluate_kins_drift,
@@ -1688,9 +1688,7 @@ async def _status_poller():
                     _cur_mtime = _bulk.last_mtime
             else:
                 _cur_mtime = None
-            file_changed = bool(st.active_file) and (
-                st.active_file != _bulk.last_file or _cur_mtime != _bulk.last_mtime
-            )
+            file_changed = preview_file_changed(st.active_file, _cur_mtime, _bulk.last_file, _bulk.last_mtime)
             # reparse_pending: an operator Reparse that arrived during an
             # in-flight parse (or any Reparse — the flag is the request,
             # the cache keys are no longer cleared for it).
