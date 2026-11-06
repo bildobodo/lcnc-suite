@@ -1,0 +1,1102 @@
+{
+  "closed_clock_wiring": "PASS: runtime read, report/context, section, consumer",
+  "clock_valid": {
+    "case": "disconnect-close",
+    "status": "PASS",
+    "detail": "the program ran on for ≥ 2.60 s after the event, X 260 mm, no trip; the remaining client saw it running",
+    "samples": 3100,
+    "event": {
+      "tag": "ws.disconnect",
+      "client_id": 7
+    },
+    "frames_after": 3,
+    "b_states": [
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        2
+      ]
+    ],
+    "w_n": 1500,
+    "travel_mm": 259.9,
+    "window_ns_lower": 2598000000
+  },
+  "clock_missing": {
+    "case": "disconnect-close",
+    "status": "incomplete",
+    "detail": "the window's time unproven: the servo clock's contract not read in the run",
+    "samples": 3100,
+    "event": {
+      "tag": "ws.disconnect",
+      "client_id": 7
+    },
+    "frames_after": 3,
+    "b_states": [
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        2
+      ]
+    ]
+  },
+  "clock_wrong_hash": {
+    "case": "disconnect-close",
+    "status": "incomplete",
+    "detail": "the window's time unproven: the servo clock's unit not proven on this backend (rtapi_app 000000000000…, linuxcnc-uspace 1:2.9.4-2+deb13u1)",
+    "samples": 3100,
+    "event": {
+      "tag": "ws.disconnect",
+      "client_id": 7
+    },
+    "frames_after": 3,
+    "b_states": [
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        2
+      ]
+    ]
+  },
+  "clock_wrong_version": {
+    "case": "disconnect-close",
+    "status": "incomplete",
+    "detail": "the window's time unproven: the servo clock's unit not proven on this backend (rtapi_app 1a4bb954a645…, linuxcnc-uspace different)",
+    "samples": 3100,
+    "event": {
+      "tag": "ws.disconnect",
+      "client_id": 7
+    },
+    "frames_after": 3,
+    "b_states": [
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        2
+      ]
+    ]
+  },
+  "closed_trip_clean": {
+    "error": null,
+    "section_problems": [],
+    "rows": [
+      {
+        "case": "latch-same-cycle",
+        "status": "PASS",
+        "detail": "fault-out TRUE in the sample oneshot.0.out fell (sample 730)",
+        "samples": 250,
+        "delayed": false,
+        "edge_n": 730,
+        "edge_index": 30,
+        "latch_clear_before": true,
+        "latched_after": 730,
+        "latch_at_edge": 1,
+        "latch_next": 1
+      },
+      {
+        "case": "latch-sticky",
+        "status": "PASS",
+        "detail": "the heartbeat returned (sample 750), fault-out stayed TRUE, the reset before the acknowledgement was refused",
+        "samples": 250,
+        "reset_reply": {
+          "ok": false,
+          "error": "Safety trip not acknowledged — press Acknowledge"
+        },
+        "trip_frames": [
+          true
+        ],
+        "resume_index": 50,
+        "heartbeat_edges_after": 40
+      },
+      {
+        "case": "latch-recovered",
+        "status": "PASS",
+        "detail": "fault-out FALSE from sample 910 to the end; no trip, E-Stop clear, machine on",
+        "samples": 40,
+        "frames": [
+          [
+            false,
+            true,
+            false
+          ],
+          [
+            false,
+            false,
+            false
+          ],
+          [
+            false,
+            false,
+            true
+          ]
+        ],
+        "cleared_n": 910,
+        "last_frame": {
+          "safety_trip": null,
+          "is_estop": false,
+          "is_enabled": true
+        }
+      }
+    ],
+    "commands": [
+      "estop_reset",
+      "safety_trip_ack",
+      "arm",
+      "estop_reset",
+      "machine_on"
+    ],
+    "ack_sent": true
+  },
+  "closed_trip_delayed": {
+    "error": null,
+    "section_problems": [],
+    "rows": [
+      {
+        "case": "latch-same-cycle.delayed-order",
+        "status": "PASS",
+        "detail": "the delayed order latched exactly one cycle late (sample 731)",
+        "samples": 250,
+        "delayed": true,
+        "edge_n": 730,
+        "edge_index": 30,
+        "latch_clear_before": true,
+        "latched_after": 731,
+        "latch_at_edge": 0,
+        "latch_next": 1,
+        "variant": "latch-delayed"
+      },
+      {
+        "case": "latch-sticky",
+        "status": "PASS",
+        "detail": "the heartbeat returned (sample 750), fault-out stayed TRUE, the reset before the acknowledgement was refused",
+        "samples": 250,
+        "reset_reply": {
+          "ok": false,
+          "error": "Safety trip not acknowledged — press Acknowledge"
+        },
+        "trip_frames": [
+          true
+        ],
+        "resume_index": 50,
+        "heartbeat_edges_after": 40,
+        "variant": "latch-delayed"
+      },
+      {
+        "case": "latch-recovered",
+        "status": "PASS",
+        "detail": "fault-out FALSE from sample 910 to the end; no trip, E-Stop clear, machine on",
+        "samples": 40,
+        "frames": [
+          [
+            false,
+            true,
+            false
+          ],
+          [
+            false,
+            false,
+            false
+          ],
+          [
+            false,
+            false,
+            true
+          ]
+        ],
+        "cleared_n": 910,
+        "last_frame": {
+          "safety_trip": null,
+          "is_estop": false,
+          "is_enabled": true
+        },
+        "variant": "latch-delayed"
+      }
+    ],
+    "commands": [
+      "estop_reset",
+      "safety_trip_ack",
+      "arm",
+      "estop_reset",
+      "machine_on"
+    ],
+    "ack_sent": true
+  },
+  "closed_trip_preexisting": {
+    "error": "the trip is not proven the run's own: fault-out was not FALSE before the own edge — a latch set before is not the run's — not acknowledged",
+    "section_problems": [],
+    "rows": [
+      {
+        "case": "latch-same-cycle",
+        "status": "FAIL",
+        "detail": "fault-out not FALSE before the expiry (sample 700)",
+        "samples": 250,
+        "delayed": false,
+        "edge_n": 730,
+        "edge_index": 30,
+        "latch_clear_before": false,
+        "latched_after": 730
+      },
+      {
+        "case": "latch-sticky",
+        "status": "PASS",
+        "detail": "the heartbeat returned (sample 750), fault-out stayed TRUE, the reset before the acknowledgement was refused",
+        "samples": 250,
+        "reset_reply": {
+          "ok": false,
+          "error": "Safety trip not acknowledged — press Acknowledge"
+        },
+        "trip_frames": [
+          true
+        ],
+        "resume_index": 50,
+        "heartbeat_edges_after": 40
+      }
+    ],
+    "commands": [
+      "estop_reset"
+    ],
+    "ack_sent": false
+  },
+  "closed_trip_early_pulse": {
+    "error": "the trip is not proven the run's own: fault-out was not FALSE before the own edge — a latch set before is not the run's — not acknowledged",
+    "section_problems": [],
+    "rows": [
+      {
+        "case": "latch-same-cycle",
+        "status": "FAIL",
+        "detail": "fault-out not FALSE before the expiry (sample 710)",
+        "samples": 250,
+        "delayed": false,
+        "edge_n": 730,
+        "edge_index": 30,
+        "latch_clear_before": false,
+        "latched_after": 730
+      },
+      {
+        "case": "latch-sticky",
+        "status": "PASS",
+        "detail": "the heartbeat returned (sample 750), fault-out stayed TRUE, the reset before the acknowledgement was refused",
+        "samples": 250,
+        "reset_reply": {
+          "ok": false,
+          "error": "Safety trip not acknowledged — press Acknowledge"
+        },
+        "trip_frames": [
+          true
+        ],
+        "resume_index": 50,
+        "heartbeat_edges_after": 40
+      }
+    ],
+    "commands": [
+      "estop_reset"
+    ],
+    "ack_sent": false
+  },
+  "rest_ownership_number_gap": {
+    "error": null,
+    "section_problems": [
+      "a number gap (709 → 711)"
+    ],
+    "rows": [
+      {
+        "case": "latch-same-cycle",
+        "status": "incomplete",
+        "detail": "the section: a number gap (709 → 711)",
+        "samples": 249,
+        "delayed": false,
+        "edge_n": 730,
+        "edge_index": 29,
+        "latch_clear_before": true,
+        "latched_after": 730,
+        "latch_at_edge": 1,
+        "latch_next": 1
+      },
+      {
+        "case": "latch-sticky",
+        "status": "incomplete",
+        "detail": "the section: a number gap (709 → 711)",
+        "samples": 249,
+        "reset_reply": {
+          "ok": false,
+          "error": "Safety trip not acknowledged — press Acknowledge"
+        },
+        "trip_frames": [
+          true
+        ]
+      },
+      {
+        "case": "latch-recovered",
+        "status": "PASS",
+        "detail": "fault-out FALSE from sample 910 to the end; no trip, E-Stop clear, machine on",
+        "samples": 40,
+        "frames": [
+          [
+            false,
+            true,
+            false
+          ],
+          [
+            false,
+            false,
+            false
+          ],
+          [
+            false,
+            false,
+            true
+          ]
+        ],
+        "cleared_n": 910,
+        "last_frame": {
+          "safety_trip": null,
+          "is_estop": false,
+          "is_enabled": true
+        }
+      }
+    ],
+    "commands": [
+      "estop_reset",
+      "safety_trip_ack",
+      "arm",
+      "estop_reset",
+      "machine_on"
+    ],
+    "ack_sent": true
+  },
+  "rest_ownership_foreign_mark": {
+    "error": null,
+    "section_problems": [
+      "a foreign mark inside the section (999 at sample 710)"
+    ],
+    "rows": [
+      {
+        "case": "latch-same-cycle",
+        "status": "incomplete",
+        "detail": "the section: a foreign mark inside the section (999 at sample 710)",
+        "samples": 249,
+        "delayed": false,
+        "edge_n": 730,
+        "edge_index": 29,
+        "latch_clear_before": true,
+        "latched_after": 730,
+        "latch_at_edge": 1,
+        "latch_next": 1
+      },
+      {
+        "case": "latch-sticky",
+        "status": "incomplete",
+        "detail": "the section: a foreign mark inside the section (999 at sample 710)",
+        "samples": 249,
+        "reset_reply": {
+          "ok": false,
+          "error": "Safety trip not acknowledged — press Acknowledge"
+        },
+        "trip_frames": [
+          true
+        ]
+      },
+      {
+        "case": "latch-recovered",
+        "status": "PASS",
+        "detail": "fault-out FALSE from sample 910 to the end; no trip, E-Stop clear, machine on",
+        "samples": 40,
+        "frames": [
+          [
+            false,
+            true,
+            false
+          ],
+          [
+            false,
+            false,
+            false
+          ],
+          [
+            false,
+            false,
+            true
+          ]
+        ],
+        "cleared_n": 910,
+        "last_frame": {
+          "safety_trip": null,
+          "is_estop": false,
+          "is_enabled": true
+        }
+      }
+    ],
+    "commands": [
+      "estop_reset",
+      "safety_trip_ack",
+      "arm",
+      "estop_reset",
+      "machine_on"
+    ],
+    "ack_sent": true
+  },
+  "closed_B_known": {
+    "case": "disconnect-close",
+    "status": "PASS",
+    "detail": "the program ran on for ≥ 2.60 s after the event, X 260 mm, no trip; the remaining client saw it running",
+    "samples": 3100,
+    "event": {
+      "tag": "ws.disconnect",
+      "client_id": 7
+    },
+    "frames_after": 3,
+    "b_states": [
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        2
+      ]
+    ],
+    "w_n": 1500,
+    "travel_mm": 259.9,
+    "window_ns_lower": 2598000000
+  },
+  "closed_B_empty_fields": {
+    "case": "disconnect-close",
+    "status": "incomplete",
+    "detail": "a frame of the remaining client after the event with its state unknown",
+    "samples": 3100,
+    "event": {
+      "tag": "ws.disconnect",
+      "client_id": 7
+    },
+    "frames_after": 1,
+    "b_states": [
+      [
+        null,
+        null
+      ]
+    ],
+    "w_n": 1500,
+    "travel_mm": 259.9,
+    "window_ns_lower": 2598000000
+  },
+  "closed_B_no_mode": {
+    "case": "disconnect-close",
+    "status": "incomplete",
+    "detail": "a frame of the remaining client after the event with its state unknown",
+    "samples": 3100,
+    "event": {
+      "tag": "ws.disconnect",
+      "client_id": 7
+    },
+    "frames_after": 1,
+    "b_states": [
+      [
+        2,
+        null
+      ]
+    ],
+    "w_n": 1500,
+    "travel_mm": 259.9,
+    "window_ns_lower": 2598000000
+  },
+  "closed_B_no_interp": {
+    "case": "disconnect-close",
+    "status": "incomplete",
+    "detail": "a frame of the remaining client after the event with its state unknown",
+    "samples": 3100,
+    "event": {
+      "tag": "ws.disconnect",
+      "client_id": 7
+    },
+    "frames_after": 1,
+    "b_states": [
+      [
+        null,
+        2
+      ]
+    ],
+    "w_n": 1500,
+    "travel_mm": 259.9,
+    "window_ns_lower": 2598000000
+  },
+  "closed_B_unknown_interp": {
+    "case": "disconnect-close",
+    "status": "incomplete",
+    "detail": "a frame of the remaining client after the event with its state unknown",
+    "samples": 3100,
+    "event": {
+      "tag": "ws.disconnect",
+      "client_id": 7
+    },
+    "frames_after": 1,
+    "b_states": [
+      [
+        999,
+        2
+      ]
+    ],
+    "w_n": 1500,
+    "travel_mm": 259.9,
+    "window_ns_lower": 2598000000
+  },
+  "closed_B_paused": {
+    "case": "disconnect-close",
+    "status": "FAIL",
+    "detail": "the remaining client saw the program stop (interp 3, mode 2)",
+    "samples": 3100,
+    "event": {
+      "tag": "ws.disconnect",
+      "client_id": 7
+    },
+    "frames_after": 1,
+    "b_states": [
+      [
+        3,
+        2
+      ]
+    ]
+  },
+  "closed_B_mdi": {
+    "case": "disconnect-close",
+    "status": "FAIL",
+    "detail": "the remaining client saw the program stop (interp 2, mode 3)",
+    "samples": 3100,
+    "event": {
+      "tag": "ws.disconnect",
+      "client_id": 7
+    },
+    "frames_after": 1,
+    "b_states": [
+      [
+        2,
+        3
+      ]
+    ]
+  },
+  "closed_fetch_correct": {
+    "case": "clients-4",
+    "status": "PASS",
+    "detail": "4 clients, 21 heartbeat gaps across the window, the longest ≤ 102.0 ms",
+    "n": 4,
+    "hellos": [
+      {
+        "ok": true,
+        "armed": false
+      },
+      {
+        "ok": true,
+        "armed": false
+      },
+      {
+        "ok": true,
+        "armed": false
+      },
+      {
+        "ok": true,
+        "armed": false
+      }
+    ],
+    "fetches": [
+      {
+        "status": 200,
+        "bytes": 13,
+        "sha256": "47e403f8a49beeecfc491cd9285b0d99335722a852b008b84f1649c4e1f015df",
+        "version": 9
+      },
+      {
+        "status": 200,
+        "bytes": 13,
+        "sha256": "47e403f8a49beeecfc491cd9285b0d99335722a852b008b84f1649c4e1f015df",
+        "version": 9
+      },
+      {
+        "status": 200,
+        "bytes": 13,
+        "sha256": "47e403f8a49beeecfc491cd9285b0d99335722a852b008b84f1649c4e1f015df",
+        "version": 9
+      },
+      {
+        "status": 200,
+        "bytes": 13,
+        "sha256": "47e403f8a49beeecfc491cd9285b0d99335722a852b008b84f1649c4e1f015df",
+        "version": 9
+      }
+    ],
+    "published": {
+      "ok": true,
+      "version": 9
+    },
+    "samples": 5000,
+    "pre_ns": 1498000000,
+    "post_ns": 1498000000,
+    "edges": 50,
+    "pairs": 21,
+    "worst_upper_ns": 102000000,
+    "worst_lower_ns": 98000000
+  },
+  "closed_fetch_all_old": {
+    "case": "clients-4",
+    "status": "incomplete",
+    "detail": "a fetch not of the published version 9: [8, 8, 8, 8]",
+    "n": 4,
+    "hellos": [
+      {
+        "ok": true,
+        "armed": false
+      },
+      {
+        "ok": true,
+        "armed": false
+      },
+      {
+        "ok": true,
+        "armed": false
+      },
+      {
+        "ok": true,
+        "armed": false
+      }
+    ],
+    "fetches": [
+      {
+        "status": 200,
+        "bytes": 13,
+        "sha256": "47e403f8a49beeecfc491cd9285b0d99335722a852b008b84f1649c4e1f015df",
+        "version": 8
+      },
+      {
+        "status": 200,
+        "bytes": 13,
+        "sha256": "47e403f8a49beeecfc491cd9285b0d99335722a852b008b84f1649c4e1f015df",
+        "version": 8
+      },
+      {
+        "status": 200,
+        "bytes": 13,
+        "sha256": "47e403f8a49beeecfc491cd9285b0d99335722a852b008b84f1649c4e1f015df",
+        "version": 8
+      },
+      {
+        "status": 200,
+        "bytes": 13,
+        "sha256": "47e403f8a49beeecfc491cd9285b0d99335722a852b008b84f1649c4e1f015df",
+        "version": 8
+      }
+    ],
+    "published": {
+      "ok": true,
+      "version": 9
+    },
+    "samples": 5000
+  },
+  "closed_fetch_one_other": {
+    "case": "clients-4",
+    "status": "incomplete",
+    "detail": "a fetch not of the published version 9: [9, 9, 9, 10]",
+    "n": 4,
+    "hellos": [
+      {
+        "ok": true,
+        "armed": false
+      },
+      {
+        "ok": true,
+        "armed": false
+      },
+      {
+        "ok": true,
+        "armed": false
+      },
+      {
+        "ok": true,
+        "armed": false
+      }
+    ],
+    "fetches": [
+      {
+        "status": 200,
+        "bytes": 13,
+        "sha256": "47e403f8a49beeecfc491cd9285b0d99335722a852b008b84f1649c4e1f015df",
+        "version": 9
+      },
+      {
+        "status": 200,
+        "bytes": 13,
+        "sha256": "47e403f8a49beeecfc491cd9285b0d99335722a852b008b84f1649c4e1f015df",
+        "version": 9
+      },
+      {
+        "status": 200,
+        "bytes": 13,
+        "sha256": "47e403f8a49beeecfc491cd9285b0d99335722a852b008b84f1649c4e1f015df",
+        "version": 9
+      },
+      {
+        "status": 200,
+        "bytes": 13,
+        "sha256": "47e403f8a49beeecfc491cd9285b0d99335722a852b008b84f1649c4e1f015df",
+        "version": 10
+      }
+    ],
+    "published": {
+      "ok": true,
+      "version": 9
+    },
+    "samples": 5000
+  },
+  "closed_fetch_missing": {
+    "case": "clients-4",
+    "status": "incomplete",
+    "detail": "a fetch not of the published version 9: [None, None, None, None]",
+    "n": 4,
+    "hellos": [
+      {
+        "ok": true,
+        "armed": false
+      },
+      {
+        "ok": true,
+        "armed": false
+      },
+      {
+        "ok": true,
+        "armed": false
+      },
+      {
+        "ok": true,
+        "armed": false
+      }
+    ],
+    "fetches": [
+      {
+        "status": 200,
+        "bytes": 13,
+        "sha256": "47e403f8a49beeecfc491cd9285b0d99335722a852b008b84f1649c4e1f015df",
+        "version": null
+      },
+      {
+        "status": 200,
+        "bytes": 13,
+        "sha256": "47e403f8a49beeecfc491cd9285b0d99335722a852b008b84f1649c4e1f015df",
+        "version": null
+      },
+      {
+        "status": 200,
+        "bytes": 13,
+        "sha256": "47e403f8a49beeecfc491cd9285b0d99335722a852b008b84f1649c4e1f015df",
+        "version": null
+      },
+      {
+        "status": 200,
+        "bytes": 13,
+        "sha256": "47e403f8a49beeecfc491cd9285b0d99335722a852b008b84f1649c4e1f015df",
+        "version": null
+      }
+    ],
+    "published": {
+      "ok": true,
+      "version": 9
+    },
+    "samples": 5000
+  },
+  "closed_failure_trip_no_event": {
+    "case": "disconnect-close",
+    "status": "FAIL",
+    "detail": "a trip: fault-out TRUE (sample 1800)",
+    "samples": 3100,
+    "event": null,
+    "frames_after": 3,
+    "b_states": [
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        2
+      ]
+    ]
+  },
+  "closed_failure_idle_no_time": {
+    "case": "disconnect-close",
+    "status": "FAIL",
+    "detail": "the remaining client saw the program stop (interp 1, mode 2)",
+    "samples": 3100,
+    "event": {
+      "tag": "ws.disconnect",
+      "client_id": 7
+    },
+    "frames_after": 1,
+    "b_states": [
+      [
+        1,
+        2
+      ]
+    ]
+  },
+  "closed_failure_released": {
+    "case": "latch-sticky",
+    "status": "FAIL",
+    "detail": "fault-out released before the reset (sample 760)",
+    "samples": 90,
+    "reset_reply": {
+      "ok": false,
+      "error": "Safety trip not acknowledged"
+    },
+    "trip_frames": [
+      true
+    ]
+  },
+  "closed_failure_relatched": {
+    "case": "latch-recovered",
+    "status": "FAIL",
+    "detail": "fault-out TRUE again after the reset (sample 930)",
+    "samples": 40,
+    "frames": [
+      [
+        false,
+        false,
+        true
+      ]
+    ]
+  },
+  "control_heartbeat_violation": {
+    "case": "clients-4",
+    "status": "FAIL",
+    "detail": "a heartbeat gap of at least 358.0 ms (samples 5950–6310)",
+    "n": 4,
+    "hellos": [
+      {
+        "ok": true,
+        "armed": false
+      },
+      {
+        "ok": true,
+        "armed": false
+      },
+      {
+        "ok": true,
+        "armed": false
+      },
+      {
+        "ok": true,
+        "armed": false
+      }
+    ],
+    "fetches": [
+      {
+        "status": 200,
+        "sha256": "ab",
+        "bytes": 9,
+        "version": 9
+      },
+      {
+        "status": 200,
+        "sha256": "ab",
+        "bytes": 9,
+        "version": 9
+      },
+      {
+        "status": 200,
+        "sha256": "ab",
+        "bytes": 9,
+        "version": 9
+      },
+      {
+        "status": 200,
+        "sha256": "ab",
+        "bytes": 9,
+        "version": 9
+      }
+    ],
+    "published": {
+      "ok": true,
+      "version": 9
+    },
+    "samples": 5000,
+    "pre_ns": 1498000000,
+    "post_ns": 1498000000,
+    "edges": 48,
+    "pairs": 19,
+    "worst_upper_ns": 362000000,
+    "worst_lower_ns": 358000000
+  },
+  "rest_failure_gap_wrong_preview": {
+    "case": "clients-4",
+    "status": "incomplete",
+    "detail": "a fetch not of the published version 9: [8, 8, 8, 8]",
+    "n": 4,
+    "hellos": [
+      {
+        "ok": true,
+        "armed": false
+      },
+      {
+        "ok": true,
+        "armed": false
+      },
+      {
+        "ok": true,
+        "armed": false
+      },
+      {
+        "ok": true,
+        "armed": false
+      }
+    ],
+    "fetches": [
+      {
+        "status": 200,
+        "sha256": "ab",
+        "bytes": 9,
+        "version": 8
+      },
+      {
+        "status": 200,
+        "sha256": "ab",
+        "bytes": 9,
+        "version": 8
+      },
+      {
+        "status": 200,
+        "sha256": "ab",
+        "bytes": 9,
+        "version": 8
+      },
+      {
+        "status": 200,
+        "sha256": "ab",
+        "bytes": 9,
+        "version": 8
+      }
+    ],
+    "published": {
+      "ok": true,
+      "version": 9
+    },
+    "samples": 5000
+  },
+  "control_missing_trip_frame": {
+    "case": "latch-sticky",
+    "status": "FAIL",
+    "detail": "a frame after the resume showed no unacknowledged trip",
+    "samples": 90,
+    "reset_reply": {
+      "ok": false,
+      "error": "Safety trip not acknowledged"
+    },
+    "trip_frames": [
+      true,
+      false
+    ],
+    "resume_index": 50,
+    "heartbeat_edges_after": 8
+  },
+  "rest_failure_missing_trip_frame": {
+    "case": "latch-sticky",
+    "status": "incomplete",
+    "detail": "the section: end integrity unread",
+    "samples": 90,
+    "reset_reply": {
+      "ok": false,
+      "error": "Safety trip not acknowledged"
+    },
+    "trip_frames": [
+      true,
+      false
+    ]
+  },
+  "control_recovery_bad_frame": {
+    "case": "latch-recovered",
+    "status": "FAIL",
+    "detail": "the last frame of the recovery is not clear and on",
+    "samples": 40,
+    "frames": [
+      [
+        true,
+        false,
+        true
+      ]
+    ],
+    "cleared_n": 910,
+    "last_frame": {
+      "safety_trip": true,
+      "is_estop": false,
+      "is_enabled": true
+    }
+  },
+  "rest_failure_recovery_bad_frame": {
+    "case": "latch-recovered",
+    "status": "incomplete",
+    "detail": "the recovery section: end integrity unread",
+    "samples": 40,
+    "frames": [
+      [
+        true,
+        false,
+        true
+      ]
+    ]
+  },
+  "rest_failure_unknown_X_called_stopped": {
+    "case": "disconnect-close",
+    "status": "FAIL",
+    "detail": "the program stopped after the event (line 0 from sample 4099, no motion after it)",
+    "samples": 3100,
+    "event": {
+      "tag": "ws.disconnect",
+      "client_id": 7
+    },
+    "frames_after": 3,
+    "b_states": [
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        2
+      ]
+    ]
+  },
+  "closed_R314_ambiguous_time": "incomplete (as required)"
+}

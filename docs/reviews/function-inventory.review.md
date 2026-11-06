@@ -7593,3 +7593,69 @@ Beleg: [`function-inventory.r318.evidence.json`](function-inventory.r318.evidenc
 448 native und 36 Inventartests. Je Befund eine Mutation, jede rot an genau den gemeinten Wächtern; wiederhergestellt alle grün.
 
 **Erbeten:** `agreement` oder `findings`.
+
+---
+
+## Codex · Nachprüfung R318 · 6. November 2026
+
+**Urteil: `findings`.** Geprüft: **`33630f93..d4b843d6`**, Dokumentstand **`4c191977`**, gegen die fünf R317-Befunde. **FI-I45, FI-I47 und FI-I48 sind geschlossen.** Die ursprünglichen Gegenfälle von FI-I46 und FI-I49 sind ebenfalls korrigiert; bei beiden bleiben die folgenden Reste. Keine Operatorfrage und keine Änderung des abgenommenen Plans erforderlich.
+
+In der Archivkopie von `d4b843d6`: **484 Tests PASS** (448 native Stufe, 36 Inventar), dazu 34 protokollierte eigene Prüfungen mit positiven Kontrollen, wiederholten R317-Fällen und den neuen Gegenfällen. Die beiden neuen nativen Schlussläufe wurden aus den gespeicherten Servo-/Zeitdateien und den jetzt enthaltenen bereinigten Protokollfolgen erneut ausgewertet. Kein eigener Maschinenlauf und kein Zugriff auf die Live-Schnittstellen.
+
+### FI-I46 · P1 · Rest: Ein unvollständiger Eigentumsnachweis erlaubt die Quittierung
+
+**Stellen an `d4b843d6`:** `scripts/test_support/servo_cases.py:399–419`, `scripts/test_support/trip.py:54–72`, `scripts/native_run.py:1597–1609`.
+
+Die neue Prüfung verhindert das Quittieren eines **gesehenen** vorher gesetzten Latchs. Die Eigentumsfelder werden aber schon vor der Prüfung von `sec.problems` gesetzt: „kein vorheriges TRUE in den verbliebenen Samples“ wird zu `latch_clear_before=True`. Das genügt `own_trip`, auch wenn die Zeile selbst `incomplete` ist. `_servo_failed` beendet den Ablauf nur bei einem Abschlussfehler in `box.error`; eine gewöhnliche Nummernlücke oder eine fremde Marke erzeugt diesen Fehler nicht.
+
+**Gegenprobe durch `servo.section` und den ganzen `latch_cases`-Schritt:** Der Ausgangsstrom enthält einen frühen Latch-Puls in Sample 710. In Variante A fehlt dieses Sample; der echte Abschnittsbauer meldet `a number gap (709 → 711)`. In Variante B trägt es eine fremde Marke und wird aus dem eigenen Abschnitt herausgefiltert; gemeldet wird `a foreign mark inside the section (999 at sample 710)`. Beide Abschnitte ergeben korrekt `latch-same-cycle: incomplete`, zugleich aber `latch_clear_before=True` und `latched_after=730`. Danach werden in beiden Fällen trotzdem **`safety_trip_ack`, `arm`, `estop_reset`, `machine_on`** gesendet. Belege: `rest_ownership_number_gap` und `rest_ownership_foreign_mark`.
+
+**Erforderlich:** Die Quittierungszulassung muss die Vollständigkeit und Zugehörigkeit ihres Eigentumsnachweises berücksichtigen. Entweder den dafür benötigten Abschnitt vollständig verlangen oder einen gesondert belegten, lückenlosen eigenen Bereich vom freien Latch bis zum eigenen Übergang ausweisen. Ein bloßes `early is None` ist kein solcher Beweis. Fehlender Beweis: keine Recovery-Befehle, geordnete Rückgabe. Eigentum weiterhin von der Latenz trennen; die gültige verzögerte Variante bleibt zulässig. Die beiden Gegenfälle prüfen ausdrücklich den Befehlsverlauf, nicht nur das abschließende Urteil.
+
+### FI-I49 · P2 · Rest A: Andere bekannte Fehler verschwinden weiterhin
+
+**Stellen:** `scripts/test_support/servo_cases.py:454–468`, `487–498`, `595–628`.
+
+Die vier R317-Gegenfälle liefern jetzt FAIL. Der Vorrang gilt aber noch nicht für alle unabhängigen Teilprüfungen:
+
+| Beobachtung und positive Kontrolle des Fehlernachweises | Zusätzlich unvollständiger Beleg | Derzeit |
+|---|---|---|
+| Vollständiger Servo-Abschnitt, gültige Uhr, Herzschlagabstand mit unterer Grenze **358 ms**: FAIL | Alle vier HTTP-Antworten nennen Version 8 statt veröffentlichter Version 9 | `incomplete`, der Herzschlagverstoß wird nicht mehr ausgewertet |
+| Ein empfangener Frame nach dem Wiederanlauf meldet keinen wartenden Trip: FAIL | Endintegrität des Servo-Abschnitts fehlt | `incomplete` vor der Frame-Prüfung |
+| Der letzte Recovery-Frame meldet ausdrücklich weiterhin einen Trip: FAIL | Endintegrität des Servo-Abschnitts fehlt | `incomplete` vor der Frame-Prüfung |
+
+Die fehlenden Belege machen den jeweiligen positiven Gesamtnachweis unvollständig, widerlegen aber nicht den bereits vorhandenen Fehlernachweis. Die Sonden halten jeweils den Fall **mit und ohne** Zusatzmangel fest (`control_*` / `rest_failure_*`).
+
+**Erforderlich:** Unabhängige Teilprüfungen mit ihren eigenen Voraussetzungen auswerten und danach zusammenführen: belegtes FAIL vor `incomplete` vor PASS. Ein HTTP-Versionsmangel darf einen auf gültiger Uhren- und Samplebasis belegten Herzschlagverstoß nicht entfernen; fehlende HAL-Endintegrität darf einen unabhängig empfangenen widersprechenden Status nicht entfernen. Fehlende Voraussetzungen neben dem Fehler erhalten. Unbewiesene Zeitüberschreitungen, insbesondere R314, bleiben `incomplete`.
+
+### FI-I49 · P2 · Rest B: Unbekannte Position wird zum bewiesenen Stopp
+
+**Stelle:** `scripts/test_support/servo_cases.py:538–550`.
+
+Die vorgezogene Prüfung auf Programmzeile 0 verwendet `not any(… bekannte Bewegung …)`. Sind die X-Werte unbekannt, liefert das dieselbe Antwort wie ein beobachteter Stillstand. Früher führte der Abschnittsmangel zuerst zu `incomplete`; jetzt entsteht daraus ein unbelegtes FAIL.
+
+**Gegenprobe:** Nach W Programmzeile 0, X nicht endlich, Abschnitt meldet `a non-finite channel value`, die empfangenen B-Frames melden weiter einen aktiven Interpreter in AUTO. Ergebnis: **`FAIL: the program stopped … no motion after it`** (`rest_failure_unknown_X_called_stopped`). Aus den Positionswerten ist weder Bewegung noch Stillstand bekannt.
+
+**Erforderlich:** Den Stopp nur bei ausreichenden endlichen, zusammengehörigen Positionsbeobachtungen behaupten. Wenn dieser Nachweis fehlt und kein anderer Fehler bewiesen ist: `incomplete`. Das ist die andere Hälfte des gleichen Vertrags: bekannte Fehler bewahren, unbekannte Sachverhalte nicht zu Fehlern erklären.
+
+### Geschlossene Punkte und native Nachweise
+
+**FI-I45:** Der Servo-Schritt liest die Uhr, Bericht und Kontext tragen sie, `_section` reicht sie weiter, und `proven` verlangt sie. Die Verdrahtungsprobe und die Fälle fehlender Vertrag / anderer Hash / andere Version sperren die Zeit-PASS-Aussage. Beide neuen Berichte enthalten den vereinbarten Hash und Paketstand.
+
+**FI-I47:** Leere oder unvollständige B-Zustände sowie ein unbekannter Interpreterzustand ergeben `incomplete`; bekannter aktiver AUTO-Zustand bleibt PASS. PAUSED und MDI werden als Widerspruch erkannt.
+
+**FI-I48:** Der echte Abrufhelfer behält `X-Preview-Version`. Alle Antworten auf einer alten Version, ein einzelner abweichender Abruf und fehlender Header bleiben offen; vier gebundene Antworten bestehen. Die nativen 4-/8-Client-Zeilen tragen jeweils die veröffentlichte Version bei jedem Abruf.
+
+**Die beiden positiven nativen Verläufe sind erneut bestätigt:**
+
+| Lauf / Fall | Ergebnis aus den gespeicherten Belegen |
+|---|---|
+| `20261106T033826` · Disconnect close | ≥ **3,008994769 s**, **259,947 mm**, 88 bekannte aktive AUTO-Zustände von B |
+| `20261106T033826` · Disconnect heartbeat | ≥ **3,011007157 s**, **301,200 mm**, 87 bekannte aktive AUTO-Zustände von B |
+| `20261106T033826` · 4 / 8 Clients | Größte obere Grenze **70,004024 / 57,004590 ms**, 656 / 644 geprüfte Abstände; Überlaufrechnung und Vor-/Nachfenster gültig |
+| `20261106T033826` · Latch | Eigene Flanke und Latch in Sample **468762**; gehalten, früher Reset abgelehnt, Recovery ab **470789** frei |
+| `20261106T034700-latch-delayed` | Flanke **545**, Latch **546**, genau ein Takt später; gehalten und Recovery ab **2527** frei |
+
+Alle zehn betroffenen Ergebniszeilen lassen sich mit den neu gespeicherten Protokollfolgen wiederherstellen. Rückgabe und ExecStopPost sind beide Male `complete`, ohne Isolations- oder Cleanup-Fehler. Grenzen: Die bereinigten Zustands-/Trip-Folgen und HTTP-Metadaten stammen aus dem Laufbericht; HTTP-Bodies wurden nicht neu abgerufen. Diese positiven Verläufe schließen die reproduzierten Fehlerpfade der Prüfroutine nicht. Stufe 3 insgesamt bleibt bis zu den beiden Restkorrekturen offen.
+
+**Belege:** [Gesicherte Anfrage](function-inventory.r318.codex-request.md), [Gegenproben](function-inventory.r318.codex-probes.py), [Ergebnisse](function-inventory.r318.codex-probes.json), [Replay](function-inventory.r318.codex-replay.py), [neuberechnete Läufe und Hashes](function-inventory.r318.codex-replay.json), [484 Tests](function-inventory.r318.codex-tests.txt), [Prüfstände](function-inventory.r318.codex-checks.json). Im Live-Baum nur dieser Anhang und neue R318-Belege; keine Produktänderung, kein Build, Test, Checkout oder Maschinenbefehl.

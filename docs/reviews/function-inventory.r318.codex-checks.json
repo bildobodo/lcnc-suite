@@ -1,0 +1,63 @@
+{
+  "review": "R318",
+  "verdict": "findings",
+  "date": "2026-11-06",
+  "document_head": "4c191977af12879ce1b15c64c79339fc0a066de1",
+  "base": "33630f93be60031032b57a4f4eb1ed23bd458e7b",
+  "implementation": "d4b843d664368b24403502073fbc1bf6ffb492a2",
+  "archive": "/tmp/codex-r318",
+  "review_prefix": {
+    "bytes": 811935,
+    "sha256": "3c377569809492e53a320c2c06fa3c75f194a7c9eca5734ef87381357acd87f6"
+  },
+  "append_line": 7596,
+  "append_sha256": "f05c2a524097735ebd397a614a8eebd667ed35828a2d80bfdc2e16b89013bd6c",
+  "changed_sources_match_commit": true,
+  "source_sha256": {
+    "scripts/native_run.py": "e35276780dfe0514e3f93a09c64cca3f086b25ff975da4a266c3a9b2c49ec86d",
+    "scripts/test_native_stage.py": "5b5f6c0aaab64f9a0d96983ec9742a2cc7df6b553fa71320b32833e03febd7f4",
+    "scripts/test_support/servo_cases.py": "2215adbeb2fa9bf5cf45c5483d27ddb177a7a0b5b1029fc87e8ec7d9a1d3cf52",
+    "scripts/test_support/servo_time.py": "3f4d2703e5323c237166331857f5c1dc328b9e573d737d4f3d78807aa0fc00e0",
+    "scripts/test_support/trip.py": "d7582caebf76cd7b420d644ac9e079abf57b6ff091c4b0b0be3d2525179a77bb"
+  },
+  "tests": {
+    "command": "/home/cnc/lcnc-suite-tsync/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider scripts/test_native_stage.py scripts/inventory/test_inventory.py",
+    "cwd": "/tmp/codex-r318",
+    "passed": 484,
+    "seconds": 16.87,
+    "exit_code": 0
+  },
+  "probes": {
+    "command": "/home/cnc/lcnc-suite-tsync/lcnc-gateway/.venv/bin/python3 -B <codex-probes.py> /tmp/codex-r318",
+    "exit_code": 0,
+    "record_count": 34,
+    "closed": [
+      "FI-I45",
+      "FI-I47",
+      "FI-I48"
+    ],
+    "remaining": [
+      "FI-I46 ownership with incomplete section",
+      "FI-I49 known failures hidden, unknown X called stopped"
+    ],
+    "actual_network_or_signals": false
+  },
+  "replay": {
+    "command": "/home/cnc/lcnc-suite-tsync/lcnc-gateway/.venv/bin/python3 -B <codex-replay.py> /tmp/codex-r318",
+    "exit_code": 0,
+    "runs": [
+      "20261106T033826",
+      "20261106T034700-latch-delayed"
+    ],
+    "scope": "Saved raw servo samples/timing and sanitized protocol sequences in the reports; no new native run or HTTP request."
+  },
+  "artifacts_sha256": {
+    "function-inventory.r318.codex-request.md": "a803d10a5f347dfd08ebd2df383ef210a63197b6972790c3a8d3fc5e1d9bd55e",
+    "function-inventory.r318.codex-probes.py": "761cb50dbe5c3ad94afde4dafb17b054cb74b100fae7dd042c5052dc06cd6ece",
+    "function-inventory.r318.codex-probes.json": "71f48ef1c6249d1a6432b4fd726b9ff5105e9b644a3afbd08ac1313bf4dda12e",
+    "function-inventory.r318.codex-replay.py": "1db00410e7647c2bd98ade2e4395634bc2968b41ff8194738f9c26d22656f3aa",
+    "function-inventory.r318.codex-replay.json": "fc2ba7b1d4452abf69269831203cd2692881389f8200f4b85c06d6b2e952c14a",
+    "function-inventory.r318.codex-tests.txt": "ad66326afdfb1a0a746d8d2e7b528bc76851eed909d2100b4f12f5c786d118df"
+  },
+  "workspace_changes": "Append review, new R318 evidence, handshake done only."
+}
