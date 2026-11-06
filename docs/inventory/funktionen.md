@@ -124,7 +124,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S2b (Daten):** Home je Achse sendet den Joint seiner Achse. — gilt für: 3axis_xyz, 5axis_xyzac, 6axis_twp_xyzabc
   - Beleg: **offen** — Lücke: Browser: sendet die Achsposition als Joint (SetupStrip a.index) und liest homed_joints an derselben Stelle — richtig, wo Joint = Achsposition (alle ausgelieferten Konfigurationen), falsch, wo nicht (Gantry, eigene Kinematik); braucht eine Achse→Joint-Zuordnung vom Gateway
 - **S2c (Wirkung):** Auf echtem LinuxCNC (3 Achsen, Modus Machine) referenziert Home All alle drei Joints; Home je Achse referenziert nach Unhome All genau seinen Joint (0, 1, 2), erst nach bestätigtem Abschluss. — gilt für: 3axis_xyz
-  - Beleg: native: `native_run.py` — home-all; native: `native_run.py` — home-joint-0; native: `native_run.py` — home-joint-1; native: `native_run.py` — home-joint-2 — Lücke: der native Lauf steht aus (gebaut: Schritt 1)
+  - Beleg: native: `native_run.py` — home-all; native: `native_run.py` — home-joint-0; native: `native_run.py` — home-joint-1; native: `native_run.py` — home-joint-2
 
 ### Tippbetrieb (Jog): Taste, Schritt, Geschwindigkeit, vor dem Referenzieren
 
@@ -137,7 +137,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S4 (Ablehnung):** Vor dem Referenzieren joggt jede Achse ihr deklariertes Gelenk; eine Gantry-Achse und die Diagonalen sind gesperrt, mit Grund (Entscheidung und Anzeige). — gilt für: alle
   - Beleg: gateway: `test_button_gates_e.py` — test_a_gantry_letter_is_closed; browser: `joint-jog.spec.ts` — before homing every open axis jogs in amber, the diagonals are closed with their reason; homed both are back (package F); gateway: `test_button_gates_e.py` — test_the_declared_joint_not_the_index; gateway: `test_button_gates_e.py` — test_a_diagonal_is_refused_before_homing
 - **S5 (Wirkung):** Auf echtem LinuxCNC bewegen die Jog-Befehle des Gateways (jog_cont / jog_stop) jede Achse in ihrem Vorzeichen (mindestens 5 mm) und halten sie an: Weg ab der Antwort auf jog_stop höchstens v²/2a + 2·v·4T (X/Y 2,1 mm, Z 2,5 mm bei 50 mm/s), Stillstand nachweislich binnen 0,5 s, danach keine Bewegung — aus der Servo-Abtastung. — gilt für: 3axis_xyz
-  - Beleg: native: `native_run.py` — jog-x+.servo; native: `native_run.py` — jog-x-.servo; native: `native_run.py` — jog-y+.servo; native: `native_run.py` — jog-y-.servo; native: `native_run.py` — jog-z+.servo; native: `native_run.py` — jog-z-.servo — Lücke: der native Lauf steht aus (gebaut: Schritt 2c)
+  - Beleg: native: `native_run.py` — jog-x+.servo; native: `native_run.py` — jog-x-.servo; native: `native_run.py` — jog-y+.servo; native: `native_run.py` — jog-y-.servo; native: `native_run.py` — jog-z+.servo; native: `native_run.py` — jog-z-.servo
 - **S5b (Daten):** Jeder Jog-Knopf und sein Loslassen senden jog_cont / jog_stop seiner Achse und Richtung (die Diagonalen als Mehrfach-Jog sind eine eigene Aussage). — gilt für: alle
   - Beleg: **offen** — Lücke: Browser: je Bildschirm-Knopf Achse und Richtung, parametrisiert; belegt sind bisher die Tastatur je Belegung und der Knopf X+
 
@@ -148,7 +148,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S1b (Wirkung):** Von unter Z0 fahren → Zero und → Home Z auf die Maschinen-Oberkante. — gilt für: Machine
   - Beleg: script: `twp_buttons_check.py` — → Zero from BELOW Z0 (G53 Z-60): Z at machine top exactly, X/Y at work zero, A back to the stamp (0) (live, nicht im Gate); script: `twp_buttons_check.py` — → Home from BELOW Z0: Z to machine top, X/Y to machine zero, A 0 (live, nicht im Gate)
 - **S1c (Wirkung):** Z ist oben, bevor X/Y fahren (→ Zero, → Home, → G30). — gilt für: Machine
-  - Beleg: native: `native_run.py` — goto-zero; native: `native_run.py` — goto-home; native: `native_run.py` — goto-g30; native: `native_run.py` — goto-zero.counter-xy-first — Lücke: der native Lauf steht aus (gebaut: Schritt 2c); → G30 ohne Abstieg (#5183 = 0 in der Kopie)
+  - Beleg: native: `native_run.py` — goto-zero; native: `native_run.py` — goto-home; native: `native_run.py` — goto-g30; native: `native_run.py` — goto-zero.counter-xy-first — Lücke: → G30 ohne Abstieg: #5183 = 0 in der Kopie, der Abstieg auf #5183 nach X/Y nicht ausgeübt
 - **S1d (Wirkung):** → G30 von unter Z0 erreicht unterwegs ungefähr Z0 und endet auf #5181–#5183 (die Reihenfolge: S1c). — gilt für: Machine
   - Beleg: script: `twp_buttons_check.py` — → G30 from BELOW Z0: retracts to the top first (max Z seen ~ 0), then lands on #5181..#5183 (live, nicht im Gate)
 - **S2 (Wirkung):** → Zero nach einem Jog der Drehachse bringt den Tisch auf den Stempelwinkel zurück, X/Y lesen null. — gilt für: Machine
@@ -167,9 +167,9 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S1 (Daten):** Ein Schieber sendet seinen Faktor für genau seinen Override (50 % → 0,5); sein 100-%-Knopf sendet 1,0. — gilt für: alle
   - Beleg: browser: `strip-actions.spec.ts` — each override slider sends its own factor; its 100 % button sends 1.0
 - **S2 (Wirkung):** Auf echtem LinuxCNC ändert der Feed-Override die Bahngeschwindigkeit (G1 F6000: Plateau 100 mm/s, mit 0,5 dann 50 mm/s, je ± 5 %). — gilt für: 3axis_xyz
-  - Beleg: native: `native_run.py` — override-plateau-100; native: `native_run.py` — override-plateau-50; native: `native_run.py` — override-plateau.counter-75 — Lücke: der native Lauf steht aus (gebaut: Schritt 2c)
+  - Beleg: native: `native_run.py` — override-plateau-100; native: `native_run.py` — override-plateau-50; native: `native_run.py` — override-plateau.counter-75
 - **S2b (Wirkung):** Während der Messphase von M600 meldet der Status den Feed-Override gesperrt; nach dem Ende der Routine ist er wieder freigegeben (frisch empfangen, binnen 2 s). — gilt für: 3axis_xyz
-  - Beleg: native: `native_run.py` — m600-t1-override-lock — Lücke: der native Lauf steht aus (gebaut: Schritt 2a)
+  - Beleg: native: `native_run.py` — m600-t1-override-lock
 - **S2c (Wirkung):** Während des Surface-Scans meldet der Status den Feed-Override gesperrt; nach dem Ende ist er wieder freigegeben. — gilt für: offen
   - Beleg: **offen** — Lücke: nativ: der Surface-Scan-Lauf (Q282-2)
 
@@ -347,7 +347,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S1 (Ablehnung):** Bestätigen ist nur offen für einen freigegebenen Client mit einer offenen Anforderung; ohne Anforderung mit dem Grund „No tool change pending“. — gilt für: alle
   - Beleg: gateway: `test_button_gates.py` — test_open_for_an_armed_client_with_a_pending_request; gateway: `test_button_gates.py` — test_closed_without_a_request; gateway: `test_button_gates.py` — test_closed_disarmed
 - **S2 (Wirkung):** Auf echtem LinuxCNC wartet M6 bis zur ausdrücklichen Bestätigung (5 s gehalten: Anforderung offen, Interpreter nicht idle, Werkzeug unverändert, mit 20 Hz geprüft) und läuft dann mit dem neuen Werkzeug und seiner Länge weiter. — gilt für: 3axis_xyz
-  - Beleg: native: `native_run.py` — m6-hold — Lücke: der native Lauf steht aus (gebaut: Schritt 2a)
+  - Beleg: native: `native_run.py` — m6-hold
 
 ### Werkzeuglänge messen (M600) und Werkzeug entladen
 
@@ -362,11 +362,11 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S4b (Daten):** Jede Nummer der Abbildung ist die, die tool_touch_off.ngc für ihren Wert liest. — gilt für: alle
   - Beleg: **offen** — Lücke: Unit: kein Test gleicht die Abbildung mit den Lesestellen der Routine ab
 - **S5 (Wirkung):** Auf echtem LinuxCNC landet die gemessene Länge in der Werkzeugtabelle (die Länge vor der Messung ± 0,002 mm) und als derselbe Wert im G43-Offset; ein um 1 mm versetztes #3102 fällt durch. — gilt für: 3axis_xyz
-  - Beleg: native: `native_run.py` — m600-t1; native: `native_run.py` — m600-t1.counter-3102 — Lücke: der native Lauf steht aus (gebaut: Schritt 2a)
+  - Beleg: native: `native_run.py` — m600-t1; native: `native_run.py` — m600-t1.counter-3102
 - **S6 (Daten):** Entladen sendet im M600-Modus EIN mdi T0 M600 mit den Toolsetter-Werten in vars, im Standardmodus tool_change 0. — gilt für: alle
   - Beleg: browser: `toolsetter-setup.spec.ts` — Unload is ONE command: T0 M600 with the setter's values in M600 mode, tool_change 0 in the standard mode
 - **S6b (Wirkung):** Auf echtem LinuxCNC entlädt T0 M600 das Werkzeug: die Spindel leer, keine Länge mehr aktiv. — gilt für: 3axis_xyz
-  - Beleg: native: `native_run.py` — m600-unload — Lücke: der native Lauf steht aus (gebaut: Schritt 2a)
+  - Beleg: native: `native_run.py` — m600-unload
 - **S7 (Wirkung):** Mit Rückfahrt (#3106 = 1) endet M600 oben an X/Y des Aufrufs, auch von der obersten Lage auf ein längeres Werkzeug: kein Endlagenfehler, kein eigener Abstieg. — gilt für: 3axis_xyz
   - Beleg: native: `native_run.py` — m600-t1-return; native: `native_run.py` — m600-t1-return.counter-x+1; gateway: `test_m600_preview_worker.py` — test_the_return_from_the_top_with_a_longer_tool_stays_inside_the_travel
 
@@ -408,7 +408,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S2b (Daten):** Mindestens drei Var-Dateien der Beispielprofile werden gefunden (die Bedingung des Deklarationstests). — gilt für: alle
   - Beleg: unit: `probeVarFiles.test.ts` — are found: one per example profile
 - **S3 (Wirkung):** Auf echtem LinuxCNC setzt Z-Antasten (probe_z_minus_wco, #3030 = 0) G54 Z auf die Platte aus der HAL der Kopie (−180 ± 0,003 mm, Kontakt #5070 = 1); eine um 1 mm versetzte Erwartung fällt durch; ohne Kontakt in der Suchtiefe meldet es keinen Kontakt, setzt nichts, und LinuxCNC meldet den Fehler. — gilt für: 3axis_xyz
-  - Beleg: native: `native_run.py` — probe-z; native: `native_run.py` — probe-z.counter-plate-1; native: `native_run.py` — probe-z-miss — Lücke: der native Lauf steht aus (gebaut: Schritt 2a)
+  - Beleg: native: `native_run.py` — probe-z; native: `native_run.py` — probe-z.counter-plate-1; native: `native_run.py` — probe-z-miss
 
 ### Taster kalibrieren
 
