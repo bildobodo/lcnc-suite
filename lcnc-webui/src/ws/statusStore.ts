@@ -80,7 +80,8 @@ export interface ToolsetterBooking {
 export const status = shallowRef<WsStatus | null>(null);
 export const lcncError = ref<string | null>(null);
 // Sticky safety trip: populated when the gateway includes a `safety_trip`
-// field in a status message, cleared when the operator acknowledges. Survives
+// field in a status message, cleared by the first status without it (after the
+// operator's acknowledgement reached the gateway). Survives
 // reload + multi-tab because the gateway re-broadcasts it on every status
 // until acknowledged. While non-null, the server rejects {cmd:"arm",armed:true}.
 export const safetyTrip = ref<{ reason: string } | null>(null);
