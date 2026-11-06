@@ -1,0 +1,2900 @@
+{
+ "round": "R327",
+ "runs": [
+  {
+   "run": "20261106T183046",
+   "commit": "70eba486",
+   "verdict": "FAIL",
+   "error": "StepFailed: ToolChangeError: not done within 60.0 s",
+   "cleanup_error": null,
+   "steps": [
+    "tree",
+    "copy",
+    "start",
+    "connect",
+    "servo",
+    "home",
+    "jog",
+    "plateau",
+    "goto",
+    "probe",
+    "surface"
+   ],
+   "surface_fixture": {
+    "signals": {
+     "sim-ts-x": {
+      "writers": [
+       "joint.0.pos-fb"
+      ],
+      "readers": [
+       "sampler.0.pin.0",
+       "sim-toolsetter.0.x",
+       "sim-toolsetter.1.x",
+       "surf-dx.in0"
+      ]
+     },
+     "sim-ts-y": {
+      "writers": [
+       "joint.1.pos-fb"
+      ],
+      "readers": [
+       "sampler.0.pin.1",
+       "sim-toolsetter.0.y",
+       "sim-toolsetter.1.y",
+       "surf-dy.in0"
+      ]
+     },
+     "sim-ts-z": {
+      "writers": [
+       "joint.2.pos-fb"
+      ],
+      "readers": [
+       "sampler.0.pin.2",
+       "sim-toolsetter.0.z",
+       "sim-toolsetter.1.z"
+      ]
+     },
+     "sim-ts-length": {
+      "writers": [
+       "sim-toolsetter-feed.tool-length"
+      ],
+      "readers": [
+       "sim-toolsetter.0.tool-length",
+       "sim-toolsetter.1.tool-length"
+      ]
+     },
+     "sim-ts-enable": {
+      "writers": [
+       "sim-toolsetter-feed.enable"
+      ],
+      "readers": [
+       "sim-toolsetter.0.enable",
+       "sim-toolsetter.1.enable"
+      ]
+     },
+     "surf-dx": {
+      "writers": [
+       "surf-dx.out"
+      ],
+      "readers": [
+       "surf-dx2.in0",
+       "surf-dx2.in1",
+       "surf-tilt.in0"
+      ]
+     },
+     "surf-dy": {
+      "writers": [
+       "surf-dy.out"
+      ],
+      "readers": [
+       "surf-dy2.in0",
+       "surf-dy2.in1",
+       "surf-tilt.in1"
+      ]
+     },
+     "surf-dx2": {
+      "writers": [
+       "surf-dx2.out"
+      ],
+      "readers": [
+       "surf-curve.in0"
+      ]
+     },
+     "surf-dy2": {
+      "writers": [
+       "surf-dy2.out"
+      ],
+      "readers": [
+       "surf-curve.in1"
+      ]
+     },
+     "surf-tilt": {
+      "writers": [
+       "surf-tilt.out"
+      ],
+      "readers": [
+       "surf-z.in0"
+      ]
+     },
+     "surf-curve": {
+      "writers": [
+       "surf-curve.out"
+      ],
+      "readers": [
+       "surf-z.in1"
+      ]
+     },
+     "surf-height": {
+      "writers": [
+       "surf-z.out"
+      ],
+      "readers": [
+       "sim-toolsetter.1.plate-z"
+      ]
+     },
+     "probe-in": {
+      "writers": [],
+      "readers": [
+       "sim-toolsetter.1.manual"
+      ]
+     },
+     "sim-ts-pass": {
+      "writers": [
+       "sim-toolsetter.1.out"
+      ],
+      "readers": [
+       "sim-toolsetter.0.manual"
+      ]
+     },
+     "probe-input": {
+      "writers": [
+       "sim-toolsetter.0.out"
+      ],
+      "readers": [
+       "motion.probe-input"
+      ]
+     }
+    },
+    "values": {
+     "surf-dx.offset": -550.0,
+     "surf-dx.gain0": 1.0,
+     "surf-dx.in1": 0.0,
+     "surf-dy.offset": -550.0,
+     "surf-dy.gain0": 1.0,
+     "surf-dy.in1": 0.0,
+     "surf-tilt.gain0": 0.05,
+     "surf-tilt.gain1": -0.03,
+     "surf-tilt.offset": 0.0,
+     "surf-curve.gain0": -0.0024,
+     "surf-curve.gain1": -0.0024,
+     "surf-curve.offset": 0.0,
+     "surf-z.gain0": 1.0,
+     "surf-z.gain1": 1.0,
+     "surf-z.offset": -169.0,
+     "sim-toolsetter.1.plate-x": 550.0,
+     "sim-toolsetter.1.plate-y": 550.0,
+     "sim-toolsetter.1.radius": 40.0,
+     "sim-toolsetter.1.tool-length": 50.0,
+     "sim-toolsetter.1.enable": true,
+     "compensation.fade-height": 0.0
+    },
+    "thread": [
+     "motion-command-handler",
+     "motion-controller",
+     "ddt_x",
+     "ddt_xv",
+     "ddt_y",
+     "ddt_yv",
+     "ddt_z",
+     "ddt_zv",
+     "vel_xy",
+     "vel_xyz",
+     "surf-dx",
+     "surf-dy",
+     "surf-dx2",
+     "surf-dy2",
+     "surf-tilt",
+     "surf-curve",
+     "surf-z",
+     "sim-toolsetter.1",
+     "sim-toolsetter.0",
+     "limit_speed",
+     "lowpass_velocity",
+     "scale_to_rpm",
+     "near_speed",
+     "encoder.capture-position",
+     "sim-encoder.update-speed",
+     "comp_x",
+     "comp_y",
+     "comp_z",
+     "or2_0",
+     "scale.servo",
+     "pwmgen.update",
+     "pwmgen.make-pulses",
+     "oneshot.0",
+     "and2.0",
+     "and2.1",
+     "and2.2",
+     "webui-hb-latch",
+     "time.0",
+     "not.0",
+     "sampler.0"
+    ],
+    "problems": [],
+    "latency": "the chain and both instances after the motion controller, instance 1 before 0: a contact reaches motion.probe-input in the next servo period"
+   },
+   "surface_basis": {
+    "g5x_index": 1,
+    "g5x_offset": [
+     0.0,
+     0.0,
+     -175.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "g92_offset": [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "rotation_xy": 0.0,
+    "tool_offset_z": 50.0,
+    "eoffset_z": 0.0,
+    "eoffset_enabled": false,
+    "comp_method": 2
+   },
+   "surface_scan": {
+    "file": "/home/cnc/claude-work/live-tier/20261106T183046/configs/sim/probe-results.txt",
+    "moved_aside": null,
+    "sha256": "2543fe35e28a527f2d70490f673ff4268028b935121d16c30b8e65c59dca44a4",
+    "t0": 1262347.670046368,
+    "t_done": 1262428.644728249,
+    "version_before": 0,
+    "version_after": 1,
+    "vars": {
+     "3050": 518.0,
+     "3051": 582.0,
+     "3052": 518.0,
+     "3053": 582.0,
+     "3054": 5,
+     "3055": 5,
+     "3056": 1500.0,
+     "3057": 50.0,
+     "3058": 15.0,
+     "3059": 25.0,
+     "3021": 1.0
+    },
+    "python": {
+     "evaluator": "1.15.3",
+     "compensation": "1.15.3"
+    }
+   },
+   "comp_refs": {
+    "q": [
+     538.0,
+     550.0
+    ],
+    "refs": {
+     "nearest": 4.58455,
+     "linear": 4.93809175,
+     "cubic": 5.069006306113726
+    },
+    "recorded": {
+     "near": 4.58455,
+     "far": 5.998717
+    },
+    "f_dev": 5.054400000000015
+   },
+   "surface_cleanup": {
+    "off": {
+     "settled": true,
+     "eoffset": 9.767108187697567e-09,
+     "joint_z": -112.99999999023288,
+     "enabled": false,
+     "method": 2,
+     "version": 5,
+     "window_s": 0.509,
+     "limited": false
+    },
+    "method": "done",
+    "g54": {
+     "t0": 1262498.998342429,
+     "t_done": 1262501.056813581,
+     "served": [],
+     "changes": "<test_support.tool_change.ToolChanges object at 0xffff80da6cb0>",
+     "errors": []
+    },
+    "override": {
+     "t0": 1262501.072435939,
+     "t_done": 1262503.100293125,
+     "served": [],
+     "changes": "<test_support.tool_change.ToolChanges object at 0xffff5ca965d0>",
+     "errors": []
+    },
+    "after": {
+     "eoffset_enabled": false,
+     "eoffset_z": 9.767108187697567e-09,
+     "comp_method": 2,
+     "g54_z": 0.0,
+     "feed_override_enabled": true
+    }
+   },
+   "restore": {
+    "outcome": "complete",
+    "isolation": []
+   },
+   "duration_s": 382,
+   "rows": [
+    {
+     "case": "surface-scan",
+     "status": "PASS",
+     "detail": "25 points in the snake, each on the surface within \u00b1 0.005",
+     "tol_mm": 0.005,
+     "errors": [
+      [
+       13,
+       " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+      ],
+      [
+       13,
+       " Surface scan complete. Results saved to probe-results.txt"
+      ]
+     ],
+     "points": 25,
+     "worst_mm": -0.00165,
+     "worst_at": [
+      566.0,
+      566.0
+     ]
+    },
+    {
+     "case": "surface-scan.counter-node+1",
+     "status": "PASS",
+     "detail": "the planted value is refused: Z at X550 Y550 off the surface by -1.0013 (\u00b1 0.005)",
+     "counter": true,
+     "inner": {
+      "case": "surface-scan",
+      "status": "FAIL",
+      "detail": "Z at X550 Y550 off the surface by -1.0013 (\u00b1 0.005)",
+      "tol_mm": 0.005,
+      "errors": [
+       [
+        13,
+        " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+       ],
+       [
+        13,
+        " Surface scan complete. Results saved to probe-results.txt"
+       ]
+      ],
+      "points": 25,
+      "worst_mm": -1.001283,
+      "worst_at": [
+       550.0,
+       550.0
+      ]
+     }
+    },
+    {
+     "case": "surface-scan.counter-xy-swapped",
+     "status": "PASS",
+     "detail": "the planted value is refused: Z at X518 Y582 off the surface by -5.1211 (\u00b1 0.005)",
+     "counter": true,
+     "inner": {
+      "case": "surface-scan",
+      "status": "FAIL",
+      "detail": "Z at X518 Y582 off the surface by -5.1211 (\u00b1 0.005)",
+      "tol_mm": 0.005,
+      "errors": [
+       [
+        13,
+        " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+       ],
+       [
+        13,
+        " Surface scan complete. Results saved to probe-results.txt"
+       ]
+      ],
+      "points": 25,
+      "worst_mm": -5.121083,
+      "worst_at": [
+       518.0,
+       582.0
+      ]
+     }
+    },
+    {
+     "case": "surface-override-lock",
+     "status": "PASS",
+     "detail": "locked through the measuring phase, free after the routine",
+     "free_s": 80.975,
+     "locked_from_s": 0.076,
+     "done_s": 80.975
+    },
+    {
+     "case": "surface-scan.map",
+     "status": "PASS",
+     "detail": "the map reloaded (version 0 \u2192 1)",
+     "version_before": 0,
+     "version_after": 1
+    },
+    {
+     "case": "comp-nearest",
+     "status": "PASS",
+     "detail": "nearest: offset 4.5840 = the reference within \u00b1 0.002",
+     "method": "nearest",
+     "eoffset": 4.583999999204615,
+     "joint_z": -108.41600000079539,
+     "z_control": -113.0,
+     "refs": {
+      "nearest": 4.58455,
+      "linear": 4.938092,
+      "cubic": 5.069006
+     },
+     "recorded": {
+      "near": 4.58455,
+      "far": 5.998717
+     },
+     "f_dev": 5.0544,
+     "tol_mm": 0.002,
+     "reading": {
+      "settled": true,
+      "eoffset": 4.583999999204615,
+      "joint_z": -108.41600000079539,
+      "enabled": true,
+      "method": 0,
+      "version": 3,
+      "window_s": 0.507,
+      "limited": false
+     },
+     "min_ref_gap_mm": 0.130915
+    },
+    {
+     "case": "comp-nearest.counter-linear",
+     "status": "PASS",
+     "detail": "the planted value is refused: offset 4.5840, the nearest reference 4.9381 \u00b1 0.002",
+     "counter": true,
+     "inner": {
+      "case": "comp-nearest",
+      "status": "FAIL",
+      "detail": "offset 4.5840, the nearest reference 4.9381 \u00b1 0.002",
+      "method": "nearest",
+      "eoffset": 4.583999999204615,
+      "joint_z": -108.41600000079539,
+      "z_control": -113.0,
+      "refs": {
+       "nearest": 4.938092,
+       "linear": 4.938092,
+       "cubic": 5.069006
+      },
+      "recorded": {
+       "near": 4.58455,
+       "far": 5.998717
+      },
+      "f_dev": 5.0544,
+      "tol_mm": 0.002,
+      "reading": {
+       "settled": true,
+       "eoffset": 4.583999999204615,
+       "joint_z": -108.41600000079539,
+       "enabled": true,
+       "method": 0,
+       "version": 3,
+       "window_s": 0.507,
+       "limited": false
+      }
+     }
+    },
+    {
+     "case": "comp-linear",
+     "status": "PASS",
+     "detail": "linear: offset 4.9380 = the reference within \u00b1 0.002",
+     "method": "linear",
+     "eoffset": 4.937999998476795,
+     "joint_z": -108.0620000015232,
+     "z_control": -113.0,
+     "refs": {
+      "nearest": 4.58455,
+      "linear": 4.938092,
+      "cubic": 5.069006
+     },
+     "recorded": {
+      "near": 4.58455,
+      "far": 5.998717
+     },
+     "f_dev": 5.0544,
+     "tol_mm": 0.002,
+     "reading": {
+      "settled": true,
+      "eoffset": 4.937999998476795,
+      "joint_z": -108.0620000015232,
+      "enabled": true,
+      "method": 1,
+      "version": 4,
+      "window_s": 0.514,
+      "limited": false
+     },
+     "min_ref_gap_mm": 0.130915
+    },
+    {
+     "case": "comp-linear.counter-cubic",
+     "status": "PASS",
+     "detail": "the planted value is refused: offset 4.9380, the linear reference 5.0690 \u00b1 0.002",
+     "counter": true,
+     "inner": {
+      "case": "comp-linear",
+      "status": "FAIL",
+      "detail": "offset 4.9380, the linear reference 5.0690 \u00b1 0.002",
+      "method": "linear",
+      "eoffset": 4.937999998476795,
+      "joint_z": -108.0620000015232,
+      "z_control": -113.0,
+      "refs": {
+       "nearest": 4.58455,
+       "linear": 5.069006,
+       "cubic": 5.069006
+      },
+      "recorded": {
+       "near": 4.58455,
+       "far": 5.998717
+      },
+      "f_dev": 5.0544,
+      "tol_mm": 0.002,
+      "reading": {
+       "settled": true,
+       "eoffset": 4.937999998476795,
+       "joint_z": -108.0620000015232,
+       "enabled": true,
+       "method": 1,
+       "version": 4,
+       "window_s": 0.514,
+       "limited": false
+      }
+     }
+    },
+    {
+     "case": "comp-cubic",
+     "status": "PASS",
+     "detail": "cubic: offset 5.0690 = the reference within \u00b1 0.002",
+     "method": "cubic",
+     "eoffset": 5.068999992551447,
+     "joint_z": -107.93100000744856,
+     "z_control": -113.0,
+     "refs": {
+      "nearest": 4.58455,
+      "linear": 4.938092,
+      "cubic": 5.069006
+     },
+     "recorded": {
+      "near": 4.58455,
+      "far": 5.998717
+     },
+     "f_dev": 5.0544,
+     "tol_mm": 0.002,
+     "reading": {
+      "settled": true,
+      "eoffset": 5.068999992551447,
+      "joint_z": -107.93100000744856,
+      "enabled": true,
+      "method": 2,
+      "version": 5,
+      "window_s": 0.505,
+      "limited": false
+     },
+     "min_ref_gap_mm": 0.130915
+    },
+    {
+     "case": "comp-cubic.counter-nearest",
+     "status": "PASS",
+     "detail": "the planted value is refused: offset 5.0690, the cubic reference 4.5846 \u00b1 0.002",
+     "counter": true,
+     "inner": {
+      "case": "comp-cubic",
+      "status": "FAIL",
+      "detail": "offset 5.0690, the cubic reference 4.5846 \u00b1 0.002",
+      "method": "cubic",
+      "eoffset": 5.068999992551447,
+      "joint_z": -107.93100000744856,
+      "z_control": -113.0,
+      "refs": {
+       "nearest": 4.58455,
+       "linear": 4.938092,
+       "cubic": 4.58455
+      },
+      "recorded": {
+       "near": 4.58455,
+       "far": 5.998717
+      },
+      "f_dev": 5.0544,
+      "tol_mm": 0.002,
+      "reading": {
+       "settled": true,
+       "eoffset": 5.068999992551447,
+       "joint_z": -107.93100000744856,
+       "enabled": true,
+       "method": 2,
+       "version": 5,
+       "window_s": 0.505,
+       "limited": false
+      }
+     }
+    }
+   ],
+   "other_rows": [
+    {
+     "case": "home-all",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "home-joint-0",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "home-joint-1",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "home-joint-2",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-x+.servo",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-x+",
+     "status": "PASS",
+     "informational": true
+    },
+    {
+     "case": "jog-x-.servo",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-x-",
+     "status": "incomplete",
+     "informational": true
+    },
+    {
+     "case": "jog-y+.servo",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-y+",
+     "status": "incomplete",
+     "informational": true
+    },
+    {
+     "case": "jog-y-.servo",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-y-",
+     "status": "incomplete",
+     "informational": true
+    },
+    {
+     "case": "jog-z+.servo",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-z+",
+     "status": "incomplete",
+     "informational": true
+    },
+    {
+     "case": "jog-z-.servo",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-z-",
+     "status": "incomplete",
+     "informational": true
+    },
+    {
+     "case": "override-plateau-100",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "override-plateau-50",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "override-plateau.counter-75",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "goto-zero",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "goto-home",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "goto-g30",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "goto-zero.counter-xy-first",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "probe-z",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "probe-z.counter-plate-1",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "probe-z-miss",
+     "status": "PASS",
+     "informational": false
+    }
+   ],
+   "probe_results": "518.000000 518.000000 0.443717\n534.000000 518.000000 3.087050\n550.000000 518.000000 4.501217\n566.000000 518.000000 4.687050\n582.000000 518.000000 3.643717\n582.000000 534.000000 5.007050\n566.000000 534.000000 6.049550\n550.000000 534.000000 5.864550\n534.000000 534.000000 4.449550\n518.000000 534.000000 1.807050\n518.000000 550.000000 1.941217\n534.000000 550.000000 4.584550\n550.000000 550.000000 5.998717\n566.000000 550.000000 6.184550\n582.000000 550.000000 5.141217\n582.000000 566.000000 4.047050\n566.000000 566.000000 5.089550\n550.000000 566.000000 4.904550\n534.000000 566.000000 3.489550\n518.000000 566.000000 0.847050\n518.000000 582.000000 -1.476283\n534.000000 582.000000 1.167050\n550.000000 582.000000 2.581217\n566.000000 582.000000 2.767050\n582.000000 582.000000 1.723717\n"
+  },
+  {
+   "run": "20261106T183902",
+   "commit": "7db02fbd",
+   "verdict": "PASS",
+   "error": null,
+   "cleanup_error": null,
+   "steps": [
+    "tree",
+    "copy",
+    "start",
+    "connect",
+    "servo",
+    "home",
+    "jog",
+    "plateau",
+    "goto",
+    "probe",
+    "surface",
+    "m600",
+    "m6-hold",
+    "ts-sync",
+    "rfl",
+    "disconnect",
+    "clients",
+    "latch"
+   ],
+   "surface_fixture": {
+    "signals": {
+     "sim-ts-x": {
+      "writers": [
+       "joint.0.pos-fb"
+      ],
+      "readers": [
+       "sampler.0.pin.0",
+       "sim-toolsetter.0.x",
+       "sim-toolsetter.1.x",
+       "surf-dx.in0"
+      ]
+     },
+     "sim-ts-y": {
+      "writers": [
+       "joint.1.pos-fb"
+      ],
+      "readers": [
+       "sampler.0.pin.1",
+       "sim-toolsetter.0.y",
+       "sim-toolsetter.1.y",
+       "surf-dy.in0"
+      ]
+     },
+     "sim-ts-z": {
+      "writers": [
+       "joint.2.pos-fb"
+      ],
+      "readers": [
+       "sampler.0.pin.2",
+       "sim-toolsetter.0.z",
+       "sim-toolsetter.1.z"
+      ]
+     },
+     "sim-ts-length": {
+      "writers": [
+       "sim-toolsetter-feed.tool-length"
+      ],
+      "readers": [
+       "sim-toolsetter.0.tool-length",
+       "sim-toolsetter.1.tool-length"
+      ]
+     },
+     "sim-ts-enable": {
+      "writers": [
+       "sim-toolsetter-feed.enable"
+      ],
+      "readers": [
+       "sim-toolsetter.0.enable",
+       "sim-toolsetter.1.enable"
+      ]
+     },
+     "surf-dx": {
+      "writers": [
+       "surf-dx.out"
+      ],
+      "readers": [
+       "surf-dx2.in0",
+       "surf-dx2.in1",
+       "surf-tilt.in0"
+      ]
+     },
+     "surf-dy": {
+      "writers": [
+       "surf-dy.out"
+      ],
+      "readers": [
+       "surf-dy2.in0",
+       "surf-dy2.in1",
+       "surf-tilt.in1"
+      ]
+     },
+     "surf-dx2": {
+      "writers": [
+       "surf-dx2.out"
+      ],
+      "readers": [
+       "surf-curve.in0"
+      ]
+     },
+     "surf-dy2": {
+      "writers": [
+       "surf-dy2.out"
+      ],
+      "readers": [
+       "surf-curve.in1"
+      ]
+     },
+     "surf-tilt": {
+      "writers": [
+       "surf-tilt.out"
+      ],
+      "readers": [
+       "surf-z.in0"
+      ]
+     },
+     "surf-curve": {
+      "writers": [
+       "surf-curve.out"
+      ],
+      "readers": [
+       "surf-z.in1"
+      ]
+     },
+     "surf-height": {
+      "writers": [
+       "surf-z.out"
+      ],
+      "readers": [
+       "sim-toolsetter.1.plate-z"
+      ]
+     },
+     "probe-in": {
+      "writers": [],
+      "readers": [
+       "sim-toolsetter.1.manual"
+      ]
+     },
+     "sim-ts-pass": {
+      "writers": [
+       "sim-toolsetter.1.out"
+      ],
+      "readers": [
+       "sim-toolsetter.0.manual"
+      ]
+     },
+     "probe-input": {
+      "writers": [
+       "sim-toolsetter.0.out"
+      ],
+      "readers": [
+       "motion.probe-input"
+      ]
+     }
+    },
+    "values": {
+     "surf-dx.offset": -550.0,
+     "surf-dx.gain0": 1.0,
+     "surf-dx.in1": 0.0,
+     "surf-dy.offset": -550.0,
+     "surf-dy.gain0": 1.0,
+     "surf-dy.in1": 0.0,
+     "surf-tilt.gain0": 0.05,
+     "surf-tilt.gain1": -0.03,
+     "surf-tilt.offset": 0.0,
+     "surf-curve.gain0": -0.0024,
+     "surf-curve.gain1": -0.0024,
+     "surf-curve.offset": 0.0,
+     "surf-z.gain0": 1.0,
+     "surf-z.gain1": 1.0,
+     "surf-z.offset": -169.0,
+     "sim-toolsetter.1.plate-x": 550.0,
+     "sim-toolsetter.1.plate-y": 550.0,
+     "sim-toolsetter.1.radius": 40.0,
+     "sim-toolsetter.1.tool-length": 50.0,
+     "sim-toolsetter.1.enable": true,
+     "compensation.fade-height": 0.0
+    },
+    "thread": [
+     "motion-command-handler",
+     "motion-controller",
+     "ddt_x",
+     "ddt_xv",
+     "ddt_y",
+     "ddt_yv",
+     "ddt_z",
+     "ddt_zv",
+     "vel_xy",
+     "vel_xyz",
+     "surf-dx",
+     "surf-dy",
+     "surf-dx2",
+     "surf-dy2",
+     "surf-tilt",
+     "surf-curve",
+     "surf-z",
+     "sim-toolsetter.1",
+     "sim-toolsetter.0",
+     "limit_speed",
+     "lowpass_velocity",
+     "scale_to_rpm",
+     "near_speed",
+     "encoder.capture-position",
+     "sim-encoder.update-speed",
+     "comp_x",
+     "comp_y",
+     "comp_z",
+     "or2_0",
+     "scale.servo",
+     "pwmgen.update",
+     "pwmgen.make-pulses",
+     "oneshot.0",
+     "and2.0",
+     "and2.1",
+     "and2.2",
+     "webui-hb-latch",
+     "time.0",
+     "not.0",
+     "sampler.0"
+    ],
+    "problems": [],
+    "latency": "the chain and both instances after the motion controller, instance 1 before 0: a contact reaches motion.probe-input in the next servo period"
+   },
+   "surface_basis": {
+    "g5x_index": 1,
+    "g5x_offset": [
+     0.0,
+     0.0,
+     -175.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "g92_offset": [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "rotation_xy": 0.0,
+    "tool_offset_z": 50.0,
+    "eoffset_z": 0.0,
+    "eoffset_enabled": false,
+    "comp_method": 2
+   },
+   "surface_scan": {
+    "file": "/home/cnc/claude-work/live-tier/20261106T183902/configs/sim/probe-results.txt",
+    "moved_aside": null,
+    "sha256": "2543fe35e28a527f2d70490f673ff4268028b935121d16c30b8e65c59dca44a4",
+    "t0": 1262842.556087358,
+    "t_done": 1262923.680400042,
+    "version_before": 0,
+    "version_after": 1,
+    "vars": {
+     "3050": 518.0,
+     "3051": 582.0,
+     "3052": 518.0,
+     "3053": 582.0,
+     "3054": 5,
+     "3055": 5,
+     "3056": 1500.0,
+     "3057": 50.0,
+     "3058": 15.0,
+     "3059": 25.0,
+     "3021": 1.0
+    },
+    "python": {
+     "evaluator": "1.15.3",
+     "compensation": "1.15.3"
+    }
+   },
+   "comp_refs": {
+    "q": [
+     538.0,
+     550.0
+    ],
+    "refs": {
+     "nearest": 4.58455,
+     "linear": 4.93809175,
+     "cubic": 5.069006306113726
+    },
+    "recorded": {
+     "near": 4.58455,
+     "far": 5.998717
+    },
+    "f_dev": 5.054400000000015
+   },
+   "surface_cleanup": {
+    "off": {
+     "settled": true,
+     "eoffset": -3.860854324322162e-09,
+     "joint_z": -113.00000000386085,
+     "enabled": false,
+     "method": 2,
+     "version": 5,
+     "window_s": 0.534,
+     "limited": false
+    },
+    "method": "done",
+    "g54": {
+     "t0": 1262942.104702342,
+     "t_done": 1262944.158551177,
+     "served": [],
+     "changes": "<test_support.tool_change.ToolChanges object at 0xffff924c31b0>",
+     "errors": []
+    },
+    "override": {
+     "t0": 1262944.16109602,
+     "t_done": 1262946.206090484,
+     "served": [],
+     "changes": "<test_support.tool_change.ToolChanges object at 0xffffa689def0>",
+     "errors": []
+    },
+    "after": {
+     "eoffset_enabled": false,
+     "eoffset_z": -3.860854324322162e-09,
+     "comp_method": 2,
+     "g54_z": 0.0,
+     "feed_override_enabled": true
+    }
+   },
+   "restore": {
+    "outcome": "complete",
+    "isolation": []
+   },
+   "duration_s": 711,
+   "rows": [
+    {
+     "case": "surface-scan",
+     "status": "PASS",
+     "detail": "25 points in the snake, each on the surface within \u00b1 0.005",
+     "tol_mm": 0.005,
+     "errors": [
+      [
+       13,
+       " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+      ],
+      [
+       13,
+       " Surface scan complete. Results saved to probe-results.txt"
+      ]
+     ],
+     "points": 25,
+     "worst_mm": -0.00165,
+     "worst_at": [
+      566.0,
+      566.0
+     ]
+    },
+    {
+     "case": "surface-scan.counter-node+1",
+     "status": "PASS",
+     "detail": "the planted value is refused: Z at X550 Y550 off the surface by -1.0013 (\u00b1 0.005)",
+     "counter": true,
+     "inner": {
+      "case": "surface-scan",
+      "status": "FAIL",
+      "detail": "Z at X550 Y550 off the surface by -1.0013 (\u00b1 0.005)",
+      "tol_mm": 0.005,
+      "errors": [
+       [
+        13,
+        " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+       ],
+       [
+        13,
+        " Surface scan complete. Results saved to probe-results.txt"
+       ]
+      ],
+      "points": 25,
+      "worst_mm": -1.001283,
+      "worst_at": [
+       550.0,
+       550.0
+      ]
+     }
+    },
+    {
+     "case": "surface-scan.counter-xy-swapped",
+     "status": "PASS",
+     "detail": "the planted value is refused: Z at X518 Y582 off the surface by -5.1211 (\u00b1 0.005)",
+     "counter": true,
+     "inner": {
+      "case": "surface-scan",
+      "status": "FAIL",
+      "detail": "Z at X518 Y582 off the surface by -5.1211 (\u00b1 0.005)",
+      "tol_mm": 0.005,
+      "errors": [
+       [
+        13,
+        " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+       ],
+       [
+        13,
+        " Surface scan complete. Results saved to probe-results.txt"
+       ]
+      ],
+      "points": 25,
+      "worst_mm": -5.121083,
+      "worst_at": [
+       518.0,
+       582.0
+      ]
+     }
+    },
+    {
+     "case": "surface-override-lock",
+     "status": "PASS",
+     "detail": "locked through the measuring phase, free after the routine",
+     "free_s": 81.124,
+     "locked_from_s": 0.07,
+     "done_s": 81.124
+    },
+    {
+     "case": "surface-scan.map",
+     "status": "PASS",
+     "detail": "the map reloaded (version 0 \u2192 1)",
+     "version_before": 0,
+     "version_after": 1
+    },
+    {
+     "case": "comp-nearest",
+     "status": "PASS",
+     "detail": "nearest: offset 4.5840 = the reference within \u00b1 0.002",
+     "method": "nearest",
+     "eoffset": 4.583999999204615,
+     "joint_z": -108.41600000079539,
+     "z_control": -113.0,
+     "refs": {
+      "nearest": 4.58455,
+      "linear": 4.938092,
+      "cubic": 5.069006
+     },
+     "recorded": {
+      "near": 4.58455,
+      "far": 5.998717
+     },
+     "f_dev": 5.0544,
+     "tol_mm": 0.002,
+     "reading": {
+      "settled": true,
+      "eoffset": 4.583999999204615,
+      "joint_z": -108.41600000079539,
+      "enabled": true,
+      "method": 0,
+      "version": 3,
+      "window_s": 0.521,
+      "limited": false
+     },
+     "min_ref_gap_mm": 0.130915
+    },
+    {
+     "case": "comp-nearest.counter-linear",
+     "status": "PASS",
+     "detail": "the planted value is refused: offset 4.5840, the nearest reference 4.9381 \u00b1 0.002",
+     "counter": true,
+     "inner": {
+      "case": "comp-nearest",
+      "status": "FAIL",
+      "detail": "offset 4.5840, the nearest reference 4.9381 \u00b1 0.002",
+      "method": "nearest",
+      "eoffset": 4.583999999204615,
+      "joint_z": -108.41600000079539,
+      "z_control": -113.0,
+      "refs": {
+       "nearest": 4.938092,
+       "linear": 4.938092,
+       "cubic": 5.069006
+      },
+      "recorded": {
+       "near": 4.58455,
+       "far": 5.998717
+      },
+      "f_dev": 5.0544,
+      "tol_mm": 0.002,
+      "reading": {
+       "settled": true,
+       "eoffset": 4.583999999204615,
+       "joint_z": -108.41600000079539,
+       "enabled": true,
+       "method": 0,
+       "version": 3,
+       "window_s": 0.521,
+       "limited": false
+      }
+     }
+    },
+    {
+     "case": "comp-linear",
+     "status": "PASS",
+     "detail": "linear: offset 4.9380 = the reference within \u00b1 0.002",
+     "method": "linear",
+     "eoffset": 4.937999998476795,
+     "joint_z": -108.0620000015232,
+     "z_control": -113.0,
+     "refs": {
+      "nearest": 4.58455,
+      "linear": 4.938092,
+      "cubic": 5.069006
+     },
+     "recorded": {
+      "near": 4.58455,
+      "far": 5.998717
+     },
+     "f_dev": 5.0544,
+     "tol_mm": 0.002,
+     "reading": {
+      "settled": true,
+      "eoffset": 4.937999998476795,
+      "joint_z": -108.0620000015232,
+      "enabled": true,
+      "method": 1,
+      "version": 4,
+      "window_s": 0.514,
+      "limited": false
+     },
+     "min_ref_gap_mm": 0.130915
+    },
+    {
+     "case": "comp-linear.counter-cubic",
+     "status": "PASS",
+     "detail": "the planted value is refused: offset 4.9380, the linear reference 5.0690 \u00b1 0.002",
+     "counter": true,
+     "inner": {
+      "case": "comp-linear",
+      "status": "FAIL",
+      "detail": "offset 4.9380, the linear reference 5.0690 \u00b1 0.002",
+      "method": "linear",
+      "eoffset": 4.937999998476795,
+      "joint_z": -108.0620000015232,
+      "z_control": -113.0,
+      "refs": {
+       "nearest": 4.58455,
+       "linear": 5.069006,
+       "cubic": 5.069006
+      },
+      "recorded": {
+       "near": 4.58455,
+       "far": 5.998717
+      },
+      "f_dev": 5.0544,
+      "tol_mm": 0.002,
+      "reading": {
+       "settled": true,
+       "eoffset": 4.937999998476795,
+       "joint_z": -108.0620000015232,
+       "enabled": true,
+       "method": 1,
+       "version": 4,
+       "window_s": 0.514,
+       "limited": false
+      }
+     }
+    },
+    {
+     "case": "comp-cubic",
+     "status": "PASS",
+     "detail": "cubic: offset 5.0690 = the reference within \u00b1 0.002",
+     "method": "cubic",
+     "eoffset": 5.068999992551447,
+     "joint_z": -107.93100000744856,
+     "z_control": -113.0,
+     "refs": {
+      "nearest": 4.58455,
+      "linear": 4.938092,
+      "cubic": 5.069006
+     },
+     "recorded": {
+      "near": 4.58455,
+      "far": 5.998717
+     },
+     "f_dev": 5.0544,
+     "tol_mm": 0.002,
+     "reading": {
+      "settled": true,
+      "eoffset": 5.068999992551447,
+      "joint_z": -107.93100000744856,
+      "enabled": true,
+      "method": 2,
+      "version": 5,
+      "window_s": 0.529,
+      "limited": false
+     },
+     "min_ref_gap_mm": 0.130915
+    },
+    {
+     "case": "comp-cubic.counter-nearest",
+     "status": "PASS",
+     "detail": "the planted value is refused: offset 5.0690, the cubic reference 4.5846 \u00b1 0.002",
+     "counter": true,
+     "inner": {
+      "case": "comp-cubic",
+      "status": "FAIL",
+      "detail": "offset 5.0690, the cubic reference 4.5846 \u00b1 0.002",
+      "method": "cubic",
+      "eoffset": 5.068999992551447,
+      "joint_z": -107.93100000744856,
+      "z_control": -113.0,
+      "refs": {
+       "nearest": 4.58455,
+       "linear": 4.938092,
+       "cubic": 4.58455
+      },
+      "recorded": {
+       "near": 4.58455,
+       "far": 5.998717
+      },
+      "f_dev": 5.0544,
+      "tol_mm": 0.002,
+      "reading": {
+       "settled": true,
+       "eoffset": 5.068999992551447,
+       "joint_z": -107.93100000744856,
+       "enabled": true,
+       "method": 2,
+       "version": 5,
+       "window_s": 0.529,
+       "limited": false
+      }
+     }
+    },
+    {
+     "case": "comp-on-off",
+     "status": "PASS",
+     "detail": "on: the tip 11.9980 above the workpiece; off: the tip 6.0000 above the workpiece",
+     "readings": [
+      {
+       "case": "comp-on-off",
+       "status": "PASS",
+       "detail": "on: the tip 11.9980 above the workpiece",
+       "enabled": true,
+       "at": [
+        550.0,
+        550.0
+       ],
+       "eoffset": 5.997999994621315,
+       "joint_z": -107.00200000537869,
+       "map_z": 5.998717,
+       "gap_expected": 12.0,
+       "z_control": -113.0,
+       "reading": {
+        "settled": true,
+        "eoffset": 5.997999994621315,
+        "joint_z": -107.00200000537869,
+        "enabled": true,
+        "method": 2,
+        "version": 5,
+        "window_s": 0.518,
+        "limited": false
+       },
+       "gap_mm": 11.998
+      },
+      {
+       "case": "comp-on-off",
+       "status": "PASS",
+       "detail": "off: the tip 6.0000 above the workpiece",
+       "enabled": false,
+       "at": [
+        550.0,
+        550.0
+       ],
+       "eoffset": 1.5145758002283824e-08,
+       "joint_z": -112.99999998485421,
+       "map_z": 5.998717,
+       "gap_expected": 6.0,
+       "z_control": -113.0,
+       "reading": {
+        "settled": true,
+        "eoffset": 1.5145758002283824e-08,
+        "joint_z": -112.99999998485421,
+        "enabled": false,
+        "method": 2,
+        "version": 5,
+        "window_s": 0.515,
+        "limited": false
+       },
+       "gap_mm": 6.0
+      }
+     ]
+    },
+    {
+     "case": "comp-on-off.counter-gap+0.05",
+     "status": "PASS",
+     "detail": "the planted value is refused: the tip stands 11.9980 above the workpiece, expected 12.0500",
+     "counter": true,
+     "inner": {
+      "case": "comp-on-off",
+      "status": "FAIL",
+      "detail": "the tip stands 11.9980 above the workpiece, expected 12.0500",
+      "enabled": true,
+      "at": [
+       550.0,
+       550.0
+      ],
+      "eoffset": 5.997999994621315,
+      "joint_z": -107.00200000537869,
+      "map_z": 5.998717,
+      "gap_expected": 12.05,
+      "z_control": -113.0,
+      "reading": {
+       "settled": true,
+       "eoffset": 5.997999994621315,
+       "joint_z": -107.00200000537869,
+       "enabled": true,
+       "method": 2,
+       "version": 5,
+       "window_s": 0.518,
+       "limited": false
+      },
+      "gap_mm": 11.998
+     }
+    },
+    {
+     "case": "comp-after-xy",
+     "status": "PASS",
+     "detail": "on: the tip 11.9992 above the workpiece; off: the tip 13.4752 above the workpiece",
+     "readings": [
+      {
+       "case": "comp-after-xy",
+       "status": "PASS",
+       "detail": "on: the tip 11.9992 above the workpiece",
+       "enabled": true,
+       "at": [
+        518.0,
+        582.0
+       ],
+       "eoffset": -1.4759999779801802,
+       "joint_z": -114.47599997798017,
+       "map_z": -1.476283,
+       "gap_expected": 12.0,
+       "z_control": -113.0,
+       "reading": {
+        "settled": true,
+        "eoffset": -1.4759999779801802,
+        "joint_z": -114.47599997798017,
+        "enabled": true,
+        "method": 2,
+        "version": 5,
+        "window_s": 0.514,
+        "limited": false
+       },
+       "gap_mm": 11.9992
+      },
+      {
+       "case": "comp-after-xy",
+       "status": "PASS",
+       "detail": "off: the tip 13.4752 above the workpiece",
+       "enabled": false,
+       "at": [
+        518.0,
+        582.0
+       ],
+       "eoffset": -3.860854324322162e-09,
+       "joint_z": -113.00000000386085,
+       "map_z": -1.476283,
+       "gap_expected": 13.475200000000001,
+       "z_control": -113.0,
+       "reading": {
+        "settled": true,
+        "eoffset": -3.860854324322162e-09,
+        "joint_z": -113.00000000386085,
+        "enabled": false,
+        "method": 2,
+        "version": 5,
+        "window_s": 0.525,
+        "limited": false
+       },
+       "gap_mm": 13.4752
+      }
+     ]
+    },
+    {
+     "case": "comp-after-xy.counter-frozen",
+     "status": "PASS",
+     "detail": "the planted value is refused: offset -1.4760, the node's map value 5.9987 \u00b1 0.002",
+     "counter": true,
+     "inner": {
+      "case": "comp-after-xy",
+      "status": "FAIL",
+      "detail": "offset -1.4760, the node's map value 5.9987 \u00b1 0.002",
+      "enabled": true,
+      "at": [
+       518.0,
+       582.0
+      ],
+      "eoffset": -1.4759999779801802,
+      "joint_z": -114.47599997798017,
+      "map_z": 5.998717,
+      "gap_expected": 12.0,
+      "z_control": -113.0,
+      "reading": {
+       "settled": true,
+       "eoffset": -1.4759999779801802,
+       "joint_z": -114.47599997798017,
+       "enabled": true,
+       "method": 2,
+       "version": 5,
+       "window_s": 0.514,
+       "limited": false
+      }
+     }
+    }
+   ],
+   "other_rows": [
+    {
+     "case": "home-all",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "home-joint-0",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "home-joint-1",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "home-joint-2",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-x+.servo",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-x+",
+     "status": "PASS",
+     "informational": true
+    },
+    {
+     "case": "jog-x-.servo",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-x-",
+     "status": "incomplete",
+     "informational": true
+    },
+    {
+     "case": "jog-y+.servo",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-y+",
+     "status": "incomplete",
+     "informational": true
+    },
+    {
+     "case": "jog-y-.servo",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-y-",
+     "status": "incomplete",
+     "informational": true
+    },
+    {
+     "case": "jog-z+.servo",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-z+",
+     "status": "incomplete",
+     "informational": true
+    },
+    {
+     "case": "jog-z-.servo",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-z-",
+     "status": "incomplete",
+     "informational": true
+    },
+    {
+     "case": "override-plateau-100",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "override-plateau-50",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "override-plateau.counter-75",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "goto-zero",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "goto-home",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "goto-g30",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "goto-zero.counter-xy-first",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "probe-z",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "probe-z.counter-plate-1",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "probe-z-miss",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "m600-unload",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "m600-t1",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "m600-t1-return",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "m600-t1-return.counter-x+1",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "m600-t1-override-lock",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "m600-t1.counter-3102",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "m6-hold",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "ts-sync-program-m600",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "ts-sync-program-m600.counter-old-basis",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "ts-sync-booking",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "ts-sync-stable",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "rfl-line",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "rfl-line.counter-line+1",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "rfl-no-earlier-line",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "rfl-start-point",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "rfl-start-point.counter-entry-x+1",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "disconnect-close",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "disconnect-heartbeat",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "clients-4",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "clients-8",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "latch-same-cycle",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "latch-sticky",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "latch-recovered",
+     "status": "PASS",
+     "informational": false
+    }
+   ],
+   "probe_results": "518.000000 518.000000 0.443717\n534.000000 518.000000 3.087050\n550.000000 518.000000 4.501217\n566.000000 518.000000 4.687050\n582.000000 518.000000 3.643717\n582.000000 534.000000 5.007050\n566.000000 534.000000 6.049550\n550.000000 534.000000 5.864550\n534.000000 534.000000 4.449550\n518.000000 534.000000 1.807050\n518.000000 550.000000 1.941217\n534.000000 550.000000 4.584550\n550.000000 550.000000 5.998717\n566.000000 550.000000 6.184550\n582.000000 550.000000 5.141217\n582.000000 566.000000 4.047050\n566.000000 566.000000 5.089550\n550.000000 566.000000 4.904550\n534.000000 566.000000 3.489550\n518.000000 566.000000 0.847050\n518.000000 582.000000 -1.476283\n534.000000 582.000000 1.167050\n550.000000 582.000000 2.581217\n566.000000 582.000000 2.767050\n582.000000 582.000000 1.723717\n"
+  },
+  {
+   "run": "20261106T185902",
+   "commit": "7c4a3d5c",
+   "verdict": "PASS",
+   "error": null,
+   "cleanup_error": null,
+   "steps": [
+    "tree",
+    "copy",
+    "start",
+    "connect",
+    "servo",
+    "home",
+    "jog",
+    "plateau",
+    "goto",
+    "probe",
+    "surface",
+    "m600",
+    "m6-hold",
+    "ts-sync",
+    "rfl",
+    "disconnect",
+    "clients",
+    "latch"
+   ],
+   "surface_fixture": {
+    "signals": {
+     "sim-ts-x": {
+      "writers": [
+       "joint.0.pos-fb"
+      ],
+      "readers": [
+       "sampler.0.pin.0",
+       "sim-toolsetter.0.x",
+       "sim-toolsetter.1.x",
+       "surf-dx.in0"
+      ]
+     },
+     "sim-ts-y": {
+      "writers": [
+       "joint.1.pos-fb"
+      ],
+      "readers": [
+       "sampler.0.pin.1",
+       "sim-toolsetter.0.y",
+       "sim-toolsetter.1.y",
+       "surf-dy.in0"
+      ]
+     },
+     "sim-ts-z": {
+      "writers": [
+       "joint.2.pos-fb"
+      ],
+      "readers": [
+       "sampler.0.pin.2",
+       "sim-toolsetter.0.z",
+       "sim-toolsetter.1.z"
+      ]
+     },
+     "sim-ts-length": {
+      "writers": [
+       "sim-toolsetter-feed.tool-length"
+      ],
+      "readers": [
+       "sim-toolsetter.0.tool-length",
+       "sim-toolsetter.1.tool-length"
+      ]
+     },
+     "sim-ts-enable": {
+      "writers": [
+       "sim-toolsetter-feed.enable"
+      ],
+      "readers": [
+       "sim-toolsetter.0.enable",
+       "sim-toolsetter.1.enable"
+      ]
+     },
+     "surf-dx": {
+      "writers": [
+       "surf-dx.out"
+      ],
+      "readers": [
+       "surf-dx2.in0",
+       "surf-dx2.in1",
+       "surf-tilt.in0"
+      ]
+     },
+     "surf-dy": {
+      "writers": [
+       "surf-dy.out"
+      ],
+      "readers": [
+       "surf-dy2.in0",
+       "surf-dy2.in1",
+       "surf-tilt.in1"
+      ]
+     },
+     "surf-dx2": {
+      "writers": [
+       "surf-dx2.out"
+      ],
+      "readers": [
+       "surf-curve.in0"
+      ]
+     },
+     "surf-dy2": {
+      "writers": [
+       "surf-dy2.out"
+      ],
+      "readers": [
+       "surf-curve.in1"
+      ]
+     },
+     "surf-tilt": {
+      "writers": [
+       "surf-tilt.out"
+      ],
+      "readers": [
+       "surf-z.in0"
+      ]
+     },
+     "surf-curve": {
+      "writers": [
+       "surf-curve.out"
+      ],
+      "readers": [
+       "surf-z.in1"
+      ]
+     },
+     "surf-height": {
+      "writers": [
+       "surf-z.out"
+      ],
+      "readers": [
+       "sim-toolsetter.1.plate-z"
+      ]
+     },
+     "probe-in": {
+      "writers": [],
+      "readers": [
+       "sim-toolsetter.1.manual"
+      ]
+     },
+     "sim-ts-pass": {
+      "writers": [
+       "sim-toolsetter.1.out"
+      ],
+      "readers": [
+       "sim-toolsetter.0.manual"
+      ]
+     },
+     "probe-input": {
+      "writers": [
+       "sim-toolsetter.0.out"
+      ],
+      "readers": [
+       "motion.probe-input"
+      ]
+     }
+    },
+    "values": {
+     "surf-dx.offset": -550.0,
+     "surf-dx.gain0": 1.0,
+     "surf-dx.in1": 0.0,
+     "surf-dy.offset": -550.0,
+     "surf-dy.gain0": 1.0,
+     "surf-dy.in1": 0.0,
+     "surf-tilt.gain0": 0.05,
+     "surf-tilt.gain1": -0.03,
+     "surf-tilt.offset": 0.0,
+     "surf-curve.gain0": -0.0024,
+     "surf-curve.gain1": -0.0024,
+     "surf-curve.offset": 0.0,
+     "surf-z.gain0": 1.0,
+     "surf-z.gain1": 1.0,
+     "surf-z.offset": -169.0,
+     "sim-toolsetter.1.plate-x": 550.0,
+     "sim-toolsetter.1.plate-y": 550.0,
+     "sim-toolsetter.1.radius": 40.0,
+     "sim-toolsetter.1.tool-length": 50.0,
+     "sim-toolsetter.1.enable": true,
+     "compensation.fade-height": 0.0
+    },
+    "thread": [
+     "motion-command-handler",
+     "motion-controller",
+     "ddt_x",
+     "ddt_xv",
+     "ddt_y",
+     "ddt_yv",
+     "ddt_z",
+     "ddt_zv",
+     "vel_xy",
+     "vel_xyz",
+     "surf-dx",
+     "surf-dy",
+     "surf-dx2",
+     "surf-dy2",
+     "surf-tilt",
+     "surf-curve",
+     "surf-z",
+     "sim-toolsetter.1",
+     "sim-toolsetter.0",
+     "limit_speed",
+     "lowpass_velocity",
+     "scale_to_rpm",
+     "near_speed",
+     "encoder.capture-position",
+     "sim-encoder.update-speed",
+     "comp_x",
+     "comp_y",
+     "comp_z",
+     "or2_0",
+     "scale.servo",
+     "pwmgen.update",
+     "pwmgen.make-pulses",
+     "oneshot.0",
+     "and2.0",
+     "and2.1",
+     "and2.2",
+     "webui-hb-latch",
+     "time.0",
+     "not.0",
+     "sampler.0"
+    ],
+    "problems": [],
+    "latency": "the chain and both instances after the motion controller, instance 1 before 0: a contact reaches motion.probe-input in the next servo period"
+   },
+   "surface_basis": {
+    "g5x_index": 1,
+    "g5x_offset": [
+     0.0,
+     0.0,
+     -175.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "g92_offset": [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "rotation_xy": 0.0,
+    "tool_offset_z": 50.0,
+    "eoffset_z": 0.0,
+    "eoffset_enabled": false,
+    "comp_method": 2
+   },
+   "surface_scan": {
+    "file": "/home/cnc/claude-work/live-tier/20261106T185902/configs/sim/probe-results.txt",
+    "moved_aside": null,
+    "sha256": "2543fe35e28a527f2d70490f673ff4268028b935121d16c30b8e65c59dca44a4",
+    "t0": 1264042.73970448,
+    "t_done": 1264123.842226806,
+    "version_before": 0,
+    "version_after": 1,
+    "vars": {
+     "3050": 518.0,
+     "3051": 582.0,
+     "3052": 518.0,
+     "3053": 582.0,
+     "3054": 5,
+     "3055": 5,
+     "3056": 1500.0,
+     "3057": 50.0,
+     "3058": 15.0,
+     "3059": 25.0,
+     "3021": 1.0
+    },
+    "python": {
+     "evaluator": "1.15.3",
+     "compensation": "1.15.3"
+    }
+   },
+   "comp_refs": {
+    "q": [
+     538.0,
+     550.0
+    ],
+    "refs": {
+     "nearest": 4.58455,
+     "linear": 4.93809175,
+     "cubic": 5.069006306113726
+    },
+    "recorded": {
+     "near": 4.58455,
+     "far": 5.998717
+    },
+    "f_dev": 5.054400000000015
+   },
+   "surface_cleanup": {
+    "off": {
+     "settled": true,
+     "eoffset": -3.860740401565011e-09,
+     "joint_z": -113.00000000386073,
+     "enabled": false,
+     "method": 2,
+     "version": 5,
+     "window_s": 0.52,
+     "limited": false
+    },
+    "method": "done",
+    "g54": {
+     "t0": 1264142.562448045,
+     "t_done": 1264144.601370859,
+     "served": [],
+     "changes": "<test_support.tool_change.ToolChanges object at 0xffff80c971b0>",
+     "errors": []
+    },
+    "override": {
+     "t0": 1264144.619721849,
+     "t_done": 1264146.666963154,
+     "served": [],
+     "changes": "<test_support.tool_change.ToolChanges object at 0xffff9d16ac10>",
+     "errors": []
+    },
+    "after": {
+     "eoffset_enabled": false,
+     "eoffset_z": -3.860740401565011e-09,
+     "comp_method": 2,
+     "g54_z": 0.0,
+     "feed_override_enabled": true
+    }
+   },
+   "restore": {
+    "outcome": "complete",
+    "isolation": []
+   },
+   "duration_s": 713,
+   "rows": [
+    {
+     "case": "surface-scan",
+     "status": "PASS",
+     "detail": "25 points in the snake, each on the surface within \u00b1 0.005",
+     "tol_mm": 0.005,
+     "errors": [
+      [
+       13,
+       " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+      ],
+      [
+       13,
+       " Surface scan complete. Results saved to probe-results.txt"
+      ]
+     ],
+     "points": 25,
+     "worst_mm": -0.00165,
+     "worst_at": [
+      566.0,
+      566.0
+     ]
+    },
+    {
+     "case": "surface-scan.counter-node+1",
+     "status": "PASS",
+     "detail": "the planted value is refused: Z at X550 Y550 off the surface by -1.0013 (\u00b1 0.005)",
+     "counter": true,
+     "inner": {
+      "case": "surface-scan",
+      "status": "FAIL",
+      "detail": "Z at X550 Y550 off the surface by -1.0013 (\u00b1 0.005)",
+      "tol_mm": 0.005,
+      "errors": [
+       [
+        13,
+        " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+       ],
+       [
+        13,
+        " Surface scan complete. Results saved to probe-results.txt"
+       ]
+      ],
+      "points": 25,
+      "worst_mm": -1.001283,
+      "worst_at": [
+       550.0,
+       550.0
+      ]
+     }
+    },
+    {
+     "case": "surface-scan.counter-xy-swapped",
+     "status": "PASS",
+     "detail": "the planted value is refused: Z at X518 Y582 off the surface by -5.1211 (\u00b1 0.005)",
+     "counter": true,
+     "inner": {
+      "case": "surface-scan",
+      "status": "FAIL",
+      "detail": "Z at X518 Y582 off the surface by -5.1211 (\u00b1 0.005)",
+      "tol_mm": 0.005,
+      "errors": [
+       [
+        13,
+        " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+       ],
+       [
+        13,
+        " Surface scan complete. Results saved to probe-results.txt"
+       ]
+      ],
+      "points": 25,
+      "worst_mm": -5.121083,
+      "worst_at": [
+       518.0,
+       582.0
+      ]
+     }
+    },
+    {
+     "case": "surface-override-lock",
+     "status": "PASS",
+     "detail": "locked through the measuring phase, free after the routine",
+     "free_s": 81.103,
+     "locked_from_s": 0.06,
+     "done_s": 81.103
+    },
+    {
+     "case": "surface-scan.map",
+     "status": "PASS",
+     "detail": "the map reloaded (version 0 \u2192 1)",
+     "version_before": 0,
+     "version_after": 1
+    },
+    {
+     "case": "comp-nearest",
+     "status": "PASS",
+     "detail": "nearest: offset 4.5840 = the reference within \u00b1 0.002",
+     "method": "nearest",
+     "eoffset": 4.583999999204615,
+     "joint_z": -108.41600000079539,
+     "z_control": -113.0,
+     "refs": {
+      "nearest": 4.58455,
+      "linear": 4.938092,
+      "cubic": 5.069006
+     },
+     "recorded": {
+      "near": 4.58455,
+      "far": 5.998717
+     },
+     "f_dev": 5.0544,
+     "tol_mm": 0.002,
+     "reading": {
+      "settled": true,
+      "eoffset": 4.583999999204615,
+      "joint_z": -108.41600000079539,
+      "enabled": true,
+      "method": 0,
+      "version": 3,
+      "window_s": 0.521,
+      "limited": false
+     },
+     "min_ref_gap_mm": 0.130915
+    },
+    {
+     "case": "comp-nearest.counter-linear",
+     "status": "PASS",
+     "detail": "the planted value is refused: offset 4.5840, the nearest reference 4.9381 \u00b1 0.002",
+     "counter": true,
+     "inner": {
+      "case": "comp-nearest",
+      "status": "FAIL",
+      "detail": "offset 4.5840, the nearest reference 4.9381 \u00b1 0.002",
+      "method": "nearest",
+      "eoffset": 4.583999999204615,
+      "joint_z": -108.41600000079539,
+      "z_control": -113.0,
+      "refs": {
+       "nearest": 4.938092,
+       "linear": 4.938092,
+       "cubic": 5.069006
+      },
+      "recorded": {
+       "near": 4.58455,
+       "far": 5.998717
+      },
+      "f_dev": 5.0544,
+      "tol_mm": 0.002,
+      "reading": {
+       "settled": true,
+       "eoffset": 4.583999999204615,
+       "joint_z": -108.41600000079539,
+       "enabled": true,
+       "method": 0,
+       "version": 3,
+       "window_s": 0.521,
+       "limited": false
+      }
+     }
+    },
+    {
+     "case": "comp-linear",
+     "status": "PASS",
+     "detail": "linear: offset 4.9380 = the reference within \u00b1 0.002",
+     "method": "linear",
+     "eoffset": 4.937999998476795,
+     "joint_z": -108.0620000015232,
+     "z_control": -113.0,
+     "refs": {
+      "nearest": 4.58455,
+      "linear": 4.938092,
+      "cubic": 5.069006
+     },
+     "recorded": {
+      "near": 4.58455,
+      "far": 5.998717
+     },
+     "f_dev": 5.0544,
+     "tol_mm": 0.002,
+     "reading": {
+      "settled": true,
+      "eoffset": 4.937999998476795,
+      "joint_z": -108.0620000015232,
+      "enabled": true,
+      "method": 1,
+      "version": 4,
+      "window_s": 0.516,
+      "limited": false
+     },
+     "min_ref_gap_mm": 0.130915
+    },
+    {
+     "case": "comp-linear.counter-cubic",
+     "status": "PASS",
+     "detail": "the planted value is refused: offset 4.9380, the linear reference 5.0690 \u00b1 0.002",
+     "counter": true,
+     "inner": {
+      "case": "comp-linear",
+      "status": "FAIL",
+      "detail": "offset 4.9380, the linear reference 5.0690 \u00b1 0.002",
+      "method": "linear",
+      "eoffset": 4.937999998476795,
+      "joint_z": -108.0620000015232,
+      "z_control": -113.0,
+      "refs": {
+       "nearest": 4.58455,
+       "linear": 5.069006,
+       "cubic": 5.069006
+      },
+      "recorded": {
+       "near": 4.58455,
+       "far": 5.998717
+      },
+      "f_dev": 5.0544,
+      "tol_mm": 0.002,
+      "reading": {
+       "settled": true,
+       "eoffset": 4.937999998476795,
+       "joint_z": -108.0620000015232,
+       "enabled": true,
+       "method": 1,
+       "version": 4,
+       "window_s": 0.516,
+       "limited": false
+      }
+     }
+    },
+    {
+     "case": "comp-cubic",
+     "status": "PASS",
+     "detail": "cubic: offset 5.0690 = the reference within \u00b1 0.002",
+     "method": "cubic",
+     "eoffset": 5.068999992551447,
+     "joint_z": -107.93100000744856,
+     "z_control": -113.0,
+     "refs": {
+      "nearest": 4.58455,
+      "linear": 4.938092,
+      "cubic": 5.069006
+     },
+     "recorded": {
+      "near": 4.58455,
+      "far": 5.998717
+     },
+     "f_dev": 5.0544,
+     "tol_mm": 0.002,
+     "reading": {
+      "settled": true,
+      "eoffset": 5.068999992551447,
+      "joint_z": -107.93100000744856,
+      "enabled": true,
+      "method": 2,
+      "version": 5,
+      "window_s": 0.505,
+      "limited": false
+     },
+     "min_ref_gap_mm": 0.130915
+    },
+    {
+     "case": "comp-cubic.counter-nearest",
+     "status": "PASS",
+     "detail": "the planted value is refused: offset 5.0690, the cubic reference 4.5846 \u00b1 0.002",
+     "counter": true,
+     "inner": {
+      "case": "comp-cubic",
+      "status": "FAIL",
+      "detail": "offset 5.0690, the cubic reference 4.5846 \u00b1 0.002",
+      "method": "cubic",
+      "eoffset": 5.068999992551447,
+      "joint_z": -107.93100000744856,
+      "z_control": -113.0,
+      "refs": {
+       "nearest": 4.58455,
+       "linear": 4.938092,
+       "cubic": 4.58455
+      },
+      "recorded": {
+       "near": 4.58455,
+       "far": 5.998717
+      },
+      "f_dev": 5.0544,
+      "tol_mm": 0.002,
+      "reading": {
+       "settled": true,
+       "eoffset": 5.068999992551447,
+       "joint_z": -107.93100000744856,
+       "enabled": true,
+       "method": 2,
+       "version": 5,
+       "window_s": 0.505,
+       "limited": false
+      }
+     }
+    },
+    {
+     "case": "comp-on-off",
+     "status": "PASS",
+     "detail": "on: the tip 11.9980 above the workpiece; off: the tip 6.0000 above the workpiece",
+     "readings": [
+      {
+       "case": "comp-on-off",
+       "status": "PASS",
+       "detail": "on: the tip 11.9980 above the workpiece",
+       "enabled": true,
+       "at": [
+        550.0,
+        550.0
+       ],
+       "eoffset": 5.997999994621315,
+       "joint_z": -107.00200000537869,
+       "map_z": 5.998717,
+       "gap_expected": 12.0,
+       "z_control": -113.0,
+       "reading": {
+        "settled": true,
+        "eoffset": 5.997999994621315,
+        "joint_z": -107.00200000537869,
+        "enabled": true,
+        "method": 2,
+        "version": 5,
+        "window_s": 0.521,
+        "limited": false
+       },
+       "gap_mm": 11.998
+      },
+      {
+       "case": "comp-on-off",
+       "status": "PASS",
+       "detail": "off: the tip 6.0000 above the workpiece",
+       "enabled": false,
+       "at": [
+        550.0,
+        550.0
+       ],
+       "eoffset": 1.5145758002283824e-08,
+       "joint_z": -112.99999998485421,
+       "map_z": 5.998717,
+       "gap_expected": 6.0,
+       "z_control": -113.0,
+       "reading": {
+        "settled": true,
+        "eoffset": 1.5145758002283824e-08,
+        "joint_z": -112.99999998485421,
+        "enabled": false,
+        "method": 2,
+        "version": 5,
+        "window_s": 0.513,
+        "limited": false
+       },
+       "gap_mm": 6.0
+      }
+     ]
+    },
+    {
+     "case": "comp-on-off.counter-gap+0.05",
+     "status": "PASS",
+     "detail": "the planted value is refused: the tip stands 11.9980 above the workpiece, expected 12.0500",
+     "counter": true,
+     "inner": {
+      "case": "comp-on-off",
+      "status": "FAIL",
+      "detail": "the tip stands 11.9980 above the workpiece, expected 12.0500",
+      "enabled": true,
+      "at": [
+       550.0,
+       550.0
+      ],
+      "eoffset": 5.997999994621315,
+      "joint_z": -107.00200000537869,
+      "map_z": 5.998717,
+      "gap_expected": 12.05,
+      "z_control": -113.0,
+      "reading": {
+       "settled": true,
+       "eoffset": 5.997999994621315,
+       "joint_z": -107.00200000537869,
+       "enabled": true,
+       "method": 2,
+       "version": 5,
+       "window_s": 0.521,
+       "limited": false
+      },
+      "gap_mm": 11.998
+     }
+    },
+    {
+     "case": "comp-after-xy",
+     "status": "PASS",
+     "detail": "on: the tip 11.9992 above the workpiece; off: the tip 13.4752 above the workpiece",
+     "readings": [
+      {
+       "case": "comp-after-xy",
+       "status": "PASS",
+       "detail": "on: the tip 11.9992 above the workpiece",
+       "enabled": true,
+       "at": [
+        518.0,
+        582.0
+       ],
+       "eoffset": -1.4759999216188153,
+       "joint_z": -114.47599992161881,
+       "map_z": -1.476283,
+       "gap_expected": 12.0,
+       "z_control": -113.0,
+       "reading": {
+        "settled": true,
+        "eoffset": -1.4759999216188153,
+        "joint_z": -114.47599992161881,
+        "enabled": true,
+        "method": 2,
+        "version": 5,
+        "window_s": 0.509,
+        "limited": false
+       },
+       "gap_mm": 11.9992
+      },
+      {
+       "case": "comp-after-xy",
+       "status": "PASS",
+       "detail": "off: the tip 13.4752 above the workpiece",
+       "enabled": false,
+       "at": [
+        518.0,
+        582.0
+       ],
+       "eoffset": -3.860740401565011e-09,
+       "joint_z": -113.00000000386073,
+       "map_z": -1.476283,
+       "gap_expected": 13.475200000000001,
+       "z_control": -113.0,
+       "reading": {
+        "settled": true,
+        "eoffset": -3.860740401565011e-09,
+        "joint_z": -113.00000000386073,
+        "enabled": false,
+        "method": 2,
+        "version": 5,
+        "window_s": 0.525,
+        "limited": false
+       },
+       "gap_mm": 13.4752
+      }
+     ]
+    },
+    {
+     "case": "comp-after-xy.counter-frozen",
+     "status": "PASS",
+     "detail": "the planted value is refused: offset -1.4760, the node's map value 5.9987 \u00b1 0.002",
+     "counter": true,
+     "inner": {
+      "case": "comp-after-xy",
+      "status": "FAIL",
+      "detail": "offset -1.4760, the node's map value 5.9987 \u00b1 0.002",
+      "enabled": true,
+      "at": [
+       518.0,
+       582.0
+      ],
+      "eoffset": -1.4759999216188153,
+      "joint_z": -114.47599992161881,
+      "map_z": 5.998717,
+      "gap_expected": 12.0,
+      "z_control": -113.0,
+      "reading": {
+       "settled": true,
+       "eoffset": -1.4759999216188153,
+       "joint_z": -114.47599992161881,
+       "enabled": true,
+       "method": 2,
+       "version": 5,
+       "window_s": 0.509,
+       "limited": false
+      }
+     }
+    }
+   ],
+   "other_rows": [
+    {
+     "case": "home-all",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "home-joint-0",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "home-joint-1",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "home-joint-2",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-x+.servo",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-x+",
+     "status": "incomplete",
+     "informational": true
+    },
+    {
+     "case": "jog-x-.servo",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-x-",
+     "status": "incomplete",
+     "informational": true
+    },
+    {
+     "case": "jog-y+.servo",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-y+",
+     "status": "incomplete",
+     "informational": true
+    },
+    {
+     "case": "jog-y-.servo",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-y-",
+     "status": "incomplete",
+     "informational": true
+    },
+    {
+     "case": "jog-z+.servo",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-z+",
+     "status": "incomplete",
+     "informational": true
+    },
+    {
+     "case": "jog-z-.servo",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "jog-z-",
+     "status": "incomplete",
+     "informational": true
+    },
+    {
+     "case": "override-plateau-100",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "override-plateau-50",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "override-plateau.counter-75",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "goto-zero",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "goto-home",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "goto-g30",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "goto-zero.counter-xy-first",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "probe-z",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "probe-z.counter-plate-1",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "probe-z-miss",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "m600-unload",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "m600-t1",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "m600-t1-return",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "m600-t1-return.counter-x+1",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "m600-t1-override-lock",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "m600-t1.counter-3102",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "m6-hold",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "ts-sync-program-m600",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "ts-sync-program-m600.counter-old-basis",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "ts-sync-booking",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "ts-sync-stable",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "rfl-line",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "rfl-line.counter-line+1",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "rfl-no-earlier-line",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "rfl-start-point",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "rfl-start-point.counter-entry-x+1",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "disconnect-close",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "disconnect-heartbeat",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "clients-4",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "clients-8",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "latch-same-cycle",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "latch-sticky",
+     "status": "PASS",
+     "informational": false
+    },
+    {
+     "case": "latch-recovered",
+     "status": "PASS",
+     "informational": false
+    }
+   ],
+   "probe_results": "518.000000 518.000000 0.443717\n534.000000 518.000000 3.087050\n550.000000 518.000000 4.501217\n566.000000 518.000000 4.687050\n582.000000 518.000000 3.643717\n582.000000 534.000000 5.007050\n566.000000 534.000000 6.049550\n550.000000 534.000000 5.864550\n534.000000 534.000000 4.449550\n518.000000 534.000000 1.807050\n518.000000 550.000000 1.941217\n534.000000 550.000000 4.584550\n550.000000 550.000000 5.998717\n566.000000 550.000000 6.184550\n582.000000 550.000000 5.141217\n582.000000 566.000000 4.047050\n566.000000 566.000000 5.089550\n550.000000 566.000000 4.904550\n534.000000 566.000000 3.489550\n518.000000 566.000000 0.847050\n518.000000 582.000000 -1.476283\n534.000000 582.000000 1.167050\n550.000000 582.000000 2.581217\n566.000000 582.000000 2.767050\n582.000000 582.000000 1.723717\n"
+  }
+ ]
+}

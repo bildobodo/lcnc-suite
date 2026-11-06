@@ -1,0 +1,274 @@
+{
+ "base": "7c4a3d5c (the guards; the mutants applied to a slim copy: scripts, examples, subroutines, lcnc-gateway/test_sim_toolsetter.py)",
+ "mutants": [
+  {
+   "mutant": "hal-instance-0-first",
+   "verdict": "RED",
+   "native_stage": 0,
+   "sim_toolsetter": 1,
+   "tail": [
+    "1 failed, 19 passed in 0.02s"
+   ]
+  },
+  {
+   "mutant": "hal-chain-appended",
+   "verdict": "RED",
+   "native_stage": 0,
+   "sim_toolsetter": 1,
+   "tail": [
+    "1 failed, 19 passed in 0.02s"
+   ]
+  },
+  {
+   "mutant": "hal-constant-off",
+   "verdict": "RED",
+   "native_stage": 0,
+   "sim_toolsetter": 1,
+   "tail": [
+    "1 failed, 21 passed in 0.02s"
+   ]
+  },
+  {
+   "mutant": "hal-manual-to-0",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 1,
+   "tail": [
+    "1 failed, 23 passed in 0.02s"
+   ]
+  },
+  {
+   "mutant": "hal-height-set",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 1,
+   "tail": [
+    "1 failed, 21 passed in 0.02s"
+   ]
+  },
+  {
+   "mutant": "hal-5axis-surface",
+   "verdict": "RED",
+   "native_stage": 0,
+   "sim_toolsetter": 1,
+   "tail": [
+    "1 failed, 22 passed in 0.02s"
+   ]
+  },
+  {
+   "mutant": "ngc-early-release",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nc-scan-no-order",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nc-scan-no-count",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nc-cubic-no-reference",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nc-linear-no-edge",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nc-nearest-no-node",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nc-cubic-no-curvature",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nc-no-discrimination",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nc-off-residual-ok",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nc-gap-unchecked",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nc-joint-unchecked",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nc-settle-no-gap",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nc-settle-no-version",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nc-reference-raw-q",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nc-pair-first-wins",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nr-plate-any-instance",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nr-fixture-no-order",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nr-fixture-no-readers",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nr-no-method-switch",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nr-after-xy-no-move",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nr-map-not-waited",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.02s"
+   ]
+  },
+  {
+   "mutant": "nr-at-always-z",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  },
+  {
+   "mutant": "nr-no-cleanup-off",
+   "verdict": "RED",
+   "native_stage": 1,
+   "sim_toolsetter": 0,
+   "tail": [
+    "24 passed in 0.01s"
+   ]
+  }
+ ],
+ "first_run": {
+  "at": "7db02fbd",
+  "green": [
+   "nc-cubic-no-curvature",
+   "nr-no-cleanup-off"
+  ],
+  "fixed_by": "7c4a3d5c: a cubic farther from the surface than linear; a failure with compensation on"
+ }
+}
