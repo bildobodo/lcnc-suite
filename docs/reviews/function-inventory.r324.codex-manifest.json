@@ -1,0 +1,87 @@
+{
+  "round": "R324",
+  "base": "52454d27",
+  "head": "c9e7ae82e714fa1b61127d70c0a2285635e46d26",
+  "document_head": "da68ece937709681cb6b31da8d9d7aa3b762bdf9",
+  "archive": "/tmp/codex-r324",
+  "backend_python": "/home/cnc/lcnc-suite-g1/lcnc-gateway/.venv/bin/python3",
+  "backend_files": [
+    "test_tool_table.py",
+    "test_tool_edit_contract.py",
+    "test_program_reload_unload.py",
+    "test_toolsetter_routine_map.py",
+    "test_trip_trace.py",
+    "test_sim_trip.py",
+    "test_hb_budget.py"
+  ],
+  "backend_runs": [
+    {
+      "file": "backend.txt",
+      "passed": 44,
+      "failed": 1
+    },
+    {
+      "file": "backend-repeat1.txt",
+      "passed": 44,
+      "failed": 1
+    },
+    {
+      "file": "backend-repeat2.txt",
+      "passed": 45,
+      "failed": 0
+    }
+  ],
+  "failed_test": "test_hb_budget.py::TestTheLoopDisarmsThroughIt::test_a_beating_client_stays_armed",
+  "controls": [
+    {
+      "file": "hb-alone.txt",
+      "passed": 4
+    },
+    {
+      "file": "trip-hb.txt",
+      "passed": 5
+    },
+    {
+      "file": "reload-hb.txt",
+      "passed": 9
+    }
+  ],
+  "inventory": {
+    "file": "inventory.txt",
+    "passed": 36
+  },
+  "counter_mutations": {
+    "script": "function-inventory.r323.codex-mutations.py",
+    "unchanged": true,
+    "count": 5,
+    "assertion_failures": 5,
+    "outputs": "mutations.json"
+  },
+  "original_table_cases": {
+    "changed_probe_fixture_import": "TABLE -> table() because the repository fixture API changed; otherwise same handler scenario",
+    "canonical": "PASS",
+    "pocket_before_tool": "PASS",
+    "offset_between_tool_and_pocket": "PASS"
+  },
+  "new_finding": {
+    "id": "FI-I54",
+    "prior_writer_output": "Q+3.000000",
+    "new_display_omits_record": true,
+    "new_edit_refuses": true,
+    "libc_scan_conversions": 1,
+    "libc_scan_value": 3
+  },
+  "source": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/tooldata/tooldata_common.cc#L174",
+  "restored_source_sha256": {
+    "lcnc-gateway/gateway.py": "97d44790aa36b310a2dcbce6077cc8adb661fa61d7ab9e1cd1a2ea864f602c9f",
+    "lcnc-gateway/tool_table.py": "32dcb6c93a21fe02619f2d450dcce46069e0af89f2bf991811f037bbd16e1728",
+    "subroutines/tool_length_probe/tool_touch_off.ngc": "4990c7b303cb43bf0aa8cb11948277072874558f5902d3c48a59133ec555097d"
+  },
+  "limits": [
+    "Frontend unchanged: no browser/build rerun",
+    "No full backend/round gate rerun",
+    "No live :8000/:5173 or machine commands",
+    "Native table loader not run; libc sscanf only"
+  ],
+  "decision": "Q323-1 answered yes by the operator; message center implementation still absent"
+}

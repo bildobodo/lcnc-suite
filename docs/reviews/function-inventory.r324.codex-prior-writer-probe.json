@@ -1,0 +1,45 @@
+{
+  "writer_commit": "52454d27",
+  "reader_commit": "c9e7ae82",
+  "old_writer_sha256": "f358f79ee76be2c2179ff09c601b672d6a4a71f2c97033ceda78d29d47e7652a",
+  "old_writer_output": ";Tool  Pocket Z Offset     Diameter     Remark\nT1     P1     Z+00050.000000  D+0006.000000\nT2     P5     Z+00050.100000  D+0006.000000 Q+3.000000\n",
+  "old_reader": [
+    {
+      "T": 1,
+      "P": 1,
+      "X": 0.0,
+      "Y": 0.0,
+      "Z": 50.0,
+      "D": 6.0,
+      "remark": ""
+    },
+    {
+      "T": 2,
+      "P": 5,
+      "X": 0.0,
+      "Y": 0.0,
+      "Z": 50.1,
+      "D": 6.0,
+      "Q": 3.0,
+      "remark": ""
+    }
+  ],
+  "new_display_reader": [
+    {
+      "T": 1,
+      "P": 1,
+      "X": 0.0,
+      "Y": 0.0,
+      "Z": 50.0,
+      "D": 6.0,
+      "remark": ""
+    }
+  ],
+  "new_strict_reader": {
+    "refused": "Tool table line 3 not understood ('Q+3.000000' is not Q and a whole number): T2     P5     Z+00050.100000  D+0006.000000 Q+3.000000"
+  },
+  "libc_integer_scan_of_Q": {
+    "conversions": 1,
+    "value": 3
+  }
+}

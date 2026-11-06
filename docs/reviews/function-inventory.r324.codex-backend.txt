@@ -1,0 +1,47 @@
+.......................... [ 57%]
+.................F.               [100%]
+=================================== FAILURES ===================================
+________ TestTheLoopDisarmsThroughIt.test_a_beating_client_stays_armed _________
+
+self = <test_hb_budget.TestTheLoopDisarmsThroughIt testMethod=test_a_beating_client_stays_armed>
+
+    def test_a_beating_client_stays_armed(self):
+        armed = self.session(beat_every=0.1)
+>       self.assertTrue(armed and all(armed), armed)
+E       AssertionError: False is not true : [True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False]
+
+test_hb_budget.py:88: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[VINIT] try_connect_lcnc OK, pid=424242
+[IDLE] +2845ms gateway up, 0 clients connected (waiting)
+[VINIT] client#2 sending viewer_init (post-poll), STAT=OK
+[STATUS] tick gen=39 clients=1/1 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=322 bytes_max=322 tool_meta_n=0 wall_ms=826
+[STATUS] tick gen=40 clients=0/1 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=41 clients=0/1 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=42 clients=0/1 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=43 clients=0/1 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=44 clients=0/1 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=45 clients=0/1 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=46 clients=0/1 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=38
+[STATUS] tick gen=47 clients=0/1 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=48 clients=0/1 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=49 clients=0/1 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=33
+[STATUS] tick gen=50 clients=0/1 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=51 clients=0/1 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=39
+[STATUS] tick gen=52 clients=0/1 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=53 clients=0/1 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=34
+[SHUTDOWN] +5371ms lifespan teardown begin
+[SHUTDOWN] +5372ms cancelled 8 bg tasks
+[SHUTDOWN] +5372ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +5372ms HAL sockets disconnected
+[SHUTDOWN] +5372ms camera released
+[SHUTDOWN] +5372ms lifespan teardown complete
+=========================== short test summary info ============================
+FAILED test_hb_budget.py::TestTheLoopDisarmsThroughIt::test_a_beating_client_stays_armed
+1 failed, 44 passed, 85 subtests passed in 6.61s
+[GC] +6443ms gen=2 duration=10.1ms collected=886 uncollectable=0
+[GC] +6450ms gen=2 duration=7.4ms collected=0 uncollectable=0
+[GC] +6457ms gen=2 duration=7.1ms collected=0 uncollectable=0
+[GC] +6465ms gen=2 duration=7.6ms collected=0 uncollectable=0
+[GC] +6472ms gen=2 duration=7.2ms collected=0 uncollectable=0
+[GC] +6480ms gen=2 duration=8.0ms collected=0 uncollectable=0
