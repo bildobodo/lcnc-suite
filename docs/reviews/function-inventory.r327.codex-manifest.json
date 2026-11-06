@@ -1,0 +1,101 @@
+{
+  "round": "R327",
+  "scope": "89003ac0..7c4a3d5c",
+  "live_head_read_only": "0b628ff09b92121c4e1b6aef44a87caa2a4d6c3d",
+  "archive": "/tmp/codex-r327",
+  "reviewed_files": [
+    {
+      "path": "CLAUDE.md",
+      "sha256": "f252372551cbb3ae9d8fe1e0958ad1ae398286693dbbbc2d09191f3f5e7964f4",
+      "unchanged": true
+    },
+    {
+      "path": "docs/decisions.md",
+      "sha256": "76fd1c943730975bb4fc1661faa8c36cb6314d4ee8107c00f297cd0241cf895c",
+      "unchanged": true
+    },
+    {
+      "path": "docs/inventory/funktionen.md",
+      "sha256": "9fe0157589b3eaf104a47160c1e0e0c86aa1773dd609edd6230e1034edcc76d3",
+      "unchanged": true
+    },
+    {
+      "path": "examples/sim_config/README.md",
+      "sha256": "060b372e244a792b104e100ee80fc4bd03702db0f9cb13beb42dfb41e2e47a5c",
+      "unchanged": true
+    },
+    {
+      "path": "examples/sim_config/hallib/core_sim_3.hal",
+      "sha256": "2cc05378e4e25c1612f628805ebf20e0e3ca66dffd9206022dc405d4a8bf652e",
+      "unchanged": true
+    },
+    {
+      "path": "examples/sim_config/hallib/sim_surface.hal",
+      "sha256": "5d7a4b4eddef9a0022f1c8bfa29708250e0066b19e91c535155d0fb64f6eb422",
+      "unchanged": true
+    },
+    {
+      "path": "examples/sim_config/hallib/sim_toolsetter.hal",
+      "sha256": "95a72210c03b32c749c29b974242d4e4ec41abb5a51fb4f0ec104ed597c92dd6",
+      "unchanged": true
+    },
+    {
+      "path": "lcnc-gateway/test_sim_toolsetter.py",
+      "sha256": "629ea1f3516500544d5dff4535ae75fe8f907dc8d4b32a4f8041de2f9d02d738",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/inventory/functions.json",
+      "sha256": "160ab0e585768dc544284480f1d6cd9b678aab2515b83d1b2bfc9f6f9b135ce9",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/native_run.py",
+      "sha256": "f3d4d9da07d5426d634ed2f2bc9ef8578599554f6a3e0a9b10d3102fb3f78109",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/test_native_stage.py",
+      "sha256": "6f8b9f7dfc3234a4db19164cbaee743d3b4b2c92f4d84dc0a121933dc31931e6",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/test_support/native_cases.py",
+      "sha256": "34f4d970395d75a003b2e2e2462372b5e20fe02e3e8ffad55cf4376bc244056b",
+      "unchanged": true
+    },
+    {
+      "path": "subroutines/surfacemap/surface_scan.ngc",
+      "sha256": "7bceca61782b6c516fbcff17b51606ffc58d9f143b947bc2202f03f882701be8",
+      "unchanged": true
+    }
+  ],
+  "tests": {
+    "command": "/home/cnc/lcnc-suite-g1/lcnc-gateway/.venv/bin/python3 -m pytest -q scripts/test_native_stage.py lcnc-gateway/test_sim_toolsetter.py scripts/inventory/test_inventory.py",
+    "cwd": "/tmp/codex-r327",
+    "exit_code": 0,
+    "passed": 534
+  },
+  "probe": {
+    "command": "/home/cnc/lcnc-suite-g1/lcnc-gateway/.venv/bin/python3 <codex-probe.py> /tmp/codex-r327 docs/reviews/function-inventory.r327.evidence.json",
+    "exit_code": 0,
+    "baseline": "15/15 PASS",
+    "counterexamples": "three complete surface runs 15/15 PASS despite defect; two cleanup readbacks unreported"
+  },
+  "native_replay": "Arithmetic and saved HAL topology of three recorded runs; no new native run. Raw status windows absent, so timing/XY cannot be independently re-evaluated.",
+  "claude_mutations": {
+    "reported": 29,
+    "red": 29,
+    "independently_rerun": false
+  },
+  "work_boundary": "No live port connections, HAL commands, machine commands, tests/builds in live checkout or Claude worktree.",
+  "input_hashes": {
+    "function-inventory.r327.evidence.json": "d93426789af239637790010119406bd75e0cfc52764b9e3cd9dcb04561728ef2",
+    "function-inventory.r327.mutations.json": "97e6fb8a0520793cc05b5516fd5a0bf559bd48294a2e2c0cf932d5faee3c39a3",
+    "function-inventory.r327.mutations.py": "2ef1a090c767d4bb3f8957daa5cbe91cd64ee0574dac2e398bfd9e0311657176"
+  },
+  "review_prefix": {
+    "length": 934460,
+    "sha256": "118e68a847bbe9f6023fd61a2ece9cbf77f364a53a7dd4db64acf790aafe22e1"
+  }
+}

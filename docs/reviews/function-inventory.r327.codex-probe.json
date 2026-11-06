@@ -1,0 +1,226 @@
+{
+  "source": "7c4a3d5c",
+  "counterexamples": {
+    "cleanup_override_False": {
+      "off": {
+        "settled": true,
+        "enabled": false,
+        "eoffset": 0.0
+      },
+      "method": "done",
+      "g54": "done",
+      "override": "done",
+      "after": {
+        "eoffset_enabled": false,
+        "eoffset_z": 0.0,
+        "comp_method": 2,
+        "g54_z": 0.0,
+        "feed_override_enabled": false
+      }
+    },
+    "cleanup_override_None": {
+      "off": {
+        "settled": true,
+        "enabled": false,
+        "eoffset": 0.0
+      },
+      "method": "done",
+      "g54": "done",
+      "override": "done",
+      "after": {
+        "eoffset_enabled": false,
+        "eoffset_z": 0.0,
+        "comp_method": 2,
+        "g54_z": 0.0,
+        "feed_override_enabled": null
+      }
+    },
+    "baseline": {
+      "error": null,
+      "row_statuses": {
+        "surface-scan": "PASS",
+        "surface-scan.counter-node+1": "PASS",
+        "surface-scan.counter-xy-swapped": "PASS",
+        "surface-override-lock": "PASS",
+        "surface-scan.map": "PASS",
+        "comp-nearest": "PASS",
+        "comp-nearest.counter-linear": "PASS",
+        "comp-linear": "PASS",
+        "comp-linear.counter-cubic": "PASS",
+        "comp-cubic": "PASS",
+        "comp-cubic.counter-nearest": "PASS",
+        "comp-on-off": "PASS",
+        "comp-on-off.counter-gap+0.05": "PASS",
+        "comp-after-xy": "PASS",
+        "comp-after-xy.counter-frozen": "PASS"
+      },
+      "control": "The unchanged repository SurfaceSim and real surface step pass."
+    },
+    "late_enable": {
+      "error": null,
+      "row_statuses": {
+        "surface-scan": "PASS",
+        "surface-scan.counter-node+1": "PASS",
+        "surface-scan.counter-xy-swapped": "PASS",
+        "surface-override-lock": "PASS",
+        "surface-scan.map": "PASS",
+        "comp-nearest": "PASS",
+        "comp-nearest.counter-linear": "PASS",
+        "comp-linear": "PASS",
+        "comp-linear.counter-cubic": "PASS",
+        "comp-cubic": "PASS",
+        "comp-cubic.counter-nearest": "PASS",
+        "comp-on-off": "PASS",
+        "comp-on-off.counter-gap+0.05": "PASS",
+        "comp-after-xy": "PASS",
+        "comp-after-xy.counter-frozen": "PASS"
+      },
+      "compensation_at_G1_start": false
+    },
+    "missing_version": {
+      "error": null,
+      "row_statuses": {
+        "surface-scan": "PASS",
+        "surface-scan.counter-node+1": "PASS",
+        "surface-scan.counter-xy-swapped": "PASS",
+        "surface-override-lock": "PASS",
+        "surface-scan.map": "PASS",
+        "comp-nearest": "PASS",
+        "comp-nearest.counter-linear": "PASS",
+        "comp-linear": "PASS",
+        "comp-linear.counter-cubic": "PASS",
+        "comp-cubic": "PASS",
+        "comp-cubic.counter-nearest": "PASS",
+        "comp-on-off": "PASS",
+        "comp-on-off.counter-gap+0.05": "PASS",
+        "comp-after-xy": "PASS",
+        "comp-after-xy.counter-frozen": "PASS"
+      },
+      "method_readings": {
+        "nearest": {
+          "settled": true,
+          "eoffset": 4.585,
+          "joint_z": -108.415,
+          "enabled": true,
+          "method": 0,
+          "version": null,
+          "window_s": 0.528,
+          "limited": false
+        },
+        "linear": {
+          "settled": true,
+          "eoffset": 4.939,
+          "joint_z": -108.061,
+          "enabled": true,
+          "method": 1,
+          "version": null,
+          "window_s": 0.528,
+          "limited": false
+        },
+        "cubic": {
+          "settled": true,
+          "eoffset": 5.07,
+          "joint_z": -107.93,
+          "enabled": true,
+          "method": 2,
+          "version": null,
+          "window_s": 0.528,
+          "limited": false
+        }
+      }
+    },
+    "wrong_arrival": {
+      "error": null,
+      "row_statuses": {
+        "surface-scan": "PASS",
+        "surface-scan.counter-node+1": "PASS",
+        "surface-scan.counter-xy-swapped": "PASS",
+        "surface-override-lock": "PASS",
+        "surface-scan.map": "PASS",
+        "comp-nearest": "PASS",
+        "comp-nearest.counter-linear": "PASS",
+        "comp-linear": "PASS",
+        "comp-linear.counter-cubic": "PASS",
+        "comp-cubic": "PASS",
+        "comp-cubic.counter-nearest": "PASS",
+        "comp-on-off": "PASS",
+        "comp-on-off.counter-gap+0.05": "PASS",
+        "comp-after-xy": "PASS",
+        "comp-after-xy.counter-frozen": "PASS"
+      },
+      "actual_xy": [
+        518.0,
+        582.4
+      ],
+      "reported_xy": [
+        518.0,
+        582.0
+      ],
+      "reported_gap": 12.0002,
+      "actual_gap": 12.074024000000009
+    }
+  },
+  "recomputed_runs": [
+    {
+      "run": "20261106T183046",
+      "commit": "70eba486",
+      "declared_verdict": "FAIL",
+      "scan_sha256": "2543fe35e28a527f2d70490f673ff4268028b935121d16c30b8e65c59dca44a4",
+      "worst_abs_residual_mm": 0.0016500000000010395,
+      "references": {
+        "nearest": 4.58455,
+        "linear": 4.93809175,
+        "cubic": 5.069006306113726
+      },
+      "rechecked_cases": [
+        "comp-nearest",
+        "comp-linear",
+        "comp-cubic"
+      ],
+      "fixture_problems": [],
+      "limitation": "No saved raw status window: settlement, timestamp freshness and XY arrival cannot be re-evaluated from this artifact."
+    },
+    {
+      "run": "20261106T183902",
+      "commit": "7db02fbd",
+      "declared_verdict": "PASS",
+      "scan_sha256": "2543fe35e28a527f2d70490f673ff4268028b935121d16c30b8e65c59dca44a4",
+      "worst_abs_residual_mm": 0.0016500000000010395,
+      "references": {
+        "nearest": 4.58455,
+        "linear": 4.93809175,
+        "cubic": 5.069006306113726
+      },
+      "rechecked_cases": [
+        "comp-nearest",
+        "comp-linear",
+        "comp-cubic",
+        "comp-on-off",
+        "comp-after-xy"
+      ],
+      "fixture_problems": [],
+      "limitation": "No saved raw status window: settlement, timestamp freshness and XY arrival cannot be re-evaluated from this artifact."
+    },
+    {
+      "run": "20261106T185902",
+      "commit": "7c4a3d5c",
+      "declared_verdict": "PASS",
+      "scan_sha256": "2543fe35e28a527f2d70490f673ff4268028b935121d16c30b8e65c59dca44a4",
+      "worst_abs_residual_mm": 0.0016500000000010395,
+      "references": {
+        "nearest": 4.58455,
+        "linear": 4.93809175,
+        "cubic": 5.069006306113726
+      },
+      "rechecked_cases": [
+        "comp-nearest",
+        "comp-linear",
+        "comp-cubic",
+        "comp-on-off",
+        "comp-after-xy"
+      ],
+      "fixture_problems": [],
+      "limitation": "No saved raw status window: settlement, timestamp freshness and XY arrival cannot be re-evaluated from this artifact."
+    }
+  ]
+}

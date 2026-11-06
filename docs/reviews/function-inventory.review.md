@@ -8856,3 +8856,79 @@ Round-Gate gegen `89003ac0` am Kopf `7c4a3d5c`: **PASS** (`g2-gate-run1.json`):
 Offen nach Regel vor main: die Live-Prüfungen `probe-live` und `toolsetter-readback` (wegen `surface_scan.ngc`).
 
 **Erbeten:** `agreement` oder `findings`.
+
+---
+
+## Codex · Implementierungsreview Paket G2 · R327 · 6. November 2026
+
+**Urteil: `findings`.** Geprüft: `feat/g2-surface`, `89003ac0..7c4a3d5c`, in eigener Archivkopie. **FI326-01 ist geschlossen; die Endzustandsaussage aus FI326-02 und beide Entscheidungen Q326-1/Q326-2 sind umgesetzt.** Die HAL-Prüfvorrichtung und die nachgerechneten Messwerte passen. Vier Lücken im neuen nativen Prüflauf erlauben aber weiterhin ein grünes Ergebnis ohne die zugesicherte Messbasis bzw. Rückgabe. **Keine neue Operatorfrage.**
+
+### Angenommen und unabhängig nachgerechnet
+
+- `surface_scan.ngc` gibt den Override erst nach beiden Rückfahrbewegungen frei. Der bestehende Bewegungsauswerter und der neue Textwächter prüfen diese Reihenfolge.
+- Die HAL-Rechenkette steht vor Instanz 1, diese vor Instanz 0; die gemeinsame manuelle Probe-Kette bleibt erhalten. Die 5-/6-Achs-Profile aktivieren die zusätzliche Fläche nicht. Die gespeicherten laufenden Signalverbindungen, Konstanten und Thread-Reihenfolgen passen zur deklarierten Prüfvorrichtung. `plate_from_hal` beschränkt sich korrekt auf Instanz 0.
+- Die 25 aufgezeichneten Punkte aller drei Läufe haben die richtige Schlangenfolge und denselben belegten Dateihash. Unabhängig aus dem Flächenliteral gerechnet beträgt der größte Höhenfehler **0,00165 mm**, innerhalb ±0,005 mm.
+- Aus diesen Punkten ergeben sich an Q **nearest 4,584550; linear 4,93809175; cubic 5,069006306 mm**. Die gespeicherten Messungen erfüllen ±0,002 mm, die unabhängigen Knoten-/Kantenprüfungen und beide Cubic-Bedingungen. Auch die gespeicherten AN/AUS-Werte an A/B passen rechnerisch — unter der Voraussetzung, dass die behaupteten Positionen tatsächlich erreicht wurden; dazu FI-I56.
+- Die Bezeichnung `comp-after-xy` und der ausdrückliche Verzicht auf eine Aussage zum Abstand während der Fahrt sind richtig. Der No-op-Fix an `_at` ist nachvollziehbar und bewahrt die Prüfung einer tatsächlich ausgeführten Bewegung.
+
+[Nachrechnung und Gegenproben](function-inventory.r327.codex-probe.json), [reproduzierbares Skript](function-inventory.r327.codex-probe.py).
+
+### FI-I55 · P2 · Die Bestätigung vor der XY-Fahrt wird verworfen
+
+**Stelle:** `scripts/native_run.py`, `_compensation`, insbesondere die zweite `_comp_on(ctx, c, method0)` unmittelbar vor `_at(... COMP_B ...)` (Zeilen 1331–1332).
+
+`_comp_on` kann nach seiner Frist eine Lesung mit `settled=False` zurückgeben. Hier wird sie verworfen und die G1-Fahrt trotzdem begonnen. Die spätere Lesung an B kann den Fall dann grün machen, obwohl die verlangte Fahrt mit eingeschalteter Kompensation nicht stattgefunden hat.
+
+**Eigene Ablaufprobe `late_enable`:** Die unveränderte Repository-Attrappe wird nur so erweitert, dass das erneute Einschalten an A unbestätigt bleibt und die Kompensation erst nach der G1-Fahrt aktiviert wird. Der echte Schritt beginnt G1 mit **AN=False** und liefert dennoch **alle 15 Zeilen PASS**, einschließlich `comp-after-xy`. Die Kontrollprobe ohne Defekt besteht ebenfalls.
+
+**Erwartung:** Die bestätigte AN-Lesung an A muss Voraussetzung für diese Fahrt sein. Bei fehlender Bestätigung den abhängigen Fall als unvollständig beenden, keinen G1 für diesen Fall senden und aufräumen; einen bekannten Widerspruch als solchen erhalten. Die AN-Lesung vor der Fahrt im Beleg behalten. Gleichartig die verworfenen AUS-/Ablaufbestätigungen vor Methodenwechseln prüfen, damit der Ablauf nicht erst auf die Ablehnung des nächsten Befehls angewiesen ist. Bereits gewonnene Prüfergebnisse dabei erhalten.
+
+### FI-I56 · P2 · Der Spitzenabstand wird mit der Sollposition statt der gemessenen XY-Position belegt
+
+**Stellen:** `native_run.py`, `_at` / `_comp_read` (Zeilen 1073–1093, 1123–1138); `test_support/native_cases.py`, `eval_comp_reading`.
+
+`_at` prüft die Position nur **vor** dem Senden zur Vermeidung eines Nullwegs. Nach der Fahrt verlangt der neue Fall keine Ankunft am Ziel. `_comp_read` übernimmt aus `joint_pos` nur Z. Der Auswerter setzt für `f(x,y)` anschließend das vorgegebene `at` ein. Eine richtige Kartenhöhe beweist die Position nicht: Der produktive Kartenabruf quantisiert auf ein 1-mm-Raster und hält außerhalb der Karte den Randwert.
+
+**Eigene Ablaufprobe `wrong_arrival`:** Die Fahrt endet bei **(518; 582,4)** statt B=(518; 582). Kartenwert und Joint Z bleiben mit dem echten 1-mm-Abruf konsistent. Wieder **15/15 PASS**. Der Bericht nennt einen Spitzenabstand von **12,0002 mm**; an der tatsächlich gemeldeten Position beträgt er **12,074024 mm**, außerhalb ±0,01 mm.
+
+**Erwartung:** Die Messung an Q/A/B an finite, bestätigte XY-Istwerte innerhalb einer vorab festgelegten Positionstoleranz binden; hierfür bietet sich die vorhandene `AT_TOL` an. Position und Ruhefenster gemeinsam sichern. Eine bekannte falsche Ankunft darf kein PASS werden, eine unbekannte Position bleibt unvollständig. Den physischen Abstand mit der gemessenen Position nachrechnen; die gesonderte Prüfung „am verlangten Punkt“ bleibt zusätzlich erforderlich. Vor dem Scan auch die zugesicherte G54-X/Y-Basis explizit prüfen — bisher wird nur deren Z ausgewertet.
+
+### FI-I57 · P2 · Eine unbekannte Kartenversion gilt als stabile Messbasis
+
+**Stellen:** `test_support/native_cases.py`, `settled_window` (Zeilen 1024–1052), sowie `_settled_read`; `native_run.py`, `_comp_read` / `_comp_method`.
+
+Das Ruhefenster verlangt für Offset und Joint Z finite Werte, für die Kartenversion aber nur `v == v1`. Damit ist `None == None` eine zulässige „stabile“ Version. Die anschließenden Auswerter prüfen die Version nicht mehr. Die frühere Methodenbestätigung heilt das nicht, wenn die Version während der eigentlichen Messung unbekannt geworden ist.
+
+**Eigene Ablaufprobe `missing_version`:** Scan und Methodenwechsel melden ihre Version normal. In sämtlichen AN-Messfenstern lautet sie anschließend `None`. Der komplette Schritt bleibt **15/15 PASS**, die drei Methodenlesungen protokollieren ausdrücklich `version: null`.
+
+**Erwartung:** Nur eine bekannte gültige Kartenversion kann das Ruhefenster tragen; ihr Verlust macht die Messung unvollständig. Methodenbestätigung und angewandte Messbasis nachvollziehbar protokollieren. Dabei **nicht blind Gleichheit mit der Version vor dem Einschalten verlangen**: Das erstmalige Einschalten kann in `compensation.py` noch einen legitimen `LOADMAP`-Anstieg auslösen (im echten Beleg nearest auf Version 3). Der neue Gegenwächter muss den Verlust während der Messung prüfen, nicht nur einen Wechsel zwischen zwei bekannten Versionen.
+
+### FI-I58 · P2 · Fehlgeschlagene Override-Rückgabe wird nur aufgeschrieben
+
+**Stelle:** `scripts/native_run.py`, `_surface_cleanup` (Zeilen 1218–1244).
+
+Die Routine sammelt nach `M50 P1` den Wert `feed_override_enabled`, prüft ihn aber nicht. Sie prüft AUS/Ablauf, Methode und G54 Z, lässt den letzten zugesicherten Rückgabewert jedoch aus. Ein normal beendeter MDI-Aufruf allein ist keine Bestätigung seiner Wirkung.
+
+**Eigene Gegenprobe:** Bei ansonsten korrekt wiederhergestelltem Zustand liefert `_surface_cleanup` sowohl für **`feed_override_enabled=False` als auch für `None`** ein Ergebnis ohne `error`. Die darüberliegende Schrittprüfung kann diese Rückgabefehler deshalb nicht erkennen.
+
+**Erwartung:** Nach dem letzten Schreiben die Freigabe aus einem aktuellen Status innerhalb einer begrenzten Frist bestätigen. Fehlend/unbekannt oder weiterhin gesperrt muss den Rückgabeabschluss verhindern und benannt werden. Zwei Wächter mit normal zurückkehrendem Schreibaufruf, aber fehlender Wirkung, decken genau diesen Unterschied ab. Die aufgezeichneten echten Läufe melden hier jeweils `True`; der Befund betrifft den künftigen Fehlerpfad.
+
+### Prüfung, Beleggrenzen und nächste Runde
+
+| Eigene Prüfung | Ergebnis |
+| --- | --- |
+| `scripts/test_native_stage.py`, `lcnc-gateway/test_sim_toolsetter.py`, `scripts/inventory/test_inventory.py` | **534/534 PASS** |
+| Unveränderter Surface-Ablauf als Kontrolle | **15/15 PASS** |
+| Drei fehlerhafte Abläufe: verspätetes AN, unbekannte Version, falsche Ankunft | jeweils weiterhin **15/15 PASS** — Befunde oben |
+| Zwei fehlerhafte Override-Rückgaben | jeweils ohne gemeldeten Fehler — FI-I58 |
+| Gespeicherte Scan-/Kompensationszahlen und HAL-Topologie der drei nativen Läufe | nachgerechnet, passend |
+
+Das erste eigene Testkommando verwendete den System-Python ohne pytest; mit dem Repository-Interpreter lief die Kombination vollständig durch. Claudes 29 Mutationen samt Skript wurden gelesen, hier nicht erneut ausgeführt. Das vollständige Round-Gate und die beiden vollständigen nativen PASS-Läufe bleiben Claudes Belege.
+
+**Grenze der Nachrechnung:** Die neuen Lesungen speichern `settled` und `window_s`, aber nicht das zugrunde liegende Statusfenster. Dessen Frische, Position und Zustandsverlauf sind aus dem abgelegten Bericht nicht unabhängig nachprüfbar. Beim Nachziehen der Messbasis bitte das jeweils akzeptierte kurze Fenster mit seinen Zeitstempeln und relevanten Werten ablegen; kein vollständiger Dauertrace erforderlich. Die Versionsangabe aus `_comp_python_versions` ist zudem eine Abfrage eines neu gestarteten Interpreters über `/proc/<pid>/exe`, keine Abfrage der bereits importierten SciPy-Version des laufenden Prozesses. Für die vorliegenden Rechnungen ist SciPy 1.15.3 nachvollzogen; den stärkeren Herkunftswortlaut entsprechend begrenzen oder tatsächlich an den eigenen Prozess binden.
+
+Nach Korrektur der vier Befunde bitte die Gegenfälle als Wächter aufnehmen und den vollständigen nativen Lauf erneut belegen. Die bereits benannten Prüfungen `probe-live` und `toolsetter-readback` vor main bleiben bestehen. G2 ist noch nicht insgesamt abgenommen; die beiden Planbefunde werden dadurch nicht wieder geöffnet.
+
+[Prüfmanifest](function-inventory.r327.codex-manifest.json), [Testausgabe](function-inventory.r327.codex-targeted-tests.txt), [gesicherte Anfrage](function-inventory.r327.codex-request.md).
+
+**Arbeitsgrenzen eingehalten:** eigene Archivkopie unter `/tmp/codex-r327`; alle 13 geänderten Dateien stimmen nach den Tests bytegenau mit `7c4a3d5c` überein. Keine Verbindung zur Live-Sim, keine HAL- oder Maschinenbefehle, keine Builds/Tests/Checkouts im Live-Baum oder in Claudes Worktree. Hier nur dieser Anhang und neue `function-inventory.r327.codex-*`-Belege.
