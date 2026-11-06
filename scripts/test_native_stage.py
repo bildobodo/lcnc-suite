@@ -4018,3 +4018,134 @@ def test_the_restore_continues_the_recorded_stops_before_it_ends_the_test_instan
 ])
 def test_only_the_runs_own_trip_may_be_acknowledged(before, edge, inst_a, inst_b, ok):
     assert (tp.own_trip(before, edge, inst_a, inst_b) is None) is ok
+
+
+class LatchClient(FrameClient):
+    """The latch step against a scripted gateway: after the gateway is
+    continued, frames with the waiting trip; estop_reset refused while it
+    waits (or `early_reset`: accepted); the acknowledgement clears it."""
+
+    def __init__(self, early_reset=False, trip_before=None):
+        super().__init__([(time.monotonic(), {**_IDLE, "is_estop": True, "is_enabled": False})])
+        self.trip_history = [(time.monotonic(), trip_before)]
+        self.safety_trip, self.early_reset, self.acked = trip_before, early_reset, False
+
+    def frame(self, **st):
+        t = time.monotonic()
+        self.frames.append((t, {**self.status, **st}))
+        trip = None if self.acked else {"ts": 1}
+        self.trip_history.append((t, trip))
+        self.safety_trip = trip
+
+    def request(self, cmd, **kw):
+        from test_support.live_session import Refused as SessionRefused
+        self.sent.append((cmd, kw))
+        if cmd == "estop_reset":
+            if not self.acked and not self.early_reset:
+                raise SessionRefused("Safety trip not acknowledged — press Acknowledge")
+            self.frame(is_estop=False)
+        elif cmd == "safety_trip_ack":
+            self.acked = True
+            self.frame()
+        elif cmd == "machine_on":
+            self.frame(is_enabled=True)
+        return {"ok": True}
+
+
+def _latch_step(tmp_path, monkeypatch, client, sections, own_instance=True):
+    from test_support import system_host as sh_mod
+    stops = []
+
+    class Host:
+        n = 0
+
+        def unit_instance(self, unit):
+            Host.n += 1
+            return ("linuxcncsvr", 100, 5000) if own_instance or Host.n == 1 else ("linuxcncsvr", 101, 5001)
+    monkeypatch.setattr(sh_mod, "SystemHost", Host)
+    monkeypatch.setattr(nr, "_gateway_pid", lambda ctx: 4242)
+    monkeypatch.setattr(nr, "LATCH_STOP_S", 0.0)
+    monkeypatch.setattr(nr, "LATCH_POST_S", 0.0)
+    monkeypatch.setattr(nr, "RECOVERY_POST_S", 0.0)
+
+    def stop(state, save, pid, what, **kw):
+        stops.append(("stop", pid))
+        rec = {"pid": pid, "start": 1, "what": what}
+        state.setdefault("stopped", []).append(rec)
+        return rec
+
+    def cont(state, save, rec, **kw):
+        stops.append(("cont", rec["pid"]))
+        state["stopped"] = []
+        import threading
+        threading.Timer(0.02, client.frame).start()   # the gateway answers again, after the continue
+        return "continued"
+    monkeypatch.setattr(tp, "stop", stop)
+    monkeypatch.setattr(tp, "cont", cont)
+    ctx = {"client": client, "frames": client.frames, "report": {}, "run": tmp_path,
+           "state": {"test_unit": "native-sim-x"}, "servo": FakeMeasurement(sections)}
+    return ctx, stops
+
+
+def test_the_whole_latch_step_proves_the_trip_and_recovers(tmp_path, monkeypatch):
+    c = LatchClient()
+    ctx, stops = _latch_step(tmp_path, monkeypatch, c, [_latch(after=200), _recovery()])
+    by = {r["case"]: r for r in nr.latch_cases()[1](ctx)}
+    assert {k: r["status"] for k, r in by.items()} == {"latch-same-cycle": "PASS", "latch-sticky": "PASS",
+                                                      "latch-recovered": "PASS"}, by
+    assert stops == [("stop", 4242), ("cont", 4242)]
+    cmds = [cmd for cmd, _ in c.sent]
+    # the early reset is asked (and refused) BEFORE the acknowledgement; the recovery's order
+    assert cmds == ["estop_reset", "safety_trip_ack", "arm", "estop_reset", "machine_on"], cmds
+
+
+def test_the_latch_step_never_acknowledges_a_trip_it_cannot_prove_its_own(tmp_path, monkeypatch):
+    c = LatchClient()
+    ctx, _ = _latch_step(tmp_path, monkeypatch, c, [_latch(after=200), _recovery()], own_instance=False)
+    with pytest.raises(nr.StepFailed, match="not proven the run's own"):
+        nr.latch_cases()[1](ctx)
+    assert "safety_trip_ack" not in [cmd for cmd, _ in c.sent]
+    c2 = LatchClient(trip_before={"ts": 0})
+    ctx2, stops2 = _latch_step(tmp_path, monkeypatch, c2, [_latch(), _recovery()])
+    with pytest.raises(nr.Refused, match="never acknowledged"):
+        nr.latch_cases()[1](ctx2)
+    assert stops2 == [] and c2.sent == []
+
+
+def test_the_delayed_variant_is_its_counter_evidence_and_never_production(tmp_path, monkeypatch):
+    c = LatchClient()
+    ctx, _ = _latch_step(tmp_path, monkeypatch, c, [_latch(after=200, delay=1), _recovery()])
+    rows = nr.latch_cases("latch-delayed")[1](ctx)
+    assert [(r["case"], r["status"], r.get("variant")) for r in rows] == [
+        ("latch-same-cycle.delayed-order", "PASS", "latch-delayed"), ("latch-sticky", "PASS", "latch-delayed"),
+        ("latch-recovered", "PASS", "latch-delayed")]
+    assert not any(r["case"] == "latch-same-cycle" for r in rows)
+
+
+def test_an_early_reset_accepted_fails_the_sticky_row(tmp_path, monkeypatch):
+    c = LatchClient(early_reset=True)
+    ctx, _ = _latch_step(tmp_path, monkeypatch, c, [_latch(after=200), _recovery()])
+    by = {r["case"]: r for r in nr.latch_cases()[1](ctx)}
+    assert by["latch-sticky"]["status"] == "FAIL" and "accepted" in by["latch-sticky"]["detail"]
+
+
+def test_the_delayed_order_is_moved_through_the_gate_and_read_back():
+    order = ["motion-command-handler", "motion-controller", "oneshot.0", "webui-hb-latch", "and2.0", "sampler.0"]
+    log = []
+
+    def run(argv):
+        log.append(argv[1:])
+        verb = argv[1]
+        if verb == "delf":
+            order.remove(argv[2])
+        if verb == "addf":
+            order.insert(int(argv[4]) - 1, argv[2])
+        if verb == "show":
+            return "Realtime Threads:\n     Period  FP     Name\n   1000000  YES  servo-thread\n" + \
+                "".join(f"                  {i + 1} {f}\n" for i, f in enumerate(order))
+        return ""
+    ctx = {"servo": type("M", (), {"gate": sv.HalGate(run=run)})(), "report": {}}
+    nr.latch_order()[1](ctx)
+    after = ctx["report"]["latch_order"]["after"]
+    assert after.index("webui-hb-latch") < after.index("oneshot.0") and after[-1] == "sampler.0"
+    assert ["delf", "webui-hb-latch", "servo-thread"] in log and ["addf", "webui-hb-latch", "servo-thread", "3"] in log

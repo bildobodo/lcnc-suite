@@ -80,7 +80,7 @@ JOG_SERVO_CASES = {"jog-x+": "jog-x+.servo", "jog-x-": "jog-x-.servo", "jog-y+":
 FRAME_KEYS = ("joint_pos", "current_vel", "interp_state", "inpos", "feed_override_enabled", "tool_number",
               "tool_offset", "tool_table_z", "tool_change_requested", "tool_change_seq", "tool_change_tool",
               "g5x_index", "g5x_offset", "motion_line", "call_level", "task_mode", "spindle_direction",
-              "spindle_speed")
+              "spindle_speed", "is_estop", "is_enabled")
 # step 2a (plan R283–R285 FI282-05): the probe tool T99 at L0 = 50, started
 # 8 mm over its contact (joint Z = plate + L0) inside #3020 = 10; the miss 15
 # mm over it; the toolsetter's values as the copy ships them, #3005 slow 20
@@ -141,6 +141,11 @@ TS_FILE, TS_IDLE_FILE = "native_ts_sync.ngc", "native_ts_idle.ngc"
 TS_PROGRAM = f"G21 G90\nT{MEASURED_TOOL} M600\nM2\n"
 TS_IDLE_PROGRAM = "G21 G90\nM2\n"
 TS_DEADLINE = 240.0
+#: step 3, the latch (plan Codex R283–R285, R313–R316): the gateway stopped
+#: past the 0.5 s oneshot budget, then the post window; the recovery's own
+#: post window. A variant is a run of its own — one instance each (R313 point 2)
+LATCH_STOP_S, LATCH_POST_S, RECOVERY_POST_S = 0.9, 1.5, 1.0
+VARIANTS = ("latch-delayed",)
 RFL_DEADLINE = 300.0    # s: the pre-measurement, the entry and the program
 # step 2c (plan Codex R299–R301)
 PLATEAU_START, PLATEAU_END, PLATEAU_FEED = (100.0, 300.0, -50.0), 500.0, 6000.0
@@ -407,7 +412,7 @@ def _section(ctx, case: str):
     the box's "error" — the caller ends the run AFTER its rows (FI-I31)."""
     m = ctx["servo"]
     attempt = m.begin()
-    box: dict = {}
+    box: dict = {"attempt": attempt}       # a step's own phase marks go through it (step 3)
     try:
         yield box
     finally:
@@ -433,6 +438,12 @@ def _section(ctx, case: str):
                         for t, n, vals in sec["samples"]:
                             f.write(json.dumps([t, n, list(vals)]) + "\n")
                     record["file"] = name
+                    # the time evidence beside it (step 3, R315): t0, the phase
+                    # marks and each sample's receipt, integer ns
+                    write_json(ctx["run"] / f"servo-{case}.time.json",
+                               {"t0_ns": sec.get("t0_ns"), "phases": sec.get("phases"),
+                                "recv_ns": sorted((sec.get("recv_ns") or {}).items())})
+                    record["time_file"] = f"servo-{case}.time.json"
                 except OSError as e:
                     # the samples not written: named, kept in memory, the run ends after the rows (R303)
                     record["file_error"] = f"{type(e).__name__}: {e}"
@@ -1216,6 +1227,117 @@ def rfl_cases():
     return ("rfl", step)
 
 
+def _gateway_pid(ctx) -> int:
+    """The gateway of THIS run's test instance: a `gateway:app` process in the
+    test unit's own cgroup — never another instance's."""
+    unit = ctx["state"].get("test_unit")
+    for p in lt.read_procs():
+        if "gateway:app" not in p["cmdline"]:
+            continue
+        try:
+            if f"/{unit}.service" in Path(f"/proc/{p['pid']}/cgroup").read_text():
+                return p["pid"]
+        except OSError:
+            continue
+    raise Refused(f"no gateway in the test unit {unit}")
+
+
+def latch_order():
+    """The delayed variant (R284 FI282-04): webui-hb-latch moved before
+    oneshot.0 through the measurement's gate, the order read back and kept in
+    the report — the latch then sees the expiry one cycle late."""
+    def step(ctx):
+        from test_support import servo as sv
+        gate = ctx["servo"].gate
+        before = sv.thread_of(gate("show", "thread", "servo-thread"))["functions"]
+        gate("delf", "webui-hb-latch", "servo-thread")
+        rest = sv.thread_of(gate("show", "thread", "servo-thread"))["functions"]
+        gate("addf", "webui-hb-latch", "servo-thread", rest.index("oneshot.0") + 1)
+        after = sv.thread_of(gate("show", "thread", "servo-thread"))["functions"]
+        ctx["report"]["latch_order"] = {"before": before, "after": after}
+        if not (after.index("webui-hb-latch") < after.index("oneshot.0") and after[-1] == "sampler.0"):
+            raise Refused(f"the delayed order did not take: {after}")
+        return []
+    return ("latch-order", step)
+
+
+def latch_cases(variant=None):
+    """F-ESTOP S4/S4b on the real task — the LAST step: a trip disturbs
+    whatever follows. The gateway of this instance is stopped (its identity
+    on disk first, test_support/trip.py) past the oneshot budget and
+    continued; in the OUTAGE section the falling edge of oneshot.0.out, the
+    latch, the heartbeat's return, the E-Stop Reset asked before the
+    acknowledgement (refused) and the frames showing the waiting trip; then —
+    only for the run's own proven trip — the RECOVERY in its own section:
+    acknowledge, arm, E-Stop Reset, Machine On. `variant` "latch-delayed":
+    the same with webui-hb-latch before oneshot.0 (latch_order) — its rows
+    carry the variant and S4b's is the counter-evidence row."""
+    def step(ctx):
+        from test_support import servo_cases as sc
+        from test_support import trip as tp
+        from test_support.live_session import Refused as SessionRefused
+        from test_support.system_host import SystemHost
+        c, rows, state = ctx["client"], ctx.setdefault("rows", []), ctx["state"]
+        delayed = variant == "latch-delayed"
+        sh, unit = SystemHost(), state.get("test_unit")
+
+        def save(_state):
+            save_state(ctx)
+
+        def tag(row):
+            return {**row, "variant": variant} if variant else row
+        before_trip = c.safety_trip
+        if before_trip:
+            raise Refused(f"a trip waits before the latch case ({before_trip}) — never acknowledged")
+        inst_before = list((sh.unit_instance(unit) or ())[1:])
+        pid = _gateway_pid(ctx)
+        reset_reply, trip_frames = None, []
+        with _section(ctx, "latch-outage") as box:
+            rec = tp.stop(state, save, pid, "the test instance's gateway")
+            try:
+                time.sleep(LATCH_STOP_S)
+            finally:
+                tp.cont(state, save, rec)
+            t_cont = time.monotonic()
+            end = t_cont + 10
+            while not any(t > t_cont for t, _ in c.trip_history[-20:]):
+                if time.monotonic() > end:
+                    raise Refused("no status frame after the gateway was continued")
+                time.sleep(0.05)
+            try:
+                reset_reply = c.request("estop_reset")
+            except SessionRefused as e:
+                reset_reply = {"ok": False, "error": str(e)}
+            time.sleep(LATCH_POST_S)
+            trip_frames = [tr for t, tr in c.trip_history if t > t_cont]
+        sec = box.get("section") or {"samples": [], "problems": [box.get("error") or "no section"]}
+        same = sc.eval_latch_same_cycle("latch-same-cycle.delayed-order" if delayed else "latch-same-cycle", sec,
+                                        delayed=delayed)
+        rows += [tag(same), tag(sc.eval_latch_sticky("latch-sticky", sec, reset_reply, trip_frames))]
+        _servo_failed(box, rows, "the latch outage")
+        why = tp.own_trip(before_trip, same.get("edge_index"), inst_before,
+                          list((sh.unit_instance(unit) or ())[1:]))
+        if why:
+            raise StepFailed(rows, f"the trip is not proven the run's own: {why} — not acknowledged")
+        with _section(ctx, "latch-recovery") as box:
+            i_f, i_t = len(c.frames), len(c.trip_history)
+            c.request("safety_trip_ack")
+            c.request("arm", armed=True)
+            c.request("estop_reset")
+            _wait(c, lambda s: s.get("is_estop") is False, 10, "E-Stop reset after the trip")
+            c.request("machine_on")
+            _wait(c, lambda s: s.get("is_enabled") is True, 10, "machine on after the trip")
+            time.sleep(RECOVERY_POST_S)
+            # the frames received in the recovery, each with its own trip field
+            frames = [(tr, st.get("is_estop"), st.get("is_enabled"))
+                      for (_t, st), (_t2, tr) in zip(c.frames[i_f:], c.trip_history[i_t:])]
+        sec = box.get("section") or {"samples": [], "problems": [box.get("error") or "no section"]}
+        rows.append(tag(sc.eval_latch_recovered("latch-recovered", sec, frames)))
+        _servo_failed(box, rows, "the latch recovery")
+        return rows
+    return ("latch", step)
+
+
 def _pos(st, axis):
     pos = st.get("joint_pos")
     return pos[axis] if isinstance(pos, list) and len(pos) > axis else None
@@ -1236,18 +1358,23 @@ def main(argv=None) -> int:
     ap.add_argument("--run-dir", type=Path, required=True)
     ap.add_argument("--commit", default="HEAD")
     ap.add_argument("--profile", default="3axis_xyz", choices=sorted(PROFILES))
+    ap.add_argument("--variant", choices=VARIANTS, help="a step-3 variant: its own run and instance")
     a = ap.parse_args(argv)
     if not in_restore_unit():
         print("native_run: runs only in the user unit `native-run` with the restore as its ExecStopPost (see --help)")
         return 2
     from test_support.system_host import SystemHost
     joints = PROFILES[a.profile][1]
+    base = [make_tree(a.commit, a.profile), make_copy(a.profile), start_copy(), connect_client(), servo_device()]
+    if a.variant == "latch-delayed":
+        steps = base + [latch_order(), latch_cases(a.variant)]
+    else:
+        steps = base + [home_cases(joints), jog_cases(joints), plateau_cases(), goto_cases(),
+                        probe_cases(), m600_cases(), m6_hold_case(), ts_sync_cases(), rfl_cases(),
+                        latch_cases()]
     with heavy_lock("native_run", wait=0):
-        report = run(SystemHost(), [make_tree(a.commit, a.profile), make_copy(a.profile), start_copy(),
-                                    connect_client(), servo_device(), home_cases(joints), jog_cases(joints),
-                                    plateau_cases(), goto_cases(),
-                                    probe_cases(), m600_cases(), m6_hold_case(), ts_sync_cases(),
-                                    rfl_cases()], a.run_dir)
+        report = run(SystemHost(), steps, a.run_dir)
+    report["variant"] = a.variant
     report["verdict"] = verdict(report)
     write_json(a.run_dir / "report.json", report)
     print(f"native_run: {report['verdict']} — restore {report['restore']['outcome']} → {a.run_dir / 'report.json'}")

@@ -56,6 +56,10 @@ class SimulatorClient:
         # frame and on each change — what the form's machine line projects
         self.toolsetter_booking = None
         self.booking_history: list = []   # (monotonic s, booking) on each arrival
+        # the unacknowledged trip rides every status frame's envelope while
+        # it waits (sparse: absent = none) — kept per frame (step 3)
+        self.safety_trip = None
+        self.trip_history: list = []      # (monotonic s, safety_trip or None) per status frame
         # every status frame RECEIVED, in receipt order: (monotonic s, the
         # `keep` fields of the merged status) — a case reads frames, never
         # re-reads of `status` (R292 FI-I24: a cache read is no observation)
@@ -108,6 +112,8 @@ class SimulatorClient:
                 self.rfl_history.append((now, msg["rfl_status"]))
             if "preview_origin" in msg:
                 self.preview_origin = msg["preview_origin"]
+            self.safety_trip = msg.get("safety_trip")
+            self.trip_history.append((now, self.safety_trip))
             if isinstance(msg.get("toolsetter_booking"), dict):
                 self.toolsetter_booking = msg["toolsetter_booking"]
                 self.booking_history.append((now, msg["toolsetter_booking"]))
