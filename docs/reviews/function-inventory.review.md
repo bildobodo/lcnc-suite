@@ -6638,3 +6638,86 @@ Beleg: [`function-inventory.r312.evidence.json`](function-inventory.r312.evidenc
 - damit die Bestätigung, dass die Lücken `F-TOOLSETTER.S2c` (P2 nativ) und `F-RFL.S3` (2c-b) geschlossen werden dürfen.
 
 Danach folgt Stufe 3 der nativen Stufe. Die Merges nach `development` warten auf den Blick des Operators.
+
+---
+
+## Codex · Nachprüfung R312 · 6. November 2026
+
+**Urteil: A `agreement`, B `agreement`, C `findings`.** Geprüft an der integrierten Archivkopie **`18f3f155`**, Dokumentstand **`bcdcdf69`**. Die geprüften Gateway-/Rundungsdateien sind bytegleich zu Teil A **`264c5fa6`**, der Servo-Auswerter zu Teil B **`f4197439`**. **FI-I38 bis FI-I42 sind geschlossen.** In Teil C bleiben zwei begrenzte Befunde am neuen Testverfahren: **FI-I43 und FI-I44**. Keine Operatorfrage.
+
+### A · P2-Korrekturen abgenommen
+
+Die eigene R311-Probe benutzt wieder die echte `_rfl_sequence`, `set_mode` und `_cmd_blocking` mit `fake_linuxcnc`. Ändert sich die Sektion vor dem AUTO-Modusschreiben, wird jetzt **weder der Modus noch AUTO_RUN geschrieben**; die Phase nennt „changed meanwhile“. Damit ist FI-I38 geschlossen.
+
+Die tatsächliche Gateway-Buchung für **−179,0078125** enthält jetzt **−179,007813**. In die echten TypeScript-Module eingespeist ergibt sie **`confirmed`**. Die gemeinsamen Vertragsfälle und Wächter decken auch positive Halbwerte sowie `applied` und `read` ab. FI-I39 ist geschlossen; die Anpassung der serverseitigen Rundung an die Formularprojektion ist angenommen.
+
+Die native Anwendung von P2 ist zusätzlich durch den positiven Datensatz von Teil C belegt. Die unten genannten Restbefunde betreffen dessen automatische Bewertung, nicht einen in diesem Lauf beobachteten fehlgeschlagenen Abgleich.
+
+### B · 2c-b abgenommen; die Inventarlücke darf geschlossen werden
+
+Die erneut ausgeführten eigenen Gegenfälle ergeben:
+
+- Abstieg direkt über die R→0-Grenze, danach korrekter Einstieg: **FAIL**.
+- Keine Routinenabtastung vor dem sonst korrekten Einstieg: **`incomplete`**.
+- Frühe bewegte Programmzeile 6 trotz späterer Routinenzeile: weiterhin **FAIL**.
+- Gesamter RFL-Schritt mit dem geänderten Routinentext (`X25` ohne neues G-Wort): **`incomplete`**, mit abweichendem Quellhash. Die Probe benötigt wegen P2 zusätzlich die Regeldatei im temporären Testbaum; die geänderte Routine selbst ist unverändert zur R311-Gegenprobe.
+
+Die neuen Repository-Wächter ergänzen die kleinen kumulierten Grenzschritte, unbekanntes Grenz-Z, geänderten/fehlenden Wrapper und den zulässigen XY-Auslauf. Quellenbindung und Phasengrenze erfüllen damit den vereinbarten festen Versuch.
+
+Beide gespeicherten Servo-Ströme wurden mit dem aktuellen Auswerter unabhängig neu bewertet, einschließlich Abschnittsfehlern, fortlaufender Abtastnummern, eigener Marke und gebundener Quellen:
+
+| Aufzeichnung | Abtastungen | Erster Ruheanker | Positiv | Gegenprobe X+1 |
+|---|---:|---:|---|---|
+| Lauf 10, `20261105T232301` | 50 170 | 345381 | PASS | FAIL |
+| Lauf 11, `20261106T003055` | 50 049 | 400214 | PASS | FAIL |
+
+Die protokollierte Wiederherstellung ist in beiden Fällen `complete`, die Isolation leer. **`F-RFL.S3` darf den offenen Punkt „2c-b“ verlieren**, unter den weiterhin benannten Grenzen des festen Programms, der geprüften Routinentexte und der 3-Achs-Sim.
+
+### C · Der positive native P2-Beleg ist bestätigt
+
+Lauf 11 ist an **`18f3f155`** gebunden. Die Nachrechnung ergibt aus L0=50 und **#3102 −180→−179** die erwartete Länge **49 mm**, gemessen **48,99955 mm**, Abweichung **−0,00045 mm** innerhalb ±0,002 mm. G43 entspricht der Tabellenlänge. Die Bewertung gegen die alte Basis wird abgelehnt. Das ist ein verwertbarer positiver nativer Beleg.
+
+Auch die gespeicherten Buchungen habe ich durch die **echte Formularprojektion** laufen lassen: vorher **`pending`, differ=["3102"]**, nachher **`confirmed`**. Alle 23 erwarteten Zahlen sind bestätigt; Version **25→30**. Die Erwartungswerte der Nachrechnung stammen aus der vorherigen Basis plus der bewusst geänderten #3102 und dem festgelegten langsamen Vorschub, nicht aus der zu prüfenden Nachher-Buchung.
+
+Der zweite Start meldet `synced:false`, Version **30→30**. Die gespeicherte Gateway-Spur nennt für beide Starts dieselbe Digest, zuerst `wrote:true/taken:true`, danach `wrote:false`. Es gibt **keinen NML-Fehler ab dem ersten P2-Start** in dieser Spur; der einzige NML-Fehler Typ 11 liegt davor beim vorgesehenen Probe-miss-Fall. Die Messung wird durch die folgenden Gegenfälle also nicht nachträglich zu einem fehlgeschlagenen Lauf erklärt.
+
+### FI-I43 · P2 · Der Buchungswächter beweist nicht die behaupteten Formularzustände
+
+**Ort:** `scripts/test_support/native_cases.py:361`, insbesondere die Vorbedingung ab 374 und der Zahlenvergleich ab 379, am Stand `18f3f155`.
+
+`eval_ts_booking` behauptet „alte Zahl vorher, jede Zahl der Sektion bestätigt nachher“, prüft aber einen schwächeren Vertrag als das Formular:
+
+1. **Nachher:** Bei Soll **−179,000000** und bestätigter Buchung **−178,999999** liefert er **PASS**. `SAME=1e-6` ist hier eine Toleranz; dieser Abstand liegt als Binärzahl knapp darunter. Die echte TypeScript-Projektion liefert dagegen **`pending`, differ=["3102"]**. Beide Zahlen haben bereits sechs Dezimalstellen. Die ausdrücklich vereinbarte exakte kanonische Gleichheit darf für diese Aussage nicht durch eine Messtoleranz ersetzt werden.
+2. **Vorher:** Eine Buchung mit `version:25, keys:{}` oder mit #3102 als **`assumed`** liefert ebenfalls **PASS**, sobald die Nachher-Buchung passt. Das Formular ist vorher jedoch **`unconfirmed`**, nicht der behauptete bestätigte alte Stand. Selbst eine bekannte, aber falsche alte #3102 **−42** statt der gelesenen **−180** wird akzeptiert: Der Auswerter kennt die erwartete Vorher-Zahl gar nicht.
+
+Die eigene Probe verändert jeweils nur diese Eingabe eines sonst gültigen, gespeicherten Falls und führt sowohl den echten Python-Auswerter als auch die echten TypeScript-Funktionen aus. Der unveränderte Datensatz bleibt als positive Kontrolle grün.
+
+**Korrektur:** Für die Aussage zur Formularzeile denselben Kanonisierungs-/Gleichheitsvertrag verwenden; die vorherige Buchung an die tatsächlich vorbereitete beziehungsweise gelesene Basis binden. Fehlende oder nur angenommene Vorher-Werte dürfen den behaupteten Zustandswechsel nicht beweisen. Für physische Längenmessungen bleiben deren eigene Toleranzen bestehen.
+
+**Wächter:** die drei oben genannten Formen (abweichende sechste Dezimalstelle, fehlender/angenommener Vorher-Stand, falsche alte Zahl), neben `pending→confirmed` aus Lauf 11; `read` und `applied` bleiben zulässig. Ein bereits bestätigter neuer Wert ist weiterhin kein Nachweis dieses gezielten Abgleichsfalls.
+
+### FI-I44 · P2 · Ein Fehler des zweiten Starts bleibt im gesamten Test grün
+
+**Orte:** `scripts/native_run.py:1058` und `scripts/test_support/native_cases.py:397`.
+
+Beim ersten Start werden dessen NML-Fehler an den Auswerter gegeben. Beim zweiten Start wird **keine Fehlergrenze gezogen und kein Fehler ausgewertet**. `RoutineEnd` prüft nur Status/Stillstand; `eval_ts_stable` sieht ausschließlich Notiz und Versionszahlen.
+
+Die eigene Probe führt den **gesamten `ts_sync_cases`-Schritt** mit dem vorhandenen `TsClient` aus. Einziger Unterschied: Der zweite `cycle_start` liefert zusätzlich einen NML-Fehler **Typ 11** und endet wieder in Idle. Ergebnis: **alle vier Zeilen PASS**, auch `ts-sync-stable`; selbst `native_run.verdict` liefert bei erfolgreicher Wiederherstellung **PASS**. Der Fehler steht im Client, erreicht aber keine Bewertungszeile. Die unveränderte Ablaufkontrolle ist ebenfalls PASS.
+
+**Korrektur:** Auch den zweiten Start als eigenen Versuch bewerten und seine Fehler in der Zeile erhalten. Die Beobachtungsgrenzen an den zugelassenen Startversuch binden; dafür existiert bereits `_when_free(..., before=...)` aus FI-I37. Ein Fehler dieses Programms muss FAIL ergeben, auch wenn der Abgleich zutreffend nichts geschrieben hat. DEBUG-Meldungen und Fehler vor diesem Versuch dürfen ihn nicht verfälschen.
+
+**Wächter:** ganzer Schritt mit NML-Fehler beim zweiten Start → `ts-sync-stable` und Gesamturteil FAIL; derselbe Fehler vor dem Versuch zählt nicht; DEBUG bleibt zulässig; sauberer zweiter Start bleibt PASS. Das ist eine Korrektur des Testverfahrens, keine Forderung nach erneutem Schreiben gleicher Parameter.
+
+### Prüfungen, Belege und verbleibender Umfang
+
+- **44/44** ausgewählte Gateway-Tests grün (`test_toolsetter_sync`, `test_toolsetter_basis`, `test_toolsetter_rules`). Wegen des bereits belegten Sandbox-Problems mit `asyncio.to_thread` außerhalb der Sandbox, ausschließlich mit `fake_linuxcnc` in der Archivkopie.
+- **345/345** Tests der nativen Stufe und **36/36** Inventartests grün, zusammen **381**. Diese vorhandenen Wächter schließen die neuen Gegenfälle noch nicht ein.
+- Eigene R311-Gegenfälle gegen die Korrektur, zwei native Servo-Nachrechnungen, echte TypeScript-Projektion und neue Ablauf-/Auswerterproben wie beschrieben. Kein erneuter vollständiger Browser-/Merge-Gate-Lauf.
+- [Gesicherte Anfrage](function-inventory.r312.codex-request.md), [Prüfstände, Kommandos und Hashes](function-inventory.r312.codex-checks.json).
+- A: [Gateway-Probe](function-inventory.r312.codex-a.py), [Ergebnis](function-inventory.r312.codex-a.json), [TypeScript-Probe](function-inventory.r312.codex-state.cjs), [Ergebnis](function-inventory.r312.codex-state.json).
+- B: [Probe und Nachrechnung](function-inventory.r312.codex-b.py), [Lauf 10](function-inventory.r312.codex-b-run10.json), [Lauf 11](function-inventory.r312.codex-b-run11.json).
+- C: [Auswerter-/Ablaufprobe und Nachrechnung](function-inventory.r312.codex-c.py), [Ergebnisse](function-inventory.r312.codex-c.json), [Abgleich mit der echten Formularprojektion](function-inventory.r312.codex-c-state.cjs), [Ergebnisse](function-inventory.r312.codex-c-state.json).
+
+**Die pauschale Lücke „nativer Lauf steht aus“ bei `F-TOOLSETTER.S2c` ist durch Lauf 11 überholt.** Bitte sie durch den präzisen Stand „positiver nativer Lauf belegt; Testverfahren FI-I43/FI-I44 offen“ ersetzen. Zur vollständigen Abnahme von C müssen die beiden Gegenfälle geschlossen sein. Aus diesen Befunden allein folgt keine Pflicht zu einem neuen Maschinenlauf: Derselbe unveränderte positive Datensatz plus die korrigierten negativen Wächter kann genügen.
+
+Keine Produktänderung, kein Build/Test/Checkout im Live-Baum, keine Verbindung zur Live-Sim und keine Maschinenbefehle. Nur dieser Anhang und neue R312-Belege; frühere Belege unverändert. Die Gegenproben halten teils noch offene Fehler fest; ihr erfolgreicher Prozessabschluss bedeutet dort **reproduziert**, nicht abgenommen.

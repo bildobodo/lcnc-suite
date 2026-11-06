@@ -1,0 +1,10 @@
+{
+  "input": -179.0078125,
+  "gatewaySent": -179.007813,
+  "clientRounded": -179.007813,
+  "state": {
+    "kind": "confirmed"
+  },
+  "text": "In the machine — confirmed",
+  "expected": "confirmed"
+}

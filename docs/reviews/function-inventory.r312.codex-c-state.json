@@ -1,0 +1,64 @@
+{
+  "after_wrong_six_decimals": {
+    "native": "PASS",
+    "before": {
+      "kind": "pending",
+      "differ": [
+        "3102"
+      ]
+    },
+    "after": {
+      "kind": "pending",
+      "differ": [
+        "3102"
+      ]
+    }
+  },
+  "before_empty": {
+    "native": "PASS",
+    "before": {
+      "kind": "unconfirmed",
+      "confirmed": 0,
+      "total": 23,
+      "differ": []
+    },
+    "after": {
+      "kind": "confirmed"
+    }
+  },
+  "before_assumed": {
+    "native": "PASS",
+    "before": {
+      "kind": "unconfirmed",
+      "confirmed": 22,
+      "total": 23,
+      "differ": []
+    },
+    "after": {
+      "kind": "confirmed"
+    }
+  },
+  "before_wrong_number": {
+    "native": "PASS",
+    "before": {
+      "kind": "pending",
+      "differ": [
+        "3102"
+      ]
+    },
+    "after": {
+      "kind": "confirmed"
+    }
+  },
+  "recorded": {
+    "before": {
+      "kind": "pending",
+      "differ": [
+        "3102"
+      ]
+    },
+    "after": {
+      "kind": "confirmed"
+    }
+  }
+}

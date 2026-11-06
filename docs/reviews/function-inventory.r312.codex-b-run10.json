@@ -1,0 +1,196 @@
+{
+  "clean": {
+    "actual": {
+      "case": "rfl-start-point",
+      "status": "PASS",
+      "detail": "line 7 started at the entry X/Y on the safe height, at rest since reaching it; no earlier line moved",
+      "line": 7,
+      "entry_xy": [
+        100.0,
+        100.0
+      ],
+      "safe_z": 0.0,
+      "samples": 151,
+      "start": [
+        100.0,
+        100.0,
+        0.0
+      ],
+      "anchor_n": 1062
+    },
+    "expected": "PASS"
+  },
+  "descent_at_boundary": {
+    "actual": {
+      "case": "rfl-start-point",
+      "status": "FAIL",
+      "detail": "a descent before line 7: Z -0.002 below the earlier 0.000 (sample 1040)",
+      "line": 7,
+      "entry_xy": [
+        100.0,
+        100.0
+      ],
+      "safe_z": 0.0,
+      "samples": 150,
+      "start": [
+        100.0,
+        100.0,
+        0.0
+      ],
+      "anchor_n": 1061
+    },
+    "expected": "FAIL"
+  },
+  "routine_boundary_absent": {
+    "actual": {
+      "case": "rfl-start-point",
+      "status": "incomplete",
+      "detail": "no sample of the pre-measurement's routine before line 7 \u2014 the boundary is not proven",
+      "line": 7,
+      "entry_xy": [
+        100.0,
+        100.0
+      ],
+      "safe_z": 0.0,
+      "samples": 109,
+      "start": [
+        100.0,
+        100.0,
+        0.0
+      ]
+    },
+    "expected": "incomplete"
+  },
+  "r310_early_program": {
+    "actual": {
+      "case": "rfl-start-point",
+      "status": "FAIL",
+      "detail": "line 6 moved before line 7 (sample 1020)",
+      "line": 7,
+      "entry_xy": [
+        100.0,
+        100.0
+      ],
+      "safe_z": 0.0,
+      "samples": 171,
+      "start": [
+        100.0,
+        100.0,
+        0.0
+      ],
+      "anchor_n": 1082
+    },
+    "expected": "FAIL"
+  },
+  "changed_routine_whole_step": {
+    "hashes": {
+      "subroutines/tool_length_probe/tool_touch_off.ngc": {
+        "original": "4990c7b303cb43bf0aa8cb11948277072874558f5902d3c48a59133ec555097d",
+        "changed": "24a0bcaa191c576b70957722d1d6f5dea9e0bace9ce0c4f915f4ea2d6a67784e"
+      },
+      "subroutines/tool_length_probe/m600.ngc": {
+        "original": "acbaeb68313eb7f769eea45f5b1bf83455d55976515857f47811c1d0d773e919",
+        "changed": "acbaeb68313eb7f769eea45f5b1bf83455d55976515857f47811c1d0d773e919"
+      }
+    },
+    "row": {
+      "case": "rfl-start-point",
+      "status": "incomplete",
+      "detail": "the routine text subroutines/tool_length_probe/tool_touch_off.ngc is not the checked one (sha 24a0bcaa191c\u2026)",
+      "line": 7,
+      "entry_xy": [
+        100.0,
+        100.0
+      ],
+      "safe_z": 0.0,
+      "samples": 151,
+      "sources": {
+        "subroutines/tool_length_probe/tool_touch_off.ngc": "24a0bcaa191c576b70957722d1d6f5dea9e0bace9ce0c4f915f4ea2d6a67784e",
+        "program": "623c541452bd24ad4bfd2075287ff68081e0785eff09c53366f00526bcc95773"
+      }
+    },
+    "expected": "incomplete; the approved routine hash differs",
+    "modal_line_602_in_mapping": false
+  },
+  "saved_live_run": {
+    "commit": "672ba228083e863599111c9ea932f5720191ecf4",
+    "report_verdict": "PASS",
+    "restore": "complete",
+    "isolation": [],
+    "stream_sha256": "c8eab0da8a06a0086717c1aa27a0bd48153d2d202fdaa4dece0f28054e4aa5a2",
+    "samples": 50170,
+    "section_problems": [],
+    "positive": {
+      "case": "rfl-start-point",
+      "status": "PASS",
+      "detail": "line 7 started at the entry X/Y on the safe height, at rest since reaching it; no earlier line moved",
+      "line": 7,
+      "entry_xy": [
+        100,
+        100
+      ],
+      "safe_z": 0,
+      "samples": 50170,
+      "sources": {
+        "subroutines/tool_length_probe/tool_touch_off.ngc": "4990c7b303cb43bf0aa8cb11948277072874558f5902d3c48a59133ec555097d",
+        "subroutines/tool_length_probe/m600.ngc": "acbaeb68313eb7f769eea45f5b1bf83455d55976515857f47811c1d0d773e919",
+        "program": "623c541452bd24ad4bfd2075287ff68081e0785eff09c53366f00526bcc95773"
+      },
+      "start": [
+        100.0,
+        100.0,
+        0.0
+      ],
+      "anchor_n": 345381
+    },
+    "counter": {
+      "case": "counter",
+      "status": "FAIL",
+      "detail": "line 7 started at X 100.0 Y 100.0, not the entry X 101 Y 100",
+      "line": 7,
+      "entry_xy": [
+        101,
+        100
+      ],
+      "safe_z": 0,
+      "samples": 50170,
+      "sources": {
+        "subroutines/tool_length_probe/tool_touch_off.ngc": "4990c7b303cb43bf0aa8cb11948277072874558f5902d3c48a59133ec555097d",
+        "subroutines/tool_length_probe/m600.ngc": "acbaeb68313eb7f769eea45f5b1bf83455d55976515857f47811c1d0d773e919",
+        "program": "623c541452bd24ad4bfd2075287ff68081e0785eff09c53366f00526bcc95773"
+      },
+      "start": [
+        100.0,
+        100.0,
+        0.0
+      ]
+    },
+    "axis_separation": {
+      "7": {
+        "first_n": 345573,
+        "samples": 2067,
+        "other_axis_deviation": {
+          "Y": 0.0,
+          "Z": 0.0
+        }
+      },
+      "8": {
+        "first_n": 347640,
+        "samples": 2067,
+        "other_axis_deviation": {
+          "X": 0.00028599999998846215,
+          "Z": 0.0
+        }
+      },
+      "9": {
+        "first_n": 349707,
+        "samples": 576,
+        "other_axis_deviation": {
+          "X": 0.0,
+          "Y": 0.00028599999998846215
+        }
+      }
+    },
+    "rfl_errors": []
+  }
+}

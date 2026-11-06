@@ -1,0 +1,131 @@
+{
+  "round": "R312",
+  "verdict": "findings",
+  "parts": {
+    "A": "agreement",
+    "B": "agreement",
+    "C": "findings"
+  },
+  "closed": [
+    "FI-I38",
+    "FI-I39",
+    "FI-I40",
+    "FI-I41",
+    "FI-I42"
+  ],
+  "open": {
+    "FI-I43": "The booking evaluator accepts states that do not establish the claimed pending-to-confirmed transition.",
+    "FI-I44": "The second start can report an NML error while all four P2 rows and the aggregate still pass."
+  },
+  "refs": {
+    "document": "bcdcdf697148acff33ba38b40a52ace8ea46a9b5",
+    "a_base": "430832be3dd387ec093b6bfcc9f5539e66e05304",
+    "a_head": "264c5fa6c6e4564a745fa3cb96a3c3fae7d5d8f0",
+    "b_base": "672ba228083e863599111c9ea932f5720191ecf4",
+    "b_head": "f41974392993c77512c0255d839eda3806e004e0",
+    "integrated": "18f3f155aae711f7afea728a9bdb01917011573e"
+  },
+  "archive": "/tmp/codex-r312",
+  "review_prefix": {
+    "bytes": 718429,
+    "sha256": "69a23c68cd1ac681c491b00e840a20ffd6e71e9fad6bdd26d925b0496909f844"
+  },
+  "identity": {
+    "lcnc-gateway/gateway.py": {
+      "reference": "264c5fa6",
+      "sha256": "bd15469d09176d896a4b7312ea4d3d8fbc4a8ec16b9f383911130f5342d5b62c",
+      "identical": true
+    },
+    "lcnc-gateway/toolsetter_rules.py": {
+      "reference": "264c5fa6",
+      "sha256": "8f0f7344b8de571208706875408b5b0e65950bda1304c5f1cf042b52a92ff075",
+      "identical": true
+    },
+    "lcnc-webui/src/toolsetterState.ts": {
+      "reference": "264c5fa6",
+      "sha256": "bd594f15b825ae174b97ed0041f0bebe41f4f33db71eaefe2a4404e694d33e4e",
+      "identical": true
+    },
+    "scripts/test_support/servo_cases.py": {
+      "reference": "f4197439",
+      "sha256": "f0520477aa46abfb159aee168106f075e0905a3394bf7a254d9ae7b09b976b43",
+      "identical": true
+    }
+  },
+  "checks": [
+    {
+      "cwd": "/tmp/codex-r312/lcnc-gateway",
+      "command": "/home/cnc/lcnc-suite-tsync/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider test_toolsetter_sync.py test_toolsetter_basis.py test_toolsetter_rules.py",
+      "result": "44 passed, exit 0",
+      "sandbox": "outside sandbox, fake_linuxcnc only"
+    },
+    {
+      "cwd": "/tmp/codex-r312",
+      "command": "/home/cnc/lcnc-suite-tsync/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider scripts/test_native_stage.py scripts/inventory/test_inventory.py",
+      "result": "381 passed in 11.57s, exit 0 (345 native + 36 inventory)"
+    }
+  ],
+  "probes": [
+    {
+      "script": "codex-a.py",
+      "result": "AUTO mode and AUTO_RUN both absent; actual server booking exported",
+      "sandbox": "outside sandbox, fake_linuxcnc only"
+    },
+    {
+      "script": "codex-state.cjs",
+      "result": "actual TS projection confirmed"
+    },
+    {
+      "script": "codex-b.py",
+      "result": "R311 countercases now expected results; saved run 10 and run 11 PASS; each X+1 counter FAIL"
+    },
+    {
+      "script": "codex-c.py",
+      "result": "saved P2 values pass; four booking countercases and second-start NML error reproduced; baseline passes"
+    },
+    {
+      "script": "codex-c-state.cjs",
+      "result": "recording pending→confirmed; countercases show mismatch against native PASS"
+    }
+  ],
+  "probe_usage": {
+    "python": "/home/cnc/lcnc-suite-tsync/lcnc-gateway/.venv/bin/python3 -B",
+    "archive": "/tmp/codex-r312",
+    "node_modules": "/home/cnc/lcnc-suite-tsync/lcnc-webui/node_modules",
+    "arguments": "Each script states its complete arguments in the header."
+  },
+  "exploration_note": "A larger 0.0005 after-booking difference was correctly rejected; the retained countercase is the canonical six-decimal value -178.999999 vs -179.000000, whose binary difference falls within SAME=1e-6.",
+  "saved_inputs_sha256": {
+    "20261105T232301": {
+      "report.json": "17bea6f17c2310dbc4ff128c507e89552b8120cdd1c6cd6e4a81cf6cdf6f8740",
+      "servo-rfl.jsonl": "c8eab0da8a06a0086717c1aa27a0bd48153d2d202fdaa4dece0f28054e4aa5a2"
+    },
+    "20261106T003055": {
+      "report.json": "a8f710c324eaac5aeb406ebb885fa228b90611a9932d70448efe7683c0ccae9f",
+      "servo-rfl.jsonl": "bb3cbeba84c5fc24e9c4000dc023f7c987b655ab1252879c04cb708abea9cca6",
+      "logs/trace.ndjson": "bed2004d545a5e37e6c3d505c133bdd78a689289e9bc7d7dcf4a2ac9dc6ec9ee"
+    }
+  },
+  "evidence_sha256": {
+    "function-inventory.r312.codex-request.md": "8a75c3179f1375b12291adfe27940866072ed5d0d61373d7542eb74af4d25a28",
+    "function-inventory.r312.codex-a.py": "e550927286dd94d1f9754a20a3e63397d49317bf65e197734efba3790e2d513b",
+    "function-inventory.r312.codex-a.json": "1af139bb8cb3ab36479a5558f24c3cbbf17b23dfc71bf4f5b5ac23ed4245f6f8",
+    "function-inventory.r312.codex-state.cjs": "6e4a38bb2786045e88adfbd7acfcc52a3b873572cf9ad516dc94c1f1e54d6104",
+    "function-inventory.r312.codex-state.json": "202a90cc1dbabbe4765315c67cbecc076eb630cca5ee36a02ee0a55fe21763d8",
+    "function-inventory.r312.codex-b.py": "65d25adf7720284f882b3f045197e153644897d87d07fbc54e211ec1be7b515c",
+    "function-inventory.r312.codex-b-run10.json": "4ecb47b4d5ffc0930c787dd090fb1b980e7fa2f1503037ce9affab2dc92de071",
+    "function-inventory.r312.codex-b-run11.json": "e45028b9c7401a3cf1cc334050ab723fc7d36e6b0a7d264f5196f548336ec8c5",
+    "function-inventory.r312.codex-c.py": "fc38054efd240c42e83cb9da0c8fbfd12961356253afd46ed264cb48845c0fb0",
+    "function-inventory.r312.codex-c.json": "b08d897e5135261a61744b79ac26f68a222988e7c0ad96a868d0db7ea6d28152",
+    "function-inventory.r312.codex-c-state.cjs": "4a0ee0482f87f1896b366cb4c9481ec1ee1e8f1715b9ddeeebe2b235bc844e57",
+    "function-inventory.r312.codex-c-state.json": "e6b863f67edca730c1c91b6373b52042988442b07d1b44e3cd76afdb66ec70d5"
+  },
+  "limits": [
+    "No product edits or commits",
+    "No build, tests or checkout in the live tree",
+    "No live connection or machine commands",
+    "Saved records only; no new native run",
+    "No repeat of full browser/merge gates",
+    "Open-countercase probe exit 0 means reproduced, not agreement"
+  ]
+}
