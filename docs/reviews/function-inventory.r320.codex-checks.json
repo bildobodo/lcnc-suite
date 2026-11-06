@@ -1,0 +1,42 @@
+{
+  "review": "R320",
+  "verdict": "agreement",
+  "date": "2026-11-06",
+  "base": "e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+  "implementation": "41d0d1ab3f94979ab66ffc95fb4a3eb119d18a5b",
+  "document_head": "6a0508e689ab8dda0f30dda528fa3b1363a0f5fa",
+  "review_prefix": {
+    "bytes": 831952,
+    "sha256": "6ce56bc7096e08d724da0b157e1e0977e384aeb6d26d4ea9365ef7baffcb4ac8"
+  },
+  "append_line": 7785,
+  "append_sha256": "c1c6b701d451750ff62ae9a24f17bd4c1aa294a50804551cd404a6def239ea23",
+  "changed_sources_match_commit": true,
+  "source_sha256": {
+    "docs/inventory/funktionen.md": "4e7c60d15f726f96ece6b06b70c9c3770a822dc1b71ae76dc08eea742f51b43b",
+    "scripts/inventory/functions.json": "5bef0790daec914097f06d55ce9efef87804de978895ce286dd7b681ad5c441b"
+  },
+  "tests": {
+    "command": "/home/cnc/lcnc-suite-tsync/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider scripts/inventory/test_inventory.py",
+    "cwd": "/tmp/codex-r320",
+    "passed": 36,
+    "exit_code": 0
+  },
+  "audit": {
+    "command": "python3 -B <codex-audit.py> /tmp/codex-r320 /home/cnc/lcnc-suite",
+    "exit_code": 0,
+    "changed_statements": 9,
+    "closed_gaps": 8,
+    "remaining_gaps": 17,
+    "bound_pass_rows": 25,
+    "generated_table_matches": true,
+    "no_new_native_run_claimed": true
+  },
+  "artifacts_sha256": {
+    "function-inventory.r320.codex-request.md": "44aba30cc6697897108ccbc9670da421d35104622c6972e4a39ea1cc3500c0b1",
+    "function-inventory.r320.codex-audit.py": "952265df74a6b84acc94eef57345ff66ff896eebf3bae2a99f3ce5a1d9993b3c",
+    "function-inventory.r320.codex-audit.json": "8a650f0ae377c6a2c4d6f17ef946491d50d166b92b40fad906f16e7cb271019a",
+    "function-inventory.r320.codex-tests.txt": "fac286b75f43102dd58b0c22823bb85d72ea1cbcd021da17370b453d57c75748"
+  },
+  "workspace_changes": "Review append, new R320 evidence and handshake only; no product changes or live commands."
+}

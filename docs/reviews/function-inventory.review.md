@@ -7782,3 +7782,19 @@ Die übrigen 16 Lücken sind eigene Pakete:
 Diese ändert diese Runde nicht.
 
 **Erbeten:** `agreement` oder `findings` zu diesen neun Inventaränderungen.
+
+---
+
+## Codex · Inventar-Nachprüfung R320 · 6. November 2026
+
+**Urteil: `agreement` zu den neun Inventaränderungen.** Geprüft: **`e4cb0c82..41d0d1ab`**, Dokumentstand **`6a0508e6`**. Keine Befunde oder Operatorfragen.
+
+Der strukturierte Vergleich bestätigt: Ausschließlich die neun genannten `gap`-Felder ändern sich; Aussagen, Geltungsbereiche und Belegbindungen bleiben unverändert. Acht überholte Hinweise „der native Lauf steht aus“ entfallen. **F-GOTO.S1c behält die echte Grenze des nicht ausgeübten G30-Abstiegs**; im Lauf liegt das G30-Ziel tatsächlich bei Z0. Die anderen 16 Lücken bleiben unverändert, insgesamt sind damit weiterhin 17 Lücken einschließlich dieses G30-Rests benannt.
+
+Alle **25 zugeordneten nativen Belege** treffen im abgenommenen Hauptlauf `20261106T040338` genau eine PASS-Zeile am Stand **`e4cb0c82`**, im Profil `3axis_xyz` und der Produktionsvariante. Geprüft wurde auch die Inventarfunktion `native_status`: Sie meldet PASS am tatsächlichen Laufstand; für den reinen Inventar-Nachfolger `41d0d1ab` bleibt es korrekt „ran at … (not this commit)“. Die Änderung behauptet somit keinen neuen Lauf am Nachfolger.
+
+Bei **F-JOG.S5** sind ausschließlich die sechs bestandenen `.servo`-Zeilen gebunden. Keine der sechs informativen, unvollständigen Statusframe-Zeilen wird zum positiven Nachweis umgedeutet. Die übrigen geänderten Bindungen für Home, Anfahren, Override, M6, M600 und Z-Antasten sind vollständig in der Prüfzuordnung festgehalten.
+
+**Prüfungen:** In einer Archivkopie von `41d0d1ab` **36 Inventartests PASS**, Inventarvalidierung ohne Befund, generierte Tabelle bytegleich zum eingecheckten Stand. Für diese reine Datenkorrektur war kein erneuter Maschinen-, Backend- oder Browserlauf nötig. Keine Produktänderung oder Live-Verbindung; im Live-Baum nur dieser Anhang und neue R320-Belege.
+
+**Belege:** [Gesicherte Anfrage](function-inventory.r320.codex-request.md), [Prüfskript](function-inventory.r320.codex-audit.py), [Zuordnung aller 25 Belege und Lauf-Hash](function-inventory.r320.codex-audit.json), [36 Tests](function-inventory.r320.codex-tests.txt), [Prüfstände und Hashes](function-inventory.r320.codex-checks.json).

@@ -1,0 +1,755 @@
+{
+  "base": "e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+  "head": "41d0d1ab3f94979ab66ffc95fb4a3eb119d18a5b",
+  "changed_statements": {
+    "F-GOTO.S1c": {
+      "applies": [
+        "Machine"
+      ],
+      "old_gap": "der native Lauf steht aus (gebaut: Schritt 2c); → G30 ohne Abstieg (#5183 = 0 in der Kopie)",
+      "gap": "→ G30 ohne Abstieg: #5183 = 0 in der Kopie, der Abstieg auf #5183 nach X/Y nicht ausgeübt",
+      "matches": [
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "goto-zero",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "goto-zero",
+            "status": "PASS",
+            "detail": "Z up first, then X/Y; no descent (the target's Z is up); at rest on the target",
+            "start": [
+              200.0,
+              200.0,
+              -60.0
+            ],
+            "target": [
+              100.0,
+              100.0,
+              0.0
+            ],
+            "problems": []
+          }
+        },
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "goto-home",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "goto-home",
+            "status": "PASS",
+            "detail": "Z up first, then X/Y; no descent (the target's Z is up); at rest on the target",
+            "start": [
+              200.0,
+              200.0,
+              -60.0
+            ],
+            "target": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "problems": []
+          }
+        },
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "goto-g30",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "goto-g30",
+            "status": "PASS",
+            "detail": "Z up first, then X/Y; no descent (the target's Z is up); at rest on the target",
+            "start": [
+              200.0,
+              200.0,
+              -60.0
+            ],
+            "target": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "problems": []
+          }
+        },
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "goto-zero.counter-xy-first",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "goto-zero.counter-xy-first",
+            "status": "PASS",
+            "detail": "the planted value is refused: X moved -0.012 mm with Z at -60.000 (sample 135040)",
+            "counter": true,
+            "inner": {
+              "case": "goto-zero",
+              "status": "FAIL",
+              "detail": "X moved -0.012 mm with Z at -60.000 (sample 135040)",
+              "start": [
+                200.0,
+                200.0,
+                -60.0
+              ],
+              "target": [
+                100.0,
+                100.0,
+                0.0
+              ],
+              "problems": []
+            }
+          }
+        }
+      ]
+    },
+    "F-HOME.S2c": {
+      "applies": [
+        "3axis_xyz"
+      ],
+      "old_gap": "der native Lauf steht aus (gebaut: Schritt 1)",
+      "gap": null,
+      "matches": [
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "home-all",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "home-all",
+            "status": "PASS",
+            "detail": "as expected",
+            "expected": [
+              true,
+              true,
+              true
+            ],
+            "observed": [
+              true,
+              true,
+              true
+            ]
+          }
+        },
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "home-joint-0",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "home-joint-0",
+            "status": "PASS",
+            "detail": "as expected",
+            "expected": [
+              true,
+              false,
+              false
+            ],
+            "observed": [
+              true,
+              false,
+              false
+            ]
+          }
+        },
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "home-joint-1",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "home-joint-1",
+            "status": "PASS",
+            "detail": "as expected",
+            "expected": [
+              false,
+              true,
+              false
+            ],
+            "observed": [
+              false,
+              true,
+              false
+            ]
+          }
+        },
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "home-joint-2",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "home-joint-2",
+            "status": "PASS",
+            "detail": "as expected",
+            "expected": [
+              false,
+              false,
+              true
+            ],
+            "observed": [
+              false,
+              false,
+              true
+            ]
+          }
+        }
+      ]
+    },
+    "F-JOG.S5": {
+      "applies": [
+        "3axis_xyz"
+      ],
+      "old_gap": "der native Lauf steht aus (gebaut: Schritt 2c)",
+      "gap": null,
+      "matches": [
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "jog-x+.servo",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "jog-x+.servo",
+            "status": "PASS",
+            "detail": "moved in its sign, stopped within its bounds",
+            "axis": "X",
+            "sign": 1,
+            "bound_mm": 2.067,
+            "problems": [],
+            "samples": 1360,
+            "travel_mm": 15.0744,
+            "anchor_n": 36607,
+            "brake_upper_mm": 1.2256,
+            "standstill_n": 36664,
+            "standstill_received_s": 0.0527,
+            "samples_anchor_to_standstill": 57
+          }
+        },
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "jog-x-.servo",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "jog-x-.servo",
+            "status": "PASS",
+            "detail": "moved in its sign, stopped within its bounds",
+            "axis": "X",
+            "sign": -1,
+            "bound_mm": 2.067,
+            "problems": [],
+            "samples": 1361,
+            "travel_mm": 15.5934,
+            "anchor_n": 38531,
+            "brake_upper_mm": 0.9066,
+            "standstill_n": 38580,
+            "standstill_received_s": 0.0458,
+            "samples_anchor_to_standstill": 49
+          }
+        },
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "jog-y+.servo",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "jog-y+.servo",
+            "status": "PASS",
+            "detail": "moved in its sign, stopped within its bounds",
+            "axis": "Y",
+            "sign": 1,
+            "bound_mm": 2.067,
+            "problems": [],
+            "samples": 1360,
+            "travel_mm": 15.0371,
+            "anchor_n": 40505,
+            "brake_upper_mm": 1.3129,
+            "standstill_n": 40564,
+            "standstill_received_s": 0.0671,
+            "samples_anchor_to_standstill": 59
+          }
+        },
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "jog-y-.servo",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "jog-y-.servo",
+            "status": "PASS",
+            "detail": "moved in its sign, stopped within its bounds",
+            "axis": "Y",
+            "sign": -1,
+            "bound_mm": 2.067,
+            "problems": [],
+            "samples": 1365,
+            "travel_mm": 15.3294,
+            "anchor_n": 42492,
+            "brake_upper_mm": 1.0206,
+            "standstill_n": 42544,
+            "standstill_received_s": 0.0518,
+            "samples_anchor_to_standstill": 52
+          }
+        },
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "jog-z+.servo",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "jog-z+.servo",
+            "status": "PASS",
+            "detail": "moved in its sign, stopped within its bounds",
+            "axis": "Z",
+            "sign": 1,
+            "bound_mm": 2.483,
+            "problems": [],
+            "samples": 1362,
+            "travel_mm": 14.9519,
+            "anchor_n": 44464,
+            "brake_upper_mm": 1.5481,
+            "standstill_n": 44536,
+            "standstill_received_s": 0.0703,
+            "samples_anchor_to_standstill": 72
+          }
+        },
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "jog-z-.servo",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "jog-z-.servo",
+            "status": "PASS",
+            "detail": "moved in its sign, stopped within its bounds",
+            "axis": "Z",
+            "sign": -1,
+            "bound_mm": 2.483,
+            "problems": [],
+            "samples": 1359,
+            "travel_mm": 14.7369,
+            "anchor_n": 46469,
+            "brake_upper_mm": 1.4631,
+            "standstill_n": 46539,
+            "standstill_received_s": 0.07,
+            "samples_anchor_to_standstill": 70
+          }
+        }
+      ]
+    },
+    "F-OVERRIDE.S2": {
+      "applies": [
+        "3axis_xyz"
+      ],
+      "old_gap": "der native Lauf steht aus (gebaut: Schritt 2c)",
+      "gap": null,
+      "matches": [
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "override-plateau-100",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "override-plateau-100",
+            "status": "PASS",
+            "detail": "median 100.00 mm/s within 100 ± 5%",
+            "expected": 100.0,
+            "tol": 0.05,
+            "pairs": 2999,
+            "problems": [],
+            "median": 100.0
+          }
+        },
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "override-plateau-50",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "override-plateau-50",
+            "status": "PASS",
+            "detail": "median 50.00 mm/s within 50 ± 5%",
+            "expected": 50.0,
+            "tol": 0.05,
+            "pairs": 5999,
+            "problems": [],
+            "median": 50.0
+          }
+        },
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "override-plateau.counter-75",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "override-plateau.counter-75",
+            "status": "PASS",
+            "detail": "the planted value is refused: median 100.00 mm/s — expected 75 ± 5%",
+            "counter": true,
+            "inner": {
+              "case": "override-plateau-100",
+              "status": "FAIL",
+              "detail": "median 100.00 mm/s — expected 75 ± 5%",
+              "expected": 75.0,
+              "tol": 0.05,
+              "pairs": 2999,
+              "problems": [],
+              "median": 100.0
+            }
+          }
+        }
+      ]
+    },
+    "F-OVERRIDE.S2b": {
+      "applies": [
+        "3axis_xyz"
+      ],
+      "old_gap": "der native Lauf steht aus (gebaut: Schritt 2a)",
+      "gap": null,
+      "matches": [
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "m600-t1-override-lock",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "m600-t1-override-lock",
+            "status": "PASS",
+            "detail": "locked through the measuring phase, free after the routine",
+            "free_s": 39.386,
+            "locked_from_s": 0.246,
+            "done_s": 39.386
+          }
+        }
+      ]
+    },
+    "F-PROBE.S3": {
+      "applies": [
+        "3axis_xyz"
+      ],
+      "old_gap": "der native Lauf steht aus (gebaut: Schritt 2a)",
+      "gap": null,
+      "matches": [
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "probe-z",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "probe-z",
+            "status": "PASS",
+            "detail": "G54 Z -180.0011 within -180 ± 0.003",
+            "expected": -180.0,
+            "tol_mm": 0.003,
+            "contact": 1.0,
+            "g54_z": -180.0011166666662,
+            "errors": [],
+            "deviation_mm": -0.001117,
+            "vars_sent": {
+              "3014": 99.0,
+              "3015": 50.0,
+              "3016": 200.0,
+              "3017": 1000.0,
+              "3020": 10.0,
+              "3021": 2.0,
+              "3030": 0
+            }
+          }
+        },
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "probe-z.counter-plate-1",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "probe-z.counter-plate-1",
+            "status": "PASS",
+            "detail": "the planted value is refused: G54 Z -180.0011 — expected -179 ± 0.003",
+            "counter": true,
+            "inner": {
+              "case": "probe-z",
+              "status": "FAIL",
+              "detail": "G54 Z -180.0011 — expected -179 ± 0.003",
+              "expected": -179.0,
+              "tol_mm": 0.003,
+              "contact": 1.0,
+              "g54_z": -180.0011166666662,
+              "errors": [],
+              "deviation_mm": -1.001117
+            }
+          }
+        },
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "probe-z-miss",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "probe-z-miss",
+            "status": "PASS",
+            "detail": "no contact, nothing set, the error said so",
+            "error": "G38.2 move finished without making contact.",
+            "contact": 0.0,
+            "g54_before": 0.0,
+            "g54_after": 0.0,
+            "errors": [
+              [
+                11,
+                "G38.2 move finished without making contact."
+              ]
+            ],
+            "vars_read_back": {
+              "3014": 99.0,
+              "3015": 50.0,
+              "3016": 200.0,
+              "3017": 1000.0,
+              "3020": 10.0,
+              "3021": 2.0,
+              "3030": 0.0
+            }
+          }
+        }
+      ]
+    },
+    "F-TOOLCHANGE.S2": {
+      "applies": [
+        "3axis_xyz"
+      ],
+      "old_gap": "der native Lauf steht aus (gebaut: Schritt 2a)",
+      "gap": null,
+      "matches": [
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "m6-hold",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "m6-hold",
+            "status": "PASS",
+            "detail": "held 5 s waiting, then T99 with its length",
+            "tool_before": 1,
+            "tool_after": 99,
+            "offset_after": 50.0,
+            "samples": 147,
+            "max_gap_s": 0.04,
+            "held_s": 5.015,
+            "first_t": 1210407.2295511,
+            "last_t": 1210412.244652866
+          }
+        }
+      ]
+    },
+    "F-TOOLMEASURE.S5": {
+      "applies": [
+        "3axis_xyz"
+      ],
+      "old_gap": "der native Lauf steht aus (gebaut: Schritt 2a)",
+      "gap": null,
+      "matches": [
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "m600-t1",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "m600-t1",
+            "status": "PASS",
+            "detail": "length 49.9996 within 50 ± 0.002, applied as measured",
+            "l0": 50.0,
+            "length": 49.999550000000056,
+            "g43": 49.999550000000056,
+            "tol_mm": 0.002,
+            "errors": [],
+            "deviation_mm": -0.00045,
+            "table_on_disk": 49.99955
+          }
+        },
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "m600-t1.counter-3102",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "m600-t1.counter-3102",
+            "status": "PASS",
+            "detail": "the planted #3102 gave 48.9991 as predicted from 49.9995 — refused against it",
+            "base": 49.99955,
+            "planted_3102": -179.0,
+            "predicted": 48.99955,
+            "length": 48.99910000000011,
+            "g43": 48.99910000000011,
+            "tool_after": 1,
+            "errors": [],
+            "counter": true,
+            "l0": 50.0,
+            "table_on_disk": 48.9991
+          }
+        }
+      ]
+    },
+    "F-TOOLMEASURE.S6b": {
+      "applies": [
+        "3axis_xyz"
+      ],
+      "old_gap": "der native Lauf steht aus (gebaut: Schritt 2a)",
+      "gap": null,
+      "matches": [
+        {
+          "evidence": {
+            "layer": "native",
+            "file": "native_run.py",
+            "title": "m600-unload",
+            "profile": "3axis_xyz"
+          },
+          "status_at_run": "PASS at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947",
+          "status_at_inventory_commit": "ran at e4cb0c82a5bb1b2c3ea6edb81fb396af5ec41947 (not this commit)",
+          "row": {
+            "case": "m600-unload",
+            "status": "PASS",
+            "detail": "the spindle empty, no length applied",
+            "served": [
+              {
+                "tool": 0,
+                "seq": 2
+              }
+            ],
+            "tool_after": 0,
+            "offset_after": 0.0
+          }
+        }
+      ]
+    }
+  },
+  "matched_rows": 25,
+  "closed_gaps": 8,
+  "remaining_gaps": {
+    "F-ARM.S3b": "Gateway: kein Test bindet den Standardwert _HB_STALL_SEC",
+    "F-TRIP.S1b": "Browser/Gateway: Versand, Banner und Protokolleintrag beobachtet kein Test",
+    "F-SIMTRIP.S2": "Gateway: kein Test des Handlers (halcmd sets probe-in); nativ in der Sim",
+    "F-HOME.S2b": "Browser: sendet die Achsposition als Joint (SetupStrip a.index) und liest homed_joints an derselben Stelle — richtig, wo Joint = Achsposition (alle ausgelieferten Konfigurationen), falsch, wo nicht (Gantry, eigene Kinematik); braucht eine Achse→Joint-Zuordnung vom Gateway",
+    "F-JOG.S5b": "Browser: je Bildschirm-Knopf Achse und Richtung, parametrisiert; belegt sind bisher die Tastatur je Belegung und der Knopf X+",
+    "F-GOTO.S1c": "→ G30 ohne Abstieg: #5183 = 0 in der Kopie, der Abstieg auf #5183 nach X/Y nicht ausgeübt",
+    "F-OVERRIDE.S2c": "nativ: der Surface-Scan-Lauf (Q282-2)",
+    "F-COOLANT.S2": "nativ (native Stufe)",
+    "F-TOUCHOFF.S3b": "kein Test liest G54 nach dem Remap; nativ (scripts/twp_touchoff_plane_check.py, Laufbindung offen)",
+    "F-TWP.S3": "nativ: scripts/twp_capture_check.py und twp_reorient_check.py (Laufbindung offen)",
+    "F-LOAD.S3": "Browser/Gateway: Reload und Unload als Ergebnis nicht belegt",
+    "F-TOOLEDIT.S4": "Gateway: kein Test vergleicht die Tabelle vor und nach je Aktion; nativ",
+    "F-TOOLMEASURE.S4b": "Unit: kein Test gleicht die Abbildung mit den Lesestellen der Routine ab",
+    "F-SURFACE.S2": "nativ (native Stufe, mit hohem Antastvorschub über die Scan-Variablen)",
+    "F-COMP.S4": "nativer Lauf offen",
+    "F-MACROFILES.S3": "Gateway: Atomarität der Umbenennung nicht belegt",
+    "SYS-CONN.S5": "Gateway: heute führt es diese Befehle mit einem Standard aus (home ohne joint referenziert alle, \"false\" schaltet M01 ein, ein Override ohne scale setzt 100 %); 24 finite_*(msg.get(…, Standard)) und 9 bool(msg.get(…)) sind je Befehl zu sichten, bevor ein Standard entfällt — ein eigenes Gateway-Paket (F-COMP S3 war der erste Fall); der WebUI-Client sendet jedes Feld (commandShapes.test.ts)"
+  },
+  "informational_excluded": [
+    "jog-x+",
+    "jog-x-",
+    "jog-y+",
+    "jog-y-",
+    "jog-z+",
+    "jog-z-"
+  ],
+  "generated_table_matches": true,
+  "only_gap_fields_changed": true,
+  "run_file": "/home/cnc/claude-work/live-tier/20261106T040338/report.json",
+  "run_sha256": "4f8cb39273c877b0780deba1fdb4681f352030eb34b738bf3128d96923be2250",
+  "scope": "Historical native PASS at e4cb0c82. No PASS claimed for the inventory-only successor."
+}
