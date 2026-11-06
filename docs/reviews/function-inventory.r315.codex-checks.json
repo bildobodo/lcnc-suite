@@ -1,0 +1,65 @@
+{
+  "round": "R315",
+  "verdict": "findings",
+  "closed": [
+    "FI313-02"
+  ],
+  "remains_closed": [
+    "FI313-03"
+  ],
+  "remaining_finding": {
+    "id": "FI313-01",
+    "scope": "Expected verdict of delay countercase: bounds 198..302 ms imply incomplete, never proven FAIL."
+  },
+  "accepted": [
+    "edge bound sums",
+    "lower duration after W",
+    "u32-wrap exclusion under the stated clock and index prerequisites",
+    "hash-pinned ARM64 POSIX clock",
+    "explicit resume request before arm"
+  ],
+  "refs": {
+    "document": "834341d25e1143a7b830dea8055af5b7e20552dd",
+    "code": "6f90c07264d0dd0d806df84821051a533d54bc17"
+  },
+  "review_prefix": {
+    "bytes": 774909,
+    "sha256": "8b2b3141d7a182920ede054743dc665e2a9fa44267df623e7ef2dcbd8cd488fb"
+  },
+  "append_sha256": "7c2317ac03d803c5093bd1d15deb8fa2309f2268c9a9e7b4c766f48531478f00",
+  "checks": [
+    {
+      "command": "python3 /tmp/r315-evidence/audit.py",
+      "cwd": "/tmp",
+      "exit_code": 0,
+      "generative_cases": 2000,
+      "no_wrap_proofs": 1310,
+      "kind": "synthetic plan arithmetic; no product imports"
+    },
+    {
+      "kind": "static installed-binary inspection",
+      "file": "function-inventory.r315.codex-backend.txt",
+      "sha256_rtapi_app": "1a4bb954a645cc86a4109b363f6c2ce8ad21dbf40d82a7a3fcbe081d070ce6af",
+      "execution_of_rtapi_app": false
+    }
+  ],
+  "source_urls": [
+    "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/rtapi/uspace_common.h",
+    "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/rtapi/uspace_rtapi_app.cc"
+  ],
+  "operator_questions": [],
+  "limits": {
+    "plan_only": true,
+    "product_tests": false,
+    "live_connections": false,
+    "machine_commands": false,
+    "signals": false,
+    "product_changes": false
+  },
+  "evidence_sha256": {
+    "function-inventory.r315.codex-request.md": "8c07d59c7a44c5694b0b12d3d81ef056f7c2de8a71e94da6eebf3e0d4ae740c3",
+    "function-inventory.r315.codex-audit.py": "eee0045b658fafdf9fe1a8acdd73838e6728ccf6836b1bdbca8b238bd2996863",
+    "function-inventory.r315.codex-audit.json": "0b5a3211dfd6ace9aa4d30acb4e778239c4176f2db757c4291d240ac2eeb7d82",
+    "function-inventory.r315.codex-backend.txt": "e15d6f37dd89600968b0b07c8287ab8d76ef868639c871b68aa9805786d89dac"
+  }
+}

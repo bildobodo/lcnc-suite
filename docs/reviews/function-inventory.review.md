@@ -7174,3 +7174,57 @@ Jedes andere Ergebnis (ein gewährtes Resume, kein oder ein doppeltes Ereignis, 
 - das Trennungsereignis einer fremden `client_id` → zählt nicht.
 
 **Erbeten:** `agreement` oder `findings` zur Planfassung 7.
+
+---
+
+## Codex · Nachprüfung R315 · 6. November 2026
+
+**Urteil: `findings`, nur noch ein begrenzter Urteilsrest bei FI313-01.** Geprüft ist Planfassung 7 am Dokumentstand **`834341d2`**; der Code bleibt **`6f90c072`**. **FI313-02 ist auf Planebene geschlossen**, FI313-03 bleibt geschlossen. Die neuen Schranken, der Überlaufnachweis und die Dauerdefinition sind angenommen. Keine Operatorfrage.
+
+### FI313-01 · Noch korrigieren: obere Grenze über 250 ms bedeutet nicht FAIL
+
+Abschnitt A schreibt für den R314-Gegenfall: obere Grenze ≥300 ms, daher **FAIL**. Das widerspricht der weiterhin richtigen dreistufigen Regel aus Fassung 6. Die neue Rechnung ergibt **untere Grenze 198 ms, obere Grenze 302 ms**. Damit ist das richtige Ergebnis **`incomplete`**.
+
+Das ist nicht nur eine Wortfrage für den Wächter: Es gibt zwei zulässige Zeitverläufe mit **denselben Controller-Perioden, Sampler-Zeitpunkten und abgetasteten Eingangsbits**:
+
+| Tatsächliche Flankenabstände | Beobachtete Grenzen des ersten Paars | Belegbares Urteil |
+|---|---|---|
+| 300 ms, danach 100 ms | 198…302 ms | `incomplete` |
+| 200 ms, danach 200 ms | 198…302 ms | `incomplete` |
+
+Im zweiten Verlauf überschreitet keine Flanke die Grenze. Die beobachteten Daten unterscheiden ihn dennoch nicht vom ersten. Eine obere Grenze über dem Ziel erlaubt deshalb weder PASS noch die Behauptung einer nachgewiesenen Überschreitung.
+
+**Bitte ausdrücklich festhalten und den erwarteten Gegenfall berichtigen:**
+
+```text
+Zeitbeleg fehlt / ist ungültig: incomplete
+obere Grenze ≤ 250 ms:         PASS
+untere Grenze > 250 ms:        FAIL
+sonst:                        incomplete
+```
+
+Bekannte andere Fehler, etwa ein Trip, werden dadurch nicht heruntergestuft. Für den genannten Verzögerungsfall ist allein der erwartete Zeitbefund zu korrigieren; **kein weiterer Messkanal ist nötig**. Der gewöhnliche 260-ms-Fall ergibt mit den neuen Schranken 258…262 ms und damit weiterhin FAIL; 100 ms ergibt 98…102 ms und PASS.
+
+### Die übrigen Reste aus R314 sind auf Vertragsebene gelöst
+
+**Schranken und Nachfenster:** Die Summenindizes stimmen mit `C_k ≤ S_k ≤ C_(k+1)` überein. Der zusätzliche Aufruf am Ende gehört zu Recht zum vollständigen Beleg. Die neue untere Dauer nach W ergibt für die R314-Unterbrechung **99 ms bei tatsächlich 100 ms Beobachtung**; das unzureichende Fenster kann kein Zwei-Sekunden-PASS mehr erhalten.
+
+**Überlauf:** Der vorgeschlagene Nachweis ist unter der gemeinsamen monotonen ns-Uhr tragfähig. Jeder verborgene U32-Umlauf vergrößert den Rest `Empfang_b − t₀ − Summe(lp)` um mindestens 2³² ns. Ein Rest darunter schließt ihn im bezeichneten Bereich aus. In meinen Gegenproben werden ein echter Umlauf und ein verspäteter Leser nicht freigegeben; der Grenzfall **genau 2³²** bleibt ebenfalls `incomplete`. Bei gewöhnlicher Zustellung gelingt der Nachweis. Zusätzlich bestehen **2000 deterministische generierte Fälle** für die Flankenschranken, den Überlaufnachweis und die untere Erfassungsdauer; in 1310 davon ist der Überlaufausschluss tatsächlich möglich.
+
+Für den Bau bitte die schon vorausgesetzte Gültigkeit ausdrücklich erhalten: **jede verwendete Periode** einschließlich der Ränder muss im bewiesenen Bereich liegen; keine Summe darf über eine unbelegte Abschnittsgrenze greifen. Für den Rest gilt `0 ≤ Rest < 2³²`; ein negativer Rest ist ein widersprüchlicher Zeitbeleg. Markierung und Empfang möglichst mit `monotonic_ns()` und ganzzahliger Rechnung erfassen, damit Rundung die strikte Grenze nicht verschiebt. Das sind Präzisierungen der angenommenen Voraussetzungen, keine neue Messanforderung.
+
+**Uhr dieses Prüfstands:** Die Bindung an den konkret geprüften Hash ist für diesen Umfang ausreichend. Ich habe das installierte ARM64-Binary lesend nachgeprüft: Der PLT-Zugriff führt laut Relokation zu `clock_gettime`, Uhr-ID 1 und Umrechnung Sekunden ×10⁹ + Nanosekunden stimmen. Der hier kompilierte App-Auswahlpfad führt zu POSIX; Python meldet ebenfalls `clock_gettime(CLOCK_MONOTONIC)`. Geprüfter SHA-256:
+
+```text
+1a4bb954a645cc86a4109b363f6c2ce8ad21dbf40d82a7a3fcbe081d070ce6af
+```
+
+**Die Begründung zur Verzeichnisliste bitte nicht verallgemeinern:** Upstream sucht alternative Backends über `libuspace-xenomai.so.0` beziehungsweise `libuspace-rtai.so.0` unter `EMC2_HOME/lib`; eine Liste `/usr/lib/linuxcnc/*.so` ist dafür kein allgemeiner Ausschluss. Hier trägt der geprüfte, fest gebundene Binary-Pfad den Nachweis. Ein anderer Hash bleibt wie geplant ungeprüft und `incomplete`. [Primärquellen: Uhrenwahl](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/rtapi/uspace_common.h), [POSIX-Uhr und Backend-Auswahl](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/rtapi/uspace_rtapi_app.cc).
+
+**FI313-02:** Explizites `resume_armed: true`, frische eigene Sitzung, genau ein passendes `no_match`, ungearmte Hello-Antwort und erst danach ausdrückliches Arm schließen den Identitätsrest. Das entspricht dem in R314 isoliert ausgeführten Gateway-Zweig. Der Ereignisanker, die korrigierte Mindestdauer und B als verbleibende Verbindung gelten zusammen. Kein zusätzlicher Produkt-Endpunkt erforderlich.
+
+### Belege und Prüfgrenze
+
+[Planfassung 7](function-inventory.r315.codex-request.md), [reproduzierbare Rechenprüfungen](function-inventory.r315.codex-audit.py), [Ergebnisse](function-inventory.r315.codex-audit.json), [lesende Binary-Prüfung](function-inventory.r315.codex-backend.txt), [Prüfstände und Hashes](function-inventory.r315.codex-checks.json).
+
+Planprüfung, keine vorgezogene Implementierungsabnahme. Keine Produkttests oder nativen Läufe nötig. Keine Produktänderung, Builds, Checkouts, Live-Verbindungen, Signale oder Maschinenbefehle; im Live-Baum nur dieser Anhang und neue R315-Belege. Frühere Belege bleiben unverändert.

@@ -1,0 +1,74 @@
+{
+  "same_observed_stream": true,
+  "histories": {
+    "exceeded": [
+      {
+        "actual_ms": 300.0,
+        "lower_ms": 198.0,
+        "upper_ms": 302.0,
+        "correct_verdict": "incomplete"
+      },
+      {
+        "actual_ms": 100.0,
+        "lower_ms": 98.0,
+        "upper_ms": 202.0,
+        "correct_verdict": "PASS"
+      }
+    ],
+    "within": [
+      {
+        "actual_ms": 200.0,
+        "lower_ms": 198.0,
+        "upper_ms": 302.0,
+        "correct_verdict": "incomplete"
+      },
+      {
+        "actual_ms": 200.0,
+        "lower_ms": 98.0,
+        "upper_ms": 202.0,
+        "correct_verdict": "PASS"
+      }
+    ]
+  },
+  "wrap_cases": {
+    "ordinary": {
+      "slack_ns": 1150000,
+      "no_wrap_proven": true,
+      "actual_wraps": 0
+    },
+    "reader_delayed": {
+      "slack_ns": 4296917296,
+      "no_wrap_proven": false,
+      "actual_wraps": 0
+    },
+    "one_wrap": {
+      "slack_ns": 4296117296,
+      "no_wrap_proven": false,
+      "actual_wraps": 1
+    },
+    "exact_slack_boundary": {
+      "slack_ns": 4294967296,
+      "no_wrap_proven": false,
+      "actual_wraps": 0
+    }
+  },
+  "generative_cases": 2000,
+  "generative_no_wrap_proofs": 1310,
+  "post_W": {
+    "lower_duration_ms": 99.0,
+    "actual_observation_ms": 100.0,
+    "long_enough_2s": false
+  },
+  "ordinary": {
+    "100ms": {
+      "lower_ms": 98.0,
+      "upper_ms": 102.0,
+      "verdict": "PASS"
+    },
+    "260ms": {
+      "lower_ms": 258.0,
+      "upper_ms": 262.0,
+      "verdict": "FAIL"
+    }
+  }
+}
