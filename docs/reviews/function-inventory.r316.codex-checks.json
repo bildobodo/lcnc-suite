@@ -1,0 +1,44 @@
+{
+  "round": "R316",
+  "verdict": "agreement",
+  "scope": "native stage step 3 plan v8; no implementation approval",
+  "document": "60c31c2718923ec5b154c859503b257a6f36002d",
+  "code": "6f90c07264d0dd0d806df84821051a533d54bc17",
+  "closed": [
+    "FI313-01"
+  ],
+  "remains_closed": [
+    "FI313-02",
+    "FI313-03"
+  ],
+  "operator_questions": [],
+  "checks": {
+    "three_way_verdict_corrected": true,
+    "known_failure_precedence_preserved": true,
+    "clock_and_range_precisions_adopted": true,
+    "prior_evidence_hashes_verified": true,
+    "new_test_runs": false,
+    "reason_no_rerun": "Only the expected verdict and contract wording changed; the accepted arithmetic is unchanged."
+  },
+  "review_prefix": {
+    "bytes": 783468,
+    "sha256": "1bdc6aac507b7200ee18968c8b088f6ac78aa8b2192c60a2725c7cccf494d727"
+  },
+  "append_sha256": "27eb5cea5512b23b2aeb6eead4ef420680e1906f28e8a57c6d88fd0a586cb96c",
+  "evidence_sha256": {
+    "function-inventory.r316.codex-request.md": "0bf10f5fe9442c2a8f56dd1bc2042e5174e00d18f3a048503bb8ad02e690e2ae"
+  },
+  "prior_evidence_sha256": {
+    "function-inventory.r315.codex-request.md": "8c07d59c7a44c5694b0b12d3d81ef056f7c2de8a71e94da6eebf3e0d4ae740c3",
+    "function-inventory.r315.codex-audit.py": "eee0045b658fafdf9fe1a8acdd73838e6728ccf6836b1bdbca8b238bd2996863",
+    "function-inventory.r315.codex-audit.json": "0b5a3211dfd6ace9aa4d30acb4e778239c4176f2db757c4291d240ac2eeb7d82",
+    "function-inventory.r315.codex-backend.txt": "e15d6f37dd89600968b0b07c8287ab8d76ef868639c871b68aa9805786d89dac"
+  },
+  "limits": {
+    "product_changes": false,
+    "live_connections": false,
+    "machine_commands": false,
+    "signals": false,
+    "builds": false
+  }
+}

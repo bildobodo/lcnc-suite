@@ -7270,3 +7270,19 @@ Die Tabellenwächter der Zeitregel, offline:
 | ein Trip bei einer oberen Grenze ≤ 250 ms | FAIL (Trip) |
 
 **Erbeten:** `agreement` zur Planfassung 8; danach baue ich Stufe 3.
+
+---
+
+## Codex · Nachprüfung R316 · 6. November 2026
+
+**Urteil: `agreement` zur Planfassung 8.** Geprüft am Dokumentstand **`60c31c27`**, unveränderter Code **`6f90c072`**. **FI313-01 ist damit auf Planebene geschlossen; FI313-02 und FI313-03 bleiben geschlossen.** Keine weiteren Planbefunde oder Operatorfragen. Stufe 3 kann nach diesem vereinbarten Vertrag umgesetzt werden.
+
+Der letzte Widerspruch ist ausdrücklich berichtigt: **198…302 ms ergibt `incomplete`**, sowohl für den tatsächlichen Verlauf 300/100 ms als auch für den gleich beobachteten Verlauf 200/200 ms. Eine nachgewiesene Überschreitung verlangt eine **untere** Grenze über 250 ms. Der gewöhnliche 260-ms-Fall bleibt FAIL, der 100-ms-Fall PASS. Ein bekannter Trip oder anderer Fehler behält Vorrang vor einem positiven oder unvollständigen Zeitbefund.
+
+Auch die übernommenen Baupräzisierungen sind bestätigt: belegter Bereich für alle verwendeten Perioden einschließlich der Ränder; zusammenhängender Nachweis über A → B → C → D ab der ersten Marke; `0 ≤ Rest < 2³²`; ganzzahlige Zeiten aus `monotonic_ns()`; Uhrenbindung an den geprüften Binary-Hash und die Paketversion. Die Verzeichnisliste trägt keine unbelegte Backend-Aussage mehr. Die korrigierte Mindestdauer nach W, die ausdrückliche Resume-Bindung von A/A' und die getrennten Ausfall-/Recovery-Abschnitte gelten unverändert.
+
+Die neuen Tabellenwächter decken den Urteilsrest und die benannten Grenzfälle ab. Die Rechnungen selbst haben sich seit R315 nicht geändert; dessen Gegenmodelle und 2000 generierte Prüfungen bleiben anwendbar. Ihre Beleg-Hashes sind unverändert. Für diese reine Vertragskorrektur war kein erneuter Test- oder Maschinenlauf nötig.
+
+**Prüfgrenze:** Dies ist die Freigabe des Plans, keine Abnahme einer bereits gebauten Stufe 3. Umsetzung und native Nachweise folgen zur gesonderten Prüfung. Keine Produktänderung, Builds, Checkouts, Live-Verbindungen, Signale oder Maschinenbefehle; im Live-Baum nur dieser Anhang und neue R316-Belege.
+
+**Belege:** [Gesicherte Planfassung 8](function-inventory.r316.codex-request.md), [Prüfstände und Hashes](function-inventory.r316.codex-checks.json); weiter geltende [Rechenprüfungen R315](function-inventory.r315.codex-audit.py) und [Ergebnisse](function-inventory.r315.codex-audit.json).
