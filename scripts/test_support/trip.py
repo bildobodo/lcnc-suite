@@ -51,18 +51,21 @@ def cont(state: dict, save, rec: dict, kill=os.kill, ticks=start_ticks) -> str:
     return outcome
 
 
-def own_trip(before_trip, edge_index, latch_clear_before, latched_after, instance_before,
+def own_trip(before_trip, edge_index, latch_clear_before, latched_after, section_complete, instance_before,
              instance_after) -> str | None:
     """None when the trip may be acknowledged as the run's own, else why not:
     no trip reported before, the own falling edge of oneshot.0.out in the own
     section, the latch FALSE in every sample before it and its own transition
-    to TRUE after it (R317 FI-I46 — a latch set before is never the run's;
+    to TRUE after it, all over a COMPLETE section (R317/R318 FI-I46 — a latch
+    set before, or hidden in a gap, is never the run's;
     the latency is the S4b row's question, the delayed variant's own trip is
     still its own), the same LinuxCNC instance."""
     if before_trip:
         return f"a trip was waiting before the case ({before_trip})"
     if edge_index is None:
         return "no own falling edge of oneshot.0.out in the own section"
+    if section_complete is not True:
+        return "the outage section is not complete — 'nothing latched before' is no proof (R318 FI-I46)"
     if latch_clear_before is not True:
         return "fault-out was not FALSE before the own edge — a latch set before is not the run's"
     if latched_after is None:

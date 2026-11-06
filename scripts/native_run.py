@@ -1599,7 +1599,8 @@ def latch_cases(variant=None):
         rows += [tag(same), tag(sc.eval_latch_sticky("latch-sticky", sec, reset_reply, trip_frames))]
         _servo_failed(box, rows, "the latch outage")
         why = tp.own_trip(before_trip, same.get("edge_index"), same.get("latch_clear_before"),
-                          same.get("latched_after"), inst_before, list((sh.unit_instance(unit) or ())[1:]))
+                          same.get("latched_after"), same.get("section_complete"), inst_before,
+                          list((sh.unit_instance(unit) or ())[1:]))
         if why:
             raise StepFailed(rows, f"the trip is not proven the run's own: {why} — not acknowledged")
         with _section(ctx, "latch-recovery") as box:

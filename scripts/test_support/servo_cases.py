@@ -405,7 +405,10 @@ def eval_latch_same_cycle(case: str, sec: dict, delayed: bool = False) -> dict:
     # the trip's ownership facts (R317 FI-I46): clear before the own edge, its
     # own transition after it — the latency is this row's question, not theirs
     measured.update(edge_n=samples[e][1], edge_index=e, latch_clear_before=early is None,
-                    latched_after=None if latched is None else samples[latched][1])
+                    latched_after=None if latched is None else samples[latched][1],
+                    # "nothing TRUE before" is a proof only over a COMPLETE
+                    # section: a missing or foreign-marked sample may hide it (R318 FI-I46)
+                    section_complete=not sec.get("problems"))
     if early is not None:
         return _row(case, "FAIL", f"fault-out not FALSE before the expiry (sample {early})", **measured)
     at = _bit(samples[e][2], LATCH)
@@ -451,6 +454,10 @@ def eval_latch_sticky(case: str, sec: dict, reset_reply, trip_frames) -> dict:
     if released is not None:
         # an observed FALSE after it latched is no artefact of what is unread (FI-I49)
         return _row(case, "FAIL", f"fault-out released before the reset (sample {released})", **measured)
+    if trip_frames and not all(trip_frames):
+        # a frame received after the resume without the waiting trip: the
+        # status contradicts, whatever the HAL section lacks (R318 FI-I49 A)
+        return _row(case, "FAIL", "a frame after the resume showed no unacknowledged trip", **measured)
     if sec.get("problems"):
         return _row(case, "incomplete", "the section: " + "; ".join(sec["problems"]), **measured)
     if latched is None:
@@ -462,10 +469,8 @@ def eval_latch_sticky(case: str, sec: dict, reset_reply, trip_frames) -> dict:
         return _row(case, "incomplete", "the heartbeat did not return in the section", **measured)
     if not isinstance(reset_reply, dict):
         return _row(case, "incomplete", "the E-Stop Reset before the acknowledgement was not asked", **measured)
-    if not trip_frames or not all(trip_frames):
-        return _row(case, "incomplete" if not trip_frames else "FAIL",
-                    "no frame after the resume" if not trip_frames else
-                    "a frame after the resume showed no unacknowledged trip", **measured)
+    if not trip_frames:
+        return _row(case, "incomplete", "no frame after the resume", **measured)
     return _row(case, "PASS", f"the heartbeat returned (sample {samples[hb_back][1]}), fault-out stayed TRUE, "
                 "the reset before the acknowledgement was refused", **measured)
 
@@ -484,6 +489,12 @@ def eval_latch_recovered(case: str, sec: dict, frames) -> dict:
     if again is not None:
         # latched again after the release: observed, whatever else is unread (FI-I49)
         return _row(case, "FAIL", f"fault-out TRUE again after the reset (sample {again})", **measured)
+    if frames:
+        trip, estop, enabled = frames[-1]
+        measured["last_frame"] = {"safety_trip": trip, "is_estop": estop, "is_enabled": enabled}
+        if trip or estop is True or enabled is False:
+            # the status contradicts the recovery, whatever the HAL section lacks (R318 FI-I49 A)
+            return _row(case, "FAIL", "the last frame of the recovery is not clear and on", **measured)
     if sec.get("problems") or not samples:
         return _row(case, "incomplete", "the recovery section: " + ("; ".join(sec.get("problems") or []) or "empty"),
                     **measured)
@@ -492,10 +503,8 @@ def eval_latch_recovered(case: str, sec: dict, frames) -> dict:
     measured["cleared_n"] = samples[cleared][1]
     if not frames:
         return _row(case, "incomplete", "no frame received in the recovery", **measured)
-    trip, estop, enabled = frames[-1]
-    measured["last_frame"] = {"safety_trip": trip, "is_estop": estop, "is_enabled": enabled}
-    if trip or estop is not False or enabled is not True:
-        return _row(case, "FAIL", "the last frame of the recovery is not clear and on", **measured)
+    if estop is not False or enabled is not True:
+        return _row(case, "incomplete", "the last frame of the recovery does not say E-Stop and power", **measured)
     return _row(case, "PASS", f"fault-out FALSE from sample {samples[cleared][1]} to the end; no trip, E-Stop clear, "
                 "machine on", **measured)
 
@@ -538,10 +547,18 @@ def eval_disconnect(case: str, sec: dict, w_mark, event, frames_after, program_l
     a = (sec.get("phase_first") or {}).get(w_mark)
     w = samples[a:] if a is not None else []
     if w:
-        last_line0 = max((i for i, (_t, _n, v) in enumerate(w) if v[6] == 0), default=None)
-        if last_line0 is not None and not any(_f(w[k][2][0], w[last_line0][2][0])
-                                              and abs(w[k][2][0] - w[last_line0][2][0]) > 0.001
-                                              for k in range(last_line0, len(w))):
+        # the final stretch of line 0 to the window's end (none when it ends on a program line)
+        last_line0 = None
+        for i in range(len(w) - 1, -1, -1):
+            if w[i][2][6] != 0:
+                break
+            last_line0 = i
+        tail = w[last_line0:] if last_line0 is not None else []
+        # a stop is a FAIL only from positions SEEN: finite, contiguous, at
+        # least two — an unknown X is no standstill (R318 FI-I49 B)
+        seen = len(tail) >= 2 and all(_f(v[0]) for _t, _n, v in tail) and \
+            all(b[1] == a[1] + 1 for a, b in zip(tail, tail[1:]))
+        if seen and all(abs(v[0] - tail[0][2][0]) <= 0.001 for _t, _n, v in tail):
             return _row(case, "FAIL", f"the program stopped after the event (line 0 from sample {w[last_line0][1]}, "
                         "no motion after it)", **measured)
     if event is None:
@@ -592,31 +609,30 @@ def eval_clients(case: str, sec: dict, w_start, w_end, n: int, hellos, results, 
     trip = next((s[1] for s in samples if _bit(s[2], LATCH) == 1), None)
     if trip is not None:
         return _row(case, "FAIL", f"a trip: fault-out TRUE (sample {trip})", **measured)
-    if sec.get("problems"):
-        return _row(case, "incomplete", "the section: " + "; ".join(sec["problems"]), **measured)
+    # what the n-client case needs beside the heartbeat — missing, it leaves
+    # the row open but never hides a heartbeat failure proven on its own
+    # (R318 FI-I49 A): a known failure first, then incomplete, then PASS
+    missing = []
     if len(hellos or []) != n or any((h or {}).get("armed") is not False for h in hellos):
-        return _row(case, "incomplete", f"not {n} unarmed connections", **measured)
+        missing.append(f"not {n} unarmed connections")
     if len(results or []) != n or any(r.get("status") != 200 for r in results) or \
             len({r.get("sha256") for r in results}) != 1:
-        return _row(case, "incomplete", f"not {n} fetches of one preview", **measured)
-    if not (published or {}).get("ok"):
-        return _row(case, "incomplete", "the expected program was not published", **measured)
-    # each fetch the PUBLISHED preview of that program (R317 FI-I48): `?v=` is
-    # only a cache-buster; the server names what it served (X-Preview-Version)
-    if any(r.get("version") is None or r.get("version") != published.get("version") for r in results):
-        return _row(case, "incomplete", f"a fetch not of the published version {published.get('version')}: "
-                    f"{[r.get('version') for r in results]}", **measured)
+        missing.append(f"not {n} fetches of one preview")
+    elif not (published or {}).get("ok"):
+        missing.append("the expected program was not published")
+    elif any(r.get("version") is None or r.get("version") != published.get("version") for r in results):
+        # each fetch the PUBLISHED preview of that program (R317 FI-I48): `?v=`
+        # is only a cache-buster; the server names what it served
+        missing.append(f"a fetch not of the published version {published.get('version')}: "
+                       f"{[r.get('version') for r in results]}")
     pf = sec.get("phase_first") or {}
     a1, a2 = pf.get(w_start), pf.get(w_end)
-    if a1 is None or a2 is None:
-        return _row(case, "incomplete", "the window's marks not in the section", **measured)
     rng = st.proven(samples, sec.get("recv_ns") or {}, sec.get("t0_ns"), sec.get("clock"))
-    if not rng.get("ok"):
-        return _row(case, "incomplete", f"the time unproven: {rng.get('why')}", **measured)
-    pre, post = st.duration_lower(samples, rng, 0, a1 - 1), st.duration_lower(samples, rng, a2, len(samples) - 1)
-    measured.update(pre_ns=pre, post_ns=post)
-    e = st.edges(samples, HB_IN)
-    pairs = [(i, j) for i, j in zip(e, e[1:]) if j >= a1 and i < a2]
+    # the heartbeat is judged only on a complete section: a missing sample may
+    # hide an edge, and an upper bound needs every period
+    judgeable = not sec.get("problems") and a1 is not None and a2 is not None and rng.get("ok")
+    e = st.edges(samples, HB_IN) if judgeable else []
+    pairs = [(i, j) for i, j in zip(e, e[1:]) if j >= a1 and i < a2] if judgeable else []
     judged = [(i, j, st.gap_bounds(samples, rng, i, j)) for i, j in pairs]
     verdicts = [st.judge(b) for _i, _j, b in judged]
     worst = max((b for _i, _j, b in judged if b), default=None, key=lambda b: b[0])
@@ -624,8 +640,19 @@ def eval_clients(case: str, sec: dict, w_start, w_end, n: int, hellos, results, 
                     worst_lower_ns=max((b[1] for _i, _j, b in judged if b), default=None))
     if "FAIL" in verdicts:
         i, j, b = judged[verdicts.index("FAIL")]
+        also = f" (also open: {'; '.join(missing)})" if missing else ""
         return _row(case, "FAIL", f"a heartbeat gap of at least {b[1] / 1e6:.1f} ms (samples {samples[i][1]}–"
-                    f"{samples[j][1]})", **measured)
+                    f"{samples[j][1]}){also}", **measured)
+    if sec.get("problems"):
+        missing.insert(0, "the section: " + "; ".join(sec["problems"]))
+    if a1 is None or a2 is None:
+        missing.append("the window's marks not in the section")
+    elif not rng.get("ok"):
+        missing.append(f"the time unproven: {rng.get('why')}")
+    if missing:
+        return _row(case, "incomplete", "; ".join(missing), **measured)
+    pre, post = st.duration_lower(samples, rng, 0, a1 - 1), st.duration_lower(samples, rng, a2, len(samples) - 1)
+    measured.update(pre_ns=pre, post_ns=post)
     if pre is None or post is None or pre < PRE_POST_NS or post < PRE_POST_NS:
         return _row(case, "incomplete", "the sections before and after the window are not proven 1 s", **measured)
     if not e or e[0] >= a1 or e[-1] < a2:

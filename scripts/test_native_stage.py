@@ -4011,16 +4011,17 @@ def test_the_restore_continues_the_recorded_stops_before_it_ends_the_test_instan
     assert state["stopped"] == []
 
 
-@pytest.mark.parametrize("before, edge, clear, latched, inst_a, inst_b, ok", [
-    (None, 30, True, 730, [100, 5000], [100, 5000], True),
-    ({"ts": 1}, 30, True, 730, [100, 5000], [100, 5000], False),     # a trip waited before: never acknowledged
-    (None, None, None, None, [100, 5000], [100, 5000], False),      # no own edge
-    (None, 30, False, 730, [100, 5000], [100, 5000], False),        # fault-out not FALSE before (R317 FI-I46)
-    (None, 30, True, None, [100, 5000], [100, 5000], False),        # no own transition to TRUE
-    (None, 30, True, 730, [100, 5000], [101, 5001], False),         # another instance
+@pytest.mark.parametrize("before, edge, clear, latched, complete, inst_a, inst_b, ok", [
+    (None, 30, True, 730, True, [100, 5000], [100, 5000], True),
+    ({"ts": 1}, 30, True, 730, True, [100, 5000], [100, 5000], False),   # a trip waited before: never acknowledged
+    (None, None, None, None, True, [100, 5000], [100, 5000], False),    # no own edge
+    (None, 30, False, 730, True, [100, 5000], [100, 5000], False),      # fault-out not FALSE before (R317 FI-I46)
+    (None, 30, True, None, True, [100, 5000], [100, 5000], False),      # no own transition to TRUE
+    (None, 30, True, 730, False, [100, 5000], [100, 5000], False),      # an incomplete section (R318 FI-I46)
+    (None, 30, True, 730, True, [100, 5000], [101, 5001], False),       # another instance
 ])
-def test_only_the_runs_own_trip_may_be_acknowledged(before, edge, clear, latched, inst_a, inst_b, ok):
-    assert (tp.own_trip(before, edge, clear, latched, inst_a, inst_b) is None) is ok
+def test_only_the_runs_own_trip_may_be_acknowledged(before, edge, clear, latched, complete, inst_a, inst_b, ok):
+    assert (tp.own_trip(before, edge, clear, latched, complete, inst_a, inst_b) is None) is ok
 
 
 class LatchClient(FrameClient):
@@ -4576,3 +4577,70 @@ def test_a_known_failure_comes_before_a_missing_proof():
     # …and a time not proven stays open: the R314 case is no FAIL
     samples, recv, t0 = _timed([MS] * 202 + [101 * MS] + [MS] * 200)
     assert st.judge(st.gap_bounds(samples, st.proven(samples, recv, t0, CLOCK_OK), 2, 201)) == "incomplete"
+
+
+# ── Codex R318: the rests of FI-I46 and FI-I49 ──
+
+def _latch_through_section(hide):
+    """R318's probe through servo.section: an early latch pulse at sample 710,
+    then the sample missing (a number gap) or carrying a foreign mark."""
+    rows = _latch(after=200, early_at=10)["samples"]
+    rows = [(t, n, v) for t, n, v in rows if not (hide == "gap" and n == 710)]
+    if hide == "foreign":
+        rows = [(t, n, v[:8] + (999,) + v[9:]) if n == 710 else (t, n, v) for t, n, v in rows]
+    end = rows[-1]
+    stream = rows + [(end[0] + 0.001, end[1] + 1, end[2][:8] + (4,) + end[2][9:])]
+    return sv.section(stream, start_mark=3, end_mark=4, integrity=_ok())
+
+
+@pytest.mark.parametrize("hide, problem", [("gap", "number gap"), ("foreign", "foreign mark")])
+def test_an_incomplete_outage_section_is_no_ownership_proof(tmp_path, monkeypatch, hide, problem):
+    """FI-I46 rest: 'nothing TRUE before' over a section with a hole proves
+    nothing — S4b incomplete, and NO recovery command."""
+    sec = _latch_through_section(hide)
+    assert any(problem in p for p in sec["problems"]), sec["problems"]
+    c = LatchClient()
+    ctx, _ = _latch_step(tmp_path, monkeypatch, c, [sec, _recovery()])
+    with pytest.raises(nr.StepFailed, match="not complete"):
+        nr.latch_cases()[1](ctx)
+    assert [cmd for cmd, _ in c.sent] == ["estop_reset"]          # only the early, refused reset
+
+
+def test_the_complete_delayed_variant_still_owns_its_trip(tmp_path, monkeypatch):
+    c = LatchClient()
+    ctx, _ = _latch_step(tmp_path, monkeypatch, c, [_latch(after=200, delay=1), _recovery()])
+    nr.latch_cases("latch-delayed")[1](ctx)
+    assert "safety_trip_ack" in [cmd for cmd, _ in c.sent]
+
+
+def test_a_failure_proven_on_its_own_survives_another_missing_proof():
+    """FI-I49 rest A: the R318 forms — each with its control without the extra flaw."""
+    gap358 = _hbsec(set(range(50, 2050, 100)) | set(range(2408, 5000, 100)))     # 2050 → 2408: ≥ 356 ms
+    old = [{"status": 200, "sha256": "ab", "bytes": 9, "version": 8}] * 4
+    for fetches in (FETCHES, old):
+        r = sc.eval_clients("clients-4", gap358, W1, W2, 4, HELLOS, fetches, PUB)
+        assert r["status"] == "FAIL" and "at least" in r["detail"], r
+    flawed = ["the end's integrity not read: overruns"]
+    for problems in ([], flawed):
+        r = sc.eval_latch_sticky("latch-sticky", {**_latch(), "problems": problems}, REFUSED, [{"ts": 1}, None])
+        assert r["status"] == "FAIL" and "no unacknowledged trip" in r["detail"], (problems, r)
+        r = sc.eval_latch_recovered("latch-recovered", {**_recovery(), "problems": problems},
+                                    [({"ts": 1}, False, True)])
+        assert r["status"] == "FAIL" and "not clear" in r["detail"], (problems, r)
+    # a heartbeat gap is judged only on a complete section: a hole may hide an edge
+    r = sc.eval_clients("clients-4", {**gap358, "problems": ["a number gap (6100 → 6102)"]}, W1, W2, 4, HELLOS,
+                        FETCHES, PUB)
+    assert r["status"] == "incomplete", r
+
+
+def test_an_unknown_position_is_no_proven_stop():
+    """FI-I49 rest B: line 0 after W with X not finite — neither motion nor a
+    stop is known; B still reports AUTO running: incomplete, not FAIL."""
+    sec = _disc(stop_at=500)
+    rows = [(t, n, (float("nan"),) + v[1:]) if k >= 500 + 500 else (t, n, v) for k, (t, n, v) in enumerate(sec["samples"])]
+    sec = {**sec, "samples": rows, "problems": ["a non-finite channel value"]}
+    r = sc.eval_disconnect("disconnect-close", sec, W_MARK, EVENT, RUNNING, frozenset(range(1, 9)))
+    assert r["status"] == "incomplete", r
+    # the control: the same stop with X seen standing is a FAIL
+    r = sc.eval_disconnect("disconnect-close", _disc(stop_at=500), W_MARK, EVENT, RUNNING, frozenset(range(1, 9)))
+    assert r["status"] == "FAIL" and "stopped" in r["detail"], r
