@@ -3879,3 +3879,142 @@ def test_the_lower_duration_after_a_mark_set_during_a_delay():
 def test_the_clock_is_proven_only_on_the_checked_binary(sha, version, ok):
     c = st.clock_contract(sha, version)
     assert c["ok"] is ok and (ok or "not proven" in c["why"])
+
+
+def _latch(before=30, outage=20, after=40, delay=0, release_at=None, early_at=None, resume=True, mark=3):
+    """The heartbeat chain per sample: oneshot.0.in toggles every 5 samples
+    while the gateway beats, oneshot.0.out TRUE, then the outage (no edges,
+    out FALSE), then — `resume` — beats again and out TRUE; fault-out TRUE
+    from the edge (+ `delay` samples), FALSE again at `release_at`."""
+    rows, hb_in = [], 0
+    n = before + outage + after
+    for k in range(n):
+        beating = k < before or (resume and k >= before + outage)
+        if beating and k % 5 == 0:
+            hb_in ^= 1
+        ok = 1 if beating else 0
+        latch = 1 if k >= before + delay else 0
+        if early_at is not None and k == early_at:
+            latch = 1
+        if release_at is not None and k >= release_at:
+            latch = 0
+        rows.append((k * 0.001, 700 + k, (0.0,) * 6 + (0, 1, mark, ok, latch, hb_in, MS)))
+    return {"samples": rows, "problems": []}
+
+
+@pytest.mark.parametrize("sec, delayed, status, part", [
+    (_latch(), False, "PASS", "in the sample oneshot.0.out fell"),   # TRUE in the very sample
+    (_latch(delay=1), False, "FAIL", "one cycle late"),      # the production row refuses a one-cycle delay
+    (_latch(delay=1), True, "PASS", "exactly one cycle late"),   # …which the delayed variant must show
+    (_latch(), True, "FAIL", "did not show"),                # a variant that latched at once is no counter-evidence
+    (_latch(early_at=10), False, "FAIL", "before the expiry"),
+    (_latch(outage=0, after=0), False, "incomplete", "no falling edge"),
+    ({**_latch(), "problems": ["a number gap (701 → 703)"]}, False, "incomplete", "the section"),
+])
+def test_the_latch_is_judged_at_the_assigned_falling_edge(sec, delayed, status, part):
+    r = sc.eval_latch_same_cycle("latch-same-cycle", sec, delayed=delayed)
+    assert r["status"] == status and part in r["detail"], r
+
+
+def test_the_edge_is_the_outages_not_the_last_true_of_the_section():
+    """R315/R316: after the resume oneshot.0.out is TRUE again to the end — the
+    edge judged is the FIRST FALSE after a TRUE, not 'after the last TRUE'."""
+    sec = _latch(after=200)
+    assert sc.falling_edge(sec["samples"]) == 30
+    assert sc.eval_latch_same_cycle("latch-same-cycle", sec)["status"] == "PASS"
+
+
+REFUSED = {"ok": False, "error": "Safety trip not acknowledged"}
+
+
+@pytest.mark.parametrize("sec, reply, frames, status, part", [
+    (_latch(), REFUSED, [{"ts": 1}] * 3, "PASS", "stayed TRUE"),
+    (_latch(release_at=60), REFUSED, [{"ts": 1}] * 3, "FAIL", "released before the reset"),
+    (_latch(), {"ok": True}, [{"ts": 1}] * 3, "FAIL", "accepted before"),
+    (_latch(resume=False), REFUSED, [{"ts": 1}] * 3, "incomplete", "did not return"),
+    (_latch(), REFUSED, [], "incomplete", "no frame"),
+    (_latch(), REFUSED, [{"ts": 1}, None], "FAIL", "no unacknowledged trip"),
+    (_latch(), None, [{"ts": 1}], "incomplete", "not asked"),
+])
+def test_the_latch_stays_through_the_resume_and_the_early_reset(sec, reply, frames, status, part):
+    r = sc.eval_latch_sticky("latch-sticky", sec, reply, frames)
+    assert r["status"] == status and part in r["detail"], r
+
+
+def _recovery(cleared_at=10, again_at=None, n=40):
+    rows = []
+    for k in range(n):
+        latch = 0 if k >= cleared_at and (again_at is None or k < again_at) else 1
+        rows.append((k * 0.001, 900 + k, (0.0,) * 6 + (0, 1, 5, 1, latch, k // 5 % 2, MS)))
+    return {"samples": rows, "problems": []}
+
+
+@pytest.mark.parametrize("sec, frames, status, part", [
+    (_recovery(), [(None, False, True)], "PASS", "machine on"),
+    (_recovery(cleared_at=99), [(None, False, True)], "FAIL", "stayed TRUE"),
+    (_recovery(again_at=30), [(None, False, True)], "FAIL", "TRUE again"),
+    (_recovery(), [({"ts": 1}, False, True)], "FAIL", "not clear"),
+    (_recovery(), [(None, False, False)], "FAIL", "not clear"),
+    (_recovery(), [], "incomplete", "no frame"),
+    ({"samples": [], "problems": ["start mark not received"]}, [(None, False, True)], "incomplete", "recovery section"),
+    ({**_recovery(), "problems": ["a number gap (905 → 907)"]}, [(None, False, True)], "incomplete", "number gap"),
+])
+def test_the_recovery_is_its_own_section(sec, frames, status, part):
+    r = sc.eval_latch_recovered("latch-recovered", sec, frames)
+    assert r["status"] == status and part in r["detail"], r
+
+
+# ── Step 3: the stopped processes and the own trip (test_support/trip.py) ──
+from test_support import trip as tp  # noqa: E402
+
+
+def test_a_process_is_stopped_only_after_its_identity_is_on_disk():
+    import signal
+    events, state = [], {}
+    rec = tp.stop(state, lambda s: events.append(("save", list(s["stopped"]))), 4242, "gateway",
+                  kill=lambda pid, sig: events.append(("kill", pid, sig)), ticks=lambda pid: 77)
+    assert events == [("save", [rec]), ("kill", 4242, signal.SIGSTOP)] and rec == {"pid": 4242, "start": 77,
+                                                                                    "what": "gateway"}
+    with pytest.raises(RuntimeError, match="not found"):
+        tp.stop({}, lambda s: None, 1, "gone", kill=lambda *a: None, ticks=lambda pid: None)
+
+
+@pytest.mark.parametrize("now, signalled, outcome", [(77, True, "continued"), (78, False, "no signal"),
+                                                     (None, False, "no signal")])
+def test_a_stopped_process_is_continued_only_as_itself(now, signalled, outcome):
+    import signal
+    sent, state = [], {"stopped": [{"pid": 4242, "start": 77, "what": "gateway"}]}
+    out = tp.cont(state, lambda s: None, state["stopped"][0], kill=lambda pid, sig: sent.append((pid, sig)),
+                  ticks=lambda pid: now)
+    assert (sent == [(4242, signal.SIGCONT)]) is signalled and outcome in out and state["stopped"] == []
+
+
+def test_the_restore_continues_the_recorded_stops_before_it_ends_the_test_instance(monkeypatch):
+    """ExecStopPost's path: a stopped gateway still itself gets its SIGCONT, a
+    record whose pid is now another process gets none — both before the
+    test unit is stopped."""
+    import os
+    import signal
+    host = FakeHost()
+    host.run_test_unit("native-sim-x", "/wd", "/ini")
+    order = []
+    monkeypatch.setattr(os, "kill", lambda pid, sig: order.append(("kill", pid, sig)))
+    real_alive, real_stop = host.process_alive, host.stop
+    host.process_alive = lambda pid, start: (pid, start) == (4242, 77) or real_alive(pid, start)
+    host.stop = lambda name: (order.append(("stop", name)), real_stop(name))
+    state = {"test_unit": "native-sim-x", "test_unit_invocation": "inv-crash", "test_instance": [900, 9000],
+             "stopped": [{"pid": 4242, "start": 77, "what": "gateway"}, {"pid": 4343, "start": 88, "what": "A2"}]}
+    assert rl.end_test_resources(host, state) == []
+    assert order == [("kill", 4242, signal.SIGCONT), ("stop", "native-sim-x")]
+    assert [c["outcome"] for c in state["continued"]] == ["continued", "gone or another process — no signal"]
+    assert state["stopped"] == []
+
+
+@pytest.mark.parametrize("before, edge, inst_a, inst_b, ok", [
+    (None, 30, [100, 5000], [100, 5000], True),
+    ({"ts": 1}, 30, [100, 5000], [100, 5000], False),       # a trip waited before: never acknowledged
+    (None, None, [100, 5000], [100, 5000], False),          # no own edge
+    (None, 30, [100, 5000], [101, 5001], False),            # another instance
+])
+def test_only_the_runs_own_trip_may_be_acknowledged(before, edge, inst_a, inst_b, ok):
+    assert (tp.own_trip(before, edge, inst_a, inst_b) is None) is ok

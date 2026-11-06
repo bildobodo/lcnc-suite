@@ -75,6 +75,33 @@ def _unit_ended(st) -> bool:
     return st["load"] == "not-found" or (st["active"] in ("inactive", "failed") and not st["pids"])
 
 
+def continue_stopped(host, state: dict, save=None, kill=None) -> list[dict]:
+    """SIGCONT every process the run recorded as stopped (state `stopped`,
+    step 3: the gateway in the latch case, a helper client) — only when the
+    recorded identity (pid, start ticks) is still the process; else no
+    signal, named. Before the test instance ends: a stopped gateway must not
+    keep the instance's heartbeat down while it is torn down, and a stopped
+    helper outlives nothing unseen (plan Codex R283, R313)."""
+    import os
+    import signal
+    kill = kill or os.kill
+    out = []
+    for rec in list(state.get("stopped", [])):
+        same = host.process_alive(rec["pid"], rec["start"])
+        if same:
+            try:
+                kill(rec["pid"], signal.SIGCONT)
+            except ProcessLookupError:
+                same = False
+        out.append({**rec, "outcome": "continued" if same else "gone or another process — no signal"})
+    if out:
+        state["stopped"] = []
+        state.setdefault("continued", []).extend(out)
+        if save:
+            save(state)
+    return out
+
+
 def end_test_resources(host, state: dict, save=None) -> list[str]:
     """The run's OWN test instance and tree (state.json, R286–R289 FI-I19),
     ended before the LAN instance returns — from `finally` and from
@@ -88,6 +115,7 @@ def end_test_resources(host, state: dict, save=None) -> list[str]:
     CONFIRMED end — the unit ended (`_unit_ended`) and the recorded instance
     (pid and start) gone — releases the tree and, by the empty reasons, the
     LAN start. Every failure is named."""
+    continue_stopped(host, state, save)
     if state.get("test_ended"):
         return []
     unit = state.get("test_unit") or state.get("test_unit_intent")

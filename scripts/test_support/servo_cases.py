@@ -362,3 +362,127 @@ def eval_rfl_start_servo(case: str, sec: dict, line: int, entry_xy, safe_z: floa
         return _row(case, "incomplete", gaps[0], **measured)
     return _row(case, "PASS", f"line {line} started at the entry X/Y on the safe height, at rest since reaching it;"
                               " no earlier line moved", **measured)
+
+
+# ── Step 3: the HAL latch (F-ESTOP S4/S4b, plan Codex R283–R285, R313–R316) ──
+from test_support.servo import HB_IN, HB_OK, LATCH  # noqa: E402
+
+
+def _bit(v, ch):
+    return v[ch] if len(v) > ch and v[ch] in (0, 1) else None
+
+
+def falling_edge(samples):
+    """The assigned falling edge of the own outage: the index of the first
+    sample with oneshot.0.out FALSE after a TRUE in the section — None
+    without a TRUE before it or without a FALSE."""
+    seen_true = False
+    for i, (_t, _n, v) in enumerate(samples):
+        ok = _bit(v, HB_OK)
+        if ok == 1:
+            seen_true = True
+        elif ok == 0 and seen_true:
+            return i
+    return None
+
+
+def eval_latch_same_cycle(case: str, sec: dict, delayed: bool = False) -> dict:
+    """S4b: at the assigned falling edge of oneshot.0.out the servo-thread
+    latch's fault-out is TRUE in the SAME sample (the sampler runs after
+    oneshot.0 and webui-hb-latch in the same invocation), FALSE in every
+    sample before it. No tolerance; a section problem, no TRUE before the
+    edge or no edge: incomplete. `delayed` (the variant with webui-hb-latch
+    moved before oneshot.0): PASS only for exactly one cycle late — FALSE at
+    the edge, TRUE in the next sample; never a production PASS."""
+    samples = sec.get("samples") or []
+    measured = {"samples": len(samples), "delayed": delayed}
+    if sec.get("problems"):
+        return _row(case, "incomplete", "the section: " + "; ".join(sec["problems"]), **measured)
+    e = falling_edge(samples)
+    if e is None:
+        return _row(case, "incomplete", "no falling edge of oneshot.0.out after a TRUE in the section", **measured)
+    measured.update(edge_n=samples[e][1], edge_index=e)
+    early = next((n for _t, n, v in samples[:e] if _bit(v, LATCH) != 0), None)
+    if early is not None:
+        return _row(case, "FAIL", f"fault-out not FALSE before the expiry (sample {early})", **measured)
+    at = _bit(samples[e][2], LATCH)
+    nxt = _bit(samples[e + 1][2], LATCH) if e + 1 < len(samples) else None
+    measured.update(latch_at_edge=at, latch_next=nxt)
+    if delayed:
+        if at == 0 and nxt == 1:
+            return _row(case, "PASS", f"the delayed order latched exactly one cycle late (sample {samples[e + 1][1]})",
+                        **measured)
+        return _row(case, "FAIL", f"the delayed order did not show the one-cycle delay (at the edge {at}, next {nxt})",
+                    **measured)
+    if at == 1:
+        return _row(case, "PASS", f"fault-out TRUE in the sample oneshot.0.out fell (sample {samples[e][1]})",
+                    **measured)
+    return _row(case, "FAIL", "fault-out FALSE in the sample oneshot.0.out fell" +
+                (" — one cycle late" if nxt == 1 else ""), **measured)
+
+
+def eval_latch_sticky(case: str, sec: dict, reset_reply, trip_frames) -> dict:
+    """S4: after the falling edge the heartbeat returns — edges on
+    oneshot.0.in again, oneshot.0.out TRUE again — while fault-out stays TRUE
+    to the section's end (a FALSE after it latched is a premature release:
+    FAIL); the E-Stop Reset asked BEFORE the acknowledgement is refused
+    (`reset_reply`: the reply, or {"ok": False, …} from a refusal) — an
+    accepted one is a FAIL; a frame received after the resume shows the
+    unacknowledged trip (`trip_frames`: the safety_trip of each frame
+    received after the resume). No resume or no frame: incomplete."""
+    samples = sec.get("samples") or []
+    measured = {"samples": len(samples), "reset_reply": reset_reply}
+    if sec.get("problems"):
+        return _row(case, "incomplete", "the section: " + "; ".join(sec["problems"]), **measured)
+    e = falling_edge(samples)
+    if e is None:
+        return _row(case, "incomplete", "no falling edge of oneshot.0.out after a TRUE in the section", **measured)
+    latched = next((i for i in range(e, len(samples)) if _bit(samples[i][2], LATCH) == 1), None)
+    if latched is None:
+        return _row(case, "FAIL", "fault-out never TRUE after the expiry", **measured)
+    released = next((samples[i][1] for i in range(latched, len(samples)) if _bit(samples[i][2], LATCH) != 1), None)
+    if released is not None:
+        return _row(case, "FAIL", f"fault-out released before the reset (sample {released})", **measured)
+    if isinstance(reset_reply, dict) and reset_reply.get("ok") is not False:
+        return _row(case, "FAIL", "E-Stop Reset was accepted before the trip was acknowledged", **measured)
+    hb_back = next((i for i in range(e + 1, len(samples)) if _bit(samples[i][2], HB_OK) == 1), None)
+    in_edges = [i for i in range(max(e, 1), len(samples)) if samples[i][2][HB_IN] != samples[i - 1][2][HB_IN]]
+    measured.update(resume_index=hb_back, heartbeat_edges_after=len(in_edges))
+    if hb_back is None or not in_edges:
+        return _row(case, "incomplete", "the heartbeat did not return in the section", **measured)
+    if not isinstance(reset_reply, dict):
+        return _row(case, "incomplete", "the E-Stop Reset before the acknowledgement was not asked", **measured)
+    if not trip_frames or not all(trip_frames):
+        return _row(case, "incomplete" if not trip_frames else "FAIL",
+                    "no frame after the resume" if not trip_frames else
+                    "a frame after the resume showed no unacknowledged trip", **measured)
+    return _row(case, "PASS", f"the heartbeat returned (sample {samples[hb_back][1]}), fault-out stayed TRUE, "
+                "the reset before the acknowledgement was refused", **measured)
+
+
+def eval_latch_recovered(case: str, sec: dict, frames) -> dict:
+    """S4 recovery, its OWN section (acknowledge → arm → E-Stop Reset →
+    Machine On): fault-out goes FALSE and stays FALSE to the section's end;
+    the frames received after its start mark end with no unacknowledged trip,
+    E-Stop clear and the machine on (`frames`: (safety_trip, is_estop,
+    is_enabled) per frame). A broken or missing section: incomplete."""
+    samples = sec.get("samples") or []
+    measured = {"samples": len(samples)}
+    if sec.get("problems") or not samples:
+        return _row(case, "incomplete", "the recovery section: " + ("; ".join(sec.get("problems") or []) or "empty"),
+                    **measured)
+    cleared = next((i for i, (_t, _n, v) in enumerate(samples) if _bit(v, LATCH) == 0), None)
+    if cleared is None:
+        return _row(case, "FAIL", "fault-out stayed TRUE through the recovery", **measured)
+    again = next((samples[i][1] for i in range(cleared, len(samples)) if _bit(samples[i][2], LATCH) != 0), None)
+    if again is not None:
+        return _row(case, "FAIL", f"fault-out TRUE again after the reset (sample {again})", **measured)
+    measured["cleared_n"] = samples[cleared][1]
+    if not frames:
+        return _row(case, "incomplete", "no frame received in the recovery", **measured)
+    trip, estop, enabled = frames[-1]
+    measured["last_frame"] = {"safety_trip": trip, "is_estop": estop, "is_enabled": enabled}
+    if trip or estop is not False or enabled is not True:
+        return _row(case, "FAIL", "the last frame of the recovery is not clear and on", **measured)
+    return _row(case, "PASS", f"fault-out FALSE from sample {samples[cleared][1]} to the end; no trip, E-Stop clear, "
+                "machine on", **measured)
