@@ -145,7 +145,7 @@ class TestWsToolEditsReadTheCurrentWriter(_Admission):
         gateway._cmd_lock = None
         replies, writes = [], []
 
-        def read(_):
+        def read(_path, _strict=False):
             during_read()   # the status loop / a disconnect, while the file is read
             return _row(0.)
 

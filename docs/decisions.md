@@ -10959,3 +10959,23 @@ edge (an in-place edit of the same path is an edge by its mtime). The
 routine map's numbers are checked against `tool_touch_off.ngc`'s own reads
 both ways (`test_toolsetter_routine_map.py`). Every guard was shown red on a
 mutant of what it guards.
+
+**After Codex R323 (FI-I50–I53).** The tool line is read as LinuxCNC 2.9.4
+reads it (`tooldata_read_entry`, libtooldata.so.0, disassembled — the
+source is not on the machine): fields separated by spaces in ANY order, the
+letter in either case, T/P/Q integers, the rest reals; LinuxCNC skips a
+whole line with a field it does not know. `P5 T2 …` used to be skipped and an
+edit of T1 wrote the table back without T2 (ok: true). A line the reader does
+not read exactly — an unknown or repeated letter, a tab inside, junk after
+the number, no T or P — is skipped for the display like LinuxCNC skips it,
+and stops every tool edit before anything is written (strict read,
+`_tool_table_for_edit`, the reply names the line); Q is written as the
+integer LinuxCNC reads. The table guard runs the real reload helper and reads
+the file at the controller's `load_tool_table` (once, after the write); its
+expectations are literals, not the product parser's reading. The reload is
+held through the poller itself (a WebSocket session against the app, the
+test never publishes). The routine check reads the code as LinuxCNC does
+(comments out, every space and tab out — `# 3107` is #3107) and fails on a
+parameter form it does not know. The trip and its acknowledgement are held
+on the trace along the poller and the reader (`test_trip_trace.py`); whether
+the message center records them is the operator's question (Q323-1).

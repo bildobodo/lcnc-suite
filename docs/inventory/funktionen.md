@@ -17,7 +17,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Aussage | Art | gilt für | Lücke |
 |---|---|---|---|---|
-| Sicherheits-Auslösung quittieren, Sicherheitskette | Eine Auslösung und ihre Quittung werden protokolliert. | Daten | alle | Gateway: der Trace trägt safety.tripped und safety.trip_acknowledged, kein Test beobachtet sie; ob das Meldungszentrum die Auslösung verzeichnet, ist offen (Frage an den Betreiber) |
+| Sicherheits-Auslösung quittieren, Sicherheitskette | Das Meldungszentrum verzeichnet eine Auslösung und ihre Quittung. | Bedienbarkeit | alle | Offen: Frage an den Betreiber (Q323-1), ob das Meldungszentrum sie verzeichnen soll; heute nur Banner und Trace |
 | Antast-Auslösung simulieren (nur Sim) | In der Sim kommt der Puls am HAL-Pin probe-in an. | Wirkung | alle | Nativ: der HAL-Puls an probe-in in der Sim nicht belegt |
 | Referenzieren und Referenz aufheben | Home je Achse sendet den Joint seiner Achse. | Daten | 3axis_xyz, 5axis_xyzac, 6axis_twp_xyzabc | Browser: sendet die Achsposition als Joint (SetupStrip a.index) und liest homed_joints an derselben Stelle — richtig, wo Joint = Achsposition (alle ausgelieferten Konfigurationen), falsch, wo nicht (Gantry, eigene Kinematik); braucht eine Achse→Joint-Zuordnung vom Gateway |
 | Overrides: Vorschub, Eilgang, Spindel | Während des Surface-Scans meldet der Status den Feed-Override gesperrt; nach dem Ende ist er wieder freigegeben. | Wirkung | offen | nativ: der Surface-Scan-Lauf (Q282-2) |
@@ -37,7 +37,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 |---|---|---|---|---|---|
 | **Freigeben (Arm) und Sperren** `F-ARM` | Einstellungen, Leiste › Sicherheit | 6 | 4 | 4 | 0 |
 | **Not-Halt auslösen und zurücksetzen** `F-ESTOP` | Leiste › Sicherheit | 6 | 5 | 5 | 0 |
-| **Sicherheits-Auslösung quittieren, Sicherheitskette** `F-TRIP` | Banner | 6 | 3 | 2 | 1 |
+| **Sicherheits-Auslösung quittieren, Sicherheitskette** `F-TRIP` | Banner | 6 | 4 | 3 | 1 |
 | **Maschine ein und aus** `F-POWER` | Leiste › Sicherheit | 6 | 1 | 1 | 0 |
 | **Abbrechen (Abort)** `F-ABORT` | Banner, Makro-Leiste, Tab „Macros“, Tab „Probing“, Tab „Program“, Tab-Kopf (Abort) | 9 | 1 | 1 | 0 |
 | **Betriebsart: Manuell, MDI, Automatik** `F-MODE` | Leiste › Jog | 4 | 1 | 1 | 0 |
@@ -74,8 +74,10 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: gateway: `test_gateway_util.py` — test_sustained_latch_banners_only_once; gateway: `test_gateway_util.py` — test_boot_faulted_does_not_banner
 - **S1b (Bedienbarkeit):** Eine gemeldete Auslösung erscheint im Banner mit Quittieren; der Klick sendet die Quittung, und die Auslösung bleibt sichtbar, bis ein Status ohne sie kommt. — gilt für: alle
   - Beleg: browser: `feedback-channels.spec.ts` — a safety trip: the banner with Acknowledge; the click sends the ack, the trip stays until a status without it (F-TRIP.S1b)
-- **S1c (Daten):** Eine Auslösung und ihre Quittung werden protokolliert. — gilt für: alle
-  - Beleg: **offen** — Lücke: Gateway: der Trace trägt safety.tripped und safety.trip_acknowledged, kein Test beobachtet sie; ob das Meldungszentrum die Auslösung verzeichnet, ist offen (Frage an den Betreiber)
+- **S1c (Daten):** Das Gateway protokolliert Auslösung und Quittung im Trace (safety.tripped einmal mit dem Forensik-Bündel, safety.trip_acknowledged mit dem Client); nach der Quittung trägt kein Status die Auslösung mehr, der noch gesetzte Latch löst keine zweite aus. — gilt für: alle
+  - Beleg: gateway: `test_trip_trace.py` — test_trip_and_ack_along_the_poller_and_the_reader
+- **S1d (Bedienbarkeit):** Das Meldungszentrum verzeichnet eine Auslösung und ihre Quittung. — gilt für: alle
+  - Beleg: **offen** — Lücke: Offen: Frage an den Betreiber (Q323-1), ob das Meldungszentrum sie verzeichnen soll; heute nur Banner und Trace
 
 ### Maschine ein und aus
 
@@ -254,7 +256,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S2 (Ablehnung):** Laden und Entladen werden abgelehnt, solange ein Start in Arbeit ist. — gilt für: alle
   - Beleg: gateway: `test_button_gates_d.py` — test_a_start_in_progress_refuses_load_and_unload
 - **S3 (Wirkung):** Neu laden übernimmt die neue Revision; Entladen leert Programm und Vorschau. — gilt für: alle
-  - Beleg: browser: `editor-guards.spec.ts` — Reload sends load_file with the loaded program's own path (F-LOAD.S3); gateway: `test_program_reload_unload.py` — test_an_in_place_edit_of_the_same_path_is_an_edge; gateway: `test_program_reload_unload.py` — test_the_poller_decides_its_edge_with_it; gateway: `test_program_reload_unload.py` — test_an_edited_file_reloaded_publishes_its_new_source; gateway: `test_program_reload_unload.py` — test_the_same_path_loaded_again_opens_it_again_and_publishes_its_new_text; gateway: `test_program_reload_unload.py` — test_unload_through_the_websocket_path
+  - Beleg: browser: `editor-guards.spec.ts` — Reload sends load_file with the loaded program's own path (F-LOAD.S3); gateway: `test_program_reload_unload.py` — test_a_reload_after_an_in_place_edit_is_published_by_the_poller; gateway: `test_program_reload_unload.py` — test_an_in_place_edit_of_the_same_path_is_an_edge; gateway: `test_program_reload_unload.py` — test_the_poller_decides_its_edge_with_it; gateway: `test_program_reload_unload.py` — test_an_edited_file_reloaded_publishes_its_new_source; gateway: `test_program_reload_unload.py` — test_unload_through_the_websocket_path
 
 ### Programm hochladen (mit Umbenennen oder Ersetzen)
 
@@ -327,8 +329,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: gateway: `test_command_dispatch.py` — test_add_tool_garbage_number_rejected; gateway: `test_command_dispatch.py` — test_add_tool_negative_number_rejected
 - **S3 (Daten):** Umnummerieren begrenzt beide Nummern, die die Oberfläche sendet. — gilt für: alle
   - Beleg: gateway: `test_command_policy.py` — test_renumber_bounds_both_numbers_the_ui_sends
-- **S4 (Wirkung):** Anlegen, Ändern, Löschen und Umnummerieren ändern genau ihren Datensatz, erhalten die übrigen Werte (alle Felder, Kommentar, Metadaten) und laden die Tabelle einmal neu. — gilt für: alle
-  - Beleg: gateway: `test_tool_edit_contract.py` — test_save_changes_only_the_sent_fields_of_its_tool; gateway: `test_tool_edit_contract.py` — test_add_adds_one_record_and_keeps_every_other; gateway: `test_tool_edit_contract.py` — test_delete_removes_one_record_and_keeps_every_other; gateway: `test_tool_edit_contract.py` — test_renumber_moves_the_number_and_keeps_an_unsent_pocket; gateway: `test_tool_edit_contract.py` — test_renumber_takes_a_sent_pocket; gateway: `test_tool_table.py` — test_every_field_of_a_linuxcnc_line_survives_a_rewrite; gateway: `test_tool_table.py` — test_a_value_with_more_decimals_is_not_rounded_by_a_rewrite
+- **S4 (Wirkung):** Anlegen, Ändern, Löschen und Umnummerieren ändern genau ihren Datensatz, erhalten die übrigen Werte (alle Felder in jeder Spaltenfolge, Kommentar, Metadaten) und lassen LinuxCNC die geschriebene Tabelle einmal neu laden; eine nicht verstandene Zeile stoppt die Bearbeitung, nichts wird geschrieben. — gilt für: alle
+  - Beleg: gateway: `test_tool_edit_contract.py` — test_the_fixture_reads_as_written; gateway: `test_tool_edit_contract.py` — test_save_changes_only_the_sent_fields_of_its_tool; gateway: `test_tool_edit_contract.py` — test_add_adds_one_record_and_keeps_every_other; gateway: `test_tool_edit_contract.py` — test_delete_removes_one_record_and_keeps_every_other; gateway: `test_tool_edit_contract.py` — test_renumber_moves_the_number_and_keeps_an_unsent_pocket; gateway: `test_tool_edit_contract.py` — test_renumber_takes_a_sent_pocket; gateway: `test_tool_edit_contract.py` — test_each_order_survives_save_delete_and_renumber_of_another_tool; gateway: `test_tool_edit_contract.py` — test_every_edit_refuses_and_writes_nothing; gateway: `test_tool_edit_contract.py` — test_comment_and_blank_lines_are_no_tool_and_stop_nothing; gateway: `test_tool_table.py` — test_every_field_of_a_linuxcnc_line_survives_a_rewrite; gateway: `test_tool_table.py` — test_a_value_with_more_decimals_is_not_rounded_by_a_rewrite; gateway: `test_tool_table.py` — test_any_order_either_case_and_crlf_read_alike; gateway: `test_tool_table.py` — test_orientation_is_written_as_the_integer_linuxcnc_reads; gateway: `test_tool_table.py` — test_a_line_not_read_exactly_is_skipped_or_refused_by_its_number
 - **S4b (Wirkung):** LinuxCNC übernimmt die geschriebene Tabelle. — gilt für: alle
   - Beleg: **offen** — Lücke: Nativ: das Neuladen in LinuxCNC nicht belegt
 
@@ -360,8 +362,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: browser: `toolsetter-setup.spec.ts` — without the server's settings, and without a saved section, Measure Current and Unload (M600) stay off
 - **S4 (Daten):** Die Abbildung nennt genau 23 Var-Nummern: #3004–#3007, #3009, #3010, #3013, #3100–#3115. — gilt für: alle
   - Beleg: unit: `toolsetterSetup.test.ts` — writes the var numbers tool_touch_off.ngc reads
-- **S4b (Daten):** Jede Nummer der Abbildung ist die, die tool_touch_off.ngc für ihren Wert liest; jede andere Stelle der Bereiche im Code der Routine ist benannt. — gilt für: alle
-  - Beleg: gateway: `test_toolsetter_routine_map.py` — test_every_mapped_number_is_read_into_the_keys_own_variable; gateway: `test_toolsetter_routine_map.py` — test_every_read_of_the_ranges_is_mapped_or_named; gateway: `test_toolsetter_routine_map.py` — test_the_probe_number_is_not_a_toolsetter_field
+- **S4b (Daten):** Jede Nummer der Abbildung ist die, die tool_touch_off.ngc für ihren Wert liest; jede andere Verwendung der Bereiche im Code der Routine, gelesen wie LinuxCNC liest (Leerraum ignoriert), ist benannt oder abgelehnt. — gilt für: alle
+  - Beleg: gateway: `test_toolsetter_routine_map.py` — test_every_mapped_number_is_read_into_the_keys_own_variable; gateway: `test_toolsetter_routine_map.py` — test_every_use_of_the_ranges_is_its_own_read_or_the_known_write; gateway: `test_toolsetter_routine_map.py` — test_the_probe_number_is_not_a_toolsetter_field; gateway: `test_toolsetter_routine_map.py` — test_a_read_spelled_with_spaces_or_split_digits_is_seen; gateway: `test_toolsetter_routine_map.py` — test_an_unknown_parameter_form_fails; gateway: `test_toolsetter_routine_map.py` — test_comments_and_the_routines_own_spellings_pass
 - **S5 (Wirkung):** Auf echtem LinuxCNC landet die gemessene Länge in der Werkzeugtabelle (die Länge vor der Messung ± 0,002 mm) und als derselbe Wert im G43-Offset; ein um 1 mm versetztes #3102 fällt durch. — gilt für: 3axis_xyz
   - Beleg: native: `native_run.py` — m600-t1; native: `native_run.py` — m600-t1.counter-3102
 - **S6 (Daten):** Entladen sendet im M600-Modus EIN mdi T0 M600 mit den Toolsetter-Werten in vars, im Standardmodus tool_change 0. — gilt für: alle
