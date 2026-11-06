@@ -1,0 +1,135 @@
+{
+ "round": "R324",
+ "branch": "feat/g1-guards",
+ "base": "41d0d1ab",
+ "head": "c9e7ae82",
+ "method": "pytest on the guard file with the mutant applied in ~/lcnc-suite-g1, restored from a copy each time; the routine mutants on subroutines/tool_length_probe/tool_touch_off.ngc",
+ "mutants": [
+  {
+   "finding": "FI-I50",
+   "guard": "test_tool_edit_contract.py + test_tool_table.py",
+   "mutant": "the reader takes a line only with T and P first",
+   "result": "34 failed, 12 passed"
+  },
+  {
+   "finding": "FI-I50",
+   "guard": "test_tool_edit_contract.py + test_tool_table.py",
+   "mutant": "strict read ignored (an unread line skipped on the edit path)",
+   "result": "38 failed, 12 passed"
+  },
+  {
+   "finding": "FI-I50",
+   "guard": "test_tool_edit_contract.py + test_tool_table.py",
+   "mutant": "Q written as a real (+3.000000)",
+   "result": "19 failed, 11 passed"
+  },
+  {
+   "finding": "FI-I51",
+   "guard": "test_tool_edit_contract.py + test_tool_table.py",
+   "mutant": "Codex tool_no_CMD_reload: CMD.load_tool_table removed from the helper",
+   "result": "18 failed, 12 passed"
+  },
+  {
+   "finding": "FI-I51",
+   "guard": "test_tool_edit_contract.py + test_tool_table.py",
+   "mutant": "Codex tool_reload_before_write: the reload before the write in _persist_tool_edit",
+   "result": "18 failed, 12 passed"
+  },
+  {
+   "finding": "FI-I52",
+   "guard": "test_program_reload_unload.py",
+   "mutant": "Codex reload_poller_wrong_inputs: preview_file_changed(None, None, None, None)",
+   "result": "1 failed, 4 passed"
+  },
+  {
+   "finding": "FI-I52",
+   "guard": "test_program_reload_unload.py",
+   "mutant": "Codex reload_poller_no_schedule: the poller's schedule_refresh removed",
+   "result": "1 failed, 4 passed"
+  },
+  {
+   "finding": "FI-I52",
+   "guard": "test_program_reload_unload.py",
+   "mutant": "the poller's edge ignores the mtime",
+   "result": "1 failed, 4 passed"
+  },
+  {
+   "finding": "FI-I52",
+   "guard": "test_program_reload_unload.py",
+   "mutant": "load_file short-cuts the loaded path",
+   "result": "1 failed, 4 passed"
+  },
+  {
+   "finding": "FI-I53",
+   "guard": "test_toolsetter_routine_map.py (routine tests)",
+   "mutant": "Codex: '#<r323_extra> = # 3107' added",
+   "result": "2 failed, 3 passed"
+  },
+  {
+   "finding": "FI-I53",
+   "guard": "test_toolsetter_routine_map.py (routine tests)",
+   "mutant": "touchZ read from '# 3101'",
+   "result": "3 failed, 3 passed"
+  },
+  {
+   "finding": "FI-I53",
+   "guard": "test_toolsetter_routine_map.py (routine tests)",
+   "mutant": "touchZ read from #3101",
+   "result": "3 failed, 3 passed"
+  },
+  {
+   "finding": "FI-I53",
+   "guard": "test_toolsetter_routine_map.py (routine tests)",
+   "mutant": "G0 X[#3107] added",
+   "result": "1 failed, 3 passed"
+  },
+  {
+   "finding": "FI-I53",
+   "guard": "test_toolsetter_routine_map.py (routine tests)",
+   "mutant": "#3008 read into an unnamed variable",
+   "result": "1 failed, 3 passed"
+  },
+  {
+   "finding": "FI-I53",
+   "guard": "test_toolsetter_routine_map.py (routine tests)",
+   "mutant": "'#<x> = #[3100 + 7]' added",
+   "result": "1 failed, 3 passed"
+  },
+  {
+   "finding": "FI-I53",
+   "guard": "test_toolsetter_routine_map.py",
+   "mutant": "the check without the whitespace normalization",
+   "result": "27 failed, 6 passed"
+  },
+  {
+   "finding": "F-TRIP.S1c",
+   "guard": "test_trip_trace.py",
+   "mutant": "no safety.tripped trace",
+   "result": "1 failed"
+  },
+  {
+   "finding": "F-TRIP.S1c",
+   "guard": "test_trip_trace.py",
+   "mutant": "no safety.trip_acknowledged trace",
+   "result": "1 failed"
+  },
+  {
+   "finding": "F-TRIP.S1c",
+   "guard": "test_trip_trace.py",
+   "mutant": "the ack keeps _unacked_trip",
+   "result": "1 failed"
+  },
+  {
+   "finding": "F-TRIP.S1c",
+   "guard": "test_trip_trace.py",
+   "mutant": "the trip not raised",
+   "result": "1 failed"
+  },
+  {
+   "finding": "F-TRIP.S1c",
+   "guard": "test_trip_trace.py",
+   "mutant": "the poller reads the wrong reader field",
+   "result": "1 failed"
+  }
+ ]
+}
