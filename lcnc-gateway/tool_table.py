@@ -20,7 +20,9 @@ from gateway_util import atomic_write_bytes
 _TOOL_FIELDS = ("X", "Y", "Z", "A", "B", "C", "U", "V", "W", "D", "I", "J", "Q")
 #: the integer fields (LinuxCNC reads them with %d); the rest are reals (%lf)
 _TOOL_INT_FIELDS = ("T", "P", "Q")
-_INT_RE = re.compile(r"[+-]?\d+\Z")
+#: a whole number — also in the decimal form of a whole value (`+3.000000`:
+#: this branch's own writer wrote Q so before it wrote `Q3`, Codex R324 FI-I54)
+_INT_RE = re.compile(r"[+-]?\d+(?:\.0*)?\Z")
 _REAL_RE = re.compile(r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?\Z")
 
 
@@ -33,12 +35,16 @@ class ToolTableUnreadable(ValueError):
 def parse_tool_line(data: str) -> dict:
     """The fields of one tool line's data part (its comment cut off), as
     LinuxCNC 2.9.4 reads them (tooldata_read_entry, libtooldata.so.0,
-    disassembled 2026-11-06): fields separated by spaces, in ANY order, the
-    letter case-insensitive, T/P/Q integers, the rest reals. LinuxCNC skips a
-    whole line with a field it does not know; this reader is stricter and
-    raises on anything it does not read exactly — a field that is not one
-    letter and one number (a tab inside, a unit, junk after the number), an
-    unknown or repeated letter, a line without T or P."""
+    disassembled 2026-11-06; v2.9.4 tooldata_common.cc): fields separated by
+    spaces, in ANY order, the letter case-insensitive, T/P/Q integers (%d),
+    the rest reals (%lf). LinuxCNC skips a whole line with a letter it does
+    not know, and it reads a field's leading number and drops the rest
+    (`Z1mm` is 1, `Q3.5` is 3). This reader takes only what it reads WHOLE:
+    an integer field as a whole number, also written as a whole decimal
+    (`Q+3.000000` is 3); anything else — a field that is not one letter and
+    one number (a tab inside, a unit, junk after the number, a fraction in
+    an integer field), an unknown or repeated letter, a line without T or P —
+    raises, also where LinuxCNC would read a cut value."""
     fields: dict = {}
     for token in data.split(" "):
         if not token:
@@ -51,7 +57,7 @@ def parse_tool_line(data: str) -> dict:
         if letter in _TOOL_INT_FIELDS:
             if not _INT_RE.match(value):
                 raise ToolTableUnreadable(f"{token!r} is not {letter} and a whole number")
-            fields[letter] = int(value)
+            fields[letter] = int(value.split(".")[0])
         else:
             if not _REAL_RE.match(value):
                 raise ToolTableUnreadable(f"{token!r} is not {letter} and a number")
@@ -101,10 +107,11 @@ def parse_tool_table(path: str, strict: bool = False) -> list:
     — 0 when absent — and every other field the line carries, plus `remark`).
 
     A blank line and a comment line (`;` or `#` first) are no tool. A line
-    `parse_tool_line` does not read is skipped — LinuxCNC skips it too — or,
-    with `strict`, raises ToolTableUnreadable naming it: every path that
-    reads the table to write it back reads strictly, so a line it would drop
-    stops the write."""
+    `parse_tool_line` does not read whole is left out — LinuxCNC skips it
+    only when it carries an unknown letter and may read it otherwise (a cut
+    value) — or, with `strict`, raises ToolTableUnreadable naming it: every
+    path that reads the table to write it back reads strictly, so a line it
+    would drop stops the write."""
     tools = []
     with open(path, "r") as f:
         for n, raw in enumerate(f, 1):

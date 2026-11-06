@@ -99,6 +99,12 @@ class TestTheReaderReadsWhatLinuxCNCReads(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(self.read(text, strict=True), want)
 
+    def test_a_whole_decimal_in_an_integer_field_reads_as_the_number(self):
+        """Codex R324 FI-I54: the earlier writer's Q+3.000000 is 3; a fraction is not."""
+        out = self.read("T+1.0 P2.000 Z0 Q+3.000000 ; x\n", strict=True)
+        self.assertEqual((out[0]["T"], out[0]["P"], out[0]["Q"]), (1, 2, 3))
+        self.assertIsInstance(out[0]["Q"], int)
+
     def test_orientation_is_written_as_the_integer_linuxcnc_reads(self):
         fd, path = tempfile.mkstemp(suffix=".tbl")
         os.close(fd)

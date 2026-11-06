@@ -1,10 +1,12 @@
-"""F-ARM.S3b (Codex R321–R322): a client's heartbeat budget is 3 s — the
+"""F-ARM.S3b (Codex R321–R324): a client's heartbeat budget is 3 s — the
 value, its boundary on monotonic time (exactly 3 s is not yet a stall), and
 the status loop's disarm going THROUGH it, seen on a real WebSocket session
-against the app (the budget shrunk for the session's sake)."""
+against the app at the REAL budget. A budget shrunk to 1 s for speed flaked
+in a loaded test process (Codex R324: one status tick of ~0.8 s left a
+beating client 1 s without a beat read); at 3 s a tick like that keeps a
+margin of 2 s."""
 import time
 import unittest
-from unittest.mock import patch
 
 import fake_linuxcnc
 
@@ -43,11 +45,11 @@ class TestTheLoopDisarmsThroughIt(unittest.TestCase):
         self.addCleanup(setattr, gateway, "_hb_stalled", real)
         gateway._hb_stalled = lambda last, now: (self.calls.append(now - last), real(last, now))[1]
 
-    def session(self, beat_every):
-        """Armed, then `beat_every` s between heartbeats (None: none) for 2.5 s;
-        the armed flag of every status received meanwhile."""
+    def session(self, beat_every, observe):
+        """Armed, then `beat_every` s between heartbeats (None: none) for
+        `observe` s; the armed flag of every status received meanwhile."""
         armed, deadline = [], None
-        with patch.object(gateway, "_HB_STALL_SEC", 1.0), TestClient(gateway.app) as client:
+        with TestClient(gateway.app) as client:
             with client.websocket_connect("/ws") as ws:
                 ws.send_json({"cmd": "hello", "session": "hb-budget", "resume_armed": False})
                 ws.send_json({"cmd": "heartbeat"})
@@ -68,7 +70,7 @@ class TestTheLoopDisarmsThroughIt(unittest.TestCase):
                         last_beat = now
                     if msg.get("type") == "reply" and msg.get("cmd") == "arm":
                         self.assertTrue(msg.get("armed"), msg)
-                        deadline = now + 2.5
+                        deadline = now + observe
                     if deadline is None:
                         continue
                     if msg.get("type") in STATUS_FAMILY and "armed" in msg:
@@ -77,14 +79,14 @@ class TestTheLoopDisarmsThroughIt(unittest.TestCase):
                         return armed
 
     def test_a_silent_armed_client_is_disarmed_by_the_loop(self):
-        armed = self.session(beat_every=None)
+        armed = self.session(beat_every=None, observe=6.0)
         self.assertIn(True, armed)
         seen = [a for a in armed if a != "closed"]
         self.assertEqual(seen[-1], False, "disarmed once its budget was spent")
-        self.assertTrue(any(age > 1.0 for age in self.calls), "the loop asked _hb_stalled")
+        self.assertTrue(any(age > gateway._HB_STALL_SEC for age in self.calls), "the loop asked _hb_stalled")
 
     def test_a_beating_client_stays_armed(self):
-        armed = self.session(beat_every=0.1)
+        armed = self.session(beat_every=0.1, observe=4.0)     # past the 3 s budget
         self.assertTrue(armed and all(armed), armed)
         self.assertTrue(self.calls, "the loop asked _hb_stalled")
 

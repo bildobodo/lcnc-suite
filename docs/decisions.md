@@ -10979,3 +10979,14 @@ test never publishes). The routine check reads the code as LinuxCNC does
 parameter form it does not know. The trip and its acknowledgement are held
 on the trace along the poller and the reader (`test_trip_trace.py`); whether
 the message center records them is the operator's question (Q323-1).
+
+**After R324.** The operator decided Q323-1: the message center records a
+trip and its CONFIRMED acknowledgement once each. Each trip carries an id
+(gateway epoch + number); the acknowledgement rides every frame after it as
+`safety_trip_acked: {id}` — a trip's mere absence is no acknowledgement (a
+restarted gateway drops its trip too) — and the client keys both entries by
+the id (kept on the entry across a reload). FI-I54: an integer field also
+reads as a whole decimal (`Q+3.000000`, what this branch's earlier writer
+wrote) and is written back as `Q3`; a fraction still refuses — LinuxCNC
+would cut it. The heartbeat session runs at the real 3 s budget: a 1 s
+budget flaked when one loaded status tick took ~0.8 s.

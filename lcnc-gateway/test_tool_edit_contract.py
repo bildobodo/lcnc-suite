@@ -164,6 +164,29 @@ class TestEveryColumnOrderSurvivesAnotherToolsEdit(_ToolEdit):
                     self.edit(msg, tools, library)
 
 
+#: the table as this branch's earlier writer (52454d27) wrote it — Q as a
+#: decimal (Codex R324 FI-I54), the values of EXPECTED
+EARLIER_WRITER = (";Tool  Pocket Z Offset     Diameter     Remark\n"
+                  "T1     P8     X+0.500000 Y-0.250000 Z+00050.000000  D+0006.000000   ; first\n"
+                  "T2     P5     X+3.250000 Y-4.500000 Z+00050.100000 A+1.500000 B+0.000000  D+0006.000000"
+                  " I+12.000000 J+34.000000 Q+3.000000   ; second\n"
+                  "T3     P3     Z+42.1234567  D+0004.000000   ; third\n")
+
+
+class TestTheEarlierWritersTableReadsWhole(_ToolEdit):
+    """FI-I54: a table the earlier writer wrote shows every tool and takes an
+    edit; the next write normalizes Q to the integer LinuxCNC reads."""
+
+    def test_shown_whole_edited_and_normalized(self):
+        self.table.write_text(EARLIER_WRITER)
+        self.assertEqual({t["T"]: t for t in parse_tool_table(str(self.table))}, EXPECTED, "the display")
+        self.edit({"cmd": "save_tool", "tool_number": 1, "z_offset": 49.0},
+                  {**EXPECTED, 1: {**EXPECTED[1], "Z": 49.0}}, LIBRARY)
+        text = self.table.read_text()
+        self.assertIn(" Q3", text)
+        self.assertNotIn("Q+3.000000", text)
+
+
 class TestALineNotUnderstoodStopsTheEdit(_ToolEdit):
     """FI-I50: a data line the reader does not read exactly would be dropped
     by the rewrite — the edit answers why and writes nothing."""
