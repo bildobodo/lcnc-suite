@@ -154,6 +154,12 @@ DISC_PROGRAM = "\n".join(["G21 G90 G94", "G53 G0 Z0", "G53 G0 X100 Y300", "G53 G
                            "G53 G1 X100", "G53 G1 X600", "G53 G1 X100", "M2"]) + "\n"
 DISC_EVENT_S = {"close": 10.0, "heartbeat": 8.0}   # the gateway's own event, at most this long after
 DISC_WINDOW_S = 3.0                                # observed after W (≥ 2 s proven from the periods)
+#: step 3, many clients (SYS-CONN.S1): the perf matrix's big program (its
+#: random walk, seed 42, 40 MB) without its tool change; N unarmed clients
+#: fetch /preview at once after the load is published
+CLIENTS_N, CLIENTS_MB = (4, 8), 40
+CLIENTS_PRE_S, CLIENTS_TAIL_S, CLIENTS_POST_S = 1.3, 5.0, 1.3
+CLIENTS_PUBLISH_S = 600.0
 RFL_DEADLINE = 300.0    # s: the pre-measurement, the entry and the program
 # step 2c (plan Codex R299–R301)
 PLATEAU_START, PLATEAU_END, PLATEAU_FEED = (100.0, 300.0, -50.0), 500.0, 6000.0
@@ -1396,6 +1402,95 @@ def disconnect_cases():
     return ("disconnect", step)
 
 
+def _gen_load(path: Path, mb: int) -> None:
+    """perf_matrix.gen_gcode's random walk (seed 42) without its T13 M600:
+    the load is the parse, a tool change only bends it."""
+    import random
+    rng = random.Random(42)
+    with path.open("w") as f:
+        f.write("G21 G90\nG0 X0 Y0 Z5\n")
+        size, x, y = 0, 0.0, 0.0
+        while size < mb * 1_000_000:
+            x = (x + rng.random()) % 200
+            y = (y + rng.random()) % 200
+            line = f"G1 X{x:.3f} Y{y:.3f} Z-{rng.random():.3f} F1200\n"
+            f.write(line)
+            size += len(line)
+        f.write("G0 Z5\nM2\n")
+
+
+def _fetch_preview(token: str, version) -> dict:
+    import hashlib
+    import urllib.request
+    req = urllib.request.Request(f"http://127.0.0.1:8000/preview?v={version}",
+                                 headers={"X-Auth-Token": token, "Accept-Encoding": "gzip"})
+    try:
+        with urllib.request.urlopen(req, timeout=120) as r:
+            body = r.read()
+            return {"status": r.status, "bytes": len(body), "sha256": hashlib.sha256(body).hexdigest()}
+    except Exception as e:  # noqa: BLE001 — named in the row
+        return {"status": getattr(e, "code", None), "error": f"{type(e).__name__}: {e}"}
+
+
+def clients_cases():
+    """SYS-CONN.S1 on the real task (plan Codex R283, R313–R316): for N = 4,
+    then 8, N unarmed protocol clients connect; in ONE section — before
+    (≥ 1 s), the window from the load to the last fetch + 5 s, after (≥ 1 s),
+    split by the attempt's own marks — the run's client loads the big
+    program, waits for its publication, and the N fetch /preview at once
+    behind a barrier. eval_clients judges the heartbeat's edges across the
+    window from the controller's periods."""
+    def step(ctx):
+        import hashlib
+        import threading
+        from test_support import servo_cases as sc
+        from test_support.live_session import SimulatorClient
+        c, rows = ctx["client"], ctx.setdefault("rows", [])
+        token = (lt.ini_values(ctx["ini"].read_text()).get(("DISPLAY", "WEBUI_TOKEN")) or [""])[-1]
+        for n in CLIENTS_N:
+            case = f"clients-{n}"
+            path = ctx["config"] / NC_FILES / f"native_load_{n}.ngc"
+            _gen_load(path, CLIENTS_MB)
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            clients, hellos, results, published = [], [], [None] * n, {"ok": False}
+            try:
+                for i in range(n):
+                    cl = SimulatorClient(token, session=f"native-load-{n}-{i}-{ctx['run'].name}", auto_confirm=False)
+                    clients.append(cl)
+                    cl.start(arm=False)
+                    hellos.append({k: v for k, v in cl.hello_reply.items() if k != "conn_key"})
+                with _section(ctx, case) as box:
+                    time.sleep(CLIENTS_PRE_S)
+                    w1 = ctx["servo"].phase(box["attempt"], 1)
+                    c.request("load_file", path=str(path))
+                    _wait(c, lambda s: (c.preview_origin or {}).get("source") == digest and Path(
+                        str((c.preview_origin or {}).get("file"))).resolve() == path.resolve(),
+                        CLIENTS_PUBLISH_S, f"{path.name} published")
+                    published = {"ok": True, "file": path.name, "source": digest,
+                                  "version": c.preview_origin.get("version")}
+                    barrier = threading.Barrier(n)
+
+                    def fetch(i):
+                        barrier.wait(timeout=30)
+                        results[i] = _fetch_preview(token, published["version"])
+                    threads = [threading.Thread(target=fetch, args=(i,)) for i in range(n)]
+                    for t in threads:
+                        t.start()
+                    for t in threads:
+                        t.join(timeout=150)
+                    time.sleep(CLIENTS_TAIL_S)
+                    w2 = ctx["servo"].phase(box["attempt"], 2)
+                    time.sleep(CLIENTS_POST_S)
+                sec = box.get("section") or {"samples": [], "problems": [box.get("error") or "no section"]}
+                rows.append(sc.eval_clients(case, sec, w1, w2, n, hellos, [r or {} for r in results], published))
+                _servo_failed(box, rows, case)
+            finally:
+                for cl in clients:
+                    cl.drop()            # unarmed watchers: no abort, no disarm
+        return rows
+    return ("clients", step)
+
+
 def _gateway_pid(ctx) -> int:
     """The gateway of THIS run's test instance: a `gateway:app` process in the
     test unit's own cgroup — never another instance's."""
@@ -1540,7 +1635,7 @@ def main(argv=None) -> int:
     else:
         steps = base + [home_cases(joints), jog_cases(joints), plateau_cases(), goto_cases(),
                         probe_cases(), m600_cases(), m6_hold_case(), ts_sync_cases(), rfl_cases(),
-                        disconnect_cases(), latch_cases()]
+                        disconnect_cases(), clients_cases(), latch_cases()]
     with heavy_lock("native_run", wait=0):
         report = run(SystemHost(), steps, a.run_dir)
     report["variant"] = a.variant

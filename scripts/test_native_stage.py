@@ -4345,3 +4345,102 @@ def test_a_helper_not_bound_to_one_client_starts_nothing(tmp_path, monkeypatch):
     rows = nr.disconnect_cases()[1](ctx)
     assert all(r["status"] == "incomplete" and "not bound" in r["detail"] for r in rows)
     assert ("helper", "cycle_start") not in log
+
+
+W1, W2 = -201, -202
+
+
+def _hbsec(edges, n=5000, w=(1500, 3500), lps=None, latch_at=None, problems=()):
+    """oneshot.0.in toggling at `edges` (sample indices); the window marks at
+    w[0] and w[1]; 1 ms periods unless `lps` says otherwise."""
+    rows, recv, c, v_in = [], {}, 10_000 * MS, 0
+    lps = lps or {}
+    for k in range(n):
+        if k in edges:
+            v_in ^= 1
+        lp = lps.get(k, MS)
+        c += lp
+        mark = 3 if k < w[0] else (W1 if k < w[1] else W2)
+        rows.append((c / 1e9, 4000 + k, (0.0,) * 6 + (0, 1, mark, 1, 1 if latch_at is not None and k >= latch_at
+                                                                     else 0, v_in, lp)))
+        recv[4000 + k] = c + MS
+    return {"samples": rows, "problems": list(problems), "phase_first": {W1: w[0], W2: w[1]}, "recv_ns": recv,
+            "t0_ns": 10_000 * MS}
+
+
+HELLOS = [{"ok": True, "armed": False}] * 4
+FETCHES = [{"status": 200, "sha256": "ab", "bytes": 9}] * 4
+PUB = {"ok": True}
+EVERY_100 = set(range(50, 5000, 100))
+
+
+@pytest.mark.parametrize("sec, hellos, fetches, status, part", [
+    (_hbsec(EVERY_100), HELLOS, FETCHES, "PASS", "the longest"),
+    (_hbsec(EVERY_100 - set(range(2050, 2310, 100)) | {2310}), HELLOS, FETCHES, "FAIL", "at least"),   # 260 ms
+    # 100 ms between the controller and the sampler at an edge: undecidable, not FAIL
+    (_hbsec(set(range(50, 1900, 100)) | {2051} | set(range(2152, 5000, 100)), lps={2052: 101 * MS}),
+     HELLOS, FETCHES, "incomplete", "not decided"),
+    # an edgeless border over 250 ms at the window's start
+    (_hbsec(set(range(50, 1450, 100)) | set(range(1750, 5000, 100))), HELLOS, FETCHES, "FAIL", "at least"),
+    (_hbsec(set(range(1600, 5000, 100))), HELLOS, FETCHES, "incomplete", "before the window"),   # no edge in pre
+    (_hbsec(EVERY_100, latch_at=2600), HELLOS, FETCHES, "FAIL", "a trip"),
+    (_hbsec(EVERY_100), HELLOS[:3], FETCHES, "incomplete", "unarmed connections"),
+    (_hbsec(EVERY_100), HELLOS, FETCHES[:3] + [{"status": 503, "sha256": None}], "incomplete", "fetches"),
+    (_hbsec(EVERY_100, w=(500, 3500)), HELLOS, FETCHES, "incomplete", "1 s"),                   # pre too short
+])
+def test_the_heartbeat_keeps_its_edges_while_clients_fetch(sec, hellos, fetches, status, part):
+    r = sc.eval_clients("clients-4", sec, W1, W2, 4, hellos, fetches, PUB)
+    assert r["status"] == status and part in r["detail"], r
+
+
+def test_the_whole_clients_step(tmp_path, monkeypatch):
+    import hashlib
+    from test_support import live_session as ls_mod
+    log = []
+
+    class Watch:
+        def __init__(self, token, session, auto_confirm=True, **kw):
+            self.session = session
+
+        def start(self, arm=True, resume=False):
+            log.append(("start", arm))
+            self.hello_reply = {"type": "reply", "ok": True, "armed": False, "conn_key": "secret"}
+
+        def drop(self):
+            log.append(("drop", self.session))
+
+    class B(FrameClient):
+        preview_origin = None
+
+        def request(self, cmd, **kw):
+            self.sent.append((cmd, kw))
+            log.append(("B", cmd))
+            if cmd == "load_file":
+                p = Path(kw["path"])
+                self.preview_origin = {"file": str(p), "source": hashlib.sha256(p.read_bytes()).hexdigest(),
+                                       "version": 9}
+            return {"ok": True}
+
+    class Meas(FakeMeasurement):
+        def phase(self, attempt, p):
+            log.append(("phase", p))
+            return {1: W1, 2: W2}[p]
+    monkeypatch.setattr(ls_mod, "SimulatorClient", Watch)
+    monkeypatch.setattr(nr, "_gen_load", lambda path, mb: path.write_text("G21 G90\nM2\n"))
+    monkeypatch.setattr(nr, "_fetch_preview", lambda token, version: log.append(("fetch", version)) or
+                        {"status": 200, "bytes": 9, "sha256": "ab"})
+    for k in ("CLIENTS_PRE_S", "CLIENTS_TAIL_S", "CLIENTS_POST_S"):
+        monkeypatch.setattr(nr, k, 0.0)
+    (tmp_path / nr.NC_FILES).mkdir()
+    ini = tmp_path / "m.ini"
+    ini.write_text("[DISPLAY]\nWEBUI_TOKEN = t\n")
+    c = B([(0.0, dict(_IDLE))])
+    ctx = {"client": c, "frames": c.frames, "report": {}, "run": tmp_path, "config": tmp_path, "ini": ini,
+           "state": {}, "servo": Meas([_hbsec(EVERY_100), _hbsec(EVERY_100)])}
+    rows = nr.clients_cases()[1](ctx)
+    assert [(r["case"], r["status"]) for r in rows] == [("clients-4", "PASS"), ("clients-8", "PASS")], rows
+    assert all("conn_key" not in h for r in rows for h in r["hellos"])
+    first = log[:log.index(("phase", 2)) + 1]
+    assert first[:4] == [("start", False)] * 4 and first[4:6] == [("phase", 1), ("B", "load_file")]
+    assert first.count(("fetch", 9)) == 4 and first[-1] == ("phase", 2)
+    assert sum(1 for e in log if e[0] == "drop") == 12

@@ -551,3 +551,62 @@ def eval_disconnect(case: str, sec: dict, w_mark, event, frames_after, program_l
         return _row(case, "incomplete", "a line in the window no program text names", **measured)
     return _row(case, "PASS", f"the program ran on for ≥ {dur / 1e9:.2f} s after the event, X {travel:.0f} mm, "
                 "no trip; the remaining client saw it running", **measured)
+
+
+# ── Step 3: many clients fetch the preview (SYS-CONN.S1, plan Codex R283, R313–R316) ──
+PRE_POST_NS = 1_000_000_000        # the sections before and after the window, at least
+
+
+def eval_clients(case: str, sec: dict, w_start, w_end, n: int, hellos, results, published) -> dict:
+    """SYS-CONN.S1: while `n` unarmed protocol clients fetch /preview at once
+    (behind a barrier) after a big program is loaded and published, the HAL
+    heartbeat keeps its edges: every gap between edges of oneshot.0.in that
+    touches the window [w_start, w_end) is judged by its bounds (servo_time,
+    three ways: upper ≤ 250 ms PASS, lower > 250 ms FAIL, else incomplete);
+    an edge before the window and one after it, the sections before and
+    after ≥ 1 s (lower bound); fault-out never TRUE (a trip: FAIL). All n
+    connections unarmed, all n fetches 200 with the same body, the expected
+    program published — else incomplete (no n-client case was shown)."""
+    samples = sec.get("samples") or []
+    measured = {"n": n, "hellos": hellos, "fetches": results, "published": published, "samples": len(samples)}
+    trip = next((s[1] for s in samples if _bit(s[2], LATCH) == 1), None)
+    if trip is not None:
+        return _row(case, "FAIL", f"a trip: fault-out TRUE (sample {trip})", **measured)
+    if sec.get("problems"):
+        return _row(case, "incomplete", "the section: " + "; ".join(sec["problems"]), **measured)
+    if len(hellos or []) != n or any((h or {}).get("armed") is not False for h in hellos):
+        return _row(case, "incomplete", f"not {n} unarmed connections", **measured)
+    if len(results or []) != n or any(r.get("status") != 200 for r in results) or \
+            len({r.get("sha256") for r in results}) != 1:
+        return _row(case, "incomplete", f"not {n} fetches of one preview", **measured)
+    if not (published or {}).get("ok"):
+        return _row(case, "incomplete", "the expected program was not published", **measured)
+    pf = sec.get("phase_first") or {}
+    a1, a2 = pf.get(w_start), pf.get(w_end)
+    if a1 is None or a2 is None:
+        return _row(case, "incomplete", "the window's marks not in the section", **measured)
+    rng = st.proven(samples, sec.get("recv_ns") or {}, sec.get("t0_ns"))
+    if not rng.get("ok"):
+        return _row(case, "incomplete", f"the time unproven: {rng.get('why')}", **measured)
+    pre, post = st.duration_lower(samples, rng, 0, a1 - 1), st.duration_lower(samples, rng, a2, len(samples) - 1)
+    measured.update(pre_ns=pre, post_ns=post)
+    e = st.edges(samples, HB_IN)
+    pairs = [(i, j) for i, j in zip(e, e[1:]) if j >= a1 and i < a2]
+    judged = [(i, j, st.gap_bounds(samples, rng, i, j)) for i, j in pairs]
+    verdicts = [st.judge(b) for _i, _j, b in judged]
+    worst = max((b for _i, _j, b in judged if b), default=None, key=lambda b: b[0])
+    measured.update(edges=len(e), pairs=len(pairs), worst_upper_ns=worst[0] if worst else None,
+                    worst_lower_ns=max((b[1] for _i, _j, b in judged if b), default=None))
+    if "FAIL" in verdicts:
+        i, j, b = judged[verdicts.index("FAIL")]
+        return _row(case, "FAIL", f"a heartbeat gap of at least {b[1] / 1e6:.1f} ms (samples {samples[i][1]}–"
+                    f"{samples[j][1]})", **measured)
+    if pre is None or post is None or pre < PRE_POST_NS or post < PRE_POST_NS:
+        return _row(case, "incomplete", "the sections before and after the window are not proven 1 s", **measured)
+    if not e or e[0] >= a1 or e[-1] < a2:
+        return _row(case, "incomplete", "no heartbeat edge before the window or none after it", **measured)
+    if "incomplete" in verdicts:
+        i, j, b = judged[verdicts.index("incomplete")]
+        return _row(case, "incomplete", f"a heartbeat gap not decided: {b}", **measured)
+    return _row(case, "PASS", f"{n} clients, {len(pairs)} heartbeat gaps across the window, the longest "
+                f"≤ {worst[0] / 1e6:.1f} ms", **measured)
