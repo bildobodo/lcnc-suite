@@ -1,0 +1,1000 @@
+{
+ "run11": {
+  "run": "20261106T003055",
+  "commit": "18f3f155aae711f7afea728a9bdb01917011573e",
+  "profile": "3axis_xyz",
+  "steps": [
+   "tree",
+   "copy",
+   "start",
+   "connect",
+   "servo",
+   "home",
+   "jog",
+   "plateau",
+   "goto",
+   "probe",
+   "m600",
+   "m6-hold",
+   "ts-sync",
+   "rfl"
+  ],
+  "error": null,
+  "verdict": "PASS",
+  "restore": {
+   "outcome": "complete",
+   "instance": [
+    "linuxcncsvr",
+    2135960,
+    119777016
+   ],
+   "isolation": [],
+   "cleanup": []
+  },
+  "restore_post": {
+   "outcome": "complete",
+   "instance": [
+    "linuxcncsvr",
+    2135960,
+    119777016
+   ],
+   "isolation": [],
+   "cleanup": [],
+   "repeat_of": "complete"
+  },
+  "rows": [
+   {
+    "case": "home-all",
+    "status": "PASS",
+    "detail": "as expected",
+    "expected": [
+     true,
+     true,
+     true
+    ],
+    "observed": [
+     true,
+     true,
+     true
+    ]
+   },
+   {
+    "case": "home-joint-0",
+    "status": "PASS",
+    "detail": "as expected",
+    "expected": [
+     true,
+     false,
+     false
+    ],
+    "observed": [
+     true,
+     false,
+     false
+    ]
+   },
+   {
+    "case": "home-joint-1",
+    "status": "PASS",
+    "detail": "as expected",
+    "expected": [
+     false,
+     true,
+     false
+    ],
+    "observed": [
+     false,
+     true,
+     false
+    ]
+   },
+   {
+    "case": "home-joint-2",
+    "status": "PASS",
+    "detail": "as expected",
+    "expected": [
+     false,
+     false,
+     true
+    ],
+    "observed": [
+     false,
+     false,
+     true
+    ]
+   },
+   {
+    "case": "jog-x+.servo",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "X",
+    "sign": 1,
+    "bound_mm": 2.067,
+    "problems": [],
+    "samples": 1370,
+    "travel_mm": 15.3061,
+    "anchor_n": 36903,
+    "brake_upper_mm": 0.9439,
+    "standstill_n": 36953,
+    "standstill_received_s": 0.0514,
+    "samples_anchor_to_standstill": 50
+   },
+   {
+    "case": "jog-x+",
+    "status": "incomplete",
+    "detail": "the braking travel from the reply is at most 4.042 mm by the frame before it; status frames give no lower bound (their capture time is not known) — not resolved against 2.067",
+    "axis": "X",
+    "sign": 1,
+    "bound_mm": 2.067,
+    "travel": 12.2083,
+    "before_s": -0.0653,
+    "stop_s": 0.0686,
+    "brake_upper_mm": 4.0418,
+    "first_after_mm": 0.9066,
+    "informational": true
+   },
+   {
+    "case": "jog-x-.servo",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "X",
+    "sign": -1,
+    "bound_mm": 2.067,
+    "problems": [],
+    "samples": 1369,
+    "travel_mm": 15.5934,
+    "anchor_n": 38888,
+    "brake_upper_mm": 0.9066,
+    "standstill_n": 38937,
+    "standstill_received_s": 0.0442,
+    "samples_anchor_to_standstill": 49
+   },
+   {
+    "case": "jog-x-",
+    "status": "incomplete",
+    "detail": "the braking travel from the reply is at most 4.242 mm by the frame before it; status frames give no lower bound (their capture time is not known) — not resolved against 2.067",
+    "axis": "X",
+    "sign": -1,
+    "bound_mm": 2.067,
+    "travel": 12.2583,
+    "before_s": -0.0671,
+    "stop_s": 0.0688,
+    "brake_upper_mm": 4.2418,
+    "first_after_mm": 0.8701,
+    "informational": true
+   },
+   {
+    "case": "jog-y+.servo",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "Y",
+    "sign": 1,
+    "bound_mm": 2.067,
+    "problems": [],
+    "samples": 1362,
+    "travel_mm": 15.5399,
+    "anchor_n": 40830,
+    "brake_upper_mm": 1.0601,
+    "standstill_n": 40883,
+    "standstill_received_s": 0.0541,
+    "samples_anchor_to_standstill": 53
+   },
+   {
+    "case": "jog-y+",
+    "status": "incomplete",
+    "detail": "the braking travel from the reply is at most 4.142 mm by the frame before it; status frames give no lower bound (their capture time is not known) — not resolved against 2.067",
+    "axis": "Y",
+    "sign": 1,
+    "bound_mm": 2.067,
+    "travel": 12.4583,
+    "before_s": -0.0662,
+    "stop_s": 0.0699,
+    "brake_upper_mm": 4.1418,
+    "first_after_mm": 0.8701,
+    "informational": true
+   },
+   {
+    "case": "jog-y-.servo",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "Y",
+    "sign": -1,
+    "bound_mm": 2.067,
+    "problems": [],
+    "samples": 1360,
+    "travel_mm": 15.2086,
+    "anchor_n": 42811,
+    "brake_upper_mm": 1.1414,
+    "standstill_n": 42866,
+    "standstill_received_s": 0.0546,
+    "samples_anchor_to_standstill": 55
+   },
+   {
+    "case": "jog-y-",
+    "status": "incomplete",
+    "detail": "the braking travel from the reply is at most 2.842 mm by the frame before it; status frames give no lower bound (their capture time is not known) — not resolved against 2.067",
+    "axis": "Y",
+    "sign": -1,
+    "bound_mm": 2.067,
+    "travel": 13.5083,
+    "before_s": -0.0285,
+    "stop_s": 0.076,
+    "brake_upper_mm": 2.8418,
+    "first_after_mm": 1.1831,
+    "informational": true
+   },
+   {
+    "case": "jog-z+.servo",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "Z",
+    "sign": 1,
+    "bound_mm": 2.483,
+    "problems": [],
+    "samples": 1354,
+    "travel_mm": 14.4195,
+    "anchor_n": 44740,
+    "brake_upper_mm": 1.3805,
+    "standstill_n": 44808,
+    "standstill_received_s": 0.0698,
+    "samples_anchor_to_standstill": 68
+   },
+   {
+    "case": "jog-z+",
+    "status": "incomplete",
+    "detail": "the braking travel from the reply is at most 2.708 mm by the frame before it; status frames give no lower bound (their capture time is not known) — not resolved against 2.483",
+    "axis": "Z",
+    "sign": 1,
+    "bound_mm": 2.483,
+    "travel": 13.0916,
+    "before_s": -0.0259,
+    "stop_s": 0.0773,
+    "brake_upper_mm": 2.7084,
+    "first_after_mm": 1.0741,
+    "informational": true
+   },
+   {
+    "case": "jog-z-.servo",
+    "status": "PASS",
+    "detail": "moved in its sign, stopped within its bounds",
+    "axis": "Z",
+    "sign": -1,
+    "bound_mm": 2.483,
+    "problems": [],
+    "samples": 1362,
+    "travel_mm": 14.7199,
+    "anchor_n": 46732,
+    "brake_upper_mm": 1.6801,
+    "standstill_n": 46807,
+    "standstill_received_s": 0.082,
+    "samples_anchor_to_standstill": 75
+   },
+   {
+    "case": "jog-z-",
+    "status": "incomplete",
+    "detail": "the braking travel from the reply is at most 3.358 mm by the frame before it; status frames give no lower bound (their capture time is not known) — not resolved against 2.483",
+    "axis": "Z",
+    "sign": -1,
+    "bound_mm": 2.483,
+    "travel": 13.0416,
+    "before_s": -0.0304,
+    "stop_s": 0.1053,
+    "brake_upper_mm": 3.3584,
+    "first_after_mm": 1.6801,
+    "informational": true
+   },
+   {
+    "case": "override-plateau-100",
+    "status": "PASS",
+    "detail": "median 100.00 mm/s within 100 ± 5%",
+    "expected": 100.0,
+    "tol": 0.05,
+    "pairs": 2999,
+    "problems": [],
+    "median": 100.0
+   },
+   {
+    "case": "override-plateau-50",
+    "status": "PASS",
+    "detail": "median 50.00 mm/s within 50 ± 5%",
+    "expected": 50.0,
+    "tol": 0.05,
+    "pairs": 5999,
+    "problems": [],
+    "median": 50.0
+   },
+   {
+    "case": "override-plateau.counter-75",
+    "status": "PASS",
+    "detail": "the planted value is refused: median 100.00 mm/s — expected 75 ± 5%",
+    "counter": true,
+    "inner": {
+     "case": "override-plateau-100",
+     "status": "FAIL",
+     "detail": "median 100.00 mm/s — expected 75 ± 5%",
+     "expected": 75.0,
+     "tol": 0.05,
+     "pairs": 2999,
+     "problems": [],
+     "median": 100.0
+    }
+   },
+   {
+    "case": "goto-zero",
+    "status": "PASS",
+    "detail": "Z up first, then X/Y; no descent (the target's Z is up); at rest on the target",
+    "start": [
+     200.0,
+     200.0,
+     -60.0
+    ],
+    "target": [
+     100.0,
+     100.0,
+     0.0
+    ],
+    "problems": []
+   },
+   {
+    "case": "goto-home",
+    "status": "PASS",
+    "detail": "Z up first, then X/Y; no descent (the target's Z is up); at rest on the target",
+    "start": [
+     200.0,
+     200.0,
+     -60.0
+    ],
+    "target": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "problems": []
+   },
+   {
+    "case": "goto-g30",
+    "status": "PASS",
+    "detail": "Z up first, then X/Y; no descent (the target's Z is up); at rest on the target",
+    "start": [
+     200.0,
+     200.0,
+     -60.0
+    ],
+    "target": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "problems": []
+   },
+   {
+    "case": "goto-zero.counter-xy-first",
+    "status": "PASS",
+    "detail": "the planted value is refused: X moved -0.012 mm with Z at -60.000 (sample 135369)",
+    "counter": true,
+    "inner": {
+     "case": "goto-zero",
+     "status": "FAIL",
+     "detail": "X moved -0.012 mm with Z at -60.000 (sample 135369)",
+     "start": [
+      200.0,
+      200.0,
+      -60.0
+     ],
+     "target": [
+      100.0,
+      100.0,
+      0.0
+     ],
+     "problems": []
+    }
+   },
+   {
+    "case": "probe-z",
+    "status": "PASS",
+    "detail": "G54 Z -180.0011 within -180 ± 0.003",
+    "expected": -180.0,
+    "tol_mm": 0.003,
+    "contact": 1.0,
+    "g54_z": -180.0011166666662,
+    "errors": [],
+    "deviation_mm": -0.001117,
+    "vars_sent": {
+     "3014": 99.0,
+     "3015": 50.0,
+     "3016": 200.0,
+     "3017": 1000.0,
+     "3020": 10.0,
+     "3021": 2.0,
+     "3030": 0
+    }
+   },
+   {
+    "case": "probe-z.counter-plate-1",
+    "status": "PASS",
+    "detail": "the planted value is refused: G54 Z -180.0011 — expected -179 ± 0.003",
+    "counter": true,
+    "inner": {
+     "case": "probe-z",
+     "status": "FAIL",
+     "detail": "G54 Z -180.0011 — expected -179 ± 0.003",
+     "expected": -179.0,
+     "tol_mm": 0.003,
+     "contact": 1.0,
+     "g54_z": -180.0011166666662,
+     "errors": [],
+     "deviation_mm": -1.001117
+    }
+   },
+   {
+    "case": "probe-z-miss",
+    "status": "PASS",
+    "detail": "no contact, nothing set, the error said so",
+    "error": "G38.2 move finished without making contact.",
+    "contact": 0.0,
+    "g54_before": 0.0,
+    "g54_after": 0.0,
+    "errors": [
+     [
+      11,
+      "G38.2 move finished without making contact."
+     ]
+    ],
+    "vars_read_back": {
+     "3014": 99.0,
+     "3015": 50.0,
+     "3016": 200.0,
+     "3017": 1000.0,
+     "3020": 10.0,
+     "3021": 2.0,
+     "3030": 0.0
+    }
+   },
+   {
+    "case": "m600-unload",
+    "status": "PASS",
+    "detail": "the spindle empty, no length applied",
+    "served": [
+     {
+      "tool": 0,
+      "seq": 2
+     }
+    ],
+    "tool_after": 0,
+    "offset_after": 0.0
+   },
+   {
+    "case": "m600-t1",
+    "status": "PASS",
+    "detail": "length 49.9996 within 50 ± 0.002, applied as measured",
+    "l0": 50.0,
+    "length": 49.999550000000056,
+    "g43": 49.999550000000056,
+    "tol_mm": 0.002,
+    "errors": [],
+    "deviation_mm": -0.00045,
+    "table_on_disk": 49.99955
+   },
+   {
+    "case": "m600-t1-return",
+    "status": "PASS",
+    "detail": "from the top, T0 0.000 mm → T1 49.9996 mm stored and applied; back at the call's X/Y, Z stayed up",
+    "call": [
+     0.0,
+     0.0,
+     -1.7763568394002505e-15
+    ],
+    "end": [
+     0.0,
+     0.0,
+     -1.7763568394002505e-15
+    ],
+    "top_z": 0.0,
+    "errors": [],
+    "setting_3106": 1.0,
+    "call_tool": 0,
+    "call_offset": 0.0,
+    "tool": 1,
+    "end_tool": 1,
+    "table": 49.999550000000056,
+    "applied": 49.999550000000056
+   },
+   {
+    "case": "m600-t1-return.counter-x+1",
+    "status": "PASS",
+    "detail": "the planted value is refused: X ended at 0.000, the call was at 1.000",
+    "counter": true,
+    "inner": {
+     "case": "m600-t1-return",
+     "status": "FAIL",
+     "detail": "X ended at 0.000, the call was at 1.000",
+     "call": [
+      1.0,
+      0.0,
+      -1.7763568394002505e-15
+     ],
+     "end": [
+      0.0,
+      0.0,
+      -1.7763568394002505e-15
+     ],
+     "top_z": 0.0,
+     "errors": [],
+     "setting_3106": 1.0,
+     "call_tool": 0,
+     "call_offset": 0.0,
+     "tool": 1,
+     "end_tool": 1,
+     "table": 49.999550000000056,
+     "applied": 49.999550000000056
+    }
+   },
+   {
+    "case": "m600-t1-override-lock",
+    "status": "PASS",
+    "detail": "locked through the measuring phase, free after the routine",
+    "free_s": 39.487,
+    "locked_from_s": 0.273,
+    "done_s": 39.487
+   },
+   {
+    "case": "m600-t1.counter-3102",
+    "status": "PASS",
+    "detail": "the planted #3102 gave 48.9991 as predicted from 49.9995 — refused against it",
+    "base": 49.99955,
+    "planted_3102": -179.0,
+    "predicted": 48.99955,
+    "length": 48.99910000000011,
+    "g43": 48.99910000000011,
+    "tool_after": 1,
+    "errors": [],
+    "counter": true,
+    "l0": 50.0,
+    "table_on_disk": 48.9991
+   },
+   {
+    "case": "m6-hold",
+    "status": "PASS",
+    "detail": "held 5 s waiting, then T99 with its length",
+    "tool_before": 1,
+    "tool_after": 99,
+    "offset_after": 50.0,
+    "samples": 147,
+    "max_gap_s": 0.04,
+    "held_s": 5.027,
+    "first_t": 1197645.184642152,
+    "last_t": 1197650.211896395
+   },
+   {
+    "case": "ts-sync-program-m600",
+    "status": "PASS",
+    "detail": "saved while off, applied at the start: #3102 -180 → -179, length 48.9996 within 49 ± 0.002 (the old basis gives 50)",
+    "l0": 50.0,
+    "old_3102": -180.0,
+    "new_3102": -179.0,
+    "expected": 49.0,
+    "length": 48.999550000000056,
+    "g43": 48.999550000000056,
+    "toolsetter": {
+     "digest": "6c63d98ce362c644",
+     "set_up": true,
+     "synced": true,
+     "persisted": true,
+     "file_error": null
+    },
+    "interp_before": -180.0,
+    "interp_after": -179.0,
+    "tol_mm": 0.002,
+    "errors": [],
+    "deviation_mm": -0.00045
+   },
+   {
+    "case": "ts-sync-program-m600.counter-old-basis",
+    "status": "PASS",
+    "detail": "the planted value is refused: length 48.9996 — expected 50 ± 0.002",
+    "counter": true,
+    "inner": {
+     "case": "ts-sync-program-m600",
+     "status": "FAIL",
+     "detail": "length 48.9996 — expected 50 ± 0.002",
+     "l0": 50.0,
+     "old_3102": -180.0,
+     "new_3102": -180.0,
+     "expected": 50.0,
+     "length": 48.999550000000056,
+     "g43": 48.999550000000056,
+     "toolsetter": {
+      "digest": "6c63d98ce362c644",
+      "set_up": true,
+      "synced": true,
+      "persisted": true,
+      "file_error": null
+     },
+     "interp_before": -180.0,
+     "interp_after": -179.0,
+     "tol_mm": 0.002,
+     "errors": [],
+     "deviation_mm": -1.00045
+    }
+   },
+   {
+    "case": "ts-sync-booking",
+    "status": "PASS",
+    "detail": "#3102 booked -180.0 before, every key the section's number as applied or read after (version 25 → 30)",
+    "before": {
+     "version": 25,
+     "keys": {
+      "3004": {
+       "value": 2000.0,
+       "origin": "applied"
+      },
+      "3005": {
+       "value": 20.0,
+       "origin": "applied"
+      },
+      "3006": {
+       "value": 500.0,
+       "origin": "applied"
+      },
+      "3007": {
+       "value": 180.0,
+       "origin": "applied"
+      },
+      "3009": {
+       "value": 3.0,
+       "origin": "applied"
+      },
+      "3010": {
+       "value": 180.0,
+       "origin": "applied"
+      },
+      "3013": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3014": {
+       "value": 99.0,
+       "origin": "assumed"
+      },
+      "3100": {
+       "value": 10.0,
+       "origin": "applied"
+      },
+      "3101": {
+       "value": 10.0,
+       "origin": "applied"
+      },
+      "3102": {
+       "value": -180.0,
+       "origin": "applied"
+      },
+      "3103": {
+       "value": 1.0,
+       "origin": "applied"
+      },
+      "3104": {
+       "value": 2.0,
+       "origin": "applied"
+      },
+      "3105": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3106": {
+       "value": 1.0,
+       "origin": "applied"
+      },
+      "3107": {
+       "value": 5.0,
+       "origin": "applied"
+      },
+      "3108": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3109": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3110": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3111": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3112": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3113": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3114": {
+       "value": 0.0,
+       "origin": "applied"
+      },
+      "3115": {
+       "value": 0.0,
+       "origin": "applied"
+      }
+     }
+    },
+    "after": {
+     "version": 30,
+     "keys": {
+      "3004": {
+       "value": 2000.0,
+       "origin": "read"
+      },
+      "3005": {
+       "value": 20.0,
+       "origin": "read"
+      },
+      "3006": {
+       "value": 500.0,
+       "origin": "read"
+      },
+      "3007": {
+       "value": 180.0,
+       "origin": "read"
+      },
+      "3009": {
+       "value": 3.0,
+       "origin": "read"
+      },
+      "3010": {
+       "value": 180.0,
+       "origin": "read"
+      },
+      "3013": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3014": {
+       "value": 99.0,
+       "origin": "read"
+      },
+      "3100": {
+       "value": 10.0,
+       "origin": "read"
+      },
+      "3101": {
+       "value": 10.0,
+       "origin": "read"
+      },
+      "3102": {
+       "value": -179.0,
+       "origin": "read"
+      },
+      "3103": {
+       "value": 1.0,
+       "origin": "read"
+      },
+      "3104": {
+       "value": 2.0,
+       "origin": "read"
+      },
+      "3105": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3106": {
+       "value": 1.0,
+       "origin": "read"
+      },
+      "3107": {
+       "value": 5.0,
+       "origin": "read"
+      },
+      "3108": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3109": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3110": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3111": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3112": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3113": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3114": {
+       "value": 0.0,
+       "origin": "read"
+      },
+      "3115": {
+       "value": 0.0,
+       "origin": "read"
+      }
+     }
+    }
+   },
+   {
+    "case": "ts-sync-stable",
+    "status": "PASS",
+    "detail": "nothing written, the booking stayed at version 30",
+    "toolsetter": {
+     "digest": "6c63d98ce362c644",
+     "set_up": true,
+     "synced": false
+    },
+    "version_before": 30,
+    "version_after": 30
+   },
+   {
+    "case": "rfl-line",
+    "status": "PASS",
+    "detail": "the program started at line 7 with T1, its length, the spindle at 1000; line 7 and the program ran to their ends",
+    "line": 7,
+    "end_point": [
+     200.0,
+     null,
+     0.0
+    ],
+    "final": [
+     200.0,
+     200.0,
+     -30.0
+    ],
+    "line_holds": {
+     "1": 100.0,
+     "2": 0.0
+    },
+    "end_from": 8,
+    "errors": [],
+    "witness_t": 1197760.659476778,
+    "witness_line": 7,
+    "tool_number": 1,
+    "offset": 49.999550000000056,
+    "table": 49.999550000000056,
+    "spindle_direction": 1,
+    "spindle_speed": 1000.0
+   },
+   {
+    "case": "rfl-line.counter-line+1",
+    "status": "PASS",
+    "detail": "the planted value is refused: the first motion of the program is line 7, before line 8",
+    "counter": true,
+    "inner": {
+     "case": "rfl-line",
+     "status": "FAIL",
+     "detail": "the first motion of the program is line 7, before line 8",
+     "line": 8,
+     "end_point": [
+      200.0,
+      null,
+      0.0
+     ],
+     "final": [
+      200.0,
+      200.0,
+      -30.0
+     ],
+     "line_holds": {
+      "1": 100.0,
+      "2": 0.0
+     },
+     "end_from": 9,
+     "errors": [],
+     "witness_t": 1197760.659476778,
+     "witness_line": 7,
+     "tool_number": 1,
+     "offset": 49.999550000000056,
+     "table": 49.999550000000056,
+     "spindle_direction": 1,
+     "spindle_speed": 1000.0
+    }
+   },
+   {
+    "case": "rfl-no-earlier-line",
+    "status": "PASS",
+    "detail": "no line before 7 in 140 received frames of the program — a line between two frames is not seen",
+    "scope": "observed frames",
+    "frames": 140,
+    "lines": [
+     7,
+     8,
+     9
+    ]
+   },
+   {
+    "case": "rfl-start-point",
+    "status": "PASS",
+    "detail": "line 7 started at the entry X/Y on the safe height, at rest since reaching it; no earlier line moved",
+    "line": 7,
+    "entry_xy": [
+     100.0,
+     100.0
+    ],
+    "safe_z": 0.0,
+    "samples": 50049,
+    "sources": {
+     "subroutines/tool_length_probe/tool_touch_off.ngc": "4990c7b303cb43bf0aa8cb11948277072874558f5902d3c48a59133ec555097d",
+     "subroutines/tool_length_probe/m600.ngc": "acbaeb68313eb7f769eea45f5b1bf83455d55976515857f47811c1d0d773e919",
+     "program": "623c541452bd24ad4bfd2075287ff68081e0785eff09c53366f00526bcc95773"
+    },
+    "start": [
+     100.0,
+     100.0,
+     0.0
+    ],
+    "anchor_n": 400214
+   },
+   {
+    "case": "rfl-start-point.counter-entry-x+1",
+    "status": "PASS",
+    "detail": "the planted value is refused: line 7 started at X 100.0 Y 100.0, not the entry X 101 Y 100",
+    "counter": true,
+    "inner": {
+     "case": "rfl-start-point",
+     "status": "FAIL",
+     "detail": "line 7 started at X 100.0 Y 100.0, not the entry X 101 Y 100",
+     "line": 7,
+     "entry_xy": [
+      101.0,
+      100.0
+     ],
+     "safe_z": 0.0,
+     "samples": 50049,
+     "sources": {
+      "subroutines/tool_length_probe/tool_touch_off.ngc": "4990c7b303cb43bf0aa8cb11948277072874558f5902d3c48a59133ec555097d",
+      "subroutines/tool_length_probe/m600.ngc": "acbaeb68313eb7f769eea45f5b1bf83455d55976515857f47811c1d0d773e919",
+      "program": "623c541452bd24ad4bfd2075287ff68081e0785eff09c53366f00526bcc95773"
+     },
+     "start": [
+      100.0,
+      100.0,
+      0.0
+     ]
+    }
+   }
+  ]
+ },
+ "run10_rejudged": {
+  "run": "20261105T232301",
+  "evaluator_commit": "working tree on 672ba228",
+  "start": {
+   "case": "rfl-start-point",
+   "status": "PASS",
+   "detail": "line 7 started at the entry X/Y on the safe height, at rest since reaching it; no earlier line moved",
+   "line": 7,
+   "entry_xy": [
+    100.0,
+    100.0
+   ],
+   "safe_z": 0.0,
+   "samples": 50170,
+   "sources": {
+    "subroutines/tool_length_probe/tool_touch_off.ngc": "4990c7b303cb43bf0aa8cb11948277072874558f5902d3c48a59133ec555097d",
+    "subroutines/tool_length_probe/m600.ngc": "acbaeb68313eb7f769eea45f5b1bf83455d55976515857f47811c1d0d773e919",
+    "program": "623c541452bd24ad4bfd2075287ff68081e0785eff09c53366f00526bcc95773"
+   },
+   "start": [
+    100.0,
+    100.0,
+    0.0
+   ],
+   "anchor_n": 345381
+  },
+  "counter": {
+   "case": "rfl-start-point.counter-entry-x+1",
+   "status": "PASS",
+   "detail": "the planted value is refused: line 7 started at X 100.0 Y 100.0, not the entry X 101 Y 100"
+  }
+ }
+}
