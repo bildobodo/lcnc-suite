@@ -2,7 +2,8 @@
 empties the program and the preview — along their actual paths.
 
 - Reload: the WebUI's Reload sends load_file with the same path (browser,
-  e2e); the poller's file edge (preview_file_changed, its use in
+  e2e); the handler takes the loaded path again and asks LinuxCNC to open
+  it; the poller's file edge (preview_file_changed, its use in
   _status_poller checked in the source) sees the in-place edit by the mtime;
   the parse publishes the new text's source (the pipeline with a stand-in
   worker).
@@ -84,6 +85,65 @@ class TestAReloadPublishesTheNewRevision(unittest.TestCase):
             _publish(b, ngc)
             self.assertEqual(b.published_source, hashlib.sha256(b"G0 X2\nM2\n").hexdigest())
             self.assertGreater(b.preview_version, first[1])
+
+
+class _Opens:
+    """CMD with program_open recorded; every other command a no-op."""
+
+    def __init__(self):
+        self.opens = []
+
+    def program_open(self, path):
+        self.opens.append(path)
+
+    def __getattr__(self, _name):
+        return lambda *a, **k: None
+
+
+class TestAReloadThroughTheWebSocketPath(_Admission):
+
+    def test_the_same_path_loaded_again_opens_it_again_and_publishes_its_new_text(self):
+        # R322: a loaded file, its text changed, load_file again — the
+        # handler takes the loaded path (no short-cut), LinuxCNC is asked to
+        # open it again, the poller's edge sees the new mtime and the parse
+        # publishes the new source
+        with tempfile.TemporaryDirectory() as nc:
+            ini = os.path.join(nc, "m.ini")
+            Path(ini).write_text("[EMC]\n")
+            prog = Path(nc) / "part.ngc"
+            prog.write_text("G0 X1\nM2\n")
+            b = _pipeline(ini)
+            gateway.STAT.task_mode = linuxcnc.MODE_AUTO
+            gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+            program = gateway._status_runtime.program = gateway._status_runtime_mod.LoadedProgram()
+            program.update(None, True, time.monotonic())
+            cmd, replies = _Opens(), []
+
+            async def reply(ws, m):
+                replies.append(m)
+
+            def send(msg):
+                gateway._shared_status = _payload()
+                gateway._cmd_lock = None
+                asyncio.run(gateway._execute_client_command(901, self.writer, None, dict(msg)))
+                return replies[-1]
+            with patch.object(gateway, "_bulk", b), patch.object(gateway, "ws_send_json", reply), \
+                    patch.object(gateway, "CMD", cmd), patch.object(gateway, "get_nc_files_dir", return_value=nc):
+                self.assertTrue(send({"cmd": "load_file", "path": str(prog)})["ok"], replies)
+                program.update(str(prog), True, time.monotonic())
+                _publish(b, str(prog))                                # the poller's parse of the load
+                first = (b.published_source, b.preview_version)
+                prog.write_text("G0 X2\nM2\n")                      # the editor's Save, in place
+                later = time.time() + 5
+                os.utime(prog, (later, later))
+                self.assertTrue(send({"cmd": "load_file", "path": str(prog)})["ok"], replies)
+                self.assertEqual(cmd.opens, [str(prog), str(prog)], "LinuxCNC asked to open the same path again")
+                self.assertTrue(gateway_util.preview_file_changed(str(prog), os.path.getmtime(prog),
+                                                                  b.last_file, b.last_mtime), "the poller's edge")
+                _publish(b, str(prog))
+                self.assertEqual(b.published_source, hashlib.sha256(b"G0 X2\nM2\n").hexdigest())
+                self.assertNotEqual(b.published_source, first[0])
+                self.assertGreater(b.preview_version, first[1])
 
 
 class TestAnUnloadEmptiesProgramAndPreview(_Admission):

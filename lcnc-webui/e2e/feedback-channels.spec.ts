@@ -288,7 +288,7 @@ test("a safety trip: the banner with Acknowledge; the click sends the ack, the t
   await openReady(page);
   const banner = page.locator(".bannerContent");
   const ack = page.locator(".bannerActions").getByRole("button", { name: "Acknowledge", exact: true });
-  const acts = async () => (await recordedCmds()).filter(c => c !== "get_tool_table");
+  const acts = async () => (await recordedCmds()).filter(c => !READ_ONLY_CMDS.includes(c));
   await expect(banner).not.toContainText("SAFETY TRIPPED");
   await expect(ack).toHaveCount(0);
 
