@@ -1,0 +1,118 @@
+{
+ "round": "R325",
+ "branch": "feat/g1-guards",
+ "base": "c9e7ae82",
+ "head": "89003ac0",
+ "method": "pytest / vitest on the guard file with the mutant applied in ~/lcnc-suite-g1, restored from a copy each time; browser mutants via ~/claude-work/g1/browser_mut.py (vite build, the named test, --retries=0)",
+ "mutants": [
+  {
+   "finding": "FI-I54",
+   "guard": "test_tool_edit_contract.py + test_tool_table.py",
+   "mutant": "integer fields whole numbers only (the R323 rule)",
+   "result": "2 failed, 21 passed"
+  },
+  {
+   "finding": "FI-I54",
+   "guard": "test_tool_edit_contract.py + test_tool_table.py",
+   "mutant": "an integer field takes a fraction (cut like %d)",
+   "result": "1 failed, 23 passed"
+  },
+  {
+   "finding": "hb session",
+   "guard": "test_hb_budget.py",
+   "mutant": ">= instead of > in _hb_stalled",
+   "result": "1 failed, 3 passed"
+  },
+  {
+   "finding": "hb session",
+   "guard": "test_hb_budget.py",
+   "mutant": "the status loop computes the stall inline",
+   "result": "2 failed, 2 passed"
+  },
+  {
+   "finding": "hb session",
+   "guard": "test_hb_budget.py",
+   "mutant": "_HB_STALL_SEC = 4.0",
+   "result": "2 failed, 2 passed"
+  },
+  {
+   "finding": "hb session",
+   "guard": "test_hb_budget.py",
+   "mutant": "the status loop never disarms",
+   "result": "2 failed, 2 passed"
+  },
+  {
+   "finding": "F-TRIP.S1d",
+   "guard": "statusStore.test.ts",
+   "mutant": "no dedupe",
+   "result": "3 failed, 39 passed"
+  },
+  {
+   "finding": "F-TRIP.S1d",
+   "guard": "statusStore.test.ts",
+   "mutant": "a trip's absence recorded as the acknowledgement",
+   "result": "1 failed, 41 passed"
+  },
+  {
+   "finding": "F-TRIP.S1d",
+   "guard": "statusStore.test.ts",
+   "mutant": "the event looked up in this page only, not in the history",
+   "result": "1 failed, 41 passed"
+  },
+  {
+   "finding": "F-TRIP.S1d",
+   "guard": "statusStore.test.ts",
+   "mutant": "an acknowledgement recorded without its trip",
+   "result": "1 failed, 41 passed"
+  },
+  {
+   "finding": "F-TRIP.S1d",
+   "guard": "feedback-channels.spec.ts (message center)",
+   "mutant": "the acknowledgement recorded at the click",
+   "result": "RED"
+  },
+  {
+   "finding": "F-TRIP.S1d",
+   "guard": "feedback-channels.spec.ts (message center)",
+   "mutant": "a trip's absence recorded as the acknowledgement",
+   "result": "RED"
+  },
+  {
+   "finding": "F-TRIP.S1d",
+   "guard": "feedback-channels.spec.ts (message center)",
+   "mutant": "no dedupe",
+   "result": "RED"
+  },
+  {
+   "finding": "F-TRIP.S1c/S1d",
+   "guard": "test_trip_trace.py",
+   "mutant": "the acknowledgement not published (_last_trip_ack)",
+   "result": "1 failed"
+  },
+  {
+   "finding": "F-TRIP.S1c/S1d",
+   "guard": "test_trip_trace.py",
+   "mutant": "safety_trip_acked not on the frames",
+   "result": "1 failed"
+  },
+  {
+   "finding": "F-TRIP.S1c/S1d",
+   "guard": "test_trip_trace.py",
+   "mutant": "the trip without an id",
+   "result": "1 failed"
+  }
+ ],
+ "stability": {
+  "combination": [
+   "test_tool_table.py",
+   "test_tool_edit_contract.py",
+   "test_program_reload_unload.py",
+   "test_toolsetter_routine_map.py",
+   "test_trip_trace.py",
+   "test_sim_trip.py",
+   "test_hb_budget.py"
+  ],
+  "sequential": "5 runs, each 47 passed, 85 subtests",
+  "parallel": "2 rounds of 3 concurrent runs, each 47 passed"
+ }
+}
