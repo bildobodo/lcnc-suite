@@ -349,6 +349,13 @@ _WS_NO_PREEMPT = _WS_STOP_CMDS | {"arm"}
 _HB_STALL_SEC = 3.0
 
 
+def _hb_stalled(last_hb_mono: float, now: float) -> bool:
+    """A client's heartbeat budget is spent: MORE than _HB_STALL_SEC (3 s) of
+    monotonic time since its last beat — exactly 3 s is not yet a stall. The
+    status loop disarms through this (F-ARM.S3b)."""
+    return now - last_hb_mono > _HB_STALL_SEC
+
+
 # ── Auth / origin controls (issue #17) ──
 # Pre-shared token: empty string disables auth (loopback/dev). The launcher
 # fail-closed rule guarantees a token is set whenever HOST is non-loopback.
@@ -10343,7 +10350,7 @@ async def ws_endpoint(ws: WebSocket):
                         # 3 s budget while heartbeats arrived on schedule → false
                         # disarm. time.monotonic() is immune in both directions
                         # (a backward step also can't keep a dead client "fresh").
-                        if time.monotonic() - _clients[client_id].last_hb_mono > _HB_STALL_SEC:
+                        if _hb_stalled(_clients[client_id].last_hb_mono, time.monotonic()):
                             if client.armed:
                                 client.armed = False
                                 try:
