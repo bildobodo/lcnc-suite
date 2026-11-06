@@ -4745,6 +4745,9 @@ def test_a_wrong_reference_is_caught_by_the_independent_checks():
     assert _method_case("nearest", 4.700, refs={**refs, "nearest": 4.700})["status"] == "FAIL"
     assert _method_case("linear", 5.000, refs={**refs, "linear": 5.000})["status"] == "FAIL"
     assert _method_case("cubic", 4.960, refs={**refs, "cubic": 4.960})["status"] == "FAIL", "within 0.05 of linear"
+    # a cubic reference that is its own value and far from linear, but farther
+    # from the surface than linear: the curvature check alone refuses it
+    assert _method_case("cubic", 4.800, refs={**refs, "cubic": 4.800})["status"] == "FAIL", "not closer than linear"
 
 
 def test_a_reading_that_is_not_one_is_incomplete_and_a_point_that_tells_nothing_too():
@@ -4970,6 +4973,8 @@ class SurfaceSim:
             self.points = pts
             self.version += 0 if self.defect == "no reload" else 1
             self.xy, self.zj = (518.0, 518.0), 0.0       # the routine's return: G53 Z0, then X0 Y0 of its grid
+        elif text.startswith("G1 ") and self.defect == "move refused":
+            raise RuntimeError(f"{text}: refused")
         elif text.startswith(("G0 ", "G1 ")):
             # a block that goes nowhere never shows busy: its end is never seen
             words = dict((w[0], float(w[1:])) for w in text.split()[1:])
@@ -5041,6 +5046,20 @@ def test_the_surface_step_names_each_planted_defect(monkeypatch, tmp_path):
         assert ctx["report"]["surface_cleanup"]["after"]["eoffset_enabled"] is False, defect
     # a scan that failed starts no compensation and ends the step with its rows
     assert error and "the scan did not pass" in error and not any(k.startswith("comp-") for k in by)
+
+
+
+def test_a_step_that_fails_with_compensation_on_turns_it_off(monkeypatch, tmp_path):
+    """The XY move with compensation ON refused: the step ends with its rows,
+    and the cleanup turns the compensation off and drains it, puts the
+    method back and G54 Z0 — read back (Codex R326)."""
+    by, ctx, sim, error = _surface_step(monkeypatch, tmp_path, "move refused")
+    assert error and "refused" in error
+    assert by["comp-on-off"]["status"] == "PASS" and "comp-after-xy" not in by
+    assert sim.on is False
+    after = ctx["report"]["surface_cleanup"]["after"]
+    assert after["eoffset_enabled"] is False and after["comp_method"] == 2 and after["g54_z"] == 0.0
+    assert ("set_compensation", {"enable": False}) in sim.sent[-6:], sim.sent[-6:]
 
 
 def test_the_expected_wiring_is_the_shipped_hal():
