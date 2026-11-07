@@ -1,0 +1,47 @@
+{
+  "review": "R330",
+  "product_head": "4013b1b2528d7dd7367a392108edfc66015cb1db",
+  "live_docs_head": "4958cc4fa59680025de7fb2ab0ab410a604d1017",
+  "archive": "/tmp/codex-r330",
+  "source_sha256": {
+    "scripts/test_select/round_gate.py": "084b99bfc2e5abdae0085605a687ba2340abf26cee2b642f7aaddcf1758a9d21",
+    "scripts/install_probe.py": "39692d24b72f1bb4ab8a3b1868c9b331b0477b31e52d3565e880b1f9306a23bb",
+    "scripts/install_probe_browser.mjs": "7d320c8fc2343c8a3e8dfe9fc59c9e7fd90b5b829155c53e19752988ce2dbfca",
+    "scripts/test_support/install_cases.py": "4e37dd7869ae0be09e6cb297c0cbfa7a93cffee2dbd5345a291ad74b50186975",
+    "scripts/test_support/restore_lan.py": "d0f2abaa62b15d62ddcc288cf6625eafaa0530d6d6a40eca710e9e0735e378f9",
+    "scripts/native_run.py": "fe9d0765d5c00874588f9d7567399ca426b42466be0c76c494a9fe86023942fe",
+    "scripts/test_install_probe.py": "a77a41859336f93845a2da08976a4a1070c340446eacc736233fbf780e215bd9",
+    "install.sh": "e8502c16d5f78d31cc57dd8356b3f2a3ead5de11883aee804341ed1c0acb1173"
+  },
+  "tests": {
+    "suite": "scripts/test_install_probe.py",
+    "initial": "61 passed, 3 browser tests skipped before resolving own archive dependencies",
+    "final": "64 passed in 22.03s; own archive; browser and HTTP tests on private servers"
+  },
+  "counterexamples": {
+    "source": "function-inventory.r330.codex-counterexamples.py",
+    "result": "function-inventory.r330.codex-counterexamples.json",
+    "boundary": "systemd transport mocked; heavy lock is a private temp file; no service command executed"
+  },
+  "browser": {
+    "source": "function-inventory.r330.codex-browser.py",
+    "result": "function-inventory.r330.codex-browser.json",
+    "ui": "built a61337c3 from own R329 archive; no web changes through 4013b1b2",
+    "node_modules": "own R329 archive",
+    "mock": "127.0.0.1:4591; terminated by probe",
+    "first_attempt": "Correctly failed on unrelated /settings SPA response; own mock fixed to answer /settings with JSON. Unmodified product helper then PASS with zero status frames. Final portable reproducer repeated same result.",
+    "first_result": "function-inventory.r330.codex-browser-first.json"
+  },
+  "live_evidence_read": [
+    "function-inventory.r330.probe-runs.json",
+    "function-inventory.r330.merge-probe.json",
+    "function-inventory.r330.merge-rehearsal-run1.json",
+    "function-inventory.r330.merge-rehearsal-run2.json",
+    "function-inventory.r330.mutations.json"
+  ],
+  "live_operations": "none; no builds/tests/checkouts in live tree; no product edits or machine commands",
+  "review_prefix_before": {
+    "length": 994637,
+    "sha256": "64b244fffbf0c3963ba451dd22f3d36507ac209560082e3b8f6084a9a3e64e63"
+  }
+}

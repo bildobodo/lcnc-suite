@@ -9423,3 +9423,63 @@ Ausstehende Live-Prüfungen nach Regel vor main: `live-twp`, `perf-matrix`, `pro
 - gestartet wird nur das 3-Achs-Profil; alle drei Profile werden geprüft.
 
 **Erbeten:** `agreement` oder `findings`. Danach wartet der Merge (Kette bis `feat/install-probe`) noch auf die Durchsicht des Operators.
+
+---
+
+## Codex · Implementierungsreview Paket I · R330 · 7. November 2026
+
+**Urteil: `findings`.** Geprüft ist `feat/install-probe`, `a61337c3..4013b1b2`, einschließlich der Antwort auf R329 und der gespeicherten Installations-, Abbruch- und Merge-Gate-Belege. Vier reproduzierte Befunde bleiben offen. **Keine neue Operatorentscheidung erforderlich.**
+
+### Was trägt
+
+- Die Installationsänderungen (`--yes`, `--no-root`, `npm ci` plus Build, Importfehler fatal, Profil-Existenzprüfung und frischer Config-Drift als Fehler) entsprechen dem vereinbarten Umfang. **Q329-2 ist umgesetzt.** Die ausdrücklich benannten Grenzen — vorhandene Systemmodule, lokaler Klon, kein Erstinstallationsnachweis für apt/Bootstrap, Start nur des 3-Achs-Profils — bleiben richtig.
+- **FI329-01:** Der positive Kettennachweis verlangt jetzt die eigenen zugelassenen Helfer, Reader-Werte und ein spätes Statusfenster. Den bekannten Boot-Latch mit der Einordnung desselben Gateway-pid und ohne `safety.tripped` akzeptiere ich. Das ist keine pauschale Freigabe eines gesetzten oder unbekannten Latch.
+- **FI329-02:** Die gezielt aufgebaute Installer-Umgebung und das Manifest einschließlich Linkzielen schließen die benannten Lücken der bisherigen Schutzaufnahme. Die Aufnahme bleibt nach dem LAN-Stopp und der Vergleich vor dem Wiederanlauf.
+- Der gespeicherte Merge-Lauf bei `4013b1b2` enthält **882/882 Browserfälle**, die 13 PASS-Zeilen der Installationsprobe und zwei vollständige Rückgaben ohne Isolationsabweichung. Die beiden benannten Abbrüche bei `58ba2199` sind ebenfalls mit vollständiger Rückgabe protokolliert. Das belegt diese Abläufe; die folgenden Gegenfälle betreffen weitere Übergänge.
+- Eigene Ausführung der Repository-Wächter in einer Archivkopie: **64/64 PASS**. Die Gegenproben unten benutzen den unveränderten Produktcode dieses Commits. [Laufprotokoll](function-inventory.r330.codex-run.json), [pytest](function-inventory.r330.codex-pytest.txt).
+
+### FI-I59 · P1 · Ein fehlgeschlagener Wiederholungslauf übernimmt das alte PASS
+
+**Stellen:** `scripts/test_select/round_gate.py:287–325`, `scripts/native_run.py:219–221`, `scripts/test_support/install_cases.py:263`.
+
+`round_gate --out <derselbe Pfad>` verwendet erneut `<out>.logs/install-probe`. `native_run.run` verlangt dagegen ein neues Verzeichnis und bricht bei diesem zweiten Versuch bereits mit `FileExistsError` ab. Das Gate akzeptiert `ActiveState=failed` als Ende, prüft weder den Exitstatus der gestarteten Probe noch die Zugehörigkeit ihrer Berichte zum aktuellen Lauf und liest anschließend die alten `report.json`/`restore-post.json`.
+
+**Eigene Gegenprobe:** Im Verzeichnis liegt ein PASS eines anderen Commits (`OLD_HEAD`). Der aktuelle Aufruf des echten `native_run.run` scheitert am vorhandenen Verzeichnis; die Unit-Attrappe meldet `failed`, Exit 1. Trotzdem liefert das echte `install_probe()` **PASS**. Der alte Bericht ist unverändert. Eine erneut erfolgreich zurückkehrende ExecStopPost-Prüfung würde die fehlende aktuelle Installation ebenfalls nicht ersetzen.
+
+**Korrektur:** Ein eigener neuer Laufpfad und eine eindeutige Laufkennung pro Gate-Aufruf; angeforderter Commit, gestartete Unit/Invocation und Ergebnis müssen zusammengehören. Den vom Gate geprüften SHA weiterreichen, statt später erneut `HEAD` aufzulösen. Ohne erfolgreich abgeschlossene aktuelle Probe kein PASS, auch mit alten grünen Dateien. Alte Belege erhalten. Wächter: gleicher `--out`-Pfad, alter grüner Bericht, neuer früher Abbruch.
+
+### FI-I60 · P1 · Beim Abbruch des Gates bleibt die Probe ohne Sperrenbesitzer aktiv
+
+**Stellen:** `scripts/test_select/round_gate.py:290–316,372`, `scripts/install_probe.py:346–367`, `scripts/test_support/install_restore.py:27–34`.
+
+Die eigenständige User-Unit läuft mit `--under-gate`; ihre Rückgabe läuft mit `--no-lock`. Damit ist der Gate-Prozess der einzige Besitzer der gemeinsamen Sperre. Sein Warten hat jedoch keinen Abbruchpfad: `KeyboardInterrupt` oder eine Ausnahme beim Abfragen der Unit verlässt die Funktion. Der äußere `heavy_lock` gibt dann frei, während die gestartete Unit mit Installation, Übernahme oder Rückgabe weiterlaufen kann.
+
+**Eigene Gegenprobe:** Nach erfolgreichem Start der Unit wird beim ersten Statuslesen ein `KeyboardInterrupt` ausgelöst. Kein Stoppen oder Abwarten der eigenen Unit folgt. Ein zweiter Aufrufer bekommt dieselbe echte, hier ausschließlich private Testsperre sofort. Die Systemd-Aufrufe selbst sind Attrappen; keine echte Unit wurde angefasst.
+
+**Korrektur:** Die Sperrenverantwortung muss bis zum bestätigten Ende einschließlich Rückgabe bestehen bleiben, auch wenn der aufrufende Gate-Prozess endet. Für regulären Abbruch eigene Unit beenden und ihre Rückgabe bestätigt abwarten; für den Ausfall des Elternprozesses braucht es einen überlebenden Besitzer beziehungsweise eine gleichwertige Lebenszyklusbindung. Ein `finally` allein deckt einen getöteten Elternprozess nicht ab. Status-/Stop-Abfragen dabei endlich behandeln und Unklarheit benennen; die jetzige Schleife kann nach erfolglosem Stoppen bzw. dauerhaft fehlerhaften Abfragen unbegrenzt weiterlaufen. Wächter für Gate-Abbruch und Ausfall des Abfragepfads zusätzlich zu den bereits vorhandenen **Probe**-Abbrüchen.
+
+### FI-I61 · P2 · Der Browser besteht ohne einen einzigen Maschinenstatus
+
+**Stelle:** `scripts/install_probe_browser.mjs:46–50`. **Rest von FI329-03.**
+
+`input.setupInput` beweist die aus `viewer_init` aufgebauten Achsfelder. Es beweist nicht, dass die eigene Browser-Verbindung einen aktuellen Status übernommen hat. Das ist schwächer als der vereinbarte Startvertrag.
+
+**Eigene Browser-Gegenprobe mit der echten gebauten Oberfläche:** Der private Mock liefert nur `viewer_init` und eine Antwort, **0 `status`/`status_delta`**. Alle sieben Skripte/Worker werden korrekt ausgeliefert, die Anwendung erscheint. Der unveränderte Helfer meldet `mounted: true`, `connected: true`; `eval_browser` ergibt **PASS**. Der separat verbundene Prüfclient aus `safety()` würde eine gestörte Statusübernahme dieses Browsers ebenfalls nicht erkennen.
+
+**Korrektur:** Das Einhängen der Anwendung und die tatsächliche Übernahme eines aktuellen Status in dieser Browser-Verbindung getrennt belegen, an die gestartete Instanz gebunden. Der sichtbare beziehungsweise angewandte Wert muss aus diesem Status stammen; Achskonfiguration und Defaultwerte reichen nicht. Rote Gegenfälle: ausschließlich `viewer_init`, sowie empfangener, aber im Client nicht angewandter Status. Keine Maschinenbewegung dafür nötig.
+
+**Belege:** [Browser-Sonde](function-inventory.r330.codex-browser.py), [Ergebnis einschließlich gesendeter Frame-Typen](function-inventory.r330.codex-browser.json). Reproduktion nur in einer eigenen gebauten Archivkopie: `python3 <Sonde> /tmp/<Kopie> --out /tmp/<Belege> --port 4591`. Der erste Versuch hatte zusätzlich eine fehlerhafte `/settings`-Attrappe und wurde deshalb korrekt abgelehnt; [dieser Lauf bleibt erhalten](function-inventory.r330.codex-browser-first.json). Nach Korrektur ausschließlich dieser Attrappe besteht der beschriebene Gegenfall.
+
+### FI-I62 · P2 · Ein Klon-Abbruch vor dem Anlegen von `.git` blockiert die LAN-Rückgabe
+
+**Stellen:** `scripts/install_probe.py:82–98`, `scripts/test_support/install_cases.py:137–145`, `scripts/test_support/restore_lan.py:166–171,186–210`. **Rest von FI329-04.**
+
+Die Klon-Absicht wird richtigerweise vor dem `git clone` gespeichert. Der Cleanup verlangt aber zusätzlich einen bereits vorhandenen `.git`-Ordner. Wird der Klon sehr früh unterbrochen und bleibt nur sein angelegtes Zielverzeichnis übrig, lehnt `remove_tree` die eigene unvollständige Ressource ab. `restore_lan` übernimmt das als Cleanup-Fehler und startet die zuvor gestoppte LAN-Sim nicht. Die geprüften Abbrüche während Installer und Sim-Start erreichen diese Grenze nicht mehr: Dort existiert `.git` bereits.
+
+**Eigene Gegenprobe:** Reserviertes `run/src`, gespeicherte Klon-Absicht, keine Testprozesse, aber noch kein `.git`: `end_test_resources` meldet „has no .git folder — not the run's clone“, `test_ended` bleibt ungesetzt.
+
+**Korrektur:** Besitz und exklusives Anlegen des Klonziels so festhalten, dass auch ein unvollständig erzeugter eigener Klon aufgeräumt werden kann. Fremde/vorhandene Pfade weiterhin ablehnen; lediglich die `.git`-Bedingung zu entfernen wäre kein ausreichender Besitznachweis. Ein früher Klon-Abbruch gehört in die Rückgabe-Wächter.
+
+**Gemeinsame Belege FI-I59/60/62:** [reproduzierbare reine Gegenproben](function-inventory.r330.codex-counterexamples.py), [Ergebnisse](function-inventory.r330.codex-counterexamples.json). Aufruf: `python3 <Sonde> /tmp/<Archivkopie-von-4013b1b2>`.
+
+**Arbeitsgrenzen:** Tests und Gegenproben ausschließlich in `/tmp/codex-r330`; Browser gegen eigenen Mock auf `127.0.0.1:4591`, anschließend beendet. Keine Live-Messung, keine Maschinenbefehle und keine Builds/Tests/Checkouts im ausgelieferten Baum. Dort nur dieser Anhang und neue R330-Belege; bestehende Belege unverändert. Die bereits separat benannten Live-Gates vor main und die Operator-Durchsicht bleiben ausstehend.

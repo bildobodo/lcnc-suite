@@ -1,0 +1,60 @@
+[
+  {
+    "case": "prior_PASS_after_current_FileExistsError",
+    "current_launch": [
+      "FileExistsError"
+    ],
+    "gate_result": {
+      "name": "install-probe",
+      "status": "PASS",
+      "seconds": 0,
+      "run": "/tmp/r330-cases-29cw6rdm/repeat.logs/install-probe",
+      "rows": [
+        "install-run: PASS"
+      ]
+    },
+    "old_report_unchanged": true
+  },
+  {
+    "case": "gate_interrupt_leaves_probe_unit_unattended",
+    "calls": [
+      [
+        "systemd-run",
+        "--user",
+        "--unit=own-active-probe",
+        "-p",
+        "WorkingDirectory=/tmp/codex-r330",
+        "-p",
+        "ExecStopPost=/usr/bin/python3 -I /tmp/codex-r330/scripts/test_support/install_restore.py --from /tmp/r330-cases-29cw6rdm/interrupted.logs/install-probe/pre.json --out /tmp/r330-cases-29cw6rdm/interrupted.logs/install-probe/restore-post.json --no-lock",
+        "/usr/bin/python3",
+        "-I",
+        "/tmp/codex-r330/scripts/install_probe.py",
+        "--run-dir",
+        "/tmp/r330-cases-29cw6rdm/interrupted.logs/install-probe",
+        "--commit",
+        "HEAD",
+        "--under-gate"
+      ],
+      [
+        "systemctl",
+        "--user",
+        "show",
+        "own-active-probe",
+        "-p",
+        "LoadState",
+        "-p",
+        "ActiveState",
+        "--no-pager"
+      ]
+    ],
+    "stop_called": false,
+    "next_gate_acquired_same_lock": true
+  },
+  {
+    "case": "clone_aborted_before_git_directory",
+    "cleanup_errors": [
+      "the run tree /tmp/r330-cases-29cw6rdm/partial-clone/src was not removed: /tmp/r330-cases-29cw6rdm/partial-clone/src has no .git folder \u2014 not the run's clone, not removed"
+    ],
+    "test_ended": null
+  }
+]
