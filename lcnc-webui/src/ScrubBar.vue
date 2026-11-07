@@ -10,20 +10,18 @@
 // (program run start, program change, machine powered on elsewhere, real
 // joint motion as a backstop). ThreeViewer shows the .simBanner while active.
 import { computed, markRaw, onMounted, onUnmounted, ref, shallowRef, watch, watchEffect } from "vue";
-import { lineRange } from "./viewer/lineIndex";
-import { status, viewerGcode, viewerInit, gcodeContent, emitTelemetry } from "./lcncWs";
+import { status, viewerGcode, viewerInit, gcodeContent } from "./lcncWs";
 import { INTERP_IDLE } from "./lcnc";
 import { simMode } from "./simMode";
 import { timeSpan } from "./viewerPerf";
 import {
   sampleTrack, jointsForSample, buildEntryTrack,
-  machineFromJoints, displayLineForPoint, atTrackEnd, lineRunAround, lineSpanCum,
+  displayLineForPoint, atTrackEnd, lineRunAround,
   programEndLine,
   type ScrubSample,
 } from "./viewer/scrubTrack";
-import { createRunWatcher } from "./viewer/runWatcher";
-import { runPlayhead } from "./viewer/runPlayhead";
 import { runLineState, subExecState } from "./trackHighlight";
+import { publishSubExec, runCum, runOffPath, spanAtOrAfterLine, toolChangeLines, wcsOf } from "./viewer/runDisplay";
 import { specFromWire } from "./viewer/kins";
 import { epochTermsFor, epochWcsList, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import { twpPlaneForSample } from "./viewer/twpPlaneFrame";
@@ -36,7 +34,6 @@ import { toolChangeLinesFromText } from "./viewer/toolChangeScan";
 import type { WcsTerms } from "./viewer/partFrame";
 import type { ScrubTrack } from "./ws/bulkData";
 import type { CollisionResult } from "./viewer/collision";
-import { EVENT_NONE } from "./viewer/eventIndex";
 import { mergedSweptFraction } from "./viewer/sweepMerge";
 import { fmtElapsedAs, NO_VALUE } from "./format";
 import { Play, Pause, Square, SquareArrowOutUpRight } from "lucide-vue-next";
@@ -45,8 +42,6 @@ import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
 import { buildSimRows, limitStopOf, lineWordAt, measurementsOf, placelessLimitRows, type SimRowKind, partLabel } from "./viewer/simRows";
 import { limitPlaces, type LimitTarget } from "./viewer/limitPlaces";
-import { limitMarks, NO_LIMIT_MARKS, type LimitMarks } from "./limitMarks";
-import { toolMarks, NO_TOOL_MARKS, type ToolMarks } from "./toolMarks";
 import { LIST_WINDOW as LIST_WINDOW_ROWS, MergedList, NO_CLASH, clashIndexOfView, clashTicks, nextTarget, stepTarget, windowCenter, windowFirst, type ClashIndex, type Pick, type SimTargets } from "./viewer/simWindow";
 import { m600Events, m600ToolNotes, parseProbeBands, parseProbeNotes, parseProbeStops, probeStopTitle, toolsetterBasisLine } from "./viewer/probeStop";
 import { confirmedToolsetter, toolsetterVarMap } from "./toolsetterVars";
@@ -222,15 +217,6 @@ const curAtEnd = ref(false);
 // W5: the unique program-end line (M2/M30 text scan) — what the playhead
 // displays when pinned at the track's terminal vertex.
 const endLine = computed(() => programEndLine(gcodeContent.value));
-// W5: marked-span execution state for GcodePanel's inline indent view —
-// published from both the sim scrub and the run playhead; only spans with
-// an attributed call line anchor an expansion.
-function publishSubExec(t: ScrubTrack, i: number, subName: string | null) {
-  const cl = t.cline?.[i] ?? 0;
-  const raw = t.lines[i] ?? 0;
-  subExecState.value = (subName && cl > 0 && raw > 0)
-    ? { name: subName, subLine: raw, callLine: cl } : null;
-}
 const pct = computed(() => (cumMax.value > 0 ? Math.round((sPos.value / cumMax.value) * 100) : 0));
 
 // Reused per-frame scratch — the sPos watcher runs at animation rate.
@@ -305,37 +291,9 @@ function applyPos() {
 let _baseJoints: number[] = [];
 const MOTION_EXIT_THRESHOLD = 0.05;
 
+/** The offsets the track's program coordinates convert with (viewer/runDisplay.ts). */
 function _wcs() {
-  const d = st.value;
-  // tool: the fallback for segments before the program's first G43/M6 row
-  // (jointsForSample / the entry inverse resolve each segment's own offset
-  // from the track's tloEvents through it) — the payload's TOOL BASIS
-  // (VP-I20: previewWorker normalised those points to it), else, for a
-  // payload without a known start, the LIVE applied offset as before.
-  return {
-    g5x: d.g5x_offset ?? [], g92: d.g92_offset ?? [],
-    rotationDeg: d.rotation_xy ?? 0, tool: viewerGcode.value?.toolBasis ?? d.tool_offset ?? [],
-  };
-}
-
-/** The TWP plane frame the MACHINE is actually holding, from the kins pins
- *  (sampled only on xyzacb-trsrn configs). Null when not sampled.
- *
- *  Used by the RUN playhead's forward kins, where the machine's ACTUAL
- *  switchkins state is the authority for the joints being projected. The
- *  ENTRY conversion no longer uses it (W3 P3): naming the live pose in the
- *  track's coordinates is a labeling question, answered by the track's own
- *  first-segment mode/frame — mixing the live state in put the entry start
- *  ~900 mm off whenever parked labeling ≠ track labeling.
- *
- *  Units are the pins' own, including upstream's asymmetry (pre-rot radians,
- *  the two angles degrees) — the same triplet convention the parse markers
- *  use, so both paths feed kinsForSegment unconverted. */
-function liveKinsFrame(): [number, number, number] | null {
-  const d = st.value;
-  const p = d.kins_pre_rot, t1 = d.kins_primary_angle, t2 = d.kins_secondary_angle;
-  if (typeof p !== "number" || typeof t1 !== "number" || typeof t2 !== "number") return null;
-  return [p, t1, t2];
+  return wcsOf(st.value);
 }
 
 function _buildEntryTrack() {
@@ -438,8 +396,6 @@ watch(running, (r) => {
 });
 watch(baseTrack, () => {
   exitSim(); entryTrack.value = null; sPos.value = 0;
-  _runWatcher.reset(); runOffPath.value = false; runLineState.value = null;
-  subExecState.value = null;
 });
 watch(machineOff, (off) => { if (!off) exitSim(); });
 // Outside sim a kept entry track built from ANOTHER pose is stale: once the
@@ -539,108 +495,11 @@ const posLabel = computed(() => {
 });
 
 /** ---------- run-time display (unified timeline phase 2 + review P3) ---------- */
-// During a real run the playhead follows the LIVE POSITION: the machine
-// pose is projected onto the track POSITIONALLY (projectOntoTrack — a
-// cum-monotonic forward-biased window around the previous playhead, with a
-// full-track rescue). motion_line is a HINT only, and only while the
-// payload's line attribution is trusted — sub/remap-relative numbers
-// collide with the main file's, which is what parked the old highlight on
-// wrong lines. Display only: the machine drives sPos, never the reverse.
+// The run's playhead, line and hint are made on the program's track by
+// viewer/runDisplay.ts (ThreeViewer runs it — a device without the
+// simulation has no timeline, and still sees its run); the bar follows it.
 const motionLine = computed(() => st.value.motion_line as number | null | undefined);
-// The watcher itself is a pure state machine (viewer/runWatcher.ts):
-// ATTACHED = windowed projection per frame (+ trusted-line hint competing
-// on residual); a miss pays exactly ONE full-track scan (the attach /
-// run-from-line path) and then latches OFF-PATH — playhead frozen,
-// highlight cleared, chip shown, ≤1 Hz strided re-probe, ZERO per-frame
-// work. Wave 1 instead full-scanned 99k segments on EVERY status frame
-// while the machine sat at the toolchange park (gap_p50 33 → 319 ms) and
-// accepted the rescue's match however far away it was.
-const _runWatcher = createRunWatcher();
-const runOffPath = ref(false);
-// ui.playhead_slow telemetry: the watcher self-times; anything past the
-// budget is worth a trace row, rate-limited so a bad state can't flood.
-const PLAYHEAD_SLOW_MS = 30;
-let _lastSlowEmit = 0;
-watch(st, (d) => {
-  if (!running.value || simMode.value) return;
-  const t = track.value;
-  const jp = d.joint_pos;
-  if (!t || !Array.isArray(jp)) return;
-  const trusted = !viewerGcode.value?.lines_untrusted;
-  const line = trusted ? motionLine.value : null;
-  const span = line ? lineRange(t.lineIndex, line) : undefined;
-  // Forward kins for the live joints: the machine's ACTUAL switchkins pin
-  // and plane frame when sampled — same authority as the joints being
-  // inverted; the hint span's (or track-start) segment mode stands in.
-  const ktLive = d.kins_type;
-  const ktNow = ktLive != null ? ktLive : (t.mode?.[span?.end ?? 0] ?? null);
-  const fN = t.frame?.[span?.end ?? 0];
-  const frameNow = liveKinsFrame()
-    ?? ((fN != null && fN !== EVENT_NONE && t.frames) ? t.frames[fN] ?? null : null);
-  const m = machineFromJoints(jp, viewerInit.value?.axes ?? [], _wcs(),
-                              _kinsSpec.value, ktNow, frameNow);
-  const out = _runWatcher.update({
-    track: t, machine: m, wcs: _wcs(), epochTerms: _epochTerms.value,
-    hintSpan: span ?? null, nowMs: performance.now(),
-  });
-  runOffPath.value = out.phase === "offPath";
-  if (out.costMs > PLAYHEAD_SLOW_MS && performance.now() - _lastSlowEmit > 10_000) {
-    _lastSlowEmit = performance.now();
-    emitTelemetry("ui.playhead_slow", {
-      cost_ms: Math.round(out.costMs), probed: out.probed,
-      points: t.count, phase: out.phase,
-    });
-  }
-  // the run check's hint (plan „Prüfung im Lauf“ 3b): attached only
-  runPlayhead.value = out.phase === "attached" && out.index != null ? { track: t, index: out.index } : null;
-  if (out.phase === "offPath") {
-    // Frozen playhead — the machine is somewhere the program never goes
-    // (toolchange park); pretending otherwise is the old bug. The
-    // published state is SUPPRESS, never null: null would let App.vue fall
-    // back to motion_line's colliding sub numbers.
-    // offPath (W5) lets resolveCurrentLine apply the text-trusted
-    // motion_line rescue (the approach executing a real main line).
-    runLineState.value = { line: 0, trusted: false, subName: null, offPath: true };
-    subExecState.value = null;
-    return;
-  }
-  if (out.cum == null) return;
-  sPos.value = out.cum;
-  // End state (W3 P4): the playhead pinned at the terminal vertex has
-  // nothing further to attribute — trailing non-motion lines (M2) are
-  // unknowable, so present "end" instead of freezing on the last line.
-  const i = out.index!;
-  if (i === t.count - 1 && atTrackEnd(t, out.cum)) {
-    // W5: the unique text-scanned program-end line displays here — the
-    // track cannot know what follows the last move, the text can.
-    runLineState.value = { line: endLine.value ?? 0,
-                           trusted: endLine.value != null,
-                           subName: null, atEnd: true };
-    subExecState.value = null;
-    return;
-  }
-  // Text-panel line state (W2 P6): the ONE shared gating rule (W3 P4) —
-  // per-point trust from the wire when the track carries it; legacy
-  // tracks fall back to the wholesale flag. The published line is the
-  // GATED display line (W4: inside an attributed sub span that is the
-  // CALL/trigger line, viaCall) — never the raw colliding sub number.
-  const disp = displayLineForPoint(t, i, trusted);
-  runLineState.value = {
-    line: disp.line ?? 0,
-    trusted: disp.line != null,
-    subName: disp.subName,
-    viaCall: disp.viaCall,
-    subLine: disp.subName ? t.lines[i] ?? null : null,
-  };
-  publishSubExec(t, i, disp.subName);
-});
-watch(running, (r) => {
-  _runWatcher.reset();
-  runPlayhead.value = null;
-  runOffPath.value = false;
-  if (!r) runLineState.value = null;
-  if (!r && !simMode.value) subExecState.value = null;
-});
+watch(runCum, c => { if (c != null && running.value && !simMode.value) sPos.value = c; });
 
 // Row-1 readouts live in FIXED slots (E: the timeline is the only flexible
 // item, so every content-sized sibling used to steal its width — a longer
@@ -781,12 +640,8 @@ watch(track, () => { navSel.value = null; }, { flush: "sync" });
 const limitPlace = computed(() => limitPlaces(violations.value, baseTrack.value, track.value,
                                                !viewerGcode.value?.lines_untrusted));
 const violationTargets = computed<LimitTarget[]>(() => limitPlace.value.targets);
-// The code panel marks the placed rows' lines (limitMarks — never a raw
-// number, Codex R178). A re-mounted bar (a hot reload) is built before the old
-// one's onUnmounted runs: each clears only what it set.
-let _marksSet: LimitMarks | null = null;
-watch(limitPlace, p => { _marksSet = p.lines; limitMarks.value = p.lines; }, { immediate: true });
-onUnmounted(() => { if (limitMarks.value === _marksSet) limitMarks.value = NO_LIMIT_MARKS; });
+// The code panel's marks of the same lines are viewer/runDisplay.ts's
+// (limitMarks — on the program's track, with or without this bar).
 
 // The result swept on exactly the DISPLAYED track (see the collisionTrack
 // prop): the base result on the base track, the entry-overlaid one on the
@@ -1034,40 +889,22 @@ function jumpTo(pick: FindingTarget | null, kind: SimRowKind) {
 // The scan is per program text (cached), not per track.
 const textToolLines = computed(() => toolChangeLinesFromText(gcodeContent.value));
 // A tool-change line has no motion of its own: its timeline position is
-// where the next line that has one STARTS moving (lineSpanCum — its first
-// point is where that move already ended). Read on the DISPLAYED track: a
-// change before the first motion runs before the entry move, at its start.
-function spanAtOrAfterLine(t: ScrubTrack, line: number): [number, number] | undefined {
-  for (let l = line; l <= t.lineIndex.maxLine; l++) {
-    const span = lineSpanCum(t, l);
-    if (span) return span;
-  }
-  return undefined;
-}
-// A target like a finding (key T<line>, the extent of the move it starts):
-// the Simulation tab lists it and a tap shows it.
+// where the next line that has one STARTS moving (spanAtOrAfterLine — read
+// on the DISPLAYED track: a change before the first motion runs before the
+// entry move, at its start). A target like a finding (key T<line>, the
+// extent of the move it starts): the Simulation tab lists it and a tap shows
+// it. The code panel's marks of the same lines are viewer/runDisplay.ts's
+// (toolMarks).
 const toolTargets = computed(() => {
   const t = track.value;
   const out: Array<FindingTarget & { tool: number }> = [];
   if (!t) return out;
-  const byLine = new Map<number, number>();
-  for (const [line, tool] of viewerGcode.value?.tool_change_lines ?? []) byLine.set(line, tool);
-  for (const [line, tool] of textToolLines.value) if (!byLine.has(line)) byLine.set(line, tool);
-  for (const [line, tool] of byLine) {
+  for (const [line, tool] of toolChangeLines(textToolLines.value)) {
     const span = spanAtOrAfterLine(t, line);
     if (span) out.push({ cum: span[0], cumEnd: span[1], key: `T${line}`, line, tool });
   }
   return out.sort((a, b) => a.cum - b.cum);
 });
-// The code panel marks the same lines (toolMarks); each bar clears only
-// what it set (a hot reload builds the new bar first).
-let _toolMarksSet: ToolMarks | null = null;
-watch(toolTargets, ts => {
-  const m: ToolMarks = new Map(ts.map(t => [t.line, t.tool] as const));
-  _toolMarksSet = m;
-  toolMarks.value = m;
-}, { immediate: true });
-onUnmounted(() => { if (toolMarks.value === _toolMarksSet) toolMarks.value = NO_TOOL_MARKS; });
 
 /** ---------- timeline marks + extents (2026-09-12) ---------- */
 // Every mark is the same tick, told apart by colour AND a glyph under the

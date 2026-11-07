@@ -16,7 +16,8 @@ import {
 } from "./viewer/machineAssetCache";
 
 import { viewerInit, viewerGcode, status, statusReceiptOf, emitTelemetry, noteWitnessDone, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewBasisPending, runBasis, previewOrigin, previewDecoding, previewDecodeFailure, gcodeRevision, connected, type ViewerInit, type ViewerGcode } from "./lcncWs";
-import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, ON_TOP_FALLBACK, ON_TOP_LAYERS, settingsVersion, type OnTopLayer, type Vec3, type Layer } from "./defaults";
+import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, ON_TOP_FALLBACK, ON_TOP_LAYERS, settingsVersion, simulationOn, type OnTopLayer, type Vec3, type Layer } from "./defaults";
+import { useProgramMarks, useRunDisplay } from "./viewer/runDisplay";
 import { applyOnTop, ON_TOP_ORDER } from "./viewer/onTop";
 import { confirmedToolsetter } from "./toolsetterVars";
 import { toolChangePlacement, toolsetterPlacement } from "./viewer/toolsetterMarker";
@@ -2368,6 +2369,8 @@ async function buildFromInit(init: ViewerInit) {
           _camMoving = on;
           _colSetPaused("camera", on);
         },
+        getSimulationWork: () => ({ worker: !!_colWorker, busy: collisionBusy.value, result: !!collisionResult.value,
+                                    run: !!collisionRun.value, scheduled: _colAutoPending }),
         getCollisionSummary: () => {
           const r = collisionResult.value;
           if (!r) return null;
@@ -3560,9 +3563,12 @@ function _colPreviousOf(prev: CollisionResult, version: number | null) {
 
 function _colGetWorker(): Worker {
   if (!_colWorker) {
-    _colWorker = new Worker(new URL("./viewer/collisionWorker.ts", import.meta.url), { type: "module" });
+    const w = new Worker(new URL("./viewer/collisionWorker.ts", import.meta.url), { type: "module" });
+    _colWorker = w;
     _colModelSent = null;   // a fresh worker holds no model
     _colWorker.onmessage = (ev: MessageEvent) => {
+      // a terminated worker's late word (the simulation switched off) is no one's
+      if (_colWorker !== w) return;
       const m = ev.data as ColMessage;
       // a run check's slices, whatever became of its request (Codex R185)
       if (m.witness) { _colNoteWitness(m.id, m.witness); return; }
@@ -3590,6 +3596,7 @@ function _colGetWorker(): Worker {
     // replies — without this the busy flag stayed set and the Check chip
     // read 0% until a program change (the part-frame worker already had it).
     _colWorker.onerror = (ev: ErrorEvent) => {
+      if (_colWorker !== w) return;
       console.error("[collision] worker error:", ev.message);
       emitTelemetry("collision.sweep_failed", { msg: `worker error: ${ev.message}` });
       _colFail();
@@ -3767,7 +3774,7 @@ function stopCollisionCheck() {
 
 /** Resume the parked sweep where it stopped. */
 function continueCollisionCheck() {
-  if (!_colWorker || collisionBusy.value || !collisionResumable.value) return;
+  if (!simulationOn.value || !_colWorker || collisionBusy.value || !collisionResumable.value) return;
   collisionBusy.value = true;
   collisionResumable.value = false;
   collisionStopped.value = null;
@@ -3789,6 +3796,7 @@ function _rotaryNow(): number[] | null {
  *  sweep still running or parked falls back to the full entry-track sweep
  *  (the worker holds one sweep). */
 function runEntryCheck(entry: ScrubTrack, base: ScrubTrack | null) {
+  if (!simulationOn.value) return;
   // The program's own sweep is never cancelled for a sim entry; the entry
   // segment runs BESIDE it as a side sweep (viewer/sweepEntry.ts).
   const plan = planEntryCheck({
@@ -4127,7 +4135,7 @@ function runCollisionCheck(trackOverride?: ScrubTrack, run?: RunSweep) {
   // arrives with its nested arrays proxied — unwrap at the boundary so the
   // post below cannot throw on a caller's reactivity choice.
   const track = toRaw(trackOverride ?? viewerGcode.value?.scrubTrack ?? null) as ScrubTrack | null;
-  if (!track || collisionBusy.value) return;
+  if (!simulationOn.value || !track || collisionBusy.value) return;
   const id = ++_colReqId;
   _colReleaseContacts();
   const basis = run?.basis ?? _checkBasisNow();
@@ -4181,6 +4189,7 @@ function runCollisionCheck(trackOverride?: ScrubTrack, run?: RunSweep) {
  *  or the main run's state. */
 function _colPostSide(slice: ScrubTrack, entry: ScrubTrack, base: ScrubTrack, shift: number, retried = false,
                       run?: { gen: number; basis: CheckBasis }) {
+  if (!simulationOn.value) return;
   const id = -(++_colSideSeq);
   // sim entry: the machine is off and idle — the live state, which is the
   // base result's basis (a change since cleared it, _colOnInputChange); a
@@ -4226,10 +4235,12 @@ const _debounceFired = { bake: 0, check: 0 };
 let _colAutoPending = false;
 function _colScheduleAuto() {
   clearTimeout(_colAutoTimer);
+  if (!simulationOn.value) { _colAutoPending = false; return; }   // this device runs no check
   _colAutoPending = true;
   _colAutoTimer = setTimeout(() => {
     _colAutoPending = false;
     _debounceFired.check++;
+    if (!simulationOn.value) return;
     if (simMode.value) return;               // ScrubBar re-checks with the entry track
     if (!machineReady.value) return;         // geometry loading — machineReady watcher retries
     if (previewBasisPending.value) return;   // the payload at the new basis schedules it (VP-I23)
@@ -4251,6 +4262,7 @@ function _colScheduleAuto() {
  *  (plan 3a): the provisional range from the run's point — read once, here —
  *  then the full check; without an attached position the full one at once. */
 function _startRunCheck(): boolean {
+  if (!simulationOn.value) return false;
   const g = viewerGcode.value, track = g?.scrubTrack, rb = runBasis.value;
   if (!g || !track || !rb || collisionRun.value) return false;
   const adm = admitRunCheck({ origin: previewOrigin.value, shownVersion: g.publishedVersion ?? null,
@@ -4321,6 +4333,52 @@ function _discardRunCheck(why: string) {
   _updateClashTint(null, null);
   _colHeldByRun = true;
 }
+/** The simulation switched OFF on this device (settings split package 2,
+ *  plan Codex R335 SS334-03) — at load or later, from another device too.
+ *  Every start path is closed first (the choke points read simulationOn:
+ *  runCollisionCheck, _colPostSide, continueCollisionCheck, runEntryCheck,
+ *  _colScheduleAuto, _startRunCheck); then the timers end, the collision
+ *  worker is TERMINATED with its shard pool and resident model (a cancel
+ *  would keep both), its late words are no one's (_colGetWorker), and every
+ *  result, mark and tint goes — no "0 collisions" stays behind. A late
+ *  reply, a reconnect, an offset or tool change or a new parse starts
+ *  nothing: only the switch does. The timeline and the Sim tab leave with
+ *  it (ScrubBar v-if, App's tab list); the toolpath, the model and the run
+ *  display stay (viewer/runDisplay.ts). */
+function _simulationOff() {
+  clearTimeout(_colAutoTimer);
+  _colAutoPending = false;
+  clearTimeout(_colSettleTimer);
+  clearTimeout(_contactsTimer);
+  _contactsTimer = undefined;
+  const w = _colWorker;
+  _colWorker = null;
+  _colModelSent = null;
+  w?.terminate();
+  _colSide = null;
+  collisionSideFirst.value = null;
+  collisionRun.value = null;
+  collisionRunSide.value = null;
+  collisionRunSideState.value = null;
+  _colHeldByRun = false;
+  cancelCollisionCheck();   // the busy flag, the progress, the partial, the contact tables
+  collisionResult.value = null;
+  collisionTrack.value = null;
+  collisionPrevious.value = null;
+  collisionEntry.value = null;
+  _colPendingTrack = null;
+  emit("collision-lines", null);
+  _updateClashTint(null, null);
+  emitTelemetry("collision.simulation_off", { had_worker: !!w });
+}
+// On again: a fresh check of the current program on the current basis; the
+// operator enters the simulation mode by hand.
+watch(simulationOn, on => { if (on) _colScheduleAuto(); else _simulationOff(); });
+// The run display and the code panel's marks — on every device, with or
+// without the timeline.
+useRunDisplay();
+useProgramMarks();
+
 watch(previewOrigin, (o) => {
   const run = collisionRun.value;
   if (run && (!o || o.version !== run.version || o.toolBasisRevNow !== o.toolBasisRev)) _discardRunCheck("origin");
@@ -6010,7 +6068,7 @@ defineExpose({
 
     <!-- Program-scrub timeline (stage 2) + collision check (stage 3) -->
     <!-- the check as published with its contact views (plan 3.6): never ahead of them -->
-    <ScrubBar
+    <ScrubBar v-if="simulationOn"
       :collisionBusy="colShown?.busy ?? false"
       :collisionProgress="colShown?.progress ?? 0"
       :sweepTool="{ num: vst?.tool_number ?? null, diam: vst?.tool_diameter ?? null, programTools }"

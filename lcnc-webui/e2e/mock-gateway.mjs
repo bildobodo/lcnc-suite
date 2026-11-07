@@ -82,6 +82,14 @@ const server = createServer(async (req, res) => {
     res.end(JSON.stringify({ ok: true, dir: null, problems: ["No macro folder — set [DISPLAY] WEBUI_MACRO_DIR"], macros: [] }));
     return;
   }
+  if (path === "/settings") {
+    // the page's first settings (main.ts): this device's view — the stored
+    // blob with the simulation ON unless a spec set it (the fixture default)
+    res.writeHead(200, { "content-type": "application/json" });
+    const v = withDevice({ settings: settingsStore });
+    res.end(JSON.stringify({ ok: true, settings: v.settings, revs: v.revs, device: v.device }));
+    return;
+  }
   if (path === "/devices") {
     // Settings › Devices (settings split): this device and what a spec set
     res.writeHead(200, { "content-type": "application/json" });

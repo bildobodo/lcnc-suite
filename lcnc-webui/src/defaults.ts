@@ -1,4 +1,4 @@
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { TOOLSETTER_FALLBACK } from "./toolsetterSetup";
 import { PROBE_FALLBACK } from "./probeVars";
 import { withToken } from "./auth";
@@ -677,6 +677,17 @@ export function loadSimulationDraft(): SimulationDefaults {
 export function saveSimulationDefaults(data: SimulationDefaults): void {
   saveSection("simulation", data);
 }
+
+/** The simulation on THIS device as the SERVER holds it (settings split
+ *  package 2, plan Codex R335 SS334-03): false until the server's settings
+ *  arrived — no simulation work starts before the confirmed profile — and
+ *  false while a switch to on is only this tab's draft. The timeline, the
+ *  Sim tab and every collision check follow it; the toolpath, the machine
+ *  model and the run display do not. */
+export const simulationOn = computed(() => {
+  void settingsVersion.value;
+  return serverSettingsReady.value && loadSimulationDefaults().enabled;
+});
 
 // ─── Camera section ─────────────────────────────────────────────
 

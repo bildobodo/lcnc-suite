@@ -469,7 +469,7 @@ type Coord = {
   view(): any; result(): any; side(): any; sideFirst(): any;
 };
 function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why?: string | null;
-                     buildFails?: boolean; postThrows?: boolean; noInit?: boolean } = {}): Coord {
+                     buildFails?: boolean; postThrows?: boolean; noInit?: boolean; simOff?: boolean } = {}): Coord {
   const file = fs.readFileSync(path.resolve(__dirname, "../ThreeViewer.vue"), "utf8");
   const script = file.slice(file.indexOf('<script setup lang="ts">') + 24, file.indexOf("</script>"));
   const ast = ts.createSourceFile("ThreeViewer.ts", script, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
@@ -490,6 +490,7 @@ function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why
   const viewerGcode = ref({ scrubTrack: track, file: "offline.ngc", publishedVersion: 7, rapid_rate: 10, rot_rapid_rate: 10 });
   const runBasis = ref({ runId: 1, start: { jointsWhy: opts.why ?? null } }), previewOrigin = ref({}), status = ref({ data: {} });
   const runPlayhead = ref(null), viewerInit = ref(opts.noInit ? null : { axes: ["X", "Y", "Z"] });
+  const simulationOn = ref(!opts.simOff);   // this device runs the simulation (settings split package 2)
   const collisionRun = ref(null), collisionRunSide = ref(null), collisionRunSideState = ref(null), collisionEntry = ref(null);
   const collisionBusy = ref(false), collisionResumable = ref(false), collisionResult = ref(null), collisionTrack = ref(null);
   const collisionPartial = ref(null), collisionPartialTrack = ref(null), collisionSideFirst = ref(null), collisionProgress = ref(0);
@@ -531,6 +532,16 @@ function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why
   return new Function(...Object.keys(deps), code)(...Object.values(deps));
 }
 const swept = (t: any, raw: Record<string, any>) => sweep(t, [500, 0, 0], raw);
+
+describe("the simulation per device (settings split package 2)", () => {
+  it("a device without the simulation starts no check during a run: no run check, no side sweep", () => {
+    const { raw, track } = load("e_single");
+    const h = coordinator(track, wcsOf(raw), { simOff: true });
+    expect(h.start()).toBe(false);
+    expect(h.side()).toBeNull();
+    expect(h.view()).toBeNull();
+  });
+});
 
 describe("Codex R136 VP-I93", () => {
   it("a run's side sweep shows its contact while it runs (its tables, from its first touch); the beginning stays checking until its result", () => {

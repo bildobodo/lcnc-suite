@@ -96,8 +96,11 @@ export async function setLayoutState(page: Page, profile: Profile, state: Layout
   await settleLayout(page);
 }
 
-export async function openLayout(page: Page, profile: Profile, viewport: LayoutViewport) {
+export async function openLayout(page: Page, profile: Profile, viewport: LayoutViewport,
+                                 beforeLoad?: () => Promise<unknown>) {
   await ctl({ op: 'reset' });
+  // what the page's first settings fetch reads (a device whose simulation is off)
+  if (beforeLoad) await beforeLoad();
   await page.setViewportSize({ width: viewport.width, height: viewport.height });
   await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
   await page.goto(MOCK);

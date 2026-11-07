@@ -37,6 +37,21 @@ backward legitimately), and the findings/tool marks become look-ahead
 sim too). No motion verb lives on the timeline — cycle
 start/pause/abort stay in their constant home (see
 unified-timeline-design memory: unify display, not actuation).
+**Since the settings split (package 2, operator 2026-11-07, plan Codex R335
+SS334-03/04)** the timeline exists only on a device whose simulation is on
+(`simulationOn`: the server's confirmed `simulation` section; every new
+device starts without it). What the program's track shows that is NOT the
+simulation is `viewer/runDisplay.ts`, run by ThreeViewer on every device:
+the run's projection onto the program's own track (`useRunDisplay` —
+runLineState / subExecState for the code panel, runPlayhead for the run
+check, `runCum` the bar's playhead follows) and the code panel's tool-change
+and soft-limit marks (`useProgramMarks` — toolMarks / limitMarks, found on
+the program's track). The bar reads them; it never makes them, so a device
+without the bar keeps its run line and its marks. Off, ThreeViewer's
+`_simulationOff` closes every collision start (the choke points read the
+switch), ends the timers, terminates the collision worker with its shards
+and resident model and clears every result, mark and tint — "0 collisions"
+is never left standing; on, a fresh check runs.
 Execution order is reconstructed by merging the
 feed/rapid streams on per-point `feed_seq`/`rapid_seq` (global counter in
 `gcode_canon.py` — line numbers can't order subroutine loops);

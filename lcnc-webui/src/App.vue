@@ -59,7 +59,7 @@ import { keypadState } from "./useNumberKeypad";
 import { activeKind, openTextSession, lockTextSessionIf, EDITOR_OWNER, MACRO_EDITOR_OWNER, type TextTarget, returnFocusTo, heldThroughPress, pressHolds } from "./inputSession";
 import { measureStripColumn, safetyFoldNeeded } from "./safetyFold";
 import { explainAt } from "./gateExplain";
-import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, loadGamepadDraft, saveGamepadDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type Layer, type OnTopLayer, type TrackMode, type Projection } from "./defaults";
+import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, loadGamepadDraft, saveGamepadDefaults, settingsVersion, simulationOn, type ThemeMode, type GamepadDefaults, type Layer, type OnTopLayer, type TrackMode, type Projection } from "./defaults";
 import { confirmedToolsetter, toolsetterVarMap, TOOLSETTER_MDI_KEY } from "./toolsetterVars";
 import { useGamepad } from "./useGamepad";
 import { useMediaMql } from "./useMediaMql";
@@ -366,17 +366,21 @@ watch(() => messages.value.length, (newLen, oldLen) => {
 });
 
 /** ---------- content tab definitions ---------- */
-const contentTabs = [
+// The Sim tab is there only on a device whose simulation is on (settings
+// split package 2): off, it is gone — not dimmed (operator OP2: a cleaner UI).
+const contentTabs = computed(() => [
   { id: "gcode", label: "Program" },
   { id: "mdi", label: "MDI" },
   { id: "probe", label: "Probing" },
   { id: "offsets", label: "Offsets" },
   { id: "tools", label: "Tools" },
   { id: "macros", label: "Macros" },
-  { id: "sim", label: "Sim" },
-];
+  ...(simulationOn.value ? [{ id: "sim", label: "Sim" }] : []),
+]);
 
 const activeTab = ref("gcode");
+// The Sim tab left while it was shown: the Program tab takes its place.
+watch(simulationOn, on => { if (!on && activeTab.value === "sim") activeTab.value = "gcode"; });
 // Leaving the Macros tab over a draft (a macro file's edit, an earlier
 // macro's form) asks first, like the tool editor (package 5): every switch
 // goes through here — the tab list, the narrow select, the Tool Table button.

@@ -134,7 +134,7 @@ FULL_ONLY = {
 # ── Spec groups ──────────────────────────────────────────────────────────
 # Every rendered surface: what any component change can move or recolour.
 UI_SWEEP = ("layout", "layout-audit", "contrast", "visual", "dialogs", "help-icons")
-VIEWER = ("bake-hold.viewer", "collisions.viewer", "fatpaths.viewer", "findings.viewer",
+VIEWER = ("bake-hold.viewer", "collisions.viewer", "fatpaths.viewer", "findings.viewer", "simulation-off.viewer",
           "rapids.viewer", "reach.viewer", "scenes.viewer", "sim-panel.viewer",
           "toolsetter.viewer", "viewcube.viewer", "viewer", "frames")
 PROGRAM = ("editor-guards", "run-hold", "safety-during-edit", "input-session",

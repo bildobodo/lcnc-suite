@@ -11237,3 +11237,35 @@ classification shown to the operator and accepted ("das passt").
 
 Package 2 (the simulation per device) ships in the SAME merge: a new device
 must already compute nothing on the day it gets a profile.
+
+## 2026-11-07 — The simulation per device (settings split package 2; operator, plan Codex R335 SS334-03/04)
+
+The operator's most important point: the simulation is heavy and runs only
+on the devices that want it — never by itself on the machine PC's panel.
+
+- `simulationOn` = the SERVER's confirmed `simulation` section of this
+  device: false before the server's settings arrived, false on every new
+  device (OP1), false while a switch to on is only this tab's draft.
+- **Off** — at load or later, from another device too: every collision
+  start returns at its choke point (`runCollisionCheck`, `_colPostSide`,
+  `continueCollisionCheck`, `runEntryCheck`, `_colScheduleAuto`,
+  `_startRunCheck`), so a late reply, a reconnect, an offset or tool change,
+  a new parse or a run starts nothing; `_simulationOff` ends the timers,
+  TERMINATES the collision worker (a cancel kept the shard pool and the
+  resident BVH model alive), drops a terminated worker's late word and
+  clears every result, mark and tint. No timeline (ScrubBar `v-if`), no Sim
+  tab (App's tab list — a shown one gives way to Program). Nothing says
+  "0 collisions": the check is simply not there; Settings › Devices names
+  the switch.
+- **On**: a fresh check of the current program on the current basis; the
+  simulation MODE is still entered by hand.
+- **What stays** on every device: the toolpath and its preview worker, the
+  machine model, and what the program's track shows that is not the
+  simulation — the run's line, the run check's hint and the code panel's
+  tool-change and soft-limit marks. They were made INSIDE ScrubBar.vue
+  (found while planning this package: unmounting the bar would have taken
+  the live run line with it); they are `viewer/runDisplay.ts` now, run by
+  ThreeViewer once, and the bar only reads them (SS334-04: no invisible
+  timeline).
+- Tests: `simulation-off.viewer.spec.ts`; the e2e mock is ONE bound device
+  with the simulation ON (its fixture default) and serves `/settings`.

@@ -58,6 +58,10 @@ interface ViewerDiag {
     closeDist: number; ivs: number[][] }> | null;
   /** Hold the main sweep as a camera interaction does. */
   setCameraHold?: (on: boolean) => void;
+  /** The simulation's work on this device (settings split package 2): a
+   *  collision worker alive, a check busy, a result, a run check, a check
+   *  scheduled — all false with the simulation off. */
+  getSimulationWork?: () => { worker: boolean; busy: boolean; result: boolean; run: boolean; scheduled: boolean };
   getCollisionSummary?: () => { shards: number; hits: number; pairCount: number; pairsPrescreened: number; staticContacts: number; truncated: unknown; sweepMs: number; samples: number; onsets: number[]; uncertified: string | null } | null;
   /** The basis the last main sweep was built from (plan „Prüfung im Lauf“ 1c). */
   getCollisionBasis?: () => { kind: "idle" | "run"; runId: number | null; g5x: number[]; g92: number[];
