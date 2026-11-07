@@ -124,9 +124,23 @@ export function useRunDisplay(): void {
   const endLine = computed(() => programEndLine(gcodeContent.value));
   const watcher = createRunWatcher();
   let lastSlowEmit = 0;
+  let wasRunning = false;
 
   watch(st, (d) => {
-    if (!running.value || simMode.value) return;
+    // A run's start and end reset the display FIRST, in this frame — a
+    // separate watch on `running` ran after this one and wiped the first
+    // frame's projection (an off-path start read "···" until the next frame).
+    const r = running.value;
+    if (r !== wasRunning) {
+      wasRunning = r;
+      watcher.reset();
+      runPlayhead.value = null;
+      runOffPath.value = false;
+      runCum.value = null;
+      if (!r) runLineState.value = null;
+      if (!r && !simMode.value) subExecState.value = null;
+    }
+    if (!r || simMode.value) return;
     const t = track.value;
     const jp = d.joint_pos;
     if (!t || !Array.isArray(jp)) return;
@@ -197,14 +211,6 @@ export function useRunDisplay(): void {
     runCum.value = null;
     runLineState.value = null;
     subExecState.value = null;
-  });
-  watch(running, (r) => {
-    watcher.reset();
-    runPlayhead.value = null;
-    runOffPath.value = false;
-    runCum.value = null;
-    if (!r) runLineState.value = null;
-    if (!r && !simMode.value) subExecState.value = null;
   });
 }
 

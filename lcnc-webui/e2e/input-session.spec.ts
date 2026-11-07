@@ -448,6 +448,9 @@ test("Send from the keyboard is the MDI path; Enter in a search field never reac
   await key(tk, "Apply — send the MDI command");
   await expect.poll(cmds).toContain("mdi");
   await expect(mdi).toHaveValue("");
+  // the MDI history's save follows the send (300 ms debounce) — out before
+  // the search part's command list starts
+  await expect.poll(async () => (await sentCmds()).some(c => c.cmd === "save_settings" && c.section === "mdi")).toBe(true);
   // A search field in a dialog: text session, ABC page, Done closes, no command.
   await page.getByTitle("G-code Reference", { exact: true }).click();
   const search = page.locator(".dialogOverlay input.inputField").first();
