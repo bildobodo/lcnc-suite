@@ -1,0 +1,86 @@
+
+Running 2 tests using 1 worker
+
+(node:1318665) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1318665) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r338.codex.spec.ts:4:1 › foreign conflict must not show Sim on the local device (1.5s)
+(node:1318802) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1318802) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FOCUS_AFTER_REMOVAL {"focused":{"tag":"BODY","role":null},"cmds":[{"cmd":"jog_cont","axis":0,"vel":10,"req_id":"pxxpo8-5"},{"cmd":"jog_stop","axis":0,"req_id":"pxxpo8-6"}]}
+  ✘  2 e2e/r338.codex.spec.ts:19:1 › removing the selected Sim tab gives keyboard focus to its replacement (1.6s)
+
+
+  1) e2e/r338.codex.spec.ts:4:1 › foreign conflict must not show Sim on the local device ───────────
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      14 |   // Wait for dispatch rather than a negative assertion before the frame.
+      15 |   await expect(page.getByText('simulation changed elsewhere — reloaded',{exact:false}).first()).toBeVisible();
+    > 16 |   expect(await page.getByRole('tab',{name:'Sim',exact:true}).count()).toBe(0);
+         |                                                                       ^
+      17 | });
+      18 |
+      19 | test('removing the selected Sim tab gives keyboard focus to its replacement',async({page})=>{
+        at /tmp/codex-r338/lcnc-webui/e2e/r338.codex.spec.ts:16:71
+
+    Error Context: test-results/r338.codex-foreign-conflic-75bdb-how-Sim-on-the-local-device/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r338.codex-foreign-conflic-75bdb-how-Sim-on-the-local-device/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r338.codex-foreign-conflic-75bdb-how-Sim-on-the-local-device/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/r338.codex.spec.ts:19:1 › removing the selected Sim tab gives keyboard focus to its replacement 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 13
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "axis": 0,
+    +     "cmd": "jog_cont",
+    +     "req_id": "pxxpo8-5",
+    +     "vel": 10,
+    +   },
+    +   Object {
+    +     "axis": 0,
+    +     "cmd": "jog_stop",
+    +     "req_id": "pxxpo8-6",
+    +   },
+    + ]
+
+      32 |   const cmds = ((await ctl({op:'lastCmds'})) as {cmds:any[]}).cmds;
+      33 |   console.log('FOCUS_AFTER_REMOVAL',JSON.stringify({focused,cmds}));
+    > 34 |   expect(cmds.filter(c=>c.cmd.startsWith('jog'))).toEqual([]);
+         |                                                   ^
+      35 |   expect(await page.locator('[role=tab]:focus').count()).toBe(1);
+      36 | });
+      37 |
+        at /tmp/codex-r338/lcnc-webui/e2e/r338.codex.spec.ts:34:51
+
+    Error Context: test-results/r338.codex-removing-the-se-4595d-rd-focus-to-its-replacement/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r338.codex-removing-the-se-4595d-rd-focus-to-its-replacement/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r338.codex-removing-the-se-4595d-rd-focus-to-its-replacement/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    e2e/r338.codex.spec.ts:4:1 › foreign conflict must not show Sim on the local device ────────────
+    e2e/r338.codex.spec.ts:19:1 › removing the selected Sim tab gives keyboard focus to its replacement 

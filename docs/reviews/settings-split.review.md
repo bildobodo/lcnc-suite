@@ -635,3 +635,116 @@ Das Round-Gate über beide Pakete (`--base 53a79824`, Kopf `2e2c9edc`) ist **PAS
 - **Inventar:** neue Funktion F-DEVICES; Leser der Settings-Bereiche auf Maschine und Gerät umgestellt.
 
 **Erbeten:** `agreement` zu den Paketen 1+2 als einer Auslieferung, oder `findings`.
+
+---
+
+## Codex · Implementierungsreview R338 · 8. November 2026
+
+**Urteil: `findings`.** Die Einteilung bleibt abgenommen. Die Umsetzung von Paketen 1+2 hat jedoch fünf offene Befunde, darunter eine falsche Aktivierung der eigenen Simulation durch die Verwaltung eines fremden Geräts und einen Fokusverlust, nach dem eine Navigationstaste einen Jog-Auftrag sendet. Dafür ist keine neue Operator-Entscheidung nötig; die vereinbarten Verträge reichen zur Korrektur.
+
+**Geprüfter Stand:** Dokument `75d8b274`, Produkt **`53a79824..2e2c9edc`** einschließlich Paket 1 `46f1dbfe`. Der Dokumentbranch enthält die Produktänderungen noch nicht. Alle Builds und Tests liefen deshalb in einer Archivkopie von `2e2c9edc` unter `/tmp/codex-r338`, mit eigenen Abhängigkeiten, Fake-LinuxCNC und einem eigenen Browser-Mock auf Port 4938. Keine Zugriffe auf die Live-Ports, keine Maschinenbefehle, keine Produktänderungen im ausgelieferten Baum.
+
+### Was bestätigt ist
+
+- Der Store trennt Maschine, Vorlage und Geräte; neue Profile starten ohne Simulation. Die vorhandenen Tests für Migration, Revisionen, Rechte, Bindung, kurze Besuche und die Weitergabe der eigenen Settings sind grün.
+- Die Auslagerung nach `runDisplay.ts` ist sachlich richtig. In den vorhandenen Browserfällen bleiben Werkzeugmarke und positionsbezogene Laufzeile bei ausgeschalteter Simulation erhalten. Abschalten während einer Prüfung beendet den Worker und entfernt Befunde; erneutes Einschalten startet eine neue Prüfung.
+- Die zusätzliche Schreibhistorie ist für mehrere noch unbeantwortete Saves **derselben Verbindung** nachvollziehbar: Eine fremde Zwischenrevision oder eine nicht mehr bekannte Historie verweigert weiterhin. Das ersetzt allerdings nicht die Zuordnung von Antworten zu Ziel, Verbindung und Bearbeitungsstand im Client — siehe unten.
+
+### SS-I01 · P1 · Eine Antwort für Gerät B verändert den bestätigten Zustand von Gerät A
+
+**Stellen am Produktstand:** `lcnc-webui/src/DevicesSettings.vue:90ff.`, `src/lcncWs.ts:338–345`; `lcnc-gateway/gateway.py:4097–4107`.
+
+`setOtherSim` sendet richtig `device: B`. Die Antwort nennt dagegen nur Abschnitt und Revision; der allgemeine Empfänger führt für **jede** `save_settings`-Antwort `noteSectionRev` bzw. `applyStaleSection` auf dem **eigenen** Cache aus. Auch ein von `request()` erwarteter Verwaltungsauftrag durchläuft anschließend diesen Zweig.
+
+Die Gegenprobe mit dem echten Dispatcher zeigt:
+
+1. A hat Simulation aus, Revision 0. A verwaltet B.
+2. Ein erfolgreicher Save auf B mit Revision 5 setzt A's lokale Revisionsnummer ebenfalls auf 5. Der nächste eigene Save kann deshalb mit einer falschen Basis abgewiesen werden.
+3. Ist B's Save veraltet und trägt die Ablehnung B's aktuellen Wert `{enabled: true}`, hält A anschließend **seine eigene** Simulation für bestätigt eingeschaltet. Der Store von A bleibt dabei aus. Im Browser erscheint tatsächlich der vorher fehlende Sim-Tab.
+
+Der Python-Gegenfall bestätigt die Antwortform des echten Gateway-Handlers. Die Unit-Probe verwendet einen korrelierten fremden `request()`; die Browserprobe speist diese Antwortform in den echten Frame-Empfänger ein.
+
+**Korrektur:** Ziel und Kontext beim Versand festhalten und jede Antwort daran binden, vorzugsweise auch im Protokoll ausdrücklich zurückgeben. Eine Fremdprofil-Antwort aktualisiert dessen Verwaltungszustand, niemals `_confirmed`, Draft oder Revision des eigenen Profils. Maschinenantworten bleiben eine eigene Zielart. **Wächter:** Erfolg und Stale für B, während A aus bleibt und einen eigenen Save auf seiner unveränderten Revision ausführen kann.
+
+### SS-I02 · P1 · Neubinden beendet die alte wirksame Bindung nicht
+
+**Stellen:** `src/lcncWs.ts:121–125`, `src/ws/wsTransport.ts:237ff.`, `src/defaults.ts:269–273`; ergänzend Bootstrap in `src/main.ts`.
+
+Der Rebind-Callback leert ausstehende Entwürfe und ersetzt den Worker. Er setzt aber weder `deviceInfo`, `serverSettingsReady`, bestätigte Profilwerte noch die reaktiven Verbindungs-/Arm-Werte und `conn_key` zurück. `terminateTransport()` erzeugt selbst kein `close`-Ereignis für den Orchestrator. Das Setzen von `resumeArmed: false` für den neuen Worker korrigiert diese alten Seitenwerte nicht.
+
+**Gegenprobe:** A ist bestätigt, Simulation an, armed. Das gespeicherte Token wechselt zu B. Der neue Worker bekommt richtig B und `resumeArmed: false`; bis zu seiner Antwort bleiben auf der Seite jedoch:
+
+```text
+ready=true, device=A, simulation=true, armed=true, conn_key=connection-A
+```
+
+Eine in diesem Zwischenzustand bearbeitete Geräteeinstellung wird weiterhin angenommen und nach 300 ms über **B's** neuen Transport gesendet, obwohl der Nutzer noch A's Werte sieht. Die eigene Probe belegt den tatsächlich versandten `save_settings`-Auftrag. Damit ist auch „vor bestätigter passender Profilbindung keine Simulationsarbeit“ nicht erfüllt. Das ist keine Behauptung, der Server würde B automatisch armen; falsch sind bereits Clientanzeige, laufende Arbeit und Zulassung des Entwurfs für das neue Ziel.
+
+**Korrektur:** Eine explizite Bindungsgeneration einführen. Beim Wechsel sofort alte Verbindungszulassung und wirksame Profilbestätigung entwerten, Simulation beenden, offene Anfragen/Saves mit ihrem Ergebnis abschließen; bis zur passenden Bestätigung keine Gerätesaves. Bootstrap-HTTP, Verwaltungsabrufe und WS-Antworten nur für ihre noch aktuelle Generation anwenden. Gerade der initiale `/settings`-Abruf kann noch A betreffen, nachdem das Storage-Ereignis schon B gewählt hat; der jetzige `main.ts` prüft das vor `initServerDefaults` nicht. Die Korrektur braucht deshalb mehr als einen zusätzlichen `simulationOn=false`-Zweig.
+
+**Wächter:** verzögertes neues Hello, fehlgeschlagene Neubindung, Tokenwechsel während des Bootstrap-Abrufs sowie alte Antwort nach Neubindung. Währenddessen keine alte Arm-Anzeige, keine Kollisionsarbeit und kein Save mit den Werten der vorherigen Bindung.
+
+### SS-I03 · P2 · Eine ältere Stale-Antwort überschreibt neuere Werte und Entwürfe
+
+**Stelle:** `src/defaults.ts:257–263`, Aufruf in `src/lcncWs.ts:345`.
+
+`applyStaleSection` übernimmt den Antwortwert bedingungslos und löscht den aktuellen Draft. Nur die Revisionsnummer wird mit `max` fortgeschrieben. Zwei eigene Gegenfälle sind rot:
+
+- Ein neuerer Snapshot bestätigt Simulation **aus**, Revision 2. Danach kommt eine ältere Konfliktantwort mit Simulation **an**, Revision 1. Ergebnis: Simulation an, aber weiterhin Revisionsnummer 2 — Inhalt und Nummer gehören nicht mehr zusammen.
+- Der Nutzer hat nach einem neueren Serverstand bereits einen zweiten Entwurf erstellt. Die verspätete Ablehnung des ersten Saves löscht diesen zweiten Entwurf aus der Anzeige. Dessen Debounce-Auftrag bleibt hingegen bestehen und wird später gesendet; Anzeige und ausstehender Auftrag widersprechen sich.
+
+**Korrektur:** Antwortrevision gegen den bereits angewandten Stand prüfen; Ablehnung nur der Bearbeitung zuordnen, deren `req_id` sie beantwortet. Ein späterer ausdrücklicher Entwurf bleibt getrennt vom abgelehnten alten. Inhalt, Revision und Speicherstatus müssen denselben Stand beschreiben. Kein automatisches Wiederholen der abgewiesenen Kopie. Die beiden Gegenfälle sind unabhängig von SS-I01, sie betreffen auch das **eigene** Profil.
+
+### SS-I04 · P2 · Profilanlage/-bindung und Löschschutz haben eine Lücke zwischen Store und Verbindung
+
+**Stellen:** `gateway.py:4034` und `4126–4138`, `settings_store.py:bind`/`delete_device`.
+
+Die Dateischreibvorgänge sind serialisiert. Die für den Löschschutz maßgebliche Anwesenheit wird aber erst **nach** dem `await asyncio.to_thread(bind, ...)` als `client.device_id` sichtbar. In der Lücke nach dem Store-Commit kann ein anderer Client dasselbe Profil noch als unverbunden löschen.
+
+Die synchronisierte Gegenprobe hält die Rückgabe von `bind` nach dessen Dateischreiben an und führt dann den echten Verwaltungs-Handler aus. Ergebnis:
+
+```text
+delete_ok=true
+client.device_id=<gelöschte ID>
+find_device(token)=None
+settings_view(client.device_id).device.id=None
+```
+
+Die anschließende Verbindung gilt intern als gebunden, besitzt aber kein gespeichertes Profil. Eigene Saves finden es nicht; ein weiteres Hello repariert die Bindung wegen `device_bound` auch nicht. Der Kontrollfall „bereits vollständig gebundenes Profil löschen“ wird korrekt verweigert — er deckt diese Lücke nicht ab.
+
+**Korrektur:** Bindungsreservierung/Anwesenheit und Löschentscheidung unter einem gemeinsamen Lebensdauer-Vertrag führen. Ein erfolgreich gebundener Client muss auf ein weiterhin vorhandenes Profil zeigen; gewinnt die Löschung, muss der Bindungsweg das feststellen und einen eindeutig neuen bzw. sichtbar ungebundenen Zustand liefern. Nicht nur nachträglich einmal die Existenz außerhalb der Sperre prüfen. **Wächter:** beide Reihenfolgen, einschließlich Verbindungsende während einer noch laufenden Bindung.
+
+### SS-I05 · P1 · Entfernen des fokussierten Sim-Tabs macht aus der nächsten Navigationstaste einen Jog
+
+**Stellen:** `src/App.vue:371–383`, `src/TabPanel.vue`/`src/TabNav.vue`.
+
+Der aktive Inhalt wechselt richtig zu Program. Der Fokus wird bei einer Änderung der Tabmenge jedoch nicht zurückgegeben; `TabPanel` behandelt nur den Wechsel zwischen schmaler und breiter Darstellung.
+
+**Browser-Gegenprobe:** Sim-Tab fokussieren, Tastatur-Jog aktivieren, Simulation über eine Serveränderung ausschalten. Danach ist `document.activeElement` **BODY**. Die nächste rechte Pfeiltaste erzeugt am Mock:
+
+```json
+[{"cmd":"jog_cont","axis":0,"vel":10},{"cmd":"jog_stop","axis":0}]
+```
+
+Die Request-IDs stehen im Beleg. Es wurde nur am Mock gearbeitet, keine Maschine bewegt. Die Folge ist dennoch dieselbe Fehlerklasse, die `TabPanel` schon für einen verschwundenen Tab beim Layoutwechsel vermeidet.
+
+**Korrektur:** Vor dem Entfernen feststellen, ob der Fokus im entfallenden Tab bzw. seinen Controls liegt; danach gezielt auf den verbleibenden Tab/Selektor zurückgeben. Bei anderswo liegendem Fokus nichts stehlen. Die tatsächliche Simulationsarbeit sofort beenden, Layoutänderungen unter einem gehaltenen Press weiterhin nach dem bestehenden Eingabesitzungsvertrag behandeln. **Wächter:** fokussierter Sim-Tab, fokussiertes Sim-Control, Fokus außerhalb; danach Pfeiltasten ohne Jog-Auftrag. Für den gehaltenen Press auch einen Wechsel von einem anderen Client aus prüfen.
+
+### Zwei kleinere Vertragsreste und die noch offene Messabnahme
+
+- **„Nie geändert“:** `rename_device` setzt `changed` nicht. Ein ausdrücklich benanntes Profil bleibt deshalb in der Liste „never changed“. Die Pythonprobe ist rot. R337 definierte das Merkmal über den ersten angenommenen Schreibvorgang; entweder diesen Vertrag erfüllen oder das Label enger und wahrheitsgemäß benennen. Kein separater schwerer Befund.
+- **Gelöscht und neu angelegt:** Der vereinbarte sichtbare Hinweis für die Rückkehr mit einem zuvor gelöschten Profil ist noch nicht erkennbar implementiert. `_bind_device` protokolliert `created` nur im Trace; die UI bekommt keine entsprechende Information. Beim Beheben des Lebensdauerwegs bitte auch den normalen Ablauf „offline löschen → gleicher Browser kommt zurück“ samt sichtbarem Hinweis aufnehmen. Ein erstmalig neues Gerät und ein entferntes Profil nicht unbelegt gleich benennen.
+- **Lastabnahme:** Der R338-Gatebericht und die funktionalen Workerprüfungen ersetzen die vereinbarte An/Aus-Messung noch nicht. Nach den Korrekturen bitte denselben großen Programmfall mit Laden, Basiswechsel und Ruhephase berichten: Browser inklusive Worker, Prüf-Speicher, Statusalter; Gateway/Parse separat; Panel aus und Laptop an gleichzeitig. Ich habe diese Messung und die genannten zusätzlichen Vor-main-Gates in dieser Runde nicht durchgeführt. Aus dem jetzigen Review folgt keine Leistungsabnahme.
+
+### Belege und Ausführung
+
+Alle neuen Dateien beginnen mit `settings-split.r338.codex-`; vorhandene Claude-Belege wurden nicht verändert.
+
+- [Prüfstand und Wiederholungsanleitung](settings-split.r338.codex-checks.json), [Build](settings-split.r338.codex-build.txt): Build PASS.
+- [Frontend-Gegenproben](settings-split.r338.codex-unit.test.ts), [Ergebnis](settings-split.r338.codex-unit.txt): **6 rot, 1 Kontrolle grün**. Zusätzlich die vorhandenen `settingsDraft`/`settingsSections`: **17 grün** ([Lauf mit der ersten Sondenfassung](settings-split.r338.codex-unit-existing.txt)).
+- [Backend-Gegenproben](settings-split.r338.codex-backend.py), [Ergebnis](settings-split.r338.codex-backend.txt), [Prüfmenge](settings-split.r338.codex-backend-collection.txt): **66 vorhandene Tests grün**, zwei eigene Kontrollen grün, Bindung/Löschen und das Änderungsmerkmal rot. Fake-LinuxCNC und temporäre Dateien; die Zulassung des Verwaltungsclients ist für die isolierte Löschprobe als armed eingesetzt.
+- [Browser-Gegenproben](settings-split.r338.codex-browser.spec.ts), [Ergebnis mit Fokus und Mock-Aufträgen](settings-split.r338.codex-browser.txt), [Konfiguration](settings-split.r338.codex-browser.config.ts): beide Gegenfälle rot. Die vorhandenen `devices`/`simulation-off.viewer` liefen **7/7 grün** ([Protokoll](settings-split.r338.codex-browser-existing.txt)).
+
+Der erste sandboxgebundene Browserstart scheiterte an der Chromium-Prozessisolation; ein sandboxgebundener Python-Async-Lauf hing und wurde beendet. Die oben ausgewerteten Läufe wurden danach in derselben isolierten Kopie außerhalb der Sandbox erfolgreich ausgeführt. Der komplette 889er-Gate wurde nicht wiederholt; das bleibt Claudes eingereichter Beleg.
+
+**Nächster Schritt:** SS-I01 bis SS-I05 korrigieren, die beiden kleineren Vertragsreste beantworten und die offene Messabnahme einordnen. Kein zusätzlicher Operator-Entscheidungsbedarf aus R338.

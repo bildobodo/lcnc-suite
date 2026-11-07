@@ -1,0 +1,11 @@
+test_button_gates_b_commit.py: 19
+test_device_profiles.py: 8
+test_r338_codex.py: 4
+test_settings_store.py: 39
+
+[GC] +72ms gen=2 duration=12.2ms collected=899 uncollectable=0
+[GC] +80ms gen=2 duration=7.6ms collected=0 uncollectable=0
+[GC] +90ms gen=2 duration=10.0ms collected=0 uncollectable=0
+[GC] +100ms gen=2 duration=10.1ms collected=0 uncollectable=0
+[GC] +108ms gen=2 duration=7.8ms collected=0 uncollectable=0
+[GC] +115ms gen=2 duration=7.5ms collected=0 uncollectable=0

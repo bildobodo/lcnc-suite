@@ -1,0 +1,163 @@
+
+ RUN  v4.1.8 /tmp/codex-r338/lcnc-webui
+
+ ❯ src/r338.codex.test.ts (7 tests | 6 failed) 10ms
+   × foreign success must not advance this device revision 3ms
+   × foreign stale reply must not activate the local simulation 1ms
+   × rebind invalidates the old confirmed settings and connection immediately 1ms
+   × a device edit while rebind is unconfirmed must not move from A to B 1ms
+   × a stale refusal of an older draft must not erase a newer edit still in debounce 1ms
+   × an older stale reply must not roll back a more recent confirmed snapshot 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/r338.codex.test.ts > foreign success must not advance this device revision
+AssertionError: expected 5 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 5
+
+ ❯ src/r338.codex.test.ts:48:44
+     46|   last().frame({type:'reply',ok:true,cmd:'save_settings',req_id:sent.r…
+     47|   await p;
+     48|   expect(d.sectionServerRev('simulation')).toBe(0);
+       |                                            ^
+     49| });
+     50|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  src/r338.codex.test.ts > foreign stale reply must not activate the local simulation
+AssertionError: expected { id: 'A', rev: 5, simulation: true } to deeply equal { id: 'A', rev: +0, simulation: false }
+
+- Expected
++ Received
+
+  {
+    "id": "A",
+-   "rev": 0,
+-   "simulation": false,
++   "rev": 5,
++   "simulation": true,
+  }
+
+ ❯ src/r338.codex.test.ts:58:6
+     56|   await p;
+     57|   expect({id:d.deviceInfo.value.id,rev:d.sectionServerRev('simulation'…
+     58|     .toEqual({id:'A',rev:0,simulation:false});
+       |      ^
+     59| });
+     60|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  src/r338.codex.test.ts > rebind invalidates the old confirmed settings and connection immediately
+AssertionError: expected { ready: true, id: 'A', …(3) } to deeply equal { ready: false, id: null, …(3) }
+
+- Expected
++ Received
+
+  {
+-   "armed": false,
+-   "id": null,
+-   "key": null,
+-   "ready": false,
+-   "simulation": false,
++   "armed": true,
++   "id": "A",
++   "key": "connection-A",
++   "ready": true,
++   "simulation": true,
+  }
+
+ ❯ src/r338.codex.test.ts:69:6
+     67|   expect({ready:d.serverSettingsReady.value,id:d.deviceInfo.value.id,
+     68|     simulation:d.simulationOn.value,armed:ws.armed.value,key:connKey()…
+     69|     .toEqual({ready:false,id:null,simulation:false,armed:false,key:nul…
+       |      ^
+     70| });
+     71|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  src/r338.codex.test.ts > a device edit while rebind is unconfirmed must not move from A to B
+AssertionError: expected [ { cmd: 'save_settings', …(4) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "base_rev": 0,
++     "cmd": "save_settings",
++     "data": {
++       "keepAwake": true,
++       "startFullscreen": false,
++       "theme": "dark",
++     },
++     "req_id": "uzfpp4-3",
++     "section": "display",
++   },
++ ]
+
+ ❯ src/r338.codex.test.ts:78:51
+     76|   vi.advanceTimersByTime(300);
+     77|   const sent = last().posted.filter(m=>m.type==='send').map(m=>JSON.pa…
+     78|   expect(sent.filter(m=>m.cmd==='save_settings')).toEqual([]);
+       |                                                   ^
+     79| });
+     80|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  src/r338.codex.test.ts > a stale refusal of an older draft must not erase a newer edit still in debounce
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/r338.codex.test.ts:91:43
+     89|   last().frame({type:'reply',ok:false,cmd:'save_settings',req_id:first…
+     90|     stale:true,data:{enabled:false},rev:1,error:'simulation changed el…
+     91|   expect(d.loadSimulationDraft().enabled).toBe(true);
+       |                                           ^
+     92| });
+     93|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  src/r338.codex.test.ts > an older stale reply must not roll back a more recent confirmed snapshot
+AssertionError: expected { rev: 2, simulation: true } to deeply equal { rev: 2, simulation: false }
+
+- Expected
++ Received
+
+  {
+    "rev": 2,
+-   "simulation": false,
++   "simulation": true,
+  }
+
+ ❯ src/r338.codex.test.ts:102:6
+    100|     stale:true,data:{enabled:true},rev:1,error:'simulation changed els…
+    101|   expect({rev:d.sectionServerRev('simulation'),simulation:d.simulation…
+    102|     .toEqual({rev:2,simulation:false});
+       |      ^
+    103| });
+    104|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 1 passed (7)
+   Start at  00:04:00
+   Duration  270ms (transform 147ms, setup 0ms, import 202ms, tests 10ms, environment 0ms)
+

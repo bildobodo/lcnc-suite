@@ -1,0 +1,81 @@
+
+Running 9 tests using 1 worker
+
+(node:1316013) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1316013) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/devices.spec.ts:43:1 › this device switches its own simulation without arm; it acts once the gateway holds it (1.8s)
+  ✓  2 e2e/devices.spec.ts:56:1 › another device: its simulation and its rename need arm; a connected one is never deleted (1.7s)
+  ✓  3 e2e/devices.spec.ts:86:1 › a tab bound to no device says why and saves no device setting (1.5s)
+  ✓  4 e2e/devices.spec.ts:98:1 › this device's name is saved without arm (1.4s)
+  ✘  5 e2e/r338.codex.spec.ts:4:1 › foreign conflict must not show Sim on the local device (1.2s)
+(node:1316351) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1316351) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  6 e2e/r338.codex.spec.ts:19:1 › removing the selected Sim tab gives keyboard focus to its replacement (1.5s)
+(node:1316480) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1316480) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  7 e2e/simulation-off.viewer.spec.ts:51:1 › a device without the simulation: no check, no timeline, no Sim tab — the path, the tool mark and the run line stay (3.0s)
+  ✓  8 e2e/simulation-off.viewer.spec.ts:71:1 › switched off during the check: the worker ends, every finding goes; switched on: a fresh check (5.2s)
+  ✓  9 e2e/simulation-off.viewer.spec.ts:93:1 › the Sim tab shown when the simulation goes off: the Program tab takes its place (3.0s)
+
+
+  1) e2e/r338.codex.spec.ts:4:1 › foreign conflict must not show Sim on the local device ───────────
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      14 |   // Wait for dispatch rather than a negative assertion before the frame.
+      15 |   await expect(page.getByText('simulation changed elsewhere — reloaded',{exact:false}).first()).toBeVisible();
+    > 16 |   expect(await page.getByRole('tab',{name:'Sim',exact:true}).count()).toBe(0);
+         |                                                                       ^
+      17 | });
+      18 |
+      19 | test('removing the selected Sim tab gives keyboard focus to its replacement',async({page})=>{
+        at /tmp/codex-r338/lcnc-webui/e2e/r338.codex.spec.ts:16:71
+
+    Error Context: test-results/r338.codex-foreign-conflic-75bdb-how-Sim-on-the-local-device/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r338.codex-foreign-conflic-75bdb-how-Sim-on-the-local-device/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r338.codex-foreign-conflic-75bdb-how-Sim-on-the-local-device/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/r338.codex.spec.ts:19:1 › removing the selected Sim tab gives keyboard focus to its replacement 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      26 |   const program = page.getByRole('tab',{name:'Program',exact:true});
+      27 |   await expect(program).toHaveAttribute('aria-selected','true');
+    > 28 |   expect(await program.evaluate(el=>el===document.activeElement)).toBe(true);
+         |                                                                   ^
+      29 | });
+      30 |
+        at /tmp/codex-r338/lcnc-webui/e2e/r338.codex.spec.ts:28:67
+
+    Error Context: test-results/r338.codex-removing-the-se-4595d-rd-focus-to-its-replacement/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r338.codex-removing-the-se-4595d-rd-focus-to-its-replacement/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r338.codex-removing-the-se-4595d-rd-focus-to-its-replacement/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    e2e/r338.codex.spec.ts:4:1 › foreign conflict must not show Sim on the local device ────────────
+    e2e/r338.codex.spec.ts:19:1 › removing the selected Sim tab gives keyboard focus to its replacement 
+  7 passed (21.8s)

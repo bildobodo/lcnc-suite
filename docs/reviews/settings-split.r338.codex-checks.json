@@ -1,0 +1,47 @@
+{
+  "round": "R338",
+  "date": "2026-11-08",
+  "verdict": "findings",
+  "document_head": "75d8b27482df85b242bd931a290486646bc917bc",
+  "product_base": "53a79824e3e2f8dc6db15eeb9ff81a1c994e640c",
+  "product_head": "2e2c9edcd3f519238db2fe331299c626c18753f1",
+  "workspace": "/tmp/codex-r338",
+  "live_access": "No live ports, commands, builds or tests; product from git archive.",
+  "isolation": "Copied node_modules; fake_linuxcnc and temporary settings files; browser mock port 4938, one worker.",
+  "build": "PASS: npm run build, original product sources",
+  "backend": {
+    "existing_passed": 66,
+    "own_passed": 2,
+    "own_failed": 2,
+    "total": 70
+  },
+  "unit": {
+    "existing_passed": 17,
+    "own_passed": 1,
+    "own_failed": 6
+  },
+  "browser": {
+    "existing_passed": 7,
+    "own_failed": 2,
+    "duration_existing_and_original_probes_seconds": 21.8
+  },
+  "harness_notes": [
+    "Sandbox prevented Chromium startup; rerun with approval outside sandbox.",
+    "Sandbox asyncio/TestClient run stalled and was stopped; outside-sandbox run completed.",
+    "Final focus probe additionally enables keyboard jogging and records the mock commands.",
+    "Initial unit file had six probes; final file adds the seventh (older stale reply after newer snapshot).",
+    "ANSI color codes removed from text logs; test sources copied unchanged."
+  ],
+  "reproduce": [
+    "git archive 2e2c9edc | tar -x --exclude=docs/reviews -C <isolated-directory>",
+    "Copy dependency directory into the isolated directory, do not symlink mutable caches into a live tree.",
+    "Copy codex-unit.test.ts to lcnc-webui/src/r338.codex.test.ts; npx vitest run src/r338.codex.test.ts src/settingsDraft.test.ts src/settingsSections.test.ts --maxWorkers=1",
+    "Copy codex-backend.py to lcnc-gateway/test_r338_codex.py; python -m pytest -q -s test_r338_codex.py test_settings_store.py test_device_profiles.py test_button_gates_b_commit.py (gateway test dependencies required).",
+    "npm run build in isolated lcnc-webui. Copy codex-browser.spec.ts to e2e/r338.codex.spec.ts and codex-browser.config.ts to playwright.r338.config.ts; change MOCK_BASE_PORT in that copy e2e/mockSlot.mjs from 4500 to an unused port (here 4938).",
+    "npx playwright test --config playwright.r338.config.ts e2e/r338.codex.spec.ts e2e/devices.spec.ts e2e/simulation-off.viewer.spec.ts"
+  ],
+  "not_done": [
+    "No full gate rerun; supplied 889/889 gate is Claude evidence.",
+    "No live machine tests; no full large-program CPU/memory/status-age comparison."
+  ]
+}

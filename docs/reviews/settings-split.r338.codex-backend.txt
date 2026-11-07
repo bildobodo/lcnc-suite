@@ -1,0 +1,173 @@
+[VINIT] session bound to linuxcncsvr pid=981937 start=134716591
+[VINIT] try_connect_lcnc OK, pid=981937
+[VINIT] Loaded machine config: 3-Axis Mill
+BIND_DELETE {"delete_ok": true, "bound_id": "d68a3ebba81f51fa", "stored_id": null, "view_id": null}
+F.FOREIGN_STALE {"type": "reply", "ok": false, "error": "simulation changed elsewhere \u2014 reloaded", "section": "simulation", "stale": true, "data": {"enabled": true}, "rev": 1, "cmd": "save_settings", "req_id": "foreign-conflict"}
+.F.......................................[VINIT] try_connect_lcnc OK, pid=424242
+[IDLE] +138ms gateway up, 0 clients connected (waiting)
+[SHUTDOWN] +157ms lifespan teardown begin
+[SHUTDOWN] +157ms cancelled 8 bg tasks
+[SHUTDOWN] +157ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +157ms HAL sockets disconnected
+[SHUTDOWN] +157ms camera released
+[SHUTDOWN] +157ms lifespan teardown complete
+.[VINIT] try_connect_lcnc OK, pid=424242
+[IDLE] +158ms gateway up, 0 clients connected (waiting)
+[VINIT] client#3 sending viewer_init (post-poll), STAT=OK
+[VINIT] client#4 sending viewer_init (post-poll), STAT=OK
+[VINIT] client#5 sending viewer_init (post-poll), STAT=OK
+[STATUS] tick gen=75 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=76 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=565 bytes_max=380 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=77 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=78 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=79 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=80 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=81 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=82 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=83 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=84 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=85 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=86 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=87 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=88 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=89 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=90 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=38
+[STATUS] tick gen=91 clients=2/3 poll_ms=2 errors_ms=1 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=565 bytes_max=380 tool_meta_n=0 wall_ms=36
+[STATUS] tick gen=92 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=32
+[STATUS] tick gen=93 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=94 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=33
+[STATUS] tick gen=95 clients=2/3 poll_ms=0 errors_ms=1 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=96 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=97 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=98 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=99 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=100 clients=2/3 poll_ms=0 errors_ms=1 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=101 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=33
+[STATUS] tick gen=102 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=8604 bytes_max=4302 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=103 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=34
+[SHUTDOWN] +4205ms lifespan teardown begin
+[SHUTDOWN] +4205ms cancelled 8 bg tasks
+[SHUTDOWN] +4205ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +4205ms HAL sockets disconnected
+[SHUTDOWN] +4206ms camera released
+[SHUTDOWN] +4206ms lifespan teardown complete
+.[VINIT] try_connect_lcnc OK, pid=424242
+[IDLE] +4208ms gateway up, 0 clients connected (waiting)
+[VINIT] client#6 sending viewer_init (post-poll), STAT=OK
+[SHUTDOWN] +4213ms lifespan teardown begin
+[SHUTDOWN] +4213ms cancelled 8 bg tasks
+[SHUTDOWN] +4213ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +4214ms HAL sockets disconnected
+[SHUTDOWN] +4214ms camera released
+[SHUTDOWN] +4214ms lifespan teardown complete
+.[VINIT] try_connect_lcnc OK, pid=424242
+[IDLE] +4216ms gateway up, 0 clients connected (waiting)
+[VINIT] client#7 sending viewer_init (post-poll), STAT=OK
+[VINIT] client#8 sending viewer_init (post-poll), STAT=OK
+[STATUS] tick gen=104 clients=5/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=15403 bytes_max=5011 tool_meta_n=0 wall_ms=514
+[SHUTDOWN] +6231ms lifespan teardown begin
+[SHUTDOWN] +6231ms cancelled 8 bg tasks
+[SHUTDOWN] +6231ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +6231ms HAL sockets disconnected
+[SHUTDOWN] +6231ms camera released
+[SHUTDOWN] +6231ms lifespan teardown complete
+.[VINIT] try_connect_lcnc OK, pid=424242
+[IDLE] +6233ms gateway up, 0 clients connected (waiting)
+[VINIT] client#9 sending viewer_init (post-poll), STAT=OK
+[SHUTDOWN] +6238ms lifespan teardown begin
+[SHUTDOWN] +6238ms cancelled 8 bg tasks
+[SHUTDOWN] +6238ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +6238ms HAL sockets disconnected
+[SHUTDOWN] +6238ms camera released
+[SHUTDOWN] +6238ms lifespan teardown complete
+.[VINIT] try_connect_lcnc OK, pid=424242
+[IDLE] +6242ms gateway up, 0 clients connected (waiting)
+[VINIT] client#10 sending viewer_init (post-poll), STAT=OK
+[STATUS] tick gen=149 clients=4/2 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=10304 bytes_max=4989 tool_meta_n=0 wall_ms=513
+[SHUTDOWN] +7257ms lifespan teardown begin
+[SHUTDOWN] +7258ms cancelled 8 bg tasks
+[SHUTDOWN] +7258ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +7258ms HAL sockets disconnected
+[SHUTDOWN] +7258ms camera released
+[SHUTDOWN] +7258ms lifespan teardown complete
+.[VINIT] try_connect_lcnc OK, pid=424242
+[IDLE] +7260ms gateway up, 0 clients connected (waiting)
+[VINIT] client#11 sending viewer_init (post-poll), STAT=OK
+[VINIT] client#12 sending viewer_init (post-poll), STAT=OK
+[SHUTDOWN] +7267ms lifespan teardown begin
+[SHUTDOWN] +7267ms cancelled 8 bg tasks
+[SHUTDOWN] +7267ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +7267ms HAL sockets disconnected
+[SHUTDOWN] +7268ms camera released
+[SHUTDOWN] +7268ms lifespan teardown complete
+.[VINIT] try_connect_lcnc OK, pid=424242
+[IDLE] +7270ms gateway up, 0 clients connected (waiting)
+[SHUTDOWN] +7273ms lifespan teardown begin
+[SHUTDOWN] +7273ms cancelled 3 bg tasks
+[SHUTDOWN] +7273ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +7273ms HAL sockets disconnected
+[SHUTDOWN] +7273ms camera released
+[SHUTDOWN] +7273ms lifespan teardown complete
+........uuuu..uuuu..........
+=================================== FAILURES ===================================
+______________ R338.test_bind_and_delete_have_one_presence_commit ______________
+
+self = <test_r338_codex.R338 testMethod=test_bind_and_delete_have_one_presence_commit>
+
+    def test_bind_and_delete_have_one_presence_commit(self):
+        """Stop in the normal gap after bind's file commit, before its result
+        reaches the event loop. The delete runs through its real lock/admit."""
+        bound = threading.Event(); release = threading.Event()
+        original = self.store.bind
+        newcomer = SimpleNamespace(device_id=None, device_bound=False, conn_key='new-B')
+        self.clients[2] = newcomer
+        def bind_then_wait(token, addr):
+            result = original(token, addr)
+            bound.set()
+            if not release.wait(5):
+                raise AssertionError('test synchronization timed out')
+            return result
+        async def run():
+            t = asyncio.create_task(gateway._bind_device(newcomer, 2, 'review-B', {'device_token':'b'*32}))
+            try:
+                for _ in range(500):
+                    if bound.is_set(): break
+                    await asyncio.sleep(.002)
+                self.assertTrue(bound.is_set())
+                removed = await gateway._ws_device_command(self.admin, {'cmd':'device_delete','device':self.b})
+            finally:
+                release.set()
+            await t
+            return removed
+        with patch.object(self.store, 'bind', bind_then_wait):
+            r = asyncio.run(run())
+        actual = {'delete_ok':r['ok'], 'bound_id':newcomer.device_id,
+                  'stored_id':self.store.find_device('b'*32),
+                  'view_id':self.store.view_for(newcomer.device_id)['device']['id']}
+        print('BIND_DELETE', json.dumps(actual))
+>       self.assertTrue(not r['ok'] or newcomer.device_id is None
+                        or self.store.find_device('b'*32) == newcomer.device_id,
+                        'successful binding must not refer to a deleted profile')
+E       AssertionError: False is not true : successful binding must not refer to a deleted profile
+
+test_r338_codex.py:77: AssertionError
+_____________ R338.test_rename_is_a_real_change_in_the_device_list _____________
+
+self = <test_r338_codex.R338 testMethod=test_rename_is_a_real_change_in_the_device_list>
+
+    def test_rename_is_a_real_change_in_the_device_list(self):
+        self.store.rename_device(self.b, 'Panel B')
+        row = next(x for x in self.store.list_devices() if x['id'] == self.b)
+>       self.assertTrue(row['changed'])
+E       AssertionError: False is not true
+
+test_r338_codex.py:84: AssertionError
+=========================== short test summary info ============================
+FAILED test_r338_codex.py::R338::test_bind_and_delete_have_one_presence_commit
+FAILED test_r338_codex.py::R338::test_rename_is_a_real_change_in_the_device_list
+[GC] +7516ms gen=2 duration=13.5ms collected=1696 uncollectable=0
+[GC] +7525ms gen=2 duration=9.3ms collected=0 uncollectable=0
+[GC] +7535ms gen=2 duration=9.7ms collected=0 uncollectable=0
+[GC] +7544ms gen=2 duration=9.3ms collected=0 uncollectable=0
+[GC] +7554ms gen=2 duration=9.4ms collected=0 uncollectable=0
+[GC] +7565ms gen=2 duration=10.8ms collected=0 uncollectable=0
