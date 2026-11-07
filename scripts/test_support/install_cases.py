@@ -135,22 +135,25 @@ class InstallProbeHost(SystemHost):
         return out
 
     def remove_tree(self, tree, of):
+        """The run's tree, whatever state an abort left it in — a clone, a
+        half-made one, an empty folder (Codex R330/R331 FI-I62). Ownership is
+        the RUN FOLDER's: made new by the run (exclusive), its identity in
+        pre.json before the LAN stop; the tree must lie in it (links
+        resolved). Another folder, the run itself, or a run folder that is not
+        the recorded one is refused."""
         tree = Path(tree)
-        if not tree.exists():
+        if not tree.exists() and not tree.is_symlink():
             return
-        if self._run is None or not tree.resolve().is_relative_to(self._run.resolve()) or tree.resolve() == self._run.resolve():
-            raise RuntimeError(f"{tree} is not a clone inside the run {self._run} — not removed")
-        if not (tree / ".git").is_dir():
-            # an abort before git made .git: the folder is the run's only when
-            # it is THE folder the probe made (its identity recorded before the
-            # clone, Codex R330 FI-I62) — another path is refused
-            try:
-                made = json.loads((self._run / "state.json").read_text()).get("tree_id")
-            except (OSError, ValueError):
-                made = None
-            st = tree.stat()
-            if made != [st.st_dev, st.st_ino]:
-                raise RuntimeError(f"{tree} has no .git folder and is not the folder the run made — not removed")
+        run = self._run
+        if run is None or not tree.resolve().is_relative_to(run.resolve()) or tree.resolve() == run.resolve():
+            raise RuntimeError(f"{tree} is not a tree inside the run {run} — not removed")
+        try:
+            made = json.loads((run / "pre.json").read_text()).get("run_id")
+        except (OSError, ValueError):
+            made = None
+        st = run.stat()
+        if made != [st.st_dev, st.st_ino]:
+            raise RuntimeError(f"{run} is not the run folder its record names — {tree} not removed")
         shutil.rmtree(tree)
 
 

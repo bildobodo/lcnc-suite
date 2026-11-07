@@ -5,6 +5,7 @@ imports linuxcnc or hal: a bare import binds the running sim)."""
 from __future__ import annotations
 
 import json
+import os
 import math
 import subprocess
 import shutil
@@ -25,6 +26,12 @@ def own_heavy_lock(tmp_path, monkeypatch):
     """Each test its own lock file: inside a gate the gate holds the real one
     (the restore CLI waited 600 s for it in the round gate of 2026-11-05)."""
     monkeypatch.setattr(hl, "LOCK", tmp_path / "test-heavy.lock")
+    real = hl._owed_path(Path(os.environ.get("LCNC_HEAVY_LOCK", str(Path.home() / "claude-work/live-tier/heavy.lock"))))
+    before = real.exists()
+    yield
+    # an owed-return marker beside the REAL lock stops every gate (R331: a
+    # child process of a test wrote one there once)
+    assert real.exists() == before, f"the test left {real}"
 
 
 def test_two_holders_of_the_heavy_lock_run_one_after_the_other(tmp_path):
@@ -410,8 +417,10 @@ def test_a_killed_orchestrator_is_restored_by_the_unit_from_pre_json(tmp_path):
         "def hang(ctx):\n"
         "    print('stopped', flush=True); time.sleep(60)\n"
         "nr.run(h, [('hang', hang)], Path(sys.argv[4]))\n")
+    # the child's heavy lock is THIS test's (its owed-return marker beside it,
+    # never beside the gates' real lock — R331's marker landed there once)
     p = subprocess.Popen([sys.executable, "-c", code, str(HERE), str(HERE), str(state), str(run)],
-                         stdout=subprocess.PIPE, text=True)
+                         stdout=subprocess.PIPE, text=True, env={**os.environ, "LCNC_HEAVY_LOCK": str(hl.LOCK)})
     assert p.stdout.readline().strip() == "stopped"
     assert json.loads(state.read_text())["active"] == {"lcnc-sim-gates": False, "bg-keepalive": False}
     p.kill()
@@ -423,6 +432,7 @@ def test_a_killed_orchestrator_is_restored_by_the_unit_from_pre_json(tmp_path):
     assert restored["outcome"] == "complete" and restored["isolation"] == [], restored
     assert {k: v for k, v in json.loads(state.read_text())["active"].items() if k != "native-sim"} == \
         {"lcnc-sim-gates": True, "bg-keepalive": True}
+    assert hl.owed() is None, "the restore settled the killed run's owed return"
 
 
 # ── R286 FI-I18: the PATH LinuxCNC's own launcher builds ─────────────────

@@ -63,9 +63,14 @@ against that gateway (`scripts/install_probe_browser.mjs`: mounted, its own
 WebSocket took the instance's state, every script and worker served as
 JavaScript). It takes the VM's LinuxCNC like the native stage and returns it
 with the restore's proof; the isolation also records the operator's home
-links BY TARGET. The gate holds the heavy lock until the probe's unit has
-ended, its restore included (the probe runs `--under-gate`, the restore
-`--no-lock`). Not shown: the realtime components' installation (compiled
+links BY TARGET. It runs AFTER the gate's heavy section, in its own run
+folder with its own id and the gate's commit, and holds the heavy lock
+itself (Codex R330–R331); from the LAN stop to the confirmed return the
+return is OWED (`heavy_lock.owe` — a marker beside the lock that only the
+run's own restore may pass, so a gate already waiting never comes between a
+killed probe and its ExecStopPost restore; the native stage shares it). The
+gate's wait is bounded (every systemctl call, an unread state, the
+deadline) and an interrupt stops the probe and awaits its end. Not shown: the realtime components' installation (compiled
 only), a new machine's apt/nodesource path, the bootstrap from GitHub.
 Standalone (an evidence run): the command in `scripts/install_probe.py`'s
 docstring; `--abort-at installer|start` are its two abort probes.

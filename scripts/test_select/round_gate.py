@@ -273,11 +273,19 @@ def install_probe_refusal(host=None) -> str | None:
     return None
 
 
+#: every systemctl call of the probe's wait returns within this (Codex R331
+#: FI-I60 B: a hanging call bypassed every other deadline)
+SYSTEMCTL_S = 15
+
+
 def _unit_state(unit: str) -> dict | None:
     """systemd's view of the unit (LoadState, ActiveState, its main process's
     exit), or None when it was not read."""
-    r = subprocess.run(["systemctl", "--user", "show", unit, "-p", "LoadState", "-p", "ActiveState",
-                        "-p", "ExecMainStatus", "--no-pager"], capture_output=True, text=True)
+    try:
+        r = subprocess.run(["systemctl", "--user", "show", unit, "-p", "LoadState", "-p", "ActiveState",
+                            "-p", "ExecMainStatus", "--no-pager"], capture_output=True, text=True, timeout=SYSTEMCTL_S)
+    except subprocess.TimeoutExpired:
+        return None         # a query that did not return is no state (Codex R331 FI-I60 B)
     props = dict(line.split("=", 1) for line in r.stdout.splitlines() if "=" in line)
     return props if r.returncode == 0 and props.get("ActiveState") else None
 
@@ -318,7 +326,11 @@ def install_probe(logs: Path, sha: str, unit: str | None = None, probe_s: float 
            py, "-I", str(ROOT / "scripts/install_probe.py"), "--run-dir", str(run_dir), "--commit", sha,
            "--run-id", run_id]
     t0 = time.monotonic()
-    started = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        started = subprocess.run(cmd, capture_output=True, text=True, timeout=SYSTEMCTL_S * 4)
+    except subprocess.TimeoutExpired:
+        return {"name": "install-probe", "status": "FAIL", "run": str(run_dir),
+                "why": [f"systemd-run did not return within {SYSTEMCTL_S * 4} s"]}
     if started.returncode:
         return {"name": "install-probe", "status": "FAIL", "run": str(run_dir),
                 "why": [f"the probe unit did not start: {started.stderr.strip()}"]}
@@ -326,8 +338,12 @@ def install_probe(logs: Path, sha: str, unit: str | None = None, probe_s: float 
     unread_since = None
 
     def stop_and_wait(limit=600.0):
-        # `systemctl stop` returns once the stop job is done, ExecStopPost included
-        subprocess.run(["systemctl", "--user", "stop", unit], capture_output=True, timeout=limit + 30)
+        # `systemctl stop` returns once the stop job is done, ExecStopPost
+        # included; it is bounded, and its end is confirmed by the state below
+        try:
+            subprocess.run(["systemctl", "--user", "stop", unit], capture_output=True, timeout=limit)
+        except subprocess.TimeoutExpired:
+            pass
         end = time.monotonic() + limit
         while time.monotonic() < end:
             if _ended(_unit_state(unit)):
@@ -361,7 +377,10 @@ def install_probe(logs: Path, sha: str, unit: str | None = None, probe_s: float 
         stop_and_wait()
         raise
     finally:
-        subprocess.run(["systemctl", "--user", "reset-failed", unit], capture_output=True)
+        try:
+            subprocess.run(["systemctl", "--user", "reset-failed", unit], capture_output=True, timeout=SYSTEMCTL_S)
+        except subprocess.TimeoutExpired:
+            why_end.append("reset-failed did not return")
 
     def load(name):
         p = run_dir / name

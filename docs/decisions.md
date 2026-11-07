@@ -11157,3 +11157,20 @@ isolation [], the clone removed. A first attempt refused itself before any
 step: the unit was read from /proc/self/cgroup's FIRST `.service`
 (user@1000.service) — now the last (`unit_of`, guarded).
 
+**Codex R330–R331 (the same day).** FI-I59: each gate call its own run folder
+and id, the gate's commit passed down; PASS only with that run's report.
+FI-I60: the probe runs after the gate's heavy section and takes the heavy
+lock itself; a run that stopped the LAN instance OWES its return —
+`heavy_lock.owe(run)` before the stop, `settle(run)` after a return that is
+not `not_returned`; while the marker stands every other taker that gets the
+flock releases it and waits on, only the run's restore (`owed_by`) may hold
+it (a killed probe lost the flock and a waiting gate took it before the
+ExecStopPost restore, whose 600 s then ran out — R331 rest A, proven with
+real processes now). Every systemctl call of the gate's wait has a deadline
+(R331 rest B). FI-I61: the browser must show the instance's boot E-Stop as
+"Reset E-Stop" — a status the app applied, not viewer_init alone. FI-I62:
+the run's tree is the run's by the RUN FOLDER's identity, in pre.json before
+the stop (a clone abort right after mkdir left a folder no proof covered).
+A test's child process once wrote its marker beside the REAL lock (it did not
+inherit the test's lock path): the fixtures now fail a test that leaves one.
+

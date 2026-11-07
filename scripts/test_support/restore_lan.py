@@ -287,9 +287,14 @@ def main(argv=None, host_factory=None) -> int:
     state_path = run / "state.json"
     state = json.loads(state_path.read_text()) if state_path.is_file() else {}
     # under the ONE heavy lock: the killed run's lock is gone already (R286 FI-I19)
-    from test_support.heavy_lock import heavy_lock
-    with heavy_lock("restore_lan", wait=600):
+    from test_support import heavy_lock as heavy
+    # this restore IS the run's owed return: the lock is its own while the
+    # run's marker stands (Codex R331 FI-I60 A) — no gate waiting meanwhile takes it
+    owner = str(run.resolve())
+    with heavy.heavy_lock("restore_lan", wait=600, owed_by=owner):
         out = restore(host_factory(pre), pre, state, first=run / "restore.json", save=lambda st: _write(state_path, st))
+        if out["outcome"] != "not_returned":
+            heavy.settle(owner)
     if state_path.is_file() or state:
         _write(state_path, state)
     a.out.write_text(json.dumps(out, indent=2) + "\n")

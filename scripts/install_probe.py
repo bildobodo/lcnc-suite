@@ -94,15 +94,12 @@ def clone(commit: str, abort_at=None):
         ctx["report"]["env"] = env
         # from here on an abort ends what the run started (an installer in its own session)
         ctx["cleanup"] = lambda: _close(ctx)
-        # the clone's folder made HERE, exclusively, its identity on disk before
-        # git writes into it: an abort before git made .git leaves a folder the
-        # restore can prove its own (Codex R330 FI-I62)
+        # the clone's folder made HERE, exclusively; it lies in the run folder
+        # whose identity pre.json recorded before the stop — an abort at any
+        # point from here leaves a tree the restore proves the run's (FI-I62)
         src.mkdir()
-        st = src.stat()
-        ctx["state"]["tree_id"] = [st.st_dev, st.st_ino]
-        save_state(ctx)
         if abort_at == "clone":
-            os.kill(os.getpid(), signal.SIGKILL)    # before git made .git: ExecStopPost restores
+            os.kill(os.getpid(), signal.SIGKILL)    # right after mkdir, nothing more on disk: ExecStopPost restores
         r = _sh(["git", "clone", "--quiet", "--no-checkout", "--no-hardlinks", str(HERE.parent), str(src)], {"env": env},
                 timeout=600)
         if r.returncode:

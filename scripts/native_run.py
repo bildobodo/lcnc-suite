@@ -53,6 +53,7 @@ sys.path.insert(0, str(HERE))
 from test_support import live_target as lt  # noqa: E402
 from test_support import native_cases as nc  # noqa: E402
 from test_support import restore_lan as rl  # noqa: E402
+from test_support import heavy_lock as heavy  # noqa: E402
 from test_support.heavy_lock import heavy_lock  # noqa: E402
 
 PROFILES = {"3axis_xyz": ("lcnc_suite_sim_3axis_xyz.ini", 3)}
@@ -221,8 +222,17 @@ def run(host, steps, run_dir: Path) -> dict:
     run_dir.mkdir()
     report: dict = {"started": time.time(), "steps": [], "rows": []}
     pre = rl.record(host)                     # raises TakeOverRefused: nothing touched
+    # the run folder's identity, on disk before the stop: what lies in it is
+    # the run's — a restore after an abort may remove the run's own tree even
+    # before git made it a clone (Codex R331 FI-I62)
+    st = run_dir.stat()
+    pre["run_id"] = [st.st_dev, st.st_ino]
     pre_path = run_dir / "pre.json"
     write_json(pre_path, pre)
+    # from the stop on the LAN instance's return is OWED: the heavy lock is this
+    # run's restore's alone until it is settled — a killed run's ExecStopPost
+    # restore takes it before any waiting gate (Codex R331 FI-I60 A)
+    heavy.owe(str(run_dir.resolve()))
     # what the run OWNS — its tree, its test unit — on disk before each exists
     # (R286 FI-I19): ExecStopPost ends them from here when this process died
     ctx = {"run": run_dir, "pre": pre, "report": report, "state": {}}
@@ -249,6 +259,8 @@ def run(host, steps, run_dir: Path) -> dict:
         report["restore"] = rl.restore(host, pre, ctx["state"], first=run_dir / "restore.json",
                                        save=lambda st: write_json(run_dir / "state.json", st))
         write_json(run_dir / "state.json", ctx["state"])
+        if report["restore"].get("outcome") != "not_returned":
+            heavy.settle(str(run_dir.resolve()))
         report["ended"] = time.time()
         write_json(run_dir / "report.json", report)
     return report

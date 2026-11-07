@@ -25,6 +25,27 @@ from test_support.system_host import _hash_tree  # noqa: E402
 INSTALL = ROOT / "install.sh"
 
 
+@pytest.fixture(autouse=True)
+def own_heavy_lock(tmp_path, monkeypatch):
+    """Each test its own lock file and owed marker — never the gates' real one."""
+    import test_support.heavy_lock as hl
+    monkeypatch.setattr(hl, "LOCK", tmp_path / "test-heavy.lock")
+    real = hl._owed_path(Path(os.environ.get("LCNC_HEAVY_LOCK", str(Path.home() / "claude-work/live-tier/heavy.lock"))))
+    before = real.exists()
+    yield
+    # an owed-return marker beside the REAL lock stops every gate (R331: a
+    # child process of a test wrote one there once)
+    assert real.exists() == before, f"the test left {real}"
+
+
+def own_run(run: Path) -> Path:
+    """A run folder as native_run.run makes it: new, its identity in pre.json."""
+    run.mkdir(parents=True, exist_ok=True)
+    st = run.stat()
+    (run / "pre.json").write_text(json.dumps({"run_id": [st.st_dev, st.st_ino]}))
+    return run
+
+
 # ── install.sh: the non-interactive contract ─────────────────────────────
 TOOLS = ("git", "git-lfs", "python3", "mktemp", "rm", "awk", "cut", "tr", "node", "npm", "curl", "halcompile",
          "sed", "ls", "cat", "basename", "dirname", "env")
@@ -190,7 +211,7 @@ def test_host_isolation_covers_the_home_links(tmp_path):
 
 # ── the clone's cleanup (FI329-04) ───────────────────────────────────────
 def test_the_clone_is_removed_as_a_folder_of_the_run(tmp_path, monkeypatch):
-    run = tmp_path / "run"
+    run = own_run(tmp_path / "run")
     src = run / "src"
     (src / ".git").mkdir(parents=True)
     (src / "f").write_text("x")
@@ -201,40 +222,36 @@ def test_the_clone_is_removed_as_a_folder_of_the_run(tmp_path, monkeypatch):
     assert calls == [], "never `git worktree remove` on a clone (it refuses: 'is not a working tree')"
 
 
-def test_an_incomplete_clone_the_run_made_is_removed(tmp_path):
-    """Codex R330 FI-I62: an abort before git made .git — the folder is the
-    run's by the identity the probe recorded when it made it."""
-    run = tmp_path / "run"
+def test_an_incomplete_clone_in_the_run_is_removed(tmp_path):
+    """Codex R330/R331 FI-I62: an abort right after mkdir, nothing else on
+    disk — the tree is the run's by the run FOLDER's identity, recorded in
+    pre.json before the LAN stop."""
+    run = own_run(tmp_path / "run")
     src = run / "src"
-    src.mkdir(parents=True)
-    st = src.stat()
-    (run / "state.json").write_text(json.dumps({"tree_id": [st.st_dev, st.st_ino]}))
+    src.mkdir()
     ic.InstallProbeHost(run=run).remove_tree(src, ROOT)
     assert not src.exists()
 
 
-def test_an_incomplete_clone_the_run_did_not_make_is_refused(tmp_path):
+def test_a_run_folder_that_is_not_the_recorded_one_is_refused(tmp_path):
     run = tmp_path / "run"
-    src = run / "src"
-    src.mkdir(parents=True)
+    (run / "src").mkdir(parents=True)
     other = tmp_path / "other"
     other.mkdir()
     st = other.stat()
-    (run / "state.json").write_text(json.dumps({"tree_id": [st.st_dev, st.st_ino]}))
+    (run / "pre.json").write_text(json.dumps({"run_id": [st.st_dev, st.st_ino]}))
     with pytest.raises(RuntimeError):
-        ic.InstallProbeHost(run=run).remove_tree(src, ROOT)
-    assert src.exists()
+        ic.InstallProbeHost(run=run).remove_tree(run / "src", ROOT)
+    assert (run / "src").exists()
 
 
 def test_end_test_resources_after_an_early_clone_abort(tmp_path):
-    """The early abort's return: the folder the run made, without .git, no
+    """The early abort's return: the tree the run made, without .git, no
     processes — cleaned, no cleanup reason that would keep the LAN down."""
-    run = tmp_path / "run"
+    run = own_run(tmp_path / "run")
     src = run / "src"
-    src.mkdir(parents=True)
-    st = src.stat()
-    (run / "state.json").write_text(json.dumps({"tree_id": [st.st_dev, st.st_ino]}))
-    state = {"tree": str(src), "tree_of": str(ROOT), "tree_id": [st.st_dev, st.st_ino]}
+    src.mkdir()
+    state = {"tree": str(src), "tree_of": str(ROOT)}
     assert rl.end_test_resources(ic.InstallProbeHost(run=run), state) == []
     assert not src.exists() and state["test_ended"]
 
@@ -255,7 +272,7 @@ def test_the_cleanup_refuses_what_is_not_the_runs_clone(tmp_path, where):
 def test_end_test_resources_removes_the_clone_with_the_probe_host(tmp_path):
     """restore_lan's end of the run's resources, the probe's host: the unit
     ended, the clone removed — no cleanup error that would block the LAN start."""
-    run = tmp_path / "run"
+    run = own_run(tmp_path / "run")
     src = run / "src"
     (src / ".git").mkdir(parents=True)
 
@@ -586,15 +603,15 @@ def test_the_restore_always_takes_the_lock(tmp_path, monkeypatch):
     taken = []
 
     @contextmanager
-    def lock(who, wait=None, path=None):
-        taken.append(who)
+    def lock(who, wait=None, path=None, owed_by=None):
+        taken.append((who, owed_by))
         yield
     monkeypatch.setattr(hl, "heavy_lock", lock)
     pre = tmp_path / "pre.json"
     pre.write_text(json.dumps({"units": {}, "ini": None, "head": None, "tree": None, "instance": [], "hashes": {}}))
     monkeypatch.setattr(rl, "restore", lambda *a, **k: {"outcome": "complete"})
     assert rl.main(["--from", str(pre), "--out", str(tmp_path / "out.json")], host_factory=lambda p: object()) == 0
-    assert taken == ["restore_lan"]
+    assert taken == [("restore_lan", str(tmp_path.resolve()))], "the restore takes the lock as the run's owed return"
 
 
 # ── the installed result's evaluators ────────────────────────────────────
@@ -690,3 +707,98 @@ def test_the_merge_gate_refuses_at_once_a_lan_trip_the_probe_may_not_take():
     assert "unacknowledged trip" in rg.install_probe_refusal(Host({"reason": "hal_heartbeat_timeout"}))
     assert rg.install_probe_refusal(Host(None)) is None
     assert rg.install_probe_refusal(Host(OSError("no gateway"))) is None
+
+
+# ── FI-I60 rest A: the owed return holds the lock between the probe and its restore (R331) ──
+def test_an_owed_return_keeps_every_other_taker_out(tmp_path):
+    import test_support.heavy_lock as hl
+    lock = tmp_path / "l.lock"
+    hl.owe("/run/A", path=lock)
+    with pytest.raises(TimeoutError, match="owed for /run/A"):
+        with hl.heavy_lock("gate", wait=0.3, path=lock):
+            pass
+    with hl.heavy_lock("restore", wait=0.3, path=lock, owed_by="/run/A"):
+        pass
+    hl.settle("/run/B", path=lock)
+    assert hl.owed(lock)["run"] == "/run/A", "another run's settle leaves the marker"
+    hl.settle("/run/A", path=lock)
+    with hl.heavy_lock("gate", wait=0.3, path=lock):
+        pass
+
+
+def test_a_killed_probe_s_restore_comes_before_a_waiting_gate(tmp_path):
+    """Codex R331's order with real processes: the probe holds the lock and
+    owes the return; a gate waits already; the probe is killed (no finally);
+    the restore must take the lock and settle BEFORE the gate gets it."""
+    import signal, time
+    lock, order = tmp_path / "l.lock", tmp_path / "order.txt"
+    pre = f"import sys, time; sys.path.insert(0, {str(ROOT / 'scripts')!r}); from pathlib import Path; " \
+          "from test_support import heavy_lock as hl; lock = Path(sys.argv[1]); out = Path(sys.argv[2])\n" \
+          "def note(s):\n    with out.open('a') as f: f.write(s + '\\n')\n"
+    probe = subprocess.Popen([sys.executable, "-c", pre + "with hl.heavy_lock('probe', path=lock):\n"
+                              "    hl.owe('/run/X', path=lock); note('probe owes'); time.sleep(60)\n",
+                              str(lock), str(order)])
+    deadline = time.monotonic() + 10
+    while not (order.exists() and "probe owes" in order.read_text()):
+        assert time.monotonic() < deadline
+        time.sleep(0.05)
+    gate = subprocess.Popen([sys.executable, "-c", pre + "with hl.heavy_lock('gate', path=lock):\n    note('gate in')\n",
+                             str(lock), str(order)])
+    time.sleep(0.6)                                   # the gate waits already
+    probe.send_signal(signal.SIGKILL)
+    probe.wait()
+    time.sleep(0.6)                                   # the flock is free: the waiting gate tries first
+    restore = subprocess.run([sys.executable, "-c", pre + "with hl.heavy_lock('restore', wait=10, path=lock, owed_by='/run/X'):\n"
+                              "    note('restore in'); time.sleep(0.5); hl.settle('/run/X', path=lock); note('restore done')\n",
+                              str(lock), str(order)], timeout=30)
+    assert restore.returncode == 0
+    gate.wait(timeout=30)
+    lines = order.read_text().split()
+    joined = order.read_text().splitlines()
+    assert joined == ["probe owes", "restore in", "restore done", "gate in"], joined
+
+
+def test_the_native_run_owes_the_return_from_the_stop_and_settles_a_complete_one(tmp_path, monkeypatch):
+    import native_run as nr
+    import test_support.heavy_lock as hl
+    seen = {}
+    monkeypatch.setattr(nr.rl, "record", lambda host: {"units": {}})
+    monkeypatch.setattr(nr.rl, "stop_lan", lambda host, pre: seen.setdefault("at_stop", hl.owed()))
+
+    def step(ctx):
+        seen["in_step"] = hl.owed()
+        return []
+    for outcome, kept in (("complete", False), ("not_returned", True)):
+        monkeypatch.setattr(nr.rl, "restore", lambda *a, **k: {"outcome": outcome})
+        run = tmp_path / f"run-{outcome}"
+        nr.run(object(), [("look", step)], run)
+        assert seen["at_stop"]["run"] == str(run.resolve()) and seen["in_step"]["run"] == str(run.resolve())
+        st = run.stat()
+        assert json.loads((run / "pre.json").read_text())["run_id"] == [st.st_dev, st.st_ino]
+        assert (hl.owed() is not None) == kept, outcome
+        hl.settle(str(run.resolve()))
+        seen.clear()
+
+
+# ── FI-I60 rest B: every systemctl call of the wait is bounded (R331) ──
+def test_a_hanging_systemctl_is_no_state_and_reaches_the_end(tmp_path, monkeypatch):
+    rg = rg_module()
+    calls = []
+
+    def fake(cmd, **kw):
+        calls.append((cmd, kw))
+        if cmd[0] == "systemd-run":
+            d = Path(cmd[cmd.index("--run-dir") + 1])
+            d.mkdir(parents=True)
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+        if cmd[:3] == ["systemctl", "--user", "show"]:
+            if any(c[:3] == ["systemctl", "--user", "stop"] for c, _ in calls):
+                return subprocess.CompletedProcess(cmd, 0, "ActiveState=inactive\nLoadState=loaded", "")
+            raise subprocess.TimeoutExpired(cmd, kw.get("timeout"))
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+    monkeypatch.setattr(rg.subprocess, "run", fake)
+    clock = iter(range(0, 10_000, 40))
+    monkeypatch.setattr(rg.time, "monotonic", lambda: float(next(clock)))
+    c = rg.install_probe(tmp_path / "gate.logs", SHA, unit="install-probe-test", unread_s=60, sleep=lambda s: None)
+    assert c["status"] == "FAIL" and "not read" in c["why"][0]
+    assert all(kw.get("timeout") for _, kw in calls), [c for c, kw in calls if not kw.get("timeout")]
