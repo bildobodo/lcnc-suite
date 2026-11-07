@@ -1,0 +1,77 @@
+{
+  "case": "estop-status",
+  "browser_returncode": 0,
+  "sent_frames": [
+    "status",
+    "viewer_init",
+    "reply"
+  ],
+  "status_frames": 1,
+  "evaluation": {
+    "case": "start-browser",
+    "status": "PASS",
+    "detail": "mounted, viewer_init taken, the instance's E-Stop status applied; 7 script(s)/worker(s) served as JavaScript, no error"
+  },
+  "browser": {
+    "url": "http://127.0.0.1:4591/",
+    "scripts": [
+      {
+        "url": "http://127.0.0.1:4591/static/msgpack-BkQaaVuN.js",
+        "status": 200,
+        "type": "text/javascript",
+        "ok": true
+      },
+      {
+        "url": "http://127.0.0.1:4591/static/index-BNvIRSix.js",
+        "status": 200,
+        "type": "text/javascript",
+        "ok": true
+      },
+      {
+        "url": "http://127.0.0.1:4591/static/three-D_Nc9AAY.js",
+        "status": 200,
+        "type": "text/javascript",
+        "ok": true
+      },
+      {
+        "url": "http://127.0.0.1:4591/static/toolGeometry-DhP3iiav.js",
+        "status": 200,
+        "type": "text/javascript",
+        "ok": true
+      },
+      {
+        "url": "http://127.0.0.1:4591/static/ThreeViewer-Ch5wqGWS.js",
+        "status": 200,
+        "type": "text/javascript",
+        "ok": true
+      },
+      {
+        "url": "http://127.0.0.1:4591/static/wsWorker-KKeHcbK3.js",
+        "status": 200,
+        "type": "text/javascript",
+        "ok": true
+      },
+      {
+        "url": "blob:http://127.0.0.1:4591/67b2cab8-133e-4d2c-a338-2c17d1c4965b",
+        "status": 200,
+        "type": "application/javascript",
+        "ok": true
+      }
+    ],
+    "bad_responses": [],
+    "page_errors": [],
+    "console_errors": [],
+    "workers": 2,
+    "mounted": true,
+    "connected": true,
+    "page": {
+      "status": 200,
+      "type": "text/html"
+    },
+    "worker_urls": [
+      "http://127.0.0.1:4591/static/wsWorker-KKeHcbK3.js",
+      "blob:http://127.0.0.1:4591/67b2cab8-133e-4d2c-a338-2c17d1c4965b"
+    ],
+    "status_applied": true
+  }
+}

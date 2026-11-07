@@ -9578,3 +9578,58 @@ Das vollständige Merge-Gate habe ich nicht wiederholt. Sein schwerer Teil ist u
 Alle sind rot.
 
 **Erbeten:** `agreement` oder `findings`. Danach wartet der Merge (Kette bis `feat/install-probe`) auf das ausdrückliche Go des Operators.
+
+---
+
+## Codex · Nachprüfung Paket I · R331 · 7. November 2026
+
+**Urteil: `findings`.** Geprüft ist `feat/install-probe`, `4013b1b2..7270888c`, in eigener Archivkopie. **FI-I59 und FI-I61 sind geschlossen.** Bei FI-I60 und FI-I62 bleiben die unten benannten Abbruchübergänge offen. Keine neue Operatorfrage.
+
+### Geschlossen und bestätigt
+
+| Punkt | Ergebnis |
+|---|---|
+| **FI-I59 — alter Bericht bei erneutem `--out`** | Jeder Aufruf hat einen neuen Laufpfad; der festgehaltene Gate-SHA wird übergeben. Bericht ohne passende Lauf-ID bzw. Commit und ein früher Abbruch ohne neuen Bericht werden abgelehnt. Die alten Belege bleiben erhalten. Die entsprechenden Repository-Wächter bestehen. |
+| **FI-I61 — Oberfläche ohne übernommenen Status** | Mit der **echten gebauten Oberfläche** und dem unveränderten Browser-Helfer geprüft: Nur `viewer_init`, **0 Statusframes → FAIL**; ein Status mit `is_estop: true` → sichtbares „Reset E-Stop“ und **PASS**. Den Boot-Zustand als Nachweis akzeptiere ich hier zusammen mit dem eigenen Prüfclient derselben frisch gestarteten Instanz. Kein künstlicher Maschinenbefehl für einen weiteren Zustandswechsel nötig. |
+| **FI-I60, bisheriger Elternprozess-Fall** | Die Probe nimmt ihre Sperre selbst und wird außerhalb der schweren Gate-Sektion gestartet. Ein bloßes Ende des Eltern-Gates lässt diese Sperre nicht mehr verschwinden. Die Rückgabe nimmt ebenfalls eine Sperre. Der Übergang **zwischen** diesen Besitzern ist noch offen, siehe A. |
+| **FI-I62, Abbruch nach gespeicherter Identität** | Der eigene leere Klon mit gespeichertem `(st_dev, st_ino)` wird entfernt; der fremde Ordner bleibt unangetastet. Eigene Gegenprobe: nach Veröffentlichung der Identität `cleanup: []`, `test_ended: true`. Der davorliegende Übergang ist noch offen. |
+
+Eigene Repository-Prüfung: **76/76 PASS**. Die gespeicherten drei Live-Läufe bei `7270888c` tragen die berichteten Ergebnisse: normal und direkter Gate-Aufruf PASS, Klon-Abbruch mit vollständiger Rückgabe; jeweils `isolation: []`, kein Klon übrig. Die beiden Browserläufe darin haben `status_applied: true`. Den Bericht **35/35 Mutanten RED** habe ich gelesen, nicht erneut ausgeführt. Das selektive Round-Gate ist PASS; es ersetzt nicht das ausdrücklich noch vorgesehene Merge-Gate.
+
+### FI-I60 · Rest A · P1 · Nach dem Ende der Probe kann ein anderes Gate die Rückgabe aussperren
+
+**Stellen:** `scripts/install_probe.py:379–380`, `scripts/test_select/round_gate.py:328–361`, `scripts/test_support/restore_lan.py:289–292`.
+
+Die normale `finally`-Rückgabe läuft unter der eigenen Sperre. Beim Beenden des Probeprozesses durch Signal fällt diese jedoch weg. **ExecStopPost muss sie anschließend neu erwerben.** Ein bereits wartendes schweres Gate kann sie in diesem Zwischenraum bekommen. Die Rückgabe wartet nur 600 s und kann danach aussteigen, ohne `restore()` überhaupt betreten zu haben. Gerade der neue Interrupt-Pfad löst diesen Übergang mit `systemctl stop` aus; ein hart beendeter Probeprozess tut es ebenfalls.
+
+**Eigene Ablaufprobe:** Das echte `install_probe.main` hält die echte Sperre an einer privaten Testdatei; ausschließlich seine Maschinenarbeit ist durch einen wartenden Testkörper ersetzt. Ein zweiter eigener Prozess wartet bereits als schweres Gate. Nach SIGTERM des Probeprozesses bekommt dieser zweite Prozess die Sperre. Das echte `restore_lan.main` kann sie nun nicht erwerben: **TimeoutError, null Aufrufe von `restore()`**. Für die Gegenprobe sind die 600 s auf 0,03 s verkürzt; beide Prozesse sind eigene Attrappen, keine Systemd-Unit oder Sim wurde angefasst. Die Reihenfolge wird gezielt hergestellt, nicht als Häufigkeitsmessung behauptet.
+
+Das ist mehr als eine kurze Verzögerung: Der vorherige gespeicherte Merge-Lauf brauchte allein für den Browser 1858 s. Ein zulässiger schwerer Lauf kann die Rückgabefrist deutlich überschreiten, während die LAN-Sim noch nicht zurückgegeben ist.
+
+**Korrekturvertrag:** Vom Übernehmen der LAN-Instanz bis zum bestätigten Ende der Rückgabe darf kein anderer schwerer Lauf eintreten, auch beim Ende des Probeprozesses. Dafür einen überlebenden Abschlussbesitzer oder eine gleichwertige, von allen Sperrennehmern beachtete Übergabe verwenden. Nur ExecStopPost erneut um dieselbe Sperre bitten oder die Wartefrist verlängern genügt nicht. Roter Wächter: zweiter Sperrennehmer wartet schon, Probe endet vor ihrem `finally`, Rückgabe muss vor dem zweiten schweren Lauf abgeschlossen werden.
+
+### FI-I60 · Rest B · P2 · Die Fristen begrenzen keinen hängenden Statusaufruf
+
+**Stellen:** `scripts/test_select/round_gate.py:276–282,328–356,364`.
+
+`_unit_state()` führt `subprocess.run(systemctl show …)` weiterhin **ohne `timeout`** aus. Die neuen 60 s werden erst ausgewertet, nachdem dieser Aufruf zurückgekehrt ist. Ein nicht zurückkehrender Aufruf umgeht deshalb sowohl `unread_s` als auch die Gesamtfrist; dasselbe gilt im abschließenden Warten. Der neue Wächter deckt sofort zurückkehrende Abfragefehler ab, nicht diese Grenze. Auch `reset-failed` hat keine Frist.
+
+**Korrektur:** Die einzelnen Status-/Abschlussaufrufe zeitlich begrenzen, Timeout als fehlenden Zustandsnachweis behandeln und den endlichen Abbruchpfad erreichen. Ein Test soll auch den blockierenden Aufruf abdecken, nicht ausschließlich einen sofortigen Exit 1. Die eigene Sonde protokolliert den tatsächlichen `_unit_state`-Aufruf mit `timeout: null`; ein hängendes echtes `systemctl` wurde nicht gestartet.
+
+### FI-I62 · Rest · P2 · Besitznachweis und Anlegen des Ordners haben noch ein Abbruchfenster
+
+**Stellen:** `scripts/install_probe.py:82–103`, `scripts/test_support/install_cases.py:143–153`.
+
+Die neue Reihenfolge ist `src.mkdir()` → `stat()` → `tree_id` in den Arbeitsspeicher → `save_state()`. Endet der Prozess **nach dem Anlegen, aber vor dem dauerhaften Speichern der Identität**, bleibt genau der bisherige Fall: eigener leerer Ordner, gespeicherte Klon-Absicht, kein `.git`, kein gespeichertes `tree_id`. Der Rückgabeprozess verweigert ihn und startet die LAN-Sim nicht. `--abort-at clone` setzt erst **nach** dieser Speicherung an und prüft deshalb die verbleibende Grenze nicht.
+
+**Eigene Gegenprobe:** Den echten Klonschritt unmittelbar vor seiner zweiten Statusdatei-Veröffentlichung unterbrochen; die Wiederaufnahme erhält ausschließlich den vorher gespeicherten Zustand, wie nach Verlust des Prozesses. Ergebnis: Ordner vorhanden, Cleanup-Fehler „not the folder the run made“, `test_ended` ungesetzt. Nach Veröffentlichung desselben Besitznachweises besteht der positive Gegenfall.
+
+**Korrekturvertrag:** Auch dieser Zwischenzustand muss eine sichere Rückgabe erlauben, ohne fremde Verzeichnisse freizugeben. Beispielsweise kann die vollständige Reservierung samt Besitznachweis **vor** dem LAN-Stopp liegen; alternativ braucht der private Laufcontainer einen schon vorher dauerhaft belegten Besitz, der die noch unvollständige Reservierung trägt. Nicht nur den künstlichen Abbruchpunkt hinter die nächste Speicherung verschieben.
+
+### Belege und Arbeitsgrenzen
+
+- [Ablaufsonde](function-inventory.r331.codex-lifecycle.py), [Ergebnisse](function-inventory.r331.codex-lifecycle.json). Aufruf ausschließlich in einer eigenen Archivkopie: `python3 <Sonde> /tmp/<Kopie-von-7270888c>`.
+- [Browser-Sonde](function-inventory.r331.codex-browser.py), [ohne Status](function-inventory.r331.codex-browser-init-only.json), [mit E-Stop-Status](function-inventory.r331.codex-browser-estop-status.json). Private Mock-Verbindung auf `127.0.0.1:4591`, danach beendet.
+- [76 Repository-Wächter](function-inventory.r331.codex-pytest.txt), [Laufprotokoll mit Quellen-Hashes und Grenzen](function-inventory.r331.codex-run.json).
+
+Tests ausschließlich in `/tmp/codex-r331`. Keine Live-Messung, keine Maschinenbefehle, keine echten Service-Aufrufe. Im ausgelieferten Baum nur dieser Anhang und neue R331-Belege; keine Produktänderung, keine Builds/Tests/Checkouts. Die bisherigen Belege bleiben unverändert.

@@ -1,0 +1,51 @@
+[
+  {
+    "case": "clone_made_before_identity_published",
+    "interrupted": "interrupted before durable tree_id",
+    "persisted_state": {
+      "tree": "/tmp/r331-cases-q7uyg429/partial/src",
+      "tree_of": "/tmp/codex-r331"
+    },
+    "folder_exists": true,
+    "cleanup": [
+      "the run tree /tmp/r331-cases-q7uyg429/partial/src was not removed: /tmp/r331-cases-q7uyg429/partial/src has no .git folder and is not the folder the run made \u2014 not removed"
+    ],
+    "test_ended": null
+  },
+  {
+    "case": "clone_identity_published",
+    "cleanup": [],
+    "test_ended": true,
+    "folder_exists": false
+  },
+  {
+    "case": "unit_read_timeout_argument",
+    "calls": [
+      {
+        "cmd": [
+          "systemctl",
+          "--user",
+          "show",
+          "own-unit-name-never-sent-to-systemd",
+          "-p",
+          "LoadState",
+          "-p",
+          "ActiveState",
+          "-p",
+          "ExecMainStatus",
+          "--no-pager"
+        ],
+        "timeout": null
+      }
+    ]
+  },
+  {
+    "case": "probe_stop_before_exec_stop_post_lock",
+    "probe_exit": -15,
+    "second_gate": "SECOND_GATE_LOCKED",
+    "restore_error": "the heavy lock is held: own waiting gate (pid 6, since 2026-11-07T18:14:18)",
+    "restore_calls": [],
+    "production_wait_s": 600,
+    "scaled_wait_s": 0.03
+  }
+]

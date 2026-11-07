@@ -1,0 +1,73 @@
+{
+  "review": "R331",
+  "product_head": "7270888c75ec08b33470ae25765d9162fce428aa",
+  "archive": "/tmp/codex-r331",
+  "source_sha256": {
+    "scripts/install_probe.py": "039d62ea9fabe1f441191d468a84b498d3fe0987bdede74257d87e8b66d83392",
+    "scripts/install_probe_browser.mjs": "13f6305ceebb954494a2420d84fc7a17ae694079ff5ee7de95ea1eb24205a302",
+    "scripts/test_support/install_cases.py": "b26e3cfde6423f313c9774cedde1927fa3b55d218d99c8b2fb335a63e43f7a32",
+    "scripts/test_support/install_restore.py": "7c11587fb708d68d59f5000af3b697f15a6796b29cb2731a281d16bf30ee0662",
+    "scripts/test_support/restore_lan.py": "a24c3fb11a228ede64561afae554b4d4680dbcfa7a05e7aa02b401b959c2dcaf",
+    "scripts/test_support/heavy_lock.py": "70ec11c3ac73abb92ed0556252a659e6f5b658f676544f9d8147d14341008527",
+    "scripts/test_select/round_gate.py": "ba152592f677a74553b8fdd54f94d74e52cdf5fd62d0efeff90046f413ef436b",
+    "scripts/test_install_probe.py": "ba91f309d8bcb13791f14ecb52a2f346d2c6b265acda559a8edddeaba49f0923"
+  },
+  "pytest": {
+    "command": "python3 -B -m pytest -q -p no:cacheprovider scripts/test_install_probe.py",
+    "result": "76 passed in 34.79s",
+    "environment": "own archive; interpreter /home/cnc/lcnc-suite-g1/lcnc-gateway/.venv/bin/python3"
+  },
+  "browser": {
+    "ui": "a61337c3 built in own R329 archive; no frontend changes through 7270888c",
+    "node_modules": "own R329 archive",
+    "port": 4591,
+    "init_only": "FAIL as required; no status",
+    "estop_status": "PASS; one status applied",
+    "mock": "own process, ended after each case"
+  },
+  "lifecycle": {
+    "commands": "python3 lifecycle.py /tmp/codex-r331",
+    "systemd": "no calls; service status transport mocked",
+    "processes": "two owned Python children with real private heavy_lock; probe main patched to suspend its native work, terminated with SIGTERM; both reaped",
+    "restore": "real restore_lan.main; lock wait scaled from 600 s to 0.03 s; restore body mocked and never entered",
+    "clone": "actual clone step; interruption just before second state publication; recovery reads persisted state only"
+  },
+  "claude_live_evidence_read": [
+    {
+      "run": "/home/cnc/claude-work/live-tier/install-green2-20261107T175235",
+      "report": "PASS",
+      "commit": "7270888c75ec08b33470ae25765d9162fce428aa",
+      "run_id": null,
+      "post": "complete",
+      "isolation": [],
+      "clone_left": false,
+      "status_applied": true
+    },
+    {
+      "run": "/home/cnc/claude-work/live-tier/install-abort-clone-20261107T175355",
+      "report": null,
+      "commit": null,
+      "run_id": null,
+      "post": "complete",
+      "isolation": [],
+      "clone_left": false,
+      "status_applied": null
+    },
+    {
+      "run": "/home/cnc/claude-work/g2/gate-check-r331.logs/install-probe-af41a7778442",
+      "report": "PASS",
+      "commit": "7270888c75ec08b33470ae25765d9162fce428aa",
+      "run_id": "af41a7778442",
+      "post": "complete",
+      "isolation": [],
+      "clone_left": false,
+      "status_applied": true
+    }
+  ],
+  "mutations_report": "35/35 RED; inspected, not re-executed",
+  "live_operations": "none; no live ports/machine commands/service operations, no builds/tests/checkouts in live tree",
+  "review_prefix_before": {
+    "length": 1010709,
+    "sha256": "cdedea6df28fc9888de56f8bc61f5762a5eba8876ad9b81a85ec1ceb0fc9f197"
+  }
+}
