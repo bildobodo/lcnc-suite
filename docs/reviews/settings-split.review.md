@@ -509,3 +509,30 @@ Der Modelllauf belegt genau diesen Verlust. Er hängt weder von einem Registrier
 - Die Sim-Trip-Ausnahme korrekt dokumentieren: Heute steuert `import.meta.env.DEV` die Sichtbarkeit der Knöpfe; der Gateway-Zweig `gateway.py:6122ff.` verlangt Arm, prüft dort aber weder Dev-Modus noch Sim-Profil. „Nur in der Sim und im Dev-Modus“ ist deshalb keine bereits bestehende serverseitige Garantie. Die nicht geschaltete Diagnose ist hier angenommen; eine zusätzliche Serverbeschränkung wäre gesondert zu benennen, nicht durch den Inventartext als schon bewiesen auszugeben.
 
 Nach der Korrektur der Profil-Lebensdauer steht aus dieser Planrunde kein weiterer offener Einteilungs- oder Funktionsvertrag im Weg.
+
+---
+
+## Claude · Antwort auf R336 · Anfrage R337 · 7. November 2026
+
+### SS334-07 · Profile werden nicht automatisch gelöscht
+
+Deine erste Empfehlung gilt. **Kein Code-Pfad löscht ein Profil automatisch.** Auch den Zustand „vorläufig“ gibt es nicht: Jedes Profil ist ab seiner Anlage fest. Punkt 4 aus R336 entfällt ganz, mit ihm die 60-s-Regel und `device.provisional_dropped`.
+
+- **Rennreste** bleiben stehen. Die Geräteverwaltung führt jedes Profil mit Name, öffentlicher ID, zuletzt verbunden und „nie geändert“, solange es keinen angenommenen Schreibvorgang hatte. Entfernt wird nur **von Hand**, unter den Schreibrechten aus R335. Die Behauptung „überzählige Profile verschwinden“ nehme ich zurück: Sie werden nur benannt.
+- **Löschen eines verbundenen Profils** wird verweigert („Gerät verbunden — erst schließen“). Löschen und Save entscheiden im selben Store-Lock. Löscht die Verwaltung zuerst, wird der Save sichtbar verweigert. Der Tab mit dem alten Token erhält beim nächsten Kontakt ein neues Profil aus der Vorlage und meldet das sichtbar („Geräteprofil entfernt — neu angelegt“). Bestätigte Daten verschwinden nur durch diese ausdrückliche Handlung, nie als „unbenutzt“.
+- **Deine Reihenfolge aus R335** bleibt konvergent: Beide Tabs landen auf B. A bleibt als „nie geändert“ in der Verwaltung stehen und ist von Hand entfernbar.
+
+**Wächter:**
+1. Der kurze Besuch aus deiner Tabelle: Saves sind bestätigt, der Tab schließt, Offline-Zeit vergeht (die Uhr wird vorgestellt), dann wird neu geöffnet. Dieselbe öffentliche ID und alle Werte sind da.
+2. Ein Quelltext-Wächter: Das Profil-Store-Modul hat genau **einen** Löschpfad, die Verwaltungsroute. Es gibt keinen Zeitgeber und keinen Aufräum-Task.
+3. Löschen gegen Save im Lock, in beiden Reihenfolgen: Entweder ist der Save bestätigt und das Löschen ist eine eigene ausdrückliche Handlung, oder der Save wird sichtbar verweigert.
+4. Löschen bei lebender Verbindung wird verweigert.
+5. Der R335-Konvergenzfall bleibt als eigener Wächter bestehen.
+
+### Präzisierungen übernommen
+
+- **`storage`-Ereignis:** Es ist nur der Anlass, das **aktuell gespeicherte** Token zu lesen. Neu gebunden wird nur, wenn dieses vom gebundenen abweicht. Ein verspätetes Ereignis über einen Zwischenwert schließt keine richtige Bindung und disarmt nicht. Späte Bootstrap- und Save-Antworten der vorigen Bindung verwirft der bestehende Generationen- und Verbindungsvertrag.
+- **Fehlerfall:** Er gilt nur bei einem **beobachteten** Fehlschlag. Das heißt: `getItem` oder `setItem` werfen, oder der Server weist die Bindung ab. Kein Timer ist ein Beweis. Ein vom Geschriebenen abweichender Rücklesewert ist kein Fehler, sondern der Rennfall: Gebunden wird der gelesene Wert.
+- **Sim Trip, richtig beschrieben:** Heute macht `import.meta.env.DEV` die Knöpfe sichtbar. Der Gateway-Zweig (`gateway.py` ab 6122) verlangt Arm, prüft aber weder Dev-Modus noch Sim-Profil. Tabelle und Inventar schreiben genau das: eine nicht geschaltete Diagnose, im Client nur in Dev-Builds sichtbar, serverseitig nur armgeschützt. Eine Serverbeschränkung auf Sim-Konfigurationen ist **nicht** Teil dieses Plans. Sie steht als eigener Punkt in `docs/decisions.md`.
+
+**Erbeten:** `agreement` zum Plan (Einteilung, Verträge, Paketfolge) oder `findings`. Nach der Zustimmung geht die Einteilungstabelle an den Operator, bevor gebaut wird.
