@@ -11174,3 +11174,17 @@ the stop (a clone abort right after mkdir left a folder no proof covered).
 A test's child process once wrote its marker beside the REAL lock (it did not
 inherit the test's lock path): the fixtures now fail a test that leaves one.
 
+**Codex R332 (the same evening).** A1: the run's own `finally` settled the
+owed return; a gate waiting at a normal run's end took the lock before the
+run's ExecStopPost restore — whose record the merge gate demands — and that
+restore timed out. Now only the final restore (restore_lan.main, the unit's
+ExecStopPost) settles, and records how (`owed`). A2: repro-load.sh took the
+lock with a bare `flock`, blind to the marker; heavy_lock.py now has a
+command line (`--who --wait -- <command>`: the lock taken as heavy_lock()
+does, the command exec'd holding its descriptor) and the script runs itself
+under it — with an owed marker it waits, naming it, and starts nothing; a
+repository guard finds no other file that names the heavy lock and locks.
+A3: only a marker confirmed ABSENT frees the lock; an unreadable one, one
+that is no JSON or names no run keeps every taker out, the restore included,
+and settle leaves it ("unreadable: …").
+

@@ -293,8 +293,9 @@ def main(argv=None, host_factory=None) -> int:
     owner = str(run.resolve())
     with heavy.heavy_lock("restore_lan", wait=600, owed_by=owner):
         out = restore(host_factory(pre), pre, state, first=run / "restore.json", save=lambda st: _write(state_path, st))
-        if out["outcome"] != "not_returned":
-            heavy.settle(owner)
+        # the run's final return settles what the run owed; a marker this
+        # restore cannot read as its own stays (R332 A3) — named in the record
+        out["owed"] = heavy.settle(owner) if out["outcome"] != "not_returned" else "kept: not returned"
     if state_path.is_file() or state:
         _write(state_path, state)
     a.out.write_text(json.dumps(out, indent=2) + "\n")

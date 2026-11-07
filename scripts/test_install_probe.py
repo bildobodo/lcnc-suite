@@ -766,7 +766,9 @@ def test_a_killed_probe_s_restore_comes_before_a_waiting_gate(tmp_path):
     assert joined == ["probe owes", "restore in", "restore done", "gate in"], joined
 
 
-def test_the_native_run_owes_the_return_from_the_stop_and_settles_a_complete_one(tmp_path, monkeypatch):
+def test_the_native_run_owes_the_return_from_the_stop_and_leaves_it_owed(tmp_path, monkeypatch):
+    """R332 A1: the run's own finally does NOT settle — its final restore
+    (the unit's ExecStopPost) does."""
     import native_run as nr
     import test_support.heavy_lock as hl
     seen = {}
@@ -776,16 +778,119 @@ def test_the_native_run_owes_the_return_from_the_stop_and_settles_a_complete_one
     def step(ctx):
         seen["in_step"] = hl.owed()
         return []
-    for outcome, kept in (("complete", False), ("not_returned", True)):
+    for outcome in ("complete", "not_returned"):
         monkeypatch.setattr(nr.rl, "restore", lambda *a, **k: {"outcome": outcome})
         run = tmp_path / f"run-{outcome}"
         nr.run(object(), [("look", step)], run)
         assert seen["at_stop"]["run"] == str(run.resolve()) and seen["in_step"]["run"] == str(run.resolve())
         st = run.stat()
         assert json.loads((run / "pre.json").read_text())["run_id"] == [st.st_dev, st.st_ino]
-        assert (hl.owed() is not None) == kept, outcome
+        assert hl.owed()["run"] == str(run.resolve()), f"{outcome}: still owed after the run's finally"
         hl.settle(str(run.resolve()))
         seen.clear()
+
+
+def test_a_gate_waiting_at_a_normal_runs_end_comes_after_its_final_restore(tmp_path, monkeypatch):
+    """Codex R332 A1's order: a normal run ends complete; a gate waits
+    already; the run's ExecStopPost restore — demanded by the merge gate —
+    must take the lock and settle before the gate enters."""
+    import time
+    import native_run as nr
+    import test_support.heavy_lock as hl
+    monkeypatch.setattr(nr.rl, "record", lambda host: {"units": {}})
+    monkeypatch.setattr(nr.rl, "stop_lan", lambda host, pre: None)
+    monkeypatch.setattr(nr.rl, "restore", lambda *a, **k: {"outcome": "complete"})
+    run, order = tmp_path / "run", tmp_path / "order.txt"
+    nr.run(object(), [("look", lambda ctx: [])], run)            # ended: its own lock is gone
+    gate = subprocess.Popen([sys.executable, "-c",
+                             f"import sys; sys.path.insert(0, {str(ROOT / 'scripts')!r})\n"
+                             "from test_support import heavy_lock as hl\n"
+                             "with hl.heavy_lock('gate'):\n"
+                             f"    open({str(order)!r}, 'a').write('gate in\\n')\n"],
+                            env={**os.environ, "LCNC_HEAVY_LOCK": str(hl.LOCK)})
+    time.sleep(0.8)                                               # the gate waits (the marker stands)
+    assert not order.exists(), "the gate entered while the return was owed"
+
+    def restore(*a, **k):
+        order.open("a").write("restore in\n")
+        return {"outcome": "complete"}
+    monkeypatch.setattr(rl, "restore", restore)
+    out = tmp_path / "restore-post.json"
+    assert rl.main(["--from", str(run / "pre.json"), "--out", str(out)], host_factory=lambda pre: object()) == 0
+    assert json.loads(out.read_text())["owed"] == "settled"
+    gate.wait(timeout=30)
+    assert order.read_text().splitlines() == ["restore in", "gate in"]
+
+
+@pytest.mark.parametrize("marker,ok_for_others,ok_for_the_run", [
+    (None, True, True),                                         # confirmed absent: free
+    ({"run": "/run/X"}, False, True),                           # valid: the run's restore only
+    ("unreadable", False, False),                               # cannot be read: nobody
+    ("not json", False, False), ("[1, 2]", False, False), ('{"run": ""}', False, False)])
+def test_only_a_confirmed_absent_marker_frees_the_lock(tmp_path, marker, ok_for_others, ok_for_the_run):
+    """R332 A3: an unreadable or unusable marker is no absent one — it keeps
+    every taker out, the restore included, and says so; settle leaves it."""
+    import test_support.heavy_lock as hl
+    lock = tmp_path / "l.lock"
+    path = hl._owed_path(lock)
+    if isinstance(marker, dict):
+        hl.owe(marker["run"], path=lock)
+    elif marker == "unreadable":
+        hl.owe("/run/X", path=lock)
+        path.chmod(0)
+    elif marker is not None:
+        path.write_text(marker)
+    for owed_by, ok in ((None, ok_for_others), ("/run/X", ok_for_the_run)):
+        try:
+            with hl.heavy_lock("taker", wait=0.3, path=lock, owed_by=owed_by):
+                entered = True
+        except TimeoutError as e:
+            entered = False
+            if marker not in (None,) and not isinstance(marker, dict):
+                assert "cannot be read" in str(e)
+        assert entered == ok, (marker, owed_by)
+    if marker is not None and not isinstance(marker, dict):
+        assert hl.settle("/run/X", path=lock).startswith("unreadable") and (path.exists() or path.is_symlink())
+    if marker == "unreadable":
+        path.chmod(0o644)
+
+
+def test_the_lock_command_honours_the_owed_return_and_holds_the_lock_for_its_command(tmp_path):
+    """R332 A2: a shell script takes the lock through heavy_lock.py — it waits
+    on an owed return (exit 4 at its deadline, the reason named) and, once in,
+    its command holds the lock until it exits."""
+    import time
+    import test_support.heavy_lock as hl
+    lock = tmp_path / "l.lock"
+    env = {**os.environ, "LCNC_HEAVY_LOCK": str(lock)}
+    cli = [sys.executable, "-I", str(ROOT / "scripts/test_support/heavy_lock.py"), "--who", "repro"]
+    hl.owe("/run/X", path=lock)
+    r = subprocess.run(cli + ["--wait", "0.4", "--", "true"], env=env, capture_output=True, text=True, timeout=30)
+    assert r.returncode == 4 and "owed for /run/X" in r.stderr
+    hl.settle("/run/X", path=lock)
+    p = subprocess.Popen(cli + ["--", sys.executable, "-c", "import time; time.sleep(2)"], env=env)
+    time.sleep(0.8)
+    with pytest.raises(TimeoutError, match="repro"):
+        with hl.heavy_lock("gate", wait=0.3, path=lock):
+            pass
+    assert p.wait(timeout=30) == 0
+    with hl.heavy_lock("gate", wait=0.3, path=lock):
+        pass
+
+
+def test_nothing_in_the_repository_takes_the_heavy_lock_beside_its_module():
+    """Every taker goes through heavy_lock (R332 A2): no other file names the
+    heavy lock AND locks a file itself."""
+    import re
+    offenders = []
+    for f in ROOT.rglob("*"):
+        if not f.is_file() or f.suffix not in (".py", ".sh", ".bash", ".ts", ".mjs", ".js") or "node_modules" in f.parts \
+                or ".venv" in f.parts or f.name in ("heavy_lock.py", "test_install_probe.py"):
+            continue
+        text = f.read_text(errors="replace")
+        if re.search(r"heavy\.lock|LCNC_HEAVY_LOCK", text) and re.search(r"\bflock\b|LOCK_EX", text):
+            offenders.append(str(f.relative_to(ROOT)))
+    assert offenders == []
 
 
 # ── FI-I60 rest B: every systemctl call of the wait is bounded (R331) ──

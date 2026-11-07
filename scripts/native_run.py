@@ -259,8 +259,9 @@ def run(host, steps, run_dir: Path) -> dict:
         report["restore"] = rl.restore(host, pre, ctx["state"], first=run_dir / "restore.json",
                                        save=lambda st: write_json(run_dir / "state.json", st))
         write_json(run_dir / "state.json", ctx["state"])
-        if report["restore"].get("outcome") != "not_returned":
-            heavy.settle(str(run_dir.resolve()))
+        # the owed return stays owed: the run's FINAL restore — its unit's
+        # ExecStopPost, the record a gate demands — settles it (Codex R332 A1:
+        # settled here, a waiting gate came in before that restore)
         report["ended"] = time.time()
         write_json(run_dir / "report.json", report)
     return report

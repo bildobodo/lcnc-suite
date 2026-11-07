@@ -17,7 +17,9 @@ Playwright Chromium with `npx playwright install --with-deps chromium` there.
 
 Cases on the VM's REAL LinuxCNC, run by hand, never beside a gate:
 `scripts/native_run.py` takes the ONE heavy lock (`scripts/test_support/heavy_lock.py`, also held by
-`round_gate.py`, `perf_matrix.py` and `repro-load.sh`), records and stops the LAN sim, builds a run tree
+`round_gate.py`, `perf_matrix.py`, the install probe and `repro-load.sh` — a shell script through the module's
+command line, never a bare `flock`: from the LAN stop the return is OWED and only the run's final restore,
+its unit's ExecStopPost, settles it; an unreadable marker keeps everyone out), records and stops the LAN sim, builds a run tree
 of the tested commit and a confined copy of the profile, checks it before the start, runs the cases and
 gives the LAN sim back (`restore_lan.py`, also the unit's ExecStopPost). It runs only as the user unit
 `native-run` — the command is in its docstring. Offline guards: `scripts/test_native_stage.py` (the
