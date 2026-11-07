@@ -3,7 +3,7 @@
 merge gate's proof that `install.sh` installs the suite cleanly and
 automatically, and that what it installed starts.
 
-  heavy lock (unless the merge gate holds it: --under-gate) → record the LAN
+  heavy lock (its own, through the restore — also under the merge gate) → record the LAN
   instance (an unacknowledged trip refuses) → stop it, record the operator's
   files (links by their target) → a fresh CLONE of the commit in the run →
   `./install.sh --yes --no-root` in it with a NEW environment (HOME, caches,
@@ -31,9 +31,11 @@ It runs only as a user unit whose ExecStopPost is the restore:
     -p "ExecStopPost=$PY -I <worktree>/scripts/test_support/install_restore.py --from $RUN/pre.json --out $RUN/restore-post.json" \\
     $PY -I <worktree>/scripts/install_probe.py --run-dir $RUN --commit <commit>
 
-The merge gate starts it the same way with --under-gate and the restore's
---no-lock: the gate holds the heavy lock through the probe AND its restore
-(it waits for the unit's end), so neither asks for it again (FI329-04).
+The merge gate starts it the same way AFTER its heavy section, with its
+commit and a run id of its own (round_gate.install_probe): the probe takes
+the heavy lock itself and keeps it through the restore in `finally`; its
+ExecStopPost's restore takes it again — a gate that ends meanwhile leaves
+no probe without a lock owner (Codex R330 FI-I60).
 """
 from __future__ import annotations
 
@@ -76,7 +78,7 @@ def _sh(cmd, ctx, cwd=None, timeout=CMD_S, env=None):
                           timeout=timeout, stdin=subprocess.DEVNULL)
 
 
-def clone(commit: str):
+def clone(commit: str, abort_at=None):
     def step(ctx):
         run = ctx["run"]
         src, home = run / "src", run / "home"
@@ -92,6 +94,15 @@ def clone(commit: str):
         ctx["report"]["env"] = env
         # from here on an abort ends what the run started (an installer in its own session)
         ctx["cleanup"] = lambda: _close(ctx)
+        # the clone's folder made HERE, exclusively, its identity on disk before
+        # git writes into it: an abort before git made .git leaves a folder the
+        # restore can prove its own (Codex R330 FI-I62)
+        src.mkdir()
+        st = src.stat()
+        ctx["state"]["tree_id"] = [st.st_dev, st.st_ino]
+        save_state(ctx)
+        if abort_at == "clone":
+            os.kill(os.getpid(), signal.SIGKILL)    # before git made .git: ExecStopPost restores
         r = _sh(["git", "clone", "--quiet", "--no-checkout", "--no-hardlinks", str(HERE.parent), str(src)], {"env": env},
                 timeout=600)
         if r.returncode:
@@ -263,6 +274,7 @@ def safety():
                 raise StepFailed([ic.row("start-safety-chain", "FAIL", f"the client lost its connection: {client.error}")],
                                  "the probe's client lost the gateway")
             time.sleep(0.2)
+        ctx["is_estop"] = client.status.get("is_estop")
         # each status frame: its envelope and the kept data, paired by order
         frames = [(t, env, data) for (t, env), (_t2, data) in zip(client.envelopes, client.frames)]
         events = []
@@ -289,9 +301,16 @@ def browser():
     def step(ctx):
         src, run = ctx["src"], ctx["run"]
         out = run / "browser.json"
+        # the state the browser must show: the instance's own E-Stop as the
+        # probe's client received it — a fresh instance boots in E-Stop, and
+        # without a status the app shows none (Codex R330 FI-I61)
+        if ctx.get("is_estop") is not True:
+            raise StepFailed([ic.row("start-browser", "incomplete",
+                                     f"the instance's is_estop is {ctx.get('is_estop')!r}, not the boot E-Stop the "
+                                     "browser's status is checked by")], "no state to check the browser by")
         env = {**ctx["env"], "PLAYWRIGHT_BROWSERS_PATH": str(BROWSERS)}
         r = _sh(["node", str(src / "scripts/install_probe_browser.mjs"), "--webui", str(src / "lcnc-webui"),
-                 "--url", "http://127.0.0.1:8000/", "--out", str(out)], ctx, timeout=BROWSER_S, env=env)
+                 "--url", "http://127.0.0.1:8000/", "--out", str(out), "--expect-estop"], ctx, timeout=BROWSER_S, env=env)
         result = json.loads(out.read_text()) if out.is_file() else {"error": (r.stderr or r.stdout).strip()[-300:]}
         ctx["report"]["browser"] = result
         ctx["report"]["browsers_shared"] = str(BROWSERS)
@@ -344,10 +363,10 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--run-dir", type=Path, required=True)
     ap.add_argument("--commit", default="HEAD")
-    ap.add_argument("--under-gate", action="store_true",
-                    help="the merge gate holds the heavy lock through this unit and its restore")
-    ap.add_argument("--abort-at", choices=("installer", "start"),
-                    help="an abort probe: an exception during the installer, the orchestrator killed during the start")
+    ap.add_argument("--run-id", help="the merge gate's id of this run, written into the report (FI-I59)")
+    ap.add_argument("--abort-at", choices=("clone", "installer", "start"),
+                    help="an abort probe: the orchestrator killed before the clone has .git, an exception during "
+                         "the installer, the orchestrator killed during the start")
     a = ap.parse_args(argv)
     if not in_probe_unit():
         print("install_probe: runs only in a user unit with the install restore as its ExecStopPost (see --help)")
@@ -355,16 +374,12 @@ def main(argv=None) -> int:
     commit = subprocess.run(["git", "-C", str(HERE.parent), "rev-parse", a.commit], capture_output=True, text=True,
                             check=True).stdout.strip()
     host = ic.InstallProbeHost(run=a.run_dir)
-    steps = [clone(commit), install(a.abort_at), start(a.abort_at), safety(), browser()]
+    steps = [clone(commit, a.abort_at), install(a.abort_at), start(a.abort_at), safety(), browser()]
 
-    def go():
-        return run(host, steps, a.run_dir)
-    if a.under_gate:
-        report = go()
-    else:
-        with heavy_lock("install_probe", wait=0):
-            report = go()
+    with heavy_lock("install_probe", wait=0):
+        report = run(host, steps, a.run_dir)
     report["verdict"] = verdict(report)
+    report["run_id"] = a.run_id
     report["abort_at"] = a.abort_at
     write_json(a.run_dir / "report.json", report)
     print(f"install_probe: {report['verdict']} — restore {report['restore']['outcome']} → {a.run_dir / 'report.json'}")

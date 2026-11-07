@@ -2,11 +2,13 @@
 // BUILT UI against the run's own production gateway. The page alone proves
 // nothing (an index.html whose entry module is missing, or answered with the
 // SPA fallback, starts no app): the app must mount, its OWN WebSocket (in its
-// worker) must take this instance's state — the DRO fields a viewer_init
-// renders — and every script and worker must arrive as JavaScript. No machine
-// command is sent.
+// worker) must bring the viewer_init — the DRO fields — AND a status the app
+// applies: with --expect-estop the instance's boot E-Stop, shown as the
+// strip's "Reset E-Stop" (without a status the button reads "E-Stop"; Codex
+// R330 FI-I61) — and every script and worker must arrive as JavaScript. No
+// machine command is sent.
 //
-//   node install_probe_browser.mjs --webui <clone>/lcnc-webui --url http://127.0.0.1:8000/ --out <file>
+//   node install_probe_browser.mjs --webui <clone>/lcnc-webui --url http://127.0.0.1:8000/ --out <file> --expect-estop
 //
 // Playwright comes from the clone's own node_modules (its npm ci); the
 // browsers from PLAYWRIGHT_BROWSERS_PATH (read-only, shared).
@@ -49,6 +51,12 @@ try {
   result.mounted = await page.locator(".safetyStrip").waitFor({ state: "visible", timeout: STEP_MS }).then(() => true, () => false);
   result.connected = await page.locator("input.setupInput").first().waitFor({ state: "visible", timeout: STEP_MS })
     .then(() => true, () => false);
+  // a STATUS applied by this app (Codex R330 FI-I61): the instance boots in
+  // E-Stop; without a status the strip's button is "E-Stop" (is_estop unset)
+  if (process.argv.includes("--expect-estop")) {
+    result.status_applied = await page.getByRole("button", { name: "Reset E-Stop", exact: true })
+      .waitFor({ state: "visible", timeout: STEP_MS }).then(() => true, () => false);
+  }
 } catch (e) {
   result.error = String(e).slice(0, 400);
 } finally {

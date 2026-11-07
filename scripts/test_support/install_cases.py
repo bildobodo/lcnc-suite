@@ -141,7 +141,16 @@ class InstallProbeHost(SystemHost):
         if self._run is None or not tree.resolve().is_relative_to(self._run.resolve()) or tree.resolve() == self._run.resolve():
             raise RuntimeError(f"{tree} is not a clone inside the run {self._run} — not removed")
         if not (tree / ".git").is_dir():
-            raise RuntimeError(f"{tree} has no .git folder — not the run's clone, not removed")
+            # an abort before git made .git: the folder is the run's only when
+            # it is THE folder the probe made (its identity recorded before the
+            # clone, Codex R330 FI-I62) — another path is refused
+            try:
+                made = json.loads((self._run / "state.json").read_text()).get("tree_id")
+            except (OSError, ValueError):
+                made = None
+            st = tree.stat()
+            if made != [st.st_dev, st.st_ino]:
+                raise RuntimeError(f"{tree} has no .git folder and is not the folder the run made — not removed")
         shutil.rmtree(tree)
 
 
@@ -237,9 +246,11 @@ def eval_safety(frames: list, events: list, hal: dict, gw_pid: int | None, gw_st
 # ── the browser start (FI329-03) ─────────────────────────────────────────
 def eval_browser(result: dict | None) -> dict:
     """The built UI started against the run's own production gateway:
-    mounted, its own WebSocket took this instance's state (the DRO fields a
-    viewer_init renders), no entry module or worker missing or served as
-    something else, no page error."""
+    mounted, its own WebSocket brought the viewer_init (the DRO fields) AND
+    a status the app applied — the instance's boot E-Stop, shown as the
+    strip's "Reset E-Stop" (the default without a status is "E-Stop"; Codex
+    R330 FI-I61: viewer_init alone passed) — no entry module or worker
+    missing or served as something else, no page error."""
     case = "start-browser"
     if not result:
         return row(case, "incomplete", "no browser result")
@@ -258,10 +269,13 @@ def eval_browser(result: dict | None) -> dict:
     if not result.get("mounted"):
         problems.append("the app did not mount (.safetyStrip not shown)")
     if not result.get("connected"):
-        problems.append("the app's own WebSocket did not take the instance's state (no DRO field)")
+        problems.append("the app's own WebSocket brought no viewer_init (no DRO field)")
+    if not result.get("status_applied"):
+        problems.append("the app applied no status of the instance (its E-Stop not shown — 'Reset E-Stop')")
     if problems:
         return row(case, "FAIL", "; ".join(problems[:5]), scripts=len(scripts))
-    return row(case, "PASS", f"mounted, connected; {len(scripts)} script(s)/worker(s) served as JavaScript, no error")
+    return row(case, "PASS", f"mounted, viewer_init taken, the instance's E-Stop status applied; {len(scripts)} "
+                             "script(s)/worker(s) served as JavaScript, no error")
 
 
 def gate_status(report: dict | None, restore_post: dict | None) -> tuple[str, list[str]]:

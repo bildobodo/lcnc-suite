@@ -3,10 +3,10 @@ restore_lan with the probe's host, whose tree is the run's CLONE (removed as a
 folder of the run, never `git worktree remove` — Codex R329 FI329-04) and
 whose isolation covers the operator's home links by their target (FI329-02).
 
-  python3 -I scripts/test_support/install_restore.py --from <run>/pre.json --out <run>/restore-post.json [--no-lock]
+  python3 -I scripts/test_support/install_restore.py --from <run>/pre.json --out <run>/restore-post.json
 
---no-lock: the merge gate started the unit and holds the heavy lock until
-the unit has ended, this restore included."""
+It takes the heavy lock like every restore (restore_lan.main): the probe
+holds its own, also under the merge gate (Codex R330 FI-I60)."""
 from __future__ import annotations
 
 import argparse
@@ -22,7 +22,6 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--from", dest="pre", type=Path, required=True)
     ap.add_argument("--out", type=Path, required=True)
-    ap.add_argument("--no-lock", action="store_true")
     a = ap.parse_args(argv)
     run = a.pre.resolve().parent
     if not a.pre.is_file():
@@ -30,8 +29,7 @@ def main(argv=None) -> int:
         # stopped, nothing to return (the record is written before the stop)
         print(f"install_restore: no {a.pre} — the probe recorded nothing, nothing to restore")
         return 0
-    return rl.main(["--from", str(a.pre), "--out", str(a.out)] + (["--no-lock"] if a.no_lock else []),
-                   host_factory=lambda pre: InstallProbeHost(pre, run=run))
+    return rl.main(["--from", str(a.pre), "--out", str(a.out)], host_factory=lambda pre: InstallProbeHost(pre, run=run))
 
 
 if __name__ == "__main__":

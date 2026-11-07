@@ -201,6 +201,44 @@ def test_the_clone_is_removed_as_a_folder_of_the_run(tmp_path, monkeypatch):
     assert calls == [], "never `git worktree remove` on a clone (it refuses: 'is not a working tree')"
 
 
+def test_an_incomplete_clone_the_run_made_is_removed(tmp_path):
+    """Codex R330 FI-I62: an abort before git made .git — the folder is the
+    run's by the identity the probe recorded when it made it."""
+    run = tmp_path / "run"
+    src = run / "src"
+    src.mkdir(parents=True)
+    st = src.stat()
+    (run / "state.json").write_text(json.dumps({"tree_id": [st.st_dev, st.st_ino]}))
+    ic.InstallProbeHost(run=run).remove_tree(src, ROOT)
+    assert not src.exists()
+
+
+def test_an_incomplete_clone_the_run_did_not_make_is_refused(tmp_path):
+    run = tmp_path / "run"
+    src = run / "src"
+    src.mkdir(parents=True)
+    other = tmp_path / "other"
+    other.mkdir()
+    st = other.stat()
+    (run / "state.json").write_text(json.dumps({"tree_id": [st.st_dev, st.st_ino]}))
+    with pytest.raises(RuntimeError):
+        ic.InstallProbeHost(run=run).remove_tree(src, ROOT)
+    assert src.exists()
+
+
+def test_end_test_resources_after_an_early_clone_abort(tmp_path):
+    """The early abort's return: the folder the run made, without .git, no
+    processes — cleaned, no cleanup reason that would keep the LAN down."""
+    run = tmp_path / "run"
+    src = run / "src"
+    src.mkdir(parents=True)
+    st = src.stat()
+    (run / "state.json").write_text(json.dumps({"tree_id": [st.st_dev, st.st_ino]}))
+    state = {"tree": str(src), "tree_of": str(ROOT), "tree_id": [st.st_dev, st.st_ino]}
+    assert rl.end_test_resources(ic.InstallProbeHost(run=run), state) == []
+    assert not src.exists() and state["test_ended"]
+
+
 @pytest.mark.parametrize("where", ["outside", "the run itself", "no .git"])
 def test_the_cleanup_refuses_what_is_not_the_runs_clone(tmp_path, where):
     run = tmp_path / "run"
@@ -304,7 +342,8 @@ def test_safety_without_the_gateways_binding_is_incomplete():
 
 # ── the browser start (FI329-03) ─────────────────────────────────────────
 GOOD_BROWSER = {"scripts": [{"url": "/static/index-x.js", "status": 200, "type": "text/javascript", "ok": True}],
-                "bad_responses": [], "page_errors": [], "console_errors": [], "mounted": True, "connected": True}
+                "bad_responses": [], "page_errors": [], "console_errors": [], "mounted": True, "connected": True,
+                "status_applied": True}
 
 
 def test_browser_pass():
@@ -314,7 +353,9 @@ def test_browser_pass():
 @pytest.mark.parametrize("change,expect", [
     ({"bad_responses": [{"url": "/static/index-x.js", "status": 404, "type": "text/html"}]}, "404"),
     ({"mounted": False}, "did not mount"),
-    ({"connected": False}, "WebSocket"),
+    ({"connected": False}, "viewer_init"),
+    ({"status_applied": False}, "no status"),
+    ({"status_applied": None}, "no status"),
     ({"scripts": []}, "no script"),
     ({"page_errors": ["TypeError: x"]}, "page error"),
     ({"error": "Timeout"}, "the check ended")])
@@ -330,6 +371,9 @@ def test_browser_without_a_result_is_incomplete():
 APP_JS = """const s = document.createElement('div'); s.className = 'safetyStrip'; s.textContent = 'S';
 const i = document.createElement('input'); i.className = 'setupInput';
 document.getElementById('app').append(s, i);"""
+# the status the instance sends, applied: the strip's E-Stop reads "Reset E-Stop"
+STATUS_JS = """const b = document.createElement('button'); b.setAttribute('aria-label', 'Reset E-Stop'); b.textContent = 'Reset';
+document.querySelector('.safetyStrip').append(b);"""
 
 
 def serve(root: Path, spa: bool):
@@ -350,23 +394,26 @@ def serve(root: Path, spa: bool):
     return srv
 
 
-@pytest.mark.parametrize("case", ["whole", "entry missing", "spa fallback"])
+@pytest.mark.parametrize("case", ["whole", "entry missing", "spa fallback", "viewer_init only"])
 def test_the_browser_check_sees_a_missing_entry_module(tmp_path, case):
     """A real Chromium against a fake build: the page alone is the same in
-    all three (HTTP 200); only the whole build mounts (Codex R329 FI329-03)."""
+    all four (HTTP 200); only the whole build mounts (Codex R329 FI329-03)
+    AND shows a status applied (R330 FI-I61: the DRO fields of a viewer_init
+    alone passed)."""
     webui = ROOT / "lcnc-webui"
     if not (webui / "node_modules/playwright").is_dir():
         pytest.skip("no playwright in lcnc-webui/node_modules")
     site = tmp_path / "site"
     (site / "static").mkdir(parents=True)
     (site / "index.html").write_text('<!doctype html><div id="app"></div><script type="module" src="/static/app.js"></script>')
-    if case == "whole":
-        (site / "static/app.js").write_text(APP_JS)
+    if case in ("whole", "viewer_init only"):
+        (site / "static/app.js").write_text(APP_JS + ("\n" + STATUS_JS if case == "whole" else ""))
     srv = serve(site, spa=case == "spa fallback")
     try:
         out = tmp_path / "browser.json"
         subprocess.run(["node", str(ROOT / "scripts/install_probe_browser.mjs"), "--webui", str(webui),
-                        "--url", f"http://127.0.0.1:{srv.server_address[1]}/", "--out", str(out), "--step-ms", "4000"],
+                        "--url", f"http://127.0.0.1:{srv.server_address[1]}/", "--out", str(out), "--step-ms", "4000",
+                        "--expect-estop"],
                        timeout=120, check=False, capture_output=True)
         result = json.loads(out.read_text())
     finally:
@@ -400,65 +447,154 @@ def test_gate_status(report, post, ok):
     assert len(why) == (0 if ok else 1), why
 
 
-def test_the_merge_gate_check_waits_for_the_unit_and_judges_its_files(tmp_path, monkeypatch):
-    sys.path.insert(0, str(ROOT / "scripts/test_select"))
-    import round_gate as rg
-    logs = tmp_path / "gate.logs"
-    # the unit's states as systemd reports them: its ExecStopPost runs while
-    # it is "deactivating" — the restore's record exists only once inactive
-    shows = iter(["active", "deactivating", "deactivating", "inactive"])
-    calls, run_dir = [], {}
+SHA = "4013b1b2528d7dd7367a392108edfc66015cb1db"
+
+
+def gate_fake(states, report=lambda run_id: {**GOOD_REPORT, "run_id": run_id, "commit": SHA,
+                                              "rows": [{"case": "install-run", "status": "PASS"}]},
+              post_at="inactive"):
+    """A fake systemd for round_gate.install_probe: the unit's states in turn
+    (None = not read), its report written at the start, its restore's record
+    once it is `post_at`. Returns (fake run, calls)."""
+    seq, calls, box = iter(states), [], {}
 
     def fake(cmd, **kw):
         calls.append(cmd)
         if cmd[0] == "systemd-run":
-            run_dir["p"] = Path(cmd[cmd.index("--run-dir") + 1])
-            run_dir["p"].mkdir(parents=True)
-            (run_dir["p"] / "report.json").write_text(json.dumps({**GOOD_REPORT, "rows": [{"case": "install-run", "status": "PASS"}]}))
+            box["dir"] = Path(cmd[cmd.index("--run-dir") + 1])
+            box["id"] = cmd[cmd.index("--run-id") + 1]
+            box["dir"].mkdir(parents=True)
+            rep = report(box["id"])
+            if rep is not None:
+                (box["dir"] / "report.json").write_text(json.dumps(rep))
             return subprocess.CompletedProcess(cmd, 0, "", "")
         if cmd[:3] == ["systemctl", "--user", "show"]:
-            state = next(shows)
-            if state == "inactive":
-                (run_dir["p"] / "restore-post.json").write_text(json.dumps({"outcome": "complete"}))
-            return subprocess.CompletedProcess(cmd, 0, f"ActiveState={state}\nLoadState=loaded", "")
+            state = next(seq, "inactive")
+            if state is None:
+                return subprocess.CompletedProcess(cmd, 1, "", "Failed to connect to bus")
+            if state == post_at and box.get("dir"):
+                (box["dir"] / "restore-post.json").write_text(json.dumps({"outcome": "complete"}))
+            return subprocess.CompletedProcess(cmd, 0, f"ActiveState={state}\nLoadState=loaded\nExecMainStatus=0", "")
+        if cmd[:3] == ["systemctl", "--user", "stop"]:
+            box["stopped"] = True
         return subprocess.CompletedProcess(cmd, 0, "", "")
+    return fake, calls
+
+
+def rg_module():
+    sys.path.insert(0, str(ROOT / "scripts/test_select"))
+    import round_gate as rg
+    return rg
+
+
+def test_the_merge_gate_check_waits_for_the_units_end_and_judges_its_own_run(tmp_path, monkeypatch):
+    rg = rg_module()
+    # the unit's ExecStopPost runs while it is "deactivating"
+    fake, calls = gate_fake(["active", "deactivating", "deactivating", "inactive"])
     monkeypatch.setattr(rg.subprocess, "run", fake)
-    monkeypatch.setattr(rg.time, "sleep", lambda s: None)
-    c = rg.install_probe(logs, unit="install-probe-test")
+    c = rg.install_probe(tmp_path / "gate.logs", SHA, unit="install-probe-test", sleep=lambda s: None)
     assert c["status"] == "PASS", c
     start = calls[0]
-    assert "--under-gate" in start and any("--no-lock" in a for a in start), "the gate holds the lock for both"
+    assert start[start.index("--commit") + 1] == SHA, "the gate's commit, not HEAD resolved later"
+    assert not any("--under-gate" in a or "--no-lock" in a for a in start), "the probe holds its own lock"
     assert ["systemctl", "--user", "stop", "install-probe-test"] not in calls
 
 
-def test_the_merge_gate_check_stops_a_probe_past_its_deadline(tmp_path, monkeypatch):
-    sys.path.insert(0, str(ROOT / "scripts/test_select"))
-    import round_gate as rg
-    calls = []
-    state = {"stopped": False}
-
-    def fake(cmd, **kw):
-        calls.append(cmd)
-        if cmd[:3] == ["systemctl", "--user", "stop"]:
-            state["stopped"] = True
-        if cmd[:3] == ["systemctl", "--user", "show"]:
-            return subprocess.CompletedProcess(cmd, 0, "ActiveState=" + ("inactive" if state["stopped"] else "active"), "")
-        return subprocess.CompletedProcess(cmd, 0, "", "")
+def test_a_repeated_out_path_never_reads_the_earlier_runs_pass(tmp_path, monkeypatch):
+    """Codex R330 FI-I59: the same --out twice; the first run's PASS stays,
+    the second ends at once without a report — FAIL, not the old PASS."""
+    rg = rg_module()
+    logs = tmp_path / "gate.logs"
+    fake, _ = gate_fake(["inactive"])
     monkeypatch.setattr(rg.subprocess, "run", fake)
-    monkeypatch.setattr(rg.time, "sleep", lambda s: None)
-    c = rg.install_probe(tmp_path / "gate.logs", unit="install-probe-test", probe_s=-1)
+    first = rg.install_probe(logs, SHA, unit="install-probe-a", sleep=lambda s: None)
+    assert first["status"] == "PASS"
+    fake, _ = gate_fake(["failed"], report=lambda run_id: None, post_at="none")
+    monkeypatch.setattr(rg.subprocess, "run", fake)
+    second = rg.install_probe(logs, SHA, unit="install-probe-b", sleep=lambda s: None)
+    assert second["status"] == "FAIL" and second["run"] != first["run"]
+    assert (Path(first["run"]) / "report.json").is_file(), "the earlier evidence is kept"
+
+
+@pytest.mark.parametrize("field,value", [("run_id", "0123456789ab"), ("commit", "a61337c3" + "0" * 32)])
+def test_a_report_of_another_run_or_commit_is_no_pass(tmp_path, monkeypatch, field, value):
+    rg = rg_module()
+    fake, _ = gate_fake(["inactive"], report=lambda run_id: {**GOOD_REPORT, "run_id": run_id, "commit": SHA, field: value})
+    monkeypatch.setattr(rg.subprocess, "run", fake)
+    c = rg.install_probe(tmp_path / "gate.logs", SHA, unit="install-probe-test", sleep=lambda s: None)
+    assert c["status"] == "FAIL" and "not this run's" in c["why"][0]
+
+
+def test_the_merge_gate_check_stops_a_probe_past_its_deadline(tmp_path, monkeypatch):
+    rg = rg_module()
+    fake, calls = gate_fake(["active", "inactive"])
+    monkeypatch.setattr(rg.subprocess, "run", fake)
+    c = rg.install_probe(tmp_path / "gate.logs", SHA, unit="install-probe-test", probe_s=-1, sleep=lambda s: None)
     assert c["status"] == "FAIL" and "stopped" in c["why"][0]
     assert ["systemctl", "--user", "stop", "install-probe-test"] in calls
 
 
-def test_restore_no_lock_never_asks_for_the_lock(tmp_path, monkeypatch):
+def test_an_unreadable_unit_is_stopped_and_named(tmp_path, monkeypatch):
+    """R330 FI-I60: a state that cannot be read ends the wait in finite time."""
+    rg = rg_module()
+    fake, calls = gate_fake([None, None, None, "inactive"])
+    monkeypatch.setattr(rg.subprocess, "run", fake)
+    clock = iter(range(0, 10_000, 40))
+    monkeypatch.setattr(rg.time, "monotonic", lambda: float(next(clock)))
+    c = rg.install_probe(tmp_path / "gate.logs", SHA, unit="install-probe-test", unread_s=60, sleep=lambda s: None)
+    assert c["status"] == "FAIL" and "not read" in c["why"][0]
+    assert ["systemctl", "--user", "stop", "install-probe-test"] in calls
+
+
+def test_a_gate_ended_while_waiting_stops_its_probe_and_awaits_its_end(tmp_path, monkeypatch):
+    """R330 FI-I60: an interrupt of the gate leaves no probe running: stopped,
+    its end (the restore) awaited, then the interrupt goes on."""
+    rg = rg_module()
+    fake, calls = gate_fake(["active", "inactive"])
+    monkeypatch.setattr(rg.subprocess, "run", fake)
+    n = {"sleeps": 0}
+
+    def sleep(s):
+        n["sleeps"] += 1
+        if n["sleeps"] == 1:
+            raise KeyboardInterrupt
+    with pytest.raises(KeyboardInterrupt):
+        rg.install_probe(tmp_path / "gate.logs", SHA, unit="install-probe-test", sleep=sleep)
+    i = calls.index(["systemctl", "--user", "stop", "install-probe-test"])
+    assert any(c[:3] == ["systemctl", "--user", "show"] for c in calls[i + 1:]), "its end is awaited after the stop"
+
+
+def test_the_probe_runs_after_the_gates_heavy_section_and_holds_its_own_lock():
+    """R330 FI-I60: the gate is no lock owner of its probe — the probe runs
+    after the `with heavy_lock(...)` block and takes the lock itself."""
+    import ast
+    tree = ast.parse((ROOT / "scripts/test_select/round_gate.py").read_text())
+    main = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "main")
+    locked = [n for n in ast.walk(main) if isinstance(n, ast.With)
+              and any("heavy_lock" in ast.unparse(i.context_expr) for i in n.items)]
+    assert locked, "the gate's heavy section"
+    inside = {id(c) for w in locked for c in ast.walk(w) if isinstance(c, ast.Call)}
+    calls = [n for n in ast.walk(main) if isinstance(n, ast.Call) and ast.unparse(n.func) == "install_probe"]
+    assert calls and all(id(c) not in inside for c in calls)
+    probe = (ROOT / "scripts/install_probe.py").read_text()
+    assert 'with heavy_lock("install_probe", wait=0):' in probe and "--under-gate" not in probe
+
+
+def test_the_restore_always_takes_the_lock(tmp_path, monkeypatch):
     import test_support.heavy_lock as hl
-    monkeypatch.setattr(hl, "heavy_lock", lambda *a, **k: (_ for _ in ()).throw(AssertionError("asked for the lock")))
+    from contextlib import contextmanager
+    taken = []
+
+    @contextmanager
+    def lock(who, wait=None, path=None):
+        taken.append(who)
+        yield
+    monkeypatch.setattr(hl, "heavy_lock", lock)
     pre = tmp_path / "pre.json"
     pre.write_text(json.dumps({"units": {}, "ini": None, "head": None, "tree": None, "instance": [], "hashes": {}}))
     monkeypatch.setattr(rl, "restore", lambda *a, **k: {"outcome": "complete"})
-    assert rl.main(["--from", str(pre), "--out", str(tmp_path / "out.json"), "--no-lock"],
-                   host_factory=lambda p: object()) == 0
+    assert rl.main(["--from", str(pre), "--out", str(tmp_path / "out.json")], host_factory=lambda p: object()) == 0
+    assert taken == ["restore_lan"]
 
 
 # ── the installed result's evaluators ────────────────────────────────────

@@ -273,40 +273,95 @@ def install_probe_refusal(host=None) -> str | None:
     return None
 
 
-def install_probe(logs: Path, unit: str | None = None, probe_s: float = INSTALL_PROBE_S) -> dict:
+def _unit_state(unit: str) -> dict | None:
+    """systemd's view of the unit (LoadState, ActiveState, its main process's
+    exit), or None when it was not read."""
+    r = subprocess.run(["systemctl", "--user", "show", unit, "-p", "LoadState", "-p", "ActiveState",
+                        "-p", "ExecMainStatus", "--no-pager"], capture_output=True, text=True)
+    props = dict(line.split("=", 1) for line in r.stdout.splitlines() if "=" in line)
+    return props if r.returncode == 0 and props.get("ActiveState") else None
+
+
+def _ended(props: dict | None) -> bool:
+    """Ended: gone, or inactive / failed — "deactivating" still runs the
+    unit's ExecStopPost (the restore)."""
+    return bool(props) and (props.get("LoadState") == "not-found" or props.get("ActiveState") in ("inactive", "failed"))
+
+
+def install_probe(logs: Path, sha: str, unit: str | None = None, probe_s: float = INSTALL_PROBE_S,
+                  unread_s: float = 60.0, sleep=None) -> dict:
     """The merge gate's install probe (package I, operator 2026-11-07): a
-    fresh clone of HEAD installed by `install.sh --yes --no-root` in its own
-    environment and started (scripts/install_probe.py), in its own user unit
-    whose ExecStopPost is the probe's restore. The gate holds the heavy lock
-    until the unit has ENDED — its restore included — so the probe runs
-    --under-gate and the restore --no-lock (neither asks for the lock the
-    gate holds). PASS only with the probe's PASS, the LAN returned complete,
-    isolation [] and the unit's own restore complete (install_cases.gate_status)."""
+    fresh clone of the gate's commit `sha` installed by `install.sh --yes
+    --no-root` in its own environment and started (scripts/install_probe.py),
+    in its own user unit whose ExecStopPost is the probe's restore.
+
+    It runs AFTER the gate's heavy section and takes the heavy lock ITSELF —
+    the probe through its run, its restore after it (Codex R330 FI-I60: the
+    gate as the lock's owner left a running probe unlocked when the gate
+    ended). Each call has its OWN run folder and id; PASS only with THIS
+    run's report (its run id and the gate's commit), the probe's PASS, the
+    LAN returned complete, isolation [] and the unit's own restore complete
+    (FI-I59: a second call on the same --out read the first call's PASS).
+    An end of the gate while it waits (an interrupt, an exception) stops the
+    unit and waits for its END — its restore included — before it goes on;
+    a unit whose state is not read for `unread_s` is stopped and named."""
+    import uuid
     from test_support.install_cases import gate_status
-    run_dir = logs / "install-probe"
-    unit = unit or f"install-probe-gate-{int(time.time())}"
+    sleep = sleep or time.sleep
+    run_id = uuid.uuid4().hex[:12]
+    run_dir = logs / f"install-probe-{run_id}"
+    unit = unit or f"install-probe-gate-{run_id}"
     py = sys.executable
     cmd = ["systemd-run", "--user", f"--unit={unit}", "-p", f"WorkingDirectory={ROOT}",
            "-p", f"ExecStopPost={py} -I {ROOT / 'scripts/test_support/install_restore.py'} "
-                 f"--from {run_dir / 'pre.json'} --out {run_dir / 'restore-post.json'} --no-lock",
-           py, "-I", str(ROOT / "scripts/install_probe.py"), "--run-dir", str(run_dir), "--commit", "HEAD",
-           "--under-gate"]
+                 f"--from {run_dir / 'pre.json'} --out {run_dir / 'restore-post.json'}",
+           py, "-I", str(ROOT / "scripts/install_probe.py"), "--run-dir", str(run_dir), "--commit", sha,
+           "--run-id", run_id]
     t0 = time.monotonic()
     started = subprocess.run(cmd, capture_output=True, text=True)
     if started.returncode:
-        return {"name": "install-probe", "status": "FAIL", "why": [f"the probe unit did not start: {started.stderr.strip()}"]}
-    stopped = False
-    while True:
-        props = dict(line.split("=", 1) for line in subprocess.run(
-            ["systemctl", "--user", "show", unit, "-p", "LoadState", "-p", "ActiveState", "--no-pager"],
-            capture_output=True, text=True).stdout.splitlines() if "=" in line)
-        if props.get("LoadState") == "not-found" or props.get("ActiveState") in ("inactive", "failed"):
-            break
-        if not stopped and time.monotonic() - t0 > probe_s:
-            subprocess.run(["systemctl", "--user", "stop", unit], capture_output=True)   # waits for ExecStopPost
-            stopped = True
-        time.sleep(2)
-    subprocess.run(["systemctl", "--user", "reset-failed", unit], capture_output=True)
+        return {"name": "install-probe", "status": "FAIL", "run": str(run_dir),
+                "why": [f"the probe unit did not start: {started.stderr.strip()}"]}
+    why_end: list[str] = []
+    unread_since = None
+
+    def stop_and_wait(limit=600.0):
+        # `systemctl stop` returns once the stop job is done, ExecStopPost included
+        subprocess.run(["systemctl", "--user", "stop", unit], capture_output=True, timeout=limit + 30)
+        end = time.monotonic() + limit
+        while time.monotonic() < end:
+            if _ended(_unit_state(unit)):
+                return True
+            sleep(2)
+        return False
+    try:
+        while True:
+            props = _unit_state(unit)
+            if _ended(props):
+                break
+            now = time.monotonic()
+            if props is None:
+                unread_since = unread_since or now
+                if now - unread_since > unread_s:
+                    why_end.append(f"the unit's state was not read for {unread_s:.0f} s — stopped")
+                    if not stop_and_wait():
+                        why_end.append("its end is not confirmed")
+                    break
+            else:
+                unread_since = None
+            if now - t0 > probe_s:
+                why_end.append(f"the probe ran past {probe_s:.0f} s and was stopped")
+                if not stop_and_wait():
+                    why_end.append("its end is not confirmed")
+                break
+            sleep(2)
+    except BaseException:
+        # the gate ends while its probe runs: the probe's own lock holds, but
+        # the gate leaves nothing running behind it — stopped, its restore awaited
+        stop_and_wait()
+        raise
+    finally:
+        subprocess.run(["systemctl", "--user", "reset-failed", unit], capture_output=True)
 
     def load(name):
         p = run_dir / name
@@ -316,10 +371,13 @@ def install_probe(logs: Path, unit: str | None = None, probe_s: float = INSTALL_
             return None
     report, post = load("report.json"), load("restore-post.json")
     status, why = gate_status(report, post)
-    if stopped:
-        status, why = "FAIL", [f"the probe ran past {probe_s:.0f} s and was stopped"] + why
+    if report is not None and (report.get("run_id") != run_id or report.get("commit") != sha):
+        status, why = "FAIL", [f"the report is not this run's (run {report.get('run_id')}, commit "
+                               f"{report.get('commit')}; this run {run_id}, commit {sha})"] + why
+    if why_end:
+        status, why = "FAIL", why_end + why
     return {"name": "install-probe", "status": status, "seconds": round(time.monotonic() - t0), "run": str(run_dir),
-            "rows": [f"{r.get('case')}: {r.get('status')}" for r in (report or {}).get("rows", [])],
+            "run_id": run_id, "rows": [f"{r.get('case')}: {r.get('status')}" for r in (report or {}).get("rows", [])],
             **({"why": why} if why else {})}
 
 
@@ -413,10 +471,12 @@ def main(argv: list[str] | None = None) -> int:
         else:
             omitted.append({"check": "browser", "reason": "; ".join(sel["browser"]["reasons"])})
 
-        if a.merge:
-            # the installer, from a fresh clone, and what it installed started
-            # (package I) — a merge only; it takes the VM's one LinuxCNC
-            checks.append(install_probe(logs))
+    if a.merge:
+        # the installer, from a fresh clone, and what it installed started
+        # (package I) — a merge only; it takes the VM's one LinuxCNC. AFTER
+        # the heavy section: the probe holds the heavy lock itself, through its
+        # restore, whatever happens to this process (Codex R330 FI-I60)
+        checks.append(install_probe(logs, sel["head"]))
 
     pending = []
     if sel["firefox"].get("needed"):
