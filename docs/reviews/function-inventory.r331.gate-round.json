@@ -1,0 +1,163 @@
+{
+  "kind": "round",
+  "note": "",
+  "base": "a61337c3b8d2b84cab2a1ed4829b12701d2b05fb",
+  "head": "7270888c75ec08b33470ae25765d9162fce428aa",
+  "uncommitted": 0,
+  "plan": [
+    "selection-guards",
+    "lint",
+    "build",
+    "unit-light",
+    "backend",
+    "ports-free",
+    "browser"
+  ],
+  "env": {
+    "nproc": 6,
+    "arch": "aarch64",
+    "node": "v22.23.2",
+    "playwright": "Version 1.60.0"
+  },
+  "selection": {
+    "unmatched": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [],
+      "related": []
+    },
+    "browser": {
+      "run": [
+        "example-tool-library"
+      ],
+      "reasons": []
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "install.sh: the launcher and the install scripts",
+        "lcnc-gateway/test_suite_runner.py: the gateway: the browser suite runs against the mock",
+        "scripts/install_probe.py: scripts and their tests ride the backend gate",
+        "scripts/install_probe_browser.mjs: scripts and their tests ride the backend gate",
+        "scripts/test_install_probe.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/round_gate.py: scripts and their tests ride the backend gate",
+        "scripts/test_suite.py: scripts and their tests ride the backend gate",
+        "scripts/test_support/install_cases.py: scripts and their tests ride the backend gate",
+        "scripts/test_support/install_restore.py: scripts and their tests ride the backend gate"
+      ]
+    },
+    "firefox": {
+      "needed": false
+    },
+    "live": {
+      "perf-matrix": [
+        "install.sh"
+      ]
+    }
+  },
+  "heavy_lock_wait_s": 0.0,
+  "browser_specs": [
+    {
+      "file": "example-tool-library.spec.ts",
+      "ms": 15598
+    }
+  ],
+  "verdict": "PASS",
+  "resources": {
+    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/pkgi-gate.service",
+    "cpu_s": 443,
+    "memory_peak_mb": 2183
+  },
+  "checks": [
+    {
+      "name": "selection-guards",
+      "command": "/home/cnc/lcnc-suite-g1/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-g1/scripts/test_select/test_selector.py",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 3
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 8
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 14
+    },
+    {
+      "name": "unit-light",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/claude-work/g2/pkgi-gate-run1.logs/unit-light.json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 56,
+      "files": 164,
+      "tests": 2637,
+      "passed": 2637,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 2637
+    },
+    {
+      "name": "backend",
+      "command": "/home/cnc/lcnc-suite-g1/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-g1/scripts/test_suite.py offline --component backend --out-dir /home/cnc/claude-work/g2/pkgi-gate-run1.logs/backend",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 169
+    },
+    {
+      "name": "ports-free",
+      "status": "PASS"
+    },
+    {
+      "name": "browser-listing",
+      "status": "PASS",
+      "files": 1
+    },
+    {
+      "name": "browser-selected",
+      "command": "npx playwright test -c playwright.select.config.ts --forbid-only --trace off --reporter=line,json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 18,
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    {
+      "name": "browser-executed",
+      "status": "PASS",
+      "tests": 7
+    },
+    {
+      "name": "browser-workers",
+      "status": "PASS",
+      "run": "gate-9e6178db-b86d-4aea-9315-e1906393b9e2",
+      "mocks": 1
+    }
+  ],
+  "omitted": [
+    {
+      "check": "unit-heavy",
+      "reason": "no heavy file changed, reached or read for"
+    }
+  ],
+  "pending": [
+    {
+      "check": "perf-matrix",
+      "status": "pending: a live check, run before main",
+      "paths": [
+        "install.sh"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+FAILED test_install_probe.py::test_an_incomplete_clone_the_run_made_is_removed
+FAILED test_install_probe.py::test_end_test_resources_after_an_early_clone_abort
+FAILED test_install_probe.py::test_browser_fail[change2-viewer_init] - assert...
+FAILED test_install_probe.py::test_browser_fail[change3-no status] - Assertio...
+FAILED test_install_probe.py::test_browser_fail[change4-no status] - Assertio...
+FAILED test_install_probe.py::test_the_browser_check_sees_a_missing_entry_module[viewer_init only]
+FAILED test_install_probe.py::test_the_merge_gate_check_waits_for_the_units_end_and_judges_its_own_run
+FAILED test_install_probe.py::test_a_repeated_out_path_never_reads_the_earlier_runs_pass
+FAILED test_install_probe.py::test_a_report_of_another_run_or_commit_is_no_pass[run_id-0123456789ab]
+FAILED test_install_probe.py::test_a_report_of_another_run_or_commit_is_no_pass[commit-a61337c300000000000000000000000000000000]
+FAILED test_install_probe.py::test_the_merge_gate_check_stops_a_probe_past_its_deadline
+FAILED test_install_probe.py::test_an_unreadable_unit_is_stopped_and_named - ...
+FAILED test_install_probe.py::test_a_gate_ended_while_waiting_stops_its_probe_and_awaits_its_end
+FAILED test_install_probe.py::test_the_probe_runs_after_the_gates_heavy_section_and_holds_its_own_lock
+14 failed, 62 passed in 22.78s

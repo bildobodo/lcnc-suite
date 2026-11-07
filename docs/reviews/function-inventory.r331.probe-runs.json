@@ -1,0 +1,665 @@
+{
+ "note": "R331 live at 7270888c: (1) a normal probe run (the browser's status check live), (2) --abort-at clone (the orchestrator SIGKILLed right after it made the clone's folder, before .git), (3) round_gate.install_probe() called as the merge gate calls it \u2014 its own run folder and id, the gate's commit, the probe's own lock.",
+ "runs": [
+  {
+   "run": "/home/cnc/claude-work/live-tier/install-green2-20261107T175235",
+   "report.json": {
+    "started": 1794070355.165814,
+    "steps": [
+     "clone",
+     "install",
+     "start",
+     "safety",
+     "browser"
+    ],
+    "rows": [
+     {
+      "case": "install-run",
+      "status": "PASS",
+      "detail": "exit 0 after 41 s",
+      "tail": null
+     },
+     {
+      "case": "install-links",
+      "status": "PASS",
+      "detail": "the four links lead into the clone"
+     },
+     {
+      "case": "install-venv",
+      "status": "PASS",
+      "detail": "the venv imports linuxcnc, fastapi, uvicorn; numpy is the system's"
+     },
+     {
+      "case": "install-build",
+      "status": "PASS",
+      "detail": "lcnc-webui/dist/index.html built"
+     },
+     {
+      "case": "install-profiles",
+      "status": "PASS",
+      "detail": "3 profiles installed: lcnc_suite_sim_3axis_xyz.ini, lcnc_suite_sim_5axis_xyzac.ini, lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     },
+     {
+      "case": "install-config-sync",
+      "status": "PASS",
+      "detail": "exit 0: config sync: deployed config matches the repo templates (per-install settings lines and runtime artifacts excluded)"
+     },
+     {
+      "case": "install-tracked-files",
+      "status": "PASS",
+      "detail": "no tracked file changed"
+     },
+     {
+      "case": "install-target",
+      "status": "PASS",
+      "detail": "the installed profile is the shipped simulator; every program its HAL starts by name resolves into the clone"
+     },
+     {
+      "case": "install-confinement",
+      "status": "PASS",
+      "detail": "every mutable path of the profile lies in the run"
+     },
+     {
+      "case": "start-ready",
+      "status": "PASS",
+      "detail": "/ready after 2 s"
+     },
+     {
+      "case": "start-processes",
+      "status": "PASS",
+      "detail": "launcher, gateway, helpers and the tool setter's feed run the clone's code with the installed profile; logs in the run"
+     },
+     {
+      "case": "start-safety-chain",
+      "status": "PASS",
+      "detail": "21 frames over 4.0 s past the grace: no banner, reader fresh, no trip; watchdog and reader admitted this gateway; the latch in HAL, set at boot (the gateway's first sight, no trip); heartbeat oneshot TRUE"
+     },
+     {
+      "case": "start-browser",
+      "status": "PASS",
+      "detail": "mounted, viewer_init taken, the instance's E-Stop status applied; 7 script(s)/worker(s) served as JavaScript, no error"
+     }
+    ],
+    "commit": "7270888c75ec08b33470ae25765d9162fce428aa",
+    "install_s": 41.3,
+    "safety": {
+     "frames": 109,
+     "hal": {
+      "latch_fault": "TRUE",
+      "oneshot_out": "TRUE"
+     },
+     "events": [
+      "boot",
+      "boot.session_bind",
+      "boot.start",
+      "boot.lcnc_connect_start",
+      "session.bound",
+      "boot.lcnc_connect",
+      "hal.socket_connected",
+      "boot.hal_connect",
+      "boot.machine_config",
+      "boot.app_instantiated",
+      "boot.lifespan_ready",
+      "ws.connect.accept",
+      "ws.conn.lcnc_restored",
+      "hal.admitted",
+      "ws.connect.settings",
+      "ws.conn.gcode_ping_sent",
+      "ws.conn.ready",
+      "reader.admitted",
+      "reader.connected",
+      "safety.latch_faulted_on_connect",
+      "viewer_init.timing",
+      "ws.conn.viewer_init",
+      "toolsetter.basis",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick"
+     ]
+    },
+    "browser": {
+     "url": "http://127.0.0.1:8000/",
+     "scripts": [
+      {
+       "url": "http://127.0.0.1:8000/static/msgpack-BkQaaVuN.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "http://127.0.0.1:8000/static/index-BNvIRSix.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "http://127.0.0.1:8000/static/three-D_Nc9AAY.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "http://127.0.0.1:8000/static/toolGeometry-DhP3iiav.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "http://127.0.0.1:8000/static/ThreeViewer-Ch5wqGWS.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "http://127.0.0.1:8000/static/wsWorker-KKeHcbK3.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "blob:http://127.0.0.1:8000/3a8d9259-50a1-4768-bcf8-0b89ddf27e12",
+       "status": 200,
+       "type": "application/javascript",
+       "ok": true
+      }
+     ],
+     "bad_responses": [],
+     "page_errors": [],
+     "console_errors": [],
+     "workers": 2,
+     "mounted": true,
+     "connected": true,
+     "page": {
+      "status": 200,
+      "type": "text/html; charset=utf-8"
+     },
+     "worker_urls": [
+      "http://127.0.0.1:8000/static/wsWorker-KKeHcbK3.js",
+      "blob:http://127.0.0.1:8000/3a8d9259-50a1-4768-bcf8-0b89ddf27e12"
+     ],
+     "status_applied": true
+    },
+    "browsers_shared": "/home/cnc/.cache/ms-playwright",
+    "restore": {
+     "outcome": "complete",
+     "instance": [
+      "linuxcncsvr",
+      702434,
+      133827483
+     ],
+     "isolation": [],
+     "cleanup": []
+    },
+    "ended": 1794070432.7282393,
+    "verdict": "PASS",
+    "run_id": null,
+    "abort_at": null
+   },
+   "restore.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     702434,
+     133827483
+    ],
+    "isolation": [],
+    "cleanup": []
+   },
+   "restore-post.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     702434,
+     133827483
+    ],
+    "isolation": [],
+    "cleanup": [],
+    "repeat_of": "complete"
+   },
+   "state.json": {
+    "tree": "/home/cnc/claude-work/live-tier/install-green2-20261107T175235/src",
+    "tree_of": "/home/cnc/lcnc-suite-g1",
+    "tree_id": [
+     65027,
+     3678384
+    ],
+    "installer": 701138,
+    "test_unit_intent": "install-probe-sim-install-green2-20261107T175235",
+    "test_unit_wd": "/home/cnc/claude-work/live-tier/install-green2-20261107T175235/home/linuxcnc/configs/lcnc_suite_sim",
+    "test_ini": "/home/cnc/claude-work/live-tier/install-green2-20261107T175235/home/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_3axis_xyz.ini",
+    "test_unit": "install-probe-sim-install-green2-20261107T175235",
+    "test_unit_invocation": "5e071429a464432b84427e31139a3201",
+    "test_instance": [
+     701642,
+     133824591
+    ],
+    "test_ended": true,
+    "isolation": []
+   },
+   "browser.json": {
+    "url": "http://127.0.0.1:8000/",
+    "scripts": [
+     {
+      "url": "http://127.0.0.1:8000/static/msgpack-BkQaaVuN.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "ok": true
+     },
+     {
+      "url": "http://127.0.0.1:8000/static/index-BNvIRSix.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "ok": true
+     },
+     {
+      "url": "http://127.0.0.1:8000/static/three-D_Nc9AAY.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "ok": true
+     },
+     {
+      "url": "http://127.0.0.1:8000/static/toolGeometry-DhP3iiav.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "ok": true
+     },
+     {
+      "url": "http://127.0.0.1:8000/static/ThreeViewer-Ch5wqGWS.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "ok": true
+     },
+     {
+      "url": "http://127.0.0.1:8000/static/wsWorker-KKeHcbK3.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "ok": true
+     },
+     {
+      "url": "blob:http://127.0.0.1:8000/3a8d9259-50a1-4768-bcf8-0b89ddf27e12",
+      "status": 200,
+      "type": "application/javascript",
+      "ok": true
+     }
+    ],
+    "bad_responses": [],
+    "page_errors": [],
+    "console_errors": [],
+    "workers": 2,
+    "mounted": true,
+    "connected": true,
+    "page": {
+     "status": 200,
+     "type": "text/html; charset=utf-8"
+    },
+    "worker_urls": [
+     "http://127.0.0.1:8000/static/wsWorker-KKeHcbK3.js",
+     "blob:http://127.0.0.1:8000/3a8d9259-50a1-4768-bcf8-0b89ddf27e12"
+    ],
+    "status_applied": true
+   },
+   "clone_left": false
+  },
+  {
+   "run": "/home/cnc/claude-work/live-tier/install-abort-clone-20261107T175355",
+   "restore.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     702903,
+     133828416
+    ],
+    "isolation": [],
+    "cleanup": []
+   },
+   "restore-post.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     702903,
+     133828416
+    ],
+    "isolation": [],
+    "cleanup": []
+   },
+   "state.json": {
+    "tree": "/home/cnc/claude-work/live-tier/install-abort-clone-20261107T175355/src",
+    "tree_of": "/home/cnc/lcnc-suite-g1",
+    "tree_id": [
+     65027,
+     3678436
+    ],
+    "test_ended": true,
+    "isolation": []
+   },
+   "clone_left": false
+  },
+  {
+   "run": "/home/cnc/claude-work/g2/gate-check-r331.logs/install-probe-af41a7778442",
+   "report.json": {
+    "started": 1794070445.417563,
+    "steps": [
+     "clone",
+     "install",
+     "start",
+     "safety",
+     "browser"
+    ],
+    "rows": [
+     {
+      "case": "install-run",
+      "status": "PASS",
+      "detail": "exit 0 after 41 s",
+      "tail": null
+     },
+     {
+      "case": "install-links",
+      "status": "PASS",
+      "detail": "the four links lead into the clone"
+     },
+     {
+      "case": "install-venv",
+      "status": "PASS",
+      "detail": "the venv imports linuxcnc, fastapi, uvicorn; numpy is the system's"
+     },
+     {
+      "case": "install-build",
+      "status": "PASS",
+      "detail": "lcnc-webui/dist/index.html built"
+     },
+     {
+      "case": "install-profiles",
+      "status": "PASS",
+      "detail": "3 profiles installed: lcnc_suite_sim_3axis_xyz.ini, lcnc_suite_sim_5axis_xyzac.ini, lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     },
+     {
+      "case": "install-config-sync",
+      "status": "PASS",
+      "detail": "exit 0: config sync: deployed config matches the repo templates (per-install settings lines and runtime artifacts excluded)"
+     },
+     {
+      "case": "install-tracked-files",
+      "status": "PASS",
+      "detail": "no tracked file changed"
+     },
+     {
+      "case": "install-target",
+      "status": "PASS",
+      "detail": "the installed profile is the shipped simulator; every program its HAL starts by name resolves into the clone"
+     },
+     {
+      "case": "install-confinement",
+      "status": "PASS",
+      "detail": "every mutable path of the profile lies in the run"
+     },
+     {
+      "case": "start-ready",
+      "status": "PASS",
+      "detail": "/ready after 2 s"
+     },
+     {
+      "case": "start-processes",
+      "status": "PASS",
+      "detail": "launcher, gateway, helpers and the tool setter's feed run the clone's code with the installed profile; logs in the run"
+     },
+     {
+      "case": "start-safety-chain",
+      "status": "PASS",
+      "detail": "21 frames over 4.0 s past the grace: no banner, reader fresh, no trip; watchdog and reader admitted this gateway; the latch in HAL, set at boot (the gateway's first sight, no trip); heartbeat oneshot TRUE"
+     },
+     {
+      "case": "start-browser",
+      "status": "PASS",
+      "detail": "mounted, viewer_init taken, the instance's E-Stop status applied; 7 script(s)/worker(s) served as JavaScript, no error"
+     }
+    ],
+    "commit": "7270888c75ec08b33470ae25765d9162fce428aa",
+    "install_s": 41.0,
+    "safety": {
+     "frames": 109,
+     "hal": {
+      "latch_fault": "TRUE",
+      "oneshot_out": "TRUE"
+     },
+     "events": [
+      "boot",
+      "boot.session_bind",
+      "boot.start",
+      "boot.lcnc_connect_start",
+      "session.bound",
+      "boot.lcnc_connect",
+      "hal.socket_connected",
+      "boot.hal_connect",
+      "boot.machine_config",
+      "boot.app_instantiated",
+      "boot.lifespan_ready",
+      "ws.connect.accept",
+      "ws.conn.lcnc_restored",
+      "hal.admitted",
+      "ws.connect.settings",
+      "ws.conn.gcode_ping_sent",
+      "ws.conn.ready",
+      "reader.admitted",
+      "reader.connected",
+      "safety.latch_faulted_on_connect",
+      "viewer_init.timing",
+      "ws.conn.viewer_init",
+      "toolsetter.basis",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick"
+     ]
+    },
+    "browser": {
+     "url": "http://127.0.0.1:8000/",
+     "scripts": [
+      {
+       "url": "http://127.0.0.1:8000/static/msgpack-BkQaaVuN.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "http://127.0.0.1:8000/static/index-BNvIRSix.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "http://127.0.0.1:8000/static/three-D_Nc9AAY.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "http://127.0.0.1:8000/static/toolGeometry-DhP3iiav.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "http://127.0.0.1:8000/static/ThreeViewer-Ch5wqGWS.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "http://127.0.0.1:8000/static/wsWorker-KKeHcbK3.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "blob:http://127.0.0.1:8000/f9753685-cc52-4b98-97d1-9c0f56aa0fe2",
+       "status": 200,
+       "type": "application/javascript",
+       "ok": true
+      }
+     ],
+     "bad_responses": [],
+     "page_errors": [],
+     "console_errors": [],
+     "workers": 2,
+     "mounted": true,
+     "connected": true,
+     "page": {
+      "status": 200,
+      "type": "text/html; charset=utf-8"
+     },
+     "worker_urls": [
+      "http://127.0.0.1:8000/static/wsWorker-KKeHcbK3.js",
+      "blob:http://127.0.0.1:8000/f9753685-cc52-4b98-97d1-9c0f56aa0fe2"
+     ],
+     "status_applied": true
+    },
+    "browsers_shared": "/home/cnc/.cache/ms-playwright",
+    "restore": {
+     "outcome": "complete",
+     "instance": [
+      "linuxcncsvr",
+      704717,
+      133836480
+     ],
+     "isolation": [],
+     "cleanup": []
+    },
+    "ended": 1794070522.1746616,
+    "verdict": "PASS",
+    "run_id": "af41a7778442",
+    "abort_at": null
+   },
+   "restore.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     704717,
+     133836480
+    ],
+    "isolation": [],
+    "cleanup": []
+   },
+   "restore-post.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     704717,
+     133836480
+    ],
+    "isolation": [],
+    "cleanup": [],
+    "repeat_of": "complete"
+   },
+   "state.json": {
+    "tree": "/home/cnc/claude-work/g2/gate-check-r331.logs/install-probe-af41a7778442/src",
+    "tree_of": "/home/cnc/lcnc-suite-g1",
+    "tree_id": [
+     65027,
+     3678476
+    ],
+    "installer": 703414,
+    "test_unit_intent": "install-probe-sim-install-probe-af41a7778442",
+    "test_unit_wd": "/home/cnc/claude-work/g2/gate-check-r331.logs/install-probe-af41a7778442/home/linuxcnc/configs/lcnc_suite_sim",
+    "test_ini": "/home/cnc/claude-work/g2/gate-check-r331.logs/install-probe-af41a7778442/home/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_3axis_xyz.ini",
+    "test_unit": "install-probe-sim-install-probe-af41a7778442",
+    "test_unit_invocation": "da062c76834d4ad3bd5fe5831a8ae472",
+    "test_instance": [
+     703918,
+     133833557
+    ],
+    "test_ended": true,
+    "isolation": []
+   },
+   "browser.json": {
+    "url": "http://127.0.0.1:8000/",
+    "scripts": [
+     {
+      "url": "http://127.0.0.1:8000/static/msgpack-BkQaaVuN.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "ok": true
+     },
+     {
+      "url": "http://127.0.0.1:8000/static/index-BNvIRSix.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "ok": true
+     },
+     {
+      "url": "http://127.0.0.1:8000/static/three-D_Nc9AAY.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "ok": true
+     },
+     {
+      "url": "http://127.0.0.1:8000/static/toolGeometry-DhP3iiav.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "ok": true
+     },
+     {
+      "url": "http://127.0.0.1:8000/static/ThreeViewer-Ch5wqGWS.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "ok": true
+     },
+     {
+      "url": "http://127.0.0.1:8000/static/wsWorker-KKeHcbK3.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "ok": true
+     },
+     {
+      "url": "blob:http://127.0.0.1:8000/f9753685-cc52-4b98-97d1-9c0f56aa0fe2",
+      "status": 200,
+      "type": "application/javascript",
+      "ok": true
+     }
+    ],
+    "bad_responses": [],
+    "page_errors": [],
+    "console_errors": [],
+    "workers": 2,
+    "mounted": true,
+    "connected": true,
+    "page": {
+     "status": 200,
+     "type": "text/html; charset=utf-8"
+    },
+    "worker_urls": [
+     "http://127.0.0.1:8000/static/wsWorker-KKeHcbK3.js",
+     "blob:http://127.0.0.1:8000/f9753685-cc52-4b98-97d1-9c0f56aa0fe2"
+    ],
+    "status_applied": true
+   },
+   "clone_left": false
+  }
+ ]
+}

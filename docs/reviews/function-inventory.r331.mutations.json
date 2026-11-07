@@ -1,0 +1,251 @@
+{
+ "note": "R331: 35 mutants at 7270888c on a slim copy (the R330 set re-anchored, rg-no-under-gate gone with its option, ten new for FI-I59..62)",
+ "base": "7270888c",
+ "mutants": [
+  {
+   "mutant": "ic-safety-no-reader-event",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 65 passed in 38.57s"
+   ]
+  },
+  {
+   "mutant": "ic-safety-no-reader-values",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 66 passed in 34.93s"
+   ]
+  },
+  {
+   "mutant": "ic-safety-latch-unclassified-ok",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 27 passed in 5.42s"
+   ]
+  },
+  {
+   "mutant": "ic-safety-latch-unknown-ok",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 21 passed in 4.60s"
+   ]
+  },
+  {
+   "mutant": "ic-safety-no-window",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 67 passed in 35.39s"
+   ]
+  },
+  {
+   "mutant": "ic-safety-any-pid",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 25 passed in 3.98s"
+   ]
+  },
+  {
+   "mutant": "ic-safety-banner-ignored",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 22 passed in 4.01s"
+   ]
+  },
+  {
+   "mutant": "ic-manifest-follows-links",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 9 passed in 4.33s"
+   ]
+  },
+  {
+   "mutant": "ic-cleanup-worktree",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 12 passed in 4.30s"
+   ]
+  },
+  {
+   "mutant": "ic-cleanup-anywhere",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 16 passed in 4.32s"
+   ]
+  },
+  {
+   "mutant": "ic-env-inherits",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 7 passed in 4.22s"
+   ]
+  },
+  {
+   "mutant": "ic-gate-ignores-post",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 51 passed in 35.21s"
+   ]
+  },
+  {
+   "mutant": "ic-gate-ignores-isolation",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 49 passed in 35.13s"
+   ]
+  },
+  {
+   "mutant": "ic-browser-ignores-connected",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 33 passed in 4.02s"
+   ]
+  },
+  {
+   "mutant": "ic-browser-ignores-responses",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 31 passed in 4.15s"
+   ]
+  },
+  {
+   "mutant": "ip-unit-first-service",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 63 passed in 35.20s"
+   ]
+  },
+  {
+   "mutant": "rg-deactivating-is-end",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 52 passed in 34.91s"
+   ]
+  },
+  {
+   "mutant": "rg-deadline-not-stopped",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 56 passed in 34.75s"
+   ]
+  },
+  {
+   "mutant": "rg-old-report-accepted",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 54 passed in 34.73s"
+   ]
+  },
+  {
+   "mutant": "rg-shared-run-folder",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 53 passed in 34.84s"
+   ]
+  },
+  {
+   "mutant": "rg-head-not-sha",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 52 passed in 34.84s"
+   ]
+  },
+  {
+   "mutant": "rg-interrupt-leaves-unit",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 58 passed in 34.71s"
+   ]
+  },
+  {
+   "mutant": "rg-unread-forever",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 57 passed in 34.77s"
+   ]
+  },
+  {
+   "mutant": "rg-probe-in-the-lock",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 59 passed in 34.69s"
+   ]
+  },
+  {
+   "mutant": "ip-under-gate-no-lock",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 59 passed in 34.64s"
+   ]
+  },
+  {
+   "mutant": "ic-browser-ignores-status",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 34 passed in 3.86s"
+   ]
+  },
+  {
+   "mutant": "ic-cleanup-any-incomplete",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 14 passed in 3.87s"
+   ]
+  },
+  {
+   "mutant": "ic-cleanup-needs-git",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 13 passed in 3.94s"
+   ]
+  },
+  {
+   "mutant": "sh-no-tty-check",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 3 passed in 1.93s"
+   ]
+  },
+  {
+   "mutant": "sh-no-root-goes-on",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 2 passed in 0.97s"
+   ]
+  },
+  {
+   "mutant": "sh-npm-install",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 6 passed in 3.84s"
+   ]
+  },
+  {
+   "mutant": "sh-import-warns",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 6 passed in 3.89s"
+   ]
+  },
+  {
+   "mutant": "sh-fresh-drift-warns",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 72 passed in 34.91s"
+   ]
+  },
+  {
+   "mutant": "ic-gate-post-missing-ok",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 45 passed in 34.70s"
+   ]
+  },
+  {
+   "mutant": "sh-no-build",
+   "verdict": "RED",
+   "tail": [
+    "1 failed, 6 passed in 3.70s"
+   ]
+  }
+ ]
+}

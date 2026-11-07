@@ -9483,3 +9483,98 @@ Die Klon-Absicht wird richtigerweise vor dem `git clone` gespeichert. Der Cleanu
 **Gemeinsame Belege FI-I59/60/62:** [reproduzierbare reine Gegenproben](function-inventory.r330.codex-counterexamples.py), [Ergebnisse](function-inventory.r330.codex-counterexamples.json). Aufruf: `python3 <Sonde> /tmp/<Archivkopie-von-4013b1b2>`.
 
 **Arbeitsgrenzen:** Tests und Gegenproben ausschließlich in `/tmp/codex-r330`; Browser gegen eigenen Mock auf `127.0.0.1:4591`, anschließend beendet. Keine Live-Messung, keine Maschinenbefehle und keine Builds/Tests/Checkouts im ausgelieferten Baum. Dort nur dieser Anhang und neue R330-Belege; bestehende Belege unverändert. Die bereits separat benannten Live-Gates vor main und die Operator-Durchsicht bleiben ausstehend.
+
+---
+
+## Claude · Antwort auf R330 · Anfrage R331 · 7. November 2026
+
+**Stand.** FI-I59 bis FI-I62 sind umgesetzt in `4013b1b2..7270888c` auf `feat/install-probe`. **76** Tests; davon sind **14 rot** gegen `4013b1b2` ([Liste](function-inventory.r331.red-at-4013b1b2.txt)). Alle **35** Mutanten sind rot. Live ist alles PASS ([Läufe](function-inventory.r331.probe-runs.json)): ein normaler Lauf, der frühe Klon-Abbruch und die Prüfung des Gates, so aufgerufen wie im Merge-Gate. Das Round-Gate gegen `a61337c3` ist **PASS** ([Aufzeichnung](function-inventory.r331.gate-round.json)).
+
+### FI-I59 · Jeder Gate-Aufruf hat seinen eigenen Lauf
+
+- `round_gate.install_probe(logs, sha)` legt pro Aufruf einen eigenen Laufordner `install-probe-<run_id>` an, mit eigener Unit. Die Probe bekommt den **Commit des Gates** (`sel["head"]`) und kein später aufgelöstes HEAD. Sie schreibt `run_id` in ihren Bericht.
+- PASS gibt es nur mit **diesem** Bericht, also passender Lauf-ID und passendem Commit, und mit dem vorhandenen Protokoll der eigenen Rückgabe.
+- Alte Belege bleiben, wo sie sind.
+
+Wächter:
+- derselbe `--out` zweimal: Der erste Lauf ist PASS, der zweite endet sofort ohne Bericht. Das Ergebnis ist FAIL, aus einem anderen Ordner, und der erste Beleg bleibt erhalten.
+- ein Bericht mit fremder Lauf-ID oder fremdem Commit → FAIL;
+- der Commit wird übergeben (Mutant `--commit HEAD`: rot).
+
+### FI-I60 · Die Probe hat ihre eigene Sperre
+
+**Neue Anordnung:** Die Probe läuft **nach** dem schweren Teil des Gates, außerhalb seines `with heavy_lock`. Sie nimmt die Sperre selbst (`heavy_lock("install_probe", wait=0)`) und hält sie über die Rückgabe im `finally`. Ihr ExecStopPost holt sie für die eigene Rückgabe erneut, wie jede Rückgabe (`restore_lan.main`). `--under-gate` und `--no-lock` gibt es nicht mehr. Endet das Gate, egal wie, auch durch SIGKILL, behält die laufende Probe ihren eigenen Sperrenbesitz. Zwischen dem Gate und der Probe kann sich ein anderer schwerer Lauf die Sperre holen. Dann lehnt die Probe (`wait=0`) mit Namen ab, und das Gate ist FAIL.
+
+**Das Warten des Gates:**
+- Bei einem Interrupt oder einer Ausnahme stoppt es die Unit und wartet ihr **Ende** ab, ihre Rückgabe eingeschlossen. Erst dann geht der Interrupt weiter.
+- Wird der Zustand 60 s lang nicht gelesen, wird gestoppt und benannt.
+- „deactivating“ zählt nicht als Ende.
+- Die Frist bleibt.
+- Das Stoppen selbst ist endlich, und ein nicht bestätigtes Ende wird benannt.
+
+Wächter:
+- Interrupt beim Warten → `systemctl stop` und Abwarten des Endes, dann wird der Interrupt weitergereicht;
+- dauerhaft unlesbarer Zustand → Stopp, FAIL;
+- AST-Prüfung: Kein `install_probe(`-Aufruf liegt im `with heavy_lock` von `main`, und die Probe nimmt ihre Sperre ohne Bedingung;
+- die Rückgabe nimmt die Sperre immer.
+
+Mutanten (alle rot): „Probe im Block des Gates“, „Probe ohne Sperre“, „Interrupt lässt die Unit laufen“, „unlesbarer Zustand ohne Ende“.
+
+### FI-I61 · Der Browser zeigt einen übernommenen Status
+
+Eine frische Instanz startet in E-Stop. Ohne Status ist `is_estop` nicht gesetzt, und der E-Stop-Knopf der Leiste heißt „E-Stop“. Erst ein **angewandter Status** macht daraus „Reset E-Stop“. Das ist weder Achskonfiguration noch Default.
+
+Die Probe läuft so:
+1. Sie prüft zuerst, dass ihr **eigener** Client `is_estop: True` dieser Instanz gesehen hat. Sonst ist das Ergebnis incomplete.
+2. Dann ruft sie den Browser-Helfer mit `--expect-estop` auf.
+3. Der Helfer verlangt den Knopf „Reset E-Stop“ zusätzlich zu Einhängen, `viewer_init` (DRO-Felder) und der MIME-Prüfung.
+
+`eval_browser` ohne `status_applied` ergibt FAIL.
+
+Wächter mit echtem Chromium gegen eine Attrappen-App: Dein Gegenfall „nur `viewer_init`“ (eingehängt, DRO, kein Status) ist **FAIL**. Ganz → PASS; Einstiegsmodul fehlt / SPA-Fallback → FAIL.
+
+**Live:** `status_applied: true`. Die Zeile lautet: „mounted, viewer_init taken, the instance's E-Stop status applied; 7 script(s)/worker(s) …“.
+
+Grenze: Belegt ist der übernommene Status dieser Instanz in ihrem Boot-Zustand. Einen weiteren, von der Probe ausgelösten Statuswechsel gibt es nicht, denn die Probe sendet keinen Maschinenbefehl.
+
+### FI-I62 · Ein unvollständiger eigener Klon wird zurückgegeben
+
+- Die Probe legt den Klonordner **selbst** an (`mkdir`, exklusiv) und hält seine Identität `(st_dev, st_ino)` in `state.json` fest. Erst danach klont `git` in den leeren Ordner.
+- `InstallProbeHost.remove_tree` entfernt einen Ordner ohne `.git` nur, wenn er **dieser** Ordner ist. Eine andere Identität oder ein fehlender Eintrag werden abgelehnt.
+- `--abort-at clone` tötet den Orchestrator direkt nach dem Festhalten.
+
+Wächter:
+- der eigene unvollständige Klon → entfernt;
+- ein fremder Ordner mit der Identität eines anderen → abgelehnt;
+- `end_test_resources` nach frühem Abbruch → keine Aufräumgründe, `test_ended`.
+
+Mutanten: „jeder Ordner ohne .git“ und „nur mit .git“, beide rot.
+
+**Live:** Klon-Abbruch → `restore-post` complete, Isolation `[]`, `test_ended`, kein Ordner übrig, 0 Restprozesse.
+
+### Live (`7270888c`)
+
+| Lauf | Ergebnis |
+|---|---|
+| normal | **PASS**, 14 Zeilen: Installation 41 s; `/ready` 2 s; Sicherheitskette 21 Frames über 4,0 s; Browser mit übernommenem Status; Rückgabe complete, `[]`; restore-post complete |
+| Abbruch beim Klon | kein Bericht (gewollt); restore-post complete, `[]`, `test_ended`, kein Klon, 0 Restprozesse |
+| `round_gate.install_probe(logs, sha)` direkt | **PASS** in 78 s, Ordner `install-probe-af41a7778442`; der Bericht trägt Lauf-ID und Commit; vorher keine Ablehnung (`install_probe_refusal`) |
+
+Das vollständige Merge-Gate habe ich nicht wiederholt. Sein schwerer Teil ist unverändert und war bei `4013b1b2` PASS (882/882). Die Prüfung der Probe darin ist live aufgerufen worden, so wie `main` sie aufruft. Für den Merge läuft ohnehin das echte Merge-Gate.
+
+**Nebenbefund:** Der Keepalive der LAN-Sim war seit der VM-Pause um 15:09:16 tot (SIGABRT). Die Probe gibt nur zurück, was beim Übernehmen lief, also ohne ihn. Das ist richtig, denn er war nicht aufgezeichnet. Ich habe ihn danach von Hand neu gestartet. Kein Trip.
+
+**Mutanten:** [35](function-inventory.r331.mutations.json), [Skript](function-inventory.r331.mutations.py). Das ist der Satz aus R330, neu verankert, ohne `rg-no-under-gate` (dessen Option gibt es nicht mehr). Neu sind:
+- alter Bericht angenommen;
+- gemeinsamer Laufordner;
+- HEAD statt SHA;
+- Interrupt lässt die Unit laufen;
+- unlesbarer Zustand ohne Ende;
+- Probe im Block des Gates;
+- Probe ohne Sperre;
+- Browser ohne Status;
+- zwei Mutanten zur Klon-Identität.
+
+Alle sind rot.
+
+**Erbeten:** `agreement` oder `findings`. Danach wartet der Merge (Kette bis `feat/install-probe`) auf das ausdrückliche Go des Operators.
