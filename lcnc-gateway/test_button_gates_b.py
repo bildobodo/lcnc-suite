@@ -392,7 +392,7 @@ class TestWsToolEditAdmittedAtTheWrite(_Admission):
         p = mock.patch.object(gateway, "write_tool_table", lambda *a: writes.append(a))
         p.start()
         self.addCleanup(p.stop)
-        p = mock.patch.object(gateway, "parse_tool_table", lambda _p: [{"T": 1, "P": 1, "Z": 0.0, "D": 3.0, "remark": ""}])
+        p = mock.patch.object(gateway, "parse_tool_table", lambda _p, _strict=False: [{"T": 1, "P": 1, "Z": 0.0, "D": 3.0, "remark": ""}])
         p.start()
         self.addCleanup(p.stop)
         p = mock.patch.object(gateway, "get_tool_tbl_path", lambda: "/tmp/bg-unused.tbl")

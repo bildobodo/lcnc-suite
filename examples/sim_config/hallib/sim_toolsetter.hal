@@ -5,7 +5,8 @@
 # physical fixture of the profile, not the WebUI's setting (Codex R44 ST-I01).
 #
 # motion.probe-input = the WebUI's manual trip (signal probe-in, "Simulate
-# probe trip") OR the tool tip reaching the plate. sim_toolsetter compares in
+# probe trip") OR the tool tip reaching the plate (OR, in the 3-axis profile,
+# the workpiece — hallib/sim_surface.hal). sim_toolsetter compares in
 # the servo thread: the control point (the JOINT positions 0..2, joint.N.pos-fb
 # — never the motor positions, which carry the home / motor offset: Codex R44
 # ST-I02) inside the plate's X/Y window, and its Z minus the spindle tool's
@@ -17,17 +18,26 @@
 # sim_toolsetter/sim_toolsetter.comp`); without it LinuxCNC refuses this file
 # ("module not found") and scripts/config_sync_check.py names the command.
 
-loadrt sim_toolsetter
+# Two instances: 0 is the PLATE (every profile), 1 the WORKPIECE (the
+# 3-axis profile only — hallib/sim_surface.hal, package G2; elsewhere its
+# enable stays unconnected, FALSE, and it only passes the manual trip on).
+# Instance 1 runs BEFORE instance 0: the manual trip passes through both in
+# the same servo period, in every profile (Codex R326 Q326-2).
+loadrt sim_toolsetter count=2
+addf sim-toolsetter.1 servo-thread
 addf sim-toolsetter.0 servo-thread
 setp sim-toolsetter.0.radius 25
 
 loadusr -Wn sim-toolsetter-feed python3 sim_toolsetter/sim_toolsetter_feed.py
 
-net sim-ts-x        joint.0.pos-fb                  => sim-toolsetter.0.x
-net sim-ts-y        joint.1.pos-fb                  => sim-toolsetter.0.y
-net sim-ts-z        joint.2.pos-fb                  => sim-toolsetter.0.z
-net sim-ts-length   sim-toolsetter-feed.tool-length => sim-toolsetter.0.tool-length
+net sim-ts-x        joint.0.pos-fb                  => sim-toolsetter.0.x sim-toolsetter.1.x
+net sim-ts-y        joint.1.pos-fb                  => sim-toolsetter.0.y sim-toolsetter.1.y
+net sim-ts-z        joint.2.pos-fb                  => sim-toolsetter.0.z sim-toolsetter.1.z
+net sim-ts-length   sim-toolsetter-feed.tool-length => sim-toolsetter.0.tool-length sim-toolsetter.1.tool-length
 net sim-ts-enable   sim-toolsetter-feed.enable      => sim-toolsetter.0.enable
 
-net probe-in => sim-toolsetter.0.manual
+# the manual trip → instance 1 → instance 0 → motion: out = contact OR manual
+# at each, so motion.probe-input = plate OR workpiece OR the manual trip
+net probe-in => sim-toolsetter.1.manual
+net sim-ts-pass sim-toolsetter.1.out => sim-toolsetter.0.manual
 net probe-input sim-toolsetter.0.out => motion.probe-input

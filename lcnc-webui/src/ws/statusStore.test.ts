@@ -6,7 +6,7 @@
 // fake timers and advance 16 ms to flush the status buffer deterministically.
 import "../testGlobals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "../lcnc";
+import { OPERATOR_DISPLAY, OPERATOR_ERROR, OPERATOR_TEXT } from "../lcnc";
 import {
   clearAllMessages, clearBulkCarry, configWarning, dismissMessage, getTimingCsv,
   handleStatusError, handleStatusMessage, latency, lcncError,
@@ -438,6 +438,62 @@ describe("mergeStatusPatch", () => {
   });
 });
 
+describe("a safety trip in the message center (operator Q323-1, Codex R323)", () => {
+  const trip = (id: string) => ({ type: "status", data: {}, safety_trip: { reason: "hal_heartbeat_timeout", id } });
+  const acked = (id: string) => ({ type: "status", data: {}, safety_trip_acked: { id } });
+  const entries = () => messages.value.map(m => [m.kind, m.text, m.event, !!m.quiet, !!m.uncounted]);
+  const TRIPPED = "Safety trip — gateway heartbeat to HAL watchdog lost";
+
+  it("one entry per trip and one per confirmed acknowledgement, whatever the frames repeat", () => {
+    for (let i = 0; i < 5; i++) handleStatusMessage(trip("e1-1"));
+    expect(safetyTrip.value).toEqual({ reason: "hal_heartbeat_timeout", id: "e1-1" });
+    expect(entries()).toEqual([[OPERATOR_ERROR, TRIPPED, "safety-trip:e1-1", true, true]]);
+    // a frame without the trip and without an acknowledgement — a restarted
+    // gateway, say — is no acknowledgement
+    handleStatusMessage({ type: "status", data: {} });
+    expect(safetyTrip.value).toBeNull();
+    expect(messages.value).toHaveLength(1);
+    for (let i = 0; i < 5; i++) handleStatusMessage(acked("e1-1"));
+    expect(entries()).toEqual([[OPERATOR_ERROR, TRIPPED, "safety-trip:e1-1", true, true],
+                               [OPERATOR_TEXT, "Safety trip acknowledged", "safety-trip-ack:e1-1", true, true]]);
+    expect(unreadCount.value).toBe(0);
+    // the next trip is a new event; the old acknowledgement riding along adds nothing
+    handleStatusMessage({ ...trip("e1-2"), safety_trip_acked: { id: "e1-1" } });
+    expect(messages.value.map(m => m.event)).toEqual(["safety-trip:e1-1", "safety-trip-ack:e1-1", "safety-trip:e1-2"]);
+  });
+
+  it("an acknowledgement of a trip this tab did not record is not recorded", () => {
+    handleStatusMessage(acked("e2-7"));
+    expect(messages.value).toEqual([]);
+  });
+
+  it("a cleared history in this page records the same trip no second time", () => {
+    handleStatusMessage(trip("e3-1"));
+    clearAllMessages();
+    handleStatusMessage(trip("e3-1"));
+    expect(messages.value).toEqual([]);
+  });
+
+  it("a reload finds the events in the history and records none twice", async () => {
+    handleStatusMessage(trip("e4-1"));
+    vi.resetModules();
+    const fresh = await import("./statusStore");
+    fresh.handleStatusMessage(trip("e4-1"));
+    fresh.handleStatusMessage(acked("e4-1"));
+    fresh.handleStatusMessage(acked("e4-1"));
+    expect(fresh.messages.value.map(m => m.event)).toEqual(["safety-trip:e4-1", "safety-trip-ack:e4-1"]);
+    fresh.clearAllMessages();
+  });
+
+  it("a trip without an id (an older gateway) is recorded where this page saw it begin", () => {
+    handleStatusMessage({ type: "status", data: {}, safety_trip: { reason: "hb" } });
+    handleStatusMessage({ type: "status", data: {}, safety_trip: { reason: "hb" } });
+    handleStatusMessage({ type: "status", data: {} });
+    handleStatusMessage({ type: "status", data: {}, safety_trip: { reason: "hb" } });
+    expect(messages.value.map(m => [m.text, m.event])).toEqual([["Safety trip — hb", undefined], ["Safety trip — hb", undefined]]);
+  });
+});
+
 describe("message center", () => {
   it("push/dismiss/clear/markRead drive the refs and persist to localStorage", () => {
     pushMessage(OPERATOR_ERROR, "one");
@@ -494,5 +550,25 @@ describe("timing stats", () => {
     expect(csv).toContain("512");
     resetTimingStats();
     expect(timingStats.value).toBeNull();
+  });
+});
+
+describe("the toolsetter booking (P2, Codex R308–R309 FI308-04)", () => {
+  const booking = { version: 3, keys: { "3102": { value: -179, origin: "applied" } } };
+  it("is carried across frames that do not repeat it", () => {
+    handleStatusMessage({ type: "status", data: { tool_number: 1 }, toolsetter_booking: booking });
+    flushRaf();
+    expect(status.value?.toolsetter_booking).toEqual(booking);
+    handleStatusMessage({ type: "status", data: { tool_number: 1 } });
+    flushRaf();
+    expect(status.value?.toolsetter_booking).toEqual(booking);
+  });
+  it("belongs to its connection — a new one shows none until its own arrives", () => {
+    handleStatusMessage({ type: "status", data: { tool_number: 1 }, toolsetter_booking: booking });
+    flushRaf();
+    resetOnClose();
+    handleStatusMessage({ type: "status", data: { tool_number: 1 } });
+    flushRaf();
+    expect(status.value?.toolsetter_booking ?? null).toBeNull();
   });
 });

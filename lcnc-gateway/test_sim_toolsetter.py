@@ -277,3 +277,145 @@ class TestComponentCheck(unittest.TestCase):
         self.assertIn("sudo halcompile --install /repo/examples/sim_config/sim_toolsetter/sim_toolsetter.comp", text)
         open(os.path.join(mods, "sim_toolsetter.so"), "w").close()
         self.assertEqual(self.csc.check_components("/repo/examples/sim_config", out=io.StringIO(), modules=mods), 0)
+
+
+# ── The 3-axis workpiece (package G2, operator Q282-2; Codex R326) ─────────
+
+_NC_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts", "test_support", "native_cases.py")
+_nc_spec = importlib.util.spec_from_file_location("native_cases_literal", _NC_PATH)
+nc = importlib.util.module_from_spec(_nc_spec)
+_nc_spec.loader.exec_module(nc)    # pure: the evaluators and the surface literal
+
+
+def _program(profile):
+    """A profile's HAL commands in LinuxCNC's order: every [HAL] HALFILE,
+    each `source` expanded where it stands."""
+    ini = _ini(_read(profile["ini"]))
+
+    def expand(rel):
+        out = []
+        for ln in _hal_lines(_read(*rel.split("/"))):
+            out += expand(ln.split()[1]) if ln.startswith("source ") else [ln]
+        return out
+    return [ln for _k, rel in ini["HAL"] if _k == "HALFILE" for ln in expand(rel)]
+
+
+def _thread(lines):
+    """The servo thread's functions after every `addf` (halcmd: a position
+    counts from the start, a negative one from the end: -1 the end, -3
+    third from the end)."""
+    out = []
+    for ln in lines:
+        w = ln.split()
+        if w[0] != "addf" or w[2] != "servo-thread":
+            continue
+        pos = int(w[3]) if len(w) > 3 else -1
+        if pos > 0:
+            out.insert(pos - 1, w[1])
+        else:
+            out.insert(len(out) + pos + 1, w[1])
+    return out
+
+
+def _nets(lines):
+    """{signal: {"writers": [...], "readers": [...]}} from `net` lines of the
+    form `net <sig> [<writer>] [=> <readers>]` (the suite's spelling)."""
+    sigs = {}
+    for ln in lines:
+        w = ln.split()
+        if w[0] != "net":
+            continue
+        s = sigs.setdefault(w[1], {"writers": [], "readers": []})
+        rest = w[2:]
+        if "=>" in rest:
+            i = rest.index("=>")
+            s["writers"] += rest[:i]
+            s["readers"] += rest[i + 1:]
+        else:
+            s["writers"] += rest
+    return sigs
+
+
+def _setp(lines):
+    return {ln.split()[1]: float(ln.split()[2]) for ln in lines
+            if ln.startswith("setp ") and ln.split()[2].lstrip("-").replace(".", "", 1).isdigit()}
+
+
+class TestTheWorkpiece(unittest.TestCase):
+    """Instance 1 of sim_toolsetter is the 3-axis profile's workpiece, its
+    height a realtime chain (hallib/sim_surface.hal); in every profile it
+    runs before instance 0 and passes the manual trip on."""
+
+    def profiles(self):
+        return {p["id"]: p for p in json.loads(_read("profiles.json"))["profiles"]}
+
+    def test_only_the_3axis_profile_enables_it(self):
+        for pid, p in self.profiles().items():
+            prog = _program(p)
+            enabled = "sim-toolsetter.1.enable" in _nets(prog).get("sim-ts-enable", {}).get("readers", [])
+            self.assertEqual(enabled, pid == "3axis_xyz", pid)
+            self.assertEqual(any("sim_surface" in ln or ln.startswith("loadrt sum2 names=surf") for ln in prog)
+                             or "surf-height" in _nets(prog), pid == "3axis_xyz", pid)
+
+    def test_instance_1_runs_before_0_and_the_chain_before_1_after_the_motion_controller(self):
+        for pid, p in self.profiles().items():
+            th = _thread(_program(p))
+            self.assertLess(th.index("motion-controller"), th.index("sim-toolsetter.1"), pid)
+            self.assertEqual(th.index("sim-toolsetter.1") + 1, th.index("sim-toolsetter.0"), pid)
+            if pid == "3axis_xyz":
+                chain = ["surf-dx", "surf-dy", "surf-dx2", "surf-dy2", "surf-tilt", "surf-curve", "surf-z"]
+                at = [th.index(f) for f in chain]
+                self.assertEqual(at, sorted(at), th)
+                self.assertLess(th.index("motion-controller"), at[0])
+                self.assertEqual(at[-1] + 1, th.index("sim-toolsetter.1"), th)
+
+    def test_the_manual_trip_reaches_motion_through_both_instances_in_every_profile(self):
+        for pid, p in self.profiles().items():
+            nets = _nets(_program(p))
+            self.assertEqual(nets["probe-in"], {"writers": [], "readers": ["sim-toolsetter.1.manual"]}, pid)
+            self.assertEqual(nets["sim-ts-pass"], {"writers": ["sim-toolsetter.1.out"],
+                                                   "readers": ["sim-toolsetter.0.manual"]}, pid)
+            self.assertEqual(nets["probe-input"], {"writers": ["sim-toolsetter.0.out"],
+                                                   "readers": ["motion.probe-input"]}, pid)
+            for pin in ("x", "y", "z"):
+                self.assertIn(f"sim-toolsetter.1.{pin}", nets[f"sim-ts-{pin}"]["readers"], pid)
+
+    def test_its_height_is_the_literal_surface(self):
+        k = _setp(_program(self.profiles()["3axis_xyz"]))
+        nets = _nets(_program(self.profiles()["3axis_xyz"]))
+        self.assertEqual(nets["surf-height"], {"writers": ["surf-z.out"], "readers": ["sim-toolsetter.1.plate-z"]})
+        s = nc.SURFACE
+        self.assertEqual((k["sim-toolsetter.1.plate-x"], k["sim-toolsetter.1.plate-y"], k["sim-toolsetter.1.radius"]),
+                         (s["cx"], s["cy"], s["half"]))
+        for x, y in ((510, 510), (550, 550), (590, 510), (538, 566), (560.4167, 543.75)):
+            dx, dy = x + k["surf-dx.offset"], y + k["surf-dy.offset"]
+            f = (k["surf-tilt.gain0"] * dx + k["surf-tilt.gain1"] * dy
+                 + k["surf-curve.gain0"] * dx * dx + k["surf-curve.gain1"] * dy * dy + k["surf-z.offset"])
+            self.assertAlmostEqual(f, nc.surface_z(x, y), places=9)
+        self.assertNotIn("sim-toolsetter.1.plate-z", k, "the height is wired, never set")
+
+    def test_instance_0_keeps_its_plate(self):
+        for pid, p in self.profiles().items():
+            k = _setp(_program(p))
+            self.assertEqual(k["sim-toolsetter.0.radius"], 25.0, pid)
+            self.assertTrue({"sim-toolsetter.0.plate-x", "sim-toolsetter.0.plate-y", "sim-toolsetter.0.plate-z"} <= set(k))
+
+    def test_it_lies_inside_the_travel_and_no_shipped_tool_reaches_it_from_the_top(self):
+        """The window inside X/Y travel, the scan grid inside the window; from
+        the top of Z (joint MAX_LIMIT) no shipped tool's tip reaches the
+        crest — the workpiece is met only below, as a part on the table."""
+        p = self.profiles()["3axis_xyz"]
+        ini = _ini(_read(p["ini"]))
+        s = nc.SURFACE
+        for axis, c in (("X", s["cx"]), ("Y", s["cy"])):
+            lo, hi = float(_first(ini, f"AXIS_{axis}", "MIN_LIMIT")), float(_first(ini, f"AXIS_{axis}", "MAX_LIMIT"))
+            self.assertTrue(lo <= c - s["half"] and c + s["half"] <= hi, axis)
+        self.assertTrue(all(abs(v - s["cx"]) < s["half"] for v in nc.SCAN_AXIS))
+        crest = nc.surface_z(560.4167, 543.75)
+        top = float(_first(ini, "JOINT_2", "MAX_LIMIT"))
+        lengths = [float(m.group(1)) for ln in _read(p["state_dir"], "tool.tbl").splitlines()
+                   if (m := re.search(r"\bZ([-+]?[0-9.]+)", ln.split(";", 1)[0]))]
+        self.assertEqual([L for L in lengths if top - L <= crest], [])
+        bottom = float(_first(ini, "JOINT_2", "MIN_LIMIT"))
+        low = min(nc.surface_z(x, y) for x, y in nc.scan_order())
+        self.assertGreater(low + 50.0, bottom, "the probe tool's contact above the joint's bottom")

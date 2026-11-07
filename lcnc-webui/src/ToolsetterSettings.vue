@@ -12,6 +12,7 @@ import { confirmedToolsetter, toolsetterVarMap, TOOLSETTER_REQUIRED } from "./to
 import { fetchG30 } from "./lcncApi";
 import { noteG30Confirmed } from "./g30Shared";
 import { status, viewerInit, request, connected } from "./lcncWs";
+import { TOOLSETTER_PARAMS_HELP, toolsetterMachineState, toolsetterMachineText } from "./toolsetterState";
 import { useAxes, DEFAULT_AXES } from "./useAxes";
 import { savePayload, sameG30, contextChanged, replyApplies, type G30Values, type G30Context, type G30Ticket } from "./g30Form";
 import MachineInput from "./MachineInput.vue";
@@ -77,17 +78,27 @@ function saveTsParams(key: TsKey) {
   awaiting.set(key, v);
 }
 
+// What the interpreter holds (P2, Codex R308–R309 FI308-04): the server's
+// confirmed section against the gateway's booking — never a reply or this
+// component's memory (a late reply, a reconnect, a reopened form).
+const machineState = computed(() => toolsetterMachineState(confirmedToolsetter(), status.value?.toolsetter_booking));
+const machineText = computed(() => toolsetterMachineText(machineState.value));
+
 async function pushWhenConfirmed() {
   if (!awaiting.size) return;
   const confirmed = (confirmedSection("toolsetter") ?? {}) as Record<string, unknown>;
   if ([...awaiting].some(([k, v]) => confirmed[k] !== v)) return;
   awaiting.clear();
   const setup = confirmedToolsetter();
-  if (!setup.ok || !can.value.ready) return;   // not set up: the machine keeps its values
+  // A convenience: the next program start or measurement applies the
+  // section anyway (the gateway's sync). Only set up, ready and not already
+  // in the machine; the machine line says what came of it.
+  if (!setup.ok || !can.value.ready || machineState.value.kind === "confirmed") return;
   const reply = await request({ cmd: "set_probe_vars", vars: toolsetterVarMap(setup.values) });
-  pushError.value = reply && reply.ok !== false && reply.mdi_set === true ? null
-    : `Saved, but not sent to the machine — ${!reply ? "no reply" : reply.ok === false ? (reply.error ?? "refused") : "not taken over by the interpreter"}`;
+  pushError.value = !reply ? "Not sent to the machine — no reply"
+    : reply.ok === false ? `Not taken by the machine — ${reply.error ?? "refused"}` : null;
 }
+watch(() => machineState.value.kind, k => { if (k === "confirmed") pushError.value = null; });
 
 const LABELS = new Map([...TS_POSITION_FIELDS, ...TS_PROBE_FIELDS, ...TS_OPTION_FIELDS, ...TS_OFFSET_FIELDS, ...TS_FINDER_FIELDS]
   .map(f => [f.key as string, f.label]));
@@ -95,8 +106,8 @@ const setupNote = computed(() => {
   const s = confirmedToolsetter();
   if (s.ok || !serverSettingsReady.value) return null;
   const names = (keys: string[]) => keys.map(k => LABELS.get(k) ?? k).join(", ");
-  return s.missing.length ? `Not set up — enter ${names(s.missing)}. Until then Measure Current and Unload (M600) stay off.`
-    : `Check ${names(s.invalid)} — Measure Current and Unload (M600) stay off.`;
+  return s.missing.length ? `Not set up — enter ${names(s.missing)}. Until then Measure Current and Unload (M600) stay off, and nothing is written to the LinuxCNC parameters.`
+    : `Check ${names(s.invalid)} — Measure Current and Unload (M600) stay off, and nothing is written to the LinuxCNC parameters.`;
 });
 
 // ─── Toolsetter boolean wrappers (0/1 ↔ boolean) ───
@@ -302,6 +313,9 @@ watch(settingsVersion, () => { void pushWhenConfirmed(); });
 <template>
   <div class="formGrid tsPanel">
     <div v-if="setupNote" class="statusNote warn wide" role="alert"><span>{{ setupNote }}</span></div>
+    <div v-if="machineState.kind !== 'not_set_up'" class="statusNote wide tsMachine"
+         :class="machineState.kind === 'confirmed' ? 'ok' : 'warn'"><span class="textWithHelp"><span role="status">{{ machineText }}</span><HelpIcon
+           label="LinuxCNC parameters">{{ TOOLSETTER_PARAMS_HELP }}</HelpIcon></span></div>
     <div v-if="pushError" class="statusNote error wide" role="alert"><span>{{ pushError }}</span></div>
     <!-- Toolsetter Position -->
     <div class="sub">Toolsetter Position (G53)</div>
@@ -358,7 +372,7 @@ watch(settingsVersion, () => { void pushWhenConfirmed(); });
     </FormField>
     <div class="toggleGrid wide">
       <MachineToggle gate="toolsetterParam" v-model="tsUseToolTable" label="Use Tool Table" help="Starts the search just above the expected tip — faster. Off for new or unmeasured tools." />
-      <MachineToggle gate="toolsetterParam" v-model="tsGoBackToStart" label="Return to Start" help="Return to where M600 was called after measuring." />
+      <MachineToggle gate="toolsetterParam" v-model="tsGoBackToStart" label="Return to Start" help="After measuring: back to the X/Y where M600 was called, at the top. Z stays up; the program descends." />
       <MachineToggle gate="toolsetterParam" v-model="tsDisablePrePos" label="Skip G30 Pre-Position" help="Go straight to the setter without the G30 move — only if nothing is in the way." />
       <MachineToggle gate="toolsetterParam" v-model="tsLastTry" label="Last Try Without Table" help="The last retry ignores the tool table and starts from spindle zero height." />
     </div>

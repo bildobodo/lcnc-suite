@@ -786,6 +786,36 @@ test("a held letter jog keeps its stop when Shift turns it upper case (Codex R20
   expect(keys).toContainEqual({ type: "keyup", key: "Q", code: "KeyQ" });
 });
 
+test("every bound jog key jogs its own axis in its direction and stops it on release; a key of an absent axis sends nothing", async ({ page }) => {
+  // The function inventory's F-KEYBOARD S3: per binding, not one key. On
+  // XYZAC the axis is its place in the machine's axis list (C is 4, never
+  // its canonical 5); C has no default key, so it gets one here.
+  await openReady(page);
+  await ctl({ op: "setAxes", axes: ["X", "Y", "Z", "A", "C"] });
+  await expect(page.locator("input.setupInput")).toHaveCount(5);
+  await ctl({ op: "raw", frame: { type: "settings_init", settings: { keyboard: { jogEnabled: true, buttonsEnabled: true,
+    mapping: { "jog_c+": "c", "jog_c-": "v" } } } } });
+  await page.getByRole("radiogroup", { name: "Jog step", exact: true }).getByRole("radio", { name: "Cont", exact: true }).click();
+  const keys: [string, number, 1 | -1][] = [["ArrowRight", 0, 1], ["ArrowLeft", 0, -1], ["ArrowUp", 1, 1], ["ArrowDown", 1, -1],
+    ["PageUp", 2, 1], ["PageDown", 2, -1], ["]", 3, 1], ["[", 3, -1], ["c", 4, 1], ["v", 4, -1]];
+  for (const [key, axis, dir] of keys) {
+    await focusBody(page);
+    await ctl({ op: "clearCmds" });
+    await page.keyboard.down(key);
+    await expect.poll(jogCmds, key).toHaveLength(1);
+    const [start] = await jogCmds() as { cmd?: string; axis?: number; vel?: number }[];
+    expect(start, key).toMatchObject({ cmd: "jog_cont", axis });
+    expect(Math.sign(start!.vel!), `${key}: its direction`).toBe(dir);
+    await page.keyboard.up(key);
+    await expect.poll(jogCmds, `${key}: stopped on release`).toEqual([start, expect.objectContaining({ cmd: "jog_stop", axis })]);
+  }
+  // B's default keys on a machine without B: nothing
+  await ctl({ op: "clearCmds" });
+  for (const key of ["'", ";"]) { await page.keyboard.down(key); await page.keyboard.up(key); }
+  await page.waitForTimeout(300);
+  expect(await jogCmds(), "no B axis: no jog").toEqual([]);
+});
+
 test("settings save status: Saving… on a change, Saved on the gateway's ok, the reason on ok:false", async ({ page }) => {
   // UX-08: the header's "saved automatically" is a promise with a proof —
   // the status follows the correlated reply, never the send alone.

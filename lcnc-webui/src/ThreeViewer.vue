@@ -2137,6 +2137,9 @@ async function buildFromInit(init: ViewerInit) {
         holdPartFrameReplies: (on: boolean) => { _pfHoldReplies = on; },
         setBakeDebounceMs: (ms: number) => { _pfWcsDebounceMs = ms; },
         failNextPartFrameReply: () => { _pfFailNext = true; },
+        heldPartFrameReplies: () => _pfHeldReplies.length,
+        getDebounceFired: () => ({ ..._debounceFired }),
+        checkTimerPending: () => _colAutoPending,
         releasePartFrameReplies: () => {
           const q = _pfHeldReplies.splice(0);
           for (const ev of q) _pfOnReply(ev);
@@ -4215,9 +4218,18 @@ let _colAutoTimer: ReturnType<typeof setTimeout> | undefined;
 // a mid-run re-parse publishes during AUTO): it starts once the interpreter
 // is idle again, whether or not another parse follows (Codex R40 MR-I03).
 let _colHeldByRun = false;
+// How often the re-bake and the re-check timers fired (__viewerDiag.getDebounceFired):
+// a spec waits on the count, never on the timer's length.
+const _debounceFired = { bake: 0, check: 0 };
+// Whether a re-check timer is set (__viewerDiag.checkTimerPending): a spec's
+// proof that a change scheduled none.
+let _colAutoPending = false;
 function _colScheduleAuto() {
   clearTimeout(_colAutoTimer);
+  _colAutoPending = true;
   _colAutoTimer = setTimeout(() => {
+    _colAutoPending = false;
+    _debounceFired.check++;
     if (simMode.value) return;               // ScrubBar re-checks with the entry track
     if (!machineReady.value) return;         // geometry loading — machineReady watcher retries
     if (previewBasisPending.value) return;   // the payload at the new basis schedules it (VP-I23)
@@ -4368,6 +4380,7 @@ watch(previewBasisPending, (pending) => {
   if (!pending) return;
   cancelCollisionCheck();
   clearTimeout(_colAutoTimer);
+  _colAutoPending = false;
   collisionResult.value = null;
   collisionTrack.value = null;
   _colDropEntry();
@@ -4601,6 +4614,7 @@ function _pfScheduleWcsRefresh() {
   if (_pfAppliedMode !== "part" && !_bakeFollowsOffsetsNow(viewerGcode.value)) return;
   clearTimeout(_pfWcsTimer);
   _pfWcsTimer = setTimeout(() => {
+    _debounceFired.bake++;
     // VP188-02 E2 (plan basiswechsel-last 3a): while the gateway re-parses
     // the program, the bake is held — its publication replaces the path
     // anyway; the drawn path stays muted meanwhile (pathBehind)
@@ -5321,6 +5335,7 @@ onUnmounted(() => {
   setViewerPerfGl(null);
   clearTimeout(_pfWcsTimer);
   clearTimeout(_colAutoTimer);
+  _colAutoPending = false;
   _pfWorker?.terminate();
   _pfWorker = null;
   _reachWorker?.terminate();

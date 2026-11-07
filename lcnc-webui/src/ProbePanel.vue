@@ -2,12 +2,14 @@
 import { ref, computed, inject, onMounted, onUnmounted, watch, type Ref } from "vue";
 import DialogFrame from "./DialogFrame.vue";
 import MachineBtn from "./MachineBtn.vue";
-import { fmtNum } from "./format";
+import { fmtNum, NO_VALUE } from "./format";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
 import MachineInput from "./MachineInput.vue";
 import MachineToggle from "./MachineToggle.vue";
 import MachineRadio from "./MachineRadio.vue";
-import { usePermissions } from "./permissions";
+import { usePermissions, useFire } from "./permissions";
+import ChoiceGroup from "./ChoiceGroup.vue";
+import type { ChoiceOption } from "./choiceGroup";
 import { loadProbeDraft, saveProbeDefaults, settingsVersion, serverSettingsReady, clearToolsetterDefaults } from "./defaults";
 import ToolsetterSettings from "./ToolsetterSettings.vue";
 import CornerGlyph from "./CornerGlyph.vue";
@@ -28,7 +30,8 @@ const props = defineProps<{
   workPos: number[];
   probeResults: Record<string, number> | null;
   eoffsetZ: number | null;
-  eoffsetEnabled: boolean;
+  /** The pin as the status reports it; null = not read (never OFF). */
+  eoffsetEnabled: boolean | null;
   compMethod: number | null;  // 0=nearest, 1=linear, 2=cubic
   compGridVersion: number;
   surfacePoints: [number, number, number][] | null;
@@ -57,7 +60,6 @@ const emit = defineEmits<{
   (e: "getProbeResults"): void;
   (e: "getCompGrid"): void;
   (e: "setCompensation", enable: boolean): void;
-  (e: "setCompMethod", method: number): void;
   (e: "toggleSurfaceLayer", on: boolean): void;
 }>();
 
@@ -274,10 +276,13 @@ function refreshSurface() {
 
 const METHOD_LABELS: Record<number, string> = { 0: "Nearest", 1: "Linear", 2: "Cubic" };
 
-function setMethod(m: number) {
-  if (!can.value.ready) return;
-  emit("setCompMethod", m);
-}
+// The method is a machine choice (Codex R265 F-COMP S2): checked is what
+// the status reports — null checks nothing, never Cubic — and a request is
+// pending until the status shows it ("Not confirmed" after 5 s).
+const fire = useFire();
+const METHOD_OPTIONS: ChoiceOption<number>[] = Object.entries(METHOD_LABELS)
+  .map(([id, label]) => ({ value: Number(id), label, gate: "compMethod" }));
+const methodAct = (m: number) => fire({ cmd: "set_compensation_method", method: m }, "probe");
 
 function onCompToggle(v: boolean | undefined) { if (v !== undefined) emit("setCompensation", v); }
 
@@ -1127,18 +1132,13 @@ function fmtR(key: string): string {
           <div v-else-if="surfaceState?.grid === 'empty'" class="emptyState">No compensation grid yet</div>
           <div class="sep"></div>
           <div class="row-tight">
-            <span class="compDot" :class="{ on: eoffsetEnabled }"></span>
-            <span>Compensation: <b class="stable-width"><span :class="{ alt: !eoffsetEnabled }">ON</span><span :class="{ alt: eoffsetEnabled }">OFF</span></b></span>
+            <span class="compDot" :class="{ on: eoffsetEnabled === true }"></span>
+            <span>Compensation: <b class="stable-width"><span :class="{ alt: eoffsetEnabled !== true }">ON</span><span :class="{ alt: eoffsetEnabled !== false }">OFF</span><span :class="{ alt: eoffsetEnabled !== null }">{{ NO_VALUE }}</span></b></span>
           </div>
           <span v-if="eoffsetZ != null" class="text-muted mono">Z: {{ fmtNum(eoffsetZ, 4) }}</span>
           <div class="sep"></div>
           <div class="sub">Method</div>
-          <div class="radioGroup">
-            <label v-for="(label, id) in METHOD_LABELS" :key="id">
-              <MachineRadio gate="compMethod" name="compMethod" :value="Number(id)"
-                :modelValue="compMethod ?? 2" @update:modelValue="setMethod(Number(id))" /> {{ label }}
-            </label>
-          </div>
+          <ChoiceGroup label="Compensation method" :options="METHOD_OPTIONS" :modelValue="compMethod" :act="methodAct" />
           <div class="sep"></div>
           <MachineToggle gate="viewerSetting" :modelValue="surfaceLayerVisible"
             @update:modelValue="emit('toggleSurfaceLayer', $event!)" label="Show Surface" />
@@ -1148,10 +1148,10 @@ function fmtR(key: string): string {
                direction), but turning it ON needs `surfaceComp` — every rotary
                parked at zero. Both classes are backend-derived; this only
                chooses which one applies to which direction. -->
-          <MachineToggle gate="compToggle" :modelValue="eoffsetEnabled"
-            :disabled="probing || (!eoffsetEnabled && !can.surfaceComp)"
+          <MachineToggle gate="compToggle" :modelValue="eoffsetEnabled === true"
+            :disabled="probing || (eoffsetEnabled !== true && !can.surfaceComp)"
             @update:modelValue="onCompToggle" label="Enable Compensation" />
-          <div v-if="eoffsetEnabled && rotaryTilted" class="statusNote warn" role="alert">
+          <div v-if="eoffsetEnabled === true && rotaryTilted" class="statusNote warn" role="alert">
             Compensation active with a rotary off zero — the Z shim does not
             tilt with the tool and is no longer valid for this orientation.
           </div>

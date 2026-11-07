@@ -121,7 +121,7 @@ BY USING THIS SOFTWARE, YOU EXPRESSLY ACKNOWLEDGE AND ASSUME ALL RISKS ASSOCIATE
 - **Full Machine Control**: E-stop, enable, jog, MDI, auto run
 - **Three-Layer Safety System**:
   - Connection-level arming to prevent accidental commands (`require_armed()` gates all motion)
-  - Disconnect handler: stops all motion when an armed client disconnects
+  - Disconnect handler: when a client disconnects, its pending commands are dropped; when an armed client leaves, the gateway also tries to stop the jogs it booked (every jogging joint, gateway-wide; nothing while a program runs in AUTO) — a running program is not aborted by one client leaving (the HAL watchdog below owns motion abort)
   - Heartbeat watchdog: client sends 1 s heartbeat; gateway disarms after 3 s timeout
   - HAL watchdog: `webui-safety` HAL component + retriggerable `oneshot` monostable — machine enters ESTOP when all clients disconnect, the gateway crashes, or the gateway stalls ≥ 0.5 s. A servo-thread `estop_latch` (`webui-hb-latch`) latches the ESTOP in the same ~1 ms cycle the oneshot expires — owned by HAL, so trips survive gateway *and* watchdog freezes — until the operator acknowledges the sticky safety-trip banner and clicks E-Stop Reset
   - E-Stop button forces HAL pin LOW for defense-in-depth alongside software command
@@ -289,8 +289,9 @@ The message panel shows a persistent log of all LinuxCNC errors and operator mes
 
 Run this on a fresh machine — no prior clone needed. The installer fetches
 dependencies, clones the repo into `~/lcnc-suite/`, sets up the Python venv
-and npm packages, and installs the three supported simulation examples into
-`~/linuxcnc/configs/lcnc_suite_sim/`, including updates to existing installations.
+and npm packages, builds the frontend and installs the three supported
+simulation examples into `~/linuxcnc/configs/lcnc_suite_sim/`, including
+updates to existing installations.
 
 ```bash
 wget -O install.sh https://raw.githubusercontent.com/bildobodo/lcnc-suite/main/install.sh && bash install.sh
@@ -299,12 +300,20 @@ wget -O install.sh https://raw.githubusercontent.com/bildobodo/lcnc-suite/main/i
 After it finishes:
 
 ```bash
-cd ~/lcnc-suite/lcnc-webui && npm run build       # build frontend for production
 linuxcnc ~/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_3axis_xyz.ini   # try the sim
 ```
 
 Pass a positional arg to override the clone location:
 `bash install.sh /opt/lcnc-suite`.
+
+Options: `--yes` installs missing system packages without asking (without it
+and without a terminal the installer stops instead of waiting);
+`--no-root` never calls sudo — missing system packages stop it, and the two
+realtime components (TWP kinematics, simulated tool setter) are compiled but
+not installed (the system's modules stay; the installer says so). Every merge
+to `development` runs `install.sh --yes --no-root` in a fresh clone with its
+own home and starts what it installed (the merge gate's install probe,
+`docs/testing.md`).
 
 ### Option B: Inside an existing clone
 
@@ -313,8 +322,7 @@ If you've already cloned the repo, run the installer from inside it:
 ```bash
 git clone https://github.com/bildobodo/lcnc-suite.git
 cd lcnc-suite
-./install.sh          # detects the clone, skips git-clone, sets up venv + npm + sim config
-cd lcnc-webui && npm run build && cd ..
+./install.sh          # detects the clone, skips git-clone, sets up venv + npm + build + sim config
 ```
 
 ### Option C: Manual
@@ -334,9 +342,9 @@ pip install -r lcnc-gateway/requirements.txt
 python3 lcnc-gateway/venv_check.py   # numpy must stay the system's (issue #42)
 deactivate
 
-# 3. Node.js dependencies
+# 3. Node.js dependencies (exactly the lock file)
 cd lcnc-webui
-npm install
+npm ci
 
 # 4. Build frontend for production
 npm run build
@@ -734,12 +742,11 @@ Clients should send a heartbeat every 1 second. If the gateway doesn't receive a
 #### Probing
 ```json
 {"cmd": "set_probe_vars", "vars": {"3014": 50.0, "3015": 5.0}}
-{"cmd": "get_probe_vars", "nums": ["3014", "3015", "3032"]}
 {"cmd": "list_probe_macros"}
 {"cmd": "simulate_probe_trip"}
 ```
 
-`set_probe_vars` writes variables to the LinuxCNC parameter file and sets them via MDI. `probe_results` (including `cal_offset`) are parsed in real-time from ProbeBasic's `DEBUG EVAL` messages on the LinuxCNC error channel and included in `status` messages automatically.
+`set_probe_vars` sets the variables in the interpreter via MDI, then writes the keys it took into the LinuxCNC parameter file (the reply names `mdi_set`, `applied_keys`, `persisted`). There is no read of the parameter file: `get_probe_vars` was removed (2026-11-05) — the file is what LinuxCNC last saved, not what the interpreter holds; the toolsetter's state rides the status as `toolsetter_booking`. `probe_results` (including `cal_offset`) are parsed in real-time from ProbeBasic's `DEBUG EVAL` messages on the LinuxCNC error channel and included in `status` messages automatically.
 
 ### Error Handling
 
@@ -787,9 +794,9 @@ Machine stays enabled only when ALL FOUR: user hasn't pressed e-stop, at least o
 
 Recovery (enforced order): **Acknowledge** the safety-trip banner first — both Arm and E-Stop Reset are rejected while a trip is unacknowledged → re-**Arm** if armed was lost → **E-Stop Reset** (sends `{"trip_reset": true}` IPC to `hal_watchdog.py`, which pulses `webui-safety.trip-reset-out` → `webui-hb-latch.reset` rising edge → latch clears, then `CMD.state(STATE_ESTOP_RESET)`) → **Machine On**. Motion commands still require `require_armed()`. The banner persists across reloads and multiple clients — cleared server-side by `safety_trip_ack`.
 
-**Layer 1 — Disconnect Handler**: When an armed WebSocket client disconnects (browser closed, network drop), the gateway immediately sends `jog_stop` for all axes and `abort` to halt any running program.
+**Layer 1 — Disconnect Handler**: When a WebSocket client disconnects (browser closed, network drop), the gateway cancels its handling of the client's in-flight command (a write already begun ends first; a command LinuxCNC already took is not taken back) and drops its queue. When the client was armed, it also tries to stop the jogs it booked — every joint it booked as jogging, gateway-wide, only with the machine enabled, never while a program runs in AUTO. It does not abort a running program: armed is authorization, not a dead-man; the HAL chain below owns motion abort.
 
-**Layer 2 — Heartbeat Watchdog**: The client sends `{"cmd": "heartbeat"}` every 1 second. If the gateway doesn't receive a heartbeat from an armed client within 3 seconds (e.g., browser freeze, WiFi stall), it jog-stops that client's jog and disarms the connection (no program abort — the HAL chain owns motion-abort safety). The client receives an error message: `"Heartbeat timeout — disarmed for safety"`. Heartbeats are read by the per-client reader task and never wait behind a command handler (commands run on a per-client worker), so a long touch-off or Capture cannot trip this watchdog.
+**Layer 2 — Heartbeat Watchdog**: The client sends `{"cmd": "heartbeat"}` every 1 second. If the gateway doesn't receive a heartbeat from an armed client within 3 seconds (e.g., browser freeze, WiFi stall), it disarms the connection and tries the same jog stop as Layer 1 (no program abort — the HAL chain owns motion-abort safety). The client receives an error message: `"Heartbeat timeout — disarmed for safety"`. Heartbeats are read by the per-client reader task and never wait behind a command handler (commands run on a per-client worker), so a long touch-off or Capture cannot trip this watchdog.
 
 **Layer 3 — HAL Watchdog**: A standalone `hal_watchdog.py` component is loaded by LinuxCNC via the HAL config (not spawned by the gateway). It creates HAL pins and listens on a Unix socket (`/tmp/webui-safety.sock`). The gateway connects to this socket as a client and sends pin updates. A retriggerable `oneshot` comp monitors the heartbeat pin — each heartbeat edge restarts its 0.5 s pulse, so it self-heals when edges resume (unlike the stock `watchdog` component, which latches on trip and requires a FALSE→TRUE edge on `enable-in` to clear — fragile across gateway reconnects).
 
@@ -1032,7 +1039,7 @@ ships the full set seeded):
 | #3103 | use_tool_table | 1 = use tool table for positioning |
 | #3104 | tool_min_dis | Min distance for known-tool re-probe |
 | #3105 | brake_after_M600 | 0 = none, 1 = M00, 2 = M01 |
-| #3106 | go_back_to_start_pos | 1 = return to start after measurement |
+| #3106 | go_back_to_start_pos | 1 = back to the call's X/Y at the top of travel; Z stays up |
 | #3107 | spindle_stop_m | M-code to stop spindle (5 or 500) |
 | #3108 | disable_pre_pos | Disable G30 pre-change positioning |
 | #3109 | addreps | Extra retry count on probe fail |

@@ -35,7 +35,9 @@ describe("radio group names", () => {
       }
     }
     expect(clashes, clashes.join("\n")).toEqual([]);
-    // The scan found the groups it guards (a broken pattern must not pass empty).
-    expect(seen).toBeGreaterThanOrEqual(15);
+    // The scan found the groups it guards (a broken pattern must not pass
+    // empty). 14 since the compensation method became a ChoiceGroup (its
+    // radios carry no literal name, 2026-11-04).
+    expect(seen).toBeGreaterThanOrEqual(14);
   });
 });

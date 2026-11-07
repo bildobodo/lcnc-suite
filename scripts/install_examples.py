@@ -12,6 +12,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -330,8 +331,13 @@ def remap_lines(text):
     return out
 
 
-def render_ini(text, template, repo, migrate_datum=False):
-    """Update suite-owned paths/title; retain local settings, limits and HAL edits."""
+def render_ini(text, template, repo, migrate_datum=False, nc_files=None, macro_dir=None):
+    """Update suite-owned paths/title; retain local settings, limits and HAL edits.
+
+    `nc_files` / `macro_dir` (the native stage's copy, plan Codex R268/R269)
+    set PROGRAM_PREFIX + TOOL_LIBRARY_DIR and WEBUI_MACRO_DIR + the last
+    SUBROUTINE_PATH entry, as given — relative to the configuration folder
+    keeps the TWP line under LinuxCNC's 255 bytes."""
     source = repo / "examples/sim_config"
     ref = values(template)
     managed = {key: ref[key] for key in (
@@ -356,7 +362,7 @@ def render_ini(text, template, repo, migrate_datum=False):
     # otherwise take over the tool-change remap).
     if ("RS274NGC", "SUBROUTINE_PATH") in managed and ("DISPLAY", "WEBUI_MACRO_DIR") in ref:
         entries = managed[("RS274NGC", "SUBROUTINE_PATH")].split(":")
-        mine = local.get(("DISPLAY", "WEBUI_MACRO_DIR")) or ref[("DISPLAY", "WEBUI_MACRO_DIR")]
+        mine = macro_dir or local.get(("DISPLAY", "WEBUI_MACRO_DIR")) or ref[("DISPLAY", "WEBUI_MACRO_DIR")]
         if entries and entries[-1] == ref[("DISPLAY", "WEBUI_MACRO_DIR")]:
             entries[-1] = mine
         managed[("RS274NGC", "SUBROUTINE_PATH")] = ":".join(entries)
@@ -380,6 +386,11 @@ def render_ini(text, template, repo, migrate_datum=False):
             or "~/linuxcnc/nc_files")
     if local.get(("DISPLAY", "OPEN_FILE")) == "~/linuxcnc/nc_files/blank.ngc":
         managed[("DISPLAY", "OPEN_FILE")] = ref[("DISPLAY", "OPEN_FILE")]
+    if nc_files:
+        managed[("DISPLAY", "PROGRAM_PREFIX")] = managed[("DISPLAY", "TOOL_LIBRARY_DIR")] = nc_files
+    if macro_dir:
+        managed[("DISPLAY", "WEBUI_MACRO_DIR")] = macro_dir
+        display_missing = [line for line in display_missing if not line.startswith("WEBUI_MACRO_DIR ")]
     section, output = "", []
     for line in text.splitlines():
         if line.strip().startswith("[") and line.strip().endswith("]"):
@@ -421,19 +432,58 @@ def assert_stopped():
             raise RuntimeError("Stop LinuxCNC before updating the installed examples")
 
 
+def _replace_with(path, content, mode):
+    """Write `content` to `path` by a rename from a NEW temporary file in
+    its folder, created exclusively (mkstemp: O_CREAT|O_EXCL) — a link lying
+    at a temporary name is never followed (Codex R286 FI-I20: a fixed
+    `<name>.install-tmp` led the write out of the run); the rename replaces
+    a link at `path` itself, never what it leads to."""
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".install-tmp")
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(content)
+        os.chmod(tmp, mode)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def confined(path, root, link=False):
+    """Whether `path` stays in `root` once every link on the way is
+    followed: the deepest existing ancestor resolved, the rest appended. A
+    link to be written (`link`) is checked where it is made, not where it
+    leads."""
+    path, root = Path(path), Path(root).resolve()
+    if link:
+        path = path.parent
+    probe, rest = path, []
+    while not probe.exists() and not probe.is_symlink() and probe != probe.parent:
+        rest.insert(0, probe.name)
+        probe = probe.parent
+    return probe.resolve().joinpath(*rest).is_relative_to(root)
+
+
 def resolve_directory(value, ini_directory):
     """Resolve a configured folder, with the same home/relative rules as the UI."""
     path = Path.home() / value[2:] if value.startswith("~/") else Path(value).expanduser()
     return path if path.is_absolute() else ini_directory / path
 
 
-def install(repo, destination, backup_root, settings_path=None, report=None):
+def install(repo, destination, backup_root, settings_path=None, report=None, nc_files=None, macro_dir=None,
+            confine=None):
     """Plan every write, refuse what cannot be done, back up, then write.
 
     `settings_path` is the gateway's settings.json (the WebUI's per-INI
     settings; default: the checkout's, which the gateway reads), read only
     when a datum migration needs it; `report` collects what the operator
-    should know (printed by main)."""
+    should know (printed by main). `nc_files` / `macro_dir` go to
+    render_ini; `confine` (the native stage's run folder) refuses, before the
+    first write, every target that resolves outside it — a folder, a link
+    in the way, a backup."""
     repo, destination, backup_root = (Path(p).expanduser().resolve()
                                       for p in (repo, destination, backup_root))
     report = [] if report is None else report
@@ -454,7 +504,7 @@ def install(repo, destination, backup_root, settings_path=None, report=None):
         template = (source / name).read_text()
         text = existing.read_text() if existing.is_file() else template
         migrate_datum = name == XYZAC_INI and existing.is_file() and xyzac_datum(text, name) == "old"
-        writes[name] = render_ini(text, template, repo, migrate_datum).encode()
+        writes[name] = render_ini(text, template, repo, migrate_datum, nc_files, macro_dir).encode()
         problems = ini_line_problems(writes[name].decode())
         if problems:
             raise ValueError(f"{name}: " + "; ".join(problems))
@@ -462,10 +512,10 @@ def install(repo, destination, backup_root, settings_path=None, report=None):
         # The macro folder (package 5): created with the example macros on
         # the first install only — a macro the operator deleted stays gone.
         if ("DISPLAY", "WEBUI_MACRO_DIR") in rendered:
-            macro_dir = resolve_directory(rendered["DISPLAY", "WEBUI_MACRO_DIR"], destination)
-            if not macro_dir.exists():
+            macro_folder = resolve_directory(rendered["DISPLAY", "WEBUI_MACRO_DIR"], destination)
+            if not macro_folder.exists():
                 for rel in catalog.get("macros", []):
-                    libraries[macro_dir / Path(rel).name] = (source / rel).read_bytes()
+                    libraries[macro_folder / Path(rel).name] = (source / rel).read_bytes()
         library_dir = resolve_directory(rendered["DISPLAY", "TOOL_LIBRARY_DIR"], destination)
         for rel in catalog.get("tool_libraries", []):
             target = library_dir / Path(rel).name
@@ -578,6 +628,16 @@ def install(repo, destination, backup_root, settings_path=None, report=None):
              if not (destination / rel).is_symlink() or (destination / rel).resolve() != target.resolve()}
     retired = [destination / rel for rel in catalog["retired"]
                if (destination / rel).exists() or (destination / rel).is_symlink()]
+    if confine is not None:
+        targets = [destination / rel for rel in writes] + list(libraries) + retired
+        targets += [destination / rel for rel in links]          # the link itself, not where it leads
+        if destination.exists():
+            targets.append(backup_root)
+        if settings_changed:
+            targets.append(Path(settings_path))
+        outside = [str(t) for t in targets if not confined(t, confine, link=t in [destination / r for r in links])]
+        if outside:
+            raise ValueError(f"outside the run {Path(confine).resolve()}: " + ", ".join(sorted(outside)[:3]))
     assert_stopped()
     if settings_changed and gateway_running():
         # A running gateway caches settings.json and would write its copy back.
@@ -593,19 +653,14 @@ def install(repo, destination, backup_root, settings_path=None, report=None):
         if settings_changed:
             shutil.copy2(settings_path, backup / "settings.json")
     if settings_changed:
-        tmp = Path(settings_path).with_name(Path(settings_path).name + ".install-tmp")
-        tmp.write_text(json.dumps(settings, indent=2) + "\n")
-        os.chmod(tmp, Path(settings_path).stat().st_mode & 0o777)
-        tmp.replace(settings_path)
+        _replace_with(Path(settings_path), (json.dumps(settings, indent=2) + "\n").encode(),
+                      Path(settings_path).stat().st_mode & 0o777)
     destination.mkdir(parents=True, exist_ok=True)
     for rel, content in writes.items():
         path = destination / rel
         path.parent.mkdir(parents=True, exist_ok=True)
         # Replace via rename; never write through an old symlink into a checkout.
-        tmp = path.with_name(path.name + ".install-tmp")
-        tmp.write_bytes(content)
-        tmp.chmod(0o600 if path.suffix == ".ini" else 0o644)
-        tmp.replace(path)
+        _replace_with(path, content, 0o600 if path.suffix == ".ini" else 0o644)
     for path in retired + [destination / rel for rel in links]:
         if path.is_symlink() or path.is_file():
             path.unlink()
@@ -631,9 +686,13 @@ def main():
                     default=Path.home() / "linuxcnc/configs/lcnc_suite_sim")
     ap.add_argument("--backup-root", type=Path,
                     default=Path.home() / "linuxcnc/config-backups/lcnc_suite_sim")
+    ap.add_argument("--nc-files", help="PROGRAM_PREFIX + TOOL_LIBRARY_DIR (the native stage: relative)")
+    ap.add_argument("--macro-dir", help="WEBUI_MACRO_DIR + the last SUBROUTINE_PATH entry (relative)")
+    ap.add_argument("--confine", type=Path, help="refuse any write that resolves outside this folder")
     args = ap.parse_args()
     report = []
-    backup = install(args.repo, args.destination, args.backup_root, report=report)
+    backup = install(args.repo, args.destination, args.backup_root, report=report,
+                     nc_files=args.nc_files, macro_dir=args.macro_dir, confine=args.confine)
     print(f"Three example profiles installed: {args.destination}")
     for line in report:
         print(f"  {line}")

@@ -133,20 +133,21 @@ FULL_ONLY = {
 
 # ── Spec groups ──────────────────────────────────────────────────────────
 # Every rendered surface: what any component change can move or recolour.
-UI_SWEEP = ("layout", "layout-audit", "contrast", "visual", "dialogs")
+UI_SWEEP = ("layout", "layout-audit", "contrast", "visual", "dialogs", "help-icons")
 VIEWER = ("bake-hold.viewer", "collisions.viewer", "fatpaths.viewer", "findings.viewer",
           "rapids.viewer", "reach.viewer", "scenes.viewer", "sim-panel.viewer",
           "toolsetter.viewer", "viewcube.viewer", "viewer", "frames")
 PROGRAM = ("editor-guards", "run-hold", "safety-during-edit", "input-session",
            "keyboard-guards", "feedback-channels", "disarmed", "tabs", "select-writes",
-           "sim-panel.viewer")
-TOOLS = ("example-tool-library", "freecad-import", "tool-geometry", "tool-holder",
+           "sim-panel.viewer", "strip-actions")
+TOOLS = ("example-tool-library", "freecad-import", "tool-geometry", "tool-holder", "tool-marker",
          "tool-import", "tool-table-read")
 TOOLSETTER = ("toolsetter-setup", "g30", "forms", "toolsetter.viewer")
-PROBING = ("probe-click", "forms", "disarmed", "tabs")
-SETUP = ("offsets", "touchoff", "setup-gates", "setup-layout", "choices", "nine-axis")
+PROBING = ("probe-click", "compensation", "forms", "disarmed", "tabs")
+SETUP = ("offsets", "touchoff", "setup-gates", "setup-layout", "choices", "nine-axis", "strip-actions")
 STRIP = ("joint-jog", "keyboard-guards", "touch-hold", "touch-surface", "armed", "disarmed",
-         "choices", "setup-layout", "safety-during-edit", "setup-gates", "input-session")
+         "choices", "setup-layout", "safety-during-edit", "setup-gates", "input-session", "strip-actions",
+         "jog-buttons")
 SETTINGS = ("forms", "appearance", "select-writes", "tabs", "disarmed", "feedback-channels",
             "keyboard-guards", "scenes.viewer")
 MACROS = ("macros", "run-hold", "disarmed")
@@ -256,7 +257,7 @@ RULES: tuple[Rule, ...] = (
          "the probing panel and its glyphs", browser=PROBING, firefox=True,
          live=("probe-live",)),
     Rule(src("ToolsetterSettings.vue", "toolsetterSetup.ts", "toolsetterVars.ts",
-             "g30Form.ts", "g30Shared.ts"),
+             "g30Form.ts", "g30Shared.ts", "toolsetterState.ts"),
          "the toolsetter form and G30", browser=TOOLSETTER, live=("toolsetter-readback",)),
     Rule(src("ToolTablePanel.vue", "ToolPreview.vue", "ToolStrip.vue", "toolHolder.ts",
              "toolImportSummary.ts", "toolPreviewNotice.ts", "toolUnits.ts", "toolTypes.ts"),
@@ -300,6 +301,11 @@ RULES: tuple[Rule, ...] = (
     Rule(src("toolsetterSetup.ts", "toolsetterVars.ts", "probeFields.ts"),
          "the toolsetter's values: the form, the measure from the table, run from line, the setter in 3D",
          browser=TOOLSETTER + TOOLS + PROGRAM + VIEWER + PROBING),
+    # P2: the form's set-up rule IS the gateway's (toolsetter_rules.py) — one
+    # contract file, held by a vitest and a backend test
+    Rule(src("toolsetterRules.contract.json"),
+         "the toolsetter rule shared with the gateway (program starts apply the section)",
+         browser=TOOLSETTER, backend=True),
     Rule(src("viewer/activeFixtureFrame.ts", "viewer/programZero.ts", "viewer/twpPlaneFrame.ts"),
          "the work frame: the viewer's marker and the Setup section", browser=VIEWER + SETUP),
     Rule(src("viewer/colourMath.ts", "viewer/customContrast.ts", "viewer/palette.ts",

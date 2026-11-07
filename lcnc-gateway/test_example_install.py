@@ -170,6 +170,55 @@ class ExampleInstallTest(unittest.TestCase):
         self.assertIn("LinuxCNC reads 255", str(e.exception))
         self.assertIn("t" * 260, (self.dest / name).read_text(), "nothing written")
 
+    def test_the_run_options_keep_programs_and_macros_in_the_run(self):
+        """The native stage's copy (plan Codex R268/R269): `nc_files` and
+        `macros` given RELATIVE to the configuration folder — the TWP
+        SUBROUTINE_PATH has 9 bytes left of LinuxCNC's 255 — and every write
+        confined to the run's folder."""
+        run = self.base / "run"
+        dest = run / "configs/sim"
+        installer.install(ROOT, dest, run / "config-backups/sim", nc_files="nc_files", macro_dir="macros", confine=run)
+        for ini in sorted(dest.glob("*.ini")):
+            vals = installer.values(ini.read_text())
+            self.assertEqual(vals[("DISPLAY", "PROGRAM_PREFIX")], "nc_files", ini.name)
+            self.assertEqual(vals[("DISPLAY", "TOOL_LIBRARY_DIR")], "nc_files", ini.name)
+            self.assertEqual(vals[("DISPLAY", "WEBUI_MACRO_DIR")], "macros", ini.name)
+            self.assertEqual(vals[("RS274NGC", "SUBROUTINE_PATH")].split(":")[-1], "macros", ini.name)
+        self.assertTrue((dest / "nc_files/fusion-freecad.json").is_file(), "the library in the run's programs")
+        self.assertTrue(any((dest / "macros").glob("*.ngc")), "the example macros in the run's folder")
+        self.assertFalse(self.user_home.exists(), "nothing in the operator's home")
+
+    def test_confine_refuses_a_target_outside_before_any_write(self):
+        run = self.base / "run"
+        # the defaults name ~/linuxcnc/nc_files and ~/linuxcnc/macros: outside the run
+        with self.assertRaisesRegex(ValueError, "outside the run"):
+            installer.install(ROOT, run / "configs/sim", run / "config-backups/sim", confine=run)
+        self.assertFalse((run / "configs/sim").exists(), "refused before the first write")
+        # a link inside the run that leads out of it
+        outside = self.base / "outside"
+        outside.mkdir()
+        (run / "configs/sim").mkdir(parents=True)
+        (run / "configs/sim/nc_files").symlink_to(outside, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, "outside the run"):
+            installer.install(ROOT, run / "configs/sim", run / "config-backups/sim",
+                              nc_files="nc_files", macro_dir="macros", confine=run)
+        self.assertEqual(list(outside.iterdir()), [], "nothing written through the link")
+        self.assertEqual([p.name for p in (run / "configs/sim").iterdir()], ["nc_files"])
+
+    def test_a_link_waiting_at_a_temporary_name_is_never_followed(self):
+        """Codex R286 FI-I20: the installer wrote through `<name>.install-tmp`;
+        a link already lying there led the write out of the run (10 642
+        bytes over a file outside). Temporary files are created anew."""
+        run = self.base / "run"
+        dest = run / "configs/sim"
+        (dest / "xyz3").mkdir(parents=True)
+        outside = self.base / "outside.txt"
+        outside.write_text("the operator's file")
+        (dest / "xyz3/sim.var.install-tmp").symlink_to(outside)
+        installer.install(ROOT, dest, run / "config-backups/sim", nc_files="nc_files", macro_dir="macros", confine=run)
+        self.assertEqual(outside.read_text(), "the operator's file")
+        self.assertTrue((dest / "xyz3/sim.var").is_file() and not (dest / "xyz3/sim.var").is_symlink())
+
     def test_upgrade_migrates_state_settings_and_archives_retired_profiles(self):
         self.dest.mkdir(parents=True)
         profile = CATALOG["profiles"][0]

@@ -487,6 +487,11 @@ CASES.update({
     # T2 is the edge finder: its own X/Y, the reference 5 mm higher
     "m600_finder": _m600({3014: 2, 3113: 30, 3114: 40, 3115: 5}),
     "m600_no_back": _m600({3106: 0}),
+    # #3106 = 1 from the top of travel with no tool, then T2 (80 mm): the return
+    # to the start's X/Y stays at the top — it used to put the new TIP back at
+    # the start Z, the nose 80 mm above Z0 (MAX_LIMIT 50): "would exceed Z's
+    # positive limit" (operator decision 2026-11-05, Codex Q306-1)
+    "m600_top_longer": _m600(prog="G21 G90\nG53 G0 X50 Y50\nG53 G0 Z0\nT2 M600\nG0 X60 Y60\nM2\n"),
     "m600_no_prepos": _m600({3108: 1}),
     # T2 is 6 mm across: 50 % of it, towards X+
     "m600_diameter": _m600({3111: 5, 3112: 50, 3013: 1}),

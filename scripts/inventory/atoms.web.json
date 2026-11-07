@@ -831,6 +831,9 @@
      "id": "control:OverridesStrip.vue|MachineSlider:spindleOverride|@change=emit('spindleSliderChange') @update:model-value=onSpindleSlider(Number($event))"
     },
     {
+     "id": "control:ProbePanel.vue|ChoiceGroup:Compensation method| :act=methodAct"
+    },
+    {
      "id": "control:ProbePanel.vue|MachineBtn:abort|@click=emit('abort')"
     },
     {
@@ -980,12 +983,6 @@
       "scanYProbes",
       "scanSafeZ",
       "scanDepthZ"
-     ]
-    },
-    {
-     "id": "control:ProbePanel.vue|MachineRadio:compMethod|@update:modelValue=setMethod(Number(id))",
-     "family": [
-      "(label, id) in METHOD_LABELS"
      ]
     },
     {
@@ -1751,11 +1748,6 @@
      "file": "OffsetPanel.vue",
      "form": "v-for family",
      "expr": "row in props.wcsTable"
-    },
-    {
-     "file": "ProbePanel.vue",
-     "form": "v-for family",
-     "expr": "(label, id) in METHOD_LABELS"
     },
     {
      "file": "ProbePanel.vue",
@@ -2614,12 +2606,6 @@
     {
      "id": "cmd:get_probe_results",
      "members": []
-    },
-    {
-     "id": "cmd:get_probe_vars",
-     "members": [
-      "vars"
-     ]
     },
     {
      "id": "cmd:get_tool_table",

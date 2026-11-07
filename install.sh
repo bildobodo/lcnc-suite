@@ -6,18 +6,29 @@ set -euo pipefail
 #
 # Checks for missing system dependencies, offers to install them
 # via apt, then clones the repo (if needed), sets up the Python
-# venv and Node.js packages, and installs three simulation examples into
-# ~/linuxcnc/configs/lcnc_suite_sim/ so you can boot LinuxCNC
-# after building the frontend.
+# venv and Node.js packages, builds the frontend and installs three
+# simulation examples into ~/linuxcnc/configs/lcnc_suite_sim/ so you can
+# boot LinuxCNC right away.
 #
 # Usage:
 #   # From a fresh machine (no clone yet) — one-line bootstrap:
 #   wget -O install.sh https://raw.githubusercontent.com/bildobodo/lcnc-suite/main/install.sh && bash install.sh
 #
 #   # Or inside an existing clone:
-#   ./install.sh [target-dir]   # default: current dir if a clone, else ~/lcnc-suite
+#   ./install.sh [--yes] [--no-root] [target-dir]
+#   # target-dir: default the current dir if a clone, else ~/lcnc-suite
 #
-# The script uses sudo for system packages and the TWP realtime component.
+# Options:
+#   --yes      install missing system packages without asking (no terminal
+#              needed). Without it and without a terminal the script stops
+#              instead of waiting for an answer nobody can give.
+#   --no-root  never call sudo: missing system packages stop the script; the
+#              two realtime components are COMPILED (proving they build
+#              against the installed LinuxCNC) but not installed — the
+#              system's modules stay, and the script says so. The merge
+#              gate's install probe runs `--yes --no-root` (2026-11-07).
+#
+# The script uses sudo for system packages and the realtime components.
 # ============================================================
 
 # Run as the normal user; packages and the realtime component use sudo.
@@ -27,6 +38,19 @@ if [[ "$EUID" -eq 0 ]]; then
   echo "       The script will call sudo internally when needed."
   exit 1
 fi
+
+ASSUME_YES=0
+NO_ROOT=0
+POSITIONAL=()
+for arg in "$@"; do
+  case "$arg" in
+    -y|--yes)  ASSUME_YES=1 ;;
+    --no-root) NO_ROOT=1 ;;
+    -h|--help) sed -n '/^# lcnc-suite installer/,/^# =====/p' "$0" | sed '$d'; exit 0 ;;
+    -*)        echo "ERROR: unknown option $arg (see --help)" >&2; exit 2 ;;
+    *)         POSITIONAL+=("$arg") ;;
+  esac
+done
 
 NODE_MAJOR_MIN=18
 PY_MINOR_MIN=9
@@ -40,7 +64,7 @@ SIM_CONFIG_DIR="$HOME/linuxcnc/configs/lcnc_suite_sim"
 if [[ -f "$(pwd)/restart.sh" && -d "$(pwd)/lcnc-gateway" ]]; then
   TARGET_DIR="$(pwd)"
 else
-  TARGET_DIR="${1:-$HOME/lcnc-suite}"
+  TARGET_DIR="${POSITIONAL[0]:-$HOME/lcnc-suite}"
 fi
 
 # -- Colors --
@@ -211,10 +235,20 @@ else
     echo -e "    ${YELLOW}nodesource:${NC}  nodejs (v22.x LTS)"
   fi
   echo ""
-  read -rp "  Install these packages? [y/N] " REPLY
-  if [[ ! "$REPLY" =~ ^[Yy]$ ]]; then
-    echo -e "  ${RED}Aborted.${NC}"
+  if [[ "$NO_ROOT" -eq 1 ]]; then
+    fail "--no-root: these need root — install them, then re-run"
     exit 1
+  elif [[ "$ASSUME_YES" -eq 1 ]]; then
+    info "--yes: installing without asking"
+  elif [[ ! -t 0 ]]; then
+    fail "No terminal to ask — re-run with --yes to install these packages"
+    exit 1
+  else
+    read -rp "  Install these packages? [y/N] " REPLY
+    if [[ ! "$REPLY" =~ ^[Yy]$ ]]; then
+      echo -e "  ${RED}Aborted.${NC}"
+      exit 1
+    fi
   fi
 
   # Install apt packages
@@ -310,19 +344,25 @@ else
 fi
 
 info "Verifying Python imports..."
-if python3 -c "import linuxcnc, fastapi, uvicorn" 2>/dev/null; then
+if _imports="$(python3 -c "import linuxcnc, fastapi, uvicorn" 2>&1)"; then
   ok "Python environment ready"
 else
-  warn "Some Python imports failed — gateway may not start correctly"
+  fail "The gateway's Python imports failed — it would not start:"
+  echo "$_imports" | sed 's/^/      /'
+  exit 1
 fi
 
 deactivate
 
 # --- Node.js packages ---
-info "Installing Node.js dependencies..."
+info "Installing Node.js dependencies (exactly the lock file)..."
 cd "$TARGET_DIR/lcnc-webui"
-npm install --loglevel=warn
+npm ci --loglevel=warn
 ok "Node.js dependencies installed"
+
+info "Building the frontend..."
+npm run build --silent
+ok "Frontend built (lcnc-webui/dist)"
 
 cd "$TARGET_DIR"
 
@@ -349,28 +389,88 @@ esac
 # ============================================================
 step 5 "Installing sample sim config"
 
+# A FRESH install (no config folder before this step) must match the
+# templates exactly; an upgrade keeps the operator's local edits.
+FRESH_CONFIG=0
+[[ -e "$SIM_CONFIG_DIR" ]] || FRESH_CONFIG=1
+
 # All three supported examples are installed on fresh installs AND upgrades.
 # The helper refuses an active LinuxCNC session and snapshots local changes.
 python3 "$TARGET_DIR/scripts/install_examples.py" --repo "$TARGET_DIR" --destination "$SIM_CONFIG_DIR"
 
-info "Building the 6-axis TWP kinematics component..."
-sudo halcompile --install "$TARGET_DIR/examples/sim_config/twp/xyzacb_trsrn.comp"
-ok "TWP kinematics installed"
+# Every profile the catalog ships is there (config_sync_check passes a
+# missing folder).
+while read -r ini; do
+  if [[ ! -f "$SIM_CONFIG_DIR/$ini" ]]; then
+    fail "$ini was not installed in $SIM_CONFIG_DIR"
+    exit 1
+  fi
+done < <(python3 -c "import json, sys; [print(p['ini']) for p in json.load(open(sys.argv[1]))['profiles']]" \
+           "$TARGET_DIR/examples/sim_config/profiles.json")
+ok "Sim profiles installed"
 
+# The realtime components the sim configs load. With --no-root they are
+# compiled (they build against the installed LinuxCNC) and NOT installed:
+# the system's module stays, which this script then cannot vouch for.
+MODULE_DIR="$(python3 -c "import sys; sys.path.insert(0, sys.argv[1]); from config_sync_check import rtlib_dir; print(rtlib_dir() or '')" "$TARGET_DIR/scripts")"
+install_component() {
+  local comp="$1" what="$2" name build
+  name="$(basename "$comp" .comp)"
+  if [[ "$NO_ROOT" -eq 0 ]]; then
+    info "Building $what..."
+    sudo halcompile --install "$comp"
+    ok "$what installed"
+    return
+  fi
+  build="$(mktemp -d)"
+  cp "$comp" "$build/"
+  if (cd "$build" && halcompile --compile "$name.comp" >halcompile.log 2>&1); then
+    ok "$what compiles"
+  else
+    fail "$what does not compile:"
+    sed 's/^/      /' "$build/halcompile.log"
+    rm -rf "$build"
+    exit 1
+  fi
+  rm -rf "$build"
+  if [[ -n "$MODULE_DIR" && -e "$MODULE_DIR/$name.so" ]]; then
+    warn "$what NOT installed (--no-root): the system's $MODULE_DIR/$name.so stays — to install this one: sudo halcompile --install $comp"
+  else
+    fail "$what NOT installed (--no-root) and LinuxCNC has no $name.so — run: sudo halcompile --install $comp"
+    exit 1
+  fi
+}
+install_component "$TARGET_DIR/examples/sim_config/twp/xyzacb_trsrn.comp" "the 6-axis TWP kinematics component"
 # The sim configs' tool setter: trips the probe where a real tool setter
 # would (hallib/sim_toolsetter.hal) — every sim profile loads it.
-info "Building the simulated tool setter component..."
-sudo halcompile --install "$TARGET_DIR/examples/sim_config/sim_toolsetter/sim_toolsetter.comp"
-ok "Simulated tool setter installed"
+install_component "$TARGET_DIR/examples/sim_config/sim_toolsetter/sim_toolsetter.comp" "the simulated tool setter component"
 
 # Local INI settings stay operator-owned. Report functional template drift;
 # shared code follows the checkout and per-install secrets are excluded.
-if python3 "$TARGET_DIR/scripts/config_sync_check.py" \
-     --repo "$TARGET_DIR/examples/sim_config" --deployed "$SIM_CONFIG_DIR"; then
-  ok "Deployed sim config matches the repo templates"
-else
-  warn "Deployed sim config has drifted from the repo templates (see lines above) — carry over any repo-only lines you want; local edits are yours to keep"
-fi
+# A fresh install has no local edits: there, drift is a defect.
+# <checker exit> <fresh 0|1> → ok | warn | fail-drift | fail-check
+sync_verdict() {
+  if [[ "$1" -eq 0 ]]; then echo ok
+  elif [[ "$1" -eq 1 && "$2" -eq 0 ]]; then echo warn
+  elif [[ "$1" -eq 1 ]]; then echo fail-drift
+  else echo fail-check
+  fi
+}
+set +e
+python3 "$TARGET_DIR/scripts/config_sync_check.py" \
+  --repo "$TARGET_DIR/examples/sim_config" --deployed "$SIM_CONFIG_DIR"
+SYNC=$?
+set -e
+case "$(sync_verdict "$SYNC" "$FRESH_CONFIG")" in
+  ok)   ok "Deployed sim config matches the repo templates" ;;
+  warn) warn "Deployed sim config has drifted from the repo templates (see lines above) — carry over any repo-only lines you want; local edits are yours to keep" ;;
+  fail-drift)
+    fail "A fresh install differs from the repo templates (see lines above) — a defect of the installer"
+    exit 1 ;;
+  *)
+    fail "The config check could not run (exit $SYNC)"
+    exit 1 ;;
+esac
 
 # ============================================================
 # Step 6: Done
@@ -385,14 +485,11 @@ echo -e "
 
   ${BOLD}Next steps:${NC}
 
-    1. Build the frontend:
-       cd $TARGET_DIR/lcnc-webui && npm run build
-
-    2. Try the sim:
+    1. Try the sim:
        linuxcnc $SIM_CONFIG_DIR/lcnc_suite_sim_3axis_xyz.ini
        # Or select lcnc_suite_sim_5axis_xyzac.ini / lcnc_suite_sim_6axis_twp_xyzabc.ini
 
-    3. Adjust the sample config for your real machine:
+    2. Adjust the sample config for your real machine:
        - Copy $SIM_CONFIG_DIR/ to a new dir under ~/linuxcnc/configs/
        - Edit lcnc_suite_sim_3axis_xyz.ini (axis limits, kinematics, HAL files)
        - Keep the [DISPLAY] WEBUI_* lines and the lcnc_webui.hal include

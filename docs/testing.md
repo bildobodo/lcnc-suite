@@ -13,20 +13,80 @@ Playwright Chromium with `npx playwright install --with-deps chromium` there.
 | `python3 scripts/test_suite.py offline --component frontend` | Frontend checks, including recorded parity replay | None |
 | `lcnc-gateway/.venv/bin/python scripts/test_suite.py live-twp --ini /path/lcnc_suite_sim_6axis_twp_xyzabc.ini --allow-sim-motion` | Fresh preview goldens, cached-payload parity and plane invariants, mode/button, capture, reorient, touch-off and adverse-path checks | Yes, simulator only |
 
+## The native stage (Codex R282–R285; build step 1)
+
+Cases on the VM's REAL LinuxCNC, run by hand, never beside a gate:
+`scripts/native_run.py` takes the ONE heavy lock (`scripts/test_support/heavy_lock.py`, also held by
+`round_gate.py`, `perf_matrix.py`, the install probe and `repro-load.sh` — a shell script through the module's
+command line, never a bare `flock`: from the LAN stop the return is OWED and only the run's final restore,
+its unit's ExecStopPost, settles it; an unreadable marker keeps everyone out), records and stops the LAN sim, builds a run tree
+of the tested commit and a confined copy of the profile, checks it before the start, runs the cases and
+gives the LAN sim back (`restore_lan.py`, also the unit's ExecStopPost). It runs only as the user unit
+`native-run` — the command is in its docstring. Offline guards: `scripts/test_native_stage.py` (the
+backend gate's `native-stage` step). Step 2a adds Z probing, M600 with the override lock and the M6 hold;
+every routine runs under the M6 helper `test_support/tool_change.py` (nothing confirmed unless declared).
+A native evidence in `functions.json` (layer `native`) is "named"
+statically; a PASS comes only from a run report of the same commit, profile, case and variant
+(`functions.native_status`).
+Step 3 (Codex R313–R316) adds the heartbeat chain and the motion controller's period to the servo
+stream (`servo_time.py`: time only on the checked `rtapi_app` hash), a client that goes away
+(`disconnect-*`, a helper client in its own process, `proto_client.py`), 4 and 8 clients fetching the
+preview (`clients-*`) and the HAL latch as the LAST step (`latch-*`, the gateway stopped through
+`trip.py`, every stop continued by `restore_lan.continue_stopped`). The delayed latch order is a run
+of its own: `native_run.py … --variant latch-delayed` (its rows carry the variant).
+
 ## Round gate and merge gate (test strategy, Codex R248–R260)
 
 An implementation round runs the **round gate**: only the checks its change
 needs, chosen from a named base, with the proof of what ran. A merge runs the
-**full** offline gate on the integrated state (`test_suite.py offline`, or the
-round gate's FULL path); a full run already made on the identical state is
+**full** offline gate on the integrated state: `round_gate.py --merge` (every
+heavy unit file, the backend and the whole browser run, whatever the change
+selects; the record says `kind: "merge"` and keeps the round's selection
+beside it) or `test_suite.py offline`. A round whose change happens to select
+the full browser run is NO merge gate — its heavy unit files may be left out
+(Codex R279 FI-I17). A full run already made on the identical state is
 reused. Live checks (`live-twp`, `twp_buttons_check.py`, the macro and
 toolsetter read-backs, `perf_matrix.py`, the probe live check) stay owed before
 main and stand as `pending` in the record.
 
+**The install probe** (package I, operator 2026-11-07, Codex R329) is part of
+every merge gate (`round_gate.py --merge`, check `install-probe`): a fresh
+clone of HEAD in its own run folder, `install.sh --yes --no-root` with a NEW
+environment (HOME, caches, logs, pycache, tmp — all in the run; nothing
+inherited), the installed result (links, venv, build, the catalog's profiles,
+config sync, no tracked file changed, the native stage's target and
+confinement checks), then the installed 3-axis profile started through the
+installed launcher in production: the process proof, the safety chain proven
+POSITIVELY (the probe's own unarmed client past the gateway's 15 s grace — no
+banner, reader fresh, no trip — the trace's `hal.admitted` and
+`reader.connected` admitted for this gateway, `webui-hb-latch.fault-out`
+FALSE and `oneshot.0.out` TRUE by halcmd) and a browser starting the built UI
+against that gateway (`scripts/install_probe_browser.mjs`: mounted, its own
+WebSocket took the instance's state, every script and worker served as
+JavaScript). It takes the VM's LinuxCNC like the native stage and returns it
+with the restore's proof; the isolation also records the operator's home
+links BY TARGET. It runs AFTER the gate's heavy section, in its own run
+folder with its own id and the gate's commit, and holds the heavy lock
+itself (Codex R330–R331); from the LAN stop to the confirmed return the
+return is OWED (`heavy_lock.owe` — a marker beside the lock that only the
+run's own restore may pass, so a gate already waiting never comes between a
+killed probe and its ExecStopPost restore; the native stage shares it). The
+gate's wait is bounded (every systemctl call, an unread state, the
+deadline) and an interrupt stops the probe and awaits its end. Not shown: the realtime components' installation (compiled
+only), a new machine's apt/nodesource path, the bootstrap from GitHub.
+Standalone (an evidence run): the command in `scripts/install_probe.py`'s
+docstring; `--abort-at installer|start` are its two abort probes.
+
 ```
 lcnc-gateway/.venv/bin/python3 scripts/test_select/round_gate.py \
     --base <the package's last accepted commit> --out docs/reviews/<topic>.gate-round.json
+lcnc-gateway/.venv/bin/python3 scripts/test_select/round_gate.py --merge \
+    --base <the development commit merged into> --out <a NEW path per run>
 ```
+
+`--out` names a fresh record per run: the backend's evidence folder is never
+replaced (`test_suite.py` refuses an existing one — a second run on the same
+path failed its backend for that alone, 2026-11-05).
 
 The tree must be clean. In order, never two at once: the selector's own
 guards (`scripts/test_select/test_selector.py` — red guards end the gate before

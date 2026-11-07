@@ -91,6 +91,13 @@ class SettingsStore:
         """Settings for the current INI config."""
         return self._load_all().get(self._ini_key(), {})
 
+    def load_section(self, section: str):
+        """One section of the current INI config — a copy read under the lock
+        (P2: what a program start chooses and binds; a save in another thread
+        lands before or after it, never half)."""
+        with self._lock:
+            return copy.deepcopy(self._load_all().get(self._ini_key(), {}).get(section))
+
     def save_section(self, section: str, data, admit=None) -> None:
         """Persist one section for the current INI config; bumps version.
         Prepared on a copy: the cache changes only once the write succeeded.

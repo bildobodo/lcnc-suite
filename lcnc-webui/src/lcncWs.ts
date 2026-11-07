@@ -34,7 +34,7 @@ import {
 import {
   handleStatusError, handleStatusMessage, noteBulkData,
   noteFrameSample, noteHeartbeatSent, notePong, pushMessage,
-  rebaseStatusDelta, resetOnClose, safetyTrip,
+  rebaseStatusDelta, resetOnClose,
 } from "./ws/statusStore";
 
 // ---------- Connection-level state (owned here) ----------
@@ -51,7 +51,7 @@ export const serverShuttingDown = ref(false);
 // ---------- Barrel re-exports (the stable consumer surface) ----------
 // Status stream, message center, timing stats (split out, A1.5).
 export {
-  status, lcncError, safetyTrip, readerStale, safetyChainIncomplete, configWarning,
+  status, lcncError, safetyTrip, tripReasonLabel, readerStale, safetyChainIncomplete, configWarning,
   previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, type PreviewRefresh,
   previewTableStale, previewBasisPending, previewOrigin, runBasis, statusReceiptOf,
   latency, networkLatency, timingStats, messages, unreadCount,
@@ -431,10 +431,9 @@ export function saveSettings(section: string, data: any): string | null {
 registerSettingsSaver(saveSettings);
 
 export function acknowledgeSafetyTrip() {
-  // Optimistic clear — gateway will also stop broadcasting safety_trip on the
-  // next status cycle, so status-driven sync backs this up. If the send fails
-  // (WS closed), the local value will repopulate from the next status.
-  safetyTrip.value = null;
+  // No optimistic clear (Codex R321–R322, F-TRIP.S1b): the trip stays on the
+  // page until the gateway's next status frame comes without it — a send that
+  // never arrives must not hide a trip the gateway still holds.
   send({ cmd: "safety_trip_ack" });
 }
 

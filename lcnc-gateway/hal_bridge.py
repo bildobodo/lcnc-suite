@@ -405,8 +405,9 @@ class HalBridge:
         False = nothing written (no socket, closed while draining, a broken
         socket); None = unclear (a timeout part-way through `sendall`, or
         the helper's verdict still pending — it applies what follows the
-        hello only once it admits us). The heartbeat and the other pins
-        ignore it."""
+        hello only once it admits us). The M6 confirmation and the surface
+        compensation answer by it; the heartbeat and the other pins ignore
+        it."""
         if self._wd_sock is None:
             self.watchdog_connect()
         if self._wd_sock is None:

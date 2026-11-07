@@ -904,7 +904,7 @@ COMMAND_GATES: Dict[str, str] = {
 # Read-only queries handled before the policy check — no machine-state gate.
 READ_ONLY_COMMANDS = frozenset({
     "get_tool_table", "get_probe_results", "get_comp_grid",
-    "get_probe_vars", "get_wcs_table", "list_probe_macros",
+    "get_wcs_table", "list_probe_macros",
 })
 
 

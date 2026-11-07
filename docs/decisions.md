@@ -10383,3 +10383,808 @@ in a program over the worker's text alone (no lib, no import resolution, no
 disk) — only its one declaration as a `const` of a plain name with an
 initializer is a proven value; a binding pattern, a function-wide `var`, a
 `let`, a parameter, a catch or loop binding are unresolved.
+
+## 2026-11-04 — Function inventory: statements for the machine functions (Codex R275)
+
+111 statements over 41 functions, each bound to a test read for what it
+checks — Codex read all 79 first ones against their bodies and found the words
+wider than the rules (arm "any write", the G59 reservation without the TWP
+condition, the buttons' hold for the Space key too), evidence carrying part of
+a statement (a mutation that removed the Plane G54 refusal kept both linked
+tests green), and machine actions not yet said (shutdown, sim trip, tool
+edits, home all, spindle fwd/rev, TWP capture's result, reload/unload,
+unload). Each now says its rule; a partial proof is split, the rest an open
+statement with the layer that would see the break; the table's short list
+names 34 open statements and the 18 functions without machine effect.
+
+The disconnect contract (FI-I11), as it is: a client's leaving cancels the
+gateway's handling of its in-flight command (a write begun ends first; a
+command LinuxCNC took is not taken back) and drops its queue; an ARMED
+client's leaving also attempts the jog stop (`_jog_stop_for_client`: every
+joint the gateway booked as jogging — gateway-wide, not that client's own —
+machine enabled, nothing while AUTO runs; R276); an armed client's heartbeat
+timeout disarms it and attempts the same stop; neither aborts a running
+program — armed is authorization, not a dead-man, and the HAL chain owns
+motion abort. CLAUDE.md's safety layers said "jog_stop + abort" for both —
+corrected, with README's "stops all motion". The integration proof (leaving
+and timeout with a running program and a second client) stays open.
+
+## 2026-11-04 — Surface compensation shows and answers what is true (the function inventory's first gap package)
+
+Codex R265 named it the first gap package; the inventory's F-COMP S1–S3 were
+open. What the red-first tests found against development f0070ec7:
+
+- **Gateway.** `set_compensation` sent `bool(msg.get("enable", False))`: no
+  value switched compensation OFF, `"yes"` switched it ON; `set_compensation_method`
+  sent Cubic for a missing method; both answered `ok` whatever `_hal_send`
+  said. Now a missing value sends nothing ("Compensation not sent — on or off
+  missing", "Method not sent — none given") and `_compensation_reply` answers
+  by the delivery: written → ok, nothing written → "Compensation not sent —
+  try again", unclear → "Compensation unclear — check the display". Ok is the
+  delivery; the pin's state is the status's to show.
+- **Display.** An unread `eoffset_enabled` read OFF (`!!`), an unread method
+  Cubic (`?? 2`); a clicked method checked itself before the status took it
+  (the native radio). Now ON / OFF / "—", and the method is a manual
+  `ChoiceGroup` — the strip's pattern for machine choices: checked is the
+  reported state, a request pending until the status shows it, "Not
+  confirmed" after 5 s.
+
+Owed: the native effect (F-COMP S4: on/off and the three methods on a known
+non-flat surface) in the native tier.
+
+## 2026-11-05 — The merge gate of the statements and the compensation (Codex R279)
+
+Three runs on `integ/statements-comp`, two FAIL kept. Each failure was a test
+that waited a fixed time instead of reading a signal: `bake-hold` waited 700
+and 900 ms for the viewer's re-bake (300 ms) and re-check (400 ms) debounce
+timers — under three workers that ran short. The spec now takes each timer's
+firing count before the change and waits until that timer fired
+(`__viewerDiag.getDebounceFired`, read-only); a change that schedules no
+re-check — nothing left to check — waits on its bake and reads
+`checkTimerPending` false. Under four CPU burners: 2/2 red at that negative
+before, 54/54 after.
+
+The Sim tab's FH-05 test failed once with one frame of 25 out of view. A
+first fix dropped samples whose marked row changed after their frame — and
+Codex showed it dropped a PAINTED miss (R279 FI-I16): a marked row changed
+inside an animation frame (the scrub's play) was followed only in the NEXT
+frame, so that frame showed the new row out of view. The list now snaps at
+once, before the paint, when the marked row alone changed and no highlight in
+view is held (new rows still wait for the frame: their layout, plan 3.6); the
+test runs the scrub in a task and inside a frame — the frame variant red 3/3
+on the old list. A follow already planned for the next frame is taken over
+the same way (Codex R280: the held band scrolled away and a further row came
+before that frame — the planned follow kept the snap off; red 3/3 before). The code panel follows synchronously in its watcher: not
+affected.
+
+A round whose change selects the full browser run is no merge gate: it left
+out the eight heavy unit files (FI-I17). `round_gate.py --merge` runs every
+heavy file, the backend and the whole browser run, `kind: "merge"`.
+
+## 2026-11-04 — Function inventory: the browser gaps, what the controls send
+
+Nine open statements bound to tests that press the control the operator
+presses: the override sliders and their 100 % buttons, Flood / Mist and
+M01 / /BD (the value sent against the REPORTED state; the switch shows the
+status, never the click), the spindle's Fwd / Rev on a hold and ± (standing
+they move the preselection and send nothing), Home All on a hold, Unload in
+both tool-change modes, the surface scan with a value the server holds, every
+bound jog key on XYZAC (the axis is its place in the axis list: C is 4) and
+every gamepad action under its screen control's gate. A tap on a hold sends
+nothing. Each new guard was made red once: a mutation of the key's axis index,
+the gamepad's Home All gate; the ± test was red against the product.
+
+Found and fixed: the spindle's ± buttons had no accessible name (a glyph
+only) — named "Increase / Decrease spindle speed". A probe over every side
+tab in the three profiles found no other visible button without a name.
+Found and left open, each an open statement: Home per axis sends the axis
+PLACE as the joint and reads `homed_joints` there — right where joint =
+place (every shipped config, B = j[4] and C = j[5] on the TWP kinematics too),
+wrong on a gantry: it needs an axis → joint map from the gateway (F-HOME
+S2b). The gateway runs a command whose value is missing with a default
+(24 `finite_*(msg.get(…, default))`, 9 `bool(msg.get(…))`: `home` without
+`joint` homes all, `"false"` turns M01 on); the WebUI always sends the field
+(`commandShapes.test.ts`), the hardening against other senders is a gateway
+package of its own (SYS-CONN S5; F-COMP S3 was the first case).
+
+The evidence binder now treats vitest's own placeholders (`$field`, `%s`) as
+a parametric title like `${…}`: such a title needs its instances.
+
+## 2026-11-05 — The native stage, build step 1: the vertical slice (plan Codex R282–R285)
+
+The orchestrator and everything it stands on, built offline; no native run yet
+(it waits for the operator's look and development). One heavy lock serializes
+the gates, perf_matrix, the load repro and the native stage. The run tree is a
+worktree of the tested commit with a REAL node_modules copy (a hard-link copy
+shares inodes, and the build writes `node_modules/.tmp`); the copy is
+installed with `--nc-files` / `--macro-dir` RELATIVE (the TWP SUBROUTINE_PATH
+has 9 bytes left of 255) and `--confine` (every write in the run, links
+followed, refused before the first one). The target check moved to
+`test_support/live_target.py` (no linuxcnc import); `check_copy` compares the
+copy with the template rendered with the same options — no exempted key. The
+HAL starts `hal_reader.py`, `hal_watchdog.py`, `compensation.py` by name, and
+`~/.local/bin` links them into the MAIN checkout: the run's unit gets
+`PATH=<run>/bin` with links to the run tree's, checked before and after the
+start. The restore records the LAN instance, hashes the operator's files AFTER
+the stop (the instance writes its own state as it stops) and proves units,
+`/ready`, a new instance, its INI, the tree's HEAD and a keepalive client on
+the new gateway — three outcomes; the isolation is its own verdict, the LAN
+comes back either way.
+
+Found while building, for its own package: a PROGRAM_PREFIX naming a missing
+folder makes the gateway fall back to `~/linuxcnc/nc_files` and create it
+silently (`gateway.py` `_nc_files_dir`) — the run's target check refuses a
+missing folder, and the isolation hash shows `~/linuxcnc/nc_files` untouched.
+
+Codex R286 (FI-I18–I23), closed before any run: the installed `linuxcnc`
+script puts `~/.local/bin` first when PATH holds no ".local/bin" — the run's
+bin is `<run>/.local/bin` and the pre-check uses the PATH the launcher's own
+rule builds (`live_target.linuxcnc_path`, read from the script, an unknown
+rule refused); the process proof adds the toolsetter feed, the interpreters
+and the gateway's open log files. The run's OWN resources (test unit, tree)
+are on disk in `state.json` before each exists, and the restore — from
+`finally` and from ExecStopPost under the heavy lock — ends them first (the VM
+runs one LinuxCNC), proves a NEW instance owned by the restored unit, the
+recorded keepalive by its connection, and binds its outcome in `restore.json`:
+a later restore recognises that return and keeps its isolation verdict, an
+unproven isolation stays unknown and fails the verdict. The installer's
+temporary files are created exclusively (a link at a temporary name is never
+followed), a mutable file sharing its inode is named, the run folder is new.
+A home case needs its completion, a jog its known values and a fresh anchor
+(the first status frame after the jog_stop reply, at most 0.1 s later).
+
+Codex R287, the rests: a unit NAME intended is no unit owned — one name per
+run (`native-sim-<run>`), and the state records the unit as the run's only
+after its start, with the InvocationID that start gave; only that
+incarnation is stopped, the wait is for the recorded test instance (pid and
+start) alone — the returned LAN instance never satisfied "no LinuxCNC at
+all", and a second ending blocked on it —, the tree goes only after that
+end. The isolation is compared once, before the LAN runs again, and kept in
+the state, so a partial return (the LAN up, the keepalive not) resumes; a
+repeat restore proves every current point again. The keepalive's heartbeat
+is its pongs (the local keepalive writes a beat file per pong) on a TCP pair
+whose server end the returned gateway holds — a connection alone, or another
+counted client, is none. The jog's travel from the reply is bracketed by the
+status frames before and after it: within the bound PASS, beyond FAIL,
+between incomplete; an unreadable interpreter is named.
+
+Codex R288, the rests: a start whose ownership was never written (killed
+between systemd-run and the record) is resolved against the unit itself —
+this run's folder and INI make it the run's, anything else stays unresolved
+and keeps the tree and the LAN back; the restore writes its phases and the
+isolation proof to state.json BEFORE the LAN runs again; the local keepalive
+decodes the gateway's MessagePack pongs. Status frames carry their RECEIPT
+time, not their capture time: a frame received before the jog_stop reply was
+captured before it (an upper bound of the travel from the reply), one
+received after it may not have been — so the frames decide PASS (upper bound
+within the bound) or a proven wrong direction, everything else stays
+incomplete. The servo-sampled measurement (Q288-1) comes under its own
+contract later; until then an incomplete jog is honest.
+
+Codex R289, the rests: not active is not ended. systemd's `is-active` says no
+to activating, deactivating and reloading (measured: a unit in its stop is
+`deactivating`, its cgroup still holds its processes), so the ending reads
+the unit in ONE query (`unit_status`: load and active state, the
+InvocationID — a failed unit keeps it —, command, folder, the pids of its
+cgroup tree) and tells existence, the running incarnation, a transition and
+a failed query apart: an unread unit is unresolved and releases nothing; a
+unit that still runs is stopped only when it is the run's; the instance
+found here is written to state.json BEFORE the stop, so a restore after an
+abort during the stop waits for exactly it; only the confirmed end — the
+unit gone or inactive / failed with an empty cgroup, and the recorded
+instance gone — releases the tree and the LAN start. The jog: the whole
+collected course decides — frames arrive in capture order, so a step back
+anywhere is a reversal, and motion after the standstill is no stop: both
+FAIL; the distance from the first frame after the reply is reported as
+`first_after_mm`, no bound.
+
+Codex R290, the rests: every KNOWN value is evidence — a frame with one
+unknown value is no stop anchor, but its known position or velocity still
+contradicts a standstill; and the direction tolerance is fixed against the
+FURTHEST point reached, not the previous frame, so small steps back never add
+up unseen. One pass names the earliest contradiction; the upper bound runs to
+the furthest point (never the net distance); an unknown position before the
+standstill leaves the course unshown (incomplete).
+
+Native stage step 2a (built after R291, offline; the run still owed): Z
+probing, M600, the M6 hold and the override lock as the plan R283–R285
+fixed them. The client confirms nothing: every routine runs under the M6
+helper with the changes it declares (allowed, in order, not required); a
+routine's end is the interpreter seen busy, then idle, AND its effect seen
+on any frame (the probe's own M50 P0 — a late frame from between the vars'
+MDIs and the call would otherwise end it); a counter-probe (a planted wrong
+plate or #3102) passes only when its evaluation refuses it. Parameters with
+no status field (#5070, #5063) come back through a tagged DEBUG line, read
+again when a skipped status tick lost it. The case ids are literal tables —
+the binder finds a native evidence's title in native_run.py. The statements
+F-HOME.S2c, F-JOG.S5/S5b, F-PROBE.S3, F-TOOLCHANGE.S2, F-OVERRIDE.S2/S2b/S2c,
+F-TOOLMEASURE.S5/S6b are rewritten as the plan agreed and bound to their
+cases. Owed and named: the feed-override plateau (STAT at 50 Hz) and the
+retract path (servo sampling, Q288-1) — no build step owns them yet; Run
+from line waits for its contract.
+
+Codex R292, step 2a: the hold judges the frames RECEIVED (a cursor over the
+client's frames in receipt order, each once — a re-read of the status cache
+is no observation; a stretch with no frame leaves the hold unobserved,
+incomplete, never contradicted); the end check sees every frame, the busy
+ones while M6 waits too, only the return waits for no change pending; the
+override's measuring phase is the motion's (locked from the first locked
+frame through the last frame with motion before the completion), and the
+2 s after the completion are waited for — a window not observed to its end
+is incomplete; a counter-probe holds only on its own valid run (the probe
+plant re-judges a measurement that passed against the true plate; the
+#3102 counter is its own run, clean, applied as measured, deviating by
+exactly |planted| − |true|); every evaluator judges a part as soon as its
+own values are known, an error of kind 1/11 from the routine is a FAIL.
+Run from line (FI292-01): built next as step 2b — the request names the
+loaded file, version, source, G54/G21; `running` is a start message, the
+witness is a motion of line L itself with its tool, offset and the spindle
+SET value; the start point (no lowering in the safe-Z stage) waits for the
+servo measurement, step 2c, together with the override plateau and the
+retract path.
+
+Native stage step 2b (built after R292, offline; the run owed): run from
+line as FI292-01 corrected the contract. The run writes its program into
+the copy's nc_files, loads it with load_file and waits for the published
+origin whose source is its OWN hash of what it wrote; ONE auto_run as the
+UI sends it (file, version, source, line 7, pre_tool T1 with the toolsetter
+values, the spindle's set value, entry X100 Y100 in G54/G21, safe Z). The
+witness is the first frame of the program itself (AUTO, call_level 0 — a
+remap numbers its own file) moving after `running`: its line is 7, with T1,
+the applied offset = the table's measured length = L0 ± 0.002, the spindle
+forward at its set value; line 7 holds the axis it does not move and ends
+where its next line does not move; the program ends where it ends. "No
+earlier line" is said of the received frames only. The start point fails
+on an observed contradiction (Z lowered in the safe-Z stage, XY below the
+safe height, the entry missed) and is otherwise incomplete until step 2c.
+The L+1 counter re-judges the same witness. F-RFL.S3 is bound to the four.
+
+Codex R293, the rests: every end of the M6 helper says its cause
+(contradiction, refused, unobserved) and the hold step's row follows it — a
+gap is incomplete there too, only an observed violation or a refusal is a
+FAIL (the run still ends). A release before the completion needs a PROVEN
+standstill (its frame and every one after it to the completion known
+still); unread motion leaves it incomplete. The release window counts as
+seen only with frames through it at most WINDOW_GAP_S = 0.3 s apart (the
+idle poll, 5 Hz, plus one late tick); a frame after a gap is no coverage.
+The #3102 counter predicts from ITS base — the length the first measurement
+left, the sim's physical length — never from L0, which stays for the reset.
+
+Codex R294: the release window is covered only by frames that SAY the lock
+(an unread value is a gap). Run from line: an end point needs its own state
+proof — the entry where the machine STOOD (the last known standstill before
+the program moves, never a moving last frame of the phase), line L's end
+only on the frames of L + 1 (the line that holds those axes; a later line
+proves nothing), a missed witness of L incomplete (an observed EARLIER line
+stays a contradiction); positions per axis (a known wrong axis is never
+hidden by an unread one, an axis never read is no proof); the attempt's
+errors (kind 1/11) and a failed phase reach the rows — a failed phase ends
+the attempt at once, and every path (a failure, a helper's end) keeps its
+rows, the history and the errors before the instance goes down.
+
+Codex R295: the entry's proof is the LAST frame received up to the next
+phase (the phase times ride the same stream), at a known standstill — a
+standstill followed by motion, or a frame of the started program, is none;
+already standing at the entry needs no observed move. The program's end is
+the completion the step confirmed (idle AND in position), never a first
+idle frame. Each path check needs only its own axes (a known Z below the
+safe height is seen with X unread). From the auto_run on the attempt has ONE
+outcome — the gateway's refusal (known, "auto_run refused:") apart from a
+missing reply or a lost transport (unobserved), the M6 helper's cause, an
+observed error of kind 1/11 or a failed phase (ending the attempt once
+idle, no program witness waited for) — carried into the line's row before
+its counter, with the history and the errors on every path.
+
+Codex R296: the gateway sends its LAST run-from-line phase, so a short phase
+may never be received — the stages (safe Z, the entry move) run as MDI and
+only their MDI frames are theirs: a frame of the started program (AUTO) at
+or before a skipped phase's boundary never reaches the height or the entry
+check, a frame of unknown mode is no proof. Every negative phase counts
+(`ok: false`, named or not — flag_clear_failed was missing). The client
+types its ends at its boundary: Refused (the gateway answered ok: false),
+NoReply, TransportLost (the library's ConnectionClosed, an OSError, a closed
+reader) — a programming error stays itself; only Refused is a refusal, at
+the auto_run and at the M6 confirmation alike, which is never repeated.
+
+Codex R297: the entry's proof is the ACTUAL last frame of the positioning
+window — chosen first, then judged: an MDI frame at a known standstill is
+the proof, the program's frame or one of unknown mode there leaves it
+unproven, and no earlier MDI standstill takes its place (filtering before
+the choice brought exactly that fallback back). An earlier wrong standstill
+followed by the program's boundary frame proves no wrong end point.
+
+Native stage step 2c (built after R301, offline; the run owed): the servo
+measurement as the plan R299–R301 agreed. A sampler loaded into the TEST
+instance at run time (the copy unchanged, every halcmd change reported)
+records the joints' pos-fb and vel-cmd, program-line, in-position and a
+mark the run sets; `stdbuf -oL halsampler -t` is read with receipt times.
+ONE halcmd gate owns the measurement: no change while a section is open.
+Each attempt is a section between its own marks — the start awaited before
+the trigger, the end read after the post window; any flaw (no end mark, a
+number gap, a non-finite value, enable, overruns, the FIFO at its depth,
+the effective period) is incomplete. Time only by receipt. The jog's servo
+rows keep the whole contract (≥ 5 mm in its sign, the upper bound from the
+last sample received before the reply, the FIRST confirmed standstill as
+the fixed reference received within 0.5 s, nothing after it); the override
+plateau's two runs are two sections, the speed from adjacent samples; the
+retract path's phases and its XY-first counter. F-JOG.S5, F-OVERRIDE.S2 and
+F-GOTO.S1c are bound to these rows; the run-from-line attempt's servo stream
+is recorded for 2c-b.
+
+Codex R302, step 2c: the retract path is checked to the END of its section
+(after X/Y arrived they stay on the target, Z stays up for an up target and
+never below a G30 target's Z — a later return mends nothing), each check
+with only its own known axes. A dead reader and a foreign mark BETWEEN the
+marks are flaws of the section. Each section's audit — case, attempt,
+marks, number bounds, integrity incl. the servo thread read at both ends,
+the HAL commands — goes into report["servo_sections"], its raw samples into
+servo-<case>.jsonl; the setup reads the channels' wiring back from the
+sampler's own pins. A section whose END fails keeps the rows measured so far
+(the gate closes on every path) and ends the run after them. With the servo
+measurement the status-frame jog rows are informational: their missing
+proof never holds back the servo proof, a contradiction still counts.
+
+Codex R303: the retract path is judged sample by sample on KNOWN values
+only — no phase it is merely assumed to be in (an unknown transition is
+unproven, never a failure): X/Y off their start and off the target with Z
+known down, Z known down on an up target, after the PROVEN arrival (the one
+remembered fact) X/Y off the target or Z under a G30 target's Z. An unread
+position on the path leaves it incomplete. A section whose end cannot be
+read still comes back — the values it could not read unknown and named,
+its audit and samples kept — and the periods READ at both ends are checked
+against the INI. Writing the samples may fail: named, the rows kept. Every
+step forms its CURRENT case's row from the section before a failing end
+ends the run.
+
+Codex R304: after the PROVEN arrival at an up target the known Z alone
+decides — a descent there is a FAIL with X or Y unread in that frame, as
+the G30 branch already judged it; a merely assumed arrival stays unproven.
+
+## 2026-11-05 — M600's return: the call's X/Y at the top of travel, Z stays up (operator, Codex R306 Q306-1)
+
+With "Return to start position" (`#3106 = 1`, every M600 runs in mode 1 through
+`m600.ngc`) the bundled `tool_touch_off.ngc` stored the new length, applied its
+G43 and then put the new tool's TIP back at the Z it had taken under the OLD
+tool's offset (`#5422` at -20-). From near the top of travel with a longer tool
+that needs the spindle nose above Z0 — LinuxCNC refuses the queued move ("Linear
+move on line 596 would exceed Z's positive limit"), and because it refuses when
+the block is queued, the drive-free `G53 G1 Z0` before it never ran: the
+routine ended with the spindle down at the setter. Measured live on a 3-axis
+copy (`~/claude-work/m600_top_experiment.py`, 2026-11-05): T3 22 mm at G53 Z0 →
+T4 73 mm FAIL, spindle at −103.8; T4 → T3 from the top PASS; unload (ends on
+G30 = the top) → T4 FAIL. The same class was met on the XYZAC sim on
+2026-09-27 and answered there by switching `#3106` off in that template only;
+the 3-axis template kept 1. (The March investigation, 5115b4b0, was another
+error: an intermittent NEGATIVE-limit refusal during the probe search, answered
+by clamping the travel; its cause was never confirmed.) The operator's machine
+has `#3106 = 0` and never ran the return.
+
+**Decision (operator):** the return goes to the X/Y where M600 was called, at
+the top of travel; Z stays up. Every descent after the measurement is the
+program's — the rule run from line already has ("Z descends from safe height
+per the program's own words"). The length offset is not touched by this: the
+routine stores and applies it before the return, with `#3106` 0 or 1. Codex's
+named halt ("length stored, return not possible") was not taken: a return that
+can always be reached needs no halt, and a routine that never descends on its
+own with a NEW tool cannot carry a wrong measurement into the work. The
+upstream author's return (the full call position) is given up for Z.
+
+**Changes:** `tool_touch_off.ngc` -20- saves X/Y only, -210- keeps the one
+`G1 X Y` (after the drive-free `G53 G1 Z0`); the preview canon hands the saved
+state to ONE return move (`_pos_return = 1`); `MARKED_POS_ROUTINES` holds the
+new sha256 only — an old copy elsewhere now reads as unmarked (conservative),
+never modelled with the wrong number of return moves. The Toolsetter form's
+help, CLAUDE.md / README's `#3106` rows, the bundled manual's rows and the XYZAC
+README say it. Guards: the preview of `T2 M600` from G53 Z0 with no tool (80 mm,
+`MAX_LIMIT` 50) had a Z violation at line 596 and now none, ending at the top
+(`m600_top_longer`); `m600_known` / `m600_result` / `e_m600_return` end at the
+top under the new offset (each value derived in its test). The XYZAC corpus's
+M600 runs with `#3106 = 0` — no truth changes. Owed: the live proof on the
+fixed routine (the experiment again: A and C must complete at the call's X/Y,
+joint Z 0) and a permanent from-the-top case in the native stage.
+
+## 2026-11-05 — Native stage 2c-b: the run-from-line start point from the servo stream (Codex R309–R310)
+
+`motion.program-line` is the executing trajectory segment's line (run 9,
+G64): an MDI line shows 0, a routine its own file lines, the program its
+lines. It carries no file or phase, and with blending a line number does not
+separate the axes (Codex R309, tp.c 2.9.4). So:
+- the samples are attributed through the TEXTS' line sets — the bundled
+  routine's motion lines and its wrapper's (`servo_cases.motion_lines`, from
+  the run tree; 28 lines 211…601, the wrapper none) and the program's 1…N,
+  checked disjoint — never by a receipt time;
+- the test program carries `G61.1` on line 7 itself (exact stop, modal;
+  a skipped line would not set it), so each line's axes are its own;
+- `eval_rfl_start_servo`: FAIL on a moving program line before L anywhere in
+  the attempt (a later routine line never cuts it, R310), a descent in the
+  entry against the highest Z known before it, L starting off the entry X/Y
+  or below the safe height, motion after the FIRST confirmed rest at the
+  entry (the anchor, 10 samples), L moving Y or Z; incomplete for line sets
+  that meet, no L, no anchor, an unattributed motion, a routine line after
+  the program began, a section problem, the self-check (L+1 only Y, L+2 only
+  Z) — never over a FAIL. A counter re-judges it against the entry planted
+  1 mm off in X. The zero region after the routine includes its run-out; it
+  is not the routine's exact end.
+Run 9's G64 stream: the start checks out (start at 100/100/0, the anchor at
+n 345445), the self-check fails at line 8's blend — incomplete, as R309
+predicted. F-RFL.S3 binds the start point and its counter; the native run
+with G61.1 is owed.
+
+**Run 10 and Codex R311 (2026-11-06).** The native run with G61.1
+(20261105T232301, 672ba228): the start point PASS, its counter refused; under
+G61.1 the line switch leaves at most 0.000286 mm of the previous axis
+(under STILL_POS). R311's corrections: the descent starts at the routine's
+LAST known Z — the first step out of it counts, also as small steps that add
+up; an unread Z there is no proven step (FI-I40). No routine sample before L
+leaves the boundary unproven — only the rules that need none (an earlier
+program line, L's start, L's own axes) can fail, else incomplete (FI-I41).
+The routine and its wrapper are read only as the CHECKED texts
+(`ROUTINE_TEXTS`: path → sha256; the routine's is MARKED_POS_ROUTINES'): a
+changed, a missing or an unreadable one maps nothing — a modal axis word the
+narrow scan would miss cannot slip in (FI-I42); the row names the sources
+and the program's hash. Run 10's stored stream re-judged with the corrected
+evaluator: PASS, the counter refused.
+
+## 2026-11-05 — The toolsetter's values reach the interpreter at every program start (P2, Codex R306–R309)
+
+**What was wrong (live, 2026-11-05, a 3-axis copy):** the toolsetter section
+saved while the machine was off never reached the interpreter — the form
+pushed only at the save's confirmation and only when ready, then forgot it —
+and Cycle Start carries no toolsetter values: a program's M600 measured
+against the interpreter's old `#3102` (49.995 mm instead of 49.0), the form
+showing the new one. Besides: `set_probe_vars` wrote the parameter file
+before its MDI, and the mode switch's synch saved the interpreter's older
+value over it (a read right after showed −179 for −180); `get_probe_vars`
+read that file unconfirmed.
+
+**The contract (Codex R308 FI308-01..03, R309 FI308-04):**
+- ONE source: the server's confirmed `toolsetter` section of the current INI,
+  judged in the gateway by the form's rule (`toolsetter_rules.py`, held to
+  `toolsetterSetup.ts` by one contract file and tests on both sides).
+- Every program start from idle (Cycle Start, the first step, `auto_run`
+  direct and run from line) applies it first — its own condition, whatever
+  the skip flag. Not set up: no sync, said. Every key already booked
+  applied/read with the section's number: nothing written (no booking change,
+  no re-parse — the booking is the evidence; another writer of the
+  interpreter is not seen, a named limit). A chunk not taken: the start is
+  refused. MDI, a macro, a tool change, a paused step and a resume never sync.
+- One basis per start: chosen once, bound by a digest of the section and the
+  INI (never the store's global counter) to every write up to AUTO; run from
+  line refuses dialog values that are not that section before anything is
+  written, and its background sequence re-binds before its AUTO switch and
+  its AUTO write (R311 FI-I38: the switch had no admit).
+- `_apply_probe_vars`: the interpreter first (per chunk, booked as before),
+  then the file with ONLY the taken keys and their sent numbers (6
+  decimals, rounded as the form's toFixed(6) rounds — an exact binary tie
+  away from zero; %.6f rounds it to even, and the form showed "not yet in
+  the machine" for a value it held, R311 FI-I39); nothing taken, nothing
+  written; a file failure after the
+  take-over leaves it standing. Replies name `mdi_set`, `applied_keys`,
+  `persisted` (no `file_saved`).
+- The form's machine line is projected from the section and the gateway's
+  booking (`toolsetter_booking`, per connection, first frame and changes):
+  applied or read and equal — confirmed; confirmed, some differ — saved, not
+  yet in the machine; missing / unknown / only assumed — not confirmed (n of
+  23); not set up — no sync; no booking yet — not known. Never from a reply.
+
+**Protocol change:** `get_probe_vars` is removed (handler, policy, the
+TypeScript command form, the contract tests, the README, the inventory). An
+old caller gets "Unknown cmd". No WebUI caller used it; the native stage reads
+the interpreter by a tagged DEBUG line.
+
+**Consequence, named:** a start that changes the booking (a section changed
+since the last sync) bumps the toolsetter version — a run of a program that
+calls the routine then starts with its toolsetter basis open (the preview
+predicted the M600 with the old values; the run check names it). A stable
+machine (booking applied or read back with the section's numbers) writes
+nothing and stays verified. The preview's M600 prediction still uses the
+booking, not the saved section — a follow-up, not built.
+
+## 2026-11-06 — Native stage step 3: the latch, a client that goes away, many clients (Codex R313–R316)
+
+**The servo stream's own time.** The sampler gets, after its mark, the
+heartbeat chain (`oneshot.0.out`, `webui-hb-latch.fault-out`,
+`oneshot.0.in`) and `motion.servo.last-period` (`servo_time.py`). A sample
+number is no time; the controller's periods are: C_k ≤ S_k ≤ C_(k+1) gives
+an edge gap's bounds (upper Σ lp_i..j+1, lower Σ lp_i+2..j−1) and a lower
+duration (Σ lp_a+2..b). The clock is ns of CLOCK_MONOTONIC only on the
+checked binary (`rtapi_app` sha256 1a4bb954…, linuxcnc-uspace
+1:2.9.4-2+deb13u1); no u32 wrap is proven from the run's own receipt and
+mark times (0 ≤ recv − t0 − Σ lp < 2³²). Three verdicts: upper ≤ limit
+PASS, lower > limit FAIL, else incomplete — an upper bound over the limit
+is no proof of an overrun (R315).
+
+**The latch** (F-ESTOP S4/S4b), the main run's LAST step: the test
+instance's gateway stopped (its identity on disk first, `trip.py`) past the
+0.5 s budget; in the outage section fault-out TRUE in the very sample
+oneshot.0.out fell, the heartbeat back while it stays latched, the E-Stop
+Reset before the acknowledgement refused; only the run's own proven trip is
+acknowledged, the recovery judged in its own section. Every recorded stop is
+continued as itself only — also by `restore_lan` (ExecStopPost) before the
+test instance ends. The delayed order (webui-hb-latch before oneshot.0) is a
+run of its own (`--variant latch-delayed`): exactly one cycle late, never a
+production PASS.
+
+**A client goes away** (SYS-CONN.S4): a helper client in its own process,
+bound to its client id by a resume hello with a fresh session
+(`session.resume_denied_no_match`); after the gateway's OWN event for that
+id (ws.disconnect / safety.hb_stall_disarmed) is read, the mark W; from W
+the program runs on ≥ 2 s (lower bound), X travels, no trip, the remaining
+client sees it running. **Many clients** (SYS-CONN.S1): 4 and 8 unarmed
+clients fetch /preview at once after a 40 MB load; every heartbeat gap
+touching the window is judged against 250 ms.
+
+**Found on the way (live).** Every earlier native run left sampler.0's
+stream segment behind (key 0x48534130, nattch 0); the next loadrt attached
+it while the size matched and failed — rtapi_app gone — when step 3's wider
+stream asked for more. The setup now removes a left-over segment nothing
+is attached to (an attached one is another sampler: refused), the run's end
+unloads the sampler. The gateway answers `safety_trip_ack` without a cmd
+(the client waited 30 s); a write right after an abort meets the start
+claim (the helper asks again, like `_when_free`).
+
+## 2026-11-06 — Package G1: guards for eight inventory gaps, four defects found on the way (Codex R321–R322)
+
+**The tool table keeps every field.** `parse_tool_table` read only T P X Y Z
+D and the writer dropped X/Y: a save of T1 rewrote T2 without its X/Y. The
+parser now reads every field of a LinuxCNC tool line (X Y Z A B C U V W, D,
+I J Q), the writer writes back each field the record holds (Z and D always),
+and a value keeps its decimals (`_num`: fixed format when it equals the
+value, else the shortest exact form). The contract is VALUE equality: format
+and order of the file may change; an untouched record keeps every value, its
+comment and its metadata in `tool_library.json`; the touched record changes
+exactly the sent fields; the table reloads once (`test_tool_edit_contract.py`).
+**Renumber changes only the number:** `renumber_tool` used to set an unsent
+pocket to the new tool number; it keeps it now (the WebUI always sends one).
+
+**Sim-Trip is one sequence in one thread** (`_sim_trip_sequence`): the reset
+follows EVERY attempted set — also a timeout after the pin went TRUE — with
+at most two tries of 2 s; the reply names the outcome apart ("reset
+delivered" / "probe-in may still be TRUE"); the handler owns the thread to
+its end through any number of cancels (`_thread_to_end`), so no late "1"
+follows the final "0", and a cancelled run's outcome goes to the trace
+(`sim_trip.outcome`). The HAL pulse in the sim stays a native gap (S2b).
+
+**The trip banner waits for the gateway.** `acknowledgeSafetyTrip` cleared
+the trip locally before the send; a send that never arrived hid a trip the
+gateway still held until its next status. The click now only sends; the
+first status without `safety_trip` takes the banner away. Whether the
+message center should record a trip is open (F-TRIP.S1c; the gateway traces
+`safety.tripped` and `safety.trip_acknowledged`).
+
+**Extracted to be tested where they act:** `_hb_stalled` (the 3 s budget,
+`>` on monotonic time — exactly 3 s is not a stall) is what the status loop
+disarms through; `gateway_util.preview_file_changed` is the poller's file
+edge (an in-place edit of the same path is an edge by its mtime). The
+routine map's numbers are checked against `tool_touch_off.ngc`'s own reads
+both ways (`test_toolsetter_routine_map.py`). Every guard was shown red on a
+mutant of what it guards.
+
+**After Codex R323 (FI-I50–I53).** The tool line is read as LinuxCNC 2.9.4
+reads it (`tooldata_read_entry`, libtooldata.so.0, disassembled — the
+source is not on the machine): fields separated by spaces in ANY order, the
+letter in either case, T/P/Q integers, the rest reals; LinuxCNC skips a
+whole line with a field it does not know. `P5 T2 …` used to be skipped and an
+edit of T1 wrote the table back without T2 (ok: true). A line the reader does
+not read exactly — an unknown or repeated letter, a tab inside, junk after
+the number, no T or P — is skipped for the display like LinuxCNC skips it,
+and stops every tool edit before anything is written (strict read,
+`_tool_table_for_edit`, the reply names the line); Q is written as the
+integer LinuxCNC reads. The table guard runs the real reload helper and reads
+the file at the controller's `load_tool_table` (once, after the write); its
+expectations are literals, not the product parser's reading. The reload is
+held through the poller itself (a WebSocket session against the app, the
+test never publishes). The routine check reads the code as LinuxCNC does
+(comments out, every space and tab out — `# 3107` is #3107) and fails on a
+parameter form it does not know. The trip and its acknowledgement are held
+on the trace along the poller and the reader (`test_trip_trace.py`); whether
+the message center records them is the operator's question (Q323-1).
+
+**After R324.** The operator decided Q323-1: the message center records a
+trip and its CONFIRMED acknowledgement once each. Each trip carries an id
+(gateway epoch + number); the acknowledgement rides every frame after it as
+`safety_trip_acked: {id}` — a trip's mere absence is no acknowledgement (a
+restarted gateway drops its trip too) — and the client keys both entries by
+the id (kept on the entry across a reload). FI-I54: an integer field also
+reads as a whole decimal (`Q+3.000000`, what this branch's earlier writer
+wrote) and is written back as `Q3`; a fraction still refuses — LinuxCNC
+would cut it. The heartbeat session runs at the real 3 s budget: a 1 s
+budget flaked when one loaded status tick took ~0.8 s.
+
+## 2026-11-06 — Package G2: the surface scan and the compensation on a curved sim workpiece (operator Q282-2, Codex R326)
+
+**Decision.** The operator answered Q282-2 "alles jetzt": the scan's points
+(F-SURFACE.S2), the override lock during it (F-OVERRIDE.S2c) and the
+compensation methods at known points of a non-flat surface (F-COMP.S4) in
+one package. The 3-axis sim gets a WORKPIECE: the second instance of
+`sim_toolsetter` (`count=2`), its height wired from a chain of stock realtime
+components (`sum2` ×5, `mult2` ×2) computing a tilted paraboloid from the
+joint X/Y — no change to the component, because the installed module is
+system-wide and `sudo` asks for a password (Q326-2: accepted). Order in the
+servo thread: the motion controller, the chain, instance 1, instance 0 — the
+manual trip passes through both in the same period in every profile.
+
+**Why curved.** On the flat plate every point has the same Z: a swapped X/Y
+or a misplaced point would not show, and the three methods agree. On the
+paraboloid each point has its own value and at the test point Q (538, 550),
+a quarter along the edge (534,550)–(550,550), nearest / linear / cubic give
+4.586 / 4.939 / 5.070 mm, the surface 5.054.
+
+**Checks.** The scan file: exactly the 25 nodes in the routine's snake, each
+on the literal surface ± 0.005. The map's reload (the grid version advances
+after DONE). The override locked through the scan INCLUDING its return
+(FI326-01: the routine freed it before its last two moves — `M50 P1` now
+after them). Each method at Q equals its reference from the RECORDED points
+(compensation.py's path written out: rounding, the 1-mm grid, its node,
+scipy griddata, the counts) ± 0.002, and independently: nearest = the nearer
+node, linear = 0.75/0.25 of the edge's nodes (an axis-parallel grid edge is in
+every Delaunay triangulation), cubic ≥ 0.05 from linear and closer to the
+surface than linear (Q326-1: both — an analytic "cubic" passes the
+inequalities and misses the reference by 0.0157). ON holds the tip 12 mm
+above the workpiece at the centre node, OFF drains to 0; after an XY move
+with compensation on the settled offset is the new node's value
+(`comp-after-xy` — FI326-02: end points prove no following DURING a move,
+so none is claimed). The fixture is read from the running HAL before a
+probe moves: every signal's writer and readers, the thread order, the
+constants equal to the literal, instance 1 fed L 50 and enabled, no fade.
+
+## 2026-11-07 — The toolsetter form's line names the LinuxCNC parameters (operator, at the look of feat/g2-surface)
+
+At the look the operator asked what "In the machine" means and proposed naming
+the parameters ("parameters written to LinuxCNC var or so"). Agreed wording,
+with two corrections to the proposal so the text holds in every case:
+- not "var": the measurement reads the INTERPRETER's parameters; LinuxCNC
+  writes the var file only at its next synch, so right after a write the file
+  can still hold the old values;
+- not "written" for the confirmed state: a read-back that finds equal values
+  confirms too, and nothing was written then.
+
+The texts: "LinuxCNC parameters hold these values — confirmed" · "Saved — not
+yet in the LinuxCNC parameters; a program start or measurement writes them"
+(the agreed "the next program start" shortened to stay within the line's 90
+characters) · "LinuxCNC parameters not confirmed (n of 23) — the next program
+start writes them" · "LinuxCNC parameters not known yet"; the setup note
+"… nothing is written to the LinuxCNC parameters". A "?" beside the line:
+"#3004–#3013 and #3100–#3115 — the values the measurement (M600) reads." The
+projection (`toolsetterMachineState`) is unchanged; `role="status"` moved to
+the text so the help is not part of what is announced.
+
+## 2026-11-07 — Every "?" looks the same: the glyph a mask over its box, the circle on its text's capitals (operator, at the look)
+
+The operator saw the new toolsetter line's "?" sit differently from Touch X's
+and the glyph "sometimes slightly left in its circle" and asked whether that is
+held anywhere. It was not: the help-look sweep (`feedback-channels.spec`)
+holds colour, gap and a lift of ±1.5 px against the line box — not the glyph
+in its circle, not the capitals.
+
+**Measured** (all 127 icons of the sweep, Chromium and Firefox, DPR 1 and 2;
+pixels: drawn / glyph transparent / icon hidden):
+- the text glyph's offset in its circle spread 0.5–1.5 px with the icon's
+  fractional position (Chromium DPR 1: 0 or −1 px horizontally; DPR 2 always
+  left by 0.2–0.7): the box snaps to device pixels, the glyph apart from it.
+  The font is not the cause (Inter's "?" bearings differ by 0.09 px at 10 px).
+- inline icons sat 1.0–1.1 px (Chromium) / 1.7–2.2 px (Firefox) below their
+  text's capitals: `vertical-align: middle` centres on the x-height; a flex
+  row beside a label centres on the line (= the capitals for Inter).
+
+**Changed:**
+- The "?" is Inter Bold's outline (wght 700) as a MASK over the icon's whole
+  border box (`::after`, `--help-glyph`: one viewBox per density, so the glyph
+  keeps the text glyph's size — 10 px in 13, 11 px in 16 on touch). A child
+  SVG still snapped apart (1 px vertically), a centred smaller tile still at
+  exact half-pixel positions (8 of 127); the box-sized tile lands with the
+  circle: spread 0.02–0.05 px (Chromium 1/2, Firefox 1), 0.25 px in Firefox
+  DPR 2 (Firefox draws the mask at the fractional position and snaps the
+  border — half a device pixel, the floor without drawing the circle too).
+  Forced colours: `ButtonText` (a masked background would be painted Canvas).
+- An inline "?" centres on its line's capitals: `display: inline-block`
+  (baseline = its bottom in every engine; an inline-flex's synthesized
+  baseline differed in Firefox) and `vertical-align: calc(0.5cap − size/2)`,
+  the icon inheriting its text's font.
+- The toolsetter line follows the existing rule (frontend-modules: a text
+  ending in a "?" is a `.textWithHelp` flex row) — inline it could also break
+  onto a line of its own.
+
+**Held:** `help-icons.spec` (UI_SWEEP), DPR 1 and 2: the glyph's centroid
+offset spreads ≤ 0.1 px over all icons; every circle within 0.5 px of its
+text's capitals' middle (the engine's own baseline and cap height: an empty
+`1cap` inline-block after the last character; flex rows measured −0.02…+0.36).
+Red against the old CSS: glyph spreads 1.02 / 0.53 (x), 1.53 / 0.89 (y), the
+table head's "?" 1.0 px low (and the inline toolsetter line 1.08). The
+contrast sweep reads each icon's colour like a text (the "?" is no text node
+any more). The drawn position against the text keeps the engine's own
+rounding (up to one device pixel), which no CSS removes.
+
+## 2026-11-07 — The loaded tool's mark centred on its T button (operator, at the look)
+
+"The green dot does not sit centred in the row — beside the T… button the
+heights do not match." Measured: the mark (`.inSpindle`, inline with
+`vertical-align: middle` beside the T button) sat 1.5 px below the button's
+middle in layout, 1.5–2.0 px drawn — the button sits on the line's baseline,
+the mark on the x-height. Now the two are one `.row-tight` (its gap replaces
+the mark's margin): 0 px in layout, ±0.01 px drawn, desktop DPR 1 and 2 and
+touch, in a one-line and a wrapped row. `tool-marker.spec` (TOOLS) holds it
+(red at 5bdfdde3: 1.5 px). No other inline mark is aligned that way (the
+toggles sit in flex rows; `.dataTable` cells keep `vertical-align: middle`
+for the cell).
+
+## 2026-11-07 — The install probe in the merge gate (package I; operator, plan Codex R329)
+
+The operator: "a test for the installation script: on a merge to development,
+it is guaranteed that the installation of LCNC Suite runs through cleanly and
+automatically." Scope decided by the operator: before THIS merge; local, in the
+merge gate; the two realtime components compiled only (no sudoers line); a
+clean-machine container is not in scope.
+
+**install.sh** — no test ran it; the gates installed through
+`install_examples.py` only. Now: `--yes` (no question; without it and without
+a terminal a finite stop with the reason — an OPEN unanswered input made the
+old script wait), `--no-root` (never sudo: missing system packages stop it;
+the components `halcompile --compile` in a temp folder, the system's module
+must exist, the script says it was NOT installed), `npm ci` + `npm run build`
+(an install is ready to start; the README's build step is gone), a failed
+gateway import is fatal (was a warning), every profile of the catalog must
+exist (config_sync_check passes a missing folder), and a FRESH install's
+drift fails (Q329-2; an upgrade keeps warning — local edits are the
+operator's; the checker's exit 2 is an error).
+
+**The probe** (`scripts/install_probe.py`, `test_support/install_cases.py`,
+`install_restore.py`, `install_probe_browser.mjs`) — the native stage's
+take-over and restore, with: a CLONE of the commit removed as a folder of the
+run (FI329-04: `git worktree remove` refuses a clone and blocked the return);
+a NEW child environment, nothing inherited (FI329-02: an inherited
+LCNC_LOG_DIR beat the sandbox HOME); the protection record of the operator's
+home (`.local/bin`, `linuxcnc`, `.npm`, `.cache/pip`, git config) by names,
+types, LINK TARGETS and contents (the old record skipped links — a bent
+launcher link hashed the same); the native target and confinement checks on
+the REAL installer's result before LinuxCNC starts; the safety chain proven
+POSITIVELY (FI329-01: no banner is no proof — `evaluate_safety_chain`
+answers None for an unknown reader): the probe's own unarmed client past the
+grace (no banner, reader fresh, no trip, the reader's values shown), the
+trace's `hal.admitted` / `reader.connected` admitted for THIS gateway's pid,
+the latch FALSE and the heartbeat oneshot TRUE by halcmd; a browser starting
+the built UI against that production gateway (FI329-03: the page alone
+passes with its entry module missing or answered by the SPA fallback).
+Finite deadlines (installer 1800 s, start 180 s, browser 180 s, the gate
+3000 s — past it the unit is stopped and its ExecStopPost restores). The gate
+holds the heavy lock until the unit ENDED (ActiveState inactive/failed, not
+"deactivating"), restore included: the probe runs `--under-gate`, its
+restore `--no-lock`.
+
+**Live:** the old install.sh (a61337c3) in the probe: FAIL after 32 s at
+`sudo halcompile` ("a terminal is required"), the LAN returned complete,
+isolation [], the clone removed. A first attempt refused itself before any
+step: the unit was read from /proc/self/cgroup's FIRST `.service`
+(user@1000.service) — now the last (`unit_of`, guarded).
+
+**Codex R330–R331 (the same day).** FI-I59: each gate call its own run folder
+and id, the gate's commit passed down; PASS only with that run's report.
+FI-I60: the probe runs after the gate's heavy section and takes the heavy
+lock itself; a run that stopped the LAN instance OWES its return —
+`heavy_lock.owe(run)` before the stop, `settle(run)` after a return that is
+not `not_returned`; while the marker stands every other taker that gets the
+flock releases it and waits on, only the run's restore (`owed_by`) may hold
+it (a killed probe lost the flock and a waiting gate took it before the
+ExecStopPost restore, whose 600 s then ran out — R331 rest A, proven with
+real processes now). Every systemctl call of the gate's wait has a deadline
+(R331 rest B). FI-I61: the browser must show the instance's boot E-Stop as
+"Reset E-Stop" — a status the app applied, not viewer_init alone. FI-I62:
+the run's tree is the run's by the RUN FOLDER's identity, in pre.json before
+the stop (a clone abort right after mkdir left a folder no proof covered).
+A test's child process once wrote its marker beside the REAL lock (it did not
+inherit the test's lock path): the fixtures now fail a test that leaves one.
+
+**Codex R332 (the same evening).** A1: the run's own `finally` settled the
+owed return; a gate waiting at a normal run's end took the lock before the
+run's ExecStopPost restore — whose record the merge gate demands — and that
+restore timed out. Now only the final restore (restore_lan.main, the unit's
+ExecStopPost) settles, and records how (`owed`). A2: repro-load.sh took the
+lock with a bare `flock`, blind to the marker; heavy_lock.py now has a
+command line (`--who --wait -- <command>`: the lock taken as heavy_lock()
+does, the command exec'd holding its descriptor) and the script runs itself
+under it — with an owed marker it waits, naming it, and starts nothing; a
+repository guard finds no other file that names the heavy lock and locks.
+A3: only a marker confirmed ABSENT frees the lock; an unreadable one, one
+that is no JSON or names no run keeps every taker out, the restore included,
+and settle leaves it ("unreadable: …").
+

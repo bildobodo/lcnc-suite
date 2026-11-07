@@ -538,7 +538,11 @@ def main():
     ap.add_argument("--allow-trip", action="store_true",
                     help="enable the SIGSTOP HAL-latch trip scenario (sim only)")
     args = ap.parse_args()
-    sys.exit(asyncio.run(run(args)))
+    # it loads the machine and the sim like a gate: the ONE heavy lock (Codex R269)
+    from test_support.heavy_lock import heavy_lock
+    with heavy_lock("perf_matrix"):
+        rc = asyncio.run(run(args))
+    sys.exit(rc)
 
 
 if __name__ == "__main__":

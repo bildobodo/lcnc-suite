@@ -71,7 +71,8 @@ def place_of(atom: str) -> str | None:
     return PLACES.get(file)
 
 
-EVIDENCE_LAYERS = {"browser": "lcnc-webui/e2e", "unit": "lcnc-webui/src", "gateway": "lcnc-gateway", "script": "scripts"}
+EVIDENCE_LAYERS = {"browser": "lcnc-webui/e2e", "unit": "lcnc-webui/src", "gateway": "lcnc-gateway", "script": "scripts",
+                   "native": "scripts"}
 STATEMENT_KINDS = ("Daten", "Wirkung", "Ablehnung", "Abbruch", "Unbekannt", "Bedienbarkeit", "Zeichnung")
 
 
@@ -235,6 +236,30 @@ def routine_problems(all_ids: list[str], root: Path = ROOT) -> list[str]:
     return out
 
 
+# A title one test function renders per case: a template literal's ${…},
+# vitest it.each's $field and its printf %s / %d / %i / %f / %j / %o / %#,
+# a Python f-string's {name} (the native stage's case ids).
+PARAMETRIC = re.compile(r"\$\{|\$[A-Za-z_]|%[sdifjoO#]|\{[A-Za-z_]\w*\}")
+
+
+def native_status(e: dict, reports: list[dict], commit: str) -> str:
+    """A native evidence against the run reports (Codex R283 FI282-03):
+    "PASS at <commit>" only from a report of THIS commit with the evidence's
+    profile, case and variant (none = the production variant) PASS; another
+    status there is said as it is; a report of another commit is "ran at";
+    anything else — no report, no row, another profile or variant — is not
+    proven. The static binding (evidence_problems) only says "named"."""
+    variant = e.get("variant")
+    hits = [(r["commit"], row["status"]) for r in reports if r.get("profile") == e.get("profile")
+            for row in r.get("rows", []) if row.get("case") == e["title"] and row.get("variant") == variant]
+    here = [status for c, status in hits if c == commit]
+    if here:
+        return f"{here[-1]} at {commit}"
+    if hits:
+        return f"ran at {hits[-1][0]} (not this commit)"
+    return "not proven"
+
+
 def evidence_problems(e: dict, root: Path) -> list[str]:
     """Step 1 binds a named test STATICALLY: its file exists and holds its
     title. Whether it ran and passed comes from the run artifacts (step 2)."""
@@ -246,7 +271,7 @@ def evidence_problems(e: dict, root: Path) -> list[str]:
         return [f"evidence file {layer}/{file} does not exist"]
     if not title or title not in path.read_text():
         return [f"evidence {layer}/{file}: the title {title!r} is not in the file"]
-    if "${" in title and not e.get("instances"):
+    if PARAMETRIC.search(title) and not e.get("instances"):
         return [f"evidence {layer}/{file}: the parametric title {title!r} names no instances"]
     return []
 
@@ -271,6 +296,15 @@ def render(web: dict, py: dict, fns: dict) -> str:
               "ihr Katalog sichtbarer Zusagen folgt als eigener Schritt.",
               "- **Belegt** heißt hier: ein benannter Test existiert mit diesem Titel. Ob er lief und bestand, "
               "kommt aus den Laufberichten (nächster Schritt).", ""]
+    open_ = [(f, st) for f in fns["functions"] for st in f.get("statements", []) if not st.get("evidence")]
+    lines += ["## Offene Aussagen", "",
+              f"{len(open_)} Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.", "",
+              "| Funktion | Aussage | Art | gilt für | Lücke |", "|---|---|---|---|---|"]
+    lines += [f"| {f['name']} | {st['text']} | {st['kind']} | {', '.join(st.get('applies', ['offen']))} | {st.get('gap', '—')} |"
+              for f, st in open_]
+    without = [f for f in fns["functions"] if not f.get("statements")]
+    lines += ["", f"**Ohne formulierte Aussagen:** {len(without)} Funktionen ohne eigene Maschinenwirkung — "
+              + ", ".join(f"{f['name']} `{f['id']}`" for f in without), ""]
     for area, title in fns["areas"].items():
         group = [f for f in fns["functions"] if f["area"] == area]
         if not group:
@@ -292,6 +326,7 @@ def render(web: dict, py: dict, fns: dict) -> str:
             for s in f["statements"]:
                 ev = "; ".join(f"{e['layer']}: `{e['file']}` — {e['title']}"
                                + (f" (je: {', '.join(e['instances'])})" if e.get("instances") else "")
+                               + (" (live, nicht im Gate)" if e.get("live") else "")
                                for e in s.get("evidence", [])) or "**offen**"
                 gap = f" — Lücke: {s['gap']}" if s.get("gap") else ""
                 applies = f" — gilt für: {', '.join(s.get('applies', ['offen']))}"
@@ -310,7 +345,57 @@ def render(web: dict, py: dict, fns: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def dump(fns: dict) -> str:
+    """functions.json in its one layout: a function per block, its atoms
+    wrapped, a statement per line — so an edit by script and by hand diff
+    alike (`functions.py --format`)."""
+    j = lambda v: json.dumps(v, ensure_ascii=False)
+
+    def wrapped(key: str, items: list[str]) -> list[str]:
+        head = f'   "{key}": ['
+        lines, cur = [], head
+        for k, x in enumerate(items):
+            piece = j(x) + (", " if k < len(items) - 1 else "")
+            if len(cur) + len(piece) > 118 and cur.strip() not in (head.strip(),):
+                lines.append(cur.rstrip())
+                cur = " " * len(head)
+            cur += piece
+        lines.append(cur + "]")
+        return lines
+
+    out = ["{", ' "areas": {']
+    areas = list(fns["areas"].items())
+    out += [f"  {j(k)}: {j(v)}" + ("," if i < len(areas) - 1 else "") for i, (k, v) in enumerate(areas)]
+    out += [" },", ' "functions": [']
+    for i, f in enumerate(fns["functions"]):
+        block = [f'  {{"id": {j(f["id"])}, "area": {j(f["area"])}, "name": {j(f["name"])},']
+        parts = [wrapped("atoms", f.get("atoms", []))]
+        if "uses" in f:
+            parts.append(wrapped("uses", f["uses"]))
+        if "statements" in f:
+            st = f["statements"]
+            parts.append(['   "statements": ['] + [f"    {j(x)}" + ("," if k < len(st) - 1 else "") for k, x in enumerate(st)] + ["   ]"])
+        for k, part in enumerate(parts):
+            part = list(part)
+            part[-1] += "," if k < len(parts) - 1 else "}"
+            block += part
+        block[-1] += "," if i < len(fns["functions"]) - 1 else ""
+        out += block
+    out += [" ],", f' "excludedAtoms": {j(fns.get("excludedAtoms", {}))}', "}"]
+    return "\n".join(out) + "\n"
+
+
 def main() -> int:
+    if "--format" in sys.argv[1:]:
+        path = HERE / "functions.json"
+        fns = json.loads(path.read_text())
+        text = dump(fns)
+        # the layout is checked before the file is touched (Codex R276
+        # FI-I12): a field dump() does not write is refused, never dropped
+        if json.loads(text) != fns:
+            print("functions.json not formatted — it holds a field the layout does not write (functions.py dump())")
+            return 1
+        path.write_text(text)
     web, py, fns = load()
     found = problems(web, py, fns)
     for p in found:

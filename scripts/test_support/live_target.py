@@ -1,0 +1,388 @@
+"""Where a live check may run (Codex R118/R119 VP-I73, the native stage's
+plan R268/R269 + R282–R285): only a shipped SIMULATOR — the INI the
+installer renders from the shipped template (with the run's own options),
+every HAL file and program it starts the shipped one. Pure: no linuxcnc, no
+hal — a bare import of either binds the running sim. Moved here from
+toolsetter_readback_check.py, which uses it unchanged."""
+from __future__ import annotations
+
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+SIM_CONFIG = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                          "examples", "sim_config")
+
+
+def ini_values(text):
+    """Every value of each (SECTION, KEY), repeated HALFILE lines kept."""
+    values, section = {}, ""
+    for raw in text.splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if line.startswith("[") and line.endswith("]"):
+            section = line[1:-1].upper()
+        elif "=" in line:
+            key, value = line.split("=", 1)
+            values.setdefault((section, key.strip().upper()), []).append(value.strip())
+    return values
+
+
+INTERPRETERS = {"python", "python3", "bash", "sh", "tclsh", "haltcl"}
+SYSTEM_PREFIXES = ("/usr/", "/bin/", "/sbin/", "/lib/", "/opt/linuxcnc/")
+
+
+def _loadusr_runs(words):
+    """What a `loadusr` line starts, by halcmd's forms (`loadusr [-W | -Wn
+    name | -w | -i] program [args]`; -Wn names the component to wait for,
+    never the program — Codex R120): [("file", path)] for a program given as
+    a path and for an interpreter's script (relative to the configuration,
+    the working directory halcmd runs in), [("path", name)] for a program
+    found on PATH. Raises ValueError on a form it does not know."""
+    i = 1
+    while i < len(words) and words[i].startswith("-"):
+        if words[i] == "-Wn":
+            i += 2
+        elif words[i] in ("-W", "-w", "-i"):
+            i += 1
+        else:
+            raise ValueError(f"loadusr option {words[i]} not known")
+    if i >= len(words):
+        raise ValueError("loadusr without a program")
+    prog, rest = words[i], words[i + 1:]
+    out = [("file", prog) if "/" in prog else ("path", prog)]
+    if os.path.basename(prog) in INTERPRETERS:
+        opts, script = [], None
+        for w in rest:
+            if not w.startswith("-"):
+                script = w
+                break
+            opts.append(w)
+        if script is None or "-m" in opts or "-c" in opts:
+            raise ValueError(f"loadusr {prog} without a script file")
+        out.append(("file", script))
+    return out
+
+
+def _runs(text):
+    """What a halcmd text runs: ("file", path) for `source <file>` and the
+    files a `loadusr` starts, ("path", name) for a program it finds on PATH."""
+    for raw in text.splitlines():
+        words = raw.split("#", 1)[0].split()
+        if len(words) >= 2 and words[0] == "source":
+            yield ("file", words[1])
+        elif words and words[0] == "loadusr":
+            yield from _loadusr_runs(words)
+
+
+def validate_sim_target(ini, running_ini, sim_config=SIM_CONFIG, which=shutil.which):
+    """Only a running shipped SIMULATOR (Codex R118/R119 VP-I73): the
+    requested INI is the one LinuxCNC runs, its name a shipped profile's, the
+    whole INI the shipped template as the installer renders it (only the
+    per-install settings lines may differ — config_sync_check's rule; an
+    extra HALCMD, another kinematics, a Python remap differ), and every file
+    its HAL runs — HALFILE, POSTGUI_HALFILE, SHUTDOWN, each file one of them
+    or a HALCMD `source`s, a program or interpreter script a `loadusr`
+    starts (byte for byte) — the shipped template's file of that path; a
+    program found on PATH must be the checkout's own (install.sh links the
+    suite's scripts) or the system's. A file linked back into the checkout
+    is the template by construction. A `loadusr` form it does not know is
+    refused. Raises ValueError with the reason."""
+    req = os.path.realpath(os.path.expanduser(ini))
+    if not running_ini or req != os.path.realpath(os.path.expanduser(running_ini)):
+        raise ValueError("the requested INI is not the one LinuxCNC runs")
+    check_copy(ini, sim_config, which)
+
+
+def check_copy(ini, sim_config=SIM_CONFIG, which=shutil.which, nc_files=None, macro_dir=None):
+    """validate_sim_target without the running instance — the native stage's
+    check BEFORE it starts the copy. `nc_files` / `macro_dir` are the
+    installer options the copy was made with: the template is rendered with
+    them, so the comparison stays exact (no key exempted). `which` resolves a
+    program the HAL starts by name — under the run's own PATH there."""
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # scripts/
+    from config_sync_check import drifted_lines   # noqa: E402 (the installer's rule)
+    from install_examples import render_ini        # noqa: E402
+    req = os.path.realpath(os.path.expanduser(ini))
+    with open(os.path.join(sim_config, "profiles.json")) as f:
+        names = [p["ini"] for p in json.load(f)["profiles"]]
+    name = os.path.basename(req)
+    if name not in names:
+        raise ValueError(f"{name} is no shipped simulator profile")
+    with open(req) as f:
+        text = f.read()
+    with open(os.path.join(sim_config, name)) as f:
+        template = f.read()
+    repo = Path(sim_config).resolve().parents[1]
+    missing, local = drifted_lines(render_ini(template, template, repo, nc_files=nc_files, macro_dir=macro_dir),
+                                   text, ini=True)
+    if missing or local:
+        ln = (local or missing)[0][1].strip()
+        raise ValueError(f"not the shipped simulator: the INI differs ({ln})")
+    got = ini_values(text)
+    todo = [("file", v) for key in (("HAL", "HALFILE"), ("HAL", "POSTGUI_HALFILE"), ("HAL", "SHUTDOWN"))
+            for v in got.get(key, [])]
+    try:
+        todo += [r for cmd in got.get(("HAL", "HALCMD"), []) for r in _runs(cmd)]
+    except ValueError as e:
+        raise ValueError(f"not the shipped simulator: {e}")
+    base, seen = os.path.dirname(req), set()
+    checkout = str(repo) + os.sep
+    while todo:
+        kind, rel = todo.pop(0)
+        if (kind, rel) in seen:
+            continue
+        seen.add((kind, rel))
+        if kind == "path":
+            # a program on PATH: the checkout's own (install.sh links the
+            # suite's scripts) or the system's, never another file
+            found = which(rel)
+            real = os.path.realpath(found) if found else ""
+            if not (real.startswith(checkout) or real.startswith(SYSTEM_PREFIXES)):
+                raise ValueError(f"not the shipped simulator: {rel} runs from {found or 'nowhere on PATH'}")
+            continue
+        if rel.startswith("LIB:"):
+            continue                     # LinuxCNC's own library
+        deployed = os.path.normpath(os.path.join(base, rel))
+        shipped = os.path.normpath(os.path.join(sim_config, rel))
+        if not os.path.isfile(shipped):
+            raise ValueError(f"not the shipped simulator: its HAL runs {rel}, no shipped file")
+        if not os.path.isfile(deployed):
+            raise ValueError(f"not the shipped simulator: {rel} is missing")
+        with open(deployed, errors="replace") as f:
+            dtext = f.read()
+        hal = rel.endswith((".hal", ".tcl"))
+        if os.path.realpath(deployed) != os.path.realpath(shipped):
+            if hal:
+                with open(shipped, errors="replace") as f:
+                    missing, local = drifted_lines(f.read(), dtext)
+                if missing or local:
+                    raise ValueError(f"not the shipped simulator: {rel} differs ({(local or missing)[0][1].strip()})")
+            else:
+                # a program or script it starts: byte for byte, no settings
+                # line or comment exempt (Codex R120)
+                with open(shipped, "rb") as a, open(deployed, "rb") as b:
+                    if a.read() != b.read():
+                        raise ValueError(f"not the shipped simulator: {rel} differs")
+        if hal:
+            try:
+                todo += list(_runs(dtext))
+            except ValueError as e:
+                raise ValueError(f"not the shipped simulator: {rel}: {e}")
+
+
+# ── The native stage's run (plan Codex R268/R269 FI265-04, R283/R284) ────
+
+#: Every file or folder the copy WRITES — each must lie in the run's folder.
+MUTABLE_KEYS = (("RS274NGC", "PARAMETER_FILE"), ("TRAJ", "POSITION_FILE"), ("EMCIO", "TOOL_TABLE"),
+                ("DISPLAY", "PROGRAM_PREFIX"), ("DISPLAY", "TOOL_LIBRARY_DIR"), ("DISPLAY", "WEBUI_MACRO_DIR"))
+#: Folders that must exist before the start: the gateway falls back to
+#: ~/linuxcnc/nc_files (and creates it) for a PROGRAM_PREFIX it cannot find.
+MUST_EXIST = (("DISPLAY", "PROGRAM_PREFIX"), ("DISPLAY", "TOOL_LIBRARY_DIR"), ("DISPLAY", "WEBUI_MACRO_DIR"))
+
+
+def _within(path: Path, root: Path) -> bool:
+    """`path` in `root` with every link on the way followed (the deepest
+    existing ancestor resolved, the rest appended)."""
+    probe, rest = path, []
+    while not probe.exists() and not probe.is_symlink() and probe != probe.parent:
+        rest.insert(0, probe.name)
+        probe = probe.parent
+    return probe.resolve().joinpath(*rest).is_relative_to(root.resolve())
+
+
+def confinement_problems(ini: Path, run: Path, tree: Path) -> list[str]:
+    """The copy's mutable paths and the tree's settings.json, each resolved
+    as LinuxCNC and the gateway do (home, then relative to the INI's folder)
+    — in the run, and the folders there."""
+    ini = Path(ini)
+    got = ini_values(ini.read_text())
+    out = []
+    for key in MUTABLE_KEYS:
+        values = got.get(key) or []
+        if not values:
+            if key != ("TRAJ", "POSITION_FILE"):   # unset: LinuxCNC keeps no position file — nothing written
+                out.append(f"{key[1]} not set")
+            continue
+        p = Path(os.path.expanduser(values[-1]))
+        p = p if p.is_absolute() else ini.parent / p
+        if not _within(p, run):
+            out.append(f"{key[1]} = {values[-1]} lies outside the run")
+        elif p.is_file() and p.stat().st_nlink > 1:
+            # the same file as another path (a hard link): a write in place
+            # reaches it (Codex R286 FI-I20)
+            out.append(f"{key[1]} = {values[-1]} shares its inode with {p.stat().st_nlink - 1} other path(s)")
+        elif key in MUST_EXIST and not p.is_dir():
+            out.append(f"{key[1]} = {values[-1]} is missing (the gateway would fall back to ~/linuxcnc/nc_files)")
+    if not _within(Path(tree) / "lcnc-gateway/settings.json", run):
+        out.append("the tree's settings.json lies outside the run")
+    return out
+
+
+def shared_inodes(copy: Path, original: Path, limit: int = 3) -> list[str]:
+    """Files of `copy` that are the SAME file as `original`'s at that path
+    (device and inode): a hard-link copy — a build writing into it
+    (node_modules/.tmp/*.tsbuildinfo) changes the original (R283)."""
+    out = []
+    for dirpath, _dirs, files in os.walk(copy):
+        for name in files:
+            a = Path(dirpath) / name
+            b = Path(original) / a.relative_to(copy)
+            try:
+                sa, sb = a.stat(follow_symlinks=False), b.stat(follow_symlinks=False)
+            except OSError:
+                continue
+            if (sa.st_dev, sa.st_ino) == (sb.st_dev, sb.st_ino):
+                out.append(str(a.relative_to(copy)))
+                if len(out) >= limit:
+                    return out
+    return out
+
+
+#: The suite's processes the copy starts, by the script each runs.
+SUITE_HELPERS = ("lcnc-gateway/hal_reader.py", "lcnc-gateway/hal_watchdog.py",
+                 "subroutines/surfacemap/compensation.py")
+
+
+def process_problems(procs: list[dict], tree: Path, ini: Path, venv: Path | None = None) -> list[str]:
+    """After the start (R283/R284): the launcher is the tree's with the
+    copy's INI, the gateway's app dir the tree's, and each suite helper runs
+    the tree's script — not the main checkout's that ~/.local/bin links. A
+    missing one is named. `procs`: [{"cmdline": [...]}] (read_procs)."""
+    tree = Path(tree).resolve()
+    out = []
+    cmds = [p["cmdline"] for p in procs]
+    if not any(len(c) >= 4 and c[0].endswith("bash") and Path(c[1]).resolve() == tree / "lcnc-suite"
+               and c[2] == "-ini" and Path(c[3]).resolve() == Path(ini).resolve() for c in cmds):
+        out.append("the launcher of the run tree with the copy's INI is not running")
+    gw = [c for c in cmds if "gateway:app" in c]
+    if not gw:
+        out.append("the gateway is not running")
+    for c in gw:
+        app = c[c.index("--app-dir") + 1] if "--app-dir" in c else ""
+        if Path(app).resolve() != tree / "lcnc-gateway":
+            out.append(f"the gateway runs from {app or 'an unnamed folder'}")
+    for helper in SUITE_HELPERS:
+        name = Path(helper).name
+        runs = [Path(a) for c in cmds for a in c[:3] if Path(a).name == name]
+        if not runs:
+            out.append(f"{name} is not running")
+        out += [f"{name} runs {r}, not the run tree's" for r in runs if r.resolve() != tree / helper]
+    # the tool setter's feed: started by a path relative to the copy (its
+    # sim_toolsetter link leads into the run tree) — resolved where it runs
+    config = Path(ini).resolve().parent
+    feeds = [(p, a) for p in procs for a in p["cmdline"][:3] if Path(a).name == "sim_toolsetter_feed.py"]
+    if not feeds:
+        out.append("sim_toolsetter_feed.py is not running")
+    for p, a in feeds:
+        script = (Path(p.get("cwd") or "/") / a).resolve()
+        if not (script.is_relative_to(tree) or script.is_relative_to(config)):
+            out.append(f"sim_toolsetter_feed.py runs {script}, not the run's")
+    # each suite process's interpreter: the system's or the named venv (R269's shared resources)
+    for p in procs:
+        exe = p.get("exe")
+        suite = any(Path(a).name in {Path(h).name for h in SUITE_HELPERS} | {"sim_toolsetter_feed.py"}
+                    for a in p["cmdline"][:3]) or "gateway:app" in p["cmdline"]
+        if not suite:
+            continue
+        if not exe:
+            # an unreadable /proc/<pid>/exe is no proof (R287 FI-I18) — never silence
+            out.append(f"{p['cmdline'][:2]}: interpreter unknown (/proc/{p.get('pid')}/exe not read)")
+        elif not (exe.startswith(SYSTEM_PREFIXES) or (venv and exe.startswith(str(venv)))):
+            out.append(f"{p['cmdline'][:2]} runs on the interpreter {exe}")
+    return out
+
+
+def log_problems(open_files: list[str], logs: Path) -> list[str]:
+    """The gateway's open log files (from /proc/<pid>/fd): at least one, every
+    one under the run's log folder — none in another instance's (R284)."""
+    logs = Path(logs).resolve()
+    named = [f for f in open_files if f.endswith((".ndjson", ".log", ".csv", ".jsonl"))]
+    if not named:
+        return ["the gateway has no log file open"]
+    return [f"the gateway writes {f}" for f in named if not Path(f).resolve().is_relative_to(logs)]
+
+
+def launcher_log_problems(procs: list[dict], logs: Path, read_env) -> list[str]:
+    """The folder the launcher resolved for its logs (LCNC_RESOLVED_LOG_DIR)
+    is the run's. Read where the export shows: a shell's /proc/<pid>/environ
+    is its START environment, so the launcher's own never holds what it
+    exports later — the gateway it starts after the export carries it (live
+    run 2026-11-05: the launcher's read gave None while every log was in the
+    run). `read_env(pid)` → the process's environment as a dict."""
+    logs = Path(logs).resolve()
+    gws = [p for p in procs if "gateway:app" in p["cmdline"]]
+    if not gws:
+        return ["the gateway is not running — the launcher's log folder unread"]
+    out = []
+    for p in gws:
+        d = read_env(p["pid"]).get("LCNC_RESOLVED_LOG_DIR")
+        if d is None or Path(d).resolve() != logs:
+            out.append(f"the launcher logs to {d}, not the run's folder")
+    return out
+
+
+def proc_env(pid: int) -> dict:
+    """/proc/<pid>/environ as a dict; a process gone or unreadable is {}."""
+    try:
+        raw = Path(f"/proc/{pid}/environ").read_bytes()
+    except OSError:
+        return {}
+    return dict(kv.split("=", 1) for kv in raw.decode(errors="replace").split("\0") if "=" in kv)
+
+
+def read_procs() -> list[dict]:
+    """Every process's command line, from /proc (the orchestrator's read)."""
+    out = []
+    for d in Path("/proc").glob("[0-9]*"):
+        try:
+            raw = (d / "cmdline").read_bytes()
+        except OSError:
+            continue
+        if raw:
+            entry = {"pid": int(d.name), "cmdline": raw.rstrip(b"\0").decode(errors="replace").split("\0")}
+            for key in ("exe", "cwd"):
+                try:
+                    entry[key] = os.readlink(d / key)
+                except OSError:
+                    entry[key] = None
+            out.append(entry)
+    return out
+
+
+def open_files(pid: int) -> list[str]:
+    """What a process has open (/proc/<pid>/fd), as paths."""
+    out = []
+    for fd in Path(f"/proc/{pid}/fd").glob("*"):
+        try:
+            out.append(os.readlink(fd))
+        except OSError:
+            pass
+    return out
+
+
+#: The installed launcher's PATH rule, as it reads (LinuxCNC 2.9, R286 FI-I18).
+_LOCAL_BIN_RULE = 'if [[ "$PATH" != *".local/bin"* ]]; then\n        PATH=$HOME/.local/bin:$PATH'
+
+
+def linuxcnc_path(path: str, home: Path | None = None, script: Path = Path("/usr/bin/linuxcnc")) -> str:
+    """The PATH the installed `linuxcnc` script hands to HAL: it puts
+    ~/.local/bin first when PATH holds no ".local/bin" (Debian bug 839155 —
+    on this VM the links into the MAIN checkout), then its own bin dir and,
+    if present, LINUXCNC_HOME/scripts. Read from the script itself; a script
+    whose rule is not this one is refused, never guessed."""
+    import re
+    home = Path.home() if home is None else Path(home)
+    text = Path(script).read_text(errors="replace")
+    bin_dir = re.search(r"^LINUXCNC_BIN_DIR=(\S+)", text, re.M)
+    lc_home = re.search(r"^LINUXCNC_HOME=([^;\s]+)", text, re.M)
+    if not bin_dir or _LOCAL_BIN_RULE not in text or "PATH=$LINUXCNC_BIN_DIR:$PATH" not in text:
+        raise ValueError(f"{script}: not the known PATH rule — the effective PATH cannot be checked")
+    eff = path
+    if (home / ".local/bin").is_dir() and ".local/bin" not in path:
+        eff = f"{home / '.local/bin'}:{eff}"
+    eff = f"{bin_dir.group(1)}:{eff}"
+    if lc_home and "PATH=$LINUXCNC_HOME/scripts:$PATH" in text and Path(lc_home.group(1), "scripts").is_dir():
+        eff = f"{Path(lc_home.group(1), 'scripts')}:{eff}"
+    return eff

@@ -249,7 +249,9 @@ describe("the function inventory's web atoms (Codex R265–R268 FI265-01)", () =
     // the outer const itself, seen at the send: a proven frame
     const seen = framesAdapter(memory({ "wsWorker.ts": outer + "function send() { ws.send(own); }" }));
     expect([seen.atoms.map((x) => x.id), seen.unresolved]).toEqual([["frame:hello"], []]);
-  });
+    // a TypeScript program per case, CPU-bound: 1.8 s alone, past vitest's 5 s
+    // under the merge gate's load (2026-11-05) — a budget, not a wait
+  }, 20_000);
 
   it("routines: the macro family without its literals is unresolved", () => {
     const a = routinesAdapter(memory({ "App.vue": "<script setup>emit(`O<${macro}> CALL`)</script>" }));

@@ -35,6 +35,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from test_select import proof, selector  # noqa: E402
 from test_select.rules import FULL, HEAVY_UNIT  # noqa: E402
+from test_support.heavy_lock import heavy_lock  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "lcnc-webui"
@@ -60,6 +61,19 @@ def resources() -> dict:
                 "memory_peak_mb": round(int(peak.read_text()) / 2**20) if peak.exists() else None}
     except (OSError, IndexError, KeyError, ValueError) as e:
         return {"error": f"cgroup accounting unread: {e}"}
+
+
+MERGE_REASON = "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+
+
+def as_merge(sel: dict) -> dict:
+    """A merge runs everything a round may leave out — every heavy unit
+    file, the backend, the whole browser run — whatever the change selects.
+    The round's selection is kept beside it in the record."""
+    return {**sel,
+            "unit": {**sel["unit"], "heavy": sorted(HEAVY_UNIT), "heavy_reasons": {f: [MERGE_REASON] for f in HEAVY_UNIT}},
+            "backend": {"run": True, "reasons": [MERGE_REASON]},
+            "browser": {"run": FULL, "reasons": [MERGE_REASON]}}
 
 
 def plan(sel: dict) -> list[str]:
@@ -236,16 +250,168 @@ def browser(sel: dict, logs: Path) -> list[dict]:
     return checks
 
 
+#: the install probe's deadline in the merge gate (installer with fresh
+#: downloads, start, browser, restore): past it the unit is stopped — its
+#: ExecStopPost restores — and the check is FAIL (Codex R329 FI329-04)
+INSTALL_PROBE_S = 3000
+
+
+def install_probe_refusal(host=None) -> str | None:
+    """Why the install probe could not take the LAN instance now, or None:
+    its record refuses a waiting trip (restore_lan.TakeOverRefused); an
+    instance that cannot be read is no refusal here — the probe names it."""
+    from test_support import restore_lan as rl
+    from test_support.system_host import SystemHost
+    host = host or SystemHost()
+    try:
+        trip = host.lan_trip()
+    except Exception:  # noqa: BLE001 — no LAN instance, or none readable: the probe's own record decides
+        return None
+    if trip:
+        return (f"the LAN instance has an unacknowledged trip ({trip}) — the install probe may not take it; "
+                f"acknowledge it, then run the merge gate again")
+    return None
+
+
+#: every systemctl call of the probe's wait returns within this (Codex R331
+#: FI-I60 B: a hanging call bypassed every other deadline)
+SYSTEMCTL_S = 15
+
+
+def _unit_state(unit: str) -> dict | None:
+    """systemd's view of the unit (LoadState, ActiveState, its main process's
+    exit), or None when it was not read."""
+    try:
+        r = subprocess.run(["systemctl", "--user", "show", unit, "-p", "LoadState", "-p", "ActiveState",
+                            "-p", "ExecMainStatus", "--no-pager"], capture_output=True, text=True, timeout=SYSTEMCTL_S)
+    except subprocess.TimeoutExpired:
+        return None         # a query that did not return is no state (Codex R331 FI-I60 B)
+    props = dict(line.split("=", 1) for line in r.stdout.splitlines() if "=" in line)
+    return props if r.returncode == 0 and props.get("ActiveState") else None
+
+
+def _ended(props: dict | None) -> bool:
+    """Ended: gone, or inactive / failed — "deactivating" still runs the
+    unit's ExecStopPost (the restore)."""
+    return bool(props) and (props.get("LoadState") == "not-found" or props.get("ActiveState") in ("inactive", "failed"))
+
+
+def install_probe(logs: Path, sha: str, unit: str | None = None, probe_s: float = INSTALL_PROBE_S,
+                  unread_s: float = 60.0, sleep=None) -> dict:
+    """The merge gate's install probe (package I, operator 2026-11-07): a
+    fresh clone of the gate's commit `sha` installed by `install.sh --yes
+    --no-root` in its own environment and started (scripts/install_probe.py),
+    in its own user unit whose ExecStopPost is the probe's restore.
+
+    It runs AFTER the gate's heavy section and takes the heavy lock ITSELF —
+    the probe through its run, its restore after it (Codex R330 FI-I60: the
+    gate as the lock's owner left a running probe unlocked when the gate
+    ended). Each call has its OWN run folder and id; PASS only with THIS
+    run's report (its run id and the gate's commit), the probe's PASS, the
+    LAN returned complete, isolation [] and the unit's own restore complete
+    (FI-I59: a second call on the same --out read the first call's PASS).
+    An end of the gate while it waits (an interrupt, an exception) stops the
+    unit and waits for its END — its restore included — before it goes on;
+    a unit whose state is not read for `unread_s` is stopped and named."""
+    import uuid
+    from test_support.install_cases import gate_status
+    sleep = sleep or time.sleep
+    run_id = uuid.uuid4().hex[:12]
+    run_dir = logs / f"install-probe-{run_id}"
+    unit = unit or f"install-probe-gate-{run_id}"
+    py = sys.executable
+    cmd = ["systemd-run", "--user", f"--unit={unit}", "-p", f"WorkingDirectory={ROOT}",
+           "-p", f"ExecStopPost={py} -I {ROOT / 'scripts/test_support/install_restore.py'} "
+                 f"--from {run_dir / 'pre.json'} --out {run_dir / 'restore-post.json'}",
+           py, "-I", str(ROOT / "scripts/install_probe.py"), "--run-dir", str(run_dir), "--commit", sha,
+           "--run-id", run_id]
+    t0 = time.monotonic()
+    try:
+        started = subprocess.run(cmd, capture_output=True, text=True, timeout=SYSTEMCTL_S * 4)
+    except subprocess.TimeoutExpired:
+        return {"name": "install-probe", "status": "FAIL", "run": str(run_dir),
+                "why": [f"systemd-run did not return within {SYSTEMCTL_S * 4} s"]}
+    if started.returncode:
+        return {"name": "install-probe", "status": "FAIL", "run": str(run_dir),
+                "why": [f"the probe unit did not start: {started.stderr.strip()}"]}
+    why_end: list[str] = []
+    unread_since = None
+
+    def stop_and_wait(limit=600.0):
+        # `systemctl stop` returns once the stop job is done, ExecStopPost
+        # included; it is bounded, and its end is confirmed by the state below
+        try:
+            subprocess.run(["systemctl", "--user", "stop", unit], capture_output=True, timeout=limit)
+        except subprocess.TimeoutExpired:
+            pass
+        end = time.monotonic() + limit
+        while time.monotonic() < end:
+            if _ended(_unit_state(unit)):
+                return True
+            sleep(2)
+        return False
+    try:
+        while True:
+            props = _unit_state(unit)
+            if _ended(props):
+                break
+            now = time.monotonic()
+            if props is None:
+                unread_since = unread_since or now
+                if now - unread_since > unread_s:
+                    why_end.append(f"the unit's state was not read for {unread_s:.0f} s — stopped")
+                    if not stop_and_wait():
+                        why_end.append("its end is not confirmed")
+                    break
+            else:
+                unread_since = None
+            if now - t0 > probe_s:
+                why_end.append(f"the probe ran past {probe_s:.0f} s and was stopped")
+                if not stop_and_wait():
+                    why_end.append("its end is not confirmed")
+                break
+            sleep(2)
+    except BaseException:
+        # the gate ends while its probe runs: the probe's own lock holds, but
+        # the gate leaves nothing running behind it — stopped, its restore awaited
+        stop_and_wait()
+        raise
+    finally:
+        try:
+            subprocess.run(["systemctl", "--user", "reset-failed", unit], capture_output=True, timeout=SYSTEMCTL_S)
+        except subprocess.TimeoutExpired:
+            why_end.append("reset-failed did not return")
+
+    def load(name):
+        p = run_dir / name
+        try:
+            return json.loads(p.read_text()) if p.is_file() else None
+        except ValueError:
+            return None
+    report, post = load("report.json"), load("restore-post.json")
+    status, why = gate_status(report, post)
+    if report is not None and (report.get("run_id") != run_id or report.get("commit") != sha):
+        status, why = "FAIL", [f"the report is not this run's (run {report.get('run_id')}, commit "
+                               f"{report.get('commit')}; this run {run_id}, commit {sha})"] + why
+    if why_end:
+        status, why = "FAIL", why_end + why
+    return {"name": "install-probe", "status": status, "seconds": round(time.monotonic() - t0), "run": str(run_dir),
+            "run_id": run_id, "rows": [f"{r.get('case')}: {r.get('status')}" for r in (report or {}).get("rows", [])],
+            **({"why": why} if why else {})}
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--base", required=True)
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--note", default="")
+    ap.add_argument("--merge", action="store_true",
+                    help="the merge gate: every heavy unit file, the backend, the whole browser run and the install probe")
     a = ap.parse_args(argv)
     out = a.out if a.out.is_absolute() else ROOT / a.out
     logs = out.with_suffix(".logs")
     logs.mkdir(parents=True, exist_ok=True)
-    record: dict = {"kind": "round", "note": a.note}
+    record: dict = {"kind": "merge" if a.merge else "round", "note": a.note}
 
     def finish(verdict: str, **extra) -> int:
         record.update(verdict=verdict, resources=resources(), **extra)
@@ -267,6 +433,9 @@ def main(argv: list[str] | None = None) -> int:
         sel = selector.select(ROOT, a.base, "HEAD", selector.vitest_changed(ROOT, a.base))
     except selector.SelectError as e:
         return finish("FAIL", checks=checks, why=[str(e)])
+    if a.merge:
+        record["round_selection"] = {k: sel[k] for k in ("unit", "browser", "backend")}
+        sel = as_merge(sel)
     (logs / "selection.json").write_text(json.dumps(sel, indent=2, ensure_ascii=False) + "\n")
     record.update(base=sel["base"], head=sel["head"], uncommitted=0, plan=plan(sel), env={
         "nproc": os.cpu_count(), "arch": platform.machine(),
@@ -274,38 +443,59 @@ def main(argv: list[str] | None = None) -> int:
     record["selection"] = {k: sel[k] for k in ("unmatched", "unit", "browser", "backend", "firefox", "live")}
     omitted = []
 
-    checks.append(run("lint", ["npm", "run", "lint"], WEB, logs))
-    checks.append(run("build", ["npm", "run", "build"], WEB, logs))
-    checks.append(unit("unit-light", [], [f.removeprefix("lcnc-webui/") for f in HEAVY_UNIT], logs))
+    # The heavy sections hold the ONE heavy lock (Codex R269): another gate, a
+    # load run or the native stage waits for this one, and this one for them.
+    lock_from = time.monotonic()
+    with heavy_lock(f"round_gate {record['kind']} {sel['head'][:8]}"):
+        record["heavy_lock_wait_s"] = round(time.monotonic() - lock_from, 1)
+        if a.merge:
+            # the install probe takes the LAN instance at the END: a trip it may
+            # not take (the operator's to acknowledge) refuses the merge NOW,
+            # not after the heavy hour (rehearsal 2026-11-07: a VM pause had
+            # tripped it before the gate began)
+            refusal = install_probe_refusal()
+            if refusal:
+                checks.append({"name": "install-probe", "status": "FAIL", "why": [refusal]})
+                return finish("FAIL", checks=checks, omitted=omitted, pending=[])
+        checks.append(run("lint", ["npm", "run", "lint"], WEB, logs))
+        checks.append(run("build", ["npm", "run", "build"], WEB, logs))
+        checks.append(unit("unit-light", [], [f.removeprefix("lcnc-webui/") for f in HEAVY_UNIT], logs))
 
-    heavy = sel["unit"]["heavy"]
-    if heavy:
-        c = unit("unit-heavy", [f.removeprefix("lcnc-webui/") for f in heavy], [], logs)
-        if c.get("files") != len(heavy):
-            fail(c, f"{c.get('files')} heavy files ran, {len(heavy)} selected")
-        c["selected"] = heavy
-        checks.append(c)
-    else:
-        omitted.append({"check": "unit-heavy", "reason": "no heavy file changed, reached or read for"})
+        heavy = sel["unit"]["heavy"]
+        if heavy:
+            c = unit("unit-heavy", [f.removeprefix("lcnc-webui/") for f in heavy], [], logs)
+            if c.get("files") != len(heavy):
+                fail(c, f"{c.get('files')} heavy files ran, {len(heavy)} selected")
+            c["selected"] = heavy
+            checks.append(c)
+        else:
+            omitted.append({"check": "unit-heavy", "reason": "no heavy file changed, reached or read for"})
 
-    if sel["backend"]["run"]:
-        checks.append(run("backend", [sys.executable, str(ROOT / "scripts/test_suite.py"), "offline", "--component",
-                                      "backend", "--out-dir", str(logs / "backend")], ROOT, logs))
-    else:
-        omitted.append({"check": "backend", "reason": "; ".join(sel["backend"]["reasons"])})
+        if sel["backend"]["run"]:
+            checks.append(run("backend", [sys.executable, str(ROOT / "scripts/test_suite.py"), "offline", "--component",
+                                          "backend", "--out-dir", str(logs / "backend")], ROOT, logs))
+        else:
+            omitted.append({"check": "backend", "reason": "; ".join(sel["backend"]["reasons"])})
 
-    if sel["browser"]["run"]:
-        busy = [p for p in ports() if listening(p)]
-        checks.append({"name": "ports-free", "status": "FAIL" if busy else "PASS",
-                       **({"why": [f"port {p} already serves something: a foreign server would be tested in "
-                                   f"place of this tree's" for p in busy]} if busy else {})})
-        if not busy:
-            checks += browser(sel, logs)
-        report = logs / "playwright.json"
-        if report.is_file() and report.stat().st_size:
-            record["browser_specs"] = spec_times(report)
-    else:
-        omitted.append({"check": "browser", "reason": "; ".join(sel["browser"]["reasons"])})
+        if sel["browser"]["run"]:
+            busy = [p for p in ports() if listening(p)]
+            checks.append({"name": "ports-free", "status": "FAIL" if busy else "PASS",
+                           **({"why": [f"port {p} already serves something: a foreign server would be tested in "
+                                       f"place of this tree's" for p in busy]} if busy else {})})
+            if not busy:
+                checks += browser(sel, logs)
+            report = logs / "playwright.json"
+            if report.is_file() and report.stat().st_size:
+                record["browser_specs"] = spec_times(report)
+        else:
+            omitted.append({"check": "browser", "reason": "; ".join(sel["browser"]["reasons"])})
+
+    if a.merge:
+        # the installer, from a fresh clone, and what it installed started
+        # (package I) — a merge only; it takes the VM's one LinuxCNC. AFTER
+        # the heavy section: the probe holds the heavy lock itself, through its
+        # restore, whatever happens to this process (Codex R330 FI-I60)
+        checks.append(install_probe(logs, sel["head"]))
 
     pending = []
     if sel["firefox"].get("needed"):

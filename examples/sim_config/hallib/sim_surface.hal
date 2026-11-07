@@ -1,0 +1,67 @@
+# The 3-axis XYZ sim's WORKPIECE — a curved second contact surface for the
+# surface scan and the compensation methods (package G2, operator Q282-2
+# 2026-11-06; Codex R326). Sourced by core_sim_3.hal right after
+# hallib/sim_toolsetter.hal, never by another profile (a surface map is a
+# 3-axis feature). PHYSICAL like the plate: a fixed body, not a setting.
+#
+# sim_toolsetter instance 1 (loaded and threaded by sim_toolsetter.hal)
+# trips the probe where the tool TIP (joint Z minus the spindle tool's table
+# length) is at or below the surface height inside its X/Y window
+# |x - 550| <= 40, |y - 550| <= 40 (G53). The height is not a constant: this
+# chain of stock realtime components computes it from the joint X/Y in the
+# servo thread —
+#
+#   f(x, y) = -169 + 0.05 (x - 550) - 0.03 (y - 550) - 0.0024 ((x - 550)^2 + (y - 550)^2)
+#
+# a tilted paraboloid: 6 mm above the base -175 at the centre, its crest
+# 6.354 mm at (560.42, 543.75), its edges lower — every method of the
+# compensation interpolates it differently. The constants are the
+# workpiece's definition; scripts/native_run.py holds the same formula as a
+# literal and test_sim_toolsetter.py keeps them equal.
+#
+# Order in the servo thread: the chain, then instance 1, then instance 0
+# (`addf ... -3` = third from the end, ahead of the two instances
+# sim_toolsetter.hal added last). The height is this period's X/Y; the
+# contact reaches motion.probe-input in the next period, as the plate's does.
+#
+# Like the plate it is an obstacle: a jog or an MDI move taking the tip
+# below the surface inside the window trips "Probe tripped during …". No
+# shipped tool reaches it from the top of Z (the longest, T1012 120 mm: tip
+# -119.9, the crest -168.6). The 3D view does not draw it (simulation
+# feature freeze); README "Simulated tool setter" names it.
+
+loadrt sum2 names=surf-dx,surf-dy,surf-tilt,surf-curve,surf-z
+loadrt mult2 names=surf-dx2,surf-dy2
+addf surf-dx    servo-thread -3
+addf surf-dy    servo-thread -3
+addf surf-dx2   servo-thread -3
+addf surf-dy2   servo-thread -3
+addf surf-tilt  servo-thread -3
+addf surf-curve servo-thread -3
+addf surf-z     servo-thread -3
+
+# dx = x - 550, dy = y - 550
+setp surf-dx.offset -550
+setp surf-dy.offset -550
+net sim-ts-x => surf-dx.in0
+net sim-ts-y => surf-dy.in0
+net surf-dx surf-dx.out => surf-dx2.in0 surf-dx2.in1 surf-tilt.in0
+net surf-dy surf-dy.out => surf-dy2.in0 surf-dy2.in1 surf-tilt.in1
+# tilt = 0.05 dx - 0.03 dy
+setp surf-tilt.gain0 0.05
+setp surf-tilt.gain1 -0.03
+# curve = -0.0024 (dx^2 + dy^2)
+net surf-dx2 surf-dx2.out => surf-curve.in0
+net surf-dy2 surf-dy2.out => surf-curve.in1
+setp surf-curve.gain0 -0.0024
+setp surf-curve.gain1 -0.0024
+# f = -169 + tilt + curve
+net surf-tilt  surf-tilt.out  => surf-z.in0
+net surf-curve surf-curve.out => surf-z.in1
+setp surf-z.offset -169
+
+net surf-height surf-z.out => sim-toolsetter.1.plate-z
+setp sim-toolsetter.1.plate-x 550
+setp sim-toolsetter.1.plate-y 550
+setp sim-toolsetter.1.radius 40
+net sim-ts-enable => sim-toolsetter.1.enable

@@ -38,7 +38,7 @@ const REF_EXPORTS = [
 const FN_EXPORTS = [
   "acknowledgeSafetyTrip", "awaitReply", "clearAllMessages", "connectWs", "dismissMessage",
   "emitTelemetry", "getTimingCsv", "markMessagesRead", "nextReqId", "noteWitnessDone", "previewRefreshLabel", "pushMessage", "request", "resetTimingStats",
-  "saveSettings", "send", "statusReceiptOf",
+  "saveSettings", "send", "statusReceiptOf", "tripReasonLabel",
 ] as const;
 
 const VALUE_EXPORTS = [...REF_EXPORTS, ...FN_EXPORTS].sort();

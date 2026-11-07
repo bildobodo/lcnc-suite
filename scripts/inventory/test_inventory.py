@@ -256,3 +256,55 @@ def test_evidence_is_bound_to_a_file_and_its_title(tmp_path):
     assert fn.evidence_problems({"layer": "script", "file": "t.py", "title": "${rel} a family"}, tmp_path)
     assert fn.evidence_problems({"layer": "script", "file": "t.py", "title": "another"}, tmp_path)
     assert fn.evidence_problems({"layer": "script", "file": "gone.py", "title": "x"}, tmp_path)
+    # vitest's own placeholders are parametric too: it.each's $field and %s
+    (tmp_path / "scripts" / "e.py").write_text("'$action: one per case' '%s: one per case' 'costs $5 flat'\n")
+    for title in ("$action: one per case", "%s: one per case"):
+        assert fn.evidence_problems({"layer": "script", "file": "e.py", "title": title}, tmp_path), title
+        assert fn.evidence_problems({"layer": "script", "file": "e.py", "title": title, "instances": ["a"]}, tmp_path) == [], title
+    assert fn.evidence_problems({"layer": "script", "file": "e.py", "title": "costs $5 flat"}, tmp_path) == []
+
+
+def test_format_refuses_before_it_writes(tmp_path, monkeypatch):
+    """Codex R276 FI-I12: a field the layout does not write is refused with
+    the file untouched — never dropped with an error after the write. A
+    present empty list is the data and stays."""
+    monkeypatch.setattr(fn, "HERE", tmp_path)
+    monkeypatch.setattr(sys, "argv", ["functions.py", "--format"])
+    base = {"areas": {"x": "X"}, "functions": [{"id": "F-A", "area": "x", "name": "A", "atoms": ["a"]}], "excludedAtoms": {}}
+    path = tmp_path / "functions.json"
+    extra = json.loads(json.dumps(base))
+    extra["functions"][0]["reviewNote"] = "a field the layout does not know"
+    path.write_text(json.dumps(extra))
+    before = path.read_bytes()
+    assert fn.main() == 1
+    assert path.read_bytes() == before, "refused: the original bytes"
+    empty = json.loads(json.dumps(base))
+    empty["functions"][0]["uses"] = []
+    path.write_text(json.dumps(empty))
+    fn.main()
+    assert json.loads(path.read_text()) == empty, "uses: [] written as it is"
+
+
+def test_a_native_evidence_passes_only_from_a_report_of_its_own_commit_profile_case_and_variant():
+    """Codex R283 FI282-03: "named" is the static binding; a PASS needs the
+    run report of the SAME commit, profile, case and variant — a missing row,
+    SKIP, incomplete, another commit, profile or variant is none."""
+    e = {"layer": "native", "file": "native_run.py", "title": "home-all", "profile": "3axis_xyz"}
+    rep = {"commit": "c1", "profile": "3axis_xyz", "rows": [{"case": "home-all", "status": "PASS"}]}
+    assert fn.native_status(e, [rep], "c1") == "PASS at c1"
+    assert fn.native_status(e, [rep], "c2") == "ran at c1 (not this commit)"
+    assert fn.native_status(e, [{**rep, "profile": "5axis_xyzac"}], "c1") == "not proven"
+    assert fn.native_status(e, [{**rep, "rows": []}], "c1") == "not proven"
+    for status in ("SKIP", "incomplete", "FAIL"):
+        assert fn.native_status(e, [{**rep, "rows": [{"case": "home-all", "status": status}]}], "c1") == f"{status} at c1"
+    other = {**rep, "rows": [{"case": "home-all", "status": "PASS", "variant": "delayed-latch"}]}
+    assert fn.native_status(e, [other], "c1") == "not proven", "a mutant's PASS is no production PASS"
+    assert fn.native_status(e, [], "c1") == "not proven"
+
+
+def test_a_python_placeholder_is_a_parametric_title_too(tmp_path):
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "n.py").write_text('case = f"home-joint-{j}"\n')
+    e = {"layer": "native", "file": "n.py", "title": "home-joint-{j}"}
+    assert fn.evidence_problems(e, tmp_path), "named instances needed"
+    assert fn.evidence_problems({**e, "instances": ["0", "1", "2"]}, tmp_path) == []

@@ -155,7 +155,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     # inside one), `read_from_start` for a text out of order that may read
     # anywhere. The bundled routine marks its own reads (WEBUI_POS_*):
     # `_pos_saved` the X/Y/Z state at its save, `_pos_return` the return
-    # moves still to take it.
+    # move still to take it (one: X/Y at the top of travel — Z stays up).
     read_lines = None
     read_remaps = {}
     read_from_start = False
@@ -779,15 +779,16 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
 
     def _pos_marker(self, pm):
         """The routine's position reads (plan E4): SAVE takes the state of X,
-        Y, Z; RETURN hands it to the next two moves (the return to the saved
-        point); READ requires the axes known — else the measurement is not
-        predicted (reason "position")."""
+        Y, Z; RETURN hands it to the next move (the return to the saved X/Y
+        at the top of travel — Z stays up, operator 2026-11-05); READ
+        requires the axes known — else the measurement is not predicted
+        (reason "position")."""
         if pm[0] == "save":
             self._pos_saved = {a: ("stale" if a in self.stale else "dep" if a in self.dep else "known")
                                for a in (0, 1, 2)}
             self._pos_return = 0
         elif pm[0] == "return":
-            self._pos_return = 2
+            self._pos_return = 1
         elif pm[0] == "read":
             if not self._probe_unknown and pm[1] & (self.stale | self.dep):
                 self._mark_probe_unknown("position")
@@ -1092,7 +1093,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
                 out |= before                 # a probe, a cycle, a spindle-synced move, a spline
         readd, make_stale = set(), set()
         if self._pos_return > 0:
-            # The return to the routine's saved point (plan E4): its words
+            # The return to the routine's saved X/Y (plan E4): its words
             # take the state the axes had at the save, never "known" by
             # themselves. Unknown to the end stays; unknown at the save is
             # unknown; start-dependent at the save is start-dependent again.

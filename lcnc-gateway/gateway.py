@@ -90,7 +90,7 @@ from gateway_util import (
     evaluate_tlo_drift, evaluate_start_drift,
     TOOLSETTER_BASIS_KEYS, toolsetter_assigned_keys, toolsetter_basis_view, toolsetter_ctx,
     RemapEnv, resolve_subroutine_dirs,
-    evaluate_rotary_drift, drift_gate_open, inflight_stale_reason, preview_file_edge_action,
+    evaluate_rotary_drift, drift_gate_open, inflight_stale_reason, preview_file_changed, preview_file_edge_action,
     midrun_table_gate_open, midrun_table_action,
     rotary_drift_settled,
     evaluate_kins_drift,
@@ -108,10 +108,12 @@ from gateway_util import (
     wcs_stamp_decision,
     PROV_STAMPED,
 )
+from toolsetter_rules import canonical as canonical_param, setup as toolsetter_setup  # noqa: E402 — P2, the form's rule
 from command_policy import gate_refusal, NOT_ARMED, STATE_UNKNOWN, MACHINE_BUSY, MOTION_UNKNOWN, MACHINE_MOVING, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
 from tool_table import (
     parse_tool_table,
     write_tool_table,
+    ToolTableUnreadable,
     _merge_tool_data,
     _TOOL_META_FIELDS,
     tool_visual_metadata,
@@ -346,6 +348,13 @@ _WS_NO_PREEMPT = _WS_STOP_CMDS | {"arm"}
 # Client heartbeat budget (s): status_loop disarms an armed client whose
 # last heartbeat is older than this. Module-level so tests can shrink it.
 _HB_STALL_SEC = 3.0
+
+
+def _hb_stalled(last_hb_mono: float, now: float) -> bool:
+    """A client's heartbeat budget is spent: MORE than _HB_STALL_SEC (3 s) of
+    monotonic time since its last beat — exactly 3 s is not yet a stall. The
+    status loop disarms through this (F-ARM.S3b)."""
+    return now - last_hb_mono > _HB_STALL_SEC
 
 
 # ── Auth / origin controls (issue #17) ──
@@ -941,6 +950,19 @@ _hal_bridge = _hal_bridge_mod.HalBridge(
 _hal_connect = _hal_bridge.watchdog_connect
 _hal_disconnect = _hal_bridge.watchdog_disconnect
 _hal_send = _hal_bridge.watchdog_send
+
+
+def _compensation_reply(event: str, delivered: Optional[bool], **fields) -> dict:
+    """A compensation request answered by its delivery (watchdog_send: True
+    written in full, False nothing written, None unclear). Only a delivered
+    message is ok — and ok is the delivery, not the pin's state."""
+    if delivered is True:
+        _trace.emit(event, **fields)
+        return {"ok": True}
+    _trace.emit(f"{event}_not_delivered", level="warn", outcome=str(delivered), **fields)
+    if delivered is False:
+        return {"ok": False, "error": "Compensation not sent — try again"}
+    return {"ok": False, "error": "Compensation unclear — check the display"}
 _reader_recv_loop = _hal_bridge.reader_recv_loop
 _reader_request = _hal_bridge.reader_request
 _reader_get = _hal_bridge.reader_get
@@ -1278,7 +1300,17 @@ _halshow_topology_cache: Optional[dict] = None  # built-once HAL graph (P5); HAL
 # good baseline (issue #34). Broadcast to all clients in every status message
 # until a client sends {cmd:"safety_trip_ack"}. Lives server-side (not per-client)
 # so reload / multi-tab all see the same trip.
-_unacked_trip: Optional[dict] = None  # {"reason": str}
+_unacked_trip: Optional[dict] = None  # {"reason": str, "id": str}
+# Each trip's identity (operator Q323-1, Codex R323): the message center
+# records a trip and its confirmed acknowledgement ONCE — repeated frames, a
+# reload and a reconnect must not add another entry, so a client keys them by
+# this id. The epoch makes ids of a restarted gateway new ones.
+_TRIP_EPOCH = os.urandom(4).hex()
+_trip_seq = 0
+# The last CONFIRMED acknowledgement ({"id": the trip's id}), on every status
+# frame until the next one: what a client records as acknowledged — never the
+# mere absence of a trip, which a gateway restart produces too.
+_last_trip_ack: Optional[dict] = None
 _last_fault_latched: Optional[bool] = None  # webui-hb-latch.fault-out at last poll
 _trip_baseline_seen: bool = False  # have we ever seen the latch clear (FALSE)?
 
@@ -1667,9 +1699,7 @@ async def _status_poller():
                     _cur_mtime = _bulk.last_mtime
             else:
                 _cur_mtime = None
-            file_changed = bool(st.active_file) and (
-                st.active_file != _bulk.last_file or _cur_mtime != _bulk.last_mtime
-            )
+            file_changed = preview_file_changed(st.active_file, _cur_mtime, _bulk.last_file, _bulk.last_mtime)
             # reparse_pending: an operator Reparse that arrived during an
             # in-flight parse (or any Reparse — the flag is the request,
             # the cache keys are no longer cleared for it).
@@ -1970,7 +2000,7 @@ async def _status_poller():
             # is a pure state machine (unit-tested in gateway_util) that edge-
             # detects a clean FALSE→TRUE only after a known-good baseline, so a
             # boot-faulted latch doesn't spuriously banner.
-            global _last_fault_latched, _trip_baseline_seen, _unacked_trip
+            global _last_fault_latched, _trip_baseline_seen, _unacked_trip, _trip_seq
             _tl = evaluate_trip_latch(
                 _reader_get("trip_latched"), _last_fault_latched, _trip_baseline_seen
             )
@@ -1986,8 +2016,9 @@ async def _status_poller():
                 # which doesn't run when no clients are connected, so "when the
                 # gateway noticed" != "when the trip happened" and would mislead
                 # operators. Drop it; the trace event below carries its own ts.
-                _unacked_trip = {"reason": "hal_heartbeat_timeout"}
-                _trace.emit("safety.tripped", level="error")
+                _trip_seq += 1
+                _unacked_trip = {"reason": "hal_heartbeat_timeout", "id": f"{_TRIP_EPOCH}-{_trip_seq}"}
+                _trace.emit("safety.tripped", level="error", trip_id=_unacked_trip["id"])
                 # Auto-snapshot the trace bus into a forensic bundle so the trip
                 # is reconstructable end-to-end without operator action. Run in
                 # to_thread so the bundler subprocess can't block the asyncio
@@ -3899,6 +3930,17 @@ def _write_admission_refusal(conn_key=None, *, tool_table: bool = False) -> Opti
     return None
 
 
+async def _tool_table_for_edit(tbl_path: str):
+    """(tools, None) — the table as a tool edit rewrites it, read STRICTLY —
+    or (None, the refusal): a line the reader does not understand would be
+    dropped by the rewrite, so the edit writes nothing (Codex R323 FI-I50)."""
+    try:
+        return await asyncio.to_thread(parse_tool_table, tbl_path, True), None
+    except ToolTableUnreadable as e:
+        _trace.emit("tools.table_unreadable", level="warn", tbl_path=tbl_path, msg=str(e))
+        return None, f"{e} — nothing written"
+
+
 def _write_tool_table_admitted(tbl_path: str, tools: list, conn_key) -> None:
     """A WS tool edit's write, admitted at the write itself, in its thread
     (button gates BG-14): its connection armed NOW (BG-23); the handler
@@ -4337,7 +4379,8 @@ def _rfl_entry_reached(entry: dict):
 
 async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
                         spindle_dir: Optional[str], spindle_speed: int,
-                        entry: Optional[dict] = None, program=None) -> None:
+                        entry: Optional[dict] = None, program=None,
+                        basis: Optional[Dict[str, Any]] = None) -> None:
     global _skip_flag_unknown
     flag_armed = False
 
@@ -4444,14 +4487,19 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
             # The handler's admission is minutes old: the same current read
             # decides — early, and again at the write itself, after the mode
             # switch (button gates BG-09 / BG-12, Codex R206).
-            why = _program_start_refusal(True)
+            # …and the toolsetter basis the handler chose, unchanged up to
+            # the AUTO write (P2, Codex R309)
+            admit = _basis_admit(basis, lambda: _program_start_refusal(True))
+            why = admit()
             if why:
                 _rfl_phase("failed", False, why)
                 return
-            await set_mode(linuxcnc.MODE_AUTO)
             try:
+                # the switch admitted in its own write thread too (Codex R311
+                # FI-I38): a section saved after the early check switches nothing
+                await set_mode(linuxcnc.MODE_AUTO, admit=admit)
                 await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None,
-                                    admit=lambda: _program_start_refusal(True))
+                                    admit=admit)
             except _WriteRefused as refused:
                 _rfl_phase("failed", False, str(refused))
                 return
@@ -4651,73 +4699,76 @@ def _ts_drift_reason() -> Optional[str]:
     return "toolsetter"
 
 
-async def _apply_probe_vars(vars_to_set: Dict[str, Any], armed: bool):
-    """The routine parameters (#3004–#3115 …) into the var file AND the
-    interpreter — the var file is read only at LinuxCNC's start, so the
-    interpreter half decides whether a routine reads them. Returns
-    (file_saved, mdi_set). Caller holds _cmd_lock. A cancel (abort/estop
-    preemption) propagates: CancelledError is no Exception.
+async def _apply_probe_vars(vars_to_set: Dict[str, Any], armed: bool,
+                            admit: Optional[Callable[[], Optional[str]]] = None):
+    """(persisted, mdi_set) of _apply_probe_vars_detail — the four callers'
+    pair; `persisted` covers only the keys the interpreter took."""
+    r = await _apply_probe_vars_detail(vars_to_set, armed, admit)
+    return r["persisted"], r["mdi_set"]
 
-    1) Always write the var file (persistence across restarts). 2) Set them
-    in the interpreter via MDI (armed + machine on + not running), in chunks
-    ≤ 250 chars for LinuxCNC's 256-char MDI buffer; mdi_set only when every
-    chunk ended RCS_DONE. A taken #3116=0 makes the skip flag known clear."""
+
+async def _apply_probe_vars_detail(vars_to_set: Dict[str, Any], armed: bool,
+                                   admit: Optional[Callable[[], Optional[str]]] = None) -> Dict[str, Any]:
+    """The routine parameters (#3004–#3115 …) into the INTERPRETER, then the
+    keys it took into the var file (P2, Codex R308–R309 FI308-03). Caller
+    holds _cmd_lock. A cancel (abort/estop preemption) propagates:
+    CancelledError is no Exception, and nothing is claimed persisted.
+
+    1) One canonical number per key — the MDI's `#n=%.6f`, the booking's and
+       the file's (the writer formats `%.6f` too).
+    2) MDI (armed + machine on + not running), in chunks ≤ 250 chars for
+       LinuxCNC's 256-char buffer; `admit` at the switch and each write
+       (default: the interpreter KNOWN idle). Each chunk is booked: RCS_DONE
+       applied, a failure / timeout / cut unknown — no transaction, a taken
+       chunk is not rolled back (Codex R103); a chunk never sent keeps its
+       booking.
+    3) The var file gets ONLY the taken chunks' keys with their sent numbers,
+       AFTER the interpreter holds them: the mode switch's synch saves the
+       interpreter's values, and written first the file lost the new value to
+       it (live run 5, 2026-11-05). Nothing taken, no file write.
+
+    {"mdi_set": every chunk taken, "applied_keys": the keys taken,
+    "persisted": the file holds exactly those, "file_error": why not}. A file
+    failure after the take-over leaves the take-over as it is ("applied,
+    persistence not confirmed"). A taken #3116=0 makes the skip flag known
+    clear."""
     global _skip_flag_unknown
-    file_ok = False
-    ini_path = getattr(STAT, "ini_filename", None)
-    if ini_path:
-        ini = linuxcnc.ini(ini_path)
-        var_file = ini.find("RS274NGC", "PARAMETER_FILE")
-        if var_file:
-            if not os.path.isabs(var_file):
-                var_file = os.path.join(os.path.dirname(ini_path), var_file)
-            # Keys are bounds-checked against the machine's var file by
-            # COMMAND_SCHEMA; values get the same finite_* type claim as
-            # every other payload number (a bare cast here wrote
-            # arbitrary #N=inf into the parameter file).
-            str_vars = {str(k): finite_float(v) for k, v in vars_to_set.items()}
-            _trace.emit("probe.set_vars", vars=str_vars)
-            async with _get_var_file_lock():
-                await _var_file_thread(_write_var_file_updates, var_file, str_vars)
-                _status_runtime.mark_var_file_written(var_file)
-            file_ok = True
+    admit = admit or _interp_idle_refusal
+    vals = {str(k): canonical_param(finite_float(v)) for k, v in vars_to_set.items()}
+    _trace.emit("probe.set_vars", vars=vals)
+    applied: Dict[str, float] = {}
     mdi_ok = False
     STAT.poll()
     if armed and bool(safe_get("enabled", False)) and not reject_if_auto_running():
-        # The toolsetter basis is booked PER CHUNK: a chunk that ended
-        # RCS_DONE is the interpreter's (applied); one that failed, timed out
-        # or was cut short is unknown — the take-over is no transaction, an
-        # earlier chunk is not rolled back (Codex R103). A chunk never sent
-        # leaves its keys as booked: the interpreter did not change.
         _ts_ensure()
         inflight: Optional[Dict[int, Optional[float]]] = None
         try:
-            items = [(f"#{k}={finite_float(v):.6f}", int(k), float(f"{finite_float(v):.6f}"))
-                     for k, v in vars_to_set.items()]
             chunks: List[tuple] = []
             current, booked = "", {}
-            for item, key, val in items:
+            for k, v in vals.items():
+                item = f"#{k}={v:.6f}"
                 if current and len(current) + 1 + len(item) > 250:
                     chunks.append((current, booked))
-                    current, booked = item, {key: val}
+                    current, booked = item, {int(k): v}
                 else:
                     current = f"{current} {item}".strip() if current else item
-                    booked[key] = val
+                    booked[int(k)] = v
             if current:
                 chunks.append((current, booked))
             # Not running by a current read at each write, as by the poll
             # above (Codex R217 — the executor queue lies between them).
-            await set_mode(linuxcnc.MODE_MDI, admit=_interp_idle_refusal)
+            await set_mode(linuxcnc.MODE_MDI, admit=admit)
             mdi_ok = True
             for chunk, booked in chunks:
                 inflight = booked
-                ret = await _cmd_blocking(CMD.mdi, chunk, wait=5, admit=_interp_idle_refusal)
+                ret = await _cmd_blocking(CMD.mdi, chunk, wait=5, admit=admit)
                 inflight = None
                 if _cmd_rc_failed(ret):   # success is RCS_DONE (1), not 0
                     mdi_ok = False
                     _ts_book({k: None for k in booked}, "unknown")
                 else:
                     _ts_book(booked, "applied")
+                    applied.update({str(k): v for k, v in booked.items()})
         except asyncio.CancelledError:
             if inflight is not None:
                 _ts_book({k: None for k in inflight}, "unknown")
@@ -4728,10 +4779,153 @@ async def _apply_probe_vars(vars_to_set: Dict[str, Any], armed: bool):
                 _ts_book({k: None for k in inflight}, "unknown")
             _trace.emit("probe.mdi_set_failed", level="warn",
                         exc=type(e).__name__, msg=str(e))
-    if mdi_ok and any(str(k) == "3116" and finite_float(v) == 0 for k, v in vars_to_set.items()):
+    persisted, file_error = False, None
+    if applied:
+        var_file = _resolve_var_file_path()
+        if not var_file:
+            file_error = "no PARAMETER_FILE"
+        else:
+            try:
+                async with _get_var_file_lock():
+                    await _var_file_thread(_write_var_file_updates, var_file, applied)
+                    _status_runtime.mark_var_file_written(var_file)
+                persisted = True
+            except Exception as e:  # noqa: BLE001 — the take-over stands; the file's failure is named
+                file_error = f"{type(e).__name__}: {e}"
+                _trace.emit("probe.set_vars_file_failed", level="warn", msg=file_error)
+    if mdi_ok and vals.get("3116") == 0:
         _skip_flag_unknown = False
-    _trace.emit("probe.set_vars_result", file_saved=file_ok, mdi_set=mdi_ok)
-    return file_ok, mdi_ok
+    _trace.emit("probe.set_vars_result", mdi_set=mdi_ok, applied=sorted(applied), persisted=persisted,
+                file_error=file_error)
+    return {"mdi_set": mdi_ok, "applied_keys": sorted(applied), "persisted": persisted, "file_error": file_error}
+
+
+def _ts_booking_for(client) -> Optional[Dict[str, Any]]:
+    """The toolsetter booking for this connection's next frame (P2, Codex
+    R308–R309 FI308-04): {"version", "keys": {var: {"value", "origin"}}} when
+    the connection has not seen this version — its first frame, and every
+    booking change — else None (never on every frame). The form projects its
+    state from it; the client drops it with the connection."""
+    if not _ts_basis:
+        _ts_ensure()
+    if client.ts_booking_sent == _ts_basis_version:
+        return None
+    client.ts_booking_sent = _ts_basis_version
+    return {"version": _ts_basis_version,
+            "keys": {str(k): {"value": e.get("value"), "origin": e.get("origin")}
+                     for k, e in sorted(_ts_basis.items()) if k in TOOLSETTER_BASIS_KEYS}}
+
+
+def _toolsetter_basis() -> Dict[str, Any]:
+    """The toolsetter basis a PROGRAM start applies (P2, Codex R308–R309):
+    the server's confirmed `toolsetter` section of the current INI, read under
+    the store's lock and judged by the form's rule (toolsetter_rules). Its
+    digest binds it — the section and the INI, never the store's global
+    counter (a camera save is no other basis). {"ok": True, "ini", "digest",
+    "values": {var: canonical}}, or {"ok": False, "reason", …}: no sync."""
+    ini = _current_ini_path()
+    section = _settings_store.load_section("toolsetter")
+    digest = hashlib.sha256(json.dumps({"ini": ini, "section": section}, sort_keys=True,
+                                       default=str).encode()).hexdigest()[:16]
+    r = toolsetter_setup(section)
+    if not r["ok"]:
+        return {"ok": False, "reason": r["reason"], "ini": ini, "digest": digest}
+    return {"ok": True, "ini": ini, "digest": digest, "values": r["values"]}
+
+
+def _basis_refusal(basis: Dict[str, Any]) -> Optional[str]:
+    """None while the section a start chose is still the stored one."""
+    if _toolsetter_basis()["digest"] != basis["digest"]:
+        return "Toolsetter settings changed meanwhile — start again"
+    return None
+
+
+def _basis_admit(basis: Optional[Dict[str, Any]], admit: Callable[[], Optional[str]]) -> Callable[[], Optional[str]]:
+    """`admit` and the chosen basis unchanged — for the AUTO switch and write."""
+    if not basis:
+        return admit
+    return lambda: _basis_refusal(basis) or admit()
+
+
+async def _toolsetter_sync(armed: bool, basis: Dict[str, Any]):
+    """A program start's toolsetter sync (P2, Codex R308–R309 FI308-01/02):
+    the chosen basis into the interpreter BEFORE the start — its own
+    condition, whatever the skip flag. Returns (refusal | None, note).
+    - Not set up: no sync — the interpreter keeps what it has, the note says so.
+    - Every key booked applied/read with the basis's number: nothing written
+      (no booking change, no re-parse; the booking is the evidence — another
+      writer of the interpreter is not seen, a named limit).
+    - Else written, admitted at the switch and each chunk on the chosen
+      basis and an idle interpreter; not every chunk taken → the start is
+      refused, the chunks booked as they ended."""
+    note = {"digest": basis["digest"], "set_up": bool(basis.get("ok")), "synced": False}
+    if not basis.get("ok"):
+        _trace.emit("toolsetter.sync", set_up=False, why=basis.get("reason"), digest=basis["digest"])
+        return None, note
+    _ts_ensure()
+    vals = basis["values"]
+    if all((_ts_basis.get(k) or {}).get("origin") in ("applied", "read")
+           and (_ts_basis.get(k) or {}).get("value") == v for k, v in vals.items()):
+        _trace.emit("toolsetter.sync", set_up=True, wrote=False, digest=basis["digest"])
+        return None, note
+    r = await _apply_probe_vars_detail({str(k): v for k, v in vals.items()}, armed,
+                                       admit=lambda: _basis_refusal(basis) or _interp_idle_refusal())
+    _trace.emit("toolsetter.sync", set_up=True, wrote=True, taken=r["mdi_set"], digest=basis["digest"],
+                values={str(k): v for k, v in vals.items()}, persisted=r["persisted"], file_error=r["file_error"])
+    if not r["mdi_set"]:
+        return {"ok": False, "error": _basis_refusal(basis) or "Toolsetter values not taken — nothing started",
+                "toolsetter": note}, note
+    note.update(synced=True, persisted=r["persisted"], file_error=r["file_error"])
+    return None, note
+
+
+_SIM_TRIP_RESETS = 2          # attempts to put probe-in back to 0
+
+
+def _sim_trip_sequence(run=None) -> Dict[str, Any]:
+    """Sim-Trip's pulse on probe-in, in ONE thread (Codex R321–R322
+    FI321-01): unlink a qtpyvcp writer (a missing pin is no failure), mark
+    the set ATTEMPTED before `sets probe-in 1`, hold 20 ms if it took, then
+    — whenever the set was attempted, whatever came of it (an error, a
+    timeout after the effect) — reset to 0, at most _SIM_TRIP_RESETS tries.
+    Returns {"set": "ok" | why, "resets": [why | "ok", …]}."""
+    run = run or subprocess.run
+    out: Dict[str, Any] = {"set": None, "resets": []}
+    try:
+        res = run(['halcmd', 'unlinkp', 'qtpyvcp.probe-in.out'], capture_output=True, text=True, timeout=2)
+        err = (res.stderr or "").strip()
+        if res.returncode != 0 and err and "does not exist" not in err and "no such" not in err.lower():
+            _trace.emit("halcmd.unlinkp_failed", level="warn", pin="qtpyvcp.probe-in.out",
+                        rc=res.returncode, stderr=err)
+    except Exception as e:  # noqa: BLE001 — traced; the set says whether halcmd works
+        _trace.emit("halcmd.unlinkp_failed", level="warn", pin="qtpyvcp.probe-in.out", exc=type(e).__name__,
+                    msg=str(e))
+    try:
+        run(['halcmd', 'sets', 'probe-in', '1'], capture_output=True, text=True, timeout=2, check=True)
+        out["set"] = "ok"
+        time.sleep(0.02)
+    except Exception as e:  # noqa: BLE001 — a timeout may come after the effect: reset anyway
+        out["set"] = f"{type(e).__name__}: {e}"
+    for _ in range(_SIM_TRIP_RESETS):
+        try:
+            run(['halcmd', 'sets', 'probe-in', '0'], capture_output=True, text=True, timeout=2, check=True)
+            out["resets"].append("ok")
+            break
+        except Exception as e:  # noqa: BLE001 — named; bounded
+            out["resets"].append(f"{type(e).__name__}: {e}")
+    return out
+
+
+def _sim_trip_reply(out: Dict[str, Any]) -> Dict[str, Any]:
+    """The pulse's outcome: ok only when the set and the first reset took;
+    else the first failure, and whether the reset was delivered after all."""
+    failures = ([] if out["set"] == "ok" else [f"set: {out['set']}"]) + \
+        [f"reset: {r}" for r in out["resets"] if r != "ok"]
+    delivered = bool(out["resets"]) and out["resets"][-1] == "ok"
+    if not failures:
+        return {"ok": True}
+    after = "reset delivered" if delivered else "probe-in may still be TRUE"
+    return {"ok": False, "error": f"simulate_probe_trip: {failures[0]} — {after}"}
 
 
 async def handle_command(msg: Dict[str, Any], armed: bool, conn_key: Optional[str] = None):
@@ -4970,11 +5164,11 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                 return refused
             reply = {"ok": True}
             if vars_to_set is not None:
-                file_ok, mdi_ok = await _apply_probe_vars(_skip_flag_cleared(vars_to_set), armed)
+                persisted, mdi_ok = await _apply_probe_vars(_skip_flag_cleared(vars_to_set), armed)
                 if not mdi_ok:
                     return {"ok": False, "error": "Parameters not taken over — nothing started",
-                            "file_saved": file_ok, "mdi_set": False}
-                reply.update(file_saved=file_ok, mdi_set=True)
+                            "persisted": persisted, "mdi_set": False}
+                reply.update(persisted=persisted, mdi_set=True)
             if "3116" in text:
                 # The operator's own line names the flag: no longer known.
                 _skip_flag_unknown = True
@@ -5164,7 +5358,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             # Update tool.tbl — all file I/O off the loop; _cmd_lock stays held
             # so the read-modify-write is still serialized (B3). ToolLibraryStore
             # is lock-guarded, so an offloaded status-loop read can't race it.
-            tbl_tools = await asyncio.to_thread(parse_tool_table, tbl_path)
+            tbl_tools, refusal = await _tool_table_for_edit(tbl_path)
+            if refusal:
+                return {"ok": False, "error": refusal}
             found = False
             for t in tbl_tools:
                 if t["T"] == tool_num:
@@ -5198,7 +5394,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             if not tbl_path:
                 return {"ok": False, "error": "Tool table path not available"}
 
-            tbl_tools = await asyncio.to_thread(parse_tool_table, tbl_path)
+            tbl_tools, refusal = await _tool_table_for_edit(tbl_path)
+            if refusal:
+                return {"ok": False, "error": refusal}
             for t in tbl_tools:
                 if t["T"] == tool_num:
                     return {"ok": False, "error": f"Tool T{tool_num} already exists"}
@@ -5237,7 +5435,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             if not tbl_path:
                 return {"ok": False, "error": "Tool table path not available"}
 
-            tbl_tools = await asyncio.to_thread(parse_tool_table, tbl_path)
+            tbl_tools, refusal = await _tool_table_for_edit(tbl_path)
+            if refusal:
+                return {"ok": False, "error": refusal}
             new_tools = [t for t in tbl_tools if t["T"] != tool_num]
             if len(new_tools) == len(tbl_tools):
                 return {"ok": False, "error": f"Tool T{tool_num} not found"}
@@ -5258,7 +5458,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             if not tbl_path:
                 return {"ok": False, "error": "Tool table path not available"}
 
-            tbl_tools = await asyncio.to_thread(parse_tool_table, tbl_path)
+            tbl_tools, refusal = await _tool_table_for_edit(tbl_path)
+            if refusal:
+                return {"ok": False, "error": refusal}
             src = next((t for t in tbl_tools if t["T"] == old_num), None)
             if src is None:
                 return {"ok": False, "error": f"Tool T{old_num} not found"}
@@ -5277,7 +5479,10 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                 return {"ok": False, "error": f"Cannot renumber T{old_num} — currently in spindle"}
 
             src["T"] = new_num
-            src["P"] = finite_int(msg.get("pocket", new_num), lo=0)
+            if "pocket" in msg:
+                # a renumber changes the number; an unsent pocket stays (Codex
+                # R321 FI321-02 — it used to become the new tool number)
+                src["P"] = finite_int(msg["pocket"], lo=0)
             src["Z"] = finite_float(msg.get("z_offset", src.get("Z", 0.0)))
             src["D"] = finite_float(msg.get("diameter", src.get("D", 0.0)), lo=0)
             src["remark"] = str(msg.get("remark", src.get("remark", "")))
@@ -5332,16 +5537,21 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                 # Idle → start program and step. A paused program is one a
                 # start already cleared the skip flag for — or run from
                 # line's own, whose skim owns it; no MDI while paused.
+                basis = _toolsetter_basis()      # as Cycle Start (P2)
                 refused = await _start_guard(armed, program=True)
                 if refused:
                     return refused
-                admit = _start_admit("step", armed)   # as Cycle Start
+                refused, ts_note = await _toolsetter_sync(armed, basis)
+                if refused:
+                    return refused
+                admit = _basis_admit(basis, _start_admit("step", armed))   # as Cycle Start
                 why = admit()
                 if why:
                     return {"ok": False, "error": why}
                 await set_mode(linuxcnc.MODE_AUTO, admit=admit)
                 await _cmd_blocking(CMD.auto, linuxcnc.AUTO_STEP, wait=None,
                                     admit=admit)
+                return {"ok": True, "toolsetter": ts_note}
             return {"ok": True}
 
         if cmd == "auto_run":
@@ -5402,6 +5612,18 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                 # The pre-measurement is an M600: it reads the toolsetter's
                 # values from the interpreter, never the var file's leftovers.
                 return {"ok": False, "error": "Toolsetter parameters missing — not started"}
+            # ONE basis for the pre-measurement and the program (P2, Codex
+            # R308–R309 FI308-02): the server's section, chosen now. The
+            # dialog's values must be that section — else refused here, before
+            # anything is written (the skip flag's clear included).
+            basis = _toolsetter_basis()
+            if pre_tool:
+                if not basis["ok"]:
+                    return {"ok": False, "error": f"{basis['reason']} — not started"}
+                sent = {str(k): canonical_param(finite_float(v)) for k, v in probe_vars.items() if str(k) != "3116"}
+                if sent != {str(k): v for k, v in basis["values"].items()}:
+                    _trace.emit("toolsetter.rfl_values_refused", digest=basis["digest"])
+                    return {"ok": False, "error": "Toolsetter values changed — confirm Run from line again"}
 
             if pre_tool or safe_z or entry:
                 # RFL guard path (see _rfl_sequence): long-running — the
@@ -5419,15 +5641,27 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                 if refused:
                     return refused
                 if pre_tool:
-                    # In this handler: an abort cancels it here too.
-                    _file_ok, mdi_ok = await _apply_probe_vars(_skip_flag_cleared(probe_vars), armed)
+                    # In this handler: an abort cancels it here too. The chosen
+                    # basis, with the skip flag's clear, admitted on it.
+                    _p, mdi_ok = await _apply_probe_vars(
+                        _skip_flag_cleared({str(k): v for k, v in basis["values"].items()}), armed,
+                        admit=lambda: _basis_refusal(basis) or _interp_idle_refusal())
                     if not mdi_ok:
-                        return {"ok": False, "error": "Toolsetter parameters not taken over — not started"}
+                        return {"ok": False, "error": _basis_refusal(basis)
+                                or "Toolsetter parameters not taken over — not started"}
+                    ts_note = {"digest": basis["digest"], "set_up": True, "synced": True}
+                else:
+                    refused, ts_note = await _toolsetter_sync(armed, basis)
+                    if refused:
+                        return refused
                 _rfl_start(start_line, pre_tool, safe_z, spindle_dir, spindle_speed, entry,
-                           program=identity)
-                return {"ok": True, "rfl": "started"}
+                           program=identity, basis=basis)
+                return {"ok": True, "rfl": "started", "toolsetter": ts_note}
 
             refused = await _start_guard(armed, program=True)
+            if refused:
+                return refused
+            refused, ts_note = await _toolsetter_sync(armed, basis)
             if refused:
                 return refused
             if spindle_dir and spindle_speed > 0:
@@ -5436,10 +5670,10 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                     await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_FORWARD, spindle_speed, wait=None)
                 elif spindle_dir == "reverse":
                     await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_REVERSE, spindle_speed, wait=None)
-            await set_mode(linuxcnc.MODE_AUTO)
-            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None,
-                                admit=lambda: _program_start_refusal(armed))
-            return {"ok": True}
+            admit = _basis_admit(basis, lambda: _program_start_refusal(armed))
+            await set_mode(linuxcnc.MODE_AUTO, admit=admit)
+            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None, admit=admit)
+            return {"ok": True, "toolsetter": ts_note}
 
         # jog left intact (even if you're not using it right now)
         if cmd == "jog_cont":
@@ -5552,21 +5786,25 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
 
         if cmd == "cycle_start":
             require_armed(armed)
+            basis = _toolsetter_basis()          # chosen once, bound to the write (P2)
             refused = await _start_guard(armed, program=True)
+            if refused:
+                return refused
+            refused, ts_note = await _toolsetter_sync(armed, basis)
             if refused:
                 return refused
             # The switch to AUTO aborts an MDI started since the snapshot
             # (Codex R216's rule): the class on a current read first, then at
             # the switch's write and at the start's, each with the kinematics
-            # (Codex R217).
-            admit = _start_admit("run", armed)
+            # (Codex R217) — and the chosen toolsetter basis unchanged.
+            admit = _basis_admit(basis, _start_admit("run", armed))
             why = admit()
             if why:
                 return {"ok": False, "error": why}
             await set_mode(linuxcnc.MODE_AUTO, admit=admit)
             await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, 0, wait=None,  # Start from beginning
                                 admit=admit)
-            return {"ok": True}
+            return {"ok": True, "toolsetter": ts_note}
 
         if cmd == "cycle_pause":
             # Interrupting a running sequence is a stop (BG-08); resuming it
@@ -5800,25 +6038,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             vars_to_set = msg.get("vars", {})
             if not vars_to_set or not isinstance(vars_to_set, dict):
                 return {"ok": False, "error": "Missing vars dict"}
-            file_ok, mdi_ok = await _apply_probe_vars(vars_to_set, armed)
-            return {"ok": True, "file_saved": file_ok, "mdi_set": mdi_ok}
-
-        if cmd == "get_probe_vars":
-            var_nums = msg.get("vars", [])
-            if not var_nums or not isinstance(var_nums, list):
-                return {"ok": False, "error": "Missing vars list"}
-            ini_path = getattr(STAT, "ini_filename", None)
-            if not ini_path:
-                return {"ok": False, "error": "No INI file"}
-            ini = linuxcnc.ini(ini_path)
-            var_file = ini.find("RS274NGC", "PARAMETER_FILE")
-            if not var_file:
-                return {"ok": False, "error": "No PARAMETER_FILE in INI"}
-            if not os.path.isabs(var_file):
-                var_file = os.path.join(os.path.dirname(ini_path), var_file)
-            result = await asyncio.to_thread(_read_var_file, var_file, {str(v) for v in var_nums})
-            _trace.emit("probe.get_vars", vars=result)
-            return {"ok": True, "vars": result}
+            r = await _apply_probe_vars_detail(vars_to_set, armed)
+            return {"ok": True, **r}
 
         if cmd == "reparse_preview":
             require_armed(armed)
@@ -5853,23 +6074,29 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
         # toolchange handshake in any machine state. Gates now live in
         # command_policy.COMMAND_GATES; the "LinuxCNC not connected" check and
         # the bounded-error catch come free on this path.
+        # Surface compensation (Codex R265 / function inventory F-COMP): the
+        # request names its value — no default stands in for a missing one —
+        # and the reply says whether it was DELIVERED; whether the pin took it
+        # is the status's to show (eoffset_enabled, comp_method).
         if cmd == "set_compensation":
             require_armed(armed)
-            enable = bool(msg.get("enable", False))
+            enable = msg.get("enable")
+            if not isinstance(enable, bool):
+                return {"ok": False, "error": "Compensation not sent — on or off missing"}
             if enable:
                 require_no_rotary_tilt()
             _loop = asyncio.get_event_loop()
-            await _loop.run_in_executor(None, _hal_send, {"compensation_enable": enable})
-            _trace.emit("compensation.enable", enable=enable)
-            return {"ok": True}
+            delivered = await _loop.run_in_executor(None, _hal_send, {"compensation_enable": enable})
+            return _compensation_reply("compensation.enable", delivered, enable=enable)
 
         if cmd == "set_compensation_method":
             require_armed(armed)
-            method = finite_int(msg.get("method", 2))
+            if msg.get("method") is None:
+                return {"ok": False, "error": "Method not sent — none given"}
+            method = finite_int(msg["method"])
             _loop = asyncio.get_event_loop()
-            await _loop.run_in_executor(None, _hal_send, {"compensation_method": method})
-            _trace.emit("compensation.method", method=method)
-            return {"ok": True}
+            delivered = await _loop.run_in_executor(None, _hal_send, {"compensation_method": method})
+            return _compensation_reply("compensation.method", delivered, method=method)
 
         if cmd == "confirm_tool_change":
             require_armed(armed)
@@ -5894,31 +6121,18 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
 
         if cmd == "simulate_probe_trip":
             require_armed(armed)
+            # ONE sequence in ONE thread, awaited to its end even through a
+            # repeated cancel (Codex R321–R322 FI321-01): the reset follows
+            # every attempted set, and no late "1" can follow the final "0"
+            seq = asyncio.ensure_future(asyncio.to_thread(_sim_trip_sequence))
             try:
-                _loop = asyncio.get_event_loop()
-                # Unlink any existing writer on probe-in (e.g. qtpyvcp.probe-in.out)
-                # so halcmd sets works. The pin may not exist in non-qtpyvcp
-                # configs — that's fine. Log other failures (halcmd missing,
-                # permission denied, syntax error) so they don't disappear.
-                _unlink_res = await _loop.run_in_executor(None, lambda: subprocess.run(
-                    ['halcmd', 'unlinkp', 'qtpyvcp.probe-in.out'],
-                    capture_output=True, text=True, timeout=2))
-                if _unlink_res.returncode != 0:
-                    _err = (_unlink_res.stderr or "").strip()
-                    if _err and "does not exist" not in _err and "no such" not in _err.lower():
-                        _trace.emit("halcmd.unlinkp_failed", level="warn",
-                                    pin="qtpyvcp.probe-in.out",
-                                    rc=_unlink_res.returncode, stderr=_err)
-                await _loop.run_in_executor(None, lambda: subprocess.run(
-                    ['halcmd', 'sets', 'probe-in', '1'],
-                    capture_output=True, text=True, timeout=2, check=True))
-                await asyncio.sleep(0.02)
-                await _loop.run_in_executor(None, lambda: subprocess.run(
-                    ['halcmd', 'sets', 'probe-in', '0'],
-                    capture_output=True, text=True, timeout=2, check=True))
-                return {"ok": True}
-            except Exception as e:
-                return {"ok": False, "error": f"simulate_probe_trip: {e}"}
+                out = await _thread_to_end(seq)
+            except asyncio.CancelledError:
+                # no one is left to answer: the outcome goes to the trace
+                if seq.done() and not seq.cancelled() and seq.exception() is None:
+                    _trace.emit("sim_trip.outcome", level="warn", cancelled=True, **seq.result())
+                raise
+            return _sim_trip_reply(out)
 
         if cmd == "get_wcs_table":
             return {"ok": True, "table": [row.copy() for row in _wcs_cache]}
@@ -9641,7 +9855,7 @@ async def ws_endpoint(ws: WebSocket):
             _trace.emit("ws.auth_rejected", level="warn", peer=_peer_of(ws), reason="token")
             await ws.close(code=1008)
             return
-        global _next_client_id, _estop_hold, _unacked_trip
+        global _next_client_id, _estop_hold, _unacked_trip, _last_trip_ack
         global _last_fault_latched, _trip_baseline_seen
         client_id = _next_client_id
         _next_client_id += 1
@@ -9911,6 +10125,7 @@ async def ws_endpoint(ws: WebSocket):
                         clients_list=_shared_clients_list,
                         armed=client.armed,
                         safety_trip=_unacked_trip,
+                        safety_trip_acked=_last_trip_ack,
                         reader_stale=_reader_is_stale(),
                         safety_chain=_safety_chain_reason(),
                         preview_refresh=_bulk.preview_refresh_status(),
@@ -9932,6 +10147,12 @@ async def ws_endpoint(ws: WebSocket):
                         probe_results=client.probe_results,
                         rfl_status=_rfl_status,
                     )
+
+                    # The toolsetter booking: on the connection's first frame and
+                    # on every change (P2) — beside `data`, like tool_meta.
+                    _booking = _ts_booking_for(client)
+                    if _booking is not None:
+                        status_msg["toolsetter_booking"] = _booking
 
                     # Inject tool_meta on tool_number change or library edit (for
                     # 3D rendering). Lives at top level — sibling of `data` — so
@@ -10159,7 +10380,7 @@ async def ws_endpoint(ws: WebSocket):
                         # 3 s budget while heartbeats arrived on schedule → false
                         # disarm. time.monotonic() is immune in both directions
                         # (a backward step also can't keep a dead client "fresh").
-                        if time.monotonic() - _clients[client_id].last_hb_mono > _HB_STALL_SEC:
+                        if _hb_stalled(_clients[client_id].last_hb_mono, time.monotonic()):
                             if client.armed:
                                 client.armed = False
                                 try:
@@ -10467,10 +10688,13 @@ async def ws_endpoint(ws: WebSocket):
                 # clean FALSE→TRUE transition, the still-TRUE level after this ack
                 # produces no edge and the ack sticks; a genuinely new trip
                 # (latch reset → FALSE, then TRUE again) still fires.
+                acked = _unacked_trip["id"] if _unacked_trip is not None else None
+                if acked is not None:
+                    _last_trip_ack = {"id": acked}
                 _unacked_trip = None
                 # Audit: without this, an acknowledged trip is invisible in the
                 # trace — an armed client after a trip looks like a gate bypass.
-                _trace.emit("safety.trip_acknowledged", client_id=client_id)
+                _trace.emit("safety.trip_acknowledged", client_id=client_id, trip_id=acked)
                 await ws_send_json(ws, {"type": "reply", "ok": True})
                 continue
 

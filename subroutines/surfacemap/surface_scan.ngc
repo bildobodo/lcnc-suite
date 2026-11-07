@@ -201,9 +201,11 @@ o<surface_scan> sub
   ; Clean up and finish
   ; ============================================================
   (LOGCLOSE)
-  M50 P1                  (Restore feedrate override)
   G0 G53 Z0               (Return to machine Z0)
   G0 X#<x0> Y#<y0>        (Return to start position)
+  ; The override stays locked through the return: the scan's lock covers
+  ; every move of the routine, freed only after its last (Codex R326 FI326-01)
+  M50 P1                  (Restore feedrate override)
 
   (DEBUG, LCNC_SURFACE_SCAN_DONE)
   (MSG, Surface scan complete. Results saved to probe-results.txt)

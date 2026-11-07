@@ -13,7 +13,7 @@
 // cross-module access is function-call only (noteHeartbeatSent/notePong/...),
 // never shared state.
 import { computed, ref, shallowRef } from "vue";
-import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "../lcnc";
+import { OPERATOR_DISPLAY, OPERATOR_ERROR, OPERATOR_TEXT } from "../lcnc";
 import { parsePreviewOrigin, parseRunBasis, type PreviewOrigin, type RunBasis } from "../runBasis";
 import { emitTelemetry } from "./telemetry";
 
@@ -31,6 +31,10 @@ export interface LcncMessage {
    *  program's (MSG, …)) or the WebUI itself. Absent on a message stored
    *  before origins were kept (operator 2026-10-04: the center's filter). */
   source?: "linuxcnc" | "webui";
+  /** The event an entry records ONCE (`safety-trip:<id>`,
+   *  `safety-trip-ack:<id>`): a repeated frame, a reconnect and a reload
+   *  find it in the history and add none (operator Q323-1). */
+  event?: string;
 }
 
 /**
@@ -63,15 +67,37 @@ export interface WsStatus {
   // (noteBulkData), keyed by field name. Consumers react on the version EDGE:
   // the values themselves are on every frame, so presence means nothing.
   bulk_versions?: Record<string, number>;
+  // The gateway's toolsetter booking (P2, Codex R308–R309 FI308-04): sent on
+  // a connection's first frame and on every change, carried in between,
+  // dropped with the connection. The toolsetter form projects its state from it.
+  toolsetter_booking?: ToolsetterBooking | null;
+}
+
+/** Per parameter number, what the gateway knows the interpreter holds and
+ *  where from: applied (an MDI it took), read (a confirmed read-back),
+ *  assumed (the parameter file, unconfirmed), unknown. */
+export interface ToolsetterBooking {
+  version: number;
+  keys: Record<string, { value: number | null; origin: string }>;
 }
 
 export const status = shallowRef<WsStatus | null>(null);
 export const lcncError = ref<string | null>(null);
+// Human labels for gateway trip reason codes (status_msg.safety_trip.reason).
+// Unknown codes fall through verbatim — never mask a reason we can't name.
+const TRIP_REASON_LABELS: Record<string, string> = {
+  hal_heartbeat_timeout: "gateway heartbeat to HAL watchdog lost",
+};
+export function tripReasonLabel(reason: string): string {
+  return TRIP_REASON_LABELS[reason] ?? reason;
+}
+
 // Sticky safety trip: populated when the gateway includes a `safety_trip`
-// field in a status message, cleared when the operator acknowledges. Survives
+// field in a status message, cleared by the first status without it (after the
+// operator's acknowledgement reached the gateway). Survives
 // reload + multi-tab because the gateway re-broadcasts it on every status
 // until acknowledged. While non-null, the server rejects {cmd:"arm",armed:true}.
-export const safetyTrip = ref<{ reason: string } | null>(null);
+export const safetyTrip = ref<{ reason: string; id?: string } | null>(null);
 // HAL reader staleness: gateway sets `reader_stale: true` on status messages
 // when no snapshot has arrived from hal_reader.py within ~2 s. Auto-clears
 // when snapshots resume — distinct from safety_trip which requires operator
@@ -246,13 +272,31 @@ export const unreadCount = ref(_stored.filter(m => !m.uncounted && !m.quiet).len
 let _nextMsgId = _stored.length > 0 ? Math.max(..._stored.map(m => m.id)) + 1 : 1;
 
 /** Append to the message center in one of the three modes (MessageMode). */
-export function pushMessage(kind: number, text: string, mode: MessageMode = "notify"): void {
+export function pushMessage(kind: number, text: string, mode: MessageMode = "notify", event?: string): void {
   const entry: LcncMessage = { id: _nextMsgId++, kind, text, ts: Date.now(), source: "webui" };
+  if (event) entry.event = event;
   if (mode === "log") entry.quiet = true;
   if (mode !== "notify") entry.uncounted = true;
   messages.value = [...messages.value, entry];
   if (mode === "notify") unreadCount.value++;
   persistMessages(messages.value);
+}
+
+// A safety trip in the message center (operator Q323-1, Codex R323): ONE
+// entry per trip and ONE per CONFIRMED acknowledgement, keyed by the
+// gateway's trip id. The acknowledgement is the gateway's
+// `safety_trip_acked` — never the click, never a trip's mere absence (a
+// restarted gateway drops its trip unacknowledged) — and is recorded only
+// for a trip this tab recorded. `_tripEvents` keeps an event recorded in this
+// page even after the history was cleared; the history keeps it across a
+// reload.
+const _tripEvents = new Set<string>();
+function _tripRecorded(event: string): boolean {
+  return _tripEvents.has(event) || messages.value.some(m => m.event === event);
+}
+function _recordTripEvent(event: string, kind: number, text: string): void {
+  if (!_tripRecorded(event)) pushMessage(kind, text, "log", event);
+  _tripEvents.add(event);
 }
 
 export function dismissMessage(id: number) {
@@ -382,7 +426,8 @@ export function notePong(): void {
 // Status batching + one-shot tool_meta carry-over. Module scope so they
 // persist across the relay (previously closure-locals inside connectWs).
 let _pendingStatus: any = null;
-let _lastRflTs = 0;   // dedupe for rfl_status frames (same phase repeats per tick)
+let _lastRflTs = 0;
+let _tsBooking: ToolsetterBooking | null = null;   // carried toolsetter booking (P2)   // dedupe for rfl_status frames (same phase repeats per tick)
 let _flushScheduled = false;
 // The oldest socket receipt among the frames folded into the pending status,
 // and per flushed status object the receipt it carries (Codex R182 VP182-01:
@@ -455,6 +500,11 @@ export function handleStatusMessage(msg: any, rx?: number): void {
   // before the rAF fires, the one-shot tool_meta would be lost forever.
   // tool_meta lives at top level; tool_number stays inside data (it comes
   // from linuxcnc.stat).
+  // The toolsetter booking rides only on a change: carried until the next
+  // one, connection-scoped (resetOnClose) — an old connection's booking
+  // never confirms a new instance (P2).
+  if (msg.toolsetter_booking !== undefined) _tsBooking = msg.toolsetter_booking;
+  else if (_tsBooking) msg.toolsetter_booking = _tsBooking;
   if (msg.tool_meta && msg.data?.tool_number != null) {
     _lastToolMeta = { num: msg.data.tool_number, meta: msg.tool_meta };
   } else if (_lastToolMeta && msg.data?.tool_number === _lastToolMeta.num && !msg.tool_meta) {
@@ -474,11 +524,22 @@ export function handleStatusMessage(msg: any, rx?: number): void {
   // each status allocated a fresh object AND re-triggered every watcher, even
   // when the trip reason was identical.
   if (msg.safety_trip) {
-    if (safetyTrip.value?.reason !== msg.safety_trip.reason) {
-      safetyTrip.value = { reason: msg.safety_trip.reason };
+    const trip = msg.safety_trip;
+    const id = typeof trip.id === "string" ? trip.id : undefined;
+    const before = safetyTrip.value;
+    if (before?.reason !== trip.reason || before?.id !== id) {
+      safetyTrip.value = id === undefined ? { reason: trip.reason } : { reason: trip.reason, id };
     }
+    const text = `Safety trip — ${tripReasonLabel(trip.reason)}`;
+    if (id !== undefined) _recordTripEvent(`safety-trip:${id}`, OPERATOR_ERROR, text);
+    // a gateway without trip ids: recorded where this page saw it begin
+    else if (before === null) pushMessage(OPERATOR_ERROR, text, "log");
   } else if (safetyTrip.value !== null) {
     safetyTrip.value = null;
+  }
+  const acked = msg.safety_trip_acked?.id;
+  if (typeof acked === "string" && _tripRecorded(`safety-trip:${acked}`)) {
+    _recordTripEvent(`safety-trip-ack:${acked}`, OPERATOR_TEXT, "Safety trip acknowledged");
   }
   const tb = msg.preview_tool_basis;
   if (tb && typeof tb === "object" && Array.isArray(tb.xyz) && tb.xyz.length >= 3) {
@@ -713,6 +774,7 @@ export function resetOnClose(): void {
   _parseSeenOff(null, "closed");
   latency.value = null;
   networkLatency.value = null;
+  _tsBooking = null;   // the booking was this connection's (P2)
   _heartbeatSentAt = _rtSentAt = 0;
   // The carry deliberately SURVIVES a reconnect: the surface map on screen did
   // not stop being true because the socket blipped, and the gateway re-pings

@@ -821,6 +821,9 @@
      "id": "status:safety_trip"
     },
     {
+     "id": "status:safety_trip_acked"
+    },
+    {
      "id": "status:type"
     }
    ],

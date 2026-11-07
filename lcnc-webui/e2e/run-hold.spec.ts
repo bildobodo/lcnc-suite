@@ -309,6 +309,9 @@ test("an orientation change mid-hold runs nothing; the focus and an open dialog'
   await ready(page, BAR, new Folder());
   const PORTRAIT = { width: 1000, height: 1400 }, LANDSCAPE = { width: 1600, height: 1000 };
   const park = () => page.locator(".macroBar").getByRole("button", { name: "Park", exact: true });
+  // read its box once it is there — a box read before the bar rendered is
+  // null (the compensation package's round gate, run 1, under full load)
+  await expect(park()).toBeVisible();
   const box = (await park().boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   // a second ahead: the page's clock started at this machine's time and runs

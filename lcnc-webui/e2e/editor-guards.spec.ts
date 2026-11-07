@@ -66,6 +66,16 @@ test.afterEach(async () => {
   await ctl({ op: "reset" });
 });
 
+test("Reload sends load_file with the loaded program's own path (F-LOAD.S3)", async ({ page }) => {
+  // the inventory's F-LOAD.S3, the browser's part: the gateway's re-parse of
+  // the same path is test_program_reload_unload.py
+  await open(page);
+  await loadProgram(page, "/B.ngc");
+  await ctl({ op: "clearCmds" });
+  await clickMore(page.locator(".ctrlRow"), "Reload");
+  await expect.poll(loadFileCmds).toEqual(["/B.ngc"]);
+});
+
 test("external program change keeps buffer A, shows the conflict, saves A only", async ({ page }) => {
   const saves: { path: string; body: string }[] = [];
   await page.route("**/save?*", route => {
