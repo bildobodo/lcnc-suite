@@ -909,7 +909,7 @@ const manyMacros = () => {
   for (let i = 0; i < 9; i++) addPlain(folder, `m${i}`, `Macro number ${i + 1}`);
   return folder;
 };
-const MANY_BAR = { macros: { macros: [], bar: Array.from({ length: 9 }, (_, i) => `m${i}`) } };
+const MANY_BAR = { macros: { macros: [] }, macroBar: { bar: Array.from({ length: 9 }, (_, i) => `m${i}`) } };
 for (const zoom of [1, 1.5]) {
   test(`touch-portrait ${zoom * 100} %: the macro bar is one row between the viewer and the side pane, which does not move`, async ({ page }) => {
     await openLayout(page, PROFILES[1], VIEWPORTS.find(v => v.name === 'touch-portrait')!);

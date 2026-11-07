@@ -84,7 +84,7 @@ test("tab semantics: tablist, tab, tabpanel — one Tab stop, the panel named by
 
   await page.getByTitle("Settings", { exact: true }).click();
   const sections = page.getByRole("tablist", { name: "Settings sections", exact: true });
-  await expect(sections.getByRole("tab")).toHaveCount(7);   // Macros moved to the side pane (package 5)
+  await expect(sections.getByRole("tab")).toHaveCount(8);   // Macros moved to the side pane (package 5); Devices (settings split)
   await expect(stops(sections)).toHaveCount(1);
   await sections.getByRole("tab", { name: "HAL", exact: true }).click();
   const hal = page.getByRole("tablist", { name: "HAL view", exact: true });
