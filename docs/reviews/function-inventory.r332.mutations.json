@@ -1,0 +1,329 @@
+{
+ "note": "R332: 42 mutants at fc979851 (run5: 39 red, ic-cleanup-anywhere green \u2014 a two-fault case, fixed in the next commit \u2014 and the two identity mutants re-anchored); run6 the four cleanup mutants after the fix: all red.",
+ "run5": {
+  "base": "fc979851",
+  "mutants": [
+   {
+    "mutant": "ic-safety-no-reader-event",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 65 passed in 36.84s"
+    ]
+   },
+   {
+    "mutant": "ic-safety-no-reader-values",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 66 passed in 38.79s"
+    ]
+   },
+   {
+    "mutant": "ic-safety-latch-unclassified-ok",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 27 passed in 5.14s"
+    ]
+   },
+   {
+    "mutant": "ic-safety-latch-unknown-ok",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 21 passed in 4.54s"
+    ]
+   },
+   {
+    "mutant": "ic-safety-no-window",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 67 passed in 35.59s"
+    ]
+   },
+   {
+    "mutant": "ic-safety-any-pid",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 25 passed in 5.44s"
+    ]
+   },
+   {
+    "mutant": "ic-safety-banner-ignored",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 22 passed in 4.60s"
+    ]
+   },
+   {
+    "mutant": "ic-manifest-follows-links",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 9 passed in 4.30s"
+    ]
+   },
+   {
+    "mutant": "ic-cleanup-worktree",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 12 passed in 4.44s"
+    ]
+   },
+   {
+    "mutant": "ic-cleanup-anywhere",
+    "verdict": "GREEN",
+    "tail": [
+     "80 passed in 37.69s"
+    ]
+   },
+   {
+    "mutant": "ic-env-inherits",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 7 passed in 4.04s"
+    ]
+   },
+   {
+    "mutant": "ic-gate-ignores-post",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 51 passed in 35.10s"
+    ]
+   },
+   {
+    "mutant": "ic-gate-ignores-isolation",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 49 passed in 34.80s"
+    ]
+   },
+   {
+    "mutant": "ic-browser-ignores-connected",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 33 passed in 5.01s"
+    ]
+   },
+   {
+    "mutant": "ic-browser-ignores-responses",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 31 passed in 4.51s"
+    ]
+   },
+   {
+    "mutant": "ip-unit-first-service",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 63 passed in 35.02s"
+    ]
+   },
+   {
+    "mutant": "rg-deactivating-is-end",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 52 passed in 34.81s"
+    ]
+   },
+   {
+    "mutant": "rg-deadline-not-stopped",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 56 passed in 34.84s"
+    ]
+   },
+   {
+    "mutant": "rg-old-report-accepted",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 54 passed in 34.71s"
+    ]
+   },
+   {
+    "mutant": "rg-shared-run-folder",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 53 passed in 34.65s"
+    ]
+   },
+   {
+    "mutant": "rg-head-not-sha",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 52 passed in 34.72s"
+    ]
+   },
+   {
+    "mutant": "rg-interrupt-leaves-unit",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 58 passed in 34.67s"
+    ]
+   },
+   {
+    "mutant": "rg-unread-forever",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 57 passed in 34.63s"
+    ]
+   },
+   {
+    "mutant": "rg-probe-in-the-lock",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 59 passed in 34.76s"
+    ]
+   },
+   {
+    "mutant": "ip-under-gate-no-lock",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 59 passed in 34.73s"
+    ]
+   },
+   {
+    "mutant": "ic-browser-ignores-status",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 34 passed in 3.88s"
+    ]
+   },
+   {
+    "mutant": "ic-cleanup-any-incomplete",
+    "verdict": "ANCHOR"
+   },
+   {
+    "mutant": "ic-cleanup-needs-git",
+    "verdict": "ANCHOR"
+   },
+   {
+    "mutant": "sh-no-tty-check",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 3 passed in 1.89s"
+    ]
+   },
+   {
+    "mutant": "sh-no-root-goes-on",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 2 passed in 0.96s"
+    ]
+   },
+   {
+    "mutant": "sh-npm-install",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 6 passed in 3.74s"
+    ]
+   },
+   {
+    "mutant": "sh-import-warns",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 6 passed in 3.77s"
+    ]
+   },
+   {
+    "mutant": "sh-fresh-drift-warns",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 72 passed in 34.85s"
+    ]
+   },
+   {
+    "mutant": "ic-gate-post-missing-ok",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 45 passed in 34.70s"
+    ]
+   },
+   {
+    "mutant": "sh-no-build",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 6 passed in 3.68s"
+    ]
+   },
+   {
+    "mutant": "hl-owed-ignored",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 76 passed in 34.85s"
+    ]
+   },
+   {
+    "mutant": "hl-settle-any-run",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 76 passed in 35.24s"
+    ]
+   },
+   {
+    "mutant": "nr-no-owe",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 78 passed in 37.07s"
+    ]
+   },
+   {
+    "mutant": "nr-settle-always",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 78 passed in 37.27s"
+    ]
+   },
+   {
+    "mutant": "nr-no-run-id",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 78 passed in 37.09s"
+    ]
+   },
+   {
+    "mutant": "rl-not-the-owed-restore",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 60 passed in 34.65s"
+    ]
+   },
+   {
+    "mutant": "rg-show-unbounded",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 79 passed in 37.04s"
+    ]
+   }
+  ]
+ },
+ "run6": {
+  "base": "fc979851",
+  "mutants": [
+   {
+    "mutant": "ic-cleanup-worktree",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 12 passed in 3.80s"
+    ]
+   },
+   {
+    "mutant": "ic-cleanup-anywhere",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 16 passed in 3.90s"
+    ]
+   },
+   {
+    "mutant": "ic-tree-identity-ignored",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 14 passed in 4.02s"
+    ]
+   },
+   {
+    "mutant": "ic-tree-identity-always-refuses",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 12 passed in 3.98s"
+    ]
+   }
+  ]
+ }
+}

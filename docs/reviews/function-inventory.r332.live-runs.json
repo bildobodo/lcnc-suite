@@ -1,0 +1,818 @@
+{
+ "note": "R332 live at fc979851: the clone abort right after mkdir (nothing else on disk), a normal probe run, the full native stage (run() now owes the return from the stop and records the run folder's identity). After each: no owed marker left beside the real lock.",
+ "runs": [
+  {
+   "run": "/home/cnc/claude-work/live-tier/install-abort-clone-20261107T182546",
+   "restore.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     766592,
+     134019514
+    ],
+    "isolation": [],
+    "cleanup": []
+   },
+   "restore-post.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     766592,
+     134019514
+    ],
+    "isolation": [],
+    "cleanup": []
+   },
+   "state.json": {
+    "tree": "/home/cnc/claude-work/live-tier/install-abort-clone-20261107T182546/src",
+    "tree_of": "/home/cnc/lcnc-suite-g1",
+    "test_ended": true,
+    "isolation": []
+   },
+   "pre.json": {
+    "units": {
+     "lcnc-sim-gates": {
+      "ExecStart": [
+       "/usr/bin/env",
+       "-u",
+       "DISPLAY",
+       "LCNC_WEBUI_BROWSER=0",
+       "linuxcnc",
+       "lcnc_suite_sim_3axis_xyz_test.ini"
+      ],
+      "WorkingDirectory": "/home/cnc/linuxcnc/configs/lcnc_suite_sim_look",
+      "Environment": []
+     },
+     "bg-keepalive": {
+      "ExecStart": [
+       "/home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3",
+       "/home/cnc/claude-work/bg/keepalive_ini.py",
+       "/home/cnc/linuxcnc/configs/lcnc_suite_sim_look/lcnc_suite_sim_3axis_xyz_test.ini"
+      ],
+      "WorkingDirectory": "!/home/cnc",
+      "Environment": []
+     }
+    },
+    "ini": "/home/cnc/linuxcnc/configs/lcnc_suite_sim_look/lcnc_suite_sim_3axis_xyz_test.ini",
+    "head": "a61337c3b8d2b84cab2a1ed4829b12701d2b05fb",
+    "tree": "/home/cnc/lcnc-suite-gates",
+    "instance": [
+     "linuxcncsvr",
+     704717,
+     133836480
+    ],
+    "at": 1794072346.1187856,
+    "run_id": [
+     65027,
+     3678579
+    ],
+    "hashes": {
+     "nc_files": "61b324e9dd42a1cdf9b4f6bbe1268b1edcdb92008b7b3bd53b1315181c966af9",
+     "macros": "be58f0915378d2166acecaf6a1c2f711132d063d73f358a5600a7350076add36",
+     "settings": "0e5f6766f7141dc9c07458a7735f97682129b8d2e3a1e81c8061bdad4ad73740",
+     "config": "ac04ed9f5478d83625802c9f7efa95e0651b3a8b1eedb25153020700a231f27c",
+     "home:.local/bin": "7969eb62faf95fa1b3604023a718d6bcf4989cdc5b9145d6f5b5ba4fd763b553",
+     "home:linuxcnc": "1f19cc8c88d3a5d0fe29821ba82ccdc2ed3560eb57acf052242dfcb18aa226af",
+     "home:.npm": "4d325fb8b1263dcdd1795f4a8615d3b50bfab8799e405f02fd06deb8c73bca26",
+     "home:.cache/pip": "6c0368064d90b48080f845f3bcf6a2007e71fa3adc4dfda01e40fe40996fd8e4",
+     "home:.gitconfig": "8dc776402e0ab3c03d8d57f18cf44a1ac01718a88dba0f35b013655b0800704a",
+     "home:.config/git": "249e90ad8331ea59a20bd79a9e8c071c562295f9ad24284b3d5efdc0ad6ccb02"
+    }
+   },
+   "tree_left": false
+  },
+  {
+   "run": "/home/cnc/claude-work/live-tier/install-green3-20261107T182556",
+   "report.json": {
+    "started": 1794072356.1580718,
+    "steps": [
+     "clone",
+     "install",
+     "start",
+     "safety",
+     "browser"
+    ],
+    "rows": [
+     {
+      "case": "install-run",
+      "status": "PASS",
+      "detail": "exit 0 after 42 s",
+      "tail": null
+     },
+     {
+      "case": "install-links",
+      "status": "PASS",
+      "detail": "the four links lead into the clone"
+     },
+     {
+      "case": "install-venv",
+      "status": "PASS",
+      "detail": "the venv imports linuxcnc, fastapi, uvicorn; numpy is the system's"
+     },
+     {
+      "case": "install-build",
+      "status": "PASS",
+      "detail": "lcnc-webui/dist/index.html built"
+     },
+     {
+      "case": "install-profiles",
+      "status": "PASS",
+      "detail": "3 profiles installed: lcnc_suite_sim_3axis_xyz.ini, lcnc_suite_sim_5axis_xyzac.ini, lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     },
+     {
+      "case": "install-config-sync",
+      "status": "PASS",
+      "detail": "exit 0: config sync: deployed config matches the repo templates (per-install settings lines and runtime artifacts excluded)"
+     },
+     {
+      "case": "install-tracked-files",
+      "status": "PASS",
+      "detail": "no tracked file changed"
+     },
+     {
+      "case": "install-target",
+      "status": "PASS",
+      "detail": "the installed profile is the shipped simulator; every program its HAL starts by name resolves into the clone"
+     },
+     {
+      "case": "install-confinement",
+      "status": "PASS",
+      "detail": "every mutable path of the profile lies in the run"
+     },
+     {
+      "case": "start-ready",
+      "status": "PASS",
+      "detail": "/ready after 2 s"
+     },
+     {
+      "case": "start-processes",
+      "status": "PASS",
+      "detail": "launcher, gateway, helpers and the tool setter's feed run the clone's code with the installed profile; logs in the run"
+     },
+     {
+      "case": "start-safety-chain",
+      "status": "PASS",
+      "detail": "20 frames over 3.8 s past the grace: no banner, reader fresh, no trip; watchdog and reader admitted this gateway; the latch in HAL, set at boot (the gateway's first sight, no trip); heartbeat oneshot TRUE"
+     },
+     {
+      "case": "start-browser",
+      "status": "PASS",
+      "detail": "mounted, viewer_init taken, the instance's E-Stop status applied; 7 script(s)/worker(s) served as JavaScript, no error"
+     }
+    ],
+    "commit": "fc9798511f2c2850e4c2aba8d972314e35771002",
+    "install_s": 42.1,
+    "safety": {
+     "frames": 109,
+     "hal": {
+      "latch_fault": "TRUE",
+      "oneshot_out": "TRUE"
+     },
+     "events": [
+      "boot",
+      "boot.session_bind",
+      "boot.start",
+      "boot.lcnc_connect_start",
+      "session.bound",
+      "boot.lcnc_connect",
+      "hal.socket_connected",
+      "boot.hal_connect",
+      "boot.machine_config",
+      "boot.app_instantiated",
+      "boot.lifespan_ready",
+      "ws.connect.accept",
+      "ws.conn.lcnc_restored",
+      "hal.admitted",
+      "ws.connect.settings",
+      "ws.conn.gcode_ping_sent",
+      "ws.conn.ready",
+      "reader.admitted",
+      "reader.connected",
+      "safety.latch_faulted_on_connect",
+      "viewer_init.timing",
+      "ws.conn.viewer_init",
+      "toolsetter.basis",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick"
+     ]
+    },
+    "browser": {
+     "url": "http://127.0.0.1:8000/",
+     "scripts": [
+      {
+       "url": "http://127.0.0.1:8000/static/msgpack-BkQaaVuN.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "http://127.0.0.1:8000/static/three-D_Nc9AAY.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "http://127.0.0.1:8000/static/index-BNvIRSix.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "http://127.0.0.1:8000/static/toolGeometry-DhP3iiav.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "http://127.0.0.1:8000/static/ThreeViewer-Ch5wqGWS.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "http://127.0.0.1:8000/static/wsWorker-KKeHcbK3.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "blob:http://127.0.0.1:8000/2ad4750a-488e-4146-ae8e-52a3d7a79574",
+       "status": 200,
+       "type": "application/javascript",
+       "ok": true
+      }
+     ],
+     "bad_responses": [],
+     "page_errors": [],
+     "console_errors": [],
+     "workers": 2,
+     "mounted": true,
+     "connected": true,
+     "page": {
+      "status": 200,
+      "type": "text/html; charset=utf-8"
+     },
+     "worker_urls": [
+      "http://127.0.0.1:8000/static/wsWorker-KKeHcbK3.js",
+      "blob:http://127.0.0.1:8000/2ad4750a-488e-4146-ae8e-52a3d7a79574"
+     ],
+     "status_applied": true
+    },
+    "browsers_shared": "/home/cnc/.cache/ms-playwright",
+    "restore": {
+     "outcome": "complete",
+     "instance": [
+      "linuxcncsvr",
+      768460,
+      134027676
+     ],
+     "isolation": [],
+     "cleanup": []
+    },
+    "ended": 1794072436.7404006,
+    "verdict": "PASS",
+    "run_id": null,
+    "abort_at": null
+   },
+   "restore.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     768460,
+     134027676
+    ],
+    "isolation": [],
+    "cleanup": []
+   },
+   "restore-post.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     768460,
+     134027676
+    ],
+    "isolation": [],
+    "cleanup": [],
+    "repeat_of": "complete"
+   },
+   "state.json": {
+    "tree": "/home/cnc/claude-work/live-tier/install-green3-20261107T182556/src",
+    "tree_of": "/home/cnc/lcnc-suite-g1",
+    "installer": 767127,
+    "test_unit_intent": "install-probe-sim-install-green3-20261107T182556",
+    "test_unit_wd": "/home/cnc/claude-work/live-tier/install-green3-20261107T182556/home/linuxcnc/configs/lcnc_suite_sim",
+    "test_ini": "/home/cnc/claude-work/live-tier/install-green3-20261107T182556/home/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_3axis_xyz.ini",
+    "test_unit": "install-probe-sim-install-green3-20261107T182556",
+    "test_unit_invocation": "21be78efe89842efa527a71efeb1f73f",
+    "test_instance": [
+     767640,
+     134024779
+    ],
+    "test_ended": true,
+    "isolation": []
+   },
+   "pre.json": {
+    "units": {
+     "lcnc-sim-gates": {
+      "ExecStart": [
+       "/usr/bin/env",
+       "-u",
+       "DISPLAY",
+       "LCNC_WEBUI_BROWSER=0",
+       "linuxcnc",
+       "lcnc_suite_sim_3axis_xyz_test.ini"
+      ],
+      "WorkingDirectory": "/home/cnc/linuxcnc/configs/lcnc_suite_sim_look",
+      "Environment": []
+     },
+     "bg-keepalive": {
+      "ExecStart": [
+       "/home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3",
+       "/home/cnc/claude-work/bg/keepalive_ini.py",
+       "/home/cnc/linuxcnc/configs/lcnc_suite_sim_look/lcnc_suite_sim_3axis_xyz_test.ini"
+      ],
+      "WorkingDirectory": "!/home/cnc",
+      "Environment": []
+     }
+    },
+    "ini": "/home/cnc/linuxcnc/configs/lcnc_suite_sim_look/lcnc_suite_sim_3axis_xyz_test.ini",
+    "head": "a61337c3b8d2b84cab2a1ed4829b12701d2b05fb",
+    "tree": "/home/cnc/lcnc-suite-gates",
+    "instance": [
+     "linuxcncsvr",
+     766592,
+     134019514
+    ],
+    "at": 1794072356.196012,
+    "run_id": [
+     65027,
+     3678589
+    ],
+    "hashes": {
+     "nc_files": "61b324e9dd42a1cdf9b4f6bbe1268b1edcdb92008b7b3bd53b1315181c966af9",
+     "macros": "be58f0915378d2166acecaf6a1c2f711132d063d73f358a5600a7350076add36",
+     "settings": "0e5f6766f7141dc9c07458a7735f97682129b8d2e3a1e81c8061bdad4ad73740",
+     "config": "ac04ed9f5478d83625802c9f7efa95e0651b3a8b1eedb25153020700a231f27c",
+     "home:.local/bin": "7969eb62faf95fa1b3604023a718d6bcf4989cdc5b9145d6f5b5ba4fd763b553",
+     "home:linuxcnc": "1f19cc8c88d3a5d0fe29821ba82ccdc2ed3560eb57acf052242dfcb18aa226af",
+     "home:.npm": "f1dfb0fafae1123a8eb805ed690f7178b190c6b3cbf451ffde5fbea7147780ee",
+     "home:.cache/pip": "6c0368064d90b48080f845f3bcf6a2007e71fa3adc4dfda01e40fe40996fd8e4",
+     "home:.gitconfig": "8dc776402e0ab3c03d8d57f18cf44a1ac01718a88dba0f35b013655b0800704a",
+     "home:.config/git": "249e90ad8331ea59a20bd79a9e8c071c562295f9ad24284b3d5efdc0ad6ccb02"
+    }
+   },
+   "tree_left": false
+  },
+  {
+   "run": "/home/cnc/claude-work/live-tier/native-20261107T182721",
+   "report.json": {
+    "verdict": "PASS",
+    "commit": "fc9798511f2c2850e4c2aba8d972314e35771002",
+    "restore": {
+     "outcome": "complete",
+     "instance": [
+      "linuxcncsvr",
+      781358,
+      134099345
+     ],
+     "isolation": [],
+     "cleanup": []
+    },
+    "error": null,
+    "rows": [
+     {
+      "case": "home-all",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "home-joint-0",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "home-joint-1",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "home-joint-2",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "jog-x+.servo",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "jog-x+",
+      "status": "incomplete",
+      "informational": true
+     },
+     {
+      "case": "jog-x-.servo",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "jog-x-",
+      "status": "incomplete",
+      "informational": true
+     },
+     {
+      "case": "jog-y+.servo",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "jog-y+",
+      "status": "incomplete",
+      "informational": true
+     },
+     {
+      "case": "jog-y-.servo",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "jog-y-",
+      "status": "incomplete",
+      "informational": true
+     },
+     {
+      "case": "jog-z+.servo",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "jog-z+",
+      "status": "incomplete",
+      "informational": true
+     },
+     {
+      "case": "jog-z-.servo",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "jog-z-",
+      "status": "incomplete",
+      "informational": true
+     },
+     {
+      "case": "override-plateau-100",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "override-plateau-50",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "override-plateau.counter-75",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "goto-zero",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "goto-home",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "goto-g30",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "goto-zero.counter-xy-first",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "probe-z",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "probe-z.counter-plate-1",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "probe-z-miss",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "surface-scan",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "surface-scan.counter-node+1",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "surface-scan.counter-xy-swapped",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "surface-override-lock",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "surface-scan.map",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "comp-nearest",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "comp-nearest.counter-linear",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "comp-linear",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "comp-linear.counter-cubic",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "comp-cubic",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "comp-cubic.counter-nearest",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "comp-on-off",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "comp-on-off.counter-gap+0.05",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "comp-after-xy",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "comp-after-xy.counter-frozen",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "m600-unload",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "m600-t1",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "m600-t1-return",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "m600-t1-return.counter-x+1",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "m600-t1-override-lock",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "m600-t1.counter-3102",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "m6-hold",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "ts-sync-program-m600",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "ts-sync-program-m600.counter-old-basis",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "ts-sync-booking",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "ts-sync-stable",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "rfl-line",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "rfl-line.counter-line+1",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "rfl-no-earlier-line",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "rfl-start-point",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "rfl-start-point.counter-entry-x+1",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "disconnect-close",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "disconnect-heartbeat",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "clients-4",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "clients-8",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "latch-same-cycle",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "latch-sticky",
+      "status": "PASS",
+      "informational": null
+     },
+     {
+      "case": "latch-recovered",
+      "status": "PASS",
+      "informational": null
+     }
+    ]
+   },
+   "restore.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     781358,
+     134099345
+    ],
+    "isolation": [],
+    "cleanup": []
+   },
+   "restore-post.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     781358,
+     134099345
+    ],
+    "isolation": [],
+    "cleanup": [],
+    "repeat_of": "complete"
+   },
+   "state.json": {
+    "tree": "/home/cnc/claude-work/live-tier/native-20261107T182721/tree",
+    "tree_of": "/home/cnc/lcnc-suite-g1",
+    "test_unit_intent": "native-sim-native-20261107T182721",
+    "test_unit_wd": "/home/cnc/claude-work/live-tier/native-20261107T182721/configs/sim",
+    "test_ini": "/home/cnc/claude-work/live-tier/native-20261107T182721/configs/sim/lcnc_suite_sim_3axis_xyz.ini",
+    "test_unit": "native-sim-native-20261107T182721",
+    "test_unit_invocation": "e4c409d62e5c4d18b6937449f1f652ef",
+    "test_instance": [
+     769152,
+     134030394
+    ],
+    "stopped": [],
+    "continued": [
+     {
+      "pid": 780003,
+      "start": 134092761,
+      "what": "the helper client A2",
+      "outcome": "continued"
+     },
+     {
+      "pid": 769266,
+      "start": 134030488,
+      "what": "the test instance's gateway",
+      "outcome": "continued"
+     }
+    ],
+    "test_ended": true,
+    "isolation": []
+   },
+   "pre.json": {
+    "units": {
+     "lcnc-sim-gates": {
+      "ExecStart": [
+       "/usr/bin/env",
+       "-u",
+       "DISPLAY",
+       "LCNC_WEBUI_BROWSER=0",
+       "linuxcnc",
+       "lcnc_suite_sim_3axis_xyz_test.ini"
+      ],
+      "WorkingDirectory": "/home/cnc/linuxcnc/configs/lcnc_suite_sim_look",
+      "Environment": []
+     },
+     "bg-keepalive": {
+      "ExecStart": [
+       "/home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3",
+       "/home/cnc/claude-work/bg/keepalive_ini.py",
+       "/home/cnc/linuxcnc/configs/lcnc_suite_sim_look/lcnc_suite_sim_3axis_xyz_test.ini"
+      ],
+      "WorkingDirectory": "!/home/cnc",
+      "Environment": []
+     }
+    },
+    "ini": "/home/cnc/linuxcnc/configs/lcnc_suite_sim_look/lcnc_suite_sim_3axis_xyz_test.ini",
+    "head": "a61337c3b8d2b84cab2a1ed4829b12701d2b05fb",
+    "tree": "/home/cnc/lcnc-suite-gates",
+    "instance": [
+     "linuxcncsvr",
+     768460,
+     134027676
+    ],
+    "at": 1794072441.3551176,
+    "run_id": [
+     65027,
+     3678601
+    ],
+    "hashes": {
+     "nc_files": "61b324e9dd42a1cdf9b4f6bbe1268b1edcdb92008b7b3bd53b1315181c966af9",
+     "macros": "be58f0915378d2166acecaf6a1c2f711132d063d73f358a5600a7350076add36",
+     "settings": "0e5f6766f7141dc9c07458a7735f97682129b8d2e3a1e81c8061bdad4ad73740",
+     "config": "ac04ed9f5478d83625802c9f7efa95e0651b3a8b1eedb25153020700a231f27c"
+    }
+   },
+   "tree_left": false
+  }
+ ]
+}
