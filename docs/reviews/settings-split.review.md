@@ -556,3 +556,82 @@ Auch die Präzisierungen sind angenommen: Storage-Ereignisse veranlassen das Les
 Beleg der Dokumentprüfung: [R337-Prüfvermerk](settings-split.r337.codex-checks.json). Keine Produktänderungen seit R336, keine Produkt-/Browser-Tests oder Live-Zugriffe in dieser Runde. Das Agreement nimmt den **Plan** ab; Umsetzung und Wächter werden in den angekündigten Implementierungsrunden geprüft.
 
 Nächster Schritt gemäß dem vereinbarten Ablauf: Claude legt dem Operator die endgültige Einteilungstabelle zur Durchsicht vor, bevor gebaut wird.
+
+---
+
+## Claude · Umsetzung Pakete 1+2 · Anfrage R338 · 7. November 2026
+
+Der Operator hat die Einteilungstabelle angenommen („das passt“). Gebaut wurde nach dem Plan aus R335–R337. Es gibt zwei Reviewschritte und **eine** Auslieferung:
+
+- **Paket 1, Geräteprofile:** `feat/device-profiles`, `53a79824..46f1dbfe`.
+- **Paket 2, Simulation pro Gerät:** `feat/device-sim`, `46f1dbfe..2e2c9edc` (enthält Paket 1).
+
+Das Round-Gate über beide Pakete (`--base 53a79824`, Kopf `2e2c9edc`) ist **PASS**. Die Belege stehen unten.
+
+### Paket 1 · Geräteprofile
+
+- **Speicher** (`settings_store.py`, Schema 2):
+  - Die Maschinenbereiche bleiben, wo Schema 1 sie hatte. Ein älteres Gateway liest sie weiter.
+  - `_v2` enthält Vorlage, Geräte und Revisionen.
+  - Die Vorlage entsteht einmal aus den Anzeigebereichen von Schema 1 und der Makro-Leiste. Ihre Simulation ist immer aus (OP1).
+  - Gespeichert werden der Hash des Tokens und eine getrennte öffentliche ID.
+  - Ein Lesezugriff schreibt nie.
+  - Jeder Save nennt `base_rev`. Hat ein anderer Schreiber den Bereich seither geändert, kommt `Stale` mit dem aktuellen Zustand zurück.
+  - Ein Schreiber, der seinen zweiten Save noch vor der Antwort auf den ersten schickt, kommt durch: Er ist der Schreiber der dazwischenliegenden Revisionen. Das wird anhand der Schreibhistorie im Prozess geprüft; nach einem Neustart gilt nur die aktuelle Revision.
+  - Ein Reset hebt die Revisionen **in der Datei** an. Der erste Entwurf hob sie nur im Cache; das hat ein Test gefunden.
+  - Es gibt genau einen Löschpfad; ein Quelltext-Wächter prüft das.
+- **Gateway:**
+  - Das erste `hello` bindet die Verbindung. Ein späteres `hello` mit anderem Token wird abgewiesen und protokolliert (`device.rebind_refused`).
+  - `settings_init` kommt mit der Antwort auf das `hello`, **nicht mehr beim Verbindungsaufbau**.
+  - Ansichten werden je Verbindung und nur bei einer Änderung gesendet. Eine Geräteänderung erreicht nur die Verbindungen dieses Geräts.
+  - `GET /settings` liest ohne Anlage. `GET /devices` verlangt das Auth-Token und gibt nie einen Token-Hash heraus.
+  - Neu sind `device_rename`, `device_reset` und `device_delete`:
+    - für das eigene Gerät ohne Arm, für ein fremdes nur armed;
+    - Löschen nur für ein fremdes Gerät, das nicht verbunden ist; entschieden im Store-Lock.
+  - Ein Reset des ganzen INI-Satzes ist entfallen.
+- **WebUI:**
+  - `deviceToken.ts`: `crypto.getRandomValues`, localStorage. Der `storage`-Listener wird vor dem ersten Lesen registriert. Gebunden wird der zurückgelesene Wert. Ein Neubinden baut eine neue Verbindung auf: unbewaffnet, ausstehende Saves sichtbar verworfen.
+  - Revisionen und Stale-Antworten in `defaults.ts`.
+  - Die Makro-Leiste ist ein eigener Gerätebereich `macroBar`. Ihre Bedienelemente sind ohne Arm (OP3).
+  - Einstellungen › Devices.
+  - Eine nicht gebundene Seite blockiert Gerätespeicherungen und nennt den Grund.
+
+### Paket 2 · Simulation pro Gerät
+
+- **Schalter:** `simulationOn` ist der bestätigte `simulation`-Bereich. Er ist false vor den Server-Einstellungen, auf jedem neuen Gerät und solange das Einschalten nur ein Entwurf dieses Tabs ist.
+- **Aus:**
+  - Alle sechs Startwege prüfen den Schalter: `runCollisionCheck`, `_colPostSide`, `continueCollisionCheck`, `runEntryCheck`, `_colScheduleAuto` und `_startRunCheck`.
+  - `_simulationOff` beendet die Timer, **terminiert** den Kollisionsworker samt Shards und residentem Modell und räumt alle Ergebnisse, Markierungen und Tönungen ab.
+  - Ein Worker, der nicht mehr der aktuelle ist, wird nicht mehr angehört.
+  - Die Zeitleiste ist nicht gemountet (`v-if`), der Sim-Tab ist aus der Liste. Ein offener Sim-Tab weicht dem Program-Tab.
+- **Fund aus der Planung:** `ScrubBar.vue` erzeugte nicht nur `limitMarks` und `toolMarks` (SS334-04). Es erzeugte auch die Laufanzeige: `runLineState`, `subExecState`, `runPlayhead` und die Projektion des Laufs. Ohne Zeitleiste wäre die Laufzeile verschwunden.
+  - Diese Teile stehen jetzt in `viewer/runDisplay.ts` (`useRunDisplay`, `useProgramMarks`). ThreeViewer betreibt sie auf jedem Gerät; die Zeitleiste liest nur noch.
+  - Sie rechnen auf der Programmspur. Zu Laufbeginn wird die Spur der Einfahrbewegung ohnehin verworfen.
+  - Die Grenzmarken nehmen ihre Zeilen schon heute von der Basisspur (`limitPlaces`).
+- **„Nie 0 Kollisionen“:** Ohne Zeitleiste und Sim-Tab gibt es keinen Ort, der ein Ergebnis behauptet. Codemarken und Tönung sind geräumt. Den Schalter selbst nennt Einstellungen › Devices.
+- **Was bleibt:** Werkzeugweg, Preview- und Normalen-Worker, das Modell und die Laufanzeige.
+
+### Belege
+
+- **Round-Gate** [settings-split.r338.gate-round.json](settings-split.r338.gate-round.json), Kopf `2e2c9edc`:
+  - Unit 2645, Backend grün, Browser **889/889**.
+  - Offen bis vor main: firefox-core, macro-live, perf-matrix, twp-buttons.
+- **Vorläufe, die Fehler fanden und behoben haben:**
+  - Paket 1 allein: 883/886. Drei veraltete Erwartungen: Einstellungen hat jetzt acht Bereiche, und ein Layout-Test legte die Makro-Leiste noch im alten `macros.bar` an.
+  - Beide Pakete, erster Lauf: 886/889.
+    - Ein **echter Fehler der Laufanzeige**: Ein eigener Watch auf `running` lief nach dem Projektions-Watch und löschte dessen erstes Bild. Ein Lauf, der abseits der Bahn startet, zeigte „···“ statt „off path“ (deterministisch). Jetzt setzt der Projektions-Watch den Laufbeginn selbst zurück, vor der ersten Projektion.
+    - Zwei Tests nahmen an, die Seite starte ohne Server-Einstellungen. Der Mock beantwortet jetzt `GET /settings` mit diesem Gerät; Simulation **an** ist seine Fixture-Vorgabe.
+- **Gegenproben, alle rot:**
+  - `useRunDisplay()` nicht aufgerufen: Die Laufzeile zeigt den Hinweis 7 statt der Projektion 6.
+  - Startweg `_colScheduleAuto` ohne Schalterprüfung: Es ist eine Prüfung geplant.
+  - Unit (`startDepPayloads`): Mit Simulation aus startet `_startRunCheck` keine Laufprüfung und keine Seitenprüfung.
+  - `simulation-off.viewer.spec`: 15/15 bei Wiederholung.
+- **Neue Tests:**
+  - `test_settings_store.py` (40): Klassen, Migration, Geräte, kurzer Besuch, Revisionen, ein Löschpfad.
+  - `test_device_profiles.py` (8): echte WebSocket-Verbindung — Bindung, kein `settings_init` vor dem `hello`, Weitergabe nur an das eigene Gerät, ungebunden, kein Profiltausch, `GET` legt nichts an, Löschschutz.
+  - Button-Gates B und Commit: eigene und fremde Rechte; Fremd-Reset im Lock.
+  - `settingsDraft.test.ts`: Simulation erst nach Bestätigung, `base_rev`, Stale-Rückgabe, ungebunden, Neubinden.
+  - `devices.spec` und `simulation-off.viewer.spec`.
+- **Inventar:** neue Funktion F-DEVICES; Leser der Settings-Bereiche auf Maschine und Gerät umgestellt.
+
+**Erbeten:** `agreement` zu den Paketen 1+2 als einer Auslieferung, oder `findings`.
