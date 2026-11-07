@@ -34,7 +34,14 @@ jobs:
       - run: npx playwright install --with-deps chromium
       # --timeout is per step: the unit step takes ~19 min here, the browser
       # step ran out of the default 30 min at test 332 of ~550 (2026-10-21)
-      - run: python3 ../scripts/test_suite.py offline --component frontend --timeout 5400
+      # TWO browser workers here (the local default is 3, one per two cores of
+      # the 6-core VM): on this 4-vCPU runner three workers with their mocks
+      # and Chromium starved each other — 22 of 886 tests ran out of time or
+      # missed a frame budget on 2026-11-07 (run 42406737346: timeouts, glide
+      # frames, hold windows), all green locally. Fewer workers, more time.
+      - run: python3 ../scripts/test_suite.py offline --component frontend --timeout 9000
+        env:
+          LCNC_E2E_WORKERS: "2"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
