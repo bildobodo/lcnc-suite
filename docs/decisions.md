@@ -11027,3 +11027,25 @@ with compensation on the settled offset is the new node's value
 so none is claimed). The fixture is read from the running HAL before a
 probe moves: every signal's writer and readers, the thread order, the
 constants equal to the literal, instance 1 fed L 50 and enabled, no fade.
+
+## 2026-11-07 — The toolsetter form's line names the LinuxCNC parameters (operator, at the look of feat/g2-surface)
+
+At the look the operator asked what "In the machine" means and proposed naming
+the parameters ("parameters written to LinuxCNC var or so"). Agreed wording,
+with two corrections to the proposal so the text holds in every case:
+- not "var": the measurement reads the INTERPRETER's parameters; LinuxCNC
+  writes the var file only at its next synch, so right after a write the file
+  can still hold the old values;
+- not "written" for the confirmed state: a read-back that finds equal values
+  confirms too, and nothing was written then.
+
+The texts: "LinuxCNC parameters hold these values — confirmed" · "Saved — not
+yet in the LinuxCNC parameters; a program start or measurement writes them"
+(the agreed "the next program start" shortened to stay within the line's 90
+characters) · "LinuxCNC parameters not confirmed (n of 23) — the next program
+start writes them" · "LinuxCNC parameters not known yet"; the setup note
+"… nothing is written to the LinuxCNC parameters". A "?" beside the line:
+"#3004–#3013 and #3100–#3115 — the values the measurement (M600) reads." The
+projection (`toolsetterMachineState`) is unchanged; `role="status"` moved to
+the text so the help is not part of what is announced.
+

@@ -2,7 +2,7 @@
 // from the server's confirmed section and the gateway's booking — never from
 // a reply or a local wait list.
 import { describe, expect, it } from "vitest";
-import { toolsetterMachineState } from "./toolsetterState";
+import { toolsetterMachineState, toolsetterMachineText, type ToolsetterMachineState } from "./toolsetterState";
 import { toolsetterSetup, toolsetterVarMap } from "./toolsetterSetup";
 import type { ToolsetterBooking } from "./ws/statusStore";
 import contract from "./toolsetterRules.contract.json";
@@ -62,5 +62,18 @@ describe("toolsetterMachineState", () => {
     const keys: ToolsetterBooking["keys"] = {};
     for (const [k, v] of Object.entries(sent)) keys[k] = { value: Number(v.toFixed(6)), origin: "applied" };
     expect(toolsetterMachineState(fine, { version: 1, keys }).kind).toBe("confirmed");
+  });
+});
+
+describe("toolsetterMachineText", () => {
+  // operator 2026-11-07: the line names WHERE the values count — LinuxCNC's
+  // parameters, which the measurement reads; ≤ 90 characters each
+  const states: ToolsetterMachineState[] = [{ kind: "confirmed" }, { kind: "pending", differ: ["3102"] },
+    { kind: "unconfirmed", confirmed: 22, total: 23, differ: [] }, { kind: "not_set_up" }, { kind: "unknown" }];
+  it.each(states)("$kind names the LinuxCNC parameters, never 'the machine'", s => {
+    const text = toolsetterMachineText(s);
+    expect(text).toContain("LinuxCNC parameters");
+    expect(text).not.toMatch(/machine/i);
+    expect(text.length).toBeLessThanOrEqual(90);
   });
 });

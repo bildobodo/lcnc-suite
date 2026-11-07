@@ -203,28 +203,39 @@ function bookingOf(section: Record<string, number>, origin: string, over: Record
 async function toolsetterTab(page: Page) {
   await page.getByRole("tab", { name: "Probing", exact: true }).click();
   await page.getByRole("tab", { name: "Toolsetter", exact: true }).click();
-  return page.locator(".tsPanel .tsMachine");
+  // the line's text — the note around it also holds its "?"
+  return page.locator(".tsPanel .tsMachine").getByRole("status");
 }
 
 test("the machine line follows the gateway's booking: not known, confirmed, pending, not confirmed", async ({ page }) => {
   await open(page, { toolsetter: SET_UP });
   const line = await toolsetterTab(page);
-  await expect(line).toHaveText("Machine values not known yet");
+  await expect(line).toHaveText("LinuxCNC parameters not known yet");
   await ctl({ op: "status_delta", data: {}, envelope: { toolsetter_booking: bookingOf(SET_UP, "applied") } });
-  await expect(line).toHaveText("In the machine — confirmed");
-  await expect(line).toHaveClass(/\bok\b/);
+  await expect(line).toHaveText("LinuxCNC parameters hold these values — confirmed");
+  await expect(page.locator(".tsPanel .tsMachine")).toHaveClass(/\bok\b/);
   await ctl({ op: "status_delta", data: {}, envelope: { toolsetter_booking: bookingOf(SET_UP, "read", { "3102": -299 }) } });
-  await expect(line).toContainText("Saved — not yet in the machine");
+  await expect(line).toContainText("Saved — not yet in the LinuxCNC parameters");
   await ctl({ op: "status_delta", data: {}, envelope: { toolsetter_booking: bookingOf(SET_UP, "assumed") } });
-  await expect(line, "equal numbers only assumed are no proof").toContainText("Machine values not confirmed (0 of 23)");
+  await expect(line, "equal numbers only assumed are no proof").toContainText("LinuxCNC parameters not confirmed (0 of 23)");
 });
 
-test("not set up: no machine line beyond the setup note, which says nothing is synced", async ({ page }) => {
+test("the line's \"?\" says which parameters it means (operator 2026-11-07)", async ({ page }) => {
+  await open(page, { toolsetter: SET_UP });
+  await toolsetterTab(page);
+  await ctl({ op: "status_delta", data: {}, envelope: { toolsetter_booking: bookingOf(SET_UP, "applied") } });
+  const help = page.locator(".tsPanel .tsMachine").getByRole("button", { name: "Help: LinuxCNC parameters" });
+  await help.click();
+  await expect(page.locator(".helpPopover:popover-open"))
+    .toHaveText("#3004–#3013 and #3100–#3115 — the values the measurement (M600) reads.");
+});
+
+test("not set up: no machine line beyond the setup note, which says nothing is written", async ({ page }) => {
   await open(page, { toolsetter: { touchZ: -300 } });
   await toolsetterTab(page);
   await ctl({ op: "status_delta", data: {}, envelope: { toolsetter_booking: bookingOf(SET_UP, "read") } });
   await expect(page.locator(".tsPanel .tsMachine")).toHaveCount(0);
-  await expect(page.locator(".tsPanel .statusNote.warn")).toContainText("nothing is synced with the machine");
+  await expect(page.locator(".tsPanel .statusNote.warn")).toContainText("nothing is written to the LinuxCNC parameters");
 });
 
 test("a save while the machine is not ready sends nothing; the line says it is not yet in the machine", async ({ page }) => {
@@ -232,7 +243,7 @@ test("a save while the machine is not ready sends nothing; the line says it is n
   await ctl({ op: "status_delta", data: { permissions: { ...PERMS_ALL, ready: false } },
               envelope: { toolsetter_booking: bookingOf(SET_UP, "applied") } });
   const line = await toolsetterTab(page);
-  await expect(line).toHaveText("In the machine — confirmed");
+  await expect(line).toHaveText("LinuxCNC parameters hold these values — confirmed");
   const touchZ = page.getByRole("textbox", { name: "Touch Z", exact: true });
   await touchZ.click();
   await page.keyboard.press("Control+A");
@@ -241,7 +252,7 @@ test("a save while the machine is not ready sends nothing; the line says it is n
   await expect(touchZ).toHaveValue("-299");
   await expect.poll(async () => (await sent()).filter(c => c.cmd === "save_settings").at(-1)?.data)
     .toMatchObject({ touchZ: -299 });
-  await expect(line).toContainText("Saved — not yet in the machine");
+  await expect(line).toContainText("Saved — not yet in the LinuxCNC parameters");
   expect((await sent()).map(c => c.cmd), "nothing pushed while not ready").not.toContain("set_probe_vars");
 });
 
@@ -249,7 +260,7 @@ test("a save the read-back already confirms pushes nothing; one it does not gets
   await open(page, { toolsetter: SET_UP });
   await ctl({ op: "status_delta", data: {}, envelope: { toolsetter_booking: bookingOf({ ...SET_UP, touchZ: -299 }, "read") } });
   const line = await toolsetterTab(page);
-  await expect(line).toContainText("Saved — not yet in the machine");
+  await expect(line).toContainText("Saved — not yet in the LinuxCNC parameters");
   const touchZ = page.getByRole("textbox", { name: "Touch Z", exact: true });
   for (const value of ["-299", "-298"]) {
     await touchZ.click();
@@ -257,7 +268,7 @@ test("a save the read-back already confirms pushes nothing; one it does not gets
     await page.keyboard.type(value);
     await page.keyboard.press("Enter");
     await expect(touchZ).toHaveValue(value);
-    if (value === "-299") await expect(line, "the read-back holds the saved number").toHaveText("In the machine — confirmed");
+    if (value === "-299") await expect(line, "the read-back holds the saved number").toHaveText("LinuxCNC parameters hold these values — confirmed");
   }
   // the second push is the signal that every earlier one has arrived (one worker, in order)
   const pushes = async () => (await sent()).filter(c => c.cmd === "set_probe_vars").map(c => (c.vars as Record<string, number>)["3102"]);

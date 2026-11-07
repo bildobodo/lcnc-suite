@@ -34,13 +34,19 @@ export function toolsetterMachineState(setup: ToolsetterSetup,
   return differ.length ? { kind: "pending", differ } : { kind: "confirmed" };
 }
 
-/** The form's line for a state (≤ 90 characters, the reason style). */
+/** The form's line for a state (≤ 90 characters, the reason style). It names
+ *  WHERE the values count — the interpreter's parameters the measurement reads
+ *  (operator 2026-11-07); never the var file, which LinuxCNC writes only at
+ *  its next synch, nor "written" — a read-back confirms too. */
+export const TOOLSETTER_PARAMS_HELP =
+  "#3004–#3013 and #3100–#3115 — the values the measurement (M600) reads.";
+
 export function toolsetterMachineText(s: ToolsetterMachineState): string {
   switch (s.kind) {
-    case "confirmed": return "In the machine — confirmed";
-    case "pending": return "Saved — not yet in the machine; the next program start or measurement applies it";
-    case "unconfirmed": return `Machine values not confirmed (${s.confirmed} of ${s.total}) — the next program start applies them`;
-    case "not_set_up": return "Not set up — no sync with the machine";
-    case "unknown": return "Machine values not known yet";
+    case "confirmed": return "LinuxCNC parameters hold these values — confirmed";
+    case "pending": return "Saved — not yet in the LinuxCNC parameters; a program start or measurement writes them";
+    case "unconfirmed": return `LinuxCNC parameters not confirmed (${s.confirmed} of ${s.total}) — the next program start writes them`;
+    case "not_set_up": return "Not set up — nothing written to the LinuxCNC parameters";
+    case "unknown": return "LinuxCNC parameters not known yet";
   }
 }

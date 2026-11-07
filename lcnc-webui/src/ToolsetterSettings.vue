@@ -12,7 +12,7 @@ import { confirmedToolsetter, toolsetterVarMap, TOOLSETTER_REQUIRED } from "./to
 import { fetchG30 } from "./lcncApi";
 import { noteG30Confirmed } from "./g30Shared";
 import { status, viewerInit, request, connected } from "./lcncWs";
-import { toolsetterMachineState, toolsetterMachineText } from "./toolsetterState";
+import { TOOLSETTER_PARAMS_HELP, toolsetterMachineState, toolsetterMachineText } from "./toolsetterState";
 import { useAxes, DEFAULT_AXES } from "./useAxes";
 import { savePayload, sameG30, contextChanged, replyApplies, type G30Values, type G30Context, type G30Ticket } from "./g30Form";
 import MachineInput from "./MachineInput.vue";
@@ -106,8 +106,8 @@ const setupNote = computed(() => {
   const s = confirmedToolsetter();
   if (s.ok || !serverSettingsReady.value) return null;
   const names = (keys: string[]) => keys.map(k => LABELS.get(k) ?? k).join(", ");
-  return s.missing.length ? `Not set up — enter ${names(s.missing)}. Until then Measure Current and Unload (M600) stay off, and nothing is synced with the machine.`
-    : `Check ${names(s.invalid)} — Measure Current and Unload (M600) stay off, and nothing is synced with the machine.`;
+  return s.missing.length ? `Not set up — enter ${names(s.missing)}. Until then Measure Current and Unload (M600) stay off, and nothing is written to the LinuxCNC parameters.`
+    : `Check ${names(s.invalid)} — Measure Current and Unload (M600) stay off, and nothing is written to the LinuxCNC parameters.`;
 });
 
 // ─── Toolsetter boolean wrappers (0/1 ↔ boolean) ───
@@ -314,7 +314,8 @@ watch(settingsVersion, () => { void pushWhenConfirmed(); });
   <div class="formGrid tsPanel">
     <div v-if="setupNote" class="statusNote warn wide" role="alert"><span>{{ setupNote }}</span></div>
     <div v-if="machineState.kind !== 'not_set_up'" class="statusNote wide tsMachine"
-         :class="machineState.kind === 'confirmed' ? 'ok' : 'warn'" role="status"><span>{{ machineText }}</span></div>
+         :class="machineState.kind === 'confirmed' ? 'ok' : 'warn'"><span><span role="status">{{ machineText }}</span><HelpIcon
+           label="LinuxCNC parameters">{{ TOOLSETTER_PARAMS_HELP }}</HelpIcon></span></div>
     <div v-if="pushError" class="statusNote error wide" role="alert"><span>{{ pushError }}</span></div>
     <!-- Toolsetter Position -->
     <div class="sub">Toolsetter Position (G53)</div>
