@@ -56,6 +56,17 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+      # The test selector's guards (scripts/test_select, part of the backend
+      # offline gate since the round gate, Codex R260) parse the WebUI's
+      # sources with its own TypeScript: lcnc-webui/node_modules must exist
+      # (red since 2026-11-07: "readscan.mjs failed … MODULE_NOT_FOUND").
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: lcnc-webui/package-lock.json
+      - run: npm ci
+        working-directory: lcnc-webui
       # gateway.py's module-level third-party imports are only fastapi + msgspec
       # + click; the fake linuxcnc (conftest.py) stands in for the real binding,
       # and machine/ is committed so the StaticFiles mount resolves. NumPy is
