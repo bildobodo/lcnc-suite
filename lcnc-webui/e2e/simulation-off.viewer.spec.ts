@@ -43,7 +43,7 @@ async function prepare(page: Page, context: BrowserContext, file: string, versio
   await page.getByRole("tab", { name: "Program", exact: true }).click();
   // the program's marks and path are in: the signal that a check would be under way by now
   await expect(page.locator(".codeLine.toolChange .lineNumber")).toHaveText(["3"]);
-  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.projectRole!("feed"))).not.toBeNull();
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.projectRole?.("feed") ?? null)).not.toBeNull();
 }
 
 test.afterEach(async () => { await ctl({ op: "reset" }); });
