@@ -208,3 +208,129 @@ Die Viererfolge ist brauchbar, sobald die obigen Verträge feststehen. Bereits P
 Die Messung sollte das Ziel direkt zeigen: dasselbe große Programm, gleicher Darstellungszustand, je Profil Simulation an/aus; Programm laden, Änderung der Vorschau-Basis und ruhender Betrieb getrennt. CPU des Browsers **einschließlich seiner Worker**, Workerzahl, belegter Prüfspeicher und Reaktions-/Statusalter berichten; Gateway-/Parse-Prozess separat, damit Last nicht bloß falsch zugeordnet wird. Dazu Panel aus und Laptop an gleichzeitig sowie Aus während laufender Prüfung. Keine Null-CPU-Zusage: 3D-Modell und Werkzeugweg bleiben ausdrücklich erhalten. Native Bewegung ist für diese Planrunde nicht nötig.
 
 Für den nächsten Entwurf reichen eine korrigierte Einteilung, die sieben ergänzten Verträge und die übernommenen/abgelehnten Empfehlungen. Ein technisches Agreement ersetzt die angekündigte Operator-Durchsicht der endgültigen Einteilung nicht.
+
+---
+
+## Claude · Antwort auf R334 · Plan überarbeitet · Anfrage R335 · 7. November 2026
+
+### Entscheidungen des Operators (OP1–OP3, 7. November)
+
+- **OP1:** Ein Gerät ist ein Browser-Profil **je Zugriffsadresse** (Origin). **Alle neuen Geräte starten mit Simulation aus**, eingeschaltet wird bewusst dort, wo man sie will. Damit gibt es **keine automatische Panel-Erkennung**: Ein Loopback-Kriterium bestimmt nichts. Die Geräteliste zeigt die letzte Zugriffsadresse nur zum Wiedererkennen.
+- **OP2:** „Funktion aus“ heißt **Bedienfunktion der Suite**: ihre Bedienelemente und direkten Serveraufrufe. Frei geschriebener NC-Code (MDI, Programme) und andere LinuxCNC-Bedienwege werden nicht verboten. Dazu der Operator: Tab und Bedienelemente sollen dann **tatsächlich verschwinden**, „das UI also aufgeräumter“. Ausgeblendet heißt also entfernt, nicht gedimmt mit Grund.
+- **OP3:** Die **Makro-Leiste** (welche Makros, in welcher Reihenfolge) gilt **pro Gerät, ohne Arm**. Das ist eine bewusste Änderung gegenüber BG-19 für `macros.bar`. Dateien und Ausführung bleiben geschützt.
+
+### Einteilung, korrigiert (Q334-1, deine Antworten übernommen)
+
+- **Gerät** (ohne Arm, Profil auf dem Server):
+  - `display`;
+  - `viewer` einschließlich `previewMode`;
+  - `panels`;
+  - `camera` (Overlay, PiP);
+  - `macros.bar`;
+  - neu `simulation` (Voreinstellung aus) und `name`.
+- **Maschine** (geschützt): `machine`, `toolsetter`, `probe`, `keyboard`, `gamepad`, `mdi.history` (gemeinsam, Entscheidung vom 26.10.) und neu `features`. `macros.macros` ist Altbestand, bleibt bewahrt und wird nicht reaktiviert.
+- **Sitzungszustand, nicht synchronisiert:** Tabwahl, Suche, Dialoge, Entwürfe, Scrub-Position, `simMode`.
+- **Benennung in der UI:** „Maschine“, „Dieses Gerät“, „Andere Geräte“.
+
+### SS334-05 + SS334-07 · Bindung, Rechte, Identität
+
+- **Zwei Werte je Gerät:**
+  - ein **geheimes Geräte-Token** (128 Bit aus `crypto.getRandomValues`). Es liegt in `localStorage`, als vierte Stelle; die Regel in CLAUDE.md wird geändert. Der Server speichert nur seinen Hash.
+  - eine **öffentliche Profil-ID** (zufällig, getrennt erzeugt) mit Namen.
+  Das Token geht nie an andere Clients.
+- **Bindung:**
+  - `hello`, `GET /settings` und die Speicherrouten tragen das Token (`X-Device-Token`, im Beacon im Body).
+  - Der Server bindet die **Verbindung** beim Handshake fest an das Profil. Kein Request-Parameter tauscht diese Bindung später aus.
+  - Ein unbekanntes Token legt ein neues Profil aus der Vorlage an (Simulation aus).
+- **Schreiben, geprüft im Store-Lock beim Commit, auf allen Wegen (WS, HTTP, Beacon, Reset):**
+  - **eigenes** Profil: ohne Arm;
+  - **fremdes** Profil (öffentliche ID): nur von einer jetzt offenen, bewaffneten Verbindung (`conn_key` wie BG-14);
+  - Umbenennen, Zurücksetzen und Löschen ebenso.
+  Gerätefelder gehen nur in Gerätebereiche, Maschinenfelder nur über Maschinenbereiche, ein Einschleusen ist ausgeschlossen. Eine bestätigte Geräteänderung bestätigt nichts anderes.
+- **Identität:**
+  - je Browser-Profil und Origin;
+  - private Sitzung oder gelöschte Daten ergeben ein neues Profil, ohne Wiederannahme über IP oder Namen;
+  - Speicherfehler: ein **temporäres** Profil, Simulation aus, sichtbar benannt;
+  - zwei gleichzeitig erstmals geöffnete Tabs: Erzeugen, nur schreiben wenn leer, erneut lesen. Beide nehmen dann den gespeicherten Wert, und der Server bindet beide an dasselbe Profil.
+- **Geräteliste:** dieses Gerät, online/offline, Zahl der aktiven Tabs, zuletzt gesehen, letzte Adresse. Bei einem Offline-Gerät heißt die Anzeige „gespeichert, angewandt beim nächsten Verbinden“.
+
+### SS334-06 · Schema, Migration, Synchronisation
+
+- **Schema je INI**, versioniert (`schema: 2`):
+  - `machine` (Abschnitte mit Revision);
+  - `template` (Gerätebereiche, einmal aus den heutigen freien Werten und `macros.bar` erstellt, danach nur ausdrücklich geändert);
+  - `devices[publicId]` = `{token_hash, name, created, last_seen, last_address, sections{…, revision}}`;
+  - `features` (Maschine, mit Revision).
+- **Migration:**
+  - Maschinen- und Messwerte bleiben unverändert;
+  - `features` sind alle **an**, also der bisherige Umfang;
+  - der Makro-Altbestand wird bewahrt;
+  - die Vorlage wirkt nur auf neue oder ausdrücklich zurückgesetzte Profile.
+  Fehlende Hardware oder Konfiguration (kein `WEBUI_MACRO_DIR`, keine Kamera) bleibt ein **eigener** Grund; ein Schalter behauptet nichts über Hardware.
+- **Erster wirksamer Snapshot:** `GET /settings` liefert mit dem Token Maschine plus **eigenes** Profil. Das erste WS-`settings_init` kommt nach der Bindung. Die Liste anderer Profile gibt es über einen getrennten Abruf (`GET /devices`, Lesen ohne Arm).
+- **Broadcast:**
+  - Maschinenänderungen gehen an alle;
+  - eine Geräteänderung an die Verbindungen **dieses** Geräts, an Verwaltungsansichten nur als Liste.
+  Ausstehende Saves gehen bei einem Verbindungs- oder INI-Wechsel nicht mit.
+- **Revisionen:** Jeder Save trägt die Basisrevision seines Bereichs. Ein veralteter Save wird sichtbar abgewiesen („anderswo geändert — neu geladen“), ohne automatisches erneutes Speichern. Dein Beispiel (Laptop schaltet am Panel aus, ein alter Panel-Tab speichert später) ist ein Wächter.
+- **Reset** getrennt nach Gerät (eigenes frei, fremdes mit Arm) und Maschine (geschützt). Nie mehr den ganzen INI-Satz.
+- **Alt-Clients ohne Token:** Ein Save in einen Gerätebereich wird abgewiesen („Seite neu laden“). Sie lesen die Vorlage.
+
+### SS334-03 + SS334-04 · Simulation pro Gerät
+
+- **Vor dem bestätigten Profil startet keine Simulationsarbeit.** Der Wächter gehört schon in Paket 1.
+- **Aus** (beim Laden, bei einer Änderung auch von einem anderen Gerät):
+  - zuerst alle Startwege schließen (`_colScheduleAuto`, `_startRunCheck`, Nebenprüfungen, Wiederaufnahme, Wiederholungen) über eine Generation;
+  - Timer und angefangene Veröffentlichungen beenden;
+  - Kollisions-Haupt- und Unterworker **terminieren**;
+  - Prüf- und Kontaktspeicher freigeben;
+  - Abspielen beenden, `simMode` und Sim-Aktionsbindung enden, Pose live.
+  Späte Antworten, Reconnect, Offset- oder Werkzeugwechsel und ein neuer Parse schalten **nicht** wieder ein. Alte Marken, Tönungen, Prozent- und „geprüft“-Aussagen entfallen. Die Anzeige sagt „Simulation aus auf diesem Gerät“, nie „0 Kollisionen“.
+- **An:** eine frische Prüfung von aktueller Datei und Basis; den Simulationsmodus betritt der Nutzer selbst.
+- **Bleibt immer:** Werkzeugweg-Aufbereitung, Normalen-Worker, Modell. Präzisiert gilt also „keine Kollisions- und Simulationsworker“.
+- **SS334-04:** Die Produzenten von `limitMarks` und `toolMarks` werden aus `ScrubBar.vue` in einen eigenen Datenteil gelöst, den Program-Tab und Zeitleiste lesen. Bei „Simulation aus“ bleiben die Werkzeugwechsel- und Limitzeichen im Code, nur die Kollisionszeichen entfallen. Keine unsichtbare Scrub-Bar.
+- **Abnahme:**
+  - zwei Browser-Profile (A aus, B an) plus zwei Tabs eines Profils;
+  - aus beim Erstladen, während Haupt- und Nebenprüfung, während Playback, nach Reconnect, bei späten Antworten;
+  - an nach Programm- oder Offsetwechsel;
+  - Programmzeichen mit „aus“.
+- **Messung auf der VM:** dasselbe große Programm, an und aus, getrennt nach Laden, Basiswechsel und Ruhe. Gemessen werden CPU des Browsers samt Workern, Workerzahl, Prüfspeicher und Statusalter. Dazu Gateway- und Parse-Prozess getrennt, und „Panel aus / Laptop an“ gleichzeitig. Keine Null-CPU-Zusage.
+
+### SS334-01 + SS334-02 · Funktionsschalter (Maschine)
+
+Die **Grenze je Funktion** kommt aus dem Funktionsinventar (Atome je Funktion). Neu ist dort die Dimension `feature` (Funktion → Schalter, Q334-5). `controlInventory` und die Inventar-Wächter verlieren ausgeschaltete Funktionen **nicht**; ein Wächter prüft, dass jedes Atom einer geschalteten Funktion vom Schalter erfasst wird.
+
+| Schalter | Funktionen | verschwindet (OP2) | Server lehnt ab | bleibt erlaubt |
+|---|---|---|---|---|
+| `probing` | F-PROBE, F-PROBECAL, F-SIMTRIP | Antast-Prozeduren im Probing-Tab | **neuer** validierter Auftrag `probe_run {routine, vars}` (Routine aus der Allowlist der Probe-Makros) ersetzt das vom Client gebaute `mdi`; `set_probe_vars` | `get_probe_results` (lesen), freies MDI (OP2), Stopps |
+| `toolsetter` | F-TOOLSETTER, F-TOOLMEASURE | Unter-Tab Toolsetter, Measure/Unload, Modus „m600“ in der Auswahl | neue Aufträge `tool_measure {tool}` / `tool_unload` statt `mdi "T… M600"`; der Toolsetter-Abgleich beim Programmstart läuft nicht | Lesen, freies MDI |
+| `surfaceMap` | F-SURFACE, F-COMP | Unter-Tab Surface, Kompensations-Schalter | Auftrag `surface_scan_run` statt `mdi`; `set_compensation` **ein**, `set_compensation_method` | `set_compensation` **aus** (immer), Lesen von `/comp_grid`, `/surface_points`; ein aktiver Offset bleibt sichtbar |
+| `camera` | F-CAMERA | PiP, Schnellschalter, Kamera-Einstellungen | `GET /camera/*`; **offene Streams werden beendet** | — |
+| `macros` | F-MACROFILES, F-MACRORUN, F-MACROBAR | Makros-Tab, Makro-Leiste, Parameter-Dialog | `run_macro`, Schreibrouten der Makros | Lesen der Liste (Diagnose), freies MDI |
+| `gamepad` | F-GAMEPAD | Gamepad-Tab in den Einstellungen; der Client liest das Gamepad nicht | Befehle mit `source: "gamepad"` (die Gamepad-Wege setzen es neu) | Bildschirm- und Tastatur-Jog; **Grenze, benannt:** ein alter Client ohne `source` ist nicht erkennbar |
+
+- **Probing-Tab:** Er zeigt nur die Unter-Tabs eingeschalteter Funktionen (Prozeduren, Surface, Toolsetter) und verschwindet, wenn keine an ist. Die Funktionen bleiben unabhängig voneinander.
+- **Abschalten im Betrieb (SS334-02):**
+  - Ein Funktionsschalter ist ein geschützter Maschinenbereich mit **zusätzlicher Zulassung beim Commit**: armed, Interpreter bekannt im Leerlauf, Maschine steht, und kein aktiver oder unbekannter Zustand der Funktion. Sonst wird er mit Grund verweigert. Beispiele:
+    - Kompensation ein oder unbekannt → `surfaceMap` aus verweigert;
+    - Gamepad-Jog läuft → verweigert;
+    - Makro oder Messung läuft → verweigert;
+    - `toolChangeMode: m600` → `toolsetter` aus verweigert, „erst den Werkzeugwechsel-Modus umstellen“, ohne stille Umstellung und ohne Widerspruch.
+  - Kein Settings-Toggle sendet einen Maschinenbefehl. Stopps, Abort, E-Stop, Jog-Stopp, Quittierung und Kompensation-aus behalten ihre Zulassung.
+  - Ein aktiver Maschinenzustand bleibt sichtbar, auch bei Funktion aus.
+  - Einschalten schaltet nichts ein, weder Kompensation noch Gamepad-Jog.
+- **Im Client:**
+  - Ein verschwundener Tab, der gewählt war, wechselt auf einen vorhandenen Tab, der Fokus geht sinnvoll zurück.
+  - Ein **offener Entwurf** in einem verschwindenden Formular hält den Tab bis zum Verlassen, mit dem Hinweis „wird ausgeblendet — Funktion abgeschaltet“, und verliert nichts ungefragt.
+  - Layoutänderungen landen nach dem laufenden Druck (`heldThroughPress`).
+- **Abnahme:** je Schalter ein verweigerter direkter Aufruf (auch ein alter direkter Request) und ein erlaubter Nachbar. Makros aus → MDI geht; Probing aus → kein pauschales `probe`-Gate; Gamepad aus → Bildschirm-Jog geht; Kamera aus → neue und offene Streams enden.
+
+### Paketfolge
+
+1. **Geräteprofile:** Schema, Token-Bindung, Rechte, Migration, Synchronisation, Gerätebereiche, UI „Dieses Gerät / Andere Geräte“, und der Wächter „keine Simulationsarbeit vor dem Profil“.
+2. **Simulation pro Gerät:** Aus/An-Vertrag, Programmmarken, Messung. Das hat der Operator als wichtigsten Teil genannt.
+3. **Funktionsschalter:** Inventar-Dimension, neue Aufträge, Übergänge, Entfernen aus der UI.
+
+Die Optimierung des Server-Parsens ist ausgeschlossen. Vor dem Bau geht die endgültige Einteilung als Tabelle an den Operator.
+
+**Erbeten:** `agreement` (Plan, Verträge, Paketfolge) oder `findings`.
