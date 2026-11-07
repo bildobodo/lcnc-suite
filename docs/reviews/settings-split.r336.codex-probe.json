@@ -1,0 +1,128 @@
+{
+  "round": "R336",
+  "revision": "a00c51ad5d505ceae4ced8f7f104ae17881b9495",
+  "kind": "plan review / abstract lifetime model, not implementation execution",
+  "product_files_changed_since_R335": [],
+  "live_services_contacted": false,
+  "product_or_browser_tests_run": false,
+  "plan_cleanup": {
+    "file": "docs/reviews/settings-split.review.md",
+    "line": 453,
+    "sha256": "540f7ace6bfced1e30b62fea380f3209ecbd03e6c667282e5863bf717aa0007d",
+    "text": "4. **Server:** Ein beim ersten Kontakt angelegtes Profil ist **vorläufig**. Ein vorläufiges Profil ohne lebende Verbindung wird nach 60 s entfernt (Trace `device.provisional_dropped`). Es wird fest, sobald es 60 s gebunden war oder eine zweite Verbindung es nutzt. Überzählige Profile aus Rennen verschwinden so, und keine Änderung eines Fremdgeräts trifft ein vorläufiges.\n5. Fehler oder Abbruch (Speicher nicht schreibbar, Ereignis bleibt aus) ergeben ein temporäres Profil, Simulation aus, sichtbar benannt.\n"
+  },
+  "plan_as_written": {
+    "events": [
+      {
+        "t": 0,
+        "action": "first connection; provisional profile",
+        "id": "public-A"
+      },
+      {
+        "t": 10,
+        "action": "own save admitted and acknowledged",
+        "stable": false,
+        "saved": {
+          "name": "Panel",
+          "simulation": true,
+          "display": {
+            "theme": "dark"
+          }
+        }
+      },
+      {
+        "t": 20,
+        "action": "only tab closes; localStorage keeps token A"
+      },
+      {
+        "t": 81,
+        "action": "offline grace passed; cleanup",
+        "profile_present": false
+      },
+      {
+        "t": 120,
+        "action": "reopen with unchanged token A",
+        "id": "public-B",
+        "sections": {
+          "name": "",
+          "simulation": false,
+          "display": {
+            "theme": "auto"
+          }
+        }
+      }
+    ],
+    "saved_settings_retained": false,
+    "same_public_id": false
+  },
+  "possible_correction_model_promote_on_first_save": {
+    "events": [
+      {
+        "t": 0,
+        "action": "first connection; provisional profile",
+        "id": "public-A"
+      },
+      {
+        "t": 10,
+        "action": "own save admitted and acknowledged",
+        "stable": true,
+        "saved": {
+          "name": "Panel",
+          "simulation": true,
+          "display": {
+            "theme": "dark"
+          }
+        }
+      },
+      {
+        "t": 20,
+        "action": "only tab closes; localStorage keeps token A"
+      },
+      {
+        "t": 81,
+        "action": "offline grace passed; cleanup",
+        "profile_present": true
+      },
+      {
+        "t": 120,
+        "action": "reopen with unchanged token A",
+        "id": "public-A",
+        "sections": {
+          "name": "Panel",
+          "simulation": true,
+          "display": {
+            "theme": "dark"
+          }
+        }
+      }
+    ],
+    "saved_settings_retained": true,
+    "same_public_id": true
+  },
+  "source_checks": {
+    "surface_inputs": {
+      "file": "subroutines/surfacemap/surface_scan.ngc",
+      "line": 7,
+      "sha256": "7bceca61782b6c516fbcff17b51606ffc58d9f143b947bc2202f03f882701be8",
+      "text": "  #<x0> = #3050           (Lower X coordinate of grid)\n  #<x1> = #3051           (Upper X coordinate of grid)\n  #<y0> = #3052           (Lower Y coordinate of grid)\n  #<y1> = #3053           (Upper Y coordinate of grid)\n  #<xprobes> = #3054      (Number of probe points in X direction)\n  #<yprobes> = #3055      (Number of probe points in Y direction)\n  #<fast_fr> = #3056      (Fast probe feedrate)\n  #<slow_fr> = #3057      (Slow probe feedrate)\n  #<safez> = #3058        (Safe/traverse Z height in current WCS)\n  #<depthz> = #3059       (Maximum search depth - positive value, distance to probe down)\n\n  ; ============================================================\n  ; Shared probe parameters\n  ; ============================================================\n  #<probe_tool_number> = #3014  (Probe tool number)\n  #<z_clearance> = #3021  (Retract distance before slow probe pass - shared with other probes)\n\n  ; ============================================================"
+    },
+    "toolsetter_inputs": {
+      "file": "lcnc-webui/src/toolsetterSetup.ts",
+      "line": 79,
+      "sha256": "d40b37098fdf6f355f9cc5029b9e1b1d7e3774d18209f90fe58d467c470685e8",
+      "text": "export function toolsetterVarMap(p: ToolsetterDefaults): Record<string, number> {\n  return {\n    \"3004\": p.fastFeed, \"3005\": p.slowFeed, \"3006\": p.traverseFeed,\n    \"3007\": p.maxZTravel, \"3009\": p.retractDist, \"3010\": p.spindleZeroHeight,\n    \"3013\": p.offsetDirection,\n    \"3100\": p.touchX, \"3101\": p.touchY, \"3102\": p.touchZ,\n    \"3103\": p.useToolTable, \"3104\": p.toolMinDis, \"3105\": p.brakeAfter,\n    \"3106\": p.goBackToStart, \"3107\": p.spindleStopM, \"3108\": p.disablePrePos,\n    \"3109\": p.addReps, \"3110\": p.lastTry, \"3111\": p.offsetDiameter,\n    \"3112\": p.offsetValue, \"3113\": p.finderTouchX, \"3114\": p.finderTouchY,\n    \"3115\": p.finderDiffZ,\n  };\n}\n"
+    },
+    "sim_trip_admission_today": {
+      "file": "lcnc-gateway/gateway.py",
+      "line": 6122,
+      "sha256": "bb3468ff233529e43a7e04a930725ef68a929c352a649e733bc5647c77187188",
+      "text": "        if cmd == \"simulate_probe_trip\":\n            require_armed(armed)\n            # ONE sequence in ONE thread, awaited to its end even through a\n            # repeated cancel (Codex R321–R322 FI321-01): the reset follows\n            # every attempted set, and no late \"1\" can follow the final \"0\"\n            seq = asyncio.ensure_future(asyncio.to_thread(_sim_trip_sequence))\n            try:\n                out = await _thread_to_end(seq)\n            except asyncio.CancelledError:\n                # no one is left to answer: the outcome goes to the trace"
+    },
+    "sim_trip_ui_today": {
+      "file": "lcnc-webui/src/App.vue",
+      "line": 121,
+      "sha256": "8d85962cb8a18c5da3471a65ddca041d37976788bb085e91636863138dbb215c",
+      "text": "const isDev = import.meta.env.DEV;"
+    }
+  }
+}

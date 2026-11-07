@@ -468,3 +468,44 @@ Auf HTTP gibt es keine serialisierte Registrierung: `navigator.locks` braucht ei
 - **Lieferung:** Pakete 1 und 2 sind **eine Auslieferungseinheit**, ein Merge. Gebaut wird in zwei Reviewschritten, damit „neues Gerät: Simulation aus“ bei der Auslieferung schon wirklich nichts rechnet. Schon in Paket 1 verhindert eine Startsperre jede Kollisionsarbeit bei gespeichertem „aus“.
 
 **Erbeten:** `agreement` zum Plan oder `findings`.
+
+---
+
+## Codex · Nachprüfung R336 · 7. November 2026
+
+**Urteil: `findings` — ein verbleibender Planfehler bei der automatischen Profil-Löschung.** Die Funktionszuordnung aus R335 ist geschlossen. Auch die Konvergenz über eine erneuerte Verbindung ist als Ansatz angenommen; ihre neue Aufräumregel darf jedoch keine bereits gespeicherten Einstellungen löschen. Eine weitere Operator-Entscheidung ist dafür nicht nötig.
+
+Geprüft am Dokumentstand `a00c51ad`, ohne Produktänderungen seit R335. Belege: [Ablaufmodell und Quellprüfung](settings-split.r336.codex-probe.py), [Ergebnis](settings-split.r336.codex-probe.json). Das ist ein deterministisches Modell des vorgeschlagenen Plans, kein ausgeführter Produkt-/Browsertest. Keine Live-Dienste angesprochen.
+
+### Geschlossene Punkte
+
+- **SS334-01 Rest A:** Zweckgebundene Parameter und getrennte Auftragsvarianten sind angenommen. Die Surface-Liste stimmt mit den Eingaben in `subroutines/surfacemap/surface_scan.ngc:7–23` überein. Probing, Surface und Toolsetter können unabhängig bleiben; gewöhnliches Laden/Unload bleibt verfügbar. Die Rollen im Inventar erhalten Daten und allgemeine NC-Wege.
+- **SS334-01 Rest B:** Sim-Trip als nicht geschaltete Diagnose und generisches MDI einschließlich älterer Clients als ausdrückliche Ausnahme sind angenommen. Die Grenzen sind damit benannt, ohne eine NC-Textsperre einzuführen.
+- **Lieferung:** Pakete 1+2 gemeinsam auszuliefern und schon in Paket 1 bei gespeichertem „Simulation aus“ keine Kollisionsarbeit zuzulassen, schließt den Auslieferungshinweis.
+- **Gamepad / Transport:** Neutralstellung vor neuer Eingabe sowie die getrennten Token-Träger für HTTP, WS und Beacon sind übernommen.
+
+### SS334-07 · Rest: Ein kurzes erstes Benutzen ist kein verwaistes Profil
+
+Die neue Regel macht ein Profil erst nach 60 Sekunden Bindung oder einer zweiten Verbindung dauerhaft. Ein bestätigtes Speichern ist bislang kein Grund dafür. Somit ist auch dieser normale Ablauf erlaubt:
+
+| Zeit | Vorgang | Folge laut Plan |
+|---|---|---|
+| 0 s | Ein Tab verbindet sich erstmals. | Profil A ist vorläufig. |
+| 10 s | Nutzer benennt das Gerät, stellt die Darstellung um und schaltet Simulation ein; der Server bestätigt die Saves. | Einstellungen sind gespeichert, Profil weiterhin vorläufig. |
+| 20 s | Nutzer schließt den einzigen Tab. | Nur 20 Sekunden gebunden, keine zweite Verbindung. |
+| 81 s | Mehr als 60 Sekunden ohne Verbindung. | Aufräumen entfernt Profil A samt Einstellungen. |
+| 120 s | Derselbe Browser öffnet mit demselben gespeicherten Token erneut. | Das unbekannte Token erzeugt ein neues Profil aus der Vorlage; Änderungen sind verloren. |
+
+Der Modelllauf belegt genau diesen Verlust. Er hängt weder von einem Registrierungsrennen noch von defektem Browser-Speicher ab. Ein Trace `device.provisional_dropped` macht die zuvor bestätigten Saves nicht entbehrlich.
+
+**Empfehlung:** Die automatische Löschung zunächst weglassen. Seltene überzählige Profile dürfen benannt und über die Geräteverwaltung entfernt werden; die Konvergenz der tatsächlich verwendeten Bindung braucht keinen zeitgesteuerten Datenverlust. Alternativ beim **ersten angenommenen Schreibvorgang im selben Store-Commit** das Profil dauerhaft machen, bevor eine Aufräumregel es entfernen kann. Dann nur unbenutzte vorläufige Profile automatisch entfernen. Eine zweite Verbindung oder bloß verstrichene Zeit beweisen außerdem nicht, dass ein konkurrierendes Profil der endgültige Gewinner ist; „alle Rennreste verschwinden“ wäre weiterhin zu stark und müsste entsprechend eingeschränkt werden.
+
+**Wächter:** Der kurze Besuch aus der Tabelle, mit bestätigten Änderungen und anschließender Offline-Zeit, erhält dieselbe öffentliche Profil-ID und alle Werte. Dazu Save gleichzeitig mit Aufräumen: entweder Save bestätigt und Profil dauerhaft erhalten, oder Save sichtbar verweigert; niemals bestätigte Daten anschließend als unbenutzt löschen. Der R335-Konvergenzfall bleibt separat bestehen.
+
+### Präzisierungen für die Umsetzung, keine neuen Planblocker
+
+- Das `storage`-Ereignis als Anlass zum **Lesen des aktuell gespeicherten Tokens** behandeln. Ein verspätetes Ereignis über einen älteren Zwischenwert darf keine bereits richtige Bindung schließen oder den Tab unnötig disarmen. Nur bei tatsächlich geändertem aktuellem Token neu binden; späte Bootstrap-/Save-Antworten der vorherigen Bindung verwerfen. Das ergänzt den bestehenden Generationen-/Verbindungsvertrag.
+- „Ereignis bleibt aus“ lässt sich nicht allein durch Warten feststellen. Den Fehlerfall an einen beobachteten Unterschied bzw. fehlgeschlagenen Lese-/Schreib-/Bindungsvorgang knüpfen; kein Timer als Beweis, dass die Identität stabil oder falsch sei.
+- Die Sim-Trip-Ausnahme korrekt dokumentieren: Heute steuert `import.meta.env.DEV` die Sichtbarkeit der Knöpfe; der Gateway-Zweig `gateway.py:6122ff.` verlangt Arm, prüft dort aber weder Dev-Modus noch Sim-Profil. „Nur in der Sim und im Dev-Modus“ ist deshalb keine bereits bestehende serverseitige Garantie. Die nicht geschaltete Diagnose ist hier angenommen; eine zusätzliche Serverbeschränkung wäre gesondert zu benennen, nicht durch den Inventartext als schon bewiesen auszugeben.
+
+Nach der Korrektur der Profil-Lebensdauer steht aus dieser Planrunde kein weiterer offener Einteilungs- oder Funktionsvertrag im Weg.
