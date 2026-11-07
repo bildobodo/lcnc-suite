@@ -230,7 +230,7 @@ def test_a_model_change_selects_the_heavy_group_and_the_specs_that_read_it(repo:
                      and any(r.reads and any(matches(g, "examples/sim_config/machine-5axis-xyzac/table.stl") for g in r.reads) for r in rs))
     assert len(readers) == 7 and sel["unit"]["heavy"] == readers, "exactly the heavy files that read it"
     assert sel["backend"]["run"]
-    assert sel["browser"]["run"] == ["bake-hold.viewer", "collisions.viewer", "reach.viewer", "toolsetter.viewer"]
+    assert sel["browser"]["run"] == ["bake-hold.viewer", "collisions.viewer", "reach.viewer", "simulation-off.viewer", "toolsetter.viewer"]
 
 
 def test_a_var_file_selects_the_backend_and_the_probe_live_check_not_the_heavy_group(repo: Path):
