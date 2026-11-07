@@ -1,0 +1,8 @@
+FAILED test_install_probe.py::test_the_native_run_owes_the_return_from_the_stop_and_leaves_it_owed
+FAILED test_install_probe.py::test_a_gate_waiting_at_a_normal_runs_end_comes_after_its_final_restore
+FAILED test_install_probe.py::test_only_a_confirmed_absent_marker_frees_the_lock[unreadable-False-False]
+FAILED test_install_probe.py::test_only_a_confirmed_absent_marker_frees_the_lock[not json-False-False]
+FAILED test_install_probe.py::test_only_a_confirmed_absent_marker_frees_the_lock[[1, 2]-False-False]
+FAILED test_install_probe.py::test_only_a_confirmed_absent_marker_frees_the_lock[{"run": ""}-False-False]
+FAILED test_install_probe.py::test_the_lock_command_honours_the_owed_return_and_holds_the_lock_for_its_command
+7 failed, 83 passed in 38.74s
