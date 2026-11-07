@@ -276,6 +276,9 @@ def main(argv=None, host_factory=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--from", dest="pre", type=Path, required=True)
     ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument("--no-lock", action="store_true",
+                    help="the merge gate that started this unit holds the heavy lock and waits for its end "
+                         "(install probe, FI329-04): asking for it here would wait for the gate")
     a = ap.parse_args(argv)
     import sys
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))   # scripts/
@@ -287,8 +290,9 @@ def main(argv=None, host_factory=None) -> int:
     state_path = run / "state.json"
     state = json.loads(state_path.read_text()) if state_path.is_file() else {}
     # under the ONE heavy lock: the killed run's lock is gone already (R286 FI-I19)
+    from contextlib import nullcontext
     from test_support.heavy_lock import heavy_lock
-    with heavy_lock("restore_lan", wait=600):
+    with nullcontext() if a.no_lock else heavy_lock("restore_lan", wait=600):
         out = restore(host_factory(pre), pre, state, first=run / "restore.json", save=lambda st: _write(state_path, st))
     if state_path.is_file() or state:
         _write(state_path, state)

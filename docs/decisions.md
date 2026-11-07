@@ -11108,3 +11108,52 @@ touch, in a one-line and a wrapped row. `tool-marker.spec` (TOOLS) holds it
 toggles sit in flex rows; `.dataTable` cells keep `vertical-align: middle`
 for the cell).
 
+## 2026-11-07 — The install probe in the merge gate (package I; operator, plan Codex R329)
+
+The operator: "a test for the installation script: on a merge to development,
+it is guaranteed that the installation of LCNC Suite runs through cleanly and
+automatically." Scope decided by the operator: before THIS merge; local, in the
+merge gate; the two realtime components compiled only (no sudoers line); a
+clean-machine container is not in scope.
+
+**install.sh** — no test ran it; the gates installed through
+`install_examples.py` only. Now: `--yes` (no question; without it and without
+a terminal a finite stop with the reason — an OPEN unanswered input made the
+old script wait), `--no-root` (never sudo: missing system packages stop it;
+the components `halcompile --compile` in a temp folder, the system's module
+must exist, the script says it was NOT installed), `npm ci` + `npm run build`
+(an install is ready to start; the README's build step is gone), a failed
+gateway import is fatal (was a warning), every profile of the catalog must
+exist (config_sync_check passes a missing folder), and a FRESH install's
+drift fails (Q329-2; an upgrade keeps warning — local edits are the
+operator's; the checker's exit 2 is an error).
+
+**The probe** (`scripts/install_probe.py`, `test_support/install_cases.py`,
+`install_restore.py`, `install_probe_browser.mjs`) — the native stage's
+take-over and restore, with: a CLONE of the commit removed as a folder of the
+run (FI329-04: `git worktree remove` refuses a clone and blocked the return);
+a NEW child environment, nothing inherited (FI329-02: an inherited
+LCNC_LOG_DIR beat the sandbox HOME); the protection record of the operator's
+home (`.local/bin`, `linuxcnc`, `.npm`, `.cache/pip`, git config) by names,
+types, LINK TARGETS and contents (the old record skipped links — a bent
+launcher link hashed the same); the native target and confinement checks on
+the REAL installer's result before LinuxCNC starts; the safety chain proven
+POSITIVELY (FI329-01: no banner is no proof — `evaluate_safety_chain`
+answers None for an unknown reader): the probe's own unarmed client past the
+grace (no banner, reader fresh, no trip, the reader's values shown), the
+trace's `hal.admitted` / `reader.connected` admitted for THIS gateway's pid,
+the latch FALSE and the heartbeat oneshot TRUE by halcmd; a browser starting
+the built UI against that production gateway (FI329-03: the page alone
+passes with its entry module missing or answered by the SPA fallback).
+Finite deadlines (installer 1800 s, start 180 s, browser 180 s, the gate
+3000 s — past it the unit is stopped and its ExecStopPost restores). The gate
+holds the heavy lock until the unit ENDED (ActiveState inactive/failed, not
+"deactivating"), restore included: the probe runs `--under-gate`, its
+restore `--no-lock`.
+
+**Live:** the old install.sh (a61337c3) in the probe: FAIL after 32 s at
+`sudo halcompile` ("a terminal is required"), the LAN returned complete,
+isolation [], the clone removed. A first attempt refused itself before any
+step: the unit was read from /proc/self/cgroup's FIRST `.service`
+(user@1000.service) — now the last (`unit_of`, guarded).
+

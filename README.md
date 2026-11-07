@@ -289,8 +289,9 @@ The message panel shows a persistent log of all LinuxCNC errors and operator mes
 
 Run this on a fresh machine — no prior clone needed. The installer fetches
 dependencies, clones the repo into `~/lcnc-suite/`, sets up the Python venv
-and npm packages, and installs the three supported simulation examples into
-`~/linuxcnc/configs/lcnc_suite_sim/`, including updates to existing installations.
+and npm packages, builds the frontend and installs the three supported
+simulation examples into `~/linuxcnc/configs/lcnc_suite_sim/`, including
+updates to existing installations.
 
 ```bash
 wget -O install.sh https://raw.githubusercontent.com/bildobodo/lcnc-suite/main/install.sh && bash install.sh
@@ -299,12 +300,20 @@ wget -O install.sh https://raw.githubusercontent.com/bildobodo/lcnc-suite/main/i
 After it finishes:
 
 ```bash
-cd ~/lcnc-suite/lcnc-webui && npm run build       # build frontend for production
 linuxcnc ~/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_3axis_xyz.ini   # try the sim
 ```
 
 Pass a positional arg to override the clone location:
 `bash install.sh /opt/lcnc-suite`.
+
+Options: `--yes` installs missing system packages without asking (without it
+and without a terminal the installer stops instead of waiting);
+`--no-root` never calls sudo — missing system packages stop it, and the two
+realtime components (TWP kinematics, simulated tool setter) are compiled but
+not installed (the system's modules stay; the installer says so). Every merge
+to `development` runs `install.sh --yes --no-root` in a fresh clone with its
+own home and starts what it installed (the merge gate's install probe,
+`docs/testing.md`).
 
 ### Option B: Inside an existing clone
 
@@ -313,8 +322,7 @@ If you've already cloned the repo, run the installer from inside it:
 ```bash
 git clone https://github.com/bildobodo/lcnc-suite.git
 cd lcnc-suite
-./install.sh          # detects the clone, skips git-clone, sets up venv + npm + sim config
-cd lcnc-webui && npm run build && cd ..
+./install.sh          # detects the clone, skips git-clone, sets up venv + npm + build + sim config
 ```
 
 ### Option C: Manual
@@ -334,9 +342,9 @@ pip install -r lcnc-gateway/requirements.txt
 python3 lcnc-gateway/venv_check.py   # numpy must stay the system's (issue #42)
 deactivate
 
-# 3. Node.js dependencies
+# 3. Node.js dependencies (exactly the lock file)
 cd lcnc-webui
-npm install
+npm ci
 
 # 4. Build frontend for production
 npm run build

@@ -250,13 +250,69 @@ def browser(sel: dict, logs: Path) -> list[dict]:
     return checks
 
 
+#: the install probe's deadline in the merge gate (installer with fresh
+#: downloads, start, browser, restore): past it the unit is stopped — its
+#: ExecStopPost restores — and the check is FAIL (Codex R329 FI329-04)
+INSTALL_PROBE_S = 3000
+
+
+def install_probe(logs: Path, unit: str | None = None, probe_s: float = INSTALL_PROBE_S) -> dict:
+    """The merge gate's install probe (package I, operator 2026-11-07): a
+    fresh clone of HEAD installed by `install.sh --yes --no-root` in its own
+    environment and started (scripts/install_probe.py), in its own user unit
+    whose ExecStopPost is the probe's restore. The gate holds the heavy lock
+    until the unit has ENDED — its restore included — so the probe runs
+    --under-gate and the restore --no-lock (neither asks for the lock the
+    gate holds). PASS only with the probe's PASS, the LAN returned complete,
+    isolation [] and the unit's own restore complete (install_cases.gate_status)."""
+    from test_support.install_cases import gate_status
+    run_dir = logs / "install-probe"
+    unit = unit or f"install-probe-gate-{int(time.time())}"
+    py = sys.executable
+    cmd = ["systemd-run", "--user", f"--unit={unit}", "-p", f"WorkingDirectory={ROOT}",
+           "-p", f"ExecStopPost={py} -I {ROOT / 'scripts/test_support/install_restore.py'} "
+                 f"--from {run_dir / 'pre.json'} --out {run_dir / 'restore-post.json'} --no-lock",
+           py, "-I", str(ROOT / "scripts/install_probe.py"), "--run-dir", str(run_dir), "--commit", "HEAD",
+           "--under-gate"]
+    t0 = time.monotonic()
+    started = subprocess.run(cmd, capture_output=True, text=True)
+    if started.returncode:
+        return {"name": "install-probe", "status": "FAIL", "why": [f"the probe unit did not start: {started.stderr.strip()}"]}
+    stopped = False
+    while True:
+        props = dict(line.split("=", 1) for line in subprocess.run(
+            ["systemctl", "--user", "show", unit, "-p", "LoadState", "-p", "ActiveState", "--no-pager"],
+            capture_output=True, text=True).stdout.splitlines() if "=" in line)
+        if props.get("LoadState") == "not-found" or props.get("ActiveState") in ("inactive", "failed"):
+            break
+        if not stopped and time.monotonic() - t0 > probe_s:
+            subprocess.run(["systemctl", "--user", "stop", unit], capture_output=True)   # waits for ExecStopPost
+            stopped = True
+        time.sleep(2)
+    subprocess.run(["systemctl", "--user", "reset-failed", unit], capture_output=True)
+
+    def load(name):
+        p = run_dir / name
+        try:
+            return json.loads(p.read_text()) if p.is_file() else None
+        except ValueError:
+            return None
+    report, post = load("report.json"), load("restore-post.json")
+    status, why = gate_status(report, post)
+    if stopped:
+        status, why = "FAIL", [f"the probe ran past {probe_s:.0f} s and was stopped"] + why
+    return {"name": "install-probe", "status": status, "seconds": round(time.monotonic() - t0), "run": str(run_dir),
+            "rows": [f"{r.get('case')}: {r.get('status')}" for r in (report or {}).get("rows", [])],
+            **({"why": why} if why else {})}
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--base", required=True)
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--note", default="")
     ap.add_argument("--merge", action="store_true",
-                    help="the merge gate: every heavy unit file, the backend and the whole browser run")
+                    help="the merge gate: every heavy unit file, the backend, the whole browser run and the install probe")
     a = ap.parse_args(argv)
     out = a.out if a.out.is_absolute() else ROOT / a.out
     logs = out.with_suffix(".logs")
@@ -330,6 +386,11 @@ def main(argv: list[str] | None = None) -> int:
                 record["browser_specs"] = spec_times(report)
         else:
             omitted.append({"check": "browser", "reason": "; ".join(sel["browser"]["reasons"])})
+
+        if a.merge:
+            # the installer, from a fresh clone, and what it installed started
+            # (package I) — a merge only; it takes the VM's one LinuxCNC
+            checks.append(install_probe(logs))
 
     pending = []
     if sel["firefox"].get("needed"):

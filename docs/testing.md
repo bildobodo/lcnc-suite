@@ -47,6 +47,29 @@ reused. Live checks (`live-twp`, `twp_buttons_check.py`, the macro and
 toolsetter read-backs, `perf_matrix.py`, the probe live check) stay owed before
 main and stand as `pending` in the record.
 
+**The install probe** (package I, operator 2026-11-07, Codex R329) is part of
+every merge gate (`round_gate.py --merge`, check `install-probe`): a fresh
+clone of HEAD in its own run folder, `install.sh --yes --no-root` with a NEW
+environment (HOME, caches, logs, pycache, tmp — all in the run; nothing
+inherited), the installed result (links, venv, build, the catalog's profiles,
+config sync, no tracked file changed, the native stage's target and
+confinement checks), then the installed 3-axis profile started through the
+installed launcher in production: the process proof, the safety chain proven
+POSITIVELY (the probe's own unarmed client past the gateway's 15 s grace — no
+banner, reader fresh, no trip — the trace's `hal.admitted` and
+`reader.connected` admitted for this gateway, `webui-hb-latch.fault-out`
+FALSE and `oneshot.0.out` TRUE by halcmd) and a browser starting the built UI
+against that gateway (`scripts/install_probe_browser.mjs`: mounted, its own
+WebSocket took the instance's state, every script and worker served as
+JavaScript). It takes the VM's LinuxCNC like the native stage and returns it
+with the restore's proof; the isolation also records the operator's home
+links BY TARGET. The gate holds the heavy lock until the probe's unit has
+ended, its restore included (the probe runs `--under-gate`, the restore
+`--no-lock`). Not shown: the realtime components' installation (compiled
+only), a new machine's apt/nodesource path, the bootstrap from GitHub.
+Standalone (an evidence run): the command in `scripts/install_probe.py`'s
+docstring; `--abort-at installer|start` are its two abort probes.
+
 ```
 lcnc-gateway/.venv/bin/python3 scripts/test_select/round_gate.py \
     --base <the package's last accepted commit> --out docs/reviews/<topic>.gate-round.json
