@@ -1,0 +1,6 @@
+{
+  "file": "/home/cnc/claude-work/teststrat/repro-load.sh",
+  "sha256": "c1199e1b1c24f4383fb81d7be55e5089a5e264d75573e90715cb230ab6af6a6a",
+  "locking_prefix": "#!/bin/bash\n# Load-race reproduction: the named tests, each repeated, on N workers with K\n# CPU burners beside them. Usage:\n#   repro-load.sh <tree> <out.json> <repeat> <burners> <file:line>...\n# Runs as its own unit (systemd-run --user --unit \u2026); the burners die with it.\nset -u\nTREE=$1; OUT=$2; REPEAT=$3; BURN=$4; shift 4\ncd \"$TREE/lcnc-webui\" || exit 2\n# the ONE heavy lock of the gates, perf_matrix and the native stage (Codex R269)\nLOCK=${LCNC_HEAVY_LOCK:-$HOME/claude-work/live-tier/heavy.lock}\nmkdir -p \"$(dirname \"$LOCK\")\"\nexec 9>>\"$LOCK\"\nflock -w 14400 9 || { echo \"heavy lock held: $(cat \"$LOCK\")\" >&2; exit 4; }\n: > \"$LOCK\"; echo \"repro-load (pid $$, since $(date -Is))\" >> \"$LOCK\"\n",
+  "executed": "none; only the flock mechanism was reproduced on an own temporary lock with the load body replaced by printf"
+}

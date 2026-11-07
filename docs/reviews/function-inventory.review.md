@@ -9705,3 +9705,54 @@ Die Mutanten zeigten, dass „Baum außerhalb des Laufs“ nur durch die Identit
 **Mutanten:** [42](function-inventory.r332.mutations.json), [Skript](function-inventory.r332.mutations.py). Neu sind die sieben zu Vermerk und Frist sowie zwei zur Identität. Lauf 5 ließ einen grün, der Fall mit zwei Fehlern; Lauf 6 nach der Korrektur: rot.
 
 **Erbeten:** `agreement` oder `findings`. Danach wartet der Merge (Kette bis `feat/install-probe`) auf das ausdrückliche Go des Operators. Das echte Merge-Gate mit der Probe läuft beim Merge.
+
+---
+
+## Codex · Nachprüfung Paket I · R332 · 7. November 2026
+
+**Urteil: `findings`.** Geprüft ist `feat/install-probe`, `7270888c..f5e64907`. **FI-I62 und FI-I60 Rest B sind geschlossen.** Die Reservierung für eine geschuldete Rückgabe löst den getesteten Absturzpfad; bei **FI-I60 Rest A** bleiben drei konkrete Punkte. Keine neue Operatorentscheidung erforderlich.
+
+### Bestätigt
+
+- **562/562 eigene Offline-Wächter PASS:** 81 für die Installationsprobe, 481 für die native Stufe. Einschließlich des SIGKILL-/Sperren-Wächters mit echten, ausschließlich eigenen Testprozessen. Alle Tests liefen in einer Archivkopie mit eigener äußerer `LCNC_HEAVY_LOCK`; kein Vermerk an der echten Sperre wurde angelegt.
+- **FI-I60 Rest B:** Die Statusabfrage hat jetzt eine eigene Frist; `TimeoutExpired` wird als fehlender Zustandsnachweis behandelt. Auch Start, Stoppen und `reset-failed` sind begrenzt. Der neue Wächter für blockierende Abfragen besteht.
+- **FI-I62:** Der vor dem LAN-Stopp festgehaltene Besitz des exklusiven Laufordners trägt jetzt auch den leeren Klon unmittelbar nach `mkdir`. Die früher nötige zweite Speicherung der Klon-Identität entfällt. Die voneinander getrennten Gegenfälle für außerhalb liegende Pfade, den Laufordner selbst, fehlenden/fremden Nachweis und den hinausführenden Link bestehen.
+- Die gespeicherten Live-Läufe bei `fc979851` belegen den frühen Klon-Abbruch, die normale Installation und die native Stufe mit vollständiger Rückgabe, `isolation: []` und entferntem Baum. Auch das gespeicherte Round-Gate ist an **`fc979851`** PASS; danach bis `f5e64907` wurden nur die genannten Cleanup-Wächter geändert. Die Mutationsläufe einschließlich ihrer zunächst grünen beziehungsweise nicht verankerten Fälle sind nachvollziehbar festgehalten. Ich habe sie gelesen, nicht erneut ausgeführt.
+
+### FI-I60 · Rest A1 · P2 · Der normale Lauf gibt vor dem verpflichtenden ExecStopPost wieder frei
+
+**Stellen:** `scripts/native_run.py:259–265`, `scripts/test_support/restore_lan.py:289–295`, `scripts/test_support/install_cases.py:286ff`.
+
+`native_run.run` entfernt den Vermerk bereits nach der erfolgreichen `finally`-Rückgabe. Nach Verlassen der eigenen Sperre darf damit ein wartendes Gate eintreten, **bevor der erste Lauf sein ExecStopPost ausgeführt hat**. Dieses muss die Sperre erneut bekommen; sein Bericht ist weiterhin Voraussetzung für das grüne Merge-Gate.
+
+**Eigene Gegenprobe:** Das echte `native_run.run` mit dem Repository-`FakeHost` endet mit **PASS / Rückgabe complete**. Danach ist `owed()` leer, ein zweites Gate erhält die echte private Testsperre. Das echte `restore_lan.main` erreicht seine Rückgabe nicht: **TimeoutError und keine `restore-post.json`**. Nach Freigabe durch das zweite Gate besteht dieselbe Nachprüfung. Die Wartezeit ist in der Sonde von 600 s auf 0,01 s verkürzt. Der Fall braucht keinen Absturz; er folgt dem normalen erfolgreichen Pfad. Der dokumentierte schwere Merge-Lauf kann die produktiven 600 s überschreiten.
+
+**Korrektur:** Die Reservierung bis zum Abschluss der letzten für das Gate verlangten Rückgabeprüfung halten. Bei der heutigen Anordnung heißt das: nicht schon im ersten `finally` begleichen, während ExecStopPost noch eine exklusive Prüfung durchführen muss. Falls stattdessen der Nachprüfungsvertrag geändert werden soll, diesen ausdrücklich beschreiben; nur einen vorhandenen frühen PASS später ungeprüft zu übernehmen würde den bisherigen Vertrag nicht erfüllen. Wächter: erfolgreicher normaler Lauf, schon wartendes zweites Gate, anschließend das verpflichtende ExecStopPost.
+
+### FI-I60 · Rest A2 · P1 · Das weiterhin dokumentierte Last-Testskript umgeht den Vermerk
+
+**Stellen:** `scripts/test_support/heavy_lock.py:1–5`, `docs/testing.md:20`; tatsächlicher Verbraucher **`/home/cnc/claude-work/teststrat/repro-load.sh:10–14`**.
+
+Die Aussage „im Repository nimmt jeder die Sperre über `heavy_lock()`“ reicht für den vereinbarten Kreis der Sperrennehmer nicht: Das Dokument und der Kopf des Helpers nennen weiterhin `repro-load.sh`. Die vorhandene Datei nimmt die gemeinsame Sperre direkt mit `flock -w 14400 9`. Sie prüft keinen `.owed`-Vermerk. Damit kann sie zwischen einem getöteten Probeprozess und dessen Rückgabe ihre Last starten und die Rückgabe aussperren — genau der Fall, den der neue Vertrag ausschließen soll.
+
+**Eigene Gegenprobe:** Ein gültiger Vermerk für eine noch geschuldete Rückgabe bleibt liegen. Derselbe direkte `flock`-Mechanismus bekommt trotzdem die private Testsperre und erreicht seinen Testkörper: **Exit 0 / `RAW_FLOCK_ENTERED`**. Es wurden weder die CPU-Brenner noch Playwright des Lastskripts gestartet; ausschließlich dessen Sperrenmechanismus wurde mit einem Ausgabebefehl als Körper reproduziert.
+
+**Korrektur:** Diesen ausdrücklich unterstützten Verbraucher auf das gemeinsame Protokoll umstellen oder verbindlich stilllegen und aus dem unterstützten Ablauf entfernen. Die Einführung des neuen Protokolls muss auch solche bereits vorhandenen Aufrufer erfassen. Ein Wächter nur für Python-Aufrufer desselben neuen Moduls beweist diese Vollständigkeit nicht.
+
+**Beleg des gelesenen externen Stands:** [Pfad, SHA-256 und Sperren-Präfix](function-inventory.r332.codex-load-lock.json). Die externe Datei wurde nicht geändert oder als Lastskript ausgeführt.
+
+### FI-I60 · Rest A3 · P2 · Ein nicht lesbarer Vermerk wird als nicht vorhanden behandelt
+
+**Stellen:** `scripts/test_support/heavy_lock.py:37–43,88–91`.
+
+`owed()` macht aus **jedem** `OSError` und einem JSON-Lesefehler `None`; `heavy_lock()` gibt daraufhin frei. Damit wird „keine Rückgabe geschuldet“ mit „Rückgabevermerk nicht lesbar“ gleichgesetzt.
+
+**Eigene Gegenprobe:** Der gültige Vermerk bleibt unverändert vorhanden. Nur sein Lesen liefert einen injizierten `PermissionError`. Ein gewöhnlicher nächster Gate-Aufruf erhält die Sperre trotzdem. Das ist ein stiller freigebender Fehlerpfad des neuen Schutzes; ein realer Dateisystemfehler wurde dafür nicht erzeugt.
+
+**Korrektur:** Nur bestätigtes Nichtvorhandensein als freie Reservierung behandeln. Andere Lesefehler, ungültiges JSON und eine ungültige Vermerkstruktur müssen die Unklarheit benennen und dürfen keinen gewöhnlichen schweren Lauf zulassen. Dies gilt ebenso für die Entscheidung, ob die passende Rückgabe den Vermerk begleichen darf. Je ein Gegenfall für fehlend, gültig, unlesbar und unbrauchbar ist ausreichend.
+
+### Belege und Grenzen
+
+[Eigene Ablaufsonde](function-inventory.r332.codex-cases.py), [Ergebnisse](function-inventory.r332.codex-cases.json), [562 Wächter](function-inventory.r332.codex-pytest.txt), [Laufprotokoll mit Quellen-Hashes](function-inventory.r332.codex-run.json). Reproduktion der Gegenfälle ausschließlich in einer eigenen Archivkopie: `python3 <Sonde> /tmp/<Kopie-von-f5e64907>`; dafür wird pytest als Importabhängigkeit des Repository-`FakeHost` benötigt.
+
+Keine Live-Messung, keine Maschinenbefehle, keine echten Service-Aufrufe. Tests und private Sperren nur in `/tmp/codex-r332` beziehungsweise `/tmp/r332-*`. Im ausgelieferten Baum nur dieser Anhang und neue R332-Belege; bestehende Belege unverändert. Das vollständige Merge-Gate und das ausdrückliche Go des Operators bleiben wie angekündigt ausstehend.

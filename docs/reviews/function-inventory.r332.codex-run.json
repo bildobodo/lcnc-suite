@@ -1,0 +1,39 @@
+{
+  "review": "R332",
+  "head": "f5e64907d12edadaae05c6056eda22d9100a7023",
+  "archive": "/tmp/codex-r332",
+  "source_sha256": {
+    "scripts/install_probe.py": "90aaa74516ac3211049a93a81d4083448c7b43cf22a41224872be56a07cc50cc",
+    "scripts/native_run.py": "86dcfbffc25a2618665e617a94ad2341278322b47ebea3c891e3ec04c4360284",
+    "scripts/test_install_probe.py": "e2a6f562dc07046c35c9271481c079ec86a440881d34bc51f5ed05cd1de752a7",
+    "scripts/test_native_stage.py": "15652724da9a5b7ada2c81ab9578ac2e1bdbd74da1b3de3e3ec74ed5480702ad",
+    "scripts/test_select/round_gate.py": "59dbfe3072f60750d3df0705c7492736de48d1363602874cd087ebcdc52462ac",
+    "scripts/test_support/heavy_lock.py": "d8c4f292d68d0b91abcc60d97c38af43c6fea924aa8551241d14748d4979a729",
+    "scripts/test_support/install_cases.py": "ea48059eba13e434b86590a9818b76500f7ada3cd8bbe878c72dc6b897f76713",
+    "scripts/test_support/restore_lan.py": "df01d78c3dab3321f81dbb44e43deab87170df78c2c05156fe4949f8e340f749"
+  },
+  "tests": {
+    "command": "LCNC_HEAVY_LOCK=/tmp/r332-evidence/outer-test.lock python3 -B -m pytest -q -p no:cacheprovider scripts/test_install_probe.py scripts/test_native_stage.py",
+    "result": "562 passed in 79.48s (81 install, 481 native)",
+    "outer_marker_left": false
+  },
+  "counterexamples": {
+    "source": "function-inventory.r332.codex-cases.py",
+    "result": "function-inventory.r332.codex-cases.json",
+    "machine": "repository FakeHost; no LinuxCNC or systemd calls",
+    "lock": "real heavy_lock on private tempfile; restore wait 600 s scaled to 0.01 s",
+    "read_error": "PermissionError injected for only the private owed marker; marker itself left valid",
+    "load_runner": "read only; locking mechanism executed with printf in place of load, on private temporary lock"
+  },
+  "evidence_read": [
+    "function-inventory.r332.live-runs.json",
+    "function-inventory.r332.gate-round.json",
+    "function-inventory.r332.mutations.json"
+  ],
+  "live_evidence_head": "fc9798511f2c2850e4c2aba8d972314e35771002",
+  "live_operations": "none; no product edits/builds/tests/checkouts in live tree; no live ports or machine commands",
+  "review_prefix_before": {
+    "length": 1024927,
+    "sha256": "dbe6f01b5daef1dc07f4faa001efa7e6a7b3c8b2829945f57dec0b8f50b3baaa"
+  }
+}

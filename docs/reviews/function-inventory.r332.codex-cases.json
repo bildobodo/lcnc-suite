@@ -1,0 +1,42 @@
+{
+  "cases": [
+    {
+      "case": "normal_return_releases_before_mandatory_post",
+      "verdict": "PASS",
+      "normal_restore": "complete",
+      "owed_after_finally": null,
+      "next_gate_entered": true,
+      "post_error": "the heavy lock is held: next gate (pid 4, since 2026-11-07T19:03:04)",
+      "post_report_exists": false,
+      "production_restore_wait_s": 600,
+      "scaled_wait_s": 0.01,
+      "post_after_gate_ended": {
+        "rc": 0,
+        "outcome": "complete"
+      }
+    },
+    {
+      "case": "documented_load_runner_raw_flock",
+      "marker": {
+        "run": "/private/run-that-still-owes",
+        "pid": 4,
+        "since": "2026-11-07T19:03:05"
+      },
+      "returncode": 0,
+      "stdout": "RAW_FLOCK_ENTERED"
+    },
+    {
+      "case": "unreadable_marker_is_admitted",
+      "next_gate_entered": true,
+      "marker_still_present": {
+        "run": "/private/run",
+        "pid": 4,
+        "since": "2026-11-07T19:03:05"
+      }
+    }
+  ],
+  "captured_messages": [
+    "restore_lan: waiting for the heavy lock \u2014 next gate (pid 4, since 2026-11-07T19:03:04)",
+    "restore: complete"
+  ]
+}
