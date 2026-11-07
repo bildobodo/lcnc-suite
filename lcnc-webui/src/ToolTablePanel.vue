@@ -970,9 +970,14 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showI
             <td class="colT"
                 @mouseenter="onToolEnter(tool, $event)"
                 @mouseleave="onToolLeave">
-              <MachineBtn type="toolLoad" @click.stop="requestToolChange(tool.T)">T{{ tool.T }}</MachineBtn>
-              <!-- The loaded tool: a mark, not only the row's tint (K07) -->
-              <span v-if="tool.T === currentTool" class="inSpindle" role="img" aria-label="In spindle" title="In spindle"><CircleDot :size="12" /></span>
+              <!-- the button and the loaded tool's mark centred on each other:
+                   inline, `vertical-align: middle` set the mark 1.5 px below
+                   the button's middle (operator 2026-11-07) -->
+              <span class="row-tight">
+                <MachineBtn type="toolLoad" @click.stop="requestToolChange(tool.T)">T{{ tool.T }}</MachineBtn>
+                <!-- The loaded tool: a mark, not only the row's tint (K07) -->
+                <span v-if="tool.T === currentTool" class="inSpindle" role="img" aria-label="In spindle" title="In spindle"><CircleDot :size="12" /></span>
+              </span>
             </td>
             <td class="colDesc" :title="toolPreviewNotice(tool, unitsPerMm) || tool.description">{{ tool.description || tool.remark || "-" }}
               <span v-if="toolPreviewNotice(tool, unitsPerMm)" class="noteWarn"><br />{{ tool.source_format === "freecad" ? "Imported geometry" : "Approximate preview" }}</span>
@@ -1152,8 +1157,6 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showI
 
 .inSpindle {
   display: inline-flex;
-  vertical-align: middle;
-  margin-inline-start: var(--gap-tight);
   color: var(--ok-text);
 }
 

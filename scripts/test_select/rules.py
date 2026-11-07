@@ -140,7 +140,7 @@ VIEWER = ("bake-hold.viewer", "collisions.viewer", "fatpaths.viewer", "findings.
 PROGRAM = ("editor-guards", "run-hold", "safety-during-edit", "input-session",
            "keyboard-guards", "feedback-channels", "disarmed", "tabs", "select-writes",
            "sim-panel.viewer", "strip-actions")
-TOOLS = ("example-tool-library", "freecad-import", "tool-geometry", "tool-holder",
+TOOLS = ("example-tool-library", "freecad-import", "tool-geometry", "tool-holder", "tool-marker",
          "tool-import", "tool-table-read")
 TOOLSETTER = ("toolsetter-setup", "g30", "forms", "toolsetter.viewer")
 PROBING = ("probe-click", "compensation", "forms", "disarmed", "tabs")

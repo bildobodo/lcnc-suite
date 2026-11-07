@@ -11095,3 +11095,16 @@ contrast sweep reads each icon's colour like a text (the "?" is no text node
 any more). The drawn position against the text keeps the engine's own
 rounding (up to one device pixel), which no CSS removes.
 
+## 2026-11-07 — The loaded tool's mark centred on its T button (operator, at the look)
+
+"The green dot does not sit centred in the row — beside the T… button the
+heights do not match." Measured: the mark (`.inSpindle`, inline with
+`vertical-align: middle` beside the T button) sat 1.5 px below the button's
+middle in layout, 1.5–2.0 px drawn — the button sits on the line's baseline,
+the mark on the x-height. Now the two are one `.row-tight` (its gap replaces
+the mark's margin): 0 px in layout, ±0.01 px drawn, desktop DPR 1 and 2 and
+touch, in a one-line and a wrapped row. `tool-marker.spec` (TOOLS) holds it
+(red at 5bdfdde3: 1.5 px). No other inline mark is aligned that way (the
+toggles sit in flex rows; `.dataTable` cells keep `vertical-align: middle`
+for the cell).
+
