@@ -120,6 +120,30 @@ function scan(args: { rootSel: string; floor: number }): { hits: Hit[]; checked:
   const rootCs = getComputedStyle(document.documentElement);
   const marks = ["--mark-clash", "--mark-limit", "--mark-tool"].map(v => rgba(rootCs.getPropertyValue(v).trim()));
   const isMark = (c: RGBA) => marks.some(m => Math.abs(m[0] - c[0]) <= 1 && Math.abs(m[1] - c[1]) <= 1 && Math.abs(m[2] - c[2]) <= 1);
+  // one element drawing readable ink in its `color`: a text's parent, or a
+  // help icon — its "?" is a mask in currentColor, no text node (2026-11-07)
+  const visit = (el: Element, label: string) => {
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    // aria-hidden is no visibility: a .cornerLabel is read by every sighted
+    // operator and hidden from assistive technology only because its
+    // control carries the same as a description (Codex R222 BG-36)
+    const hiddenFromAt = el.closest("[aria-hidden='true']");
+    const shown = hiddenFromAt?.classList.contains("cornerLabel") && !hiddenFromAt.parentElement?.closest("[aria-hidden='true']");
+    if (!r.width || !r.height || cs.visibility === "hidden" || (hiddenFromAt && !shown) || inactive(el)) return;
+    const fg0 = rgba(cs.color);
+    if (isMark(fg0)) return;
+    checked++;
+    const a = fg0[3] * opacityChain(el);
+    let worst: { q: number; fg: RGB; bg: RGB } | null = null;
+    for (const bg of backdrops(el)) {
+      const fg = over([fg0[0], fg0[1], fg0[2], a], bg);
+      const q = ratio(fg, bg);
+      if (!worst || q < worst.q) worst = { q, fg, bg };
+    }
+    if (worst && worst.q < args.floor) hits.push({ where: path(el), text: label, ratio: Math.round(worst.q * 100) / 100,
+      fg: `rgb(${worst.fg.map(Math.round).join(",")})`, bg: `rgb(${worst.bg.map(Math.round).join(",")})`, min: args.floor });
+  };
   for (const host of document.querySelectorAll(args.rootSel)) {
     const walker = document.createTreeWalker(host, NodeFilter.SHOW_TEXT);
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {
@@ -127,26 +151,12 @@ function scan(args: { rootSel: string; floor: number }): { hits: Hit[]; checked:
       const el = n.parentElement;
       if (!el || seen.has(el)) continue;
       seen.add(el);
-      const r = el.getBoundingClientRect();
-      const cs = getComputedStyle(el);
-      // aria-hidden is no visibility: a .cornerLabel is read by every sighted
-      // operator and hidden from assistive technology only because its
-      // control carries the same as a description (Codex R222 BG-36)
-      const hiddenFromAt = el.closest("[aria-hidden='true']");
-      const shown = hiddenFromAt?.classList.contains("cornerLabel") && !hiddenFromAt.parentElement?.closest("[aria-hidden='true']");
-      if (!r.width || !r.height || cs.visibility === "hidden" || (hiddenFromAt && !shown) || inactive(el)) continue;
-      const fg0 = rgba(cs.color);
-      if (isMark(fg0)) continue;
-      checked++;
-      const a = fg0[3] * opacityChain(el);
-      let worst: { q: number; fg: RGB; bg: RGB } | null = null;
-      for (const bg of backdrops(el)) {
-        const fg = over([fg0[0], fg0[1], fg0[2], a], bg);
-        const q = ratio(fg, bg);
-        if (!worst || q < worst.q) worst = { q, fg, bg };
-      }
-      if (worst && worst.q < args.floor) hits.push({ where: path(el), text: n.textContent.trim().slice(0, 30), ratio: Math.round(worst.q * 100) / 100,
-        fg: `rgb(${worst.fg.map(Math.round).join(",")})`, bg: `rgb(${worst.bg.map(Math.round).join(",")})`, min: args.floor });
+      visit(el, n.textContent.trim().slice(0, 30));
+    }
+    for (const icon of host.querySelectorAll(".helpIcon")) {
+      if (seen.has(icon)) continue;
+      seen.add(icon);
+      visit(icon, "? (help)");
     }
   }
   return { hits, checked };

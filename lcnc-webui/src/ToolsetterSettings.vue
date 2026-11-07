@@ -314,7 +314,7 @@ watch(settingsVersion, () => { void pushWhenConfirmed(); });
   <div class="formGrid tsPanel">
     <div v-if="setupNote" class="statusNote warn wide" role="alert"><span>{{ setupNote }}</span></div>
     <div v-if="machineState.kind !== 'not_set_up'" class="statusNote wide tsMachine"
-         :class="machineState.kind === 'confirmed' ? 'ok' : 'warn'"><span><span role="status">{{ machineText }}</span><HelpIcon
+         :class="machineState.kind === 'confirmed' ? 'ok' : 'warn'"><span class="textWithHelp"><span role="status">{{ machineText }}</span><HelpIcon
            label="LinuxCNC parameters">{{ TOOLSETTER_PARAMS_HELP }}</HelpIcon></span></div>
     <div v-if="pushError" class="statusNote error wide" role="alert"><span>{{ pushError }}</span></div>
     <!-- Toolsetter Position -->

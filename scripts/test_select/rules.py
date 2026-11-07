@@ -133,7 +133,7 @@ FULL_ONLY = {
 
 # ── Spec groups ──────────────────────────────────────────────────────────
 # Every rendered surface: what any component change can move or recolour.
-UI_SWEEP = ("layout", "layout-audit", "contrast", "visual", "dialogs")
+UI_SWEEP = ("layout", "layout-audit", "contrast", "visual", "dialogs", "help-icons")
 VIEWER = ("bake-hold.viewer", "collisions.viewer", "fatpaths.viewer", "findings.viewer",
           "rapids.viewer", "reach.viewer", "scenes.viewer", "sim-panel.viewer",
           "toolsetter.viewer", "viewcube.viewer", "viewer", "frames")

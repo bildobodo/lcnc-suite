@@ -11049,3 +11049,49 @@ start writes them" · "LinuxCNC parameters not known yet"; the setup note
 projection (`toolsetterMachineState`) is unchanged; `role="status"` moved to
 the text so the help is not part of what is announced.
 
+## 2026-11-07 — Every "?" looks the same: the glyph a mask over its box, the circle on its text's capitals (operator, at the look)
+
+The operator saw the new toolsetter line's "?" sit differently from Touch X's
+and the glyph "sometimes slightly left in its circle" and asked whether that is
+held anywhere. It was not: the help-look sweep (`feedback-channels.spec`)
+holds colour, gap and a lift of ±1.5 px against the line box — not the glyph
+in its circle, not the capitals.
+
+**Measured** (all 127 icons of the sweep, Chromium and Firefox, DPR 1 and 2;
+pixels: drawn / glyph transparent / icon hidden):
+- the text glyph's offset in its circle spread 0.5–1.5 px with the icon's
+  fractional position (Chromium DPR 1: 0 or −1 px horizontally; DPR 2 always
+  left by 0.2–0.7): the box snaps to device pixels, the glyph apart from it.
+  The font is not the cause (Inter's "?" bearings differ by 0.09 px at 10 px).
+- inline icons sat 1.0–1.1 px (Chromium) / 1.7–2.2 px (Firefox) below their
+  text's capitals: `vertical-align: middle` centres on the x-height; a flex
+  row beside a label centres on the line (= the capitals for Inter).
+
+**Changed:**
+- The "?" is Inter Bold's outline (wght 700) as a MASK over the icon's whole
+  border box (`::after`, `--help-glyph`: one viewBox per density, so the glyph
+  keeps the text glyph's size — 10 px in 13, 11 px in 16 on touch). A child
+  SVG still snapped apart (1 px vertically), a centred smaller tile still at
+  exact half-pixel positions (8 of 127); the box-sized tile lands with the
+  circle: spread 0.02–0.05 px (Chromium 1/2, Firefox 1), 0.25 px in Firefox
+  DPR 2 (Firefox draws the mask at the fractional position and snaps the
+  border — half a device pixel, the floor without drawing the circle too).
+  Forced colours: `ButtonText` (a masked background would be painted Canvas).
+- An inline "?" centres on its line's capitals: `display: inline-block`
+  (baseline = its bottom in every engine; an inline-flex's synthesized
+  baseline differed in Firefox) and `vertical-align: calc(0.5cap − size/2)`,
+  the icon inheriting its text's font.
+- The toolsetter line follows the existing rule (frontend-modules: a text
+  ending in a "?" is a `.textWithHelp` flex row) — inline it could also break
+  onto a line of its own.
+
+**Held:** `help-icons.spec` (UI_SWEEP), DPR 1 and 2: the glyph's centroid
+offset spreads ≤ 0.1 px over all icons; every circle within 0.5 px of its
+text's capitals' middle (the engine's own baseline and cap height: an empty
+`1cap` inline-block after the last character; flex rows measured −0.02…+0.36).
+Red against the old CSS: glyph spreads 1.02 / 0.53 (x), 1.53 / 0.89 (y), the
+table head's "?" 1.0 px low (and the inline toolsetter line 1.08). The
+contrast sweep reads each icon's colour like a text (the "?" is no text node
+any more). The drawn position against the text keeps the engine's own
+rounding (up to one device pixel), which no CSS removes.
+

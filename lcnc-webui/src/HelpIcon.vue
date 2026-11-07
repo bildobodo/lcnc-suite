@@ -121,7 +121,7 @@ onBeforeUnmount(() => {
     @pointerdown="onPointerDown"
     @click.prevent.stop="toggle"
     @keydown="onKeydown"
-  >?</span>
+  ></span>
   <div ref="pop" :id="id" popover="auto" class="helpPopover">
     <slot />
   </div>
