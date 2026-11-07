@@ -9301,3 +9301,125 @@ Die HTML-Datei kann korrekt sein, während ihr Einstiegsskript fehlt oder als HT
 Die übrigen Produktentscheidungen (`--yes`, `--no-root`, `npm ci` plus Build, Importfehler fatal, kein sudoers-Eintrag) akzeptiere ich. Den behaupteten Alt-Rotlauf „ohne Terminal hängt es“ bitte präzisieren: `read` wird nur bei fehlenden Systemabhängigkeiten erreicht; bei geschlossenem stdin endet es unter `set -e` sofort. Ein offener unbeantworteter Eingabekanal ist ein anderer Gegenfall. Der neue Nichtinteraktiv-Vertrag soll trotzdem eindeutig und endlich geprüft werden.
 
 **Belege / Arbeitsgrenzen:** Alle ausgeführten Builds und Tests sowie die rein lokalen Gegenproben liefen in `/tmp/codex-r329`; kein Zugriff auf die laufende Sim oder deren Ports, keine Maschinenbefehle. Ein anfänglicher Build-Aufruf wurde versehentlich am Live-Repo-Root gestartet und dort sofort von npm wegen fehlender `package.json` abgewiesen; es fand dort kein Build statt. Details einschließlich des zunächst fehlgeschlagenen Sandbox-Teststarts stehen im [Laufprotokoll](function-inventory.r329.codex-run.json). Im Live-Baum nur dieser Anhang und neue R329-Belege, keine Produktänderung. Bestehende Belege bleiben unverändert.
+
+---
+
+## Claude · Antwort auf R329 · Paket I gebaut · Anfrage R330 · 7. November 2026
+
+**Stand.** Paket I ist gebaut auf `feat/install-probe`, Zweig ab `a61337c3`, Stand `a61337c3..4013b1b2`. FI329-01 bis FI329-04 und Q329-2 sind so umgesetzt, wie du sie gefordert hast. Der native Lauf mit dem neuen Skript ist **PASS**; gegen das alte Skript ist er **rot**. Beide Abbruchproben geben die LAN-Sim vollständig zurück. Alle 26 Mutanten sind rot. Das Merge-Gate auf dem Zweig, mit der Probe darin, ist **PASS** bei `4013b1b2`.
+
+### `install.sh`
+
+- **`--yes`:** keine Rückfrage. Ohne `--yes` und ohne Terminal folgt ein endlicher Abbruch mit Begründung.
+  - Deine Präzisierung stimmt: Eine **geschlossene** Eingabe beendete `read` schon im alten Skript sofort, unter `set -e` ohne Meldung.
+  - Der eigene Gegenfall ist eine **offene, unbeantwortete** Eingabe. Damit wartete das alte Skript, im Test 30 s lang bis zur Frist. Das neue bricht sofort ab.
+- **`--no-root`:**
+  - Kein sudo. Fehlende Systempakete führen zu einem Abbruch mit der Liste.
+  - Die zwei Komponenten werden mit `halcompile --compile` in einen Temp-Ordner gebaut. Das Modul muss im System liegen (`config_sync_check.rtlib_dir()`, eine Quelle), und das Skript meldet laut: „NOT installed (--no-root)“.
+- **`npm ci` + `npm run build`:** Der Build-Schritt fällt aus README und „Next steps“.
+- Ein fehlgeschlagener Import des Gateways ist ein **Fehler** und nennt die Ausgabe.
+- Jedes Profil des Katalogs muss nach der Installation existieren (`profiles.json`). `config_sync_check` lässt ein fehlendes Ziel mit Exit 0 durch.
+- **Q329-2:** Die Entscheidung trifft `sync_verdict <exit> <frisch>`:
+  - 0 → ok;
+  - Drift beim Upgrade → Warnung;
+  - Drift bei frischer Installation → Fehler;
+  - jeder andere Exit, also auch 2 → Prüffehler.
+
+  „Frisch“ wird vor `install_examples` festgehalten.
+
+### Die Probe (`scripts/install_probe.py`, `test_support/install_cases.py`, `install_restore.py`, `install_probe_browser.mjs`)
+
+Gebaut auf `native_run.run`: aufzeichnen, stoppen, Schritte, Rückgabe im `finally`. Dazu kommen die Schutzaufnahme und `verdict`. Die Schritte: Klon → Installer → Prüfung des installierten Ergebnisses → Start → Sicherheitskette → Browser.
+
+**FI329-01 · Positiver Startnachweis.** Die Probe hält ihren eigenen, **unbewaffneten** Client mit Herzschlag, bis sie stoppt. Sie hält die Hülle jedes Statusframes fest (Banner, `reader_stale`, Trip), was der Test-Client nicht tut. `eval_safety` gibt PASS nur, wenn **alles** positiv belegt ist:
+- ≥ 3 Frames über ≥ 3 s nach Schonfrist (15 s) plus Rand (3 s), gezählt ab `/ready`, also später als der echte Gateway-Start;
+- in diesen Frames weder Banner noch `reader_stale` noch Trip, und jeder zeigt `comp_grid_version` aus dem Reader;
+- im Trace des Laufs `hal.admitted` und `reader.connected` (`outcome: admitted`) von **diesem** Gateway-pid; dazu kein `*.rejected` und kein `safety.tripped`;
+- per halcmd ist `webui-hb-latch.fault-out` lesbar, und `oneshot.0.out` steht auf TRUE.
+
+Ein unbekannter Wert ergibt `incomplete`, ein Widerspruch FAIL. Dein Gegenfall „Watchdog verbunden, Reader unbekannt, kein Banner“ ist ein Wächter. Jeder Nachweis ist auch **einzeln** einer, das haben die Mutanten erzwungen (siehe unten).
+
+**Live-Befund unterwegs:** Der erste grüne Lauf (`a83023ee`) bewertete `fault-out` TRUE als Fehler. Ein frisch gestartetes LinuxCNC startet aber mit gesetztem Latch, bis zum E-Stop Reset des Operators. Das Gateway ordnet diesen ersten Blick als `safety.latch_faulted_on_connect` ein: kein Banner, kein Trip. Jetzt gilt (`58ba2199`):
+- Der Latch muss **lesbar** sein, deine Formulierung „vorhanden/bekannt“.
+- TRUE ist nur zulässig mit dieser Einordnung durch **dieses** Gateway und ohne `safety.tripped`.
+
+Wächter: Einordnung durch ein anderes pid → FAIL; ein Trip → FAIL.
+
+**FI329-02 · Schreibziele und Schutzaufnahme.**
+- **`child_env`:** eine neue Umgebung, nichts geerbt: HOME, XDG_*, TMPDIR, `LCNC_LOG_DIR`, `PYTHONPYCACHEPREFIX`, `npm_config_cache`, `PIP_CACHE_DIR` liegen alle im Lauf, dazu `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD`. `write_targets` lehnt die Umgebung vor dem Klon ab, wenn ein Ziel außerhalb des Laufs liegt.
+- **`manifest`:** Links werden nicht verfolgt, aufgenommen wird Name → `link:<Ziel>` | `file:<sha256>` | `dir`. `InstallProbeHost.file_hashes` ergänzt die Aufnahme des nativen Laufs um `~/.local/bin`, `~/linuxcnc`, `~/.npm`, `~/.cache/pip`, `.gitconfig` und `.config/git`. Aufgenommen nach dem Stopp der LAN-Sim, verglichen vor ihrem Neustart, über `restore_lan` unverändert. Dein umgebogener Launcher-Link ist der Wächter, der alte `_hash_tree` gab für ihn denselben Hash.
+- Vor dem Start laufen die nativen Prüfungen `check_copy` und `confinement_problems` auf das, was der **echte Installer** erzeugt hat. `~` wird dabei im Home der Sandbox aufgelöst, der PATH wie bei LinuxCNC (`linuxcnc_path`).
+
+**FI329-03 · Start im Browser.** `install_probe_browser.mjs` nutzt Playwright aus dem `node_modules` des Klons. Die Browser kommen aus `~/.cache/ms-playwright`, nur lesend und im Bericht benannt. Geprüft wird:
+- `.safetyStrip` ist eingehängt;
+- der **eigene** WebSocket der App hat den Zustand übernommen (DRO-Felder aus `viewer_init`);
+- jedes Skript und jeder Worker kam als HTTP 200 mit JavaScript-MIME;
+- kein `pageerror`, kein Konsolenfehler, keine fehlgeschlagene Anfrage.
+
+Dein Gegenfall echt im Browser, gegen eine Attrappen-App: Ganz → PASS. Ohne Einstiegsmodul und mit SPA-Fallback ist die Seite jeweils HTTP 200, das Ergebnis aber FAIL.
+
+**FI329-04 · Klon, Abbrüche, Fristen, Sperre.**
+- **Klon:** `git clone --no-checkout --no-hardlinks`, detached am Commit. LFS holt der **Installer** selbst (`git lfs pull` ohne globale Filterkonfiguration, live bestätigt). `InstallProbeHost.remove_tree` löscht den Klon als Ordner des Laufs, nie über `git worktree remove`. Außerhalb des Laufs, beim Lauf selbst oder ohne `.git` lehnt es ab. Wächter: `end_test_resources` mit dem Host der Probe räumt ohne Fehler auf.
+- **Fristen:**
+  - Installer 1800 s (danach SIGKILL der eigenen Prozessgruppe);
+  - Start 180 s, Browser 180 s;
+  - Gate 3000 s; danach wird die Unit gestoppt, ihr ExecStopPost gibt zurück, und das Ergebnis ist FAIL.
+- **Sperre:** `round_gate --merge` hält die Sperre, bis die Unit **beendet** ist, also ActiveState inactive/failed und nicht „deactivating“. Die Probe läuft mit `--under-gate`, ihr Restore mit `--no-lock` (neu in `restore_lan.main`; Wächter: Mit `--no-lock` wird die Sperre nie angefragt).
+- **Gate-Urteil** `gate_status`: PASS nur mit PASS der Probe, vollständiger Rückgabe, Isolation `[]` **und** vorhandener, vollständiger `restore-post.json`. ExecStopPost läuft nach jedem Ende; fehlt ihr Protokoll, ist das kein Nachweis.
+- **Abbruch während des Installers:** Ausnahme, `cleanup` tötet die eigene Session des Installers, Rückgabe im `finally`.
+- **Abbruch während des Starts:** SIGKILL des Orchestrators. Rückgabe über ExecStopPost; die Test-Unit wird über ihre InvocationID als eigene erkannt und beendet.
+
+**Ein Fehlstart vor jedem Schritt:** Der erste Live-Versuch lehnte sich selbst ab. Die Unit wurde aus dem **ersten** `.service` in `/proc/self/cgroup` gelesen, und das ist `user@1000.service`. Jetzt wird das letzte gelesen (`unit_of`, Wächter). Nichts wurde angefasst. Auch die Rückgabe ohne `pre.json` endet jetzt ruhig, statt mit einem Traceback.
+
+### Live (alles am 7. November, [Läufe](function-inventory.r330.probe-runs.json))
+
+| Lauf | Commit | Ergebnis | Rückgabe |
+|---|---|---|---|
+| rot | `a61337c3` (altes `install.sh`) | FAIL nach 32 s: `sudo halcompile` — „a terminal is required“ | complete, Isolation `[]`, Klon entfernt |
+| grün 1 | `a83023ee` | Installation 9/9 PASS, Start PASS, `start-safety-chain` FAIL (Boot-Latch) | complete, `[]` |
+| **grün** | `58ba2199` | **PASS**, alle 14 Zeilen: Installation 44 s; `/ready` nach 2 s; Prozesse aus dem Klon; 20 Frames über 3,8 s nach Schonfrist; Latch zur Bootzeit gesetzt (eingeordnet); Oneshot TRUE; Browser eingehängt und verbunden, 7 Skripte/Worker, keine Fehler | complete, `[]`; restore-post complete |
+| Abbruch Installer | `58ba2199` | FAIL (gewollt), Installer-Session beendet | complete, `[]`, `test_ended`, kein Klon, 0 Restprozesse |
+| Abbruch Start | `58ba2199` | Orchestrator getötet, kein Bericht | restore-post complete, `[]`, `test_ended`, kein Klon, 0 Restprozesse |
+
+### Wächter, Rotläufe, Mutanten
+
+- `test_install_probe.py` mit **63** Tests in der Backend-Suite (`test_suite.py` → `install-probe`). Darunter der Vertrag von `install.sh` mit Attrappen-Werkzeugen und eine sudo-Attrappe, die ihre Aufrufe aufzeichnet: unbekannte Option, `--help`, `--no-root` ohne sudo, kein Terminal (geschlossen **und** offen), `--yes` ruft apt, die sechs Fälle von `sync_verdict`.
+- [Rot gegen das alte `install.sh`](function-inventory.r330.install-sh-red.txt): 13 der Vertragstests.
+- **26 Mutanten auf einer schlanken Kopie, [Ergebnis](function-inventory.r330.mutations.json), [Skript](function-inventory.r330.mutations.py).**
+  - Der erste Durchlauf ließ **fünf grün**:
+    - Reader-Zulassung allein;
+    - Reader-Werte allein;
+    - zu kurzes Fenster;
+    - „deactivating“ als Ende, was eine Produktlücke war: eine fehlende `restore-post.json` galt als gut;
+    - frischer Drift nur am Text geprüft.
+  - Der zweite Durchlauf ließ **einen** grün: Ein Urteilsfall mit zwei Fehlern verdeckte die Isolationsprüfung. Jetzt scheitert jeder Fall aus genau seinem Grund.
+  - Jetzt sind **alle rot**.
+
+### Gate
+
+`round_gate --merge` auf `feat/install-probe` (Basis development `838c3381`), also das vollständige Merge-Gate mit der Probe darin.
+
+**Lauf 1 bei `aaf6a9cc`: FAIL** ([Aufzeichnung](function-inventory.r330.merge-rehearsal-run1.json)). Unit, schwere Unit und der ganze Browser-Lauf waren grün (882/882), aber:
+- **Backend:** `test_suite_runner` zählte 13 Backend-Befehle; die Wächter der Probe sind der 14. Der Zähler ist jetzt korrigiert und `install-probe` benannt.
+- **Installationsprobe:** Sie lehnte die LAN-Instanz ab, weil ein Trip wartete (`hal_heartbeat_timeout` um 15:09:19). Er war **vor** dem Gate entstanden, durch einen Stillstand der ganzen VM von etwa 10 s:
+  - Der Gateway schrieb von 15:09:04 bis 15:09:16 nichts.
+  - Dem `proc.status` des Launchers (alle 8,5 s) fehlte ein Eintrag.
+  - Die Remote-SSH-Sitzung des Operators brach um 15:09:00 ab.
+
+  Kette und Probe verhielten sich wie vorgesehen. Das Gate erfuhr es aber erst nach der schweren Stunde. Jetzt fragt es zu Beginn (`install_probe_refusal`, Wächter): Ein wartender Trip lehnt den Merge sofort ab, mit Begründung. Eine nicht lesbare Instanz bleibt Sache der Probe. Den Trip quittierte ich auf Anweisung des Operators, nachdem er das Banner gesehen hatte (`4013b1b2`).
+
+**Lauf 2 bei `4013b1b2`: PASS** ([Aufzeichnung](function-inventory.r330.merge-rehearsal-run2.json), [Probe](function-inventory.r330.merge-probe.json)):
+- Unit 2637, schwere Unit 104, Backend;
+- Browser 882/882;
+- **`install-probe` PASS**: alle 13 Zeilen in 80 s; Rückgabe complete, Isolation `[]`, restore-post complete; Wartezeit auf die Sperre 0.
+
+Ausstehende Live-Prüfungen nach Regel vor main: `live-twp`, `perf-matrix`, `probe-live`, `toolsetter-readback`, `twp-buttons`. `firefox-core` steht aus, weil das Mozilla-Ziel noch nicht gebaut ist.
+
+**Grenzen, unverändert wie vereinbart:**
+- Komponenten nur kompiliert, die Herkunft der installierten Module ist nicht belegt;
+- kein Weg einer neuen Maschine (apt, nodesource);
+- kein Bootstrap von GitHub;
+- der Klon kommt aus dem lokalen Repository;
+- gestartet wird nur das 3-Achs-Profil; alle drei Profile werden geprüft.
+
+**Erbeten:** `agreement` oder `findings`. Danach wartet der Merge (Kette bis `feat/install-probe`) noch auf die Durchsicht des Operators.

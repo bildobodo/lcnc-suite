@@ -1,0 +1,1017 @@
+{
+ "note": "R330 package I: every live run of the install probe on 2026-11-07, in order. red = a61337c3's install.sh (the old script) cloned; green-latch = a83023ee (the boot-set latch judged a fault, fixed in 58ba2199); green = 58ba2199; abort-installer / abort-start = the two abort probes at 58ba2199 (start: the orchestrator SIGKILLed, the unit's ExecStopPost restored). The first attempt (14:51) refused itself before any step (unit_of); its folder never existed.",
+ "runs": [
+  {
+   "run": "install-abort-installer-20261107T145922",
+   "report.json": {
+    "started": 1794059962.5852432,
+    "steps": [
+     "clone",
+     "install"
+    ],
+    "rows": [],
+    "env": {
+     "HOME": "/home/cnc/claude-work/live-tier/install-abort-installer-20261107T145922/home",
+     "USER": "cnc",
+     "LOGNAME": "cnc",
+     "PATH": "/home/cnc/claude-work/live-tier/install-abort-installer-20261107T145922/home/.local/bin:/usr/local/bin:/usr/bin:/bin",
+     "LANG": "C.UTF-8",
+     "LC_ALL": "C.UTF-8",
+     "TERM": "dumb",
+     "SHELL": "/bin/bash",
+     "XDG_CACHE_HOME": "/home/cnc/claude-work/live-tier/install-abort-installer-20261107T145922/home/.cache",
+     "XDG_CONFIG_HOME": "/home/cnc/claude-work/live-tier/install-abort-installer-20261107T145922/home/.config",
+     "XDG_DATA_HOME": "/home/cnc/claude-work/live-tier/install-abort-installer-20261107T145922/home/.local/share",
+     "XDG_STATE_HOME": "/home/cnc/claude-work/live-tier/install-abort-installer-20261107T145922/home/.local/state",
+     "TMPDIR": "/home/cnc/claude-work/live-tier/install-abort-installer-20261107T145922/tmp",
+     "LCNC_LOG_DIR": "/home/cnc/claude-work/live-tier/install-abort-installer-20261107T145922/logs",
+     "PYTHONPYCACHEPREFIX": "/home/cnc/claude-work/live-tier/install-abort-installer-20261107T145922/pycache",
+     "npm_config_cache": "/home/cnc/claude-work/live-tier/install-abort-installer-20261107T145922/cache/npm",
+     "npm_config_update_notifier": "false",
+     "PIP_CACHE_DIR": "/home/cnc/claude-work/live-tier/install-abort-installer-20261107T145922/cache/pip",
+     "PIP_DISABLE_PIP_VERSION_CHECK": "1",
+     "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"
+    },
+    "commit": "58ba2199501762d1f00fe2476630cffa4c3d00e0",
+    "error": "RuntimeError: abort requested during the installer (--abort-at installer)",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/cnc/lcnc-suite-g1/scripts/native_run.py\", line 235, in run\n    rows = fn(ctx) or []\n           ~~^^^^^\n  File \"/home/cnc/lcnc-suite-g1/scripts/install_probe.py\", line 122, in step\n    raise RuntimeError(\"abort requested during the installer (--abort-at installer)\")\nRuntimeError: abort requested during the installer (--abort-at installer)\n",
+    "restore": {
+     "outcome": "complete",
+     "instance": [
+      "linuxcncsvr",
+      450703,
+      132781688
+     ],
+     "isolation": [],
+     "cleanup": []
+    },
+    "ended": 1794059976.8561382,
+    "verdict": "FAIL",
+    "abort_at": "installer"
+   },
+   "restore.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     450703,
+     132781688
+    ],
+    "isolation": [],
+    "cleanup": []
+   },
+   "restore-post.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     450703,
+     132781688
+    ],
+    "isolation": [],
+    "cleanup": [],
+    "repeat_of": "complete"
+   },
+   "state.json": {
+    "tree": "/home/cnc/claude-work/live-tier/install-abort-installer-20261107T145922/src",
+    "tree_of": "/home/cnc/lcnc-suite-g1",
+    "installer": 450465,
+    "test_ended": true,
+    "isolation": []
+   },
+   "install.log": [
+    "",
+    "\u001b[1m[1/6] Checking system dependencies\u001b[0m",
+    "  \u001b[0;32m\u2713\u001b[0m git 2.47.3",
+    "  \u001b[0;32m\u2713\u001b[0m git-lfs 3.6.1",
+    "  \u001b[0;32m\u2713\u001b[0m python3 3.13",
+    "  \u001b[0;32m\u2713\u001b[0m python3-venv",
+    "  \u001b[0;32m\u2713\u001b[0m node v22.23.2",
+    "  \u001b[0;32m\u2713\u001b[0m npm 10.9.8",
+    "  \u001b[0;32m\u2713\u001b[0m halcompile",
+    "  \u001b[0;32m\u2713\u001b[0m linuxcnc python bindings",
+    "  \u001b[0;32m\u2713\u001b[0m scipy",
+    "",
+    "\u001b[1m[2/6] Installing missing dependencies\u001b[0m",
+    "  \u001b[0;32m\u2713\u001b[0m All system dependencies already installed",
+    "",
+    "\u001b[1m[3/6] Fetching lcnc-suite source\u001b[0m",
+    "  \u001b[0;32m\u2713\u001b[0m lcnc-suite already present at /home/cnc/claude-work/live-tier/install-abort-installer-20261107T145922/src",
+    "",
+    "\u001b[1m[4/6] Setting up project dependencies\u001b[0m",
+    "  \u001b[1;33m\u2192\u001b[0m Fetching Git LFS objects...",
+    "  \u001b[0;32m\u2713\u001b[0m LFS objects ready",
+    "  \u001b[1;33m\u2192\u001b[0m Creating Python venv (with system-site-packages for linuxcnc bindings)...",
+    "  \u001b[1;33m\u2192\u001b[0m Upgrading pip...",
+    "  \u001b[1;33m\u2192\u001b[0m Installing Python dependencies..."
+   ]
+  },
+  {
+   "run": "install-abort-start-20261107T145942",
+   "restore.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     452245,
+     132788780
+    ],
+    "isolation": [],
+    "cleanup": []
+   },
+   "restore-post.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     452245,
+     132788780
+    ],
+    "isolation": [],
+    "cleanup": []
+   },
+   "state.json": {
+    "tree": "/home/cnc/claude-work/live-tier/install-abort-start-20261107T145942/src",
+    "tree_of": "/home/cnc/lcnc-suite-g1",
+    "installer": 451321,
+    "test_unit_intent": "install-probe-sim-install-abort-start-20261107T145942",
+    "test_unit_wd": "/home/cnc/claude-work/live-tier/install-abort-start-20261107T145942/home/linuxcnc/configs/lcnc_suite_sim",
+    "test_ini": "/home/cnc/claude-work/live-tier/install-abort-start-20261107T145942/home/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_3axis_xyz.ini",
+    "test_unit": "install-probe-sim-install-abort-start-20261107T145942",
+    "test_unit_invocation": "5494221e0b4f49d79d8fb1d6f236407b",
+    "test_instance": [
+     451835,
+     132787599
+    ],
+    "test_ended": true,
+    "isolation": []
+   },
+   "install.log": [
+    "dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB",
+    "dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB",
+    "dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB",
+    "dist/static/ToolPreview-h0nbom5n.css                 0.09 kB \u2502 gzip:   0.10 kB",
+    "dist/static/ThreeViewer-D0KGS3DD.css                 8.14 kB \u2502 gzip:   2.08 kB",
+    "dist/static/index-DyqFoDq5.css                     100.00 kB \u2502 gzip:  18.57 kB",
+    "dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB \u2502 gzip:   0.51 kB",
+    "dist/static/ToolPreview-BI1wlOk7.js                  2.16 kB \u2502 gzip:   1.20 kB",
+    "dist/static/toolGeometry-DhP3iiav.js                 9.05 kB \u2502 gzip:   3.35 kB",
+    "dist/static/msgpack-BkQaaVuN.js                     13.97 kB \u2502 gzip:   4.25 kB",
+    "dist/static/index-BE60FhhY.js                       28.84 kB \u2502 gzip:   9.54 kB",
+    "dist/static/index-CX_61fY8.js                       48.96 kB \u2502 gzip:  16.39 kB",
+    "dist/static/index-tky6Dhx3.js                       50.88 kB \u2502 gzip:  17.70 kB",
+    "dist/static/index-o9DEOgyx.js                      200.76 kB \u2502 gzip:  65.35 kB",
+    "dist/static/ThreeViewer-Ch5wqGWS.js                279.20 kB \u2502 gzip: 105.16 kB",
+    "dist/static/index-BNvIRSix.js                      675.89 kB \u2502 gzip: 217.84 kB",
+    "dist/static/three-D_Nc9AAY.js                      881.98 kB \u2502 gzip: 242.57 kB",
+    "",
+    "(!) Some chunks are larger than 500 kB after minification. Consider:",
+    "- Using dynamic import() to code-split the application",
+    "- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks",
+    "- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.",
+    "\u2713 built in 5.01s",
+    "  \u001b[0;32m\u2713\u001b[0m Frontend built (lcnc-webui/dist)",
+    "  \u001b[1;33m\u2192\u001b[0m Installing symlinks to ~/.local/bin...",
+    "  \u001b[0;32m\u2713\u001b[0m Symlinks installed (lcnc-suite, hal_watchdog.py, hal_reader.py, compensation.py)",
+    "",
+    "\u001b[1m[5/6] Installing sample sim config\u001b[0m",
+    "Three example profiles installed: /home/cnc/claude-work/live-tier/install-abort-start-20261107T145942/home/linuxcnc/configs/lcnc_suite_sim",
+    "  \u001b[0;32m\u2713\u001b[0m Sim profiles installed",
+    "  \u001b[0;32m\u2713\u001b[0m the 6-axis TWP kinematics component compiles",
+    "  \u001b[1;33m!\u001b[0m the 6-axis TWP kinematics component NOT installed (--no-root): the system's /usr/lib/linuxcnc/modules/xyzacb_trsrn.so stays \u2014 to install this one: sudo halcompile --install /home/cnc/claude-work/live-tier/install-abort-start-20261107T145942/src/examples/sim_config/twp/xyzacb_trsrn.comp",
+    "  \u001b[0;32m\u2713\u001b[0m the simulated tool setter component compiles",
+    "  \u001b[1;33m!\u001b[0m the simulated tool setter component NOT installed (--no-root): the system's /usr/lib/linuxcnc/modules/sim_toolsetter.so stays \u2014 to install this one: sudo halcompile --install /home/cnc/claude-work/live-tier/install-abort-start-20261107T145942/src/examples/sim_config/sim_toolsetter/sim_toolsetter.comp",
+    "config sync: deployed config matches the repo templates (per-install settings lines and runtime artifacts excluded)",
+    "  \u001b[0;32m\u2713\u001b[0m Deployed sim config matches the repo templates",
+    "",
+    "\u001b[1m[6/6] Installation complete\u001b[0m",
+    "",
+    "  \u001b[0;32m\u001b[1mlcnc-suite installed successfully!\u001b[0m",
+    "",
+    "  \u001b[1mLocation:\u001b[0m    /home/cnc/claude-work/live-tier/install-abort-start-20261107T145942/src",
+    "  \u001b[1mSim config:\u001b[0m  /home/cnc/claude-work/live-tier/install-abort-start-20261107T145942/home/linuxcnc/configs/lcnc_suite_sim",
+    "",
+    "  \u001b[1mNext steps:\u001b[0m",
+    "",
+    "    1. Try the sim:",
+    "       linuxcnc /home/cnc/claude-work/live-tier/install-abort-start-20261107T145942/home/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_3axis_xyz.ini",
+    "       # Or select lcnc_suite_sim_5axis_xyzac.ini / lcnc_suite_sim_6axis_twp_xyzabc.ini",
+    "",
+    "    2. Adjust the sample config for your real machine:",
+    "       - Copy /home/cnc/claude-work/live-tier/install-abort-start-20261107T145942/home/linuxcnc/configs/lcnc_suite_sim/ to a new dir under ~/linuxcnc/configs/",
+    "       - Edit lcnc_suite_sim_3axis_xyz.ini (axis limits, kinematics, HAL files)",
+    "       - Keep the [DISPLAY] WEBUI_* lines and the lcnc_webui.hal include",
+    "       - hallib/ links to the repo (shared suite HAL); for custom HAL, first",
+    "         replace the directory link in your machine copy with its own files:",
+    "         cp -aL hallib hallib.local && rm hallib && mv hallib.local hallib",
+    "",
+    "  \u001b[1mSee README.md for full configuration details.\u001b[0m",
+    ""
+   ]
+  },
+  {
+   "run": "install-green-20261107T145429",
+   "report.json": {
+    "started": 1794059669.6427586,
+    "steps": [
+     "clone",
+     "install",
+     "start",
+     "safety"
+    ],
+    "rows": [
+     {
+      "case": "install-run",
+      "status": "PASS",
+      "detail": "exit 0 after 50 s",
+      "tail": null
+     },
+     {
+      "case": "install-links",
+      "status": "PASS",
+      "detail": "the four links lead into the clone"
+     },
+     {
+      "case": "install-venv",
+      "status": "PASS",
+      "detail": "the venv imports linuxcnc, fastapi, uvicorn; numpy is the system's"
+     },
+     {
+      "case": "install-build",
+      "status": "PASS",
+      "detail": "lcnc-webui/dist/index.html built"
+     },
+     {
+      "case": "install-profiles",
+      "status": "PASS",
+      "detail": "3 profiles installed: lcnc_suite_sim_3axis_xyz.ini, lcnc_suite_sim_5axis_xyzac.ini, lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     },
+     {
+      "case": "install-config-sync",
+      "status": "PASS",
+      "detail": "exit 0: config sync: deployed config matches the repo templates (per-install settings lines and runtime artifacts excluded)"
+     },
+     {
+      "case": "install-tracked-files",
+      "status": "PASS",
+      "detail": "no tracked file changed"
+     },
+     {
+      "case": "install-target",
+      "status": "PASS",
+      "detail": "the installed profile is the shipped simulator; every program its HAL starts by name resolves into the clone"
+     },
+     {
+      "case": "install-confinement",
+      "status": "PASS",
+      "detail": "every mutable path of the profile lies in the run"
+     },
+     {
+      "case": "start-ready",
+      "status": "PASS",
+      "detail": "/ready after 2 s"
+     },
+     {
+      "case": "start-processes",
+      "status": "PASS",
+      "detail": "launcher, gateway, helpers and the tool setter's feed run the clone's code with the installed profile; logs in the run"
+     },
+     {
+      "case": "start-safety-chain",
+      "status": "FAIL",
+      "detail": "webui-hb-latch.fault-out is TRUE",
+      "missing": []
+     }
+    ],
+    "env": {
+     "HOME": "/home/cnc/claude-work/live-tier/install-green-20261107T145429/home",
+     "USER": "cnc",
+     "LOGNAME": "cnc",
+     "PATH": "/home/cnc/claude-work/live-tier/install-green-20261107T145429/home/.local/bin:/usr/local/bin:/usr/bin:/bin",
+     "LANG": "C.UTF-8",
+     "LC_ALL": "C.UTF-8",
+     "TERM": "dumb",
+     "SHELL": "/bin/bash",
+     "XDG_CACHE_HOME": "/home/cnc/claude-work/live-tier/install-green-20261107T145429/home/.cache",
+     "XDG_CONFIG_HOME": "/home/cnc/claude-work/live-tier/install-green-20261107T145429/home/.config",
+     "XDG_DATA_HOME": "/home/cnc/claude-work/live-tier/install-green-20261107T145429/home/.local/share",
+     "XDG_STATE_HOME": "/home/cnc/claude-work/live-tier/install-green-20261107T145429/home/.local/state",
+     "TMPDIR": "/home/cnc/claude-work/live-tier/install-green-20261107T145429/tmp",
+     "LCNC_LOG_DIR": "/home/cnc/claude-work/live-tier/install-green-20261107T145429/logs",
+     "PYTHONPYCACHEPREFIX": "/home/cnc/claude-work/live-tier/install-green-20261107T145429/pycache",
+     "npm_config_cache": "/home/cnc/claude-work/live-tier/install-green-20261107T145429/cache/npm",
+     "npm_config_update_notifier": "false",
+     "PIP_CACHE_DIR": "/home/cnc/claude-work/live-tier/install-green-20261107T145429/cache/pip",
+     "PIP_DISABLE_PIP_VERSION_CHECK": "1",
+     "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"
+    },
+    "commit": "a83023ee15960e2f77fcc541505798805bf1e715",
+    "install_s": 50.4,
+    "safety": {
+     "frames": 108,
+     "hal": {
+      "latch_fault": "TRUE",
+      "oneshot_out": "TRUE"
+     },
+     "events": [
+      "boot",
+      "boot.session_bind",
+      "boot.start",
+      "boot.lcnc_connect_start",
+      "session.bound",
+      "boot.lcnc_connect",
+      "hal.socket_connected",
+      "boot.hal_connect",
+      "boot.machine_config",
+      "boot.app_instantiated",
+      "boot.lifespan_ready",
+      "ws.connect.accept",
+      "ws.conn.lcnc_restored",
+      "hal.admitted",
+      "ws.connect.settings",
+      "ws.conn.gcode_ping_sent",
+      "ws.conn.ready",
+      "reader.admitted",
+      "reader.connected",
+      "safety.latch_faulted_on_connect",
+      "viewer_init.timing",
+      "ws.conn.viewer_init",
+      "toolsetter.basis",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick"
+     ]
+    },
+    "error": "StepFailed: the safety chain is not proven",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/cnc/lcnc-suite-g1/scripts/native_run.py\", line 235, in run\n    rows = fn(ctx) or []\n           ~~^^^^^\n  File \"/home/cnc/lcnc-suite-g1/scripts/install_probe.py\", line 283, in step\n    raise StepFailed(rows, \"the safety chain is not proven\")\nnative_run.StepFailed: the safety chain is not proven\n",
+    "restore": {
+     "outcome": "complete",
+     "instance": [
+      "linuxcncsvr",
+      445307,
+      132759802
+     ],
+     "isolation": [],
+     "cleanup": []
+    },
+    "ended": 1794059759.006289,
+    "verdict": "FAIL",
+    "abort_at": null
+   },
+   "restore.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     445307,
+     132759802
+    ],
+    "isolation": [],
+    "cleanup": []
+   },
+   "restore-post.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     445307,
+     132759802
+    ],
+    "isolation": [],
+    "cleanup": [],
+    "repeat_of": "complete"
+   },
+   "state.json": {
+    "tree": "/home/cnc/claude-work/live-tier/install-green-20261107T145429/src",
+    "tree_of": "/home/cnc/lcnc-suite-g1",
+    "installer": 444113,
+    "test_unit_intent": "install-probe-sim-install-green-20261107T145429",
+    "test_unit_wd": "/home/cnc/claude-work/live-tier/install-green-20261107T145429/home/linuxcnc/configs/lcnc_suite_sim",
+    "test_ini": "/home/cnc/claude-work/live-tier/install-green-20261107T145429/home/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_3axis_xyz.ini",
+    "test_unit": "install-probe-sim-install-green-20261107T145429",
+    "test_unit_invocation": "8ded25fe85d74050b119e743081d4887",
+    "test_instance": [
+     444612,
+     132756920
+    ],
+    "test_ended": true,
+    "isolation": []
+   },
+   "install.log": [
+    "dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB",
+    "dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB",
+    "dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB",
+    "dist/static/ToolPreview-h0nbom5n.css                 0.09 kB \u2502 gzip:   0.10 kB",
+    "dist/static/ThreeViewer-D0KGS3DD.css                 8.14 kB \u2502 gzip:   2.08 kB",
+    "dist/static/index-DyqFoDq5.css                     100.00 kB \u2502 gzip:  18.57 kB",
+    "dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB \u2502 gzip:   0.51 kB",
+    "dist/static/ToolPreview-BI1wlOk7.js                  2.16 kB \u2502 gzip:   1.20 kB",
+    "dist/static/toolGeometry-DhP3iiav.js                 9.05 kB \u2502 gzip:   3.35 kB",
+    "dist/static/msgpack-BkQaaVuN.js                     13.97 kB \u2502 gzip:   4.25 kB",
+    "dist/static/index-BE60FhhY.js                       28.84 kB \u2502 gzip:   9.54 kB",
+    "dist/static/index-CX_61fY8.js                       48.96 kB \u2502 gzip:  16.39 kB",
+    "dist/static/index-tky6Dhx3.js                       50.88 kB \u2502 gzip:  17.70 kB",
+    "dist/static/index-o9DEOgyx.js                      200.76 kB \u2502 gzip:  65.35 kB",
+    "dist/static/ThreeViewer-Ch5wqGWS.js                279.20 kB \u2502 gzip: 105.16 kB",
+    "dist/static/index-BNvIRSix.js                      675.89 kB \u2502 gzip: 217.84 kB",
+    "dist/static/three-D_Nc9AAY.js                      881.98 kB \u2502 gzip: 242.57 kB",
+    "",
+    "(!) Some chunks are larger than 500 kB after minification. Consider:",
+    "- Using dynamic import() to code-split the application",
+    "- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks",
+    "- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.",
+    "\u2713 built in 5.21s",
+    "  \u001b[0;32m\u2713\u001b[0m Frontend built (lcnc-webui/dist)",
+    "  \u001b[1;33m\u2192\u001b[0m Installing symlinks to ~/.local/bin...",
+    "  \u001b[0;32m\u2713\u001b[0m Symlinks installed (lcnc-suite, hal_watchdog.py, hal_reader.py, compensation.py)",
+    "",
+    "\u001b[1m[5/6] Installing sample sim config\u001b[0m",
+    "Three example profiles installed: /home/cnc/claude-work/live-tier/install-green-20261107T145429/home/linuxcnc/configs/lcnc_suite_sim",
+    "  \u001b[0;32m\u2713\u001b[0m Sim profiles installed",
+    "  \u001b[0;32m\u2713\u001b[0m the 6-axis TWP kinematics component compiles",
+    "  \u001b[1;33m!\u001b[0m the 6-axis TWP kinematics component NOT installed (--no-root): the system's /usr/lib/linuxcnc/modules/xyzacb_trsrn.so stays \u2014 to install this one: sudo halcompile --install /home/cnc/claude-work/live-tier/install-green-20261107T145429/src/examples/sim_config/twp/xyzacb_trsrn.comp",
+    "  \u001b[0;32m\u2713\u001b[0m the simulated tool setter component compiles",
+    "  \u001b[1;33m!\u001b[0m the simulated tool setter component NOT installed (--no-root): the system's /usr/lib/linuxcnc/modules/sim_toolsetter.so stays \u2014 to install this one: sudo halcompile --install /home/cnc/claude-work/live-tier/install-green-20261107T145429/src/examples/sim_config/sim_toolsetter/sim_toolsetter.comp",
+    "config sync: deployed config matches the repo templates (per-install settings lines and runtime artifacts excluded)",
+    "  \u001b[0;32m\u2713\u001b[0m Deployed sim config matches the repo templates",
+    "",
+    "\u001b[1m[6/6] Installation complete\u001b[0m",
+    "",
+    "  \u001b[0;32m\u001b[1mlcnc-suite installed successfully!\u001b[0m",
+    "",
+    "  \u001b[1mLocation:\u001b[0m    /home/cnc/claude-work/live-tier/install-green-20261107T145429/src",
+    "  \u001b[1mSim config:\u001b[0m  /home/cnc/claude-work/live-tier/install-green-20261107T145429/home/linuxcnc/configs/lcnc_suite_sim",
+    "",
+    "  \u001b[1mNext steps:\u001b[0m",
+    "",
+    "    1. Try the sim:",
+    "       linuxcnc /home/cnc/claude-work/live-tier/install-green-20261107T145429/home/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_3axis_xyz.ini",
+    "       # Or select lcnc_suite_sim_5axis_xyzac.ini / lcnc_suite_sim_6axis_twp_xyzabc.ini",
+    "",
+    "    2. Adjust the sample config for your real machine:",
+    "       - Copy /home/cnc/claude-work/live-tier/install-green-20261107T145429/home/linuxcnc/configs/lcnc_suite_sim/ to a new dir under ~/linuxcnc/configs/",
+    "       - Edit lcnc_suite_sim_3axis_xyz.ini (axis limits, kinematics, HAL files)",
+    "       - Keep the [DISPLAY] WEBUI_* lines and the lcnc_webui.hal include",
+    "       - hallib/ links to the repo (shared suite HAL); for custom HAL, first",
+    "         replace the directory link in your machine copy with its own files:",
+    "         cp -aL hallib hallib.local && rm hallib && mv hallib.local hallib",
+    "",
+    "  \u001b[1mSee README.md for full configuration details.\u001b[0m",
+    ""
+   ]
+  },
+  {
+   "run": "install-green-20261107T145728",
+   "report.json": {
+    "started": 1794059848.2850113,
+    "steps": [
+     "clone",
+     "install",
+     "start",
+     "safety",
+     "browser"
+    ],
+    "rows": [
+     {
+      "case": "install-run",
+      "status": "PASS",
+      "detail": "exit 0 after 44 s",
+      "tail": null
+     },
+     {
+      "case": "install-links",
+      "status": "PASS",
+      "detail": "the four links lead into the clone"
+     },
+     {
+      "case": "install-venv",
+      "status": "PASS",
+      "detail": "the venv imports linuxcnc, fastapi, uvicorn; numpy is the system's"
+     },
+     {
+      "case": "install-build",
+      "status": "PASS",
+      "detail": "lcnc-webui/dist/index.html built"
+     },
+     {
+      "case": "install-profiles",
+      "status": "PASS",
+      "detail": "3 profiles installed: lcnc_suite_sim_3axis_xyz.ini, lcnc_suite_sim_5axis_xyzac.ini, lcnc_suite_sim_6axis_twp_xyzabc.ini"
+     },
+     {
+      "case": "install-config-sync",
+      "status": "PASS",
+      "detail": "exit 0: config sync: deployed config matches the repo templates (per-install settings lines and runtime artifacts excluded)"
+     },
+     {
+      "case": "install-tracked-files",
+      "status": "PASS",
+      "detail": "no tracked file changed"
+     },
+     {
+      "case": "install-target",
+      "status": "PASS",
+      "detail": "the installed profile is the shipped simulator; every program its HAL starts by name resolves into the clone"
+     },
+     {
+      "case": "install-confinement",
+      "status": "PASS",
+      "detail": "every mutable path of the profile lies in the run"
+     },
+     {
+      "case": "start-ready",
+      "status": "PASS",
+      "detail": "/ready after 2 s"
+     },
+     {
+      "case": "start-processes",
+      "status": "PASS",
+      "detail": "launcher, gateway, helpers and the tool setter's feed run the clone's code with the installed profile; logs in the run"
+     },
+     {
+      "case": "start-safety-chain",
+      "status": "PASS",
+      "detail": "20 frames over 3.8 s past the grace: no banner, reader fresh, no trip; watchdog and reader admitted this gateway; the latch in HAL, set at boot (the gateway's first sight, no trip); heartbeat oneshot TRUE"
+     },
+     {
+      "case": "start-browser",
+      "status": "PASS",
+      "detail": "mounted, connected; 7 script(s)/worker(s) served as JavaScript, no error"
+     }
+    ],
+    "env": {
+     "HOME": "/home/cnc/claude-work/live-tier/install-green-20261107T145728/home",
+     "USER": "cnc",
+     "LOGNAME": "cnc",
+     "PATH": "/home/cnc/claude-work/live-tier/install-green-20261107T145728/home/.local/bin:/usr/local/bin:/usr/bin:/bin",
+     "LANG": "C.UTF-8",
+     "LC_ALL": "C.UTF-8",
+     "TERM": "dumb",
+     "SHELL": "/bin/bash",
+     "XDG_CACHE_HOME": "/home/cnc/claude-work/live-tier/install-green-20261107T145728/home/.cache",
+     "XDG_CONFIG_HOME": "/home/cnc/claude-work/live-tier/install-green-20261107T145728/home/.config",
+     "XDG_DATA_HOME": "/home/cnc/claude-work/live-tier/install-green-20261107T145728/home/.local/share",
+     "XDG_STATE_HOME": "/home/cnc/claude-work/live-tier/install-green-20261107T145728/home/.local/state",
+     "TMPDIR": "/home/cnc/claude-work/live-tier/install-green-20261107T145728/tmp",
+     "LCNC_LOG_DIR": "/home/cnc/claude-work/live-tier/install-green-20261107T145728/logs",
+     "PYTHONPYCACHEPREFIX": "/home/cnc/claude-work/live-tier/install-green-20261107T145728/pycache",
+     "npm_config_cache": "/home/cnc/claude-work/live-tier/install-green-20261107T145728/cache/npm",
+     "npm_config_update_notifier": "false",
+     "PIP_CACHE_DIR": "/home/cnc/claude-work/live-tier/install-green-20261107T145728/cache/pip",
+     "PIP_DISABLE_PIP_VERSION_CHECK": "1",
+     "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"
+    },
+    "commit": "58ba2199501762d1f00fe2476630cffa4c3d00e0",
+    "install_s": 44.3,
+    "safety": {
+     "frames": 108,
+     "hal": {
+      "latch_fault": "TRUE",
+      "oneshot_out": "TRUE"
+     },
+     "events": [
+      "boot",
+      "boot.session_bind",
+      "boot.start",
+      "boot.lcnc_connect_start",
+      "session.bound",
+      "boot.lcnc_connect",
+      "hal.socket_connected",
+      "boot.hal_connect",
+      "boot.machine_config",
+      "boot.app_instantiated",
+      "boot.lifespan_ready",
+      "ws.connect.accept",
+      "ws.conn.lcnc_restored",
+      "hal.admitted",
+      "ws.connect.settings",
+      "ws.conn.gcode_ping_sent",
+      "ws.conn.ready",
+      "reader.admitted",
+      "reader.connected",
+      "safety.latch_faulted_on_connect",
+      "viewer_init.timing",
+      "ws.conn.viewer_init",
+      "toolsetter.basis",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick",
+      "hal.send_summary",
+      "loop.tick"
+     ]
+    },
+    "browser": {
+     "url": "http://127.0.0.1:8000/",
+     "scripts": [
+      {
+       "url": "http://127.0.0.1:8000/static/msgpack-BkQaaVuN.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "http://127.0.0.1:8000/static/index-BNvIRSix.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "http://127.0.0.1:8000/static/three-D_Nc9AAY.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "http://127.0.0.1:8000/static/toolGeometry-DhP3iiav.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "http://127.0.0.1:8000/static/ThreeViewer-Ch5wqGWS.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "http://127.0.0.1:8000/static/wsWorker-KKeHcbK3.js",
+       "status": 200,
+       "type": "text/javascript; charset=utf-8",
+       "ok": true
+      },
+      {
+       "url": "blob:http://127.0.0.1:8000/abc0458b-7350-45af-adba-f3962f7512de",
+       "status": 200,
+       "type": "application/javascript",
+       "ok": true
+      }
+     ],
+     "bad_responses": [],
+     "page_errors": [],
+     "console_errors": [],
+     "workers": 2,
+     "mounted": true,
+     "connected": true,
+     "page": {
+      "status": 200,
+      "type": "text/html; charset=utf-8"
+     },
+     "worker_urls": [
+      "http://127.0.0.1:8000/static/wsWorker-KKeHcbK3.js",
+      "blob:http://127.0.0.1:8000/abc0458b-7350-45af-adba-f3962f7512de"
+     ]
+    },
+    "browsers_shared": "/home/cnc/.cache/ms-playwright",
+    "restore": {
+     "outcome": "complete",
+     "instance": [
+      "linuxcncsvr",
+      449376,
+      132777195
+     ],
+     "isolation": [],
+     "cleanup": []
+    },
+    "ended": 1794059931.9363563,
+    "verdict": "PASS",
+    "abort_at": null
+   },
+   "restore.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     449376,
+     132777195
+    ],
+    "isolation": [],
+    "cleanup": []
+   },
+   "restore-post.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     449376,
+     132777195
+    ],
+    "isolation": [],
+    "cleanup": [],
+    "repeat_of": "complete"
+   },
+   "state.json": {
+    "tree": "/home/cnc/claude-work/live-tier/install-green-20261107T145728/src",
+    "tree_of": "/home/cnc/lcnc-suite-g1",
+    "installer": 448092,
+    "test_unit_intent": "install-probe-sim-install-green-20261107T145728",
+    "test_unit_wd": "/home/cnc/claude-work/live-tier/install-green-20261107T145728/home/linuxcnc/configs/lcnc_suite_sim",
+    "test_ini": "/home/cnc/claude-work/live-tier/install-green-20261107T145728/home/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_3axis_xyz.ini",
+    "test_unit": "install-probe-sim-install-green-20261107T145728",
+    "test_unit_invocation": "81aa702389814005a93235cbdc0088c3",
+    "test_instance": [
+     448583,
+     132774216
+    ],
+    "test_ended": true,
+    "isolation": []
+   },
+   "browser.json": {
+    "url": "http://127.0.0.1:8000/",
+    "scripts": [
+     {
+      "url": "http://127.0.0.1:8000/static/msgpack-BkQaaVuN.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "ok": true
+     },
+     {
+      "url": "http://127.0.0.1:8000/static/index-BNvIRSix.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "ok": true
+     },
+     {
+      "url": "http://127.0.0.1:8000/static/three-D_Nc9AAY.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "ok": true
+     },
+     {
+      "url": "http://127.0.0.1:8000/static/toolGeometry-DhP3iiav.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "ok": true
+     },
+     {
+      "url": "http://127.0.0.1:8000/static/ThreeViewer-Ch5wqGWS.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "ok": true
+     },
+     {
+      "url": "http://127.0.0.1:8000/static/wsWorker-KKeHcbK3.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "ok": true
+     },
+     {
+      "url": "blob:http://127.0.0.1:8000/abc0458b-7350-45af-adba-f3962f7512de",
+      "status": 200,
+      "type": "application/javascript",
+      "ok": true
+     }
+    ],
+    "bad_responses": [],
+    "page_errors": [],
+    "console_errors": [],
+    "workers": 2,
+    "mounted": true,
+    "connected": true,
+    "page": {
+     "status": 200,
+     "type": "text/html; charset=utf-8"
+    },
+    "worker_urls": [
+     "http://127.0.0.1:8000/static/wsWorker-KKeHcbK3.js",
+     "blob:http://127.0.0.1:8000/abc0458b-7350-45af-adba-f3962f7512de"
+    ]
+   },
+   "install.log": [
+    "dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB",
+    "dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB",
+    "dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB",
+    "dist/static/ToolPreview-h0nbom5n.css                 0.09 kB \u2502 gzip:   0.10 kB",
+    "dist/static/ThreeViewer-D0KGS3DD.css                 8.14 kB \u2502 gzip:   2.08 kB",
+    "dist/static/index-DyqFoDq5.css                     100.00 kB \u2502 gzip:  18.57 kB",
+    "dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB \u2502 gzip:   0.51 kB",
+    "dist/static/ToolPreview-BI1wlOk7.js                  2.16 kB \u2502 gzip:   1.20 kB",
+    "dist/static/toolGeometry-DhP3iiav.js                 9.05 kB \u2502 gzip:   3.35 kB",
+    "dist/static/msgpack-BkQaaVuN.js                     13.97 kB \u2502 gzip:   4.25 kB",
+    "dist/static/index-BE60FhhY.js                       28.84 kB \u2502 gzip:   9.54 kB",
+    "dist/static/index-CX_61fY8.js                       48.96 kB \u2502 gzip:  16.39 kB",
+    "dist/static/index-tky6Dhx3.js                       50.88 kB \u2502 gzip:  17.70 kB",
+    "dist/static/index-o9DEOgyx.js                      200.76 kB \u2502 gzip:  65.35 kB",
+    "dist/static/ThreeViewer-Ch5wqGWS.js                279.20 kB \u2502 gzip: 105.16 kB",
+    "dist/static/index-BNvIRSix.js                      675.89 kB \u2502 gzip: 217.84 kB",
+    "dist/static/three-D_Nc9AAY.js                      881.98 kB \u2502 gzip: 242.57 kB",
+    "",
+    "(!) Some chunks are larger than 500 kB after minification. Consider:",
+    "- Using dynamic import() to code-split the application",
+    "- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks",
+    "- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.",
+    "\u2713 built in 4.95s",
+    "  \u001b[0;32m\u2713\u001b[0m Frontend built (lcnc-webui/dist)",
+    "  \u001b[1;33m\u2192\u001b[0m Installing symlinks to ~/.local/bin...",
+    "  \u001b[0;32m\u2713\u001b[0m Symlinks installed (lcnc-suite, hal_watchdog.py, hal_reader.py, compensation.py)",
+    "",
+    "\u001b[1m[5/6] Installing sample sim config\u001b[0m",
+    "Three example profiles installed: /home/cnc/claude-work/live-tier/install-green-20261107T145728/home/linuxcnc/configs/lcnc_suite_sim",
+    "  \u001b[0;32m\u2713\u001b[0m Sim profiles installed",
+    "  \u001b[0;32m\u2713\u001b[0m the 6-axis TWP kinematics component compiles",
+    "  \u001b[1;33m!\u001b[0m the 6-axis TWP kinematics component NOT installed (--no-root): the system's /usr/lib/linuxcnc/modules/xyzacb_trsrn.so stays \u2014 to install this one: sudo halcompile --install /home/cnc/claude-work/live-tier/install-green-20261107T145728/src/examples/sim_config/twp/xyzacb_trsrn.comp",
+    "  \u001b[0;32m\u2713\u001b[0m the simulated tool setter component compiles",
+    "  \u001b[1;33m!\u001b[0m the simulated tool setter component NOT installed (--no-root): the system's /usr/lib/linuxcnc/modules/sim_toolsetter.so stays \u2014 to install this one: sudo halcompile --install /home/cnc/claude-work/live-tier/install-green-20261107T145728/src/examples/sim_config/sim_toolsetter/sim_toolsetter.comp",
+    "config sync: deployed config matches the repo templates (per-install settings lines and runtime artifacts excluded)",
+    "  \u001b[0;32m\u2713\u001b[0m Deployed sim config matches the repo templates",
+    "",
+    "\u001b[1m[6/6] Installation complete\u001b[0m",
+    "",
+    "  \u001b[0;32m\u001b[1mlcnc-suite installed successfully!\u001b[0m",
+    "",
+    "  \u001b[1mLocation:\u001b[0m    /home/cnc/claude-work/live-tier/install-green-20261107T145728/src",
+    "  \u001b[1mSim config:\u001b[0m  /home/cnc/claude-work/live-tier/install-green-20261107T145728/home/linuxcnc/configs/lcnc_suite_sim",
+    "",
+    "  \u001b[1mNext steps:\u001b[0m",
+    "",
+    "    1. Try the sim:",
+    "       linuxcnc /home/cnc/claude-work/live-tier/install-green-20261107T145728/home/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_3axis_xyz.ini",
+    "       # Or select lcnc_suite_sim_5axis_xyzac.ini / lcnc_suite_sim_6axis_twp_xyzabc.ini",
+    "",
+    "    2. Adjust the sample config for your real machine:",
+    "       - Copy /home/cnc/claude-work/live-tier/install-green-20261107T145728/home/linuxcnc/configs/lcnc_suite_sim/ to a new dir under ~/linuxcnc/configs/",
+    "       - Edit lcnc_suite_sim_3axis_xyz.ini (axis limits, kinematics, HAL files)",
+    "       - Keep the [DISPLAY] WEBUI_* lines and the lcnc_webui.hal include",
+    "       - hallib/ links to the repo (shared suite HAL); for custom HAL, first",
+    "         replace the directory link in your machine copy with its own files:",
+    "         cp -aL hallib hallib.local && rm hallib && mv hallib.local hallib",
+    "",
+    "  \u001b[1mSee README.md for full configuration details.\u001b[0m",
+    ""
+   ]
+  },
+  {
+   "run": "install-red-20261107T145223",
+   "report.json": {
+    "started": 1794059543.6832843,
+    "steps": [
+     "clone",
+     "install"
+    ],
+    "rows": [
+     {
+      "case": "install-run",
+      "status": "FAIL",
+      "detail": "exit 1 after 32 s",
+      "tail": [
+       "  npm audit fix",
+       "",
+       "To address all issues (including breaking changes), run:",
+       "  npm audit fix --force",
+       "",
+       "Run `npm audit` for details.",
+       "  \u001b[0;32m\u2713\u001b[0m Node.js dependencies installed",
+       "  \u001b[1;33m\u2192\u001b[0m Installing symlinks to ~/.local/bin...",
+       "  \u001b[0;32m\u2713\u001b[0m Symlinks installed (lcnc-suite, hal_watchdog.py, hal_reader.py, compensation.py)",
+       "",
+       "\u001b[1m[5/6] Installing sample sim config\u001b[0m",
+       "Three example profiles installed: /home/cnc/claude-work/live-tier/install-red-20261107T145223/home/linuxcnc/configs/lcnc_suite_sim",
+       "  \u001b[1;33m\u2192\u001b[0m Building the 6-axis TWP kinematics component...",
+       "sudo: a terminal is required to read the password; either use the -S option to read from standard input or configure an askpass helper",
+       "sudo: a password is required"
+      ]
+     }
+    ],
+    "env": {
+     "HOME": "/home/cnc/claude-work/live-tier/install-red-20261107T145223/home",
+     "USER": "cnc",
+     "LOGNAME": "cnc",
+     "PATH": "/home/cnc/claude-work/live-tier/install-red-20261107T145223/home/.local/bin:/usr/local/bin:/usr/bin:/bin",
+     "LANG": "C.UTF-8",
+     "LC_ALL": "C.UTF-8",
+     "TERM": "dumb",
+     "SHELL": "/bin/bash",
+     "XDG_CACHE_HOME": "/home/cnc/claude-work/live-tier/install-red-20261107T145223/home/.cache",
+     "XDG_CONFIG_HOME": "/home/cnc/claude-work/live-tier/install-red-20261107T145223/home/.config",
+     "XDG_DATA_HOME": "/home/cnc/claude-work/live-tier/install-red-20261107T145223/home/.local/share",
+     "XDG_STATE_HOME": "/home/cnc/claude-work/live-tier/install-red-20261107T145223/home/.local/state",
+     "TMPDIR": "/home/cnc/claude-work/live-tier/install-red-20261107T145223/tmp",
+     "LCNC_LOG_DIR": "/home/cnc/claude-work/live-tier/install-red-20261107T145223/logs",
+     "PYTHONPYCACHEPREFIX": "/home/cnc/claude-work/live-tier/install-red-20261107T145223/pycache",
+     "npm_config_cache": "/home/cnc/claude-work/live-tier/install-red-20261107T145223/cache/npm",
+     "npm_config_update_notifier": "false",
+     "PIP_CACHE_DIR": "/home/cnc/claude-work/live-tier/install-red-20261107T145223/cache/pip",
+     "PIP_DISABLE_PIP_VERSION_CHECK": "1",
+     "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"
+    },
+    "commit": "a61337c3b8d2b84cab2a1ed4829b12701d2b05fb",
+    "install_s": 31.8,
+    "error": "StepFailed: the installer did not complete",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/cnc/lcnc-suite-g1/scripts/native_run.py\", line 235, in run\n    rows = fn(ctx) or []\n           ~~^^^^^\n  File \"/home/cnc/lcnc-suite-g1/scripts/install_probe.py\", line 137, in step\n    raise StepFailed(rows, \"the installer did not complete\")\nnative_run.StepFailed: the installer did not complete\n",
+    "restore": {
+     "outcome": "complete",
+     "instance": [
+      "linuxcncsvr",
+      441924,
+      132742537
+     ],
+     "isolation": [],
+     "cleanup": []
+    },
+    "ended": 1794059586.365455,
+    "verdict": "FAIL",
+    "abort_at": null
+   },
+   "restore.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     441924,
+     132742537
+    ],
+    "isolation": [],
+    "cleanup": []
+   },
+   "restore-post.json": {
+    "outcome": "complete",
+    "instance": [
+     "linuxcncsvr",
+     441924,
+     132742537
+    ],
+    "isolation": [],
+    "cleanup": [],
+    "repeat_of": "complete"
+   },
+   "state.json": {
+    "tree": "/home/cnc/claude-work/live-tier/install-red-20261107T145223/src",
+    "tree_of": "/home/cnc/lcnc-suite-g1",
+    "installer": 441537,
+    "test_ended": true,
+    "isolation": []
+   },
+   "install.log": [
+    "",
+    "\u001b[1m[1/6] Checking system dependencies\u001b[0m",
+    "  \u001b[0;32m\u2713\u001b[0m git 2.47.3",
+    "  \u001b[0;32m\u2713\u001b[0m git-lfs 3.6.1",
+    "  \u001b[0;32m\u2713\u001b[0m python3 3.13",
+    "  \u001b[0;32m\u2713\u001b[0m python3-venv",
+    "  \u001b[0;32m\u2713\u001b[0m node v22.23.2",
+    "  \u001b[0;32m\u2713\u001b[0m npm 10.9.8",
+    "  \u001b[0;32m\u2713\u001b[0m halcompile",
+    "  \u001b[0;32m\u2713\u001b[0m linuxcnc python bindings",
+    "  \u001b[0;32m\u2713\u001b[0m scipy",
+    "",
+    "\u001b[1m[2/6] Installing missing dependencies\u001b[0m",
+    "  \u001b[0;32m\u2713\u001b[0m All system dependencies already installed",
+    "",
+    "\u001b[1m[3/6] Fetching lcnc-suite source\u001b[0m",
+    "  \u001b[0;32m\u2713\u001b[0m lcnc-suite already present at /home/cnc/claude-work/live-tier/install-red-20261107T145223/src",
+    "",
+    "\u001b[1m[4/6] Setting up project dependencies\u001b[0m",
+    "  \u001b[1;33m\u2192\u001b[0m Fetching Git LFS objects...",
+    "  \u001b[0;32m\u2713\u001b[0m LFS objects ready",
+    "  \u001b[1;33m\u2192\u001b[0m Creating Python venv (with system-site-packages for linuxcnc bindings)...",
+    "  \u001b[1;33m\u2192\u001b[0m Upgrading pip...",
+    "  \u001b[1;33m\u2192\u001b[0m Installing Python dependencies...",
+    "  \u001b[1;33m\u2192\u001b[0m Checking that numpy comes from the system...",
+    "  \u001b[0;32m\u2713\u001b[0m numpy from the system",
+    "  \u001b[1;33m\u2192\u001b[0m Verifying Python imports...",
+    "  \u001b[0;32m\u2713\u001b[0m Python environment ready",
+    "  \u001b[1;33m\u2192\u001b[0m Installing Node.js dependencies...",
+    "",
+    "added 200 packages, and audited 201 packages in 23s",
+    "",
+    "46 packages are looking for funding",
+    "  run `npm fund` for details",
+    "",
+    "22 vulnerabilities (15 moderate, 7 high)",
+    "",
+    "To address issues that do not require attention, run:",
+    "  npm audit fix",
+    "",
+    "To address all issues (including breaking changes), run:",
+    "  npm audit fix --force",
+    "",
+    "Run `npm audit` for details.",
+    "  \u001b[0;32m\u2713\u001b[0m Node.js dependencies installed",
+    "  \u001b[1;33m\u2192\u001b[0m Installing symlinks to ~/.local/bin...",
+    "  \u001b[0;32m\u2713\u001b[0m Symlinks installed (lcnc-suite, hal_watchdog.py, hal_reader.py, compensation.py)",
+    "",
+    "\u001b[1m[5/6] Installing sample sim config\u001b[0m",
+    "Three example profiles installed: /home/cnc/claude-work/live-tier/install-red-20261107T145223/home/linuxcnc/configs/lcnc_suite_sim",
+    "  \u001b[1;33m\u2192\u001b[0m Building the 6-axis TWP kinematics component...",
+    "sudo: a terminal is required to read the password; either use the -S option to read from standard input or configure an askpass helper",
+    "sudo: a password is required"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,396 @@
+{
+ "note": "R330 package I mutants on a slim copy: run1 at 58ba2199 (5 green \u2192 guards added), run2 at aaf6a9cc's guards (1 green: ic-gate-ignores-isolation, a two-fault case) , run3 the three verdict mutants after the fix: all red.",
+ "run1": {
+  "base": "58ba2199",
+  "mutants": [
+   {
+    "mutant": "ic-safety-no-reader-event",
+    "verdict": "GREEN",
+    "tail": [
+     "53 passed in 21.97s"
+    ]
+   },
+   {
+    "mutant": "ic-safety-no-reader-values",
+    "verdict": "GREEN",
+    "tail": [
+     "53 passed in 21.99s"
+    ]
+   },
+   {
+    "mutant": "ic-safety-latch-unclassified-ok",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 24 passed in 3.83s"
+    ]
+   },
+   {
+    "mutant": "ic-safety-latch-unknown-ok",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 18 passed in 3.94s"
+    ]
+   },
+   {
+    "mutant": "ic-safety-no-window",
+    "verdict": "GREEN",
+    "tail": [
+     "53 passed in 22.08s"
+    ]
+   },
+   {
+    "mutant": "ic-safety-any-pid",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 22 passed in 3.90s"
+    ]
+   },
+   {
+    "mutant": "ic-safety-banner-ignored",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 19 passed in 4.08s"
+    ]
+   },
+   {
+    "mutant": "ic-manifest-follows-links",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 9 passed in 3.83s"
+    ]
+   },
+   {
+    "mutant": "ic-cleanup-worktree",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 12 passed in 4.01s"
+    ]
+   },
+   {
+    "mutant": "ic-cleanup-anywhere",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 13 passed in 4.02s"
+    ]
+   },
+   {
+    "mutant": "ic-env-inherits",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 7 passed in 3.87s"
+    ]
+   },
+   {
+    "mutant": "ic-gate-ignores-post",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 45 passed in 22.16s"
+    ]
+   },
+   {
+    "mutant": "ic-gate-ignores-isolation",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 43 passed in 22.11s"
+    ]
+   },
+   {
+    "mutant": "ic-browser-ignores-connected",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 30 passed in 3.93s"
+    ]
+   },
+   {
+    "mutant": "ic-browser-ignores-responses",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 28 passed in 3.91s"
+    ]
+   },
+   {
+    "mutant": "ip-unit-first-service",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 51 passed in 22.14s"
+    ]
+   },
+   {
+    "mutant": "rg-no-under-gate",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 46 passed in 22.00s"
+    ]
+   },
+   {
+    "mutant": "rg-deactivating-is-end",
+    "verdict": "GREEN",
+    "tail": [
+     "53 passed in 22.01s"
+    ]
+   },
+   {
+    "mutant": "rg-deadline-not-stopped",
+    "verdict": "RED",
+    "tail": [
+     "..............................................."
+    ]
+   },
+   {
+    "mutant": "sh-no-tty-check",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 3 passed in 2.60s"
+    ]
+   },
+   {
+    "mutant": "sh-no-root-goes-on",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 2 passed in 1.25s"
+    ]
+   },
+   {
+    "mutant": "sh-npm-install",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 6 passed in 4.39s"
+    ]
+   },
+   {
+    "mutant": "sh-import-warns",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 6 passed in 4.29s"
+    ]
+   },
+   {
+    "mutant": "sh-fresh-drift-warns",
+    "verdict": "GREEN",
+    "tail": [
+     "53 passed in 23.24s"
+    ]
+   },
+   {
+    "mutant": "sh-no-build",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 6 passed in 3.87s"
+    ]
+   }
+  ]
+ },
+ "run2": {
+  "base": "58ba2199+fix",
+  "mutants": [
+   {
+    "mutant": "ic-safety-no-reader-event",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 53 passed in 22.12s"
+    ]
+   },
+   {
+    "mutant": "ic-safety-no-reader-values",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 54 passed in 22.00s"
+    ]
+   },
+   {
+    "mutant": "ic-safety-latch-unclassified-ok",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 24 passed in 4.30s"
+    ]
+   },
+   {
+    "mutant": "ic-safety-latch-unknown-ok",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 18 passed in 4.17s"
+    ]
+   },
+   {
+    "mutant": "ic-safety-no-window",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 55 passed in 22.24s"
+    ]
+   },
+   {
+    "mutant": "ic-safety-any-pid",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 22 passed in 4.05s"
+    ]
+   },
+   {
+    "mutant": "ic-safety-banner-ignored",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 19 passed in 4.01s"
+    ]
+   },
+   {
+    "mutant": "ic-manifest-follows-links",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 9 passed in 3.90s"
+    ]
+   },
+   {
+    "mutant": "ic-cleanup-worktree",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 12 passed in 4.11s"
+    ]
+   },
+   {
+    "mutant": "ic-cleanup-anywhere",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 13 passed in 4.07s"
+    ]
+   },
+   {
+    "mutant": "ic-env-inherits",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 7 passed in 3.92s"
+    ]
+   },
+   {
+    "mutant": "ic-gate-ignores-post",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 45 passed in 22.22s"
+    ]
+   },
+   {
+    "mutant": "ic-gate-ignores-isolation",
+    "verdict": "GREEN",
+    "tail": [
+     "63 passed in 22.18s"
+    ]
+   },
+   {
+    "mutant": "ic-browser-ignores-connected",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 30 passed in 3.98s"
+    ]
+   },
+   {
+    "mutant": "ic-browser-ignores-responses",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 28 passed in 4.06s"
+    ]
+   },
+   {
+    "mutant": "ip-unit-first-service",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 51 passed in 22.25s"
+    ]
+   },
+   {
+    "mutant": "rg-no-under-gate",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 46 passed in 22.14s"
+    ]
+   },
+   {
+    "mutant": "rg-deactivating-is-end",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 46 passed in 22.07s"
+    ]
+   },
+   {
+    "mutant": "rg-deadline-not-stopped",
+    "verdict": "RED",
+    "tail": [
+     "..............................................."
+    ]
+   },
+   {
+    "mutant": "sh-no-tty-check",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 3 passed in 2.44s"
+    ]
+   },
+   {
+    "mutant": "sh-no-root-goes-on",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 2 passed in 1.17s"
+    ]
+   },
+   {
+    "mutant": "sh-npm-install",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 6 passed in 4.49s"
+    ]
+   },
+   {
+    "mutant": "sh-import-warns",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 6 passed in 4.51s"
+    ]
+   },
+   {
+    "mutant": "sh-fresh-drift-warns",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 60 passed in 23.17s"
+    ]
+   },
+   {
+    "mutant": "ic-gate-post-missing-ok",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 39 passed in 22.01s"
+    ]
+   },
+   {
+    "mutant": "sh-no-build",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 6 passed in 3.75s"
+    ]
+   }
+  ]
+ },
+ "run3": {
+  "base": "58ba2199+fix",
+  "mutants": [
+   {
+    "mutant": "ic-gate-ignores-post",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 45 passed in 22.25s"
+    ]
+   },
+   {
+    "mutant": "ic-gate-ignores-isolation",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 43 passed in 22.13s"
+    ]
+   },
+   {
+    "mutant": "ic-gate-post-missing-ok",
+    "verdict": "RED",
+    "tail": [
+     "1 failed, 39 passed in 22.06s"
+    ]
+   }
+  ]
+ }
+}

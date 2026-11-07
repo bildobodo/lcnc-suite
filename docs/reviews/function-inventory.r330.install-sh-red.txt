@@ -1,0 +1,17 @@
+        The pipe stays open until the script has ended or 30 s passed."""
+        The pipe stays open until the script has ended or 30 s passed."""
+        a failed import is fatal, a fresh install's drift fails, every profile
+FAILED scripts/test_install_probe.py::test_install_unknown_option_is_refused
+FAILED scripts/test_install_probe.py::test_install_help_names_the_options - A...
+FAILED scripts/test_install_probe.py::test_install_no_root_stops_at_a_missing_package_without_sudo
+FAILED scripts/test_install_probe.py::test_install_without_a_terminal_stops_and_says_why
+FAILED scripts/test_install_probe.py::test_install_without_a_terminal_and_an_open_unanswered_input_still_ends
+FAILED scripts/test_install_probe.py::test_install_yes_installs_without_asking
+FAILED scripts/test_install_probe.py::test_install_script_contract_in_the_source
+FAILED scripts/test_install_probe.py::test_install_sync_verdict[0-1-ok] - Val...
+FAILED scripts/test_install_probe.py::test_install_sync_verdict[0-0-ok] - Val...
+FAILED scripts/test_install_probe.py::test_install_sync_verdict[1-0-warn] - V...
+FAILED scripts/test_install_probe.py::test_install_sync_verdict[1-1-fail-drift]
+FAILED scripts/test_install_probe.py::test_install_sync_verdict[2-0-fail-check]
+FAILED scripts/test_install_probe.py::test_install_sync_verdict[2-1-fail-check]
+13 failed, 50 passed in 56.07s

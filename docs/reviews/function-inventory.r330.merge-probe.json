@@ -1,0 +1,217 @@
+{
+ "report.json": {
+  "started": 1794069214.8659832,
+  "steps": [
+   "clone",
+   "install",
+   "start",
+   "safety",
+   "browser"
+  ],
+  "rows": [
+   {
+    "case": "install-run",
+    "status": "PASS",
+    "detail": "exit 0 after 42 s",
+    "tail": null
+   },
+   {
+    "case": "install-links",
+    "status": "PASS",
+    "detail": "the four links lead into the clone"
+   },
+   {
+    "case": "install-venv",
+    "status": "PASS",
+    "detail": "the venv imports linuxcnc, fastapi, uvicorn; numpy is the system's"
+   },
+   {
+    "case": "install-build",
+    "status": "PASS",
+    "detail": "lcnc-webui/dist/index.html built"
+   },
+   {
+    "case": "install-profiles",
+    "status": "PASS",
+    "detail": "3 profiles installed: lcnc_suite_sim_3axis_xyz.ini, lcnc_suite_sim_5axis_xyzac.ini, lcnc_suite_sim_6axis_twp_xyzabc.ini"
+   },
+   {
+    "case": "install-config-sync",
+    "status": "PASS",
+    "detail": "exit 0: config sync: deployed config matches the repo templates (per-install settings lines and runtime artifacts excluded)"
+   },
+   {
+    "case": "install-tracked-files",
+    "status": "PASS",
+    "detail": "no tracked file changed"
+   },
+   {
+    "case": "install-target",
+    "status": "PASS",
+    "detail": "the installed profile is the shipped simulator; every program its HAL starts by name resolves into the clone"
+   },
+   {
+    "case": "install-confinement",
+    "status": "PASS",
+    "detail": "every mutable path of the profile lies in the run"
+   },
+   {
+    "case": "start-ready",
+    "status": "PASS",
+    "detail": "/ready after 2 s"
+   },
+   {
+    "case": "start-processes",
+    "status": "PASS",
+    "detail": "launcher, gateway, helpers and the tool setter's feed run the clone's code with the installed profile; logs in the run"
+   },
+   {
+    "case": "start-safety-chain",
+    "status": "PASS",
+    "detail": "21 frames over 4.0 s past the grace: no banner, reader fresh, no trip; watchdog and reader admitted this gateway; the latch in HAL, set at boot (the gateway's first sight, no trip); heartbeat oneshot TRUE"
+   },
+   {
+    "case": "start-browser",
+    "status": "PASS",
+    "detail": "mounted, connected; 7 script(s)/worker(s) served as JavaScript, no error"
+   }
+  ],
+  "commit": "4013b1b2528d7dd7367a392108edfc66015cb1db",
+  "install_s": 42.2,
+  "safety": {
+   "frames": 109,
+   "hal": {
+    "latch_fault": "TRUE",
+    "oneshot_out": "TRUE"
+   },
+   "events": [
+    "boot",
+    "boot.session_bind",
+    "boot.start",
+    "boot.lcnc_connect_start",
+    "session.bound",
+    "boot.lcnc_connect",
+    "hal.socket_connected",
+    "boot.hal_connect",
+    "boot.machine_config",
+    "boot.app_instantiated",
+    "boot.lifespan_ready",
+    "ws.connect.accept",
+    "ws.conn.lcnc_restored",
+    "hal.admitted",
+    "ws.connect.settings",
+    "ws.conn.gcode_ping_sent",
+    "ws.conn.ready",
+    "reader.admitted",
+    "reader.connected",
+    "safety.latch_faulted_on_connect",
+    "viewer_init.timing",
+    "ws.conn.viewer_init",
+    "toolsetter.basis",
+    "hal.send_summary",
+    "loop.tick",
+    "loop.tick",
+    "hal.send_summary",
+    "loop.tick",
+    "hal.send_summary",
+    "loop.tick",
+    "hal.send_summary",
+    "loop.tick",
+    "hal.send_summary",
+    "loop.tick",
+    "hal.send_summary",
+    "loop.tick",
+    "hal.send_summary",
+    "loop.tick",
+    "hal.send_summary",
+    "loop.tick"
+   ]
+  },
+  "browser": {
+   "url": "http://127.0.0.1:8000/",
+   "scripts": [
+    {
+     "url": "http://127.0.0.1:8000/static/msgpack-BkQaaVuN.js",
+     "status": 200,
+     "type": "text/javascript; charset=utf-8",
+     "ok": true
+    },
+    {
+     "url": "http://127.0.0.1:8000/static/three-D_Nc9AAY.js",
+     "status": 200,
+     "type": "text/javascript; charset=utf-8",
+     "ok": true
+    },
+    {
+     "url": "http://127.0.0.1:8000/static/index-BNvIRSix.js",
+     "status": 200,
+     "type": "text/javascript; charset=utf-8",
+     "ok": true
+    },
+    {
+     "url": "http://127.0.0.1:8000/static/toolGeometry-DhP3iiav.js",
+     "status": 200,
+     "type": "text/javascript; charset=utf-8",
+     "ok": true
+    },
+    {
+     "url": "http://127.0.0.1:8000/static/ThreeViewer-Ch5wqGWS.js",
+     "status": 200,
+     "type": "text/javascript; charset=utf-8",
+     "ok": true
+    },
+    {
+     "url": "http://127.0.0.1:8000/static/wsWorker-KKeHcbK3.js",
+     "status": 200,
+     "type": "text/javascript; charset=utf-8",
+     "ok": true
+    },
+    {
+     "url": "blob:http://127.0.0.1:8000/ff7ce944-23a1-419e-9e65-42d733dcc674",
+     "status": 200,
+     "type": "application/javascript",
+     "ok": true
+    }
+   ],
+   "bad_responses": [],
+   "page_errors": [],
+   "console_errors": [],
+   "workers": 2,
+   "mounted": true,
+   "connected": true,
+   "page": {
+    "status": 200,
+    "type": "text/html; charset=utf-8"
+   },
+   "worker_urls": [
+    "http://127.0.0.1:8000/static/wsWorker-KKeHcbK3.js",
+    "blob:http://127.0.0.1:8000/ff7ce944-23a1-419e-9e65-42d733dcc674"
+   ]
+  },
+  "browsers_shared": "/home/cnc/.cache/ms-playwright",
+  "restore": {
+   "outcome": "complete",
+   "instance": [
+    "linuxcncsvr",
+    678424,
+    133713577
+   ],
+   "isolation": [],
+   "cleanup": []
+  },
+  "ended": 1794069293.1764507,
+  "verdict": "PASS",
+  "abort_at": null
+ },
+ "restore-post.json": {
+  "outcome": "complete",
+  "instance": [
+   "linuxcncsvr",
+   678424,
+   133713577
+  ],
+  "isolation": [],
+  "cleanup": [],
+  "repeat_of": "complete"
+ }
+}
