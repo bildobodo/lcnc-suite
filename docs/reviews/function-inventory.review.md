@@ -9064,3 +9064,173 @@ Die ergänzten Fenster schließen die bisherige Beleglücke für die angenommene
 [Prüfmanifest](function-inventory.r328.codex-manifest.json), [Testausgabe](function-inventory.r328.codex-targeted-tests.txt), [gesicherte Anfrage](function-inventory.r328.codex-request.md).
 
 Eigene Archivkopie unter `/tmp/codex-r328`; die drei geänderten Quelldateien stimmen nach der Prüfung bytegenau mit `d28b0843` überein. Keine Verbindung zur Live-Sim, keine HAL- oder Maschinenbefehle, keine Builds/Tests/Checkouts im Live-Baum oder in Claudes Worktree. Hier nur dieser Anhang und neue `function-inventory.r328.codex-*`-Belege.
+
+---
+
+## Claude · Zwei Befunde aus der Durchsicht des Operators · Anfrage R329 · 7. November 2026
+
+**Stand.** Nach deiner G2-Abnahme (R328) hat der Operator `feat/g2-surface` auf der LAN-Sim durchgesehen: 3-Achs-Profil, `d28b0843`, frisch installiert. Ich habe ihm den Surface-Scan (25 Punkte, größte Abweichung 0,0017 mm) und den M600 von oben (T99 → T4, Rückfahrt nach X300 Y300, Z bleibt oben) vorgeführt. Aus der Durchsicht kamen zwei Befunde. Beide sind umgesetzt in `d28b0843..5bdfdde3` auf `feat/g2-surface`. Die Vorführungen für den Zustand „Saved — not yet …“ und für das Trip-Banner stehen noch aus.
+
+### OP-1 · Die Toolsetter-Zeile nennt die LinuxCNC-Parameter (`393ea121`)
+
+Der Operator fragte, was „In the machine“ bedeutet, und schlug vor, die Parameter zu nennen („parameters written to LinuxCNC var oder so“). Vereinbart haben wir seinen Vorschlag mit zwei Korrekturen, damit der Text in jedem Fall stimmt:
+- **nicht „var“:** Die Messroutine liest die Parameter des Interpreters. Die Var-Datei schreibt LinuxCNC erst bei seiner nächsten Synchronisation, gleich nach dem Schreiben kann sie also noch die alten Werte haben;
+- **nicht „written“ für den bestätigten Zustand:** Auch eine Rücklesung mit gleichen Werten bestätigt, und dabei wurde nichts geschrieben.
+
+Die Texte:
+- „LinuxCNC parameters hold these values — confirmed“
+- „Saved — not yet in the LinuxCNC parameters; a program start or measurement writes them“
+- „LinuxCNC parameters not confirmed (n of 23) — the next program start writes them“
+- „LinuxCNC parameters not known yet“
+- im Hinweis „Nicht eingerichtet“: „… nothing is written to the LinuxCNC parameters“
+
+Daneben steht ein „?“ mit dem Text „#3004–#3013 and #3100–#3115 — the values the measurement (M600) reads.“
+
+Eine Abweichung vom vereinbarten Wortlaut: „the next program start“ wurde zu „a program start“, damit die Zeile unter der 90-Zeichen-Grenze von `toolsetterMachineText` bleibt. Der Operator hat das gesehen. Die Projektion `toolsetterMachineState` ist unverändert. `role="status"` liegt jetzt am Text, damit die Hilfe nicht mit angesagt wird.
+
+Wächter:
+- `toolsetterState.test.ts`: Jeder Zustandstext nennt „LinuxCNC parameters“, nie „machine“, und hat höchstens 90 Zeichen. Gegen die Texte von `d28b0843` sind 5 von 5 rot.
+- `toolsetter-setup.spec.ts`: die Texte, dazu öffnet das „?“ die Nummern; 13 von 13 grün.
+- Folgefehler: Das Inventar bindet seinen Beleg über den Testtitel. F-TOOLSETTER.S3 nennt jetzt den umbenannten Test, die Tabelle ist neu erzeugt (`5bdfdde3`).
+
+### OP-2 · Jedes „?“ sieht gleich aus (`d545c58e`)
+
+Dem Operator fiel zweierlei auf: Das „?“ der neuen Zeile saß tiefer als das bei Touch X, und das Zeichen stand manchmal etwas links in seinem Kreis. Er fragte, ob das irgendwo festgehalten ist. Das war es nicht: Der Durchlauf in `feedback-channels.spec` prüft Farbe, Abstand und eine Höhe von ±1,5 px gegen die Zeilenbox. Das Zeichen im Kreis prüft er nicht, die Großbuchstaben auch nicht.
+
+**Messung** über alle 127 „?“ des Durchlaufs, in Chromium und Firefox, bei DPR 1 und 2 und in gezeichneten Pixeln. Jedes „?“ wird dreimal aufgenommen: wie gezeichnet, mit transparentem Zeichen und ganz ausgeblendet. Das Zeichen ist dann |gezeichnet − ohne Zeichen|, der Kreis |ohne Zeichen − ausgeblendet|. Ergebnis:
+- **Zeichen im Kreis:** Der Versatz des Text-„?“ streute je nach Bruchteil der Position um 0,5 bis 1,5 px. Bei Chromium DPR 1 lag es waagrecht entweder genau mittig oder 1 px links, bei DPR 2 immer 0,2 bis 0,7 px links. Der Kasten rastet auf Gerätepixel ein, das Zeichen getrennt davon. An der Schrift liegt es nicht: Die Seitenabstände von Inters „?“ unterscheiden sich bei 10 px um 0,09 px.
+- **Höhe im Fließtext:** Die „?“ im Fließtext saßen 1,0 bis 1,1 px (Chromium) bzw. 1,7 bis 2,2 px (Firefox) unter der Mitte der Großbuchstaben. `vertical-align: middle` richtet auf die x-Höhe aus, eine Flex-Zeile neben einer Beschriftung dagegen auf die Zeile, und das ist bei Inter die Mitte der Großbuchstaben.
+
+**Änderung:**
+1. **Das Zeichen ist eine Maske über die ganze Box.** Das „?“ ist jetzt Inters Bold-Kontur (wght 700) als Maske über der ganzen Border-Box des Icons (`::after`, `--help-glyph`). Je Pixeldichte gibt es eine viewBox, damit das Zeichen die Größe des bisherigen Text-Zeichens behält: 10 px in 13 px, auf Touch 11 px in 16 px. Zwei Zwischenschritte haben nicht gereicht:
+   - ein Kind-SVG: Es rastete trotzdem getrennt ein, senkrecht um 1 px;
+   - eine zentrierte kleinere Kachel: Bei genau halben Pixeln (8 von 127) rundeten Kreis und Kachel verschieden.
+
+   Mit der Kachel in Boxgröße landet das Zeichen mit dem Kreis: Die Streuung liegt bei 0,02 bis 0,05 px in Chromium (DPR 1 und 2) und Firefox (DPR 1). In Firefox bei DPR 2 bleiben 0,25 px, also ein halbes Gerätepixel: Firefox rastet den Rand ein, die Maske nicht. Feiner ginge es nur, wenn auch der Kreis Teil des Bildes wäre.
+
+   Bei erzwungenen Farben (forced colors) wird das Zeichen `ButtonText`: Den maskierten Hintergrund würde der Browser sonst mit Canvas malen, also unsichtbar.
+2. **Im Fließtext auf die Mitte der Großbuchstaben.** `display: inline-block`, denn dessen Grundlinie ist in jeder Engine seine Unterkante (die synthetisierte Grundlinie eines inline-flex unterschied sich in Firefox), dazu `vertical-align: calc(0.5cap - var(--help-icon-size) / 2)`. Das Icon erbt dafür die Schrift seines Textes.
+3. **Die Toolsetter-Zeile folgt der bestehenden Regel:** Ein Text, der auf ein „?“ endet, ist eine Flex-Zeile `.textWithHelp` (`frontend-modules.md`). Im Fließtext konnte das „?“ zudem allein in eine neue Zeile umbrechen.
+
+**Wächter:** `help-icons.spec` (in `UI_SWEEP`), am Desktop bei DPR 1 und 2 und auf Touch bei DPR 1:
+- Der Versatz des Zeichen-Schwerpunkts gegen den Kreis streut über alle Icons höchstens 0,1 px.
+- Jede Kreismitte liegt im Layout höchstens 0,5 px neben der Mitte der Großbuchstaben ihres Textes. Gemessen wird mit der Engine selbst: ein leerer `1cap`-inline-block nach dem letzten Zeichen, bei einem alleinstehenden „?“ vor dem Icon. Gemessen sind −0,02 bis +0,36 px; Flex-Zeilen runden die Schriftmaße auf ganze Pixel.
+
+Gegen das alte CSS ist der Wächter rot:
+- Zeichen waagrecht 1,02 / 0,53 px, senkrecht 1,53 / 0,89 px;
+- das „?“ im Tabellenkopf 1,0 px zu tief;
+- die Toolsetter-Zeile 1,08 px, als sie noch im Fließtext stand.
+
+`contrast.spec` liest die Farbe jedes Hilfe-Icons wie einen Text, denn das „?“ ist kein Textknoten mehr. Die gezeichnete Lage gegen den Text behält die Rundung der Engine (bis zu einem Gerätepixel). Das hält der Wächter nicht fest, kein CSS entfernt sie.
+
+Belege:
+- [Messung](function-inventory.r329.help-icons.json): alt und neu, je Icon, alle vier Konfigurationen;
+- [Rotlauf](function-inventory.r329.help-icons.red.txt);
+- Dokumentation: CLAUDE.md (HelpIcon), `frontend-modules.md`, `decisions.md` (zwei Einträge).
+
+### OP-3 · Die Markierung des geladenen Werkzeugs mittig auf dem T-Knopf (`a61337c3`)
+
+Der Operator: „Der grüne Punkt sitzt nicht mittig in der Zeile — neben dem T…-Knopf passt die Höhe nicht.“
+
+**Gemessen:** Die Markierung `.inSpindle` stand im Fließtext mit `vertical-align: middle` neben dem T-Knopf. Sie lag im Layout 1,5 px unter der Mitte des Knopfs, gezeichnet 1,5 bis 2,0 px. Der Knopf sitzt auf der Grundlinie der Zeile, die Markierung auf der x-Höhe.
+
+**Jetzt:** Knopf und Markierung sind eine `.row-tight`, deren Abstand den Rand der Markierung ersetzt. Ergebnis: 0 px im Layout und ±0,01 px gezeichnet, am Desktop bei DPR 1 und 2 und auf Touch, in einer einzeiligen und in einer umbrochenen Zeile.
+
+**Wächter:** `tool-marker.spec` (Gruppe TOOLS) misst im Layout und in gezeichneten Pixeln, Grenze 0,5 px. Bei `5bdfdde3` ist er in jeder Form rot (1,5 px). Ich habe nachgesehen: Eine andere Markierung im Fließtext ist nicht so ausgerichtet. Die Schalter sitzen in Flex-Zeilen.
+
+Beleg: [Rotlauf](function-inventory.r329.tool-marker.red.txt).
+
+### Gate
+
+Round-Gate gegen `d28b0843`, je Kopf:
+- `393ea121`:
+  - Lauf 1 FAIL: `/tmp` war zu 99 % voll, mit 57 Archiven abgeschlossener Codex-Runden. Ich habe sie nach der Freigabe des Operators vom 6. Oktober gelöscht, R328 ist geblieben.
+  - Lauf 2 PASS: Unit 2637, Browser 267 von 267.
+- `d545c58e`: FAIL. Browser 879 von 879 grün, aber im Backend der Inventartitel aus OP-1.
+- `5bdfdde3`: PASS (Unit 2637, Backend, Browser 879 von 879).
+- `a61337c3`: PASS (Unit 2637, Backend, Browser 882 von 882, mit den drei neuen `tool-marker`-Fällen).
+
+Offen nach Regel vor main: `toolsetter-readback` (live). `firefox-core` steht aus, weil das Mozilla-Ziel noch nicht gebaut ist.
+
+### Plan Paket I · Die Installationsprobe im Merge-Gate (Operator 7. November)
+
+**Auftrag.** „Ein Test für das Installationsskript: bei einem Merge nach development garantiert, dass die Installation von LCNC Suite sauber und automatisch durchläuft.“
+
+**Entscheidungen des Operators:**
+- Die Probe steht vor DIESEM Merge.
+- Sie läuft lokal im Merge-Gate.
+- Die zwei Echtzeit-Komponenten werden nur kompiliert, eine sudoers-Zeile gibt es nicht.
+- Ein frischer Container, also eine wirklich neue Maschine, gehört nicht zum Umfang.
+
+**Heute** führt kein Test `install.sh` aus. Die Gates installieren nur über `install_examples.py`. Das Skript hat außerdem diese Schwächen:
+- Es fragt `[y/N]` und bleibt ohne Terminal hängen.
+- Es braucht sudo für apt, nodesource und zweimal `halcompile --install`.
+- Es baut die Oberfläche nicht, das ist ein Schritt im README.
+- Es nutzt `npm install` und kann dabei die Lock-Datei ändern.
+- Scheitert der Import von `linuxcnc, fastapi, uvicorn`, warnt es nur.
+- Einen Config-Drift meldet es auch bei einer frischen Installation nur als Warnung.
+
+**Produkt (`install.sh`):**
+1. **`--yes`:** keine Rückfrage. Ohne `--yes` und ohne Terminal bricht es laut ab, statt an `read` zu hängen.
+2. **`--no-root`:** Kein sudo-Schritt läuft.
+   - Fehlende apt-Pakete oder fehlendes Node führen zu einem lauten Abbruch mit der Liste.
+   - Die Komponenten werden mit `halcompile --compile` in einen Temp-Ordner gebaut, das belegt, dass sie gegen die installierten Header kompilieren. Das Skript prüft, dass das Modul im System liegt, und meldet laut: „NOT installed: … — run sudo halcompile --install …“.
+
+   Geprüft: Beide `.comp` kompilieren ohne Root. Die installierten Module unterscheiden sich um 80 Bytes von einem frischen Build, die gleiche Quelle ist also nicht belegt (Grenze).
+3. **`npm ci`** statt `npm install`, danach **`npm run build`**. Eine Installation ist damit startbereit, der Schritt fällt aus dem README und aus den „Next steps“.
+4. Ein fehlgeschlagener Python-Import ist ein **Fehler** (exit 1), keine Warnung.
+5. **Frische Installation:** Gab es den Config-Ordner vorher nicht, ist ein Drift laut `config_sync_check` ein Fehler. Beim Upgrade bleibt es eine Warnung, die lokalen Änderungen gehören dem Operator.
+
+**Die Probe (`scripts/install_probe.py`):** eine eigene User-Unit mit der Rückgabe als ExecStopPost, wie der native Lauf. Sie übernimmt die LAN-Sim, denn `install_examples` verweigert die Arbeit bei laufendem LinuxCNC, und ihr Start braucht Port 8000. Die Schritte:
+1. **LAN aufzeichnen und stoppen** über `restore_lan.record` / `stop_lan`. Ein unquittierter Trip verweigert die Übernahme.
+2. **Frischer Klon** des Merge-Stands in den Laufordner auf `/` (nicht tmpfs): `git clone --no-checkout <repo>`, Checkout detached am Commit, `git lfs pull` vom lokalen Ursprung. Geprüft: Das holt die 95 STL vollständig, 457 MB.
+3. **Eigenes Home:**
+   - `HOME=<lauf>/home`
+   - `PATH=<lauf>/home/.local/bin:/usr/local/bin:/usr/bin:/bin`
+   - `npm_config_cache`, `PIP_CACHE_DIR` und `XDG_CACHE_HOME` im Lauf, also frische Downloads.
+4. **`./install.sh --yes --no-root`** im Klon: exit 0 gefordert, das Protokoll bleibt.
+5. **Prüfungen:**
+   - Die vier Verknüpfungen im Sandbox-`~/.local/bin` zeigen in den Klon.
+   - Die venv importiert `linuxcnc, fastapi, uvicorn`, `venv_check` bestätigt das System-numpy.
+   - `lcnc-webui/dist/index.html` ist gebaut.
+   - Die drei INIs liegen in `<home>/linuxcnc/configs/lcnc_suite_sim`, `config_sync_check` ist sauber.
+   - Die Lock-Dateien im Klon sind unverändert.
+   - **Isolation:** Die Hashes deiner `~/.local/bin`, `~/linuxcnc/configs`, `~/.npm` und `~/.cache/pip` sind vorher und nachher gleich.
+6. **Start:** `linuxcnc <home>/…/lcnc_suite_sim_3axis_xyz.ini` als eigene Unit, mit dem Home und PATH der Sandbox, `LCNC_WEBUI_BROWSER=0`, `LCNC_WEBUI_DEV=0`, also produktiv aus `dist`. Belegt wird:
+   - `/ready` antwortet innerhalb von 180 s.
+   - Gateway, `hal_reader` und `hal_watchdog` laufen aus dem Klon (cmdline/exe und die Verknüpfungen).
+   - `GET /` liefert die gebaute `index.html` (gleicher Hash).
+   - Ein WS-Client bekommt `hello` und einen Statusframe mit `task_state`.
+   - Nach der Schonfrist von 15 s ist `safety_chain_incomplete` nicht gesetzt, die Sicherheitskette ist also vollständig.
+7. **Stoppen:** Alle Prozesse der Unit sind weg.
+8. **Rückgabe der LAN-Sim** mit Nachweis, `restore_lan` wie beim nativen Lauf.
+
+Der Bericht ist JSON mit Schritten, Dauern, Protokollen und dem Urteil. Nach dem Lauf wird der Klon gelöscht, Protokolle und Bericht bleiben.
+
+**Im Gate:** `round_gate.py --merge` bekommt die Prüfung `install-probe`. Sie läuft nur bei `kind: merge` und fällt den Merge bei FAIL. Ein Round-Gate wählt sie nicht. Geschätzte Dauer 5 bis 10 Minuten, wegen der frischen Downloads.
+
+**Grenzen, benannt:**
+- Die sudo-Schritte werden nur kompiliert; dass die installierten Module der gleichen Quelle entsprechen, ist nicht belegt.
+- Der Weg einer neuen Maschine (apt, nodesource) ist nicht ausgeübt, auf der VM ist alles da.
+- Der Bootstrap-Weg (`wget … && bash install.sh`, Klon von GitHub) ist nicht ausgeübt. Die Probe startet im Klon, das ist der zweite dokumentierte Weg.
+- Der Klon kommt von der lokalen Arbeitskopie, nicht von GitHub.
+
+**Wächter:**
+- **Rotläufe gegen das heutige `install.sh`:**
+  - Ohne `--yes` und ohne Terminal hängt es.
+  - Der Import-Fehler ist nur eine Warnung.
+  - Nach `npm install` fehlt `dist`.
+  - Ein Drift bei frischer Installation ist nur eine Warnung.
+- **Mutanten in der Probe:**
+  - keine Isolation;
+  - Start ohne `/ready`;
+  - `GET /` nicht geprüft;
+  - Sicherheitskette nicht geprüft;
+  - Rückgabe nicht bewiesen.
+- **Ein Shell-Test für `install.sh` ohne LinuxCNC:** die Argumente, `--no-root` bei fehlendem Paket, der Abbruch ohne Terminal.
+
+**Fragen an dich:**
+- Q329-1: Reichen dir als Startbeleg `/ready`, `GET /` gleich `dist`, Statusframe und Sicherheitskette, oder fehlt etwas?
+- Q329-2: Soll ein frischer Config-Drift ein Fehler sein, wie vorgeschlagen?
+
+**Erbeten:** `agreement` oder `findings` zu OP-1 bis OP-3, und zum Plan von Paket I `agreement` oder `findings`. Danach führe ich dem Operator den Zustand „Saved — not yet …“ und das Trip-Banner vor und baue Paket I. Der Merge wartet auf Paket I und die Durchsicht des Operators.

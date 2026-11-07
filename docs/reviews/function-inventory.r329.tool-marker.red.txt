@@ -1,0 +1,109 @@
+
+Running 3 tests using 1 worker
+
+[1/3] [e2e] › e2e/tool-marker.spec.ts:79:5 › desktop, DPR 1 › the loaded tool's mark sits centred on its T button (desktop, DPR 1)
+  1) [e2e] › e2e/tool-marker.spec.ts:79:5 › desktop, DPR 1 › the loaded tool's mark sits centred on its T button (desktop, DPR 1) 
+
+    Error: T5: the mark's centre − the button's, in layout
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 0.5
+    Received:    1.5
+
+       95 |       if (process.env.TOOL_OUT) writeFileSync(`${process.env.TOOL_OUT}-${touch ? "touch" : "desktop"}-${dpr}.json`, JSON.stringify(rows, null, 1));
+       96 |       for (const r of rows) {
+    >  97 |         expect(Math.abs(r.layout), `T${r.tool}: the mark's centre − the button's, in layout`).toBeLessThanOrEqual(TOL);
+          |                                                                                               ^
+       98 |         expect(r.drawn, `T${r.tool}: the mark is drawn`).not.toBeNull();
+       99 |         expect(Math.abs(r.drawn!), `T${r.tool}: the mark's drawn centre − the button's`).toBeLessThanOrEqual(TOL);
+      100 |       }
+        at /home/cnc/lcnc-suite-g1/lcnc-webui/e2e/tool-marker.spec.ts:97:95
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/tool-marker-desktop-DPR-1--e3b69-its-T-button-desktop-DPR-1--e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/tool-marker-desktop-DPR-1--e3b69-its-T-button-desktop-DPR-1--e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/tool-marker-desktop-DPR-1--e3b69-its-T-button-desktop-DPR-1--e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/tool-marker-desktop-DPR-1--e3b69-its-T-button-desktop-DPR-1--e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[2/3] [e2e] › e2e/tool-marker.spec.ts:79:5 › desktop, DPR 2 › the loaded tool's mark sits centred on its T button (desktop, DPR 2)
+  2) [e2e] › e2e/tool-marker.spec.ts:79:5 › desktop, DPR 2 › the loaded tool's mark sits centred on its T button (desktop, DPR 2) 
+
+    Error: T5: the mark's centre − the button's, in layout
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 0.5
+    Received:    1.5
+
+       95 |       if (process.env.TOOL_OUT) writeFileSync(`${process.env.TOOL_OUT}-${touch ? "touch" : "desktop"}-${dpr}.json`, JSON.stringify(rows, null, 1));
+       96 |       for (const r of rows) {
+    >  97 |         expect(Math.abs(r.layout), `T${r.tool}: the mark's centre − the button's, in layout`).toBeLessThanOrEqual(TOL);
+          |                                                                                               ^
+       98 |         expect(r.drawn, `T${r.tool}: the mark is drawn`).not.toBeNull();
+       99 |         expect(Math.abs(r.drawn!), `T${r.tool}: the mark's drawn centre − the button's`).toBeLessThanOrEqual(TOL);
+      100 |       }
+        at /home/cnc/lcnc-suite-g1/lcnc-webui/e2e/tool-marker.spec.ts:97:95
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/tool-marker-desktop-DPR-2--85d76-its-T-button-desktop-DPR-2--e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/tool-marker-desktop-DPR-2--85d76-its-T-button-desktop-DPR-2--e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/tool-marker-desktop-DPR-2--85d76-its-T-button-desktop-DPR-2--e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/tool-marker-desktop-DPR-2--85d76-its-T-button-desktop-DPR-2--e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[3/3] [e2e] › e2e/tool-marker.spec.ts:79:5 › touch, DPR 1 › the loaded tool's mark sits centred on its T button (touch, DPR 1)
+  3) [e2e] › e2e/tool-marker.spec.ts:79:5 › touch, DPR 1 › the loaded tool's mark sits centred on its T button (touch, DPR 1) 
+
+    Error: T5: the mark's centre − the button's, in layout
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 0.5
+    Received:    1.5
+
+       95 |       if (process.env.TOOL_OUT) writeFileSync(`${process.env.TOOL_OUT}-${touch ? "touch" : "desktop"}-${dpr}.json`, JSON.stringify(rows, null, 1));
+       96 |       for (const r of rows) {
+    >  97 |         expect(Math.abs(r.layout), `T${r.tool}: the mark's centre − the button's, in layout`).toBeLessThanOrEqual(TOL);
+          |                                                                                               ^
+       98 |         expect(r.drawn, `T${r.tool}: the mark is drawn`).not.toBeNull();
+       99 |         expect(Math.abs(r.drawn!), `T${r.tool}: the mark's drawn centre − the button's`).toBeLessThanOrEqual(TOL);
+      100 |       }
+        at /home/cnc/lcnc-suite-g1/lcnc-webui/e2e/tool-marker.spec.ts:97:95
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/tool-marker-touch-DPR-1-th-a1af5-n-its-T-button-touch-DPR-1--e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/tool-marker-touch-DPR-1-th-a1af5-n-its-T-button-touch-DPR-1--e2e/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/tool-marker-touch-DPR-1-th-a1af5-n-its-T-button-touch-DPR-1--e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/tool-marker-touch-DPR-1-th-a1af5-n-its-T-button-touch-DPR-1--e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  3 failed
+    [e2e] › e2e/tool-marker.spec.ts:79:5 › desktop, DPR 1 › the loaded tool's mark sits centred on its T button (desktop, DPR 1) 
+    [e2e] › e2e/tool-marker.spec.ts:79:5 › desktop, DPR 2 › the loaded tool's mark sits centred on its T button (desktop, DPR 2) 
+    [e2e] › e2e/tool-marker.spec.ts:79:5 › touch, DPR 1 › the loaded tool's mark sits centred on its T button (touch, DPR 1) 

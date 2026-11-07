@@ -1,0 +1,156 @@
+
+Running 2 tests using 1 worker
+
+[1/2] [e2e] › e2e/help-icons.spec.ts:108:5 › DPR 1 › every "?": its glyph in one place in its circle, the circle on its text's capitals (DPR 1)
+  1) [e2e] › e2e/help-icons.spec.ts:108:5 › DPR 1 › every "?": its glyph in one place in its circle, the circle on its text's capitals (DPR 1) 
+
+    Error: glyphDx: the glyph moves in its circle — jog frame · Help: Kinematics Frame -0.63, Offsets · Help: Offsets in effect 0.39
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 0.1
+    Received:    1.02
+
+      177 |         const lo = drawn[v.indexOf(Math.min(...v))]!, hi = drawn[v.indexOf(Math.max(...v))]!;
+      178 |         expect.soft(Math.max(...v) - Math.min(...v),
+    > 179 |           `${axis}: the glyph moves in its circle — ${at(lo)} ${lo[axis]}, ${at(hi)} ${hi[axis]}`).toBeLessThanOrEqual(GLYPH_SPREAD);
+          |                                                                                                    ^
+      180 |       }
+      181 |       const off = rows.filter(r => r.vsCap === null || Math.abs(r.vsCap) > CAP_TOL);
+      182 |       expect(off.map(r => `${at(r)}: ${r.vsCap === null ? "no text found" : `${r.vsCap} px below the capitals' middle`}`),
+        at /home/cnc/lcnc-suite-g1/lcnc-webui/e2e/help-icons.spec.ts:179:100
+
+    Error: glyphDy: the glyph moves in its circle — Offsets · Help: Offsets in effect -1.53, strips · Help: Go to positions -0.04
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 0.1
+    Received:    1.49
+
+      177 |         const lo = drawn[v.indexOf(Math.min(...v))]!, hi = drawn[v.indexOf(Math.max(...v))]!;
+      178 |         expect.soft(Math.max(...v) - Math.min(...v),
+    > 179 |           `${axis}: the glyph moves in its circle — ${at(lo)} ${lo[axis]}, ${at(hi)} ${hi[axis]}`).toBeLessThanOrEqual(GLYPH_SPREAD);
+          |                                                                                                    ^
+      180 |       }
+      181 |       const off = rows.filter(r => r.vsCap === null || Math.abs(r.vsCap) > CAP_TOL);
+      182 |       expect(off.map(r => `${at(r)}: ${r.vsCap === null ? "no text found" : `${r.vsCap} px below the capitals' middle`}`),
+        at /home/cnc/lcnc-suite-g1/lcnc-webui/e2e/help-icons.spec.ts:179:100
+
+    Error: every circle on its text's capitals
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "Offsets · Help: Offsets in effect: 1 px below the capitals' middle",
+    + ]
+
+      181 |       const off = rows.filter(r => r.vsCap === null || Math.abs(r.vsCap) > CAP_TOL);
+      182 |       expect(off.map(r => `${at(r)}: ${r.vsCap === null ? "no text found" : `${r.vsCap} px below the capitals' middle`}`),
+    > 183 |         "every circle on its text's capitals").toEqual([]);
+          |                                                ^
+      184 |     });
+      185 |   });
+      186 | }
+        at /home/cnc/lcnc-suite-g1/lcnc-webui/e2e/help-icons.spec.ts:183:48
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/help-icons-DPR-1-every-its-740ff--its-text-s-capitals-DPR-1--e2e/test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/help-icons-DPR-1-every-its-740ff--its-text-s-capitals-DPR-1--e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/help-icons-DPR-1-every-its-740ff--its-text-s-capitals-DPR-1--e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/help-icons-DPR-1-every-its-740ff--its-text-s-capitals-DPR-1--e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/help-icons-DPR-1-every-its-740ff--its-text-s-capitals-DPR-1--e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[2/2] [e2e] › e2e/help-icons.spec.ts:108:5 › DPR 2 › every "?": its glyph in one place in its circle, the circle on its text's capitals (DPR 2)
+  2) [e2e] › e2e/help-icons.spec.ts:108:5 › DPR 2 › every "?": its glyph in one place in its circle, the circle on its text's capitals (DPR 2) 
+
+    Error: glyphDx: the glyph moves in its circle — Probing/Ridge/Valley · Help: X Hint -0.72, Settings/3D Viewer · Help: Tool Setter -0.19
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 0.1
+    Received:    0.53
+
+      177 |         const lo = drawn[v.indexOf(Math.min(...v))]!, hi = drawn[v.indexOf(Math.max(...v))]!;
+      178 |         expect.soft(Math.max(...v) - Math.min(...v),
+    > 179 |           `${axis}: the glyph moves in its circle — ${at(lo)} ${lo[axis]}, ${at(hi)} ${hi[axis]}`).toBeLessThanOrEqual(GLYPH_SPREAD);
+          |                                                                                                    ^
+      180 |       }
+      181 |       const off = rows.filter(r => r.vsCap === null || Math.abs(r.vsCap) > CAP_TOL);
+      182 |       expect(off.map(r => `${at(r)}: ${r.vsCap === null ? "no text found" : `${r.vsCap} px below the capitals' middle`}`),
+        at /home/cnc/lcnc-suite-g1/lcnc-webui/e2e/help-icons.spec.ts:179:100
+
+    Error: glyphDy: the glyph moves in its circle — Offsets · Help: Offsets in effect -0.89, Probing/Calibrate · Help: Diameter 0.13
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 0.1
+    Received:    1.02
+
+      177 |         const lo = drawn[v.indexOf(Math.min(...v))]!, hi = drawn[v.indexOf(Math.max(...v))]!;
+      178 |         expect.soft(Math.max(...v) - Math.min(...v),
+    > 179 |           `${axis}: the glyph moves in its circle — ${at(lo)} ${lo[axis]}, ${at(hi)} ${hi[axis]}`).toBeLessThanOrEqual(GLYPH_SPREAD);
+          |                                                                                                    ^
+      180 |       }
+      181 |       const off = rows.filter(r => r.vsCap === null || Math.abs(r.vsCap) > CAP_TOL);
+      182 |       expect(off.map(r => `${at(r)}: ${r.vsCap === null ? "no text found" : `${r.vsCap} px below the capitals' middle`}`),
+        at /home/cnc/lcnc-suite-g1/lcnc-webui/e2e/help-icons.spec.ts:179:100
+
+    Error: every circle on its text's capitals
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "Offsets · Help: Offsets in effect: 1 px below the capitals' middle",
+    + ]
+
+      181 |       const off = rows.filter(r => r.vsCap === null || Math.abs(r.vsCap) > CAP_TOL);
+      182 |       expect(off.map(r => `${at(r)}: ${r.vsCap === null ? "no text found" : `${r.vsCap} px below the capitals' middle`}`),
+    > 183 |         "every circle on its text's capitals").toEqual([]);
+          |                                                ^
+      184 |     });
+      185 |   });
+      186 | }
+        at /home/cnc/lcnc-suite-g1/lcnc-webui/e2e/help-icons.spec.ts:183:48
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/help-icons-DPR-2-every-its-0face--its-text-s-capitals-DPR-2--e2e/test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/help-icons-DPR-2-every-its-0face--its-text-s-capitals-DPR-2--e2e/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/help-icons-DPR-2-every-its-0face--its-text-s-capitals-DPR-2--e2e/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/help-icons-DPR-2-every-its-0face--its-text-s-capitals-DPR-2--e2e/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/help-icons-DPR-2-every-its-0face--its-text-s-capitals-DPR-2--e2e/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [e2e] › e2e/help-icons.spec.ts:108:5 › DPR 1 › every "?": its glyph in one place in its circle, the circle on its text's capitals (DPR 1) 
+    [e2e] › e2e/help-icons.spec.ts:108:5 › DPR 2 › every "?": its glyph in one place in its circle, the circle on its text's capitals (DPR 2) 
