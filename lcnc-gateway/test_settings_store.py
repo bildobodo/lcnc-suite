@@ -286,6 +286,28 @@ class TestDevices(_Base):
         [d] = self.store.list_devices()
         self.assertTrue(d["changed"])
 
+    def test_a_rename_is_a_change_too(self):
+        # R337's "never changed" = no write accepted for it (Codex R338)
+        pid, _ = self.store.bind(TOK_A, None)
+        self.store.rename_device(pid, "Panel")
+        [d] = self.store.list_devices()
+        self.assertTrue(d["changed"])
+
+    def test_the_binding_is_claimed_under_the_stores_lock(self):
+        # R338 SS-I04: the connection holds the profile before a delete can ask
+        held = []
+        pid, _ = self.store.bind(TOK_A, None, claim=lambda p: held.append((p, self.store._lock.locked())))
+        self.assertEqual(held, [(pid, True)])
+
+    def test_a_delete_before_the_bind_gives_a_new_profile_named_new(self):
+        pid, _ = self.store.bind(TOK_A, None)
+        self.store.delete_device(pid)
+        claimed = []
+        pid2, created = self.store.bind(TOK_A, None, claim=claimed.append)
+        self.assertTrue(created)
+        self.assertEqual(claimed, [pid2])
+        self.assertEqual(self.store.find_device(TOK_A), pid2)
+
     def test_reset_device_returns_the_template_with_simulation_off_and_keeps_the_name(self):
         pid, _ = self.store.bind(TOK_A, None)
         self.store.rename_device(pid, "Laptop")

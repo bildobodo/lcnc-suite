@@ -173,7 +173,7 @@ const _revs: Record<string, number> = {};
  *  its public id and name; `id` null = not bound (the browser's storage is
  *  unusable, or before the hello's settings arrived) — the template's view,
  *  no device section saves. */
-export interface DeviceInfo { id: string | null; name: string }
+export interface DeviceInfo { id: string | null; name: string; created?: boolean }
 export const deviceInfo = ref<DeviceInfo>({ id: null, name: "" });
 
 /** Bumped when the gateway says the device LIST changed (a profile made,
@@ -189,9 +189,49 @@ function takeServerMeta(revs: unknown, device: unknown): void {
     }
   }
   if (device && typeof device === "object") {
-    const d = device as { id?: unknown; name?: unknown };
-    deviceInfo.value = { id: typeof d.id === "string" ? d.id : null, name: typeof d.name === "string" ? d.name : "" };
+    const d = device as { id?: unknown; name?: unknown; created?: unknown };
+    deviceInfo.value = { id: typeof d.id === "string" ? d.id : null, name: typeof d.name === "string" ? d.name : "",
+                         ...(d.created === true ? { created: true } : {}) };
   }
+}
+
+/** This tab's OWN saves on their way: the request id → the section, the
+ *  ledger revision it carries (settingsSaveStatus) and the binding it went
+ *  out under. A reply moves this tab's settings ONLY through here (Codex
+ *  R338 SS-I01: a save into ANOTHER device's profile — Settings › Devices,
+ *  through request() — answered with that profile's revision and state, and
+ *  the generic reply path wrote them into this tab's own). */
+const _ownSaves = new Map<string, { section: string; ledgerRev: number; gen: number }>();
+/** The binding this tab's settings belong to: a renewed binding (another
+ *  device profile, R336) starts a new generation — nothing of the old one
+ *  applies after it (R338 SS-I02). */
+let _bindingGen = 0;
+export function bindingGeneration(): number { return _bindingGen; }
+
+/** The old binding ends NOW (R338 SS-I02): its settings stop acting —
+ *  nothing is saved, the simulation stops (simulationOn reads
+ *  serverSettingsReady) — until the NEW connection's settings arrive; the
+ *  replies to its saves no longer move anything. */
+export function invalidateServerSettings(): void {
+  _bindingGen++;
+  _ownSaves.clear();
+  serverSettingsReady.value = false;
+  deviceInfo.value = { id: null, name: "" };
+  settingsVersion.value++;
+}
+
+/** A reply to a save. Only this tab's OWN save of the current binding moves
+ *  its settings (SS-I01/SS-I02): ok → the section's new revision; stale →
+ *  the server's state, where it is not older than what the tab knows
+ *  (SS-I03). Returns whether it was one. */
+export function noteOwnSaveReply(reqId: string, reply: { ok?: unknown; rev?: unknown; stale?: unknown; data?: unknown }): boolean {
+  const own = _ownSaves.get(reqId);
+  if (!own) return false;
+  _ownSaves.delete(reqId);
+  if (own.gen !== _bindingGen) return false;
+  if (reply.ok !== false) noteSectionRev(own.section, reply.rev);
+  else if (reply.stale === true) applyStale(own.section, reply.data, reply.rev, own.ledgerRev);
+  return true;
 }
 
 /** A save's reply named the section's new revision. */
@@ -252,14 +292,21 @@ export function updateServerCache(data: Record<string, any>, revs?: unknown, dev
 }
 
 /** A save was refused as STALE (SS334-06): another writer changed the
- *  section since its change was made. The reply carries the server's
- *  current state — shown at once, the change dropped (never retried). */
-export function applyStaleSection(section: string, data: unknown, rev: unknown): void {
-  const all = readAll();
-  if (data === undefined || data === null) { delete all[section]; delete _confirmed[section]; }
-  else { all[section] = data; _confirmed[section] = data; }
-  _drafts.delete(section);
-  noteSectionRev(section, rev);
+ *  section since its change was made. The reply carries the server's state
+ *  at its revision — taken only where the tab knows nothing newer (R338
+ *  SS-I03: an old refusal overwrote a newer snapshot and left content and
+ *  revision apart). The refused change goes (never retried) — unless the
+ *  tab made a NEWER change of the section since (`ledgerRev` < the ledger's
+ *  revision): that one stays shown, and its own save answers for it. */
+function applyStale(section: string, data: unknown, rev: unknown, ledgerRev: number): void {
+  if (typeof rev !== "number" || !Number.isInteger(rev) || rev < (_revs[section] ?? 0)) return;
+  _revs[section] = rev;
+  if (data === undefined || data === null) delete _confirmed[section]; else _confirmed[section] = data;
+  if (sectionRev(section) <= ledgerRev) {
+    const all = readAll();
+    if (data === undefined || data === null) delete all[section]; else all[section] = data;
+    _drafts.delete(section);
+  }
   settingsVersion.value++;
 }
 
@@ -340,6 +387,7 @@ export function resetSettingsForTests(): void {
   _drafts.clear();
   _cache = null;
   _confirmed = {};
+  _ownSaves.clear();
   for (const k of Object.keys(_revs)) delete _revs[k];
   deviceInfo.value = { id: null, name: "" };
   serverSettingsReady.value = false;
@@ -407,7 +455,10 @@ export function saveSection(key: string, data: any): void {
     if (_settingsSaver) {
       const reqId = _settingsSaver(key, data, base);  // registered by lcncWs (avoids the import cycle)
       if (reqId === null) noteSaveFailed(key, "not connected");
-      else noteSaveSent(key, reqId);
+      else {
+        noteSaveSent(key, reqId);
+        _ownSaves.set(reqId, { section: key, ledgerRev: sectionRev(key), gen: _bindingGen });
+      }
     } else {
       // No silent drop: lcncWs registers at module load, so this "can't happen" —
       // which is exactly why it must be loud if it does (the save would vanish).

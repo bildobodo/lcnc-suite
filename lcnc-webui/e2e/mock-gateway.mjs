@@ -290,6 +290,12 @@ wss.on("connection", (ws) => {
     // "silent": a gateway that does not answer (yet) — the scripted slow read
     if (cmd && replies[cmd] === "silent") { /* no reply */ }
     else if (cmd && replies[cmd]) ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ...replies[cmd] }));
+    else if (cmd === "save_settings" && settingsEcho && typeof msg.device === "string" && msg.device !== MOCK_DEVICE.id) {
+      // ANOTHER device's profile (Settings › Devices): its reply names it,
+      // nothing here changes (the gateway's contract, R338 SS-I01)
+      ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, section: msg.section,
+                               device: msg.device, rev: 1 }));
+    }
     else if (cmd === "save_settings" && settingsEcho && typeof msg.section === "string") {
       settingsStore = { ...settingsStore, [msg.section]: msg.data };
       settingsRevs[msg.section] = (settingsRevs[msg.section] ?? 0) + 1;

@@ -19,7 +19,7 @@ import {
   deviceInfo, devicesVersion, loadSimulationDefaults, loadSimulationDraft, saveSimulationDefaults,
   settingsVersion,
 } from "./defaults";
-import { deviceStorage } from "./deviceToken";
+import { deviceStorage, deviceTokenFresh } from "./deviceToken";
 import { fetchDevices, type DeviceRow } from "./lcncApi";
 import { request } from "./lcncWs";
 import { NO_VALUE } from "./format";
@@ -34,6 +34,9 @@ watch([settingsVersion, () => deviceInfo.value.name], () => {
   name.value = deviceInfo.value.name;
 });
 const bound = computed(() => deviceInfo.value.id !== null);
+/** The gateway made this browser's profile though it had a stored token: the
+ *  earlier one was removed (R337 — a first start is no news). */
+const recreated = computed(() => deviceInfo.value.created === true && !deviceTokenFresh());
 const unboundWhy = computed(() => deviceStorage() === "failed"
   ? "Browser storage unavailable — this device's settings are not saved"
   : "Device not bound yet — reconnecting");
@@ -127,6 +130,7 @@ async function confirmAsk() {
       <div class="sub">This Device</div>
       <div class="settingDesc">How this browser looks, its macro bar and its simulation are its own. A new device starts without the simulation.</div>
       <div v-if="!bound" class="statusNote warn" role="status" data-device-unbound>{{ unboundWhy }}</div>
+      <div v-else-if="recreated" class="statusNote warn" role="status" data-device-recreated>This browser's earlier profile was removed — it started as a new device</div>
       <template v-else>
         <div class="formGrid">
           <FormField label="Name">

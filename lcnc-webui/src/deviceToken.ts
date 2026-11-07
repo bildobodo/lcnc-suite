@@ -20,6 +20,10 @@ export type DeviceStorage = "ok" | "failed";
 
 let _token: string | null = null;
 let _storage: DeviceStorage = "ok";
+/** The token was made by THIS page load (a first start) — a profile the
+ *  gateway makes for it is no news; for a stored one it means the profile
+ *  was removed (R337: said so). */
+let _fresh = false;
 let _listening = false;
 let _onRebind: ((token: string) => void) | null = null;
 
@@ -40,6 +44,7 @@ export function newDeviceToken(): string {
 function readOrMake(): string | null {
   let t = localStorage.getItem(KEY);
   if (valid(t)) return t;
+  _fresh = true;
   localStorage.setItem(KEY, newDeviceToken());
   t = localStorage.getItem(KEY);
   return valid(t) ? t : null;
@@ -88,6 +93,11 @@ export function deviceStorage(): DeviceStorage {
   return _storage;
 }
 
+/** Was the token made by this page load? */
+export function deviceTokenFresh(): boolean {
+  return _fresh;
+}
+
 /** Called with the new token when this tab must bind to another profile. */
 export function onDeviceRebind(fn: (token: string) => void): void {
   _onRebind = fn;
@@ -99,5 +109,6 @@ export function resetDeviceTokenForTests(): void {
   _listening = false;
   _token = null;
   _storage = "ok";
+  _fresh = false;
   _onRebind = null;
 }

@@ -366,6 +366,10 @@ watch(() => messages.value.length, (newLen, oldLen) => {
 });
 
 /** ---------- content tab definitions ---------- */
+// The tab list follows the switch only once no press it could move is in
+// progress (heldThroughPress, the input session's contract) — the
+// simulation's WORK stops at once (ThreeViewer reads simulationOn itself).
+const simTabShown = heldThroughPress(() => simulationOn.value, () => false);
 // The Sim tab is there only on a device whose simulation is on (settings
 // split package 2): off, it is gone — not dimmed (operator OP2: a cleaner UI).
 const contentTabs = computed(() => [
@@ -375,12 +379,13 @@ const contentTabs = computed(() => [
   { id: "offsets", label: "Offsets" },
   { id: "tools", label: "Tools" },
   { id: "macros", label: "Macros" },
-  ...(simulationOn.value ? [{ id: "sim", label: "Sim" }] : []),
+  ...(simTabShown.value ? [{ id: "sim", label: "Sim" }] : []),
 ]);
 
 const activeTab = ref("gcode");
-// The Sim tab left while it was shown: the Program tab takes its place.
-watch(simulationOn, on => { if (!on && activeTab.value === "sim") activeTab.value = "gcode"; });
+// The Sim tab left while it was shown: the Program tab takes its place (the
+// tab list hands the focus over — TabPanel).
+watch(simTabShown, on => { if (!on && activeTab.value === "sim") activeTab.value = "gcode"; });
 // Leaving the Macros tab over a draft (a macro file's edit, an earlier
 // macro's form) asks first, like the tool editor (package 5): every switch
 // goes through here — the tab list, the narrow select, the Tool Table button.

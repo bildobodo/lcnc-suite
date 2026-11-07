@@ -147,5 +147,76 @@ class TestDeviceBinding(unittest.TestCase):
         self.assertIn(b_id, [d["id"] for d in self.store.list_devices()])
 
 
+class TestBindAndDelete(unittest.TestCase):
+    """R338 SS-I04: a bound connection always points at a stored profile —
+    the binding is claimed under the store's lock, so a delete either sees
+    the connection (refused) or ran before (the bind makes a NEW profile and
+    says so once)."""
+
+    def setUp(self):
+        d = tempfile.TemporaryDirectory()
+        self.addCleanup(d.cleanup)
+        self.store = SettingsStore(Path(d.name, "settings.json"), lambda: "dev.ini")
+        p = unittest.mock.patch.object(gateway, "_settings_store", self.store)
+        p.start()
+        self.addCleanup(p.stop)
+        saved = dict(gateway._clients)
+        self.addCleanup(lambda: (gateway._clients.clear(), gateway._clients.update(saved)))
+        gateway._clients.clear()
+        self.admin = gateway.ClientState(ip="a", ws=None, armed=True)
+        gateway._clients[1] = self.admin
+
+    def _bind(self, client):
+        import asyncio
+        asyncio.run(gateway._bind_device(client, 2, "10.0.0.7", {"device_token": TOK_B}))
+
+    def test_a_delete_after_the_bind_is_refused(self):
+        old, _ = self.store.bind(TOK_B, None)
+        c = gateway.ClientState(ip="b", ws=None)
+        gateway._clients[2] = c
+        real = self.store.bind
+        seen = []
+
+        def bind(token, address, claim=None):
+            def claim_then_try_delete(pid):
+                claim(pid)
+                # inside the lock, right after the claim: the delete's
+                # admission (asked under the same lock) sees the connection
+                seen.append(any(x.device_id == pid for x in gateway._clients.values()))
+            return real(token, address, claim_then_try_delete)
+        with unittest.mock.patch.object(self.store, "bind", bind):
+            self._bind(c)
+        self.assertEqual(seen, [True])
+        import asyncio
+        r = asyncio.run(gateway._ws_device_command(self.admin, {"cmd": "device_delete", "device": old}))
+        self.assertEqual((r["ok"], r["error"]), (False, gateway.DEVICE_CONNECTED))
+        self.assertEqual(self.store.find_device(TOK_B), c.device_id)
+
+    def test_a_delete_before_the_bind_gives_a_new_profile_and_says_so(self):
+        import asyncio
+        old, _ = self.store.bind(TOK_B, None)
+        r = asyncio.run(gateway._ws_device_command(self.admin, {"cmd": "device_delete", "device": old}))
+        self.assertTrue(r["ok"], r)
+        c = gateway.ClientState(ip="b", ws=None)
+        gateway._clients[2] = c
+        self._bind(c)
+        self.assertNotEqual(c.device_id, old)
+        self.assertEqual(self.store.find_device(TOK_B), c.device_id)
+        self.assertTrue(c.device_created)
+        self.assertEqual(settings_view_id(c.device_id), c.device_id)
+
+    def test_a_connection_gone_during_its_bind_holds_nothing(self):
+        old, _ = self.store.bind(TOK_B, None)
+        c = gateway.ClientState(ip="b", ws=None)   # never registered: it left during the bind
+        self._bind(c)
+        import asyncio
+        r = asyncio.run(gateway._ws_device_command(self.admin, {"cmd": "device_delete", "device": old}))
+        self.assertTrue(r["ok"], "a profile no live connection holds may go")
+
+
+def settings_view_id(pid):
+    return gateway.settings_view(pid)["device"]["id"]
+
+
 if __name__ == "__main__":
     unittest.main()

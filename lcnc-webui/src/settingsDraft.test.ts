@@ -11,8 +11,8 @@ import {
   saveKeyboardDefaults, loadKeyboardDefaults, loadKeyboardDraft, DEFAULT_KB_MAPPING,
   saveMachineDefaults, loadMachineDefaults, loadMachineDraft,
   saveDisplayDefaults, loadDisplayDefaults, savedSection, isProtectedSection, FREE_SECTIONS,
-  saveSimulationDefaults, loadSimulationDefaults, loadSimulationDraft, noteSectionRev, applyStaleSection,
-  dropPendingSaves, actsWhenConfirmed, deviceInfo,
+  saveSimulationDefaults, loadSimulationDefaults, loadSimulationDraft, noteOwnSaveReply,
+  dropPendingSaves, actsWhenConfirmed, deviceInfo, invalidateServerSettings, simulationOn, serverSettingsReady,
   type KeyboardDefaults,
 } from "./defaults";
 import { noteSaveReply, resetSaveStatusForTests, sectionSaveState } from "./settingsSaveStatus";
@@ -161,29 +161,83 @@ describe("device profiles (settings split, R335–R337)", () => {
     expect(loadSimulationDefaults().enabled).toBe(true);
   });
 
-  it("a save names the revision its change was made on; the reply's becomes the next base", () => {
+  it("a save names the revision its change was made on; its reply's becomes the next base", () => {
     saveDisplayDefaults({ ...loadDisplayDefaults(), theme: "dark" });
-    expect(flush()).toMatchObject({ section: "display", base: 2 });
-    noteSectionRev("display", 3);
+    const a = flush();
+    expect(a).toMatchObject({ section: "display", base: 2 });
+    expect(noteOwnSaveReply(a.reqId, { ok: true, rev: 3 })).toBe(true);
     saveDisplayDefaults({ ...loadDisplayDefaults(), theme: "light" });
-    expect(flush()).toMatchObject({ section: "display", base: 3 });
-    noteSectionRev("display", 1);             // an older revision never goes back
+    const b = flush();
+    expect(b.base).toBe(3);
+    noteOwnSaveReply(b.reqId, { ok: true, rev: 1 });   // an older revision never goes back
     saveDisplayDefaults({ ...loadDisplayDefaults(), theme: "dark" });
     expect(flush().base).toBe(3);
   });
 
   it("a stale refusal shows the server's state at once and drops the change", () => {
     saveSimulationDefaults({ enabled: true });
-    flush();
-    applyStaleSection("simulation", { enabled: false }, 5);
+    const a = flush();
+    noteOwnSaveReply(a.reqId, { ok: false, stale: true, data: { enabled: false }, rev: 5 });
     expect(loadSimulationDraft().enabled).toBe(false);
     expect(loadSimulationDefaults().enabled).toBe(false);
     saveSimulationDefaults({ enabled: true });
     expect(flush().base).toBe(5);
     // a section the server holds none of: gone from the tab as well
     saveDisplayDefaults({ ...loadDisplayDefaults(), theme: "dark" });
-    applyStaleSection("display", null, 7);
+    const d = flush();
+    noteOwnSaveReply(d.reqId, { ok: false, stale: true, data: null, rev: 7 });
     expect(savedSection("display")).toBeUndefined();
+  });
+
+  // Codex R338 SS-I01: a save into ANOTHER device's profile (Settings ›
+  // Devices, through request()) is not this tab's: its reply moves nothing here.
+  it("another device's reply — ok or stale — never moves this tab's own settings", () => {
+    expect(noteOwnSaveReply("foreign-1", { ok: true, rev: 5 })).toBe(false);
+    expect(noteOwnSaveReply("foreign-2", { ok: false, stale: true, data: { enabled: true }, rev: 9 })).toBe(false);
+    expect(loadSimulationDefaults().enabled).toBe(false);
+    expect(simulationOn.value).toBe(false);
+    saveSimulationDefaults({ enabled: false });
+    expect(flush().base, "the own revision, unchanged").toBe(0);
+  });
+
+  // SS-I03: an OLDER refusal never overwrites what the tab knows newer.
+  it("an older stale reply after a newer snapshot changes nothing; a newer draft stays", () => {
+    saveSimulationDefaults({ enabled: true });
+    const first = flush();
+    // the newer snapshot: off at revision 2
+    updateServerCache({ keyboard: SERVER_KB, simulation: { enabled: false } }, { keyboard: 4, display: 2, simulation: 2 },
+                      { id: "dev-test", name: "" });
+    noteOwnSaveReply(first.reqId, { ok: false, stale: true, data: { enabled: true }, rev: 1 });
+    expect(loadSimulationDefaults().enabled, "content and revision stay one state").toBe(false);
+    saveSimulationDefaults({ enabled: false });
+    expect(flush().base).toBe(2);
+    // a second draft made after the newer state; the first save's late refusal keeps it
+    saveDisplayDefaults({ ...loadDisplayDefaults(), theme: "dark" });
+    const d1 = flush();
+    saveDisplayDefaults({ ...loadDisplayDefaults(), theme: "light" });
+    noteOwnSaveReply(d1.reqId, { ok: false, stale: true, data: { theme: "auto" }, rev: 3 });
+    expect(loadDisplayDefaults().theme, "the newer draft stays shown — its own save answers for it").toBe("light");
+    expect(flush()).toMatchObject({ section: "display", data: expect.objectContaining({ theme: "light" }) });
+  });
+
+  // SS-I02: a renewed binding ends the old one AT ONCE.
+  it("a renewed binding: nothing acts, nothing saves, an old reply moves nothing", () => {
+    updateServerCache({ keyboard: SERVER_KB, simulation: { enabled: true } }, { simulation: 1 }, { id: "dev-test", name: "" });
+    expect(simulationOn.value).toBe(true);
+    saveDisplayDefaults({ ...loadDisplayDefaults(), theme: "dark" });
+    const old = flush();
+    invalidateServerSettings();
+    expect(serverSettingsReady.value).toBe(false);
+    expect(simulationOn.value, "no simulation work before the new binding's settings").toBe(false);
+    expect(deviceInfo.value.id).toBeNull();
+    expect(noteOwnSaveReply(old.reqId, { ok: true, rev: 9 })).toBe(false);
+    sent.length = 0;
+    saveDisplayDefaults({ ...loadDisplayDefaults(), theme: "light" });
+    vi.advanceTimersByTime(300);
+    expect(sent, "no save with the old binding's values").toEqual([]);
+    updateServerCache({ keyboard: SERVER_KB, simulation: { enabled: false } }, { simulation: 0 }, { id: "dev-b", name: "" });
+    expect(simulationOn.value).toBe(false);
+    expect(deviceInfo.value.id).toBe("dev-b");
   });
 
   it("a tab not bound to a device saves no device section — a machine section still goes", () => {

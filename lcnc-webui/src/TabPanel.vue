@@ -36,14 +36,29 @@ function onSelect(v: unknown) {
     if (el && el.value !== props.modelValue) el.value = props.modelValue;
   });
 }
+/** The navigation's own control now: the select (narrow) or the selected tab. */
+function focusNavigation() {
+  const el = props.narrow
+    ? navArea.value?.querySelector<HTMLElement>("select")
+    : navArea.value?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+  el?.focus();
+}
 watch(() => props.narrow, () => {
   if (!navArea.value?.contains(document.activeElement)) return;
-  void nextTick(() => {
-    const el = props.narrow
-      ? navArea.value?.querySelector<HTMLElement>("select")
-      : navArea.value?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
-    el?.focus();
+  void nextTick(focusNavigation);
+}, { flush: "pre" });
+// A tab that GOES (a device's simulation switched off — settings split): a
+// focus in its tab or in its pane would be left on body, where an arrow jogs
+// (Codex R338 SS-I05) — it comes to the navigation; a focus elsewhere stays.
+watch(() => props.tabs.map(t => t.id), (ids, old) => {
+  const gone = (old ?? []).filter(id => !ids.includes(id));
+  const a = document.activeElement;
+  if (!gone.length || !a) return;
+  const held = gone.some(id => {
+    const t = tabIds(base, id);
+    return !!(document.getElementById(t.tab)?.contains(a) || document.getElementById(t.panel)?.contains(a));
   });
+  if (held) void nextTick(focusNavigation);
 }, { flush: "pre" });
 </script>
 

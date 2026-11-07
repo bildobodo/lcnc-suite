@@ -4030,8 +4030,10 @@ async def _bind_device(client, client_id, address: str, msg: Dict[str, Any]) -> 
     if token is None:
         _trace.emit("device.unbound", client_id=client_id, reason=str(msg.get("device_storage") or "no token")[:40])
         return
+    def claim(pid: str) -> None:
+        client.device_id = pid     # under the store's lock: a delete sees it (R338 SS-I04)
     try:
-        client.device_id, created = await asyncio.to_thread(_settings_store.bind, token, address)
+        _pid, created = await asyncio.to_thread(_settings_store.bind, token, address, claim)
     except ValueError:
         _trace.emit("device.token_malformed", level="warn", client_id=client_id)
         return
@@ -4039,11 +4041,12 @@ async def _bind_device(client, client_id, address: str, msg: Dict[str, Any]) -> 
         _trace.emit("device.bind_failed", level="warn", client_id=client_id,
                     exc=type(e).__name__, msg=str(e))
         return
+    client.device_created = created
     _note_device_presence()
     _trace.emit("device.bound", client_id=client_id, device=client.device_id, created=created)
 
 
-async def _send_settings_view(ws, client, kind: str) -> None:
+async def _send_settings_view(ws, client, kind: str, created: bool = False) -> None:
     """This connection's settings view — the machine's sections and its
     device's — as `settings_init` / `settings_changed`; remembered, so the
     status loop pushes only a CHANGED view (a device's change reaches only
@@ -4054,8 +4057,11 @@ async def _send_settings_view(ws, client, kind: str) -> None:
         _trace.emit("settings.view_failed", level="warn", exc=type(e).__name__, msg=str(e))
         return
     client.settings_sent = json.dumps(view, sort_keys=True)
+    device = dict(view["device"])
+    if created:
+        device["created"] = True   # made by THIS hello: a browser that had one sees it was removed
     await ws_send_json(ws, {"type": kind, "settings": view["settings"], "revs": view["revs"],
-                            "device": view["device"], "armed": client.armed})
+                            "device": device, "armed": client.armed})
 
 
 def _settings_refusal(echo: Dict[str, Any], error: str, **extra) -> Dict[str, Any]:
@@ -4089,22 +4095,25 @@ async def _ws_save_settings(client, msg: Dict[str, Any]) -> Dict[str, Any]:
             return _settings_refusal(echo, DEVICE_UNKNOWN, section=section)
     elif want is not None:
         return _settings_refusal(echo, f"{section} is the machine's, not a device's", section=section)
+    # every answer names its target (R338 SS-I01): the section and the
+    # profile it went to — None = the machine's
+    tgt = {"section": section, "device": target}
     try:
         rev = await asyncio.to_thread(
             save_settings_section, section, msg.get("data"),
             _settings_admission(section, client.conn_key, foreign=foreign),
             device=target, base_rev=msg.get("base_rev"), writer=client.conn_key)
     except _SettingsStale as st:
-        return _settings_refusal(echo, str(st), section=section, stale=True, data=st.data, rev=st.rev)
+        return _settings_refusal(echo, str(st), stale=True, data=st.data, rev=st.rev, **tgt)
     except PermissionError as pe:
-        return _settings_refusal(echo, str(pe), section=section)
+        return _settings_refusal(echo, str(pe), **tgt)
     except _UnknownDevice:
-        return _settings_refusal(echo, DEVICE_UNKNOWN, section=section)
+        return _settings_refusal(echo, DEVICE_UNKNOWN, **tgt)
     except ValueError as ve:
-        return _settings_refusal(echo, str(ve), section=section)
+        return _settings_refusal(echo, str(ve), **tgt)
     except Exception as se:
-        return _settings_refusal(echo, f"{type(se).__name__}: {se}", section=section)
-    return {"type": "reply", "ok": True, "section": section, "rev": rev, **echo}
+        return _settings_refusal(echo, f"{type(se).__name__}: {se}", **tgt)
+    return {"type": "reply", "ok": True, "rev": rev, **tgt, **echo}
 
 
 async def _ws_device_command(client, msg: Dict[str, Any]) -> Dict[str, Any]:
@@ -10825,7 +10834,8 @@ async def ws_endpoint(ws: WebSocket):
                 # every hello on it.
                 await ws_send_json(ws, {"type": "reply", "ok": True, "armed": client.armed,
                                         "conn_key": client.conn_key})
-                await _send_settings_view(ws, client, "settings_init")
+                await _send_settings_view(ws, client, "settings_init", created=client.device_created)
+                client.device_created = False
                 continue
 
             if msg.get("cmd") == "safety_trip_ack":

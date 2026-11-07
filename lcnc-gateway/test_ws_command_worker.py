@@ -574,7 +574,8 @@ class TestReqIdEcho(unittest.TestCase):
         view = {"settings": {}, "revs": {}, "device": {"id": "dev-w", "name": ""}}
         try:
             with _Harness(), \
-                    unittest.mock.patch.object(gateway._settings_store, "bind", lambda tok, addr: ("dev-w", False)), \
+                    unittest.mock.patch.object(gateway._settings_store, "bind",
+                                              lambda tok, addr, claim=None: (claim and claim("dev-w"), ("dev-w", False))[1]), \
                     unittest.mock.patch.object(gateway, "settings_view", lambda dev: view):
                 with TestClient(gateway.app) as client:
                     with client.websocket_connect("/ws") as ws:

@@ -274,12 +274,18 @@ class SettingsStore:
 
     # ---- writes -------------------------------------------------------
 
-    def bind(self, token: str, address: Optional[str]) -> Tuple[str, bool]:
+    def bind(self, token: str, address: Optional[str],
+             claim: Optional[Callable[[str], None]] = None) -> Tuple[str, bool]:
         """The profile of a connecting device: its public id and whether it
         was made now. An unknown token makes a NEW profile from the template
         (simulation off); a known one records the connect (last seen, last
-        address). Raises ValueError for a malformed token, the write's error
-        when the file cannot be written (the client then stays unbound)."""
+        address). `claim(pid)` runs under this lock right after the write —
+        the connection holds the profile from then on, and a delete (whose
+        admission asks who holds it, under the same lock) sees it (Codex R338
+        SS-I04: the binding used to land after the lock, and a delete in the
+        gap left a bound connection without a profile). Raises ValueError for
+        a malformed token, the write's error when the file cannot be written
+        (the client then stays unbound)."""
         if not valid_token(token):
             raise ValueError("malformed device token")
         with self._lock:
@@ -300,6 +306,8 @@ class SettingsStore:
             p["last_seen"] = _now()
             p["last_address"] = address if isinstance(address, str) else None
             self._save_all(all_data)
+            if claim is not None:
+                claim(pid)
             self.devices_version += 1
             return pid, created
 
@@ -410,6 +418,7 @@ class SettingsStore:
             if profile is None:
                 raise UnknownDevice(device)
             profile["name"] = name
+            profile["changed"] = True     # a rename is a write accepted for it (R337 "never changed")
             if admit is not None:
                 admit()
             self._save_all(all_data)

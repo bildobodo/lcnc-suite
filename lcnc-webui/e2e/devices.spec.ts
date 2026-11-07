@@ -106,3 +106,25 @@ test("this device's name is saved without arm", async ({ page }) => {
     .toEqual([expect.objectContaining({ name: "Machine panel" })]);
   await expect(settings.locator("[data-devices=this] .statusNote")).toHaveText("Name saved");
 });
+
+// Codex R338 SS-I01: a save into ANOTHER device's profile answers with THAT
+// profile's state — ok or stale — and this device's own stays as it was.
+test("switching another device's simulation leaves this one's own off — ok and stale alike", async ({ page }) => {
+  await ready(page, { simulation: { enabled: false } });
+  const settings = await openDevices(page);
+  const offline = settings.locator('[data-device-row="dev-laptop"]');
+  // stale for the other device, carrying ITS state: simulation on
+  await ctl({ op: "replyFor", cmd: "save_settings",
+              reply: { ok: false, stale: true, error: "simulation changed elsewhere — reloaded",
+                       section: "simulation", device: "dev-laptop", data: { enabled: true }, rev: 9 } });
+  await offline.getByRole("checkbox").click({ force: true });
+  await expect(settings.locator("[data-devices=this] .statusNote")).toContainText("changed elsewhere");
+  await ctl({ op: "replyFor", cmd: "save_settings", reply: null });
+  await expect(settings.locator("[data-devices=this]").getByRole("checkbox"), "this device: still off").not.toBeChecked();
+  await expect(page.getByRole("tab", { name: "Sim", exact: true })).toHaveCount(0);
+  // and its own save still goes on its own revision
+  await ctl({ op: "clearCmds" });
+  await settings.locator("[data-devices=this]").getByRole("checkbox").check({ force: true });
+  await expect.poll(async () => (await sent()).filter(c => c.cmd === "save_settings"))
+    .toEqual([expect.objectContaining({ section: "simulation", data: { enabled: true }, base_rev: 0 })]);
+});

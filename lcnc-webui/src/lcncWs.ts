@@ -15,9 +15,9 @@
 import { ref } from "vue";
 import { setConnKey } from "./connKey";
 import { decode as msgpackDecode } from "@msgpack/msgpack";
-import { type WsCommand, OPERATOR_ERROR, isQueueSafe } from "./lcnc";
-import { updateServerCache, loadDisplayDefaults, registerSettingsSaver, noteSectionRev, applyStaleSection, dropPendingSaves, devicesVersion } from "./defaults";
-import { onDeviceRebind, recheckDeviceToken } from "./deviceToken";
+import { type WsCommand, OPERATOR_ERROR, OPERATOR_DISPLAY, isQueueSafe } from "./lcnc";
+import { updateServerCache, loadDisplayDefaults, registerSettingsSaver, noteOwnSaveReply, dropPendingSaves, devicesVersion, invalidateServerSettings } from "./defaults";
+import { deviceTokenFresh, onDeviceRebind, recheckDeviceToken } from "./deviceToken";
 import { noteSaveReply, noteSaveConnectionLost, noteSaveServerState } from "./settingsSaveStatus";
 import { enableWakeLock, disableWakeLock } from "./wakeLock";
 import { applyHalshowSnapshot, applyHalshowUpdate, resetHalshow } from "./ws/halshowStore";
@@ -106,6 +106,24 @@ if (typeof window !== "undefined") {
   document.addEventListener("visibilitychange", _onVisibility);
 }
 
+/** The connection is gone — closed, or left for another device binding:
+ *  what belonged to it ends here. */
+function connectionGone() {
+  connected.value = false;
+  noteSaveConnectionLost();   // a settings save in flight is not saved (UX-08)
+  settleAwaitedReplies();     // a request in flight has no answer coming
+  armed.value = false;        // the next connection starts disarmed
+  setConnKey(null);           // the key died with its connection (button gates BG-14)
+  try { disableWakeLock(); } catch { /* ignored */ }
+  resetOnClose();             // latency readouts + RTT anchors are connection-scoped
+  // Bulk version sentinels are connection-scoped too: the gateway re-pings
+  // versions per connection, and those pings are the only fetch trigger.
+  resetBulkVersionsOnClose();
+  // Server forgets per-client halshow subscription on disconnect — clear
+  // so the panel honestly shows "no data" (see halshowStore.resetHalshow).
+  resetHalshow();
+}
+
 export function connectWs() {
   // The worker owns reconnect; connectWs is only called for the initial
   // connection and on HMR (connectTransport tears down any prior worker).
@@ -120,7 +138,13 @@ export function connectWs() {
   // yet does not move to the other profile.
   onDeviceRebind(() => {
     emitTelemetry("device.rebind", {});
+    // The old binding ends NOW, not when the new connection answers (Codex
+    // R338 SS-I02): its unsaved changes, its saves in flight and its
+    // requests end with their result; its settings stop acting (nothing is
+    // saved, the simulation stops); its arm and its connection key go.
     dropPendingSaves("device binding renewed — not saved");
+    invalidateServerSettings();
+    connectionGone();
     rebindTransport();
   });
   connectTransport(wsUrl, onWorkerMessage);
@@ -147,9 +171,11 @@ function onWorkerMessage(m: any) {
       emitTelemetry("ws.close", {
         code: m.code, reason: m.reason, clean: m.wasClean, since_attempt_ms: m.sinceAttemptMs,
       });
-      connected.value = false;
-      noteSaveConnectionLost();   // a settings save in flight is not saved (UX-08)
-      settleAwaitedReplies();     // a request in flight has no answer coming
+      // Capture armed state FIRST so the worker's NEXT reconnect hello can
+      // ask the gateway to restore armed=true via a still-valid armed-resume
+      // hold — connectionGone() disarms the page.
+      captureArmedForResume(armed.value);
+      connectionGone();
       // Server-going-away close codes double as a shutdown signal: the
       // gateway closes 1001 on lifespan teardown, uvicorn closes 1012 on
       // graceful restart. The explicit server_shutdown frame is the richer
@@ -158,19 +184,6 @@ function onWorkerMessage(m: any) {
       // the code is then the only signal that does. 1006 (process died
       // mid-flight) is indistinguishable from a network blip by design.
       if (m.code === 1001 || m.code === 1012) serverShuttingDown.value = true;
-      // Capture armed state so the worker's NEXT reconnect hello can ask the
-      // gateway to restore armed=true via a still-valid armed-resume hold.
-      captureArmedForResume(armed.value);
-      armed.value = false;     // new connection starts disarmed
-      setConnKey(null);        // the key died with its connection (button gates BG-14)
-      try { disableWakeLock(); } catch { /* ignored */ }
-      resetOnClose();          // latency readouts + RTT anchors are connection-scoped
-      // Bulk version sentinels are connection-scoped too: the gateway re-pings
-      // versions per connection, and those pings are the only fetch trigger.
-      resetBulkVersionsOnClose();
-      // Server forgets per-client halshow subscription on disconnect — clear
-      // so the panel honestly shows "no data" (see halshowStore.resetHalshow).
-      resetHalshow();
       break;
 
     case "attempt":
@@ -337,13 +350,11 @@ function onFrame(data: string | ArrayBuffer, rx?: number) {
       // itself, where the operation began — the generic line said it twice.
       const awaited = typeof msg.req_id === "string" ? _awaited.get(msg.req_id) : undefined;
       awaited?.(msg);
-      // A settings save's reply names the section's new revision — or, when
-      // another writer changed it since (stale), its current state, shown
-      // at once (settings split, SS334-06).
-      if (msg.cmd === "save_settings" && typeof msg.section === "string") {
-        if (msg.ok !== false) noteSectionRev(msg.section, msg.rev);
-        else if (msg.stale === true) applyStaleSection(msg.section, msg.data, msg.rev);
-      }
+      // A reply to one of this tab's OWN settings saves names the section's
+      // new revision — or, when another writer changed it since (stale), its
+      // current state (settings split, SS334-06). A save into another
+      // device's profile never touches this tab's (Codex R338 SS-I01).
+      if (msg.cmd === "save_settings" && typeof msg.req_id === "string") noteOwnSaveReply(msg.req_id, msg);
       // A settings save's reply moves the Settings header's status (UX-08).
       if (typeof msg.req_id === "string") noteSaveReply(msg.req_id, msg.ok !== false, msg.error);
       if (msg.ok === false && msg.error && !awaited) {
@@ -372,6 +383,12 @@ function onFrame(data: string | ArrayBuffer, rx?: number) {
       // failed one when the cache keeps or ends it (button gates BG-19).
       noteSaveServerState(msg.settings);
       updateServerCache(msg.settings, msg.revs, msg.device);
+      // The gateway MADE this browser's profile with this connection, though
+      // the browser had a stored token: its profile was removed elsewhere
+      // (R337 — said so, once; a first start is no news).
+      if (msg.type === "settings_init" && msg.device?.created === true && !deviceTokenFresh()) {
+        pushMessage(OPERATOR_DISPLAY, "This browser's device profile was removed — it starts as a new device (simulation off)");
+      }
     } else if (msg.type === "devices_changed") {
       devicesVersion.value++;   // the device views fetch the list again
     } else if (msg.type === "macros_changed") {

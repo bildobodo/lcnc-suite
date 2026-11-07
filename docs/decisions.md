@@ -11269,3 +11269,23 @@ on the devices that want it — never by itself on the machine PC's panel.
   timeline).
 - Tests: `simulation-off.viewer.spec.ts`; the e2e mock is ONE bound device
   with the simulation ON (its fixture default) and serves `/settings`.
+
+**Codex R338 (implementation review, 2026-11-08).** Five findings, fixed:
+SS-I01 a save into ANOTHER device's profile answered through the generic
+reply path into this tab's own settings (its revision, and a stale answer's
+state — another device's simulation "on" switched this one's on): replies
+now move the tab's settings only for its own saves, recorded by request id,
+and every reply names its target (`section`, `device`). SS-I02 a rebind
+kept the old binding's settings, arm and connection key acting until the new
+connection answered: the old binding ends at once (a new generation, no
+save, no simulation, no arm), a replaced worker's late word is dropped, and
+the bootstrap answer counts only for the token still held. SS-I03 an older
+stale answer overwrote a newer snapshot or a newer draft: refused unless it
+is not older, and a newer change of the section stays. SS-I04 the binding
+landed after the store's lock — a delete in the gap left a bound connection
+without a profile: the store claims the binding under its lock
+(`bind(..., claim)`). SS-I05 the Sim tab going with the focus in it left the
+focus on body, where the next arrow jogged: TabPanel hands it to the
+navigation; the tab list follows the switch only once no press is moved by
+it (`heldThroughPress`). Rests: a rename counts as a change ("never
+changed"); a stored token whose profile was removed is told so once.

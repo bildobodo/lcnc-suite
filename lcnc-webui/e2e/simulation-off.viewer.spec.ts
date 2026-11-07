@@ -99,3 +99,43 @@ test("the Sim tab shown when the simulation goes off: the Program tab takes its 
   await expect(page.getByRole("tab", { name: "Program", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".simPanel")).toHaveCount(0);
 });
+
+// Codex R338 SS-I05: the Sim tab GOES while it holds the focus — the focus
+// comes to the navigation, and the next arrow key moves along the tabs,
+// never jogs; a focus elsewhere stays where it is.
+const jogs = async () => ((await ctl({ op: "lastCmds" })) as { cmds?: { cmd?: string }[] }).cmds!
+  .filter(c => c.cmd === "jog_cont" || c.cmd === "jog_incr" || c.cmd === "jog_stop");
+const KEYS = { keyboard: { jogEnabled: true, buttonsEnabled: true } };
+
+for (const where of ["tab", "pane"] as const) {
+  test(`the Sim tab goes with the focus in its ${where}: the focus to the navigation, an arrow never jogs`, async ({ page, context }) => {
+    test.setTimeout(90_000);
+    await prepare(page, context, `/focus-${where}.ngc`, 7400 + (where === "tab" ? 1 : 2), true);
+    await ctl({ op: "raw", frame: { type: "settings_changed", settings: { ...KEYS, simulation: { enabled: true } } } });
+    await simTab(page).click();
+    if (where === "tab") await simTab(page).focus();
+    else await page.locator(".simPanel").getByRole("button").first().focus();
+    await ctl({ op: "clearCmds" });
+    await ctl({ op: "raw", frame: { type: "settings_changed", settings: { ...KEYS, simulation: { enabled: false } } } });
+    await expect(simTab(page)).toHaveCount(0);
+    const program = page.getByRole("tab", { name: "Program", exact: true });
+    await expect(program).toBeFocused();
+    await page.keyboard.down("ArrowRight");
+    await page.keyboard.up("ArrowRight");
+    await expect(page.getByRole("tab", { name: "MDI", exact: true }), "the arrow moved along the tabs").toBeFocused();
+    expect(await jogs(), "no jog").toEqual([]);
+  });
+}
+
+test("the Sim tab goes with the focus elsewhere: it stays there", async ({ page, context }) => {
+  test.setTimeout(90_000);
+  await prepare(page, context, "/focus-else.ngc", 7403, true);
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { ...KEYS, simulation: { enabled: true } } } });
+  const mdiTab = page.getByRole("tab", { name: "MDI", exact: true });
+  await mdiTab.click();
+  const line = page.getByRole("textbox", { name: /MDI/ }).first();
+  await line.focus();
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { ...KEYS, simulation: { enabled: false } } } });
+  await expect(simTab(page)).toHaveCount(0);
+  await expect(line).toBeFocused();
+});

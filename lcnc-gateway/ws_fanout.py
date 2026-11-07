@@ -133,6 +133,7 @@ class ClientState:
     # bound — the template's view, no device section saves.
     device_id: Optional[str] = None
     device_bound: bool = False            # its hello was handled (bound or not)
+    device_created: bool = False          # its hello MADE the profile (said once in settings_init)
     settings_sent: Optional[str] = None   # the settings view last sent (JSON), for change-only pushes
     devices_sent: Optional[tuple] = None  # the device-list version last announced
     # Forensics for hb-stall disarms (delivery-vs-generation attribution): the

@@ -3,7 +3,7 @@ import './style.css'
 import App from './App.vue'
 import { fetchSettings, saveSettingsSection } from './lcncApi'
 import { initServerDefaults } from './defaults'
-import { initDeviceToken } from './deviceToken'
+import { deviceToken, initDeviceToken } from './deviceToken'
 import { initDragScroll } from './dragScroll'
 import { initScrollFade } from './scrollFade'
 import { initTouchDetect } from './touchDetect'
@@ -24,8 +24,13 @@ async function bootstrap() {
   let serverDevice: unknown = undefined;
   let fetchOk = false;
   try {
+    const asked = deviceToken();
     ({ settings: serverSettings, revs: serverRevs, device: serverDevice } = await fetchSettings());
-    fetchOk = true;
+    // Another tab's first start may have stored ITS token meanwhile (R336):
+    // an answer for the token this page no longer holds is not its settings
+    // — the connection's own settings_init brings them (Codex R338 SS-I02).
+    fetchOk = deviceToken() === asked;
+    if (!fetchOk) serverSettings = {};
   } catch (e) {
     console.error("[settings] initial fetch failed; deferring to WS settings_init:", e);
   }

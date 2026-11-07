@@ -139,6 +139,9 @@ function spawnWorker(): void {
   _onEvent?.({ type: "spawned" });
   let heard = false;
   w.onmessage = (ev: MessageEvent) => {
+    // a replaced worker's word already on its way (a rebind, a respawn) is
+    // no one's: the page belongs to the current connection (Codex R338 SS-I02)
+    if (w !== wsWorker) return;
     if (!heard) {
       heard = true;
       clearStartTimer();
