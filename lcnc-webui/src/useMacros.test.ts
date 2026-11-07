@@ -10,7 +10,7 @@ import type { MacroFile, MacroFolder } from "./lcncApi";
 
 // defaults.ts and macroFiles.ts reach the DOM / the socket at import; the
 // composable needs only these.
-vi.mock("./defaults", () => ({ loadMacrosDefaults: () => ({ macros: [] }), loadMacrosDraft: () => ({ macros: [] }), saveMacrosDefaults: () => {}, settingsVersion: ref(0) }));
+vi.mock("./defaults", () => ({ loadMacrosDefaults: () => ({ macros: [] }), loadMacroBarDefaults: () => ({ bar: [] }), saveMacroBarDefaults: () => {}, settingsVersion: ref(0) }));
 const folder = ref<MacroFolder | null>(null);
 const basis = ref<{ name: string; state: "clean" | "draft" | "loading" | "conflict" } | null>(null);
 vi.mock("./macroFiles", () => ({

@@ -67,6 +67,9 @@ const UNGATED: Record<string, string> = {
   get_comp_grid: "a read", get_wcs_table: "a read",
   heartbeat: "the worker's frame, handled by the reader", tab_visibility: "the worker's frame, handled by the reader",
   save_settings: "admitted per section by the settings store (BG-19), not by a command gate",
+  device_rename: "a device profile, admitted by the settings store: own device free, another armed",
+  device_reset: "a device profile, admitted by the settings store: own device free, another armed",
+  device_delete: "another device's profile, armed, refused while it is connected",
   timing_log: "diagnostics", client_diag: "diagnostics", halshow_live: "diagnostics (the HAL tab)",
   safety_trip_ack: "handled by the reader: the acknowledgement must pass whatever the state",
 };
@@ -83,6 +86,11 @@ const UNBOUNDED: Record<string, string> = {
   "confirm_tool_change.request": "matched against the pending request (BG-17)",
   "clear_wcs.target": "an enum the handler checks", "set_wcs.target": "an enum the handler checks",
   "save_settings.section": "checked against _VALID_SETTINGS_SECTIONS",
+  "save_settings.base_rev": "the store refuses anything but a non-negative integer",
+  "save_settings.device": "a public profile id the store looks up (unknown = refused)",
+  "device_rename.name": "trimmed and bounded (40 characters) by the store",
+  "device_rename.device": "a public profile id the store looks up", "device_reset.device": "a public profile id the store looks up",
+  "device_delete.device": "a public profile id the store looks up",
   "timing_log.enable": "a boolean", "halshow_live.on": "a boolean", "tab_visibility.hidden": "a boolean",
 };
 /** The tool editor's fields beyond the bounded ones (ToolFields): the
@@ -112,7 +120,7 @@ const OPAQUE: Record<string, string> = {
   "client_diag.data": "diagnostics without effect",
 };
 /** The worker's own frames (wsWorker.ts): the fields each carries. */
-const WORKER_FRAMES: Record<string, string[]> = { hello: ["session", "resume_armed"], tab_visibility: ["hidden"], heartbeat: ["seq"] };
+const WORKER_FRAMES: Record<string, string[]> = { hello: ["session", "resume_armed", "device_token", "device_storage"], tab_visibility: ["hidden"], heartbeat: ["seq"] };
 
 const isMapType = (t: string) => /^Record<|^\{|^any$|^unknown$|\[\]$/.test(t) && !/^(string|number|boolean)\[\]$/.test(t);
 

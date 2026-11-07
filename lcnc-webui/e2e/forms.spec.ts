@@ -37,7 +37,7 @@ const PROBE_VIEWS = ["Outside", "Inside", "Angle", "Boss/Pocket", "Ridge/Valley"
 const SETTINGS_TABS = ["3D Viewer", "Machine", "Display", "Gamepad", "Keyboard", "HAL", "Debug"];   // Macros: a side tab (package 5)
 // Run from line on, its preset forward (the speed field shows); gamepad
 // buttons on (the mapping table's selects show).
-const SETTINGS = { macros: { macros: [], bar: ["face_top"] }, machine: { runFromLine: true, rflSpindleDir: "forward" },
+const SETTINGS = { macros: { macros: [] }, macroBar: { bar: ["face_top"] }, machine: { runFromLine: true, rflSpindleDir: "forward" },
   gamepad: { jogEnabled: true, buttonsEnabled: true } };
 
 function viewerInit(linearUnits: string) {

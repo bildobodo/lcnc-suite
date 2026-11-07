@@ -370,11 +370,14 @@ def _literal_set(text: str, name: str) -> list[str] | None:
 
 
 def sections_adapter(sources: dict[str, str]) -> dict:
+    """The settings sections: the machine's and a device's (settings split,
+    R335) — a device section is free (its own device saves it without arm)."""
     text = sources["settings_store.py"]
-    valid, free = _literal_set(text, "VALID_SECTIONS"), _literal_set(text, "FREE_SECTIONS")
-    unresolved = [] if valid is not None and free is not None else [site("settings_store.py", "literal set", "VALID_SECTIONS / FREE_SECTIONS")]
-    atoms = {s: {"id": f"section:{s}", **({"free": True} if s in (free or []) else {})} for s in valid or []}
-    return adapter("settings_store.py VALID_SECTIONS, FREE_SECTIONS", ["a literal set"], atoms, unresolved)
+    machine, device = _literal_set(text, "MACHINE_SECTIONS"), _literal_set(text, "DEVICE_SECTIONS")
+    unresolved = [] if machine is not None and device is not None else [site("settings_store.py", "literal set", "MACHINE_SECTIONS / DEVICE_SECTIONS")]
+    atoms = {s: {"id": f"section:{s}", **({"free": True} if s in (device or []) else {})}
+             for s in sorted((machine or []) + (device or []))}
+    return adapter("settings_store.py MACHINE_SECTIONS, DEVICE_SECTIONS", ["a literal set"], atoms, unresolved)
 
 
 def status_adapter(sources: dict[str, str], web_text: str) -> dict:

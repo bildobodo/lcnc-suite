@@ -137,7 +137,11 @@ export type WsCommand =
   // Shutdown
   | { cmd: "shutdown" }
   // Settings
-  | { cmd: "save_settings"; section: string; data: any }
+  | { cmd: "save_settings"; section: string; data: any; base_rev: number; device?: string }
+  // Device profiles (settings split): this device's own needs no arm, another one armed
+  | { cmd: "device_rename"; name: string; device?: string }
+  | { cmd: "device_reset"; device?: string }
+  | { cmd: "device_delete"; device: string }
   // Timing
   | { cmd: "timing_log"; enable: boolean }
   // Client-side diagnostics (heap, Three.js renderer info, etc.) — logged

@@ -8,10 +8,12 @@
 // (the orchestrator), which receives every worker event via the onEvent
 // callback handed to connectTransport.
 //
-// Leaf module: imports ../auth only; never imports lcncWs or its peers. No
-// telemetry from here — the orchestrator emits around the calls. Reassigned
-// scalars (worker handle, resume flag) are private by design (A1 rule).
+// Leaf module: imports ../auth and ../deviceToken only; never imports lcncWs
+// or its peers. No telemetry from here — the orchestrator emits around the
+// calls. Reassigned scalars (worker handle, resume flag) are private by
+// design (A1 rule).
 import { withToken } from "../auth";
+import { deviceStorage, deviceToken } from "../deviceToken";
 
 // ---- Session id (per-tab, for armed-resume across brief reconnects) ----
 // Persisted in sessionStorage so Ctrl-R keeps the same id; tab close clears
@@ -166,6 +168,10 @@ function spawnWorker(): void {
     session: _sessionId,
     resumeArmed: _prevArmed,
     hidden: typeof document !== "undefined" ? document.hidden : false,
+    // The device profile the connection binds to with its hello (settings
+    // split): the token, or why there is none.
+    deviceToken: deviceToken(),
+    deviceStorage: deviceStorage(),
   });
   _prevArmed = false; // handed to the worker; reset for the next close→open
 }
@@ -222,6 +228,18 @@ export function captureArmedForResume(armedNow: boolean): void {
   _prevArmed = armedNow;
   postWorkerConfig({ resumeArmed: _prevArmed });
   _prevArmed = false;
+}
+
+/** A NEW connection for another device profile (settings split, R336): the
+ *  stored token changed, so this tab binds anew — never a profile swap inside
+ *  the old connection. It starts DISARMED (no resume: the arm session does
+ *  not move to another device). */
+export function rebindTransport(): void {
+  const onEvent = _onEvent;
+  if (!onEvent) return;
+  _prevArmed = false;
+  persistArmedForReload(false);
+  connectTransport(_url, onEvent);
 }
 
 /** Tear down the worker (HMR dispose, reconnect-from-scratch). */

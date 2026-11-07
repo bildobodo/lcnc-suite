@@ -4,10 +4,10 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Vollständigkeit der Quellen
 
-- **Quellen vollständig erfasst:** ja (1147 Atome in 17 Quellen)
+- **Quellen vollständig erfasst:** ja (1168 Atome in 17 Quellen)
 - **Ungelöste Stellen:** 0
 - **Ausgeschlossen (außerhalb der Grenze, mit Grund):** 1
-- **Familien mit offenen Varianten:** 44 — das Atom steht, seine Varianten sind nicht einzeln abgeleitet
+- **Familien mit offenen Varianten:** 45 — das Atom steht, seine Varianten sind nicht einzeln abgeleitet
 - **Anzeigen** (was die Oberfläche zusagt, etwa „Kompensation bestätigt aktiv“) haben keine Quelle mit Atomen; ihr Katalog sichtbarer Zusagen folgt als eigener Schritt.
 - **Belegt** heißt hier: ein benannter Test existiert mit diesem Titel. Ob er lief und bestand, kommt aus den Laufberichten (nächster Schritt).
 
@@ -469,7 +469,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Einstellungen öffnen, speichern, verwerfen, zurücksetzen** `F-SETTINGS` | Dialog, Einstellungen, Kopfzeile | 26 | 1 | 1 | 0 |
+| **Einstellungen öffnen, speichern, verwerfen, zurücksetzen** `F-SETTINGS` | Dialog, Einstellungen, Kopfzeile | 27 | 1 | 1 | 0 |
+| **Geräteprofile: dieses Gerät benennen, Simulation schalten, andere Geräte verwalten** `F-DEVICES` | Einstellungen › Geräte | 16 | 3 | 3 | 0 |
 | **Darstellung: Farbschema, Vollbild, Bildschirm wach halten** `F-DISPLAY` | Einstellungen, Kopfzeile | 13 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Meldungen: Nachrichtenzentrale, Filter, Kopieren, Löschen** `F-MESSAGES` | Banner, Dialog, Kopfzeile, Meldungen | 15 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Navigation: Tabs und Seitenleiste** `F-TABS` | Tabs | 3 | 0 | 0 | Aussagen noch nicht formuliert |
@@ -477,8 +478,17 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ### Einstellungen öffnen, speichern, verwerfen, zurücksetzen
 
-- **S1 (Ablehnung):** Eine geschützte Sektion speichert nur ein freigegebener Schreiber (403 sonst); Anzeige-Sektionen brauchen kein Arm. — gilt für: alle
-  - Beleg: gateway: `test_button_gates_b.py` — test_a_protected_section_needs_an_armed_writer; gateway: `test_button_gates_b.py` — test_a_display_section_needs_no_arm
+- **S1 (Ablehnung):** Eine Maschinen-Sektion speichert nur ein freigegebener Schreiber (403 sonst); die Sektionen des eigenen Geräts brauchen kein Arm. — gilt für: alle
+  - Beleg: gateway: `test_button_gates_b.py` — test_a_protected_section_needs_an_armed_writer; gateway: `test_button_gates_b.py` — test_a_device_section_goes_to_the_tokens_device_without_arm
+
+### Geräteprofile: dieses Gerät benennen, Simulation schalten, andere Geräte verwalten
+
+- **S1 (Ablehnung):** Ein verbundenes Gerät wird nie gelöscht; ein anderes Gerät ändert nur ein freigegebener Schreiber, das eigene braucht kein Arm. — gilt für: alle
+  - Beleg: gateway: `test_button_gates_b.py` — test_a_connected_device_is_never_deleted; gateway: `test_button_gates_b.py` — test_another_device_needs_an_armed_writer; gateway: `test_device_profiles.py` — test_a_connected_device_is_never_deleted_and_an_offline_one_only_armed
+- **S2 (Wirkung):** Eine Verbindung wird mit ihrem ersten hello an ihr Gerät gebunden; ihre ersten Einstellungen sind die ihres Geräts, eine Geräteänderung erreicht nur dieses Gerät. — gilt für: alle
+  - Beleg: gateway: `test_device_profiles.py` — test_no_settings_before_the_hello_then_the_own_devices; gateway: `test_device_profiles.py` — test_a_devices_change_reaches_only_its_own_connections; gateway: `test_device_profiles.py` — test_a_later_hello_never_swaps_the_binding
+- **S3 (Wirkung):** Ein neues Gerät startet mit Simulation aus; ein kurzer erster Besuch behält seine bestätigten Einstellungen. — gilt für: alle
+  - Beleg: gateway: `test_settings_store.py` — test_an_unknown_token_makes_a_new_profile_from_the_template_simulation_off; gateway: `test_settings_store.py` — test_a_short_visit_keeps_its_profile_and_values
 
 ## Tastatur, Gamepad, Eingabehilfen
 
@@ -510,7 +520,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe** `SYS-CONTROLS` | Auswahlgruppen, Detailkarte, Menü „More“, jeder Dialog, jedes Bedienelement, „?“-Hilfe | 190 | 0 | 0 | Aussagen noch nicht formuliert |
+| **Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe** `SYS-CONTROLS` | Auswahlgruppen, Detailkarte, Menü „More“, jeder Dialog, jedes Bedienelement, „?“-Hilfe | 194 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Verbindung: Anmeldung, Herzschlag, Wiederverbindung, Auslieferung** `SYS-CONN` | — | 26 | 5 | 4 | 1 |
 | **Statusübertragung (Rahmen und gemeinsame Felder)** `SYS-STATUS` | — | 9 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Maschinenkonfiguration lesen: Achsen, Gelenke, Grenzen, Kinematik, Remaps, Profile** `SYS-CONFIG` | — | 19 | 0 | 0 | Aussagen noch nicht formuliert |
@@ -546,6 +556,7 @@ Dieselben Funktionen, geordnet nach dem Ort, an dem man sie bedient.
 | Einstellungen | Freigeben (Arm) und Sperren `F-ARM`<br>Spindel von Hand: Rechts, Links, Stopp, Drehzahl `F-SPINDLE`<br>Start ab Zeile (mit Vormessung, sicherem Z, Spindel) `F-RFL`<br>Vorschau des Werkzeugwegs `F-PREVIEW`<br>Werkzeugwechsel (M6) mit Bestätigung `F-TOOLCHANGE`<br>3D-Ansicht einstellen: Ebenen, Farben, Projektion, Verfolgung, HUD `F-VIEWSET`<br>Kamerabild (Bild im Bild) und Überlagerung `F-CAMERA`<br>Einstellungen öffnen, speichern, verwerfen, zurücksetzen `F-SETTINGS`<br>Darstellung: Farbschema, Vollbild, Bildschirm wach halten `F-DISPLAY`<br>Tastatur-Bedienung und Tastenbelegung `F-KEYBOARD`<br>Gamepad-Bedienung, Belegung und Einrichtungs-Assistent `F-GAMEPAD` |
 | Einstellungen › Debug | Diagnose: HAL-Anzeige, Timing, Telemetrie `F-DIAG` |
 | Einstellungen › Gamepad | Gamepad-Bedienung, Belegung und Einrichtungs-Assistent `F-GAMEPAD` |
+| Einstellungen › Geräte | Geräteprofile: dieses Gerät benennen, Simulation schalten, andere Geräte verwalten `F-DEVICES` |
 | Einstellungen › HAL | Diagnose: HAL-Anzeige, Timing, Telemetrie `F-DIAG` |
 | Einstellungen › Tastatur | Tastatur-Bedienung und Tastenbelegung `F-KEYBOARD` |
 | G-Code-Referenz | G-Code ansehen, aktive Codes, Codewort-Referenz, Statistik `F-GCODEVIEW` |

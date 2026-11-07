@@ -14,10 +14,12 @@
 // keeps all message interpretation and reactive state. The gateway is unaware
 // anything changed — same single socket, same client_id, byte-identical frames.
 
-type Cfg = { url: string; session: string; resumeArmed: boolean; hidden: boolean };
+type Cfg = { url: string; session: string; resumeArmed: boolean; hidden: boolean;
+  deviceToken: string | null; deviceStorage: string };
 
 type MainMsg =
-  | { type: "connect"; url: string; session: string; resumeArmed: boolean; hidden: boolean }
+  | { type: "connect"; url: string; session: string; resumeArmed: boolean; hidden: boolean;
+      deviceToken: string | null; deviceStorage: string }
   | { type: "send"; payload: string; cmd?: string; dropIfClosed?: boolean }
   | { type: "updateConfig"; resumeArmed?: boolean; hidden?: boolean; fireHeartbeat?: boolean }
   | { type: "witness"; tick: number; n: number }
@@ -281,7 +283,10 @@ function openSocket(probed = false) {
     // hello MUST be the first frame so the gateway can associate this
     // connection with the prior tab's armed-resume hold before anything else.
     try {
-      ws!.send(JSON.stringify({ cmd: "hello", session: cfg!.session, resume_armed: cfg!.resumeArmed }));
+      // ...and binds it to this browser's device profile (settings split):
+      // the token, or why the browser has none.
+      ws!.send(JSON.stringify({ cmd: "hello", session: cfg!.session, resume_armed: cfg!.resumeArmed,
+        device_token: cfg!.deviceToken, device_storage: cfg!.deviceStorage }));
     } catch (e) {
       post({ type: "error", kind: "hello_send_failed", msg: String((e as Error)?.message ?? e) });
     }
@@ -367,7 +372,8 @@ self.onmessage = (ev: MessageEvent<MainMsg>) => {
   switch (msg.type) {
     case "connect":
       teardown();
-      cfg = { url: msg.url, session: msg.session, resumeArmed: msg.resumeArmed, hidden: msg.hidden };
+      cfg = { url: msg.url, session: msg.session, resumeArmed: msg.resumeArmed, hidden: msg.hidden,
+        deviceToken: msg.deviceToken, deviceStorage: msg.deviceStorage };
       wantConnected = true;
       openSocket();
       break;

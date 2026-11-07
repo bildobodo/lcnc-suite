@@ -3,22 +3,28 @@ import './style.css'
 import App from './App.vue'
 import { fetchSettings, saveSettingsSection } from './lcncApi'
 import { initServerDefaults } from './defaults'
+import { initDeviceToken } from './deviceToken'
 import { initDragScroll } from './dragScroll'
 import { initScrollFade } from './scrollFade'
 import { initTouchDetect } from './touchDetect'
 import { initFlashClock } from './flashClock'
 import { startClientDiag } from './clientDiag'
 
-const SERVER_SECTIONS = ["macros", "machine", "camera", "mdi", "gamepad", "keyboard", "probe", "toolsetter", "display", "viewer", "panels"];
+const SERVER_SECTIONS = ["macros", "machine", "camera", "mdi", "gamepad", "keyboard", "probe", "toolsetter", "display", "viewer", "panels", "macroBar", "simulation"];
 
 async function bootstrap() {
   initTouchDetect();
   initFlashClock();
+  // This browser's device token BEFORE the first settings fetch: the
+  // gateway answers with this device's own settings (settings split).
+  initDeviceToken();
 
   let serverSettings: Record<string, any> = {};
+  let serverRevs: Record<string, number> = {};
+  let serverDevice: unknown = undefined;
   let fetchOk = false;
   try {
-    serverSettings = await fetchSettings();
+    ({ settings: serverSettings, revs: serverRevs, device: serverDevice } = await fetchSettings());
     fetchOk = true;
   } catch (e) {
     console.error("[settings] initial fetch failed; deferring to WS settings_init:", e);
@@ -29,7 +35,7 @@ async function bootstrap() {
   // of wiping it from both places (the old code stripped before awaiting).
   async function migrateSection(section: string, data: any): Promise<boolean> {
     try {
-      await saveSettingsSection(section, data);
+      await saveSettingsSection(section, data, serverRevs[section] ?? 0);
       return true;
     } catch (e) {
       console.warn(`[migrate] ${section} save failed — kept in localStorage for retry`, e);
@@ -91,7 +97,7 @@ async function bootstrap() {
     console.warn("[migrate] lcnc-toolsetter-params migration failed", e);
   }
 
-  initServerDefaults(serverSettings, fetchOk);
+  initServerDefaults(serverSettings, fetchOk, serverRevs, serverDevice);
   createApp(App).mount('#app');
   initDragScroll();
   initScrollFade();

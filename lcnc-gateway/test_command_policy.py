@@ -79,6 +79,9 @@ INLINE_EXEMPT = frozenset({
     "safety_trip_ack",  # clears an unacked trip — MUST work while in ESTOP
     "get_settings",     # read
     "save_settings",    # UI preferences; server-side section allowlist is its gate
+    "device_rename",    # a device profile: own device free, another armed (settings split)
+    "device_reset",     # a device profile back to the template: own free, another armed
+    "device_delete",    # another device's profile, armed, refused while it is connected
     "client_diag",      # browser telemetry
     "timing_log",       # dev instrumentation
     "halshow_live",     # diagnostics subscribe toggle (read)

@@ -12,7 +12,7 @@
 
 import type { WsCommand } from "./lcnc";
 import { computed, ref, watch } from "vue";
-import { loadMacrosDefaults, loadMacrosDraft, saveMacrosDefaults, settingsVersion } from "./defaults";
+import { loadMacroBarDefaults, loadMacrosDefaults, saveMacroBarDefaults, settingsVersion } from "./defaults";
 import type { Permissions } from "./permissions";
 import type { MacroFile } from "./lcncApi";
 import { macroFileByName, macroFolder, macroEditorBasis } from "./macroFiles";
@@ -41,21 +41,19 @@ function noteEarlierMacros(list: unknown[]) {
 }
 
 export function useMacros(opts: UseMacrosOptions) {
-  /** The macro FILES on the bar, in order: names from the `bar` key — as
-   *  the server holds it (button gates BG-19: a refused change puts no
-   *  button on the bar). `macroBarDraft` is what the Macros tab shows. */
-  const macroBarNames = ref<string[]>(loadMacrosDefaults().bar ?? []);
-  const macroBarDraft = ref<string[]>(loadMacrosDraft().bar ?? []);
+  /** The macro FILES on this device's bar, in order (a device section since
+   *  the settings split, operator OP3: no arm, it applies at once).
+   *  `macroBarDraft` is what the Macros tab shows — the same list. */
+  const macroBarNames = ref<string[]>(loadMacroBarDefaults().bar);
+  const macroBarDraft = macroBarNames;
   const macroParamDialog = ref<MacroParamDialogState | null>(null);
   noteEarlierMacros(loadMacrosDefaults().macros);
 
   // Cross-client sync: another tab saved the bar → settingsVersion bumps
   // → re-read the shared store.
   watch(settingsVersion, () => {
-    const d = loadMacrosDefaults();
-    macroBarNames.value = d.bar ?? [];
-    macroBarDraft.value = loadMacrosDraft().bar ?? [];
-    noteEarlierMacros(d.macros);
+    macroBarNames.value = loadMacroBarDefaults().bar;
+    noteEarlierMacros(loadMacrosDefaults().macros);
   });
 
   // The dialog's file, LIVE from the gateway's list: a save from any client
@@ -83,11 +81,11 @@ export function useMacros(opts: UseMacrosOptions) {
   });
   watch(() => dialogFile.value?.title, t => { if (t && macroParamDialog.value) macroParamDialog.value.title = t; });
 
-  /** The macro files on the bar, in order (the Macros tab's toggle and
-   *  arrows): saved with the rest of the section unchanged. */
+  /** The macro files on this device's bar, in order (the Macros tab's
+   *  toggle and arrows). */
   function setMacroBar(names: string[]) {
-    macroBarDraft.value = names;
-    saveMacrosDefaults({ ...loadMacrosDraft(), bar: names });
+    saveMacroBarDefaults({ bar: names });
+    macroBarNames.value = loadMacroBarDefaults().bar;
   }
 
   function confirmMacroParams() {

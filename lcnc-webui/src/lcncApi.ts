@@ -4,6 +4,7 @@
  */
 import { authHeaders } from "./auth";
 import { connHeaders } from "./connKey";
+import { deviceToken } from "./deviceToken";
 
 function getBaseUrl(): string {
   return location.origin;
@@ -152,25 +153,59 @@ export async function fetchG30(): Promise<G30Response> {
 
 /** ---------- Server-side settings ---------- */
 
-export async function fetchSettings(): Promise<Record<string, any>> {
-  const resp = await fetch(`${getBaseUrl()}/settings`);
-  if (!resp.ok) await throwHttpError(resp);
-  const json = await resp.json();
-  return json.settings ?? {};
+/** This browser's device token as a header (settings split): the gateway
+ *  answers with its OWN device's settings and saves a device section there. */
+function deviceHeaders(): Record<string, string> {
+  const t = deviceToken();
+  return t ? { "X-Device-Token": t } : {};
 }
 
-export async function saveSettingsSection(section: string, data: any): Promise<void> {
+/** The settings a page starts with: the machine's sections and this
+ *  device's, each section's revision, the device profile ({id: null} = the
+ *  gateway does not know this device yet — its hello makes the profile). */
+export interface SettingsSnapshot {
+  settings: Record<string, any>;
+  revs: Record<string, number>;
+  device: { id: string | null; name: string };
+}
+
+export async function fetchSettings(): Promise<SettingsSnapshot> {
+  const resp = await fetch(`${getBaseUrl()}/settings`, { headers: deviceHeaders() });
+  if (!resp.ok) await throwHttpError(resp);
+  const json = await resp.json();
+  return { settings: json.settings ?? {}, revs: json.revs ?? {}, device: json.device ?? { id: null, name: "" } };
+}
+
+export async function saveSettingsSection(section: string, data: any, baseRev: number): Promise<void> {
   const resp = await fetch(`${getBaseUrl()}/settings/${section}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json", ...authHeaders(), ...connHeaders() },
-    body: JSON.stringify({ data }),
+    headers: { "Content-Type": "application/json", ...authHeaders(), ...connHeaders(), ...deviceHeaders() },
+    body: JSON.stringify({ data, base_rev: baseRev }),
   });
   if (!resp.ok) await throwHttpError(resp);
 }
 
-export async function resetServerSettings(): Promise<void> {
-  const resp = await fetch(`${getBaseUrl()}/settings`, { method: "DELETE", headers: { ...authHeaders(), ...connHeaders() } });
+/** One device profile as the device list shows it (GET /devices). */
+export interface DeviceRow {
+  id: string;
+  name: string;
+  created: string | null;
+  last_seen: string | null;
+  last_address: string | null;
+  changed: boolean;
+  simulation: boolean;
+  /** The simulation section's revision — the base of a change from here. */
+  simulation_rev: number;
+  online: boolean;
+  tabs: number;
+  this: boolean;
+}
+
+export async function fetchDevices(): Promise<DeviceRow[]> {
+  const resp = await fetch(`${getBaseUrl()}/devices`, { headers: { ...authHeaders(), ...deviceHeaders() } });
   if (!resp.ok) await throwHttpError(resp);
+  const json = await resp.json();
+  return Array.isArray(json.devices) ? json.devices : [];
 }
 
 /** A program with that name already exists and `overwrite` was not set

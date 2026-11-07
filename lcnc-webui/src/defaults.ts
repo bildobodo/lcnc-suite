@@ -5,7 +5,7 @@ import { withToken } from "./auth";
 import { connKey } from "./connKey";
 import { mergeViewerSection, ON_TOP_FALLBACK, type OnTopLayer } from "./viewerSection";
 import { noteSavePending, noteSaveSent, noteSaveBlocked, noteSaveFailed, noteSaveBeaconed, sectionRev, sectionAcked, sectionFailed, stableJson } from "./settingsSaveStatus";
-import { resetServerSettings } from "./lcncApi";
+import { deviceStorage, deviceToken } from "./deviceToken";
 import type { GamepadProfile } from "./gamepadProfile";
 import { mergeMacrosSection } from "./macroParams";
 
@@ -15,8 +15,8 @@ import { mergeMacrosSection } from "./macroParams";
 // (app startup), long before any user-triggered save flush.
 // The saver returns the `req_id` the save went out with (null = nothing
 // reached the transport) so the save status can follow the reply (UX-08).
-let _settingsSaver: ((section: string, data: any) => string | null) | null = null;
-export function registerSettingsSaver(fn: (section: string, data: any) => string | null): void {
+let _settingsSaver: ((section: string, data: any, baseRev: number) => string | null) | null = null;
+export function registerSettingsSaver(fn: (section: string, data: any, baseRev: number) => string | null): void {
   _settingsSaver = fn;
 }
 
@@ -92,19 +92,32 @@ export interface ViewerDefaults {
 
 // ─── Section registry ────────────────────────────────────────────
 
-const STORAGE_KEY = "lcnc-defaults";
 
-/** The display sections (button gates Q2 / BG-19, operator 2026-10-25): how
- *  the UI looks — any client saves them and a change applies at once. Every
- *  other section is PROTECTED: the gateway saves it only for an armed
- *  writer, and what it configures (the key map, the pad, the tool-change
- *  mode, the macro bar …) acts only once the SERVER holds it — this tab's
- *  change is a DRAFT until then (loadSection vs loadSectionDraft). The
- *  mirror of settings_store.FREE_SECTIONS (settingsSections.test.ts). */
-export const FREE_SECTIONS: ReadonlySet<string> = new Set(["display", "viewer", "panels", "camera"]);
+/** A DEVICE's sections (settings split, operator 2026-11-07, plan Codex
+ *  R335–R337): how THIS browser looks and what it runs for itself — its own
+ *  profile on the gateway, saved without arm (button gates Q2 / BG-19 for
+ *  the look; OP3 the macro bar). Every other section is the MACHINE's and
+ *  PROTECTED: the gateway saves it only for an armed writer. The mirror of
+ *  settings_store.DEVICE_SECTIONS / FREE_SECTIONS (settingsSections.test.ts). */
+export const DEVICE_SECTIONS: ReadonlySet<string> = new Set(["display", "viewer", "panels", "camera", "macroBar", "simulation"]);
+export const FREE_SECTIONS: ReadonlySet<string> = DEVICE_SECTIONS;
 
+/** The device sections that act only once the SERVER holds them, like every
+ *  machine section — a simulation switched on by a refused or stale save
+ *  must never start the check. The mirror of
+ *  settings_store.CONFIRMED_DEVICE_SECTIONS. */
+export const CONFIRMED_DEVICE_SECTIONS: ReadonlySet<string> = new Set(["simulation"]);
+
+/** Does a save of this section (on this browser's own device) need arm? */
 export function isProtectedSection(key: string): boolean {
   return !FREE_SECTIONS.has(key);
+}
+
+/** Does this section act only once the server holds it (this tab's change
+ *  a DRAFT until then — loadSection vs loadSectionDraft)? Every machine
+ *  section and the simulation switch; the look applies at once. */
+export function actsWhenConfirmed(key: string): boolean {
+  return !DEVICE_SECTIONS.has(key) || CONFIRMED_DEVICE_SECTIONS.has(key);
 }
 
 interface SectionDef<T> {
@@ -151,11 +164,52 @@ const _drafts = new Map<string, { data: any; json: string; rev: number; baseJson
 /** True once server settings have been confirmed (REST fetch or WS delivery). */
 export const serverSettingsReady = ref(false);
 
+/** Each section's revision on the server (SS334-06): a save names the one
+ *  its change was made on, and the gateway refuses it as stale when another
+ *  writer changed the section since — answering with the current state. */
+const _revs: Record<string, number> = {};
+
+/** The device profile this tab's connection is bound to (settings split):
+ *  its public id and name; `id` null = not bound (the browser's storage is
+ *  unusable, or before the hello's settings arrived) — the template's view,
+ *  no device section saves. */
+export interface DeviceInfo { id: string | null; name: string }
+export const deviceInfo = ref<DeviceInfo>({ id: null, name: "" });
+
+/** Bumped when the gateway says the device LIST changed (a profile made,
+ *  renamed, reset, deleted or switched; a device came or went) — the device
+ *  views fetch it again. */
+export const devicesVersion = ref(0);
+
+function takeServerMeta(revs: unknown, device: unknown): void {
+  if (revs && typeof revs === "object") {
+    for (const k of Object.keys(_revs)) delete _revs[k];
+    for (const [k, v] of Object.entries(revs as Record<string, unknown>)) {
+      if (typeof v === "number" && Number.isInteger(v) && v >= 0) _revs[k] = v;
+    }
+  }
+  if (device && typeof device === "object") {
+    const d = device as { id?: unknown; name?: unknown };
+    deviceInfo.value = { id: typeof d.id === "string" ? d.id : null, name: typeof d.name === "string" ? d.name : "" };
+  }
+}
+
+/** A save's reply named the section's new revision. */
+export function noteSectionRev(section: string, rev: unknown): void {
+  if (typeof rev === "number" && Number.isInteger(rev) && rev > (_revs[section] ?? -1)) _revs[section] = rev;
+}
+
+/** The revision this tab knows for a section (tests, the device view). */
+export function sectionServerRev(section: string): number {
+  return _revs[section] ?? 0;
+}
+
 /** Debounce timers for server saves. */
 const _saveTimers: Record<string, ReturnType<typeof setTimeout>> = {};
 
-/** Pending saves awaiting debounce flush — used by sendBeacon on page exit. */
-const _pendingSaves = new Map<string, any>();
+/** Pending saves awaiting debounce flush — used by sendBeacon on page exit —
+ *  with the revision each change was made on. */
+const _pendingSaves = new Map<string, { data: any; base: number }>();
 
 /** The server's confirmed blob — what the gateway HOLDS. `_cache` also
  *  carries this tab's optimistic writes (saveSection), which a refused or
@@ -164,10 +218,12 @@ const _pendingSaves = new Map<string, any>();
 let _confirmed: Record<string, any> = {};
 
 /** Called once from main.ts before createApp().mount(). */
-export function initServerDefaults(data: Record<string, any>, fetchOk: boolean): void {
+export function initServerDefaults(data: Record<string, any>, fetchOk: boolean,
+                                   revs?: unknown, device?: unknown): void {
   _cache = { ...data };
   if (fetchOk) {
     _confirmed = { ...data };
+    takeServerMeta(revs, device);
     serverSettingsReady.value = true;
   }
 }
@@ -179,7 +235,8 @@ export function initServerDefaults(data: Record<string, any>, fetchOk: boolean):
  * "send full settings when version changes" + settings_init). Do NOT change
  * this to a merge — a merge would resurrect a section the operator deleted.
  */
-export function updateServerCache(data: Record<string, any>): void {
+export function updateServerCache(data: Record<string, any>, revs?: unknown, device?: unknown): void {
+  takeServerMeta(revs, device);
   _cache = { ...data };
   _confirmed = { ...data };
   for (const [key, d] of _drafts) {
@@ -192,6 +249,28 @@ export function updateServerCache(data: Record<string, any>): void {
   }
   serverSettingsReady.value = true;
   settingsVersion.value++;
+}
+
+/** A save was refused as STALE (SS334-06): another writer changed the
+ *  section since its change was made. The reply carries the server's
+ *  current state — shown at once, the change dropped (never retried). */
+export function applyStaleSection(section: string, data: unknown, rev: unknown): void {
+  const all = readAll();
+  if (data === undefined || data === null) { delete all[section]; delete _confirmed[section]; }
+  else { all[section] = data; _confirmed[section] = data; }
+  _drafts.delete(section);
+  noteSectionRev(section, rev);
+  settingsVersion.value++;
+}
+
+/** The tab binds to ANOTHER device profile (its stored token changed, R336):
+ *  what it has not saved yet does not move to that device — dropped, and
+ *  said so in the save status. */
+export function dropPendingSaves(reason: string): void {
+  for (const key of new Set([..._pendingSaves.keys(), ..._drafts.keys()])) noteSaveFailed(key, reason);
+  for (const key of Object.keys(_saveTimers)) { clearTimeout(_saveTimers[key]); delete _saveTimers[key]; }
+  _pendingSaves.clear();
+  _drafts.clear();
 }
 
 /** A section as the SERVER confirmed it — raw, no fallbacks merged in;
@@ -219,15 +298,17 @@ export function savedSection(key: string): unknown {
  *  shows it — the debounce timer is cleared below, so no WS request and no
  *  correlated reply will ever settle it; a refused hand-off is a failure. */
 function flushPendingSaves(): void {
-  for (const [section, data] of _pendingSaves) {
+  for (const [section, { data, base }] of _pendingSaves) {
     // sendBeacon can't set headers, so the token rides in the query string
     // (the require_token dependency accepts ?token= as well as the header).
     // ...and the connection key in the body (button gates BG-19): a
     // protected section is saved only while this connection is open and
     // armed — a beacon after the close is refused, no grace (Codex R204).
+    // A device section names its device by the token (settings split).
     const handedOff = navigator.sendBeacon(
       withToken(`/settings/${section}`),
-      new Blob([JSON.stringify({ data, conn_key: connKey() })], { type: "application/json" }),
+      new Blob([JSON.stringify({ data, base_rev: base, conn_key: connKey(), device_token: deviceToken() })],
+               { type: "application/json" }),
     );
     noteSaveBeaconed(section, data, handedOff);
   }
@@ -259,14 +340,17 @@ export function resetSettingsForTests(): void {
   _drafts.clear();
   _cache = null;
   _confirmed = {};
+  for (const k of Object.keys(_revs)) delete _revs[k];
+  deviceInfo.value = { id: null, name: "" };
   serverSettingsReady.value = false;
 }
 
 /** Load a section AS IT ACTS: fully merged data (saved values + fallbacks).
- *  A protected section is the server's — this tab's unconfirmed draft is not
- *  in it (BG-19); a display section is this tab's latest. */
+ *  A machine section and the simulation switch are the server's — this
+ *  tab's unconfirmed draft is not in it (BG-19); the look is this tab's
+ *  latest. */
 export function loadSection<T>(key: string): T {
-  return mergeSection<T>(key, isProtectedSection(key) ? _confirmed[key] : readAll()[key]);
+  return mergeSection<T>(key, actsWhenConfirmed(key) ? _confirmed[key] : readAll()[key]);
 }
 
 /** Load a section as this tab's FORM shows it: its latest change, confirmed
@@ -295,6 +379,15 @@ export function saveSection(key: string, data: any): void {
   // Block saves until server data is confirmed (prevents overwriting with
   // fallback zeros) — visibly: the Settings header says so (UX-08).
   if (!serverSettingsReady.value) { noteSaveBlocked(key, "waiting for server settings"); return; }
+  // A device section is saved into THIS browser's profile — none while the
+  // connection is not bound to one (settings split).
+  if (DEVICE_SECTIONS.has(key) && deviceInfo.value.id === null) {
+    noteSaveBlocked(key, deviceStorage() === "failed"
+      ? "browser storage unavailable — this device's settings are not saved"
+      : "device not bound yet");
+    return;
+  }
+  const base = _revs[key] ?? 0;   // the revision this change was made on
 
   const all = readAll();
   all[key] = data;
@@ -302,9 +395,9 @@ export function saveSection(key: string, data: any): void {
   _localRev.value++;
 
   // Track pending save for sendBeacon flush on page exit
-  _pendingSaves.set(key, data);
+  _pendingSaves.set(key, { data, base });
   noteSavePending(key);
-  if (isProtectedSection(key)) {
+  if (actsWhenConfirmed(key)) {
     _drafts.set(key, { data, json: stableJson(data), rev: sectionRev(key), baseJson: stableJson(_confirmed[key]) });
   }
   // Debounce server saves (camera sliders fire rapidly)
@@ -312,7 +405,7 @@ export function saveSection(key: string, data: any): void {
   _saveTimers[key] = setTimeout(() => {
     _pendingSaves.delete(key);
     if (_settingsSaver) {
-      const reqId = _settingsSaver(key, data);  // registered by lcncWs (avoids the import cycle)
+      const reqId = _settingsSaver(key, data, base);  // registered by lcncWs (avoids the import cycle)
       if (reqId === null) noteSaveFailed(key, "not connected");
       else noteSaveSent(key, reqId);
     } else {
@@ -522,17 +615,13 @@ export function saveDisplayDefaults(data: DisplayDefaults): void {
 export interface MacrosDefaults {
   /** The EARLIER macros (one MDI line with {placeholders} each) — dropped
    *  2026-10-02 on the operator's word: macros are files now. A stored list
-   *  is kept exactly as stored (never used, never rewritten — a save of the
-   *  section writes it back unchanged); the console says once that it is
-   *  there. */
+   *  is kept exactly as stored (never used, never rewritten); the console
+   *  says once that it is there. The macro bar is `macroBar`, a device's. */
   macros: unknown[];
-  /** Macro FILES on the macro bar, in bar order (package 5): file names
-   *  without `.ngc`. Absent in a section saved before package 5 — the first
-   *  save from this client ADDS it; `macros` passes through unchanged. */
-  bar?: string[];
 }
 
 export { MACRO_NAME_RE, MACRO_BAR_MAX } from "./macroParams";
+import { macroBarOf } from "./macroParams";
 
 const MACROS_FALLBACK: MacrosDefaults = { macros: [] };
 
@@ -542,13 +631,51 @@ export function loadMacrosDefaults(): MacrosDefaults {
   return loadSection<MacrosDefaults>("macros");
 }
 
-/** The macros section as the Macros tab shows it (BG-19). */
-export function loadMacrosDraft(): MacrosDefaults {
-  return loadSectionDraft<MacrosDefaults>("macros");
+
+// ─── Macro bar section (a device's, OP3) ──────────────────────────
+
+/** The macro FILES on this device's macro bar, in bar order (package 5;
+ *  per device without arm since the settings split, operator OP3): file
+ *  names without `.ngc`. The machine's `macros` section keeps only the
+ *  earlier MDI-line macros. */
+export interface MacroBarDefaults {
+  bar: string[];
 }
 
-export function saveMacrosDefaults(data: MacrosDefaults): void {
-  saveSection("macros", data);
+registerSection<MacroBarDefaults>("macroBar", { bar: [] }, (saved, fb) => ({ bar: macroBarOf(saved?.bar) ?? [...fb.bar] }));
+
+export function loadMacroBarDefaults(): MacroBarDefaults {
+  return loadSection<MacroBarDefaults>("macroBar");
+}
+
+export function saveMacroBarDefaults(data: MacroBarDefaults): void {
+  saveSection("macroBar", data);
+}
+
+// ─── Simulation section (a device's) ──────────────────────────────
+
+/** Does THIS device run the simulation — the timeline, the collision check,
+ *  the Sim tab (settings split, operator 2026-11-07: the check is heavy; a
+ *  machine panel may go without it)? Every new device starts with it OFF
+ *  (OP1). It acts only once the server holds it (CONFIRMED_DEVICE_SECTIONS). */
+export interface SimulationDefaults {
+  enabled: boolean;
+}
+
+registerSection<SimulationDefaults>("simulation", { enabled: false },
+  (saved) => ({ enabled: saved?.enabled === true }));
+
+export function loadSimulationDefaults(): SimulationDefaults {
+  return loadSection<SimulationDefaults>("simulation");
+}
+
+/** The switch as this tab's form shows it (a draft until the server holds it). */
+export function loadSimulationDraft(): SimulationDefaults {
+  return loadSectionDraft<SimulationDefaults>("simulation");
+}
+
+export function saveSimulationDefaults(data: SimulationDefaults): void {
+  saveSection("simulation", data);
 }
 
 // ─── Camera section ─────────────────────────────────────────────
@@ -974,18 +1101,3 @@ export function clearToolsetterDefaults(): void {
   saveSection("toolsetter", {});
 }
 
-/** Clear all persisted settings so next load returns factory defaults. */
-export function resetAllDefaults(): void {
-  // Migration artifact: these localStorage keys existed in pre-server-sync
-  // versions. Clearing them here ensures old installs don't re-hydrate stale
-  // local state after a reset. Safe to remove after ~2027 when no stale
-  // browsers are likely to still have these keys.
-  localStorage.removeItem(STORAGE_KEY);
-  localStorage.removeItem("lcnc-toolsetter-params");
-  localStorage.removeItem("lcnc-probe-params");
-  _cache = null;
-  _drafts.clear();
-  resetServerSettings().catch((e) =>
-    console.error("[settings] server reset failed:", e),
-  );
-}

@@ -37,8 +37,9 @@
     {"id": "S4b", "kind": "Wirkung", "text": "Läuft das Budget des Oneshots (0,5 s) ohne Herzschlag ab, verriegelt der Latch im selben Servotakt: im Servo-Strom ist fault-out im Sample TRUE, in dem oneshot.0.out fällt (die Gegenprobe mit dem Latch vor oneshot.0 zeigt genau einen Takt Verzug).", "applies": ["3axis_xyz"], "evidence": [{"layer": "native", "file": "native_run.py", "title": "latch-same-cycle", "profile": "3axis_xyz"}, {"layer": "native", "file": "native_run.py", "title": "latch-same-cycle.delayed-order", "profile": "3axis_xyz", "variant": "latch-delayed"}]}
    ]},
   {"id": "F-TRIP", "area": "sicherheit", "name": "Sicherheits-Auslösung quittieren, Sicherheitskette",
-   "atoms": ["control:App.vue|MachineBtn:bannerAck|*=1", "cmd:safety_trip_ack", "status:safety_trip", "status:safety_trip_acked",
-             "status:safety_chain_incomplete", "status:reader_stale", "status:data.reader_fresh"],
+   "atoms": ["control:App.vue|MachineBtn:bannerAck|*=1", "cmd:safety_trip_ack", "status:safety_trip",
+             "status:safety_trip_acked", "status:safety_chain_incomplete", "status:reader_stale",
+             "status:data.reader_fresh"],
    "statements": [
     {"id": "S1", "kind": "Daten", "text": "Die Entscheidung über eine Auslösung: nach sauberem Start wird sie genau einmal gemeldet; ein schon beim Start gesetzter Latch gilt als beim Start gesetzt, nicht als neue Auslösung.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_gateway_util.py", "title": "test_sustained_latch_banners_only_once"}, {"layer": "gateway", "file": "test_gateway_util.py", "title": "test_boot_faulted_does_not_banner"}]},
     {"id": "S1b", "kind": "Bedienbarkeit", "text": "Eine gemeldete Auslösung erscheint im Banner mit Quittieren; der Klick sendet die Quittung, und die Auslösung bleibt sichtbar, bis ein Status ohne sie kommt.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "feedback-channels.spec.ts", "title": "a safety trip: the banner with Acknowledge; the click sends the ack, the trip stays until a status without it (F-TRIP.S1b)"}]},
@@ -432,9 +433,9 @@
     {"id": "S2", "kind": "Daten", "text": "Ein Makro mit Parametern öffnet seinen Dialog mit den Feldern des Kopfs; Ausführen ist ein Halten und sendet Zahlen.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "macros.spec.ts", "title": "a macro file with parameters opens its dialog with the header's fields; Execute holds and sends numbers"}]}
    ]},
   {"id": "F-MACROBAR", "area": "makros", "name": "Makro-Leiste einrichten",
-   "atoms": ["control:MacrosPanel.vue|MachineBtn:listActionSetting|*=2",
+   "atoms": ["control:MacrosPanel.vue|MachineBtn:listActionDevice|*=2",
              "control:MacrosPanel.vue|MachineBtn:settingInline|*=1", "control:MacrosPanel.vue|MachineToggle:*=1",
-             "control:MacrosPanel.vue|MachineSelect:*=1", "setting:macros.*=2"]},
+             "control:MacrosPanel.vue|MachineSelect:*=1", "setting:macros.*=1", "setting:macroBar.bar"]},
   {"id": "F-SIM", "area": "ansicht", "name": "Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab",
    "atoms": ["control:ScrubBar.vue|*=5", "control:SimPanel.vue|*=5"]},
   {"id": "F-VIEW", "area": "ansicht", "name": "3D-Ansicht bedienen: Ansichten, Würfel, Spur löschen, Hinweise",
@@ -470,9 +471,17 @@
              "control:App.vue|MachineBtn:dialogDanger|@click=confirmSettingsDiscard",
              "control:App.vue|MachineBtn:dialogCancel|@click=tabLeaveAsk = null",
              "control:App.vue|MachineBtn:dialogDanger|@click=confirmTabLeave", "cmd:save_settings",
-             "http:*/settings=2", "http:*/settings/{section}=2", "section:*=11", "listener:defaults.ts:*=1"],
+             "http:*/settings=1", "http:*/settings/{section}=2", "section:*=13", "listener:defaults.ts:*=1"],
    "statements": [
-    {"id": "S1", "kind": "Ablehnung", "text": "Eine geschützte Sektion speichert nur ein freigegebener Schreiber (403 sonst); Anzeige-Sektionen brauchen kein Arm.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_button_gates_b.py", "title": "test_a_protected_section_needs_an_armed_writer"}, {"layer": "gateway", "file": "test_button_gates_b.py", "title": "test_a_display_section_needs_no_arm"}]}
+    {"id": "S1", "kind": "Ablehnung", "text": "Eine Maschinen-Sektion speichert nur ein freigegebener Schreiber (403 sonst); die Sektionen des eigenen Geräts brauchen kein Arm.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_button_gates_b.py", "title": "test_a_protected_section_needs_an_armed_writer"}, {"layer": "gateway", "file": "test_button_gates_b.py", "title": "test_a_device_section_goes_to_the_tokens_device_without_arm"}]}
+   ]},
+  {"id": "F-DEVICES", "area": "oberflaeche", "name": "Geräteprofile: dieses Gerät benennen, Simulation schalten, andere Geräte verwalten",
+   "atoms": ["control:DevicesSettings.vue|*=10", "cmd:device_rename", "cmd:device_reset", "cmd:device_delete",
+             "http:GET /devices", "listener:deviceToken.ts:window.storage", "setting:simulation.enabled"],
+   "statements": [
+    {"id": "S1", "kind": "Ablehnung", "text": "Ein verbundenes Gerät wird nie gelöscht; ein anderes Gerät ändert nur ein freigegebener Schreiber, das eigene braucht kein Arm.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_button_gates_b.py", "title": "test_a_connected_device_is_never_deleted"}, {"layer": "gateway", "file": "test_button_gates_b.py", "title": "test_another_device_needs_an_armed_writer"}, {"layer": "gateway", "file": "test_device_profiles.py", "title": "test_a_connected_device_is_never_deleted_and_an_offline_one_only_armed"}]},
+    {"id": "S2", "kind": "Wirkung", "text": "Eine Verbindung wird mit ihrem ersten hello an ihr Gerät gebunden; ihre ersten Einstellungen sind die ihres Geräts, eine Geräteänderung erreicht nur dieses Gerät.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_device_profiles.py", "title": "test_no_settings_before_the_hello_then_the_own_devices"}, {"layer": "gateway", "file": "test_device_profiles.py", "title": "test_a_devices_change_reaches_only_its_own_connections"}, {"layer": "gateway", "file": "test_device_profiles.py", "title": "test_a_later_hello_never_swaps_the_binding"}]},
+    {"id": "S3", "kind": "Wirkung", "text": "Ein neues Gerät startet mit Simulation aus; ein kurzer erster Besuch behält seine bestätigten Einstellungen.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_settings_store.py", "title": "test_an_unknown_token_makes_a_new_profile_from_the_template_simulation_off"}, {"layer": "gateway", "file": "test_settings_store.py", "title": "test_a_short_visit_keeps_its_profile_and_values"}]}
    ]},
   {"id": "F-DISPLAY", "area": "oberflaeche", "name": "Darstellung: Farbschema, Vollbild, Bildschirm wach halten",
    "atoms": ["control:SettingsPanel.vue|MachineRadio:displaySetting|*=5",
@@ -516,7 +525,7 @@
              "control:FloatingOverlays.vue|*=1", "listener:inputSession.ts:*=8", "listener:MachineInput.vue:*=2",
              "listener:FloatingOverlays.vue:*=4"]},
   {"id": "SYS-CONTROLS", "area": "system", "name": "Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe",
-   "atoms": ["buttonType:*=107", "inputDef:*=47", "control:Btn.vue|*=1", "control:MachineBtn.vue|*=1",
+   "atoms": ["buttonType:*=109", "inputDef:*=49", "control:Btn.vue|*=1", "control:MachineBtn.vue|*=1",
              "control:MachineChoice.vue|*=1", "control:MachineColor.vue|*=1", "control:MachineInput.vue|*=2",
              "control:MachineRadio.vue|*=1", "control:MachineSelect.vue|*=1", "control:MachineSlider.vue|*=1",
              "control:MachineToggle.vue|*=2", "control:ChoiceGroup.vue|*=1", "control:HelpIcon.vue|*=1",

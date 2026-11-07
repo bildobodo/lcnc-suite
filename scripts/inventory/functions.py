@@ -37,6 +37,7 @@ PLACES = {
     "ToolTablePanel.vue": "Tab „Tools“", "MacrosPanel.vue": "Tab „Macros“", "MacroBar.vue": "Makro-Leiste", "SimPanel.vue": "Tab „Sim“",
     "ThreeViewer.vue": "3D-Ansicht", "ViewCube.vue": "3D-Ansicht › Würfel", "ScrubBar.vue": "3D-Ansicht › Zeitleiste",
     "CameraPip.vue": "3D-Ansicht › Kamerabild", "SettingsPanel.vue": "Einstellungen", "KeyboardTab.vue": "Einstellungen › Tastatur",
+    "DevicesSettings.vue": "Einstellungen › Geräte",
     "GamepadTab.vue": "Einstellungen › Gamepad", "GamepadMapWizard.vue": "Einstellungen › Gamepad", "HalshowTab.vue": "Einstellungen › HAL",
     "DebugTab.vue": "Einstellungen › Debug", "MessagesDialog.vue": "Meldungen", "GcodeReferenceDialog.vue": "G-Code-Referenz",
     "NumberKeypadStrip.vue": "Zahlentastatur", "TextKeypadStrip.vue": "Texttastatur", "FloatingOverlays.vue": "Tastatur-Symbol am Feld",

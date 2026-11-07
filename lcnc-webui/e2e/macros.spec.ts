@@ -60,7 +60,7 @@ test("the Macros tab lists the folder; a file put on the bar runs on a hold boun
 
 test("a macro file with parameters opens its dialog with the header's fields; Execute holds and sends numbers", async ({ page }) => {
   const folder = new Folder();
-  await ready(page, folder, { macros: { macros: [], bar: ["face_top"] } });
+  await ready(page, folder, { macros: { macros: [] }, macroBar: { bar: ["face_top"] } });
   await page.locator(".macroBar").getByRole("button", { name: "Face top", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Face top" });
   await expect(dialog).toBeVisible();
@@ -81,7 +81,7 @@ async function openEditor(page: Page, name: string) {
 
 test("an unsaved draft blocks the run of THAT macro on the bar and in the tab; Save restores it at the new revision", async ({ page }) => {
   const folder = new Folder();
-  await ready(page, folder, { macros: { macros: [], bar: ["park", "face_top"] } });
+  await ready(page, folder, { macros: { macros: [] }, macroBar: { bar: ["park", "face_top"] } });
   await openTab(page);
   const barPark = page.locator(".macroBar").getByRole("button", { name: "Park", exact: true });
   await expect(barPark).toBeEnabled();
@@ -168,7 +168,7 @@ test("Save's refusal: a conflict rebases Keep editing on the gateway's revision;
 // file is gone; the bar waits meanwhile and never runs beside an old text.
 test("a read overtaken by a save, a delete or a new file of the name never leaves an old clean editor", async ({ page }) => {
   const folder = new Folder();
-  await ready(page, folder, { macros: { macros: [], bar: ["park"] } });
+  await ready(page, folder, { macros: { macros: [] }, macroBar: { bar: ["park"] } });
   await openTab(page);
   const latest = PARK.replace("(MACRO Park)", "(MACRO Park revised)").replace("G53 G0 Z0", "G53 G0 Z-20");
   const meta = folder.files.get("park")!.meta;
@@ -248,7 +248,7 @@ test("another client's save during a bar hold cancels it; the next hold runs the
   // (the parallel measurement, 2026-11-03). A hold the save does not cancel
   // fires in the runFor below.
   await page.clock.install();
-  await ready(page, folder, { macros: { macros: [], bar: ["park"] } });
+  await ready(page, folder, { macros: { macros: [] }, macroBar: { bar: ["park"] } });
   const park = page.locator(".macroBar").getByRole("button", { name: "Park", exact: true });
   await expect(park).toBeEnabled();
   const box = (await park.boundingBox())!;
@@ -274,7 +274,7 @@ test("another client's save during a bar hold cancels it; the next hold runs the
 
 test("the open parameter dialog follows its file: a new header shows its field; a file that may not run dims Execute with the reason", async ({ page }) => {
   const folder = new Folder();
-  await ready(page, folder, { macros: { macros: [], bar: ["face_top"] } });
+  await ready(page, folder, { macros: { macros: [] }, macroBar: { bar: ["face_top"] } });
   await page.locator(".macroBar").getByRole("button", { name: "Face top", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Face top" });
   const execute = dialog.getByRole("button", { name: "Execute", exact: true });
@@ -336,7 +336,7 @@ test("the Macros tab and its editor never run out sideways: desktop, portrait 10
       folder.files.set(n, { text: `(MACRO ${n})\n(a description long enough to need more than one line of the table, cut to one)\no<${n}> sub\no<${n}> endsub\n`,
         meta: { title: n, units: null, frame: null, params: [] } });
     }
-    await ready(page, folder, { macros: { macros: [], bar: ["park", "face_top", "go_to_g30_macro", "spindle_warmup", "coolant_flush"] } });
+    await ready(page, folder, { macros: { macros: [] }, macroBar: { bar: ["park", "face_top", "go_to_g30_macro", "spindle_warmup", "coolant_flush"] } });
     await page.setViewportSize({ width: vp.w, height: vp.h });
     if (vp.touch) await enterTouch(page);
     if (vp.zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, vp.zoom);
@@ -400,7 +400,7 @@ test("after a delete the focus goes to the next row, else the previous, else Mor
 // and keeps its place on the bar.
 test("the editor dialog: name, title and description are the header lines; a rename moves the file and its place on the bar", async ({ page }) => {
   const folder = new Folder();
-  await ready(page, folder, { macros: { macros: [], bar: ["park", "face_top"] } });
+  await ready(page, folder, { macros: { macros: [] }, macroBar: { bar: ["park", "face_top"] } });
   await openTab(page);
   const dialog = await openEditor(page, "face_top");
   const code = dialog.locator(".macroCode .cm-content");
@@ -483,7 +483,7 @@ test("search, the bar filter and the sort narrow and order the rows", async ({ p
   const folder = new Folder();
   folder.files.set("coolant_flush", { text: "(MACRO Coolant flush)\n(turns flood coolant on for a while)\no<coolant_flush> sub\no<coolant_flush> endsub\n",
     meta: { units: null, frame: null, params: [] } });
-  await ready(page, folder, { macros: { macros: [], bar: ["park"] } });
+  await ready(page, folder, { macros: { macros: [] }, macroBar: { bar: ["park"] } });
   await openTab(page);
   const names = () => page.locator("[data-macro-row]").evaluateAll(rs => rs.map(r => (r as HTMLElement).dataset.macroRow));
   expect(await names()).toEqual(["coolant_flush", "face_top", "park"]);
@@ -537,7 +537,7 @@ test("a tap on a row selects it for Run; its name is one Tab stop whose keys sel
   await ctl({ op: "status_delta", data: { homed: [1, 1, 1], permissions: { jog: true, ready: true, run: true, machineFrame: true, goZero: true, idle: true, probe: true,
     setup: true, sourceWrite: true, toolTableWrite: true, armed: true, always: true, abort: true, safety: true, override: true, zero: true,
     armEnable: true, estopReset: true, programLoad: true } } });
-  await ctl({ op: "raw", frame: { type: "settings_init", settings: { macros: { macros: [], bar: ["park"] }, keyboard: { jogEnabled: true, buttonsEnabled: true,
+  await ctl({ op: "raw", frame: { type: "settings_init", settings: { macros: { macros: [] }, macroBar: { bar: ["park"] }, keyboard: { jogEnabled: true, buttonsEnabled: true,
     mapping: { "jog_x+": "ArrowRight", "jog_x-": "ArrowLeft", "jog_y+": "ArrowUp", "jog_y-": "ArrowDown", "jog_z+": "Home", "jog_z-": "End",
                estop: "Escape", cycle: " ", abort: "Backspace" } } } } });
   const jogs = async () => (await sent()).map(c => c.cmd ?? "").filter(c => c.startsWith("jog") || c === "cycle_start" || c === "auto_run");
@@ -741,7 +741,7 @@ test("On bar and the order buttons move nothing in the list: no row height, colu
     for (const n of ["coolant_flush", "spindle_warmup"]) {
       folder.files.set(n, { text: `o<${n}> sub\no<${n}> endsub\n`, meta: { title: n, units: null, frame: null, params: [] } });
     }
-    await ready(page, folder, { macros: { macros: [], bar: ["face_top"] } });
+    await ready(page, folder, { macros: { macros: [] }, macroBar: { bar: ["face_top"] } });
     if (touch) await enterTouch(page);
     await openTab(page);
     // positions inside the TABLE: the test's own tap may scroll the body
@@ -778,7 +778,7 @@ test("a table that starts scrolling keeps its columns: the first macro on the ba
     folder.files.set(n, { text: `(MACRO ${n})\n(Moves to the stored position: Z up first, then X and Y.)\no<${n}> sub\no<${n}> endsub\n`,
       meta: { title: n, units: null, frame: null, params: [] } });
   }
-  await ready(page, folder, { macros: { macros: [], bar: [] } });
+  await ready(page, folder, { macros: { macros: [] }, macroBar: { bar: [] } });
   await page.setViewportSize({ width: 1440, height: 800 });
   await openTab(page);
   const geometry = () => page.evaluate(() => {
@@ -802,7 +802,7 @@ test("a table that starts scrolling keeps its columns: the first macro on the ba
 // the strip and the tables) — and has its own Abort at the right end.
 test("the macro bar is dense: compact buttons, and an Abort at its right end that sends exactly abort", async ({ page }) => {
   for (const touch of [false, true]) {
-    await ready(page, new Folder(), { macros: { macros: [], bar: ["park", "face_top"] } });
+    await ready(page, new Folder(), { macros: { macros: [] }, macroBar: { bar: ["park", "face_top"] } });
     if (touch) await enterTouch(page);
     const bar = page.locator(".macroBar");
     const want = touch ? 36 : 28;

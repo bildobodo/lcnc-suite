@@ -2,7 +2,7 @@
 // VP69-05), the parameter unit, and the `macros` section keeping `bar`.
 import { describe, it, expect } from "vitest";
 import { macroBarItems, macroRunBlock, fileHoldKey, macroParamUnit } from "./macroBar";
-import { mergeMacrosSection, MACRO_BAR_MAX } from "./macroParams";
+import { mergeMacrosSection, macroBarOf, MACRO_BAR_MAX } from "./macroParams";
 import type { MacroFile, MacroFolder } from "./lcncApi";
 
 const file = (over: Partial<MacroFile> = {}): MacroFile => ({
@@ -65,11 +65,16 @@ describe("mergeMacrosSection", () => {
     expect(m.macros).toBe(saved.macros);
     expect("bar" in m).toBe(false);
   });
-  it("bar passes through, valid names only, each once, capped", () => {
-    expect(mergeMacrosSection({ macros: [], bar: ["park", "Park", "../x", "park", 3, "face_top"] }, fb).bar)
-      .toEqual(["park", "face_top"]);
+  it("the bar is no longer the machine's — a device section since the settings split (OP3)", () => {
+    expect(mergeMacrosSection({ macros: [], bar: ["park"] }, fb)).toEqual({ macros: [] });
+  });
+});
+
+describe("macroBarOf (the device's macroBar section)", () => {
+  it("valid names only, each once, capped", () => {
+    expect(macroBarOf(["park", "Park", "../x", "park", 3, "face_top"])).toEqual(["park", "face_top"]);
     const many = Array.from({ length: 80 }, (_, i) => `m${i}`);
-    expect(mergeMacrosSection({ macros: [], bar: many }, fb).bar).toHaveLength(MACRO_BAR_MAX);
-    expect(mergeMacrosSection({ bar: ["park"] }, fb)).toEqual({ macros: [], bar: ["park"] });
+    expect(macroBarOf(many)).toHaveLength(MACRO_BAR_MAX);
+    expect(macroBarOf("park")).toBeUndefined();
   });
 });

@@ -19,8 +19,9 @@ export type ControlCategory =
   | "local"
   /** reads from the gateway: a listing, a download, a retry, a preview */
   | "read"
-  /** writes a DISPLAY settings section (display / viewer / panels /
-   *  camera) — free for every client (operator Q2) */
+  /** writes a section of THIS browser's own DEVICE profile (display /
+   *  viewer / panels / camera, the macro bar, the simulation switch, its
+   *  name, its reset) — free (operator Q2, OP3; settings split R335) */
   | "display"
   /** edits or discards a local draft (an editor, a dialog's own fields);
    *  committing it is gated elsewhere */
@@ -265,6 +266,12 @@ export const CONTROL_INVENTORY: Record<string, readonly [ControlCategory, string
   // ── MacrosPanel.vue ──
   "MacrosPanel.vue|td|@click.stop=":
     ["local", "a row's control cell: stops the click from selecting the row — no action of its own; the controls in it carry their own gates (found since R213 BG-30)"],
+  "MacrosPanel.vue|MachineToggle:deviceSetting|@update:modelValue=setOnBar(f.name, !!$event)":
+    ["display", "a macro file on THIS device's bar: its own profile, free (OP3)"],
+  "MacrosPanel.vue|MachineBtn:listActionDevice|@click=moveOnBar(f.name, -1)":
+    ["display", "the bar order on THIS device: its own profile, free (OP3)"],
+  "MacrosPanel.vue|MachineBtn:listActionDevice|@click=moveOnBar(f.name, 1)":
+    ["display", "the bar order on THIS device: its own profile, free (OP3)"],
   "MacrosPanel.vue|MachineBtn:abort|@click=fire({ cmd: 'abort' }, 'abort')":
     ["stop", "a stop: open without arm (BG-08 / BG-18); the backend's state decides"],
   "MacrosPanel.vue|MachineBtn:close|@click=note = null":
@@ -410,6 +417,17 @@ export const CONTROL_INVENTORY: Record<string, readonly [ControlCategory, string
     ["local", "the program scrub: display only; simulation mode's entry needs the machine off and closes every machine gate (simMode.ts)"],
   "ScrubBar.vue|MachineBtn:scrub|@click=emit('open-sim-tab')":
     ["nav", "closes, cancels, navigates or switches a view — no effect beyond the screen"],
+  // ── DevicesSettings.vue ──
+  "DevicesSettings.vue|MachineInput:deviceSetting|@change=saveName v-model=name":
+    ["display", "this device's name: its own profile, free (settings split R335)"],
+  "DevicesSettings.vue|MachineToggle:deviceSetting|@update:modelValue=saveSim v-model=simOn":
+    ["display", "this device's simulation switch: its own profile, free; it acts once the gateway holds it"],
+  "DevicesSettings.vue|MachineBtn:deviceOwnAction|@click=ask = { kind: 'reset', d: null }":
+    ["nav", "opens the ask for this device's reset; the confirm decides"],
+  "DevicesSettings.vue|MachineBtn:dialogCancel|@click=ask = null":
+    ["nav", "closes, cancels, navigates or switches a view — no effect beyond the screen"],
+  "DevicesSettings.vue|MachineBtn:{ask.kind === 'rename' ? 'dialogConfirm' : 'dialogDanger'}|@click=confirmAsk":
+    ["dynamicGate", "the ask's confirm under <Gate :gate=\"ask.kind === 'reset' && !ask.d ? 'always' : 'armed'\">: this device's own reset is free, another device's change needs arm"],
   // ── SettingsPanel.vue ──
   "SettingsPanel.vue|MachineBtn:dialogCancel|@click=resetTarget = null":
     ["nav", "closes, cancels, navigates or switches a view — no effect beyond the screen"],

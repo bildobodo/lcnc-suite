@@ -118,7 +118,9 @@ from tool_table import (
     _TOOL_META_FIELDS,
     tool_visual_metadata,
 )
-from settings_store import SettingsStore, VALID_SECTIONS as _VALID_SETTINGS_SECTIONS, section_needs_arm
+from settings_store import (SettingsStore, VALID_SECTIONS as _VALID_SETTINGS_SECTIONS, section_needs_arm,
+                            DEVICE_SECTIONS as _DEVICE_SECTIONS, Stale as _SettingsStale,
+                            UnknownDevice as _UnknownDevice)
 import status_runtime as _status_runtime_mod
 from status_runtime import StatusPayload
 import bulk_pipeline as _bulk_mod
@@ -2946,16 +2948,31 @@ _settings_store = SettingsStore(SETTINGS_PATH, _current_ini_path,
 
 
 def load_settings() -> dict:
+    """The MACHINE's sections (what acts the same for every client)."""
     return _settings_store.load()
 
 
-def save_settings_section(section: str, data, admit=None):
-    """`admit` decides inside the store's lock (button gates BG-24)."""
-    _settings_store.save_section(section, data, admit)
+def save_settings_section(section: str, data, admit=None, *, device=None, base_rev=None,
+                          writer=None) -> int:
+    """`admit` decides inside the store's lock (button gates BG-24); the new
+    revision. `device` None = a machine section."""
+    return _settings_store.save_section(section, data, device=device, base_rev=base_rev,
+                                        writer=writer, admit=admit)
 
 
-def reset_settings(admit=None):
-    _settings_store.reset(admit)
+def settings_view(device_id: Optional[str]) -> dict:
+    """What one connection sees: the machine's sections and its device's."""
+    return _settings_store.view_for(device_id)
+
+
+# Presence of the device profiles (settings split): bumped when a bound
+# connection comes or goes — the device list's online state and tab count.
+_devices_presence = 0
+
+
+def _note_device_presence() -> None:
+    global _devices_presence
+    _devices_presence += 1
 
 
 # _merge_tool_data now lives in tool_table.py (imported at top, #33).
@@ -3977,36 +3994,157 @@ async def _persist_tool_edit(tbl_path: str, tools: list, conn_key, update_librar
     await _thread_to_end(asyncio.ensure_future(section()))
 
 
-def _settings_admission(section: Optional[str], conn_key):
+DEVICE_UNBOUND = "Device not bound — reload the page"
+DEVICE_UNKNOWN = "Device unknown — reload the page"
+DEVICE_CONNECTED = "Device connected — close it first"
+
+
+def _settings_admission(section: Optional[str], conn_key, *, foreign: bool = False):
     """settingsWrite(section) as the store's commit check (button gates
-    BG-19, BG-24): a display section needs no arm; every other — and the
-    global reset (`section` None) — the writer's connection, registered and
-    armed when the store's lock is held; no idle, no power. Raises a
-    PermissionError to refuse. ONE rule for WS, HTTP, the beacon, the reset."""
+    BG-19, BG-24; settings split R335): a section of the writer's OWN device
+    needs no arm; a machine section, every change of ANOTHER device's
+    profile (`foreign`) and a machine reset (`section` None) need the
+    writer's connection, registered and armed when the store's lock is held;
+    no idle, no power. Raises a PermissionError to refuse. ONE rule for WS,
+    HTTP, the beacon."""
     def admit():
-        why = _writer_refusal(conn_key) if section is None or section_needs_arm(section) else None
+        need = foreign or section is None or section_needs_arm(section)
+        why = _writer_refusal(conn_key) if need else None
         if why:
             raise PermissionError(why)
     return admit
 
 
+async def _bind_device(client, client_id, address: str, msg: Dict[str, Any]) -> None:
+    """Bind this connection to its device profile — once (R335): the first
+    hello decides; a later hello naming another token is refused (traced),
+    the binding stays. No token (an older page, the browser's storage
+    unusable) or a profile that cannot be written leaves the connection
+    UNBOUND: the template's view, no device section saves."""
+    token = msg.get("device_token")
+    if client.device_bound:
+        if token is not None and client.device_id != await asyncio.to_thread(_settings_store.find_device, token):
+            _trace.emit("device.rebind_refused", level="warn", client_id=client_id, device=client.device_id)
+        return
+    client.device_bound = True
+    if token is None:
+        _trace.emit("device.unbound", client_id=client_id, reason=str(msg.get("device_storage") or "no token")[:40])
+        return
+    try:
+        client.device_id, created = await asyncio.to_thread(_settings_store.bind, token, address)
+    except ValueError:
+        _trace.emit("device.token_malformed", level="warn", client_id=client_id)
+        return
+    except Exception as e:
+        _trace.emit("device.bind_failed", level="warn", client_id=client_id,
+                    exc=type(e).__name__, msg=str(e))
+        return
+    _note_device_presence()
+    _trace.emit("device.bound", client_id=client_id, device=client.device_id, created=created)
+
+
+async def _send_settings_view(ws, client, kind: str) -> None:
+    """This connection's settings view — the machine's sections and its
+    device's — as `settings_init` / `settings_changed`; remembered, so the
+    status loop pushes only a CHANGED view (a device's change reaches only
+    that device's connections)."""
+    try:
+        view = await asyncio.to_thread(settings_view, client.device_id)
+    except Exception as e:
+        _trace.emit("settings.view_failed", level="warn", exc=type(e).__name__, msg=str(e))
+        return
+    client.settings_sent = json.dumps(view, sort_keys=True)
+    await ws_send_json(ws, {"type": kind, "settings": view["settings"], "revs": view["revs"],
+                            "device": view["device"], "armed": client.armed})
+
+
+def _settings_refusal(echo: Dict[str, Any], error: str, **extra) -> Dict[str, Any]:
+    return {"type": "reply", "ok": False, "error": error, **extra, **echo}
+
+
 async def _ws_save_settings(client, msg: Dict[str, Any]) -> Dict[str, Any]:
-    """A WS `save_settings`: the reply (button gates BG-19/BG-24). Admitted
-    inside the store's lock for this client's connection, like the HTTP save.
+    """A WS `save_settings`: the reply (button gates BG-19/BG-24; settings
+    split R335). Admitted inside the store's lock for this client's
+    connection, like the HTTP save. A device section goes to this
+    connection's OWN profile — or, named by `device`, to another one (armed).
+    A section changed since `base_rev` by another writer is refused as
+    `stale` WITH its current state and revision: the tab shows it at once.
     The Settings header's save status matches THIS reply to the save it sent
     by req_id (UX-08): every path echoes it, or the header reads "Saving…"
     forever on a real gateway."""
     echo = {"cmd": "save_settings", **_req_echo(msg)}
     section = msg.get("section", "")
     if section not in _VALID_SETTINGS_SECTIONS:
-        return {"type": "reply", "ok": False, "error": f"Unknown settings section: {section}", **echo}
+        return _settings_refusal(echo, f"Unknown settings section: {section}")
+    want = msg.get("device")
+    target, foreign = None, False
+    if section in _DEVICE_SECTIONS:
+        if want is None or want == client.device_id:
+            target = client.device_id
+            if target is None:
+                return _settings_refusal(echo, DEVICE_UNBOUND, section=section)
+        elif isinstance(want, str):
+            target, foreign = want, True
+        else:
+            return _settings_refusal(echo, DEVICE_UNKNOWN, section=section)
+    elif want is not None:
+        return _settings_refusal(echo, f"{section} is the machine's, not a device's", section=section)
     try:
-        await asyncio.to_thread(save_settings_section, section, msg.get("data"),
-                                _settings_admission(section, client.conn_key))
+        rev = await asyncio.to_thread(
+            save_settings_section, section, msg.get("data"),
+            _settings_admission(section, client.conn_key, foreign=foreign),
+            device=target, base_rev=msg.get("base_rev"), writer=client.conn_key)
+    except _SettingsStale as st:
+        return _settings_refusal(echo, str(st), section=section, stale=True, data=st.data, rev=st.rev)
     except PermissionError as pe:
-        return {"type": "reply", "ok": False, "error": str(pe), **echo}
+        return _settings_refusal(echo, str(pe), section=section)
+    except _UnknownDevice:
+        return _settings_refusal(echo, DEVICE_UNKNOWN, section=section)
+    except ValueError as ve:
+        return _settings_refusal(echo, str(ve), section=section)
     except Exception as se:
-        return {"type": "reply", "ok": False, "error": f"{type(se).__name__}: {se}", **echo}
+        return _settings_refusal(echo, f"{type(se).__name__}: {se}", section=section)
+    return {"type": "reply", "ok": True, "section": section, "rev": rev, **echo}
+
+
+async def _ws_device_command(client, msg: Dict[str, Any]) -> Dict[str, Any]:
+    """Rename, reset (to the template, simulation off) or delete a device
+    profile (settings split, R335–R337). This connection's OWN device needs
+    no arm; another device an armed writer. A delete is ANOTHER device's
+    only and refused while that device is connected — decided in the
+    store's lock, so a save racing it lands before it or is refused after
+    it. Nothing else ever removes a profile."""
+    cmd = msg.get("cmd")
+    echo = {"cmd": cmd, **_req_echo(msg)}
+    want = msg.get("device")
+    target = client.device_id if want is None else want
+    if not isinstance(target, str) or not target:
+        return _settings_refusal(echo, DEVICE_UNBOUND if want is None else DEVICE_UNKNOWN)
+    foreign = target != client.device_id
+    if cmd == "device_delete" and not foreign:
+        return _settings_refusal(echo, DEVICE_CONNECTED)
+    def admit():
+        why = _writer_refusal(client.conn_key) if foreign else None
+        if not why and cmd == "device_delete" and any(c.device_id == target for c in list(_clients.values())):
+            why = DEVICE_CONNECTED
+        if why:
+            raise PermissionError(why)
+    try:
+        if cmd == "device_rename":
+            await asyncio.to_thread(_settings_store.rename_device, target, msg.get("name"), admit)
+        elif cmd == "device_reset":
+            await asyncio.to_thread(_settings_store.reset_device, target, admit)
+        else:
+            await asyncio.to_thread(_settings_store.delete_device, target, admit)
+    except PermissionError as pe:
+        return _settings_refusal(echo, str(pe))
+    except _UnknownDevice:
+        return _settings_refusal(echo, DEVICE_UNKNOWN)
+    except ValueError as ve:
+        return _settings_refusal(echo, str(ve))
+    except Exception as e:
+        return _settings_refusal(echo, f"{type(e).__name__}: {e}")
+    _trace.emit("device." + cmd.split("_", 1)[1], device=target, by=client.device_id)
     return {"type": "reply", "ok": True, **echo}
 
 
@@ -9917,23 +10055,9 @@ async def ws_endpoint(ws: WebSocket):
         host_only = host.split(":")[0]
         stl_base_url = f"http://{host_only}:8000/assets/"
 
-        # Send initial settings snapshot (part of WS handshake)
-        _t = time.monotonic()
-        try:
-            _set_phase(f"load_settings client#{client_id}")
-            _init_settings = await asyncio.get_event_loop().run_in_executor(None, load_settings)
-            _set_phase(f"send_settings_init client#{client_id}")
-            await ws_send_json(ws, {"type": "settings_init", "settings": _init_settings, "armed": client.armed})
-            _trace.emit(
-                "ws.connect.settings",
-                client_id=client_id,
-                settings_ms=round((time.monotonic() - _t) * 1000, 1),
-            )
-        except Exception as e:
-            _trace.emit(
-                "ws.connect.settings", level="error",
-                client_id=client_id, exc=type(e).__name__, msg=str(e),
-            )
+        # The settings snapshot goes out with the hello's reply, once the
+        # connection is bound to its device profile (settings split, R335:
+        # the first settings a client acts on are its OWN device's).
 
         # Send initial G-code ping if a file is already loaded. The full preview
         # payload (feed/rapid polylines, stats) is served over HTTP via GET
@@ -10286,14 +10410,32 @@ async def ws_endpoint(ws: WebSocket):
                             if _new_load_pin != _spindle_load_pin:
                                 _spindle_load_pin = _new_load_pin
                                 asyncio.create_task(_reader_configure_extra_pins())
-                            await ws_send_json(ws, {
-                                "type": "settings_changed",
-                                "settings": _ss,
-                                "armed": client.armed,
-                            })
+                            # This connection's view, pushed only when IT
+                            # changed (a device's change reaches that device's
+                            # connections only) — and only once its hello bound it.
+                            if client.device_bound:
+                                _view = await loop.run_in_executor(None, settings_view, client.device_id)
+                                _vj = json.dumps(_view, sort_keys=True)
+                                if _vj != client.settings_sent:
+                                    client.settings_sent = _vj
+                                    await ws_send_json(ws, {
+                                        "type": "settings_changed",
+                                        "settings": _view["settings"],
+                                        "revs": _view["revs"],
+                                        "device": _view["device"],
+                                        "armed": client.armed,
+                                    })
                         except (OSError, json.JSONDecodeError, ValueError) as e:
                             _trace.emit("status.settings_changed_broadcast_failed", level="warn",
                                         exc=type(e).__name__, msg=str(e))
+
+                    # The device list changed (a profile made, renamed,
+                    # reset, deleted or switched; a device came or went): the
+                    # device views fetch it again (GET /devices).
+                    _dv = (_settings_store.devices_version, _devices_presence)
+                    if client.device_bound and client.devices_sent != _dv:
+                        client.devices_sent = _dv
+                        await ws_send_json(ws, {"type": "devices_changed"})
 
                     # Tool change: auto-deassert when request clears
                     if client.prev_tc_req and not st.tool_change_requested:
@@ -10674,11 +10816,16 @@ async def ws_endpoint(ws: WebSocket):
                                     "session.resume_granted",
                                     client_id=client_id, session_id=_sid,
                                 )
+                # The device profile (settings split, R335–R337): bound ONCE,
+                # by the connection's first hello, never swapped inside it — a
+                # tab whose stored token changed opens a new connection.
+                await _bind_device(client, client_id, client_ip, msg)
                 # This connection's key for protected HTTP writes (button
                 # gates BG-14) — minted with the connection, the same for
                 # every hello on it.
                 await ws_send_json(ws, {"type": "reply", "ok": True, "armed": client.armed,
                                         "conn_key": client.conn_key})
+                await _send_settings_view(ws, client, "settings_init")
                 continue
 
             if msg.get("cmd") == "safety_trip_ack":
@@ -10699,13 +10846,16 @@ async def ws_endpoint(ws: WebSocket):
                 continue
 
             if msg.get("cmd") == "get_settings":
-                _loop = asyncio.get_event_loop()
-                _ss = await _loop.run_in_executor(None, load_settings)
-                await ws_send_json(ws, {"type": "settings_init", "settings": _ss, "armed": client.armed})
+                await _send_settings_view(ws, client, "settings_init")
                 continue
 
             if msg.get("cmd") == "save_settings":
                 await ws_send_json(ws, await _ws_save_settings(client, msg))
+                continue
+
+            if (msg.get("cmd") == "device_rename" or msg.get("cmd") == "device_reset"
+                    or msg.get("cmd") == "device_delete"):
+                await ws_send_json(ws, await _ws_device_command(client, msg))
                 continue
 
             if msg.get("cmd") == "client_diag":
@@ -10874,7 +11024,9 @@ async def ws_endpoint(ws: WebSocket):
         # lookup always miss → 1e9 → even a healthy Ctrl-R reconnect could never
         # register an armed-resume hold.
         _last_hb_at_drop = _clients[client_id].last_hb_mono if client_id in _clients else None
-        _clients.pop(client_id, None)
+        _dropped = _clients.pop(client_id, None)
+        if _dropped is not None and _dropped.device_id:
+            _note_device_presence()   # the device list's online state and tab count
         _halshow_topology_sent.pop(client_id, None)
         # Command worker: cancel FIRST — the armed jog-stop below needs
         # _cmd_lock, which an in-flight handler may hold; _cmd_blocking keeps
@@ -11033,21 +11185,47 @@ _camera_broker = CameraBroker(
 # ---- Server-Side Settings Endpoints ----
 
 @app.get("/settings")
-async def get_settings():
-    loop = asyncio.get_event_loop()
-    data = await loop.run_in_executor(None, load_settings)
-    return {"ok": True, "settings": data}
+async def get_settings(x_device_token: Optional[str] = Header(None)):
+    """The settings a page starts with: the machine's sections and its
+    device's (`X-Device-Token`) — the template's for a device the gateway
+    does not know yet. A read: it never makes a profile (the hello does)."""
+    def view():
+        return settings_view(_settings_store.find_device(x_device_token))
+    v = await asyncio.to_thread(view)
+    return {"ok": True, "settings": v["settings"], "revs": v["revs"], "device": v["device"]}
+
+
+@app.get("/devices", dependencies=[Depends(require_token)])
+async def get_devices(x_device_token: Optional[str] = Header(None)):
+    """The device profiles of this machine configuration (settings split):
+    name, public id, online with how many tabs, last seen and address,
+    never changed — and which one is the asking device's. Never a token."""
+    devices = await asyncio.to_thread(_settings_store.list_devices)
+    me = await asyncio.to_thread(_settings_store.find_device, x_device_token)
+    tabs: Dict[str, int] = {}
+    for c in list(_clients.values()):
+        if c.device_id:
+            tabs[c.device_id] = tabs.get(c.device_id, 0) + 1
+    for d in devices:
+        d["tabs"] = tabs.get(d["id"], 0)
+        d["online"] = d["tabs"] > 0
+        d["this"] = d["id"] == me
+    return {"ok": True, "devices": devices}
 
 
 @app.put("/settings/{section}", dependencies=[Depends(require_token)])
 @app.post("/settings/{section}", dependencies=[Depends(require_token)])  # POST used by sendBeacon on page exit
 async def put_settings_section(section: str, request: Request,
-                               x_conn_key: Optional[str] = Header(None)):
-    """settingsWrite(section) (button gates BG-19): a display section needs
-    no arm; every other needs an armed writer — the connection in
-    X-Conn-Key, or for the page-hide beacon (which cannot set headers) in
-    the body's `conn_key`. A connection that ended writes nothing: no grace
-    (Codex R204)."""
+                               x_conn_key: Optional[str] = Header(None),
+                               x_device_token: Optional[str] = Header(None)):
+    """settingsWrite(section) (button gates BG-19; settings split R335): a
+    device section goes to the writer's OWN profile, named by its token
+    (`X-Device-Token`, the beacon's body `device_token`) — no arm; a machine
+    section needs an armed writer — the connection in X-Conn-Key, or for the
+    page-hide beacon (which cannot set headers) in the body's `conn_key`. A
+    connection that ended writes nothing armed: no grace (Codex R204). Every
+    save names its `base_rev`; a stale one is refused (409) with the current
+    state."""
     if section not in _VALID_SETTINGS_SECTIONS:
         return JSONResponse({"ok": False, "error": f"Unknown section: {section}"}, status_code=400)
     try:
@@ -11057,26 +11235,30 @@ async def put_settings_section(section: str, request: Request,
     if not isinstance(body, dict) or "data" not in body:
         return JSONResponse({"ok": False, "error": "Missing 'data'"}, status_code=400)
     key = x_conn_key if isinstance(x_conn_key, str) and x_conn_key else body.get("conn_key")
+    device = None
+    if section in _DEVICE_SECTIONS:
+        token = x_device_token if isinstance(x_device_token, str) and x_device_token else body.get("device_token")
+        device = await asyncio.to_thread(_settings_store.find_device, token)
+        if device is None:
+            return JSONResponse({"ok": False, "error": DEVICE_UNKNOWN}, status_code=403)
     try:
-        await asyncio.to_thread(save_settings_section, section, body["data"],
-                                _settings_admission(section, key))
+        rev = await asyncio.to_thread(save_settings_section, section, body["data"],
+                                      _settings_admission(section, key), device=device,
+                                      base_rev=body.get("base_rev"),
+                                      writer=key if isinstance(key, str) and key else None)
+    except _SettingsStale as st:
+        return JSONResponse({"ok": False, "error": str(st), "stale": True, "data": st.data,
+                             "rev": st.rev}, status_code=409)
     except PermissionError as pe:
         return JSONResponse({"ok": False, "error": str(pe)}, status_code=403)
+    except _UnknownDevice:
+        return JSONResponse({"ok": False, "error": DEVICE_UNKNOWN}, status_code=403)
+    except ValueError as ve:
+        return JSONResponse({"ok": False, "error": str(ve)}, status_code=400)
     except Exception as e:
         # e.g. refuse-to-clobber when settings.json is corrupt — surface it.
         return JSONResponse({"ok": False, "error": f"{type(e).__name__}: {e}"}, status_code=409)
-    return {"ok": True}
-
-
-@app.delete("/settings", dependencies=[Depends(require_token)])
-async def delete_settings(x_conn_key: Optional[str] = Header(None)):
-    """The global reset — protected whatever sections it touches (button
-    gates BG-19): an armed writer, decided inside the store's lock (BG-24)."""
-    try:
-        await asyncio.to_thread(reset_settings, _settings_admission(None, x_conn_key))
-    except PermissionError as pe:
-        return JSONResponse({"ok": False, "error": str(pe)}, status_code=403)
-    return {"ok": True}
+    return {"ok": True, "rev": rev}
 
 
 @app.get("/camera/stream")

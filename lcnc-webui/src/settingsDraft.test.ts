@@ -11,14 +11,16 @@ import {
   saveKeyboardDefaults, loadKeyboardDefaults, loadKeyboardDraft, DEFAULT_KB_MAPPING,
   saveMachineDefaults, loadMachineDefaults, loadMachineDraft,
   saveDisplayDefaults, loadDisplayDefaults, savedSection, isProtectedSection, FREE_SECTIONS,
+  saveSimulationDefaults, loadSimulationDefaults, loadSimulationDraft, noteSectionRev, applyStaleSection,
+  dropPendingSaves, actsWhenConfirmed, deviceInfo,
   type KeyboardDefaults,
 } from "./defaults";
 import { noteSaveReply, resetSaveStatusForTests, sectionSaveState } from "./settingsSaveStatus";
 
-const sent: { section: string; data: any; reqId: string }[] = [];
-registerSettingsSaver((section, data) => {
+const sent: { section: string; data: any; base: number; reqId: string }[] = [];
+registerSettingsSaver((section, data, base) => {
   const reqId = `r${sent.length + 1}`;
-  sent.push({ section, data: structuredClone(data), reqId });
+  sent.push({ section, data: structuredClone(data), base, reqId });
   return reqId;
 });
 
@@ -30,7 +32,8 @@ beforeEach(() => {
   resetSettingsForTests();
   resetSaveStatusForTests();
   sent.length = 0;
-  initServerDefaults({ keyboard: structuredClone(SERVER_KB) }, true);
+  initServerDefaults({ keyboard: structuredClone(SERVER_KB) }, true, { keyboard: 4, display: 2, simulation: 0 },
+                     { id: "dev-test", name: "" });
 });
 afterEach(() => { vi.useRealTimers(); });
 
@@ -139,6 +142,71 @@ describe("a display section acts at once (Q2)", () => {
   it("the classification", () => {
     expect(isProtectedSection("display")).toBe(false);
     expect(isProtectedSection("keyboard")).toBe(true);
-    expect([...FREE_SECTIONS].sort()).toEqual(["camera", "display", "panels", "viewer"]);
+    expect([...FREE_SECTIONS].sort()).toEqual(["camera", "display", "macroBar", "panels", "simulation", "viewer"]);
+  });
+});
+
+describe("device profiles (settings split, R335–R337)", () => {
+  it("the simulation switch acts only once the server holds it", () => {
+    expect(actsWhenConfirmed("simulation")).toBe(true);
+    expect(actsWhenConfirmed("display")).toBe(false);
+    expect(actsWhenConfirmed("macroBar")).toBe(false);
+    saveSimulationDefaults({ enabled: true });
+    expect(loadSimulationDraft().enabled).toBe(true);
+    expect(loadSimulationDefaults().enabled).toBe(false);     // nothing runs on a draft
+    const s = flush();
+    noteSaveReply(s.reqId, false, "Device not bound — reload the page");
+    expect(loadSimulationDefaults().enabled).toBe(false);
+    updateServerCache({ keyboard: SERVER_KB, simulation: { enabled: true } }, { simulation: 1 }, { id: "dev-test", name: "" });
+    expect(loadSimulationDefaults().enabled).toBe(true);
+  });
+
+  it("a save names the revision its change was made on; the reply's becomes the next base", () => {
+    saveDisplayDefaults({ ...loadDisplayDefaults(), theme: "dark" });
+    expect(flush()).toMatchObject({ section: "display", base: 2 });
+    noteSectionRev("display", 3);
+    saveDisplayDefaults({ ...loadDisplayDefaults(), theme: "light" });
+    expect(flush()).toMatchObject({ section: "display", base: 3 });
+    noteSectionRev("display", 1);             // an older revision never goes back
+    saveDisplayDefaults({ ...loadDisplayDefaults(), theme: "dark" });
+    expect(flush().base).toBe(3);
+  });
+
+  it("a stale refusal shows the server's state at once and drops the change", () => {
+    saveSimulationDefaults({ enabled: true });
+    flush();
+    applyStaleSection("simulation", { enabled: false }, 5);
+    expect(loadSimulationDraft().enabled).toBe(false);
+    expect(loadSimulationDefaults().enabled).toBe(false);
+    saveSimulationDefaults({ enabled: true });
+    expect(flush().base).toBe(5);
+    // a section the server holds none of: gone from the tab as well
+    saveDisplayDefaults({ ...loadDisplayDefaults(), theme: "dark" });
+    applyStaleSection("display", null, 7);
+    expect(savedSection("display")).toBeUndefined();
+  });
+
+  it("a tab not bound to a device saves no device section — a machine section still goes", () => {
+    deviceInfo.value = { id: null, name: "" };
+    saveDisplayDefaults({ ...loadDisplayDefaults(), theme: "dark" });
+    vi.advanceTimersByTime(300);
+    expect(sent).toEqual([]);
+    expect(sectionSaveState("display")).toBe("blocked");
+    expect(loadDisplayDefaults().theme).not.toBe("dark");
+    saveKeyboardDefaults(KB("KeyD"));
+    expect(flush().section).toBe("keyboard");
+  });
+
+  it("binding anew drops what was not saved yet, and says so", () => {
+    saveDisplayDefaults({ ...loadDisplayDefaults(), theme: "dark" });
+    saveKeyboardDefaults(KB("KeyD"));
+    dropPendingSaves("device binding renewed — not saved");
+    vi.advanceTimersByTime(1000);
+    expect(sent).toEqual([]);
+    expect(sectionSaveState("display")).toBe("error");
+    expect(sectionSaveState("keyboard")).toBe("error");
+    expect(loadKeyboardDraft().mapping["jog_x+"]).toBe("KeyD");   // the form's value until the next blob
+    updateServerCache({ keyboard: SERVER_KB }, { keyboard: 4 }, { id: "dev-other", name: "" });
+    expect(loadKeyboardDraft().mapping["jog_x+"]).toBe("ArrowRight");
   });
 });

@@ -276,32 +276,42 @@ class TestAnAdmittedPersistEndsUnderItsLock(_Admission):
 
 
 class TestSettingsDecideInsideTheStoreLock(_Admission):
-    """BG-24: the admission runs after the store's lock is taken."""
+    """BG-24: the admission runs after the store's lock is taken — for the
+    saves and for a change of another device's profile (settings split)."""
 
-    def _case(self, reset=False, disconnect=False, retain_arm=False, ws=False, section="keyboard"):
+    TOKEN = "c" * 32
+
+    def _case(self, kind="http", disconnect=False, retain_arm=False, section="keyboard"):
         with tempfile.TemporaryDirectory() as d:
             path = Path(d, "settings.json")
             store = SettingsStore(path, lambda: "probe.ini")
-            store.save_section("keyboard", {"jogEnabled": False})
-            store.save_section("panels", {"x": 0})
+            own, _ = store.bind(self.TOKEN, None)
+            other, _ = store.bind("d" * 32, None)
+            self.writer.device_id = own
+            store.save_section("keyboard", {"jogEnabled": False}, base_rev=0, writer="setup")
+            store.save_section("panels", {"x": 0}, device=own, base_rev=0, writer="setup")
             before, version = path.read_bytes(), store.version
             entered = threading.Event()
             store._lock.acquire()   # a preceding writer is still in the store
-            original = gateway.reset_settings if reset else gateway.save_settings_section
+            owner, name = (store, "reset_device") if kind == "device_reset" else (gateway, "save_settings_section")
+            original = getattr(owner, name)
 
-            def blocked(*args):
+            def blocked(*args, **kw):
                 entered.set()       # the gateway's own checks ran; the store lock is not taken
-                return original(*args)
+                return original(*args, **kw)
 
             async def run():
-                if reset:
-                    t = asyncio.create_task(gateway.delete_settings(x_conn_key=self.writer.conn_key))
-                elif ws:
+                if kind == "device_reset":
+                    t = asyncio.create_task(gateway._ws_device_command(
+                        self.writer, {"cmd": "device_reset", "device": other}))
+                elif kind == "ws":
                     t = asyncio.create_task(gateway._ws_save_settings(
-                        self.writer, {"cmd": "save_settings", "section": section, "data": {"x": 1}}))
+                        self.writer, {"cmd": "save_settings", "section": section, "data": {"x": 1},
+                                      "base_rev": 1}))
                 else:
                     t = asyncio.create_task(gateway.put_settings_section(
-                        section, _FakeRequest({"data": {"x": 1}}), x_conn_key=self.writer.conn_key))
+                        section, _FakeRequest({"data": {"x": 1}, "base_rev": 1}),
+                        x_conn_key=self.writer.conn_key, x_device_token=self.TOKEN))
                 try:
                     await until(entered)
                     if disconnect:
@@ -312,7 +322,8 @@ class TestSettingsDecideInsideTheStoreLock(_Admission):
                     store._lock.release()
                 return await t
             with patch.object(gateway, "_settings_store", store), \
-                    patch.object(gateway, "reset_settings" if reset else "save_settings_section", blocked):
+                    patch.object(store, "find_device", lambda tok: own if tok == self.TOKEN else None), \
+                    patch.object(owner, name, blocked):
                 result = asyncio.run(run())
             return before != path.read_bytes(), store.version != version, result
 
@@ -327,28 +338,28 @@ class TestSettingsDecideInsideTheStoreLock(_Admission):
         self.assertFalse(changed, result)
         self.assertFalse(bumped)
 
-    def test_a_disarm_while_the_reset_waits_deletes_nothing(self):
-        changed, bumped, result = self._case(reset=True)
+    def test_a_disarm_while_another_devices_reset_waits_changes_nothing(self):
+        changed, bumped, result = self._case(kind="device_reset")
         self.assertFalse(changed, result)
         self.assertFalse(bumped)
-        self.assertEqual(getattr(result, "status_code", None), 403)
+        self.assertEqual((result["ok"], result["error"]), (False, NOT_ARMED))
 
     def test_a_ws_save_decides_inside_the_lock_too(self):
-        changed, bumped, result = self._case(ws=True)
+        changed, bumped, result = self._case(kind="ws")
         self.assertFalse(changed, result)
         self.assertFalse(result["ok"])
         self.assertIn(NOT_ARMED, result["error"])
 
-    def test_a_display_section_still_needs_no_arm(self):
-        changed, _, result = self._case(ws=True, section="panels")
+    def test_an_own_device_section_still_needs_no_arm(self):
+        changed, _, result = self._case(kind="ws", section="panels")
         self.assertTrue(changed, result)
         changed, _, result = self._case(section="panels")
         self.assertTrue(changed, result)
 
     def test_control_an_armed_writer_saves_and_resets(self):
         self.assertTrue(self._case(retain_arm=True)[0])
-        self.assertTrue(self._case(reset=True, retain_arm=True)[0])
-        self.assertTrue(self._case(ws=True, retain_arm=True)[0])
+        self.assertTrue(self._case(kind="device_reset", retain_arm=True)[0])
+        self.assertTrue(self._case(kind="ws", retain_arm=True)[0])
 
 
 if __name__ == "__main__":

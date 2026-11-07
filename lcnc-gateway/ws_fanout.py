@@ -127,6 +127,14 @@ class ClientState:
     prev_tc_req: Optional[bool] = False   # tool-change-requested edge detection
     prev_tool_num: Optional[int] = None   # tool_number edge for tool_meta resend
     ts_booking_sent: Optional[int] = None  # the toolsetter booking version this connection has (P2)
+    # The device profile this CONNECTION is bound to (settings split,
+    # R335–R337): set once by its hello, never swapped inside the connection
+    # (a tab whose stored token changed opens a NEW connection). None = not
+    # bound — the template's view, no device section saves.
+    device_id: Optional[str] = None
+    device_bound: bool = False            # its hello was handled (bound or not)
+    settings_sent: Optional[str] = None   # the settings view last sent (JSON), for change-only pushes
+    devices_sent: Optional[tuple] = None  # the device-list version last announced
     # Forensics for hb-stall disarms (delivery-vs-generation attribution): the
     # browser proved it generated+sent heartbeats on time while the gateway saw a
     # 3 s gap (the Vite dev proxy stalled the relay). On a stall, the arrival ring

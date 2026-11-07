@@ -56,7 +56,7 @@ const PAD_ID = "Test Pad (Vendor: 045e Product: 028e)";
 /** The gateway's macro folder (macroFolder.ts): park and face_top; the
  *  earlier settings macros were dropped 2026-10-02. */
 const macroFolder = (page: Page) => serve(page, new Folder());
-const MACRO_BAR = { macros: { macros: [], bar: ["face_top"] } };
+const MACRO_BAR = { macros: { macros: [] }, macroBar: { bar: ["face_top"] } };
 async function openMacrosTab(page: Page): Promise<Locator> {
   await page.getByRole("tab", { name: "Macros", exact: true }).click();
   const tab = page.locator(".macrosTab");

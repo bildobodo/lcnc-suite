@@ -16,7 +16,8 @@ import { ref } from "vue";
 import { setConnKey } from "./connKey";
 import { decode as msgpackDecode } from "@msgpack/msgpack";
 import { type WsCommand, OPERATOR_ERROR, isQueueSafe } from "./lcnc";
-import { updateServerCache, loadDisplayDefaults, registerSettingsSaver } from "./defaults";
+import { updateServerCache, loadDisplayDefaults, registerSettingsSaver, noteSectionRev, applyStaleSection, dropPendingSaves, devicesVersion } from "./defaults";
+import { onDeviceRebind, recheckDeviceToken } from "./deviceToken";
 import { noteSaveReply, noteSaveConnectionLost, noteSaveServerState } from "./settingsSaveStatus";
 import { enableWakeLock, disableWakeLock } from "./wakeLock";
 import { applyHalshowSnapshot, applyHalshowUpdate, resetHalshow } from "./ws/halshowStore";
@@ -24,7 +25,7 @@ import { emitTelemetry } from "./ws/telemetry";
 import { macroFilesVersion } from "./macroFiles";
 import { noteClockExchange, noteHeartbeatReply, noteHeartbeatSentAt, receiptOnPage, resetClockRelation } from "./viewerPerf";
 import {
-  buildWsUrl, captureArmedForResume, connectTransport,
+  buildWsUrl, captureArmedForResume, connectTransport, rebindTransport,
   persistArmedForReload, postWorkerConfig, postWorkerProbe, sendCommand, terminateTransport,
 } from "./ws/wsTransport";
 import {
@@ -114,6 +115,14 @@ export function connectWs() {
   // uses a separate network process), which matters for hb-stall attribution.
   // Host only — the URL may carry the auth token, which must not hit the trace.
   emitTelemetry("ws.client_env", { ua: navigator.userAgent, ws_host: new URL(wsUrl).host });
+  // The stored device token changed (another tab's first start won, R336):
+  // this tab binds anew — a NEW connection, unarmed; what it had not saved
+  // yet does not move to the other profile.
+  onDeviceRebind(() => {
+    emitTelemetry("device.rebind", {});
+    dropPendingSaves("device binding renewed — not saved");
+    rebindTransport();
+  });
   connectTransport(wsUrl, onWorkerMessage);
 }
 
@@ -126,6 +135,7 @@ function onWorkerMessage(m: any) {
       connected.value = true;
       serverShuttingDown.value = false;
       macroFilesVersion.value++;   // the macro list as this gateway has it
+      recheckDeviceToken();        // a reconnect reads the stored token again (R336)
       // Acquire screen wake-lock if enabled (not gated on armed, so passive
       // viewer tabs stay awake too). Released on close.
       try {
@@ -327,6 +337,13 @@ function onFrame(data: string | ArrayBuffer, rx?: number) {
       // itself, where the operation began — the generic line said it twice.
       const awaited = typeof msg.req_id === "string" ? _awaited.get(msg.req_id) : undefined;
       awaited?.(msg);
+      // A settings save's reply names the section's new revision — or, when
+      // another writer changed it since (stale), its current state, shown
+      // at once (settings split, SS334-06).
+      if (msg.cmd === "save_settings" && typeof msg.section === "string") {
+        if (msg.ok !== false) noteSectionRev(msg.section, msg.rev);
+        else if (msg.stale === true) applyStaleSection(msg.section, msg.data, msg.rev);
+      }
       // A settings save's reply moves the Settings header's status (UX-08).
       if (typeof msg.req_id === "string") noteSaveReply(msg.req_id, msg.ok !== false, msg.error);
       if (msg.ok === false && msg.error && !awaited) {
@@ -354,7 +371,9 @@ function onFrame(data: string | ArrayBuffer, rx?: number) {
       // gets (UX-08) — judged FIRST: a draft the blob proves not saved is a
       // failed one when the cache keeps or ends it (button gates BG-19).
       noteSaveServerState(msg.settings);
-      updateServerCache(msg.settings);
+      updateServerCache(msg.settings, msg.revs, msg.device);
+    } else if (msg.type === "devices_changed") {
+      devicesVersion.value++;   // the device views fetch the list again
     } else if (msg.type === "macros_changed") {
       macroFilesVersion.value++;
     } else if (msg.type === "halshow_snapshot") {
@@ -424,8 +443,8 @@ export function awaitReply(reqId: string | null, timeoutMs = 5000): Promise<any 
   });
 }
 
-export function saveSettings(section: string, data: any): string | null {
-  return send({ cmd: "save_settings", section, data });
+export function saveSettings(section: string, data: any, baseRev: number): string | null {
+  return send({ cmd: "save_settings", section, data, base_rev: baseRev });
 }
 // Let defaults.ts flush settings through us without importing this module (P6).
 registerSettingsSaver(saveSettings);

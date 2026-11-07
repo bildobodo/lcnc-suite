@@ -41,8 +41,10 @@ class TestSectionClassification(unittest.TestCase):
         self.assertEqual(free | protected, settings_store.VALID_SECTIONS)
         self.assertEqual(free & protected, frozenset())
 
-    def test_display_sections_are_free(self):
-        self.assertEqual(settings_store.FREE_SECTIONS, {"display", "viewer", "panels", "camera"})
+    def test_device_sections_are_free(self):
+        # settings split (R335): a device saves its own sections without arm
+        self.assertEqual(settings_store.FREE_SECTIONS,
+                         {"display", "viewer", "panels", "camera", "macroBar", "simulation"})
 
     def test_machine_is_protected(self):
         # spindleFeedbackUnit / spindleLoadPin scale and select a machine
@@ -314,35 +316,48 @@ class _FakeRequest:
 
 
 class TestSettingsWrites(_Clients):
+    """BG-19 with device profiles (settings split R335–R337): a device saves
+    its OWN sections without arm, another device's only armed; a machine
+    section needs an armed writer; no whole-INI reset any more."""
+
+    TOKEN = "a" * 32
+
     def setUp(self):
         super().setUp()
         self.saved = []
 
-        def save(section, data, admit):   # the store calls admit under its lock
-            admit()
-            self.saved.append((section, data))
+        def save(section, data, admit, *, device=None, base_rev=None, writer=None):
+            admit()   # the store calls admit under its lock
+            self.saved.append((section, data, device))
+            return 1
         p = mock.patch.object(gateway, "save_settings_section", save)
         p.start()
         self.addCleanup(p.stop)
-        self.resets = []
-
-        def reset(admit):
-            admit()
-            self.resets.append(1)
-        p = mock.patch.object(gateway, "reset_settings", reset)
+        p = mock.patch.object(gateway._settings_store, "find_device",
+                              lambda tok: "dev-1" if tok == self.TOKEN else None)
         p.start()
         self.addCleanup(p.stop)
+        self.armed.device_id = "dev-armed"
+        self.disarmed.device_id = "dev-disarmed"
 
-    def put(self, section, key=None, body_key=None):
-        body = {"data": {"x": 1}}
+    def put(self, section, key=None, body_key=None, token=None, body_token=None):
+        body = {"data": {"x": 1}, "base_rev": 0}
         if body_key is not None:
             body["conn_key"] = body_key
-        return _run(gateway.put_settings_section(section, _FakeRequest(body), x_conn_key=key))
+        if body_token is not None:
+            body["device_token"] = body_token
+        return _run(gateway.put_settings_section(section, _FakeRequest(body), x_conn_key=key,
+                                                 x_device_token=token))
 
-    def test_a_display_section_needs_no_arm(self):
-        r = self.put("viewer")
-        self.assertEqual(r, {"ok": True})
-        self.assertEqual(self.saved, [("viewer", {"x": 1})])
+    def test_a_device_section_goes_to_the_tokens_device_without_arm(self):
+        self.assertEqual(self.put("viewer", token=self.TOKEN), {"ok": True, "rev": 1})
+        self.assertEqual(self.saved, [("viewer", {"x": 1}, "dev-1")])
+
+    def test_a_device_section_without_a_known_token_writes_nothing(self):
+        for tok in (None, "b" * 32):
+            r = self.put("viewer", token=tok)
+            self.assertEqual(getattr(r, "status_code", None), 403)
+        self.assertEqual(self.saved, [])
 
     def test_a_protected_section_needs_an_armed_writer(self):
         r = self.put("keyboard")
@@ -350,37 +365,113 @@ class TestSettingsWrites(_Clients):
         r = self.put("keyboard", key=self.disarmed.conn_key)
         self.assertEqual(getattr(r, "status_code", None), 403)
         self.assertEqual(self.saved, [])
-        self.assertEqual(self.put("keyboard", key=self.armed.conn_key), {"ok": True})
-        self.assertEqual(self.saved, [("keyboard", {"x": 1})])
+        self.assertEqual(self.put("keyboard", key=self.armed.conn_key), {"ok": True, "rev": 1})
+        self.assertEqual(self.saved, [("keyboard", {"x": 1}, None)])
 
-    def test_the_page_hide_beacon_names_its_connection_in_the_body(self):
-        self.assertEqual(self.put("machine", body_key=self.armed.conn_key), {"ok": True})
+    def test_the_page_hide_beacon_names_its_connection_and_device_in_the_body(self):
+        self.assertEqual(self.put("machine", body_key=self.armed.conn_key), {"ok": True, "rev": 1})
         r = self.put("machine", body_key=self.disarmed.conn_key)
         self.assertEqual(getattr(r, "status_code", None), 403)
+        self.assertEqual(self.put("simulation", body_token=self.TOKEN), {"ok": True, "rev": 1})
+        self.assertEqual(self.saved[-1], ("simulation", {"x": 1}, "dev-1"))
 
-    def test_the_global_reset_is_protected(self):
-        r = _run(gateway.delete_settings(x_conn_key=None))
-        self.assertEqual(getattr(r, "status_code", None), 403)
-        self.assertEqual(self.resets, [])
-        self.assertEqual(_run(gateway.delete_settings(x_conn_key=self.armed.conn_key)), {"ok": True})
-        self.assertEqual(self.resets, [1])
+    def test_there_is_no_whole_ini_reset_any_more(self):
+        self.assertFalse(hasattr(gateway, "delete_settings"))
+        self.assertFalse(hasattr(gateway, "reset_settings"))
+        self.assertFalse(any(getattr(r, "path", None) == "/settings" and "DELETE" in getattr(r, "methods", ())
+                             for r in gateway.app.routes))
 
     def test_the_ws_save_rule(self):
-        def refusal(section, key):
+        def refusal(section, key, foreign=False):
             try:
-                gateway._settings_admission(section, key)()
+                gateway._settings_admission(section, key, foreign=foreign)()
             except PermissionError as e:
                 return str(e)
             return None
         self.assertIsNone(refusal("panels", self.disarmed.conn_key))
+        self.assertEqual(refusal("panels", self.disarmed.conn_key, foreign=True), NOT_ARMED)
+        self.assertIsNone(refusal("panels", self.armed.conn_key, foreign=True))
         self.assertEqual(refusal("gamepad", self.disarmed.conn_key), NOT_ARMED)
         self.assertIsNone(refusal("gamepad", self.armed.conn_key))
-        self.assertEqual(refusal(None, self.disarmed.conn_key), NOT_ARMED, "the reset")
-        for cmd, section in (("ok", "gamepad"), ("refused", "gamepad"), ("free", "panels")):
-            client = self.armed if cmd == "ok" else self.disarmed
-            r = _run(gateway._ws_save_settings(client, {"cmd": "save_settings", "section": section,
-                                                         "data": {"x": 1}, "req_id": cmd}))
-            self.assertEqual((r["ok"], r["req_id"]), (cmd != "refused", cmd), r)
+        self.assertEqual(refusal(None, self.disarmed.conn_key), NOT_ARMED, "a machine reset")
+
+        def save(client, section, **extra):
+            return _run(gateway._ws_save_settings(client, {"cmd": "save_settings", "section": section,
+                                                            "data": {"x": 1}, "base_rev": 0,
+                                                            "req_id": "r", **extra}))
+        self.assertTrue(save(self.armed, "gamepad")["ok"])
+        self.assertFalse(save(self.disarmed, "gamepad")["ok"])
+        r = save(self.disarmed, "panels")
+        self.assertEqual((r["ok"], r["req_id"], r["rev"]), (True, "r", 1), r)
+        self.assertEqual(self.saved[-1], ("panels", {"x": 1}, "dev-disarmed"))
+        # another device's section: armed only
+        r = save(self.disarmed, "simulation", device="dev-armed")
+        self.assertEqual((r["ok"], r["error"]), (False, NOT_ARMED), r)
+        self.assertTrue(save(self.armed, "simulation", device="dev-disarmed")["ok"])
+        self.assertEqual(self.saved[-1], ("simulation", {"x": 1}, "dev-disarmed"))
+        # a machine section names no device; an unbound connection saves no device section
+        self.assertFalse(save(self.armed, "gamepad", device="dev-armed")["ok"])
+        self.disarmed.device_id = None
+        r = save(self.disarmed, "panels")
+        self.assertEqual((r["ok"], r["error"]), (False, gateway.DEVICE_UNBOUND), r)
+
+    def test_a_stale_save_answers_with_the_current_state(self):
+        def stale(section, data, admit, *, device=None, base_rev=None, writer=None):
+            raise settings_store.Stale(section, {"enabled": False}, 7)
+        with mock.patch.object(gateway, "save_settings_section", stale):
+            r = _run(gateway._ws_save_settings(self.armed, {"cmd": "save_settings", "section": "simulation",
+                                                             "data": {"enabled": True}, "base_rev": 3,
+                                                             "req_id": "s"}))
+        self.assertEqual((r["ok"], r["stale"], r["data"], r["rev"], r["section"], r["req_id"]),
+                         (False, True, {"enabled": False}, 7, "simulation", "s"), r)
+
+
+class TestDeviceCommands(_Clients):
+    """Rename / reset / delete a device profile (R335–R337): the own device
+    free, another armed; a connected profile is never deleted."""
+
+    def setUp(self):
+        super().setUp()
+        self.armed.device_id = "dev-armed"
+        self.disarmed.device_id = "dev-disarmed"
+        self.calls = []
+        store = gateway._settings_store
+        for name in ("rename_device", "reset_device", "delete_device"):
+            def op(device, *a, _n=name):
+                admit = a[-1]
+                admit()
+                self.calls.append((_n, device))
+            p = mock.patch.object(store, name, op)
+            p.start()
+            self.addCleanup(p.stop)
+
+    def cmd(self, client, cmd, **extra):
+        return _run(gateway._ws_device_command(client, {"cmd": cmd, "req_id": "d", **extra}))
+
+    def test_the_own_device_needs_no_arm(self):
+        self.assertTrue(self.cmd(self.disarmed, "device_rename", name="Panel")["ok"])
+        self.assertTrue(self.cmd(self.disarmed, "device_reset")["ok"])
+        self.assertEqual(self.calls, [("rename_device", "dev-disarmed"), ("reset_device", "dev-disarmed")])
+
+    def test_another_device_needs_an_armed_writer(self):
+        r = self.cmd(self.disarmed, "device_reset", device="dev-offline")
+        self.assertEqual((r["ok"], r["error"]), (False, NOT_ARMED))
+        self.assertTrue(self.cmd(self.armed, "device_reset", device="dev-offline")["ok"])
+        self.assertEqual(self.calls, [("reset_device", "dev-offline")])
+
+    def test_a_connected_device_is_never_deleted(self):
+        r = self.cmd(self.armed, "device_delete")          # its own: connected by definition
+        self.assertEqual((r["ok"], r["error"]), (False, gateway.DEVICE_CONNECTED))
+        r = self.cmd(self.armed, "device_delete", device="dev-disarmed")   # online
+        self.assertEqual((r["ok"], r["error"]), (False, gateway.DEVICE_CONNECTED))
+        self.assertEqual(self.calls, [])
+        self.assertTrue(self.cmd(self.armed, "device_delete", device="dev-offline")["ok"])
+        self.assertEqual(self.calls, [("delete_device", "dev-offline")])
+
+    def test_an_unbound_connection_has_no_own_device(self):
+        self.disarmed.device_id = None
+        r = self.cmd(self.disarmed, "device_rename", name="x")
+        self.assertEqual((r["ok"], r["error"]), (False, gateway.DEVICE_UNBOUND))
 
 
 class TestWsToolEditAdmittedAtTheWrite(_Admission):

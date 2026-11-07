@@ -30,6 +30,7 @@ import { customContrastRows, customPairRows } from "./viewer/customContrast";
 import type { MappingSource } from "./gamepadProfile";
 import { enableWakeLock, disableWakeLock } from "./wakeLock";
 import { RotateCcw, Triangle, X } from "lucide-vue-next";
+import DevicesSettings from "./DevicesSettings.vue";
 import DebugTab from "./DebugTab.vue";
 import HalshowTab from "./HalshowTab.vue";
 import KeyboardTab from "./KeyboardTab.vue";
@@ -353,6 +354,7 @@ const subTabs = [
   { id: "viewer", label: "3D Viewer" },
   { id: "machine", label: "Machine" },
   { id: "display", label: "Display" },
+  { id: "devices", label: "Devices" },
   { id: "gamepad", label: "Gamepad" },
   { id: "keyboard", label: "Keyboard" },
   { id: "halshow", label: "HAL" },
@@ -864,6 +866,11 @@ function resetMachineColor(id: string) {
             <MachineBtn type="resetDisplay" @click="resetTarget = 'display'">Reset Display</MachineBtn>
           </div>
         </div>
+      </template>
+
+      <template #devices>
+        <div v-if="!serverSettingsReady" class="emptyState loading settingsLoading">Waiting for server settings…</div>
+        <DevicesSettings v-else />
       </template>
 
       <template #gamepad>

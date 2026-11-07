@@ -138,6 +138,10 @@ export const BUTTON_TYPES = {
   settingInline:      { gate: 'armed', variant: 'default', size: 'sm' },
   settingInlineMd:    { gate: 'armed', variant: 'default', size: 'md' },
   listActionSetting:  { gate: 'armed', variant: 'default', size: 'md', icon: true },
+  // Settings › Devices (settings split): THIS browser's own profile needs
+  // no arm; another device's only armed (listActionSetting).
+  deviceOwnAction:    { gate: 'always', variant: 'default', size: 'md' },
+  listActionDevice:   { gate: 'always', variant: 'default', size: 'md', icon: true },
   dialogSettingConfirm: { gate: 'armed', variant: 'primary', size: 'md' },
   dialogSettingDanger:  { gate: 'armed', variant: 'danger',  size: 'md' },
 
@@ -369,6 +373,10 @@ export const INPUT_DEFS = {
   viewerSetting:   { gate: 'always' },
   viewerSettingNum:{ gate: 'always',   mono: true, align: 'right' },
   cameraSetting:   { gate: 'always' },
+  // A device's own profile (settings split): its name and simulation switch,
+  // no arm; the same switch for ANOTHER device needs arm.
+  deviceSetting:   { gate: 'always' },
+  deviceSettingOther: { gate: 'armed' },
 
   // Display settings (display / viewer / panels / camera): free (Q2)
   displaySetting:  { gate: 'always' },

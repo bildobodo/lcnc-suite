@@ -11188,3 +11188,52 @@ A3: only a marker confirmed ABSENT frees the lock; an unreadable one, one
 that is no JSON or names no run keeps every taker out, the restore included,
 and settle leaves it ("unreadable: …").
 
+
+## 2026-11-07 — Device profiles: the machine's settings and each device's (settings split package 1; operator, plan Codex R334–R337)
+
+The operator: settings that change only the look belong to the device, every
+setting that influences the machine stays on the server; features can be
+switched off; above all the simulation runs only on the devices that want
+it, not on the machine PC's panel. Agreed with Codex over R334–R337, the
+classification shown to the operator and accepted ("das passt").
+
+- **Classes.** MACHINE (one value for every client, saved only armed):
+  `machine`, `toolsetter`, `probe`, `keyboard`, `gamepad`, `mdi`, `macros`
+  (only the earlier MDI-line macros, kept as stored). DEVICE (this browser's
+  own profile, saved without arm): `display`, `viewer`, `panels`, `camera`,
+  `macroBar` (OP3: the bar moved out of `macros`) and `simulation`. Not
+  stored: tab choices, search, dialogs, drafts, scrub position, `simMode`.
+- **A device** is a browser profile per origin (OP1): a secret token (32 hex
+  digits from `crypto.getRandomValues`, localStorage; the gateway keeps its
+  sha256) and a separate public id. Every NEW device starts from the
+  template with the simulation OFF — no panel detection (loopback decides
+  nothing). A private window or cleared data is a new device.
+- **Binding.** The connection's FIRST hello binds it (`device_token`); its
+  first `settings_init` comes with the hello's reply — no settings before;
+  never swapped inside a connection (a later hello naming another token is
+  refused and traced). `GET /settings` reads the token's view and never
+  makes a profile. Two tabs' first starts converge through the `storage`
+  event (no `navigator.locks` on LAN HTTP); a rebind is a NEW connection,
+  unarmed, unsaved changes dropped visibly. An observed storage failure
+  leaves the tab unbound: the template's view, no device saves, said so.
+- **Rights**, decided in the store's lock on every path (WS, HTTP, beacon):
+  the own device's sections, name and reset — no arm; another device's
+  simulation, name, reset and delete — an armed writer; a machine section —
+  armed. A connected device is never deleted. NOTHING removes a profile on
+  its own (R336/R337: a 60 s clean-up of "provisional" profiles would have
+  lost a short first visit's confirmed settings); race leftovers stay
+  listed ("never changed") until deleted by hand.
+- **Revisions.** Every save names the revision its change was made on
+  (`base_rev`); a section another writer changed since is refused as stale
+  WITH its current state, shown at once, never retried — the old panel tab
+  cannot switch back what a laptop switched off. A writer's own chained
+  save (its next change before the reply to its first) passes.
+- **Schema 2** per INI: the machine sections stay where schema 1 had them
+  (an older gateway still reads them); `_v2` holds the template (made once
+  from the schema-1 display sections and the macro bar), the devices and
+  the revisions. A read never writes; the first write stores it.
+- **Gone:** the whole-INI reset (`DELETE /settings`, `resetAllDefaults` —
+  no control used it); `macros.bar` as a machine setting.
+
+Package 2 (the simulation per device) ships in the SAME merge: a new device
+must already compute nothing on the day it gets a profile.

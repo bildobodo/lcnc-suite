@@ -33,7 +33,7 @@ const PROGRAM = "(program A)\nG0 X0\nG1 X10 F100\nG1 Y10\nM2\n";
 /** The macro files on the bar: park (no parameters, a hold) and face_top
  *  (parameters, a dialog) — macroFolder.ts; the earlier settings macros were
  *  dropped 2026-10-02. */
-const BAR = { macros: { macros: [], bar: ["park", "face_top"] } };
+const BAR = { macros: { macros: [] }, macroBar: { bar: ["park", "face_top"] } };
 const HOLD_MS = 700;   // > HOLD_FIRE_MS (500)
 
 async function sent(): Promise<{ cmd?: string; text?: string; line?: number }[]> {

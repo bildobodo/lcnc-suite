@@ -165,7 +165,7 @@ export function stripStateExempt(state: StripState, portrait = false): string[] 
 }
 
 /** One macro file on the bar (macroFolder.ts): face_top, "Face top". */
-const MACRO_BAR = { macros: { macros: [], bar: ['face_top'] } };
+const MACRO_BAR = { macros: { macros: [] }, macroBar: { bar: ['face_top'] } };
 
 async function keypadCancel(page: Page) {
   const strip = page.locator('.nkStrip');

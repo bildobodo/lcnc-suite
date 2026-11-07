@@ -82,6 +82,12 @@ const server = createServer(async (req, res) => {
     res.end(JSON.stringify({ ok: true, dir: null, problems: ["No macro folder — set [DISPLAY] WEBUI_MACRO_DIR"], macros: [] }));
     return;
   }
+  if (path === "/devices") {
+    // Settings › Devices (settings split): this device and what a spec set
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ ok: true, devices: [{ ...MOCK_DEVICE_ROW, name: MOCK_DEVICE.name }, ...devicesList] }));
+    return;
+  }
   if (path === "/preview") {
     res.writeHead(200, { "content-type": "application/octet-stream" });
     res.end(Buffer.from(PREVIEW));
@@ -233,6 +239,22 @@ const withEnvelope = (frame) => ({ ...frame, ...envelope });
 // answers saves itself (the save-status ledger) turns it off: settingsEcho.
 let settingsStore = {};
 let settingsEcho = true;
+// Device profiles (settings split, R335–R337): the mock's page is ONE bound
+// device whose simulation is ON — the fixture default the timeline, Sim tab
+// and collision specs run under. Every settings frame a spec sends carries
+// this device, the section revisions and `simulation` unless it names its
+// own (a NEW device's spec sends `simulation: {enabled: false}`).
+const MOCK_DEVICE = { id: "dev-mock", name: "" };
+const MOCK_DEVICE_ROW = { id: "dev-mock", created: null, last_seen: null, last_address: "127.0.0.1",
+  changed: true, simulation: true, simulation_rev: 0, online: true, tabs: 1, this: true };
+let settingsRevs = {};
+let devicesList = [];
+const withDevice = (frame) => ({
+  ...frame,
+  settings: { simulation: { enabled: true }, ...(frame.settings ?? {}) },
+  revs: frame.revs ?? { ...settingsRevs },
+  device: frame.device ?? MOCK_DEVICE,
+});
 
 // What a fresh app client receives on connect — also what `snapshot` reports.
 const connectFrames = () => [withEnvelope(state), activeViewerInit];
@@ -262,8 +284,14 @@ wss.on("connection", (ws) => {
     else if (cmd && replies[cmd]) ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ...replies[cmd] }));
     else if (cmd === "save_settings" && settingsEcho && typeof msg.section === "string") {
       settingsStore = { ...settingsStore, [msg.section]: msg.data };
+      settingsRevs[msg.section] = (settingsRevs[msg.section] ?? 0) + 1;
+      ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, section: msg.section,
+                               rev: settingsRevs[msg.section] }));
+      broadcast(withDevice({ type: "settings_changed", settings: settingsStore }));
+    }
+    else if (cmd === "device_rename" || cmd === "device_reset" || cmd === "device_delete") {
+      if (cmd === "device_rename" && !msg.device) MOCK_DEVICE.name = String(msg.name ?? "");
       ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true }));
-      broadcast({ type: "settings_changed", settings: settingsStore });
     }
     // a gateway always answers a table read: an empty table unless scripted
     // (the Tools tab says a missing reply after 8 s — 2026-10-04)
@@ -333,6 +361,9 @@ ctlWss.on("connection", (ws) => {
       envelope = {};
       settingsStore = {};
       settingsEcho = true;
+      settingsRevs = {};
+      devicesList = [];
+      MOCK_DEVICE.name = "";
       activeViewerInit = VIEWER_INIT;
       for (const k of Object.keys(state)) delete state[k];
       Object.assign(state, structuredClone(PRISTINE));
@@ -396,10 +427,14 @@ ctlWss.on("connection", (ws) => {
       _gcodeVer++;
       broadcast({ type: "viewer_gcode_ready", version: _gcodeVer, file: "/leak.ngc" });
     } else if (m.op === "raw") {
-      if (m.frame?.type === "settings_init" || m.frame?.type === "settings_changed") {
-        settingsStore = structuredClone(m.frame.settings ?? {});
+      let frame = m.frame;
+      if (frame?.type === "settings_init" || frame?.type === "settings_changed") {
+        frame = withDevice(frame);
+        settingsStore = structuredClone(frame.settings);
       }
-      broadcast(m.frame);
+      broadcast(frame);
+    } else if (m.op === "devices") {
+      devicesList = Array.isArray(m.devices) ? m.devices : [];
     } else if (m.op === "settingsEcho") {
       settingsEcho = !!m.on;
     } else if (m.op === "snapshot") {
@@ -416,6 +451,7 @@ ctlWss.on("connection", (ws) => {
         armed: state.armed, axes: _axes ?? VIEWER_INIT.data.axes, kins: VIEWER_INIT.data.kins ?? null,
         work_pos: state.data.work_pos, replies: Object.keys(replies).sort(), envelope: Object.keys(envelope).sort(),
         quiet, refuseWs, settingsEcho, settings: Object.keys(settingsStore).sort(),
+        settingsRevs: { ...settingsRevs }, devices: devicesList.length, deviceName: MOCK_DEVICE.name,
         cmds: cmds.length, hellos: hellos.length, clients: wss.clients.size,
         instance: process.env.MOCK_INSTANCE ?? null,
       } }));

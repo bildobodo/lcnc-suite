@@ -180,6 +180,48 @@
      "id": "control:DetailsPopover.vue|MachineBtn:{props.type}|@click=toggle @pointerdown=onPointerDown"
     },
     {
+     "id": "control:DevicesSettings.vue|MachineBtn:{ask.kind === 'rename' ? 'dialogConfirm' : 'dialogDanger'}|@click=confirmAsk"
+    },
+    {
+     "id": "control:DevicesSettings.vue|MachineBtn:deviceOwnAction|@click=ask = { kind: 'reset', d: null }"
+    },
+    {
+     "id": "control:DevicesSettings.vue|MachineBtn:dialogCancel|@click=ask = null"
+    },
+    {
+     "id": "control:DevicesSettings.vue|MachineBtn:listActionSetting|@click=ask = { kind: 'delete', d }",
+     "family": [
+      "d in others"
+     ]
+    },
+    {
+     "id": "control:DevicesSettings.vue|MachineBtn:listActionSetting|@click=ask = { kind: 'rename', d, name: d.name }",
+     "family": [
+      "d in others"
+     ]
+    },
+    {
+     "id": "control:DevicesSettings.vue|MachineBtn:listActionSetting|@click=ask = { kind: 'reset', d }",
+     "family": [
+      "d in others"
+     ]
+    },
+    {
+     "id": "control:DevicesSettings.vue|MachineInput:deviceSetting|@change=saveName v-model=name"
+    },
+    {
+     "id": "control:DevicesSettings.vue|MachineInput:deviceSettingOther|v-model=ask.name"
+    },
+    {
+     "id": "control:DevicesSettings.vue|MachineToggle:deviceSetting|@update:modelValue=saveSim v-model=simOn"
+    },
+    {
+     "id": "control:DevicesSettings.vue|MachineToggle:deviceSettingOther|@update:modelValue=setOtherSim(d, $event!)",
+     "family": [
+      "d in others"
+     ]
+    },
+    {
      "id": "control:DialogFrame.vue|div|@click.self=requestClose('backdrop')"
     },
     {
@@ -577,13 +619,13 @@
      "id": "control:MacrosPanel.vue|MachineBtn:inline|@click=reload"
     },
     {
-     "id": "control:MacrosPanel.vue|MachineBtn:listActionSetting|@click=moveOnBar(f.name, -1)",
+     "id": "control:MacrosPanel.vue|MachineBtn:listActionDevice|@click=moveOnBar(f.name, -1)",
      "family": [
       "f in shownRows"
      ]
     },
     {
-     "id": "control:MacrosPanel.vue|MachineBtn:listActionSetting|@click=moveOnBar(f.name, 1)",
+     "id": "control:MacrosPanel.vue|MachineBtn:listActionDevice|@click=moveOnBar(f.name, 1)",
      "family": [
       "f in shownRows"
      ]
@@ -640,7 +682,7 @@
      "id": "control:MacrosPanel.vue|MachineSelect:macroSearch|v-model=barFilter"
     },
     {
-     "id": "control:MacrosPanel.vue|MachineToggle:protectedSetting|@update:modelValue=setOnBar(f.name, !!$event)",
+     "id": "control:MacrosPanel.vue|MachineToggle:deviceSetting|@update:modelValue=setOnBar(f.name, !!$event)",
      "family": [
       "f in shownRows"
      ]
@@ -1655,6 +1697,11 @@
      "expr": "(o, i) in options"
     },
     {
+     "file": "DevicesSettings.vue",
+     "form": "v-for family",
+     "expr": "d in others"
+    },
+    {
      "file": "FileBrowser.vue",
      "form": "v-for family",
      "expr": "entry in files"
@@ -1893,6 +1940,9 @@
      "id": "buttonType:detailsIcon"
     },
     {
+     "id": "buttonType:deviceOwnAction"
+    },
+    {
      "id": "buttonType:dialogCancel"
     },
     {
@@ -1978,6 +2028,9 @@
     },
     {
      "id": "buttonType:listAction"
+    },
+    {
+     "id": "buttonType:listActionDevice"
     },
     {
      "id": "buttonType:listActionSetting"
@@ -2200,6 +2253,12 @@
     },
     {
      "id": "inputDef:coolant"
+    },
+    {
+     "id": "inputDef:deviceSetting"
+    },
+    {
+     "id": "inputDef:deviceSettingOther"
     },
     {
      "id": "inputDef:displaySetting"
@@ -2584,6 +2643,25 @@
      ]
     },
     {
+     "id": "cmd:device_delete",
+     "members": [
+      "device"
+     ]
+    },
+    {
+     "id": "cmd:device_rename",
+     "members": [
+      "device",
+      "name"
+     ]
+    },
+    {
+     "id": "cmd:device_reset",
+     "members": [
+      "device"
+     ]
+    },
+    {
      "id": "cmd:estop",
      "members": []
     },
@@ -2758,7 +2836,9 @@
     {
      "id": "cmd:save_settings",
      "members": [
+      "base_rev",
       "data",
+      "device",
       "section"
      ]
     },
@@ -3077,7 +3157,7 @@
      "id": "setting:machine.toolChangeMode"
     },
     {
-     "id": "setting:macros.bar"
+     "id": "setting:macroBar.bar"
     },
     {
      "id": "setting:macros.macros"
@@ -3177,6 +3257,9 @@
     },
     {
      "id": "setting:probe.zClearance"
+    },
+    {
+     "id": "setting:simulation.enabled"
     },
     {
      "id": "setting:toolsetter.addReps"
@@ -3318,6 +3401,9 @@
     },
     {
      "id": "listener:DetailsPopover.vue:window.resize"
+    },
+    {
+     "id": "listener:deviceToken.ts:window.storage"
     },
     {
      "id": "listener:FloatingOverlays.vue:window.keydown"

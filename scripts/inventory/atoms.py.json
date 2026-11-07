@@ -11,9 +11,6 @@
      "id": "http:DELETE /macro"
     },
     {
-     "id": "http:DELETE /settings"
-    },
-    {
      "id": "http:GET /"
     },
     {
@@ -24,6 +21,9 @@
     },
     {
      "id": "http:GET /comp_grid"
+    },
+    {
+     "id": "http:GET /devices"
     },
     {
      "id": "http:GET /files"
@@ -451,7 +451,7 @@
    "unresolved": []
   },
   "sections": {
-   "source": "settings_store.py VALID_SECTIONS, FREE_SECTIONS",
+   "source": "settings_store.py MACHINE_SECTIONS, DEVICE_SECTIONS",
    "forms": [
     "a literal set"
    ],
@@ -474,6 +474,10 @@
      "id": "section:machine"
     },
     {
+     "id": "section:macroBar",
+     "free": true
+    },
+    {
      "id": "section:macros"
     },
     {
@@ -485,6 +489,10 @@
     },
     {
      "id": "section:probe"
+    },
+    {
+     "id": "section:simulation",
+     "free": true
     },
     {
      "id": "section:toolsetter"

@@ -19,6 +19,7 @@ import asyncio
 import threading
 import time
 import unittest
+import unittest.mock
 
 import fake_linuxcnc
 
@@ -561,26 +562,34 @@ class TestReqIdEcho(unittest.TestCase):
         matches a save to its reply by id, read "Saving…" forever (UX-08)."""
         saved = []
 
-        def fake_save(section, data, admit=None):
+        def fake_save(section, data, admit=None, *, device=None, base_rev=None, writer=None):
             if admit is not None:
-                admit()   # viewer: a display section, no arm needed
+                admit()   # viewer: the device's own section, no arm needed
             if data == "boom":
                 raise OSError(28, "No space left on device")
-            saved.append((section, data))
+            saved.append((section, data, device))
+            return 1
         orig = gateway.save_settings_section
         gateway.save_settings_section = fake_save
+        view = {"settings": {}, "revs": {}, "device": {"id": "dev-w", "name": ""}}
         try:
-            with _Harness():
+            with _Harness(), \
+                    unittest.mock.patch.object(gateway._settings_store, "bind", lambda tok, addr: ("dev-w", False)), \
+                    unittest.mock.patch.object(gateway, "settings_view", lambda dev: view):
                 with TestClient(gateway.app) as client:
                     with client.websocket_connect("/ws") as ws:
+                        # the connection's hello binds it to its device (settings split)
+                        ws.send_json({"cmd": "hello", "session": "echo", "resume_armed": False,
+                                      "device_token": "e" * 32})
+                        _drain(ws, 4.0, 0.5, stop=lambda f: f.get("type") == "settings_init")
                         for rid, section, data, ok in (("s-ok", "viewer", {"a": 1}, True),
                                                        ("s-io", "viewer", "boom", False),
                                                        ("s-bad", "nope", {}, False)):
                             ws.send_json({"cmd": "save_settings", "section": section,
-                                          "data": data, "req_id": rid})
+                                          "data": data, "base_rev": 0, "req_id": rid})
                             fr = _drain(ws, 4.0, 0.5, stop=lambda f: _is_reply(f, "save_settings"))[-1][1]
                             self.assertEqual(fr.get("req_id"), rid, fr)
                             self.assertEqual(fr.get("ok"), ok, fr)
         finally:
             gateway.save_settings_section = orig
-        self.assertEqual(saved, [("viewer", {"a": 1})])
+        self.assertEqual(saved, [("viewer", {"a": 1}, "dev-w")])
