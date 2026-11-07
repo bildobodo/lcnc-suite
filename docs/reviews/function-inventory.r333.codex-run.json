@@ -1,0 +1,55 @@
+{
+  "review": "R333",
+  "product_head": "53a79824e3e2f8dc6db15eeb9ff81a1c994e640c",
+  "live_docs_head": "4b19a8a97529a0a6f084471e0a463119ce8e3cde",
+  "archive": "/tmp/codex-r333",
+  "source_sha256": {
+    "scripts/native_run.py": "384a06c6b426ea3aab3d8c3363ececc7b1ccf97731e5038e7687769409745de5",
+    "scripts/test_support/restore_lan.py": "b8a95442cbb90d99c91a490f7123d9500afdf090a2a1a96cbd4290120fe0fc45",
+    "scripts/test_support/heavy_lock.py": "17b4145063cb45e74827434ffca3e1640747675b5195041f725cee92e0feda09",
+    "scripts/test_install_probe.py": "f04c9da0a93754667828b471657c304afaf954398ced1b4fe69c77f73e7c7bff",
+    "scripts/test_native_stage.py": "15652724da9a5b7ada2c81ab9578ac2e1bdbd74da1b3de3e3ec74ed5480702ad"
+  },
+  "tests": {
+    "command": "LCNC_HEAVY_LOCK=/tmp/r333-evidence/outer-test.lock python3 -B -m pytest -q -p no:cacheprovider scripts/test_install_probe.py scripts/test_native_stage.py",
+    "result": "571 passed in 86.40s; 90 install + 481 native",
+    "private_marker_remaining": false
+  },
+  "own_probe": {
+    "source": "function-inventory.r333.codex-probe.py",
+    "result": "function-inventory.r333.codex-probe.json",
+    "host": "repository FakeHost; real native_run.run and restore_lan.main; no machine/service operations",
+    "locks": "real heavy_lock on private temp files",
+    "external_script": "/home/cnc/claude-work/teststrat/repro-load.sh",
+    "external_sha256": "314b836126a972271888e737d6826483e3e495e47e544273f84ec9bcdb3b434c",
+    "external_execution": "actual script, own archive; ss and npx replaced by own stubs; burners=0; no Playwright or load; inheritance, marker blocking and release tested"
+  },
+  "evidence_read": [
+    "function-inventory.r333.live.json",
+    "function-inventory.r333.gate-round.json",
+    "function-inventory.r333.mutations.json",
+    "function-inventory.r333.red-at-f5e64907.txt"
+  ],
+  "claude_live_report": {
+    "commit": "53a79824e3e2f8dc6db15eeb9ff81a1c994e640c",
+    "verdict": "PASS",
+    "post": {
+      "outcome": "complete",
+      "instance": [
+        "linuxcncsvr",
+        852473,
+        134304085
+      ],
+      "isolation": [],
+      "cleanup": [],
+      "repeat_of": "complete",
+      "owed": "settled"
+    },
+    "watch_note": "while the unit was 'deactivating' (its ExecStopPost) the marker named this run three times in a 1 s poll; after the unit: none; restore-post owed = settled"
+  },
+  "work_limits": "no live ports, LinuxCNC/HAL, systemd operations, or product edits; no tests/builds/checkouts in live tree; external script unchanged",
+  "review_prefix_before": {
+    "length": 1036727,
+    "sha256": "bf20a66b78be3aa8fe1004b3e9954100af577c90a9e6e91046d18152cf97010f"
+  }
+}

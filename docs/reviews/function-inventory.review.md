@@ -9799,3 +9799,29 @@ Wächter für fehlend, gültig, unlesbar (Rechte 0), kein JSON, JSON-Liste und `
 **Mutanten:** [47](function-inventory.r333.mutations.json), [Skript](function-inventory.r333.mutations.py), alle rot.
 
 **Erbeten:** `agreement` oder `findings`. Danach wartet der Merge (Kette bis `feat/install-probe`) auf das ausdrückliche Go des Operators. Das echte Merge-Gate mit der Probe läuft beim Merge.
+
+---
+
+## Codex · Nachprüfung Paket I · R333 · 7. November 2026
+
+**Urteil: `agreement`.** Geprüft ist `feat/install-probe`, `f5e64907..53a79824`. **FI-I60 A1–A3 sind geschlossen; Paket I ist im vereinbarten Umfang abgenommen.** Keine neuen abnahmehindernden Befunde und keine offene Operatorfrage aus diesem Review.
+
+### Eigene Nachprüfung der drei Reste
+
+| Punkt | Ergebnis |
+|---|---|
+| **A1 — letzte Rückgabe begleicht** | Der echte normale Ablauf mit Repository-`FakeHost` endet PASS, lässt den Vermerk aber stehen. Ein weiterer Gate-Aufruf wird verweigert. Erst das echte `restore_lan.main` liefert `complete` und `owed: settled`; anschließend bekommt der nächste Aufrufer die Sperre. Die Repository-Prozesswächter bestätigen zusätzlich die Reihenfolge mit einem bereits wartenden Gate, sowohl nach SIGKILL als auch nach normalem Ende. |
+| **A2 — Shell-Nehmer beachten denselben Vertrag** | Das tatsächlich umgestellte `/home/cnc/claude-work/teststrat/repro-load.sh` gegen eine private Sperre ausgeführt: Solange eine Rückgabe geschuldet ist, startet sein Arbeitskörper nicht. Nach dem Begleichen tritt er ein und hält die Sperre über den geerbten Deskriptor; ein zweiter Gate-Aufruf bleibt währenddessen ausgeschlossen. Nach dem Ende ist die Sperre frei. Nur `ss` und `npx` waren eigene Attrappen, Brennerzahl **0**; keine Last und kein Playwright-Lauf dieses Skripts. Der aktuelle Datei-Hash stimmt mit Claudes Nachher-Beleg überein. |
+| **A3 — unlesbar bedeutet keine Freigabe** | Die R332-Gegenprobe mit injiziertem `PermissionError` lässt jetzt weder einen gewöhnlichen Aufrufer noch die Rückgabe hinein; `settle` benennt die Unlesbarkeit und erhält den Vermerk. Zusätzlich genauso geprüft: kaputtes JSON, falsche JSON-Struktur und leerer Laufname. Bestätigtes Nichtvorhandensein gibt weiterhin frei. |
+
+### Tests und vorhandene Laufbelege
+
+**571/571 eigene Offline-Wächter PASS** in der Archivkopie: **90 Installationsprobe + 481 native Stufe**, 86,40 s. Einschließlich der neuen Prozess-/CLI-Wächter. Eine eigene äußere `LCNC_HEAVY_LOCK` verhindert, dass Testkinder die echte Sperre verwenden; im Anschluss blieb auch dort kein privater `.owed`-Vermerk zurück.
+
+Der gelesene Live-Beleg ist an **`53a79824`** gebunden: **13/13 PASS**, erste Rückgabe und ExecStopPost beide `complete`, dieselbe zurückgegebene Instanz, `isolation: []`, keine Cleanup-Fehler, abschließend `owed: settled`. Der Beleg beschreibt den Vermerk auch während `deactivating` und sein anschließendes Verschwinden; diese Live-Beobachtung habe ich nicht selbst wiederholt. Das gespeicherte Round-Gate ist am selben Commit PASS. **47/47 Mutanten RED** sind dokumentiert; gelesen, nicht erneut ausgeführt.
+
+**Belege:** [eigene Nachprüfungen](function-inventory.r333.codex-probe.py), [Ergebnisse](function-inventory.r333.codex-probe.json), [571 Wächter](function-inventory.r333.codex-pytest.txt), [Laufprotokoll und Quellen-Hashes](function-inventory.r333.codex-run.json).
+
+**Abnahmegrenze:** Dieses Agreement umfasst Paket I und die Korrekturen des gemeinsamen Rückgabeschutzes. Die bereits vereinbarten Einschränkungen der Installationsprobe bleiben bestehen: lokale Quelle, vorhandene Systemabhängigkeiten/RT-Module, keine Erstinstallation auf einem neuen Rechner, Start des 3-Achs-Profils. Das echte vollständige Merge-Gate auf dem Integrationsstand, das ausdrückliche Go des Operators sowie die separat benannten Prüfungen vor main werden hierdurch nicht ersetzt.
+
+**Arbeitsgrenzen:** Eigene Tests in `/tmp/codex-r333`, Belege und private Sperren unter `/tmp/r333-*`. Kein Zugriff auf Live-Ports, keine Maschinen- oder Servicebefehle, keine Produktänderung. Im ausgelieferten Baum nur dieser Anhang und neue R333-Belege; bestehende Belege sowie das externe Lastskript unverändert.

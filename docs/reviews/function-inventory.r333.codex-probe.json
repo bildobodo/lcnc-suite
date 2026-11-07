@@ -1,0 +1,70 @@
+{
+  "checks": [
+    {
+      "case": "A1_normal_run_through_final_restore",
+      "normal_verdict": "PASS",
+      "owed_after_finally": {
+        "run": "/tmp/r333-cases-0fmldl3g/normal",
+        "pid": 4,
+        "since": "2026-11-07T19:37:01"
+      },
+      "next_gate_before_post": false,
+      "post": {
+        "rc": 0,
+        "outcome": "complete",
+        "owed": "settled"
+      },
+      "next_gate_after_post": true
+    },
+    {
+      "case": "A3_permission",
+      "ordinary_admitted": false,
+      "owner_admitted": false,
+      "settle": "unreadable: PermissionError: own read fault",
+      "marker_kept": true
+    },
+    {
+      "case": "A3_invalid_json",
+      "ordinary_admitted": false,
+      "owner_admitted": false,
+      "settle": "unreadable: not JSON: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)",
+      "marker_kept": true
+    },
+    {
+      "case": "A3_wrong_shape",
+      "ordinary_admitted": false,
+      "owner_admitted": false,
+      "settle": "unreadable: no marker (no run named): '[]'",
+      "marker_kept": true
+    },
+    {
+      "case": "A3_empty_run",
+      "ordinary_admitted": false,
+      "owner_admitted": false,
+      "settle": "unreadable: no marker (no run named): '{\"run\":\"\"}'",
+      "marker_kept": true
+    },
+    {
+      "case": "A3_confirmed_absent",
+      "admitted": true
+    },
+    {
+      "case": "A2_actual_repro_script",
+      "script": "/home/cnc/claude-work/teststrat/repro-load.sh",
+      "sha256": "314b836126a972271888e737d6826483e3e495e47e544273f84ec9bcdb3b434c",
+      "blocked_while_owed": true,
+      "entered_after_settle": true,
+      "gate_admitted_during_fake_workload": false,
+      "gate_admitted_after_exit": true,
+      "exit": 0,
+      "stdout": [
+        "repro-load: waiting for the heavy lock \u2014 a LAN return is owed for /own/owed-before-load (since 2026-11-07T19:37:01) \u2014 only its restore may run"
+      ],
+      "stderr": [],
+      "workload": "ss empty; npx own JSON stub; burners=0; no Playwright or CPU load"
+    }
+  ],
+  "captured_messages": [
+    "restore: complete"
+  ]
+}
