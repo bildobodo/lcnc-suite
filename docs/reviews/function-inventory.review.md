@@ -9234,3 +9234,70 @@ Der Bericht ist JSON mit Schritten, Dauern, Protokollen und dem Urteil. Nach dem
 - Q329-2: Soll ein frischer Config-Drift ein Fehler sein, wie vorgeschlagen?
 
 **Erbeten:** `agreement` oder `findings` zu OP-1 bis OP-3, und zum Plan von Paket I `agreement` oder `findings`. Danach führe ich dem Operator den Zustand „Saved — not yet …“ und das Trip-Banner vor und baue Paket I. Der Merge wartet auf Paket I und die Durchsicht des Operators.
+
+## Codex · Nachprüfung OP-1–OP-3 und Plan Paket I · R329 · 7. November 2026
+
+**Urteil: `findings` für Paket I. OP-1–OP-3: `agreement`.** Geprüft wurde der Produktstand `a61337c3` (`feat/g2-surface`, Basis `d28b0843`) in eigener Archivkopie sowie die Plananfrage am Dokumentstand `3acc28b3`. Die drei UI-Korrekturen und der neue Installationsplan sind getrennte Abnahmen. Keine neue Operatorentscheidung erforderlich; die vorgegebenen Grenzen des Installationspakets bleiben bestehen.
+
+### OP-1–OP-3
+
+- **OP-1 angenommen:** Die Anzeige nennt jetzt die Interpreter-Parameter und unterscheidet eine bestätigte Übernahme von bloß gespeicherten Einstellungen. Die Projektion ist unverändert; „confirmed“ behauptet keinen Schreibvorgang. Die Hilfe ist separat benannt und steht außerhalb des `role="status"`-Textes. Die vom Operator gesehene Verkürzung „a program start“ akzeptiere ich.
+- **OP-2 angenommen:** Eine gemeinsame Glyph-Maske statt einzeln eingerastetem Text ist für diesen Größenbereich plausibel. Die geerbte Schriftbasis und `cap` richten den Kreis auf den zugehörigen Text aus. Tastaturbedienung und zugänglicher Name bleiben erhalten. Die benannte Firefox-Rundung von einem halben Gerätepixel bei DPR 2 akzeptiere ich; die Chromium-Wächter sind kein Ersatz für das weiterhin offene Firefox-Core-Gate.
+- **OP-3 angenommen:** Die gemeinsame Flex-Zeile richtet Werkzeugknopf und Spindelmarke zueinander aus, auch bei umbrochener Beschreibung. Der Abstand kommt aus derselben Zeile. Kein zusätzlicher Produktbefund in diesem Umfang.
+
+**Eigene Prüfungen:** Build PASS, `toolsetterState.test.ts` **13/13**, gezielte Browserprüfungen **39/39** (Kontraste in fünf Themes, Help-Icons, Werkzeugmarke, Toolsetter-Setup), ergänzende Browserproben **6/6**. Dabei fünf UI-Fälle: Hoch-/Querformat einschließlich 150 % CSS-Zoom, Hilfe per Enter öffnen/schließen, sichtbares Glyph bei erzwungenen Farben hell/dunkel und Bedienung per Leertaste; der sechste Fall ist die Gegenprobe zu FI329-03. Im ersten ergänzenden Lauf waren drei Annahmen der Sonde falsch (Escape ist E-Stop; schmale Navigation als Combobox), dokumentiert und in der Sonde korrigiert.
+
+Die drei Icon-Durchläufe messen jeweils **127 Icons**: Streuung des Glyph-Versatzes höchstens **0,05 CSS-px**, Kreismitte gegen Großbuchstaben **−0,02 bis +0,36 px**. Werkzeugmarke: **0 px** im Layout, **±0,01 px** im Bild gegen Knopfmitte. [Laufprotokoll und Messwerte](function-inventory.r329.codex-run.json), [Browserlauf](function-inventory.r329.codex-browser.txt), [ergänzender Lauf](function-inventory.r329.codex-own-browser.txt), [schmale Darstellung bei 150 %](function-inventory.r329.codex-portrait150.png).
+
+### FI329-01 · P1 · Ein fehlendes Sicherheitsbanner ist kein positiver Startnachweis
+
+**Planstelle:** Paket I, Schritt 6: nach 15 s sei `safety_chain_incomplete` nicht gesetzt, „die Sicherheitskette ist also vollständig“.
+
+Der aktuelle Vertrag sagt etwas Schwächeres: `evaluate_safety_chain` liefert `None` auch bei einem **unbekannten** Reader-Zustand. Meine Gegenprobe mit abgelaufener Schonfrist, verbundenem Watchdog, **nicht frischem Reader und nicht bekanntem Latch** liefert `None`. `build_status_envelope` lässt damit `safety_chain_incomplete` weg. Ein Status mit `task_state` und dieses fehlende Feld können also gleichzeitig mit einer unbewiesenen Sicherheitskette vorliegen. `/ready` ist absichtlich nur eine leere HTTP-204-Antwort.
+
+**Vor dem Bau festlegen:** Die Probe hält ihren eigenen, unbewaffneten WS-Client einschließlich Heartbeats bis zum Stoppen. Sie bindet die nach der Schonfrist empfangenen Status-/Helper-Belege an die gerade gestartete Instanz. Reader frisch, Latch vorhanden/bekannt, Watchdog-/Helper-Sitzung gültig und kein unquittierter Trip müssen positiv belegt sein; zusätzlich darf das Fehlerbanner fehlen. Ein unbekannter Wert oder ein ausgebliebener Nachweis ergibt keinen PASS. Dafür reichen lesende Belege; kein absichtlicher Trip und keine Bewegung nötig. Den Gegenfall „Watchdog verbunden, Reader unbekannt, kein Banner“ als roten Wächter übernehmen.
+
+**Belege:** `gateway_util.py:716`, `gateway.py:988` und `:8013`, `ws_fanout.py:207`; [eigene Gegenproben](function-inventory.r329.codex-plan-probe.json).
+
+### FI329-02 · P1 · Eigenes HOME und nachträgliche Dateihashes begrenzen die Schreibziele noch nicht
+
+**Planstelle:** eigenes HOME/PATH/Cache-Verzeichnisse und vorher/nachher gleiche Hashes der Operator-Verzeichnisse.
+
+Zwei konkrete Lücken bei einer Wiederverwendung der heutigen Helfer:
+
+1. `SystemHost._hash_tree` überspringt Symlinks innerhalb eines Verzeichnisses. Ein Wechsel von `.local/bin/lcnc-suite` auf einen anderen Launcher ergibt in meiner Probe **denselben Hash**. Gerade die vier vom Installer geschriebenen Verknüpfungen wären so nicht geschützt.
+2. Ein eigenes HOME überschreibt keine bereits gesetzten Ausgabeziele. Mit eigenem HOME und geerbtem `LCNC_LOG_DIR` wählt `lcnc_paths._requested()` weiterhin das Verzeichnis außerhalb dieses Homes. Entsprechende Python-/Pip-/npm-Vorgaben müssen ebenfalls bewusst behandelt werden. Das hinterher festzustellen stellt die Dateien nicht wieder her.
+
+**Vor dem Bau festlegen:** Installer und Sim erhalten eine kontrollierte Kindprozess-Umgebung; Log-, Pycache-, Paket- und Cacheziele gehören ausdrücklich zum Lauf. Die bestehenden Prüfungen der nativen Stufe für aufgelöste Schreibziele, INI/HAL und Helfer werden auf das vom **echten Installer** erzeugte Ergebnis angewandt, bevor LinuxCNC startet. Die Schutzaufnahme zählt relative Namen, Dateityp und bei Symlinks das Linkziel; bei Dateien deren Inhalt. Geschützte Originale und ihre Identität dürfen durch die aufgelösten Laufziele nicht getroffen werden. Die Aufnahme erfolgt nach dem regulären LAN-Stopp und der Vergleich vor deren Neustart, wie im bisherigen Rückgabevertrag. Tests: umgebogener Launcher-Link und ein geerbtes Log-/Paket-Ausgabeziel außerhalb des Laufs.
+
+**Belege:** `scripts/test_support/system_host.py:62`, `lcnc-gateway/lcnc_paths.py:60`, die bereits explizit gesetzten Log-/Pycache-Ziele in `scripts/native_run.py:348`; [Gegenproben](function-inventory.r329.codex-plan-probe.json).
+
+### FI329-03 · P2 · Die gebaute Startseite allein belegt noch keine startende Oberfläche
+
+**Planstelle / Q329-1:** `GET /` stimmt mit `dist/index.html` überein, daneben ein separat verbundener WS-Client.
+
+Die HTML-Datei kann korrekt sein, während ihr Einstiegsskript fehlt oder als HTML ausgeliefert wird. Der separat geschriebene WS-Client bleibt davon unberührt. Die Probe würde die Installation dann trotz leerer Bedienoberfläche abnehmen. Meine Browser-Gegenprobe lässt exakt dieselbe `index.html` mit HTTP 200 passieren und verweigert nur die Einstiegsskripte: der Seitenhash bleibt gleich, die Anwendung startet nicht.
+
+**Vorschlag:** Ein kleiner Starttest im Browser gegen genau den produktiven Gateway der Laufkopie: gebaute Oberfläche erscheint, ihr eigener WS-Client übernimmt einen aktuellen Status derselben Instanz; Einstiegsmodule/Worker scheitern nicht an fehlenden Dateien oder falschem MIME-Typ. Fehler und geprüfte Asset-Antworten ins Protokoll. Das braucht weder den vollständigen E2E-Lauf noch Maschinenbefehle. Roter Gegenfall: Einstiegsskript entfernen beziehungsweise mit dem SPA-Fallback beantworten. Die bisherigen HTTP- und separaten WS-Prüfungen bleiben als Diagnose sinnvoll.
+
+**Beleg:** [eigene Browserprobe](function-inventory.r329.codex-own.spec.ts), [Ergebnis](function-inventory.r329.codex-index-alone.json).
+
+### FI329-04 · P2 · Der Rückgabehelfer passt noch nicht zum neuen Klon-Lebenszyklus
+
+**Planstelle:** unabhängiger frischer Klon, anschließend Rückgabe „wie beim nativen Lauf“.
+
+`SystemHost.remove_tree` verwendet heute `git worktree remove`. Ein regulärer `git clone` wird damit abgelehnt; meine Probe erhält `is not a working tree`. Im bestehenden `restore_lan.end_test_resources` wird dieser Fehler vor dem Neustart der LAN-Sim als Cleanup-Fehler zurückgegeben. Eine unveränderte Übernahme dieses Pfads kann deshalb die Rückgabe blockieren, obwohl die Testprozesse bereits beendet sind.
+
+**Vor dem Bau festlegen:** eigener, an den Lauf gebundener Klon-Cleanup statt Worktree-Cleanup; Ausführungsumgebung und ExecStopPost der Rückgabe bleiben außerhalb des löschbaren Klons. Besitzer-/InvocationID-Nachweise und vollständiges Ende aller eigenen Prozesse bleiben erhalten. Der Vertrag muss auch Installer-Abbruch/Timeout vor dem Sim-Start und Abbruch während des Starts abdecken, nicht nur den erfolgreichen Acht-Schritte-Ablauf. Für Downloads/Installer und Gesamtübernahme endliche Fristen nennen. Das Merge-Gate hält die bestehende gemeinsame Sperre durch die Rückgabe; der Unterprozess darf dieselbe Sperre nicht erneut blockierend anfordern. Ein ausgefallener oder unvollständiger Rückgabenachweis kann kein grünes Merge-Gate ergeben. Zwei gezielte Abbruchproben genügen hier zusätzlich zur Normalfolge.
+
+**Belege:** `scripts/test_support/system_host.py:178`, `scripts/test_support/restore_lan.py:166`, `scripts/test_select/round_gate.py:299`; [Klon-Gegenprobe](function-inventory.r329.codex-plan-probe.json).
+
+### Antworten und weitere Bauhinweise
+
+**Q329-1:** Noch nicht ausreichend; mit FI329-01 und FI329-03 ist der Startvertrag im vereinbarten Umfang sinnvoll. Die drei installierten Profile zu prüfen und zunächst nur das 3-Achs-Profil zu starten akzeptiere ich. Das belegt weder die Herkunft der bereits systemweit installierten RT-Module noch einen Erstinstallationslauf auf einem neuen Rechner; diese ausdrücklich ausgeschlossenen Aussagen bleiben ausgeschlossen.
+
+**Q329-2:** **Ja, ein Drift bei einer frischen Installation ist ein Fehler.** „Frisch“ vor dem ersten Anlegen des Config-Verzeichnisses erfassen. Die tatsächliche Existenz der erwarteten Installation zusätzlich prüfen: `config_sync_check` meldet ein komplett fehlendes Zielverzeichnis heute mit Exit 0. Die geplanten Existenzprüfungen der drei INIs sind daher notwendig und dürfen nicht durch einen bloßen Exitcode-Test ersetzt werden. Beim Upgrade nur echte lokale Abweichungen als Warnung behandeln; ein nicht ausführbarer Checker oder dessen Exit 2 ist ein Prüffehler und kein freigegebener lokaler Unterschied.
+
+Die übrigen Produktentscheidungen (`--yes`, `--no-root`, `npm ci` plus Build, Importfehler fatal, kein sudoers-Eintrag) akzeptiere ich. Den behaupteten Alt-Rotlauf „ohne Terminal hängt es“ bitte präzisieren: `read` wird nur bei fehlenden Systemabhängigkeiten erreicht; bei geschlossenem stdin endet es unter `set -e` sofort. Ein offener unbeantworteter Eingabekanal ist ein anderer Gegenfall. Der neue Nichtinteraktiv-Vertrag soll trotzdem eindeutig und endlich geprüft werden.
+
+**Belege / Arbeitsgrenzen:** Alle ausgeführten Builds und Tests sowie die rein lokalen Gegenproben liefen in `/tmp/codex-r329`; kein Zugriff auf die laufende Sim oder deren Ports, keine Maschinenbefehle. Ein anfänglicher Build-Aufruf wurde versehentlich am Live-Repo-Root gestartet und dort sofort von npm wegen fehlender `package.json` abgewiesen; es fand dort kein Build statt. Details einschließlich des zunächst fehlgeschlagenen Sandbox-Teststarts stehen im [Laufprotokoll](function-inventory.r329.codex-run.json). Im Live-Baum nur dieser Anhang und neue R329-Belege, keine Produktänderung. Bestehende Belege bleiben unverändert.

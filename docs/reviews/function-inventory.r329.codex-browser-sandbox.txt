@@ -1,0 +1,1059 @@
+
+Running 39 tests using 1 worker
+
+(node:31) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   1 e2e/contrast.spec.ts:189:3 › light: every readable text meets 4.5 : 1 on what is rendered behind it (0ms)
+(node:52) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   2 e2e/contrast.spec.ts:189:3 › dark: every readable text meets 4.5 : 1 on what is rendered behind it (0ms)
+(node:73) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   3 e2e/contrast.spec.ts:189:3 › hc-light: every readable text meets 4.5 : 1 on what is rendered behind it (0ms)
+(node:94) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   4 e2e/contrast.spec.ts:189:3 › hc-dark: every readable text meets 4.5 : 1 on what is rendered behind it (0ms)
+(node:115) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   5 e2e/contrast.spec.ts:189:3 › auto-dark: every readable text meets 4.5 : 1 on what is rendered behind it (0ms)
+(node:136) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   6 e2e/contrast.spec.ts:320:3 › light: the focus ring keeps 3 : 1 on every surface (0ms)
+(node:157) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   7 e2e/contrast.spec.ts:320:3 › dark: the focus ring keeps 3 : 1 on every surface (0ms)
+(node:178) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   8 e2e/contrast.spec.ts:320:3 › hc-light: the focus ring keeps 3 : 1 on every surface (0ms)
+(node:199) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   9 e2e/contrast.spec.ts:320:3 › hc-dark: the focus ring keeps 3 : 1 on every surface (0ms)
+(node:220) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  10 e2e/contrast.spec.ts:320:3 › auto-dark: the focus ring keeps 3 : 1 on every surface (0ms)
+(node:241) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  11 e2e/contrast.spec.ts:512:3 › light: controls and floating cards keep 3 : 1 where they meet what is next to them (0ms)
+(node:262) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  12 e2e/contrast.spec.ts:512:3 › dark: controls and floating cards keep 3 : 1 where they meet what is next to them (0ms)
+(node:283) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  13 e2e/contrast.spec.ts:512:3 › hc-light: controls and floating cards keep 3 : 1 where they meet what is next to them (0ms)
+(node:304) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  14 e2e/contrast.spec.ts:512:3 › hc-dark: controls and floating cards keep 3 : 1 where they meet what is next to them (0ms)
+(node:325) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  15 e2e/contrast.spec.ts:512:3 › auto-dark: controls and floating cards keep 3 : 1 where they meet what is next to them (0ms)
+(node:346) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  16 e2e/contrast.spec.ts:564:3 › light: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it (0ms)
+(node:367) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  17 e2e/contrast.spec.ts:564:3 › dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it (0ms)
+(node:388) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  18 e2e/contrast.spec.ts:564:3 › hc-light: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it (0ms)
+(node:409) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  19 e2e/contrast.spec.ts:564:3 › hc-dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it (0ms)
+(node:430) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  20 e2e/contrast.spec.ts:564:3 › auto-dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it (0ms)
+(node:451) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  21 e2e/help-icons.spec.ts:110:5 › desktop, DPR 1 › every "?": its glyph in one place in its circle, the circle on its text's capitals (desktop, DPR 1) (0ms)
+(node:472) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  22 e2e/help-icons.spec.ts:110:5 › desktop, DPR 2 › every "?": its glyph in one place in its circle, the circle on its text's capitals (desktop, DPR 2) (0ms)
+(node:493) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  23 e2e/help-icons.spec.ts:110:5 › touch, DPR 1 › every "?": its glyph in one place in its circle, the circle on its text's capitals (touch, DPR 1) (0ms)
+(node:514) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  24 e2e/tool-marker.spec.ts:80:5 › desktop, DPR 1 › the loaded tool's mark sits centred on its T button (desktop, DPR 1) (0ms)
+(node:535) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  25 e2e/tool-marker.spec.ts:80:5 › desktop, DPR 2 › the loaded tool's mark sits centred on its T button (desktop, DPR 2) (0ms)
+(node:556) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  26 e2e/tool-marker.spec.ts:80:5 › touch, DPR 1 › the loaded tool's mark sits centred on its T button (touch, DPR 1) (0ms)
+(node:577) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  27 e2e/toolsetter-setup.spec.ts:64:1 › without the server's settings, and without a saved section, Measure Current and Unload (M600) stay off — with the reason (0ms)
+(node:598) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  28 e2e/toolsetter-setup.spec.ts:76:1 › the gate sits in the call path: a tool-table load in M600 mode sends nothing while the setter is not set up (0ms)
+(node:619) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  29 e2e/toolsetter-setup.spec.ts:85:1 › a partial section: the form names what is missing, shows unset fields empty, and a change saves only that field (0ms)
+(node:640) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  30 e2e/toolsetter-setup.spec.ts:103:1 › a save the server never confirmed is no setup; its confirmation is (0ms)
+(node:661) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  31 e2e/toolsetter-setup.spec.ts:127:1 › Measure Current is ONE command: the values ride the mdi — a refusal says why and nothing follows (Codex R16 XZ-06) (0ms)
+(node:682) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  32 e2e/toolsetter-setup.spec.ts:145:1 › an abort while the reply is outstanding leaves nothing to send: a late success after it, or after a cleared setup, sends nothing more (Codex R16 XZ-06) (0ms)
+(node:703) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  33 e2e/toolsetter-setup.spec.ts:158:1 › Reset clears the section — no field counts as saved, nothing is pushed (0ms)
+(node:724) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  34 e2e/toolsetter-setup.spec.ts:171:1 › Unload is ONE command: T0 M600 with the setter's values in M600 mode, tool_change 0 in the standard mode (0ms)
+(node:745) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  35 e2e/toolsetter-setup.spec.ts:210:1 › the machine line follows the gateway's booking: not known, confirmed, pending, not confirmed (0ms)
+(node:766) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  36 e2e/toolsetter-setup.spec.ts:223:1 › the line's "?" says which parameters it means (operator 2026-11-07) (0ms)
+(node:787) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  37 e2e/toolsetter-setup.spec.ts:233:1 › not set up: no machine line beyond the setup note, which says nothing is written (0ms)
+(node:808) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  38 e2e/toolsetter-setup.spec.ts:241:1 › a save while the machine is not ready sends nothing; the line says it is not yet in the machine (0ms)
+(node:829) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  39 e2e/toolsetter-setup.spec.ts:259:1 › a save the read-back already confirms pushes nothing; one it does not gets the convenience push (Codex R309) (0ms)
+
+
+  1) e2e/contrast.spec.ts:189:3 › light: every readable text meets 4.5 : 1 on what is rendered behind it 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/contrast-light-every-reada-bfc40--what-is-rendered-behind-it/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/contrast-light-every-reada-bfc40--what-is-rendered-behind-it/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/contrast.spec.ts:189:3 › dark: every readable text meets 4.5 : 1 on what is rendered behind it 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/contrast-dark-every-readab-f5474--what-is-rendered-behind-it/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/contrast-dark-every-readab-f5474--what-is-rendered-behind-it/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) e2e/contrast.spec.ts:189:3 › hc-light: every readable text meets 4.5 : 1 on what is rendered behind it 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/contrast-hc-light-every-re-6f917--what-is-rendered-behind-it/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/contrast-hc-light-every-re-6f917--what-is-rendered-behind-it/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) e2e/contrast.spec.ts:189:3 › hc-dark: every readable text meets 4.5 : 1 on what is rendered behind it 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/contrast-hc-dark-every-rea-84df0--what-is-rendered-behind-it/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/contrast-hc-dark-every-rea-84df0--what-is-rendered-behind-it/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) e2e/contrast.spec.ts:189:3 › auto-dark: every readable text meets 4.5 : 1 on what is rendered behind it 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/contrast-auto-dark-every-r-fd9f7--what-is-rendered-behind-it/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/contrast-auto-dark-every-r-fd9f7--what-is-rendered-behind-it/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) e2e/contrast.spec.ts:320:3 › light: the focus ring keeps 3 : 1 on every surface ───────────────
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/contrast-light-the-focus-ring-keeps-3-1-on-every-surface/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/contrast-light-the-focus-ring-keeps-3-1-on-every-surface/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) e2e/contrast.spec.ts:320:3 › dark: the focus ring keeps 3 : 1 on every surface ────────────────
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/contrast-dark-the-focus-ring-keeps-3-1-on-every-surface/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/contrast-dark-the-focus-ring-keeps-3-1-on-every-surface/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  8) e2e/contrast.spec.ts:320:3 › hc-light: the focus ring keeps 3 : 1 on every surface ────────────
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/contrast-hc-light-the-focus-ring-keeps-3-1-on-every-surface/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/contrast-hc-light-the-focus-ring-keeps-3-1-on-every-surface/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  9) e2e/contrast.spec.ts:320:3 › hc-dark: the focus ring keeps 3 : 1 on every surface ─────────────
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/contrast-hc-dark-the-focus-ring-keeps-3-1-on-every-surface/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/contrast-hc-dark-the-focus-ring-keeps-3-1-on-every-surface/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  10) e2e/contrast.spec.ts:320:3 › auto-dark: the focus ring keeps 3 : 1 on every surface ──────────
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/contrast-auto-dark-the-focus-ring-keeps-3-1-on-every-surface/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/contrast-auto-dark-the-focus-ring-keeps-3-1-on-every-surface/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  11) e2e/contrast.spec.ts:512:3 › light: controls and floating cards keep 3 : 1 where they meet what is next to them 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/contrast-light-controls-an-722d1-y-meet-what-is-next-to-them/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/contrast-light-controls-an-722d1-y-meet-what-is-next-to-them/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  12) e2e/contrast.spec.ts:512:3 › dark: controls and floating cards keep 3 : 1 where they meet what is next to them 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/contrast-dark-controls-and-ef564-y-meet-what-is-next-to-them/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/contrast-dark-controls-and-ef564-y-meet-what-is-next-to-them/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  13) e2e/contrast.spec.ts:512:3 › hc-light: controls and floating cards keep 3 : 1 where they meet what is next to them 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/contrast-hc-light-controls-3f93d-y-meet-what-is-next-to-them/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/contrast-hc-light-controls-3f93d-y-meet-what-is-next-to-them/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  14) e2e/contrast.spec.ts:512:3 › hc-dark: controls and floating cards keep 3 : 1 where they meet what is next to them 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/contrast-hc-dark-controls--6ee83-y-meet-what-is-next-to-them/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/contrast-hc-dark-controls--6ee83-y-meet-what-is-next-to-them/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  15) e2e/contrast.spec.ts:512:3 › auto-dark: controls and floating cards keep 3 : 1 where they meet what is next to them 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/contrast-auto-dark-control-b83a9-y-meet-what-is-next-to-them/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/contrast-auto-dark-control-b83a9-y-meet-what-is-next-to-them/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  16) e2e/contrast.spec.ts:564:3 › light: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/contrast-light-the-Sim-tab-c0871-s-look-its-text-4-5-1-on-it/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/contrast-light-the-Sim-tab-c0871-s-look-its-text-4-5-1-on-it/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  17) e2e/contrast.spec.ts:564:3 › dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/contrast-dark-the-Sim-tab--90353-s-look-its-text-4-5-1-on-it/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/contrast-dark-the-Sim-tab--90353-s-look-its-text-4-5-1-on-it/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  18) e2e/contrast.spec.ts:564:3 › hc-light: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/contrast-hc-light-the-Sim--545cf-s-look-its-text-4-5-1-on-it/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/contrast-hc-light-the-Sim--545cf-s-look-its-text-4-5-1-on-it/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  19) e2e/contrast.spec.ts:564:3 › hc-dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/contrast-hc-dark-the-Sim-t-78c94-s-look-its-text-4-5-1-on-it/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/contrast-hc-dark-the-Sim-t-78c94-s-look-its-text-4-5-1-on-it/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  20) e2e/contrast.spec.ts:564:3 › auto-dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/contrast-auto-dark-the-Sim-a2e1c-s-look-its-text-4-5-1-on-it/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/contrast-auto-dark-the-Sim-a2e1c-s-look-its-text-4-5-1-on-it/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  21) e2e/help-icons.spec.ts:110:5 › desktop, DPR 1 › every "?": its glyph in one place in its circle, the circle on its text's capitals (desktop, DPR 1) 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/help-icons-desktop-DPR-1-e-7c285-t-s-capitals-desktop-DPR-1-/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/help-icons-desktop-DPR-1-e-7c285-t-s-capitals-desktop-DPR-1-/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  22) e2e/help-icons.spec.ts:110:5 › desktop, DPR 2 › every "?": its glyph in one place in its circle, the circle on its text's capitals (desktop, DPR 2) 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/help-icons-desktop-DPR-2-e-ab111-t-s-capitals-desktop-DPR-2-/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/help-icons-desktop-DPR-2-e-ab111-t-s-capitals-desktop-DPR-2-/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  23) e2e/help-icons.spec.ts:110:5 › touch, DPR 1 › every "?": its glyph in one place in its circle, the circle on its text's capitals (touch, DPR 1) 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/help-icons-touch-DPR-1-eve-ad299-ext-s-capitals-touch-DPR-1-/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/help-icons-touch-DPR-1-eve-ad299-ext-s-capitals-touch-DPR-1-/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  24) e2e/tool-marker.spec.ts:80:5 › desktop, DPR 1 › the loaded tool's mark sits centred on its T button (desktop, DPR 1) 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/tool-marker-desktop-DPR-1--e3b69-its-T-button-desktop-DPR-1-/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/tool-marker-desktop-DPR-1--e3b69-its-T-button-desktop-DPR-1-/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  25) e2e/tool-marker.spec.ts:80:5 › desktop, DPR 2 › the loaded tool's mark sits centred on its T button (desktop, DPR 2) 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/tool-marker-desktop-DPR-2--85d76-its-T-button-desktop-DPR-2-/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/tool-marker-desktop-DPR-2--85d76-its-T-button-desktop-DPR-2-/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  26) e2e/tool-marker.spec.ts:80:5 › touch, DPR 1 › the loaded tool's mark sits centred on its T button (touch, DPR 1) 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/tool-marker-touch-DPR-1-th-a1af5-n-its-T-button-touch-DPR-1-/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/tool-marker-touch-DPR-1-th-a1af5-n-its-T-button-touch-DPR-1-/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  27) e2e/toolsetter-setup.spec.ts:64:1 › without the server's settings, and without a saved section, Measure Current and Unload (M600) stay off — with the reason 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/toolsetter-setup-without-t-1498e--stay-off-—-with-the-reason/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/toolsetter-setup-without-t-1498e--stay-off-—-with-the-reason/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  28) e2e/toolsetter-setup.spec.ts:76:1 › the gate sits in the call path: a tool-table load in M600 mode sends nothing while the setter is not set up 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/toolsetter-setup-the-gate--ad46e-le-the-setter-is-not-set-up/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/toolsetter-setup-the-gate--ad46e-le-the-setter-is-not-set-up/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  29) e2e/toolsetter-setup.spec.ts:85:1 › a partial section: the form names what is missing, shows unset fields empty, and a change saves only that field 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/toolsetter-setup-a-partial-c97e8-hange-saves-only-that-field/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/toolsetter-setup-a-partial-c97e8-hange-saves-only-that-field/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  30) e2e/toolsetter-setup.spec.ts:103:1 › a save the server never confirmed is no setup; its confirmation is 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/toolsetter-setup-a-save-th-86402-o-setup-its-confirmation-is/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/toolsetter-setup-a-save-th-86402-o-setup-its-confirmation-is/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  31) e2e/toolsetter-setup.spec.ts:127:1 › Measure Current is ONE command: the values ride the mdi — a refusal says why and nothing follows (Codex R16 XZ-06) 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/toolsetter-setup-Measure-C-eab9d-ng-follows-Codex-R16-XZ-06-/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/toolsetter-setup-Measure-C-eab9d-ng-follows-Codex-R16-XZ-06-/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  32) e2e/toolsetter-setup.spec.ts:145:1 › an abort while the reply is outstanding leaves nothing to send: a late success after it, or after a cleared setup, sends nothing more (Codex R16 XZ-06) 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/toolsetter-setup-an-abort--3b093-thing-more-Codex-R16-XZ-06-/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/toolsetter-setup-an-abort--3b093-thing-more-Codex-R16-XZ-06-/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  33) e2e/toolsetter-setup.spec.ts:158:1 › Reset clears the section — no field counts as saved, nothing is pushed 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/toolsetter-setup-Reset-cle-824fe--as-saved-nothing-is-pushed/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/toolsetter-setup-Reset-cle-824fe--as-saved-nothing-is-pushed/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  34) e2e/toolsetter-setup.spec.ts:171:1 › Unload is ONE command: T0 M600 with the setter's values in M600 mode, tool_change 0 in the standard mode 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/toolsetter-setup-Unload-is-c3403-ange-0-in-the-standard-mode/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/toolsetter-setup-Unload-is-c3403-ange-0-in-the-standard-mode/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  35) e2e/toolsetter-setup.spec.ts:210:1 › the machine line follows the gateway's booking: not known, confirmed, pending, not confirmed 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/toolsetter-setup-the-machi-049ef-irmed-pending-not-confirmed/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/toolsetter-setup-the-machi-049ef-irmed-pending-not-confirmed/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  36) e2e/toolsetter-setup.spec.ts:223:1 › the line's "?" says which parameters it means (operator 2026-11-07) 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/toolsetter-setup-the-line--8b59c--means-operator-2026-11-07-/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/toolsetter-setup-the-line--8b59c--means-operator-2026-11-07-/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  37) e2e/toolsetter-setup.spec.ts:233:1 › not set up: no machine line beyond the setup note, which says nothing is written 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/toolsetter-setup-not-set-u-f7aa0-ich-says-nothing-is-written/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/toolsetter-setup-not-set-u-f7aa0-ich-says-nothing-is-written/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  38) e2e/toolsetter-setup.spec.ts:241:1 › a save while the machine is not ready sends nothing; the line says it is not yet in the machine 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/toolsetter-setup-a-save-wh-f0a97-t-is-not-yet-in-the-machine/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/toolsetter-setup-a-save-wh-f0a97-t-is-not-yet-in-the-machine/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  39) e2e/toolsetter-setup.spec.ts:259:1 › a save the read-back already confirms pushes nothing; one it does not gets the convenience push (Codex R309) 
+
+    Error: mock on port 4588 ended before its bind (exit 1): 
+
+       at mockFixture.ts:114
+
+      112 |       if (out.includes(`MOCK-BOUND ${port} ${instance}`)) { clearTimeout(timer); resolve(); }
+      113 |     });
+    > 114 |     child.once("exit", code => { clearTimeout(timer); reject(new Error(`mock on port ${port} ended before its bind (exit ${code}): ${stderr}`)); });
+          |                                                              ^
+      115 |   });
+      116 |   child.once("exit", (code, signal) => { died = `exit ${code ?? signal}: ${stderr.slice(-300)}`; });
+      117 |   child.stdout!.resume();
+        at ChildProcess.<anonymous> (/tmp/codex-r329/lcnc-webui/e2e/mockFixture.ts:114:62)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/browser-artifacts/toolsetter-setup-a-save-th-fdca3-onvenience-push-Codex-R309-/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/browser-artifacts/toolsetter-setup-a-save-th-fdca3-onvenience-push-Codex-R309-/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  39 failed
+    e2e/contrast.spec.ts:189:3 › light: every readable text meets 4.5 : 1 on what is rendered behind it 
+    e2e/contrast.spec.ts:189:3 › dark: every readable text meets 4.5 : 1 on what is rendered behind it 
+    e2e/contrast.spec.ts:189:3 › hc-light: every readable text meets 4.5 : 1 on what is rendered behind it 
+    e2e/contrast.spec.ts:189:3 › hc-dark: every readable text meets 4.5 : 1 on what is rendered behind it 
+    e2e/contrast.spec.ts:189:3 › auto-dark: every readable text meets 4.5 : 1 on what is rendered behind it 
+    e2e/contrast.spec.ts:320:3 › light: the focus ring keeps 3 : 1 on every surface ────────────────
+    e2e/contrast.spec.ts:320:3 › dark: the focus ring keeps 3 : 1 on every surface ─────────────────
+    e2e/contrast.spec.ts:320:3 › hc-light: the focus ring keeps 3 : 1 on every surface ─────────────
+    e2e/contrast.spec.ts:320:3 › hc-dark: the focus ring keeps 3 : 1 on every surface ──────────────
+    e2e/contrast.spec.ts:320:3 › auto-dark: the focus ring keeps 3 : 1 on every surface ────────────
+    e2e/contrast.spec.ts:512:3 › light: controls and floating cards keep 3 : 1 where they meet what is next to them 
+    e2e/contrast.spec.ts:512:3 › dark: controls and floating cards keep 3 : 1 where they meet what is next to them 
+    e2e/contrast.spec.ts:512:3 › hc-light: controls and floating cards keep 3 : 1 where they meet what is next to them 
+    e2e/contrast.spec.ts:512:3 › hc-dark: controls and floating cards keep 3 : 1 where they meet what is next to them 
+    e2e/contrast.spec.ts:512:3 › auto-dark: controls and floating cards keep 3 : 1 where they meet what is next to them 
+    e2e/contrast.spec.ts:564:3 › light: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+    e2e/contrast.spec.ts:564:3 › dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+    e2e/contrast.spec.ts:564:3 › hc-light: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+    e2e/contrast.spec.ts:564:3 › hc-dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+    e2e/contrast.spec.ts:564:3 › auto-dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it 
+    e2e/help-icons.spec.ts:110:5 › desktop, DPR 1 › every "?": its glyph in one place in its circle, the circle on its text's capitals (desktop, DPR 1) 
+    e2e/help-icons.spec.ts:110:5 › desktop, DPR 2 › every "?": its glyph in one place in its circle, the circle on its text's capitals (desktop, DPR 2) 
+    e2e/help-icons.spec.ts:110:5 › touch, DPR 1 › every "?": its glyph in one place in its circle, the circle on its text's capitals (touch, DPR 1) 
+    e2e/tool-marker.spec.ts:80:5 › desktop, DPR 1 › the loaded tool's mark sits centred on its T button (desktop, DPR 1) 
+    e2e/tool-marker.spec.ts:80:5 › desktop, DPR 2 › the loaded tool's mark sits centred on its T button (desktop, DPR 2) 
+    e2e/tool-marker.spec.ts:80:5 › touch, DPR 1 › the loaded tool's mark sits centred on its T button (touch, DPR 1) 
+    e2e/toolsetter-setup.spec.ts:64:1 › without the server's settings, and without a saved section, Measure Current and Unload (M600) stay off — with the reason 
+    e2e/toolsetter-setup.spec.ts:76:1 › the gate sits in the call path: a tool-table load in M600 mode sends nothing while the setter is not set up 
+    e2e/toolsetter-setup.spec.ts:85:1 › a partial section: the form names what is missing, shows unset fields empty, and a change saves only that field 
+    e2e/toolsetter-setup.spec.ts:103:1 › a save the server never confirmed is no setup; its confirmation is 
+    e2e/toolsetter-setup.spec.ts:127:1 › Measure Current is ONE command: the values ride the mdi — a refusal says why and nothing follows (Codex R16 XZ-06) 
+    e2e/toolsetter-setup.spec.ts:145:1 › an abort while the reply is outstanding leaves nothing to send: a late success after it, or after a cleared setup, sends nothing more (Codex R16 XZ-06) 
+    e2e/toolsetter-setup.spec.ts:158:1 › Reset clears the section — no field counts as saved, nothing is pushed 
+    e2e/toolsetter-setup.spec.ts:171:1 › Unload is ONE command: T0 M600 with the setter's values in M600 mode, tool_change 0 in the standard mode 
+    e2e/toolsetter-setup.spec.ts:210:1 › the machine line follows the gateway's booking: not known, confirmed, pending, not confirmed 
+    e2e/toolsetter-setup.spec.ts:223:1 › the line's "?" says which parameters it means (operator 2026-11-07) 
+    e2e/toolsetter-setup.spec.ts:233:1 › not set up: no machine line beyond the setup note, which says nothing is written 
+    e2e/toolsetter-setup.spec.ts:241:1 › a save while the machine is not ready sends nothing; the line says it is not yet in the machine 
+    e2e/toolsetter-setup.spec.ts:259:1 › a save the read-back already confirms pushes nothing; one it does not gets the convenience push (Codex R309) 

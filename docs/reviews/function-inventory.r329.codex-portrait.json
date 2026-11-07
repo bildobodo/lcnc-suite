@@ -1,0 +1,50 @@
+[
+  {
+    "origin": "applied",
+    "help": {
+      "x": 634,
+      "y": 785.5,
+      "right": 647,
+      "bottom": 798.5
+    },
+    "card": {
+      "x": 305,
+      "y": 778,
+      "right": 873,
+      "bottom": 806
+    },
+    "text": "LinuxCNC parameters hold these values — confirmed"
+  },
+  {
+    "origin": "read",
+    "help": {
+      "x": 849,
+      "y": 785.5,
+      "right": 862,
+      "bottom": 798.5
+    },
+    "card": {
+      "x": 305,
+      "y": 778,
+      "right": 873,
+      "bottom": 806
+    },
+    "text": "Saved — not yet in the LinuxCNC parameters; a program start or measurement writes them"
+  },
+  {
+    "origin": "assumed",
+    "help": {
+      "x": 806,
+      "y": 785.5,
+      "right": 819,
+      "bottom": 798.5
+    },
+    "card": {
+      "x": 305,
+      "y": 778,
+      "right": 873,
+      "bottom": 806
+    },
+    "text": "LinuxCNC parameters not confirmed (0 of 23) — the next program start writes them"
+  }
+]

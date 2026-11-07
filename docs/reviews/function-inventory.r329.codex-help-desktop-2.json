@@ -1,0 +1,891 @@
+[
+ {
+  "view": "strips",
+  "name": "Help: Go to positions",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Offsets",
+  "name": "Help: Offsets in effect",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": -0.02
+ },
+ {
+  "view": "Probing/Outside",
+  "name": "Help: Probe Tool #",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Outside",
+  "name": "Help: Slow Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Outside",
+  "name": "Help: Traverse Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Outside",
+  "name": "Help: Fast Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Outside",
+  "name": "Help: Max X/Y Travel",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Outside",
+  "name": "Help: X/Y Clearance",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Outside",
+  "name": "Help: Max Z Travel",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Outside",
+  "name": "Help: Z Clearance",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Outside",
+  "name": "Help: Extra Probe Depth",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Outside",
+  "name": "Help: Step Off Width",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Outside",
+  "name": "Help: Calibration Offset",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Inside",
+  "name": "Help: Probe Tool #",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Inside",
+  "name": "Help: Slow Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Inside",
+  "name": "Help: Traverse Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Inside",
+  "name": "Help: Fast Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Inside",
+  "name": "Help: Max X/Y Travel",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Inside",
+  "name": "Help: X/Y Clearance",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Inside",
+  "name": "Help: Max Z Travel",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Inside",
+  "name": "Help: Z Clearance",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Inside",
+  "name": "Help: Extra Probe Depth",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Inside",
+  "name": "Help: Step Off Width",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Inside",
+  "name": "Help: Calibration Offset",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Angle",
+  "name": "Help: Edge Width",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Angle",
+  "name": "Help: Probe Tool #",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Angle",
+  "name": "Help: Slow Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Angle",
+  "name": "Help: Traverse Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Angle",
+  "name": "Help: Fast Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Angle",
+  "name": "Help: Max X/Y Travel",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Angle",
+  "name": "Help: X/Y Clearance",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Angle",
+  "name": "Help: Max Z Travel",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Angle",
+  "name": "Help: Z Clearance",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Angle",
+  "name": "Help: Extra Probe Depth",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Angle",
+  "name": "Help: Step Off Width",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Angle",
+  "name": "Help: Calibration Offset",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Boss/Pocket",
+  "name": "Help: Diameter",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Boss/Pocket",
+  "name": "Help: X Hint",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Boss/Pocket",
+  "name": "Help: Y Hint",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Boss/Pocket",
+  "name": "Help: Probe Tool #",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Boss/Pocket",
+  "name": "Help: Slow Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Boss/Pocket",
+  "name": "Help: Traverse Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Boss/Pocket",
+  "name": "Help: Fast Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Boss/Pocket",
+  "name": "Help: Max X/Y Travel",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Boss/Pocket",
+  "name": "Help: X/Y Clearance",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Boss/Pocket",
+  "name": "Help: Max Z Travel",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Boss/Pocket",
+  "name": "Help: Z Clearance",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Boss/Pocket",
+  "name": "Help: Extra Probe Depth",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Boss/Pocket",
+  "name": "Help: Step Off Width",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Boss/Pocket",
+  "name": "Help: Calibration Offset",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Ridge/Valley",
+  "name": "Help: X Hint",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Ridge/Valley",
+  "name": "Help: Y Hint",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Ridge/Valley",
+  "name": "Help: Probe Tool #",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Ridge/Valley",
+  "name": "Help: Slow Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Ridge/Valley",
+  "name": "Help: Traverse Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Ridge/Valley",
+  "name": "Help: Fast Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Ridge/Valley",
+  "name": "Help: Max X/Y Travel",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Ridge/Valley",
+  "name": "Help: X/Y Clearance",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Ridge/Valley",
+  "name": "Help: Max Z Travel",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Ridge/Valley",
+  "name": "Help: Z Clearance",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Ridge/Valley",
+  "name": "Help: Extra Probe Depth",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Ridge/Valley",
+  "name": "Help: Step Off Width",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Ridge/Valley",
+  "name": "Help: Calibration Offset",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Surface",
+  "name": "Help: X Min",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Surface",
+  "name": "Help: X Max",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Surface",
+  "name": "Help: Y Min",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Surface",
+  "name": "Help: Y Max",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Surface",
+  "name": "Help: X Probes",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Surface",
+  "name": "Help: Y Probes",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Surface",
+  "name": "Help: Safe Z",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Surface",
+  "name": "Help: Probe Depth",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Surface",
+  "name": "Help: Probe Tool #",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Surface",
+  "name": "Help: Slow Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Surface",
+  "name": "Help: Traverse Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Surface",
+  "name": "Help: Fast Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Surface",
+  "name": "Help: Max X/Y Travel",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Surface",
+  "name": "Help: X/Y Clearance",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Surface",
+  "name": "Help: Max Z Travel",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Surface",
+  "name": "Help: Z Clearance",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Surface",
+  "name": "Help: Extra Probe Depth",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Surface",
+  "name": "Help: Step Off Width",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Surface",
+  "name": "Help: Calibration Offset",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Calibrate",
+  "name": "Help: Diameter",
+  "glyphDx": 0.2,
+  "glyphDy": -0.89,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Calibrate",
+  "name": "Help: X Width",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Calibrate",
+  "name": "Help: Y Width",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Calibrate",
+  "name": "Help: Probe Tool #",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Calibrate",
+  "name": "Help: Slow Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Calibrate",
+  "name": "Help: Traverse Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Calibrate",
+  "name": "Help: Fast Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Calibrate",
+  "name": "Help: Max X/Y Travel",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Calibrate",
+  "name": "Help: X/Y Clearance",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Calibrate",
+  "name": "Help: Max Z Travel",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Calibrate",
+  "name": "Help: Z Clearance",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Calibrate",
+  "name": "Help: Extra Probe Depth",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Calibrate",
+  "name": "Help: Step Off Width",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Calibrate",
+  "name": "Help: Calibration Offset",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: LinuxCNC parameters",
+  "glyphDx": 0.19,
+  "glyphDy": -0.9,
+  "vsCap": 0.36
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Touch X",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Touch Y",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Touch Z",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Tool Change Position (G30)",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Fast Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Slow Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Traverse Feed",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Max Z Travel",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Retract Distance",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Spindle Zero Height",
+  "glyphDx": 0.17,
+  "glyphDy": -0.89,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Tool Min Distance",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Extra Retries",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Use Tool Table",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.01
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Return to Start",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.01
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Skip G30 Pre-Position",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.01
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Last Try Without Table",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.01
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Brake After",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Spindle Stop",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Min Diameter",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Offset",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Offset Direction",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Finder X",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Finder Y",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Finder Z Difference",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Probing/Toolsetter",
+  "name": "Help: Probe Tool #",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "Settings/3D Viewer",
+  "name": "Help: Tool Setter",
+  "glyphDx": 0.22,
+  "glyphDy": -0.89,
+  "vsCap": 0.01
+ },
+ {
+  "view": "Settings/3D Viewer",
+  "name": "Help: Tool Change (G30)",
+  "glyphDx": 0.2,
+  "glyphDy": -0.89,
+  "vsCap": 0.01
+ },
+ {
+  "view": "kins chip",
+  "name": "Help: Kinematics state",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0
+ },
+ {
+  "view": "jog frame",
+  "name": "Help: Kinematics Frame",
+  "glyphDx": 0.2,
+  "glyphDy": -0.9,
+  "vsCap": 0.25
+ },
+ {
+  "view": "HUD",
+  "name": "Help: Kinematics state",
+  "glyphDx": 0.2,
+  "glyphDy": -0.89,
+  "vsCap": -0.01
+ }
+]

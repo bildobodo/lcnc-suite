@@ -1,0 +1,1479 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r329/lcnc-webui/playwright.r329.config.ts",
+    "rootDir": "/tmp/codex-r329/lcnc-webui/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/r329-evidence/browser-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/tmp/codex-r329/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/tmp/r329-evidence/browser.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "contrast.spec.ts",
+      "file": "contrast.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "light: every readable text meets 4.5 : 1 on what is rendered behind it",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 38763,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:25:53.087Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "71a6ba077a40ffcb3ac4-953491fc9967055569c0",
+          "file": "contrast.spec.ts",
+          "line": 189,
+          "column": 3
+        },
+        {
+          "title": "dark: every readable text meets 4.5 : 1 on what is rendered behind it",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 38227,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:26:31.955Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "71a6ba077a40ffcb3ac4-6884c700ea3e6c0da926",
+          "file": "contrast.spec.ts",
+          "line": 189,
+          "column": 3
+        },
+        {
+          "title": "hc-light: every readable text meets 4.5 : 1 on what is rendered behind it",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 38797,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:27:10.186Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "71a6ba077a40ffcb3ac4-0f97e4905432dfb5872c",
+          "file": "contrast.spec.ts",
+          "line": 189,
+          "column": 3
+        },
+        {
+          "title": "hc-dark: every readable text meets 4.5 : 1 on what is rendered behind it",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 39709,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:27:48.987Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "71a6ba077a40ffcb3ac4-a2d8b24f365190df0895",
+          "file": "contrast.spec.ts",
+          "line": 189,
+          "column": 3
+        },
+        {
+          "title": "auto-dark: every readable text meets 4.5 : 1 on what is rendered behind it",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 39691,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:28:28.704Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "71a6ba077a40ffcb3ac4-99bd126f7f5342c1da8c",
+          "file": "contrast.spec.ts",
+          "line": 189,
+          "column": 3
+        },
+        {
+          "title": "light: the focus ring keeps 3 : 1 on every surface",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1844,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:29:08.401Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "71a6ba077a40ffcb3ac4-70900b2a34d5f568a389",
+          "file": "contrast.spec.ts",
+          "line": 320,
+          "column": 3
+        },
+        {
+          "title": "dark: the focus ring keeps 3 : 1 on every surface",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1973,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:29:10.252Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "71a6ba077a40ffcb3ac4-f640b6f067d63ac9287a",
+          "file": "contrast.spec.ts",
+          "line": 320,
+          "column": 3
+        },
+        {
+          "title": "hc-light: the focus ring keeps 3 : 1 on every surface",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1857,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:29:12.232Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "71a6ba077a40ffcb3ac4-57ab1590de252cafb716",
+          "file": "contrast.spec.ts",
+          "line": 320,
+          "column": 3
+        },
+        {
+          "title": "hc-dark: the focus ring keeps 3 : 1 on every surface",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2066,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:29:14.093Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "71a6ba077a40ffcb3ac4-7184dca9ff474c78c8bc",
+          "file": "contrast.spec.ts",
+          "line": 320,
+          "column": 3
+        },
+        {
+          "title": "auto-dark: the focus ring keeps 3 : 1 on every surface",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2014,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:29:16.164Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "71a6ba077a40ffcb3ac4-2414852c995c89351e28",
+          "file": "contrast.spec.ts",
+          "line": 320,
+          "column": 3
+        },
+        {
+          "title": "light: controls and floating cards keep 3 : 1 where they meet what is next to them",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4095,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:29:18.184Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "71a6ba077a40ffcb3ac4-2e7e6b93f4edc0dcd1f1",
+          "file": "contrast.spec.ts",
+          "line": 512,
+          "column": 3
+        },
+        {
+          "title": "dark: controls and floating cards keep 3 : 1 where they meet what is next to them",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3761,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:29:22.285Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "71a6ba077a40ffcb3ac4-9f1b10df2bf9cae92cbe",
+          "file": "contrast.spec.ts",
+          "line": 512,
+          "column": 3
+        },
+        {
+          "title": "hc-light: controls and floating cards keep 3 : 1 where they meet what is next to them",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4126,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:29:26.051Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "71a6ba077a40ffcb3ac4-08e1af944009d92e5681",
+          "file": "contrast.spec.ts",
+          "line": 512,
+          "column": 3
+        },
+        {
+          "title": "hc-dark: controls and floating cards keep 3 : 1 where they meet what is next to them",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3858,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:29:30.184Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "71a6ba077a40ffcb3ac4-92040975fc1395ccb953",
+          "file": "contrast.spec.ts",
+          "line": 512,
+          "column": 3
+        },
+        {
+          "title": "auto-dark: controls and floating cards keep 3 : 1 where they meet what is next to them",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4099,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:29:34.049Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "71a6ba077a40ffcb3ac4-659bcd1cd51bcdb52051",
+          "file": "contrast.spec.ts",
+          "line": 512,
+          "column": 3
+        },
+        {
+          "title": "light: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2922,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:29:38.154Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "71a6ba077a40ffcb3ac4-23f448ec38ef6873878d",
+          "file": "contrast.spec.ts",
+          "line": 564,
+          "column": 3
+        },
+        {
+          "title": "dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2895,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:29:41.082Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "71a6ba077a40ffcb3ac4-6505d4c106dc3b92bdd3",
+          "file": "contrast.spec.ts",
+          "line": 564,
+          "column": 3
+        },
+        {
+          "title": "hc-light: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2975,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:29:43.982Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "71a6ba077a40ffcb3ac4-94186c0c3a83b2971e7d",
+          "file": "contrast.spec.ts",
+          "line": 564,
+          "column": 3
+        },
+        {
+          "title": "hc-dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2885,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:29:46.966Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "71a6ba077a40ffcb3ac4-00d3518a62f3291ec71a",
+          "file": "contrast.spec.ts",
+          "line": 564,
+          "column": 3
+        },
+        {
+          "title": "auto-dark: the Sim tab marks the position in the code panel's look, its text 4.5 : 1 on it",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2901,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:29:49.857Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "71a6ba077a40ffcb3ac4-dbc238fe6c9ad480ddb4",
+          "file": "contrast.spec.ts",
+          "line": 564,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "help-icons.spec.ts",
+      "file": "help-icons.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "desktop, DPR 1",
+          "file": "help-icons.spec.ts",
+          "line": 107,
+          "column": 8,
+          "specs": [
+            {
+              "title": "every \"?\": its glyph in one place in its circle, the circle on its text's capitals (desktop, DPR 1)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 240000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 32735,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-07T13:29:52.777Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9ea07f3d612e2a4e158b-da1426f10851a352ad55",
+              "file": "help-icons.spec.ts",
+              "line": 110,
+              "column": 5
+            }
+          ]
+        },
+        {
+          "title": "desktop, DPR 2",
+          "file": "help-icons.spec.ts",
+          "line": 107,
+          "column": 8,
+          "specs": [
+            {
+              "title": "every \"?\": its glyph in one place in its circle, the circle on its text's capitals (desktop, DPR 2)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 240000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 34573,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-07T13:30:25.517Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9ea07f3d612e2a4e158b-46f92818b6c79a1b1b1f",
+              "file": "help-icons.spec.ts",
+              "line": 110,
+              "column": 5
+            }
+          ]
+        },
+        {
+          "title": "touch, DPR 1",
+          "file": "help-icons.spec.ts",
+          "line": 107,
+          "column": 8,
+          "specs": [
+            {
+              "title": "every \"?\": its glyph in one place in its circle, the circle on its text's capitals (touch, DPR 1)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 240000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 32510,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-07T13:31:00.096Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9ea07f3d612e2a4e158b-ce609f58489690a14838",
+              "file": "help-icons.spec.ts",
+              "line": 110,
+              "column": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "tool-marker.spec.ts",
+      "file": "tool-marker.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "desktop, DPR 1",
+          "file": "tool-marker.spec.ts",
+          "line": 77,
+          "column": 8,
+          "specs": [
+            {
+              "title": "the loaded tool's mark sits centred on its T button (desktop, DPR 1)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2050,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-07T13:31:32.627Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "325996a52713c35d89dc-61dcb1803fb9b4baf7d3",
+              "file": "tool-marker.spec.ts",
+              "line": 80,
+              "column": 5
+            }
+          ]
+        },
+        {
+          "title": "desktop, DPR 2",
+          "file": "tool-marker.spec.ts",
+          "line": 77,
+          "column": 8,
+          "specs": [
+            {
+              "title": "the loaded tool's mark sits centred on its T button (desktop, DPR 2)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2260,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-07T13:31:34.684Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "325996a52713c35d89dc-653fafdf8af6f44c899a",
+              "file": "tool-marker.spec.ts",
+              "line": 80,
+              "column": 5
+            }
+          ]
+        },
+        {
+          "title": "touch, DPR 1",
+          "file": "tool-marker.spec.ts",
+          "line": 77,
+          "column": 8,
+          "specs": [
+            {
+              "title": "the loaded tool's mark sits centred on its T button (touch, DPR 1)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2109,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-07T13:31:36.949Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "325996a52713c35d89dc-8428121187b1508b6cfe",
+              "file": "tool-marker.spec.ts",
+              "line": 80,
+              "column": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "toolsetter-setup.spec.ts",
+      "file": "toolsetter-setup.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "without the server's settings, and without a saved section, Measure Current and Unload (M600) stay off — with the reason",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1713,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:31:39.075Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58344d73b72c9d526905-0987e6f4ebf87b5e242d",
+          "file": "toolsetter-setup.spec.ts",
+          "line": 64,
+          "column": 1
+        },
+        {
+          "title": "the gate sits in the call path: a tool-table load in M600 mode sends nothing while the setter is not set up",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1778,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:31:40.793Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58344d73b72c9d526905-250374b94f6298f3f945",
+          "file": "toolsetter-setup.spec.ts",
+          "line": 76,
+          "column": 1
+        },
+        {
+          "title": "a partial section: the form names what is missing, shows unset fields empty, and a change saves only that field",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2457,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:31:42.577Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58344d73b72c9d526905-3af0043860b6c46bfaf3",
+          "file": "toolsetter-setup.spec.ts",
+          "line": 85,
+          "column": 1
+        },
+        {
+          "title": "a save the server never confirmed is no setup; its confirmation is",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2615,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:31:45.039Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58344d73b72c9d526905-1040d8602fe006b2c7ba",
+          "file": "toolsetter-setup.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "Measure Current is ONE command: the values ride the mdi — a refusal says why and nothing follows (Codex R16 XZ-06)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3749,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:31:47.659Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58344d73b72c9d526905-c9e54da57955f5a60e28",
+          "file": "toolsetter-setup.spec.ts",
+          "line": 127,
+          "column": 1
+        },
+        {
+          "title": "an abort while the reply is outstanding leaves nothing to send: a late success after it, or after a cleared setup, sends nothing more (Codex R16 XZ-06)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2953,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:31:51.414Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58344d73b72c9d526905-daf4d5052f05683f3412",
+          "file": "toolsetter-setup.spec.ts",
+          "line": 145,
+          "column": 1
+        },
+        {
+          "title": "Reset clears the section — no field counts as saved, nothing is pushed",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2265,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:31:54.371Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58344d73b72c9d526905-6ef1e8ce98f4ec1a840d",
+          "file": "toolsetter-setup.spec.ts",
+          "line": 158,
+          "column": 1
+        },
+        {
+          "title": "Unload is ONE command: T0 M600 with the setter's values in M600 mode, tool_change 0 in the standard mode",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3480,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:31:56.641Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58344d73b72c9d526905-abe9cc10ab05ce6a6021",
+          "file": "toolsetter-setup.spec.ts",
+          "line": 171,
+          "column": 1
+        },
+        {
+          "title": "the machine line follows the gateway's booking: not known, confirmed, pending, not confirmed",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1743,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:32:00.127Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58344d73b72c9d526905-79bfb23f7ef12962b03a",
+          "file": "toolsetter-setup.spec.ts",
+          "line": 210,
+          "column": 1
+        },
+        {
+          "title": "the line's \"?\" says which parameters it means (operator 2026-11-07)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1765,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:32:01.874Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58344d73b72c9d526905-e164c44d513a68286a9e",
+          "file": "toolsetter-setup.spec.ts",
+          "line": 223,
+          "column": 1
+        },
+        {
+          "title": "not set up: no machine line beyond the setup note, which says nothing is written",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1676,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:32:03.645Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58344d73b72c9d526905-a0caead0ac67cc8b17d9",
+          "file": "toolsetter-setup.spec.ts",
+          "line": 233,
+          "column": 1
+        },
+        {
+          "title": "a save while the machine is not ready sends nothing; the line says it is not yet in the machine",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2306,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:32:05.326Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58344d73b72c9d526905-c5ef5d8f308fba68e5fd",
+          "file": "toolsetter-setup.spec.ts",
+          "line": 241,
+          "column": 1
+        },
+        {
+          "title": "a save the read-back already confirms pushes nothing; one it does not gets the convenience push (Codex R309)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2999,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T13:32:07.637Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58344d73b72c9d526905-edf05d5154abd97bafea",
+          "file": "toolsetter-setup.spec.ts",
+          "line": 259,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-07T13:25:52.749Z",
+    "duration": 378041.833,
+    "expected": 39,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

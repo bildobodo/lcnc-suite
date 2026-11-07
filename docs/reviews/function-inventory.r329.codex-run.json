@@ -1,0 +1,152 @@
+{
+  "round": "R329",
+  "date": "2026-11-07T13:35:38.383157+00:00",
+  "code_head": "a61337c3b8d2b84cab2a1ed4829b12701d2b05fb",
+  "code_base": "d28b0843",
+  "review_head": "3acc28b3",
+  "archive": "/tmp/codex-r329",
+  "isolation": {
+    "live_ports_accessed": false,
+    "machine_commands_sent": false,
+    "mock_port": 4588,
+    "node_modules": "copied from /home/cnc/lcnc-suite-g1/lcnc-webui/node_modules, not symlinked",
+    "archive_adjustments": [
+      "mockSlot.mjs BASE 4500 -> 4588",
+      "two own Playwright configs",
+      "own probe spec"
+    ],
+    "live_root_mistake": "Initial npm run build mistakenly ran at /home/cnc/lcnc-suite, which has no package.json; npm exited 254 ENOENT immediately, no build ran. Correct build then ran in archive/lcnc-webui."
+  },
+  "tests": {
+    "build": "PASS",
+    "unit": {
+      "file": "src/toolsetterState.test.ts",
+      "passed": 13,
+      "initial_filter_error": "src/lib/toolsetterState.test.ts: no tests found; corrected actual path"
+    },
+    "repository_browser": {
+      "startTime": "2026-11-07T13:25:52.749Z",
+      "duration": 378041.833,
+      "expected": 39,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "own_browser": {
+      "startTime": "2026-11-07T13:33:56.083Z",
+      "duration": 10413.987000000001,
+      "expected": 6,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "browser_sandbox_start": "Initial 39 tests failed in worker setup before browser launch: mock unable to bind inside sandbox. Log preserved; rerun with approved local socket access passed.",
+    "own_first_run": "3 failed / 3 passed. Two false Escape-close expectations: Escape is E-Stop per operator contract. At 150% width, navigation is comboboxes, not tabs. Fixed probe to use Enter toggle and actual responsive controls; no product change. First log/spec preserved.",
+    "full_gate": "not rerun; targeted review checks only",
+    "firefox": "not independently run; stated DPR2 rounding limit accepted; pending Firefox core is not closed"
+  },
+  "help_measurements": {
+    "help-desktop-1": {
+      "count": 127,
+      "ranges": {
+        "glyphDx": [
+          0.19,
+          0.21
+        ],
+        "glyphDy": [
+          -0.75,
+          -0.7
+        ],
+        "vsCap": [
+          -0.02,
+          0.36
+        ]
+      }
+    },
+    "help-desktop-2": {
+      "count": 127,
+      "ranges": {
+        "glyphDx": [
+          0.17,
+          0.22
+        ],
+        "glyphDy": [
+          -0.9,
+          -0.89
+        ],
+        "vsCap": [
+          -0.02,
+          0.36
+        ]
+      }
+    },
+    "help-touch-1": {
+      "count": 127,
+      "ranges": {
+        "glyphDx": [
+          0.23,
+          0.24
+        ],
+        "glyphDy": [
+          -0.86,
+          -0.81
+        ],
+        "vsCap": [
+          -0.02,
+          0.36
+        ]
+      }
+    }
+  },
+  "plan_counterexamples": [
+    {
+      "name": "absent_safety_banner_is_not_positive_proof",
+      "reader_fresh": false,
+      "trip_latched_present": false,
+      "safety_chain_reason": null,
+      "counterexample": true
+    },
+    {
+      "name": "existing_hash_ignores_changed_launcher_symlink",
+      "hash_before": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "hash_after": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "counterexample": true
+    },
+    {
+      "name": "new_home_does_not_override_inherited_log_target",
+      "requested": "/tmp/r329-pure-2oy91lq_/operator-logs-outside-home",
+      "counterexample": true
+    },
+    {
+      "name": "absent_deployment_is_reported_clean_by_current_checker",
+      "returncode": 0,
+      "stdout": "deployed config dir not found: /tmp/r329-pure-2oy91lq_/absent-config (nothing installed — nothing to check)\nconfig sync: deployed config matches the repo templates (per-install settings lines and runtime artifacts excluded)\n",
+      "stderr": "",
+      "counterexample": true
+    },
+    {
+      "name": "checker_error_is_not_local_upgrade_drift",
+      "returncode": 2,
+      "stdout": "",
+      "stderr": "repo config dir not found: /tmp/r329-pure-2oy91lq_/absent-templates\n",
+      "counterexample": true
+    },
+    {
+      "name": "native_cleanup_does_not_remove_an_independent_clone",
+      "error": "fatal: '/tmp/r329-pure-2oy91lq_/git-clone' is not a working tree",
+      "clone_still_exists": true,
+      "counterexample": true
+    }
+  ],
+  "review_prefix": {
+    "length": 971265,
+    "sha256": "5dc26db517394893bf3dd394f63c496dadccb93a3fdf3930364fab3df65c0853"
+  },
+  "reproduce": [
+    "Use a61337c3 in a separate archive with installed node_modules and built frontend.",
+    "Copy own.spec.ts into lcnc-webui/e2e/r329.codex.spec.ts; copy configs to web root. Configs use /tmp/r329-evidence outputs. Change mockSlot.mjs BASE to 4588 or another free isolated slot.",
+    "HELP_OUT=/tmp/r329-evidence/help TOOL_OUT=/tmp/r329-evidence/tool npx playwright test --config playwright.r329.config.ts e2e/help-icons.spec.ts e2e/tool-marker.spec.ts e2e/toolsetter-setup.spec.ts e2e/contrast.spec.ts",
+    "npx playwright test --config playwright.r329-own.config.ts e2e/r329.codex.spec.ts",
+    "python3 -B <codex-plan-probe.py> --root <archive>"
+  ]
+}

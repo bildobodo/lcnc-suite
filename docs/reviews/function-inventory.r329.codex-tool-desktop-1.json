@@ -1,0 +1,20 @@
+[
+ {
+  "tool": 5,
+  "rowH": 36.5,
+  "btnH": 28,
+  "markH": 12,
+  "layout": 0,
+  "drawn": -0.01,
+  "rowMid": -0.25
+ },
+ {
+  "tool": 12,
+  "rowH": 141,
+  "btnH": 28,
+  "markH": 12,
+  "layout": 0,
+  "drawn": -0.01,
+  "rowMid": 0
+ }
+]

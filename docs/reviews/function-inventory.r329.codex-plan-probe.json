@@ -1,0 +1,44 @@
+{
+  "root": "/tmp/codex-r329",
+  "head": "a61337c3",
+  "checks": [
+    {
+      "name": "absent_safety_banner_is_not_positive_proof",
+      "reader_fresh": false,
+      "trip_latched_present": false,
+      "safety_chain_reason": null,
+      "counterexample": true
+    },
+    {
+      "name": "existing_hash_ignores_changed_launcher_symlink",
+      "hash_before": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "hash_after": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "counterexample": true
+    },
+    {
+      "name": "new_home_does_not_override_inherited_log_target",
+      "requested": "/tmp/r329-pure-2oy91lq_/operator-logs-outside-home",
+      "counterexample": true
+    },
+    {
+      "name": "absent_deployment_is_reported_clean_by_current_checker",
+      "returncode": 0,
+      "stdout": "deployed config dir not found: /tmp/r329-pure-2oy91lq_/absent-config (nothing installed \u2014 nothing to check)\nconfig sync: deployed config matches the repo templates (per-install settings lines and runtime artifacts excluded)\n",
+      "stderr": "",
+      "counterexample": true
+    },
+    {
+      "name": "checker_error_is_not_local_upgrade_drift",
+      "returncode": 2,
+      "stdout": "",
+      "stderr": "repo config dir not found: /tmp/r329-pure-2oy91lq_/absent-templates\n",
+      "counterexample": true
+    },
+    {
+      "name": "native_cleanup_does_not_remove_an_independent_clone",
+      "error": "fatal: '/tmp/r329-pure-2oy91lq_/git-clone' is not a working tree",
+      "clone_still_exists": true,
+      "counterexample": true
+    }
+  ]
+}

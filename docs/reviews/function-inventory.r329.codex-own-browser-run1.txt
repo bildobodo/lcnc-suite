@@ -1,0 +1,142 @@
+
+Running 6 tests using 1 worker
+
+(node:415302) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:415302) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r329.codex.spec.ts:14:4 › R329 own: toolsetter help remains reachable portrait (12.1s)
+(node:415643) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:415643) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 e2e/r329.codex.spec.ts:14:4 › R329 own: toolsetter help remains reachable portrait150 (30.4s)
+(node:416279) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:416279) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 e2e/r329.codex.spec.ts:14:4 › R329 own: toolsetter help remains reachable landscape (12.5s)
+(node:416601) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:416601) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  4 e2e/r329.codex.spec.ts:57:1 › R329 own: forced colours keep question glyph and keyboard help (light) (1.8s)
+  ✓  5 e2e/r329.codex.spec.ts:57:1 › R329 own: forced colours keep question glyph and keyboard help (dark) (1.7s)
+  ✓  6 e2e/r329.codex.spec.ts:81:1 › R329 plan: the exact index alone does not prove the installed app boots (87ms)
+
+
+  1) e2e/r329.codex.spec.ts:14:4 › R329 own: toolsetter help remains reachable portrait ────────────
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveCount[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator:  locator('.helpPopover:popover-open')
+    Expected: [32m0[39m
+    Received: [31m1[39m
+    Timeout:  10000ms
+
+    Call log:
+    [2m  - Expect "toHaveCount" with timeout 10000ms[22m
+    [2m  - waiting for locator('.helpPopover:popover-open')[22m
+    [2m    24 × locator resolved to 1 element[22m
+    [2m       - unexpected value "1"[22m
+
+
+      48 |   await expect(help).toHaveAttribute('aria-expanded', 'true');
+      49 |   await page.keyboard.press('Escape');
+    > 50 |   await expect(page.locator('.helpPopover:popover-open')).toHaveCount(0);
+         |                                                           ^
+      51 |   await expect(help).toHaveAttribute('aria-expanded', 'false');
+      52 |   await page.locator('.tsMachine').screenshot({ path: `/tmp/r329-evidence/${form.name}.png` });
+      53 |   writeFileSync(`/tmp/r329-evidence/${form.name}.json`, JSON.stringify(measurements, null, 2));
+        at /tmp/codex-r329/lcnc-webui/e2e/r329.codex.spec.ts:50:59
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../r329-evidence/own-artifacts/r329.codex-R329-own-toolse-9a700--remains-reachable-portrait/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../r329-evidence/own-artifacts/r329.codex-R329-own-toolse-9a700--remains-reachable-portrait/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/own-artifacts/r329.codex-R329-own-toolse-9a700--remains-reachable-portrait/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/own-artifacts/r329.codex-R329-own-toolse-9a700--remains-reachable-portrait/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/r329.codex.spec.ts:14:4 › R329 own: toolsetter help remains reachable portrait150 ─────────
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('tab', { name: 'Probing', exact: true })[22m
+
+
+      18 |   if (form.zoom !== 1) await page.evaluate(z => document.documentElement.style.zoom = String(z), form.zoom);
+      19 |   await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { toolsetter: SET_UP } } });
+    > 20 |   await page.getByRole('tab', { name: 'Probing', exact: true }).click();
+         |                                                                 ^
+      21 |   await page.getByRole('tab', { name: 'Toolsetter', exact: true }).click();
+      22 |   const help = page.getByRole('button', { name: 'Help: LinuxCNC parameters', exact: true });
+      23 |   await expect(help).toBeVisible();
+        at /tmp/codex-r329/lcnc-webui/e2e/r329.codex.spec.ts:20:65
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../r329-evidence/own-artifacts/r329.codex-R329-own-toolse-18bc4-mains-reachable-portrait150/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../r329-evidence/own-artifacts/r329.codex-R329-own-toolse-18bc4-mains-reachable-portrait150/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/own-artifacts/r329.codex-R329-own-toolse-18bc4-mains-reachable-portrait150/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/own-artifacts/r329.codex-R329-own-toolse-18bc4-mains-reachable-portrait150/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) e2e/r329.codex.spec.ts:14:4 › R329 own: toolsetter help remains reachable landscape ───────────
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveCount[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator:  locator('.helpPopover:popover-open')
+    Expected: [32m0[39m
+    Received: [31m1[39m
+    Timeout:  10000ms
+
+    Call log:
+    [2m  - Expect "toHaveCount" with timeout 10000ms[22m
+    [2m  - waiting for locator('.helpPopover:popover-open')[22m
+    [2m    24 × locator resolved to 1 element[22m
+    [2m       - unexpected value "1"[22m
+
+
+      48 |   await expect(help).toHaveAttribute('aria-expanded', 'true');
+      49 |   await page.keyboard.press('Escape');
+    > 50 |   await expect(page.locator('.helpPopover:popover-open')).toHaveCount(0);
+         |                                                           ^
+      51 |   await expect(help).toHaveAttribute('aria-expanded', 'false');
+      52 |   await page.locator('.tsMachine').screenshot({ path: `/tmp/r329-evidence/${form.name}.png` });
+      53 |   writeFileSync(`/tmp/r329-evidence/${form.name}.json`, JSON.stringify(measurements, null, 2));
+        at /tmp/codex-r329/lcnc-webui/e2e/r329.codex.spec.ts:50:59
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../r329-evidence/own-artifacts/r329.codex-R329-own-toolse-76c98-remains-reachable-landscape/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../r329-evidence/own-artifacts/r329.codex-R329-own-toolse-76c98-remains-reachable-landscape/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../r329-evidence/own-artifacts/r329.codex-R329-own-toolse-76c98-remains-reachable-landscape/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../r329-evidence/own-artifacts/r329.codex-R329-own-toolse-76c98-remains-reachable-landscape/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    e2e/r329.codex.spec.ts:14:4 › R329 own: toolsetter help remains reachable portrait ─────────────
+    e2e/r329.codex.spec.ts:14:4 › R329 own: toolsetter help remains reachable portrait150 ──────────
+    e2e/r329.codex.spec.ts:14:4 › R329 own: toolsetter help remains reachable landscape ────────────
+  3 passed (1.0m)
