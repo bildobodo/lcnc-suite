@@ -148,9 +148,9 @@ SETUP = ("offsets", "touchoff", "setup-gates", "setup-layout", "choices", "nine-
 STRIP = ("joint-jog", "keyboard-guards", "touch-hold", "touch-surface", "armed", "disarmed",
          "choices", "setup-layout", "safety-during-edit", "setup-gates", "input-session", "strip-actions",
          "jog-buttons")
-SETTINGS = ("forms", "appearance", "select-writes", "tabs", "disarmed", "feedback-channels",
+SETTINGS = ("forms", "devices", "appearance", "select-writes", "tabs", "disarmed", "feedback-channels",
             "keyboard-guards", "scenes.viewer")
-MACROS = ("macros", "run-hold", "disarmed")
+MACROS = ("macros", "devices", "run-hold", "disarmed")
 MESSAGES = ("messages", "feedback-channels")
 
 
