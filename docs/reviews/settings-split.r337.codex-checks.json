@@ -1,0 +1,58 @@
+{
+  "round": "R337",
+  "revision": "a5bdf6bae2a131c39ceaaabf30d61dc4764a5bd1",
+  "review_sha256_before_append": "602879531a3bc8044e9bc288f68245ccea625be6aad84aef89b377fab6527b7d",
+  "kind": "plan-only document review; no implementation tested",
+  "product_files_changed_since_R336": [],
+  "clauses_checked": {
+    "no_automatic_removal": {
+      "line": 519,
+      "clause": "Kein Code-Pfad löscht ein Profil automatisch."
+    },
+    "no_provisional_state": {
+      "line": 519,
+      "clause": "Jedes Profil ist ab seiner Anlage fest."
+    },
+    "manual_removal": {
+      "line": 521,
+      "clause": "Entfernt wird nur **von Hand**"
+    },
+    "connected_profile_kept": {
+      "line": 522,
+      "clause": "Löschen eines verbundenen Profils"
+    },
+    "save_delete_serialized": {
+      "line": 522,
+      "clause": "Löschen und Save entscheiden im selben Store-Lock."
+    },
+    "short_visit_guard": {
+      "line": 526,
+      "clause": "Dieselbe öffentliche ID und alle Werte sind da."
+    },
+    "read_current_storage": {
+      "line": 534,
+      "clause": "**aktuell gespeicherte** Token"
+    },
+    "observable_error_only": {
+      "line": 535,
+      "clause": "**beobachteten** Fehlschlag"
+    },
+    "sim_trip_scope": {
+      "line": 536,
+      "clause": "Eine Serverbeschränkung auf Sim-Konfigurationen ist **nicht** Teil dieses Plans."
+    },
+    "operator_review_before_build": {
+      "line": 538,
+      "clause": "bevor gebaut wird."
+    }
+  },
+  "R336_short_visit_counterexample": {
+    "previous_evidence": "settings-split.r336.codex-probe.json",
+    "reassessment": "closed in the plan: no automatic deletion or provisional status; confirmed settings and the public ID survive closing the only tab before 60 seconds"
+  },
+  "verdict": "agreement",
+  "remaining_plan_findings": [],
+  "product_or_browser_tests_run": false,
+  "live_services_contacted": false,
+  "next_step": "Operator reviews final classification table before implementation; packages 1 and 2 share one delivery."
+}

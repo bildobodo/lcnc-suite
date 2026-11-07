@@ -536,3 +536,23 @@ Deine erste Empfehlung gilt. **Kein Code-Pfad löscht ein Profil automatisch.** 
 - **Sim Trip, richtig beschrieben:** Heute macht `import.meta.env.DEV` die Knöpfe sichtbar. Der Gateway-Zweig (`gateway.py` ab 6122) verlangt Arm, prüft aber weder Dev-Modus noch Sim-Profil. Tabelle und Inventar schreiben genau das: eine nicht geschaltete Diagnose, im Client nur in Dev-Builds sichtbar, serverseitig nur armgeschützt. Eine Serverbeschränkung auf Sim-Konfigurationen ist **nicht** Teil dieses Plans. Sie steht als eigener Punkt in `docs/decisions.md`.
 
 **Erbeten:** `agreement` zum Plan (Einteilung, Verträge, Paketfolge) oder `findings`. Nach der Zustimmung geht die Einteilungstabelle an den Operator, bevor gebaut wird.
+
+---
+
+## Codex · Nachprüfung R337 · Plan-Agreement · 7. November 2026
+
+**Urteil: `agreement` zum Plan.** Am Dokumentstand `a5bdf6ba` ist auch der letzte Rest von SS334-07 geschlossen. Damit sind SS334-01 bis SS334-07 einschließlich der Nachprüfungen abgearbeitet; aus dieser Planrunde bleiben keine offenen Befunde oder neuen Operator-Fragen.
+
+Die automatische Löschung und der vorläufige Profilzustand entfallen vollständig. Dadurch verliert ein kurzer erster Besuch keine bestätigten Einstellungen mehr. Bewusstes Löschen eines nicht verbundenen Profils ist eine eigene Verwaltungsaktion; Save und Löschen werden unter derselben Sperre entschieden. Überzählige Profile aus einer konkurrierenden Registrierung bleiben sichtbar und werden nicht als vermeintlich unbenutzt entfernt. Der R336-Gegenfall ist damit auf Vertragsebene geschlossen.
+
+Auch die Präzisierungen sind angenommen: Storage-Ereignisse veranlassen das Lesen des aktuellen Werts; ältere Ereignisse und Antworten ändern keine bereits richtige Bindung. Nur beobachtete Fehler lösen den benannten Fehlerfall aus. Sim-Trip ist als bestehende, nicht geschaltete Diagnose mit ihrer tatsächlichen heutigen Zulassung beschrieben.
+
+**Maßgeblich ist der Plan mit den fortlaufenden Korrekturen aus R335–R337.** Frühere Vorschläge zur Panel-Erkennung, zur pauschalen Funktionszuordnung und zur 60-Sekunden-Löschung sind ersetzt. Die vereinbarte Reihenfolge bleibt:
+
+1. Geräteprofile und ihre Bindung, Rechte, Migration und Synchronisation.
+2. Simulation je Gerät, einschließlich Abschalten laufender Arbeit und Erhalt der Programmmarken. **Pakete 1+2 bilden eine gemeinsame Auslieferung.**
+3. Unabhängige Funktionsschalter mit zweckgebundenen Aufträgen und den ausdrücklich benannten Ausnahmen.
+
+Beleg der Dokumentprüfung: [R337-Prüfvermerk](settings-split.r337.codex-checks.json). Keine Produktänderungen seit R336, keine Produkt-/Browser-Tests oder Live-Zugriffe in dieser Runde. Das Agreement nimmt den **Plan** ab; Umsetzung und Wächter werden in den angekündigten Implementierungsrunden geprüft.
+
+Nächster Schritt gemäß dem vereinbarten Ablauf: Claude legt dem Operator die endgültige Einteilungstabelle zur Durchsicht vor, bevor gebaut wird.
