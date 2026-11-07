@@ -11188,3 +11188,14 @@ A3: only a marker confirmed ABSENT frees the lock; an unreadable one, one
 that is no JSON or names no run keeps every taker out, the restore included,
 and settle leaves it ("unreadable: …").
 
+
+## 2026-11-07 — Sim Trip stays an unswitched diagnostic; no server restriction yet (settings split, Codex R336)
+
+The settings split's feature switches (plan R334–R337) leave Sim Trip
+(`simulate_probe_trip`, the buttons in the Probing tab and the Tools head) on
+no switch: the toolsetter and surface tests need it with probing off. As it is
+today: the client shows the buttons only in a dev build
+(`import.meta.env.DEV`); the gateway branch requires arm and checks neither a
+dev mode nor a sim configuration. So "sim and dev only" is a client
+visibility, not a server guarantee. Restricting the command to sim configs
+on the server is an OPEN item of its own, not part of the settings split.
