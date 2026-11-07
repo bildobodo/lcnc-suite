@@ -283,6 +283,19 @@ def test_safety_a_helper_refusal_or_a_fault_is_fail():
     assert ic.eval_safety(frames(), rejected, GOOD_HAL, 7, T0)["status"] == "FAIL"
     assert ic.eval_safety(frames(), GOOD_EVENTS, {"latch_fault": "TRUE", "oneshot_out": "TRUE"}, 7, T0)["status"] == "FAIL"
     assert ic.eval_safety(frames(), GOOD_EVENTS, {"latch_fault": "FALSE", "oneshot_out": "FALSE"}, 7, T0)["status"] == "FAIL"
+    tripped = GOOD_EVENTS + [{"proc": "gateway", "pid": 7, "tag": "safety.tripped"}]
+    assert ic.eval_safety(frames(), tripped, GOOD_HAL, 7, T0)["status"] == "FAIL"
+
+
+def test_safety_the_boot_set_latch_the_gateway_classified_is_pass():
+    """A fresh LinuxCNC boots with the latch set until E-Stop Reset; the
+    gateway's first sight is safety.latch_faulted_on_connect — no banner, no
+    trip (live run 2026-11-07: the first green run judged it a fault)."""
+    boot = GOOD_EVENTS + [{"proc": "gateway", "pid": 7, "tag": "safety.latch_faulted_on_connect"}]
+    r = ic.eval_safety(frames(), boot, {"latch_fault": "TRUE", "oneshot_out": "TRUE"}, 7, T0)
+    assert r["status"] == "PASS" and "set at boot" in r["detail"]
+    other = GOOD_EVENTS + [{"proc": "gateway", "pid": 8, "tag": "safety.latch_faulted_on_connect"}]
+    assert ic.eval_safety(frames(), other, {"latch_fault": "TRUE", "oneshot_out": "TRUE"}, 7, T0)["status"] == "FAIL"
 
 
 def test_safety_without_the_gateways_binding_is_incomplete():

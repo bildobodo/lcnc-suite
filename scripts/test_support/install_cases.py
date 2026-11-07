@@ -209,9 +209,16 @@ def eval_safety(frames: list, events: list, hal: dict, gw_pid: int | None, gw_st
     if rejects:
         problems.append(f"helper refusals: {', '.join(rejects[:3])}")
     latch, shot = hal.get("latch_fault"), hal.get("oneshot_out")
-    if latch == "TRUE":
-        problems.append("webui-hb-latch.fault-out is TRUE")
-    elif latch != "FALSE":
+    tags = {e.get("tag") for e in own}
+    if "safety.tripped" in tags:
+        problems.append("the gateway traced safety.tripped")
+    if latch == "TRUE" and "safety.latch_faulted_on_connect" not in tags:
+        # a fresh LinuxCNC boots with the latch set until the operator's
+        # E-Stop Reset; the gateway classifies that first sight
+        # (safety.latch_faulted_on_connect, no banner, no trip — live run
+        # 2026-11-07). A TRUE it did not classify so is a fault.
+        problems.append("webui-hb-latch.fault-out is TRUE and the gateway did not see it as the boot state")
+    elif latch not in ("TRUE", "FALSE"):
         missing.append(f"webui-hb-latch.fault-out not read ({latch!r}) — the latch not proven in HAL")
     if shot == "FALSE":
         problems.append("oneshot.0.out is FALSE — heartbeats do not arrive")
@@ -221,9 +228,10 @@ def eval_safety(frames: list, events: list, hal: dict, gw_pid: int | None, gw_st
         return row(case, "FAIL", "; ".join(problems[:4]), missing=missing)
     if missing:
         return row(case, "incomplete", "; ".join(missing))
+    state = "set at boot (the gateway's first sight, no trip)" if latch == "TRUE" else "clear"
     return row(case, "PASS", f"{len(late)} frames over {late[-1][0] - late[0][0]:.1f} s past the grace: no banner, "
-                             "reader fresh, no trip; watchdog and reader admitted this gateway; latch FALSE, "
-                             "heartbeat oneshot TRUE")
+                             f"reader fresh, no trip; watchdog and reader admitted this gateway; the latch in HAL, "
+                             f"{state}; heartbeat oneshot TRUE")
 
 
 # ── the browser start (FI329-03) ─────────────────────────────────────────
