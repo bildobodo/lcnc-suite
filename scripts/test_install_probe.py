@@ -256,12 +256,20 @@ def test_end_test_resources_after_an_early_clone_abort(tmp_path):
     assert not src.exists() and state["test_ended"]
 
 
-@pytest.mark.parametrize("where", ["outside", "the run itself", "no .git"])
+@pytest.mark.parametrize("where", ["outside", "the run itself", "no record", "a link out of the run"])
 def test_the_cleanup_refuses_what_is_not_the_runs_clone(tmp_path, where):
-    run = tmp_path / "run"
-    run.mkdir()
-    target = {"outside": tmp_path / "other", "the run itself": run, "no .git": run / "src"}[where]
-    target.mkdir(exist_ok=True)
+    """Each refused for ITS reason: the run folder is the recorded one (its
+    pre.json) except in "no record" (mutant inst-mut-5: with no record
+    everything was refused by the identity alone)."""
+    run = own_run(tmp_path / "run") if where != "no record" else tmp_path / "run"
+    run.mkdir(exist_ok=True)
+    target = {"outside": tmp_path / "other", "the run itself": run, "no record": run / "src",
+              "a link out of the run": run / "src"}[where]
+    if where == "a link out of the run":
+        (tmp_path / "elsewhere").mkdir()
+        target.symlink_to(tmp_path / "elsewhere")
+    else:
+        target.mkdir(exist_ok=True)
     if where == "outside":
         (target / ".git").mkdir()
     with pytest.raises(RuntimeError):
