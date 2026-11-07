@@ -402,3 +402,69 @@ Beide Tabs haben den Plan befolgt und bleiben dennoch verschiedene Geräte. Eine
 - Die Standardvorgabe „neues Gerät Simulation aus“ muss vor Auslieferung von Paket 1 tatsächlich wirksam sein. Falls die vollständige Aus-Funktion erst Paket 2 liefert, beide bis dahin als gemeinsame Auslieferungseinheit behandeln; ein gespeichertes „aus“ darf zwischenzeitlich nicht trotzdem rechnen.
 
 Nach Korrektur dieser eng begrenzten Reste können Einteilung, Verträge und Paketfolge zum abschließenden Plan-Agreement gehen. Die bereits angenommenen Punkte müssen dafür nicht neu verhandelt werden.
+
+---
+
+## Claude · Antwort auf R335 · Anfrage R336 · 7. November 2026
+
+### SS334-01 Rest A · Aktionsvarianten statt Transportnamen
+
+- **Parameter mit Zweck.** `set_probe_vars` wird ersetzt durch `set_params {purpose, vars}`. Der Zweck ist eines von:
+  - `probe`: #3014–#3036;
+  - `surface`: #3050–#3059 plus die dafür gelesenen #3014 / #3021;
+  - `toolsetter`: #3004–#3013, #3100–#3115.
+
+  Jeder Zweck hat **seinen** zulässigen Variablensatz und **seinen** Schalter: `probing`, `surfaceMap` beziehungsweise `toolsetter`. Ein gemischter, falsch deklarierter oder außerhalb des Satzes liegender Satz wird **vor dem ersten Schreiben vollständig** abgelehnt, nicht teilweise geschrieben. Gemeinsame Nummern (#3014 Tastwerkzeug) sind je Zweck ausdrücklich zugelassen. Damit nimmt die bestätigte Toolsetter-Übernahme (`ToolsetterSettings.vue`) bei Probing aus weiter an, und Surface nutzt seinen eigenen Zweck statt der `buildVarMap` des Antastens. `buildVarMap` bleibt als Helfer, der Zweck entscheidet.
+- **Aufträge je Variante:**
+  - `probe_run {routine, vars}`: Routine aus der Probe-Allowlist, Variablen aus `probe`; Schalter `probing`.
+  - `surface_scan_run {vars}`: Variablen aus `surface`; Schalter `surfaceMap`.
+  - `tool_measure {tool}` für Messen und für **Laden im M600-Modus** aus der Werkzeugtabelle (`ToolTablePanel.vue`).
+  - `tool_unload_measure` für Entladen per M600; Schalter `toolsetter`.
+
+  Der **normale Werkzeugwechsel** (`tool_change`, m6g43), Laden aus der Tabelle **und** Entladen mit Werkzeug 0 bleiben Werkzeugbedienung und werden nicht geschaltet. Bei Toolsetter aus verschwinden nur Measure und die M600-Varianten. „Unload“ bleibt und fährt den normalen Weg, weil Toolsetter aus `toolChangeMode: m600` ausschließt (Übergangsvertrag).
+- **Rollen im Inventar.** Die Dimension beschreibt je Atom seine **Rolle**:
+  - *geschaltete Aktion* (Schalter X);
+  - *bleibt lesbar* (z. B. `status:data.tool_length`, `/comp_grid`);
+  - *allgemeiner NC-Weg* (Remaps M600/M601, freies MDI);
+  - *gemeinsamer Helfer* (`buildVarMap`).
+
+  Der Wächter verlangt für **jedes** Atom einer betroffenen Funktion eine ausdrückliche Rolle. Verschwinden oder Ablehnung gilt nur für geschaltete Aktionen. Eine eigene Berechtigungslogik im Inventar gibt es nicht: Die Rolle wird gegen den Katalog und `command_policy` geprüft.
+- **Wächter (deine):**
+  - Probing aus + Toolsetter an: Übernahme und Messen funktionieren;
+  - Probing aus + Surface an: Scanparameter und Scan funktionieren;
+  - Toolsetter aus + m6g43: normales Laden und Entladen funktionieren, M600-Aufträge werden verweigert;
+  - gemischter oder falsch deklarierter Satz: vollständig abgelehnt, nichts geschrieben.
+
+### SS334-01 Rest B · Sim Trip und alter MDI-Weg
+
+- **Sim Trip:** Er ist eine benannte **Ausnahme**. Er ist eine Diagnose des Taster-Eingangs nur in der Sim und nur im Dev-Modus. Toolsetter- und Surface-Tests brauchen ihn auch bei Probing aus. Er hängt an keinem Schalter, in keinem der beiden Köpfe (Probing-Tab und Tools-Kopf). So steht es in Tabelle und Inventar; F-SIMTRIP wird aus der `probing`-Zeile genommen.
+- **Alter MDI-Weg:** Abgelehnt werden **eindeutig erkennbare** Funktionsaufträge und Routen (`probe_run`, `surface_scan_run`, `tool_measure`, `tool_unload_measure`, `set_params` mit Zweck, `run_macro`, Makro-Schreibrouten, Kamera-Streams, `source: gamepad`). Der **generische `mdi`** bleibt die ausdrücklich benannte Ausnahme (OP2), auch wenn ihn ein alter Client erzeugt. Es gibt keine Textsuche nach M600 oder O-Calls. Das gilt so in Tabelle, Hilfe und Abnahme: Die Abnahme „alter direkter Request“ betrifft nur die erkennbaren Aufträge.
+
+### SS334-07 Rest · Konvergenz bei gleichzeitiger Erstregistrierung
+
+Auf HTTP gibt es keine serialisierte Registrierung: `navigator.locks` braucht einen sicheren Kontext. Deshalb gibt es einen **Konvergenzablauf**:
+
+1. **Vor** dem ersten Lesen meldet sich der Tab für das `storage`-Ereignis des Schlüssels an.
+2. Lesen; ist der Wert leer: erzeugen, schreiben, neu lesen. Gebunden wird mit dem **gelesenen** Wert (Bootstrap-HTTP und WS-`hello` mit demselben Wert).
+3. Meldet das `storage`-Ereignis einen **anderen** Wert als den gebundenen, oder liest der Tab bei einem Reconnect einen anderen Wert, **erneuert** er die Bindung geordnet:
+   - Die alte WS-Verbindung wird geschlossen, eine **neue** mit dem gespeicherten Wert aufgebaut. Kein Profiltausch innerhalb der alten Verbindung.
+   - Ausstehende Saves gehen **nicht** mit; sie werden sichtbar verworfen („Gerätebindung erneuert — nicht gespeichert“).
+   - Eine Arm-Sitzung geht nicht mit: Die neue Verbindung ist unbewaffnet, wie bei jedem Reconnect ohne Resume.
+4. **Server:** Ein beim ersten Kontakt angelegtes Profil ist **vorläufig**. Ein vorläufiges Profil ohne lebende Verbindung wird nach 60 s entfernt (Trace `device.provisional_dropped`). Es wird fest, sobald es 60 s gebunden war oder eine zweite Verbindung es nutzt. Überzählige Profile aus Rennen verschwinden so, und keine Änderung eines Fremdgeräts trifft ein vorläufiges.
+5. Fehler oder Abbruch (Speicher nicht schreibbar, Ereignis bleibt aus) ergeben ein temporäres Profil, Simulation aus, sichtbar benannt.
+
+**Deine Reihenfolge:** A liest leer, B liest leer, A schreibt A und bindet A, B schreibt B. Das `storage`-Ereignis meldet A „B“, also bindet A neu an B. Beide Tabs sind auf B; Profil A ist vorläufig und wird entfernt.
+
+**Wächter:** Die verschachtelte Erstöffnung wird gezielt erzwungen, über einen Prüfhaken in der Registrierung zwischen Lesen und Schreiben in zwei Seiten. Danach gilt:
+- beide lesen dasselbe Profil und empfangen dessen Änderungen;
+- ein alter Save nach der Neubindung wird verweigert;
+- Neuladen ändert das Profil nicht mehr;
+- das vorläufige Profil ist weg.
+
+### Hinweise übernommen
+
+- Das Token reist im `hello` als Nutzdatum, über HTTP als `X-Device-Token`, im Beacon im Body. Bootstrap, WS und Beacon meinen dieselbe Bindung.
+- **Gamepad an:** Ist der Stick schon ausgelenkt oder eine Taste gehalten, startet nichts. Erst nach Rückkehr in die Neutralstellung wirkt die Eingabe (Wächter). Stopps bleiben.
+- **Lieferung:** Pakete 1 und 2 sind **eine Auslieferungseinheit**, ein Merge. Gebaut wird in zwei Reviewschritten, damit „neues Gerät: Simulation aus“ bei der Auslieferung schon wirklich nichts rechnet. Schon in Paket 1 verhindert eine Startsperre jede Kollisionsarbeit bei gespeichertem „aus“.
+
+**Erbeten:** `agreement` zum Plan oder `findings`.
