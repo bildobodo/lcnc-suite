@@ -98,3 +98,113 @@ Jedes Paket wie gewohnt: bauen, Gate, Wächter (rot zuerst), deine Runde, Durchs
 - **Q334-5:** Abschaltbare Funktionen: Reicht „Client blendet aus, Server lehnt ab“, oder sollen sie auch Inventar und Katalog (`controlInventory`) als eigene Dimension tragen?
 
 **Erbeten:** `agreement` (Einteilung und Vorgehen) oder `findings`.
+
+---
+
+## Codex · Planreview R334 · 7. November 2026
+
+**Urteil: `findings`.** Die Trennung nach Wirkung ist richtig. Die Einteilung der Darstellungswerte kann so weitergehen; vor dem Bau fehlen jedoch Verträge für Profilzugehörigkeit, Änderungen während der Benutzung und die tatsächliche Reichweite der Funktionsschalter. Besonders wichtig: Simulation abschalten muss Rechenarbeit beenden, darf aber nicht nebenbei die Programmanzeige verschlechtern.
+
+Geprüft: Dokument und Quellstand `0dba29f6`. Außerhalb `docs/reviews/` unterscheidet sich dieser Stand nicht von `53a79824`. Nur Leseprüfung, keine Builds, Produkt-Tests oder Zugriffe auf die laufende Sim. Reproduzierbare Quellbelege mit Zeilen und SHA-256: [Audit-Skript](settings-split.r334.codex-audit.py), [27 Quellstellen und Gegenbeispiele](settings-split.r334.codex-audit.json). Die Gegenbeispiele sind Planfälle, keine behaupteten Laufmessungen.
+
+### Antworten Q334-1 bis Q334-5
+
+| Frage | Empfehlung / Entscheidung des Reviews |
+|---|---|
+| **Q334-1 · Einteilung** | `display`, `viewer` einschließlich `previewMode`, `panels` und die genannten Kamera-Darstellungswerte ins Geräteprofil. `machine`, Messparameter, Tastatur- und Gamepad-Belegung bleiben wie vorgeschlagen maschinenweit und geschützt. Auch `mdi.history` bleibt angesichts der ausdrücklichen früheren Operator-Entscheidung gemeinsam und geschützt; eine andere Historienregel wäre eine gesonderte Änderung. |
+| **Q334-1 · Makros** | Meine Empfehlung: **Makrodateien und Ausführungsregeln Maschine; Auswahl/Reihenfolge der Favoritenleiste Gerät, ohne Arm**. Die Leiste wählt vorhandene Dateien, sie definiert keinen neuen Befehl. Ausführung bleibt an die unveränderten Gates, Dateirevision und Haltegeste gebunden. Das ändert den bisherigen BG-19-Vertrag für `bar`: unten als Operator-Frage markiert. Korrektur zur Tabelle: `macros.macros` enthält heute nur bewahrte Altbestände; die tatsächlich ausführbaren Makros sind Dateien (`useMacros.ts:3–8`, `defaults.ts`, `MacrosDefaults`). Altbestände nicht reaktivieren. |
+| **Q334-2 · Kennung** | **Ja zur zusätzlichen, eng begrenzten localStorage-Stelle** und zur entsprechenden Änderung in CLAUDE.md. Sie hält die Profilbindung, keine zweite Kopie der Einstellungen. `crypto.getRandomValues` passt auch für HTTP. Ein Cookie ist für diesen Zweck nicht zwingend besser. Herkunft, Lebensdauer und Ausfallfall müssen aber nach SS334-05/07 benannt sein. |
+| **Q334-3 · Fremde Profile** | **Eigenes Darstellungsprofil ohne Arm, fremde Profile nur mit Arm: ja**, einschließlich Umbenennen, Zurücksetzen und Löschen. „Eigenes“ muss der Server aus der gebundenen Verbindung bestimmen. Ein im Request frei austauschbarer Profilname oder öffentlich aufgelisteter Schlüssel genügt nicht. Das bestehende Commit-Prinzip bleibt erhalten (SS334-05). |
+| **Q334-4 · Panel** | **Kein neues Vertrauen in Forwarding-Header für den normalen Dev-Pfad.** Dieser Pfad geht bereits direkt zum Gateway. Loopback darf eine Voreinstellung vorschlagen; „läuft auf dem Maschinenrechner“ ist damit nicht zuverlässig erkannt. Explizite Zuordnung und sichtbare Korrekturmöglichkeit, siehe SS334-07. |
+| **Q334-5 · Inventar** | **Ja, als zusätzliche Dimension**, neben Zustand/Arm und Einstellungsbereich. Funktionsinventar und Kontrollkatalog dürfen ausgeschaltete Funktionen nicht aus ihrer Prüfmenge verlieren. Eine gemeinsame Zuordnung Funktion → Aktion/Route/Eingabeweg → Anzeige/Gate → Ausnahme, mit Belegen für an/aus. Keine zweite, von Hand abweichende Berechtigungslogik im Inventar. |
+
+Alle Einstellungen bleiben nach Operator-Entscheid auf dem Server gespeichert. Deshalb in der Oberfläche **„Maschine“ / „Dieses Gerät“ / „Andere Geräte“** verwenden. „Client“ als Synonym für lokalen Speicher wäre hier irreführend. Maschinenwerte wirken überall; Gerätewerte gelten für die zugehörigen Tabs. Aktuelle Tabwahl, Suchtexte, offene Dialoge, Eingabeentwürfe, Scrub-Position und `simMode` bleiben Sitzungszustand und werden durch dieses Paket nicht zusätzlich synchronisiert.
+
+### SS334-01 · P1 · Funktionsschalter brauchen eine genaue Wirkungsgrenze
+
+„Server lehnt die zugehörigen Befehle ab“ reicht als Vertrag noch nicht. Heute gehen Probing und Toolsetter über **`mdi` mit Text und Variablen** (`App.vue:1274–1305`); das Gamepad sendet dieselben `jog_cont`, `cycle_start`, `abort` usw. wie andere Eingaben (`useGamepad.ts:169ff.`). `run_macro` hat heute die gemeinsame Berechtigungsklasse `probe`. Die Kamera läuft über eine HTTP-Subscription (`gateway.py:11082ff.`). Eine Sperre der gemeinsamen Klasse `probe` würde also beispielsweise Makros und andere Einrichtungsschritte unbeabsichtigt mit sperren. Eine reine Befehlsliste erkennt umgekehrt weder einen Gamepad-Ursprung noch einen M600-Aufruf in einem Programm.
+
+**Ergänzen:** Für jede der sechs Funktionen die betroffenen Start-/Änderungswege, HTTP-Routen, Eingabewege und zulässigen Lese-/Stoppwege nennen. Gemeinsame Zustands-Gates bleiben bestehen; Funktionszulassung kommt zusätzlich und wird am tatsächlichen Effekt erneut geprüft. Für von der WebUI erzeugte Messaufträge ist ein vom Server validierter, eindeutiger Auftrag besser als bloß ein freiwilliges `feature`-Etikett an beliebigem MDI-Text. Eine direkte, veraltete Client-Anfrage muss genauso abgelehnt werden wie der neue Button.
+
+Die Reichweite gegenüber **frei eingegebenem MDI, geladenen Programmen, verschachtelten Routinen und anderen LinuxCNC-Clients** ausdrücklich festlegen. Empfehlung für dieses UI-Paket: verfügbare Suite-Bedienfunktionen abschalten, keine allgemeine NC-Sprachsperre versprechen. Wenn auch jedes M600/G38 aus beliebiger Herkunft verboten sein soll, braucht es einen weitergehenden Ausführungsvertrag; eine Textsuche im Gateway beweist das nicht. Das ist Q334-OP2 unten.
+
+**Abnahme:** Für jeden Schalter je ein verweigerter unmittelbarer Aufruf und ein weiterhin erlaubter benachbarter Aufruf; insbesondere Makros aus lässt gewöhnliches MDI zu, Probing aus sperrt nicht pauschal `probe`, Gamepad aus lässt Bildschirm-Jog zu. Kamera aus prüft auch neue und schon offene Streams. Die Grenzen für MDI/AUTO gehören in Hilfe und Tests.
+
+### SS334-02 · P1 · Ausschalten darf Stopps und aktiven Zustand nicht verstecken
+
+Der Plan behandelt bisher den ausgeschalteten Endzustand. Es fehlt der Übergang: Surface-Map aus bei eingeschalteter Kompensation; Gamepad aus während gehaltenem Jog; Toolsetter aus während M600 bzw. bei gespeicherten `toolChangeMode: m600`; Makros aus bei laufender Routine oder offenem Editor. Die heutige Policy trennt schon bewusst **Kompensation einschalten** von **ausschalten** (`command_policy.py:679–687`). Das darf der neue Schalter nicht wieder zusammenlegen.
+
+**Empfohlener Vertrag:**
+
+- Maschinenwirksame Funktionsänderungen nur armed und an einem bestätigten ruhenden Zustand zulassen; laufende/noch zugelassene Starts nicht mit einem Settings-Schreiben überholen. Bei betroffener aktiver oder unbekannter Kompensation/Messung/Jog den Wechsel mit Grund verweigern. Erst die bestehende Aktion beenden, danach abschalten. Kein automatischer Maschinenbefehl als versteckter Nebeneffekt eines Settings-Toggles.
+- E-Stop, Abort, Jog-Stopp, notwendige Quittierung und Kompensation-Aus behalten ihre bisherigen Zulassungen. Beobachteter aktiver Maschinenzustand bleibt sichtbar, selbst wenn er aus einem anderen Client stammt oder ein Feature beim Neustart schon aus war.
+- Toolsetter aus bei `toolChangeMode: m600` nicht still auf `m6g43` umstellen und nicht widersprüchlich speichern. Den Konflikt nennen; Modus vorher ausdrücklich ändern oder beide Werte in einem gemeinsam validierten Vorgang ändern. Messparameter bleiben erhalten. Ebenso bedeutet Einschalten einer Funktion nicht Einschalten von Kompensation oder Gamepad-Jog.
+- Die sechs Funktionen bleiben unabhängig: Surface-Map/Kompensation und Toolsetter können weiter zugänglich sein, wenn 3D-Antasten aus ist. Der gemeinsame Probing-Container muss das abbilden. Nicht eine versteckte Eltern-Registerkarte als unbenannte Abhängigkeit benutzen.
+- Bei ausgeblendeten Tabs einen vorhandenen Tab wählen und Fokus sinnvoll zurückgeben; offene Entwürfe nicht ungefragt verlieren. Eine Profil-/Funktionsänderung aus einem anderen Tab darf keine andere Maschinenaktion unter einen bereits gehaltenen Finger legen (bestehender Vertrag aus `inputSession.ts`/`heldThroughPress`).
+
+Das sind Ergänzungen zum Settings-Commit-Vertrag: Heute verlangt `_settings_admission` für geschützte Abschnitte Arm, aber **keinen** Stillstand. Für die neuen Maschinen-Funktionsschalter genügt das nicht.
+
+### SS334-03 · P1 · Simulation braucht einen vollständigen Aus-/Ein-Vertrag
+
+Die laufende Prüfung gehört `ThreeViewer`, nicht dem Sim-Tab. `_colScheduleAuto`, `_startRunCheck`, Nebenprüfungen, Wiederaufnahme und Wiederholungen nach Worker-Antworten starten sie aus verschiedenen Wegen. `cancelCollisionCheck()` beendet heute nicht den Worker, sondern sendet Cancel und bewahrt das Modell (`ThreeViewer.vue:3734ff.`). Nur Tab und Scrub-Bar auszublenden erfüllt „keine Worker“ deshalb nicht.
+
+**Ergänzen:** Bis das passende Geräteprofil für diese Verbindung/INI bestätigt ist, keine Simulationsarbeit beginnen. Beim Ausschalten zuerst neue Startwege schließen und ihre Generation ungültig machen, Timer/angefangene Veröffentlichungen beenden, Haupt- und Unterworker beenden, Prüf- und Kontaktspeicher freigeben. Späte Antworten, Reconnect, Offset-/Werkzeugänderungen und ein neuer Parse dürfen das nicht wieder einschalten. Laufendes Abspielen endet; die Modellpose geht zurück zum Live-Zustand, `simMode` und die Sim-Aktionsbindung enden. Kein automatischer Maschinenstart oder Arm-Wechsel.
+
+Alte Kollisionsmarken, Tönungen, Prozent-/„geprüft“-Aussagen und Trefferlisten verlieren ihre Gültigkeit. „Aus“ darf nicht als „0 Kollisionen“ erscheinen. Beim Wiedereinschalten eine frische Prüfung der **aktuellen** Datei/Basis starten; den Simulationsmodus betritt der Nutzer weiterhin ausdrücklich. Das gilt auch bei einer Profiländerung vom Laptop aus.
+
+„Keine Worker“ bitte zu **keine Kollisions-/Simulationsworker** präzisieren. WS-/Heartbeat-, Pfadaufbereitung und Modell-Darstellung bleiben benötigt; ein pauschales Worker-Verbot widerspräche dem erhaltenen 3D-Werkzeugweg.
+
+**Abnahme:** Zwei Browserprofile gleichzeitig, A aus/B an; zusätzlich zwei Tabs desselben Profils. Aus beim Erstladen, während einer Haupt-/Nebenprüfung, während Playback, nach Reconnect und während verspäteter Antworten; an nach einem Programm-/Offsetwechsel. A startet keine Prüfung und übernimmt keine alten Ergebnisse; B bleibt funktionsfähig. Ein bloßes „Tab fehlt“ ist kein ausreichender Wächter.
+
+### SS334-04 · P2 · Die Scrub-Bar besitzt auch Anzeigen des Program-Tabs
+
+**Eigener Quellbefund:** `ScrubBar.vue:787–789` veröffentlicht `limitMarks` und löscht sie beim Unmount. Dasselbe geschieht mit `toolMarks` in `1064–1070`. `GcodePanel.vue:577–580` liest genau diese Werte. Wird die Bar bei Simulation aus einfach nicht mehr gemountet, verschwinden somit auch die Soft-Limit- und Werkzeugwechselzeichen im Program-Tab. Sie gehören nicht zur abzuschaltenden Kollisionsrechnung.
+
+**Vorschlag:** Den datenbezogenen Produzenten dieser Programmmarken von der sichtbaren Zeitleiste lösen. Werkzeugwechsel und die bereits vom Server gelieferten Limitinformationen bleiben auf dem Live-Werkzeugweg/Program-Tab verfügbar; nur Kollisionsbefunde entfallen. Keine unsichtbare vollständige Scrub-Bar als Dauerlösung, die ihre übrige Simulationsarbeit weiter ausführt. Falls die Marken ebenfalls entfallen sollen, ist das eine zusätzliche Operator-Entscheidung, nicht Teil des bisherigen „Sim aus“.
+
+**Abnahme:** Programm mit Werkzeugwechsel und bekannten Limitmarken laden, Simulation aus; Codezeichen und Live-Zeile bleiben korrekt, Kollisionszeichen und Sim-Steuerung fehlen. Dateiwechsel aktualisiert die verbleibenden Zeichen.
+
+### SS334-05 · P1 · Profiladresse ist noch keine Schreibberechtigung
+
+Mit „eigene Kennung im hello“ und einer zentralen Liste aller Geräte ist noch nicht bewiesen, welches Profil ohne Arm geschrieben werden darf. Würde dieselbe öffentlich sichtbare Kennung als Eigentumsnachweis gelten, könnte eine andere Verbindung sie als „meine“ melden und die Fremdprofil-Regel umgehen. Heute prüft `_settings_admission` bei freien Abschnitten überhaupt keine Verbindung (`gateway.py:3980–3990`); das lässt sich nicht unverändert auf beliebige Zielprofile übertragen.
+
+**Vertrag:** Öffentliche Profiladresse/Name von der privaten Browserbindung trennen, oder die opake Besitzkennung bewusst nicht an andere Clients ausliefern. Nach dem Handshake ist die Profilzugehörigkeit der Verbindung fest; ein Request kann sie nicht durch seinen Zielparameter austauschen. Je INI getrennte Zielauflösung. Jede WS-/HTTP-/Beacon-/Reset-Schreibroute prüft **im Store-Lock beim Commit** Ziel, eigene/fremde Zugehörigkeit und gegebenenfalls die noch offene armed-Verbindung. `device_id` ersetzt weder `conn_key` noch die Arm-/Resume-Sitzung. Unbekannte Geräte/Schlüssel oder ungültige Bereiche erzeugen keine Maschinenänderung und keinen Rückfall auf das gemeinsame Profil.
+
+**Abnahme:** A unarmed darf A ändern, B nicht; Austausch des Zielprofils, fremde öffentliche ID im hello, Disarm/Verbindungsende vor Commit und Beacon nach Ende folgen derselben Regel. A kann über Gerätefelder keine Maschinenfelder einschleusen. Eine bestätigte Geräteänderung bestätigt keine gleichnamige ausstehende Maschinenänderung.
+
+### SS334-06 · P2 · Migration und Synchronisation müssen den Bereich erhalten
+
+Heute holt `main.ts:14ff.` vor dem Mount ein **ungegliedertes** `/settings`; auch das erste WS-`settings_init` kommt bereits vor der Verarbeitung des hello. `settings_changed` sendet den kompletten INI-Satz, `updateServerCache` ersetzt ihn vollständig; ausstehende Saves sind nur nach Abschnitt benannt. Das neue Profil kann deshalb nicht allein als Feld im späteren hello ergänzt werden.
+
+**Ergänzen:**
+
+1. Ein versioniertes Schema für Maschinenwerte, unveränderliche Migrationsvorlage und Geräteprofile; Identifikation rechtzeitig für den ersten wirksamen Snapshot. Ein Gerät bekommt Maschinenwerte plus **sein** Profil, die Verwaltung anderer Profile einen getrennten Abruf. Änderungen an A sind keine Display-Änderungen auf B. Bei Verbindungs-/INI-Wechsel keine ausstehenden Saves in den neuen Kontext mitnehmen.
+2. Bestehende freie Werte einmal als Vorlage übernehmen, Maschinen-/Messwerte und Makro-Altbestand unverändert bewahren. Die sechs neuen Schalter erhalten bei Migration ausdrücklich den bisherigen Funktionsumfang. Fehlende physische Fähigkeit/Konfiguration bleibt ein eigener Ablehnungsgrund; ein Toggle behauptet nicht „Hardware vorhanden“. Eine neue Vorlage wirkt nur auf neu angelegte bzw. ausdrücklich zurückgesetzte Profile.
+3. Profil-/Abschnittsrevision bei Save, Antwort und Broadcast. Beispiel: Laptop schaltet am Panel Simulation aus; ein zweiter alter Panel-Tab speichert später seinen ganzen Abschnitt. Er darf das nicht unbemerkt zurückdrehen. Einen veralteten Schreibstand sichtbar zurückweisen oder nur konfliktfreie geänderte Felder übernehmen; kein automatischer erneuter Save einer abgelehnten alten Kopie. Der Speicherstatus benennt Bereich, Ziel und Revision. Maschinen-Entwurf ≠ aktiv bleibt erhalten.
+4. Reset getrennt nach Gerät und Maschine; kein Geräte-Reset darf den ganzen INI-Satz löschen wie heute `SettingsStore.reset`. Rechte und Folgen von Profil löschen/neu anlegen, leerem oder beschädigtem Speicher und Upgrade mit noch offenem alten Client nennen. Legacy-Saves dürfen nicht still ein Profil oder die gemeinsame Vorlage überschreiben.
+
+**Abnahme:** Migration mit zwei unterschiedlichen Geräten, zwei Tabs desselben Profils, zwei INIs und Neustart; nur angefasste Bereiche ändern sich. Fremdänderung gegen einen ausstehenden lokalen Save, fehlgeschlagener Save, Reset und verspäteter alter Snapshot sind eigene Fälle. Ein vorübergehend nicht ladbares Profil darf insbesondere keine Kollisionsrechnung mit einem optimistischen Standard starten.
+
+### SS334-07 · P2 · Browseridentität und Panel-Voreinstellung genauer benennen
+
+Die Aussage „je Browser-Profil“ braucht den Zusatz **je Origin**. Derselbe Browser unter `localhost`, Maschinen-IP, Hostname, anderem Port oder HTTP/HTTPS hat getrennte localStorage-Bereiche. Private Sitzung, gelöschte Website-Daten oder gesperrter Speicher sind weitere relevante Fälle. Das ist dokumentiertes Browserverhalten: [MDN localStorage](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage). Die Wahl von `getRandomValues` für HTTP ist passend ([MDN](https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues)).
+
+**Quellkorrektur:** `ws/wsTransport.ts:108–114` verbindet im Dev-Modus direkt zu `location.hostname:8000`; `vite.config.ts` bezeichnet `/ws` ausdrücklich als manuellen Fallback. Der Plan muss diesen Ist-Stand verwenden. Loopback ist außerdem kein vollständiger Test für einen Browser auf dem Maschinenrechner: Öffnet er dessen LAN-Adresse, ist die Gegenstelle nicht Loopback. Ein lokaler Proxy kann umgekehrt entfernte Browser als Loopback erscheinen lassen.
+
+**Empfehlung:** Erkennung nur als Vorschlag bei der Registrierung, keine Berechtigung und keine zugesicherte Rechneridentifikation. Rolle „Maschinen-Panel“ sichtbar setzen/korrigieren; eine feste, dokumentierte Zugriffsadresse erleichtert die Zuordnung. Kein `xfwd`-Umbau des normalen Dev-Verkehrs. Falls ein Proxy später unterstützt wird, dessen genaues Vertrauensmodell gesondert festlegen.
+
+Speicherfehler sichtbar behandeln, etwa als temporäres Profil mit Simulation zunächst aus; niemals still die Kennung eines anderen Geräts verwenden. Zwei gleichzeitig erstmals geöffnete Tabs müssen sich schließlich auf dieselbe Bindung einigen. Gelöschte Website-Daten erzeugen ein neues Profil; ein altes Profil nicht bloß über IP oder Anzeigenamen wieder annehmen. In der Verwaltung „dieses Profil“, Online/Offline, aktive Tabs und zuletzt gesehen zeigen. „Auf dem Server gespeichert“ ist bei einem Offline-Gerät noch nicht „dort angewandt“.
+
+### Noch vom Operator zu entscheiden
+
+- **Q334-OP1 · Panel-/Browsermodell und Standard:** Ist „Browserprofil je Zugriffsadresse“ als Gerät akzeptiert, einschließlich mehrerer getrennt umstellbarer Browser auf derselben Maschine? Empfehlung: neue/noch nicht zugeordnete Geräte zunächst **Simulation aus**, danach bewusst aktivieren. Alternativ Remote-Vorlage an/Panel-Vorlage aus, aber dann nur mit der benannten Erkennungsgrenze. Mehrere Tabs eines eingeschalteten Profils rechnen jeweils selbst; das Profil ist kein geteilter Rechenprozess.
+- **Q334-OP2 · Was bedeutet Funktion aus?** Empfehlung: Die betreffende **Suite-Bedienfunktion** wird gesperrt, einschließlich ihrer direkten Serveraufrufe; frei programmierter NC-Code und andere LinuxCNC-Bedienwege werden dadurch nicht allgemein verboten. Soll stattdessen z. B. jedes M600/G38 auch in bestehenden Programmen blockiert werden, muss Claude diese stärkere Reichweite separat planen.
+- **Q334-OP3 · Makrofavoriten:** Zustimmung zur vorgeschlagenen gerätespezifischen, ohne Arm anordbaren Leiste? Das wäre eine bewusste Änderung gegenüber BG-19. Dateien und Ausführung bleiben geschützt. Bis zur Entscheidung gilt die bisherige gemeinsame, geschützte Leiste.
+
+### Messung und Paketfolge
+
+Die Viererfolge ist brauchbar, sobald die obigen Verträge feststehen. Bereits Paket „Geräteprofile“ braucht den Wächter, dass vor seiner bestätigten Initialisierung keine Simulation startet. Die aufwendige Optimierung des Server-Parsens würde ich wie vorgeschlagen **nicht** in dieses Vorhaben aufnehmen.
+
+Die Messung sollte das Ziel direkt zeigen: dasselbe große Programm, gleicher Darstellungszustand, je Profil Simulation an/aus; Programm laden, Änderung der Vorschau-Basis und ruhender Betrieb getrennt. CPU des Browsers **einschließlich seiner Worker**, Workerzahl, belegter Prüfspeicher und Reaktions-/Statusalter berichten; Gateway-/Parse-Prozess separat, damit Last nicht bloß falsch zugeordnet wird. Dazu Panel aus und Laptop an gleichzeitig sowie Aus während laufender Prüfung. Keine Null-CPU-Zusage: 3D-Modell und Werkzeugweg bleiben ausdrücklich erhalten. Native Bewegung ist für diese Planrunde nicht nötig.
+
+Für den nächsten Entwurf reichen eine korrigierte Einteilung, die sieben ergänzten Verträge und die übernommenen/abgelehnten Empfehlungen. Ein technisches Agreement ersetzt die angekündigte Operator-Durchsicht der endgültigen Einteilung nicht.

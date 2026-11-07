@@ -1,0 +1,220 @@
+{
+  "round": "R334",
+  "kind": "plan review / pinned source inspection",
+  "revision": "0dba29f67df3ada719c724d6a925fbe336cc00c0",
+  "product_diff_since_53a79824": [],
+  "live_services_contacted": false,
+  "product_tests_run": false,
+  "source_facts": {
+    "shared_store": {
+      "path": "lcnc-gateway/settings_store.py",
+      "line": 101,
+      "excerpt_start": 101,
+      "source_sha256": "763522f5ca0e0f7e79eb9f84979b6c6034745b86ba8e7834e73719dc0cac7731",
+      "text": "    def save_section(self, section: str, data, admit=None) -> None:\n        \"\"\"Persist one section for the current INI config; bumps version.\n        Prepared on a copy: the cache changes only once the write succeeded.\n        `admit`: the write's admission, called under the lock right before\n        the write — it raises to refuse, and a refusal writes and bumps\n        nothing (button gates BG-24, Codex R211: a check before the lock is\n        stale by the time a preceding writer lets go).\"\"\"\n        with self._lock:\n            all_data = copy.deepcopy(self._load_all())\n            ini = self._ini_key()\n            all_data.setdefault(ini, {})[section] = data\n            if admit is not None:\n                admit()\n            self._save_all(all_data)\n            self.version += 1\n\n    def reset(self, admit=None) -> None:\n        \"\"\"Drop all settings for the current INI config; bumps version.\n        Prepared on a copy: the cache changes only once the write succeeded."
+    },
+    "whole_ini_reset": {
+      "path": "lcnc-gateway/settings_store.py",
+      "line": 117,
+      "excerpt_start": 117,
+      "source_sha256": "763522f5ca0e0f7e79eb9f84979b6c6034745b86ba8e7834e73719dc0cac7731",
+      "text": "    def reset(self, admit=None) -> None:\n        \"\"\"Drop all settings for the current INI config; bumps version.\n        Prepared on a copy: the cache changes only once the write succeeded.\n        `admit` as in save_section.\"\"\"\n        with self._lock:\n            all_data = copy.deepcopy(self._load_all())\n            ini = self._ini_key()\n            if admit is not None:\n                admit()\n            if ini in all_data:\n                del all_data[ini]\n                self._save_all(all_data)\n            self.version += 1"
+    },
+    "settings_admission": {
+      "path": "lcnc-gateway/gateway.py",
+      "line": 3980,
+      "excerpt_start": 3980,
+      "source_sha256": "bb3468ff233529e43a7e04a930725ef68a929c352a649e733bc5647c77187188",
+      "text": "def _settings_admission(section: Optional[str], conn_key):\n    \"\"\"settingsWrite(section) as the store's commit check (button gates\n    BG-19, BG-24): a display section needs no arm; every other — and the\n    global reset (`section` None) — the writer's connection, registered and\n    armed when the store's lock is held; no idle, no power. Raises a\n    PermissionError to refuse. ONE rule for WS, HTTP, the beacon, the reset.\"\"\"\n    def admit():\n        why = _writer_refusal(conn_key) if section is None or section_needs_arm(section) else None\n        if why:\n            raise PermissionError(why)\n    return admit\n\n"
+    },
+    "rest_initial_settings": {
+      "path": "lcnc-gateway/gateway.py",
+      "line": 11036,
+      "excerpt_start": 11035,
+      "source_sha256": "bb3468ff233529e43a7e04a930725ef68a929c352a649e733bc5647c77187188",
+      "text": "@app.get(\"/settings\")\nasync def get_settings():\n    loop = asyncio.get_event_loop()\n    data = await loop.run_in_executor(None, load_settings)\n    return {\"ok\": True, \"settings\": data}\n"
+    },
+    "pre_hello_settings": {
+      "path": "lcnc-gateway/gateway.py",
+      "line": 9920,
+      "excerpt_start": 9920,
+      "source_sha256": "bb3468ff233529e43a7e04a930725ef68a929c352a649e733bc5647c77187188",
+      "text": "        # Send initial settings snapshot (part of WS handshake)\n        _t = time.monotonic()\n        try:\n            _set_phase(f\"load_settings client#{client_id}\")\n            _init_settings = await asyncio.get_event_loop().run_in_executor(None, load_settings)\n            _set_phase(f\"send_settings_init client#{client_id}\")\n            await ws_send_json(ws, {\"type\": \"settings_init\", \"settings\": _init_settings, \"armed\": client.armed})\n            _trace.emit(\n                \"ws.connect.settings\",\n                client_id=client_id,"
+    },
+    "global_broadcast": {
+      "path": "lcnc-gateway/gateway.py",
+      "line": 10277,
+      "excerpt_start": 10277,
+      "source_sha256": "bb3468ff233529e43a7e04a930725ef68a929c352a649e733bc5647c77187188",
+      "text": "                    # Settings broadcast: send full settings when version changes\n                    if _last_settings_ver != _settings_store.version:\n                        _last_settings_ver = _settings_store.version\n                        try:\n                            _ss = await loop.run_in_executor(None, load_settings)\n                            _machine_s = _ss.get(\"machine\", {})\n                            _fb_scale = 1 if _machine_s.get(\"spindleFeedbackUnit\") == \"rpm\" else 60\n                            _slp = _machine_s.get(\"spindleLoadPin\", \"\")\n                            _new_load_pin = _slp if isinstance(_slp, str) and _HAL_PIN_RE.match(_slp) else \"\"\n                            if _new_load_pin != _spindle_load_pin:\n                                _spindle_load_pin = _new_load_pin\n                                asyncio.create_task(_reader_configure_extra_pins())\n                            await ws_send_json(ws, {\n                                \"type\": \"settings_changed\",\n                                \"settings\": _ss,\n                                \"armed\": client.armed,\n                            })\n                        except (OSError, json.JSONDecodeError, ValueError) as e:\n                            _trace.emit(\"status.settings_changed_broadcast_failed\", level=\"warn\",\n                                        exc=type(e).__name__, msg=str(e))"
+    },
+    "client_bootstrap": {
+      "path": "lcnc-webui/src/main.ts",
+      "line": 14,
+      "excerpt_start": 14,
+      "source_sha256": "a4091b73a5ea01f48a56b40f699f1a4f8dac9511c82413cad4476b10822f44c6",
+      "text": "async function bootstrap() {\n  initTouchDetect();\n  initFlashClock();\n\n  let serverSettings: Record<string, any> = {};\n  let fetchOk = false;\n  try {\n    serverSettings = await fetchSettings();\n    fetchOk = true;\n  } catch (e) {\n    console.error(\"[settings] initial fetch failed; deferring to WS settings_init:\", e);\n  }\n\n  // Strip a localStorage key for one server section only AFTER its save lands.\n  // A failed save keeps the data locally so the next boot retries it, instead\n  // of wiping it from both places (the old code stripped before awaiting).\n  async function migrateSection(section: string, data: any): Promise<boolean> {"
+    },
+    "replace_cache": {
+      "path": "lcnc-webui/src/defaults.ts",
+      "line": 182,
+      "excerpt_start": 182,
+      "source_sha256": "94f3f94f3020239ce73dc36d2c5a5a43660b0e9b744a993fa0fada057b15ffe8",
+      "text": "export function updateServerCache(data: Record<string, any>): void {\n  _cache = { ...data };\n  _confirmed = { ...data };\n  for (const [key, d] of _drafts) {\n    const json = stableJson(data[key]);\n    if (json === d.json || sectionAcked(key, d.rev)) { _drafts.delete(key); continue; }\n    const failed = sectionFailed(key, d.rev);\n    if (failed && json !== d.baseJson) { _drafts.delete(key); continue; }\n    if (!failed) d.baseJson = json;\n    _cache[key] = d.data;     // still a draft: the form keeps it, nothing acts on it\n  }\n  serverSettingsReady.value = true;\n  settingsVersion.value++;\n}\n\n/** A section as the SERVER confirmed it — raw, no fallbacks merged in;\n *  `undefined` before the server's settings arrived or when it has none.\n *  Reactive through settingsVersion. */\nexport function confirmedSection(key: string): unknown {"
+    },
+    "pending_save": {
+      "path": "lcnc-webui/src/defaults.ts",
+      "line": 294,
+      "excerpt_start": 294,
+      "source_sha256": "94f3f94f3020239ce73dc36d2c5a5a43660b0e9b744a993fa0fada057b15ffe8",
+      "text": "export function saveSection(key: string, data: any): void {\n  // Block saves until server data is confirmed (prevents overwriting with\n  // fallback zeros) — visibly: the Settings header says so (UX-08).\n  if (!serverSettingsReady.value) { noteSaveBlocked(key, \"waiting for server settings\"); return; }\n\n  const all = readAll();\n  all[key] = data;\n  _cache = all;\n  _localRev.value++;\n\n  // Track pending save for sendBeacon flush on page exit\n  _pendingSaves.set(key, data);\n  noteSavePending(key);\n  if (isProtectedSection(key)) {\n    _drafts.set(key, { data, json: stableJson(data), rev: sectionRev(key), baseJson: stableJson(_confirmed[key]) });\n  }\n  // Debounce server saves (camera sliders fire rapidly)\n  clearTimeout(_saveTimers[key]);\n  _saveTimers[key] = setTimeout(() => {\n    _pendingSaves.delete(key);\n    if (_settingsSaver) {\n      const reqId = _settingsSaver(key, data);  // registered by lcncWs (avoids the import cycle)\n      if (reqId === null) noteSaveFailed(key, \"not connected\");\n      else noteSaveSent(key, reqId);\n    } else {\n      // No silent drop: lcncWs registers at module load, so this \"can't happen\" —\n      // which is exactly why it must be loud if it does (the save would vanish).\n      // console.error is captured by the error.console telemetry hook → auditable.\n      console.error(`[settings] save DROPPED — no saver registered (section=${key})`);\n      noteSaveFailed(key, \"no saver registered\");\n    }"
+    },
+    "actual_dev_transport": {
+      "path": "lcnc-webui/src/ws/wsTransport.ts",
+      "line": 108,
+      "excerpt_start": 93,
+      "source_sha256": "9a4cd5b5875a17ce9f580546800bc11ef94e27955777d06f2317d7fb7b32364a",
+      "text": "/**\n * Compute the WS endpoint URL. In dev the page is served by Vite (:5173), and\n * a proxied /ws would relay the client heartbeat through the single-threaded\n * node dev server. That proxy hop caused false disarms: a page-reload\n * transform storm delayed relayed WS frames > 3 s while browser AND gateway\n * were demonstrably healthy (worker hb_slip=0, no buffer pressure, no gateway\n * HB-WAKE — the frames sat in node). The deadman heartbeat must not ride a\n * dev-only proxy: connect the WS straight to the gateway. The gateway's dev\n * origin rule explicitly admits :5173 origins for this. Production builds\n * (import.meta.env.DEV=false) keep location.host — there the gateway serves\n * the page itself and there is no proxy.\n *\n * The token rides in the URL so the worker replays it for free on every\n * reconnect (browsers can't set WS headers). Empty token ⇒ unchanged URL.\n */\nexport function buildWsUrl(): string {\n  const wsProto = location.protocol === \"https:\" ? \"wss:\" : \"ws:\";\n  const wsHost = import.meta.env.DEV\n    ? `${location.hostname}:${import.meta.env.VITE_GATEWAY_PORT ?? 8000}`\n    : location.host;\n  return withToken(`${wsProto}//${wsHost}/ws`);\n}\n"
+    },
+    "dev_proxy_fallback": {
+      "path": "lcnc-webui/vite.config.ts",
+      "line": 34,
+      "excerpt_start": 26,
+      "source_sha256": "6a0c6e15508b6ccaab73472105c86b28d271977ba267a198f1d49443b2df3e29",
+      "text": "  server: {\n    proxy: {\n      // NOTE: in dev the app's WebSocket does NOT use this proxy — lcncWs builds\n      // ws://<hostname>:8000 directly (the deadman heartbeat must not ride the\n      // single-threaded dev server: a transform storm delayed relayed frames\n      // > 3 s and false-disarmed the client). Override the gateway port via\n      // VITE_GATEWAY_PORT if it isn't 8000. The /ws entry below stays only as\n      // a fallback for manual testing.\n      '/ws': {\n        target: 'http://127.0.0.1:8000',\n        ws: true,\n      },\n      '/files': 'http://127.0.0.1:8000',"
+    },
+    "mdi_features": {
+      "path": "lcnc-webui/src/App.vue",
+      "line": 1274,
+      "excerpt_start": 1268,
+      "source_sha256": "8d85962cb8a18c5da3471a65ddca041d37976788bb085e91636863138dbb215c",
+      "text": " * they are taken over; an abort from any client cancels that handler.\n * Codex R16 XZ-06: the browser used to hold the continuation between two\n * commands — Abort never reached it, and a delayed reply started the\n * measurement after the abort. Nothing is sent after the reply; it only\n * says what happened. Returns whether the gateway started the line.\n */\nasync function fireWithVars(label: string, vars: Record<string, number>, line: string,\n                            gate: keyof Permissions): Promise<boolean> {\n  if (busy.value) { console.warn(`[fireWithVars] ${label} dropped: another command is settling`); return false; }\n  if (!permissions.value[gate]) {\n    pushMessage(OPERATOR_ERROR, `${label} not sent — ${permissionReasons.value[gate] ?? \"not available\"}`);\n    return false;\n  }\n  busy.value = true;\n  try {\n    // The values' MDI waits up to 5 s per chunk in the gateway.\n    const reply = await request({ cmd: \"mdi\", text: line, vars }, 15000);\n    if (!reply) {\n      // Sent, unanswered: the gateway may still start it — never \"not sent\".\n      pushMessage(OPERATOR_ERROR, `${label}: no reply from the gateway — watch the machine`);\n      return false;\n    }"
+    },
+    "toolsetter_mdi": {
+      "path": "lcnc-webui/src/App.vue",
+      "line": 1302,
+      "excerpt_start": 1300,
+      "source_sha256": "8d85962cb8a18c5da3471a65ddca041d37976788bb085e91636863138dbb215c",
+      "text": "/** Every M600 the WebUI starts (Measure Current, Unload and a table load in\n *  M600 mode): only with the toolsetter set up, its values in the same command. */\nasync function toolsetterMdi(label: string, line: string): Promise<boolean> {\n  const setup = toolsetter.value;\n  if (!setup.ok) { pushMessage(OPERATOR_ERROR, `${label} not sent — ${setup.reason}`); return false; }\n  return fireWithVars(label, toolsetterVarMap(setup.values), line, \"machineFrame\");\n}\nprovide(TOOLSETTER_MDI_KEY, toolsetterMdi);"
+    },
+    "gamepad_plain_commands": {
+      "path": "lcnc-webui/src/useGamepad.ts",
+      "line": 169,
+      "excerpt_start": 169,
+      "source_sha256": "202f8875a6a0cd0775f25aff7d419630a53e8ea386e9138184c6186f9ea9eccf",
+      "text": "  function dispatchAction(action: GamepadAction) {\n    const perms = deps.permissions.value;\n    switch (action) {\n      // Every action admits as its screen control does (button gates BG-10,\n      // actionAdmission.ts): Start `run` + the program context, Home All\n      // `zero`, the coolant `override`.\n      case \"start\":\n        if (perms.resume) deps.fire({ cmd: \"cycle_resume\" }, ACTION_GATES.resume);\n        else if (startAdmitted(perms, deps.startContext.value)) deps.fire({ cmd: \"cycle_start\" }, ACTION_GATES.start);\n        break;\n      case \"pause\":\n        if (perms.pause) deps.fire({ cmd: \"cycle_pause\" }, 'pause');\n        break;\n      case \"resume\":\n        if (perms.resume) deps.fire({ cmd: \"cycle_resume\" }, 'resume');\n        break;\n      case \"abort\":\n        if (perms.abort) deps.fire({ cmd: \"abort\" }, 'abort');\n        break;\n      case \"estop\":\n        deps.send({ cmd: \"estop\" }); // no permission gate — E-Stop must always work\n        break;\n      case \"spindle_stop\":\n        // the spindle stop at idle needs no homing (button gates BG-18)\n        if (perms.spindleStop) deps.fire({ cmd: \"spindle_stop\" }, 'spindleStop');\n        break;\n      case \"flood_toggle\": {\n        if (!perms[ACTION_GATES.coolant]) break;\n        const floodOn = !!status.value?.data?.flood;\n        deps.fire({ cmd: floodOn ? \"flood_off\" : \"flood_on\" }, ACTION_GATES.coolant);\n        break;"
+    },
+    "gamepad_stops": {
+      "path": "lcnc-webui/src/useGamepad.ts",
+      "line": 98,
+      "excerpt_start": 98,
+      "source_sha256": "202f8875a6a0cd0775f25aff7d419630a53e8ea386e9138184c6186f9ea9eccf",
+      "text": "  function stopAllJog() {\n    const n = deps.axes.value.length || 3;\n    for (let i = 0; i < n; i++) {\n      if (lastSentVel[i] !== 0 && lastSentVel[i] !== undefined) {\n        deps.send({ cmd: \"jog_stop\", axis: i });\n        lastSentVel[i] = 0;\n      }\n    }\n    for (const k of Object.keys(stickMaxVel)) delete stickMaxVel[Number(k)];\n    for (const c of dpadJogs.endAll()) deps.send(c);\n  }\n"
+    },
+    "comp_off_exception": {
+      "path": "lcnc-gateway/command_policy.py",
+      "line": 679,
+      "excerpt_start": 679,
+      "source_sha256": "99fa2f5855878f18d98fa140258a21ab3533d25df5fe10712347410d3b00dde2",
+      "text": "    # May the operator START surface-map work — probe a new map, or switch\n    # compensation ON? `probe` plus \"the tool is normal to the mapped surface\n    # and the map's grid is aligned to the work\". Deliberately NOT the gate on\n    # set_compensation itself: that command must stay usable in the DISABLE\n    # direction while tilted, which is the safe direction. The UI uses this\n    # class for the ON affordance and the scan button; the backend enforces it\n    # handler-side (require_no_rotary_tilt) and inside surface_scan.ngc, which\n    # also covers an operator typing the MDI by hand.\n    \"surfaceComp\": _BASE + _IDLE + (_R_HOMED,) + _NO_EOFFSET + (_R_ROTARY_ZERO,),\n    # Program / macro maintenance (button gates BG-14): armed and the"
+    },
+    "camera_subscription": {
+      "path": "lcnc-gateway/gateway.py",
+      "line": 11083,
+      "excerpt_start": 11082,
+      "source_sha256": "bb3468ff233529e43a7e04a930725ef68a929c352a649e733bc5647c77187188",
+      "text": "@app.get(\"/camera/stream\")\nasync def camera_stream():\n    # One shared producer feeds all viewers (P3): subscribing starts it on the\n    # first viewer; the `finally` releases this viewer's slot so the device is\n    # freed a short grace after the last one leaves.\n    ok = await _camera_broker.subscribe()\n    if not ok:\n        return JSONResponse({\"error\": \"No camera configured\"}, status_code=503)\n\n    async def generate():\n        try:\n            async for jpeg in _camera_broker.frames():\n                yield (b\"--frame\\r\\n\"\n                       b\"Content-Type: image/jpeg\\r\\n\\r\\n\" + jpeg + b\"\\r\\n\")\n        finally:\n            _camera_broker.unsubscribe()"
+    },
+    "macros_are_files": {
+      "path": "lcnc-webui/src/useMacros.ts",
+      "line": 3,
+      "excerpt_start": 3,
+      "source_sha256": "e63ebc2e587c4aece85e0c8a9cdd9cc3a513c942e326064c3e1632f790afe796",
+      "text": "// A macro is a FILE in the macro folder (package 5): the gateway lists and\n// parses them (macroFiles.ts); the bar holds the names in the `macros`\n// settings section's `bar` key. The earlier MDI-line macros of the settings\n// were dropped on the operator's word (2026-10-02); a stored list stays in\n// the section untouched (macroParams.mergeMacrosSection) and is not used.\n//\n// settingsVersion-driven cross-client sync is handled inside the\n// composable: when another tab saves the bar, our copy refreshes from the\n// shared store.\n"
+    },
+    "bar_sync": {
+      "path": "lcnc-webui/src/useMacros.ts",
+      "line": 47,
+      "excerpt_start": 44,
+      "source_sha256": "e63ebc2e587c4aece85e0c8a9cdd9cc3a513c942e326064c3e1632f790afe796",
+      "text": "  /** The macro FILES on the bar, in order: names from the `bar` key — as\n   *  the server holds it (button gates BG-19: a refused change puts no\n   *  button on the bar). `macroBarDraft` is what the Macros tab shows. */\n  const macroBarNames = ref<string[]>(loadMacrosDefaults().bar ?? []);\n  const macroBarDraft = ref<string[]>(loadMacrosDraft().bar ?? []);\n  const macroParamDialog = ref<MacroParamDialogState | null>(null);\n  noteEarlierMacros(loadMacrosDefaults().macros);\n\n  // Cross-client sync: another tab saved the bar → settingsVersion bumps\n  // → re-read the shared store.\n  watch(settingsVersion, () => {\n    const d = loadMacrosDefaults();\n    macroBarNames.value = d.bar ?? [];\n    macroBarDraft.value = loadMacrosDraft().bar ?? [];\n    noteEarlierMacros(d.macros);\n  });\n"
+    },
+    "collision_cancel_is_not_shutdown": {
+      "path": "lcnc-webui/src/ThreeViewer.vue",
+      "line": 3734,
+      "excerpt_start": 3734,
+      "source_sha256": "1cc390ceb6b7f2c07bd4d400510389e6f2e85afd7b3befe268699500e97a8474",
+      "text": "function cancelCollisionCheck() {\n  // The sweep is synchronous inside the worker — a cancel message would sit\n  // unread until it finished. Terminate + lazy recreate is the honest cancel.\n  if (collisionBusy.value) {\n    emitTelemetry(\"collision.sweep_cancelled\", {\n      id: _colReqId, run_gen: _colReqRunGen,\n      ran_ms: Math.round(performance.now() - _colStartedAt), progress: collisionProgress.value,\n    });\n  }\n  // The worker drives the sweep in slices (sweepPump) and reads a cancel\n  // between them: no terminate, so the resident BVH model survives for the\n  // next sweep (it used to be terminated + recreated + rebuilt per cancel).\n  if (_colWorker && (collisionBusy.value || collisionResumable.value)) _colWorker.postMessage({ cancel: _colReqId });\n  _colReqId++;\n  _colReleaseContacts();\n  collisionBusy.value = false;\n  _colStopPending = false;\n  collisionProgress.value = 0;\n  collisionPartial.value = null;\n  collisionResumable.value = false;\n  collisionStopped.value = null;\n  clearTimeout(_colSettleTimer);\n}\n\n/** Park the running sweep at its next checkpoint (a rotary jog — its track"
+    },
+    "collision_auto": {
+      "path": "lcnc-webui/src/ThreeViewer.vue",
+      "line": 4227,
+      "excerpt_start": 4227,
+      "source_sha256": "1cc390ceb6b7f2c07bd4d400510389e6f2e85afd7b3befe268699500e97a8474",
+      "text": "function _colScheduleAuto() {\n  clearTimeout(_colAutoTimer);\n  _colAutoPending = true;\n  _colAutoTimer = setTimeout(() => {\n    _colAutoPending = false;\n    _debounceFired.check++;\n    if (simMode.value) return;               // ScrubBar re-checks with the entry track\n    if (!machineReady.value) return;         // geometry loading — machineReady watcher retries\n    if (previewBasisPending.value) return;   // the payload at the new basis schedules it (VP-I23)\n    // VP188-02 E1 (plan basiswechsel-last 3e): while the gateway re-parses\n    // the program the re-check is noted, not started — its publication\n    // brings the new version's check; an end without one asks again once\n    if (!_holdApply({ kind: \"check\" }).check) return;\n    if ((status.value?.data?.interp_state ?? INTERP_IDLE) !== INTERP_IDLE) {\n      if (!_startRunCheck()) _colHeldByRun = true;\n      return;\n    }\n    _colHeldByRun = false;\n    if (!viewerGcode.value?.scrubTrack) return;\n    if (collisionBusy.value || collisionResumable.value) cancelCollisionCheck();\n    runCollisionCheck();\n  }, 400);\n}\n/** Start the check during the run when the displayed payload is admitted\n *  (plan 3a): the provisional range from the run's point — read once, here —"
+    },
+    "collision_run": {
+      "path": "lcnc-webui/src/ThreeViewer.vue",
+      "line": 4253,
+      "excerpt_start": 4253,
+      "source_sha256": "1cc390ceb6b7f2c07bd4d400510389e6f2e85afd7b3befe268699500e97a8474",
+      "text": "function _startRunCheck(): boolean {\n  const g = viewerGcode.value, track = g?.scrubTrack, rb = runBasis.value;\n  if (!g || !track || !rb || collisionRun.value) return false;\n  const adm = admitRunCheck({ origin: previewOrigin.value, shownVersion: g.publishedVersion ?? null,\n    shownFile: g.file ?? null, run: rb, running: _runInProgress(status.value?.data) });\n  if (!adm.ok) {\n    emitTelemetry(\"collision.run_check_refused\", { why: adm.why, version: g.publishedVersion ?? null, run: rb.runId });\n    return false;\n  }"
+    },
+    "collision_side": {
+      "path": "lcnc-webui/src/ThreeViewer.vue",
+      "line": 4182,
+      "excerpt_start": 4182,
+      "source_sha256": "1cc390ceb6b7f2c07bd4d400510389e6f2e85afd7b3befe268699500e97a8474",
+      "text": "function _colPostSide(slice: ScrubTrack, entry: ScrubTrack, base: ScrubTrack, shift: number, retried = false,\n                      run?: { gen: number; basis: CheckBasis }) {\n  const id = -(++_colSideSeq);\n  // sim entry: the machine is off and idle — the live state, which is the\n  // base result's basis (a change since cleared it, _colOnInputChange); a\n  // run check's bound beginning: the run's basis\n  const req = timeSpan(\"col_copy\", () => _colBuildRequest(toRaw(slice) as ScrubTrack, id, true, run?.basis ?? _liveCheckBasis()));\n  if (!req) {\n    if (run) _colRunSideFailed(run.gen, \"the check could not be built\");\n    return;\n  }\n  _colCancelSide(\"another check replaced it\");\n  collisionSideFirst.value = null;   // a side sweep replaced ends its first contact too\n  _colSide = { id, entry, base, slice, shift, retried, startedAt: performance.now(), ...(run ? { run } : {}) };\n  _colReleaseContacts();\n  _colSideProgress = 0;\n  emitTelemetry(\"collision.entry_start\", { bodies: req.bodies, shift });\n  try {\n    timeSpan(\"col_post\", () => _colGetWorker().postMessage(req.msg, req.transfer));\n    _colModelSent = req.modelKey;"
+    },
+    "limit_marks_owner": {
+      "path": "lcnc-webui/src/ScrubBar.vue",
+      "line": 787,
+      "excerpt_start": 778,
+      "source_sha256": "8eebf2b5bacea7cd85c19d08a90ece30d5644d983bacd069a4f56e565c769f14",
+      "text": "// program. Found on the BASE track, read on the displayed one (Codex R33\n// VP-I05: the entry move ends at the program's first point and carries its\n// line); the line is the display line at the first violating move.\nconst limitPlace = computed(() => limitPlaces(violations.value, baseTrack.value, track.value,\n                                               !viewerGcode.value?.lines_untrusted));\nconst violationTargets = computed<LimitTarget[]>(() => limitPlace.value.targets);\n// The code panel marks the placed rows' lines (limitMarks — never a raw\n// number, Codex R178). A re-mounted bar (a hot reload) is built before the old\n// one's onUnmounted runs: each clears only what it set.\nlet _marksSet: LimitMarks | null = null;\nwatch(limitPlace, p => { _marksSet = p.lines; limitMarks.value = p.lines; }, { immediate: true });\nonUnmounted(() => { if (limitMarks.value === _marksSet) limitMarks.value = NO_LIMIT_MARKS; });\n"
+    },
+    "tool_marks_owner": {
+      "path": "lcnc-webui/src/ScrubBar.vue",
+      "line": 1064,
+      "excerpt_start": 1062,
+      "source_sha256": "8eebf2b5bacea7cd85c19d08a90ece30d5644d983bacd069a4f56e565c769f14",
+      "text": "// The code panel marks the same lines (toolMarks); each bar clears only\n// what it set (a hot reload builds the new bar first).\nlet _toolMarksSet: ToolMarks | null = null;\nwatch(toolTargets, ts => {\n  const m: ToolMarks = new Map(ts.map(t => [t.line, t.tool] as const));\n  _toolMarksSet = m;\n  toolMarks.value = m;\n}, { immediate: true });\nonUnmounted(() => { if (toolMarks.value === _toolMarksSet) toolMarks.value = NO_TOOL_MARKS; });\n"
+    },
+    "program_marks_consumer": {
+      "path": "lcnc-webui/src/GcodePanel.vue",
+      "line": 577,
+      "excerpt_start": 574,
+      "source_sha256": "0e9e8d400b3c8db4f3c3facd7922c18f2cc48b6693b881085a8e99c6580e38f0",
+      "text": "// The lines the placed limit rows show (limitMarks, published by the bar):\n// a record marks the line its own move shows, never its raw number — a record\n// with no place or no line marks none (Codex R178, the rest of VP-I130).\nconst violationsByLine = computed(() => limitMarks.value);\n// The timeline's tool-change lines (toolMarks, published by the bar): line →\n// the tool it loads.\nconst toolsByLine = computed(() => toolMarks.value);"
+    },
+    "existing_press_contract": {
+      "path": "lcnc-webui/src/App.vue",
+      "line": 484,
+      "excerpt_start": 479,
+      "source_sha256": "8d85962cb8a18c5da3471a65ddca041d37976788bb085e91636863138dbb215c",
+      "text": "// What the strip shows follows the session, except that nothing changes\n// under a press (inputSession.ts `heldThroughPress`): a helper closing waits\n// until the press has ended — after its click —, a helper another pointer\n// opened until every press has had its click. The press lands on the control\n// it began on (operator 2026-10-28, safety-during-edit.spec).\nconst stripLayout = heldThroughPress(\n  () => ({ kind: activeKind.value, numOwner: numKeypadOwner.value }),\n  (v) => v.kind === null,\n);\n// The helpers render from the held layout too: a helper whose session ended\n// under a press leaves at once (UI-15a) but its PLACE stays — an empty box of\n// its laid-out size — and a helper another pointer opened appears only when\n// the layout follows (Codex R225: a touch opening MDI hid Setup under the\n// mouse still holding G55). Without the place the strip's scroll range"
+    }
+  },
+  "primary_web_references": [
+    {
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage",
+      "checked": "2026-11-07",
+      "supports": "Origin scope; private-session lifetime; storage may be denied."
+    },
+    {
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues",
+      "checked": "2026-11-07",
+      "supports": "Available in an insecure context."
+    }
+  ],
+  "counterexamples_are_design_cases_not_executed_tests": [
+    "A public profile id copied into hello makes a foreign edit appear to be an own edit unless ownership is separately bound.",
+    "An old whole-section save from a second tab overwrites a remotely disabled simulation without a revision conflict.",
+    "A loaded simulation-off profile arriving after viewer mount cannot undo CPU already spent on the initial check.",
+    "Generic mdi and jog_cont carry no unique feature identity; gating the shared permission class disables unrelated functions.",
+    "Hiding the surface panel while compensation is on hides its off control; suppressing a gamepad before its stop can strand a jog.",
+    "Unmounting ScrubBar clears both the tool-change and limit marks read by GcodePanel, besides removing the timeline.",
+    "A browser on the machine using its LAN address is not a loopback peer; the current dev WS is direct, not proxied."
+  ]
+}
