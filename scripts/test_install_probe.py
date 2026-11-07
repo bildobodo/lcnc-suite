@@ -535,3 +535,22 @@ def test_install_sync_verdict(rc, fresh, want):
     fn = fn[:fn.index("\n}\n") + 3]
     out = subprocess.run(["bash", "-c", fn + f"sync_verdict {rc} {fresh}"], capture_output=True, text=True)
     assert out.stdout.strip() == want
+
+
+def test_the_merge_gate_refuses_at_once_a_lan_trip_the_probe_may_not_take():
+    """Rehearsal 2026-11-07: a VM pause had tripped the LAN instance before the
+    gate began; the probe refused it after the heavy hour. Now at the start."""
+    sys.path.insert(0, str(ROOT / "scripts/test_select"))
+    import round_gate as rg
+
+    class Host:
+        def __init__(self, trip):
+            self.trip = trip
+
+        def lan_trip(self):
+            if isinstance(self.trip, Exception):
+                raise self.trip
+            return self.trip
+    assert "unacknowledged trip" in rg.install_probe_refusal(Host({"reason": "hal_heartbeat_timeout"}))
+    assert rg.install_probe_refusal(Host(None)) is None
+    assert rg.install_probe_refusal(Host(OSError("no gateway"))) is None

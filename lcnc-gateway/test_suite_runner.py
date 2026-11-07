@@ -84,7 +84,8 @@ class TestSuiteRunner(unittest.TestCase):
         # + test-select (the test selector's guards, test strategy step 3)
         # + inventory (the function inventory's guard, Codex R265–R269)
         # + native-stage (the native stage's offline guards, Codex R282–R285)
-        self.assertEqual(len(commands), 13)
+        # + install-probe (the install probe's offline guards, Codex R329)
+        self.assertEqual(len(commands), 14)
         self.assertIn("audit-css", [name for name, _, _ in commands])
         self.assertIn("review-handshake", [name for name, _, _ in commands])
         self.assertIn("readback-target", [name for name, _, _ in commands])
@@ -92,6 +93,7 @@ class TestSuiteRunner(unittest.TestCase):
         self.assertIn("test-select", [name for name, _, _ in commands])
         self.assertIn("inventory", [name for name, _, _ in commands])
         self.assertIn("native-stage", [name for name, _, _ in commands])
+        self.assertIn("install-probe", [name for name, _, _ in commands])
         self.assertNotIn("viewer-ab-report", [name for name, _, _ in commands])
         self.assertFalse(any("sim_parity" in str(command) for _, command, _ in commands))
 

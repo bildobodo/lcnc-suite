@@ -256,6 +256,23 @@ def browser(sel: dict, logs: Path) -> list[dict]:
 INSTALL_PROBE_S = 3000
 
 
+def install_probe_refusal(host=None) -> str | None:
+    """Why the install probe could not take the LAN instance now, or None:
+    its record refuses a waiting trip (restore_lan.TakeOverRefused); an
+    instance that cannot be read is no refusal here — the probe names it."""
+    from test_support import restore_lan as rl
+    from test_support.system_host import SystemHost
+    host = host or SystemHost()
+    try:
+        trip = host.lan_trip()
+    except Exception:  # noqa: BLE001 — no LAN instance, or none readable: the probe's own record decides
+        return None
+    if trip:
+        return (f"the LAN instance has an unacknowledged trip ({trip}) — the install probe may not take it; "
+                f"acknowledge it, then run the merge gate again")
+    return None
+
+
 def install_probe(logs: Path, unit: str | None = None, probe_s: float = INSTALL_PROBE_S) -> dict:
     """The merge gate's install probe (package I, operator 2026-11-07): a
     fresh clone of HEAD installed by `install.sh --yes --no-root` in its own
@@ -354,6 +371,15 @@ def main(argv: list[str] | None = None) -> int:
     lock_from = time.monotonic()
     with heavy_lock(f"round_gate {record['kind']} {sel['head'][:8]}"):
         record["heavy_lock_wait_s"] = round(time.monotonic() - lock_from, 1)
+        if a.merge:
+            # the install probe takes the LAN instance at the END: a trip it may
+            # not take (the operator's to acknowledge) refuses the merge NOW,
+            # not after the heavy hour (rehearsal 2026-11-07: a VM pause had
+            # tripped it before the gate began)
+            refusal = install_probe_refusal()
+            if refusal:
+                checks.append({"name": "install-probe", "status": "FAIL", "why": [refusal]})
+                return finish("FAIL", checks=checks, omitted=omitted, pending=[])
         checks.append(run("lint", ["npm", "run", "lint"], WEB, logs))
         checks.append(run("build", ["npm", "run", "build"], WEB, logs))
         checks.append(unit("unit-light", [], [f.removeprefix("lcnc-webui/") for f in HEAVY_UNIT], logs))
