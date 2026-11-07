@@ -380,36 +380,47 @@ def test_the_browser_check_sees_a_missing_entry_module(tmp_path, case):
 GOOD_REPORT = {"verdict": "PASS", "restore": {"outcome": "complete", "isolation": []}}
 
 
+POST = {"outcome": "complete"}
+
+
 @pytest.mark.parametrize("report,post,ok", [
-    (GOOD_REPORT, {"outcome": "complete"}, True),
-    (GOOD_REPORT, None, True),
-    (None, None, False),
-    ({**GOOD_REPORT, "verdict": "FAIL"}, {"outcome": "complete"}, False),
-    ({**GOOD_REPORT, "restore": {"outcome": "not_returned", "isolation": []}}, None, False),
-    ({**GOOD_REPORT, "restore": {"outcome": "complete", "isolation": None}}, None, False),
-    ({**GOOD_REPORT, "restore": {"outcome": "complete", "isolation": ["home:.local/bin changed"]}}, None, False),
+    (GOOD_REPORT, POST, True),
+    (GOOD_REPORT, None, False),
+    (None, POST, False),
+    ({**GOOD_REPORT, "verdict": "FAIL"}, POST, False),
+    ({**GOOD_REPORT, "restore": {"outcome": "not_returned", "isolation": []}}, POST, False),
+    ({**GOOD_REPORT, "restore": {"outcome": "complete", "isolation": None}}, POST, False),
+    ({**GOOD_REPORT, "restore": {"outcome": "complete", "isolation": ["home:.local/bin changed"]}}, POST, False),
     (GOOD_REPORT, {"outcome": "not_returned", "reasons": ["x"]}, False)])
 def test_gate_status(report, post, ok):
+    """Each case fails for ITS reason alone: every other proof holds (a case
+    with two faults hid the isolation check from a mutant, inst-mut-2)."""
     status, why = ic.gate_status(report, post)
     assert (status == "PASS") == ok and (why == []) == ok
+    assert len(why) == (0 if ok else 1), why
 
 
 def test_the_merge_gate_check_waits_for_the_unit_and_judges_its_files(tmp_path, monkeypatch):
     sys.path.insert(0, str(ROOT / "scripts/test_select"))
     import round_gate as rg
     logs = tmp_path / "gate.logs"
-    calls, shows = [], iter(["ActiveState=active\nLoadState=loaded", "ActiveState=inactive\nLoadState=loaded"])
+    # the unit's states as systemd reports them: its ExecStopPost runs while
+    # it is "deactivating" — the restore's record exists only once inactive
+    shows = iter(["active", "deactivating", "deactivating", "inactive"])
+    calls, run_dir = [], {}
 
     def fake(cmd, **kw):
         calls.append(cmd)
         if cmd[0] == "systemd-run":
-            run_dir = Path(cmd[cmd.index("--run-dir") + 1])
-            run_dir.mkdir(parents=True)
-            (run_dir / "report.json").write_text(json.dumps({**GOOD_REPORT, "rows": [{"case": "install-run", "status": "PASS"}]}))
-            (run_dir / "restore-post.json").write_text(json.dumps({"outcome": "complete"}))
+            run_dir["p"] = Path(cmd[cmd.index("--run-dir") + 1])
+            run_dir["p"].mkdir(parents=True)
+            (run_dir["p"] / "report.json").write_text(json.dumps({**GOOD_REPORT, "rows": [{"case": "install-run", "status": "PASS"}]}))
             return subprocess.CompletedProcess(cmd, 0, "", "")
         if cmd[:3] == ["systemctl", "--user", "show"]:
-            return subprocess.CompletedProcess(cmd, 0, next(shows), "")
+            state = next(shows)
+            if state == "inactive":
+                (run_dir["p"] / "restore-post.json").write_text(json.dumps({"outcome": "complete"}))
+            return subprocess.CompletedProcess(cmd, 0, f"ActiveState={state}\nLoadState=loaded", "")
         return subprocess.CompletedProcess(cmd, 0, "", "")
     monkeypatch.setattr(rg.subprocess, "run", fake)
     monkeypatch.setattr(rg.time, "sleep", lambda s: None)
@@ -493,3 +504,34 @@ def test_the_unit_is_the_last_service_of_the_cgroup():
 def test_the_restore_with_nothing_recorded_ends_quietly(tmp_path):
     from test_support import install_restore
     assert install_restore.main(["--from", str(tmp_path / "pre.json"), "--out", str(tmp_path / "o.json")]) == 0
+
+
+# the surviving mutants of the first red-check (inst-mut-1): each proof alone
+def test_safety_without_the_readers_admission_alone_is_no_pass():
+    events = [e for e in GOOD_EVENTS if e["tag"] != "reader.connected"]
+    r = ic.eval_safety(frames(), events, GOOD_HAL, 7, T0)
+    assert r["status"] == "incomplete" and "reader.connected" in r["detail"]
+
+
+def test_safety_without_the_readers_values_alone_is_no_pass():
+    r = ic.eval_safety(frames(data={"comp_grid_version": None}), GOOD_EVENTS, GOOD_HAL, 7, T0)
+    assert r["status"] == "incomplete" and "comp_grid_version" in r["detail"]
+
+
+@pytest.mark.parametrize("n,step", [(2, 2.0), (12, 0.1)])
+def test_safety_a_short_window_is_no_pass(n, step):
+    """Two frames, or many over less than the window: no settled proof."""
+    r = ic.eval_safety(frames(n=n, step=step), GOOD_EVENTS, GOOD_HAL, 7, T0)
+    assert r["status"] == "incomplete" and "need ≥ 3" in r["detail"]
+
+
+@pytest.mark.parametrize("rc,fresh,want", [(0, 1, "ok"), (0, 0, "ok"), (1, 0, "warn"), (1, 1, "fail-drift"),
+                                           (2, 0, "fail-check"), (2, 1, "fail-check")])
+def test_install_sync_verdict(rc, fresh, want):
+    """Q329-2: a fresh install's drift fails, an upgrade's warns, the
+    checker's own failure is an error — the script's own function."""
+    fn = INSTALL.read_text()
+    fn = fn[fn.index("sync_verdict() {"):]
+    fn = fn[:fn.index("\n}\n") + 3]
+    out = subprocess.run(["bash", "-c", fn + f"sync_verdict {rc} {fresh}"], capture_output=True, text=True)
+    assert out.stdout.strip() == want

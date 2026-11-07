@@ -448,22 +448,29 @@ install_component "$TARGET_DIR/examples/sim_config/sim_toolsetter/sim_toolsetter
 # Local INI settings stay operator-owned. Report functional template drift;
 # shared code follows the checkout and per-install secrets are excluded.
 # A fresh install has no local edits: there, drift is a defect.
+# <checker exit> <fresh 0|1> → ok | warn | fail-drift | fail-check
+sync_verdict() {
+  if [[ "$1" -eq 0 ]]; then echo ok
+  elif [[ "$1" -eq 1 && "$2" -eq 0 ]]; then echo warn
+  elif [[ "$1" -eq 1 ]]; then echo fail-drift
+  else echo fail-check
+  fi
+}
 set +e
 python3 "$TARGET_DIR/scripts/config_sync_check.py" \
   --repo "$TARGET_DIR/examples/sim_config" --deployed "$SIM_CONFIG_DIR"
 SYNC=$?
 set -e
-if [[ "$SYNC" -eq 0 ]]; then
-  ok "Deployed sim config matches the repo templates"
-elif [[ "$SYNC" -eq 1 && "$FRESH_CONFIG" -eq 0 ]]; then
-  warn "Deployed sim config has drifted from the repo templates (see lines above) — carry over any repo-only lines you want; local edits are yours to keep"
-elif [[ "$SYNC" -eq 1 ]]; then
-  fail "A fresh install differs from the repo templates (see lines above) — a defect of the installer"
-  exit 1
-else
-  fail "The config check could not run (exit $SYNC)"
-  exit 1
-fi
+case "$(sync_verdict "$SYNC" "$FRESH_CONFIG")" in
+  ok)   ok "Deployed sim config matches the repo templates" ;;
+  warn) warn "Deployed sim config has drifted from the repo templates (see lines above) — carry over any repo-only lines you want; local edits are yours to keep" ;;
+  fail-drift)
+    fail "A fresh install differs from the repo templates (see lines above) — a defect of the installer"
+    exit 1 ;;
+  *)
+    fail "The config check could not run (exit $SYNC)"
+    exit 1 ;;
+esac
 
 # ============================================================
 # Step 6: Done

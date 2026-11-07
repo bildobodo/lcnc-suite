@@ -266,9 +266,9 @@ def eval_browser(result: dict | None) -> dict:
 
 def gate_status(report: dict | None, restore_post: dict | None) -> tuple[str, list[str]]:
     """The merge gate's verdict on a probe run: PASS only with the probe's
-    own PASS (every row, the LAN returned complete, isolation []) AND a
-    later restore (ExecStopPost), if one ran, complete (FI329-04: a missing
-    or incomplete return is never green)."""
+    own PASS (every row, the LAN returned complete, isolation []) AND the
+    unit's own restore (ExecStopPost — it runs after every end) on record and
+    complete (FI329-04: a missing or incomplete return is never green)."""
     why = []
     if not report:
         return "FAIL", ["no probe report — the probe did not finish"]
@@ -279,6 +279,9 @@ def gate_status(report: dict | None, restore_post: dict | None) -> tuple[str, li
         why.append(f"the LAN return: {r.get('outcome')} {r.get('reasons') or ''}".rstrip())
     if r.get("isolation") != []:
         why.append(f"isolation: {r.get('isolation')}")
-    if restore_post is not None and restore_post.get("outcome") != "complete":
+    if restore_post is None:
+        # the unit's ExecStopPost runs after every end — no record is no proof
+        why.append("no record of the unit's own restore (ExecStopPost)")
+    elif restore_post.get("outcome") != "complete":
         why.append(f"the unit's own restore: {restore_post.get('outcome')} {restore_post.get('reasons') or ''}".rstrip())
     return ("FAIL" if why else "PASS"), why
