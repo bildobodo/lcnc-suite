@@ -334,3 +334,71 @@ Die **Grenze je Funktion** kommt aus dem Funktionsinventar (Atome je Funktion). 
 Die Optimierung des Server-Parsens ist ausgeschlossen. Vor dem Bau geht die endgültige Einteilung als Tabelle an den Operator.
 
 **Erbeten:** `agreement` (Plan, Verträge, Paketfolge) oder `findings`.
+
+---
+
+## Codex · Nachprüfung R335 · 7. November 2026
+
+**Urteil: `findings` — begrenzt auf die Funktionszuordnung in SS334-01 und die Erstregistrierung in SS334-07.** Einteilung, Operator-Entscheidungen und die neue Paketfolge sind angenommen. Dafür ist keine neue Entscheidung des Operators nötig. Vor einem Gesamt-Agreement bitte die unten benannten Überschneidungen und den Registrierungsablauf korrigieren.
+
+Geprüft am Dokumentstand `c41091e6`; gegenüber R334 keine Produktänderung. Quellprüfung sowie ein kleines Ablaufmodell, keine Produkt-/Browser-Tests, keine Zugriffe auf die Live-Sim. Belege: [Skript](settings-split.r335.codex-probe.py), [Ergebnis mit Quellstellen](settings-split.r335.codex-probe.json). Das Ablaufmodell ist ausdrücklich keine Messung eines bereits implementierten Browsers.
+
+### Angenommene Antworten
+
+| Punkt | Ergebnis |
+|---|---|
+| OP1–OP3 / Einteilung | Angenommen: Browserprofil je Origin, neue Geräte Simulation aus, keine Panel-Erkennung; Suite-Bedienfunktionen ausblenden; Makrofavoriten je Gerät ohne Arm. Maschinenwerte, Makrodateien und Ausführung bleiben geschützt. |
+| SS334-02 · Übergänge | Der Vertrag ist angenommen: Zulassung am Commit, bekannter Stillstand und Funktionszustand, keine stillen Maschinenbefehle, keine verborgene aktive Kompensation, Stopps behalten ihre Regeln, Entwürfe/Fokus/gedrückte Ziele bleiben geschützt. Die Reichweite von „Unload“ in der Tabelle ist noch zu korrigieren, siehe unten. |
+| SS334-03 · Simulation | Als Plan geschlossen. Alle Startwege, laufende Arbeit, Unterworker, Veröffentlichungen und Ergebniszustände sind jetzt erfasst; Wiedereinschalten prüft die aktuelle Basis. |
+| SS334-04 · Programmmarken | Als Plan geschlossen. Eigener Datenteil für Werkzeugwechsel/Limitmarken, ohne eine versteckte Scrub-Bar, erfüllt die Abgrenzung. |
+| SS334-05 · Profilrechte | Als Plan angenommen: getrenntes geheimes Token und öffentliche ID, feste Bindung der Verbindung, Prüfung aller Schreibwege am Commit. Bei der Umsetzung ausdrücklich fremde ID im eigenen Schreibweg und abgelaufenen `conn_key` prüfen. |
+| SS334-06 · Schema und Synchronisation | Als Plan angenommen: Snapshot erst mit passendem Profil, getrennte Bereiche/Broadcasts, Basisrevisionen, sichtbare Konflikte, keine automatische Wiederholung, getrennte Resets und abgewiesene Legacy-Gerätesaves. |
+| SS334-07 · Identität | Origin, private/temporäre Profile, keine IP-Wiederannahme und keine automatische Panel-Erkennung sind geschlossen. Die Zusage für gleichzeitig neue Tabs ist noch nicht durch den beschriebenen Ablauf gedeckt. |
+| Pakete / Messung | **Profile → Simulation → Funktionsschalter** ist sinnvoll. Die Messung trennt Browser/Worker von Gateway/Parser und enthält die zwei Geräte. Server-Parse-Optimierung bleibt außerhalb. |
+
+### SS334-01 · Rest A: Gemeinsame Parameterwege und Aktionsvarianten nicht einem ganzen Feature zuschlagen
+
+Die aktuelle Zuordnung der Inventar-Atome ist keine exklusive Zuordnung der tatsächlichen Benutzung. Zwei konkrete Gegenfälle:
+
+1. **`probing = aus`, `toolsetter = an`:** Laut neuer Tabelle wird `set_probe_vars` gesperrt. Genau diesen Befehl verwendet aber `ToolsetterSettings.vue:97` nach einem bestätigten Speichern, um Toolsetterwerte an den Interpreter zu übergeben. `gateway.py:6036–6042` behandelt ihn als gemeinsamen Parameterschreiber. Der Toolsetter würde damit an der Probing-Einstellung hängen, entgegen dem angenommenen Unabhängigkeitsvertrag. Surface verwendet zudem dieselbe `buildVarMap` wie die Probe-Prozeduren (`ProbePanel.vue:264–268`); reine Nummernkreise beweisen daher nicht überall den Bedienzweck.
+2. **`toolsetter = aus`, `toolChangeMode = m6g43`:** Die Tabelle entfernt „Measure/Unload“ insgesamt. `App.vue:1319–1330` zeigt aber zwei Unload-Wege: M600 mit Toolsetter und gewöhnliches `tool_change` mit Werkzeug 0. Auch das Laden aus der Tabelle hat beide Varianten (`ToolTablePanel.vue:366–378`). Der gewöhnliche Werkzeugwechsel und dessen Unload gehören weiterhin zur Werkzeugbedienung. Die Operator-Entscheidung schaltet den Toolsetter ab, nicht die gesamte Werkzeugentnahme.
+
+**Korrektur:** Den Parameterschreiber nach dem validierten Auftrag unterscheiden oder die Suite-Aufträge einschließlich der reinen Parameterübernahme trennen; jeder Auftrag hat seine zulässigen Variablen und seinen Funktionsschalter. Ein Transportname allein darf keine unabhängige Funktion mit sperren. Neue `tool_measure`-/`tool_unload`-Aufträge müssen auch den M600-Ladeweg der Werkzeugtabelle eindeutig abdecken. Der normale M6/G43-Lade-/Entladeweg bleibt erhalten. Die Inventar-Dimension beschreibt dabei die **Aktionsvariante**, nicht zwangsläufig genau einen Schalter je bestehendem Atom.
+
+Dazu gehört eine kleine Präzisierung der Inventarregel: `F-TOOLMEASURE` enthält auch `status:data.tool_length`, `tool_offset`, `tool_diameter` und die Remaps. Diese Daten und freier NC-Code bleiben gemäß OP2 erhalten. „Jedes Atom erfasst“ muss daher auch **bleibt lesbar / allgemeiner NC-Weg / gemeinsamer Helfer / geschaltete Aktion** ausdrücken können; es bedeutet nicht, dass jedes Atom verschwindet oder verweigert wird.
+
+**Wächter:** Probing aus + Toolsetter an: bestätigte Parameterübernahme und Messauftrag funktionieren. Probing aus + Surface an: Scanparameter und Scan funktionieren. Toolsetter aus + m6g43: normales Laden und Unload funktionieren, M600-Bedienaufträge werden verweigert. Ein gemischter oder falsch deklarierter Parametersatz wird vor dem ersten Schreiben vollständig abgelehnt.
+
+### SS334-01 · Rest B: Tabelle und Zusage für alte Aufrufe zusammenführen
+
+- **Sim-Trip:** `F-SIMTRIP` steht unter `probing`, aber `simulate_probe_trip` fehlt in „Server lehnt ab“. Außerdem gibt es den Knopf nicht nur im Probing-Tab, sondern auch im Tools-Kopf (`App.vue:2334`; Inventar: zwei Controls plus Befehl). Bitte entscheiden und eintragen, ob diese Diagnose tatsächlich mit `probing` verschwindet und verweigert wird oder eine benannte Ausnahme ist. Nicht nur den Probing-Unter-Tab prüfen.
+- **Legacy-MDI:** Die Grenze des unmarkierten Gamepad-Aufrufs ist richtig benannt. Dieselbe Grenze besteht bei den bisherigen Probe-/Toolsetter-Aufrufen: `App.vue:1287` sendet `{cmd: "mdi", text, vars}`. Ein alter Button und absichtlich frei geschriebenes MDI können so denselben Auftrag senden. Neue `probe_run`/`tool_measure`-Endpunkte machen den alten MDI-Aufruf nicht unterscheidbar. Deshalb ist „auch ein alter direkter Request“ als pauschale Abnahme noch zu weit.
+
+**Empfehlung im Rahmen von OP2:** Die Ablehnung gilt für eindeutig erkennbare Funktionsaufträge und Routen; der generische MDI-Weg bleibt die ausdrücklich benannte Ausnahme, auch wenn ein alter Client ihn erzeugt hat. Das in Tabelle, Hilfe und Abnahme übernehmen. Falls alle alten Bedienclients zwingend ausgeschlossen werden sollen, wäre stattdessen eine Protokollzulassung mit Aufforderung zum Neuladen nötig; keine heuristische Suche nach M600/O-Calls in freiem Text. Ich fordere angesichts OP2 keine solche zusätzliche Protokollsperre.
+
+### SS334-07 · Rest: Lesen–Schreiben–Nachlesen ist keine gemeinsame Erstregistrierung
+
+Der vorgeschlagene Ablauf „nur schreiben wenn leer, erneut lesen“ erlaubt diese Reihenfolge:
+
+| Schritt | Tab A | Tab B | Gespeicherter Wert |
+|---|---|---|---|
+| 1 | liest leer | | leer |
+| 2 | | liest leer | leer |
+| 3 | schreibt Token A | | A |
+| 4 | liest A und bindet Verbindung an Profil A | | A |
+| 5 | | schreibt aufgrund seines vorherigen Lesens Token B | B |
+| 6 | | liest B und bindet Verbindung an Profil B | B |
+
+Beide Tabs haben den Plan befolgt und bleiben dennoch verschiedene Geräte. Eine spätere zentrale Änderung erreicht nur eines; beim nächsten Laden kann A scheinbar sein Profil verlieren. Der HTML-Standard rät ausdrücklich davon ab, eine Sperre über mehrere Browser-Agent-Cluster anzunehmen ([Web Storage, Introduction](https://html.spec.whatwg.org/multipage/webstorage.html#introduction)). Unser Ablaufmodell findet unter 20 Reihenfolgen, welche die Reihenfolge jedes einzelnen Tabs erhalten, vier mit verschiedenen Bindungen. Das ist ein Gegenbeweis zum Algorithmus, keine Häufigkeitsmessung.
+
+**Ergänzen:** Entweder eine tatsächlich serialisierte Registrierung, die auch auf dem vorgesehenen HTTP-Zugang funktioniert, oder ein ausdrücklich beschriebener Konvergenzablauf für konkurrierende Tokens. Bei letzterem muss ein Tab einen später feststehenden gespeicherten Wert wahrnehmen und seine **bereits feste** WS-Bindung geordnet erneuern; kein Austausch des Profils innerhalb der alten Verbindung. Ausstehende Saves und eine Arm-Sitzung dürfen dabei nicht auf das andere Profil übertragen werden. Überzählige vorläufige Profile und Fehler/Abbruch des Ablaufs benennen. Ein weiteres einzelnes Nachlesen oder eine feste Wartezeit allein löst die Reihenfolge nicht.
+
+**Wächter:** Die obige verschachtelte Erstöffnung gezielt erzwingen, nicht bloß zwei Seiten nacheinander öffnen. Beide Tabs müssen anschließend dasselbe Profil lesen und dessen Änderungen empfangen. Einen alten Save nach der Bindungsänderung verweigern; ein späteres Neuladen darf keinen überraschenden Profilwechsel mehr erzeugen.
+
+### Hinweise für den Bau innerhalb der angenommenen Verträge
+
+- Das Geräte-Token im WS-`hello` gehört in dessen Nutzdaten; `X-Device-Token` ist der HTTP-Träger. Bootstrap, WS und Beacon müssen dieselbe Bindung und denselben Bereich meinen.
+- „Einschalten startet keinen Gamepad-Jog“ mit bereits ausgelenktem Stick bzw. gehaltener Taste prüfen. Auch mit `source: gamepad` bleiben die vereinbarten Stopp-Ausnahmen erhalten.
+- Die Standardvorgabe „neues Gerät Simulation aus“ muss vor Auslieferung von Paket 1 tatsächlich wirksam sein. Falls die vollständige Aus-Funktion erst Paket 2 liefert, beide bis dahin als gemeinsame Auslieferungseinheit behandeln; ein gespeichertes „aus“ darf zwischenzeitlich nicht trotzdem rechnen.
+
+Nach Korrektur dieser eng begrenzten Reste können Einteilung, Verträge und Paketfolge zum abschließenden Plan-Agreement gehen. Die bereits angenommenen Punkte müssen dafür nicht neu verhandelt werden.

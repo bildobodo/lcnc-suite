@@ -1,0 +1,344 @@
+{
+  "round": "R335",
+  "revision": "c41091e6731110da83933c3275489605abca0b01",
+  "scope": "plan review, source inspection plus deterministic abstract model",
+  "product_files_changed_since_R334": [],
+  "live_services_contacted": false,
+  "product_or_browser_tests_run": false,
+  "source_facts": {
+    "toolsetter_uses_shared_write": {
+      "path": "lcnc-webui/src/ToolsetterSettings.vue",
+      "line": 87,
+      "start": 87,
+      "sha256": "657746a1bf9bd77c24b6746f459c8a2a4626898d0380a20693619fb06b009f36",
+      "text": "async function pushWhenConfirmed() {\n  if (!awaiting.size) return;\n  const confirmed = (confirmedSection(\"toolsetter\") ?? {}) as Record<string, unknown>;\n  if ([...awaiting].some(([k, v]) => confirmed[k] !== v)) return;\n  awaiting.clear();\n  const setup = confirmedToolsetter();\n  // A convenience: the next program start or measurement applies the\n  // section anyway (the gateway's sync). Only set up, ready and not already\n  // in the machine; the machine line says what came of it.\n  if (!setup.ok || !can.value.ready || machineState.value.kind === \"confirmed\") return;\n  const reply = await request({ cmd: \"set_probe_vars\", vars: toolsetterVarMap(setup.values) });\n  pushError.value = !reply ? \"Not sent to the machine — no reply\"\n    : reply.ok === false ? `Not taken by the machine — ${reply.error ?? \"refused\"}` : null;\n}\nwatch(() => machineState.value.kind, k => { if (k === \"confirmed\") pushError.value = null; });"
+    },
+    "surface_uses_probe_values": {
+      "path": "lcnc-webui/src/ProbePanel.vue",
+      "line": 264,
+      "start": 264,
+      "sha256": "306d1f319b93ae7ead1fd6f572db854ddaecf2c1b53d322b4bbf64f3d5c37614",
+      "text": "function runSurfaceScan() {\n  if (!can.value.ready || props.probing) return;\n  saveProbeDefaults({ ...params.value, autoZero: autoZero.value });\n  const vars = buildVarMap(autoZero.value ? 0 : 1);\n  emit(\"runProbe\", { vars, macro: \"surface_scan\" });\n}\n"
+    },
+    "shared_write_handler": {
+      "path": "lcnc-gateway/gateway.py",
+      "line": 6036,
+      "start": 6036,
+      "sha256": "bb3468ff233529e43a7e04a930725ef68a929c352a649e733bc5647c77187188",
+      "text": "        if cmd == \"set_probe_vars\":\n            require_armed(armed)\n            vars_to_set = msg.get(\"vars\", {})\n            if not vars_to_set or not isinstance(vars_to_set, dict):\n                return {\"ok\": False, \"error\": \"Missing vars dict\"}\n            r = await _apply_probe_vars_detail(vars_to_set, armed)\n            return {\"ok\": True, **r}\n"
+    },
+    "unload_both_modes": {
+      "path": "lcnc-webui/src/App.vue",
+      "line": 1319,
+      "start": 1319,
+      "sha256": "8d85962cb8a18c5da3471a65ddca041d37976788bb085e91636863138dbb215c",
+      "text": "function unloadTool() {\n  if (!permissions.value.machineFrame) {\n    pushMessage(OPERATOR_ERROR, `Unload not sent — ${permissionReasons.value.machineFrame ?? \"not available\"}`);\n    return;\n  }\n  if (unloadUsesToolsetter.value) {\n    void toolsetterMdi(\"Unload\", \"T0 M600\");\n  } else {\n    // The standard tool change needs no toolsetter.\n    fire({ cmd: \"tool_change\", tool_number: 0 }, 'machineFrame');\n  }\n}\n\n// Probe status (used in tool table dialog action bar)"
+    },
+    "load_both_modes": {
+      "path": "lcnc-webui/src/ToolTablePanel.vue",
+      "line": 366,
+      "start": 366,
+      "sha256": "920479ce6b5daf3a5d92bfa56b8e53036d727e2e32a00a0a357041fd3f67d17e",
+      "text": "function requestToolChange(toolNum: number) {\n  toolChangeMode.value = loadMachineDefaults().toolChangeMode;\n  // Through the one gated path (issue #31): `mdi` was fired with a permission\n  // re-check at every other call site and raw here — the same command with two\n  // policies. Both branches start machine motion, so both take `ready`.\n  // Both routines retract with G53 — identity kinematics only (machineFrame).\n  if (toolChangeMode.value === \"m600\") {\n    // The M600 path of every other caller (Codex R15 B1): set-up toolsetter,\n    // its values taken over, then the MDI — this load sent the bare M600.\n    void toolsetterMdi(`Load T${toolNum}`, `T${toolNum} M600`);\n  } else {\n    fire({ cmd: \"tool_change\", tool_number: toolNum }, \"machineFrame\");\n  }\n}\n"
+    },
+    "sim_trip_outside_probe_tab": {
+      "path": "lcnc-webui/src/App.vue",
+      "line": 2334,
+      "start": 2329,
+      "sha256": "8d85962cb8a18c5da3471a65ddca041d37976788bb085e91636863138dbb215c",
+      "text": "                  <div class=\"row-tight probeState\">\n                    <span class=\"statusDot\" :class=\"probeIndicatorClass\"></span>\n                    <span class=\"label-muted md\">Probe</span>\n                    <span class=\"statusDot\" :class=\"probeStatusClass\"></span>\n                    <span class=\"label-muted md mono\">{{ probeStatus }}</span>\n                    <MachineBtn v-if=\"isDev\" type=\"simTrip\" @click=\"send({ cmd: 'simulate_probe_trip' })\">Sim Trip</MachineBtn>\n                  </div>\n                </div>"
+    },
+    "generic_mdi_shape": {
+      "path": "lcnc-webui/src/App.vue",
+      "line": 1284,
+      "start": 1281,
+      "sha256": "8d85962cb8a18c5da3471a65ddca041d37976788bb085e91636863138dbb215c",
+      "text": "  busy.value = true;\n  try {\n    // The values' MDI waits up to 5 s per chunk in the gateway.\n    const reply = await request({ cmd: \"mdi\", text: line, vars }, 15000);\n    if (!reply) {\n      // Sent, unanswered: the gateway may still start it — never \"not sent\".\n      pushMessage(OPERATOR_ERROR, `${label}: no reply from the gateway — watch the machine`);\n      return false;\n    }\n    if (reply.ok === false) {"
+    }
+  },
+  "current_inventory_ownership": [
+    {
+      "id": "F-SIMTRIP",
+      "atoms": [
+        "control:*|MachineBtn:simTrip|*=2",
+        "cmd:simulate_probe_trip"
+      ]
+    },
+    {
+      "id": "F-TOOLMEASURE",
+      "atoms": [
+        "control:App.vue|MachineBtn:toolMeasure|*=1",
+        "control:App.vue|MachineBtn:toolUnload|*=1",
+        "routine:M600",
+        "remap:M600",
+        "remap:M601",
+        "status:data.tool_length",
+        "status:data.tool_offset",
+        "status:data.tool_diameter"
+      ]
+    },
+    {
+      "id": "F-TOOLSETTER",
+      "atoms": [
+        "control:ToolsetterSettings.vue|MachineInput:toolsetterParam|@change*=5",
+        "control:ToolsetterSettings.vue|MachineRadio:*=3",
+        "control:ToolsetterSettings.vue|MachineToggle:*=4",
+        "control:ToolsetterSettings.vue|MachineBtn:resetProtected|*=1",
+        "setting:toolsetter.*=23"
+      ]
+    },
+    {
+      "id": "F-PROBE",
+      "atoms": [
+        "control:ProbePanel.vue|MachineBtn:probeCell|@click=run*Probe(op)*=5",
+        "control:ProbePanel.vue|MachineInput:probeParam|*=6",
+        "control:ProbePanel.vue|MachineToggle:probeParam|*=2",
+        "control:ProbePanel.vue|MachineBtn:retry|@click=emit('getProbeResults')",
+        "control:App.vue|MachineSelect:tabSelect|*=1",
+        "cmd:set_probe_vars",
+        "cmd:list_probe_macros",
+        "cmd:get_probe_results",
+        "routine:probe_back_*=5",
+        "routine:probe_front_*=5",
+        "routine:probe_left_*=1",
+        "routine:probe_right_*=1",
+        "routine:probe_top_*=4",
+        "routine:probe_corner_*=4",
+        "routine:probe_rect_*=3",
+        "routine:probe_round_*=3",
+        "routine:probe_ridge_*=2",
+        "routine:probe_valley_*=4",
+        "routine:probe_z_*=1",
+        "status:probe_results",
+        "status:data.probe_*=2",
+        "status:data.probed_position",
+        "status:data.probing",
+        "setting:probe.*=30"
+      ]
+    }
+  ],
+  "registration_model": {
+    "schedules": 20,
+    "divergent": 4,
+    "counterexample": {
+      "order": "ABAABB",
+      "events": [
+        {
+          "tab": "A",
+          "action": "check empty",
+          "stored": null,
+          "adopted": {}
+        },
+        {
+          "tab": "B",
+          "action": "check empty",
+          "stored": null,
+          "adopted": {}
+        },
+        {
+          "tab": "A",
+          "action": "write if previously empty",
+          "stored": "token-A",
+          "adopted": {}
+        },
+        {
+          "tab": "A",
+          "action": "read and bind",
+          "stored": "token-A",
+          "adopted": {
+            "A": "token-A"
+          }
+        },
+        {
+          "tab": "B",
+          "action": "write if previously empty",
+          "stored": "token-B",
+          "adopted": {
+            "A": "token-A"
+          }
+        },
+        {
+          "tab": "B",
+          "action": "read and bind",
+          "stored": "token-B",
+          "adopted": {
+            "A": "token-A",
+            "B": "token-B"
+          }
+        }
+      ],
+      "adopted": {
+        "A": "token-A",
+        "B": "token-B"
+      },
+      "different_profiles": true
+    },
+    "all_outcomes": [
+      {
+        "order": "AAABBB",
+        "adopted": {
+          "A": "token-A",
+          "B": "token-A"
+        },
+        "different_profiles": false
+      },
+      {
+        "order": "AABABB",
+        "adopted": {
+          "A": "token-A",
+          "B": "token-A"
+        },
+        "different_profiles": false
+      },
+      {
+        "order": "AABBAB",
+        "adopted": {
+          "A": "token-A",
+          "B": "token-A"
+        },
+        "different_profiles": false
+      },
+      {
+        "order": "AABBBA",
+        "adopted": {
+          "B": "token-A",
+          "A": "token-A"
+        },
+        "different_profiles": false
+      },
+      {
+        "order": "ABAABB",
+        "adopted": {
+          "A": "token-A",
+          "B": "token-B"
+        },
+        "different_profiles": true
+      },
+      {
+        "order": "ABABAB",
+        "adopted": {
+          "A": "token-B",
+          "B": "token-B"
+        },
+        "different_profiles": false
+      },
+      {
+        "order": "ABABBA",
+        "adopted": {
+          "B": "token-B",
+          "A": "token-B"
+        },
+        "different_profiles": false
+      },
+      {
+        "order": "ABBAAB",
+        "adopted": {
+          "A": "token-A",
+          "B": "token-A"
+        },
+        "different_profiles": false
+      },
+      {
+        "order": "ABBABA",
+        "adopted": {
+          "B": "token-A",
+          "A": "token-A"
+        },
+        "different_profiles": false
+      },
+      {
+        "order": "ABBBAA",
+        "adopted": {
+          "B": "token-B",
+          "A": "token-A"
+        },
+        "different_profiles": true
+      },
+      {
+        "order": "BAAABB",
+        "adopted": {
+          "A": "token-A",
+          "B": "token-B"
+        },
+        "different_profiles": true
+      },
+      {
+        "order": "BAABAB",
+        "adopted": {
+          "A": "token-B",
+          "B": "token-B"
+        },
+        "different_profiles": false
+      },
+      {
+        "order": "BAABBA",
+        "adopted": {
+          "B": "token-B",
+          "A": "token-B"
+        },
+        "different_profiles": false
+      },
+      {
+        "order": "BABAAB",
+        "adopted": {
+          "A": "token-A",
+          "B": "token-A"
+        },
+        "different_profiles": false
+      },
+      {
+        "order": "BABABA",
+        "adopted": {
+          "B": "token-A",
+          "A": "token-A"
+        },
+        "different_profiles": false
+      },
+      {
+        "order": "BABBAA",
+        "adopted": {
+          "B": "token-B",
+          "A": "token-A"
+        },
+        "different_profiles": true
+      },
+      {
+        "order": "BBAAAB",
+        "adopted": {
+          "A": "token-B",
+          "B": "token-B"
+        },
+        "different_profiles": false
+      },
+      {
+        "order": "BBAABA",
+        "adopted": {
+          "B": "token-B",
+          "A": "token-B"
+        },
+        "different_profiles": false
+      },
+      {
+        "order": "BBABAA",
+        "adopted": {
+          "B": "token-B",
+          "A": "token-B"
+        },
+        "different_profiles": false
+      },
+      {
+        "order": "BBBAAA",
+        "adopted": {
+          "B": "token-B",
+          "A": "token-B"
+        },
+        "different_profiles": false
+      }
+    ]
+  },
+  "reference": {
+    "url": "https://html.spec.whatwg.org/multipage/webstorage.html#introduction",
+    "checked": "2026-11-07",
+    "supports": "Do not assume a locking mechanism across browser agent clusters."
+  }
+}
