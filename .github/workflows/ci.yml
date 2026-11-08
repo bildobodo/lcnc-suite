@@ -76,6 +76,9 @@ jobs:
           cache-dependency-path: lcnc-webui/package-lock.json
       - run: npm ci
         working-directory: lcnc-webui
+      # the install probe's browser check (scripts/test_install_probe.py) starts Chromium
+      - run: npx playwright install --with-deps chromium
+        working-directory: lcnc-webui
       # gateway.py's module-level third-party imports are only fastapi + msgspec
       # + click; the fake linuxcnc (conftest.py) stands in for the real binding,
       # and machine/ is committed so the StaticFiles mount resolves. NumPy is

@@ -73,8 +73,14 @@ def run_install(tmp: Path, args, missing=("halcompile",), stdin=subprocess.DEVNU
     home.mkdir()
     work = tmp / "work"          # not a clone: the script stops before step 3 in these cases
     work.mkdir()
+    # The LinuxCNC bindings check passes everywhere — these cases are about the
+    # packages, the terminal and --yes, and a host without LinuxCNC (the CI
+    # runner) stopped at the bindings before reaching them.
+    fake = tmp / "pyfake"
+    fake.mkdir()
+    (fake / "linuxcnc.py").write_text("# stand-in: install.sh only imports it\n")
     r = subprocess.run(["/bin/bash", str(INSTALL), *args], cwd=work, stdin=stdin, capture_output=True, text=True,
-                       timeout=60, env={"PATH": path, "HOME": str(home), "TERM": "dumb"})
+                       timeout=60, env={"PATH": path, "HOME": str(home), "TERM": "dumb", "PYTHONPATH": str(fake)})
     return r, (log.read_text() if log.exists() else "")
 
 
