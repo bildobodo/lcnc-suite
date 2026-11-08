@@ -1477,7 +1477,8 @@ def test_the_m600_step_refuses_a_counter_that_failed_for_another_reason(monkeypa
             if cmd == "save_tool":
                 self.table = kw["z_offset"]
                 return {"ok": True}
-            if cmd == "set_probe_vars":
+            if cmd == "set_params":
+                assert kw.get("purpose") == "toolsetter", kw
                 self.vars.update({int(k): v for k, v in kw["vars"].items()})
                 return {"ok": True}
             raise AssertionError((cmd, kw))
@@ -1714,7 +1715,8 @@ def test_the_m600_step_predicts_the_counter_from_the_length_the_first_measuremen
             if cmd == "save_tool":
                 self.table = kw["z_offset"]
                 return {"ok": True}
-            if cmd == "set_probe_vars":
+            if cmd == "set_params":
+                assert kw.get("purpose") == "toolsetter", kw
                 self.vars.update({int(k): v for k, v in kw["vars"].items()})
                 return {"ok": True}
             raise AssertionError((cmd, kw))
@@ -3105,7 +3107,7 @@ def test_each_t1_measurement_starts_where_the_unload_left_it_and_its_return_is_j
         def request(self, cmd, **kw):
             if cmd == "get_tool_table":
                 return {"tools": [{"T": 1, "Z": self.table}]}
-            if cmd in ("save_tool", "set_probe_vars"):
+            if cmd in ("save_tool", "set_params"):
                 self.table = kw.get("z_offset", self.table)
                 self.vars.update({int(k): v for k, v in kw.get("vars", {}).items()})
                 return {"ok": True}
@@ -3596,7 +3598,8 @@ class TsClient(FrameClient):
                 vals = " ".join(f"P{n}={self.vars[int(n)]:.6f}" for n in re.findall(r"#(\d+)", kw["text"]))
                 self.errors.append((self.frames[-1][0], 13, f"{tag} {vals}"))
             return {"ok": True}
-        if cmd == "set_probe_vars":
+        if cmd == "set_params":
+            assert kw.get("purpose") == "toolsetter", kw
             self._book(kw["vars"])
             return {"ok": True, "mdi_set": True}
         if cmd == "save_settings":

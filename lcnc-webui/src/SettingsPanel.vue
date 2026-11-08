@@ -643,7 +643,7 @@ function resetMachineColor(id: string) {
 
         <div v-if="cameraShown" class="sep"></div>
 
-        <div v-if="cameraShown" class="stack-controls" data-viewer-section="camera">
+        <div v-if="cameraShown" class="stack-controls" data-viewer-section="camera" data-feature="camera">
           <div class="sub">Camera Overlay</div>
           <div class="sectionColumns">
             <div class="stack-controls">
@@ -792,7 +792,7 @@ function resetMachineColor(id: string) {
                 <MachineRadio gate="protectedSetting" name="toolChangeMode" v-model="toolChangeMode" value="m6g43" @update:modelValue="saveMachine()" />
                 <span><span class="radioLabel">M6 G43</span><br><span class="radioDesc">Load tool, activate length offset</span></span>
               </label>
-              <label v-if="m600Shown">
+              <label v-if="m600Shown" data-feature="toolsetter">
                 <MachineRadio gate="protectedSetting" name="toolChangeMode" v-model="toolChangeMode" value="m600" @update:modelValue="saveMachine()" />
                 <span><span class="radioLabel">M600</span><br><span class="radioDesc">Load tool, measure with toolsetter, save offset</span></span>
               </label>

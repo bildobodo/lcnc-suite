@@ -60,7 +60,7 @@ import { keypadState } from "./useNumberKeypad";
 import { activeKind, openTextSession, lockTextSessionIf, EDITOR_OWNER, MACRO_EDITOR_OWNER, type TextTarget, returnFocusTo, heldThroughPress, pressHolds } from "./inputSession";
 import { measureStripColumn, safetyFoldNeeded } from "./safetyFold";
 import { explainAt } from "./gateExplain";
-import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, loadGamepadDraft, saveGamepadDefaults, settingsVersion, simulationOn, type ThemeMode, type GamepadDefaults, type Layer, type OnTopLayer, type TrackMode, type Projection } from "./defaults";
+import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, loadGamepadDraft, saveGamepadDefaults, settingsVersion, simulationOn, FEATURE_NAMES, type FeatureName, type ThemeMode, type GamepadDefaults, type Layer, type OnTopLayer, type TrackMode, type Projection } from "./defaults";
 import { confirmedToolsetter, toolsetterVarMap, TOOLSETTER_JOB_KEY } from "./toolsetterVars";
 import { features, featureShown, featureOffReason, featureHeldNote } from "./features";
 import { useGamepad } from "./useGamepad";
@@ -81,7 +81,7 @@ import {
   SPINDLE_FORWARD, SPINDLE_REVERSE,
   OPERATOR_DISPLAY,
   OPERATOR_ERROR,
-  cooldownFor, isNeverDebounced, viaGamepad, type WsCommand,
+  cooldownFor, isNeverDebounced, viaGamepad, type ParamPurpose, type WsCommand,
 } from "./lcnc";
 
 const _vd = loadViewerDefaults();
@@ -464,6 +464,31 @@ const probeViewShown = (v: ProbeView) => v === "surface"
 const heldProbeView = ref<ProbeView | null>(null);
 const probeViews = computed(() => PROBE_VIEWS.filter(v => probeViewShown(v.id) || heldProbeView.value === v.id));
 const probeHeldNote = computed(() => heldProbeView.value ? featureHeldNote(PROBE_VIEW_FEATURE[heldProbeView.value]) : null);
+// A focused control its switch takes away hands the focus on (Codex R343
+// SS-I09) — to a stable place nearby, never BODY, where an arrow jogs: in the
+// side pane and the macro bar the side pane's navigation, in the viewer a
+// remaining quick control, in a dialog its section navigation. Read before
+// the DOM changes (the controls carry `data-feature`); a focus set elsewhere
+// by then stays.
+function featureFocusLanding(owner: HTMLElement): () => void {
+  const dialog = owner.closest<HTMLElement>('[role="dialog"]');
+  if (dialog) return () => dialog.querySelector<HTMLElement>('[role="tablist"] [aria-selected="true"]')?.focus();
+  if (owner.closest(".viewerPane, .viewerColumn") && !owner.closest(".macroBar")) {
+    return () => document.querySelector<HTMLElement>(".viewerQuickGrid button")?.focus();
+  }
+  return () => contentTabPanel.value?.focusNavigation();
+}
+watch(() => FEATURE_NAMES.map(f => featureShown[f].value), (now, before) => {
+  const gone = FEATURE_NAMES.filter((_, i) => before?.[i] && !now[i]);
+  const owner = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>("[data-feature]");
+  if (!gone.length || !owner || !gone.includes(owner.dataset.feature as FeatureName)) return;
+  const land = featureFocusLanding(owner);
+  void nextTick(() => {
+    const a = document.activeElement;
+    if (a && a !== document.body && a.isConnected) return;
+    land();
+  });
+}, { flush: "pre" });
 // The template's switches (top-level refs unwrap there).
 const toolsetterShown = featureShown.toolsetter;
 const macrosShown = featureShown.macros;
@@ -1737,6 +1762,23 @@ function fire(payload: WsCommand, gate?: keyof Permissions, cooldownMs?: number)
   }
 }
 
+/** A form's values by their purpose (settings split package 3): EVERY set
+ *  goes out, one after the other, each answered — never one dropped by the
+ *  send latch another set holds (Codex R343 SS-I10: with probing and the
+ *  surface map on, the surface set never left). Each set is its purpose's
+ *  own; the numbers both read (#3014, #3021, the feeds #3015/#3016 ⇄
+ *  #3056/#3057) carry the same value in both. A refusal is told; nothing is
+ *  sent again. */
+let paramsChain: Promise<void> = Promise.resolve();
+function sendParams(purpose: ParamPurpose, vars: Record<string, number>) {
+  if (!permissions.value.ready) return;
+  paramsChain = paramsChain.then(async () => {
+    const reply = await request({ cmd: "set_params", purpose, vars }, 15000);
+    if (!reply) pushMessage(OPERATOR_ERROR, `Parameters (${purpose}): no reply from the gateway`);
+    else if (reply.ok === false) pushMessage(OPERATOR_ERROR, `Parameters (${purpose}) not taken — ${reply.error ?? "refused"}`);
+  });
+}
+
 function onRunProbe({ vars, macro }: { vars: Record<string, number>; macro: string }) {
   void fireJob("Probe", { cmd: "probe_run", routine: macro, vars }, "machineFrame");
 }
@@ -2272,7 +2314,7 @@ watch(viewerGcode, (newGcode) => {
           @collision-lines="collisionLines = $event"
         />
       </div>
-      <MacroBar v-if="isPortrait && macrosShown && macroBar.items.length" :items="macroBar.items" @run="runBarItem" />
+      <MacroBar v-if="isPortrait && macrosShown && macroBar.items.length" data-feature="macros" :items="macroBar.items" @run="runBarItem" />
       </div>
 
       <!-- ══ Right pane — Program / Probing tabs ══ -->
@@ -2346,7 +2388,7 @@ watch(viewerGcode, (newGcode) => {
               @toggleSurfaceLayer="(on: boolean) => { viewerLayers.surface = on; viewerRef?.setLayerVisible?.('surface', on); saveViewerDefaults({ ...loadViewerDefaults(), layers: { ...loadViewerDefaults().layers, surface: on } }); }"
               @abort="fire({ cmd: 'abort' }, 'abort')"
               @simTrip="send({ cmd: 'simulate_probe_trip' })"
-              @setParams="fire({ cmd: 'set_params', purpose: $event.purpose, vars: $event.vars }, 'ready')"
+              @setParams="sendParams($event.purpose, $event.vars)"
               @runProbe="onRunProbe($event)"
               @runSurface="onRunSurface($event)"
               @getProbeResults="requestProbeResults"
@@ -2440,7 +2482,7 @@ watch(viewerGcode, (newGcode) => {
                      Abort beside them on the left, the management behind More at
                      the right end (MoreMenu.vue) -->
                 <div class="actionGroup">
-                  <MachineBtn v-if="toolsetterShown" type="toolMeasure" :disabled="!st.tool_number || !toolsetter.ok" :reason="!st.tool_number ? 'No tool loaded' : toolsetterReason" @click="measureAuto">Measure Current</MachineBtn>
+                  <MachineBtn v-if="toolsetterShown" data-feature="toolsetter" type="toolMeasure" :disabled="!st.tool_number || !toolsetter.ok" :reason="!st.tool_number ? 'No tool loaded' : toolsetterReason" @click="measureAuto">Measure Current</MachineBtn>
                   <MachineBtn type="toolUnload" :disabled="unloadUsesToolsetter && !toolsetter.ok" :reason="toolsetterReason" @click="unloadTool">Unload</MachineBtn>
                   <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
                   <MoreMenu class="actionEnd" label="More tool actions">
@@ -2717,7 +2759,7 @@ watch(viewerGcode, (newGcode) => {
 
     <!-- ══ Macro Bar — landscape: a row under the content (portrait: in the
          viewer column above) ══ -->
-    <MacroBar v-if="!isPortrait && macrosShown && macroBar.items.length" :items="macroBar.items" @run="runBarItem" />
+    <MacroBar v-if="!isPortrait && macrosShown && macroBar.items.length" data-feature="macros" :items="macroBar.items" @run="runBarItem" />
 
     <!-- ══ Bottom Action Strip — SafetyStrip first and sticky; every control
          gated by its own catalog gate (no outer Gate, BG-01) ══ -->

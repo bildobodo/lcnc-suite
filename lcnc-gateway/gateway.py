@@ -2976,7 +2976,20 @@ async def _save_settings(section: str, data, admit, *, device=None, base_rev=Non
     if section != "features":
         return await asyncio.to_thread(call)
     async with _get_source_lock():
-        return await _thread_to_end(asyncio.ensure_future(asyncio.to_thread(call)))
+        rev = await _thread_to_end(asyncio.ensure_future(asyncio.to_thread(call)))
+    await _camera_switched_off()
+    return rev
+
+
+async def _camera_switched_off() -> None:
+    """After a `features` save: the camera off ends every open stream now —
+    the broker's epoch ends (a stream waiting for its next frame wakes and
+    ends, a subscription of the old epoch is refused) and the shared
+    producer and the device are released (Codex R343 SS-I11)."""
+    if await asyncio.to_thread(_feature_refusal, "camera"):
+        n = await _camera_broker.end_epoch()
+        if n:
+            _trace.emit("camera.streams_ended", why="camera off", streams=n)
 
 
 def _feature_refusal(feature: str) -> Optional[str]:
@@ -5132,6 +5145,12 @@ async def _feature_job(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, 
         if not isinstance(routine, str) or routine not in await asyncio.to_thread(get_probe_macros):
             return {"ok": False, "error": "Not a probe routine — reload the page"}
         purpose, vars_to_set, line = "probe", msg.get("vars"), f"O<{routine}> CALL"
+        if routine in _features.PARAMLESS_PROBE_ROUTINES:
+            # reads none of the panel's values (SS-I08): an empty set, never
+            # a missing one let through for a routine that needs its values
+            if vars_to_set not in (None, {}):
+                return {"ok": False, "error": f"{routine} takes no values — reload the page"}
+            vars_to_set = {}
     elif cmd == "surface_scan_run":
         purpose, vars_to_set, line = "surface", msg.get("vars"), "O<surface_scan> CALL"
     else:
@@ -5143,7 +5162,8 @@ async def _feature_job(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, 
             return {"ok": False, "error": "No tool to measure"}
         purpose, line = "toolsetter", f"T{tool} M600"
         vars_to_set = {str(k): v for k, v in basis["values"].items()}
-    if not isinstance(vars_to_set, dict) or not vars_to_set:
+    if not isinstance(vars_to_set, dict) or (not vars_to_set and not (
+            cmd == "probe_run" and msg.get("routine") in _features.PARAMLESS_PROBE_ROUTINES)):
         return {"ok": False, "error": "Missing vars dict"}
     why = _features.purpose_refusal(purpose, vars_to_set)
     if why:
@@ -11472,19 +11492,24 @@ async def camera_stream():
     # freed a short grace after the last one leaves.
     # The camera switched off (package 3): no new stream, and an open one
     # ends at its next frame — the device goes after the broker's grace.
+    # The broker's epoch is taken BEFORE the switch is read: a camera switched
+    # off after this read ends the broker's epoch (_camera_switched_off), and a
+    # subscription or a stream of the older epoch ends at once — with frames
+    # or without (Codex R343 SS-I11: a stream waiting for a frame that never
+    # came never saw the switch).
+    epoch = _camera_broker.epoch
     off = await asyncio.to_thread(_feature_refusal, "camera")
     if off:
         return JSONResponse({"error": off}, status_code=403)
-    ok = await _camera_broker.subscribe()
+    ok = await _camera_broker.subscribe(epoch)
+    if ok is None:
+        return JSONResponse({"error": _features.off_reason("camera")}, status_code=403)
     if not ok:
         return JSONResponse({"error": "No camera configured"}, status_code=503)
 
     async def generate():
         try:
-            async for jpeg in _camera_broker.frames():
-                if await asyncio.to_thread(_feature_refusal, "camera"):
-                    _trace.emit("camera.stream_ended", why="camera off")
-                    return
+            async for jpeg in _camera_broker.frames(epoch):
                 yield (b"--frame\r\n"
                        b"Content-Type: image/jpeg\r\n\r\n" + jpeg + b"\r\n")
         finally:

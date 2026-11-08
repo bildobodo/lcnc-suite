@@ -8,6 +8,7 @@ allowed neighbour (Codex R334 SS334-01); a change only by an armed writer on
 a machine that stands, with the function's own state ended (SS334-02); the
 parameter writes by purpose, a set outside it refused whole (R335 rest A).
 """
+import ast
 import asyncio
 import tempfile
 import unittest
@@ -161,6 +162,19 @@ class TestTheChangeIsAdmitted(_Store, unittest.TestCase):
         self.assertIn("Toolsetter is off", self.refused("machine", {"toolChangeMode": "m600"}))
         self.save("machine", {"toolChangeMode": "m6g43", "runFromLine": True})   # another machine change passes
 
+    def test_a_save_turning_the_camera_off_ends_its_streams(self):
+        ended = []
+
+        class Broker:
+            async def end_epoch(self):
+                ended.append(True)
+                return 1
+        with unittest.mock.patch.object(gateway, "_camera_broker", Broker()):
+            self.save("features", off("probing"))
+            self.assertEqual(ended, [], "the camera stays on: nothing ends")
+            self.save("features", off("probing", "camera"))
+            self.assertEqual(ended, [True])
+
     def test_an_invalid_section_is_refused_before_anything(self):
         with self.assertRaises(ValueError):
             self.save("features", {"probing": False})
@@ -176,7 +190,7 @@ class TestEachSwitch(_Store, unittest.TestCase):
         self.make_store()
         self.cmd = td.TestHandlerExecution._rcs(self)
         p = unittest.mock.patch.object(gateway, "get_probe_macros",
-                                       lambda: ["probe_z_minus_wco", "probe_cal_round_pocket"])
+                                       lambda: ["probe_cal_reset", "probe_z_minus_wco", "probe_cal_round_pocket"])
         p.start()
         self.addCleanup(p.stop)
         self.hal = []
@@ -323,6 +337,23 @@ class TestTheJobs(_Store, unittest.TestCase):
             self.assertEqual(r["error"], "Not a probe routine — reload the page", routine)
         self.assertEqual(self.mdis(), [])
 
+    def test_the_calibration_reset_runs_without_values_and_only_it(self):
+        # Codex R343 SS-I08: the button's job ({routine: probe_cal_reset,
+        # vars: {}}, recorded by the browser) was refused "Missing vars dict"
+        r = self._send({"cmd": "probe_run", "routine": "probe_cal_reset", "vars": {}})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.mdis(), ["#3116=0.000000", "O<probe_cal_reset> CALL"])
+        # it takes no values; every other routine needs its own
+        r = self._send({"cmd": "probe_run", "routine": "probe_cal_reset", "vars": {"3032": 0}})
+        self.assertEqual(r["error"], "probe_cal_reset takes no values — reload the page")
+        r = self._send({"cmd": "probe_run", "routine": "probe_z_minus_wco", "vars": {}})
+        self.assertEqual(r["error"], "Missing vars dict")
+        self.assertEqual(self.mdis(), ["#3116=0.000000", "O<probe_cal_reset> CALL"])
+        # and the switch holds it like every probe routine
+        self.put("features", off("probing"))
+        r = self._send({"cmd": "probe_run", "routine": "probe_cal_reset", "vars": {}})
+        self.assertEqual(r["error"], "Probing is off — Settings › Features")
+
     def test_measuring_takes_the_servers_toolsetter_section(self):
         r = self._send({"cmd": "tool_measure", "tool": 5})
         self.assertFalse(r["ok"])                       # nothing set up: nothing starts
@@ -355,52 +386,137 @@ class TestTheJobs(_Store, unittest.TestCase):
 
 
 class TestTheCamera(_Store, unittest.TestCase):
-    """Camera off: no new stream, and an OPEN stream ends at its next frame;
-    the broker frees the device after the last viewer."""
-
-    class _Broker:
-        def __init__(self):
-            self.subscribed = self.unsubscribed = 0
-
-        async def subscribe(self):
-            self.subscribed += 1
-            return True
-
-        def unsubscribe(self):
-            self.unsubscribed += 1
-
-        async def frames(self):
-            while True:
-                await asyncio.sleep(0)
-                yield b"jpeg"
+    """Camera off: no new stream, and every OPEN stream ends — with its next
+    frame or without one (Codex R343 SS-I11: a camera that stopped giving
+    frames kept its stream, the producer and the device) — and the shared
+    producer and the device are released. The REAL broker and route."""
 
     def setUp(self):
         self.make_store()
-        self.broker = self._Broker()
-        p = unittest.mock.patch.object(gateway, "_camera_broker", self.broker)
+        self.releases, self.tasks = [], []
+
+    def broker(self, frames):
+        from camera_broker import CameraBroker
+
+        def register(t):
+            self.tasks.append(t)
+            return t
+        b = CameraBroker(lambda: next(frames, None), lambda: True, lambda: self.releases.append(True), register)
+        b._GRACE_S = 0.01
+        p = unittest.mock.patch.object(gateway, "_camera_broker", b)
         p.start()
         self.addCleanup(p.stop)
+        return b
+
+    def switch_off(self):
+        self.put("features", off("camera"))
+        return gateway._camera_switched_off()     # what a features save runs after its commit
 
     def test_off_refuses_a_new_stream_and_the_status(self):
+        b = self.broker(iter([]))
         self.put("features", off("camera"))
         r = asyncio.run(gateway.camera_stream())
         self.assertEqual(r.status_code, 403)
-        self.assertEqual(self.broker.subscribed, 0)
+        self.assertEqual(b._subscribers, 0)
         r = asyncio.run(gateway.camera_status())
         self.assertEqual(r.status_code, 403)
 
-    def test_an_open_stream_ends_when_the_camera_goes_off(self):
+    def _ends(self, frames):
+        b = self.broker(frames)
+
         async def watch():
             resp = await gateway.camera_stream()
             it = resp.body_iterator
-            got = [await it.__anext__(), await it.__anext__()]
-            self.put("features", off("camera"))
-            with self.assertRaises(StopAsyncIteration):
-                await it.__anext__()
-            return got
-        got = asyncio.run(watch())
-        self.assertTrue(all(b"jpeg" in g for g in got))
-        self.assertEqual((self.broker.subscribed, self.broker.unsubscribed), (1, 1))
+            first = await asyncio.wait_for(it.__anext__(), 1)
+            waiter = asyncio.ensure_future(it.__anext__())
+            await asyncio.sleep(0.05)
+            await self.switch_off()
+            done, _ = await asyncio.wait({waiter}, timeout=1)
+            ended = bool(done) and isinstance(waiter.exception(), StopAsyncIteration)
+            if not done:
+                waiter.cancel()
+            await asyncio.gather(waiter, return_exceptions=True)
+            return first, ended
+        first, ended = asyncio.run(watch())
+        self.assertIn(b"jpeg", first)
+        self.assertTrue(ended, "the open stream did not end")
+        self.assertEqual(b._subscribers, 0)
+        self.assertIsNone(b._task, "the producer still runs")
+        self.assertEqual(self.releases, [True], "the device is not released")
+
+    def test_an_open_stream_ends_when_the_camera_goes_off(self):
+        self._ends(iter(lambda: b"jpeg", None))          # frames keep coming
+
+    def test_a_stream_without_frames_ends_too(self):
+        self._ends(iter([b"jpeg"]))                      # one frame, then none (a camera pulled)
+
+    def test_a_subscription_that_read_the_switch_before_it_went_off_is_refused(self):
+        b = self.broker(iter(lambda: b"jpeg", None))
+
+        async def race():
+            epoch = b.epoch
+            await self.switch_off()                      # between the switch's read and the subscription
+            return await b.subscribe(epoch)
+        self.assertIsNone(asyncio.run(race()))
+        self.assertEqual(b._subscribers, 0)
+
+    def test_on_again_it_streams_again(self):
+        b = self.broker(iter(lambda: b"jpeg", None))
+
+        async def again():
+            await self.switch_off()
+            self.put("features", ALL_ON)
+            resp = await gateway.camera_stream()
+            chunk = await asyncio.wait_for(resp.body_iterator.__anext__(), 1)
+            await resp.body_iterator.aclose()
+            await b.aclose()
+            return chunk
+        self.assertIn(b"jpeg", asyncio.run(again()))
+
+
+class TestTheNativeDriver(_Store, unittest.TestCase):
+    """Codex R343 SS-I12: the native stage's driver sent the removed
+    `set_probe_vars` three times. Every command it names is one the gateway
+    handles, and its parameter writes pass the real dispatcher."""
+
+    NATIVE = Path(__file__).resolve().parents[1] / "scripts/native_run.py"
+
+    def calls(self):
+        tree = ast.parse(self.NATIVE.read_text())
+        out = []
+        for n in ast.walk(tree):
+            if not isinstance(n, ast.Call):
+                continue
+            f = n.func
+            if isinstance(f, ast.Name) and f.id == "_when_free" and len(n.args) > 1:
+                arg = n.args[1]
+            elif isinstance(f, ast.Attribute) and f.attr == "request" and n.args:
+                arg = n.args[0]
+            else:
+                continue
+            if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                out.append((arg.value, {k.arg: k.value for k in n.keywords if k.arg}))
+        return out
+
+    def test_every_command_it_names_is_handled(self):
+        from test_command_policy import ALL_HANDLED_COMMANDS
+        names = {c for c, _ in self.calls()}
+        self.assertIn("set_params", names)
+        self.assertEqual(sorted(names - ALL_HANDLED_COMMANDS), [])
+
+    def test_its_parameter_writes_are_the_toolsetters_and_pass_the_dispatcher(self):
+        writes = [kw for c, kw in self.calls() if c == "set_params"]
+        self.assertEqual(len(writes), 3)
+        for kw in writes:
+            self.assertIsInstance(kw.get("purpose"), ast.Constant)
+            self.assertEqual(kw["purpose"].value, "toolsetter")
+        td.TestHandlerExecution.setUp(self)
+        self.make_store()
+        td.TestHandlerExecution._rcs(self)
+        r = td.TestHandlerExecution._send(self, {"cmd": "set_params", "purpose": "toolsetter",
+                                                 "vars": {"3102": -179.0, "3005": 20.0}})
+        self.assertTrue(r["ok"], r)
+        self.assertTrue(r["mdi_set"], r)
 
 
 class TestTheTablesAgree(unittest.TestCase):

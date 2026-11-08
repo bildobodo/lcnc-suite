@@ -5988,7 +5988,7 @@ defineExpose({
     <div class="viewerQuickGrid">
       <MachineBtn type="viewPreset" aria-label="Reset view" title="Reset view" @click="setView('reset')">Reset</MachineBtn>
       <MachineBtn type="viewPreset" aria-label="Clear backplot" title="Clear backplot" @click="resetBackplot">Clear</MachineBtn>
-      <MachineBtn v-if="cameraShown" type="viewerQuickToggle" :selected="pipVisible" @click="togglePip" :aria-label="pipVisible ? 'Hide camera' : 'Show camera'" :title="pipVisible ? 'Hide camera' : 'Show camera'">
+      <MachineBtn v-if="cameraShown" data-feature="camera" type="viewerQuickToggle" :selected="pipVisible" @click="togglePip" :aria-label="pipVisible ? 'Hide camera' : 'Show camera'" :title="pipVisible ? 'Hide camera' : 'Show camera'">
         <Camera :size="14" />
       </MachineBtn>
       <MachineBtn type="viewerQuickToggle" @click="emit('open-settings', 'viewer')" aria-label="3D Viewer settings" title="3D Viewer settings">
@@ -5998,7 +5998,7 @@ defineExpose({
 
     <!-- Camera PIP overlay — gone with the camera switched off (settings split
          package 3): its stream closes with it (the gateway ends it too) -->
-    <CameraPip v-if="cameraShown" :visible="pipVisible" @close="closePip" />
+    <CameraPip v-if="cameraShown" data-feature="camera" :visible="pipVisible" @close="closePip" />
 
 
     <!-- The bottom edge (design wave D9): the findings card — the mode chip

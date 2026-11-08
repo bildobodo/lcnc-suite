@@ -315,6 +315,9 @@ wss.on("connection", (ws) => {
     // a gateway always answers a table read: an empty table unless scripted
     // (the Tools tab says a missing reply after 8 s — 2026-10-04)
     else if (cmd === "get_tool_table") ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, tools: [] }));
+    // ... and a parameter write (settings split package 3): the page sends
+    // its purposes one after the other, each once the last was answered
+    else if (cmd === "set_params") ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, mdi_set: true, persisted: true }));
     if (cmd === "halshow_live") ws.send(JSON.stringify(HALSHOW_SNAPSHOT));
     // answer everything -> stay connected & armed; the status answering a
     // heartbeat carries the gateway's hold and that heartbeat's number like

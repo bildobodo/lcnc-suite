@@ -187,3 +187,93 @@ test("gamepad: its commands say so; off, the pad is not read; on again, a held b
   await press(true);
   await expect.poll(aborts).toEqual([expect.objectContaining({ cmd: "abort", via: "gamepad" })]);
 });
+
+// ── Codex R343 ──────────────────────────────────────────────────────────
+
+const focusNow = (page: Page) => page.evaluate(() => {
+  const a = document.activeElement;
+  return { tag: a?.tagName, role: a?.getAttribute("role"), name: a?.getAttribute("aria-label") ?? a?.textContent?.trim().slice(0, 40) };
+});
+
+test("a focused control its switch removes hands the focus on — an arrow then moves no axis (SS-I09)", async ({ page }) => {
+  const SETUP = { touchX: 150, touchY: 10, touchZ: -300, fastFeed: 2000, slowFeed: 20, traverseFeed: 500,
+    maxZTravel: 180, retractDist: 3, spindleZeroHeight: 180 };
+  const KB = { keyboard: { jogEnabled: true } };
+  await open(page, { features: ALL_ON, toolsetter: SETUP, ...KB, ...MACROS });
+  // Measure Current (the Tools head) → the side pane's navigation
+  await side(page).getByRole("tab", { name: "Tools", exact: true }).click();
+  const measure = side(page).getByRole("button", { name: "Measure Current", exact: true });
+  await expect(measure).toBeEnabled();
+  await measure.focus();
+  await switchTo(off("toolsetter"), { toolsetter: SETUP, ...KB, ...MACROS });
+  await expect(measure).toHaveCount(0);
+  await expect(side(page).getByRole("tab", { name: "Tools", exact: true })).toBeFocused();
+  await ctl({ op: "clearCmds" });
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowLeft");
+  expect((await sent()).filter(c => c.cmd.startsWith("jog_")), "navigation, never a jog").toEqual([]);
+  // the camera's quick toggle → a remaining viewer control
+  const cam = page.getByRole("button", { name: "Show camera", exact: true });
+  await cam.focus();
+  await switchTo(off("toolsetter", "camera"), { ...KB, ...MACROS });
+  await expect(cam).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Reset view", exact: true })).toBeFocused();
+  // a macro bar button → the side pane's navigation
+  const bar = page.locator(".macroBar").getByRole("button").first();
+  await bar.focus();
+  await switchTo(off("toolsetter", "camera", "macros"), { ...KB });
+  await expect(page.locator(".macroBar")).toHaveCount(0);
+  expect((await focusNow(page)).tag, "not on BODY").not.toBe("BODY");
+  expect((await focusNow(page)).role).toBe("tab");
+  // a focus set elsewhere meanwhile stays: nothing pulls it back
+  await switchTo(ALL_ON, { ...KB, ...MACROS });
+  await page.locator("input.setupInput").first().focus();
+  await switchTo(off("camera"), { ...KB, ...MACROS });
+  await expect(page.locator("input.setupInput").first()).toBeFocused();
+});
+
+test("a focused camera setting its switch removes hands the focus to the settings sections (SS-I09)", async ({ page }) => {
+  await open(page, { features: ALL_ON });
+  await page.getByTitle("Settings", { exact: true }).click();
+  const settings = page.getByRole("dialog", { name: "Settings", exact: true });
+  const crosshair = settings.getByRole("checkbox", { name: "Crosshair" });
+  await crosshair.focus();
+  await switchTo(off("camera"));
+  await expect(crosshair).toHaveCount(0);
+  await expect(settings.getByRole("tab", { name: "3D Viewer", exact: true })).toBeFocused();
+});
+
+test("Reset Calibration sends its routine as a probe job without values (SS-I08)", async ({ page }) => {
+  await open(page, { features: ALL_ON });
+  await side(page).getByRole("tab", { name: "Probing", exact: true }).click();
+  await side(page).getByRole("tab", { name: "Calibrate", exact: true }).click();
+  await side(page).getByRole("button", { name: "Reset Calibration", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Reset", exact: true }).click();
+  // the same payload test_feature_switches replays through the dispatcher
+  await expect.poll(async () => (await sent()).filter(c => c.cmd === "probe_run"))
+    .toEqual([expect.objectContaining({ cmd: "probe_run", routine: "probe_cal_reset", vars: {} })]);
+});
+
+for (const c of [
+  { name: "both on", features: ALL_ON, purposes: ["probe", "surface"] },
+  { name: "probing off", features: off("probing"), purposes: ["surface"] },
+  { name: "surface map off", features: off("surfaceMap"), purposes: ["probe"] },
+]) {
+  test(`a probing parameter goes out to every purpose switched on — ${c.name} (SS-I10)`, async ({ page }) => {
+    await open(page, { features: c.features });
+    await side(page).getByRole("tab", { name: "Probing", exact: true }).click();
+    // a number both purposes read: the probe tool (#3014) — on the Surface
+    // view while it is there, else on a probing procedure
+    await side(page).getByRole("tab", { name: c.features.surfaceMap ? "Surface" : "Outside", exact: true }).click();
+    const field = side(page).getByLabel(c.features.surfaceMap ? "X Probes" : "Probe Tool #", { exact: true });
+    await field.click();
+    const pad = page.locator(".nkStrip");
+    await pad.getByRole("button", { name: "9", exact: true }).click();
+    await pad.getByRole("button", { name: "Apply", exact: true }).click();
+    const params = async () => (await sent()).filter(x => x.cmd === "set_params");
+    await expect.poll(async () => (await params()).map(x => x.purpose).sort()).toEqual(c.purposes);
+    const surface = (await params()).find(x => x.purpose === "surface");
+    if (surface) expect((surface.vars as Record<string, number>)["3054"], "X Probes as entered").toBe(9);
+  });
+}
+

@@ -43,10 +43,18 @@ class CameraBroker:
         # must not race a re-subscribe reusing the device. Teardown is awaited — no
         # fire-and-forget release task.
         self._lock = asyncio.Lock()
+        # Ended by end_epoch (the camera switched off — settings split package
+        # 3): every stream of an older epoch ends, frames or not, and a
+        # subscription that read the switch before it is refused.
+        self.epoch = 0
 
-    async def subscribe(self) -> bool:
-        """Register a viewer; start the producer on the first. False if no camera."""
+    async def subscribe(self, epoch: Optional[int] = None) -> Optional[bool]:
+        """Register a viewer; start the producer on the first. False if no
+        camera; None when `epoch` (read before the caller checked its switch)
+        has ended meanwhile."""
         async with self._lock:
+            if epoch is not None and epoch != self.epoch:
+                return None
             if self._stop_handle is not None:      # a viewer arrived within the grace
                 self._stop_handle.cancel()
                 self._stop_handle = None
@@ -60,7 +68,8 @@ class CameraBroker:
             return True
 
     def unsubscribe(self) -> None:
-        # Sync, on the loop. Schedule a grace-stop when the last viewer leaves.
+        # Sync, on the loop. Schedule a grace-stop when the last viewer leaves
+        # (one end_epoch ended already counts nothing: no producer is left).
         self._subscribers = max(0, self._subscribers - 1)
         if self._subscribers == 0 and self._task is not None and self._stop_handle is None:
             loop = asyncio.get_event_loop()
@@ -75,6 +84,23 @@ class CameraBroker:
             if self._subscribers > 0:              # re-subscribed during the grace
                 return
             await self._teardown()
+
+    async def end_epoch(self) -> int:
+        """End every stream now: the waiting ones wake and end, the producer
+        stops and the device is released — no grace. Returns the number of
+        viewers it ended. The broker serves a later epoch as before."""
+        async with self._lock:
+            n = self._subscribers
+            if self._stop_handle is not None:
+                self._stop_handle.cancel()
+                self._stop_handle = None
+            self.epoch += 1
+            async with self._cond:
+                self._cond.notify_all()
+            self._subscribers = 0
+            if self._task is not None:
+                await self._teardown()
+            return n
 
     async def aclose(self) -> None:
         """Awaitable shutdown for lifespan: stop the producer + release the device."""
@@ -122,13 +148,17 @@ class CameraBroker:
                     self._cond.notify_all()
             await asyncio.sleep(delay)
 
-    async def frames(self):
+    async def frames(self, epoch: Optional[int] = None):
         """Yield the latest shared JPEG, newest-wins (a slow viewer drops frames,
-        never the producer or other viewers)."""
+        never the producer or other viewers) — until `epoch` (default: the
+        current one) ends."""
+        mine = self.epoch if epoch is None else epoch
         last_seq = -1
         while True:
             async with self._cond:
-                await self._cond.wait_for(lambda: self._seq != last_seq)
+                await self._cond.wait_for(lambda: self._seq != last_seq or self.epoch != mine)
+                if self.epoch != mine:
+                    return
                 last_seq = self._seq
                 jpeg = self._latest
             if jpeg is not None:

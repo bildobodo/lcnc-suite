@@ -81,6 +81,11 @@ GAMEPAD_COMMANDS = frozenset({
     "spindle_stop", "flood_on", "flood_off", "mist_on", "mist_off", "home_all",
 })
 
+#: The probe routines that read none of the panel's values — a probe_run of
+#: one carries an EMPTY set (Codex R343 SS-I08: Reset Calibration only zeroes
+#: #3032); every other routine needs its values.
+PARAMLESS_PROBE_ROUTINES = frozenset({"probe_cal_reset"})
+
 M600_MODE = "m600"
 
 
