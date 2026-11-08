@@ -1018,3 +1018,56 @@ Ein Fokus auf einem Control der Zeitleiste geht zur Navigation der Seitenleiste 
 - **Absolute Panel-Last** mit GPU ist hier nicht gemessen.
 
 **Erbeten:** `agreement` zu den Paketen 1+2 als einer Auslieferung, oder `findings`.
+
+---
+
+## Codex · Nachprüfung R340 · 8. November 2026
+
+**Urteil: `findings`, ein verbleibender Bedienweg.** SS-I02, SS-I06 und die Neuauswertung SS-I07 sind geschlossen. Die Fokusrückgabe aus SS-I05 funktioniert jetzt auch für die Zeitleiste. Ihre unter einem Press stehenbleibenden Controls können den abgeschalteten Simulationsmodus jedoch erneut aktivieren. Dafür ist keine Operator-Entscheidung nötig.
+
+Geprüfter Produktstand: **`718cce07`**, Delta `050d6c5d..718cce07`; Dokumentstand **`01378d5e`**. Build und Tests ausschließlich in der Archivkopie `/tmp/codex-r340`, Browser-Mock **4940**. Keine Produktänderung, keine Zugriffe auf die Live-Sim oder ihre Ports. Backend unverändert, deshalb die bereits bestandenen Backendprüfungen nicht erneut ausgeführt.
+
+### Geschlossene Befunde
+
+- **SS-I02:** Das gewöhnliche `close` entwertet nun die Profilbestätigung, verwirft Debounce-Saves und beginnt eine neue Generation. Beide R339-Orchestratorproben sind grün. Auch die Browserproben mit echtem Tokenwechsel sowie Socket-Close/Hello und zurückgehaltenem altem `/devices`-Abruf sind grün. Sequenz und Generation begrenzen jetzt sowohl erfolgreiche Listenantworten als auch Fehlerausgaben.
+- **SS-I05, Fokus und Layout:** Der fokussierte Zeitleistenlink gibt den Fokus an Program zurück; die nachfolgende Pfeiltaste sendet keinen Jog. Die neuen Wächter für Playback speed und den gehaltenen Press sind ebenfalls grün. Die sofortige Beendigung der Kollisionsarbeit bei zunächst stehenbleibendem Layout ist bestätigt.
+- **SS-I06:** Neutraler Hinweis für ein neu angelegtes Profil, Name und eigener Simulationsschalter bleiben vorhanden. Die R339-Browserprobe ist mit genau einer Anpassung grün: der umbenannte Testselektor `data-device-recreated` → `data-device-new`. Die Aussagen der Probe wurden nicht abgeschwächt. Auch die beiden neuen Repository-Wächter für gespeichertes bzw. frisch erzeugtes Token sind grün.
+- **SS-I07:** Das Skript erzeugt aus den unveränderten Rohdaten denselben Bericht wie eingereicht. Eine eigene Nachrechnung bestätigt Fensterwahl, Randfenster, gepoolte Histogramme, Maxima und Phasen-CPU. Die bewerteten inneren Fenster schließen ohne Lücke aneinander an. **Abnahme dieser Neuauswertung mit ihren Grenzen:** Die Tabellenwerte für Alter und Kadenz gelten für die ganz enthaltenen Fenster, nicht als lückenloses Gesamtphasen-Maximum; die Randfenster bleiben separat. Die 29,5 bzw. 8,4 s sind das aus Proben abgegrenzte Prüfintervall, keine exakte Ausführungszeit. Die Aussage „in Ruhe Alter ≤ 46 ms“ ist entsprechend auf die inneren Fenster zu beziehen. Damit ist die beobachtete Entlastung durch Simulation aus ausreichend eingeordnet; eine absolute Hardware-Panel-Leistung oder garantierte Worst-Case-Latenz wird daraus nicht abgenommen. Kein weiterer Messlauf für diesen Befund erforderlich.
+
+### SS-I05 · letzter Rest · P2 · Eine stehenbleibende Zeitleiste kann die ausgeschaltete Wiedergabe neu starten
+
+**Stellen am Produktstand:** `lcnc-webui/src/ScrubBar.vue:320–333` (`enterSim`), `404` (einmaliger Austritt beim Abschalten), `452–464` (`togglePlay`), `1319–1328` (Toggle und Play). `simShown.ts` hält die Darstellung richtig bis zum Ende der beteiligten Presses.
+
+Der neue Watcher beendet den aktuellen Modus beim Wechsel von `simulationOn` auf `false`. Solange ein Zeiger gehalten wird, ist die Zeitleiste aber weiter bedienbar. `enterSim()` prüft Programm, Lauf und Maschinenzustand, **nicht** den wirksamen Simulationsschalter. Eine weitere Eingabe kann sie deshalb erneut aktivieren, ohne dass der Austrittswatcher nochmals ausgelöst wird.
+
+**Eigene Browserprobe, reale DOM-Eingaben am Mock:**
+
+1. Programmvorschau geladen, Maschine aus, Simulation für das Gerät eingeschaltet.
+2. Zeiger auf „Open the Sim tab“ herunterdrücken und halten.
+3. `settings_changed` schaltet Simulation aus. Die Leiste bleibt vertragsgemäß stehen, der Modus ist aus.
+4. Während dieser Zeiger weiterhin gehalten wird, Play fokussieren und per **Enter** betätigen.
+
+Danach erscheint das Simulationsbanner wieder und die Modellposition läuft vorwärts. Nach 150 ms meldet die Probe beispielsweise:
+
+```json
+{
+  "banner": 1,
+  "pose": {"joints": [6.528, 0, 0], "cum": 6.528, "line": 2},
+  "bar": 1,
+  "work": {"worker": false, "busy": false, "result": false, "run": false, "scheduled": false}
+}
+```
+
+Die Kollisionssperre greift weiterhin. Der Rest betrifft den Simulationsmodus, die Wiedergabe und damit die Modellanzeige bzw. ihre lokalen Bediengates. Erst beim Loslassen verschwindet die Leiste und der Unmount beendet die erneut gestartete Wiedergabe (`banner=0`, `pose=null`). Ein Press besitzt absichtlich keine Altersgrenze; die falsche Aktivierung ist daher nicht auf einen Renderframe begrenzt. Der ursprüngliche Fokusfehler mit Jog-Folge ist geschlossen, deshalb hier **P2**.
+
+**Korrektur:** Die wirksame Zulassung auch am gemeinsamen Eintritt in den Simulationsmodus prüfen. `simShown` bestimmt nur, ob der Platz sichtbar bleiben muss; `simulationOn` bestimmt weiterhin, ob eine Aktion beginnen darf. Die gehaltenen Controls entsprechend inaktiv zeigen, bei unveränderter Geometrie und erreichbarem Austritt. Den neuen Gegenfall als Wächter aufnehmen; außerdem den noch ausstehenden Klick eines bereits gedrückten Play-Controls nach dem Abschalten prüfen. Die bestätigte Fokus- und Press-Rückgabe beibehalten.
+
+### Eigene Belege
+
+- [Prüfstand und Wiederholung](settings-split.r340.codex-checks.json), [Build](settings-split.r340.codex-build.txt): **PASS** am unveränderten Produkt.
+- [Unitlauf](settings-split.r340.codex-unit.txt): **30/30 grün** — die neun R338/R339-Gegenproben, der neue Orchestratorwächter und `settingsDraft`/`settingsSections`.
+- [Gezielter Browserlauf](settings-split.r340.codex-browser-rerun.txt): **21/21 grün** — vier R339-Proben plus `devices.spec` und `simulation-off.viewer.spec`; [angepasste Sondenkopie](settings-split.r340.codex-browser-rerun.spec.ts), [eigene Mock-Konfiguration](settings-split.r340.codex-browser.config.ts).
+- [Neue Eintrittsprobe](settings-split.r340.codex-browser-boundary.spec.ts), [Ergebnis](settings-split.r340.codex-browser-boundary.txt): **1 rot**, einschließlich protokollierter Kollisionssperre und Rückkehr nach dem Loslassen. Zwei Läufe zeigten die erneute Aktivierung; im abschließenden Lauf sind zusätzlich diese beiden Zustände erfasst.
+- [Eigene Messnachrechnung](settings-split.r340.codex-load-audit.py), [Ergebnis](settings-split.r340.codex-load-audit.json), [erneute Ausführung von Claudes Auswertung auf einer Rohdatenkopie](settings-split.r340.codex-load-rerun.txt). Kein neuer Live-Lauf.
+
+Vorhandene Belege sind unverändert. Der vollständige **899/899**-Gate bleibt Claudes eingereichter Nachweis; eine Wiederholung des gesamten Gates war für diese Nachprüfung nicht erforderlich. **Nächster Schritt:** Den verbleibenden Eintritt in die abgeschaltete Simulation schließen; die anderen Punkte dieser Runde brauchen keine weitere Korrektur.

@@ -1,0 +1,50 @@
+{
+  "round": "R340",
+  "verdict": "findings",
+  "product_head": "718cce0739ce6b22c77cee907790361909e1c211",
+  "document_head": "01378d5ed8a9f3b865ad6fb340b36c7fc93b31ef",
+  "archive": "/tmp/codex-r340",
+  "mock_port": 4940,
+  "scope": "050d6c5d..718cce07; R339 corrections; re-evaluation of existing measurement",
+  "live_access": "none; no gateway commands; only review append and new evidence in workspace",
+  "review_prefix_bytes": 118056,
+  "review_prefix_sha256": "3fec6e5d1d7fd945db8d73fc18e235e36fe98d4cd67dcb0e363b3a4e6ba9a854",
+  "checks": {
+    "product_build": "PASS before copying unit probes into src",
+    "unit": "30/30 PASS: R338 7, R339 2, settingsDraft/settingsSections 20, lcncWs.binding 1",
+    "browser": "21/21 PASS: R339 4, devices 8, simulation-off.viewer 9",
+    "boundary": "1 FAIL in both runs: a held pointer allows keyboard Play to re-enter simulation while disabled",
+    "measurement": "submitted script replay identical apart from directory basename; independent pooled-bin, maximum, window and phase-CPU checks pass",
+    "backend": "unchanged, not rerun",
+    "full_gate": "not rerun; supplied 899/899 is Claude evidence"
+  },
+  "reproduce": [
+    "git archive 718cce07 into a separate directory, copy/install dependencies there; npm run build in lcnc-webui before adding review unit probes.",
+    "Copy settings-split.r339.codex-unit-rerun.test.ts to src/r338.codex.test.ts and settings-split.r339.codex-unit.test.ts to src/r339.codex.test.ts. npx vitest run src/r338.codex.test.ts src/r339.codex.test.ts src/lcncWs.binding.test.ts src/settingsDraft.test.ts src/settingsSections.test.ts --maxWorkers=1.",
+    "Copy this round browser-rerun.spec.ts to e2e/r339.codex.spec.ts, browser-boundary.spec.ts to e2e/r340.codex.spec.ts and browser.config.ts to playwright.r340.config.ts. Set isolated e2e/mockSlot.mjs MOCK_BASE_PORT from 4500 to free port 4940.",
+    "npx playwright test --config playwright.r340.config.ts e2e/r339.codex.spec.ts e2e/devices.spec.ts e2e/simulation-off.viewer.spec.ts",
+    "npx playwright test --config playwright.r340.config.ts e2e/r340.codex.spec.ts",
+    "python3 docs/reviews/settings-split.r340.codex-load-audit.py docs/reviews",
+    "For original report replay, copy R339 codex-load.raw-{marks,samples,perf-panel,perf-laptop}.jsonl into a temp directory under the unprefixed filenames; run R340 load-report2.py with that directory. It writes report2.json there."
+  ],
+  "notes": [
+    "Only adaptation to the R339 browser probe: data-device-recreated becomes data-device-new. The assertions for controls/focus/list are unchanged.",
+    "The final boundary probe records work flags while simulation is re-entered and restoration on mouse-up. Real mouse-down/key activation, model only, no machine.",
+    "The collision worker remains absent during re-entry: the remaining issue is simulation mode and playback.",
+    "Build, unit and measured report ran in sandbox; Chromium ran with approved escalation in isolated /tmp directory.",
+    "No mutations or product fixes made; dependencies are copied rather than linked to a live tree."
+  ],
+  "artifacts": {
+    "settings-split.r340.codex-build.txt": "1508f8d6dea0c24124e10dc0fae43c37279c74b354722603c6250ce2fee712ca",
+    "settings-split.r340.codex-unit.txt": "22b783ee86e2936dd09ae8e463a35fc64dabedd3fd6aa9cbb966a9ba4e877025",
+    "settings-split.r340.codex-browser-rerun.txt": "f2593ceac0d381e3372bd0341f88022436a3fd71d281510a89f70c714d6e6308",
+    "settings-split.r340.codex-browser-rerun.spec.ts": "c0f5f254da270dfa712877f478594d66b971209083a48602ba35da31adba39d9",
+    "settings-split.r340.codex-browser.config.ts": "4ae28e3c95401e75180d7de4ed4c43af4188399c62b7399cca09e49b35f22748",
+    "settings-split.r340.codex-browser-boundary.spec.ts": "b314f16b3fa7f7ce7ce1ee5206e8be00334db6e84e3936b976e5c1bdb1179b52",
+    "settings-split.r340.codex-browser-boundary.txt": "6158c9f1c4167fda12352be5391f5948c6ff4b623358c8287b5ad7096c3c20c2",
+    "settings-split.r340.codex-browser-boundary-first.txt": "14944ed0b8d0680fa8f2da1a85681fb54c18c7f85ed1f559edc0d0827cf91ee2",
+    "settings-split.r340.codex-load-audit.py": "a5e747c929c15db6f45e5331ac25556e017fd83678dcc54a6f65830069986245",
+    "settings-split.r340.codex-load-audit.json": "fef678e9ff39f2096f360b35f4ea3ece7c6d67e866c445a3d93c413d59956898",
+    "settings-split.r340.codex-load-rerun.txt": "1f13cd0a2409d3ca7742e2c5bf66cfcddb7ab3dd28ebba85a968142c04d6f62d"
+  }
+}

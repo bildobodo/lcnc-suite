@@ -1,0 +1,40 @@
+
+Running 1 test using 1 worker
+
+(node:1567937) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1567937) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+REENTRY_WHILE_OFF {"banner":1,"pose":{"joints":[6.527999998569486,0,0],"tlo":null,"tool":null,"cum":6.527999998569486,"line":2},"bar":1,"work":{"worker":false,"busy":false,"result":false,"run":false,"scheduled":false}}
+AFTER_RELEASE {"banner":0,"pose":null}
+  ✘  1 e2e/r340.codex.spec.ts:5:1 › a retained disabled timeline cannot re-enter simulation via keyboard while a pointer is held (1.9s)
+
+
+  1) e2e/r340.codex.spec.ts:5:1 › a retained disabled timeline cannot re-enter simulation via keyboard while a pointer is held 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m0[39m
+    Received: [31m1[39m
+
+      38 |   await expect(page.locator('.scrubBar')).toHaveCount(0);
+      39 |   console.log('AFTER_RELEASE',JSON.stringify({banner:await page.locator('.simBanner').count(),pose:await page.evaluate(()=>window.__viewerDiag?.getScrubPose?.())}));
+    > 40 |   expect(observed.banner).toBe(0);
+         |                           ^
+      41 |   expect(observed.pose).toBeNull();
+      42 | });
+      43 |
+        at /tmp/codex-r340/lcnc-webui/e2e/r340.codex.spec.ts:40:27
+
+    Error Context: test-results/r340.codex-a-retained-disa-cf68e-ard-while-a-pointer-is-held/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r340.codex-a-retained-disa-cf68e-ard-while-a-pointer-is-held/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r340.codex-a-retained-disa-cf68e-ard-while-a-pointer-is-held/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/r340.codex.spec.ts:5:1 › a retained disabled timeline cannot re-enter simulation via keyboard while a pointer is held 

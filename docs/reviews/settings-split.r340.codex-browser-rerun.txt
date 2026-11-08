@@ -1,0 +1,47 @@
+
+Running 21 tests using 1 worker
+
+(node:1564791) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1564791) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/devices.spec.ts:43:1 › this device switches its own simulation without arm; it acts once the gateway holds it (1.8s)
+  ✓   2 e2e/devices.spec.ts:56:1 › another device: its simulation and its rename need arm; a connected one is never deleted (1.6s)
+  ✓   3 e2e/devices.spec.ts:86:1 › a tab bound to no device says why and saves no device setting (1.7s)
+  ✓   4 e2e/devices.spec.ts:98:1 › this device's name is saved without arm (1.3s)
+  ✓   5 e2e/devices.spec.ts:112:1 › switching another device's simulation leaves this one's own off — ok and stale alike (1.8s)
+  ✓   6 e2e/devices.spec.ts:135:1 › a new profile for a stored token: a neutral note, the name and the switch stay (2.0s)
+  ✓   7 e2e/devices.spec.ts:149:1 › a first start is no news: no note for this page load's own token (1.4s)
+  ✓   8 e2e/devices.spec.ts:157:1 › a late device list from before a new binding never shows this device among the others (1.4s)
+TIMELINE_FOCUS {"focus":{"tag":"BUTTON","role":"tab"},"commands":[]}
+  ✓   9 e2e/r339.codex.spec.ts:12:1 › a focused timeline link also hands focus back when simulation goes off (1.5s)
+RECREATED THIS DEVICE
+How this browser looks, its macro bar and its simulation are its own. A new device starts without the simulation.
+A new device profile was made for this browser in this machine configuration — its simulation is off
+Name
+Simulation: timeline, collision check, Sim tab
+Reset This Device
+  ✓  10 e2e/r339.codex.spec.ts:36:1 › a newly created bound profile keeps its own controls available beside the notice (1.3s)
+DEVICE_LIST_AFTER_OLD_REPLY OTHER DEVICES
+Changing another device needs Arm. A device is deleted only by hand, and never while it is connected.
+Name	State	Address	Simulation	
+A	Online · 1 tab	—	
+	
+  ✓  11 e2e/r339.codex.spec.ts:49:1 › an old device-list response cannot replace the list of a newer binding (1.7s)
+DEVICE_LIST_AFTER_OLD_REPLY OTHER DEVICES
+Changing another device needs Arm. A device is deleted only by hand, and never while it is connected.
+Name	State	Address	Simulation	
+A	Online · 1 tab	—	
+	
+  ✓  12 e2e/r339.codex.spec.ts:81:1 › an old device-list response cannot replace a new INI list after a socket reconnect (2.4s)
+  ✓  13 e2e/simulation-off.viewer.spec.ts:51:1 › a device without the simulation: no check, no timeline, no Sim tab — the path, the tool mark and the run line stay (2.9s)
+  ✓  14 e2e/simulation-off.viewer.spec.ts:71:1 › switched off during the check: the worker ends, every finding goes; switched on: a fresh check (6.0s)
+  ✓  15 e2e/simulation-off.viewer.spec.ts:93:1 › the Sim tab shown when the simulation goes off: the Program tab takes its place (3.2s)
+  ✓  16 e2e/simulation-off.viewer.spec.ts:111:3 › the Sim tab goes with the focus in its tab: the focus to the navigation, an arrow never jogs (3.3s)
+  ✓  17 e2e/simulation-off.viewer.spec.ts:111:3 › the Sim tab goes with the focus in its pane: the focus to the navigation, an arrow never jogs (3.3s)
+  ✓  18 e2e/simulation-off.viewer.spec.ts:130:1 › the Sim tab goes with the focus elsewhere: it stays there (3.2s)
+  ✓  19 e2e/simulation-off.viewer.spec.ts:147:3 › the timeline goes with the focus on "Open the Sim tab": the focus to the navigation, an arrow never jogs (3.2s)
+  ✓  20 e2e/simulation-off.viewer.spec.ts:147:3 › the timeline goes with the focus on "Playback speed": the focus to the navigation, an arrow never jogs (3.1s)
+  ✓  21 e2e/simulation-off.viewer.spec.ts:166:1 › switched off during a press on the timeline: the work stops at once, the bar leaves after the click (3.5s)
+
+  21 passed (52.3s)

@@ -1,0 +1,98 @@
+{
+  "checks": [
+    {
+      "phase": "rest0",
+      "device": "panel",
+      "histograms_and_maxima_match": true,
+      "inside_seconds": 57.0,
+      "phase_seconds": 60.001,
+      "edge_windows": 2,
+      "inner_window_gap_max_ms": 0.0,
+      "start_without_whole_window_ms": 622.3,
+      "end_without_whole_window_ms": 2373.3
+    },
+    {
+      "phase": "rest0",
+      "device": "laptop",
+      "histograms_and_maxima_match": true,
+      "inside_seconds": 57.0,
+      "phase_seconds": 60.001,
+      "edge_windows": 2,
+      "inner_window_gap_max_ms": 0,
+      "start_without_whole_window_ms": 1563.2,
+      "end_without_whole_window_ms": 1431
+    },
+    {
+      "phase": "load",
+      "device": "panel",
+      "histograms_and_maxima_match": true,
+      "inside_seconds": 41.8,
+      "phase_seconds": 47.881,
+      "edge_windows": 2,
+      "inner_window_gap_max_ms": 0.0,
+      "start_without_whole_window_ms": 3867.2,
+      "end_without_whole_window_ms": 2259.7
+    },
+    {
+      "phase": "load",
+      "device": "laptop",
+      "histograms_and_maxima_match": true,
+      "inside_seconds": 43.1,
+      "phase_seconds": 47.881,
+      "edge_windows": 2,
+      "inner_window_gap_max_ms": 0.0,
+      "start_without_whole_window_ms": 3432,
+      "end_without_whole_window_ms": 1313.2
+    },
+    {
+      "phase": "basis",
+      "device": "panel",
+      "histograms_and_maxima_match": true,
+      "inside_seconds": 48.5,
+      "phase_seconds": 54.126,
+      "edge_windows": 2,
+      "inner_window_gap_max_ms": 0.0,
+      "start_without_whole_window_ms": 3496.6,
+      "end_without_whole_window_ms": 2154.1
+    },
+    {
+      "phase": "basis",
+      "device": "laptop",
+      "histograms_and_maxima_match": true,
+      "inside_seconds": 49.5,
+      "phase_seconds": 54.126,
+      "edge_windows": 2,
+      "inner_window_gap_max_ms": 0.0,
+      "start_without_whole_window_ms": 3176.2,
+      "end_without_whole_window_ms": 1440.2
+    },
+    {
+      "phase": "rest",
+      "device": "panel",
+      "histograms_and_maxima_match": true,
+      "inside_seconds": 117.0,
+      "phase_seconds": 120.002,
+      "edge_windows": 1,
+      "inner_window_gap_max_ms": 0.0,
+      "start_without_whole_window_ms": 615.9,
+      "end_without_whole_window_ms": 2388.3
+    },
+    {
+      "phase": "rest",
+      "device": "laptop",
+      "histograms_and_maxima_match": true,
+      "inside_seconds": 117.0,
+      "phase_seconds": 120.002,
+      "edge_windows": 1,
+      "inner_window_gap_max_ms": 0.0,
+      "start_without_whole_window_ms": 1558.8,
+      "end_without_whole_window_ms": 1438.1
+    }
+  ],
+  "limits": [
+    "Quantiles and window maxima describe fully contained windows; phase edges remain separate.",
+    "The first-busy/next-idle CPU interval is a sampled interval, not exact check execution time.",
+    "No hardware-panel GPU result, peak latency guarantee or extra native run is inferred."
+  ],
+  "sha256_report": "d7b820457b9bccd9543274020295ff9a5184ba3cbe182648e2dd80179b108ecb"
+}

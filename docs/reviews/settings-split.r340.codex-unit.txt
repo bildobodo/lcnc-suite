@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r340/lcnc-webui
+
+
+ Test Files  5 passed (5)
+      Tests  30 passed (30)
+   Start at  02:36:57
+   Duration  696ms (transform 165ms, setup 0ms, import 409ms, tests 39ms, environment 0ms)
+

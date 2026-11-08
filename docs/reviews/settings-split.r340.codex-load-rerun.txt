@@ -1,0 +1,14 @@
+== rest0 (60.0 s, 60 samples, largest sample interval 1002 ms)
+  panel  cpu 79.4%  rss 1537.9 MB  workers 5  collision worker False  | windows 19 (57.0 s)  cadence p95 48.0 max 51.9  age p95 36.0 max 46.1  edges 2
+  laptop cpu 89.1%  rss 1557.7 MB  workers 5  collision worker False  | windows 19 (57.0 s)  cadence p95 48.0 max 53.3  age p95 36.0 max 40.8  edges 2
+== load (47.9 s, 38 samples, largest sample interval 6361 ms)
+  panel  cpu 142.9%  rss 1416.5 MB  workers 5  collision worker False  | windows 12 (41.8 s)  cadence p95 48.0 max 3937.7  age p95 36.0 max 7364.4  edges 2
+  laptop cpu 258.9%  rss 2595.6 MB  workers 8  collision worker True  | windows 14 (43.1 s)  cadence p95 48.0 max 3442.4  age p95 36.0 max 6662.6  edges 2
+  check 29.5 s: panel 113.3%  laptop 292.6%
+== basis (54.1 s, 25 samples, largest sample interval 10436 ms)
+  panel  cpu 203.3%  rss 1586.8 MB  workers 5  collision worker False  | windows 10 (48.5 s)  cadence p95 50.0 max 8458  age p95 36.0 max 11370.7  edges 2
+  laptop cpu 215.3%  rss 2593.5 MB  workers 8  collision worker True  | windows 14 (49.5 s)  cadence p95 48.0 max 7258.5  age p95 36.0 max 10375.7  edges 2
+  check 8.4 s: panel 225.7%  laptop 279.0%
+== rest (120.0 s, 120 samples, largest sample interval 1003 ms)
+  panel  cpu 86.3%  rss 1521.5 MB  workers 5  collision worker False  | windows 39 (117.0 s)  cadence p95 48.0 max 53.5  age p95 36.0 max 42.6  edges 1
+  laptop cpu 86.9%  rss 1927.4 MB  workers 8  collision worker True  | windows 39 (117.0 s)  cadence p95 48.0 max 53.8  age p95 36.0 max 40.9  edges 1
