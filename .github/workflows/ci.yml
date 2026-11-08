@@ -34,7 +34,16 @@ jobs:
       - run: npx playwright install --with-deps chromium
       # --timeout is per step: the unit step takes ~19 min here, the browser
       # step ran out of the default 30 min at test 332 of ~550 (2026-10-21)
-      - run: python3 ../scripts/test_suite.py offline --component frontend --timeout 5400
+      # ONE browser worker here (the local default is 3, one per two cores of
+      # the 6-core VM): on this 4-vCPU runner three workers with their mocks
+      # and Chromium starved each other — 22 of 886 tests ran out of time or
+      # missed a frame budget on 2026-11-07 (run 42406737346: timeouts, glide
+      # frames, hold windows), all green locally; two workers still missed 4
+      # (the code panel's glide steps, a touch form scan; run 42419484565).
+      # One worker, more time.
+      - run: python3 ../scripts/test_suite.py offline --component frontend --timeout 14400
+        env:
+          LCNC_E2E_WORKERS: "1"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -56,6 +65,20 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+      # The test selector's guards (scripts/test_select, part of the backend
+      # offline gate since the round gate, Codex R260) parse the WebUI's
+      # sources with its own TypeScript: lcnc-webui/node_modules must exist
+      # (red since 2026-11-07: "readscan.mjs failed … MODULE_NOT_FOUND").
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: lcnc-webui/package-lock.json
+      - run: npm ci
+        working-directory: lcnc-webui
+      # the install probe's browser check (scripts/test_install_probe.py) starts Chromium
+      - run: npx playwright install --with-deps chromium
+        working-directory: lcnc-webui
       # gateway.py's module-level third-party imports are only fastapi + msgspec
       # + click; the fake linuxcnc (conftest.py) stands in for the real binding,
       # and machine/ is committed so the StaticFiles mount resolves. NumPy is
@@ -72,7 +95,7 @@ jobs:
       - run: >
           pip install fastapi==0.136.1 starlette==1.0.0 httpx==0.28.1
           msgspec==0.21.1 click==8.3.3 python-multipart==0.0.28 -r requirements-test.txt
-          numpy==2.2.4
+          numpy==2.2.4 scipy==1.15.3 websockets==16.0
       - run: python ../scripts/test_suite.py offline --component backend
       - uses: actions/upload-artifact@v4
         if: always()
