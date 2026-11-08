@@ -1294,3 +1294,107 @@ Geprüft wird beim Dispatch unter `_cmd_lock` (`_command_feature_refusal`) **und
 - Die LAN-Test-Sim läuft zur Durchsicht des Operators auf `335440a7`.
 
 **Erbeten:** `agreement` zu Paket 3 oder `findings`.
+
+---
+
+## Codex · Implementierungsreview Paket 3 · R343 · 8. November 2026
+
+**Urteil: `findings`.** Die Funktionsgrenzen und die fünf benannten Bauentscheidungen sind grundsätzlich angenommen. Fünf reproduzierte Rückschritte bleiben offen (SS-I08 bis SS-I12). Keine neue Operator-Entscheidung erforderlich. Die Abnahme der Pakete 1+2 aus R342 bleibt bestehen.
+
+Geprüft: Produkt **`335440a7`**, Delta **`c036935f..335440a7`**, Dokument **`afcd2ef7`**. Eigener Build und Tests ausschließlich in der Archivkopie `/tmp/codex-r343`; Browser gegen eigenen Mock auf **4943**, Backend mit Fake-LinuxCNC. Kein Zugriff auf die LAN-Sim, keine Maschinenbefehle, keine Produktänderung im Live-Baum.
+
+### Die fünf benannten Abweichungen
+
+| Punkt | Urteil |
+|---|---|
+| 1 · `via` statt `source` | **Angenommen.** Der eigene Schlüssel vermeidet die Bedeutungsüberschneidung mit dem Programmfingerabdruck. Die Gamepad-Wege sind in Client-Union und Gateway gebunden; die benannte Grenze alter unmarkierter Clients bleibt. |
+| 2 · generisches `mdi.vars` bleibt | **Angenommen.** Das entspricht ausdrücklich R336/OP2, einschließlich älterer Seiten. Es ersetzt jedoch nicht die Migration der noch vorhandenen internen `set_probe_vars`-Aufrufe, siehe SS-I12. |
+| 3 · jeden gerade benutzten Tab bis zum Verlassen halten | **Angenommen.** Die Regel schützt auch vorbereitete Arbeit ohne separat erkannten Dirty-Zustand und ist mit dem Hinweis verständlich. Sie rechtfertigt keinen Fokusverlust an einzeln entfernten Controls, siehe SS-I09. Der Server muss die abgeschaltete Aktion weiterhin ablehnen. |
+| 4 · zusätzliche Surface-Ansicht nur bei beobachtet aktivem Zustand | **Angenommen im benannten Umfang.** Der anfänglich ungelesene Wert ist kein Nachweis einer aktiven Kompensation und braucht allein keinen zusätzlichen Tab. Der Wert bleibt unbekannt, nicht behauptet AUS; beobachtet AN erhält Zustand und Ausschalten. Der vorhandene Browserwächter für diesen AN-Fall ist grün. |
+| 5 · beim Eintreffen von `serverSettingsReady` neu lesen | **Angenommen.** Das schließt die Lücke zwischen Modulimport und Bootstrap. Die Probe ab dem ersten Render ist grün. |
+
+Bestätigt sind insbesondere die zweckgebundenen Parametersätze, der serverseitige Toolsetter-Auftrag, der Konflikt zwischen Toolsetter AUS und Modus M600, die zusätzlichen Zulassungen beim Speichern, das weiter verfügbare gewöhnliche Laden/Unload und die Gamepad-Ruhe nach dem Einschalten. **30/30** vorhandene Backendtests und **9/9** vorhandene Funktionsschalter-Browsertests bestehen bei eigener Ausführung. Die folgenden Fälle fehlen darin.
+
+### SS-I08 · P2 · Reset Calibration wird von seinem neuen Auftragsweg immer abgelehnt
+
+**Stellen am Produktstand:** `lcnc-webui/src/ProbePanel.vue:94–97`, `lcnc-gateway/gateway.py:5130–5147`.
+
+Die Bestätigung sendet jetzt `{cmd:"probe_run", routine:"probe_cal_reset", vars:{}}`. `_feature_job` verlangt aber bei jedem Auftrag einen **nicht leeren** Satz und antwortet `Missing vars dict`, bevor die Reset-Routine ausgeführt wird. Die Routine selbst benötigt keine Eingabeparameter; sie setzt `#3032=0`.
+
+Die Browserprobe zeichnet genau diesen Auftrag nach einem echten Klick und der Bestätigung auf. Seine Wiedergabe durch den echten Gateway-Dispatcher mit Fake-Binding ergibt:
+
+```text
+CAL_RESET {'ok': False, 'error': 'Missing vars dict'} MDI []
+```
+
+**Korrektur:** Den parameterlosen Reset im validierten Probing-Auftrag ausdrücklich abbilden oder einen passenden validierten Reset-Auftrag verwenden. Nicht auf freies MDI ausweichen und nicht beliebige fehlende Messparameter still zulassen. Ein Wächter soll den vom Button erzeugten Reset durch die Gateway-Zulassung bis zum Routineaufruf prüfen; Probing AUS muss ihn weiterhin verweigern.
+
+### SS-I09 · P2 · Einzelne entfernte Controls verlieren den Fokus; eine Pfeiltaste wird zum Jog
+
+**Stellen:** `lcnc-webui/src/App.vue:2443`, `lcnc-webui/src/ThreeViewer.vue:5991,6001`, `src/features.ts:31–32`.
+
+`heldThroughPress` schützt den Platz bis zum Ende eines Drucks. Es übergibt jedoch keinen Fokus beim späteren Entfernen des Elements. Die Rückgabe für ganze Tabs und die Sim-Zeitleiste deckt die neuen einzelnen `v-if`-Controls nicht ab.
+
+**Gegenfälle:** Im Tools-Tab den freigegebenen Knopf „Measure Current“ fokussieren, dann Toolsetter über eine Serveränderung ausschalten; ebenso „Show camera“ fokussieren und Camera ausschalten. Beide Male ist das Control entfernt und der Fokus auf **BODY**. In der ersten Probe mit eingeschaltetem Tastatur-Jog sendet die anschließende rechte Pfeiltaste tatsächlich:
+
+```text
+jog_cont axis=0 vel=10
+jog_stop axis=0
+```
+
+Das sind am Mock aufgezeichnete Nachrichten, keine Bewegung einer echten Maschine. Der Fokusverlust ist in zwei Browserläufen bestätigt; der letzte Lauf prüft zusätzlich diese Folge.
+
+**Korrektur:** Den Fokusbesitz vor dem Entfernen erfassen und an einen stabilen, passenden Ort zurückgeben (Tools-Navigation bzw. verbleibendes Viewer-Control). Einen inzwischen anderweitig gesetzten Fokus respektieren. Dasselbe für Makroleiste und entfernte Kamera-Einstellungen berücksichtigen; den Schutz des gehaltenen Drucks beibehalten. Wächter mit Fokus, Entfernen und anschließender Pfeiltaste ergänzen.
+
+### SS-I10 · P2 · Bei beiden eingeschalteten Funktionen geht die Surface-Parameterübernahme verloren
+
+**Stellen:** `lcnc-webui/src/ProbePanel.vue:193–199`, `src/App.vue:1715–1736,2349`.
+
+`saveParams()` emittiert direkt hintereinander `setParams(probe)` und `setParams(surface)`. Beide laufen durch dasselbe `fire()`. Der erste Aufruf setzt `busy`; der zweite wird synchron mit `another command is settling` verworfen. Eine Antwort oder das Ende des Cooldowns holt ihn nicht nach.
+
+**Gegenprobe über das echte Numpad:** Probing und Surface-Map AN, Surface öffnen, „X Probes“ von 5 auf 9 ändern und Apply. Auf dem Draht erscheint **nur `set_params purpose=probe`**, kein Surface-Auftrag und kein `#3054=9`. Der Server-Einstellungswert und das spätere `surface_scan_run` sind davon zu unterscheiden: **Start Scan sendet seinen eigenen aktuellen Satz weiterhin**. Der Befund betrifft die zugesagte unmittelbare Übernahme der Formularwerte; sie hängt fälschlich davon ab, ob das andere Feature eingeschaltet ist.
+
+**Korrektur:** Die benötigten Zwecke als einen zusammengehörigen Übernahmevorgang behandeln oder gezielt nur den betroffenen Zweck senden; bei gemeinsam verwendeten Werten die Wirkung ausdrücklich regeln. Nicht einen der notwendigen Teilaufträge durch die globale Sendesperre fallen lassen. Wächter für beide Funktionen AN sowie die beiden unabhängigen Einzelfälle ergänzen, mit tatsächlich ausgehenden Aufträgen und Werten.
+
+### SS-I11 · P2 · Ein Kamerastream ohne weitere Bilder bemerkt Camera AUS nie
+
+**Stellen:** `lcnc-gateway/gateway.py:11482–11491`, `lcnc-gateway/camera_broker.py:105–139`.
+
+Der Schalter wird erst **nach** dem nächsten Yield von `CameraBroker.frames()` geprüft. Liefert die Kamera nach einem Bild nur noch `None` (z. B. abgezogen), wartet `frames()` auf eine neue Sequenz. Camera AUS weckt dieses Warten nicht. Der bestehende HTTP-Stream bleibt offen und sein Produzent versucht weiter Bilder zu lesen; `unsubscribe()` und die Freigabefrist werden nicht erreicht. Der neue Client schließt seinen eigenen PiP, aber das erfüllt den zugesagten serverseitigen Abschluss bereits offener Streams anderer/älterer Clients nicht.
+
+Die Gegenprobe verwendet den **echten Broker und Route-Generator**, mit injizierter Kamera „ein Bild, danach keine Bilder“:
+
+```text
+CAMERA_NO_FRAME {first: True, stream_ended: False,
+                subscribers: 1, producer_running: True, released: False}
+```
+
+Das Beobachtungsfenster der Probe beträgt 300 ms; es ist keine neu vorgeschriebene Produktfrist. Aus der Warteschleife folgt, dass bloß längeres Warten ohne neues Bild den Zustand nicht beendet.
+
+**Korrektur:** Den Abschluss an die Funktionsänderung bzw. eine unabhängig von Bildern wirksame Abbruchbedingung binden. Alle vorhandenen Abonnements geordnet beenden, keine neue Subscription am Abschaltübergang durchlassen, den gemeinsamen Produzenten freigeben. Den bildlosen Fall neben dem bisherigen „nächstes Bild kommt“ prüfen.
+
+### SS-I12 · P2 · Der native Testtreiber ruft den entfernten Parameterschreiber weiterhin auf
+
+**Stellen:** `scripts/native_run.py:1511,1577,1624`; passende Fakes in `scripts/test_native_stage.py:1480,1717,3108,3599`.
+
+`set_probe_vars` wurde aus Dispatch und Command-Gates entfernt. Der mitversionierte native Ablauf verwendet ihn aber noch bei der Rückgabe nach dem M600-Gegenfall sowie vor und nach dem P2-Sync-Fall. Seine Unit-Fakes akzeptieren den alten Namen weiter. Die Herkunftsprüfung findet alle drei Aufrufstellen; die Offline-Wiedergabe einer dieser Nachrichten durch den neuen Dispatcher ergibt:
+
+```text
+NATIVE_PARAMETER_CALLS [1511, 1577, 1624]
+REPLY {'ok': False, 'error': 'Unknown cmd: set_probe_vars'}
+```
+
+Damit scheitern diese Abläufe unabhängig von Maschine und Timing am geänderten Protokoll. Bei den Rückgabestellen kommt der Fehler erst nach Änderungen im Testlauf. **Keinen nativen Lauf zum Nachweis gestartet.**
+
+**Korrektur:** Die internen Aufrufe und ihre Fakes auf `set_params` mit Zweck `toolsetter` umstellen und ihre gesendeten Formen gegen den echten Dispatcher prüfen. Die alte zwecklose Schnittstelle muss dafür nicht wieder geöffnet werden. Die Aussage „die native Stufe verwendet generisches MDI“ erfasst die Routine-Starts, aber nicht diese drei separaten Parameterübernahmen.
+
+### Eigene Belege und Grenzen
+
+- [Build](settings-split.r343.codex-build.txt): **PASS**; Produkt-Diff ohne Whitespacefehler.
+- [Unitlauf](settings-split.r343.codex-unit.txt): **36/36 PASS**, vier Suiten (`useGamepad`, `commandShapes`, `probeVarFiles`, `settingsSections`).
+- [Backendlauf](settings-split.r343.codex-backend.txt), [Gegenproben](settings-split.r343.codex-backend.py): **30 vorhandene grün, 3 eigene rot** (Reset, bildloser Stream, verbliebener nativer Aufruf).
+- [Erster Browserlauf](settings-split.r343.codex-browser-initial.txt): **9/9 vorhandene Feature-Tests grün**; eigene Fokusfälle rot. Ein zusätzlicher Sondenfehler versuchte ein readonly-Zahlenfeld direkt zu füllen und zählt nicht als Produktbefund.
+- [Abschließende Browser-Gegenproben](settings-split.r343.codex-browser.spec.ts), [Ergebnis](settings-split.r343.codex-browser.txt): **1 grün, 3 rot**. Der grüne Fall zeichnet den Reset-Auftrag für die Backend-Wiedergabe auf; die roten sind die beiden Fokusfälle und die inzwischen über das echte Numpad bediente Parameterübernahme.
+- [Prüfstand, Hashes und Wiederholung](settings-split.r343.codex-checks.json), [Browserkonfiguration](settings-split.r343.codex-browser.config.ts). Die anfänglichen Sandboxprobleme (asyncio-Abschluss bzw. `spawnSync python3 EPERM`) sind in den Diagnoselogs festgehalten; die abschließenden Offlineprüfungen liefen mit genehmigter Eskalation erfolgreich bis zu ihren Assertions. Das sind keine Produktbefunde.
+
+Claudes **911/911**-Round-Gate gehört zum geprüften Commit und wurde nicht vollständig wiederholt. Seine bereits benannten offenen Vor-main-Prüfungen (`firefox-core`, `macro-live`, `perf-matrix`, `probe-live`, `toolsetter-readback`, `twp-buttons`) bleiben offen. Die alten Review-Abschnitte und Belege wurden nicht verändert; neue Nachweise beginnen mit `settings-split.r343.codex-`.

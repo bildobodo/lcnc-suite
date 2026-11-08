@@ -1,0 +1,85 @@
+[VINIT] session bound to linuxcncsvr pid=2193189 start=139958724
+[VINIT] try_connect_lcnc OK, pid=2193189
+[VINIT] Loaded machine config: 3-Axis Mill
+test_an_unknown_via_is_refused_by_the_bounds_or_the_dispatch (test_feature_switches.TestEachSwitch.test_an_unknown_via_is_refused_by_the_bounds_or_the_dispatch) ... ok
+test_gamepad_off_refuses_what_the_gamepad_starts_never_its_stops (test_feature_switches.TestEachSwitch.test_gamepad_off_refuses_what_the_gamepad_starts_never_its_stops) ... ok
+test_macros_off_refuses_the_run_and_the_writes_mdi_stays (test_feature_switches.TestEachSwitch.test_macros_off_refuses_the_run_and_the_writes_mdi_stays) ... ok
+test_probing_off_refuses_its_routines_and_parameters_only (test_feature_switches.TestEachSwitch.test_probing_off_refuses_its_routines_and_parameters_only) ... ok
+test_surface_off_refuses_the_scan_and_switching_compensation_on (test_feature_switches.TestEachSwitch.test_surface_off_refuses_the_scan_and_switching_compensation_on) ... ok
+test_toolsetter_off_a_program_start_syncs_nothing (test_feature_switches.TestEachSwitch.test_toolsetter_off_a_program_start_syncs_nothing) ... ok
+test_toolsetter_off_refuses_m600_jobs_the_normal_tool_change_stays (test_feature_switches.TestEachSwitch.test_toolsetter_off_refuses_m600_jobs_the_normal_tool_change_stays) ... ok
+test_toolsetter_off_refuses_run_from_lines_pre_measurement (test_feature_switches.TestEachSwitch.test_toolsetter_off_refuses_run_from_lines_pre_measurement) ... ok
+test_an_open_stream_ends_when_the_camera_goes_off (test_feature_switches.TestTheCamera.test_an_open_stream_ends_when_the_camera_goes_off) ... ok
+test_off_refuses_a_new_stream_and_the_status (test_feature_switches.TestTheCamera.test_off_refuses_a_new_stream_and_the_status) ... ok
+test_a_booked_jog_refused (test_feature_switches.TestTheChangeIsAdmitted.test_a_booked_jog_refused) ... ok
+test_a_command_in_flight_refused (test_feature_switches.TestTheChangeIsAdmitted.test_a_command_in_flight_refused) ... ok
+test_a_moving_machine_refused (test_feature_switches.TestTheChangeIsAdmitted.test_a_moving_machine_refused) ... ok
+test_a_running_interpreter_refused (test_feature_switches.TestTheChangeIsAdmitted.test_a_running_interpreter_refused) ... ok
+test_an_armed_writer_on_a_standing_idle_machine_switches (test_feature_switches.TestTheChangeIsAdmitted.test_an_armed_writer_on_a_standing_idle_machine_switches) ... ok
+test_an_invalid_section_is_refused_before_anything (test_feature_switches.TestTheChangeIsAdmitted.test_an_invalid_section_is_refused_before_anything) ... ok
+test_an_open_start_claim_refused (test_feature_switches.TestTheChangeIsAdmitted.test_an_open_start_claim_refused) ... ok
+test_not_armed_refused (test_feature_switches.TestTheChangeIsAdmitted.test_not_armed_refused) ... ok
+test_surface_off_needs_the_compensation_known_off (test_feature_switches.TestTheChangeIsAdmitted.test_surface_off_needs_the_compensation_known_off) ... ok
+test_toolsetter_off_with_m600_is_no_state_either_way (test_feature_switches.TestTheChangeIsAdmitted.test_toolsetter_off_with_m600_is_no_state_either_way) ... ok
+test_a_probe_runs_its_values_then_its_routine (test_feature_switches.TestTheJobs.test_a_probe_runs_its_values_then_its_routine) ... ok
+test_a_set_outside_its_purpose_is_refused_whole (test_feature_switches.TestTheJobs.test_a_set_outside_its_purpose_is_refused_whole) ... ok
+test_a_switch_turned_off_meanwhile_stops_the_job_at_its_write (test_feature_switches.TestTheJobs.test_a_switch_turned_off_meanwhile_stops_the_job_at_its_write) ... ok
+test_an_unknown_purpose_or_routine_is_refused (test_feature_switches.TestTheJobs.test_an_unknown_purpose_or_routine_is_refused) ... ok
+test_measuring_takes_the_servers_toolsetter_section (test_feature_switches.TestTheJobs.test_measuring_takes_the_servers_toolsetter_section) ... ok
+test_a_save_is_exactly_the_six_switches (test_feature_switches.TestTheSection.test_a_save_is_exactly_the_six_switches) ... ok
+test_no_section_is_every_function_on (test_feature_switches.TestTheSection.test_no_section_is_every_function_on) ... ok
+test_the_purposes_are_their_own_sets (test_feature_switches.TestTheSection.test_the_purposes_are_their_own_sets) ... ok
+test_every_job_has_a_gate_and_a_bound (test_feature_switches.TestTheTablesAgree.test_every_job_has_a_gate_and_a_bound) ... ok
+test_the_gamepads_stops_are_the_gateways_stops (test_feature_switches.TestTheTablesAgree.test_the_gamepads_stops_are_the_gateways_stops) ... ok
+test_switch_off_ends_a_frame_silent_existing_stream (test_r343_codex.CameraR343.test_switch_off_ends_a_frame_silent_existing_stream) ... [CAMERA] frame grab failing (device disconnected?) — viewers receive no frames until it recovers
+CAMERA_NO_FRAME {'first': True, 'stream_ended': False, 'subscribers': 1, 'producer_running': True, 'released': False}
+FAIL
+test_calibration_reset_job_from_the_ui_runs (test_r343_codex.ReviewR343.test_calibration_reset_job_from_the_ui_runs) ... CAL_RESET {'ok': False, 'error': 'Missing vars dict'} MDI []
+FAIL
+test_native_stage_still_sent_parameter_command_is_accepted (test_r343_codex.ReviewR343.test_native_stage_still_sent_parameter_command_is_accepted) ... NATIVE_PARAMETER_CALLS [1511, 1577, 1624] REPLY {'ok': False, 'error': 'Unknown cmd: set_probe_vars'}
+FAIL
+
+======================================================================
+FAIL: test_switch_off_ends_a_frame_silent_existing_stream (test_r343_codex.CameraR343.test_switch_off_ends_a_frame_silent_existing_stream)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/codex-r343/lcnc-gateway/test_r343_codex.py", line 77, in test_switch_off_ends_a_frame_silent_existing_stream
+    asyncio.run(run())
+    ~~~~~~~~~~~^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/codex-r343/lcnc-gateway/test_r343_codex.py", line 71, in run
+    self.assertTrue(ended, 'camera off waits forever if no next frame arrives')
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : camera off waits forever if no next frame arrives
+
+======================================================================
+FAIL: test_calibration_reset_job_from_the_ui_runs (test_r343_codex.ReviewR343.test_calibration_reset_job_from_the_ui_runs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/codex-r343/lcnc-gateway/test_r343_codex.py", line 20, in test_calibration_reset_job_from_the_ui_runs
+    self.assertTrue(result['ok'], result)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : {'ok': False, 'error': 'Missing vars dict'}
+
+======================================================================
+FAIL: test_native_stage_still_sent_parameter_command_is_accepted (test_r343_codex.ReviewR343.test_native_stage_still_sent_parameter_command_is_accepted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/codex-r343/lcnc-gateway/test_r343_codex.py", line 36, in test_native_stage_still_sent_parameter_command_is_accepted
+    self.assertTrue(result['ok'], 'native_stage sends a removed command; migrate its calls and fakes')
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : native_stage sends a removed command; migrate its calls and fakes
+
+----------------------------------------------------------------------
+Ran 33 tests in 0.426s
+
+FAILED (failures=3)
+[GC] +497ms gen=2 duration=12.4ms collected=29549 uncollectable=0

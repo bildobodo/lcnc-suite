@@ -1,0 +1,175 @@
+
+Running 4 tests using 1 worker
+
+(node:2262048) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2262048) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+REMOVED_MEASURE_FOCUS {
+  tag: [32m'BODY'[39m,
+  role: [1mnull[22m,
+  text: [32m'LinuxCNC WebUI (local)11:36:54 AMWS connectedWS disconnectedLCNC: -ARMEDDISARMEDConnectionClients0Ne'[39m
+}
+AFTER_FOCUS_LOSS_ARROW [
+  { cmd: [32m'jog_cont'[39m, axis: [33m0[39m, vel: [33m10[39m, req_id: [32m'vltsrp-6'[39m },
+  { cmd: [32m'jog_stop'[39m, axis: [33m0[39m, req_id: [32m'vltsrp-7'[39m }
+]
+  ✘  1 e2e/r343.codex.spec.ts:51:1 › R343 a focused Measure Current removed by Toolsetter off returns focus (1.6s)
+(node:2262181) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2262181) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+REMOVED_CAMERA_FOCUS {
+  tag: [32m'BODY'[39m,
+  role: [1mnull[22m,
+  text: [32m'LinuxCNC WebUI (local)11:36:56 AMWS connectedWS disconnectedLCNC: -ARMEDDISARMEDConnectionClients0Ne'[39m
+}
+  ✘  2 e2e/r343.codex.spec.ts:72:1 › R343 a focused camera control removed by Camera off returns focus (1.4s)
+(node:2262294) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2262294) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+CAL_RESET_JOB [
+  {
+    cmd: [32m'probe_run'[39m,
+    routine: [32m'probe_cal_reset'[39m,
+    vars: {},
+    req_id: [32m'tqkisc-6'[39m
+  }
+]
+  ✓  3 e2e/r343.codex.spec.ts:83:1 › R343 calibration reset records its emitted job for backend replay (1.6s)
+PARAMETER_JOBS [
+  {
+    cmd: [32m'set_params'[39m,
+    purpose: [32m'probe'[39m,
+    vars: {
+      [32m'3014'[39m: [33m99[39m,
+      [32m'3015'[39m: [33m50[39m,
+      [32m'3016'[39m: [33m200[39m,
+      [32m'3017'[39m: [33m1000[39m,
+      [32m'3018'[39m: [33m10[39m,
+      [32m'3019'[39m: [33m2[39m,
+      [32m'3020'[39m: [33m10[39m,
+      [32m'3021'[39m: [33m2[39m,
+      [32m'3022'[39m: [33m0[39m,
+      [32m'3023'[39m: [33m5[39m,
+      [32m'3024'[39m: [33m0.5[39m,
+      [32m'3025'[39m: [33m0[39m,
+      [32m'3026'[39m: [33m0[39m,
+      [32m'3027'[39m: [33m0[39m,
+      [32m'3028'[39m: [33m0[39m,
+      [32m'3029'[39m: [33m0[39m,
+      [32m'3030'[39m: [33m1[39m,
+      [32m'3031'[39m: [33m0[39m,
+      [32m'3032'[39m: [33m0[39m,
+      [32m'3033'[39m: [33m0[39m,
+      [32m'3034'[39m: [33m0[39m,
+      [32m'3035'[39m: [33m0[39m
+    },
+    req_id: [32m'olumje-7'[39m
+  }
+]
+  ✘  4 e2e/r343.codex.spec.ts:93:1 › R343 editing a Surface parameter transfers its own purpose with Probing on (11.7s)
+
+
+  1) e2e/r343.codex.spec.ts:51:1 › R343 a focused Measure Current removed by Toolsetter off returns focus 
+
+    Error: navigation must not become jog
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  -  1[39m
+    [31m+ Received  + 13[39m
+
+    [32m- Array [][39m
+    [31m+ Array [[39m
+    [31m+   Object {[39m
+    [31m+     "axis": 0,[39m
+    [31m+     "cmd": "jog_cont",[39m
+    [31m+     "req_id": "vltsrp-6",[39m
+    [31m+     "vel": 10,[39m
+    [31m+   },[39m
+    [31m+   Object {[39m
+    [31m+     "axis": 0,[39m
+    [31m+     "cmd": "jog_stop",[39m
+    [31m+     "req_id": "vltsrp-7",[39m
+    [31m+   },[39m
+    [31m+ ][39m
+
+      66 |   const jogs=(await sent()).filter(c=>c.cmd.startsWith('jog_'));
+      67 |   console.log('AFTER_FOCUS_LOSS_ARROW',jogs);
+    > 68 |   expect(jogs,'navigation must not become jog').toEqual([]);
+         |                                                 ^
+      69 |   await expect(side(page).getByRole('tab',{name:'Tools',exact:true})).toBeFocused();
+      70 | });
+      71 |
+        at /tmp/codex-r343/lcnc-webui/e2e/r343.codex.spec.ts:68:49
+
+    Error Context: test-results/r343.codex-R343-a-focused--aa9fa-oolsetter-off-returns-focus/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r343.codex-R343-a-focused--aa9fa-oolsetter-off-returns-focus/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r343.codex-R343-a-focused--aa9fa-oolsetter-off-returns-focus/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/r343.codex.spec.ts:72:1 › R343 a focused camera control removed by Camera off returns focus 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mnot[2m.[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: not [32m"BODY"[39m
+
+      78 |   await expect(b).toHaveCount(0);
+      79 |   console.log('REMOVED_CAMERA_FOCUS',await focusNow(page));
+    > 80 |   expect((await focusNow(page)).tag).not.toBe('BODY');
+         |                                          ^
+      81 | });
+      82 |
+      83 | test('R343 calibration reset records its emitted job for backend replay',async({page})=>{
+        at /tmp/codex-r343/lcnc-webui/e2e/r343.codex.spec.ts:80:42
+
+    Error Context: test-results/r343.codex-R343-a-focused--af05f-by-Camera-off-returns-focus/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r343.codex-R343-a-focused--af05f-by-Camera-off-returns-focus/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r343.codex-R343-a-focused--af05f-by-Camera-off-returns-focus/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) e2e/r343.codex.spec.ts:93:1 › R343 editing a Surface parameter transfers its own purpose with Probing on 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      102 |   await expect.poll(async()=> (await sent()).filter(c=>c.cmd==='set_params').length).toBeGreaterThan(0);
+      103 |   console.log('PARAMETER_JOBS',(await sent()).filter(c=>c.cmd==='set_params'));
+    > 104 |   await expect.poll(async()=> (await sent()).some(c=>c.cmd==='set_params' && c.purpose==='surface')).toBe(true);
+          |                                                                                                      ^
+      105 | });
+      106 |
+        at /tmp/codex-r343/lcnc-webui/e2e/r343.codex.spec.ts:104:102
+
+    Error Context: test-results/r343.codex-R343-editing-a--1d0f3-own-purpose-with-Probing-on/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r343.codex-R343-editing-a--1d0f3-own-purpose-with-Probing-on/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r343.codex-R343-editing-a--1d0f3-own-purpose-with-Probing-on/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    e2e/r343.codex.spec.ts:51:1 › R343 a focused Measure Current removed by Toolsetter off returns focus 
+    e2e/r343.codex.spec.ts:72:1 › R343 a focused camera control removed by Camera off returns focus 
+    e2e/r343.codex.spec.ts:93:1 › R343 editing a Surface parameter transfers its own purpose with Probing on 
+  1 passed (17.9s)

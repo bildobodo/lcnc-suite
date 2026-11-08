@@ -1,0 +1,156 @@
+
+Running 13 tests using 1 worker
+
+(node:2256799) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2256799) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/feature-switches.spec.ts:45:1 › a first start with functions off never shows them: no Probing, no Macros, no macro bar, no Measure (1.3s)
+  ✓   2 e2e/feature-switches.spec.ts:66:1 › switched at run time: the tab and the bar go and come back (1.3s)
+  ✓   3 e2e/feature-switches.spec.ts:78:1 › the tab in use stays with a note until it is left (1.3s)
+  ✓   4 e2e/feature-switches.spec.ts:89:1 › Probing shows the procedures of the functions on: each of the three is its own (1.3s)
+  ✓   5 e2e/feature-switches.spec.ts:102:1 › surface map off with the compensation still on: its state and its OFF stay, nothing of the scan (1.4s)
+  ✓   6 e2e/feature-switches.spec.ts:119:1 › toolsetter off: its procedure, Measure Current and the M600 tool change are gone — Unload stays (1.5s)
+  ✓   7 e2e/feature-switches.spec.ts:133:1 › camera off: no quick toggle, no picture, no overlay settings (1.4s)
+  ✓   8 e2e/feature-switches.spec.ts:144:1 › Settings › Features: a switch saves the machine's section; Gamepad leaves the settings with its switch (1.7s)
+  ✓   9 e2e/feature-switches.spec.ts:157:1 › gamepad: its commands say so; off, the pad is not read; on again, a held button acts only after a release (1.6s)
+REMOVED_MEASURE_FOCUS {
+  tag: [32m'BODY'[39m,
+  role: [1mnull[22m,
+  text: [32m'LinuxCNC WebUI (local)11:33:05 AMWS connectedWS disconnectedLCNC: -ARMEDDISARMEDConnectionClients0Ne'[39m
+}
+  ✘  10 e2e/r343.codex.spec.ts:51:1 › R343 a focused Measure Current removed by Toolsetter off returns focus (11.5s)
+(node:2257480) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2257480) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+REMOVED_CAMERA_FOCUS {
+  tag: [32m'BODY'[39m,
+  role: [1mnull[22m,
+  text: [32m'LinuxCNC WebUI (local)11:33:17 AMWS connectedWS disconnectedLCNC: -ARMEDDISARMEDConnectionClients0Ne'[39m
+}
+  ✘  11 e2e/r343.codex.spec.ts:67:1 › R343 a focused camera control removed by Camera off returns focus (1.5s)
+(node:2257611) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2257611) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+CAL_RESET_JOB [
+  {
+    cmd: [32m'probe_run'[39m,
+    routine: [32m'probe_cal_reset'[39m,
+    vars: {},
+    req_id: [32m'vqf7pd-6'[39m
+  }
+]
+  ✓  12 e2e/r343.codex.spec.ts:78:1 › R343 calibration reset emits the job accepted by the backend (1.6s)
+  ✘  13 e2e/r343.codex.spec.ts:88:1 › R343 editing a Surface parameter transfers its own purpose with Probing on (50.2s)
+
+
+  1) e2e/r343.codex.spec.ts:51:1 › R343 a focused Measure Current removed by Toolsetter off returns focus 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeFocused[2m([22m[2m)[22m failed
+
+    Locator:  locator('.sidePane').getByRole('tab', { name: 'Tools', exact: true })
+    Expected: focused
+    Received: inactive
+    Timeout:  10000ms
+
+    Call log:
+    [2m  - Expect "toBeFocused" with timeout 10000ms[22m
+    [2m  - waiting for locator('.sidePane').getByRole('tab', { name: 'Tools', exact: true })[22m
+    [2m    24 × locator resolved to <button role="tab" tabindex="0" data-v-60d3a107="" id="tpv-1-tab-tools" aria-selected="true" data-control="tabMain" aria-controls="tpv-1-panel-tools" class="b sm default selected muted tab-main">Tools</button>[22m
+    [2m       - unexpected value "inactive"[22m
+
+
+      62 |   await expect(b).toHaveCount(0);
+      63 |   console.log('REMOVED_MEASURE_FOCUS',await focusNow(page));
+    > 64 |   await expect(side(page).getByRole('tab',{name:'Tools',exact:true})).toBeFocused();
+         |                                                                       ^
+      65 | });
+      66 |
+      67 | test('R343 a focused camera control removed by Camera off returns focus',async({page})=>{
+        at /tmp/codex-r343/lcnc-webui/e2e/r343.codex.spec.ts:64:71
+
+    Error Context: test-results/r343.codex-R343-a-focused--aa9fa-oolsetter-off-returns-focus/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r343.codex-R343-a-focused--aa9fa-oolsetter-off-returns-focus/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r343.codex-R343-a-focused--aa9fa-oolsetter-off-returns-focus/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/r343.codex.spec.ts:67:1 › R343 a focused camera control removed by Camera off returns focus 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mnot[2m.[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: not [32m"BODY"[39m
+
+      73 |   await expect(b).toHaveCount(0);
+      74 |   console.log('REMOVED_CAMERA_FOCUS',await focusNow(page));
+    > 75 |   expect((await focusNow(page)).tag).not.toBe('BODY');
+         |                                          ^
+      76 | });
+      77 |
+      78 | test('R343 calibration reset emits the job accepted by the backend',async({page})=>{
+        at /tmp/codex-r343/lcnc-webui/e2e/r343.codex.spec.ts:75:42
+
+    Error Context: test-results/r343.codex-R343-a-focused--af05f-by-Camera-off-returns-focus/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r343.codex-R343-a-focused--af05f-by-Camera-off-returns-focus/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r343.codex-R343-a-focused--af05f-by-Camera-off-returns-focus/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) e2e/r343.codex.spec.ts:88:1 › R343 editing a Surface parameter transfers its own purpose with Probing on 
+
+    [31mTest timeout of 45000ms exceeded.[39m
+
+    Error: locator.fill: Test timeout of 45000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.sidePane').getByLabel('X Probes', { exact: true })[22m
+    [2m    - locator resolved to <input min="2" readonly lang="en" value="5" id="ffv-38" type="text" name="scanParam" inputmode="none" data-v-668afd0d="" autocomplete="off" class="inputField" aria-label="X Probes" data-control="scanParam" data-input-area="input-22"/>[22m
+    [2m    - fill("9")[22m
+    [2m  - attempting fill action[22m
+    [2m    2 × waiting for element to be visible, enabled and editable[22m
+    [2m      - element is not editable[22m
+    [2m    - retrying fill action[22m
+    [2m    - waiting 20ms[22m
+    [2m    2 × waiting for element to be visible, enabled and editable[22m
+    [2m      - element is not editable[22m
+    [2m    - retrying fill action[22m
+    [2m      - waiting 100ms[22m
+    [2m    96 × waiting for element to be visible, enabled and editable[22m
+    [2m       - element is not editable[22m
+    [2m     - retrying fill action[22m
+    [2m       - waiting 500ms[22m
+
+
+      91 |   await side(page).getByRole('tab',{name:'Surface',exact:true}).click();
+      92 |   const f=side(page).getByLabel('X Probes',{exact:true});
+    > 93 |   await f.fill('9');
+         |           ^
+      94 |   await f.press('Tab');
+      95 |   await expect.poll(async()=> (await sent()).filter(c=>c.cmd==='set_params').length).toBeGreaterThan(0);
+      96 |   console.log('PARAMETER_JOBS',(await sent()).filter(c=>c.cmd==='set_params'));
+        at /tmp/codex-r343/lcnc-webui/e2e/r343.codex.spec.ts:93:11
+
+    Error Context: test-results/r343.codex-R343-editing-a--1d0f3-own-purpose-with-Probing-on/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r343.codex-R343-editing-a--1d0f3-own-purpose-with-Probing-on/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r343.codex-R343-editing-a--1d0f3-own-purpose-with-Probing-on/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    e2e/r343.codex.spec.ts:51:1 › R343 a focused Measure Current removed by Toolsetter off returns focus 
+    e2e/r343.codex.spec.ts:67:1 › R343 a focused camera control removed by Camera off returns focus 
+    e2e/r343.codex.spec.ts:88:1 › R343 editing a Surface parameter transfers its own purpose with Probing on 
+  10 passed (1.4m)

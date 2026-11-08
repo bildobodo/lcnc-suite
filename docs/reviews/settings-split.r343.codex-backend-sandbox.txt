@@ -1,0 +1,25 @@
+[VINIT] Loaded machine config: 3-Axis Mill
+test_an_unknown_via_is_refused_by_the_bounds_or_the_dispatch (test_feature_switches.TestEachSwitch.test_an_unknown_via_is_refused_by_the_bounds_or_the_dispatch) ... ok
+test_gamepad_off_refuses_what_the_gamepad_starts_never_its_stops (test_feature_switches.TestEachSwitch.test_gamepad_off_refuses_what_the_gamepad_starts_never_its_stops) ... Timeout (0:00:10)!
+Thread 0x0000ffff8f69fba0 (most recent call first):
+  File "/usr/lib/python3.13/selectors.py", line 452 in select
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 2004 in _run_once
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 683 in run_forever
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 712 in run_until_complete
+  File "/usr/lib/python3.13/asyncio/runners.py", line 72 in close
+  File "/usr/lib/python3.13/asyncio/runners.py", line 62 in __exit__
+  File "/usr/lib/python3.13/asyncio/runners.py", line 194 in run
+  File "/tmp/codex-r343/lcnc-gateway/test_command_dispatch.py", line 29 in _run
+  File "/tmp/codex-r343/lcnc-gateway/test_command_dispatch.py", line 276 in _send
+  File "/tmp/codex-r343/lcnc-gateway/test_feature_switches.py", line 280 in test_gamepad_off_refuses_what_the_gamepad_starts_never_its_stops
+  File "/usr/lib/python3.13/unittest/case.py", line 606 in _callTestMethod
+  File "/usr/lib/python3.13/unittest/case.py", line 651 in run
+  File "/usr/lib/python3.13/unittest/case.py", line 707 in __call__
+  File "/usr/lib/python3.13/unittest/suite.py", line 122 in run
+  File "/usr/lib/python3.13/unittest/suite.py", line 84 in __call__
+  File "/usr/lib/python3.13/unittest/suite.py", line 122 in run
+  File "/usr/lib/python3.13/unittest/suite.py", line 84 in __call__
+  File "/usr/lib/python3.13/unittest/suite.py", line 122 in run
+  File "/usr/lib/python3.13/unittest/suite.py", line 84 in __call__
+  File "/usr/lib/python3.13/unittest/runner.py", line 240 in run
+  File "<stdin>", line 4 in <module>

@@ -1,0 +1,60 @@
+{
+  "round": "R343",
+  "verdict": "findings",
+  "product_head": "335440a72d3607ecb930816ecb51d03bb48f340b",
+  "base": "c036935f8ddf2fe941587ad3560619856041e13f",
+  "document_head": "afcd2ef76125c39902273ab3033c0f89b217174b",
+  "archive": "/tmp/codex-r343",
+  "mock_port": 4943,
+  "live_access": "none",
+  "findings": {
+    "SS-I08": "calibration reset has empty vars and is rejected",
+    "SS-I09": "removed focused controls leave BODY; arrow sends jog",
+    "SS-I10": "second purpose update dropped by fire busy latch",
+    "SS-I11": "camera off never wakes a frame-silent stream",
+    "SS-I12": "native runner still sends removed set_probe_vars"
+  },
+  "checks": {
+    "build": "PASS",
+    "unit": "36/36 PASS, 4 suites",
+    "backend": "30 repository PASS; 3 review counterexamples FAIL",
+    "browser_repository": "9/9 PASS in initial run",
+    "browser_review": "final: 1 PASS (records reset), 3 FAIL (two focus cases and surface params)",
+    "diff_check": "PASS",
+    "supplied_round_gate": "PASS 911/911, matching product head; not repeated"
+  },
+  "test_setup_notes": [
+    "Archive excludes docs/reviews; copied node_modules from previous isolated archive.",
+    "Mock port constant only in test harness changed from 4500 to 4943.",
+    "Initial Surface probe incorrectly filled readonly input; corrected to actual keypad, final counterexample fails by assertion.",
+    "Sandbox asyncio teardown stalled; stopped own test only; subsequent bounded attempts timed out. Same final backend suite outside sandbox finishes in 0.426s.",
+    "Sandbox unit commandShapes failed spawnSync python3 EPERM; rerun outside sandbox passes all 36.",
+    "Camera uses real broker/route with injected images, not hardware; 300ms is observation window, no new service limit.",
+    "Native command probe reads AST of versioned runner and replays message into fake-bound dispatcher, not native run."
+  ],
+  "reproduce": {
+    "backend": "Copy codex-backend.py to archive/lcnc-gateway/test_r343_codex.py; there: PYTHONDONTWRITEBYTECODE=1 <gateway-venv>/bin/python -m unittest -v test_feature_switches test_r343_codex",
+    "browser": "Copy codex-browser.spec.ts to archive/lcnc-webui/e2e/r343.codex.spec.ts and codex-browser.config.ts to playwright.r343.config.ts; set e2e/mockSlot.mjs base port 4943; npm run build; npx playwright test --config playwright.r343.config.ts e2e/feature-switches.spec.ts e2e/r343.codex.spec.ts",
+    "unit": "npx vitest run src/useGamepad.test.ts src/commandShapes.test.ts src/probeVarFiles.test.ts src/settingsSections.test.ts"
+  },
+  "review_prefix_bytes": 146292,
+  "review_prefix_sha256": "184c48b7409cbda8be749890e6d88479bdb9f61fab556309724a4cdccf604125",
+  "artifacts": {
+    "settings-split.r343.codex-build.txt": "446889e3e6fd56267f8cad56ef4e19afddd5d15f80c1f705dee2ad175c342d27",
+    "settings-split.r343.codex-unit.txt": "1ad1f323d62dff6ad0da39bdaa70df84793adc02ec0a3a8589eeeea2e25f0a20",
+    "settings-split.r343.codex-unit-sandbox.txt": "7fe1a0cfbe3502f503867078d4a90792a7dd8f6e67fd257f477b063075f88bb8",
+    "settings-split.r343.codex-backend.txt": "e0da2fa2dfa33ada1a4d722328fbb7286f94e46b7bf734d5b329fe04445b308b",
+    "settings-split.r343.codex-backend-sandbox.txt": "1ef38071028fb4d86d9ffa154b771048edcd026ba8f415cacdb99ddc2bdd9056",
+    "settings-split.r343.codex-backend.py": "20d28a107dd7bde695fd8d2b155532ab59dda3abc4471063b911a7f510637b7c",
+    "settings-split.r343.codex-browser-initial.txt": "3698bbb7de8cb6df47ebdcf9baee5443ca8fd60125488e307e3f7acb86df1f9c",
+    "settings-split.r343.codex-browser.txt": "abfcc96cf8ff346b58174d000ca76222d58631cf4149509d8f60da163bb9a3a6",
+    "settings-split.r343.codex-browser.spec.ts": "bf4b06a161ae4d20a36084acc722858c1facb44c95d491edff49b9c8572f2685",
+    "settings-split.r343.codex-browser.config.ts": "c54e132e4d0df2e97aee33df41986f19f38e37284501d170e4010d9c851d4db0"
+  },
+  "limits": [
+    "No full round/main gate repeated.",
+    "No live/native/performance run.",
+    "Existing pending pre-main checks retained.",
+    "No products changed, no commits made."
+  ]
+}

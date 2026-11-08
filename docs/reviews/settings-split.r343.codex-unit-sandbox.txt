@@ -1,0 +1,26 @@
+
+ RUN  v4.1.8 /tmp/codex-r343/lcnc-webui
+
+ ❯ src/commandShapes.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/commandShapes.test.ts [ src/commandShapes.test.ts ]
+Error: spawnSync python3 EPERM
+ ❯ readGateway src/commandShapes.test.ts:57:21
+     55| print(json.dumps({"schema": {c: {f: type(s).__name__ for f, s in fs.it…
+     56|                   "gated": sorted(cp.COMMAND_GATES)}))`;
+     57|   return JSON.parse(execFileSync("python3", ["-I", "-c", py]).toString…
+       |                     ^
+     58| }
+     59|
+ ❯ src/commandShapes.test.ts:168:14
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 3 passed (4)
+      Tests  31 passed (31)
+   Start at  11:37:05
+   Duration  1.07s (transform 590ms, setup 0ms, import 783ms, tests 19ms, environment 0ms)
+
