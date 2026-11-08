@@ -1,0 +1,26 @@
+Settings split package 3 — mutations against the new guards (feat/feature-switches 9bdfc730), each restored after its run.
+
+M1 the switch not re-checked at the write (_feature_job admit without _feature_refusal)
+   -> FAILED test_feature_switches.py::TestTheJobs::test_a_switch_turned_off_meanwhile_stops_the_job_at_its_write
+M2 an open camera stream not ended (the per-frame check made `if False`)
+   -> FAILED test_feature_switches.py::TestTheCamera::test_an_open_stream_ends_when_the_camera_goes_off
+M3 no standstill in the switches' admission
+   -> FAILED test_feature_switches.py::TestTheChangeIsAdmitted::test_a_moving_machine_refused
+M4 the gamepad's stops refused too (`if cmd not in _WS_STOP_CMDS` -> `if True`)
+   -> FAILED test_feature_switches.py::TestEachSwitch::test_gamepad_off_refuses_what_the_gamepad_starts_never_its_stops
+M5 no purpose check (features.purpose_refusal accepts every number)
+   -> FAILED test_feature_switches.py::TestTheSection::test_the_purposes_are_their_own_sets
+   -> FAILED test_feature_switches.py::TestTheJobs::test_a_set_outside_its_purpose_is_refused_whole
+M6 surface map off without the compensation known off
+   -> FAILED test_feature_switches.py::TestTheChangeIsAdmitted::test_surface_off_needs_the_compensation_known_off
+M7 the gamepad acts at once after a start (awaitRest = false in start())
+   -> FAILED useGamepad.test.ts › a stick already deflected and a button already held at the start act only after the pad was at rest
+
+Red first in the browser (found while building, both fixed):
+B1 features.ts read the switches at App's import, before the bootstrap fetch, with no reactive edge when it arrived
+   -> FAILED feature-switches.spec.ts › a first start with functions off never shows them (Probing, Macros and the probe procedures painted)
+B2 the Surface view held for an UNREAD compensation (eoffset_enabled !== false)
+   -> FAILED feature-switches.spec.ts › a first start … (Probing + Surface painted before the first status)
+
+Inventory guard (test_inventory.py::test_the_feature_roles_hold_against_the_gateways_tables): a switched command marked readable,
+a function under the wrong switch, a claim without a role, a non-variant marked variant, a switch with no function — each named.

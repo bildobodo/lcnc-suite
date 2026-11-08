@@ -1205,3 +1205,92 @@ Die Wiedergabesperre bleibt wirksam: Die unveränderte R340-Gegenprobe und die z
 Damit sind **SS-I01 bis SS-I07 einschließlich der nachgeprüften Reste** für diese beiden Pakete geschlossen. Die Grenzen der Lastmessungsabnahme aus R340 gelten weiter. Die schon seit R338 benannten Vor-main-Prüfungen `firefox-core`, `macro-live`, `perf-matrix` und `twp-buttons` stehen im Gate weiterhin unter `pending`; dieses Agreement wertet sie nicht als bestanden und ersetzt kein vollständiges Main-Merge-Gate. Paket 3 ist nicht Gegenstand dieser Abnahme.
 
 Vorhandene Review-Abschnitte und Belege wurden nicht verändert; neue Nachweise beginnen mit `settings-split.r342.codex-`.
+
+---
+
+## Claude · Umsetzung Paket 3 · Anfrage R343 · 8. November 2026
+
+Der Operator hat Pakete 1+2 freigegeben („okay du kannst mergen und dann mit paket 3 weitermachen“). development steht lokal auf `c036935f`: Fast-Forward auf `2bcd2709`, dazu der CI-Fix. Paket 3 ist nach dem Plan R335–R337 gebaut: `feat/feature-switches`, `c036935f..335440a7`. Das Round-Gate (`--base c036935f`) ist **PASS** am Kopf `335440a7`.
+
+### Bereich und Zulassung
+
+- **Ein Maschinenbereich `features`** (`lcnc-gateway/features.py`, Client `features.ts`): probing, toolsetter, surfaceMap, camera, macros, gamepad. Fehlt der Bereich, ist alles an; eine bestehende Installation läuft also unverändert. Validiert werden genau diese sechs Schalter als Booleans; eine Teilmenge oder ein unbekannter Schlüssel wird abgelehnt.
+- **Änderung** (`_machine_state_admission`, über den neuen Haken `admit_state(before, after)` im Store-Lock):
+  - die ganze `sourceWrite`-Regel: armed, kein Start-Claim, kein RFL, kein Laden, Interpreter **bekannt** idle;
+  - kein Befehl hält `_cmd_lock`. Ein Befehl liest seinen Schalter unter diesem Lock; nimmt er ihn nach dieser Prüfung, wartet sein Lesen auf den Store-Lock und sieht den neuen Wert;
+  - kein gebuchter Jog, und die Maschine steht (`motion_still_of`; unbekannt heißt Ablehnung);
+  - Surface-Map **aus** nur mit Kompensation bekannt aus, bei frischem Reader.
+- **Eine Regel über beide Bereiche** (`features.conflict`): Toolsetter aus bei Werkzeugwechsel M600 ist kein speicherbarer Zustand. Ein `features`-Save nennt „choose another tool change mode first“, ein `machine`-Save „turn the toolsetter on first“.
+- Der `features`-Save läuft unter `_source_lock`, dem Lock, unter dem jeder Start seinen Claim registriert. Er läuft in einem **eigenen Task, nie im WS-Reader**: Ein Programm-Upload kann diesen Lock halten, und der Reader muss Heartbeats weiterlesen.
+- Kein Schalter sendet einen Maschinenbefehl. Einschalten schaltet nichts ein.
+
+### Was ein Schalter ablehnt
+
+Geprüft wird beim Dispatch unter `_cmd_lock` (`_command_feature_refusal`) **und bei jedem Schreiben**: Das `admit` des Auftrags prüft den Schalter, die Toolsetter-Basis und den Leerlauf erneut.
+
+- **Aufträge statt Client-`mdi` mit `vars`** (R336):
+  - `probe_run {routine, vars}`: Die Routine muss eine `probe_*`-Datei des Subroutine-Pfads sein. Das Gateway baut `O<routine> CALL`.
+  - `surface_scan_run {vars}`;
+  - `tool_measure {tool}` / `tool_unload_measure`: Die Werte stammen aus der **bestätigten Toolsetter-Sektion des Servers** (`_toolsetter_basis`, P2), nie von der Seite. Ist der Toolsetter nicht eingerichtet, startet nichts. Messung und Programmstart haben damit eine Quelle.
+  - Jeder Auftrag trägt den `#3116`-Clear wie bisher.
+- **`set_params {purpose, vars}`** ersetzt `set_probe_vars`. Die Zwecke `probe` (#3014–#3036), `surface` (#3050–#3059, #3014, #3021) und `toolsetter` (#3004–#3013, #3100–#3115) haben je ihren eigenen Satz und ihren eigenen Schalter. Ein Satz außerhalb seines Zwecks wird **vor dem ersten Schreiben ganz** abgelehnt.
+- **Nach Inhalt** (`features.VARIANT_COMMANDS`):
+  - `set_compensation` nur beim Einschalten (Aus bleibt immer zugelassen);
+  - `auto_run` mit `pre_tool`, also die RFL-Vormessung, beim Toolsetter;
+  - der Programmstart-Sync wird bei Toolsetter aus übersprungen, die Notiz sagt `off`.
+- **Routen** (`features.ROUTE_FEATURES`):
+  - die Makro-Schreibwege im Commit-Gate (`_macro_write_gate`); `GET /macros` und `GET /macro` bleiben lesbar;
+  - `/camera/stream` und `/camera/status`. Ein **offener Stream endet** beim nächsten Frame.
+- **Gamepad:** Jeder Befehl des Gamepads trägt `via: "gamepad"`. Bei Gamepad aus wird er abgelehnt, ausgenommen die Stopps (`_WS_STOP_CMDS`). Die Liste `features.GAMEPAD_COMMANDS` ist im Schema gebunden; `commandShapes.test` hält Client und Gateway gleich.
+- **Bleibt erlaubt:**
+  - freies MDI, als benannte Ausnahme (OP2);
+  - der normale Werkzeugwechsel `tool_change` (M6 G43) einschließlich Unload;
+  - `set_wcs` und alles andere unter dem gemeinsamen `probe`-Gate;
+  - Bildschirm- und Tastatur-Jog;
+  - alle Lesewege.
+
+### Bewusste Abweichungen und Entscheidungen beim Bau (bitte prüfen)
+
+1. **`via` statt `source`:** `auto_run.source` ist schon der Fingerabdruck des Programmtexts. Ein Schlüssel soll in der geschlossenen `WsCommand`-Union eine Bedeutung haben.
+2. **`mdi` behält `vars`** als generischen Parameterweg. Die native Stufe startet ihre Routinen damit, und der Probe-Aufruf einer älteren Seite landet dort. Das deckt die R336-Ausnahme „generisches MDI auch von alten Clients“ ab. Ein neuer Client benutzt den Weg nicht mehr.
+3. **Gehalten wird jeder Tab, der gerade benutzt wird, bis zum Verlassen**, nicht nur ein Tab mit Entwurf. Das gilt für Tab, Prozedur und Einstellungsbereich und jeweils mit Hinweis. So wird dem Operator nie ein Tab unter der Hand entzogen, und ein Entwurf im Makro-Editor, im Toolsetter-Formular oder im Gamepad-Assistenten geht nicht verloren. Der Parameterdialog eines Makros bleibt offen; sein Execute ist dann mit Grund gesperrt.
+4. **Die Surface-Ansicht bleibt für das AUS der Kompensation nur, solange die Kompensation *beobachtet* an ist.** Ein ungelesener Zustand hielt sie vor dem ersten Status bei jedem Laden. Damit malte ein Gerät, bei dem alle drei Probing-Funktionen aus sind, kurz den Probing-Tab. Der Browser-Test war rot. Ungelesen zeigt Offsets „—“, ein veralteter Reader ist Sache des Banners, und das Gateway ließ den Schalter nur bei bekannt ausgeschalteter Kompensation aus.
+5. **`features.ts` liest bei `serverSettingsReady` neu.** Das Modul wird beim Import von App ausgewertet, also vor dem Bootstrap-Fetch, und `initServerDefaults` erhöht keine `settingsVersion`. Ohne das blieb „alles an“ stehen und malte Tabs (Browser-Test rot).
+
+### Oberfläche (OP2: entfernt, nicht gedimmt)
+
+- Einstellungen › Features mit sechs Schaltern: armed, Hilfe je Schalter, Reset.
+- Der **Probing-Tab** zeigt nur die Prozeduren der eingeschalteten Funktionen (`PROBE_VIEW_FEATURE`). Er verschwindet, wenn keine an ist.
+- Bei Surface-Map aus zeigt die Surface-Ansicht nur den Zustand und den Schalter der Kompensation.
+- **Weg sind:** Makros-Tab und Makroleiste, „Measure Current“, der Modus M600 in Einstellungen › Machine (sichtbar, solange er der gespeicherte ist), Kamerabild, Kamera-Schnellschalter und Overlay-Einstellungen, Einstellungen › Gamepad.
+- Bei Gamepad aus wird das Pad **nicht gelesen** (`stop()`). Nach einem Start wirkt es erst, wenn das Pad in Ruhe war: Ein gehaltener Knopf ist kein Druck, ein ausgelenkter Stick kein Jog.
+
+### Inventar
+
+- **Dimension `feature`:** Jede betroffene Funktion bekommt einen Block mit Schalter und einer Rolle je Claim: switched, variant, readable, stays oder helper.
+- **Wächter `functions.feature_problems`** prüft gegen die Tabellen des Gateways:
+  - Jeder Claim hat eine Rolle.
+  - Ein als switched markierter Befehl oder eine solche Route wird vom Gateway unter **diesem** Schalter abgelehnt.
+  - Ein als variant markierter Befehl steht in `VARIANT_COMMANDS`.
+  - Jeder Befehl und jede Route, die das Gateway schaltet, ist so beansprucht.
+  - Jeder Schalter hat eine Funktion.
+- `F-FEATURES` besitzt die Schalter. F-SIMTRIP ist die benannte Ausnahme ohne Schalter.
+- **Adapter:** Die Routinen kommen jetzt aus dem `probe_run`-Auftrag des Clients (`routine: macro` ← ProbePanel). `T{tool} M600` liest der Gateway-Adapter, `O<{routine}> CALL` ist als Familie benannt.
+- Der Abschnitt „Abschaltbare Funktionen“ in `funktionen.md` ist erzeugt.
+
+### Belege
+
+- **Round-Gate** [settings-split.r343.gate-round.json](settings-split.r343.gate-round.json): Kopf `335440a7`, Unit 2650, Backend grün (mit Inventar), Browser **911/911**. Ein erster Lauf am Kopf `0854381a` war FAIL, nur im Inventar: Drei Belege nannten umbenannte Testtitel; der Browser war auch dort 911/911. Behoben in `335440a7`: Titel und Aussagen folgen den Aufträgen, und F-FEATURES hat vier Aussagen mit Belegen.
+- **Mutationen** [settings-split.r343.mutations.txt](settings-split.r343.mutations.txt):
+  - sieben Mutationen, je von ihrem Test gefangen: Schalter nicht beim Schreiben geprüft, offener Stream läuft weiter, kein Stillstand, Gamepad-Stopps gesperrt, keine Zweckprüfung, Surface aus trotz Kompensation, Gamepad wirkt sofort nach dem Start;
+  - zwei Browser-Rotfunde aus dem Bau, beide behoben.
+- **Tests:**
+  - `test_feature_switches.py`: 30 Tests, für jeden Schalter ein abgelehnter direkter Aufruf und ein erlaubter Nachbar, Codex' Abnahmeliste wörtlich, dazu ein Kamera-Stream mit echtem Generator;
+  - `feature-switches.spec.ts`: 9 Tests, darunter der Erststart, beobachtet ab dem ersten Render;
+  - Gamepad-Ruhe in `useGamepad.test.ts`;
+  - Rollen-Wächter in `test_inventory.py`.
+- **Angepasst:** `probe-click` und `toolsetter-setup` folgen den Aufträgen, `tabs` dem neunten Einstellungsbereich, die Backend-Tests `set_params`.
+- **Offen vor main** (live, laut Gate): twp-buttons (`features.py` gehört zur Befehlszulassung), firefox-core, macro-live, perf-matrix, probe-live, toolsetter-readback.
+- Die LAN-Test-Sim läuft zur Durchsicht des Operators auf `335440a7`.
+
+**Erbeten:** `agreement` zu Paket 3 oder `findings`.
