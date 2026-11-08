@@ -1,0 +1,131 @@
+
+Running 19 tests using 1 worker
+
+(node:2349356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2349356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/feature-switches.spec.ts:45:1 › a first start with functions off never shows them: no Probing, no Macros, no macro bar, no Measure (1.4s)
+  ✓   2 e2e/feature-switches.spec.ts:66:1 › switched at run time: the tab and the bar go and come back (1.2s)
+  ✓   3 e2e/feature-switches.spec.ts:78:1 › the tab in use stays with a note until it is left (1.4s)
+  ✓   4 e2e/feature-switches.spec.ts:89:1 › Probing shows the procedures of the functions on: each of the three is its own (1.3s)
+  ✓   5 e2e/feature-switches.spec.ts:102:1 › surface map off with the compensation still on: its state and its OFF stay, nothing of the scan (1.4s)
+  ✓   6 e2e/feature-switches.spec.ts:119:1 › toolsetter off: its procedure, Measure Current and the M600 tool change are gone — Unload stays (1.5s)
+  ✓   7 e2e/feature-switches.spec.ts:133:1 › camera off: no quick toggle, no picture, no overlay settings (1.3s)
+  ✓   8 e2e/feature-switches.spec.ts:144:1 › Settings › Features: a switch saves the machine's section; Gamepad leaves the settings with its switch (1.8s)
+  ✓   9 e2e/feature-switches.spec.ts:157:1 › gamepad: its commands say so; off, the pad is not read; on again, a held button acts only after a release (1.6s)
+  ✓  10 e2e/feature-switches.spec.ts:198:1 › a focused control its switch removes hands the focus on — an arrow then moves no axis (SS-I09) (1.6s)
+  ✓  11 e2e/feature-switches.spec.ts:235:1 › a focused camera setting its switch removes hands the focus to the settings sections (SS-I09) (1.3s)
+  ✓  12 e2e/feature-switches.spec.ts:246:1 › Reset Calibration sends its routine as a probe job without values (SS-I08) (1.5s)
+  ✓  13 e2e/feature-switches.spec.ts:262:3 › a probing parameter goes out to every purpose switched on — both on (SS-I10) (1.6s)
+  ✓  14 e2e/feature-switches.spec.ts:262:3 › a probing parameter goes out to every purpose switched on — probing off (SS-I10) (1.6s)
+  ✓  15 e2e/feature-switches.spec.ts:262:3 › a probing parameter goes out to every purpose switched on — surface map off (SS-I10) (1.6s)
+REMOVED_MEASURE_FOCUS { tag: 'BUTTON', role: 'tab', text: 'Tools' }
+AFTER_FOCUS_LOSS_ARROW []
+  ✘  16 e2e/r343-codex.spec.ts:49:1 › R343 a focused Measure Current removed by Toolsetter off returns focus (11.6s)
+(node:2350282) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2350282) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+REMOVED_CAMERA_FOCUS { tag: 'BUTTON', role: null, text: 'Reset' }
+  ✓  17 e2e/r343-codex.spec.ts:70:1 › R343 a focused camera control removed by Camera off returns focus (1.4s)
+CAL_RESET_JOB [
+  {
+    cmd: 'probe_run',
+    routine: 'probe_cal_reset',
+    vars: {},
+    req_id: 'ovsqsy-6'
+  }
+]
+  ✓  18 e2e/r343-codex.spec.ts:81:1 › R343 calibration reset records its emitted job for backend replay (1.5s)
+PARAMETER_JOBS [
+  {
+    cmd: 'set_params',
+    purpose: 'probe',
+    vars: {
+      '3014': 99,
+      '3015': 50,
+      '3016': 200,
+      '3017': 1000,
+      '3018': 10,
+      '3019': 2,
+      '3020': 10,
+      '3021': 2,
+      '3022': 0,
+      '3023': 5,
+      '3024': 0.5,
+      '3025': 0,
+      '3026': 0,
+      '3027': 0,
+      '3028': 0,
+      '3029': 0,
+      '3030': 1,
+      '3031': 0,
+      '3032': 0,
+      '3033': 0,
+      '3034': 0,
+      '3035': 0
+    },
+    req_id: '3htw80-7'
+  },
+  {
+    cmd: 'set_params',
+    purpose: 'surface',
+    vars: {
+      '3014': 99,
+      '3021': 2,
+      '3050': 10,
+      '3051': 200,
+      '3052': 10,
+      '3053': 200,
+      '3054': 9,
+      '3055': 5,
+      '3056': 200,
+      '3057': 50,
+      '3058': 20,
+      '3059': 24
+    },
+    req_id: '3htw80-8'
+  }
+]
+  ✓  19 e2e/r343-codex.spec.ts:91:1 › R343 editing a Surface parameter transfers its own purpose with Probing on (1.7s)
+
+
+  1) e2e/r343-codex.spec.ts:49:1 › R343 a focused Measure Current removed by Toolsetter off returns focus 
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  locator('.sidePane').getByRole('tab', { name: 'Tools', exact: true })
+    Expected: focused
+    Received: inactive
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toBeFocused" with timeout 10000ms
+      - waiting for locator('.sidePane').getByRole('tab', { name: 'Tools', exact: true })
+        24 × locator resolved to <button role="tab" tabindex="0" data-v-60d3a107="" id="tpv-1-tab-tools" aria-selected="true" data-control="tabMain" aria-controls="tpv-1-panel-tools" class="b sm default selected muted tab-main">Tools</button>
+           - unexpected value "inactive"
+
+
+      65 |   console.log('AFTER_FOCUS_LOSS_ARROW',jogs);
+      66 |   expect(jogs,'navigation must not become jog').toEqual([]);
+    > 67 |   await expect(side(page).getByRole('tab',{name:'Tools',exact:true})).toBeFocused();
+         |                                                                       ^
+      68 | });
+      69 |
+      70 | test('R343 a focused camera control removed by Camera off returns focus',async({page})=>{
+        at /tmp/codex-r344/lcnc-webui/e2e/r343-codex.spec.ts:67:71
+
+    Error Context: test-results/r343-codex-R343-a-focused--bd985-oolsetter-off-returns-focus/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r343-codex-R343-a-focused--bd985-oolsetter-off-returns-focus/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r343-codex-R343-a-focused--bd985-oolsetter-off-returns-focus/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/r343-codex.spec.ts:49:1 › R343 a focused Measure Current removed by Toolsetter off returns focus 
+  18 passed (39.7s)

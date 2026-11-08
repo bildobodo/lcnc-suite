@@ -1,0 +1,172 @@
+
+Running 19 tests using 1 worker
+
+(node:2347958) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2347958) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   1 e2e/feature-switches.spec.ts:45:1 › a first start with functions off never shows them: no Probing, no Macros, no macro bar, no Measure (10.1s)
+(node:2348239) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2348239) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   2 e2e/feature-switches.spec.ts:66:1 › switched at run time: the tab and the bar go and come back (10.1s)
+(node:2348503) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2348503) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   3 e2e/feature-switches.spec.ts:78:1 › the tab in use stays with a note until it is left (10.1s)
+(node:2348784) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2348784) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   4 e2e/feature-switches.spec.ts:89:1 › Probing shows the procedures of the functions on: each of the three is its own (10.1s)
+(node:2349073) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2349073) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -   5 e2e/feature-switches.spec.ts:102:1 › surface map off with the compensation still on: its state and its OFF stay, nothing of the scan
+
+
+  1) e2e/feature-switches.spec.ts:45:1 › a first start with functions off never shows them: no Probing, no Macros, no macro bar, no Measure 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('input.setupInput').first()
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('input.setupInput').first()
+
+
+      33 |   await serve(page, new Folder());
+      34 |   await page.goto(MOCK);
+    > 35 |   await expect(page.locator("input.setupInput").first()).toBeVisible();
+         |                                                          ^
+      36 |   await ctl({ op: "status_delta", data: { permissions: PERMS_ALL, tool_number: 5, eoffset_enabled: false, ...status } });
+      37 |   await ctl({ op: "clearCmds" });
+      38 | }
+        at open (/tmp/codex-r344/lcnc-webui/e2e/feature-switches.spec.ts:35:58)
+        at /tmp/codex-r344/lcnc-webui/e2e/feature-switches.spec.ts:55:3
+
+    Error Context: test-results/feature-switches-a-first-s-4ae44-ros-no-macro-bar-no-Measure/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/feature-switches-a-first-s-4ae44-ros-no-macro-bar-no-Measure/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/feature-switches-a-first-s-4ae44-ros-no-macro-bar-no-Measure/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/feature-switches.spec.ts:66:1 › switched at run time: the tab and the bar go and come back 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('input.setupInput').first()
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('input.setupInput').first()
+
+
+      33 |   await serve(page, new Folder());
+      34 |   await page.goto(MOCK);
+    > 35 |   await expect(page.locator("input.setupInput").first()).toBeVisible();
+         |                                                          ^
+      36 |   await ctl({ op: "status_delta", data: { permissions: PERMS_ALL, tool_number: 5, eoffset_enabled: false, ...status } });
+      37 |   await ctl({ op: "clearCmds" });
+      38 | }
+        at open (/tmp/codex-r344/lcnc-webui/e2e/feature-switches.spec.ts:35:58)
+        at /tmp/codex-r344/lcnc-webui/e2e/feature-switches.spec.ts:67:3
+
+    Error Context: test-results/feature-switches-switched--fb9f8-nd-the-bar-go-and-come-back/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/feature-switches-switched--fb9f8-nd-the-bar-go-and-come-back/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/feature-switches-switched--fb9f8-nd-the-bar-go-and-come-back/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) e2e/feature-switches.spec.ts:78:1 › the tab in use stays with a note until it is left ─────────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('input.setupInput').first()
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('input.setupInput').first()
+
+
+      33 |   await serve(page, new Folder());
+      34 |   await page.goto(MOCK);
+    > 35 |   await expect(page.locator("input.setupInput").first()).toBeVisible();
+         |                                                          ^
+      36 |   await ctl({ op: "status_delta", data: { permissions: PERMS_ALL, tool_number: 5, eoffset_enabled: false, ...status } });
+      37 |   await ctl({ op: "clearCmds" });
+      38 | }
+        at open (/tmp/codex-r344/lcnc-webui/e2e/feature-switches.spec.ts:35:58)
+        at /tmp/codex-r344/lcnc-webui/e2e/feature-switches.spec.ts:79:3
+
+    Error Context: test-results/feature-switches-the-tab-i-f4927-ith-a-note-until-it-is-left/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/feature-switches-the-tab-i-f4927-ith-a-note-until-it-is-left/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/feature-switches-the-tab-i-f4927-ith-a-note-until-it-is-left/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) e2e/feature-switches.spec.ts:89:1 › Probing shows the procedures of the functions on: each of the three is its own 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('input.setupInput').first()
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('input.setupInput').first()
+
+
+      33 |   await serve(page, new Folder());
+      34 |   await page.goto(MOCK);
+    > 35 |   await expect(page.locator("input.setupInput").first()).toBeVisible();
+         |                                                          ^
+      36 |   await ctl({ op: "status_delta", data: { permissions: PERMS_ALL, tool_number: 5, eoffset_enabled: false, ...status } });
+      37 |   await ctl({ op: "clearCmds" });
+      38 | }
+        at open (/tmp/codex-r344/lcnc-webui/e2e/feature-switches.spec.ts:35:58)
+        at /tmp/codex-r344/lcnc-webui/e2e/feature-switches.spec.ts:90:3
+
+    Error Context: test-results/feature-switches-Probing-s-af795-ach-of-the-three-is-its-own/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/feature-switches-Probing-s-af795-ach-of-the-three-is-its-own/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/feature-switches-Probing-s-af795-ach-of-the-three-is-its-own/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4 failed
+    e2e/feature-switches.spec.ts:45:1 › a first start with functions off never shows them: no Probing, no Macros, no macro bar, no Measure 
+    e2e/feature-switches.spec.ts:66:1 › switched at run time: the tab and the bar go and come back ─
+    e2e/feature-switches.spec.ts:78:1 › the tab in use stays with a note until it is left ──────────
+    e2e/feature-switches.spec.ts:89:1 › Probing shows the procedures of the functions on: each of the three is its own 
+  15 did not run

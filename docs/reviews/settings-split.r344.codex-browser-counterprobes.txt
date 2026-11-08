@@ -1,0 +1,129 @@
+
+Running 5 tests using 1 worker
+
+(node:2352457) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2352457) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+REMOVED_MEASURE_FOCUS { tag: 'BUTTON', role: 'tab', text: 'Tools' }
+AFTER_FOCUS_LOSS_ARROW []
+  ✓  1 e2e/r343-codex.spec.ts:49:1 › R343 a focused Measure Current removed by Toolsetter off returns focus (1.4s)
+REMOVED_CAMERA_FOCUS { tag: 'BUTTON', role: null, text: 'Reset' }
+  ✓  2 e2e/r343-codex.spec.ts:72:1 › R343 a focused camera control removed by Camera off returns focus (1.1s)
+CAL_RESET_JOB [
+  {
+    cmd: 'probe_run',
+    routine: 'probe_cal_reset',
+    vars: {},
+    req_id: 'hxojb3-6'
+  }
+]
+  ✓  3 e2e/r343-codex.spec.ts:83:1 › R343 calibration reset records its emitted job for backend replay (1.5s)
+PARAMETER_JOBS [
+  {
+    cmd: 'set_params',
+    purpose: 'probe',
+    vars: {
+      '3014': 99,
+      '3015': 50,
+      '3016': 200,
+      '3017': 1000,
+      '3018': 10,
+      '3019': 2,
+      '3020': 10,
+      '3021': 2,
+      '3022': 0,
+      '3023': 5,
+      '3024': 0.5,
+      '3025': 0,
+      '3026': 0,
+      '3027': 0,
+      '3028': 0,
+      '3029': 0,
+      '3030': 1,
+      '3031': 0,
+      '3032': 0,
+      '3033': 0,
+      '3034': 0,
+      '3035': 0
+    },
+    req_id: 'ubu4t1-7'
+  },
+  {
+    cmd: 'set_params',
+    purpose: 'surface',
+    vars: {
+      '3014': 99,
+      '3021': 2,
+      '3050': 10,
+      '3051': 200,
+      '3052': 10,
+      '3053': 200,
+      '3054': 9,
+      '3055': 5,
+      '3056': 200,
+      '3057': 50,
+      '3058': 20,
+      '3059': 24
+    },
+    req_id: 'ubu4t1-8'
+  }
+]
+  ✓  4 e2e/r343-codex.spec.ts:93:1 › R343 editing a Surface parameter transfers its own purpose with Probing on (1.5s)
+PARAMETERS_AFTER_ABORT [{"cmd":"set_params","purpose":"probe","vars":{"3014":99,"3015":50,"3016":200,"3017":1000,"3018":10,"3019":2,"3020":10,"3021":2,"3022":0,"3023":5,"3024":0.5,"3025":0,"3026":0,"3027":0,"3028":0,"3029":0,"3030":1,"3031":0,"3032":0,"3033":0,"3034":0,"3035":0},"req_id":"qml3xc-7"},{"cmd":"abort","req_id":"qml3xc-8"},{"cmd":"set_params","purpose":"surface","vars":{"3014":99,"3021":2,"3050":10,"3051":200,"3052":10,"3053":200,"3054":9,"3055":5,"3056":200,"3057":50,"3058":20,"3059":24},"req_id":"qml3xc-9"}]
+  ✘  5 e2e/r343-codex.spec.ts:107:1 › R344 Abort ends a form transfer including its not-yet-sent purpose (2.6s)
+
+
+  1) e2e/r343-codex.spec.ts:107:1 › R344 Abort ends a form transfer including its not-yet-sent purpose 
+
+    Error: a stop supersedes the form transfer started before it
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 21
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "cmd": "set_params",
+    +     "purpose": "surface",
+    +     "req_id": "qml3xc-9",
+    +     "vars": Object {
+    +       "3014": 99,
+    +       "3021": 2,
+    +       "3050": 10,
+    +       "3051": 200,
+    +       "3052": 10,
+    +       "3053": 200,
+    +       "3054": 9,
+    +       "3055": 5,
+    +       "3056": 200,
+    +       "3057": 50,
+    +       "3058": 20,
+    +       "3059": 24,
+    +     },
+    +   },
+    + ]
+
+      126 |   console.log('PARAMETERS_AFTER_ABORT',JSON.stringify(relevant));
+      127 |   const after=relevant.slice(relevant.findIndex(c=>c.cmd==='abort')+1);
+    > 128 |   expect(after,'a stop supersedes the form transfer started before it').toEqual([]);
+          |                                                                         ^
+      129 | });
+      130 |
+        at /tmp/codex-r344/lcnc-webui/e2e/r343-codex.spec.ts:128:73
+
+    Error Context: test-results/r343-codex-R344-Abort-ends-2830b-ng-its-not-yet-sent-purpose/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r343-codex-R344-Abort-ends-2830b-ng-its-not-yet-sent-purpose/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r343-codex-R344-Abort-ends-2830b-ng-its-not-yet-sent-purpose/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/r343-codex.spec.ts:107:1 › R344 Abort ends a form transfer including its not-yet-sent purpose 
+  4 passed (8.9s)

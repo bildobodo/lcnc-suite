@@ -1,0 +1,55 @@
+[VINIT] session bound to linuxcncsvr pid=2343206 start=140502031
+[VINIT] try_connect_lcnc OK, pid=2343206
+[VINIT] Loaded machine config: 3-Axis Mill
+test_cancel_after_committed_off_still_ends_the_epoch (test_r344_codex.ReviewCamera.test_cancel_after_committed_off_still_ends_the_epoch) ... CANCELLED_COMMITTED_OFF {"camera_enabled": false, "epoch": 0, "subscribers": 1, "producer_alive": true, "released": false}
+FAIL
+test_old_stream_cleanup_does_not_unsubscribe_the_new_epoch (test_r344_codex.ReviewCamera.test_old_stream_cleanup_does_not_unsubscribe_the_new_epoch) ... OLD_STREAM_CLEANUP {"before_old_close": 1, "after_old_close": 0, "new_producer_alive": false, "releases": 2}
+FAIL
+
+======================================================================
+FAIL: test_cancel_after_committed_off_still_ends_the_epoch (test_r344_codex.ReviewCamera.test_cancel_after_committed_off_still_ends_the_epoch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/codex-r344/lcnc-gateway/test_r344_codex.py", line 101, in test_cancel_after_committed_off_still_ends_the_epoch
+    asyncio.run(run())
+    ~~~~~~~~~~~^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/codex-r344/lcnc-gateway/test_r344_codex.py", line 93, in run
+    self.assertGreater(b.epoch, 0, "committed OFF did not terminate the epoch")
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 not greater than 0 : committed OFF did not terminate the epoch
+
+======================================================================
+FAIL: test_old_stream_cleanup_does_not_unsubscribe_the_new_epoch (test_r344_codex.ReviewCamera.test_old_stream_cleanup_does_not_unsubscribe_the_new_epoch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/codex-r344/lcnc-gateway/test_r344_codex.py", line 61, in test_old_stream_cleanup_does_not_unsubscribe_the_new_epoch
+    asyncio.run(run())
+    ~~~~~~~~~~~^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/codex-r344/lcnc-gateway/test_r344_codex.py", line 54, in run
+    self.assertEqual(after, 1, "old epoch removed the new stream's subscription")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1 : old epoch removed the new stream's subscription
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.023s
+
+FAILED (failures=2)
+[GC] +124ms gen=2 duration=14.7ms collected=340 uncollectable=0

@@ -1,0 +1,111 @@
+{
+  "round": "R344",
+  "date": "2026-11-08",
+  "product": "da935d45ae1eae6e2250780f754b54de05ea87fd",
+  "base": "335440a7",
+  "document_before_append": "95a02bc70b27a4918375d53acca38049b293d233",
+  "isolation": {
+    "archive": "/tmp/codex-r344",
+    "mock_port": 4944,
+    "linuxcnc": "fake binding (test_command_dispatch)",
+    "live_access": false,
+    "product_edits": false
+  },
+  "commands": [
+    "cd lcnc-webui && npm run build",
+    "cd lcnc-gateway && PYTHONDONTWRITEBYTECODE=1 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m unittest -v test_feature_switches test_camera_broker test_r343_codex.ReviewR343",
+    "cd lcnc-gateway && PYTHONDONTWRITEBYTECODE=1 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m unittest -v test_r344_codex",
+    "cd scripts && PYTHONDONTWRITEBYTECODE=1 LCNC_HEAVY_LOCK=/tmp/codex-r344/native-unit-heavy.lock /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m pytest -q -p no:cacheprovider test_native_stage.py",
+    "cd lcnc-webui && npx playwright test --config=playwright.r344.config.ts e2e/feature-switches.spec.ts e2e/r343-codex.spec.ts",
+    "cd lcnc-webui && npx playwright test --config=playwright.r344.config.ts e2e/r343-codex.spec.ts"
+  ],
+  "results": {
+    "build": "PASS",
+    "backend_existing_and_prior": {
+      "passed": 44
+    },
+    "camera_counterprobes": {
+      "failed": 2
+    },
+    "native_offline_pytest": {
+      "passed": 481
+    },
+    "browser_first_built_run": {
+      "passed": 18,
+      "failed": 1,
+      "failure": "old probe incorrectly expected Tools focus AFTER ArrowRight; landing and no-jog assertions passed"
+    },
+    "browser_final_counterprobes": {
+      "passed": 4,
+      "failed": 1,
+      "failure": "set_params surface sent after Abort and Preempted by abort reply"
+    },
+    "repository_feature_browser_tests": {
+      "passed": 15
+    }
+  },
+  "probe_adaptations": [
+    "Copied R343 backend probe unchanged; reran only ReviewR343 (reset + old native command scan). New repository tests cover camera hook and migration.",
+    "R343 browser copy: removed two unused helpers for vue-tsc; after observing correct Tools landing, added ArrowLeft after ArrowRight so final Tools focus assertion respects tab navigation.",
+    "Added Abort regression probe to this browser copy; all recorded traffic is mock only.",
+    "Copied actual node_modules from prior isolated archive. Only test/config changes in archive; mockSlot base port changed 4500 to 4944.",
+    "Initial npm build failed on the copied probe unused helpers. Initial browser run lacked dist and was stopped. Native unittest invocation found zero tests; proper pytest invocation passed 481."
+  ],
+  "limits": [
+    "No full round/merge gate repeated",
+    "No live machine, native execution, Firefox or load tests",
+    "Injected cancellation of save helper is an API boundary probe, not a demonstrated spontaneous WS disconnect/leak; shutdown has separate camera cleanup"
+  ],
+  "evidence": [
+    {
+      "file": "settings-split.r344.codex-build.txt",
+      "sha256": "59c7f262c2ee5d2327bb725307541b81d7d0812359970ddae520ae00d6725ee6",
+      "bytes": 2438
+    },
+    {
+      "file": "settings-split.r344.codex-backend.txt",
+      "sha256": "2d3197c644c71a813bcaa06c35e2371ba931b7fe8930af6d7ff02fdd2375d963",
+      "bytes": 6712
+    },
+    {
+      "file": "settings-split.r344.codex-backend-counterprobes.txt",
+      "sha256": "11c22c08f05a0c7c0fc1a257645951518b4438717f45a6e2ac91a3777871984a",
+      "bytes": 3331
+    },
+    {
+      "file": "settings-split.r344.codex-backend.py",
+      "sha256": "d867d8cbc62d66ba1034b3b4e239dbff2dd328dbadc579be1052fcce98bc054c",
+      "bytes": 4482
+    },
+    {
+      "file": "settings-split.r344.codex-native-unit.txt",
+      "sha256": "1ca42a6c557697b46a8162a4ccf35b57d3938650cd17b0717c424ca4273e8e9b",
+      "bytes": 581
+    },
+    {
+      "file": "settings-split.r344.codex-browser.txt",
+      "sha256": "3d14a9e9f64416683d53256b159249eb05907a982c5bdef4dba784d1915607ab",
+      "bytes": 6600
+    },
+    {
+      "file": "settings-split.r344.codex-browser-counterprobes.txt",
+      "sha256": "60da83d8d375e2ba7a61ce46390c4d1adc26f2bbb36f8526007704804d79405e",
+      "bytes": 4746
+    },
+    {
+      "file": "settings-split.r344.codex-browser.spec.ts",
+      "sha256": "4399cc0ca88d402e1fd5b78f7d1168ce83ad4b48d2c5e58019507fe8727406fb",
+      "bytes": 7754
+    },
+    {
+      "file": "settings-split.r344.codex-browser.config.ts",
+      "sha256": "90810ad34bb7f70feb46d3f44a4398e5f1308b3797649c5e0b7d2bff98f07728",
+      "bytes": 403
+    },
+    {
+      "file": "settings-split.r344.codex-browser-setup-failure.txt",
+      "sha256": "e8c44c1ae8f8c438ec3683272012da012fbb15bdabe00436a66776d546d43d4a",
+      "bytes": 10220
+    }
+  ]
+}
