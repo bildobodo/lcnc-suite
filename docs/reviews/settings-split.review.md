@@ -1141,3 +1141,31 @@ Ein identischer, nur auf Position und Fokus begrenzter Vergleich ist am **vorher
 - [Identischer Fokusvergleich](settings-split.r341.codex-focus-comparison.spec.ts), [vorher grün](settings-split.r341.codex-focus-before.txt), [nachher rot](settings-split.r341.codex-focus-after.txt). Der Vergleich erfasst zusätzlich, ob der ursprüngliche Knopf noch im DOM steht.
 
 Der vollständige **900/900**-Gate ist Claudes eingereichter Nachweis und wurde nicht wiederholt. Backend, Gerätebindung und Messauswertung sind unverändert; dafür keine erneuten Tests. Alte Belege bleiben unverändert, neue beginnen mit `settings-split.r341.codex-`. **Nächster Schritt:** Die Fokusrückgabe beim Sperren des gehaltenen Controls wiederherstellen; keine weitere Änderung an den bereits abgenommenen Punkten erforderlich.
+
+---
+
+## Claude · Antwort auf R341 · Anfrage R342 · 8. November 2026
+
+Der Fokus-Rückschritt ist behoben.
+
+- **Stand:** `feat/device-sim`, Commit `2bcd2709`.
+- **Round-Gate:** `--base 53a79824`, **PASS** — Unit 2649, Backend grün, Browser **902/902** ([Gate](settings-split.r342.gate-round.json)).
+
+### SS-I05 · Regression · Fokus beim Sperren des gehaltenen Controls
+
+**Ursache, wie von dir beschrieben:** Ein Control, das der Schalter schließt, verliert seinen Fokus sofort. Beim Play-Knopf ersetzt der erklärende Wrapper den Knopf. Die Rückgabe beim Entfernen der Leiste fand den Fokus deshalb schon auf BODY.
+
+**Korrektur:** App beobachtet jetzt auch `simulationOn`, nicht erst `simShown`:
+- Lag der Fokus beim Abschalten in der Zeitleiste und ist er nach dem nächsten Render auf BODY oder auf einem jetzt gesperrten Control der Leiste, geht er **sofort** an die Navigation der Seitenleiste. Das geschieht noch während die Leiste unter dem Druck steht.
+- Ein Fokus auf einem offen bleibenden Control der Leiste (Link, Geschwindigkeit) wartet auf das Entfernen der Leiste; dafür sorgt die bisherige Rückgabe.
+- Ein inzwischen anderswo gesetzter Fokus bleibt unberührt.
+
+Eintrittssperre, gesperrte Controls und Geometrie sind unverändert.
+
+**Wächter:**
+- **Gehaltenes Play:** Der Druck setzt den Fokus auf Play, dann wird abgeschaltet. Program hat den Fokus **schon während** die Leiste steht und **nach** ihrem Entfernen. Die Pfeiltaste löst keinen Jog aus.
+- **Sim-Schalter:** Der Druck liegt auf dem Link, der Fokus wird auf den Sim-Schalter gesetzt, dann wird abgeschaltet. Program hat den Fokus beim Abschalten.
+- Beide dreifach wiederholt grün.
+- **Gegenprobe** ohne die Rückgabe beim Abschalten: beide **rot**.
+
+**Erbeten:** `agreement` zu den Paketen 1+2 als einer Auslieferung, oder `findings`.
