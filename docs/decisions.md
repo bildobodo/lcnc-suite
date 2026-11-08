@@ -11321,3 +11321,55 @@ before the bar left, so the hand-over at the bar's end found it on body. The
 focus a closing control of the bar held now comes to the side pane's
 navigation at the SWITCH; a focus on an open control of the bar (the link,
 the speed) waits for the bar; a focus set elsewhere stays.
+
+## 2026-11-08 — Switchable suite functions (settings split package 3; operator OP2, plan Codex R335–R337)
+
+Packages 1+2 merged into development on the operator's go (c036935f, with
+the CI fix); package 3 built on top. Off = the suite's OPERATING function:
+its tabs, buttons and settings leave the UI, the gateway refuses its jobs
+and routes, free MDI and programs stay (the named exception).
+
+- **One section, six switches** — `features` (machine, protected): probing,
+  toolsetter, surfaceMap, camera, macros, gamepad; no section = every one on
+  (an install keeps working as before). Settings › Features edits them.
+- **The routines became jobs** (R336): `probe_run`, `surface_scan_run`,
+  `tool_measure`, `tool_unload_measure` instead of a page-built `mdi` with
+  `vars`; `set_params {purpose}` instead of `set_probe_vars`. The toolsetter's
+  jobs take the SERVER's confirmed section (P2's basis), never the page's
+  values — one source for a measurement and a program start. Each job's
+  switch is checked at the dispatch and at every write.
+- **Decided while building** (named to Codex in R343):
+  - the gamepad marker is `via: "gamepad"`, not R336's `source` —
+    `auto_run.source` is the program text's fingerprint; one key, one meaning
+    in the closed `WsCommand` union;
+  - `mdi` keeps its `vars` as the generic parameter path (the native stage
+    starts its routines with it; an older page's probe goes there too) — the
+    OP2 exception covers it, nothing searches its text;
+  - the tab in use holds until it is left whatever it holds, not only with a
+    draft: a held tab is never pulled from under the operator, and a draft
+    in it is never lost (the macro editor, the toolsetter form, the gamepad
+    wizard);
+  - the Surface view stays for the compensation's OFF only while the
+    compensation is OBSERVED on: an unread state held the Probing tab before
+    the first status on every load of a device whose three probe functions
+    were off (feature-switches.spec, red first); unread it reads "—" in
+    Offsets and a stale reader is the banner's — and the gateway let the
+    switch go off only with the compensation known off;
+  - a `features` save commits under `_source_lock` from its own task, never
+    in the WS reader (a program upload may hold the lock; the reader must
+    keep reading heartbeats), and needs no command holding `_cmd_lock`.
+- **Transitions** (SS334-02): a change needs an armed writer, a known idle
+  interpreter, no start, no command, no jog, a standing machine; surface map
+  off needs the compensation known off; toolsetter off and tool change M600
+  is no state either way. Nothing sends a machine command; switching on
+  switches nothing on; the gamepad, started again, acts only once at rest.
+- **Inventory**: a `feature` block per switched function — a role per claim
+  (switched / variant / readable / stays / helper) — held against the
+  gateway's tables (`features.COMMAND_FEATURES`, `ROUTE_FEATURES`,
+  `VARIANT_COMMANDS`); F-FEATURES owns the switches; the routine adapters
+  read the job forms (App's `probe_run { routine: macro }`, the gateway's
+  `T{tool} M600`).
+- Tests: `test_feature_switches.py` (30, six mutations red), the routine and
+  guard cases in `webAtoms.test.ts` / `test_inventory.py`, the gamepad's rest
+  in `useGamepad.test.ts`, `feature-switches.spec.ts` (9); probe-click,
+  toolsetter-setup and tabs follow the jobs and the ninth Settings section.

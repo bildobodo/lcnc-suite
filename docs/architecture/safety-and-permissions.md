@@ -500,3 +500,59 @@ joint jog before homing in E.
   blocks simultaneous jogs; Probe Basic sends axis jogs only).
 - *Named limits*: no gantry sim config exists — the gantry closure is
   proven by the pure map's tests only.
+
+### Switchable suite functions (settings split package 3, plan R335–R337)
+
+A machine section `features` (`lcnc-gateway/features.py`, the client's
+`features.ts`): probing, toolsetter, surfaceMap, camera, macros, gamepad —
+each ON unless the server holds it OFF. Off is the suite's OPERATING
+function (operator OP2): its controls leave the UI, and the gateway refuses
+what it would start. Free MDI, programs, the remaps and other LinuxCNC
+clients are general NC paths, never searched for an M600 or an O-call — the
+named exception, an older page's `mdi` with `vars` included (R336).
+
+- **What a switch refuses** (`_command_feature_refusal`, at the dispatch,
+  under `_cmd_lock`): the recognisable jobs (`features.COMMAND_FEATURES` —
+  `probe_run`, `surface_scan_run`, `set_compensation_method`, `tool_measure`,
+  `tool_unload_measure`, `run_macro`), a parameter write by its purpose
+  (`set_params`: probe / surface / toolsetter — each its own variable set,
+  a set outside it refused whole before the first write), the compensation
+  switched ON (OFF is always admitted), run from line's pre-measurement
+  (`auto_run` with `pre_tool`), and every command the gamepad sends
+  (`via: "gamepad"` — the key is not R336's `source`: `auto_run.source` is the
+  program text's fingerprint) but its stops (`_WS_STOP_CMDS`). The routes
+  (`features.ROUTE_FEATURES`): the macro writes at their commit
+  (`_macro_write_gate`), the camera's stream and status — an open stream
+  ends at its next frame. A program start's toolsetter sync is skipped with
+  the toolsetter off (its note says `off`).
+- **Checked at the write too**: a job's `admit` (each vars chunk, the mode
+  switch, the line) re-reads its switch, its toolsetter basis and the idle
+  interpreter — a switch that went off between the dispatch and the write
+  stops the line (`test_feature_switches.TestTheJobs`).
+- **The jobs**: `probe_run {routine, vars}` — the routine one of the
+  subroutine path's `probe_*` files; `surface_scan_run {vars}`;
+  `tool_measure {tool}` / `tool_unload_measure` — the values the SERVER's
+  confirmed toolsetter section (`_toolsetter_basis`, P2), never the page's;
+  not set up, nothing starts. Each carries the `#3116` clear like every
+  routine the WebUI starts. The normal tool change (`tool_change`, M6 G43)
+  is tool handling and stays with the toolsetter off.
+- **A change of the switches** (`_machine_state_admission`, the store's
+  `admit_state(before, after)` inside its lock, the save under `_source_lock`
+  — never in the WS reader, a program upload may hold that lock): the whole
+  `sourceWrite` rule (an armed writer, no start claim, no run from line, no
+  load, a KNOWN idle interpreter), no command holding `_cmd_lock` (a command
+  reads its switch under it — one taking the lock after this read waits for
+  the store and reads the new value), no jog booked, the machine standing
+  (`motion_still_of`; unknown refuses); switching the surface map OFF needs
+  the compensation known off on a fresh reader. The one cross-section rule
+  (`features.conflict`, every machine save): the toolsetter off with tool
+  change M600 is no state — a `features` save names "choose another tool
+  change mode first", a `machine` save "turn the toolsetter on first".
+  Nothing here sends a machine command; switching ON switches nothing on.
+- **Named limits**: a command from a page older than the `via` key is not
+  recognisable as the gamepad's; free MDI can start every routine a switch
+  hides. The inventory's `feature` dimension holds the tables: every claim
+  of a switched function has a role (switched / variant / readable / stays /
+  helper), a command or route marked switched is the gateway's under that
+  switch, and every one the gateway switches is claimed so
+  (`functions.feature_problems`).
