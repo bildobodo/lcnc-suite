@@ -13,6 +13,7 @@ import { computed, markRaw, onMounted, onUnmounted, ref, shallowRef, watch, watc
 import { status, viewerGcode, viewerInit, gcodeContent } from "./lcncWs";
 import { INTERP_IDLE } from "./lcnc";
 import { simMode } from "./simMode";
+import { simulationOn } from "./defaults";
 import { timeSpan } from "./viewerPerf";
 import {
   sampleTrack, jointsForSample, buildEntryTrack,
@@ -398,6 +399,9 @@ watch(baseTrack, () => {
   exitSim(); entryTrack.value = null; sPos.value = 0;
 });
 watch(machineOff, (off) => { if (!off) exitSim(); });
+// The device's simulation switched off: the mode and the playback end NOW —
+// the bar itself leaves once no press is moved by it (simShown).
+watch(simulationOn, on => { if (!on) exitSim(); });
 // Outside sim a kept entry track built from ANOTHER pose is stale: once the
 // machine has held its new pose this long, rebuild the entry move from it and
 // re-check the segment (milliseconds — ThreeViewer's side sweep). Not per

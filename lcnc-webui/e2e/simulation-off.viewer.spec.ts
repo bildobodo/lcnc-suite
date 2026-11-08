@@ -139,3 +139,41 @@ test("the Sim tab goes with the focus elsewhere: it stays there", async ({ page,
   await expect(simTab(page)).toHaveCount(0);
   await expect(line).toBeFocused();
 });
+
+// Codex R339 SS-I05 rest: the TIMELINE leaves with the simulation too, and it
+// is not in the tab list — a focus on one of its controls comes to the side
+// pane's navigation, never body (where the next arrow jogs).
+for (const control of ["Open the Sim tab", "Playback speed"] as const) {
+  test(`the timeline goes with the focus on "${control}": the focus to the navigation, an arrow never jogs`, async ({ page, context }) => {
+    test.setTimeout(90_000);
+    await prepare(page, context, `/bar-${control.length}.ngc`, 7500 + control.length, true);
+    await ctl({ op: "raw", frame: { type: "settings_changed", settings: { ...KEYS, simulation: { enabled: true } } } });
+    const target = page.locator(".scrubBar").getByLabel(control, { exact: true });
+    await target.focus();
+    await expect(target, "the focus is on the timeline's control").toBeFocused();
+    await ctl({ op: "clearCmds" });
+    await ctl({ op: "raw", frame: { type: "settings_changed", settings: { ...KEYS, simulation: { enabled: false } } } });
+    await expect(page.locator(".scrubBar")).toHaveCount(0);
+    await expect(page.getByRole("tab", { name: "Program", exact: true })).toBeFocused();
+    await page.keyboard.down("ArrowRight");
+    await page.keyboard.up("ArrowRight");
+    expect(await jogs(), "no jog").toEqual([]);
+  });
+}
+
+// ...and nothing moves under a press: the timeline the finger is on stays
+// until that press has had its click; the simulation's WORK stops at once.
+test("switched off during a press on the timeline: the work stops at once, the bar leaves after the click", async ({ page, context }) => {
+  test.setTimeout(90_000);
+  await prepare(page, context, "/press.ngc", 7601, true);
+  await expect.poll(() => work(page), { timeout: 30_000 }).toMatchObject({ worker: true });
+  const link = page.locator(".scrubBar").getByLabel("Open the Sim tab", { exact: true });
+  const b = (await link.boundingBox())!;
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await page.mouse.down();
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { simulation: { enabled: false } } } });
+  await expect.poll(() => work(page), { message: "the work stops under the press too" }).toEqual(IDLE_WORK);
+  await expect(page.locator(".scrubBar"), "the bar under the finger stays").toHaveCount(1);
+  await page.mouse.up();
+  await expect(page.locator(".scrubBar")).toHaveCount(0);
+});

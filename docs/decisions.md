@@ -11289,3 +11289,19 @@ focus on body, where the next arrow jogged: TabPanel hands it to the
 navigation; the tab list follows the switch only once no press is moved by
 it (`heldThroughPress`). Rests: a rename counts as a change ("never
 changed"); a stored token whose profile was removed is told so once.
+
+**Codex R339 (2026-11-08).** Rests and two new findings, fixed: SS-I02 a
+PLAIN close ended only the connection, not the device binding — now every
+close drops what was not saved and invalidates the settings until the next
+connection's settings_init (the same profile or another: another gateway,
+another machine configuration); the device list takes an answer only for its
+latest read of the current binding. SS-I05 the TIMELINE's controls are not
+in the tab list: a focus there now goes to the side pane's navigation, and
+the timeline leaves through `simShown` — held through a press, while the
+work stops at once. SS-I06 a profile the gateway made for a stored token is
+no proof of a removal (profiles are per INI): said neutrally ("A new device
+profile was made for this browser in this machine configuration — its
+simulation is off"), BESIDE the device's own controls. SS-I07 the load
+report re-evaluated from its raw data: status windows by their own span,
+cadence and age apart, CPU over the check alone, the observed sample gaps
+named.

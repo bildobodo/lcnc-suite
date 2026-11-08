@@ -18,6 +18,7 @@ import {
 import { viewerInit, viewerGcode, status, statusReceiptOf, emitTelemetry, noteWitnessDone, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewBasisPending, runBasis, previewOrigin, previewDecoding, previewDecodeFailure, gcodeRevision, connected, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, ON_TOP_FALLBACK, ON_TOP_LAYERS, settingsVersion, simulationOn, type OnTopLayer, type Vec3, type Layer } from "./defaults";
 import { useProgramMarks, useRunDisplay } from "./viewer/runDisplay";
+import { simShown } from "./simShown";
 import { applyOnTop, ON_TOP_ORDER } from "./viewer/onTop";
 import { confirmedToolsetter } from "./toolsetterVars";
 import { toolChangePlacement, toolsetterPlacement } from "./viewer/toolsetterMarker";
@@ -6068,7 +6069,7 @@ defineExpose({
 
     <!-- Program-scrub timeline (stage 2) + collision check (stage 3) -->
     <!-- the check as published with its contact views (plan 3.6): never ahead of them -->
-    <ScrubBar v-if="simulationOn"
+    <ScrubBar v-if="simShown"
       :collisionBusy="colShown?.busy ?? false"
       :collisionProgress="colShown?.progress ?? 0"
       :sweepTool="{ num: vst?.tool_number ?? null, diam: vst?.tool_diameter ?? null, programTools }"

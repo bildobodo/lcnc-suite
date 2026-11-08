@@ -16,7 +16,7 @@ import FormField from "./FormField.vue";
 import DialogFrame from "./DialogFrame.vue";
 import Gate from "./Gate.vue";
 import {
-  deviceInfo, devicesVersion, loadSimulationDefaults, loadSimulationDraft, saveSimulationDefaults,
+  bindingGeneration, deviceInfo, devicesVersion, loadSimulationDefaults, loadSimulationDraft, saveSimulationDefaults,
   settingsVersion,
 } from "./defaults";
 import { deviceStorage, deviceTokenFresh } from "./deviceToken";
@@ -34,9 +34,11 @@ watch([settingsVersion, () => deviceInfo.value.name], () => {
   name.value = deviceInfo.value.name;
 });
 const bound = computed(() => deviceInfo.value.id !== null);
-/** The gateway made this browser's profile though it had a stored token: the
- *  earlier one was removed (R337 — a first start is no news). */
-const recreated = computed(() => deviceInfo.value.created === true && !deviceTokenFresh());
+/** The gateway made this browser's profile though the browser had a stored
+ *  token — a removed profile, or the first visit in THIS machine
+ *  configuration (profiles are per INI): said neutrally, nothing claims a
+ *  removal (Codex R339 SS-I06). A first start is no news. */
+const madeNew = computed(() => deviceInfo.value.created === true && !deviceTokenFresh());
 const unboundWhy = computed(() => deviceStorage() === "failed"
   ? "Browser storage unavailable — this device's settings are not saved"
   : "Device not bound yet — reconnecting");
@@ -65,16 +67,27 @@ async function saveName() {
 // ── The devices of this machine ──
 const devices = ref<DeviceRow[] | null>(null);
 const listError = ref<string | null>(null);
+/** A list answer counts only for the LATEST read of the CURRENT binding — an
+ *  older read landing late, or one from before a reconnect or a rebind, shows
+ *  nothing (Codex R339 SS-I02: it showed this device among the others). */
+let listSeq = 0;
 async function loadDevices() {
+  const seq = ++listSeq, gen = bindingGeneration();
+  const current = () => seq === listSeq && gen === bindingGeneration();
   try {
-    devices.value = await fetchDevices();
+    const rows = await fetchDevices();
+    if (!current()) return;
+    devices.value = rows;
     listError.value = null;
   } catch (e) {
+    if (!current()) return;
     listError.value = `Device list not read — ${(e as Error).message}`;
   }
 }
 onMounted(loadDevices);
 watch(devicesVersion, loadDevices);
+// another binding (a reconnect, a rebind): the list is read again for it
+watch(() => deviceInfo.value.id, () => { devices.value = null; listError.value = null; void loadDevices(); });
 const others = computed(() => (devices.value ?? []).filter(d => !d.this));
 
 function label(d: DeviceRow): string {
@@ -130,8 +143,9 @@ async function confirmAsk() {
       <div class="sub">This Device</div>
       <div class="settingDesc">How this browser looks, its macro bar and its simulation are its own. A new device starts without the simulation.</div>
       <div v-if="!bound" class="statusNote warn" role="status" data-device-unbound>{{ unboundWhy }}</div>
-      <div v-else-if="recreated" class="statusNote warn" role="status" data-device-recreated>This browser's earlier profile was removed — it started as a new device</div>
       <template v-else>
+        <!-- beside the device's own controls, never instead of them (R339 SS-I06) -->
+        <div v-if="madeNew" class="statusNote" role="status" data-device-new>A new device profile was made for this browser in this machine configuration — its simulation is off</div>
         <div class="formGrid">
           <FormField label="Name">
             <template #default="{ input }">

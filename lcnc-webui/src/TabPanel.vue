@@ -47,6 +47,7 @@ watch(() => props.narrow, () => {
   if (!navArea.value?.contains(document.activeElement)) return;
   void nextTick(focusNavigation);
 }, { flush: "pre" });
+defineExpose({ focusNavigation });
 // A tab that GOES (a device's simulation switched off — settings split): a
 // focus in its tab or in its pane would be left on body, where an arrow jogs
 // (Codex R338 SS-I05) — it comes to the navigation; a focus elsewhere stays.

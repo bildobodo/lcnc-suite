@@ -128,3 +128,56 @@ test("switching another device's simulation leaves this one's own off — ok and
   await expect.poll(async () => (await sent()).filter(c => c.cmd === "save_settings"))
     .toEqual([expect.objectContaining({ section: "simulation", data: { enabled: true }, base_rev: 0 })]);
 });
+
+// Codex R339 SS-I06: a profile the gateway MADE for a browser that already
+// held a token — a removed profile, or its first visit in this machine
+// configuration — is said neutrally, BESIDE the device's own controls.
+test("a new profile for a stored token: a neutral note, the name and the switch stay", async ({ page }) => {
+  await ready(page);
+  await page.reload();   // the token is stored now: not this page load's own
+  await expect(page.locator("input.setupInput").first()).toBeVisible();
+  await ctl({ op: "raw", frame: { type: "settings_init", settings: { simulation: { enabled: false } },
+                                  device: { id: "dev-new", name: "", created: true } } });
+  const settings = await openDevices(page);
+  const mine = settings.locator("[data-devices=this]");
+  await expect(mine.locator("[data-device-new]")).toHaveText(
+    "A new device profile was made for this browser in this machine configuration — its simulation is off");
+  await expect(mine.getByLabel("Name")).toBeVisible();
+  await expect(mine.getByRole("checkbox")).toBeEnabled();
+});
+
+test("a first start is no news: no note for this page load's own token", async ({ page }) => {
+  await ready(page, { simulation: { enabled: false } }, { id: "dev-first", name: "", created: true } as never);
+  const settings = await openDevices(page);
+  await expect(settings.locator("[data-device-new]")).toHaveCount(0);
+});
+
+// SS-I02 rest: the device list takes an answer only for its LATEST read of
+// the CURRENT binding — an older read landing late shows nothing.
+test("a late device list from before a new binding never shows this device among the others", async ({ page }) => {
+  let first = true;
+  let release!: () => void, answered!: () => void;
+  const held = new Promise<void>(res => { release = res; });
+  const lateAnswered = new Promise<void>(res => { answered = res; });
+  await page.route(/\/devices$/, async r => {
+    if (first) {   // the read under the OLD binding: held, then answered with the old view
+      first = false;
+      await held;
+      await r.fulfill({ json: { ok: true, devices: [{ ...OTHER_ONLINE, id: "dev-b", name: "Me now", this: false }] } });
+      answered();
+      return;
+    }
+    await r.fulfill({ json: { ok: true, devices: [{ ...OTHER_ONLINE, id: "dev-b", name: "Me now", this: true },
+                                                 OTHER_OFFLINE] } });
+  });
+  await ready(page);
+  const settings = await openDevices(page);
+  // a new binding while the first read is out
+  await ctl({ op: "raw", frame: { type: "settings_init", settings: {}, device: { id: "dev-b", name: "Me now" } } });
+  await expect(settings.locator('[data-device-row="dev-laptop"]')).toBeVisible();
+  release();          // now the old read answers, late
+  await lateAnswered;
+  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+  await expect(settings.locator('[data-device-row="dev-b"]'), "this device is never one of the others").toHaveCount(0);
+  await expect(settings.locator('[data-device-row="dev-laptop"]')).toBeVisible();
+});

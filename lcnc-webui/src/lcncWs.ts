@@ -176,6 +176,13 @@ function onWorkerMessage(m: any) {
       // hold — connectionGone() disarms the page.
       captureArmedForResume(armed.value);
       connectionGone();
+      // The binding ends with its connection too (Codex R339 SS-I02): what
+      // was not saved does not go to the next connection, and nothing acts
+      // or saves on the device's settings until the next connection's
+      // settings_init — the same profile or not (another gateway, another
+      // machine configuration).
+      dropPendingSaves("connection lost — not saved");
+      invalidateServerSettings();
       // Server-going-away close codes double as a shutdown signal: the
       // gateway closes 1001 on lifespan teardown, uvicorn closes 1012 on
       // graceful restart. The explicit server_shutdown frame is the richer
@@ -384,10 +391,11 @@ function onFrame(data: string | ArrayBuffer, rx?: number) {
       noteSaveServerState(msg.settings);
       updateServerCache(msg.settings, msg.revs, msg.device);
       // The gateway MADE this browser's profile with this connection, though
-      // the browser had a stored token: its profile was removed elsewhere
-      // (R337 — said so, once; a first start is no news).
+      // the browser had a stored token: a removed profile or this browser's
+      // first visit in this machine configuration (profiles are per INI) —
+      // said neutrally, once (Codex R339 SS-I06; a first start is no news).
       if (msg.type === "settings_init" && msg.device?.created === true && !deviceTokenFresh()) {
-        pushMessage(OPERATOR_DISPLAY, "This browser's device profile was removed — it starts as a new device (simulation off)");
+        pushMessage(OPERATOR_DISPLAY, "A new device profile was made for this browser in this machine configuration — its simulation is off");
       }
     } else if (msg.type === "devices_changed") {
       devicesVersion.value++;   // the device views fetch the list again

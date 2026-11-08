@@ -14,6 +14,7 @@ import { connectWs, connected, status, send, request, armed, lastReply, viewerGc
 // methods are all `?.`-guarded, so calls during the brief load gap safely no-op.
 const ThreeViewer = defineAsyncComponent(() => import("./ThreeViewer.vue"));
 import TabPanel from "./TabPanel.vue";
+import { simShown } from "./simShown";
 import GcodePanel from "./GcodePanel.vue";
 import SimPanel from "./SimPanel.vue";
 import { gCodeWords, mCodeWords } from "./gcodeRefView";
@@ -59,7 +60,7 @@ import { keypadState } from "./useNumberKeypad";
 import { activeKind, openTextSession, lockTextSessionIf, EDITOR_OWNER, MACRO_EDITOR_OWNER, type TextTarget, returnFocusTo, heldThroughPress, pressHolds } from "./inputSession";
 import { measureStripColumn, safetyFoldNeeded } from "./safetyFold";
 import { explainAt } from "./gateExplain";
-import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, loadGamepadDraft, saveGamepadDefaults, settingsVersion, simulationOn, type ThemeMode, type GamepadDefaults, type Layer, type OnTopLayer, type TrackMode, type Projection } from "./defaults";
+import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, loadGamepadDraft, saveGamepadDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type Layer, type OnTopLayer, type TrackMode, type Projection } from "./defaults";
 import { confirmedToolsetter, toolsetterVarMap, TOOLSETTER_MDI_KEY } from "./toolsetterVars";
 import { useGamepad } from "./useGamepad";
 import { useMediaMql } from "./useMediaMql";
@@ -366,10 +367,8 @@ watch(() => messages.value.length, (newLen, oldLen) => {
 });
 
 /** ---------- content tab definitions ---------- */
-// The tab list follows the switch only once no press it could move is in
-// progress (heldThroughPress, the input session's contract) — the
-// simulation's WORK stops at once (ThreeViewer reads simulationOn itself).
-const simTabShown = heldThroughPress(() => simulationOn.value, () => false);
+// The Sim tab follows the switch through simShown (held through a press);
+// the simulation's WORK stops at once (ThreeViewer reads simulationOn).
 // The Sim tab is there only on a device whose simulation is on (settings
 // split package 2): off, it is gone — not dimmed (operator OP2: a cleaner UI).
 const contentTabs = computed(() => [
@@ -379,13 +378,22 @@ const contentTabs = computed(() => [
   { id: "offsets", label: "Offsets" },
   { id: "tools", label: "Tools" },
   { id: "macros", label: "Macros" },
-  ...(simTabShown.value ? [{ id: "sim", label: "Sim" }] : []),
+  ...(simShown.value ? [{ id: "sim", label: "Sim" }] : []),
 ]);
 
 const activeTab = ref("gcode");
 // The Sim tab left while it was shown: the Program tab takes its place (the
 // tab list hands the focus over — TabPanel).
-watch(simTabShown, on => { if (!on && activeTab.value === "sim") activeTab.value = "gcode"; });
+watch(simShown, on => { if (!on && activeTab.value === "sim") activeTab.value = "gcode"; });
+// The timeline leaves with the simulation too — it is not in the tab list:
+// a focus on one of its controls comes to the side pane's navigation, where
+// an arrow moves along the tabs (on body it jogs — Codex R339 SS-I05); a
+// focus elsewhere stays.
+const contentTabPanel = ref<InstanceType<typeof TabPanel> | null>(null);
+watch(simShown, on => {
+  if (on || !document.activeElement?.closest(".scrubBar")) return;
+  void nextTick(() => contentTabPanel.value?.focusNavigation());
+}, { flush: "pre" });
 // Leaving the Macros tab over a draft (a macro file's edit, an earlier
 // macro's form) asks first, like the tool editor (package 5): every switch
 // goes through here — the tab list, the narrow select, the Tool Table button.
@@ -2186,7 +2194,7 @@ watch(viewerGcode, (newGcode) => {
 
       <!-- ══ Right pane — Program / Probing tabs ══ -->
       <div ref="sidePaneEl" class="sidePane bordered-panel" :class="{ narrow: sideNarrow }">
-        <TabPanel :tabs="contentTabs" :modelValue="activeTab" label="Side panel" variant="main" :narrow="sideNarrow"
+        <TabPanel ref="contentTabPanel" :tabs="contentTabs" :modelValue="activeTab" label="Side panel" variant="main" :narrow="sideNarrow"
                   @update:modelValue="requestTab($event)">
           <template #bar>
             <MachineSelect v-if="activeTab === 'probe'" gate="tabSelect" name="probe-view"
