@@ -231,7 +231,7 @@ const cmds = [];
 let refuseWs = false;
 // Correlated replies the UI WAITS for (request() in lcncWs): cmd -> reply
 // fields, answered with the command's own req_id (toolsetter-setup.spec:
-// set_probe_vars with mdi_set true / false / refused).
+// tool_measure with mdi_set true / false / refused).
 let replies = {};
 // Envelope keys the real gateway sends with EVERY status frame (top level,
 // beside `data`): run_basis, preview_origin (plan „Prüfung im Lauf“ 1a/1b).

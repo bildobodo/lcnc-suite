@@ -130,6 +130,79 @@ def completeness(*sides: dict) -> dict:
             "variantsOpen": sum(len(a.get("variantsOpen", [])) for s in sides for a in s["adapters"].values())}
 
 
+#: An atom's role under its function's switch (settings split package 3, R336):
+#: switched — the switch takes it away (the UI) or refuses it (the gateway);
+#: variant — switched by its payload (a purpose, ON only, a pre-measurement);
+#: readable — data, a stored setting, a read that stays;
+#: stays — a neighbour that stays (a general NC path, the normal tool handling);
+#: helper — shared with another function's procedure.
+FEATURE_ROLES = ("switched", "variant", "readable", "stays", "helper")
+
+
+def _gateway_features(root: Path):
+    sys.path.insert(0, str(root / "lcnc-gateway"))
+    try:
+        import features
+    finally:
+        sys.path.pop(0)
+    return features
+
+
+def feature_problems(fns: dict, all_ids: list[str], root: Path = ROOT) -> list[str]:
+    """The `feature` dimension against the gateway's own tables (features.py):
+    every claim of a switched function has a role; a command or route marked
+    `switched` is the one the gateway refuses under THAT switch, a `variant`
+    one of its payload-switched commands; and every command and route the
+    gateway switches is claimed so. Controls carry their role by hand — the
+    browser tests hold what leaves the UI."""
+    out: list[str] = []
+    if not any("feature" in f for f in fns["functions"]):
+        return out      # a made-up inventory without the dimension (the guard's own tests)
+    ft = _gateway_features(root)
+    seen_switch: set[str] = set()
+    switched_cmds: dict[str, str] = {}
+    switched_routes: dict[str, str] = {}
+    for f in fns["functions"]:
+        fe = f.get("feature")
+        if fe is None:
+            continue
+        fid, sw = f["id"], fe.get("switch")
+        if sw != "none" and sw not in ft.FEATURES:
+            out.append(f"{fid}: switch {sw!r} is none of features.FEATURES")
+            continue
+        seen_switch.add(sw)
+        roles = fe.get("roles", {})
+        for c in f.get("atoms", []):
+            if c not in roles:
+                out.append(f"{fid}: {c!r} has no role under its switch")
+        for c, role in roles.items():
+            if c not in f.get("atoms", []):
+                out.append(f"{fid}: a role for {c!r}, which it does not claim")
+            if role not in FEATURE_ROLES:
+                out.append(f"{fid}: {c!r} has role {role!r}, none of {FEATURE_ROLES}")
+            ids = claimed([c], all_ids, fid, [])
+            for a in ids:
+                kind, _, name = a.partition(":")
+                if role == "switched" and kind == "cmd":
+                    if ft.COMMAND_FEATURES.get(name) != sw:
+                        out.append(f"{fid}: {a} switched by {sw}, the gateway switches it by {ft.COMMAND_FEATURES.get(name)}")
+                    switched_cmds[name] = sw
+                if role == "switched" and kind == "http":
+                    if ft.ROUTE_FEATURES.get(name) != sw:
+                        out.append(f"{fid}: {a} switched by {sw}, the gateway switches it by {ft.ROUTE_FEATURES.get(name)}")
+                    switched_routes[name] = sw
+                if role == "variant" and kind == "cmd" and name not in ft.VARIANT_COMMANDS:
+                    out.append(f"{fid}: {a} is no payload-switched command (features.VARIANT_COMMANDS)")
+    for name, sw in ft.COMMAND_FEATURES.items():
+        if switched_cmds.get(name) != sw:
+            out.append(f"cmd:{name}: the gateway switches it by {sw}, no function claims it so")
+    for name, sw in ft.ROUTE_FEATURES.items():
+        if switched_routes.get(name) != sw:
+            out.append(f"http:{name}: the gateway switches it by {sw}, no function claims it so")
+    out += [f"switch {sw}: no function under it" for sw in ft.FEATURES if sw not in seen_switch]
+    return out
+
+
 def problems(web: dict, py: dict, fns: dict, root: Path = ROOT) -> list[str]:
     out: list[str] = []
     ids = atom_ids(web, py)
@@ -171,6 +244,7 @@ def problems(web: dict, py: dict, fns: dict, root: Path = ROOT) -> list[str]:
     out += [f"{a}: a control without a place (PLACES / APP_PLACES)" for a in all_ids
             if a.startswith("control:") and place_of(a) is None]
     out += routine_problems(all_ids, root)
+    out += feature_problems(fns, all_ids, root)
     unowned = [a for a in all_ids if a not in owner and a not in fns.get("excludedAtoms", {})]
     out += [f"{a}: no function claims it (found by {', '.join(ids[a])})" for a in unowned]
     return out
@@ -333,6 +407,25 @@ def render(web: dict, py: dict, fns: dict) -> str:
                 applies = f" — gilt für: {', '.join(s.get('applies', ['offen']))}"
                 lines.append(f"- **{s['id']} ({s['kind']}):** {s['text']}{applies}\n  - Beleg: {ev}{gap}")
             lines.append("")
+    switched = [f for f in fns["functions"] if "feature" in f]
+    if switched:
+        role_de = {"switched": "geschaltet", "variant": "nach Inhalt", "readable": "bleibt lesbar",
+                   "stays": "bleibt", "helper": "gemeinsam"}
+        lines += ["## Abschaltbare Funktionen", "",
+                  "Je Schalter (Einstellungen › Features) die Funktionen und was mit ihren Atomen geschieht: "
+                  "geschaltet = verschwindet aus der Oberfläche oder das Gateway lehnt ab; nach Inhalt = "
+                  "der Auftrag entscheidet (Zweck, nur Einschalten, Vormessung); bleibt lesbar / bleibt = "
+                  "Daten, Einstellungen, allgemeine NC-Wege; gemeinsam = mit einer anderen Funktion geteilt.", "",
+                  "| Schalter | Funktion | Rollen | Hinweis |", "|---|---|---|---|"]
+        for f in sorted(switched, key=lambda f: (f["feature"]["switch"], f["id"])):
+            fe = f["feature"]
+            counts: dict[str, int] = {}
+            for c, r in fe["roles"].items():
+                counts[r] = counts.get(r, 0) + len(claimed([c], all_ids, f["id"], []))
+            roles = ", ".join(f"{role_de[r]} {counts[r]}" for r in FEATURE_ROLES if counts.get(r))
+            lines.append(f"| {fe['switch'] if fe['switch'] != 'none' else 'keiner (Ausnahme)'} | "
+                         f"{f['name']} `{f['id']}` | {roles} | {fe.get('note', '—')} |")
+        lines.append("")
     by_place: dict[str, list[str]] = {}
     for f in fns["functions"]:
         for p in sorted({place_of(a) or "?" for a in claimed(f.get("atoms", []), all_ids, f["id"], []) if a.startswith("control:")}):
@@ -373,6 +466,13 @@ def dump(fns: dict) -> str:
         parts = [wrapped("atoms", f.get("atoms", []))]
         if "uses" in f:
             parts.append(wrapped("uses", f["uses"]))
+        if "feature" in f:
+            fe = f["feature"]
+            rl = list(fe["roles"].items())
+            parts.append([f'   "feature": {{"switch": {j(fe["switch"])},'
+                          + (f' "note": {j(fe["note"])},' if "note" in fe else "") + ' "roles": {']
+                         + [f"    {j(k)}: {j(v)}" + ("," if n < len(rl) - 1 else "") for n, (k, v) in enumerate(rl)]
+                         + ["   }}"])
         if "statements" in f:
             st = f["statements"]
             parts.append(['   "statements": ['] + [f"    {j(x)}" + ("," if k < len(st) - 1 else "") for k, x in enumerate(st)] + ["   ]"])

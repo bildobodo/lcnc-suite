@@ -412,6 +412,9 @@ def status_adapter(sources: dict[str, str], web_text: str) -> dict:
 
 
 CALL_RE = re.compile(r"o<([^>]+)>\s*call", re.I)
+# A job's tool-change line the gateway builds (settings split package 3):
+# `T{tool} M600` — the M-code is the routine.
+JOB_MCODE_RE = re.compile(r"\bT\{\w+\} M(\d{3,})\b")
 
 
 def routines_adapter(sources: dict[str, str]) -> dict:
@@ -436,11 +439,20 @@ def routines_adapter(sources: dict[str, str]) -> dict:
                     atoms.setdefault(m.group(1).lower(), {"id": f"routine:{m.group(1).lower()}", "via": []})["via"].append(file)
                 elif file == "macro_files.py" and "meta['name']" in m.group(1):
                     variants_open.append(site(file, "the macro class", m.group(0)))
+                elif file == "gateway.py" and m.group(1) == "{routine}":
+                    # probe_run (package 3): the routine is the one the page
+                    # names — the web adapter's probe routines, admitted
+                    # against the subroutine path's probe_* files
+                    variants_open.append(site(file, "the probe_run job: the web adapter's probe routines", m.group(0)))
                 else:
                     unresolved.append(site(file, "o<…> call with a computed name", m.group(0)))
+            if isinstance(n, ast.JoinedStr):
+                for m in JOB_MCODE_RE.finditer(text_):
+                    atoms.setdefault(f"M{m.group(1)}", {"id": f"routine:M{m.group(1)}", "via": []})["via"].append(file)
     for a in atoms.values():
         a["via"] = sorted(set(a["via"]))
-    return adapter("lcnc-gateway/*.py string constants", ["O<name> CALL literal", "macro_files.py o<{name}> call: the macro class"],
+    return adapter("lcnc-gateway/*.py string constants", ["O<name> CALL literal", "macro_files.py o<{name}> call: the macro class",
+                                                          "gateway.py O<{routine}> CALL: the probe_run job", "T{tool} M<code>: a job's tool change"],
                    atoms, unresolved, variants_open=variants_open,
                    limit="f-strings building a call are unresolved unless named (the macro class)")
 

@@ -15,12 +15,13 @@ export function confirmedToolsetter(): ToolsetterSetup {
   return toolsetterSetup(confirmedSection("toolsetter"));
 }
 
-/** App's gated M600 path (toolsetter set up, its values taken over, then the
- *  MDI) for the components that start one — the tool table's load. */
-export type ToolsetterMdi = (label: string, line: string) => Promise<boolean>;
-export const TOOLSETTER_MDI_KEY = Symbol("toolsetterMdi") as InjectionKey<ToolsetterMdi>;
-export function useToolsetterMdi(): ToolsetterMdi {
-  const fn = inject(TOOLSETTER_MDI_KEY);
-  if (!fn) throw new Error("useToolsetterMdi() called without provider — App.vue provides TOOLSETTER_MDI_KEY");
+/** App's gated M600 job (the toolsetter set up; the gateway applies the
+ *  values IT holds, then `T<tool> M600` — settings split package 3) for the
+ *  components that start one — the tool table's load. `tool` 0 = unload. */
+export type ToolsetterJob = (label: string, tool: number) => Promise<boolean>;
+export const TOOLSETTER_JOB_KEY = Symbol("toolsetterJob") as InjectionKey<ToolsetterJob>;
+export function useToolsetterJob(): ToolsetterJob {
+  const fn = inject(TOOLSETTER_JOB_KEY);
+  if (!fn) throw new Error("useToolsetterJob() called without provider — App.vue provides TOOLSETTER_JOB_KEY");
   return fn;
 }

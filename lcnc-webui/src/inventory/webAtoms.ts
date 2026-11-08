@@ -405,8 +405,9 @@ export function probeRoutines(rel: string, text: string): { names: string[]; unr
 }
 
 /** The routines the UI names: `O<name> CALL` in any script literal or
- *  template, the probe procedures behind App's `O<${macro}> CALL`
- *  (`probeRoutines`), and the M-codes it sends through `toolsetterMdi`. */
+ *  template, and the probe procedures App's `probe_run` job names
+ *  (`routine: macro` ← `probeRoutines`; settings split package 3 — the
+ *  gateway builds the line; the toolsetter's M600 is the gateway's job). */
 export function routinesAdapter(src: WebSources): Adapter {
   const atoms = new Map<string, Atom>();
   const unresolved: Unresolved[] = [];
@@ -424,16 +425,12 @@ export function routinesAdapter(src: WebSources): Adapter {
   let macroCalls = 0;
   for (const [rel, text] of Object.entries(src.files)) {
     for (const sf of parsed(rel, text)) walk(sf, (n) => {
-      if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === "toolsetterMdi") {
-        const t = n.arguments[1]?.getText(sf) ?? "";
-        for (const m of t.matchAll(/\bM(\d{3,})\b/g)) add(`M${m[1]}`, rel);
-      }
+      if (rel === "App.vue" && ts.isObjectLiteralExpression(n) && isProbeRunJob(n, sf)) macroCalls++;
       if (!ts.isStringLiteralLike(n) && !ts.isTemplateExpression(n)) return;
       const t = n.getText(sf);
       for (const m of t.matchAll(CALL_RE)) {
         if (EXCLUDED_SITES.some((e) => e.file === rel && e.expr === m[0])) unknown({ file: rel, form: "o<…> call", expr: m[0] });
         else if (/^[\w-]+$/.test(m[1]!)) add(m[1]!.toLowerCase(), rel);
-        else if (rel === "App.vue" && m[1] === "${macro}") macroCalls++;
         else unknown({ file: rel, form: "o<…> call", expr: m[0] });
       }
     });
@@ -442,17 +439,27 @@ export function routinesAdapter(src: WebSources): Adapter {
       else unknown({ file: rel, form: "o<…> call in a template", expr: m[0] });
     }
   }
-  // App's `O<${macro}> CALL`: the probe procedures' family — one without the
-  // other is a form this adapter no longer understands
+  // App's probe_run job { routine: macro }: the probe procedures' family —
+  // one without the other is a form this adapter no longer understands
   const probe = probeRoutines("ProbePanel.vue", src.files["ProbePanel.vue"] ?? "");
   unresolved.push(...probe.unresolved);
   if (macroCalls > 0 && !probe.names.length)
-    unresolved.push({ file: "App.vue", form: "o<…> call", expr: "O<${macro}> CALL without ProbePanel.vue's routines" });
-  for (const name of macroCalls > 0 ? probe.names : []) add(name, "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe");
+    unresolved.push({ file: "App.vue", form: "probe_run job", expr: "{ cmd: \"probe_run\", routine: macro } without ProbePanel.vue's routines" });
+  for (const name of macroCalls > 0 ? probe.names : []) add(name, "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe");
   return { source: "every script literal and template in src",
-    forms: ["O<name> CALL literal", "App.vue O<${macro}> CALL ← ProbePanel.vue emit(\"runProbe\"): a literal, op.macro (the tables' macro: literals), runCalProbe('…')", "toolsetterMdi(label, text) M-codes"],
+    forms: ["O<name> CALL literal", "App.vue { cmd: \"probe_run\", routine: macro } ← ProbePanel.vue emit(\"runProbe\"): a literal, op.macro (the tables' macro: literals), runCalProbe('…')"],
     limit: "routines the gateway starts itself (→ Zero, run from line, macros) are the gateway's adapter", atoms: sortById([...atoms.values()]), unresolved: dedupe(unresolved),
     excluded: excluded.filter((e, i) => excluded.indexOf(e) === i) };
+}
+
+/** `{ cmd: "probe_run", routine: macro, … }` — App's probe job. */
+function isProbeRunJob(n: ts.ObjectLiteralExpression, sf: ts.SourceFile): boolean {
+  const prop = (name: string) => n.properties.find((p): p is ts.PropertyAssignment =>
+    ts.isPropertyAssignment(p) && p.name.getText(sf) === name);
+  const cmd = prop("cmd")?.initializer;
+  const routine = prop("routine")?.initializer;
+  return !!cmd && ts.isStringLiteralLike(cmd) && cmd.text === "probe_run"
+    && !!routine && ts.isIdentifier(routine) && routine.text === "macro";
 }
 
 /** Every web adapter, by name — over the files inside the boundary. */

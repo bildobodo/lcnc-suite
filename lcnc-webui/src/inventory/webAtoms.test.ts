@@ -149,15 +149,18 @@ describe("the function inventory's web atoms (Codex R265–R268 FI265-01)", () =
     expect(a.unresolved.map((u) => u.expr)).toEqual(["document.addEventListener(ev, g)"]);
   });
 
-  it("routines: literal calls, the probe macro family, the M-codes; any other dynamic name unresolved", () => {
+  it("routines: literal calls, the probe macro family behind the probe_run job; any other dynamic name unresolved", () => {
     const src = memory({
-      "App.vue": "<template><b @click=\"fire({ cmd: 'mdi', text: 'O<go_to_g30> CALL' })\" /></template><script setup>emit(`O<${macro}> CALL`); toolsetterMdi('Load', `T${n} M600`); x(`o<${name}> call`)</script>",
+      "App.vue": "<template><b @click=\"fire({ cmd: 'mdi', text: 'O<go_to_g30> CALL' })\" /></template><script setup>request({ cmd: \"probe_run\", routine: macro, vars }); x(`o<${name}> call`)</script>",
       "ProbePanel.vue": PROBE_PANEL,
     });
     const a = routinesAdapter(src);
-    expect(a.atoms.map((x) => x.id)).toEqual(["routine:go_to_g30", "routine:M600", "routine:probe_cal_round_boss",
+    expect(a.atoms.map((x) => x.id)).toEqual(["routine:go_to_g30", "routine:probe_cal_round_boss",
       "routine:probe_z_minus_wco", "routine:surface_scan"]);
     expect(a.unresolved.map((u) => u.expr)).toEqual(["o<${name}> call"]);
+    // the family needs App's job: without it, nothing of ProbePanel's tables
+    const noJob = routinesAdapter(memory({ "App.vue": "<script setup>request({ cmd: \"mdi\", text })</script>", "ProbePanel.vue": PROBE_PANEL }));
+    expect(noJob.atoms.map((x) => x.id)).toEqual([]);
   });
 
   it("probe routines: a literal, the tables through op.macro, runCalProbe's literal arguments; any other form unresolved", () => {

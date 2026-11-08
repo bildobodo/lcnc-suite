@@ -4,10 +4,11 @@ import { toolsetterSetup, toolsetterVarMap } from "../src/toolsetterSetup";
 
 // Codex review R15 B1: the toolsetter's values reach the machine only when it
 // is SET UP — every required field in the section the SERVER confirmed, each
-// valid. R16 XZ-06: every M600 the WebUI starts is ONE command, `mdi` with
-// the values in `vars` — the gateway sets them and sends the line only once
-// the interpreter took them over; no continuation waits in the browser for
-// an abort (any client's) to miss. A config without a saved
+// valid. R16 XZ-06: every M600 the WebUI starts is ONE command — since the
+// settings split's package 3 a job, `tool_measure` / `tool_unload_measure`,
+// whose values the GATEWAY takes from the section it holds; it sets them and
+// sends the line only once the interpreter took them over; no continuation
+// waits in the browser for an abort (any client's) to miss. A config without a saved
 // section used to push TOOLSETTER_FALLBACK's zeros on each Measure Current
 // (the XYZAC sim's var file, 2026-09-27). Guard list: section missing, server
 // data pending, a partial section, a save never confirmed, the takeover
@@ -103,7 +104,7 @@ test("a partial section: the form names what is missing, shows unset fields empt
   await pad.getByRole("button", { name: "Apply", exact: true }).click();
   await expect.poll(async () => (await sent()).filter(c => c.cmd === "save_settings").at(-1)?.data)
     .toEqual({ touchZ: -300, fastFeed: 200 });
-  expect((await sent()).map(c => c.cmd), "saved, nothing pushed").not.toContain("set_probe_vars");
+  expect((await sent()).map(c => c.cmd), "saved, nothing pushed").not.toContain("set_params");
 });
 
 test("a save the server never confirmed is no setup; its confirmation is", async ({ page }) => {
@@ -130,35 +131,36 @@ test("a save the server never confirmed is no setup; its confirmation is", async
   await expect(page.getByRole("button", { name: "Measure Current", exact: true })).toBeDisabled();
 });
 
-test("Measure Current is ONE command: the values ride the mdi — a refusal says why and nothing follows (Codex R16 XZ-06)", async ({ page }) => {
+test("Measure Current is ONE command: the tool_measure job — a refusal says why and nothing follows (Codex R16 XZ-06)", async ({ page }) => {
   await open(page, { ...M600, toolsetter: SET_UP });   // zeros in X/Y and slow feed 0: a valid setup
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   const measure = page.getByRole("button", { name: "Measure Current", exact: true });
-  await ctl({ op: "replies", replies: { mdi: { ok: false, error: "Parameters not taken over — nothing started", mdi_set: false } } });
+  await ctl({ op: "replies", replies: { tool_measure: { ok: false, error: "Parameters not taken over — nothing started", mdi_set: false } } });
   await hold(page, measure);
   await expect(page.locator(".bannerContent")).toContainText("Measure Current not started — Parameters not taken over — nothing started");
-  expect((await sent()).map(c => c.cmd), "one command, refused").toEqual(["mdi"]);
+  expect((await sent()).map(c => c.cmd), "one command, refused").toEqual(["tool_measure"]);
   await page.waitForTimeout(400);   // the latch after the refused command
-  await ctl({ op: "replies", replies: { mdi: { ok: true, persisted: true, mdi_set: true } } });
+  await ctl({ op: "replies", replies: { tool_measure: { ok: true, persisted: true, mdi_set: true } } });
   await ctl({ op: "clearCmds" });
   await hold(page, measure);
-  await expect.poll(async () => (await sent()).map(c => c.cmd)).toEqual(["mdi"]);
-  const [mdi] = await sent();
-  expect(mdi.text).toBe("T5 M600");
-  expect(mdi.vars).toMatchObject({ "3100": 0, "3101": 0, "3102": -300, "3004": 200, "3005": 0 });
+  await expect.poll(async () => (await sent()).map(c => c.cmd)).toEqual(["tool_measure"]);
+  const [job] = await sent();
+  // the tool, nothing else: the values are the gateway's (its confirmed section)
+  expect(job).toMatchObject({ cmd: "tool_measure", tool: 5 });
+  expect(job.vars, "no values from the page").toBeUndefined();
 });
 
 test("an abort while the reply is outstanding leaves nothing to send: a late success after it, or after a cleared setup, sends nothing more (Codex R16 XZ-06)", async ({ page }) => {
   await open(page, { ...M600, toolsetter: SET_UP });
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await hold(page, page.getByRole("button", { name: "Measure Current", exact: true }));
-  await expect.poll(async () => (await sent()).map(c => c.cmd)).toEqual(["mdi"]);
+  await expect.poll(async () => (await sent()).map(c => c.cmd)).toEqual(["tool_measure"]);
   const [pending] = await sent();   // the mock withholds the reply
   await page.locator(".sidePane").getByRole("button", { name: "Abort", exact: true }).click();
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: { ...M600, toolsetter: {} } } });
-  await ctl({ op: "raw", frame: { type: "reply", cmd: "mdi", req_id: pending.req_id, ok: true, persisted: true, mdi_set: true } });
+  await ctl({ op: "raw", frame: { type: "reply", cmd: "tool_measure", req_id: pending.req_id, ok: true, persisted: true, mdi_set: true } });
   await page.waitForTimeout(500);
-  expect((await sent()).map(c => c.cmd)).toEqual(["mdi", "abort"]);
+  expect((await sent()).map(c => c.cmd)).toEqual(["tool_measure", "abort"]);
 });
 
 test("Reset clears the section — no field counts as saved, nothing is pushed", async ({ page }) => {
@@ -171,10 +173,10 @@ test("Reset clears the section — no field counts as saved, nothing is pushed",
   await ask.getByRole("button", { name: "Reset", exact: true }).click();
   await expect.poll(async () => (await sent()).filter(c => c.cmd === "save_settings").at(-1)?.data).toEqual({});
   await expect(page.getByRole("textbox", { name: "Touch Z", exact: true })).toHaveValue("");
-  expect((await sent()).map(c => c.cmd)).not.toContain("set_probe_vars");
+  expect((await sent()).map(c => c.cmd)).not.toContain("set_params");
 });
 
-test("Unload is ONE command: T0 M600 with the setter's values in M600 mode, tool_change 0 in the standard mode", async ({ page }) => {
+test("Unload is ONE command: the tool_unload_measure job in M600 mode, tool_change 0 in the standard mode", async ({ page }) => {
   // The function inventory's F-TOOLMEASURE S6 (the browser half; the gate
   // without a setup is the first test above).
   await open(page, { ...M600, toolsetter: SET_UP });
@@ -182,10 +184,7 @@ test("Unload is ONE command: T0 M600 with the setter's values in M600 mode, tool
   const unload = page.getByRole("button", { name: "Unload", exact: true });
   await expect(unload).toBeEnabled();
   await unload.click();
-  await expect.poll(async () => (await sent()).map(c => c.cmd)).toEqual(["mdi"]);
-  const [mdi] = await sent();
-  expect(mdi.text).toBe("T0 M600");
-  expect(mdi.vars).toMatchObject({ "3100": 0, "3101": 0, "3102": -300, "3004": 200, "3005": 0 });
+  await expect.poll(async () => (await sent()).map(c => c.cmd)).toEqual(["tool_unload_measure"]);
   // the standard tool change needs no setter
   await open(page, { machine: { toolChangeMode: "m6g43" } });
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
@@ -259,7 +258,7 @@ test("a save while the machine is not ready sends nothing; the line says it is n
   await expect.poll(async () => (await sent()).filter(c => c.cmd === "save_settings").at(-1)?.data)
     .toMatchObject({ touchZ: -299 });
   await expect(line).toContainText("Saved — not yet in the LinuxCNC parameters");
-  expect((await sent()).map(c => c.cmd), "nothing pushed while not ready").not.toContain("set_probe_vars");
+  expect((await sent()).map(c => c.cmd), "nothing pushed while not ready").not.toContain("set_params");
 });
 
 test("a save the read-back already confirms pushes nothing; one it does not gets the convenience push (Codex R309)", async ({ page }) => {
@@ -277,7 +276,8 @@ test("a save the read-back already confirms pushes nothing; one it does not gets
     if (value === "-299") await expect(line, "the read-back holds the saved number").toHaveText("LinuxCNC parameters hold these values — confirmed");
   }
   // the second push is the signal that every earlier one has arrived (one worker, in order)
-  const pushes = async () => (await sent()).filter(c => c.cmd === "set_probe_vars").map(c => (c.vars as Record<string, number>)["3102"]);
+  const pushes = async () => (await sent()).filter(c => c.cmd === "set_params" && c.purpose === "toolsetter")
+    .map(c => (c.vars as Record<string, number>)["3102"]);
   await expect.poll(pushes).toContain(-298);
   expect(await pushes(), "nothing pushed for the save the read-back confirmed").toEqual([-298]);
 });

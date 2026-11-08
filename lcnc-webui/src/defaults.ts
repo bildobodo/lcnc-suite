@@ -729,6 +729,42 @@ export function saveSimulationDefaults(data: SimulationDefaults): void {
   saveSection("simulation", data);
 }
 
+// ─── Features section (the machine's) ─────────────────────────────
+
+/** The switchable suite functions (settings split package 3, plan R335–R337):
+ *  each ON unless the server holds it OFF — an install without the section
+ *  works as before. Off is the suite's OPERATING function (operator OP2):
+ *  its tabs and buttons LEAVE the UI and the gateway refuses its jobs; free
+ *  MDI and programs stay. A machine section: armed to change, admitted only
+ *  on a machine that stands (the gateway's features.py), acting once the
+ *  server holds it. One list with the gateway's `features.FEATURES`. */
+export const FEATURE_NAMES = ["probing", "toolsetter", "surfaceMap", "camera", "macros", "gamepad"] as const;
+export type FeatureName = typeof FEATURE_NAMES[number];
+export type FeaturesDefaults = Record<FeatureName, boolean>;
+
+const FEATURES_FALLBACK: FeaturesDefaults = {
+  probing: true, toolsetter: true, surfaceMap: true, camera: true, macros: true, gamepad: true,
+};
+
+registerSection<FeaturesDefaults>("features", FEATURES_FALLBACK, (saved, fb) => {
+  const out = { ...fb };
+  for (const f of FEATURE_NAMES) if (typeof saved?.[f] === "boolean") out[f] = saved[f];
+  return out;
+});
+
+export function loadFeaturesDefaults(): FeaturesDefaults {
+  return loadSection<FeaturesDefaults>("features");
+}
+
+/** The switches as the Settings form shows them (BG-19). */
+export function loadFeaturesDraft(): FeaturesDefaults {
+  return loadSectionDraft<FeaturesDefaults>("features");
+}
+
+export function saveFeaturesDefaults(data: FeaturesDefaults): void {
+  saveSection("features", data);
+}
+
 /** The simulation on THIS device as the SERVER holds it (settings split
  *  package 2, plan Codex R335 SS334-03): false until the server's settings
  *  arrived — no simulation work starts before the confirmed profile — and

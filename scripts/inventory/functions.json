@@ -73,6 +73,10 @@
    ]},
   {"id": "F-SIMTRIP", "area": "sicherheit", "name": "Antast-Auslösung simulieren (nur Sim)",
    "atoms": ["control:*|MachineBtn:simTrip|*=2", "cmd:simulate_probe_trip"],
+   "feature": {"switch": "none", "note": "Diagnose des Taster-Eingangs, nur in Dev-Builds sichtbar, serverseitig nur Arm — benannte Ausnahme (R336), kein Schalter", "roles": {
+    "control:*|MachineBtn:simTrip|*=2": "stays",
+    "cmd:simulate_probe_trip": "stays"
+   }},
    "statements": [
     {"id": "S1", "kind": "Ablehnung", "text": "Sim-Trip braucht nur Arm.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_command_policy.py", "title": "test_simulate_probe_trip_requires_armed_only"}]},
     {"id": "S2", "kind": "Wirkung", "text": "Sim-Trip pulst probe-in in einer Folge in einem Thread: das Rücksetzen folgt jedem versuchten Setzen (höchstens zwei Versuche), das Ergebnis wird getrennt gemeldet, ein Abbruch wartet bis zum Ende.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_sim_trip.py", "title": "test_a_pulse_sets_then_resets"}, {"layer": "gateway", "file": "test_sim_trip.py", "title": "test_a_timeout_after_the_effect_is_still_reset"}, {"layer": "gateway", "file": "test_sim_trip.py", "title": "test_a_failed_set_is_reset_anyway"}, {"layer": "gateway", "file": "test_sim_trip.py", "title": "test_a_first_reset_that_fails_and_a_second_that_takes"}, {"layer": "gateway", "file": "test_sim_trip.py", "title": "test_two_failed_resets_say_the_pin_may_still_be_true"}, {"layer": "gateway", "file": "test_sim_trip.py", "title": "test_a_cancel_while_the_set_runs_waits_for_the_reset"}, {"layer": "gateway", "file": "test_sim_trip.py", "title": "test_a_cancel_while_the_reset_runs_lets_it_end"}, {"layer": "gateway", "file": "test_sim_trip.py", "title": "test_the_handler_answers_the_outcome"}]},
@@ -327,9 +331,21 @@
    ]},
   {"id": "F-TOOLMEASURE", "area": "werkzeug", "name": "Werkzeuglänge messen (M600) und Werkzeug entladen",
    "atoms": ["control:App.vue|MachineBtn:toolMeasure|*=1", "control:App.vue|MachineBtn:toolUnload|*=1",
-             "routine:M600", "remap:M600", "remap:M601", "status:data.tool_length", "status:data.tool_offset",
-             "status:data.tool_diameter"],
+             "cmd:tool_measure", "cmd:tool_unload_measure", "routine:M600", "remap:M600", "remap:M601",
+             "status:data.tool_length", "status:data.tool_offset", "status:data.tool_diameter"],
    "uses": ["cmd:mdi", "cmd:auto_run"],
+   "feature": {"switch": "toolsetter", "note": "Unload bleibt: mit Toolsetter aus ist der Werkzeugwechsel M6 G43 (ein gespeichertes M600 verweigert das Ausschalten)", "roles": {
+    "control:App.vue|MachineBtn:toolMeasure|*=1": "switched",
+    "control:App.vue|MachineBtn:toolUnload|*=1": "stays",
+    "cmd:tool_measure": "switched",
+    "cmd:tool_unload_measure": "switched",
+    "routine:M600": "switched",
+    "remap:M600": "stays",
+    "remap:M601": "stays",
+    "status:data.tool_length": "readable",
+    "status:data.tool_offset": "readable",
+    "status:data.tool_diameter": "readable"
+   }},
    "statements": [
     {"id": "S1", "kind": "Daten", "text": "Direkte Messung: Messen sendet EIN mdi mit den Toolsetter-Werten in vars (der Sendevertrag; Werte exemplarisch geprüft).", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "toolsetter-setup.spec.ts", "title": "Measure Current is ONE command: the values ride the mdi"}]},
     {"id": "S2", "kind": "Daten", "text": "Vormessung beim Start ab Zeile: EIN auto_run mit pre_tool und probe_vars (der Sendevertrag; Werte exemplarisch geprüft).", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "run-hold.spec.ts", "title": "Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values"}]},
@@ -345,6 +361,13 @@
    "atoms": ["control:ToolsetterSettings.vue|MachineInput:toolsetterParam|@change*=5",
              "control:ToolsetterSettings.vue|MachineRadio:*=3", "control:ToolsetterSettings.vue|MachineToggle:*=4",
              "control:ToolsetterSettings.vue|MachineBtn:resetProtected|*=1", "setting:toolsetter.*=23"],
+   "feature": {"switch": "toolsetter", "roles": {
+    "control:ToolsetterSettings.vue|MachineInput:toolsetterParam|@change*=5": "switched",
+    "control:ToolsetterSettings.vue|MachineRadio:*=3": "switched",
+    "control:ToolsetterSettings.vue|MachineToggle:*=4": "switched",
+    "control:ToolsetterSettings.vue|MachineBtn:resetProtected|*=1": "switched",
+    "setting:toolsetter.*=23": "readable"
+   }},
    "statements": [
     {"id": "S1", "kind": "Daten", "text": "Die Einrichtung zählt erst, wenn der Server die Sektion bestätigt hat; eine Teil-Sektion nennt, was fehlt, und eine Änderung speichert nur dieses Feld.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "toolsetter-setup.spec.ts", "title": "a save the server never confirmed is no setup; its confirmation is"}, {"layer": "browser", "file": "toolsetter-setup.spec.ts", "title": "a partial section: the form names what is missing, shows unset fields empty, and a change saves only that field"}]},
     {"id": "S2", "kind": "Wirkung", "text": "Jeder Programmstart aus Idle (Cycle Start, der erste Schritt, auto_run und Start ab Zeile) übernimmt zuerst die vom Server bestätigte Sektion in den Interpreter, gebunden an Sektion und INI; ohne vollständige Übernahme kein Start; sind alle Zahlen schon als übernommen oder rückgelesen gebucht, wird nichts geschrieben; MDI, Werkzeugwechsel, pausierter Schritt und Resume gleichen nicht ab.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_toolsetter_sync.py", "title": "test_cycle_start_applies_the_saved_section_first"}, {"layer": "gateway", "file": "test_toolsetter_sync.py", "title": "test_the_first_step_from_idle_syncs"}, {"layer": "gateway", "file": "test_toolsetter_sync.py", "title": "test_a_direct_run_from_line_syncs"}, {"layer": "gateway", "file": "test_toolsetter_sync.py", "title": "test_a_chunk_not_taken_refuses_the_start"}, {"layer": "gateway", "file": "test_toolsetter_sync.py", "title": "test_a_section_changed_between_choice_and_write_refuses"}, {"layer": "gateway", "file": "test_toolsetter_sync.py", "title": "test_a_booked_basis_writes_nothing_and_a_change_between_starts_writes_again"}, {"layer": "gateway", "file": "test_toolsetter_sync.py", "title": "test_a_confirmed_read_back_with_the_sections_numbers_writes_nothing"}, {"layer": "gateway", "file": "test_toolsetter_sync.py", "title": "test_a_paused_step_and_a_resume_never_sync"}, {"layer": "gateway", "file": "test_toolsetter_sync.py", "title": "test_mdi_and_a_tool_change_never_sync"}]},
@@ -365,12 +388,39 @@
              "control:ProbePanel.vue|MachineInput:probeParam|*=6",
              "control:ProbePanel.vue|MachineToggle:probeParam|*=2",
              "control:ProbePanel.vue|MachineBtn:retry|@click=emit('getProbeResults')",
-             "control:App.vue|MachineSelect:tabSelect|*=1", "cmd:set_probe_vars", "cmd:list_probe_macros",
-             "cmd:get_probe_results", "routine:probe_back_*=5", "routine:probe_front_*=5", "routine:probe_left_*=1",
-             "routine:probe_right_*=1", "routine:probe_top_*=4", "routine:probe_corner_*=4",
-             "routine:probe_rect_*=3", "routine:probe_round_*=3", "routine:probe_ridge_*=2",
-             "routine:probe_valley_*=4", "routine:probe_z_*=1", "status:probe_results", "status:data.probe_*=2",
-             "status:data.probed_position", "status:data.probing", "setting:probe.*=30"],
+             "control:App.vue|MachineSelect:tabSelect|*=1", "cmd:set_params", "cmd:probe_run",
+             "cmd:list_probe_macros", "cmd:get_probe_results", "routine:probe_back_*=5", "routine:probe_front_*=5",
+             "routine:probe_left_*=1", "routine:probe_right_*=1", "routine:probe_top_*=4",
+             "routine:probe_corner_*=4", "routine:probe_rect_*=3", "routine:probe_round_*=3",
+             "routine:probe_ridge_*=2", "routine:probe_valley_*=4", "routine:probe_z_*=1", "status:probe_results",
+             "status:data.probe_*=2", "status:data.probed_position", "status:data.probing", "setting:probe.*=30"],
+   "feature": {"switch": "probing", "roles": {
+    "control:ProbePanel.vue|MachineBtn:probeCell|@click=run*Probe(op)*=5": "switched",
+    "control:ProbePanel.vue|MachineInput:probeParam|*=6": "helper",
+    "control:ProbePanel.vue|MachineToggle:probeParam|*=2": "helper",
+    "control:ProbePanel.vue|MachineBtn:retry|@click=emit('getProbeResults')": "readable",
+    "control:App.vue|MachineSelect:tabSelect|*=1": "helper",
+    "cmd:set_params": "variant",
+    "cmd:probe_run": "switched",
+    "cmd:list_probe_macros": "readable",
+    "cmd:get_probe_results": "readable",
+    "routine:probe_back_*=5": "switched",
+    "routine:probe_front_*=5": "switched",
+    "routine:probe_left_*=1": "switched",
+    "routine:probe_right_*=1": "switched",
+    "routine:probe_top_*=4": "switched",
+    "routine:probe_corner_*=4": "switched",
+    "routine:probe_rect_*=3": "switched",
+    "routine:probe_round_*=3": "switched",
+    "routine:probe_ridge_*=2": "switched",
+    "routine:probe_valley_*=4": "switched",
+    "routine:probe_z_*=1": "switched",
+    "status:probe_results": "readable",
+    "status:data.probe_*=2": "readable",
+    "status:data.probed_position": "readable",
+    "status:data.probing": "readable",
+    "setting:probe.*=30": "readable"
+   }},
    "statements": [
     {"id": "S1", "kind": "Daten", "text": "Ein Antast-Button sendet genau ein mdi mit O<probe_…> CALL und genau den Var-Nummern der Zuordnung; jeder Wert endlich.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "probe-click.spec.ts", "title": "${form.sub}: a held probe button sends its routine with the panel's numbers", "instances": ["Outside", "Boss/Pocket", "Ridge/Valley", "Angle", "Calibrate"]}]},
     {"id": "S2", "kind": "Daten", "text": "Jede Var-Nummer, die das Panel und der Toolsetter schreiben, ist in der Var-Datei jedes Beispielprofils deklariert.", "applies": ["alle"], "evidence": [{"layer": "unit", "file": "probeVarFiles.test.ts", "title": "${rel} declares every number the probe panel and the toolsetter write", "instances": ["xyz3/sim.var", "xyzabc6/sim.var", "xyzac5/sim.var"]}]},
@@ -383,13 +433,29 @@
              "control:ProbePanel.vue|MachineBtn:probeReset|*=1",
              "control:ProbePanel.vue|MachineBtn:dialogCancel|*=1",
              "control:ProbePanel.vue|MachineBtn:dialogDanger|*=1", "routine:probe_cal_*=5"],
+   "feature": {"switch": "probing", "roles": {
+    "control:ProbePanel.vue|MachineBtn:probeCell|@click=runCalProbe*=4": "switched",
+    "control:ProbePanel.vue|MachineRadio:probeParam|*=3": "switched",
+    "control:ProbePanel.vue|MachineBtn:probeReset|*=1": "switched",
+    "control:ProbePanel.vue|MachineBtn:dialogCancel|*=1": "switched",
+    "control:ProbePanel.vue|MachineBtn:dialogDanger|*=1": "switched",
+    "routine:probe_cal_*=5": "switched"
+   }},
    "statements": [
     {"id": "S1", "kind": "Daten", "text": "Kalibrieren sendet seine Routine mit der Achswahl #3036 und den Zahlen der Kalibrier-Zuordnung.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "probe-click.spec.ts", "title": "${form.sub}: a held probe button sends its routine with the panel's numbers", "instances": ["Calibrate"]}]}
    ]},
   {"id": "F-SURFACE", "area": "antasten", "name": "Fläche abtasten (Surface-Scan)",
    "atoms": ["control:ProbePanel.vue|MachineBtn:surface*=2", "control:ProbePanel.vue|MachineInput:scanParam|*=1",
              "control:ProbePanel.vue|MachineToggle:viewerSetting|*=1", "routine:surface_scan",
-             "http:GET /surface_points"],
+             "cmd:surface_scan_run", "http:GET /surface_points"],
+   "feature": {"switch": "surfaceMap", "roles": {
+    "control:ProbePanel.vue|MachineBtn:surface*=2": "switched",
+    "control:ProbePanel.vue|MachineInput:scanParam|*=1": "switched",
+    "control:ProbePanel.vue|MachineToggle:viewerSetting|*=1": "switched",
+    "routine:surface_scan": "switched",
+    "cmd:surface_scan_run": "switched",
+    "http:GET /surface_points": "readable"
+   }},
    "statements": [
     {"id": "S1", "kind": "Daten", "text": "Der Surface-Scan sendet auf ein Halten EIN mdi O<surface_scan> CALL mit den Werten des Panels in vars (ein vom Server gehaltener Wert kommt an).", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "probe-click.spec.ts", "title": "Surface: a held Start Scan sends O<surface_scan> CALL with the panel's numbers"}]},
     {"id": "S2", "kind": "Wirkung", "text": "Auf echtem LinuxCNC tastet der Scan das Raster ab und liefert die Punkte für die Kompensation: 5 × 5 Punkte auf dem gewölbten Werkstück der 3-Achs-Sim in der Schlangenfolge, jeder auf der Fläche ± 0,005 mm; danach lädt die Kompensation die neue Karte.", "applies": ["3axis_xyz"], "evidence": [{"layer": "native", "file": "native_run.py", "title": "surface-scan", "profile": "3axis_xyz"}, {"layer": "native", "file": "native_run.py", "title": "surface-scan.counter-node+1", "profile": "3axis_xyz"}, {"layer": "native", "file": "native_run.py", "title": "surface-scan.counter-xy-swapped", "profile": "3axis_xyz"}, {"layer": "native", "file": "native_run.py", "title": "surface-scan.map", "profile": "3axis_xyz"}]}
@@ -402,6 +468,21 @@
              "control:ProbePanel.vue|MachineBtn:retry|@click=emit('getCompGrid')", "cmd:set_compensation",
              "cmd:set_compensation_method", "cmd:get_comp_grid", "http:GET /comp_grid", "status:data.comp_method",
              "status:data.comp_grid_version", "status:data.eoffset_enabled", "status:data.eoffset_z"],
+   "feature": {"switch": "surfaceMap", "note": "Kompensation AUS ist immer zugelassen; EIN und die Methode gehören zum Schalter", "roles": {
+    "control:ProbePanel.vue|MachineToggle:compToggle|*=1": "variant",
+    "control:ProbePanel.vue|ChoiceGroup:Compensation method|*=1": "switched",
+    "control:App.vue|MachineBtn:dialogReady|@click=confirmCompToggle": "variant",
+    "control:App.vue|MachineBtn:dialogCancel|@click=cancelCompToggle": "variant",
+    "control:ProbePanel.vue|MachineBtn:retry|@click=emit('getCompGrid')": "readable",
+    "cmd:set_compensation": "variant",
+    "cmd:set_compensation_method": "switched",
+    "cmd:get_comp_grid": "readable",
+    "http:GET /comp_grid": "readable",
+    "status:data.comp_method": "readable",
+    "status:data.comp_grid_version": "readable",
+    "status:data.eoffset_enabled": "readable",
+    "status:data.eoffset_z": "readable"
+   }},
    "statements": [
     {"id": "S1", "kind": "Unbekannt", "text": "„AN“ erscheint nur aus einem gelesenen Pin; ein unbekannter Wert erscheint als unbekannt, nie als AUS.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "compensation.spec.ts", "title": "unread pins are never OFF or Cubic: the state reads —, no method is checked, the switch is not on"}, {"layer": "browser", "file": "compensation.spec.ts", "title": "the reported state: ON with its method checked, OFF once the status says so"}]},
     {"id": "S2", "kind": "Unbekannt", "text": "Die angezeigte Interpolation ist die, die der Status meldet; eine unbekannte erscheint nie als Cubic.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "compensation.spec.ts", "title": "unread pins are never OFF or Cubic: the state reads —, no method is checked, the switch is not on"}, {"layer": "browser", "file": "compensation.spec.ts", "title": "a chosen method is sent once and pending; the reported one stays checked, 'Not confirmed' after 5 s"}]},
@@ -417,8 +498,31 @@
              "control:MacrosPanel.vue|MachineBtn:listActionSource|*=2",
              "control:MacrosPanel.vue|MachineBtn:retry|*=1", "control:MacrosPanel.vue|MachineBtn:sourceDanger|*=2",
              "control:MacrosPanel.vue|MachineBtn:sourceOp|*=2", "control:MacrosPanel.vue|MachineInput:*=4",
-             "control:MacrosPanel.vue|td|*=4", "control:MacrosPanel.vue|tr|*=1", "http:*/macro=3",
-             "http:GET /macros", "http:POST /macro-upload", "ini:DISPLAY/WEBUI_MACRO_DIR"],
+             "control:MacrosPanel.vue|td|*=4", "control:MacrosPanel.vue|tr|*=1", "http:GET /macro",
+             "http:PUT /macro", "http:DELETE /macro", "http:GET /macros", "http:POST /macro-upload",
+             "ini:DISPLAY/WEBUI_MACRO_DIR"],
+   "feature": {"switch": "macros", "roles": {
+    "control:MacrosPanel.vue|button|*=1": "switched",
+    "control:MacrosPanel.vue|MachineBtn:close|*=1": "switched",
+    "control:MacrosPanel.vue|MachineBtn:dialogCancel|*=4": "switched",
+    "control:MacrosPanel.vue|MachineBtn:dialogDanger|*=1": "switched",
+    "control:MacrosPanel.vue|MachineBtn:fileDownload|*=1": "switched",
+    "control:MacrosPanel.vue|MachineBtn:fileSave|*=1": "switched",
+    "control:MacrosPanel.vue|MachineBtn:inline|*=2": "switched",
+    "control:MacrosPanel.vue|MachineBtn:listActionSource|*=2": "switched",
+    "control:MacrosPanel.vue|MachineBtn:retry|*=1": "switched",
+    "control:MacrosPanel.vue|MachineBtn:sourceDanger|*=2": "switched",
+    "control:MacrosPanel.vue|MachineBtn:sourceOp|*=2": "switched",
+    "control:MacrosPanel.vue|MachineInput:*=4": "switched",
+    "control:MacrosPanel.vue|td|*=4": "switched",
+    "control:MacrosPanel.vue|tr|*=1": "switched",
+    "http:GET /macro": "readable",
+    "http:PUT /macro": "switched",
+    "http:DELETE /macro": "switched",
+    "http:GET /macros": "readable",
+    "http:POST /macro-upload": "switched",
+    "ini:DISPLAY/WEBUI_MACRO_DIR": "readable"
+   }},
    "statements": [
     {"id": "S1", "kind": "Ablehnung", "text": "Speichern ist an die gelesene Revision gebunden; ein Konflikt oder eine Ablehnung zeigt ihren Grund, der Entwurf bleibt.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "macros.spec.ts", "title": "Save's refusal: a conflict rebases Keep editing on the gateway's revision"}]},
     {"id": "S2", "kind": "Wirkung", "text": "Nach einer gelungenen Umbenennung zieht die Oberfläche den Platz auf der Leiste nach (gegen den Ordner-Mock).", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "macros.spec.ts", "title": "a rename moves the file and its place on the bar"}]},
@@ -428,6 +532,14 @@
    "atoms": ["control:MacrosPanel.vue|MachineBtn:macroRun|*=1", "control:MacroBar.vue|MachineBtn:macro|*=1",
              "control:App.vue|MachineBtn:macroExecute|*=1", "control:App.vue|MachineInput:macroParam|*=1",
              "control:App.vue|MachineBtn:dialogCancel|@click=macroParamDialog = null", "cmd:run_macro"],
+   "feature": {"switch": "macros", "roles": {
+    "control:MacrosPanel.vue|MachineBtn:macroRun|*=1": "switched",
+    "control:MacroBar.vue|MachineBtn:macro|*=1": "switched",
+    "control:App.vue|MachineBtn:macroExecute|*=1": "switched",
+    "control:App.vue|MachineInput:macroParam|*=1": "switched",
+    "control:App.vue|MachineBtn:dialogCancel|@click=macroParamDialog = null": "switched",
+    "cmd:run_macro": "switched"
+   }},
    "statements": [
     {"id": "S1", "kind": "Bedienbarkeit", "text": "Ein Makro auf der Leiste läuft auf ein Halten, gebunden an seine Revision; ein ungespeicherter Entwurf sperrt genau dieses Makro.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "macros.spec.ts", "title": "the Macros tab lists the folder; a file put on the bar runs on a hold bound to its revision"}, {"layer": "browser", "file": "macros.spec.ts", "title": "an unsaved draft blocks the run of THAT macro on the bar and in the tab; Save restores it at the new revision"}]},
     {"id": "S2", "kind": "Daten", "text": "Ein Makro mit Parametern öffnet seinen Dialog mit den Feldern des Kopfs; Ausführen ist ein Halten und sendet Zahlen.", "applies": ["alle"], "evidence": [{"layer": "browser", "file": "macros.spec.ts", "title": "a macro file with parameters opens its dialog with the header's fields; Execute holds and sends numbers"}]}
@@ -435,7 +547,15 @@
   {"id": "F-MACROBAR", "area": "makros", "name": "Makro-Leiste einrichten",
    "atoms": ["control:MacrosPanel.vue|MachineBtn:listActionDevice|*=2",
              "control:MacrosPanel.vue|MachineBtn:settingInline|*=1", "control:MacrosPanel.vue|MachineToggle:*=1",
-             "control:MacrosPanel.vue|MachineSelect:*=1", "setting:macros.*=1", "setting:macroBar.bar"]},
+             "control:MacrosPanel.vue|MachineSelect:*=1", "setting:macros.*=1", "setting:macroBar.bar"],
+   "feature": {"switch": "macros", "roles": {
+    "control:MacrosPanel.vue|MachineBtn:listActionDevice|*=2": "switched",
+    "control:MacrosPanel.vue|MachineBtn:settingInline|*=1": "switched",
+    "control:MacrosPanel.vue|MachineToggle:*=1": "switched",
+    "control:MacrosPanel.vue|MachineSelect:*=1": "switched",
+    "setting:macros.*=1": "readable",
+    "setting:macroBar.bar": "readable"
+   }}},
   {"id": "F-SIM", "area": "ansicht", "name": "Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab",
    "atoms": ["control:ScrubBar.vue|*=5", "control:SimPanel.vue|*=5"]},
   {"id": "F-VIEW", "area": "ansicht", "name": "3D-Ansicht bedienen: Ansichten, Würfel, Spur löschen, Hinweise",
@@ -460,7 +580,15 @@
   {"id": "F-CAMERA", "area": "ansicht", "name": "Kamerabild (Bild im Bild) und Überlagerung",
    "atoms": ["control:CameraPip.vue|*=4", "control:ThreeViewer.vue|MachineBtn:viewerQuickToggle|@click=togglePip",
              "control:SettingsPanel.vue|*:cameraSetting|*=7", "setting:camera.*=12", "http:GET /camera/*=2",
-             "ini:DISPLAY/CAMERA_*=3"]},
+             "ini:DISPLAY/CAMERA_*=3"],
+   "feature": {"switch": "camera", "roles": {
+    "control:CameraPip.vue|*=4": "switched",
+    "control:ThreeViewer.vue|MachineBtn:viewerQuickToggle|@click=togglePip": "switched",
+    "control:SettingsPanel.vue|*:cameraSetting|*=7": "switched",
+    "setting:camera.*=12": "readable",
+    "http:GET /camera/*=2": "switched",
+    "ini:DISPLAY/CAMERA_*=3": "readable"
+   }}},
   {"id": "F-SETTINGS", "area": "oberflaeche", "name": "Einstellungen öffnen, speichern, verwerfen, zurücksetzen",
    "atoms": ["control:SettingsPanel.vue|MachineBtn:resetProtected|@click=resetTarget = 'machine'",
              "control:SettingsPanel.vue|MachineBtn:resetDisplay|@click=resetTarget = 'display'",
@@ -471,7 +599,7 @@
              "control:App.vue|MachineBtn:dialogDanger|@click=confirmSettingsDiscard",
              "control:App.vue|MachineBtn:dialogCancel|@click=tabLeaveAsk = null",
              "control:App.vue|MachineBtn:dialogDanger|@click=confirmTabLeave", "cmd:save_settings",
-             "http:*/settings=1", "http:*/settings/{section}=2", "section:*=13", "listener:defaults.ts:*=1"],
+             "http:*/settings=1", "http:*/settings/{section}=2", "section:*=14", "listener:defaults.ts:*=1"],
    "statements": [
     {"id": "S1", "kind": "Ablehnung", "text": "Eine Maschinen-Sektion speichert nur ein freigegebener Schreiber (403 sonst); die Sektionen des eigenen Geräts brauchen kein Arm.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_button_gates_b.py", "title": "test_a_protected_section_needs_an_armed_writer"}, {"layer": "gateway", "file": "test_button_gates_b.py", "title": "test_a_device_section_goes_to_the_tokens_device_without_arm"}]}
    ]},
@@ -483,6 +611,10 @@
     {"id": "S2", "kind": "Wirkung", "text": "Eine Verbindung wird mit ihrem ersten hello an ihr Gerät gebunden; ihre ersten Einstellungen sind die ihres Geräts, eine Geräteänderung erreicht nur dieses Gerät.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_device_profiles.py", "title": "test_no_settings_before_the_hello_then_the_own_devices"}, {"layer": "gateway", "file": "test_device_profiles.py", "title": "test_a_devices_change_reaches_only_its_own_connections"}, {"layer": "gateway", "file": "test_device_profiles.py", "title": "test_a_later_hello_never_swaps_the_binding"}]},
     {"id": "S3", "kind": "Wirkung", "text": "Ein neues Gerät startet mit Simulation aus; ein kurzer erster Besuch behält seine bestätigten Einstellungen.", "applies": ["alle"], "evidence": [{"layer": "gateway", "file": "test_settings_store.py", "title": "test_an_unknown_token_makes_a_new_profile_from_the_template_simulation_off"}, {"layer": "gateway", "file": "test_settings_store.py", "title": "test_a_short_visit_keeps_its_profile_and_values"}]}
    ]},
+  {"id": "F-FEATURES", "area": "oberflaeche", "name": "Funktionen abschalten (Antasten, Toolsetter, Surface-Map, Kamera, Makros, Gamepad)",
+   "atoms": ["control:SettingsPanel.vue|MachineToggle:protectedSetting|@update:modelValue=setFeature(f, $event!)",
+             "control:SettingsPanel.vue|MachineBtn:resetProtected|@click=resetTarget = 'features'",
+             "setting:features.*=6"]},
   {"id": "F-DISPLAY", "area": "oberflaeche", "name": "Darstellung: Farbschema, Vollbild, Bildschirm wach halten",
    "atoms": ["control:SettingsPanel.vue|MachineRadio:displaySetting|*=5",
              "control:SettingsPanel.vue|MachineToggle:displaySetting|*=2",
@@ -515,6 +647,15 @@
    "atoms": ["control:GamepadTab.vue|*=9", "control:GamepadMapWizard.vue|*=4", "pad:*=12", "padButton:*=12",
              "setting:gamepad.*=8", "listener:useGamepad.ts:*=2",
              "control:SettingsPanel.vue|MachineBtn:resetProtected|@click=resetTarget = 'gamepad'"],
+   "feature": {"switch": "gamepad", "roles": {
+    "control:GamepadTab.vue|*=9": "switched",
+    "control:GamepadMapWizard.vue|*=4": "switched",
+    "pad:*=12": "switched",
+    "padButton:*=12": "switched",
+    "setting:gamepad.*=8": "readable",
+    "listener:useGamepad.ts:*=2": "switched",
+    "control:SettingsPanel.vue|MachineBtn:resetProtected|@click=resetTarget = 'gamepad'": "switched"
+   }},
    "statements": [
     {"id": "S1", "kind": "Abbruch", "text": "Ein Gamepad-Jog stoppt beim Loslassen mit seinem eigenen Stopp — auch wenn Schritt oder Z-Umschalter sich während des Haltens ändern; ein Schritt-Jog sendet keinen Stopp.", "applies": ["alle"], "evidence": [{"layer": "unit", "file": "useGamepad.test.ts", "title": "a continuous D-pad jog stops on release, the stick at rest does not stop it"}, {"layer": "unit", "file": "useGamepad.test.ts", "title": "a step changed mid-hold still stops the continuous jog on release"}, {"layer": "unit", "file": "useGamepad.test.ts", "title": "a Z jog whose modifier is let go first stops Z, not Y"}, {"layer": "unit", "file": "useGamepad.test.ts", "title": "a step jog sends no stop at its release"}]},
     {"id": "S2", "kind": "Ablehnung", "text": "Vor dem Referenzieren startet eine gesperrte Achse weder vom D-Pad noch vom Stick etwas; eine offene joggt.", "applies": ["alle"], "evidence": [{"layer": "unit", "file": "useGamepad.test.ts", "title": "an axis closed before homing starts nothing from the D-pad or the stick; an open one jogs"}]},

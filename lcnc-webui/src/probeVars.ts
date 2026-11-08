@@ -12,10 +12,11 @@ export const PROBE_FALLBACK: ProbeDefaults = {
   autoZero: false,
 };
 
-/** The probe parameters → the LinuxCNC var numbers the routines read: the
- *  probe_basic routines #3014–#3035 (XY and Z distance and clearance both;
- *  a calibration adds #3036, `calibrationVarMap`),
- *  the surface map #3050–#3059. Every number must be declared in the
+/** The probe parameters → the LinuxCNC var numbers the probe_basic routines
+ *  read: #3014–#3035 (XY and Z distance and clearance both; a calibration
+ *  adds #3036, `calibrationVarMap`) — the `probe` purpose (settings split
+ *  package 3: the gateway refuses a set outside it whole; the surface map's
+ *  numbers are `surfaceVarMap`). Every number must be declared in the
  *  machine's var file — the gateway refuses one it does not declare (W3),
  *  and a probe sends these with its call (operator 2026-11-02: the shipped
  *  examples declared none past #3014, so every probe was refused). */
@@ -43,7 +44,16 @@ export function probeVarMap(p: Omit<ProbeDefaults, "autoZero">, probeMode: numbe
     "3033": p.calDiameter,
     "3034": p.xCalWidth,
     "3035": p.yCalWidth,
-    // Surface map scan (#3050-#3059)
+  };
+}
+
+/** The surface scan's numbers — the `surface` purpose: #3050–#3059 and the
+ *  two probe values surface_scan.ngc reads (the probe tool #3014, the
+ *  clearance #3021). */
+export function surfaceVarMap(p: Omit<ProbeDefaults, "autoZero">): Record<string, number> {
+  return {
+    "3014": p.probeTool,
+    "3021": p.zClearance,
     "3050": p.scanX0,
     "3051": p.scanX1,
     "3052": p.scanY0,

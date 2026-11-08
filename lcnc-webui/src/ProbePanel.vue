@@ -20,7 +20,8 @@ import { LABEL_FONT_URL } from "./viewer/labelFont";
 import TabNav from "./TabNav.vue";
 import { tabIds } from "./tabIds";
 import { PROBE_VIEWS, type ProbeView } from "./probeViews";
-import { PROBE_FALLBACK, calibrationVarMap, probeVarMap } from "./probeVars";
+import { PROBE_FALLBACK, calibrationVarMap, probeVarMap, surfaceVarMap } from "./probeVars";
+import { features, featureShown } from "./features";
 
 const props = defineProps<{
   probing: boolean;
@@ -48,15 +49,21 @@ const props = defineProps<{
   narrow?: boolean;
   /** The machine's linear unit — the unit of every length and feed field. */
   linearUnit: string;
+  /** The procedures of the functions switched on (settings split package 3,
+   *  App: one list for this grid and the narrow select). */
+  views: readonly { id: ProbeView; label: string }[];
+  /** The procedure in use stays after its function went off — until left. */
+  heldNote: string | null;
 }>();
 
 const emit = defineEmits<{
-  (e: "mdi", text: string): void;
   (e: "abort"): void;
   (e: "simTrip"): void;
   (e: "listProbeMacros"): void;
-  (e: "setProbeVars", vars: Record<string, number>): void;
+  /** A form's values by their purpose (settings split package 3, R336). */
+  (e: "setParams", payload: { purpose: "probe" | "surface"; vars: Record<string, number> }): void;
   (e: "runProbe", payload: { vars: Record<string, number>; macro: string }): void;
+  (e: "runSurface", vars: Record<string, number>): void;
   (e: "getProbeResults"): void;
   (e: "getCompGrid"): void;
   (e: "setCompensation", enable: boolean): void;
@@ -73,6 +80,13 @@ const isDev = import.meta.env.DEV;
 // (v-model:view — one state for both).
 const probeView = defineModel<ProbeView>("view", { default: "outside" });
 const probeViewLabel = computed(() => PROBE_VIEWS.find(v => v.id === probeView.value)?.label ?? "");
+// The surface view with the surface map OFF shows only the compensation —
+// its state and its OFF (SS334-02: an active offset is never hidden) — unless
+// it is the view in use when the map went off (held whole until left).
+const surfaceFull = computed(() => featureShown.surfaceMap.value || props.heldNote !== null);
+const compOnlyNote = computed(() => surfaceFull.value ? null
+  : props.eoffsetEnabled === true ? "Surface map is off — the compensation is still on: turn it off here"
+  : "Surface map is off — the compensation state is not read");
 
 // ─── Reset confirmation ──────────────────────────────────────────
 const resetTarget = ref<string | null>(null);
@@ -80,7 +94,7 @@ function confirmReset() {
   const target = resetTarget.value;
   resetTarget.value = null;
   if (target === "toolsetter") clearToolsetterDefaults();
-  else if (target === "cal") emit("mdi", `O<probe_cal_reset> CALL`);
+  else if (target === "cal") emit("runProbe", { vars: {}, macro: "probe_cal_reset" });
 }
 
 // ─── Grid probe operations ────────────────────────────────────────
@@ -178,8 +192,11 @@ function loadParams() {
 
 function saveParams() {
   saveProbeDefaults({ ...params.value, autoZero: autoZero.value });
-  // Sync to var file when machine is ready (execution functions also sync before each probe)
-  if (can.value.ready) emit("setProbeVars", buildVarMap(autoZero.value ? 0 : 1));
+  // Sync to var file when machine is ready (execution functions also sync
+  // before each probe) — each purpose whose function is on (package 3)
+  if (!can.value.ready) return;
+  if (features.value.probing) emit("setParams", { purpose: "probe", vars: buildVarMap(autoZero.value ? 0 : 1) });
+  if (features.value.surfaceMap) emit("setParams", { purpose: "surface", vars: surfaceVarMap(params.value) });
 }
 
 /** Sync cal offset from DEBUG EVAL messages (emitted by cal subroutines and reset). */
@@ -264,8 +281,7 @@ function resetCal() {
 function runSurfaceScan() {
   if (!can.value.ready || props.probing) return;
   saveProbeDefaults({ ...params.value, autoZero: autoZero.value });
-  const vars = buildVarMap(autoZero.value ? 0 : 1);
-  emit("runProbe", { vars, macro: "surface_scan" });
+  emit("runSurface", surfaceVarMap(params.value));
 }
 
 function refreshSurface() {
@@ -638,7 +654,8 @@ function fmtR(key: string): string {
 <template>
   <div class="probePanelWrap stack-tight">
     <!-- The procedure grid (pinned, 4 × 2 — design wave D3) -->
-    <TabNav v-if="!narrow" v-model="probeView" :tabs="PROBE_VIEWS" label="Probing procedure" id-base="probe" :columns="4" />
+    <TabNav v-if="!narrow" v-model="probeView" :tabs="views" label="Probing procedure" id-base="probe" :columns="4" />
+    <div v-if="heldNote" class="statusNote warn" role="status">{{ heldNote }}</div>
 
     <div class="stack-sections probePanel scroll-thin fade-scroll" role="tabpanel" :id="tabIds('probe', probeView).panel"
          :aria-labelledby="narrow ? undefined : tabIds('probe', probeView).tab" :aria-label="narrow ? probeViewLabel : undefined">
@@ -1094,7 +1111,8 @@ function fmtR(key: string): string {
 
     <!-- ─── Surface Map ─── -->
     <template v-else-if="probeView === 'surface'">
-      <div class="formGrid">
+      <div v-if="compOnlyNote" class="statusNote warn" role="status">{{ compOnlyNote }}</div>
+      <div v-if="surfaceFull" class="formGrid">
         <div class="sub">Scan Grid</div>
         <FormField v-for="f in SCAN_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)">
           <template #default="{ input }">
@@ -1105,10 +1123,10 @@ function fmtR(key: string): string {
         </FormField>
       </div>
 
-      <div class="sep"></div>
+      <div v-if="surfaceFull" class="sep"></div>
 
       <div class="row-sections">
-        <div ref="surfaceContainer" class="surface3d no-drag-scroll">
+        <div v-if="surfaceFull" ref="surfaceContainer" class="surface3d no-drag-scroll">
           <!-- State, not silence (UI-10): loading, nothing recorded yet, or a
                failure with its reason and a retry — never a toast for an
                absent file. -->
@@ -1120,6 +1138,7 @@ function fmtR(key: string): string {
           <div v-else-if="!surfacePoints?.length" class="emptyState">No surface map recorded yet</div>
         </div>
         <div class="compPanel stack-controls">
+          <template v-if="surfaceFull">
           <MachineBtn type="surfaceScan" @click="runSurfaceScan">Start Scan</MachineBtn>
           <MachineBtn type="surfaceRefresh" @click="refreshSurface"
                       :title="surfaceState?.points === 'loading' || surfaceState?.grid === 'loading' ? 'Loading…' : 'Reload the recorded points and the compensation grid'">
@@ -1131,17 +1150,20 @@ function fmtR(key: string): string {
           </div>
           <div v-else-if="surfaceState?.grid === 'empty'" class="emptyState">No compensation grid yet</div>
           <div class="sep"></div>
+          </template>
           <div class="row-tight">
             <span class="compDot" :class="{ on: eoffsetEnabled === true }"></span>
             <span>Compensation: <b class="stable-width"><span :class="{ alt: eoffsetEnabled !== true }">ON</span><span :class="{ alt: eoffsetEnabled !== false }">OFF</span><span :class="{ alt: eoffsetEnabled !== null }">{{ NO_VALUE }}</span></b></span>
           </div>
           <span v-if="eoffsetZ != null" class="text-muted mono">Z: {{ fmtNum(eoffsetZ, 4) }}</span>
+          <template v-if="surfaceFull">
           <div class="sep"></div>
           <div class="sub">Method</div>
           <ChoiceGroup label="Compensation method" :options="METHOD_OPTIONS" :modelValue="compMethod" :act="methodAct" />
           <div class="sep"></div>
           <MachineToggle gate="viewerSetting" :modelValue="surfaceLayerVisible"
             @update:modelValue="emit('toggleSurfaceLayer', $event!)" label="Show Surface" />
+          </template>
           <div class="sep"></div>
           <!-- Tighter permission than the catalog gate, the case CLAUDE.md
                allows: turning comp OFF stays available under `ready` (the safe
@@ -1149,7 +1171,7 @@ function fmtR(key: string): string {
                parked at zero. Both classes are backend-derived; this only
                chooses which one applies to which direction. -->
           <MachineToggle gate="compToggle" :modelValue="eoffsetEnabled === true"
-            :disabled="probing || (eoffsetEnabled !== true && !can.surfaceComp)"
+            :disabled="probing || (eoffsetEnabled !== true && (!can.surfaceComp || !surfaceFull))"
             @update:modelValue="onCompToggle" label="Enable Compensation" />
           <div v-if="eoffsetEnabled === true && rotaryTilted" class="statusNote warn" role="alert">
             Compensation active with a rotary off zero — the Z shim does not
@@ -1170,7 +1192,7 @@ function fmtR(key: string): string {
       />
     </template>
 
-    <template v-if="probeView !== 'toolsetter'">
+    <template v-if="probeView !== 'toolsetter' && (probeView !== 'surface' || surfaceFull)">
     <div class="sep"></div>
 
     <!-- Parameters: every procedure, the surface map included (one table,
@@ -1193,7 +1215,7 @@ function fmtR(key: string): string {
     </div>
     </template>
 
-    <template v-if="probeView !== 'toolsetter'">
+    <template v-if="probeView !== 'toolsetter' && (probeView !== 'surface' || surfaceFull)">
     <div class="sep"></div>
 
     <!-- Probe Results (shared across all probe views) -->

@@ -10,7 +10,7 @@ import { initTouchDetect } from './touchDetect'
 import { initFlashClock } from './flashClock'
 import { startClientDiag } from './clientDiag'
 
-const SERVER_SECTIONS = ["macros", "machine", "camera", "mdi", "gamepad", "keyboard", "probe", "toolsetter", "display", "viewer", "panels", "macroBar", "simulation"];
+const SERVER_SECTIONS = ["macros", "machine", "camera", "mdi", "gamepad", "keyboard", "probe", "toolsetter", "display", "viewer", "panels", "macroBar", "simulation", "features"];
 
 async function bootstrap() {
   initTouchDetect();

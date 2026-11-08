@@ -465,6 +465,9 @@
      "free": true
     },
     {
+     "id": "section:features"
+    },
+    {
      "id": "section:gamepad"
     },
     {
@@ -841,14 +844,28 @@
    "source": "lcnc-gateway/*.py string constants",
    "forms": [
     "O<name> CALL literal",
-    "macro_files.py o<{name}> call: the macro class"
+    "macro_files.py o<{name}> call: the macro class",
+    "gateway.py O<{routine}> CALL: the probe_run job",
+    "T{tool} M<code>: a job's tool change"
    ],
    "limit": "f-strings building a call are unresolved unless named (the macro class)",
    "atoms": [
     {
+     "id": "routine:M600",
+     "via": [
+      "gateway.py"
+     ]
+    },
+    {
      "id": "routine:go_to_zero",
      "via": [
       "command_policy.py"
+     ]
+    },
+    {
+     "id": "routine:surface_scan",
+     "via": [
+      "gateway.py"
      ]
     },
     {
@@ -866,6 +883,12 @@
    ],
    "unresolved": [],
    "variantsOpen": [
+    {
+     "file": "gateway.py",
+     "form": "the probe_run job: the web adapter's probe routines",
+     "expr": "O<{routine}> CALL",
+     "hash": "b5cea7b68ecc"
+    },
     {
      "file": "macro_files.py",
      "form": "the macro class",

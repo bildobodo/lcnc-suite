@@ -40,48 +40,60 @@ export interface ToolFields {
   material: string | null; holder: string | null;
 }
 
+/** A parameter write's purpose: each its own variables and switch (the
+ *  gateway's `features.PURPOSE_VARS`). */
+export type ParamPurpose = "probe" | "surface" | "toolsetter";
+
+/** Where a command came from, when it says so (settings split package 3):
+ *  the gamepad's commands carry `via: "gamepad"` — with the gamepad switched
+ *  off the gateway refuses them, its stops excepted. Only the commands the
+ *  gamepad sends declare it (the gateway's `features.GAMEPAD_COMMANDS`). */
+export interface Via { via?: "gamepad" }
+
 export type WsCommand =
   // Machine control
   | { cmd: "arm"; armed: boolean }
-  | { cmd: "estop" }
+  | ({ cmd: "estop" } & Via)
   | { cmd: "estop_reset" }
   | { cmd: "machine_on" }
   | { cmd: "machine_off" }
   | { cmd: "set_mode"; mode: number }
   // Homing
-  | { cmd: "home_all" }
+  | ({ cmd: "home_all" } & Via)
   | { cmd: "home"; joint: number }
   | { cmd: "unhome"; joint: number }
   | { cmd: "unhome_all" }
   // Program execution
-  | { cmd: "cycle_start" }
+  | ({ cmd: "cycle_start" } & Via)
   | { cmd: "auto_run"; line: number; file: string; version: number; source: string; spindle_dir?: string; spindle_speed?: number; pre_tool?: number; probe_vars?: Record<string, number>; safe_z?: boolean; entry_x?: number; entry_y?: number; entry_wcs?: string; entry_units?: string }
   | { cmd: "auto_step" }
-  | { cmd: "cycle_pause" }
-  | { cmd: "cycle_resume" }
-  | { cmd: "abort" }
+  | ({ cmd: "cycle_pause" } & Via)
+  | ({ cmd: "cycle_resume" } & Via)
+  | ({ cmd: "abort" } & Via)
   | { cmd: "load_file"; path: string }
   | { cmd: "unload_file" }
   // Re-parse the loaded program against the CURRENT work offsets (the preview
   // is parsed once, so a touch-off afterwards leaves it stale).
   | { cmd: "reparse_preview" }
-  // MDI
+  // MDI — free NC code, the switches' named exception (OP2). `vars`: the
+  // generic parameter path (the native stage's routines); the WebUI's own
+  // routines are the jobs below.
   | { cmd: "mdi"; text: string; vars?: Record<string, number> }
   | { cmd: "go_to_zero" }
   | { cmd: "run_macro"; name: string; revision: string; args: number[] }
   | { cmd: "twp_capture" }
   // Jogging (single axis)
-  | { cmd: "jog_cont"; axis: number; vel: number }
-  | { cmd: "jog_incr"; axis: number; vel: number; distance: number }
-  | { cmd: "jog_stop"; axis: number }
+  | ({ cmd: "jog_cont"; axis: number; vel: number } & Via)
+  | ({ cmd: "jog_incr"; axis: number; vel: number; distance: number } & Via)
+  | ({ cmd: "jog_stop"; axis: number } & Via)
   // Jogging (multi axis)
   | { cmd: "jog_cont_multi"; axes: { axis: number; vel: number }[] }
   | { cmd: "jog_incr_multi"; axes: { axis: number; vel: number; distance: number }[] }
-  | { cmd: "jog_stop_multi"; axes: number[] }
+  | ({ cmd: "jog_stop_multi"; axes: number[] } & Via)
   // Spindle
   | { cmd: "spindle_forward"; speed: number }
   | { cmd: "spindle_reverse"; speed: number }
-  | { cmd: "spindle_stop" }
+  | ({ cmd: "spindle_stop" } & Via)
   | { cmd: "spindle_increase" }
   | { cmd: "spindle_decrease" }
   // Overrides
@@ -99,14 +111,22 @@ export type WsCommand =
   | { cmd: "delete_tool"; tool_number: number }
   | { cmd: "tool_change"; tool_number: number }
   // Coolant
-  | { cmd: "flood_on" }
-  | { cmd: "flood_off" }
-  | { cmd: "mist_on" }
-  | { cmd: "mist_off" }
+  | ({ cmd: "flood_on" } & Via)
+  | ({ cmd: "flood_off" } & Via)
+  | ({ cmd: "mist_on" } & Via)
+  | ({ cmd: "mist_off" } & Via)
   // Probing
   | { cmd: "list_probe_macros" }
   | { cmd: "simulate_probe_trip" }
-  | { cmd: "set_probe_vars"; vars: Record<string, number> }
+  // The routines the WebUI starts, each ONE job the gateway validates and
+  // builds (settings split package 3, R336): the values of its purpose only,
+  // under its switch. A form's values on their own: set_params by purpose.
+  | { cmd: "set_params"; purpose: ParamPurpose; vars: Record<string, number> }
+  | { cmd: "probe_run"; routine: string; vars: Record<string, number> }
+  | { cmd: "surface_scan_run"; vars: Record<string, number> }
+  // M600 with the SERVER's confirmed toolsetter section (never the page's)
+  | { cmd: "tool_measure"; tool: number }
+  | { cmd: "tool_unload_measure" }
   // G30's stored position (operator P4): a confirmed read, the current
   // machine position with it, a confirmed write on its basis.
   | { cmd: "read_g30" }
@@ -228,4 +248,14 @@ const COMMAND_COOLDOWN_MS: Record<string, number> = {
 export function cooldownFor(cmd: string): number {
   const v = COMMAND_COOLDOWN_MS[cmd];
   return v === undefined ? DEFAULT_COOLDOWN_MS : v;
+}
+
+/** What the gamepad sends (useGamepad.ts): the members that declare `via`. */
+export type GamepadCommand = Extract<WsCommand, { cmd: "jog_cont" | "jog_incr" | "jog_stop" | "jog_stop_multi"
+  | "cycle_start" | "cycle_resume" | "cycle_pause" | "abort" | "estop" | "spindle_stop"
+  | "flood_on" | "flood_off" | "mist_on" | "mist_off" | "home_all" }>;
+
+/** A gamepad command as it goes out: marked as the gamepad's. */
+export function viaGamepad(cmd: GamepadCommand): GamepadCommand {
+  return { ...cmd, via: "gamepad" };
 }

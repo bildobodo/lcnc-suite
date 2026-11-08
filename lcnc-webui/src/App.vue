@@ -31,7 +31,7 @@ import HelpIcon from "./HelpIcon.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import ToolTablePanel from "./ToolTablePanel.vue";
 import ProbePanel from "./ProbePanel.vue";
-import { PROBE_VIEWS, type ProbeView } from "./probeViews";
+import { PROBE_VIEWS, PROBE_VIEW_FEATURE, type ProbeView } from "./probeViews";
 import MachineSelect from "./MachineSelect.vue";
 import OffsetPanel from "./OffsetPanel.vue";
 import { toolOffsetState } from "./viewer/toolOffsetState";
@@ -61,7 +61,8 @@ import { activeKind, openTextSession, lockTextSessionIf, EDITOR_OWNER, MACRO_EDI
 import { measureStripColumn, safetyFoldNeeded } from "./safetyFold";
 import { explainAt } from "./gateExplain";
 import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, loadGamepadDraft, saveGamepadDefaults, settingsVersion, simulationOn, type ThemeMode, type GamepadDefaults, type Layer, type OnTopLayer, type TrackMode, type Projection } from "./defaults";
-import { confirmedToolsetter, toolsetterVarMap, TOOLSETTER_MDI_KEY } from "./toolsetterVars";
+import { confirmedToolsetter, toolsetterVarMap, TOOLSETTER_JOB_KEY } from "./toolsetterVars";
+import { features, featureShown, featureOffReason, featureHeldNote } from "./features";
 import { useGamepad } from "./useGamepad";
 import { useMediaMql } from "./useMediaMql";
 import { useDialogState } from "./useDialogState";
@@ -80,7 +81,7 @@ import {
   SPINDLE_FORWARD, SPINDLE_REVERSE,
   OPERATOR_DISPLAY,
   OPERATOR_ERROR,
-  cooldownFor, isNeverDebounced, type WsCommand,
+  cooldownFor, isNeverDebounced, viaGamepad, type WsCommand,
 } from "./lcnc";
 
 const _vd = loadViewerDefaults();
@@ -371,17 +372,37 @@ watch(() => messages.value.length, (newLen, oldLen) => {
 // the simulation's WORK stops at once (ThreeViewer reads simulationOn).
 // The Sim tab is there only on a device whose simulation is on (settings
 // split package 2): off, it is gone — not dimmed (operator OP2: a cleaner UI).
+// A switched-off function's tab is gone too (settings split package 3, OP2):
+// Probing while any of its three functions is on (probing, surface map,
+// toolsetter — each its own procedures, ProbePanel), Macros with macros. A
+// tab the operator is IN when its function goes off stays until it is left
+// (`heldTab`, with a note — a draft in it is never lost unasked, SS334-02).
+// The surface compensation still ON with the surface map off: its state and
+// its OFF stay reachable (SS334-02 — an observed active offset is never
+// hidden; turning it off is always admitted). An UNREAD state holds nothing:
+// before the first status it painted the Probing tab on every load of a
+// device whose three functions were off (feature-switches.spec); unread it
+// reads "—" in Offsets, a stale reader is the banner's, and the gateway let
+// the switch go off only with the compensation known off.
+const probeCompHeld = computed(() => !featureShown.surfaceMap.value && st.value.eoffset_enabled === true);
+const probeTabOn = computed(() => featureShown.probing.value || featureShown.surfaceMap.value
+  || featureShown.toolsetter.value || probeCompHeld.value);
+const tabShown = (id: string) => id === "probe" ? probeTabOn.value : id === "macros" ? featureShown.macros.value : true;
+const heldTab = ref<string | null>(null);
 const contentTabs = computed(() => [
   { id: "gcode", label: "Program" },
   { id: "mdi", label: "MDI" },
-  { id: "probe", label: "Probing" },
+  ...(tabShown("probe") || heldTab.value === "probe" ? [{ id: "probe", label: "Probing" }] : []),
   { id: "offsets", label: "Offsets" },
   { id: "tools", label: "Tools" },
-  { id: "macros", label: "Macros" },
+  ...(tabShown("macros") || heldTab.value === "macros" ? [{ id: "macros", label: "Macros" }] : []),
   ...(simShown.value ? [{ id: "sim", label: "Sim" }] : []),
 ]);
 
 const activeTab = ref("gcode");
+/** The held tab's note: what went off, and that it closes once left. */
+const heldTabNote = computed(() => heldTab.value === "macros" ? featureHeldNote("macros")
+  : heldTab.value === "probe" ? featureHeldNote("probing") : null);
 // The Sim tab left while it was shown: the Program tab takes its place (the
 // tab list hands the focus over — TabPanel).
 watch(simShown, on => { if (!on && activeTab.value === "sim") activeTab.value = "gcode"; });
@@ -433,6 +454,19 @@ function confirmTabLeave() {
 // Probing's procedure: ProbePanel's 4 × 2 grid and, narrow, the select in
 // the tab bar (design wave D3).
 const probeView = ref<ProbeView>("outside");
+// The procedures of the functions switched on (settings split package 3):
+// the surface view also while its compensation is still on or unread (its
+// OFF stays reachable). The procedure in use when its function goes off
+// holds until it is left, with a note (as the tabs do).
+const probeViewShown = (v: ProbeView) => v === "surface"
+  ? featureShown.surfaceMap.value || probeCompHeld.value
+  : featureShown[PROBE_VIEW_FEATURE[v]].value;
+const heldProbeView = ref<ProbeView | null>(null);
+const probeViews = computed(() => PROBE_VIEWS.filter(v => probeViewShown(v.id) || heldProbeView.value === v.id));
+const probeHeldNote = computed(() => heldProbeView.value ? featureHeldNote(PROBE_VIEW_FEATURE[heldProbeView.value]) : null);
+// The template's switches (top-level refs unwrap there).
+const toolsetterShown = featureShown.toolsetter;
+const macrosShown = featureShown.macros;
 
 // The side pane below NARROW_PANE_PX of content width is NARROW (DR
 // decision 2026-09-24; 430 px since the sixth tab, measured — see
@@ -748,6 +782,29 @@ const st = computed<Record<string, any>>(() => {
   return status.value?.data ?? {};
 });
 const connectedClients = computed<{ip: string, armed: boolean}[]>(() => status.value?.clients ?? []);
+
+// The switches' holds (settings split package 3) — here, below `st`, which
+// the surface hold reads (a watch reads its source at once). The tab in use
+// when its function went off holds; any other one leaves.
+// The tab in use when its function went off holds; any other one leaves.
+watch(() => [tabShown("probe"), tabShown("macros")], () => {
+  for (const id of ["probe", "macros"]) {
+    if (!tabShown(id) && activeTab.value === id) heldTab.value = id;
+  }
+  if (heldTab.value && tabShown(heldTab.value)) heldTab.value = null;
+});
+watch(activeTab, id => { if (heldTab.value && heldTab.value !== id) heldTab.value = null; });
+watch(() => PROBE_VIEWS.map(v => probeViewShown(v.id)), () => {
+  if (!probeViewShown(probeView.value) && activeTab.value === "probe") heldProbeView.value = probeView.value;
+  if (heldProbeView.value && probeViewShown(heldProbeView.value)) heldProbeView.value = null;
+});
+watch([probeView, activeTab], ([v, tab]) => {
+  if (heldProbeView.value && (heldProbeView.value !== v || tab !== "probe")) heldProbeView.value = null;
+});
+// A procedure that is not there is never the chosen one.
+watch(probeViews, list => {
+  if (list.length && !list.some(v => v.id === probeView.value)) probeView.value = list[0]!.id;
+}, { immediate: true });
 
 // INI/static machine config — delivered once in viewer_init, not per-tick.
 const ini = computed<Record<string, any>>(() => viewerInit.value?.ini_config ?? {});
@@ -1293,19 +1350,20 @@ const unloadUsesToolsetter = computed(() => {
 });
 
 /**
- * A routine's values and the line that runs it as ONE command — `mdi` with
- * `vars` (the toolsetter's #3004–#3115 before an M600, a probe op's vars
- * before its O-call). The gateway sets the values in the interpreter (the
- * var file is read only at LinuxCNC's start) and sends the line only once
- * they are taken over; an abort from any client cancels that handler.
+ * A routine the WebUI starts as ONE job the gateway validates and builds
+ * (settings split package 3, R336 — `probe_run`, `surface_scan_run`,
+ * `tool_measure`, `tool_unload_measure`): its values, of its purpose only,
+ * go into the interpreter first (the var file is read only at LinuxCNC's
+ * start) and the line goes only once they are taken over; an abort from any
+ * client cancels that handler, and its switch is checked at every write.
  * Codex R16 XZ-06: the browser used to hold the continuation between two
  * commands — Abort never reached it, and a delayed reply started the
  * measurement after the abort. Nothing is sent after the reply; it only
  * says what happened. Returns whether the gateway started the line.
  */
-async function fireWithVars(label: string, vars: Record<string, number>, line: string,
-                            gate: keyof Permissions): Promise<boolean> {
-  if (busy.value) { console.warn(`[fireWithVars] ${label} dropped: another command is settling`); return false; }
+async function fireJob(label: string, job: Extract<WsCommand, { cmd: "probe_run" | "surface_scan_run" | "tool_measure" | "tool_unload_measure" }>,
+                       gate: keyof Permissions): Promise<boolean> {
+  if (busy.value) { console.warn(`[fireJob] ${label} dropped: another command is settling`); return false; }
   if (!permissions.value[gate]) {
     pushMessage(OPERATOR_ERROR, `${label} not sent — ${permissionReasons.value[gate] ?? "not available"}`);
     return false;
@@ -1313,7 +1371,7 @@ async function fireWithVars(label: string, vars: Record<string, number>, line: s
   busy.value = true;
   try {
     // The values' MDI waits up to 5 s per chunk in the gateway.
-    const reply = await request({ cmd: "mdi", text: line, vars }, 15000);
+    const reply = await request(job, 15000);
     if (!reply) {
       // Sent, unanswered: the gateway may still start it — never "not sent".
       pushMessage(OPERATOR_ERROR, `${label}: no reply from the gateway — watch the machine`);
@@ -1325,18 +1383,20 @@ async function fireWithVars(label: string, vars: Record<string, number>, line: s
     }
     return true;
   } finally {
-    window.setTimeout(() => (busy.value = false), cooldownFor("mdi"));
+    window.setTimeout(() => (busy.value = false), cooldownFor(job.cmd));
   }
 }
 
 /** Every M600 the WebUI starts (Measure Current, Unload and a table load in
- *  M600 mode): only with the toolsetter set up, its values in the same command. */
-async function toolsetterMdi(label: string, line: string): Promise<boolean> {
+ *  M600 mode): only with the toolsetter set up — the gateway applies the
+ *  values IT holds (the confirmed section), never this page's. `tool` 0 =
+ *  unload. */
+async function toolsetterJob(label: string, tool: number): Promise<boolean> {
   const setup = toolsetter.value;
   if (!setup.ok) { pushMessage(OPERATOR_ERROR, `${label} not sent — ${setup.reason}`); return false; }
-  return fireWithVars(label, toolsetterVarMap(setup.values), line, "machineFrame");
+  return fireJob(label, tool > 0 ? { cmd: "tool_measure", tool } : { cmd: "tool_unload_measure" }, "machineFrame");
 }
-provide(TOOLSETTER_MDI_KEY, toolsetterMdi);
+provide(TOOLSETTER_JOB_KEY, toolsetterJob);
 
 function measureAuto() {
   const t = st.value.tool_number;
@@ -1345,7 +1405,7 @@ function measureAuto() {
     pushMessage(OPERATOR_ERROR, `Measure Current not sent — ${permissionReasons.value.machineFrame ?? (st.value.probing ? "a probe is running" : "not available")}`);
     return;
   }
-  void toolsetterMdi("Measure Current", `T${t} M600`);
+  void toolsetterJob("Measure Current", t);
 }
 
 function unloadTool() {
@@ -1354,7 +1414,7 @@ function unloadTool() {
     return;
   }
   if (unloadUsesToolsetter.value) {
-    void toolsetterMdi("Unload", "T0 M600");
+    void toolsetterJob("Unload", 0);
   } else {
     // The standard tool change needs no toolsetter.
     fire({ cmd: "tool_change", tool_number: 0 }, 'machineFrame');
@@ -1678,7 +1738,10 @@ function fire(payload: WsCommand, gate?: keyof Permissions, cooldownMs?: number)
 }
 
 function onRunProbe({ vars, macro }: { vars: Record<string, number>; macro: string }) {
-  void fireWithVars("Probe", vars, `O<${macro}> CALL`, 'ready');
+  void fireJob("Probe", { cmd: "probe_run", routine: macro, vars }, "machineFrame");
+}
+function onRunSurface(vars: Record<string, number>) {
+  void fireJob("Surface scan", { cmd: "surface_scan_run", vars }, "surfaceComp");
 }
 
 // Reachable by descendants that cannot see this closure, so a component never
@@ -1866,13 +1929,15 @@ const clearMessagesAsk = ref(false);
 const gamepadConfig = ref<GamepadDefaults>(loadGamepadDefaults());
 const gamepadDraft = ref<GamepadDefaults>(loadGamepadDraft());
 const gamepadGated = computed(() => settingsDialogOpen.value);
+// Every command the pad sends says so (`via`, settings split package 3): with
+// the gamepad switched off the gateway refuses it — its stops excepted.
 const gamepad = useGamepad({
   jogVel,
   angularJogVel,
   jogIncrement,
   permissions,
-  send,
-  fire,
+  send: (cmd) => send(viaGamepad(cmd)),
+  fire: (cmd, gate) => fire(viaGamepad(cmd), gate),
   startContext,
   jogAxisRefusal: axisJogRefusal,
   config: gamepadConfig,
@@ -1944,8 +2009,11 @@ onMounted(() => {
   initJogPointerSafety();
   window.addEventListener("blur", stopAllJog);
   document.addEventListener("visibilitychange", visHandler);
-  gamepad.start();
+  if (features.value.gamepad) gamepad.start();
 });
+// The gamepad switched off: the pad is not read at all — what it started is
+// stopped (stopAllJog in stop()); switched on, it acts once at rest.
+watch(() => features.value.gamepad, on => { if (on) gamepad.start(); else gamepad.stop(); });
 
 onUnmounted(() => {
   destroyJogPointerSafety();
@@ -2204,7 +2272,7 @@ watch(viewerGcode, (newGcode) => {
           @collision-lines="collisionLines = $event"
         />
       </div>
-      <MacroBar v-if="isPortrait && macroBar.items.length" :items="macroBar.items" @run="runBarItem" />
+      <MacroBar v-if="isPortrait && macrosShown && macroBar.items.length" :items="macroBar.items" @run="runBarItem" />
       </div>
 
       <!-- ══ Right pane — Program / Probing tabs ══ -->
@@ -2214,7 +2282,7 @@ watch(viewerGcode, (newGcode) => {
           <template #bar>
             <MachineSelect v-if="activeTab === 'probe'" gate="tabSelect" name="probe-view"
                            aria-label="Probing procedure" v-model="probeView">
-              <option v-for="v in PROBE_VIEWS" :key="v.id" :value="v.id">{{ v.label }}</option>
+              <option v-for="v in probeViews" :key="v.id" :value="v.id">{{ v.label }}</option>
             </MachineSelect>
           </template>
           <template #gcode>
@@ -2256,6 +2324,8 @@ watch(viewerGcode, (newGcode) => {
           <template #probe>
             <ProbePanel
               v-model:view="probeView"
+              :views="probeViews"
+              :heldNote="probeHeldNote"
               :narrow="sideNarrow"
               :linearUnit="linearUnit"
               :probing="st.probing === true"
@@ -2274,11 +2344,11 @@ watch(viewerGcode, (newGcode) => {
               :surfaceLayerVisible="viewerLayers.surface"
               :rotaryTilted="st.rotary_at_zero === false"
               @toggleSurfaceLayer="(on: boolean) => { viewerLayers.surface = on; viewerRef?.setLayerVisible?.('surface', on); saveViewerDefaults({ ...loadViewerDefaults(), layers: { ...loadViewerDefaults().layers, surface: on } }); }"
-              @mdi="fire({ cmd: 'mdi', text: $event }, 'machineFrame')"
               @abort="fire({ cmd: 'abort' }, 'abort')"
               @simTrip="send({ cmd: 'simulate_probe_trip' })"
-              @setProbeVars="fire({ cmd: 'set_probe_vars', vars: $event }, 'ready')"
+              @setParams="fire({ cmd: 'set_params', purpose: $event.purpose, vars: $event.vars }, 'ready')"
               @runProbe="onRunProbe($event)"
+              @runSurface="onRunSurface($event)"
               @getProbeResults="requestProbeResults"
               @getCompGrid="requestCompGrid"
               @setCompensation="requestCompToggle"
@@ -2370,7 +2440,7 @@ watch(viewerGcode, (newGcode) => {
                      Abort beside them on the left, the management behind More at
                      the right end (MoreMenu.vue) -->
                 <div class="actionGroup">
-                  <MachineBtn type="toolMeasure" :disabled="!st.tool_number || !toolsetter.ok" :reason="!st.tool_number ? 'No tool loaded' : toolsetterReason" @click="measureAuto">Measure Current</MachineBtn>
+                  <MachineBtn v-if="toolsetterShown" type="toolMeasure" :disabled="!st.tool_number || !toolsetter.ok" :reason="!st.tool_number ? 'No tool loaded' : toolsetterReason" @click="measureAuto">Measure Current</MachineBtn>
                   <MachineBtn type="toolUnload" :disabled="unloadUsesToolsetter && !toolsetter.ok" :reason="toolsetterReason" @click="unloadTool">Unload</MachineBtn>
                   <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
                   <MoreMenu class="actionEnd" label="More tool actions">
@@ -2395,7 +2465,8 @@ watch(viewerGcode, (newGcode) => {
             <SimPanel />
           </template>
           <template #macros>
-            <MacrosPanel ref="macrosPanelRef" :bar-names="macroBarDraft" @run="runMacroFile" @update-bar="setMacroBar" />
+            <MacrosPanel ref="macrosPanelRef" :bar-names="macroBarDraft" :held-note="heldTab === 'macros' ? heldTabNote : null"
+                         @run="runMacroFile" @update-bar="setMacroBar" />
           </template>
         </TabPanel>
 
@@ -2602,8 +2673,8 @@ watch(viewerGcode, (newGcode) => {
             <!-- A hold bound to the macro, its command and these values: an edit
                  or a save from another client during the hold cancels it -->
             <MachineBtn type="macroExecute" class="macroExecute"
-                        :hold-key="macroExecuteKey()" :disabled="!!dialogFileBlock || (dialogFile?.frame === 'machine' && !permissions.machineFrame)"
-                        :reason="dialogFileBlock ?? (dialogFile?.frame === 'machine' && !permissions.machineFrame ? permissionReasons.machineFrame ?? 'Machine frame only' : undefined)"
+                        :hold-key="macroExecuteKey()" :disabled="!!dialogFileBlock || !features.macros || (dialogFile?.frame === 'machine' && !permissions.machineFrame)"
+                        :reason="dialogFileBlock ?? (!features.macros ? featureOffReason('macros') : dialogFile?.frame === 'machine' && !permissions.machineFrame ? permissionReasons.machineFrame ?? 'Machine frame only' : undefined)"
                         @click="confirmMacroParams">Execute</MachineBtn>
           </template>
       </DialogFrame>
@@ -2646,7 +2717,7 @@ watch(viewerGcode, (newGcode) => {
 
     <!-- ══ Macro Bar — landscape: a row under the content (portrait: in the
          viewer column above) ══ -->
-    <MacroBar v-if="!isPortrait && macroBar.items.length" :items="macroBar.items" @run="runBarItem" />
+    <MacroBar v-if="!isPortrait && macrosShown && macroBar.items.length" :items="macroBar.items" @run="runBarItem" />
 
     <!-- ══ Bottom Action Strip — SafetyStrip first and sticky; every control
          gated by its own catalog gate (no outer Gate, BG-01) ══ -->

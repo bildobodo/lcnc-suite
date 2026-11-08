@@ -45,14 +45,16 @@ from collections import deque
 from datetime import datetime
 from typing import Callable, Deque, Dict, List, Optional, Tuple
 
+from features import features_of, validate_features
 from gateway_util import atomic_write_bytes
 
 # The machine's sections: one value for all clients, saved only by an armed
 # writer (button gates Q2 / BG-19), acting in a client only once the server
 # holds them. `macros` holds only the earlier MDI-line macros (kept as
 # stored, never used again); the macro BAR is a device section (OP3).
+# `features`: the switchable suite functions (package 3, features.py).
 MACHINE_SECTIONS = frozenset({"machine", "toolsetter", "probe", "keyboard",
-                              "gamepad", "mdi", "macros"})
+                              "gamepad", "mdi", "macros", "features"})
 
 # A device's sections: how THIS browser looks and what it runs for itself.
 # Its own device saves them without arm (the former display sections, the
@@ -229,6 +231,12 @@ class SettingsStore:
         with self._lock:
             return copy.deepcopy(self._load_all().get(self._ini_key(), {}).get(section))
 
+    def features(self) -> Dict[str, bool]:
+        """The switches as they act now (features.features_of) — read under
+        the lock, so a save lands before or after it, never half."""
+        with self._lock:
+            return features_of(self._load_all().get(self._ini_key(), {}).get("features"))
+
     def view_for(self, device_id: Optional[str]) -> dict:
         """What one client sees, flat as schema 1 (the client's sections keep
         their names): the machine's sections and its device's — the
@@ -327,7 +335,8 @@ class SettingsStore:
         q.append((rev, writer))
 
     def save_section(self, section: str, data, *, device: Optional[str] = None,
-                     base_rev=None, writer: Optional[str] = None, admit=None) -> int:
+                     base_rev=None, writer: Optional[str] = None, admit=None,
+                     admit_state=None) -> int:
         """Persist one section; returns its new revision. `device` None = a
         MACHINE section, else that profile's DEVICE section. `base_rev`: the
         revision the change was made on — a section changed since by another
@@ -337,13 +346,18 @@ class SettingsStore:
         the write's admission, called under the lock right before the write —
         it raises to refuse, and a refusal writes and bumps nothing (button
         gates BG-24, Codex R211: a check before the lock is stale by the time
-        a preceding writer lets go)."""
+        a preceding writer lets go). `admit_state(before, after)`: a machine
+        save's check of the machine's sections as they are and as they would
+        be (package 3: the switches' transitions and the one cross-section
+        rule), called right after `admit`, raising to refuse."""
         if device is None and section not in MACHINE_SECTIONS:
             raise ValueError(f"{section} is a device section")
         if device is not None and section not in DEVICE_SECTIONS:
             raise ValueError(f"{section} is a machine section")
         if not isinstance(base_rev, int) or isinstance(base_rev, bool) or base_rev < 0:
             raise ValueError("save without its base revision — reload the page")
+        if section == "features":
+            validate_features(data)
         with self._lock:
             all_data = copy.deepcopy(self._load_all())
             entry = self._entry(all_data)
@@ -361,7 +375,9 @@ class SettingsStore:
                 now = entry.get(section) if device is None else profile["sections"].get(section)
                 raise Stale(section, copy.deepcopy(now), current)
             listed = False          # does the device LIST show the change?
+            before = None
             if device is None:
+                before = {s: copy.deepcopy(entry[s]) for s in MACHINE_SECTIONS if s in entry}
                 entry[section] = data
             else:
                 profile["sections"][section] = data
@@ -370,6 +386,8 @@ class SettingsStore:
             revs[section] = current + 1
             if admit is not None:
                 admit()
+            if admit_state is not None and device is None:
+                admit_state(before, {s: entry[s] for s in MACHINE_SECTIONS if s in entry})
             self._save_all(all_data)
             self._book(key, current + 1, writer)
             self.version += 1

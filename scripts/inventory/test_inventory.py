@@ -308,3 +308,33 @@ def test_a_python_placeholder_is_a_parametric_title_too(tmp_path):
     e = {"layer": "native", "file": "n.py", "title": "home-joint-{j}"}
     assert fn.evidence_problems(e, tmp_path), "named instances needed"
     assert fn.evidence_problems({**e, "instances": ["0", "1", "2"]}, tmp_path) == []
+
+
+def _features_case(mutate):
+    """The committed functions with one change — and the feature guard's verdict."""
+    web, py, fns = fn.load()
+    fns = json.loads(json.dumps(fns))
+    by = {f["id"]: f for f in fns["functions"]}
+    mutate(by)
+    return fn.feature_problems(fns, sorted(fn.atom_ids(web, py)))
+
+
+def test_the_feature_roles_hold_against_the_gateways_tables():
+    # settings split package 3 (R336): every claim of a switched function has
+    # its role, and a command or route the gateway switches is claimed so
+    assert _features_case(lambda by: None) == []
+    # the committed inventory carries the dimension for every switch (without
+    # any block the guard has nothing to hold)
+    fe = fn._gateway_features(fn.ROOT)
+    assert {f["feature"]["switch"] for f in fn.load()[2]["functions"] if "feature" in f} >= set(fe.FEATURES)
+    out = _features_case(lambda by: by["F-PROBE"]["feature"]["roles"].__setitem__("cmd:probe_run", "readable"))
+    assert "cmd:probe_run: the gateway switches it by probing, no function claims it so" in out
+    out = _features_case(lambda by: by["F-SURFACE"]["feature"].__setitem__("switch", "probing"))
+    assert any("cmd:surface_scan_run switched by probing, the gateway switches it by surfaceMap" in p for p in out), out
+    out = _features_case(lambda by: by["F-MACROFILES"]["feature"]["roles"].pop("http:PUT /macro"))
+    assert "F-MACROFILES: 'http:PUT /macro' has no role under its switch" in out
+    out = _features_case(lambda by: by["F-PROBE"]["feature"]["roles"].__setitem__("cmd:get_probe_results", "variant"))
+    assert any("cmd:get_probe_results is no payload-switched command" in p for p in out), out
+    out = _features_case(lambda by: by["F-CAMERA"].pop("feature"))
+    assert "switch camera: no function under it" in out
+    assert "http:GET /camera/stream: the gateway switches it by camera, no function claims it so" in out

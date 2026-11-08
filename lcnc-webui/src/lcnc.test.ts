@@ -39,7 +39,7 @@ describe("client transport policy (issue #31)", () => {
 
   it("debounces motion commands by default", () => {
     for (const c of ["mdi", "cycle_start", "auto_run", "home", "tool_change",
-                     "spindle_forward", "set_probe_vars"]) {
+                     "spindle_forward", "set_params", "probe_run", "tool_measure"]) {
       expect(isNeverDebounced(c)).toBe(false);
       expect(cooldownFor(c)).toBe(DEFAULT_COOLDOWN_MS);
     }

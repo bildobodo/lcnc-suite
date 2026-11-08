@@ -14,7 +14,7 @@
 // Safety: stops all axes on disconnect, blur, permission loss, settings open.
 
 import { ref, watch, type Ref, type ComputedRef } from "vue";
-import type { WsCommand } from "./lcnc";
+import type { GamepadCommand } from "./lcnc";
 import type { GamepadAction, GamepadDefaults, GamepadMapping } from "./defaults";
 import {
   resolveLogical, getMappingSource,
@@ -48,8 +48,8 @@ export function useGamepad(deps: {
   angularJogVel: Ref<number>;
   jogIncrement: Ref<number>;
   permissions: ComputedRef<Permissions>;
-  send: (cmd: WsCommand) => void;
-  fire: (cmd: WsCommand, gate?: GateKey) => void;
+  send: (cmd: GamepadCommand) => void;
+  fire: (cmd: GamepadCommand, gate?: GateKey) => void;
   /** Start's program context (actionAdmission.ts — the button's own rule). */
   startContext: ComputedRef<StartContext>;
   /** Why this axis may not jog now beyond the `jog` class — before homing, an
@@ -73,6 +73,7 @@ export function useGamepad(deps: {
 
   let gpIndex: number | null = null;
   let rafId = 0;
+  let running = false;
   // Last time the ACTIVE pad had any raw button pressed (pad-switch arbiter).
   let lastButtonActivity = 0;
 
@@ -88,6 +89,10 @@ export function useGamepad(deps: {
   const lastSendTime: number[] = [];
   // Button edge detection (logical)
   let prevButtons: Record<LogicalButton, boolean> = { ...NO_BUTTONS };
+  // After a start (the gamepad switched on — settings split package 3,
+  // Codex R335): nothing acts until the pad is at rest — no button held, every
+  // stick in its dead zone. A held button is no press, a deflected stick no jog.
+  let awaitRest = false;
 
   function applyDeadZone(raw: number, dz: number): number {
     const abs = Math.abs(raw);
@@ -295,6 +300,15 @@ export function useGamepad(deps: {
     gamepadLogicalSticks.value = logical.sticks;
     gamepadMappingSource.value = getMappingSource(profile, gp.mapping);
 
+    if (awaitRest) {
+      const dz = cfg.deadZone;
+      const still = Object.values(logical.sticks).every(v => Math.abs(v) < dz)
+        && !Object.values(logical.buttons).some(Boolean);
+      prevButtons = logical.buttons;
+      if (!still) return;
+      awaitRest = false;
+    }
+
     // When gated (settings open), stop any active jogs and skip all commands
     if (gated) {
       stopAllJog();
@@ -411,6 +425,9 @@ export function useGamepad(deps: {
   });
 
   function start() {
+    if (running) return;
+    running = true;
+    awaitRest = true;
     window.addEventListener("gamepadconnected", onConnected);
     window.addEventListener("gamepaddisconnected", onDisconnected);
 
@@ -428,6 +445,8 @@ export function useGamepad(deps: {
   }
 
   function stop() {
+    if (!running) return;
+    running = false;
     cancelAnimationFrame(rafId);
     window.removeEventListener("gamepadconnected", onConnected);
     window.removeEventListener("gamepaddisconnected", onDisconnected);

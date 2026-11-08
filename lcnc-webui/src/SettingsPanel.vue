@@ -21,7 +21,9 @@ import {
   type ThemeMode, type GamepadDefaults,
   GAMEPAD_FALLBACK,
   loadKeyboardDraft, type KeyboardDefaults, DEFAULT_KB_MAPPING, isProtectedSection,
+  loadFeaturesDraft, saveFeaturesDefaults, FEATURE_NAMES, type FeatureName, type FeaturesDefaults,
 } from "./defaults";
+import { featureShown, featureHeldNote, FEATURE_LABELS } from "./features";
 import { resolveViewerPalette, userColorsOf, USER_ROLES, type UserRole, type ViewerRole } from "./viewer/viewerPalette";
 import { LAYER_COLUMNS, HUD_LAYER } from "./viewerLayerGroups";
 import { saveStatus, saveStatusText } from "./settingsSaveStatus";
@@ -81,7 +83,7 @@ const emit = defineEmits<{
 const resetTarget = ref<string | null>(null);
 
 const resetLabels: Record<string, string> = {
-  viewer: "3D Viewer", machine: "Machine",
+  viewer: "3D Viewer", machine: "Machine", features: "Features",
   display: "Display", gamepad: "Gamepad", keyboard: "Keyboard",
 };
 
@@ -152,8 +154,31 @@ function resetGamepad() {
   emit("setGamepadConfig", { ...GAMEPAD_FALLBACK, mapping: { ...GAMEPAD_FALLBACK.mapping } });
 }
 
+// ─── Features (the machine's switches, settings split package 3) ─────
+// The form shows the DRAFT (BG-19): a switch acts once the server holds it;
+// the gateway admits a change only from an armed client on a machine that
+// stands, with the function's own state ended — a refusal shows in the save
+// status and the draft stays visible until the server's section changes.
+const featuresDraft = ref<FeaturesDefaults>(loadFeaturesDraft());
+const FEATURE_HELP: Record<FeatureName, string> = {
+  probing: "Probe routines: edges, corners, bores, bosses, angles, ridges and the probe's calibration.",
+  toolsetter: "Tool length measuring with M600. To switch it off, choose M6 G43 under Machine first.",
+  surfaceMap: "Surface scan and its Z compensation. A compensation still on can always be turned off.",
+  camera: "The camera picture in the 3D view and its overlay settings.",
+  macros: "Macro files: the Macros tab, the macro bar and their runs. MDI stays.",
+  gamepad: "Machine control with a gamepad. Off, the browser does not read the pad at all.",
+};
+function setFeature(f: FeatureName, on: boolean) {
+  featuresDraft.value = { ...featuresDraft.value, [f]: on };
+  saveFeaturesDefaults(featuresDraft.value);
+}
+function resetFeatures() {
+  featuresDraft.value = Object.fromEntries(FEATURE_NAMES.map(f => [f, true])) as FeaturesDefaults;
+  saveFeaturesDefaults(featuresDraft.value);
+}
+
 const resetActions: Record<string, () => void> = {
-  viewer: resetViewer, machine: resetMachine,
+  viewer: resetViewer, machine: resetMachine, features: resetFeatures,
   display: resetDisplay, gamepad: resetGamepad, keyboard: resetKeyboard,
 };
 
@@ -297,6 +322,7 @@ function saveMachine() {
 
 // Re-read when another client changes settings
 watch(settingsVersion, () => {
+  featuresDraft.value = loadFeaturesDraft();
   const md = loadMachineDraft();
   toolChangeMode.value = md.toolChangeMode;
   runFromLine.value = md.runFromLine;
@@ -350,17 +376,27 @@ function resetKeyboard() {
 }
 
 // ─── Sub-tabs ──────────────────────────────
-const subTabs = [
+// The Gamepad section leaves with the gamepad switched off (package 3) — the
+// one in use holds until it is left, with a note.
+const gamepadHeld = ref(false);
+const subTabs = computed(() => [
   { id: "viewer", label: "3D Viewer" },
   { id: "machine", label: "Machine" },
+  { id: "features", label: "Features" },
   { id: "display", label: "Display" },
   { id: "devices", label: "Devices" },
-  { id: "gamepad", label: "Gamepad" },
+  ...(featureShown.gamepad.value || gamepadHeld.value ? [{ id: "gamepad", label: "Gamepad" }] : []),
   { id: "keyboard", label: "Keyboard" },
   { id: "halshow", label: "HAL" },
   { id: "debug", label: "Debug" },
-];
+]);
 const activeTab = ref("viewer");
+watch(featureShown.gamepad, on => { gamepadHeld.value = !on && activeTab.value === "gamepad"; });
+watch(activeTab, id => { if (gamepadHeld.value && id !== "gamepad") gamepadHeld.value = false; });
+const cameraShown = featureShown.camera;
+// The toolsetter switched off: M600 is no tool change mode to choose (the
+// gateway refuses it too) — shown only while it is the stored one.
+const m600Shown = computed(() => featureShown.toolsetter.value || toolChangeMode.value === "m600");
 
 watch(() => props.initialTab, (t) => { if (t) activeTab.value = t; }, { immediate: true });
 
@@ -605,9 +641,9 @@ function resetMachineColor(id: string) {
           </div>
         </div>
 
-        <div class="sep"></div>
+        <div v-if="cameraShown" class="sep"></div>
 
-        <div class="stack-controls" data-viewer-section="camera">
+        <div v-if="cameraShown" class="stack-controls" data-viewer-section="camera">
           <div class="sub">Camera Overlay</div>
           <div class="sectionColumns">
             <div class="stack-controls">
@@ -756,7 +792,7 @@ function resetMachineColor(id: string) {
                 <MachineRadio gate="protectedSetting" name="toolChangeMode" v-model="toolChangeMode" value="m6g43" @update:modelValue="saveMachine()" />
                 <span><span class="radioLabel">M6 G43</span><br><span class="radioDesc">Load tool, activate length offset</span></span>
               </label>
-              <label>
+              <label v-if="m600Shown">
                 <MachineRadio gate="protectedSetting" name="toolChangeMode" v-model="toolChangeMode" value="m600" @update:modelValue="saveMachine()" />
                 <span><span class="radioLabel">M600</span><br><span class="radioDesc">Load tool, measure with toolsetter, save offset</span></span>
               </label>
@@ -839,6 +875,21 @@ function resetMachineColor(id: string) {
         </div>
       </template>
 
+      <template #features>
+        <div v-if="!serverSettingsReady" class="emptyState loading settingsLoading">Waiting for server settings…</div>
+        <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
+          <div class="stack-controls">
+            <div class="sub">Features</div>
+            <div class="settingDesc">Switch off what this machine does not use: its tabs and buttons leave every screen, and the gateway refuses what they would start. MDI and programs stay free. A change needs Arm and a machine that stands.</div>
+            <MachineToggle v-for="f in FEATURE_NAMES" :key="f" gate="protectedSetting" :modelValue="featuresDraft[f]"
+                           @update:modelValue="setFeature(f, $event!)" :label="FEATURE_LABELS[f]" :help="FEATURE_HELP[f]" />
+          </div>
+          <div class="resetRow">
+            <MachineBtn type="resetProtected" @click="resetTarget = 'features'">Reset Features</MachineBtn>
+          </div>
+        </div>
+      </template>
+
       <template #display>
         <div v-if="!serverSettingsReady" class="emptyState loading settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
@@ -876,6 +927,7 @@ function resetMachineColor(id: string) {
       <template #gamepad>
         <div v-if="!serverSettingsReady" class="emptyState loading settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
+          <div v-if="gamepadHeld" class="statusNote warn" role="status">{{ featureHeldNote("gamepad") }}</div>
           <GamepadTab
             ref="gamepadTabRef"
             :gamepad-config="props.gamepadConfig"

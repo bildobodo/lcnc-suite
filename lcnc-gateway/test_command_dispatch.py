@@ -370,7 +370,7 @@ class TestHandlerExecution(unittest.TestCase):
         self.assertEqual(args[1], 1)      # joint jog
         self.assertEqual(args[2], 4)      # joint number untouched
 
-    def test_set_probe_vars_reports_the_mdi_set_on_rcs_done(self):
+    def test_set_params_reports_the_mdi_set_on_rcs_done(self):
         # The REAL binding's wait_complete() returns RCS_DONE (1) on success,
         # not 0: `ret != 0` reported mdi_set False on every successful set
         # (live, 2026-09-27 — the trace said the vars never reached the
@@ -382,7 +382,7 @@ class TestHandlerExecution(unittest.TestCase):
         gateway.STAT.enabled = True   # the MDI half runs on a machine that is on
         gateway.STAT.task_mode = linuxcnc.MODE_MDI
         gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
-        r = self._send({"cmd": "set_probe_vars", "vars": {"3100": 150, "3102": -300}})
+        r = self._send({"cmd": "set_params", "purpose": "toolsetter", "vars": {"3100": 150, "3102": -300}})
         self.assertTrue(r["ok"], r)
         self.assertEqual(cmd.args_of("mdi"), ("#3100=150.000000 #3102=-300.000000",))
         self.assertTrue(r["mdi_set"], r)

@@ -4,10 +4,10 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Vollständigkeit der Quellen
 
-- **Quellen vollständig erfasst:** ja (1168 Atome in 17 Quellen)
+- **Quellen vollständig erfasst:** ja (1181 Atome in 17 Quellen)
 - **Ungelöste Stellen:** 0
 - **Ausgeschlossen (außerhalb der Grenze, mit Grund):** 1
-- **Familien mit offenen Varianten:** 45 — das Atom steht, seine Varianten sind nicht einzeln abgeleitet
+- **Familien mit offenen Varianten:** 47 — das Atom steht, seine Varianten sind nicht einzeln abgeleitet
 - **Anzeigen** (was die Oberfläche zusagt, etwa „Kompensation bestätigt aktiv“) haben keine Quelle mit Atomen; ihr Katalog sichtbarer Zusagen folgt als eigener Schritt.
 - **Belegt** heißt hier: ein benannter Test existiert mit diesem Titel. Ob er lief und bestand, kommt aus den Laufberichten (nächster Schritt).
 
@@ -25,7 +25,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | Werkzeug anlegen, bearbeiten, löschen, umnummerieren | LinuxCNC übernimmt die geschriebene Tabelle. | Wirkung | alle | Nativ: das Neuladen in LinuxCNC nicht belegt |
 | Verbindung: Anmeldung, Herzschlag, Wiederverbindung, Auslieferung | Ein Befehl, dessen Wert die Handlung bestimmt, wird ohne diesen Wert abgelehnt: home ohne joint, set_optional_stop / set_block_delete ohne Wahrheitswert, ein Override ohne scale, spindle_forward / spindle_reverse ohne speed; wo ein Standard die sichere Richtung ist (arm ohne armed → entwaffnen), ist er ausdrücklich so entschieden. | Ablehnung | alle | Gateway: heute führt es diese Befehle mit einem Standard aus (home ohne joint referenziert alle, "false" schaltet M01 ein, ein Override ohne scale setzt 100 %); 24 finite_*(msg.get(…, Standard)) und 9 bool(msg.get(…)) sind je Befehl zu sichten, bevor ein Standard entfällt — ein eigenes Gateway-Paket (F-COMP S3 war der erste Fall); der WebUI-Client sendet jedes Feld (commandShapes.test.ts) |
 
-**Ohne formulierte Aussagen:** 18 Funktionen ohne eigene Maschinenwirkung — Programm herunterladen `F-PROGDOWNLOAD`, G-Code ansehen, aktive Codes, Codewort-Referenz, Statistik `F-GCODEVIEW`, Vorschau des Werkzeugwegs `F-PREVIEW`, Werkzeugtabelle ansehen, suchen, sortieren `F-TOOLTABLE`, Werkzeugtabelle herunterladen `F-TOOLDOWNLOAD`, Makro-Leiste einrichten `F-MACROBAR`, Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab `F-SIM`, 3D-Ansicht bedienen: Ansichten, Würfel, Spur löschen, Hinweise `F-VIEW`, 3D-Ansicht einstellen: Ebenen, Farben, Projektion, Verfolgung, HUD `F-VIEWSET`, Kamerabild (Bild im Bild) und Überlagerung `F-CAMERA`, Darstellung: Farbschema, Vollbild, Bildschirm wach halten `F-DISPLAY`, Meldungen: Nachrichtenzentrale, Filter, Kopieren, Löschen `F-MESSAGES`, Navigation: Tabs und Seitenleiste `F-TABS`, Diagnose: HAL-Anzeige, Timing, Telemetrie `F-DIAG`, Eingabehilfen: Zahlen- und Text-Tastatur am Bildschirm `F-INPUTHELP`, Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe `SYS-CONTROLS`, Statusübertragung (Rahmen und gemeinsame Felder) `SYS-STATUS`, Maschinenkonfiguration lesen: Achsen, Gelenke, Grenzen, Kinematik, Remaps, Profile `SYS-CONFIG`
+**Ohne formulierte Aussagen:** 19 Funktionen ohne eigene Maschinenwirkung — Programm herunterladen `F-PROGDOWNLOAD`, G-Code ansehen, aktive Codes, Codewort-Referenz, Statistik `F-GCODEVIEW`, Vorschau des Werkzeugwegs `F-PREVIEW`, Werkzeugtabelle ansehen, suchen, sortieren `F-TOOLTABLE`, Werkzeugtabelle herunterladen `F-TOOLDOWNLOAD`, Makro-Leiste einrichten `F-MACROBAR`, Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab `F-SIM`, 3D-Ansicht bedienen: Ansichten, Würfel, Spur löschen, Hinweise `F-VIEW`, 3D-Ansicht einstellen: Ebenen, Farben, Projektion, Verfolgung, HUD `F-VIEWSET`, Kamerabild (Bild im Bild) und Überlagerung `F-CAMERA`, Funktionen abschalten (Antasten, Toolsetter, Surface-Map, Kamera, Makros, Gamepad) `F-FEATURES`, Darstellung: Farbschema, Vollbild, Bildschirm wach halten `F-DISPLAY`, Meldungen: Nachrichtenzentrale, Filter, Kopieren, Löschen `F-MESSAGES`, Navigation: Tabs und Seitenleiste `F-TABS`, Diagnose: HAL-Anzeige, Timing, Telemetrie `F-DIAG`, Eingabehilfen: Zahlen- und Text-Tastatur am Bildschirm `F-INPUTHELP`, Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe `SYS-CONTROLS`, Statusübertragung (Rahmen und gemeinsame Felder) `SYS-STATUS`, Maschinenkonfiguration lesen: Achsen, Gelenke, Grenzen, Kinematik, Remaps, Profile `SYS-CONFIG`
 
 ## Sicherheit und Maschinenzustand
 
@@ -313,7 +313,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | **Werkzeugbibliothek importieren (Fusion 360, FreeCAD)** `F-TOOLIMPORT` | Tab „Tools“ | 17 | 4 | 4 | 0 |
 | **Werkzeugtabelle herunterladen** `F-TOOLDOWNLOAD` | Tab „Tools“ | 2 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Werkzeugwechsel (M6) mit Bestätigung** `F-TOOLCHANGE` | Dialog, Einstellungen, Tab „Tools“ | 14 | 2 | 2 | 0 |
-| **Werkzeuglänge messen (M600) und Werkzeug entladen** `F-TOOLMEASURE` | Tab „Tools“ | 8 | 9 | 9 | 0 |
+| **Werkzeuglänge messen (M600) und Werkzeug entladen** `F-TOOLMEASURE` | Tab „Tools“ | 10 | 9 | 9 | 0 |
 | **Toolsetter einrichten (Werkzeuglängen-Messung)** `F-TOOLSETTER` | Tab „Probing“ › Toolsetter | 36 | 5 | 5 | 0 |
 | **Werkzeugwechselposition G30 lesen, übernehmen, speichern** `F-G30` | Tab „Probing“ › Toolsetter | 8 | 2 | 2 | 0 |
 
@@ -393,9 +393,9 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut** `F-PROBE` | Tab „Probing“ | 86 | 4 | 4 | 0 |
+| **Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut** `F-PROBE` | Tab „Probing“ | 87 | 4 | 4 | 0 |
 | **Taster kalibrieren** `F-PROBECAL` | Tab „Probing“ | 15 | 1 | 1 | 0 |
-| **Fläche abtasten (Surface-Scan)** `F-SURFACE` | Tab „Probing“ | 6 | 2 | 2 | 0 |
+| **Fläche abtasten (Surface-Scan)** `F-SURFACE` | Tab „Probing“ | 7 | 2 | 2 | 0 |
 | **Flächenkompensation ein/aus und Interpolation umschalten** `F-COMP` | Dialog, Tab „Probing“ | 13 | 4 | 4 | 0 |
 
 ### Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut
@@ -469,8 +469,9 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Einstellungen öffnen, speichern, verwerfen, zurücksetzen** `F-SETTINGS` | Dialog, Einstellungen, Kopfzeile | 27 | 1 | 1 | 0 |
+| **Einstellungen öffnen, speichern, verwerfen, zurücksetzen** `F-SETTINGS` | Dialog, Einstellungen, Kopfzeile | 28 | 1 | 1 | 0 |
 | **Geräteprofile: dieses Gerät benennen, Simulation schalten, andere Geräte verwalten** `F-DEVICES` | Einstellungen › Geräte | 16 | 3 | 3 | 0 |
+| **Funktionen abschalten (Antasten, Toolsetter, Surface-Map, Kamera, Makros, Gamepad)** `F-FEATURES` | Einstellungen | 8 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Darstellung: Farbschema, Vollbild, Bildschirm wach halten** `F-DISPLAY` | Einstellungen, Kopfzeile | 13 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Meldungen: Nachrichtenzentrale, Filter, Kopieren, Löschen** `F-MESSAGES` | Banner, Dialog, Kopfzeile, Meldungen | 15 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Navigation: Tabs und Seitenleiste** `F-TABS` | Tabs | 3 | 0 | 0 | Aussagen noch nicht formuliert |
@@ -538,6 +539,25 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S5 (Ablehnung):** Ein Befehl, dessen Wert die Handlung bestimmt, wird ohne diesen Wert abgelehnt: home ohne joint, set_optional_stop / set_block_delete ohne Wahrheitswert, ein Override ohne scale, spindle_forward / spindle_reverse ohne speed; wo ein Standard die sichere Richtung ist (arm ohne armed → entwaffnen), ist er ausdrücklich so entschieden. — gilt für: alle
   - Beleg: **offen** — Lücke: Gateway: heute führt es diese Befehle mit einem Standard aus (home ohne joint referenziert alle, "false" schaltet M01 ein, ein Override ohne scale setzt 100 %); 24 finite_*(msg.get(…, Standard)) und 9 bool(msg.get(…)) sind je Befehl zu sichten, bevor ein Standard entfällt — ein eigenes Gateway-Paket (F-COMP S3 war der erste Fall); der WebUI-Client sendet jedes Feld (commandShapes.test.ts)
 
+## Abschaltbare Funktionen
+
+Je Schalter (Einstellungen › Features) die Funktionen und was mit ihren Atomen geschieht: geschaltet = verschwindet aus der Oberfläche oder das Gateway lehnt ab; nach Inhalt = der Auftrag entscheidet (Zweck, nur Einschalten, Vormessung); bleibt lesbar / bleibt = Daten, Einstellungen, allgemeine NC-Wege; gemeinsam = mit einer anderen Funktion geteilt.
+
+| Schalter | Funktion | Rollen | Hinweis |
+|---|---|---|---|
+| camera | Kamerabild (Bild im Bild) und Überlagerung `F-CAMERA` | geschaltet 14, bleibt lesbar 15 | — |
+| gamepad | Gamepad-Bedienung, Belegung und Einrichtungs-Assistent `F-GAMEPAD` | geschaltet 40, bleibt lesbar 8 | — |
+| macros | Makro-Leiste einrichten `F-MACROBAR` | geschaltet 5, bleibt lesbar 2 | — |
+| macros | Makros verwalten: anlegen, bearbeiten, umbenennen, löschen, importieren, herunterladen `F-MACROFILES` | geschaltet 30, bleibt lesbar 3 | — |
+| macros | Makro starten (Tab, Leiste, Parameter-Dialog) `F-MACRORUN` | geschaltet 6 | — |
+| keiner (Ausnahme) | Antast-Auslösung simulieren (nur Sim) `F-SIMTRIP` | bleibt 3 | Diagnose des Taster-Eingangs, nur in Dev-Builds sichtbar, serverseitig nur Arm — benannte Ausnahme (R336), kein Schalter |
+| probing | Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut `F-PROBE` | geschaltet 39, nach Inhalt 1, bleibt lesbar 38, gemeinsam 9 | — |
+| probing | Taster kalibrieren `F-PROBECAL` | geschaltet 15 | — |
+| surfaceMap | Flächenkompensation ein/aus und Interpolation umschalten `F-COMP` | geschaltet 2, nach Inhalt 4, bleibt lesbar 7 | Kompensation AUS ist immer zugelassen; EIN und die Methode gehören zum Schalter |
+| surfaceMap | Fläche abtasten (Surface-Scan) `F-SURFACE` | geschaltet 6, bleibt lesbar 1 | — |
+| toolsetter | Werkzeuglänge messen (M600) und Werkzeug entladen `F-TOOLMEASURE` | geschaltet 4, bleibt lesbar 3, bleibt 3 | Unload bleibt: mit Toolsetter aus ist der Werkzeugwechsel M6 G43 (ein gespeichertes M600 verweigert das Ausschalten) |
+| toolsetter | Toolsetter einrichten (Werkzeuglängen-Messung) `F-TOOLSETTER` | geschaltet 13, bleibt lesbar 23 | — |
+
 ## Nach Bedienort
 
 Dieselben Funktionen, geordnet nach dem Ort, an dem man sie bedient.
@@ -553,7 +573,7 @@ Dieselben Funktionen, geordnet nach dem Ort, an dem man sie bedient.
 | Detailkarte | Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe `SYS-CONTROLS` |
 | Dialog | Herunterfahren `F-SHUTDOWN`<br>Werkzeugwechsel (M6) mit Bestätigung `F-TOOLCHANGE`<br>Flächenkompensation ein/aus und Interpolation umschalten `F-COMP`<br>Makro starten (Tab, Leiste, Parameter-Dialog) `F-MACRORUN`<br>Einstellungen öffnen, speichern, verwerfen, zurücksetzen `F-SETTINGS`<br>Meldungen: Nachrichtenzentrale, Filter, Kopieren, Löschen `F-MESSAGES` |
 | Editor | Programm bearbeiten und speichern `F-EDIT` |
-| Einstellungen | Freigeben (Arm) und Sperren `F-ARM`<br>Spindel von Hand: Rechts, Links, Stopp, Drehzahl `F-SPINDLE`<br>Start ab Zeile (mit Vormessung, sicherem Z, Spindel) `F-RFL`<br>Vorschau des Werkzeugwegs `F-PREVIEW`<br>Werkzeugwechsel (M6) mit Bestätigung `F-TOOLCHANGE`<br>3D-Ansicht einstellen: Ebenen, Farben, Projektion, Verfolgung, HUD `F-VIEWSET`<br>Kamerabild (Bild im Bild) und Überlagerung `F-CAMERA`<br>Einstellungen öffnen, speichern, verwerfen, zurücksetzen `F-SETTINGS`<br>Darstellung: Farbschema, Vollbild, Bildschirm wach halten `F-DISPLAY`<br>Tastatur-Bedienung und Tastenbelegung `F-KEYBOARD`<br>Gamepad-Bedienung, Belegung und Einrichtungs-Assistent `F-GAMEPAD` |
+| Einstellungen | Freigeben (Arm) und Sperren `F-ARM`<br>Spindel von Hand: Rechts, Links, Stopp, Drehzahl `F-SPINDLE`<br>Start ab Zeile (mit Vormessung, sicherem Z, Spindel) `F-RFL`<br>Vorschau des Werkzeugwegs `F-PREVIEW`<br>Werkzeugwechsel (M6) mit Bestätigung `F-TOOLCHANGE`<br>3D-Ansicht einstellen: Ebenen, Farben, Projektion, Verfolgung, HUD `F-VIEWSET`<br>Kamerabild (Bild im Bild) und Überlagerung `F-CAMERA`<br>Einstellungen öffnen, speichern, verwerfen, zurücksetzen `F-SETTINGS`<br>Funktionen abschalten (Antasten, Toolsetter, Surface-Map, Kamera, Makros, Gamepad) `F-FEATURES`<br>Darstellung: Farbschema, Vollbild, Bildschirm wach halten `F-DISPLAY`<br>Tastatur-Bedienung und Tastenbelegung `F-KEYBOARD`<br>Gamepad-Bedienung, Belegung und Einrichtungs-Assistent `F-GAMEPAD` |
 | Einstellungen › Debug | Diagnose: HAL-Anzeige, Timing, Telemetrie `F-DIAG` |
 | Einstellungen › Gamepad | Gamepad-Bedienung, Belegung und Einrichtungs-Assistent `F-GAMEPAD` |
 | Einstellungen › Geräte | Geräteprofile: dieses Gerät benennen, Simulation schalten, andere Geräte verwalten `F-DEVICES` |

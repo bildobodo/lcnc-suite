@@ -19,6 +19,7 @@ import { viewerInit, viewerGcode, status, statusReceiptOf, emitTelemetry, noteWi
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, ON_TOP_FALLBACK, ON_TOP_LAYERS, settingsVersion, simulationOn, type OnTopLayer, type Vec3, type Layer } from "./defaults";
 import { useProgramMarks, useRunDisplay } from "./viewer/runDisplay";
 import { simShown } from "./simShown";
+import { featureShown } from "./features";
 import { applyOnTop, ON_TOP_ORDER } from "./viewer/onTop";
 import { confirmedToolsetter } from "./toolsetterVars";
 import { toolChangePlacement, toolsetterPlacement } from "./viewer/toolsetterMarker";
@@ -105,6 +106,8 @@ let _hold: Hold = freeHold();
 let _holdTimer: ReturnType<typeof setTimeout> | undefined;
 let _connEpoch = 0;
 
+// The camera's switch (a machine section, settings split package 3).
+const cameraShown = featureShown.camera;
 function togglePip() {
   pipVisible.value = !pipVisible.value;
   _pipSkipNext++;
@@ -5985,7 +5988,7 @@ defineExpose({
     <div class="viewerQuickGrid">
       <MachineBtn type="viewPreset" aria-label="Reset view" title="Reset view" @click="setView('reset')">Reset</MachineBtn>
       <MachineBtn type="viewPreset" aria-label="Clear backplot" title="Clear backplot" @click="resetBackplot">Clear</MachineBtn>
-      <MachineBtn type="viewerQuickToggle" :selected="pipVisible" @click="togglePip" :aria-label="pipVisible ? 'Hide camera' : 'Show camera'" :title="pipVisible ? 'Hide camera' : 'Show camera'">
+      <MachineBtn v-if="cameraShown" type="viewerQuickToggle" :selected="pipVisible" @click="togglePip" :aria-label="pipVisible ? 'Hide camera' : 'Show camera'" :title="pipVisible ? 'Hide camera' : 'Show camera'">
         <Camera :size="14" />
       </MachineBtn>
       <MachineBtn type="viewerQuickToggle" @click="emit('open-settings', 'viewer')" aria-label="3D Viewer settings" title="3D Viewer settings">
@@ -5993,8 +5996,9 @@ defineExpose({
       </MachineBtn>
     </div>
 
-    <!-- Camera PIP overlay -->
-    <CameraPip :visible="pipVisible" @close="closePip" />
+    <!-- Camera PIP overlay — gone with the camera switched off (settings split
+         package 3): its stream closes with it (the gateway ends it too) -->
+    <CameraPip v-if="cameraShown" :visible="pipVisible" @close="closePip" />
 
 
     <!-- The bottom edge (design wave D9): the findings card — the mode chip

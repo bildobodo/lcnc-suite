@@ -143,15 +143,15 @@ PROGRAM = ("editor-guards", "run-hold", "safety-during-edit", "input-session",
            "sim-panel.viewer", "strip-actions")
 TOOLS = ("example-tool-library", "freecad-import", "tool-geometry", "tool-holder", "tool-marker",
          "tool-import", "tool-table-read")
-TOOLSETTER = ("toolsetter-setup", "g30", "forms", "toolsetter.viewer")
-PROBING = ("probe-click", "compensation", "forms", "disarmed", "tabs")
+TOOLSETTER = ("toolsetter-setup", "g30", "forms", "toolsetter.viewer", "feature-switches")
+PROBING = ("probe-click", "compensation", "forms", "disarmed", "tabs", "feature-switches")
 SETUP = ("offsets", "touchoff", "setup-gates", "setup-layout", "choices", "nine-axis", "strip-actions")
 STRIP = ("joint-jog", "keyboard-guards", "touch-hold", "touch-surface", "armed", "disarmed",
          "choices", "setup-layout", "safety-during-edit", "setup-gates", "input-session", "strip-actions",
          "jog-buttons")
 SETTINGS = ("forms", "devices", "appearance", "select-writes", "tabs", "disarmed", "feedback-channels",
-            "keyboard-guards", "scenes.viewer")
-MACROS = ("macros", "devices", "run-hold", "disarmed")
+            "keyboard-guards", "scenes.viewer", "feature-switches")
+MACROS = ("macros", "devices", "run-hold", "disarmed", "feature-switches")
 MESSAGES = ("messages", "feedback-channels")
 
 
@@ -198,7 +198,7 @@ RULES: tuple[Rule, ...] = (
              "MachineBtn.vue", "MachineInput.vue", "MachineToggle.vue", "MachineSlider.vue",
              "MachineSelect.vue", "MachineRadio.vue", "MachineColor.vue", "Gate.vue",
              "permissions.ts", "machineControls.ts",
-             "actionAdmission.ts", "lcnc.ts", "defaults.ts", "settingsSaveStatus.ts", "deviceToken.ts", "simShown.ts",
+             "actionAdmission.ts", "lcnc.ts", "defaults.ts", "settingsSaveStatus.ts", "deviceToken.ts", "simShown.ts", "features.ts",
              "format.ts", "useAxes.ts", "useKeyboardShortcuts.ts", "touchDetect.ts",
              "sidePaneNarrow.ts", "stickyHead.ts", "scrollFade.ts", "helpPlacement.ts",
              "HelpIcon.vue", "FormField.vue", "MoreMenu.vue", "DetailsPopover.vue",
@@ -316,7 +316,7 @@ RULES: tuple[Rule, ...] = (
     # ── Outside the frontend ─────────────────────────────────────────────
     Rule(("lcnc-gateway/**",), "the gateway: the browser suite runs against the mock",
          backend=True),
-    Rule(("lcnc-gateway/command_policy.py", "lcnc-gateway/gateway.py"),
+    Rule(("lcnc-gateway/command_policy.py", "lcnc-gateway/gateway.py", "lcnc-gateway/features.py"),
          "command admission: the motion buttons", live=("twp-buttons",)),
     Rule(("lcnc-gateway/gateway.py", "lcnc-gateway/status_runtime.py",
           "lcnc-gateway/ws_fanout.py", "lcnc-gateway/hal_*.py", "lcnc-gateway/session_bind.py"),

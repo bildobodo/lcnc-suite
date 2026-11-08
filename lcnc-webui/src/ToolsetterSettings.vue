@@ -94,7 +94,7 @@ async function pushWhenConfirmed() {
   // section anyway (the gateway's sync). Only set up, ready and not already
   // in the machine; the machine line says what came of it.
   if (!setup.ok || !can.value.ready || machineState.value.kind === "confirmed") return;
-  const reply = await request({ cmd: "set_probe_vars", vars: toolsetterVarMap(setup.values) });
+  const reply = await request({ cmd: "set_params", purpose: "toolsetter", vars: toolsetterVarMap(setup.values) });
   pushError.value = !reply ? "Not sent to the machine — no reply"
     : reply.ok === false ? `Not taken by the machine — ${reply.error ?? "refused"}` : null;
 }

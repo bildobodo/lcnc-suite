@@ -202,3 +202,29 @@ describe("useGamepad button actions (the function inventory's F-GAMEPAD S3)", ()
     expect(press("home_all", { zero: true }, { buttonsEnabled: false })).toEqual([]);
   });
 });
+
+describe("useGamepad switched on (settings split package 3, Codex R335)", () => {
+  it("a stick already deflected and a button already held at the start act only after the pad was at rest", () => {
+    let clock = performance.now() + 1000;
+    const spy = vi.spyOn(performance, "now").mockImplementation(() => clock);
+    stick[0] = 1;
+    pressed[DPAD_UP] = true;
+    const { sent, tick: frame, pad: p } = setup(0);
+    const tick = (t: number) => { clock = t; frame(t); };
+    const t0 = clock + 1000;
+    tick(t0); tick(t0 + 300); tick(t0 + 600);
+    expect(sent, "deflected and held since the start: nothing").toEqual([]);
+    stick[0] = 0; pressed[DPAD_UP] = false; tick(t0 + 900);   // at rest
+    expect(sent).toEqual([]);
+    stick[0] = 1; tick(t0 + 1200);
+    expect(sent).toEqual([{ cmd: "jog_cont", axis: 0, vel: 10 }]);
+    p.stop();
+    // a stop and a new start: the rest is asked again
+    sent.length = 0;
+    p.start();
+    tick(t0 + 1500); tick(t0 + 1800);
+    expect(sent, "still deflected after the restart: nothing").toEqual([]);
+    spy.mockRestore();
+    p.stop();
+  });
+});

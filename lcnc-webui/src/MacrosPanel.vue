@@ -39,6 +39,9 @@ import { saveAsFile } from "./download";
 const props = defineProps<{
   /** The macro files on the bar, in order (the `macros` section's `bar`). */
   barNames: string[];
+  /** The tab stays after macros were switched off — until it is left
+   *  (settings split package 3: an open editor's draft is never lost). */
+  heldNote?: string | null;
 }>();
 const emit = defineEmits<{
   /** Run a macro file: App's one path (hold, or the parameter dialog). */
@@ -437,6 +440,7 @@ async function confirmDelete() {
 
 <template>
   <div ref="root" class="macrosTab stack-controls">
+    <div v-if="heldNote" class="statusNote warn" role="status">{{ heldNote }}</div>
     <!-- The tab's pattern (design wave D5): what it acts on, Run and Abort
          side by side on the left, the management behind More at the right -->
     <div class="panelHead">

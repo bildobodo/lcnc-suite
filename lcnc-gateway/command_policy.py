@@ -29,6 +29,8 @@ import math
 from dataclasses import dataclass
 from typing import Dict, Optional
 
+from features import GAMEPAD_COMMANDS, PURPOSE_VARS as PARAM_PURPOSES, VIA_VALUES
+
 
 @dataclass(frozen=True)
 class MachineState:
@@ -856,7 +858,18 @@ COMMAND_GATES: Dict[str, str] = {
     # under `probe`; now routed + stamped server-side, see touchoff_route).
     "touchoff": "touchoff",
     "twp_capture": "twpCapture",
-    "set_probe_vars": "ready",
+    # A form's confirmed values into the interpreter, named by their purpose
+    # (settings split package 3, R336: probe / surface / toolsetter — each
+    # its own variables and switch); replaced `set_probe_vars`.
+    "set_params": "ready",
+    # The routines the WebUI starts, each ONE validated job (R336) in place
+    # of a client-built `mdi` with `vars`: the gate of the control that
+    # starts it (machineControls.ts probeCell / surfaceScan / toolMeasure /
+    # toolUnload); its switch is checked on top (features.COMMAND_FEATURES).
+    "probe_run": "machineFrame",
+    "surface_scan_run": "surfaceComp",
+    "tool_measure": "machineFrame",
+    "tool_unload_measure": "machineFrame",
     # G30's stored tool-change position (operator P4, Codex R21–R24): a
     # confirming read synchs the interpreter (no motion) — parameterRead, no
     # power or homing term (button gates BG-13); taking the current position
@@ -950,7 +963,7 @@ def check_command(cmd: str, state: MachineState) -> Optional[str]:
 
 # LinuxCNC's MDI buffer is 256 chars; longer text is TRUNCATED MID-WORD and
 # executed as a different move, silently. Reject instead (gateway.py's own
-# set_probe_vars chunker already encodes this limit).
+# parameter chunker (_apply_probe_vars_detail) already encodes this limit).
 MDI_MAX_CHARS = 255
 # LinuxCNC tool-number ceiling. Not machine-declared anywhere, so it is named
 # here rather than buried as a literal in a handler.
@@ -973,11 +986,11 @@ class MachineLimits:
     max_spindle_override: Optional[float] = None
     max_linear_velocity: Optional[float] = None
     #: var numbers this machine's var file declares — the writable set for
-    #: set_probe_vars (see WRITABLE_VAR_DENY_RANGES).
+    #: the parameter writes (see WRITABLE_VAR_DENY_RANGES).
     declared_vars: Optional[frozenset] = None
 
 
-#: Parameter ranges that must never be written through set_probe_vars even when
+#: Parameter ranges that must never be written through a parameter write even when
 #: the var file declares them (it does declare most of these — that is the
 #: point). #1–#30 are subroutine call arguments; #5000+ is system state with
 #: proper commands (G10 L2 for offsets, G92, the tool table), and poking it
@@ -1015,6 +1028,13 @@ class Text:
 
 
 @dataclass(frozen=True)
+class Choice:
+    """A small closed set of WORDS — reject anything else (Enum is for
+    integers)."""
+    values: frozenset
+
+
+@dataclass(frozen=True)
 class AxisMap:
     """touchoff's `axes` mapping: axis LETTER -> finite value. Letters are
     structural (an unknown one is rejected, never dropped); values are the
@@ -1023,8 +1043,8 @@ class AxisMap:
 
 @dataclass(frozen=True)
 class VarNumbers:
-    """set_probe_vars' `vars` mapping: keys must be var numbers this machine
-    declares AND outside WRITABLE_VAR_DENY_RANGES."""
+    """A parameter write's `vars` mapping: keys must be var numbers this
+    machine declares AND outside WRITABLE_VAR_DENY_RANGES."""
 
 
 @dataclass(frozen=True)
@@ -1158,9 +1178,19 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
     "tool_change":   {"tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True)},
     # --- surface compensation
     "set_compensation_method": {"method": Enum(frozenset({0, 1, 2}))},  # nearest/linear/cubic
-    "set_probe_vars": {"vars": VarNumbers()},
+    # --- parameters with their purpose, and the routines as jobs (package 3;
+    #     each purpose's own variables are the handler's check, features.py)
+    "set_params": {"purpose": Choice(frozenset(PARAM_PURPOSES)), "vars": VarNumbers()},
+    "probe_run": {"routine": Text(max_len=63), "vars": VarNumbers()},
+    "surface_scan_run": {"vars": VarNumbers()},
+    "tool_measure": {"tool": Num(lo=1, hi=TOOL_NUMBER_MAX, integer=True)},
     "set_g30": {"values": AxisMap(), "based_on": AxisMap()},
 }
+
+# The gamepad's commands say so (package 3): `via: "gamepad"`, refused with
+# the gamepad switched off — its stops excepted (gateway dispatch).
+for _c in GAMEPAD_COMMANDS:
+    COMMAND_SCHEMA.setdefault(_c, {})["via"] = Choice(VIA_VALUES)
 
 
 def _bound(spec_bound, limits: MachineLimits):
@@ -1231,6 +1261,9 @@ def validate_payload(cmd: str, msg: Dict, limits: MachineLimits) -> Dict[str, ob
             if cap is not None and len(raw) > cap:
                 raise ValueError(
                     f"{cmd}: {field} has {len(raw)} entries, maximum {cap}")
+        elif isinstance(spec, Choice):
+            if raw not in spec.values:
+                raise ValueError(f"{cmd}: {field} {str(raw)[:24]!r} not one of {sorted(spec.values)}")
         elif isinstance(spec, Text):
             if not isinstance(raw, str):
                 raise ValueError(f"{cmd}: {field} must be a string")

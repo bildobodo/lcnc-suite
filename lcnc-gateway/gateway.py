@@ -121,6 +121,7 @@ from tool_table import (
 from settings_store import (SettingsStore, VALID_SECTIONS as _VALID_SETTINGS_SECTIONS, section_needs_arm,
                             DEVICE_SECTIONS as _DEVICE_SECTIONS, Stale as _SettingsStale,
                             UnknownDevice as _UnknownDevice)
+import features as _features
 import status_runtime as _status_runtime_mod
 from status_runtime import StatusPayload
 import bulk_pipeline as _bulk_mod
@@ -2572,7 +2573,7 @@ def _declared_var_numbers() -> Optional[frozenset]:
     The var file IS the machine's statement of which parameters are persistent
     and therefore configurable — the same "ask the machine, don't hardcode"
     rule the rest of the bounds follow. None when it cannot be read, which
-    leaves set_probe_vars' key check to the system-range deny only."""
+    leaves the parameter writes' key check to the system-range deny only."""
     global _var_numbers_cache
     try:
         ini_path = getattr(STAT, "ini_filename", None)
@@ -2955,9 +2956,85 @@ def load_settings() -> dict:
 def save_settings_section(section: str, data, admit=None, *, device=None, base_rev=None,
                           writer=None) -> int:
     """`admit` decides inside the store's lock (button gates BG-24); the new
-    revision. `device` None = a machine section."""
+    revision. `device` None = a machine section: its machine-state admission
+    too (_machine_state_admission — the switches, package 3)."""
     return _settings_store.save_section(section, data, device=device, base_rev=base_rev,
-                                        writer=writer, admit=admit)
+                                        writer=writer, admit=admit,
+                                        admit_state=None if device is not None
+                                        else _machine_state_admission(section, writer))
+
+
+async def _save_settings(section: str, data, admit, *, device=None, base_rev=None, writer=None) -> int:
+    """A settings save from a route or a WS frame. A `features` save commits
+    under _source_lock — the lock every start registers its claim under
+    (_cmd_blocking) — so a switch and a start of what it switches never
+    overlap: the claim refuses the switch, or the switch refuses the start
+    at its write. To its END through a cancel (the thread holds the lock's
+    promise)."""
+    call = lambda: save_settings_section(section, data, admit, device=device,  # noqa: E731
+                                         base_rev=base_rev, writer=writer)
+    if section != "features":
+        return await asyncio.to_thread(call)
+    async with _get_source_lock():
+        return await _thread_to_end(asyncio.ensure_future(asyncio.to_thread(call)))
+
+
+def _feature_refusal(feature: str) -> Optional[str]:
+    """None while `feature` is on (the server's `features` section, read
+    under the store's lock), else why its job is refused (OP2: the suite's
+    operating function — free MDI and programs are not searched)."""
+    try:
+        on = _settings_store.features()
+    except Exception as e:  # noqa: BLE001 - unread switches start nothing
+        _trace.emit_exc("features.read_failed", e)
+        return "Features not read — try again"
+    return None if on[feature] else _features.off_reason(feature)
+
+
+def _features_change_refusal(conn_key, old: Dict[str, bool], new: Dict[str, bool]) -> Optional[str]:
+    """May the switches change NOW (SS334-02)? Inside the store's lock under
+    _source_lock, on a current read: the whole sourceWrite rule (an armed
+    writer, no start open, no run from line, no load, a KNOWN idle
+    interpreter — _write_admission_refusal), no command in flight (a command
+    checks its switch under _cmd_lock: one that takes the lock after this
+    read waits for this save to read its switch), no jog booked, the machine
+    standing; switching a function OFF also needs its own state known and
+    ended — the compensation off (a fresh reader). Nothing here sends a
+    machine command; switching ON switches nothing on."""
+    why = _write_admission_refusal(conn_key)
+    if why:
+        return why
+    if _get_cmd_lock().locked():
+        return "A command is running — try again"
+    if _active_jogs:
+        return "A jog is active — release it"
+    still = motion_still_of(safe_get("inpos", None), safe_get("current_vel", None))
+    if still is None:
+        return MOTION_UNKNOWN
+    if not still:
+        return "Machine moving — switch once it stands"
+    if old["surfaceMap"] and not new["surfaceMap"]:
+        enabled = _reader_fresh_get("z_eoffset_enable")
+        if enabled is None:
+            return "Compensation state unknown — HAL reader stale"
+        if enabled:
+            return "Surface compensation is on — turn it off first"
+    return None
+
+
+def _machine_state_admission(section: str, conn_key):
+    """A machine save's check of the machine's sections as they are and as
+    they would be (settings_store `admit_state`): the one cross-section rule
+    (features.conflict — toolsetter off with M600) for every machine save,
+    and a change of the switches their own admission. Raises to refuse."""
+    def admit_state(before: dict, after: dict) -> None:
+        why = _features.conflict(after.get("machine"), after.get("features"), section)
+        if not why and section == "features":
+            why = _features_change_refusal(conn_key, _features.features_of(before.get("features")),
+                                           _features.features_of(after.get("features")))
+        if why:
+            raise PermissionError(why)
+    return admit_state
 
 
 def settings_view(device_id: Optional[str]) -> dict:
@@ -4099,10 +4176,9 @@ async def _ws_save_settings(client, msg: Dict[str, Any]) -> Dict[str, Any]:
     # profile it went to — None = the machine's
     tgt = {"section": section, "device": target}
     try:
-        rev = await asyncio.to_thread(
-            save_settings_section, section, msg.get("data"),
-            _settings_admission(section, client.conn_key, foreign=foreign),
-            device=target, base_rev=msg.get("base_rev"), writer=client.conn_key)
+        rev = await _save_settings(section, msg.get("data"),
+                                   _settings_admission(section, client.conn_key, foreign=foreign),
+                                   device=target, base_rev=msg.get("base_rev"), writer=client.conn_key)
     except _SettingsStale as st:
         return _settings_refusal(echo, str(st), stale=True, data=st.data, rev=st.rev, **tgt)
     except PermissionError as pe:
@@ -5006,6 +5082,12 @@ async def _toolsetter_sync(armed: bool, basis: Dict[str, Any]):
       basis and an idle interpreter; not every chunk taken → the start is
       refused, the chunks booked as they ended."""
     note = {"digest": basis["digest"], "set_up": bool(basis.get("ok")), "synced": False}
+    off = _feature_refusal("toolsetter")
+    if off:
+        # the toolsetter switched off (package 3): the suite applies nothing —
+        # a program's own M600 is a general NC path (OP2)
+        _trace.emit("toolsetter.sync", set_up=note["set_up"], off=True, digest=basis["digest"])
+        return None, {**note, "off": True}
     if not basis.get("ok"):
         _trace.emit("toolsetter.sync", set_up=False, why=basis.get("reason"), digest=basis["digest"])
         return None, note
@@ -5024,6 +5106,66 @@ async def _toolsetter_sync(armed: bool, basis: Dict[str, Any]):
                 "toolsetter": note}, note
     note.update(synced=True, persisted=r["persisted"], file_error=r["file_error"])
     return None, note
+
+
+async def _feature_job(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, Any]:
+    """A routine the WebUI starts, as ONE validated job (package 3, R336) in
+    place of the page's `mdi` with `vars`: the values of ITS purpose only,
+    the line the gateway builds, under its switch at the dispatch and at
+    every write. The values first, the line only once the interpreter took
+    them, an abort cancels this handler (Codex R16 XZ-06, unchanged).
+
+    probe_run {routine, vars}: a probe routine of the subroutine path,
+      `O<routine> CALL` with the probe values;
+    surface_scan_run {vars}: `O<surface_scan> CALL` with the scan's values;
+    tool_measure {tool} / tool_unload_measure: `T<tool> M600` / `T0 M600`
+      with the SERVER's confirmed toolsetter section (P2 — never the page's
+      values; not set up, nothing starts), bound to it to the write."""
+    require_armed(armed)
+    blocked = reject_if_auto_running()
+    if blocked:
+        return blocked
+    feature = _features.COMMAND_FEATURES[cmd]
+    basis = None
+    if cmd == "probe_run":
+        routine = msg.get("routine")
+        if not isinstance(routine, str) or routine not in await asyncio.to_thread(get_probe_macros):
+            return {"ok": False, "error": "Not a probe routine — reload the page"}
+        purpose, vars_to_set, line = "probe", msg.get("vars"), f"O<{routine}> CALL"
+    elif cmd == "surface_scan_run":
+        purpose, vars_to_set, line = "surface", msg.get("vars"), "O<surface_scan> CALL"
+    else:
+        basis = _toolsetter_basis()
+        if not basis["ok"]:
+            return {"ok": False, "error": basis["reason"]}
+        tool = 0 if cmd == "tool_unload_measure" else finite_int(msg.get("tool", 0), lo=0)
+        if tool < 1 and cmd == "tool_measure":
+            return {"ok": False, "error": "No tool to measure"}
+        purpose, line = "toolsetter", f"T{tool} M600"
+        vars_to_set = {str(k): v for k, v in basis["values"].items()}
+    if not isinstance(vars_to_set, dict) or not vars_to_set:
+        return {"ok": False, "error": "Missing vars dict"}
+    why = _features.purpose_refusal(purpose, vars_to_set)
+    if why:
+        return {"ok": False, "error": why}
+    refused = await _start_guard(armed, clears_flag=True)
+    if refused:
+        return refused
+
+    def admit() -> Optional[str]:
+        return (_feature_refusal(feature) or (_basis_refusal(basis) if basis else None)
+                or _interp_idle_refusal())
+    try:
+        persisted, mdi_ok = await _apply_probe_vars(_skip_flag_cleared(vars_to_set), armed, admit=admit)
+        if not mdi_ok:
+            return {"ok": False, "error": admit() or "Parameters not taken over — nothing started",
+                    "persisted": persisted, "mdi_set": False}
+        await set_mode(linuxcnc.MODE_MDI, admit=admit)
+        await _cmd_blocking(CMD.mdi, line, wait=None, admit=admit)
+    except _WriteRefused as refused:
+        return {"ok": False, "error": str(refused)}
+    _trace.emit("features.job", cmd=cmd, line=line)
+    return {"ok": True, "persisted": persisted, "mdi_set": True, "line": line}
 
 
 _SIM_TRIP_RESETS = 2          # attempts to put probe-in back to 0
@@ -5073,6 +5215,30 @@ def _sim_trip_reply(out: Dict[str, Any]) -> Dict[str, Any]:
         return {"ok": True}
     after = "reset delivered" if delivered else "probe-in may still be TRUE"
     return {"ok": False, "error": f"simulate_probe_trip: {failures[0]} — {after}"}
+
+
+def _command_feature_refusal(cmd: str, msg: Dict[str, Any]) -> Optional[str]:
+    """Why a switched-off function refuses this command, or None (package 3,
+    OP2): a recognisable job (features.COMMAND_FEATURES), a parameter write
+    by its purpose, the compensation switched ON, run from line's toolsetter
+    pre-measurement, and every command the gamepad sends (`via`) but its
+    stops. Free MDI is no job (the named exception, R336)."""
+    via = msg.get("via")
+    if via is not None:
+        if via not in _features.VIA_VALUES:
+            return "Unknown input — reload the page"
+        if cmd not in _WS_STOP_CMDS:
+            why = _feature_refusal(_features.VIA_FEATURE[via])
+            if why:
+                return why
+    feature = _features.COMMAND_FEATURES.get(cmd)
+    if cmd == "set_params":
+        feature = _features.PURPOSE_FEATURE.get(msg.get("purpose"))   # unknown: the handler refuses
+    elif cmd == "set_compensation" and msg.get("enable") is True:
+        feature = "surfaceMap"        # switching it OFF is always admitted
+    elif cmd == "auto_run" and msg.get("pre_tool"):
+        feature = "toolsetter"
+    return _feature_refusal(feature) if feature else None
 
 
 async def handle_command(msg: Dict[str, Any], armed: bool, conn_key: Optional[str] = None):
@@ -5181,6 +5347,13 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
     if _fixed:
         _trace.emit("ws.payload_clamped", level="warn", cmd=cmd, fields=_fixed)
         msg = {**msg, **_fixed}
+
+    # The switches (settings split package 3), read here under _cmd_lock: a
+    # switch changes only while no command holds it (_features_change_refusal).
+    _off = _command_feature_refusal(cmd, msg)
+    if _off is not None:
+        _trace.emit("ws.command_feature_off", level="warn", cmd=cmd, reason=_off, via=msg.get("via"))
+        return {"ok": False, "error": _off}
 
     try:
         if cmd == "arm":
@@ -6180,13 +6353,28 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
         if cmd == "list_probe_macros":
             return {"ok": True, "macros": get_probe_macros()}
 
-        if cmd == "set_probe_vars":
+        if cmd == "set_params":
+            # A form's values into the interpreter and the var file, named by
+            # their PURPOSE (package 3, R336): each purpose its own variables
+            # and switch (_command_feature_refusal, again at each write) — a
+            # set outside its purpose is refused whole, nothing written.
             require_armed(armed)
-            vars_to_set = msg.get("vars", {})
-            if not vars_to_set or not isinstance(vars_to_set, dict):
+            vars_to_set = msg.get("vars")
+            if not isinstance(vars_to_set, dict) or not vars_to_set:
                 return {"ok": False, "error": "Missing vars dict"}
-            r = await _apply_probe_vars_detail(vars_to_set, armed)
+            why = _features.purpose_refusal(msg.get("purpose"), vars_to_set)
+            if why:
+                return {"ok": False, "error": why}
+            feature = _features.PURPOSE_FEATURE[msg["purpose"]]
+            r = await _apply_probe_vars_detail(vars_to_set, armed,
+                                               admit=lambda: _feature_refusal(feature) or _interp_idle_refusal())
             return {"ok": True, **r}
+
+        # the routines as jobs (package 3): one function, a branch each
+        if cmd == "probe_run" or cmd == "surface_scan_run":
+            return await _feature_job(cmd, msg, armed)
+        if cmd == "tool_measure" or cmd == "tool_unload_measure":
+            return await _feature_job(cmd, msg, armed)
 
         if cmd == "reparse_preview":
             require_armed(armed)
@@ -8700,7 +8888,7 @@ def _macro_write_gate(state: Dict[str, Any], path: str, base: str, conn_key):
     name = os.path.basename(path)[:-len(".ngc")]
 
     def gate():
-        why = _write_admission_refusal(conn_key)
+        why = _write_admission_refusal(conn_key) or _feature_refusal("macros")
         if why:
             return {"kind": "busy", "reason": why}
         try:
@@ -10860,6 +11048,13 @@ async def ws_endpoint(ws: WebSocket):
                 continue
 
             if msg.get("cmd") == "save_settings":
+                if msg.get("section") == "features":
+                    # under _source_lock (a program upload may hold it): never
+                    # awaited here — the reader keeps reading heartbeats
+                    async def _reply_later(m=msg):
+                        await ws_send_json(ws, await _ws_save_settings(client, m))
+                    register_bg_task(asyncio.create_task(_reply_later()))
+                    continue
                 await ws_send_json(ws, await _ws_save_settings(client, msg))
                 continue
 
@@ -11252,10 +11447,9 @@ async def put_settings_section(section: str, request: Request,
         if device is None:
             return JSONResponse({"ok": False, "error": DEVICE_UNKNOWN}, status_code=403)
     try:
-        rev = await asyncio.to_thread(save_settings_section, section, body["data"],
-                                      _settings_admission(section, key), device=device,
-                                      base_rev=body.get("base_rev"),
-                                      writer=key if isinstance(key, str) and key else None)
+        rev = await _save_settings(section, body["data"], _settings_admission(section, key), device=device,
+                                   base_rev=body.get("base_rev"),
+                                   writer=key if isinstance(key, str) and key else None)
     except _SettingsStale as st:
         return JSONResponse({"ok": False, "error": str(st), "stale": True, "data": st.data,
                              "rev": st.rev}, status_code=409)
@@ -11276,6 +11470,11 @@ async def camera_stream():
     # One shared producer feeds all viewers (P3): subscribing starts it on the
     # first viewer; the `finally` releases this viewer's slot so the device is
     # freed a short grace after the last one leaves.
+    # The camera switched off (package 3): no new stream, and an open one
+    # ends at its next frame — the device goes after the broker's grace.
+    off = await asyncio.to_thread(_feature_refusal, "camera")
+    if off:
+        return JSONResponse({"error": off}, status_code=403)
     ok = await _camera_broker.subscribe()
     if not ok:
         return JSONResponse({"error": "No camera configured"}, status_code=503)
@@ -11283,6 +11482,9 @@ async def camera_stream():
     async def generate():
         try:
             async for jpeg in _camera_broker.frames():
+                if await asyncio.to_thread(_feature_refusal, "camera"):
+                    _trace.emit("camera.stream_ended", why="camera off")
+                    return
                 yield (b"--frame\r\n"
                        b"Content-Type: image/jpeg\r\n\r\n" + jpeg + b"\r\n")
         finally:
@@ -11295,6 +11497,9 @@ async def camera_stream():
 
 @app.get("/camera/status")
 async def camera_status():
+    off = await asyncio.to_thread(_feature_refusal, "camera")
+    if off:
+        return JSONResponse({"available": False, "error": off}, status_code=403)
     loop = asyncio.get_event_loop()
     ok = await loop.run_in_executor(None, _camera_init)
     return {"available": ok, "source": os.environ.get("LCNC_CAMERA_SOURCE", "")}

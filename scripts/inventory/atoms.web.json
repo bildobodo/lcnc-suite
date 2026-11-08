@@ -1100,6 +1100,9 @@
      "id": "control:SettingsPanel.vue|MachineBtn:resetDisplay|@click=resetTarget = 'viewer'"
     },
     {
+     "id": "control:SettingsPanel.vue|MachineBtn:resetProtected|@click=resetTarget = 'features'"
+    },
+    {
      "id": "control:SettingsPanel.vue|MachineBtn:resetProtected|@click=resetTarget = 'gamepad'"
     },
     {
@@ -1230,6 +1233,12 @@
     },
     {
      "id": "control:SettingsPanel.vue|MachineToggle:protectedSetting|@update:modelValue=saveMachine() v-model=runFromLine"
+    },
+    {
+     "id": "control:SettingsPanel.vue|MachineToggle:protectedSetting|@update:modelValue=setFeature(f, $event!)",
+     "family": [
+      "f in FEATURE_NAMES"
+     ]
     },
     {
      "id": "control:SettingsPanel.vue|MachineToggle:viewerSetting|@update:modelValue=hud[t.key] = $event!; save()",
@@ -1820,6 +1829,11 @@
      "file": "ProbePanel.vue",
      "form": "v-for family",
      "expr": "op in ridgeGrid"
+    },
+    {
+     "file": "SettingsPanel.vue",
+     "form": "v-for family",
+     "expr": "f in FEATURE_NAMES"
     },
     {
      "file": "SettingsPanel.vue",
@@ -2549,7 +2563,9 @@
    "atoms": [
     {
      "id": "cmd:abort",
-     "members": []
+     "members": [
+      "via"
+     ]
     },
     {
      "id": "cmd:add_tool",
@@ -2626,15 +2642,21 @@
     },
     {
      "id": "cmd:cycle_pause",
-     "members": []
+     "members": [
+      "via"
+     ]
     },
     {
      "id": "cmd:cycle_resume",
-     "members": []
+     "members": [
+      "via"
+     ]
     },
     {
      "id": "cmd:cycle_start",
-     "members": []
+     "members": [
+      "via"
+     ]
     },
     {
      "id": "cmd:delete_tool",
@@ -2663,7 +2685,9 @@
     },
     {
      "id": "cmd:estop",
-     "members": []
+     "members": [
+      "via"
+     ]
     },
     {
      "id": "cmd:estop_reset",
@@ -2671,11 +2695,15 @@
     },
     {
      "id": "cmd:flood_off",
-     "members": []
+     "members": [
+      "via"
+     ]
     },
     {
      "id": "cmd:flood_on",
-     "members": []
+     "members": [
+      "via"
+     ]
     },
     {
      "id": "cmd:get_comp_grid",
@@ -2715,13 +2743,16 @@
     },
     {
      "id": "cmd:home_all",
-     "members": []
+     "members": [
+      "via"
+     ]
     },
     {
      "id": "cmd:jog_cont",
      "members": [
       "axis",
-      "vel"
+      "vel",
+      "via"
      ]
     },
     {
@@ -2735,7 +2766,8 @@
      "members": [
       "axis",
       "distance",
-      "vel"
+      "vel",
+      "via"
      ]
     },
     {
@@ -2747,13 +2779,15 @@
     {
      "id": "cmd:jog_stop",
      "members": [
-      "axis"
+      "axis",
+      "via"
      ]
     },
     {
      "id": "cmd:jog_stop_multi",
      "members": [
-      "axes"
+      "axes",
+      "via"
      ]
     },
     {
@@ -2783,11 +2817,22 @@
     },
     {
      "id": "cmd:mist_off",
-     "members": []
+     "members": [
+      "via"
+     ]
     },
     {
      "id": "cmd:mist_on",
-     "members": []
+     "members": [
+      "via"
+     ]
+    },
+    {
+     "id": "cmd:probe_run",
+     "members": [
+      "routine",
+      "vars"
+     ]
     },
     {
      "id": "cmd:read_g30",
@@ -2915,8 +2960,9 @@
      ]
     },
     {
-     "id": "cmd:set_probe_vars",
+     "id": "cmd:set_params",
      "members": [
+      "purpose",
       "vars"
      ]
     },
@@ -2978,7 +3024,15 @@
     },
     {
      "id": "cmd:spindle_stop",
-     "members": []
+     "members": [
+      "via"
+     ]
+    },
+    {
+     "id": "cmd:surface_scan_run",
+     "members": [
+      "vars"
+     ]
     },
     {
      "id": "cmd:tab_visibility",
@@ -2997,6 +3051,16 @@
      "members": [
       "tool_number"
      ]
+    },
+    {
+     "id": "cmd:tool_measure",
+     "members": [
+      "tool"
+     ]
+    },
+    {
+     "id": "cmd:tool_unload_measure",
+     "members": []
     },
     {
      "id": "cmd:touchoff",
@@ -3098,6 +3162,24 @@
     },
     {
      "id": "setting:display.theme"
+    },
+    {
+     "id": "setting:features.camera"
+    },
+    {
+     "id": "setting:features.gamepad"
+    },
+    {
+     "id": "setting:features.macros"
+    },
+    {
+     "id": "setting:features.probing"
+    },
+    {
+     "id": "setting:features.surfaceMap"
+    },
+    {
+     "id": "setting:features.toolsetter"
     },
     {
      "id": "setting:gamepad.buttonsEnabled"
@@ -3565,8 +3647,7 @@
    "source": "every script literal and template in src",
    "forms": [
     "O<name> CALL literal",
-    "App.vue O<${macro}> CALL ← ProbePanel.vue emit(\"runProbe\"): a literal, op.macro (the tables' macro: literals), runCalProbe('…')",
-    "toolsetterMdi(label, text) M-codes"
+    "App.vue { cmd: \"probe_run\", routine: macro } ← ProbePanel.vue emit(\"runProbe\"): a literal, op.macro (the tables' macro: literals), runCalProbe('…')"
    ],
    "limit": "routines the gateway starts itself (→ Zero, run from line, macros) are the gateway's adapter",
    "atoms": [
@@ -3583,244 +3664,231 @@
      ]
     },
     {
-     "id": "routine:M600",
-     "members": [
-      "App.vue",
-      "ToolTablePanel.vue"
-     ]
-    },
-    {
      "id": "routine:probe_back_left_inside_corner",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_back_left_top_corner",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_back_right_inside_corner",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_back_right_top_corner",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_back_top_side",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_cal_reset",
      "members": [
-      "ProbePanel.vue"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_cal_round_boss",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_cal_round_pocket",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_cal_square_boss",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_cal_square_pocket",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_corner_x_minus_edge_angle",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_corner_x_plus_edge_angle",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_corner_y_minus_edge_angle",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_corner_y_plus_edge_angle",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_front_left_inside_corner",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_front_left_top_corner",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_front_right_inside_corner",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_front_right_top_corner",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_front_top_side",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_left_top_side",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_rect_boss",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_rect_pocket",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_rect_pocket_center_start",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_ridge_x",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_ridge_y",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_right_top_side",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_round_boss",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_round_pocket",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_round_pocket_center_start",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_top_back_edge_angle",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_top_front_edge_angle",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_top_left_edge_angle",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_top_right_edge_angle",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_valley_x",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_valley_x_center_start",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_valley_y",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_valley_y_center_start",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {
      "id": "routine:probe_z_minus_wco",
      "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
-     ]
-    },
-    {
-     "id": "routine:surface_scan",
-     "members": [
-      "App.vue O<${macro}> CALL ← ProbePanel.vue runProbe"
+      "App.vue probe_run { routine: macro } ← ProbePanel.vue runProbe"
      ]
     },
     {

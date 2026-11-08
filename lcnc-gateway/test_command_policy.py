@@ -701,22 +701,22 @@ class TestPayloadSchema(unittest.TestCase):
         self.assertIn("non-empty", self._reject("touchoff", {"axes": {}}))
         self.assertIn("non-empty", self._reject("touchoff", {"axes": [1, 2]}))
 
-    # ---- set_probe_vars: machine-declared, system space denied ----
+    # ---- set_params: machine-declared, system space denied (VarNumbers, every parameter write) ----
 
     def test_system_parameter_space_denied_even_when_declared(self):
         # 5221 IS in this machine's var file (WCS offsets are persistent) and
         # must still be refused — G10 L2 owns it.
-        msg = self._reject("set_probe_vars", {"vars": {"5221": 1.0}})
+        msg = self._reject("set_params", {"purpose": "toolsetter", "vars": {"5221": 1.0}})
         self.assertIn("reserved system parameter space", msg)
-        self.assertIn("reserved", self._reject("set_probe_vars", {"vars": {"5": 1.0}}))
+        self.assertIn("reserved", self._reject("set_params", {"purpose": "toolsetter", "vars": {"5": 1.0}}))
 
     def test_undeclared_var_rejected_with_actionable_message(self):
-        msg = self._reject("set_probe_vars", {"vars": {"3200": 1.0}})
+        msg = self._reject("set_params", {"purpose": "toolsetter", "vars": {"3200": 1.0}})
         self.assertIn("not in this machine's var file", msg)
 
     def test_declared_probe_var_accepted(self):
         self.assertEqual(
-            validate_payload("set_probe_vars", {"vars": {"3100": 10.0, "3014": 99}}, self.LIM),
+            validate_payload("set_params", {"purpose": "toolsetter", "vars": {"3100": 10.0, "3014": 99}}, self.LIM),
             {})
 
     def test_unreadable_var_file_still_denies_system_space(self):
@@ -724,8 +724,8 @@ class TestPayloadSchema(unittest.TestCase):
         # cannot run, but the system-range deny is unconditional.
         lim = MachineLimits(declared_vars=None)
         with self.assertRaises(ValueError):
-            validate_payload("set_probe_vars", {"vars": {"5221": 1.0}}, lim)
-        self.assertEqual(validate_payload("set_probe_vars", {"vars": {"3200": 1.0}}, lim), {})
+            validate_payload("set_params", {"purpose": "toolsetter", "vars": {"5221": 1.0}}, lim)
+        self.assertEqual(validate_payload("set_params", {"purpose": "toolsetter", "vars": {"3200": 1.0}}, lim), {})
 
     # ---- the table itself ----
 
@@ -770,7 +770,7 @@ class TestNoBarePayloadCasts(unittest.TestCase):
             val = msg.get(axis)
             parts.append(f"{axis.upper()}{float(val):.6f}")   # shipped Xinf
 
-        Three such sites existed (set_wcs twice, set_probe_vars once) and put
+        Three such sites existed (set_wcs twice, set_probe_vars — now set_params — once) and put
         `G10 L2 P1 Xinf` on the MDI and arbitrary `#N=inf` into the parameter
         file. Catch the shape: a bare cast of any short local inside the command
         dispatch, where every numeric coercion must be finite_*."""
