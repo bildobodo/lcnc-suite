@@ -1,0 +1,10 @@
+Settings split package 3 — Codex R344 rests (feat/feature-switches eb18c013): each guard proven red by taking its fix out, restored after.
+
+M14 SS-I11 unsubscribe without its epoch (an old stream's leave counted against the new epoch)
+    -> FAILED test_feature_switches.py::TestTheCameraEpochs::test_an_old_streams_late_end_leaves_the_new_epoch_alone
+M15 SS-I11 a features save cancelled after its commit skips the camera hook
+    -> FAILED test_feature_switches.py::TestTheCameraEpochs::test_a_save_cancelled_after_its_commit_still_ends_the_streams
+M16 SS-I10 a shared number with two values let through (features.sets_refusal)
+    -> FAILED test_feature_switches.py::TestTheJobs::test_a_shared_number_with_two_values_refuses_the_whole
+M17 SS-I10 the probe panel sends its purposes as two commands again
+    -> FAILED feature-switches.spec.ts › a probing parameter goes out to every purpose switched on, as ONE command — both on (SS-I10)
