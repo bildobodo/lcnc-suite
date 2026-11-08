@@ -11373,3 +11373,26 @@ and routes, free MDI and programs stay (the named exception).
   guard cases in `webAtoms.test.ts` / `test_inventory.py`, the gamepad's rest
   in `useGamepad.test.ts`, `feature-switches.spec.ts` (9); probe-click,
   toolsetter-setup and tabs follow the jobs and the ninth Settings section.
+
+**Codex R343 (implementation review, 2026-11-08).** The five decisions
+accepted; five findings, fixed:
+SS-I08 Reset Calibration's job carried an empty set and was refused
+"Missing vars dict": the probe routines that read no panel values
+(`features.PARAMLESS_PROBE_ROUTINES`, today `probe_cal_reset`) take exactly an
+empty set — every other routine still needs its values, the switch holds it.
+SS-I09 a control a switch removed (Measure Current, the camera toggle, the
+macro bar, a camera setting) left its focus on BODY, where an arrow jogs:
+the controls carry `data-feature`, and App hands a focus inside one to a
+stable place — the side pane's navigation, a remaining viewer quick control,
+the dialog's sections — read before the DOM changes; a focus set elsewhere
+stays. SS-I10 the probe panel's two parameter sets went through `fire()`,
+whose send latch dropped the second: `sendParams` sends each, one after the
+other, each answered. SS-I11 a camera that stopped giving frames kept its
+stream (the switch was read only with a next frame): the broker has an
+EPOCH the switch ends after the features commit — waiting streams wake and
+end, the producer and the device go at once, a subscription that read the
+switch before is refused (`camera_broker.end_epoch`). SS-I12 the native
+driver still wrote `set_probe_vars` (three places): `set_params` with the
+toolsetter purpose; a guard holds every command the driver names to the
+gateway's handled set and replays its write through the dispatcher.
+
