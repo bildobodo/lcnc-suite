@@ -60,8 +60,9 @@ const emit = defineEmits<{
   (e: "abort"): void;
   (e: "simTrip"): void;
   (e: "listProbeMacros"): void;
-  /** A form's values by their purpose (settings split package 3, R336). */
-  (e: "setParams", payload: { purpose: "probe" | "surface"; vars: Record<string, number> }): void;
+  /** A form's values by their purpose (settings split package 3, R336) —
+   *  every purpose switched on, ONE command (Codex R344 SS-I10). */
+  (e: "setParams", sets: Partial<Record<"probe" | "surface", Record<string, number>>>): void;
   (e: "runProbe", payload: { vars: Record<string, number>; macro: string }): void;
   (e: "runSurface", vars: Record<string, number>): void;
   (e: "getProbeResults"): void;
@@ -193,10 +194,15 @@ function loadParams() {
 function saveParams() {
   saveProbeDefaults({ ...params.value, autoZero: autoZero.value });
   // Sync to var file when machine is ready (execution functions also sync
-  // before each probe) — each purpose whose function is on (package 3)
+  // before each probe) — every purpose whose function is on, as ONE command:
+  // two left the second waiting in the browser, where an abort never
+  // reached it (Codex R343/R344 SS-I10). The numbers both read come from
+  // this one form: one value.
   if (!can.value.ready) return;
-  if (features.value.probing) emit("setParams", { purpose: "probe", vars: buildVarMap(autoZero.value ? 0 : 1) });
-  if (features.value.surfaceMap) emit("setParams", { purpose: "surface", vars: surfaceVarMap(params.value) });
+  const sets: Partial<Record<"probe" | "surface", Record<string, number>>> = {};
+  if (features.value.probing) sets.probe = buildVarMap(autoZero.value ? 0 : 1);
+  if (features.value.surfaceMap) sets.surface = surfaceVarMap(params.value);
+  if (Object.keys(sets).length) emit("setParams", sets);
 }
 
 /** Sync cal offset from DEBUG EVAL messages (emitted by cal subroutines and reset). */

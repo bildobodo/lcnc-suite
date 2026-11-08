@@ -42,7 +42,7 @@ PURPOSE_FEATURE = {"probe": "probing", "surface": "surfaceMap", "toolsetter": "t
 
 #: The recognisable jobs and their switch — the gateway's ONE table of what a
 #: switch refuses over WS (the inventory guard reads it). `set_params` is
-#: switched by its purpose, `set_compensation` only when it switches ON.
+#: switched by its purposes, `set_compensation` only when it switches ON.
 COMMAND_FEATURES = {
     "probe_run": "probing",
     "surface_scan_run": "surfaceMap",
@@ -54,7 +54,7 @@ COMMAND_FEATURES = {
 #: The commands a switch refuses by their payload — the dispatch's own rule
 #: (gateway `_command_feature_refusal`), named for the inventory.
 VARIANT_COMMANDS = {
-    "set_params": "the switch of its purpose (PURPOSE_FEATURE)",
+    "set_params": "the switch of each of its purposes (PURPOSE_FEATURE) — any off refuses the whole",
     "set_compensation": "surfaceMap when it switches ON — OFF is always admitted",
     "auto_run": "toolsetter with run from line's pre-measurement (pre_tool)",
 }
@@ -135,6 +135,43 @@ def purpose_refusal(purpose, keys: Iterable) -> Optional[str]:
         if n not in allowed:
             return f"#{n} is not a {purpose} parameter — nothing written"
     return None
+
+
+def sets_refusal(sets) -> Optional[str]:
+    """`set_params {sets: {purpose: vars}}` — a form's values for one or more
+    purposes as ONE command (Codex R344 SS-I10: two commands left the second
+    in the browser, where an abort never reached it). None when every set is
+    its purpose's own and a number two sets share has one value; else why the
+    whole is refused, before anything is written."""
+    if not isinstance(sets, dict) or not sets:
+        return "Missing parameter sets — reload the page"
+    seen: Dict[int, float] = {}
+    for purpose, values in sets.items():
+        if purpose not in PURPOSE_VARS:
+            return "Parameters without a known purpose — reload the page"
+        if not isinstance(values, dict) or not values:
+            return f"Missing {purpose} values"
+        why = purpose_refusal(purpose, values.keys())
+        if why:
+            return why
+        for k, v in values.items():
+            try:
+                f = float(v)
+            except (TypeError, ValueError):
+                return f"#{k} is not a number"
+            n = int(k)
+            if n in seen and seen[n] != f:
+                return f"#{n} differs between the purposes — nothing written"
+            seen[n] = f
+    return None
+
+
+def merged_sets(sets: dict) -> Dict[str, object]:
+    """The sets as one write (after sets_refusal: a shared number is equal)."""
+    out: Dict[str, object] = {}
+    for values in sets.values():
+        out.update({str(k): v for k, v in values.items()})
+    return out
 
 
 def conflict(machine: Optional[dict], features: Optional[dict], saved: str) -> Optional[str]:

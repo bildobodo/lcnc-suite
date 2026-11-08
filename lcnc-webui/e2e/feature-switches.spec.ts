@@ -259,11 +259,9 @@ for (const c of [
   { name: "probing off", features: off("probing"), purposes: ["surface"] },
   { name: "surface map off", features: off("surfaceMap"), purposes: ["probe"] },
 ]) {
-  test(`a probing parameter goes out to every purpose switched on — ${c.name} (SS-I10)`, async ({ page }) => {
+  test(`a probing parameter goes out to every purpose switched on, as ONE command — ${c.name} (SS-I10)`, async ({ page }) => {
     await open(page, { features: c.features });
     await side(page).getByRole("tab", { name: "Probing", exact: true }).click();
-    // a number both purposes read: the probe tool (#3014) — on the Surface
-    // view while it is there, else on a probing procedure
     await side(page).getByRole("tab", { name: c.features.surfaceMap ? "Surface" : "Outside", exact: true }).click();
     const field = side(page).getByLabel(c.features.surfaceMap ? "X Probes" : "Probe Tool #", { exact: true });
     await field.click();
@@ -271,9 +269,36 @@ for (const c of [
     await pad.getByRole("button", { name: "9", exact: true }).click();
     await pad.getByRole("button", { name: "Apply", exact: true }).click();
     const params = async () => (await sent()).filter(x => x.cmd === "set_params");
-    await expect.poll(async () => (await params()).map(x => x.purpose).sort()).toEqual(c.purposes);
-    const surface = (await params()).find(x => x.purpose === "surface");
-    if (surface) expect((surface.vars as Record<string, number>)["3054"], "X Probes as entered").toBe(9);
+    await expect.poll(async () => (await params()).length).toBe(1);
+    const [one] = await params();
+    const sets = one!.sets as Record<string, Record<string, number>>;
+    expect(Object.keys(sets).sort()).toEqual(c.purposes);
+    if (sets.surface) expect(sets.surface["3054"], "X Probes as entered").toBe(9);
+    if (sets.probe && sets.surface) expect(sets.probe["3014"], "a shared number: one value").toBe(sets.surface["3014"]);
   });
 }
 
+test("an abort while the take-over is answered leaves nothing to send after it (Codex R344 SS-I10)", async ({ page }) => {
+  await open(page, { features: ALL_ON });
+  await ctl({ op: "replies", replies: { set_params: "silent" } });   // the answer withheld
+  await side(page).getByRole("tab", { name: "Probing", exact: true }).click();
+  await side(page).getByRole("tab", { name: "Surface", exact: true }).click();
+  await side(page).getByLabel("X Probes", { exact: true }).click();
+  const pad = page.locator(".nkStrip");
+  await pad.getByRole("button", { name: "9", exact: true }).click();
+  await pad.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect.poll(async () => (await sent()).filter(x => x.cmd === "set_params").length).toBe(1);
+  const [pending] = (await sent()).filter(x => x.cmd === "set_params");
+  await side(page).getByRole("button", { name: "Abort", exact: true }).first().click();
+  await ctl({ op: "raw", frame: { type: "reply", cmd: "set_params", req_id: pending!.req_id, ok: false, error: "Preempted by abort" } });
+  await expect.poll(async () => (await sent()).some(x => x.cmd === "abort")).toBe(true);
+  await page.waitForTimeout(500);   // nothing may follow: no second command exists to send
+  expect((await sent()).filter(x => x.cmd === "set_params"), "one command, preempted whole").toHaveLength(1);
+  // a new deliberate take-over after it goes out
+  await ctl({ op: "replies", replies: {} });
+  await page.waitForTimeout(300);   // fire()'s latch after the last command
+  await side(page).getByLabel("X Probes", { exact: true }).click();
+  await pad.getByRole("button", { name: "7", exact: true }).click();
+  await pad.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect.poll(async () => (await sent()).filter(x => x.cmd === "set_params").length).toBe(2);
+});

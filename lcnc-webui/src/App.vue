@@ -81,7 +81,7 @@ import {
   SPINDLE_FORWARD, SPINDLE_REVERSE,
   OPERATOR_DISPLAY,
   OPERATOR_ERROR,
-  cooldownFor, isNeverDebounced, viaGamepad, type ParamPurpose, type WsCommand,
+  cooldownFor, isNeverDebounced, viaGamepad, type WsCommand,
 } from "./lcnc";
 
 const _vd = loadViewerDefaults();
@@ -1762,23 +1762,6 @@ function fire(payload: WsCommand, gate?: keyof Permissions, cooldownMs?: number)
   }
 }
 
-/** A form's values by their purpose (settings split package 3): EVERY set
- *  goes out, one after the other, each answered — never one dropped by the
- *  send latch another set holds (Codex R343 SS-I10: with probing and the
- *  surface map on, the surface set never left). Each set is its purpose's
- *  own; the numbers both read (#3014, #3021, the feeds #3015/#3016 ⇄
- *  #3056/#3057) carry the same value in both. A refusal is told; nothing is
- *  sent again. */
-let paramsChain: Promise<void> = Promise.resolve();
-function sendParams(purpose: ParamPurpose, vars: Record<string, number>) {
-  if (!permissions.value.ready) return;
-  paramsChain = paramsChain.then(async () => {
-    const reply = await request({ cmd: "set_params", purpose, vars }, 15000);
-    if (!reply) pushMessage(OPERATOR_ERROR, `Parameters (${purpose}): no reply from the gateway`);
-    else if (reply.ok === false) pushMessage(OPERATOR_ERROR, `Parameters (${purpose}) not taken — ${reply.error ?? "refused"}`);
-  });
-}
-
 function onRunProbe({ vars, macro }: { vars: Record<string, number>; macro: string }) {
   void fireJob("Probe", { cmd: "probe_run", routine: macro, vars }, "machineFrame");
 }
@@ -2388,7 +2371,7 @@ watch(viewerGcode, (newGcode) => {
               @toggleSurfaceLayer="(on: boolean) => { viewerLayers.surface = on; viewerRef?.setLayerVisible?.('surface', on); saveViewerDefaults({ ...loadViewerDefaults(), layers: { ...loadViewerDefaults().layers, surface: on } }); }"
               @abort="fire({ cmd: 'abort' }, 'abort')"
               @simTrip="send({ cmd: 'simulate_probe_trip' })"
-              @setParams="sendParams($event.purpose, $event.vars)"
+              @setParams="fire({ cmd: 'set_params', sets: $event }, 'ready')"
               @runProbe="onRunProbe($event)"
               @runSurface="onRunSurface($event)"
               @getProbeResults="requestProbeResults"

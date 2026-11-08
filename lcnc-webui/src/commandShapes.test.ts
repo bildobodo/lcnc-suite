@@ -101,7 +101,7 @@ for (const c of ["save_tool", "add_tool", "renumber_tool"]) for (const f of TOOL
 /** Maps: a path, its keys and values — the contract the replay checks. */
 const DATA_MAPS: Record<string, string> = {
   "mdi.vars": "keys ^\\d+$, finite numbers, each declared in the var file (VarNumbers) — the generic parameter path",
-  "set_params.vars": "VarNumbers, and every key of its purpose's set (features.PURPOSE_VARS) or refused whole",
+  "set_params.sets": "purpose (features.PURPOSE_VARS) → VarNumbers; each set its purpose's own, a shared number one value — or refused whole (PurposeSets)",
   "probe_run.vars": "VarNumbers, and every key of the probe purpose or refused whole",
   "surface_scan_run.vars": "VarNumbers, and every key of the surface purpose or refused whole",
   "auto_run.probe_vars": "keys ^\\d+$, finite numbers, each declared in the var file (VarNumbers)",

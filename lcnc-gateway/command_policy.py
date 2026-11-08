@@ -1048,6 +1048,13 @@ class VarNumbers:
 
 
 @dataclass(frozen=True)
+class PurposeSets:
+    """set_params' `sets`: purpose (features.PURPOSE_VARS) -> a VarNumbers
+    mapping. Each purpose's own variables are the handler's check
+    (features.sets_refusal)."""
+
+
+@dataclass(frozen=True)
 class ExpectMap:
     """touchoff's optional `expect` mapping (U-03, review 2026-09-14): the
     kinematics mode and fixture the operator SAW while entering the value
@@ -1180,7 +1187,7 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
     "set_compensation_method": {"method": Enum(frozenset({0, 1, 2}))},  # nearest/linear/cubic
     # --- parameters with their purpose, and the routines as jobs (package 3;
     #     each purpose's own variables are the handler's check, features.py)
-    "set_params": {"purpose": Choice(frozenset(PARAM_PURPOSES)), "vars": VarNumbers()},
+    "set_params": {"sets": PurposeSets()},
     "probe_run": {"routine": Text(max_len=63), "vars": VarNumbers()},
     "surface_scan_run": {"vars": VarNumbers()},
     "tool_measure": {"tool": Num(lo=1, hi=TOOL_NUMBER_MAX, integer=True)},
@@ -1220,6 +1227,27 @@ def _check_number(cmd, field, raw, spec: Num, limits) -> Optional[float]:
             raise ValueError(f"{cmd}: {field} {val:g} above maximum {hi:g}")
         return hi
     return None
+
+
+def _check_var_numbers(cmd: str, field: str, raw, limits: MachineLimits) -> None:
+    """A VarNumbers mapping: keys var numbers this machine declares, outside
+    WRITABLE_VAR_DENY_RANGES. Raises ValueError."""
+    if not isinstance(raw, dict):
+        raise ValueError(f"{cmd}: {field} must be a mapping")
+    for key in raw:
+        try:
+            num = int(key)
+        except (TypeError, ValueError):
+            raise ValueError(f"{cmd}: {key!r} is not a var number")
+        for dlo, dhi in WRITABLE_VAR_DENY_RANGES:
+            if dlo <= num <= dhi:
+                raise ValueError(
+                    f"{cmd}: #{num} is reserved system parameter space "
+                    f"— use the proper command (G10 L2, G92, tool table)")
+        if limits.declared_vars is not None and num not in limits.declared_vars:
+            raise ValueError(
+                f"{cmd}: #{num} is not in this machine's var file — "
+                f"declare it there to make it configurable")
 
 
 def validate_payload(cmd: str, msg: Dict, limits: MachineLimits) -> Dict[str, object]:
@@ -1289,22 +1317,14 @@ def validate_payload(cmd: str, msg: Dict, limits: MachineLimits) -> Dict[str, ob
                 if val is not None:
                     _check_number(cmd, f"{field}.{key}", val, Num(integer=True), limits)
         elif isinstance(spec, VarNumbers):
+            _check_var_numbers(cmd, field, raw, limits)
+        elif isinstance(spec, PurposeSets):
             if not isinstance(raw, dict):
                 raise ValueError(f"{cmd}: {field} must be a mapping")
-            for key in raw:
-                try:
-                    num = int(key)
-                except (TypeError, ValueError):
-                    raise ValueError(f"{cmd}: {key!r} is not a var number")
-                for dlo, dhi in WRITABLE_VAR_DENY_RANGES:
-                    if dlo <= num <= dhi:
-                        raise ValueError(
-                            f"{cmd}: #{num} is reserved system parameter space "
-                            f"— use the proper command (G10 L2, G92, tool table)")
-                if limits.declared_vars is not None and num not in limits.declared_vars:
-                    raise ValueError(
-                        f"{cmd}: #{num} is not in this machine's var file — "
-                        f"declare it there to make it configurable")
+            for purpose, values in raw.items():
+                if purpose not in PARAM_PURPOSES:
+                    raise ValueError(f"{cmd}: {field} {str(purpose)[:24]!r} not one of {sorted(PARAM_PURPOSES)}")
+                _check_var_numbers(cmd, f"{field}.{purpose}", values, limits)
         else:
             # A spec class this chain does not know would otherwise pass
             # every value through silently — the opposite of a bounds check.

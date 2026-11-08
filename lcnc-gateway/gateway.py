@@ -2975,8 +2975,14 @@ async def _save_settings(section: str, data, admit, *, device=None, base_rev=Non
                                          base_rev=base_rev, writer=writer)
     if section != "features":
         return await asyncio.to_thread(call)
-    async with _get_source_lock():
-        rev = await _thread_to_end(asyncio.ensure_future(asyncio.to_thread(call)))
+    try:
+        async with _get_source_lock():
+            rev = await _thread_to_end(asyncio.ensure_future(asyncio.to_thread(call)))
+    except asyncio.CancelledError:
+        # the write ran to its end (_thread_to_end): a committed camera OFF
+        # still ends its streams before the cancel goes on (Codex R344)
+        await asyncio.shield(_camera_switched_off())
+        raise
     await _camera_switched_off()
     return rev
 
@@ -5253,7 +5259,14 @@ def _command_feature_refusal(cmd: str, msg: Dict[str, Any]) -> Optional[str]:
                 return why
     feature = _features.COMMAND_FEATURES.get(cmd)
     if cmd == "set_params":
-        feature = _features.PURPOSE_FEATURE.get(msg.get("purpose"))   # unknown: the handler refuses
+        # every purpose's switch; an unknown purpose: the handler refuses
+        sets = msg.get("sets")
+        for purpose in (sets if isinstance(sets, dict) else {}):
+            f = _features.PURPOSE_FEATURE.get(purpose)
+            why = _feature_refusal(f) if f else None
+            if why:
+                return why
+        return None
     elif cmd == "set_compensation" and msg.get("enable") is True:
         feature = "surfaceMap"        # switching it OFF is always admitted
     elif cmd == "auto_run" and msg.get("pre_tool"):
@@ -6374,20 +6387,23 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             return {"ok": True, "macros": get_probe_macros()}
 
         if cmd == "set_params":
-            # A form's values into the interpreter and the var file, named by
-            # their PURPOSE (package 3, R336): each purpose its own variables
-            # and switch (_command_feature_refusal, again at each write) — a
-            # set outside its purpose is refused whole, nothing written.
+            # A form's values into the interpreter and the var file, by their
+            # PURPOSES (package 3, R336) — one or more sets as ONE command
+            # (Codex R344 SS-I10: an abort reaches all of it; nothing waits in
+            # the browser): each set its purpose's own variables, each
+            # purpose's switch (_command_feature_refusal, again at each
+            # write), a shared number one value — else refused whole, nothing
+            # written.
             require_armed(armed)
-            vars_to_set = msg.get("vars")
-            if not isinstance(vars_to_set, dict) or not vars_to_set:
-                return {"ok": False, "error": "Missing vars dict"}
-            why = _features.purpose_refusal(msg.get("purpose"), vars_to_set)
+            sets = msg.get("sets")
+            why = _features.sets_refusal(sets)
             if why:
                 return {"ok": False, "error": why}
-            feature = _features.PURPOSE_FEATURE[msg["purpose"]]
-            r = await _apply_probe_vars_detail(vars_to_set, armed,
-                                               admit=lambda: _feature_refusal(feature) or _interp_idle_refusal())
+            feats = sorted({_features.PURPOSE_FEATURE[p] for p in sets})
+
+            def admit() -> Optional[str]:
+                return next((w for w in map(_feature_refusal, feats) if w), None) or _interp_idle_refusal()
+            r = await _apply_probe_vars_detail(_features.merged_sets(sets), armed, admit=admit)
             return {"ok": True, **r}
 
         # the routines as jobs (package 3): one function, a branch each
@@ -11513,7 +11529,9 @@ async def camera_stream():
                 yield (b"--frame\r\n"
                        b"Content-Type: image/jpeg\r\n\r\n" + jpeg + b"\r\n")
         finally:
-            _camera_broker.unsubscribe()
+            # its OWN epoch's booking: an old stream ending late never takes a
+            # newer epoch's viewer with it (Codex R344 SS-I11)
+            _camera_broker.unsubscribe(epoch)
 
     return StreamingResponse(
         generate(),

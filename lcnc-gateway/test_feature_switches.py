@@ -212,14 +212,14 @@ class TestEachSwitch(_Store, unittest.TestCase):
     def test_probing_off_refuses_its_routines_and_parameters_only(self):
         self.switch("probing")
         for msg in ({"cmd": "probe_run", "routine": "probe_z_minus_wco", "vars": self.PROBE},
-                    {"cmd": "set_params", "purpose": "probe", "vars": self.PROBE}):
+                    {"cmd": "set_params", "sets": {"probe": self.PROBE}}):
             r = self._send(msg)
             self.assertEqual(r, {"ok": False, "error": "Probing is off — Settings › Features"}, msg)
         self.assertEqual(self.mdis(), [])
         # its neighbours: the toolsetter's values, the surface scan, a WCS
         # write under the shared `probe` gate (no pauschal probe block)
         self.put("toolsetter", dict(TOOLSETTER))
-        self.assertTrue(self._send({"cmd": "set_params", "purpose": "toolsetter", "vars": {"3102": -179}})["ok"])
+        self.assertTrue(self._send({"cmd": "set_params", "sets": {"toolsetter": {"3102": -179}}})["ok"])
         self.assertTrue(self._send({"cmd": "surface_scan_run", "vars": self.SCAN})["ok"])
         self.assertIn("O<surface_scan> CALL", self.mdis())
         self.assertTrue(self._send({"cmd": "tool_measure", "tool": 5})["ok"])
@@ -231,7 +231,7 @@ class TestEachSwitch(_Store, unittest.TestCase):
     def test_surface_off_refuses_the_scan_and_switching_compensation_on(self):
         self.switch("surfaceMap")
         for msg in ({"cmd": "surface_scan_run", "vars": self.SCAN},
-                    {"cmd": "set_params", "purpose": "surface", "vars": self.SCAN},
+                    {"cmd": "set_params", "sets": {"surface": self.SCAN}},
                     {"cmd": "set_compensation", "enable": True},
                     {"cmd": "set_compensation_method", "method": 1}):
             self.assertEqual(self._send(msg)["error"], "Surface map is off — Settings › Features", msg)
@@ -248,7 +248,7 @@ class TestEachSwitch(_Store, unittest.TestCase):
         self.put("toolsetter", dict(TOOLSETTER))
         self.switch("toolsetter")
         for msg in ({"cmd": "tool_measure", "tool": 5}, {"cmd": "tool_unload_measure"},
-                    {"cmd": "set_params", "purpose": "toolsetter", "vars": {"3102": -179}}):
+                    {"cmd": "set_params", "sets": {"toolsetter": {"3102": -179}}}):
             self.assertEqual(self._send(msg)["error"], "Toolsetter is off — Settings › Features", msg)
         self.assertEqual(self.mdis(), [])
         # load and unload the normal way (m6g43)
@@ -322,15 +322,36 @@ class TestTheJobs(_Store, unittest.TestCase):
     def test_a_set_outside_its_purpose_is_refused_whole(self):
         for msg in ({"cmd": "probe_run", "routine": "probe_z_minus_wco", "vars": {**self.PROBE, "3050": 1}},
                     {"cmd": "surface_scan_run", "vars": {**self.SCAN, "3015": 5}},
-                    {"cmd": "set_params", "purpose": "probe", "vars": {"3014": 99, "3100": 1}},
-                    {"cmd": "set_params", "purpose": "toolsetter", "vars": {"3102": -1, "3014": 99}}):
+                    {"cmd": "set_params", "sets": {"probe": {"3014": 99, "3100": 1}}},
+                    {"cmd": "set_params", "sets": {"toolsetter": {"3102": -1, "3014": 99}}}):
             r = self._send(msg)
             self.assertFalse(r["ok"], msg)
             self.assertIn("nothing written", r["error"], msg)
         self.assertEqual(self.mdis(), [])
 
+    def test_several_purposes_are_one_write(self):
+        # Codex R344 SS-I10: the probe panel's two sets as ONE command — one
+        # write of their union, a shared number with one value; an abort
+        # reaches all of it (it preempts the one handler)
+        r = self._send({"cmd": "set_params", "sets": {"probe": {"3014": 99, "3021": 2, "3030": 1},
+                                                       "surface": {"3014": 99, "3021": 2, "3054": 9}}})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.mdis(), ["#3014=99.000000 #3021=2.000000 #3030=1.000000 #3054=9.000000"])
+
+    def test_a_shared_number_with_two_values_refuses_the_whole(self):
+        r = self._send({"cmd": "set_params", "sets": {"probe": {"3014": 99}, "surface": {"3014": 7, "3054": 9}}})
+        self.assertEqual(r["error"], "#3014 differs between the purposes — nothing written")
+        self.assertEqual(self.mdis(), [])
+
+    def test_one_purpose_switched_off_refuses_the_whole(self):
+        self.put("features", off("surfaceMap"))
+        r = self._send({"cmd": "set_params", "sets": {"probe": {"3014": 99}, "surface": {"3054": 9}}})
+        self.assertEqual(r["error"], "Surface map is off — Settings › Features")
+        self.assertEqual(self.mdis(), [])
+        self.assertTrue(self._send({"cmd": "set_params", "sets": {"probe": {"3014": 99}}})["ok"])
+
     def test_an_unknown_purpose_or_routine_is_refused(self):
-        r = self._send({"cmd": "set_params", "purpose": "calibrate", "vars": {"3014": 1}})
+        r = self._send({"cmd": "set_params", "sets": {"calibrate": {"3014": 1}}})
         self.assertFalse(r["ok"])
         for routine in ("surface_scan", "../probe_z", "probe_nonexistent"):
             r = self._send({"cmd": "probe_run", "routine": routine, "vars": self.PROBE})
@@ -474,6 +495,83 @@ class TestTheCamera(_Store, unittest.TestCase):
         self.assertIn(b"jpeg", asyncio.run(again()))
 
 
+class TestTheCameraEpochs(_Store, unittest.TestCase):
+    """Codex R344 SS-I11 rests, through the REAL features save: an old
+    stream's late end never takes a newer epoch's viewer with it, and a save
+    cancelled after its commit still ends the streams."""
+
+    def setUp(self):
+        TestTheChangeIsAdmitted.setUp(self)
+        self.releases, self.tasks = [], []
+
+    broker = TestTheCamera.broker
+
+    async def save_features(self, data):
+        rev = self.store.view_for(None)["revs"].get("features", 0)
+        return await gateway._save_settings("features", data, gateway._settings_admission("features", self.key),
+                                            base_rev=rev, writer=self.key)
+
+    def test_an_old_streams_late_end_leaves_the_new_epoch_alone(self):
+        async def run():
+            b = self.broker(iter(lambda: b"jpeg", None))
+            old = (await gateway.camera_stream()).body_iterator
+            new = None
+            try:
+                await asyncio.wait_for(old.__anext__(), 1)          # held at its yield (a slow consumer)
+                await self.save_features(off("camera"))
+                await self.save_features(ALL_ON)
+                new = (await gateway.camera_stream()).body_iterator
+                await asyncio.wait_for(new.__anext__(), 1)
+                await old.aclose()                                  # the old one ends late
+                self.assertEqual(b._subscribers, 1, "the old epoch took the new viewer")
+                if b._stop_handle is not None:                      # a grace stop would run now
+                    b._stop_handle.cancel()
+                    b._stop_handle = None
+                await b._grace_stop()
+                self.assertIsNotNone(b._task, "the new stream lost its producer")
+            finally:
+                await old.aclose()
+                if new is not None:
+                    await new.aclose()
+                await b.aclose()
+        asyncio.run(run())
+
+    def test_a_save_cancelled_after_its_commit_still_ends_the_streams(self):
+        import threading
+        async def run():
+            b = self.broker(iter([b"jpeg"]))
+            old = (await gateway.camera_stream()).body_iterator
+            entered, release = threading.Event(), threading.Event()
+            original = self.store.save_section
+            task = None
+
+            def committed(*a, **kw):
+                out = original(*a, **kw)
+                entered.set()
+                release.wait(2)
+                return out
+            try:
+                await asyncio.wait_for(old.__anext__(), 1)
+                with unittest.mock.patch.object(self.store, "save_section", committed):
+                    task = asyncio.ensure_future(self.save_features(off("camera")))
+                    self.assertTrue(await asyncio.to_thread(entered.wait, 1))
+                    task.cancel()
+                    release.set()
+                    with self.assertRaises(asyncio.CancelledError):
+                        await task
+                self.assertFalse(self.store.features()["camera"])
+                self.assertGreater(b.epoch, 0, "the committed OFF did not end the epoch")
+                self.assertIsNone(b._task)
+                self.assertEqual(self.releases, [True])
+            finally:
+                release.set()
+                if task is not None:
+                    await asyncio.gather(task, return_exceptions=True)
+                await old.aclose()
+                await b.aclose()
+        asyncio.run(run())
+
+
 class TestTheNativeDriver(_Store, unittest.TestCase):
     """Codex R343 SS-I12: the native stage's driver sent the removed
     `set_probe_vars` three times. Every command it names is one the gateway
@@ -508,13 +606,14 @@ class TestTheNativeDriver(_Store, unittest.TestCase):
         writes = [kw for c, kw in self.calls() if c == "set_params"]
         self.assertEqual(len(writes), 3)
         for kw in writes:
-            self.assertIsInstance(kw.get("purpose"), ast.Constant)
-            self.assertEqual(kw["purpose"].value, "toolsetter")
+            # sets={"toolsetter": …}: one purpose, the toolsetter's
+            self.assertIsInstance(kw.get("sets"), ast.Dict)
+            self.assertEqual([k.value for k in kw["sets"].keys], ["toolsetter"])
         td.TestHandlerExecution.setUp(self)
         self.make_store()
         td.TestHandlerExecution._rcs(self)
-        r = td.TestHandlerExecution._send(self, {"cmd": "set_params", "purpose": "toolsetter",
-                                                 "vars": {"3102": -179.0, "3005": 20.0}})
+        r = td.TestHandlerExecution._send(self, {"cmd": "set_params",
+                                                 "sets": {"toolsetter": {"3102": -179.0, "3005": 20.0}}})
         self.assertTrue(r["ok"], r)
         self.assertTrue(r["mdi_set"], r)
 

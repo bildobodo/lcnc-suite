@@ -67,9 +67,12 @@ class CameraBroker:
                 self._task = self._register(asyncio.create_task(self._produce()))
             return True
 
-    def unsubscribe(self) -> None:
-        # Sync, on the loop. Schedule a grace-stop when the last viewer leaves
-        # (one end_epoch ended already counts nothing: no producer is left).
+    def unsubscribe(self, epoch: Optional[int] = None) -> None:
+        # Sync, on the loop. Schedule a grace-stop when the last viewer leaves.
+        # A viewer of an ENDED epoch was already counted out by end_epoch: its
+        # late leave changes nothing of a newer epoch's viewers (Codex R344).
+        if epoch is not None and epoch != self.epoch:
+            return
         self._subscribers = max(0, self._subscribers - 1)
         if self._subscribers == 0 and self._task is not None and self._stop_handle is None:
             loop = asyncio.get_event_loop()

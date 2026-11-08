@@ -276,8 +276,8 @@ test("a save the read-back already confirms pushes nothing; one it does not gets
     if (value === "-299") await expect(line, "the read-back holds the saved number").toHaveText("LinuxCNC parameters hold these values — confirmed");
   }
   // the second push is the signal that every earlier one has arrived (one worker, in order)
-  const pushes = async () => (await sent()).filter(c => c.cmd === "set_params" && c.purpose === "toolsetter")
-    .map(c => (c.vars as Record<string, number>)["3102"]);
+  const pushes = async () => (await sent()).filter(c => c.cmd === "set_params")
+    .map(c => (c.sets as Record<string, Record<string, number>>).toolsetter!["3102"]);
   await expect.poll(pushes).toContain(-298);
   expect(await pushes(), "nothing pushed for the save the read-back confirmed").toEqual([-298]);
 });

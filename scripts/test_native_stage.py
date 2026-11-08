@@ -1478,8 +1478,8 @@ def test_the_m600_step_refuses_a_counter_that_failed_for_another_reason(monkeypa
                 self.table = kw["z_offset"]
                 return {"ok": True}
             if cmd == "set_params":
-                assert kw.get("purpose") == "toolsetter", kw
-                self.vars.update({int(k): v for k, v in kw["vars"].items()})
+                assert set(kw["sets"]) == {"toolsetter"}, kw
+                self.vars.update({int(k): v for k, v in kw["sets"]["toolsetter"].items()})
                 return {"ok": True}
             raise AssertionError((cmd, kw))
     c, frames, calls = Client(), [], []
@@ -1716,8 +1716,8 @@ def test_the_m600_step_predicts_the_counter_from_the_length_the_first_measuremen
                 self.table = kw["z_offset"]
                 return {"ok": True}
             if cmd == "set_params":
-                assert kw.get("purpose") == "toolsetter", kw
-                self.vars.update({int(k): v for k, v in kw["vars"].items()})
+                assert set(kw["sets"]) == {"toolsetter"}, kw
+                self.vars.update({int(k): v for k, v in kw["sets"]["toolsetter"].items()})
                 return {"ok": True}
             raise AssertionError((cmd, kw))
     c, frames, measured = Client(), [], iter([49.9985, 48.9970])
@@ -3109,7 +3109,7 @@ def test_each_t1_measurement_starts_where_the_unload_left_it_and_its_return_is_j
                 return {"tools": [{"T": 1, "Z": self.table}]}
             if cmd in ("save_tool", "set_params"):
                 self.table = kw.get("z_offset", self.table)
-                self.vars.update({int(k): v for k, v in kw.get("vars", {}).items()})
+                self.vars.update({int(k): v for k, v in kw.get("sets", {}).get("toolsetter", {}).items()})
                 return {"ok": True}
             raise AssertionError((cmd, kw))
 
@@ -3599,8 +3599,8 @@ class TsClient(FrameClient):
                 self.errors.append((self.frames[-1][0], 13, f"{tag} {vals}"))
             return {"ok": True}
         if cmd == "set_params":
-            assert kw.get("purpose") == "toolsetter", kw
-            self._book(kw["vars"])
+            assert set(kw["sets"]) == {"toolsetter"}, kw
+            self._book(kw["sets"]["toolsetter"])
             return {"ok": True, "mdi_set": True}
         if cmd == "save_settings":
             self.section = dict(kw["data"])

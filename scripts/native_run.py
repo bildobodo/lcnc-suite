@@ -1508,7 +1508,7 @@ def m600_cases():
         rows.append(crow)
         # the reset, read back: the table length, #3102, the applied offset
         _set_tool_length(c, tool, l0)
-        _when_free(c, "set_params", purpose="toolsetter", vars={"3102": plate["z"]})
+        _when_free(c, "set_params", sets={"toolsetter": {"3102": plate["z"]}})
         back = _vars(c, [3102])[3102]
         if back is None or abs(back - plate["z"]) > nc.SAME:
             raise Refused(f"#3102 not put back: {back}")
@@ -1574,7 +1574,7 @@ def ts_sync_cases():
             raise Refused(f"#3102 {ts[3102]} is not the plate {plate['z']} — the copy's setup differs")
         # the machine holds the copy's values (an MDI write, booked applied),
         # the server the same section
-        _when_free(c, "set_params", purpose="toolsetter", vars={str(k): v for k, v in ts.items()})
+        _when_free(c, "set_params", sets={"toolsetter": {str(k): v for k, v in ts.items()}})
         prepared = _save_toolsetter(ctx, c, ts)
         new = {**ts, 3102: plate["z"] + 1}
         c.request("machine_off")
@@ -1621,7 +1621,7 @@ def ts_sync_cases():
         # put back, read back
         _set_tool_length(c, tool, l0)
         _save_toolsetter(ctx, c, ts)
-        _when_free(c, "set_params", purpose="toolsetter", vars={"3102": plate["z"]})
+        _when_free(c, "set_params", sets={"toolsetter": {"3102": plate["z"]}})
         back = _vars(c, [3102])[3102]
         if back is None or abs(back - plate["z"]) > nc.SAME:
             raise Refused(f"#3102 not put back: {back}")

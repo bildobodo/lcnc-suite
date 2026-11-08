@@ -120,8 +120,9 @@ export type WsCommand =
   | { cmd: "simulate_probe_trip" }
   // The routines the WebUI starts, each ONE job the gateway validates and
   // builds (settings split package 3, R336): the values of its purpose only,
-  // under its switch. A form's values on their own: set_params by purpose.
-  | { cmd: "set_params"; purpose: ParamPurpose; vars: Record<string, number> }
+  // under its switch. A form's values on their own: set_params, every purpose
+  // the form holds in ONE command (Codex R344 SS-I10 — an abort reaches all).
+  | { cmd: "set_params"; sets: Partial<Record<ParamPurpose, Record<string, number>>> }
   | { cmd: "probe_run"; routine: string; vars: Record<string, number> }
   | { cmd: "surface_scan_run"; vars: Record<string, number> }
   // M600 with the SERVER's confirmed toolsetter section (never the page's)

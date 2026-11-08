@@ -473,7 +473,7 @@ class TestTakeOverThenFile(_BasisCase):
         self.assertEqual((self.origin(3102), self.value(3102)), ("applied", -170.0))
 
     def test_the_reply_names_the_take_over_and_the_persistence(self):
-        r = self.send({"cmd": "set_params", "purpose": "toolsetter", "vars": {"3102": -175.0}})
+        r = self.send({"cmd": "set_params", "sets": {"toolsetter": {"3102": -175.0}}})
         self.assertTrue(r["ok"], r)
         self.assertEqual((r["mdi_set"], r["applied_keys"], r["persisted"]), (True, ["3102"], True))
         self.assertNotIn("file_saved", r)

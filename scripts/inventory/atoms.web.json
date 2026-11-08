@@ -2962,8 +2962,7 @@
     {
      "id": "cmd:set_params",
      "members": [
-      "purpose",
-      "vars"
+      "sets"
      ]
     },
     {
