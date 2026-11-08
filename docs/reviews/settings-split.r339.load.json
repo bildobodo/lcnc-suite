@@ -1,0 +1,166 @@
+{
+  "drive": {
+    "program": "bpc_parse.ngc",
+    "size": 11695465,
+    "g54_z0": -175.0,
+    "load_publish_s": 11.8,
+    "load_check_s": 36.1,
+    "basis_check_s": 9.0
+  },
+  "phases": {
+    "rest0": {
+      "seconds": 60.0,
+      "panel": {
+        "cpu_pct": 79.4,
+        "cpu_peak5s_pct": 90.6,
+        "rss_max_mb": 1537.9,
+        "procs_max": 6,
+        "workers_max": 5,
+        "collision_worker_seen": false,
+        "check_busy_seen": false,
+        "status_frames": 1680,
+        "status_gap_p95_max_ms": 2777.9,
+        "status_gap_max_ms": 2777.9,
+        "status_age_max_ms": 5421.1
+      },
+      "laptop": {
+        "cpu_pct": 89.1,
+        "cpu_peak5s_pct": 97.8,
+        "rss_max_mb": 1557.7,
+        "procs_max": 6,
+        "workers_max": 5,
+        "collision_worker_seen": false,
+        "check_busy_seen": false,
+        "status_frames": 1624,
+        "status_gap_p95_max_ms": 50,
+        "status_gap_max_ms": 2293.4,
+        "status_age_max_ms": 2292.6
+      },
+      "gateway": {
+        "cpu_pct": 3.1,
+        "rss_max_mb": 84.1,
+        "parse_cpu_pct": 0.0,
+        "parse_rss_max_mb": 0.0,
+        "parse_procs_max": 0
+      }
+    },
+    "load": {
+      "seconds": 47.9,
+      "panel": {
+        "cpu_pct": 142.9,
+        "cpu_peak5s_pct": 240.2,
+        "rss_max_mb": 1416.5,
+        "procs_max": 6,
+        "workers_max": 5,
+        "collision_worker_seen": false,
+        "check_busy_seen": false,
+        "status_frames": 978,
+        "status_gap_p95_max_ms": 3937.7,
+        "status_gap_max_ms": 3937.7,
+        "status_age_max_ms": 7364.4
+      },
+      "laptop": {
+        "cpu_pct": 258.9,
+        "cpu_peak5s_pct": 305.3,
+        "rss_max_mb": 2595.6,
+        "procs_max": 6,
+        "workers_max": 8,
+        "collision_worker_seen": true,
+        "check_busy_seen": true,
+        "status_frames": 1011,
+        "status_gap_p95_max_ms": 3442.4,
+        "status_gap_max_ms": 3442.4,
+        "status_age_max_ms": 6662.6
+      },
+      "gateway": {
+        "cpu_pct": 5.6,
+        "rss_max_mb": 114.4,
+        "parse_cpu_pct": 18.8,
+        "parse_rss_max_mb": 877.0,
+        "parse_procs_max": 1
+      }
+    },
+    "basis": {
+      "seconds": 54.1,
+      "panel": {
+        "cpu_pct": 203.3,
+        "cpu_peak5s_pct": 219.0,
+        "rss_max_mb": 1586.8,
+        "procs_max": 6,
+        "workers_max": 5,
+        "collision_worker_seen": false,
+        "check_busy_seen": false,
+        "status_frames": 525,
+        "status_gap_p95_max_ms": 8458,
+        "status_gap_max_ms": 8458,
+        "status_age_max_ms": 11370.7
+      },
+      "laptop": {
+        "cpu_pct": 215.3,
+        "cpu_peak5s_pct": 250.3,
+        "rss_max_mb": 2593.5,
+        "procs_max": 6,
+        "workers_max": 8,
+        "collision_worker_seen": true,
+        "check_busy_seen": true,
+        "status_frames": 649,
+        "status_gap_p95_max_ms": 7258.5,
+        "status_gap_max_ms": 7258.5,
+        "status_age_max_ms": 10375.7
+      },
+      "gateway": {
+        "cpu_pct": 7.7,
+        "rss_max_mb": 156.8,
+        "parse_cpu_pct": 56.6,
+        "parse_rss_max_mb": 911.2,
+        "parse_procs_max": 1
+      }
+    },
+    "rest": {
+      "seconds": 120.0,
+      "panel": {
+        "cpu_pct": 86.3,
+        "cpu_peak5s_pct": 90.8,
+        "rss_max_mb": 1521.5,
+        "procs_max": 6,
+        "workers_max": 5,
+        "collision_worker_seen": false,
+        "check_busy_seen": false,
+        "status_frames": 3497,
+        "status_gap_p95_max_ms": 50.2,
+        "status_gap_max_ms": 6668.3,
+        "status_age_max_ms": 6727.8
+      },
+      "laptop": {
+        "cpu_pct": 86.9,
+        "cpu_peak5s_pct": 90.9,
+        "rss_max_mb": 1927.4,
+        "procs_max": 6,
+        "workers_max": 8,
+        "collision_worker_seen": true,
+        "check_busy_seen": false,
+        "status_frames": 3415,
+        "status_gap_p95_max_ms": 50.1,
+        "status_gap_max_ms": 58.9,
+        "status_age_max_ms": 52.5
+      },
+      "gateway": {
+        "cpu_pct": 3.2,
+        "rss_max_mb": 155.9,
+        "parse_cpu_pct": 0.0,
+        "parse_rss_max_mb": 0.0,
+        "parse_procs_max": 0
+      }
+    }
+  },
+  "setup": {
+    "head": "050d6c5d",
+    "config": "lcnc_suite_sim_3axis_xyz_test.ini (LAN test sim), production page (LCNC_WEBUI_DEV=0)",
+    "devices": "two headless Chromium instances, each its own browser profile = its own device: panel (new device, simulation off), laptop (simulation switched on in Settings \u203a Devices), both open at once",
+    "program": "bpc_parse.ngc (11.7 MB)",
+    "phases": "rest0 60 s on blank.ngc; load (publish + the laptop's check); basis (G54 Z +0.5, +1.0, back \u2014 each until its publish, then the laptop's check); rest 120 s",
+    "cpu": "percent of ONE core from the CPU-time delta over the phase, the instance's WHOLE process tree (dedicated workers run in the renderer); peak = the highest 5 s window",
+    "caveat": "the VM has no GPU: headless Chromium renders WebGL in software (SwiftShader) \u2014 the rest load of ~80-90 % of a core per device is the render loop, the same with and without the simulation; status gaps of seconds occur on BOTH devices while the path re-bakes in software",
+    "runs": "three runs; the first stopped at its own trip acknowledgement (a reply without a command name, driver fixed), the second counted the parse worker's CPU wrong (a new process each parse); the third is this report \u2014 its device rows match the second's within a few percent"
+  }
+}
