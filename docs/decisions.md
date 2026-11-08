@@ -11314,3 +11314,10 @@ finding's jump from the Sim tab), and the controls that would start it are
 closed while the bar stands, same place, same size ("Simulation off on this
 device"). `simShown` decides only whether the place stays; `simulationOn`
 whether anything may begin.
+
+**Codex R341 (2026-11-08).** The re-entry closed; one regression: closing
+the held Play (its explained wrapper replaces the button) dropped its focus
+before the bar left, so the hand-over at the bar's end found it on body. The
+focus a closing control of the bar held now comes to the side pane's
+navigation at the SWITCH; a focus on an open control of the bar (the link,
+the speed) waits for the bar; a focus set elsewhere stays.

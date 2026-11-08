@@ -214,3 +214,47 @@ test("the timeline held under a press starts nothing after the switch went off: 
   await expect(page.locator(".simBanner"), "the click starts no simulation").toHaveCount(0);
   await expect(bar).toHaveCount(0);
 });
+
+// Codex R341: closing a held control drops its focus (Play's explained
+// wrapper replaces the button) — the focus comes to the navigation at the
+// switch, and stays there once the bar leaves; an arrow never jogs.
+test("a held Play closed by the switch: its focus to the navigation at once, and after the bar leaves", async ({ page, context }) => {
+  test.setTimeout(90_000);
+  await prepare(page, context, "/heldfocus.ngc", 7801, true);
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { ...KEYS, simulation: { enabled: true } } } });
+  const bar = page.locator(".scrubBar");
+  const play = bar.getByTitle("Play the program through the machine model", { exact: true });
+  const p = (await play.boundingBox())!;
+  await page.mouse.move(p.x + p.width / 2, p.y + p.height / 2);
+  await page.mouse.down();
+  await expect(play, "the press put the focus on Play").toBeFocused();
+  await ctl({ op: "clearCmds" });
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { ...KEYS, simulation: { enabled: false } } } });
+  const program = page.getByRole("tab", { name: "Program", exact: true });
+  await expect(program, "at the switch, while the bar still stands").toBeFocused();
+  await expect(bar).toHaveCount(1);
+  await page.mouse.up();
+  await expect(bar).toHaveCount(0);
+  await expect(program, "after the bar left").toBeFocused();
+  await page.keyboard.down("ArrowRight");
+  await page.keyboard.up("ArrowRight");
+  expect(await jogs(), "no jog").toEqual([]);
+});
+
+test("the Sim switch focused under a press elsewhere on the bar: its focus to the navigation at the switch", async ({ page, context }) => {
+  test.setTimeout(90_000);
+  await prepare(page, context, "/heldtoggle.ngc", 7802, true);
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { ...KEYS, simulation: { enabled: true } } } });
+  const bar = page.locator(".scrubBar");
+  const link = bar.getByLabel("Open the Sim tab", { exact: true });
+  const b = (await link.boundingBox())!;
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await page.mouse.down();
+  const sim = bar.getByRole("checkbox", { name: "Sim", exact: true });
+  await sim.focus();
+  await expect(sim).toBeFocused();
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { ...KEYS, simulation: { enabled: false } } } });
+  await expect(page.getByRole("tab", { name: "Program", exact: true })).toBeFocused();
+  await page.mouse.up();
+  await expect(bar).toHaveCount(0);
+});

@@ -60,7 +60,7 @@ import { keypadState } from "./useNumberKeypad";
 import { activeKind, openTextSession, lockTextSessionIf, EDITOR_OWNER, MACRO_EDITOR_OWNER, type TextTarget, returnFocusTo, heldThroughPress, pressHolds } from "./inputSession";
 import { measureStripColumn, safetyFoldNeeded } from "./safetyFold";
 import { explainAt } from "./gateExplain";
-import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, loadGamepadDraft, saveGamepadDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type Layer, type OnTopLayer, type TrackMode, type Projection } from "./defaults";
+import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, loadGamepadDraft, saveGamepadDefaults, settingsVersion, simulationOn, type ThemeMode, type GamepadDefaults, type Layer, type OnTopLayer, type TrackMode, type Projection } from "./defaults";
 import { confirmedToolsetter, toolsetterVarMap, TOOLSETTER_MDI_KEY } from "./toolsetterVars";
 import { useGamepad } from "./useGamepad";
 import { useMediaMql } from "./useMediaMql";
@@ -393,6 +393,21 @@ const contentTabPanel = ref<InstanceType<typeof TabPanel> | null>(null);
 watch(simShown, on => {
   if (on || !document.activeElement?.closest(".scrubBar")) return;
   void nextTick(() => contentTabPanel.value?.focusNavigation());
+}, { flush: "pre" });
+// ...and already at the SWITCH: the controls that would start the mode close
+// at once while the bar still stands under a press, and a closed control
+// drops its focus (Play's explained wrapper replaces the button). A focus
+// they held comes to the navigation now — not when the bar leaves, by when
+// it is long on body (Codex R341). A focus that stays on an open control of
+// the bar (the link, the speed) waits for the bar; a focus set elsewhere meanwhile stays.
+watch(simulationOn, on => {
+  if (on || !document.activeElement?.closest(".scrubBar")) return;
+  void nextTick(() => {
+    const a = document.activeElement;
+    if (!a || a === document.body || (a.closest(".scrubBar") && a.matches(":disabled"))) {
+      contentTabPanel.value?.focusNavigation();
+    }
+  });
 }, { flush: "pre" });
 // Leaving the Macros tab over a draft (a macro file's edit, an earlier
 // macro's form) asks first, like the tool editor (package 5): every switch
