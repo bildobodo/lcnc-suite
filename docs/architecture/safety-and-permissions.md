@@ -522,15 +522,21 @@ named exception, an older page's `mdi` with `vars` included (R336).
   (`via: "gamepad"` — the key is not R336's `source`: `auto_run.source` is the
   program text's fingerprint) but its stops (`_WS_STOP_CMDS`). The routes
   (`features.ROUTE_FEATURES`): the macro writes at their commit
-  (`_macro_write_gate`), the camera's stream and status — an open stream
-  ends at its next frame. A program start's toolsetter sync is skipped with
+  (`_macro_write_gate`), the camera's stream and status — every open stream
+  ends when the switch goes off, with a next frame or without one: the
+  broker's epoch ends after the features commit (`_camera_switched_off` →
+  `CameraBroker.end_epoch`: waiting streams wake and end, producer and device
+  go at once; the route reads the epoch BEFORE the switch, so a subscription
+  in between is refused — Codex R343 SS-I11). A program start's toolsetter sync is skipped with
   the toolsetter off (its note says `off`).
 - **Checked at the write too**: a job's `admit` (each vars chunk, the mode
   switch, the line) re-reads its switch, its toolsetter basis and the idle
   interpreter — a switch that went off between the dispatch and the write
   stops the line (`test_feature_switches.TestTheJobs`).
 - **The jobs**: `probe_run {routine, vars}` — the routine one of the
-  subroutine path's `probe_*` files; `surface_scan_run {vars}`;
+  subroutine path's `probe_*` files; a routine that reads no panel values
+  (`PARAMLESS_PROBE_ROUTINES`: `probe_cal_reset`) takes exactly an empty set
+  (R343 SS-I08); `surface_scan_run {vars}`;
   `tool_measure {tool}` / `tool_unload_measure` — the values the SERVER's
   confirmed toolsetter section (`_toolsetter_basis`, P2), never the page's;
   not set up, nothing starts. Each carries the `#3116` clear like every
