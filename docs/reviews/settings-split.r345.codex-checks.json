@@ -1,0 +1,105 @@
+{
+  "round": "R345",
+  "date": "2026-11-08",
+  "product": "f54f3120461625f324188a745558b148c8990fe0",
+  "base": "da935d45",
+  "document_before_append": "6bacf7220fe4a8ea1a1d2e6960be633a6493e47e",
+  "isolation": {
+    "archive": "/tmp/codex-r345",
+    "mock_port": 4945,
+    "live_access": false,
+    "product_edits": false,
+    "controller": "fake LinuxCNC via test_command_dispatch",
+    "camera": "injected frame source"
+  },
+  "results": {
+    "build": "PASS",
+    "backend": {
+      "passed": 211
+    },
+    "new_combined_parameter_probes": {
+      "passed": 3
+    },
+    "native_offline_unit": {
+      "passed": 481
+    },
+    "frontend_unit": {
+      "passed": 12
+    },
+    "browser": {
+      "passed": 34
+    }
+  },
+  "commands": [
+    "cd lcnc-webui && npm run build",
+    "cd lcnc-gateway && PYTHONDONTWRITEBYTECODE=1 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m unittest -v test_feature_switches test_camera_broker test_r344_codex test_command_policy test_toolsetter_basis",
+    "cd lcnc-gateway && PYTHONDONTWRITEBYTECODE=1 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m unittest -v test_r345_codex",
+    "cd scripts && PYTHONDONTWRITEBYTECODE=1 LCNC_HEAVY_LOCK=/tmp/codex-r345/native-unit-heavy.lock /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m pytest -q -p no:cacheprovider test_native_stage.py",
+    "cd lcnc-webui && npx vitest run src/commandShapes.test.ts src/probeVarFiles.test.ts",
+    "cd lcnc-webui && npx playwright test --config=playwright.r345.config.ts e2e/feature-switches.spec.ts e2e/r345-codex.spec.ts e2e/toolsetter-setup.spec.ts"
+  ],
+  "adaptations": [
+    "Copied R344 camera counterprobes byte-identically to test_r344_codex.py.",
+    "Copied R344 browser probe: presence of surface now checked within sets, cancellation message matched by Preempted by abort rather than the removed Parameters (probe) prefix. Abort ordering and no follow-up assertion unchanged.",
+    "Own mockSlot base port changed to 4945; own config paths and run id changed to r345.",
+    "New backend evidence tests cover multiple chunks of a 33-key union: cancel, all-purpose re-admission, and invalid later values before any write."
+  ],
+  "limits": [
+    "No live machine or native execution",
+    "No full round/merge gate repeated",
+    "No new exhaustive HTTP cancellation/shutdown verification",
+    "Earlier declared pre-main live gates remain open"
+  ],
+  "evidence": [
+    {
+      "file": "settings-split.r345.codex-build.txt",
+      "bytes": 2438,
+      "sha256": "c2a7dae167a2859b6deb252a01be19b4f1498fca17cfff60a748b997670d4134"
+    },
+    {
+      "file": "settings-split.r345.codex-backend.txt",
+      "bytes": 29263,
+      "sha256": "48974bdb2c242b8cbff2daa20e438eda1a8467ac919e6604730dd1d099e8fc68"
+    },
+    {
+      "file": "settings-split.r345.codex-backend-counterprobes.txt",
+      "bytes": 2058,
+      "sha256": "09ddde8da5d088a365342ebf342aaf6862e0a53f9953394a8362ac6da5206530"
+    },
+    {
+      "file": "settings-split.r345.codex-backend.py",
+      "bytes": 3380,
+      "sha256": "b9f6743ee8f0bf181e4d2e76734e90aa087a8bbcd5a5e18e0ec211f20bc32dc6"
+    },
+    {
+      "file": "settings-split.r345.codex-camera.py",
+      "bytes": 4482,
+      "sha256": "d867d8cbc62d66ba1034b3b4e239dbff2dd328dbadc579be1052fcce98bc054c"
+    },
+    {
+      "file": "settings-split.r345.codex-native-unit.txt",
+      "bytes": 581,
+      "sha256": "c0cb8f3261e9c2df97e5904064f7a278dfd8b0c5af662571ce4f686a1ddf8d10"
+    },
+    {
+      "file": "settings-split.r345.codex-unit.txt",
+      "bytes": 210,
+      "sha256": "dcf97c5a53390aa84309db60e09bc3c3ecc1f997c1665669c4f9ef7762e83023"
+    },
+    {
+      "file": "settings-split.r345.codex-browser.txt",
+      "bytes": 6161,
+      "sha256": "df6db3c1402d984c85cbe33b982c4648562674f5c655ff2e245837602336f1b7"
+    },
+    {
+      "file": "settings-split.r345.codex-browser.spec.ts",
+      "bytes": 7769,
+      "sha256": "998ee72a810de79f4283a091ff59bd25ff53cc275be490f379560fffd420cb35"
+    },
+    {
+      "file": "settings-split.r345.codex-browser.config.ts",
+      "bytes": 403,
+      "sha256": "0b517e3170610632f36cc14641cfa78691ae2216b61756d96b36de979aef4e63"
+    }
+  ]
+}

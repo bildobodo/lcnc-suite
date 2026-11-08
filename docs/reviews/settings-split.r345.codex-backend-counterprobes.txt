@@ -1,0 +1,17 @@
+[VINIT] session bound to linuxcncsvr pid=2428372 start=140823433
+[VINIT] try_connect_lcnc OK, pid=2428372
+[VINIT] Loaded machine config: 3-Axis Mill
+test_cancel_in_first_chunk_leaves_no_followup_chunk_or_file_write (test_r345_codex.ReviewCombinedParams.test_cancel_in_first_chunk_leaves_no_followup_chunk_or_file_write) ... COMBINED_CANCEL {"purposes": ["probe", "surface"], "union_keys": 33, "mdi_chunks": ["#3014=1.000000 #3015=1.000000 #3016=1.000000 #3017=1.000000 #3018=1.000000 #3019=1.000000 #3020=1.000000 #3021=1.000000 #3022=1.000000 #3023=1.000000 #3024=1.000000 #3025=1.000000 #3026=1.000000 #3027=1.000000 #3028=1.000000 #3029=1.000000"], "file_writes": 0}
+ok
+test_every_chunk_checks_all_purposes_again (test_r345_codex.ReviewCombinedParams.test_every_chunk_checks_all_purposes_again) ... COMBINED_CHANGED_FEATURE {"reply": {"ok": true, "mdi_set": false, "applied_keys": ["3014", "3015", "3016", "3017", "3018", "3019", "3020", "3021", "3022", "3023", "3024", "3025", "3026", "3027", "3028", "3029"], "persisted": false, "file_error": "no PARAMETER_FILE"}, "mdi_chunks": ["#3014=1.000000 #3015=1.000000 #3016=1.000000 #3017=1.000000 #3018=1.000000 #3019=1.000000 #3020=1.000000 #3021=1.000000 #3022=1.000000 #3023=1.000000 #3024=1.000000 #3025=1.000000 #3026=1.000000 #3027=1.000000 #3028=1.000000 #3029=1.000000"]}
+ok
+test_invalid_later_set_never_leaves_a_partial_initial_write (test_r345_codex.ReviewCombinedParams.test_invalid_later_set_never_leaves_a_partial_initial_write) ... COMBINED_INVALID {"sets": {"3054": Infinity}, "reply": {"ok": false, "error": "ValueError: non-finite numeric value: inf"}, "mdi": []}
+COMBINED_INVALID {"sets": {"3054": "not a number"}, "reply": {"ok": false, "error": "#3054 is not a number"}, "mdi": []}
+COMBINED_INVALID {"sets": {"3102": 5}, "reply": {"ok": false, "error": "#3102 is not a surface parameter \u2014 nothing written"}, "mdi": []}
+ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.024s
+
+OK
+[GC] +110ms gen=2 duration=11.8ms collected=417 uncollectable=0

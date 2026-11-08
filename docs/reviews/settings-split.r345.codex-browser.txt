@@ -1,0 +1,62 @@
+
+Running 34 tests using 1 worker
+
+(node:2431166) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2431166) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/feature-switches.spec.ts:45:1 › a first start with functions off never shows them: no Probing, no Macros, no macro bar, no Measure (1.5s)
+  ✓   2 e2e/feature-switches.spec.ts:66:1 › switched at run time: the tab and the bar go and come back (1.3s)
+  ✓   3 e2e/feature-switches.spec.ts:78:1 › the tab in use stays with a note until it is left (1.3s)
+  ✓   4 e2e/feature-switches.spec.ts:89:1 › Probing shows the procedures of the functions on: each of the three is its own (1.4s)
+  ✓   5 e2e/feature-switches.spec.ts:102:1 › surface map off with the compensation still on: its state and its OFF stay, nothing of the scan (1.4s)
+  ✓   6 e2e/feature-switches.spec.ts:119:1 › toolsetter off: its procedure, Measure Current and the M600 tool change are gone — Unload stays (1.6s)
+  ✓   7 e2e/feature-switches.spec.ts:133:1 › camera off: no quick toggle, no picture, no overlay settings (1.3s)
+  ✓   8 e2e/feature-switches.spec.ts:144:1 › Settings › Features: a switch saves the machine's section; Gamepad leaves the settings with its switch (1.8s)
+  ✓   9 e2e/feature-switches.spec.ts:157:1 › gamepad: its commands say so; off, the pad is not read; on again, a held button acts only after a release (1.6s)
+  ✓  10 e2e/feature-switches.spec.ts:198:1 › a focused control its switch removes hands the focus on — an arrow then moves no axis (SS-I09) (1.5s)
+  ✓  11 e2e/feature-switches.spec.ts:235:1 › a focused camera setting its switch removes hands the focus to the settings sections (SS-I09) (1.3s)
+  ✓  12 e2e/feature-switches.spec.ts:246:1 › Reset Calibration sends its routine as a probe job without values (SS-I08) (1.4s)
+  ✓  13 e2e/feature-switches.spec.ts:262:3 › a probing parameter goes out to every purpose switched on, as ONE command — both on (SS-I10) (1.6s)
+  ✓  14 e2e/feature-switches.spec.ts:262:3 › a probing parameter goes out to every purpose switched on, as ONE command — probing off (SS-I10) (1.6s)
+  ✓  15 e2e/feature-switches.spec.ts:262:3 › a probing parameter goes out to every purpose switched on, as ONE command — surface map off (SS-I10) (1.6s)
+  ✓  16 e2e/feature-switches.spec.ts:281:1 › an abort while the take-over is answered leaves nothing to send after it (Codex R344 SS-I10) (2.7s)
+REMOVED_MEASURE_FOCUS { tag: 'BUTTON', role: 'tab', text: 'Tools' }
+AFTER_FOCUS_LOSS_ARROW []
+  ✓  17 e2e/r345-codex.spec.ts:49:1 › R343 a focused Measure Current removed by Toolsetter off returns focus (1.4s)
+REMOVED_CAMERA_FOCUS { tag: 'BUTTON', role: null, text: 'Reset' }
+  ✓  18 e2e/r345-codex.spec.ts:72:1 › R343 a focused camera control removed by Camera off returns focus (1.2s)
+CAL_RESET_JOB [
+  {
+    cmd: 'probe_run',
+    routine: 'probe_cal_reset',
+    vars: {},
+    req_id: 'q0m9w4-6'
+  }
+]
+  ✓  19 e2e/r345-codex.spec.ts:83:1 › R343 calibration reset records its emitted job for backend replay (1.4s)
+PARAMETER_JOBS [
+  {
+    cmd: 'set_params',
+    sets: { probe: [Object], surface: [Object] },
+    req_id: 'tdu7x2-7'
+  }
+]
+  ✓  20 e2e/r345-codex.spec.ts:93:1 › R343 editing a Surface parameter transfers its own purpose with Probing on (1.5s)
+PARAMETERS_AFTER_ABORT [{"cmd":"set_params","sets":{"probe":{"3014":99,"3015":50,"3016":200,"3017":1000,"3018":10,"3019":2,"3020":10,"3021":2,"3022":0,"3023":5,"3024":0.5,"3025":0,"3026":0,"3027":0,"3028":0,"3029":0,"3030":1,"3031":0,"3032":0,"3033":0,"3034":0,"3035":0},"surface":{"3014":99,"3021":2,"3050":10,"3051":200,"3052":10,"3053":200,"3054":9,"3055":5,"3056":200,"3057":50,"3058":20,"3059":24}},"req_id":"b2z2rc-7"},{"cmd":"abort","req_id":"b2z2rc-8"}]
+  ✓  21 e2e/r345-codex.spec.ts:107:1 › R344 Abort ends a form transfer including its not-yet-sent purpose (2.6s)
+  ✓  22 e2e/toolsetter-setup.spec.ts:71:1 › without the server's settings, and without a saved section, Measure Current and Unload (M600) stay off — with the reason (1.5s)
+  ✓  23 e2e/toolsetter-setup.spec.ts:83:1 › the gate sits in the call path: a tool-table load in M600 mode sends nothing while the setter is not set up (1.5s)
+  ✓  24 e2e/toolsetter-setup.spec.ts:92:1 › a partial section: the form names what is missing, shows unset fields empty, and a change saves only that field (2.1s)
+  ✓  25 e2e/toolsetter-setup.spec.ts:110:1 › a save the server never confirmed is no setup; its confirmation is (2.2s)
+  ✓  26 e2e/toolsetter-setup.spec.ts:134:1 › Measure Current is ONE command: the tool_measure job — a refusal says why and nothing follows (Codex R16 XZ-06) (3.4s)
+  ✓  27 e2e/toolsetter-setup.spec.ts:153:1 › an abort while the reply is outstanding leaves nothing to send: a late success after it, or after a cleared setup, sends nothing more (Codex R16 XZ-06) (2.6s)
+  ✓  28 e2e/toolsetter-setup.spec.ts:166:1 › Reset clears the section — no field counts as saved, nothing is pushed (2.0s)
+  ✓  29 e2e/toolsetter-setup.spec.ts:179:1 › Unload is ONE command: the tool_unload_measure job in M600 mode, tool_change 0 in the standard mode (2.9s)
+  ✓  30 e2e/toolsetter-setup.spec.ts:215:1 › the machine line follows the gateway's booking: not known, confirmed, pending, not confirmed (1.5s)
+  ✓  31 e2e/toolsetter-setup.spec.ts:228:1 › the line's "?" says which parameters it means (operator 2026-11-07) (1.4s)
+  ✓  32 e2e/toolsetter-setup.spec.ts:238:1 › not set up: no machine line beyond the setup note, which says nothing is written (1.4s)
+  ✓  33 e2e/toolsetter-setup.spec.ts:246:1 › a save while the machine is not ready sends nothing; the line says it is not yet in the machine (1.9s)
+  ✓  34 e2e/toolsetter-setup.spec.ts:264:1 › a save the read-back already confirms pushes nothing; one it does not gets the convenience push (Codex R309) (2.3s)
+
+  34 passed (1.0m)
