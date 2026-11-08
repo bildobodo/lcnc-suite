@@ -37,7 +37,10 @@ async function open(page: Page, settings: Record<string, unknown> | null) {
   await page.setViewportSize({ width: 1600, height: 1000 });
   // the page's first settings read fails: the server's blob has not arrived
   // (the mock answers it with this device's view otherwise)
-  if (settings === null) await page.route(/\/settings$/, r => r.fulfill({ status: 503, body: "" }));
+  if (settings === null) {
+    await page.route(/\/settings$/, r => r.fulfill({ status: 503, body: "" }));
+    await ctl({ op: "settingsOnHello", on: false });
+  }
   await page.goto(MOCK);
   await expect(page.locator("input.setupInput").first()).toBeVisible();
   await ctl({ op: "status_delta", data: { permissions: PERMS_ALL, tool_number: 5 } });

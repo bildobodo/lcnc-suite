@@ -257,6 +257,10 @@ const MOCK_DEVICE_ROW = { id: "dev-mock", created: null, last_seen: null, last_a
   changed: true, simulation: true, simulation_rev: 0, online: true, tabs: 1, this: true };
 let settingsRevs = {};
 let devicesList = [];
+// The gateway answers a hello with the connection's settings (settings_init,
+// its device bound): every connection, a reconnect too. A spec of the state
+// "no server settings yet" turns it off (settingsOnHello).
+let settingsOnHello = true;
 const withDevice = (frame) => ({
   ...frame,
   settings: { simulation: { enabled: true }, ...(frame.settings ?? {}) },
@@ -278,6 +282,7 @@ wss.on("connection", (ws) => {
       hellos.push(msg);
       if (hellos.length > 50) hellos.shift();
       if (refuseWs) { try { ws.close(1001, "server shutdown"); } catch { /* ignore */ } return; }
+      if (settingsOnHello) ws.send(JSON.stringify(withDevice({ type: "settings_init", settings: settingsStore })));
     }
     if (cmd && cmd !== "heartbeat") {
       cmds.push(msg);
@@ -377,6 +382,7 @@ ctlWss.on("connection", (ws) => {
       settingsEcho = true;
       settingsRevs = {};
       devicesList = [];
+      settingsOnHello = true;
       MOCK_DEVICE.name = "";
       activeViewerInit = VIEWER_INIT;
       for (const k of Object.keys(state)) delete state[k];
@@ -447,6 +453,8 @@ ctlWss.on("connection", (ws) => {
         settingsStore = structuredClone(frame.settings);
       }
       broadcast(frame);
+    } else if (m.op === "settingsOnHello") {
+      settingsOnHello = m.on !== false;
     } else if (m.op === "devices") {
       devicesList = Array.isArray(m.devices) ? m.devices : [];
     } else if (m.op === "settingsEcho") {
@@ -465,7 +473,7 @@ ctlWss.on("connection", (ws) => {
         armed: state.armed, axes: _axes ?? VIEWER_INIT.data.axes, kins: VIEWER_INIT.data.kins ?? null,
         work_pos: state.data.work_pos, replies: Object.keys(replies).sort(), envelope: Object.keys(envelope).sort(),
         quiet, refuseWs, settingsEcho, settings: Object.keys(settingsStore).sort(),
-        settingsRevs: { ...settingsRevs }, devices: devicesList.length, deviceName: MOCK_DEVICE.name,
+        settingsRevs: { ...settingsRevs }, devices: devicesList.length, deviceName: MOCK_DEVICE.name, settingsOnHello,
         cmds: cmds.length, hellos: hellos.length, clients: wss.clients.size,
         instance: process.env.MOCK_INSTANCE ?? null,
       } }));
