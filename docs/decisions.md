@@ -11396,3 +11396,14 @@ driver still wrote `set_probe_vars` (three places): `set_params` with the
 toolsetter purpose; a guard holds every command the driver names to the
 gateway's handled set and replays its write through the dispatcher.
 
+**Codex R344 (re-review, 2026-11-08).** SS-I08/09/12 closed; two rests,
+fixed: SS-I10 the client's queue of two parameter commands sent the second
+after an abort had preempted the first — `set_params` now carries every
+purpose of the form in ONE command (`{sets: {purpose: vars}}`, each set its
+purpose's own, a shared number one value, every purpose's switch on — else
+refused whole): the R16 XZ-06 rule again, nothing waits in the browser.
+SS-I11 an old stream's late leave counted out a newer epoch's viewer (and the
+grace stop then ended the new producer): `unsubscribe(epoch)` changes nothing
+of a newer epoch; a features save cancelled after its commit runs the camera
+hook (shielded) before the cancel goes on.
+

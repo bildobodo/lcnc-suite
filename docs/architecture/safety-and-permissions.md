@@ -514,9 +514,11 @@ named exception, an older page's `mdi` with `vars` included (R336).
 - **What a switch refuses** (`_command_feature_refusal`, at the dispatch,
   under `_cmd_lock`): the recognisable jobs (`features.COMMAND_FEATURES` —
   `probe_run`, `surface_scan_run`, `set_compensation_method`, `tool_measure`,
-  `tool_unload_measure`, `run_macro`), a parameter write by its purpose
-  (`set_params`: probe / surface / toolsetter — each its own variable set,
-  a set outside it refused whole before the first write), the compensation
+  `tool_unload_measure`, `run_macro`), a parameter write by its purposes
+  (`set_params {sets: {purpose: vars}}`: probe / surface / toolsetter — each
+  set its purpose's own, a number two sets share one value, every purpose's
+  switch on — else refused whole before the first write; several purposes are
+  ONE command, so an abort preempts all of it — Codex R344 SS-I10), the compensation
   switched ON (OFF is always admitted), run from line's pre-measurement
   (`auto_run` with `pre_tool`), and every command the gamepad sends
   (`via: "gamepad"` — the key is not R336's `source`: `auto_run.source` is the
@@ -527,7 +529,9 @@ named exception, an older page's `mdi` with `vars` included (R336).
   broker's epoch ends after the features commit (`_camera_switched_off` →
   `CameraBroker.end_epoch`: waiting streams wake and end, producer and device
   go at once; the route reads the epoch BEFORE the switch, so a subscription
-  in between is refused — Codex R343 SS-I11). A program start's toolsetter sync is skipped with
+  in between is refused — Codex R343 SS-I11; a stream's leave is bound to
+  its epoch, so an old one ending late never counts out a newer viewer, and a
+  save cancelled after its commit still runs the hook — R344). A program start's toolsetter sync is skipped with
   the toolsetter off (its note says `off`).
 - **Checked at the write too**: a job's `admit` (each vars chunk, the mode
   switch, the line) re-reads its switch, its toolsetter basis and the idle
