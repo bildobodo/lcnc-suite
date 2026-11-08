@@ -67,20 +67,24 @@ def shim_path(tmp: Path, missing=()) -> tuple[str, Path]:
     return str(bin_), log
 
 
+def fake_bindings(tmp: Path) -> str:
+    """A PYTHONPATH on which `import linuxcnc` passes: these cases are about
+    the packages, the terminal and --yes, and a host without LinuxCNC (the CI
+    runner) stopped at the bindings check before reaching them."""
+    fake = tmp / "pyfake"
+    fake.mkdir(exist_ok=True)
+    (fake / "linuxcnc.py").write_text("# stand-in: install.sh only imports it\n")
+    return str(fake)
+
+
 def run_install(tmp: Path, args, missing=("halcompile",), stdin=subprocess.DEVNULL):
     path, log = shim_path(tmp, missing)
     home = tmp / "home"
     home.mkdir()
     work = tmp / "work"          # not a clone: the script stops before step 3 in these cases
     work.mkdir()
-    # The LinuxCNC bindings check passes everywhere — these cases are about the
-    # packages, the terminal and --yes, and a host without LinuxCNC (the CI
-    # runner) stopped at the bindings before reaching them.
-    fake = tmp / "pyfake"
-    fake.mkdir()
-    (fake / "linuxcnc.py").write_text("# stand-in: install.sh only imports it\n")
     r = subprocess.run(["/bin/bash", str(INSTALL), *args], cwd=work, stdin=stdin, capture_output=True, text=True,
-                       timeout=60, env={"PATH": path, "HOME": str(home), "TERM": "dumb", "PYTHONPATH": str(fake)})
+                       timeout=60, env={"PATH": path, "HOME": str(home), "TERM": "dumb", "PYTHONPATH": fake_bindings(tmp)})
     return r, (log.read_text() if log.exists() else "")
 
 
@@ -119,7 +123,8 @@ def test_install_without_a_terminal_and_an_open_unanswered_input_still_ends(tmp_
     (tmp_path / "work").mkdir()
     p = subprocess.Popen(["/bin/bash", str(INSTALL)], cwd=tmp_path / "work", stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                         env={"PATH": path, "HOME": str(tmp_path / "home"), "TERM": "dumb"})
+                         env={"PATH": path, "HOME": str(tmp_path / "home"), "TERM": "dumb",
+                              "PYTHONPATH": fake_bindings(tmp_path)})
     try:
         rc = p.wait(timeout=30)
     except subprocess.TimeoutExpired:
