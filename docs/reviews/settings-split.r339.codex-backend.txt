@@ -1,0 +1,130 @@
+[VINIT] session bound to linuxcncsvr pid=1410237 start=136411224
+[VINIT] try_connect_lcnc OK, pid=1410237
+[VINIT] Loaded machine config: 3-Axis Mill
+BIND_DELETE {"delete_ok": false, "bound_id": "ed83403359162283", "stored_id": "ed83403359162283", "view_id": "ed83403359162283"}
+..FOREIGN_STALE {"type": "reply", "ok": false, "error": "simulation changed elsewhere \u2014 reloaded", "stale": true, "data": {"enabled": true}, "rev": 1, "section": "simulation", "device": "0d1935f27a78514c", "cmd": "save_settings", "req_id": "foreign-conflict"}
+............................................[VINIT] try_connect_lcnc OK, pid=424242
+[IDLE] +145ms gateway up, 0 clients connected (waiting)
+[SHUTDOWN] +156ms lifespan teardown begin
+[SHUTDOWN] +156ms cancelled 8 bg tasks
+[SHUTDOWN] +157ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +157ms HAL sockets disconnected
+[SHUTDOWN] +157ms camera released
+[SHUTDOWN] +157ms lifespan teardown complete
+.[VINIT] try_connect_lcnc OK, pid=424242
+[IDLE] +158ms gateway up, 0 clients connected (waiting)
+[STATUS] tick gen=1 clients=0/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=39
+[VINIT] client#3 sending viewer_init (post-poll), STAT=OK
+[VINIT] client#4 sending viewer_init (post-poll), STAT=OK
+[VINIT] client#5 sending viewer_init (post-poll), STAT=OK
+[STATUS] tick gen=73 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=565 bytes_max=380 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=74 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=75 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=76 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=38
+[STATUS] tick gen=77 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=36
+[STATUS] tick gen=78 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=79 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=38
+[STATUS] tick gen=80 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=37
+[STATUS] tick gen=81 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=36
+[STATUS] tick gen=82 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=41
+[STATUS] tick gen=83 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=36
+[STATUS] tick gen=84 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=39
+[STATUS] tick gen=85 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=86 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=36
+[STATUS] tick gen=87 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=565 bytes_max=380 tool_meta_n=0 wall_ms=43
+[STATUS] tick gen=88 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=89 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=36
+[STATUS] tick gen=90 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=36
+[STATUS] tick gen=91 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=36
+[STATUS] tick gen=92 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=93 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=94 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=95 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=36
+[STATUS] tick gen=96 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=97 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=98 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=37
+[STATUS] tick gen=99 clients=2/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=370 bytes_max=185 tool_meta_n=0 wall_ms=35
+[SHUTDOWN] +4203ms lifespan teardown begin
+[SHUTDOWN] +4203ms cancelled 8 bg tasks
+[SHUTDOWN] +4203ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +4203ms HAL sockets disconnected
+[SHUTDOWN] +4203ms camera released
+[SHUTDOWN] +4203ms lifespan teardown complete
+.[VINIT] try_connect_lcnc OK, pid=424242
+[IDLE] +4205ms gateway up, 0 clients connected (waiting)
+[VINIT] client#6 sending viewer_init (post-poll), STAT=OK
+[SHUTDOWN] +4209ms lifespan teardown begin
+[SHUTDOWN] +4209ms cancelled 8 bg tasks
+[SHUTDOWN] +4209ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +4209ms HAL sockets disconnected
+[SHUTDOWN] +4210ms camera released
+[SHUTDOWN] +4210ms lifespan teardown complete
+.[VINIT] try_connect_lcnc OK, pid=424242
+[IDLE] +4212ms gateway up, 0 clients connected (waiting)
+[VINIT] client#7 sending viewer_init (post-poll), STAT=OK
+[VINIT] client#8 sending viewer_init (post-poll), STAT=OK
+[STATUS] tick gen=100 clients=5/3 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=15403 bytes_max=5011 tool_meta_n=0 wall_ms=514
+[STATUS] tick gen=101 clients=0/2 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=102 clients=0/2 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=103 clients=0/2 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=37
+[STATUS] tick gen=104 clients=0/2 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=33
+[STATUS] tick gen=105 clients=0/2 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=106 clients=0/2 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=107 clients=0/2 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=37
+[STATUS] tick gen=108 clients=0/2 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=37
+[STATUS] tick gen=109 clients=0/2 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=110 clients=0/2 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=111 clients=0/2 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=35
+[STATUS] tick gen=112 clients=0/2 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=34
+[STATUS] tick gen=113 clients=0/2 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=37
+[STATUS] tick gen=114 clients=0/2 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=0 bytes_max=0 tool_meta_n=0 wall_ms=34
+[SHUTDOWN] +6250ms lifespan teardown begin
+[SHUTDOWN] +6250ms cancelled 8 bg tasks
+[SHUTDOWN] +6250ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +6250ms HAL sockets disconnected
+[SHUTDOWN] +6250ms camera released
+[SHUTDOWN] +6250ms lifespan teardown complete
+.[VINIT] try_connect_lcnc OK, pid=424242
+[IDLE] +6252ms gateway up, 0 clients connected (waiting)
+[VINIT] client#9 sending viewer_init (post-poll), STAT=OK
+[SHUTDOWN] +6255ms lifespan teardown begin
+[SHUTDOWN] +6255ms cancelled 8 bg tasks
+[SHUTDOWN] +6255ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +6255ms HAL sockets disconnected
+[SHUTDOWN] +6255ms camera released
+[SHUTDOWN] +6255ms lifespan teardown complete
+.[VINIT] try_connect_lcnc OK, pid=424242
+[IDLE] +6257ms gateway up, 0 clients connected (waiting)
+[VINIT] client#10 sending viewer_init (post-poll), STAT=OK
+[STATUS] tick gen=145 clients=4/2 poll_ms=0 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=10304 bytes_max=4989 tool_meta_n=0 wall_ms=509
+[SHUTDOWN] +7276ms lifespan teardown begin
+[SHUTDOWN] +7276ms cancelled 8 bg tasks
+[SHUTDOWN] +7276ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +7276ms HAL sockets disconnected
+[SHUTDOWN] +7276ms camera released
+[SHUTDOWN] +7276ms lifespan teardown complete
+.[VINIT] try_connect_lcnc OK, pid=424242
+[IDLE] +7278ms gateway up, 0 clients connected (waiting)
+[VINIT] client#11 sending viewer_init (post-poll), STAT=OK
+[VINIT] client#12 sending viewer_init (post-poll), STAT=OK
+[SHUTDOWN] +7285ms lifespan teardown begin
+[SHUTDOWN] +7285ms cancelled 8 bg tasks
+[SHUTDOWN] +7285ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +7285ms HAL sockets disconnected
+[SHUTDOWN] +7285ms camera released
+[SHUTDOWN] +7285ms lifespan teardown complete
+.[VINIT] try_connect_lcnc OK, pid=424242
+[IDLE] +7286ms gateway up, 0 clients connected (waiting)
+[SHUTDOWN] +7289ms lifespan teardown begin
+[SHUTDOWN] +7289ms cancelled 3 bg tasks
+[SHUTDOWN] +7289ms sent final HAL state heartbeat=False connected=False
+[SHUTDOWN] +7289ms HAL sockets disconnected
+[SHUTDOWN] +7289ms camera released
+[SHUTDOWN] +7289ms lifespan teardown complete
+...........uuuu..uuuu..........
+[GC] +7530ms gen=2 duration=12.7ms collected=1585 uncollectable=0
+[GC] +7538ms gen=2 duration=8.5ms collected=0 uncollectable=0
+[GC] +7546ms gen=2 duration=7.8ms collected=0 uncollectable=0
+[GC] +7554ms gen=2 duration=7.9ms collected=0 uncollectable=0
+[GC] +7562ms gen=2 duration=7.6ms collected=0 uncollectable=0
+[GC] +7571ms gen=2 duration=9.2ms collected=0 uncollectable=0

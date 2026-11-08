@@ -1,0 +1,16 @@
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+src/r338.codex.test.ts(24,35): error TS2550: Property 'at' does not exist on type 'WorkerStub[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2022' or later.
+src/r338.codex.test.ts(45,37): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/r338.codex.test.ts(45,65): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/r338.codex.test.ts(53,37): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/r338.codex.test.ts(53,65): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/r338.codex.test.ts(77,37): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/r338.codex.test.ts(77,61): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/r338.codex.test.ts(78,22): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/r338.codex.test.ts(85,38): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/r338.codex.test.ts(85,62): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/r338.codex.test.ts(96,38): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/r338.codex.test.ts(96,62): error TS7006: Parameter 'm' implicitly has an 'any' type.

@@ -1,0 +1,8 @@
+{"phase": "rest0", "edge": "start", "t": 1794095979934}
+{"phase": "rest0", "edge": "end", "t": 1794096039935}
+{"phase": "load", "edge": "start", "t": 1794096039935}
+{"phase": "load", "edge": "end", "t": 1794096087816}
+{"phase": "basis", "edge": "start", "t": 1794096087816}
+{"phase": "basis", "edge": "end", "t": 1794096141942}
+{"phase": "rest", "edge": "start", "t": 1794096141942}
+{"phase": "rest", "edge": "end", "t": 1794096261944}

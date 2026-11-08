@@ -1,0 +1,137 @@
+
+Running 16 tests using 1 worker
+
+(node:1416478) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1416478) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/devices.spec.ts:43:1 › this device switches its own simulation without arm; it acts once the gateway holds it (1.9s)
+  ✓   2 e2e/devices.spec.ts:56:1 › another device: its simulation and its rename need arm; a connected one is never deleted (1.5s)
+  ✓   3 e2e/devices.spec.ts:86:1 › a tab bound to no device says why and saves no device setting (1.4s)
+  ✓   4 e2e/devices.spec.ts:98:1 › this device's name is saved without arm (1.3s)
+  ✓   5 e2e/devices.spec.ts:112:1 › switching another device's simulation leaves this one's own off — ok and stale alike (1.8s)
+  ✓   6 e2e/r338.codex.spec.ts:4:1 › foreign conflict must not show Sim on the local device (1.2s)
+FOCUS_AFTER_REMOVAL {"focused":{"tag":"BUTTON","role":"tab"},"cmds":[]}
+  ✓   7 e2e/r338.codex.spec.ts:19:1 › removing the selected Sim tab gives keyboard focus to its replacement (1.4s)
+  ✘   8 e2e/r339.codex.spec.ts:11:1 › a focused timeline link also hands focus back when simulation goes off (11.0s)
+(node:1417079) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1417079) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+RECREATED THIS DEVICE
+How this browser looks, its macro bar and its simulation are its own. A new device starts without the simulation.
+This browser's earlier profile was removed — it started as a new device
+Reset This Device
+  ✘   9 e2e/r339.codex.spec.ts:30:1 › a newly created bound profile keeps its own controls available beside the notice (1.6s)
+(node:1417208) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1417208) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+DEVICE_LIST_AFTER_OLD_REPLY OTHER DEVICES
+Changing another device needs Arm. A device is deleted only by hand, and never while it is connected.
+Name	State	Address	Simulation	
+B	Online · 1 tab	—	
+	
+  ✘  10 e2e/r339.codex.spec.ts:43:1 › an old device-list response cannot replace the list of a newer binding (1.7s)
+(node:1417330) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1417330) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  11 e2e/simulation-off.viewer.spec.ts:51:1 › a device without the simulation: no check, no timeline, no Sim tab — the path, the tool mark and the run line stay (2.9s)
+  ✓  12 e2e/simulation-off.viewer.spec.ts:71:1 › switched off during the check: the worker ends, every finding goes; switched on: a fresh check (5.2s)
+  ✓  13 e2e/simulation-off.viewer.spec.ts:93:1 › the Sim tab shown when the simulation goes off: the Program tab takes its place (3.0s)
+  ✓  14 e2e/simulation-off.viewer.spec.ts:111:3 › the Sim tab goes with the focus in its tab: the focus to the navigation, an arrow never jogs (3.2s)
+  ✓  15 e2e/simulation-off.viewer.spec.ts:111:3 › the Sim tab goes with the focus in its pane: the focus to the navigation, an arrow never jogs (3.3s)
+  ✓  16 e2e/simulation-off.viewer.spec.ts:130:1 › the Sim tab goes with the focus elsewhere: it stays there (3.1s)
+
+
+  1) e2e/r339.codex.spec.ts:11:1 › a focused timeline link also hands focus back when simulation goes off 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('button', { name: 'Open the Sim tab', exact: true })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
+    [2m  - waiting for getByRole('button', { name: 'Open the Sim tab', exact: true })[22m
+
+
+      17 |   await ctl({op:'raw',frame:{type:'viewer_gcode_ready',version:8901,file:'/leak.ngc'}});
+      18 |   const link=page.getByRole('button',{name:'Open the Sim tab',exact:true});
+    > 19 |   await expect(link).toBeVisible(); await link.focus(); await expect(link).toBeFocused();
+         |                      ^
+      20 |   await ctl({op:'raw',frame:{type:'settings_changed',settings:{simulation:{enabled:false},keyboard}}});
+      21 |   await expect(link).toHaveCount(0);
+      22 |   const focus=await page.evaluate(()=>({tag:document.activeElement?.tagName,role:document.activeElement?.getAttribute('role')}));
+        at /tmp/codex-r339/lcnc-webui/e2e/r339.codex.spec.ts:19:22
+
+    Error Context: test-results/r339.codex-a-focused-timel-3d0cf-ck-when-simulation-goes-off/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r339.codex-a-focused-timel-3d0cf-ck-when-simulation-goes-off/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r339.codex-a-focused-timel-3d0cf-ck-when-simulation-goes-off/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/r339.codex.spec.ts:30:1 › a newly created bound profile keeps its own controls available beside the notice 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m1[39m
+    Received: [31m0[39m
+
+      37 |   await expect(dlg.locator('[data-device-recreated]')).toBeVisible();
+      38 |   console.log('RECREATED',await dlg.locator('[data-devices=this]').innerText());
+    > 39 |   expect(await dlg.locator('[data-devices=this]').getByRole('checkbox').count()).toBe(1);
+         |                                                                                  ^
+      40 |   expect(await dlg.locator('[data-devices=this]').getByLabel('Name').count()).toBe(1);
+      41 | });
+      42 |
+        at /tmp/codex-r339/lcnc-webui/e2e/r339.codex.spec.ts:39:82
+
+    Error Context: test-results/r339.codex-a-newly-created-16e62-available-beside-the-notice/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r339.codex-a-newly-created-16e62-available-beside-the-notice/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r339.codex-a-newly-created-16e62-available-beside-the-notice/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) e2e/r339.codex.spec.ts:43:1 › an old device-list response cannot replace the list of a newer binding 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m0[39m
+    Received: [31m1[39m
+
+      64 |   await page.waitForTimeout(100);
+      65 |   console.log('DEVICE_LIST_AFTER_OLD_REPLY',await dlg.locator('[data-devices=others]').innerText());
+    > 66 |   expect(await dlg.locator('[data-device-row=B]').count()).toBe(0);
+         |                                                            ^
+      67 |   expect(await dlg.locator('[data-device-row=A]').count()).toBe(1);
+      68 | });
+      69 |
+        at /tmp/codex-r339/lcnc-webui/e2e/r339.codex.spec.ts:66:60
+
+    Error Context: test-results/r339.codex-an-old-device-l-1f0f2-the-list-of-a-newer-binding/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r339.codex-an-old-device-l-1f0f2-the-list-of-a-newer-binding/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r339.codex-an-old-device-l-1f0f2-the-list-of-a-newer-binding/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    e2e/r339.codex.spec.ts:11:1 › a focused timeline link also hands focus back when simulation goes off 
+    e2e/r339.codex.spec.ts:30:1 › a newly created bound profile keeps its own controls available beside the notice 
+    e2e/r339.codex.spec.ts:43:1 › an old device-list response cannot replace the list of a newer binding 
+  13 passed (47.8s)

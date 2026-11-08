@@ -1,0 +1,134 @@
+
+Running 4 tests using 1 worker
+
+(node:1423098) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1423098) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+TIMELINE_FOCUS {"focus":{"tag":"BODY","role":null},"commands":[{"cmd":"jog_cont","axis":0,"vel":10,"req_id":"37xnn7-5"},{"cmd":"jog_stop","axis":0,"req_id":"37xnn7-6"}]}
+  ✘  1 e2e/r339.codex.spec.ts:12:1 › a focused timeline link also hands focus back when simulation goes off (1.6s)
+(node:1423249) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1423249) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+RECREATED THIS DEVICE
+How this browser looks, its macro bar and its simulation are its own. A new device starts without the simulation.
+This browser's earlier profile was removed — it started as a new device
+Reset This Device
+  ✘  2 e2e/r339.codex.spec.ts:36:1 › a newly created bound profile keeps its own controls available beside the notice (1.5s)
+(node:1423377) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1423377) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+DEVICE_LIST_AFTER_OLD_REPLY OTHER DEVICES
+Changing another device needs Arm. A device is deleted only by hand, and never while it is connected.
+Name	State	Address	Simulation	
+A	Online · 1 tab	—	
+	
+  ✓  3 e2e/r339.codex.spec.ts:49:1 › an old device-list response cannot replace the list of a newer binding (1.6s)
+DEVICE_LIST_AFTER_OLD_REPLY OTHER DEVICES
+Changing another device needs Arm. A device is deleted only by hand, and never while it is connected.
+Name	State	Address	Simulation	
+B	Online · 1 tab	—	
+	
+  ✘  4 e2e/r339.codex.spec.ts:81:1 › an old device-list response cannot replace a new INI list after a socket reconnect (2.5s)
+
+
+  1) e2e/r339.codex.spec.ts:12:1 › a focused timeline link also hands focus back when simulation goes off 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  -  1[39m
+    [31m+ Received  + 13[39m
+
+    [32m- Array [][39m
+    [31m+ Array [[39m
+    [31m+   Object {[39m
+    [31m+     "axis": 0,[39m
+    [31m+     "cmd": "jog_cont",[39m
+    [31m+     "req_id": "37xnn7-5",[39m
+    [31m+     "vel": 10,[39m
+    [31m+   },[39m
+    [31m+   Object {[39m
+    [31m+     "axis": 0,[39m
+    [31m+     "cmd": "jog_stop",[39m
+    [31m+     "req_id": "37xnn7-6",[39m
+    [31m+   },[39m
+    [31m+ ][39m
+
+      31 |   const commands=((await ctl({op:'lastCmds'})) as {cmds:any[]}).cmds;
+      32 |   console.log('TIMELINE_FOCUS',JSON.stringify({focus,commands}));
+    > 33 |   expect(commands.filter(c=>c.cmd.startsWith('jog'))).toEqual([]);
+         |                                                       ^
+      34 | });
+      35 |
+      36 | test('a newly created bound profile keeps its own controls available beside the notice', async({page})=>{
+        at /tmp/codex-r339/lcnc-webui/e2e/r339.codex.spec.ts:33:55
+
+    Error Context: test-results/r339.codex-a-focused-timel-3d0cf-ck-when-simulation-goes-off/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r339.codex-a-focused-timel-3d0cf-ck-when-simulation-goes-off/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r339.codex-a-focused-timel-3d0cf-ck-when-simulation-goes-off/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/r339.codex.spec.ts:36:1 › a newly created bound profile keeps its own controls available beside the notice 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m1[39m
+    Received: [31m0[39m
+
+      43 |   await expect(dlg.locator('[data-device-recreated]')).toBeVisible();
+      44 |   console.log('RECREATED',await dlg.locator('[data-devices=this]').innerText());
+    > 45 |   expect(await dlg.locator('[data-devices=this]').getByRole('checkbox').count()).toBe(1);
+         |                                                                                  ^
+      46 |   expect(await dlg.locator('[data-devices=this]').getByLabel('Name').count()).toBe(1);
+      47 | });
+      48 |
+        at /tmp/codex-r339/lcnc-webui/e2e/r339.codex.spec.ts:45:82
+
+    Error Context: test-results/r339.codex-a-newly-created-16e62-available-beside-the-notice/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r339.codex-a-newly-created-16e62-available-beside-the-notice/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r339.codex-a-newly-created-16e62-available-beside-the-notice/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) e2e/r339.codex.spec.ts:81:1 › an old device-list response cannot replace a new INI list after a socket reconnect 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m0[39m
+    Received: [31m1[39m
+
+      105 |   await page.waitForTimeout(100);
+      106 |   console.log('DEVICE_LIST_AFTER_OLD_REPLY',await dlg.locator('[data-devices=others]').innerText());
+    > 107 |   expect(await dlg.locator('[data-device-row=B]').count()).toBe(0);
+          |                                                            ^
+      108 |   expect(await dlg.locator('[data-device-row=A]').count()).toBe(1);
+      109 | });
+      110 |
+        at /tmp/codex-r339/lcnc-webui/e2e/r339.codex.spec.ts:107:60
+
+    Error Context: test-results/r339.codex-an-old-device-l-3576f-st-after-a-socket-reconnect/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r339.codex-an-old-device-l-3576f-st-after-a-socket-reconnect/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r339.codex-an-old-device-l-3576f-st-after-a-socket-reconnect/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    e2e/r339.codex.spec.ts:12:1 › a focused timeline link also hands focus back when simulation goes off 
+    e2e/r339.codex.spec.ts:36:1 › a newly created bound profile keeps its own controls available beside the notice 
+    e2e/r339.codex.spec.ts:81:1 › an old device-list response cannot replace a new INI list after a socket reconnect 
+  1 passed (8.9s)

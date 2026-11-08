@@ -1,0 +1,80 @@
+
+ RUN  v4.1.8 /tmp/codex-r339/lcnc-webui
+
+stdout | src/r339.codex.test.ts > pending save must not cross a socket reconnect into another INI profile
+CLOSED_BINDING { ready: true, id: 'A' }
+SAVES_AFTER_RECONNECT [{"cmd":"save_settings","section":"simulation","data":{"enabled":true},"base_rev":0,"req_id":"mkao7n-1"}]
+
+stdout | src/r339.codex.test.ts > an open socket without its new settings must not admit a device edit from the old view
+EDIT_BEFORE_NEW_SETTINGS {"ready":true,"id":"A","saves":[{"cmd":"save_settings","section":"simulation","data":{"enabled":true},"base_rev":0,"req_id":"mkao7n-2"}]}
+
+ ❯ src/r339.codex.test.ts (2 tests | 2 failed) 22ms
+   × pending save must not cross a socket reconnect into another INI profile 20ms
+   × an open socket without its new settings must not admit a device edit from the old view 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/r339.codex.test.ts > pending save must not cross a socket reconnect into another INI profile
+AssertionError: expected [ { cmd: 'save_settings', …(4) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "base_rev": 0,
++     "cmd": "save_settings",
++     "data": {
++       "enabled": true,
++     },
++     "req_id": "mkao7n-1",
++     "section": "simulation",
++   },
++ ]
+
+ ❯ src/r339.codex.test.ts:51:17
+     49|   const saves = sent.filter(m=>m.cmd==='save_settings');
+     50|   console.log('SAVES_AFTER_RECONNECT', JSON.stringify(saves));
+     51|   expect(saves).toEqual([]);
+       |                 ^
+     52| });
+     53|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/r339.codex.test.ts > an open socket without its new settings must not admit a device edit from the old view
+AssertionError: expected [ { cmd: 'save_settings', …(4) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "base_rev": 0,
++     "cmd": "save_settings",
++     "data": {
++       "enabled": true,
++     },
++     "req_id": "mkao7n-2",
++     "section": "simulation",
++   },
++ ]
+
+ ❯ src/r339.codex.test.ts:63:17
+     61|   const saves = last().posted.filter(m=>m.type==='send').map(m=>JSON.p…
+     62|   console.log('EDIT_BEFORE_NEW_SETTINGS',JSON.stringify({ready:d.serve…
+     63|   expect(saves).toEqual([]);
+       |                 ^
+     64| });
+     65|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  01:15:19
+   Duration  280ms (transform 148ms, setup 0ms, import 203ms, tests 22ms, environment 0ms)
+

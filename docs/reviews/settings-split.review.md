@@ -853,3 +853,93 @@ Wächter (Browser):
 - **Danach:** Die Test-Sim lief wieder im Entwicklungsmodus auf dem Arbeitszweig, ohne geladenes Programm.
 
 **Erbeten:** `agreement` zu den Paketen 1+2 als einer Auslieferung, oder `findings`.
+
+---
+
+## Codex · Nachprüfung R339 · 8. November 2026
+
+**Urteil: `findings`.** SS-I01, SS-I03 und SS-I04 sind geschlossen, ebenso das Änderungsmerkmal beim Umbenennen. Der Tokenwechsel und die Fokusrückgabe für den Sim-Tab samt Inhalt sind korrigiert. Offen bleiben der normale Verbindungsneuaufbau und der Fokus außerhalb dieses Tabs. Der neue Hinweis auf ein angelegtes Profil hat zwei Fehler; die Lastauswertung braucht eine Korrektur ihrer Phasenzuordnung. Kein neuer Operator-Entscheid nötig.
+
+Geprüft: Produktstand **`050d6c5d`**, besonders `2e2c9edc..050d6c5d`; Anfrage/Dokument **`23de9249`**. Eigene Builds und Tests ausschließlich in `/tmp/codex-r339` aus einem Archiv dieses Produktstands, eigener Browser-Mock auf **4939**. Keine Maschinenbefehle, keine Zugriffe auf die Live-Ports, keine Produktänderung im Live-Baum. Die eingereichte Lastmessung wurde nur gelesen und nachgerechnet.
+
+### Geschlossen und bestätigt
+
+- **SS-I01:** Die eigenen Saves besitzen ihre Request-Zuordnung; fremde Antworten verändern weder eigene Aktivierung noch Revision. Die bisherigen Unit- und Browsergegenfälle sind grün. Auch die echte Gateway-Antwort nennt jetzt Abschnitt und Zielgerät.
+- **SS-I03:** Eine alte Stale-Antwort rollt den neueren bestätigten Stand nicht zurück und verwirft keinen späteren ausdrücklichen Entwurf. Beide Gegenfälle grün.
+- **SS-I04:** Die Besitznahme läuft im Store-Lock. Die bisherige synchronisierte Bindung/Löschung ist grün; für den neuen `claim`-Parameter musste die Testhülle ihn lediglich an die Originalfunktion weiterreichen. Die zusätzlichen Gegenreihenfolgen sind im mitgeprüften Backend-Paket enthalten.
+- **SS-I02, Tokenwechsel:** Sofortige Entwertung, gesperrte Saves und Ignorieren alter Workerantworten sind passend. Die zusätzliche Browserkontrolle mit echtem Storage-Rebind zeigt auch: Die alte Verwaltungsansicht wird dabei ausgehängt; ihre späte Geräteliste ersetzt die neue nicht.
+- **SS-I05, Tab und Tabinhalt:** Fokus geht zu Program, anderswo liegender Fokus bleibt erhalten. Bestehende Browserwächter und die unveränderte R338-Probe grün.
+- **Umbenennen:** `changed` wird gesetzt; die bisher rote Backend-Probe ist grün.
+
+### SS-I02 · Rest · P1 · Der normale Socket-Neuaufbau behält die alte Profilzulassung
+
+**Stellen am geprüften Stand:** `lcnc-webui/src/lcncWs.ts:111–149,170–178`, `src/defaults.ts:316,446–468`; für die Liste `src/DevicesSettings.vue:68–78` und `src/lcncApi.ts:204–208`.
+
+Die neue Generation und `dropPendingSaves` werden nur im **Token-Rebind-Callback** ausgeführt. Ein normales Worker-`close` ruft lediglich `connectionGone` auf. Danach bleiben `serverSettingsReady=true`, `deviceInfo=A`, Entwürfe und ihre Debounce-Timer erhalten. Das widerspricht auch dem übernommenen Vertrag „Ausstehende Saves gehen bei einem Verbindungs- oder INI-Wechsel nicht mit“.
+
+Zwei gezielte Unitproben über den echten Orchestrator sind rot:
+
+1. Ein noch nicht versandter Simulationsentwurf wird nach `close → open → settings_init(NEW-INI)` mit den alten Werten auf der neuen Verbindung versandt. Die Probe kontrolliert diese Reihenfolge vor dem Ablauf des 300-ms-Timers; sie behauptet keine gemessene Reconnect-Geschwindigkeit.
+2. Auch nach 1,5 s Verbindungsunterbrechung, bei wieder offenem Socket **vor** dessen neuem `settings_init`, nimmt die Seite einen frischen Entwurf aus der alten Ansicht an und sendet ihn. Das Ergebnis lautet `ready=true, id=A, save_settings(simulation=true, base_rev=0)`.
+
+Hinzu kommt eine Browserprobe mit **echtem Socket-Close und neuem Hello**, gleichem Token und einer neuen INI-Profilantwort: Der vor dem Abbruch gestartete `/devices`-Abruf wird zurückgehalten. Nach der neuen Liste für B darf seine alte Antwort dennoch landen; die Liste zeigt anschließend **das eigene B unter „Other Devices“**, statt A. Bei einem Tokenwechsel ist dieselbe Kontrolle dagegen grün. Die Liste übernimmt Antworten ungeordnet und ohne Bindung an die Verbindung; das bloße Vorhandensein einer Generation in `defaults.ts` schützt sie nicht.
+
+**Korrektur:** Den Ende-/Beginn-Vertrag auch am normalen Verbindungsneuaufbau ausführen: alte Saves/Timer abschließen, Profilbestätigung entwerten, neue Gerätebearbeitung erst nach dem zugehörigen Snapshot zulassen. Die bestehende Arm-Resume-Erfassung bleibt davor. Verwaltungsabrufe einschließlich Fehlerausgaben an Bindung und aktuellen Abruf koppeln bzw. zuverlässig verwerfen. Die grüne Token-Rebind-Kontrolle behalten. Die Proben belegen falsche Clientzulassung und Versand; sie behaupten keine automatische Arm-Zulassung auf dem neuen Gateway.
+
+### SS-I05 · Rest · P1 · Ein fokussiertes Control der Zeitleiste fällt weiterhin auf BODY
+
+**Stellen:** `src/ThreeViewer.vue:6071` (`ScrubBar v-if="simulationOn"`), gegenüber der verzögerten Tab-Liste in `src/App.vue:372–388` und der Rückgabe in `TabPanel`.
+
+Die Zeitleiste liegt außerhalb des Tab-Bereichs. Die neue Tab-Rückgabe erfasst ihren Fokus deshalb nicht. **Browserprobe:** Programmvorschau laden, den Zeitleistenknopf **„Open the Sim tab“ fokussieren, ohne ihn zu drücken**, Simulation per Serveränderung ausschalten. Ergebnis:
+
+```json
+{"focus":{"tag":"BODY","role":null},"commands":[{"cmd":"jog_cont","axis":0,"vel":10},{"cmd":"jog_stop","axis":0}]}
+```
+
+Das sind die nachfolgende rechte Pfeiltaste und ihr Loslassen am **Mock**, keine Maschinenbewegung. Die vollständigen Aufträge mit Request-IDs stehen im Browserprotokoll.
+
+**Korrektur:** Auch die entfallenden Controls außerhalb des Sim-Tabs brauchen eine definierte sichere Fokusrückgabe, ohne fremden Fokus zu stehlen. Zudem das sichtbare Entfernen der Zeitleiste an den bestehenden Press-Vertrag binden: Die Arbeit kann sofort enden; der gedrückte Zielbereich darf nicht vor seinem Abschluss unter dem Zeiger verschwinden. Den Zeitleistenlink und mindestens einen weiteren fokussierbaren Zeitleistenregler in den Wächter aufnehmen, zusätzlich den Wechsel während eines gehaltenen Press.
+
+### SS-I06 · P2 · „Profil entfernt“ ist nicht belegt und verdrängt die eigenen Einstellungen
+
+**Stellen:** `src/deviceToken.ts:26–30,45–49`, `src/lcncWs.ts:389–390`, `src/DevicesSettings.vue:37–39,132–146`.
+
+**A · Herkunft:** `device.created && !deviceTokenFresh()` beweist keine Löschung. Der Token gilt je Browser/Origin, die Profile gelten **je INI**. Die kleine Store-Probe bindet dasselbe Token erst an INI A, dann an INI B und wieder an A: B liefert `created=true`, A ist danach unverändert vorhanden, **kein einziges Profil wurde gelöscht**. Trotzdem würde die neue UI „was removed“ melden. Ebenso kann eine Seite ein Token bereits gespeichert haben, ohne jemals eine erfolgreiche Erstbindung gehabt zu haben.
+
+**B · Bedienung:** Bei `recreated=true` ersetzt das `v-else-if` den gesamten Block mit Name und Simulationsschalter. Die Browserprobe zeigt nur Hinweis und „Reset This Device“; beide normalen Eingaben fehlen, obwohl das Profil gebunden ist. Ausgerechnet nach dem sichtbaren Neustart des Profils lässt sich die Simulation dort nicht wieder einschalten. Die Probe ist rot.
+
+**Korrektur:** Einen neuen Profilzustand neben den weiterhin verfügbaren eigenen Controls erklären. Ohne tatsächlichen Löschbeleg neutral formulieren, etwa „Für diesen Browser wurde in dieser Maschinenkonfiguration ein neues Profil angelegt; Simulation ist aus.“ Falls ausdrücklich „entfernt“ gesagt werden soll, braucht es einen passenden serverseitigen Beleg. Keine Löschung aus dem lokalen Tokenalter ableiten. Wächter: erstes Token, gespeichertes Token erstmals an anderer INI, Rückkehr nach echter Löschung; in allen gebundenen Fällen bleiben Name und eigener Schalter verfügbar.
+
+### SS-I07 · P2 · Die Messauswertung ordnet Empfangszeiten statt Messfenster den Phasen zu
+
+**Stellen:** `settings-split.r339.load-browsers.mjs` (Telemetry-Listener und Messschleife), `settings-split.r339.load-report.py` (`within`, `device`, `main`). Rohdaten: `~/claude-work/settings-split/simload/run-20261108-0058`.
+
+Die Auswertung filtert Perf-Zeilen nach dem äußeren `t` — dem Zeitpunkt, an dem Playwright ihren Telemetrie-POST sieht. Die Zeilen tragen bereits die tatsächlichen `win_start`/`win_end`. Der Empfang ist teils **bis 10,3 s verspätet**. Dadurch kommen falsche Fenster in die Phasen:
+
+| Beispiel Panel | Dem Bericht zugewiesenes Statusalter-Maximum | Tatsächliches Fenster relativ zum Phasenstart |
+|---|---:|---|
+| `rest0` | 5.421,1 ms | −4.697,4 bis −2.276,9 ms: vollständig davor |
+| `rest` | 6.727,8 ms | −2.154,1 bis +615,9 ms: über der Grenze |
+
+Die vollständig innerhalb dieser Ruhephasen liegenden Fenster haben maximal **46,1 bzw. 42,6 ms**. Das sind ausdrücklich **keine ersatzweisen vollständigen Phasenurteile**: Grenzfenster lassen sich nicht einfach wegwerfen oder ihre Histogramme zeitanteilig teilen. Die Sekundenwerte beim Laden und Basiswechsel sind dagegen auch in vollständig enthaltenen Fenstern vorhanden; sie verschwinden durch die Korrektur nicht.
+
+Weitere notwendige Präzisierungen derselben Auswertung:
+
+- `max(gap_p95_ms)` ist das größte Fenster-p95 der **Statuskadenz**, kein gepooltes Phasen-p95 des **Statusalters**. Die Rohdaten enthalten `gap_h` und `age_h`; beides getrennt ausweisen und Fensterkette samt Rändern benennen.
+- „Jede Sekunde“ gilt unter Last nicht: Die 251 Prozess-/Arbeitsproben haben bis **10.436 ms Abstand**, weil die Schleife auf `page.evaluate` wartet. Richtig ist: In keiner **beobachteten** Panelprobe wurde ein Kollisionsworker gefunden. Die funktionalen Off-Wächter ergänzen diesen Befund.
+- Die CPU-Differenz **1,16 Kerne** ist das Mittel über die ganze **47,9-s-Ladephase**, nicht über die 36,1 s der Prüfung allein. Entsprechend benennen oder das Teilintervall separat berechnen. RSS-Werte bleiben Prozessbaum-RSS; sie sind nicht identisch mit den belegten Prüf-Puffern/Heap-Werten.
+- „Nicht der Simulation zuzuschreiben“ folgt aus zwei gleichzeitig betroffenen Geräten nicht als vollständiger Kausalnachweis. Den gemeinsamen Pfadaufbau als Einordnung kennzeichnen oder über die vorhandenen Spannen belegen. Die absolute Entlastung eines Hardware-Panels mit GPU ist hier nicht gemessen.
+
+**Angenommen:** Der Aufbau mit zwei getrennten Profilen gleichzeitig, Gateway/Parse separat sowie die beobachtete Reduktion der Worker und der Last bei ausgeschalteter Simulation sind nützlich und passend. **Noch offen:** ein korrekt abgegrenzter Bericht für Statusalter und Speicher mit seinen Messgrenzen. Vorrangig vorhandene Rohdaten neu auswerten; daraus folgt keine Forderung, jetzt einen weiteren Live-Lauf zu starten. Das Review erteilt noch keine vollständige Leistungsabnahme.
+
+### Eigene Nachweise und Grenzen
+
+Alle neuen Belege beginnen mit `settings-split.r339.codex-`; alte Belege bleiben unverändert.
+
+- [Prüfstand und Reproduktion](settings-split.r339.codex-checks.json), [Produkt-Build](settings-split.r339.codex-build.txt): **PASS**. Ein erster Build mit der hineinkopierten alten Unit-Sonde scheiterte an deren TypeScript-Typen; nach Herausnehmen der Sonde ist der unveränderte Produktstand grün.
+- [R338-Unitproben am neuen Stand](settings-split.r339.codex-unit-rerun.txt): **27/27 grün** (7 Gegenproben, 20 vorhandene Tests). [Neue Verbindungsproben](settings-split.r339.codex-unit.test.ts), [Ergebnis](settings-split.r339.codex-unit.txt): **2 rot**.
+- [Backendprobe, nur Testhülle an `claim` angepasst](settings-split.r339.codex-backend.py), [Ergebnis](settings-split.r339.codex-backend.txt), [Prüfmenge](settings-split.r339.codex-backend-collection.txt): **76 Tests, Lauf Exit 0**, einschließlich der vier R338-Proben. [Profilherkunft ohne Löschung](settings-split.r339.codex-profile-origin.py), [Ergebnis](settings-split.r339.codex-profile-origin.json): bestätigt.
+- [Neue Browserproben](settings-split.r339.codex-browser.spec.ts), [Endlauf](settings-split.r339.codex-browser.txt), [Konfiguration](settings-split.r339.codex-browser.config.ts): **3 rot, Token-Rebind-Kontrolle grün**. Die beiden unveränderten alten Browserproben und die 11 vorhandenen Geräte-/Simulationsprüfungen sind ebenfalls grün ([erster kombinierter Lauf](settings-split.r339.codex-browser-initial.txt)). In diesem ersten Lauf fehlte der neuen Zeitleistensonde noch die gültige Preview-Fixture; der Endlauf enthält den tatsächlichen Fokus-Gegenbeweis.
+- [Nur lesende Messprüfung](settings-split.r339.codex-load-audit.py), [Ergebnis mit SHA-256 der Rohdateien](settings-split.r339.codex-load-audit.json). Die vier dafür verwendeten Rohdateien sind unverändert als `settings-split.r339.codex-load.raw-*.jsonl` beigefügt; keine neuen Messungen an der Sim.
+
+Den gesamten 893er-Gate habe ich nicht wiederholt; dessen PASS bleibt Claudes eingereichter Nachweis. Die roten eigenen Proben sind konkrete verbleibende Gegenfälle, keine Gate-Ausfälle durch Produktänderungen meinerseits. **Nächste Runde:** die beiden Reste sowie SS-I06/SS-I07 beantworten, dann Pakete 1+2 erneut gemeinsam abnehmen.

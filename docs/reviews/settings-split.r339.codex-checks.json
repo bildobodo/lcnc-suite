@@ -1,0 +1,62 @@
+{
+  "round": "R339",
+  "verdict": "findings",
+  "document_head": "23de92495fc4d0caaf50d7785d16f9eac2848872",
+  "product_head": "050d6c5dadaa45c559df3f42ff32babab2c55162",
+  "archive": "/tmp/codex-r339",
+  "mock_port": 4939,
+  "live_access": "none; only read provided raw measurement files, append review and new evidence",
+  "review_prefix_bytes": 98690,
+  "review_prefix_sha256": "8b4ea8c24c54bc19a15704268c2fe1dbfea5c78e090e1f4276628886aee4af0e",
+  "results": {
+    "build": "PASS after removing old probe from src before vue-tsc; initial probe type errors retained",
+    "unit_previous": "27 passed (7 R338 + 20 repository)",
+    "unit_new": "2 failed",
+    "backend": "76 collected; exit 0 (4 R338 + 72 repository); claim forwarded in old test wrapper",
+    "browser_previous": "13 passed (2 R338 + 11 repository)",
+    "browser_new": "3 failed, 1 control passed; isolated mock and real production UI",
+    "full_gate": "not rerun; supplied 893/893 is Claude evidence"
+  },
+  "reproduction": [
+    "Extract git archive 050d6c5d into an isolated directory; install/copy dependencies there.",
+    "Build original product first: cd lcnc-webui && npm run build. The review unit probes intentionally live outside the product TS build.",
+    "Copy codex-unit-rerun.test.ts to src/r338.codex.test.ts; npx vitest run src/r338.codex.test.ts src/settingsDraft.test.ts src/settingsSections.test.ts --maxWorkers=1.",
+    "Copy codex-unit.test.ts to src/r339.codex.test.ts; npx vitest run src/r339.codex.test.ts --maxWorkers=1.",
+    "Copy codex-backend.py to lcnc-gateway/test_r338_codex.py; with gateway test dependencies: python -m pytest -q -s test_r338_codex.py test_settings_store.py test_device_profiles.py test_button_gates_b_commit.py.",
+    "PYTHONPATH=<archive>/lcnc-gateway python3 docs/reviews/settings-split.r339.codex-profile-origin.py",
+    "Copy browser.spec.ts and browser.config.ts to e2e/r339.codex.spec.ts and playwright.r339.config.ts. In the isolated e2e/mockSlot.mjs set MOCK_BASE_PORT=4939 (or a free port). npx playwright test --config playwright.r339.config.ts e2e/r339.codex.spec.ts.",
+    "Old browser probes: copy unchanged r338.codex-browser.spec.ts into e2e/r338.codex.spec.ts, run alongside e2e/devices.spec.ts and e2e/simulation-off.viewer.spec.ts with the same config.",
+    "python3 docs/reviews/settings-split.r339.codex-load-audit.py docs/reviews settings-split.r339.codex-load.raw-"
+  ],
+  "notes": [
+    "Initial new timeline probe lacked valid preview payload and timed out; corrected fixture yields actual focus/jog failure in final run.",
+    "A first list probe used frames alone. Strengthened final probes distinguish actual storage rebind (passes) from actual socket close/new hello followed by new INI snapshot (fails).",
+    "The new unit close/open ordering is controlled, not a measured retry duration; second case waits 1.5 seconds and checks the open-but-unbound interval.",
+    "Chromium and gateway async tests ran outside sandbox with approval; no machine access.",
+    "Normal profile creation on another INI is demonstrated by the real store; deletion-message inference checked in source and UI.",
+    "Measurement audit uses actual page windows; contained-window maxima are explicitly not whole-phase verdicts."
+  ],
+  "artifacts": {
+    "settings-split.r339.codex-build.txt": "875e55c395195574f7a00844f5c9786a1c8e9b8f2a9f176c8f7c508da5eb4bad",
+    "settings-split.r339.codex-build-probe-type-error.txt": "02dcafd7747251fb8b4a469ba821261a7c087a18818a5a684a7aca6f5c4738a8",
+    "settings-split.r339.codex-unit-rerun.test.ts": "2dd336bf03a823c411466608ec1075fa7f8a1fc847b5aa0f0010a03a2a1c1176",
+    "settings-split.r339.codex-unit-rerun.txt": "89863da06fa19b2ed2d27183be39974348b7ad255e21c79fe85794466301e1b8",
+    "settings-split.r339.codex-unit.test.ts": "c1235965e84c3dc750236959336074293d881e62655a27a0012bb19e72a91df2",
+    "settings-split.r339.codex-unit.txt": "b64a9630447a9ce984b910c0f2318a13af698600eaef9cd4ec55657c47ca2b3c",
+    "settings-split.r339.codex-backend.py": "da9fdbe4b7aeb84502f962bc421e971d78d6a9209ae88722e59e23ecef4e33dc",
+    "settings-split.r339.codex-backend.txt": "82b67ca875e87b4c5e2e4b14a5c767701d41a28ff6c202c73d08c1938ec096a7",
+    "settings-split.r339.codex-backend-collection.txt": "c95bf266eca2ea56ea01c78afcc230670e35549ba3e31a39cd59f8161649ba6d",
+    "settings-split.r339.codex-profile-origin.py": "3ef16bffef52c81819ba7a5f001370691d3d548e2e72bdc6c60d90f74903dc5c",
+    "settings-split.r339.codex-profile-origin.json": "71885cd78da395f1c224e708d29ff85a44ead36f218d52d1d6552abf79d05472",
+    "settings-split.r339.codex-browser.spec.ts": "a7c97fad444112118a07c253c95283b73c80513b0d8d3da93fcb96d2b2c85d2c",
+    "settings-split.r339.codex-browser.config.ts": "212ef53521c60b5d1ce3da14c7372d3a4a81967022de48cf93c6ac7c6bf61c2d",
+    "settings-split.r339.codex-browser.txt": "5785cbc7ad6e2d33489808a544ecb4527ec2642d5d284027bc4e599623fc81f0",
+    "settings-split.r339.codex-browser-initial.txt": "3cd5bcecefc0de239ec4cd0318e7f12066cbe9bc64b08df0bbf48995a279f223",
+    "settings-split.r339.codex-load-audit.py": "5328795b33ec7e7189beb82b9e0229e8906173dd7e05215155ca6887abeb89d7",
+    "settings-split.r339.codex-load-audit.json": "c1e3daf6e7cd8d2eae452c4bdbf7990437ccdb8b35ee4ebe711e2d7e159b4635",
+    "settings-split.r339.codex-load.raw-marks.jsonl": "14d3414d82ca7c1fc065df19fa5effd53e9934a19e7353ad6501b991cd499307",
+    "settings-split.r339.codex-load.raw-samples.jsonl": "f3a8f6808ffb9ae51c2526009c2606e2c6b75a4a9327e89cc5864397d08d22be",
+    "settings-split.r339.codex-load.raw-perf-panel.jsonl": "f266150d1431b9dedba2304c24b7d6dd449f706ea3adcc9d40f512d6754de7d6",
+    "settings-split.r339.codex-load.raw-perf-laptop.jsonl": "9213fac5058b604fe07cfd9ab95d90a6a46029e0c416ec68f6fc97c5b69ea526"
+  }
+}

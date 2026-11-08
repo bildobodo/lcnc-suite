@@ -1,0 +1,260 @@
+{
+  "source": "/home/cnc/claude-work/settings-split/simload/run-20261108-0058",
+  "sha256": {
+    "marks.jsonl": "14d3414d82ca7c1fc065df19fa5effd53e9934a19e7353ad6501b991cd499307",
+    "samples.jsonl": "f3a8f6808ffb9ae51c2526009c2606e2c6b75a4a9327e89cc5864397d08d22be",
+    "perf-panel.jsonl": "f266150d1431b9dedba2304c24b7d6dd449f706ea3adcc9d40f512d6754de7d6",
+    "perf-laptop.jsonl": "9213fac5058b604fe07cfd9ab95d90a6a46029e0c416ec68f6fc97c5b69ea526"
+  },
+  "devices": {
+    "panel": {
+      "rest0": {
+        "phase_ms": [
+          1794095979934,
+          1794096039935
+        ],
+        "selected_by_receipt_n": 21,
+        "selected_not_wholly_inside_phase_n": 2,
+        "max_receipt_delay_ms": 2468.9,
+        "receipt_selected_age_max_ms": 5421.1,
+        "worst_age_window_relative_to_phase_start_ms": [
+          -4697.4,
+          -2276.9
+        ],
+        "fully_contained_age_max_ms_NOT_full_phase": 46.1,
+        "border_or_foreign_windows": [
+          {
+            "receipt": 1794095980126,
+            "window": [
+              1794095975236.6,
+              1794095977657.1
+            ],
+            "age_max_ms": 5421.1
+          },
+          {
+            "receipt": 1794095982557,
+            "window": [
+              1794095977657.1,
+              1794095980556.3
+            ],
+            "age_max_ms": 5171
+          }
+        ],
+        "raw_histograms_available": true
+      },
+      "load": {
+        "phase_ms": [
+          1794096039935,
+          1794096087816
+        ],
+        "selected_by_receipt_n": 13,
+        "selected_not_wholly_inside_phase_n": 1,
+        "max_receipt_delay_ms": 9250.1,
+        "receipt_selected_age_max_ms": 7364.4,
+        "worst_age_window_relative_to_phase_start_ms": [
+          18878.3,
+          22095
+        ],
+        "fully_contained_age_max_ms_NOT_full_phase": 7364.4,
+        "border_or_foreign_windows": [
+          {
+            "receipt": 1794096043805,
+            "window": [
+              1794096037561.7,
+              1794096043802.2
+            ],
+            "age_max_ms": 3772.5
+          }
+        ],
+        "raw_histograms_available": true
+      },
+      "basis": {
+        "phase_ms": [
+          1794096087816,
+          1794096141942
+        ],
+        "selected_by_receipt_n": 11,
+        "selected_not_wholly_inside_phase_n": 1,
+        "max_receipt_delay_ms": 10275,
+        "receipt_selected_age_max_ms": 11370.7,
+        "worst_age_window_relative_to_phase_start_ms": [
+          23024.9,
+          26334.3
+        ],
+        "fully_contained_age_max_ms_NOT_full_phase": 11370.7,
+        "border_or_foreign_windows": [
+          {
+            "receipt": 1794096094966,
+            "window": [
+              1794096085556.3,
+              1794096091312.6
+            ],
+            "age_max_ms": 37.8
+          }
+        ],
+        "raw_histograms_available": true
+      },
+      "rest": {
+        "phase_ms": [
+          1794096141942,
+          1794096261944
+        ],
+        "selected_by_receipt_n": 40,
+        "selected_not_wholly_inside_phase_n": 1,
+        "max_receipt_delay_ms": 2009.5,
+        "receipt_selected_age_max_ms": 6727.8,
+        "worst_age_window_relative_to_phase_start_ms": [
+          -2154.1,
+          615.9
+        ],
+        "fully_contained_age_max_ms_NOT_full_phase": 42.6,
+        "border_or_foreign_windows": [
+          {
+            "receipt": 1794096144566,
+            "window": [
+              1794096139787.9,
+              1794096142557.9
+            ],
+            "age_max_ms": 6727.8
+          }
+        ],
+        "raw_histograms_available": true
+      }
+    },
+    "laptop": {
+      "rest0": {
+        "phase_ms": [
+          1794095979934,
+          1794096039935
+        ],
+        "selected_by_receipt_n": 19,
+        "selected_not_wholly_inside_phase_n": 1,
+        "max_receipt_delay_ms": 2009.8,
+        "receipt_selected_age_max_ms": 2292.6,
+        "worst_age_window_relative_to_phase_start_ms": [
+          -69.5,
+          1563.2
+        ],
+        "fully_contained_age_max_ms_NOT_full_phase": 40.8,
+        "border_or_foreign_windows": [
+          {
+            "receipt": 1794095983501,
+            "window": [
+              1794095979864.5,
+              1794095981497.2
+            ],
+            "age_max_ms": 2292.6
+          }
+        ],
+        "raw_histograms_available": true
+      },
+      "load": {
+        "phase_ms": [
+          1794096039935,
+          1794096087816
+        ],
+        "selected_by_receipt_n": 15,
+        "selected_not_wholly_inside_phase_n": 2,
+        "max_receipt_delay_ms": 7619.7,
+        "receipt_selected_age_max_ms": 6662.6,
+        "worst_age_window_relative_to_phase_start_ms": [
+          18177,
+          21137
+        ],
+        "fully_contained_age_max_ms_NOT_full_phase": 6662.6,
+        "border_or_foreign_windows": [
+          {
+            "receipt": 1794096043365,
+            "window": [
+              1794096035504.3,
+              1794096038504
+            ],
+            "age_max_ms": 38.1
+          },
+          {
+            "receipt": 1794096045380,
+            "window": [
+              1794096038504,
+              1794096043367
+            ],
+            "age_max_ms": 3332.5
+          }
+        ],
+        "raw_histograms_available": true
+      },
+      "basis": {
+        "phase_ms": [
+          1794096087816,
+          1794096141942
+        ],
+        "selected_by_receipt_n": 16,
+        "selected_not_wholly_inside_phase_n": 2,
+        "max_receipt_delay_ms": 8138.3,
+        "receipt_selected_age_max_ms": 10375.7,
+        "worst_age_window_relative_to_phase_start_ms": [
+          21823.1,
+          25373.4
+        ],
+        "fully_contained_age_max_ms_NOT_full_phase": 10375.7,
+        "border_or_foreign_windows": [
+          {
+            "receipt": 1794096090992,
+            "window": [
+              1794096083504.2,
+              1794096086502.8
+            ],
+            "age_max_ms": 45
+          },
+          {
+            "receipt": 1794096094753,
+            "window": [
+              1794096086502.8,
+              1794096090992.2
+            ],
+            "age_max_ms": 49.4
+          }
+        ],
+        "raw_histograms_available": true
+      },
+      "rest": {
+        "phase_ms": [
+          1794096141942,
+          1794096261944
+        ],
+        "selected_by_receipt_n": 39,
+        "selected_not_wholly_inside_phase_n": 1,
+        "max_receipt_delay_ms": 2013.7,
+        "receipt_selected_age_max_ms": 52.5,
+        "worst_age_window_relative_to_phase_start_ms": [
+          -1440.2,
+          1558.8
+        ],
+        "fully_contained_age_max_ms_NOT_full_phase": 40.9,
+        "border_or_foreign_windows": [
+          {
+            "receipt": 1794096145508,
+            "window": [
+              1794096140501.8,
+              1794096143500.8
+            ],
+            "age_max_ms": 52.5
+          }
+        ],
+        "raw_histograms_available": true
+      }
+    }
+  },
+  "sampling": {
+    "n": 251,
+    "max_gap_ms": 10436,
+    "panel_collision_seen": false,
+    "panel_unobserved_work_n": 0
+  },
+  "interpretation": [
+    "Receipt-time selection includes foreign/border windows; use actual windows and explicit edge accounting.",
+    "A max of window p95 values is not the pooled phase p95; gap and status age are distinct.",
+    "Max gap refutes an uninterrupted once-per-second work probe. No observed panel worker is still meaningful.",
+    "CPU difference 258.9-142.9=116.0 percentage points belongs to the 47.9 s load phase, not only its 36.1 s check.",
+    "No complete performance acceptance or causal path attribution is calculated by this audit."
+  ]
+}
