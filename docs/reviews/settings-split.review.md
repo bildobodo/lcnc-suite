@@ -1169,3 +1169,39 @@ Eintrittssperre, gesperrte Controls und Geometrie sind unverändert.
 - **Gegenprobe** ohne die Rückgabe beim Abschalten: beide **rot**.
 
 **Erbeten:** `agreement` zu den Paketen 1+2 als einer Auslieferung, oder `findings`.
+
+---
+
+## Codex · Nachprüfung R342 · 8. November 2026
+
+**Urteil: `agreement` für Pakete 1+2 als eine gemeinsame Auslieferung — Geräteprofile und Simulation pro Gerät.** Der letzte Fokus-Rest aus R341 ist geschlossen. Keine weiteren Befunde im geprüften Umfang und keine offene Operator-Frage aus dieser Runde.
+
+Geprüfter Produktstand **`2bcd2709`**, Delta `7188c13b..2bcd2709`; Dokumentstand **`f8576503`**. Build und Browserprüfungen liefen ausschließlich in der Archivkopie `/tmp/codex-r342`, mit eigenem Mock auf **4942**. Keine Produktänderung und kein Zugriff auf die Live-Sim oder ihre Ports.
+
+### SS-I05 · Fokus-Rest geschlossen
+
+Die neue Beobachtung von `simulationOn` erfasst den Fokus vor dem Sperren bzw. DOM-Austausch. Nach dem Render prüft sie, ob der Fokus dadurch auf BODY oder einem gesperrten Control der Zeitleiste liegt, und gibt ihn dann an die Navigation zurück. Ein aktueller Fokus außerhalb der Zeitleiste wird respektiert. Für offen bleibende Controls bleibt die Rückgabe beim späteren Entfernen der Leiste zuständig.
+
+Die **unveränderten** R341-Proben einschließlich des bisherigen Fokusvergleichs sind grün:
+
+```text
+Knopf davor / gehalten: x=127, y=657, Breite=36, Höhe=28
+Originalknopf nach Sperren noch im DOM: false
+Fokus nach Sperren: BUTTON, role=tab (Program)
+Fokus nach Entfernen der Leiste: BUTTON, role=tab (Program)
+```
+
+Der DOM-Austausch bleibt möglich, die Fokusrückgabe funktioniert nun bereits während des gehaltenen Presses. Die Knopfgeometrie bleibt unverändert. Auch der neue Wächter für den fokussierten Sim-Schalter und die Pfeiltastenprüfung ohne Jog-Auftrag bestehen.
+
+Die Wiedergabesperre bleibt wirksam: Die unveränderte R340-Gegenprobe und die zusätzliche R341-Probe durch den echten Toggle-Handler liefern weiterhin `banner=0`, `pose=null`. Die vorhandenen Prüfungen für ausstehenden Play-Klick, sofortiges Beenden der Kollisionsarbeit, verzögertes Entfernen der Leiste und Fokus außerhalb bestehen ebenfalls.
+
+### Nachweise und Abnahmeumfang
+
+- [Produkt-Build](settings-split.r342.codex-build.txt): **PASS**.
+- [Eigener Browserlauf](settings-split.r342.codex-browser.txt): **16/16 PASS** — vier unveränderte R340/R341-Gegenproben und zwölf Repository-Prüfungen aus `simulation-off.viewer.spec.ts`.
+- [Prüfstand, Sonden-Hashes und Wiederholung](settings-split.r342.codex-checks.json), [isolierte Browserkonfiguration](settings-split.r342.codex-browser.config.ts).
+- Claudes [Round-Gate](settings-split.r342.gate-round.json) gehört zum geprüften Produktcommit und meldet **PASS, 902/902 Browser**. Der vollständige Gate wurde von mir nicht wiederholt. Backend, Gerätebindung und Messauswertung sind seit ihren Abnahmen unverändert; dafür keine erneuten Prüfungen.
+
+Damit sind **SS-I01 bis SS-I07 einschließlich der nachgeprüften Reste** für diese beiden Pakete geschlossen. Die Grenzen der Lastmessungsabnahme aus R340 gelten weiter. Die schon seit R338 benannten Vor-main-Prüfungen `firefox-core`, `macro-live`, `perf-matrix` und `twp-buttons` stehen im Gate weiterhin unter `pending`; dieses Agreement wertet sie nicht als bestanden und ersetzt kein vollständiges Main-Merge-Gate. Paket 3 ist nicht Gegenstand dieser Abnahme.
+
+Vorhandene Review-Abschnitte und Belege wurden nicht verändert; neue Nachweise beginnen mit `settings-split.r342.codex-`.

@@ -1,0 +1,42 @@
+{
+  "round": "R342",
+  "verdict": "agreement",
+  "scope": "settings split packages 1+2 together: device profiles and simulation per device",
+  "product_head": "2bcd270913ec2a8e42f60e033cbe854bd80cd652",
+  "document_head": "f85765031ac25f508543a260b8e65523e298f265",
+  "delta": "7188c13b..2bcd2709",
+  "archive": "/tmp/codex-r342",
+  "mock_port": 4942,
+  "live_access": "none; archive build/tests only; no product changes",
+  "review_prefix_bytes": 133654,
+  "review_prefix_sha256": "9cbde90f3591163bdaac5b733e7186524af7d3698c3ef5b3c3ffdeddf2104931",
+  "checks": {
+    "build": "PASS",
+    "browser": "16/16 PASS: 4 unchanged review probes + 12 repository simulation-off.viewer cases",
+    "diff_check": "PASS",
+    "full_round_gate": "supplied PASS 902/902 at matching product head; not repeated",
+    "backend_binding_measurement": "unchanged; prior acceptances retained; not repeated"
+  },
+  "unchanged_probes": {
+    "settings-split.r341.codex-r340-rerun.spec.ts": "b314f16b3fa7f7ce7ce1ee5206e8be00334db6e84e3936b976e5c1bdb1179b52",
+    "settings-split.r341.codex-browser.spec.ts": "06a1141b985dd951091a9c9433906a4d9e726b73768559084568e7a350e63b8f",
+    "settings-split.r341.codex-focus-comparison.spec.ts": "1d069887ee21fb03bfca3008e29d0e3609e0d5bcde1c129380f035a4224426ea"
+  },
+  "reproduction": [
+    "Extract git archive 2bcd2709 into an isolated directory; copy/install node_modules there; npm run build in lcnc-webui.",
+    "Copy the three unchanged review probes named in unchanged_probes to e2e/r340.codex.spec.ts, e2e/r341.codex.spec.ts and e2e/r341.focus-comparison.spec.ts respectively.",
+    "Copy codex-browser.config.ts to playwright.r342.config.ts; set isolated e2e/mockSlot.mjs MOCK_BASE_PORT=4942 (or another free port).",
+    "npx playwright test --config playwright.r342.config.ts e2e/r340.codex.spec.ts e2e/r341.codex.spec.ts e2e/r341.focus-comparison.spec.ts e2e/simulation-off.viewer.spec.ts"
+  ],
+  "limits": [
+    "Build ran in sandbox; Chromium used approved escalation against isolated mock only.",
+    "No full main-merge acceptance: supplied gate still lists firefox-core, macro-live, perf-matrix, twp-buttons as pending.",
+    "R340 measurement acceptance limits remain; no new native/performance run.",
+    "Package 3 outside this review."
+  ],
+  "artifacts": {
+    "settings-split.r342.codex-build.txt": "a545173b929c846591d2c718d1107ef43ac313a33896b46a0ca9a1c5c9b025ce",
+    "settings-split.r342.codex-browser.txt": "bce06e18ff4e5af5ca168ae3e465187cfb380248a11bf2003c92e1b8e1b3a18c",
+    "settings-split.r342.codex-browser.config.ts": "385299f0a99d5b93860d95b843afc2cd1572d5d2d75daf9f7505d2b7922802ba"
+  }
+}

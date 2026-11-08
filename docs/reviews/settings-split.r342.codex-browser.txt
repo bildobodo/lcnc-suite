@@ -1,0 +1,30 @@
+
+Running 16 tests using 1 worker
+
+(node:1708275) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1708275) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+REENTRY_WHILE_OFF {"banner":0,"pose":null,"bar":1,"work":{"worker":false,"busy":false,"result":false,"run":false,"scheduled":false}}
+AFTER_RELEASE {"banner":0,"pose":null}
+  ✓   1 e2e/r340.codex.spec.ts:5:1 › a retained disabled timeline cannot re-enter simulation via keyboard while a pointer is held (1.7s)
+CENTRAL_GUARD {"pose":null,"banner":0}
+  ✓   2 e2e/r341.codex.spec.ts:5:1 › the central entry guard refuses a held toggle event independent of the DOM disabled flag (1.5s)
+HELD_PLAY {"before":{"x":127,"y":657,"width":36,"height":28},"held":{"x":127,"y":657,"width":36,"height":28},"midFocus":{"tag":"BUTTON","role":"tab"},"endFocus":{"tag":"BUTTON","role":"tab"}}
+  ✓   3 e2e/r341.codex.spec.ts:39:1 › disabling held Play keeps its position and hands its focus back when the bar leaves (2.3s)
+HELD_PLAY {"before":{"x":127,"y":657,"width":36,"height":28},"held":{"x":127,"y":657,"width":36,"height":28},"originalConnected":false,"midFocus":{"tag":"BUTTON","role":"tab"},"endFocus":{"tag":"BUTTON","role":"tab"}}
+  ✓   4 e2e/r341.focus-comparison.spec.ts:6:1 › held Play hands its focus back when the bar leaves (2.3s)
+  ✓   5 e2e/simulation-off.viewer.spec.ts:51:1 › a device without the simulation: no check, no timeline, no Sim tab — the path, the tool mark and the run line stay (2.9s)
+  ✓   6 e2e/simulation-off.viewer.spec.ts:71:1 › switched off during the check: the worker ends, every finding goes; switched on: a fresh check (6.0s)
+  ✓   7 e2e/simulation-off.viewer.spec.ts:93:1 › the Sim tab shown when the simulation goes off: the Program tab takes its place (3.0s)
+  ✓   8 e2e/simulation-off.viewer.spec.ts:111:3 › the Sim tab goes with the focus in its tab: the focus to the navigation, an arrow never jogs (3.4s)
+  ✓   9 e2e/simulation-off.viewer.spec.ts:111:3 › the Sim tab goes with the focus in its pane: the focus to the navigation, an arrow never jogs (3.3s)
+  ✓  10 e2e/simulation-off.viewer.spec.ts:130:1 › the Sim tab goes with the focus elsewhere: it stays there (3.1s)
+  ✓  11 e2e/simulation-off.viewer.spec.ts:147:3 › the timeline goes with the focus on "Open the Sim tab": the focus to the navigation, an arrow never jogs (3.0s)
+  ✓  12 e2e/simulation-off.viewer.spec.ts:147:3 › the timeline goes with the focus on "Playback speed": the focus to the navigation, an arrow never jogs (3.1s)
+  ✓  13 e2e/simulation-off.viewer.spec.ts:166:1 › switched off during a press on the timeline: the work stops at once, the bar leaves after the click (3.5s)
+  ✓  14 e2e/simulation-off.viewer.spec.ts:184:1 › the timeline held under a press starts nothing after the switch went off: Play by key, Play's own click (4.7s)
+  ✓  15 e2e/simulation-off.viewer.spec.ts:221:1 › a held Play closed by the switch: its focus to the navigation at once, and after the bar leaves (4.4s)
+  ✓  16 e2e/simulation-off.viewer.spec.ts:244:1 › the Sim switch focused under a press elsewhere on the bar: its focus to the navigation at the switch (3.3s)
+
+  16 passed (52.3s)
