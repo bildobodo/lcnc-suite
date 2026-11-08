@@ -161,7 +161,12 @@ const machineOff = computed(() => !st.value.is_enabled);
 // Why a findings stop is unavailable — told at the button through the one
 // explain path (design wave D1, UI-N32), not a hover title on a wrapper.
 const SIM_OFF_REASON = "Machine on — power off to simulate";
-const hitNavReason = computed(() => (!simMode.value && !machineOff.value ? SIM_OFF_REASON : undefined));
+/** The device's simulation switched off while the bar still stands under a
+ *  press (simShown): its controls that would START the mode are closed —
+ *  same place, same size — until the bar leaves (Codex R340). */
+const DEVICE_SIM_OFF = "Simulation off on this device";
+const hitNavReason = computed(() => (!simulationOn.value ? DEVICE_SIM_OFF
+  : !simMode.value && !machineOff.value ? SIM_OFF_REASON : undefined));
 // Visible whenever a track exists — during a real run the bar is a
 // READ-ONLY display (all controls are dead via the existing gating): live
 // playhead on the estimate axis, findings/tool marks as look-ahead.
@@ -318,6 +323,9 @@ function _buildEntryTrackNow() {
 }
 
 function enterSim(): boolean {
+  // the device's switch admits the mode — a bar still shown under a press
+  // after the switch went off starts nothing (Codex R340)
+  if (!simulationOn.value) return false;
   if (simMode.value) return true;
   if (!baseTrack.value || running.value || !machineOff.value) return false;
   simMode.value = true;
@@ -1318,10 +1326,11 @@ onUnmounted(releaseSim);
       <!-- Sim mode toggle — same switch as settings/coolant toggles. The
            parent-authoritative model snaps it back if entry is refused. -->
       <MachineToggle gate="simToggle" v-model="simToggleModel" label="Sim"
-                     :disabled="!simMode && !machineOff"
+                     :disabled="!simulationOn || (!simMode && !machineOff)"
                      help="Poses the 3D model along the program. Machine must be OFF; machine controls lock until you exit." />
 
-      <MachineBtn type="scrub" class="iconBtn" :disabled="!simMode && !machineOff"
+      <MachineBtn type="scrub" class="iconBtn" :disabled="!simulationOn || (!simMode && !machineOff)"
+                  :reason="!simulationOn ? DEVICE_SIM_OFF : undefined"
                   :title="playing ? 'Pause playback' : 'Play the program through the machine model'"
                   @click="togglePlay">
         <Pause v-if="playing" :size="14" />

@@ -11305,3 +11305,12 @@ simulation is off"), BESIDE the device's own controls. SS-I07 the load
 report re-evaluated from its raw data: status windows by their own span,
 cadence and age apart, CPU over the check alone, the observed sample gaps
 named.
+
+**Codex R340 (2026-11-08).** SS-I02, SS-I06, SS-I07 and the focus return
+closed. Last rest: the timeline still standing under a press (simShown) let
+Play or the Sim switch START the mode the device switch had just ended —
+`enterSim` now asks `simulationOn` itself (every way in: the switch, Play, a
+finding's jump from the Sim tab), and the controls that would start it are
+closed while the bar stands, same place, same size ("Simulation off on this
+device"). `simShown` decides only whether the place stays; `simulationOn`
+whether anything may begin.

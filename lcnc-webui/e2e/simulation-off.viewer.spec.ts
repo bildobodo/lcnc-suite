@@ -177,3 +177,40 @@ test("switched off during a press on the timeline: the work stops at once, the b
   await page.mouse.up();
   await expect(page.locator(".scrubBar")).toHaveCount(0);
 });
+
+// Codex R340: the timeline still standing under a press must not START the
+// mode the switch just ended — neither by another control nor by the click
+// of the press itself.
+test("the timeline held under a press starts nothing after the switch went off: Play by key, Play's own click", async ({ page, context }) => {
+  test.setTimeout(90_000);
+  await prepare(page, context, "/held.ngc", 7701, true);
+  const bar = page.locator(".scrubBar");
+  const play = bar.getByTitle("Play the program through the machine model", { exact: true });
+  await expect(play).toBeEnabled();
+  // (1) a press on the link holds the bar; Play by key meanwhile
+  const link = bar.getByLabel("Open the Sim tab", { exact: true });
+  const b = (await link.boundingBox())!;
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await page.mouse.down();
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { simulation: { enabled: false } } } });
+  await expect.poll(() => work(page)).toEqual(IDLE_WORK);
+  await expect(bar, "the bar under the finger stays").toHaveCount(1);
+  await expect(play, "closed while it stands").toBeDisabled();
+  await play.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".simBanner")).toHaveCount(0);
+  expect(await page.evaluate(() => window.__viewerDiag!.getScrubPose!()), "the model stays live").toBeNull();
+  await page.mouse.up();
+  await expect(bar).toHaveCount(0);
+  // (2) on again; a press ON Play, the switch goes off, then its click
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { simulation: { enabled: true } } } });
+  await expect(bar).toHaveCount(1);
+  const p = (await play.boundingBox())!;
+  await page.mouse.move(p.x + p.width / 2, p.y + p.height / 2);
+  await page.mouse.down();
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { simulation: { enabled: false } } } });
+  await expect(play).toBeDisabled();
+  await page.mouse.up();
+  await expect(page.locator(".simBanner"), "the click starts no simulation").toHaveCount(0);
+  await expect(bar).toHaveCount(0);
+});
