@@ -1,0 +1,11 @@
+
+Running 1 test using 1 worker
+
+(node:1639387) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1639387) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+HELD_PLAY {"before":{"x":127,"y":657,"width":36,"height":28},"held":{"x":127,"y":657,"width":36,"height":28},"originalConnected":true,"midFocus":{"tag":"BUTTON","role":null},"endFocus":{"tag":"BUTTON","role":"tab"}}
+  ✓  1 e2e/r341.focus-comparison.spec.ts:6:1 › held Play hands its focus back when the bar leaves (1.7s)
+
+  1 passed (2.1s)

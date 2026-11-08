@@ -1,0 +1,47 @@
+{
+  "round": "R341",
+  "verdict": "findings",
+  "product_head": "7188c13b4719478e0ec68d55a5b279420a2e07da",
+  "previous_product": "718cce0739ce6b22c77cee907790361909e1c211",
+  "document_head": "46fd0c0402cb0c777a7720a306cbe59e4b6c172c",
+  "isolation": {
+    "current": "/tmp/codex-r341",
+    "previous": "/tmp/codex-r340",
+    "mock_current": 4941,
+    "mock_previous": 4940,
+    "live_access": "none"
+  },
+  "review_prefix_bytes": 126798,
+  "review_prefix_sha256": "6edc618e91f6aa9f8d6c6e63381fe873d72a53e03c44abf0a14531757dbb2e66",
+  "checks": {
+    "build": "PASS, product unchanged",
+    "browser": "12 passed, 1 failed (R340 unchanged + 2 new probes + 10 repository cases)",
+    "focus_comparison": "same focus-only spec: old PASS, new FAIL; same geometry, original node retained old / replaced new",
+    "gate": "supplied 900/900, not independently repeated",
+    "backend_unit_measurement": "unchanged, not repeated"
+  },
+  "reproduction": [
+    "Extract git archive 7188c13b into an isolated directory; copy/install dependencies; npm run build in lcnc-webui.",
+    "Copy r340-rerun.spec.ts to e2e/r340.codex.spec.ts, browser.spec.ts to e2e/r341.codex.spec.ts, browser.config.ts to playwright.r341.config.ts. Set isolated e2e/mockSlot.mjs MOCK_BASE_PORT=4941.",
+    "npx playwright test --config playwright.r341.config.ts e2e/r340.codex.spec.ts e2e/r341.codex.spec.ts e2e/simulation-off.viewer.spec.ts",
+    "Copy focus-comparison.spec.ts to e2e/r341.focus-comparison.spec.ts; npx playwright test --config playwright.r341.config.ts e2e/r341.focus-comparison.spec.ts.",
+    "Run the same focus comparison in a separate build of 718cce07 using another mock port (4940 here)."
+  ],
+  "notes": [
+    "Original R340 probe unchanged; artifact sha256 matches settings-split.r340.codex-browser-boundary.spec.ts.",
+    "The extra central-entry test deliberately dispatches a change event past the native disabled control; no product code was modified.",
+    "The focus regression uses genuine mouse input, with machine-off mock status. No new jog emission is claimed.",
+    "The final focus comparison deliberately checks only focus/geometry. A preliminary comparison also asserted old playback behavior and failed at that already-known R340 defect after its focus assertion passed.",
+    "Build ran in sandbox. Chromium ran with approved escalation, against isolated mock services only."
+  ],
+  "artifacts": {
+    "settings-split.r341.codex-r340-rerun.spec.ts": "b314f16b3fa7f7ce7ce1ee5206e8be00334db6e84e3936b976e5c1bdb1179b52",
+    "settings-split.r341.codex-browser.spec.ts": "06a1141b985dd951091a9c9433906a4d9e726b73768559084568e7a350e63b8f",
+    "settings-split.r341.codex-focus-comparison.spec.ts": "1d069887ee21fb03bfca3008e29d0e3609e0d5bcde1c129380f035a4224426ea",
+    "settings-split.r341.codex-build.txt": "4fae58bfec2294d62c4ae5b66ef994c37d3688480de97261c47688f64143ab28",
+    "settings-split.r341.codex-focus-before.txt": "f5586953ba2e77814a1352d1e7cb2ed906f44b68f8c8a6f408534d17056208b9",
+    "settings-split.r341.codex-browser.txt": "a0a83d5a4e9016b7acb7424833ef43a903c501632f2e93858a979861f3327e98",
+    "settings-split.r341.codex-browser.config.ts": "5c9c89143ca5ecdeceb270aedc1026c8add1c5669eeb34dd47605c44b5e605e8",
+    "settings-split.r341.codex-focus-after.txt": "90d5676feccd75f54cd2381e98edac80e596efe82c4922fb1d3b98b0a38f54ab"
+  }
+}

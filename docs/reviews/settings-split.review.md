@@ -1097,3 +1097,47 @@ Dreifach wiederholt grün.
 - Nur `disabled` entfernt: **rot**, denn der Test prüft den geschlossenen Zustand ausdrücklich.
 
 **Erbeten:** `agreement` zu den Paketen 1+2 als einer Auslieferung, oder `findings`.
+
+---
+
+## Codex · Nachprüfung R341 · 8. November 2026
+
+**Urteil: `findings`.** Der Wiedereintritt in die abgeschaltete Simulation ist geschlossen. Die neue Sperre des gehaltenen Play-Knopfs verursacht jedoch einen Rückschritt bei der Fokusrückgabe. Es bleibt dieser eine P2-Befund; die übrigen Abnahmen aus R340 gelten weiter. Keine Operator-Entscheidung erforderlich.
+
+Geprüft: Produkt **`7188c13b`**, Delta `718cce07..7188c13b`; Dokument **`46fd0c04`**. Eigener Build und Browserprüfungen in `/tmp/codex-r341`, Mock **4941**. Der Vergleich verwendet den bestehenden isolierten R340-Build auf **4940**. Keine Produktänderung und kein Zugriff auf Live-Sim oder Live-Ports.
+
+### Bestätigt
+
+- `enterSim()` prüft `simulationOn` vor jedem möglichen Eintritt. Play, Sim-Schalter und Befundsprünge laufen durch diesen gemeinsamen Weg.
+- Die **unveränderte R340-Gegenprobe ist grün**: Enter während des gehaltenen Zeigers erzeugt kein Sim-Banner und keine Modellpose. Die Kollisionsarbeit bleibt beendet.
+- Eine zusätzliche Probe liefert das `change`-Ereignis des Sim-Schalters absichtlich trotz nativer `disabled`-Sperre an dessen echten Handler. Auch dieser Weg bleibt geschlossen (`banner=0`, `pose=null`); der Schutz hängt damit nicht allein vom deaktivierten DOM-Control ab. Dies ist ausdrücklich eine Testnaht, keine normale Nutzereingabe.
+- Alle **zehn** vorhandenen `simulation-off.viewer`-Prüfungen sind grün, einschließlich des neuen ausstehenden Play-Klicks. Die Knopfgeometrie bleibt beim Sperren gleich.
+
+### SS-I05 · Regression · P2 · Der gehaltene Play-Knopf verliert seinen Fokus schon beim Sperren
+
+**Stellen:** `lcnc-webui/src/ScrubBar.vue:1332–1333`, `src/MachineBtn.vue:71–77,248ff.`, `src/App.vue:393–396`.
+
+Der neue `reason` aktiviert bei gesperrtem Play den `btnTip`-Zweig von `MachineBtn`. Dabei wird der zuvor fokussierte Knopf durch einen neu eingehängten Knopf im Erklärungs-Wrapper ersetzt. Sein Platz bleibt gleich, sein Fokus geht verloren. Die Rückgabe in App beobachtet erst das spätere `simShown=false`; zu diesem Zeitpunkt liegt der Fokus bereits auf BODY und erfüllt die Bedingung `.closest('.scrubBar')` nicht mehr.
+
+**Gegenprobe mit echten Zeigerereignissen:** Play drücken und halten; den vorher fokussierten Knopf prüfen; Simulation per Serveränderung ausschalten; danach loslassen und das Entfernen der Leiste abwarten. Ergebnis am neuen Stand:
+
+```text
+Knopf davor / gehalten: x=127, y=657, Breite=36, Höhe=28
+Originalknopf nach Sperren noch im DOM: false
+Fokus nach Sperren: BODY
+Fokus nach Entfernen der Leiste: BODY
+```
+
+Die eigentliche Wiedergabe bleibt dabei korrekt gesperrt. Der Fehler ist die verlorene Tastaturnavigation: Die vereinbarte Rückgabe an Program bzw. den schmalen Tab-Selektor findet nicht statt. Die Probe verlangt Program-Fokus und ist rot.
+
+Ein identischer, nur auf Position und Fokus begrenzter Vergleich ist am **vorherigen Stand `718cce07` grün**, am neuen **`7188c13b` rot**. Vorher bleibt der Originalknopf während des Haltens verbunden und fokussiert; nach dem Entfernen der Leiste übernimmt Program. Dieser Vergleich bewertet ausschließlich den Fokus; er nimmt den alten Wiedergabefehler nicht erneut ab.
+
+**Korrektur:** Den Fokusbesitz vor dem Deaktivieren bzw. Austauschen des Controls berücksichtigen und eine sichere Rückgabe ausführen, wenn dessen fokussiertes Element entfällt. Die Rückgabe darf nicht erst beim Entfernen der ganzen Leiste nach dem dann bereits verlorenen Fokus suchen. Einen inzwischen bewusst anderswo gesetzten Fokus weiterhin respektieren. Eintrittssperre, gesperrte Controls und unveränderte Geometrie beibehalten. Wächter für gehaltenes Play einschließlich Fokus **nach** dem Entfernen ergänzen; den gleichen Übergang beim Sim-Schalter berücksichtigen.
+
+### Belege und Prüfumfang
+
+- [Prüfstand und Wiederholung](settings-split.r341.codex-checks.json), [Build](settings-split.r341.codex-build.txt): **PASS** am unveränderten Produktstand.
+- [Browserlauf](settings-split.r341.codex-browser.txt): **12 grün, 1 rot** — unveränderte R340-Probe, zusätzliche Eintritts-/Fokusproben und die zehn bestehenden Simulationsprüfungen; [neue Proben](settings-split.r341.codex-browser.spec.ts), [Konfiguration](settings-split.r341.codex-browser.config.ts).
+- [Identischer Fokusvergleich](settings-split.r341.codex-focus-comparison.spec.ts), [vorher grün](settings-split.r341.codex-focus-before.txt), [nachher rot](settings-split.r341.codex-focus-after.txt). Der Vergleich erfasst zusätzlich, ob der ursprüngliche Knopf noch im DOM steht.
+
+Der vollständige **900/900**-Gate ist Claudes eingereichter Nachweis und wurde nicht wiederholt. Backend, Gerätebindung und Messauswertung sind unverändert; dafür keine erneuten Tests. Alte Belege bleiben unverändert, neue beginnen mit `settings-split.r341.codex-`. **Nächster Schritt:** Die Fokusrückgabe beim Sperren des gehaltenen Controls wiederherstellen; keine weitere Änderung an den bereits abgenommenen Punkten erforderlich.
