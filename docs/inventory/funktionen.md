@@ -25,7 +25,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | Werkzeug anlegen, bearbeiten, löschen, umnummerieren | LinuxCNC übernimmt die geschriebene Tabelle. | Wirkung | alle | Nativ: das Neuladen in LinuxCNC nicht belegt |
 | Verbindung: Anmeldung, Herzschlag, Wiederverbindung, Auslieferung | Ein Befehl, dessen Wert die Handlung bestimmt, wird ohne diesen Wert abgelehnt: home ohne joint, set_optional_stop / set_block_delete ohne Wahrheitswert, ein Override ohne scale, spindle_forward / spindle_reverse ohne speed; wo ein Standard die sichere Richtung ist (arm ohne armed → entwaffnen), ist er ausdrücklich so entschieden. | Ablehnung | alle | Gateway: heute führt es diese Befehle mit einem Standard aus (home ohne joint referenziert alle, "false" schaltet M01 ein, ein Override ohne scale setzt 100 %); 24 finite_*(msg.get(…, Standard)) und 9 bool(msg.get(…)) sind je Befehl zu sichten, bevor ein Standard entfällt — ein eigenes Gateway-Paket (F-COMP S3 war der erste Fall); der WebUI-Client sendet jedes Feld (commandShapes.test.ts) |
 
-**Ohne formulierte Aussagen:** 19 Funktionen ohne eigene Maschinenwirkung — Programm herunterladen `F-PROGDOWNLOAD`, G-Code ansehen, aktive Codes, Codewort-Referenz, Statistik `F-GCODEVIEW`, Vorschau des Werkzeugwegs `F-PREVIEW`, Werkzeugtabelle ansehen, suchen, sortieren `F-TOOLTABLE`, Werkzeugtabelle herunterladen `F-TOOLDOWNLOAD`, Makro-Leiste einrichten `F-MACROBAR`, Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab `F-SIM`, 3D-Ansicht bedienen: Ansichten, Würfel, Spur löschen, Hinweise `F-VIEW`, 3D-Ansicht einstellen: Ebenen, Farben, Projektion, Verfolgung, HUD `F-VIEWSET`, Kamerabild (Bild im Bild) und Überlagerung `F-CAMERA`, Funktionen abschalten (Antasten, Toolsetter, Surface-Map, Kamera, Makros, Gamepad) `F-FEATURES`, Darstellung: Farbschema, Vollbild, Bildschirm wach halten `F-DISPLAY`, Meldungen: Nachrichtenzentrale, Filter, Kopieren, Löschen `F-MESSAGES`, Navigation: Tabs und Seitenleiste `F-TABS`, Diagnose: HAL-Anzeige, Timing, Telemetrie `F-DIAG`, Eingabehilfen: Zahlen- und Text-Tastatur am Bildschirm `F-INPUTHELP`, Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe `SYS-CONTROLS`, Statusübertragung (Rahmen und gemeinsame Felder) `SYS-STATUS`, Maschinenkonfiguration lesen: Achsen, Gelenke, Grenzen, Kinematik, Remaps, Profile `SYS-CONFIG`
+**Ohne formulierte Aussagen:** 18 Funktionen ohne eigene Maschinenwirkung — Programm herunterladen `F-PROGDOWNLOAD`, G-Code ansehen, aktive Codes, Codewort-Referenz, Statistik `F-GCODEVIEW`, Vorschau des Werkzeugwegs `F-PREVIEW`, Werkzeugtabelle ansehen, suchen, sortieren `F-TOOLTABLE`, Werkzeugtabelle herunterladen `F-TOOLDOWNLOAD`, Makro-Leiste einrichten `F-MACROBAR`, Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab `F-SIM`, 3D-Ansicht bedienen: Ansichten, Würfel, Spur löschen, Hinweise `F-VIEW`, 3D-Ansicht einstellen: Ebenen, Farben, Projektion, Verfolgung, HUD `F-VIEWSET`, Kamerabild (Bild im Bild) und Überlagerung `F-CAMERA`, Darstellung: Farbschema, Vollbild, Bildschirm wach halten `F-DISPLAY`, Meldungen: Nachrichtenzentrale, Filter, Kopieren, Löschen `F-MESSAGES`, Navigation: Tabs und Seitenleiste `F-TABS`, Diagnose: HAL-Anzeige, Timing, Telemetrie `F-DIAG`, Eingabehilfen: Zahlen- und Text-Tastatur am Bildschirm `F-INPUTHELP`, Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe `SYS-CONTROLS`, Statusübertragung (Rahmen und gemeinsame Felder) `SYS-STATUS`, Maschinenkonfiguration lesen: Achsen, Gelenke, Grenzen, Kinematik, Remaps, Profile `SYS-CONFIG`
 
 ## Sicherheit und Maschinenzustand
 
@@ -350,8 +350,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ### Werkzeuglänge messen (M600) und Werkzeug entladen
 
-- **S1 (Daten):** Direkte Messung: Messen sendet EIN mdi mit den Toolsetter-Werten in vars (der Sendevertrag; Werte exemplarisch geprüft). — gilt für: alle
-  - Beleg: browser: `toolsetter-setup.spec.ts` — Measure Current is ONE command: the values ride the mdi
+- **S1 (Daten):** Direkte Messung: Messen sendet EINEN Auftrag tool_measure mit der Werkzeugnummer und ohne Werte der Seite — die Toolsetter-Werte nimmt das Gateway aus der bestätigten Sektion, die es hält (der Sendevertrag). — gilt für: alle
+  - Beleg: browser: `toolsetter-setup.spec.ts` — Measure Current is ONE command: the tool_measure job
 - **S2 (Daten):** Vormessung beim Start ab Zeile: EIN auto_run mit pre_tool und probe_vars (der Sendevertrag; Werte exemplarisch geprüft). — gilt für: alle
   - Beleg: browser: `run-hold.spec.ts` — Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values
 - **S3 (Ablehnung):** Ohne eingerichteten Toolsetter (Sektion vom Server bestätigt) bleiben Messen und Entladen aus — mit Grund. — gilt für: alle
@@ -362,8 +362,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: gateway: `test_toolsetter_routine_map.py` — test_every_mapped_number_is_read_into_the_keys_own_variable; gateway: `test_toolsetter_routine_map.py` — test_every_use_of_the_ranges_is_its_own_read_or_the_known_write; gateway: `test_toolsetter_routine_map.py` — test_the_probe_number_is_not_a_toolsetter_field; gateway: `test_toolsetter_routine_map.py` — test_a_read_spelled_with_spaces_or_split_digits_is_seen; gateway: `test_toolsetter_routine_map.py` — test_an_unknown_parameter_form_fails; gateway: `test_toolsetter_routine_map.py` — test_comments_and_the_routines_own_spellings_pass
 - **S5 (Wirkung):** Auf echtem LinuxCNC landet die gemessene Länge in der Werkzeugtabelle (die Länge vor der Messung ± 0,002 mm) und als derselbe Wert im G43-Offset; ein um 1 mm versetztes #3102 fällt durch. — gilt für: 3axis_xyz
   - Beleg: native: `native_run.py` — m600-t1; native: `native_run.py` — m600-t1.counter-3102
-- **S6 (Daten):** Entladen sendet im M600-Modus EIN mdi T0 M600 mit den Toolsetter-Werten in vars, im Standardmodus tool_change 0. — gilt für: alle
-  - Beleg: browser: `toolsetter-setup.spec.ts` — Unload is ONE command: T0 M600 with the setter's values in M600 mode, tool_change 0 in the standard mode
+- **S6 (Daten):** Entladen sendet im M600-Modus EINEN Auftrag tool_unload_measure, im Standardmodus tool_change 0. — gilt für: alle
+  - Beleg: browser: `toolsetter-setup.spec.ts` — Unload is ONE command: the tool_unload_measure job in M600 mode, tool_change 0 in the standard mode
 - **S6b (Wirkung):** Auf echtem LinuxCNC entlädt T0 M600 das Werkzeug: die Spindel leer, keine Länge mehr aktiv. — gilt für: 3axis_xyz
   - Beleg: native: `native_run.py` — m600-unload
 - **S7 (Wirkung):** Mit Rückfahrt (#3106 = 1) endet M600 oben an X/Y des Aufrufs, auch von der obersten Lage auf ein längeres Werkzeug: kein Endlagenfehler, kein eigener Abstieg. — gilt für: 3axis_xyz
@@ -400,7 +400,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ### Antasten: Kanten, Ecken, Bohrung, Zapfen, Winkel, Steg und Nut
 
-- **S1 (Daten):** Ein Antast-Button sendet genau ein mdi mit O<probe_…> CALL und genau den Var-Nummern der Zuordnung; jeder Wert endlich. — gilt für: alle
+- **S1 (Daten):** Ein Antast-Button sendet genau einen Auftrag probe_run mit seiner probe_…-Routine und genau den Var-Nummern der Zuordnung (Zweck probe); jeder Wert endlich; kein mdi. — gilt für: alle
   - Beleg: browser: `probe-click.spec.ts` — ${form.sub}: a held probe button sends its routine with the panel's numbers (je: Outside, Boss/Pocket, Ridge/Valley, Angle, Calibrate)
 - **S2 (Daten):** Jede Var-Nummer, die das Panel und der Toolsetter schreiben, ist in der Var-Datei jedes Beispielprofils deklariert. — gilt für: alle
   - Beleg: unit: `probeVarFiles.test.ts` — ${rel} declares every number the probe panel and the toolsetter write (je: xyz3/sim.var, xyzabc6/sim.var, xyzac5/sim.var)
@@ -416,8 +416,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ### Fläche abtasten (Surface-Scan)
 
-- **S1 (Daten):** Der Surface-Scan sendet auf ein Halten EIN mdi O<surface_scan> CALL mit den Werten des Panels in vars (ein vom Server gehaltener Wert kommt an). — gilt für: alle
-  - Beleg: browser: `probe-click.spec.ts` — Surface: a held Start Scan sends O<surface_scan> CALL with the panel's numbers
+- **S1 (Daten):** Der Surface-Scan sendet auf ein Halten EINEN Auftrag surface_scan_run mit genau den Werten seines Zwecks aus dem Panel (ein vom Server gehaltener Wert kommt an). — gilt für: alle
+  - Beleg: browser: `probe-click.spec.ts` — Surface: a held Start Scan sends the surface_scan_run job with the panel's numbers
 - **S2 (Wirkung):** Auf echtem LinuxCNC tastet der Scan das Raster ab und liefert die Punkte für die Kompensation: 5 × 5 Punkte auf dem gewölbten Werkstück der 3-Achs-Sim in der Schlangenfolge, jeder auf der Fläche ± 0,005 mm; danach lädt die Kompensation die neue Karte. — gilt für: 3axis_xyz
   - Beleg: native: `native_run.py` — surface-scan; native: `native_run.py` — surface-scan.counter-node+1; native: `native_run.py` — surface-scan.counter-xy-swapped; native: `native_run.py` — surface-scan.map
 
@@ -471,7 +471,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 |---|---|---|---|---|---|
 | **Einstellungen öffnen, speichern, verwerfen, zurücksetzen** `F-SETTINGS` | Dialog, Einstellungen, Kopfzeile | 28 | 1 | 1 | 0 |
 | **Geräteprofile: dieses Gerät benennen, Simulation schalten, andere Geräte verwalten** `F-DEVICES` | Einstellungen › Geräte | 16 | 3 | 3 | 0 |
-| **Funktionen abschalten (Antasten, Toolsetter, Surface-Map, Kamera, Makros, Gamepad)** `F-FEATURES` | Einstellungen | 8 | 0 | 0 | Aussagen noch nicht formuliert |
+| **Funktionen abschalten (Antasten, Toolsetter, Surface-Map, Kamera, Makros, Gamepad)** `F-FEATURES` | Einstellungen | 8 | 4 | 4 | 0 |
 | **Darstellung: Farbschema, Vollbild, Bildschirm wach halten** `F-DISPLAY` | Einstellungen, Kopfzeile | 13 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Meldungen: Nachrichtenzentrale, Filter, Kopieren, Löschen** `F-MESSAGES` | Banner, Dialog, Kopfzeile, Meldungen | 15 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Navigation: Tabs und Seitenleiste** `F-TABS` | Tabs | 3 | 0 | 0 | Aussagen noch nicht formuliert |
@@ -490,6 +490,17 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
   - Beleg: gateway: `test_device_profiles.py` — test_no_settings_before_the_hello_then_the_own_devices; gateway: `test_device_profiles.py` — test_a_devices_change_reaches_only_its_own_connections; gateway: `test_device_profiles.py` — test_a_later_hello_never_swaps_the_binding
 - **S3 (Wirkung):** Ein neues Gerät startet mit Simulation aus; ein kurzer erster Besuch behält seine bestätigten Einstellungen. — gilt für: alle
   - Beleg: gateway: `test_settings_store.py` — test_an_unknown_token_makes_a_new_profile_from_the_template_simulation_off; gateway: `test_settings_store.py` — test_a_short_visit_keeps_its_profile_and_values
+
+### Funktionen abschalten (Antasten, Toolsetter, Surface-Map, Kamera, Makros, Gamepad)
+
+- **S1 (Ablehnung):** Ein ausgeschalteter Schalter lehnt die Aufträge und Routen seiner Funktion ab, beim Dispatch und bei jedem Schreiben; der benachbarte Weg bleibt erlaubt (Probing aus: Toolsetter und Surface laufen; Toolsetter aus: normaler Werkzeugwechsel; Makros aus: MDI; Gamepad aus: Bildschirm-Jog und die Stopps des Pads). — gilt für: alle
+  - Beleg: gateway: `test_feature_switches.py` — test_probing_off_refuses_its_routines_and_parameters_only; gateway: `test_feature_switches.py` — test_surface_off_refuses_the_scan_and_switching_compensation_on; gateway: `test_feature_switches.py` — test_toolsetter_off_refuses_m600_jobs_the_normal_tool_change_stays; gateway: `test_feature_switches.py` — test_macros_off_refuses_the_run_and_the_writes_mdi_stays; gateway: `test_feature_switches.py` — test_gamepad_off_refuses_what_the_gamepad_starts_never_its_stops; gateway: `test_feature_switches.py` — test_a_switch_turned_off_meanwhile_stops_the_job_at_its_write; gateway: `test_feature_switches.py` — test_an_open_stream_ends_when_the_camera_goes_off
+- **S2 (Ablehnung):** Umschalten nur armed, bei bekannt ruhendem Interpreter, ohne laufenden Befehl oder Jog und bei stehender Maschine; Surface-Map aus nur mit bekannt ausgeschalteter Kompensation; Toolsetter aus und Werkzeugwechsel M600 ist in keiner Reihenfolge speicherbar; kein Schalter sendet einen Maschinenbefehl. — gilt für: alle
+  - Beleg: gateway: `test_feature_switches.py` — test_an_armed_writer_on_a_standing_idle_machine_switches; gateway: `test_feature_switches.py` — test_not_armed_refused; gateway: `test_feature_switches.py` — test_a_moving_machine_refused; gateway: `test_feature_switches.py` — test_a_command_in_flight_refused; gateway: `test_feature_switches.py` — test_surface_off_needs_the_compensation_known_off; gateway: `test_feature_switches.py` — test_toolsetter_off_with_m600_is_no_state_either_way
+- **S3 (Daten):** Ein Satz außerhalb seines Zwecks (probe, surface, toolsetter) wird ganz abgelehnt, bevor etwas geschrieben ist; die Werkzeugmessung nimmt die Werte der Sektion, die der Server hält. — gilt für: alle
+  - Beleg: gateway: `test_feature_switches.py` — test_a_set_outside_its_purpose_is_refused_whole; gateway: `test_feature_switches.py` — test_measuring_takes_the_servers_toolsetter_section
+- **S4 (Bedienbarkeit):** Eine ausgeschaltete Funktion verschwindet aus der Oberfläche, schon ab dem ersten Bild; der Tab in Benutzung bleibt mit Hinweis, bis man ihn verlässt; das Gamepad wird aus nicht gelesen und wirkt nach dem Einschalten erst nach einer Ruhelage. — gilt für: alle
+  - Beleg: browser: `feature-switches.spec.ts` — a first start with functions off never shows them: no Probing, no Macros, no macro bar, no Measure; browser: `feature-switches.spec.ts` — the tab in use stays with a note until it is left; browser: `feature-switches.spec.ts` — gamepad: its commands say so; off, the pad is not read; on again, a held button acts only after a release
 
 ## Tastatur, Gamepad, Eingabehilfen
 
