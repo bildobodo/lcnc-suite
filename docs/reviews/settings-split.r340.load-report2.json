@@ -1,0 +1,335 @@
+{
+  "run": "run-20261108-0058",
+  "phases": {
+    "rest0": {
+      "seconds": 60.0,
+      "samples": 60,
+      "sample_interval_max_ms": 1002,
+      "panel": {
+        "cpu_pct_phase": 79.4,
+        "process_tree_rss_max_mb": 1537.9,
+        "workers_max": 5,
+        "collision_worker_in_observed_samples": false,
+        "check_busy_in_observed_samples": false,
+        "status": {
+          "windows_inside": 19,
+          "covered_s": 57.0,
+          "cadence_gap": {
+            "n": 1664,
+            "p50_bin_ms": 32.0,
+            "p95_bin_ms": 48.0,
+            "p99_bin_ms": 50.0,
+            "window_max_ms": 51.9
+          },
+          "age": {
+            "n": 1664,
+            "p50_bin_ms": 28.0,
+            "p95_bin_ms": 36.0,
+            "p99_bin_ms": 36.0,
+            "window_max_ms": 46.1
+          },
+          "edge_windows": [
+            {
+              "from_ms": -2277,
+              "to_ms": 622,
+              "gap_max_ms": 2465.6,
+              "age_max_ms": 5171
+            },
+            {
+              "from_ms": 57628,
+              "to_ms": 63868,
+              "gap_max_ms": 3786.5,
+              "age_max_ms": 3772.5
+            }
+          ]
+        }
+      },
+      "laptop": {
+        "cpu_pct_phase": 89.1,
+        "process_tree_rss_max_mb": 1557.7,
+        "workers_max": 5,
+        "collision_worker_in_observed_samples": false,
+        "check_busy_in_observed_samples": false,
+        "status": {
+          "windows_inside": 19,
+          "covered_s": 57.0,
+          "cadence_gap": {
+            "n": 1663,
+            "p50_bin_ms": 32.0,
+            "p95_bin_ms": 48.0,
+            "p99_bin_ms": 50.0,
+            "window_max_ms": 53.3
+          },
+          "age": {
+            "n": 1663,
+            "p50_bin_ms": 28.0,
+            "p95_bin_ms": 36.0,
+            "p99_bin_ms": 36.0,
+            "window_max_ms": 40.8
+          },
+          "edge_windows": [
+            {
+              "from_ms": -70,
+              "to_ms": 1563,
+              "gap_max_ms": 2293.4,
+              "age_max_ms": 2292.6
+            },
+            {
+              "from_ms": 58570,
+              "to_ms": 63433,
+              "gap_max_ms": 3346.3,
+              "age_max_ms": 3332.5
+            }
+          ]
+        }
+      }
+    },
+    "load": {
+      "seconds": 47.9,
+      "samples": 38,
+      "sample_interval_max_ms": 6361,
+      "panel": {
+        "cpu_pct_phase": 142.9,
+        "process_tree_rss_max_mb": 1416.5,
+        "workers_max": 5,
+        "collision_worker_in_observed_samples": false,
+        "check_busy_in_observed_samples": false,
+        "status": {
+          "windows_inside": 12,
+          "covered_s": 41.8,
+          "cadence_gap": {
+            "n": 906,
+            "p50_bin_ms": 32.0,
+            "p95_bin_ms": 48.0,
+            "p99_bin_ms": 52.0,
+            "window_max_ms": 3937.7
+          },
+          "age": {
+            "n": 906,
+            "p50_bin_ms": 30.0,
+            "p95_bin_ms": 36.0,
+            "p99_bin_ms": 42.0,
+            "window_max_ms": 7364.4
+          },
+          "edge_windows": [
+            {
+              "from_ms": -2373,
+              "to_ms": 3867,
+              "gap_max_ms": 3786.5,
+              "age_max_ms": 3772.5
+            },
+            {
+              "from_ms": 45621,
+              "to_ms": 51378,
+              "gap_max_ms": 52.6,
+              "age_max_ms": 37.8
+            }
+          ]
+        }
+      },
+      "laptop": {
+        "cpu_pct_phase": 258.9,
+        "process_tree_rss_max_mb": 2595.6,
+        "workers_max": 8,
+        "collision_worker_in_observed_samples": true,
+        "check_busy_in_observed_samples": true,
+        "status": {
+          "windows_inside": 14,
+          "covered_s": 43.1,
+          "cadence_gap": {
+            "n": 966,
+            "p50_bin_ms": 32.0,
+            "p95_bin_ms": 48.0,
+            "p99_bin_ms": 50.0,
+            "window_max_ms": 3442.4
+          },
+          "age": {
+            "n": 966,
+            "p50_bin_ms": 28.0,
+            "p95_bin_ms": 36.0,
+            "p99_bin_ms": 42.0,
+            "window_max_ms": 6662.6
+          },
+          "edge_windows": [
+            {
+              "from_ms": -1431,
+              "to_ms": 3432,
+              "gap_max_ms": 3346.3,
+              "age_max_ms": 3332.5
+            },
+            {
+              "from_ms": 46568,
+              "to_ms": 51057,
+              "gap_max_ms": 56.1,
+              "age_max_ms": 49.4
+            }
+          ]
+        }
+      },
+      "laptop_check": {
+        "seconds": 29.5,
+        "panel_cpu_pct": 113.3,
+        "laptop_cpu_pct": 292.6
+      }
+    },
+    "basis": {
+      "seconds": 54.1,
+      "samples": 25,
+      "sample_interval_max_ms": 10436,
+      "panel": {
+        "cpu_pct_phase": 203.3,
+        "process_tree_rss_max_mb": 1586.8,
+        "workers_max": 5,
+        "collision_worker_in_observed_samples": false,
+        "check_busy_in_observed_samples": false,
+        "status": {
+          "windows_inside": 10,
+          "covered_s": 48.5,
+          "cadence_gap": {
+            "n": 455,
+            "p50_bin_ms": 32.0,
+            "p95_bin_ms": 50.0,
+            "p99_bin_ms": 3000.0,
+            "window_max_ms": 8458
+          },
+          "age": {
+            "n": 455,
+            "p50_bin_ms": 28.0,
+            "p95_bin_ms": 36.0,
+            "p99_bin_ms": 3500.0,
+            "window_max_ms": 11370.7
+          },
+          "edge_windows": [
+            {
+              "from_ms": -2260,
+              "to_ms": 3497,
+              "gap_max_ms": 52.6,
+              "age_max_ms": 37.8
+            },
+            {
+              "from_ms": 51972,
+              "to_ms": 54742,
+              "gap_max_ms": 6668.3,
+              "age_max_ms": 6727.8
+            }
+          ]
+        }
+      },
+      "laptop": {
+        "cpu_pct_phase": 215.3,
+        "process_tree_rss_max_mb": 2593.5,
+        "workers_max": 8,
+        "collision_worker_in_observed_samples": true,
+        "check_busy_in_observed_samples": true,
+        "status": {
+          "windows_inside": 14,
+          "covered_s": 49.5,
+          "cadence_gap": {
+            "n": 519,
+            "p50_bin_ms": 32.0,
+            "p95_bin_ms": 48.0,
+            "p99_bin_ms": 3500.0,
+            "window_max_ms": 7258.5
+          },
+          "age": {
+            "n": 519,
+            "p50_bin_ms": 28.0,
+            "p95_bin_ms": 36.0,
+            "p99_bin_ms": 3500.0,
+            "window_max_ms": 10375.7
+          },
+          "edge_windows": [
+            {
+              "from_ms": -1313,
+              "to_ms": 3176,
+              "gap_max_ms": 56.1,
+              "age_max_ms": 49.4
+            },
+            {
+              "from_ms": 52686,
+              "to_ms": 55685,
+              "gap_max_ms": 58.9,
+              "age_max_ms": 52.5
+            }
+          ]
+        }
+      },
+      "laptop_check": {
+        "seconds": 8.4,
+        "panel_cpu_pct": 225.7,
+        "laptop_cpu_pct": 279.0
+      }
+    },
+    "rest": {
+      "seconds": 120.0,
+      "samples": 120,
+      "sample_interval_max_ms": 1003,
+      "panel": {
+        "cpu_pct_phase": 86.3,
+        "process_tree_rss_max_mb": 1521.5,
+        "workers_max": 5,
+        "collision_worker_in_observed_samples": false,
+        "check_busy_in_observed_samples": false,
+        "status": {
+          "windows_inside": 39,
+          "covered_s": 117.0,
+          "cadence_gap": {
+            "n": 3415,
+            "p50_bin_ms": 32.0,
+            "p95_bin_ms": 48.0,
+            "p99_bin_ms": 50.0,
+            "window_max_ms": 53.5
+          },
+          "age": {
+            "n": 3415,
+            "p50_bin_ms": 28.0,
+            "p95_bin_ms": 36.0,
+            "p99_bin_ms": 36.0,
+            "window_max_ms": 42.6
+          },
+          "edge_windows": [
+            {
+              "from_ms": -2154,
+              "to_ms": 616,
+              "gap_max_ms": 6668.3,
+              "age_max_ms": 6727.8
+            }
+          ]
+        }
+      },
+      "laptop": {
+        "cpu_pct_phase": 86.9,
+        "process_tree_rss_max_mb": 1927.4,
+        "workers_max": 8,
+        "collision_worker_in_observed_samples": true,
+        "check_busy_in_observed_samples": false,
+        "status": {
+          "windows_inside": 39,
+          "covered_s": 117.0,
+          "cadence_gap": {
+            "n": 3416,
+            "p50_bin_ms": 32.0,
+            "p95_bin_ms": 48.0,
+            "p99_bin_ms": 50.0,
+            "window_max_ms": 53.8
+          },
+          "age": {
+            "n": 3416,
+            "p50_bin_ms": 28.0,
+            "p95_bin_ms": 36.0,
+            "p99_bin_ms": 36.0,
+            "window_max_ms": 40.9
+          },
+          "edge_windows": [
+            {
+              "from_ms": -1440,
+              "to_ms": 1559,
+              "gap_max_ms": 58.9,
+              "age_max_ms": 52.5
+            }
+          ]
+        }
+      }
+    }
+  }
+}
