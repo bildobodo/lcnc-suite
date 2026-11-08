@@ -1,0 +1,18 @@
+Settings split package 3 — Codex R343 fixes (feat/feature-switches 969c45ba): each guard proven red by taking its fix out, restored after.
+
+M8  SS-I08 the parameterless reset branch removed (`if False:`)
+    -> FAILED test_feature_switches.py::TestTheJobs::test_the_calibration_reset_runs_without_values_and_only_it
+M9  SS-I11 the features save no longer ends the streams (no `await _camera_switched_off()`)
+    -> FAILED test_feature_switches.py::TestTheChangeIsAdmitted::test_a_save_turning_the_camera_off_ends_its_streams
+M10 SS-I11 a waiting stream does not wake on the epoch (frames() waits for a new sequence only)
+    -> FAILED test_feature_switches.py::TestTheCamera::test_a_stream_without_frames_ends_too
+    -> FAILED test_feature_switches.py::TestTheCamera::test_an_open_stream_ends_when_the_camera_goes_off
+M11 SS-I12 one native write back to `set_probe_vars` (native_run.py:1511)
+    -> FAILED test_feature_switches.py::TestTheNativeDriver::test_every_command_it_names_is_handled
+    -> FAILED test_feature_switches.py::TestTheNativeDriver::test_its_parameter_writes_are_the_toolsetters_and_pass_the_dispatcher
+M12 SS-I09 the focus hand-over off (the watch returns at once)
+    -> FAILED feature-switches.spec.ts › a focused control its switch removes hands the focus on — an arrow then moves no axis (SS-I09)
+    -> FAILED feature-switches.spec.ts › a focused camera setting its switch removes hands the focus to the settings sections (SS-I09)
+M13 SS-I10 the parameter sets back through fire() (the send latch)
+    -> FAILED feature-switches.spec.ts › a probing parameter goes out to every purpose switched on — both on (SS-I10)
+       (probing off / surface map off: one set each — green, as on the old code)

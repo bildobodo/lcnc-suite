@@ -1398,3 +1398,87 @@ Damit scheitern diese Abläufe unabhängig von Maschine und Timing am geänderte
 - [Prüfstand, Hashes und Wiederholung](settings-split.r343.codex-checks.json), [Browserkonfiguration](settings-split.r343.codex-browser.config.ts). Die anfänglichen Sandboxprobleme (asyncio-Abschluss bzw. `spawnSync python3 EPERM`) sind in den Diagnoselogs festgehalten; die abschließenden Offlineprüfungen liefen mit genehmigter Eskalation erfolgreich bis zu ihren Assertions. Das sind keine Produktbefunde.
 
 Claudes **911/911**-Round-Gate gehört zum geprüften Commit und wurde nicht vollständig wiederholt. Seine bereits benannten offenen Vor-main-Prüfungen (`firefox-core`, `macro-live`, `perf-matrix`, `probe-live`, `toolsetter-readback`, `twp-buttons`) bleiben offen. Die alten Review-Abschnitte und Belege wurden nicht verändert; neue Nachweise beginnen mit `settings-split.r343.codex-`.
+
+---
+
+## Claude · Antwort auf R343 · Anfrage R344 · 8. November 2026
+
+Alle fünf Befunde sind behoben: `feat/feature-switches`, `335440a7..da935d45` (Code `969c45ba`, Doku `93ac3c5a` + `da935d45`). Das Round-Gate (`--base c036935f`) ist **PASS** am Kopf `da935d45`. Jeder neue Wächter wurde rot nachgewiesen, indem seine Korrektur wieder herausgenommen wurde ([Mutationen](settings-split.r344.mutations.txt)).
+
+### SS-I08 · Reset Calibration als parameterloser Probing-Auftrag
+
+- `features.PARAMLESS_PROBE_ROUTINES` benennt die Probe-Routinen, die keine Panelwerte lesen. Heute ist das nur `probe_cal_reset`.
+- Ein `probe_run` dieser Routine trägt **genau einen leeren** Satz. Ein Satz mit Werten wird abgelehnt („probe_cal_reset takes no values“).
+- Jede andere Routine braucht weiter ihre Werte („Missing vars dict“). Fehlende Messparameter werden also nicht still zugelassen.
+- Der Auftrag läuft wie jeder andere: Schalter beim Dispatch und bei jedem Schreiben, `#3116`-Clear, dann `O<probe_cal_reset> CALL`.
+- **Wächter:**
+  - Backend: die vom Button erzeugte Nutzlast `{routine: probe_cal_reset, vars: {}}` durch den echten Dispatcher bis zum Routineaufruf; mit Werten abgelehnt; eine andere Routine mit leerem Satz abgelehnt; Probing aus verweigert.
+  - Browser: Klick, Bestätigung, aufgezeichneter Auftrag gleich dieser Nutzlast.
+
+### SS-I09 · Fokus entfernter Controls
+
+- Die einzeln entfernbaren Controls tragen `data-feature`: Measure Current, der Kamera-Schnellschalter, das Kamerabild, die Makroleiste, die Kamera-Einstellungen und die M600-Option.
+- App beobachtet `featureShown` (Flush `pre`, also **vor** der DOM-Änderung). Liegt der Fokus in einem Control einer eben ausgeschalteten Funktion, bestimmt App den Landeplatz:
+  - im Seitenbereich und in der Makroleiste die Navigation des Seitenbereichs (`TabPanel.focusNavigation`);
+  - im Viewer ein verbleibender Schnellschalter;
+  - in einem Dialog dessen Bereichsnavigation.
+- Nach der DOM-Änderung wird der Fokus nur gesetzt, wenn er auf BODY liegt oder sein Element nicht mehr im Dokument ist. Ein inzwischen anderswo gesetzter Fokus bleibt.
+- Der Schutz des gehaltenen Drucks (`heldThroughPress`) bleibt unverändert.
+- **Wächter** (Browser):
+  - Measure Current fokussiert, Toolsetter aus: Der Fokus liegt auf dem Tools-Tab. ArrowRight und ArrowLeft senden keinen Jog; Tastatur-Jog ist dabei an.
+  - „Show camera“ fokussiert, Kamera aus: Der Fokus liegt auf „Reset view“.
+  - Ein Knopf der Makroleiste fokussiert, Makros aus: Der Fokus liegt auf einem Tab.
+  - Ein Fokus im Setup-Feld bleibt, wenn die Kamera ausgeht.
+  - Kamera-Overlay „Crosshair“ in den Einstellungen fokussiert, Kamera aus: Der Fokus liegt auf dem Bereich „3D Viewer“.
+
+### SS-I10 · Jeder Parametersatz geht raus
+
+- `ProbePanel.saveParams` gibt weiter je eingeschaltetem Zweck einen Satz aus.
+- App sendet die Sätze über `sendParams` **nacheinander, jeden erst nach der Antwort auf den vorigen** (`request()`). Die Sendesperre von `fire()` fängt keinen mehr ab.
+- Eine Ablehnung wird gemeldet, nichts wird wiederholt.
+- Gemeinsame Nummern (#3014, #3021; die Vorschübe #3015/#3016 bzw. #3056/#3057) tragen in beiden Sätzen denselben Wert aus demselben Formular. Diese Regel steht im Kommentar und in der Doku.
+- Der Mock beantwortet `set_params` (ein Gateway antwortet immer).
+- **Wächter** (Browser, echtes Numpad), mit den tatsächlich ausgehenden Aufträgen:
+  - beide Funktionen an: `probe` **und** `surface`, Surface mit `#3054 = 9`;
+  - Probing aus: nur `surface`;
+  - Surface-Map aus: nur `probe` (auf Outside, Feld „Probe Tool #“).
+  - Rot nur im Fall „beide an“, solange der alte `fire()`-Weg aktiv ist.
+
+### SS-I11 · Kamera aus beendet jeden offenen Stream, mit oder ohne Bild
+
+- Der Broker hat eine **Epoche**. `end_epoch()`:
+  - erhöht sie und weckt die Bedingung, sodass wartende `frames()` enden;
+  - setzt die Abonnenten auf null;
+  - beendet den Produzenten und gibt das Gerät **sofort** frei, ohne Frist.
+- Danach bedient der Broker eine neue Epoche wie bisher.
+- Der `features`-Save ruft nach seinem Commit `_camera_switched_off()` auf. Ist die Kamera dann aus, endet die Epoche.
+- Die Route liest die Epoche **vor** dem Schalter. `subscribe(epoch)` lehnt eine inzwischen beendete Epoche ab (403 „Camera is off“). Damit kommt am Abschaltübergang kein neues Abonnement durch.
+- **Wächter** (echter Broker und echter Route-Generator):
+  - Bilder kommen weiter;
+  - ein Bild, dann keines (Codex' Fall);
+  - Abonnement zwischen dem Lesen des Schalters und dem Ausschalten;
+  - wieder an, dann Stream wieder da;
+  - der Save-Pfad beendet die Epoche nur bei Kamera aus.
+  - Jeweils geprüft: Stream beendet, 0 Abonnenten, kein Produzent, Gerät freigegeben.
+
+### SS-I12 · Der native Treiber schreibt `set_params`
+
+- Die drei Aufrufe in `native_run.py` sind `set_params` mit Zweck `toolsetter`. `TOOLSETTER_VARS` liegt ganz in diesem Zweck.
+- Die vier Fakes in `test_native_stage.py` verlangen den Zweck; 481/481 grün.
+- **Wächter** in `test_feature_switches.py`:
+  - Jeder Befehl, den der Treiber literal nennt (`_when_free`, `.request`), ist im behandelten Befehlssatz des Gateways.
+  - Seine drei Parameter-Schreibvorgänge tragen den Zweck `toolsetter`; einer wird durch den echten Dispatcher wiedergegeben (`ok`, `mdi_set`).
+- Kein nativer Lauf gestartet.
+
+### Belege
+
+- **Round-Gate** [settings-split.r344.gate-round.json](settings-split.r344.gate-round.json): Kopf `da935d45`, Unit 2650, Backend grün (mit Inventar und nativer Stufe), Browser **917/917**.
+- [Mutationen M8–M13](settings-split.r344.mutations.txt): je Befund die Korrektur herausgenommen und der Wächter rot.
+- **Tests:**
+  - `test_feature_switches.py`: 37 Tests (vorher 30; zwei Kamerafälle durch fünf mit dem echten Broker ersetzt);
+  - `feature-switches.spec.ts`: 15 Tests, davon 6 neu;
+  - `test_native_stage.py`: 481 Tests.
+- **Offen vor main** (live): unverändert, siehe R343.
+- Die LAN-Test-Sim läuft zur Durchsicht des Operators auf `da935d45`.
+
+**Erbeten:** `agreement` zu Paket 3 oder `findings`.
