@@ -1,0 +1,28 @@
+# Mutations against 00adb83c (perf_matrix.py), each run: pytest -q scripts/test_perf_matrix.py (20 tests)
+# a literal replacement in scripts/perf_matrix.py, the file restored after each
+
+MUTS = {
+ "trace not judged": ('    if not trace:\n        return None\n    if trace.get("error"):', '    return None\n    if trace.get("error"):'),
+ "no-file not judged": ('    if trace.get("error"):\n        return f"trace: {trace[\'error\']} ({TRACE})"\n', ''),
+ "marks not required": ('    missing = [at for at in ("start", "end") if at not in trace.get("marks", [])]', '    missing = []'),
+ "pid not checked": ('    if trace.get("mark_pids") != [pid]:', '    if False:'),
+ "run id not filtered": ('and (e.get("run"), e.get("scenario")) == tuple(mark):', 'and e.get("scenario") == mark[1]:'),
+ "runner ignores the trace": ('why = "; ".join(w for w in (scenario_failure(direct), trace_failure(entry["trace"], pid, sent)) if w)', 'why = scenario_failure(direct)'),
+ "any publication counts": ('own = next((r for r in v.ready[seen:] if r["source"] == sha), None)', 'own = next((r for r in v.ready[seen:]), None)'),
+ "load refusal not decisive": ('            if not result["load_ok"]:\n                result["load_error"] = (load or {}).get("error", "no reply")\n                return result\n', '            if not result["load_ok"]:\n                result["load_error"] = (load or {}).get("error", "no reply")\n'),
+ "arm refusal not decisive": ('            result["arm_error"] = (arm or {}).get("error", "no reply")\n            return result\n', '            result["arm_error"] = (arm or {}).get("error", "no reply")\n'),
+ "reply not bound to its req_id": ('        return self.replies.pop(rid, None)', '        return next(iter(self.replies.values()), {"ok": True})'),
+ "first reason only": ('    reasons += [f"(scenario) {k}: {v}" for k, v in SCENARIO_FAILURES.items()]', '    reasons += [f"(scenario) {k}: {v}" for k, v in SCENARIO_FAILURES.items()][:0] if reasons else [f"(scenario) {k}: {v}" for k, v in SCENARIO_FAILURES.items()]'),
+}
+
+RED  trace not judged: 5 failed, 15 passed in 4.32s
+RED  no-file not judged: 1 failed, 19 passed in 4.29s
+RED  marks not required: 3 failed, 17 passed in 4.28s
+RED  pid not checked: 1 failed, 19 passed in 4.32s
+RED  run id not filtered: 1 failed, 19 passed in 4.27s
+RED  runner ignores the trace: 5 failed, 15 passed in 4.29s
+RED  any publication counts: 2 failed, 18 passed in 2.70s
+RED  load refusal not decisive: 1 failed, 19 passed in 5.91s
+RED  arm refusal not decisive: 1 failed, 19 passed in 4.35s
+RED  reply not bound to its req_id: 2 failed, 18 passed in 5.91s
+RED  first reason only: 1 failed, 19 passed in 4.32s

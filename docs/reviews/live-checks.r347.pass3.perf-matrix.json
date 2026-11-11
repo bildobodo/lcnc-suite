@@ -1,0 +1,272 @@
+{
+ "ts": "2026-11-11T19:50:50.442854+00:00",
+ "git": "00adb83c",
+ "run_id": "d6992b729869",
+ "trace": "/home/cnc/lcnc-suite-fs/runlogs/trace.ndjson",
+ "gateway_pid": 3058624,
+ "scenarios": {
+  "idle_baseline": {
+   "direct": {
+    "viewer_frames": 248,
+    "status_rx": 200
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [],
+    "gcode_publishes": [],
+    "ws_connects": 2,
+    "marks": [
+     "end",
+     "start"
+    ],
+    "mark_pids": [
+     3058624
+    ]
+   },
+   "rss_kb_before": 80664,
+   "rss_kb_after": 80860,
+   "window_s": 23.5
+  },
+  "fanout": {
+   "direct": {
+    "viewers": 8,
+    "viewer_frames": 592,
+    "viewer_bytes": 163970,
+    "status_rx": 403
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [],
+    "gcode_publishes": [],
+    "ws_connects": 8,
+    "marks": [
+     "end",
+     "start"
+    ],
+    "mark_pids": [
+     3058624
+    ]
+   },
+   "rss_kb_before": 80860,
+   "rss_kb_after": 81140,
+   "window_s": 23.5
+  },
+  "reconnect_storm": {
+   "direct": {
+    "tabs": 12,
+    "all_connected_ms": 5,
+    "frames_after_6s": 480
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [],
+    "gcode_publishes": [],
+    "ws_connects": 12,
+    "marks": [
+     "end",
+     "start"
+    ],
+    "mark_pids": [
+     3058624
+    ]
+   },
+   "rss_kb_before": 81140,
+   "rss_kb_after": 81436,
+   "window_s": 9.5
+  },
+  "upload_during_stream": {
+   "direct": {
+    "status": 200,
+    "upload_ms": 108,
+    "size_mb": 40.0,
+    "viewer_frames": 57,
+    "status_rx": 36
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [
+     "safety.explicit_armed",
+     "safety.explicit_disarmed"
+    ],
+    "gcode_publishes": [],
+    "ws_connects": 4,
+    "marks": [
+     "end",
+     "start"
+    ],
+    "mark_pids": [
+     3058624
+    ]
+   },
+   "rss_kb_before": 81436,
+   "rss_kb_after": 84108,
+   "window_s": 6.3
+  },
+  "save_during_stream": {
+   "direct": {
+    "status": 200,
+    "save_ms": 71,
+    "size_mb": 40.0,
+    "status_rx": 33
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [
+     "safety.explicit_armed",
+     "safety.explicit_disarmed"
+    ],
+    "gcode_publishes": [],
+    "ws_connects": 4,
+    "marks": [
+     "end",
+     "start"
+    ],
+    "mark_pids": [
+     3058624
+    ]
+   },
+   "rss_kb_before": 84108,
+   "rss_kb_after": 85732,
+   "window_s": 5.7
+  },
+  "fusion_near_limit": {
+   "direct": {
+    "status": 200,
+    "import_ms": 483,
+    "size_mb": 13.8
+   },
+   "trace": {
+    "lag_windows": 1,
+    "lag_max_drift_ms": 72.2,
+    "lag_max_dominant": "reader_recv.readline",
+    "safety_events": [],
+    "gcode_publishes": [],
+    "ws_connects": 0,
+    "marks": [
+     "end",
+     "start"
+    ],
+    "mark_pids": [
+     3058624
+    ]
+   },
+   "rss_kb_before": 85732,
+   "rss_kb_after": 138668,
+   "window_s": 4.1
+  },
+  "rss_gc_watch": {
+   "direct": {
+    "rss_kb_first": 138668,
+    "rss_kb_last": 138668,
+    "rss_kb_max": 138668,
+    "growth_kb": 0
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [],
+    "gcode_publishes": [],
+    "ws_connects": 0,
+    "marks": [
+     "end",
+     "start"
+    ],
+    "mark_pids": [
+     3058624
+    ]
+   },
+   "rss_kb_before": 138668,
+   "rss_kb_after": 138668,
+   "window_s": 63.6
+  },
+  "preview_publish": {
+   "direct": {
+    "loaded": "/home/cnc/claude-work/live-checks/home-fs/linuxcnc/nc_files/perfmatrix-big.ngc",
+    "upload_status": 200,
+    "source": "c2b4c2646c0ed9ab",
+    "arm_ok": true,
+    "version_before": null,
+    "load_ok": true,
+    "delivered": true,
+    "publish_wait_s": 19.8,
+    "version_after": 1794426642,
+    "file_published": "/home/cnc/claude-work/live-checks/home-fs/linuxcnc/nc_files/perfmatrix-big.ngc",
+    "other_ready": [],
+    "status_rx": 117
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [
+     "safety.explicit_armed",
+     "safety.explicit_disarmed"
+    ],
+    "gcode_publishes": [
+     {
+      "bytes": 34236137,
+      "bytes_gz": 15950345,
+      "gzip_ms": 948.6,
+      "total_ms": 19467.4
+     }
+    ],
+    "ws_connects": 2,
+    "marks": [
+     "end",
+     "start"
+    ],
+    "mark_pids": [
+     3058624
+    ]
+   },
+   "rss_kb_before": 138668,
+   "rss_kb_after": 196632,
+   "window_s": 27.1
+  },
+  "sigstop_trip": {
+   "direct": {
+    "latch_before": "FALSE",
+    "latch_after_resume": "TRUE",
+    "oneshot_after_resume": "TRUE",
+    "sticky_ok": true,
+    "latch_after_reset": "FALSE",
+    "recovered_ok": true
+   },
+   "trace": {
+    "lag_windows": 3,
+    "lag_max_drift_ms": 875.1,
+    "lag_max_dominant": "reader_recv.readline",
+    "safety_events": [
+     "safety.explicit_armed",
+     "safety.explicit_disarmed",
+     "safety.trip_acknowledged",
+     "safety.trip_snapshot_done",
+     "safety.tripped"
+    ],
+    "gcode_publishes": [],
+    "ws_connects": 1,
+    "marks": [
+     "end",
+     "start"
+    ],
+    "mark_pids": [
+     3058624
+    ]
+   },
+   "rss_kb_before": 196632,
+   "rss_kb_after": 196636,
+   "window_s": 8.2
+  }
+ }
+}

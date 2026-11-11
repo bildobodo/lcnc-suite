@@ -1,0 +1,88 @@
+{
+  "macro_hello_without_req_id_and_http_header": "PASS",
+  "macro_busy_reason": {
+    "A program or macro is starting or running — wait": true,
+    "A program or MDI runs — wait": true,
+    "Connection unknown": false,
+    "Not armed": false
+  },
+  "settings_revisions": "PASS",
+  "trace_missing": {
+    "exit": 1,
+    "direct": {
+      "status": 200,
+      "upload_ms": 90,
+      "size_mb": 40,
+      "status_rx": 36
+    },
+    "trace": {
+      "error": "no trace file"
+    },
+    "rss_kb_before": 81920,
+    "rss_kb_after": 81920,
+    "window_s": 0.0,
+    "FAIL": "trace: no trace file (/tmp/r346-probe-q906zk4j/absent-trace.ndjson)"
+  },
+  "trace_empty": {
+    "exit": 1,
+    "direct": {
+      "status": 200,
+      "upload_ms": 90,
+      "size_mb": 40,
+      "status_rx": 36
+    },
+    "trace": {
+      "lag_windows": 0,
+      "lag_max_drift_ms": 0,
+      "lag_max_dominant": null,
+      "safety_events": [],
+      "gcode_publishes": [],
+      "ws_connects": 0,
+      "marks": [],
+      "mark_pids": []
+    },
+    "rss_kb_before": 81920,
+    "rss_kb_after": 81920,
+    "window_s": 0.0,
+    "FAIL": "trace: no start/end mark of run cc797278ce66 in /tmp/r346-probe-q906zk4j/empty-trace.ndjson — not the measured gateway's trace, or not written (start mark ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=1): Max retries exceeded with url: /telemetry (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0xffffae46f110>: Failed to establish a new connection: [Errno 111] Connection refused')); end mark ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=1): Max retries exceeded with url: /telemetry (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0xffffae47d6e0>: Failed to establish a new connection: [Errno 111] Connection refused')))"
+  },
+  "trace_old": {
+    "exit": 1,
+    "direct": {
+      "status": 200,
+      "upload_ms": 90,
+      "size_mb": 40,
+      "status_rx": 36
+    },
+    "trace": {
+      "lag_windows": 0,
+      "lag_max_drift_ms": 0,
+      "lag_max_dominant": null,
+      "safety_events": [],
+      "gcode_publishes": [],
+      "ws_connects": 0,
+      "marks": [],
+      "mark_pids": []
+    },
+    "rss_kb_before": 81920,
+    "rss_kb_after": 81920,
+    "window_s": 0.0,
+    "FAIL": "trace: no start/end mark of run cc797278ce66 in /tmp/r346-probe-q906zk4j/old-trace.ndjson — not the measured gateway's trace, or not written (start mark ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=1): Max retries exceeded with url: /telemetry (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0xffffae47e3f0>: Failed to establish a new connection: [Errno 111] Connection refused')); end mark ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=1): Max retries exceeded with url: /telemetry (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0xffffae4a04d0>: Failed to establish a new connection: [Errno 111] Connection refused')))"
+  },
+  "preview_refused_with_other_ready": {
+    "exit": 1,
+    "direct": {
+      "error": "AttributeError: 'FakeViewer' object has no attribute 'request'"
+    },
+    "trace": {
+      "ws_connects": 2,
+      "lag_windows": 1,
+      "lag_max_drift_ms": 1
+    },
+    "rss_kb_before": 81920,
+    "rss_kb_after": 81920,
+    "window_s": 0.0,
+    "FAIL": "error: AttributeError: 'FakeViewer' object has no attribute 'request'; trace: no start/end mark of run cc797278ce66 in /tmp/r346-probe-q906zk4j/absent-trace.ndjson — not the measured gateway's trace, or not written (start mark AttributeError: 'types.SimpleNamespace' object has no attribute 'json'; end mark AttributeError: 'types.SimpleNamespace' object has no attribute 'json')"
+  },
+  "preview_commands": []
+}
