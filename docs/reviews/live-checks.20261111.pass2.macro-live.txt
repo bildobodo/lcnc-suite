@@ -1,0 +1,117 @@
+== macro-live-2 at 10775728 on lcnc_suite_sim_5axis_xyzac_macro.ini, 2026-11-11T20:00:43+01:00
+Running as unit: lc-sim.service; invocation ID: 967b433866cd4db49156accf2d49d2ba
+ready after 2s: lcnc_suite_sim_5axis_xyzac_macro.ini
+     machine_on: E-Stop active — reset E-Stop first — again
+PASS examples     all five runnable
+PASS coolant      reply True  spindle 1000.0 → 1000.0 during, flood 1
+PASS units        reply True  x max 10.000 mm, G20 on, G95 on
+PASS park-below   from Z -295.000: reply True , lowest Z -295.000, corner cut 0.0033 (G64 0.012), end X 0.000 Y 0.000 Z -0.000
+PASS park-top     from Z 0: reply True , Z range -0.000..0.000, end X 10.000 Y 20.000 Z 0.000
+PASS g30-top      stored (29.146, -40.0, -20.0), from Z 0.0: reply True , lowest Z before X/Y 0.000, corner cut 0.0000 (G64 0.012), end X 29.146 Y -40.000 Z -20.000
+PASS g30-below    stored (44.545, -40.0, -20.0), from Z -100.0: reply True , lowest Z before X/Y -100.000, corner cut 0.0007 (G64 0.012), end X 44.545 Y -40.000 Z -20.000
+SKIP above-z0     Z MAX_LIMIT 0.0: above machine zero is unreachable on this config
+PASS warmup       reply True , commanded speeds [0.0, 250.0, 500.0, 750.0, 1000.0, 0.0], enabled after 0
+PASS tcp          TCP True | park: Machine frame only | g30: Machine frame only | moved 0.000000
+PASS revision     Macro changed — hold again
+PASS claim-done   reply True , write during the dwell (409, 'busy', 'A program or macro is starting or running — wait'), admitted 0.01 s after its end
+PASS claim-error  reply True , LinuxCNC said ['11:E word with no G70, G76, M66, M67 or M68 to use it'], (state, exec_state, queued MDI, interp) (3, 2, 0, 1), admitted 0.01 s after
+PASS claim-run    reply True , write during the macro (409, 'busy', 'A program or macro is starting or running — wait'), admitted 0.01 s after
+PASS refusal      409 {'error': 'refused', 'kind': 'conflict', 'name': 'park', 'revision': 'e6428cc4cfa434083c1ca5c93b8b0e09611d6090b2af209ba4ece8462767404d', 'reason': 'Changed on disk — reload or keep editing'}
+PASS admission    listed False, GET 403 {'detail': 'escape.ngc leads out of the macro folder'}, run_macro False escape.ngc leads out of the macro folder
+PASS cache-red    remap saw steps [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]; plain MDI after the edit: reply True  steps [], LinuxCNC said ['11:Unknown word starting with e'] (the stale offset)
+PASS cache-green  remap saw steps [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]; run_macro: True  steps [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+{
+ "results": [
+  [
+   "examples",
+   "PASS",
+   "all five runnable"
+  ],
+  [
+   "coolant",
+   "PASS",
+   "reply True  spindle 1000.0 \u2192 1000.0 during, flood 1"
+  ],
+  [
+   "units",
+   "PASS",
+   "reply True  x max 10.000 mm, G20 on, G95 on"
+  ],
+  [
+   "park-below",
+   "PASS",
+   "from Z -295.000: reply True , lowest Z -295.000, corner cut 0.0033 (G64 0.012), end X 0.000 Y 0.000 Z -0.000"
+  ],
+  [
+   "park-top",
+   "PASS",
+   "from Z 0: reply True , Z range -0.000..0.000, end X 10.000 Y 20.000 Z 0.000"
+  ],
+  [
+   "g30-top",
+   "PASS",
+   "stored (29.146, -40.0, -20.0), from Z 0.0: reply True , lowest Z before X/Y 0.000, corner cut 0.0000 (G64 0.012), end X 29.146 Y -40.000 Z -20.000"
+  ],
+  [
+   "g30-below",
+   "PASS",
+   "stored (44.545, -40.0, -20.0), from Z -100.0: reply True , lowest Z before X/Y -100.000, corner cut 0.0007 (G64 0.012), end X 44.545 Y -40.000 Z -20.000"
+  ],
+  [
+   "above-z0",
+   "SKIP",
+   "Z MAX_LIMIT 0.0: above machine zero is unreachable on this config"
+  ],
+  [
+   "warmup",
+   "PASS",
+   "reply True , commanded speeds [0.0, 250.0, 500.0, 750.0, 1000.0, 0.0], enabled after 0"
+  ],
+  [
+   "tcp",
+   "PASS",
+   "TCP True | park: Machine frame only | g30: Machine frame only | moved 0.000000"
+  ],
+  [
+   "revision",
+   "PASS",
+   "Macro changed \u2014 hold again"
+  ],
+  [
+   "claim-done",
+   "PASS",
+   "reply True , write during the dwell (409, 'busy', 'A program or macro is starting or running \u2014 wait'), admitted 0.01 s after its end"
+  ],
+  [
+   "claim-error",
+   "PASS",
+   "reply True , LinuxCNC said ['11:E word with no G70, G76, M66, M67 or M68 to use it'], (state, exec_state, queued MDI, interp) (3, 2, 0, 1), admitted 0.01 s after"
+  ],
+  [
+   "claim-run",
+   "PASS",
+   "reply True , write during the macro (409, 'busy', 'A program or macro is starting or running \u2014 wait'), admitted 0.01 s after"
+  ],
+  [
+   "refusal",
+   "PASS",
+   "409 {'error': 'refused', 'kind': 'conflict', 'name': 'park', 'revision': 'e6428cc4cfa434083c1ca5c93b8b0e09611d6090b2af209ba4ece8462767404d', 'reason': 'Changed on disk \u2014 reload or keep editing'}"
+  ],
+  [
+   "admission",
+   "PASS",
+   "listed False, GET 403 {'detail': 'escape.ngc leads out of the macro folder'}, run_macro False escape.ngc leads out of the macro folder"
+  ],
+  [
+   "cache-red",
+   "PASS",
+   "remap saw steps [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]; plain MDI after the edit: reply True  steps [], LinuxCNC said ['11:Unknown word starting with e'] (the stale offset)"
+  ],
+  [
+   "cache-green",
+   "PASS",
+   "remap saw steps [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]; run_macro: True  steps [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]"
+  ]
+ ]
+}
+== macro-live-2 exit 0, 2026-11-11T20:02:35+01:00

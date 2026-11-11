@@ -1,0 +1,23 @@
+== install at 10775728 into /home/cnc/claude-work/live-checks/configs-fs/lcnc_suite_sim, 2026-11-11T20:00:38+01:00
+Three example profiles installed: /home/cnc/claude-work/live-checks/configs-fs/lcnc_suite_sim
+-- macro profile vs the XYZAC profile:
+45c45
+< WEBUI_MACRO_DIR = ~/linuxcnc/macros
+---
+> WEBUI_MACRO_DIR = macros
+59c59
+< SUBROUTINE_PATH = remap_subs:subroutines/probe_basic:subroutines/tool_length_probe:subroutines/surfacemap:~/linuxcnc/macros
+---
+> SUBROUTINE_PATH = remap_subs:subroutines/probe_basic:subroutines/tool_length_probe:subroutines/surfacemap:macros:testsubs
+64a65
+> REMAP = M499 modalgroup=10 ngc=m499
+/home/cnc/claude-work/live-checks/configs-fs/lcnc_suite_sim/macros:
+coolant_flush.ngc
+face_top.ngc
+go_to_g30_macro.ngc
+park.ngc
+spindle_warmup.ngc
+
+/home/cnc/claude-work/live-checks/configs-fs/lcnc_suite_sim/testsubs:
+m499.ngc
+== install exit 0, 2026-11-11T20:00:43+01:00

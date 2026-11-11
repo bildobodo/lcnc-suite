@@ -1,0 +1,202 @@
+{
+ "ts": "2026-11-11T19:02:49.415711+00:00",
+ "git": "10775728",
+ "gateway_pid": 2989299,
+ "scenarios": {
+  "idle_baseline": {
+   "direct": {
+    "viewer_frames": 248,
+    "status_rx": 200
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [],
+    "gcode_publishes": [],
+    "ws_connects": 2
+   },
+   "rss_kb_before": 80544,
+   "rss_kb_after": 80740,
+   "window_s": 23.5
+  },
+  "fanout": {
+   "direct": {
+    "viewers": 8,
+    "viewer_frames": 592,
+    "viewer_bytes": 163970,
+    "status_rx": 403
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [],
+    "gcode_publishes": [],
+    "ws_connects": 8
+   },
+   "rss_kb_before": 80740,
+   "rss_kb_after": 81040,
+   "window_s": 23.5
+  },
+  "reconnect_storm": {
+   "direct": {
+    "tabs": 12,
+    "all_connected_ms": 6,
+    "frames_after_6s": 480
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [],
+    "gcode_publishes": [],
+    "ws_connects": 12
+   },
+   "rss_kb_before": 81040,
+   "rss_kb_after": 81476,
+   "window_s": 9.5
+  },
+  "upload_during_stream": {
+   "direct": {
+    "status": 200,
+    "upload_ms": 92,
+    "size_mb": 40.0,
+    "viewer_frames": 57,
+    "status_rx": 36
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [
+     "safety.explicit_armed",
+     "safety.explicit_disarmed"
+    ],
+    "gcode_publishes": [],
+    "ws_connects": 4
+   },
+   "rss_kb_before": 81476,
+   "rss_kb_after": 85724,
+   "window_s": 6.0
+  },
+  "save_during_stream": {
+   "direct": {
+    "status": 200,
+    "save_ms": 58,
+    "size_mb": 40.0,
+    "status_rx": 36
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [
+     "safety.explicit_armed",
+     "safety.explicit_disarmed"
+    ],
+    "gcode_publishes": [],
+    "ws_connects": 4
+   },
+   "rss_kb_before": 85724,
+   "rss_kb_after": 85908,
+   "window_s": 6.0
+  },
+  "fusion_near_limit": {
+   "direct": {
+    "status": 200,
+    "import_ms": 439,
+    "size_mb": 13.8
+   },
+   "trace": {
+    "lag_windows": 1,
+    "lag_max_drift_ms": 71.5,
+    "lag_max_dominant": "reader_recv.readline",
+    "safety_events": [],
+    "gcode_publishes": [],
+    "ws_connects": 0
+   },
+   "rss_kb_before": 85908,
+   "rss_kb_after": 183976,
+   "window_s": 4.0
+  },
+  "rss_gc_watch": {
+   "direct": {
+    "rss_kb_first": 183976,
+    "rss_kb_last": 183976,
+    "rss_kb_max": 183976,
+    "growth_kb": 0
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [],
+    "gcode_publishes": [],
+    "ws_connects": 0
+   },
+   "rss_kb_before": 183976,
+   "rss_kb_after": 183976,
+   "window_s": 63.6
+  },
+  "preview_publish": {
+   "direct": {
+    "loaded": "/home/cnc/claude-work/live-checks/home-fs/linuxcnc/nc_files/perfmatrix-big.ngc",
+    "upload_status": 200,
+    "delivered": true,
+    "publish_wait_s": 19.1,
+    "version_before": null,
+    "version_after": 1794423762,
+    "status_rx": 113
+   },
+   "trace": {
+    "lag_windows": 1,
+    "lag_max_drift_ms": 52.5,
+    "lag_max_dominant": "load_file.program_open",
+    "safety_events": [
+     "safety.explicit_armed",
+     "safety.explicit_disarmed"
+    ],
+    "gcode_publishes": [
+     {
+      "bytes": 34236137,
+      "bytes_gz": 15950346,
+      "gzip_ms": 944.5,
+      "total_ms": 18740.1
+     }
+    ],
+    "ws_connects": 2
+   },
+   "rss_kb_before": 183976,
+   "rss_kb_after": 233208,
+   "window_s": 26.6
+  },
+  "sigstop_trip": {
+   "direct": {
+    "latch_before": "FALSE",
+    "latch_after_resume": "TRUE",
+    "oneshot_after_resume": "TRUE",
+    "sticky_ok": true,
+    "latch_after_reset": "FALSE",
+    "recovered_ok": true
+   },
+   "trace": {
+    "lag_windows": 2,
+    "lag_max_drift_ms": 871.8,
+    "lag_max_dominant": "reader_recv.readline",
+    "safety_events": [
+     "safety.explicit_armed",
+     "safety.explicit_disarmed",
+     "safety.trip_acknowledged",
+     "safety.trip_snapshot_done",
+     "safety.tripped"
+    ],
+    "gcode_publishes": [],
+    "ws_connects": 1
+   },
+   "rss_kb_before": 233208,
+   "rss_kb_after": 233208,
+   "window_s": 7.9
+  }
+ }
+}

@@ -1,0 +1,11 @@
+== start 2026-11-11T20:00:38+01:00, tree /home/cnc/lcnc-suite-fs at 10775728
+install-fs rc=0 2026-11-11T20:00:43+01:00
+macro-live-2 rc=0 2026-11-11T20:02:40+01:00
+perf-2 rc=0 2026-11-11T20:05:44+01:00
+Running as unit: lcnc-sim-gates.service; invocation ID: 36e7584999f6449fbc7746fb944be2e7
+Running as unit: bg-keepalive.service; invocation ID: 3805fc48967c4c15a88f23232a9c481c
+f54f3120 Settings split package 3: the docs for the R344 rests
+lan-to rc=0 2026-11-11T20:05:45+01:00
+active
+active
+== end 2026-11-11T20:05:45+01:00

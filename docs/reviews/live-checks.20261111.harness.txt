@@ -1,0 +1,229 @@
+===== env.sh
+# Sourced by sim.sh, step.sh and the install: ONE environment for LinuxCNC and
+# the check scripts on a scratch install. The installer's fake HOME (so
+# ~/linuxcnc/{nc_files,macros} and LinuxCNC's $HOME/.tool.mmap are the scratch
+# ones — a check polling linuxcnc.stat under another HOME finds no tool mmap
+# and poll() raises SystemError or segfaults), PATH with the fake HOME's
+# .local/bin (links into the tree, like install.sh makes them) first and the
+# real /home/cnc/.local/bin (links into the main repo) removed, and the heavy
+# lock pinned to the real one (heavy_lock.py resolves it under Path.home()).
+#   LC_TREE=dev (default) ~/lcnc-suite-dev, development f54f3120
+#   LC_TREE=fs            ~/lcnc-suite-fs, fix/native-settings-rev (the
+#                         drivers fixed, the gateway identical to f54f3120)
+REAL_HOME=/home/cnc
+LC_DIR=$REAL_HOME/claude-work/live-checks
+case "${LC_TREE:-dev}" in
+  dev) LC_WT=$REAL_HOME/lcnc-suite-dev; LC_HOME=$LC_DIR/home;    LC_CFG=$LC_DIR/configs/lcnc_suite_sim ;;
+  fs)  LC_WT=$REAL_HOME/lcnc-suite-fs;  LC_HOME=$LC_DIR/home-fs; LC_CFG=$LC_DIR/configs-fs/lcnc_suite_sim ;;
+  *)   echo "LC_TREE ${LC_TREE} unknown" >&2; exit 2 ;;
+esac
+LC_PATH=$LC_HOME/.local/bin:$(printf '%s' "$PATH" | tr ':' '\n' | grep -vx "$REAL_HOME/.local/bin" | grep -v '^$' | paste -sd:)
+LC_LOCK=$REAL_HOME/claude-work/live-tier/heavy.lock
+
+===== sim.sh
+#!/bin/bash
+# Start / stop one scratch-installed sim profile for the live checks
+# (development f54f3120, ~/claude-work/live-checks/configs/lcnc_suite_sim).
+# The caller holds the heavy lock and has stopped the LAN sim. LinuxCNC runs
+# with the installer's fake HOME: ~/linuxcnc/{nc_files,macros} are the scratch ones.
+#   sim.sh start <ini-file-name>   → unit lc-sim, waits for /ready
+#   sim.sh stop                    → stops lc-sim, waits until LinuxCNC is gone
+set -uo pipefail
+. /home/cnc/claude-work/live-checks/env.sh
+CFG=$LC_CFG
+gone() {
+  for i in $(seq 120); do
+    pgrep -f "uvicorn gateway:app" >/dev/null || pgrep -x milltask >/dev/null || pgrep -x rtapi_app >/dev/null || return 0
+    sleep 1
+  done
+  echo "LinuxCNC still running after 120 s" >&2; return 1
+}
+case "$1" in
+  start)
+    gone || exit 1
+    systemctl --user reset-failed lc-sim 2>/dev/null
+    systemd-run --user --unit=lc-sim --working-directory="$CFG" -E HOME="$LC_HOME" -E PATH="$LC_PATH" \
+      /usr/bin/env -u DISPLAY LCNC_WEBUI_BROWSER=0 linuxcnc "$CFG/$2" || exit 1
+    for i in $(seq 180); do
+      curl -sf -o /dev/null http://127.0.0.1:8000/ready && { echo "ready after ${i}s: $2"; exit 0; }
+      systemctl --user is-active -q lc-sim || { echo "lc-sim ended before ready" >&2; exit 1; }
+      sleep 1
+    done
+    echo "not ready after 180 s" >&2; exit 1 ;;
+  stop)
+    systemctl --user stop lc-sim 2>/dev/null
+    gone ;;
+  *) echo "usage: sim.sh start <ini> | stop" >&2; exit 2 ;;
+esac
+
+===== step.sh
+#!/bin/bash
+# One live check on a scratch-installed profile, under the heavy lock:
+#   step.sh <name> <ini-file-name> <command…>
+# stops the LAN sim (stays stopped until lan-to.sh gives it back), starts the
+# profile, runs the command from the dev worktree, stops the profile. Output
+# and exit code in ~/claude-work/live-checks/<name>.{log,exit}.
+set -uo pipefail
+NAME=$1; INI=$2; shift 2
+. /home/cnc/claude-work/live-checks/env.sh
+L=$LC_DIR; WT=$LC_WT
+exec > "$L/$NAME.log" 2>&1
+echo "== $NAME at $(git -C "$WT" rev-parse --short=8 HEAD) on $INI, $(date -Is)"
+systemctl --user stop bg-keepalive lcnc-sim-gates 2>/dev/null
+"$L/sim.sh" stop || { echo 99 > "$L/$NAME.exit"; exit 99; }
+"$L/sim.sh" start "$INI" || { echo 98 > "$L/$NAME.exit"; "$L/sim.sh" stop; exit 98; }
+cd "$WT"
+# the command under LinuxCNC's own HOME and PATH (env.sh)
+env HOME="$LC_HOME" PATH="$LC_PATH" LCNC_HEAVY_LOCK="$LC_LOCK" "$@"; rc=$?
+echo "== $NAME exit $rc, $(date -Is)"
+"$L/sim.sh" stop
+echo "$rc" > "$L/$NAME.exit"
+exit "$rc"
+
+===== perf.sh
+#!/bin/bash
+# perf-matrix on a FRESH production gateway (scratch 3-axis profile): a
+# disarmed keepalive client holds the heartbeat, prep_on_homed clears the
+# boot-faulted latch (arm → estop_reset → on → home → disarm), then the full
+# matrix with --allow-arm --allow-trip. Called by step.sh (sim already up).
+set -uo pipefail
+# runs under the fake HOME (step.sh): every path absolute, the tree from LC_TREE
+. /home/cnc/claude-work/live-checks/env.sh
+L=$LC_DIR; WT=$LC_WT; PY=$WT/lcnc-gateway/.venv/bin/python3
+INI=$LC_CFG/lcnc_suite_sim_3axis_xyz.ini
+"$PY" /home/cnc/claude-work/bg/keepalive_ini.py "$INI" & KA=$!
+trap 'kill $KA 2>/dev/null' EXIT
+sleep 3
+"$PY" /home/cnc/claude-work/bg/prep_on_homed.py "$WT" || exit 97
+sleep 2
+# perf_matrix takes the heavy lock itself: this step runs WITHOUT the
+# heavy_lock wrapper (a nested acquire would wait for ever)
+LCNC_INI_FILE=$INI "$PY" "$WT/scripts/perf_matrix.py" --allow-arm --allow-trip
+
+===== all.sh
+#!/bin/bash
+# The live checks owed before main, one after another on the scratch install
+# (development f54f3120), then the LAN sim back. Each step: <name>.{log,exit}.
+set -uo pipefail
+L=$HOME/claude-work/live-checks; WT=$HOME/lcnc-suite-dev; PY=$WT/lcnc-gateway/.venv/bin/python3
+CFG=$L/configs/lcnc_suite_sim
+HL=("$PY" -I "$WT/scripts/test_support/heavy_lock.py" --who live-checks --wait 900 --)
+echo "== start $(date -Is)"
+"${HL[@]}" "$L/step.sh" toolsetter-readback lcnc_suite_sim_5axis_xyzac.ini \
+  "$PY" scripts/toolsetter_readback_check.py "$CFG/lcnc_suite_sim_5axis_xyzac.ini" "$L/toolsetter-readback.report.txt"
+echo "toolsetter-readback rc=$? $(date -Is)"
+"${HL[@]}" "$L/step.sh" live-twp lcnc_suite_sim_6axis_twp_xyzabc.ini \
+  "$PY" scripts/test_suite.py live-twp --ini "$CFG/lcnc_suite_sim_6axis_twp_xyzabc.ini" --allow-sim-motion --prepare-sim
+echo "live-twp rc=$? $(date -Is)"
+"${HL[@]}" "$L/step.sh" macro-live lcnc_suite_sim_5axis_xyzac_macro.ini \
+  "$PY" scripts/macro_live_check.py "$CFG/lcnc_suite_sim_5axis_xyzac_macro.ini"
+echo "macro-live rc=$? $(date -Is)"
+# perf_matrix takes the heavy lock itself — no wrapper here
+"$L/step.sh" perf lcnc_suite_sim_3axis_xyz.ini "$L/perf.sh"
+echo "perf rc=$? $(date -Is)"
+"${HL[@]}" "$HOME/claude-work/settings-split/simload/lan-to.sh" f54f3120
+echo "lan-to rc=$? $(date -Is)"
+systemctl --user is-active lcnc-sim-gates bg-keepalive
+echo "== end $(date -Is)"
+
+===== install.sh
+#!/bin/bash
+# Scratch install of the shipped profiles from the dev worktree (f54f3120);
+# LinuxCNC must be stopped, so the LAN sim stops here (back via lan-to.sh).
+set -uo pipefail
+L=$HOME/claude-work/live-checks; WT=$HOME/lcnc-suite-dev
+exec > "$L/install.log" 2>&1
+echo "== install at $(git -C "$WT" rev-parse --short=8 HEAD), $(date -Is)"
+systemctl --user stop bg-keepalive lcnc-sim-gates 2>/dev/null
+"$L/sim.sh" stop || exit 99
+cd "$WT"
+HOME=$L/home "$WT/lcnc-gateway/.venv/bin/python3" scripts/install_examples.py \
+  --destination "$L/configs/lcnc_suite_sim" --backup-root "$L/backups"; rc=$?
+echo "== install exit $rc, $(date -Is)"; echo $rc > "$L/install.exit"; exit $rc
+
+===== all2.sh
+#!/bin/bash
+# Pass 2 (2026-11-11): the two checks whose DRIVERS failed in pass 1 (no
+# X-Conn-Key, BG-14), with the fixed drivers on a scratch install from
+# ~/lcnc-suite-fs (fix/native-settings-rev; gateway identical to f54f3120),
+# then the LAN sim back. Each step: <name>.{log,exit}.
+set -uo pipefail
+export LC_TREE=fs
+. /home/cnc/claude-work/live-checks/env.sh
+L=$LC_DIR; WT=$LC_WT; PY=$WT/lcnc-gateway/.venv/bin/python3; CFG=$LC_CFG
+HL=("$PY" -I "$WT/scripts/test_support/heavy_lock.py" --who live-checks --wait 900 --)
+echo "== start $(date -Is), tree $WT at $(git -C "$WT" rev-parse --short=8 HEAD)"
+"${HL[@]}" "$L/install-fs.sh"; rc=$?
+echo "install-fs rc=$rc $(date -Is)"
+if [ "$rc" = 0 ]; then
+  "${HL[@]}" "$L/step.sh" macro-live-2 lcnc_suite_sim_5axis_xyzac_macro.ini \
+    "$PY" scripts/macro_live_check.py "$CFG/lcnc_suite_sim_5axis_xyzac_macro.ini"
+  echo "macro-live-2 rc=$? $(date -Is)"
+  # perf_matrix takes the heavy lock itself — no wrapper here
+  "$L/step.sh" perf-2 lcnc_suite_sim_3axis_xyz.ini "$L/perf.sh"
+  echo "perf-2 rc=$? $(date -Is)"
+fi
+"${HL[@]}" "$REAL_HOME/claude-work/settings-split/simload/lan-to.sh" f54f3120
+echo "lan-to rc=$? $(date -Is)"
+systemctl --user is-active lcnc-sim-gates bg-keepalive
+echo "== end $(date -Is)"
+
+===== install-fs.sh
+#!/bin/bash
+# Scratch install of the shipped profiles from ~/lcnc-suite-fs (LC_TREE=fs:
+# the drivers fixed, the gateway identical to f54f3120) + the macro profile
+# copy macro_live_check needs (its docstring: WEBUI_MACRO_DIR = macros,
+# SUBROUTINE_PATH …:macros:testsubs, REMAP M499, testsubs/m499.ngc). LinuxCNC
+# must be stopped: the LAN sim stops here (back via lan-to.sh). Under the heavy lock.
+set -uo pipefail
+export LC_TREE=fs
+. /home/cnc/claude-work/live-checks/env.sh
+L=$LC_DIR; WT=$LC_WT; CFG=$LC_CFG
+exec > "$L/install-fs.log" 2>&1
+echo "== install at $(git -C "$WT" rev-parse --short=8 HEAD) into $CFG, $(date -Is)"
+[ -e "$CFG" ] && { echo "$CFG exists — refusing to install over it"; echo 96 > "$L/install-fs.exit"; exit 96; }
+systemctl --user stop bg-keepalive lcnc-sim-gates 2>/dev/null
+"$L/sim.sh" stop || { echo 99 > "$L/install-fs.exit"; exit 99; }
+cd "$WT"
+HOME=$LC_HOME "$WT/lcnc-gateway/.venv/bin/python3" scripts/install_examples.py \
+  --destination "$CFG" --backup-root "$L/backups-fs"; rc=$?
+if [ $rc = 0 ]; then
+  M=$CFG/lcnc_suite_sim_5axis_xyzac_macro.ini
+  # the dev copy's three changes (macro-profile.patch), exact
+  patch -s -o "$M" "$CFG/lcnc_suite_sim_5axis_xyzac.ini" "$L/macro-profile.patch" || rc=95
+  mkdir -p "$CFG/macros" "$CFG/testsubs"
+  cp -p "$LC_HOME"/linuxcnc/macros/*.ngc "$CFG/macros/"
+  printf 'o<m499> sub\no<probe_helper> call\no<m499> endsub\nM2\n' > "$CFG/testsubs/m499.ngc"
+  echo "-- macro profile vs the XYZAC profile:"; diff "$CFG/lcnc_suite_sim_5axis_xyzac.ini" "$M"
+  ls "$CFG/macros" "$CFG/testsubs"
+fi
+echo "== install exit $rc, $(date -Is)"; echo $rc > "$L/install-fs.exit"; exit $rc
+
+===== macro-profile.patch
+--- /home/cnc/claude-work/live-checks/configs/lcnc_suite_sim/lcnc_suite_sim_5axis_xyzac.ini	2026-11-11 19:21:21.124203446 +0100
++++ /home/cnc/claude-work/live-checks/configs/lcnc_suite_sim/lcnc_suite_sim_5axis_xyzac_macro.ini	2026-11-11 19:22:05.528739635 +0100
+@@ -42,7 +42,7 @@
+ # The macro folder (package 5): macros are .ngc subroutine files, run by
+ # o<name> call; it must be on [RS274NGC] SUBROUTINE_PATH (last there, so a
+ # macro never shadows a suite routine).
+-WEBUI_MACRO_DIR = ~/linuxcnc/macros
++WEBUI_MACRO_DIR = macros
+ INCREMENTS = 10mm 1mm .1mm .01mm
+ GEOMETRY = XYZAC
+ 
+@@ -56,12 +56,13 @@
+ OWORD_NARGS = 1
+ NO_DOWNCASE_OWORD = 1
+ # The kins-aware M600/M601 wrappers in remap_subs shadow the toolsetter bundle's.
+-SUBROUTINE_PATH = remap_subs:subroutines/probe_basic:subroutines/tool_length_probe:subroutines/surfacemap:~/linuxcnc/macros
++SUBROUTINE_PATH = remap_subs:subroutines/probe_basic:subroutines/tool_length_probe:subroutines/surfacemap:macros:testsubs
+ ON_ABORT_COMMAND = O<on_abort> call
+ REMAP = M428 modalgroup=10 ngc=428remap
+ REMAP = M429 modalgroup=10 ngc=429remap
+ REMAP = M600 modalgroup=6 ngc=m600
+ REMAP = M601 modalgroup=6 ngc=m601
++REMAP = M499 modalgroup=10 ngc=m499
+ USER_M_PATH = ./
+ FEATURES = 12
+ 
+

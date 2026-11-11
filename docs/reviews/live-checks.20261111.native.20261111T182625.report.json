@@ -1,0 +1,6116 @@
+{
+  "started": 1794417985.5998995,
+  "steps": [
+    "tree",
+    "copy",
+    "start",
+    "connect",
+    "servo",
+    "home",
+    "jog",
+    "plateau",
+    "goto",
+    "probe",
+    "surface",
+    "m600",
+    "m6-hold",
+    "ts-sync"
+  ],
+  "rows": [
+    {
+      "case": "home-all",
+      "status": "PASS",
+      "detail": "as expected",
+      "expected": [
+        true,
+        true,
+        true
+      ],
+      "observed": [
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "case": "home-joint-0",
+      "status": "PASS",
+      "detail": "as expected",
+      "expected": [
+        true,
+        false,
+        false
+      ],
+      "observed": [
+        true,
+        false,
+        false
+      ]
+    },
+    {
+      "case": "home-joint-1",
+      "status": "PASS",
+      "detail": "as expected",
+      "expected": [
+        false,
+        true,
+        false
+      ],
+      "observed": [
+        false,
+        true,
+        false
+      ]
+    },
+    {
+      "case": "home-joint-2",
+      "status": "PASS",
+      "detail": "as expected",
+      "expected": [
+        false,
+        false,
+        true
+      ],
+      "observed": [
+        false,
+        false,
+        true
+      ]
+    },
+    {
+      "case": "jog-x+.servo",
+      "status": "PASS",
+      "detail": "moved in its sign, stopped within its bounds",
+      "axis": "X",
+      "sign": 1,
+      "bound_mm": 2.067,
+      "problems": [],
+      "samples": 1354,
+      "travel_mm": 15.1061,
+      "anchor_n": 36875,
+      "brake_upper_mm": 0.9439,
+      "standstill_n": 36925,
+      "standstill_received_s": 0.055,
+      "samples_anchor_to_standstill": 50
+    },
+    {
+      "case": "jog-x+",
+      "status": "incomplete",
+      "detail": "the braking travel from the reply is at most 2.792 mm by the frame before it; status frames give no lower bound (their capture time is not known) \u2014 not resolved against 2.067",
+      "axis": "X",
+      "sign": 1,
+      "bound_mm": 2.067,
+      "travel": 13.2583,
+      "before_s": -0.0293,
+      "stop_s": 0.0727,
+      "brake_upper_mm": 2.7918,
+      "first_after_mm": 1.2256,
+      "informational": true
+    },
+    {
+      "case": "jog-x-.servo",
+      "status": "PASS",
+      "detail": "moved in its sign, stopped within its bounds",
+      "axis": "X",
+      "sign": -1,
+      "bound_mm": 2.067,
+      "problems": [],
+      "samples": 1349,
+      "travel_mm": 14.6424,
+      "anchor_n": 38844,
+      "brake_upper_mm": 1.3576,
+      "standstill_n": 38904,
+      "standstill_received_s": 0.0614,
+      "samples_anchor_to_standstill": 60
+    },
+    {
+      "case": "jog-x-",
+      "status": "incomplete",
+      "detail": "the braking travel from the reply is at most 2.342 mm by the frame before it; status frames give no lower bound (their capture time is not known) \u2014 not resolved against 2.067",
+      "axis": "X",
+      "sign": -1,
+      "bound_mm": 2.067,
+      "travel": 13.6583,
+      "before_s": -0.0219,
+      "stop_s": 0.0792,
+      "brake_upper_mm": 2.3418,
+      "first_after_mm": 0.9066,
+      "informational": true
+    },
+    {
+      "case": "jog-y+.servo",
+      "status": "PASS",
+      "detail": "moved in its sign, stopped within its bounds",
+      "axis": "Y",
+      "sign": 1,
+      "bound_mm": 2.067,
+      "problems": [],
+      "samples": 1366,
+      "travel_mm": 15.4434,
+      "anchor_n": 40826,
+      "brake_upper_mm": 0.9066,
+      "standstill_n": 40875,
+      "standstill_received_s": 0.0534,
+      "samples_anchor_to_standstill": 49
+    },
+    {
+      "case": "jog-y+",
+      "status": "incomplete",
+      "detail": "the braking travel from the reply is at most 2.892 mm by the frame before it; status frames give no lower bound (their capture time is not known) \u2014 not resolved against 2.067",
+      "axis": "Y",
+      "sign": 1,
+      "bound_mm": 2.067,
+      "travel": 13.4583,
+      "before_s": -0.0322,
+      "stop_s": 0.0679,
+      "brake_upper_mm": 2.8918,
+      "first_after_mm": 0.9066,
+      "informational": true
+    },
+    {
+      "case": "jog-y-.servo",
+      "status": "PASS",
+      "detail": "moved in its sign, stopped within its bounds",
+      "axis": "Y",
+      "sign": -1,
+      "bound_mm": 2.067,
+      "problems": [],
+      "samples": 1361,
+      "travel_mm": 14.8059,
+      "anchor_n": 42799,
+      "brake_upper_mm": 1.5441,
+      "standstill_n": 42863,
+      "standstill_received_s": 0.0557,
+      "samples_anchor_to_standstill": 64
+    },
+    {
+      "case": "jog-y-",
+      "status": "incomplete",
+      "detail": "the braking travel from the reply is at most 2.492 mm by the frame before it; status frames give no lower bound (their capture time is not known) \u2014 not resolved against 2.067",
+      "axis": "Y",
+      "sign": -1,
+      "bound_mm": 2.067,
+      "travel": 13.8583,
+      "before_s": -0.0272,
+      "stop_s": 0.0794,
+      "brake_upper_mm": 2.4918,
+      "first_after_mm": 1.1831,
+      "informational": true
+    },
+    {
+      "case": "jog-z+.servo",
+      "status": "PASS",
+      "detail": "moved in its sign, stopped within its bounds",
+      "axis": "Z",
+      "sign": 1,
+      "bound_mm": 2.483,
+      "problems": [],
+      "samples": 1358,
+      "travel_mm": 14.6085,
+      "anchor_n": 44769,
+      "brake_upper_mm": 1.5915,
+      "standstill_n": 44842,
+      "standstill_received_s": 0.0748,
+      "samples_anchor_to_standstill": 73
+    },
+    {
+      "case": "jog-z+",
+      "status": "incomplete",
+      "detail": "the braking travel from the reply is at most 4.008 mm by the frame before it; status frames give no lower bound (their capture time is not known) \u2014 not resolved against 2.483",
+      "axis": "Z",
+      "sign": 1,
+      "bound_mm": 2.483,
+      "travel": 12.1916,
+      "before_s": -0.0432,
+      "stop_s": 0.1057,
+      "brake_upper_mm": 4.0084,
+      "first_after_mm": 1.5481,
+      "informational": true
+    },
+    {
+      "case": "jog-z-.servo",
+      "status": "PASS",
+      "detail": "moved in its sign, stopped within its bounds",
+      "axis": "Z",
+      "sign": -1,
+      "bound_mm": 2.483,
+      "problems": [],
+      "samples": 1355,
+      "travel_mm": 14.7585,
+      "anchor_n": 46749,
+      "brake_upper_mm": 1.5915,
+      "standstill_n": 46822,
+      "standstill_received_s": 0.0776,
+      "samples_anchor_to_standstill": 73
+    },
+    {
+      "case": "jog-z-",
+      "status": "PASS",
+      "detail": "moved in its sign, stopped within its bounds",
+      "axis": "Z",
+      "sign": -1,
+      "bound_mm": 2.483,
+      "travel": 14.7145,
+      "before_s": -0.0001,
+      "stop_s": 0.1072,
+      "brake_upper_mm": 1.6355,
+      "first_after_mm": 0.4071,
+      "informational": true
+    },
+    {
+      "case": "override-plateau-100",
+      "status": "PASS",
+      "detail": "median 100.00 mm/s within 100 \u00b1 5%",
+      "expected": 100.0,
+      "tol": 0.05,
+      "pairs": 2999,
+      "problems": [],
+      "median": 100.0
+    },
+    {
+      "case": "override-plateau-50",
+      "status": "PASS",
+      "detail": "median 50.00 mm/s within 50 \u00b1 5%",
+      "expected": 50.0,
+      "tol": 0.05,
+      "pairs": 5999,
+      "problems": [],
+      "median": 50.0
+    },
+    {
+      "case": "override-plateau.counter-75",
+      "status": "PASS",
+      "detail": "the planted value is refused: median 100.00 mm/s \u2014 expected 75 \u00b1 5%",
+      "counter": true,
+      "inner": {
+        "case": "override-plateau-100",
+        "status": "FAIL",
+        "detail": "median 100.00 mm/s \u2014 expected 75 \u00b1 5%",
+        "expected": 75.0,
+        "tol": 0.05,
+        "pairs": 2999,
+        "problems": [],
+        "median": 100.0
+      }
+    },
+    {
+      "case": "goto-zero",
+      "status": "PASS",
+      "detail": "Z up first, then X/Y; no descent (the target's Z is up); at rest on the target",
+      "start": [
+        200.0,
+        200.0,
+        -60.0
+      ],
+      "target": [
+        100.0,
+        100.0,
+        0.0
+      ],
+      "problems": []
+    },
+    {
+      "case": "goto-home",
+      "status": "PASS",
+      "detail": "Z up first, then X/Y; no descent (the target's Z is up); at rest on the target",
+      "start": [
+        200.0,
+        200.0,
+        -60.0
+      ],
+      "target": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "problems": []
+    },
+    {
+      "case": "goto-g30",
+      "status": "PASS",
+      "detail": "Z up first, then X/Y; no descent (the target's Z is up); at rest on the target",
+      "start": [
+        200.0,
+        200.0,
+        -60.0
+      ],
+      "target": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "problems": []
+    },
+    {
+      "case": "goto-zero.counter-xy-first",
+      "status": "PASS",
+      "detail": "the planted value is refused: X moved -0.012 mm with Z at -60.000 (sample 135483)",
+      "counter": true,
+      "inner": {
+        "case": "goto-zero",
+        "status": "FAIL",
+        "detail": "X moved -0.012 mm with Z at -60.000 (sample 135483)",
+        "start": [
+          200.0,
+          200.0,
+          -60.0
+        ],
+        "target": [
+          100.0,
+          100.0,
+          0.0
+        ],
+        "problems": []
+      }
+    },
+    {
+      "case": "probe-z",
+      "status": "PASS",
+      "detail": "G54 Z -180.0011 within -180 \u00b1 0.003",
+      "expected": -180.0,
+      "tol_mm": 0.003,
+      "contact": 1.0,
+      "g54_z": -180.0011166666662,
+      "errors": [],
+      "deviation_mm": -0.001117,
+      "vars_sent": {
+        "3014": 99.0,
+        "3015": 50.0,
+        "3016": 200.0,
+        "3017": 1000.0,
+        "3020": 10.0,
+        "3021": 2.0,
+        "3030": 0
+      }
+    },
+    {
+      "case": "probe-z.counter-plate-1",
+      "status": "PASS",
+      "detail": "the planted value is refused: G54 Z -180.0011 \u2014 expected -179 \u00b1 0.003",
+      "counter": true,
+      "inner": {
+        "case": "probe-z",
+        "status": "FAIL",
+        "detail": "G54 Z -180.0011 \u2014 expected -179 \u00b1 0.003",
+        "expected": -179.0,
+        "tol_mm": 0.003,
+        "contact": 1.0,
+        "g54_z": -180.0011166666662,
+        "errors": [],
+        "deviation_mm": -1.001117
+      }
+    },
+    {
+      "case": "probe-z-miss",
+      "status": "PASS",
+      "detail": "no contact, nothing set, the error said so",
+      "error": "G38.2 move finished without making contact.",
+      "contact": 0.0,
+      "g54_before": 0.0,
+      "g54_after": 0.0,
+      "errors": [
+        [
+          11,
+          "G38.2 move finished without making contact."
+        ]
+      ],
+      "vars_read_back": {
+        "3014": 99.0,
+        "3015": 50.0,
+        "3016": 200.0,
+        "3017": 1000.0,
+        "3020": 10.0,
+        "3021": 2.0,
+        "3030": 0.0
+      }
+    },
+    {
+      "case": "surface-scan",
+      "status": "PASS",
+      "detail": "25 points in the snake, each on the surface within \u00b1 0.005",
+      "tol_mm": 0.005,
+      "errors": [
+        [
+          13,
+          " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+        ],
+        [
+          13,
+          " Surface scan complete. Results saved to probe-results.txt"
+        ]
+      ],
+      "points": 25,
+      "worst_mm": -0.00165,
+      "worst_at": [
+        566.0,
+        566.0
+      ]
+    },
+    {
+      "case": "surface-scan.counter-node+1",
+      "status": "PASS",
+      "detail": "the planted value is refused: Z at X550 Y550 off the surface by -1.0013 (\u00b1 0.005)",
+      "counter": true,
+      "inner": {
+        "case": "surface-scan",
+        "status": "FAIL",
+        "detail": "Z at X550 Y550 off the surface by -1.0013 (\u00b1 0.005)",
+        "tol_mm": 0.005,
+        "errors": [
+          [
+            13,
+            " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+          ],
+          [
+            13,
+            " Surface scan complete. Results saved to probe-results.txt"
+          ]
+        ],
+        "points": 25,
+        "worst_mm": -1.001283,
+        "worst_at": [
+          550.0,
+          550.0
+        ]
+      }
+    },
+    {
+      "case": "surface-scan.counter-xy-swapped",
+      "status": "PASS",
+      "detail": "the planted value is refused: Z at X518 Y582 off the surface by -5.1211 (\u00b1 0.005)",
+      "counter": true,
+      "inner": {
+        "case": "surface-scan",
+        "status": "FAIL",
+        "detail": "Z at X518 Y582 off the surface by -5.1211 (\u00b1 0.005)",
+        "tol_mm": 0.005,
+        "errors": [
+          [
+            13,
+            " Grid: X[518.000000 to 582.000000] Y[518.000000 to 582.000000], Spacing: X16.000000 Y16.000000"
+          ],
+          [
+            13,
+            " Surface scan complete. Results saved to probe-results.txt"
+          ]
+        ],
+        "points": 25,
+        "worst_mm": -5.121083,
+        "worst_at": [
+          518.0,
+          582.0
+        ]
+      }
+    },
+    {
+      "case": "surface-override-lock",
+      "status": "PASS",
+      "detail": "locked through the measuring phase, free after the routine",
+      "free_s": 81.168,
+      "locked_from_s": 0.071,
+      "done_s": 81.168
+    },
+    {
+      "case": "surface-scan.map",
+      "status": "PASS",
+      "detail": "the map reloaded (version 0 \u2192 1)",
+      "version_before": 0,
+      "version_after": 1
+    },
+    {
+      "case": "comp-nearest",
+      "status": "PASS",
+      "detail": "nearest: offset 4.5840 = the reference within \u00b1 0.002",
+      "method": "nearest",
+      "at": [
+        538.0,
+        550.0
+      ],
+      "eoffset": 4.583999999204615,
+      "joint_z": -108.41600000079539,
+      "z_control": -113.0,
+      "refs": {
+        "nearest": 4.58455,
+        "linear": 4.938092,
+        "cubic": 5.069006
+      },
+      "recorded": {
+        "near": 4.58455,
+        "far": 5.998717
+      },
+      "f_dev": 5.0544,
+      "tol_mm": 0.002,
+      "reading": {
+        "settled": true,
+        "eoffset": 4.583999999204615,
+        "x": 538.0,
+        "y": 549.9999999999999,
+        "joint_z": -108.41600000079539,
+        "enabled": true,
+        "method": 0,
+        "version": 3,
+        "window_s": 0.508,
+        "window": {
+          "fields": [
+            "t",
+            "eoffset_z",
+            "x",
+            "y",
+            "z",
+            "version",
+            "enabled",
+            "method"
+          ],
+          "frames": [
+            [
+              1433935.915,
+              4.583999999204615,
+              538.0,
+              549.9999999999999,
+              -108.41600000079539,
+              3,
+              true,
+              0
+            ],
+            [
+              1433935.9485,
+              4.583999999204615,
+              538.0,
+              549.9999999999999,
+              -108.41600000079539,
+              3,
+              true,
+              0
+            ],
+            [
+              1433935.983,
+              4.583999999204615,
+              538.0,
+              549.9999999999999,
+              -108.41600000079539,
+              3,
+              true,
+              0
+            ],
+            [
+              1433936.0164,
+              4.583999999204615,
+              538.0,
+              549.9999999999999,
+              -108.41600000079539,
+              3,
+              true,
+              0
+            ],
+            [
+              1433936.0497,
+              4.583999999204615,
+              538.0,
+              549.9999999999999,
+              -108.41600000079539,
+              3,
+              true,
+              0
+            ],
+            [
+              1433936.0832,
+              4.583999999204615,
+              538.0,
+              549.9999999999999,
+              -108.41600000079539,
+              3,
+              true,
+              0
+            ],
+            [
+              1433936.1176,
+              4.583999999204615,
+              538.0,
+              549.9999999999999,
+              -108.41600000079539,
+              3,
+              true,
+              0
+            ],
+            [
+              1433936.1511,
+              4.583999999204615,
+              538.0,
+              549.9999999999999,
+              -108.41600000079539,
+              3,
+              true,
+              0
+            ],
+            [
+              1433936.1858,
+              4.583999999204615,
+              538.0,
+              549.9999999999999,
+              -108.41600000079539,
+              3,
+              true,
+              0
+            ],
+            [
+              1433936.2192,
+              4.583999999204615,
+              538.0,
+              549.9999999999999,
+              -108.41600000079539,
+              3,
+              true,
+              0
+            ],
+            [
+              1433936.2525,
+              4.583999999204615,
+              538.0,
+              549.9999999999999,
+              -108.41600000079539,
+              3,
+              true,
+              0
+            ],
+            [
+              1433936.2859,
+              4.583999999204615,
+              538.0,
+              549.9999999999999,
+              -108.41600000079539,
+              3,
+              true,
+              0
+            ],
+            [
+              1433936.3197,
+              4.583999999204615,
+              538.0,
+              549.9999999999999,
+              -108.41600000079539,
+              3,
+              true,
+              0
+            ],
+            [
+              1433936.3531,
+              4.583999999204615,
+              538.0,
+              549.9999999999999,
+              -108.41600000079539,
+              3,
+              true,
+              0
+            ],
+            [
+              1433936.3877,
+              4.583999999204615,
+              538.0,
+              549.9999999999999,
+              -108.41600000079539,
+              3,
+              true,
+              0
+            ],
+            [
+              1433936.4231,
+              4.583999999204615,
+              538.0,
+              549.9999999999999,
+              -108.41600000079539,
+              3,
+              true,
+              0
+            ]
+          ]
+        },
+        "limited": false
+      },
+      "min_ref_gap_mm": 0.130915
+    },
+    {
+      "case": "comp-nearest.counter-linear",
+      "status": "PASS",
+      "detail": "the planted value is refused: offset 4.5840, the nearest reference 4.9381 \u00b1 0.002",
+      "counter": true,
+      "inner": {
+        "case": "comp-nearest",
+        "status": "FAIL",
+        "detail": "offset 4.5840, the nearest reference 4.9381 \u00b1 0.002",
+        "method": "nearest",
+        "at": [
+          538.0,
+          550.0
+        ],
+        "eoffset": 4.583999999204615,
+        "joint_z": -108.41600000079539,
+        "z_control": -113.0,
+        "refs": {
+          "nearest": 4.938092,
+          "linear": 4.938092,
+          "cubic": 5.069006
+        },
+        "recorded": {
+          "near": 4.58455,
+          "far": 5.998717
+        },
+        "f_dev": 5.0544,
+        "tol_mm": 0.002,
+        "reading": {
+          "settled": true,
+          "eoffset": 4.583999999204615,
+          "x": 538.0,
+          "y": 549.9999999999999,
+          "joint_z": -108.41600000079539,
+          "enabled": true,
+          "method": 0,
+          "version": 3,
+          "window_s": 0.508,
+          "window": {
+            "fields": [
+              "t",
+              "eoffset_z",
+              "x",
+              "y",
+              "z",
+              "version",
+              "enabled",
+              "method"
+            ],
+            "frames": [
+              [
+                1433935.915,
+                4.583999999204615,
+                538.0,
+                549.9999999999999,
+                -108.41600000079539,
+                3,
+                true,
+                0
+              ],
+              [
+                1433935.9485,
+                4.583999999204615,
+                538.0,
+                549.9999999999999,
+                -108.41600000079539,
+                3,
+                true,
+                0
+              ],
+              [
+                1433935.983,
+                4.583999999204615,
+                538.0,
+                549.9999999999999,
+                -108.41600000079539,
+                3,
+                true,
+                0
+              ],
+              [
+                1433936.0164,
+                4.583999999204615,
+                538.0,
+                549.9999999999999,
+                -108.41600000079539,
+                3,
+                true,
+                0
+              ],
+              [
+                1433936.0497,
+                4.583999999204615,
+                538.0,
+                549.9999999999999,
+                -108.41600000079539,
+                3,
+                true,
+                0
+              ],
+              [
+                1433936.0832,
+                4.583999999204615,
+                538.0,
+                549.9999999999999,
+                -108.41600000079539,
+                3,
+                true,
+                0
+              ],
+              [
+                1433936.1176,
+                4.583999999204615,
+                538.0,
+                549.9999999999999,
+                -108.41600000079539,
+                3,
+                true,
+                0
+              ],
+              [
+                1433936.1511,
+                4.583999999204615,
+                538.0,
+                549.9999999999999,
+                -108.41600000079539,
+                3,
+                true,
+                0
+              ],
+              [
+                1433936.1858,
+                4.583999999204615,
+                538.0,
+                549.9999999999999,
+                -108.41600000079539,
+                3,
+                true,
+                0
+              ],
+              [
+                1433936.2192,
+                4.583999999204615,
+                538.0,
+                549.9999999999999,
+                -108.41600000079539,
+                3,
+                true,
+                0
+              ],
+              [
+                1433936.2525,
+                4.583999999204615,
+                538.0,
+                549.9999999999999,
+                -108.41600000079539,
+                3,
+                true,
+                0
+              ],
+              [
+                1433936.2859,
+                4.583999999204615,
+                538.0,
+                549.9999999999999,
+                -108.41600000079539,
+                3,
+                true,
+                0
+              ],
+              [
+                1433936.3197,
+                4.583999999204615,
+                538.0,
+                549.9999999999999,
+                -108.41600000079539,
+                3,
+                true,
+                0
+              ],
+              [
+                1433936.3531,
+                4.583999999204615,
+                538.0,
+                549.9999999999999,
+                -108.41600000079539,
+                3,
+                true,
+                0
+              ],
+              [
+                1433936.3877,
+                4.583999999204615,
+                538.0,
+                549.9999999999999,
+                -108.41600000079539,
+                3,
+                true,
+                0
+              ],
+              [
+                1433936.4231,
+                4.583999999204615,
+                538.0,
+                549.9999999999999,
+                -108.41600000079539,
+                3,
+                true,
+                0
+              ]
+            ]
+          },
+          "limited": false
+        }
+      }
+    },
+    {
+      "case": "comp-linear",
+      "status": "PASS",
+      "detail": "linear: offset 4.9380 = the reference within \u00b1 0.002",
+      "method": "linear",
+      "at": [
+        538.0,
+        550.0
+      ],
+      "eoffset": 4.937999998476795,
+      "joint_z": -108.0620000015232,
+      "z_control": -113.0,
+      "refs": {
+        "nearest": 4.58455,
+        "linear": 4.938092,
+        "cubic": 5.069006
+      },
+      "recorded": {
+        "near": 4.58455,
+        "far": 5.998717
+      },
+      "f_dev": 5.0544,
+      "tol_mm": 0.002,
+      "reading": {
+        "settled": true,
+        "eoffset": 4.937999998476795,
+        "x": 538.0,
+        "y": 549.9999999999999,
+        "joint_z": -108.0620000015232,
+        "enabled": true,
+        "method": 1,
+        "version": 4,
+        "window_s": 0.51,
+        "window": {
+          "fields": [
+            "t",
+            "eoffset_z",
+            "x",
+            "y",
+            "z",
+            "version",
+            "enabled",
+            "method"
+          ],
+          "frames": [
+            [
+              1433938.1098,
+              4.937999998476795,
+              538.0,
+              549.9999999999999,
+              -108.0620000015232,
+              4,
+              true,
+              1
+            ],
+            [
+              1433938.1432,
+              4.937999998476795,
+              538.0,
+              549.9999999999999,
+              -108.0620000015232,
+              4,
+              true,
+              1
+            ],
+            [
+              1433938.1766,
+              4.937999998476795,
+              538.0,
+              549.9999999999999,
+              -108.0620000015232,
+              4,
+              true,
+              1
+            ],
+            [
+              1433938.2099,
+              4.937999998476795,
+              538.0,
+              549.9999999999999,
+              -108.0620000015232,
+              4,
+              true,
+              1
+            ],
+            [
+              1433938.2434,
+              4.937999998476795,
+              538.0,
+              549.9999999999999,
+              -108.0620000015232,
+              4,
+              true,
+              1
+            ],
+            [
+              1433938.2768,
+              4.937999998476795,
+              538.0,
+              549.9999999999999,
+              -108.0620000015232,
+              4,
+              true,
+              1
+            ],
+            [
+              1433938.3112,
+              4.937999998476795,
+              538.0,
+              549.9999999999999,
+              -108.0620000015232,
+              4,
+              true,
+              1
+            ],
+            [
+              1433938.3447,
+              4.937999998476795,
+              538.0,
+              549.9999999999999,
+              -108.0620000015232,
+              4,
+              true,
+              1
+            ],
+            [
+              1433938.3781,
+              4.937999998476795,
+              538.0,
+              549.9999999999999,
+              -108.0620000015232,
+              4,
+              true,
+              1
+            ],
+            [
+              1433938.4116,
+              4.937999998476795,
+              538.0,
+              549.9999999999999,
+              -108.0620000015232,
+              4,
+              true,
+              1
+            ],
+            [
+              1433938.4455,
+              4.937999998476795,
+              538.0,
+              549.9999999999999,
+              -108.0620000015232,
+              4,
+              true,
+              1
+            ],
+            [
+              1433938.479,
+              4.937999998476795,
+              538.0,
+              549.9999999999999,
+              -108.0620000015232,
+              4,
+              true,
+              1
+            ],
+            [
+              1433938.5136,
+              4.937999998476795,
+              538.0,
+              549.9999999999999,
+              -108.0620000015232,
+              4,
+              true,
+              1
+            ],
+            [
+              1433938.5491,
+              4.937999998476795,
+              538.0,
+              549.9999999999999,
+              -108.0620000015232,
+              4,
+              true,
+              1
+            ],
+            [
+              1433938.5838,
+              4.937999998476795,
+              538.0,
+              549.9999999999999,
+              -108.0620000015232,
+              4,
+              true,
+              1
+            ],
+            [
+              1433938.6199,
+              4.937999998476795,
+              538.0,
+              549.9999999999999,
+              -108.0620000015232,
+              4,
+              true,
+              1
+            ]
+          ]
+        },
+        "limited": false
+      },
+      "min_ref_gap_mm": 0.130915
+    },
+    {
+      "case": "comp-linear.counter-cubic",
+      "status": "PASS",
+      "detail": "the planted value is refused: offset 4.9380, the linear reference 5.0690 \u00b1 0.002",
+      "counter": true,
+      "inner": {
+        "case": "comp-linear",
+        "status": "FAIL",
+        "detail": "offset 4.9380, the linear reference 5.0690 \u00b1 0.002",
+        "method": "linear",
+        "at": [
+          538.0,
+          550.0
+        ],
+        "eoffset": 4.937999998476795,
+        "joint_z": -108.0620000015232,
+        "z_control": -113.0,
+        "refs": {
+          "nearest": 4.58455,
+          "linear": 5.069006,
+          "cubic": 5.069006
+        },
+        "recorded": {
+          "near": 4.58455,
+          "far": 5.998717
+        },
+        "f_dev": 5.0544,
+        "tol_mm": 0.002,
+        "reading": {
+          "settled": true,
+          "eoffset": 4.937999998476795,
+          "x": 538.0,
+          "y": 549.9999999999999,
+          "joint_z": -108.0620000015232,
+          "enabled": true,
+          "method": 1,
+          "version": 4,
+          "window_s": 0.51,
+          "window": {
+            "fields": [
+              "t",
+              "eoffset_z",
+              "x",
+              "y",
+              "z",
+              "version",
+              "enabled",
+              "method"
+            ],
+            "frames": [
+              [
+                1433938.1098,
+                4.937999998476795,
+                538.0,
+                549.9999999999999,
+                -108.0620000015232,
+                4,
+                true,
+                1
+              ],
+              [
+                1433938.1432,
+                4.937999998476795,
+                538.0,
+                549.9999999999999,
+                -108.0620000015232,
+                4,
+                true,
+                1
+              ],
+              [
+                1433938.1766,
+                4.937999998476795,
+                538.0,
+                549.9999999999999,
+                -108.0620000015232,
+                4,
+                true,
+                1
+              ],
+              [
+                1433938.2099,
+                4.937999998476795,
+                538.0,
+                549.9999999999999,
+                -108.0620000015232,
+                4,
+                true,
+                1
+              ],
+              [
+                1433938.2434,
+                4.937999998476795,
+                538.0,
+                549.9999999999999,
+                -108.0620000015232,
+                4,
+                true,
+                1
+              ],
+              [
+                1433938.2768,
+                4.937999998476795,
+                538.0,
+                549.9999999999999,
+                -108.0620000015232,
+                4,
+                true,
+                1
+              ],
+              [
+                1433938.3112,
+                4.937999998476795,
+                538.0,
+                549.9999999999999,
+                -108.0620000015232,
+                4,
+                true,
+                1
+              ],
+              [
+                1433938.3447,
+                4.937999998476795,
+                538.0,
+                549.9999999999999,
+                -108.0620000015232,
+                4,
+                true,
+                1
+              ],
+              [
+                1433938.3781,
+                4.937999998476795,
+                538.0,
+                549.9999999999999,
+                -108.0620000015232,
+                4,
+                true,
+                1
+              ],
+              [
+                1433938.4116,
+                4.937999998476795,
+                538.0,
+                549.9999999999999,
+                -108.0620000015232,
+                4,
+                true,
+                1
+              ],
+              [
+                1433938.4455,
+                4.937999998476795,
+                538.0,
+                549.9999999999999,
+                -108.0620000015232,
+                4,
+                true,
+                1
+              ],
+              [
+                1433938.479,
+                4.937999998476795,
+                538.0,
+                549.9999999999999,
+                -108.0620000015232,
+                4,
+                true,
+                1
+              ],
+              [
+                1433938.5136,
+                4.937999998476795,
+                538.0,
+                549.9999999999999,
+                -108.0620000015232,
+                4,
+                true,
+                1
+              ],
+              [
+                1433938.5491,
+                4.937999998476795,
+                538.0,
+                549.9999999999999,
+                -108.0620000015232,
+                4,
+                true,
+                1
+              ],
+              [
+                1433938.5838,
+                4.937999998476795,
+                538.0,
+                549.9999999999999,
+                -108.0620000015232,
+                4,
+                true,
+                1
+              ],
+              [
+                1433938.6199,
+                4.937999998476795,
+                538.0,
+                549.9999999999999,
+                -108.0620000015232,
+                4,
+                true,
+                1
+              ]
+            ]
+          },
+          "limited": false
+        }
+      }
+    },
+    {
+      "case": "comp-cubic",
+      "status": "PASS",
+      "detail": "cubic: offset 5.0690 = the reference within \u00b1 0.002",
+      "method": "cubic",
+      "at": [
+        538.0,
+        550.0
+      ],
+      "eoffset": 5.068999992551447,
+      "joint_z": -107.93100000744856,
+      "z_control": -113.0,
+      "refs": {
+        "nearest": 4.58455,
+        "linear": 4.938092,
+        "cubic": 5.069006
+      },
+      "recorded": {
+        "near": 4.58455,
+        "far": 5.998717
+      },
+      "f_dev": 5.0544,
+      "tol_mm": 0.002,
+      "reading": {
+        "settled": true,
+        "eoffset": 5.068999992551447,
+        "x": 538.0,
+        "y": 549.9999999999999,
+        "joint_z": -107.93100000744856,
+        "enabled": true,
+        "method": 2,
+        "version": 5,
+        "window_s": 0.522,
+        "window": {
+          "fields": [
+            "t",
+            "eoffset_z",
+            "x",
+            "y",
+            "z",
+            "version",
+            "enabled",
+            "method"
+          ],
+          "frames": [
+            [
+              1433940.4562,
+              5.068999992551447,
+              538.0,
+              549.9999999999999,
+              -107.93100000744856,
+              5,
+              true,
+              2
+            ],
+            [
+              1433940.4895,
+              5.068999992551447,
+              538.0,
+              549.9999999999999,
+              -107.93100000744856,
+              5,
+              true,
+              2
+            ],
+            [
+              1433940.5291,
+              5.068999992551447,
+              538.0,
+              549.9999999999999,
+              -107.93100000744856,
+              5,
+              true,
+              2
+            ],
+            [
+              1433940.5668,
+              5.068999992551447,
+              538.0,
+              549.9999999999999,
+              -107.93100000744856,
+              5,
+              true,
+              2
+            ],
+            [
+              1433940.6023,
+              5.068999992551447,
+              538.0,
+              549.9999999999999,
+              -107.93100000744856,
+              5,
+              true,
+              2
+            ],
+            [
+              1433940.6387,
+              5.068999992551447,
+              538.0,
+              549.9999999999999,
+              -107.93100000744856,
+              5,
+              true,
+              2
+            ],
+            [
+              1433940.6726,
+              5.068999992551447,
+              538.0,
+              549.9999999999999,
+              -107.93100000744856,
+              5,
+              true,
+              2
+            ],
+            [
+              1433940.7069,
+              5.068999992551447,
+              538.0,
+              549.9999999999999,
+              -107.93100000744856,
+              5,
+              true,
+              2
+            ],
+            [
+              1433940.7421,
+              5.068999992551447,
+              538.0,
+              549.9999999999999,
+              -107.93100000744856,
+              5,
+              true,
+              2
+            ],
+            [
+              1433940.7755,
+              5.068999992551447,
+              538.0,
+              549.9999999999999,
+              -107.93100000744856,
+              5,
+              true,
+              2
+            ],
+            [
+              1433940.809,
+              5.068999992551447,
+              538.0,
+              549.9999999999999,
+              -107.93100000744856,
+              5,
+              true,
+              2
+            ],
+            [
+              1433940.8423,
+              5.068999992551447,
+              538.0,
+              549.9999999999999,
+              -107.93100000744856,
+              5,
+              true,
+              2
+            ],
+            [
+              1433940.8757,
+              5.068999992551447,
+              538.0,
+              549.9999999999999,
+              -107.93100000744856,
+              5,
+              true,
+              2
+            ],
+            [
+              1433940.9096,
+              5.068999992551447,
+              538.0,
+              549.9999999999999,
+              -107.93100000744856,
+              5,
+              true,
+              2
+            ],
+            [
+              1433940.9444,
+              5.068999992551447,
+              538.0,
+              549.9999999999999,
+              -107.93100000744856,
+              5,
+              true,
+              2
+            ],
+            [
+              1433940.9778,
+              5.068999992551447,
+              538.0,
+              549.9999999999999,
+              -107.93100000744856,
+              5,
+              true,
+              2
+            ]
+          ]
+        },
+        "limited": false
+      },
+      "min_ref_gap_mm": 0.130915
+    },
+    {
+      "case": "comp-cubic.counter-nearest",
+      "status": "PASS",
+      "detail": "the planted value is refused: offset 5.0690, the cubic reference 4.5846 \u00b1 0.002",
+      "counter": true,
+      "inner": {
+        "case": "comp-cubic",
+        "status": "FAIL",
+        "detail": "offset 5.0690, the cubic reference 4.5846 \u00b1 0.002",
+        "method": "cubic",
+        "at": [
+          538.0,
+          550.0
+        ],
+        "eoffset": 5.068999992551447,
+        "joint_z": -107.93100000744856,
+        "z_control": -113.0,
+        "refs": {
+          "nearest": 4.58455,
+          "linear": 4.938092,
+          "cubic": 4.58455
+        },
+        "recorded": {
+          "near": 4.58455,
+          "far": 5.998717
+        },
+        "f_dev": 5.0544,
+        "tol_mm": 0.002,
+        "reading": {
+          "settled": true,
+          "eoffset": 5.068999992551447,
+          "x": 538.0,
+          "y": 549.9999999999999,
+          "joint_z": -107.93100000744856,
+          "enabled": true,
+          "method": 2,
+          "version": 5,
+          "window_s": 0.522,
+          "window": {
+            "fields": [
+              "t",
+              "eoffset_z",
+              "x",
+              "y",
+              "z",
+              "version",
+              "enabled",
+              "method"
+            ],
+            "frames": [
+              [
+                1433940.4562,
+                5.068999992551447,
+                538.0,
+                549.9999999999999,
+                -107.93100000744856,
+                5,
+                true,
+                2
+              ],
+              [
+                1433940.4895,
+                5.068999992551447,
+                538.0,
+                549.9999999999999,
+                -107.93100000744856,
+                5,
+                true,
+                2
+              ],
+              [
+                1433940.5291,
+                5.068999992551447,
+                538.0,
+                549.9999999999999,
+                -107.93100000744856,
+                5,
+                true,
+                2
+              ],
+              [
+                1433940.5668,
+                5.068999992551447,
+                538.0,
+                549.9999999999999,
+                -107.93100000744856,
+                5,
+                true,
+                2
+              ],
+              [
+                1433940.6023,
+                5.068999992551447,
+                538.0,
+                549.9999999999999,
+                -107.93100000744856,
+                5,
+                true,
+                2
+              ],
+              [
+                1433940.6387,
+                5.068999992551447,
+                538.0,
+                549.9999999999999,
+                -107.93100000744856,
+                5,
+                true,
+                2
+              ],
+              [
+                1433940.6726,
+                5.068999992551447,
+                538.0,
+                549.9999999999999,
+                -107.93100000744856,
+                5,
+                true,
+                2
+              ],
+              [
+                1433940.7069,
+                5.068999992551447,
+                538.0,
+                549.9999999999999,
+                -107.93100000744856,
+                5,
+                true,
+                2
+              ],
+              [
+                1433940.7421,
+                5.068999992551447,
+                538.0,
+                549.9999999999999,
+                -107.93100000744856,
+                5,
+                true,
+                2
+              ],
+              [
+                1433940.7755,
+                5.068999992551447,
+                538.0,
+                549.9999999999999,
+                -107.93100000744856,
+                5,
+                true,
+                2
+              ],
+              [
+                1433940.809,
+                5.068999992551447,
+                538.0,
+                549.9999999999999,
+                -107.93100000744856,
+                5,
+                true,
+                2
+              ],
+              [
+                1433940.8423,
+                5.068999992551447,
+                538.0,
+                549.9999999999999,
+                -107.93100000744856,
+                5,
+                true,
+                2
+              ],
+              [
+                1433940.8757,
+                5.068999992551447,
+                538.0,
+                549.9999999999999,
+                -107.93100000744856,
+                5,
+                true,
+                2
+              ],
+              [
+                1433940.9096,
+                5.068999992551447,
+                538.0,
+                549.9999999999999,
+                -107.93100000744856,
+                5,
+                true,
+                2
+              ],
+              [
+                1433940.9444,
+                5.068999992551447,
+                538.0,
+                549.9999999999999,
+                -107.93100000744856,
+                5,
+                true,
+                2
+              ],
+              [
+                1433940.9778,
+                5.068999992551447,
+                538.0,
+                549.9999999999999,
+                -107.93100000744856,
+                5,
+                true,
+                2
+              ]
+            ]
+          },
+          "limited": false
+        }
+      }
+    },
+    {
+      "case": "comp-on-off",
+      "status": "PASS",
+      "detail": "on: the tip 11.9980 above the workpiece; off: the tip 6.0000 above the workpiece",
+      "readings": [
+        {
+          "case": "comp-on-off",
+          "status": "PASS",
+          "detail": "on: the tip 11.9980 above the workpiece",
+          "enabled": true,
+          "at": [
+            550.0,
+            550.0
+          ],
+          "eoffset": 5.997999994621315,
+          "joint_z": -107.00200000537869,
+          "map_z": 5.998717,
+          "gap_expected": 12.0,
+          "z_control": -113.0,
+          "reading": {
+            "settled": true,
+            "eoffset": 5.997999994621315,
+            "x": 550.0,
+            "y": 549.9999999999999,
+            "joint_z": -107.00200000537869,
+            "enabled": true,
+            "method": 2,
+            "version": 5,
+            "window_s": 0.518,
+            "window": {
+              "fields": [
+                "t",
+                "eoffset_z",
+                "x",
+                "y",
+                "z",
+                "version",
+                "enabled",
+                "method"
+              ],
+              "frames": [
+                [
+                  1433943.2011,
+                  5.997999994621315,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000537869,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433943.2345,
+                  5.997999994621315,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000537869,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433943.2684,
+                  5.997999994621315,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000537869,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433943.3018,
+                  5.997999994621315,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000537869,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433943.3361,
+                  5.997999994621315,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000537869,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433943.3719,
+                  5.997999994621315,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000537869,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433943.4059,
+                  5.997999994621315,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000537869,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433943.4394,
+                  5.997999994621315,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000537869,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433943.476,
+                  5.997999994621315,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000537869,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433943.5135,
+                  5.997999994621315,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000537869,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433943.5501,
+                  5.997999994621315,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000537869,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433943.5836,
+                  5.997999994621315,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000537869,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433943.618,
+                  5.997999994621315,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000537869,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433943.6516,
+                  5.997999994621315,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000537869,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433943.6847,
+                  5.997999994621315,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000537869,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433943.7192,
+                  5.997999994621315,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000537869,
+                  5,
+                  true,
+                  2
+                ]
+              ]
+            },
+            "limited": false
+          },
+          "gap_mm": 11.998
+        },
+        {
+          "case": "comp-on-off",
+          "status": "PASS",
+          "detail": "off: the tip 6.0000 above the workpiece",
+          "enabled": false,
+          "at": [
+            550.0,
+            550.0
+          ],
+          "eoffset": 1.5145758002283824e-08,
+          "joint_z": -112.99999998485421,
+          "map_z": 5.998717,
+          "gap_expected": 6.0,
+          "z_control": -113.0,
+          "reading": {
+            "settled": true,
+            "eoffset": 1.5145758002283824e-08,
+            "x": 550.0,
+            "y": 549.9999999999999,
+            "joint_z": -112.99999998485421,
+            "enabled": false,
+            "method": 2,
+            "version": 5,
+            "window_s": 0.515,
+            "window": {
+              "fields": [
+                "t",
+                "eoffset_z",
+                "x",
+                "y",
+                "z",
+                "version",
+                "enabled",
+                "method"
+              ],
+              "frames": [
+                [
+                  1433944.3714,
+                  1.5145758002283824e-08,
+                  550.0,
+                  549.9999999999999,
+                  -112.99999998485421,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433944.4062,
+                  1.5145758002283824e-08,
+                  550.0,
+                  549.9999999999999,
+                  -112.99999998485421,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433944.441,
+                  1.5145758002283824e-08,
+                  550.0,
+                  549.9999999999999,
+                  -112.99999998485421,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433944.4744,
+                  1.5145758002283824e-08,
+                  550.0,
+                  549.9999999999999,
+                  -112.99999998485421,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433944.5082,
+                  1.5145758002283824e-08,
+                  550.0,
+                  549.9999999999999,
+                  -112.99999998485421,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433944.5415,
+                  1.5145758002283824e-08,
+                  550.0,
+                  549.9999999999999,
+                  -112.99999998485421,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433944.5765,
+                  1.5145758002283824e-08,
+                  550.0,
+                  549.9999999999999,
+                  -112.99999998485421,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433944.6099,
+                  1.5145758002283824e-08,
+                  550.0,
+                  549.9999999999999,
+                  -112.99999998485421,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433944.6462,
+                  1.5145758002283824e-08,
+                  550.0,
+                  549.9999999999999,
+                  -112.99999998485421,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433944.6798,
+                  1.5145758002283824e-08,
+                  550.0,
+                  549.9999999999999,
+                  -112.99999998485421,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433944.7136,
+                  1.5145758002283824e-08,
+                  550.0,
+                  549.9999999999999,
+                  -112.99999998485421,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433944.748,
+                  1.5145758002283824e-08,
+                  550.0,
+                  549.9999999999999,
+                  -112.99999998485421,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433944.7827,
+                  1.5145758002283824e-08,
+                  550.0,
+                  549.9999999999999,
+                  -112.99999998485421,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433944.8169,
+                  1.5145758002283824e-08,
+                  550.0,
+                  549.9999999999999,
+                  -112.99999998485421,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433944.8517,
+                  1.5145758002283824e-08,
+                  550.0,
+                  549.9999999999999,
+                  -112.99999998485421,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433944.8869,
+                  1.5145758002283824e-08,
+                  550.0,
+                  549.9999999999999,
+                  -112.99999998485421,
+                  5,
+                  false,
+                  2
+                ]
+              ]
+            },
+            "limited": false
+          },
+          "gap_mm": 6.0
+        }
+      ]
+    },
+    {
+      "case": "comp-on-off.counter-gap+0.05",
+      "status": "PASS",
+      "detail": "the planted value is refused: the tip stands 11.9980 above the workpiece, expected 12.0500",
+      "counter": true,
+      "inner": {
+        "case": "comp-on-off",
+        "status": "FAIL",
+        "detail": "the tip stands 11.9980 above the workpiece, expected 12.0500",
+        "enabled": true,
+        "at": [
+          550.0,
+          550.0
+        ],
+        "eoffset": 5.997999994621315,
+        "joint_z": -107.00200000537869,
+        "map_z": 5.998717,
+        "gap_expected": 12.05,
+        "z_control": -113.0,
+        "reading": {
+          "settled": true,
+          "eoffset": 5.997999994621315,
+          "x": 550.0,
+          "y": 549.9999999999999,
+          "joint_z": -107.00200000537869,
+          "enabled": true,
+          "method": 2,
+          "version": 5,
+          "window_s": 0.518,
+          "window": {
+            "fields": [
+              "t",
+              "eoffset_z",
+              "x",
+              "y",
+              "z",
+              "version",
+              "enabled",
+              "method"
+            ],
+            "frames": [
+              [
+                1433943.2011,
+                5.997999994621315,
+                550.0,
+                549.9999999999999,
+                -107.00200000537869,
+                5,
+                true,
+                2
+              ],
+              [
+                1433943.2345,
+                5.997999994621315,
+                550.0,
+                549.9999999999999,
+                -107.00200000537869,
+                5,
+                true,
+                2
+              ],
+              [
+                1433943.2684,
+                5.997999994621315,
+                550.0,
+                549.9999999999999,
+                -107.00200000537869,
+                5,
+                true,
+                2
+              ],
+              [
+                1433943.3018,
+                5.997999994621315,
+                550.0,
+                549.9999999999999,
+                -107.00200000537869,
+                5,
+                true,
+                2
+              ],
+              [
+                1433943.3361,
+                5.997999994621315,
+                550.0,
+                549.9999999999999,
+                -107.00200000537869,
+                5,
+                true,
+                2
+              ],
+              [
+                1433943.3719,
+                5.997999994621315,
+                550.0,
+                549.9999999999999,
+                -107.00200000537869,
+                5,
+                true,
+                2
+              ],
+              [
+                1433943.4059,
+                5.997999994621315,
+                550.0,
+                549.9999999999999,
+                -107.00200000537869,
+                5,
+                true,
+                2
+              ],
+              [
+                1433943.4394,
+                5.997999994621315,
+                550.0,
+                549.9999999999999,
+                -107.00200000537869,
+                5,
+                true,
+                2
+              ],
+              [
+                1433943.476,
+                5.997999994621315,
+                550.0,
+                549.9999999999999,
+                -107.00200000537869,
+                5,
+                true,
+                2
+              ],
+              [
+                1433943.5135,
+                5.997999994621315,
+                550.0,
+                549.9999999999999,
+                -107.00200000537869,
+                5,
+                true,
+                2
+              ],
+              [
+                1433943.5501,
+                5.997999994621315,
+                550.0,
+                549.9999999999999,
+                -107.00200000537869,
+                5,
+                true,
+                2
+              ],
+              [
+                1433943.5836,
+                5.997999994621315,
+                550.0,
+                549.9999999999999,
+                -107.00200000537869,
+                5,
+                true,
+                2
+              ],
+              [
+                1433943.618,
+                5.997999994621315,
+                550.0,
+                549.9999999999999,
+                -107.00200000537869,
+                5,
+                true,
+                2
+              ],
+              [
+                1433943.6516,
+                5.997999994621315,
+                550.0,
+                549.9999999999999,
+                -107.00200000537869,
+                5,
+                true,
+                2
+              ],
+              [
+                1433943.6847,
+                5.997999994621315,
+                550.0,
+                549.9999999999999,
+                -107.00200000537869,
+                5,
+                true,
+                2
+              ],
+              [
+                1433943.7192,
+                5.997999994621315,
+                550.0,
+                549.9999999999999,
+                -107.00200000537869,
+                5,
+                true,
+                2
+              ]
+            ]
+          },
+          "limited": false
+        },
+        "gap_mm": 11.998
+      }
+    },
+    {
+      "case": "comp-after-xy",
+      "status": "PASS",
+      "detail": "on: the tip 11.9980 above the workpiece; on: the tip 11.9992 above the workpiece; off: the tip 13.4752 above the workpiece",
+      "readings": [
+        {
+          "case": "comp-after-xy",
+          "status": "PASS",
+          "detail": "on: the tip 11.9980 above the workpiece",
+          "enabled": true,
+          "at": [
+            550.0,
+            550.0
+          ],
+          "eoffset": 5.997999999999965,
+          "joint_z": -107.00200000000005,
+          "map_z": 5.998717,
+          "gap_expected": 12.0,
+          "z_control": -113.0,
+          "reading": {
+            "settled": true,
+            "eoffset": 5.997999999999965,
+            "x": 550.0,
+            "y": 549.9999999999999,
+            "joint_z": -107.00200000000005,
+            "enabled": true,
+            "method": 2,
+            "version": 5,
+            "window_s": 0.513,
+            "window": {
+              "fields": [
+                "t",
+                "eoffset_z",
+                "x",
+                "y",
+                "z",
+                "version",
+                "enabled",
+                "method"
+              ],
+              "frames": [
+                [
+                  1433945.6375,
+                  5.997999999999965,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000000005,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433945.6721,
+                  5.997999999999965,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000000005,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433945.7055,
+                  5.997999999999965,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000000005,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433945.7391,
+                  5.997999999999965,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000000005,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433945.7739,
+                  5.997999999999965,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000000005,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433945.8076,
+                  5.997999999999965,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000000005,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433945.8413,
+                  5.997999999999965,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000000005,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433945.8746,
+                  5.997999999999965,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000000005,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433945.9087,
+                  5.997999999999965,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000000005,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433945.9422,
+                  5.997999999999965,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000000005,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433945.9763,
+                  5.997999999999965,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000000005,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433946.0106,
+                  5.997999999999965,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000000005,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433946.0458,
+                  5.997999999999965,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000000005,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433946.0805,
+                  5.997999999999965,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000000005,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433946.1147,
+                  5.997999999999965,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000000005,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433946.1501,
+                  5.997999999999965,
+                  550.0,
+                  549.9999999999999,
+                  -107.00200000000005,
+                  5,
+                  true,
+                  2
+                ]
+              ]
+            },
+            "limited": false
+          },
+          "gap_mm": 11.998
+        },
+        {
+          "case": "comp-after-xy",
+          "status": "PASS",
+          "detail": "on: the tip 11.9992 above the workpiece",
+          "enabled": true,
+          "at": [
+            518.0,
+            582.0
+          ],
+          "eoffset": -1.4759999833533066,
+          "joint_z": -114.47599998335329,
+          "map_z": -1.476283,
+          "gap_expected": 12.0,
+          "z_control": -113.0,
+          "reading": {
+            "settled": true,
+            "eoffset": -1.4759999833533066,
+            "x": 518.0,
+            "y": 581.9999999999999,
+            "joint_z": -114.47599998335329,
+            "enabled": true,
+            "method": 2,
+            "version": 5,
+            "window_s": 0.514,
+            "window": {
+              "fields": [
+                "t",
+                "eoffset_z",
+                "x",
+                "y",
+                "z",
+                "version",
+                "enabled",
+                "method"
+              ],
+              "frames": [
+                [
+                  1433949.06,
+                  -1.4759999833533066,
+                  518.0,
+                  581.9999999999999,
+                  -114.47599998335329,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433949.0935,
+                  -1.4759999833533066,
+                  518.0,
+                  581.9999999999999,
+                  -114.47599998335329,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433949.1275,
+                  -1.4759999833533066,
+                  518.0,
+                  581.9999999999999,
+                  -114.47599998335329,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433949.1612,
+                  -1.4759999833533066,
+                  518.0,
+                  581.9999999999999,
+                  -114.47599998335329,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433949.195,
+                  -1.4759999833533066,
+                  518.0,
+                  581.9999999999999,
+                  -114.47599998335329,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433949.2285,
+                  -1.4759999833533066,
+                  518.0,
+                  581.9999999999999,
+                  -114.47599998335329,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433949.2621,
+                  -1.4759999833533066,
+                  518.0,
+                  581.9999999999999,
+                  -114.47599998335329,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433949.2981,
+                  -1.4759999833533066,
+                  518.0,
+                  581.9999999999999,
+                  -114.47599998335329,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433949.3326,
+                  -1.4759999833533066,
+                  518.0,
+                  581.9999999999999,
+                  -114.47599998335329,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433949.3664,
+                  -1.4759999833533066,
+                  518.0,
+                  581.9999999999999,
+                  -114.47599998335329,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433949.4015,
+                  -1.4759999833533066,
+                  518.0,
+                  581.9999999999999,
+                  -114.47599998335329,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433949.4367,
+                  -1.4759999833533066,
+                  518.0,
+                  581.9999999999999,
+                  -114.47599998335329,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433949.4719,
+                  -1.4759999833533066,
+                  518.0,
+                  581.9999999999999,
+                  -114.47599998335329,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433949.5058,
+                  -1.4759999833533066,
+                  518.0,
+                  581.9999999999999,
+                  -114.47599998335329,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433949.5404,
+                  -1.4759999833533066,
+                  518.0,
+                  581.9999999999999,
+                  -114.47599998335329,
+                  5,
+                  true,
+                  2
+                ],
+                [
+                  1433949.5737,
+                  -1.4759999833533066,
+                  518.0,
+                  581.9999999999999,
+                  -114.47599998335329,
+                  5,
+                  true,
+                  2
+                ]
+              ]
+            },
+            "limited": false
+          },
+          "gap_mm": 11.9992
+        },
+        {
+          "case": "comp-after-xy",
+          "status": "PASS",
+          "detail": "off: the tip 13.4752 above the workpiece",
+          "enabled": false,
+          "at": [
+            518.0,
+            582.0
+          ],
+          "eoffset": -1.0800855422590427e-06,
+          "joint_z": -113.00000108008554,
+          "map_z": -1.476283,
+          "gap_expected": 13.475200000000001,
+          "z_control": -113.0,
+          "reading": {
+            "settled": true,
+            "eoffset": -1.0800855422590427e-06,
+            "x": 518.0,
+            "y": 581.9999999999999,
+            "joint_z": -113.00000108008554,
+            "enabled": false,
+            "method": 2,
+            "version": 5,
+            "window_s": 0.509,
+            "window": {
+              "fields": [
+                "t",
+                "eoffset_z",
+                "x",
+                "y",
+                "z",
+                "version",
+                "enabled",
+                "method"
+              ],
+              "frames": [
+                [
+                  1433949.9177,
+                  -1.0800855422590427e-06,
+                  518.0,
+                  581.9999999999999,
+                  -113.00000108008554,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433949.9511,
+                  -1.0800855422590427e-06,
+                  518.0,
+                  581.9999999999999,
+                  -113.00000108008554,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433949.9845,
+                  -1.0800855422590427e-06,
+                  518.0,
+                  581.9999999999999,
+                  -113.00000108008554,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433950.0178,
+                  -1.0800855422590427e-06,
+                  518.0,
+                  581.9999999999999,
+                  -113.00000108008554,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433950.0514,
+                  -1.0800855422590427e-06,
+                  518.0,
+                  581.9999999999999,
+                  -113.00000108008554,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433950.0859,
+                  -1.0800855422590427e-06,
+                  518.0,
+                  581.9999999999999,
+                  -113.00000108008554,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433950.1194,
+                  -1.0800855422590427e-06,
+                  518.0,
+                  581.9999999999999,
+                  -113.00000108008554,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433950.1546,
+                  -1.0800855422590427e-06,
+                  518.0,
+                  581.9999999999999,
+                  -113.00000108008554,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433950.1883,
+                  -1.0800855422590427e-06,
+                  518.0,
+                  581.9999999999999,
+                  -113.00000108008554,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433950.2214,
+                  -1.0800855422590427e-06,
+                  518.0,
+                  581.9999999999999,
+                  -113.00000108008554,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433950.2559,
+                  -1.0800855422590427e-06,
+                  518.0,
+                  581.9999999999999,
+                  -113.00000108008554,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433950.2893,
+                  -1.0800855422590427e-06,
+                  518.0,
+                  581.9999999999999,
+                  -113.00000108008554,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433950.3238,
+                  -1.0800855422590427e-06,
+                  518.0,
+                  581.9999999999999,
+                  -113.00000108008554,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433950.3573,
+                  -1.0800855422590427e-06,
+                  518.0,
+                  581.9999999999999,
+                  -113.00000108008554,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433950.3929,
+                  -1.0800855422590427e-06,
+                  518.0,
+                  581.9999999999999,
+                  -113.00000108008554,
+                  5,
+                  false,
+                  2
+                ],
+                [
+                  1433950.4268,
+                  -1.0800855422590427e-06,
+                  518.0,
+                  581.9999999999999,
+                  -113.00000108008554,
+                  5,
+                  false,
+                  2
+                ]
+              ]
+            },
+            "limited": false
+          },
+          "gap_mm": 13.475199
+        }
+      ]
+    },
+    {
+      "case": "comp-after-xy.counter-frozen",
+      "status": "PASS",
+      "detail": "the planted value is refused: offset -1.4760, the node's map value 5.9987 \u00b1 0.002",
+      "counter": true,
+      "inner": {
+        "case": "comp-after-xy",
+        "status": "FAIL",
+        "detail": "offset -1.4760, the node's map value 5.9987 \u00b1 0.002",
+        "enabled": true,
+        "at": [
+          518.0,
+          582.0
+        ],
+        "eoffset": -1.4759999833533066,
+        "joint_z": -114.47599998335329,
+        "map_z": 5.998717,
+        "gap_expected": 12.0,
+        "z_control": -113.0,
+        "reading": {
+          "settled": true,
+          "eoffset": -1.4759999833533066,
+          "x": 518.0,
+          "y": 581.9999999999999,
+          "joint_z": -114.47599998335329,
+          "enabled": true,
+          "method": 2,
+          "version": 5,
+          "window_s": 0.514,
+          "window": {
+            "fields": [
+              "t",
+              "eoffset_z",
+              "x",
+              "y",
+              "z",
+              "version",
+              "enabled",
+              "method"
+            ],
+            "frames": [
+              [
+                1433949.06,
+                -1.4759999833533066,
+                518.0,
+                581.9999999999999,
+                -114.47599998335329,
+                5,
+                true,
+                2
+              ],
+              [
+                1433949.0935,
+                -1.4759999833533066,
+                518.0,
+                581.9999999999999,
+                -114.47599998335329,
+                5,
+                true,
+                2
+              ],
+              [
+                1433949.1275,
+                -1.4759999833533066,
+                518.0,
+                581.9999999999999,
+                -114.47599998335329,
+                5,
+                true,
+                2
+              ],
+              [
+                1433949.1612,
+                -1.4759999833533066,
+                518.0,
+                581.9999999999999,
+                -114.47599998335329,
+                5,
+                true,
+                2
+              ],
+              [
+                1433949.195,
+                -1.4759999833533066,
+                518.0,
+                581.9999999999999,
+                -114.47599998335329,
+                5,
+                true,
+                2
+              ],
+              [
+                1433949.2285,
+                -1.4759999833533066,
+                518.0,
+                581.9999999999999,
+                -114.47599998335329,
+                5,
+                true,
+                2
+              ],
+              [
+                1433949.2621,
+                -1.4759999833533066,
+                518.0,
+                581.9999999999999,
+                -114.47599998335329,
+                5,
+                true,
+                2
+              ],
+              [
+                1433949.2981,
+                -1.4759999833533066,
+                518.0,
+                581.9999999999999,
+                -114.47599998335329,
+                5,
+                true,
+                2
+              ],
+              [
+                1433949.3326,
+                -1.4759999833533066,
+                518.0,
+                581.9999999999999,
+                -114.47599998335329,
+                5,
+                true,
+                2
+              ],
+              [
+                1433949.3664,
+                -1.4759999833533066,
+                518.0,
+                581.9999999999999,
+                -114.47599998335329,
+                5,
+                true,
+                2
+              ],
+              [
+                1433949.4015,
+                -1.4759999833533066,
+                518.0,
+                581.9999999999999,
+                -114.47599998335329,
+                5,
+                true,
+                2
+              ],
+              [
+                1433949.4367,
+                -1.4759999833533066,
+                518.0,
+                581.9999999999999,
+                -114.47599998335329,
+                5,
+                true,
+                2
+              ],
+              [
+                1433949.4719,
+                -1.4759999833533066,
+                518.0,
+                581.9999999999999,
+                -114.47599998335329,
+                5,
+                true,
+                2
+              ],
+              [
+                1433949.5058,
+                -1.4759999833533066,
+                518.0,
+                581.9999999999999,
+                -114.47599998335329,
+                5,
+                true,
+                2
+              ],
+              [
+                1433949.5404,
+                -1.4759999833533066,
+                518.0,
+                581.9999999999999,
+                -114.47599998335329,
+                5,
+                true,
+                2
+              ],
+              [
+                1433949.5737,
+                -1.4759999833533066,
+                518.0,
+                581.9999999999999,
+                -114.47599998335329,
+                5,
+                true,
+                2
+              ]
+            ]
+          },
+          "limited": false
+        }
+      }
+    },
+    {
+      "case": "m600-unload",
+      "status": "PASS",
+      "detail": "the spindle empty, no length applied",
+      "served": [
+        {
+          "tool": 0,
+          "seq": 2
+        }
+      ],
+      "tool_after": 0,
+      "offset_after": 0.0
+    },
+    {
+      "case": "m600-t1",
+      "status": "PASS",
+      "detail": "length 49.9995 within 50 \u00b1 0.002, applied as measured",
+      "l0": 50.0,
+      "length": 49.9995489199145,
+      "g43": 49.9995489199145,
+      "tol_mm": 0.002,
+      "errors": [],
+      "deviation_mm": -0.000451,
+      "table_on_disk": 49.999549
+    },
+    {
+      "case": "m600-t1-return",
+      "status": "PASS",
+      "detail": "from the top, T0 0.000 mm \u2192 T1 49.9995 mm stored and applied; back at the call's X/Y, Z stayed up",
+      "call": [
+        0.0,
+        0.0,
+        -1.0800855441139845e-06
+      ],
+      "end": [
+        0.0,
+        0.0,
+        -1.0800855441139845e-06
+      ],
+      "top_z": 0.0,
+      "errors": [],
+      "setting_3106": 1.0,
+      "call_tool": 0,
+      "call_offset": 0.0,
+      "tool": 1,
+      "end_tool": 1,
+      "table": 49.9995489199145,
+      "applied": 49.9995489199145
+    },
+    {
+      "case": "m600-t1-return.counter-x+1",
+      "status": "PASS",
+      "detail": "the planted value is refused: X ended at 0.000, the call was at 1.000",
+      "counter": true,
+      "inner": {
+        "case": "m600-t1-return",
+        "status": "FAIL",
+        "detail": "X ended at 0.000, the call was at 1.000",
+        "call": [
+          1.0,
+          0.0,
+          -1.0800855441139845e-06
+        ],
+        "end": [
+          0.0,
+          0.0,
+          -1.0800855441139845e-06
+        ],
+        "top_z": 0.0,
+        "errors": [],
+        "setting_3106": 1.0,
+        "call_tool": 0,
+        "call_offset": 0.0,
+        "tool": 1,
+        "end_tool": 1,
+        "table": 49.9995489199145,
+        "applied": 49.9995489199145
+      }
+    },
+    {
+      "case": "m600-t1-override-lock",
+      "status": "PASS",
+      "detail": "locked through the measuring phase, free after the routine",
+      "free_s": 39.447,
+      "locked_from_s": 0.273,
+      "done_s": 39.447
+    },
+    {
+      "case": "m600-t1.counter-3102",
+      "status": "PASS",
+      "detail": "the planted #3102 gave 48.9991 as predicted from 49.9995 \u2014 refused against it",
+      "base": 49.999549,
+      "planted_3102": -179.0,
+      "predicted": 48.999549,
+      "length": 48.999097839829005,
+      "g43": 48.999097839829005,
+      "tool_after": 1,
+      "errors": [],
+      "counter": true,
+      "l0": 50.0,
+      "table_on_disk": 48.999098
+    },
+    {
+      "case": "m6-hold",
+      "status": "PASS",
+      "detail": "held 5 s waiting, then T99 with its length",
+      "tool_before": 1,
+      "tool_after": 99,
+      "offset_after": 50.0,
+      "samples": 148,
+      "max_gap_s": 0.045,
+      "held_s": 5.006,
+      "first_t": 1434151.287568384,
+      "last_t": 1434156.293093063
+    }
+  ],
+  "venv": {
+    "path": "/home/cnc/lcnc-suite/lcnc-gateway/.venv",
+    "freeze": "annotated-doc==0.0.4\nannotated-types==0.7.0\nanyio==4.13.0\napt-listchanges==4.8\nBrlapi==0.8.6\ncertifi==2025.1.31\nchardet==5.2.0\ncharset-normalizer==3.4.2\nclick==8.3.3\nconfigobj==5.0.9\ncupshelpers==1.0\ndbus-python==1.4.0\ndecorator==5.2.1\nfastapi==0.136.1\nfeedparser==6.0.11\nh11==0.16.0\nhttpcore==1.0.9\nhttpx==0.28.1\nidna==3.10\niniconfig==2.3.0\nlouis==3.33.0\nmsgspec==0.21.1\nmusicbrainzngs==0.7.1\nmutagen==1.47.0\nnumpy==2.2.4\nolefile==0.47\nopencv==4.10.0\nopencv-python-headless==4.13.0.92\npackaging==25.0\npillow==11.1.0\nplatformdirs==4.3.7\npluggy==1.6.0\npooch==1.8.2\npsutil==7.0.0\npyasyncore==1.0.2\npycairo==1.27.0\npycups==2.0.4\npydantic==2.13.4\npydantic_core==2.46.4\nPygments==2.20.0\nPyGObject==3.50.0\npyinotify==0.9.6\nPyOpenGL==3.1.9\nPyQt5==5.15.11\nPyQt5_sip==12.17.0\nPyQtWebEngine==5.15.7\npyserial==3.5\npysmbc==1.0.25.1\npytest==9.0.3\npython-apt==3.0.0\npython-debian==1.0.1\npython-debianbts==4.1.1\npython-espeak==0.5\npython-multipart==0.0.28\npython-poppler-qt5==21.3.0\npython-xlib==0.33\npyxdg==0.28\nPyYAML==6.0.2\nQScintilla==2.14.1\nquodlibet==4.6.0\nreportbug==13.2.0\nrequests==2.32.3\nscipy==1.15.3\nsetproctitle==1.3.6\nsgmllib3k==1.0.0\nstarlette==1.0.0\ntqdm==4.67.1\ntyping-inspection==0.4.2\ntyping_extensions==4.15.0\nurllib3==2.3.0\nuvicorn==0.47.0\nuvloop==0.22.1\nwebsockets==16.0\nxdg==5\nYapps2==2.2.1\n"
+  },
+  "commit": "f54f3120461625f324188a745558b148c8990fe0",
+  "profile": "3axis_xyz",
+  "servo": {
+    "changes": [
+      [
+        "loadrt",
+        "sampler",
+        "depth=65536",
+        "cfg=ffffffsbsbbbu"
+      ],
+      [
+        "show",
+        "pin",
+        "joint.0.pos-fb"
+      ],
+      [
+        "linksp",
+        "sim-ts-x",
+        "sampler.0.pin.0"
+      ],
+      [
+        "show",
+        "pin",
+        "joint.1.pos-fb"
+      ],
+      [
+        "linksp",
+        "sim-ts-y",
+        "sampler.0.pin.1"
+      ],
+      [
+        "show",
+        "pin",
+        "joint.2.pos-fb"
+      ],
+      [
+        "linksp",
+        "sim-ts-z",
+        "sampler.0.pin.2"
+      ],
+      [
+        "show",
+        "pin",
+        "joint.0.vel-cmd"
+      ],
+      [
+        "net",
+        "natv-ch3",
+        "joint.0.vel-cmd",
+        "sampler.0.pin.3"
+      ],
+      [
+        "show",
+        "pin",
+        "joint.1.vel-cmd"
+      ],
+      [
+        "net",
+        "natv-ch4",
+        "joint.1.vel-cmd",
+        "sampler.0.pin.4"
+      ],
+      [
+        "show",
+        "pin",
+        "joint.2.vel-cmd"
+      ],
+      [
+        "net",
+        "natv-ch5",
+        "joint.2.vel-cmd",
+        "sampler.0.pin.5"
+      ],
+      [
+        "show",
+        "pin",
+        "motion.program-line"
+      ],
+      [
+        "net",
+        "natv-ch6",
+        "motion.program-line",
+        "sampler.0.pin.6"
+      ],
+      [
+        "show",
+        "pin",
+        "motion.in-position"
+      ],
+      [
+        "net",
+        "natv-ch7",
+        "motion.in-position",
+        "sampler.0.pin.7"
+      ],
+      [
+        "newsig",
+        "natv-mark",
+        "s32"
+      ],
+      [
+        "linksp",
+        "natv-mark",
+        "sampler.0.pin.8"
+      ],
+      [
+        "show",
+        "pin",
+        "oneshot.0.out"
+      ],
+      [
+        "linksp",
+        "webui-hb-ok",
+        "sampler.0.pin.9"
+      ],
+      [
+        "show",
+        "pin",
+        "webui-hb-latch.fault-out"
+      ],
+      [
+        "net",
+        "natv-ch10",
+        "webui-hb-latch.fault-out",
+        "sampler.0.pin.10"
+      ],
+      [
+        "show",
+        "pin",
+        "oneshot.0.in"
+      ],
+      [
+        "linksp",
+        "webui-heartbeat",
+        "sampler.0.pin.11"
+      ],
+      [
+        "show",
+        "pin",
+        "motion.servo.last-period"
+      ],
+      [
+        "net",
+        "natv-ch12",
+        "motion.servo.last-period",
+        "sampler.0.pin.12"
+      ],
+      [
+        "addf",
+        "sampler.0",
+        "servo-thread"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.0"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.1"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.2"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.3"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.4"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.5"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.6"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.7"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.9"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.10"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.11"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.12"
+      ],
+      [
+        "show",
+        "pin",
+        "sampler.0.pin.8"
+      ],
+      [
+        "show",
+        "thread",
+        "servo-thread"
+      ]
+    ],
+    "wiring": [
+      {
+        "pin": "joint.0.pos-fb",
+        "signal": "sim-ts-x",
+        "channel": 0,
+        "read_back": "sim-ts-x"
+      },
+      {
+        "pin": "joint.1.pos-fb",
+        "signal": "sim-ts-y",
+        "channel": 1,
+        "read_back": "sim-ts-y"
+      },
+      {
+        "pin": "joint.2.pos-fb",
+        "signal": "sim-ts-z",
+        "channel": 2,
+        "read_back": "sim-ts-z"
+      },
+      {
+        "pin": "joint.0.vel-cmd",
+        "signal": "natv-ch3",
+        "channel": 3,
+        "read_back": "natv-ch3"
+      },
+      {
+        "pin": "joint.1.vel-cmd",
+        "signal": "natv-ch4",
+        "channel": 4,
+        "read_back": "natv-ch4"
+      },
+      {
+        "pin": "joint.2.vel-cmd",
+        "signal": "natv-ch5",
+        "channel": 5,
+        "read_back": "natv-ch5"
+      },
+      {
+        "pin": "motion.program-line",
+        "signal": "natv-ch6",
+        "channel": 6,
+        "read_back": "natv-ch6"
+      },
+      {
+        "pin": "motion.in-position",
+        "signal": "natv-ch7",
+        "channel": 7,
+        "read_back": "natv-ch7"
+      },
+      {
+        "pin": "oneshot.0.out",
+        "signal": "webui-hb-ok",
+        "channel": 9,
+        "read_back": "webui-hb-ok"
+      },
+      {
+        "pin": "webui-hb-latch.fault-out",
+        "signal": "natv-ch10",
+        "channel": 10,
+        "read_back": "natv-ch10"
+      },
+      {
+        "pin": "oneshot.0.in",
+        "signal": "webui-heartbeat",
+        "channel": 11,
+        "read_back": "webui-heartbeat"
+      },
+      {
+        "pin": "motion.servo.last-period",
+        "signal": "natv-ch12",
+        "channel": 12,
+        "read_back": "natv-ch12"
+      }
+    ],
+    "mark_read_back": "natv-mark",
+    "thread": {
+      "period_ns": 1000000,
+      "functions": [
+        "motion-command-handler",
+        "motion-controller",
+        "ddt_x",
+        "ddt_xv",
+        "ddt_y",
+        "ddt_yv",
+        "ddt_z",
+        "ddt_zv",
+        "vel_xy",
+        "vel_xyz",
+        "surf-dx",
+        "surf-dy",
+        "surf-dx2",
+        "surf-dy2",
+        "surf-tilt",
+        "surf-curve",
+        "surf-z",
+        "sim-toolsetter.1",
+        "sim-toolsetter.0",
+        "limit_speed",
+        "lowpass_velocity",
+        "scale_to_rpm",
+        "near_speed",
+        "encoder.capture-position",
+        "sim-encoder.update-speed",
+        "comp_x",
+        "comp_y",
+        "comp_z",
+        "or2_0",
+        "scale.servo",
+        "pwmgen.update",
+        "pwmgen.make-pulses",
+        "oneshot.0",
+        "and2.0",
+        "and2.1",
+        "and2.2",
+        "webui-hb-latch",
+        "time.0",
+        "not.0",
+        "sampler.0"
+      ]
+    },
+    "stale_stream": null
+  },
+  "clock": {
+    "ok": true,
+    "sha256": "1a4bb954a645cc86a4109b363f6c2ce8ad21dbf40d82a7a3fcbe081d070ce6af",
+    "version": "1:2.9.4-2+deb13u1",
+    "why": null
+  },
+  "servo_sections": [
+    {
+      "case": "jog-x+.servo",
+      "attempt": 1,
+      "end_error": null,
+      "t_reply": 1433691.909045981,
+      "start_mark": 3,
+      "end_mark": 4,
+      "first_n": 36524,
+      "end_n": 37878,
+      "integrity": {
+        "enable_start": true,
+        "enable_end": true,
+        "overruns_start": 0,
+        "overruns_end": 0,
+        "depth_end": 6,
+        "depth": 65536,
+        "period_ns": 1000000,
+        "ini_period_ns": 1000000,
+        "period_ns_start": 1000000,
+        "period_ns_end": 1000000,
+        "thread_start": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "thread_end": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "reader_overrun": false,
+        "reader_alive": true,
+        "end_read_errors": []
+      },
+      "problems": [],
+      "hal": [
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "3"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "4"
+        ],
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "getp",
+          "sampler.0.curr-depth"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ]
+      ],
+      "samples": 1354,
+      "file": "servo-jog-x+.servo.jsonl",
+      "time_file": "servo-jog-x+.servo.time.json"
+    },
+    {
+      "case": "jog-x-.servo",
+      "attempt": 2,
+      "end_error": null,
+      "t_reply": 1433693.882500487,
+      "start_mark": 5,
+      "end_mark": 6,
+      "first_n": 38502,
+      "end_n": 39851,
+      "integrity": {
+        "enable_start": true,
+        "enable_end": true,
+        "overruns_start": 0,
+        "overruns_end": 0,
+        "depth_end": 3,
+        "depth": 65536,
+        "period_ns": 1000000,
+        "ini_period_ns": 1000000,
+        "period_ns_start": 1000000,
+        "period_ns_end": 1000000,
+        "thread_start": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "thread_end": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "reader_overrun": false,
+        "reader_alive": true,
+        "end_read_errors": []
+      },
+      "problems": [],
+      "hal": [
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "5"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "6"
+        ],
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "getp",
+          "sampler.0.curr-depth"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ]
+      ],
+      "samples": 1349,
+      "file": "servo-jog-x-.servo.jsonl",
+      "time_file": "servo-jog-x-.servo.time.json"
+    },
+    {
+      "case": "jog-y+.servo",
+      "attempt": 3,
+      "end_error": null,
+      "t_reply": 1433695.861875818,
+      "start_mark": 7,
+      "end_mark": 8,
+      "first_n": 40464,
+      "end_n": 41830,
+      "integrity": {
+        "enable_start": true,
+        "enable_end": true,
+        "overruns_start": 0,
+        "overruns_end": 0,
+        "depth_end": 3,
+        "depth": 65536,
+        "period_ns": 1000000,
+        "ini_period_ns": 1000000,
+        "period_ns_start": 1000000,
+        "period_ns_end": 1000000,
+        "thread_start": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "thread_end": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "reader_overrun": false,
+        "reader_alive": true,
+        "end_read_errors": []
+      },
+      "problems": [],
+      "hal": [
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "7"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "8"
+        ],
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "getp",
+          "sampler.0.curr-depth"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ]
+      ],
+      "samples": 1366,
+      "file": "servo-jog-y+.servo.jsonl",
+      "time_file": "servo-jog-y+.servo.time.json"
+    },
+    {
+      "case": "jog-y-.servo",
+      "attempt": 4,
+      "end_error": null,
+      "t_reply": 1433697.841426707,
+      "start_mark": 9,
+      "end_mark": 10,
+      "first_n": 42451,
+      "end_n": 43812,
+      "integrity": {
+        "enable_start": true,
+        "enable_end": true,
+        "overruns_start": 0,
+        "overruns_end": 0,
+        "depth_end": 5,
+        "depth": 65536,
+        "period_ns": 1000000,
+        "ini_period_ns": 1000000,
+        "period_ns_start": 1000000,
+        "period_ns_end": 1000000,
+        "thread_start": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "thread_end": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "reader_overrun": false,
+        "reader_alive": true,
+        "end_read_errors": []
+      },
+      "problems": [],
+      "hal": [
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "9"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "10"
+        ],
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "getp",
+          "sampler.0.curr-depth"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ]
+      ],
+      "samples": 1361,
+      "file": "servo-jog-y-.servo.jsonl",
+      "time_file": "servo-jog-y-.servo.time.json"
+    },
+    {
+      "case": "jog-z+.servo",
+      "attempt": 5,
+      "end_error": null,
+      "t_reply": 1433699.803995106,
+      "start_mark": 11,
+      "end_mark": 12,
+      "first_n": 44416,
+      "end_n": 45774,
+      "integrity": {
+        "enable_start": true,
+        "enable_end": true,
+        "overruns_start": 0,
+        "overruns_end": 0,
+        "depth_end": 7,
+        "depth": 65536,
+        "period_ns": 1000000,
+        "ini_period_ns": 1000000,
+        "period_ns_start": 1000000,
+        "period_ns_end": 1000000,
+        "thread_start": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "thread_end": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "reader_overrun": false,
+        "reader_alive": true,
+        "end_read_errors": []
+      },
+      "problems": [],
+      "hal": [
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "11"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "12"
+        ],
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "getp",
+          "sampler.0.curr-depth"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ]
+      ],
+      "samples": 1358,
+      "file": "servo-jog-z+.servo.jsonl",
+      "time_file": "servo-jog-z+.servo.time.json"
+    },
+    {
+      "case": "jog-z-.servo",
+      "attempt": 6,
+      "end_error": null,
+      "t_reply": 1433701.785422797,
+      "start_mark": 13,
+      "end_mark": 14,
+      "first_n": 46401,
+      "end_n": 47756,
+      "integrity": {
+        "enable_start": true,
+        "enable_end": true,
+        "overruns_start": 0,
+        "overruns_end": 0,
+        "depth_end": 5,
+        "depth": 65536,
+        "period_ns": 1000000,
+        "ini_period_ns": 1000000,
+        "period_ns_start": 1000000,
+        "period_ns_end": 1000000,
+        "thread_start": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "thread_end": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "reader_overrun": false,
+        "reader_alive": true,
+        "end_read_errors": []
+      },
+      "problems": [],
+      "hal": [
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "13"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "14"
+        ],
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "getp",
+          "sampler.0.curr-depth"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ]
+      ],
+      "samples": 1355,
+      "file": "servo-jog-z-.servo.jsonl",
+      "time_file": "servo-jog-z-.servo.time.json"
+    },
+    {
+      "case": "override-plateau-100",
+      "attempt": 7,
+      "end_error": null,
+      "start_mark": 15,
+      "end_mark": 16,
+      "first_n": 64576,
+      "end_n": 69415,
+      "integrity": {
+        "enable_start": true,
+        "enable_end": true,
+        "overruns_start": 0,
+        "overruns_end": 0,
+        "depth_end": 3,
+        "depth": 65536,
+        "period_ns": 1000000,
+        "ini_period_ns": 1000000,
+        "period_ns_start": 1000000,
+        "period_ns_end": 1000000,
+        "thread_start": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "thread_end": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "reader_overrun": false,
+        "reader_alive": true,
+        "end_read_errors": []
+      },
+      "problems": [],
+      "hal": [
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "15"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "16"
+        ],
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "getp",
+          "sampler.0.curr-depth"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ]
+      ],
+      "samples": 4839,
+      "file": "servo-override-plateau-100.jsonl",
+      "time_file": "servo-override-plateau-100.time.json"
+    },
+    {
+      "case": "override-plateau-50",
+      "attempt": 8,
+      "end_error": null,
+      "start_mark": 17,
+      "end_mark": 18,
+      "first_n": 75863,
+      "end_n": 84565,
+      "integrity": {
+        "enable_start": true,
+        "enable_end": true,
+        "overruns_start": 0,
+        "overruns_end": 0,
+        "depth_end": 6,
+        "depth": 65536,
+        "period_ns": 1000000,
+        "ini_period_ns": 1000000,
+        "period_ns_start": 1000000,
+        "period_ns_end": 1000000,
+        "thread_start": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "thread_end": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "reader_overrun": false,
+        "reader_alive": true,
+        "end_read_errors": []
+      },
+      "problems": [],
+      "hal": [
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "17"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "18"
+        ],
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "getp",
+          "sampler.0.curr-depth"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ]
+      ],
+      "samples": 8702,
+      "file": "servo-override-plateau-50.jsonl",
+      "time_file": "servo-override-plateau-50.time.json"
+    },
+    {
+      "case": "goto-zero",
+      "attempt": 9,
+      "end_error": null,
+      "start_mark": 19,
+      "end_mark": 20,
+      "first_n": 108681,
+      "end_n": 111903,
+      "integrity": {
+        "enable_start": true,
+        "enable_end": true,
+        "overruns_start": 0,
+        "overruns_end": 0,
+        "depth_end": 4,
+        "depth": 65536,
+        "period_ns": 1000000,
+        "ini_period_ns": 1000000,
+        "period_ns_start": 1000000,
+        "period_ns_end": 1000000,
+        "thread_start": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "thread_end": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "reader_overrun": false,
+        "reader_alive": true,
+        "end_read_errors": []
+      },
+      "problems": [],
+      "hal": [
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "19"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "20"
+        ],
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "getp",
+          "sampler.0.curr-depth"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ]
+      ],
+      "samples": 3222,
+      "file": "servo-goto-zero.jsonl",
+      "time_file": "servo-goto-zero.time.json"
+    },
+    {
+      "case": "goto-home",
+      "attempt": 10,
+      "end_error": null,
+      "start_mark": 21,
+      "end_mark": 22,
+      "first_n": 115745,
+      "end_n": 120354,
+      "integrity": {
+        "enable_start": true,
+        "enable_end": true,
+        "overruns_start": 0,
+        "overruns_end": 0,
+        "depth_end": 6,
+        "depth": 65536,
+        "period_ns": 1000000,
+        "ini_period_ns": 1000000,
+        "period_ns_start": 1000000,
+        "period_ns_end": 1000000,
+        "thread_start": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "thread_end": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "reader_overrun": false,
+        "reader_alive": true,
+        "end_read_errors": []
+      },
+      "problems": [],
+      "hal": [
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "21"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "22"
+        ],
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "getp",
+          "sampler.0.curr-depth"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ]
+      ],
+      "samples": 4609,
+      "file": "servo-goto-home.jsonl",
+      "time_file": "servo-goto-home.time.json"
+    },
+    {
+      "case": "goto-g30",
+      "attempt": 11,
+      "end_error": null,
+      "start_mark": 23,
+      "end_mark": 24,
+      "first_n": 125605,
+      "end_n": 130222,
+      "integrity": {
+        "enable_start": true,
+        "enable_end": true,
+        "overruns_start": 0,
+        "overruns_end": 0,
+        "depth_end": 7,
+        "depth": 65536,
+        "period_ns": 1000000,
+        "ini_period_ns": 1000000,
+        "period_ns_start": 1000000,
+        "period_ns_end": 1000000,
+        "thread_start": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "thread_end": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "reader_overrun": false,
+        "reader_alive": true,
+        "end_read_errors": []
+      },
+      "problems": [],
+      "hal": [
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "23"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "24"
+        ],
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "getp",
+          "sampler.0.curr-depth"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ]
+      ],
+      "samples": 4617,
+      "file": "servo-goto-g30.jsonl",
+      "time_file": "servo-goto-g30.time.json"
+    },
+    {
+      "case": "goto-zero.counter-xy-first",
+      "attempt": 12,
+      "end_error": null,
+      "start_mark": 25,
+      "end_mark": 26,
+      "first_n": 135457,
+      "end_n": 138796,
+      "integrity": {
+        "enable_start": true,
+        "enable_end": true,
+        "overruns_start": 0,
+        "overruns_end": 0,
+        "depth_end": 4,
+        "depth": 65536,
+        "period_ns": 1000000,
+        "ini_period_ns": 1000000,
+        "period_ns_start": 1000000,
+        "period_ns_end": 1000000,
+        "thread_start": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "thread_end": [
+          "motion-command-handler",
+          "motion-controller",
+          "ddt_x",
+          "ddt_xv",
+          "ddt_y",
+          "ddt_yv",
+          "ddt_z",
+          "ddt_zv",
+          "vel_xy",
+          "vel_xyz",
+          "surf-dx",
+          "surf-dy",
+          "surf-dx2",
+          "surf-dy2",
+          "surf-tilt",
+          "surf-curve",
+          "surf-z",
+          "sim-toolsetter.1",
+          "sim-toolsetter.0",
+          "limit_speed",
+          "lowpass_velocity",
+          "scale_to_rpm",
+          "near_speed",
+          "encoder.capture-position",
+          "sim-encoder.update-speed",
+          "comp_x",
+          "comp_y",
+          "comp_z",
+          "or2_0",
+          "scale.servo",
+          "pwmgen.update",
+          "pwmgen.make-pulses",
+          "oneshot.0",
+          "and2.0",
+          "and2.1",
+          "and2.2",
+          "webui-hb-latch",
+          "time.0",
+          "not.0",
+          "sampler.0"
+        ],
+        "reader_overrun": false,
+        "reader_alive": true,
+        "end_read_errors": []
+      },
+      "problems": [],
+      "hal": [
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "25"
+        ],
+        [
+          "sets",
+          "natv-mark",
+          "26"
+        ],
+        [
+          "getp",
+          "sampler.0.enable"
+        ],
+        [
+          "getp",
+          "sampler.0.overruns"
+        ],
+        [
+          "getp",
+          "sampler.0.curr-depth"
+        ],
+        [
+          "show",
+          "thread",
+          "servo-thread"
+        ]
+      ],
+      "samples": 3339,
+      "file": "servo-goto-zero.counter-xy-first.jsonl",
+      "time_file": "servo-goto-zero.counter-xy-first.time.json"
+    }
+  ],
+  "goto": {
+    "targets": {
+      "goto-zero": [
+        100.0,
+        100.0,
+        0.0
+      ],
+      "goto-home": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "goto-g30": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "g64": "G64 P0.001",
+    "g54": [
+      100.0,
+      100.0
+    ]
+  },
+  "plate": {
+    "x": 10.0,
+    "y": 10.0,
+    "z": -180.0
+  },
+  "surface_basis": {
+    "g5x_index": 1,
+    "g5x_offset": [
+      0.0,
+      0.0,
+      -175.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "g92_offset": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rotation_xy": 0.0,
+    "tool_offset_z": 50.0,
+    "eoffset_z": 0.0,
+    "eoffset_enabled": false,
+    "comp_method": 2
+  },
+  "surface_fixture": {
+    "signals": {
+      "sim-ts-x": {
+        "writers": [
+          "joint.0.pos-fb"
+        ],
+        "readers": [
+          "sampler.0.pin.0",
+          "sim-toolsetter.0.x",
+          "sim-toolsetter.1.x",
+          "surf-dx.in0"
+        ]
+      },
+      "sim-ts-y": {
+        "writers": [
+          "joint.1.pos-fb"
+        ],
+        "readers": [
+          "sampler.0.pin.1",
+          "sim-toolsetter.0.y",
+          "sim-toolsetter.1.y",
+          "surf-dy.in0"
+        ]
+      },
+      "sim-ts-z": {
+        "writers": [
+          "joint.2.pos-fb"
+        ],
+        "readers": [
+          "sampler.0.pin.2",
+          "sim-toolsetter.0.z",
+          "sim-toolsetter.1.z"
+        ]
+      },
+      "sim-ts-length": {
+        "writers": [
+          "sim-toolsetter-feed.tool-length"
+        ],
+        "readers": [
+          "sim-toolsetter.0.tool-length",
+          "sim-toolsetter.1.tool-length"
+        ]
+      },
+      "sim-ts-enable": {
+        "writers": [
+          "sim-toolsetter-feed.enable"
+        ],
+        "readers": [
+          "sim-toolsetter.0.enable",
+          "sim-toolsetter.1.enable"
+        ]
+      },
+      "surf-dx": {
+        "writers": [
+          "surf-dx.out"
+        ],
+        "readers": [
+          "surf-dx2.in0",
+          "surf-dx2.in1",
+          "surf-tilt.in0"
+        ]
+      },
+      "surf-dy": {
+        "writers": [
+          "surf-dy.out"
+        ],
+        "readers": [
+          "surf-dy2.in0",
+          "surf-dy2.in1",
+          "surf-tilt.in1"
+        ]
+      },
+      "surf-dx2": {
+        "writers": [
+          "surf-dx2.out"
+        ],
+        "readers": [
+          "surf-curve.in0"
+        ]
+      },
+      "surf-dy2": {
+        "writers": [
+          "surf-dy2.out"
+        ],
+        "readers": [
+          "surf-curve.in1"
+        ]
+      },
+      "surf-tilt": {
+        "writers": [
+          "surf-tilt.out"
+        ],
+        "readers": [
+          "surf-z.in0"
+        ]
+      },
+      "surf-curve": {
+        "writers": [
+          "surf-curve.out"
+        ],
+        "readers": [
+          "surf-z.in1"
+        ]
+      },
+      "surf-height": {
+        "writers": [
+          "surf-z.out"
+        ],
+        "readers": [
+          "sim-toolsetter.1.plate-z"
+        ]
+      },
+      "probe-in": {
+        "writers": [],
+        "readers": [
+          "sim-toolsetter.1.manual"
+        ]
+      },
+      "sim-ts-pass": {
+        "writers": [
+          "sim-toolsetter.1.out"
+        ],
+        "readers": [
+          "sim-toolsetter.0.manual"
+        ]
+      },
+      "probe-input": {
+        "writers": [
+          "sim-toolsetter.0.out"
+        ],
+        "readers": [
+          "motion.probe-input"
+        ]
+      }
+    },
+    "values": {
+      "surf-dx.offset": -550.0,
+      "surf-dx.gain0": 1.0,
+      "surf-dx.in1": 0.0,
+      "surf-dy.offset": -550.0,
+      "surf-dy.gain0": 1.0,
+      "surf-dy.in1": 0.0,
+      "surf-tilt.gain0": 0.05,
+      "surf-tilt.gain1": -0.03,
+      "surf-tilt.offset": 0.0,
+      "surf-curve.gain0": -0.0024,
+      "surf-curve.gain1": -0.0024,
+      "surf-curve.offset": 0.0,
+      "surf-z.gain0": 1.0,
+      "surf-z.gain1": 1.0,
+      "surf-z.offset": -169.0,
+      "sim-toolsetter.1.plate-x": 550.0,
+      "sim-toolsetter.1.plate-y": 550.0,
+      "sim-toolsetter.1.radius": 40.0,
+      "sim-toolsetter.1.tool-length": 50.0,
+      "sim-toolsetter.1.enable": true,
+      "compensation.fade-height": 0.0
+    },
+    "thread": [
+      "motion-command-handler",
+      "motion-controller",
+      "ddt_x",
+      "ddt_xv",
+      "ddt_y",
+      "ddt_yv",
+      "ddt_z",
+      "ddt_zv",
+      "vel_xy",
+      "vel_xyz",
+      "surf-dx",
+      "surf-dy",
+      "surf-dx2",
+      "surf-dy2",
+      "surf-tilt",
+      "surf-curve",
+      "surf-z",
+      "sim-toolsetter.1",
+      "sim-toolsetter.0",
+      "limit_speed",
+      "lowpass_velocity",
+      "scale_to_rpm",
+      "near_speed",
+      "encoder.capture-position",
+      "sim-encoder.update-speed",
+      "comp_x",
+      "comp_y",
+      "comp_z",
+      "or2_0",
+      "scale.servo",
+      "pwmgen.update",
+      "pwmgen.make-pulses",
+      "oneshot.0",
+      "and2.0",
+      "and2.1",
+      "and2.2",
+      "webui-hb-latch",
+      "time.0",
+      "not.0",
+      "sampler.0"
+    ],
+    "problems": [],
+    "latency": "the chain and both instances after the motion controller, instance 1 before 0: a contact reaches motion.probe-input in the next servo period"
+  },
+  "surface_scan": {
+    "file": "/home/cnc/claude-work/live-tier/20261111T182625/configs/sim/probe-results.txt",
+    "moved_aside": null,
+    "sha256": "2543fe35e28a527f2d70490f673ff4268028b935121d16c30b8e65c59dca44a4",
+    "t0": 1433851.114337958,
+    "t_done": 1433932.282810425,
+    "version_before": 0,
+    "version_after": 1,
+    "vars": {
+      "3050": 518.0,
+      "3051": 582.0,
+      "3052": 518.0,
+      "3053": 582.0,
+      "3054": 5,
+      "3055": 5,
+      "3056": 1500.0,
+      "3057": 50.0,
+      "3058": 15.0,
+      "3059": 25.0,
+      "3021": 1.0
+    },
+    "python": {
+      "evaluator": "1.15.3",
+      "compensation": "1.15.3 (/usr/lib/python3/dist-packages/scipy/)"
+    }
+  },
+  "comp_refs": {
+    "q": [
+      538.0,
+      550.0
+    ],
+    "refs": {
+      "nearest": 4.58455,
+      "linear": 4.93809175,
+      "cubic": 5.069006306113726
+    },
+    "recorded": {
+      "near": 4.58455,
+      "far": 5.998717
+    },
+    "f_dev": 5.054400000000015
+  },
+  "comp_method_switches": [
+    {
+      "to": "nearest",
+      "confirmed": true,
+      "method": 0,
+      "version_before": 1,
+      "version": 2
+    },
+    {
+      "to": "linear",
+      "confirmed": true,
+      "method": 1,
+      "version_before": 3,
+      "version": 4
+    },
+    {
+      "to": "cubic",
+      "confirmed": true,
+      "method": 2,
+      "version_before": 4,
+      "version": 5
+    }
+  ],
+  "surface_cleanup": {
+    "off": {
+      "settled": true,
+      "eoffset": -1.0800855422590427e-06,
+      "x": 518.0,
+      "y": 581.9999999999999,
+      "joint_z": -113.00000108008554,
+      "enabled": false,
+      "method": 2,
+      "version": 5,
+      "window_s": 0.511,
+      "window": {
+        "fields": [
+          "t",
+          "eoffset_z",
+          "x",
+          "y",
+          "z",
+          "version",
+          "enabled",
+          "method"
+        ],
+        "frames": [
+          [
+            1433950.4984,
+            -1.0800855422590427e-06,
+            518.0,
+            581.9999999999999,
+            -113.00000108008554,
+            5,
+            false,
+            2
+          ],
+          [
+            1433950.533,
+            -1.0800855422590427e-06,
+            518.0,
+            581.9999999999999,
+            -113.00000108008554,
+            5,
+            false,
+            2
+          ],
+          [
+            1433950.5667,
+            -1.0800855422590427e-06,
+            518.0,
+            581.9999999999999,
+            -113.00000108008554,
+            5,
+            false,
+            2
+          ],
+          [
+            1433950.6015,
+            -1.0800855422590427e-06,
+            518.0,
+            581.9999999999999,
+            -113.00000108008554,
+            5,
+            false,
+            2
+          ],
+          [
+            1433950.6353,
+            -1.0800855422590427e-06,
+            518.0,
+            581.9999999999999,
+            -113.00000108008554,
+            5,
+            false,
+            2
+          ],
+          [
+            1433950.669,
+            -1.0800855422590427e-06,
+            518.0,
+            581.9999999999999,
+            -113.00000108008554,
+            5,
+            false,
+            2
+          ],
+          [
+            1433950.7024,
+            -1.0800855422590427e-06,
+            518.0,
+            581.9999999999999,
+            -113.00000108008554,
+            5,
+            false,
+            2
+          ],
+          [
+            1433950.7358,
+            -1.0800855422590427e-06,
+            518.0,
+            581.9999999999999,
+            -113.00000108008554,
+            5,
+            false,
+            2
+          ],
+          [
+            1433950.7692,
+            -1.0800855422590427e-06,
+            518.0,
+            581.9999999999999,
+            -113.00000108008554,
+            5,
+            false,
+            2
+          ],
+          [
+            1433950.8037,
+            -1.0800855422590427e-06,
+            518.0,
+            581.9999999999999,
+            -113.00000108008554,
+            5,
+            false,
+            2
+          ],
+          [
+            1433950.838,
+            -1.0800855422590427e-06,
+            518.0,
+            581.9999999999999,
+            -113.00000108008554,
+            5,
+            false,
+            2
+          ],
+          [
+            1433950.8732,
+            -1.0800855422590427e-06,
+            518.0,
+            581.9999999999999,
+            -113.00000108008554,
+            5,
+            false,
+            2
+          ],
+          [
+            1433950.9066,
+            -1.0800855422590427e-06,
+            518.0,
+            581.9999999999999,
+            -113.00000108008554,
+            5,
+            false,
+            2
+          ],
+          [
+            1433950.9404,
+            -1.0800855422590427e-06,
+            518.0,
+            581.9999999999999,
+            -113.00000108008554,
+            5,
+            false,
+            2
+          ],
+          [
+            1433950.9746,
+            -1.0800855422590427e-06,
+            518.0,
+            581.9999999999999,
+            -113.00000108008554,
+            5,
+            false,
+            2
+          ],
+          [
+            1433951.0091,
+            -1.0800855422590427e-06,
+            518.0,
+            581.9999999999999,
+            -113.00000108008554,
+            5,
+            false,
+            2
+          ]
+        ]
+      },
+      "limited": false
+    },
+    "method": "done",
+    "g54": {
+      "t0": 1433951.029819328,
+      "t_done": 1433953.085997164,
+      "served": [],
+      "changes": "<test_support.tool_change.ToolChanges object at 0xffff8784d590>",
+      "errors": []
+    },
+    "override": {
+      "confirmed_at": 1433955.223578584
+    },
+    "after": {
+      "eoffset_enabled": false,
+      "eoffset_z": -1.0800855422590427e-06,
+      "comp_method": 2,
+      "g54_z": 0.0,
+      "feed_override_enabled": true
+    }
+  },
+  "error": "Refused: save_settings refused: save without its base revision \u2014 reload the page",
+  "traceback": "Traceback (most recent call last):\n  File \"/home/cnc/lcnc-suite-dev/scripts/native_run.py\", line 245, in run\n    rows = fn(ctx) or []\n           ~~^^^^^\n  File \"/home/cnc/lcnc-suite-dev/scripts/native_run.py\", line 1578, in step\n    prepared = _save_toolsetter(ctx, c, ts)\n  File \"/home/cnc/lcnc-suite-dev/scripts/native_run.py\", line 869, in _save_toolsetter\n    reply = _when_free(c, \"save_settings\", section=\"toolsetter\", data=section)\n  File \"/home/cnc/lcnc-suite-dev/scripts/native_run.py\", line 833, in _when_free\n    reply = c.request(cmd, **kw)\n  File \"/home/cnc/lcnc-suite-dev/scripts/test_support/live_session.py\", line 183, in request\n    raise Refused(f\"{cmd} refused: {reply.get('error')}\")\ntest_support.live_session.Refused: save_settings refused: save without its base revision \u2014 reload the page\n",
+  "servo_unload": "RuntimeError: halcmd unloadrt sampler: <commandline>:0: exit value: 255\n<commandline>:0: rmmod failed, returned -1\n<commandline>:0: unloadrt failed",
+  "restore": {
+    "outcome": "complete",
+    "instance": [
+      "linuxcncsvr",
+      2890799,
+      143417138
+    ],
+    "isolation": [],
+    "cleanup": []
+  },
+  "ended": 1794418530.6545537,
+  "variant": null,
+  "verdict": "FAIL"
+}

@@ -1,0 +1,190 @@
+{
+ "ts": "2026-11-11T18:52:35.459189+00:00",
+ "git": "f54f3120",
+ "gateway_pid": 2976686,
+ "scenarios": {
+  "idle_baseline": {
+   "direct": {
+    "viewer_frames": 248,
+    "status_rx": 200
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [],
+    "gcode_publishes": [],
+    "ws_connects": 2
+   },
+   "rss_kb_before": 80552,
+   "rss_kb_after": 80652,
+   "window_s": 23.5
+  },
+  "fanout": {
+   "direct": {
+    "viewers": 8,
+    "viewer_frames": 592,
+    "viewer_bytes": 163949,
+    "status_rx": 403
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [],
+    "gcode_publishes": [],
+    "ws_connects": 8
+   },
+   "rss_kb_before": 80652,
+   "rss_kb_after": 81028,
+   "window_s": 23.5
+  },
+  "reconnect_storm": {
+   "direct": {
+    "tabs": 12,
+    "all_connected_ms": 6,
+    "frames_after_6s": 492
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [],
+    "gcode_publishes": [],
+    "ws_connects": 12
+   },
+   "rss_kb_before": 81028,
+   "rss_kb_after": 81556,
+   "window_s": 9.5
+  },
+  "upload_during_stream": {
+   "direct": {
+    "status": 403,
+    "upload_ms": 62,
+    "size_mb": 40.0,
+    "viewer_frames": 57,
+    "status_rx": 36
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [],
+    "gcode_publishes": [],
+    "ws_connects": 3
+   },
+   "rss_kb_before": 81556,
+   "rss_kb_after": 83340,
+   "window_s": 6.1
+  },
+  "save_during_stream": {
+   "direct": {
+    "status": 403,
+    "save_ms": 6,
+    "size_mb": 40.0,
+    "status_rx": 33
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [],
+    "gcode_publishes": [],
+    "ws_connects": 3
+   },
+   "rss_kb_before": 83340,
+   "rss_kb_after": 83364,
+   "window_s": 5.5
+  },
+  "fusion_near_limit": {
+   "direct": {
+    "status": 200,
+    "import_ms": 504,
+    "size_mb": 13.8
+   },
+   "trace": {
+    "lag_windows": 1,
+    "lag_max_drift_ms": 92.4,
+    "lag_max_dominant": "reader_recv.readline",
+    "safety_events": [],
+    "gcode_publishes": [],
+    "ws_connects": 0
+   },
+   "rss_kb_before": 83364,
+   "rss_kb_after": 185984,
+   "window_s": 4.1
+  },
+  "rss_gc_watch": {
+   "direct": {
+    "rss_kb_first": 185984,
+    "rss_kb_last": 185984,
+    "rss_kb_max": 185984,
+    "growth_kb": 0
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [],
+    "gcode_publishes": [],
+    "ws_connects": 0
+   },
+   "rss_kb_before": 185984,
+   "rss_kb_after": 185984,
+   "window_s": 63.6
+  },
+  "preview_publish": {
+   "direct": {
+    "loaded": "/home/cnc/claude-work/live-checks/home/linuxcnc/nc_files/perfmatrix-big.ngc",
+    "delivered": false,
+    "publish_wait_s": 60.2,
+    "version_before": null,
+    "version_after": null,
+    "reply_error": "File not found",
+    "DELIVERY_FAIL": true,
+    "status_rx": 317
+   },
+   "trace": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": 0,
+    "lag_max_dominant": null,
+    "safety_events": [
+     "safety.explicit_armed",
+     "safety.explicit_disarmed"
+    ],
+    "gcode_publishes": [],
+    "ws_connects": 1
+   },
+   "rss_kb_before": 185984,
+   "rss_kb_after": 187768,
+   "window_s": 67.3
+  },
+  "sigstop_trip": {
+   "direct": {
+    "latch_before": "FALSE",
+    "latch_after_resume": "TRUE",
+    "oneshot_after_resume": "TRUE",
+    "sticky_ok": true,
+    "latch_after_reset": "FALSE",
+    "recovered_ok": true
+   },
+   "trace": {
+    "lag_windows": 1,
+    "lag_max_drift_ms": 897.3,
+    "lag_max_dominant": "reader_recv.readline",
+    "safety_events": [
+     "safety.explicit_armed",
+     "safety.explicit_disarmed",
+     "safety.trip_acknowledged",
+     "safety.trip_snapshot_done",
+     "safety.tripped"
+    ],
+    "gcode_publishes": [],
+    "ws_connects": 1
+   },
+   "rss_kb_before": 187768,
+   "rss_kb_after": 187792,
+   "window_s": 7.9
+  }
+ }
+}

@@ -1,0 +1,10 @@
+Running as unit: lc-sim.service; invocation ID: 2274d03ca5ee4cbb91b2cbe26769c053
+ready after 3s: lcnc_suite_sim_5axis_xyzac.ini
+ls: cannot access '/home/cnc/.tool.mmap': No such file or directory
+-rw------- 1 cnc cnc 112129 Nov 11 19:42 /home/cnc/claude-work/live-checks/home/.tool.mmap
+tool_mmap_user(): tool mmap not available
+poll(): continuing without tool mmap data
+/home/cnc/claude-work/live-checks/proof.sh: line 19: 2963672 Segmentation fault      env HOME="$REAL_HOME" "$PY" -c "$P"
+HOME /home/cnc/claude-work/live-checks/home poll OK, ini /home/cnc/claude-work/live-checks/configs/lcnc_suite_sim/lcnc_suite_sim_5axis_xyzac.ini tools 53
+which compensation.py: /home/cnc/claude-work/live-checks/home/.local/bin/compensation.py
+target OK
