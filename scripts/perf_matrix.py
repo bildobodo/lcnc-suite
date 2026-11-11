@@ -11,14 +11,17 @@ Headless scenarios (default set):
   idle_baseline        nothing but N viewers streaming for a window
   fanout               viewers (visible+hidden mix) streaming
   reconnect_storm      12 simultaneous WS connects (the multi-tab reload case)
-  upload_during_stream max-size POST /upload while viewers stream
-  save_during_stream   max-size raw-body PUT /save while viewers stream
   fusion_near_limit    near-cap tool-library import (preview route)
   rss_gc_watch         RSS sampling over a longer window
 
 Opt-in (machine-state-touching; sim only):
   --allow-arm   enables: preview_publish (arms a client, load_file, measures
-                spawn->publish)
+                spawn->publish), and the two protected writes — a write needs
+                an ARMED connection since button gates BG-14 (armed_writer):
+                upload_during_stream (max-size POST /upload, replacing
+                perfmatrix-big.ngc, while viewers stream) and
+                save_during_stream (max-size raw-body PUT /save while viewers
+                stream)
   --allow-trip  enables: sigstop_trip (SIGSTOPs the gateway > oneshot budget,
                 asserts the HAL latch TRIPS and STAYS latched through recovery
                 of the heartbeat — the #34 property — then drives the operator
@@ -255,8 +258,10 @@ async def armed_writer():
     """The headers of a protected HTTP write (/upload, /save — button gates
     BG-14): the token AND the X-Conn-Key of a connection armed for it. A write
     without one is refused 403 before its body is read, and a scenario that
-    measures it measured an idle gateway (upload/save answered 403 in 6–62 ms
-    from 2026-10-29 to 2026-11-11 unnoticed). Disarmed and closed after."""
+    measures it measures an idle gateway (BG-14 4b226659, 2026-10-26: the
+    first matrix after it, 2026-11-11 at f54f3120, got 403 in 6–62 ms and
+    still answered 0). It ARMS a client: only under --allow-arm. Disarmed
+    and closed after."""
     w = Viewer("writer")
     await w.connect()
     try:
@@ -358,6 +363,8 @@ async def sc_storm(args):
 
 @scenario("upload_during_stream")
 async def sc_upload(args):
+    if not args.allow_arm:
+        return {"skipped": "needs --allow-arm (arms a writer + replaces perfmatrix-big.ngc)"}
     path = "/tmp/perfmatrix-big.ngc"
     gen_gcode(path, args.upload_mb)
 
@@ -379,6 +386,8 @@ async def sc_upload(args):
 
 @scenario("save_during_stream")
 async def sc_save(args):
+    if not args.allow_arm:
+        return {"skipped": "needs --allow-arm (arms a writer for the save)"}
     path = "/tmp/perfmatrix-big.ngc"
     gen_gcode(path, args.upload_mb)
     with open(path, "rb") as f:

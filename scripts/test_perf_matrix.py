@@ -120,6 +120,19 @@ class ArmedWriter(unittest.TestCase):
         self.assertEqual(reached, [])
 
 
+class ArmOnlyWithTheFlag(unittest.TestCase):
+    def test_the_writes_skip_without_allow_arm_and_nothing_is_armed(self):
+        gw = _FakeGateway()
+
+        async def main():
+            async with websockets.serve(gw.handler, "127.0.0.1", PORT):
+                args = mock.Mock(allow_arm=False, upload_mb=1)
+                return [await pm.SCENARIOS[n](args) for n in ("upload_during_stream", "save_during_stream")]
+        got = asyncio.run(main())
+        self.assertTrue(all("skipped" in r for r in got), got)
+        self.assertEqual(gw.frames, [])          # not even a connection's hello
+
+
 class RunVerdict(unittest.TestCase):
     def test_a_scenario_that_measured_nothing_fails_the_run(self):
         async def refused(_args):

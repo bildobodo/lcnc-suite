@@ -88,6 +88,8 @@ jobs:
       # Tests using the real rs274 canon explicitly skip when it is absent.
       # python-multipart is required by FastAPI to analyze the upload route at
       # import time (UploadFile/Form), even though no test posts a file.
+      # requests: scripts/perf_matrix.py imports it at module level, and the
+      # backend step perf-matrix (scripts/test_perf_matrix.py) imports the script.
       # PINNED to the versions the dev venv runs (unpinned installs drifted:
       # a newer starlette switched TestClient to httpx2, which wasn't
       # installed, and collection died with exit 2 for two months). Bump
@@ -95,7 +97,7 @@ jobs:
       - run: >
           pip install fastapi==0.136.1 starlette==1.0.0 httpx==0.28.1
           msgspec==0.21.1 click==8.3.3 python-multipart==0.0.28 -r requirements-test.txt
-          numpy==2.2.4 scipy==1.15.3 websockets==16.0
+          numpy==2.2.4 scipy==1.15.3 websockets==16.0 requests==2.32.3
       - run: python ../scripts/test_suite.py offline --component backend
       - uses: actions/upload-artifact@v4
         if: always()
