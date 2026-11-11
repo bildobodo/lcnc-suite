@@ -1,0 +1,130 @@
+{
+  "socket_boundaries": [
+    {
+      "label": "ascii-a",
+      "bytes": 106,
+      "characters": 106,
+      "bind_ok": true,
+      "bind_error": null,
+      "refusal": null
+    },
+    {
+      "label": "ascii-b",
+      "bytes": 107,
+      "characters": 107,
+      "bind_ok": true,
+      "bind_error": null,
+      "refusal": null
+    },
+    {
+      "label": "ascii-c",
+      "bytes": 108,
+      "characters": 108,
+      "bind_ok": false,
+      "bind_error": "AF_UNIX path too long",
+      "refusal": "the run folder is too long for LinuxCNC: rtapi_app's socket /tmp/r348-7y__fpzd/ascii-cxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/home/.rtapi_fifo is 108 bytes, the limit is 107 — a shorter --run-dir (the merge gate: a shorter --out)"
+    },
+    {
+      "label": "ascii-d",
+      "bytes": 140,
+      "characters": 140,
+      "bind_ok": false,
+      "bind_error": "AF_UNIX path too long",
+      "refusal": "the run folder is too long for LinuxCNC: rtapi_app's socket /tmp/r348-7y__fpzd/ascii-dxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/home/.rtapi_fifo is 140 bytes, the limit is 107 — a shorter --run-dir (the merge gate: a shorter --out)"
+    },
+    {
+      "label": "unicode-ä",
+      "bytes": 107,
+      "characters": 106,
+      "bind_ok": true,
+      "bind_error": null,
+      "refusal": null
+    },
+    {
+      "label": "unicode-ö",
+      "bytes": 108,
+      "characters": 107,
+      "bind_ok": false,
+      "bind_error": "AF_UNIX path too long",
+      "refusal": "the run folder is too long for LinuxCNC: rtapi_app's socket /tmp/r348-7y__fpzd/unicode-öxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/home/.rtapi_fifo is 108 bytes, the limit is 107 — a shorter --run-dir (the merge gate: a shorter --out)"
+    }
+  ],
+  "probe_entry": [
+    {
+      "label": "entry-ascii",
+      "bytes": 108,
+      "exit": 1,
+      "restore_exit": 0,
+      "status": "FAIL",
+      "reasons": [
+        "the probe's verdict is FAIL: Refused: the run folder is too long for LinuxCNC: rtapi_app's socket /tmp/r348-7y__fpzd/entry-asciixxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/home/.rtapi_fifo is 108 bytes, the limit is 107 — a shorter --run-dir (the merge gate: a shorter --out)",
+        "the LAN return: nothing taken",
+        "isolation: None",
+        "no record of the unit's own restore (ExecStopPost)"
+      ]
+    },
+    {
+      "label": "entry-ä",
+      "bytes": 108,
+      "exit": 1,
+      "restore_exit": 0,
+      "status": "FAIL",
+      "reasons": [
+        "the probe's verdict is FAIL: Refused: the run folder is too long for LinuxCNC: rtapi_app's socket /tmp/r348-7y__fpzd/entry-äxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/home/.rtapi_fifo is 108 bytes, the limit is 107 — a shorter --run-dir (the merge gate: a shorter --out)",
+        "the LAN return: nothing taken",
+        "isolation: None",
+        "no record of the unit's own restore (ExecStopPost)"
+      ]
+    },
+    {
+      "label": "entry-long",
+      "bytes": 140,
+      "exit": 1,
+      "restore_exit": 0,
+      "status": "FAIL",
+      "reasons": [
+        "the probe's verdict is FAIL: Refused: the run folder is too long for LinuxCNC: rtapi_app's socket /tmp/r348-7y__fpzd/entry-longxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/home/.rtapi_fifo is 140 bytes, the limit is 107 — a shorter --run-dir (the merge gate: a shorter --out)",
+        "the LAN return: nothing taken",
+        "isolation: None",
+        "no record of the unit's own restore (ExecStopPost)"
+      ]
+    }
+  ],
+  "gate_entry": [
+    {
+      "label": "gate",
+      "planned_bytes": 107,
+      "actual_command_bytes": 107,
+      "exit": "admitted; stopped by probe before lint",
+      "called": [
+        "selection-guards",
+        "lock",
+        "lan_trip",
+        "lint"
+      ],
+      "unit_started": false
+    },
+    {
+      "label": "gate2",
+      "planned_bytes": 108,
+      "actual_command_bytes": 108,
+      "exit": 1,
+      "called": [
+        "selection-guards",
+        "lock"
+      ],
+      "unit_started": false
+    },
+    {
+      "label": "gate-ä",
+      "planned_bytes": 108,
+      "actual_command_bytes": 108,
+      "exit": 1,
+      "called": [
+        "selection-guards",
+        "lock"
+      ],
+      "unit_started": false
+    }
+  ]
+}

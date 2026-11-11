@@ -1,0 +1,32 @@
+{
+  "review": "R348",
+  "base": "00adb83ce6ad5c69c3f7991726f4f970c33acc05",
+  "head": "c7f7226180a03a3b0761a4fb6ffe3c167309b3b7",
+  "workspace": "git archive into /tmp/codex-r348, excluding docs/reviews; local empty git commit solely for the offline test calling git rev-parse HEAD",
+  "tests": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 LCNC_HEAVY_LOCK=/tmp/codex-r348/offline-heavy.lock /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m pytest -o addopts='' -q -p no:cacheprovider scripts/test_install_probe.py",
+    "exit": 0,
+    "passed": 93,
+    "skipped": 4,
+    "skip_reason": "Unchanged Chromium startup cases: no playwright in archive lcnc-webui/node_modules"
+  },
+  "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 LCNC_HEAVY_LOCK=/tmp/codex-r348/probe-heavy.lock /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python docs/reviews/live-checks.r348.codex-probe.py /tmp/codex-r348",
+    "exit": 0,
+    "cases": 12,
+    "all_expectations_met": true,
+    "parts": {
+      "AF_UNIX_boundaries": 6,
+      "probe_main_and_restore": 3,
+      "merge_main_and_launch_path": 3
+    }
+  },
+  "scope": "No live ports, LinuxCNC, service operations, product edits or builds. Tests isolated under /tmp; real AF_UNIX bind attempts use temporary sockets only.",
+  "sha256": {
+    "scripts/install_probe.py": "f0bc1e320ad1c3a5694842ec656cacce2bd1d4c0ab0a445e4e001e585e8d77c5",
+    "scripts/test_support/install_cases.py": "563299dca94549a3953b3aecabca7a3b1f2f1addcec826cea8b3aae6c8cb43ce",
+    "scripts/test_select/round_gate.py": "0c2bc06182f513aa495ebafb43d3f1c028db818f13edeea2b56303363be8cbdd",
+    "scripts/test_install_probe.py": "611e1ae47868ff4b58a4eaf357c090c79033f3e9bdfaa6cd0275616086f3640d",
+    "docs/testing.md": "8c42a79a6f3df4a439723a44aa7c8202f19e0d0cf108a1d9a060781cfc268e40"
+  }
+}

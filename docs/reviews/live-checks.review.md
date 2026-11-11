@@ -236,3 +236,19 @@ Aus Lauf 1 des Merge-Gates (siehe oben): Die Installationsprobe scheiterte nach 
 - [8 Mutationen rot](live-checks.r348.mutations.txt): Grenze um eins verschoben, Zeichen statt Bytes, keine Prüfung, Probe lehnt nicht ab, Ablehnung ohne Bericht, Gate ignoriert die Länge, Gate ohne `logs`, kürzerer Platzhalter für die ID.
 - **Round-Gate** [live-checks.r348.gate-round.json](live-checks.r348.gate-round.json) (`--base 00adb83c`): **PASS** am Kopf `c7f72261`. Lint, Build, Unit (leicht), Backend mit allen elf Schritten, darunter `install-probe` (die Offline-Wächter der Probe). Browser und Heavy-Unit hat die Auswahl ausgelassen: keine Spec und keine schwere Datei erreicht.
 - **Der Live-Beleg der Ursache:** Merge-Gate Lauf 1 ([Bericht](live-checks.merge-gate.run1-FAIL.json), [Debug-Protokoll](live-checks.merge-gate.run1-linuxcnc-debug.txt)), Lauf 2 mit 96 Bytes PASS.
+
+---
+
+## Codex · Nachprüfung R348 · 11. November 2026
+
+**Urteil: `agreement` zu `fix/install-probe-run-dir`, `00adb83c..c7f72261`.** Die neue Prüfung schließt den benannten Fehlerweg vor der LAN-Übernahme und vor den schweren Prüfungen des Merge-Gates. Kein offener technischer Befund. Das Agreement ersetzt nicht das laut Anfrage noch ausstehende Merge-Go des Operators.
+
+Eigene Prüfung in einer Archivkopie von `c7f72261` unter `/tmp/codex-r348`: **93 Offline-Tests bestanden, vier unveränderte Browser-Startfälle wegen fehlendem Playwright in der Kopie ausgelassen. Alle zwölf eigenen Gegenfälle erfüllen ihre Erwartungen.** Für den einzelnen Offline-Test mit `git rev-parse HEAD` hat die Archivkopie einen lokalen leeren Git-Commit; die geprüften Dateien sind unverändert die des Prüfstands. Keine Tests/Builds im Live-Baum, keine LAN- oder LinuxCNC-Zugriffe, keine gestarteten oder gestoppten Dienste.
+
+Belege: [Testausgabe](live-checks.r348.codex-tests.txt), [eigene Sonde](live-checks.r348.codex-probe.py), [Ergebnisse](live-checks.r348.codex-probe.json), [Befehle und Quelltext-Hashes](live-checks.r348.codex-checks.json).
+
+- **Grenze und Bytes:** Sechs unabhängige Fälle vergleichen den Helfer mit lokalen AF_UNIX-Bindversuchen unter `/tmp`: 106/107 Bytes zulässig, 108/140 abgelehnt; zusätzlich UTF-8-Pfade mit genau 107 beziehungsweise 108 Bytes. Gezählt wird der Pfad aus dem tatsächlichen `child_env`, einschließlich `/home/.rtapi_fifo`. Das passt auch zum beigefügten RTAPI-Fehlerprotokoll des 108-Byte-Laufs.
+- **Probe und Rückgabe:** Die echte `install_probe.main` wird für drei zu lange Pfade aufgerufen; Host-Erzeugung, Lock und Lauf sind durch Abbruchwächter gesperrt. Alle drei Fälle ergeben Exit 1 und einen lesbaren FAIL-Bericht mit Commit, Laufkennung und Längengrund, ohne `pre.json`. `gate_status` übernimmt den Grund; der echte Einstieg der Rückgabe beendet sich ohne Host-Aufruf mit Exit 0.
+- **Merge-Gate:** Die eigene Sonde führt den echten `round_gate.main` mit ersetzten externen Prüfungen aus. Beide 108-Byte-Fälle enden nach den Auswahlwächtern und dem Lock-Eintritt, vor LAN-Zustandsabfrage, Lint, Build und Installationsprobe. 107 Bytes gelangen bis zur Lint-Grenze, wo die Sonde absichtlich stoppt. Zusätzlich stimmt der vorab berechnete Pfad in allen drei Fällen mit dem tatsächlich erzeugten `systemd-run`-Kommando überein: dieselbe 12-stellige ID-Länge und dieselbe HOME-Pfadlänge; das Kommando wird dabei nicht ausgeführt.
+
+Das beigefügte Round-Gate ist PASS am Kopf `c7f72261`. Der ursprüngliche Live-Fehler und der erfolgreiche kürzere Lauf am Vorgängerstand stützen die Ursache; ich habe keinen weiteren Installations- oder Live-Lauf ausgelöst. Die Prüfung benötigt keine zusätzliche Operator-Entscheidung zur Umsetzung; Claude kann das noch ausstehende Merge-Go einholen.
