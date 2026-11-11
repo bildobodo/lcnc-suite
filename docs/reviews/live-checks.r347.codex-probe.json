@@ -1,0 +1,357 @@
+{
+  "preview": {
+    "arm_wrong_echo": {
+      "verdict": "FAIL",
+      "direct": {
+        "loaded": "/home/cnc/linuxcnc/nc_files/perfmatrix-big.ngc",
+        "upload_status": 200,
+        "source": "4866b6a2099733e6",
+        "arm_ok": false,
+        "arm_error": "no reply",
+        "status_rx": 1
+      }
+    },
+    "load_wrong_echo_with_own_ready": {
+      "verdict": "FAIL",
+      "direct": {
+        "loaded": "/home/cnc/linuxcnc/nc_files/perfmatrix-big.ngc",
+        "upload_status": 200,
+        "source": "3514ad7ea445ccb9",
+        "arm_ok": true,
+        "version_before": null,
+        "load_ok": false,
+        "load_error": "no reply",
+        "status_rx": 1
+      }
+    },
+    "load_refused_with_own_ready": {
+      "verdict": "FAIL",
+      "direct": {
+        "loaded": "/home/cnc/linuxcnc/nc_files/perfmatrix-big.ngc",
+        "upload_status": 200,
+        "source": "ed00ad6496b11a81",
+        "arm_ok": true,
+        "version_before": null,
+        "load_ok": false,
+        "load_error": "busy",
+        "status_rx": 1
+      }
+    },
+    "unknown_source": {
+      "verdict": "FAIL",
+      "direct": {
+        "loaded": "/home/cnc/linuxcnc/nc_files/perfmatrix-big.ngc",
+        "upload_status": 200,
+        "source": "c485a1ea487020e3",
+        "arm_ok": true,
+        "version_before": null,
+        "load_ok": true,
+        "delivered": false,
+        "publish_wait_s": 0.2,
+        "version_after": null,
+        "file_published": null,
+        "other_ready": [
+          {
+            "version": 21,
+            "file": "/home/cnc/linuxcnc/nc_files/perfmatrix-big.ngc",
+            "source": null
+          }
+        ],
+        "DELIVERY_FAIL": true,
+        "status_rx": 1
+      }
+    },
+    "foreign_source": {
+      "verdict": "FAIL",
+      "direct": {
+        "loaded": "/home/cnc/linuxcnc/nc_files/perfmatrix-big.ngc",
+        "upload_status": 200,
+        "source": "e17e2b2f7268eb59",
+        "arm_ok": true,
+        "version_before": null,
+        "load_ok": true,
+        "delivered": false,
+        "publish_wait_s": 0.2,
+        "version_after": null,
+        "file_published": null,
+        "other_ready": [
+          {
+            "version": 21,
+            "file": "/home/cnc/linuxcnc/nc_files/perfmatrix-big.ngc",
+            "source": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        ],
+        "DELIVERY_FAIL": true,
+        "status_rx": 1
+      }
+    },
+    "ready_before_load_reply": {
+      "verdict": "PASS",
+      "direct": {
+        "loaded": "/home/cnc/linuxcnc/nc_files/perfmatrix-big.ngc",
+        "upload_status": 200,
+        "source": "6fd9da072611f69f",
+        "arm_ok": true,
+        "version_before": null,
+        "load_ok": true,
+        "delivered": true,
+        "publish_wait_s": 0.0,
+        "version_after": 21,
+        "file_published": "/home/cnc/linuxcnc/nc_files/perfmatrix-big.ngc",
+        "other_ready": [],
+        "status_rx": 1
+      }
+    },
+    "foreign_then_own": {
+      "verdict": "PASS",
+      "direct": {
+        "loaded": "/home/cnc/linuxcnc/nc_files/perfmatrix-big.ngc",
+        "upload_status": 200,
+        "source": "9e614c9dbf425131",
+        "arm_ok": true,
+        "version_before": null,
+        "load_ok": true,
+        "delivered": true,
+        "publish_wait_s": 0.0,
+        "version_after": 21,
+        "file_published": "/home/cnc/linuxcnc/nc_files/perfmatrix-big.ngc",
+        "other_ready": [
+          {
+            "version": 20,
+            "file": "/home/cnc/linuxcnc/nc_files/perfmatrix-big.ngc",
+            "source": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        ],
+        "status_rx": 1
+      }
+    }
+  },
+  "trace": {
+    "missing": {
+      "exit": 1,
+      "direct": {
+        "status": 200,
+        "status_rx": 3
+      },
+      "trace": {
+        "error": "no trace file"
+      },
+      "rss_kb_before": 1000,
+      "rss_kb_after": 1000,
+      "window_s": 0.0,
+      "FAIL": "trace: no trace file (/tmp/codex-r347-probe-vbf0jg8q/missing/trace.ndjson)"
+    },
+    "empty": {
+      "exit": 1,
+      "direct": {
+        "status": 200,
+        "status_rx": 3
+      },
+      "trace": {
+        "lag_windows": 0,
+        "lag_max_drift_ms": 0,
+        "lag_max_dominant": null,
+        "safety_events": [],
+        "gcode_publishes": [],
+        "ws_connects": 0,
+        "marks": [],
+        "mark_pids": []
+      },
+      "rss_kb_before": 1000,
+      "rss_kb_after": 1000,
+      "window_s": 0.0,
+      "FAIL": "trace: no start/end mark of run 1126771d0580 in /tmp/codex-r347-probe-vbf0jg8q/empty/trace.ndjson — not the measured gateway's trace, or not written"
+    },
+    "old": {
+      "exit": 1,
+      "direct": {
+        "status": 200,
+        "status_rx": 3
+      },
+      "trace": {
+        "lag_windows": 0,
+        "lag_max_drift_ms": 0,
+        "lag_max_dominant": null,
+        "safety_events": [],
+        "gcode_publishes": [],
+        "ws_connects": 0,
+        "marks": [],
+        "mark_pids": []
+      },
+      "rss_kb_before": 1000,
+      "rss_kb_after": 1000,
+      "window_s": 0.0,
+      "FAIL": "trace: no start/end mark of run 1126771d0580 in /tmp/codex-r347-probe-vbf0jg8q/old/trace.ndjson — not the measured gateway's trace, or not written"
+    },
+    "other_run": {
+      "exit": 1,
+      "direct": {
+        "status": 200,
+        "status_rx": 3
+      },
+      "trace": {
+        "lag_windows": 0,
+        "lag_max_drift_ms": 0,
+        "lag_max_dominant": null,
+        "safety_events": [],
+        "gcode_publishes": [],
+        "ws_connects": 0,
+        "marks": [],
+        "mark_pids": []
+      },
+      "rss_kb_before": 1000,
+      "rss_kb_after": 1000,
+      "window_s": 0.0,
+      "FAIL": "trace: no start/end mark of run 1126771d0580 in /tmp/codex-r347-probe-vbf0jg8q/other_run/trace.ndjson — not the measured gateway's trace, or not written"
+    },
+    "other_scenario": {
+      "exit": 1,
+      "direct": {
+        "status": 200,
+        "status_rx": 3
+      },
+      "trace": {
+        "lag_windows": 0,
+        "lag_max_drift_ms": 0,
+        "lag_max_dominant": null,
+        "safety_events": [],
+        "gcode_publishes": [],
+        "ws_connects": 0,
+        "marks": [],
+        "mark_pids": []
+      },
+      "rss_kb_before": 1000,
+      "rss_kb_after": 1000,
+      "window_s": 0.0,
+      "FAIL": "trace: no start/end mark of run 1126771d0580 in /tmp/codex-r347-probe-vbf0jg8q/other_scenario/trace.ndjson — not the measured gateway's trace, or not written"
+    },
+    "only_start": {
+      "exit": 1,
+      "direct": {
+        "status": 200,
+        "status_rx": 3
+      },
+      "trace": {
+        "lag_windows": 0,
+        "lag_max_drift_ms": 0,
+        "lag_max_dominant": null,
+        "safety_events": [],
+        "gcode_publishes": [],
+        "ws_connects": 0,
+        "marks": [
+          "start"
+        ],
+        "mark_pids": [
+          4242
+        ]
+      },
+      "rss_kb_before": 1000,
+      "rss_kb_after": 1000,
+      "window_s": 0.0,
+      "FAIL": "trace: no end mark of run 1126771d0580 in /tmp/codex-r347-probe-vbf0jg8q/only_start/trace.ndjson — not the measured gateway's trace, or not written"
+    },
+    "only_end": {
+      "exit": 1,
+      "direct": {
+        "status": 200,
+        "status_rx": 3
+      },
+      "trace": {
+        "lag_windows": 0,
+        "lag_max_drift_ms": 0,
+        "lag_max_dominant": null,
+        "safety_events": [],
+        "gcode_publishes": [],
+        "ws_connects": 0,
+        "marks": [
+          "end"
+        ],
+        "mark_pids": [
+          4242
+        ]
+      },
+      "rss_kb_before": 1000,
+      "rss_kb_after": 1000,
+      "window_s": 0.0,
+      "FAIL": "trace: no start mark of run 1126771d0580 in /tmp/codex-r347-probe-vbf0jg8q/only_end/trace.ndjson — not the measured gateway's trace, or not written"
+    },
+    "other_pid": {
+      "exit": 1,
+      "direct": {
+        "status": 200,
+        "status_rx": 3
+      },
+      "trace": {
+        "lag_windows": 0,
+        "lag_max_drift_ms": 0,
+        "lag_max_dominant": null,
+        "safety_events": [],
+        "gcode_publishes": [],
+        "ws_connects": 0,
+        "marks": [
+          "end",
+          "start"
+        ],
+        "mark_pids": [
+          999
+        ]
+      },
+      "rss_kb_before": 1000,
+      "rss_kb_after": 1000,
+      "window_s": 0.0,
+      "FAIL": "trace: the marks were written by pid [999], the measured gateway is 4242"
+    },
+    "mixed_pid": {
+      "exit": 1,
+      "direct": {
+        "status": 200,
+        "status_rx": 3
+      },
+      "trace": {
+        "lag_windows": 0,
+        "lag_max_drift_ms": 0,
+        "lag_max_dominant": null,
+        "safety_events": [],
+        "gcode_publishes": [],
+        "ws_connects": 0,
+        "marks": [
+          "end",
+          "start"
+        ],
+        "mark_pids": [
+          999,
+          4242
+        ]
+      },
+      "rss_kb_before": 1000,
+      "rss_kb_after": 1000,
+      "window_s": 0.0,
+      "FAIL": "trace: the marks were written by pid [999, 4242], the measured gateway is 4242"
+    },
+    "valid_no_lag": {
+      "exit": 0,
+      "direct": {
+        "status": 200,
+        "status_rx": 3
+      },
+      "trace": {
+        "lag_windows": 0,
+        "lag_max_drift_ms": 0,
+        "lag_max_dominant": null,
+        "safety_events": [],
+        "gcode_publishes": [],
+        "ws_connects": 0,
+        "marks": [
+          "end",
+          "start"
+        ],
+        "mark_pids": [
+          4242
+        ]
+      },
+      "rss_kb_before": 1000,
+      "rss_kb_after": 1000,
+      "window_s": 0.0
+    }
+  }
+}

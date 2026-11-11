@@ -1,0 +1,24 @@
+{
+  "review": "R347",
+  "base": "c55164630f415a402abee2d731698aba5e570a80",
+  "head": "00adb83ce6ad5c69c3f7991726f4f970c33acc05",
+  "checkout": "git archive 00adb83c into /tmp/codex-r347 (without docs/reviews)",
+  "tests": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m pytest -o addopts='' -q -p no:cacheprovider scripts/test_perf_matrix.py",
+    "exit": 0,
+    "passed": 20
+  },
+  "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python docs/reviews/live-checks.r347.codex-probe.py /tmp/codex-r347",
+    "exit": 0,
+    "cases": 17,
+    "expected_refusals": 14,
+    "expected_successes": 3,
+    "all_expectations_met": true
+  },
+  "scope": "No product edits. No real LinuxCNC or live-network access. Repository tests use a fake loopback WebSocket server; independent probes replace all external effects.",
+  "sha256": {
+    "scripts/perf_matrix.py": "268edcd1a1f6bf6ee814c3e5e889315d22519717cbf9b7c1b1139af9209236ad",
+    "scripts/test_perf_matrix.py": "32a5c0446709e00c4269163cc5009090773052728df2cf4d4221030c8d33b072"
+  }
+}

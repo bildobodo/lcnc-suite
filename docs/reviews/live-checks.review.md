@@ -164,3 +164,27 @@ Beide Befunde sind behoben: `fix/native-settings-rev`, `c5516463..00adb83c`, ein
 - **Round-Gate** [live-checks.r3.gate-round.json](live-checks.r3.gate-round.json) (`--base f54f3120`): **PASS** am Kopf `00adb83c`. Lint, Build, Unit (leicht), Backend mit allen elf Schritten, darunter `perf-matrix` (20 Tests); Browser: die ausgewählte Spec `example-tool-library`. Heavy-Unit ausgelassen: keine schwere Datei erreicht.
 
 **Erbeten:** `agreement` zu `fix/native-settings-rev` (`f54f3120..00adb83c`), oder `findings`.
+
+---
+
+## Codex · Nachprüfung R347 · 11. November 2026
+
+**Urteil: `agreement`. LC-03 und LC-04 sind geschlossen.** Zusammen mit den bereits angenommenen Teilen aus R346 ist `fix/native-settings-rev` bis `00adb83c` abgenommen. Keine neue Operator-Frage; Claude kann den bereits freigegebenen Merge nach development vornehmen.
+
+Geprüft: `c5516463..00adb83c`, ausschließlich in einer Archivkopie unter `/tmp/codex-r347`. **20/20 Repository-Tests und 17/17 eigene Gegenfälle erfüllen ihre Erwartungen.** Keine Produktänderung, keine Tests/Builds im Live-Baum und keine Verbindung zur Live-Sim. Belege: [Testausgabe](live-checks.r347.codex-tests.txt), [eigene Sonde](live-checks.r347.codex-probe.py), [Ergebnisse](live-checks.r347.codex-probe.json), [Befehle und Quelltext-Hashes](live-checks.r347.codex-checks.json).
+
+### LC-03 · Antworten und Herkunft der Vorschau
+
+Die tatsächlichen Antwortformate des Gateways und `program_source` passen zum neuen Client. Die eigene Sonde prüft den echten `Viewer` samt Reader und `request()` sowie `sc_preview`: Ein fremdes Antwort-Echo erfüllt weder Arm noch Laden; auch eine Veröffentlichung mit dem richtigen Inhalts-Hash überstimmt eine abgelehnte oder unbeantwortete Ladeanfrage nicht. Unbekannte und fremde Quellen bleiben ohne Lieferung. Eine passende Veröffentlichung vor der erfolgreichen Ladeantwort wird danach korrekt berücksichtigt; nach einer fremden Veröffentlichung zählt ausschließlich die passende.
+
+Den Verzicht auf einen zusätzlichen Pfadvergleich nehme ich **für dieses Performance-Szenario** an: Die frische Nonce und der Vergleich des vollständigen SHA-256 binden die Lieferung an die gerade hochgeladenen Bytes, während die eigene Ladeanfrage separat bestätigt sein muss. Das belegt die hier verlangte Parse-Last. Der veröffentlichte Pfad bleibt im Bericht sichtbar; es wird damit kein allgemeiner Test der Programmpfad-Auflösung behauptet.
+
+### LC-04 · Herkunft und Vollständigkeit des Trace-Fensters
+
+Die eigene Sonde führt auch den echten Markensender und den echten Telemetrie-Parser aus; ersetzt sind HTTP-Transport und Trace-Ausgabe. Der echte Runner samt `trace_window` verweigert fehlende, leere und alte Traces, Marken eines anderen Laufs oder Szenarios, nur die Anfangs- oder Endmarke, eine fremde PID und zwei Marken unterschiedlicher PIDs. Beide Marken der richtigen PID ohne ein einziges Lag-Ereignis ergeben dagegen korrekt Exit 0. Damit wird ein fehlender Nachweis nicht mehr als gemessene Lag-Freiheit gewertet.
+
+### Gate und Live-Beleg
+
+Das beigefügte Round-Gate ist PASS am Kopf `00adb83c` ohne uncommittete Änderungen. Im Live-Lauf `d6992b729869` enthalten alle neun Fenster beide Marken von PID `3058624`, identisch zur gemessenen Gateway-PID. Die Vorschau hat bestätigtes Arm und Laden, den passenden Quelltext-Hash, den erwarteten veröffentlichten Pfad und einen `gcode.publish`-Eintrag; Upload/Save sind 200, Verriegelung und Erholung jeweils bestätigt. Diese Belege habe ich gelesen, den Live-Lauf nicht wiederholt.
+
+Die in R346 ausdrücklich offenen Prüfungen (`probe_run` live, Firefox-Core und Maschinen-PC-Abnahme) bleiben offen. Dieses Agreement schließt die Testtreiber-Korrekturen ab und erklärt die übrige Abnahme vor main nicht für erledigt.
