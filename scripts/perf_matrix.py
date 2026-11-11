@@ -42,6 +42,7 @@ import signal
 import subprocess
 import sys
 import time
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lcnc-gateway"))
@@ -142,6 +143,7 @@ def trace_window(t0_ns: int, t1_ns: int) -> dict:
 
 LIVENESS_FAILED = False  # set by with_viewers when a scenario delivers 0 status frames
 DELIVERY_FAILED = False  # set by preview_publish when the load never produces a publish
+SCENARIO_FAILURES = {}   # scenario → why its own result is no measurement (scenario_failure)
 
 
 class Viewer:
@@ -158,6 +160,8 @@ class Viewer:
         self.gcode_ready = False      # viewer_gcode / viewer_gcode_ready seen
         self.gcode_version = None     # latest viewer_gcode_ready version seen
         self.last_reply_error = None  # most recent reply ok=False error text
+        self.conn_key = None          # the hello reply's key for protected HTTP writes (BG-14)
+        self.arm_reply = None         # the latest reply to `arm`
         self._ws = None
         self._tasks = []
 
@@ -194,8 +198,13 @@ class Viewer:
                     self.gcode_ready = True
                     if msg.get("version") is not None:
                         self.gcode_version = msg["version"]
-                elif msg.get("type") == "reply" and msg.get("ok") is False:
-                    self.last_reply_error = msg.get("error")
+                elif msg.get("type") == "reply":
+                    if isinstance(msg.get("conn_key"), str) and msg["conn_key"]:
+                        self.conn_key = msg["conn_key"]      # the hello reply (no req_id)
+                    if msg.get("cmd") == "arm":
+                        self.arm_reply = msg
+                    if msg.get("ok") is False:
+                        self.last_reply_error = msg.get("error")
         except Exception:
             pass
 
@@ -239,6 +248,50 @@ async def with_viewers(n: int, hidden_frac: float, body):
         if isinstance(result, dict):
             result["LIVENESS_FAIL"] = True
     return result
+
+
+@asynccontextmanager
+async def armed_writer():
+    """The headers of a protected HTTP write (/upload, /save — button gates
+    BG-14): the token AND the X-Conn-Key of a connection armed for it. A write
+    without one is refused 403 before its body is read, and a scenario that
+    measures it measured an idle gateway (upload/save answered 403 in 6–62 ms
+    from 2026-10-29 to 2026-11-11 unnoticed). Disarmed and closed after."""
+    w = Viewer("writer")
+    await w.connect()
+    try:
+        t0 = time.monotonic()
+        while w.conn_key is None and time.monotonic() - t0 < 10:
+            await asyncio.sleep(0.05)
+        await w.send({"cmd": "arm", "armed": True})
+        while w.arm_reply is None and time.monotonic() - t0 < 15:
+            await asyncio.sleep(0.05)
+        if not w.conn_key or not (w.arm_reply or {}).get("ok"):
+            raise RuntimeError(f"no armed writer: conn_key {'set' if w.conn_key else 'missing'}, "
+                               f"arm reply {w.arm_reply}")
+        yield {**HDRS, "X-Conn-Key": w.conn_key}
+    finally:
+        try:
+            await w.send({"cmd": "arm", "armed": False})
+            await asyncio.sleep(0.3)
+        except Exception:
+            pass
+        await w.close()
+
+
+def scenario_failure(direct):
+    """Why a scenario's own result is no measurement, None when it is: an
+    exception, an HTTP write not taken (`status` / `*_status` outside 2xx),
+    a property it asserts not held (`*_ok` not True). Each fails the run —
+    before, all three printed and the matrix still answered 0."""
+    if not isinstance(direct, dict) or "skipped" in direct:
+        return None
+    if direct.get("error"):
+        return f"error: {direct['error']}"
+    bad = [f"{k} {v}" for k, v in direct.items()
+           if (k == "status" or k.endswith("_status")) and not (isinstance(v, int) and 200 <= v < 300)]
+    bad += [f"{k} {v}" for k, v in direct.items() if k.endswith("_ok") and v is not True]
+    return "; ".join(bad) or None
 
 
 # ---- scenario helpers ------------------------------------------------------
@@ -308,18 +361,20 @@ async def sc_upload(args):
     path = "/tmp/perfmatrix-big.ngc"
     gen_gcode(path, args.upload_mb)
 
-    async def body(viewers):
-        t0 = time.monotonic()
-        with open(path, "rb") as f:
-            r = await asyncio.to_thread(
-                requests.post, f"{BASE}/upload", headers=HDRS,
-                files={"file": ("perfmatrix-big.ngc", f)}, timeout=300)
-        dur = round((time.monotonic() - t0) * 1000)
-        await asyncio.sleep(2)
-        return {"status": r.status_code, "upload_ms": dur,
-                "size_mb": round(os.path.getsize(path) / 1e6, 1),
-                "viewer_frames": sum(v.frames for v in viewers)}
-    return await with_viewers(3, 0.0, body)
+    async with armed_writer() as hdrs:
+        async def body(viewers):
+            t0 = time.monotonic()
+            with open(path, "rb") as f:
+                # overwrite=1: the program of an earlier run is replaced, never a 409
+                r = await asyncio.to_thread(
+                    requests.post, f"{BASE}/upload", headers=hdrs, params={"overwrite": 1},
+                    files={"file": ("perfmatrix-big.ngc", f)}, timeout=300)
+            dur = round((time.monotonic() - t0) * 1000)
+            await asyncio.sleep(2)
+            return {"status": r.status_code, "upload_ms": dur,
+                    "size_mb": round(os.path.getsize(path) / 1e6, 1),
+                    "viewer_frames": sum(v.frames for v in viewers)}
+        return await with_viewers(3, 0.0, body)
 
 
 @scenario("save_during_stream")
@@ -329,18 +384,19 @@ async def sc_save(args):
     with open(path, "rb") as f:
         body_bytes = f.read()
 
-    async def body(viewers):
-        t0 = time.monotonic()
-        r = await asyncio.to_thread(
-            requests.put, f"{BASE}/save",
-            params={"path": os.path.expanduser("~/linuxcnc/nc_files/perfmatrix-big.ngc")},
-            headers={**HDRS, "Content-Type": "text/plain; charset=utf-8"},
-            data=body_bytes, timeout=300)
-        dur = round((time.monotonic() - t0) * 1000)
-        await asyncio.sleep(2)
-        return {"status": r.status_code, "save_ms": dur,
-                "size_mb": round(len(body_bytes) / 1e6, 1)}
-    return await with_viewers(3, 0.0, body)
+    async with armed_writer() as hdrs:
+        async def body(viewers):
+            t0 = time.monotonic()
+            r = await asyncio.to_thread(
+                requests.put, f"{BASE}/save",
+                params={"path": os.path.expanduser("~/linuxcnc/nc_files/perfmatrix-big.ngc")},
+                headers={**hdrs, "Content-Type": "text/plain; charset=utf-8"},
+                data=body_bytes, timeout=300)
+            dur = round((time.monotonic() - t0) * 1000)
+            await asyncio.sleep(2)
+            return {"status": r.status_code, "save_ms": dur,
+                    "size_mb": round(len(body_bytes) / 1e6, 1)}
+        return await with_viewers(3, 0.0, body)
 
 
 @scenario("fusion_near_limit")
@@ -388,9 +444,14 @@ async def sc_preview(args):
     with open(path, "a") as f:
         f.write(f"(perfmatrix nonce {time.time_ns()})\n")
     nc = os.path.expanduser("~/linuxcnc/nc_files/perfmatrix-big.ngc")
-    with open(path, "rb") as f:
-        requests.post(f"{BASE}/upload", headers=HDRS,
-                      files={"file": ("perfmatrix-big.ngc", f)}, timeout=300)
+    # the nonce works only if the upload REPLACES the program: overwrite=1,
+    # an armed writer, and its status in the result (scenario_failure)
+    async with armed_writer() as hdrs:
+        with open(path, "rb") as f:
+            up = await asyncio.to_thread(
+                requests.post, f"{BASE}/upload", headers=hdrs, params={"overwrite": 1},
+                files={"file": ("perfmatrix-big.ngc", f)}, timeout=300)
+    upload_status = up.status_code
 
     async def body(viewers):
         v = viewers[0]
@@ -414,7 +475,7 @@ async def sc_preview(args):
         wait_s = round(time.monotonic() - t0, 1)
         await asyncio.sleep(2.0)  # settle so rss_kb_after includes publish state
         await v.send({"cmd": "arm", "armed": False})
-        result = {"loaded": nc, "delivered": delivered, "publish_wait_s": wait_s,
+        result = {"loaded": nc, "upload_status": upload_status, "delivered": delivered, "publish_wait_s": wait_s,
                   "version_before": v0, "version_after": v.gcode_version}
         if v.last_reply_error:
             result["reply_error"] = v.last_reply_error
@@ -510,6 +571,11 @@ async def run(args):
         print(summary, flush=True)
         if direct.get("error"):
             print(f"  DIRECT ERROR: {direct['error']}", flush=True)
+        why = scenario_failure(direct)
+        if why:
+            SCENARIO_FAILURES[name] = why
+            entry["FAIL"] = why
+            print(f"  SCENARIO FAIL: {why}", flush=True)
     outdir = os.path.join(REPO, "runlogs", "perf-matrix")
     os.makedirs(outdir, exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -522,6 +588,10 @@ async def run(args):
         return 1
     if DELIVERY_FAILED:
         print("RESULT: FAIL (delivery) — preview_publish never published; its metrics are vacuous", flush=True)
+        return 1
+    if SCENARIO_FAILURES:
+        print("RESULT: FAIL (scenario) — " + " | ".join(f"{k}: {v}" for k, v in SCENARIO_FAILURES.items()),
+              flush=True)
         return 1
     return 0
 

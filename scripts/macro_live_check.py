@@ -79,6 +79,12 @@ import websockets
 
 RESULTS = []
 s = linuxcnc.stat()
+#: a write's refusals by a BUSY machine (the gateway's _write_admission_refusal:
+#: a start claim open, the interpreter running). The writer's own refusals
+#: ("Connection unknown", "Not armed") carry the same kind "busy" — a claim
+#: row that compared the kind alone passed on them (2026-11-11: every write
+#: of a driver without X-Conn-Key)
+MACHINE_BUSY = ("A program or macro is starting or running — wait", "A program or MDI runs — wait")
 
 
 def row(name, ok, detail=""):
@@ -104,7 +110,10 @@ def ini_value(ini, section, key):
 
 class Gateway:
     """One ARMED WS client: heartbeats, every frame's `errors` collected,
-    replies matched by req_id."""
+    replies matched by req_id. Its HTTP writes name THIS connection
+    (`X-Conn-Key`, the hello reply's `conn_key` — button gates BG-14): a
+    write without it is refused "Connection unknown", whatever the machine
+    does."""
 
     def __init__(self, url, token, port):
         self.url, self.token, self.port = url, token, port
@@ -112,6 +121,7 @@ class Gateway:
         self.replies = {}
         self.seq = 0
         self.status_frames = 0      # status frames seen: the gateway has a machine state
+        self.conn_key = None        # the hello reply's key for protected HTTP writes
 
     async def __aenter__(self):
         self.ws = await websockets.connect(self.url, max_size=None)
@@ -119,8 +129,10 @@ class Gateway:
         self.beat = asyncio.get_event_loop().create_task(self._beat())
         await self.cmd({"cmd": "hello"}, wait=False)
         t0 = time.monotonic()
-        while self.status_frames < 3 and time.monotonic() - t0 < 20:
+        while (self.status_frames < 3 or self.conn_key is None) and time.monotonic() - t0 < 20:
             await asyncio.sleep(0.1)        # a command before the first status is refused
+        if self.conn_key is None:
+            raise SystemExit("no conn_key in the hello reply — the HTTP writes could name no connection")
         r = await self.cmd({"cmd": "arm", "armed": True})
         if not r.get("ok"):
             raise SystemExit(f"arm refused: {r.get('error')}")
@@ -146,6 +158,8 @@ class Gateway:
                 continue
             if d.get("type") == "status":
                 self.status_frames += 1
+            if d.get("type") == "reply" and isinstance(d.get("conn_key"), str) and d["conn_key"]:
+                self.conn_key = d["conn_key"]      # the hello reply (no req_id)
             for e in d.get("errors") or []:
                 if isinstance(e, (list, tuple)) and len(e) >= 2:
                     self.messages.append((time.monotonic(), e[0], str(e[1])))
@@ -169,7 +183,7 @@ class Gateway:
 
     def http(self, path, method="GET", body=None):
         req = urllib.request.Request(f"http://127.0.0.1:{self.port}{path}", method=method, data=body,
-                                     headers={"X-Auth-Token": self.token})
+                                     headers={"X-Auth-Token": self.token, "X-Conn-Key": self.conn_key or ""})
         with urllib.request.urlopen(req, timeout=10) as r:
             return r.read()
 
@@ -446,11 +460,18 @@ async def main(ini):
 
         def write_once():
             """A macro write (create r70_probe, then delete it again): its
-            status, and its refusal's kind."""
+            status, its refusal's kind and its reason."""
             code, body = gw.status_of("/macro?name=r70_probe&base=new", "PUT", probe)
             if code == 200:
                 gw.status_of(f"/macro?name=r70_probe&base={hashlib.sha256(probe).hexdigest()}", "DELETE")
-            return code, (body.get("detail") or {}).get("kind") if isinstance(body, dict) and isinstance(body.get("detail"), dict) else body
+            d = body.get("detail") if isinstance(body, dict) else None
+            if isinstance(d, dict):
+                return code, d.get("kind"), d.get("reason")
+            return code, d if d is not None else body, None
+
+        def busy(w):
+            """A write refused by the busy machine — never by the writer check."""
+            return w[:2] == (409, "busy") and w[2] in MACHINE_BUSY
 
         async def admitted_after(t_end, limit=2.0):
             """Seconds from `t_end` until a macro write is admitted, None past `limit`."""
@@ -467,7 +488,7 @@ async def main(ini):
         await wait_idle()
         t_end = time.monotonic()
         lat = await admitted_after(t_end)
-        row("claim-done", r.get("ok") and during == (409, "busy") and lat is not None,
+        row("claim-done", r.get("ok") and busy(during) and lat is not None,
             f"reply {r.get('ok')} {r.get('error', '')}, write during the dwell {during}, admitted {lat if lat is None else round(lat, 2)} s after its end")
 
         # a start the interpreter refuses: released on its own error. The
@@ -491,7 +512,7 @@ async def main(ini):
         during = write_once()
         await wait_idle()
         lat = await admitted_after(time.monotonic())
-        row("claim-run", r.get("ok") and during == (409, "busy") and lat is not None,
+        row("claim-run", r.get("ok") and busy(during) and lat is not None,
             f"reply {r.get('ok')} {r.get('error', '')}, write during the macro {during}, admitted {lat if lat is None else round(lat, 2)} s after")
 
         # the route's refusal body, as the fixture names it

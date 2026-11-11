@@ -85,7 +85,9 @@ class TestSuiteRunner(unittest.TestCase):
         # + inventory (the function inventory's guard, Codex R265–R269)
         # + native-stage (the native stage's offline guards, Codex R282–R285)
         # + install-probe (the install probe's offline guards, Codex R329)
-        self.assertEqual(len(commands), 14)
+        # + perf-matrix (the matrix's own verdict: an armed writer, a scenario
+        #   that measured nothing fails — live checks 2026-11-11)
+        self.assertEqual(len(commands), 15)
         self.assertIn("audit-css", [name for name, _, _ in commands])
         self.assertIn("review-handshake", [name for name, _, _ in commands])
         self.assertIn("readback-target", [name for name, _, _ in commands])
@@ -94,6 +96,7 @@ class TestSuiteRunner(unittest.TestCase):
         self.assertIn("inventory", [name for name, _, _ in commands])
         self.assertIn("native-stage", [name for name, _, _ in commands])
         self.assertIn("install-probe", [name for name, _, _ in commands])
+        self.assertIn("perf-matrix", [name for name, _, _ in commands])
         self.assertNotIn("viewer-ab-report", [name for name, _, _ in commands])
         self.assertFalse(any("sim_parity" in str(command) for _, command, _ in commands))
 

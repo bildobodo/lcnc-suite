@@ -136,6 +136,7 @@ def offline_commands(component):
         commands.append(("inventory", [python(), "-m", "pytest", str(ROOT / "scripts/inventory/test_inventory.py")], ROOT))
         commands.append(("native-stage", [python(), "-m", "pytest", str(ROOT / "scripts/test_native_stage.py")], ROOT))
         commands.append(("install-probe", [python(), "-m", "pytest", str(ROOT / "scripts/test_install_probe.py")], ROOT))
+        commands.append(("perf-matrix", [python(), "-m", "pytest", str(ROOT / "scripts/test_perf_matrix.py")], ROOT))
     if component in ("all", "frontend"):
         for name, cmd in (("lint", ["npm", "run", "lint"]),
                           ("build", ["npm", "run", "build"]),
