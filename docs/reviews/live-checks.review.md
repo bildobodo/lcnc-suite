@@ -71,3 +71,43 @@ Beide Treiber stammen von vor BG-14. Ihre geschützten HTTP-Schreibzugriffe trug
 - **Kein Token** in den Belegen, geprüft gegen jedes INI-Token auf der VM.
 - Die LAN-Test-Sim läuft wieder auf `f54f3120`.
 - **Offen vor main:** die Hardware-Validierung am Maschinen-PC; probe-live und firefox-core haben keine Infrastruktur.
+
+---
+
+## Codex · Review R346 · 11. November 2026
+
+**Urteil: `findings`.** LC-01 ist geschlossen. Die Verbindungsschlüssel, die Zulassung der HTTP-Schreiber, die Unterscheidung der Makro-Ablehnungen und der Nachtrag `c5516463` sind schlüssig. Beim Urteil der Performance-Matrix bleiben zwei Wege zu einem falschen Erfolg offen (LC-03/04 unten). Das sind Befunde am Testtreiber; aus dieser Runde folgt kein neuer Produktbefund.
+
+Geprüft: `f54f3120..c5516463`, in einer Archivkopie von `c5516463` unter `/tmp/codex-r346`. Keine Tests/Builds im Live-Baum, keine Zugriffe auf die Live-Sim und keine Maschinenbefehle. Eigene Ausführung: **505/505 Offline-Tests** (`test_native_stage`: 483, `test_perf_matrix`: 7, `test_suite_runner`: 15). Der erste Versuch endete an der Socket-Sperre der Sandbox; der anschließende erlaubte Lauf benutzte nur den lokalen Fake-WebSocket-Server. Eigene Gegenproben ersetzen alle externen Zugriffe, einschließlich des LinuxCNC-Imports.
+
+Belege: [Sonde](live-checks.r346.codex-probe.py), [Ergebnisse](live-checks.r346.codex-probe.json), [Befehle, Testzahlen und Quelltext-Hashes](live-checks.r346.codex-checks.json). Die Sonde hält das beobachtete Verhalten am Prüfstand fest; ihre Assertions auf Exit 0 kennzeichnen die nachgewiesenen falschen Erfolge, keine gewünschten Zusicherungen für die Korrektur.
+
+### LC-03 · P2 · Eine abgelehnte Vorschau-Ladeanfrage kann weiter Erfolg ergeben
+
+**Stellen:** `scripts/perf_matrix.py:287–299`, `:465–499`, `:583–605` (Zeilen am Prüfstand).
+
+`preview_publish` wartet weiterhin nicht auf die erfolgreiche Antwort zu seinem `load_file`. Es wertet jeden Wechsel von `gcode_version` als eigene Lieferung. Eine Ablehnung landet nur unter `reply_error`; die neue Funktion `scenario_failure` wertet diesen bereits heute verwendeten Schlüssel nicht aus. Damit deckt die Schlüsselkonvention die vorhandenen Szenarien noch nicht vollständig ab.
+
+**Gegenprobe:** Der Upload antwortet 200. Der Viewer hat Version 10, seine Ladeanfrage wird mit „A program or macro is starting or running — wait“ abgelehnt; zugleich trifft Version 11 ein, etwa von einem bereits laufenden Parse oder einem anderen Client. Die echte Funktion `sc_preview`, die echte Viewer-Orchestrierung und der echte Runner liefern `delivered: true`, `reply_error: …`, **Exit 0** (`preview_refused_with_other_ready` im JSON). Für diese Probe ist der Trace separat als verfügbar ersetzt; sie hängt nicht von LC-04 ab.
+
+**Erforderlich:** Arm und Laden an ihre Antworten binden; eine Ablehnung oder fehlende Antwort darf nicht durch einen Versionswechsel überstimmt werden. Die gelieferte Vorschau muss zur hochgeladenen Datei/Fassung gehören, nicht bloß eine andere Versionsnummer tragen. Dafür einen Wächter mit abgelehntem Laden plus fremder Lieferung und einen mit erfolgreichem Laden plus ausschließlich fremder Lieferung aufnehmen. Die allgemeine Schlüsselkonvention kann bleiben, wenn das Szenario diese Voraussetzungen ausdrücklich in sein Urteil einbringt.
+
+### LC-04 · P2 · Fehlender Mess-Trace entscheidet nicht über den Lauf
+
+**Stellen:** `scripts/perf_matrix.py:103–143`, `:568–605`.
+
+Der neue Runner entscheidet nur über `direct`. `trace_window` meldet bei fehlender Datei zwar `{"error": "no trace file"}`, doch der Lauf endet trotzdem erfolgreich. Eine leere Datei oder ausschließlich alte Ereignisse ergeben sogar `lag_max_drift_ms: 0`. Gerade der in der Anfrage benannte Start aus einem anderen Checkout kann somit weiterhin scheinbar gute Messzahlen liefern.
+
+**Gegenprobe:** Ein erfolgreiches Lastszenario mit HTTP 200 und empfangenen Statusframes wird durch den echten Runner ausgewertet. Für eine fehlende, eine leere und eine nur alte Trace-Datei ergibt sich jeweils **Exit 0** (`trace_missing`, `trace_empty`, `trace_old` im JSON). Diese Fälle benutzen den echten `trace_window`, nicht dessen Nachbildung.
+
+**Erforderlich:** Die Trace-Verfügbarkeit und die Bindung an den tatsächlich geprüften Gateway/Lauf nachweisen und in das Gesamturteil aufnehmen. Fehlende oder unzuordenbare Messdaten sind kein erfolgreicher Messlauf. Dabei **keinen** `lag.window`-Eintrag pro Fenster verlangen: Ein gültig beobachtetes Fenster ohne Überschreitung darf weiter null Lag-Ereignisse haben. Eine eigene, im Trace nachweisbare Aktivität des Prüflaufs kann die Herkunft/Frische belegen; nur die Existenz des Pfads reicht nicht. Die drei Gegenfälle und der legitime Fall ohne Lag-Ereignis gehören in die Offline-Wächter.
+
+### Angenommene Teile und Antworten auf die benannten Grenzen
+
+- **LC-01:** Der Client übernimmt die Revisionen der Settings-Nachrichten und kopiert deren Map; ein Statusframe überschreibt sie nicht. Der Schreibaufruf verlangt eine gelesene ganzzahlige Revision. Die Fakes benutzen jetzt den echten Store mit einer fremden Vorbelegung. Die eigene Sonde bestätigt auch die Kopie der Map; die nativen Tests bestehen.
+- **LC-02, Verbindung und Makro-Claim:** Hello ohne `req_id` wird ausgewertet, `X-Conn-Key` kommt aus genau dieser Verbindung. Die eigene Sonde prüft Reader und tatsächlichen HTTP-Request offline sowie das echte verschachtelte `busy`-Prädikat: beide Maschinen-Gründe angenommen, „Connection unknown“ und „Not armed“ verworfen. Wörtliche Gründe sind hier akzeptabel; eine Umbenennung führt zur Ablehnung. Ein Offline-Wächter für diesen Teil ist also möglich, ohne das echte LinuxCNC zu binden; er ersetzt die native Makro-Abnahme nicht.
+- **Opt-in und CI:** Upload/Save hinter `--allow-arm`, Ersetzen der Testdatei und die zusätzliche CI-Abhängigkeit sind passend. Die sieben Matrix-Tests einschließlich verweigertem Arm bestehen. Der Nachtrag verändert den mit beiden Freigabeschaltern ausgeführten Live-Weg nicht.
+- **Live-Belege:** Die Berichte bestätigen 58 PASS + 6 informative `incomplete`, beide Latch-Läufe 3/3 und Makros 17 PASS + 1 SKIP. In der zweiten Matrix stehen tatsächlich HTTP 200, eine Lieferung nach 19,1 s sowie ein `gcode.publish` im Trace; die beiden neuen Gegenfälle widerlegen diesen konkreten Lauf nicht. Sie verhindern die allgemeine Abnahme des Treiberurteils. Die bestehenden Belege bleiben unverändert.
+- **Harness und offene Abnahmen:** Die dokumentierte HOME-Korrektur erklärt die erste Fehlmessung. Die Abschrift ist als Beleg dieser Läufe ausreichend; daraus folgt kein wiederverwendbar geprüfter Runner. Die native Antastprüfung ersetzt weiterhin keinen `probe_run`-Live-Test; Firefox-Core und Maschinen-PC-Abnahme bleiben ausdrücklich offen.
+
+Keine zusätzliche Operator-Entscheidung erforderlich. Bitte LC-03/04 am Messwerkzeug schließen und die Gegenfälle in dessen Offline-Prüfung übernehmen.

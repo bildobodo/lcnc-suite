@@ -1,0 +1,32 @@
+{
+  "review": "R346",
+  "target": "c55164630f415a402abee2d731698aba5e570a80",
+  "base": "f54f3120461625f324188a745558b148c8990fe0",
+  "method": "git archive into /tmp/codex-r346; no product files changed; no live controller/port access",
+  "targeted_tests": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 LCNC_HEAVY_LOCK=/tmp/codex-r346/native-unit-heavy.lock /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m pytest -q -p no:cacheprovider scripts/test_native_stage.py scripts/test_perf_matrix.py lcnc-gateway/test_suite_runner.py",
+    "cwd": "/tmp/codex-r346",
+    "exit": 0,
+    "passed": 505,
+    "by_file": {
+      "scripts/test_native_stage.py": 483,
+      "scripts/test_perf_matrix.py": 7,
+      "lcnc-gateway/test_suite_runner.py": 15
+    },
+    "note": "Initial sandbox invocation stopped at collection: socket creation forbidden. Authorized rerun used the fake loopback WebSocket server only."
+  },
+  "own_probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python docs/reviews/live-checks.r346.codex-probe.py /tmp/codex-r346",
+    "exit": 0,
+    "interpretation": "Assertions pin the observed pre-fix results, including false-success exit=0; external I/O replaced. JSON observations preserved separately."
+  },
+  "sha256": {
+    "scripts/native_run.py": "8ba8b015160447b77995855f62f37b92bc57821551f18b1a2c443e00628cfa4b",
+    "scripts/test_support/live_session.py": "8ffb65c01acac5ec7cbb45e33fbf225e6436bab269ab6e0faa2cce3ccc334a2e",
+    "scripts/macro_live_check.py": "90a4228e2df071c6b0d9f945a5616d594441374497ce367f60b7a93d97e67d11",
+    "scripts/perf_matrix.py": "414d493a2f4afccbc833fdf545b806cb9dedbff55a191946f3388ddecfc0c457",
+    "scripts/test_native_stage.py": "1465debbf2af684e450a3f91ae7652316d32061c3a02e28d9e9918ab23ea00b5",
+    "scripts/test_perf_matrix.py": "417291f070d9160273895c74f295c1c5c2b831816aca8c632bc33c2041f14814",
+    "lcnc-gateway/test_suite_runner.py": "9b257bd250a57a0328a77564c38adbb5e16eab6fce39dbf20ed9ce58f4cdc7cf"
+  }
+}

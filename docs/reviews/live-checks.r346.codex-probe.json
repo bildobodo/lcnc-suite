@@ -1,0 +1,100 @@
+{
+  "macro_hello_without_req_id_and_http_header": "PASS",
+  "macro_busy_reason": {
+    "A program or macro is starting or running — wait": true,
+    "A program or MDI runs — wait": true,
+    "Connection unknown": false,
+    "Not armed": false
+  },
+  "settings_revisions": "PASS",
+  "trace_missing": {
+    "exit": 0,
+    "direct": {
+      "status": 200,
+      "upload_ms": 90,
+      "size_mb": 40,
+      "status_rx": 36
+    },
+    "trace": {
+      "error": "no trace file"
+    },
+    "rss_kb_before": 81920,
+    "rss_kb_after": 81920,
+    "window_s": 0.0
+  },
+  "trace_empty": {
+    "exit": 0,
+    "direct": {
+      "status": 200,
+      "upload_ms": 90,
+      "size_mb": 40,
+      "status_rx": 36
+    },
+    "trace": {
+      "lag_windows": 0,
+      "lag_max_drift_ms": 0,
+      "lag_max_dominant": null,
+      "safety_events": [],
+      "gcode_publishes": [],
+      "ws_connects": 0
+    },
+    "rss_kb_before": 81920,
+    "rss_kb_after": 81920,
+    "window_s": 0.0
+  },
+  "trace_old": {
+    "exit": 0,
+    "direct": {
+      "status": 200,
+      "upload_ms": 90,
+      "size_mb": 40,
+      "status_rx": 36
+    },
+    "trace": {
+      "lag_windows": 0,
+      "lag_max_drift_ms": 0,
+      "lag_max_dominant": null,
+      "safety_events": [],
+      "gcode_publishes": [],
+      "ws_connects": 0
+    },
+    "rss_kb_before": 81920,
+    "rss_kb_after": 81920,
+    "window_s": 0.0
+  },
+  "preview_refused_with_other_ready": {
+    "exit": 0,
+    "direct": {
+      "loaded": "/home/cnc/linuxcnc/nc_files/perfmatrix-big.ngc",
+      "upload_status": 200,
+      "delivered": true,
+      "publish_wait_s": 0.0,
+      "version_before": 10,
+      "version_after": 11,
+      "reply_error": "A program or macro is starting or running — wait",
+      "status_rx": 3
+    },
+    "trace": {
+      "ws_connects": 2,
+      "lag_windows": 1,
+      "lag_max_drift_ms": 1
+    },
+    "rss_kb_before": 81920,
+    "rss_kb_after": 81920,
+    "window_s": 0.0
+  },
+  "preview_commands": [
+    {
+      "cmd": "arm",
+      "armed": true
+    },
+    {
+      "cmd": "load_file",
+      "path": "/home/cnc/linuxcnc/nc_files/perfmatrix-big.ngc"
+    },
+    {
+      "cmd": "arm",
+      "armed": false
+    }
+  ]
+}
