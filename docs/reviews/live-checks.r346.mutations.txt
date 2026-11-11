@@ -1,0 +1,24 @@
+# Mutations against 10775728 (perf_matrix.py), each run: pytest -x scripts/test_perf_matrix.py
+# script: the mutation is a literal replacement in scripts/perf_matrix.py, the file restored after each
+
+MUTS = {
+ "no conn_key capture": ('self.conn_key = msg["conn_key"]      # the hello reply (no req_id)', 'pass'),
+ "no X-Conn-Key header": ('yield {**HDRS, "X-Conn-Key": w.conn_key}', 'yield dict(HDRS)'),
+ "arm reply ignored": ('if not w.conn_key or not (w.arm_reply or {}).get("ok"):', 'if not w.conn_key:'),
+ "no disarm": ('await w.send({"cmd": "arm", "armed": False})', 'pass'),
+ "status not checked": ('if (k == "status" or k.endswith("_status"))', 'if False'),
+ "_ok not checked": ('if k.endswith("_ok") and v is not True]', 'if False]'),
+ "run ignores failures": ('    if SCENARIO_FAILURES:\n        print(', '    if False:\n        print('),
+}
+
+RED  no conn_key capture: 1 failed, 4 passed in 20.83s
+RED  no X-Conn-Key header: 1 failed, 4 passed in 0.87s
+RED  arm reply ignored: 1 failed, 3 passed in 0.46s
+RED  no disarm: 1 failed, 4 passed in 0.86s
+RED  status not checked: 1 failed, 1 passed in 0.04s
+RED  _ok not checked: 1 failed, 1 passed in 0.04s
+RED  run ignores failures: 1 failed, 5 passed in 0.87s
+
+# macro_live_check.py: no offline test (it needs a running LinuxCNC); its red is the live pass 1
+# (live-checks.20261111.pass1.macro-live.txt: claim-done/-run 'during' (409, 'busy') on the writer refusal),
+# its green the live pass 2 (…pass2.macro-live.txt: the busy machine's reason in the row).
