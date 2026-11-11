@@ -33,10 +33,21 @@ stats, ws connects — plus per-scenario direct measurements (durations, sizes,
 RSS). Caveat: [GC] and [HB-WAKE] gateway.log lines carry no wall time and are
 NOT window-attributable; lag.window drift is the loop-stall metric here.
 
+Verdict (exit 1, every reason on the RESULT line): a scenario whose own result
+is no measurement (scenario_failure: an exception, an HTTP status outside 2xx,
+an *_ok not True), a preview whose taken load_file did not publish the UPLOADED
+program (origin.source = its sha256), and a window whose trace is not the
+measured gateway's: each window posts a start and an end mark with the run's id
+through /telemetry, and the trace must hold both, written by the gateway's pid
+(trace_failure — a missing, empty, old or foreign trace read as "lag 0"). The
+trace is read from THIS checkout's runlogs/: run the matrix from the tree the
+running gateway was started from.
+
 Artifacts: runlogs/perf-matrix/<utc>-<gitrev>.json  (one file per invocation)
 """
 import argparse
 import asyncio
+import hashlib
 import json
 import os
 import random
@@ -45,6 +56,7 @@ import signal
 import subprocess
 import sys
 import time
+import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
@@ -74,6 +86,17 @@ BASE = f"http://127.0.0.1:{PORT}"
 WS_URL = f"ws://127.0.0.1:{PORT}/ws" + (f"?token={TOKEN}" if TOKEN else "")
 HDRS = {"X-Auth-Token": TOKEN} if TOKEN else {}
 
+#: one id per matrix run: every scenario window posts a start and an end mark
+#: with it through /telemetry, and only marks of THIS run in the trace prove
+#: the trace is the measured gateway's and was written during the window
+#: (Codex R346 LC-04)
+RUN_ID = uuid.uuid4().hex[:12]
+REPLY_TIMEOUT_S = 15.0     # an arm / disarm reply
+PUBLISH_TIMEOUT_S = 60.0   # load_file's reply, then its publication
+STALE_NOTIFY_S = 1.5       # preview_publish: a connect-time ready frame lands first
+SETTLE_S = 2.0             # preview_publish: rss_kb_after includes the publish state
+TRACE_PAD_S = 3.5          # trailing pad: trip events land LATE via the reader pipeline (a 1 s pad produced a false pass)
+
 
 def gateway_pid():
     out = subprocess.run(["pgrep", "-f", "[u]vicorn gateway:app"],
@@ -100,12 +123,15 @@ def halcmd_getp(pin: str):
 
 # ---- trace extraction ------------------------------------------------------
 
-def trace_window(t0_ns: int, t1_ns: int) -> dict:
-    """Summarize trace events whose t_wall_ns falls inside [t0_ns, t1_ns]."""
+def trace_window(t0_ns: int, t1_ns: int, mark=None) -> dict:
+    """Summarize trace events whose t_wall_ns falls inside [t0_ns, t1_ns].
+    `mark` = (run id, scenario): the window's own marks (trace_mark) — which
+    of them the trace holds and the pid that wrote them (trace_failure)."""
     lag = []
     safety = []
     publishes = []
     connects = 0
+    marks, mark_pids = [], set()
     if not os.path.exists(TRACE):
         return {"error": "no trace file"}
     with open(TRACE, "rb") as f:
@@ -131,6 +157,10 @@ def trace_window(t0_ns: int, t1_ns: int) -> dict:
                                   ("bytes", "bytes_gz", "gzip_ms", "total_ms")})
             elif tag == "ws.connect.accept":
                 connects += 1
+            elif tag == "browser.perfmatrix_mark" and mark is not None \
+                    and (e.get("run"), e.get("scenario")) == tuple(mark):
+                marks.append(e.get("at"))
+                mark_pids.add(e.get("pid"))
     worst = max(lag, default=(0, None))
     return {
         "lag_windows": len(lag),
@@ -139,7 +169,46 @@ def trace_window(t0_ns: int, t1_ns: int) -> dict:
         "safety_events": sorted(set(safety)) or [],
         "gcode_publishes": publishes,
         "ws_connects": connects,
+        "marks": sorted(m for m in marks if isinstance(m, str)),
+        "mark_pids": sorted(p for p in mark_pids if isinstance(p, int)),
     }
+
+
+async def trace_mark(scenario: str, at: str) -> str:
+    """Post this run's mark for `scenario` (`start` / `end`) to the gateway's
+    /telemetry: it writes `browser.perfmatrix_mark` into ITS trace, with ITS
+    pid. "ok", else why the gateway did not take it."""
+    line = json.dumps({"kind": "perfmatrix_mark", "run": RUN_ID, "scenario": scenario, "at": at})
+    try:
+        r = await asyncio.to_thread(requests.post, f"{BASE}/telemetry", data=line.encode() + b"\n",
+                                    headers={"Content-Type": "application/x-ndjson"}, timeout=10)
+        body = r.json() if r.status_code == 200 else {}
+    except Exception as e:  # noqa: BLE001 - the reason goes into the verdict
+        return f"{type(e).__name__}: {e}"
+    if r.status_code != 200 or body.get("events") != 1:
+        return f"HTTP {r.status_code} {body}"
+    return "ok"
+
+
+def trace_failure(trace: dict, pid, sent) -> "str | None":
+    """Why a window's trace is no measurement of the measured gateway, None
+    when it is (Codex R346 LC-04): no trace file, or not both of this run's
+    marks in the window — a trace another gateway writes, an empty or only an
+    old one, would read as "lag 0" — or marks written by another process than
+    the gateway whose RSS and pid the report names. A window with no lag event
+    but both marks is a valid measurement."""
+    if not trace:
+        return None
+    if trace.get("error"):
+        return f"trace: {trace['error']} ({TRACE})"
+    missing = [at for at in ("start", "end") if at not in trace.get("marks", [])]
+    if missing:
+        posts = "; ".join(f"{at} mark {s}" for at, s in zip(("start", "end"), sent) if s != "ok")
+        return (f"trace: no {'/'.join(missing)} mark of run {RUN_ID} in {TRACE} — not the measured "
+                f"gateway's trace, or not written" + (f" ({posts})" if posts else ""))
+    if trace.get("mark_pids") != [pid]:
+        return f"trace: the marks were written by pid {trace.get('mark_pids')}, the measured gateway is {pid}"
+    return None
 
 
 # ---- WS viewer client ------------------------------------------------------
@@ -164,7 +233,9 @@ class Viewer:
         self.gcode_version = None     # latest viewer_gcode_ready version seen
         self.last_reply_error = None  # most recent reply ok=False error text
         self.conn_key = None          # the hello reply's key for protected HTTP writes (BG-14)
-        self.arm_reply = None         # the latest reply to `arm`
+        self.replies = {}             # req_id → reply (request())
+        self.ready = []               # every viewer_gcode_ready: version, file, origin source
+        self._seq = 0
         self._ws = None
         self._tasks = []
 
@@ -201,11 +272,15 @@ class Viewer:
                     self.gcode_ready = True
                     if msg.get("version") is not None:
                         self.gcode_version = msg["version"]
+                    if msg.get("type") == "viewer_gcode_ready":
+                        origin = msg.get("origin") if isinstance(msg.get("origin"), dict) else {}
+                        self.ready.append({"version": msg.get("version"), "file": msg.get("file"),
+                                           "source": origin.get("source")})
                 elif msg.get("type") == "reply":
                     if isinstance(msg.get("conn_key"), str) and msg["conn_key"]:
                         self.conn_key = msg["conn_key"]      # the hello reply (no req_id)
-                    if msg.get("cmd") == "arm":
-                        self.arm_reply = msg
+                    if msg.get("req_id") is not None:
+                        self.replies[msg["req_id"]] = msg
                     if msg.get("ok") is False:
                         self.last_reply_error = msg.get("error")
         except Exception:
@@ -221,6 +296,17 @@ class Viewer:
 
     async def send(self, obj: dict):
         await self._ws.send(json.dumps(obj))
+
+    async def request(self, obj: dict, timeout: float):
+        """Send `obj` with a req_id and return ITS reply (the gateway echoes
+        the id on every reply path), None when none came within `timeout`."""
+        self._seq += 1
+        rid = f"pm-{self.name}-{self._seq}"
+        await self.send({**obj, "req_id": rid})
+        t_end = time.monotonic() + timeout
+        while rid not in self.replies and time.monotonic() < t_end:
+            await asyncio.sleep(0.02)
+        return self.replies.pop(rid, None)
 
     async def close(self):
         for t in self._tasks:
@@ -268,17 +354,14 @@ async def armed_writer():
         t0 = time.monotonic()
         while w.conn_key is None and time.monotonic() - t0 < 10:
             await asyncio.sleep(0.05)
-        await w.send({"cmd": "arm", "armed": True})
-        while w.arm_reply is None and time.monotonic() - t0 < 15:
-            await asyncio.sleep(0.05)
-        if not w.conn_key or not (w.arm_reply or {}).get("ok"):
+        arm = await w.request({"cmd": "arm", "armed": True}, REPLY_TIMEOUT_S) if w.conn_key else None
+        if not w.conn_key or not (arm or {}).get("ok"):
             raise RuntimeError(f"no armed writer: conn_key {'set' if w.conn_key else 'missing'}, "
-                               f"arm reply {w.arm_reply}")
+                               f"arm reply {arm}")
         yield {**HDRS, "X-Conn-Key": w.conn_key}
     finally:
         try:
-            await w.send({"cmd": "arm", "armed": False})
-            await asyncio.sleep(0.3)
+            await w.request({"cmd": "arm", "armed": False}, REPLY_TIMEOUT_S)
         except Exception:
             pass
         await w.close()
@@ -452,6 +535,8 @@ async def sc_preview(args):
     # the content every run and forces a fresh parse+publish.
     with open(path, "a") as f:
         f.write(f"(perfmatrix nonce {time.time_ns()})\n")
+    with open(path, "rb") as f:
+        sha = hashlib.sha256(f.read()).hexdigest()   # the publication's origin.source for THIS upload
     nc = os.path.expanduser("~/linuxcnc/nc_files/perfmatrix-big.ngc")
     # the nonce works only if the upload REPLACES the program: overwrite=1,
     # an armed writer, and its status in the result (scenario_failure)
@@ -464,38 +549,51 @@ async def sc_preview(args):
 
     async def body(viewers):
         v = viewers[0]
-        await v.send({"cmd": "arm", "armed": True})
-        # Let any connect-time cache-hit viewer_gcode_ready (previous version)
-        # land BEFORE snapshotting the baseline version — the first ready frame
-        # after load_file can be that stale notify, not our publish.
-        await asyncio.sleep(1.5)
-        v0 = v.gcode_version
-        await v.send({"cmd": "load_file", "path": nc})
-        # Wait for OUR publish to actually LAND (version bump), not a blind
-        # sleep: 9 of the first 17 runs of this scenario silently never
-        # published in-window (parse-cache hits + parses outrunning the fixed
-        # 20 s sleep), and their rss_kb_after measured an idle gateway — a
-        # vacuous pass that poisoned the RSS baseline ("assert delivery").
-        t0 = time.monotonic()
-        deadline = t0 + 60.0
-        while v.gcode_version in (None, v0) and time.monotonic() < deadline:
-            await asyncio.sleep(0.5)
-        delivered = v.gcode_version is not None and v.gcode_version != v0
-        wait_s = round(time.monotonic() - t0, 1)
-        await asyncio.sleep(2.0)  # settle so rss_kb_after includes publish state
-        await v.send({"cmd": "arm", "armed": False})
-        result = {"loaded": nc, "upload_status": upload_status, "delivered": delivered, "publish_wait_s": wait_s,
-                  "version_before": v0, "version_after": v.gcode_version}
-        if v.last_reply_error:
-            result["reply_error"] = v.last_reply_error
-        if not delivered:
-            global DELIVERY_FAILED
-            DELIVERY_FAILED = True
-            result["DELIVERY_FAIL"] = True
-            print("  DELIVERY FAIL: load_file produced no fresh viewer_gcode "
-                  f"publish within 60s (version stuck at {v0!r}, last reply "
-                  f"error: {v.last_reply_error!r}) — rss/lag numbers below "
-                  "measure an idle gateway", flush=True)
+        result = {"loaded": nc, "upload_status": upload_status, "source": sha[:16]}
+        # arm and load each bound to ITS reply (Codex R346 LC-03): a refusal
+        # or no reply is the scenario's failure, never outvoted by a version
+        # change someone else's parse brings
+        arm = await v.request({"cmd": "arm", "armed": True}, REPLY_TIMEOUT_S)
+        result["arm_ok"] = bool(arm and arm.get("ok"))
+        if not result["arm_ok"]:
+            result["arm_error"] = (arm or {}).get("error", "no reply")
+            return result
+        try:
+            # Let any connect-time cache-hit viewer_gcode_ready land first.
+            await asyncio.sleep(STALE_NOTIFY_S)
+            seen = len(v.ready)
+            result["version_before"] = v.gcode_version
+            t0 = time.monotonic()
+            load = await v.request({"cmd": "load_file", "path": nc}, PUBLISH_TIMEOUT_S)
+            result["load_ok"] = bool(load and load.get("ok"))
+            if not result["load_ok"]:
+                result["load_error"] = (load or {}).get("error", "no reply")
+                return result
+            # OUR publication: a ready frame whose origin is the uploaded
+            # bytes (origin.source = sha256 of the program, None when the
+            # file changed during the parse) — not merely another version.
+            # Waiting for it, not a blind sleep: 9 of the first 17 runs never
+            # published in-window, and rss_kb_after measured an idle gateway.
+            own = None
+            while own is None and time.monotonic() - t0 < PUBLISH_TIMEOUT_S:
+                own = next((r for r in v.ready[seen:] if r["source"] == sha), None)
+                if own is None:
+                    await asyncio.sleep(0.2)
+            result.update(delivered=own is not None, publish_wait_s=round(time.monotonic() - t0, 1),
+                          version_after=own["version"] if own else None,
+                          file_published=own["file"] if own else None,
+                          other_ready=[r for r in v.ready[seen:] if r["source"] != sha][:3])
+            if own is None:
+                global DELIVERY_FAILED
+                DELIVERY_FAILED = True
+                result["DELIVERY_FAIL"] = True
+                print(f"  DELIVERY FAIL: load_file was taken, but no viewer_gcode_ready of the uploaded "
+                      f"program (source {sha[:16]}) within {PUBLISH_TIMEOUT_S:.0f} s — others: "
+                      f"{result['other_ready']} — rss/lag numbers below measure an idle gateway", flush=True)
+            else:
+                await asyncio.sleep(SETTLE_S)
+        finally:
+            await v.request({"cmd": "arm", "armed": False}, REPLY_TIMEOUT_S)
         return result
     return await with_viewers(1, 0.0, body)
 
@@ -547,6 +645,8 @@ async def run(args):
     report = {
         "ts": datetime.now(timezone.utc).isoformat(),
         "git": git_rev,
+        "run_id": RUN_ID,
+        "trace": TRACE,
         "gateway_pid": pid,
         "scenarios": {},
     }
@@ -559,15 +659,17 @@ async def run(args):
         print(f"── {name} ──", flush=True)
         rss0 = gateway_rss_kb(pid)
         t0_ns = time.time_ns()
+        sent = [await trace_mark(name, "start")]
         try:
             direct = await fn(args)
         except Exception as e:
             direct = {"error": f"{type(e).__name__}: {e}"}
-        await asyncio.sleep(3.5)  # trailing pad: trip events land LATE via the reader pipeline (a 1 s pad produced a false pass)
+        sent.append(await trace_mark(name, "end"))
+        await asyncio.sleep(TRACE_PAD_S)
         t1_ns = time.time_ns()
         entry = {
             "direct": direct,
-            "trace": trace_window(t0_ns, t1_ns) if "skipped" not in direct else {},
+            "trace": trace_window(t0_ns, t1_ns, (RUN_ID, name)) if "skipped" not in direct else {},
             "rss_kb_before": rss0,
             "rss_kb_after": gateway_rss_kb(pid),
             "window_s": round((t1_ns - t0_ns) / 1e9, 1),
@@ -580,7 +682,7 @@ async def run(args):
         print(summary, flush=True)
         if direct.get("error"):
             print(f"  DIRECT ERROR: {direct['error']}", flush=True)
-        why = scenario_failure(direct)
+        why = "; ".join(w for w in (scenario_failure(direct), trace_failure(entry["trace"], pid, sent)) if w)
         if why:
             SCENARIO_FAILURES[name] = why
             entry["FAIL"] = why
@@ -592,16 +694,17 @@ async def run(args):
     with open(out, "w") as f:
         json.dump(report, f, indent=1)
     print(f"\nartifact: {out}")
+    # every reason, not the first one (a delivery failure hid the rest)
+    reasons = []
     if LIVENESS_FAILED:
-        print("RESULT: FAIL (liveness) — at least one scenario delivered zero status frames", flush=True)
-        return 1
+        reasons.append("(liveness) at least one scenario delivered zero status frames")
     if DELIVERY_FAILED:
-        print("RESULT: FAIL (delivery) — preview_publish never published; its metrics are vacuous", flush=True)
+        reasons.append("(delivery) preview_publish's upload was never published; its metrics are vacuous")
+    reasons += [f"(scenario) {k}: {v}" for k, v in SCENARIO_FAILURES.items()]
+    if reasons:
+        print("RESULT: FAIL — " + " | ".join(reasons), flush=True)
         return 1
-    if SCENARIO_FAILURES:
-        print("RESULT: FAIL (scenario) — " + " | ".join(f"{k}: {v}" for k, v in SCENARIO_FAILURES.items()),
-              flush=True)
-        return 1
+    print(f"RESULT: PASS (run {RUN_ID})", flush=True)
     return 0
 
 
