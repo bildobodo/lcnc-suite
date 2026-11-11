@@ -1,4 +1,4 @@
-# Mutations against 10775728 (perf_matrix.py), each run: pytest -x scripts/test_perf_matrix.py
+# Mutations against 10775728 (pytest -x scripts/test_perf_matrix.py) and c5516463 (below)
 # script: the mutation is a literal replacement in scripts/perf_matrix.py, the file restored after each
 
 MUTS = {
@@ -18,6 +18,11 @@ RED  no disarm: 1 failed, 4 passed in 0.86s
 RED  status not checked: 1 failed, 1 passed in 0.04s
 RED  _ok not checked: 1 failed, 1 passed in 0.04s
 RED  run ignores failures: 1 failed, 5 passed in 0.87s
+
+# c5516463 (the writes only under --allow-arm), each run: pytest -k ArmOnlyWithTheFlag
+# mutation: the scenario's `if not args.allow_arm: return {"skipped": …}` removed
+RED  upload without the flag: 1 failed, 6 deselected in 0.56s
+RED  save without the flag: 1 failed, 6 deselected in 0.53s
 
 # macro_live_check.py: no offline test (it needs a running LinuxCNC); its red is the live pass 1
 # (live-checks.20261111.pass1.macro-live.txt: claim-done/-run 'during' (409, 'busy') on the writer refusal),

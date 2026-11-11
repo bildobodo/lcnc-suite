@@ -6,9 +6,9 @@ Review-Datei der Live-Prüfungen, die der Operator am 11. November 2026 angeford
 
 ## Claude · Anfrage R346 · 11. November 2026
 
-**Kurz:** Die Live-Prüfungen haben **am Produkt nichts gefunden**. Drei Testtreiber waren hinter Produktverträgen zurück. Sie lieferten Rot, das kein Produktfehler war, und in zwei Fällen Grün aus dem falschen Grund. Die Korrekturen liegen auf `fix/native-settings-rev` (Worktree `~/lcnc-suite-fs`), `f54f3120..10775728`, zwei Commits. Nur `scripts/` und ein Backend-Test ändern sich. Gateway, HAL-Helfer, Subroutinen und Beispielkonfigurationen sind die von `f54f3120`.
+**Kurz:** Die Live-Prüfungen haben **am Produkt nichts gefunden**. Drei Testtreiber waren hinter Produktverträgen zurück. Sie lieferten Rot, das kein Produktfehler war, und in zwei Fällen Grün aus dem falschen Grund. Die Korrekturen liegen auf `fix/native-settings-rev` (Worktree `~/lcnc-suite-fs`), `f54f3120..c5516463`, drei Commits: `407b758c` (LC-01), `10775728` (LC-02) und `c5516463` (Nachtrag zu LC-02, siehe unten). Es ändern sich nur `scripts/`, ein Backend-Test und die CI-Installationszeile. Gateway, HAL-Helfer, Subroutinen und Beispielkonfigurationen sind die von `f54f3120`.
 
-**Erbeten:** `agreement` zu den beiden Commits, damit ich den Operator um das Go zum Merge nach development bitten kann, oder `findings`.
+**Erbeten:** `agreement` zu den drei Commits, damit ich den Operator um das Go zum Merge nach development bitten kann, oder `findings`.
 
 ### Ergebnisse
 
@@ -40,7 +40,7 @@ Ein Rest aus der Einstellungs-Trennung (BG-19/R335 ff.). Der Treiber speicherte 
 
 ### LC-02 · `macro_live_check.py` und `perf_matrix.py` ohne `X-Conn-Key` (`10775728`)
 
-Beide Treiber stammen von vor BG-14. Ihre geschützten HTTP-Schreibzugriffe trugen nur das Token. Seit dem 29. Oktober lehnt das Gateway jeden davon ab.
+Beide Treiber stammen von vor BG-14. Ihre geschützten HTTP-Schreibzugriffe trugen nur das Token. Seit BG-14 (`4b226659`, 26. Oktober; in development seit 29. Oktober) lehnt das Gateway jeden davon ab. Zwischen BG-14 und Lauf 1 gibt es in keinem Baum ein Artefakt der Matrix; Lauf 1 war ihr erster Lauf danach.
 
 - **macro_live_check, Grün aus falschem Grund:** `claim-done` und `claim-run` verglichen beim „Schreiben während“ nur `(409, "busy")`. Die Ablehnung durch die Schreiberprüfung trägt **dieselbe** Art `busy`. Die Hälfte „während“ war also mit dem falschen Grund grün; rot wurden die Zeilen erst an „admitted None“.
 - **perf_matrix, Messung ohne Last:** `upload_during_stream` und `save_during_stream` bekamen 403 in 6–62 ms und maßen einen leerlaufenden Gateway. Der Lauf endete trotzdem mit 0, denn das Ergebnis eines Szenarios entschied nie über den Lauf. `preview_publish` fiel nur auf, weil es eine eigene Lieferprüfung hat.
@@ -52,7 +52,10 @@ Beide Treiber stammen von vor BG-14. Ihre geschützten HTTP-Schreibzugriffe trug
   - `armed_writer()`: eine eigene Verbindung mit Hello-`conn_key`, die sich scharfschaltet und nach dem Schreiben entschärft; ohne bestätigtes Arm wird abgebrochen. Upload, Save und der Upload vor `preview_publish` laufen darüber.
   - Die Uploads mit `overwrite=1`: Die Nonce gegen den Parse-Cache wirkt nur, wenn der Upload das Programm **ersetzt**; ohne kam beim zweiten Lauf 409 „exists“.
   - `scenario_failure`: Eine Exception, ein `status` / `*_status` außerhalb 2xx oder ein `*_ok`, das nicht `True` ist, lässt den Lauf scheitern (`RESULT: FAIL (scenario)`). Bisher wurden alle drei nur gedruckt; auch ein `sigstop_trip` mit `sticky_ok: false` hätte 0 ergeben.
-  - Neuer Backend-Schritt `perf-matrix` (`scripts/test_perf_matrix.py`, 6 Tests): die 403-Ergebnisse aus Lauf 1 scheitern, die gemessenen bestehen; `armed_writer` gegen einen Fake-Gateway (Schlüssel im Header, Arm/Disarm, abgelehntes Arm bricht vor dem Schreiben ab); das Urteil von `run()`. [7 Mutationen rot](live-checks.r346.mutations.txt).
+  - Neuer Backend-Schritt `perf-matrix` (`scripts/test_perf_matrix.py`, 7 Tests): die 403-Ergebnisse aus Lauf 1 scheitern, die gemessenen bestehen; `armed_writer` gegen einen Fake-Gateway (Schlüssel im Header, Arm/Disarm, abgelehntes Arm bricht vor dem Schreiben ab); das Urteil von `run()`; ohne `--allow-arm` erreicht kein Frame das Gateway. [9 Mutationen rot](live-checks.r346.mutations.txt).
+- **Nachtrag `c5516463`** (bei meiner eigenen Durchsicht vor der Anfrage gefunden):
+  - Upload und Save schalten jetzt einen Schreiber scharf. Das Skript behält das Scharfschalten selbst `--allow-arm` vor (nur Sim). Ohne den Schalter liefern beide Szenarien darum `skipped` und stehen in der Docstring bei den Opt-in-Szenarien. Lauf 2 lief mit `--allow-arm --allow-trip`; sein Weg ist unverändert, ein neuer Live-Lauf ist nicht nötig.
+  - CI: `requests==2.32.3` (die Version der Dev-venv). `perf_matrix` importiert es auf Modulebene, und der neue Schritt importiert das Skript. Der CI-Backend-Job installierte es bisher nicht, der Schritt wäre dort rot geworden.
 
 ### Grenzen, die du prüfen solltest
 
@@ -63,7 +66,7 @@ Beide Treiber stammen von vor BG-14. Ihre geschützten HTTP-Schreibzugriffe trug
 
 ### Belege
 
-- **Round-Gate** [live-checks.r1.gate-round.json](live-checks.r1.gate-round.json) (`--base f54f3120`): **PASS** am Kopf `10775728`. Lint, Build, Unit (leicht), Backend mit allen Schritten, darunter der neue Schritt `perf-matrix`, die native Stufe und die Installationsprobe. Browser: die ausgewählte Spec `example-tool-library`. Heavy-Unit ausgelassen: keine schwere Datei erreicht.
+- **Round-Gate** [live-checks.r2.gate-round.json](live-checks.r2.gate-round.json) (`--base f54f3120`): **PASS** am Kopf `c5516463`. Lint, Build, Unit (leicht), Backend mit allen elf Schritten, darunter der neue Schritt `perf-matrix`, die native Stufe und die Installationsprobe; Browser: die ausgewählte Spec `example-tool-library`. Heavy-Unit ausgelassen: keine schwere Datei erreicht. Der erste Lauf ([r1](live-checks.r1.gate-round.json), Kopf `10775728`) war ebenfalls PASS.
 - **Live:** Lauf 1 (rot am Treiber) und Lauf 2 (grün), siehe [live-checks.20261111.md](live-checks.20261111.md).
 - **Kein Token** in den Belegen, geprüft gegen jedes INI-Token auf der VM.
 - Die LAN-Test-Sim läuft wieder auf `f54f3120`.
