@@ -728,6 +728,76 @@ def test_the_merge_gate_refuses_at_once_a_lan_trip_the_probe_may_not_take():
     assert rg.install_probe_refusal(Host(OSError("no gateway"))) is None
 
 
+# ── the run folder's length: LinuxCNC's rtapi socket (merge gate 2026-11-11) ──
+def _run_with_fifo(tmp_path, n):
+    """A run folder whose home/.rtapi_fifo path is exactly `n` bytes."""
+    tail = "/home/.rtapi_fifo"
+    base = str(tmp_path) + "/r"
+    return Path(base + "x" * (n - len(base) - len(tail)))
+
+
+@pytest.mark.parametrize("n,refused", [(107, False), (108, True), (140, True)])
+def test_a_run_folder_whose_rtapi_socket_is_too_long_is_refused(tmp_path, n, refused):
+    run = _run_with_fifo(tmp_path, n)
+    assert len(str(run / "home/.rtapi_fifo")) == n
+    problem = ic.run_dir_problem(run)
+    assert (problem is not None) == refused
+    if refused:
+        assert f"is {n} bytes, the limit is 107" in problem and "shorter --run-dir" in problem
+
+
+def test_the_rtapi_socket_length_counts_bytes(tmp_path):
+    """sun_path holds bytes: a non-ASCII folder name counts its encoding."""
+    run = _run_with_fifo(tmp_path, 107)
+    wide = Path(str(run)[:-1] + "ä")          # the same characters, one byte more
+    assert ic.run_dir_problem(run) is None and ic.run_dir_problem(wide) is not None
+
+
+def test_the_probe_refuses_a_too_long_run_folder_before_it_takes_anything(tmp_path, monkeypatch):
+    """No lock, no record, no LAN stop: the report says why, the gate reads it."""
+    import install_probe as ip
+    run = _run_with_fifo(tmp_path, 108)
+    touched = []
+    monkeypatch.setattr(ip, "in_probe_unit", lambda: True)
+    monkeypatch.setattr(ip, "heavy_lock", lambda *a, **k: touched.append("lock"))
+    monkeypatch.setattr(ip, "run", lambda *a, **k: touched.append("run"))
+    monkeypatch.setattr(ip.ic, "InstallProbeHost", lambda **k: touched.append("host"))
+    assert ip.main(["--run-dir", str(run), "--commit", "HEAD", "--run-id", "r1"]) == 1
+    assert touched == []
+    report = json.loads((run / "report.json").read_text())
+    assert report["verdict"] == "FAIL" and report["run_id"] == "r1"
+    assert report["error"].startswith("Refused: the run folder is too long for LinuxCNC")
+    assert [r["case"] for r in report["rows"]] == ["run-dir"]
+    status, why = ic.gate_status(report, None)
+    assert status == "FAIL" and "too long for LinuxCNC" in why[0]
+
+
+def test_the_merge_gate_refuses_a_too_long_out_path_at_once():
+    """2026-11-11: --out inside the worktree put the probe's rtapi socket at
+    108 bytes — the probe failed after the heavy hour. The gate's start now
+    judges the probe's run folder under its logs (12 hex like the probe's id)."""
+    sys.path.insert(0, str(ROOT / "scripts/test_select"))
+    import round_gate as rg
+
+    class Host:
+        def lan_trip(self):
+            return None
+    failed = Path("/home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs")
+    passed = Path("/home/cnc/claude-work/live-checks/mg/merge-gate.logs")
+    assert "rtapi_app's socket" in rg.install_probe_refusal(Host(), logs=failed)
+    assert "is 108 bytes" in rg.install_probe_refusal(Host(), logs=failed)
+    assert rg.install_probe_refusal(Host(), logs=passed) is None
+    assert rg.PROBE_RUN_ID_LEN == len(rg.uuid.uuid4().hex[:rg.PROBE_RUN_ID_LEN]) == 12
+
+
+def test_the_merge_gate_passes_its_logs_to_the_refusal():
+    import ast
+    tree = ast.parse((ROOT / "scripts/test_select/round_gate.py").read_text())
+    main = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "main")
+    calls = [n for n in ast.walk(main) if isinstance(n, ast.Call) and ast.unparse(n.func) == "install_probe_refusal"]
+    assert calls and all(any(k.arg == "logs" and ast.unparse(k.value) == "logs" for k in c.keywords) for c in calls)
+
+
 # ── FI-I60 rest A: the owed return holds the lock between the probe and its restore (R331) ──
 def test_an_owed_return_keeps_every_other_taker_out(tmp_path):
     import test_support.heavy_lock as hl

@@ -370,6 +370,18 @@ def main(argv=None) -> int:
         return 2
     commit = subprocess.run(["git", "-C", str(HERE.parent), "rev-parse", a.commit], capture_output=True, text=True,
                             check=True).stdout.strip()
+    problem = ic.run_dir_problem(a.run_dir)
+    if problem:
+        # before the lock, the record and the LAN stop: nothing is taken or
+        # touched (the unit's restore finds no pre.json — nothing to restore)
+        a.run_dir.mkdir(parents=True)
+        report = {"started": time.time(), "steps": [], "rows": [ic.row("run-dir", "FAIL", problem)],
+                  "error": f"Refused: {problem}", "restore": {"outcome": "nothing taken", "isolation": None},
+                  "commit": commit}
+        report.update(verdict=verdict(report), run_id=a.run_id, abort_at=a.abort_at)
+        write_json(a.run_dir / "report.json", report)
+        print(f"install_probe: {report['verdict']} — {problem}")
+        return 1
     host = ic.InstallProbeHost(run=a.run_dir)
     steps = [clone(commit, a.abort_at), install(a.abort_at), start(a.abort_at), safety(), browser()]
 

@@ -86,7 +86,13 @@ lcnc-gateway/.venv/bin/python3 scripts/test_select/round_gate.py --merge \
 
 `--out` names a fresh record per run: the backend's evidence folder is never
 replaced (`test_suite.py` refuses an existing one — a second run on the same
-path failed its backend for that alone, 2026-11-05).
+path failed its backend for that alone, 2026-11-05). A merge gate's `--out` also places the install probe's run folder
+(`<out>.logs/install-probe-<12 hex>`), whose `home/.rtapi_fifo` is LinuxCNC's
+realtime socket: 107 bytes at most (`sun_path`), or `rtapi_app` never starts. The
+gate refuses a too-long `--out` at its start (`install_cases.run_dir_problem`;
+2026-11-11 one inside a worktree reached 108 and the probe failed after the
+heavy hour) — keep it short and outside the worktree, e.g.
+`~/claude-work/<topic>/merge-gate.json`, and copy the record into `docs/reviews/`.
 
 The tree must be clean. In order, never two at once: the selector's own
 guards (`scripts/test_select/test_selector.py` — red guards end the gate before

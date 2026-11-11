@@ -256,12 +256,23 @@ def browser(sel: dict, logs: Path) -> list[dict]:
 INSTALL_PROBE_S = 3000
 
 
-def install_probe_refusal(host=None) -> str | None:
-    """Why the install probe could not take the LAN instance now, or None:
-    its record refuses a waiting trip (restore_lan.TakeOverRefused); an
-    instance that cannot be read is no refusal here — the probe names it."""
-    from test_support import restore_lan as rl
+#: the probe's run folder under the gate's logs: install-probe-<this many hex>
+PROBE_RUN_ID_LEN = 12
+
+
+def install_probe_refusal(host=None, logs: Path | None = None) -> str | None:
+    """Why the install probe could not run now, or None: its run folder under
+    `logs` (the --out path decides it) too long for LinuxCNC's rtapi socket
+    (install_cases.run_dir_problem — merge gate 2026-11-11: the probe failed
+    after the heavy hour, "/ready did not answer"); its record refuses a
+    waiting trip (restore_lan.TakeOverRefused); an instance that cannot be
+    read is no refusal here — the probe names it."""
+    from test_support import install_cases as ic
     from test_support.system_host import SystemHost
+    if logs is not None:
+        problem = ic.run_dir_problem(logs / f"install-probe-{'0' * PROBE_RUN_ID_LEN}")
+        if problem:
+            return problem
     host = host or SystemHost()
     try:
         trip = host.lan_trip()
@@ -316,7 +327,7 @@ def install_probe(logs: Path, sha: str, unit: str | None = None, probe_s: float 
     import uuid
     from test_support.install_cases import gate_status
     sleep = sleep or time.sleep
-    run_id = uuid.uuid4().hex[:12]
+    run_id = uuid.uuid4().hex[:PROBE_RUN_ID_LEN]
     run_dir = logs / f"install-probe-{run_id}"
     unit = unit or f"install-probe-gate-{run_id}"
     py = sys.executable
@@ -453,7 +464,7 @@ def main(argv: list[str] | None = None) -> int:
             # not take (the operator's to acknowledge) refuses the merge NOW,
             # not after the heavy hour (rehearsal 2026-11-07: a VM pause had
             # tripped it before the gate began)
-            refusal = install_probe_refusal()
+            refusal = install_probe_refusal(logs=logs)
             if refusal:
                 checks.append({"name": "install-probe", "status": "FAIL", "why": [refusal]})
                 return finish("FAIL", checks=checks, omitted=omitted, pending=[])

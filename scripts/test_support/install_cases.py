@@ -63,6 +63,26 @@ def child_env(run: Path, home: Path, system_path: str = "/usr/local/bin:/usr/bin
     }
 
 
+#: rtapi_app's socket is $HOME/.rtapi_fifo, an AF_UNIX path: at most 107
+#: bytes and its NUL (sockaddr_un.sun_path, 108). Past that rtapi_app exits
+#: without becoming ready ("rtapi fifo path is too long (arch limit 108)"),
+#: every loadrt fails and LinuxCNC never reaches the display — the probe saw
+#: only "/ready did not answer" (merge gate 2026-11-11: an --out inside a
+#: worktree put the run folder's fifo at exactly 108 bytes).
+RTAPI_FIFO_LIMIT = 108
+
+
+def run_dir_problem(run: Path) -> str | None:
+    """Why LinuxCNC cannot start under this run folder's HOME (child_env's),
+    None when it can: its rtapi socket path is too long."""
+    fifo = os.path.join(child_env(Path(run), Path(run) / "home")["HOME"], ".rtapi_fifo")
+    n = len(os.fsencode(fifo))
+    if n >= RTAPI_FIFO_LIMIT:
+        return (f"the run folder is too long for LinuxCNC: rtapi_app's socket {fifo} is {n} bytes, "
+                f"the limit is {RTAPI_FIFO_LIMIT - 1} — a shorter --run-dir (the merge gate: a shorter --out)")
+    return None
+
+
 def write_targets(env: dict, run: Path) -> list[str]:
     """Every write target the environment names lies in the run."""
     run = Path(run).resolve()
