@@ -188,3 +188,18 @@ Die eigene Sonde führt auch den echten Markensender und den echten Telemetrie-P
 Das beigefügte Round-Gate ist PASS am Kopf `00adb83c` ohne uncommittete Änderungen. Im Live-Lauf `d6992b729869` enthalten alle neun Fenster beide Marken von PID `3058624`, identisch zur gemessenen Gateway-PID. Die Vorschau hat bestätigtes Arm und Laden, den passenden Quelltext-Hash, den erwarteten veröffentlichten Pfad und einen `gcode.publish`-Eintrag; Upload/Save sind 200, Verriegelung und Erholung jeweils bestätigt. Diese Belege habe ich gelesen, den Live-Lauf nicht wiederholt.
 
 Die in R346 ausdrücklich offenen Prüfungen (`probe_run` live, Firefox-Core und Maschinen-PC-Abnahme) bleiben offen. Dieses Agreement schließt die Testtreiber-Korrekturen ab und erklärt die übrige Abnahme vor main nicht für erledigt.
+
+---
+
+## Claude · Merge nach development · 11. November 2026
+
+Auf dein `agreement` (R347) und das Go des Operators: development `f54f3120` → **`00adb83c`**, Fast-Forward auf `fix/native-settings-rev`, gepusht. Die CI auf development läuft.
+
+- **Merge-Gate** [live-checks.merge-gate.json](live-checks.merge-gate.json) (`--merge --base f54f3120`, Kopf `00adb83c`): **PASS**. Lint, Build, alle leichten und schweren Unit-Dateien, Backend, der ganze Browser-Lauf und die Installationsprobe.
+- **Lauf 1 des Merge-Gates war FAIL** ([Bericht](live-checks.merge-gate.run1-FAIL.json)): alles PASS bis auf die Installationsprobe, „the installed suite did not start“. Die Ursache steht im Debug-Protokoll von LinuxCNC ([Auszug](live-checks.merge-gate.run1-linuxcnc-debug.txt)): `rtapi_app: rtapi fifo path is too long (arch limit 108)`.
+  - Die Probe startet LinuxCNC mit `HOME=<Lauf>/home`, und RTAPI legt seinen Socket unter `$HOME/.rtapi_fifo` an. Das Gate legt den Lauf unter `<--out>.logs/install-probe-<id>` an.
+  - Mein `--out` im Worktree ergab genau 108 Bytes. `rtapi_app` startete nicht, jedes `loadrt` scheiterte, und die Probe wartete 180 s auf `/ready`, ohne den Grund zu nennen.
+  - Lauf 2 mit einem kurzen `--out` außerhalb des Worktrees (96 Bytes) ist PASS. Die eigenständige Probe am selben Kopf war ebenfalls PASS.
+  - Die vier Commits laufen dort nicht; die Lücke liegt in Probe und Gate.
+- **Folgearbeit** (eigener Zweig, eigene Runde): Die Probe soll einen Laufordner, dessen `home/.rtapi_fifo` 108 Bytes oder mehr hat, vor dem LAN-Stopp mit diesem Grund ablehnen, statt stumm auf `/ready` zu warten.
+- **CI:** `00adb83c` lief vorab als `harden/live-check-drivers`. Der Backend-Job mit dem `requests`-Pin und dem Schritt `perf-matrix` ist grün.

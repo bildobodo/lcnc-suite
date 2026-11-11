@@ -1,0 +1,65 @@
+Can not find -sec DISPLAY -var INTRO_GRAPHIC -num 1 
+Can not find -sec DISPLAY -var INTRO_TIME -num 1 
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+<commandline>:0: /usr/bin/rtapi_app exited without becoming ready
+<commandline>:0: insmod for tpmod failed, returned -1
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+<commandline>:0: /usr/bin/rtapi_app exited without becoming ready
+<commandline>:0: insmod for homemod failed, returned -1
+sim-toolsetter: no tool in the spindle — T0 length 0
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+3153795
+Stopping realtime threads
+Unloading hal components
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+/usr/lib/linuxcnc/realtime: line 192: 3153870 Aborted                 rtapi_app exit
+Terminated
+Stopping realtime threads
+Unloading hal components
+rtapi_app: rtapi fifo path is too long (arch limit 108): /home/cnc/lcnc-suite-fs/docs/reviews/live-checks.merge-gate.logs/install-probe-b97daa6bfb18/home/.rtapi_fifoterminate called after throwing an instance of 'std::logic_error'
+  what():  basic_string: construction from null is not valid
+/usr/lib/linuxcnc/realtime: line 192: 3154436 Aborted                 rtapi_app exit
