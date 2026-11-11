@@ -1341,7 +1341,39 @@ class FrameClient:
         return {"ok": True}
 
 
-_IDLE = {"tool_change_requested": False, "tool_change_seq": None, "inpos": True, "interp_state": 1}
+class _GatewaySettings:
+    """The fakes' `save_settings` judged by the gateway's REAL settings store
+    (settings split: a save names the revision it was made on — without one,
+    or on a stale one, it is refused as the gateway refuses it). The live
+    run 2026-11-11 at f54f3120 found the driver saving without one; a fake
+    answering every save ok had hidden it. `revs()` is what a hello's
+    settings_init delivers."""
+
+    def __init__(self):
+        import tempfile
+        sys.path.insert(0, str(REPO / "lcnc-gateway"))
+        import settings_store
+        self.mod = settings_store
+        self.store = settings_store.SettingsStore(Path(tempfile.mkdtemp()) / "settings.json",
+                                                  lambda: "native-stage-fake")
+        # the section as a run finds it: saved before by ANOTHER writer (the
+        # operator's page), so its revision is not 0 and not this connection's
+        self.store.save_section("toolsetter", {"touchZ": -180}, base_rev=0, writer="operator-page")
+
+    def revs(self) -> dict:
+        return dict(self.store.view_for(None)["revs"])
+
+    def save(self, kw: dict) -> dict:
+        from test_support.live_session import Refused
+        try:
+            rev = self.store.save_section(kw["section"], kw["data"], base_rev=kw.get("base_rev"),
+                                          writer="native-stage-fake")
+        except (ValueError, self.mod.Stale) as e:
+            raise Refused(f"save_settings refused: {e}")
+        return {"ok": True, "rev": rev, "section": kw["section"], "device": None}
+
+
+_IDLE ={"tool_change_requested": False, "tool_change_seq": None, "inpos": True, "interp_state": 1}
 
 
 def test_a_routine_ends_on_its_started_effect_seen_while_it_runs():
@@ -1826,6 +1858,8 @@ class RflClient(FrameClient):
         self.table, self.vars = 50.0, dict(_TS_SHIPPED)
         self.run_frames, self.history, self.run_errors = run_frames, history, list(errors)
         self.refuse, self.after_confirm = refuse or {}, list(after_confirm)
+        self.settings = _GatewaySettings()
+        self.settings_revs = self.settings.revs()
 
     def request(self, cmd, **kw):
         import hashlib
@@ -1840,7 +1874,7 @@ class RflClient(FrameClient):
         if cmd == "get_tool_table":
             return {"tools": [{"T": 1, "Z": self.table}]}
         if cmd == "save_settings":
-            return {"ok": True}
+            return self.settings.save(kw)
         if cmd == "mdi":
             self.frames += [(t + 1.0, {**_IDLE, "task_mode": 3}), (t + 2.0, {**_IDLE, "task_mode": 3})]
             if kw["text"].startswith("(DEBUG,"):
@@ -1886,6 +1920,44 @@ def test_the_whole_run_from_line_step_gives_its_four_rows(tmp_path, monkeypatch)
     saved = next(kw for cmd, kw in c.sent if cmd == "save_settings")
     assert cmds.index("save_settings") < cmds.index("auto_run") and saved["section"] == "toolsetter"
     assert saved["data"]["touchZ"] == run["probe_vars"]["3102"] == -180 and saved["data"]["slowFeed"] == 20.0
+
+
+def test_the_toolsetter_save_names_the_revision_the_gateway_sent(tmp_path, monkeypatch):
+    """Live run 2026-11-11 at f54f3120: the ts-sync step's save went out
+    without its base revision and the gateway refused it ("save without its
+    base revision", settings split) — the step and every step after it never
+    ran. The save names the revision of the gateway's own view; without a
+    view nothing is sent."""
+    monkeypatch.setattr(nr, "SHORT_GRACE", 0.02)
+    hist, frames = _rfl_run()
+    c = RflClient(frames, hist)
+    before = c.settings_revs["toolsetter"]
+    ctx, step = _rfl_step(tmp_path, c)
+    step(ctx)
+    saved = next(kw for cmd, kw in c.sent if cmd == "save_settings")
+    assert before == 1 and saved["base_rev"] == before
+
+    c = RflClient(*_rfl_run()[::-1])
+    c.settings_revs = None
+    (tmp_path / "unread").mkdir()
+    ctx, step = _rfl_step(tmp_path / "unread", c)
+    with pytest.raises(nr.Refused, match="revision was not read"):
+        step(ctx)
+    assert [cmd for cmd, _ in c.sent if cmd in ("save_settings", "auto_run")] == []
+
+
+def test_the_session_keeps_the_revisions_of_each_settings_view():
+    """The live client reads the revisions as the page does: settings_init
+    after every hello, settings_changed on a change — a status frame leaves
+    them alone."""
+    from test_support.live_session import SimulatorClient
+    c = SimulatorClient("", session="revs")
+    assert c.settings_revs is None
+    c.take({"type": "settings_init", "settings": {}, "revs": {"toolsetter": 3, "probe": 1}, "device": {}})
+    assert c.settings_revs == {"toolsetter": 3, "probe": 1}
+    c.take({"type": "status_delta", "data": {"interp_state": 1}})
+    c.take({"type": "settings_changed", "settings": {}, "revs": {"toolsetter": 4, "probe": 1}, "device": {}})
+    assert c.settings_revs == {"toolsetter": 4, "probe": 1}
 
 
 def test_run_from_line_refuses_a_copy_whose_toolsetter_is_not_set_up(tmp_path, monkeypatch):
@@ -3555,6 +3627,8 @@ class TsClient(FrameClient):
         super().__init__([(0.0, dict(self.base))])
         self.sync, self.table, self.vars = sync, {1: 50.0}, dict(_TS_SHIPPED)
         self.section, self.preview_origin = None, None
+        self.settings = _GatewaySettings()
+        self.settings_revs = self.settings.revs()
         self.toolsetter_booking = {"version": 3, "keys": {str(k): {"value": float(v), "origin": "applied"}
                                                           for k, v in self.vars.items()}}
         self.after_confirm, self.starts = [], 0
@@ -3603,8 +3677,9 @@ class TsClient(FrameClient):
             self._book(kw["sets"]["toolsetter"])
             return {"ok": True, "mdi_set": True}
         if cmd == "save_settings":
+            reply = self.settings.save(kw)
             self.section = dict(kw["data"])
-            return {"ok": True}
+            return reply
         if cmd in ("machine_off", "machine_on"):
             self._frames({"is_enabled": cmd == "machine_on"})
             return {"ok": True}

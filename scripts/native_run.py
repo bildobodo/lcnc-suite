@@ -866,7 +866,12 @@ def _save_toolsetter(ctx, c, values) -> dict:
     setup = tr.setup(section)
     if not setup["ok"]:
         raise Refused(f"the toolsetter section would not be set up: {setup}")
-    reply = _when_free(c, "save_settings", section="toolsetter", data=section)
+    # the save names the revision it was made on, as the page's does
+    # (settings split: a save without one is refused) — the gateway's own view
+    rev = (c.settings_revs or {}).get("toolsetter")
+    if not isinstance(rev, int) or isinstance(rev, bool):
+        raise Refused(f"the toolsetter section's revision was not read from the gateway: {c.settings_revs}")
+    reply = _when_free(c, "save_settings", section="toolsetter", data=section, base_rev=rev)
     if not reply or reply.get("ok") is False:
         raise Refused(f"the toolsetter section was not saved: {reply}")
     return {str(k): v for k, v in setup["values"].items()}

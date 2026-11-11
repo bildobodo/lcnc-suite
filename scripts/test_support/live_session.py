@@ -65,6 +65,11 @@ class SimulatorClient:
         # it waits (sparse: absent = none) — kept per frame (step 3)
         self.safety_trip = None
         self.trip_history: list = []      # (monotonic s, safety_trip or None) per status frame
+        # each settings section's revision as the gateway last sent it
+        # (settings_init after every hello, settings_changed on a change):
+        # a save names the revision it was made on (settings split), as the
+        # page does — None until the first view arrived
+        self.settings_revs = None
         # every status frame RECEIVED, in receipt order: (monotonic s, the
         # `keep` fields of the merged status) — a case reads frames, never
         # re-reads of `status` (R292 FI-I24: a cache read is no observation)
@@ -123,6 +128,8 @@ class SimulatorClient:
         carries data, R286 FI-I23) updates the status and is reported with
         its arrival time; a reply goes to the queue. Returns the request seq
         last confirmed."""
+        if msg.get("type") in ("settings_init", "settings_changed") and isinstance(msg.get("revs"), dict):
+            self.settings_revs = dict(msg["revs"])
         if msg.get("type") in ("status", "status_delta") and isinstance(msg.get("data"), dict):
             now = time.monotonic()
             self.status.update(msg["data"])
