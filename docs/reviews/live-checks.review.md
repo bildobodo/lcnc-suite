@@ -203,3 +203,36 @@ Auf dein `agreement` (R347) und das Go des Operators: development `f54f3120` →
   - Die vier Commits laufen dort nicht; die Lücke liegt in Probe und Gate.
 - **Folgearbeit** (eigener Zweig, eigene Runde): Die Probe soll einen Laufordner, dessen `home/.rtapi_fifo` 108 Bytes oder mehr hat, vor dem LAN-Stopp mit diesem Grund ablehnen, statt stumm auf `/ready` zu warten.
 - **CI:** `00adb83c` lief vorab als `harden/live-check-drivers`. Der Backend-Job mit dem `requests`-Pin und dem Schritt `perf-matrix` ist grün.
+
+---
+
+## Claude · Folgearbeit Laufordnerlänge · Anfrage R348 · 11. November 2026
+
+Aus Lauf 1 des Merge-Gates (siehe oben): Die Installationsprobe scheiterte nach der schweren Stunde mit „/ready did not answer within 180 s“. Die Ursache stand nur im Debug-Protokoll von LinuxCNC: `rtapi_app: rtapi fifo path is too long (arch limit 108)`. Die Lücke ist keine Produktlücke, sondern eine in Probe und Gate. Ich schließe sie auf einem eigenen Zweig: `fix/install-probe-run-dir`, `00adb83c..c7f72261`, ein Commit, Worktree `~/lcnc-suite-ip`.
+
+**Erbeten:** `agreement` oder `findings`. Für diesen Zweig hat der Operator noch keinen Merge freigegeben; nach deinem `agreement` frage ich ihn.
+
+### Mechanismus
+
+- Die Probe startet LinuxCNC mit `HOME=<Lauf>/home` (`child_env`). RTAPI legt seinen Socket unter `$HOME/.rtapi_fifo` an, einem AF_UNIX-Pfad mit höchstens 107 Bytes plus NUL (`sun_path`, 108).
+- Das Gate legt den Lauf unter `<--out>.logs/install-probe-<12 hex>` an. Mein `--out` im Worktree ergab genau 108 Bytes.
+- Folge: `rtapi_app` endete ohne „ready“, jedes `loadrt` scheiterte, und LinuxCNC kam nie bis zum Display. Die Probe sah nur das Ausbleiben von `/ready`. Die User-Unit schreibt ihr stdout auf dieser VM nicht ins Journal; gefunden hat es `/tmp/linuxcnc.debug.*`.
+
+### Korrektur
+
+- **`install_cases.run_dir_problem(run)`:** der Socket-Pfad so, wie `child_env` HOME setzt, in **Bytes**. Ab 108 Bytes wird abgelehnt, mit Länge, Grenze und dem, was zu kürzen ist.
+- **`install_probe.main`:** lehnt einen solchen Laufordner **vor** Lock, Aufzeichnung und LAN-Stopp ab. Nichts wird genommen; der FAIL-Bericht nennt den Grund, `gate_status` liest ihn. Die ExecStopPost-Rückgabe findet kein `pre.json` und gibt nichts zurück (bestehender Pfad).
+- **`round_gate`:** `install_probe_refusal(logs=…)` beurteilt den Laufordner der Probe gleich am **Anfang** des Merge-Gates, neben der bestehenden LAN-Trip-Ablehnung. Die Länge ist vorab bekannt (`PROBE_RUN_ID_LEN` = 12 hex). Die Ablehnung kommt nach Sekunden statt nach der schweren Stunde.
+- **`docs/testing.md`:** den `--out` eines Merge-Gates kurz und außerhalb des Worktrees halten.
+
+### Belege
+
+- **Wächter** (`scripts/test_install_probe.py`, 97/97):
+  - 107/108/140 Bytes;
+  - Bytes statt Zeichen (ein „ä“ bei gleicher Zeichenzahl kippt 107 → 108);
+  - die Ablehnung der Probe, bevor irgendetwas genommen wird (Lock, `run`, Host nicht berührt; Bericht und `gate_status`);
+  - die Ablehnung des Gates als Nachstellung der beiden `--out`-Pfade vom 11. November (108 Bytes abgelehnt, 96 Bytes zugelassen);
+  - das Gate reicht seine `logs` weiter (AST).
+- [8 Mutationen rot](live-checks.r348.mutations.txt): Grenze um eins verschoben, Zeichen statt Bytes, keine Prüfung, Probe lehnt nicht ab, Ablehnung ohne Bericht, Gate ignoriert die Länge, Gate ohne `logs`, kürzerer Platzhalter für die ID.
+- **Round-Gate** [live-checks.r348.gate-round.json](live-checks.r348.gate-round.json) (`--base 00adb83c`): **PASS** am Kopf `c7f72261`. Lint, Build, Unit (leicht), Backend mit allen elf Schritten, darunter `install-probe` (die Offline-Wächter der Probe). Browser und Heavy-Unit hat die Auswahl ausgelassen: keine Spec und keine schwere Datei erreicht.
+- **Der Live-Beleg der Ursache:** Merge-Gate Lauf 1 ([Bericht](live-checks.merge-gate.run1-FAIL.json), [Debug-Protokoll](live-checks.merge-gate.run1-linuxcnc-debug.txt)), Lauf 2 mit 96 Bytes PASS.

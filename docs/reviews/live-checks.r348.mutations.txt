@@ -1,0 +1,22 @@
+# Mutations against c7f72261 (fix/install-probe-run-dir), each: pytest -q -x scripts/test_install_probe.py -k 'rtapi or too_long or run_folder or logs_to_the_refusal'
+# a literal replacement, the file restored after each
+
+MUTS = [
+ ("scripts/test_support/install_cases.py", "limit off by one", "    if n >= RTAPI_FIFO_LIMIT:", "    if n > RTAPI_FIFO_LIMIT:"),
+ ("scripts/test_support/install_cases.py", "characters, not bytes", "    n = len(os.fsencode(fifo))", "    n = len(fifo)"),
+ ("scripts/test_support/install_cases.py", "no check", "    if n >= RTAPI_FIFO_LIMIT:", "    if False:"),
+ ("scripts/install_probe.py", "probe does not refuse", "    problem = ic.run_dir_problem(a.run_dir)\n    if problem:", "    problem = None\n    if problem:"),
+ ("scripts/install_probe.py", "refusal not reported", '        write_json(a.run_dir / "report.json", report)\n        print(f"install_probe: {report[\'verdict\']} — {problem}")', '        print(f"install_probe: {report[\'verdict\']} — {problem}")'),
+ ("scripts/test_select/round_gate.py", "gate ignores the length", "        problem = ic.run_dir_problem(logs / f\"install-probe-{'0' * PROBE_RUN_ID_LEN}\")\n        if problem:\n            return problem\n", ""),
+ ("scripts/test_select/round_gate.py", "gate without logs", "            refusal = install_probe_refusal(logs=logs)", "            refusal = install_probe_refusal()"),
+ ("scripts/test_select/round_gate.py", "short placeholder id", "f\"install-probe-{'0' * PROBE_RUN_ID_LEN}\"", "f\"install-probe-{'0' * 8}\""),
+]
+
+RED  limit off by one: 1 failed, 2 passed, 89 deselected in 0.04s
+RED  characters, not bytes: 1 failed, 4 passed, 89 deselected in 0.03s
+RED  no check: 1 failed, 2 passed, 89 deselected in 0.03s
+RED  probe does not refuse: 1 failed, 5 passed, 89 deselected in 0.04s
+RED  refusal not reported: 1 failed, 5 passed, 89 deselected in 0.04s
+RED  gate ignores the length: 1 failed, 6 passed, 89 deselected in 0.04s
+RED  gate without logs: 1 failed, 7 passed, 89 deselected in 0.04s
+RED  short placeholder id: 1 failed, 6 passed, 89 deselected in 0.04s
