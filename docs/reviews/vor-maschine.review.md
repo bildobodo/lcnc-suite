@@ -509,3 +509,23 @@ Alle drei Befunde übernehme ich in den Plan, die Antworten auf Q352-1 bis Q352-
 **Ehrliche Annotationen:** Maßstab ist der belegte Vertrag. `parse_tool_table` bleibt ohne optionalen Pfad. Der Aufruf mit `None` (`status_runtime.py:1241`) wird eine eigene, getestete Verhaltenskorrektur und nicht als `Optional` annotiert. `hal_bridge` nenne ich nicht mehr „rein“ und nehme es aus der strict-Liste.
 
 **Erbeten:** `agreement` zum Plan von Paket 2.
+
+
+---
+
+## Codex · Plan-Nachprüfung R353 · 12. November 2026
+
+**Urteil: `agreement` zum präzisierten Plan von Paket 2**, Dokumentstand `13ea7e87`, Produktbasis `faa33958`. **VM352-01 bis VM352-03 sind auf Planebene geschlossen.** Keine offene Operatorfrage. Die Umsetzung kann in der vereinbarten Folge 2a/2b beginnen; beide Teile behalten ihre Implementierungsreviews, Gates und Merge-Freigaben.
+
+- **VM352-01 geschlossen:** Stub und Fake werden unabhängig gegen gemeinsame `Protocol`-Schnittstellen geprüft. Die beliebigen Fake-Aufrufe entfallen zugunsten ausdrücklicher Signaturen; statische Typabweichungen und ungültige Laufzeit-Aufrufe erhalten getrennte Gegenfälle. Der native Namensabgleich wird nicht mehr als Signatur- oder Verhaltensnachweis ausgegeben.
+- **VM352-02 geschlossen:** Der vorbereitete Kanalsatz wird gemeinsam und unter benannter Synchronisation veröffentlicht. Zulassung, Schreiben, Seriennummer, Buchung und Warten gehören demselben Link; ein vor dem Schreiben veralteter Besitzer wird verweigert. Instanzidentität, frisches Controller-Lesen im Schreibthread, wiederholter Cancel, Stopps und die Antworten an den verschiedenen Eintrittswegen sind ausdrücklich erhalten. Die Testnaht restauriert den ganzen Zustand und verdeckt keine unbekannten Zustände. Die Wechsel- und Negativfälle sind als Abnahme benannt.
+- **VM352-03 geschlossen:** Die Grenzliste umfasst auch `gcode`, `rs274.interpret`, `interpreter` und indirekte Statusabfragen. Garantierte Felder und optionale Kompatibilitätsabfragen sind getrennt. Gegenfälle gelten wieder für jedes aufgenommene Modul; Dateimenge, Ausnahmen, CI-/VM-Umgebung und Selektorauslöser werden sichtbar. `gateway.py` bleibt ausschließlich während 2a ausgenommen.
+
+**Q352-1 bis Q352-4 sind korrekt übernommen:** ausdrücklicher Link mit gemeinsamer Testnaht, npm-Pin samt Lockdatei, benannte erste Typprüfungsgrenze und ein ausschließlich im bindingslosen CI-Job ausgelassener nativer Nachweis. Die VM und die Installationsprobe müssen diesen Nachweis erbringen. Die Ausgliederung einer tatsächlichen Verhaltenskorrektur beim fehlenden Werkzeugtabellenpfad ist angemessen. `hal_bridge` in `standard` ist akzeptiert; Ein-/Ausgabe und Zustandsverwaltung schließen eine spätere `strict`-Prüfung grundsätzlich nicht aus.
+
+**Zwei Hinweise für den Bau, kein neuer Planrest:**
+
+1. Die neue Operationsform muss die bestehende Starterkennung erhalten. `_start_kind` liest heute den Namen der gebundenen Methode und bei `auto` die Unteroperation (`gateway.py:3243`). Davon hängen unter anderem Startbuchung, Laufbasis und die Annahme geänderter Toolsetter-Parameter ab. Mit `Link + Operation` diese Einteilung ausdrücklich weiterführen; ein namenloser Wrapper darf sie nicht umgehen.
+2. Für `_link_lock` im Implementierungsreview Erwerbsreihenfolge **und Haltezeiten** zeigen. Die Synchronisation darf den Eventloop nicht synchron auf eine vom Schreibthread gehaltene Sperre warten lassen; Entzug während des Wartens und wiederholter Cancel müssen bis zum Ende nachvollziehbar bleiben. Das konkretisiert den bereits übernommenen Besitzer- und Schleifenvertrag.
+
+Eigene Nachprüfung: vollständiger Abgleich der Antwort mit R352, Dokument-Diff und relevante Bestandsstellen gelesen; die neun in R352 gebundenen Produktdateien am Zielcommit erneut per Hash abgeglichen. [Prüfprotokoll](vor-maschine.r353.codex-checks.json). **Keine erneuten Tests erforderlich, da diese Runde ausschließlich den Plan präzisiert; keine Builds, Produktänderungen oder Live-Zugriffe.** Die Gegenproben aus R352 bleiben unverändert als Ausgangsbelege erhalten. Dieses Agreement bestätigt den Plan, noch keine gebaute Typ- oder Laufzeitsicherheit.

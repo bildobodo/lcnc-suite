@@ -1,0 +1,105 @@
+{
+  "request": "R353",
+  "document_head": "13ea7e874fa5a82b39ff92c0af3364b40acf79f8",
+  "product_target": "faa33958408f48c3a171ca6297e748e61e244734",
+  "review_before_sha256": "81e60d465bb703a2a1bd09a58693b995604df81651180ee59af7b48aa5fec2d7",
+  "reply_sha256": "973a86d108c0ffbaf2785d0afbcf57f1265317b974f5147c16313c9c6235ded1",
+  "method": "Read full R353 answer against every R352 finding and Q352-1..4; read plan-only git diff; compare product source hashes with R352; inspect _start_kind and existing lock/cancellation contracts.",
+  "results": [
+    {
+      "finding": "VM352-01",
+      "status": "closed_on_plan",
+      "grounds": [
+        "shared Protocol checked against stub and fake",
+        "explicit fake call forms",
+        "separate negative runtime call cases",
+        "dir explicitly limited to names"
+      ]
+    },
+    {
+      "finding": "VM352-02",
+      "status": "closed_on_plan",
+      "grounds": [
+        "prepared atomic publication with instance identity",
+        "named link synchronization",
+        "link and operation ownership through admission/write/booking/wait",
+        "stale owner refusal",
+        "per-entry NotConnected handling and full fake-state restoration",
+        "cancel, stop and reconnect countercases retained"
+      ]
+    },
+    {
+      "finding": "VM352-03",
+      "status": "closed_on_plan",
+      "grounds": [
+        "module boundary register includes gcode/rs274/interpreter",
+        "guaranteed vs optional status fields including dynamic queries",
+        "same stub contracts in CI and VM",
+        "negative gate proof per module including standard",
+        "selection includes config/stubs/pins",
+        "gateway exclusion ends in 2b"
+      ]
+    }
+  ],
+  "answers": {
+    "Q352-1": "explicit link and fake helper accepted",
+    "Q352-2": "pinned npm pyright accepted",
+    "Q352-3": "named first-phase type scope accepted",
+    "Q352-4": "native guard skipped only in explicitly binding-free CI; required on VM/install probe"
+  },
+  "implementation_notes": [
+    "preserve _start_kind classification and its run-basis/toolsetter bookkeeping when replacing bound method with operation",
+    "document lock order/holding duration; avoid synchronous event-loop blocking on writer-owned lock"
+  ],
+  "operator_questions": [],
+  "tests_run": [],
+  "new_product_changes": false,
+  "live_access": false,
+  "source_hash_checks": [
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "sha256": "0519719fb32405e865f3845d69f1c68098bf752799898b4f5db93c7cb9b4e7ba",
+      "matches_r352": true
+    },
+    {
+      "path": "lcnc-gateway/fake_linuxcnc.py",
+      "sha256": "892db603489f3947fe6649a24cbb5593d231a9c0033d7dcf58f769450450816c",
+      "matches_r352": true
+    },
+    {
+      "path": "lcnc-gateway/writer_fixture.py",
+      "sha256": "3342b4027d925b43668129329b1f13f46eb57e0c01fa2b9c4ff782ad5fbfb831",
+      "matches_r352": true
+    },
+    {
+      "path": "lcnc-gateway/status_runtime.py",
+      "sha256": "93bd0fb450d19f658450d75879acb91198efceb471d1f3e871b07e57fa0ec5a8",
+      "matches_r352": true
+    },
+    {
+      "path": "lcnc-gateway/gcode_canon.py",
+      "sha256": "f70bca4badbe3f1fc6a2610bdf5707f5a06eac48461cc75bf7afc6dd38113042",
+      "matches_r352": true
+    },
+    {
+      "path": "lcnc-gateway/gcode_parse_worker.py",
+      "sha256": "b7e38b80e23e2d437b011b2134e168371cddbcd454bcbc727ea5b58bd78eb554",
+      "matches_r352": true
+    },
+    {
+      "path": "lcnc-gateway/tool_table.py",
+      "sha256": "2202b73590ee34601a8776d4baadafadfb7e282d45097a5215ecbbf80f66db3e",
+      "matches_r352": true
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "sha256": "ae79db802c4d922e2049240d6bce89a5987497554251c7e467bc0cf21fe52c73",
+      "matches_r352": true
+    },
+    {
+      "path": "lcnc-gateway/requirements.txt",
+      "sha256": "e910135513d3966281b29de09d922463d06a4356ed138139b779a97f625b1dde",
+      "matches_r352": true
+    }
+  ]
+}
