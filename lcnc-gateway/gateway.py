@@ -16,13 +16,12 @@ import threading
 from pathlib import Path
 import linuxcnc
 
-from dataclasses import dataclass, field, replace as _dc_replace
+from dataclasses import replace as _dc_replace
 from typing import Any, Callable, Dict, Optional, List, Tuple
 from fastapi.staticfiles import StaticFiles
 import re
-import shutil
 from urllib.parse import urlsplit
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form, HTTPException, Body, Query, Request, Depends, Header
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form, HTTPException, Query, Request, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import StreamingResponse, JSONResponse, FileResponse, Response
 
@@ -104,7 +103,6 @@ from gateway_util import (
     parse_telemetry_batch,
     TELEMETRY_BODY_MAX,
     wcs_prov_params,
-    evaluate_wcs_provenance,
     wcs_stamp_decision,
     PROV_STAMPED,
 )
@@ -2414,7 +2412,7 @@ def check_lcnc_instance() -> bool:
     pid = _get_lcnc_pid()
     if pid == _lcnc_pid:
         if pid is None and lcnc_connected:
-            print(f"[VINIT] check_lcnc_instance: PID=None but was connected, resetting", flush=True)
+            print("[VINIT] check_lcnc_instance: PID=None but was connected, resetting", flush=True)
             lcnc_connected = False
             _tool_tbl_path = None  # re-resolve on next connection
             _tool_tbl_ini = None
@@ -9324,7 +9322,6 @@ async def apply_tool_library_import(
     if len(raw) > MAX_TOOL_LIBRARY_SIZE:
         raise HTTPException(status_code=413, detail="Tool library too large (max 16 MB)")
 
-    loop = asyncio.get_event_loop()
     machine_unit = get_ini_config().get("linear_units", "mm")  # on loop (cached; may STAT.poll once)
     try:
         parsed, _skipped = await _bulk.decode_tool_offloaded(raw, machine_unit)
@@ -10401,7 +10398,6 @@ async def ws_endpoint(ws: WebSocket):
                             pass  # re-check on next iteration
                         continue
                     _last_gen = _status_gen
-                    pickup_ts = time.monotonic()
                     # Phase-mark the per-client build (#35 fanout): with delta on,
                     # _use_shared is False so each client copies the shared dict
                     # (6005) + runs _diff_status_data (6066) + encodes its own

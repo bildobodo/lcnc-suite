@@ -184,7 +184,7 @@ class Compensation :
 
 
 	def run(self) :
-		import hal, time
+		import hal
 		
 		self.h = hal.component("compensation")
 		self.h.newpin("enable-in", hal.HAL_BIT, hal.HAL_IN)

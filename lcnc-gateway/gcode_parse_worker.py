@@ -90,7 +90,7 @@ from gateway_util import (
     rotary_seed_values, override_rotary_position,
     rotary_word_lines, first_rotary_commands, seq_boundary_indices, band_anchor_indices,
     position_write_lines, position_read_lines, suite_python_reads,
-    LINE_NONE, LINE_RAPID, LINE_FEED, LINE_EITHER,
+    LINE_RAPID, LINE_FEED, LINE_EITHER,
     seed_kins_events, program_end_kins_type, wcs_offset_flat_from_var,
     seeded_tool_meta, seeded_spindle_row, PIN_UNSUPPORTED_EXIT,
     start_tlo_seed, start_tlo_initcode, percent_delimiter_line,
@@ -839,7 +839,7 @@ def parse(ctx: dict) -> dict:
                 # Truncation-safe total: the merge only sees capped lists.
                 violations_total = max(_merged_total, violations_total, w_total)
         print(f"limits axes={''.join(sorted(axis_limits))} violations={violations_total}"
-              + (f" (world-checked)" if _any_world else ""),
+              + (" (world-checked)" if _any_world else ""),
               file=sys.stderr, flush=True)
     else:
         # No MIN/MAX_LIMIT anywhere in the INI: unchecked, NOT clean — None
