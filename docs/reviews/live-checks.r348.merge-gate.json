@@ -1,0 +1,477 @@
+{
+  "kind": "merge",
+  "note": "fix/install-probe-run-dir c7f72261 into development 00adb83c (fast-forward), Codex R348 agreement, operator go 2026-11-12",
+  "round_selection": {
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [],
+      "related": []
+    },
+    "browser": {
+      "run": [],
+      "reasons": [
+        "no path selects a browser spec"
+      ]
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "scripts/install_probe.py: scripts and their tests ride the backend gate",
+        "scripts/test_install_probe.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/round_gate.py: scripts and their tests ride the backend gate",
+        "scripts/test_support/install_cases.py: scripts and their tests ride the backend gate"
+      ]
+    }
+  },
+  "base": "00adb83ce6ad5c69c3f7991726f4f970c33acc05",
+  "head": "c7f7226180a03a3b0761a4fb6ffe3c167309b3b7",
+  "uncommitted": 0,
+  "plan": [
+    "selection-guards",
+    "lint",
+    "build",
+    "unit-light",
+    "unit-heavy",
+    "backend",
+    "ports-free",
+    "browser"
+  ],
+  "env": {
+    "nproc": 6,
+    "arch": "aarch64",
+    "node": "v22.23.2",
+    "playwright": "Version 1.60.0"
+  },
+  "selection": {
+    "unmatched": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [
+        "lcnc-webui/src/viewer/collisionBounds.test.ts",
+        "lcnc-webui/src/viewer/collisionContacts.test.ts",
+        "lcnc-webui/src/viewer/collisionLineSample.test.ts",
+        "lcnc-webui/src/viewer/collisionOracle.test.ts",
+        "lcnc-webui/src/viewer/collisionRangeOracle.test.ts",
+        "lcnc-webui/src/viewer/contactViewCross.test.ts",
+        "lcnc-webui/src/viewer/contactViewIndexed.test.ts",
+        "lcnc-webui/src/viewer/sweepShards.test.ts"
+      ],
+      "heavy_reasons": {
+        "lcnc-webui/src/viewer/collisionContacts.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/collisionRangeOracle.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/sweepShards.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/contactViewCross.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/collisionLineSample.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/collisionOracle.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/collisionBounds.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ],
+        "lcnc-webui/src/viewer/contactViewIndexed.test.ts": [
+          "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+        ]
+      },
+      "changed": [],
+      "related": []
+    },
+    "browser": {
+      "run": "full",
+      "reasons": [
+        "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+      ]
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "a merge: the full offline gate on the integrated state (Codex R279 FI-I17)"
+      ]
+    },
+    "firefox": {
+      "needed": false
+    },
+    "live": {}
+  },
+  "heavy_lock_wait_s": 0.0,
+  "browser_specs": [
+    {
+      "file": "layout.spec.ts",
+      "ms": 1086095
+    },
+    {
+      "file": "collisions.viewer.spec.ts",
+      "ms": 430120
+    },
+    {
+      "file": "setup-layout.spec.ts",
+      "ms": 329471
+    },
+    {
+      "file": "bake-hold.viewer.spec.ts",
+      "ms": 300850
+    },
+    {
+      "file": "sim-panel.viewer.spec.ts",
+      "ms": 281366
+    },
+    {
+      "file": "contrast.spec.ts",
+      "ms": 263942
+    },
+    {
+      "file": "dialogs.spec.ts",
+      "ms": 223795
+    },
+    {
+      "file": "safety-during-edit.spec.ts",
+      "ms": 139345
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "ms": 114577
+    },
+    {
+      "file": "keyboard-guards.spec.ts",
+      "ms": 106517
+    },
+    {
+      "file": "input-session.spec.ts",
+      "ms": 102784
+    },
+    {
+      "file": "help-icons.spec.ts",
+      "ms": 87224
+    },
+    {
+      "file": "touchoff.spec.ts",
+      "ms": 87056
+    },
+    {
+      "file": "macros.spec.ts",
+      "ms": 86462
+    },
+    {
+      "file": "run-hold.spec.ts",
+      "ms": 74781
+    },
+    {
+      "file": "simulation-off.viewer.spec.ts",
+      "ms": 67818
+    },
+    {
+      "file": "toolsetter.viewer.spec.ts",
+      "ms": 61148
+    },
+    {
+      "file": "feedback-channels.spec.ts",
+      "ms": 56315
+    },
+    {
+      "file": "choices.spec.ts",
+      "ms": 53190
+    },
+    {
+      "file": "editor-guards.spec.ts",
+      "ms": 51071
+    },
+    {
+      "file": "viewer.spec.ts",
+      "ms": 45669
+    },
+    {
+      "file": "forms.spec.ts",
+      "ms": 41496
+    },
+    {
+      "file": "visual.spec.ts",
+      "ms": 40954
+    },
+    {
+      "file": "disarmed.spec.ts",
+      "ms": 40140
+    },
+    {
+      "file": "toolsetter-setup.spec.ts",
+      "ms": 38566
+    },
+    {
+      "file": "feature-switches.spec.ts",
+      "ms": 36670
+    },
+    {
+      "file": "tool-geometry.spec.ts",
+      "ms": 33472
+    },
+    {
+      "file": "g30.spec.ts",
+      "ms": 31122
+    },
+    {
+      "file": "viewcube.viewer.spec.ts",
+      "ms": 28523
+    },
+    {
+      "file": "tabs.spec.ts",
+      "ms": 27116
+    },
+    {
+      "file": "strip-actions.spec.ts",
+      "ms": 24953
+    },
+    {
+      "file": "tool-table-read.spec.ts",
+      "ms": 24311
+    },
+    {
+      "file": "frames.spec.ts",
+      "ms": 23124
+    },
+    {
+      "file": "devices.spec.ts",
+      "ms": 22642
+    },
+    {
+      "file": "example-tool-library.spec.ts",
+      "ms": 22138
+    },
+    {
+      "file": "probe-click.spec.ts",
+      "ms": 21676
+    },
+    {
+      "file": "select-writes.spec.ts",
+      "ms": 21523
+    },
+    {
+      "file": "offsets.spec.ts",
+      "ms": 18279
+    },
+    {
+      "file": "gcode-reference.spec.ts",
+      "ms": 17745
+    },
+    {
+      "file": "touch-hold.spec.ts",
+      "ms": 15831
+    },
+    {
+      "file": "findings.viewer.spec.ts",
+      "ms": 15677
+    },
+    {
+      "file": "setup-gates.spec.ts",
+      "ms": 14970
+    },
+    {
+      "file": "appearance.spec.ts",
+      "ms": 14440
+    },
+    {
+      "file": "joint-jog.spec.ts",
+      "ms": 14428
+    },
+    {
+      "file": "rapids.viewer.spec.ts",
+      "ms": 14244
+    },
+    {
+      "file": "messages.spec.ts",
+      "ms": 13935
+    },
+    {
+      "file": "compensation.spec.ts",
+      "ms": 12916
+    },
+    {
+      "file": "reach.viewer.spec.ts",
+      "ms": 9532
+    },
+    {
+      "file": "tool-import.spec.ts",
+      "ms": 9268
+    },
+    {
+      "file": "jog-buttons.spec.ts",
+      "ms": 8424
+    },
+    {
+      "file": "tool-marker.spec.ts",
+      "ms": 8298
+    },
+    {
+      "file": "nine-axis.spec.ts",
+      "ms": 8004
+    },
+    {
+      "file": "lifecycle.spec.ts",
+      "ms": 7112
+    },
+    {
+      "file": "tool-holder.spec.ts",
+      "ms": 6301
+    },
+    {
+      "file": "touch-surface.spec.ts",
+      "ms": 6271
+    },
+    {
+      "file": "freecad-import.spec.ts",
+      "ms": 3138
+    },
+    {
+      "file": "fatpaths.viewer.spec.ts",
+      "ms": 2807
+    },
+    {
+      "file": "smoke.spec.ts",
+      "ms": 1952
+    },
+    {
+      "file": "armed.spec.ts",
+      "ms": 1776
+    },
+    {
+      "file": "layout-audit.spec.ts",
+      "ms": 813
+    },
+    {
+      "file": "mock-baseline.spec.ts",
+      "ms": 27
+    }
+  ],
+  "verdict": "PASS",
+  "resources": {
+    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/round-gate.service",
+    "cpu_s": 9398,
+    "memory_peak_mb": 3508
+  },
+  "checks": [
+    {
+      "name": "selection-guards",
+      "command": "/home/cnc/lcnc-suite-ip/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-ip/scripts/test_select/test_selector.py",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 3
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 8
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 14
+    },
+    {
+      "name": "unit-light",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/claude-work/live-checks/mg-ip/merge-gate.logs/unit-light.json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 52,
+      "files": 165,
+      "tests": 2650,
+      "passed": 2650,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 2650
+    },
+    {
+      "name": "unit-heavy",
+      "command": "npx vitest run src/viewer/collisionBounds.test.ts src/viewer/collisionContacts.test.ts src/viewer/collisionLineSample.test.ts src/viewer/collisionOracle.test.ts src/viewer/collisionRangeOracle.test.ts src/viewer/contactViewCross.test.ts src/viewer/contactViewIndexed.test.ts src/viewer/sweepShards.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/claude-work/live-checks/mg-ip/merge-gate.logs/unit-heavy.json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 439,
+      "files": 8,
+      "tests": 104,
+      "passed": 104,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 104,
+      "selected": [
+        "lcnc-webui/src/viewer/collisionBounds.test.ts",
+        "lcnc-webui/src/viewer/collisionContacts.test.ts",
+        "lcnc-webui/src/viewer/collisionLineSample.test.ts",
+        "lcnc-webui/src/viewer/collisionOracle.test.ts",
+        "lcnc-webui/src/viewer/collisionRangeOracle.test.ts",
+        "lcnc-webui/src/viewer/contactViewCross.test.ts",
+        "lcnc-webui/src/viewer/contactViewIndexed.test.ts",
+        "lcnc-webui/src/viewer/sweepShards.test.ts"
+      ]
+    },
+    {
+      "name": "backend",
+      "command": "/home/cnc/lcnc-suite-ip/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-ip/scripts/test_suite.py offline --component backend --out-dir /home/cnc/claude-work/live-checks/mg-ip/merge-gate.logs/backend",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 188
+    },
+    {
+      "name": "ports-free",
+      "status": "PASS"
+    },
+    {
+      "name": "browser-full",
+      "command": "npx playwright test -c playwright.gate.config.ts --forbid-only --trace off --reporter=line,json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 1727,
+      "tests": 918,
+      "passed": 918,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    {
+      "name": "browser-executed",
+      "status": "PASS",
+      "tests": 918
+    },
+    {
+      "name": "browser-workers",
+      "status": "PASS",
+      "run": "gate-27e7bda1-c15d-49da-bd65-c77bb5c21ae8",
+      "mocks": 3
+    },
+    {
+      "name": "install-probe",
+      "status": "PASS",
+      "seconds": 90,
+      "run": "/home/cnc/claude-work/live-checks/mg-ip/merge-gate.logs/install-probe-f27bcee7bd8e",
+      "run_id": "f27bcee7bd8e",
+      "rows": [
+        "install-run: PASS",
+        "install-links: PASS",
+        "install-venv: PASS",
+        "install-build: PASS",
+        "install-profiles: PASS",
+        "install-config-sync: PASS",
+        "install-tracked-files: PASS",
+        "install-target: PASS",
+        "install-confinement: PASS",
+        "start-ready: PASS",
+        "start-processes: PASS",
+        "start-safety-chain: PASS",
+        "start-browser: PASS"
+      ]
+    }
+  ],
+  "omitted": [],
+  "pending": []
+}

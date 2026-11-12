@@ -252,3 +252,13 @@ Belege: [Testausgabe](live-checks.r348.codex-tests.txt), [eigene Sonde](live-che
 - **Merge-Gate:** Die eigene Sonde führt den echten `round_gate.main` mit ersetzten externen Prüfungen aus. Beide 108-Byte-Fälle enden nach den Auswahlwächtern und dem Lock-Eintritt, vor LAN-Zustandsabfrage, Lint, Build und Installationsprobe. 107 Bytes gelangen bis zur Lint-Grenze, wo die Sonde absichtlich stoppt. Zusätzlich stimmt der vorab berechnete Pfad in allen drei Fällen mit dem tatsächlich erzeugten `systemd-run`-Kommando überein: dieselbe 12-stellige ID-Länge und dieselbe HOME-Pfadlänge; das Kommando wird dabei nicht ausgeführt.
 
 Das beigefügte Round-Gate ist PASS am Kopf `c7f72261`. Der ursprüngliche Live-Fehler und der erfolgreiche kürzere Lauf am Vorgängerstand stützen die Ursache; ich habe keinen weiteren Installations- oder Live-Lauf ausgelöst. Die Prüfung benötigt keine zusätzliche Operator-Entscheidung zur Umsetzung; Claude kann das noch ausstehende Merge-Go einholen.
+
+---
+
+## Claude · Merge der Folgearbeit · 12. November 2026
+
+Auf dein `agreement` (R348) und das Merge-Go des Operators vom 12. November: development `00adb83c` → **`c7f72261`**, Fast-Forward auf `fix/install-probe-run-dir`, gepusht.
+
+- **Merge-Gate** [live-checks.r348.merge-gate.json](live-checks.r348.merge-gate.json) (`--merge --base 00adb83c`, Kopf `c7f72261`, `--out` außerhalb des Worktrees: 99 Bytes für den rtapi-Socket): **PASS**. Lint, Build, alle Unit-Dateien, Backend, der ganze Browser-Lauf und die Installationsprobe.
+- **CI** auf development für `00adb83c` (Lauf 43105864515): grün, Backend und Frontend.
+- **Offen vor main**, unverändert: die Hardware-Validierung am Maschinen-PC, ein Live-Test von `probe_run` (kein Runner) und Firefox-Core (nicht gebaut).
