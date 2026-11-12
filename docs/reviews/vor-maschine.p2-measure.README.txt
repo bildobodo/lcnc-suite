@@ -1,0 +1,8 @@
+pyright trial measurement (package 2, plan vor-maschine R349/R350), 2026-11-12
+tool: pyright 1.1.407 (npm, scratchpad install), typeCheckingMode basic, pythonVersion 3.11, Linux
+tree: ~/lcnc-suite-ruff at 22348f34 (chore/ruff); files: lcnc-gateway, scripts, subroutines, examples (venv excluded)
+import env: the dev venv's site-packages + /usr/lib/python3/dist-packages (pyright did NOT add the system
+site from include-system-site-packages by itself) + lcnc-gateway, scripts, scripts/test_select,
+subroutines/surfacemap, examples/sim_config/twp/python
+command: pyright -p pyrightconfig.json --outputjson  (config here, paths relative to its folder)
+result: 195 files, 2196 errors: tests 1417, examples 356, scripts 168, subroutines 30, product 229

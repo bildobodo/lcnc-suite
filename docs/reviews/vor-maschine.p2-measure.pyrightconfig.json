@@ -1,0 +1,26 @@
+{
+ "include": [
+  "../../../../../../home/cnc/lcnc-suite-ruff/lcnc-gateway",
+  "../../../../../../home/cnc/lcnc-suite-ruff/scripts",
+  "../../../../../../home/cnc/lcnc-suite-ruff/subroutines",
+  "../../../../../../home/cnc/lcnc-suite-ruff/examples"
+ ],
+ "exclude": [
+  "../../../../../../home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv",
+  "**/node_modules",
+  "**/__pycache__"
+ ],
+ "typeCheckingMode": "basic",
+ "pythonVersion": "3.11",
+ "pythonPlatform": "Linux",
+ "venvPath": "../../../../../../home/cnc/lcnc-suite-ruff/lcnc-gateway",
+ "venv": ".venv",
+ "extraPaths": [
+  "../../../../../../home/cnc/lcnc-suite-ruff/lcnc-gateway",
+  "../../../../../../home/cnc/lcnc-suite-ruff/scripts",
+  "../../../../../../home/cnc/lcnc-suite-ruff/scripts/test_select",
+  "../../../../../../home/cnc/lcnc-suite-ruff/subroutines/surfacemap",
+  "../../../../../../usr/lib/python3/dist-packages",
+  "../../../../../../home/cnc/lcnc-suite-ruff/examples/sim_config/twp/python"
+ ]
+}

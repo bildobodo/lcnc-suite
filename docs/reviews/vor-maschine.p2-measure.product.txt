@@ -1,0 +1,212 @@
+bulk_pipeline.py:388 [reportArgumentType] Argument of type "bool" cannot be assigned to parameter "level" of type "str" in function "emit"
+bulk_pipeline.py:388 [reportArgumentType] Argument of type "bool" cannot be assigned to parameter "msg" of type "str" in function "emit"
+bulk_pipeline.py:531 [reportArgumentType] Argument of type "dict[Unknown, Unknown] | None" cannot be assigned to parameter "iterable" of type "Iterable[_T@set]" in function "__init__
+bulk_pipeline.py:531 [reportOptionalSubscript] Object of type "None" is not subscriptable
+bulk_pipeline.py:782 [reportArgumentType] Argument of type "bytes | None" cannot be assigned to parameter "blob" of type "bytes"
+bulk_pipeline.py:831 [reportArgumentType] Argument of type "bool" cannot be assigned to parameter "level" of type "str" in function "emit"
+bulk_pipeline.py:831 [reportArgumentType] Argument of type "bool" cannot be assigned to parameter "msg" of type "str" in function "emit"
+bulk_pipeline.py:1099 [reportArgumentType] Argument of type "bool" cannot be assigned to parameter "level" of type "str" in function "emit"
+bulk_pipeline.py:1099 [reportArgumentType] Argument of type "bool" cannot be assigned to parameter "msg" of type "str" in function "emit"
+command_policy.py:1221 [reportOperatorIssue] Operator "<" not supported for types "float" and "object"
+command_policy.py:1224 [reportReturnType] Type "object" is not assignable to return type "float | None"
+command_policy.py:1225 [reportOperatorIssue] Operator ">" not supported for types "float" and "object"
+command_policy.py:1228 [reportReturnType] Type "object" is not assignable to return type "float | None"
+command_policy.py:1289 [reportOperatorIssue] Operator ">" not supported for types "int" and "object"
+command_policy.py:1299 [reportOperatorIssue] Operator ">" not supported for types "int" and "object"
+gateway.py:654 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gateway.py:887 [reportArgumentType] Argument of type "Unknown | None" cannot be assigned to parameter "x" of type "ConvertibleToFloat" in function "__new__"
+gateway.py:887 [reportArgumentType] Argument of type "Unknown | None" cannot be assigned to parameter "x" of type "ConvertibleToFloat" in function "__new__"
+gateway.py:947 [reportArgumentType] Argument of type "() -> Task[None]" cannot be assigned to parameter "on_reader_connect" of type "() -> None" in function "__init__"
+gateway.py:1725 [reportArgumentType] Argument of type "str | None" cannot be assigned to parameter "filepath" of type "str" in function "schedule_refresh"
+gateway.py:1845 [reportArgumentType] Argument of type "str | None" cannot be assigned to parameter "filepath" of type "str" in function "schedule_refresh"
+gateway.py:1845 [reportOperatorIssue] Operator "+" not supported for types "Literal['midrun:']" and "Literal['table_mtime', 'tool_loaded', 'table_row'] | None"
+gateway.py:1851 [reportArgumentType] Argument of type "Literal['table_mtime', 'tool_loaded', 'table_row'] | None" cannot be assigned to parameter "reason" of type "str" in funct
+gateway.py:1851 [reportArgumentType] Argument of type "Literal['unsupported', 'no-basis'] | None" cannot be assigned to parameter "why" of type "str" in function "mark_table_sta
+gateway.py:1977 [reportArgumentType] Argument of type "str | None" cannot be assigned to parameter "filepath" of type "str" in function "schedule_refresh"
+gateway.py:2330 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gateway.py:2333 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gateway.py:2333 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gateway.py:2364 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:2618 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:2857 [reportArgumentType] Argument of type "None" cannot be assigned to parameter "wait" of type "float" in function "_cmd_blocking"
+gateway.py:3278 [reportOptionalOperand] Operator ">=" not supported for "None"
+gateway.py:3284 [reportAttributeAccessIssue] Cannot assign to attribute "err_since" for class "_StartClaim"
+gateway.py:3387 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:3548 [reportAttributeAccessIssue] Cannot assign to attribute "sent_t" for class "_StartClaim"
+gateway.py:3557 [reportOptionalMemberAccess] "wait_complete" is not a known attribute of "None"
+gateway.py:3604 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:3612 [reportOptionalMemberAccess] "mode" is not a known attribute of "None"
+gateway.py:3623 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:3658 [reportOptionalMemberAccess] "jog" is not a known attribute of "None"
+gateway.py:3658 [reportArgumentType] Argument of type "None" cannot be assigned to parameter "wait" of type "float" in function "_cmd_blocking"
+gateway.py:3665 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:3681 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:3743 [reportOptionalMemberAccess] "jog" is not a known attribute of "None"
+gateway.py:3743 [reportArgumentType] Argument of type "None" cannot be assigned to parameter "wait" of type "float" in function "_cmd_blocking"
+gateway.py:3746 [reportOptionalMemberAccess] "jog" is not a known attribute of "None"
+gateway.py:3746 [reportArgumentType] Argument of type "None" cannot be assigned to parameter "wait" of type "float" in function "_cmd_blocking"
+gateway.py:3755 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:3808 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:3819 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:3835 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:3840 [reportOptionalMemberAccess] "teleop_enable" is not a known attribute of "None"
+gateway.py:3845 [reportOptionalMemberAccess] "teleop_enable" is not a known attribute of "None"
+gateway.py:3847 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:4236 [reportArgumentType] Argument of type "Any | None" cannot be assigned to parameter "name" of type "str"
+gateway.py:4249 [reportOptionalMemberAccess] "split" is not a known attribute of "None"
+gateway.py:4423 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:4481 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:4540 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:4561 [reportOptionalMemberAccess] "mdi" is not a known attribute of "None"
+gateway.py:4561 [reportArgumentType] Argument of type "None" cannot be assigned to parameter "wait" of type "float" in function "_cmd_blocking"
+gateway.py:4597 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:4646 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:4681 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:4691 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:4722 [reportOptionalMemberAccess] "spindle" is not a known attribute of "None"
+gateway.py:4722 [reportArgumentType] Argument of type "None" cannot be assigned to parameter "wait" of type "float" in function "_cmd_blocking"
+gateway.py:4724 [reportOptionalMemberAccess] "spindle" is not a known attribute of "None"
+gateway.py:4724 [reportArgumentType] Argument of type "None" cannot be assigned to parameter "wait" of type "float" in function "_cmd_blocking"
+gateway.py:4741 [reportOptionalMemberAccess] "auto" is not a known attribute of "None"
+gateway.py:4741 [reportArgumentType] Argument of type "None" cannot be assigned to parameter "wait" of type "float" in function "_cmd_blocking"
+gateway.py:4981 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:5004 [reportOptionalMemberAccess] "mdi" is not a known attribute of "None"
+gateway.py:5188 [reportOptionalMemberAccess] "mdi" is not a known attribute of "None"
+gateway.py:5188 [reportArgumentType] Argument of type "None" cannot be assigned to parameter "wait" of type "float" in function "_cmd_blocking"
+gateway.py:5284 [reportGeneralTypeIssues] Code is too complex to analyze; reduce complexity by refactoring into subroutines or reducing conditional code paths
+gateway.py:6967 [reportOptionalMemberAccess] "mdi" is not a known attribute of "None"
+gateway.py:7165 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:7242 [reportOptionalMemberAccess] "mdi" is not a known attribute of "None"
+gateway.py:7259 [reportOptionalMemberAccess] "mdi" is not a known attribute of "None"
+gateway.py:7499 [reportReturnType] Type "bool | Unknown | None" is not assignable to return type "bool"
+gateway.py:7693 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:7731 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:7772 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:7816 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:7854 [reportArgumentType] Argument of type "StatusPayload | None" cannot be assigned to parameter "p" of type "StatusPayload" in function "policy_state_from_payload"
+gateway.py:8286 [reportGeneralTypeIssues] Type of "lifespan" could not be determined because it refers to itself
+gateway.py:9091 [reportArgumentType] Argument of type "str | None" cannot be assigned to parameter "base" of type "str" in function "_macro_write_gate"
+gateway.py:9296 [reportArgumentType] Argument of type "Unknown | None" cannot be assigned to parameter "machine_unit" of type "str" in function "_metadata_refresh_context"
+gateway.py:9297 [reportArgumentType] Argument of type "Unknown | None" cannot be assigned to parameter "machine_unit" of type "str" in function "decode_tool_offloaded"
+gateway.py:9301 [reportArgumentType] Argument of type "Unknown | None" cannot be assigned to parameter "machine_unit" of type "str" in function "_plan_current_metadata_refresh"
+gateway.py:9889 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:9893 [reportOptionalMemberAccess] "task_plan_synch" is not a known attribute of "None"
+gateway.py:9963 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:9995 [reportArgumentType] Argument of type "MachineState | None" cannot be assigned to parameter "state" of type "MachineState" in function "check_command"
+gateway.py:10015 [reportOptionalMemberAccess] "mdi" is not a known attribute of "None"
+gateway.py:10468 [reportArgumentType] Argument of type "bytes | None" cannot be assigned to parameter "msg" of type "Buffer | str" in function "__new__"
+gateway.py:11308 [reportOptionalMemberAccess] "poll" is not a known attribute of "None"
+gateway.py:11402 [reportOptionalMemberAccess] "imencode" is not a known attribute of "None"
+gateway.py:11402 [reportOptionalMemberAccess] "IMWRITE_JPEG_QUALITY" is not a known attribute of "None"
+gateway.py:11560 [reportArgumentType] Argument of type "str | None" cannot be assigned to parameter "args" of type "StrPath" in function "__new__"
+gateway_util.py:400 [reportCallIssue] No overloads for "basename" match the provided arguments
+gateway_util.py:400 [reportArgumentType] Argument of type "Unknown | None" cannot be assigned to parameter "p" of type "AnyOrLiteralStr@basename" in function "basename"
+gateway_util.py:1821 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gateway_util.py:1821 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gateway_util.py:2941 [reportArgumentType] Argument of type "Unknown | None" cannot be assigned to parameter "iterable" of type "Iterable[_T@list]" in function "__init__"
+gateway_util.py:2959 [reportArgumentType] Argument of type "Unknown | None" cannot be assigned to parameter "iterable" of type "Iterable[_T@list]" in function "__init__"
+gateway_util.py:2970 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gateway_util.py:2970 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gateway_util.py:2970 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gateway_util.py:2970 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gateway_util.py:2970 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gateway_util.py:2971 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gateway_util.py:2971 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gateway_util.py:2971 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gateway_util.py:2971 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gateway_util.py:2971 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gateway_util.py:3675 [reportArgumentType] Argument of type "Unknown | None" cannot be assigned to parameter "key" of type "str" in function "get"
+gateway_util.py:3944 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gateway_util.py:3944 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gateway_util.py:3944 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gateway_util.py:4035 [reportArgumentType] Argument of type "Unknown | None" cannot be assigned to parameter "a" of type "ArrayLike" in function "flatnonzero"
+gateway_util.py:4136 [reportArgumentType] Argument of type "Unknown | None" cannot be assigned to parameter "key" of type "str" in function "get"
+gateway_util.py:4666 [reportOptionalMemberAccess] "__globals__" is not a known attribute of "None"
+gateway_util.py:4748 [reportArgumentType] Argument of type "None" cannot be assigned to parameter "value" of type "set[str]" in function "__setitem__"
+gateway_util.py:5447 [reportArgumentType] Argument of type "int | None" cannot be assigned to parameter "value" of type "None" in function "__setitem__"
+gateway_util.py:5450 [reportArgumentType] Argument of type "Generator[int | None, None, None]" cannot be assigned to parameter "iterable" of type "Iterable[SupportsRichComparisonT@ma
+gateway_util.py:5457 [reportArgumentType] Argument of type "int | None" cannot be assigned to parameter "value" of type "None" in function "__setitem__"
+gcode_canon.py:51 [reportMissingImports] Import "interpreter" could not be resolved
+gcode_canon.py:429 [reportCallIssue] No overloads for "open" match the provided arguments
+gcode_canon.py:429 [reportArgumentType] Argument of type "Unknown | None" cannot be assigned to parameter "file" of type "FileDescriptorOrPath" in function "open"
+gcode_canon.py:1060 [reportOptionalMemberAccess] "blocks" is not a known attribute of "None"
+gcode_canon.py:1062 [reportOptionalMemberAccess] "distance_mode" is not a known attribute of "None"
+gcode_canon.py:1116 [reportOperatorIssue] Operator "-" not supported for types "frozenset[Unknown] | Unknown | frozenset[Literal[0, 1, 2]] | frozenset[Unknown | Literal[0, 1, 2]]" an
+gcode_canon.py:1132 [reportOptionalMemberAccess] "feed_mode" is not a known attribute of "None"
+gcode_parse_worker.py:132 [reportArgumentType] Argument of type "int | list[int] | list[list[int]] | list[list[list[Any]]]" cannot be assigned to parameter "iterable" of type "Iterable[Su
+gcode_parse_worker.py:303 [reportAttributeAccessIssue] Cannot assign to attribute "write_lines" for class "PreviewCanon"
+gcode_parse_worker.py:315 [reportAttributeAccessIssue] Cannot assign to attribute "start_kins_type" for class "PreviewCanon"
+gcode_parse_worker.py:317 [reportAttributeAccessIssue] Cannot assign to attribute "start_kins_type" for class "PreviewCanon"
+gcode_parse_worker.py:342 [reportAttributeAccessIssue] Cannot assign to attribute "read_lines" for class "PreviewCanon"
+gcode_parse_worker.py:362 [reportAttributeAccessIssue] Cannot assign to attribute "_read_setup" for class "PreviewCanon"
+gcode_parse_worker.py:400 [reportAttributeAccessIssue] Cannot assign to attribute "parameter_file" for class "PreviewCanon"
+gcode_parse_worker.py:644 [reportArgumentType] Argument of type "set[Unknown]" cannot be assigned to parameter "ustart_seqs" of type "frozenset[Unknown]" in function "insert_flip_relabels
+gcode_parse_worker.py:647 [reportArgumentType] Argument of type "set[Unknown]" cannot be assigned to parameter "offset_seqs" of type "frozenset[Unknown]" in function "insert_flip_relabels
+gcode_parse_worker.py:663 [reportAttributeAccessIssue] Cannot assign to attribute "probe_events" for class "PreviewCanon"
+gcode_parse_worker.py:664 [reportAttributeAccessIssue] Cannot assign to attribute "toollen_events" for class "PreviewCanon"
+gcode_parse_worker.py:665 [reportAttributeAccessIssue] Cannot assign to attribute "probe_bands" for class "PreviewCanon"
+gcode_parse_worker.py:666 [reportAttributeAccessIssue] Cannot assign to attribute "probe_notes" for class "PreviewCanon"
+gcode_parse_worker.py:779 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gcode_parse_worker.py:787 [reportOptionalSubscript] Object of type "None" is not subscriptable
+gcode_parse_worker.py:1186 [reportArgumentType] Argument of type "list[int] | int | list[list[int]] | list[list[list[Any]]]" cannot be assigned to parameter "obj" of type "Sized" in functi
+gcode_parse_worker.py:1187 [reportGeneralTypeIssues] "int" is not iterable
+gcode_parse_worker.py:1188 [reportGeneralTypeIssues] "int" is not iterable
+gcode_parse_worker.py:1189 [reportGeneralTypeIssues] "int" is not iterable
+gcode_parse_worker.py:1190 [reportGeneralTypeIssues] "int" is not iterable
+gcode_parse_worker.py:1192 [reportGeneralTypeIssues] "int" is not iterable
+gcode_parse_worker.py:1195 [reportGeneralTypeIssues] "int" is not iterable
+gcode_parse_worker.py:1198 [reportGeneralTypeIssues] "int" is not iterable
+gcode_parse_worker.py:1230 [reportArgumentType] Argument of type "list[int] | int | list[list[int]] | list[list[list[Any]]]" cannot be assigned to parameter "obj" of type "Sized" in functi
+gcode_parse_worker.py:1231 [reportGeneralTypeIssues] "int" is not iterable
+gcode_parse_worker.py:1232 [reportGeneralTypeIssues] "int" is not iterable
+gcode_parse_worker.py:1233 [reportGeneralTypeIssues] "int" is not iterable
+gcode_parse_worker.py:1234 [reportGeneralTypeIssues] "int" is not iterable
+gcode_parse_worker.py:1235 [reportGeneralTypeIssues] "int" is not iterable
+gcode_parse_worker.py:1238 [reportGeneralTypeIssues] "int" is not iterable
+gcode_parse_worker.py:1240 [reportGeneralTypeIssues] "int" is not iterable
+gcode_parse_worker.py:1242 [reportGeneralTypeIssues] "int" is not iterable
+gcode_parse_worker.py:1244 [reportGeneralTypeIssues] "int" is not iterable
+hal_bridge.py:486 [reportCallIssue] No overloads for "pop" match the provided arguments
+hal_bridge.py:486 [reportArgumentType] Argument of type "Unknown | None" cannot be assigned to parameter "key" of type "int" in function "pop"
+hal_reader.py:136 [reportAttributeAccessIssue] "get_info_pins" is not a known attribute of module "hal"
+hal_reader.py:138 [reportAttributeAccessIssue] "get_info_signals" is not a known attribute of module "hal"
+hal_reader.py:140 [reportAttributeAccessIssue] "get_info_params" is not a known attribute of module "hal"
+hal_reader.py:152 [reportAttributeAccessIssue] "set_p" is not a known attribute of module "hal"
+hal_reader.py:211 [reportAttributeAccessIssue] "get_value" is not a known attribute of module "hal"
+hal_reader.py:217 [reportAttributeAccessIssue] "get_value" is not a known attribute of module "hal"
+hal_reader.py:296 [reportOptionalMemberAccess] "recv" is not a known attribute of "None"
+hal_watchdog.py:55 [reportAttributeAccessIssue] "HAL_BIT" is not a known attribute of module "hal"
+hal_watchdog.py:55 [reportAttributeAccessIssue] "HAL_OUT" is not a known attribute of module "hal"
+hal_watchdog.py:56 [reportAttributeAccessIssue] "HAL_BIT" is not a known attribute of module "hal"
+hal_watchdog.py:56 [reportAttributeAccessIssue] "HAL_OUT" is not a known attribute of module "hal"
+hal_watchdog.py:57 [reportAttributeAccessIssue] "HAL_BIT" is not a known attribute of module "hal"
+hal_watchdog.py:57 [reportAttributeAccessIssue] "HAL_OUT" is not a known attribute of module "hal"
+hal_watchdog.py:58 [reportAttributeAccessIssue] "HAL_BIT" is not a known attribute of module "hal"
+hal_watchdog.py:58 [reportAttributeAccessIssue] "HAL_OUT" is not a known attribute of module "hal"
+hal_watchdog.py:59 [reportAttributeAccessIssue] "HAL_U32" is not a known attribute of module "hal"
+hal_watchdog.py:59 [reportAttributeAccessIssue] "HAL_OUT" is not a known attribute of module "hal"
+hal_watchdog.py:63 [reportAttributeAccessIssue] "HAL_BIT" is not a known attribute of module "hal"
+hal_watchdog.py:63 [reportAttributeAccessIssue] "HAL_IN" is not a known attribute of module "hal"
+hal_watchdog.py:64 [reportAttributeAccessIssue] "HAL_U32" is not a known attribute of module "hal"
+hal_watchdog.py:64 [reportAttributeAccessIssue] "HAL_OUT" is not a known attribute of module "hal"
+hal_watchdog.py:71 [reportAttributeAccessIssue] "HAL_BIT" is not a known attribute of module "hal"
+hal_watchdog.py:71 [reportAttributeAccessIssue] "HAL_OUT" is not a known attribute of module "hal"
+hal_watchdog.py:363 [reportOptionalMemberAccess] "recv" is not a known attribute of "None"
+hal_watchdog.py:370 [reportOptionalMemberAccess] "close" is not a known attribute of "None"
+hal_watchdog.py:383 [reportOptionalMemberAccess] "close" is not a known attribute of "None"
+lcnc_trace.py:558 [reportCallIssue] No overloads for "update" match the provided arguments
+lcnc_trace.py:558 [reportArgumentType] Argument of type "object | dict[Unknown, Unknown]" cannot be assigned to parameter "m" of type "Iterable[tuple[str, Unknown]]" in function "
+session_bind.py:183 [reportOptionalSubscript] Object of type "None" is not subscriptable
+session_bind.py:186 [reportOptionalSubscript] Object of type "None" is not subscriptable
+session_bind.py:405 [reportOptionalSubscript] Object of type "None" is not subscriptable
+session_bind.py:405 [reportOptionalSubscript] Object of type "None" is not subscriptable
+session_bind.py:408 [reportOptionalSubscript] Object of type "None" is not subscriptable
+session_bind.py:408 [reportOptionalSubscript] Object of type "None" is not subscriptable
+session_bind.py:410 [reportArgumentType] Argument of type "dict[Unknown, Unknown] | None" cannot be assigned to parameter "hello" of type "dict[Unknown, Unknown]" in function "__ini
+session_bind.py:506 [reportAssignmentType] Type "_Environ[str] | dict[Unknown, Unknown]" is not assignable to declared type "dict[Unknown, Unknown] | None"
+session_bind.py:507 [reportOptionalMemberAccess] "get" is not a known attribute of "None"
+settings_store.py:151 [reportReturnType] Type "dict[Unknown, Unknown] | None" is not assignable to return type "dict[Unknown, Unknown]"
+status_runtime.py:1241 [reportArgumentType] Argument of type "str | None" cannot be assigned to parameter "path" of type "str" in function "parse_tool_table"
+status_runtime.py:1337 [reportArgumentType] Argument of type "List[float] | None" cannot be assigned to parameter "gcodes" of type "List[int] | None" in function "__init__"
+status_runtime.py:1338 [reportArgumentType] Argument of type "List[float] | None" cannot be assigned to parameter "mcodes" of type "List[int] | None" in function "__init__"
+suite_py_bind_probe.py:53 [reportAttributeAccessIssue] Cannot assign to attribute "_rot_x" for class "ModuleType"

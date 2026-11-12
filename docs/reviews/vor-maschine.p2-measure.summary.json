@@ -1,0 +1,517 @@
+{
+ "summary": {
+  "filesAnalyzed": 195,
+  "errorCount": 2196,
+  "warningCount": 0,
+  "informationCount": 0,
+  "timeInSec": 19.531
+ },
+ "version": "1.1.407",
+ "by_file": {
+  "examples/sim_config/sim_toolsetter/sim_toolsetter_feed.py": {
+   "reportAttributeAccessIssue": 4
+  },
+  "examples/sim_config/subroutines/surfacemap/compensation.py": {
+   "reportAttributeAccessIssue": 30
+  },
+  "examples/sim_config/twp/python/remap.py": {
+   "reportMissingImports": 2,
+   "reportArgumentType": 21,
+   "reportAttributeAccessIssue": 32,
+   "reportOperatorIssue": 10,
+   "reportIndexIssue": 67,
+   "reportUndefinedVariable": 109
+  },
+  "examples/sim_config/twp/python/twp-helper-comp.py": {
+   "reportAttributeAccessIssue": 72
+  },
+  "examples/sim_config/twp/python/util.py": {
+   "reportMissingImports": 2,
+   "reportOptionalMemberAccess": 2
+  },
+  "lcnc-gateway/bulk_pipeline.py": {
+   "reportArgumentType": 8,
+   "reportOptionalSubscript": 1
+  },
+  "lcnc-gateway/command_policy.py": {
+   "reportOperatorIssue": 4,
+   "reportReturnType": 2
+  },
+  "lcnc-gateway/fake_linuxcnc.py": {
+   "reportAttributeAccessIssue": 15
+  },
+  "lcnc-gateway/gateway.py": {
+   "reportOptionalSubscript": 4,
+   "reportArgumentType": 26,
+   "reportOperatorIssue": 1,
+   "reportOptionalMemberAccess": 49,
+   "reportOptionalOperand": 1,
+   "reportAttributeAccessIssue": 2,
+   "reportGeneralTypeIssues": 2,
+   "reportReturnType": 1
+  },
+  "lcnc-gateway/gateway_util.py": {
+   "reportCallIssue": 1,
+   "reportArgumentType": 10,
+   "reportOptionalSubscript": 15,
+   "reportOptionalMemberAccess": 1
+  },
+  "lcnc-gateway/gcode_canon.py": {
+   "reportMissingImports": 1,
+   "reportCallIssue": 1,
+   "reportArgumentType": 1,
+   "reportOptionalMemberAccess": 3,
+   "reportOperatorIssue": 1
+  },
+  "lcnc-gateway/gcode_parse_worker.py": {
+   "reportArgumentType": 5,
+   "reportAttributeAccessIssue": 10,
+   "reportOptionalSubscript": 2,
+   "reportGeneralTypeIssues": 16
+  },
+  "lcnc-gateway/hal_bridge.py": {
+   "reportCallIssue": 1,
+   "reportArgumentType": 1
+  },
+  "lcnc-gateway/hal_reader.py": {
+   "reportAttributeAccessIssue": 6,
+   "reportOptionalMemberAccess": 1
+  },
+  "lcnc-gateway/hal_watchdog.py": {
+   "reportAttributeAccessIssue": 16,
+   "reportOptionalMemberAccess": 3
+  },
+  "lcnc-gateway/lcnc_trace.py": {
+   "reportCallIssue": 1,
+   "reportArgumentType": 1
+  },
+  "lcnc-gateway/session_bind.py": {
+   "reportOptionalSubscript": 6,
+   "reportArgumentType": 1,
+   "reportAssignmentType": 1,
+   "reportOptionalMemberAccess": 1
+  },
+  "lcnc-gateway/settings_store.py": {
+   "reportReturnType": 1
+  },
+  "lcnc-gateway/status_runtime.py": {
+   "reportArgumentType": 3
+  },
+  "lcnc-gateway/suite_py_bind_probe.py": {
+   "reportAttributeAccessIssue": 1
+  },
+  "lcnc-gateway/test_bulk_pipeline.py": {
+   "reportOptionalSubscript": 15,
+   "reportAttributeAccessIssue": 124,
+   "reportCallIssue": 5,
+   "reportArgumentType": 8,
+   "reportIndexIssue": 4
+  },
+  "lcnc-gateway/test_button_gates.py": {
+   "reportArgumentType": 33,
+   "reportCallIssue": 1,
+   "reportOptionalMemberAccess": 17,
+   "reportOptionalSubscript": 1,
+   "reportAttributeAccessIssue": 7
+  },
+  "lcnc-gateway/test_button_gates_b.py": {
+   "reportArgumentType": 9,
+   "reportOptionalMemberAccess": 4
+  },
+  "lcnc-gateway/test_button_gates_b_commit.py": {
+   "reportArgumentType": 5,
+   "reportIndexIssue": 4
+  },
+  "lcnc-gateway/test_button_gates_d.py": {
+   "reportArgumentType": 28,
+   "reportOptionalMemberAccess": 11,
+   "reportAttributeAccessIssue": 4,
+   "reportOptionalSubscript": 1
+  },
+  "lcnc-gateway/test_button_gates_e.py": {
+   "reportOptionalMemberAccess": 20,
+   "reportAttributeAccessIssue": 4,
+   "reportArgumentType": 1
+  },
+  "lcnc-gateway/test_button_gates_r208.py": {
+   "reportAttributeAccessIssue": 5
+  },
+  "lcnc-gateway/test_button_gates_r209.py": {
+   "reportArgumentType": 9,
+   "reportAttributeAccessIssue": 6
+  },
+  "lcnc-gateway/test_camera_broker.py": {
+   "reportOptionalMemberAccess": 1
+  },
+  "lcnc-gateway/test_command_dispatch.py": {
+   "reportArgumentType": 21,
+   "reportOptionalMemberAccess": 75,
+   "reportOptionalSubscript": 46,
+   "reportAttributeAccessIssue": 2
+  },
+  "lcnc-gateway/test_command_policy.py": {
+   "reportArgumentType": 76,
+   "reportOptionalMemberAccess": 4,
+   "reportOptionalIterable": 1,
+   "reportCallIssue": 1
+  },
+  "lcnc-gateway/test_device_profiles.py": {
+   "reportArgumentType": 4,
+   "reportOptionalCall": 1
+  },
+  "lcnc-gateway/test_example_install.py": {
+   "reportArgumentType": 3,
+   "reportOptionalMemberAccess": 5
+  },
+  "lcnc-gateway/test_example_tool_library.py": {
+   "reportArgumentType": 3,
+   "reportOptionalMemberAccess": 2,
+   "reportAttributeAccessIssue": 9
+  },
+  "lcnc-gateway/test_feature_switches.py": {
+   "reportAttributeAccessIssue": 29,
+   "reportArgumentType": 14,
+   "reportOptionalMemberAccess": 6
+  },
+  "lcnc-gateway/test_freecad_import.py": {
+   "reportAttributeAccessIssue": 7
+  },
+  "lcnc-gateway/test_g30.py": {
+   "reportOptionalMemberAccess": 19,
+   "reportAttributeAccessIssue": 1
+  },
+  "lcnc-gateway/test_gateway_util.py": {
+   "reportAttributeAccessIssue": 10,
+   "reportArgumentType": 21,
+   "reportOptionalSubscript": 27,
+   "reportOptionalMemberAccess": 4
+  },
+  "lcnc-gateway/test_hal_bridge.py": {
+   "reportArgumentType": 13,
+   "reportOptionalMemberAccess": 5,
+   "reportAttributeAccessIssue": 1
+  },
+  "lcnc-gateway/test_helpers_admission.py": {
+   "reportCallIssue": 1,
+   "reportArgumentType": 10,
+   "reportOptionalSubscript": 2,
+   "reportOptionalMemberAccess": 1
+  },
+  "lcnc-gateway/test_macro_files.py": {
+   "reportArgumentType": 3
+  },
+  "lcnc-gateway/test_macros_gateway.py": {
+   "reportOptionalMemberAccess": 11,
+   "reportArgumentType": 21,
+   "reportAttributeAccessIssue": 3,
+   "reportOperatorIssue": 1,
+   "reportGeneralTypeIssues": 1
+  },
+  "lcnc-gateway/test_parse_span.py": {
+   "reportOptionalMemberAccess": 6
+  },
+  "lcnc-gateway/test_pinned_worker.py": {
+   "reportOptionalSubscript": 1
+  },
+  "lcnc-gateway/test_preview_poll_chain.py": {
+   "reportAttributeAccessIssue": 4,
+   "reportArgumentType": 2,
+   "reportOptionalMemberAccess": 3
+  },
+  "lcnc-gateway/test_program_reload_unload.py": {
+   "reportAttributeAccessIssue": 1,
+   "reportOptionalMemberAccess": 3,
+   "reportArgumentType": 2
+  },
+  "lcnc-gateway/test_rfl_guard.py": {
+   "reportOptionalMemberAccess": 39,
+   "reportOptionalSubscript": 25,
+   "reportArgumentType": 2,
+   "reportAttributeAccessIssue": 2,
+   "reportCallIssue": 1
+  },
+  "lcnc-gateway/test_session_bind.py": {
+   "reportOptionalSubscript": 2,
+   "reportArgumentType": 10,
+   "reportOptionalMemberAccess": 3
+  },
+  "lcnc-gateway/test_session_policy.py": {
+   "reportOptionalSubscript": 1,
+   "reportArgumentType": 1
+  },
+  "lcnc-gateway/test_settings_store.py": {
+   "reportArgumentType": 1
+  },
+  "lcnc-gateway/test_sim_toolsetter.py": {
+   "reportArgumentType": 18,
+   "reportOptionalMemberAccess": 4
+  },
+  "lcnc-gateway/test_start_dep_worker.py": {
+   "reportOptionalMemberAccess": 1,
+   "reportAttributeAccessIssue": 5,
+   "reportCallIssue": 1,
+   "reportArgumentType": 1
+  },
+  "lcnc-gateway/test_status_runtime.py": {
+   "reportOptionalSubscript": 17,
+   "reportOptionalOperand": 3,
+   "reportArgumentType": 4,
+   "reportAttributeAccessIssue": 4,
+   "reportOptionalMemberAccess": 1
+  },
+  "lcnc-gateway/test_suite_runner.py": {
+   "reportArgumentType": 2,
+   "reportOptionalMemberAccess": 4
+  },
+  "lcnc-gateway/test_tool_edit_contract.py": {
+   "reportOptionalMemberAccess": 1,
+   "reportArgumentType": 1
+  },
+  "lcnc-gateway/test_tool_files.py": {
+   "reportGeneralTypeIssues": 1
+  },
+  "lcnc-gateway/test_tool_refresh.py": {
+   "reportArgumentType": 2,
+   "reportOptionalMemberAccess": 3
+  },
+  "lcnc-gateway/test_toolsetter_basis.py": {
+   "reportOptionalMemberAccess": 4,
+   "reportAttributeAccessIssue": 2,
+   "reportArgumentType": 2,
+   "reportOptionalSubscript": 5
+  },
+  "lcnc-gateway/test_toolsetter_sync.py": {
+   "reportOptionalMemberAccess": 8,
+   "reportAttributeAccessIssue": 3
+  },
+  "lcnc-gateway/test_twp_transform.py": {
+   "reportOperatorIssue": 1,
+   "reportCallIssue": 2,
+   "reportArgumentType": 2
+  },
+  "lcnc-gateway/test_upload_conflict.py": {
+   "reportArgumentType": 9
+  },
+  "lcnc-gateway/test_var_file_cache.py": {
+   "reportAttributeAccessIssue": 5
+  },
+  "lcnc-gateway/test_venv_check.py": {
+   "reportArgumentType": 4
+  },
+  "lcnc-gateway/test_viewer_init.py": {
+   "reportArgumentType": 4,
+   "reportOptionalSubscript": 7,
+   "reportMissingImports": 1
+  },
+  "lcnc-gateway/test_ws_command_worker.py": {
+   "reportOptionalMemberAccess": 14,
+   "reportArgumentType": 1
+  },
+  "lcnc-gateway/test_ws_fanout.py": {
+   "reportArgumentType": 231
+  },
+  "lcnc-gateway/test_ws_lifecycle.py": {
+   "reportOptionalMemberAccess": 1
+  },
+  "lcnc-gateway/writer_fixture.py": {
+   "reportArgumentType": 1
+  },
+  "scripts/audit-scoped-css.py": {
+   "reportOptionalMemberAccess": 1,
+   "reportArgumentType": 1
+  },
+  "scripts/config_sync_check.py": {
+   "reportAttributeAccessIssue": 6,
+   "reportOptionalSubscript": 1,
+   "reportOptionalMemberAccess": 1
+  },
+  "scripts/freecad/capture_profiles.py": {
+   "reportMissingImports": 1
+  },
+  "scripts/freecad/export_library.py": {
+   "reportMissingImports": 2
+  },
+  "scripts/freecad_5axis_xyzac.py": {
+   "reportMissingImports": 4,
+   "reportCallIssue": 1,
+   "reportArgumentType": 9,
+   "reportOperatorIssue": 1,
+   "reportAttributeAccessIssue": 4
+  },
+  "scripts/freecad_check_5axis_xyzac.py": {
+   "reportMissingImports": 2
+  },
+  "scripts/freecad_twp_gantry.py": {
+   "reportMissingImports": 4,
+   "reportOperatorIssue": 23,
+   "reportArgumentType": 1
+  },
+  "scripts/gen_canon_fixtures.py": {
+   "reportAttributeAccessIssue": 1
+  },
+  "scripts/gen_rs274_wcs_fixtures.py": {
+   "reportAttributeAccessIssue": 3,
+   "reportCallIssue": 3
+  },
+  "scripts/install_examples.py": {
+   "reportOptionalOperand": 1,
+   "reportOptionalSubscript": 4
+  },
+  "scripts/inventory/py_atoms.py": {
+   "reportAttributeAccessIssue": 5,
+   "reportArgumentType": 6,
+   "reportOptionalMemberAccess": 1,
+   "reportCallIssue": 1
+  },
+  "scripts/inventory/test_inventory.py": {
+   "reportMissingImports": 2
+  },
+  "scripts/macro_live_check.py": {
+   "reportOptionalMemberAccess": 7,
+   "reportCallIssue": 1,
+   "reportArgumentType": 1
+  },
+  "scripts/native_run.py": {
+   "reportGeneralTypeIssues": 3,
+   "reportArgumentType": 16,
+   "reportOptionalMemberAccess": 7,
+   "reportAttributeAccessIssue": 2,
+   "reportOptionalIterable": 1
+  },
+  "scripts/perf_matrix.py": {
+   "reportOptionalIterable": 1,
+   "reportOptionalMemberAccess": 3
+  },
+  "scripts/preview_gate.py": {
+   "reportOptionalMemberAccess": 1
+  },
+  "scripts/review_handshake.py": {
+   "reportArgumentType": 1,
+   "reportOptionalMemberAccess": 1
+  },
+  "scripts/sim_parity.py": {
+   "reportAssignmentType": 1,
+   "reportOptionalCall": 3,
+   "reportOptionalMemberAccess": 1
+  },
+  "scripts/stl_collision_proxy.py": {
+   "reportOptionalMemberAccess": 1
+  },
+  "scripts/test_5axis_xyzac.py": {
+   "reportCallIssue": 4,
+   "reportArgumentType": 4
+  },
+  "scripts/test_audit_scoped_css.py": {
+   "reportArgumentType": 1,
+   "reportOptionalMemberAccess": 2
+  },
+  "scripts/test_install_probe.py": {
+   "reportOptionalMemberAccess": 2,
+   "reportOperatorIssue": 5,
+   "reportOptionalSubscript": 2,
+   "reportArgumentType": 1
+  },
+  "scripts/test_native_stage.py": {
+   "reportOptionalMemberAccess": 3,
+   "reportOptionalSubscript": 7,
+   "reportAttributeAccessIssue": 19,
+   "reportOperatorIssue": 4,
+   "reportArgumentType": 11,
+   "reportGeneralTypeIssues": 1
+  },
+  "scripts/test_perf_matrix.py": {
+   "reportArgumentType": 1
+  },
+  "scripts/test_select/dryrun.py": {
+   "reportArgumentType": 1
+  },
+  "scripts/test_select/proof.py": {
+   "reportOptionalSubscript": 1,
+   "reportArgumentType": 10,
+   "reportCallIssue": 1
+  },
+  "scripts/test_select/proof_harness.py": {
+   "reportOptionalMemberAccess": 4,
+   "reportOptionalSubscript": 4
+  },
+  "scripts/test_select/selector.py": {
+   "reportOptionalMemberAccess": 1,
+   "reportArgumentType": 2
+  },
+  "scripts/test_support/live_session.py": {
+   "reportOptionalMemberAccess": 2,
+   "reportOptionalIterable": 1
+  },
+  "scripts/test_support/native_cases.py": {
+   "reportOptionalOperand": 4,
+   "reportGeneralTypeIssues": 1,
+   "reportOperatorIssue": 4,
+   "reportArgumentType": 1
+  },
+  "scripts/test_support/restore_lan.py": {
+   "reportOptionalSubscript": 4,
+   "reportOptionalMemberAccess": 2
+  },
+  "scripts/test_support/servo.py": {
+   "reportOptionalIterable": 1,
+   "reportOptionalMemberAccess": 1,
+   "reportAttributeAccessIssue": 1
+  },
+  "scripts/test_support/servo_cases.py": {
+   "reportOperatorIssue": 1,
+   "reportOptionalOperand": 2,
+   "reportCallIssue": 1,
+   "reportArgumentType": 3,
+   "reportOptionalSubscript": 2
+  },
+  "scripts/test_support/servo_time.py": {
+   "reportCallIssue": 2,
+   "reportArgumentType": 2
+  },
+  "scripts/test_support/system_host.py": {
+   "reportArgumentType": 1
+  },
+  "scripts/test_support/tool_change.py": {
+   "reportOptionalSubscript": 6,
+   "reportCallIssue": 1,
+   "reportArgumentType": 1
+  },
+  "scripts/test_toolsetter_readback_check.py": {
+   "reportArgumentType": 1,
+   "reportOptionalMemberAccess": 2
+  },
+  "scripts/toolsetter_readback_check.py": {
+   "reportOptionalMemberAccess": 2,
+   "reportCallIssue": 4,
+   "reportArgumentType": 4,
+   "reportOptionalOperand": 1
+  },
+  "scripts/twp_buttons_check.py": {
+   "reportOptionalMemberAccess": 4
+  },
+  "scripts/twp_capture_check.py": {
+   "reportOptionalSubscript": 1,
+   "reportOptionalMemberAccess": 3
+  },
+  "scripts/twp_parity.py": {
+   "reportArgumentType": 4,
+   "reportAttributeAccessIssue": 1,
+   "reportOptionalMemberAccess": 2
+  },
+  "scripts/twp_reorient_check.py": {
+   "reportOptionalSubscript": 1
+  },
+  "scripts/twp_touchoff_check.py": {
+   "reportOptionalSubscript": 1
+  },
+  "scripts/twp_touchoff_plane_check.py": {
+   "reportOptionalSubscript": 1
+  },
+  "scripts/ws_reconnect_report.py": {
+   "reportOptionalMemberAccess": 1
+  },
+  "subroutines/surfacemap/compensation.py": {
+   "reportAttributeAccessIssue": 30
+  }
+ }
+}

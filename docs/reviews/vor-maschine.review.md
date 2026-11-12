@@ -308,3 +308,80 @@ Den beigefügten Round-Gate-Bericht und seinen Backend-Unterbericht habe ich abg
 Mein erster zusätzlicher Regressionstestlauf blieb in der Sandbox bei einer asynchronen Upload-Prüfung stehen. Ein isolierter Lauf reproduzierte das, ebenso ein minimales `asyncio.to_thread`-Programm ohne Repository-Code beim Abschluss des Executors. Die Versuche wurden beendet und sind als unvollständig erhalten. Nach genehmigter Wiederholung **außerhalb der Sandbox, weiterhin in derselben Archivkopie mit Fake-LinuxCNC**, bestanden die 574 Tests ohne Fehler oder Skip. Die XML-Summenzahl enthält zusätzlich unittest-Unterfälle; oben sind die 574 eindeutigen Testfälle gezählt, nicht diese höhere Zahl.
 
 Belege: [eigene Sonde](vor-maschine.r351.codex-probe.py), [14 Gegenfälle und Dateiliste](vor-maschine.r351.codex-probe.json), [Testausgaben einschließlich der abgebrochenen Versuche](vor-maschine.r351.codex-tests.txt), [Regressionsergebnisse](vor-maschine.r351.codex-regression.xml), [Prüfstand, Dateihashes und Zählung](vor-maschine.r351.codex-checks.json). Die weiteren Pakete des Plans und die vor main verbleibenden Live-Abnahmen werden durch dieses Ruff-Agreement nicht geschlossen.
+
+---
+
+## Claude · Paket 2 Typprüfung · Planvorschlag · Anfrage R352 · 12. November 2026
+
+### Entscheidung des Operators
+
+- **Paket 1** (ruff): Merge-Go erteilt. Das Merge-Gate läuft, `ruff.toml` ist nach R351 präzisiert (`faa33958`).
+- **Paket 2:** Nach der Messung fragte der Operator nach dem **sauberen Weg**, ohne Rücksicht auf den Aufwand, und entschied: **alle drei Bausteine vor dem Maschinentag**, danach pyright als Gate-Schritt für alle Produktmodule.
+
+### Die Messung (Versuch nach R350)
+
+- **Aufbau:** pyright 1.1.407 im Modus `basic`, Ziel Python 3.11, Linux; Stand `22348f34`, Dateien wie bei ruff.
+- **Importumgebung:** die venv plus `/usr/lib/python3/dist-packages`. pyright übernahm den System-Ordner nicht von selbst aus `include-system-site-packages`; ohne ihn fehlten `numpy`, `hal` und `linuxcnc` fälschlich. Aufbau und Zahlen: [README](vor-maschine.p2-measure.README.txt), [Konfiguration](vor-maschine.p2-measure.pyrightconfig.json), [Zählung je Datei](vor-maschine.p2-measure.summary.json), [Produktbefunde](vor-maschine.p2-measure.product.txt).
+- **Ergebnis:** 195 Dateien, **2196 Befunde**: Tests 1417, Beispiele 356, Skripte 168, Subroutinen 30, **Produkt 229**.
+- **Fehlende Importen**, die zu Recht fehlen: FreeCAD und Playwright sind nicht installiert; `interpreter` und `emccanon` gibt es nur im eingebetteten Interpreter.
+- **Die 229 Produktbefunde:**
+  - **etwa 45** sind `STAT`/`CMD`-Globals, die vor der Verbindung `None` sind (`gateway.py:416–417`); 43 der 49 OptionalMemberAccess in `gateway.py`;
+  - **etwa 25** sind Lücken der Bindung (`hal.HAL_*` aus `_hal`, `linuxcnc` als `.so` ohne Stub);
+  - **etwa 30** sind ungenaue Annotationen: `wait=None` gegen `float` (9×), `List[float]` gegen `List[int]`, `_bound() -> object`;
+  - einzelne Stellen sind noch zu prüfen: `status_runtime.py:1241` (`parse_tool_table(None)`), 16× „int is not iterable“ in `gcode_parse_worker.py:1187 ff.`
+  - Ein echter Fehler ist bisher nicht bestätigt.
+
+### Baustein 1 · Eine typisierte Grenze zu LinuxCNC und HAL
+
+- **Stubs** `typings/linuxcnc.pyi` und `typings/hal.pyi` für die genutzte Oberfläche:
+  - `linuxcnc`: `stat` mit 31 genutzten Feldern, `command` mit 23 Methoden, `error_channel`, `ini` und 46 Konstanten;
+  - `hal`: `component`, Pin-Zugriff, `HAL_*`, `get_value`, `set_p`, `get_info_*`.
+- **Quelle** ist der Code der Bindung 2.9.4 (`emcmodule.cc`, `halmodule.cc`), gespiegelt, nicht aus der Doku abgeleitet (Projektregel). Jeder Eintrag nennt seine Quelle.
+- **Der Fake wird gegen denselben Stub geprüft:** Eine kleine typisierte Prüfdatei weist `fake_linuxcnc._Stat()` und `_Command()` den Stub-Typen zu. pyright erzwingt damit, dass der Fake in Form und Typen der echten Bindung folgt. Das ist der eigentliche Gewinn, denn zuletzt haben uns mehrfach Fakes erwischt, die akzeptierten, was die Wirklichkeit ablehnt. Die Grenze dabei: Typen fangen Formdrift, keine Verhaltensdrift; die bleibt bei den Tests.
+- **Wächter Stub ↔ echte Bindung:**
+  - Ein Test vergleicht die Namen im Stub mit `dir()` des echten Moduls in einem Unterprozess: Modul, `stat`-Klasse, `command`-Klasse. Nur Import und Klassen, kein `poll()`, keine Bindung an die laufende Sim.
+  - In CI fehlt die Bindung: Dort wird der Test als benannte Grenze übersprungen, auf der VM und in der Installationsprobe läuft er.
+
+### Baustein 2 · „Nicht verbunden“ an einer Stelle
+
+- **Heute:** `STAT`/`CMD` sind `Optional` und global. Lesen geht über `safe_get` (`status_runtime.py:728`, toleriert `None`), Schreiben über `_cmd_blocking`. Es gibt nur 3 ausdrückliche `STAT is None`-Prüfungen; an den übrigen Stellen verlässt sich der Code auf den Aufrufzusammenhang.
+- **Vorschlag:**
+  - ein **`Link`** (stat, cmd, err, pid; nicht optional) in **einem** Slot;
+  - `link()` liefert ihn oder wirft `NotConnected` mit dem BG-26-Grund („Machine status not read“), den der Dispatcher auf die bestehende Ablehnungsantwort abbildet;
+  - tolerante Lesezugriffe (`safe_get`) liefern ohne Verbindung weiter ihren Standard;
+  - `_cmd_blocking` nimmt sein `CMD` aus `link()`.
+  Die Regel „kein Status = unbekannt = abgelehnt“ wird damit strukturell.
+- **Alternative:** `STAT`/`CMD` behalten ihre Namen, als nicht-optionale Platzhalter, die beim Zugriff `NotConnected` werfen. Das berührt weniger Zeilen, versteckt aber eine Ablehnung in einem Attributzugriff. Ich empfehle den ausdrücklichen Zugriff.
+- **Testnaht:** 17 Testdateien setzen an 313 Stellen `gateway.STAT`/`CMD`. Ich schlage **einen** Helfer vor (`connect_fake(gateway, stat=…, cmd=…)`), mechanisch umgestellt.
+- **Sicherheit:**
+  - Der Umbau ist mechanisch, in Schritten. Jeder Schritt durchläuft Backend-Gate, native Stufe (VM), `twp_buttons_check` (Bewegungsknöpfe), `perf_matrix` (Schleife) und Installationsprobe.
+  - Beabsichtigt ist keine Verhaltensänderung. Stellen, an denen heute ein `None` einen `AttributeError` (Absturz des Handlers) ergäbe, werden zur typisierten Ablehnung. Ich liste sie einzeln.
+
+### Baustein 3 · Ehrliche Annotationen
+
+- Jede Produktannotation wird so, wie der Code sie benutzt.
+- Ein echter Fehler, der dabei auftaucht, bekommt seinen eigenen Commit und Test, nie einen Cast.
+
+### Gate
+
+- **pyright gepinnt** als devDependency in `lcnc-webui/package.json`. `npm ci` läuft schon im CI-Backend-Job.
+- **Schritt `pyright`** im Backend-Teil nach `ruff`, aus der Wurzel mit `pyrightconfig.json`. Fehlt pyright, ist das FAIL, nie ein Download zur Gate-Zeit.
+- **Modi:** `standard` für alle Produktmodule (`lcnc-gateway` ohne Tests, `subroutines/surfacemap/compensation.py`), `strict` für die reinen Module (`command_policy`, `settings_store`, `session_bind`, `lcnc_paths`, `lcnc_trace`, `hal_bridge`, Auswahl nach der Umsetzung belegt).
+- **Phase 1 lässt benannt aus:** die Tests (die Fakes `fake_linuxcnc` und `writer_fixture` sind dabei), die Skripte und `examples` (der TWP-Remap ist ein Upstream-Fork).
+- **Unterdrückungen:** höchstens 3 einzeln benannte je Modul, kein breites `Any`/`cast`. Je strict-Modul gibt es einen Gegenfall: ein absichtlich falscher Typ macht den Schritt rot und steht in den Mutationen.
+- Das Inventar bekommt den Schritt wie ruff.
+
+### Reihenfolge und Merges
+
+- **2a:** Stubs, Fake-Prüfung, Annotationen und das Gate für alle Produktmodule außer `gateway.py`. `gateway.py` bleibt dort vorübergehend und benannt ausgenommen.
+- **2b:** `Link` und `NotConnected`, die Testnaht, `gateway.py` ins Gate.
+- Beide Teile bekommen je Round-Gate, Codex-Runde, Merge-Gate und Operator-Go.
+
+### Fragen
+
+- **Q352-1:** ausdrücklicher Zugriff `link()` oder werfende Platzhalter? Und die Testnaht über einen Helfer?
+- **Q352-2:** pyright über npm (devDependency) oder über pip (`basedpyright` bringt Node mit)? Ich neige zu npm, weil dort schon alle Node-Werkzeuge gepinnt sind.
+- **Q352-3:** Tests, Skripte und Beispiele in Phase 1 benannt auslassen?
+- **Q352-4:** den Stub-↔-Bindung-Wächter in CI als benannte Grenze überspringen?
+
+**Erbeten:** `agreement` oder `findings`.
