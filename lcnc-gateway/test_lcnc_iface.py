@@ -152,6 +152,55 @@ class FakeForms(unittest.TestCase):
             extra = 0
         self.assertEqual(c.serial, before + 4 + extra)
 
+    def test_the_c_limits_of_the_formats(self):              # Codex R356 VM-I04
+        C, c = self.C, self.cmd
+        self.refused(OverflowError, c.home, 2 ** 31)
+        self.refused(OverflowError, c.unhome, -(2 ** 31) - 1)
+        self.refused(UnicodeEncodeError, c.mdi, "\ud800")
+        self.refused(OverflowError, c.jog, C["JOG_CONTINUOUS"], 0, 0, 10 ** 400)
+        before = c.serial
+        c.home(2 ** 31 - 1)
+        c.unhome(-(2 ** 31))
+        c.mdi("G0 X1 (Ä)")
+        c.mdi(b"G0 X1")
+        self.assertEqual(c.serial, before + 4)
+        self.refused(TypeError, c.mdi, memoryview(b"G0"))
+        self.refused(TypeError, c.mdi, bytearray(b"G0"))
+
+    def test_the_format_helpers_match_cpythons_own_parser(self):
+        """Differential: each helper against PyArg_ParseTuple itself
+        (_testcapi.getargs_i / getargs_d / getargs_s_hash) — the same
+        outcome class for every value, no LinuxCNC involved."""
+        try:
+            import _testcapi
+        except ImportError:
+            self.skipTest("this Python has no _testcapi (CPython's parser test module)")
+        try:
+            import numpy as np
+            numpy_values = [np.int64(3), np.int64(2 ** 40), np.float32(1.5)]
+        except ImportError:
+            numpy_values = []
+        values = [0, 1, -1, True, 2 ** 31 - 1, 2 ** 31, -(2 ** 31), -(2 ** 31) - 1, 10 ** 400, 1.5, -0.0,
+                  float("nan"), "1", "abc", "\ud800", "Ä", b"x", bytearray(b"x"), memoryview(b"x"),
+                  memoryview(bytearray(b"x")), None, [1], {"a": 1}, object(), *numpy_values]
+
+        def outcome(f, v):
+            try:
+                f(v)
+                return "ok"
+            except Exception as e:  # noqa: BLE001 — the class is the comparison
+                return type(e).__name__
+
+        for helper, native, vals in ((fake._int_arg, _testcapi.getargs_i, values),
+                                     (fake._float_arg, _testcapi.getargs_d, values),
+                                     # named exception: "s#" also takes a read-only buffer
+                                     # without a release hook (a numpy scalar) — not
+                                     # observable from Python; the fake refuses it
+                                     (fake._str_arg, _testcapi.getargs_s_hash,
+                                      [v for v in values if not any(v is n for n in numpy_values)])):
+            for v in vals:
+                self.assertEqual(outcome(helper, v), outcome(native, v), f"{helper.__name__}({v!r})")
+
     def test_the_binding_error_is_a_runtime_error(self):
         self.assertTrue(issubclass(fake.error, RuntimeError))
 
@@ -292,8 +341,8 @@ class StubClaims(unittest.TestCase):
 
     def test_a_non_builtin_base_of_a_public_class_is_refused(self):
         found = self._with("linuxcnc", "class command:",
-                           "class _Mixin:\n    def codex_nonexistent(self) -> None: ...\n\nclass command(_Mixin):")
-        self.assertTrue(any("base _Mixin" in f for f in found), found)
+                           "class _CommandExtra:\n    def codex_nonexistent(self) -> None: ...\n\nclass command(_CommandExtra):")   # Codex R356 probe
+        self.assertTrue(any("base _CommandExtra" in f for f in found), found)
         found = self._with("linuxcnc", "class command:", "class command(SpindleStatus):")
         self.assertTrue(any("base SpindleStatus" in f for f in found), found)
 

@@ -96,12 +96,21 @@ _JOG_NAMES = {0: "JOG_STOP", 1: "JOG_CONTINUOUS", 2: "JOG_INCREMENT"}
 _AUTO_NO_LINE = frozenset({1, 2, 3, 4, 5})      # PAUSE / RESUME / STEP / REVERSE / FORWARD
 
 
+_C_INT_MIN, _C_INT_MAX = -(2 ** 31), 2 ** 31 - 1
+
+
 def _int_arg(value: object) -> int:
     """PyArg_ParseTuple "i": what has __index__ (an int, a bool, a numpy
-    integer) — a float, a string or None is its TypeError."""
+    integer) and fits a C int — a float, a string or None is its TypeError,
+    a value past the C int its OverflowError."""
     if not isinstance(value, SupportsIndex):
         raise TypeError(f"'{type(value).__name__}' object cannot be interpreted as an integer")
-    return operator.index(value)
+    v = operator.index(value)
+    if v > _C_INT_MAX:
+        raise OverflowError("signed integer is greater than maximum")
+    if v < _C_INT_MIN:
+        raise OverflowError("signed integer is less than minimum")
+    return v
 
 
 def _float_arg(value: object) -> float:
@@ -113,11 +122,17 @@ def _float_arg(value: object) -> float:
 
 
 def _str_arg(value: object) -> None:
-    """PyArg_ParseTuple "s#": a str (or bytes) — anything else is its
-    TypeError. The binding's length limits (MDI line, file name) are not
-    mirrored: the gateway's own caps stand before them."""
-    if not isinstance(value, (str, bytes)):
-        raise TypeError(f"argument 1 must be str, not {type(value).__name__}")
+    """PyArg_ParseTuple "s#": a str that encodes as UTF-8 (a lone surrogate is
+    its UnicodeEncodeError) or bytes — anything else is its TypeError
+    (bytearray, memoryview, numbers, None). CPython also takes a read-only
+    buffer without a release hook (a numpy scalar) — not observable from
+    Python, never what the gateway sends: refused here. The binding's length
+    limits (MDI line, file name) are not mirrored: the gateway's own caps
+    stand before them."""
+    if isinstance(value, str):
+        value.encode("utf-8")
+    elif not isinstance(value, bytes):
+        raise TypeError(f"argument 1 must be str or read-only bytes-like object, not {type(value).__name__}")
 
 
 def _choice(value: object, allowed: frozenset[int], what: str) -> None:
