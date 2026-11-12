@@ -787,3 +787,47 @@ Gebaut auf `feat/typecheck` (Worktree `~/lcnc-suite-tc`, gepusht), `a16fb55f..6c
 - **Round-Gate:** Die Schritte `native-stage` und `install-probe` sind die **Testprogramme** dieser Werkzeuge, kein nativer Stufenlauf und keine live durchlaufene Installation. Den Lauf der Zeile `install-binding` belegt erst das nachfolgende Merge-Gate.
 - **Nativer Abgleich:** auf der VM in `test_lcnc_iface.py` (Kindprozess ohne Fake), Ergebnis `ok`. In CI wird er benannt übersprungen (`LCNC_NO_BINDING=1`); die Ersatzmodul-Gegenfälle laufen dort trotzdem.
 - **M51:** Die Live-Sonde aus R354 belegt das Feld der echten Bindung. Den Gateway-Payload belegt der Unit-Test.
+
+---
+
+## Codex · Nachprüfung Paket 2a · R355 · 12. November 2026
+
+**Urteil: `findings` wegen eines Rests von VM-I02. VM-I01 und VM-I03 sind geschlossen.** Die drei neuen Verhaltenskorrekturen sind nachvollziehbar; keine neue Operatorfrage. Prüfstand `a16fb55f..6cab2166`, Anfrage im Dokumentstand `32dfe5e9`.
+
+Die 21 geänderten Dateien wurden gelesen. Eigene Prüfung ausschließlich an der Archivkopie `/tmp/codex-r355`, mit dem vorhandenen Python-Environment und dem gepinnten Pyright. Alle geänderten Dateien stimmen nach den Gegenproben wieder bytegenau mit `6cab2166` überein. [Prüfprotokoll](vor-maschine.r355.codex-checks.json).
+
+### Geschlossen
+
+- **VM-I01:** Die sechs Gegenfälle aus R354 scheitern nun im Fake, jeweils ohne Änderung von `serial`, und erzeugen im unveränderten Typ-Gate genau sechs Fehler. Die Formen sind an ihre Unteroperation gebunden. Die zusätzlichen zulässigen Formen und die verweigerten fünfstelligen Stop-/Continuous-Aufrufe sind durch die übernommenen Tests gedeckt. Die neue Formdatei prüft auch, dass ihre Fehlermarkierungen nötig bleiben. Die ausdrücklich benannte Grenze von 2a ist korrekt: Die Produktaufrufe über `_cmd_blocking` müssen mit 2b diese Prüfung erreichen.
+- **VM-I02, bisherige Einzelbeispiele:** Das zusätzliche direkt deklarierte Stub-Verfahren wird nativ gefunden; der fehlende Modulname `ini` ebenfalls. Ein vorhandenes optionales `spindle_override` ist jetzt zulässig. Der Abgleich auf vier Module und der reale Export `linuxcnc.tool` sind nachvollziehbar. Der unten beschriebene Rest betrifft die Vollständigkeit des neuen Stub-Lesers.
+- **VM-I03:** Alle fünf vereinbarten Module stehen auf `strict`, `writer_fixture` ist aufgenommen. Die untypisierte neue Funktion in `command_policy` und der falsche Rückgabetyp in `writer_fixture` machen meinen Aufruf des echten Wrappers jetzt rot. Keine weitere Ausnahme nötig; `hal_bridge` bleibt vereinbarungsgemäß `standard`.
+
+Belege: [R354-Gegenproben am neuen Stand](vor-maschine.r355.codex-r354-rerun.py), [Ergebnisse](vor-maschine.r355.codex-r354-rerun.json). Nur Rundentext und Zielcommit-Metadatum wurden in dieser Kopie des Sondenskripts angepasst; die Gegenfälle blieben gleich. Alte Belege sind unverändert.
+
+### VM-I02 · Rest: Nicht erkannte Stub-Formen werden still als geprüft behandelt
+
+**Stelle:** `lcnc-gateway/lcnc_iface_check.py:66–95`, insbesondere die unmittelbare Klassenkörper-Schleife und die Auswertung der Konstanten.
+
+`stub_claims()` liest nur bestimmte unmittelbare AST-Knoten. Andere gültige Deklarationen verschwinden ohne Fehler aus der behaupteten Oberfläche. Meine drei zusätzlichen Gegenfälle laufen jeweils mit **0 Typfehlern und leerer nativer Problemliste** durch:
+
+| Änderung nur in der Archivkopie | Was der Typchecker annimmt, der native Wächter aber übersieht |
+| --- | --- |
+| In `linuxcnc.command`: `codex_nonexistent = 1`; eine Prüfdatei liest das Feld als `int` | Der Stub behauptet ein nicht vorhandenes Klassenmitglied. `ast.Assign` wird im Klassenkörper nicht erfasst. |
+| In derselben Klasse unter `if sys.platform == "linux":` ein `def codex_nonexistent(self) -> None: ...`; eine Prüfdatei ruft es auf | Pyright berücksichtigt den Linux-Zweig. Der Namenswächter überspringt den gesamten `ast.If`. |
+| In `hal.pyi`: `HAL_OUT: Final = 16 + 17` | Der behauptete Wert ist 33, der native Wert 32. Der Name wird erfasst, der nichtliterale Wert verschwindet aus `Claims.values`. |
+
+Die native Klasse besitzt `codex_nonexistent` tatsächlich nicht. Als Kontrollfall wird **derselbe falsche HAL-Wert als Literal** (`HAL_OUT: Final = 33`) korrekt gemeldet. Die Sonde zeigt also eine Lücke der Formerkennung, keinen fehlgeschlagenen nativen Import. [Sonde](vor-maschine.r355.codex-extra-probe.py), [Ergebnisse](vor-maschine.r355.codex-extra-probe.json).
+
+**Auswirkung:** Der neue Nachweis schützt die heute erkannten Schreibweisen, aber noch nicht die zugesagte gesamte Stub-Oberfläche. Eine zusätzliche falsche Behauptung kann weiterhin Typ-Gate und nativen Wächter zugleich passieren. Das ist ein Befund am Wächter; ich behaupte damit keine bereits falsche Produktdeklaration im unveränderten Kopf.
+
+**Korrektur:** Jede deklarationsrelevante Form entweder vollständig auswerten **oder ausdrücklich als nicht unterstützt verweigern**, mit Datei und Stelle. Für diese kleinen handgepflegten Stubs genügt eine eng begrenzte, durchgesetzte Schreibweise; ein allgemeiner Python-Auswerter ist nicht nötig. Insbesondere Klassen-Zuweisungen, bedingte Deklarationen und nicht ausgewertete Konstanten dürfen nicht still aus der Menge fallen. Hilfsimporte und private Hilfstypen bleiben benannt ausgenommen. Die drei Fälle jeweils als Gegenwächter aufnehmen; der Literal-Kontrollfall und der unveränderte reale Stub-Satz müssen ihre bisherigen Ergebnisse behalten.
+
+### Verhaltensänderungen, Beleggrenzen und eigener Lauf
+
+Die Änderungen an **`simulation: null`**, der Form von **`settings.json`** und **`Choice`** sind klar benannt und durch die gezielte Testauswahl gedeckt: Die Geräteliste überlebt einen nicht als Objekt gespeicherten Simulationsabschnitt, ein ungeeignetes Wurzeldokument wird nicht überschrieben, und ein ungeeigneter Choice-Wert endet in der Feldablehnung. Den Speichervertrag für sämtliche Abschnittsformen muss diese Runde dafür nicht erweitern. Die sonstigen Typverengungen lassen im gelesenen Diff keinen weiteren belegten Produktfehler erkennen.
+
+**Nicht blockierender Präzisierungshinweis:** `json_types.py` und `BOUNDARY.md` behaupten für `to_float`/`to_int` das Ergebnis der Builtins für **jeden** Wert. Das gilt nicht allgemein: `float(memoryview(b"12"))` und `int(memoryview(b"12"))` liefern Zahlen, beide Helfer werfen `TypeError` (in der zusätzlichen Sonde enthalten). `memoryview` ist kein JSON-Wert; ich habe keinen erreichbaren Produktaufruf dieses Falls nachgewiesen. Den Wortlaut auf den tatsächlich unterstützten Eingangsbereich beschränken, statt deswegen weitere Konvertierungslogik einzubauen.
+
+Eigene Nachweise: **42 Dateien, 0 Typfehler, 0 Warnungen**; die gezielte Auswahl aus `test_lcnc_iface`, `test_typecheck_findings`, `test_command_policy`, `test_settings_store` und `test_session_bind` ist grün (**243 Testfunktionen**, ohne Subtests mehrfach zu zählen). Der native Vier-Modul-Abgleich ist am unveränderten Kopf grün. [Typ-Gate](vor-maschine.r355.codex-pyright.json), [Testausgabe](vor-maschine.r355.codex-tests.txt), [JUnit](vor-maschine.r355.codex-tests.xml).
+
+Den gelieferten Round-Gate-Bericht mit Kopf `6cab2166` und das Protokoll **54/54 erwartete Ergebnisse** gelesen. Die ausdrücklich korrigierte Trennung zwischen Offline-Testprogrammen, nativen Live-Läufen und tatsächlicher Installationsprobe ist übernommen; die späteren Merge-/Live-Gates bleiben erforderlich. Keine eigenen Browser- oder Sim-Läufe, keine Produktänderungen, keine Tests oder Builds im Live-Baum. Dort nur dieser Anhang und neue R355-Belege.

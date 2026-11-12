@@ -1,0 +1,111 @@
+{
+  "target": "6cab2166",
+  "native_access": "import and class inspection only",
+  "baseline": {
+    "gate": {
+      "exit": 0,
+      "summary": {
+        "filesAnalyzed": 42,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 2.924
+      },
+      "diagnostics": []
+    },
+    "native_problems": []
+  },
+  "class_assignment": {
+    "gate": {
+      "exit": 0,
+      "summary": {
+        "filesAnalyzed": 43,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 2.981
+      },
+      "diagnostics": []
+    },
+    "native_problems": []
+  },
+  "conditional_member": {
+    "gate": {
+      "exit": 0,
+      "summary": {
+        "filesAnalyzed": 43,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 3.189
+      },
+      "diagnostics": []
+    },
+    "native_problems": []
+  },
+  "calculated_constant": {
+    "gate": {
+      "exit": 0,
+      "summary": {
+        "filesAnalyzed": 43,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 3.734
+      },
+      "diagnostics": []
+    },
+    "native_problems": []
+  },
+  "literal_constant_control": {
+    "gate": {
+      "exit": 0,
+      "summary": {
+        "filesAnalyzed": 42,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 3.435
+      },
+      "diagnostics": []
+    },
+    "native_problems": [
+      "hal.HAL_OUT is 32, the stub says 33"
+    ]
+  },
+  "conversion_claim_limit": {
+    "to_float": {
+      "builtin": {
+        "value": 12.0
+      },
+      "helper": {
+        "error": "TypeError",
+        "message": "float() argument must be a string or a real number, not 'memoryview'"
+      }
+    },
+    "to_int": {
+      "builtin": {
+        "value": 12
+      },
+      "helper": {
+        "error": "TypeError",
+        "message": "int() argument must be a string, a bytes-like object or a real number, not 'memoryview'"
+      }
+    }
+  },
+  "real_missing_extra_member": true,
+  "restored": {
+    "gate": {
+      "exit": 0,
+      "summary": {
+        "filesAnalyzed": 42,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 3.297
+      },
+      "diagnostics": []
+    },
+    "native_problems": []
+  }
+}

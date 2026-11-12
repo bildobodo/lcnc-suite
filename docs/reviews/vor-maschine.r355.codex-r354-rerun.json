@@ -1,0 +1,440 @@
+{
+  "fake_invalid_call_forms": [
+    {
+      "case": "auto_run_missing_line",
+      "method": "auto",
+      "args": [
+        0
+      ],
+      "serial_increment": 0,
+      "accepted": false,
+      "exception": "error",
+      "message": "Unexpected argument '0' to command.auto"
+    },
+    {
+      "case": "auto_pause_extra_line",
+      "method": "auto",
+      "args": [
+        1,
+        1
+      ],
+      "serial_increment": 0,
+      "accepted": false,
+      "exception": "TypeError",
+      "message": "function takes exactly 1 argument (2 given)"
+    },
+    {
+      "case": "jog_continuous_missing_speed",
+      "method": "jog",
+      "args": [
+        1,
+        0,
+        0
+      ],
+      "serial_increment": 0,
+      "accepted": false,
+      "exception": "TypeError",
+      "message": "jog(JOG_CONTINUOUS, ...) takes 4 arguments (3 given)"
+    },
+    {
+      "case": "jog_increment_missing_increment",
+      "method": "jog",
+      "args": [
+        2,
+        0,
+        0,
+        1.0
+      ],
+      "serial_increment": 0,
+      "accepted": false,
+      "exception": "TypeError",
+      "message": "jog(JOG_INCREMENT, ...) takes 5 arguments (4 given)"
+    },
+    {
+      "case": "jog_stop_extra_speed",
+      "method": "jog",
+      "args": [
+        0,
+        0,
+        0,
+        1.0
+      ],
+      "serial_increment": 0,
+      "accepted": false,
+      "exception": "TypeError",
+      "message": "jog(JOG_STOP, ...) takes 3 arguments (4 given)"
+    },
+    {
+      "case": "jog_bad_selector",
+      "method": "jog",
+      "args": [
+        999,
+        0,
+        0
+      ],
+      "serial_increment": 0,
+      "accepted": false,
+      "exception": "TypeError",
+      "message": "jog() first argument must be JOG_xxx"
+    }
+  ],
+  "baseline": {
+    "exit": 0,
+    "summary": {
+      "filesAnalyzed": 42,
+      "errorCount": 0,
+      "warningCount": 0,
+      "informationCount": 0,
+      "timeInSec": 2.822
+    },
+    "diagnostics": [],
+    "stderr": ""
+  },
+  "invalid_stub_calls_pass": {
+    "exit": 1,
+    "summary": {
+      "filesAnalyzed": 43,
+      "errorCount": 6,
+      "warningCount": 0,
+      "informationCount": 0,
+      "timeInSec": 2.947
+    },
+    "diagnostics": [
+      {
+        "file": "/tmp/codex-r355/typings/conformance/check_codex.py",
+        "severity": "error",
+        "message": "Argument of type \"Literal[0]\" cannot be assigned to parameter \"fn\" of type \"Literal[1, 2, 3, 4, 5]\" in function \"auto\"\n\u00a0\u00a0Type \"Literal[0]\" is not assignable to type \"Literal[1, 2, 3, 4, 5]\"\n\u00a0\u00a0\u00a0\u00a0\"Literal[0]\" is not assignable to type \"Literal[1]\"\n\u00a0\u00a0\u00a0\u00a0\"Literal[0]\" is not assignable to type \"Literal[2]\"\n\u00a0\u00a0\u00a0\u00a0\"Literal[0]\" is not assignable to type \"Literal[3]\"\n\u00a0\u00a0\u00a0\u00a0\"Literal[0]\" is not assignable to type \"Literal[4]\"\n\u00a0\u00a0\u00a0\u00a0\"Literal[0]\" is not assignable to type \"Literal[5]\"",
+        "range": {
+          "start": {
+            "line": 3,
+            "character": 11
+          },
+          "end": {
+            "line": 3,
+            "character": 28
+          }
+        },
+        "rule": "reportArgumentType"
+      },
+      {
+        "file": "/tmp/codex-r355/typings/conformance/check_codex.py",
+        "severity": "error",
+        "message": "Argument of type \"Literal[1]\" cannot be assigned to parameter \"fn\" of type \"Literal[0]\" in function \"auto\"\n\u00a0\u00a0\"Literal[1]\" is not assignable to type \"Literal[0]\"",
+        "range": {
+          "start": {
+            "line": 4,
+            "character": 11
+          },
+          "end": {
+            "line": 4,
+            "character": 30
+          }
+        },
+        "rule": "reportArgumentType"
+      },
+      {
+        "file": "/tmp/codex-r355/typings/conformance/check_codex.py",
+        "severity": "error",
+        "message": "Argument of type \"Literal[1]\" cannot be assigned to parameter \"fn\" of type \"Literal[0]\" in function \"jog\"\n\u00a0\u00a0\"Literal[1]\" is not assignable to type \"Literal[0]\"",
+        "range": {
+          "start": {
+            "line": 5,
+            "character": 10
+          },
+          "end": {
+            "line": 5,
+            "character": 33
+          }
+        },
+        "rule": "reportArgumentType"
+      },
+      {
+        "file": "/tmp/codex-r355/typings/conformance/check_codex.py",
+        "severity": "error",
+        "message": "Argument of type \"Literal[2]\" cannot be assigned to parameter \"fn\" of type \"Literal[1]\" in function \"jog\"\n\u00a0\u00a0\"Literal[2]\" is not assignable to type \"Literal[1]\"",
+        "range": {
+          "start": {
+            "line": 6,
+            "character": 10
+          },
+          "end": {
+            "line": 6,
+            "character": 32
+          }
+        },
+        "rule": "reportArgumentType"
+      },
+      {
+        "file": "/tmp/codex-r355/typings/conformance/check_codex.py",
+        "severity": "error",
+        "message": "Argument of type \"Literal[0]\" cannot be assigned to parameter \"fn\" of type \"Literal[1]\" in function \"jog\"\n\u00a0\u00a0\"Literal[0]\" is not assignable to type \"Literal[1]\"",
+        "range": {
+          "start": {
+            "line": 7,
+            "character": 10
+          },
+          "end": {
+            "line": 7,
+            "character": 27
+          }
+        },
+        "rule": "reportArgumentType"
+      },
+      {
+        "file": "/tmp/codex-r355/typings/conformance/check_codex.py",
+        "severity": "error",
+        "message": "Argument of type \"Literal[999]\" cannot be assigned to parameter \"fn\" of type \"Literal[0]\" in function \"jog\"\n\u00a0\u00a0\"Literal[999]\" is not assignable to type \"Literal[0]\"",
+        "range": {
+          "start": {
+            "line": 8,
+            "character": 10
+          },
+          "end": {
+            "line": 8,
+            "character": 13
+          }
+        },
+        "rule": "reportArgumentType"
+      }
+    ],
+    "stderr": ""
+  },
+  "extra_stub_member_passes_gate": {
+    "exit": 0,
+    "summary": {
+      "filesAnalyzed": 43,
+      "errorCount": 0,
+      "warningCount": 0,
+      "informationCount": 0,
+      "timeInSec": 2.954
+    },
+    "diagnostics": [],
+    "stderr": ""
+  },
+  "actual_native_missing_extra_member": true,
+  "native_baseline": [],
+  "native_checker_with_extra_stub_member": [
+    "linuxcnc.command.codex_nonexistent is claimed by the stub and missing"
+  ],
+  "native_checker_with_missing_ini": [
+    "linuxcnc.ini is claimed by the stub and missing"
+  ],
+  "native_checker_with_optional_present": [],
+  "excluded_writer_bad_return": {
+    "exit": 1,
+    "summary": {
+      "filesAnalyzed": 42,
+      "errorCount": 1,
+      "warningCount": 0,
+      "informationCount": 0,
+      "timeInSec": 2.963
+    },
+    "diagnostics": [
+      {
+        "file": "/tmp/codex-r355/lcnc-gateway/writer_fixture.py",
+        "severity": "error",
+        "message": "Type \"Literal['wrong']\" is not assignable to return type \"int\"\n\u00a0\u00a0\"Literal['wrong']\" is not assignable to \"int\"",
+        "range": {
+          "start": {
+            "line": 64,
+            "character": 11
+          },
+          "end": {
+            "line": 64,
+            "character": 18
+          }
+        },
+        "rule": "reportReturnType"
+      }
+    ],
+    "stderr": ""
+  },
+  "promised_strict_module_untyped_definition": {
+    "exit": 1,
+    "summary": {
+      "filesAnalyzed": 42,
+      "errorCount": 5,
+      "warningCount": 0,
+      "informationCount": 0,
+      "timeInSec": 2.96
+    },
+    "diagnostics": [
+      {
+        "file": "/tmp/codex-r355/lcnc-gateway/command_policy.py",
+        "severity": "error",
+        "message": "Return type is unknown",
+        "range": {
+          "start": {
+            "line": 1346,
+            "character": 4
+          },
+          "end": {
+            "line": 1346,
+            "character": 18
+          }
+        },
+        "rule": "reportUnknownParameterType"
+      },
+      {
+        "file": "/tmp/codex-r355/lcnc-gateway/command_policy.py",
+        "severity": "error",
+        "message": "Function \"_codex_untyped\" is not accessed",
+        "range": {
+          "start": {
+            "line": 1346,
+            "character": 4
+          },
+          "end": {
+            "line": 1346,
+            "character": 18
+          }
+        },
+        "rule": "reportUnusedFunction"
+      },
+      {
+        "file": "/tmp/codex-r355/lcnc-gateway/command_policy.py",
+        "severity": "error",
+        "message": "Type of parameter \"x\" is unknown",
+        "range": {
+          "start": {
+            "line": 1346,
+            "character": 19
+          },
+          "end": {
+            "line": 1346,
+            "character": 20
+          }
+        },
+        "rule": "reportUnknownParameterType"
+      },
+      {
+        "file": "/tmp/codex-r355/lcnc-gateway/command_policy.py",
+        "severity": "error",
+        "message": "Type annotation is missing for parameter \"x\"",
+        "range": {
+          "start": {
+            "line": 1346,
+            "character": 19
+          },
+          "end": {
+            "line": 1346,
+            "character": 20
+          }
+        },
+        "rule": "reportMissingParameterType"
+      },
+      {
+        "file": "/tmp/codex-r355/lcnc-gateway/command_policy.py",
+        "severity": "error",
+        "message": "Return type is unknown",
+        "range": {
+          "start": {
+            "line": 1347,
+            "character": 11
+          },
+          "end": {
+            "line": 1347,
+            "character": 12
+          }
+        },
+        "rule": "reportUnknownVariableType"
+      }
+    ],
+    "stderr": ""
+  },
+  "standard_bad_return_control": {
+    "exit": 1,
+    "summary": {
+      "filesAnalyzed": 42,
+      "errorCount": 2,
+      "warningCount": 0,
+      "informationCount": 0,
+      "timeInSec": 3.054
+    },
+    "diagnostics": [
+      {
+        "file": "/tmp/codex-r355/lcnc-gateway/command_policy.py",
+        "severity": "error",
+        "message": "Function \"_codex_bad_return\" is not accessed",
+        "range": {
+          "start": {
+            "line": 1346,
+            "character": 4
+          },
+          "end": {
+            "line": 1346,
+            "character": 21
+          }
+        },
+        "rule": "reportUnusedFunction"
+      },
+      {
+        "file": "/tmp/codex-r355/lcnc-gateway/command_policy.py",
+        "severity": "error",
+        "message": "Type \"Literal['wrong']\" is not assignable to return type \"int\"\n\u00a0\u00a0\"Literal['wrong']\" is not assignable to \"int\"",
+        "range": {
+          "start": {
+            "line": 1347,
+            "character": 11
+          },
+          "end": {
+            "line": 1347,
+            "character": 18
+          }
+        },
+        "rule": "reportReturnType"
+      }
+    ],
+    "stderr": ""
+  },
+  "restored": {
+    "exit": 0,
+    "summary": {
+      "filesAnalyzed": 42,
+      "errorCount": 0,
+      "warningCount": 0,
+      "informationCount": 0,
+      "timeInSec": 3.057
+    },
+    "diagnostics": [],
+    "stderr": ""
+  },
+  "config": {
+    "include": [
+      "lcnc-gateway",
+      "subroutines/surfacemap/compensation.py",
+      "typings"
+    ],
+    "exclude": [
+      "lcnc-gateway/.venv",
+      "lcnc-gateway/test_*.py",
+      "lcnc-gateway/conftest.py",
+      "lcnc-gateway/suite_py_bind_probe.py",
+      "lcnc-gateway/native_*_probe.py",
+      "lcnc-gateway/gateway.py",
+      "**/__pycache__",
+      "**/node_modules"
+    ],
+    "stubPath": "typings",
+    "extraPaths": [
+      "lcnc-gateway",
+      "subroutines/surfacemap"
+    ],
+    "typeCheckingMode": "standard",
+    "pythonVersion": "3.11",
+    "pythonPlatform": "Linux",
+    "strict": [
+      "lcnc-gateway/command_policy.py",
+      "lcnc-gateway/settings_store.py",
+      "lcnc-gateway/session_bind.py",
+      "lcnc-gateway/lcnc_paths.py",
+      "lcnc-gateway/lcnc_trace.py"
+    ]
+  },
+  "meta": {
+    "target": "6cab2166",
+    "root": "/tmp/codex-r355",
+    "python": "/home/cnc/lcnc-suite-tc/lcnc-gateway/.venv/bin/python3",
+    "native_access": "import, dir, classes and constants only; no channel, poll, motion or service access"
+  }
+}
