@@ -1,0 +1,23 @@
+{
+  "round": "R349",
+  "date": "2026-11-12",
+  "source_commit": "c7f7226180a03a3b0761a4fb6ffe3c167309b3b7",
+  "review_checkout": "b5247f26bfb899021de26a067de5c0b58971bee9",
+  "review_original_bytes": 7901,
+  "review_original_sha256": "62fd4c821b8659c19fa762ae3b5ad7486ac847acb900c678a7e7c4b80a2996f7",
+  "review_append_sha256": "460aedb93e9547aba05226de2b9bc7e97b60c34b6b8afda0ef9ef1de307e2119",
+  "archive_root": "/tmp/codex-r349",
+  "probe_command": "PYTHONDONTWRITEBYTECODE=1 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python /tmp/r349-probe.py /tmp/codex-r349",
+  "scope": "No live service, controller, browser, motion, build or full gate was used. Pure policy/map observations and read-only Ruff in archive.",
+  "operator_q349_1": "2026-11-12 in this thread: Zuordnung umsetzen, unklare Fälle sperren (empfohlen)",
+  "sources": [
+    "https://github.com/microsoft/pyright/blob/main/docs/configuration.md#type-evaluation-settings",
+    "https://mypy.readthedocs.io/en/stable/command_line.html#cmdoption-mypy-check-untyped-defs",
+    "https://docs.astral.sh/ruff/configuration/"
+  ],
+  "artifacts_sha256": {
+    "vor-maschine.r349.codex-ruff.json": "380380b11625a15547f17d14b0b6b5d75c49662008fec5346c9ad2e38b960e51",
+    "vor-maschine.r349.codex-probe.py": "58f2ff1cf586f824a345fcef21e06898470f7ae12d845f108653630c61713a22",
+    "vor-maschine.r349.codex-probe.json": "3bbac3bd914f051c762e79a304265eb5d4588b3664bfc2a02cae6cdf38e3a8b9"
+  }
+}

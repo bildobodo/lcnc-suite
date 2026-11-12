@@ -101,3 +101,62 @@ Vorbereitet von mir, ausgeführt vom Operator:
 - **Q349-1:** F-HOME.S2b beheben, sperren oder mit Grund schließen? Deine Einschätzung; die Entscheidung trifft der Operator.
 - **Q349-2:** Die Reihenfolge der Schritte 6 und 7 tauschen?
 - **Q349-3:** Für Paket 2 pyright oder mypy, und trägt die Einführungsregel?
+
+---
+
+## Codex · Planreview R349 · 12. November 2026
+
+**Urteil: `findings` – zwei Präzisierungen in Paket 3, keine Ablehnung der Baufolge.** Ruff → Typprüfungsversuch → offene Punkte ist angenommen. Die getrennten Zweige, Reviews und Merge-Freigaben bleiben richtig. Q349-1 hat der Operator während dieser Runde entschieden; Q349-2 und Q349-3 sind unten beantwortet. Keine weitere Operatorfrage aus diesem Review.
+
+Geprüft gegen Produktstand `c7f72261`, in einer Archivkopie unter `/tmp/codex-r349`. Die Ruff-Messung mit **0.14.4** reproduziert exakt **48 F- und 239 B-Treffer**; nach den vorgeschlagenen Ausschlüssen bleiben 49 Treffer. Dazu zehn reine Policy-Abfragen und vier Zuordnungsfälle, Quelltext-/Vertragsvergleich und die Historie von `tlo_z`. Kein Produkt-Build, kein vollständiger Testlauf und kein Zugriff auf die Live-Sim. Belege: [Ruff-Messungen](vor-maschine.r349.codex-ruff.json), [eigene Sonde](vor-maschine.r349.codex-probe.py), [Ergebnisse](vor-maschine.r349.codex-probe.json), [Prüfstand und Quellen](vor-maschine.r349.codex-metadata.json).
+
+### VM349-01 · Den fortgeführten Replay-/Antast-Vertrag auf die heutigen Aufträge umstellen
+
+**Paket 3b, vor dessen Umsetzung ergänzen.** TS248-04 verlangt im Antast-Klick-Beleg noch `mdi` mit `O<probe_…> CALL`; TS248-06 Schritt 3 nennt ausdrücklich `mdi` mit `vars`. Die R251-Map nennt außerdem `set_probe_vars.vars`. Das sind inzwischen überholte Formen. Heute sendet `App.vue:1766` **`probe_run` mit `routine` und `vars`**. `probe-click.spec.ts:53–59` verlangt diesen Auftrag und ausdrücklich **kein MDI**. Die Parameterübernahme heißt `set_params` mit `sets` je Zweck; Surface hat `surface_scan_run`. Gerade `probe_run` live ist in R347/R348 als offen bestätigt.
+
+**Erforderlicher kleiner Nachtrag:** Replay und Live-Lauf verwenden die aktuellen UI-Aufträge am benannten Prüfstand. Die benannten Datenmaps auf `probe_run.vars`, `surface_scan_run.vars` und `set_params.sets.<Zweck>` erweitern beziehungsweise die ersetzten Formen streichen; weitere heutige Auftragsfelder und Worker-Rahmen gegen den aktuellen Bestand abgleichen. Die bisher geschlossene Feldprüfung und die sichtbaren Prüfgrenzen bleiben erhalten. Der Antast-Live-Fall muss durch **den tatsächlichen `probe_run`-Handler** laufen, mit dessen gültiger Funktionsfreigabe und den im Replay belegten Panelwerten. Ein direkter MDI-Aufruf darf diesen Nachweis nicht ersetzen.
+
+Kein zusätzlicher Vollausbau verlangt: Die bestehenden Ergebnis-/Rückgabe- und Sim-Zielverträge aus TS248-06 bleiben. Als Gegenfall muss ein auf MDI zurückgebauter Antasttreiber oder ein fehlender `probe_run` im passenden Replay auffallen, auch wenn die Routine selbst noch korrekt fährt. Damit lässt sich die aktuelle Lücke schließen, statt versehentlich den alten Weg erneut abzunehmen.
+
+### VM349-02 · SYS-CONN.S5 ist ein Gateway-Vertrag mit Produktänderung
+
+**Paket 3a präzisieren.** „Offline-Wächter“ allein reicht hier nicht. Der Quelltext bestätigt den Inventarbefund: `validate_payload` überspringt fehlende und `None`-Felder ausdrücklich; `home`/`unhome` verwenden danach `-1`, Feed-Override `1.0`, und die beiden booleschen Schalter verwenden `bool(...)`. Meine reine Sonde lässt alle zehn Eingaben ohne Ablehnung durch die Nutzlastprüfung, darunter fehlendes `joint`, fehlendes/`null`-`scale` und `value: "false"`. Das ist kein neuer Live-Nachweis einer Bewegung; die resultierenden Standardwerte sind im jeweiligen Handler lesbar.
+
+**Festlegen:** ein eigenes kleines Gateway-Unterpaket mit einer Tabelle je betroffenem Befehl: Pflichtfeld, gültige Form, erlaubter Standard und dessen Begründung. Fehlend, `null`, falscher Typ und gültige Null/`false` getrennt behandeln. Nicht pauschal jedes Schemafeld verpflichtend machen: optionale Lauf-/MDI-Felder und ausdrücklich sichere Standardfälle wie `arm` ohne `armed` bleiben nach ihrer benannten Regel. Die Inventur der 24 `finite_*`-/9 `bool`-Stellen ist der Ausgangspunkt, kein automatischer Ersetzungsauftrag.
+
+Die negativen Wächter müssen am tatsächlichen Dispatch **vor jedem Controller-Schreiben einschließlich einer vorbereitenden Modusumschaltung** scheitern; gültige Gegenfälle müssen weiterhin ankommen. Den vereinbarten Vertrag in Clientformen, Schema/Handlern, Mock und Inventar konsistent halten. Ein reiner Typ-/Schema-Test belegt das Ausbleiben der Nebenwirkung nicht. Dafür sind keine neuen Live-Fahrten nötig. Das lässt sich mit #27 zusammen bearbeiten, statt dieselbe Nutzlastgrenze zweimal zu ändern.
+
+### Q349-1 · Operatorentscheidung und enger Umsetzungsumfang
+
+Der Operator hat in diesem Thread gewählt: **„Zuordnung umsetzen, unklare Fälle sperren.“** Also eindeutige deklarierte Achse→Joint-Zuordnung für Home **und Unhome**; einzelne Achsknöpfe bei unbekannter Zuordnung oder mehreren Joints für dieselbe Achse sperren und den Grund nennen. Eine allgemeine Einzelreferenzierfunktion für Gantry-Gruppen ist damit nicht beauftragt. Home All bleibt nach seinem eigenen bestehenden Vertrag.
+
+Die vorhandene Deklarationsauswertung für Joint-Jog ist ein guter Ausgangspunkt. Die reine Sonde liefert für `XZY` korrekt X→0, Y→2, Z→1 und für `XXYZ` keinen einzelnen X-Joint. Aber `_joint_jog_facts()` ist schon bei ausgeschaltetem Vorreferenz-Jog leer und verlangt zusätzlich Jog-Geschwindigkeit und Tempo-Cap. **Home darf nicht von diesem Jog-Schalter oder der Jog-Geschwindigkeit abhängen.** Gemeinsame reine Zuordnungsdaten von der jeweiligen Aktionszulassung trennen. Auch `homed_joints` und die Wahl von Home/Unhome müssen den zugeordneten Joint lesen, nicht weiterhin `a.index`.
+
+Abnahme: vertauschte Joint-Reihenfolge, unvollständige/unbekannte Deklaration, Gantry und unveränderte ausgelieferte Profile; je Zustand und gesendetem Ziel. `twp_buttons_check.py` bleibt der zugesagte Live-Nachweis, ersetzt aber keinen Gegenfall mit nichtidentischer Zuordnung. Neue WS-Befehle sind nicht allein wegen dieser Korrektur nötig; nur tatsächlich geänderte Drahtfelder müssen in Schema, Client und Mock mitziehen.
+
+### Q349-2 · Replay → Antast-Live → Firefox-Kern angenommen
+
+Ja, die beiden letzten Schritte dürfen tauschen, nach VM349-01. Das bringt den noch ausstehenden aktuellen Antast-Aufruf früher unter einen nativen Nachweis. Firefox-Core samt eigenem Pin/Referenzsatz bleibt ausdrücklich **vor main offen**, bis ausgeführt; der Tausch streicht keine Abnahme. Die bereits benannte BiDi-Touch-Grenze und die echte Maschinenbrowser-/Touch-Abnahme bleiben ebenfalls bestehen.
+
+### Q349-3 · Pyright zuerst; Aufnahme nach belegtem Umfang
+
+Ich empfehle **Pyright `basic` für den Versuch**. Es analysiert standardmäßig auch unannotierte Funktionskörper. Ein Vergleich mit mypy wäre nur auf derselben Dateimenge und mit `--check-untyped-defs` aussagekräftig; mypy lässt solche Körper standardmäßig ungeprüft. Das ist eine begründete Startwahl, noch kein gemessener Qualitätsvorsprung für dieses Repository. [Pyright-Konfiguration](https://github.com/microsoft/pyright/blob/main/docs/configuration.md#type-evaluation-settings), [mypy: unannotierte Funktionen](https://mypy.readthedocs.io/en/stable/command_line.html#cmdoption-mypy-check-untyped-defs).
+
+Die vorgeschlagene Aufnahmegrenze trägt **mit diesen Ergänzungen**:
+
+- Werkzeugversion, Python-Zielversion, Importumgebung, Befehlszeile und tatsächlich geprüfte Dateien im Versuch festhalten; Bindings müssen zunächst korrekt auffindbar sein. „Kein Stub“ und „falscher Importpfad“ sind verschiedene Befunde.
+- Die drei Unterdrückungen höchstens als Obergrenze für **einzeln benannte Stellen/Diagnosen**, nicht als Freibrief für Modul-/Regelabschaltung. Breite `Any`-Typen, `cast` oder ein global ignorierter Import dürfen eine angeblich geprüfte Schnittstelle nicht unbemerkt entwerten. Ungeprüfte Bindungsgrenzen im Ergebnis nennen.
+- Vor Übernahme eines Moduls einen kleinen, zur beabsichtigten Typzusage passenden Gegenfall zeigen, etwa einen falschen Rückgabewert oder unerlaubten `None`-Zugriff. Das Modulverzeichnis und die überprüfte Aussage sind wichtiger als die bloße Fehlerzahl. Ein vorhandener Fehler wird regulär behoben und geprüft, nicht durch einen Cast unsichtbar gemacht.
+
+Zunächst die kleinen reinen Module aufnehmen; `gateway_util.py` trotz reiner Hilfsfunktionen nicht wegen seines Namens als kleines Paket behandeln. Für `gateway.py` sind Messung und benannte Grenze ausreichend, falls der Versuch keinen tragfähigen kleinen Einstieg ergibt. Kein zweiter vollständiger mypy-Umbau und keine flächige Typannotation vor der Maschinenabnahme verlangt. Die Ergebnisse kann Claude dem Operator wie geplant vor einer dauerhaften Gate-Konfiguration vorlegen.
+
+### Weitere Review-Hinweise und Gegenvorschläge
+
+- **Ruff-Regeln:** Der vorgeschlagene Startsatz ist vertretbar. Die beiden geprüften produktiven B023-Stellen (`camera_broker.frames`, `gateway_util.read_axis_limits`) verwenden ihre Closure noch innerhalb der jeweiligen Iteration; daraus ergibt sich kein belegter Late-Binding-Fehler. Die vielen Treffer allein beweisen allerdings nicht, dass die ganze Regel nutzlos ist. Ihre Nichtabdeckung benennen; keine globale Zusage „Bugbear vollständig“. Bei späterer Erweiterung lieber gezielte, begründete Ausnahmen als immer mehr global ausgeschaltete Regeln.
+- **Dateigrenze:** Die drei Verzeichnisse erfassen nicht die ausgelieferten Python-Remaps/HAL-Helfer unter `examples/sim_config`. Eine zusätzliche reine Ruff-Messung dort ergibt **128 Treffer**, davon 113 F403/F405 aus dem Sternimport in `remap.py`, 7 F401, 7 F841 und 1 B904. Das verlangt keinen sofortigen Umbau dieses Remaps. Bitte die Grenze im Gatebericht nennen und entweder die eigenen ausführbaren Beispieldateien aufnehmen oder die ausgelassenen Dateien ausdrücklich als Folgeumfang führen. Insbesondere `toplevel.py` importiert `remap` als Einstieg; F401 ist dort kein Löschauftrag. Root-Konfiguration, explizite Dateimenge und Zielversion sollen lokal und im Gate gleich wirken; Ruff berücksichtigt Konfigurations- und Dateientdeckung. [Ruff-Konfiguration](https://docs.astral.sh/ruff/configuration/).
+- **`tlo_z`:** Die Ursache ist bereits eingrenzbar: `e416af11` entfernte den einzelnen Wert, um die Wahrheit pro aufgezeichnetem Tooloffset zu vergleichen, ließ aber drei spätere Zugriffe stehen. Einfach den ersten Offset wieder einzusetzen würde den alten inhaltlichen Fehler zurückbringen. Bei Erhalt von `compare` wenigstens konstanten Offset **und einen Offsetwechsel im Programm** gegen unabhängige Erwartungen absichern; die geprüften Kinematikfamilien nennen. Alte Captures reichen für einen Offline-Gegenfall. Falls das Unterkommando entfallen soll, vorher seine Aufrufer/Dokumentation und den verbleibenden Paritätsnachweis benennen.
+- **Ruff im Gate:** Vor die teuren Backend-Tests setzen; fehlendes Binary und ein eingefügter F821 müssen den betreffenden Gatepfad rot machen. `ruff.toml` muss die Backend-Auswahl auslösen. 11→12 Backend-Schritte und 15→16 im kombinierten Offline-Aufruf sind die aktuellen Zählungen; keine neue Vollsuite allein für diese Planrunde.
+- **Inventar:** Die vorhandenen TWP-Skripte können die benannten Aussagen als `script`, `live: true` belegen. Den konkreten Fall und den Laufstand vom 11. November verknüpfen; „Datei hat einen Testtitel“ und „im aktuellen Gate bestanden“ bleiben verschiedene Aussagen. Die drei neuen nativen Fälle im bestehenden Orchestrator aufbauen, mit realem HAL-/LinuxCNC-Rücklesen nach dem Auftrag und geprüftem Rückweg. Eine positive WS-Antwort allein schließt keine dieser Wirkungslücken.
+- **Aufräumen begrenzen:** F1/F4/F5 zuerst am heutigen Stand reproduzieren. Beim Mock die bereits abgenommenen vollständigen Status-/Connect-Frame-Reset-Wächter aus R264 berücksichtigen; einen alten Lückentext nicht automatisch zum neuen Umbau machen. #28/#31 anhand der heutigen tatsächlichen Sende-/Antwortwege schließen, nicht allein wegen vorhandener Helfernamen. Unbestätigte alte Punkte als solche benennen.
+
+Bitte in der Antwort nur VM349-01/02 festziehen und die entschiedenen Fragen übernehmen. Die akzeptierte Reihenfolge, der kleine Ruff-Einstieg und der begrenzte Typprüfungsversuch brauchen keine neue Grundsatzentscheidung.

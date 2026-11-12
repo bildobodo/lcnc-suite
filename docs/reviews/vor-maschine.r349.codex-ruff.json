@@ -1,0 +1,2960 @@
+{
+  "source_commit": "c7f7226180a03a3b0761a4fb6ffe3c167309b3b7",
+  "version": "ruff 0.14.4",
+  "flags": [
+    "check",
+    "--isolated",
+    "--no-cache",
+    "--select",
+    "F,B",
+    "--output-format",
+    "json"
+  ],
+  "scope_note": "read-only in git archive; examples is an additional scope measurement, not part of Claude’s 48/239 counts",
+  "runs": [
+    {
+      "paths": [
+        "lcnc-gateway",
+        "scripts",
+        "subroutines"
+      ],
+      "counts": {
+        "B007": 8,
+        "B008": 8,
+        "B018": 1,
+        "B023": 56,
+        "B904": 31,
+        "B905": 135,
+        "F401": 24,
+        "F402": 3,
+        "F541": 5,
+        "F811": 4,
+        "F821": 3,
+        "F841": 9
+      },
+      "total": 287,
+      "diagnostics": [
+        {
+          "file": "lcnc-gateway/bulk_pipeline.py",
+          "line": 524,
+          "column": 111,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/bulk_pipeline.py",
+          "line": 1189,
+          "column": 17,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/camera_broker.py",
+          "line": 162,
+          "column": 64,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `last_seq`"
+        },
+        {
+          "file": "lcnc-gateway/command_policy.py",
+          "line": 1213,
+          "column": 9,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/command_policy.py",
+          "line": 1241,
+          "column": 13,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/command_policy.py",
+          "line": 1280,
+          "column": 17,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/freecad_import.py",
+          "line": 174,
+          "column": 46,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/freecad_import.py",
+          "line": 277,
+          "column": 31,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/fusion_import.py",
+          "line": 222,
+          "column": 9,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 19,
+          "column": 25,
+          "code": "F401",
+          "message": "`dataclasses.dataclass` imported but unused"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 19,
+          "column": 36,
+          "code": "F401",
+          "message": "`dataclasses.field` imported but unused"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 23,
+          "column": 8,
+          "code": "F401",
+          "message": "`shutil` imported but unused"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 25,
+          "column": 101,
+          "code": "F401",
+          "message": "`fastapi.Body` imported but unused"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 107,
+          "column": 5,
+          "code": "F401",
+          "message": "`gateway_util.evaluate_wcs_provenance` imported but unused"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 975,
+          "column": 23,
+          "code": "F811",
+          "message": "Redefinition of unused `field` from line 19"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 2417,
+          "column": 19,
+          "code": "F541",
+          "message": "f-string without any placeholders"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 8490,
+          "column": 9,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 8497,
+          "column": 13,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 8587,
+          "column": 25,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 8616,
+          "column": 43,
+          "code": "B008",
+          "message": "Do not perform function call `File` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 8650,
+          "column": 9,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 8693,
+          "column": 9,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 8857,
+          "column": 13,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 8900,
+          "column": 9,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 9054,
+          "column": 9,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 9116,
+          "column": 43,
+          "code": "B008",
+          "message": "Do not perform function call `File` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 9174,
+          "column": 9,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 9233,
+          "column": 50,
+          "code": "B008",
+          "message": "Do not perform function call `File` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 9244,
+          "column": 9,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 9288,
+          "column": 60,
+          "code": "B008",
+          "message": "Do not perform function call `File` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 9310,
+          "column": 9,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 9316,
+          "column": 24,
+          "code": "B008",
+          "message": "Do not perform function call `File` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 9327,
+          "column": 5,
+          "code": "F841",
+          "message": "Local variable `loop` is assigned to but never used"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 9332,
+          "column": 9,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 9357,
+          "column": 17,
+          "code": "F402",
+          "message": "Import `field` from line 19 shadowed by loop variable"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 9389,
+          "column": 9,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 9391,
+          "column": 9,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 9393,
+          "column": 9,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 9408,
+          "column": 9,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 9410,
+          "column": 9,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 9457,
+          "column": 9,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 9940,
+          "column": 9,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 9950,
+          "column": 9,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 10404,
+          "column": 21,
+          "code": "F841",
+          "message": "Local variable `pickup_ts` is assigned to but never used"
+        },
+        {
+          "file": "lcnc-gateway/gateway.py",
+          "line": 11566,
+          "column": 13,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "lcnc-gateway/gateway_util.py",
+          "line": 1413,
+          "column": 41,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gateway_util.py",
+          "line": 1456,
+          "column": 19,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gateway_util.py",
+          "line": 1461,
+          "column": 71,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gateway_util.py",
+          "line": 1814,
+          "column": 18,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gateway_util.py",
+          "line": 1842,
+          "column": 53,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gateway_util.py",
+          "line": 2095,
+          "column": 21,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gateway_util.py",
+          "line": 2167,
+          "column": 32,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gateway_util.py",
+          "line": 2292,
+          "column": 43,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gateway_util.py",
+          "line": 2320,
+          "column": 17,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gateway_util.py",
+          "line": 2908,
+          "column": 41,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gateway_util.py",
+          "line": 2913,
+          "column": 28,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gateway_util.py",
+          "line": 4273,
+          "column": 21,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gateway_util.py",
+          "line": 5452,
+          "column": 15,
+          "code": "B007",
+          "message": "Loop control variable `lines` not used within loop body"
+        },
+        {
+          "file": "lcnc-gateway/gateway_util.py",
+          "line": 5452,
+          "column": 22,
+          "code": "B007",
+          "message": "Loop control variable `abc` not used within loop body"
+        },
+        {
+          "file": "lcnc-gateway/gateway_util.py",
+          "line": 5785,
+          "column": 21,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gateway_util.py",
+          "line": 6063,
+          "column": 30,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gateway_util.py",
+          "line": 6064,
+          "column": 30,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gateway_util.py",
+          "line": 6065,
+          "column": 30,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gateway_util.py",
+          "line": 6161,
+          "column": 37,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `letter`"
+        },
+        {
+          "file": "lcnc-gateway/gateway_util.py",
+          "line": 6161,
+          "column": 56,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `joint_idx`"
+        },
+        {
+          "file": "lcnc-gateway/gcode_parse_worker.py",
+          "line": 93,
+          "column": 5,
+          "code": "F401",
+          "message": "`gateway_util.LINE_NONE` imported but unused"
+        },
+        {
+          "file": "lcnc-gateway/gcode_parse_worker.py",
+          "line": 133,
+          "column": 19,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gcode_parse_worker.py",
+          "line": 842,
+          "column": 18,
+          "code": "F541",
+          "message": "f-string without any placeholders"
+        },
+        {
+          "file": "lcnc-gateway/gcode_parse_worker.py",
+          "line": 1410,
+          "column": 38,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gcode_parse_worker.py",
+          "line": 1412,
+          "column": 39,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gcode_parse_worker.py",
+          "line": 1549,
+          "column": 66,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gcode_parse_worker.py",
+          "line": 1553,
+          "column": 116,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gcode_parse_worker.py",
+          "line": 1564,
+          "column": 99,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/gcode_parse_worker.py",
+          "line": 1568,
+          "column": 99,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/macro_files.py",
+          "line": 332,
+          "column": 17,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_button_gates_b.py",
+          "line": 13,
+          "column": 8,
+          "code": "F401",
+          "message": "`asyncio` imported but unused"
+        },
+        {
+          "file": "lcnc-gateway/test_button_gates_b.py",
+          "line": 18,
+          "column": 19,
+          "code": "F401",
+          "message": "`types.SimpleNamespace` imported but unused"
+        },
+        {
+          "file": "lcnc-gateway/test_button_gates_d.py",
+          "line": 528,
+          "column": 26,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_canon_basis.py",
+          "line": 183,
+          "column": 27,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_canon_basis.py",
+          "line": 219,
+          "column": 32,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_command_dispatch.py",
+          "line": 652,
+          "column": 31,
+          "code": "B008",
+          "message": "Do not perform function call `getattr` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable"
+        },
+        {
+          "file": "lcnc-gateway/test_device_profiles.py",
+          "line": 9,
+          "column": 8,
+          "code": "F401",
+          "message": "`time` imported but unused"
+        },
+        {
+          "file": "lcnc-gateway/test_example_install.py",
+          "line": 60,
+          "column": 91,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `profile`"
+        },
+        {
+          "file": "lcnc-gateway/test_example_install.py",
+          "line": 61,
+          "column": 56,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `table_path`"
+        },
+        {
+          "file": "lcnc-gateway/test_example_tool_library.py",
+          "line": 48,
+          "column": 28,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_feature_switches.py",
+          "line": 21,
+          "column": 22,
+          "code": "F401",
+          "message": "`linuxcnc.INTERP_IDLE` imported but unused"
+        },
+        {
+          "file": "lcnc-gateway/test_feature_switches.py",
+          "line": 21,
+          "column": 51,
+          "code": "F401",
+          "message": "`linuxcnc.MODE_MDI` imported but unused"
+        },
+        {
+          "file": "lcnc-gateway/test_freecad_import.py",
+          "line": 11,
+          "column": 28,
+          "code": "F401",
+          "message": "`freecad_import.decode_freecad_blob` imported but unused"
+        },
+        {
+          "file": "lcnc-gateway/test_freecad_import.py",
+          "line": 38,
+          "column": 31,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_freecad_import.py",
+          "line": 60,
+          "column": 99,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_fusion_import.py",
+          "line": 156,
+          "column": 41,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_fusion_import.py",
+          "line": 159,
+          "column": 45,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_gateway_util.py",
+          "line": 681,
+          "column": 9,
+          "code": "F841",
+          "message": "Local variable `rng` is assigned to but never used"
+        },
+        {
+          "file": "lcnc-gateway/test_gateway_util.py",
+          "line": 1143,
+          "column": 21,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_gateway_util.py",
+          "line": 1237,
+          "column": 35,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_gateway_util.py",
+          "line": 1277,
+          "column": 47,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_gateway_util.py",
+          "line": 1288,
+          "column": 46,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_gateway_util.py",
+          "line": 1300,
+          "column": 29,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_gateway_util.py",
+          "line": 1343,
+          "column": 47,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_gateway_util.py",
+          "line": 1353,
+          "column": 46,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_gateway_util.py",
+          "line": 1364,
+          "column": 29,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_gateway_util.py",
+          "line": 1600,
+          "column": 21,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_gateway_util.py",
+          "line": 1642,
+          "column": 21,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_gateway_util.py",
+          "line": 1724,
+          "column": 21,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_gateway_util.py",
+          "line": 1854,
+          "column": 21,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_gateway_util.py",
+          "line": 1858,
+          "column": 55,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_limit_origin_worker.py",
+          "line": 41,
+          "column": 21,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_m600_preview_worker.py",
+          "line": 26,
+          "column": 50,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_m600_preview_worker.py",
+          "line": 27,
+          "column": 51,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_m600_preview_worker.py",
+          "line": 88,
+          "column": 21,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_m600_preview_worker.py",
+          "line": 217,
+          "column": 23,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_m600_preview_worker.py",
+          "line": 230,
+          "column": 23,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_m600_preview_worker.py",
+          "line": 236,
+          "column": 23,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_m600_preview_worker.py",
+          "line": 252,
+          "column": 29,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_m600_preview_worker.py",
+          "line": 252,
+          "column": 77,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_m600_preview_worker.py",
+          "line": 303,
+          "column": 31,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_m600_preview_worker.py",
+          "line": 336,
+          "column": 23,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_m600_preview_worker.py",
+          "line": 351,
+          "column": 23,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_m600_preview_worker.py",
+          "line": 458,
+          "column": 23,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_m600_preview_worker.py",
+          "line": 556,
+          "column": 26,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_preview_poll_chain.py",
+          "line": 13,
+          "column": 8,
+          "code": "F401",
+          "message": "`os` imported but unused"
+        },
+        {
+          "file": "lcnc-gateway/test_program_files.py",
+          "line": 33,
+          "column": 59,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `prefix`"
+        },
+        {
+          "file": "lcnc-gateway/test_program_reload_unload.py",
+          "line": 141,
+          "column": 45,
+          "code": "B008",
+          "message": "Do not perform function call `hasattr` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable"
+        },
+        {
+          "file": "lcnc-gateway/test_program_reload_unload.py",
+          "line": 141,
+          "column": 67,
+          "code": "B008",
+          "message": "Do not perform function call `getattr` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable"
+        },
+        {
+          "file": "lcnc-gateway/test_rfl_guard.py",
+          "line": 144,
+          "column": 9,
+          "code": "F841",
+          "message": "Local variable `test` is assigned to but never used"
+        },
+        {
+          "file": "lcnc-gateway/test_tool_change_motion_worker.py",
+          "line": 347,
+          "column": 52,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_tool_change_motion_worker.py",
+          "line": 541,
+          "column": 51,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_tool_files.py",
+          "line": 60,
+          "column": 105,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `configured`"
+        },
+        {
+          "file": "lcnc-gateway/test_toolsetter_basis.py",
+          "line": 36,
+          "column": 69,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_toolsetter_basis.py",
+          "line": 236,
+          "column": 75,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_twp_transform.py",
+          "line": 34,
+          "column": 34,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_twp_transform.py",
+          "line": 42,
+          "column": 46,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_twp_transform.py",
+          "line": 78,
+          "column": 46,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_twp_transform.py",
+          "line": 148,
+          "column": 45,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_twp_transform.py",
+          "line": 151,
+          "column": 47,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_twp_transform.py",
+          "line": 184,
+          "column": 45,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_viewer_init.py",
+          "line": 147,
+          "column": 20,
+          "code": "F401",
+          "message": "`typing.Any` imported but unused"
+        },
+        {
+          "file": "lcnc-gateway/test_viewer_init.py",
+          "line": 691,
+          "column": 11,
+          "code": "F541",
+          "message": "f-string without any placeholders"
+        },
+        {
+          "file": "lcnc-gateway/test_viewer_init.py",
+          "line": 1631,
+          "column": 15,
+          "code": "F541",
+          "message": "f-string without any placeholders"
+        },
+        {
+          "file": "lcnc-gateway/test_ws_command_worker.py",
+          "line": 132,
+          "column": 47,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "lcnc-gateway/test_ws_smoke.py",
+          "line": 15,
+          "column": 8,
+          "code": "F401",
+          "message": "`sys` imported but unused"
+        },
+        {
+          "file": "lcnc-gateway/test_ws_smoke.py",
+          "line": 151,
+          "column": 31,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 521,
+          "column": 30,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `lines`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 522,
+          "column": 39,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `block_start`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 525,
+          "column": 28,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `keyframes_at`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 528,
+          "column": 17,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `rule_props`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 529,
+          "column": 20,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `open_rules`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 530,
+          "column": 21,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `open_rules`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 568,
+          "column": 32,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `selector`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 569,
+          "column": 72,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `selector`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 579,
+          "column": 67,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `selector`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 583,
+          "column": 70,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `selector`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 596,
+          "column": 31,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `rule_open_line`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 597,
+          "column": 26,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `selector`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 600,
+          "column": 51,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `selector`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 601,
+          "column": 35,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `rule_open_line`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 602,
+          "column": 26,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `selector`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 607,
+          "column": 41,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `rule_open_line`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 608,
+          "column": 26,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `selector`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 609,
+          "column": 45,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `depth`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 767,
+          "column": 21,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `text`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 772,
+          "column": 52,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `text`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 774,
+          "column": 27,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `text`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 780,
+          "column": 33,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `text`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 783,
+          "column": 36,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `text`"
+        },
+        {
+          "file": "scripts/audit-scoped-css.py",
+          "line": 785,
+          "column": 33,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `decls`"
+        },
+        {
+          "file": "scripts/config_sync_check.py",
+          "line": 97,
+          "column": 20,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/freecad_5axis_xyzac.py",
+          "line": 101,
+          "column": 45,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/freecad_check_5axis_xyzac.py",
+          "line": 9,
+          "column": 24,
+          "code": "F401",
+          "message": "`Part` imported but unused"
+        },
+        {
+          "file": "scripts/freecad_check_5axis_xyzac.py",
+          "line": 10,
+          "column": 18,
+          "code": "F401",
+          "message": "`math` imported but unused"
+        },
+        {
+          "file": "scripts/freecad_check_5axis_xyzac.py",
+          "line": 65,
+          "column": 44,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/freecad_twp_gantry.py",
+          "line": 162,
+          "column": 38,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/gen_kins_fixtures.py",
+          "line": 118,
+          "column": 23,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/gen_kins_fixtures.py",
+          "line": 119,
+          "column": 44,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/gen_kins_fixtures.py",
+          "line": 126,
+          "column": 44,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/gen_kins_fixtures.py",
+          "line": 127,
+          "column": 59,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/gen_kins_fixtures.py",
+          "line": 128,
+          "column": 59,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/gen_kins_fixtures.py",
+          "line": 169,
+          "column": 23,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/gen_kins_fixtures.py",
+          "line": 171,
+          "column": 44,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/gen_kins_fixtures.py",
+          "line": 180,
+          "column": 47,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/gen_kins_fixtures.py",
+          "line": 181,
+          "column": 47,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/gen_kins_fixtures.py",
+          "line": 182,
+          "column": 59,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/gen_kins_fixtures.py",
+          "line": 183,
+          "column": 59,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/install_examples.py",
+          "line": 565,
+          "column": 56,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `profile`"
+        },
+        {
+          "file": "scripts/install_examples.py",
+          "line": 566,
+          "column": 43,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `window`"
+        },
+        {
+          "file": "scripts/install_examples.py",
+          "line": 566,
+          "column": 56,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `setters`"
+        },
+        {
+          "file": "scripts/install_probe.py",
+          "line": 276,
+          "column": 63,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/inventory/py_atoms.py",
+          "line": 225,
+          "column": 24,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `parent`"
+        },
+        {
+          "file": "scripts/inventory/py_atoms.py",
+          "line": 226,
+          "column": 21,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `parent`"
+        },
+        {
+          "file": "scripts/inventory/py_atoms.py",
+          "line": 233,
+          "column": 31,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `binds`"
+        },
+        {
+          "file": "scripts/inventory/py_atoms.py",
+          "line": 234,
+          "column": 28,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `binds`"
+        },
+        {
+          "file": "scripts/inventory/py_atoms.py",
+          "line": 245,
+          "column": 31,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `file`"
+        },
+        {
+          "file": "scripts/inventory/py_atoms.py",
+          "line": 247,
+          "column": 40,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `file`"
+        },
+        {
+          "file": "scripts/inventory/py_atoms.py",
+          "line": 255,
+          "column": 40,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `file`"
+        },
+        {
+          "file": "scripts/inventory/py_atoms.py",
+          "line": 257,
+          "column": 18,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `file`"
+        },
+        {
+          "file": "scripts/macro_live_check.py",
+          "line": 446,
+          "column": 44,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/native_run.py",
+          "line": 556,
+          "column": 78,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `expected`"
+        },
+        {
+          "file": "scripts/native_run.py",
+          "line": 587,
+          "column": 62,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/native_run.py",
+          "line": 598,
+          "column": 97,
+          "code": "F811",
+          "message": "Redefinition of unused `box` from line 597"
+        },
+        {
+          "file": "scripts/native_run.py",
+          "line": 644,
+          "column": 49,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `scale`"
+        },
+        {
+          "file": "scripts/native_run.py",
+          "line": 778,
+          "column": 9,
+          "code": "B007",
+          "message": "Loop control variable `attempt` not used within loop body"
+        },
+        {
+          "file": "scripts/native_run.py",
+          "line": 1052,
+          "column": 68,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/native_run.py",
+          "line": 1697,
+          "column": 77,
+          "code": "F811",
+          "message": "Redefinition of unused `box` from line 1696"
+        },
+        {
+          "file": "scripts/native_run.py",
+          "line": 1907,
+          "column": 78,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `digest`"
+        },
+        {
+          "file": "scripts/native_run.py",
+          "line": 1918,
+          "column": 72,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `tag`"
+        },
+        {
+          "file": "scripts/native_run.py",
+          "line": 1918,
+          "column": 102,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `cid`"
+        },
+        {
+          "file": "scripts/native_run.py",
+          "line": 2008,
+          "column": 82,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `digest`"
+        },
+        {
+          "file": "scripts/native_run.py",
+          "line": 2009,
+          "column": 81,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `path`"
+        },
+        {
+          "file": "scripts/native_run.py",
+          "line": 2016,
+          "column": 25,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `barrier`"
+        },
+        {
+          "file": "scripts/native_run.py",
+          "line": 2017,
+          "column": 25,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `results`"
+        },
+        {
+          "file": "scripts/native_run.py",
+          "line": 2017,
+          "column": 60,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `published`"
+        },
+        {
+          "file": "scripts/native_run.py",
+          "line": 2140,
+          "column": 50,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/native_run.py",
+          "line": 2160,
+          "column": 74,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/perf_matrix.py",
+          "line": 206,
+          "column": 57,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/sim_parity.py",
+          "line": 174,
+          "column": 13,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "scripts/test_5axis_xyzac.py",
+          "line": 13,
+          "column": 8,
+          "code": "F401",
+          "message": "`subprocess` imported but unused"
+        },
+        {
+          "file": "scripts/test_5axis_xyzac.py",
+          "line": 156,
+          "column": 33,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_5axis_xyzac.py",
+          "line": 159,
+          "column": 54,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_5axis_xyzac.py",
+          "line": 164,
+          "column": 29,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_5axis_xyzac.py",
+          "line": 165,
+          "column": 62,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_5axis_xyzac.py",
+          "line": 173,
+          "column": 40,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_5axis_xyzac.py",
+          "line": 175,
+          "column": 58,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_install_probe.py",
+          "line": 845,
+          "column": 5,
+          "code": "F841",
+          "message": "Local variable `lines` is assigned to but never used"
+        },
+        {
+          "file": "scripts/test_install_probe.py",
+          "line": 863,
+          "column": 75,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `outcome`"
+        },
+        {
+          "file": "scripts/test_native_stage.py",
+          "line": 741,
+          "column": 5,
+          "code": "F841",
+          "message": "Local variable `out` is assigned to but never used"
+        },
+        {
+          "file": "scripts/test_native_stage.py",
+          "line": 1002,
+          "column": 12,
+          "code": "F402",
+          "message": "Import `st` from line 3879 shadowed by loop variable"
+        },
+        {
+          "file": "scripts/test_native_stage.py",
+          "line": 1372,
+          "column": 13,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "scripts/test_native_stage.py",
+          "line": 2352,
+          "column": 11,
+          "code": "F841",
+          "message": "Local variable `t` is assigned to but never used"
+        },
+        {
+          "file": "scripts/test_native_stage.py",
+          "line": 2452,
+          "column": 9,
+          "code": "B007",
+          "message": "Loop control variable `i` not used within loop body"
+        },
+        {
+          "file": "scripts/test_native_stage.py",
+          "line": 2485,
+          "column": 19,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_native_stage.py",
+          "line": 2589,
+          "column": 13,
+          "code": "B018",
+          "message": "Found useless expression. Either assign it to a variable or remove it."
+        },
+        {
+          "file": "scripts/test_native_stage.py",
+          "line": 3408,
+          "column": 47,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_native_stage.py",
+          "line": 3409,
+          "column": 39,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_native_stage.py",
+          "line": 3639,
+          "column": 16,
+          "code": "F402",
+          "message": "Import `st` from line 3879 shadowed by loop variable"
+        },
+        {
+          "file": "scripts/test_native_stage.py",
+          "line": 3889,
+          "column": 8,
+          "code": "F841",
+          "message": "Local variable `t` is assigned to but never used"
+        },
+        {
+          "file": "scripts/test_native_stage.py",
+          "line": 4969,
+          "column": 13,
+          "code": "B007",
+          "message": "Loop control variable `k` not used within loop body"
+        },
+        {
+          "file": "scripts/test_native_stage.py",
+          "line": 4973,
+          "column": 13,
+          "code": "B007",
+          "message": "Loop control variable `k` not used within loop body"
+        },
+        {
+          "file": "scripts/test_select/graph.py",
+          "line": 160,
+          "column": 56,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `f`"
+        },
+        {
+          "file": "scripts/test_select/graph.py",
+          "line": 160,
+          "column": 104,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `f`"
+        },
+        {
+          "file": "scripts/test_select/proof.py",
+          "line": 15,
+          "column": 8,
+          "code": "F401",
+          "message": "`re` imported but unused"
+        },
+        {
+          "file": "scripts/test_select/test_selector.py",
+          "line": 131,
+          "column": 49,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_support/live_target.py",
+          "line": 129,
+          "column": 9,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "scripts/test_support/live_target.py",
+          "line": 172,
+          "column": 17,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        },
+        {
+          "file": "scripts/test_support/native_cases.py",
+          "line": 41,
+          "column": 86,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_support/native_cases.py",
+          "line": 477,
+          "column": 37,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_support/native_cases.py",
+          "line": 484,
+          "column": 33,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_support/native_cases.py",
+          "line": 584,
+          "column": 33,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_support/native_cases.py",
+          "line": 830,
+          "column": 37,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_support/native_cases.py",
+          "line": 1041,
+          "column": 80,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_support/servo.py",
+          "line": 57,
+          "column": 18,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_support/servo.py",
+          "line": 153,
+          "column": 62,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_support/servo.py",
+          "line": 289,
+          "column": 38,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_support/servo.py",
+          "line": 292,
+          "column": 68,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_support/servo_cases.py",
+          "line": 111,
+          "column": 17,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_support/servo_cases.py",
+          "line": 560,
+          "column": 46,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_support/servo_cases.py",
+          "line": 574,
+          "column": 41,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/test_support/servo_cases.py",
+          "line": 635,
+          "column": 33,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/toolsetter_readback_check.py",
+          "line": 38,
+          "column": 8,
+          "code": "F401",
+          "message": "`shutil` imported but unused"
+        },
+        {
+          "file": "scripts/toolsetter_readback_check.py",
+          "line": 43,
+          "column": 21,
+          "code": "F401",
+          "message": "`pathlib.Path` imported but unused"
+        },
+        {
+          "file": "scripts/trace-bundle.py",
+          "line": 260,
+          "column": 34,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/twp_adverse_check.py",
+          "line": 35,
+          "column": 8,
+          "code": "F401",
+          "message": "`os` imported but unused"
+        },
+        {
+          "file": "scripts/twp_adverse_check.py",
+          "line": 332,
+          "column": 10,
+          "code": "B007",
+          "message": "Loop control variable `ok` not used within loop body"
+        },
+        {
+          "file": "scripts/twp_buttons_check.py",
+          "line": 26,
+          "column": 8,
+          "code": "F401",
+          "message": "`math` imported but unused"
+        },
+        {
+          "file": "scripts/twp_buttons_check.py",
+          "line": 369,
+          "column": 22,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/twp_buttons_check.py",
+          "line": 706,
+          "column": 25,
+          "code": "B007",
+          "message": "Loop control variable `detail` not used within loop body"
+        },
+        {
+          "file": "scripts/twp_capture_check.py",
+          "line": 179,
+          "column": 93,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/twp_capture_check.py",
+          "line": 471,
+          "column": 22,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/twp_capture_check.py",
+          "line": 499,
+          "column": 37,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/twp_capture_check.py",
+          "line": 551,
+          "column": 41,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/twp_parity.py",
+          "line": 220,
+          "column": 44,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/twp_parity.py",
+          "line": 274,
+          "column": 44,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/twp_parity.py",
+          "line": 566,
+          "column": 22,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/twp_parity.py",
+          "line": 580,
+          "column": 60,
+          "code": "B023",
+          "message": "Function definition does not bind loop variable `s`"
+        },
+        {
+          "file": "scripts/twp_parity.py",
+          "line": 736,
+          "column": 5,
+          "code": "F841",
+          "message": "Local variable `hdr` is assigned to but never used"
+        },
+        {
+          "file": "scripts/twp_parity.py",
+          "line": 1010,
+          "column": 37,
+          "code": "F821",
+          "message": "Undefined name `tlo_z`"
+        },
+        {
+          "file": "scripts/twp_parity.py",
+          "line": 1013,
+          "column": 59,
+          "code": "F821",
+          "message": "Undefined name `tlo_z`"
+        },
+        {
+          "file": "scripts/twp_parity.py",
+          "line": 1019,
+          "column": 55,
+          "code": "F821",
+          "message": "Undefined name `tlo_z`"
+        },
+        {
+          "file": "scripts/twp_parity.py",
+          "line": 1035,
+          "column": 32,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/twp_parity.py",
+          "line": 1091,
+          "column": 15,
+          "code": "F541",
+          "message": "f-string without any placeholders"
+        },
+        {
+          "file": "scripts/twp_touchoff_check.py",
+          "line": 154,
+          "column": 55,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/twp_touchoff_check.py",
+          "line": 250,
+          "column": 22,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/twp_touchoff_plane_check.py",
+          "line": 176,
+          "column": 93,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/twp_touchoff_plane_check.py",
+          "line": 248,
+          "column": 22,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "scripts/twp_touchoff_plane_check.py",
+          "line": 341,
+          "column": 39,
+          "code": "B905",
+          "message": "`zip()` without an explicit `strict=` parameter"
+        },
+        {
+          "file": "subroutines/surfacemap/compensation.py",
+          "line": 25,
+          "column": 17,
+          "code": "F401",
+          "message": "`time` imported but unused"
+        },
+        {
+          "file": "subroutines/surfacemap/compensation.py",
+          "line": 187,
+          "column": 15,
+          "code": "F811",
+          "message": "Redefinition of unused `time` from line 25"
+        },
+        {
+          "file": "subroutines/surfacemap/compensation.py",
+          "line": 357,
+          "column": 4,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        }
+      ]
+    },
+    {
+      "paths": [
+        "examples"
+      ],
+      "counts": {
+        "B904": 1,
+        "F401": 7,
+        "F403": 1,
+        "F405": 112,
+        "F841": 7
+      },
+      "total": 128,
+      "diagnostics": [
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 42,
+          "column": 8,
+          "code": "F401",
+          "message": "`traceback` imported but unused"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 44,
+          "column": 26,
+          "code": "F401",
+          "message": "`math.tan` imported but unused"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 44,
+          "column": 40,
+          "code": "F401",
+          "message": "`math.atan` imported but unused"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 44,
+          "column": 51,
+          "code": "F401",
+          "message": "`math.sqrt` imported but unused"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 45,
+          "column": 1,
+          "code": "F403",
+          "message": "`from interpreter import *` used; unable to detect undefined names"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 47,
+          "column": 26,
+          "code": "F401",
+          "message": "`util.call_pydevd` imported but unused"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 50,
+          "column": 51,
+          "code": "F401",
+          "message": "`twp_transform.calc_shortest_distance` imported but unused"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 642,
+          "column": 5,
+          "code": "F841",
+          "message": "Local variable `Cp` is assigned to but never used"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 643,
+          "column": 5,
+          "code": "F841",
+          "message": "Local variable `Sp` is assigned to but never used"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 666,
+          "column": 6,
+          "code": "F841",
+          "message": "Local variable `Kzx` is assigned to but never used"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 666,
+          "column": 11,
+          "code": "F841",
+          "message": "Local variable `Kzy` is assigned to but never used"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 685,
+          "column": 13,
+          "code": "F841",
+          "message": "Local variable `Sv` is assigned to but never used"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 760,
+          "column": 5,
+          "code": "F841",
+          "message": "Local variable `revolutions` is assigned to but never used"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1173,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1174,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_OK` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1213,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1214,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1215,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1234,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1238,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1239,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1240,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1257,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1258,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1259,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1276,
+          "column": 19,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1277,
+          "column": 19,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1278,
+          "column": 20,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1336,
+          "column": 19,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1337,
+          "column": 19,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1338,
+          "column": 20,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1364,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1365,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1366,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1377,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1378,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1379,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1459,
+          "column": 11,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1484,
+          "column": 12,
+          "code": "F405",
+          "message": "`INTERP_OK` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1520,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1521,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_OK` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1550,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1551,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1552,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1595,
+          "column": 11,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1596,
+          "column": 12,
+          "code": "F405",
+          "message": "`INTERP_OK` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1615,
+          "column": 11,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1616,
+          "column": 12,
+          "code": "F405",
+          "message": "`INTERP_OK` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1636,
+          "column": 11,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1644,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1645,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1646,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1658,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1659,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1660,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1670,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1671,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1672,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1710,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1711,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1712,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1749,
+          "column": 11,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1752,
+          "column": 12,
+          "code": "F405",
+          "message": "`INTERP_OK` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1771,
+          "column": 11,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1779,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1780,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1781,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1792,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1793,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1794,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1805,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1806,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1807,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1822,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1823,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1824,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1850,
+          "column": 19,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1851,
+          "column": 19,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1852,
+          "column": 20,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1894,
+          "column": 19,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1895,
+          "column": 19,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1896,
+          "column": 20,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1970,
+          "column": 19,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1971,
+          "column": 19,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 1972,
+          "column": 20,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2054,
+          "column": 19,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2055,
+          "column": 19,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2056,
+          "column": 20,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2080,
+          "column": 23,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2081,
+          "column": 23,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2082,
+          "column": 24,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2117,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2118,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2119,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2138,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2141,
+          "column": 12,
+          "code": "F405",
+          "message": "`INTERP_OK` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2159,
+          "column": 11,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2164,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2165,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_OK` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2173,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2174,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2175,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2178,
+          "column": 5,
+          "code": "F841",
+          "message": "Local variable `n` is assigned to but never used"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2186,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2187,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2188,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2208,
+          "column": 19,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2209,
+          "column": 19,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2210,
+          "column": 20,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2252,
+          "column": 19,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2253,
+          "column": 19,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2254,
+          "column": 20,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2327,
+          "column": 19,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2328,
+          "column": 19,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2329,
+          "column": 20,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2411,
+          "column": 19,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2412,
+          "column": 19,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2413,
+          "column": 20,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2441,
+          "column": 23,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2442,
+          "column": 23,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2443,
+          "column": 24,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2475,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2476,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXIT` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2477,
+          "column": 16,
+          "code": "F405",
+          "message": "`INTERP_ERROR` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2509,
+          "column": 15,
+          "code": "F405",
+          "message": "`INTERP_EXECUTE_FINISH` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/remap.py",
+          "line": 2512,
+          "column": 12,
+          "code": "F405",
+          "message": "`INTERP_OK` may be undefined, or defined from star imports"
+        },
+        {
+          "file": "examples/sim_config/twp/python/toplevel.py",
+          "line": 19,
+          "column": 8,
+          "code": "F401",
+          "message": "`remap` imported but unused"
+        },
+        {
+          "file": "examples/sim_config/twp/python/twp-helper-comp.py",
+          "line": 169,
+          "column": 5,
+          "code": "B904",
+          "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,187 @@
+{
+  "source_commit": "c7f7226180a03a3b0761a4fb6ffe3c167309b3b7",
+  "scope": "pure helpers only; no gateway dispatch, controller, socket or motion",
+  "payload_observations": [
+    {
+      "payload": {
+        "cmd": "home"
+      },
+      "refused": false,
+      "corrections": {}
+    },
+    {
+      "payload": {
+        "cmd": "home",
+        "joint": null
+      },
+      "refused": false,
+      "corrections": {}
+    },
+    {
+      "payload": {
+        "cmd": "unhome"
+      },
+      "refused": false,
+      "corrections": {}
+    },
+    {
+      "payload": {
+        "cmd": "set_feed_override"
+      },
+      "refused": false,
+      "corrections": {}
+    },
+    {
+      "payload": {
+        "cmd": "set_feed_override",
+        "scale": null
+      },
+      "refused": false,
+      "corrections": {}
+    },
+    {
+      "payload": {
+        "cmd": "spindle_forward"
+      },
+      "refused": false,
+      "corrections": {}
+    },
+    {
+      "payload": {
+        "cmd": "set_optional_stop"
+      },
+      "refused": false,
+      "corrections": {}
+    },
+    {
+      "payload": {
+        "cmd": "set_optional_stop",
+        "value": "false"
+      },
+      "refused": false,
+      "corrections": {}
+    },
+    {
+      "payload": {
+        "cmd": "set_block_delete",
+        "value": "false"
+      },
+      "refused": false,
+      "corrections": {}
+    },
+    {
+      "payload": {
+        "cmd": "arm"
+      },
+      "refused": false,
+      "corrections": {}
+    }
+  ],
+  "mapping_observations": [
+    {
+      "case": "identity",
+      "rows": [
+        {
+          "letter": "X",
+          "joint": 0,
+          "max_vel": 10.0,
+          "reason": null
+        },
+        {
+          "letter": "Y",
+          "joint": 1,
+          "max_vel": 10.0,
+          "reason": null
+        },
+        {
+          "letter": "Z",
+          "joint": 2,
+          "max_vel": 10.0,
+          "reason": null
+        }
+      ],
+      "reason": null
+    },
+    {
+      "case": "permuted",
+      "rows": [
+        {
+          "letter": "X",
+          "joint": 0,
+          "max_vel": 10.0,
+          "reason": null
+        },
+        {
+          "letter": "Y",
+          "joint": 2,
+          "max_vel": 10.0,
+          "reason": null
+        },
+        {
+          "letter": "Z",
+          "joint": 1,
+          "max_vel": 10.0,
+          "reason": null
+        }
+      ],
+      "reason": null
+    },
+    {
+      "case": "gantry",
+      "rows": [
+        {
+          "letter": "X",
+          "joint": null,
+          "max_vel": null,
+          "reason": "Gantry axis — jog it after Home All"
+        },
+        {
+          "letter": "Y",
+          "joint": 2,
+          "max_vel": 10.0,
+          "reason": null
+        },
+        {
+          "letter": "Z",
+          "joint": 3,
+          "max_vel": 10.0,
+          "reason": null
+        }
+      ],
+      "reason": null
+    },
+    {
+      "case": "undeclared",
+      "rows": [
+        {
+          "letter": "X",
+          "joint": null,
+          "max_vel": null,
+          "reason": "Joint order not declared — set WEBUI_JOINT_AXES"
+        },
+        {
+          "letter": "Y",
+          "joint": null,
+          "max_vel": null,
+          "reason": "Joint order not declared — set WEBUI_JOINT_AXES"
+        },
+        {
+          "letter": "Z",
+          "joint": null,
+          "max_vel": null,
+          "reason": "Joint order not declared — set WEBUI_JOINT_AXES"
+        }
+      ],
+      "reason": "Joint order not declared — set WEBUI_JOINT_AXES"
+    }
+  ],
+  "source_sha256": {
+    "lcnc-gateway/command_policy.py": "a133ac66794c12c95bd6aa3ceb291fad50270f2e692f3e76ddb680bdc9feed5f",
+    "lcnc-gateway/gateway_util.py": "c441838bfb11cd21da47d72c781b923e594d89993b3a1f31207de7e8296b143a",
+    "lcnc-gateway/gateway.py": "998b898468afc9c805c6cea091099316374609b68023defa347fbb15609dcbbd",
+    "lcnc-webui/src/SetupStrip.vue": "e4f1c3444421f58c3847d05e623d7047602cb596e578df752cd28b1940b71b4e",
+    "lcnc-webui/src/App.vue": "a561e9e99e79c7600dd9c2f53f5d957f4e5c9b09900e792e32344ac7bb7fcd80",
+    "lcnc-webui/e2e/probe-click.spec.ts": "4f33b3595cfd9c4ebd9e3ef491e3b1bd077b166838a1abd2a639563b43783844",
+    "scripts/twp_parity.py": "5fecabbd80c2116c46355aa3dad8720f0bf01adf0c499140b5839187a3dabf1e"
+  }
+}
