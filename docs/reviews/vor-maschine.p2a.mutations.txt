@@ -1,0 +1,54 @@
+# Package 2a counter-cases (Codex R350/R352: one before each adopted module), the REAL gate step scripts/run_pyright.py each time
+# Run 1 (mut_modules.py): every module RED. Its 7 conformance rows printed GREEN — the run's criterion was WRONG for them:
+# it looked for the error at the MUTATED file, but a fake / stub / interface drift is reported at the conformance check that holds it.
+
+baseline clean
+RED  module lcnc-gateway/bulk_pipeline.py
+RED  module lcnc-gateway/camera_broker.py
+RED  module lcnc-gateway/command_policy.py
+RED  module lcnc-gateway/fake_hal.py
+RED  module lcnc-gateway/fake_linuxcnc.py
+RED  module lcnc-gateway/features.py
+RED  module lcnc-gateway/freecad_import.py
+RED  module lcnc-gateway/fusion_import.py
+RED  module lcnc-gateway/gateway_util.py
+RED  module lcnc-gateway/gcode_canon.py
+RED  module lcnc-gateway/gcode_parse_worker.py
+RED  module lcnc-gateway/hal_bridge.py
+RED  module lcnc-gateway/hal_reader.py
+RED  module lcnc-gateway/hal_watchdog.py
+RED  module lcnc-gateway/lcnc_iface.py
+RED  module lcnc-gateway/lcnc_iface_check.py
+RED  module lcnc-gateway/lcnc_paths.py
+RED  module lcnc-gateway/lcnc_trace.py
+RED  module lcnc-gateway/macro_files.py
+RED  module lcnc-gateway/session_bind.py
+RED  module lcnc-gateway/settings_store.py
+RED  module lcnc-gateway/status_runtime.py
+RED  module lcnc-gateway/tool_files.py
+RED  module lcnc-gateway/tool_import.py
+RED  module lcnc-gateway/tool_refresh.py
+RED  module lcnc-gateway/tool_store.py
+RED  module lcnc-gateway/tool_table.py
+RED  module lcnc-gateway/toolsetter_rules.py
+RED  module lcnc-gateway/venv_check.py
+RED  module lcnc-gateway/ws_fanout.py
+RED  module subroutines/surfacemap/compensation.py
+GREEN! fake: mdi missing
+GREEN! fake: home takes a str
+GREEN! fake: wait_complete returns None
+GREEN! fake: tool_in_spindle a str
+GREEN! stub: mdi missing
+GREEN! stub: estop a str
+GREEN! interface: a call neither stub nor fake has
+SOME GREEN
+
+# Run 2 (mut_conformance.py): the 7 conformance mutations with the corrected criterion (the error at check_fake.py / check_stub.py)
+RED  fake: mdi missing  ← typings/conformance/check_fake.py:11:24 - error: Type "_Command" is not assignable to declared type "CommandLike"
+RED  fake: home takes a str  ← typings/conformance/check_fake.py:11:24 - error: Type "_Command" is not assignable to declared type "CommandLike"
+RED  fake: wait_complete returns None  ← typings/conformance/check_fake.py:11:24 - error: Type "_Command" is not assignable to declared type "CommandLike"
+RED  fake: tool_in_spindle a str  ← typings/conformance/check_fake.py:10:18 - error: Type "_Stat" is not assignable to declared type "StatLike"
+RED  stub: mdi missing  ← typings/conformance/check_stub.py:13:28 - error: Type "command" is not assignable to declared type "CommandLike"
+RED  stub: estop a str  ← typings/conformance/check_stub.py:12:22 - error: Type "stat" is not assignable to declared type "StatLike"
+RED  interface: a call neither stub nor fake has  ← typings/conformance/check_fake.py:11:24 - error: Type "_Command" is not assignable to declared type "CommandLike"; typings/conformance/check_stub.py:13:28 - error: Type "command" is not assignable to declared type "CommandLike"
+ALL RED

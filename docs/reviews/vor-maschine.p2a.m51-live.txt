@@ -1,0 +1,8 @@
+# 2026-11-12, LAN sim (development f54f3120's gateway; the binding is LinuxCNC 2.9.4), m51_check.py:
+arm True
+estop_reset True
+machine_on True
+home_all True
+M51 P0 reply ok True → spindle[0].override_enabled = False
+M51 P1 reply ok True → spindle[0].override_enabled = True
+RESULT PASS
