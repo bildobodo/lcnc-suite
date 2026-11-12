@@ -1301,7 +1301,9 @@ def validate_payload(cmd: str, msg: Mapping[str, JsonValue], limits: MachineLimi
                 raise ValueError(
                     f"{cmd}: {field} has {len(raw)} entries, maximum {cap}")
         elif isinstance(spec, Choice):
-            if raw not in spec.values:
+            # a WORD of the set; anything else (an unhashable list or object
+            # too) is the same refusal, never set membership's TypeError
+            if not isinstance(raw, str) or raw not in spec.values:
                 raise ValueError(f"{cmd}: {field} {str(raw)[:24]!r} not one of {sorted(spec.values)}")
         elif isinstance(spec, Text):
             if not isinstance(raw, str):

@@ -207,3 +207,19 @@ class JsonConversions(unittest.TestCase):
                 except (TypeError, ValueError) as e:
                     got = (type(e).__name__, None)
                 self.assertEqual(got, want, f"{helper.__name__}({v!r})")
+
+
+class ChoiceRefusesNonWords(unittest.TestCase):
+    """A Choice field (`via`) took an unhashable value (a list, an object)
+    into frozenset membership: TypeError, outside the bounds refusal
+    (validate_payload's callers catch ValueError) — the worker's backstop
+    answered "TypeError: unhashable type" instead of the field's refusal."""
+
+    def test_a_list_or_object_is_the_fields_refusal(self):
+        import command_policy as cp
+        cmd = next(c for c, s in cp.COMMAND_SCHEMA.items() if isinstance(s.get("via"), cp.Choice))
+        for raw in ([1], {"a": 1}, 5, "keyboard"):
+            with self.assertRaises(ValueError) as cm:
+                cp.validate_payload(cmd, {"via": raw}, cp.MachineLimits(n_axes=3))
+            self.assertIn("via", str(cm.exception))
+        self.assertEqual(cp.validate_payload(cmd, {"via": "gamepad"}, cp.MachineLimits(n_axes=3)), {})
