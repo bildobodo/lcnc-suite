@@ -153,6 +153,14 @@ def install(abort_at=None):
         rows.append(ic.row("install-venv", "PASS" if r.returncode == 0 and r2.returncode == 0 else "FAIL",
                            "the venv imports linuxcnc, fastapi, uvicorn; numpy is the system's"
                            if r.returncode == 0 and r2.returncode == 0 else (r.stderr + r2.stdout + r2.stderr).strip()[-300:]))
+        # the installed binding against the interface the code needs — by name and
+        # constant value (package 2, Codex R352/R353 Q352-4): mandatory here, a
+        # missing or broken binding fails (lcnc_iface_check.py: no channel, no poll)
+        r3 = _sh([str(venv), "-I", str(src / "lcnc-gateway/lcnc_iface_check.py")], ctx)
+        bound = r3.returncode == 0 and r3.stdout.strip() == "ok"
+        rows.append(ic.row("install-binding", "PASS" if bound else "FAIL",
+                           "the installed linuxcnc has every status field and command the code uses"
+                           if bound else (r3.stdout + r3.stderr).strip()[-300:]))
         index = src / "lcnc-webui/dist/index.html"
         rows.append(ic.row("install-build", "PASS" if index.is_file() else "FAIL",
                            "lcnc-webui/dist/index.html built" if index.is_file() else "no dist/index.html"))
