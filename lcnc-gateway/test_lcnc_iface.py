@@ -100,6 +100,9 @@ class FakeForms(unittest.TestCase):
         self.refused(TypeError, c.jog, C["JOG_INCREMENT"], 0, 0, 1.0)  # the step is missing
         self.refused(TypeError, c.jog, C["JOG_STOP"], 0, 0, 1.0)      # a stop takes no speed
         self.refused(TypeError, c.jog, 999, 0, 0)                     # no such sub-operation
+        self.refused(TypeError, c.jog, C["JOG_STOP"], 0, 0, 1.0, 0.1)
+        self.refused(TypeError, c.jog, C["JOG_CONTINUOUS"], 0, 0, 1.0, 0.1)   # a step it does not take
+        self.refused(TypeError, c.auto, C["AUTO_STEP"], 1)
 
     def test_unknown_selectors_and_argument_types(self):
         C, c = self.C, self.cmd
