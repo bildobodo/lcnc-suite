@@ -14,7 +14,8 @@ What `scripts/run_pyright.py` checks (`pyrightconfig.json`, pyright pinned in
   command payload, a settings document, a helper's hello) is `JsonValue`
   (`lcnc-gateway/json_types.py`, what `json.loads` makes — no `Any`), narrowed
   where it is used; `to_float` / `to_int` are float() / int() with the
-  builtins' outcome for every value, typed. `Any` remains in ONE strict
+  builtins' outcome for what arrives there (every JSON value, a status
+  number, a numpy scalar — not a memoryview), typed. `Any` remains in ONE strict
   module, `lcnc_trace`, five times, each named: the trace bus's field
   contract `**fields: Any` on `emit`, `emit_exc`, `emit_exc_tb` (any value —
   JSON, a repr for the rest; the two forwarders pass `**fields` on into
@@ -89,7 +90,14 @@ had, read with the default True (fixed in 2a).
 
 ## The native name check
 
-`lcnc_iface_check.py` reads what each stub CLAIMS from the stub itself (AST):
+`lcnc_iface_check.py` reads what each stub CLAIMS from the stub itself (AST),
+from a narrow, ENFORCED set of forms (R355 VM-I02): module — the docstring,
+imports, a class, a function (`@overload` only), `NAME: T` or
+`NAME: Final = <literal>`; class — the docstring or `...`, a method
+(`@property` / `@overload` only), `name: T`; bases are names, a builtin base
+is a claim (`error(RuntimeError)`). Any other form (a class assignment, an
+`if`, a computed constant, another decorator) is a PROBLEM with its line,
+never silently no claim — on the real stubs in every job. The claims:
 every public module name, every public member of a public class, every
 constant value — for `linuxcnc`, `hal`, `gcode` and `rs274.interpret` (R354
 VM-I02). Each claim must hold on the installed module; the module may have

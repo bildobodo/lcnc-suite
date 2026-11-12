@@ -28,6 +28,7 @@ per line; a missing or broken module or stub is a problem, never a skip.
 from __future__ import annotations
 
 import ast
+import builtins
 import importlib
 import inspect
 import os
@@ -53,45 +54,113 @@ STUBS: dict[str, str] = {
 
 @dataclass
 class Claims:
-    """What one stub says the real module has."""
+    """What one stub says the real module has — and every declaration the
+    reader did not take (`unsupported`, "line: what"): a form outside the
+    enforced set is a PROBLEM, never silently no claim (R355 VM-I02)."""
     names: set[str] = field(default_factory=set)
     members: dict[str, set[str]] = field(default_factory=dict)
     values: dict[str, object] = field(default_factory=dict)
+    bases: dict[str, list[str]] = field(default_factory=dict)
+    unsupported: list[str] = field(default_factory=list)
 
 
 def _public(name: str) -> bool:
     return not name.startswith("_")
 
 
+def _literal(node: ast.expr | None) -> tuple[bool, object]:
+    """(True, value) for a literal constant (`3`, `-1`, `"x"`, `True`)."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float, str, bool)):
+        return True, node.value
+    if (isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub)
+            and isinstance(node.operand, ast.Constant) and isinstance(node.operand.value, (int, float))
+            and not isinstance(node.operand.value, bool)):
+        return True, -node.operand.value
+    return False, None
+
+
+def _is_docstring_or_ellipsis(node: ast.stmt) -> bool:
+    return (isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant)
+            and (isinstance(node.value.value, str) or node.value.value is Ellipsis))
+
+
+def _decorators(fn: ast.FunctionDef, allowed: frozenset[str]) -> str | None:
+    """None when every decorator is an allowed bare name, else the first other."""
+    for d in fn.decorator_list:
+        if not (isinstance(d, ast.Name) and d.id in allowed):
+            return ast.unparse(d)
+    return None
+
+
+#: THE stub forms the reader takes — everything else is refused with its line:
+#:   module: the docstring, imports (helpers, no claims), a class, a function
+#:     (@overload only), `NAME: T` or `NAME: Final = <literal>` (a number, a
+#:     negative number, a string, a bool);
+#:   class:  the docstring or `...`, a method (@property / @overload only),
+#:     `name: T` (no value); bases are names (a builtin base is a claim);
+#:   a private `_` class is a helper: its body is not read.
 def stub_claims(text: str) -> Claims:
-    """The public names, class members and constant values a stub declares."""
+    """The public names, class members, constant values and builtin bases a
+    stub declares — from a narrow, enforced set of forms."""
     out = Claims()
+
+    def refuse(node: ast.stmt, what: str) -> None:
+        out.unsupported.append(f"line {node.lineno}: {what} — not a stub form the check reads")
+
     for node in ast.parse(text).body:
-        if isinstance(node, ast.ClassDef) and _public(node.name):
+        if _is_docstring_or_ellipsis(node) or isinstance(node, (ast.Import, ast.ImportFrom)):
+            continue
+        if isinstance(node, ast.ClassDef):
+            if node.decorator_list or node.keywords:
+                refuse(node, f"class {node.name} with decorators or keywords")
+                continue
+            if not _public(node.name):
+                continue
             out.names.add(node.name)
+            bases: list[str] = []
+            for b in node.bases:
+                if isinstance(b, ast.Name):
+                    bases.append(b.id)
+                else:
+                    refuse(node, f"class {node.name}: base {ast.unparse(b)}")
+            out.bases[node.name] = bases
             members: set[str] = set()
             for item in node.body:
-                if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)) and _public(item.name):
-                    members.add(item.name)
+                if _is_docstring_or_ellipsis(item):
+                    continue
+                if isinstance(item, ast.FunctionDef):
+                    other = _decorators(item, frozenset({"property", "overload"}))
+                    if other is not None:
+                        refuse(item, f"{node.name}.{item.name}: decorator @{other}")
+                    elif _public(item.name):
+                        members.add(item.name)
                 elif (isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name)
-                      and _public(item.target.id)):
-                    members.add(item.target.id)
+                      and item.value is None):
+                    if _public(item.target.id):
+                        members.add(item.target.id)
+                else:
+                    refuse(item, f"class {node.name}: {type(item).__name__} {ast.unparse(item)[:60]!r}")
             out.members[node.name] = members
-        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and _public(node.name):
-            out.names.add(node.name)
-        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and _public(node.target.id):
-            out.names.add(node.target.id)
-            if isinstance(node.value, ast.Constant):
-                out.values[node.target.id] = node.value.value
-            elif (isinstance(node.value, ast.UnaryOp) and isinstance(node.value.op, ast.USub)
-                  and isinstance(node.value.operand, ast.Constant)):
-                operand = node.value.operand.value
-                if isinstance(operand, (int, float)):
-                    out.values[node.target.id] = -operand
-        elif isinstance(node, ast.Assign):
-            for target in node.targets:
-                if isinstance(target, ast.Name) and _public(target.id):
-                    out.names.add(target.id)
+        elif isinstance(node, ast.FunctionDef):
+            other = _decorators(node, frozenset({"overload"}))
+            if other is not None:
+                refuse(node, f"{node.name}: decorator @{other}")
+            elif _public(node.name):
+                out.names.add(node.name)
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            name = node.target.id
+            if node.value is None:
+                if _public(name):
+                    out.names.add(name)
+                continue
+            ok, value = _literal(node.value)
+            if not ok:
+                refuse(node, f"{name}: a computed value {ast.unparse(node.value)!r} — write the literal")
+            elif _public(name):
+                out.names.add(name)
+                out.values[name] = value
+        else:
+            refuse(node, f"{type(node).__name__} {ast.unparse(node)[:60]!r}")
     return out
 
 
@@ -107,7 +176,7 @@ def _source_attributes(cls: type) -> set[str]:
 
 
 def module_problems(modname: str, module: object, claims: Claims) -> list[str]:
-    out: list[str] = []
+    out: list[str] = [f"the stub of {modname}, {u}" for u in claims.unsupported]
     for name in sorted(claims.names):
         if not hasattr(module, name):
             out.append(f"{modname}.{name} is claimed by the stub and missing")
@@ -118,6 +187,10 @@ def module_problems(modname: str, module: object, claims: Claims) -> list[str]:
         have = set(dir(real)) | (_source_attributes(real) if isinstance(real, type) else set())
         out += [f"{modname}.{cls_name}.{m} is claimed by the stub and missing"
                 for m in sorted(members) if m not in have]
+        for base in claims.bases.get(cls_name, []):
+            builtin = getattr(builtins, base, None)
+            if isinstance(builtin, type) and not (isinstance(real, type) and issubclass(real, builtin)):
+                out.append(f"{modname}.{cls_name} is claimed a {base} subclass and is not")
     for name, value in sorted(claims.values.items()):
         if hasattr(module, name) and getattr(module, name) != value:
             out.append(f"{modname}.{name} is {getattr(module, name)!r}, the stub says {value!r}")

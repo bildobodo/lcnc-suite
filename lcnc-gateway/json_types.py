@@ -5,10 +5,13 @@ follows every value to the narrowing the code does before it uses one.
 
 Also the two conversions the payload checks need: float() / int() of a
 value read off a payload or a status, with the SAME outcome as the builtins
-(a number, a numeric string, a bool and anything that declares __float__ /
-__int__ / __index__ converts; anything else is float()'s / int()'s own
-TypeError) — typed, so a caller's except (TypeError, ValueError) keeps
-meaning what it meant. Pure, stdlib only."""
+for what arrives there — every JSON value, a status number, a numpy scalar
+(a number, a numeric string, a bool, bytes and anything that declares
+__float__ / __int__ / __index__ converts; None, a list, a dict, any other
+object is float()'s / int()'s own TypeError) — typed, so a caller's except
+(TypeError, ValueError) keeps meaning what it meant. Not the builtins for
+every Python object: a memoryview (no JSON value) is a TypeError here.
+Pure, stdlib only."""
 from __future__ import annotations
 
 from typing import Dict, List, SupportsFloat, SupportsIndex, SupportsInt, TypeAlias, Union

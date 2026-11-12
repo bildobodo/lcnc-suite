@@ -6,6 +6,7 @@ process without the fake: lcnc_iface_check.py). The static half — stub and
 fake against the Protocols, the refused forms — is pyright's
 (typings/conformance/)."""
 import ast
+import builtins
 import os
 import subprocess
 import sys
@@ -183,7 +184,9 @@ def _surrogate(stubs: dict[str, str]) -> dict[str, object]:
         mod = types.ModuleType(modname)
         for name in claims.names:
             if name in claims.members:
-                setattr(mod, name, type(name, (), {m: None for m in claims.members[name]}))
+                bases = tuple(b for b in (getattr(builtins, n, None) for n in claims.bases.get(name, []))
+                              if isinstance(b, type))
+                setattr(mod, name, type(name, bases, {m: None for m in claims.members[name]}))
             else:
                 setattr(mod, name, claims.values.get(name, object()))
         out[modname] = mod
@@ -243,6 +246,48 @@ class StubClaims(unittest.TestCase):
         for name in OPTIONAL_STAT_FIELDS:                     # … or absent
             delattr(lc.stat, name)
         self.assertEqual(check.problems(self.modules, self.stubs), [])
+
+    def test_the_real_stubs_use_only_the_forms_the_reader_takes(self):
+        for modname, text in self.stubs.items():
+            self.assertEqual(check.stub_claims(text).unsupported, [], modname)
+
+    def _with(self, modname, old, new):
+        stubs = dict(self.stubs)
+        assert old in stubs[modname], old
+        stubs[modname] = stubs[modname].replace(old, new, 1)
+        return check.problems(self.modules, stubs)
+
+    def test_a_class_assignment_is_refused(self):           # Codex R355 probe 1
+        found = self._with("linuxcnc", "    def abort(self) -> None: ...",
+                           "    def abort(self) -> None: ...\n    codex_nonexistent = 1")
+        self.assertTrue(any("class command: Assign" in f for f in found), found)
+
+    def test_a_conditional_member_is_refused(self):         # Codex R355 probe 2
+        found = self._with("linuxcnc", "    def abort(self) -> None: ...",
+                           "    def abort(self) -> None: ...\n    if sys.platform == 'linux':\n"
+                           "        def codex_nonexistent(self) -> None: ...")
+        self.assertTrue(any("class command: If" in f for f in found), found)
+
+    def test_a_computed_constant_is_refused(self):          # Codex R355 probe 3
+        found = self._with("hal", "HAL_OUT: Final = 32", "HAL_OUT: Final = 16 + 17")
+        self.assertTrue(any("HAL_OUT: a computed value" in f for f in found), found)
+
+    def test_a_wrong_literal_constant_is_found(self):       # … and its literal control case
+        found = self._with("hal", "HAL_OUT: Final = 32", "HAL_OUT: Final = 33")
+        self.assertIn("hal.HAL_OUT is 32, the stub says 33", found)
+
+    def test_a_module_level_condition_or_other_decorator_is_refused(self):
+        found = self._with("gcode", "def strerror(err: int, /) -> str: ...",
+                           "if True:\n    def strerror(err: int, /) -> str: ...")
+        self.assertTrue(any("If" in f for f in found), found)
+        found = self._with("linuxcnc", "    @property\n    def serial(self) -> int: ...",
+                           "    @staticmethod\n    def serial() -> int: ...")
+        self.assertTrue(any("decorator @staticmethod" in f for f in found), found)
+
+    def test_a_claimed_builtin_base_is_checked(self):
+        self.modules["linuxcnc"].error = type("error", (Exception,), {})
+        self.assertIn("linuxcnc.error is claimed a RuntimeError subclass and is not",
+                      check.problems(self.modules, self.stubs))
 
     def test_an_optional_field_is_never_a_stub_claim(self):
         claims = check.stub_claims(self.stubs["linuxcnc"])
