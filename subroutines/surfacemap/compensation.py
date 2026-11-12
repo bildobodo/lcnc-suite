@@ -141,6 +141,7 @@ class Compensation :
 		viz_zi = self.zi[np.ix_(xi_idx, yi_idx)]
 
 		grid_path = os.path.splitext(self.filename)[0] + "-grid.json"
+		tmp_path = None		# bound only once mkstemp has made the file
 		try:
 			grid_dir = os.path.dirname(grid_path) or "."
 			fd, tmp_path = tempfile.mkstemp(suffix=".json", dir=grid_dir)
@@ -155,7 +156,8 @@ class Compensation :
 		except OSError as e:
 			print(f" Grid write failed: {e}")
 			try:
-				os.unlink(tmp_path)
+				if tmp_path is not None:
+					os.unlink(tmp_path)
 			except OSError as cleanup_err:
 				print(f"  Warning: tmp cleanup failed for {tmp_path}: {cleanup_err}")
 

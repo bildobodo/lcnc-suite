@@ -760,6 +760,17 @@ class StatusRuntime:
 
         return None
 
+    def get_spindle_override_enabled(self) -> Optional[bool]:
+        """Spindle 0's override switch (M51): the spindle row's
+        `override_enabled` — 2.9.4 has no `stat.spindle_override_enabled` (the
+        read of that name always got its default True). None when unread:
+        never "enabled" for missing data (the UI reads only `=== true`)."""
+        spindles = self.safe_get("spindle", None)
+        try:
+            return bool(spindles[0]["override_enabled"]) if spindles else None
+        except (IndexError, KeyError, TypeError):
+            return None
+
     def stat_poll_timed(self, caller: str = "?") -> None:
         """Drop-in replacement for STAT.poll() that times the call and emits
         `stat.poll_slow` on >30 ms. Use from main-thread call sites (handlers)
@@ -1235,7 +1246,9 @@ class StatusRuntime:
             if tool_change_tool is not None:
                 try:
                     tbl_path = self._get_tool_tbl_path()
-                    tbl_mtime = os.path.getmtime(tbl_path) if tbl_path and os.path.exists(tbl_path) else 0
+                    if not tbl_path:
+                        raise ValueError("no tool table path known")
+                    tbl_mtime = os.path.getmtime(tbl_path) if os.path.exists(tbl_path) else 0
                     cache_key = (tool_change_tool, tbl_mtime)
                     if cache_key not in self._tc_info_cache:
                         tbl_tools = parse_tool_table(tbl_path)
@@ -1306,7 +1319,7 @@ class StatusRuntime:
             spindle_override=spindle_ovr,
             rapid_override=safe_get("rapidrate", None),
             feed_override_enabled=bool(safe_get("feed_override_enabled", True)),
-            spindle_override_enabled=bool(safe_get("spindle_override_enabled", True)),
+            spindle_override_enabled=self.get_spindle_override_enabled(),
             block_delete=bool(safe_get("block_delete", 0)),
             optional_stop=bool(safe_get("optional_stop", 0)),
             feed_hold_enabled=bool(safe_get("feed_hold_enabled", 0)),
