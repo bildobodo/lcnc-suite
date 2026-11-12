@@ -30,12 +30,14 @@ ignore = ["B905", "B023", "B904", "B008", "B007"]
 
 [lint.per-file-ignores]
 # The TWP remap's `from interpreter import *` (remap.py:45, LinuxCNC's embedded
-# interpreter module) — every name it brings in reads as undefined to pyflakes.
+# interpreter module) — every name it brings in reads as undefined to pyflakes,
+# so F821 cannot prove names in this file complete either (F403/F405).
 # It is also a FORK of the upstream TWP remap (LinuxCNC master @493926b56c,
-# its header): task behaviour identical to upstream, every own edit tagged
-# LCNC-SUITE — its unused imports and intermediate values are upstream's and
-# stay byte-close for the diff (F401/F841); undefined names (F821) and the B
-# rules stay on.
+# its header; own edits tagged LCNC-SUITE), left UNCHANGED by the ruff
+# introduction (Codex R351): F401/F841 are off for the whole file — its
+# unused imports and values, upstream's and some of the LCNC-SUITE edits'
+# (`calc_shortest_distance`), and any later addition here too. The B rules
+# stay on.
 "examples/sim_config/**/remap.py" = ["F403", "F405", "F401", "F841"]
 # LinuxCNC's [PYTHON] TOPLEVEL entry: `import remap` IS its job.
 "examples/sim_config/**/toplevel.py" = ["F401"]
