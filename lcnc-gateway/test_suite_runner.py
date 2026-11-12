@@ -46,6 +46,40 @@ class RuffStep(unittest.TestCase):
         self.assertIn("No module named ruff", r.stderr)
 
 
+class PyrightStep(unittest.TestCase):
+    """The type check is red on what it exists for (package 2, R352/R353): a
+    type error through the step's own launcher and config, and a missing
+    pyright — exit 2 with its reason, never a skip."""
+
+    def launcher(self):
+        spec = importlib.util.spec_from_file_location("run_pyright", ROOT / "scripts" / "run_pyright.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def test_a_type_error_fails_through_the_steps_launcher(self):
+        import subprocess
+        import sys
+        if not self.launcher().PYRIGHT.exists():
+            self.fail("pyright is not installed in lcnc-webui (npm ci) — the gate step would fail too")
+        with tempfile.TemporaryDirectory() as tmp:
+            bad = Path(tmp) / "bad.py"
+            bad.write_text("def f() -> int:\n    return 'no int'\n")
+            r = subprocess.run([sys.executable, str(ROOT / "scripts" / "run_pyright.py"), str(bad)],
+                               capture_output=True, text=True, timeout=300)
+        self.assertNotEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("reportReturnType", r.stdout)
+
+    def test_a_missing_pyright_fails_with_its_reason(self):
+        import contextlib
+        import io
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc = self.launcher().main([], pyright=Path("/nonexistent/pyright"))
+        self.assertEqual(rc, 2)
+        self.assertIn("pinned in lcnc-webui/package.json", err.getvalue())
+
+
 class TestSuiteRunner(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -102,9 +136,9 @@ class TestSuiteRunner(unittest.TestCase):
 
     def test_offline_discovers_tests_and_contains_no_live_gate(self):
         commands = suite.offline_commands("all")
-        # the Python lint first (issue #36, Codex R349/R350), then the backend pytest
-        self.assertEqual(commands[0][0], "ruff")
-        self.assertEqual(commands[1][1][-2:], ["-m", "pytest"])
+        # the Python lint and type check first (issue #36, plan vor-maschine), then the backend pytest
+        self.assertEqual([c[0] for c in commands[:3]], ["ruff", "pyright", "backend"])
+        self.assertEqual(commands[2][1][-2:], ["-m", "pytest"])
         # backend, 5axis-model, audit-css (the scoped-CSS linter's pytest pins,
         # WP2 2026-09-20: scripts/ is outside the gateway's testpaths),
         # review-handshake (its pytest pins, 2461d04 2026-09-26),
@@ -120,7 +154,8 @@ class TestSuiteRunner(unittest.TestCase):
         # + perf-matrix (the matrix's own verdict: an armed writer, a scenario
         #   that measured nothing fails — live checks 2026-11-11)
         # + ruff (the Python lint, first — issue #36, Codex R349/R350)
-        self.assertEqual(len(commands), 16)
+        # + pyright (the type check, second — package 2, R352/R353)
+        self.assertEqual(len(commands), 17)
         self.assertIn("audit-css", [name for name, _, _ in commands])
         self.assertIn("review-handshake", [name for name, _, _ in commands])
         self.assertIn("readback-target", [name for name, _, _ in commands])

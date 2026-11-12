@@ -1,0 +1,23 @@
+{
+  "include": [
+    "lcnc-gateway",
+    "subroutines/surfacemap/compensation.py",
+    "typings"
+  ],
+  "exclude": [
+    "lcnc-gateway/.venv",
+    "lcnc-gateway/test_*.py",
+    "lcnc-gateway/conftest.py",
+    "lcnc-gateway/writer_fixture.py",
+    "lcnc-gateway/suite_py_bind_probe.py",
+    "lcnc-gateway/native_*_probe.py",
+    "lcnc-gateway/gateway.py",
+    "**/__pycache__",
+    "**/node_modules"
+  ],
+  "stubPath": "typings",
+  "extraPaths": ["lcnc-gateway", "subroutines/surfacemap"],
+  "typeCheckingMode": "standard",
+  "pythonVersion": "3.11",
+  "pythonPlatform": "Linux"
+}

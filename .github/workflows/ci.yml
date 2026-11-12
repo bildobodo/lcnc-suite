@@ -98,7 +98,12 @@ jobs:
           pip install fastapi==0.136.1 starlette==1.0.0 httpx==0.28.1
           msgspec==0.21.1 click==8.3.3 python-multipart==0.0.28 -r requirements-test.txt
           numpy==2.2.4 scipy==1.15.3 websockets==16.0 requests==2.32.3
+      # No LinuxCNC on the runner: the native name check of the binding is the
+      # one test this job skips, by name (test_lcnc_iface.py, package 2 Q352-4);
+      # the VM and the install probe run it.
       - run: python ../scripts/test_suite.py offline --component backend
+        env:
+          LCNC_NO_BINDING: "1"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

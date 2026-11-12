@@ -130,6 +130,11 @@ def offline_commands(component):
         # from this venv (requirements-test.txt): a missing ruff fails the
         # step, it is never fetched at gate time.
         commands.append(("ruff", [python(), "-m", "ruff", "check", "--no-cache"], ROOT))
+        # The Python type check (package 2, plan vor-maschine R352/R353): the
+        # pyright pinned in lcnc-webui/package.json through run_pyright.py (the
+        # root pyrightconfig.json, this interpreter's import paths); a missing
+        # pyright fails the step with its reason.
+        commands.append(("pyright", [python(), str(ROOT / "scripts/run_pyright.py")], ROOT))
         commands.append(("backend", [python(), "-m", "pytest"], ROOT / "lcnc-gateway"))
         commands.append(("5axis-model", [python(), str(ROOT / "scripts/test_5axis_xyzac.py")], ROOT))
         # Explicit: the backend pytest runs in lcnc-gateway with testpaths=["."]
