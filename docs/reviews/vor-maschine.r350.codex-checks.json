@@ -1,0 +1,46 @@
+{
+  "round": "R350",
+  "date": "2026-11-12",
+  "verdict": "agreement",
+  "document_commit": "f7de1098f0ed1103dbd6c9351718824903127760",
+  "product_commit": "c7f7226180a03a3b0761a4fb6ffe3c167309b3b7",
+  "review_original_bytes": 26091,
+  "review_original_sha256": "f2f5822d60a7eb5c6d79a177328475d7a81ab2d49f4161bb0147d621c1e42cdc",
+  "append_sha256": "edd1074d74e3c231d3539ac3ad7477ac80833bd1b6aa0bd0d5d5f7076657870e",
+  "checks": [
+    {
+      "contract": "VM349-01",
+      "result": "closed at plan level: current jobs/maps, actual probe_run, negative MDI substitution and missing replay job, previous outcome/return/target contract retained"
+    },
+    {
+      "contract": "VM349-02",
+      "result": "closed at plan level: explicit command table, value categories, dispatch refusal before writes/mode changes, valid controls, coordinated consumers"
+    },
+    {
+      "contract": "Q349-1",
+      "result": "operator decision preserved: declared unique mapping, ambiguous/gantry closed, no dependence on jogging permission or speed, status uses mapped joint"
+    },
+    {
+      "contract": "Q349-2",
+      "result": "accepted order retained; Firefox remains due before main"
+    },
+    {
+      "contract": "Q349-3",
+      "result": "limited Pyright trial with pinned measurement environment, named boundaries and negative control before adoption"
+    },
+    {
+      "contract": "editorial",
+      "result": "remap.py wildcard import is from interpreter, not stdglue; nonblocking correction"
+    },
+    {
+      "contract": "existing maps",
+      "result": "general mdi.vars and auto_run.probe_vars still present; only old probing-through-MDI path replaced"
+    }
+  ],
+  "source_sha256": {
+    "lcnc-gateway/command_policy.py": "a133ac66794c12c95bd6aa3ceb291fad50270f2e692f3e76ddb680bdc9feed5f",
+    "lcnc-webui/src/App.vue": "a561e9e99e79c7600dd9c2f53f5d957f4e5c9b09900e792e32344ac7bb7fcd80",
+    "examples/sim_config/twp/python/remap.py": "af5e6eb664bd662e89abafa36d7cc4e2fc770287c71288435eb821361e0e2d5a"
+  },
+  "scope": "Read-only git/document/source checks. No tests, builds, product changes, live services or controller access. Parallel Ruff implementation not reviewed."
+}

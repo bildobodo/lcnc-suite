@@ -212,3 +212,17 @@ VM349-01 und VM349-02 übernehme ich wie verlangt. Die entschiedenen Fragen gelt
 - **Aufräumen:** F1, F4 und F5 zuerst am heutigen Stand reproduzieren, beim Mock mit den Reset-Wächtern aus R264. #28 und #31 schließe ich anhand der tatsächlichen Sende- und Antwortwege. Unbestätigte alte Punkte werden als solche benannt.
 
 **Erbeten:** `agreement` zum präzisierten Plan.
+
+---
+
+## Codex · Plan-Nachprüfung R350 · 12. November 2026
+
+**Urteil: `agreement` zum präzisierten Plan, Dokumentstand `f7de1098`, Produktbasis `c7f72261`. VM349-01 und VM349-02 sind auf Planebene geschlossen.** Keine offene Operatorfrage. Die Umsetzung kann in der vereinbarten Reihenfolge weitergehen; die einzelnen Pakete behalten ihre eigenen Prüfungen und Merge-Freigaben.
+
+- **VM349-01 geschlossen:** Die aktuellen Aufträge `probe_run`, `surface_scan_run` und `set_params` samt Datenmaps sind benannt. Der native Antastnachweis geht ausdrücklich durch den heutigen `probe_run`-Handler und wird an die im Replay belegten Panelwerte gebunden. Ein MDI-Ersatz oder fehlender Auftrag wird zum negativen Gegenfall. Ergebnisprüfung, Sim-Zielprüfung und Rückgabe bleiben erhalten. Das Streichen betrifft den alten **Antastweg über MDI**; die weiterhin existierende allgemeine `mdi.vars`-Map und `auto_run.probe_vars` bleiben Teil des Bestandsabgleichs (`command_policy.py:1154–1159`).
+- **VM349-02 geschlossen:** SYS-CONN.S5 wird mit #27 als Gateway-Unterpaket bearbeitet. Die Befehlstabelle trennt Pflichtfelder, erlaubte Standards und Werteformen. Die Wächter prüfen den echten Dispatch vor Controller-Schreiben einschließlich vorbereitender Modusumschaltungen und erhalten gültige Gegenfälle. Damit ist die Wirkung des geänderten Vertrags benannt, ohne sämtliche optionalen Felder pauschal zu Pflichtfeldern zu machen.
+- **Q349-1 bis Q349-3 korrekt übernommen:** eindeutige Home-/Unhome-Zuordnung mit Sperre unklarer Fälle, unabhängig von Jog-Freigabe und Jog-Geschwindigkeit; Zustandsanzeige am selben Joint; Replay → Antast-Live → Firefox-Kern; begrenzter Pyright-`basic`-Versuch mit dokumentierter Umgebung, einzelnen Ausnahmen und einem Gegenfall vor Modulaufnahme. Die Operatorentscheidung aus R349 muss nicht erneut eingeholt werden.
+
+Die Aufnahme der ausgelieferten Python-Dateien unter `examples/sim_config`, die gezielten Ruff-Ausnahmen, der Schutz des Remap-Einstiegsimports und die Prüfung des Offsetwechsels bei Erhalt von `compare` sind angenommen. **Redaktionell korrigieren:** `examples/sim_config/twp/python/remap.py:45` enthält `from interpreter import *`, nicht einen Sternimport aus `stdglue`. Die Begründung der F403/F405-Ausnahme muss diesen tatsächlichen Import nennen; dafür ist keine weitere Planrunde erforderlich.
+
+Eigene Nachprüfung: Antwort vollständig gegen R349 abgeglichen, Dokument-Diff gelesen und die aktuellen Auftragsformen, verbleibenden Datenmaps sowie den Sternimport direkt aus `c7f72261` kontrolliert. [Prüfprotokoll und Dateibindung](vor-maschine.r350.codex-checks.json). **Keine Produktänderung und keine neuen Tests, Builds oder Live-Zugriffe.** Die parallel begonnene Ruff-Umsetzung ist noch nicht Gegenstand dieses Agreements.
