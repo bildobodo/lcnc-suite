@@ -58,6 +58,7 @@ import sys
 import tempfile
 import time
 from itertools import chain
+from typing import List
 
 import msgspec
 import numpy as np
@@ -111,7 +112,7 @@ _EMPTY = {"feed": [], "feed_lines": [], "rapid": [], "stats": None,
 _RDP_EPS_MM = 0.005
 
 
-def _rdp_keep(points, anchors, eps_sq):
+def _rdp_keep(points, anchors, eps_sq) -> List[int]:
     """Iterative RDP that preserves a set of anchor indices.
 
     points  -- np.ndarray of shape (N, 3), float64
@@ -129,7 +130,7 @@ def _rdp_keep(points, anchors, eps_sq):
     for a in anchors:
         if 0 <= a < n:
             keep[a] = True
-    anchor_idx = sorted(np.flatnonzero(keep).tolist())
+    anchor_idx = sorted(int(i) for i in np.flatnonzero(keep))
     for lo, hi in zip(anchor_idx, anchor_idx[1:]):
         if hi - lo < 2:
             continue
@@ -160,7 +161,7 @@ def _rdp_keep(points, anchors, eps_sq):
                 keep[pivot] = True
                 stack.append((i0, pivot))
                 stack.append((pivot, i1))
-    return np.flatnonzero(keep).tolist()
+    return [int(i) for i in np.flatnonzero(keep)]
 
 # g5x_index → RS274 WCS word. Interpreter starts in G54 unless the initcode
 # selects another; param 5220 on disk is stale until LinuxCNC shutdown, so
@@ -641,10 +642,10 @@ def parse(ctx: dict) -> dict:
             canon.kins_events if kins_active else [],
             canon.kins_frames if kins_active else [],
             canon.wcs_events, kins_cfg, unit_scale,
-            ustart_seqs=set(canon.unknown_start),
+            ustart_seqs=frozenset(canon.unknown_start),
             # G43 / G49 / G43.1 on a program line: the machine stands, the
             # next move starts at the pose re-expressed in the new frame.
-            offset_seqs=set(canon.offset_events),
+            offset_seqs=frozenset(canon.offset_events),
             # Fifth input: the initcode pose is expressed under the LIVE
             # parse-time kins — the k=0 correction converts FROM it.
             start_type=(live_kins_type if (kins_active and
@@ -768,6 +769,8 @@ def parse(ctx: dict) -> dict:
             # 2=TOOL w/ its governing WEBUI_TWPFRAME) — frames resolved
             # by seq exactly like the type markers. Frameless type-2
             # (bare M430) rides the wire as the unchecked count.
+            # set together with feed_world above (_any_world implies the types)
+            assert feed_types is not None and rapid_types is not None
             _f_frame = kins_frame_indices([t[5] for t in canon.feed], canon.kins_frames)
             _r_frame = kins_frame_indices([t[4] for t in canon.rapid], canon.kins_frames)
             _frames = [(f[1], f[2], f[3]) for f in canon.kins_frames]

@@ -27,7 +27,7 @@ effects, so it is unit-testable on a plain developer machine.
 
 import math
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional, Union
 
 from features import GAMEPAD_COMMANDS, PURPOSE_VARS as PARAM_PURPOSES, VIA_VALUES
 
@@ -998,12 +998,16 @@ class MachineLimits:
 WRITABLE_VAR_DENY_RANGES = ((1, 30), (5000, 99999))
 
 
+#: a schema bound: a literal, none, or a function of the machine's declared limits
+Bound = Union[int, float, None, Callable[["MachineLimits"], Optional[float]]]
+
+
 @dataclass(frozen=True)
 class Num:
     """A numeric field. `lo`/`hi` are a literal, None, or a callable taking
     MachineLimits (so machine-declared bounds are named at the use site)."""
-    lo: object = None
-    hi: object = None
+    lo: Bound = None
+    hi: Bound = None
     clamp: bool = False
     integer: bool = False
 
@@ -1019,12 +1023,12 @@ class Seq:
     """A list field with a hard length cap. Unbounded lists matter: the
     jog-multi handlers iterate the payload's `axes` issuing one CMD.jog per
     entry while holding the command lock."""
-    max_len: object
+    max_len: Bound
 
 
 @dataclass(frozen=True)
 class Text:
-    max_len: object
+    max_len: Bound
 
 
 @dataclass(frozen=True)
@@ -1200,7 +1204,7 @@ for _c in GAMEPAD_COMMANDS:
     COMMAND_SCHEMA.setdefault(_c, {})["via"] = Choice(VIA_VALUES)
 
 
-def _bound(spec_bound, limits: MachineLimits):
+def _bound(spec_bound: Bound, limits: MachineLimits) -> Optional[float]:
     return spec_bound(limits) if callable(spec_bound) else spec_bound
 
 

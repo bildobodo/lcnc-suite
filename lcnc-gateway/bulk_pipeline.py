@@ -33,7 +33,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Dict, Optional
 
 import msgspec as _msgspec
 
@@ -102,6 +102,9 @@ def _write_verify_blob(blob: bytes) -> str:
         f.write(blob)
     return path
 
+
+#: the `pinned` trace field, only on a pinned parse (a trace field: any value)
+_PINNED: Dict[str, Any] = {"pinned": True}
 
 class BulkPipeline:
     def __init__(
@@ -385,7 +388,7 @@ class BulkPipeline:
         except AttributeError:
             pass  # spawn returned no task handle — the coroutine's finally is the only reset
         _trace.emit("gcode.refresh_scheduled", file=filepath, reason=reason,
-                    **({"pinned": True} if pinned else {}))
+                    **(_PINNED if pinned else {}))
         return True
 
     def clear_preview(self) -> None:
@@ -527,7 +530,7 @@ class BulkPipeline:
             return False, "another kinematics state"
         live_rot = rotary_seed_values(getattr(stat, "axis_mask", 0) or 0, getattr(stat, "actual_position", None))
         pub_rot = self.published_rotary_seed
-        if (live_rot is None) != (pub_rot is None) or (live_rot and (
+        if (live_rot is None) != (pub_rot is None) or (live_rot and pub_rot is not None and (
                 set(live_rot) != set(pub_rot) or any(abs(live_rot[k] - pub_rot[k]) > 0.01 for k in live_rot))):
             return False, "another rotary pose"
         live = self.live_start(stat)
@@ -779,8 +782,9 @@ class BulkPipeline:
             if (reason == "tool_offset" and not pinned and self.tool_basis is not None
                     and self.last_file == filepath and self.preview_available()):
                 _blob = self.preview_bytes_gz if self.preview_bytes_gz is not None else self.preview_bytes
-                _verify_path = await asyncio.to_thread(_write_verify_blob, _blob)
-                ctx["verify_against"] = _verify_path
+                if _blob is not None:      # preview_available(): one of the two is held
+                    _verify_path = await asyncio.to_thread(_write_verify_blob, _blob)
+                    ctx["verify_against"] = _verify_path
             ctx_bytes = _msgspec.msgpack.encode(ctx)
             # Input snapshot of THIS parse in the published seeds' shapes
             # (cancel-and-restart): rotary pose as the worker will seed it
@@ -821,14 +825,14 @@ class BulkPipeline:
                 # the start tool state the worker will seed (VP-I20) — a G43
                 # by hand while it runs stales it (inflight_stale_reason)
                 "tlo_seed": _tlo_seed,
-                **({"pinned": True} if pinned else {}),
+                **(_PINNED if pinned else {}),
                 **({"verify": True} if _verify_path else {}),
             }
             _trace.emit("gcode.spawn_start", job=_job, basis=_basis,
                         file=os.path.basename(filepath), active_idx=active_idx,
                         reason=reason, expected_ms=expected_ms,
                         timeout_s=round(timeout_s, 1),
-                        **({"pinned": True} if pinned else {}))
+                        **(_PINNED if pinned else {}))
 
             t_spawn = time.monotonic()
             # Spawn + run the worker entirely off the event loop (B7): the fork no
@@ -847,7 +851,7 @@ class BulkPipeline:
             _span = parse_span_of(stderr)
             if _span["p0_ns"] is not None:
                 _trace.emit("gcode.parse_span", job=_job, rc=returncode, file=os.path.basename(filepath), **_span,
-                            **({"pinned": True} if pinned else {}),
+                            **(_PINNED if pinned else {}),
                             **({"cancelled": self.cancel_reason} if self.cancel_reason is not None else {}))
             if self.cancel_reason is not None:
                 # Superseded by cancel_inflight: the result (if any) was
@@ -1096,7 +1100,7 @@ class BulkPipeline:
                 # A niced mid-run parse is no estimate for the next idle one.
                 self.parse_ms_by_file[filepath] = round((t_gz_done - t_start) * 1000)
             _trace.emit("gcode.publish", job=_job, basis=_basis, active_idx=active_idx,
-                        **({"pinned": True} if pinned else {}),
+                        **(_PINNED if pinned else {}),
                         version=self.preview_version,
                         schema=worker_schema,
                         gzip_ms=round((t_gz_done - t_gz0) * 1000, 1),

@@ -291,7 +291,7 @@ try:
                     client = admitted.sock
                     buf = admitted.leftover
                     _consume_buf()
-            elif sock is client:
+            elif client is not None and sock is client:
                 try:
                     data = client.recv(65536)
                 except Exception as _re:

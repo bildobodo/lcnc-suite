@@ -78,7 +78,7 @@ class Compensation :
 	METHOD_NAMES = {0: "nearest", 1: "linear", 2: "cubic"}
 
 	def loadMap(self) :
-		method = self.METHOD_NAMES.get(self.h['method'], 'cubic')
+		method = self.METHOD_NAMES.get(int(self.h['method']), 'cubic')
 
 		# data coordinates and values
 		self.data = np.loadtxt(self.filename, dtype=float, delimiter=" ", usecols=(0, 1, 2))
@@ -211,6 +211,11 @@ class Compensation :
 
 		currentState = States.START
 		prevState = States.STOP
+		# set again in the START state, which always runs first (currentState above)
+		prevMapTime = 0
+		prevMethod = None
+		prevReloadReq = None
+		PrevResolution = None
 
 		self.h['resolution'] = 1 #give the resolution pin a value of 1
 		self.h['method'] = self.default_method

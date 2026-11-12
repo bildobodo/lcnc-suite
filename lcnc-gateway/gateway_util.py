@@ -365,7 +365,10 @@ class LoadedProgram:
 
     def request_load(self, path, now, before=None):
         """A load was sent; `before` = STAT.file when it was sent."""
-        self._pending = (canonical_path(path), now + LOAD_WINDOW_S)
+        loaded = canonical_path(path)
+        if loaded is None:
+            raise ValueError("request_load needs the program's path")
+        self._pending = (loaded, now + LOAD_WINDOW_S)
         self._pending_before = canonical_path(before or None)
         self._pending_opened = None
         self._unresolved = None
@@ -1815,7 +1818,7 @@ def compare_preview_payloads(old, new):
         nbx = new.get(k)
         if (ob is None) != (nbx is None):
             return False, f"field {k} differs"
-        if ob is None:
+        if ob is None or nbx is None:
             continue
         a = np.asarray(ob["min"] + ob["max"], dtype=np.float64)
         b = np.asarray(list(nbx["min"]) + list(nbx["max"]), dtype=np.float64)
@@ -2933,12 +2936,15 @@ def _kins_flip_pose(kins_cfg, ktype, frame, tlo, unit_scale, world=None, joints=
     SCALED machine units, or None when this side cannot be evaluated (no
     twin for the family, or a type-2 segment with no governing frame —
     the bare-M430 case, never guessed). Pure."""
+    pose = world if world is not None else joints
+    if pose is None or (world is not None and joints is not None):
+        raise ValueError("_kins_flip_pose: pass exactly one of world / joints")
     family = (kins_cfg or {}).get("type")
     params0 = {k: float(v) for k, v in ((kins_cfg or {}).get("params") or {}).items()}
     tlz = (tlo[2] if tlo is not None else 0.0) * unit_scale
     if family == "xyzacb-trsrn":
         if ktype == 0:
-            return list(world if world is not None else joints)
+            return list(pose)
         params = dict(params0)
         if ktype == 1:
             params["tool_offset_z"] = tlz
@@ -2952,11 +2958,11 @@ def _kins_flip_pose(kins_cfg, ktype, frame, tlo, unit_scale, world=None, joints=
             return None
         if world is not None:
             return list(trsrn_kins_inverse(world, params, ktype))
-        return list(trsrn_kins_forward(joints, params, ktype))
+        return list(trsrn_kins_forward(pose, params, ktype))
     if family in _TRT_LETTERS:
         world_type = 1 if (kins_cfg or {}).get("identity_first") else 0
         if ktype != world_type:
-            return list(world if world is not None else joints)
+            return list(pose)
         bc = family == "xyzbc-trt"
         params = params0
         if tlz:
@@ -2967,8 +2973,8 @@ def _kins_flip_pose(kins_cfg, ktype, frame, tlo, unit_scale, world=None, joints=
             # required-coordinates order back to the canonical 6-slot layout
             return ([j5[0], j5[1], j5[2], 0.0, j5[3], j5[4]] if bc
                     else [j5[0], j5[1], j5[2], j5[3], 0.0, j5[4]])
-        j5 = ([joints[0], joints[1], joints[2], joints[4], joints[5]] if bc
-              else [joints[0], joints[1], joints[2], joints[3], joints[5]])
+        j5 = ([pose[0], pose[1], pose[2], pose[4], pose[5]] if bc
+              else [pose[0], pose[1], pose[2], pose[3], pose[5]])
         return list(trt_kins_forward(j5, params, bc=bc))
     return None
 
@@ -3672,7 +3678,7 @@ def check_limit_violations_world(segments, limits, kins_cfg, unit_scale=1.0,
     segments are UNCHECKED (never checked wrongly as identity).
     """
     ktype = (kins_cfg or {}).get("type")
-    letters = _TRT_LETTERS.get(ktype)
+    letters = _TRT_LETTERS.get(ktype) if isinstance(ktype, str) else None
     segments = list(segments)
     if letters is None:
         return None, len(segments)
@@ -3941,6 +3947,8 @@ def _trsrn_inverse_np(w, params0, mode, tz=None, frame=None):
         sp, cp = np.sin(np.radians(wc)), np.cos(np.radians(wc))
         dt = tz if tz is not None else params0.get("tool_offset_z", 0.0)
     else:
+        if frame is None:
+            raise ValueError("_trsrn_inverse_np: mode 2 needs the plane frame")
         tc, th1, th2 = frame[:, 0], frame[:, 1], frame[:, 2]
         stc, ctc = np.sin(tc), np.cos(tc)
         ss, cs = np.sin(np.radians(th2)), np.cos(np.radians(th2))
@@ -4029,9 +4037,9 @@ def check_limit_violations_trsrn(segments, limits, kins_cfg, unit_scale=1.0,
         exempt = (~unk) & ((jmax[:, jno] - jmin[:, jno]) <= _JOINT_MOVE_EPS)
         below = (~exempt) & (jmin[:, jno] < mn - _LIMIT_EPS) if mn is not None else None
         above = (~exempt) & (jmax[:, jno] > mx + _LIMIT_EPS) if mx is not None else None
-        if below is None and above is None:
-            continue
         either = below if above is None else (above if below is None else (below | above))
+        if either is None:
+            continue
         for i in np.flatnonzero(either):
             seq = seqs[i]
             key = (linenos[i], letter,
@@ -4133,7 +4141,7 @@ def world_segment_outside_flags(segments, limits, kins_cfg, unit_scale=1.0,
     no twin (those segments are UNCHECKED — the caller leaves them unflagged
     and the unchecked count says so)."""
     ktype = (kins_cfg or {}).get("type")
-    letters = _TRT_LETTERS.get(ktype)
+    letters = _TRT_LETTERS.get(ktype) if isinstance(ktype, str) else None
     segments = list(segments)
     if letters is None:
         return None
@@ -4663,7 +4671,7 @@ def suite_python_reads(modules, sha256=None, table=None):
                     or getattr(obj, "__globals__", None) is not spaces[mod]):
                 ok = False
                 break
-            g = obj.__globals__
+            g = spaces[mod]     # the condition above: obj.__globals__ IS this namespace
             for c in functions[name][1]:
                 if c in functions:
                     stack.append((mod, c, g.get(c)))
@@ -4742,13 +4750,14 @@ class RemapEnv:
         if "=" in flat or "O" in flat:
             return True
         if not hasattr(self, "_near"):
-            near = {"M": {"97", "98"}}
+            near: Dict[str, Optional[set]] = {"M": {"97", "98"}}
             for letter, code in self.remaps:
                 if code is None:
                     near[letter] = None
-                elif near.get(letter, set()) is not None:
-                    near.setdefault(letter, set()).update(
-                        _near_int_parts(code / 10.0 if letter == "G" else float(code)))
+                    continue
+                parts = near.setdefault(letter, set())
+                if parts is not None:       # None: the letter's every code is a remap
+                    parts.update(_near_int_parts(code / 10.0 if letter == "G" else float(code)))
             self._near = near
         open_value = "[" in flat or "#" in flat
         for letter, parts in self._near.items():
@@ -5417,7 +5426,7 @@ def first_rotary_commands(streams, seed, rot_lines, relabel_seqs=(), eps=_USTART
     XYZ-only 1.18 M-line program is three numpy passes. Pure."""
     import numpy as np
     letters = [l for l in ("A", "B", "C") if seed and seed.get(l) is not None]
-    out = {l: None for l in letters}
+    out: Dict[str, Optional[int]] = {l: None for l in letters}
     out["unknown"] = None
     if not letters:
         return out
@@ -5447,7 +5456,8 @@ def first_rotary_commands(streams, seed, rot_lines, relabel_seqs=(), eps=_USTART
         out[l] = best
     # Some letter is still uncommanded at seq s iff s < max over letters of
     # (found seq, or +inf when never found).
-    horizon = max((out[l] if out[l] is not None else np.iinfo(np.int64).max) for l in letters)
+    found = (out[l] for l in letters)
+    horizon = max((s if s is not None else int(np.iinfo(np.int64).max)) for s in found)
     unk = None
     for seqs, lines, abc, cons, skip in prepared:
         cand = np.flatnonzero(~cons & ~skip & (seqs < horizon))

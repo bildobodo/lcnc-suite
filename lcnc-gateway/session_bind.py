@@ -46,7 +46,7 @@ import struct
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Mapping, Optional, Tuple
 
 PROTO = 1
 # A pending client must present its hello within this window.
@@ -175,7 +175,7 @@ class InstanceResolver:
         if self._cached is not None:
             return self._cached
         inst, found = discover_instance(self._proc_root, self._comm)
-        if len(found) > 1:
+        if len(found) > 1 and inst is not None:      # found non-empty: inst is its newest
             key = tuple(found)
             if key != self._multi_reported:
                 self._multi_reported = key
@@ -399,6 +399,8 @@ class AdmissionGate:
         if not ok:
             self._reject(sock, reason, peer_pid, theirs, expected)
             return None
+        # evaluate_admission admits only a dict hello against a known instance
+        assert expected is not None and isinstance(hello, dict)
         del self._pending[sock]
         self._say(sock, {"type": "welcome"})
         self._log(f"[{self._label}] gateway pid={peer_pid} admitted "
@@ -489,7 +491,7 @@ def pid_alive(pid: int) -> bool:
     return True
 
 
-def bind_to_launcher(env: Optional[dict] = None, *, signum: int = signal.SIGTERM) -> dict:
+def bind_to_launcher(env: Optional[Mapping[str, str]] = None, *, signum: int = signal.SIGTERM) -> dict:
     """Arm ``PR_SET_PDEATHSIG`` when a launcher started us (``LCNC_LAUNCHER_PID``).
 
     The launcher's EXIT trap SIGTERMs the gateway on every path bash can

@@ -8,7 +8,7 @@ apply_var_patches() when building the context handed to the worker.
 
 import math
 import os
-from typing import Dict, List
+from typing import Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 from rs274.interpret import Translated, ArcsToSegmentsMixin, StatMixin
@@ -48,7 +48,9 @@ def interp_this():
     global _INTERP
     if _INTERP is None:
         try:
-            import interpreter as _INTERP   # noqa: F811 — only while a parse runs
+            # the embedded interpreter's module exists only inside a parse: its
+            # stub (typings/interpreter.pyi) has no source anywhere else
+            import interpreter as _INTERP   # noqa: F811  # pyright: ignore[reportMissingModuleSource]
         except ImportError:
             return None
     return getattr(_INTERP, "this", None)
@@ -114,8 +116,11 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     stale = frozenset()
     _frame_unknown = frozenset()
     stale_offset_lines = ()
-    write_lines = None
-    write_mode = "ordered"          # gateway_util.position_write_lines: ordered | inline | foreign
+    # the worker sets it per parse; DECLARED only — LinuxCNC's gcode module asks
+    # whether the canon carries it, so no class default may stand in
+    parameter_file: str
+    write_lines: Optional[dict] = None
+    write_mode: str = "ordered"          # gateway_util.position_write_lines: ordered | inline | foreign
     _switch_g92_line = None
     ever_stale = False
     _reg_unknown = {}
@@ -137,9 +142,9 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     # (basis, rate)`: 1 a rapid, 2 a feed in units per minute at `rate`
     # (canon units / s, like `feed`), 3 a feed whose time the start changes in
     # a way this cannot say (G93, G95, no F).
-    dep = frozenset()
+    dep: frozenset[int] = frozenset()
     start_lo = None
-    start_kins_type = 0
+    start_kins_type: Optional[int] = 0
     _block_moves = 0
     _internal_move = False
     # Position READS (plan E4): a value read from the position while the
@@ -156,10 +161,10 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     # anywhere. The bundled routine marks its own reads (WEBUI_POS_*):
     # `_pos_saved` the X/Y/Z state at its save, `_pos_return` the return
     # move still to take it (one: X/Y at the top of travel — Z stays up).
-    read_lines = None
+    read_lines: Optional[dict] = None
     read_remaps = {}
     read_from_start = False
-    _read_setup = None              # the worker's, run once at the first callback
+    _read_setup: Optional[Callable[[], None]] = None              # the worker's, run once at the first callback
     # Without the interpreter's words no block can be told to command an
     # axis (Codex R132 VP-I80): the beginning is unknown, said on the wire.
     start_dep_unavailable = None
@@ -194,16 +199,16 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     # they apply is the TABLE's (assumed): paired with the next G43 of the
     # same call only — any sub marker before it (the call's end) discards it.
     # `toollen_events` [(seq, tool, zo, k)].
-    probe_events = ()
-    toollen_events = ()
+    probe_events: Tuple[tuple, ...] = ()
+    toollen_events: Tuple[tuple, ...] = ()
     # The probe's braking range (docs/reviews/parity-ef.plan.md F2): from
     # `(WEBUI_PROBE_BAND)` (just after the trip point) to `(WEBUI_PROBE_BAND_END)`
     # the routine moves only Z through a modeled hull — [(seq_start, seq_end,
     # tool, k)]: the segments seq_start < seq <= seq_end are the band. And
     # `(WEBUI_PROBE_NOTE=<reason>)` where the modeled sequence may not hold —
     # [(seq, tool, reason, k)]. k as for probe_events.
-    probe_bands = ()
-    probe_notes = ()
+    probe_bands: Tuple[tuple, ...] = ()
+    probe_notes: Tuple[tuple, ...] = ()
     _band_open = None
     toolsetter_unpredictable = None
     _probe_unknown = False
@@ -425,6 +430,8 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         is the byte after the line it called from. None when the file cannot
         be read."""
         if self._main_nl is None:
+            if self.main_file is None:
+                return None
             try:
                 with open(self.main_file, "rb") as f:
                     raw = f.read()
@@ -1052,11 +1059,13 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         (before, after) masks, None when no axis depends on the start."""
         if not self.dep and not self._pos_return:
             return None
-        before = self.dep
-        out = set()
-        known = set()
+        before: frozenset[int] = self.dep
+        out: set[int] = set()
+        known: set[int] = set()
         t = self.interp()
         try:
+            if t is None:
+                raise LookupError("no interpreter outside a parse")
             b = t.blocks[0]
             words = {i for i, f in enumerate((b.x_flag, b.y_flag, b.z_flag)) if f}
             g0, g1, dist = int(b.g_modes[0]), int(b.g_modes[1]), int(t.distance_mode)
@@ -1129,6 +1138,8 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     def _feed_basis(self):
         t = self.interp()
         try:
+            if t is None:
+                raise LookupError("no interpreter outside a parse")
             mode = int(t.feed_mode)
         except Exception:
             mode = None
@@ -1150,7 +1161,9 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             self._block_start = self.lo
         self.lo = end
 
-    def straight_traverse(self, x, y, z, a, b, c, u, v, w):
+    # the interpreter calls it with the nine axes; Translated declares *args —
+    # named parameters keep the parse's hot path free of an unpack
+    def straight_traverse(self, x, y, z, a, b, c, u, v, w):  # pyright: ignore[reportIncompatibleMethodOverride]
         self._enter()
         if self.suppress > 0: return
         dp = self._dep_step("traverse") if self._program_line() else None
@@ -1189,7 +1202,9 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             self.rapid.append((self.lineno, self.lo, l, (self.xo, self.yo, self.zo), self._next_seq()))
         self.lo = l
 
-    def straight_feed(self, x, y, z, a, b, c, u, v, w):
+    # the interpreter calls it with the nine axes; Translated declares *args —
+    # named parameters keep the parse's hot path free of an unpack
+    def straight_feed(self, x, y, z, a, b, c, u, v, w):  # pyright: ignore[reportIncompatibleMethodOverride]
         self._enter()
         if self.suppress > 0: return
         dp = self._dep_step("feed") if self._program_line() else None

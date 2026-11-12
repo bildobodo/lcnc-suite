@@ -551,6 +551,8 @@ class Aggregator:
         try:
             if callable(self._extra_fields):
                 extras = self._extra_fields() or {}
+                if not isinstance(extras, dict):
+                    raise TypeError(f"extra_fields returned {type(extras).__name__}, not a dict")
             elif isinstance(self._extra_fields, dict):
                 extras = self._extra_fields
             else:

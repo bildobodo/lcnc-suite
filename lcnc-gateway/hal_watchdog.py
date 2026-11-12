@@ -358,7 +358,7 @@ try:
                     _last_hb_recv = None
                     _last_hb_recv_true = None
                     _consume_buf()
-            elif sock is client:
+            elif client is not None and sock is client:
                 try:
                     data = client.recv(4096)
                     if not data:
@@ -380,7 +380,8 @@ try:
                     comp["tool-changed"] = False
                     comp["compensation-enable"] = False
                     try:
-                        client.close()
+                        if client is not None:
+                            client.close()
                     except Exception:
                         pass  # safe-silent: socket close in error/cleanup path
                     client = None

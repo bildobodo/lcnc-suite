@@ -146,9 +146,10 @@ class SettingsStore:
         if self._path.exists():
             try:
                 with open(self._path, "r") as f:
-                    self._cache = json.load(f)
+                    data = json.load(f)
+                    self._cache = data
                     self._load_failed = False
-                    return self._cache
+                    return data
             except Exception as e:
                 # Parse failure: cache {} so reads degrade gracefully, but flag
                 # it so WRITES are blocked — overwriting a corrupt file with one
@@ -362,6 +363,7 @@ class SettingsStore:
             all_data = copy.deepcopy(self._load_all())
             entry = self._entry(all_data)
             v2 = self._v2(entry)
+            profile: Optional[dict] = None
             if device is None:
                 revs, scope = v2["revs"], "machine"
             else:
@@ -372,11 +374,11 @@ class SettingsStore:
             key = (scope, section)
             current = int(revs.get(section, 0))
             if self._stale(key, current, base_rev, writer):
-                now = entry.get(section) if device is None else profile["sections"].get(section)
+                now = entry.get(section) if profile is None else profile["sections"].get(section)
                 raise Stale(section, copy.deepcopy(now), current)
             listed = False          # does the device LIST show the change?
             before = None
-            if device is None:
+            if profile is None:
                 before = {s: copy.deepcopy(entry[s]) for s in MACHINE_SECTIONS if s in entry}
                 entry[section] = data
             else:

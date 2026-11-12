@@ -483,7 +483,8 @@ class HalBridge:
         if mtype == "snapshot":
             self._reader_state = (msg, time.monotonic())
         elif mtype == "reply":
-            fut = self._reader_pending.pop(msg.get("id"), None)
+            rid = msg.get("id")
+            fut = self._reader_pending.pop(rid, None) if isinstance(rid, int) else None
             if fut is not None and not fut.done():
                 fut.set_result(msg)
 

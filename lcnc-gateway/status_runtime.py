@@ -341,8 +341,8 @@ class StatusPayload:
     program_elapsed_ms: Optional[int]
 
     # active modal codes
-    gcodes: Optional[List[int]]
-    mcodes: Optional[List[int]]
+    gcodes: Optional[List[float]]     # to_float_list of the binding's int codes (×10: G21 = 210)
+    mcodes: Optional[List[float]]
 
     # tool (stat-only)
     tool_number: Optional[int]
