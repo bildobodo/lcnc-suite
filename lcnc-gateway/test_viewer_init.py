@@ -144,7 +144,7 @@ import time
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 import websockets
 
@@ -688,7 +688,7 @@ def print_result(scenario: str, clients: List[ClientLog], checks: List[Check],
               f"{armed_str:<8} {c.status_count:<8} {c.status_error_count:<6}")
 
     # ThreeViewer simulation summary
-    print(f"\n  ThreeViewer simulation:")
+    print("\n  ThreeViewer simulation:")
     for c in clients:
         pos = c.viewer_last_machine_pos
         if pos and len(pos) >= 3:
@@ -1628,7 +1628,7 @@ async def scenario_browser_rendering() -> bool:
 
         print(f"\n  STL route intercept: {stl_route_hits[0]} total hits")
 
-        print(f"\n  WS traffic (per page):")
+        print("\n  WS traffic (per page):")
         for i, wl in enumerate(ws_logs):
             cmd_types = set(c.get("cmd", "?") for c in wl.commands_sent)
             err_msgs = [e.get("error", "?") for e in wl.errors_received]

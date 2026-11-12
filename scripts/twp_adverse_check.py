@@ -32,7 +32,6 @@ Pattern and harness: twp_buttons_check.py / twp_reorient_check.py — refuse
 on a machine that cannot execute, restore every row, print PASS/FAIL.
 """
 import atexit
-import os
 import subprocess
 import sys
 import time

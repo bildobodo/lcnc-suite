@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import AsyncMock, patch
 import zipfile
 
-from freecad_import import decode_freecad_blob, parse_bit, quantity
+from freecad_import import parse_bit, quantity
 from tool_import import decode_tool_blob
 from tool_refresh import plan_metadata_refresh
 from tool_table import tool_visual_metadata, _merge_tool_data

@@ -23,7 +23,6 @@ that is a FAIL, not a skip.
 """
 import atexit
 import json
-import math
 import os
 import select
 import subprocess

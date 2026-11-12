@@ -6,8 +6,8 @@ Checks 72 discrete poses, not continuous swept volumes. Bearing/mounting
 contacts are permitted; different-group solids must not interpenetrate.
 Does not save changes to the input FCStd or certify arbitrary programs.
 """
-import FreeCAD as App, Part
-import os, json, math
+import FreeCAD as App, Part  # noqa: F401 — loads FreeCAD's Part module for the documents' shapes
+import os, json
 from pathlib import Path
 out=Path(os.environ.get('XYZAC5_CAD_DIR', '/tmp/xyzac5'))
 doc=App.openDocument(str(out/'5_Axis_XYZAC.FCStd'))

@@ -735,10 +735,10 @@ def test_an_intended_unit_that_was_never_ours_is_left_alone(tmp_path):
     pre = rl.record(h)
     rl.stop_lan(h, pre)
     h.active["native-sim-r1"], h.invocations["native-sim-r1"] = True, "someone-elses"
-    out = rl.restore(h, pre, {"test_unit_intent": "native-sim-r1"})
+    rl.restore(h, pre, {"test_unit_intent": "native-sim-r1"})
     assert h.active["native-sim-r1"], "a unit the run never owned is not stopped"
     # owned once, but now another incarnation of that name runs: not stopped either
-    out = rl.restore(h, pre, {"test_unit": "native-sim-r1", "test_unit_invocation": "inv-1"})
+    rl.restore(h, pre, {"test_unit": "native-sim-r1", "test_unit_invocation": "inv-1"})
     assert h.active["native-sim-r1"]
 
 
@@ -999,8 +999,8 @@ def _st(requested=False, seq=None, tool=None, number=0, interp=2, **extra):
 def _feed(changes, frames, t0=0.0, dt=0.05):
     """Each (status) at 20 Hz; the actions the helper asked for."""
     out = []
-    for i, st in enumerate(frames):
-        out.append(changes.step(t0 + i * dt, st))
+    for i, frame in enumerate(frames):
+        out.append(changes.step(t0 + i * dt, frame))
     return out
 
 
@@ -2349,7 +2349,7 @@ def _jog_stream(sign=1, axis=0, latency=0.002, creep_s=0.0, restart=False, delay
     Receipt = capture + `latency`; `delay_at` puts `delay_s` of late
     invocations before that sample number (no number gap). → (samples, t_reply)"""
     v, a, T = 50.0, (750.0, 750.0, 600.0)[axis], 0.001
-    rows, t, p = [], 0.0, 300.0
+    rows, p = [], 300.0
     def add(p, vel):
         pos = [300.0, 300.0, -50.0]
         pos[axis] = p
@@ -2586,7 +2586,7 @@ def test_a_servo_section_ends_on_every_path():
     with pytest.raises(ZeroDivisionError):
         with nr._section(ctx, "jog-x+.servo") as box:
             assert gate.open_section == 1
-            1 / 0
+            raise ZeroDivisionError("inside the section")
     assert gate.open_section is None and "section" in box, "the end mark set, the gate open again"
     assert box["section"]["integrity"]["thread_start"] == box["section"]["integrity"]["thread_end"] == \
         ["motion-command-handler", "motion-controller", "sampler.0"]
@@ -3636,8 +3636,8 @@ class TsClient(FrameClient):
 
     def _frames(self, *states, dt=1.0):
         t = self.frames[-1][0]
-        for i, st in enumerate(states):
-            self.base.update(st)
+        for i, state in enumerate(states):
+            self.base.update(state)
             self.frames.append((t + dt * (i + 1), dict(self.base)))
 
     def _book(self, vals):
@@ -3886,7 +3886,7 @@ def _timed(lps, hb=None, latch=None, hb_ok=None, mark=3, reader_delay=MS):
     """A contiguous span: lps[k] = C_k − C_(k−1) (lps[0] the period into the
     first sample); hb: the oneshot input per sample. The receipts lag the
     controller by `reader_delay`; t0 lies before C_0."""
-    c, t, samples, recv = 10_000 * MS, [], [], {}
+    c, samples, recv = 10_000 * MS, [], {}
     for k, lp in enumerate(lps):
         c += lp
         v = (0.0,) * 6 + (0, 1, mark, (hb_ok or [1] * len(lps))[k], (latch or [0] * len(lps))[k],

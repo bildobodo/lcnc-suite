@@ -10,12 +10,10 @@ agreed at Codex R204): who may write, checked where the write happens.
 - BG-19: settings by section — display sections free, the others need the
   writer's arm (no idle); the global reset is protected.
 """
-import asyncio
 import os
 import shutil
 import tempfile
 import unittest
-from types import SimpleNamespace
 from unittest import mock
 
 import fake_linuxcnc

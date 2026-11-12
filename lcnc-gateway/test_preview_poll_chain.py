@@ -10,7 +10,6 @@ process starts, no command is sent. The re-planning after it is the idle
 edges' and is not run here."""
 import ast
 import copy
-import os
 import time
 import unittest
 from pathlib import Path

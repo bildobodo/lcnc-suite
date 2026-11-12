@@ -18,7 +18,7 @@ from pathlib import Path
 import test_command_dispatch as td   # the fake binding first, then gateway
 import gateway  # noqa: E402
 import features  # noqa: E402
-from linuxcnc import INTERP_IDLE, INTERP_READING, MODE_MDI  # noqa: E402
+from linuxcnc import INTERP_READING  # noqa: E402
 from settings_store import SettingsStore  # noqa: E402
 from test_toolsetter_sync import SECTION as TOOLSETTER  # noqa: E402
 

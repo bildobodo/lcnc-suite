@@ -10,7 +10,6 @@ import math
 from pathlib import Path
 import random
 import struct
-import subprocess
 import tempfile
 import unittest
 

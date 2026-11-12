@@ -842,7 +842,6 @@ def test_a_killed_probe_s_restore_comes_before_a_waiting_gate(tmp_path):
                               str(lock), str(order)], timeout=30)
     assert restore.returncode == 0
     gate.wait(timeout=30)
-    lines = order.read_text().split()
     joined = order.read_text().splitlines()
     assert joined == ["probe owes", "restore in", "restore done", "gate in"], joined
 

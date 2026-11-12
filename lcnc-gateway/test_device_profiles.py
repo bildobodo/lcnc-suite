@@ -6,7 +6,6 @@ unbound connection saves no device section, and GET /settings and GET
 /devices read without making a profile."""
 import json
 import tempfile
-import time
 import unittest
 import unittest.mock
 from pathlib import Path

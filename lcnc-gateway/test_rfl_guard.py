@@ -141,7 +141,6 @@ class TestRflSequence(_SeqHarness):
     async def test_failure_after_flag_clears_it(self):
         gateway.STAT.tool_in_spindle = 5
         gateway.STAT.tool_offset = (0, 0, 45.7, 0, 0, 0, 0, 0, 0)
-        test = self
 
         async def _cmd_blocking_boom(fn, *args, wait=None):
             if args and args[0] == linuxcnc.AUTO_RUN:

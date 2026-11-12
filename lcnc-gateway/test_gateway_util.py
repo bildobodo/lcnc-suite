@@ -677,8 +677,6 @@ class TestVectorizedLimitChecks(unittest.TestCase):
         self.assertIn(True, {m for _, m in seen})
 
     def test_max_report_cap_and_total_match(self):
-        import random
-        rng = random.Random(7)
         segs = [(i, (0.0,) * 9, (5000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), None, 2,
                  (0.0, 10.0, 5.0)) for i in range(1, 300)]
         got = gateway_util.check_limit_violations_trsrn(segs, {"X": (-1.0, 1.0)}, self.CFG, max_report=50)

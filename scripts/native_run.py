@@ -594,7 +594,6 @@ def jog_cases(joints: int):
             _wait(c, lambda s: s.get("inpos") and s.get("interp_state") == 1 and _near(s, JOG_START), 30, "the jog start")
             c.request("set_mode", mode=1)   # MANUAL for the jog
             p0 = c.status["joint_pos"][axis]
-            box = {}
             with (_section(ctx, JOG_SERVO_CASES[case]) if "servo" in ctx else _no_section()) as box:
                 c.request("jog_cont", axis=axis, vel=sign * nc.JOG_SPEED)
                 time.sleep(0.3)
@@ -1693,7 +1692,6 @@ def rfl_cases():
         cursor, hist_from, err_from = len(c.frames), len(c.rfl_history), len(c.errors)
         # the servo stream of the whole attempt: the start point (2c-b, Codex
         # R309–R310) is judged from it, attributed by the texts' line sets
-        box: dict = {}
         with (_section(ctx, "rfl") if "servo" in ctx else _no_section()) as box:
             # ONE outcome of the attempt from the auto_run on (R295 FI-I31): a
             # known refusal or contradiction, an observed failure, a missing

@@ -12,7 +12,6 @@ Pure: reads the JSON reports and the event log, never runs anything.
 """
 from __future__ import annotations
 
-import re
 
 
 def listed(report: dict) -> dict[str, set[str]]:

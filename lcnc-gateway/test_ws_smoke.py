@@ -12,7 +12,6 @@ drain never blocks even when the fan-out is dead — until a status-family
 frame arrives. status_error counts: it proves the loop survived its pre-init
 and reached a send, which is exactly the property the regression broke.
 """
-import sys
 import os
 import time
 import unittest

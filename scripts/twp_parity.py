@@ -31,7 +31,6 @@ Usage
 
   # drives the machine: runs the program and samples it (SIM CONFIGS ONLY)
   scripts/twp_parity.py truth --ini <INI> --file <NGC> --out truth.jsonl
-  scripts/twp_parity.py compare --ini <INI> --file <NGC> --truth truth.jsonl
 
 `truth` commands the interpreter directly (linuxcnc.command), bypassing the
 gateway's armed gate. That is deliberate — this is a diagnostic against a
@@ -731,9 +730,6 @@ def truth_plane_invariants(kins, ngc, truth_path, side=100.0, frame=None):
         return None, "no g68.2/g68.3 in the program — no plane to gate"
     if truth_tip([0.0] * 6, kins) is None:
         return None, f"no Python twin for kins {kins.get('type')!r} — UNCHECKED"
-    with open(truth_path) as f:
-        first = f.readline()
-    hdr = json.loads(first) if first.strip() else {}
     rows = [r for r in (json.loads(l) for l in open(truth_path) if l.strip())
             if not r.get("header")]
     moving = [r for r in rows if r["interp"] != linuxcnc.INTERP_IDLE]
@@ -912,197 +908,6 @@ def cmd_truth(a):
     return 0
 
 
-def cmd_compare(a):
-    pay = run_preview(a.ini, a.file, a.g5x)
-    kins = parse_kins_config(
-        linuxcnc.ini(a.ini).find("KINS", "KINEMATICS"),
-        linuxcnc.ini(a.ini).findall("HAL", "HALCMD") or [])
-    fam = kins.get("type")
-    if fam != "xyzacb-trsrn" and fam not in _TRT_FAMILIES:
-        raise SystemExit(
-            f"no Python twin for declared kins family {fam!r} — this compare "
-            f"cannot run (unchecked ≠ clean; add a twin, never a guess)")
-    rows = [r for r in (json.loads(l) for l in open(a.truth) if l.strip())
-            if not r.get("header")]   # W6: line 1 is the sim-dump context header
-    moving = [r for r in rows if r["interp"] != linuxcnc.INTERP_IDLE]
-    if not moving:
-        raise SystemExit("truth capture contains no motion")
-
-    for r in moving:
-        # Per-row tool offset (schema 8) — see truth_plane_invariants.
-        r["tip"] = truth_tip(r["joints"], kins,
-                             tool_z=float((r.get("tool_offset") or [0, 0, 0])[2]))
-
-    # Endpoint per executed line (W3 P6): the FIRST sample AFTER the line's
-    # run — the transition sample where motion_line moves on. The previous
-    # rule ("last sample still carrying the line") read up to one sample
-    # period SHORT of the corner: decelerating at 700 mm/s², the tip sits
-    # ½·a·t² ≈ 0.22–0.27 mm behind at the harness's real 25–28 ms stride —
-    # the alarming 0.2651 mm joints number, while the path overlay bounded
-    # true agreement at 0.0044 mm. The transition sample has just LEFT the
-    # (near-stop, G64 P0.001) corner and is early in the fresh accel ramp,
-    # so its corner error is far smaller in practice. The FINAL line keeps
-    # its own last sample (no successor exists). |v|<eps gating was
-    # rejected: blending means some lines legitimately never stop, and eps
-    # would be a tunable. Subroutine loops: the LAST run of a line wins,
-    # matching the previous semantics.
-    endpoint = {}
-    endjoints = {}
-    for i, r in enumerate(moving):
-        ln = r["motion_line"]
-        nxt = moving[i + 1] if i + 1 < len(moving) else None
-        if nxt is None or nxt["motion_line"] != ln:
-            src = r if nxt is None else nxt
-            endpoint[ln] = src["tip"]
-            endjoints[ln] = src["joints"]
-
-    q, ijk = parse_g682(a.file)
-    wn = g682_normal(q, ijk) if q else None
-    wc = None
-    if wn is None:
-        # G68.3 programs: normal AND centroid expected from the text.
-        wn, wc = g683_expectation(
-            a.file, float((kins.get("params") or {}).get("nut_angle", 0.0)))
-
-    print("== truth ==")
-    print(f"  samples={len(rows)} moving={len(moving)}")
-    print(f"  g5x_index seen : {sorted({r['g5x_index'] for r in rows})}")
-    print(f"  motion_line    : {sorted(endpoint)}")
-    # Invariants go on the per-line ENDPOINTS, in execution order — the real
-    # corners. Fitting a plane over every sampled point folds in the approach,
-    # the orient move and the retract, which are not in the plane and make a
-    # correct machine look non-planar.
-    order = sorted(endpoint, key=lambda ln: [i for i, r in enumerate(moving)
-                                             if r["motion_line"] == ln][-1])
-    inv = check_square([endpoint[ln] for ln in order], a.side, tol=0.2,
-                       want_normal=wn, want_centroid=wc)
-    for k in ("sides", "side_match", "planarity_dev", "planar", "normal",
-              "normal_err_deg", "normal_match", "centroid",
-              "centroid_expected", "centroid_err_mm", "centroid_match"):
-        if k in inv:
-            print(f"  {k:16s}: {inv[k]}")
-
-    basis = (pay.get("wcs_basis") or {}).get("g5x") or [0, 0, 0]
-    # TLO as the machine had it during the capture — per row since schema 8
-    # (the client applies the program's own G43 per segment); print the
-    # distinct set so an in-program change is visible in the report.
-    _tlos = sorted({float((r.get("tool_offset") or [0, 0, 0])[2]) for r in moving})
-    print(f"  tool_offset_z  : {_tlos[0] if len(_tlos) == 1 else _tlos}")
-    verdicts = []
-    # A plane the text asked for and the machine did not cut in is a failed
-    # compare, whatever the joints say: truth and sim share the remap, so
-    # joint parity is blind to a wrong plane — these are the only checks
-    # with an INDEPENDENT half.
-    for k in ("normal_match", "centroid_match"):
-        if k in inv:
-            verdicts.append(bool(inv[k]))
-    all_der_joints = []
-    all_der_tips = []
-    all_der_lines = []
-    all_der_ustart = []
-    for stream in ("feed", "rapid"):
-        pts, lines, kts, seqs, ustarts = preview_points(pay, stream)
-        if not len(pts):
-            continue
-        s_abc = _stream_abc(pay, stream)
-        if fam == "xyzacb-trsrn":
-            der = derive_tip(pts, kts, seqs, pay, kins, tuple(basis[:3]),
-                             tool_z=tlo_z, abc=s_abc)
-        else:
-            der = derive_tip_trt(pts, s_abc, kts, seqs, pay, kins,
-                                 tuple(basis[:3]), tool_z=tlo_z)
-        all_der_joints.extend(j for j, _t in der)
-        # Overlay tips forward through the SAME convention as the truth tips
-        # (truth_tip: base params, one fixed TCP frame) — derive_tip's own
-        # tips carry per-segment frame/TLO params, and comparing tips built
-        # under different params reads as a huge bogus offset.
-        all_der_tips.extend(truth_tip(j, kins, tool_z=tlo_z) for j, _t in der)
-        all_der_lines.extend(int(ln) for ln in lines)
-        all_der_ustart.extend(int(u) for u in ustarts)
-        # Compare ALL SIX JOINTS, not tool tips (and not XYZ only — P8.1:
-        # the XYZ-only compare hid a missing rotary channel entirely, the
-        # flat-TWP class). Rotary residuals wrap to ±180° so a same-pose
-        # different-branch pair never reads as a full turn of error.
-        #
-        # Correspondence (W3): per line, the LAST derived vertex in
-        # execution order pairs with the truth endpoint — which is also
-        # last-run by construction (the endpoint dict overwrites per run).
-        # Bare-line pairing broke the moment schema 6 legitimately shipped
-        # TWO motions labeled "line 4" (the main-file ustart endpoint and
-        # square.ngc's own L4): pairing the early ustart vertex against
-        # the late square corner read as ~180 mm of phantom error.
-        by_line = {}
-        for (j, _t), ln, sq in zip(der, lines, seqs):
-            ln = int(ln)
-            if ln in endjoints and (ln not in by_line or sq > by_line[ln][0]):
-                by_line[ln] = (sq, j)
-        pairs = [(np.array((list(j) + [0.0] * 6)[:6], float),
-                  np.array((list(endjoints[ln]) + [0.0] * 6)[:6], float))
-                 for ln, (_sq, j) in sorted(by_line.items())]
-        print(f"== {stream}: derived vs truth JOINTS x6 ({len(pairs)} matched by line) ==")
-        if not pairs:
-            print("  no line correspondence — cannot compare")
-            verdicts.append(False)
-            continue
-        diffs = np.array([tr - dv for dv, tr in pairs])
-        diffs[:, 3:6] = (diffs[:, 3:6] + 180.0) % 360.0 - 180.0
-        per_axis = np.abs(diffs).max(axis=0)
-        dmax = float(np.max(np.linalg.norm(diffs, axis=1)))
-        print(f"  max |derived - truth| : {dmax:.4f} (mm, 1°≙1)   "
-              f"per-axis {[round(float(v), 4) for v in per_axis]}")
-        ok = dmax <= a.tol
-        verdicts.append(ok)
-        print(f"  VERDICT: {'MATCH' if ok else 'MISMATCH'} (tol {a.tol})")
-
-    # Swept-axes completeness (P8.1): every DOF the machine moved must move
-    # in the derived preview too — endpoint parity can pass while a whole
-    # rotary channel is missing between the endpoints.
-    truth_swept = swept_axes([r["joints"] for r in moving])
-    der_swept = swept_axes(all_der_joints)
-    missing = truth_swept - der_swept
-    extra = der_swept - truth_swept
-    names = "XYZABC"
-    print(f"== swept axes: truth {sorted(names[i] for i in truth_swept if i < 6)} "
-          f"vs derived {sorted(names[i] for i in der_swept if i < 6)} ==")
-    swept_ok = not missing
-    if missing:
-        print(f"  !! DOF MISSING from the derived preview: "
-              f"{sorted(names[i] for i in missing if i < 6)} — the offline "
-              f"story is missing a whole axis the machine actually moved")
-    if extra:
-        # Extra derived motion is suspicious but not the missing-channel
-        # class (e.g. an approach the capture's settle window clipped).
-        print(f"  note: derived sweeps {sorted(names[i] for i in extra if i < 6)} "
-              f"that truth does not — check the capture window")
-    print(f"  VERDICT: {'MATCH' if swept_ok else 'MISMATCH'}")
-    verdicts.append(swept_ok)
-
-    # Path overlay (P8.1): per-LINE distance from truth samples to the
-    # derived geometry claimed for their line — the operator-visible frame
-    # ("does the drawn path overlay the live run"), which endpoint parity
-    # alone can't see. Transit samples (lines the preview claims nothing
-    # for — approach/orient motion the first-move suppression omits by
-    # design) are counted, never scored.
-    ov = path_overlay(
-        [(r["tip"], r["motion_line"], r.get("call_level"))
-         for r in moving if r.get("tip")],
-        all_der_tips, all_der_lines, all_der_ustart)
-    if ov:
-        print(f"== path overlay: truth vs derived, per-line (main-level motion) ==")
-        print(f"  max {ov['max']:.4f}  p95 {ov['p95']:.4f}  mean {ov['mean']:.4f} (mm)"
-              f"  [judged {ov['judged']}, transit (remap/sub or unclaimed): {ov['transit']}]")
-        # The overlay tolerance is looser than the endpoint one: truth
-        # samples include accel blends.
-        ov_ok = ov["judged"] > 0 and ov["p95"] <= max(a.tol * 4, 1.0)
-        print(f"  VERDICT: {'MATCH' if ov_ok else 'MISMATCH'} "
-              f"(p95 tol {max(a.tol * 4, 1.0)})")
-        verdicts.append(ov_ok)
-
-    print(f"\nOVERALL: {'MATCH' if all(verdicts) else 'MISMATCH'} "
-          f"({sum(verdicts)}/{len(verdicts)} gates)")
-    return 0 if all(verdicts) else 1
-
-
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -1124,12 +929,6 @@ def main():
     p.add_argument("--out", default="twp_truth.jsonl")
     p.add_argument("--hz", type=int, default=50)
     p.set_defaults(fn=cmd_truth)
-
-    p = sub.add_parser("compare", help="compare a truth capture to the preview")
-    common(p)
-    p.add_argument("--truth", required=True)
-    p.add_argument("--tol", type=float, default=0.5)
-    p.set_defaults(fn=cmd_compare)
 
     a = ap.parse_args()
     return a.fn(a)
