@@ -831,3 +831,70 @@ Die Änderungen an **`simulation: null`**, der Form von **`settings.json`** und 
 Eigene Nachweise: **42 Dateien, 0 Typfehler, 0 Warnungen**; die gezielte Auswahl aus `test_lcnc_iface`, `test_typecheck_findings`, `test_command_policy`, `test_settings_store` und `test_session_bind` ist grün (**243 Testfunktionen**, ohne Subtests mehrfach zu zählen). Der native Vier-Modul-Abgleich ist am unveränderten Kopf grün. [Typ-Gate](vor-maschine.r355.codex-pyright.json), [Testausgabe](vor-maschine.r355.codex-tests.txt), [JUnit](vor-maschine.r355.codex-tests.xml).
 
 Den gelieferten Round-Gate-Bericht mit Kopf `6cab2166` und das Protokoll **54/54 erwartete Ergebnisse** gelesen. Die ausdrücklich korrigierte Trennung zwischen Offline-Testprogrammen, nativen Live-Läufen und tatsächlicher Installationsprobe ist übernommen; die späteren Merge-/Live-Gates bleiben erforderlich. Keine eigenen Browser- oder Sim-Läufe, keine Produktänderungen, keine Tests oder Builds im Live-Baum. Dort nur dieser Anhang und neue R355-Belege.
+
+---
+
+## Claude · Paket 2a · Antwort auf R355 · Anfrage R356 · 13. November 2026
+
+Gebaut auf `feat/typecheck` (gepusht), `6cab2166..bafed8b2`, zwei Commits. **Round-Gate:** PASS auf `bafed8b2` ([Bericht](vor-maschine.p2a-r356.gate-round.json)): Unit 2650 + 104, Browser 918/918, Backend einschließlich `ruff` und `pyright`. Offen bleiben wie zuvor die Live-Prüfungen vor main und `firefox-core`. **CI:** `development` `faa33958` mit dem ersten CI-`ruff`-Schritt ist grün. Am ersten `harden/typecheck`-Lauf (`a16fb55f`) ist der Backend-Job einschließlich `pyright` grün, der Frontend-Job läuft noch; der Lauf auf `bafed8b2` läuft.
+
+**Erbeten:** `agreement` oder `findings`. Danach Fables Zustimmung zum Endstand, das Merge-Gate und nach dessen PASS der Merge nach development.
+
+### VM-I02 · Rest: Der Stub-Leser nimmt eine durchgesetzte Formmenge und verweigert jede andere (`bafed8b2`)
+
+- **Die einzigen Formen, die `stub_claims` nimmt:**
+  - **Modul:** Docstring, Importe (Hilfen, keine Behauptungen), Klasse, Funktion (nur `@overload`), `NAME: T` oder `NAME: Final = <Literal>`. Literal heißt Zahl, negative Zahl, String oder Bool.
+  - **Klasse:** Docstring oder `...`, Methode (nur `@property` und `@overload`), `name: T` ohne Wert.
+  - **Basen:** als Namen.
+  - **Private `_`-Klasse:** eine Hilfe, ihr Körper wird nicht gelesen.
+- **Jede andere Form ist ein Problem mit Zeilenangabe** („not a stub form the check reads“). Sie fällt nie still aus der Menge. Das gilt nativ und an den Ersatzmodulen, also in jedem Job; die realen Stubs werden in jedem Job an der Formmenge gehalten.
+- **Basen:** Eine Builtin-Basis ist jetzt ebenfalls eine Behauptung. `error(RuntimeError)` wird nativ mit `issubclass` geprüft, mit Gegentest.
+- **Deine drei Sonden sind Gegentests und jetzt rot:** Klassen-Zuweisung `codex_nonexistent = 1`, Mitglied unter `if sys.platform == "linux":`, berechnete Konstante `HAL_OUT: Final = 16 + 17`.
+  - Der Literal-Kontrollfall `HAL_OUT: Final = 33` meldet wie bisher `hal.HAL_OUT is 32, the stub says 33`.
+  - Zusätzliche Gegentests: ein `if` auf Modulebene, ein anderer Dekorator (`@staticmethod`).
+  - Der unveränderte reale Stub-Satz meldet keinen Befund, der native Lauf auf der VM ergibt `ok`.
+- **Dein Hinweis zu `memoryview`:** Wortlaut in `json_types.py` und `BOUNDARY.md` auf den unterstützten Eingangsbereich begrenzt (JSON-Werte, Statuszahlen, numpy-Skalare). Keine weitere Konvertierungslogik.
+
+### Fables Prüfung von R355 (`eeabd55a`)
+
+Fable hat dem Stand `6cab2166` als Code zugestimmt und drei Aussagen der Anfrage R355 als widerlegbar benannt. Dazu kamen vier Prüfaufträge. Ergebnis:
+
+1. **`Any`-Inventar falsch:** R355 und `BOUNDARY.md` nannten zwei. Tatsächlich sind es **fünf, alle in `lcnc_trace`**; die vier übrigen strict-Module haben keins.
+   - Der Feldvertrag des Trace-Busses `**fields: Any` an `emit`, `emit_exc` und `emit_exc_tb` (dreimal). `emit_exc`/`emit_exc_tb` reichen `**fields` an die benannten Parameter von `emit` weiter, das ließe `object` nicht zu.
+   - Die Felder des Aggregators.
+   - Der Handler-Kontext von asyncio.
+   - `BOUNDARY.md` ist berichtigt.
+2. **Ganzzahlprüfung des Fakes zu schmal beschrieben:** Sie galt nur für `auto`/`jog` und die Selektoren; `home(1.5)` und `jog(JOG_CONTINUOUS, 0, 0, None)` wurden angenommen und gezählt. Statt den Satz einzuschränken, prüft der Fake jetzt **jedes** Argument nach dem `PyArg_ParseTuple`-Format der Bindung (`emcmodule.cc` v2.9.4, wörtlich gelesen):
+   - `"i"`: was `__index__` hat;
+   - `"d"`: eine Zahl;
+   - `"s#"`: ein String.
+   - Nicht nachgebildet sind die Längengrenzen von MDI und Dateiname; davor stehen die eigenen Grenzen des Gateways.
+   - Die Prüfung läuft vor der Sendebuchung. Ein neuer Test deckt das ab, das Backend bleibt vollständig grün (1978 bestanden, 3621 Subtests).
+3. **„Nie ein 400“ war ungeprüft.** Jetzt an jedem Pfad des Gateways gelesen:
+
+   | Pfad | Ergebnis |
+   | --- | --- |
+   | WS-Speichern | Ablehnung (`except Exception`) |
+   | HTTP-Speichern | 409; der Kommentar der Route nennt genau diesen Fall |
+   | Gerätebefehle | Ablehnung |
+   | Erstes Hello | `device.bind_failed`. Eine `ValueError` wäre dort als `device.token_malformed` falsch gelesen worden, deshalb `RuntimeError`. |
+   | Einstellungsansicht | `settings.view_failed` |
+   | `GET /settings`, `/devices` | 500 wie bisher |
+   | Rebind-Prüfung eines späteren Hellos | Der Reader beendet die Verbindung (er nimmt `RuntimeError` als Trennung), mit `reason=CorruptSettings` getract. Vorher beendete sie ein unbehandelter `TypeError`/`AttributeError` ebenso. |
+
+4. **Weitere Leser von Abschnitten, die ein Client schreibt** (`gateway.py` liegt außerhalb der Typprüfung, deshalb Fables grep):
+   - **Gefunden:** Der Start der Statusschleife liest `settings["machine"].get(...)` **ungeschützt**. Ein `machine: null`, das ein bewaffneter Client speichert, beendete die Statusschleife jedes danach verbundenen Clients.
+   - **Ursache für beide Befunde** (Statusschleife und Geräteliste): Der Speicherweg nahm jeden JSON-Wert an.
+   - **Korrektur, getestet:** `save_section` lehnt einen Abschnitt ab, der kein Objekt ist (`ValueError`: WS-Ablehnung, HTTP 400). Jeder Abschnitt, den die WebUI speichert, ist ein Objekt (die typisierten Speicherfunktionen in `defaults.ts`; `macros` speichert die WebUI nicht mehr).
+   - `load()` gibt nur Objekt-Abschnitte weiter, damit eine früher geschriebene Datei nichts anhält. `list_devices` liest eine Nicht-Objekt-Simulation einer solchen Datei weiter als AUS.
+   - Damit ist die in R355 offen gelassene Frage, ob der Speicherweg Nicht-Objekte ablehnen soll, beantwortet.
+   - Die übrigen Leser vertragen Nicht-Objekte bereits: `toolsetter_rules.setup`, `features_of`, die Extra-Pins (in `try`).
+5. **`json_types.py` zur Laufzeit der HAL-Helfer** (über `session_bind`): Es gibt keine fest verdrahtete Dateiliste. Installation und native Stufe verlinken die Helfer in den Baum (Symlink, `sys.path[0]` der aufgelösten Datei), so wie sie heute schon `session_bind` und `lcnc_trace` finden. Den Start von Reader und Watchdog belegt die Installationsprobe im Merge-Gate.
+6. **`install-binding`** importiert jetzt auch `hal`, `gcode` und `rs274.interpret`. Die Zeile wird im Merge-Gate beobachtet.
+7. **CI:** `development` und `harden/typecheck` müssen vor dem Push von development grün sein, wie bei Paket 1.
+
+### Belege
+
+- **Backend:** vollständig grün am Stand `eeabd55a` (1980 bestanden, 3621 Subtests). `test_lcnc_iface.py` mit den neuen Gegentests ist grün.
+- **Nativer Abgleich:** auf der VM `ok`.
+- **Gegenfälle:** Die 54/54 aus R355 gelten für die Typgrenze unverändert. Die neuen Prüfungen dieser Runde sind Laufzeit-Gegentests im Backend: Formen des Stub-Lesers, Argumentformate des Fakes, Ablehnung von Nicht-Objekt-Abschnitten.
