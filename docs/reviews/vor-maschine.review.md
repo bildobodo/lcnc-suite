@@ -898,3 +898,58 @@ Fable hat dem Stand `6cab2166` als Code zugestimmt und drei Aussagen der Anfrage
 - **Backend:** vollständig grün am Stand `eeabd55a` (1980 bestanden, 3621 Subtests). `test_lcnc_iface.py` mit den neuen Gegentests ist grün.
 - **Nativer Abgleich:** auf der VM `ok`.
 - **Gegenfälle:** Die 54/54 aus R355 gelten für die Typgrenze unverändert. Die neuen Prüfungen dieser Runde sind Laufzeit-Gegentests im Backend: Formen des Stub-Lesers, Argumentformate des Fakes, Ablehnung von Nicht-Objekt-Abschnitten.
+
+---
+
+## Codex · Nachprüfung Paket 2a · R356 · 13. November 2026
+
+**Urteil: `findings`.** Die drei AST-Gegenfälle aus R355 sind geschlossen. Offen bleiben **VM-I02 Rest Vererbung** und **VM-I04** an den zusätzlich verschärften Fake-Argumentprüfungen. Die Settings-Korrektur ist angenommen; keine Operatorfrage.
+
+Prüfstand `6cab2166..bafed8b2`, Anfrage im Dokumentstand `a5a1ad85`. Alle sieben geänderten Dateien gelesen; eigene Tests und Gegenproben ausschließlich in `/tmp/codex-r356`. Nach den Proben stimmen die Dateien wieder bytegenau mit dem Zielcommit überein. [Prüfprotokoll](vor-maschine.r356.codex-checks.json), [Sonde](vor-maschine.r356.codex-probe.py), [Ergebnisse](vor-maschine.r356.codex-probe.json).
+
+### VM-I02 · Rest: Private Basen können weiterhin ungeprüfte öffentliche Mitglieder einführen
+
+**Stellen:** `lcnc-gateway/lcnc_iface_check.py:117–128,190–193` am Prüfstand.
+
+Die durchgesetzte Formmenge verweigert jetzt Klassen-Zuweisungen, bedingte Mitglieder und berechnete Konstanten mit ihrer Stelle. Das bestätigen meine drei wiederholten Gegenfälle. Eine weitere, ausdrücklich zugelassene Form fällt aber durch: **öffentliche Klasse mit einer nicht als Builtin aufgelösten Basis**.
+
+Meine Stub-Mutation vor `class command` lautet:
+
+```python
+class _CommandExtra:
+    def codex_nonexistent(self) -> None: ...
+
+class command(_CommandExtra):
+    # bisheriger Klassenkörper unverändert
+```
+
+Eine zusätzliche Prüfdatei ruft `c.codex_nonexistent()` auf einem `linuxcnc.command` auf. Ergebnis: **0 Typfehler, keine native Problemmeldung**. Das Mitglied existiert an der echten Klasse nicht. Der private Klassenkörper wird übersprungen; die öffentliche Klasse erbt seine Zusage für Pyright trotzdem. Der Basenabgleich prüft nur Namen, die `getattr(builtins, name)` zu einem Typ auflöst, und übergeht `_CommandExtra` still. Deshalb kann die ausgeschlossene Hilfsklasse wieder eine unkontrollierte Behauptung über die native Oberfläche erzeugen.
+
+**Korrektur:** Öffentliche Vererbung ebenfalls vollständig binden oder als nicht unterstützt verweigern. Für die jetzigen Stubs genügt eine engere Regel: nur die tatsächlich benötigten, eindeutig an die Builtins gebundenen Basen zulassen; andere Basen öffentlicher Klassen ablehnen. Private `TypedDict`-Hilfen dürfen bestehen bleiben, aber nicht ungeprüft die öffentliche Mitgliederliste erweitern. Bei Unterstützung weiterer Basen deren Herkunft und geerbte Mitglieder mitprüfen, nicht nur den geschriebenen Namen. Diesen Gegenfall ergänzen; `error(RuntimeError)` und die privaten HAL-Hilfstypen bleiben positive Fälle.
+
+### VM-I04 · Die neuen Formathelfer akzeptieren noch Werte, die der native Argumentparser ablehnt
+
+**Stellen:** `lcnc-gateway/fake_linuxcnc.py:99–122` (`_int_arg`, `_str_arg`).
+
+Die zusätzlichen Typprüfungen vor `_sent()` sind sinnvoll. Sie bilden aber noch nicht die nun zugesagten `PyArg_ParseTuple`-Formate ab: `"i"` konvertiert zu einem begrenzten C-`int`; `"s#"` verlangt bei Unicode die erfolgreiche UTF-8-Konvertierung. Das sind keine Längengrenzen von MDI oder Dateinamen und keine Controller-Zustandsregeln. LinuxCNC verwendet diese Formate bei `home`/`unhome` und `mdi`. [LinuxCNC 2.9.4, Bindungsquelle](https://raw.githubusercontent.com/LinuxCNC/linuxcnc/v2.9.4/src/emc/usr_intf/axis/extensions/emcmodule.cc), [CPython: Argumentformate](https://docs.python.org/3.13/c-api/arg.html).
+
+Meine unabhängige Referenz ist der lokale CPython-Parser aus `_testcapi.getargs_i` bzw. `getargs_s_hash`, **ohne LinuxCNC-Kanal und ohne Maschinenbefehl**:
+
+| Fake-Aufruf | CPython-Formatparser | Fake am Kopf |
+| --- | --- | --- |
+| `home(2147483648)` | `OverflowError` | angenommen, `serial + 1` |
+| `unhome(-2147483649)` | `OverflowError` | angenommen, `serial + 1` |
+| `mdi("\ud800")` | `UnicodeEncodeError` | angenommen, `serial + 1` |
+
+`home(2147483647)` und ein gewöhnlicher MDI-String sind auf beiden Seiten grün. Der Zahlenhelfer verwendet zwar `operator.index`, prüft aber die C-Grenze nicht; der Stringhelfer prüft nur `str`/`bytes`, ohne die für `str` erforderliche Kodierung.
+
+**Korrektur:** Diese Formatprüfungen vor der Buchung vervollständigen und die Ablehnungen samt unverändertem `serial` testen. Die ausdrücklich ausgenommenen Befehlslängen können separat bleiben. Eine Maschinenwirkung muss der Fake dafür weiterhin nicht nachbilden. Das ist ein Befund am Testdouble und seiner behaupteten Grenze, kein beobachteter Maschinenfehler.
+
+### Angenommene Änderungen und Nachweise
+
+- **Settings:** Die gemeinsame Ablehnung nicht als Objekt vorliegender Abschnitte ist angemessen. Die WebUI-Speicherformen wurden gegengelesen. In meinen **70 Negativfällen** über alle Maschinen- und Geräteabschnitte werden `None`, Liste, Zahl, String und Bool abgelehnt; Datei sowie beide Versionszähler bleiben unverändert. Eine alte Datei mit `machine: null` und einer ungeeigneten Probe-Sektion wird von `load()` gefiltert, eine gültige Toolsetter-Sektion bleibt erhalten. Der ältere Simulationsabschnitt bleibt als AUS lesbar. Das neue Schreibverbot und die verträgliche Leseregel passen zusammen.
+- **Dokumentation:** Die Begrenzung der Konvertierungshelfer auf ihre tatsächlichen Eingaben ist übernommen. Das berichtigte Inventar mit fünf `Any`-Vorkommen in `lcnc_trace` benennt die vorhandenen Grenzen; die vier übrigen strict-Module bleiben ohne `Any`.
+- **Eigene Läufe:** Typ-Gate **42 Dateien, 0 Fehler, 0 Warnungen**; **87 gezielte Testfunktionen grün**, einschließlich des nativen Abgleichs und der neuen Backend-Gegenfälle. [Typ-Gate](vor-maschine.r356.codex-pyright.json), [Testausgabe](vor-maschine.r356.codex-tests.txt), [JUnit](vor-maschine.r356.codex-tests.xml). Eine zusätzlich versuchte Vererbung von `stat` wurde bereits vom Typchecker wegen inkompatibler Überschreibungen abgelehnt und ist ausdrücklich kein weiterer Befund.
+- **Gelieferte Gates:** Round-Gate am Kopf `bafed8b2` gelesen. Der tatsächliche `install-binding`-Lauf und die Starts der HAL-Helfer bleiben Nachweise des nachfolgenden Merge-Gates; Offline-Testprogramme ersetzen sie nicht. Die Grenze von 2a zu 2b bleibt unverändert.
+
+Kein Produktcode geändert, keine Tests oder Builds im Live-Baum, keine Verbindung zur laufenden Sim. Nur dieser Review-Anhang und neue R356-Belege.

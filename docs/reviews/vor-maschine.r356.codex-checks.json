@@ -1,0 +1,189 @@
+{
+  "round": "R356",
+  "at": "2026-11-12T23:46:28.676544+00:00",
+  "base": "6cab216614e4325d8116516b700bcd7b7172bdca",
+  "target": "bafed8b28b964d459061d7145ff77a07101ead65",
+  "review_document_head": "a5a1ad8549b2bf2a6c8f475c5c102dbb6dc9c072",
+  "review_sha256_before_append": "17787334b5afee7c1a28bd3d25d1f4e593c5806cb027e089aca0a954a556d642",
+  "archive": "/tmp/codex-r356",
+  "python": "/home/cnc/lcnc-suite-tc/lcnc-gateway/.venv/bin/python3",
+  "source_integrity_after_probes": [
+    {
+      "path": "lcnc-gateway/fake_linuxcnc.py",
+      "sha256": "302ef9d8b206033e42f1f21f3b8e7ef3fd8d6248318c7dd6c6b7318f9f853793",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/json_types.py",
+      "sha256": "107a593a797f58144e37d07f204d3093912f130f8082e3ebbc1a031ca9a920eb",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/lcnc_iface_check.py",
+      "sha256": "3978611d9c912419e6e2ac6a33f8c84707e7c598da49d8df7c2d912cfcfb7077",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/settings_store.py",
+      "sha256": "215e4684714022ebc0885e6a2684cba0ea1310afdf59e46ab520e027ac2df989",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_lcnc_iface.py",
+      "sha256": "836871d72b80b129bbb8c897e4d5519f4d37cbbe2bd002fce37f13b0a518cfd8",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_typecheck_findings.py",
+      "sha256": "6b2729d9e5933a60b85a96ad54c344b53254e671467abf3d3c525d8661c0961f",
+      "matches_target": true
+    },
+    {
+      "path": "typings/BOUNDARY.md",
+      "sha256": "e08c78529ed05ee65887719b10f1857248d860b06346a96d08f0b4babd191ff5",
+      "matches_target": true
+    }
+  ],
+  "pyright": {
+    "version": "1.1.407",
+    "time": "1794526805944",
+    "generalDiagnostics": [],
+    "summary": {
+      "filesAnalyzed": 42,
+      "errorCount": 0,
+      "warningCount": 0,
+      "informationCount": 0,
+      "timeInSec": 3.642
+    }
+  },
+  "tests": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 nice -n 10 /home/cnc/lcnc-suite-tc/lcnc-gateway/.venv/bin/python3 -m pytest -q -p no:cacheprovider test_lcnc_iface.py test_typecheck_findings.py test_settings_store.py --junitxml=/tmp/codex-r356/probes/tests.xml",
+    "cwd": "/tmp/codex-r356/lcnc-gateway",
+    "exit_code": 0,
+    "test_functions": 87,
+    "junit_suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "87",
+        "time": "0.462",
+        "timestamp": "2026-11-13T00:40:01.930686+01:00",
+        "hostname": "debian"
+      }
+    ]
+  },
+  "findings": [
+    {
+      "id": "VM-I02 rest inheritance",
+      "probe_key": "private_inherited_member",
+      "issue": "Unchecked private base can introduce public members absent on the native class; both typecheck and native checker accept."
+    },
+    {
+      "id": "VM-I04",
+      "probe_key": "argument_formats",
+      "issue": "C-int overflow and UTF-8 failure accepted and booked by fake; CPython argument parsers refuse."
+    }
+  ],
+  "accepted": [
+    "R355 class assignment, conditional member and computed constant are now refused by native checker.",
+    "70 malformed section saves refused with unchanged file and versions; legacy malformed machine/probe sections filtered.",
+    "Conversion helper documentation narrowed to supported inputs; Any inventory corrected."
+  ],
+  "not_a_finding": {
+    "probe_key": "public_inherited_member",
+    "result": "Native checker does not reject but Pyright detects six incompatible overrides; not counted as a gate escape."
+  },
+  "sources": [
+    "https://raw.githubusercontent.com/LinuxCNC/linuxcnc/v2.9.4/src/emc/usr_intf/axis/extensions/emcmodule.cc",
+    "https://docs.python.org/3.13/c-api/arg.html"
+  ],
+  "reported_gate": {
+    "head": "bafed8b28b964d459061d7145ff77a07101ead65",
+    "verdict": "PASS",
+    "sha256": "40f51563d096ead160489341ce99573772922a17c7ccd8634528b8373828bdc9",
+    "pending": [
+      {
+        "check": "firefox-core",
+        "status": "pending: the pinned Mozilla target is not built yet (step 6)"
+      },
+      {
+        "check": "live-twp",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/bulk_pipeline.py",
+          "lcnc-gateway/gcode_canon.py",
+          "lcnc-gateway/gcode_parse_worker.py"
+        ]
+      },
+      {
+        "check": "perf-matrix",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/hal_bridge.py",
+          "lcnc-gateway/hal_reader.py",
+          "lcnc-gateway/hal_watchdog.py",
+          "lcnc-gateway/session_bind.py",
+          "lcnc-gateway/status_runtime.py"
+        ]
+      },
+      {
+        "check": "probe-live",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "subroutines/surfacemap/compensation.py"
+        ]
+      },
+      {
+        "check": "toolsetter-readback",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "subroutines/surfacemap/compensation.py"
+        ]
+      },
+      {
+        "check": "twp-buttons",
+        "status": "pending: a live check, run before main",
+        "paths": [
+          "lcnc-gateway/command_policy.py",
+          "lcnc-gateway/features.py"
+        ]
+      }
+    ],
+    "omitted": []
+  },
+  "limits": [
+    "No live Sim, service or machine command access.",
+    "Native module import/class inspection only; no LinuxCNC channels or polling.",
+    "Argument reference is CPython 3.13.5 _testcapi parsing, never a native CNC command.",
+    "Tests run only in archive; live tree receives append and new review evidence.",
+    "Actual installation/native stage and outstanding live gates remain separate from offline script tests."
+  ],
+  "artifacts": {
+    "vor-maschine.r356.codex-probe.py": {
+      "sha256": "ef8c96d80f18c5f6f36e2a9137e0fd855fa84041dbc738e4e163fbfc934750f1",
+      "bytes": 5821
+    },
+    "vor-maschine.r356.codex-probe.json": {
+      "sha256": "7a61e8b24c10625abc21203dcaad41cadef50f34c8a3c1aca32389d039f3a0a3",
+      "bytes": 14655
+    },
+    "vor-maschine.r356.codex-probe.txt": {
+      "sha256": "eb607b8a74c5849747417c2ea4cfb3d4367f912b67829321c3eb0f8f4318272e",
+      "bytes": 2757
+    },
+    "vor-maschine.r356.codex-pyright.json": {
+      "sha256": "dbdf4c1c6f246499ee83024c6b17e4684dbe344ed695853235a504adc809dc52",
+      "bytes": 252
+    },
+    "vor-maschine.r356.codex-tests.txt": {
+      "sha256": "cc34b63aed9ded66f0e7fe2019892e09f95bda31d78523503dd936241e3dc3f5",
+      "bytes": 160
+    },
+    "vor-maschine.r356.codex-tests.xml": {
+      "sha256": "36c90b36408695be1d23038b40a09f17fde6f014b82e9203b9dad38dda195d57",
+      "bytes": 11036
+    }
+  }
+}
