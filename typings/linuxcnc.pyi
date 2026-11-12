@@ -3,18 +3,26 @@ product code uses (package 2, Codex R352/R353). Shapes from the binding's
 source (src/emc/usr_intf/axis/extensions/emcmodule.cc, v2.9.4: Stat_members /
 Stat_getsetlist, the command methods' PyArg_ParseTuple formats, Ini find /
 findall, Error_poll); value types of the joint / spindle dicts and the tool
-rows read from a real 2.9.4 status; constants' values from the installed
-binding (only their names and `int` are typed here — fake_linuxcnc carries
-the values, checked against the binding by test_lcnc_iface.py).
+rows read from a real 2.9.4 status; constants with their VALUES (`Final =
+n`, from the installed binding): a selector constant is its Literal type, so
+the sub-operation picks the call form (auto / jog) and an unknown selector
+(spindle direction, mode, state, mist, flood — the binding's ValueError) is a
+type error.
+
+Every PUBLIC name here is a claim about the real module: lcnc_iface_check.py
+reads them from this file (AST) and finds each on the installed binding —
+module names, class members, constant values (imported helper types are not
+claims; a private `_` name is a stub-only helper). Names and values only;
+shapes and types are this file's, from the source.
 
 Checked against lcnc-gateway/lcnc_iface.py (typings/check_stub.py) — the
 stub is the claim about the real module, the Protocols what the code needs."""
-from typing import overload
+from typing import Final, Literal, overload
 from lcnc_iface import JointStatus, SpindleStatus
 
-class error(Exception): ...
+class error(RuntimeError): ...   # PyInit_linuxcnc: a RuntimeError subclass (checked natively)
 
-class tool_result:
+class tool:   # the tool_table rows' structseq type, exported as `tool` (its __name__ is tool_result)
     @property
     def id(self) -> int: ...
     @property
@@ -156,7 +164,7 @@ class stat:
     @property
     def tool_offset(self) -> tuple[float, ...]: ...
     @property
-    def tool_table(self) -> tuple[tool_result, ...]: ...
+    def tool_table(self) -> tuple[tool, ...]: ...
 
 class command:
     def __init__(self) -> None: ...
@@ -164,38 +172,40 @@ class command:
     def serial(self) -> int: ...
     def abort(self) -> None: ...
     @overload
-    def auto(self, fn: int, /) -> None: ...
+    def auto(self, fn: Literal[0], line: int, /) -> None: ...
     @overload
-    def auto(self, fn: int, line: int, /) -> None: ...
+    def auto(self, fn: Literal[1, 2, 3, 4, 5], /) -> None: ...
     def feedrate(self, scale: float, /) -> None: ...
-    def flood(self, on: int, /) -> None: ...
+    def flood(self, on: Literal[0, 1], /) -> None: ...      # FLOOD_OFF / FLOOD_ON
     def home(self, joint: int, /) -> None: ...
     @overload
-    def jog(self, fn: int, jjogmode: int, ja_value: int, /) -> None: ...
+    def jog(self, fn: Literal[0], jjogmode: int, ja_value: int, /) -> None: ...
     @overload
-    def jog(self, fn: int, jjogmode: int, ja_value: int, vel: float, /) -> None: ...
+    def jog(self, fn: Literal[1], jjogmode: int, ja_value: int, vel: float, /) -> None: ...
     @overload
-    def jog(self, fn: int, jjogmode: int, ja_value: int, vel: float, inc: float, /) -> None: ...
+    def jog(self, fn: Literal[2], jjogmode: int, ja_value: int, vel: float, inc: float, /) -> None: ...
     def load_tool_table(self) -> None: ...
     def maxvel(self, velocity: float, /) -> None: ...
     def mdi(self, command: str, /) -> None: ...
-    def mist(self, on: int, /) -> None: ...
-    def mode(self, mode: int, /) -> None: ...
+    def mist(self, on: Literal[0, 1], /) -> None: ...       # MIST_OFF / MIST_ON
+    def mode(self, mode: Literal[1, 2, 3], /) -> None: ...  # MODE_MANUAL / AUTO / MDI
     def program_open(self, path: str, /) -> None: ...
     def rapidrate(self, scale: float, /) -> None: ...
     def reset_interpreter(self) -> None: ...
     def set_block_delete(self, on: int, /) -> None: ...
     def set_optional_stop(self, on: int, /) -> None: ...
+    # "i|ddi" for every direction (no count check in the source); the
+    # direction set is the binding's (else ValueError)
     @overload
-    def spindle(self, direction: int, /) -> None: ...
+    def spindle(self, direction: Literal[-1, 0, 1, 10, 11, 12], /) -> None: ...
     @overload
-    def spindle(self, direction: int, spindle: float, /) -> None: ...
+    def spindle(self, direction: Literal[-1, 0, 1, 10, 11, 12], spindle: float, /) -> None: ...
     @overload
-    def spindle(self, direction: int, speed: float, spindle: float, /) -> None: ...
+    def spindle(self, direction: Literal[-1, 0, 1, 10, 11, 12], speed: float, spindle: float, /) -> None: ...
     @overload
-    def spindle(self, direction: int, speed: float, spindle: float, wait: int, /) -> None: ...
+    def spindle(self, direction: Literal[-1, 0, 1, 10, 11, 12], speed: float, spindle: float, wait: int, /) -> None: ...
     def spindleoverride(self, scale: float, spindle: int = 0, /) -> None: ...
-    def state(self, state: int, /) -> None: ...
+    def state(self, state: Literal[1, 2, 3, 4], /) -> None: ...  # STATE_ESTOP / ESTOP_RESET / OFF / ON
     def task_plan_synch(self) -> None: ...
     def teleop_enable(self, enable: int, /) -> None: ...
     def unhome(self, joint: int, /) -> None: ...
@@ -210,41 +220,43 @@ class ini:
     def find(self, section: str, option: str, num: int = 1, /) -> str | None: ...
     def findall(self, section: str, option: str, /) -> list[str]: ...
 
-MODE_MANUAL: int
-MODE_AUTO: int
-MODE_MDI: int
-INTERP_IDLE: int
-INTERP_READING: int
-INTERP_WAITING: int
-INTERP_PAUSED: int
-JOG_STOP: int
-JOG_INCREMENT: int
-JOG_CONTINUOUS: int
-SPINDLE_FORWARD: int
-SPINDLE_REVERSE: int
-SPINDLE_OFF: int
-SPINDLE_INCREASE: int
-SPINDLE_DECREASE: int
-SPINDLE_CONSTANT: int
-AUTO_RUN: int
-AUTO_STEP: int
-AUTO_PAUSE: int
-AUTO_RESUME: int
-STATE_ON: int
-STATE_OFF: int
-STATE_ESTOP: int
-STATE_ESTOP_RESET: int
-TRAJ_MODE_TELEOP: int
-MIST_ON: int
-MIST_OFF: int
-FLOOD_ON: int
-FLOOD_OFF: int
-RCS_DONE: int
-RCS_EXEC: int
-RCS_ERROR: int
-EXEC_ERROR: int
-EXEC_DONE: int
-KINEMATICS_IDENTITY: int
-KINEMATICS_FORWARD_ONLY: int
-KINEMATICS_INVERSE_ONLY: int
-KINEMATICS_BOTH: int
+MODE_MANUAL: Final = 1
+MODE_AUTO: Final = 2
+MODE_MDI: Final = 3
+INTERP_IDLE: Final = 1
+INTERP_READING: Final = 2
+INTERP_WAITING: Final = 4
+INTERP_PAUSED: Final = 3
+JOG_STOP: Final = 0
+JOG_INCREMENT: Final = 2
+JOG_CONTINUOUS: Final = 1
+SPINDLE_FORWARD: Final = 1
+SPINDLE_REVERSE: Final = -1
+SPINDLE_OFF: Final = 0
+SPINDLE_INCREASE: Final = 10
+SPINDLE_DECREASE: Final = 11
+SPINDLE_CONSTANT: Final = 12
+AUTO_RUN: Final = 0
+AUTO_STEP: Final = 3
+AUTO_PAUSE: Final = 1
+AUTO_RESUME: Final = 2
+AUTO_REVERSE: Final = 4
+AUTO_FORWARD: Final = 5
+STATE_ON: Final = 4
+STATE_OFF: Final = 3
+STATE_ESTOP: Final = 1
+STATE_ESTOP_RESET: Final = 2
+TRAJ_MODE_TELEOP: Final = 3
+MIST_ON: Final = 1
+MIST_OFF: Final = 0
+FLOOD_ON: Final = 1
+FLOOD_OFF: Final = 0
+RCS_DONE: Final = 1
+RCS_EXEC: Final = 2
+RCS_ERROR: Final = 3
+EXEC_ERROR: Final = 1
+EXEC_DONE: Final = 2
+KINEMATICS_IDENTITY: Final = 1
+KINEMATICS_FORWARD_ONLY: Final = 2
+KINEMATICS_INVERSE_ONLY: Final = 3
+KINEMATICS_BOTH: Final = 4

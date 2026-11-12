@@ -5,12 +5,12 @@ only, no keywords). parse tries "sOO!|s:new-parse" (an initcode LIST) first,
 then the legacy "sO|sss:parse"; it returns PyTuple(result, last sequence
 number) and raises RuntimeError / KeyboardInterrupt ("Load aborted").
 MIN_ERROR is INTERP_MIN_ERROR (3 on the installed module), MAX_ERROR -1."""
-from typing import overload
+from typing import Final, overload
 
 class linecode: ...
 
-MIN_ERROR: int
-MAX_ERROR: int
+MIN_ERROR: Final = 3
+MAX_ERROR: Final = -1
 
 @overload
 def parse(f: str, callback: object, initcodes: list[str], interpname: str = ..., /) -> tuple[int, int]: ...

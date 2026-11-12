@@ -7,35 +7,37 @@ ready/exit/unready (no args → None), item access by pin name; get_value("s")
 FAILURE (`PyBool_FromLong(retval != 0)`); get_info_pins / _params / _signals
 → list of dicts (NAME, VALUE, DIRECTION / DRIVER, TYPE). The HAL_* values
 are hal.h's enums (installed /usr/include/linuxcnc/hal.h: BIT 1, FLOAT 2,
-S32 3, U32 4, IN 16, OUT 32, IO 48, RO 64, RW 192)."""
-from typing import TypedDict
+S32 3, U32 4, IN 16, OUT 32, IO 48, RO 64, RW 192). Every public name is a
+claim the native check (lcnc_iface_check.py) finds on the installed module;
+the info-row TypedDicts are stub-only helpers (private)."""
+from typing import Final, TypedDict
 
-class PinInfo(TypedDict):
+class _PinInfo(TypedDict):
     NAME: str
     VALUE: bool | int | float | None
     DIRECTION: int
     TYPE: int | None
 
-class SignalInfo(TypedDict):
+class _SignalInfo(TypedDict):
     NAME: str
     VALUE: bool | int | float | None
     DRIVER: str | None
     TYPE: int | None
 
-class ParamInfo(TypedDict):
+class _ParamInfo(TypedDict):
     NAME: str
     DIRECTION: int
     VALUE: bool | int | float | None
 
-HAL_BIT: int
-HAL_FLOAT: int
-HAL_S32: int
-HAL_U32: int
-HAL_IN: int
-HAL_OUT: int
-HAL_IO: int
-HAL_RO: int
-HAL_RW: int
+HAL_BIT: Final = 1
+HAL_FLOAT: Final = 2
+HAL_S32: Final = 3
+HAL_U32: Final = 4
+HAL_IN: Final = 16
+HAL_OUT: Final = 32
+HAL_IO: Final = 48
+HAL_RO: Final = 64
+HAL_RW: Final = 192
 
 class item:
     def get(self) -> bool | int | float: ...
@@ -65,6 +67,6 @@ def get_value(name: str, /) -> bool | int | float: ...
 def set_p(name: str, value: str, /) -> bool: ...
 # one dict per row, the binding's own shape (Py_BuildValue "{s:s,s:N,...}");
 # VALUE / TYPE are None for a type the binding does not decode
-def get_info_pins() -> list[PinInfo]: ...
-def get_info_params() -> list[ParamInfo]: ...
-def get_info_signals() -> list[SignalInfo]: ...
+def get_info_pins() -> list[_PinInfo]: ...
+def get_info_params() -> list[_ParamInfo]: ...
+def get_info_signals() -> list[_SignalInfo]: ...

@@ -8,7 +8,7 @@ from lcnc_iface import CommandLike, ErrorChannelLike, IniLike, StatLike, ToolRow
 
 
 def stub_conforms(s: linuxcnc.stat, c: linuxcnc.command, e: linuxcnc.error_channel,
-                  i: linuxcnc.ini, t: linuxcnc.tool_result) -> None:
+                  i: linuxcnc.ini, t: linuxcnc.tool) -> None:
     stat: StatLike = s
     command: CommandLike = c
     errors: ErrorChannelLike = e
