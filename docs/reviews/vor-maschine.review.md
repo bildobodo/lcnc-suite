@@ -277,3 +277,34 @@ Jeder Fund einzeln geprüft, kein pauschales `--fix`:
 - **Weiteres:** `ruff.toml` löst die Backend-Auswahl aus (`rules.py`, Selektorwächter 51/51). `.ruff_cache/` steht in `.gitignore`. `docs/testing.md` beschreibt den Lint, seine Regeln und was er nicht abdeckt.
 
 **Nicht live geprüft:** Die Änderungen haben kein Verhalten. `compensation.py` startet im Merge-Gate in der Installationsprobe (HAL `loadusr`). Der TWP-Remap ist unverändert.
+
+---
+
+## Codex · Implementierungsreview R351 · 12. November 2026
+
+**Urteil: `agreement` zu Paket 1, `chore/ruff`, `c7f72261..22348f34`. Kein offener technischer Befund.** Die Gate-Einbindung, die Bereinigungen und die Entfernung des nicht mehr verwendeten Unterkommandos `twp_parity compare` sind angenommen. Die zusätzliche F401/F841-Ausnahme für den unveränderten Remap-Fork nehme ich als begrenzte Abweichung vom Plan an; ihre Grenze ist unten ausdrücklich benannt.
+
+Eigene Prüfung in `/tmp/codex-r351`: **598 gezielte Tests bestanden** (21 Runner/Parität, 574 Regressionstests der betroffenen Gateway-Module, drei Prüfungen der geänderten nativen Testhelfer), dazu **14/14 eigene Gate-Gegenproben**. Kein eigener Browser-/Vollgate-Lauf, kein Test oder Build im Live-Baum und kein Zugriff auf LinuxCNC oder die LAN-Sim. Der gemeinsame Produktstand der geprüften Dateien blieb unverändert.
+
+### Gate und Dateiauswahl
+
+- `ruff check --no-cache` mit dem Pin **0.14.4** ist sauber. Seine echte Dateientdeckung erfasst **alle 194 Python-Dateien** in `lcnc-gateway`, `scripts`, `subroutines` und `examples`, ohne fehlende oder zusätzliche Datei gegenüber der unabhängigen Dateiliste.
+- Meine Sonde benutzt den von `offline_commands("backend")` gelieferten Befehl **ohne zusätzliche Quelldatei als CLI-Argument**. Ein F821 an sechs Stellen – einschließlich verschachtelter Skripte, Subroutinen und beider Beispielbereiche – macht jeweils genau diesen Aufruf rot. Derselbe Fehler unter `docs/` bleibt wie vorgesehen außerhalb. Nach Entfernen der Sonden ist die saubere Kontrolle wieder grün.
+- Fehlendes Ruff (`python -S`) scheitert. Der echte `run_gate` schreibt für den eingefügten F821 `status: fail` und Exit 1 samt Fehlerlog. `ruff.toml` wählt das Backend ohne Rückfall auf eine unbekannte Datei. Reihenfolge und Zählung stimmen: Ruff zuerst, zwölf Backend- und sechzehn kombinierte Offline-Schritte.
+- Pin, CI-Installation und Root-Konfiguration sind konsistent; es wird zur Gate-Zeit nichts nachgeladen. Die fünf global ausgeschalteten B-Regeln sind benannt und bleiben eine ausdrückliche Prüfgrenze.
+
+### Bereinigungen und Parität
+
+Die Produktänderungen beschränken sich auf die aufgeführten unbenutzten Imports/Zuweisungen und inhaltsgleichen Strings. Die wirksamen `restore`-Aufrufe bleiben erhalten; die betreffenden Tests lesen weiterhin den Unit-Zustand. Der absichtlich ausgelöste Fehler im Sektions-Test bleibt innerhalb derselben Sektion. Die überflüssigen Vorbelegungen von `box` werden vor jeder späteren Verwendung durch den Kontextmanager ersetzt. Die geprüften Regressionen zeigen keine Änderung des Verhaltens.
+
+`cmd_compare` samt CLI-Einstieg ist entfernt; ich finde keinen verbleibenden ausführbaren Aufrufer. Historische Erwähnungen in `docs/decisions.md` sind Rückblicke auf frühere Abnahmen, keine aktuelle Aufrufanleitung. Ein AST-Vergleich bestätigt: Die übrigen gemeinsamen Funktionen von `twp_parity.py` sind unverändert, außer dem entfernten unbenutzten Kopfzeilenlesen in `truth_plane_invariants` und der CLI-Registrierung in `main`. `sim_parity gate` behält Vergleich und unabhängig aus dem Programm abgeleitete Ebeneninvarianten; `test_parity_compare.py` besteht. Damit wird der undefinierte Offset nicht durch eine falsche konstante Werkzeugbasis ersetzt.
+
+**Ausnahme des Remap-Forks:** F401/F841 auf Dateiebene zusätzlich zu F403/F405 ist für dieses unverändert belassene Fremdcode-Fork vertretbar. Es bedeutet allerdings, dass auch eigene spätere Ergänzungen in dieser Datei diese Prüfungen nicht erhalten. Die Begründung „die unbenutzten Namen sind upstream“ ist zu pauschal: `calc_shortest_distance` steht beispielsweise im `LCNC-SUITE`-Import aus `twp_transform`. Bitte die Begründung auf **„Fork im Ruff-Einführungspaket unverändert lassen“** präzisieren. Das ist ein Dokumentationshinweis, kein neuer offener Befund und kein Auftrag, den Remap jetzt umzubauen. Die Ausnahme darf nicht als vollständige Prüfung unbekannter Namen trotz Sternimport beschrieben werden.
+
+### Laufbelege und Grenze der eigenen Wiederholung
+
+Den beigefügten Round-Gate-Bericht und seinen Backend-Unterbericht habe ich abgeglichen: beide am Kopf `22348f34`, sauberer Baum, alle zwölf Backend-Schritte PASS; der Rundennachweis nennt außerdem 2650 leichte Unit-Tests und 7/7 ausgewählte Browser-Tests. Das sind Claudes Läufe, keine eigene Wiederholung.
+
+Mein erster zusätzlicher Regressionstestlauf blieb in der Sandbox bei einer asynchronen Upload-Prüfung stehen. Ein isolierter Lauf reproduzierte das, ebenso ein minimales `asyncio.to_thread`-Programm ohne Repository-Code beim Abschluss des Executors. Die Versuche wurden beendet und sind als unvollständig erhalten. Nach genehmigter Wiederholung **außerhalb der Sandbox, weiterhin in derselben Archivkopie mit Fake-LinuxCNC**, bestanden die 574 Tests ohne Fehler oder Skip. Die XML-Summenzahl enthält zusätzlich unittest-Unterfälle; oben sind die 574 eindeutigen Testfälle gezählt, nicht diese höhere Zahl.
+
+Belege: [eigene Sonde](vor-maschine.r351.codex-probe.py), [14 Gegenfälle und Dateiliste](vor-maschine.r351.codex-probe.json), [Testausgaben einschließlich der abgebrochenen Versuche](vor-maschine.r351.codex-tests.txt), [Regressionsergebnisse](vor-maschine.r351.codex-regression.xml), [Prüfstand, Dateihashes und Zählung](vor-maschine.r351.codex-checks.json). Die weiteren Pakete des Plans und die vor main verbleibenden Live-Abnahmen werden durch dieses Ruff-Agreement nicht geschlossen.

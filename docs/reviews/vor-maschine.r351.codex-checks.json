@@ -1,0 +1,92 @@
+{
+  "head": "22348f34a703841ac5bd094a5240fb4c229bdd86",
+  "changed_sources_sha256": {
+    ".gitignore": "d29eb39f9a92103683156113130dcbad6b075f90e52817a1504a7e2d5132ba15",
+    "docs/testing.md": "7f3a4d6da5926096fe5aeb0a2436cd6f9e69b75a3ea55bb1634692ecd7c93a5f",
+    "lcnc-gateway/gateway.py": "0519719fb32405e865f3845d69f1c68098bf752799898b4f5db93c7cb9b4e7ba",
+    "lcnc-gateway/gcode_parse_worker.py": "b7e38b80e23e2d437b011b2134e168371cddbcd454bcbc727ea5b58bd78eb554",
+    "lcnc-gateway/requirements-test.txt": "ab7704dc0af2b87214ac1ccdbf2b8b7ce207887c99add0b4feed51087f459c43",
+    "lcnc-gateway/test_button_gates_b.py": "1cb561b2eeac305ebb41b80fc858170a8f670d714228f465c50dbff82b1761b2",
+    "lcnc-gateway/test_device_profiles.py": "db2dae2d0d137d509791137a6048b790058ca0347961a1c43e8d9369eb938b82",
+    "lcnc-gateway/test_feature_switches.py": "232ffd53626e2dbe298dbc2ad7560852d71270be5083981d1fc614a62c5f21df",
+    "lcnc-gateway/test_freecad_import.py": "e82697b2d40fcdd872eca6d89dac5130af2898c96af16bfaea8897f03047325e",
+    "lcnc-gateway/test_gateway_util.py": "2ba31731c61db4df66468687585fe59dee294d96d36eb9dbe7011501a195db36",
+    "lcnc-gateway/test_preview_poll_chain.py": "9c23b2fb66f134f783d0e2f0c5a4c04bb09d2fa9454b0857e5b7145afc2f5021",
+    "lcnc-gateway/test_rfl_guard.py": "cc0a71913e3e1ea6c668a2b1f3f7f8513e6369d516f5387cb359793e10513b87",
+    "lcnc-gateway/test_suite_runner.py": "9d65033f086f2783861ffcaec9b82e9bceaf2fd68caa497e68ebcd0c948d4f09",
+    "lcnc-gateway/test_viewer_init.py": "1f64b2f9c08b918f55ebc3c05a6bd44e1295bd5015cd109a8f8a55bf13fda808",
+    "lcnc-gateway/test_ws_smoke.py": "9d81c6cd81aa461356ebc80cdabc52eb77d22d731ddff221d9b4b6ffbf8a2406",
+    "ruff.toml": "7f8ed643621260a02742b071eeb6751dbb9e416690a7918be71fe5d128d50f3e",
+    "scripts/freecad_check_5axis_xyzac.py": "28bf58e8248a3539cb631c2c9b17471e8a15fa393847713e14635c36c7d7aa39",
+    "scripts/native_run.py": "8984fc077d8f175f5954e163a9183372f03c215e3fb567f042deba22bdfc2c92",
+    "scripts/test_5axis_xyzac.py": "3c01a3acc15152bb848ffd00bd53bec17e6446f49de62256d9a5117af152e125",
+    "scripts/test_install_probe.py": "2f59be5bff50bf07295446b8c6bc6b6658d6b95930b4799a262f47d9ce2f3cec",
+    "scripts/test_native_stage.py": "200240e53315e0834756d8dbef052e429b487999d37e3da0b7d900ee46766e86",
+    "scripts/test_select/proof.py": "6efc160d180d51d20bf63465eb52067575141f336517d6208cebba09d011543b",
+    "scripts/test_select/rules.py": "e966444bbb09705afeac2eeb549efd7b49f251ca6fbc18518fc368d62c1feac9",
+    "scripts/test_suite.py": "106ec79c51ba037237f47eaf9e807b34f6ba8d57df729d3a26955eff54162898",
+    "scripts/toolsetter_readback_check.py": "26fb9b8dde085d9387bf3c5f976e135da297dc27937edd0a4e8a423200f8459b",
+    "scripts/twp_adverse_check.py": "ca93096b3f4bc6f3dced3438426e1570ba4a96ee4859e09c394bc5c353801a1e",
+    "scripts/twp_buttons_check.py": "01f9c73b11651c17424466c063a4330cf4f8e0f0ac0302d7bc853da4cd3d45d5",
+    "scripts/twp_parity.py": "7ad8136821f951c77999a941bf6fb11f40b34d1c8b5982f0783444e3c6648a63",
+    "subroutines/surfacemap/compensation.py": "18f2c76aed21bb60bcd7aa82c2787278da4aaf414f6a8f5568b96f6ac7908673"
+  },
+  "twp_changed_functions": [
+    "main",
+    "truth_plane_invariants"
+  ],
+  "twp_removed_functions": [
+    "cmd_compare"
+  ],
+  "round": "R351",
+  "date": "2026-11-12",
+  "verdict": "agreement",
+  "base": "c7f7226180a03a3b0761a4fb6ffe3c167309b3b7",
+  "review_checkout": "b6e192b8ffae39ca1f8042fd46b6ac4ffcf54e4a",
+  "review_original_bytes": 33252,
+  "review_original_sha256": "6962006decccfb4d073b9d0d3a6a46b47e24777d9d58d4c6e3e602e7bde4bee1",
+  "append_sha256": "267dc26a90de0f73680bb31d9b0f6c182d98e489305e9d336f4f3a22a96e1e68",
+  "own_tests": {
+    "runner_and_parity": 21,
+    "regression_unique_testcases": 574,
+    "native_helper_cases": 3,
+    "total_cases": 598,
+    "gate_probe_cases": 14
+  },
+  "regression_junit_suite_attributes": [
+    {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "2598",
+      "time": "12.509",
+      "timestamp": "2026-11-12T20:17:20.295824+01:00",
+      "hostname": "debian"
+    }
+  ],
+  "regression_junit_count_note": "suite tests includes unittest subtests; unique testcase elements = 574, all passed",
+  "commands": [
+    "python3 -B -m pytest -q -p no:cacheprovider lcnc-gateway/test_suite_runner.py scripts/test_parity_compare.py",
+    "python3 -B -m pytest -q -p no:cacheprovider -o faulthandler_timeout=30 --junitxml=/tmp/r351-regression-tests.xml lcnc-gateway/test_button_gates_b.py lcnc-gateway/test_device_profiles.py lcnc-gateway/test_feature_switches.py lcnc-gateway/test_freecad_import.py lcnc-gateway/test_gateway_util.py lcnc-gateway/test_preview_poll_chain.py lcnc-gateway/test_rfl_guard.py",
+    "python3 -B -m pytest -q -p no:cacheprovider --junitxml=/tmp/r351-native-tests.xml scripts/test_native_stage.py::test_an_intended_unit_that_was_never_ours_is_left_alone scripts/test_native_stage.py::test_a_servo_section_ends_on_every_path scripts/test_install_probe.py::test_a_killed_probe_s_restore_comes_before_a_waiting_gate",
+    "python3 -B /tmp/r351-probe.py /tmp/codex-r351"
+  ],
+  "interpreter": "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/bin/python3",
+  "own_scope": "Only isolated archive /tmp/codex-r351; Fake-LinuxCNC regression, pure/test fixture helpers; no browser, live gateway, controller, live motion, service management or full gate run.",
+  "claude_gate": {
+    "head": "22348f34a703841ac5bd094a5240fb4c229bdd86",
+    "report": "docs/reviews/vor-maschine.p1.gate-round.json",
+    "backend_report": "/home/cnc/claude-work/ruff/r1/gate-round.logs/backend/report.json",
+    "both_read": true,
+    "unit_light": 2650,
+    "browser_selected": 7,
+    "backend_steps": 12
+  },
+  "artifacts_sha256": {
+    "vor-maschine.r351.codex-probe.py": "add6c9961c94e9292da9dacc30cbf63b1960ac23588cac2e4dc45566af0028c1",
+    "vor-maschine.r351.codex-probe.json": "8ed8139d2690ddb1a735483b2ba876b257f96a80dc60379b42e18cc7263217b8",
+    "vor-maschine.r351.codex-tests.txt": "f7e1d1943fd6c532484ac49c0ff0fb2e6f272d3880168491589f2a7dc89b66c1",
+    "vor-maschine.r351.codex-regression.xml": "9638ff04160c1c97d99380f754900c6214444c745a3b5769893d4ecf409450ea"
+  }
+}

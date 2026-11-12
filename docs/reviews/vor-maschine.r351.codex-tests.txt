@@ -1,0 +1,141 @@
+=== Runner and parity: exit 0, 21 cases ===
+.....................                                                  [100%]
+
+
+=== Regression first attempt in sandbox: interrupted, exit 130, incomplete ===
+..................
+
+=== Sandbox isolation of test_button_gates_b: timed out/killed, exit 137, incomplete ===
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/bin/python3
+rootdir: /tmp/codex-r351/lcnc-gateway
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 40 items
+
+lcnc-gateway/test_button_gates_b.py::TestSectionClassification::test_device_sections_are_free PASSED [  2%]
+lcnc-gateway/test_button_gates_b.py::TestSectionClassification::test_machine_is_protected PASSED [  5%]
+lcnc-gateway/test_button_gates_b.py::TestSectionClassification::test_the_two_classes_cover_every_section_once PASSED [  7%]
+lcnc-gateway/test_button_gates_b.py::TestWriteGates::test_source_write PASSED [ 10%]
+lcnc-gateway/test_button_gates_b.py::TestWriteGates::test_tool_commands_map_to_it 
+lcnc-gateway/test_button_gates_b.py::TestWriteGates::test_tool_commands_map_to_it PASSED [ 12%]
+lcnc-gateway/test_button_gates_b.py::TestWriteGates::test_tool_table_write PASSED [ 15%]
+lcnc-gateway/test_button_gates_b.py::TestConnKey::test_a_closed_connection_writes_nothing PASSED [ 17%]
+lcnc-gateway/test_button_gates_b.py::TestConnKey::test_minted_per_connection PASSED [ 20%]
+lcnc-gateway/test_button_gates_b.py::TestConnKey::test_the_writer_is_its_connection 
+lcnc-gateway/test_button_gates_b.py::TestConnKey::test_the_writer_is_its_connection PASSED [ 22%]
+lcnc-gateway/test_button_gates_b.py::TestWriteAdmission::test_a_disarmed_writer_is_refused PASSED [ 25%]
+lcnc-gateway/test_button_gates_b.py::TestWriteAdmission::test_a_load_in_progress_is_refused PASSED [ 27%]
+lcnc-gateway/test_button_gates_b.py::TestWriteAdmission::test_a_pending_tool_change_refuses_the_table PASSED [ 30%]
+lcnc-gateway/test_button_gates_b.py::TestWriteAdmission::test_a_running_interpreter_is_refused PASSED [ 32%]
+lcnc-gateway/test_button_gates_b.py::TestWriteAdmission::test_an_idle_machine_admits PASSED [ 35%]
+lcnc-gateway/test_button_gates_b.py::TestWriteAdmission::test_an_open_start_is_refused PASSED [ 37%]
+lcnc-gateway/test_button_gates_b.py::TestWriteAdmission::test_an_unknown_tool_change_refuses_the_table PASSED [ 40%]
+lcnc-gateway/test_button_gates_b.py::TestWriteAdmission::test_e_stop_admits PASSED [ 42%]
+lcnc-gateway/test_button_gates_b.py::TestWriteAdmission::test_run_from_line_starting_is_refused PASSED [ 45%]
+lcnc-gateway/test_button_gates_b.py::TestProgramWriters::test_a_disarm_while_the_body_arrives_refuses_at_the_publish Timeout (0:00:15)!
+Thread 0x0000ffff867a5160 (most recent call first):
+  File "/usr/lib/python3.13/concurrent/futures/thread.py", line 90 in _worker
+  File "/usr/lib/python3.13/threading.py", line 994 in run
+  File "/usr/lib/python3.13/threading.py", line 1043 in _bootstrap_inner
+  File "/usr/lib/python3.13/threading.py", line 1014 in _bootstrap
+
+Thread 0x0000ffff9da7bba0 (most recent call first):
+  File "/usr/lib/python3.13/selectors.py", line 452 in select
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 2004 in _run_once
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 683 in run_forever
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 712 in run_until_complete
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118 in run
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195 in run
+  File "/tmp/codex-r351/lcnc-gateway/test_button_gates.py", line 251 in _run
+  File "/tmp/codex-r351/lcnc-gateway/test_button_gates_b.py", line 219 in upload
+  File "/tmp/codex-r351/lcnc-gateway/test_button_gates_b.py", line 249 in test_a_disarm_while_the_body_arrives_refuses_at_the_publish
+  File "/usr/lib/python3.13/unittest/case.py", line 606 in _callTestMethod
+  File "/usr/lib/python3.13/unittest/case.py", line 651 in run
+  File "/usr/lib/python3.13/unittest/case.py", line 707 in __call__
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/unittest.py", line 389 in runtest
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/runner.py", line 179 in pytest_runtest_call
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/runner.py", line 245 in <lambda>
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/runner.py", line 353 in from_call
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/runner.py", line 244 in call_and_report
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/runner.py", line 137 in runtestprotocol
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/runner.py", line 118 in pytest_runtest_protocol
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/main.py", line 396 in pytest_runtestloop
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/main.py", line 372 in _main
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/main.py", line 318 in wrap_session
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/main.py", line 365 in pytest_cmdline_main
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/config/__init__.py", line 199 in main
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/config/__init__.py", line 223 in console_main
+  File "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/lib/python3.13/site-packages/pytest/__main__.py", line 9 in <module>
+  File "<frozen runpy>", line 88 in _run_code
+  File "<frozen runpy>", line 198 in _run_module_as_main
+
+
+=== Minimal asyncio without repository code: timeout, exit 124 ===
+before thread
+7
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import asyncio; async_code = "async def check():\n    print(\"before thread\", flush=True)\n    print(await asyncio.to_thread(lambda: 7), flush=True)\n"; exec(async_code); asyncio.run(check())
+                                                                                                                                                                                ~~~~~~~~~~~^^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 194, in run
+    with Runner(debug=debug, loop_factory=loop_factory) as runner:
+         ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 62, in __exit__
+    self.close()
+    ~~~~~~~~~~^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 72, in close
+    loop.run_until_complete(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        loop.shutdown_default_executor(constants.THREAD_JOIN_TIMEOUT))
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 712, in run_until_complete
+    self.run_forever()
+    ~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 683, in run_forever
+    self._run_once()
+    ~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 2004, in _run_once
+    event_list = self._selector.select(timeout)
+  File "/usr/lib/python3.13/selectors.py", line 452, in select
+    fd_event_list = self._selector.poll(timeout, max_ev)
+KeyboardInterrupt
+
+
+=== Regression outside sandbox in archive, fake LinuxCNC: exit 0, 574 testcases ===
+................................................................. [ 11%]
+............................................ [ 18%]
+........................................................................................................................ [ 39%]
+........................................................................ [ 52%]
+........................................................................ [ 64%]
+........................................................................ [ 77%]
+..................................................................... [ 89%]
+...................................................... [ 98%]
+......                                                                   [100%]
+[GC] +12340ms gen=2 duration=14.5ms collected=954 uncollectable=0
+[GC] +12352ms gen=2 duration=11.3ms collected=0 uncollectable=0
+[GC] +12363ms gen=2 duration=11.0ms collected=0 uncollectable=0
+[GC] +12373ms gen=2 duration=10.6ms collected=0 uncollectable=0
+[GC] +12384ms gen=2 duration=10.7ms collected=0 uncollectable=0
+[GC] +12397ms gen=2 duration=12.4ms collected=0 uncollectable=0
+
+
+=== Three targeted offline native helper guards: exit 0 ===
+...                                                                      [100%]
+3 passed in 2.21s
+
+
+=== Three helper guards raw JUnit ===
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="3" time="2.211" timestamp="2026-11-12T20:17:50.637399+01:00" hostname="debian"><testcase classname="scripts.test_native_stage" name="test_an_intended_unit_that_was_never_ours_is_left_alone" time="0.001" /><testcase classname="scripts.test_native_stage" name="test_a_servo_section_ends_on_every_path" time="0.001" /><testcase classname="scripts.test_install_probe" name="test_a_killed_probe_s_restore_comes_before_a_waiting_gate" time="1.912" /></testsuite></testsuites>
