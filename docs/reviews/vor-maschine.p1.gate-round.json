@@ -1,0 +1,221 @@
+{
+  "kind": "round",
+  "note": "",
+  "base": "c7f7226180a03a3b0761a4fb6ffe3c167309b3b7",
+  "head": "22348f34a703841ac5bd094a5240fb4c229bdd86",
+  "uncommitted": 0,
+  "plan": [
+    "selection-guards",
+    "lint",
+    "build",
+    "unit-light",
+    "backend",
+    "ports-free",
+    "browser"
+  ],
+  "env": {
+    "nproc": 6,
+    "arch": "aarch64",
+    "node": "v22.23.2",
+    "playwright": "Version 1.60.0"
+  },
+  "selection": {
+    "unmatched": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [],
+      "related": []
+    },
+    "browser": {
+      "run": [
+        "example-tool-library"
+      ],
+      "reasons": []
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "lcnc-gateway/gateway.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/gcode_parse_worker.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/requirements-test.txt: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_button_gates_b.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_device_profiles.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_feature_switches.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_freecad_import.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_gateway_util.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_preview_poll_chain.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_rfl_guard.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_suite_runner.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_viewer_init.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_ws_smoke.py: the gateway: the browser suite runs against the mock",
+        "ruff.toml: the Python lint's files and rules: the backend gate's ruff step (issue #36)",
+        "scripts/freecad_check_5axis_xyzac.py: scripts and their tests ride the backend gate",
+        "scripts/native_run.py: scripts and their tests ride the backend gate",
+        "scripts/test_5axis_xyzac.py: scripts and their tests ride the backend gate",
+        "scripts/test_install_probe.py: scripts and their tests ride the backend gate",
+        "scripts/test_native_stage.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/proof.py: scripts and their tests ride the backend gate",
+        "scripts/test_select/rules.py: scripts and their tests ride the backend gate",
+        "scripts/test_suite.py: scripts and their tests ride the backend gate",
+        "scripts/toolsetter_readback_check.py: scripts and their tests ride the backend gate",
+        "scripts/twp_adverse_check.py: scripts and their tests ride the backend gate",
+        "scripts/twp_buttons_check.py: scripts and their tests ride the backend gate",
+        "scripts/twp_parity.py: scripts and their tests ride the backend gate",
+        "subroutines/surfacemap/compensation.py: the bundled routines"
+      ]
+    },
+    "firefox": {
+      "needed": false
+    },
+    "live": {
+      "live-twp": [
+        "lcnc-gateway/gcode_parse_worker.py"
+      ],
+      "perf-matrix": [
+        "lcnc-gateway/gateway.py"
+      ],
+      "probe-live": [
+        "subroutines/surfacemap/compensation.py"
+      ],
+      "toolsetter-readback": [
+        "subroutines/surfacemap/compensation.py"
+      ],
+      "twp-buttons": [
+        "lcnc-gateway/gateway.py"
+      ]
+    }
+  },
+  "heavy_lock_wait_s": 0.0,
+  "browser_specs": [
+    {
+      "file": "example-tool-library.spec.ts",
+      "ms": 14741
+    }
+  ],
+  "verdict": "PASS",
+  "resources": {
+    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/round-gate.service",
+    "cpu_s": 423,
+    "memory_peak_mb": 2378
+  },
+  "checks": [
+    {
+      "name": "selection-guards",
+      "command": "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-ruff/scripts/test_select/test_selector.py",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 3
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 8
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 14
+    },
+    {
+      "name": "unit-light",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/claude-work/ruff/r1/gate-round.logs/unit-light.json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 51,
+      "files": 165,
+      "tests": 2650,
+      "passed": 2650,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 2650
+    },
+    {
+      "name": "backend",
+      "command": "/home/cnc/lcnc-suite-ruff/lcnc-gateway/.venv/bin/python3 /home/cnc/lcnc-suite-ruff/scripts/test_suite.py offline --component backend --out-dir /home/cnc/claude-work/ruff/r1/gate-round.logs/backend",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 186
+    },
+    {
+      "name": "ports-free",
+      "status": "PASS"
+    },
+    {
+      "name": "browser-listing",
+      "status": "PASS",
+      "files": 1
+    },
+    {
+      "name": "browser-selected",
+      "command": "npx playwright test -c playwright.select.config.ts --forbid-only --trace off --reporter=line,json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 17,
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    {
+      "name": "browser-executed",
+      "status": "PASS",
+      "tests": 7
+    },
+    {
+      "name": "browser-workers",
+      "status": "PASS",
+      "run": "gate-b9b86ce4-74f5-4b8a-983c-137d44f4c84f",
+      "mocks": 1
+    }
+  ],
+  "omitted": [
+    {
+      "check": "unit-heavy",
+      "reason": "no heavy file changed, reached or read for"
+    }
+  ],
+  "pending": [
+    {
+      "check": "live-twp",
+      "status": "pending: a live check, run before main",
+      "paths": [
+        "lcnc-gateway/gcode_parse_worker.py"
+      ]
+    },
+    {
+      "check": "perf-matrix",
+      "status": "pending: a live check, run before main",
+      "paths": [
+        "lcnc-gateway/gateway.py"
+      ]
+    },
+    {
+      "check": "probe-live",
+      "status": "pending: a live check, run before main",
+      "paths": [
+        "subroutines/surfacemap/compensation.py"
+      ]
+    },
+    {
+      "check": "toolsetter-readback",
+      "status": "pending: a live check, run before main",
+      "paths": [
+        "subroutines/surfacemap/compensation.py"
+      ]
+    },
+    {
+      "check": "twp-buttons",
+      "status": "pending: a live check, run before main",
+      "paths": [
+        "lcnc-gateway/gateway.py"
+      ]
+    }
+  ]
+}

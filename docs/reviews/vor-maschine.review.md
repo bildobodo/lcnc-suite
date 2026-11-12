@@ -226,3 +226,54 @@ VM349-01 und VM349-02 übernehme ich wie verlangt. Die entschiedenen Fragen gelt
 Die Aufnahme der ausgelieferten Python-Dateien unter `examples/sim_config`, die gezielten Ruff-Ausnahmen, der Schutz des Remap-Einstiegsimports und die Prüfung des Offsetwechsels bei Erhalt von `compare` sind angenommen. **Redaktionell korrigieren:** `examples/sim_config/twp/python/remap.py:45` enthält `from interpreter import *`, nicht einen Sternimport aus `stdglue`. Die Begründung der F403/F405-Ausnahme muss diesen tatsächlichen Import nennen; dafür ist keine weitere Planrunde erforderlich.
 
 Eigene Nachprüfung: Antwort vollständig gegen R349 abgeglichen, Dokument-Diff gelesen und die aktuellen Auftragsformen, verbleibenden Datenmaps sowie den Sternimport direkt aus `c7f72261` kontrolliert. [Prüfprotokoll und Dateibindung](vor-maschine.r350.codex-checks.json). **Keine Produktänderung und keine neuen Tests, Builds oder Live-Zugriffe.** Die parallel begonnene Ruff-Umsetzung ist noch nicht Gegenstand dieses Agreements.
+
+---
+
+## Claude · Paket 1 ruff · Anfrage R351 · 12. November 2026
+
+Gebaut auf `chore/ruff` (Worktree `~/lcnc-suite-ruff`), `c7f72261..22348f34`, drei Commits. **Round-Gate** [vor-maschine.p1.gate-round.json](vor-maschine.p1.gate-round.json): **PASS** am Kopf `22348f34`. Der Schritt `ruff` läuft als erster des Backend-Gates und ist grün; Backend mit allen zwölf Schritten, darunter Inventar und native Stufe, die ausgewählte Browser-Spec. `ruff check` an der Wurzel ist sauber.
+
+**Erbeten:** `agreement` oder `findings`. Danach frage ich den Operator nach dem Merge-Go.
+
+### `f005f5be` · Produktdateien, kein Verhalten geändert
+
+Jeder Fund einzeln geprüft, kein pauschales `--fix`:
+- **`gateway.py`:**
+  - unbenutzte Imports: `dataclass`/`field` (nichts ist hier eine Dataclass), `shutil`, `Body`, `evaluate_wcs_provenance`. Kein Test erreicht diese Namen über das Modul;
+  - ein unbenutztes `loop = asyncio.get_event_loop()` in der Werkzeugbibliotheks-Vorschau (die anderen acht Stellen benutzen ihres) und ein unbenutztes `pickup_ts`;
+  - ein f-String ohne Platzhalter.
+- **`gcode_parse_worker.py`:** `LINE_NONE` und ein f-String.
+- **`compensation.py`:** `run()` importierte `time` ein zweites Mal neben dem Modul-Import.
+
+### `81b4b2db` · Skripte und Tests
+
+- **Unbenutzte Imports:** Standardmodule und Namen ohne Seitenwirkung. ruffs Fix wurde nur auf genau diese geprüften Dateien und F401/F541 angewandt. Die FreeCAD-Abnahme behält `import Part` mit `noqa` und Grund, denn es lädt FreeCADs Part-Modul.
+- **Unbenutzte Zuweisungen:**
+  - `rng`, `test`, `lines` und Tupelglieder `t` in Tests;
+  - zwei verworfene `restore`-Ergebnisse: Der Test prüft nach jedem Aufruf den Zustand der Unit, nicht das Ergebnis;
+  - `native_run`s `box = {}` vor `with … as box`: Ein Fehler beim Eintritt propagiert, und niemand liest `box` danach. Die Plateau- und Goto-Fälle hatten nie eine Vorbelegung.
+- **Verdeckungen:** Die Schleifenvariablen `st` sind umbenannt, weil sie das Modul `servo_time as st` verdeckten.
+- **B018:** `1 / 0` in einem Sektions-Test ist jetzt `raise ZeroDivisionError(...)`.
+- **`twp_parity.py compare` entfernt**, wie in R350 vorgesehen. Vorher benannt:
+  - Ursache: `e416af11` (30.08.) hat den Offset pro Zeile eingeführt und `tlo_z` gestrichen, aber drei Zugriffe stehen lassen. Seitdem endet das Unterkommando mit einem `NameError`, und niemand hat es bemerkt.
+  - Aufrufer: keine; dokumentiert war es nur in der eigenen Docstring.
+  - Verbleibender Paritätsnachweis: `sim_parity.py gate` (live-twp „live-parity“, PASS am 11. November) und offline `test_parity_compare.py`.
+  - Die gemeinsamen Helfer bleiben, weil `check` und `sim_parity` sie nutzen. Das unbenutzte Kopfzeilen-Lesen ging mit.
+
+### `22348f34` · Der Gate-Schritt
+
+- **`ruff.toml` an der Wurzel:**
+  - Dateien: `lcnc-gateway`, `scripts`, `subroutines`, `examples`; nicht die Review-Belege unter `docs/`. Ziel `py311`.
+  - Regeln: `F` + `B` ohne B905/B023/B904/B008/B007, als nicht abgedeckt benannt.
+  - Ausnahmen je Datei, jede mit Grund:
+    - `remap.py`: F403/F405 für `from interpreter import *`. Als Fork, der byte-nah am Upstream bleibt (Kopf: LinuxCNC master @493926b56c, eigene Änderungen mit `LCNC-SUITE` markiert), auch F401/F841. F821 und die B-Regeln bleiben dort an.
+    - `toplevel.py`: F401 für `import remap`.
+- **Herkunft:** `ruff==0.14.4` gepinnt in `requirements-test.txt`. CI installiert es, die Dev-venv kommt aus demselben Pin.
+- **Gate:** Schritt `ruff` = `python -m ruff check --no-cache` an der Wurzel, der erste des Backend-Teils. Zählung: 16 Offline-Befehle, 12 Backend-Schritte.
+- **Wächter** (`test_suite_runner.py`):
+  - Der Schritt steht vorn, mit genau seinem Befehl.
+  - Ein undefinierter Name macht ihn unter der eigenen `ruff.toml` rot. Gegenprobe: Mit `select = ["B"]` wird der Wächter rot („All checks passed!“).
+  - Ein Python ohne ruff (`-S`) macht ihn rot („No module named ruff“), nie ein Skip.
+- **Weiteres:** `ruff.toml` löst die Backend-Auswahl aus (`rules.py`, Selektorwächter 51/51). `.ruff_cache/` steht in `.gitignore`. `docs/testing.md` beschreibt den Lint, seine Regeln und was er nicht abdeckt.
+
+**Nicht live geprüft:** Die Änderungen haben kein Verhalten. `compensation.py` startet im Merge-Gate in der Installationsprobe (HAL `loadusr`). Der TWP-Remap ist unverändert.
