@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="7" skipped="0" tests="155" time="1.136" timestamp="2026-11-12T22:15:56.020386+01:00" hostname="debian"><testcase classname="test_lcnc_iface.FakeShape" name="test_a_keyword_is_refused_as_by_the_binding" time="0.000" /><testcase classname="test_lcnc_iface.FakeShape" name="test_a_missing_or_extra_argument_is_refused" time="0.000" /><testcase classname="test_lcnc_iface.FakeShape" name="test_an_unknown_command_does_not_exist" time="0.000" /><testcase classname="test_lcnc_iface.FakeShape" name="test_an_unset_status_field_is_absent_never_a_state" time="0.000" /><testcase classname="test_lcnc_iface.FakeShape" name="test_every_command_the_code_calls_is_declared" time="0.000" /><testcase classname="test_lcnc_iface.FakeShape" name="test_wait_complete_answers_an_int_and_sends_count" time="0.000" /><testcase classname="test_lcnc_iface.StatusReads" name="test_every_status_read_is_guaranteed_or_named_optional" time="0.177" /><testcase classname="test_lcnc_iface.StatusReads" name="test_the_scan_sees_the_reads" time="0.006" /><testcase classname="test_lcnc_iface.NativeNames" name="test_the_real_binding_has_the_interface" time="0.017" /><testcase classname="test_typecheck_findings.SpindleOverrideEnabled" name="test_the_spindle_rows_switch_is_reported" time="0.000" /><testcase classname="test_typecheck_findings.SpindleOverrideEnabled" name="test_unread_is_unknown_never_enabled" time="0.000" /><testcase classname="test_typecheck_findings.ToolChangeInfoWithoutTable" name="test_the_lookup_says_no_table_path" time="0.000" /><testcase classname="test_typecheck_findings.CompensationGridWriteFailure" name="test_a_failed_mkstemp_is_reported_not_a_name_error" time="0.214" /><testcase classname="test_suite_runner.RuffStep" name="test_a_python_without_ruff_fails_the_step" time="0.007" /><testcase classname="test_suite_runner.RuffStep" name="test_an_undefined_name_fails_under_the_repositorys_rules" time="0.014" /><testcase classname="test_suite_runner.PyrightStep" name="test_a_missing_pyright_fails_with_its_reason" time="0.000" /><testcase classname="test_suite_runner.PyrightStep" name="test_a_type_error_fails_through_the_steps_launcher" time="0.311" /><testcase classname="test_suite_runner.TestSuiteRunner" name="test_accepts_matching_standard_simulator" time="0.001" /><testcase classname="test_suite_runner.TestSuiteRunner" name="test_arm_refusal_does_not_wait_for_a_missing_command_field" time="0.001" /><testcase classname="test_suite_runner.TestSuiteRunner" name="test_child_failure_is_reported_with_output_and_exit_status" time="0.008" /><testcase classname="test_suite_runner.TestSuiteRunner" name="test_corpus_copies_replace_a_previous_run_and_follow_the_ini_prefix" time="0.001" /><testcase classname="test_suite_runner.TestSuiteRunner" name="test_corpus_is_portable_and_does_not_overwrite_references" time="0.006" /><testcase classname="test_suite_runner.TestSuiteRunner" name="test_existing_report_directory_is_never_reused" time="0.001" /><testcase classname="test_suite_runner.TestSuiteRunner" name="test_legacy_arm_reply_has_no_command_field" time="0.000" /><testcase classname="test_suite_runner.TestSuiteRunner" name="test_no_live_side_effects_without_explicit_motion_flag" time="0.001" /><testcase classname="test_suite_runner.TestSuiteRunner" name="test_normal_command_ignores_unrelated_toolchange_reply" time="0.000" /><testcase classname="test_suite_runner.TestSuiteRunner" name="test_offline_discovers_tests_and_contains_no_live_gate" time="0.000" /><testcase classname="test_suite_runner.TestSuiteRunner" name="test_refuses_a_different_running_session" time="0.000" /><testcase classname="test_suite_runner.TestSuiteRunner" name="test_refuses_changed_kinematic_geometry" time="0.001" /><testcase classname="test_suite_runner.TestSuiteRunner" name="test_refuses_extra_hal_hardware" time="0.000" /><testcase classname="test_suite_runner.TestSuiteRunner" name="test_refuses_retired_simulator_even_if_its_name_contains_sim" time="0.001" /><testcase classname="test_suite_runner.TestSuiteRunner" name="test_refuses_stale_worktree_launcher_or_remap" time="0.001" /><testcase classname="test_status_runtime.TestProgramTimer" name="test_full_run_lifecycle" time="0.001" /><testcase classname="test_status_runtime.TestProgramTimer" name="test_interp_paused_state_counts_as_paused" time="0.000" /><testcase classname="test_status_runtime.TestVarFileAndWcs" name="test_resolve_memoized_per_ini" time="0.000" /><testcase classname="test_status_runtime.TestVarFileAndWcs" name="test_seed_wcs_cache_and_mtime_invalidation" time="0.000" /><testcase classname="test_status_runtime.TestVarFileAndWcs" name="test_write_var_file_updates_replaces_and_inserts_sorted" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_a_stale_reader_s_last_values_are_no_policy_input" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_a_tool_change_request_has_an_identity" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_active_slot_overwritten_from_stat" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_capture_clean_helpers_closed_on_none" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_capture_clean_helpers_read_the_offsets" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_datum_changed_none_when_unreadable_true_past_eps_false_within" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_datum_seq_advanced_none_when_unreadable_true_on_any_change" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_disconnected_raises" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_joint_limits_ride_the_payload_live" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_kins_type_rides_reader_snapshot_absent_is_none" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_measured_length_and_active_offset_remain_separate_from_fusion_oal" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_own_var_file_write_does_not_reseed_axis_rows" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_payload_core_fields_and_work_pos" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_policy_state_carries_the_capture_inputs" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_policy_state_carries_the_touchoff_inputs" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_poll_and_serialize_shallow_dict" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_reader_absence_propagates_none" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_safety_merge_emc_enable_overrides" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_seed_wcs_row_xyz_refuses_non_finite_and_bad_index" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_seed_wcs_row_xyz_writes_xyz_only_in_place" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_spindle_actual_scaled_by_fb_scale" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_twp_frame_pins_ride_the_snapshot_raw_and_absent_is_none" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_twp_pose_a_rides_the_snapshot_raw_including_the_sentinel" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_wcs_prov_a_rides_the_injected_getter_absent_is_none" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_wcs_table_rows_are_copies" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_work_pos_blank_when_world_missing_under_kins2" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_work_pos_keeps_joint_path_on_identity" time="0.000" /><testcase classname="test_status_runtime.TestPollStatus" name="test_work_pos_uses_world_coords_under_nonzero_kins" time="0.000" /><testcase classname="test_status_runtime.TestErrors" name="test_poll_failure_warns_once_until_reset" time="0.000" /><testcase classname="test_status_runtime.TestErrors" name="test_read_errors_caps_and_drains" time="0.000" /><testcase classname="test_status_runtime.TestRotaryAtZero" name="test_configured_rotary_off_zero_is_detected" time="0.000" /><testcase classname="test_status_runtime.TestRotaryAtZero" name="test_reads_canonical_slots_not_joint_order" time="0.000" /><testcase classname="test_status_runtime.TestRotaryAtZero" name="test_servo_dither_tolerated_but_a_real_tilt_is_not" time="0.000" /><testcase classname="test_status_runtime.TestRotaryAtZero" name="test_three_axis_machine_is_always_at_zero" time="0.000" /><testcase classname="test_status_runtime.TestRotaryAtZero" name="test_unreadable_position_is_none_not_zero" time="0.000" /><testcase classname="test_status_runtime.TestLoadRecord" name="test_a_change_that_ended_without_its_outcome_proves_nothing" time="0.001" /><testcase classname="test_status_runtime.TestLoadRecord" name="test_a_failed_record_write_proves_nothing_and_is_retried" time="0.000" /><testcase classname="test_status_runtime.TestLoadRecord" name="test_a_load_whose_window_ran_out_proves_neither_program" time="0.000" /><testcase classname="test_status_runtime.TestLoadRecord" name="test_a_proof_that_cannot_be_withdrawn_refuses_the_change" time="0.000" /><testcase classname="test_status_runtime.TestLoadRecord" name="test_a_restart_between_a_load_and_its_observation_proves_nothing" time="0.000" /><testcase classname="test_status_runtime.TestLoadRecord" name="test_an_unload_under_way_proves_nothing" time="0.000" /><testcase classname="test_status_runtime.TestLoadRecord" name="test_no_old_proof_is_written_back_while_the_change_is_under_way" time="0.000" /><testcase classname="test_status_runtime.TestLoadRecord" name="test_the_record_survives_a_restart_of_the_same_instance_only" time="0.000" /><testcase classname="test_status_runtime.TestLoadRecord" name="test_the_status_names_an_unconfirmed_file" time="0.000" /><testcase classname="test_settings_store.TestMachineSections" name="test_a_refusing_admission_writes_and_bumps_nothing" time="0.000" /><testcase classname="test_settings_store.TestMachineSections" name="test_a_save_without_its_base_revision_is_refused" time="0.000" /><testcase classname="test_settings_store.TestMachineSections" name="test_a_section_must_be_saved_in_its_own_class" time="0.000" /><testcase classname="test_settings_store.TestMachineSections" name="test_failed_first_write_leaves_the_section_absent" time="0.000" /><testcase classname="test_settings_store.TestMachineSections" name="test_failed_reset_keeps_the_settings" time="0.000" /><testcase classname="test_settings_store.TestMachineSections" name="test_failed_write_leaves_cache_file_and_version_at_the_stored_state" time="0.000" /><testcase classname="test_settings_store.TestMachineSections" name="test_machine_sections_stay_where_schema_1_had_them" time="0.000" /><testcase classname="test_settings_store.TestMachineSections" name="test_refuses_to_clobber_unparseable_file" time="0.000" /><testcase classname="test_settings_store.TestMachineSections" name="test_save_then_load_section" time="0.000" /><testcase classname="test_settings_store.TestMachineSections" name="test_version_bumps_on_save_and_reset" time="0.000" /><testcase classname="test_settings_store.TestMachineSections" name="test_writes_preserve_other_inis" time="0.000" /><testcase classname="test_settings_store.TestClassification" name="test_the_sections" time="0.000" /><testcase classname="test_settings_store.TestMigration" name="test_a_read_never_writes" time="0.000" /><testcase classname="test_settings_store.TestMigration" name="test_an_empty_file_gives_an_empty_template_with_simulation_off" time="0.000" /><testcase classname="test_settings_store.TestMigration" name="test_the_first_write_stores_schema_2_and_keeps_every_schema_1_section" time="0.000" /><testcase classname="test_settings_store.TestMigration" name="test_the_migration_is_made_once" time="0.000" /><testcase classname="test_settings_store.TestMigration" name="test_the_template_is_made_from_the_schema_1_display_sections_and_the_bar" time="0.000" /><testcase classname="test_settings_store.TestDevices" name="test_a_delete_before_the_bind_gives_a_new_profile_named_new" time="0.000" /><testcase classname="test_settings_store.TestDevices" name="test_a_malformed_token_is_refused_and_never_found" time="0.000" /><testcase classname="test_settings_store.TestDevices" name="test_a_profile_never_changed_is_listed_as_such" time="0.000" /><testcase classname="test_settings_store.TestDevices" name="test_a_refused_delete_keeps_the_profile" time="0.000" /><testcase classname="test_settings_store.TestDevices" name="test_a_rename_is_a_change_too" time="0.000" /><testcase classname="test_settings_store.TestDevices" name="test_a_save_for_an_unknown_device_is_refused" time="0.000" /><testcase classname="test_settings_store.TestDevices" name="test_a_short_visit_keeps_its_profile_and_values" time="0.000" /><testcase classname="test_settings_store.TestDevices" name="test_an_unknown_token_makes_a_new_profile_from_the_template_simulation_off" time="0.000" /><testcase classname="test_settings_store.TestDevices" name="test_delete_is_the_only_way_a_profile_leaves" time="0.000" /><testcase classname="test_settings_store.TestDevices" name="test_device_sections_belong_to_their_device" time="0.000" /><testcase classname="test_settings_store.TestDevices" name="test_machine_sections_are_the_same_for_every_device" time="0.001" /><testcase classname="test_settings_store.TestDevices" name="test_nothing_in_the_store_removes_a_profile_but_delete" time="0.000" /><testcase classname="test_settings_store.TestDevices" name="test_only_the_tokens_hash_is_stored_and_the_list_never_shows_it" time="0.000" /><testcase classname="test_settings_store.TestDevices" name="test_rename_trims_and_bounds_the_name" time="0.000" /><testcase classname="test_settings_store.TestDevices" name="test_reset_device_returns_the_template_with_simulation_off_and_keeps_the_name" time="0.000" /><testcase classname="test_settings_store.TestDevices" name="test_the_binding_is_claimed_under_the_stores_lock" time="0.000" /><testcase classname="test_settings_store.TestDevices" name="test_the_same_token_binds_the_same_profile" time="0.000" /><testcase classname="test_settings_store.TestRevisions" name="test_a_reset_makes_every_earlier_save_stale" time="0.000" /><testcase classname="test_settings_store.TestRevisions" name="test_a_revision_from_the_future_is_stale" time="0.000" /><testcase classname="test_settings_store.TestRevisions" name="test_a_save_on_an_older_revision_by_another_writer_is_stale" time="0.000" /><testcase classname="test_settings_store.TestRevisions" name="test_a_writers_second_save_after_its_own_first_passes" time="0.000" /><testcase classname="test_settings_store.TestRevisions" name="test_after_a_restart_only_the_current_revision_passes" time="0.001" /><testcase classname="test_settings_store.TestRevisions" name="test_an_anonymous_writer_never_passes_a_newer_revision" time="0.000" /><testcase classname="test_settings_store.TestRevisions" name="test_once_another_writer_came_between_the_chain_is_stale" time="0.000" /><testcase classname="test_settings_store.TestRevisions" name="test_revisions_are_per_device" time="0.000" /><testcase classname="test_session_bind.TestIdentity" name="test_comm_with_spaces_and_parens" time="0.000" /><testcase classname="test_session_bind.TestIdentity" name="test_discover_newest_of_several" time="0.000" /><testcase classname="test_session_bind.TestIdentity" name="test_missing_pid_is_none" time="0.000" /><testcase classname="test_session_bind.TestIdentity" name="test_self_is_identifiable" time="0.000" /><testcase classname="test_session_bind.TestIdentity" name="test_zombie_is_not_an_instance" time="0.000" /><testcase classname="test_session_bind.TestResolver" name="test_lazy_then_cache_once" time="0.000" /><testcase classname="test_session_bind.TestResolver" name="test_multiple_instances_logged_once" time="0.000" /><testcase classname="test_session_bind.TestEvaluateAdmission" name="test_accept" time="0.000" /><testcase classname="test_session_bind.TestEvaluateAdmission" name="test_duplicate_only_after_identity_passes" time="0.000" /><testcase classname="test_session_bind.TestEvaluateAdmission" name="test_fail_closed_without_peercred" time="0.000" /><testcase classname="test_session_bind.TestEvaluateAdmission" name="test_instance_variants" time="0.000" /><testcase classname="test_session_bind.TestEvaluateAdmission" name="test_no_hello_variants" time="0.000" /><testcase classname="test_session_bind.TestEvaluateAdmission" name="test_proto" time="0.000" /><testcase classname="test_session_bind.TestEvaluateAdmission" name="test_uid_and_pid" time="0.000" /><testcase classname="test_session_bind.TestAdmissionGate" name="test_admit_with_pipelined_leftover" time="0.000"><failure message="PermissionError: [Errno 1] Operation not permitted">self = &lt;test_session_bind.TestAdmissionGate testMethod=test_admit_with_pipelined_leftover&gt;
+
+    def test_admit_with_pipelined_leftover(self):
+        gw, srv = self._pair()
+        gate = self._gate()
+        gate.add(srv)
+        self.assertIn(srv, gate)
+        self.assertEqual(gate.socks(), [srv])
+        hello = json.dumps(sb.make_hello(self.expected)) + "\n"
+&gt;       gw.sendall((hello + '{"heartbeat": true}\n').encode())
+E       PermissionError: [Errno 1] Operation not permitted
+
+test_session_bind.py:212: PermissionError</failure></testcase><testcase classname="test_session_bind.TestAdmissionGate" name="test_hello_timeout" time="0.000"><failure message="json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)">self = &lt;test_session_bind.TestAdmissionGate testMethod=test_hello_timeout&gt;
+
+    def test_hello_timeout(self):
+        gw, srv = self._pair()
+        gate = self._gate(hello_timeout=2.0)
+        gate.add(srv, now=1000.0)
+        gate.expire(now=1001.0)
+        self.assertIn(srv, gate)
+        gate.expire(now=1003.5)
+        self.assertNotIn(srv, gate)
+&gt;       self.assertEqual(self._reply(gw)["reason"], "hello_timeout")
+                         ^^^^^^^^^^^^^^^
+
+test_session_bind.py:278: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_session_bind.py:203: in _reply
+    return json.loads(sock.recv(4096).decode().split("\n", 1)[0])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/json/decoder.py:345: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;json.decoder.JSONDecoder object at 0xffffac4eaba0&gt;, s = '', idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+            obj, end = self.scan_once(s, idx)
+        except StopIteration as err:
+&gt;           raise JSONDecodeError("Expecting value", s, err.value) from None
+E           json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+/usr/lib/python3.13/json/decoder.py:363: JSONDecodeError</failure></testcase><testcase classname="test_session_bind.TestAdmissionGate" name="test_not_readable_is_not_an_error" time="0.000" /><testcase classname="test_session_bind.TestAdmissionGate" name="test_old_code_client_rejected_on_first_line" time="0.000"><failure message="PermissionError: [Errno 1] Operation not permitted">self = &lt;test_session_bind.TestAdmissionGate testMethod=test_old_code_client_rejected_on_first_line&gt;
+
+    def test_old_code_client_rejected_on_first_line(self):
+        gw, srv = self._pair()
+        gate = self._gate()
+        gate.add(srv)
+&gt;       gw.sendall(b'{"heartbeat": true, "connected": true}\n')
+E       PermissionError: [Errno 1] Operation not permitted
+
+test_session_bind.py:227: PermissionError</failure></testcase><testcase classname="test_session_bind.TestAdmissionGate" name="test_partial_hello_stays_pending_then_admits" time="0.000"><failure message="PermissionError: [Errno 1] Operation not permitted">self = &lt;test_session_bind.TestAdmissionGate testMethod=test_partial_hello_stays_pending_then_admits&gt;
+
+    def test_partial_hello_stays_pending_then_admits(self):
+        gw, srv = self._pair()
+        gate = self._gate()
+        gate.add(srv)
+        line = json.dumps(sb.make_hello(self.expected)) + "\n"
+&gt;       gw.sendall(line[:10].encode())
+E       PermissionError: [Errno 1] Operation not permitted
+
+test_session_bind.py:257: PermissionError</failure></testcase><testcase classname="test_session_bind.TestAdmissionGate" name="test_peer_closed_before_hello" time="0.000" /><testcase classname="test_session_bind.TestAdmissionGate" name="test_reject_logging_is_throttled_but_counted" time="0.000"><failure message="PermissionError: [Errno 1] Operation not permitted">self = &lt;test_session_bind.TestAdmissionGate testMethod=test_reject_logging_is_throttled_but_counted&gt;
+
+    def test_reject_logging_is_throttled_but_counted(self):
+        gate = self._gate(reject_log_interval=0.2)
+        for _ in range(4):
+            gw, srv = self._pair()
+            gate.add(srv)
+&gt;           gw.sendall(b'{"heartbeat": true}\n')
+E           PermissionError: [Errno 1] Operation not permitted
+
+test_session_bind.py:297: PermissionError</failure></testcase><testcase classname="test_session_bind.TestAdmissionGate" name="test_stale_and_duplicate_and_ended" time="0.001"><failure message="PermissionError: [Errno 1] Operation not permitted">self = &lt;test_session_bind.TestAdmissionGate testMethod=test_stale_and_duplicate_and_ended&gt;
+
+    def test_stale_and_duplicate_and_ended(self):
+        for reason, setup, inst in (
+            ("stale_instance", lambda: None, (1, 1)),
+            ("duplicate_gateway", lambda: setattr(self, "healthy", True), self.expected),
+            ("instance_ended", lambda: setattr(self, "ended", True), self.expected),
+        ):
+            self.healthy = False
+            self.ended = False
+            setup()
+            gw, srv = self._pair()
+            gate = self._gate()
+            gate.add(srv)
+&gt;           gw.sendall((json.dumps(sb.make_hello(inst)) + "\n").encode())
+E           PermissionError: [Errno 1] Operation not permitted
+
+test_session_bind.py:248: PermissionError</failure></testcase><testcase classname="test_session_bind.TestAdmissionGate" name="test_too_many_pending" time="0.000"><failure message="json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)">self = &lt;test_session_bind.TestAdmissionGate testMethod=test_too_many_pending&gt;
+
+    def test_too_many_pending(self):
+        gate = self._gate(max_pending=2)
+        gws = []
+        for _ in range(3):
+            gw, srv = self._pair()
+            gws.append(gw)
+            gate.add(srv)
+        self.assertEqual(len(gate), 2)
+&gt;       self.assertEqual(self._reply(gws[2])["reason"], "too_many_pending")
+                         ^^^^^^^^^^^^^^^^^^^
+
+test_session_bind.py:288: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_session_bind.py:203: in _reply
+    return json.loads(sock.recv(4096).decode().split("\n", 1)[0])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/json/decoder.py:345: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;json.decoder.JSONDecoder object at 0xffffac4eaba0&gt;, s = '', idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+            obj, end = self.scan_once(s, idx)
+        except StopIteration as err:
+&gt;           raise JSONDecodeError("Expecting value", s, err.value) from None
+E           json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+/usr/lib/python3.13/json/decoder.py:363: JSONDecodeError</failure></testcase><testcase classname="test_session_bind.TestLauncherBind" name="test_alive_not_parent_needs_poll" time="0.004" /><testcase classname="test_session_bind.TestLauncherBind" name="test_bad_pid" time="0.000" /><testcase classname="test_session_bind.TestLauncherBind" name="test_dead_launcher" time="0.001" /><testcase classname="test_session_bind.TestLauncherBind" name="test_launcher_poll_fires_on_dead_pid" time="0.051" /><testcase classname="test_session_bind.TestLauncherBind" name="test_parent_is_launcher" time="0.000" /><testcase classname="test_session_bind.TestLauncherBind" name="test_pdeathsig_end_to_end" time="0.101" /><testcase classname="test_session_bind.TestLauncherBind" name="test_standalone" time="0.000" /></testsuite></testsuites>

@@ -623,3 +623,64 @@ Gebaut auf `feat/typecheck` (Worktree `~/lcnc-suite-tc`), `faa33958..a16fb55f`, 
 - **Nativer Abgleich:** `lcnc_iface_check.py` auf der VM: `ok`.
 
 - **CI:** `a16fb55f` ist zusätzlich als `harden/typecheck` gepusht, damit der pyright-Schritt in der CI-Umgebung (ohne LinuxCNC) läuft, bevor development sich bewegt.
+
+---
+
+## Codex · Implementierungsreview Paket 2a · R354 · 12. November 2026
+
+**Urteil: `findings`.** Die drei Verhaltenskorrekturen sind nachvollziehbar und durch die gezielten Tests gedeckt. Vor dem Agreement bleiben **VM-I01 bis VM-I03** an der neuen Prüfgrenze offen. Keine neue Operatorfrage. Der Link-Umbau gehört weiterhin zu 2b und ist kein fehlender Teil dieser Runde.
+
+Prüfstand: `faa33958..a16fb55f`, Anfrage im Dokumentstand `6da578b0`. Alle 37 geänderten Dateien außerhalb der Review-Belege gelesen; eigene Prüfungen an einer Archivkopie in `/tmp/codex-r354`. Die geprüften Dateien stimmen nach den Gegenproben wieder bytegenau mit `a16fb55f` überein. [Prüfprotokoll](vor-maschine.r354.codex-checks.json), [Gegenproben](vor-maschine.r354.codex-probe.py), [Ergebnisse](vor-maschine.r354.codex-probe.json).
+
+### VM-I01 · Die Unteroperation ist noch nicht an ihre Aufrufform gebunden
+
+**Stellen:** `lcnc-gateway/fake_linuxcnc.py:150–155`, `lcnc-gateway/lcnc_iface.py:220–231`, entsprechende Überladungen in `typings/linuxcnc.pyi` am Prüfstand.
+
+Der neue Fake lehnt unbekannte Methodennamen, beliebig viele Argumente und Schlüsselwörter ab. Bei `auto` und `jog` nimmt er aber weiterhin Formen an, die die reale Bindung verweigert. Meine sechs Gegenfälle werden **alle angenommen und erhöhen jeweils `serial` um eins**:
+
+| Aufruf | Fehlende oder unzulässige Form |
+| --- | --- |
+| `auto(AUTO_RUN)` | Startzeile fehlt |
+| `auto(AUTO_PAUSE, 1)` | zusätzliche Startzeile |
+| `jog(JOG_CONTINUOUS, 0, 0)` | Geschwindigkeit fehlt |
+| `jog(JOG_INCREMENT, 0, 0, 1.0)` | Schrittweite fehlt |
+| `jog(JOG_STOP, 0, 0, 1.0)` | zusätzliche Geschwindigkeit |
+| `jog(999, 0, 0)` | unbekannte Unteroperation |
+
+Das sind keine nachzubauenden Maschinenzustände: Die Bindung prüft diese Formen vor dem Senden. Bei `jog` hängen drei, vier oder fünf Argumente ausdrücklich von der Unteroperation ab; `auto` erlaubt die Zweierform nur für `AUTO_RUN`. [LinuxCNC 2.9.4, `jog` und `emcauto`](https://raw.githubusercontent.com/LinuxCNC/linuxcnc/v2.9.4/src/emc/usr_intf/axis/extensions/emcmodule.cc).
+
+Auch die statische Seite bleibt grün: Eine zusätzliche Prüfdatei mit genau diesen sechs Aufrufen auf `linuxcnc.command` durchläuft den **unveränderten Gate-Wrapper mit 0 Fehlern**. Alle Überladungen nehmen `fn: int`; deshalb unterscheiden sie nur die Argumentzahl, nicht die dazugehörige Unteroperation. Die Protocol-Zuweisungen können diese gemeinsame Überbreite nicht entdecken.
+
+**Korrektur:** Die verwendeten Unteroperationen und ihre Formen im Fake vor der Sendebuchung prüfen; auf Stub-/Protocol-Seite beispielsweise durch passende `Literal`-Konstanten und gebundene Überladungen ausdrücken. Die sechs Gegenfälle müssen an der jeweiligen Grenze rot sein, die zulässigen Start-/Pause-/Stop-/Jog-Formen grün. Ablehnung darf `serial` nicht erhöhen. Für tatsächlich dynamische Selektoren eine ausdrückliche Verengung vorsehen, keinen allgemeinen `int`-Rückfall, der die Gegenfälle wieder zulässt. Das schließt den vereinbarten Formnachweis aus VM352-01; eine vollständige Nachbildung des Controllers ist dafür nicht nötig.
+
+### VM-I02 · Der native Namensnachweis deckt zusätzliche Stub-Behauptungen nicht ab
+
+**Stelle:** `lcnc-gateway/lcnc_iface_check.py:23–43`.
+
+Der Wächter liest `STAT_FIELDS` und `COMMAND_METHODS` aus dem Protocol sowie Konstanten aus dem Fake. Er liest **keine Namen aus dem Stub**. Strukturelle Konformität erlaubt zusätzliche Mitglieder: Ergänze ich nur im Stub `command.codex_nonexistent()` und rufe es in einer typgeprüften Datei auf, bleiben sowohl der echte Typ-Gate-Aufruf als auch `problems()` grün. Die installierte Klasse hat diesen Namen nachweislich nicht. Damit kann genau die zusätzliche falsche Stub-Zusage unentdeckt bleiben, gegen die der vereinbarte Stub-↔-Bindung-Abgleich schützen sollte.
+
+Zweite Gegenprobe: Eine nur für den Wächter eingesetzte Moduloberfläche mit den echten Klassen/Konstanten, aber ohne `ini`, liefert ebenfalls keine Abweichung. Der zugesagte Abgleich auf Modulebene fehlt für solche Konstruktoren. Dabei wurden keine nativen Kanäle erzeugt.
+
+**Korrektur:** Die geprüfte Namensmenge an die tatsächlichen nativen Behauptungen von `linuxcnc.pyi` binden, einschließlich Moduloberfläche; unterstützende importierte Typnamen sind natürlich keine nativen Exporte. Das kann eine Stub-Inventur oder eine gemeinsame deklarierte Liste mit Vollständigkeitswächter sein. Zusätzliche echte LinuxCNC-Mitglieder bleiben erlaubt, zusätzliche unbelegte Stub-Mitglieder nicht. Gegenfälle: zusätzliches Stub-Mitglied sowie fehlender verwendeter Modulname. Den Nachweis weiterhin ausdrücklich auf Namen und Konstantenwerte begrenzen.
+
+**Dazugehöriger Rest:** Der Wächter erklärt ein optionales Feld gerade dann zum Fehler, wenn es vorhanden ist (`:38–39`). Meine Oberfläche mit zusätzlichem `stat.spindle_override` wird deshalb abgelehnt. „Optional mit Rückfall“ muss vorhandene **und** fehlende Ausprägung erlauben. Falls stattdessen genau eine Bindungsversion zugelassen werden soll, wäre das ein eigener, benannter Versionsvertrag; es folgt nicht aus der bisherigen Optional-Kennzeichnung.
+
+### VM-I03 · `strict` und `writer_fixture` sind aus dem zugesagten Gate verschwunden
+
+**Stelle:** `pyrightconfig.json:11,20`; Vereinbarung R352 „Gate“ und R353.
+
+Die Konfiguration prüft ausschließlich `standard`; es gibt keine dateibezogene `strict`-Auswahl. In R353 wurde nur `hal_bridge` aus der vorgeschlagenen strict-Liste genommen. Außerdem steht `writer_fixture.py` nun ausdrücklich unter `exclude`, obwohl es zusammen mit `fake_linuxcnc` ausdrücklich von der Test-Ausnahme ausgenommen war. Die Anfrage nennt beides nicht als begründete Planänderung oder verbindlichen Rest für 2b.
+
+Die eigenen Gegenfälle zeigen die praktische Grenze: Eine untypisierte neue Funktion in `command_policy.py` bleibt grün; ebenso eine annotierte Funktion mit falschem Rückgabetyp in `writer_fixture.py`. Derselbe falsche Rückgabetyp in der aufgenommenen `command_policy.py` macht den echten Gate-Aufruf rot. Der Wrapper funktioniert also; die vereinbarte Prüfmenge bzw. Prüfstärke fehlt.
+
+**Korrektur:** Die begründete strict-Auswahl und `writer_fixture` aufnehmen und ihre Gegenfälle nachweisen. Wenn eine konkrete Datei sachlich erst mit dem Link-Umbau typisierbar ist, diesen Rest samt Grund und Abschlusskriterium ausdrücklich zur Abstimmung stellen. „2a vollständig nach Plan“ ist mit dem jetzigen Ausschluss und ausschließlich `standard` noch nicht belegt. Die bereits vereinbarte vorläufige Ausnahme `gateway.py` beanstande ich nicht.
+
+### Angenommene Teile und Beleggrenzen
+
+- **Die drei Produktkorrekturen:** Spindel-Schalter aus der Spindelzeile, unbekannt als `None`; verständlicher Fehler bei fehlendem Tabellenpfad; kein ungebundenes `tmp_path` nach gescheitertem `mkstemp`. Die vier neuen Testfälle sind in meiner gezielten Auswahl grün. Kein zusätzlicher Verhaltensbefund im gelesenen Annotations-Diff.
+- **Erklärte Abweichungen:** `lcnc_iface.py` im später zur Laufzeit importierbaren Gateway-Verzeichnis ist sinnvoll. Die drei benannten Unterdrückungen in `gcode_canon` sind für diese Runde nachvollziehbar. Pin, fehlendes Werkzeug als Fehler, gleicher Stub-Satz in CI/VM und Gate-/Selektoreinbindung sind vorhanden.
+- **Eigene Prüfung:** Typ-Gate mit dem gepinnten Pyright: **39 Dateien, 0 Fehler, 0 Warnungen**. 153 gezielt ausgewählte Tests, davon die 30 Session-Tests nach Behebung der Prüfungsumgebung erneut grün; zusätzlich **634 Regressionstests** für `command_policy`, `bulk_pipeline` und `gateway_util` grün. Das sind **787 verschiedene Testfälle**, ohne Wiederholungen oder Subtests zur Zahl zu addieren. Der native Namenswächter ist am unveränderten Stand grün, mit den Grenzen aus VM-I02. [Testausgaben](vor-maschine.r354.codex-tests.txt), [Typ-Gate](vor-maschine.r354.codex-pyright.json).
+- **Umgebungsfehler offengelegt:** Die Sandbox blockierte zunächst die Interpreter-Abfrage von Pyright und lokale Socket-Tests. Die unveränderten Aufrufe wurden außerhalb dieser Sandbox an derselben Archivkopie wiederholt und sind grün. Ein zunächst falsch benannter Regressionstest startete keine Tests; der korrigierte Aufruf ist separat protokolliert. Das sind keine Produktbefunde.
+- **Round-Gate präzise benennen:** Der gelesene Backend-Bericht bindet den grünen Lauf an `a16fb55f`. Seine Schritte `native-stage` und `install-probe` rufen aber `scripts/test_native_stage.py` bzw. `scripts/test_install_probe.py` auf. Das sind deren Testprogramme, kein ausgeführter nativer Stufenlauf und keine live durchlaufene Installation mit `install-binding`. Der neue Installationsschritt ist im Code verdrahtet; seinen tatsächlichen Lauf muss das nachfolgende Merge-Gate belegen. Ebenso belegt die gelieferte M51-Live-Sonde das Feld der realen Bindung; den neuen Gateway-Payload prüft der Unit-Test. Bitte diese Aussagen im Übergabeprotokoll auseinanderhalten.
+
+Keine Produktänderung, kein Build/Test im Live-Baum, keine Maschinenbefehle und kein Zugriff auf die laufende Sim. Die neuen Dateien sind ausschließlich Review-Belege; ältere Belege bleiben unverändert.

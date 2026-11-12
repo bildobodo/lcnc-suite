@@ -1,0 +1,215 @@
+{
+  "fake_invalid_call_forms": [
+    {
+      "case": "auto_run_missing_line",
+      "method": "auto",
+      "args": [
+        0
+      ],
+      "serial_increment": 1,
+      "accepted": true,
+      "result": null
+    },
+    {
+      "case": "auto_pause_extra_line",
+      "method": "auto",
+      "args": [
+        1,
+        1
+      ],
+      "serial_increment": 1,
+      "accepted": true,
+      "result": null
+    },
+    {
+      "case": "jog_continuous_missing_speed",
+      "method": "jog",
+      "args": [
+        1,
+        0,
+        0
+      ],
+      "serial_increment": 1,
+      "accepted": true,
+      "result": null
+    },
+    {
+      "case": "jog_increment_missing_increment",
+      "method": "jog",
+      "args": [
+        2,
+        0,
+        0,
+        1.0
+      ],
+      "serial_increment": 1,
+      "accepted": true,
+      "result": null
+    },
+    {
+      "case": "jog_stop_extra_speed",
+      "method": "jog",
+      "args": [
+        0,
+        0,
+        0,
+        1.0
+      ],
+      "serial_increment": 1,
+      "accepted": true,
+      "result": null
+    },
+    {
+      "case": "jog_bad_selector",
+      "method": "jog",
+      "args": [
+        999,
+        0,
+        0
+      ],
+      "serial_increment": 1,
+      "accepted": true,
+      "result": null
+    }
+  ],
+  "baseline": {
+    "exit": 0,
+    "summary": {
+      "filesAnalyzed": 39,
+      "errorCount": 0,
+      "warningCount": 0,
+      "informationCount": 0,
+      "timeInSec": 2.639
+    },
+    "diagnostics": [],
+    "stderr": ""
+  },
+  "invalid_stub_calls_pass": {
+    "exit": 0,
+    "summary": {
+      "filesAnalyzed": 40,
+      "errorCount": 0,
+      "warningCount": 0,
+      "informationCount": 0,
+      "timeInSec": 2.776
+    },
+    "diagnostics": [],
+    "stderr": ""
+  },
+  "extra_stub_member_passes_gate": {
+    "exit": 0,
+    "summary": {
+      "filesAnalyzed": 40,
+      "errorCount": 0,
+      "warningCount": 0,
+      "informationCount": 0,
+      "timeInSec": 2.796
+    },
+    "diagnostics": [],
+    "stderr": ""
+  },
+  "actual_native_missing_extra_member": true,
+  "native_baseline": [],
+  "native_checker_with_extra_stub_member": [],
+  "native_checker_with_missing_ini": [],
+  "native_checker_with_optional_present": [
+    "stat.spindle_override is optional AND present: make it guaranteed or say why not"
+  ],
+  "excluded_writer_bad_return": {
+    "exit": 0,
+    "summary": {
+      "filesAnalyzed": 39,
+      "errorCount": 0,
+      "warningCount": 0,
+      "informationCount": 0,
+      "timeInSec": 2.809
+    },
+    "diagnostics": [],
+    "stderr": ""
+  },
+  "promised_strict_module_untyped_definition": {
+    "exit": 0,
+    "summary": {
+      "filesAnalyzed": 39,
+      "errorCount": 0,
+      "warningCount": 0,
+      "informationCount": 0,
+      "timeInSec": 2.844
+    },
+    "diagnostics": [],
+    "stderr": ""
+  },
+  "standard_bad_return_control": {
+    "exit": 1,
+    "summary": {
+      "filesAnalyzed": 39,
+      "errorCount": 1,
+      "warningCount": 0,
+      "informationCount": 0,
+      "timeInSec": 2.816
+    },
+    "diagnostics": [
+      {
+        "file": "/tmp/codex-r354/lcnc-gateway/command_policy.py",
+        "severity": "error",
+        "message": "Type \"Literal['wrong']\" is not assignable to return type \"int\"\n\u00a0\u00a0\"Literal['wrong']\" is not assignable to \"int\"",
+        "range": {
+          "start": {
+            "line": 1338,
+            "character": 11
+          },
+          "end": {
+            "line": 1338,
+            "character": 18
+          }
+        },
+        "rule": "reportReturnType"
+      }
+    ],
+    "stderr": ""
+  },
+  "restored": {
+    "exit": 0,
+    "summary": {
+      "filesAnalyzed": 39,
+      "errorCount": 0,
+      "warningCount": 0,
+      "informationCount": 0,
+      "timeInSec": 2.879
+    },
+    "diagnostics": [],
+    "stderr": ""
+  },
+  "config": {
+    "include": [
+      "lcnc-gateway",
+      "subroutines/surfacemap/compensation.py",
+      "typings"
+    ],
+    "exclude": [
+      "lcnc-gateway/.venv",
+      "lcnc-gateway/test_*.py",
+      "lcnc-gateway/conftest.py",
+      "lcnc-gateway/writer_fixture.py",
+      "lcnc-gateway/suite_py_bind_probe.py",
+      "lcnc-gateway/native_*_probe.py",
+      "lcnc-gateway/gateway.py",
+      "**/__pycache__",
+      "**/node_modules"
+    ],
+    "stubPath": "typings",
+    "extraPaths": [
+      "lcnc-gateway",
+      "subroutines/surfacemap"
+    ],
+    "typeCheckingMode": "standard",
+    "pythonVersion": "3.11",
+    "pythonPlatform": "Linux"
+  },
+  "meta": {
+    "target": "a16fb55f",
+    "root": "/tmp/codex-r354",
+    "python": "/home/cnc/lcnc-suite-tc/lcnc-gateway/.venv/bin/python3",
+    "native_access": "import, dir, classes and constants only; no channel, poll, motion or service access"
+  }
+}

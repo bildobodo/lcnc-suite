@@ -1,0 +1,374 @@
+{
+  "round": "R354",
+  "at": "2026-11-12T21:27:31.469096+00:00",
+  "base": "faa33958408f48c3a171ca6297e748e61e244734",
+  "target": "a16fb55f1e1139f25e0988f1c92f73e2350b441f",
+  "review_document_head": "6da578b0370aebd1be96d93cf507b6665576e894",
+  "review_sha256_before_append": "84b37d74031896da4eeb74da2edca096dbf6e0c38c5d35ff7f71ac3de46dfd47",
+  "archive": "/tmp/codex-r354",
+  "python": "/home/cnc/lcnc-suite-tc/lcnc-gateway/.venv/bin/python3",
+  "pyright": {
+    "version": "1.1.407",
+    "time": "1794518240475",
+    "generalDiagnostics": [],
+    "summary": {
+      "filesAnalyzed": 39,
+      "errorCount": 0,
+      "warningCount": 0,
+      "informationCount": 0,
+      "timeInSec": 2.696
+    }
+  },
+  "source_integrity_after_probes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "sha256": "e3378c0a32f820a82cf8a5f70d7c7442c959a381d0257f1350b8887c2e06202e",
+      "matches_target": true
+    },
+    {
+      "path": "docs/testing.md",
+      "sha256": "26bfbf5871544f55579e987cbdef743600088e9b8ec4e7f966014c256ac7df18",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/bulk_pipeline.py",
+      "sha256": "0ba05dca9a7dff9337ebfaeb36c0d28f33c6b6a4c43aa76052a17384ad97b2f4",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/command_policy.py",
+      "sha256": "8a76fb215a13da29403b90122c056f285a38c27d05c8ed948a5b360faeba2b16",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/fake_linuxcnc.py",
+      "sha256": "ba3c9870c84be9f9a91e97eaf418053fffae37a4704f5d03d5a30347d7951acb",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/gateway_util.py",
+      "sha256": "af500a492ad7d274135861b0e83ac969aa6f40c615f930559eff791fe75682c1",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/gcode_canon.py",
+      "sha256": "8143e619d5b3d7557a9b042bcb5cbf149a3a47cb69cc04b14578ea8e33165c9e",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/gcode_parse_worker.py",
+      "sha256": "9ddb9f4eede948885ef653bf802344e66363393eb99f4bc2eb322fde2589bca1",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/hal_bridge.py",
+      "sha256": "24aa95f9be771b3b89da8b4ca3225f2c012ad6b977d1af75b08fa25216c022ac",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/hal_reader.py",
+      "sha256": "42fe8a05d0a517822b51d25d17a313d3faa884e86a4311383c8acde32310f4a9",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/hal_watchdog.py",
+      "sha256": "306b5c7dc4aa9371ce12063c2a83e24ea9d396fd91ff7c9130cda63c9eb04f1d",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/lcnc_iface.py",
+      "sha256": "fab760e89f5fa74992310e4b5ecc3a6c1959799c32594ef6f3c2063c14d680b1",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/lcnc_iface_check.py",
+      "sha256": "dd79a3a4e34dfa5e94ac095e4cb4b26a778631cb4b59179bf671e5f08333ba19",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/lcnc_trace.py",
+      "sha256": "4316c862a004c1854930669efbcfda65a7a7cbffbb0bf908f7a5b967a83baaf6",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/session_bind.py",
+      "sha256": "068fcebeaee8f7f13d3b88392e038420eef6215f56dbd149a41b4bdffdd71f45",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/settings_store.py",
+      "sha256": "84713515dc6a4a09ff4df6bf143590379f7961c733fffe57269697377fbcc812",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/status_runtime.py",
+      "sha256": "0fbc9947f248c7dd3773b87b6a5034060a2708dc0e3b633e078adeec94fd650b",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_lcnc_iface.py",
+      "sha256": "232aad8f035c07e9cce991bd6437bf372070c0258de841cbc0d128b2b90401ca",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_suite_runner.py",
+      "sha256": "f1c169c3302a2e2387648b3b50c34fc4d7ad0f713b55e17db3250a3fd5120792",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-gateway/test_typecheck_findings.py",
+      "sha256": "6448e97b3a0689cc825786fc9ab7b76506b4850f0637de15513219459955404c",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-webui/package-lock.json",
+      "sha256": "637d721dbcf0c202073dfd26ebae3cc59ab6f71358a021d664bcfd7f958a9dbc",
+      "matches_target": true
+    },
+    {
+      "path": "lcnc-webui/package.json",
+      "sha256": "f0344b00ef428aa19cf0dc21b1228620c2a4a3afed9ea2173bcffbd240f812e9",
+      "matches_target": true
+    },
+    {
+      "path": "pyrightconfig.json",
+      "sha256": "3c3f3ce1fc94aa7bdbbb18edbf74471109fbc61272fa6236f0551576ed1e177c",
+      "matches_target": true
+    },
+    {
+      "path": "scripts/install_probe.py",
+      "sha256": "4455f0fb7d3720373f5cbc1dbc2cdc989f701c0f56c84c2b6c8378ed70a02d9c",
+      "matches_target": true
+    },
+    {
+      "path": "scripts/run_pyright.py",
+      "sha256": "6107ff3afe26cd670403286a54c620f3015d7be7cb5f2d4d25fdce862eb323d8",
+      "matches_target": true
+    },
+    {
+      "path": "scripts/test_select/rules.py",
+      "sha256": "75481db3f7e307f2aef29e448925fd4629db0fb73cfb92f2654ff75af96e2ef4",
+      "matches_target": true
+    },
+    {
+      "path": "scripts/test_suite.py",
+      "sha256": "1a23a7b45ccf1e06ed72846332198441a27eaa316ad9bdb950d972f0db7250d9",
+      "matches_target": true
+    },
+    {
+      "path": "subroutines/surfacemap/compensation.py",
+      "sha256": "522b83a0810c568ab27c9170e6dd45cc3667352511f460da177ee3c37355fc40",
+      "matches_target": true
+    },
+    {
+      "path": "typings/BOUNDARY.md",
+      "sha256": "8b867a4f6dbf1a9b799668b237fd016983a9ed41c816ba69a584d3f85f1018f0",
+      "matches_target": true
+    },
+    {
+      "path": "typings/conformance/check_fake.py",
+      "sha256": "eb28ae5fdf816d1e9133cff5dc3010ae2ed43a3884b21159cfbc30cff4c4482f",
+      "matches_target": true
+    },
+    {
+      "path": "typings/conformance/check_stub.py",
+      "sha256": "b8339bdd659387300fc72373011cc61ee564b855d0b6f7e8b9454ca791d87dda",
+      "matches_target": true
+    },
+    {
+      "path": "typings/gcode.pyi",
+      "sha256": "9f382fcc7f0cf931bdea319311a231febf16b177a3e13c98450ace3a06a59c25",
+      "matches_target": true
+    },
+    {
+      "path": "typings/hal.pyi",
+      "sha256": "e4921b5d0c919e7cc1b8ffe7be30a6d8dc503a1d409ca7b5e80fd824714fdbf5",
+      "matches_target": true
+    },
+    {
+      "path": "typings/interpreter.pyi",
+      "sha256": "004604c4655e03e7552b885be0599e7f7cc0442e5576a08ce43e6d379537e13d",
+      "matches_target": true
+    },
+    {
+      "path": "typings/linuxcnc.pyi",
+      "sha256": "4b4135f1ada911adb25bab0c4a8cb182bc3529122fc0f0e312afa83e7f6501b5",
+      "matches_target": true
+    },
+    {
+      "path": "typings/rs274/__init__.pyi",
+      "sha256": "dff3db46c43aaeefce2908efb0b4c86e24a5ce74403e769d9482220f072b9325",
+      "matches_target": true
+    },
+    {
+      "path": "typings/rs274/interpret.pyi",
+      "sha256": "3f078adacb1917d8a226a001528ecd10fe6e06838bfb27988f14fa4f60670be4",
+      "matches_target": true
+    }
+  ],
+  "tests": [
+    {
+      "files": [
+        "test_lcnc_iface.py",
+        "test_typecheck_findings.py",
+        "test_suite_runner.py",
+        "test_status_runtime.py",
+        "test_settings_store.py",
+        "test_session_bind.py"
+      ],
+      "collected_test_functions": 153,
+      "initial_passed": 146,
+      "initial_failed": 7,
+      "subtests_passed": 2,
+      "initial_failures": "Sandbox blocked local socketpair sends; consequent missing replies. All seven in test_session_bind."
+    },
+    {
+      "files": [
+        "test_session_bind.py"
+      ],
+      "passed": 30,
+      "environment": "same archive outside sandbox",
+      "overlap_with_initial": 30
+    },
+    {
+      "files": [
+        "test_command_policy.py",
+        "test_bulk_pipeline.py",
+        "test_gateway_util.py"
+      ],
+      "passed": 634,
+      "subtests_passed": 1947,
+      "environment": "same archive outside sandbox"
+    }
+  ],
+  "distinct_test_functions_accounted_green": 787,
+  "initial_errors_preserved": [
+    "Pyright could not query interpreter in sandbox; unchanged wrapper outside sandbox gives 0 errors/0 warnings.",
+    "Initial regression command included nonexistent test_lcnc_trace.py and ran zero tests; corrected selection is separately logged."
+  ],
+  "native_access": "Class and constant inspection only; no channels created, no poll, HAL access, machine commands or service changes.",
+  "findings": [
+    {
+      "id": "VM-I01",
+      "evidence_keys": [
+        "fake_invalid_call_forms",
+        "invalid_stub_calls_pass"
+      ],
+      "issue": "Operation-dependent arities accepted by fake and typed calls."
+    },
+    {
+      "id": "VM-I02",
+      "evidence_keys": [
+        "extra_stub_member_passes_gate",
+        "actual_native_missing_extra_member",
+        "native_checker_with_extra_stub_member",
+        "native_checker_with_missing_ini",
+        "native_checker_with_optional_present"
+      ],
+      "issue": "Native guard not bound to stub surface; module constructor omission; optional presence rejected."
+    },
+    {
+      "id": "VM-I03",
+      "evidence_keys": [
+        "excluded_writer_bad_return",
+        "promised_strict_module_untyped_definition",
+        "standard_bad_return_control"
+      ],
+      "issue": "Promised writer_fixture excluded and strict subset absent."
+    }
+  ],
+  "binding_source": "https://raw.githubusercontent.com/LinuxCNC/linuxcnc/v2.9.4/src/emc/usr_intf/axis/extensions/emcmodule.cc",
+  "live_sim_access": false,
+  "product_edits": false,
+  "reported_gate_limit": "Round backend native-stage/install-probe are pytest script tests, not actual native-stage/installation executions.",
+  "reported_backend": {
+    "commit": "a16fb55f1e1139f25e0988f1c92f73e2350b441f",
+    "status": "pass",
+    "mode": "offline",
+    "selected_commands": [
+      {
+        "name": "pyright",
+        "command": [
+          "/home/cnc/lcnc-suite-tc/lcnc-gateway/.venv/bin/python3",
+          "/home/cnc/lcnc-suite-tc/scripts/run_pyright.py"
+        ],
+        "cwd": "/home/cnc/lcnc-suite-tc",
+        "log": "pyright.log",
+        "started": "2026-11-12T20:38:20.119660+00:00",
+        "status": "pass",
+        "exit_code": 0,
+        "seconds": 4.03,
+        "finished": "2026-11-12T20:38:24.151878+00:00",
+        "notes": []
+      },
+      {
+        "name": "native-stage",
+        "command": [
+          "/home/cnc/lcnc-suite-tc/lcnc-gateway/.venv/bin/python3",
+          "-m",
+          "pytest",
+          "/home/cnc/lcnc-suite-tc/scripts/test_native_stage.py"
+        ],
+        "cwd": "/home/cnc/lcnc-suite-tc",
+        "log": "native-stage.log",
+        "started": "2026-11-12T20:40:07.051864+00:00",
+        "status": "pass",
+        "exit_code": 0,
+        "seconds": 42.3,
+        "finished": "2026-11-12T20:40:49.354245+00:00",
+        "notes": []
+      },
+      {
+        "name": "install-probe",
+        "command": [
+          "/home/cnc/lcnc-suite-tc/lcnc-gateway/.venv/bin/python3",
+          "-m",
+          "pytest",
+          "/home/cnc/lcnc-suite-tc/scripts/test_install_probe.py"
+        ],
+        "cwd": "/home/cnc/lcnc-suite-tc",
+        "log": "install-probe.log",
+        "started": "2026-11-12T20:40:49.354452+00:00",
+        "status": "pass",
+        "exit_code": 0,
+        "seconds": 45.14,
+        "finished": "2026-11-12T20:41:34.493606+00:00",
+        "notes": []
+      }
+    ]
+  },
+  "artifacts": {
+    "vor-maschine.r354.codex-probe.py": {
+      "bytes": 4854,
+      "sha256": "b4aa8325f8ef2239829f0e60eba0843d3de30dd358d3e73f3531d44c8018c81a"
+    },
+    "vor-maschine.r354.codex-probe.json": {
+      "bytes": 4700,
+      "sha256": "1932246f4157ac6ea9e51f2395c82c04125a3119898045907042bec647b7905b"
+    },
+    "vor-maschine.r354.codex-pyright.json": {
+      "bytes": 252,
+      "sha256": "84e293a1c8b6e3093b56163ed9e7afb5f75a0e568b6fd6433507db2081750bb0"
+    },
+    "vor-maschine.r354.codex-pyright-sandbox.json": {
+      "bytes": 16359,
+      "sha256": "02ae621430cab40a7eaee4a37b238b8de0d136b97ea4124e67d6d5fe74efee36"
+    },
+    "vor-maschine.r354.codex-tests.txt": {
+      "bytes": 11489,
+      "sha256": "5dec3f1f8119755c346e2b3f9095ffded122ea5f0105fc1e773f682d44c75363"
+    },
+    "vor-maschine.r354.codex-tests.xml": {
+      "bytes": 26110,
+      "sha256": "4a37d248ef0fbb4a2f76476db9aedba77e55dc5bc21f1bb719dd993a34796fdc"
+    },
+    "vor-maschine.r354.codex-session-unsandboxed.xml": {
+      "bytes": 3477,
+      "sha256": "0a96f1fe33484e2b80f78643d88503ed91c293d542041a9fe2c5fde8c5a9e3b1"
+    },
+    "vor-maschine.r354.codex-regression-corrected.xml": {
+      "bytes": 77667,
+      "sha256": "5879f24489d91e343896414185ea064c90c4b249614cd57196ede48dd617e88d"
+    }
+  }
+}

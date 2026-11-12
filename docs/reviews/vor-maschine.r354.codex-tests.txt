@@ -1,0 +1,222 @@
+=== tests.txt: 153 targeted cases, initial sandbox run ===
+...................................................................... [ 45%]
+...................................................................FF.FF [ 92%]
+.FFF.......                                                              [100%]
+=================================== FAILURES ===================================
+_____________ TestAdmissionGate.test_admit_with_pipelined_leftover _____________
+
+self = <test_session_bind.TestAdmissionGate testMethod=test_admit_with_pipelined_leftover>
+
+    def test_admit_with_pipelined_leftover(self):
+        gw, srv = self._pair()
+        gate = self._gate()
+        gate.add(srv)
+        self.assertIn(srv, gate)
+        self.assertEqual(gate.socks(), [srv])
+        hello = json.dumps(sb.make_hello(self.expected)) + "\n"
+>       gw.sendall((hello + '{"heartbeat": true}\n').encode())
+E       PermissionError: [Errno 1] Operation not permitted
+
+test_session_bind.py:212: PermissionError
+_____________________ TestAdmissionGate.test_hello_timeout _____________________
+
+self = <test_session_bind.TestAdmissionGate testMethod=test_hello_timeout>
+
+    def test_hello_timeout(self):
+        gw, srv = self._pair()
+        gate = self._gate(hello_timeout=2.0)
+        gate.add(srv, now=1000.0)
+        gate.expire(now=1001.0)
+        self.assertIn(srv, gate)
+        gate.expire(now=1003.5)
+        self.assertNotIn(srv, gate)
+>       self.assertEqual(self._reply(gw)["reason"], "hello_timeout")
+                         ^^^^^^^^^^^^^^^
+
+test_session_bind.py:278: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_session_bind.py:203: in _reply
+    return json.loads(sock.recv(4096).decode().split("\n", 1)[0])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/json/decoder.py:345: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <json.decoder.JSONDecoder object at 0xffffac4eaba0>, s = '', idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+            obj, end = self.scan_once(s, idx)
+        except StopIteration as err:
+>           raise JSONDecodeError("Expecting value", s, err.value) from None
+E           json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+/usr/lib/python3.13/json/decoder.py:363: JSONDecodeError
+________ TestAdmissionGate.test_old_code_client_rejected_on_first_line _________
+
+self = <test_session_bind.TestAdmissionGate testMethod=test_old_code_client_rejected_on_first_line>
+
+    def test_old_code_client_rejected_on_first_line(self):
+        gw, srv = self._pair()
+        gate = self._gate()
+        gate.add(srv)
+>       gw.sendall(b'{"heartbeat": true, "connected": true}\n')
+E       PermissionError: [Errno 1] Operation not permitted
+
+test_session_bind.py:227: PermissionError
+________ TestAdmissionGate.test_partial_hello_stays_pending_then_admits ________
+
+self = <test_session_bind.TestAdmissionGate testMethod=test_partial_hello_stays_pending_then_admits>
+
+    def test_partial_hello_stays_pending_then_admits(self):
+        gw, srv = self._pair()
+        gate = self._gate()
+        gate.add(srv)
+        line = json.dumps(sb.make_hello(self.expected)) + "\n"
+>       gw.sendall(line[:10].encode())
+E       PermissionError: [Errno 1] Operation not permitted
+
+test_session_bind.py:257: PermissionError
+________ TestAdmissionGate.test_reject_logging_is_throttled_but_counted ________
+
+self = <test_session_bind.TestAdmissionGate testMethod=test_reject_logging_is_throttled_but_counted>
+
+    def test_reject_logging_is_throttled_but_counted(self):
+        gate = self._gate(reject_log_interval=0.2)
+        for _ in range(4):
+            gw, srv = self._pair()
+            gate.add(srv)
+>           gw.sendall(b'{"heartbeat": true}\n')
+E           PermissionError: [Errno 1] Operation not permitted
+
+test_session_bind.py:297: PermissionError
+_____________ TestAdmissionGate.test_stale_and_duplicate_and_ended _____________
+
+self = <test_session_bind.TestAdmissionGate testMethod=test_stale_and_duplicate_and_ended>
+
+    def test_stale_and_duplicate_and_ended(self):
+        for reason, setup, inst in (
+            ("stale_instance", lambda: None, (1, 1)),
+            ("duplicate_gateway", lambda: setattr(self, "healthy", True), self.expected),
+            ("instance_ended", lambda: setattr(self, "ended", True), self.expected),
+        ):
+            self.healthy = False
+            self.ended = False
+            setup()
+            gw, srv = self._pair()
+            gate = self._gate()
+            gate.add(srv)
+>           gw.sendall((json.dumps(sb.make_hello(inst)) + "\n").encode())
+E           PermissionError: [Errno 1] Operation not permitted
+
+test_session_bind.py:248: PermissionError
+___________________ TestAdmissionGate.test_too_many_pending ____________________
+
+self = <test_session_bind.TestAdmissionGate testMethod=test_too_many_pending>
+
+    def test_too_many_pending(self):
+        gate = self._gate(max_pending=2)
+        gws = []
+        for _ in range(3):
+            gw, srv = self._pair()
+            gws.append(gw)
+            gate.add(srv)
+        self.assertEqual(len(gate), 2)
+>       self.assertEqual(self._reply(gws[2])["reason"], "too_many_pending")
+                         ^^^^^^^^^^^^^^^^^^^
+
+test_session_bind.py:288: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_session_bind.py:203: in _reply
+    return json.loads(sock.recv(4096).decode().split("\n", 1)[0])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/json/decoder.py:345: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <json.decoder.JSONDecoder object at 0xffffac4eaba0>, s = '', idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+            obj, end = self.scan_once(s, idx)
+        except StopIteration as err:
+>           raise JSONDecodeError("Expecting value", s, err.value) from None
+E           json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+/usr/lib/python3.13/json/decoder.py:363: JSONDecodeError
+=========================== short test summary info ============================
+FAILED test_session_bind.py::TestAdmissionGate::test_admit_with_pipelined_leftover
+FAILED test_session_bind.py::TestAdmissionGate::test_hello_timeout - json.dec...
+FAILED test_session_bind.py::TestAdmissionGate::test_old_code_client_rejected_on_first_line
+FAILED test_session_bind.py::TestAdmissionGate::test_partial_hello_stays_pending_then_admits
+FAILED test_session_bind.py::TestAdmissionGate::test_reject_logging_is_throttled_but_counted
+FAILED test_session_bind.py::TestAdmissionGate::test_stale_and_duplicate_and_ended
+FAILED test_session_bind.py::TestAdmissionGate::test_too_many_pending - json....
+7 failed, 146 passed, 2 subtests passed in 1.14s
+
+
+=== session-unsandboxed.txt: 30 session cases, unchanged archive outside sandbox ===
+..............................                                           [100%]
+30 passed in 0.43s
+
+
+=== regression.txt: Initial command error, no tests ran ===
+ERROR: file or directory not found: test_lcnc_trace.py
+
+
+no tests ran in 0.00s
+
+
+=== regression-corrected.txt: 634 regression cases, corrected file list ===
+........................................................................ [ 11%]
+..................................................................... [ 22%]
+.................................................................................................................................................................. [ 47%]
+........................................................................ [ 59%]
+........................................................................ [ 70%]
+........................................................................ [ 81%]
+........................................................................ [ 93%]
+.......................... [ 97%]
+.................            [100%]
+634 passed, 1947 subtests passed in 1.23s
+
+
+=== probe.txt: Own countercases and clean final typecheck ===
+fake_invalid_call_forms [{'case': 'auto_run_missing_line', 'method': 'auto', 'args': (0,), 'serial_increment': 1, 'accepted': True, 'result': None}, {'case': 'auto_pause_extra_line', 'method': 'auto', 'args': (1, 1), 'serial_increment': 1, 'accepted': True, 'result': None}, {'case': 'jog_continuous_missing_speed', 'method': 'jog', 'args': (1, 0, 0), 'serial_increment': 1, 'accepted': True, 'result': None}, {'case': 'jog_increment_missing_increment', 'method': 'jog', 'args': (2, 0, 0, 1.0), 'serial_increment': 1, 'accepted': True, 'result': None}, {'case': 'jog_stop_extra_speed', 'method': 'jog', 'args': (0, 0, 0, 1.0), 'serial_increment': 1, 'accepted': True, 'result': None}, {'case': 'jog_bad_selector', 'method': 'jog', 'args': (999, 0, 0), 'serial_increment': 1, 'accepted': True, 'result': None}]
+baseline (0, {'filesAnalyzed': 39, 'errorCount': 0, 'warningCount': 0, 'informationCount': 0, 'timeInSec': 2.639})
+invalid_stub_calls_pass (0, {'filesAnalyzed': 40, 'errorCount': 0, 'warningCount': 0, 'informationCount': 0, 'timeInSec': 2.776})
+extra_stub_member_passes_gate (0, {'filesAnalyzed': 40, 'errorCount': 0, 'warningCount': 0, 'informationCount': 0, 'timeInSec': 2.796})
+actual_native_missing_extra_member True
+native_baseline []
+native_checker_with_extra_stub_member []
+native_checker_with_missing_ini []
+native_checker_with_optional_present ['stat.spindle_override is optional AND present: make it guaranteed or say why not']
+excluded_writer_bad_return (0, {'filesAnalyzed': 39, 'errorCount': 0, 'warningCount': 0, 'informationCount': 0, 'timeInSec': 2.809})
+promised_strict_module_untyped_definition (0, {'filesAnalyzed': 39, 'errorCount': 0, 'warningCount': 0, 'informationCount': 0, 'timeInSec': 2.844})
+standard_bad_return_control (1, {'filesAnalyzed': 39, 'errorCount': 1, 'warningCount': 0, 'informationCount': 0, 'timeInSec': 2.816})
+restored (0, {'filesAnalyzed': 39, 'errorCount': 0, 'warningCount': 0, 'informationCount': 0, 'timeInSec': 2.879})
+config saved
+meta {'target': 'a16fb55f', 'root': '/tmp/codex-r354', 'python': '/home/cnc/lcnc-suite-tc/lcnc-gateway/.venv/bin/python3', 'native_access': 'import, dir, classes and constants only; no channel, poll, motion or service access'}
