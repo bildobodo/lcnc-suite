@@ -27,9 +27,10 @@ effects, so it is unit-testable on a plain developer machine.
 
 import math
 from dataclasses import dataclass
-from typing import Callable, Dict, Optional, Union
+from typing import Callable, Dict, FrozenSet, Iterable, Mapping, Optional, Tuple, Union
 
 from features import GAMEPAD_COMMANDS, PURPOSE_VARS as PARAM_PURPOSES, VIA_VALUES
+from json_types import JsonValue, to_float, to_int
 
 
 @dataclass(frozen=True)
@@ -150,14 +151,14 @@ TASK_MODE_AUTO = 2
 TASK_MODE_MDI = 3
 
 
-def motion_still_of(inpos, current_vel) -> Optional[bool]:
+def motion_still_of(inpos: object, current_vel: object) -> Optional[bool]:
     """Does the machine stand? None when either input is unreadable —
     never a guessed standstill. Pure; one rule for the policy state and the
     G30 capture's re-check after its synch."""
     if inpos is None or current_vel is None:
         return None
     try:
-        vel = abs(float(current_vel))
+        vel = abs(to_float(current_vel))
     except (TypeError, ValueError):
         return None
     return bool(inpos) and vel <= STILL_VEL
@@ -177,64 +178,69 @@ def motion_still_of(inpos, current_vel) -> Optional[bool]:
 # replies; the long explanations live in the docs and the help popovers.
 # test_command_policy.TestReasonLength sweeps every state for the cap.
 REASON_MAX_CHARS = 60
+#: One requirement of a gate: a predicate on the state and the reason its
+#: denial gives (the state's own fields, never a guess).
+Rule = Callable[["MachineState"], bool]
+Requirement = Tuple[Rule, str]
+Requirements = Tuple[Requirement, ...]
 _KINS_UNKNOWN = "Kinematics mode unknown — HAL reader stale"
 _MACHINE_FRAME_ONLY = "Machine frame only"
 _HEAD_NOT_ALIGNED = "Head not aligned with the plane — press Orient"
 NOT_ARMED = "Not armed — press Arm"
 
-_R_ARMED = (lambda s: s.armed, NOT_ARMED)
-_R_NOT_ESTOP = (lambda s: not s.is_estop, "E-Stop active — reset E-Stop first")
-_R_ENABLED = (lambda s: s.is_enabled, "Machine off — press Power on")
+_R_ARMED: Requirement = (lambda s: s.armed, NOT_ARMED)
+_R_NOT_ESTOP: Requirement = (lambda s: not s.is_estop, "E-Stop active — reset E-Stop first")
+_R_ENABLED: Requirement = (lambda s: s.is_enabled, "Machine off — press Power on")
 # An unread interpreter state is not idle (button gates BG-12): this rule
 # stands before every idle / running / paused rule, so a denial says the
 # state is unknown rather than "busy".
 STATE_UNKNOWN = "Machine state unknown — wait for status"
-_R_INTERP_KNOWN = (lambda s: s.interp_known, STATE_UNKNOWN)
+_R_INTERP_KNOWN: Requirement = (lambda s: s.interp_known, STATE_UNKNOWN)
 #: A busy interpreter — the idle rule's reason, also the start guard's (BG-32).
 MACHINE_BUSY = "Machine busy — wait until it is idle"
-_R_IDLE = (lambda s: s.is_idle, MACHINE_BUSY)
-_R_HOMED = (lambda s: s.is_homed, "Not homed — press Home All")
+_R_IDLE: Requirement = (lambda s: s.is_idle, MACHINE_BUSY)
+_R_HOMED: Requirement = (lambda s: s.is_homed, "Not homed — press Home All")
 #: Jogging: homed, or joint-wise before homing where the machine declares it
 #: (package E) — which axes may move, and how fast, the handler decides.
-_R_HOMED_OR_JOINT_JOG = (lambda s: s.is_homed or s.joint_jog_before_homing, _R_HOMED[1])
-_R_EOFFSET_KNOWN = (lambda s: s.eoffset_enabled is not None,
+_R_HOMED_OR_JOINT_JOG: Requirement = (lambda s: s.is_homed or s.joint_jog_before_homing, _R_HOMED[1])
+_R_EOFFSET_KNOWN: Requirement = (lambda s: s.eoffset_enabled is not None,
                     "Surface compensation state unknown — HAL reader stale")
-_R_NO_EOFFSET = (lambda s: s.eoffset_enabled is False,
+_R_NO_EOFFSET: Requirement = (lambda s: s.eoffset_enabled is False,
                  "Surface compensation on — switch it off first")
-_R_ROTARY_ZERO = (lambda s: s.rotary_at_zero,
+_R_ROTARY_ZERO: Requirement = (lambda s: s.rotary_at_zero,
                   "Rotary not at 0 — surface maps are 3-axis only")
-_R_RUNNING = (lambda s: s.is_running, "No program running")
-_R_NOT_PAUSED = (lambda s: not s.is_paused, "Program already paused")
-_R_PAUSED = (lambda s: s.is_paused, "No program paused")
+_R_RUNNING: Requirement = (lambda s: s.is_running, "No program running")
+_R_NOT_PAUSED: Requirement = (lambda s: not s.is_paused, "Program already paused")
+_R_PAUSED: Requirement = (lambda s: s.is_paused, "No program paused")
 # The spindle stop while a program or an MDI runs or pauses: the program owns
 # the spindle (button gates BG-18) — the dimmed stop names the stops that work.
 SPINDLE_OWNED = "Program owns the spindle — use Pause or Abort"
-_R_SPINDLE_FREE = (lambda s: s.is_idle, SPINDLE_OWNED)
-_R_NO_TOOL_CHANGE = (lambda s: s.tool_change_pending is False,
+_R_SPINDLE_FREE: Requirement = (lambda s: s.is_idle, SPINDLE_OWNED)
+_R_NO_TOOL_CHANGE: Requirement = (lambda s: s.tool_change_pending is False,
                      "Tool change pending — finish it first")
-_R_TOOL_CHANGE_KNOWN = (lambda s: s.tool_change_pending is not None,
+_R_TOOL_CHANGE_KNOWN: Requirement = (lambda s: s.tool_change_pending is not None,
                         "Tool change request unknown — HAL reader stale")
-_R_TOOL_CHANGE_PENDING = (lambda s: s.tool_change_pending is True,
+_R_TOOL_CHANGE_PENDING: Requirement = (lambda s: s.tool_change_pending is True,
                           "No tool change pending")
 # The task mode choice (button gates BG-04): task ignores a switch while a jog
 # is active, motion takes a new mode only in position, a homing sequence must
 # not be cut — and COORD (MDI / AUTO) needs every joint homed unless the
 # machine declares otherwise (coord_without_homing). Power and E-Stop are no
 # reason: LinuxCNC takes SET_MODE in E-Stop and off (emctaskmain.cc v2.9.4).
-_R_STANDS = (lambda s: s.motion_still is True, "Machine moving — wait until it stands")
-_R_HOMING_KNOWN = (lambda s: s.homing_active is not None, "Homing state unknown — wait for status")
-_R_NOT_HOMING = (lambda s: s.homing_active is False, "Homing in progress — wait until it ends")
-_R_COORD_REACHABLE = (lambda s: s.is_homed or s.coord_without_homing,
+_R_STANDS: Requirement = (lambda s: s.motion_still is True, "Machine moving — wait until it stands")
+_R_HOMING_KNOWN: Requirement = (lambda s: s.homing_active is not None, "Homing state unknown — wait for status")
+_R_NOT_HOMING: Requirement = (lambda s: s.homing_active is False, "Homing in progress — wait until it ends")
+_R_COORD_REACHABLE: Requirement = (lambda s: s.is_homed or s.coord_without_homing,
                       "Not homed — MDI and Auto need Home All")
 # The confirmed G30 read synchs the interpreter, which LinuxCNC refuses with
 # the machine ON in AUTO (gateway _synch_interp_params, Codex R118): the
 # read, the capture and the save say so before the press (BG-13).
-_R_TASK_MODE_KNOWN = (lambda s: s.task_mode is not None, STATE_UNKNOWN)
+_R_TASK_MODE_KNOWN: Requirement = (lambda s: s.task_mode is not None, STATE_UNKNOWN)
 G30_NOT_IN_AUTO = "G30 not confirmed in AUTO — switch to MDI first"
-_R_SYNCH_POSSIBLE = (lambda s: not (s.is_enabled and s.task_mode == TASK_MODE_AUTO), G30_NOT_IN_AUTO)
+_R_SYNCH_POSSIBLE: Requirement = (lambda s: not (s.is_enabled and s.task_mode == TASK_MODE_AUTO), G30_NOT_IN_AUTO)
 # The recovery order (BG-11): acknowledge a trip → Arm → E-Stop Reset → On.
 TRIP_UNACKED = "Acknowledge the safety trip first"
-_R_TRIP_ACKED = (lambda s: not s.trip_unacked, TRIP_UNACKED)
+_R_TRIP_ACKED: Requirement = (lambda s: not s.trip_unacked, TRIP_UNACKED)
 # The manual spindle (Q1): homed, or the declared exception in MANUAL.
 UNHOMED_SPINDLE_MANUAL = "Unhomed spindle: Manual mode only"
 
@@ -252,7 +258,7 @@ def spindle_manual_refusal(s: MachineState) -> Optional[str]:
     return None
 
 
-_R_SPINDLE_HOMING = (lambda s: spindle_manual_refusal(s) is None, _R_HOMED[1])
+_R_SPINDLE_HOMING: Requirement = (lambda s: spindle_manual_refusal(s) is None, _R_HOMED[1])
 
 
 # ---------------------------------------------------------------------------
@@ -347,7 +353,7 @@ def _unsupported_mode_msg(s: MachineState) -> str:
     return f"Kinematics mode {s.kins_type} unsupported — select Machine"
 
 
-def touchoff_route(s: MachineState, letters):
+def touchoff_route(s: MachineState, letters: Iterable[object]) -> Tuple[Optional[str], Optional[str]]:
     """Where a touch-off of `letters` goes in state `s`.
 
     Returns ("mdi", None) for a plain G10 L20 into the active fixture,
@@ -454,17 +460,18 @@ def machine_frame_required(s: MachineState) -> Optional[str]:
 # (R-01: the shipped trt remaps M428 to its world kins), so operator wording
 # names the frame — the JogStrip radio and the typed set_kins_mode command
 # own the number.
-_R_MACHINE_FRAME = (lambda s: machine_frame_required(s) is None, _MACHINE_FRAME_ONLY)
+_R_MACHINE_FRAME: Requirement = (lambda s: machine_frame_required(s) is None, _MACHINE_FRAME_ONLY)
 # G30 capture takes the CURRENT position (Codex R25 OP-I02): the machine must
 # stand, not merely have an idle interpreter; unknown refuses.
 MOTION_UNKNOWN = "Motion state unknown — wait for status"
 MACHINE_MOVING = "Machine moving — capture once it stands"
-_R_MOTION_KNOWN = (lambda s: s.motion_still is not None, MOTION_UNKNOWN)
-_R_STILL = (lambda s: s.motion_still is True, MACHINE_MOVING)
+_R_MOTION_KNOWN: Requirement = (lambda s: s.motion_still is not None, MOTION_UNKNOWN)
+_R_STILL: Requirement = (lambda s: s.motion_still is True, MACHINE_MOVING)
 
 
 def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,
-                   stamp: Optional[dict] = None, metric: bool = True):
+                   stamp: Optional[Mapping[str, JsonValue]] = None,
+                   metric: bool = True) -> Tuple[Optional[list[str]], Optional[str]]:
     """The → Zero button under the current kinematics: (mdi_lines, None) or
     (None, refusal).
 
@@ -502,8 +509,8 @@ def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,
         sk, a = None, 0.0
         if stamp:
             try:
-                sk = int(round(float(stamp.get("kins") or 0)))
-                a = float(stamp.get("a") or 0.0)
+                sk = int(round(to_float(stamp.get("kins") or 0)))
+                a = to_float(stamp.get("a") or 0.0)
             except (TypeError, ValueError):
                 return None, "Work offset record unreadable — touch off again"
         if sk not in (None, 0):
@@ -525,7 +532,7 @@ def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,
     return [f"O<twp_goto_zero> CALL [{float(clearance):.4f}] [{1 if metric else 0}]"], None
 
 
-_R_GOZERO = (lambda s: goto_zero_plan(s, 0.0, 0.0)[1] is None,
+_R_GOZERO: Requirement = (lambda s: goto_zero_plan(s, 0.0, 0.0)[1] is None,
              "Machine frame and Plane only")
 
 
@@ -534,7 +541,7 @@ _R_GOZERO = (lambda s: goto_zero_plan(s, 0.0, 0.0)[1] is None,
 #: JogStrip radio, and check_command. A bare M430 reuses whatever frame the
 #: kins pins last held, so the frame is offered only while a plane is
 #: defined and the head is still aligned with it.
-_PLANE_FRAME_RULES = (
+_PLANE_FRAME_RULES: Requirements = (
     (lambda s: s.twp_capable,
      "No Plane frame on this machine"),
     (lambda s: s.kins_type is not None, _KINS_UNKNOWN),
@@ -554,16 +561,16 @@ def plane_frame_check(s: MachineState) -> Optional[str]:
     return None
 
 
-_R_RUNNABLE = (lambda s: kins_runnable(s) is None,
+_R_RUNNABLE: Requirement = (lambda s: kins_runnable(s) is None,
                "Plane kinematics without a plane — select Machine")
-_R_STEP = (lambda s: step_refusal(s) is None,
+_R_STEP: Requirement = (lambda s: step_refusal(s) is None,
            "Step needs a homed idle machine, or a pause")
 
 
-_R_TOUCHOFF_LINEAR = (
+_R_TOUCHOFF_LINEAR: Requirement = (
     lambda s: touchoff_route(s, ("X",))[0] is not None,
     "No touch-off in this frame or work offset")
-_R_TOUCHOFF_ROTARY = (
+_R_TOUCHOFF_ROTARY: Requirement = (
     lambda s: touchoff_route(s, ("A",))[0] is not None,
     "Rotary touch-off: Machine frame and G54 only")
 
@@ -574,7 +581,7 @@ _R_TOUCHOFF_ROTARY = (
 #: denied WS command names its exact reason, not a summary), and the button
 #: dimming (permissions broadcast). Every predicate is None-safe and every
 #: default is the CLOSED reading.
-_TWP_CAPTURE_RULES = (
+_TWP_CAPTURE_RULES: Requirements = (
     # Capability, not switchability: a TCP trunnion is switchable and has no
     # G68.2 / G53.x remap to capture with (TWP-08b).
     (lambda s: s.twp_capable,
@@ -612,16 +619,16 @@ def twp_capture_check(s: MachineState) -> Optional[str]:
     return None
 
 
-_BASE = (_R_ARMED, _R_NOT_ESTOP, _R_ENABLED)
+_BASE: Requirements = (_R_ARMED, _R_NOT_ESTOP, _R_ENABLED)
 # Every idle rule is preceded by "the state was read" (BG-12), every eoffset
 # rule by "the eoffset is known".
-_IDLE = (_R_INTERP_KNOWN, _R_IDLE)
-_NO_EOFFSET = (_R_EOFFSET_KNOWN, _R_NO_EOFFSET)
-_MODE_SWITCH = (_R_MOTION_KNOWN, _R_STANDS, _R_HOMING_KNOWN, _R_NOT_HOMING)
-_G30_SYNCH = (_R_TASK_MODE_KNOWN, _R_SYNCH_POSSIBLE)
+_IDLE: Requirements = (_R_INTERP_KNOWN, _R_IDLE)
+_NO_EOFFSET: Requirements = (_R_EOFFSET_KNOWN, _R_NO_EOFFSET)
+_MODE_SWITCH: Requirements = (_R_MOTION_KNOWN, _R_STANDS, _R_HOMING_KNOWN, _R_NOT_HOMING)
+_G30_SYNCH: Requirements = (_R_TASK_MODE_KNOWN, _R_SYNCH_POSSIBLE)
 
 # gate -> ordered requirements (armed/estop/enabled first → sensible messages).
-GATE_REQUIREMENTS: Dict[str, tuple] = {
+GATE_REQUIREMENTS: Dict[str, Requirements] = {
     "idle":     _BASE + _IDLE,
     # no NEW jog while homing runs (Codex R219 BG-35): motion rejects it
     # (command.c v2.9.4:785/853), and a booked jog's stop would cancel the
@@ -987,7 +994,7 @@ class MachineLimits:
     max_linear_velocity: Optional[float] = None
     #: var numbers this machine's var file declares — the writable set for
     #: the parameter writes (see WRITABLE_VAR_DENY_RANGES).
-    declared_vars: Optional[frozenset] = None
+    declared_vars: Optional[FrozenSet[int]] = None
 
 
 #: Parameter ranges that must never be written through a parameter write even when
@@ -1015,7 +1022,7 @@ class Num:
 @dataclass(frozen=True)
 class Enum:
     """A small closed value set — reject anything else."""
-    values: frozenset
+    values: FrozenSet[int]
 
 
 @dataclass(frozen=True)
@@ -1035,7 +1042,7 @@ class Text:
 class Choice:
     """A small closed set of WORDS — reject anything else (Enum is for
     integers)."""
-    values: frozenset
+    values: FrozenSet[str]
 
 
 @dataclass(frozen=True)
@@ -1069,18 +1076,18 @@ class ExpectMap:
 EXPECT_KEYS = frozenset({"kins_type", "g5x_index"})
 
 
-def touchoff_target_text(kins_type, g5x_index) -> str:
+def touchoff_target_text(kins_type: JsonValue, g5x_index: JsonValue) -> str:
     """Operator wording for a touch-off target: "Plane · G59", "Machine ·
     G54", "TCP · G55", "kins ? · G54". Pure."""
     names = {0: "Machine", 1: "TCP", 2: "Plane"}
-    k = None if kins_type is None else names.get(int(round(float(kins_type))), f"kins {kins_type}")
-    g = None if g5x_index is None else int(g5x_index)
+    k = None if kins_type is None else names.get(int(round(to_float(kins_type))), f"kins {kins_type}")
+    g = None if g5x_index is None else to_int(g5x_index)
     gname = None if g is None else (["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"][g - 1]
                                      if 1 <= g <= 9 else f"fixture {g}")
     return " · ".join(x for x in (k, gname) if x) or "unknown"
 
 
-def touchoff_expect_check(s: MachineState, expect) -> Optional[str]:
+def touchoff_expect_check(s: MachineState, expect: JsonValue) -> Optional[str]:
     """Does the touch-off target the keypad was opened under still hold in
     state `s`? None = yes (or no expectation was carried), else the operator
     wording for the refusal. Pure.
@@ -1095,8 +1102,8 @@ def touchoff_expect_check(s: MachineState, expect) -> Optional[str]:
         return None
     ek = expect.get("kins_type")
     eg = expect.get("g5x_index")
-    kins_diff = ek is not None and (s.kins_type is None or int(ek) != int(s.kins_type))
-    fix_diff = eg is not None and (s.g5x_index is None or int(eg) != int(s.g5x_index))
+    kins_diff = ek is not None and (s.kins_type is None or to_int(ek) != int(s.kins_type))
+    fix_diff = eg is not None and (s.g5x_index is None or to_int(eg) != int(s.g5x_index))
     if not (kins_diff or fix_diff):
         return None
     return (f"Touch-off target changed while you were entering: was "
@@ -1104,11 +1111,11 @@ def touchoff_expect_check(s: MachineState, expect) -> Optional[str]:
             f"{touchoff_target_text(s.kins_type, s.g5x_index)} — re-enter the value")
 
 
-def _axis_index(_l: MachineLimits):
+def _axis_index(_l: MachineLimits) -> Optional[int]:
     return (_l.n_axes - 1) if _l.n_axes else None
 
 
-def _neg(v):
+def _neg(v: Optional[float]) -> Optional[float]:
     """Mirror a declared ceiling into a floor, keeping None as unbounded —
     for fields whose SIGN carries meaning and whose magnitude is what the
     machine bounds."""
@@ -1208,11 +1215,11 @@ def _bound(spec_bound: Bound, limits: MachineLimits) -> Optional[float]:
     return spec_bound(limits) if callable(spec_bound) else spec_bound
 
 
-def _check_number(cmd, field, raw, spec: Num, limits) -> Optional[float]:
+def _check_number(cmd: str, field: str, raw: JsonValue, spec: Num, limits: MachineLimits) -> Optional[float]:
     """Returns a CORRECTED value when clamping applied, else None. Raises
     ValueError when the value is out of range and the field rejects."""
     try:
-        val = float(raw)
+        val = to_float(raw)
     except (TypeError, ValueError):
         raise ValueError(f"{cmd}: {field} must be a number")
     if val != val or val in (float("inf"), float("-inf")):
@@ -1233,7 +1240,7 @@ def _check_number(cmd, field, raw, spec: Num, limits) -> Optional[float]:
     return None
 
 
-def _check_var_numbers(cmd: str, field: str, raw, limits: MachineLimits) -> None:
+def _check_var_numbers(cmd: str, field: str, raw: JsonValue, limits: MachineLimits) -> None:
     """A VarNumbers mapping: keys var numbers this machine declares, outside
     WRITABLE_VAR_DENY_RANGES. Raises ValueError."""
     if not isinstance(raw, dict):
@@ -1254,7 +1261,7 @@ def _check_var_numbers(cmd: str, field: str, raw, limits: MachineLimits) -> None
                 f"declare it there to make it configurable")
 
 
-def validate_payload(cmd: str, msg: Dict, limits: MachineLimits) -> Dict[str, object]:
+def validate_payload(cmd: str, msg: Mapping[str, JsonValue], limits: MachineLimits) -> Dict[str, object]:
     """Bounds-check one command payload against what the machine declares.
 
     Returns a dict of CORRECTED field values (clamped continuous inputs) for the
@@ -1279,7 +1286,7 @@ def validate_payload(cmd: str, msg: Dict, limits: MachineLimits) -> Dict[str, ob
                 corrections[field] = int(fixed) if spec.integer else fixed
         elif isinstance(spec, Enum):
             try:
-                val = int(raw)
+                val = to_int(raw)
             except (TypeError, ValueError):
                 raise ValueError(f"{cmd}: {field} must be an integer")
             if val not in spec.values:

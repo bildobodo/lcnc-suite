@@ -106,15 +106,19 @@ rule that would need many `noqa` lines is deselected, not suppressed.
 **The Python type check** (package 2, plan vor-maschine R352/R353) is the
 backend gate's SECOND step, `pyright`: `scripts/run_pyright.py` runs the pyright
 pinned in `lcnc-webui/package.json` (npm, lockfile — never fetched; missing =
-FAIL with its reason) with the root `pyrightconfig.json`, mode `standard`, and
-the running Python's import paths. What it checks and what it does not — the
-gateway's product modules (`gateway.py` from 2b on), compensation.py, the
-LinuxCNC stubs `typings/*.pyi`, the interface `lcnc_iface.py` that the stub and
-the tests' fake are each held against (`typings/conformance/`), and the named
-exclusions — is `typings/BOUNDARY.md`. The REAL binding is checked by name and
-constant value (`lcnc_iface_check.py`): on the VM in `test_lcnc_iface.py`, in
-the install probe (row `install-binding`); only a job that declares
-`LCNC_NO_BINDING=1` (the CI backend job) skips it, by name.
+FAIL with its reason) with the root `pyrightconfig.json`, mode `standard` and
+`strict` for the pure modules (command_policy, settings_store, session_bind,
+lcnc_paths, lcnc_trace), and the running Python's import paths. What it checks
+and what it does not — the gateway's product modules (`gateway.py` from 2b on),
+`writer_fixture.py`, compensation.py, the LinuxCNC stubs `typings/*.pyi`, the
+interface `lcnc_iface.py` that the stub and the tests' fake are each held
+against (`typings/conformance/`, the call forms in `check_forms.py`), and the
+named exclusions — is `typings/BOUNDARY.md`. The REAL modules are checked
+against every stub claim — names, members, constant values
+(`lcnc_iface_check.py`): on surrogates in every job, on the VM in
+`test_lcnc_iface.py`, in the install probe (row `install-binding`); only a job
+that declares `LCNC_NO_BINDING=1` (the CI backend job) skips the native run,
+by name.
 
 The tree must be clean. In order, never two at once: the selector's own
 guards (`scripts/test_select/test_selector.py` — red guards end the gate before

@@ -48,6 +48,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Mapping, Optional, Tuple
 
+from json_types import JsonObject, JsonValue, to_int
+
 PROTO = 1
 # A pending client must present its hello within this window.
 HELLO_TIMEOUT_SEC = 2.0
@@ -139,7 +141,7 @@ def discover_instance(proc_root: str = "/proc",
     Returns ``(newest, all_found)`` so callers can act when more than one is
     alive (a lingering previous session — LinuxCNC's own lock normally
     prevents it, but "Cleanup other" races exist)."""
-    found = []
+    found: List[Instance] = []
     for pid in find_pids_by_comm(comm, proc_root):
         inst = instance_for_pid(pid, proc_root)
         if inst is not None:
@@ -202,7 +204,7 @@ class InstanceResolver:
 # Hello protocol + admission (pure)
 # ---------------------------------------------------------------------------
 
-def make_hello(instance: Optional[Instance], gateway_pid: Optional[int] = None) -> dict:
+def make_hello(instance: Optional[Instance], gateway_pid: Optional[int] = None) -> JsonObject:
     """The first line a gateway sends on each helper socket."""
     return {
         "type": "hello",
@@ -212,7 +214,7 @@ def make_hello(instance: Optional[Instance], gateway_pid: Optional[int] = None) 
     }
 
 
-def parse_hello_instance(hello: dict) -> Optional[Instance]:
+def parse_hello_instance(hello: JsonObject) -> Optional[Instance]:
     """Instance named by a hello, None when unbound. Raises ValueError on a
     malformed instance block."""
     inst = hello.get("instance")
@@ -223,10 +225,10 @@ def parse_hello_instance(hello: dict) -> Optional[Instance]:
     pid, start = inst["pid"], inst["start"]
     if isinstance(pid, bool) or isinstance(start, bool):
         raise ValueError("instance fields must be integers")
-    return (int(pid), int(start))
+    return (to_int(pid), to_int(start))
 
 
-def evaluate_admission(hello: Optional[dict], peer_pid: Optional[int], peer_uid: Optional[int],
+def evaluate_admission(hello: Optional[JsonObject], peer_pid: Optional[int], peer_uid: Optional[int],
                        my_uid: Optional[int], expected: Optional[Instance],
                        existing_healthy: bool, expected_ended: bool = False) -> Tuple[bool, str]:
     """Decide whether a connecting client may become THE gateway.
@@ -288,7 +290,7 @@ def peer_credentials(sock: socket.socket) -> Optional[Tuple[int, int, int]]:
 class Admitted:
     sock: socket.socket
     leftover: str          # bytes that followed the hello line (pipelined msgs)
-    hello: dict
+    hello: JsonObject
     peer_pid: Optional[int]
 
 
@@ -377,9 +379,9 @@ class AdmissionGate:
                 self._reject(sock, "hello_too_long", None, None)
             return None
         line, rest = p.buf.split(b"\n", 1)
-        hello: Optional[dict]
+        hello: Optional[JsonObject]
         try:
-            parsed = json.loads(line.decode("utf-8", errors="replace"))
+            parsed: JsonValue = json.loads(line.decode("utf-8", errors="replace"))
             hello = parsed if isinstance(parsed, dict) else None
         except ValueError:
             hello = None
@@ -424,7 +426,7 @@ class AdmissionGate:
 
     # -- internals --
 
-    def _say(self, sock: socket.socket, obj: dict) -> None:
+    def _say(self, sock: socket.socket, obj: JsonObject) -> None:
         try:
             sock.send((json.dumps(obj) + "\n").encode())
         except OSError:
@@ -491,7 +493,8 @@ def pid_alive(pid: int) -> bool:
     return True
 
 
-def bind_to_launcher(env: Optional[Mapping[str, str]] = None, *, signum: int = signal.SIGTERM) -> dict:
+def bind_to_launcher(env: Optional[Mapping[str, str]] = None, *,
+                     signum: int = signal.SIGTERM) -> JsonObject:
     """Arm ``PR_SET_PDEATHSIG`` when a launcher started us (``LCNC_LAUNCHER_PID``).
 
     The launcher's EXIT trap SIGTERMs the gateway on every path bash can
@@ -513,7 +516,7 @@ def bind_to_launcher(env: Optional[Mapping[str, str]] = None, *, signum: int = s
         launcher_pid = int(raw)
     except ValueError:
         return {"mode": "launcher", "ok": False, "reason": "bad_launcher_pid", "raw": raw}
-    res: dict = {"mode": "launcher", "launcher_pid": launcher_pid, "needs_poll": False}
+    res: JsonObject = {"mode": "launcher", "launcher_pid": launcher_pid, "needs_poll": False}
     try:
         libc = ctypes.CDLL(None, use_errno=True)
         rc = libc.prctl(_PR_SET_PDEATHSIG, int(signum), 0, 0, 0)

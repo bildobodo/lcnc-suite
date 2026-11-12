@@ -8,8 +8,29 @@ is what the route receives (`x_conn_key=` or the X-Conn-Key header).
 """
 from unittest import mock
 
+from starlette.types import Message
+from starlette.websockets import WebSocket, WebSocketDisconnect
+
 import gateway
 from ws_fanout import ClientState
+
+
+async def _gone_receive() -> Message:
+    raise WebSocketDisconnect(code=1006)
+
+
+async def _gone_send(message: Message) -> None:
+    raise WebSocketDisconnect(code=1006)
+
+
+def no_socket() -> WebSocket:
+    """The writer's connection in a test has no socket: a real starlette
+    WebSocket whose receive and send fail the way a dropped connection does
+    (WebSocketDisconnect 1006, which every send path of the gateway expects)
+    — never a None where the gateway's ClientState holds a WebSocket. The
+    tests never send to it; a path that did fails loudly."""
+    return WebSocket({"type": "websocket", "path": "/ws", "headers": [], "client": ("test-writer", 0)},
+                     receive=_gone_receive, send=_gone_send)
 
 
 def armed_writer(testcase, *, tool_change=False) -> str:
@@ -21,7 +42,7 @@ def armed_writer(testcase, *, tool_change=False) -> str:
     claims = list(gateway._source_claims)
     gateway._source_claims.clear()
     testcase.addCleanup(lambda: gateway._source_claims.__setitem__(slice(None), claims))
-    client = ClientState(ip="test-writer", ws=None, armed=True)
+    client = ClientState(ip="test-writer", ws=no_socket(), armed=True)
     slot = -(id(client) % 1_000_000) - 1   # negative: never a real client id
     gateway._clients[slot] = client
     testcase.addCleanup(gateway._clients.pop, slot, None)

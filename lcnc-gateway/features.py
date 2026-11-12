@@ -13,7 +13,9 @@ the probe's `set_probe_vars`). A set outside its purpose — mixed, or one
 number too many — is refused WHOLE before the first write. Pure: no
 gateway state, no linuxcnc.
 """
-from typing import Dict, Iterable, Optional
+from typing import Dict, FrozenSet, Iterable, Optional
+
+from json_types import JsonValue
 
 FEATURES = ("probing", "toolsetter", "surfaceMap", "camera", "macros", "gamepad")
 
@@ -27,13 +29,13 @@ LABELS = {
 }
 
 
-def _span(lo: int, hi: int) -> frozenset:
+def _span(lo: int, hi: int) -> FrozenSet[int]:
     return frozenset(range(lo, hi + 1))
 
 
 #: Each purpose's variables (CLAUDE.md "Toolsetter Var-File Mapping", the
 #: probe panel's #3014–#3036, surface_scan.ngc's inputs) and its switch.
-PURPOSE_VARS = {
+PURPOSE_VARS: Dict[str, FrozenSet[int]] = {
     "probe": _span(3014, 3036),
     "surface": _span(3050, 3059) | {3014, 3021},
     "toolsetter": _span(3004, 3013) | _span(3100, 3115),
@@ -89,18 +91,19 @@ PARAMLESS_PROBE_ROUTINES = frozenset({"probe_cal_reset"})
 M600_MODE = "m600"
 
 
-def features_of(section) -> Dict[str, bool]:
+def features_of(section: JsonValue) -> Dict[str, bool]:
     """The switches as they act: the server's section, each switch ON where
     the section does not hold it (no section = every function on)."""
     out = {f: True for f in FEATURES}
     if isinstance(section, dict):
         for f in FEATURES:
-            if isinstance(section.get(f), bool):
-                out[f] = section[f]
+            value = section.get(f)
+            if isinstance(value, bool):
+                out[f] = value
     return out
 
 
-def validate_features(data) -> None:
+def validate_features(data: JsonValue) -> None:
     """A `features` save: exactly the six switches, each a boolean. Raises
     ValueError — a partial or unknown key is an older or other page."""
     if not isinstance(data, dict):

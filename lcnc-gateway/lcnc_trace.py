@@ -78,7 +78,11 @@ import sys
 import threading
 import time
 import traceback
-from typing import Any, Optional
+from types import FrameType, TracebackType
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping, Optional, TypeGuard, Union
+
+if TYPE_CHECKING:
+    import asyncio
 
 import lcnc_paths
 
@@ -332,7 +336,8 @@ def install_crash_hooks(proc_name: str) -> None:
 
     prev_excepthook = sys.excepthook
 
-    def _sys_hook(exc_type, exc_value, exc_tb):
+    def _sys_hook(exc_type: type[BaseException], exc_value: BaseException,
+                  exc_tb: Optional[TracebackType]) -> None:
         try:
             tb_tail = "".join(traceback.format_exception(
                 exc_type, exc_value, exc_tb, limit=12
@@ -357,7 +362,7 @@ def install_crash_hooks(proc_name: str) -> None:
 
     sys.excepthook = _sys_hook
 
-    def _thread_hook(args):
+    def _thread_hook(args: threading.ExceptHookArgs) -> None:
         try:
             tb_tail = "".join(traceback.format_exception(
                 args.exc_type, args.exc_value, args.exc_traceback, limit=12
@@ -378,7 +383,7 @@ def install_crash_hooks(proc_name: str) -> None:
 
     # SIGTERM/SIGINT: log timing, then re-raise default disposition so the
     # process's existing graceful shutdown runs. Don't swallow the signal.
-    def _signal_hook(signo, frame):
+    def _signal_hook(signo: int, frame: Optional[FrameType]) -> None:
         try:
             emit(
                 "crash.signal", level="info",
@@ -418,9 +423,10 @@ def install_asyncio_handler(proc_name: str) -> None:
     loop = asyncio.get_event_loop()
     prev = loop.get_exception_handler()
 
-    def _handler(loop_, context):
+    def _handler(loop_: asyncio.AbstractEventLoop, context: dict[str, Any]) -> None:
+        # context: asyncio's own handler contract (typeshed _ExceptionHandler)
         try:
-            exc = context.get("exception")
+            exc: Optional[BaseException] = context.get("exception")
             tb_tail = ""
             if exc is not None:
                 try:
@@ -452,8 +458,13 @@ def install_asyncio_handler(proc_name: str) -> None:
     loop.set_exception_handler(_handler)
 
 
-def _json_default(o: Any) -> Any:
-    if isinstance(o, (set, frozenset, tuple)):
+def _is_collection(o: object) -> TypeGuard[Iterable[object]]:
+    """A set, frozenset or tuple — encoded as a JSON list."""
+    return isinstance(o, (set, frozenset, tuple))
+
+
+def _json_default(o: object) -> object:
+    if _is_collection(o):
         return list(o)
     if isinstance(o, bytes):
         try:
@@ -461,6 +472,12 @@ def _json_default(o: Any) -> Any:
         except Exception:
             return repr(o)
     return repr(o)
+
+
+#: An Aggregator's extras: static fields, or a zero-arg callable that returns
+#: them at emit time (None = none). Trace fields are any value — the bus
+#: encodes JSON and reprs the rest (_json_default).
+ExtraFields = Union[Mapping[str, object], Callable[[], Optional[Mapping[str, object]]], None]
 
 
 class Aggregator:
@@ -488,7 +505,7 @@ class Aggregator:
     def __init__(self, tag: str, every: int = 30,
                  level: str = "info",
                  count_field: str = "count",
-                 extra_fields=None) -> None:
+                 extra_fields: ExtraFields = None) -> None:
         self._tag = tag
         self._every = max(1, int(every))
         self._level = level
@@ -502,8 +519,8 @@ class Aggregator:
         # `client_inq` that needs to be read fresh).
         self._extra_fields = extra_fields
         self._count = 0
-        self._totals: dict = {}
-        self._maxes: dict = {}
+        self._totals: dict[str, float] = {}
+        self._maxes: dict[str, float] = {}
 
     def record(self, **measurements: float) -> None:
         """Add one observation. Triggers an emit + reset every
@@ -533,7 +550,10 @@ class Aggregator:
             self._reset()
 
     def _emit(self) -> None:
-        fields: dict = {self._count_field: self._count}
+        # Any: these go to emit(**fields: Any), the trace bus's own field
+        # contract (JSON, a repr for the rest) — a field named like one of
+        # emit's parameters keeps reaching it as before
+        fields: dict[str, Any] = {self._count_field: self._count}
         for k, total in self._totals.items():
             avg = total / self._count if self._count else 0.0
             # Field naming: simply prefix with `avg_` / `max_`. Caller

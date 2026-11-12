@@ -8,6 +8,19 @@ What `scripts/run_pyright.py` checks (`pyrightconfig.json`, pyright pinned in
 - **The gateway's product modules** (`lcnc-gateway/*.py`), mode `standard` —
   **except `gateway.py` during 2a** (named, temporary: it enters with 2b, the
   connection `Link` that replaces the optional `STAT`/`CMD` globals).
+- **`strict` for the pure modules** (`pyrightconfig.json` `strict`, R354
+  VM-I03): `command_policy`, `settings_store`, `session_bind`, `lcnc_paths`,
+  `lcnc_trace` — no unknown type anywhere in them. What arrives as JSON (a
+  command payload, a settings document, a helper's hello) is `JsonValue`
+  (`lcnc-gateway/json_types.py`, what `json.loads` makes — no `Any`), narrowed
+  where it is used; `to_float` / `to_int` are float() / int() with the
+  builtins' outcome for every value, typed. Two named, local `Any`s remain,
+  each an external contract: asyncio's exception-handler context (typeshed's
+  own type) and the Aggregator's fields that go to `emit(**fields: Any)`.
+  `hal_bridge` stays `standard` (socket and thread state, R353).
+- **`writer_fixture.py`** — the protected-write writer of the tests, with a
+  real starlette `WebSocket` that fails as a dropped connection does (never
+  `None` where `ClientState` holds a WebSocket).
 - **`subroutines/surfacemap/compensation.py`** (the HAL helper the suite runs).
 - **The interface and its two conformance checks**: `lcnc-gateway/lcnc_iface.py`
   (Protocols), `typings/conformance/check_stub.py` (the stub of the real
@@ -39,9 +52,9 @@ conformance file only. They reach those call sites when 2b types
 ## Not checked — named
 
 - **Tests** (`lcnc-gateway/test_*.py`, `conftest.py`) and the test helpers
-  that live beside the product modules: `writer_fixture.py`,
-  `suite_py_bind_probe.py`, `native_start_probe.py`, `native_pinned_probe.py`
-  (run by tests, in their own processes). They keep their run-time checks.
+  that live beside the product modules and run in their own processes:
+  `suite_py_bind_probe.py`, `native_start_probe.py`, `native_pinned_probe.py`.
+  They keep their run-time checks.
 - **`scripts/`** and **`examples/`** (the TWP remap is an upstream fork) —
   their own run checks; ruff covers them.
 

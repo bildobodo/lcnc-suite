@@ -350,7 +350,11 @@ class TestDevices(_Base):
     def test_nothing_in_the_store_removes_a_profile_but_delete(self):
         # R337: no timer, no clean-up — the source has ONE place that drops a profile
         src = Path(__file__).with_name("settings_store.py").read_text()
-        self.assertEqual(src.count('del v2["devices"]'), 1)
+        # (the profiles are reached through _devices since 2a's strict typing)
+        self.assertEqual(src.count("del devices["), 1)
+        self.assertEqual(src.count('["devices"]'), 0)
+        for drop in ("devices.pop(", "devices.clear(", "devices.popitem("):
+            self.assertNotIn(drop, src)
         self.assertNotIn("Timer(", src)
         self.assertNotIn("time.monotonic", src)
 

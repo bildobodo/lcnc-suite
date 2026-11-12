@@ -107,3 +107,103 @@ class CompensationGridWriteFailure(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class _Settings(unittest.TestCase):
+    def setUp(self):
+        from settings_store import SettingsStore
+        fd, p = tempfile.mkstemp(suffix=".json")
+        os.close(fd)
+        os.unlink(p)
+        self.path = p
+        self.errors = []
+        self.store = SettingsStore(__import__("pathlib").Path(p), lambda: "ini-A",
+                                   on_load_error=self.errors.append)
+        self.addCleanup(lambda: os.path.exists(p) and os.unlink(p))
+
+    def write(self, doc):
+        with open(self.path, "w") as f:
+            json.dump(doc, f)
+
+
+class SimulationNotAnObject(_Settings):
+    """Strict typing of settings_store (R354 VM-I03): a device saves its own
+    sections without arm and the save takes ANY JSON value — `null` for its
+    simulation section failed the whole device list with AttributeError
+    (`.get` on None). A simulation that is not an object reads as OFF."""
+
+    def test_a_null_simulation_lists_the_device_with_simulation_off(self):
+        pid, _ = self.store.bind("a" * 32, "10.0.0.2")
+        rev = self.store.view_for(pid)["revs"]["simulation"]
+        self.store.save_section("simulation", None, device=pid, base_rev=rev, writer="w")
+        devices = self.store.list_devices()
+        self.assertEqual([(d["id"], d["simulation"]) for d in devices], [(pid, False)])
+
+    def test_an_enabled_simulation_still_reads_on(self):
+        pid, _ = self.store.bind("b" * 32, None)
+        rev = self.store.view_for(pid)["revs"]["simulation"]
+        self.store.save_section("simulation", {"enabled": True}, device=pid, base_rev=rev, writer="w")
+        self.assertTrue(self.store.list_devices()[0]["simulation"])
+
+
+class SettingsDocumentShape(_Settings):
+    """A settings.json that parses but has the wrong shape (R354 VM-I03):
+    before 2a the file was cached and each read failed with whatever
+    AttributeError / TypeError its access hit."""
+
+    def test_a_document_that_is_not_an_object_is_a_load_failure(self):
+        from settings_store import CorruptSettings
+        self.write(["not", "an", "object"])
+        self.assertEqual(self.store.load(), {})                 # reads degrade, as for a parse failure
+        self.assertEqual(len(self.errors), 1)
+        self.assertIsInstance(self.errors[0], CorruptSettings)
+        with self.assertRaises(RuntimeError):                   # … and writes refuse to clobber it
+            self.store.save_section("keyboard", {"x": 1}, base_rev=0, writer="w")
+
+    def test_a_device_part_of_the_wrong_shape_is_named(self):
+        from settings_store import CorruptSettings
+        self.write({"ini-A": {"_v2": {"schema": 2, "template": {}, "devices": [], "revs": {}}}})
+        with self.assertRaises(CorruptSettings) as cm:
+            self.store.list_devices()
+        self.assertIn("device profiles", str(cm.exception))
+        self.assertIsInstance(cm.exception, RuntimeError)       # a server-side failure, never a 400
+
+    def test_an_ini_entry_that_is_not_an_object_is_named(self):
+        from settings_store import CorruptSettings
+        self.write({"ini-A": 5})
+        with self.assertRaises(CorruptSettings):
+            self.store.load_section("toolsetter")
+
+    def test_a_token_hash_that_is_no_string_is_named(self):
+        from settings_store import CorruptSettings
+        self.write({"ini-A": {"_v2": {"schema": 2, "template": {}, "revs": {},
+                                      "devices": {"p1": {"token_sha256": 7, "sections": {}}}}}})
+        with self.assertRaises(CorruptSettings):
+            self.store.find_device("c" * 32)
+
+
+class JsonConversions(unittest.TestCase):
+    """json_types.to_float / to_int (R354 VM-I03): the typed float() / int()
+    of a payload or status value — the builtins' outcome for every JSON value
+    (and numpy scalars), so a caller's except (TypeError, ValueError) keeps
+    its meaning."""
+
+    def test_same_outcome_as_the_builtins(self):
+        from json_types import to_float, to_int
+        values = [0, 1, -3, 1.5, True, False, "2.5", "7", "x", "", None, [1], {"a": 1}, b"3"]
+        try:
+            import numpy as np
+            values += [np.int64(4), np.float32(1.25)]
+        except ImportError:
+            pass
+        for helper, builtin in ((to_float, float), (to_int, int)):
+            for v in values:
+                try:
+                    want = ("ok", builtin(v))
+                except (TypeError, ValueError) as e:
+                    want = (type(e).__name__, None)
+                try:
+                    got = ("ok", helper(v))
+                except (TypeError, ValueError) as e:
+                    got = (type(e).__name__, None)
+                self.assertEqual(got, want, f"{helper.__name__}({v!r})")

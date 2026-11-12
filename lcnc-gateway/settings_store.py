@@ -43,10 +43,12 @@ import secrets
 import threading
 from collections import deque
 from datetime import datetime
-from typing import Callable, Deque, Dict, List, Optional, Tuple
+from pathlib import Path
+from typing import Callable, Deque, Dict, Iterable, List, Optional, Tuple, TypeGuard
 
 from features import features_of, validate_features
 from gateway_util import atomic_write_bytes
+from json_types import JsonObject, JsonValue, to_int
 
 # The machine's sections: one value for all clients, saved only by an armed
 # writer (button gates Q2 / BG-19), acting in a client only once the server
@@ -75,7 +77,7 @@ VALID_SECTIONS = MACHINE_SECTIONS | DEVICE_SECTIONS
 FREE_SECTIONS = DEVICE_SECTIONS
 PROTECTED_SECTIONS = MACHINE_SECTIONS
 
-SIMULATION_OFF = {"enabled": False}
+SIMULATION_OFF: JsonObject = {"enabled": False}
 DEVICE_NAME_MAX = 40
 _WRITES_KEPT = 32
 
@@ -91,7 +93,7 @@ def token_hash(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-def valid_token(token) -> bool:
+def valid_token(token: object) -> TypeGuard[str]:
     """A device token as the WebUI makes it: 32 hex digits (128 bits from
     crypto.getRandomValues)."""
     return (isinstance(token, str) and len(token) == 32
@@ -102,10 +104,24 @@ class UnknownDevice(LookupError):
     """No profile with that public id (or token)."""
 
 
+class CorruptSettings(RuntimeError):
+    """settings.json parsed, but a part the store reads has the wrong shape
+    (an object where it needs one, a hash that is no string). A server-side
+    failure like the refuse-to-clobber guard's RuntimeError — before 2a the
+    same file failed with whatever AttributeError / TypeError the access hit."""
+
+
+def _obj(value: JsonValue, where: str) -> JsonObject:
+    """`value` as the JSON object the store needs, else CorruptSettings."""
+    if isinstance(value, dict):
+        return value
+    raise CorruptSettings(f"settings.json: {where} is not an object")
+
+
 class Stale(Exception):
     """The section changed since the save's base revision, by another writer.
     Carries the current state, so the client shows it at once."""
-    def __init__(self, section: str, data, rev: int):
+    def __init__(self, section: str, data: JsonValue, rev: int):
         super().__init__(f"{section} changed elsewhere — reloaded")
         self.section = section
         self.data = data
@@ -117,7 +133,7 @@ def _now() -> str:
 
 
 class SettingsStore:
-    def __init__(self, path, ini_key: Callable[[], str],
+    def __init__(self, path: Path, ini_key: Callable[[], str],
                  on_load_error: Optional[Callable[[Exception], None]] = None):
         self._path = path
         self._ini_key = ini_key
@@ -126,7 +142,7 @@ class SettingsStore:
         # routes (the latter not under _cmd_lock) — threading.Lock because the
         # guarded methods run in executor threads (#24).
         self._lock = threading.Lock()
-        self._cache: Optional[dict] = None
+        self._cache: Optional[Dict[str, JsonValue]] = None
         self._load_failed = False
         self.version = 0
         # Bumped when the device LIST changes (a new, renamed, deleted or
@@ -139,14 +155,19 @@ class SettingsStore:
 
     # ---- file ---------------------------------------------------------
 
-    def _load_all(self) -> dict:
-        """The full settings.json (all INI configs)."""
+    def _load_all(self) -> Dict[str, JsonValue]:
+        """The full settings.json (all INI configs). A file that parses to
+        anything but an object is a load failure like an unparsable one
+        (the refuse-to-clobber guard below) — before 2a it was cached and
+        every read failed on it."""
         if self._cache is not None:
             return self._cache
         if self._path.exists():
             try:
                 with open(self._path, "r") as f:
-                    data = json.load(f)
+                    data: JsonValue = json.load(f)
+                    if not isinstance(data, dict):
+                        raise CorruptSettings("settings.json: the file is not an object")
                     self._cache = data
                     self._load_failed = False
                     return data
@@ -161,7 +182,7 @@ class SettingsStore:
         self._cache = {}
         return self._cache
 
-    def _save_all(self, all_data: dict) -> None:
+    def _save_all(self, all_data: Dict[str, JsonValue]) -> None:
         if self._load_failed and self._path.exists():
             raise RuntimeError(
                 "settings.json failed to parse and was not overwritten; "
@@ -173,87 +194,110 @@ class SettingsStore:
     # ---- schema 2 -----------------------------------------------------
 
     @staticmethod
-    def _v2(entry: dict) -> dict:
+    def _v2(entry: JsonObject) -> JsonObject:
         """The INI entry's device part, made from schema 1 on first use (on
         the copy being prepared — it reaches the file with the next write).
         Idempotent: an entry that has it is left alone."""
-        v2 = entry.get("_v2")
-        if isinstance(v2, dict) and v2.get("schema") == 2:
-            return v2
-        template = {}
+        found = entry.get("_v2")
+        if isinstance(found, dict) and found.get("schema") == 2:
+            return found
+        template: JsonObject = {}
         for s in ("display", "viewer", "panels", "camera"):
             if s in entry:
                 template[s] = copy.deepcopy(entry[s])
-        bar = entry.get("macros", {}).get("bar") if isinstance(entry.get("macros"), dict) else None
+        macros = entry.get("macros")
+        bar = macros.get("bar") if isinstance(macros, dict) else None
         if isinstance(bar, list):
             template["macroBar"] = {"bar": copy.deepcopy(bar)}
         template["simulation"] = dict(SIMULATION_OFF)
-        v2 = {"schema": 2, "template": template, "devices": {}, "revs": {}}
+        v2: JsonObject = {"schema": 2, "template": template, "devices": {}, "revs": {}}
         entry["_v2"] = v2
         return v2
 
-    def _entry(self, all_data: dict) -> dict:
-        return all_data.setdefault(self._ini_key(), {})
+    def _entry(self, all_data: Dict[str, JsonValue]) -> JsonObject:
+        return _obj(all_data.setdefault(self._ini_key(), {}), "this INI's entry")
 
-    def _read_entry(self) -> dict:
+    def _current(self) -> JsonObject:
+        """The current INI's entry as cached (not a copy — read under the
+        lock, never changed in place)."""
+        return _obj(self._load_all().get(self._ini_key(), {}), "this INI's entry")
+
+    def _read_entry(self) -> JsonObject:
         """The current INI's entry with its device part — a COPY (a read
         never writes; the migration lands with the next write)."""
-        entry = copy.deepcopy(self._load_all().get(self._ini_key(), {}))
+        entry = copy.deepcopy(self._current())
         self._v2(entry)
         return entry
 
     @staticmethod
-    def _fresh_device_sections(v2: dict) -> dict:
-        sections = copy.deepcopy(v2["template"])
+    def _devices(v2: JsonObject) -> JsonObject:
+        return _obj(v2.get("devices"), "the device profiles")
+
+    @staticmethod
+    def _profile(v2: JsonObject, pid: str) -> Optional[JsonObject]:
+        """The profile `pid`, None when there is none."""
+        p = SettingsStore._devices(v2).get(pid)
+        return None if p is None else _obj(p, f"device profile {pid}")
+
+    @staticmethod
+    def _fresh_device_sections(v2: JsonObject) -> JsonObject:
+        sections = copy.deepcopy(_obj(v2.get("template"), "the device template"))
         sections["simulation"] = dict(SIMULATION_OFF)   # OP1, whatever the template says
         return sections
 
     @staticmethod
-    def _profile_by_token(v2: dict, token: str) -> Optional[str]:
+    def _profile_by_token(v2: JsonObject, token: str) -> Optional[str]:
         h = token_hash(token)
-        for pid, p in v2["devices"].items():
-            if secrets.compare_digest(p.get("token_sha256", ""), h):
+        for pid, p in SettingsStore._devices(v2).items():
+            stored = _obj(p, f"device profile {pid}").get("token_sha256", "")
+            if not isinstance(stored, str):
+                raise CorruptSettings(f"settings.json: device profile {pid}'s token hash is not a string")
+            if secrets.compare_digest(stored, h):
                 return pid
         return None
 
     # ---- reads --------------------------------------------------------
 
-    def load(self) -> dict:
+    def load(self) -> JsonObject:
         """The machine's sections of the current INI (what acts the same for
         every client — the spindle feedback, the toolsetter …)."""
         with self._lock:
-            entry = self._load_all().get(self._ini_key(), {})
+            entry = self._current()
             return {s: copy.deepcopy(entry[s]) for s in MACHINE_SECTIONS if s in entry}
 
-    def load_section(self, section: str):
+    def load_section(self, section: str) -> JsonValue:
         """One MACHINE section of the current INI config — a copy read under
         the lock (P2: what a program start chooses and binds; a save in
         another thread lands before or after it, never half)."""
         with self._lock:
-            return copy.deepcopy(self._load_all().get(self._ini_key(), {}).get(section))
+            return copy.deepcopy(self._current().get(section))
 
     def features(self) -> Dict[str, bool]:
         """The switches as they act now (features.features_of) — read under
         the lock, so a save lands before or after it, never half."""
         with self._lock:
-            return features_of(self._load_all().get(self._ini_key(), {}).get("features"))
+            return features_of(self._current().get("features"))
 
-    def view_for(self, device_id: Optional[str]) -> dict:
+    def view_for(self, device_id: Optional[str]) -> JsonObject:
         """What one client sees, flat as schema 1 (the client's sections keep
         their names): the machine's sections and its device's — the
         template's for an unbound client. `revs` names each section's
         revision, `device` the profile ({"id": None} = not bound)."""
         with self._lock:
             entry = self._read_entry()
-            v2 = entry["_v2"]
-            settings = {s: entry[s] for s in MACHINE_SECTIONS if s in entry}
-            if isinstance(settings.get("macros"), dict):
-                settings["macros"] = {k: v for k, v in settings["macros"].items() if k != "bar"}
-            revs = {s: int(v2["revs"].get(s, 0)) for s in MACHINE_SECTIONS}
-            profile = v2["devices"].get(device_id) if device_id else None
+            v2 = _obj(entry["_v2"], "the device part")
+            settings: JsonObject = {s: entry[s] for s in MACHINE_SECTIONS if s in entry}
+            macros = settings.get("macros")
+            if isinstance(macros, dict):
+                settings["macros"] = {k: v for k, v in macros.items() if k != "bar"}
+            machine_revs = _obj(v2.get("revs"), "the machine revisions")
+            revs: JsonObject = {s: to_int(machine_revs.get(s, 0)) for s in MACHINE_SECTIONS}
+            profile = self._profile(v2, device_id) if device_id else None
+            device: JsonObject
             if profile is not None:
-                settings.update(profile["sections"])
-                revs.update({s: int(profile.get("revs", {}).get(s, 0)) for s in DEVICE_SECTIONS})
+                settings.update(_obj(profile.get("sections"), f"device {device_id}'s sections"))
+                profile_revs = _obj(profile.get("revs", {}), f"device {device_id}'s revisions")
+                revs.update({s: to_int(profile_revs.get(s, 0)) for s in DEVICE_SECTIONS})
                 device = {"id": device_id, "name": profile.get("name", "")}
             else:
                 settings.update(self._fresh_device_sections(v2))
@@ -261,25 +305,33 @@ class SettingsStore:
                 device = {"id": None, "name": ""}
             return {"settings": settings, "revs": revs, "device": device}
 
-    def find_device(self, token) -> Optional[str]:
+    def find_device(self, token: object) -> Optional[str]:
         """The public id of the profile this token belongs to — None for an
         unknown or malformed token. Never creates one."""
         if not valid_token(token):
             return None
         with self._lock:
-            return self._profile_by_token(self._read_entry()["_v2"], token)
+            return self._profile_by_token(_obj(self._read_entry()["_v2"], "the device part"), token)
 
-    def list_devices(self) -> List[dict]:
+    def list_devices(self) -> List[JsonObject]:
         """Every profile of this INI as the device list shows it — never the
-        token's hash."""
+        token's hash. A simulation section that is not an object reads as
+        OFF: a device saves its own sections without arm and the save takes
+        any JSON value, so `null` there is a state a client can make (it
+        failed the whole list before 2a)."""
         with self._lock:
-            v2 = self._read_entry()["_v2"]
-            return [{"id": pid, "name": p.get("name", ""), "created": p.get("created"),
-                     "last_seen": p.get("last_seen"), "last_address": p.get("last_address"),
-                     "changed": bool(p.get("changed")),
-                     "simulation": bool(p.get("sections", {}).get("simulation", {}).get("enabled")),
-                     "simulation_rev": int(p.get("revs", {}).get("simulation", 0))}
-                    for pid, p in v2["devices"].items()]
+            v2 = _obj(self._read_entry()["_v2"], "the device part")
+            out: List[JsonObject] = []
+            for pid, raw in self._devices(v2).items():
+                p = _obj(raw, f"device profile {pid}")
+                sim = _obj(p.get("sections", {}), f"device {pid}'s sections").get("simulation")
+                revs = _obj(p.get("revs", {}), f"device {pid}'s revisions")
+                out.append({"id": pid, "name": p.get("name", ""), "created": p.get("created"),
+                            "last_seen": p.get("last_seen"), "last_address": p.get("last_address"),
+                            "changed": bool(p.get("changed")),
+                            "simulation": isinstance(sim, dict) and bool(sim.get("enabled")),
+                            "simulation_rev": to_int(revs.get("simulation", 0))})
+            return out
 
     # ---- writes -------------------------------------------------------
 
@@ -300,18 +352,19 @@ class SettingsStore:
         with self._lock:
             all_data = copy.deepcopy(self._load_all())
             v2 = self._v2(self._entry(all_data))
+            devices = self._devices(v2)
             pid = self._profile_by_token(v2, token)
             created = pid is None
-            if created:
+            if pid is None:
                 pid = secrets.token_hex(8)
-                while pid in v2["devices"]:
+                while pid in devices:
                     pid = secrets.token_hex(8)
-                v2["devices"][pid] = {
+                devices[pid] = {
                     "token_sha256": token_hash(token), "name": "", "created": _now(),
                     "last_seen": None, "last_address": None, "changed": False,
                     "sections": self._fresh_device_sections(v2), "revs": {},
                 }
-            p = v2["devices"][pid]
+            p = _obj(devices[pid], f"device profile {pid}")
             p["last_seen"] = _now()
             p["last_address"] = address if isinstance(address, str) else None
             self._save_all(all_data)
@@ -335,9 +388,10 @@ class SettingsStore:
         q = self._writes.setdefault(key, deque(maxlen=_WRITES_KEPT))
         q.append((rev, writer))
 
-    def save_section(self, section: str, data, *, device: Optional[str] = None,
-                     base_rev=None, writer: Optional[str] = None, admit=None,
-                     admit_state=None) -> int:
+    def save_section(self, section: str, data: JsonValue, *, device: Optional[str] = None,
+                     base_rev: object = None, writer: Optional[str] = None,
+                     admit: Optional[Callable[[], None]] = None,
+                     admit_state: Optional[Callable[[JsonObject, JsonObject], None]] = None) -> int:
         """Persist one section; returns its new revision. `device` None = a
         MACHINE section, else that profile's DEVICE section. `base_rev`: the
         revision the change was made on — a section changed since by another
@@ -363,32 +417,33 @@ class SettingsStore:
             all_data = copy.deepcopy(self._load_all())
             entry = self._entry(all_data)
             v2 = self._v2(entry)
-            profile: Optional[dict] = None
+            profile: Optional[JsonObject] = None
             if device is None:
-                revs, scope = v2["revs"], "machine"
+                revs, scope = _obj(v2.get("revs"), "the machine revisions"), "machine"
             else:
-                profile = v2["devices"].get(device)
+                profile = self._profile(v2, device)
                 if profile is None:
                     raise UnknownDevice(device)
-                revs, scope = profile.setdefault("revs", {}), device
+                revs, scope = _obj(profile.setdefault("revs", {}), f"device {device}'s revisions"), device
             key = (scope, section)
-            current = int(revs.get(section, 0))
+            current = to_int(revs.get(section, 0))
             if self._stale(key, current, base_rev, writer):
-                now = entry.get(section) if profile is None else profile["sections"].get(section)
+                now = (entry.get(section) if profile is None
+                       else _obj(profile.get("sections"), f"device {device}'s sections").get(section))
                 raise Stale(section, copy.deepcopy(now), current)
             listed = False          # does the device LIST show the change?
-            before = None
+            before: Optional[JsonObject] = None
             if profile is None:
                 before = {s: copy.deepcopy(entry[s]) for s in MACHINE_SECTIONS if s in entry}
                 entry[section] = data
             else:
-                profile["sections"][section] = data
+                _obj(profile.get("sections"), f"device {device}'s sections")[section] = data
                 listed = not profile.get("changed") or section == "simulation"
                 profile["changed"] = True
             revs[section] = current + 1
             if admit is not None:
                 admit()
-            if admit_state is not None and device is None:
+            if admit_state is not None and before is not None:   # a machine save (device None)
                 admit_state(before, {s: entry[s] for s in MACHINE_SECTIONS if s in entry})
             self._save_all(all_data)
             self._book(key, current + 1, writer)
@@ -398,27 +453,27 @@ class SettingsStore:
             return current + 1
 
     @staticmethod
-    def _bump_all(revs: dict, sections) -> None:
+    def _bump_all(revs: JsonObject, sections: Iterable[str]) -> None:
         """Every section's next revision — on the copy, BEFORE the write (the
         file holds them); booked as an anonymous write after it."""
         for s in sections:
-            revs[s] = int(revs.get(s, 0)) + 1
+            revs[s] = to_int(revs.get(s, 0)) + 1
 
-    def _book_all(self, revs: dict, scope: str, sections) -> None:
+    def _book_all(self, revs: JsonObject, scope: str, sections: Iterable[str]) -> None:
         for s in sections:
-            self._book((scope, s), revs[s], None)
+            self._book((scope, s), to_int(revs[s]), None)
 
-    def reset_device(self, device: str, admit=None) -> None:
+    def reset_device(self, device: str, admit: Optional[Callable[[], None]] = None) -> None:
         """A device's sections back to the template (simulation off); its
         name stays."""
         with self._lock:
             all_data = copy.deepcopy(self._load_all())
             v2 = self._v2(self._entry(all_data))
-            profile = v2["devices"].get(device)
+            profile = self._profile(v2, device)
             if profile is None:
                 raise UnknownDevice(device)
             profile["sections"] = self._fresh_device_sections(v2)
-            revs = profile.setdefault("revs", {})
+            revs = _obj(profile.setdefault("revs", {}), f"device {device}'s revisions")
             self._bump_all(revs, DEVICE_SECTIONS)
             if admit is not None:
                 admit()
@@ -427,14 +482,14 @@ class SettingsStore:
             self.version += 1
             self.devices_version += 1
 
-    def rename_device(self, device: str, name: str, admit=None) -> None:
+    def rename_device(self, device: str, name: object, admit: Optional[Callable[[], None]] = None) -> None:
         name = name.strip() if isinstance(name, str) else ""
         if len(name) > DEVICE_NAME_MAX:
             raise ValueError(f"A device name has at most {DEVICE_NAME_MAX} characters")
         with self._lock:
             all_data = copy.deepcopy(self._load_all())
             v2 = self._v2(self._entry(all_data))
-            profile = v2["devices"].get(device)
+            profile = self._profile(v2, device)
             if profile is None:
                 raise UnknownDevice(device)
             profile["name"] = name
@@ -445,16 +500,17 @@ class SettingsStore:
             self.version += 1
             self.devices_version += 1
 
-    def delete_device(self, device: str, admit=None) -> None:
+    def delete_device(self, device: str, admit: Optional[Callable[[], None]] = None) -> None:
         """The ONE way a profile leaves (R337: never on its own). `admit`
         refuses a profile that is connected — decided under this lock, so a
         save racing the delete lands before it or is refused after it."""
         with self._lock:
             all_data = copy.deepcopy(self._load_all())
             v2 = self._v2(self._entry(all_data))
-            if device not in v2["devices"]:
+            devices = self._devices(v2)
+            if device not in devices:
                 raise UnknownDevice(device)
-            del v2["devices"][device]
+            del devices[device]
             if admit is not None:
                 admit()
             self._save_all(all_data)
