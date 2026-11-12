@@ -115,6 +115,42 @@ class FakeForms(unittest.TestCase):
         self.refused(ValueError, c.mist, 2)
         self.refused(ValueError, c.flood, 2)
 
+    def test_every_argument_is_checked_like_the_binding_format(self):
+        C, c = self.C, self.cmd
+        # "i": an integer (what has __index__), never a float, a string or None
+        self.refused(TypeError, c.home, 1.5)
+        self.refused(TypeError, c.unhome, None)
+        self.refused(TypeError, c.set_block_delete, "1")
+        self.refused(TypeError, c.teleop_enable, 1.0)
+        self.refused(TypeError, c.spindleoverride, 1.0, 0.5)
+        self.refused(TypeError, c.spindle, C["SPINDLE_FORWARD"], 1000.0, 0, 1.5)
+        # "d": a number, never a string or None
+        self.refused(TypeError, c.jog, C["JOG_CONTINUOUS"], 0, 0, None)
+        self.refused(TypeError, c.jog, C["JOG_INCREMENT"], 0, 0, 1.0, "0.1")
+        self.refused(TypeError, c.feedrate, "1.0")
+        self.refused(TypeError, c.maxvel, None)
+        self.refused(TypeError, c.rapidrate, "0.5")
+        self.refused(TypeError, c.spindle, C["SPINDLE_FORWARD"], "1000", 0)
+        with self.assertRaises(TypeError):
+            c.wait_complete("5")
+        # "s#": a string
+        self.refused(TypeError, c.mdi, 5)
+        self.refused(TypeError, c.program_open, None)
+        # what the formats take
+        before = c.serial
+        c.home(True)
+        c.feedrate(1)
+        c.spindleoverride(1, 0)
+        c.jog(C["JOG_CONTINUOUS"], False, 0, 5)
+        try:
+            import numpy as np
+            c.home(np.int64(2))
+            c.maxvel(np.float32(10.0))
+            extra = 2
+        except ImportError:
+            extra = 0
+        self.assertEqual(c.serial, before + 4 + extra)
+
     def test_the_binding_error_is_a_runtime_error(self):
         self.assertTrue(issubclass(fake.error, RuntimeError))
 

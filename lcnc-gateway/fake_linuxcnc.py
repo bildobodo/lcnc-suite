@@ -14,7 +14,9 @@ check_fake.py), every command takes exactly the binding's positional
 arguments (a missing, extra or keyword argument, or an unknown command, is a
 TypeError / AttributeError — test_lcnc_iface.py), `wait_complete` returns an
 int, the constants carry the 2.9.4 binding's values (equal to the stub's,
-which the native check holds to the binding). The SUB-OPERATION picks the
+which the native check holds to the binding). Every argument is checked
+like the binding's PyArg_ParseTuple format ("i" an integer, "d" a number,
+"s#" a string — the length limits excepted). The SUB-OPERATION picks the
 form as in the binding (emcmodule.cc v2.9.4, VM-I01): auto(AUTO_RUN) needs
 its line and only AUTO_RUN takes one, jog takes 3 / 4 / 5 arguments for
 JOG_STOP / CONTINUOUS / INCREMENT, an unknown selector (auto, jog, spindle
@@ -27,9 +29,10 @@ Keep this pure: stdlib only, no side effects beyond building the module object.
 """
 from __future__ import annotations
 
+import operator
 import sys
 import types
-from typing import Literal, overload
+from typing import Literal, SupportsFloat, SupportsIndex, overload
 
 from lcnc_iface import JointStatus, SpindleDirection, SpindleStatus, ToolRow
 
@@ -94,10 +97,27 @@ _AUTO_NO_LINE = frozenset({1, 2, 3, 4, 5})      # PAUSE / RESUME / STEP / REVERS
 
 
 def _int_arg(value: object) -> int:
-    """PyArg_ParseTuple "i": an int (bool included), never a float or None."""
-    if not isinstance(value, int):
+    """PyArg_ParseTuple "i": what has __index__ (an int, a bool, a numpy
+    integer) — a float, a string or None is its TypeError."""
+    if not isinstance(value, SupportsIndex):
         raise TypeError(f"'{type(value).__name__}' object cannot be interpreted as an integer")
-    return value
+    return operator.index(value)
+
+
+def _float_arg(value: object) -> float:
+    """PyArg_ParseTuple "d": what has __float__ or __index__ (a number) — a
+    string or None is its TypeError."""
+    if not isinstance(value, (SupportsFloat, SupportsIndex)):
+        raise TypeError(f"must be real number, not {type(value).__name__}")
+    return float(value)
+
+
+def _str_arg(value: object) -> None:
+    """PyArg_ParseTuple "s#": a str (or bytes) — anything else is its
+    TypeError. The binding's length limits (MDI line, file name) are not
+    mirrored: the gateway's own caps stand before them."""
+    if not isinstance(value, (str, bytes)):
+        raise TypeError(f"argument 1 must be str, not {type(value).__name__}")
 
 
 def _choice(value: object, allowed: frozenset[int], what: str) -> None:
@@ -198,13 +218,17 @@ class _Command:
             raise error(f"Unexpected argument '{fn}' to command.auto")
         self._sent()
 
-    def feedrate(self, scale: float, /) -> None: self._sent()
+    def feedrate(self, scale: float, /) -> None:
+        _float_arg(scale)
+        self._sent()
 
     def flood(self, on: Literal[0, 1], /) -> None:
         _choice(on, frozenset({0, 1}), "flood")
         self._sent()
 
-    def home(self, joint: int, /) -> None: self._sent()
+    def home(self, joint: int, /) -> None:
+        _int_arg(joint)
+        self._sent()
 
     @overload
     def jog(self, fn: Literal[0], jjogmode: int, ja_value: int, /) -> None: ...
@@ -218,6 +242,9 @@ class _Command:
         # every refusal a TypeError
         for v in (fn, jjogmode, ja_value):
             _int_arg(v)
+        for d in (vel, inc):
+            if not isinstance(d, _Absent):
+                _float_arg(d)
         given = 3 + (not isinstance(vel, _Absent)) + (not isinstance(inc, _Absent))
         need = _JOG_ARGS.get(fn)
         if need is None:
@@ -227,8 +254,13 @@ class _Command:
         self._sent()
 
     def load_tool_table(self) -> None: self._sent()
-    def maxvel(self, velocity: float, /) -> None: self._sent()
-    def mdi(self, command: str, /) -> None: self._sent()
+    def maxvel(self, velocity: float, /) -> None:
+        _float_arg(velocity)
+        self._sent()
+
+    def mdi(self, command: str, /) -> None:
+        _str_arg(command)
+        self._sent()
 
     def mist(self, on: Literal[0, 1], /) -> None:
         _choice(on, frozenset({0, 1}), "mist")
@@ -238,11 +270,23 @@ class _Command:
         _choice(mode, frozenset({1, 2, 3}), "mode")
         self._sent()
 
-    def program_open(self, path: str, /) -> None: self._sent()
-    def rapidrate(self, scale: float, /) -> None: self._sent()
+    def program_open(self, path: str, /) -> None:
+        _str_arg(path)
+        self._sent()
+
+    def rapidrate(self, scale: float, /) -> None:
+        _float_arg(scale)
+        self._sent()
+
     def reset_interpreter(self) -> None: self._sent()
-    def set_block_delete(self, on: int, /) -> None: self._sent()
-    def set_optional_stop(self, on: int, /) -> None: self._sent()
+
+    def set_block_delete(self, on: int, /) -> None:
+        _int_arg(on)
+        self._sent()
+
+    def set_optional_stop(self, on: int, /) -> None:
+        _int_arg(on)
+        self._sent()
 
     @overload
     def spindle(self, direction: SpindleDirection, /) -> None: ...
@@ -255,20 +299,35 @@ class _Command:
     def spindle(self, direction: int, a: float | _Absent = _ABSENT, b: float | _Absent = _ABSENT,
                 wait: int | _Absent = _ABSENT, /) -> None:
         # "i|ddi" for every direction; an unknown direction is ValueError
+        _int_arg(direction)
+        for d in (a, b):
+            if not isinstance(d, _Absent):
+                _float_arg(d)
+        if not isinstance(wait, _Absent):
+            _int_arg(wait)
         _choice(direction, frozenset({-1, 0, 1, 10, 11, 12}), "Spindle direction")
         self._sent()
 
-    def spindleoverride(self, scale: float, spindle: int = 0, /) -> None: self._sent()
+    def spindleoverride(self, scale: float, spindle: int = 0, /) -> None:
+        _float_arg(scale)
+        _int_arg(spindle)
+        self._sent()
 
     def state(self, state: Literal[1, 2, 3, 4], /) -> None:
         _choice(state, frozenset({1, 2, 3, 4}), "state")
         self._sent()
 
     def task_plan_synch(self) -> None: self._sent()
-    def teleop_enable(self, enable: int, /) -> None: self._sent()
-    def unhome(self, joint: int, /) -> None: self._sent()
+    def teleop_enable(self, enable: int, /) -> None:
+        _int_arg(enable)
+        self._sent()
+
+    def unhome(self, joint: int, /) -> None:
+        _int_arg(joint)
+        self._sent()
 
     def wait_complete(self, timeout: float = 5.0, /) -> int:
+        _float_arg(timeout)
         return self.wait_result
 
 

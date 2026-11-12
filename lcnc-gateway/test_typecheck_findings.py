@@ -133,9 +133,12 @@ class SimulationNotAnObject(_Settings):
     (`.get` on None). A simulation that is not an object reads as OFF."""
 
     def test_a_null_simulation_lists_the_device_with_simulation_off(self):
+        # as a file holds it from a save before 2a (a save refuses it now)
         pid, _ = self.store.bind("a" * 32, "10.0.0.2")
-        rev = self.store.view_for(pid)["revs"]["simulation"]
-        self.store.save_section("simulation", None, device=pid, base_rev=rev, writer="w")
+        doc = json.load(open(self.path))
+        doc["ini-A"]["_v2"]["devices"][pid]["sections"]["simulation"] = None
+        self.write(doc)
+        self.store._cache = None
         devices = self.store.list_devices()
         self.assertEqual([(d["id"], d["simulation"]) for d in devices], [(pid, False)])
 
@@ -144,6 +147,29 @@ class SimulationNotAnObject(_Settings):
         rev = self.store.view_for(pid)["revs"]["simulation"]
         self.store.save_section("simulation", {"enabled": True}, device=pid, base_rev=rev, writer="w")
         self.assertTrue(self.store.list_devices()[0]["simulation"])
+
+
+class SectionsAreObjects(_Settings):
+    """The save took ANY JSON value as a section (only `features` was
+    checked): `machine: null` from an armed client stopped the status loop of
+    every client that connected after it (`settings["machine"].get` in its
+    start, unguarded), a device's `simulation: null` the device list. Every
+    section the WebUI saves is an object: anything else is refused, and a
+    non-object a file already holds is no machine section for load()."""
+
+    def test_a_non_object_section_is_refused_and_nothing_is_written(self):
+        for data in (None, [], "x", 5):
+            with self.assertRaises(ValueError):
+                self.store.save_section("machine", data, base_rev=0, writer="w")
+        self.assertFalse(os.path.exists(self.path))
+        pid, _ = self.store.bind("d" * 32, None)
+        rev = self.store.view_for(pid)["revs"]["simulation"]
+        with self.assertRaises(ValueError):
+            self.store.save_section("simulation", None, device=pid, base_rev=rev, writer="w")
+
+    def test_load_leaves_out_a_machine_section_that_is_no_object(self):
+        self.write({"ini-A": {"machine": None, "keyboard": {"x": 1}, "probe": [1]}})
+        self.assertEqual(self.store.load(), {"keyboard": {"x": 1}})
 
 
 class SettingsDocumentShape(_Settings):

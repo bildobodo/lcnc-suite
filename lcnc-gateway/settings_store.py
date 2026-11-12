@@ -258,12 +258,20 @@ class SettingsStore:
 
     # ---- reads --------------------------------------------------------
 
-    def load(self) -> JsonObject:
+    def load(self) -> Dict[str, JsonObject]:
         """The machine's sections of the current INI (what acts the same for
-        every client — the spindle feedback, the toolsetter …)."""
+        every client — the spindle feedback, the toolsetter …): every section
+        that is an object. One that is not (a save took any JSON value before
+        2a — `machine: null` stopped the status loop of every client that
+        connected) is left out, as if never saved."""
         with self._lock:
             entry = self._current()
-            return {s: copy.deepcopy(entry[s]) for s in MACHINE_SECTIONS if s in entry}
+            out: Dict[str, JsonObject] = {}
+            for s in MACHINE_SECTIONS:
+                value = entry.get(s)
+                if isinstance(value, dict):
+                    out[s] = copy.deepcopy(value)
+            return out
 
     def load_section(self, section: str) -> JsonValue:
         """One MACHINE section of the current INI config — a copy read under
@@ -411,6 +419,10 @@ class SettingsStore:
             raise ValueError(f"{section} is a machine section")
         if not isinstance(base_rev, int) or isinstance(base_rev, bool) or base_rev < 0:
             raise ValueError("save without its base revision — reload the page")
+        if not isinstance(data, dict):
+            # every section the WebUI saves is an object; a null or a list
+            # stored here failed its readers (the device list, the status loop)
+            raise ValueError(f"{section}: settings are an object — reload the page")
         if section == "features":
             validate_features(data)
         with self._lock:

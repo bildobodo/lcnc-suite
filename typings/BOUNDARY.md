@@ -14,9 +14,13 @@ What `scripts/run_pyright.py` checks (`pyrightconfig.json`, pyright pinned in
   command payload, a settings document, a helper's hello) is `JsonValue`
   (`lcnc-gateway/json_types.py`, what `json.loads` makes — no `Any`), narrowed
   where it is used; `to_float` / `to_int` are float() / int() with the
-  builtins' outcome for every value, typed. Two named, local `Any`s remain,
-  each an external contract: asyncio's exception-handler context (typeshed's
-  own type) and the Aggregator's fields that go to `emit(**fields: Any)`.
+  builtins' outcome for every value, typed. `Any` remains in ONE strict
+  module, `lcnc_trace`, five times, each named: the trace bus's field
+  contract `**fields: Any` on `emit`, `emit_exc`, `emit_exc_tb` (any value —
+  JSON, a repr for the rest; the two forwarders pass `**fields` on into
+  emit's named parameters, which `object` would not admit), the Aggregator's
+  fields that go to it, and asyncio's exception-handler context (typeshed's
+  own type). The other four strict modules have none.
   `hal_bridge` stays `standard` (socket and thread state, R353).
 - **`writer_fixture.py`** — the protected-write writer of the tests, with a
   real starlette `WebSocket` that fails as a dropped connection does (never
