@@ -93,12 +93,20 @@ def _decorators(fn: ast.FunctionDef, allowed: frozenset[str]) -> str | None:
 
 
 #: THE stub forms the reader takes — everything else is refused with its line:
-#:   module: the docstring, imports (helpers, no claims), a class, a function
-#:     (@overload only), `NAME: T` or `NAME: Final = <literal>` (a number, a
-#:     negative number, a string, a bool);
+#:   module: the docstring, a plain import (`import x`, `from x import a, b`
+#:     — helpers, no claims; an `as` alias or `*` RE-EXPORTS in a stub and is
+#:     refused), a class, a function (@overload only), `NAME: T` or
+#:     `NAME: Final = <literal>` (a number, a negative number, a string, a bool);
 #:   class:  the docstring or `...`, a method (@property / @overload only),
-#:     `name: T` (no value); bases are names (a builtin base is a claim);
+#:     `name: T` (no value); a PUBLIC class's bases are builtin types only (a
+#:     claim, checked natively) — any other base could carry members the
+#:     reader never sees;
+#:   __getattr__ / __getattribute__ (module or class) make EVERY name check
+#:     and are refused;
 #:   a private `_` class is a helper: its body is not read.
+_RESOLVERS = frozenset({"__getattr__", "__getattribute__"})
+
+
 def stub_claims(text: str) -> Claims:
     """The public names, class members, constant values and builtin bases a
     stub declares — from a narrow, enforced set of forms."""
@@ -108,7 +116,12 @@ def stub_claims(text: str) -> Claims:
         out.unsupported.append(f"line {node.lineno}: {what} — not a stub form the check reads")
 
     for node in ast.parse(text).body:
-        if _is_docstring_or_ellipsis(node) or isinstance(node, (ast.Import, ast.ImportFrom)):
+        if _is_docstring_or_ellipsis(node):
+            continue
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            for alias in node.names:
+                if alias.name == "*" or alias.asname is not None:
+                    refuse(node, f"import {ast.unparse(node)!r} re-exports a name")
             continue
         if isinstance(node, ast.ClassDef):
             if node.decorator_list or node.keywords:
@@ -119,10 +132,10 @@ def stub_claims(text: str) -> Claims:
             out.names.add(node.name)
             bases: list[str] = []
             for b in node.bases:
-                if isinstance(b, ast.Name):
+                if isinstance(b, ast.Name) and isinstance(getattr(builtins, b.id, None), type):
                     bases.append(b.id)
                 else:
-                    refuse(node, f"class {node.name}: base {ast.unparse(b)}")
+                    refuse(node, f"class {node.name}: base {ast.unparse(b)} — only a builtin base is read")
             out.bases[node.name] = bases
             members: set[str] = set()
             for item in node.body:
@@ -130,7 +143,9 @@ def stub_claims(text: str) -> Claims:
                     continue
                 if isinstance(item, ast.FunctionDef):
                     other = _decorators(item, frozenset({"property", "overload"}))
-                    if other is not None:
+                    if item.name in _RESOLVERS:
+                        refuse(item, f"{node.name}.{item.name} makes every member check")
+                    elif other is not None:
                         refuse(item, f"{node.name}.{item.name}: decorator @{other}")
                     elif _public(item.name):
                         members.add(item.name)
@@ -143,7 +158,9 @@ def stub_claims(text: str) -> Claims:
             out.members[node.name] = members
         elif isinstance(node, ast.FunctionDef):
             other = _decorators(node, frozenset({"overload"}))
-            if other is not None:
+            if node.name in _RESOLVERS:
+                refuse(node, f"module {node.name} makes every name check")
+            elif other is not None:
                 refuse(node, f"{node.name}: decorator @{other}")
             elif _public(node.name):
                 out.names.add(node.name)

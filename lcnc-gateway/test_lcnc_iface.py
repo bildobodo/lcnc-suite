@@ -284,6 +284,26 @@ class StubClaims(unittest.TestCase):
                            "    @staticmethod\n    def serial() -> int: ...")
         self.assertTrue(any("decorator @staticmethod" in f for f in found), found)
 
+    def test_a_re_exporting_import_is_refused(self):       # Fable, R356
+        for imp in ("from os import getpid as getpid", "import os as os", "from os import *"):
+            found = self._with("linuxcnc", "from typing import Final, Literal, overload",
+                               "from typing import Final, Literal, overload\n" + imp)
+            self.assertTrue(any("re-exports a name" in f for f in found), (imp, found))
+
+    def test_a_non_builtin_base_of_a_public_class_is_refused(self):
+        found = self._with("linuxcnc", "class command:",
+                           "class _Mixin:\n    def codex_nonexistent(self) -> None: ...\n\nclass command(_Mixin):")
+        self.assertTrue(any("base _Mixin" in f for f in found), found)
+        found = self._with("linuxcnc", "class command:", "class command(SpindleStatus):")
+        self.assertTrue(any("base SpindleStatus" in f for f in found), found)
+
+    def test_getattr_at_module_or_class_level_is_refused(self):
+        found = self._with("hal", "def get_value(", "def __getattr__(name: str) -> int: ...\ndef get_value(")
+        self.assertTrue(any("module __getattr__" in f for f in found), found)
+        found = self._with("linuxcnc", "    def abort(self) -> None: ...",
+                           "    def abort(self) -> None: ...\n    def __getattr__(self, name: str) -> int: ...")
+        self.assertTrue(any("command.__getattr__" in f for f in found), found)
+
     def test_a_claimed_builtin_base_is_checked(self):
         self.modules["linuxcnc"].error = type("error", (Exception,), {})
         self.assertIn("linuxcnc.error is claimed a RuntimeError subclass and is not",
