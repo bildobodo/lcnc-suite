@@ -99,9 +99,12 @@ a PUBLIC class's bases are builtin types only, each a claim
 (`error(RuntimeError)`, checked natively). Any other form — a class
 assignment, an `if`, a computed constant, another decorator, a re-exporting
 import, a non-builtin base (its members would go unread), `__getattr__` /
-`__getattribute__` (they make every name check) — is a PROBLEM with its
-line, never silently no claim; the real stubs are held to the set in every
-job. The claims:
+`__getattribute__` (they make every name check), a private `_member` of a
+public class or a private module-level function or name — is a PROBLEM with
+its line, never silently no claim; the real stubs are held to the set in
+every job. A dunder (`__init__`, `hal.component.__getitem__`) is a member
+like any other, so a claim. Only a private module-level CLASS is a helper
+whose body is not read (the HAL info-row TypedDicts). The claims:
 every public module name, every public member of a public class, every
 constant value — for `linuxcnc`, `hal`, `gcode` and `rs274.interpret` (R354
 VM-I02). Each claim must hold on the installed module; the module may have

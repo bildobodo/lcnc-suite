@@ -223,12 +223,18 @@ class _Command:
     @overload
     def auto(self, fn: Literal[1, 2, 3, 4, 5], /) -> None: ...
     def auto(self, fn: int, line: int | _Absent = _ABSENT, /) -> None:
-        # emcauto: "ii" taken only for AUTO_RUN; else "i" (an extra argument is
-        # its TypeError), and a selector outside the switch is linuxcnc.error
-        if not isinstance(line, _Absent) and _int_arg(fn) == 0:
-            _int_arg(line)
-        elif not isinstance(line, _Absent):
-            raise TypeError("function takes exactly 1 argument (2 given)")
+        # emcauto: "ii" taken only for AUTO_RUN; a failed "ii" (any argument
+        # it refuses, an overflow too) is cleared and "i" refuses the two
+        # arguments — its TypeError; one argument is "i"'s own outcome, and a
+        # selector outside the switch is linuxcnc.error
+        if not isinstance(line, _Absent):
+            try:
+                run = _int_arg(fn) == 0
+                _int_arg(line)
+            except (TypeError, OverflowError):
+                run = False
+            if not run:
+                raise TypeError("function takes exactly 1 argument (2 given)")
         elif _int_arg(fn) not in _AUTO_NO_LINE:
             raise error(f"Unexpected argument '{fn}' to command.auto")
         self._sent()

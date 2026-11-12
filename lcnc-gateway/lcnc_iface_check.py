@@ -68,6 +68,10 @@ def _public(name: str) -> bool:
     return not name.startswith("_")
 
 
+def _dunder(name: str) -> bool:
+    return len(name) > 4 and name.startswith("__") and name.endswith("__")
+
+
 def _literal(node: ast.expr | None) -> tuple[bool, object]:
     """(True, value) for a literal constant (`3`, `-1`, `"x"`, `True`)."""
     if isinstance(node, ast.Constant) and isinstance(node.value, (int, float, str, bool)):
@@ -101,9 +105,12 @@ def _decorators(fn: ast.FunctionDef, allowed: frozenset[str]) -> str | None:
 #:     `name: T` (no value); a PUBLIC class's bases are builtin types only (a
 #:     claim, checked natively) — any other base could carry members the
 #:     reader never sees;
-#:   __getattr__ / __getattribute__ (module or class) make EVERY name check
-#:     and are refused;
-#:   a private `_` class is a helper: its body is not read.
+#:   a dunder (`__init__`, `__getitem__` …) is a member like any other — a
+#:     claim; __getattr__ / __getattribute__ (module or class) make EVERY name
+#:     check and are refused;
+#:   a private `_` class at module level is a helper: its body is not read;
+#:     any OTHER private name (a `_member` of a public class, a module-level
+#:     `_function` or `_NAME`) is refused — never silently no claim.
 _RESOLVERS = frozenset({"__getattr__", "__getattribute__"})
 
 
@@ -147,12 +154,16 @@ def stub_claims(text: str) -> Claims:
                         refuse(item, f"{node.name}.{item.name} makes every member check")
                     elif other is not None:
                         refuse(item, f"{node.name}.{item.name}: decorator @{other}")
-                    elif _public(item.name):
+                    elif _public(item.name) or _dunder(item.name):
                         members.add(item.name)
+                    else:
+                        refuse(item, f"{node.name}.{item.name}: a private member of a public class")
                 elif (isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name)
                       and item.value is None):
-                    if _public(item.target.id):
+                    if _public(item.target.id) or _dunder(item.target.id):
                         members.add(item.target.id)
+                    else:
+                        refuse(item, f"{node.name}.{item.target.id}: a private member of a public class")
                 else:
                     refuse(item, f"class {node.name}: {type(item).__name__} {ast.unparse(item)[:60]!r}")
             out.members[node.name] = members
@@ -162,18 +173,22 @@ def stub_claims(text: str) -> Claims:
                 refuse(node, f"module {node.name} makes every name check")
             elif other is not None:
                 refuse(node, f"{node.name}: decorator @{other}")
-            elif _public(node.name):
+            elif _public(node.name) or _dunder(node.name):
                 out.names.add(node.name)
+            else:
+                refuse(node, f"{node.name}: a private module-level function")
         elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
             name = node.target.id
+            if not (_public(name) or _dunder(name)):
+                refuse(node, f"{name}: a private module-level name")
+                continue
             if node.value is None:
-                if _public(name):
-                    out.names.add(name)
+                out.names.add(name)
                 continue
             ok, value = _literal(node.value)
             if not ok:
                 refuse(node, f"{name}: a computed value {ast.unparse(node.value)!r} — write the literal")
-            elif _public(name):
+            else:
                 out.names.add(name)
                 out.values[name] = value
         else:

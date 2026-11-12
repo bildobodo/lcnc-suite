@@ -104,6 +104,10 @@ class FakeForms(unittest.TestCase):
         self.refused(TypeError, c.jog, C["JOG_STOP"], 0, 0, 1.0, 0.1)
         self.refused(TypeError, c.jog, C["JOG_CONTINUOUS"], 0, 0, 1.0, 0.1)   # a step it does not take
         self.refused(TypeError, c.auto, C["AUTO_STEP"], 1)
+        # a failed "ii" (an overflow too) is cleared; "i" then refuses two arguments
+        self.refused(TypeError, c.auto, C["AUTO_RUN"], 2 ** 31)
+        self.refused(TypeError, c.auto, 2 ** 31, 0)
+        self.refused(OverflowError, c.auto, 2 ** 31)
 
     def test_unknown_selectors_and_argument_types(self):
         C, c = self.C, self.cmd
@@ -352,6 +356,18 @@ class StubClaims(unittest.TestCase):
         found = self._with("linuxcnc", "    def abort(self) -> None: ...",
                            "    def abort(self) -> None: ...\n    def __getattr__(self, name: str) -> int: ...")
         self.assertTrue(any("command.__getattr__" in f for f in found), found)
+
+    def test_a_dunder_is_a_claim_and_a_private_member_is_refused(self):   # Fable, R357
+        found = self._with("linuxcnc", "    def abort(self) -> None: ...",
+                           "    def abort(self) -> None: ...\n    def __call__(self) -> int: ...")
+        self.assertIn("linuxcnc.command.__call__ is claimed by the stub and missing", found)
+        found = self._with("linuxcnc", "    def abort(self) -> None: ...",
+                           "    def abort(self) -> None: ...\n    def _hidden(self) -> int: ...")
+        self.assertTrue(any("command._hidden: a private member of a public class" in f for f in found), found)
+        found = self._with("gcode", "def strerror(err: int, /) -> str: ...",
+                           "def _helper() -> int: ...\ndef strerror(err: int, /) -> str: ...")
+        self.assertTrue(any("_helper: a private module-level function" in f for f in found), found)
+        self.assertIn("__getitem__", check.stub_claims(self.stubs["hal"]).members["component"])
 
     def test_a_claimed_builtin_base_is_checked(self):
         self.modules["linuxcnc"].error = type("error", (Exception,), {})
