@@ -1,0 +1,29 @@
+{
+  "events": [
+    [
+      "replace_slot_before_thread"
+    ],
+    [
+      "admit_poll",
+      "new"
+    ],
+    [
+      "write",
+      "old",
+      "G4 P0",
+      41
+    ],
+    [
+      "wait",
+      "new",
+      80
+    ]
+  ],
+  "claimed_serial": 80,
+  "actual_written_serial": 41,
+  "rc": 1,
+  "source": "faa33958:lcnc-gateway/gateway.py",
+  "function_sha256": "333ef36cd5682937fe60f8febeec8b50278de97d83dfa36f32934b5631ae09d4",
+  "isolation": "R352: actual _cmd_blocking body with an isolated, deterministic queue seam.\nNo gateway import, LinuxCNC, network, real executor thread, or machine command.\nThis models a slot replacement at executor dispatch; it is not a live race proof.\n",
+  "mixed_owner_observed": true
+}

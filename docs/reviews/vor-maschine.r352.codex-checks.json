@@ -1,0 +1,632 @@
+{
+  "request": "R352",
+  "product_target": "faa33958408f48c3a171ca6297e748e61e244734",
+  "document_head": "24c3917f28f3a6db248e2c4aabc0311464dfe1a9",
+  "archive": "/tmp/codex-r352",
+  "product_hashes": {
+    "lcnc-gateway/gateway.py": "0519719fb32405e865f3845d69f1c68098bf752799898b4f5db93c7cb9b4e7ba",
+    "lcnc-gateway/fake_linuxcnc.py": "892db603489f3947fe6649a24cbb5593d231a9c0033d7dcf58f769450450816c",
+    "lcnc-gateway/writer_fixture.py": "3342b4027d925b43668129329b1f13f46eb57e0c01fa2b9c4ff782ad5fbfb831",
+    "lcnc-gateway/status_runtime.py": "93bd0fb450d19f658450d75879acb91198efceb471d1f3e871b07e57fa0ec5a8",
+    "lcnc-gateway/gcode_canon.py": "f70bca4badbe3f1fc6a2610bdf5707f5a06eac48461cc75bf7afc6dd38113042",
+    "lcnc-gateway/gcode_parse_worker.py": "b7e38b80e23e2d437b011b2134e168371cddbcd454bcbc727ea5b58bd78eb554",
+    "lcnc-gateway/tool_table.py": "2202b73590ee34601a8776d4baadafadfb7e282d45097a5215ecbbf80f66db3e",
+    ".github/workflows/ci.yml": "ae79db802c4d922e2049240d6bce89a5987497554251c7e467bc0cf21fe52c73",
+    "lcnc-gateway/requirements.txt": "e910135513d3966281b29de09d922463d06a4356ed138139b779a97f625b1dde"
+  },
+  "lookup_inventory": {
+    "gateway.py": {
+      "safe_get_literals": [
+        {
+          "field": "echo_serial_number",
+          "line": 3265
+        },
+        {
+          "field": "state",
+          "line": 3266
+        },
+        {
+          "field": "task_mode",
+          "line": 3624
+        },
+        {
+          "field": "task_mode",
+          "line": 3756
+        },
+        {
+          "field": "interp_state",
+          "line": 3757
+        },
+        {
+          "field": "interp_state",
+          "line": 4030
+        },
+        {
+          "field": "g5x_index",
+          "line": 4427
+        },
+        {
+          "field": "position",
+          "line": 4600
+        },
+        {
+          "field": "interp_state",
+          "line": 7736
+        },
+        {
+          "field": "task_mode",
+          "line": 7737
+        },
+        {
+          "field": "joints",
+          "line": 7776
+        },
+        {
+          "field": "inpos",
+          "line": 3028
+        },
+        {
+          "field": "current_vel",
+          "line": 3028
+        },
+        {
+          "field": "interp_state",
+          "line": 3267
+        },
+        {
+          "field": "interp_state",
+          "line": 3391
+        },
+        {
+          "field": "task_state",
+          "line": 3629
+        },
+        {
+          "field": "homed",
+          "line": 3630
+        },
+        {
+          "field": "joints",
+          "line": 3631
+        },
+        {
+          "field": "homed",
+          "line": 3682
+        },
+        {
+          "field": "joints",
+          "line": 3682
+        },
+        {
+          "field": "motion_mode",
+          "line": 3809
+        },
+        {
+          "field": "motion_mode",
+          "line": 3837
+        },
+        {
+          "field": "axis_mask",
+          "line": 3946
+        },
+        {
+          "field": "interp_state",
+          "line": 4545
+        },
+        {
+          "field": "g5x_offset",
+          "line": 4598
+        },
+        {
+          "field": "g92_offset",
+          "line": 4599
+        },
+        {
+          "field": "interp_state",
+          "line": 7820
+        },
+        {
+          "field": "paused",
+          "line": 7820
+        },
+        {
+          "field": "max_velocity",
+          "line": 7888
+        },
+        {
+          "field": "max_velocity",
+          "line": 8002
+        },
+        {
+          "field": "queued_mdi_commands",
+          "line": 3270
+        },
+        {
+          "field": "exec_state",
+          "line": 3271
+        },
+        {
+          "field": "task_mode",
+          "line": 3605
+        },
+        {
+          "field": "task_mode",
+          "line": 3666
+        },
+        {
+          "field": "interp_state",
+          "line": 3667
+        },
+        {
+          "field": "task_mode",
+          "line": 3821
+        },
+        {
+          "field": "motion_mode",
+          "line": 3821
+        },
+        {
+          "field": "interp_state",
+          "line": 3822
+        },
+        {
+          "field": "motion_mode",
+          "line": 3848
+        },
+        {
+          "field": "enabled",
+          "line": 3909
+        },
+        {
+          "field": "task_state",
+          "line": 4543
+        },
+        {
+          "field": "tool_offset",
+          "line": 4647
+        },
+        {
+          "field": "position",
+          "line": 4682
+        },
+        {
+          "field": "enabled",
+          "line": 4982
+        },
+        {
+          "field": "estop",
+          "line": 5437
+        },
+        {
+          "field": "tool_in_spindle",
+          "line": 5777
+        },
+        {
+          "field": "tool_in_spindle",
+          "line": 5824
+        },
+        {
+          "field": "interp_state",
+          "line": 5873
+        },
+        {
+          "field": "task_mode",
+          "line": 5874
+        },
+        {
+          "field": "joint",
+          "line": 7778
+        },
+        {
+          "field": "task_mode",
+          "line": 7787
+        },
+        {
+          "field": "task_state",
+          "line": 9890
+        },
+        {
+          "field": "task_mode",
+          "line": 9891
+        },
+        {
+          "field": "axis_mask",
+          "line": 3875
+        },
+        {
+          "field": "position",
+          "line": 4692
+        },
+        {
+          "field": "paused",
+          "line": 5872
+        },
+        {
+          "field": "interp_state",
+          "line": 6205
+        },
+        {
+          "field": "inpos",
+          "line": 7788
+        },
+        {
+          "field": "current_vel",
+          "line": 7788
+        },
+        {
+          "field": "interp_state",
+          "line": 7790
+        },
+        {
+          "field": "paused",
+          "line": 7790
+        },
+        {
+          "field": "inpos",
+          "line": 9998
+        },
+        {
+          "field": "current_vel",
+          "line": 9998
+        },
+        {
+          "field": "position",
+          "line": 10002
+        },
+        {
+          "field": "task_state",
+          "line": 4482
+        },
+        {
+          "field": "interp_state",
+          "line": 4485
+        },
+        {
+          "field": "tool_in_spindle",
+          "line": 4649
+        },
+        {
+          "field": "tool_in_spindle",
+          "line": 5303
+        },
+        {
+          "field": "inpos",
+          "line": 7744
+        },
+        {
+          "field": "current_vel",
+          "line": 7744
+        },
+        {
+          "field": "estop",
+          "line": 7784
+        },
+        {
+          "field": "enabled",
+          "line": 7785
+        },
+        {
+          "field": "homed",
+          "line": 7786
+        },
+        {
+          "field": "file",
+          "line": 6332
+        },
+        {
+          "field": "tool_in_spindle",
+          "line": 4651
+        }
+      ],
+      "distinct_field_count": 25,
+      "native_imports": [
+        {
+          "module": "linuxcnc",
+          "line": 17
+        }
+      ]
+    },
+    "status_runtime.py": {
+      "safe_get_literals": [
+        {
+          "field": "spindle_override",
+          "line": 741
+        },
+        {
+          "field": "spindle",
+          "line": 750
+        },
+        {
+          "field": "ini_filename",
+          "line": 853
+        },
+        {
+          "field": "homed",
+          "line": 1010
+        },
+        {
+          "field": "joints",
+          "line": 1013
+        },
+        {
+          "field": "g5x_index",
+          "line": 1017
+        },
+        {
+          "field": "rotation_xy",
+          "line": 1020
+        },
+        {
+          "field": "joint_actual_position",
+          "line": 1155
+        },
+        {
+          "field": "joint",
+          "line": 1157
+        },
+        {
+          "field": "current_vel",
+          "line": 1196
+        },
+        {
+          "field": "spindle",
+          "line": 1206
+        },
+        {
+          "field": "tool_in_spindle",
+          "line": 1221
+        },
+        {
+          "field": "interp_state",
+          "line": 1269
+        },
+        {
+          "field": "joints",
+          "line": 738
+        },
+        {
+          "field": "estop",
+          "line": 1006
+        },
+        {
+          "field": "enabled",
+          "line": 1007
+        },
+        {
+          "field": "g5x_offset",
+          "line": 1018
+        },
+        {
+          "field": "g92_offset",
+          "line": 1019
+        },
+        {
+          "field": "axis_mask",
+          "line": 1059
+        },
+        {
+          "field": "actual_position",
+          "line": 1074
+        },
+        {
+          "field": "joint_actual_position",
+          "line": 1076
+        },
+        {
+          "field": "tool_offset",
+          "line": 1089
+        },
+        {
+          "field": "joint_position",
+          "line": 1190
+        },
+        {
+          "field": "dtg",
+          "line": 1193
+        },
+        {
+          "field": "tool_table",
+          "line": 1223
+        },
+        {
+          "field": "tool_offset",
+          "line": 1223
+        },
+        {
+          "field": "interp_state",
+          "line": 1262
+        },
+        {
+          "field": "file",
+          "line": 1271
+        },
+        {
+          "field": "joints",
+          "line": 1185
+        },
+        {
+          "field": "paused",
+          "line": 1263
+        },
+        {
+          "field": "task_mode",
+          "line": 1283
+        },
+        {
+          "field": "interp_state",
+          "line": 1284
+        },
+        {
+          "field": "state",
+          "line": 1286
+        },
+        {
+          "field": "motion_mode",
+          "line": 1287
+        },
+        {
+          "field": "axis_mask",
+          "line": 1289
+        },
+        {
+          "field": "program_units",
+          "line": 1290
+        },
+        {
+          "field": "current_line",
+          "line": 1291
+        },
+        {
+          "field": "read_line",
+          "line": 1292
+        },
+        {
+          "field": "call_level",
+          "line": 1293
+        },
+        {
+          "field": "feedrate",
+          "line": 1305
+        },
+        {
+          "field": "rapidrate",
+          "line": 1307
+        },
+        {
+          "field": "motion_line",
+          "line": 1334
+        },
+        {
+          "field": "position",
+          "line": 1081
+        },
+        {
+          "field": "paused",
+          "line": 1285
+        },
+        {
+          "field": "inpos",
+          "line": 1288
+        },
+        {
+          "field": "feed_override_enabled",
+          "line": 1308
+        },
+        {
+          "field": "spindle_override_enabled",
+          "line": 1309
+        },
+        {
+          "field": "block_delete",
+          "line": 1310
+        },
+        {
+          "field": "optional_stop",
+          "line": 1311
+        },
+        {
+          "field": "feed_hold_enabled",
+          "line": 1312
+        },
+        {
+          "field": "adaptive_feed_enabled",
+          "line": 1313
+        },
+        {
+          "field": "gcodes",
+          "line": 1337
+        },
+        {
+          "field": "mcodes",
+          "line": 1338
+        },
+        {
+          "field": "probe_tripped",
+          "line": 1347
+        },
+        {
+          "field": "probing",
+          "line": 1349
+        },
+        {
+          "field": "probed_position",
+          "line": 1350
+        },
+        {
+          "field": "flood",
+          "line": 1351
+        },
+        {
+          "field": "mist",
+          "line": 1352
+        },
+        {
+          "field": "actual_position",
+          "line": 1360
+        },
+        {
+          "field": "joints",
+          "line": 1160
+        },
+        {
+          "field": "joints",
+          "line": 1172
+        }
+      ],
+      "distinct_field_count": 49,
+      "native_imports": [
+        {
+          "module": "linuxcnc",
+          "line": 36
+        }
+      ]
+    },
+    "gcode_parse_worker.py": {
+      "safe_get_literals": [],
+      "distinct_field_count": 0,
+      "native_imports": [
+        {
+          "module": "linuxcnc",
+          "line": 64
+        },
+        {
+          "module": "gcode",
+          "line": 65
+        }
+      ]
+    },
+    "gcode_canon.py": {
+      "safe_get_literals": [],
+      "distinct_field_count": 0,
+      "native_imports": [
+        {
+          "module": "rs274.interpret",
+          "line": 14
+        },
+        {
+          "module": "interpreter",
+          "line": 51
+        }
+      ]
+    }
+  },
+  "measurement": "Claudes basic measurement at 22348f34 read, not repeated as a full project run",
+  "own_tests": "11 isolated Pyright 1.1.407 standard snippets; extracted fake class; extracted actual _cmd_blocking with deterministic substituted executor queue",
+  "exploration": "The first exclude hypothesis was falsified: an imported excluded file body did not emit its own diagnostic. Kept in exploration.json; expanded final probes test body exclusion AND propagated imported types. This is not a finding.",
+  "not_performed": [
+    "product edits",
+    "test/build/checkout in live tree",
+    "LinuxCNC/HAL import or instantiation",
+    "network requests to LAN simulator",
+    "machine commands",
+    "full product gate"
+  ],
+  "sources": [
+    "https://typing.python.org/en/latest/spec/protocol.html",
+    "https://raw.githubusercontent.com/microsoft/pyright/1.1.407/docs/configuration.md",
+    "https://raw.githubusercontent.com/LinuxCNC/linuxcnc/v2.9.4/src/emc/usr_intf/axis/extensions/emcmodule.cc"
+  ],
+  "review_before_sha256": "37471ed51da1ba6fd34cc49857c0657a2afe1bdab83ac8374bf66119ca34f2a5",
+  "review_before_bytes": 45844,
+  "review_append_sha256": "ae3d10483362376a2f1081251a7ef911ebdd30df138a84149b1f59a2fcbc3494"
+}

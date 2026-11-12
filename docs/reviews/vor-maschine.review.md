@@ -385,3 +385,65 @@ Belege: [eigene Sonde](vor-maschine.r351.codex-probe.py), [14 Gegenfälle und Da
 - **Q352-4:** den Stub-↔-Bindung-Wächter in CI als benannte Grenze überspringen?
 
 **Erbeten:** `agreement` oder `findings`.
+
+---
+
+## Codex · Planreview R352 · 12. November 2026
+
+**Urteil: `findings`.** Den vom Operator gewünschten sauberen Weg mit allen drei Bausteinen vor dem Maschinentag unterstütze ich. Die Aufteilung 2a/2b, eigene Stubs, ein ausdrücklicher Verbindungszugriff und ein gepinnter Gate-Schritt sind sinnvoll. Vor der Umsetzung fehlen drei Verträge: **VM352-01 bis VM352-03**. Es gibt **keine neue Operatorfrage**; Q352-1 bis Q352-4 sind unten beantwortet.
+
+Prüfstand: Produkt `faa33958`, Anfrage im Dokumentstand `24c3917f`. Die Messung 2196/229 ist als **`basic`-Ausgangsmessung** nachvollziehbar; sie ist weder die Zahl echter Produktfehler noch eine Messung des vorgeschlagenen `standard`/`strict`-Endstands. Eigene Prüfung ausschließlich an einer Archivkopie in `/tmp/codex-r352`: elf kleine Typprüfungsfälle mit dem bereits vorhandenen **Pyright 1.1.407**, der isolierte echte Fake und eine Sonde am extrahierten `_cmd_blocking`-Funktionskörper. Kein Produktcode geändert, kein Test/Build im Live-Baum und kein Zugriff auf die Sim.
+
+### VM352-01 · Die Fake-Zuweisung beweist noch nicht die zugesagte Aufrufform
+
+`fake_linuxcnc._Command` hat heute keine ausdrücklichen Befehlsmethoden. Sein `__getattr__` liefert für **jeden** Namen eine Funktion mit beliebigen Argumenten; `_Ini` akzeptiert ebenfalls beliebige Argumente. Meine Sonde zeigt: Sowohl `mdi(1, 2, unknown=True)` als auch ein erfundener Befehl werden vom echten isolierten Fake ohne Fehler angenommen und vom Checker in `standard` nicht beanstandet.
+
+Eine gewöhnliche Klasse `command` in einer `.pyi` macht daraus keinen strukturellen Vergleich: Selbst ein korrekt und vollständig annotierter, gleich geformter Fake lässt sich dieser fremden Klasse nicht zuweisen. Mit einem `Protocol` klappt der Vergleich; falsche Parametertypen, eine fehlende Methode und ein falscher Rückgabetyp werden in meinen Gegenproben jeweils erkannt. **Aber:** Auch eine Fake-Methode `mdi(*args: object, **kwargs: object)` erfüllt das schmale Protokoll `mdi(str) -> None` und akzeptiert weiterhin falsche Aufrufe. Das ist zulässige Typkompatibilität, kein Beweis identischer Signaturen. [Python-Typspezifikation: strukturelle Protokolle](https://typing.python.org/en/latest/spec/protocol.html).
+
+**Plan ergänzen:**
+
+- Eine gemeinsame, explizite Schnittstelle für die genutzten Operationen und Statusdaten; echte Stub-Typen **und** Fake werden dagegen geprüft. Keine bloße nominale Zuweisung, kein Cast und kein Erben leerer Implementierungen als Ersatz für den Nachweis.
+- Der Fake deklariert die verwendeten Methoden mit ihren tatsächlichen Aufrufformen. Für diese Grenze kein beliebiger `__getattr__`-Erfolg und kein pauschales `*args/**kwargs`. Überladungen, optionale Argumente und rein positionale Parameter folgen der Bindung; ausdrücklich programmierbare Ergebnisse bleiben möglich.
+- Gegenfälle prüfen neben Typabweichungen auch **fehlende/zusätzliche Argumente, unzulässige Schlüsselwörter und einen unbekannten Methodennamen** am Fake. Die statische Prüfung zulässiger Aufrufe und diese Laufzeitprüfung haben unterschiedliche Aufgaben.
+- Der native `dir()`-Abgleich wird ausdrücklich als **Namensnachweis** beschrieben. Er belegt keine Parameterformen, Rückgaben oder Konstantenwerte. Für diese gelten die benannten Quellstellen und gezielte Prüfungen. Beispiel: `command.wait_complete` liefert in 2.9.4 ein `int`, `mdi` liefert bei erfolgreichem Aufruf `None`; ein allgemeines `None`-No-op darf beides nicht vertreten. [Bindungsquelle 2.9.4](https://raw.githubusercontent.com/LinuxCNC/linuxcnc/v2.9.4/src/emc/usr_intf/axis/extensions/emcmodule.cc).
+
+Das ist keine Forderung, LinuxCNCs gesamtes Verhalten nachzubauen. Gerade die begrenzte, tatsächlich verwendete API soll verlässlich sein.
+
+### VM352-02 · `Link` braucht einen Besitzervertrag über den ganzen Schreibauftrag
+
+Ein nicht-optionaler Rückgabewert beseitigt `None`-Zugriffe, aber nicht den Wechsel der Verbindung zwischen Vorbereitung, Executor-Warteschlange, Zulassung, Schreiben und Ergebnis. Heute erhält `_cmd_blocking` bereits eine **gebundene Methode**, liest für Seriennummer und `wait_complete` aber erneut das globale `CMD` (`gateway.py:3461–3576`). `try_connect_lcnc` ersetzt die Kanäle, und die vorhandene Instanzbindung benutzt **PID plus Prozessstart**, nicht nur PID (`gateway.py:2316`, `2339`).
+
+Meine deterministische Sonde am echten Funktionskörper ersetzt den Kanal genau beim simulierten Eintritt in den Executor: Zulassung liest **neu**, die vorbereitete Methode schreibt **alt, Serial 41**, gebucht und abgewartet wird **neu, Serial 80**, Ergebnis `1`. Die Sonde ersetzt den Executor und die Startvorbereitung; sie ist **kein Nachweis eines beobachteten Live-Rennens**. Sie zeigt konkret, weshalb „`_cmd_blocking` nimmt sein CMD aus `link()`“ als Umbauvertrag nicht genügt.
+
+**Plan ergänzen:**
+
+- Einen vollständig vorbereiteten Kanalsatz gemeinsam veröffentlichen; Initialprüfung und bestehende Instanzzulassung vor Veröffentlichung. Verbindungsentzug und Veröffentlichung erhalten eine benannte Synchronisation mit Schreibaufträgen. Die heutige Bind-once-/Rebind-Regel und die Identität `(pid, start)` bleiben erhalten; fehlende Identität bleibt ausdrücklich unbekannt.
+- Ein Auftrag bindet **Zulassungslesung, Befehl, Seriennummer, Buchung und Warten an denselben Link**. Ist sein Besitzer vor dem Schreiben nicht mehr aktuell, wird er verweigert, nicht still auf einen neuen Kanal umgeleitet. Eine alte Fertigmeldung darf keinen neuen Verbindungszustand bestätigen.
+- Die frische Controller-Zulassung **im Schreibthread**, die vorhandenen Stopp-Verträge und `_thread_to_end` bei wiederholtem Cancel bleiben erhalten. Ein vorhandener Link ist kein Beleg für einen erfolgreich gelesenen aktuellen Status. Die unterschiedlichen Regeln für tolerantes Lesen, normale Befehle und Stopps dürfen nicht zu einer einzigen pauschalen Freigabe werden.
+- `NotConnected` an den tatsächlichen Eintrittswegen zuordnen: WS, HTTP, Hintergrundarbeit und Bereinigung. Nur der Dispatcher als Fänger reicht für die anderen Wege nicht. Keine allgemeine Umdeutung beliebiger `AttributeError` in „nicht verbunden“.
+- Die gemeinsame Testnaht installiert und restauriert den vollständigen Verbindungszustand. Fälle mit fehlendem Status, fehlgeschlagenem Poll oder unbekannter Instanz bleiben ausdrückliche Negativfälle; der Helfer darf sie nicht durch einen automatisch ergänzten Idle-Fake grün machen.
+
+Abnahmefälle: fehlgeschlagener Verbindungsaufbau ohne veröffentlichten Teilzustand; Slotwechsel vor dem Thread und während des Wartens; gleiche PID mit anderem Prozessstart; wiederholter Cancel; unveränderte erreichbare Stopps. Die beiden Wechselproben gehören zusätzlich zu den vorhandenen nativen und Dispatch-Wächtern.
+
+### VM352-03 · Die Gate-Grenze muss auch die indirekten Bindungen und Zugriffe benennen
+
+Die zwei vorgesehenen Stubs schließen die Importgrenze der Produktmodule noch nicht. `gcode_parse_worker.py:65` importiert **`gcode`**, `gcode_canon.py:14` **`rs274.interpret`** und `:51` den eingebetteten **`interpreter`**. Letzterer steht bereits in den 229 Produktbefunden. Der CI-Job installiert LinuxCNC nicht und nennt das Fehlen des nativen Canons ausdrücklich. Diese Wege sind Produktcode, keine durch den Ausschluss von `examples` beseitigte Lücke.
+
+Auch die „31 genutzten stat-Felder“ sind als Umfang zu klären: Allein `status_runtime.py` fragt **49 verschiedene literale Namen über `safe_get`** ab, einschließlich `self.safe_get`; dynamische Namen sind in dieser Zahl noch nicht enthalten. Einige sind absichtliche Kompatibilitätsversuche. Deshalb müssen **garantierte Felder und optionale Abfragen mit Rückfall** auseinandergehalten werden; nicht jeden versuchsweise abgefragten Namen pauschal von jeder nativen Version verlangen.
+
+**Plan ergänzen:** Eine Import-/Schnittstellenliste der eingeschlossenen Produktmodule legt je Grenze fest, ob geprüfter Quelltext, Stub oder eine einzeln benannte vorläufige Ausnahme gilt. Sie enthält auch die indirekten Statusabfragen. Ein beliebiges `Any` für den ganzen Canon oder ein global ignorierter Import ist keine Schließung. CI und VM verwenden dieselben Stub-Verträge; unterschiedliche installierte native Bibliotheken und Python-Umgebungen bleiben im Bericht sichtbar.
+
+Für das Gate außerdem die Zusage aus R350 erhalten: **Gegenfall vor Aufnahme jedes Moduls**, nicht nur der `strict`-Module. Dateimenge und Ausnahmen von 2a/2b werden ausgewiesen; der echte Gate-Aufruf muss auch an einem `standard`-Produktmodul rot werden. Root-Konfiguration, Stub-/Schnittstellendateien und der Werkzeug-Pin müssen die passende Gate-Auswahl auslösen. Die vorübergehende Ausnahme `gateway.py` endet mit 2b. Ein importierter Typ allein beweist nicht, dass der Funktionskörper der Quelldatei vom Gate geprüft wird; meine kleinen Ausschlussproben zeigen genau diese Grenze. [Pyright-Konfiguration des verwendeten Pins](https://raw.githubusercontent.com/microsoft/pyright/1.1.407/docs/configuration.md).
+
+### Antworten auf Q352-1 bis Q352-4
+
+| Frage | Antwort |
+| --- | --- |
+| **Q352-1** | **Ausdrückliches `link()` und ein gemeinsamer Testhelfer**, mit VM352-02. Werfende Proxy-Globals verschleiern Ablehnung und Besitzerwechsel. |
+| **Q352-2** | **Pyright über npm**, exakt gepinnt samt Lockdatei, Aufruf des lokal installierten Werkzeugs ohne Nachladen. Das entspricht der Messung und dem vorhandenen CI-Aufbau. Ein Wechsel zu `basedpyright` wäre eine andere Werkzeugwahl und ist hier nicht erforderlich. |
+| **Q352-3** | **Ja, als ausdrückliche erste Typprüfungsgrenze.** Tests, Skripte und Beispiele behalten ihre bestehenden Laufprüfungen; Fakes und Prüfdateien der Schnittstelle bleiben im Typ-Gate. Der Bericht sagt „Gateway-Produktmodule plus compensation“, nicht „gesamter ausgelieferter Python-Code typgeprüft“. Die nativen Produktimporte aus VM352-03 bleiben eingeschlossen. |
+| **Q352-4** | **Ja für den ausdrücklich bindingslosen CI-Job**, als sichtbare fehlende native Prüfung. Auf VM und in der Installationsprobe ist dieser Nachweis Pflicht: fehlende/defekte Bindung oder falsche erwartete Oberfläche = FAIL. Kein allgemeines `except ImportError: skip`, das dort einen Installationsfehler verdeckt. Nur Import und Klasseninspektion wie vorgeschlagen; keine Kanalinstanz und kein Poll für diesen Wächter. |
+
+Zu „ehrlichen Annotationen“: Maßstab ist der **belegte Vertrag**, nicht jeder zufällige heutige Aufruf. Beispielsweise akzeptiert `parse_tool_table` keinen fehlenden Pfad; der heutige Aufruf mit `None` läuft in den vorhandenen `TypeError`-Fehlerpfad (`status_runtime.py:1241`). Das ist kein Grund, den Parameter ohne Behandlung einfach optional zu annotieren. Legitime Formen wie `wait=None` dürfen korrekt ausgedrückt werden; tatsächliche Verhaltenskorrekturen bleiben separat und getestet. Die Wahl `standard` plus gezieltem `strict` unterstütze ich; „rein“ ist für `hal_bridge` mit seinen Socket-/Thread-Zuständen allerdings keine zutreffende Beschreibung.
+
+**Belege:** [elf Typ-Gegenproben und Fake-Sonde](vor-maschine.r352.codex-probe.py), [Ergebnisse](vor-maschine.r352.codex-probe.json), [Sonde am Schreibhelfer](vor-maschine.r352.codex-connection.py), [Besitzerwechsel-Ergebnis](vor-maschine.r352.codex-connection.json), [Prüfstand, Hashes und Abfrageinventur](vor-maschine.r352.codex-checks.json). Die [erste Erkundung](vor-maschine.r352.codex-exploration.json) ist ebenfalls erhalten: Meine anfängliche Vermutung, ein importierter ausgeschlossener Funktionskörper müsse eigene Diagnosen liefern, wurde widerlegt und **nicht** als Befund übernommen. Der abschließende Lauf erfüllt alle elf festgehaltenen Erwartungen.

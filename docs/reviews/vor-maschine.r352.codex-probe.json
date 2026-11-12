@@ -1,0 +1,503 @@
+{
+  "tool": "pyright 1.1.407",
+  "product_target": "faa33958",
+  "isolation": "temporary snippets; fake class extracted by AST; no live imports/access",
+  "source_hashes": {
+    "lcnc-gateway/fake_linuxcnc.py": "892db603489f3947fe6649a24cbb5593d231a9c0033d7dcf58f769450450816c",
+    "lcnc-gateway/gateway.py": "0519719fb32405e865f3845d69f1c68098bf752799898b4f5db93c7cb9b4e7ba",
+    "lcnc-gateway/writer_fixture.py": "3342b4027d925b43668129329b1f13f46eb57e0c01fa2b9c4ff782ad5fbfb831"
+  },
+  "checks": [
+    {
+      "case": "included_bad_body",
+      "expected_errors": 1,
+      "errors": 1,
+      "matches": true,
+      "exit": 1,
+      "config": {
+        "include": [
+          "check.py"
+        ],
+        "typeCheckingMode": "standard",
+        "pythonVersion": "3.11",
+        "pythonPlatform": "Linux"
+      },
+      "files": {
+        "check.py": "value: int = \"not an int\"\n"
+      },
+      "result": {
+        "version": "1.1.407",
+        "time": "1794511943611",
+        "generalDiagnostics": [
+          {
+            "file": "/tmp/r352-type-83u4n90h/included_bad_body/check.py",
+            "severity": "error",
+            "message": "Type \"Literal['not an int']\" is not assignable to declared type \"int\"\n\u00a0\u00a0\"Literal['not an int']\" is not assignable to \"int\"",
+            "range": {
+              "start": {
+                "line": 0,
+                "character": 13
+              },
+              "end": {
+                "line": 0,
+                "character": 25
+              }
+            },
+            "rule": "reportAssignmentType"
+          }
+        ],
+        "summary": {
+          "filesAnalyzed": 1,
+          "errorCount": 1,
+          "warningCount": 0,
+          "informationCount": 0,
+          "timeInSec": 0.134
+        }
+      },
+      "stderr": ""
+    },
+    {
+      "case": "exclude_imported_type_still_visible",
+      "expected_errors": 1,
+      "errors": 1,
+      "matches": true,
+      "exit": 1,
+      "config": {
+        "include": [
+          "check.py"
+        ],
+        "typeCheckingMode": "standard",
+        "pythonVersion": "3.11",
+        "pythonPlatform": "Linux",
+        "exclude": [
+          "omitted.py"
+        ]
+      },
+      "files": {
+        "check.py": "from omitted import value\ntext: str = value\n",
+        "omitted.py": "value: int = 1\n"
+      },
+      "result": {
+        "version": "1.1.407",
+        "time": "1794511943832",
+        "generalDiagnostics": [
+          {
+            "file": "/tmp/r352-type-83u4n90h/exclude_imported_type_still_visible/check.py",
+            "severity": "error",
+            "message": "Type \"int\" is not assignable to declared type \"str\"\n\u00a0\u00a0\"int\" is not assignable to \"str\"",
+            "range": {
+              "start": {
+                "line": 1,
+                "character": 12
+              },
+              "end": {
+                "line": 1,
+                "character": 17
+              }
+            },
+            "rule": "reportAssignmentType"
+          }
+        ],
+        "summary": {
+          "filesAnalyzed": 1,
+          "errorCount": 1,
+          "warningCount": 0,
+          "informationCount": 0,
+          "timeInSec": 0.111
+        }
+      },
+      "stderr": ""
+    },
+    {
+      "case": "nominal_same_shape",
+      "expected_errors": 1,
+      "errors": 1,
+      "matches": true,
+      "exit": 1,
+      "config": {
+        "include": [
+          "check.py"
+        ],
+        "typeCheckingMode": "standard",
+        "pythonVersion": "3.11",
+        "pythonPlatform": "Linux"
+      },
+      "files": {
+        "binding.pyi": "class command:\n    def mdi(self, text: str, /) -> None: ...\n",
+        "check.py": "from binding import command\nclass Fake:\n    def mdi(self, text: str, /) -> None:\n        pass\nchecked: command = Fake()\n"
+      },
+      "result": {
+        "version": "1.1.407",
+        "time": "1794511944058",
+        "generalDiagnostics": [
+          {
+            "file": "/tmp/r352-type-83u4n90h/nominal_same_shape/check.py",
+            "severity": "warning",
+            "message": "Import \"binding\" could not be resolved from source",
+            "range": {
+              "start": {
+                "line": 0,
+                "character": 5
+              },
+              "end": {
+                "line": 0,
+                "character": 12
+              }
+            },
+            "rule": "reportMissingModuleSource"
+          },
+          {
+            "file": "/tmp/r352-type-83u4n90h/nominal_same_shape/check.py",
+            "severity": "error",
+            "message": "Type \"Fake\" is not assignable to declared type \"command\"\n\u00a0\u00a0\"Fake\" is not assignable to \"command\"",
+            "range": {
+              "start": {
+                "line": 4,
+                "character": 19
+              },
+              "end": {
+                "line": 4,
+                "character": 25
+              }
+            },
+            "rule": "reportAssignmentType"
+          }
+        ],
+        "summary": {
+          "filesAnalyzed": 1,
+          "errorCount": 1,
+          "warningCount": 1,
+          "informationCount": 0,
+          "timeInSec": 0.116
+        }
+      },
+      "stderr": ""
+    },
+    {
+      "case": "structural_same_shape",
+      "expected_errors": 0,
+      "errors": 0,
+      "matches": true,
+      "exit": 0,
+      "config": {
+        "include": [
+          "check.py"
+        ],
+        "typeCheckingMode": "standard",
+        "pythonVersion": "3.11",
+        "pythonPlatform": "Linux"
+      },
+      "files": {
+        "check.py": "from typing import Protocol\nclass Command(Protocol):\n    def mdi(self, text: str, /) -> None: ...\nclass Fake:\n    def mdi(self, text: str, /) -> None:\n        pass\nchecked: Command = Fake()\n"
+      },
+      "result": {
+        "version": "1.1.407",
+        "time": "1794511944291",
+        "generalDiagnostics": [],
+        "summary": {
+          "filesAnalyzed": 1,
+          "errorCount": 0,
+          "warningCount": 0,
+          "informationCount": 0,
+          "timeInSec": 0.122
+        }
+      },
+      "stderr": ""
+    },
+    {
+      "case": "structural_wrong_argument",
+      "expected_errors": 1,
+      "errors": 1,
+      "matches": true,
+      "exit": 1,
+      "config": {
+        "include": [
+          "check.py"
+        ],
+        "typeCheckingMode": "standard",
+        "pythonVersion": "3.11",
+        "pythonPlatform": "Linux"
+      },
+      "files": {
+        "check.py": "from typing import Protocol\nclass Command(Protocol):\n    def mdi(self, text: str, /) -> None: ...\nclass Fake:\n    def mdi(self, text: int, /) -> None:\n        pass\nchecked: Command = Fake()\n"
+      },
+      "result": {
+        "version": "1.1.407",
+        "time": "1794511944538",
+        "generalDiagnostics": [
+          {
+            "file": "/tmp/r352-type-83u4n90h/structural_wrong_argument/check.py",
+            "severity": "error",
+            "message": "Type \"Fake\" is not assignable to declared type \"Command\"\n\u00a0\u00a0\"Fake\" is incompatible with protocol \"Command\"\n\u00a0\u00a0\u00a0\u00a0\"mdi\" is an incompatible type\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0Type \"(text: int, /) -> None\" is not assignable to type \"(text: str, /) -> None\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0Parameter 1: type \"str\" is incompatible with type \"int\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"str\" is not assignable to \"int\"",
+            "range": {
+              "start": {
+                "line": 6,
+                "character": 19
+              },
+              "end": {
+                "line": 6,
+                "character": 25
+              }
+            },
+            "rule": "reportAssignmentType"
+          }
+        ],
+        "summary": {
+          "filesAnalyzed": 1,
+          "errorCount": 1,
+          "warningCount": 0,
+          "informationCount": 0,
+          "timeInSec": 0.128
+        }
+      },
+      "stderr": ""
+    },
+    {
+      "case": "structural_missing_method",
+      "expected_errors": 1,
+      "errors": 1,
+      "matches": true,
+      "exit": 1,
+      "config": {
+        "include": [
+          "check.py"
+        ],
+        "typeCheckingMode": "standard",
+        "pythonVersion": "3.11",
+        "pythonPlatform": "Linux"
+      },
+      "files": {
+        "check.py": "from typing import Protocol\nclass Command(Protocol):\n    def mdi(self, text: str, /) -> None: ...\nclass Fake:\n    pass\nchecked: Command = Fake()\n"
+      },
+      "result": {
+        "version": "1.1.407",
+        "time": "1794511944790",
+        "generalDiagnostics": [
+          {
+            "file": "/tmp/r352-type-83u4n90h/structural_missing_method/check.py",
+            "severity": "error",
+            "message": "Type \"Fake\" is not assignable to declared type \"Command\"\n\u00a0\u00a0\"Fake\" is incompatible with protocol \"Command\"\n\u00a0\u00a0\u00a0\u00a0\"mdi\" is not present",
+            "range": {
+              "start": {
+                "line": 5,
+                "character": 19
+              },
+              "end": {
+                "line": 5,
+                "character": 25
+              }
+            },
+            "rule": "reportAssignmentType"
+          }
+        ],
+        "summary": {
+          "filesAnalyzed": 1,
+          "errorCount": 1,
+          "warningCount": 0,
+          "informationCount": 0,
+          "timeInSec": 0.131
+        }
+      },
+      "stderr": ""
+    },
+    {
+      "case": "structural_wrong_return",
+      "expected_errors": 1,
+      "errors": 1,
+      "matches": true,
+      "exit": 1,
+      "config": {
+        "include": [
+          "check.py"
+        ],
+        "typeCheckingMode": "standard",
+        "pythonVersion": "3.11",
+        "pythonPlatform": "Linux"
+      },
+      "files": {
+        "check.py": "from typing import Protocol\nclass Command(Protocol):\n    def mdi(self, text: str, /) -> None: ...\nclass Fake:\n    def mdi(self, text: str, /) -> int:\n        return 1\nchecked: Command = Fake()\n"
+      },
+      "result": {
+        "version": "1.1.407",
+        "time": "1794511945049",
+        "generalDiagnostics": [
+          {
+            "file": "/tmp/r352-type-83u4n90h/structural_wrong_return/check.py",
+            "severity": "error",
+            "message": "Type \"Fake\" is not assignable to declared type \"Command\"\n\u00a0\u00a0\"Fake\" is incompatible with protocol \"Command\"\n\u00a0\u00a0\u00a0\u00a0\"mdi\" is an incompatible type\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0Type \"(text: str, /) -> int\" is not assignable to type \"(text: str, /) -> None\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0Function return type \"int\" is incompatible with type \"None\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"int\" is not assignable to \"None\"",
+            "range": {
+              "start": {
+                "line": 6,
+                "character": 19
+              },
+              "end": {
+                "line": 6,
+                "character": 25
+              }
+            },
+            "rule": "reportAssignmentType"
+          }
+        ],
+        "summary": {
+          "filesAnalyzed": 1,
+          "errorCount": 1,
+          "warningCount": 0,
+          "informationCount": 0,
+          "timeInSec": 0.137
+        }
+      },
+      "stderr": ""
+    },
+    {
+      "case": "structural_catchall_still_passes",
+      "expected_errors": 0,
+      "errors": 0,
+      "matches": true,
+      "exit": 0,
+      "config": {
+        "include": [
+          "check.py"
+        ],
+        "typeCheckingMode": "standard",
+        "pythonVersion": "3.11",
+        "pythonPlatform": "Linux"
+      },
+      "files": {
+        "check.py": "from typing import Protocol\nclass Command(Protocol):\n    def mdi(self, text: str, /) -> None: ...\nclass Fake:\n    def mdi(self, *args: object, **kwargs: object) -> None:\n        pass\nchecked: Command = Fake()\nFake().mdi(1, 2, unrecognized=True)\n"
+      },
+      "result": {
+        "version": "1.1.407",
+        "time": "1794511945321",
+        "generalDiagnostics": [],
+        "summary": {
+          "filesAnalyzed": 1,
+          "errorCount": 0,
+          "warningCount": 0,
+          "informationCount": 0,
+          "timeInSec": 0.143
+        }
+      },
+      "stderr": ""
+    },
+    {
+      "case": "exclude_imported_body_not_gate_checked",
+      "expected_errors": 0,
+      "errors": 0,
+      "matches": true,
+      "exit": 0,
+      "config": {
+        "include": [
+          "check.py"
+        ],
+        "typeCheckingMode": "standard",
+        "pythonVersion": "3.11",
+        "pythonPlatform": "Linux",
+        "exclude": [
+          "omitted.py"
+        ]
+      },
+      "files": {
+        "check.py": "from omitted import value\n",
+        "omitted.py": "value: int = \"not an int\"\n"
+      },
+      "result": {
+        "version": "1.1.407",
+        "time": "1794511945587",
+        "generalDiagnostics": [],
+        "summary": {
+          "filesAnalyzed": 1,
+          "errorCount": 0,
+          "warningCount": 0,
+          "informationCount": 0,
+          "timeInSec": 0.138
+        }
+      },
+      "stderr": ""
+    },
+    {
+      "case": "ignore_imported_is_suppressed",
+      "expected_errors": 0,
+      "errors": 0,
+      "matches": true,
+      "exit": 0,
+      "config": {
+        "include": [
+          "check.py"
+        ],
+        "typeCheckingMode": "standard",
+        "pythonVersion": "3.11",
+        "pythonPlatform": "Linux",
+        "ignore": [
+          "omitted.py"
+        ]
+      },
+      "files": {
+        "check.py": "from omitted import value\n",
+        "omitted.py": "value: int = \"not an int\"\n"
+      },
+      "result": {
+        "version": "1.1.407",
+        "time": "1794511945849",
+        "generalDiagnostics": [],
+        "summary": {
+          "filesAnalyzed": 1,
+          "errorCount": 0,
+          "warningCount": 0,
+          "informationCount": 0,
+          "timeInSec": 0.136
+        }
+      },
+      "stderr": ""
+    },
+    {
+      "case": "existing_fake_unknown_and_bad_arity",
+      "expected_errors": 0,
+      "errors": 0,
+      "matches": true,
+      "exit": 0,
+      "config": {
+        "include": [
+          "check.py"
+        ],
+        "typeCheckingMode": "standard",
+        "pythonVersion": "3.11",
+        "pythonPlatform": "Linux"
+      },
+      "files": {
+        "check.py": "class _Command:\n    \"\"\"command: any attribute is a callable no-op, so handlers that reference\n    CMD.mdi / CMD.mode / \u2026 don't AttributeError merely on attribute access.\"\"\"\n    def __getattr__(self, _name):\n        return lambda *a, **k: None\n_Command().definitely_not_linuxcnc(1, 2, unknown=True)\n_Command().mdi(1, 2, unknown=True)\n"
+      },
+      "result": {
+        "version": "1.1.407",
+        "time": "1794511946118",
+        "generalDiagnostics": [],
+        "summary": {
+          "filesAnalyzed": 1,
+          "errorCount": 0,
+          "warningCount": 0,
+          "informationCount": 0,
+          "timeInSec": 0.14
+        }
+      },
+      "stderr": ""
+    }
+  ],
+  "actual_fake_results": {
+    "unknown_method_result": null,
+    "bad_mdi_call_result": null
+  },
+  "connection_pattern_model": {
+    "write": [
+      "old",
+      "mdi",
+      "G4 P0",
+      1
+    ],
+    "booked_serial": 0,
+    "wait": [
+      "new",
+      "wait_complete",
+      0
+    ]
+  },
+  "all_match": true
+}
