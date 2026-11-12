@@ -94,6 +94,15 @@ gate refuses a too-long `--out` at its start (`install_cases.run_dir_problem`;
 heavy hour) — keep it short and outside the worktree, e.g.
 `~/claude-work/<topic>/merge-gate.json`, and copy the record into `docs/reviews/`.
 
+**The Python lint** (issue #36, Codex R349/R350) is the backend gate's FIRST
+step, `ruff`: `python -m ruff check --no-cache` at the root, its files, rules and
+target in `ruff.toml` (the same as a local `ruff check` there). ruff comes pinned
+from `lcnc-gateway/requirements-test.txt` into the venv — never fetched at gate
+time; a missing ruff fails the step. Rules: pyflakes (`F`) and bugbear (`B`)
+minus five measured as noise here (B905, B023, B904, B008, B007 — not covered);
+the TWP remap fork and its TOPLEVEL entry carry named per-file exceptions. A
+rule that would need many `noqa` lines is deselected, not suppressed.
+
 The tree must be clean. In order, never two at once: the selector's own
 guards (`scripts/test_select/test_selector.py` — red guards end the gate before
 anything is left out), the selection, lint, build, the light unit set (every

@@ -1,3 +1,7 @@
 # Add to the prepared gateway venv (runtime requirements already installed).
 # Keep system LinuxCNC/NumPy packages; CI provisions its own isolated NumPy.
 pytest==9.0.3
+# The Python lint (issue #36, plan R349/R350): the backend gate's `ruff` step
+# runs `python -m ruff` from this venv — never fetched at gate time; a missing
+# ruff fails the step. Bump it deliberately, with the rule set in ruff.toml.
+ruff==0.14.4

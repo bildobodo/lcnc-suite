@@ -124,6 +124,12 @@ def materialize_corpus(ini, out):
 def offline_commands(component):
     commands = []
     if component in ("all", "backend"):
+        # The Python lint FIRST, before the expensive suites (issue #36, Codex
+        # R349/R350): ruff.toml at the root names the files, the rules and the
+        # target — the same as a local `ruff check` there. `python -m ruff`
+        # from this venv (requirements-test.txt): a missing ruff fails the
+        # step, it is never fetched at gate time.
+        commands.append(("ruff", [python(), "-m", "ruff", "check", "--no-cache"], ROOT))
         commands.append(("backend", [python(), "-m", "pytest"], ROOT / "lcnc-gateway"))
         commands.append(("5axis-model", [python(), str(ROOT / "scripts/test_5axis_xyzac.py")], ROOT))
         # Explicit: the backend pytest runs in lcnc-gateway with testpaths=["."]

@@ -1,0 +1,41 @@
+# The Python lint (issue #36; plan docs/reviews/vor-maschine.review.md, Codex
+# R349/R350). ONE configuration for the backend gate's `ruff` step and a local
+# `ruff check` at the repository root: the same files, rules and target.
+#
+# Scope: the gateway, the scripts, the bundled subroutines' helpers and the
+# shipped example configurations' Python (remaps, HAL helpers). Not the
+# review evidence under docs/ (Codex's probe scripts are records, not code).
+#
+# Rules: pyflakes (F — undefined and shadowed names, unused imports and
+# variables) and bugbear (B) minus five rules measured at c7f72261 as noise
+# for this code base, NOT covered by this lint:
+#   B905 zip() without strict= (135)     B023 loop variable in a closure (56:
+#   helpers called within their iteration; the two product sites checked)
+#   B904 raise without from (31)         B008 call in a default (8: FastAPI's
+#   File()/Header() by design)           B007 unused loop variable (8)
+# A rule that would need many `noqa` lines is deselected here, not
+# suppressed line by line; a per-file exception names its reason.
+target-version = "py311"     # the machine PC: Debian 12, Python 3.11
+include = [
+    "lcnc-gateway/**/*.py",
+    "scripts/**/*.py",
+    "subroutines/**/*.py",
+    "examples/**/*.py",
+]
+extend-exclude = ["lcnc-gateway/.venv", "**/node_modules", "runlogs"]
+
+[lint]
+select = ["F", "B"]
+ignore = ["B905", "B023", "B904", "B008", "B007"]
+
+[lint.per-file-ignores]
+# The TWP remap's `from interpreter import *` (remap.py:45, LinuxCNC's embedded
+# interpreter module) — every name it brings in reads as undefined to pyflakes.
+# It is also a FORK of the upstream TWP remap (LinuxCNC master @493926b56c,
+# its header): task behaviour identical to upstream, every own edit tagged
+# LCNC-SUITE — its unused imports and intermediate values are upstream's and
+# stay byte-close for the diff (F401/F841); undefined names (F821) and the B
+# rules stay on.
+"examples/sim_config/**/remap.py" = ["F403", "F405", "F401", "F841"]
+# LinuxCNC's [PYTHON] TOPLEVEL entry: `import remap` IS its job.
+"examples/sim_config/**/toplevel.py" = ["F401"]

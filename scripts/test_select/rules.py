@@ -332,6 +332,8 @@ RULES: tuple[Rule, ...] = (
     Rule(("subroutines/**",), "the bundled routines", backend=True,
          live=("probe-live", "toolsetter-readback")),
     Rule(("scripts/**",), "scripts and their tests ride the backend gate", backend=True),
+    Rule(("ruff.toml",), "the Python lint's files and rules: the backend gate's ruff step (issue #36)",
+         backend=True),
     Rule(("test-fixtures/**",), "fixtures of the tool import", backend=True),
     Rule(("lcnc-suite", "install.sh", "restart.sh", "kill.sh"),
          "the launcher and the install scripts", backend=True, live=("perf-matrix",)),

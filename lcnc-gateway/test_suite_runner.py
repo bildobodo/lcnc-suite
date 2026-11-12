@@ -16,6 +16,36 @@ live_session = importlib.util.module_from_spec(client_spec)
 client_spec.loader.exec_module(live_session)
 
 
+class RuffStep(unittest.TestCase):
+    """The lint step is red on what it exists for (issue #36, Codex R349/R350):
+    an undefined name under the repository's own ruff.toml, and a Python
+    without ruff — never a skip. The step's own command, plus a file."""
+
+    def step(self):
+        return next(c for c in suite.offline_commands("backend") if c[0] == "ruff")
+
+    def run_step(self, cmd, cwd, *extra):
+        import subprocess
+        return subprocess.run(cmd + list(extra), cwd=cwd, capture_output=True, text=True, timeout=120)
+
+    def test_an_undefined_name_fails_under_the_repositorys_rules(self):
+        _name, cmd, cwd = self.step()
+        with tempfile.TemporaryDirectory() as tmp:
+            bad = Path(tmp) / "bad.py"
+            bad.write_text("def f():\n    return tlo_z\n")
+            r = self.run_step(cmd, cwd, "--config", str(ROOT / "ruff.toml"), str(bad))
+        self.assertNotEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("F821", r.stdout)
+
+    def test_a_python_without_ruff_fails_the_step(self):
+        import sys
+        _name, cmd, cwd = self.step()
+        # -S: no site-packages — the venv's ruff is not importable
+        r = self.run_step([sys.executable, "-S"] + cmd[1:], cwd)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("No module named ruff", r.stderr)
+
+
 class TestSuiteRunner(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -72,7 +102,9 @@ class TestSuiteRunner(unittest.TestCase):
 
     def test_offline_discovers_tests_and_contains_no_live_gate(self):
         commands = suite.offline_commands("all")
-        self.assertEqual(commands[0][1][-2:], ["-m", "pytest"])
+        # the Python lint first (issue #36, Codex R349/R350), then the backend pytest
+        self.assertEqual(commands[0][0], "ruff")
+        self.assertEqual(commands[1][1][-2:], ["-m", "pytest"])
         # backend, 5axis-model, audit-css (the scoped-CSS linter's pytest pins,
         # WP2 2026-09-20: scripts/ is outside the gateway's testpaths),
         # review-handshake (its pytest pins, 2461d04 2026-09-26),
@@ -87,7 +119,8 @@ class TestSuiteRunner(unittest.TestCase):
         # + install-probe (the install probe's offline guards, Codex R329)
         # + perf-matrix (the matrix's own verdict: an armed writer, a scenario
         #   that measured nothing fails — live checks 2026-11-11)
-        self.assertEqual(len(commands), 15)
+        # + ruff (the Python lint, first — issue #36, Codex R349/R350)
+        self.assertEqual(len(commands), 16)
         self.assertIn("audit-css", [name for name, _, _ in commands])
         self.assertIn("review-handshake", [name for name, _, _ in commands])
         self.assertIn("readback-target", [name for name, _, _ in commands])
@@ -97,6 +130,8 @@ class TestSuiteRunner(unittest.TestCase):
         self.assertIn("native-stage", [name for name, _, _ in commands])
         self.assertIn("install-probe", [name for name, _, _ in commands])
         self.assertIn("perf-matrix", [name for name, _, _ in commands])
+        self.assertEqual([c for c in commands if c[0] == "ruff"][0][1][1:],
+                         ["-m", "ruff", "check", "--no-cache"])
         self.assertNotIn("viewer-ab-report", [name for name, _, _ in commands])
         self.assertFalse(any("sim_parity" in str(command) for _, command, _ in commands))
 
