@@ -1,0 +1,56 @@
+baseline clean
+RED   module lcnc-gateway/bulk_pipeline.py
+RED   module lcnc-gateway/camera_broker.py
+RED   module lcnc-gateway/command_policy.py
+RED   module lcnc-gateway/fake_hal.py
+RED   module lcnc-gateway/fake_linuxcnc.py
+RED   module lcnc-gateway/features.py
+RED   module lcnc-gateway/freecad_import.py
+RED   module lcnc-gateway/fusion_import.py
+RED   module lcnc-gateway/gateway_util.py
+RED   module lcnc-gateway/gcode_canon.py
+RED   module lcnc-gateway/gcode_parse_worker.py
+RED   module lcnc-gateway/hal_bridge.py
+RED   module lcnc-gateway/hal_reader.py
+RED   module lcnc-gateway/hal_watchdog.py
+RED   module lcnc-gateway/json_types.py
+RED   module lcnc-gateway/lcnc_iface.py
+RED   module lcnc-gateway/lcnc_iface_check.py
+RED   module lcnc-gateway/lcnc_paths.py
+RED   module lcnc-gateway/lcnc_trace.py
+RED   module lcnc-gateway/macro_files.py
+RED   module lcnc-gateway/session_bind.py
+RED   module lcnc-gateway/settings_store.py
+RED   module lcnc-gateway/status_runtime.py
+RED   module lcnc-gateway/tool_files.py
+RED   module lcnc-gateway/tool_import.py
+RED   module lcnc-gateway/tool_refresh.py
+RED   module lcnc-gateway/tool_store.py
+RED   module lcnc-gateway/tool_table.py
+RED   module lcnc-gateway/toolsetter_rules.py
+RED   module lcnc-gateway/venv_check.py
+RED   module lcnc-gateway/writer_fixture.py
+RED   module lcnc-gateway/ws_fanout.py
+RED   module subroutines/surfacemap/compensation.py
+RED   strict lcnc-gateway/command_policy.py: unannotated function
+RED   strict lcnc-gateway/settings_store.py: unannotated function
+RED   strict lcnc-gateway/session_bind.py: unannotated function
+RED   strict lcnc-gateway/lcnc_paths.py: unannotated function
+RED   strict lcnc-gateway/lcnc_trace.py: unannotated function
+GREEN standard lcnc-gateway/status_runtime.py: unannotated function (expected GREEN)
+RED   writer_fixture: wrong return type
+RED   command_policy: new untyped function
+RED   interface: JOG_CONTINUOUS overload widened to int
+RED   interface: auto without line widened to int
+RED   stub: JOG_STOP overload widened to int
+RED   stub: auto with line widened to int
+GREEN  <-- UNEXPECTED fake: JOG_INCREMENT overload widened to int
+RED   interface: mode set grown by 0
+GREEN  <-- UNEXPECTED fake: mdi missing
+GREEN  <-- UNEXPECTED fake: home takes a str
+GREEN  <-- UNEXPECTED fake: wait_complete returns None
+GREEN  <-- UNEXPECTED fake: tool_in_spindle a str
+GREEN  <-- UNEXPECTED stub: mdi missing
+GREEN  <-- UNEXPECTED stub: estop a str
+GREEN  <-- UNEXPECTED interface: a call neither stub nor fake has
+46/54 as expected — SOME UNEXPECTED

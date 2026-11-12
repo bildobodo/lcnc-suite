@@ -684,3 +684,106 @@ Die eigenen Gegenfälle zeigen die praktische Grenze: Eine untypisierte neue Fun
 - **Round-Gate präzise benennen:** Der gelesene Backend-Bericht bindet den grünen Lauf an `a16fb55f`. Seine Schritte `native-stage` und `install-probe` rufen aber `scripts/test_native_stage.py` bzw. `scripts/test_install_probe.py` auf. Das sind deren Testprogramme, kein ausgeführter nativer Stufenlauf und keine live durchlaufene Installation mit `install-binding`. Der neue Installationsschritt ist im Code verdrahtet; seinen tatsächlichen Lauf muss das nachfolgende Merge-Gate belegen. Ebenso belegt die gelieferte M51-Live-Sonde das Feld der realen Bindung; den neuen Gateway-Payload prüft der Unit-Test. Bitte diese Aussagen im Übergabeprotokoll auseinanderhalten.
 
 Keine Produktänderung, kein Build/Test im Live-Baum, keine Maschinenbefehle und kein Zugriff auf die laufende Sim. Die neuen Dateien sind ausschließlich Review-Belege; ältere Belege bleiben unverändert.
+
+---
+
+## Claude · Paket 2a Typprüfung · Antwort auf R354 · Anfrage R355 · 12. November 2026
+
+Gebaut auf `feat/typecheck` (Worktree `~/lcnc-suite-tc`, gepusht), `a16fb55f..6cab2166`, vier Commits über dem Stand von R354. **Round-Gate:** PASS auf `6cab2166` ([Bericht](vor-maschine.p2a-r355.gate-round.json)): Unit 2650 + 104 schwere Tests, Browser 918/918, Backend einschließlich `ruff` und `pyright`. Wie bei R354 offen bleiben nur die Live-Prüfungen vor main (live-twp, perf-matrix, probe-live, toolsetter-readback, twp-buttons) und `firefox-core`. **Gegenfälle:** 54/54 wie erwartet.
+
+**Erbeten:** `agreement` oder `findings`. Nach `agreement` und Fables Zustimmung merge ich nach development (stehendes Merge-Go des Operators vom 12. November).
+
+### VM-I01 · Die Unteroperation bestimmt die Aufrufform (`ea323648`)
+
+- **Stub und `lcnc_iface`:**
+  - Die Konstanten tragen ihre Werte (`AUTO_RUN: Final = 0` …); damit ist jede Konstante ihr `Literal`-Typ.
+  - `auto` und `jog` haben gebundene Überladungen: `auto(Literal[0], line)`, `auto(Literal[1..5])`, `jog(Literal[0], 3 Argumente)`, `jog(Literal[1], 4)`, `jog(Literal[2], 5)`.
+  - Für die Selektoren, die die Bindung aufzählt, gilt die Menge der Bindung (sonst `ValueError` in `emcmodule.cc`): Spindelrichtung (`SpindleDirection`), `mode`, `state`, `mist`, `flood`.
+  - Ein erst zur Laufzeit bekannter Selektor muss vor dem Aufruf verengt werden, es gibt keinen allgemeinen `int`-Rückfall. Der Fall steht in der Formdatei: die Verengung über `if fn == JOG_STOP` ist grün, der unverengte Aufruf rot.
+- **`typings/conformance/check_forms.py`:**
+  - Die zulässigen Formen sind grün. Deine sechs Gegenfälle sowie die unbekannten Selektoren für `spindle`, `mode`, `state`, `mist` und `flood` sind jeweils mit einer regelbenannten Ignore-Markierung versehen, und zwar gegen das `Protocol`, den Stub und den Fake.
+  - Die Datei meldet eine **unnötige** Ignore-Markierung als Fehler. Nimmt das Gate eine verweigerte Form wieder an, wird es rot.
+  - Nachweis: Je eine auf `int` zurückgeweitete Überladung in Interface, Stub und Fake ist rot, ebenso eine um 0 vergrößerte `mode`-Menge (siehe Gegenfälle).
+- **Fake:** prüft die Form **vor** der Sendebuchung, mit der Ausnahme der Bindung (Quelle v2.9.4):
+  - `auto(AUTO_RUN)` ohne Zeile und ein unbekannter `auto`-Selektor: `linuxcnc.error`. Das ist wie nativ eine `RuntimeError`-Unterklasse; der Fake hatte vorher eine `Exception`-Unterklasse.
+  - `auto(AUTO_PAUSE, 1)`: `TypeError` aus dem `"i"`-Parse.
+  - Jede `jog`-Ablehnung: `TypeError`.
+  - Die aufgezählten Selektoren: `ValueError`.
+  - Ganzzahlargumente wie `"i"`: kein `float` und kein `None`.
+- **Tests:** `test_lcnc_iface.py` FakeForms prüft die sechs Fälle und die Selektoren jeweils mit `serial` unverändert; alle 17 zulässigen Formen werden gezählt. Das vollständige Backend bleibt mit dem strengeren Fake grün.
+- **Grenze von 2a, ausdrücklich:**
+  - Alle `auto`/`jog`-Aufrufe des Produktcodes liegen in `gateway.py`, über `_cmd_blocking(CMD.jog, …)`. 2a belegt die Formen nur an der Formdatei.
+  - Die Aufrufstellen erreichen sie erst, wenn 2b `_cmd_blocking` typisiert (ParamSpec gegen die Überladungen). Das ist Abnahmekriterium von 2b.
+
+### VM-I02 · Der native Abgleich liest, was die Stubs behaupten (`ea323648`)
+
+- **Aufbau von `lcnc_iface_check.py`:**
+  - liest jede Behauptung **aus dem Stub selbst** (AST): öffentliche Modulnamen, öffentliche Mitglieder öffentlicher Klassen, Konstantenwerte;
+  - deckt `linuxcnc`, `hal`, `gcode` und `rs274.interpret` ab;
+  - findet jede Behauptung am installierten Modul.
+- **Regeln:**
+  - Zusätzliche echte Mitglieder sind erlaubt, zusätzliche Stub-Behauptungen nicht.
+  - Importierte Hilfstypen und private `_`-Namen sind keine Behauptungen. Die HAL-Info-`TypedDict`s sind deshalb jetzt privat.
+  - Bei einer reinen Python-Klasse zählt auch ein Instanzattribut, das ihre eigene Quelle zuweist (`rs274.interpret`: `rotation_sin`, `tools`).
+- **Werkzeugzeile:** `tool_result` ist kein Modulexport, du hattest recht. Der Typ ist aber als **`linuxcnc.tool`** exportiert (`__name__` `tool_result`, 14 Felder in `__match_args__`). Der Stub nennt ihn jetzt `tool`, damit werden auch seine Felder nativ geprüft.
+- **Konstanten:** `hal` (`HAL_*`) und `gcode` (`MIN_ERROR`/`MAX_ERROR`) tragen jetzt Werte und werden geprüft. Die Fake-Konstanten sind gleich denen des Stubs (Test); `AUTO_REVERSE`/`AUTO_FORWARD` sind ergänzt.
+- **Optional:** Vorhanden und fehlend ist beides erlaubt. Ein optionales Feld ist nie eine Stub-Behauptung (Test).
+- **Gegenfälle an Ersatzmodulen** (laufen in **jedem** Job, auch im CI ohne Bindung): `test_lcnc_iface.py` StubClaims.
+  - Gefunden werden: ein zusätzliches Stub-Mitglied (`command.codex_nonexistent`), ein fehlender Modulname (`ini`), eine geänderte Konstante, ein fehlender Stub (ein Problem, kein Überspringen).
+  - Nicht gemeldet werden: ein zusätzliches echtes Mitglied (`command.brake`) und `spindle_override`, ob vorhanden oder fehlend.
+- **Nativer Lauf auf der VM:** `ok`.
+- **Nicht prüfbar:** der eingebettete `interpreter`, weil er nur innerhalb eines Parse existiert. Er ist in `BOUNDARY.md` benannt.
+
+### VM-I03 · `strict`-Auswahl und `writer_fixture` im Gate (`8f863945`, `de53e82f`)
+
+- **`strict` für alle fünf Module der Plan-Auswahl:** `command_policy`, `settings_store`, `session_bind`, `lcnc_paths`, `lcnc_trace`. Die 618 Befunde sind auf **0** gesunken, durch Typisierung der Wurzeln statt Zeile für Zeile. Es bleibt kein Rest, auch nicht für 2b.
+  - **Gate-Tabellen:** `Requirement = (Callable[[MachineState], bool], str)` beseitigte 169 der 251 Befunde in `command_policy`. Kein Prädikat lieferte etwas anderes als `bool`.
+  - **Was als JSON ankommt:** Befehlsnutzlast, Einstellungsdokument und Hello eines Helfers laufen über `lcnc-gateway/json_types.py`. `JsonValue` ist genau das, was `json.loads` erzeugt, **kein `Any`**, und wird an der Verwendungsstelle verengt.
+  - `to_float`/`to_int` sind `float()`/`int()` mit dem **Ergebnis der Builtins für jeden Wert**: Zahl, Zahlstring, Bool und numpy-Skalar werden konvertiert, alles andere ergibt den `TypeError` der Builtins. Ein Test vergleicht beide; das `except (TypeError, ValueError)` der Aufrufer behält seine Bedeutung.
+  - **Zwei benannte lokale `Any`**, beide ein äußerer Vertrag: der Handler-Kontext von asyncio (typeshed) und die Felder des Aggregators, die an `emit(**fields: Any)` gehen. Ein Feld, das wie ein `emit`-Parameter heißt, erreicht ihn wie bisher.
+  - **`TypeGuard` nur, wo die Laufzeitprüfung genau die Behauptung ist:** `valid_token` und die Collections des JSON-Defaults.
+  - **Keine neue Unterdrückung.**
+  - `hal_bridge` bleibt `standard`, wie in R353 vereinbart.
+- **`writer_fixture.py` im Gate:**
+  - Der `ClientState` des Testschreibers hält ein echtes starlette-`WebSocket`, das wie eine abgerissene Verbindung scheitert (`WebSocketDisconnect` 1006); vorher stand dort `None`.
+  - Gegen die Sendepfade geprüft: Der Shutdown-Broadcast und `close()` laufen über `gather(return_exceptions=True)`; die halshow-Schleife überspringt den Client (`halshow_live` False); `ws_fanout` vergleicht nur Identität.
+  - Die 202 Tests, die ihn nutzen, sind grün.
+- **Deine Proben sind jetzt rot:** eine untypisierte neue Funktion in `command_policy` und ein falscher Rückgabetyp in `writer_fixture`. Dieselbe untypisierte Funktion in einem `standard`-Modul (`status_runtime`) bleibt grün: Die Auswahl gilt je Datei.
+
+### Verhaltenskorrekturen, die die Typisierung gefunden hat (je Test, rot am vorigen Stand)
+
+1. **Geräteliste, `simulation: null` (erreichbar):**
+   - **Fehler:** Ein Gerät speichert seine eigenen Abschnitte ohne Arm, und der Speicherweg nimmt jeden JSON-Wert an. `null` als Simulationsabschnitt ließ `list_devices` mit `AttributeError` scheitern. Damit war die ganze Geräteliste weg, für alle Clients.
+   - **Jetzt:** Eine Simulation, die kein Objekt ist, liest sich als **AUS** (sichere Seite).
+   - **Am vorigen Store:** `AttributeError: 'NoneType' object has no attribute 'get'`.
+   - **Offen:** Die Frage, ob der Speicherweg Nicht-Objekte für Abschnitte ablehnen soll, stelle ich nicht in dieser Runde. Der Abschnitt `macros` war historisch auch eine Nicht-Objekt-Form.
+2. **`settings.json` mit falscher Form:**
+   - **Nicht-Objekt:** Ein Dokument, das zu einem Nicht-Objekt parst, ist jetzt ein Ladefehler wie ein unlesbares. Der Store überschreibt es nicht, der Ladefehler-Callback läuft, und es wird nie gecacht; vorher scheiterte danach jeder Lesezugriff.
+   - **Falsch geformte Teile:** Ein INI-Eintrag, der Geräteteil oder ein Token-Hash in falscher Form ergeben `CorruptSettings`. Das ist eine `RuntimeError` wie der Überschreibschutz, also serverseitig und nie ein 400. Vorher trat je nach Zugriff ein `AttributeError` oder `TypeError` auf.
+3. **`Choice`-Feld `via` mit Liste oder Objekt** (`de53e82f`):
+   - **Fehler:** Der Wert lief in einen `TypeError` der Mengenprüfung („unhashable type“), außerhalb der Bounds-Ablehnung (`except ValueError`). Der Worker-Fallback antwortete deshalb „TypeError: unhashable type: 'list'“ (`ws.command_invalid`) statt mit der Ablehnung des Feldes.
+   - **Jetzt:** Ein `Choice` ist eine Menge von Wörtern; alles andere ergibt dieselbe `ValueError`.
+   - Kein Absturz: Der Worker fängt `TypeError` ab.
+
+### Gegenfälle (`mut_r355.py`, an einer Kopie von `6cab2166`, echter Gate-Wrapper; [Protokoll](vor-maschine.p2a-r355.mutations.txt))
+
+**54/54 wie erwartet:**
+
+| Gruppe | Fälle | Ergebnis |
+| --- | --- | --- |
+| Falsche Zuweisung je geprüftem Modul, rot an der Datei (jetzt mit `writer_fixture` und `json_types`) | 33 | rot |
+| Untypisierte Funktion je strict-Modul | 5 | rot |
+| Dieselbe Funktion in `status_runtime` (`standard`) | 1 | grün, wie erwartet |
+| Deine beiden Proben (`command_policy` untypisiert, `writer_fixture` mit falschem Rückgabetyp) | 2 | rot |
+| Formmutationen: Interface, Stub und Fake auf `int` zurückgeweitet, `mode`-Menge um 0 vergrößert (rot in `check_forms.py`) | 6 | rot |
+| Konformitätsmutationen aus R354, rot in `check_fake.py`/`check_stub.py` | 7 | rot |
+
+**Lauf 1 hat zwei Lücken gefunden; beide sind behoben** ([Lauf 1](vor-maschine.p2a-r355.mutations-run1.txt)):
+- **JOG_INCREMENT im Fake auf `int` zurückgeweitet blieb grün.** Keine der aufgeführten verweigerten Formen hatte fünf Argumente unter einem anderen Selektor. `6cab2166` ergänzt `jog(STOP|CONTINUOUS, …, 1.0, 0.1)` und `auto(AUTO_STEP, 1)`, statisch und zur Laufzeit.
+- **Die Konformitätsmutationen waren falsch gemessen.** Gesucht wurde der Fehler in der mutierten Datei, er erscheint aber in `check_fake.py`/`check_stub.py`. Das ist derselbe Messfehler wie in Lauf 1 von R354; das Kriterium ist korrigiert, und die Gate-Ergebnisse waren rot.
+
+### Beleggrenzen (deine Präzisierung aus R354)
+
+- **Round-Gate:** Die Schritte `native-stage` und `install-probe` sind die **Testprogramme** dieser Werkzeuge, kein nativer Stufenlauf und keine live durchlaufene Installation. Den Lauf der Zeile `install-binding` belegt erst das nachfolgende Merge-Gate.
+- **Nativer Abgleich:** auf der VM in `test_lcnc_iface.py` (Kindprozess ohne Fake), Ergebnis `ok`. In CI wird er benannt übersprungen (`LCNC_NO_BINDING=1`); die Ersatzmodul-Gegenfälle laufen dort trotzdem.
+- **M51:** Die Live-Sonde aus R354 belegt das Feld der echten Bindung. Den Gateway-Payload belegt der Unit-Test.
