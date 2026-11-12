@@ -160,3 +160,55 @@ Zunächst die kleinen reinen Module aufnehmen; `gateway_util.py` trotz reiner Hi
 - **Aufräumen begrenzen:** F1/F4/F5 zuerst am heutigen Stand reproduzieren. Beim Mock die bereits abgenommenen vollständigen Status-/Connect-Frame-Reset-Wächter aus R264 berücksichtigen; einen alten Lückentext nicht automatisch zum neuen Umbau machen. #28/#31 anhand der heutigen tatsächlichen Sende-/Antwortwege schließen, nicht allein wegen vorhandener Helfernamen. Unbestätigte alte Punkte als solche benennen.
 
 Bitte in der Antwort nur VM349-01/02 festziehen und die entschiedenen Fragen übernehmen. Die akzeptierte Reihenfolge, der kleine Ruff-Einstieg und der begrenzte Typprüfungsversuch brauchen keine neue Grundsatzentscheidung.
+
+---
+
+## Claude · Antwort auf R349 · Anfrage R350 · 12. November 2026
+
+VM349-01 und VM349-02 übernehme ich wie verlangt. Die entschiedenen Fragen gelten so. Paket 1 (ruff) beginne ich parallel zu dieser Runde, denn Reihenfolge und ruff-Einstieg brauchen keine neue Grundsatzentscheidung.
+
+### VM349-01 · Replay und Antast-Live auf die heutigen Aufträge
+
+- **Replay und Live-Lauf verwenden die Aufträge, die die UI heute sendet:**
+  - `probe_run {routine, vars}` (`App.vue`, `probe-click.spec.ts`: ausdrücklich kein MDI);
+  - `surface_scan_run.vars`;
+  - `set_params.sets.<Zweck>`.
+- **Datenmaps:** Die benannten Maps aus R251 werden auf diese Felder erweitert, die ersetzten Formen (`mdi` mit `O<probe_…> CALL`, `set_probe_vars.vars`) gestrichen. Weitere heutige Auftragsfelder und Worker-Rahmen gleiche ich am Prüfstand gegen den Bestand ab. Die geschlossene Feldprüfung und die sichtbaren Prüfgrenzen bleiben.
+- **Antast-Live-Fall:** Er läuft durch den **tatsächlichen `probe_run`-Handler**, mit gültiger Funktionsfreigabe (Probing an) und den Panelwerten, die das Replay belegt. Ein direkter MDI-Aufruf ersetzt diesen Nachweis nie.
+- **Gegenfall:** Ein auf MDI zurückgebauter Antasttreiber oder ein fehlender `probe_run` im passenden Replay fällt auf, auch wenn die Routine selbst korrekt fährt.
+- Die Ergebnis-, Rückgabe- und Sim-Zielverträge aus TS248-06 bleiben unverändert.
+
+### VM349-02 · SYS-CONN.S5 als Gateway-Unterpaket, zusammen mit #27
+
+- **Eigenes Unterpaket in Paket 3a**, gemeinsam mit #27, damit die Nutzlastgrenze nur einmal geändert wird.
+- **Ausgangspunkt:** eine Tabelle je betroffenem Befehl mit Pflichtfeld, gültiger Form, erlaubtem Standard und dessen Begründung. Die Inventur deiner 24 `finite_*`- und 9 `bool`-Stellen ist der Startpunkt, kein Ersetzungsauftrag.
+- **Behandlung der Werte:** Fehlend, `null`, falscher Typ und gültige `0`/`false` werden getrennt behandelt. Ausdrücklich sichere Standards bleiben nach ihrer benannten Regel, etwa `arm` ohne `armed` = entwaffnen; optionale Lauf- und MDI-Felder ebenso.
+- **Negative Wächter** am tatsächlichen Dispatch scheitern **vor jedem Controller-Schreiben**, eine vorbereitende Modusumschaltung eingeschlossen. Gültige Gegenfälle kommen weiterhin an.
+- **Konsistenz:** Clientformen, Schema, Handler, Mock und Inventar ziehen im selben Commit mit. Keine Live-Fahrten.
+
+### Übernommene Entscheidungen
+
+- **Q349-1 (Operator: „Zuordnung umsetzen, unklare Fälle sperren“):**
+  - Home **und** Unhome je Achse über die eindeutig deklarierte Achse→Joint-Zuordnung. Bei unbekannter Zuordnung oder mehreren Joints je Achse ist der Achsknopf gesperrt und nennt den Grund. Home All bleibt bei seinem Vertrag.
+  - Die reinen Zuordnungsdaten werden von der Aktionszulassung getrennt: Home hängt weder am Schalter für Jog vor dem Referenzieren noch an der Jog-Geschwindigkeit.
+  - `homed_joints` und die Wahl zwischen Home und Unhome lesen den zugeordneten Joint statt `a.index`.
+  - Abnahme: vertauschte Joint-Reihenfolge, unvollständige oder unbekannte Deklaration, Gantry, unveränderte ausgelieferte Profile, je Zustand und gesendetem Ziel. Dazu `twp_buttons_check.py` live.
+  - Nur tatsächlich geänderte Drahtfelder ziehen in Schema, Client und Mock mit.
+- **Q349-2:** Replay → Antast-Live → Firefox-Kern. Firefox-Kern samt Pin und Referenzsatz bleibt vor main offen, bis er gelaufen ist. Die BiDi-Touch-Grenze und die echte Maschinenbrowser-Abnahme bleiben.
+- **Q349-3:** pyright `basic`.
+  - Im Versuch festgehalten werden Version, Python-Ziel, Importumgebung, Befehlszeile und geprüfte Dateien. „Kein Stub“ und „falscher Importpfad“ sind verschiedene Befunde.
+  - Höchstens 3 einzeln benannte Unterdrückungen je Modul. Keine Modul- oder Regelabschaltung, kein breites `Any` oder `cast`, kein global ignorierter Import. Ungeprüfte Bindungsgrenzen werden benannt.
+  - Vor Aufnahme eines Moduls zeige ich einen Gegenfall zur Typzusage. `gateway_util.py` gilt nicht wegen seines Namens als klein.
+
+### Weitere Hinweise, übernommen
+
+- **ruff-Grenze:** `examples/sim_config` wird aufgenommen, weil wir diese Dateien ausliefern. Gezielte, begründete Ausnahmen je Datei:
+  - `remap.py`: F403/F405 für den LinuxCNC-üblichen Sternimport aus `stdglue`;
+  - `toplevel.py`: F401 für den Einstiegsimport von `remap`.
+  Die übrigen Treffer werden einzeln behoben. Gate und lokal nutzen dieselbe Wurzelkonfiguration, Zielversion und Dateimenge. Der Gatebericht nennt die Grenze und die Nichtabdeckung von B023/B905/B904/B008/B007; es gibt keine Zusage „bugbear vollständig“.
+- **ruff im Gate:** vor den teuren Backend-Tests. Ein fehlendes Binary und ein eingefügter F821 machen den Pfad rot. `ruff.toml` löst die Backend-Auswahl aus. Zählungen: 11 → 12 Backend-Schritte, 15 → 16 im kombinierten Offline-Aufruf.
+- **`tlo_z`:** Ich nenne zuerst die Aufrufer und die Dokumentation von `compare`. Bleibt es, sichere ich einen konstanten Offset **und** einen Offsetwechsel im Programm gegen unabhängige Erwartungen ab, offline mit alten Captures und mit den Kinematikfamilien benannt. Entfällt es, nenne ich den verbleibenden Paritätsnachweis. Den ersten Offset wieder einzusetzen, kommt nicht in Frage.
+- **Inventar:** Die TWP-Belege werden mit dem konkreten Fall und dem Lauf vom 11. November verknüpft. „Datei hat den Titel“ und „im aktuellen Gate bestanden“ bleiben getrennte Aussagen. Die drei nativen Fälle baue ich im bestehenden Orchestrator, mit realem HAL- und LinuxCNC-Rücklesen und geprüftem Rückweg.
+- **Aufräumen:** F1, F4 und F5 zuerst am heutigen Stand reproduzieren, beim Mock mit den Reset-Wächtern aus R264. #28 und #31 schließe ich anhand der tatsächlichen Sende- und Antwortwege. Unbestätigte alte Punkte werden als solche benannt.
+
+**Erbeten:** `agreement` zum präzisierten Plan.
