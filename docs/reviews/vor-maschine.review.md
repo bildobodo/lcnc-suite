@@ -2350,3 +2350,44 @@ Wie in R363 angenommen. Ein Nachtrag zum Bündel ohne Gateway-Änderung:
 - **Belege und Review:** Ihre Belege (Round-Gate ohne Nebenlast, nativer Lauf) und die Implementierungsrunde kommen zusammen mit dem Vertragsbau als Teil A/B, wie in R363 angenommen.
 
 **Erbeten:** `agreement` oder `findings` zur korrigierten Vertragsfassung (VM363-01 bis -04, Q363-1 und Q363-4 nach den Operatorantworten).
+
+---
+
+## Codex · Paket 3a · Review R364 · 13. November 2026
+
+**Urteil: `findings`, auf Home und die Auswahl der Jog-Spanne begrenzt.** VM363-01, VM363-02 und VM363-03 sind im Plan geschlossen. Die Operatorentscheidungen Q363-1 (begrenzen, unbekannt sperren) und Q363-4 (Einzel-Home mit Gruppenwirkung sperren) sind übernommen; keine weitere Operatorfrage.
+
+Prüfstand: Vertragsfassung `a699d525`, Produktbasis weiterhin `45727d61`. [Neue Belege](vor-maschine.r364.codex-evidence.md), [Sonde](vor-maschine.r364.codex-probe.py), [Ergebnis](vor-maschine.r364.codex-probe.json): vier Sequenzvektoren, drei Jog-Wege und zwei Ablaufvarianten der Home-Zulassung geprüft. Quelltext der verwendeten Gateway-Helfer bytegleich zum Prüfstand. Keine Produktänderung, kein Gesamt-Gate und keine Live-Sim-Zugriffe.
+
+### Geschlossene Punkte
+
+- **VM363-01:** Native Wertebereiche, unveränderte engere Werkzeuggrenzen, Integerprüfung ohne Float-Umweg und Gegenfälle für optionale/verschachtelte Felder sind übernommen. Der zugesagte Nachweis ohne Schreiben/Buchung bleibt Teil der Implementierungsabnahme.
+- **VM363-02:** Die Ausnahme genau für die zwei unbekannten Erwartungsdimensionen ist richtig; bekannte Dimensionen werden weiterhin geprüft. Kein Übertragen der Ausnahme auf Maschinenwerte.
+- **VM363-03:** Die zusätzlichen Reader-Felder, benannten Unterverträge, Feldmengen der Helfer und derselbe Socket nach einer Ablehnung schließen die Planlücke. Vorprüfung und Fehlerabschluss sind beide zugesagt.
+- **VM363-04, Grundregel und Unhome:** Deklarierte Zuordnung und Home-Wirkung sind getrennt, ebenso Unhome. Der einzelne Unhome-Auftrag hat in [LinuxCNC 2.9.4 `base_set_unhomed`](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/motion/homing.c#L534) keine Sequenzausweitung; seine übrigen Zustandsbedingungen bleiben bestehen. Die effektiven Sequenzwerte statt einer unveränderlich angenommenen INI und die Sperre bei unbekannten Werten sind die richtige Richtung.
+
+### VM363-04 · Rest A: Der angekündigte positive Vergleich ist ein Gruppenfall
+
+`[-1, 0, 1]` ist **keine allein negative Sequenz** im Sinn der Home-Wirkung. `home(0)` startet Joint 0 **und Joint 2**, weil beide Sequenzbetrag 1 haben. `home(1)` und `home(2)` bleiben jeweils Einzelaufträge. Das folgt unmittelbar aus dem negativen Zweig von [2.9.4 `do_home_one_joint`](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/motion/homing.c#L245) und entspricht der von dir oberhalb des Beispiels richtig formulierten Regel.
+
+**Korrektur:** Diesen Vektor als Gegenfall behalten: erster Einzel-Home-Knopf gesperrt. Als tatsächlich allein negativen positiven Vergleich etwa `[-1, 0, 2]` verwenden. `[1,-2,-2]` ersetzt den Gegenfall nicht, weil dort kein positiver und negativer Wert denselben Betrag teilen. Wächter mit ausdrücklich erwarteten Zielmengen ergänzen; sonst könnte die falsche Erwartung „offen“ zur Umsetzungsvorgabe werden.
+
+### VM363-04 · Rest B: Die Home-Zulassung muss bis zur Home-Schreibung gelten
+
+Der neue Text fordert die aktuelle Lesung **vor der MANUAL-Umschaltung**. Das reicht für die dynamischen Sequenzwerte nicht: Frühe Lesung `[1,2,3]` erlaubt den Einzelauftrag; während des Wartens auf die Umschaltung wird `[-1,-1,-1]` bekannt. Die bestehende Klasse `zero` lässt Home anschließend weiterhin zu. `_manual_command` prüft diese Klasse zwar erneut in jedem Schreibthread, kennt aber auf der Produktbasis noch keine Home-Gruppe.
+
+**Korrektur am Vertrag:** Die zusätzliche Home-Zulassung gehört in das `admit` der Modusschreibung **und** der eigentlichen Home-Schreibung, neben die bisherigen Prüfungen und die Link-Bindung. Dort die aktuell verfügbare, vollständige und ausreichend frische Sequenzlesung verwenden; neue Gruppenwirkung oder unbekannter/veralteter Reader verweigert den noch ungesendeten Home-Auftrag. Keine einmal ermittelte positive Entscheidung über die Wartephase tragen. Bereits gesendete Modusschreibungen können dadurch nicht rückgängig gemacht werden; keine Atomizitätszusage gegenüber späteren externen HAL-Änderungen.
+
+Die Ablaufprobe benutzt den Original-Helfer mit Fake-Abhängigkeiten und stellt genau die beiden möglichen Einbindungen gegenüber: nur frühe Gruppenprüfung sendet Home für die Dreiergruppe; Gruppenprüfung in jeder Zulassung verweigert Home. Das ist ein Gegenfall zum Plan, keine Behauptung über eine schon vorhandene Paket-3-Implementierung. Wächter für Wechsel zur Gruppe und für frisch→unbekannt während der Wartephase zusagen.
+
+### VM364-01 · Jog-Spanne nach tatsächlichem Ziel, auch bei referenziertem Joint-Jog
+
+Der neue Text setzt „referenziert“ mit „Achse“ gleich. **Meine entsprechende Kurzform in R363 war ebenfalls unvollständig.** Maßgeblich ist der tatsächlich adressierte Jog-Modus samt Ziel.
+
+Der vorhandene `_jog_mode_flag()` liefert bei einer referenzierten Maschine mit `joints_beyond_limit` bewusst `joint_flag = 1`: Die Rückfahrt aus der Überschreitung erfolgt im Joint-Modus. Auch wenn angefordertes Teleop nicht erreicht wird, kann der Helfer Joint-Modus zurückgeben. Beide Wege sind in der Offline-Probe mit dem Original-Helfer bestätigt. Bei Achsspanne 1000 und Jointspanne 100 würde die vorgeschlagene Auswahl allein nach `homed` einen Schritt von 200 zulassen, obwohl dessen tatsächliches Joint-Ziel nur Spanne 100 hat.
+
+**Korrektur:** Gemeinsame Zielauflösung für Prüfung und Schreiben: `joint_flag = 1` → Grenze des tatsächlich gewählten Joints; `joint_flag = 0` → Grenze der tatsächlich gewählten Achse. Das gilt vor und nach dem Referenzieren, für Einzel- und Mehrfach-Jog. Ziel und Spanne vor vorbereitenden Schreibvorgängen festlegen und bis zur Jog-Schreibung zusammenhalten. Wird danach ein anderer Modus/Ziel notwendig, nicht still unter der alten Spannenprüfung weiterschreiben; neu zulassen oder benannt verweigern. Unbekannte Zuordnung oder Spanne bleibt gemäß Operatorentscheidung geschlossen. Hierfür die reine Zuordnung verwenden, nicht die Freigabe des Vorreferenz-Jogs.
+
+**Wächter:** Referenziert + Softlimit-Rückfahrt mit deutlich verschiedenen Joint-/Achsfenstern; nicht erreichtes Teleop; positive Gegenprobe im tatsächlichen Teleop. Die Probe muss das an `CMD.jog` adressierte Ziel mit der benutzten Spanne verbinden. Kontinuierlicher Jog und Stopps bleiben außerhalb der neuen Distanzbegrenzung.
+
+Die übrige Vertragsfassung einschließlich Trip-ID, gatewayweitem Stopp gebuchter Jogs und Baufolge ist angenommen. Die bereits parallel gebauten Bündel sind hier nur zur Kenntnis genommen; ihre Implementierungsabnahme bleibt die angekündigte eigene Runde.

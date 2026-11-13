@@ -1,0 +1,240 @@
+{
+  "product_base": "45727d61",
+  "plan": "a699d525",
+  "source_sha256": "0c33e1e1bc3b31a89dbfdaa73a4503f70be7ce9d1d9fe7aa09d94d697ae432ac",
+  "live_access": false,
+  "groups_from_native_rule": [
+    {
+      "sequence": [
+        -1,
+        -1,
+        -1
+      ],
+      "targets_per_request": [
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          0,
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "sequence": [
+        1,
+        -2,
+        -2
+      ],
+      "targets_per_request": [
+        [
+          0
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "sequence": [
+        -1,
+        0,
+        1
+      ],
+      "targets_per_request": [
+        [
+          0,
+          2
+        ],
+        [
+          1
+        ],
+        [
+          2
+        ]
+      ]
+    },
+    {
+      "sequence": [
+        -1,
+        0,
+        2
+      ],
+      "targets_per_request": [
+        [
+          0
+        ],
+        [
+          1
+        ],
+        [
+          2
+        ]
+      ]
+    }
+  ],
+  "jog_actual_targets": [
+    {
+      "homed": true,
+      "motion_mode_before": 3,
+      "beyond": [],
+      "teleop_succeeds": true,
+      "joint_flag": 0,
+      "target": 0,
+      "writes": [],
+      "distance": 200,
+      "plan_homed_axis_span": 1000,
+      "actual_target_span": 1000,
+      "plan_admits_distance": true,
+      "actual_target_admits_distance": true
+    },
+    {
+      "homed": true,
+      "motion_mode_before": 1,
+      "beyond": [
+        0
+      ],
+      "teleop_succeeds": true,
+      "joint_flag": 1,
+      "target": 0,
+      "writes": [],
+      "distance": 200,
+      "plan_homed_axis_span": 1000,
+      "actual_target_span": 100,
+      "plan_admits_distance": true,
+      "actual_target_admits_distance": false
+    },
+    {
+      "homed": true,
+      "motion_mode_before": 1,
+      "beyond": [],
+      "teleop_succeeds": false,
+      "joint_flag": 1,
+      "target": 0,
+      "writes": [
+        [
+          "teleop_enable",
+          1
+        ]
+      ],
+      "distance": 200,
+      "plan_homed_axis_span": 1000,
+      "actual_target_span": 100,
+      "plan_admits_distance": true,
+      "actual_target_admits_distance": false
+    }
+  ],
+  "home_await_boundary": [
+    {
+      "recheck_group_at_each_write": false,
+      "events": [
+        [
+          "admit",
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        [
+          "admit",
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        [
+          "mode",
+          1
+        ],
+        [
+          "sequence_changed",
+          [
+            -1,
+            -1,
+            -1
+          ]
+        ],
+        [
+          "admit",
+          [
+            -1,
+            -1,
+            -1
+          ]
+        ],
+        [
+          "home_written",
+          0,
+          [
+            0,
+            1,
+            2
+          ]
+        ]
+      ],
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "recheck_group_at_each_write": true,
+      "events": [
+        [
+          "admit",
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        [
+          "admit",
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        [
+          "mode",
+          1
+        ],
+        [
+          "sequence_changed",
+          [
+            -1,
+            -1,
+            -1
+          ]
+        ],
+        [
+          "admit",
+          [
+            -1,
+            -1,
+            -1
+          ]
+        ]
+      ],
+      "reply": {
+        "ok": false,
+        "error": "Home group changed"
+      }
+    }
+  ]
+}
