@@ -523,13 +523,21 @@ def _link_is_current(candidate: Link) -> bool:
 
 
 def _publish_link(stat: linuxcnc.stat, cmd: linuxcnc.command, err: linuxcnc.error_channel,
-                  pid: Optional[int]) -> Link:
-    """Publish a prepared, checked channel set as THE connection — one step."""
+                  pid: Optional[int]) -> Optional[Link]:
+    """Publish a prepared, checked channel set as THE connection — one step.
+    None, nothing published, once the bound instance ENDED: the end and the
+    publish decide under the same lock (Codex R359 VM-I07 — a connect that
+    began before the end must not publish after it)."""
     global _link, _link_seq
+    new: Optional[Link] = None
     with _link_lock:
-        _link_seq += 1
-        new = Link(stat=stat, cmd=cmd, err=err, pid=pid, seq=_link_seq)
-        _link = new
+        if not _instance_ended:
+            _link_seq += 1
+            new = Link(stat=stat, cmd=cmd, err=err, pid=pid, seq=_link_seq)
+            _link = new
+    if new is None:
+        _trace.emit("lcnc.link_publish_refused", level="warn", reason="the bound instance ended", pid=pid)
+        return None
     _trace.emit("lcnc.link_published", seq=new.seq, pid=pid)
     return new
 
@@ -2476,16 +2484,19 @@ def _on_instance_ended(where: str) -> None:
     """The bound LinuxCNC instance died or was replaced. Never re-bind:
     disconnect HAL and end the process (the launcher then returns to
     LinuxCNC's Cleanup; a standalone gateway just exits)."""
-    global _instance_ended
-    if _instance_ended:
-        return
-    _instance_ended = True
+    global _instance_ended, _link
+    with _link_lock:   # the end and every publish decide under one lock (VM-I07)
+        if _instance_ended:
+            return
+        _instance_ended = True
+        old, _link = _link, None
+    if old is not None:
+        _trace.emit("lcnc.link_revoked", level="warn", seq=old.seq, reason="the bound instance ended")
     inst_pid, inst_start = _bound_instance if _bound_instance is not None else (None, None)
     print(f"[SAFETY] bound LinuxCNC instance pid={inst_pid} ended ({where}) — "
           f"this gateway will not re-bind; shutting down", flush=True)
     _trace.emit("session.instance_ended", level="error", where=where,
                 instance_pid=inst_pid, instance_start=inst_start)
-    _revoke_link("the bound instance ended")
     _hal_disconnect()
     _request_process_shutdown("linuxcnc instance ended")
 
@@ -2523,6 +2534,10 @@ def _try_connect_lcnc() -> bool:
     _joint_jog_cache = None              # package E: re-read on reconnect
     _status_runtime.invalidate_var_file_path()  # re-resolve on reconnect (P2.1)
     if not _nml_connectable():
+        # LinuxCNC's NML server is not reachable: the Link this attempt found
+        # is no connection any more (Codex R359 VM-I07)
+        if found is not None and _link is found:
+            _revoke_link("the NML server is not reachable")
         return False
     try:
         stat = linuxcnc.stat()
@@ -2552,8 +2567,9 @@ def _try_connect_lcnc() -> bool:
                         old=list(_bound_instance), new=list(inst) if inst else None)
             print(f"[SAFETY] re-binding to a new LinuxCNC instance {inst} (WEBUI_ALLOW_REBIND)", flush=True)
             _bound_instance = inst
+        if _publish_link(stat, cmd, err, pid) is None:
+            return False   # the bound instance ended meanwhile: nothing published
         _lcnc_pid = pid
-        _publish_link(stat, cmd, err, pid)
         _ever_connected = True
         # Re-arm warn-once flags so a STAT field that disappears across a
         # reconnect produces a fresh log line instead of being suppressed.
@@ -3820,8 +3836,23 @@ async def set_mode(mode: TaskMode, force: bool = False,
     call sites checked theirs — a handler then issued its MDI into the
     wrong mode and reported ok (2026-09-04)."""
     c = conn if conn is not None else link()   # the Link the switch is written on
+
+    def read(name: str) -> Any:
+        """A field of THIS Link's status (package 2b, Codex R359 VM-I05): the
+        poll and the reading belong to one channel set."""
+        try:
+            return getattr(c.stat, name)
+        except AttributeError:
+            return None
+
+    def still_owned() -> None:
+        """A Link replaced meanwhile confirms nothing and books nothing."""
+        if not _link_is_current(c):
+            raise _WriteRefused(LINK_CHANGED)
+
     c.stat.poll()
-    if safe_get("task_mode", None) == mode and not force:
+    if read("task_mode") == mode and not force:
+        still_owned()
         if mode in (linuxcnc.MODE_MDI, linuxcnc.MODE_AUTO):
             _active_jogs.clear()   # task cannot be in MDI/AUTO with a jog active
         return
@@ -3840,14 +3871,15 @@ async def set_mode(mode: TaskMode, force: bool = False,
     # mode actually took; a stat without task_mode (the test binding) cannot
     # be verified and is not treated as a failure.
     c.stat.poll()
-    actual = safe_get("task_mode", None)
+    still_owned()
+    actual = read("task_mode")
     if actual is not None and actual != mode:
         # Name only what is SEEN (Codex R62): a jog the gateway started, the
         # machine off, joints unhomed for MDI/AUTO — "a jog is still active"
         # was said for every ignored switch, an unhomed machine included.
-        task_state = safe_get("task_state", None)
-        homed_flags = safe_get("homed", None)
-        joints = safe_get("joints", None)
+        task_state = read("task_state")
+        homed_flags = read("homed")
+        joints = read("joints")
         homed = (all(homed_flags[:joints]) if homed_flags is not None and isinstance(joints, int) else None)
         jogging = bool(_active_jogs)
         _trace.emit("task.mode_switch_ignored", level="warn", mode=mode, actual=actual,
@@ -7164,6 +7196,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
 
     except PermissionError as pe:
         return {"ok": False, "error": str(pe)}
+    except NotConnected as nc:   # its own words ("LinuxCNC not connected" / LINK_CHANGED)
+        return {"ok": False, "error": str(nc)}
     except Exception as e:
         return {"ok": False, "error": f"{type(e).__name__}: {e}"}
 

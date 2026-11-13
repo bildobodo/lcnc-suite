@@ -363,5 +363,203 @@ class OneConnectAtATime(unittest.TestCase):
         self.assertIs(gateway._link, published["link"])
 
 
+class _ModeStat:
+    """A status whose task mode the test sets; poll() runs a hook once."""
+
+    def __init__(self, task_mode):
+        self.task_mode = task_mode
+        self.interp_state = linuxcnc.INTERP_IDLE
+        self.on_poll = None
+
+    def poll(self):
+        if self.on_poll is not None:
+            hook, self.on_poll = self.on_poll, None
+            hook()
+
+
+class _ModeCmd:
+    """A command channel: mode() moves its status only when `obeys`; mdi
+    writes are booked; a hook may run after the Nth write."""
+
+    def __init__(self, stat, name, events, obeys=True, serial=40):
+        self.stat, self.name, self.events, self.obeys, self.serial = stat, name, events, obeys, serial
+        self.after_write = None
+
+    def _wrote(self, what):
+        self.serial += 1
+        self.events.append((self.name, what, self.serial))
+        if self.after_write is not None:
+            hook, self.after_write = self.after_write, None
+            hook()
+
+    def mode(self, m, /):
+        if self.obeys:
+            self.stat.task_mode = m
+        self._wrote(("mode", m))
+
+    def mdi(self, text, /):
+        self._wrote(("mdi", text))
+
+    def wait_complete(self, timeout=5.0, /):
+        return linuxcnc.RCS_DONE
+
+
+class SetModeReadsItsOwnLink(unittest.TestCase):
+    """set_mode polls AND reads its own Link (Codex R359 VM-I05): a Link
+    replaced meanwhile confirms nothing and books nothing."""
+
+    def setUp(self):
+        self.events = []
+        saved = dict(gateway._active_jogs)
+        self.addCleanup(lambda: (gateway._active_jogs.clear(), gateway._active_jogs.update(saved)))
+        gateway._active_jogs.clear()
+
+    def run_set_mode(self):
+        async def go():
+            async with gateway._get_cmd_lock():
+                await gateway.set_mode(linuxcnc.MODE_MDI)
+        asyncio.run(go())
+
+    def test_an_ignored_switch_on_the_old_link_is_not_confirmed_by_the_new(self):
+        old_stat = _ModeStat(linuxcnc.MODE_MANUAL)
+        old = _ModeCmd(old_stat, "old", self.events, obeys=False)     # keeps MANUAL
+        connect_fake(self, stat=old_stat, cmd=old)
+        new_stat = _ModeStat(linuxcnc.MODE_MDI)
+        old.after_write = lambda: swap_connection(FakeConnection(stat=new_stat, cmd=_ModeCmd(new_stat, "new", self.events)))
+        with self.assertRaises(PermissionError) as cm:
+            self.run_set_mode()
+        self.assertEqual(str(cm.exception), gateway.LINK_CHANGED)
+
+    def test_the_ignored_switch_without_a_replacement_is_still_refused(self):
+        old_stat = _ModeStat(linuxcnc.MODE_MANUAL)
+        connect_fake(self, stat=old_stat, cmd=_ModeCmd(old_stat, "old", self.events, obeys=False))
+        with self.assertRaises(ValueError) as cm:
+            self.run_set_mode()
+        self.assertIn("MANUAL", str(cm.exception))
+
+    def test_a_replacement_before_the_early_return_books_nothing(self):
+        stat = _ModeStat(linuxcnc.MODE_MDI)       # already in MDI: the early return
+        connect_fake(self, stat=stat, cmd=_ModeCmd(stat, "old", self.events))
+        gateway._active_jogs[0] = (0, 0)
+        # the new Link shows MDI too: before VM-I05 its status confirmed the
+        # early return for the OLD Link and cleared that Link's jogs
+        stat.on_poll = lambda: swap_connection(FakeConnection(stat=_ModeStat(linuxcnc.MODE_MDI)))
+        with self.assertRaises(PermissionError):
+            self.run_set_mode()
+        self.assertEqual(gateway._active_jogs, {0: (0, 0)}, "a replaced Link must not clear this one's jogs")
+
+    def test_the_switch_on_an_unchanged_link_goes_through(self):
+        stat = _ModeStat(linuxcnc.MODE_MANUAL)
+        connect_fake(self, stat=stat, cmd=_ModeCmd(stat, "old", self.events))
+        self.run_set_mode()
+        self.assertEqual(stat.task_mode, linuxcnc.MODE_MDI)
+
+
+class MultiStepCommandsKeepTheirLink(unittest.TestCase):
+    """A command of several writes keeps its Link (Codex R359 VM-I06):
+    after a reconnect the rest is refused, what went out stays booked."""
+
+    def setUp(self):
+        self.events = []
+        for name, value in (("_start_guard", None), ("reject_if_auto_running", None)):
+            orig = getattr(gateway, name)
+            self.addCleanup(setattr, gateway, name, orig)
+
+        async def no_guard(armed):
+            return None
+        gateway._start_guard = no_guard
+        gateway.reject_if_auto_running = lambda: None
+        gateway._shared_status = None   # (handlers called directly below)
+
+    def test_mode_then_mdi(self):
+        old_stat = _ModeStat(linuxcnc.MODE_MANUAL)
+        old = _ModeCmd(old_stat, "old", self.events)
+        connect_fake(self, stat=old_stat, cmd=old)
+        new_stat = _ModeStat(linuxcnc.MODE_MDI)
+        old.after_write = lambda: swap_connection(FakeConnection(stat=new_stat, cmd=_ModeCmd(new_stat, "new", self.events)))
+
+        async def go():
+            async with gateway._get_cmd_lock():
+                pinned = gateway._command_link.set(gateway._link)
+                try:
+                    await gateway.set_mode(linuxcnc.MODE_MDI)
+                    await gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.mdi, "G0 X1"), wait=None)
+                finally:
+                    gateway._command_link.reset(pinned)
+        with self.assertRaises((PermissionError, gateway.NotConnected)):
+            asyncio.run(go())
+        self.assertEqual([e[1] for e in self.events], [("mode", linuxcnc.MODE_MDI)], "the MDI text went to the new Link")
+
+    def test_m6_then_g43_through_the_real_handler(self):
+        stat = _ModeStat(linuxcnc.MODE_MDI)
+        old = _ModeCmd(stat, "old", self.events)
+        connect_fake(self, stat=stat, cmd=old)
+        new_stat = _ModeStat(linuxcnc.MODE_MDI)
+        old.after_write = lambda: swap_connection(FakeConnection(stat=new_stat, cmd=_ModeCmd(new_stat, "new", self.events, serial=80)))
+
+        async def go():
+            async with gateway._get_cmd_lock():
+                pinned = gateway._command_link.set(gateway._link)
+                try:
+                    return await gateway._cmds_tool_table("tool_change", {"cmd": "tool_change", "tool_number": 7}, True, None)
+                finally:
+                    gateway._command_link.reset(pinned)
+        with self.assertRaises(gateway.NotConnected) as cm:
+            asyncio.run(go())
+        self.assertEqual(str(cm.exception), gateway.LINK_CHANGED)
+        self.assertEqual(self.events, [("old", ("mdi", "T7 M6"), 41)], "G43 H7 went to the new Link")
+
+    def test_m6_then_g43_without_a_reconnect_both_on_one_link(self):
+        stat = _ModeStat(linuxcnc.MODE_MDI)
+        connect_fake(self, stat=stat, cmd=_ModeCmd(stat, "old", self.events))
+
+        async def go():
+            async with gateway._get_cmd_lock():
+                pinned = gateway._command_link.set(gateway._link)
+                try:
+                    return await gateway._cmds_tool_table("tool_change", {"cmd": "tool_change", "tool_number": 7}, True, None)
+                finally:
+                    gateway._command_link.reset(pinned)
+        self.assertEqual(asyncio.run(go()), {"ok": True})
+        self.assertEqual(self.events, [("old", ("mdi", "T7 M6"), 41), ("old", ("mdi", "G43 H7"), 42)])
+
+
+class ConnectLifecycle(unittest.TestCase):
+    """Codex R359 VM-I07: a failed pre-check revokes the Link it found; a
+    connect that began before the bound instance ended never publishes after."""
+
+    def setUp(self):
+        from link_fixture import restore_after
+        restore_after(self)
+        for name in ("_instance_ended", "_bound_instance", "_hal_disconnect", "_request_process_shutdown",
+                     "_nml_connectable"):
+            self.addCleanup(setattr, gateway, name, getattr(gateway, name))
+        gateway._hal_disconnect = lambda: None
+        gateway._request_process_shutdown = lambda reason: None
+
+    def test_a_failed_precheck_revokes_the_link_it_found(self):
+        connect_fake(self)
+        gateway._nml_connectable = lambda: False
+        self.assertFalse(gateway.try_connect_lcnc())
+        self.assertIsNone(gateway._link)
+
+    def test_an_instance_end_during_the_connect_publishes_nothing(self):
+        connect_fake(self)
+        gateway._instance_ended = False
+        gateway._bound_instance = (424242, 1)
+        gateway._nml_connectable = lambda: True
+        real_stat = gateway.linuxcnc.stat
+
+        class _EndsDuringConnect(real_stat):
+            def poll(self):
+                gateway._on_instance_ended("test: the instance ended during the connect")
+        with mock.patch.object(gateway.linuxcnc, "stat", _EndsDuringConnect), \
+                mock.patch.object(gateway._session_bind, "instance_for_pid", lambda pid: (424242, 1)), \
+                mock.patch.object(gateway, "_get_lcnc_pid", lambda: 424242):
+            self.assertFalse(gateway.try_connect_lcnc())
+        self.assertTrue(gateway._instance_ended)
+        self.assertIsNone(gateway._link)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -614,6 +614,21 @@ named exception, an older page's `mdi` with `vars` included (R336).
 - **One connect at a time.** `try_connect_lcnc` runs under `_connect_lock`
   (the WS endpoint and the poller may both connect, each in a thread); a
   failing attempt revokes only the Link it found when it began.
+- **The connect's ends** (Codex R359 VM-I07): a failed NML pre-check revokes
+  the Link the attempt found (LinuxCNC is not reachable); the bound
+  instance's end and every publish decide under `_link_lock` — `_on_instance_ended`
+  sets `_instance_ended` and revokes in one step, `_publish_link` refuses
+  (`lcnc.link_publish_refused`) once it is set: a connect that began before
+  the end never publishes after it.
+- **The mode switch reads its own Link** (VM-I05): `set_mode` polls and reads
+  `task_mode` (and the diagnosis) on the Link it writes to; before the early
+  return ("already there", which clears the jog booking) and before it
+  confirms a switch, a Link replaced meanwhile is `LINK_CHANGED` — a new
+  Link's status never confirms the old Link's switch.
+- **Multi-step commands** (VM-I06): the pin per command (above) makes every
+  later step of a command — the MDI after its mode switch, `G43` after `M6` —
+  `LINK_CHANGED` once the Link changed; what went out stays booked. The
+  dispatch answers `NotConnected` in its own words.
 - **`op()`.** `op(linuxcnc.command.jog, linuxcnc.JOG_STOP, jf, axis)` — the
   binding CLASS's method (its run-time `__name__` is the command; the
   Protocol's overloads have none) and its positional arguments; a name
