@@ -85,11 +85,17 @@ ZERO_TWINS = [("jog_cont", "vel", 0.0), ("jog_incr", "vel", 0.0), ("spindle_forw
               ("tool_change", "tool_number", 0), ("set_kins_mode", "mode", 0), ("auto_run", "line", 0)]
 
 
+#: the required fields the schema names (46 at 3543b20d) — a floor, so a
+#: schema without `required` (the base before package 3a) cannot pass the
+#: table probes vacuously (the red check found exactly that)
+MIN_REQUIRED = 40
+
+
 def _required_fields():
-    for cmd, schema in cp.COMMAND_SCHEMA.items():
-        for field, spec in schema.items():
-            if getattr(spec, "required", False):
-                yield cmd, field, spec
+    found = [(cmd, field, spec) for cmd, schema in cp.COMMAND_SCHEMA.items()
+             for field, spec in schema.items() if getattr(spec, "required", False)]
+    assert len(found) >= MIN_REQUIRED, f"only {len(found)} required fields — the probes would pass vacuously"
+    return found
 
 
 class TestTheSchemaTable(unittest.TestCase):
