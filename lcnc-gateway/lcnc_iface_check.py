@@ -48,7 +48,14 @@ STUBS: dict[str, str] = {
     "linuxcnc": "linuxcnc.pyi",
     "hal": "hal.pyi",
     "gcode": "gcode.pyi",
+    "rs274": "rs274/__init__.pyi",
     "rs274.interpret": "rs274/interpret.pyi",
+}
+#: the stubs this check cannot reach, each with its reason — every other .pyi
+#: under typings/ must be in STUBS (test_lcnc_iface.py holds the two lists to
+#: the directory: a new stub is never silently unchecked)
+UNCHECKABLE: dict[str, str] = {
+    "interpreter.pyi": "the embedded interpreter exists only inside a parse (gcode_canon)",
 }
 
 
@@ -88,10 +95,38 @@ def _is_docstring_or_ellipsis(node: ast.stmt) -> bool:
             and (isinstance(node.value.value, str) or node.value.value is Ellipsis))
 
 
-def _decorators(fn: ast.FunctionDef, allowed: frozenset[str]) -> str | None:
-    """None when every decorator is an allowed bare name, else the first other."""
+#: where a name the reader TRUSTS must come from: a builtin is unbound in the
+#: stub (no import, no definition of that name), `overload` from typing
+_TRUSTED_FROM = {"property": None, "overload": "typing"}
+
+
+def _bindings(tree: ast.Module) -> dict[str, str]:
+    """Every module-level name the stub binds itself: an import's name → the
+    module it comes from, a class / function / assignment → "<local>"."""
+    out: dict[str, str] = {}
+    for node in tree.body:
+        if isinstance(node, ast.ImportFrom):
+            for a in node.names:
+                out[a.asname or a.name] = node.module or ""
+        elif isinstance(node, ast.Import):
+            for a in node.names:
+                out[(a.asname or a.name).split(".")[0]] = a.name
+        elif isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            out[node.name] = "<local>"
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            out[node.target.id] = "<local>"
+        elif isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    out[target.id] = "<local>"
+    return out
+
+
+def _decorators(fn: ast.FunctionDef, allowed: frozenset[str], bound: dict[str, str]) -> str | None:
+    """None when every decorator is an allowed bare name bound where the
+    reader trusts it (_TRUSTED_FROM), else the first other."""
     for d in fn.decorator_list:
-        if not (isinstance(d, ast.Name) and d.id in allowed):
+        if not (isinstance(d, ast.Name) and d.id in allowed and bound.get(d.id) == _TRUSTED_FROM[d.id]):
             return ast.unparse(d)
     return None
 
@@ -101,13 +136,15 @@ def _decorators(fn: ast.FunctionDef, allowed: frozenset[str]) -> str | None:
 #:     — helpers, no claims; an `as` alias or `*` RE-EXPORTS in a stub and is
 #:     refused), a class, a function (@overload only), `NAME: T` or
 #:     `NAME: Final = <literal>` (a number, a negative number, a string, a bool);
-#:   class:  the docstring or `...`, a method (@property / @overload only),
-#:     `name: T` (no value); a PUBLIC class's bases are builtin types only (a
-#:     claim, checked natively) — any other base could carry members the
-#:     reader never sees;
+#:   class:  the docstring or `...`, a method (@property / @overload only —
+#:     `property` unbound in the stub, `overload` from typing), `name: T` (no
+#:     value); a PUBLIC class's bases are builtin types only and BOUND to the
+#:     builtin (no import or definition of that name in the stub — a claim,
+#:     checked natively) — any other base could carry members the reader
+#:     never sees;
 #:   a dunder (`__init__`, `__getitem__` …) is a member like any other — a
-#:     claim; __getattr__ / __getattribute__ (module or class) make EVERY name
-#:     check and are refused;
+#:     claim; __getattr__ / __getattribute__ (module or class, as a method or
+#:     an annotation) make EVERY name check and are refused;
 #:   a private `_` class at module level is a helper: its body is not read;
 #:     any OTHER private name (a `_member` of a public class, a module-level
 #:     `_function` or `_NAME`) is refused — never silently no claim.
@@ -118,11 +155,13 @@ def stub_claims(text: str) -> Claims:
     """The public names, class members, constant values and builtin bases a
     stub declares — from a narrow, enforced set of forms."""
     out = Claims()
+    tree = ast.parse(text)
+    bound = _bindings(tree)
 
     def refuse(node: ast.stmt, what: str) -> None:
         out.unsupported.append(f"line {node.lineno}: {what} — not a stub form the check reads")
 
-    for node in ast.parse(text).body:
+    for node in tree.body:
         if _is_docstring_or_ellipsis(node):
             continue
         if isinstance(node, (ast.Import, ast.ImportFrom)):
@@ -139,8 +178,12 @@ def stub_claims(text: str) -> Claims:
             out.names.add(node.name)
             bases: list[str] = []
             for b in node.bases:
-                if isinstance(b, ast.Name) and isinstance(getattr(builtins, b.id, None), type):
+                if (isinstance(b, ast.Name) and isinstance(getattr(builtins, b.id, None), type)
+                        and b.id not in bound):
                     bases.append(b.id)
+                elif isinstance(b, ast.Name) and b.id in bound:
+                    refuse(node, f"class {node.name}: base {b.id} is bound in this stub "
+                                 f"({bound[b.id]}), not the builtin — only a builtin base is read")
                 else:
                     refuse(node, f"class {node.name}: base {ast.unparse(b)} — only a builtin base is read")
             out.bases[node.name] = bases
@@ -149,7 +192,7 @@ def stub_claims(text: str) -> Claims:
                 if _is_docstring_or_ellipsis(item):
                     continue
                 if isinstance(item, ast.FunctionDef):
-                    other = _decorators(item, frozenset({"property", "overload"}))
+                    other = _decorators(item, frozenset({"property", "overload"}), bound)
                     if item.name in _RESOLVERS:
                         refuse(item, f"{node.name}.{item.name} makes every member check")
                     elif other is not None:
@@ -160,7 +203,9 @@ def stub_claims(text: str) -> Claims:
                         refuse(item, f"{node.name}.{item.name}: a private member of a public class")
                 elif (isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name)
                       and item.value is None):
-                    if _public(item.target.id) or _dunder(item.target.id):
+                    if item.target.id in _RESOLVERS:
+                        refuse(item, f"{node.name}.{item.target.id} makes every member check")
+                    elif _public(item.target.id) or _dunder(item.target.id):
                         members.add(item.target.id)
                     else:
                         refuse(item, f"{node.name}.{item.target.id}: a private member of a public class")
@@ -168,7 +213,7 @@ def stub_claims(text: str) -> Claims:
                     refuse(item, f"class {node.name}: {type(item).__name__} {ast.unparse(item)[:60]!r}")
             out.members[node.name] = members
         elif isinstance(node, ast.FunctionDef):
-            other = _decorators(node, frozenset({"overload"}))
+            other = _decorators(node, frozenset({"overload"}), bound)
             if node.name in _RESOLVERS:
                 refuse(node, f"module {node.name} makes every name check")
             elif other is not None:
@@ -179,6 +224,9 @@ def stub_claims(text: str) -> Claims:
                 refuse(node, f"{node.name}: a private module-level function")
         elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
             name = node.target.id
+            if name in _RESOLVERS:
+                refuse(node, f"module {name} makes every name check")
+                continue
             if not (_public(name) or _dunder(name)):
                 refuse(node, f"{name}: a private module-level name")
                 continue

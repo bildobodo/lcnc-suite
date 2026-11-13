@@ -300,6 +300,11 @@ class StubClaims(unittest.TestCase):
             delattr(lc.stat, name)
         self.assertEqual(check.problems(self.modules, self.stubs), [])
 
+    def test_every_stub_is_checked_or_named(self):
+        on_disk = {p.relative_to(check.TYPINGS).as_posix() for p in check.TYPINGS.rglob("*.pyi")}
+        self.assertEqual(on_disk, set(check.STUBS.values()) | set(check.UNCHECKABLE))
+        self.assertEqual(set(check.STUBS.values()) & set(check.UNCHECKABLE), set())
+
     def test_the_real_stubs_use_only_the_forms_the_reader_takes(self):
         for modname, text in self.stubs.items():
             self.assertEqual(check.stub_claims(text).unsupported, [], modname)
@@ -368,6 +373,29 @@ class StubClaims(unittest.TestCase):
                            "def _helper() -> int: ...\ndef strerror(err: int, /) -> str: ...")
         self.assertTrue(any("_helper: a private module-level function" in f for f in found), found)
         self.assertIn("__getitem__", check.stub_claims(self.stubs["hal"]).members["component"])
+
+    def test_a_base_with_a_builtin_name_bound_in_the_stub_is_refused(self):   # Codex R357 A
+        found = self._with("linuxcnc", "from typing import Final, Literal, overload",
+                           "from typing import Final, Literal, overload\nfrom codex_helper import RuntimeError")
+        self.assertTrue(any("base RuntimeError is bound in this stub (codex_helper)" in f for f in found), found)
+        found = self._with("linuxcnc", "class error(RuntimeError)",
+                           "class RuntimeError(Exception): ...\nclass error(RuntimeError)")
+        self.assertTrue(any("base RuntimeError is bound in this stub (<local>)" in f for f in found), found)
+
+    def test_an_annotated_resolver_is_refused(self):                   # Codex R357 B
+        found = self._with("linuxcnc", "    def abort(self) -> None: ...",
+                           "    __getattribute__: Any\n    def abort(self) -> None: ...")
+        self.assertTrue(any("command.__getattribute__ makes every member check" in f for f in found), found)
+        found = self._with("hal", "def get_value(", "__getattr__: Any\ndef get_value(")
+        self.assertTrue(any("module __getattr__ makes every name check" in f for f in found), found)
+
+    def test_a_decorator_bound_elsewhere_is_refused(self):
+        found = self._with("linuxcnc", "from typing import Final, Literal, overload",
+                           "from typing import Final, Literal\nfrom codex_helper import overload")
+        self.assertTrue(any("decorator @overload" in f for f in found), found)
+        found = self._with("linuxcnc", "from typing import Final, Literal, overload",
+                           "from typing import Final, Literal, overload\nfrom codex_helper import property")
+        self.assertTrue(any("decorator @property" in f for f in found), found)
 
     def test_a_claimed_builtin_base_is_checked(self):
         self.modules["linuxcnc"].error = type("error", (Exception,), {})

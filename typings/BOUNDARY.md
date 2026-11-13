@@ -99,18 +99,25 @@ a PUBLIC class's bases are builtin types only, each a claim
 (`error(RuntimeError)`, checked natively). Any other form — a class
 assignment, an `if`, a computed constant, another decorator, a re-exporting
 import, a non-builtin base (its members would go unread), `__getattr__` /
-`__getattribute__` (they make every name check), a private `_member` of a
+`__getattribute__` in any form, method or annotation (they make every name
+check), a base or a trusted decorator (`property`, `overload`) whose name the
+stub binds itself — imported or defined — instead of the builtin / typing's,
+a private `_member` of a
 public class or a private module-level function or name — is a PROBLEM with
 its line, never silently no claim; the real stubs are held to the set in
 every job. A dunder (`__init__`, `hal.component.__getitem__`) is a member
 like any other, so a claim. Only a private module-level CLASS is a helper
 whose body is not read (the HAL info-row TypedDicts). The claims:
-every public module name, every public member of a public class, every
-constant value — for `linuxcnc`, `hal`, `gcode` and `rs274.interpret` (R354
-VM-I02). Each claim must hold on the installed module; the module may have
+every public module name, every public or dunder member of a public class,
+every constant value, every builtin base — for `linuxcnc`, `hal`, `gcode` and `rs274.interpret` (R354
+VM-I02) and `rs274` (its package stub). Every `.pyi` under typings/ is in the
+check or named as uncheckable with its reason (`UNCHECKABLE`: the embedded
+`interpreter`) — a test holds both lists to the directory, so a new stub is
+never silently unchecked. Each claim must hold on the installed module; the module may have
 more (the binding's other commands), a stub may not claim more than the
-module has. Imported helper types and private `_` names are the stub's own
-helpers, never claims (the HAL info-row TypedDicts). The tool-table row type
+module has. Plain imports and private module-level classes are the stub's
+own helpers, never claims (the HAL info-row TypedDicts); any other private
+name is refused (above). The tool-table row type
 is the binding's export `linuxcnc.tool` (named tool_result), so its fields
 are checked like any class. A pure-Python class's member may also be an
 instance attribute its own source assigns (`rs274.interpret`).
