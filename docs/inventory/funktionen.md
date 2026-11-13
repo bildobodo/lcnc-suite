@@ -13,15 +13,13 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Offene Aussagen
 
-7 Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.
+5 Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.
 
 | Funktion | Aussage | Art | gilt für | Lücke |
 |---|---|---|---|---|
 | Antast-Auslösung simulieren (nur Sim) | In der Sim kommt der Puls am HAL-Pin probe-in an. | Wirkung | alle | Nativ: der HAL-Puls an probe-in in der Sim nicht belegt |
 | Referenzieren und Referenz aufheben | Home je Achse sendet den Joint seiner Achse. | Daten | 3axis_xyz, 5axis_xyzac, 6axis_twp_xyzabc | Browser: sendet die Achsposition als Joint (SetupStrip a.index) und liest homed_joints an derselben Stelle — richtig, wo Joint = Achsposition (alle ausgelieferten Konfigurationen), falsch, wo nicht (Gantry, eigene Kinematik); braucht eine Achse→Joint-Zuordnung vom Gateway |
 | Kühlmittel: Flood und Mist | Auf echtem LinuxCNC schalten Flood und Mist ihre HAL-Ausgänge. | Wirkung | offen | nativ (native Stufe) |
-| Antippen (Touch-off) und Nullen je Achse | Plane: das Remap schreibt den angetippten Wert in G54. | Wirkung | Plane | kein Test liest G54 nach dem Remap; nativ (scripts/twp_touchoff_plane_check.py, Laufbindung offen) |
-| Geschwenkte Ebene (TWP): erfassen, aufheben, neu ausrichten | Erfassen, Ausrichten und Aufheben ändern Ebene und Nullpunkt, wie die Anzeige es sagt. | Wirkung | Machine, Plane | nativ: scripts/twp_capture_check.py und twp_reorient_check.py (Laufbindung offen) |
 | Werkzeug anlegen, bearbeiten, löschen, umnummerieren | LinuxCNC übernimmt die geschriebene Tabelle. | Wirkung | alle | Nativ: das Neuladen in LinuxCNC nicht belegt |
 | Verbindung: Anmeldung, Herzschlag, Wiederverbindung, Auslieferung | Ein Befehl, dessen Wert die Handlung bestimmt, wird ohne diesen Wert abgelehnt: home ohne joint, set_optional_stop / set_block_delete ohne Wahrheitswert, ein Override ohne scale, spindle_forward / spindle_reverse ohne speed; wo ein Standard die sichere Richtung ist (arm ohne armed → entwaffnen), ist er ausdrücklich so entschieden. | Ablehnung | alle | Gateway: heute führt es diese Befehle mit einem Standard aus (home ohne joint referenziert alle, "false" schaltet M01 ein, ein Override ohne scale setzt 100 %); 24 finite_*(msg.get(…, Standard)) und 9 bool(msg.get(…)) sind je Befehl zu sichten, bevor ein Standard entfällt — ein eigenes Gateway-Paket (F-COMP S3 war der erste Fall); der WebUI-Client sendet jedes Feld (commandShapes.test.ts) |
 
@@ -192,10 +190,10 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
-| **Antippen (Touch-off) und Nullen je Achse** `F-TOUCHOFF` | Leiste › Setup | 9 | 4 | 3 | 1 |
+| **Antippen (Touch-off) und Nullen je Achse** `F-TOUCHOFF` | Leiste › Setup | 9 | 4 | 4 | 0 |
 | **Nullpunkte: aktives System wählen (G54 …), Tabelle bearbeiten und löschen** `F-WCS` | Leiste › Setup, Tab „Offsets“ | 12 | 3 | 3 | 0 |
 | **Kinematik-Modus umschalten: Machine, TCP, Plane** `F-KINS` | Leiste › Jog | 3 | 1 | 1 | 0 |
-| **Geschwenkte Ebene (TWP): erfassen, aufheben, neu ausrichten** `F-TWP` | Leiste › Setup | 31 | 3 | 2 | 1 |
+| **Geschwenkte Ebene (TWP): erfassen, aufheben, neu ausrichten** `F-TWP` | Leiste › Setup | 31 | 3 | 3 | 0 |
 
 ### Antippen (Touch-off) und Nullen je Achse
 
@@ -206,7 +204,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S3 (Daten):** Plane: lineare Achsen gehen über G59 an das Remap, nur mit aktiver Ebene; Drehachsen gesperrt (Route und Anzeige). — gilt für: Plane
   - Beleg: gateway: `test_command_policy.py` — test_plane_mode_linear_routes_to_remap; gateway: `test_command_policy.py` — test_plane_mode_needs_active_plane_and_g59; gateway: `test_command_policy.py` — test_plane_mode_rotary_touchoff_refused; browser: `touchoff.spec.ts` — Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero XYZ stays open
 - **S3b (Wirkung):** Plane: das Remap schreibt den angetippten Wert in G54. — gilt für: Plane
-  - Beleg: **offen** — Lücke: kein Test liest G54 nach dem Remap; nativ (scripts/twp_touchoff_plane_check.py, Laufbindung offen)
+  - Beleg: script: `twp_touchoff_plane_check.py` — {label}: G54 moved by the touch-off amount (je: A=0, A=35) (live, nicht im Gate); script: `twp_touchoff_plane_check.py` — {label}: G54 moved ALONG the plane normal (table frame) (je: A=0, A=35) (live, nicht im Gate)
 
 ### Nullpunkte: aktives System wählen (G54 …), Tabelle bearbeiten und löschen
 
@@ -229,7 +227,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S2 (Ablehnung):** Plane läuft nur mit seiner Ebene und G59. — gilt für: Plane
   - Beleg: gateway: `test_command_policy.py` — test_plane_kins_with_its_plane_and_g59_runs; gateway: `test_command_policy.py` — test_plane_kins_without_a_plane_refuses; gateway: `test_command_policy.py` — test_plane_kins_with_g54_selected_refuses_the_post_m2_state; gateway: `test_button_gates.py` — test_unknown_current_fixture_cannot_reuse_old_g59
 - **S3 (Wirkung):** Erfassen, Ausrichten und Aufheben ändern Ebene und Nullpunkt, wie die Anzeige es sagt. — gilt für: Machine, Plane
-  - Beleg: **offen** — Lücke: nativ: scripts/twp_capture_check.py und twp_reorient_check.py (Laufbindung offen)
+  - Beleg: script: `twp_capture_check.py` — {label}: gateway capture ok (je: A=35) (live, nicht im Gate); script: `twp_capture_check.py` — {label}: plane normal == tool axis (je: A=35) (live, nicht im Gate); script: `twp_capture_check.py` — {label}: DRO ~0 at the tip (je: A=35) (live, nicht im Gate); script: `twp_reorient_check.py` — tool normal to plane again (live, nicht im Gate); script: `twp_reorient_check.py` — stored plane unchanged by the re-orient (live, nicht im Gate); script: `twp_capture_check.py` — G: G69 recovers — undefined, G54, identity kins, machine ON (live, nicht im Gate)
 
 ## Programm
 
