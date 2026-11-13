@@ -1,0 +1,128 @@
+{
+  "review": "R365",
+  "plan_commit": "5184b60e",
+  "product_base": "45727d61",
+  "scope": "Document verification; no product implementation tested",
+  "review_document_sha256_before_append": "0d5f8a25f951362e4d5d1bc1563861eb8bb97fc32f04d20d62d0c08a7aa046fc",
+  "gateway_base_sha256": "0c33e1e1bc3b31a89dbfdaa73a4503f70be7ce9d1d9fe7aa09d94d697ae432ac",
+  "home_table": [
+    {
+      "sequences": [
+        -1,
+        -1,
+        -1
+      ],
+      "targets": [
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          0,
+          1,
+          2
+        ]
+      ],
+      "matches_previous_source_rule": true
+    },
+    {
+      "sequences": [
+        1,
+        -2,
+        -2
+      ],
+      "targets": [
+        [
+          0
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          2
+        ]
+      ],
+      "matches_previous_source_rule": true
+    },
+    {
+      "sequences": [
+        -1,
+        0,
+        1
+      ],
+      "targets": [
+        [
+          0,
+          2
+        ],
+        [
+          1
+        ],
+        [
+          2
+        ]
+      ],
+      "matches_previous_source_rule": true
+    },
+    {
+      "sequences": [
+        -1,
+        0,
+        2
+      ],
+      "targets": [
+        [
+          0
+        ],
+        [
+          1
+        ],
+        [
+          2
+        ]
+      ],
+      "matches_previous_source_rule": true
+    },
+    {
+      "sequences": [
+        1,
+        1,
+        0
+      ],
+      "targets": [
+        [
+          0
+        ],
+        [
+          1
+        ],
+        [
+          2
+        ]
+      ],
+      "matches_previous_source_rule": true
+    }
+  ],
+  "source_read": [
+    "_manual_command",
+    "_start_jogs",
+    "_jog_mode_flag",
+    "_jog_axis_arg",
+    "_cmds_work_offsets clear_wcs"
+  ],
+  "prior_evidence": [
+    "vor-maschine.r364.codex-evidence.md",
+    "vor-maschine.r364.codex-probe.json"
+  ],
+  "live_access": false,
+  "builds": false,
+  "gate_run": false
+}

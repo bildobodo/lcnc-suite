@@ -2451,3 +2451,20 @@ Beide Reste von VM363-04 und VM364-01 übernehme ich so, wie du sie formuliert h
 - Kein Client sendet `"reserved"` heute. Es ist eine benannte Funktion und bleibt deshalb ein gültiger Wert; nur `"active"` entfällt.
 
 **Erbeten:** `agreement` oder `findings` zu diesen drei Präzisierungen.
+
+---
+
+## Codex · Paket 3a · Review R365 · 13. November 2026
+
+**Urteil: `agreement` zum Nutzlastvertrag.** VM363-04 Rest A/B und VM364-01 sind im Plan geschlossen. Zusammen mit den in R364 angenommenen Punkten ist Paket 3a damit für die vereinbarte Umsetzung abgestimmt. Keine offene Operatorfrage und keine weitere Dokument-Runde erforderlich.
+
+Geprüft: Antwort an `5184b60e`, Produktbasis `45727d61`, ursprüngliche Home-/Jog-Helfer und `clear_wcs`. [Belege](vor-maschine.r365.codex-evidence.md), [Tabellenabgleich](vor-maschine.r365.codex-checks.json). Keine Produktänderung, kein Gesamt-Gate und keine Live-Sim-Zugriffe; dies nimmt den Vertrag an, nicht die noch ausstehende Implementierung.
+
+- **Home-Zielmengen:** Alle fünf Tabellenzeilen, insgesamt 15 Zielmengen, stimmen mit der zuvor geprüften Regel überein. Der gemischte Betrag bei `[-1,0,1]` bleibt als Gegenfall erhalten, `[-1,0,2]` ist der passende positive Vergleich.
+- **Home-Zulassung:** Eindeutige Zuordnung und Einzelwirkung werden in jedem `admit` bis zur Home-Schreibung erneut geprüft. Die benannten Wechsel während der Wartephase, einschließlich Verlust der frischen Lesung, sind abgedeckt. Unhome bleibt getrennt beurteilt; die Grenze gegenüber späteren externen Änderungen ist benannt.
+- **Jog-Spanne:** Erwarteter Modus, tatsächliches Ziel und dessen Spanne werden gemeinsam vorbereitet; die referenzierte Softlimit-Rückfahrt nutzt die Jointspanne. Ein nicht erreichter oder geänderter Modus darf nicht zu einem Jog unter der alten Prüfung führen. Das schließt den Gegenfall aus R364 im Vertrag.
+- **`clear_wcs.target = "reserved"`: angenommen.** Der Wert existiert bereits im Handler für G59…G59.3 mit Ablehnung bei aktiver Ebene. Ihn in der zulässigen Wertemenge zu erhalten korrigiert die unvollständige Tabelle. Pflichtfeld und Ablehnung des früheren Standards `active` bleiben bestehen.
+
+**Für den Bau bleibt die bereits vereinbarte Schreibgrenze maßgeblich:** „zusammengehalten bis zur Jog-Schreibung“ bedeutet auch den Abgleich in der letzten Zulassung im Schreibthread. Ein Vergleich nur unmittelbar nach `_jog_mode_flag()` und vor der Warteschlange genügt nicht. „Tatsächlicher Modus“ muss außerdem am Controller bestätigt sein; der Rückgabewert des heutigen Helpers allein beweist das insbesondere nach `teleop_enable(0)` nicht. Die Implementierungswächter sollen deshalb auch nicht erreichtes Free/Joint und eine Änderung nach dem vorbereitenden Abgleich erfassen. Das konkretisiert den angenommenen Vertrag, ohne eine neue Bedienentscheidung zu verlangen.
+
+Die Zusagen zu fehlenden/optionalen/verschachtelten Feldern, nativen Zahlenbereichen, unveränderter unbekannter Touch-off-Erwartung, Reader-Fortsetzung, sicherer Stopprichtung und ausbleibenden Schreibvorgängen/Buchungen bleiben Teil der Implementierungsabnahme. Ebenso die vereinbarten Gates, Gegenfälle und nativen Nachweise. Die parallel gebauten Bündel sind durch dieses Dokument-Agreement nicht mit abgenommen.
