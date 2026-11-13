@@ -705,6 +705,101 @@ def goto_cases():
     return ("goto", step)
 
 
+
+#: package 3a (R350): the three statements with no native evidence
+IO_TOOL, IO_TOOL_DELTA = 3, 7.25        # a table tool no other case uses: edited, then put back
+IO_TRIP_AT = (300.0, 300.0, 0.0)        # G53, at the top: no plate, no workpiece under the tool
+IO_POST_S = 0.3                         # s after the reply in the trip's section: the reset's window
+#: (case id — literal: the inventory binds a native row by it, the command word, its HAL output)
+COOLANT_CASES = (("coolant-flood", "flood", "iocontrol.0.coolant-flood"),
+                 ("coolant-mist", "mist", "iocontrol.0.coolant-mist"))
+HAL_SETTLE_S = 2.0                      # s for a HAL output to follow its command
+
+
+def _hal_bit(ctx, pin):
+    """A bit pin as halcmd prints it — 1, 0, or None when unreadable."""
+    try:
+        return {"TRUE": 1, "FALSE": 0}.get(ctx["servo"].gate("getp", pin).strip())
+    except Exception:  # noqa: BLE001 — unread is None, the row says so
+        return None
+
+
+def _hal_until(ctx, pin, want):
+    """The pin once it reads `want`, or its last reading after HAL_SETTLE_S."""
+    end, v = time.monotonic() + HAL_SETTLE_S, _hal_bit(ctx, pin)
+    while v != want and time.monotonic() < end:
+        time.sleep(0.05)
+        v = _hal_bit(ctx, pin)
+    return v
+
+
+def _applied_z(c, tool):
+    """The length LinuxCNC applies for `tool` from ITS table (`G43 H<tool>`,
+    the status' tool_offset Z), then G49 again."""
+    _short(c, f"G43 H{tool}")
+    off = (c.status.get("tool_offset") or [None] * 3)[2]
+    _short(c, "G49")
+    return off
+
+
+def io_cases():
+    """F-SIMTRIP.S2b, F-COOLANT.S2, F-TOOLEDIT.S4b (package 3a, R350): what the
+    browser and gateway tests can only send, read back on the real task — the
+    trip's pulse in the servo samples of motion.probe-input, the coolant
+    outputs with halcmd, a saved tool length applied by `G43 H<n>` from
+    LinuxCNC's own table. Each with a counter case re-judging it."""
+    def step(ctx):
+        from test_support import servo as sv
+        c, rows = ctx["client"], ctx.setdefault("rows", [])
+        _servo_prep(c)
+        # Sim-Trip: one section with the trip, one without (the counter)
+        _to(c, *IO_TRIP_AT)
+        bits = {}
+        for case, trip in (("sim-trip", True), ("sim-trip.counter-silent", False)):
+            with _section(ctx, case) as box:
+                if trip:
+                    _when_free(c, "simulate_probe_trip")
+                time.sleep(IO_POST_S)
+            sec = box.get("section")
+            if sec is not None:
+                bits[case] = ([v[sv.PROBE_IN] if len(v) > sv.PROBE_IN else None for _, _, v in sec["samples"]],
+                              sec.get("problems") or ())
+            _servo_failed(box, rows, case)
+        trip_row = nc.eval_sim_trip("sim-trip", *bits["sim-trip"])
+        rows.append(trip_row)
+        rows.append(nc.counter("sim-trip.counter-silent", nc.eval_sim_trip("sim-trip", *bits["sim-trip.counter-silent"]),
+                               trip_row))
+        # the coolant outputs: each pin read in each phase, the OTHER pin too
+        for case, name, pin in COOLANT_CASES:
+            other = next(p for _, n, p in COOLANT_CASES if n != name)
+            before, other_before = _hal_bit(ctx, pin), _hal_bit(ctx, other)
+            _when_free(c, f"{name}_on")
+            on, other_on = _hal_until(ctx, pin, 1), _hal_bit(ctx, other)
+            _when_free(c, f"{name}_off")
+            off, other_off = _hal_until(ctx, pin, 0), _hal_bit(ctx, other)
+            row = nc.eval_coolant(case, pin, before, on, off)
+            rows.append(row)
+            rows.append(nc.counter(f"{case}.counter-other-pin",
+                                   nc.eval_coolant(case, other, other_before, other_on, other_off), row))
+        # the tool table: LinuxCNC applies what the save wrote
+        original = _tool_z(c, IO_TOOL)
+        if original is None:
+            raise Refused(f"T{IO_TOOL} is not in the copy's tool table")
+        written = round(original + IO_TOOL_DELTA, 6)
+        before = _applied_z(c, IO_TOOL)
+        _set_tool_length(c, IO_TOOL, written)
+        try:
+            after = _applied_z(c, IO_TOOL)
+        finally:
+            _set_tool_length(c, IO_TOOL, original)
+        row = nc.eval_tool_reload("tool-reload", IO_TOOL, written, before, after, original)
+        rows.append(row)
+        rows.append(nc.counter("tool-reload.counter-old-length",
+                               nc.eval_tool_reload("tool-reload", IO_TOOL, original, before, after, original), row))
+        return rows
+    return ("io", step)
+
+
 def plate_from_hal(texts: list[str]) -> dict:
     """The sim tool setter's PHYSICAL plate from the copy's HAL (`setp
     <comp>.plate-x/-y/-z`): the independent measure the probe and M600 are
@@ -2175,7 +2270,7 @@ def main(argv=None) -> int:
         steps = base + [latch_order(), latch_cases(a.variant)]
     else:
         steps = base + [home_cases(joints), jog_cases(joints), plateau_cases(), goto_cases(),
-                        probe_cases(), surface_cases(), m600_cases(), m6_hold_case(), ts_sync_cases(), rfl_cases(),
+                        io_cases(), probe_cases(), surface_cases(), m600_cases(), m6_hold_case(), ts_sync_cases(), rfl_cases(),
                         disconnect_cases(), clients_cases(), latch_cases()]
     with heavy_lock("native_run", wait=0):
         report = run(SystemHost(), steps, a.run_dir)

@@ -2267,10 +2267,13 @@ def test_the_halcmd_answers_are_read_as_printed():
     assert sv.signal_of(SHOW_PIN, "joint.0.vel-cmd") is None
     assert sv.thread_of(SHOW_THREAD) == {"period_ns": 1000000, "functions": ["motion-command-handler",
                                                                              "motion-controller", "sampler.0"]}
-    # the channels, the mark, then step 3's bits and the controller's period (u32)
-    assert sv.parse_line("12 1.5 2.5 -3.0 0.0 0.0 50.0 7 1 5 1 0 1 1000412\n") == \
-        (12, (1.5, 2.5, -3.0, 0.0, 0.0, 50.0, 7, 1, 5, 1, 0, 1, 1000412))
+    # the channels, the mark, then step 3's bits, the controller's period (u32)
+    # and package 3a's probe input
+    assert sv.parse_line("12 1.5 2.5 -3.0 0.0 0.0 50.0 7 1 5 1 0 1 1000412 0\n") == \
+        (12, (1.5, 2.5, -3.0, 0.0, 0.0, 50.0, 7, 1, 5, 1, 0, 1, 1000412, 0))
     assert sv.parse_line("12 1.5 2.5 -3.0 0.0 0.0 50.0 7 1 5\n") is None      # the 2c width is no sample now
+    assert sv.parse_line("12 1.5 2.5 -3.0 0.0 0.0 50.0 7 1 5 1 0 1 1000412\n") is None   # nor step 3's
+    assert sv.EXTRA[-1] == "motion.probe-input" and sv.PROBE_IN == len(sv.CFG) - 1
     assert sv.parse_line("overrun\n") is None and sv.parse_line("12 1.5 nan\n") is None
 
 
@@ -5292,3 +5295,101 @@ def test_the_scan_needs_its_g54_x_y_at_zero(monkeypatch, tmp_path):
     are in the WCS, the points in G53."""
     with pytest.raises(nr.Refused, match="basis"):
         _surface_step(monkeypatch, tmp_path, "g54 x")
+
+
+# ── package 3a (R350): Sim-Trip's pulse, the coolant outputs, the tool table's reload ──
+@pytest.mark.parametrize("bits,problems,status", [
+    ([0, 0, 1, 1, 1, 0, 0], (), "PASS"),
+    ([0] * 7, (), "FAIL"),                      # the pulse never reached the pin
+    ([0, 1, 1, 1, 1, 1, 1], (), "FAIL"),        # the reset never reached it
+    ([0, 1, 0, 1, 0], (), "FAIL"),              # two pulses
+    ([1, 1, 0, 0], (), "incomplete"),           # high before the trip: nothing to judge
+    ([0, None, 1, 0], (), "incomplete"),
+    ([], (), "incomplete"),
+    ([0, 1, 0], ("a gap",), "incomplete"),
+])
+def test_sim_trip_is_one_pulse_on_motion_probe_input(bits, problems, status):
+    assert nc.eval_sim_trip("sim-trip", bits, problems)["status"] == status
+
+
+@pytest.mark.parametrize("before,on,off,status", [
+    (0, 1, 0, "PASS"), (0, 0, 0, "FAIL"), (0, 1, 1, "FAIL"), (1, 1, 0, "incomplete"), (0, None, 0, "incomplete"),
+])
+def test_coolant_switches_its_output_on_and_off_again(before, on, off, status):
+    assert nc.eval_coolant("coolant-flood", "iocontrol.0.coolant-flood", before, on, off)["status"] == status
+
+
+@pytest.mark.parametrize("before,after,status", [
+    (22.0, 29.25, "PASS"), (22.0, 22.0, "FAIL"), (50.0, 29.25, "incomplete"), (22.0, None, "incomplete"),
+])
+def test_the_tool_table_reload_is_read_as_applied_by_g43_h(before, after, status):
+    assert nc.eval_tool_reload("tool-reload", 3, 29.25, before, after, 22.0)["status"] == status
+
+
+def test_the_io_step_judges_the_real_readings_and_puts_the_length_back(monkeypatch):
+    """The step on fakes: the trip's section carries motion.probe-input in its
+    last column, the silent one stays low; each coolant pin follows its own
+    command and the other pin is the counter; the tool's length is written,
+    applied by G43 H3, and put back — also when the reading after fails."""
+    from test_support import servo as sv
+    sent, saved, hal = [], [], {p: 0 for _, _, p in nr.COOLANT_CASES}
+    pins = {n: p for _, n, p in nr.COOLANT_CASES}
+
+    class Client:
+        status = {"tool_offset": [0, 0, 0]}
+        table = 22.0
+
+    c = Client()
+
+    def section(ctx, case):
+        from contextlib import contextmanager
+
+        @contextmanager
+        def cm():
+            box: dict = {}
+            yield box
+            pulse = [0, 0, 1, 1, 0, 0] if case == "sim-trip" else [0] * 6
+            width = len(sv.CFG)
+            box["section"] = {"samples": [(i * 0.001, i, tuple([0] * (width - 1) + [b])) for i, b in enumerate(pulse)],
+                              "problems": []}
+        return cm()
+
+    def when_free(client, cmd, **kw):
+        sent.append(cmd)
+        name, _, state = cmd.partition("_")
+        if name in pins:
+            hal[pins[name]] = int(state == "on")
+        return {"ok": True}
+
+    def short(client, text):
+        if text.startswith("G43 H"):
+            client.status["tool_offset"] = [0, 0, client.table]
+        elif text == "G49":
+            client.status["tool_offset"] = [0, 0, 0]
+
+    def set_length(client, tool, length):
+        saved.append((tool, length))
+        client.table = length
+    monkeypatch.setattr(nr, "_section", section)
+    monkeypatch.setattr(nr, "_servo_prep", lambda client: None)
+    monkeypatch.setattr(nr, "_to", lambda client, x, y, z: None)
+    monkeypatch.setattr(nr, "_when_free", when_free)
+    monkeypatch.setattr(nr, "_short", short)
+    monkeypatch.setattr(nr, "_tool_z", lambda client, tool: client.table)
+    monkeypatch.setattr(nr, "_set_tool_length", set_length)
+    monkeypatch.setattr(nr, "_hal_bit", lambda ctx, pin: hal[pin])
+    monkeypatch.setattr(nr, "HAL_SETTLE_S", 0.0)
+    rows = {r["case"]: r for r in nr.io_cases()[1]({"client": c})}
+    assert {k: v["status"] for k, v in rows.items()} == {
+        "sim-trip": "PASS", "sim-trip.counter-silent": "PASS",
+        "coolant-flood": "PASS", "coolant-flood.counter-other-pin": "PASS",
+        "coolant-mist": "PASS", "coolant-mist.counter-other-pin": "PASS",
+        "tool-reload": "PASS", "tool-reload.counter-old-length": "PASS"}, rows
+    assert sent == ["simulate_probe_trip", "flood_on", "flood_off", "mist_on", "mist_off"]
+    assert saved == [(3, 29.25), (3, 22.0)] and c.table == 22.0
+    # LinuxCNC keeping the old length: the reload row fails, its counter is undecided
+    saved.clear()
+    monkeypatch.setattr(nr, "_set_tool_length", lambda client, tool, length: saved.append((tool, length)))
+    rows = {r["case"]: r for r in nr.io_cases()[1]({"client": c})}
+    assert rows["tool-reload"]["status"] == "FAIL" and rows["tool-reload.counter-old-length"]["status"] == "incomplete"
+    assert saved == [(3, 29.25), (3, 22.0)], "the length is put back whatever the reading said"

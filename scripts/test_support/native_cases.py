@@ -1048,3 +1048,61 @@ def settled_window(frames: list[tuple], cond, span: float = SETTLE_S, tol: float
                                                            "method"]}
         t_prev = t
     return None
+
+
+# ── package 3a: the three statements with no native evidence (R350) ─────
+def eval_sim_trip(case: str, bits: list, problems=()) -> dict:
+    """F-SIMTRIP.S2b: Sim-Trip's pulse reaches motion.probe-input — in the
+    servo samples of its section ONE rise to 1 and the pin back at 0 by the
+    section's end (the reset arrived too). The pin high before the trip, a
+    section with problems or an unread sample leave it undecided."""
+    highs = sum(1 for b in bits if b == 1)
+    rises = sum(1 for a, b in zip(bits, bits[1:]) if a == 0 and b == 1)
+    measured = {"samples": len(bits), "high_samples": highs, "rises": rises}
+    if problems:
+        return _row(case, "incomplete", f"the section has problems: {'; '.join(map(str, problems))}", **measured)
+    if not bits or any(b not in (0, 1) for b in bits):
+        return _row(case, "incomplete", "motion.probe-input not read in every sample", **measured)
+    if bits[0] != 0:
+        return _row(case, "incomplete", "motion.probe-input already high when the section began", **measured)
+    if highs == 0:
+        return _row(case, "FAIL", "the pulse never reached motion.probe-input", **measured)
+    if rises > 1:
+        return _row(case, "FAIL", f"{rises} pulses on motion.probe-input, one expected", **measured)
+    if bits[-1] != 0:
+        return _row(case, "FAIL", "motion.probe-input still high at the end — the reset did not reach it", **measured)
+    return _row(case, "PASS", f"one pulse of {highs} servo periods on motion.probe-input, then low again", **measured)
+
+
+def eval_coolant(case: str, pin: str, before, on, off) -> dict:
+    """F-COOLANT.S2: the command switches its HAL output on, the opposite one
+    off again — `before`, `on`, `off` as read with halcmd (0/1, None
+    unread). An output already on before the command leaves it undecided."""
+    measured = {"pin": pin, "before": before, "on": on, "off": off}
+    if None in (before, on, off):
+        return _row(case, "incomplete", f"{pin} not read in every phase", **measured)
+    if before != 0:
+        return _row(case, "incomplete", f"{pin} already on before the command", **measured)
+    if on != 1:
+        return _row(case, "FAIL", f"{pin} stayed off after the ON command", **measured)
+    if off != 0:
+        return _row(case, "FAIL", f"{pin} stayed on after the OFF command", **measured)
+    return _row(case, "PASS", f"{pin} on, then off again", **measured)
+
+
+def eval_tool_reload(case: str, tool: int, written, applied_before, applied_after, original) -> dict:
+    """F-TOOLEDIT.S4b: LinuxCNC takes the written table — `G43 H<tool>`
+    applies the length the save wrote (read from the status' tool_offset Z),
+    not the one before. The reading before the save must show the original,
+    or the reading proves nothing."""
+    measured = {"tool": tool, "written": written, "applied_before": applied_before, "applied_after": applied_after,
+                "original": original}
+    if not _finite(applied_before, applied_after, written, original):
+        return _row(case, "incomplete", f"T{tool}'s applied length not read before and after", **measured)
+    if abs(applied_before - original) > SAME:
+        return _row(case, "incomplete", f"G43 H{tool} applied {applied_before} before the save, the table held "
+                    f"{original} — the reading proves nothing", **measured)
+    if abs(applied_after - written) > SAME:
+        return _row(case, "FAIL", f"G43 H{tool} applies {applied_after} after the save, the table holds {written} "
+                    "— LinuxCNC did not take it", **measured)
+    return _row(case, "PASS", f"G43 H{tool} applies the written length {written}", **measured)

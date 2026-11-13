@@ -13,14 +13,11 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 ## Offene Aussagen
 
-5 Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.
+2 Aussagen ohne Beleg — die Lücken, mit der Schicht, die den Bruch sehen würde.
 
 | Funktion | Aussage | Art | gilt für | Lücke |
 |---|---|---|---|---|
-| Antast-Auslösung simulieren (nur Sim) | In der Sim kommt der Puls am HAL-Pin probe-in an. | Wirkung | alle | Nativ: der HAL-Puls an probe-in in der Sim nicht belegt |
 | Referenzieren und Referenz aufheben | Home je Achse sendet den Joint seiner Achse. | Daten | 3axis_xyz, 5axis_xyzac, 6axis_twp_xyzabc | Browser: sendet die Achsposition als Joint (SetupStrip a.index) und liest homed_joints an derselben Stelle — richtig, wo Joint = Achsposition (alle ausgelieferten Konfigurationen), falsch, wo nicht (Gantry, eigene Kinematik); braucht eine Achse→Joint-Zuordnung vom Gateway |
-| Kühlmittel: Flood und Mist | Auf echtem LinuxCNC schalten Flood und Mist ihre HAL-Ausgänge. | Wirkung | offen | nativ (native Stufe) |
-| Werkzeug anlegen, bearbeiten, löschen, umnummerieren | LinuxCNC übernimmt die geschriebene Tabelle. | Wirkung | alle | Nativ: das Neuladen in LinuxCNC nicht belegt |
 | Verbindung: Anmeldung, Herzschlag, Wiederverbindung, Auslieferung | Ein Befehl, dessen Wert die Handlung bestimmt, wird ohne diesen Wert abgelehnt: home ohne joint, set_optional_stop / set_block_delete ohne Wahrheitswert, ein Override ohne scale, spindle_forward / spindle_reverse ohne speed; wo ein Standard die sichere Richtung ist (arm ohne armed → entwaffnen), ist er ausdrücklich so entschieden. | Ablehnung | alle | Gateway: heute führt es diese Befehle mit einem Standard aus (home ohne joint referenziert alle, "false" schaltet M01 ein, ein Override ohne scale setzt 100 %); 24 finite_*(msg.get(…, Standard)) und 9 bool(msg.get(…)) sind je Befehl zu sichten, bevor ein Standard entfällt — ein eigenes Gateway-Paket (F-COMP S3 war der erste Fall); der WebUI-Client sendet jedes Feld (commandShapes.test.ts) |
 
 **Ohne formulierte Aussagen:** 18 Funktionen ohne eigene Maschinenwirkung — Programm herunterladen `F-PROGDOWNLOAD`, G-Code ansehen, aktive Codes, Codewort-Referenz, Statistik `F-GCODEVIEW`, Vorschau des Werkzeugwegs `F-PREVIEW`, Werkzeugtabelle ansehen, suchen, sortieren `F-TOOLTABLE`, Werkzeugtabelle herunterladen `F-TOOLDOWNLOAD`, Makro-Leiste einrichten `F-MACROBAR`, Simulation: Zeitleiste, Abspielen, Kollisions- und Grenzprüfung, Sim-Tab `F-SIM`, 3D-Ansicht bedienen: Ansichten, Würfel, Spur löschen, Hinweise `F-VIEW`, 3D-Ansicht einstellen: Ebenen, Farben, Projektion, Verfolgung, HUD `F-VIEWSET`, Kamerabild (Bild im Bild) und Überlagerung `F-CAMERA`, Darstellung: Farbschema, Vollbild, Bildschirm wach halten `F-DISPLAY`, Meldungen: Nachrichtenzentrale, Filter, Kopieren, Löschen `F-MESSAGES`, Navigation: Tabs und Seitenleiste `F-TABS`, Diagnose: HAL-Anzeige, Timing, Telemetrie `F-DIAG`, Eingabehilfen: Zahlen- und Text-Tastatur am Bildschirm `F-INPUTHELP`, Bedienelemente: Katalog, Freigaben, Erklärung am Element, Dialoge, Hilfe `SYS-CONTROLS`, Statusübertragung (Rahmen und gemeinsame Felder) `SYS-STATUS`, Maschinenkonfiguration lesen: Achsen, Gelenke, Grenzen, Kinematik, Remaps, Profile `SYS-CONFIG`
@@ -36,7 +33,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | **Abbrechen (Abort)** `F-ABORT` | Banner, Makro-Leiste, Tab „Macros“, Tab „Probing“, Tab „Program“, Tab-Kopf (Abort) | 9 | 1 | 1 | 0 |
 | **Betriebsart: Manuell, MDI, Automatik** `F-MODE` | Leiste › Jog | 4 | 1 | 1 | 0 |
 | **Herunterfahren** `F-SHUTDOWN` | Dialog, Kopfzeile | 4 | 1 | 1 | 0 |
-| **Antast-Auslösung simulieren (nur Sim)** `F-SIMTRIP` | Tab „Probing“ | 3 | 3 | 2 | 1 |
+| **Antast-Auslösung simulieren (nur Sim)** `F-SIMTRIP` | Tab „Probing“ | 3 | 3 | 3 | 0 |
 
 ### Freigeben (Arm) und Sperren
 
@@ -100,7 +97,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S2 (Wirkung):** Sim-Trip pulst probe-in in einer Folge in einem Thread: das Rücksetzen folgt jedem versuchten Setzen (höchstens zwei Versuche), das Ergebnis wird getrennt gemeldet, ein Abbruch wartet bis zum Ende. — gilt für: alle
   - Beleg: gateway: `test_sim_trip.py` — test_a_pulse_sets_then_resets; gateway: `test_sim_trip.py` — test_a_timeout_after_the_effect_is_still_reset; gateway: `test_sim_trip.py` — test_a_failed_set_is_reset_anyway; gateway: `test_sim_trip.py` — test_a_first_reset_that_fails_and_a_second_that_takes; gateway: `test_sim_trip.py` — test_two_failed_resets_say_the_pin_may_still_be_true; gateway: `test_sim_trip.py` — test_a_cancel_while_the_set_runs_waits_for_the_reset; gateway: `test_sim_trip.py` — test_a_cancel_while_the_reset_runs_lets_it_end; gateway: `test_sim_trip.py` — test_the_handler_answers_the_outcome
 - **S2b (Wirkung):** In der Sim kommt der Puls am HAL-Pin probe-in an. — gilt für: alle
-  - Beleg: **offen** — Lücke: Nativ: der HAL-Puls an probe-in in der Sim nicht belegt
+  - Beleg: native: `native_run.py` — sim-trip
 
 ## Referenzieren und Bewegen
 
@@ -155,7 +152,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 |---|---|---|---|---|---|
 | **Overrides: Vorschub, Eilgang, Spindel** `F-OVERRIDE` | Leiste › Overrides | 19 | 4 | 4 | 0 |
 | **Spindel von Hand: Rechts, Links, Stopp, Drehzahl** `F-SPINDLE` | Einstellungen, Leiste › Spindel | 25 | 4 | 4 | 0 |
-| **Kühlmittel: Flood und Mist** `F-COOLANT` | Leiste › Spindel | 8 | 2 | 1 | 1 |
+| **Kühlmittel: Flood und Mist** `F-COOLANT` | Leiste › Spindel | 8 | 2 | 2 | 0 |
 
 ### Overrides: Vorschub, Eilgang, Spindel
 
@@ -183,8 +180,8 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 
 - **S1 (Daten):** Flood und Mist senden Ein gegen das gemeldete Aus und Aus gegen das gemeldete Ein; der Schalter zeigt den gemeldeten Zustand, nie den Klick. — gilt für: alle
   - Beleg: browser: `strip-actions.spec.ts` — Flood and Mist send on against the reported off, off against the reported on — the switch shows the status
-- **S2 (Wirkung):** Auf echtem LinuxCNC schalten Flood und Mist ihre HAL-Ausgänge. — gilt für: offen
-  - Beleg: **offen** — Lücke: nativ (native Stufe)
+- **S2 (Wirkung):** Auf echtem LinuxCNC schalten Flood und Mist ihre HAL-Ausgänge. — gilt für: 3axis_xyz
+  - Beleg: native: `native_run.py` — coolant-flood; native: `native_run.py` — coolant-mist
 
 ## Werkstück-Koordinaten und Ebenen
 
@@ -307,7 +304,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 | Funktion | Bedienort | Atome | Aussagen | Belegt | Offen |
 |---|---|---|---|---|---|
 | **Werkzeugtabelle ansehen, suchen, sortieren** `F-TOOLTABLE` | Leiste › Werkzeug, Tab „Tools“ | 13 | 0 | 0 | Aussagen noch nicht formuliert |
-| **Werkzeug anlegen, bearbeiten, löschen, umnummerieren** `F-TOOLEDIT` | Tab „Tools“ | 31 | 5 | 4 | 1 |
+| **Werkzeug anlegen, bearbeiten, löschen, umnummerieren** `F-TOOLEDIT` | Tab „Tools“ | 31 | 5 | 5 | 0 |
 | **Werkzeugbibliothek importieren (Fusion 360, FreeCAD)** `F-TOOLIMPORT` | Tab „Tools“ | 17 | 4 | 4 | 0 |
 | **Werkzeugtabelle herunterladen** `F-TOOLDOWNLOAD` | Tab „Tools“ | 2 | 0 | 0 | Aussagen noch nicht formuliert |
 | **Werkzeugwechsel (M6) mit Bestätigung** `F-TOOLCHANGE` | Dialog, Einstellungen, Tab „Tools“ | 14 | 2 | 2 | 0 |
@@ -326,7 +323,7 @@ Erzeugt von `scripts/inventory/functions.py` aus `functions.json` und den Atomen
 - **S4 (Wirkung):** Anlegen, Ändern, Löschen und Umnummerieren ändern genau ihren Datensatz, erhalten die übrigen Werte (alle Felder in jeder Spaltenfolge, Kommentar, Metadaten) und lassen LinuxCNC die geschriebene Tabelle einmal neu laden; eine nicht verstandene Zeile stoppt die Bearbeitung, nichts wird geschrieben. — gilt für: alle
   - Beleg: gateway: `test_tool_edit_contract.py` — test_the_fixture_reads_as_written; gateway: `test_tool_edit_contract.py` — test_save_changes_only_the_sent_fields_of_its_tool; gateway: `test_tool_edit_contract.py` — test_add_adds_one_record_and_keeps_every_other; gateway: `test_tool_edit_contract.py` — test_delete_removes_one_record_and_keeps_every_other; gateway: `test_tool_edit_contract.py` — test_renumber_moves_the_number_and_keeps_an_unsent_pocket; gateway: `test_tool_edit_contract.py` — test_renumber_takes_a_sent_pocket; gateway: `test_tool_edit_contract.py` — test_each_order_survives_save_delete_and_renumber_of_another_tool; gateway: `test_tool_edit_contract.py` — test_every_edit_refuses_and_writes_nothing; gateway: `test_tool_edit_contract.py` — test_comment_and_blank_lines_are_no_tool_and_stop_nothing; gateway: `test_tool_edit_contract.py` — test_shown_whole_edited_and_normalized; gateway: `test_tool_table.py` — test_every_field_of_a_linuxcnc_line_survives_a_rewrite; gateway: `test_tool_table.py` — test_a_value_with_more_decimals_is_not_rounded_by_a_rewrite; gateway: `test_tool_table.py` — test_any_order_either_case_and_crlf_read_alike; gateway: `test_tool_table.py` — test_a_whole_decimal_in_an_integer_field_reads_as_the_number; gateway: `test_tool_table.py` — test_orientation_is_written_as_the_integer_linuxcnc_reads; gateway: `test_tool_table.py` — test_a_line_not_read_exactly_is_skipped_or_refused_by_its_number
 - **S4b (Wirkung):** LinuxCNC übernimmt die geschriebene Tabelle. — gilt für: alle
-  - Beleg: **offen** — Lücke: Nativ: das Neuladen in LinuxCNC nicht belegt
+  - Beleg: native: `native_run.py` — tool-reload
 
 ### Werkzeugbibliothek importieren (Fusion 360, FreeCAD)
 

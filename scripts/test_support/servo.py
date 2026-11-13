@@ -34,9 +34,13 @@ MARK_INDEX = len(CHANNELS)
 #: its place — the heartbeat chain (oneshot.0's output and input, the
 #: servo-thread latch) and the motion controller's own period, the time the
 #: bounds are built from (servo_time)
-EXTRA = ("oneshot.0.out", "webui-hb-latch.fault-out", "oneshot.0.in", "motion.servo.last-period")
-HB_OK, LATCH, HB_IN, LAST_PERIOD = range(MARK_INDEX + 1, MARK_INDEX + 1 + len(EXTRA))
-CFG = "ffffffsb" + "s" + "bbbu"   # the channels, the mark, the extra channels
+#: package 3a (R350): motion.probe-input LAST, for Sim-Trip's pulse (about
+#: 20 ms plus halcmd's latency — between two status frames, never between two
+#: servo periods); every earlier column keeps its place again
+EXTRA = ("oneshot.0.out", "webui-hb-latch.fault-out", "oneshot.0.in", "motion.servo.last-period",
+         "motion.probe-input")
+HB_OK, LATCH, HB_IN, LAST_PERIOD, PROBE_IN = range(MARK_INDEX + 1, MARK_INDEX + 1 + len(EXTRA))
+CFG = "ffffffsb" + "s" + "bbbub"   # the channels, the mark, the extra channels
 DEPTH = 65536
 READ_ONLY = ("getp", "gets", "show")
 
