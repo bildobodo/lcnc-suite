@@ -611,11 +611,19 @@ named exception, an older page's `mdi` with `vars` included (R336).
   out after the current wait slice; once it holds the lock it applies the
   tick's rules again on a current read — a plane oriented or a fixture
   selected meanwhile supersedes it, a machine no longer ready defers it —
-  and at each of its writes) and the toolsetter read-back (the
-  synch's mode check, the synch, the file). A session cache a reconnect
-  clears is filled only from a status that was read (`get_machine_limits`;
-  `_joint_jog_facts` reads ONE status): a caller whose pinned Link was
-  replaced computes its fallback for itself, never for the new Link. The
+  and at each of its writes) and the toolsetter read-back (the parameter
+  file's path, the synch's mode check, the synch, the file). Both keep their
+  Link to the END (Codex R360): the read-back books and the heal declares
+  its row healed only after `link()` admitted the owner again, with no
+  await between — a completion whose wait or last read outlived its Link
+  books nothing. The session caches read through a Link (INI config,
+  payload bounds, kins declaration, the homing / jog switches, the
+  parameter file's path) belong to it (Codex R360 VM-I08): every publish,
+  revoke and the instance end clears them in the same step, under
+  `_link_lock` (`_clear_session_caches`), and a filler stores only through
+  `_owned_store` — while the Link it read through is the published one,
+  compared under the same lock. An old reader keeps its value for itself;
+  it never publishes into the new Link's caches. The
   REST tool import's reload is one write after the file write and goes to
   the published Link: it must reach the LinuxCNC that reads the written
   file — refused, the controller would keep the old table.
@@ -625,10 +633,13 @@ named exception, an older page's `mdi` with `vars` included (R336).
 - **A start claim keeps its Link** (`link_seq`): its serial is that
   channel's. A claim of an earlier Link is never compared with this Link's
   echo — the controller QUIET (idle, done or error, nothing queued, the exec
-  done), held for the error proof's window, releases it (`proof=relinked`);
-  a new Link exists only seconds after the old one failed, long after task
-  took the write. How libnml numbers a fresh channel's serials is outside the
-  binding and is not relied on.
+  done), held for the error proof's window, releases it (`proof=relinked`).
+  The window starts only with a poll of THE CURRENT Link that began after
+  the write (the poller passes the Link it polled; a poll of a replaced Link
+  proves nothing) and runs in full from there: `err_since` is bound to its
+  proof and Link (`err_proof`), a mark of another proof never shortens it
+  (Codex R360 VM-I09). How libnml numbers a fresh channel's serials is
+  outside the binding and is not relied on.
 - **One connect at a time.** `try_connect_lcnc` runs under `_connect_lock`
   (the WS endpoint and the poller may both connect, each in a thread); a
   failing attempt revokes only the Link it found when it began.

@@ -365,6 +365,34 @@ class ClaimsOfAnEarlierLink(unittest.TestCase):
         gateway._release_start_claims(1.0 + gateway._CLAIM_ERROR_PROOF_S)
         self.assertEqual(gateway._source_claims, [self.claim])
 
+    # Codex R360 VM-I09: written at 100.100, window 20 ms
+    def test_a_poll_begun_before_the_write_does_not_start_the_window(self):
+        self.claim.sent_t = 100.100
+        self.status(echo=0, state=linuxcnc.RCS_ERROR, interp=linuxcnc.INTERP_IDLE)
+        gateway._release_start_claims(100.000)          # begun before the write, evaluated after
+        gateway._release_start_claims(100.105)          # the first poll after it: the window starts
+        self.assertEqual(gateway._source_claims, [self.claim], "released 5 ms after its write")
+        gateway._release_start_claims(100.130)          # after the full window from 100.105
+        self.assertEqual(gateway._source_claims, [])
+
+    def test_a_mark_of_another_proof_does_not_shorten_the_window(self):
+        self.claim.sent_t = 100.100
+        self.claim.err_since = 99.0                     # left by an earlier proof
+        self.status(echo=0, state=linuxcnc.RCS_ERROR, interp=linuxcnc.INTERP_IDLE)
+        gateway._release_start_claims(100.2)
+        self.assertEqual(gateway._source_claims, [self.claim], "the window ran from another proof's mark")
+        gateway._release_start_claims(100.225)          # after the full window from 100.2
+        self.assertEqual(gateway._source_claims, [])
+
+    def test_a_poll_of_a_replaced_link_proves_nothing(self):
+        polled = gateway._link
+        swap_connection(FakeConnection(stat=self.conn.stat))   # replaced while that poll ran
+        self.status(echo=0, state=linuxcnc.RCS_DONE, interp=linuxcnc.INTERP_IDLE)
+        gateway._release_start_claims(1.0, polled)
+        gateway._release_start_claims(1.0 + gateway._CLAIM_ERROR_PROOF_S, polled)
+        self.assertEqual(gateway._source_claims, [self.claim])
+        self.assertIsNone(self.claim.err_since)
+
 
 class OneConnectAtATime(unittest.TestCase):
     def test_a_failing_attempt_revokes_only_the_link_it_found(self):
@@ -588,6 +616,17 @@ class BackgroundSequencesKeepTheirLink(unittest.TestCase):
         self.assertEqual(self.events, [("old", ("mode", linuxcnc.MODE_MDI), 41)], "G54 went to the new Link")
         self.assertEqual(gateway._reserved_heal_pending, 7, "a refused heal is not healed")
 
+    def test_a_link_replaced_in_the_g54_wait_heals_nothing(self):
+        stat = _ModeStat(linuxcnc.MODE_MDI)              # already MDI: the G54 is the first write
+        cmd = _ModeCmd(stat, "old", self.events)
+        connect_fake(self, stat=stat, cmd=cmd)
+        gateway._reserved_fixture_warning = "G59.1 active at the last shutdown"
+        cmd.after_write = lambda: swap_connection(FakeConnection(stat=_ModeStat(linuxcnc.MODE_MDI)))
+        asyncio.run(gateway._reserved_fixture_heal())
+        self.assertEqual(self.events, [("old", ("mdi", "G54"), 41)])
+        self.assertEqual(gateway._reserved_heal_pending, 7, "the replaced Link's G54 declared the row healed")
+        self.assertEqual(gateway._reserved_fixture_warning, "G59.1 active at the last shutdown")
+
     def test_the_heal_on_one_link_writes_both(self):
         stat = _ModeStat(linuxcnc.MODE_MANUAL)
         connect_fake(self, stat=stat, cmd=_ModeCmd(stat, "old", self.events))
@@ -682,6 +721,81 @@ class BackgroundSequencesKeepTheirLink(unittest.TestCase):
             asyncio.run(gateway._ts_read_back("prog.ngc"))
         self.assertEqual(self.events, [], "the synch went to the new Link")
         self.assertEqual(booked, [])
+
+
+class _Synch:
+    """The interpreter at a synch: writes the parameter file afresh (a new
+    inode) with `value`; its wait runs `on_wait` once."""
+
+    def __init__(self, path, value, events):
+        self.path, self.value, self.events, self.serial = path, value, events, 40
+        self.on_wait = None
+
+    def task_plan_synch(self):
+        import os
+        self.serial += 1
+        self.events.append(("task_plan_synch", self.serial))
+        tmp = self.path + ".new"
+        with open(tmp, "w") as f:
+            f.write("".join(f"{k}\t{self.value:.6f}\n" for k in gateway.TOOLSETTER_BASIS_KEYS))
+        os.replace(tmp, self.path)
+
+    def wait_complete(self, timeout=5.0, /):
+        if self.on_wait is not None:
+            hook, self.on_wait = self.on_wait, None
+            hook()
+        return linuxcnc.RCS_DONE
+
+
+class CompletionsKeepTheirLink(unittest.TestCase):
+    """Codex R360 VM-I06 rest: the background sequences keep their Link to
+    the END — the read-back books, the heal declares its row healed, only
+    while the Link that wrote and waited is still the published one."""
+
+    def setUp(self):
+        import tempfile
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.var = f"{tmp.name}/m.var"
+        with open(self.var, "w") as f:
+            f.write("".join(f"{k}\t1.000000\n" for k in gateway.TOOLSETTER_BASIS_KEYS))
+        self.events, self.booked = [], []
+        self.addCleanup(setattr, gateway, "_cmd_lock", gateway._cmd_lock)
+        gateway._cmd_lock = None
+        for name, value in (("_resolve_var_file_path", lambda: self.var),
+                            ("_ts_book", lambda values, origin: self.booked.append((origin, values)))):
+            p = mock.patch.object(gateway, name, value)
+            p.start()
+            self.addCleanup(p.stop)
+        self.cmd = _Synch(self.var, 2.0, self.events)
+        connect_fake(self, stat=_ModeStat(linuxcnc.MODE_MDI), cmd=self.cmd)
+
+    def replaced(self):
+        swap_connection(FakeConnection(stat=_ModeStat(linuxcnc.MODE_MDI)))
+
+    def test_unchanged_the_read_back_books_the_synched_values(self):
+        asyncio.run(gateway._ts_read_back("prog.ngc"))
+        self.assertEqual([(o, set(v.values())) for o, v in self.booked], [("read", {2.0})])
+
+    def test_a_link_replaced_in_the_synchs_wait_books_nothing(self):
+        self.cmd.on_wait = self.replaced
+        asyncio.run(gateway._ts_read_back("prog.ngc"))
+        self.assertEqual(len(self.events), 1)            # the synch went out, on its Link
+        self.assertEqual(self.booked, [], "a completion of a replaced Link was booked")
+
+    def test_a_link_replaced_at_the_last_file_read_books_nothing(self):
+        real = gateway.read_var_snapshot
+        reads = []
+
+        def second_read_replaces(*a, **k):
+            out = real(*a, **k)
+            reads.append(1)
+            if len(reads) == 2:
+                self.replaced()
+            return out
+        with mock.patch.object(gateway, "read_var_snapshot", second_read_replaces):
+            asyncio.run(gateway._ts_read_back("prog.ngc"))
+        self.assertEqual(self.booked, [], "a completion of a replaced Link was booked")
 
 
 class ReservedRowsOnlyOnATwpMachine(unittest.TestCase):
@@ -857,11 +971,60 @@ class CachesFilledOnTheirOwnLink(unittest.TestCase):
     computes then is its own fallback — never cached for the new Link."""
 
     def setUp(self):
-        for name in ("_machine_limits", "_ini_config", "_joint_jog_cache"):
+        for name in ("_machine_limits", "_ini_config", "_joint_jog_cache", "_kins_decl_cache", "_nc_files_dir",
+                     "_coord_without_homing_cache", "_spindle_before_homing_cache"):
             self.addCleanup(setattr, gateway, name, getattr(gateway, name))
         gateway._machine_limits = None
         gateway._joint_jog_cache = None
         gateway._ini_config = {"linear_units": "mm"}    # the INI read; the status is the question
+
+    def reconnect(self, stat):
+        """A reconnect through the real publish (it clears the caches in the
+        same step) — restored with the test's connection."""
+        return gateway._publish_link(stat, linuxcnc.command(), linuxcnc.error_channel(), None)
+
+    def test_an_old_poll_never_publishes_its_bounds_for_the_new_link(self):
+        old_stat, new_stat = _ModeStat(linuxcnc.MODE_MANUAL), _ModeStat(linuxcnc.MODE_MANUAL)
+        old_stat.axis_mask, old_stat.joints = 0b11111, 5
+        new_stat.axis_mask, new_stat.joints = 0b111, 3
+        connect_fake(self, stat=old_stat)
+        gateway._ini_config = {"max_jog_velocity": 2.0}          # the old Link's INI
+
+        def reconnect_and_a_new_reader():
+            self.reconnect(new_stat)
+            gateway._ini_config = {"max_jog_velocity": 100.0}    # a reader of the new Link has its INI
+        old_stat.on_poll = reconnect_and_a_new_reader
+        mine = gateway.get_machine_limits()                      # the old call: its own bounds
+        self.assertEqual((mine.n_axes, mine.max_jog_velocity), (5, 2.0))
+        self.assertIsNone(gateway._machine_limits, "the old call's bounds published for the new Link")
+        now = gateway.get_machine_limits()
+        self.assertEqual((now.n_axes, now.n_joints, now.max_jog_velocity), (3, 3, 100.0))
+
+    def test_an_old_ini_read_never_publishes_its_joint_jog_facts_for_the_new_link(self):
+        conn = connect_fake(self)
+        conn.stat.ini_filename, conn.stat.joints, conn.stat.axis_mask = "/old.ini", 3, 7
+        new_stat = linuxcnc.stat()
+        new_stat.ini_filename, new_stat.joints, new_stat.axis_mask = "/new.ini", 3, 7
+        on = {("DISPLAY", "WEBUI_JOINT_JOG_BEFORE_HOMING"): "1", ("DISPLAY", "WEBUI_JOINT_AXES"): "X Y Z",
+              ("JOINT_0", "MAX_VELOCITY"): "10", ("JOINT_1", "MAX_VELOCITY"): "10",
+              ("JOINT_2", "MAX_VELOCITY"): "10"}
+        test = self
+
+        class _Ini:
+            def __init__(self, path):
+                self.values = on if path == "/old.ini" else {}
+                if path == "/old.ini" and gateway._link is not None and gateway._link.stat is conn.stat:
+                    test.reconnect(new_stat)               # replaced while the old INI is read
+
+            def find(self, section, key):
+                return self.values.get((section, key))
+        with mock.patch.object(gateway.linuxcnc, "ini", _Ini, create=True):
+            mine = gateway._joint_jog_facts()
+            self.assertTrue(mine["enabled"])               # the old read's own answer
+            self.assertIsNone(gateway._joint_jog_cache, "the old INI's facts published for the new Link")
+            now = gateway._joint_jog_facts()
+        self.assertFalse(now["enabled"], "the new INI switches the jog before homing off")
+        self.assertIs(gateway._joint_jog_cache, now)
 
     def test_the_payload_bounds_are_not_cached_by_a_pinned_out_caller(self):
         conn = connect_fake(self)
