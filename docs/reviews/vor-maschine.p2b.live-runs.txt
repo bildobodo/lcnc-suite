@@ -70,3 +70,22 @@ Run 6 (chain-2b on 58010ecb, the R361 head, 2026-11-13 10:34–11:21):
   macro-live          PASS — 17 PASS, 1 SKIP (above-z0, as before)
   perf-matrix         PASS (run df28869ffc24)
   No live gateway traced lcnc.cache_store_refused, limits.* or twp.reserved_fixture_*.
+
+Run 7 (chain-2b on 45727d61, the R362 head, 2026-11-13 12:44–13:31; the perf step repeated 13:31–13:35):
+  counter-cases       60/60 (vor-maschine.p2b.r362.mutations.txt); test-session guards 6/6 (…r362.mutations-iso.txt)
+  red check           red_2b.py: 52 ids ALL AS EXPECTED (…r362.red.txt)
+  round gate          PASS (…r362.gate-round.json): unit 2650, backend incl. ruff/pyright, browser 7/7
+  boot connect        native run gateway.log: try_connect_lcnc OK, no FAILED; lcnc.link_published 1 in its trace
+                        (58010ecb's native run: "try_connect_lcnc FAILED: name '_viewer_init_cache' is not defined",
+                        no publish trace — the defect of R361's head; f4ba0f31 and earlier: OK)
+  native main         PASS — 59 PASS, 5 incomplete jog braking-travel rows (their .servo twins PASS)
+  native latch-delayed PASS — 3 PASS
+  live-twp            PASS — 9/9, twp_buttons_check included
+  toolsetter-readback PASS — 10 rows
+  macro-live          PASS — 17 PASS, 1 SKIP (above-z0, as before)
+  perf-matrix         run 1 FAIL on the HARNESS: the worktree's trace.ndjson crossed its 50 MB limit at the run's start
+                        (today's many test runs write the same file) and several processes rotated it within seconds;
+                        the measured run's marks landed in trace.ndjson.2/.3, perf_matrix reads trace.ndjson only —
+                        "no start/end mark of run ca785ae542a0" from the third scenario on (…r362.perf-run1-rotation.txt).
+                        Repeated at the same commit: PASS (run 4423d77b5ff0, …r362.perf.txt / .perf-matrix.json).
+  No live gateway traced lcnc.cache_store_refused, limits.* or twp.reserved_fixture_*.

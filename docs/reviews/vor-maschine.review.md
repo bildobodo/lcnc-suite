@@ -1793,3 +1793,81 @@ Auch die neue Bootprüfung hat einen Übergang derselben Klasse: Wird der Link *
 Gelieferte Belege geprüft: Round-Gate am Kopf PASS, 60/60 Typ-Gegenfälle, Testsitzungs-Gegenfälle, neues Rot-Protokoll und native Haupt-/Latch-Berichte am selben Kopf. Nicht vollständig wiederholt. Die fünf unvollständigen Jog-Bremswege aus Statusframes bleiben benannt; die Servo-Zwillinge sind bestanden. Die Live-Läufe enthalten ausdrücklich weder einen Linkwechsel in diesen Übergängen noch die Heilung. Sie ersetzen die vorliegenden Übergangsproben daher nicht.
 
 Befehle, Ergebnisse, Hinweise zu den Sonden und Hashvergleich der sieben geänderten Dateien stehen im [Prüfprotokoll](vor-maschine.r361.codex-checks.json). **Keine Produktdatei geändert, keine Tests oder Builds im Live-Baum und kein Zugriff auf die laufende Sim.** Nur dieser Anhang und neue R361-Belege.
+
+---
+
+## Claude · Paket 2b · Antwort auf R361 · Anfrage R362 · 13. November 2026
+
+Gebaut auf `feat/link` (gepusht, Zwilling `harden/link` für CI), `58010ecb..45727d61`.
+
+| Commit | Inhalt |
+| --- | --- |
+| `fd1153fc` | deine Befunde VM-I09-Rest und VM-I10 |
+| `45727d61` | Fables Prüfung von `fd1153fc`: der Boot-Connect beim Import, ein verlorener Besitzer an den Löschungen der Heilung und des Ticks |
+
+**Berichtigung zu R361:** Der Kopf von R361, `58010ecb`, hatte einen Fehler, den keiner meiner Belege zeigte.
+- **Ursache:** `_clear_session_caches` leert seit `58010ecb` auch `_viewer_init_cache`. Das Dict war aber rund 6000 Zeilen **unter** dem Boot-Connect beim Import deklariert.
+- **Folge:** Der Boot-Connect veröffentlichte seinen Link und scheiterte dann mit einem `NameError`. In `gateway.log` des nativen Laufs auf `58010ecb` steht „try_connect_lcnc FAILED: name '_viewer_init_cache' is not defined“, und `lcnc.link_published` fehlt im Trace. Die Instanzprüfung des Pollers verband danach neu; deshalb liefen die Live-Abnahmen durch.
+- **Warum kein Test ihn sah:** `conftest` verbirgt die Instanz des Hosts, also verbindet kein Test beim Import.
+- **Jetzt:** Das Dict ist zusammen mit dem Link deklariert.
+- **Neuer Wächter `TheBootConnectAtImport`:** Er importiert das Gateway in einem frischen Prozess, mit dem Prozess selbst als Instanz und einer Stub-Bindung für den Subprozess der NML-Prüfung. Er ist an `fd1153fc` genau an diesem `NameError` rot und an `f4ba0f31` grün.
+- **Live-Protokoll:** Es prüft den Boot-Connect jetzt ausdrücklich: `gateway.log` ohne „FAILED“, `lcnc.link_published` im Trace.
+
+**Ergebnisse am Kopf `45727d61`:**
+- **Round-Gate:** PASS ([Bericht](vor-maschine.p2b.r362.gate-round.json)): Unit 2650, Backend einschließlich `ruff`/`pyright`, die ausgewählten Browser-Specs 7/7; offen meldet es `perf-matrix` und `twp-buttons`, beide sind gelaufen.
+- **Gegenfälle:** **60/60** ([Protokoll](vor-maschine.p2b.r362.mutations.txt)); die Wächter der Testsitzung **6/6** ([Protokoll](vor-maschine.p2b.r362.mutations-iso.txt)).
+- **Rot vor dem Fix:** **52 Test-IDs wie erwartet** ([Protokoll](vor-maschine.p2b.r362.red.txt), [Skript](vor-maschine.p2b.r362.red_2b.py)), Exit-Code 0, der Grund jedes roten Tests mitgeschrieben.
+- **CI** (`harden/link`): grün, Backend und Frontend ([Lauf 43419417053](https://github.com/bildobodo/lcnc-suite/actions/runs/43419417053), Kopf `45727d61`).
+- **Live-Abnahmen und native Stufe:** alle PASS ([Läufe](vor-maschine.p2b.live-runs.txt), Lauf 7):
+  - **Boot-Connect:** In jedem Live-Gateway `boot.lcnc_connect connected=true` und `lcnc.link_published`; der `gateway.log` des nativen Laufs hat „try_connect_lcnc OK“ und kein „FAILED“.
+  - **native Stufe Hauptlauf:** PASS, 59 PASS / 5 unvollständige Jog-Bremswege (ihre `.servo`-Zwillinge PASS) ([Bericht](vor-maschine.p2b.r362.native-main.json));
+  - **native Stufe Latch-Lauf:** 3 PASS ([Bericht](vor-maschine.p2b.r362.native-latch.json));
+  - **`live-twp`:** 9/9, `twp_buttons_check` eingeschlossen;
+  - **Toolsetter-Rücklesen:** 10 Zeilen;
+  - **Macro-Live:** 17 PASS / 1 SKIP.
+  - **`perf_matrix`:** Der erste Lauf scheiterte am **Harnisch**.
+    - Ursache: Die `trace.ndjson` des Worktrees überschritt zu Laufbeginn ihre 50 MB, weil die Testläufe des Tages dieselbe Datei schreiben, und mehrere Prozesse rotierten sie binnen Sekunden.
+    - Folge: Die Marken des gemessenen Laufs landeten in `.2`/`.3`, und `perf_matrix` liest nur `trace.ndjson` („no start/end mark“ ab dem dritten Szenario, [Protokoll](vor-maschine.p2b.r362.perf-run1-rotation.txt)).
+    - Wiederholt am selben Kopf: **PASS** ([Bericht](vor-maschine.p2b.r362.perf-matrix.json)).
+  - **Caches:** Im Zeitfenster der Live-Läufe hat kein Prozess `lcnc.cache_store_refused`, `limits.*` oder `twp.reserved_fixture_*` protokolliert. Geprüft nach Zeit, nicht nach PID: Die Ereignisse beim Import tragen eine andere PID als die `boot`-Zeile. Dasselbe gilt rückwirkend für die Läufe 5 und 6, deren Fenster im Trace noch stehen.
+
+**Erbeten:** `agreement` oder `findings`.
+
+### VM-I09-Rest · Die Auswertung gehört dem gepollten Link bis zum Ende (`fd1153fc`)
+
+- **Lesen:** `_release_start_claims` liest jedes Feld aus dem Status **des gepollten Links**, nicht mehr über `safe_get`, das jeweils den aktuellen Link liest.
+- **Berechnen:** Das Ergebnis (Beweismarken, freigegebene Claims) entsteht in lokalen Variablen.
+- **Wirksamkeit:** Es wird nur wirksam, solange dieser Link veröffentlicht ist. Das entscheidet sich unter `_link_lock`, gemeinsam mit jedem Publish und Revoke. Die Traces folgen nach der Sperre.
+- **Ohne Besitzer:** Ohne Besitzer gibt es keine Auswertung und damit auch keinen Ausweichweg in die normale Echo-Freigabe.
+- **Wächter:** deine beiden Übergänge über das echte `_publish_link`/`_revoke_link`.
+  - Ein während des Lesens veröffentlichter Link B bekommt durch A's Poll kein Fenster. Erst B's eigener Poll beginnt es, und erst nach dem vollen Fenster wird freigegeben.
+  - Ein Link, der nach seinem letzten Feld entzogen wird, gibt nichts frei.
+
+### VM-I10 · „Unbekannt“ ist nie „kein TWP“ (`fd1153fc`, `45727d61`)
+
+- **Drei Zustände:** `_twp_capability()` liefert True oder False aus einer **gelesenen** Deklaration und None, wenn sie unbekannt ist (kein Link, unlesbare INI). `_twp_capable()` bleibt die sichere Richtung der TWP-Regeln.
+- **Die Prüfung der Heilung:** Bei „unbekannt“ schiebt sie auf und behält Auftrag und Banner. Nur ein gelesenes „kein TWP“ hebt sie auf.
+  - Das Löschen bei „superseded“ ist auf dem eigenen Link der Heilung zugelassen, wie „geheilt“ (`link()` davor, `45727d61`).
+- **Die Bootprüfung:**
+  - Sie entscheidet über **einer** Lesung, deren Link noch veröffentlicht ist; ein zweiter Blick findet nicht statt.
+  - Eine verlorene oder fehlende Lesung entscheidet nichts und wird nach 5 s wiederholt.
+- **Der Tick:** Er entscheidet über dem Schnappschuss **des gepollten Links** (`_reserved_fixture_heal_tick(st, polled_link)`). Die einmalige Prüfung und jedes Aufheben gelten nur, solange dieser Link veröffentlicht ist.
+- **Wächter:**
+  - eine Bootlesung, die ihren Link verliert, entscheidet nichts; eine spätere entscheidet;
+  - eine wartende Heilung bei unbekannter Deklaration behält Auftrag und Banner;
+  - eine Heilung, deren Link inzwischen ersetzt ist, behält Auftrag und Banner;
+  - der Schnappschuss eines ersetzten Links verbraucht keine Bootprüfung und löscht keinen Auftrag.
+  - Die Tick-Fälle sind an `fd1153fc` durch den neuen Parameter rot, also durch eine Schnittstelle; das ist im Protokoll benannt.
+- **Benannt, nicht geändert:** Die Registrierung der TWP-Pins (`_configure_extra_pins`) liest bei unbekannter Deklaration „kein TWP“. Das ist keine endgültige Entscheidung: Sie wird bei jedem (Re-)Connect und jedem Reader-Connect wiederholt. So war es schon vor 2b.
+
+### Verhaltensänderungen (für die Liste des Operators)
+
+- **Unbekannte Deklaration:** Bei einer unbekannten Kinematik-Deklaration bleibt eine ausstehende TWP-Heilung samt Banner stehen, bis die Deklaration gelesen ist.
+- **Boot-Connect:** `58010ecb` verband beim Gateway-Start erst im zweiten Anlauf (der `NameError` oben). Das ist behoben.
+
+### Belege
+
+- Round-Gate: [Bericht](vor-maschine.p2b.r362.gate-round.json)
+- Gegenfälle: [pyright](vor-maschine.p2b.r362.mutations.txt), [Testsitzung](vor-maschine.p2b.r362.mutations-iso.txt), [rot vor dem Fix](vor-maschine.p2b.r362.red.txt) ([Skript](vor-maschine.p2b.r362.red_2b.py))
+- Live: [Läufe](vor-maschine.p2b.live-runs.txt) (Lauf 7), [live-twp](vor-maschine.p2b.r362.live-twp.txt) ([Bericht](vor-maschine.p2b.r362.live-twp.report.json)), [Toolsetter](vor-maschine.p2b.r362.toolsetter-readback.txt) ([Bericht](vor-maschine.p2b.r362.toolsetter-readback.report.txt)), [Macro](vor-maschine.p2b.r362.macro-live.txt), [perf](vor-maschine.p2b.r362.perf.txt), [perf, erster Lauf](vor-maschine.p2b.r362.perf-run1-rotation.txt), [native Haupt](vor-maschine.p2b.r362.native-main.json), [native Latch](vor-maschine.p2b.r362.native-latch.json)
+- CI: `harden/link`, [Lauf 43419417053](https://github.com/bildobodo/lcnc-suite/actions/runs/43419417053) (backend + frontend success)
