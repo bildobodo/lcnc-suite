@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, defineAsyncComponent } from "vue";
 import { touchInput } from "./touchDetect";
-import { request, lastReply, connected, toolTableVersion } from "./lcncWs";
+import { request, awaitReply, connected, toolTableVersion } from "./lcncWs";
 import { useFire } from "./permissions";
 import { useToolsetterJob } from "./toolsetterVars";
 import { loadMachineDefaults, type ToolChangeMode } from "./defaults";
@@ -36,6 +36,9 @@ const ToolPreview = defineAsyncComponent(() => import("./ToolPreview.vue"));
 const FETCH_DELAY_MS = 500;
 const TOOL_READ_SLOW_MS = 8000;
 const TOOL_READ_TIMEOUT_MS = 60_000;
+/** A table write (persist + reload into LinuxCNC, behind this client's queue)
+ *  waits as long as a read before it says the outcome is unknown. */
+const TOOL_WRITE_REPLY_MS = TOOL_READ_TIMEOUT_MS;
 const REFETCH_AFTER_DELETE_MS = 300;
 // Parametric preview canvas in the edit dialog — one constant drives the
 // canvas size AND the preview column's width (--preview-w).
@@ -99,6 +102,12 @@ async function downloadTable() {
 const saving = ref(false);
 const editError = ref<string | null>(null);
 const saveSession = ref<{ id: string; cmd: string } | null>(null);
+/** A write with no reply: never a guessed failure or success (#28). */
+function writeUnknown(): string {
+  return connected.value
+    ? "No reply — outcome unknown, reload the table"
+    : "Connection lost — outcome unknown, the table reloads on reconnect";
+}
 const filterType = ref("");
 const searchText = ref("");
 const sortKey = ref<"T" | "D" | "Z">("T");
@@ -321,22 +330,22 @@ function saveEdit() {
   if (id === null) return;                       // nothing sent — fire() said why; no pending
   saveSession.value = { id, cmd: payload.cmd };
   saving.value = true;
+  // The reply for OUR request (by req_id — a map, never a watch on lastReply,
+  // #28) closes the dialog on ok and reloads; an ok:false keeps the draft and
+  // shows why. No reply in time: the outcome is unknown, the draft stays.
+  void awaitReply(id, TOOL_WRITE_REPLY_MS).then((reply) => {
+    const s = saveSession.value;
+    if (!s || s.id !== id) return;               // ended already (disconnect)
+    saveSession.value = null;
+    saving.value = false;
+    if (reply?.ok) {
+      editTool.value = null;
+      fetchTools();
+    } else {
+      editError.value = reply ? (reply.error || `${s.cmd} failed`) : writeUnknown();
+    }
+  });
 }
-
-// The reply for OUR request (matched by req_id, never by cmd alone) closes
-// the dialog on ok and reloads; an ok:false keeps the draft and shows why.
-watch(lastReply, (reply) => {
-  const s = saveSession.value;
-  if (!reply || !s || reply.req_id !== s.id) return;
-  saveSession.value = null;
-  saving.value = false;
-  if (reply.ok) {
-    editTool.value = null;
-    fetchTools();
-  } else {
-    editError.value = reply.error || `${s.cmd} failed`;
-  }
-});
 
 // Disconnect while a write is pending: the outcome is unknown — never a
 // blind resend. The draft stays, the table reloads on reconnect (watcher
@@ -396,19 +405,17 @@ function confirmDelete() {
   const id = fire({ cmd: "delete_tool", tool_number: deletingTool.value }, "toolTableWrite");
   if (id === null) return;
   deleteSession.value = { id };
+  void awaitReply(id, TOOL_WRITE_REPLY_MS).then((reply) => {
+    if (deleteSession.value?.id !== id) return;
+    deleteSession.value = null;
+    if (reply?.ok) {
+      deletingTool.value = null;
+      fetchTools();
+    } else {
+      deleteError.value = reply ? (reply.error || "Delete failed") : writeUnknown();
+    }
+  });
 }
-
-watch(lastReply, (reply) => {
-  const s = deleteSession.value;
-  if (!reply || !s || reply.req_id !== s.id) return;
-  deleteSession.value = null;
-  if (reply.ok) {
-    deletingTool.value = null;
-    fetchTools();
-  } else {
-    deleteError.value = reply.error || "Delete failed";
-  }
-});
 
 function cancelDelete() {
   if (deleteSession.value) return;

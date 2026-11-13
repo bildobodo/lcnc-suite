@@ -19,12 +19,11 @@ import type { Permissions } from "./permissions";
 interface UseDialogStateOptions {
   /** Called when the messages dialog opens via openDialog("messages"). */
   markMessagesRead: () => void;
-  /** Raw transport (kept for callers that need it). */
-  send: (cmd: WsCommand) => void;
   /** The gated send path (App.vue's fire) — this composable runs in App's
    *  setup, where useFire() cannot inject, so it is handed in explicitly.
-   *  The compensation toggle is `ready`-tier on the backend. */
-  fire?: (payload: WsCommand, gate?: keyof Permissions) => string | null;
+   *  The compensation toggle is `ready`-tier on the backend. Required: the
+   *  raw `send` fallback it once had is gone (issue #31 — one path). */
+  fire: (payload: WsCommand, gate?: keyof Permissions) => string | null;
   /** Asked before Settings closes by ANY path (its X, the backdrop, opening
    *  another navigation dialog). Returns true when it took over — it shows
    *  "Discard changes?" and calls `proceed` on Discard (UI-K16). */
@@ -125,8 +124,7 @@ export function useDialogState(opts: UseDialogStateOptions) {
   function confirmCompToggle() {
     if (compConfirmPending.value !== null) {
       const payload = { cmd: "set_compensation" as const, enable: compConfirmPending.value };
-      if (opts.fire) opts.fire(payload, "ready");
-      else opts.send(payload);
+      opts.fire(payload, "ready");
       compConfirmPending.value = null;
     }
   }

@@ -8,7 +8,7 @@ import { semanticKinsMode } from "./viewer/kins";
 import { runLineState, subExecState, resolveCurrentLine } from "./trackHighlight";
 import { clearSubfileCache } from "./lcncApi";
 import { mainLinesTrusted, type ScrubTrack } from "./viewer/scrubTrack";
-import { connectWs, connected, status, send, request, armed, lastReply, viewerGcode, viewerInit, gcodeContent, gcodeRevision, gcodeTextRevision, gcodeTextSource, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, tripReasonLabel, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, previewRefusal, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, serverShuttingDown } from "./lcncWs";
+import { connectWs, connected, status, send, request, awaitReply, armed, lastReply, viewerGcode, viewerInit, gcodeContent, gcodeRevision, gcodeTextRevision, gcodeTextSource, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, tripReasonLabel, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, previewRefusal, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, serverShuttingDown } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
 // chunk after first paint instead of blocking the initial bundle (P6). The viewerRef
 // methods are all `?.`-guarded, so calls during the brief load gap safely no-op.
@@ -1158,12 +1158,24 @@ const toolChangeConfirmKey = computed(() => `${toolChangeSeq.value}:${toolChange
 // pending request, closed in simulation (button gates BG-17) — the change
 // happens mid-program, never at idle/ready.
 const confirmSent = ref<string | null>(null);
+/** How long a confirmation waits for its reply (a HAL write — quick). */
+const CONFIRM_REPLY_MS = 30_000;
 function confirmToolChange() {
   if (!toolChangeRequested.value || confirmSent.value) return;
   const seq = toolChangeSeq.value;
   confirmRefusal.value = null;
   const id = fire({ cmd: "confirm_tool_change", ...(seq != null ? { request: seq } : {}) }, 'toolChangeConfirm');
-  if (id) confirmSent.value = id;
+  if (!id) return;
+  confirmSent.value = id;
+  // ITS reply, by req_id (#28 — a map, not a watch on lastReply): a refusal
+  // gives the button back and says why in the dialog; no reply leaves the
+  // confirmation standing (the outcome is unknown, never a guessed refusal).
+  void awaitReply(id, CONFIRM_REPLY_MS).then((r) => {
+    if (r && r.ok === false && confirmSent.value === id) {
+      confirmSent.value = null;
+      confirmRefusal.value = r.error ?? "Confirmation refused";
+    }
+  });
 }
 watch(toolChangeRequested, (req) => { if (!req) { confirmSent.value = null; confirmRefusal.value = null; } });
 // A confirmation the gateway refused or could not deliver says so IN the
@@ -1171,12 +1183,6 @@ watch(toolChangeRequested, (req) => { if (!req) { confirmSent.value = null; conf
 // again — bound to the same request.
 const confirmRefusal = ref<string | null>(null);
 watch([toolChangeSeq, toolChangeTool], () => { confirmSent.value = null; confirmRefusal.value = null; });
-watch(lastReply, (r) => {
-  if (r && confirmSent.value && r.req_id === confirmSent.value && r.ok === false) {
-    confirmSent.value = null;
-    confirmRefusal.value = r.error ?? "Confirmation refused";
-  }
-});
 watch(connected, (c) => { if (!c) confirmSent.value = null; });
 
 const feedSlider = ref(100);
@@ -1324,7 +1330,7 @@ const {
   requestCompToggle,
   confirmCompToggle,
   cancelCompToggle,
-} = useDialogState({ markMessagesRead, send, fire, guardSettingsClose: p => guardSettingsClose(p) });
+} = useDialogState({ markMessagesRead, fire, guardSettingsClose: p => guardSettingsClose(p) });
 
 // Settings closes over a draft only after an explicit Discard (UI-K16): the
 // macro editor and the gamepad wizard are local to the panel and were lost
@@ -2090,7 +2096,8 @@ const compGrid = ref<{ x: number[]; y: number[]; zi: number[][]; method: number 
 // One state per channel (UI-10): the owner knows whether a request is in
 // flight, whether the answer was "nothing recorded yet" (a state, shown as
 // an empty state — never a toast) or a real failure (shown with the reason
-// and a Retry). Correlated by req_id, so a stale reply cannot flip it.
+// and a Retry). Each request waits for ITS reply by req_id (#28): a newer
+// request supersedes an older one, whose late answer is dropped.
 type SurfaceLoad = "unknown" | "loading" | "empty" | "ready" | "error";
 const surfaceState = reactive({
   points: "unknown" as SurfaceLoad, pointsError: null as string | null,
@@ -2098,53 +2105,54 @@ const surfaceState = reactive({
 });
 let _probeReq: string | null = null;
 let _gridReq: string | null = null;
+/** How long a bulk read waits for its reply before it says so (a file read). */
+const BULK_REPLY_MS = 15_000;
+
+/** Why a bulk read ended without data: its refusal, the closed connection,
+ *  or no reply in time — never a guessed "empty". */
+function bulkFailure(r: any): string {
+  if (r) return r.error ?? "unknown error";
+  return connected.value ? "no reply — Retry" : "connection lost";
+}
 
 function requestProbeResults() {
   const id = send({ cmd: "get_probe_results" });
-  if (id) { _probeReq = id; surfaceState.points = "loading"; }
-}
-
-// Independent of the grid: a missing grid never blocks the points.
-function requestCompGrid() {
-  const id = send({ cmd: "get_comp_grid" });
-  if (id) { _gridReq = id; surfaceState.grid = "loading"; }
-}
-
-// Listen for get_probe_results / get_comp_grid replies
-watch(lastReply, (r: any) => {
-  if (!r) return;
-  if (r.req_id && r.req_id === _probeReq) {
+  if (!id) return;
+  _probeReq = id;
+  surfaceState.points = "loading";
+  void awaitReply(id, BULK_REPLY_MS).then((r) => {
+    if (_probeReq !== id) return;             // superseded by a newer request
     _probeReq = null;
-    if (r.ok) {
+    if (r?.ok) {
       surfacePoints.value = Array.isArray(r.points) ? r.points : [];
       surfaceState.points = surfacePoints.value!.length ? "ready" : "empty";
       surfaceState.pointsError = null;
     } else {
       surfaceState.points = "error";
-      surfaceState.pointsError = r.error ?? "unknown error";
+      surfaceState.pointsError = bulkFailure(r);
     }
-  } else if (r.ok && r.points) {
-    surfacePoints.value = r.points;   // pushed by another path — data only
-  }
-  if (r.req_id && r.req_id === _gridReq) {
+  });
+}
+
+// Independent of the grid: a missing grid never blocks the points.
+function requestCompGrid() {
+  const id = send({ cmd: "get_comp_grid" });
+  if (!id) return;
+  _gridReq = id;
+  surfaceState.grid = "loading";
+  void awaitReply(id, BULK_REPLY_MS).then((r) => {
+    if (_gridReq !== id) return;              // superseded by a newer request
     _gridReq = null;
-    if (r.ok) {
+    if (r?.ok) {
       compGrid.value = r.comp_grid ?? null;
       surfaceState.grid = r.comp_grid ? "ready" : "empty";
       surfaceState.gridError = null;
     } else {
       surfaceState.grid = "error";
-      surfaceState.gridError = r.error ?? "unknown error";
+      surfaceState.gridError = bulkFailure(r);
     }
-  } else if (r.ok && r.comp_grid) {
-    compGrid.value = r.comp_grid;
-  }
-}, { flush: "sync" });
-watch(connected, (c) => {
-  if (c) return;
-  if (_probeReq) { _probeReq = null; surfaceState.points = "error"; surfaceState.pointsError = "connection lost"; }
-  if (_gridReq) { _gridReq = null; surfaceState.grid = "error"; surfaceState.gridError = "connection lost"; }
-});
+  });
+}
 
 /** ---------- G-code stats watcher ---------- */
 // Content is fetched over HTTP by lcncWs (see gcodeContent ref). Here we only

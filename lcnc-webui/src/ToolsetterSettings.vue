@@ -3,7 +3,7 @@ import { ref, reactive, computed, onMounted, watch } from "vue";
 import { fmtClock } from "./format";
 import FormField from "./FormField.vue";
 import { TS_POSITION_FIELDS, TS_PROBE_FIELDS, TS_OPTION_FIELDS, TS_OFFSET_FIELDS, TS_FINDER_FIELDS, unitText } from "./probeFields";
-import { usePermissions } from "./permissions";
+import { usePermissions, useFire } from "./permissions";
 import {
   saveToolsetterDefaults, savedSection, confirmedSection, serverSettingsReady,
   loadProbeDefaults, settingsVersion, TOOLSETTER_FALLBACK, type ToolsetterDefaults,
@@ -11,7 +11,7 @@ import {
 import { confirmedToolsetter, toolsetterVarMap, TOOLSETTER_REQUIRED } from "./toolsetterVars";
 import { fetchG30 } from "./lcncApi";
 import { noteG30Confirmed } from "./g30Shared";
-import { status, viewerInit, request, connected } from "./lcncWs";
+import { status, viewerInit, request, awaitReply, connected } from "./lcncWs";
 import { TOOLSETTER_PARAMS_HELP, toolsetterMachineState, toolsetterMachineText } from "./toolsetterState";
 import { useAxes, DEFAULT_AXES } from "./useAxes";
 import { savePayload, sameG30, contextChanged, replyApplies, type G30Values, type G30Context, type G30Ticket } from "./g30Form";
@@ -31,6 +31,7 @@ const emit = defineEmits<{
 }>();
 
 const can = usePermissions();
+const fire = useFire();
 
 const OFFSET_DIR_LABELS: Record<number, string> = { 0: "X-", 1: "X+", 2: "Y-", 3: "Y+" };
 const BRAKE_LABELS: Record<number, string> = { 0: "None", 1: "M00", 2: "M01" };
@@ -94,8 +95,12 @@ async function pushWhenConfirmed() {
   // section anyway (the gateway's sync). Only set up, ready and not already
   // in the machine; the machine line says what came of it.
   if (!setup.ok || !can.value.ready || machineState.value.kind === "confirmed") return;
-  const reply = await request({ cmd: "set_params", sets: { toolsetter: toolsetterVarMap(setup.values) } });
-  pushError.value = !reply ? "Not sent to the machine — no reply"
+  // ONE path for set_params (issue #31): the probe panel fires it, so the
+  // push does too — the gate re-check and the busy latch, then ITS reply.
+  const id = fire({ cmd: "set_params", sets: { toolsetter: toolsetterVarMap(setup.values) } }, "ready");
+  if (id === null) { pushError.value = "Not sent now — the next start applies the values"; return; }
+  const reply = await awaitReply(id);
+  pushError.value = !reply ? "No reply — the machine line shows what came of it"
     : reply.ok === false ? `Not taken by the machine — ${reply.error ?? "refused"}` : null;
 }
 watch(() => machineState.value.kind, k => { if (k === "confirmed") pushError.value = null; });
