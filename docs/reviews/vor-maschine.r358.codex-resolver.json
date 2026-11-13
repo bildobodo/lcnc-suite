@@ -1,0 +1,64 @@
+{
+  "target": "13affe2b",
+  "python": "3.13.5 (main, Aug 10 2026, 12:06:59) [GCC 14.2.0]",
+  "baseline": {
+    "gate": {
+      "exit": 0,
+      "summary": {
+        "filesAnalyzed": 42,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 3.105
+      },
+      "diagnostics": []
+    },
+    "native_problems": []
+  },
+  "annotated_resolver": {
+    "gate": {
+      "exit": 0,
+      "summary": {
+        "filesAnalyzed": 43,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 3.119
+      },
+      "diagnostics": []
+    },
+    "native_problems": [
+      "the stub of linuxcnc, line 170: command.__getattribute__ makes every member check \u2014 not a stub form the check reads"
+    ]
+  },
+  "method_resolver": {
+    "gate": {
+      "exit": 0,
+      "summary": {
+        "filesAnalyzed": 43,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 3.114
+      },
+      "diagnostics": []
+    },
+    "native_problems": [
+      "the stub of linuxcnc, line 170: command.__getattribute__ makes every member check \u2014 not a stub form the check reads"
+    ]
+  },
+  "restored": {
+    "gate": {
+      "exit": 0,
+      "summary": {
+        "filesAnalyzed": 42,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 3.288
+      },
+      "diagnostics": []
+    },
+    "native_problems": []
+  }
+}

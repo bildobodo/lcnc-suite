@@ -1114,3 +1114,26 @@ Gebaut auf `feat/typecheck` (gepusht), `3fe74118..13affe2b`, ein Commit. **Round
 | Konstante ohne Wert | nur ihr Name ist Behauptung; alle realen Konstanten tragen Werte |
 
 Bewusst außerhalb des Abgleichs bleiben, wie vereinbart, Signaturen, Typen und die Feldformen der Info-Zeilen. Der Abgleich prüft Namen, Werte und Basen.
+
+
+---
+
+## Codex · Nachprüfung Paket 2a · R358 · 13. November 2026
+
+**Urteil: agreement für `13affe2b` im vereinbarten Umfang von Paket 2a. VM-I02, Reste A und B, sind geschlossen.** Die drei geänderten Dateien gegen `3fe74118` gelesen und die R357-Sonden in einer eigenen Archivkopie `/tmp/codex-r358` wiederholt. Kein neuer Befund und keine Operator-Frage.
+
+### Bindung und Resolver
+
+- **Rest A:** Die wörtliche Gegenprobe mit `from codex_helper import RuntimeError` und einem zusätzlichen geerbten Mitglied besteht weiterhin den Typchecker, wird nun aber vom nativen Abgleich als fremde Bindung mit Herkunft und Zeile verweigert. Damit verhindert genau die neue Bindungsregel die falsche Freigabe. Auch die frühere private Vererbung wird abgelehnt. Die konservative Entscheidung, selbst `from builtins import RuntimeError` nicht zu unterstützen, nehme ich an: Sie ist benannt, wird durchgesetzt und wird von den vorhandenen Stubs nicht benötigt. Das unveränderte `error(RuntimeError)` bleibt grün. [Sonde](vor-maschine.r358.codex-probe.py), [Ergebnisse](vor-maschine.r358.codex-probe.json).
+- **Rest B:** `command.__getattribute__: Any` wird nun ebenso wie die entsprechende Methodendeklaration verweigert. Der Verbraucher mit dem nicht existierenden Mitglied erhält daher keine gemeinsame Freigabe aus Typchecker und nativem Abgleich mehr. Zusätzliche annotierte Resolver auf Modulebene werden ebenfalls erkannt. Die gewöhnlichen Dunder der realen Stubs bleiben grün. [Resolver-Sonde](vor-maschine.r358.codex-resolver.py), [Ergebnisse](vor-maschine.r358.codex-resolver.json).
+- **Dekoratoren:** Die zusätzliche Bindungsprüfung ist sinnvoll. Eigene Gegenfälle für importiertes `property`, importiertes `overload` und ein lokal annotiertes `property` werden verweigert. Die heutigen Deklarationen mit Builtin-`property` und `typing.overload` werden angenommen. [Zusatzsonde](vor-maschine.r358.codex-extra.py), [Ergebnisse](vor-maschine.r358.codex-extra.json).
+
+### Stub-Menge und Nachweise
+
+Die Ergänzung um `rs274/__init__.pyi` und die benannte Ausnahme für den eingebetteten `interpreter` passen zum Vertrag. Ich habe beide Seiten geprüft: Eine zusätzliche Behauptung `codex_nonexistent: int` im Paket-Stub wird am realen `rs274` als fehlend gemeldet; eine neue, nicht registrierte `.pyi` macht den Verzeichnis-Wächter rot. Nach dem Entfernen beider Mutationen ist der native Abgleich wieder ohne Probleme. Die Vollständigkeit der Dateiliste wird vom Test durchgesetzt; sie ist keine zusätzliche Laufzeitprüfung jedes Aufrufs von `problems()`.
+
+**Eigene Läufe:** 55 gezielte Testfunktionen bestanden, keine übersprungen, einschließlich nativen Abgleichs und CPython-Differentialtests ([Ausgabe](vor-maschine.r358.codex-tests.txt), [JUnit](vor-maschine.r358.codex-tests.xml)). Typ-Gate vor und nach den Sonden: **42 Dateien, 0 Fehler, 0 Warnungen**. Die alten R355/R356-Gegenfälle bleiben abgefangen; auch die wiederholten Format- und Settings-Kontrollen bleiben grün. Dateien und temporäre Ergänzungen sind zurückgebaut, Hashes und Befehle im [Prüfprotokoll](vor-maschine.r358.codex-checks.json).
+
+Den gelieferten Round-Gate-PASS an `13affe2b` sowie **54/54 Gegenfälle wie erwartet** habe ich gelesen, nicht vollständig erneut ausgeführt. Das Agreement ersetzt weder den angekündigten tatsächlichen Installations-/Merge-Gate-Lauf noch die CI am Endkopf. Die vereinbarte Grenze bleibt bestehen: Der native Abgleich prüft Namen, Werte und Basen; Signaturen und Feldtypen stammen aus den Stubs. Die Einbeziehung von `gateway.py` und die typisierten Schreibaufträge gehören weiter zu 2b.
+
+Kein Produktcode geändert, keine Tests oder Builds im Live-Baum, keine Verbindung zur laufenden Sim. Nur dieser Anhang und neue R358-Belege.
