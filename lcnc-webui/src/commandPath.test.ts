@@ -211,3 +211,26 @@ describe("one client path per command", () => {
     expect(fired.has("abort")).toBe(true);
   });
 });
+
+// Issue #28: a caller waits for ITS reply by req_id (`request` / `awaitReply`,
+// a map) — never by watching `lastReply`, where two replies in one tick
+// overwrite each other and a stale reply can pass for a fresh one. What may
+// still read it: the activity note (any round trip counts) and the Debug
+// tab's raw view. A new reader fails here until it is one of those.
+describe("replies are matched by req_id (#28)", () => {
+  const ALLOWED = new Set(["App.vue|watch(lastReply, noteActivity)", "DebugTab.vue|{{ lastReply }}"]);
+  it("lastReply has no other reader", () => {
+    const readers: string[] = [];
+    for (const [path, src] of Object.entries(SOURCES)) {
+      const rel = path.replace("./", "");
+      if (rel === "lcncWs.ts") continue;                         // its owner
+      const text = code(src).replace(/^\s*import\b[\s\S]*?\bfrom\s*["'][^"']+["'];?/gm, " ");   // an import reads nothing
+      for (const m of text.matchAll(/watch\(\s*lastReply\b[^)]*\)|\{\{\s*lastReply\s*\}\}|\blastReply\.value\b|\blastReply\b(?=\s*[,)])/g)) {
+        readers.push(`${rel}|${m[0].replace(/\s+/g, " ")}`);
+      }
+    }
+    expect(readers.some((r) => r.startsWith("App.vue|watch(lastReply")), "the scan reads (vacuous-pass guard)").toBe(true);
+    expect(readers.filter((r) => !ALLOWED.has(r)), "a lastReply reader — wait with awaitReply instead").toEqual([]);
+  });
+});
+
