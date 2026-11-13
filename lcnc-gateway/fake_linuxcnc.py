@@ -65,6 +65,7 @@ CONSTANTS: dict[str, int] = {
     "STATE_OFF": 3,
     "STATE_ESTOP": 1,
     "STATE_ESTOP_RESET": 2,
+    "TRAJ_MODE_FREE": 1,
     "TRAJ_MODE_TELEOP": 3,
     "MIST_ON": 1,
     "MIST_OFF": 0,

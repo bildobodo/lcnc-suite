@@ -478,7 +478,16 @@ export function acknowledgeSafetyTrip() {
   // No optimistic clear (Codex R321–R322, F-TRIP.S1b): the trip stays on the
   // page until the gateway's next status frame comes without it — a send that
   // never arrives must not hide a trip the gateway still holds.
-  send({ cmd: "safety_trip_ack" });
+  //
+  // The acknowledgement names the trip the banner shows (package 3a, Codex
+  // R363 Q363-2): a late click on an older banner can never clear a newer
+  // trip — the gateway refuses an id that is not its current trip's.
+  const id = safetyTrip.value?.id;
+  if (id === undefined) {
+    pushMessage(OPERATOR_ERROR, "Safety trip has no id — reload the page to acknowledge it");
+    return;
+  }
+  send({ cmd: "safety_trip_ack", id });
 }
 
 // Note: becoming-visible fires an immediate heartbeat via the worker — the

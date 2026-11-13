@@ -988,21 +988,21 @@ def trivkins_coordinates(kinematics_value):
     return None
 
 
-def joint_jog_map(joint_letters, joints, axes, max_vels):
-    """Which joint a jog BEFORE homing moves for each configured axis (button
-    gates package E, BG-07): from a DECLARED joint order, never the axis-list
-    index guessed as a joint number.
+def axis_joint_rows(joint_letters, joints, axes):
+    """The declared joint of each configured axis (package 3a, Codex R363–
+    R365) — the MAPPING alone, no jog switch, cap or speed: Home/Unhome per
+    axis and the step jog's target read it, the jog before homing builds on
+    it (joint_jog_map). From a DECLARED joint order, never the axis-list index
+    guessed as a joint number.
 
     `joint_letters`: each joint's axis letter in joint order, or None;
     `joints`: STAT.joints; `axes`: the configured axis letters in axis-list
-    order (the wire index); `max_vels`: [JOINT_n] MAX_VELOCITY per joint, None
-    when absent. Returns (rows, why): one row per axis {letter, joint,
-    max_vel, reason} — joint None and the reason where that axis cannot jog
-    joint-wise — and `why`, a reason for the whole map (every row closed
-    then). A letter two or more joints carry is a synchronised group (a
-    gantry): never jogged one joint at a time. Pure."""
+    order (the wire index). Returns (rows, why): one row per axis {letter,
+    joint, reason} — joint None and the reason where the axis has no single
+    joint — and `why`, a reason for the whole map (every row closed then). A
+    letter two or more joints carry is a synchronised group (a gantry). Pure."""
     def closed(reason):
-        return [{"letter": L, "joint": None, "max_vel": None, "reason": reason} for L in axes], reason
+        return [{"letter": L, "joint": None, "reason": reason} for L in axes], reason
     if joint_letters is None:
         return closed(JOINT_ORDER_UNDECLARED)
     if not isinstance(joints, int) or len(joint_letters) != joints:
@@ -1014,18 +1014,76 @@ def joint_jog_map(joint_letters, joints, axes, max_vels):
     for L in axes:
         carriers = [j for j, jl in enumerate(joint_letters) if jl == L]
         if len(carriers) > 1:
-            rows.append({"letter": L, "joint": None, "max_vel": None, "reason": GANTRY_AXIS})
+            rows.append({"letter": L, "joint": None, "reason": GANTRY_AXIS})
+        elif not carriers:
+            rows.append({"letter": L, "joint": None, "reason": NO_JOINT_FOR_AXIS})
+        else:
+            rows.append({"letter": L, "joint": carriers[0], "reason": None})
+    return rows, None
+
+
+def joint_jog_map(joint_letters, joints, axes, max_vels):
+    """Which joint a jog BEFORE homing moves for each configured axis (button
+    gates package E, BG-07): the declared mapping (axis_joint_rows) plus the
+    joint's [JOINT_n] MAX_VELOCITY the cap is a share of — a joint without one
+    closes its row. Returns (rows, why): {letter, joint, max_vel, reason}
+    per axis. Pure."""
+    base, why = axis_joint_rows(joint_letters, joints, axes)
+    rows = []
+    for r in base:
+        if r["joint"] is None:
+            rows.append({**r, "max_vel": None})
             continue
-        if not carriers:
-            rows.append({"letter": L, "joint": None, "max_vel": None, "reason": NO_JOINT_FOR_AXIS})
-            continue
-        j = carriers[0]
+        j = r["joint"]
         mv = max_vels[j] if j < len(max_vels) else None
         if mv is None or not mv > 0:
-            rows.append({"letter": L, "joint": None, "max_vel": None, "reason": NO_JOINT_MAX_VEL})
+            rows.append({"letter": r["letter"], "joint": None, "max_vel": None, "reason": NO_JOINT_MAX_VEL})
             continue
-        rows.append({"letter": L, "joint": j, "max_vel": float(mv), "reason": None})
-    return rows, None
+        rows.append({"letter": r["letter"], "joint": j, "max_vel": float(mv), "reason": None})
+    return rows, why
+
+
+#: the step jog's target has no known travel (package 3a, Q363-1: closed)
+STEP_TRAVEL_UNKNOWN = "Step jog closed — travel unknown"
+
+
+def step_span_refusal(entries, joint_mode, rows):
+    """Is every step of `entries` (wire axis, vel, distance — None for a
+    continuous jog) within the travel of the target it ADDRESSES (package 3a,
+    Codex R364 VM364-01)? `joint_mode`: the jog's joint_flag; `rows`: per
+    wire axis {letter, joint, joint_span, axis_span}. Joint mode: the
+    mapped joint's span ([JOINT_n] MAX−MIN); teleop: the axis' span
+    ([AXIS_L] MAX−MIN). An unknown target or span closes the step jog. None
+    = every step fits, else the refusal. Continuous entries are not
+    judged. Pure."""
+    for axis, _vel, dist in entries:
+        if dist is None:
+            continue
+        row = rows[axis] if 0 <= axis < len(rows) else None
+        if row is None:
+            return STEP_TRAVEL_UNKNOWN
+        if joint_mode:
+            if row.get("joint") is None:
+                return STEP_TRAVEL_UNKNOWN
+            span, what = row.get("joint_span"), f"joint {row['joint']}"
+        else:
+            span, what = row.get("axis_span"), f"axis {row.get('letter')}"
+        if not (isinstance(span, (int, float)) and math.isfinite(span) and span > 0):
+            return STEP_TRAVEL_UNKNOWN
+        if abs(dist) > span:
+            return f"Step {abs(dist):g} past the travel of {what} ({span:g}) — choose a smaller step"
+    return None
+
+
+def limit_span(lo, hi):
+    """MAX_LIMIT − MIN_LIMIT of an INI section, or None when either is
+    missing, not finite, or the window is not positive. Pure."""
+    try:
+        a, b = float(lo), float(hi)
+    except (TypeError, ValueError):
+        return None
+    span = b - a
+    return span if math.isfinite(span) and span > 0 else None
 
 
 def kins_world_flags(seqs, events, identity_first):

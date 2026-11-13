@@ -66,6 +66,10 @@ elif _launcher_bind.get("needs_poll"):
 from gateway_util import (
     mode_switch_ignored_message,
     joint_jog_map,
+    axis_joint_rows,
+    step_span_refusal,
+    limit_span,
+    NO_JOINT_MAX_VEL,
     parse_joint_letters,
     trivkins_coordinates,
     ALLOWED_EXTENSIONS,
@@ -114,7 +118,7 @@ from gateway_util import (
     PROV_STAMPED,
 )
 from toolsetter_rules import canonical as canonical_param, setup as toolsetter_setup  # noqa: E402 — P2, the form's rule
-from command_policy import gate_refusal, NOT_ARMED, STATE_UNKNOWN, MACHINE_BUSY, MOTION_UNKNOWN, MACHINE_MOVING, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
+from command_policy import gate_refusal, NOT_ARMED, STATE_UNKNOWN, MACHINE_BUSY, MOTION_UNKNOWN, MACHINE_MOVING, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, widen_stop, STOP_COMMANDS, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -339,8 +343,7 @@ _WS_CMD_QUEUE_MAX = 32
 # full queue never rejects them and an abort never cancels them — a pause or
 # a spindle stop that runs after an abort is harmless; one that is dropped
 # is not.
-_WS_STOP_CMDS = frozenset({"jog_stop", "jog_stop_multi", "abort", "estop",
-                           "cycle_pause", "spindle_stop"})
+_WS_STOP_CMDS = STOP_COMMANDS   # ONE set: the payload contract widens these, never refuses them (N5)
 # abort/estop SUPERSEDE the work this client queued before them and PREEMPT
 # any in-flight non-stop handler on EVERY client (2026-09-05): a stop must
 # never wait behind a 30 s MDI wait, and abort/E-Stop are machine-global, so
@@ -588,7 +591,7 @@ def _clear_session_caches() -> None:
     VM-I08: an old reader published its result into the new Link's caches).
     Reference assignments only, no I/O."""
     global _nc_files_dir, _ini_config, _machine_limits, _kins_decl_cache, _kins_mode_cmd_cache
-    global _coord_without_homing_cache, _spindle_before_homing_cache, _joint_jog_cache
+    global _coord_without_homing_cache, _spindle_before_homing_cache, _joint_jog_cache, _axis_joint_cache
     _nc_files_dir = None
     _kins_mode_cmd_cache = None
     _viewer_init_cache.clear()
@@ -598,6 +601,7 @@ def _clear_session_caches() -> None:
     _coord_without_homing_cache = None
     _spindle_before_homing_cache = None
     _joint_jog_cache = None
+    _axis_joint_cache = None
     _status_runtime.invalidate_var_file_path()
 
 
@@ -4071,6 +4075,9 @@ def _auto_running() -> bool:
 #: A jog prepared homed met an unhomed machine at its write, or the reverse
 #: (Codex R219 BG-33): its target, gantry closure and cap no longer hold.
 JOG_HOMING_CHANGED = "Homing state changed — jog again"
+#: a step's mode (joint / teleop) is not the one its travel was judged under
+#: (package 3a, Codex R364–R365): no jog is written
+JOG_MODE_CHANGED = "Jog mode changed — step again"
 #: A multi-jog (the strip's diagonals) before homing starts two joints at once
 #: — no single joint, like a coordinated move (package F, operator
 #: 2026-10-28; AXIS and gmoccapy have no diagonals in joint mode).
@@ -4114,6 +4121,13 @@ async def _start_jogs(cmd: str, armed: bool, entries) -> Dict[str, Any]:
         return JOG_HOMING_CHANGED if (_homed_now() is not True) != before_homing else None
 
     targets = None
+    # A STEP addresses a target whose travel bounds it (package 3a, Q363-1,
+    # Codex R364 VM364-01 / R365): the joint in joint mode, the axis in
+    # teleop — the mode EXPECTED here, before any preparatory write, by
+    # _jog_mode_flag's own rule, and confirmed AT THE CONTROLLER in the last
+    # admission inside each jog's write thread. An unknown target or travel
+    # closes the step jog; continuous jogs and the stops are not bounded.
+    step = any(dist is not None for _axis, _vel, dist in entries)
     if before_homing:
         facts = _joint_jog_facts()
         if not facts["enabled"]:
@@ -4132,18 +4146,39 @@ async def _start_jogs(cmd: str, armed: bool, entries) -> Dict[str, Any]:
         # each axis' own closure first (the strip names it the same way)
         if len(targets) > 1:
             return {"ok": False, "error": DIAGONAL_BEFORE_HOMING}
+        expected_jf = 1
+        span_rows = facts["axes"]
+    else:
+        expected_jf = 1 if (getattr(_shared_status, "joints_beyond_limit", None) or []) else 0
+        span_rows = _axis_joint_map()["axes"]
+    if step:
+        why = step_span_refusal(entries, expected_jf == 1, span_rows)
+        if why:
+            return {"ok": False, "error": why}
+
+    def jog_admit() -> Optional[str]:
+        # the jog's own last admission: the class and the homing state
+        # (admit), then — for a step — the mode its travel was judged under,
+        # on the controller read admit() just took in this thread
+        why = admit()
+        if why or not step:
+            return why
+        want = linuxcnc.TRAJ_MODE_FREE if expected_jf else linuxcnc.TRAJ_MODE_TELEOP
+        return None if safe_get("motion_mode", None) == want else JOG_MODE_CHANGED
     try:
         await set_mode(linuxcnc.MODE_MANUAL, admit=admit)
         if targets is None:
             jf = await _jog_mode_flag()
+            if step and jf != expected_jf:
+                return {"ok": False, "error": JOG_MODE_CHANGED}
             targets = [(axis, jf, _jog_axis_arg(axis, jf), vel, dist) for axis, vel, dist in entries]
         for axis, jf, arg, vel, dist in targets:
             def book(axis=axis, jf=jf, arg=arg):
                 _active_jogs[axis] = (jf, arg)
             if dist is None:
-                rc = await _cmd_blocking(link(), op(linuxcnc.command.jog, linuxcnc.JOG_CONTINUOUS, jf, arg, vel), wait=None, admit=admit, written=book)
+                rc = await _cmd_blocking(link(), op(linuxcnc.command.jog, linuxcnc.JOG_CONTINUOUS, jf, arg, vel), wait=None, admit=jog_admit, written=book)
             else:
-                rc = await _cmd_blocking(link(), op(linuxcnc.command.jog, linuxcnc.JOG_INCREMENT, jf, arg, vel, dist), wait=None, admit=admit, written=book)
+                rc = await _cmd_blocking(link(), op(linuxcnc.command.jog, linuxcnc.JOG_INCREMENT, jf, arg, vel, dist), wait=None, admit=jog_admit, written=book)
             _trace_jog(cmd, axis, jf, arg, vel=vel, dist=dist, rc=rc)
     except _WriteRefused as refused:
         return {"ok": False, "error": str(refused)}
@@ -4267,7 +4302,8 @@ def _jog_axis_arg(idx: int, jf: int) -> int:
         # joint; without one the old assumption index = joint stays (the
         # beyond-limit joint jog of a homed machine) — true on every shipped
         # profile, a guess elsewhere.
-        rows = _joint_jog_facts()["axes"]
+        # the pure mapping (package 3a): the jog switch decides nothing here
+        rows = _axis_joint_map()["axes"]
         if 0 <= idx < len(rows) and rows[idx]["joint"] is not None:
             return rows[idx]["joint"]
         return idx
@@ -4515,6 +4551,12 @@ async def _bind_device(client, client_id, address: str, msg: Dict[str, Any]) -> 
     unusable) or a profile that cannot be written leaves the connection
     UNBOUND: the template's view, no device section saves."""
     token = msg.get("device_token")
+    if token is not None and not isinstance(token, str):
+        # its sub-contract (package 3a, R364): a malformed token is traced and
+        # leaves the connection as it is — never a lookup with it
+        _trace.emit("device.token_malformed", level="warn", client_id=client_id, kind=type(token).__name__)
+        client.device_bound = True
+        return
     if client.device_bound:
         if token is not None and client.device_id != await asyncio.to_thread(_settings_store.find_device, token):
             _trace.emit("device.rebind_refused", level="warn", client_id=client_id, device=client.device_id)
@@ -4572,7 +4614,11 @@ async def _ws_save_settings(client, msg: Dict[str, Any]) -> Dict[str, Any]:
     by req_id (UX-08): every path echoes it, or the header reads "Saving…"
     forever on a real gateway."""
     echo = {"cmd": "save_settings", **_req_echo(msg)}
-    section = msg.get("section", "")
+    section = msg.get("section")
+    if not isinstance(section, str):
+        # required, a string — a list or an object reached the set lookup and
+        # its TypeError ended the reader (package 3a, R363 VM363-03)
+        return _settings_refusal(echo, "Settings section missing — reload the page")
     if section not in _VALID_SETTINGS_SECTIONS:
         return _settings_refusal(echo, f"Unknown settings section: {section}")
     want = msg.get("device")
@@ -4632,7 +4678,11 @@ async def _ws_device_command(client, msg: Dict[str, Any]) -> Dict[str, Any]:
             raise PermissionError(why)
     try:
         if cmd == "device_rename":
-            await asyncio.to_thread(_settings_store.rename_device, target, msg.get("name"), admit)
+            name = msg.get("name")
+            if not isinstance(name, str):
+                # a string (package 3a, R363): anything else cleared the name
+                return _settings_refusal(echo, "Device name missing — type a name")
+            await asyncio.to_thread(_settings_store.rename_device, target, name, admit)
         elif cmd == "device_reset":
             await asyncio.to_thread(_settings_store.reset_device, target, admit)
         else:
@@ -5584,7 +5634,7 @@ async def _feature_job(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, 
         basis = _toolsetter_basis()
         if not basis["ok"]:
             return {"ok": False, "error": basis["reason"]}
-        tool = 0 if cmd == "tool_unload_measure" else finite_int(msg.get("tool", 0), lo=0)
+        tool = 0 if cmd == "tool_unload_measure" else finite_int(msg["tool"], lo=0)   # required (validate_payload)
         if tool < 1 and cmd == "tool_measure":
             return {"ok": False, "error": "No tool to measure"}
         purpose, line = "toolsetter", f"T{tool} M600"
@@ -5785,7 +5835,7 @@ async def _cmds_machine_state(cmd: str, msg: Dict[str, Any], armed: bool,
         blocked = reject_if_auto_running()
         if blocked:
             return blocked
-        mode = finite_int(msg.get("mode", 0))
+        mode = finite_int(msg["mode"])   # required (validate_payload)
         if mode not in (linuxcnc.MODE_MANUAL, linuxcnc.MODE_AUTO, linuxcnc.MODE_MDI):
             return {"ok": False, "error": f"Invalid mode: {mode}"}
         # Per target (button gates BG-04): MANUAL needs modeManual, MDI /
@@ -5839,7 +5889,7 @@ async def _cmds_mdi_and_frames(cmd: str, msg: Dict[str, Any], armed: bool,
         if blocked:
             return blocked
 
-        text = msg.get("text", "")
+        text = msg["text"]   # required (validate_payload)
 
         if not isinstance(text, str) or not text.strip():
             return {"ok": False, "error": "Missing text"}
@@ -5879,7 +5929,7 @@ async def _cmds_mdi_and_frames(cmd: str, msg: Dict[str, Any], armed: bool,
         if blocked:
             return blocked
         name = msg.get("name")
-        values = msg.get("args") or []
+        values = msg.get("args", [])   # optional: absent = no values (the arity check decides); null refused upstream
         revision = msg.get("revision")
         if not isinstance(name, str) or not macro_files.NAME_RE.match(name):
             return {"ok": False, "error": "Not a macro name"}
@@ -5888,6 +5938,12 @@ async def _cmds_mdi_and_frames(cmd: str, msg: Dict[str, Any], armed: bool,
         mstate = await asyncio.to_thread(macro_dir_state)
         if mstate["problems"]:
             return {"ok": False, "error": mstate["problems"][0]}
+        # The operator's values against the file's header BEFORE anything is
+        # written (package 3a A2, R363): _start_guard may switch to MDI and
+        # write #3116. The binding build below stays the one under the lock.
+        pre = await asyncio.to_thread(_macro_call_precheck, mstate, name, revision, values)
+        if pre:
+            return {"ok": False, "error": pre}
         refused = await _start_guard(armed)
         if refused:
             return refused
@@ -5961,7 +6017,7 @@ async def _cmds_mdi_and_frames(cmd: str, msg: Dict[str, Any], armed: bool,
         blocked = reject_if_auto_running()
         if blocked:
             return blocked
-        mode = finite_int(msg.get("mode", -1))
+        mode = finite_int(msg["mode"])   # required (validate_payload)
         if mode not in (0, 1, 2):
             return {"ok": False, "error": f"Invalid kinematics mode: {mode}"}
         if _shared_status is None:
@@ -6105,7 +6161,7 @@ async def _cmds_tool_table(cmd: str, msg: Dict[str, Any], armed: bool,
             "P": finite_int(msg.get("pocket", tool_num), lo=0),
             "Z": finite_float(msg.get("z_offset", 0.0)),
             "D": finite_float(msg.get("diameter", 0.0), lo=0),
-            "remark": str(msg.get("remark", "")),
+            "remark": msg.get("remark", ""),
         })
         def update(library):   # the metadata, if provided
             key = str(tool_num)
@@ -6184,7 +6240,7 @@ async def _cmds_tool_table(cmd: str, msg: Dict[str, Any], armed: bool,
             src["P"] = finite_int(msg["pocket"], lo=0)
         src["Z"] = finite_float(msg.get("z_offset", src.get("Z", 0.0)))
         src["D"] = finite_float(msg.get("diameter", src.get("D", 0.0)), lo=0)
-        src["remark"] = str(msg.get("remark", src.get("remark", "")))
+        src["remark"] = msg.get("remark", src.get("remark", ""))
         def update(library):
             meta = library.pop(str(old_num), {}) or {}
             for field in _TOOL_META_FIELDS:
@@ -6262,18 +6318,18 @@ async def _cmds_program_run(cmd: str, msg: Dict[str, Any], armed: bool,
     if cmd == "auto_run":
         require_armed(armed)
         spindle_dir = msg.get("spindle_dir")
-        spindle_speed = finite_int(msg.get("spindle_speed", 0), lo=0)
-        start_line = finite_int(msg.get("line", 0), lo=0)
+        spindle_speed = finite_float(msg.get("spindle_speed", 0), lo=0)   # optional: absent = no spindle start
+        start_line = finite_int(msg["line"], lo=0)   # required (validate_payload)
         pre_tool = finite_int(msg.get("pre_tool", 0), lo=0)
-        safe_z = bool(msg.get("safe_z", False))
+        safe_z = msg.get("safe_z", False) is True   # optional, a JSON boolean (validate_payload)
         entry = None
         _ex, _ey = msg.get("entry_x"), msg.get("entry_y")
         if _ex is not None or _ey is not None:
             entry = {
                 "x": finite_float(_ex) if _ex is not None else None,
                 "y": finite_float(_ey) if _ey is not None else None,
-                "wcs": msg.get("entry_wcs") if msg.get("entry_wcs") in _RFL_WCS_OK else None,
-                "units": msg.get("entry_units") if msg.get("entry_units") in ("G20", "G21") else None,
+                "wcs": msg.get("entry_wcs"),       # absent = the modal fixture; an invalid one is refused upstream
+                "units": msg.get("entry_units"),   # absent = the modal units; an invalid one is refused upstream
             }
             safe_z = True  # the XY preamble only ever moves at safe height
 
@@ -6395,7 +6451,7 @@ async def _cmds_motion_and_overrides(cmd: str, msg: Dict[str, Any], armed: bool,
             return blocked
 
         return await _start_jogs("jog_cont", armed,
-                                 [(finite_int(msg.get("axis"), lo=0), finite_float(msg.get("vel", 0.0)), None)])
+                                 [(finite_int(msg["axis"], lo=0), finite_float(msg["vel"]), None)])
 
     if cmd == "jog_stop":
         # Stopping motion is always allowed — gateway must NOT silently
@@ -6426,7 +6482,7 @@ async def _cmds_motion_and_overrides(cmd: str, msg: Dict[str, Any], armed: bool,
 
         return await _start_jogs("jog_cont_multi", armed,
                                  [(finite_int(e["axis"], lo=0), finite_float(e["vel"]), None)
-                                  for e in msg.get("axes", [])])
+                                  for e in msg["axes"]])
 
     if cmd == "jog_stop_multi":
         # Stopping motion is always allowed — see jog_stop above for the
@@ -6459,8 +6515,8 @@ async def _cmds_motion_and_overrides(cmd: str, msg: Dict[str, Any], armed: bool,
 
         # speed only; the distance carries the direction
         return await _start_jogs("jog_incr", armed,
-                                 [(finite_int(msg.get("axis"), lo=0), abs(finite_float(msg.get("vel", 0.0))),
-                                   finite_float(msg.get("distance", 0.0)))])
+                                 [(finite_int(msg["axis"], lo=0), abs(finite_float(msg["vel"])),
+                                   finite_float(msg["distance"]))])
 
     if cmd == "jog_incr_multi":
         require_armed(armed)
@@ -6471,7 +6527,7 @@ async def _cmds_motion_and_overrides(cmd: str, msg: Dict[str, Any], armed: bool,
 
         return await _start_jogs("jog_incr_multi", armed,
                                  [(finite_int(e["axis"], lo=0), abs(finite_float(e["vel"])),
-                                   finite_float(e["distance"])) for e in msg.get("axes", [])])
+                                   finite_float(e["distance"])) for e in msg["axes"]])
 
     if cmd == "home_all":
         require_armed(armed)
@@ -6485,12 +6541,12 @@ async def _cmds_motion_and_overrides(cmd: str, msg: Dict[str, Any], armed: bool,
 
     if cmd == "home":
         require_armed(armed)
-        joint = finite_int(msg.get("joint", -1))
+        joint = finite_int(msg["joint"], lo=0)   # required, one joint — "all" is home_all (validate_payload)
         return await _manual_command("zero", armed, (op(linuxcnc.command.home, joint), None))
 
     if cmd == "unhome":
         require_armed(armed)
-        joint = finite_int(msg.get("joint", -1))
+        joint = finite_int(msg["joint"], lo=0)   # required, one joint — "all" is unhome_all (validate_payload)
         return await _manual_command("zero", armed,
                                      (op(linuxcnc.command.teleop_enable, 0), _CMD_WAIT_TIMEOUT),  # unhome requires joint mode
                                      (op(linuxcnc.command.unhome, joint), None))
@@ -6533,25 +6589,25 @@ async def _cmds_motion_and_overrides(cmd: str, msg: Dict[str, Any], armed: bool,
         # Range is enforced by COMMAND_SCHEMA against the INI's
         # MAX_FEED_OVERRIDE (was a hardcoded 2.0 here, which accepted 200%
         # on a machine whose builder declared 150%).
-        scale = finite_float(msg.get("scale", 1.0), 1.0)
+        scale = finite_float(msg["scale"])   # required (validate_payload)
         await _cmd_blocking(link(), op(linuxcnc.command.feedrate, scale), wait=None)
         return {"ok": True, "scale": scale}
 
     if cmd == "set_spindle_override":
         require_armed(armed)
         # Range from the INI's MIN/MAX_SPINDLE_OVERRIDE (COMMAND_SCHEMA).
-        scale = finite_float(msg.get("scale", 1.0), 1.0)
+        scale = finite_float(msg["scale"])   # required (validate_payload)
         await _cmd_blocking(link(), op(linuxcnc.command.spindleoverride, scale), wait=None)
         return {"ok": True, "scale": scale}
 
     if cmd == "spindle_forward":
         require_armed(armed)
-        speed = finite_float(msg.get("speed", 0))
+        speed = finite_float(msg["speed"])   # required, 0 valid (validate_payload)
         return await _manual_command("spindleManual", armed, (op(linuxcnc.command.spindle, linuxcnc.SPINDLE_FORWARD, speed), None))
 
     if cmd == "spindle_reverse":
         require_armed(armed)
-        speed = finite_float(msg.get("speed", 0))
+        speed = finite_float(msg["speed"])   # required, 0 valid (validate_payload)
         return await _manual_command("spindleManual", armed, (op(linuxcnc.command.spindle, linuxcnc.SPINDLE_REVERSE, speed), None))
 
     if cmd == "spindle_stop":
@@ -6598,26 +6654,26 @@ async def _cmds_motion_and_overrides(cmd: str, msg: Dict[str, Any], armed: bool,
         require_armed(armed)
         # 0–100% (COMMAND_SCHEMA; 1.0 is LinuxCNC's own ceiling, not a
         # machine-declared one, so it is a named constant there).
-        scale = finite_float(msg.get("scale", 1.0), 1.0)
+        scale = finite_float(msg["scale"])   # required (validate_payload)
         await _cmd_blocking(link(), op(linuxcnc.command.rapidrate, scale), wait=None)
         return {"ok": True, "scale": scale}
 
     if cmd == "set_optional_stop":
         require_armed(armed)
-        value = bool(msg.get("value", False))
+        value = msg["value"] is True   # required, a JSON boolean (validate_payload)
         await _cmd_blocking(link(), op(linuxcnc.command.set_optional_stop, value), wait=None)
         return {"ok": True}
 
     if cmd == "set_block_delete":
         require_armed(armed)
-        value = bool(msg.get("value", False))
+        value = msg["value"] is True   # required, a JSON boolean (validate_payload)
         await _cmd_blocking(link(), op(linuxcnc.command.set_block_delete, value), wait=None)
         return {"ok": True}
 
     if cmd == "set_max_velocity":
         require_armed(armed)
         # Range from the INI's TRAJ MAX_LINEAR_VELOCITY (COMMAND_SCHEMA).
-        velocity = finite_float(msg.get("velocity", 0.0))
+        velocity = finite_float(msg["velocity"])   # required (validate_payload)
         await _cmd_blocking(link(), op(linuxcnc.command.maxvel, velocity), wait=None)
         return {"ok": True, "velocity": velocity}
     return _UNHANDLED
@@ -6630,7 +6686,7 @@ async def _cmds_files_and_probing(cmd: str, msg: Dict[str, Any], armed: bool,
     one 1600-line function was too complex for pyright to analyze)."""
     if cmd == "load_file":
         require_armed(armed)
-        path = msg.get("path", "")
+        path = msg["path"]   # required (validate_payload)
         if not path or not isinstance(path, str):
             return {"ok": False, "error": "Missing path"}
 
@@ -6886,12 +6942,11 @@ async def _cmds_work_offsets(cmd: str, msg: Dict[str, Any], armed: bool,
         blocked = reject_if_auto_running()
         if blocked:
             return blocked
-        target = msg.get("target", "active")
-        if target == "active":
-            stat = link().stat
-            stat.poll()
-            indices = [stat.g5x_index]  # 1-based
-        elif target == "all":
+        # required: "all", "reserved" or a fixture name (validate_payload);
+        # an implicit "active" is gone — a missing target zeroed the active
+        # offset (package 3a, R363)
+        target = msg["target"]
+        if target == "all":
             # On a TWP (switchable-kins) config the reserved rows G59..G59.3
             # are the remap's — zeroing them under an active plane destroys
             # it. `all` is the operator's fixtures; `reserved` below is the
@@ -7256,6 +7311,27 @@ _COMMAND_GROUPS = (_cmds_machine_state, _cmds_mdi_and_frames, _cmds_tool_table, 
                    _cmds_motion_and_overrides, _cmds_files_and_probing, _cmds_work_offsets)
 
 
+
+def _macro_call_precheck(mstate: Dict[str, Any], name: str, revision: str, values: list) -> Optional[str]:
+    """run_macro's refusal of its values, read before any write (package 3a
+    A2, Codex R363): the file as the list admits it, its revision, its
+    header's build with the operator's values. None = they build; the
+    binding build after _start_guard repeats it under the source lock."""
+    path = os.path.join(mstate["dir"], name + ".ngc")
+    try:
+        got = _macro_bytes(mstate, path)
+    except _MacroOutside as e:
+        return str(e)
+    if got is None:
+        return "Macro not found — reload the macros"
+    if macro_files.revision_of(got[0]) != revision:
+        return "Macro changed — hold again"
+    entry = _macro_entry(mstate, name, got[0], 0.0)
+    if not entry["runnable"]:
+        return entry["reason"]
+    call = macro_files.build_call(entry, values)
+    return call.get("error")
+
 async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optional[str] = None):
     cmd = msg.get("cmd")
     if not cmd:
@@ -7344,14 +7420,25 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
     # layers — gate and bounds — behave identically to a caller. (The recv
     # loop's ValueError catch stays as the backstop for failures raised from
     # inside a handler BODY, e.g. require_armed.)
-    try:
-        _fixed = validate_payload(cmd, msg, get_machine_limits())
-    except ValueError as _bounds_e:
-        _trace.emit("ws.payload_rejected", level="warn", cmd=cmd, reason=str(_bounds_e))
-        return {"ok": False, "error": str(_bounds_e)}
-    if _fixed:
-        _trace.emit("ws.payload_clamped", level="warn", cmd=cmd, fields=_fixed)
-        msg = {**msg, **_fixed}
+    if cmd in _WS_STOP_CMDS:
+        # A STOP's payload is never a reason to refuse (package 3a N5, Codex
+        # R363): an invalid `via` is dropped, a jog stop whose target fails
+        # stops every jog the gateway booked (gatewayweit, Q363-3).
+        msg, _fault, _stop_all = widen_stop(cmd, msg, get_machine_limits())
+        if _fault:
+            _trace.emit("ws.payload_stop_widened", level="warn", cmd=cmd, reason=_fault, stop_all=_stop_all,
+                        booked=sorted(_active_jogs))
+        if _stop_all:
+            cmd, msg = "jog_stop_multi", {"cmd": "jog_stop_multi", "axes": sorted(_active_jogs)}
+    else:
+        try:
+            _fixed = validate_payload(cmd, msg, get_machine_limits())
+        except ValueError as _bounds_e:
+            _trace.emit("ws.payload_rejected", level="warn", cmd=cmd, reason=str(_bounds_e))
+            return {"ok": False, "error": str(_bounds_e)}
+        if _fixed:
+            _trace.emit("ws.payload_clamped", level="warn", cmd=cmd, fields=_fixed)
+            msg = {**msg, **_fixed}
 
     # The switches (settings split package 3), read here under _cmd_lock: a
     # switch changes only while no command holds it (_features_change_refusal).
@@ -8152,6 +8239,74 @@ _JOINT_JOG_OFF = {"enabled": False, "fraction": None, "axes": [], "reason": None
 _JOINT_JOG_DEFAULT_FRACTION = 0.1
 
 
+_axis_joint_cache: Optional[dict] = None
+_AXIS_JOINT_UNREAD = {"axes": [], "reason": "Machine configuration not read — wait"}
+
+
+def _axis_joint_map() -> dict:
+    """The declared axis→joint mapping ALONE (package 3a, Codex R363–R365),
+    fixed for the session: `[DISPLAY] WEBUI_JOINT_AXES` (each joint's letter
+    in joint order), else trivkins' `coordinates=` (gateway_util.
+    axis_joint_rows: a gantry letter, an axis without a joint, a count that
+    differs close their rows) — plus each joint's MAX_VELOCITY and span
+    ([JOINT_n] MAX_LIMIT − MIN_LIMIT) and each axis' span ([AXIS_L]).
+    Independent of the jog-before-homing switch, its cap and speed: the
+    jog before homing, Home/Unhome per axis and the step jog's target read
+    it. {axes: [{letter, joint, reason, max_vel, joint_span, axis_span}],
+    reason}. Unreadable before the first NML connect: closed, not cached."""
+    cached = _axis_joint_cache
+    if cached is not None:
+        return cached
+    owner = current_link()   # ONE status for the INI path, the joints and the axes (package 2b)
+    stat = owner.stat if owner else None
+
+    def keep(amap: dict) -> dict:
+        def put() -> None:
+            global _axis_joint_cache
+            _axis_joint_cache = amap
+        _owned_store("axis_joint_map", owner, put)
+        return amap
+    ini_filename = getattr(stat, "ini_filename", None) if stat else None
+    if not ini_filename:
+        return _AXIS_JOINT_UNREAD
+    try:
+        ini = linuxcnc.ini(ini_filename)
+        joints = getattr(stat, "joints", None)
+        axes = list(_axes_from_mask(int(getattr(stat, "axis_mask", 0) or 0)))
+
+        def num(section: str, key: str) -> Optional[float]:
+            try:
+                v = float(ini.find(section, key) or "nan")
+            except ValueError:
+                return None
+            return v if math.isfinite(v) else None
+        n = joints if isinstance(joints, int) else 0
+        max_vels = [num(f"JOINT_{j}", "MAX_VELOCITY") for j in range(n)]
+        joint_spans = [limit_span(num(f"JOINT_{j}", "MIN_LIMIT"), num(f"JOINT_{j}", "MAX_LIMIT")) for j in range(n)]
+        axis_spans = {L: limit_span(num(f"AXIS_{L}", "MIN_LIMIT"), num(f"AXIS_{L}", "MAX_LIMIT")) for L in axes}
+        try:
+            letters = parse_joint_letters(ini.find("DISPLAY", "WEBUI_JOINT_AXES"))
+        except ValueError as e:
+            _trace.emit("policy.joint_axes_invalid", level="warn", error=str(e)[:80])
+            why = "WEBUI_JOINT_AXES invalid — axis letters in joint order"
+            return keep({"axes": [{"letter": L, "joint": None, "reason": why, "max_vel": None, "joint_span": None,
+                                   "axis_span": axis_spans.get(L)} for L in axes], "reason": why})
+        if letters is None:
+            letters = trivkins_coordinates(ini.find("KINS", "KINEMATICS"))
+    except Exception as e:  # noqa: BLE001 - unreadable is the closed reading
+        _trace.emit_exc("policy.axis_joint_map_unreadable", e)
+        return _AXIS_JOINT_UNREAD
+    rows, why = axis_joint_rows(letters, joints, axes)
+    for r in rows:
+        j = r["joint"]
+        r["max_vel"] = max_vels[j] if j is not None and j < len(max_vels) else None
+        r["joint_span"] = joint_spans[j] if j is not None and j < len(joint_spans) else None
+        r["axis_span"] = axis_spans.get(r["letter"])
+    amap = keep({"axes": rows, "reason": why})
+    _trace.emit("policy.axis_joint_map", level="info", reason=why, axes=[(r["letter"], r["joint"]) for r in rows])
+    return amap
+
+
 def _joint_jog_facts() -> dict:
     """Jogging before homing (operator E1/E2, 2026-10-28; button gates package
     E, BG-07): {enabled, fraction, axes, reason}, fixed for the session.
@@ -8162,17 +8317,17 @@ def _joint_jog_facts() -> dict:
       moves at most this share of its joint's [JOINT_n] MAX_VELOCITY.
       Absent: 0.1. 0 < f ≤ 1, anything else switches the jog OFF and is
       traced (an invalid value never raises the cap, the Q1 rule).
-    - the joint order: `[DISPLAY] WEBUI_JOINT_AXES` (each joint's letter in
-      joint order), else trivkins' `coordinates=`; else none — closed.
-      gateway_util.joint_jog_map turns it into one row per axis (a gantry
-      letter closed).
+    - the joint order: the declared mapping (_axis_joint_map — package 3a
+      took it out of here so Home and the step jog read it without this
+      switch); a joint without MAX_VELOCITY closes its axis here (the cap is
+      a share of it).
     `enabled` = switch on, a valid cap, a valid map with at least one axis
     that can jog. Unreadable before the first NML connect: off, not cached."""
     cached = _joint_jog_cache
     if cached is not None:
         return cached
-    owner = current_link()  # ONE status for the INI path, the joints and the axes (package 2b);
-    stat = owner.stat if owner else None   # every result stored only while its Link is current (VM-I08)
+    owner = current_link()  # ONE status for the INI path (package 2b); every result
+    stat = owner.stat if owner else None   # stored only while its Link is current (VM-I08)
 
     def keep(facts: dict) -> dict:
         def put() -> None:
@@ -8200,27 +8355,20 @@ def _joint_jog_facts() -> dict:
             if not 0.0 < fraction <= 1.0:
                 _trace.emit("policy.joint_jog_fraction_invalid", level="warn", value=raw_f[:40])
                 return keep(dict(_JOINT_JOG_OFF, reason="WEBUI_JOINT_JOG_MAX_FRACTION invalid — 0 < f ≤ 1"))
-        try:
-            letters = parse_joint_letters(ini.find("DISPLAY", "WEBUI_JOINT_AXES"))
-        except ValueError as e:
-            _trace.emit("policy.joint_axes_invalid", level="warn", error=str(e)[:80])
-            return keep(dict(_JOINT_JOG_OFF, reason="WEBUI_JOINT_AXES invalid — axis letters in joint order"))
-        if letters is None:
-            letters = trivkins_coordinates(ini.find("KINS", "KINEMATICS"))
-        joints = getattr(stat, "joints", None)
-        max_vels = []
-        for j in range(joints if isinstance(joints, int) else 0):
-            try:
-                max_vels.append(float(ini.find(f"JOINT_{j}", "MAX_VELOCITY") or "nan"))
-            except ValueError:
-                max_vels.append(None)
-            if max_vels[-1] is not None and not max_vels[-1] > 0:
-                max_vels[-1] = None
-        axes = _axes_from_mask(int(getattr(stat, "axis_mask", 0) or 0))
     except Exception as e:  # noqa: BLE001 - unreadable is the closed reading
         _trace.emit_exc("policy.joint_jog_unreadable", e)
         return _JOINT_JOG_OFF
-    rows, why = joint_jog_map(letters, joints, list(axes), max_vels)
+    amap = _axis_joint_map()
+    if not amap["axes"] and amap["reason"]:
+        return _JOINT_JOG_OFF            # the mapping unread: off, not cached
+    rows = []
+    for r in amap["axes"]:
+        mv = r.get("max_vel")
+        if r["joint"] is not None and not (isinstance(mv, (int, float)) and mv > 0):
+            rows.append({**r, "joint": None, "max_vel": None, "reason": NO_JOINT_MAX_VEL})
+        else:
+            rows.append(dict(r))
+    why = amap["reason"]
     enabled = why is None and any(r["joint"] is not None for r in rows)
     facts = keep({"enabled": enabled, "fraction": fraction, "axes": rows, "reason": why})
     _trace.emit("policy.joint_jog", level="info", enabled=enabled, fraction=fraction, reason=why,
@@ -10801,7 +10949,10 @@ async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Di
     # get replies without one, so older clients see no change.
     _echo = _req_echo(msg)
     if msg.get("cmd") == "arm":
-        want_armed = bool(msg.get("armed", False))
+        # Only the literal `true` arms (package 3a, R363): bool("false") was
+        # True. Anything else — missing, null, "false", 1 — disarms: the safe
+        # direction, never a refusal (N5).
+        want_armed = msg.get("armed") is True
         # Re-arm gate: operator must acknowledge a sticky safety trip
         # before the machine can come back up. Disarming is always
         # allowed.
@@ -11638,260 +11789,324 @@ async def ws_endpoint(ws: WebSocket):
             except Exception:
                 await ws_send_json(ws, {"type": "reply", "ok": False, "error": "Invalid JSON"})
                 continue
-            _set_phase(f"handle_msg cmd={msg.get('cmd', '?')} client#{client_id}")
-            if client_id in _clients:
-                _clients[client_id].frames_rx += 1  # hb-stall forensics: ANY frame counts as delivery
-
-            if msg.get("cmd") == "heartbeat":
+            # package 3a (#27, Codex R363 VM363-03): a frame that is no object, or
+            # whose cmd is no string, is answered and the socket keeps reading —
+            # it ended the reader (AttributeError, an unhashable cmd's TypeError
+            # in a set lookup) and with it the connection, through the
+            # armed-disconnect side effects.
+            if not isinstance(msg, dict) or not isinstance(msg.get("cmd"), str):
                 if client_id in _clients:
-                    _now_mono = time.monotonic()
-                    _clients[client_id].last_hb = time.time()
-                    _clients[client_id].last_hb_mono = _now_mono
-                    _clients[client_id].hb_mono = _now_mono
-                    _hb_seq = msg.get("seq")
-                    _clients[client_id].hb_seq = (_hb_seq if isinstance(_hb_seq, int) and not isinstance(_hb_seq, bool)
-                                                  and 0 <= _hb_seq < 2**53 else None)
-                    _clients[client_id].hb_ring.append(_now_mono)
-                await ws_send_json(ws, {"type": "pong"})
+                    _clients[client_id].frames_rx += 1
+                _trace.emit("ws.frame_malformed", level="warn", client_id=client_id, kind=type(msg).__name__,
+                            cmd_type=type(msg.get("cmd")).__name__ if isinstance(msg, dict) else None)
+                await ws_send_json(ws, {"type": "reply", "ok": False, "error": "Malformed frame — reload the page",
+                                        **(_req_echo(msg) if isinstance(msg, dict) else {})})
                 continue
+            try:
+                _set_phase(f"handle_msg cmd={msg.get('cmd', '?')} client#{client_id}")
+                if client_id in _clients:
+                    _clients[client_id].frames_rx += 1  # hb-stall forensics: ANY frame counts as delivery
 
-            if msg.get("cmd") == "hello":
-                # Tab handshake: captures session_id for armed-resume across
-                # brief reconnects (Ctrl-R, Wi-Fi blip, screen-lock close).
-                # Decision tree, each branch traced — no silent fallbacks.
-                #
-                # Phase 2 / E4: peek first so denial events distinguish
-                # "no hold ever existed" from "hold expired" from "hold
-                # would have granted but a safety trip is pending". The
-                # previous ordering (unacked-trip-before-peek) emitted
-                # `resume_denied_unacked_trip` for fresh tabs that never
-                # had a hold — misleading.
-                _sid = msg.get("session")
-                if isinstance(_sid, str) and _sid:
-                    _disc_session_id = _sid
+                if msg.get("cmd") == "heartbeat":
                     if client_id in _clients:
-                        _clients[client_id].session_id = _sid
-                want_resume = bool(msg.get("resume_armed", False))
-                if want_resume:
-                    if not _sid:
-                        _trace.emit(
-                            "session.hello_missing",
-                            client_id=client_id, reason="resume_requested_without_session_id",
-                        )
-                    else:
-                        _hold_state = _peek_armed_resume_hold(_sid)
-                        if _hold_state == "no_match":
-                            _trace.emit(
-                                "session.resume_denied_no_match",
-                                client_id=client_id, session_id=_sid,
-                            )
-                        elif _hold_state == "expired":
-                            # Consume the stale hold so it doesn't linger.
-                            _consume_armed_resume_hold(_sid)
-                            _trace.emit(
-                                "session.resume_denied_expired",
-                                client_id=client_id, session_id=_sid,
-                            )
-                        elif _hold_state == "granted":
-                            # Within grace. Trip check applies here, not earlier:
-                            # an unacked trip blocks a real resume, but it should
-                            # not poison the trace for a fresh tab with no hold.
-                            if _unacked_trip is not None:
-                                # Don't consume — once the operator acks the
-                                # trip and reconnects again (still within
-                                # original window), they should still resume.
-                                # Note: in practice the grace window is short
-                                # so this is unlikely to matter; the choice
-                                # here favours operator-friendly behaviour.
-                                _trace.emit(
-                                    "session.resume_denied_unacked_trip",
-                                    client_id=client_id, session_id=_sid,
-                                )
-                            else:
-                                _consume_armed_resume_hold(_sid)
-                                client.armed = True
-                                client.last_hb = time.time()
-                                client.last_hb_mono = time.monotonic()
-                                _trace.emit(
-                                    "session.resume_granted",
-                                    client_id=client_id, session_id=_sid,
-                                )
-                # The device profile (settings split, R335–R337): bound ONCE,
-                # by the connection's first hello, never swapped inside it — a
-                # tab whose stored token changed opens a new connection.
-                await _bind_device(client, client_id, client_ip, msg)
-                # This connection's key for protected HTTP writes (button
-                # gates BG-14) — minted with the connection, the same for
-                # every hello on it.
-                await ws_send_json(ws, {"type": "reply", "ok": True, "armed": client.armed,
-                                        "conn_key": client.conn_key})
-                await _send_settings_view(ws, client, "settings_init", created=client.device_created)
-                client.device_created = False
-                continue
-
-            if msg.get("cmd") == "safety_trip_ack":
-                # Clearing the banner is independent of clearing the latch: the
-                # HAL latch stays set (fault-out TRUE) until the operator's
-                # E-Stop Reset. Because evaluate_trip_latch only re-banners on a
-                # clean FALSE→TRUE transition, the still-TRUE level after this ack
-                # produces no edge and the ack sticks; a genuinely new trip
-                # (latch reset → FALSE, then TRUE again) still fires.
-                acked = _unacked_trip["id"] if _unacked_trip is not None else None
-                if acked is not None:
-                    _last_trip_ack = {"id": acked}
-                _unacked_trip = None
-                # Audit: without this, an acknowledged trip is invisible in the
-                # trace — an armed client after a trip looks like a gate bypass.
-                _trace.emit("safety.trip_acknowledged", client_id=client_id, trip_id=acked)
-                await ws_send_json(ws, {"type": "reply", "ok": True})
-                continue
-
-            if msg.get("cmd") == "get_settings":
-                await _send_settings_view(ws, client, "settings_init")
-                continue
-
-            if msg.get("cmd") == "save_settings":
-                if msg.get("section") == "features":
-                    # under _source_lock (a program upload may hold it): never
-                    # awaited here — the reader keeps reading heartbeats
-                    async def _reply_later(m=msg):
-                        await ws_send_json(ws, await _ws_save_settings(client, m))
-                    register_bg_task(asyncio.create_task(_reply_later()))
+                        _now_mono = time.monotonic()
+                        _clients[client_id].last_hb = time.time()
+                        _clients[client_id].last_hb_mono = _now_mono
+                        _clients[client_id].hb_mono = _now_mono
+                        _hb_seq = msg.get("seq")
+                        _clients[client_id].hb_seq = (_hb_seq if isinstance(_hb_seq, int) and not isinstance(_hb_seq, bool)
+                                                      and 0 <= _hb_seq < 2**53 else None)
+                        _clients[client_id].hb_ring.append(_now_mono)
+                    await ws_send_json(ws, {"type": "pong"})
                     continue
-                await ws_send_json(ws, await _ws_save_settings(client, msg))
-                continue
 
-            if (msg.get("cmd") == "device_rename" or msg.get("cmd") == "device_reset"
-                    or msg.get("cmd") == "device_delete"):
-                await ws_send_json(ws, await _ws_device_command(client, msg))
-                continue
-
-            if msg.get("cmd") == "client_diag":
-                # Periodic browser-side diagnostics (heap, Three.js counters,
-                # connection state). Forwarded straight to the trace bus so a
-                # renderer crash ("Aw Snap") still leaves a usable timeline in
-                # trace.ndjson — the gateway file outlives the browser.
-                data = msg.get("data")
-                if isinstance(data, dict):
-                    _trace.emit("client.diag", client_id=client_id, **data)
-                # Fire-and-forget — no reply, no ack, to keep this off the hot path.
-                continue
-
-            if msg.get("cmd") == "timing_log":
-                global _timing_log_enabled, _timing_log_path
-                _timing_log_enabled = bool(msg.get("enable", False))
-                if _timing_log_enabled:
-                    from datetime import datetime
-                    stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                    base = _trace.log_dir()
-                    if not base:
-                        _trace.emit("timing.log_no_log_dir", level="error")
-                        _timing_log_enabled = False
-                        await ws_send_json(ws, {"type": "reply", "ok": False, "enabled": False})
+                if msg.get("cmd") == "hello":
+                    # Tab handshake: captures session_id for armed-resume across
+                    # brief reconnects (Ctrl-R, Wi-Fi blip, screen-lock close).
+                    # Decision tree, each branch traced — no silent fallbacks.
+                    #
+                    # Phase 2 / E4: peek first so denial events distinguish
+                    # "no hold ever existed" from "hold expired" from "hold
+                    # would have granted but a safety trip is pending". The
+                    # previous ordering (unacked-trip-before-peek) emitted
+                    # `resume_denied_unacked_trip` for fresh tabs that never
+                    # had a hold — misleading.
+                    _sid = msg.get("session")
+                    if "session" in msg and not (isinstance(_sid, str) and _sid):
+                        # package 3a (R363 VM363-03): present, the session is a
+                        # non-empty string — a list reached the hold lookup
+                        # and its TypeError ended the reader
+                        _trace.emit("session.hello_malformed", level="warn", client_id=client_id,
+                                    kind=type(_sid).__name__)
+                        await ws_send_json(ws, {"type": "reply", "ok": False,
+                                                "error": "Malformed hello — reload the page"})
                         continue
-                    timing_dir = os.path.join(base, "timing")
-                    os.makedirs(timing_dir, exist_ok=True)
-                    _timing_log_path = os.path.join(timing_dir, f"timing-{stamp}.jsonl")
-                    _trace.emit("timing.log_started", path=_timing_log_path)
-                else:
-                    if _timing_log_path:
-                        _trace.emit("timing.log_stopped", path=_timing_log_path)
-                await ws_send_json(ws, {"type": "reply", "ok": True, "enabled": _timing_log_enabled})
-                continue
+                    if isinstance(_sid, str) and _sid:
+                        _disc_session_id = _sid
+                        if client_id in _clients:
+                            _clients[client_id].session_id = _sid
+                    want_resume = msg.get("resume_armed") is True   # only the literal true resumes (R363)
+                    if want_resume:
+                        if not _sid:
+                            _trace.emit(
+                                "session.hello_missing",
+                                client_id=client_id, reason="resume_requested_without_session_id",
+                            )
+                        else:
+                            _hold_state = _peek_armed_resume_hold(_sid)
+                            if _hold_state == "no_match":
+                                _trace.emit(
+                                    "session.resume_denied_no_match",
+                                    client_id=client_id, session_id=_sid,
+                                )
+                            elif _hold_state == "expired":
+                                # Consume the stale hold so it doesn't linger.
+                                _consume_armed_resume_hold(_sid)
+                                _trace.emit(
+                                    "session.resume_denied_expired",
+                                    client_id=client_id, session_id=_sid,
+                                )
+                            elif _hold_state == "granted":
+                                # Within grace. Trip check applies here, not earlier:
+                                # an unacked trip blocks a real resume, but it should
+                                # not poison the trace for a fresh tab with no hold.
+                                if _unacked_trip is not None:
+                                    # Don't consume — once the operator acks the
+                                    # trip and reconnects again (still within
+                                    # original window), they should still resume.
+                                    # Note: in practice the grace window is short
+                                    # so this is unlikely to matter; the choice
+                                    # here favours operator-friendly behaviour.
+                                    _trace.emit(
+                                        "session.resume_denied_unacked_trip",
+                                        client_id=client_id, session_id=_sid,
+                                    )
+                                else:
+                                    _consume_armed_resume_hold(_sid)
+                                    client.armed = True
+                                    client.last_hb = time.time()
+                                    client.last_hb_mono = time.monotonic()
+                                    _trace.emit(
+                                        "session.resume_granted",
+                                        client_id=client_id, session_id=_sid,
+                                    )
+                    # The device profile (settings split, R335–R337): bound ONCE,
+                    # by the connection's first hello, never swapped inside it — a
+                    # tab whose stored token changed opens a new connection.
+                    await _bind_device(client, client_id, client_ip, msg)
+                    # This connection's key for protected HTTP writes (button
+                    # gates BG-14) — minted with the connection, the same for
+                    # every hello on it.
+                    await ws_send_json(ws, {"type": "reply", "ok": True, "armed": client.armed,
+                                            "conn_key": client.conn_key})
+                    await _send_settings_view(ws, client, "settings_init", created=client.device_created)
+                    client.device_created = False
+                    continue
 
-            if msg.get("cmd") == "halshow_live":
-                on = bool(msg.get("on", False))
-                if client_id in _clients:
-                    _clients[client_id].halshow_live = on
-                if not on:
-                    _halshow_topology_sent.pop(client_id, None)
-                else:
-                    # Drop any stale flag so subscriber gets a fresh snapshot
-                    _halshow_topology_sent.pop(client_id, None)
-                    _ensure_halshow_loop()
-                await ws_send_json(ws, {"type": "reply", "ok": True})
-                continue
+                if msg.get("cmd") == "safety_trip_ack":
+                    # Clearing the banner is independent of clearing the latch: the
+                    # HAL latch stays set (fault-out TRUE) until the operator's
+                    # E-Stop Reset. Because evaluate_trip_latch only re-banners on a
+                    # clean FALSE→TRUE transition, the still-TRUE level after this ack
+                    # produces no edge and the ack sticks; a genuinely new trip
+                    # (latch reset → FALSE, then TRUE again) still fires.
+                    # The acknowledgement names ITS trip (package 3a, Codex R363
+                    # Q363-2): a late Acknowledge from the previous banner never
+                    # clears a newer trip; a missing or other id changes
+                    # neither the trip nor the booking.
+                    acked = _unacked_trip["id"] if _unacked_trip is not None else None
+                    if acked is None or msg.get("id") != acked:
+                        _trace.emit("safety.trip_ack_refused", level="warn", client_id=client_id,
+                                    trip_id=acked, named=str(msg.get("id"))[:40])
+                        await ws_send_json(ws, {"type": "reply", "ok": False, "error":
+                                                "No trip to acknowledge" if acked is None
+                                                else "Trip changed — acknowledge again"})
+                        continue
+                    _last_trip_ack = {"id": acked}
+                    _unacked_trip = None
+                    # Audit: without this, an acknowledged trip is invisible in the
+                    # trace — an armed client after a trip looks like a gate bypass.
+                    _trace.emit("safety.trip_acknowledged", client_id=client_id, trip_id=acked)
+                    await ws_send_json(ws, {"type": "reply", "ok": True})
+                    continue
 
-            if msg.get("cmd") == "halshow_refresh":
-                # Force a topology rebuild (P5) — e.g. after an external HAL reload.
-                # Clears every subscriber's sent-flag so the rebuilt graph re-sends.
-                _invalidate_halshow_topology()
-                _halshow_topology_sent.clear()
-                await ws_send_json(ws, {"type": "reply", "ok": True})
-                continue
+                if msg.get("cmd") == "get_settings":
+                    await _send_settings_view(ws, client, "settings_init")
+                    continue
 
-            if msg.get("cmd") == "tab_visibility":
-                # Frontend reports document.visibilityState. While hidden, the
-                # browser stops draining the WS and the kernel TCP buffer fills,
-                # which is the storm trigger we measured. Status fan-out skips
-                # this client while hidden; resumes on the next tick after the
-                # tab returns to visible. State-only update — does not require
-                # `armed` and never affects machine state.
-                #
-                # NO REPLY: the very client sending this command is, by
-                # definition, the one whose tab just became hidden — i.e. the
-                # one whose WS is about to back up. Awaiting `ws_send_json`
-                # for a reply would re-introduce the slow-consumer hang we're
-                # trying to escape (a 495 ms stall observed in the first storm
-                # test with the reply present). Frontend fire-and-forgets.
-                hidden = bool(msg.get("hidden", False))
-                if client_id in _clients:
-                    _clients[client_id].hidden = hidden
-                _trace.emit(
-                    "ws.tab_visibility",
-                    client_id=client_id, hidden=hidden,
-                )
-                continue
+                if msg.get("cmd") == "save_settings":
+                    if msg.get("section") == "features":
+                        # under _source_lock (a program upload may hold it): never
+                        # awaited here — the reader keeps reading heartbeats
+                        async def _reply_later(m=msg):
+                            await ws_send_json(ws, await _ws_save_settings(client, m))
+                        register_bg_task(asyncio.create_task(_reply_later()))
+                        continue
+                    await ws_send_json(ws, await _ws_save_settings(client, msg))
+                    continue
 
-            # NOTE: simulate_probe_trip, confirm_tool_change, set_compensation and
-            # set_compensation_method used to be handled HERE, authorized by
-            # `client.armed` alone. They now live in _handle_command_impl so they
-            # pass check_command, get the bounded-error catch below, and are
-            # visible to the coverage contract in test_command_policy — which was
-            # structurally scoped to the dispatched ladder and could not see them.
+                if (msg.get("cmd") == "device_rename" or msg.get("cmd") == "device_reset"
+                        or msg.get("cmd") == "device_delete"):
+                    await ws_send_json(ws, await _ws_device_command(client, msg))
+                    continue
 
-            # Everything else runs on this client's command worker (above):
-            # the reader must be back at ws.receive() immediately so the
-            # client's heartbeats are never queued behind a handler. Bounded
-            # queue, replied + traced when full — never a silent drop; stop-
-            # class commands get 4× the headroom and are never rejected first.
-            _rcmd = msg.get("cmd")
-            if _rcmd in _WS_PREEMPT_CMDS:
-                # A stop supersedes the work this client sent before it: drop
-                # the queued non-stop commands (replied + traced, never
-                # silent), keep stops/arm in their FIFO order ahead of this
-                # one, and cancel every client's in-flight handler. All on
-                # the loop thread — the worker is either parked in get() or
-                # inside its sub-task, never touching the queue.
-                _kept, _sup = [], []
-                while True:
-                    try:
-                        _qm, _qt = cmd_queue.get_nowait()
-                    except asyncio.QueueEmpty:
-                        break
-                    (_kept if _qm.get("cmd") in _WS_NO_PREEMPT else _sup).append((_qm, _qt))
-                for _qm, _qt in _kept:
-                    cmd_queue.put_nowait((_qm, _qt))
-                for _qm, _qt in _sup:
-                    await ws_send_json(ws, {"type": "reply", "cmd": _qm.get("cmd"), "ok": False,
-                                            "error": f"Superseded by {_rcmd}", **_req_echo(_qm)})
-                if _sup:
-                    _trace.emit("ws.command_superseded", level="warn", client_id=client_id,
-                                by=_rcmd, count=len(_sup), cmds=[m.get("cmd") for m, _ in _sup])
-                _preempt_inflight(by=_rcmd, from_client=client_id)
-            _depth = cmd_queue.qsize()
-            _cap = _WS_CMD_QUEUE_MAX * (4 if _rcmd in _WS_STOP_CMDS else 1)
-            if _depth >= _cap:
-                _trace.emit("ws.command_queue_full", level="warn", client_id=client_id,
-                            cmd=_rcmd, depth=_depth, inflight_cmd=client.cmd_inflight,
-                            inflight_ms=(round((time.monotonic() - client.cmd_inflight_since_mono) * 1000)
-                                         if client.cmd_inflight else None))
-                await ws_send_json(ws, {"type": "reply", "cmd": _rcmd, "ok": False,
-                                        "error": f"Command queue full ({_depth} pending) — command dropped",
-                                        **_req_echo(msg)})
-                continue
-            _set_phase(f"ws.enqueue cmd={_rcmd} client#{client_id}")
-            cmd_queue.put_nowait((msg, time.monotonic()))
+                if msg.get("cmd") == "client_diag":
+                    # Periodic browser-side diagnostics (heap, Three.js counters,
+                    # connection state). Forwarded straight to the trace bus so a
+                    # renderer crash ("Aw Snap") still leaves a usable timeline in
+                    # trace.ndjson — the gateway file outlives the browser.
+                    data = msg.get("data")
+                    if isinstance(data, dict):
+                        # the trace's own fields are not the browser's to set
+                        # (R363 VM363-03: a `client_id` key ended the reader)
+                        reserved = [k for k in data if k in ("client_id", "tag")]
+                        if reserved:
+                            _trace.emit("client.diag_reserved_dropped", level="warn", client_id=client_id,
+                                        keys=reserved)
+                        _trace.emit("client.diag", client_id=client_id,
+                                    **{k: v for k, v in data.items() if k not in ("client_id", "tag")})
+                    # Fire-and-forget — no reply, no ack, to keep this off the hot path.
+                    continue
+
+                if msg.get("cmd") == "timing_log":
+                    global _timing_log_enabled, _timing_log_path
+                    if not isinstance(msg.get("enable"), bool):   # a JSON boolean (R363)
+                        await ws_send_json(ws, {"type": "reply", "ok": False, "enabled": _timing_log_enabled,
+                                                "error": "timing_log: enable must be true or false"})
+                        continue
+                    _timing_log_enabled = msg["enable"]
+                    if _timing_log_enabled:
+                        from datetime import datetime
+                        stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                        base = _trace.log_dir()
+                        if not base:
+                            _trace.emit("timing.log_no_log_dir", level="error")
+                            _timing_log_enabled = False
+                            await ws_send_json(ws, {"type": "reply", "ok": False, "enabled": False})
+                            continue
+                        timing_dir = os.path.join(base, "timing")
+                        os.makedirs(timing_dir, exist_ok=True)
+                        _timing_log_path = os.path.join(timing_dir, f"timing-{stamp}.jsonl")
+                        _trace.emit("timing.log_started", path=_timing_log_path)
+                    else:
+                        if _timing_log_path:
+                            _trace.emit("timing.log_stopped", path=_timing_log_path)
+                    await ws_send_json(ws, {"type": "reply", "ok": True, "enabled": _timing_log_enabled})
+                    continue
+
+                if msg.get("cmd") == "halshow_live":
+                    if not isinstance(msg.get("on"), bool):   # a JSON boolean (R363)
+                        await ws_send_json(ws, {"type": "reply", "ok": False,
+                                                "error": "halshow_live: on must be true or false"})
+                        continue
+                    on = msg["on"]
+                    if client_id in _clients:
+                        _clients[client_id].halshow_live = on
+                    if not on:
+                        _halshow_topology_sent.pop(client_id, None)
+                    else:
+                        # Drop any stale flag so subscriber gets a fresh snapshot
+                        _halshow_topology_sent.pop(client_id, None)
+                        _ensure_halshow_loop()
+                    await ws_send_json(ws, {"type": "reply", "ok": True})
+                    continue
+
+                if msg.get("cmd") == "halshow_refresh":
+                    # Force a topology rebuild (P5) — e.g. after an external HAL reload.
+                    # Clears every subscriber's sent-flag so the rebuilt graph re-sends.
+                    _invalidate_halshow_topology()
+                    _halshow_topology_sent.clear()
+                    await ws_send_json(ws, {"type": "reply", "ok": True})
+                    continue
+
+                if msg.get("cmd") == "tab_visibility":
+                    # Frontend reports document.visibilityState. While hidden, the
+                    # browser stops draining the WS and the kernel TCP buffer fills,
+                    # which is the storm trigger we measured. Status fan-out skips
+                    # this client while hidden; resumes on the next tick after the
+                    # tab returns to visible. State-only update — does not require
+                    # `armed` and never affects machine state.
+                    #
+                    # NO REPLY: the very client sending this command is, by
+                    # definition, the one whose tab just became hidden — i.e. the
+                    # one whose WS is about to back up. Awaiting `ws_send_json`
+                    # for a reply would re-introduce the slow-consumer hang we're
+                    # trying to escape (a 495 ms stall observed in the first storm
+                    # test with the reply present). Frontend fire-and-forgets.
+                    hidden = msg.get("hidden")
+                    if not isinstance(hidden, bool):
+                        # a JSON boolean (R363); no reply by design (below) —
+                        # the state stays as it is, the trace says why
+                        _trace.emit("ws.tab_visibility_malformed", level="warn", client_id=client_id,
+                                    kind=type(hidden).__name__)
+                        continue
+                    if client_id in _clients:
+                        _clients[client_id].hidden = hidden
+                    _trace.emit(
+                        "ws.tab_visibility",
+                        client_id=client_id, hidden=hidden,
+                    )
+                    continue
+
+                # NOTE: simulate_probe_trip, confirm_tool_change, set_compensation and
+                # set_compensation_method used to be handled HERE, authorized by
+                # `client.armed` alone. They now live in _handle_command_impl so they
+                # pass check_command, get the bounded-error catch below, and are
+                # visible to the coverage contract in test_command_policy — which was
+                # structurally scoped to the dispatched ladder and could not see them.
+
+                # Everything else runs on this client's command worker (above):
+                # the reader must be back at ws.receive() immediately so the
+                # client's heartbeats are never queued behind a handler. Bounded
+                # queue, replied + traced when full — never a silent drop; stop-
+                # class commands get 4× the headroom and are never rejected first.
+                _rcmd = msg.get("cmd")
+                if _rcmd in _WS_PREEMPT_CMDS:
+                    # A stop supersedes the work this client sent before it: drop
+                    # the queued non-stop commands (replied + traced, never
+                    # silent), keep stops/arm in their FIFO order ahead of this
+                    # one, and cancel every client's in-flight handler. All on
+                    # the loop thread — the worker is either parked in get() or
+                    # inside its sub-task, never touching the queue.
+                    _kept, _sup = [], []
+                    while True:
+                        try:
+                            _qm, _qt = cmd_queue.get_nowait()
+                        except asyncio.QueueEmpty:
+                            break
+                        (_kept if _qm.get("cmd") in _WS_NO_PREEMPT else _sup).append((_qm, _qt))
+                    for _qm, _qt in _kept:
+                        cmd_queue.put_nowait((_qm, _qt))
+                    for _qm, _qt in _sup:
+                        await ws_send_json(ws, {"type": "reply", "cmd": _qm.get("cmd"), "ok": False,
+                                                "error": f"Superseded by {_rcmd}", **_req_echo(_qm)})
+                    if _sup:
+                        _trace.emit("ws.command_superseded", level="warn", client_id=client_id,
+                                    by=_rcmd, count=len(_sup), cmds=[m.get("cmd") for m, _ in _sup])
+                    _preempt_inflight(by=_rcmd, from_client=client_id)
+                _depth = cmd_queue.qsize()
+                _cap = _WS_CMD_QUEUE_MAX * (4 if _rcmd in _WS_STOP_CMDS else 1)
+                if _depth >= _cap:
+                    _trace.emit("ws.command_queue_full", level="warn", client_id=client_id,
+                                cmd=_rcmd, depth=_depth, inflight_cmd=client.cmd_inflight,
+                                inflight_ms=(round((time.monotonic() - client.cmd_inflight_since_mono) * 1000)
+                                             if client.cmd_inflight else None))
+                    await ws_send_json(ws, {"type": "reply", "cmd": _rcmd, "ok": False,
+                                            "error": f"Command queue full ({_depth} pending) — command dropped",
+                                            **_req_echo(msg)})
+                    continue
+                _set_phase(f"ws.enqueue cmd={_rcmd} client#{client_id}")
+                cmd_queue.put_nowait((msg, time.monotonic()))
+            except (WebSocketDisconnect, RuntimeError, asyncio.CancelledError):
+                raise
+            except Exception as _frame_e:  # noqa: BLE001 — answered and traced; the reader reads on
+                # The closing half of #27 (R363 VM363-03): a frame the reader
+                # or one of its helpers could not handle is refused, never the
+                # end of the connection. Each field still has its own check —
+                # this catch only keeps a missed form from tearing it down.
+                _trace.emit_exc("ws.reader_frame_failed", _frame_e, client_id=client_id, cmd=msg.get("cmd"))
+                await ws_send_json(ws, {"type": "reply", "cmd": msg.get("cmd"), "ok": False,
+                                        "error": f"Frame refused — {type(_frame_e).__name__}", **_req_echo(msg)})
 
     except (WebSocketDisconnect, RuntimeError) as _disc_e:
         _set_phase(f"ws_endpoint.WebSocketDisconnect_caught client#{client_id}")

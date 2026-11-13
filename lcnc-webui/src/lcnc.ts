@@ -175,7 +175,7 @@ export type WsCommand =
   // the asyncio loop responsive under multi-tab storm conditions.
   | { cmd: "tab_visibility"; hidden: boolean }
   // Safety trip acknowledgment (clears sticky trip, re-allows arming)
-  | { cmd: "safety_trip_ack" };
+  | { cmd: "safety_trip_ack"; id: string };
 
 // Commands safe to queue while the socket is closed and replay after reconnect
 // (issue #18). Read-only / telemetry only — everything else (motion, mode,
