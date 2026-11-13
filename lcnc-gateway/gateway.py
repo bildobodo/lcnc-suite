@@ -7278,7 +7278,10 @@ def _reserved_fixture_heal_tick(st) -> None:
             idx = int(st.g5x_index)
         except (TypeError, ValueError):
             return
-        if idx in (6, 7, 8, 9) and not st.twp_active and _kins_is_switchable():
+        # reserved rows only where TWP rules apply — the ONE predicate (TWP-08 /
+        # TWP-08a: on a switchable machine without the TWP stack, a TCP
+        # trunnion, G59–G59.3 are ordinary fixtures; this used to heal them)
+        if idx in (6, 7, 8, 9) and not st.twp_active and _twp_capable():
             name = _WCS_NAMES[idx - 1] if 0 < idx <= len(_WCS_NAMES) else f"G5x[{idx}]"
             _reserved_heal_pending = idx
             _reserved_fixture_warning = (
@@ -7317,7 +7320,10 @@ def _reserved_heal_check() -> Tuple[Optional[str], str]:
     _cmd_lock, and the command it waited behind may have oriented a plane or
     selected a fixture — the tick's snapshot is no answer any more.
     ("superseded", why): nothing to heal; ("defer", why): not now (unknown,
-    or not ready — the next tick tries again); (None, ""): heal."""
+    or not ready — the next tick tries again); (None, ""): heal. Only a
+    TWP-capable machine has reserved rows (and the twp_active pin)."""
+    if not _twp_capable():
+        return "superseded", "no TWP stack: G59–G59.3 are ordinary fixtures"
     try:
         link().stat.poll()
     except NotConnected:

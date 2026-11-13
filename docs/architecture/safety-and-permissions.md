@@ -24,7 +24,9 @@ touch-off target, disabled in the WCS selector on TWP configs, rewritten
 COMPLETELY (`A0 B0 C0 R0`) by every orient; the orient move is `G53 G0 B C`.
 The fixture rides the kins mode (M428/M429 → G54 when leaving a reserved row,
 M430 → G59); a reserved fixture active on identity kins at boot is bannered
-and healed with one `G54` at `ready`. The viewer draws ONE work-system
+and healed with one `G54` at `ready` — on a TWP-capable machine only (the
+ONE predicate `_twp_capable`, TWP-08a: on a TCP trunnion G59–G59.3 are
+ordinary fixtures; the heal decided by "switchable" until package 2b). The viewer draws ONE work-system
 marker, the active fixture, where the PART's zero physically is in every
 kins mode (`viewer/programZero.ts`: identity = the chain at the fixture's
 W1 stamp A, riding the table; TCP = the numbers; Plane = the plane compose

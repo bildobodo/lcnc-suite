@@ -563,11 +563,13 @@ class BackgroundSequencesKeepTheirLink(unittest.TestCase):
         # its first contention — an earlier test's)
         self.addCleanup(setattr, gateway, "_cmd_lock", gateway._cmd_lock)
         gateway._cmd_lock = None
-        # the heal's current read: no plane active (fresh reader), ready
+        # the heal's current read: a TWP machine, no plane active (fresh
+        # reader), ready
         self.plane = {"twp_active": 0}
         self.not_ready = None
         for name, value in (("_reader_fresh_get", lambda f: self.plane.get(f)),
-                            ("_controller_gate_refusal", lambda gate, armed: self.not_ready)):
+                            ("_controller_gate_refusal", lambda gate, armed: self.not_ready),
+                            ("_twp_capable", lambda: True)):
             p = mock.patch.object(gateway, name, value)
             p.start()
             self.addCleanup(p.stop)
@@ -682,6 +684,63 @@ class BackgroundSequencesKeepTheirLink(unittest.TestCase):
         self.assertEqual(booked, [])
 
 
+class ReservedRowsOnlyOnATwpMachine(unittest.TestCase):
+    """G59–G59.3 are reserved only where TWP rules apply (TWP-08 / TWP-08a,
+    the ONE predicate _twp_capable): on a switchable machine without the
+    TWP stack — a TCP trunnion — they are ordinary fixtures, and the boot
+    heal must leave them (it decided by "switchable" and would have put an
+    operator's G59 back to G54; Fable's check of 3e3ec6ed). On a TWP
+    machine an unread plane state defers the heal."""
+
+    def setUp(self):
+        for name in ("_reserved_heal_checked", "_reserved_heal_pending", "_reserved_fixture_warning",
+                     "_reserved_heal_inflight", "_reserved_heal_last_try", "reject_if_auto_running",
+                     "_cmd_lock"):
+            self.addCleanup(setattr, gateway, name, getattr(gateway, name))
+        gateway._reserved_heal_checked = False
+        gateway._reserved_heal_pending = None
+        gateway._reserved_fixture_warning = ""
+        gateway._reserved_heal_inflight = False
+        gateway._cmd_lock = None
+        gateway.reject_if_auto_running = lambda: None
+        self.events = []
+
+    def boot_tick(self, capable):
+        st = types.SimpleNamespace(g5x_index=7, twp_active=False, permissions={})
+        with mock.patch.object(gateway, "_twp_capable", lambda: capable), \
+                mock.patch.object(gateway, "_kins_is_switchable", lambda: True):
+            gateway._reserved_fixture_heal_tick(st)
+
+    def test_a_tcp_trunnions_g59_1_is_an_ordinary_fixture(self):
+        self.boot_tick(capable=False)
+        self.assertIsNone(gateway._reserved_heal_pending, "an ordinary G59.1 set to be healed")
+        self.assertEqual(gateway._reserved_fixture_warning, "")
+
+    def test_a_twp_machines_g59_1_is_its_scratch_row(self):
+        self.boot_tick(capable=True)
+        self.assertEqual(gateway._reserved_heal_pending, 7)
+        self.assertIn("TWP scratch row", gateway._reserved_fixture_warning)
+
+    def test_the_heal_on_a_machine_without_twp_writes_nothing(self):
+        gateway._reserved_heal_pending = 7
+        stat = _ModeStat(linuxcnc.MODE_MANUAL)
+        connect_fake(self, stat=stat, cmd=_ModeCmd(stat, "old", self.events))
+        with mock.patch.object(gateway, "_twp_capable", lambda: False):
+            asyncio.run(gateway._reserved_fixture_heal())
+        self.assertEqual(self.events, [])
+        self.assertIsNone(gateway._reserved_heal_pending)
+
+    def test_an_unread_plane_state_on_a_twp_machine_defers(self):
+        gateway._reserved_heal_pending = 7
+        stat = _ModeStat(linuxcnc.MODE_MANUAL)
+        connect_fake(self, stat=stat, cmd=_ModeCmd(stat, "old", self.events))
+        with mock.patch.object(gateway, "_twp_capable", lambda: True), \
+                mock.patch.object(gateway, "_reader_fresh_get", lambda f: None):
+            asyncio.run(gateway._reserved_fixture_heal())
+        self.assertEqual(self.events, [])
+        self.assertEqual(gateway._reserved_heal_pending, 7, "unknown defers, never heals or drops")
+
+
 class _SlowG54(_ModeCmd):
     """The heal's G54 runs on (wait_complete: -1 per slice, as LinuxCNC
     answers a running MDI) until `done`; an abort is booked and answered."""
@@ -725,11 +784,13 @@ class AnAbortDuringTheHeal(unittest.TestCase):
         # its first contention — an earlier test's)
         self.addCleanup(setattr, gateway, "_cmd_lock", gateway._cmd_lock)
         gateway._cmd_lock = None
-        # the heal's current read: no plane active (fresh reader), ready
+        # the heal's current read: a TWP machine, no plane active (fresh
+        # reader), ready
         self.plane = {"twp_active": 0}
         self.not_ready = None
         for name, value in (("_reader_fresh_get", lambda f: self.plane.get(f)),
-                            ("_controller_gate_refusal", lambda gate, armed: self.not_ready)):
+                            ("_controller_gate_refusal", lambda gate, armed: self.not_ready),
+                            ("_twp_capable", lambda: True)):
             p = mock.patch.object(gateway, name, value)
             p.start()
             self.addCleanup(p.stop)
