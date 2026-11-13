@@ -115,5 +115,45 @@ class LinkOwnership(unittest.TestCase):
         self.assertEqual((claim.serial, claim.state), (41, "sent"))
 
 
+class EntryPathsWithoutConnection(unittest.TestCase):
+    """What each entry path does without a connection — pinned before the
+    Link changes how "no connection" is represented (package 2b step 2)."""
+
+    def test_a_dispatched_command_and_a_stop_answer_not_connected(self):
+        from link_fixture import disconnect
+        disconnect(self)
+        for msg in ({"cmd": "mdi", "command": "G0 X1"}, {"cmd": "abort"}, {"cmd": "jog_stop", "axis": 0}):
+            r = asyncio.run(gateway.handle_command(msg, True))
+            self.assertEqual(r, {"ok": False, "error": "LinuxCNC not connected"}, msg)
+
+    def test_the_disconnect_jog_stop_does_nothing_without_a_connection(self):
+        from link_fixture import disconnect
+        disconnect(self)
+        saved = dict(gateway._active_jogs)
+        gateway._active_jogs[0] = (0, 0)
+        self.addCleanup(lambda: (gateway._active_jogs.clear(), gateway._active_jogs.update(saved)))
+        asyncio.run(gateway._jog_stop_for_client())   # no exception, nothing sent
+        self.assertEqual(gateway._active_jogs, {0: (0, 0)})
+
+    @unittest.expectedFailure   # package 2b: the Link
+    def test_a_write_whose_connection_is_gone_before_the_thread_is_refused(self):
+        events: list = []
+        old = FakeConnection(stat=_Stat("old", events), cmd=_Chan("old", 40, events))
+        connect_fake(self, stat=old.stat, cmd=old.cmd)
+        real = asyncio.to_thread
+
+        async def gone_at_dispatch(fn, /, *args, **kwargs):
+            swap_connection(None)
+            return await real(fn, *args, **kwargs)
+
+        async def go():
+            async with gateway._get_cmd_lock():
+                return await gateway._cmd_blocking(old.cmd.mdi, "G4 P0", wait=1.0, claim=_claim())
+        with mock.patch.object(asyncio, "to_thread", gone_at_dispatch):
+            with self.assertRaises(PermissionError):
+                asyncio.run(go())
+        self.assertEqual([e for e in events if e[0] == "write"], [], "the stale channel took the write")
+
+
 if __name__ == "__main__":
     unittest.main()
