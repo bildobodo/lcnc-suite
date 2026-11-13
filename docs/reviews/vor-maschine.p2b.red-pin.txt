@@ -1,5 +1,5 @@
-== red check at 3e3ec6ed 2026-11-13T07:54:59+01:00
--- pin to no connection, heal and read-back on one Link (expect 8 FAILED — the whole heal class, 3e3ec6ed's four guards included — and 2 PASSED controls): gateway.py of 699834be, tests of the head, -k 'began_without or throughout or BackgroundSequences'
+== red check at 3e3ec6ed 2026-11-13T06:45:46+01:00
+-- pin to no connection, heal and read-back on one Link (expect 4 FAILED, 2 PASSED controls): gateway.py of 699834be, tests of the head, -k 'began_without or throughout or BackgroundSequences'
 PASSED test_link_ownership.py::OneLinkPerCommand::test_without_a_connection_throughout_it_is_not_connected
 PASSED test_link_ownership.py::BackgroundSequencesKeepTheirLink::test_the_heal_on_one_link_writes_both
 FAILED test_link_ownership.py::OneLinkPerCommand::test_a_command_that_began_without_a_connection_never_takes_a_later_one
@@ -10,13 +10,13 @@ FAILED test_link_ownership.py::BackgroundSequencesKeepTheirLink::test_a_plane_or
 FAILED test_link_ownership.py::BackgroundSequencesKeepTheirLink::test_the_heal_refuses_its_g54_after_a_reconnect
 FAILED test_link_ownership.py::BackgroundSequencesKeepTheirLink::test_the_heal_waits_for_a_command_in_flight
 FAILED test_link_ownership.py::BackgroundSequencesKeepTheirLink::test_the_read_back_refuses_its_synch_after_a_reconnect
-8 failed, 2 passed, 39 deselected in 0.27s
+8 failed, 2 passed, 35 deselected in 0.34s
 -- abort preempts the heal, read-back refusal traced as link (expect 2 FAILED): gateway.py of 7fed7bef, tests of the head, -k 'AnAbortDuringTheHeal or TheReadBackOnAChangedLink'
         failed = [kw for name, kw in traced if name == "toolsetter.read_back_failed"]
 >       self.assertEqual([(kw["why"], kw["msg"]) for kw in failed], [("link", gateway.LINK_CHANGED)])
 FAILED test_link_ownership.py::AnAbortDuringTheHeal::test_the_abort_goes_out_within_a_slice
 FAILED test_link_ownership.py::TheReadBackOnAChangedLinkAtItsWrite::test_refused_and_traced
-2 failed, 47 deselected in 0.21s
+2 failed, 43 deselected in 0.29s
 -- the heal re-checks under the lock, caches from a read status (expect 6 FAILED): gateway.py of 211ecc45, tests of the head, -k 'superseded or supersedes or defers_it or refused_there or CachesFilledOnTheirOwnLink'
 FAILED test_link_ownership.py::BackgroundSequencesKeepTheirLink::test_a_fixture_selected_ahead_of_the_heal_supersedes_it
 FAILED test_link_ownership.py::BackgroundSequencesKeepTheirLink::test_a_fixture_selected_at_the_write_is_refused_there
@@ -24,10 +24,4 @@ FAILED test_link_ownership.py::BackgroundSequencesKeepTheirLink::test_a_machine_
 FAILED test_link_ownership.py::BackgroundSequencesKeepTheirLink::test_a_plane_oriented_ahead_of_the_heal_supersedes_it
 FAILED test_link_ownership.py::CachesFilledOnTheirOwnLink::test_the_joint_jog_facts_read_one_status
 FAILED test_link_ownership.py::CachesFilledOnTheirOwnLink::test_the_payload_bounds_are_not_cached_by_a_pinned_out_caller
-6 failed, 43 deselected in 0.24s
--- reserved rows only on a TWP machine (expect 2 FAILED: the TCP trunnion's tick and the heal without TWP; 2 PASSED controls): gateway.py of 3e3ec6ed, tests of the head, -k 'ReservedRowsOnlyOnATwpMachine'
-PASSED test_link_ownership.py::ReservedRowsOnlyOnATwpMachine::test_a_twp_machines_g59_1_is_its_scratch_row
-PASSED test_link_ownership.py::ReservedRowsOnlyOnATwpMachine::test_an_unread_plane_state_on_a_twp_machine_defers
-FAILED test_link_ownership.py::ReservedRowsOnlyOnATwpMachine::test_a_tcp_trunnions_g59_1_is_an_ordinary_fixture
-FAILED test_link_ownership.py::ReservedRowsOnlyOnATwpMachine::test_the_heal_on_a_machine_without_twp_writes_nothing
-2 failed, 2 passed, 45 deselected in 0.19s
+6 failed, 39 deselected in 0.36s

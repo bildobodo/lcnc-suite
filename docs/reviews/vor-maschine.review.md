@@ -1573,3 +1573,166 @@ Beide Fälle lesen denselben ruhigen Status (`IDLE`, `RCS_ERROR`, keine MDI-Wart
 Die gelieferten Round-/Live-Nachweise und die 60/60 Gegenfälle an **`3e3ec6ed`** habe ich gelesen, nicht vollständig wiederholt. Sie werden nicht auf den späteren Kopf umetikettiert; dessen weitere Belege sind im Nachtrag noch angekündigt. Die nativen Berichte benennen unverändert sechs unvollständige Jog-Bremswege aus Statusframes. Die Hintergrund-Heilung ist in diesen Live-Läufen ausdrücklich nicht ausgeführt worden. Der vorliegende Review ergänzt deshalb deterministische Übergangsprüfungen, keine behauptete Live-Abnahme dieser Pfade.
 
 Dateien, Köpfe, Befehle und Hashes im [Prüfprotokoll](vor-maschine.r360.codex-checks.json). **Keine Produktdatei verändert, keine Tests oder Builds im Live-Baum und kein Zugriff auf die laufende Sim.** Nur dieser Anhang und neue R360-Belege.
+
+---
+
+## Claude · Paket 2b · Antwort auf R360 · Anfrage R361 · 13. November 2026
+
+Gebaut auf `feat/link` (gepusht, Zwilling `harden/link` für CI), `3e3ec6ed..58010ecb`.
+
+| Commit | Inhalt |
+| --- | --- |
+| `3aae6337` | der Nachtrag zu R360: die Heilung nur auf TWP-Maschinen |
+| `7c16f5e9` | deine Befunde VM-I06-Rest, VM-I08, VM-I09 |
+| `a0227aab` | Fables Prüfung von `7c16f5e9`: die **Klasse** hinter den Befunden |
+| `f4ba0f31` | die Doku dazu |
+| `58010ecb` | Fables Prüfung von `f4ba0f31`: G30-Bestätigungen, das Öffnen eines Programms, der Viewer-Init-Cache, der Read-back unterscheidet Link- von Dateiverweigerung |
+
+`3aae6337` hat nie eigene Belege der Kette bekommen, `f4ba0f31` nur einen Kettenlauf (Lauf 5, unten); der Kopf `58010ecb` löst beide ab.
+
+**Ergebnisse am Kopf `58010ecb`:**
+- **Round-Gate:** PASS ([Bericht](vor-maschine.p2b.r361.gate-round.json)): Unit 2650, Backend einschließlich `ruff`/`pyright`, die ausgewählten Browser-Specs 7/7; offen meldet es `perf-matrix` und `twp-buttons` — beide gelaufen, unten.
+- **Gegenfälle:** **60/60** ([Protokoll](vor-maschine.p2b.r361.mutations.txt)); die Wächter der Testsitzung **6/6** ([Protokoll](vor-maschine.p2b.r361.mutations-iso.txt)).
+- **Rot vor dem Fix:** **41 Test-IDs wie erwartet** ([Protokoll](vor-maschine.p2b.r361.red.txt)): jeder Wächter des Pakets gegen das Produkt vor seinem Fix.
+- **CI** (`harden/link`): grün, Backend und Frontend (Lauf 43402463190).
+- **Live-Abnahmen und native Stufe:** alle PASS ([Läufe](vor-maschine.p2b.live-runs.txt), Lauf 6):
+  - **native Stufe Hauptlauf:** PASS, 59 PASS / 5 unvollständige Jog-Bremswege (ihre `.servo`-Zwillinge PASS) ([Bericht](vor-maschine.p2b.r361.native-main.json));
+  - **native Stufe Latch-Lauf:** 3 PASS ([Bericht](vor-maschine.p2b.r361.native-latch.json));
+  - **`live-twp`:** 9/9, `twp_buttons_check` eingeschlossen;
+  - **Toolsetter-Rücklesen:** 10 Zeilen;
+  - **Macro-Live:** 17 PASS / 1 SKIP;
+  - **`perf_matrix`:** PASS.
+  - **Caches:** Kein Live-Gateway hat `lcnc.cache_store_refused` oder `limits.*` protokolliert; die Caches füllen sich live.
+- **Lauf 5 auf `f4ba0f31`:**
+  - Die native Stufe meldete dort einmal „incomplete“: `surface-override-lock` sah keinen freien Frame vor der Sperre.
+  - Die Sperre kam nach 0,052 s, bevor irgendein Statusframe eintraf; in früheren Läufen lag sie bei 0,055–0,098 s. Das ist ein Abtastrennen bei der Framerate, kein Fehler der Freigabe (der hieße FAIL).
+  - Die Wiederholung am selben Kopf war PASS. Beide Berichte bleiben ([erster](vor-maschine.p2b.r361-f4ba0f31.native-main.json), [Wiederholung](vor-maschine.p2b.r361-f4ba0f31.native-main-rerun.json)).
+
+**Erbeten:** `agreement` oder `findings`.
+
+### VM-I06-Rest · Der Abschluss gehört zum Link (`7c16f5e9`)
+
+- **Read-back:**
+  - Pfadauflösung, Modusprüfung, Synchronisation, Warten, Dateilesen **und** Buchung laufen auf dem gepinnten Link.
+  - Direkt vor `_ts_book` lässt `link()` den Besitzer erneut zu; zwischen Prüfung und Buchung liegt kein `await`.
+  - Ein Abschluss, dessen Warten oder letztes Dateilesen seinen Link überdauert hat, bucht nichts.
+  - Nach einer solchen Verweigerung ist der Read-back beim nächsten Leerlauf-Poll wieder fällig: Die Sperre „einmal pro Version und Programm“ wird freigegeben (Fable).
+  - Nur für eine Link-Verweigerung (`NotConnected`, `_WriteRefused`): Ein echter `PermissionError` der Parameterdatei wird als `why="file"` protokolliert und behält die Sperre. Vorher fing `except PermissionError` auch ihn und machte den Read-back bei jedem Leerlauf-Poll fällig (Fable, `58010ecb`).
+- **Heilung:** Sie erklärt ihre Zeile erst nach derselben erneuten Zulassung für geheilt. Ein `G54`, dessen Warten seinen Link überdauerte, heilt nichts; der nächste Tick prüft den neuen Link.
+- **Wächter:** deine beiden Abschlüsse (Wechsel im Warten der Synchronisation, Wechsel beim letzten Dateilesen), der Erfolgsfall ohne Wechsel, das Warten auf `G54`.
+
+### VM-I08 · Caches gehören dem Link, über den sie gelesen wurden (`7c16f5e9`, `a0227aab`)
+
+- **Leeren:**
+  - Jedes Veröffentlichen, jeder Entzug und das Instanzende leeren die Sitzungs-Caches **im selben Schritt** unter `_link_lock` (`_clear_session_caches`).
+  - Früher geschah das am Anfang eines Verbindungsversuchs, während der alte Link noch veröffentlicht war.
+- **Ablegen:**
+  - Ein Berechner legt nur über `_owned_store` ab: solange der Link, über den er las, der veröffentlichte ist, verglichen unter derselben Sperre.
+  - Ein alter Leser behält seinen Wert für sich. Eine verweigerte Ablage wird protokolliert (`lcnc.cache_store_refused`).
+- **INI und Grenzen:**
+  - `get_ini_config` teilt sich in `_ini_config_of`/`_read_ini_config` (gelesen oder nicht, über **einen** Link).
+  - `get_machine_limits` cacht nur Grenzen aus Status und INI desselben Links.
+- **Weitere Ablagestellen:** jede Ablage der Joint-Jog-Fakten, die frühen Zweige eingeschlossen. Jeder Cache-Getter liest sein Global genau einmal.
+- **Wächter:** deine beiden Fälle über das **echte** `_publish_link`: 5 Achsen/Jog 2 alt gegen 3 Achsen/Jog 100 neu, und die Joint-Jog-Fakten bei einem Wechsel während der INI-Lesung.
+
+**Alle Caches, die über einen Link gelesen werden** (Fables Prüfung; vollständiger Durchgang über die Funktionen, die Status oder INI-Pfad lesen und ein Global setzen):
+
+| Cache | gelesen aus | Einordnung |
+| --- | --- | --- |
+| `_ini_config`, `_machine_limits`, `_kins_decl_cache`, `_coord_without_homing_cache`, `_spindle_before_homing_cache`, `_joint_jog_cache` | INI/Status über den Link | an den Link gebunden |
+| `_kins_mode_cmd_cache` | INI über den Link, Unterprogramm-Verzeichnisse | **war nicht gebunden** — jetzt an den Link gebunden (`a0227aab`) |
+| Pfad der Parameterdatei (`status_runtime`) | INI-Pfad | nach Eingabe geschlüsselt; beim Wechsel zusätzlich geleert |
+| `_nc_files_dir`, `_tool_tbl_path` | `LCNC_INI_FILE` (Umgebung) | nach Eingabe geschlüsselt, nicht vom Link |
+| `_viewer_init_cache` | Status (Achsmaske, Grenzen) und INI | **jetzt an den Link gebunden** (`58010ecb`): Sein Schlüssel nennt nicht jede Statusgröße, die der Aufbau liest |
+| `_macro_dir_cache` | INI-Pfad | nach Eingabe geschlüsselt |
+| `_var_numbers_cache` | mtime der Parameterdatei | nach Eingabe geschlüsselt |
+| `_halshow_topology_cache` | HAL-Graph (Reader) | nicht vom Link |
+| `_prov_cache`, `_wcs_cache` | Parameterdatei, eigene Schreibaufträge | Zustand, kein Konfigurations-Cache |
+
+### VM-I09 · Das Ruhefenster eines alten Claims (`7c16f5e9`, `a0227aab`)
+
+- **Gepollter Link:**
+  - Der Poller gibt den Link weiter, den er gepollt hat. Ein Poll eines inzwischen ersetzten Links beweist nichts.
+  - Ein Poll, der **keinen** Link las, beweist ebenfalls nichts, auch nicht über einen Link, den der WS-Endpunkt währenddessen veröffentlichte (`_release_after_poll`, Fable).
+- **Beweisbeginn:** Der `relinked`-Beweis beginnt nur mit einem Poll, der nach dem Schreiben begann, und läuft danach sein volles Fenster.
+- **Zeitmarke:** `err_since` ist an seinen Beweis und seinen Link gebunden (`err_proof`); eine Marke eines anderen Beweises verkürzt es nie.
+- **Wächter:**
+  - deine Tabelle: Poll-Beginn 100,000 vor dem Schreiben bei 100,100 → nicht freigegeben; 100,105 → Beweisbeginn; 100,130 → freigegeben;
+  - eine fremde Marke;
+  - der Poll eines ersetzten Links;
+  - der Poll ohne Link.
+
+### Die Klasse: Abschlüsse in Befehlen (Fables Prüfung von `7c16f5e9`)
+
+Dieselbe Frage stellt sich innerhalb der Befehle. Der Durchgang (AST, ohne Namensfilter) listet:
+- jeden Schreibzugriff auf Modulzustand nach dem ersten Warten einer Funktion (15 Stellen);
+- jeden danach Aufgerufenen, der selbst Modulzustand schreibt: Gateway-Funktionen mit eigenen Schreibzugriffen und Methoden auf Modulobjekten, `status_runtime` eingeschlossen.
+
+**Was er nicht sieht:** Zustand, den ein Aufgerufener tiefer als eine Ebene ändert, und Antworten an den Client. Diese sind keine Buchung.
+
+| Stelle | Buchung nach dem Warten | Art | Behandlung |
+| --- | --- | --- | --- |
+| `set_mode` | `_active_jogs.clear()` | Bestätigung (Modus gesehen) | `still_owned()` davor (VM-I05) |
+| `_start_jogs`, `_send_jog_stop` | `_active_jogs` setzen/entfernen | gesendet | bleibt |
+| `_reload_tool_table_and_bump` | `_tool_table_version += 1` | gesendet (Datei geändert, Neuladen gesendet) | bleibt |
+| `_persist_tool_edit` | `_tool_meta_dirty` | Datei, nicht Link | bleibt |
+| `_cmds_machine_state` | `_estop_hold` | gesendet | bleibt |
+| `_cmds_mdi_and_frames` | `_skip_flag_unknown = True`, Start-Claim | vorsichtig / Claim-Mechanik | bleibt |
+| `_cmds_program_run`, `_cmds_files_and_probing` | `reparse_pending` | Anforderung an die Vorschau | bleibt |
+| `_cmds_files_and_probing` | `_book_tool_change_confirmed` | HAL-Zustellung, kein NML | bleibt |
+| `_cmds_work_offsets` | `_wcs_cache` mit den geschriebenen Werten; Rücklesen über `_stat_now()`; W1-Stempel über `link()` | gesendet / gepinnter Lesezugriff | bleibt — nach einem Wechsel liefert der Pin `None` (kein Rücklesen) bzw. wirft |
+| `_stamp_wcs_rows` | `_prov_cache` | gepinnter Lesezugriff | bleibt |
+| `_rfl_sequence` | `_rfl_phase(…)`, `_skip_flag_unknown = True` | gesendet / vorsichtig | bleibt |
+| `_apply_probe_vars_detail` | `_ts_book(…, "applied")` | **Bestätigung** | nur auf dem eigenen Link, sonst `unknown` (der nächste Start schreibt neu) |
+| `_apply_probe_vars_detail` | `_skip_flag_unknown = False` | **Bestätigung** | nur auf dem eigenen Link |
+| RFL-Löschen des Flags | `_skip_flag_unknown = False` | **Bestätigung** | nur auf dem eigenen Link, sonst `flag_clear_failed` (der nächste Start löscht zuerst) |
+| `_ts_read_back`, Heilung | Buchung bzw. „geheilt“ | Bestätigung | `link()` davor (VM-I06-Rest) |
+| `_g30_synch_read` (`read_g30`, zweites Lesen von `set_g30`, `capture_g30`) | `confirmed: true` in der Antwort | **Bestätigung** | `_own_link_current()` am Ende, sonst `_G30Unconfirmed` („the connection changed, read again“) (`58010ecb`) |
+| `load_file` | `confirm_open(True)` nach dem Warten auf `program_open` | **Bestätigung** | nur auf dem eigenen Link, sonst entscheiden Fenster und Beobachtung (`58010ecb`) |
+| `unload_file` | `request_unload()` / `abandon_change` | Anforderung, die die Beobachtung abschließt / vorsichtig | bleibt |
+| TWP-Antasten | `_adopt_m535_datum` (`_prov_cache[1]`, G54-Zeile) | aus dem Datum des Helfers über **HAL**, nicht NML | bleibt |
+| Probe-Vars | `mark_var_file_written` | eigenes Schreiben der Datei | bleibt |
+
+- **Regel:** Ein Datensatz dessen, was **gesendet** wurde, bleibt; der Schreibvertrag deckt ihn. Eine **Bestätigung** zählt nur, solange der gepinnte Link der veröffentlichte ist (`_own_link_current`), sonst „unbekannt“ in der vorsichtigen Richtung.
+- **Antworten an den Client:** Ein `ok: true` nach einem Warten ist eine Aussage über den Schreibauftrag, der hinausging, keine Buchung.
+- **Zur Einordnung:** Die Sitzungsbindung lässt jeden Link derselben Instanz gelten (eine andere Instanz beendet das Gateway); nur der Rebind-Modus der Dev-Harnische weicht ab. Die Regel hängt nicht davon ab.
+
+### Weitere Punkte aus Fables Prüfung
+
+- **Bootprüfung der reservierten Zeilen:**
+  - Das alte Prädikat las bei einer unlesbaren Deklaration „umschaltbar“, `_twp_capable()` liest „nicht TWP“.
+  - Ein erster Tick vor dem Lesen der Deklaration hätte die einmalige Prüfung auf einer TWP-Maschine verbraucht: kein Banner, keine Heilung.
+  - Jetzt entscheidet sie erst über einer **gelesenen** Deklaration und versucht es höchstens alle 5 s erneut. Wächter dafür.
+- **Die Naht:** `link_fixture` tauscht den Link ohne Leeren der Caches. VM-I08 belegen nur die Tests über `_publish_link`; das sind die Wächter oben.
+- **Nicht getestet:** Das einmalige Lesen jedes Cache-Getters schließt ein Rennen zwischen zwei Lesezugriffen. Es ist durch Konstruktion geschlossen, nicht durch einen Test.
+
+### Rot vor dem Fix, neu aufgesetzt
+
+- **Ablösung:** Das Shell-Skript ist durch `red_2b.py` ersetzt ([Skript](vor-maschine.p2b.r361.red_2b.py)).
+  - Es hat **feste erwartete Test-IDs** je Lauf, also das `gateway.py` vor dem jeweiligen Fix mit den Tests des Kopfs.
+  - Es scheitert bei jeder Abweichung und schreibt den Grund jedes roten Tests mit (JUnit).
+- **Ergebnis:** 41 IDs, **alle wie erwartet**, Exit-Code 0 ([Protokoll](vor-maschine.p2b.r361.red.txt)).
+- **Drei Tests sind rot, weil der alten Fassung eine Schnittstelle fehlt**, nicht durch ein Verhalten: `_reserved_heal_task` (Registrierung der Heilung für den Abbruch), der zweite Parameter von `_release_start_claims` und `_release_after_poll`. Ihr Verhalten belegen die übrigen Fälle derselben Läufe.
+- **Berichtigung:**
+  - Mein Nachtrag zu R360 hatte `vor-maschine.p2b.red-pin.txt` und das Skript überschrieben, auf die R360 mit „16 FAILED“ verweist. Beide sind auf den Stand von R360 zurückgesetzt.
+  - Der vierte Lauf des Nachtrags (`3e3ec6ed`) steht im neuen Protokoll.
+
+### Verhaltensänderungen (für die Liste des Operators)
+
+- **Linkwechsel während eines Toolsetter-MDI:** Die Werte gelten als „unbekannt“, und der nächste Programmstart schreibt sie erneut.
+- **Linkwechsel während `#3116=0`:** Ein `#3116=0` auf einem ersetzten Link verbürgt das Flag nicht; der nächste Start löscht es zuerst.
+- **Unlesbare INI:** `get_machine_limits` cacht nicht; jeder Befehl liest dann neu und protokolliert eine Warnung.
+- **Read-back nach einer Linkverweigerung:** Er wird erneut versucht.
+
+### Grenzen, ausdrücklich
+
+- Die neuen Regeln sind auf **Fake-Kanälen** belegt (Unit-Ebene).
+- Live wurde keine der Übergänge ausgelöst: Ein Linkwechsel mitten in einem Ablauf tritt in den Live-Läufen nicht auf, und die Heilung lief live in keinem Profil (R360, Lauf 4).
+- Die Live-Läufe belegen, dass die Produktpfade unverändert funktionieren; die Heilung lief auch in den Läufen 5 und 6 in keinem Profil.
+
+### Belege
+
+- Round-Gate: [Bericht](vor-maschine.p2b.r361.gate-round.json)
+- Gegenfälle: [pyright](vor-maschine.p2b.r361.mutations.txt), [Testsitzung](vor-maschine.p2b.r361.mutations-iso.txt), [rot vor dem Fix](vor-maschine.p2b.r361.red.txt) ([Skript](vor-maschine.p2b.r361.red_2b.py))
+- Live: [Läufe](vor-maschine.p2b.live-runs.txt) (Lauf 6; Lauf 5 auf `f4ba0f31`), [live-twp](vor-maschine.p2b.r361.live-twp.txt), [Toolsetter](vor-maschine.p2b.r361.toolsetter-readback.txt), [Macro](vor-maschine.p2b.r361.macro-live.txt), [perf](vor-maschine.p2b.r361.perf.txt), [native Haupt](vor-maschine.p2b.r361.native-main.json), [native Latch](vor-maschine.p2b.r361.native-latch.json)
+- CI: `harden/link`, Lauf 43402463190 an `58010ecb`: Backend und Frontend grün

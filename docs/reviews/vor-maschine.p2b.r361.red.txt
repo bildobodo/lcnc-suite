@@ -1,0 +1,83 @@
+== red check at 58010ecb
+-- pin to no connection, heal and read-back on one Link (7fed7bef): gateway.py of 699834be, the head's tests
+ok  PASSED  (want PASSED) test_link_ownership.py::BackgroundSequencesKeepTheirLink::test_the_heal_on_one_link_writes_both
+ok  FAILED  (want FAILED) test_link_ownership.py::BackgroundSequencesKeepTheirLink::test_the_heal_refuses_its_g54_after_a_reconnect
+      why: AssertionError: Lists differ: [('old', ('mode', 3), 41), ('new', ('mdi', 'G54'), 41)] != [('old', ('mode', 3),
+ok  FAILED  (want FAILED) test_link_ownership.py::BackgroundSequencesKeepTheirLink::test_the_heal_waits_for_a_command_in_flight
+      why: AssertionError: Lists differ: [('old', ('mode', 3), 41), ('old', ('mdi', 'G54'), 42)] != []
+ok  FAILED  (want FAILED) test_link_ownership.py::BackgroundSequencesKeepTheirLink::test_the_read_back_refuses_its_synch_after_a_reconnect
+      why: AssertionError: Lists differ: [('new', ('task_plan_synch',), 41)] != []
+ok  FAILED  (want FAILED) test_link_ownership.py::OneLinkPerCommand::test_a_command_that_began_without_a_connection_never_takes_a_later_one
+      why: AssertionError: NotConnected not raised
+ok  PASSED  (want PASSED) test_link_ownership.py::OneLinkPerCommand::test_without_a_connection_throughout_it_is_not_connected
+-- an abort preempts the heal; the read-back names a refused Link (211ecc45): gateway.py of 7fed7bef, the head's tests
+ok  FAILED  (want FAILED) test_link_ownership.py::AnAbortDuringTheHeal::test_the_abort_goes_out_within_a_slice
+      why: AttributeError: module 'gateway' has no attribute '_reserved_heal_task'. Did you mean: '_reserved_heal_checked
+ok  FAILED  (want FAILED) test_link_ownership.py::TheReadBackOnAChangedLinkAtItsWrite::test_refused_and_traced
+      why: AssertionError: Lists differ: [('file', 'Connection to LinuxCNC changed — try again')] != [('link', 'Connectio
+-- the heal re-checks under the lock; caches from a read status (3e3ec6ed): gateway.py of 211ecc45, the head's tests
+ok  FAILED  (want FAILED) test_link_ownership.py::BackgroundSequencesKeepTheirLink::test_a_fixture_selected_ahead_of_the_heal_supersedes_it
+      why: AssertionError: Lists differ: [('old', ('mode', 3), 41), ('old', ('mdi', 'G54'), 42)] != []
+ok  FAILED  (want FAILED) test_link_ownership.py::BackgroundSequencesKeepTheirLink::test_a_fixture_selected_at_the_write_is_refused_there
+      why: AssertionError: Lists differ: [('old', ('mode', 3), 41), ('old', ('mdi', 'G54'), 42)] != [('old', ('mode', 3),
+ok  FAILED  (want FAILED) test_link_ownership.py::BackgroundSequencesKeepTheirLink::test_a_machine_no_longer_ready_defers_it
+      why: AssertionError: Lists differ: [('old', ('mode', 3), 41), ('old', ('mdi', 'G54'), 42)] != []
+ok  FAILED  (want FAILED) test_link_ownership.py::BackgroundSequencesKeepTheirLink::test_a_plane_oriented_ahead_of_the_heal_supersedes_it
+      why: AssertionError: Lists differ: [('old', ('mode', 3), 41), ('old', ('mdi', 'G54'), 42)] != []
+ok  FAILED  (want FAILED) test_link_ownership.py::CachesFilledOnTheirOwnLink::test_the_joint_jog_facts_read_one_status
+      why: AssertionError: False is not true : {'enabled': False, 'fraction': 0.1, 'axes': [], 'reason': 'Joint order nam
+ok  FAILED  (want FAILED) test_link_ownership.py::CachesFilledOnTheirOwnLink::test_the_payload_bounds_are_not_cached_by_a_pinned_out_caller
+      why: AssertionError: MachineLimits(n_axes=None, n_joints=None, max_jog_velocity=None, max_spindle_speed=None, max_f
+-- reserved rows only on a TWP machine (3aae6337): gateway.py of 3e3ec6ed, the head's tests
+ok  FAILED  (want FAILED) test_link_ownership.py::ReservedRowsOnlyOnATwpMachine::test_a_tcp_trunnions_g59_1_is_an_ordinary_fixture
+      why: AssertionError: 7 is not None : an ordinary G59.1 set to be healed
+ok  PASSED  (want PASSED) test_link_ownership.py::ReservedRowsOnlyOnATwpMachine::test_an_unread_plane_state_on_a_twp_machine_defers
+ok  FAILED  (want FAILED) test_link_ownership.py::ReservedRowsOnlyOnATwpMachine::test_the_heal_on_a_machine_without_twp_writes_nothing
+      why: AssertionError: 7 is not None
+-- Codex R360: completions, cache publication, the relinked window (7c16f5e9): gateway.py of 3aae6337, the head's tests
+ok  FAILED  (want FAILED) test_link_ownership.py::BackgroundSequencesKeepTheirLink::test_a_link_replaced_in_the_g54_wait_heals_nothing
+      why: AssertionError: None != 7 : the replaced Link's G54 declared the row healed
+ok  FAILED  (want FAILED) test_link_ownership.py::CachesFilledOnTheirOwnLink::test_an_old_ini_read_never_publishes_its_joint_jog_facts_for_the_new_link
+      why: AssertionError: {'enabled': True, 'fraction': 0.1, 'axes': [{'letter': 'X', 'joint': 0, 'max_vel': 10.0, 'reas
+ok  FAILED  (want FAILED) test_link_ownership.py::CachesFilledOnTheirOwnLink::test_an_old_poll_never_publishes_its_bounds_for_the_new_link
+      why: AssertionError: MachineLimits(n_axes=5, n_joints=5, max_jog_velocity=2.0, max_spindle_speed=None, max_feed_ove
+ok  FAILED  (want FAILED) test_link_ownership.py::ClaimsOfAnEarlierLink::test_a_mark_of_another_proof_does_not_shorten_the_window
+      why: AssertionError: Lists differ: [] != [<gateway._StartClaim object at 0xffff86bc6e00>]
+ok  FAILED  (want FAILED) test_link_ownership.py::ClaimsOfAnEarlierLink::test_a_poll_begun_before_the_write_does_not_start_the_window
+      why: AssertionError: Lists differ: [] != [<gateway._StartClaim object at 0xffff86bc71c0>]
+ok  FAILED  (want FAILED) test_link_ownership.py::ClaimsOfAnEarlierLink::test_a_poll_of_a_replaced_link_proves_nothing
+      why: TypeError: _release_start_claims() takes from 0 to 1 positional arguments but 2 were given
+ok  FAILED  (want FAILED) test_link_ownership.py::CompletionsKeepTheirLink::test_a_link_replaced_at_the_last_file_read_books_nothing
+      why: AssertionError: Lists differ: [('read', {3004: 2.0, 3005: 2.0, 3006: 2.0[229 chars].0})] != []
+ok  FAILED  (want FAILED) test_link_ownership.py::CompletionsKeepTheirLink::test_a_link_replaced_in_the_synchs_wait_books_nothing
+      why: AssertionError: Lists differ: [('read', {3004: 2.0, 3005: 2.0, 3006: 2.0[229 chars].0})] != []
+ok  PASSED  (want PASSED) test_link_ownership.py::CompletionsKeepTheirLink::test_unchanged_the_read_back_books_the_synched_values
+-- Fable's check of 7c16f5e9: the class (the head): gateway.py of 7c16f5e9, the head's tests
+ok  FAILED  (want FAILED) test_link_ownership.py::CachesFilledOnTheirOwnLink::test_an_old_ini_read_never_publishes_its_kins_mode_commands_for_the_new_link
+      why: AssertionError: {0: 'M428'} is not None : the old INI's commands published for the new Link
+ok  FAILED  (want FAILED) test_link_ownership.py::ClaimsOfAnEarlierLink::test_a_poll_that_read_no_link_proves_nothing
+      why: AttributeError: module 'gateway' has no attribute '_release_after_poll'
+ok  FAILED  (want FAILED) test_link_ownership.py::ReservedRowsOnlyOnATwpMachine::test_an_unread_declaration_does_not_spend_the_boot_check
+      why: AssertionError: True is not false : the one-shot spent on an unread declaration
+ok  FAILED  (want FAILED) test_link_ownership.py::TheSkipFlagClearOnAReplacedLink::test_cleared_on_a_replaced_link_the_flag_stays_unknown
+      why: AssertionError: False is not true : a replaced Link's #3116=0 vouched the flag
+ok  PASSED  (want PASSED) test_link_ownership.py::TheSkipFlagClearOnAReplacedLink::test_cleared_on_its_own_link_the_flag_is_known
+ok  FAILED  (want FAILED) test_toolsetter_basis.py::TestBooking::test_values_done_on_a_replaced_link_are_unknown_not_applied
+      why: AssertionError: True is not false
+ok  PASSED  (want PASSED) test_toolsetter_basis.py::TestBooking::test_values_done_on_their_own_link_are_applied
+-- Fable's check of f4ba0f31: G30 confirmations, the viewer-init cache, the read-back's file refusal, the program open (the head): gateway.py of f4ba0f31, the head's tests
+ok  FAILED  (want FAILED) test_command_dispatch.py::TestHandlerExecution::test_an_open_done_on_a_replaced_link_proves_nothing
+      why: AssertionError: False is not true : an open answered through a replaced Link settled the reload
+ok  PASSED  (want PASSED) test_command_dispatch.py::TestHandlerExecution::test_an_open_done_on_its_own_link_settles_the_reload
+ok  FAILED  (want FAILED) test_link_ownership.py::CompletionsKeepTheirLink::test_a_file_permission_error_is_the_files_and_keeps_the_latch
+      why: AssertionError: Lists differ: ['link'] != ['file']
+ok  FAILED  (want FAILED) test_link_ownership.py::TheG30ConfirmedReadKeepsItsLink::test_a_link_replaced_at_the_last_file_read_confirms_nothing
+      why: AssertionError: _G30Unconfirmed not raised
+ok  FAILED  (want FAILED) test_link_ownership.py::TheG30ConfirmedReadKeepsItsLink::test_a_link_replaced_in_the_synchs_wait_confirms_nothing
+      why: AssertionError: _G30Unconfirmed not raised
+ok  PASSED  (want PASSED) test_link_ownership.py::TheG30ConfirmedReadKeepsItsLink::test_unchanged_the_synched_values_are_confirmed
+ok  FAILED  (want FAILED) test_link_ownership.py::TheViewerInitCacheIsTheLinks::test_a_link_change_clears_it_and_a_current_build_stores
+      why: AssertionError: {('/assets/', '', 0, 1794537369.5287344, 7[1835 chars]se}}} != {}
+ok  FAILED  (want FAILED) test_link_ownership.py::TheViewerInitCacheIsTheLinks::test_an_old_build_never_publishes_for_the_new_link
+      why: AssertionError: {('/assets/', '', 0, 1794537369.5287344, 7[1835 chars]se}}} != {}
+ALL AS EXPECTED

@@ -37,3 +37,36 @@ Run 4 (chain-2b on 3e3ec6ed, the R360 head, 2026-11-13 06:28–07:17; ~/claude-w
   The reserved-fixture heal ran in NO live gateway (no twp.reserved_fixture_* from the live processes; every
   such trace line in the worktree's trace.ndjson comes from a pytest process): no profile boots on a TWP
   scratch row. Its lock, pin, preemption and re-check are certified on fake channels only.
+
+Run 5 (chain-2b on f4ba0f31, the R361 head, 2026-11-13 08:40–09:27):
+  counter-cases       60/60 (vor-maschine.p2b.r361.mutations.txt); test-session guards 6/6 (…r361.mutations-iso.txt)
+  red check           red_2b.py (fixed expected ids, fails on a difference, the reason of each red test recorded):
+                        33 ids ALL AS EXPECTED (…r361.red.txt)
+  round gate          PASS (…r361.gate-round.json): unit 2650, backend incl. ruff/pyright, browser 7/7
+  native main         "incomplete": 57 PASS, 7 incomplete — the six jog braking-travel rows and, NEW,
+                        surface-override-lock "no frame after the trigger showed it free before the lock": the lock
+                        came 0.052 s after the trigger (earlier runs 0.055–0.098 s), before any status frame was
+                        received — a sampling race at the frame rate, not a release fault (that would be FAIL).
+                        Repeated at the same commit (09:28): PASS — 59 PASS, 5 incomplete jog rows,
+                        surface-override-lock PASS at 0.082 s (…r361-f4ba0f31.native-main-rerun.json; the first run …r361-f4ba0f31.native-main.json).
+  native latch-delayed PASS — 3 PASS
+  live-twp            PASS — 9/9, twp_buttons_check included
+  toolsetter-readback PASS — 10 rows
+  macro-live          PASS — 17 PASS, 1 SKIP (above-z0, as before)
+  perf-matrix         PASS (run 9e19bdbde530)
+  No live gateway traced lcnc.cache_store_refused, limits.* or twp.reserved_fixture_* (the caches fill live; the
+  heal did not run in any profile).
+
+Run 6 (chain-2b on 58010ecb, the R361 head, 2026-11-13 10:34–11:21):
+  counter-cases       60/60 (vor-maschine.p2b.r361.mutations.txt); test-session guards 6/6 (…r361.mutations-iso.txt)
+  red check           red_2b.py: 41 ids ALL AS EXPECTED (…r361.red.txt) — every guard of package 2b against its pre-fix
+                        product, the reason of each red test recorded
+  round gate          PASS (…r361.gate-round.json): unit 2650, backend incl. ruff/pyright, browser 7/7
+  native main         PASS — 59 PASS, 5 incomplete jog braking-travel rows (status frames give no lower bound; their
+                        .servo twins PASS); surface-override-lock PASS
+  native latch-delayed PASS — 3 PASS
+  live-twp            PASS — 9/9, twp_buttons_check included
+  toolsetter-readback PASS — 10 rows
+  macro-live          PASS — 17 PASS, 1 SKIP (above-z0, as before)
+  perf-matrix         PASS (run df28869ffc24)
+  No live gateway traced lcnc.cache_store_refused, limits.* or twp.reserved_fixture_*.

@@ -1,0 +1,204 @@
+{
+  "kind": "round",
+  "note": "package 2b R361 (Codex R360 + Fable's class checks)",
+  "base": "13affe2b523124c84037ab50786c160a9567f3cf",
+  "head": "58010ecb8c586cd811ceb271d09f5f9311d0d55a",
+  "uncommitted": 0,
+  "plan": [
+    "selection-guards",
+    "lint",
+    "build",
+    "unit-light",
+    "backend",
+    "ports-free",
+    "browser"
+  ],
+  "env": {
+    "nproc": 6,
+    "arch": "aarch64",
+    "node": "v22.23.2",
+    "playwright": "Version 1.60.0"
+  },
+  "selection": {
+    "unmatched": [],
+    "unit": {
+      "light": "every unit file but HEAVY_UNIT — every round",
+      "heavy": [],
+      "heavy_reasons": [],
+      "changed": [],
+      "related": []
+    },
+    "browser": {
+      "run": [
+        "example-tool-library"
+      ],
+      "reasons": []
+    },
+    "backend": {
+      "run": true,
+      "reasons": [
+        "lcnc-gateway/conftest.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/gateway.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/hal_bridge.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/link_fixture.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/session_bind.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_button_gates.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_button_gates_b.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_button_gates_b_commit.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_button_gates_d.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_button_gates_e.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_button_gates_r208.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_command_dispatch.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_command_policy.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_feature_switches.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_g30.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_hb_budget.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_link_ownership.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_macros_gateway.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_preview_poll_chain.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_program_reload_unload.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_rfl_guard.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_session_policy.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_tool_edit_contract.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_tool_refresh.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_toolsetter_basis.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_toolsetter_sync.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_trip_trace.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_upload_conflict.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_var_file_cache.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_ws_command_worker.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_ws_lifecycle.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/test_ws_smoke.py: the gateway: the browser suite runs against the mock",
+        "lcnc-gateway/writer_fixture.py: the gateway: the browser suite runs against the mock",
+        "pyrightconfig.json: the type check's files and the LinuxCNC stubs: the backend gate's pyright step (package 2)",
+        "scripts/install_probe.py: scripts and their tests ride the backend gate",
+        "typings/BOUNDARY.md: the type check's files and the LinuxCNC stubs: the backend gate's pyright step (package 2)"
+      ]
+    },
+    "firefox": {
+      "needed": false
+    },
+    "live": {
+      "perf-matrix": [
+        "lcnc-gateway/gateway.py",
+        "lcnc-gateway/hal_bridge.py",
+        "lcnc-gateway/session_bind.py"
+      ],
+      "twp-buttons": [
+        "lcnc-gateway/gateway.py"
+      ]
+    }
+  },
+  "heavy_lock_wait_s": 0.0,
+  "browser_specs": [
+    {
+      "file": "example-tool-library.spec.ts",
+      "ms": 14736
+    }
+  ],
+  "verdict": "PASS",
+  "resources": {
+    "cgroup": "/user.slice/user-1000.slice/user@1000.service/app.slice/chain-2b.service",
+    "cpu_s": 1805,
+    "memory_peak_mb": 2162
+  },
+  "checks": [
+    {
+      "name": "selection-guards",
+      "command": "/home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python -B -m pytest -q -p no:cacheprovider /home/cnc/lcnc-suite-link/scripts/test_select/test_selector.py",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 3
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 9
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 16
+    },
+    {
+      "name": "unit-light",
+      "command": "npx vitest run --exclude src/viewer/collisionContacts.test.ts --exclude src/viewer/collisionRangeOracle.test.ts --exclude src/viewer/sweepShards.test.ts --exclude src/viewer/contactViewCross.test.ts --exclude src/viewer/collisionLineSample.test.ts --exclude src/viewer/collisionOracle.test.ts --exclude src/viewer/collisionBounds.test.ts --exclude src/viewer/contactViewIndexed.test.ts --allowOnly=false --retry=0 --reporter=default --reporter=json --outputFile.json=/home/cnc/claude-work/typecheck/r361/gate-round.logs/unit-light.json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 62,
+      "files": 165,
+      "tests": 2650,
+      "passed": 2650,
+      "failed": 0,
+      "skipped": 0,
+      "listed": 2650
+    },
+    {
+      "name": "backend",
+      "command": "/home/cnc/lcnc-suite-link/lcnc-gateway/.venv/bin/python /home/cnc/lcnc-suite-link/scripts/test_suite.py offline --component backend --out-dir /home/cnc/claude-work/typecheck/r361/gate-round.logs/backend",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 204
+    },
+    {
+      "name": "ports-free",
+      "status": "PASS"
+    },
+    {
+      "name": "browser-listing",
+      "status": "PASS",
+      "files": 1
+    },
+    {
+      "name": "browser-selected",
+      "command": "npx playwright test -c playwright.select.config.ts --forbid-only --trace off --reporter=line,json",
+      "status": "PASS",
+      "exit": 0,
+      "seconds": 17,
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    {
+      "name": "browser-executed",
+      "status": "PASS",
+      "tests": 7
+    },
+    {
+      "name": "browser-workers",
+      "status": "PASS",
+      "run": "gate-5660f78a-5182-4c82-b3a5-4f8569f94eee",
+      "mocks": 1
+    }
+  ],
+  "omitted": [
+    {
+      "check": "unit-heavy",
+      "reason": "no heavy file changed, reached or read for"
+    }
+  ],
+  "pending": [
+    {
+      "check": "perf-matrix",
+      "status": "pending: a live check, run before main",
+      "paths": [
+        "lcnc-gateway/gateway.py",
+        "lcnc-gateway/hal_bridge.py",
+        "lcnc-gateway/session_bind.py"
+      ]
+    },
+    {
+      "check": "twp-buttons",
+      "status": "pending: a live check, run before main",
+      "paths": [
+        "lcnc-gateway/gateway.py"
+      ]
+    }
+  ]
+}
