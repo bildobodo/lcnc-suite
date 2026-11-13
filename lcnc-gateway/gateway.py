@@ -3566,71 +3566,82 @@ def _release_start_claims(polled_at: Optional[float] = None,
     """Status poller, after STAT.poll() — `polled_at` the monotonic time the
     poll began (None: now), `polled_link` the Link that poll read (None: the
     current one): drop claims the controller is proven through with (the
-    rules above), and claims whose command was never written. A poll of a
-    Link replaced meanwhile proves nothing (Codex R360 VM-I09)."""
+    rules above), and claims whose command was never written.
+
+    The evaluation belongs to the polled Link to its END (Codex R360 / R361
+    VM-I09): every status field is read from THAT Link's status, the outcome
+    is computed in locals, and it takes effect — the proof marks, the
+    released claims — only while that Link is still the published one,
+    decided under _link_lock with every publish / revoke. A poll of a Link
+    replaced or revoked meanwhile, or of none, changes nothing."""
     if not _source_claims:
         return
     if polled_at is None:
         polled_at = time.monotonic()
-    if polled_link is not None and current_link() is not polled_link:
+    owner = polled_link if polled_link is not None else current_link()
+    if owner is None or current_link() is not owner:
         return
-    echo = safe_get("echo_serial_number", None)
-    state = safe_get("state", None)
-    idle = safe_get("interp_state", None) == getattr(linuxcnc, "INTERP_IDLE", 1)
+    stat = owner.stat
+
+    def field(name: str) -> Any:
+        return getattr(stat, name, None)
+    echo = field("echo_serial_number")
+    state = field("state")
+    idle = field("interp_state") == getattr(linuxcnc, "INTERP_IDLE", 1)
+    queued = field("queued_mdi_commands")
+    exec_done = field("exec_state") == getattr(linuxcnc, "EXEC_DONE", 2)
     done = idle and state == getattr(linuxcnc, "RCS_DONE", 1)
-    err_quiet = (idle and state == getattr(linuxcnc, "RCS_ERROR", 3)
-                 and safe_get("queued_mdi_commands", None) == 0
-                 and safe_get("exec_state", None) == getattr(linuxcnc, "EXEC_DONE", 2))
+    err_quiet = (idle and state == getattr(linuxcnc, "RCS_ERROR", 3) and queued == 0 and exec_done)
     quiet = (idle and state in (getattr(linuxcnc, "RCS_DONE", 1), getattr(linuxcnc, "RCS_ERROR", 3))
-             and safe_get("queued_mdi_commands", None) == 0
-             and safe_get("exec_state", None) == getattr(linuxcnc, "EXEC_DONE", 2))
-    now_link = current_link()
-    keep = []
+             and queued == 0 and exec_done)
+    keep: List[_StartClaim] = []
+    marks: List[Tuple[_StartClaim, Optional[float], Optional[Tuple[str, int]]]] = []
+    released: List[Tuple[_StartClaim, str]] = []
     for c in _source_claims:
         if c.state == "unsent":
             continue
-        if (c.state == "sent" and c.link_seq is not None and now_link is not None
-                and c.link_seq != now_link.seq):
+        if c.state == "sent" and c.link_seq is not None and c.link_seq != owner.seq:
             # Written on an earlier Link (package 2b): its serial is that
             # channel's, the echo this Link's — no comparison across them.
             # The controller proves it is through with EVERY earlier command
             # by being quiet (idle, done or error, nothing queued, the exec
-            # done), held for the error proof's window; a new Link exists only
-            # seconds after the old one failed, long after task took the write.
-            # The proof starts only with a poll of THIS Link that began after
-            # the write (Codex R360 VM-I09: a poll begun before it, evaluated
-            # after, counted towards the window), and runs its full window
-            # from there.
-            proof = ("relinked", now_link.seq)
+            # done) for the error proof's full window, which starts only
+            # with a poll of THIS Link begun after the write (VM-I09).
+            proof = ("relinked", owner.seq)
             if quiet and c.sent_t is not None and c.sent_t < polled_at:
                 if c.err_since is None or c.err_proof != proof:
-                    c.err_since, c.err_proof = polled_at, proof
+                    marks.append((c, polled_at, proof))
                 elif polled_at - c.err_since >= _CLAIM_ERROR_PROOF_S:
-                    _trace.emit("source.claim_released", what=c.what, serial=c.serial, proof="relinked",
-                                held_ms=round((time.monotonic() - c.t) * 1000))
+                    released.append((c, "relinked"))
                     continue
             else:
-                c.err_since, c.err_proof = None, None
+                marks.append((c, None, None))
             keep.append(c)
             continue
         seen = (c.state == "sent" and c.sent_t is not None and c.sent_t < polled_at
                 and c.serial is not None and echo is not None)
         if seen and done and c.serial is not None and echo is not None and echo >= c.serial:   # (seen ⟹ both)
-            _trace.emit("source.claim_released", what=c.what, serial=c.serial, proof="done",
-                        held_ms=round((time.monotonic() - c.t) * 1000))
+            released.append((c, "done"))
             continue
-        proof = ("error", now_link.seq if now_link is not None else -1)
+        proof = ("error", owner.seq)
         if seen and err_quiet and echo == c.serial:
             if c.err_since is None or c.err_proof != proof:
-                c.err_since, c.err_proof = polled_at, proof
+                marks.append((c, polled_at, proof))
             elif polled_at - c.err_since >= _CLAIM_ERROR_PROOF_S:
-                _trace.emit("source.claim_released", what=c.what, serial=c.serial, proof="error",
-                            held_ms=round((time.monotonic() - c.t) * 1000))
+                released.append((c, "error"))
                 continue
         else:
-            c.err_since, c.err_proof = None, None
+            marks.append((c, None, None))
         keep.append(c)
-    _source_claims[:] = keep
+    with _link_lock:      # the outcome only while the polled Link is published
+        if owner is not _link:
+            return
+        for c, since, proof_mark in marks:
+            c.err_since, c.err_proof = since, proof_mark
+        _source_claims[:] = keep
+    for c, how in released:
+        _trace.emit("source.claim_released", what=c.what, serial=c.serial, proof=how,
+                    held_ms=round((time.monotonic() - c.t) * 1000))
 
 
 
@@ -7409,9 +7420,15 @@ def _reserved_fixture_heal_tick(st) -> None:
         now = time.monotonic()
         if now - _reserved_heal_decl_tried < 5.0:
             return
-        if _parse_kins_decl() is None:
+        # ONE read decides, and only while the Link it was read through is
+        # still the published one — never a second look that may read
+        # "unknown" as "not TWP" (Codex R361 VM-I10)
+        owner = current_link()
+        decl = _parse_kins_decl()
+        if decl is None or owner is None or current_link() is not owner:
             _reserved_heal_decl_tried = now
             return
+        twp = _twp_of(decl)
         _reserved_heal_checked = True
         try:
             idx = int(st.g5x_index)
@@ -7420,7 +7437,7 @@ def _reserved_fixture_heal_tick(st) -> None:
         # reserved rows only where TWP rules apply — the ONE predicate (TWP-08 /
         # TWP-08a: on a switchable machine without the TWP stack, a TCP
         # trunnion, G59–G59.3 are ordinary fixtures; this used to heal them)
-        if idx in (6, 7, 8, 9) and not st.twp_active and _twp_capable():
+        if idx in (6, 7, 8, 9) and not st.twp_active and twp:
             name = _WCS_NAMES[idx - 1] if 0 < idx <= len(_WCS_NAMES) else f"G5x[{idx}]"
             _reserved_heal_pending = idx
             _reserved_fixture_warning = (
@@ -7461,7 +7478,12 @@ def _reserved_heal_check() -> Tuple[Optional[str], str]:
     ("superseded", why): nothing to heal; ("defer", why): not now (unknown,
     or not ready — the next tick tries again); (None, ""): heal. Only a
     TWP-capable machine has reserved rows (and the twp_active pin)."""
-    if not _twp_capable():
+    cap = _twp_capability()
+    if cap is None:
+        # unknown — no Link, an unreadable INI: never "no TWP" (it would drop
+        # the job and its banner for good, Codex R361 VM-I10)
+        return "defer", "kins declaration unknown"
+    if not cap:
         return "superseded", "no TWP stack: G59–G59.3 are ordinary fixtures"
     try:
         link().stat.poll()
@@ -8007,10 +8029,25 @@ def _twp_capable() -> bool:
     read False and keep their ordinary fixtures. A declaration that cannot be
     parsed reads False: no TWP rules is the safe direction here — the remap
     itself refuses on a machine that lacks it."""
+    return _twp_capability() is True
+
+
+def _twp_of(decl: dict) -> bool:
+    """A READ kins declaration: is it the TWP stack (the ONE predicate's rule)?"""
+    return decl.get("type") == "xyzacb-trsrn"
+
+
+def _twp_capability() -> Optional[bool]:
+    """Three states for a decision that must not read "unknown" as "no"
+    (Codex R361 VM-I10): True / False from a READ declaration, None when it
+    is unknown (no Link, an unreadable INI). _twp_capable() is its safe
+    direction for the TWP rules (unknown = no TWP rules); a decision that
+    DROPS something — the boot heal — waits on unknown instead."""
     try:
-        return (_parse_kins_decl() or {}).get("type") == "xyzacb-trsrn"
-    except Exception:  # noqa: BLE001
-        return False
+        decl = _parse_kins_decl()
+    except Exception:  # noqa: BLE001 - unreadable is unknown
+        return None
+    return None if decl is None else _twp_of(decl)
 
 
 def _identity_first() -> bool:

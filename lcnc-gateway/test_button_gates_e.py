@@ -180,7 +180,7 @@ class TestNoSwitchOntoARunningInterpreter(_Writer):
         self.addCleanup(setattr, gateway, "_shared_status", gateway._shared_status)
         gateway._shared_status = _payload(inpos=True, current_vel=0.0)
         for name, value in (("_reader_fresh_get", lambda f: 0 if f == "twp_active" else None),
-                            ("_twp_capable", lambda: True)):   # a TWP machine: the row is reserved
+                            ("_twp_capability", lambda: True)):   # a TWP machine: the row is reserved
             p = mock.patch.object(gateway, name, value)
             p.start()
             self.addCleanup(p.stop)

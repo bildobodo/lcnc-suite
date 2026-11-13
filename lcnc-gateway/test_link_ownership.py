@@ -384,6 +384,59 @@ class ClaimsOfAnEarlierLink(unittest.TestCase):
         gateway._release_start_claims(100.225)          # after the full window from 100.2
         self.assertEqual(gateway._source_claims, [])
 
+    # Codex R361 VM-I09 rest: the evaluation belongs to the polled Link to
+    # its end — a publish or revoke from the connect thread between its reads
+    class _HookStat:
+        """A status whose `trigger` field runs `hook` once when it is read."""
+
+        def __init__(self, trigger, hook, **fields):
+            object.__setattr__(self, "_trigger", trigger)
+            object.__setattr__(self, "_hook", hook)
+            object.__setattr__(self, "_fields", fields)
+
+        def __getattr__(self, name):
+            fields = object.__getattribute__(self, "_fields")
+            if name not in fields:
+                raise AttributeError(name)
+            if name == object.__getattribute__(self, "_trigger"):
+                hook = object.__getattribute__(self, "_hook")
+                if hook is not None:
+                    object.__setattr__(self, "_hook", None)
+                    hook()
+            return fields[name]
+
+        def poll(self):
+            pass
+
+    QUIET = dict(echo_serial_number=0, state=linuxcnc.RCS_DONE, interp_state=linuxcnc.INTERP_IDLE,
+                 queued_mdi_commands=0, exec_state=linuxcnc.EXEC_DONE)
+
+    def test_a_link_published_while_a_poll_is_read_starts_no_window_for_it(self):
+        self.claim.sent_t = 99.0
+        quiet_b = types.SimpleNamespace(**self.QUIET)
+        busy_a = dict(self.QUIET, interp_state=linuxcnc.INTERP_READING)
+        published = {}
+
+        def publish_b():
+            published["b"] = gateway._publish_link(quiet_b, linuxcnc.command(), linuxcnc.error_channel(), None)
+        a = gateway._publish_link(self._HookStat("echo_serial_number", publish_b, **busy_a),
+                                  linuxcnc.command(), linuxcnc.error_channel(), None)
+        gateway._release_start_claims(100.000, a)        # A's poll; B published while it is read
+        self.assertIsNone(self.claim.err_since, "A's poll started a window for B")
+        b = published["b"]
+        gateway._release_start_claims(100.025, b)        # B's own first poll: the window starts
+        self.assertEqual(gateway._source_claims, [self.claim], "released without B's full window")
+        gateway._release_start_claims(100.050, b)
+        self.assertEqual(gateway._source_claims, [])
+
+    def test_a_link_revoked_after_its_last_field_releases_nothing(self):
+        self.claim.sent_t, self.claim.serial = 99.0, 5
+        a = gateway._publish_link(self._HookStat("exec_state", lambda: gateway._revoke_link("test"),
+                                                 **dict(self.QUIET, echo_serial_number=5)),
+                                  linuxcnc.command(), linuxcnc.error_channel(), None)
+        gateway._release_start_claims(100.000, a)
+        self.assertEqual(gateway._source_claims, [self.claim], "a revoked Link's echo released an earlier claim")
+
     def test_a_poll_that_read_no_link_proves_nothing(self):
         # Fable's check of 7c16f5e9: no Link at the poll's start, one
         # published while it ran — its quiet status is not this poll's
@@ -606,8 +659,10 @@ class BackgroundSequencesKeepTheirLink(unittest.TestCase):
         self.not_ready = None
         for name, value in (("_reader_fresh_get", lambda f: self.plane.get(f)),
                             ("_controller_gate_refusal", lambda gate, armed: self.not_ready),
-                            ("_twp_capable", lambda: True)):
-            p = mock.patch.object(gateway, name, value)
+                            ("_twp_capability", lambda: True)):
+            # create=True: the red check runs these against the product
+            # before _twp_capability existed
+            p = mock.patch.object(gateway, name, value, create=True)
             p.start()
             self.addCleanup(p.stop)
 
@@ -971,13 +1026,55 @@ class ReservedRowsOnlyOnATwpMachine(unittest.TestCase):
         gateway.reject_if_auto_running = lambda: None
         self.events = []
 
-    def boot_tick(self, capable, decl=True):
-        """The first tick with G59.1 active; `decl`: the kins declaration read."""
+    TWP, TCP = {"type": "xyzacb-trsrn"}, {"type": "xyzac-trt"}
+
+    def boot_tick(self, capable, decl=True, parse=None):
+        """The first tick with G59.1 active, read through the test's Link;
+        `decl`: the kins declaration read (TWP or a TCP trunnion)."""
+        if gateway._link is None:
+            connect_fake(self)
         st = types.SimpleNamespace(g5x_index=7, twp_active=False, permissions={})
-        with mock.patch.object(gateway, "_twp_capable", lambda: capable), \
-                mock.patch.object(gateway, "_kins_is_switchable", lambda: True), \
-                mock.patch.object(gateway, "_parse_kins_decl", lambda: {"type": "x"} if decl else None):
+        if parse is None:
+            def parse():
+                return (self.TWP if capable else self.TCP) if decl else None
+        with mock.patch.object(gateway, "_kins_is_switchable", lambda: True), \
+                mock.patch.object(gateway, "_parse_kins_decl", parse):
             gateway._reserved_fixture_heal_tick(st)
+
+    def test_a_boot_read_that_loses_its_link_decides_nothing(self):
+        # Codex R361 VM-I10: the first read succeeded, its Link was revoked
+        # meanwhile — the old tick spent the one-shot and a second look read
+        # "unknown" as "not TWP": no banner, no heal, for good
+        connect_fake(self)
+        calls = []
+
+        def read_then_revoked():
+            calls.append(1)
+            if len(calls) == 1:
+                swap_connection(None)          # revoked while the INI was read
+                return self.TWP                # its own, local result
+            return self.TWP if gateway._link is not None else None
+        self.boot_tick(capable=True, parse=read_then_revoked)
+        self.assertFalse(gateway._reserved_heal_checked, "the one-shot spent on a read whose Link was lost")
+        self.assertIsNone(gateway._reserved_heal_pending)
+        swap_connection(FakeConnection())      # reconnected
+        gateway._reserved_heal_decl_tried = 0.0
+        self.boot_tick(capable=True)
+        self.assertEqual(gateway._reserved_heal_pending, 7)
+        self.assertIn("TWP scratch row", gateway._reserved_fixture_warning)
+
+    def test_a_queued_heal_with_an_unknown_declaration_keeps_its_job_and_banner(self):
+        # Codex R361 VM-I10: no Link / an unreadable INI is "unknown", never
+        # "no TWP" — the heal waits and keeps the job and its banner
+        gateway._reserved_heal_pending = 7
+        gateway._reserved_fixture_warning = "G59.1 active at the last shutdown"
+        stat = _ModeStat(linuxcnc.MODE_MANUAL)
+        connect_fake(self, stat=stat, cmd=_ModeCmd(stat, "old", self.events))
+        with mock.patch.object(gateway, "_parse_kins_decl", lambda: None):
+            asyncio.run(gateway._reserved_fixture_heal())
+        self.assertEqual(self.events, [])
+        self.assertEqual(gateway._reserved_heal_pending, 7, "an unknown declaration dropped the heal")
+        self.assertEqual(gateway._reserved_fixture_warning, "G59.1 active at the last shutdown")
 
     def test_an_unread_declaration_does_not_spend_the_boot_check(self):
         # Fable's check of 7c16f5e9: an unread declaration reads "not TWP"
@@ -1002,7 +1099,7 @@ class ReservedRowsOnlyOnATwpMachine(unittest.TestCase):
         gateway._reserved_heal_pending = 7
         stat = _ModeStat(linuxcnc.MODE_MANUAL)
         connect_fake(self, stat=stat, cmd=_ModeCmd(stat, "old", self.events))
-        with mock.patch.object(gateway, "_twp_capable", lambda: False):
+        with mock.patch.object(gateway, "_twp_capability", lambda: False, create=True):
             asyncio.run(gateway._reserved_fixture_heal())
         self.assertEqual(self.events, [])
         self.assertIsNone(gateway._reserved_heal_pending)
@@ -1011,7 +1108,7 @@ class ReservedRowsOnlyOnATwpMachine(unittest.TestCase):
         gateway._reserved_heal_pending = 7
         stat = _ModeStat(linuxcnc.MODE_MANUAL)
         connect_fake(self, stat=stat, cmd=_ModeCmd(stat, "old", self.events))
-        with mock.patch.object(gateway, "_twp_capable", lambda: True), \
+        with mock.patch.object(gateway, "_twp_capability", lambda: True, create=True), \
                 mock.patch.object(gateway, "_reader_fresh_get", lambda f: None):
             asyncio.run(gateway._reserved_fixture_heal())
         self.assertEqual(self.events, [])
@@ -1067,8 +1164,10 @@ class AnAbortDuringTheHeal(unittest.TestCase):
         self.not_ready = None
         for name, value in (("_reader_fresh_get", lambda f: self.plane.get(f)),
                             ("_controller_gate_refusal", lambda gate, armed: self.not_ready),
-                            ("_twp_capable", lambda: True)):
-            p = mock.patch.object(gateway, name, value)
+                            ("_twp_capability", lambda: True)):
+            # create=True: the red check runs these against the product
+            # before _twp_capability existed
+            p = mock.patch.object(gateway, name, value, create=True)
             p.start()
             self.addCleanup(p.stop)
 

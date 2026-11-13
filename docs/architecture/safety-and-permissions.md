@@ -27,8 +27,12 @@ M430 → G59); a reserved fixture active on identity kins at boot is bannered
 and healed with one `G54` at `ready` — on a TWP-capable machine only (the
 ONE predicate `_twp_capable`, TWP-08a: on a TCP trunnion G59–G59.3 are
 ordinary fixtures; the heal decided by "switchable" until package 2b),
-decided once the kins declaration is READ (an unread one would read "not
-TWP" and spend the one-shot; retried every 5 s). The viewer draws ONE work-system
+decided on ONE read of the kins declaration whose Link is still published
+(an unread one, or a read whose Link was lost, decides nothing — retried
+every 5 s; a second look would read "unknown" as "not TWP"). The queued
+heal reads the TWP capability in three states (`_twp_capability`): unknown
+— no Link, an unreadable INI — defers and keeps the job and its banner,
+only a READ "no TWP" supersedes it (Codex R361 VM-I10). The viewer draws ONE work-system
 marker, the active fixture, where the PART's zero physically is in every
 kins mode (`viewer/programZero.ts`: identity = the chain at the fixture's
 W1 stamp A, riding the table; TCP = the numbers; Plane = the plane compose
@@ -652,7 +656,10 @@ named exception, an older page's `mdi` with `vars` included (R336).
   the write (the poller passes the Link it polled; a poll of a replaced Link
   proves nothing) and runs in full from there: `err_since` is bound to its
   proof and Link (`err_proof`), a mark of another proof never shortens it
-  (Codex R360 VM-I09). How libnml numbers a fresh channel's serials is
+  (Codex R360 VM-I09). The evaluation belongs to the polled Link to its end
+  (R361): every field is read from THAT Link's status, the outcome is
+  computed in locals and takes effect only while that Link is still
+  published, decided under `_link_lock` with every publish / revoke. How libnml numbers a fresh channel's serials is
   outside the binding and is not relied on.
 - **One connect at a time.** `try_connect_lcnc` runs under `_connect_lock`
   (the WS endpoint and the poller may both connect, each in a thread); a
