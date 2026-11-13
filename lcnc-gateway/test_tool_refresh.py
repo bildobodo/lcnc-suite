@@ -149,8 +149,11 @@ from fastapi import HTTPException, UploadFile  # noqa: E402
 
 class TestMetadataRefreshRoutes(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        # the protected write's armed writer (button gates BG-14)
+        # the protected write's armed writer (button gates BG-14), on the
+        # test's own connection (an idle interpreter: armed_writer)
+        from link_fixture import connect_fake
         from writer_fixture import armed_writer
+        connect_fake(self)
         self.conn_key = armed_writer(self)
         self.tmp = TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)

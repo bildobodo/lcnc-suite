@@ -10,7 +10,7 @@ import unittest.mock
 
 import test_command_dispatch as td   # the fake binding first, then gateway
 import gateway  # noqa: E402
-from link_fixture import current, use  # noqa: E402
+from link_fixture import connect_fake, current, use  # noqa: E402
 from linuxcnc import AUTO_RUN, AUTO_STEP, INTERP_IDLE, INTERP_PAUSED, MODE_AUTO  # noqa: E402
 
 SECTION = {"touchX": 10, "touchY": 10, "touchZ": -179, "fastFeed": 2000, "slowFeed": 20, "traverseFeed": 500,
@@ -242,6 +242,7 @@ class TestGetProbeVarsRemoved(unittest.TestCase):
 
     def test_an_old_call_is_refused_and_answers_no_values(self):
         import os
+        connect_fake(self)
         import tempfile
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
@@ -257,9 +258,7 @@ class TestGetProbeVarsRemoved(unittest.TestCase):
 
             def find(self, section, var):
                 return "m.var" if (section, var) == ("RS274NGC", "PARAMETER_FILE") else None
-        saved = getattr(current().stat, "ini_filename", None)
-        self.addCleanup(lambda: setattr(current().stat, "ini_filename", saved))
-        current().stat.ini_filename = ini
+        current().stat.ini_filename = ini   # the test's own stat (connect_fake above)
         gateway._shared_status = td._payload()
         with unittest.mock.patch.object(gateway.linuxcnc, "ini", _Ini, create=True):
             r = td._run(gateway.handle_command({"cmd": "get_probe_vars", "vars": [3102]}, True))

@@ -658,6 +658,12 @@ named exception, an older page's `mdi` with `vars` included (R336).
 - **Tests.** One seam, `lcnc-gateway/link_fixture.py`: `connect_fake`,
   `use` / `using`, `disconnect` / `without_connection`, `swap_connection`,
   `restore_after`, `current()`, `is_connected()` — every test restores the
-  whole connection state. `test_link_ownership.py` holds the R352 probe as
+  whole connection state; `conftest.py` FAILS a test that leaves the
+  published Link changed, and in the test session the host's `/proc` never
+  yields a LinuxCNC instance and the host's NML never answers
+  (`_nml_connectable`, a subprocess with the real binding) — a live sim on
+  the dev box made the gateway connect at import: eight tests passed on it
+  there and failed on CI. A test that needs a connection installs its own
+  (`armed_writer` refuses without one). `test_link_ownership.py` holds the R352 probe as
   acceptance (a replacement before the thread refuses the write; during the
   wait every slice stays on the old Link) and the contracts above.

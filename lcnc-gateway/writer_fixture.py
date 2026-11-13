@@ -46,12 +46,16 @@ def armed_writer(testcase, *, tool_change=False) -> str:
     slot = -(id(client) % 1_000_000) - 1   # negative: never a real client id
     gateway._clients[slot] = client
     testcase.addCleanup(gateway._clients.pop, slot, None)
-    # an idle interpreter, read now (the admission polls STAT)
+    # an idle interpreter, read now (the admission polls the connection's
+    # stat): on the TEST's connection — without one the admission answers
+    # "Machine state unknown", which no writer test means (package 2b: this
+    # used to skip silently and rest on a connection left behind)
     stat = gateway._stat_now()
-    if stat is not None:
-        p = mock.patch.object(stat, "interp_state", gateway.linuxcnc.INTERP_IDLE, create=True)
-        p.start()
-        testcase.addCleanup(p.stop)
+    if stat is None:
+        raise AssertionError("armed_writer: no connection installed — connect_fake first")
+    p = mock.patch.object(stat, "interp_state", gateway.linuxcnc.INTERP_IDLE, create=True)
+    p.start()
+    testcase.addCleanup(p.stop)
     if tool_change is not None:
         inner = gateway._reader_get
         for name, value in (("_reader_is_stale", lambda: False),

@@ -561,5 +561,33 @@ class ConnectLifecycle(unittest.TestCase):
         self.assertIsNone(gateway._link)
 
 
+class TheTestSessionHasNoHostConnection(unittest.TestCase):
+    """CI on 999a8ca9: eight tests passed on the dev box because the gateway
+    connected at import to the host's running sim (the fake binding, the
+    real linuxcncsvr pid) — and failed where no LinuxCNC runs. Under pytest
+    (conftest.py) the host's /proc yields no instance, so no test starts
+    with a connection it did not install. Meaningful where a LinuxCNC runs
+    on the host (the dev box's sim); trivially true elsewhere. Its NML is
+    not reached either (_nml_connectable asks it through the REAL binding)."""
+
+    def setUp(self):
+        if not getattr(gateway.linuxcnc, "__lcnc_fake__", False):
+            self.skipTest("needs the fake binding (run under pytest)")
+
+    def test_no_connection_without_the_tests_own(self):
+        self.assertIsNone(gateway._link, "a Link no test installed — the gateway connected to the host?")
+
+    def test_the_hosts_proc_yields_no_instance(self):
+        import session_bind
+        self.assertEqual(session_bind.discover_instance(), (None, []))
+        with mock.patch.object(gateway, "_lcnc_pid", None):
+            self.assertIsNone(gateway._get_lcnc_pid())
+
+    def test_the_hosts_nml_never_answers(self):
+        self.assertFalse(gateway._nml_connectable(), "the host's NML answered — a WS connect in a test would connect")
+        self.assertFalse(gateway.try_connect_lcnc())
+        self.assertIsNone(gateway._link)
+
+
 if __name__ == "__main__":
     unittest.main()

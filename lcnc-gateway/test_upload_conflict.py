@@ -170,10 +170,10 @@ class TestUploadRoute(unittest.TestCase):
     """The route maps the ``overwrite`` query to the replace flag."""
 
     def setUp(self):
-        from writer_fixture import armed_writer   # button gates BG-14
-        self.conn_key = armed_writer(self)
         connect_fake(self)
         current().stat.interp_state = linuxcnc.INTERP_IDLE
+        from writer_fixture import armed_writer   # button gates BG-14
+        self.conn_key = armed_writer(self)
         self.tmp = tempfile.mkdtemp()
         self._patch = mock.patch.object(gateway, "get_nc_files_dir", return_value=self.tmp)
         self._patch.start()

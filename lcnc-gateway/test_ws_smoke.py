@@ -24,6 +24,7 @@ import msgspec  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 import gateway  # noqa: E402
+import link_fixture  # noqa: E402
 
 STATUS_FAMILY = {"status", "status_delta", "status_error"}
 
@@ -86,6 +87,7 @@ class TestHeartbeatTimingNamesItsHeartbeat(unittest.TestCase):
     def setUp(self):
         if not getattr(gateway.linuxcnc, "__lcnc_fake__", False):
             self.skipTest("needs the fake binding (run under pytest)")
+        link_fixture.restore_after(self)   # the endpoint connects (pid and NML patched): the Link restored after the test
         self.addCleanup(setattr, gateway, "_get_lcnc_pid", gateway._get_lcnc_pid)
         self.addCleanup(setattr, gateway, "_nml_connectable", gateway._nml_connectable)
         gateway._get_lcnc_pid = lambda: 424242
