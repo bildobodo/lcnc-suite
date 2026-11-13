@@ -5152,8 +5152,10 @@ async def _ts_read_back(file: str) -> None:
                         _trace.emit("toolsetter.read_back_failed", level="warn", why="not synched", rc=rc, how=how)
                         return
                     ino1, vals = await _var_file_thread(read_var_snapshot, path, keys)
-    except NotConnected as e:
-        _trace.emit("toolsetter.read_back_failed", level="warn", why="not connected", msg=str(e))
+    except (NotConnected, PermissionError) as e:
+        # no connection, or its Link changed: the mode check (set_mode) or
+        # the synch's own write refused (_WriteRefused) — nothing synched
+        _trace.emit("toolsetter.read_back_failed", level="warn", why="link", exc=type(e).__name__, msg=str(e))
         return
     except OSError as e:
         _trace.emit("toolsetter.read_back_failed", level="warn", why="file", exc=type(e).__name__, msg=str(e))
@@ -7252,11 +7254,14 @@ _reserved_heal_checked = False
 _reserved_heal_pending: Optional[int] = None
 _reserved_heal_inflight = False
 _reserved_heal_last_try = 0.0
+#: the heal's task: it holds _cmd_lock (package 2b), so an abort / estop
+#: cancels it like a client's handler (_preempt_inflight)
+_reserved_heal_task: Optional[asyncio.Task] = None
 
 
 def _reserved_fixture_heal_tick(st) -> None:
     """Status-loop hook: detect once, heal when the machine can take an MDI."""
-    global _reserved_fixture_warning, _reserved_heal_checked, _reserved_heal_pending
+    global _reserved_fixture_warning, _reserved_heal_checked, _reserved_heal_pending, _reserved_heal_task
     if not _reserved_heal_checked:
         if st.g5x_index is None:
             return
@@ -7294,7 +7299,7 @@ def _reserved_fixture_heal_tick(st) -> None:
     if time.monotonic() - _reserved_heal_last_try < 5.0:
         return
     try:
-        asyncio.get_running_loop().create_task(_reserved_fixture_heal())
+        _reserved_heal_task = asyncio.get_running_loop().create_task(_reserved_fixture_heal())
     except RuntimeError as exc:  # no loop — should not happen in the status loop
         _trace.emit("twp.reserved_fixture_heal_failed", level="warn", error=repr(exc))
 
@@ -10467,6 +10472,11 @@ def _preempt_inflight(by: str, from_client: int) -> int:
     if ts is not None and not ts.done():
         ts.cancel()
         _trace.emit("toolsetter.read_back_cancelled", level="warn", by=by)
+    # ...and the reserved-fixture heal (MDI + G54 under _cmd_lock, package 2b)
+    heal = _reserved_heal_task
+    if heal is not None and not heal.done():
+        heal.cancel()
+        _trace.emit("twp.reserved_fixture_heal_cancelled", level="warn", by=by)
     return len(victims)
 
 

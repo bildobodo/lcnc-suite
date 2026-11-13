@@ -558,6 +558,10 @@ class BackgroundSequencesKeepTheirLink(unittest.TestCase):
         gateway.reject_if_auto_running = lambda: None
         gateway._reserved_heal_pending = 7
         gateway._reserved_heal_inflight = False
+        # a fresh _cmd_lock for this test's loop (a Lock binds to the loop of
+        # its first contention — an earlier test's)
+        self.addCleanup(setattr, gateway, "_cmd_lock", gateway._cmd_lock)
+        gateway._cmd_lock = None
 
     def test_the_heal_refuses_its_g54_after_a_reconnect(self):
         stat = _ModeStat(linuxcnc.MODE_MANUAL)
@@ -623,6 +627,106 @@ class BackgroundSequencesKeepTheirLink(unittest.TestCase):
             asyncio.run(gateway._ts_read_back("prog.ngc"))
         self.assertEqual(self.events, [], "the synch went to the new Link")
         self.assertEqual(booked, [])
+
+
+class _SlowG54(_ModeCmd):
+    """The heal's G54 runs on (wait_complete: -1 per slice, as LinuxCNC
+    answers a running MDI) until `done`; an abort is booked and answered."""
+
+    def __init__(self, *a, **k):
+        super().__init__(*a, **k)
+        import threading
+        self.g54_written = threading.Event()
+        self.done = threading.Event()
+
+    def mdi(self, text, /):
+        super().mdi(text)
+        if text == "G54":
+            self.g54_written.set()
+
+    def abort(self):
+        self._wrote(("abort",))
+        self.done.set()
+
+    def wait_complete(self, timeout=5.0, /):
+        if self.g54_written.is_set() and not self.done.is_set():
+            self.done.wait(timeout)
+            return -1 if not self.done.is_set() else linuxcnc.RCS_DONE
+        return linuxcnc.RCS_DONE
+
+
+class AnAbortDuringTheHeal(unittest.TestCase):
+    """The heal holds _cmd_lock (package 2b), so an abort must not queue
+    behind its G54 wait: _preempt_inflight cancels it like a client's
+    handler; the abort goes out after the current wait slice."""
+
+    def setUp(self):
+        self.events = []
+        for name in ("reject_if_auto_running", "_reserved_heal_pending", "_reserved_fixture_warning",
+                     "_reserved_heal_inflight", "_reserved_heal_last_try", "_reserved_heal_task"):
+            self.addCleanup(setattr, gateway, name, getattr(gateway, name))
+        gateway.reject_if_auto_running = lambda: None
+        gateway._reserved_heal_pending = 7
+        gateway._reserved_heal_inflight = False
+        # a fresh _cmd_lock for this test's loop (a Lock binds to the loop of
+        # its first contention — an earlier test's)
+        self.addCleanup(setattr, gateway, "_cmd_lock", gateway._cmd_lock)
+        gateway._cmd_lock = None
+
+    def test_the_abort_goes_out_within_a_slice(self):
+        import time
+        stat = _ModeStat(linuxcnc.MODE_MDI)
+        cmd = _SlowG54(stat, "old", self.events)
+        connect_fake(self, stat=stat, cmd=cmd)
+
+        async def go():
+            gateway._reserved_heal_task = asyncio.ensure_future(gateway._reserved_fixture_heal())
+            while not cmd.g54_written.is_set():
+                await asyncio.sleep(0.01)
+            t0 = time.monotonic()
+            gateway._preempt_inflight("abort", 0)
+            reply = await gateway.handle_command({"cmd": "abort"}, True)
+            took = time.monotonic() - t0
+            with self.assertRaises(asyncio.CancelledError):
+                await gateway._reserved_heal_task
+            return reply, took
+        reply, took = asyncio.run(go())
+        self.assertTrue(reply["ok"], reply)
+        self.assertLess(took, 1.0, "the abort waited behind the heal's G54 (5 s)")
+        self.assertEqual([e[1] for e in self.events], [("mdi", "G54"), ("abort",)])
+        self.assertEqual(gateway._reserved_heal_pending, 7, "a cancelled heal is not healed")
+
+
+class TheReadBackOnAChangedLinkAtItsWrite(unittest.TestCase):
+    """The synch's own write refused (_WriteRefused, a PermissionError) when
+    the Link changes at its dispatch: traced, nothing synched — never an
+    unhandled task exception."""
+
+    def test_refused_and_traced(self):
+        import tempfile
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        var = f"{tmp.name}/m.var"
+        with open(var, "w") as f:
+            f.write("".join(f"{k}\t1.000000\n" for k in gateway.TOOLSETTER_BASIS_KEYS))
+        events = []
+        stat = _ModeStat(linuxcnc.MODE_MDI)
+        connect_fake(self, stat=stat, cmd=_ModeCmd(stat, "old", events))
+        new_stat = _ModeStat(linuxcnc.MODE_MDI)
+        real = asyncio.to_thread
+
+        async def replaced_at_the_write(fn, /, *args, **kwargs):
+            if getattr(fn, "__name__", "") == "_run":
+                swap_connection(FakeConnection(stat=new_stat, cmd=_ModeCmd(new_stat, "new", events)))
+            return await real(fn, *args, **kwargs)
+        traced = []
+        with mock.patch.object(gateway, "_resolve_var_file_path", lambda: var), \
+                mock.patch.object(asyncio, "to_thread", replaced_at_the_write), \
+                mock.patch.object(gateway._trace, "emit", lambda name, **kw: traced.append((name, kw))):
+            asyncio.run(gateway._ts_read_back("prog.ngc"))
+        self.assertEqual(events, [])
+        failed = [kw for name, kw in traced if name == "toolsetter.read_back_failed"]
+        self.assertEqual([(kw["why"], kw["msg"]) for kw in failed], [("link", gateway.LINK_CHANGED)])
 
 
 class ConnectLifecycle(unittest.TestCase):

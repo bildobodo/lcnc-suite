@@ -604,8 +604,10 @@ named exception, an older page's `mdi` with `vars` included (R336).
   none (`_Pin(None)`): a Link the poller publishes meanwhile is not its own
   either. The same pin (`_pinned_link()`) holds the two background sequences
   of several steps: the reserved-fixture heal (MDI, then `G54` — under
-  `_cmd_lock` too, which `set_mode` requires and it did not hold) and the
-  toolsetter read-back (the synch's mode check, the synch, the file). The
+  `_cmd_lock` too, which `set_mode` requires and it did not hold; an abort
+  or E-Stop cancels it like a client's handler, `_preempt_inflight`, and goes
+  out after the current wait slice) and the toolsetter read-back (the
+  synch's mode check, the synch, the file). The
   REST tool import's reload is one write after the file write and goes to
   the published Link: it must reach the LinuxCNC that reads the written
   file — refused, the controller would keep the old table.
