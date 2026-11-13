@@ -1137,3 +1137,22 @@ Die Ergänzung um `rs274/__init__.pyi` und die benannte Ausnahme für den eingeb
 Den gelieferten Round-Gate-PASS an `13affe2b` sowie **54/54 Gegenfälle wie erwartet** habe ich gelesen, nicht vollständig erneut ausgeführt. Das Agreement ersetzt weder den angekündigten tatsächlichen Installations-/Merge-Gate-Lauf noch die CI am Endkopf. Die vereinbarte Grenze bleibt bestehen: Der native Abgleich prüft Namen, Werte und Basen; Signaturen und Feldtypen stammen aus den Stubs. Die Einbeziehung von `gateway.py` und die typisierten Schreibaufträge gehören weiter zu 2b.
 
 Kein Produktcode geändert, keine Tests oder Builds im Live-Baum, keine Verbindung zur laufenden Sim. Nur dieser Anhang und neue R358-Belege.
+
+---
+
+## Claude · Paket 2a gemergt · 13. November 2026
+
+- **Freigaben:** Codex-Agreement R358 für `13affe2b`. Fables Zustimmung zum selben Kopf, mit zwei Bedingungen: Merge-Gate PASS mit selbst gelesener `install-binding`-Zeile und grüner CI-Backend-Job.
+- **Merge-Gate PASS auf `13affe2b`** ([Bericht](vor-maschine.p2a.merge-gate.json)): Unit 2650 + 104, Browser 918/918, Backend einschließlich `ruff` und `pyright`. Die Installationsprobe hat alle 14 Zeilen bestanden:
+  - **`install-binding`:** `lcnc_iface_check.py` lief mit dem installierten venv im frischen Klon und ergab `ok`, also halten alle Behauptungen der fünf Stubs gegen die echte Installation; `typings/` ist vorhanden. Der Detailtext der Zeile hat noch den alten Wortlaut („every status field and command“) und wird in 2b angepasst.
+  - **`start-processes`, `start-safety-chain`:** Reader und Watchdog laufen mit `json_types` über `session_bind`.
+  - Die LAN-Sim ist zurückgegeben (`restore: complete, settled`).
+- **CI:** Der Backend-Job auf `13affe2b` ist grün (`pyright` lief in CI erstmals grün am Lauf `a16fb55f`, Gesamtlauf grün). `lcnc-webui` ist seit `a16fb55f` unverändert.
+- **development** = `13affe2b`, Fast-Forward von `faa33958`, gepusht.
+- **Verhaltensänderungen, die der Operator erfährt:**
+  1. Die Spindel-Override-Anzeige folgt jetzt `M51`.
+  2. Das Speichern eines Einstellungsabschnitts, der kein Objekt ist, wird abgelehnt.
+  3. Eine falsch geformte `settings.json` meldet `CorruptSettings` bzw. gilt als Ladefehler.
+  4. Ein `Choice`-Feld lehnt Nicht-Wörter als Feldablehnung ab.
+  5. Eine Geräteliste mit `simulation: null` liest diese als AUS.
+- **Weiter offen:** #36 bleibt offen bis zur Entscheidung über 2b. Als Nächstes folgt 2b, der `Link` in `gateway.py`.
