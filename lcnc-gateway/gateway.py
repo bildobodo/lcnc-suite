@@ -12,6 +12,7 @@ import os
 import subprocess
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
+import contextlib
 import contextvars
 import threading
 from pathlib import Path
@@ -19,7 +20,7 @@ import linuxcnc
 
 from dataclasses import dataclass
 from dataclasses import replace as _dc_replace
-from typing import Any, AsyncIterator, Callable, Concatenate, Dict, List, Literal, Optional, ParamSpec, Tuple
+from typing import Any, AsyncIterator, Callable, Concatenate, Dict, Iterator, List, Literal, Optional, ParamSpec, Tuple
 from fastapi.staticfiles import StaticFiles
 import re
 from urllib.parse import urlsplit
@@ -462,12 +463,20 @@ _lcnc_pid: Optional[int] = None  # tracks linuxcncsvr PID
 # another just published
 _connect_lock = threading.Lock()
 
+@dataclass(frozen=True)
+class _Pin:
+    """The Link a sequence was pinned to — None: it began with NO connection
+    (a Link published later is not its own either)."""
+    link: Optional["Link"]
+
+
 #: The Link a COMMAND runs on (handle_command pins the published one for the
-#: command's whole run, the tasks it starts inherit it): every write of a
-#: command goes to one Link — a command that outlives its Link (a reconnect
-#: in between) answers LINK_CHANGED instead of continuing on another one
-#: with decisions read from the first.
-_command_link: "contextvars.ContextVar[Optional[Link]]" = contextvars.ContextVar("_command_link", default=None)
+#: command's whole run, the tasks it starts inherit it; a background sequence
+#: of several steps pins its own — _pinned_link): every write of it goes to
+#: one Link — one that outlives its Link (a reconnect in between, or a first
+#: connect after it began without one) answers LINK_CHANGED instead of
+#: continuing on another one with decisions read from the first.
+_command_link: "contextvars.ContextVar[Optional[_Pin]]" = contextvars.ContextVar("_command_link", default=None)
 
 #: a command whose Link was replaced or revoked while it ran
 LINK_CHANGED = "Connection to LinuxCNC changed — try again"
@@ -478,8 +487,8 @@ def current_link() -> Optional[Link]:
     no connection (a status read answers "unknown" without one). Inside a
     command: its pinned Link while it is still the published one."""
     current = _link
-    pinned = _command_link.get()
-    if pinned is not None and pinned is not current:
+    pin = _command_link.get()
+    if pin is not None and pin.link is not current:
         return None
     return current
 
@@ -489,14 +498,25 @@ def link() -> Link:
     one; inside a command its pinned Link, NotConnected(LINK_CHANGED) once
     that is no longer the published one."""
     current = _link
-    pinned = _command_link.get()
-    if pinned is not None:
-        if pinned is not current:
-            raise NotConnected(LINK_CHANGED)
-        return pinned
+    pin = _command_link.get()
+    if pin is not None and pin.link is not current:
+        raise NotConnected(LINK_CHANGED)
     if current is None:
         raise NotConnected()
     return current
+
+
+@contextlib.contextmanager
+def _pinned_link() -> Iterator[None]:
+    """Pin the Link published NOW (or none) for this context and the tasks it
+    starts — a command (handle_command) or a background sequence of several
+    steps (the reserved-fixture heal, the toolsetter read-back): every
+    link() inside answers that Link or NotConnected(LINK_CHANGED)."""
+    token = _command_link.set(_Pin(_link))
+    try:
+        yield
+    finally:
+        _command_link.reset(token)
 
 
 def _stat_now() -> Optional[linuxcnc.stat]:
@@ -5123,12 +5143,18 @@ async def _ts_read_back(file: str) -> None:
     try:
         async with _get_cmd_lock():
             async with _get_var_file_lock():
-                ino0, _ = await _var_file_thread(read_var_snapshot, path, keys)
-                rc, how = await _synch_interp_params()
-                if rc != getattr(linuxcnc, "RCS_DONE", 1):
-                    _trace.emit("toolsetter.read_back_failed", level="warn", why="not synched", rc=rc, how=how)
-                    return
-                ino1, vals = await _var_file_thread(read_var_snapshot, path, keys)
+                # the synch's mode check, the synch and its wait on ONE Link
+                # (package 2b, Codex R359: the same rule outside a command)
+                with _pinned_link():
+                    ino0, _ = await _var_file_thread(read_var_snapshot, path, keys)
+                    rc, how = await _synch_interp_params()
+                    if rc != getattr(linuxcnc, "RCS_DONE", 1):
+                        _trace.emit("toolsetter.read_back_failed", level="warn", why="not synched", rc=rc, how=how)
+                        return
+                    ino1, vals = await _var_file_thread(read_var_snapshot, path, keys)
+    except NotConnected as e:
+        _trace.emit("toolsetter.read_back_failed", level="warn", why="not connected", msg=str(e))
+        return
     except OSError as e:
         _trace.emit("toolsetter.read_back_failed", level="warn", why="file", exc=type(e).__name__, msg=str(e))
         return
@@ -5528,11 +5554,8 @@ async def handle_command(msg: Dict[str, Any], armed: bool, conn_key: Optional[st
     async with _get_cmd_lock():
         # the command runs on the Link published NOW (package 2b): every
         # write of it, and the tasks it starts, on that one
-        pinned = _command_link.set(_link)
-        try:
+        with _pinned_link():
             return await _handle_command_impl(msg, armed, conn_key)
-        finally:
-            _command_link.reset(pinned)
 
 
 class _Unhandled:
@@ -7282,10 +7305,15 @@ async def _reserved_fixture_heal() -> None:
     _reserved_heal_inflight = True
     _reserved_heal_last_try = time.monotonic()
     try:
-        if reject_if_auto_running():
-            return
-        await set_mode(linuxcnc.MODE_MDI)
-        rc = await _cmd_blocking(link(), op(linuxcnc.command.mdi, "G54"), wait=5)
+        # under _cmd_lock (set_mode's contract; it ran without — package 2b)
+        # and on ONE Link: the switch to MDI and the G54 that relies on it
+        # (Codex R359 VM-I06, the same rule outside a command)
+        async with _get_cmd_lock():
+            with _pinned_link():
+                if reject_if_auto_running():
+                    return
+                await set_mode(linuxcnc.MODE_MDI)
+                rc = await _cmd_blocking(link(), op(linuxcnc.command.mdi, "G54"), wait=5)
         if _cmd_rc_failed(rc):
             _trace.emit("twp.reserved_fixture_heal_failed", level="warn",
                         index=_reserved_heal_pending, rc=rc)

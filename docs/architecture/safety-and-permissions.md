@@ -600,7 +600,15 @@ named exception, an older page's `mdi` with `vars` included (R336).
   it): `link()` inside answers that Link, or `NotConnected(LINK_CHANGED)`
   once it is no longer the published one; `current_link()` / `_stat_now()`
   answer None then. A command never continues on a new Link with what it read
-  from the old one.
+  from the old one. A command that began WITHOUT a connection is pinned to
+  none (`_Pin(None)`): a Link the poller publishes meanwhile is not its own
+  either. The same pin (`_pinned_link()`) holds the two background sequences
+  of several steps: the reserved-fixture heal (MDI, then `G54` — under
+  `_cmd_lock` too, which `set_mode` requires and it did not hold) and the
+  toolsetter read-back (the synch's mode check, the synch, the file). The
+  REST tool import's reload is one write after the file write and goes to
+  the published Link: it must reach the LinuxCNC that reads the written
+  file — refused, the controller would keep the old table.
 - **A stop on a changed Link** is refused like any write (it used to go out on
   the stale channel through the bound method); the next press goes out on
   the new Link. The HAL chain stays the safety stop.

@@ -265,6 +265,32 @@ class OneLinkPerCommand(unittest.TestCase):
         with mock.patch.object(gateway, "_handle_command_impl", impl):
             self.assertEqual(asyncio.run(gateway.handle_command({"cmd": "x"}, True)), {"ok": True})
 
+    def test_a_command_that_began_without_a_connection_never_takes_a_later_one(self):
+        disconnect(self)
+        new = FakeConnection()
+        seen = {}
+
+        async def impl(msg, armed, conn_key=None):
+            swap_connection(new)                   # the poller connects while the command runs
+            seen["stat"] = gateway._stat_now()     # not this command's connection
+            gateway.link()
+        with mock.patch.object(gateway, "_handle_command_impl", impl):
+            with self.assertRaises(gateway.NotConnected) as cm:
+                asyncio.run(gateway.handle_command({"cmd": "x"}, True))
+        self.assertEqual(str(cm.exception), gateway.LINK_CHANGED)
+        self.assertIsNone(seen["stat"])
+        self.assertIs(gateway.link().stat, new.stat)   # outside the command: the new Link
+
+    def test_without_a_connection_throughout_it_is_not_connected(self):
+        disconnect(self)
+
+        async def impl(msg, armed, conn_key=None):
+            gateway.link()
+        with mock.patch.object(gateway, "_handle_command_impl", impl):
+            with self.assertRaises(gateway.NotConnected) as cm:
+                asyncio.run(gateway.handle_command({"cmd": "x"}, True))
+        self.assertEqual(str(cm.exception), "LinuxCNC not connected")
+
 
 class AStopOnAChangedLink(unittest.TestCase):
     """A stop whose Link changed before its write is refused like any write
@@ -400,6 +426,9 @@ class _ModeCmd:
     def mdi(self, text, /):
         self._wrote(("mdi", text))
 
+    def task_plan_synch(self):
+        self._wrote(("task_plan_synch",))
+
     def wait_complete(self, timeout=5.0, /):
         return linuxcnc.RCS_DONE
 
@@ -480,12 +509,9 @@ class MultiStepCommandsKeepTheirLink(unittest.TestCase):
 
         async def go():
             async with gateway._get_cmd_lock():
-                pinned = gateway._command_link.set(gateway._link)
-                try:
+                with gateway._pinned_link():
                     await gateway.set_mode(linuxcnc.MODE_MDI)
                     await gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.mdi, "G0 X1"), wait=None)
-                finally:
-                    gateway._command_link.reset(pinned)
         with self.assertRaises((PermissionError, gateway.NotConnected)):
             asyncio.run(go())
         self.assertEqual([e[1] for e in self.events], [("mode", linuxcnc.MODE_MDI)], "the MDI text went to the new Link")
@@ -499,11 +525,8 @@ class MultiStepCommandsKeepTheirLink(unittest.TestCase):
 
         async def go():
             async with gateway._get_cmd_lock():
-                pinned = gateway._command_link.set(gateway._link)
-                try:
+                with gateway._pinned_link():
                     return await gateway._cmds_tool_table("tool_change", {"cmd": "tool_change", "tool_number": 7}, True, None)
-                finally:
-                    gateway._command_link.reset(pinned)
         with self.assertRaises(gateway.NotConnected) as cm:
             asyncio.run(go())
         self.assertEqual(str(cm.exception), gateway.LINK_CHANGED)
@@ -515,13 +538,91 @@ class MultiStepCommandsKeepTheirLink(unittest.TestCase):
 
         async def go():
             async with gateway._get_cmd_lock():
-                pinned = gateway._command_link.set(gateway._link)
-                try:
+                with gateway._pinned_link():
                     return await gateway._cmds_tool_table("tool_change", {"cmd": "tool_change", "tool_number": 7}, True, None)
-                finally:
-                    gateway._command_link.reset(pinned)
         self.assertEqual(asyncio.run(go()), {"ok": True})
         self.assertEqual(self.events, [("old", ("mdi", "T7 M6"), 41), ("old", ("mdi", "G43 H7"), 42)])
+
+
+class BackgroundSequencesKeepTheirLink(unittest.TestCase):
+    """The same rule outside a command (Codex R359 VM-I06, "the other
+    multi-step sequences"): the reserved-fixture heal (MDI, then G54) and
+    the toolsetter read-back (the synch's mode check, the synch, the file)
+    run on ONE Link; the heal also holds _cmd_lock, as set_mode requires."""
+
+    def setUp(self):
+        self.events = []
+        for name in ("reject_if_auto_running", "_reserved_heal_pending", "_reserved_fixture_warning",
+                     "_reserved_heal_inflight", "_reserved_heal_last_try"):
+            self.addCleanup(setattr, gateway, name, getattr(gateway, name))
+        gateway.reject_if_auto_running = lambda: None
+        gateway._reserved_heal_pending = 7
+        gateway._reserved_heal_inflight = False
+
+    def test_the_heal_refuses_its_g54_after_a_reconnect(self):
+        stat = _ModeStat(linuxcnc.MODE_MANUAL)
+        connect_fake(self, stat=stat, cmd=_ModeCmd(stat, "old", self.events))
+        new_stat = _ModeStat(linuxcnc.MODE_MDI)
+        real_set_mode = gateway.set_mode
+
+        async def then_reconnect(*a, **k):
+            await real_set_mode(*a, **k)
+            swap_connection(FakeConnection(stat=new_stat, cmd=_ModeCmd(new_stat, "new", self.events)))
+        with mock.patch.object(gateway, "set_mode", then_reconnect):
+            asyncio.run(gateway._reserved_fixture_heal())
+        self.assertEqual(self.events, [("old", ("mode", linuxcnc.MODE_MDI), 41)], "G54 went to the new Link")
+        self.assertEqual(gateway._reserved_heal_pending, 7, "a refused heal is not healed")
+
+    def test_the_heal_on_one_link_writes_both(self):
+        stat = _ModeStat(linuxcnc.MODE_MANUAL)
+        connect_fake(self, stat=stat, cmd=_ModeCmd(stat, "old", self.events))
+        asyncio.run(gateway._reserved_fixture_heal())
+        self.assertEqual(self.events, [("old", ("mode", linuxcnc.MODE_MDI), 41), ("old", ("mdi", "G54"), 42)])
+        self.assertIsNone(gateway._reserved_heal_pending)
+
+    def test_the_heal_waits_for_a_command_in_flight(self):
+        stat = _ModeStat(linuxcnc.MODE_MANUAL)
+        connect_fake(self, stat=stat, cmd=_ModeCmd(stat, "old", self.events))
+
+        async def go():
+            lock = gateway._get_cmd_lock()
+            await lock.acquire()                   # a client's command holds it
+            heal = asyncio.ensure_future(gateway._reserved_fixture_heal())
+            for _ in range(20):
+                await asyncio.sleep(0)
+            during = list(self.events)
+            lock.release()
+            await heal
+            return during
+        self.assertEqual(asyncio.run(go()), [], "the heal wrote while a command held _cmd_lock")
+        self.assertEqual(len(self.events), 2)
+
+    def test_the_read_back_refuses_its_synch_after_a_reconnect(self):
+        import tempfile
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        var = f"{tmp.name}/m.var"
+        with open(var, "w") as f:
+            f.write("".join(f"{k}\t1.000000\n" for k in gateway.TOOLSETTER_BASIS_KEYS))
+        stat = _ModeStat(linuxcnc.MODE_MDI)
+        connect_fake(self, stat=stat, cmd=_ModeCmd(stat, "old", self.events))
+        new_stat = _ModeStat(linuxcnc.MODE_MDI)
+        real_read = gateway.read_var_snapshot
+        reads = []
+
+        def first_read_then_reconnect(*a, **k):
+            out = real_read(*a, **k)
+            if not reads:
+                swap_connection(FakeConnection(stat=new_stat, cmd=_ModeCmd(new_stat, "new", self.events)))
+            reads.append(out)
+            return out
+        booked = []
+        with mock.patch.object(gateway, "_resolve_var_file_path", lambda: var), \
+                mock.patch.object(gateway, "read_var_snapshot", first_read_then_reconnect), \
+                mock.patch.object(gateway, "_ts_book", lambda *a, **k: booked.append(a)):
+            asyncio.run(gateway._ts_read_back("prog.ngc"))
+        self.assertEqual(self.events, [], "the synch went to the new Link")
+        self.assertEqual(booked, [])
 
 
 class ConnectLifecycle(unittest.TestCase):
