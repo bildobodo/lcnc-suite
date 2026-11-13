@@ -26,7 +26,9 @@ The fixture rides the kins mode (M428/M429 → G54 when leaving a reserved row,
 M430 → G59); a reserved fixture active on identity kins at boot is bannered
 and healed with one `G54` at `ready` — on a TWP-capable machine only (the
 ONE predicate `_twp_capable`, TWP-08a: on a TCP trunnion G59–G59.3 are
-ordinary fixtures; the heal decided by "switchable" until package 2b). The viewer draws ONE work-system
+ordinary fixtures; the heal decided by "switchable" until package 2b),
+decided once the kins declaration is READ (an unread one would read "not
+TWP" and spend the one-shot; retried every 5 s). The viewer draws ONE work-system
 marker, the active fixture, where the PART's zero physically is in every
 kins mode (`viewer/programZero.ts`: identity = the chain at the fixture's
 W1 stamp A, riding the table; TCP = the numbers; Plane = the plane compose
@@ -616,9 +618,18 @@ named exception, an older page's `mdi` with `vars` included (R336).
   Link to the END (Codex R360): the read-back books and the heal declares
   its row healed only after `link()` admitted the owner again, with no
   await between — a completion whose wait or last read outlived its Link
-  books nothing. The session caches read through a Link (INI config,
-  payload bounds, kins declaration, the homing / jog switches, the
-  parameter file's path) belong to it (Codex R360 VM-I08): every publish,
+  books nothing. Inside a command the same class (Fable's check of
+  7c16f5e9): a booking after a wait is either a record of what was SENT
+  (jogs, claims, the E-Stop hold, the tool table's version, the RFL phases,
+  the WCS mirror of written values — kept) or a CONFIRMATION through the
+  wait; a confirmation counts only while the pinned Link is still the
+  published one (`_own_link_current`): the toolsetter values done by an
+  MDI chunk are booked "applied" — else "unknown" (the next start writes
+  them again) — and a #3116=0 vouches the skip flag only so (else it stays
+  unknown and the next start clears it first). The table is in the review
+  (R361). The session caches read through a Link (INI config, payload
+  bounds, kins declaration, kins-mode commands, the homing / jog switches,
+  the parameter file's path) belong to it (Codex R360 VM-I08): every publish,
   revoke and the instance end clears them in the same step, under
   `_link_lock` (`_clear_session_caches`), and a filler stores only through
   `_owned_store` — while the Link it read through is the published one,
