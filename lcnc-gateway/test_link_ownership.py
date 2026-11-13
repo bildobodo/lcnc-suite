@@ -384,6 +384,15 @@ class ClaimsOfAnEarlierLink(unittest.TestCase):
         gateway._release_start_claims(100.225)          # after the full window from 100.2
         self.assertEqual(gateway._source_claims, [])
 
+    def test_a_poll_that_read_no_link_proves_nothing(self):
+        # Fable's check of 7c16f5e9: no Link at the poll's start, one
+        # published while it ran — its quiet status is not this poll's
+        self.status(echo=0, state=linuxcnc.RCS_DONE, interp=linuxcnc.INTERP_IDLE)
+        gateway._release_after_poll(1.0, None)
+        gateway._release_after_poll(1.0 + gateway._CLAIM_ERROR_PROOF_S, None)
+        self.assertEqual(gateway._source_claims, [self.claim])
+        self.assertIsNone(self.claim.err_since)
+
     def test_a_poll_of_a_replaced_link_proves_nothing(self):
         polled = gateway._link
         swap_connection(FakeConnection(stat=self.conn.stat))   # replaced while that poll ran
@@ -778,10 +787,13 @@ class CompletionsKeepTheirLink(unittest.TestCase):
         self.assertEqual([(o, set(v.values())) for o, v in self.booked], [("read", {2.0})])
 
     def test_a_link_replaced_in_the_synchs_wait_books_nothing(self):
+        self.addCleanup(setattr, gateway, "_ts_readback_tried", gateway._ts_readback_tried)
+        gateway._ts_readback_tried = (1, "prog.ngc")     # the once-per-version-and-program latch
         self.cmd.on_wait = self.replaced
         asyncio.run(gateway._ts_read_back("prog.ngc"))
         self.assertEqual(len(self.events), 1)            # the synch went out, on its Link
         self.assertEqual(self.booked, [], "a completion of a replaced Link was booked")
+        self.assertIsNone(gateway._ts_readback_tried, "not tried again on the new Link")
 
     def test_a_link_replaced_at_the_last_file_read_books_nothing(self):
         real = gateway.read_var_snapshot
@@ -798,6 +810,42 @@ class CompletionsKeepTheirLink(unittest.TestCase):
         self.assertEqual(self.booked, [], "a completion of a replaced Link was booked")
 
 
+class TheSkipFlagClearOnAReplacedLink(unittest.TestCase):
+    """The run-from-line flag clear (#3116=0 after a sequence that armed it)
+    confirmed by an MDI whose Link a reconnect replaced vouches nothing: the
+    flag stays unknown and the next start clears it first (VM-I06 class)."""
+
+    def setUp(self):
+        for name in ("_skip_flag_unknown", "_rfl_flag_task"):
+            self.addCleanup(setattr, gateway, name, getattr(gateway, name))
+        gateway._skip_flag_unknown = True
+        stat = _ModeStat(linuxcnc.MODE_MDI)
+        stat.task_state = linuxcnc.STATE_ON
+        connect_fake(self, stat=stat)
+        self.stat = stat
+
+    def run_clear(self, replace):
+        async def step(text, timeout_s=10.0):
+            if replace:
+                swap_connection(FakeConnection(stat=self.stat))
+            return True, ""
+
+        async def go():
+            with gateway._pinned_link(), mock.patch.object(gateway, "_rfl_mdi_step", step), \
+                    mock.patch.object(gateway, "_rfl_phase", lambda *a, **k: None):
+                gateway._rfl_clear_flag()
+                await gateway._rfl_flag_task
+        asyncio.run(go())
+
+    def test_cleared_on_its_own_link_the_flag_is_known(self):
+        self.run_clear(replace=False)
+        self.assertFalse(gateway._skip_flag_unknown)
+
+    def test_cleared_on_a_replaced_link_the_flag_stays_unknown(self):
+        self.run_clear(replace=True)
+        self.assertTrue(gateway._skip_flag_unknown, "a replaced Link's #3116=0 vouched the flag")
+
+
 class ReservedRowsOnlyOnATwpMachine(unittest.TestCase):
     """G59–G59.3 are reserved only where TWP rules apply (TWP-08 / TWP-08a,
     the ONE predicate _twp_capable): on a switchable machine without the
@@ -811,7 +859,12 @@ class ReservedRowsOnlyOnATwpMachine(unittest.TestCase):
                      "_reserved_heal_inflight", "_reserved_heal_last_try", "reject_if_auto_running",
                      "_cmd_lock"):
             self.addCleanup(setattr, gateway, name, getattr(gateway, name))
+        # (getattr with a default: the red check runs these tests against
+        # the product before the retry cadence existed)
+        self.addCleanup(setattr, gateway, "_reserved_heal_decl_tried",
+                        getattr(gateway, "_reserved_heal_decl_tried", 0.0))
         gateway._reserved_heal_checked = False
+        gateway._reserved_heal_decl_tried = 0.0
         gateway._reserved_heal_pending = None
         gateway._reserved_fixture_warning = ""
         gateway._reserved_heal_inflight = False
@@ -819,11 +872,22 @@ class ReservedRowsOnlyOnATwpMachine(unittest.TestCase):
         gateway.reject_if_auto_running = lambda: None
         self.events = []
 
-    def boot_tick(self, capable):
+    def boot_tick(self, capable, decl=True):
+        """The first tick with G59.1 active; `decl`: the kins declaration read."""
         st = types.SimpleNamespace(g5x_index=7, twp_active=False, permissions={})
         with mock.patch.object(gateway, "_twp_capable", lambda: capable), \
-                mock.patch.object(gateway, "_kins_is_switchable", lambda: True):
+                mock.patch.object(gateway, "_kins_is_switchable", lambda: True), \
+                mock.patch.object(gateway, "_parse_kins_decl", lambda: {"type": "x"} if decl else None):
             gateway._reserved_fixture_heal_tick(st)
+
+    def test_an_unread_declaration_does_not_spend_the_boot_check(self):
+        # Fable's check of 7c16f5e9: an unread declaration reads "not TWP"
+        self.boot_tick(capable=False, decl=False)
+        self.assertFalse(gateway._reserved_heal_checked, "the one-shot spent on an unread declaration")
+        self.assertIsNone(gateway._reserved_heal_pending)
+        gateway._reserved_heal_decl_tried = 0.0          # the retry cadence has passed
+        self.boot_tick(capable=True)                     # read now: a TWP machine
+        self.assertEqual(gateway._reserved_heal_pending, 7)
 
     def test_a_tcp_trunnions_g59_1_is_an_ordinary_fixture(self):
         self.boot_tick(capable=False)
@@ -999,6 +1063,36 @@ class CachesFilledOnTheirOwnLink(unittest.TestCase):
         self.assertIsNone(gateway._machine_limits, "the old call's bounds published for the new Link")
         now = gateway.get_machine_limits()
         self.assertEqual((now.n_axes, now.n_joints, now.max_jog_velocity), (3, 3, 100.0))
+
+    def test_an_old_ini_read_never_publishes_its_kins_mode_commands_for_the_new_link(self):
+        for name in ("_kins_mode_cmd_cache",):
+            self.addCleanup(setattr, gateway, name, getattr(gateway, name))
+        gateway._kins_mode_cmd_cache = None
+        conn = connect_fake(self)
+        conn.stat.ini_filename = "/old.ini"
+        new_stat = linuxcnc.stat()
+        new_stat.ini_filename = "/new.ini"
+        test = self
+        traced = []
+
+        class _Ini:
+            def __init__(self, path):
+                if path == "/old.ini" and gateway._link is not None and gateway._link.stat is conn.stat:
+                    test.reconnect(new_stat)               # replaced while the old INI is read
+
+            def find(self, section, key):
+                return None
+
+            def findall(self, section, key):
+                return []
+        with mock.patch.object(gateway.linuxcnc, "ini", _Ini, create=True), \
+                mock.patch.object(gateway, "kins_mode_commands", lambda remaps, source: {0: "M428"}), \
+                mock.patch.object(gateway._trace, "emit", lambda name, **kw: traced.append((name, kw))):
+            mine = gateway._kins_mode_commands()
+        self.assertEqual(mine, {0: "M428"})               # the old read's own answer
+        self.assertIsNone(gateway._kins_mode_cmd_cache, "the old INI's commands published for the new Link")
+        self.assertIn(("lcnc.cache_store_refused", "kins_mode_commands"),
+                      [(n, kw.get("cache")) for n, kw in traced], "a refused store is said")
 
     def test_an_old_ini_read_never_publishes_its_joint_jog_facts_for_the_new_link(self):
         conn = connect_fake(self)

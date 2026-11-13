@@ -20,7 +20,7 @@ import unittest
 
 from test_g30 import _G30Case, _run
 import gateway  # noqa: E402  (test_g30 installed the fake binding first)
-from link_fixture import current  # noqa: E402
+from link_fixture import FakeConnection, current, swap_connection  # noqa: E402
 from gateway_util import TOOLSETTER_BASIS_KEYS, RemapEnv, toolsetter_basis_view  # noqa: E402
 
 FILE = {k: float(i) for i, k in enumerate(TOOLSETTER_BASIS_KEYS)}
@@ -66,6 +66,43 @@ class _BasisCase(_G30Case):
 
 
 class TestBooking(_BasisCase):
+
+    def test_values_done_on_a_replaced_link_are_unknown_not_applied(self):
+        """Codex R360 VM-I06, the class inside commands: an MDI chunk whose
+        Link a reconnect replaced during its wait went out — its effect on
+        the new Link is not confirmed: booked unknown (the next start writes
+        it again), and a #3116=0 there vouches nothing."""
+        saved = gateway._skip_flag_unknown
+        self.addCleanup(setattr, gateway, "_skip_flag_unknown", saved)
+        gateway._skip_flag_unknown = True
+        mdi = self.task.mdi
+
+        def replaced_after_the_write(text):
+            mdi(text)
+            swap_connection(FakeConnection(stat=current().stat))
+        replaced_after_the_write.__name__ = "mdi"
+        self.task.mdi = replaced_after_the_write
+
+        async def pinned():
+            with gateway._pinned_link():
+                return await gateway._apply_probe_vars_detail({"3009": 7.0, "3116": 0}, True)
+        r = _run(pinned())
+        self.assertFalse(r["mdi_set"])
+        self.assertEqual(self.origin(3009), "unknown")
+        self.assertTrue(gateway._skip_flag_unknown, "a #3116=0 done on a replaced Link vouched the flag")
+
+    def test_values_done_on_their_own_link_are_applied(self):
+        saved = gateway._skip_flag_unknown
+        self.addCleanup(setattr, gateway, "_skip_flag_unknown", saved)
+        gateway._skip_flag_unknown = True
+
+        async def pinned():
+            with gateway._pinned_link():
+                return await gateway._apply_probe_vars_detail({"3009": 7.0, "3116": 0}, True)
+        r = _run(pinned())
+        self.assertTrue(r["mdi_set"], r)
+        self.assertEqual(self.origin(3009), "applied")
+        self.assertFalse(gateway._skip_flag_unknown)
 
     def test_at_start_every_key_is_assumed_from_the_file(self):
         ctx = gateway._toolsetter_parse_ctx()

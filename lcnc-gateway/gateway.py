@@ -576,14 +576,16 @@ def _revoke_link(reason: str) -> None:
 
 def _clear_session_caches() -> None:
     """The session caches read through a Link (INI config, payload bounds,
-    kins declaration, the homing / jog switches, the parameter file's path)
+    kins declaration, kins-mode commands, the homing / jog switches, the
+    parameter file's path)
     belong to it: cleared in the SAME step as every Link change — the caller
     holds _link_lock — and filled only through _owned_store (Codex R360
     VM-I08: an old reader published its result into the new Link's caches).
     Reference assignments only, no I/O."""
-    global _nc_files_dir, _ini_config, _machine_limits, _kins_decl_cache
+    global _nc_files_dir, _ini_config, _machine_limits, _kins_decl_cache, _kins_mode_cmd_cache
     global _coord_without_homing_cache, _spindle_before_homing_cache, _joint_jog_cache
     _nc_files_dir = None
+    _kins_mode_cmd_cache = None
     _ini_config = None
     _machine_limits = None
     _kins_decl_cache = None
@@ -593,17 +595,28 @@ def _clear_session_caches() -> None:
     _status_runtime.invalidate_var_file_path()
 
 
-def _owned_store(owner: Optional[Link], store: Callable[[], None]) -> bool:
+def _owned_store(what: str, owner: Optional[Link], store: Callable[[], None]) -> bool:
     """Run `store` — one session-cache assignment of a value read through
     `owner` — only while `owner` is the published Link, compared under
     _link_lock (where every Link change clears the caches): a reader whose
-    Link was replaced keeps its value for itself and stores nothing. True
-    when stored."""
+    Link was replaced keeps its value for itself and stores nothing (traced
+    after the lock). True when stored."""
     with _link_lock:
-        if owner is None or owner is not _link:
-            return False
-        store()
-        return True
+        stored = owner is not None and owner is _link
+        if stored:
+            store()
+    if not stored:
+        _trace.emit("lcnc.cache_store_refused", cache=what, seq=owner.seq if owner is not None else None)
+    return stored
+
+
+def _own_link_current() -> bool:
+    """A completion's re-admission inside a pinned sequence: is the Link it
+    wrote and waited on still the published one? (Outside a pin: True.) A
+    confirmation read through a replaced Link books nothing confirmed —
+    the caller books "unknown" instead (Codex R360 VM-I06, the class)."""
+    pin = _command_link.get()
+    return pin is None or (pin.link is not None and pin.link is _link)
 
 
 @dataclass(frozen=True)
@@ -1753,7 +1766,7 @@ async def _status_poller():
             polled_link = current_link()     # the Link this poll reads (VM-I09)
             _set_phase("status_poller.poll_and_serialize")
             st, status_dict = await loop.run_in_executor(None, _poll_and_serialize)
-            _release_start_claims(t0, polled_link)
+            _release_after_poll(t0, polled_link)
             _check_macro_folder()
             t1 = time.monotonic()
             _set_phase("status_poller.read_errors")
@@ -2769,8 +2782,9 @@ def _parse_kins_decl() -> Optional[dict]:
     (viewer_init.kins) and the extra-pins push (live switchkins sampling).
     STAT-dependent: returns None before LinuxCNC connects — never cached,
     so the first post-connect call parses for real."""
-    if _kins_decl_cache is not None:
-        return _kins_decl_cache
+    cached = _kins_decl_cache    # ONE read (a Link change may clear it meanwhile)
+    if cached is not None:
+        return cached
     owner = current_link()      # the Link read through; stored only while it is current (VM-I08)
     ini_filename = getattr(owner.stat, "ini_filename", None) if owner else None
     if not ini_filename:
@@ -2788,7 +2802,7 @@ def _parse_kins_decl() -> Optional[dict]:
     def put() -> None:
         global _kins_decl_cache
         _kins_decl_cache = decl
-    _owned_store(owner, put)
+    _owned_store("kins_decl", owner, put)
     return decl
 
 
@@ -2855,8 +2869,9 @@ def get_machine_limits() -> MachineLimits:
     package 2b, Codex R360 VM-I08): a caller without a connection, or one
     whose Link a reconnect replaced, gets its bounds for itself; they never
     stick to the new Link."""
-    if _machine_limits is not None:
-        return _machine_limits
+    cached = _machine_limits
+    if cached is not None:
+        return cached
     owner = current_link()
     cfg, ini_read = _ini_config_of(owner)
     n_axes = n_joints = None
@@ -2893,14 +2908,15 @@ def get_machine_limits() -> MachineLimits:
         def put() -> None:
             global _machine_limits
             _machine_limits = limits
-        _owned_store(owner, put)
+        _owned_store("machine_limits", owner, put)
     return limits
 
 
 def get_ini_config() -> dict:
     """Read static INI settings for the UI, cached until reconnect."""
-    if _ini_config is not None:
-        return _ini_config
+    cached = _ini_config
+    if cached is not None:
+        return cached
     config, _read = _read_ini_config(current_link())
     return config
 
@@ -3013,7 +3029,7 @@ def _read_ini_config(owner: Optional[Link]) -> Tuple[dict, bool]:
         def put() -> None:
             global _ini_config
             _ini_config = config
-        _owned_store(owner, put)
+        _owned_store("ini_config", owner, put)
         return config, True
     except Exception as e:
         _trace.emit("ini.parse_failed", level="warn",
@@ -3534,6 +3550,14 @@ def _start_kind(name: str, args: Tuple[object, ...]) -> Optional[str]:
             getattr(linuxcnc, "AUTO_RESUME", None)):
         return "auto"
     return None
+
+
+def _release_after_poll(polled_at: float, polled_link: Optional["Link"]) -> None:
+    """The poller's release step: a poll that read NO Link proves nothing —
+    not even about a Link the WS endpoint published while it ran (Fable's
+    check of 7c16f5e9); otherwise _release_start_claims for that Link."""
+    if polled_link is not None:
+        _release_start_claims(polled_at, polled_link)
 
 
 def _release_start_claims(polled_at: Optional[float] = None,
@@ -4854,6 +4878,10 @@ def _rfl_clear_flag() -> None:
                 idle_since = None
         except Exception as e:
             ok, why = False, f"{type(e).__name__}: {e}"
+        if ok and not _own_link_current():
+            # cleared on a Link replaced meanwhile: not vouched on this one —
+            # the flag stays unknown and the next start clears it first
+            ok, why = False, LINK_CHANGED
         if ok:
             _skip_flag_unknown = False
             _trace.emit("rfl.flag_cleared")
@@ -5224,6 +5252,7 @@ async def _ts_read_back(file: str) -> None:
     NEW inode proves the fresh file (a failed write keeps it). Nothing is
     written to the machine. Under _cmd_lock then _var_file_lock; an abort cancels it
     (_preempt_inflight). A failure leaves the basis as it was, said."""
+    global _ts_readback_tried
     keys = [str(k) for k in TOOLSETTER_BASIS_KEYS]
     try:
         async with _get_cmd_lock():
@@ -5251,6 +5280,9 @@ async def _ts_read_back(file: str) -> None:
     except (NotConnected, PermissionError) as e:
         # no connection, or its Link changed: the mode check (set_mode) or
         # the synch's own write refused (_WriteRefused) — nothing synched
+        # and nothing booked; due again on the next idle poll (the latch
+        # that keeps it to once per version and program is released)
+        _ts_readback_tried = None
         _trace.emit("toolsetter.read_back_failed", level="warn", why="link", exc=type(e).__name__, msg=str(e))
         return
     except OSError as e:
@@ -5374,6 +5406,11 @@ async def _apply_probe_vars_detail(vars_to_set: Dict[str, Any], armed: bool,
                 if _cmd_rc_failed(ret):   # success is RCS_DONE (1), not 0
                     mdi_ok = False
                     _ts_book({k: None for k in booked}, "unknown")
+                elif not _own_link_current():
+                    # done on a Link replaced meanwhile: the values went out,
+                    # their effect is not confirmed on this one (VM-I06 class)
+                    mdi_ok = False
+                    _ts_book({k: None for k in booked}, "unknown")
                 else:
                     _ts_book(booked, "applied")
                     applied.update({str(k): v for k, v in booked.items()})
@@ -5401,7 +5438,7 @@ async def _apply_probe_vars_detail(vars_to_set: Dict[str, Any], armed: bool,
             except Exception as e:  # noqa: BLE001 — the take-over stands; the file's failure is named
                 file_error = f"{type(e).__name__}: {e}"
                 _trace.emit("probe.set_vars_file_failed", level="warn", msg=file_error)
-    if mdi_ok and vals.get("3116") == 0:
+    if mdi_ok and vals.get("3116") == 0 and _own_link_current():
         _skip_flag_unknown = False
     _trace.emit("probe.set_vars_result", mdi_set=mdi_ok, applied=sorted(applied), persisted=persisted,
                 file_error=file_error)
@@ -7349,13 +7386,27 @@ _reserved_heal_last_try = 0.0
 #: the heal's task: it holds _cmd_lock (package 2b), so an abort / estop
 #: cancels it like a client's handler (_preempt_inflight)
 _reserved_heal_task: Optional[asyncio.Task] = None
+#: when the boot check last found the kins declaration unread (it decides
+#: only once the declaration is read; retried at most every 5 s)
+_reserved_heal_decl_tried = 0.0
 
 
 def _reserved_fixture_heal_tick(st) -> None:
     """Status-loop hook: detect once, heal when the machine can take an MDI."""
     global _reserved_fixture_warning, _reserved_heal_checked, _reserved_heal_pending, _reserved_heal_task
+    global _reserved_heal_decl_tried
     if not _reserved_heal_checked:
         if st.g5x_index is None:
+            return
+        # decided once — so only on a READ declaration: an unread one makes
+        # _twp_capable False and would spend the check with no banner and no
+        # heal on a TWP machine (Fable's check of 7c16f5e9); the old
+        # predicate read "switchable" on an unreadable one
+        now = time.monotonic()
+        if now - _reserved_heal_decl_tried < 5.0:
+            return
+        if _parse_kins_decl() is None:
+            _reserved_heal_decl_tried = now
             return
         _reserved_heal_checked = True
         try:
@@ -7980,8 +8031,9 @@ def _coord_without_homing() -> bool:
     coordinated move anyway. Both are fixed for the session; unreadable
     (before the first NML connect, an INI that cannot be read) is False, the
     closed reading, and is not cached."""
-    if _coord_without_homing_cache is not None:
-        return _coord_without_homing_cache
+    cached = _coord_without_homing_cache
+    if cached is not None:
+        return cached
     owner = current_link()      # ONE status, stored only while its Link is current (VM-I08)
     ini_filename = getattr(owner.stat, "ini_filename", None) if owner else None
     kt = getattr(owner.stat, "kinematics_type", None) if owner else None
@@ -7997,7 +8049,7 @@ def _coord_without_homing() -> bool:
     def put() -> None:
         global _coord_without_homing_cache
         _coord_without_homing_cache = result
-    _owned_store(owner, put)
+    _owned_store("coord_without_homing", owner, put)
     return result
 
 
@@ -8007,8 +8059,9 @@ def _spindle_before_homing() -> bool:
     "1" switches it on; absent or "0" is off; any other value is off AND said
     once in the trace (an invalid value must never switch the exception on).
     Unreadable before the first NML connect: False, not cached."""
-    if _spindle_before_homing_cache is not None:
-        return _spindle_before_homing_cache
+    cached = _spindle_before_homing_cache
+    if cached is not None:
+        return cached
     owner = current_link()      # stored only while its Link is current (VM-I08)
     ini_filename = getattr(owner.stat, "ini_filename", None) if owner else None
     if not ini_filename:
@@ -8026,7 +8079,7 @@ def _spindle_before_homing() -> bool:
     def put() -> None:
         global _spindle_before_homing_cache
         _spindle_before_homing_cache = on
-    _owned_store(owner, put)
+    _owned_store("spindle_before_homing", owner, put)
     return on
 
 
@@ -8052,8 +8105,9 @@ def _joint_jog_facts() -> dict:
       letter closed).
     `enabled` = switch on, a valid cap, a valid map with at least one axis
     that can jog. Unreadable before the first NML connect: off, not cached."""
-    if _joint_jog_cache is not None:
-        return _joint_jog_cache
+    cached = _joint_jog_cache
+    if cached is not None:
+        return cached
     owner = current_link()  # ONE status for the INI path, the joints and the axes (package 2b);
     stat = owner.stat if owner else None   # every result stored only while its Link is current (VM-I08)
 
@@ -8061,7 +8115,7 @@ def _joint_jog_facts() -> dict:
         def put() -> None:
             global _joint_jog_cache
             _joint_jog_cache = facts
-        _owned_store(owner, put)
+        _owned_store("joint_jog", owner, put)
         return facts
     ini_filename = getattr(stat, "ini_filename", None) if stat else None
     if not ini_filename:
@@ -8135,15 +8189,16 @@ def _kins_mode_commands() -> Dict[int, str]:
     a running LinuxCNC without a restart. Empty when nothing could be read —
     the handler refuses rather than falling back to a guessed table (R-01:
     the guess was reversed on the shipped TCP trunnion)."""
-    global _kins_mode_cmd_cache
-    if _kins_mode_cmd_cache is not None:
-        return _kins_mode_cmd_cache
+    cached = _kins_mode_cmd_cache
+    if cached is not None:
+        return cached
     cmds: Dict[int, str] = {}
+    owner = current_link()      # the INI and its dirs through ONE Link (VM-I08)
     try:
-        ini_filename = getattr(_stat_now(), "ini_filename", None) if _stat_now() else None
+        ini_filename = getattr(owner.stat, "ini_filename", None) if owner else None
         if ini_filename:
             _ini = linuxcnc.ini(ini_filename)
-            dirs = get_ini_config().get("subroutine_paths", [])
+            dirs = _ini_config_of(owner)[0].get("subroutine_paths", [])
 
             def _source(name: str) -> Optional[str]:
                 path = resolve_subfile(name, dirs)
@@ -8152,8 +8207,13 @@ def _kins_mode_commands() -> Dict[int, str]:
                 with open(path, encoding="utf-8", errors="replace") as fh:
                     return fh.read()
 
-            cmds = kins_mode_commands(_ini.findall("RS274NGC", "REMAP") or [], _source)
-            _kins_mode_cmd_cache = cmds
+            found = kins_mode_commands(_ini.findall("RS274NGC", "REMAP") or [], _source)
+
+            def put() -> None:
+                global _kins_mode_cmd_cache
+                _kins_mode_cmd_cache = found
+            _owned_store("kins_mode_commands", owner, put)
+            cmds = found
             _trace.emit("kins_mode.commands", level="info", commands=cmds)
     except Exception as e:  # noqa: BLE001 - an unreadable INI leaves the map empty (refusal)
         _trace.emit_exc("kins_mode.commands_failed", e)
