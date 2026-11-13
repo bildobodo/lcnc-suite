@@ -2223,7 +2223,10 @@ def latch_cases(variant=None):
             raise StepFailed(rows, f"the trip is not proven the run's own: {why} — not acknowledged")
         with _section(ctx, "latch-recovery") as box:
             i_f, i_t = len(c.frames), len(c.trip_history)
-            c.request("safety_trip_ack")
+            # the acknowledgement names ITS trip (package 3a, Codex R363 Q363-2)
+            _wait(c, lambda s: isinstance(c.safety_trip, dict) and bool(c.safety_trip.get("id")), 10,
+                  "the trip's id in the status")
+            c.request("safety_trip_ack", id=c.safety_trip["id"])
             c.request("arm", armed=True)
             c.request("estop_reset")
             _wait(c, lambda s: s.get("is_estop") is False, 10, "E-Stop reset after the trip")
