@@ -39,26 +39,33 @@ class FakeConnection:
     err: Any = field(default_factory=lambda: linuxcnc.error_channel())
 
 
-_STATE = ("STAT", "CMD", "ERR", "lcnc_connected")
-
-
 def snapshot() -> dict[str, Any]:
-    """The whole connection state now (restore() puts it back)."""
-    return {name: getattr(gateway, name) for name in _STATE}
+    """The whole connection state now (restore() puts it back): the
+    published Link and the pid the gateway tracks."""
+    return {"link": gateway._link, "pid": gateway._lcnc_pid}
 
 
 def restore(saved: dict[str, Any]) -> None:
-    for name, value in saved.items():
-        setattr(gateway, name, value)
+    with gateway._link_lock:
+        gateway._link = saved["link"]
+    gateway._lcnc_pid = saved["pid"]
+
+
+_test_seq = 10_000
 
 
 def _install(conn: Optional[FakeConnection]) -> None:
+    """Publish `conn` as THE Link (None: no Link) — directly, without the
+    gateway's publish / revoke traces, as a new Link each time (a write
+    prepared on the previous one is refused, as after a reconnect)."""
+    global _test_seq
     if conn is None:
-        gateway.STAT = gateway.CMD = gateway.ERR = None
-        gateway.lcnc_connected = False
-    else:
-        gateway.STAT, gateway.CMD, gateway.ERR = conn.stat, conn.cmd, conn.err
-        gateway.lcnc_connected = True
+        with gateway._link_lock:
+            gateway._link = None
+        return
+    _test_seq += 1
+    with gateway._link_lock:
+        gateway._link = gateway.Link(stat=conn.stat, cmd=conn.cmd, err=conn.err, pid=None, seq=_test_seq)
 
 
 def connect_fake(testcase: unittest.TestCase, *, stat: Any = None, cmd: Any = None,
@@ -99,28 +106,25 @@ def swap_connection(conn: Optional[FakeConnection]) -> None:
 
 
 def is_connected() -> bool:
-    """Does the gateway hold a connection now? (Before the Link: the flag AND
-    the channels — an ended instance cleared only the flag.)"""
-    return bool(gateway.lcnc_connected) and gateway.STAT is not None and gateway.CMD is not None
+    """Does the gateway hold a connection now — a published Link?"""
+    return gateway._link is not None
 
 
 def current() -> FakeConnection:
     """The connection installed now (the test's handle on its fakes)."""
-    if gateway.STAT is None or gateway.CMD is None:
+    current_link = gateway._link
+    if current_link is None:
         raise AssertionError("no connection installed — connect_fake first")
-    return FakeConnection(stat=gateway.STAT, cmd=gateway.CMD, err=gateway.ERR)
+    return FakeConnection(stat=current_link.stat, cmd=current_link.cmd, err=current_link.err)
 
 
 def _kept(stat: Any, cmd: Any, err: Any) -> FakeConnection:
     """These channels, the installed ones where not given (fresh fakes when
     nothing is installed)."""
     conn = FakeConnection()
-    if gateway.STAT is not None:
-        conn.stat = gateway.STAT
-    if gateway.CMD is not None:
-        conn.cmd = gateway.CMD
-    if gateway.ERR is not None:
-        conn.err = gateway.ERR
+    installed = gateway._link
+    if installed is not None:
+        conn.stat, conn.cmd, conn.err = installed.stat, installed.cmd, installed.err
     if stat is not None:
         conn.stat = stat
     if cmd is not None:

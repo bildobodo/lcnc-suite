@@ -15,6 +15,7 @@ import unittest
 from unittest.mock import patch
 import test_button_gates as base
 from hal_bridge import HalBridge
+from link_fixture import using
 
 gateway, linuxcnc = base.gateway, base.linuxcnc
 assert linuxcnc.__lcnc_fake__
@@ -90,13 +91,15 @@ class TestStartClaimBookkeeping(base._Handlers):
         writes=[]
         async def begin():return basis
         def auto(*args):writes.append(args)
-        with patch.object(gateway,'_source_claims',claims), \
+        channel=type('C',(),{'auto':staticmethod(auto),'serial':0})()
+        with using(cmd=channel), \
+             patch.object(gateway,'_source_claims',claims), \
              patch.object(gateway,'_source_lock',None), \
              patch.object(gateway,'_begin_run_basis',begin), \
              patch.object(gateway,'_ts_program_writes',lambda:set()), \
              patch.object(gateway,'_ts_mark_assumed',lambda _:None):
             with self.assertRaises(gateway._WriteRefused):
-                base._run(gateway._cmd_blocking(auto,linuxcnc.AUTO_RUN,0,
+                base._run(gateway._cmd_blocking(gateway.link(),gateway.op(linuxcnc.command.auto,linuxcnc.AUTO_RUN,0),
                                                wait=None,admit=lambda:'refused by probe'))
         self.assertEqual(writes,[])
         self.assertEqual(basis['state'],'unsent')

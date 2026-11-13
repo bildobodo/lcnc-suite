@@ -287,10 +287,13 @@ class TestCmdBlockingHoldsLockThroughCancel(unittest.TestCase):
                     started.set()
                     release.wait(5.0)
                 lock = gateway._get_cmd_lock()
+                channel = type("C", (), {"abort": staticmethod(cmd_fn), "serial": 0})()
 
                 async def holder():
                     async with lock:
-                        await gateway._cmd_blocking(cmd_fn, wait=None)
+                        with using(cmd=channel):
+                            await gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.abort),
+                                                        wait=None)
                 t = asyncio.create_task(holder())
                 await asyncio.to_thread(started.wait, 2.0)
                 self.assertTrue(started.is_set())
@@ -432,10 +435,15 @@ class TestCmdBlockingSlicedWait(unittest.TestCase):
     after the current slice, never after the whole wait."""
 
     class _Cmd:
+        serial = 0
+
         def __init__(self):
             self.calls = []
             self.release = threading.Event()
             self.rc_when_released = 1
+
+        def abort(self):
+            pass
 
         def wait_complete(self, t):
             self.calls.append(t)
@@ -462,10 +470,12 @@ class TestCmdBlockingSlicedWait(unittest.TestCase):
             def cmd_fn():
                 wrote.append(1)
                 started.set()
+            cmd.abort = cmd_fn   # the write: the installed channel's own method
 
             async def holder():
                 async with lock:
-                    return await gateway._cmd_blocking(cmd_fn, wait=30.0)
+                    return await gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.abort),
+                                                       wait=30.0)
             t = asyncio.create_task(holder())
             await asyncio.to_thread(started.wait, 2.0)
             await asyncio.sleep(0.2)
@@ -489,11 +499,13 @@ class TestCmdBlockingSlicedWait(unittest.TestCase):
             lock = gateway._get_cmd_lock()
             cmd.release.set()
             async with lock:
-                self.assertEqual(await gateway._cmd_blocking(lambda: None, wait=5.0), 1)
+                self.assertEqual(await gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.abort),
+                                                             wait=5.0), 1)
             cmd.release.clear()
             t0 = time.monotonic()
             async with lock:
-                self.assertEqual(await gateway._cmd_blocking(lambda: None, wait=0.12), -1)
+                self.assertEqual(await gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.abort),
+                                                             wait=0.12), -1)
             self.assertLess(time.monotonic() - t0, 0.5)
             self.assertTrue(gateway._cmd_rc_failed(gateway._RC_WAIT_CANCELLED))
         self._run(body)

@@ -66,12 +66,12 @@ class _SeqHarness(unittest.IsolatedAsyncioTestCase):
         async def _fake_set_mode(mode, **_kw):
             return None
 
-        async def _fake_cmd_blocking(fn, *args, wait=None, admit=None):
+        async def _fake_cmd_blocking(conn, command, wait=None, admit=None):
             # the real one's last check before the write (button gates BG-09)
             if admit is not None and admit():
                 raise gateway._WriteRefused(admit())
-            if args and args[0] == linuxcnc.AUTO_RUN:
-                test.auto_run_calls.append(args)
+            if command.name == "auto" and command.args and command.args[0] == linuxcnc.AUTO_RUN:
+                test.auto_run_calls.append(command.args)
             return 0
 
         # The kinematics rule of a program start is test_button_gates'

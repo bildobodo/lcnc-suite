@@ -16,8 +16,9 @@ import threading
 from pathlib import Path
 import linuxcnc
 
+from dataclasses import dataclass
 from dataclasses import replace as _dc_replace
-from typing import Any, Callable, Dict, Optional, List, Tuple
+from typing import Any, Callable, Concatenate, Dict, Optional, List, ParamSpec, Tuple
 from fastapi.staticfiles import StaticFiles
 import re
 from urllib.parse import urlsplit
@@ -35,6 +36,7 @@ _trace.init("gateway")
 _trace.install_crash_hooks("gateway")
 
 import session_bind as _session_bind
+from lcnc_iface import COMMAND_METHODS   # op() admits only these names
 
 # ---- Session binding: die with the launcher (2026-09-13) ----
 # PR_SET_PDEATHSIG when the launcher started us (LCNC_LAUNCHER_PID). The
@@ -412,12 +414,131 @@ async def require_token(request: Request):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 
-# ---- LinuxCNC handles (nullable for auto-reconnect) ----
-STAT: Optional[linuxcnc.stat] = None
-CMD: Optional[linuxcnc.command] = None
-ERR: Optional[linuxcnc.error_channel] = None
-lcnc_connected = False
+# ---- The connection to LinuxCNC: ONE Link (package 2b, plan vor-maschine
+# R352/R353 VM352-02) ----
+# A Link is a channel set prepared and checked AS A WHOLE (stat, command,
+# error channel, the instance it reached) and published in ONE step; a
+# failed connect publishes nothing. "Connected" means: a Link is published.
+# A write belongs to the Link it was prepared on — _cmd_blocking admits,
+# writes, books the serial and waits on THAT Link, and refuses a write whose
+# Link is no longer the published one before it reaches either channel.
+#
+# _link_lock guards only the REFERENCE: a compare or a swap, never a poll,
+# an NML call or an await — so neither the event loop nor a write thread
+# ever waits on it for longer than a reference assignment. Lock order:
+# _cmd_lock (asyncio, a whole command) → _link_lock (threading, a moment).
+
+
+class NotConnected(Exception):
+    """No connection to LinuxCNC now. Each entry path answers it in its own
+    way (the WS command reply, the HTTP 503, a background task's trace) —
+    never as a client disconnect (the reader treats RuntimeError as one)."""
+
+    def __init__(self, what: str = "LinuxCNC not connected") -> None:
+        super().__init__(what)
+
+
+@dataclass(frozen=True, eq=False)
+class Link:
+    """One published connection: its channels and the instance it reached
+    (None when it could not be identified). Identity is the Link object."""
+    stat: linuxcnc.stat
+    cmd: linuxcnc.command
+    err: linuxcnc.error_channel
+    pid: Optional[int]
+    seq: int
+
+
+_link: Optional[Link] = None
+_link_lock = threading.Lock()
+_link_seq = 0
 _lcnc_pid: Optional[int] = None  # tracks linuxcncsvr PID
+
+
+def current_link() -> Optional[Link]:
+    """The published Link, or None — for a reader that tolerates no
+    connection (a status read answers "unknown" without one)."""
+    return _link
+
+
+def link() -> Link:
+    """The published Link — for a path that needs the connection; raises
+    NotConnected without one."""
+    current = _link
+    if current is None:
+        raise NotConnected()
+    return current
+
+
+def _stat_now() -> Optional[linuxcnc.stat]:
+    """The published Link's status channel, None without a connection (a
+    tolerant read: `getattr(_stat_now(), "x", None)`). A path that NEEDS it
+    takes link().stat — NotConnected without one."""
+    current = _link
+    return None if current is None else current.stat
+
+
+def _cmd_now() -> Optional[linuxcnc.command]:
+    current = _link
+    return None if current is None else current.cmd
+
+
+def _err_now() -> Optional[linuxcnc.error_channel]:
+    current = _link
+    return None if current is None else current.err
+
+
+def _link_is_current(candidate: Link) -> bool:
+    with _link_lock:
+        return _link is candidate
+
+
+def _publish_link(stat: linuxcnc.stat, cmd: linuxcnc.command, err: linuxcnc.error_channel,
+                  pid: Optional[int]) -> Link:
+    """Publish a prepared, checked channel set as THE connection — one step."""
+    global _link, _link_seq
+    with _link_lock:
+        _link_seq += 1
+        new = Link(stat=stat, cmd=cmd, err=err, pid=pid, seq=_link_seq)
+        _link = new
+    _trace.emit("lcnc.link_published", seq=new.seq, pid=pid)
+    return new
+
+
+def _revoke_link(reason: str) -> None:
+    """No connection from now on: a write prepared on the old Link is refused
+    before it reaches a channel (its wait, already running, stays on it)."""
+    global _link
+    with _link_lock:
+        old, _link = _link, None
+    if old is not None:
+        _trace.emit("lcnc.link_revoked", level="warn", seq=old.seq, reason=reason)
+
+
+@dataclass(frozen=True)
+class CmdOp:
+    """One command for _cmd_blocking: the binding's method NAME and its
+    positional arguments — run on the write's own Link."""
+    name: str
+    args: Tuple[object, ...]
+
+
+_CmdP = ParamSpec("_CmdP")
+
+
+def op(method: Callable[Concatenate[Any, _CmdP], object], *args: _CmdP.args, **kwargs: _CmdP.kwargs) -> CmdOp:
+    """`op(linuxcnc.command.jog, linuxcnc.JOG_STOP, jf, axis)` — the method
+    of the binding's CLASS (the type check holds the arguments to its
+    overloads: the form the sub-operation needs) and its arguments. The name
+    is the method's own (`_start_kind` reads it — a start's claim, run basis
+    and toolsetter booking hang on it): only a command the code is known to
+    call, never a keyword (the binding takes none)."""
+    if kwargs:
+        raise TypeError("the LinuxCNC binding takes positional arguments only")
+    name = getattr(method, "__name__", "")
+    if name not in COMMAND_METHODS:
+        raise ValueError(f"not a LinuxCNC command the gateway calls: {name!r}")
+    return CmdOp(name=name, args=tuple(args))
 
 # ---- Session binding (2026-09-13): one gateway process, ONE LinuxCNC instance ----
 # (linuxcncsvr pid, kernel start ticks), set on the first successful NML
@@ -896,7 +1017,7 @@ def _live_kins_frame_of(st):
 
 
 _bulk = _bulk_mod.BulkPipeline(
-    get_stat=lambda: STAT,
+    get_stat=lambda: _stat_now(),
     get_machine_units=lambda: get_machine_units(),
     build_wcs_rotation_patches=lambda: _build_wcs_rotation_patches(),
     get_live_kins=lambda: _live_kins_for_parse(),
@@ -904,7 +1025,7 @@ _bulk = _bulk_mod.BulkPipeline(
     # like the worker's __WCSOFF__ line — the in-flight supersede compares
     # a touch-off against exactly what the running parse was seeded with.
     get_wcs_off_flat=lambda: wcs_offset_flat_from_table(
-        _wcs_cache, getattr(STAT, "g92_offset", None)),
+        _wcs_cache, getattr(_stat_now(), "g92_offset", None)),
     # the toolsetter values the routine reads (M600 plan, section 2)
     get_toolsetter_ctx=lambda: _toolsetter_parse_ctx(),
     # the run in progress (plan „Prüfung im Lauf“ 1a)
@@ -1454,7 +1575,7 @@ async def _status_poller():
     blocking sections so heartbeats and sends can proceed.
     """
     global _shared_status, _shared_status_dict, _shared_errors, _shared_probe_updates, _errors_total
-    global _status_gen, lcnc_connected, STAT, CMD, ERR, _reconnect_fails, _shared_timing
+    global _status_gen, _reconnect_fails, _shared_timing
     global _status_event, _shared_clients_list
     loop = asyncio.get_event_loop()
     _poll_fails = 0
@@ -1489,7 +1610,7 @@ async def _status_poller():
             # 1 s timeout; _nml_connectable, 5 s timeout). Running them on
             # the event loop stalls poll_status long enough to flap the
             # HAL heartbeat and trip oneshot.0.out. Offload to a worker.
-            if not lcnc_connected:
+            if current_link() is None:
                 if _instance_ended:
                     # Bound instance ended: no re-bind, shutdown in progress.
                     await asyncio.sleep(0.5)
@@ -1527,8 +1648,7 @@ async def _status_poller():
                             register_bg_task(asyncio.create_task(_reader_configure_extra_pins()))
                             register_bg_task(asyncio.create_task(_ensure_prov_var_rows()))
                     else:
-                        STAT = CMD = ERR = None
-                        lcnc_connected = False
+                        _revoke_link("the instance check found no LinuxCNC")
                         continue
 
             # poll_status() blocks ~40ms (GIL held by C extensions).
@@ -1590,7 +1710,7 @@ async def _status_poller():
             # previous config's data. Reset the init flags + clear pending/bytes
             # and bump versions so clients refetch — the init blocks below then
             # reload from the new config's result files (or stay empty).
-            _cur_ini = getattr(STAT, "ini_filename", None)
+            _cur_ini = getattr(_stat_now(), "ini_filename", None)
             if _cur_ini and _bulk.caches_ini is not None and _bulk.caches_ini != _cur_ini:
                 _bulk.surface_initialized = False
                 _bulk.grid_initialized = False
@@ -1605,7 +1725,7 @@ async def _status_poller():
                 _bulk.caches_ini = _cur_ini
 
             # Startup init: push existing probe-results.txt to new clients on first connect
-            if not _bulk.surface_initialized and getattr(STAT, "ini_filename", None):
+            if not _bulk.surface_initialized and getattr(_stat_now(), "ini_filename", None):
                 pts = await asyncio.to_thread(_bulk.read_probe_results_file)
                 if pts:
                     _bulk.surface_pending = pts
@@ -1634,7 +1754,7 @@ async def _status_poller():
                                 hint="compensation.py not loaded?")
 
             # Comp grid startup init: push existing probe-results-grid.json on first connect
-            if not _bulk.grid_initialized and getattr(STAT, "ini_filename", None):
+            if not _bulk.grid_initialized and getattr(_stat_now(), "ini_filename", None):
                 t_read = time.monotonic()
                 grid = await asyncio.to_thread(_bulk.read_comp_grid_file)
                 t_read_done = time.monotonic()
@@ -2135,8 +2255,7 @@ async def _status_poller():
         except Exception as e:
             _poll_fails += 1
             if _poll_fails >= 5:
-                lcnc_connected = False
-                STAT = CMD = ERR = None
+                _revoke_link(f"5 status cycles failed: {type(e).__name__}")
                 _poll_fails = 0
                 _trace.emit("poller.persistent_failure", level="warn",
                             exc=type(e).__name__, msg=str(e))
@@ -2322,7 +2441,7 @@ def _on_instance_ended(where: str) -> None:
     """The bound LinuxCNC instance died or was replaced. Never re-bind:
     disconnect HAL and end the process (the launcher then returns to
     LinuxCNC's Cleanup; a standalone gateway just exits)."""
-    global _instance_ended, lcnc_connected
+    global _instance_ended
     if _instance_ended:
         return
     _instance_ended = True
@@ -2331,7 +2450,7 @@ def _on_instance_ended(where: str) -> None:
           f"this gateway will not re-bind; shutting down", flush=True)
     _trace.emit("session.instance_ended", level="error", where=where,
                 instance_pid=inst[0], instance_start=inst[1])
-    lcnc_connected = False
+    _revoke_link("the bound instance ended")
     _hal_disconnect()
     _request_process_shutdown("linuxcnc instance ended")
 
@@ -2341,8 +2460,13 @@ def try_connect_lcnc() -> bool:
 
     Bind-once: the first success records the instance; a later connect to a
     DIFFERENT instance is refused (and ends the process) unless rebind is
-    allowed — every caller (poller, WS endpoint, boot) inherits the rule."""
-    global STAT, CMD, ERR, lcnc_connected, _lcnc_pid, _nc_files_dir, _ini_config, _ever_connected, _kins_decl_cache
+    allowed — every caller (poller, WS endpoint, boot) inherits the rule.
+
+    The channel set is prepared in locals, checked (a poll), identified and
+    bound — and only then published as THE Link, in one step (package 2b,
+    VM352-02). A failure on the way publishes nothing and revokes whatever
+    was published before (the old Link's channels are not this attempt's)."""
+    global _lcnc_pid, _nc_files_dir, _ini_config, _ever_connected, _kins_decl_cache
     global _machine_limits, _bound_instance, _coord_without_homing_cache, _spindle_before_homing_cache
     global _joint_jog_cache
     if _instance_ended:
@@ -2358,25 +2482,25 @@ def try_connect_lcnc() -> bool:
     if not _nml_connectable():
         return False
     try:
-        STAT = linuxcnc.stat()
-        CMD = linuxcnc.command()
-        ERR = linuxcnc.error_channel()
-        STAT.poll()  # verify it actually works
-        _lcnc_pid = _get_lcnc_pid()
-        inst = _session_bind.instance_for_pid(_lcnc_pid)
+        stat = linuxcnc.stat()
+        cmd = linuxcnc.command()
+        err = linuxcnc.error_channel()
+        stat.poll()  # verify it actually works
+        pid = _get_lcnc_pid()
+        inst = _session_bind.instance_for_pid(pid)
         if _bound_instance is None:
             if inst is None:
                 # Can't identify the instance (no live linuxcncsvr found for
                 # the pid, or the fake binding): connect, but stay unbound —
                 # the HAL helpers will not admit an unbound gateway.
-                _trace.emit("session.bind_unresolved", level="warn", pid=_lcnc_pid)
+                _trace.emit("session.bind_unresolved", level="warn", pid=pid)
             else:
                 _bound_instance = inst
                 print(f"[VINIT] session bound to linuxcncsvr pid={inst[0]} start={inst[1]}", flush=True)
                 _trace.emit("session.bound", instance_pid=inst[0], instance_start=inst[1])
         elif inst != _bound_instance and not _bound_instance_alive():
             if _bind_once_enabled():
-                STAT = CMD = ERR = None
+                _revoke_link("a different LinuxCNC instance")
                 _trace.emit("session.instance_changed", level="error",
                             old=list(_bound_instance), new=list(inst) if inst else None)
                 _on_instance_ended("reconnect saw a different instance")
@@ -2385,7 +2509,8 @@ def try_connect_lcnc() -> bool:
                         old=list(_bound_instance), new=list(inst) if inst else None)
             print(f"[SAFETY] re-binding to a new LinuxCNC instance {inst} (WEBUI_ALLOW_REBIND)", flush=True)
             _bound_instance = inst
-        lcnc_connected = True
+        _lcnc_pid = pid
+        _publish_link(stat, cmd, err, pid)
         _ever_connected = True
         # Re-arm warn-once flags so a STAT field that disappears across a
         # reconnect produces a fresh log line instead of being suppressed.
@@ -2394,8 +2519,7 @@ def try_connect_lcnc() -> bool:
         return True
     except Exception as e:
         print(f"[VINIT] try_connect_lcnc FAILED: {e}", flush=True)
-        STAT = CMD = ERR = None
-        lcnc_connected = False
+        _revoke_link(f"connect failed: {type(e).__name__}")
         _lcnc_pid = None
         return False
 
@@ -2404,16 +2528,16 @@ def check_lcnc_instance() -> bool:
     """Check if linuxcncsvr PID changed. Returns True if reconnect needed
     (legacy/rebind mode only — with bind-once the end of the bound instance
     shuts the gateway down and this returns False)."""
-    global _lcnc_pid, lcnc_connected, _tool_tbl_path, _tool_tbl_ini
+    global _lcnc_pid, _tool_tbl_path, _tool_tbl_ini
     if _bound_instance is not None and _bind_once_enabled():
         if not _instance_ended and not _bound_instance_alive():
             _on_instance_ended("instance check")
         return False
     pid = _get_lcnc_pid()
     if pid == _lcnc_pid:
-        if pid is None and lcnc_connected:
+        if pid is None and current_link() is not None:
             print("[VINIT] check_lcnc_instance: PID=None but was connected, resetting", flush=True)
-            lcnc_connected = False
+            _revoke_link("no LinuxCNC pid")
             _tool_tbl_path = None  # re-resolve on next connection
             _tool_tbl_ini = None
             return True
@@ -2426,7 +2550,7 @@ def check_lcnc_instance() -> bool:
     _status_runtime.invalidate_wcs_mtime()  # force WCS re-seed from var file on next poll
     if pid is None:
         print(f"[VINIT] check_lcnc_instance: PID gone (was {old_pid}), disconnecting", flush=True)
-        lcnc_connected = False
+        _revoke_link("the LinuxCNC pid is gone")
         _hal_disconnect()
     else:
         print(f"[VINIT] check_lcnc_instance: PID changed {old_pid} -> {pid}", flush=True)
@@ -2439,8 +2563,8 @@ def check_lcnc_instance() -> bool:
 # settings change, and load_tool_library is defined further down this module.
 # Legacy names rebind to bound methods so the ~100 call sites read unchanged.
 _status_runtime = _status_runtime_mod.StatusRuntime(
-    get_stat=lambda: STAT,
-    get_err=lambda: ERR,
+    get_stat=lambda: _stat_now(),
+    get_err=lambda: _err_now(),
     reader_get=_hal_bridge.reader_get,
     get_tool_tbl_path=lambda: get_tool_tbl_path(),
     load_tool_library=lambda: load_tool_library(),
@@ -2491,10 +2615,10 @@ if _get_lcnc_pid() is not None:
     _trace.emit(
         "boot.lcnc_connect",
         dt_ms=round((time.monotonic() - _bt) * 1000, 1),
-        connected=lcnc_connected,
+        connected=current_link() is not None,
         bound=list(_bound_instance) if _bound_instance else None,
     )
-    if lcnc_connected:
+    if current_link() is not None:
         _bt = time.monotonic()
         _hal_connect()
         _trace.emit(
@@ -2537,7 +2661,7 @@ def _parse_kins_decl() -> Optional[dict]:
     global _kins_decl_cache
     if _kins_decl_cache is not None:
         return _kins_decl_cache
-    ini_filename = getattr(STAT, "ini_filename", None) if STAT else None
+    ini_filename = getattr(_stat_now(), "ini_filename", None) if _stat_now() else None
     if not ini_filename:
         return None
     try:
@@ -2574,7 +2698,7 @@ def _declared_var_numbers() -> Optional[frozenset]:
     leaves the parameter writes' key check to the system-range deny only."""
     global _var_numbers_cache
     try:
-        ini_path = getattr(STAT, "ini_filename", None)
+        ini_path = getattr(_stat_now(), "ini_filename", None)
         if not ini_path:
             return None
         ini = linuxcnc.ini(ini_path)
@@ -2615,9 +2739,9 @@ def get_machine_limits() -> MachineLimits:
     cfg = get_ini_config()
     n_axes = n_joints = None
     try:
-        STAT.poll()
-        n_axes = len(_axes_from_mask(getattr(STAT, "axis_mask", 0) or 0)) or None
-        n_joints = getattr(STAT, "joints", None) or None
+        link().stat.poll()
+        n_axes = len(_axes_from_mask(getattr(_stat_now(), "axis_mask", 0) or 0)) or None
+        n_joints = getattr(_stat_now(), "joints", None) or None
     except Exception as e:  # STAT absent / not connected yet
         _trace.emit("limits.stat_unavailable", level="warn", err=str(e))
     missing = [k for k, v in _OVERRIDE_FALLBACKS.items() if cfg.get(k) is None]
@@ -2648,12 +2772,12 @@ def get_ini_config() -> dict:
         return _ini_config
 
     config: dict = {}
-    if STAT is None:
+    if _stat_now() is None:
         return config
 
     try:
-        STAT.poll()
-        ini_path = getattr(STAT, "ini_filename", None)
+        link().stat.poll()
+        ini_path = getattr(_stat_now(), "ini_filename", None)
         if not ini_path:
             return config
 
@@ -2853,8 +2977,8 @@ async def _reload_tool_table_and_bump():
     propagates within one tick instead of waiting for manual refresh.
     """
     global _tool_table_version
-    if CMD:
-        await _cmd_blocking(CMD.load_tool_table, wait=None)
+    if _cmd_now():
+        await _cmd_blocking(link(), op(linuxcnc.command.load_tool_table), wait=None)
     _tool_table_version += 1
 
 
@@ -2891,8 +3015,8 @@ async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
 
 def _current_ini_path() -> str:
     """Return the current INI file path, or 'default' if unavailable."""
-    if STAT and getattr(STAT, "ini_filename", None):
-        return STAT.ini_filename
+    if _stat_now() and getattr(_stat_now(), "ini_filename", None):
+        return link().stat.ini_filename
     return "default"
 
 
@@ -3240,11 +3364,10 @@ def _get_source_lock() -> asyncio.Lock:
     return _source_lock
 
 
-def _start_kind(cmd_fn, args) -> Optional[str]:
+def _start_kind(name: str, args: Tuple[object, ...]) -> Optional[str]:
     """'mdi' / 'auto' for a command that makes the interpreter read files,
-    else None. By the binding's method name (CMD.mdi / CMD.auto are
-    builtin methods of linuxcnc.command); AUTO only for RUN, STEP, RESUME."""
-    name = getattr(cmd_fn, "__name__", "")
+    else None. By the command's name (op(): the binding's own method name);
+    AUTO only for RUN, STEP, RESUME."""
     if name == "mdi":
         return "mdi"
     if name == "auto" and args and args[0] in (
@@ -3384,7 +3507,7 @@ async def _begin_run_basis() -> Optional[Dict[str, Any]]:
     never the last run's left standing (Codex R116 VP-I67)."""
     global _run_basis, _run_seq
     try:
-        STAT.poll()
+        link().stat.poll()
     except Exception as e:  # noqa: BLE001 - no poll: unknown whether this starts a run
         _trace.emit_exc("run_basis.poll_failed", e)
         return _unverified_run_basis("controller status not read")
@@ -3393,13 +3516,13 @@ async def _begin_run_basis() -> Optional[Dict[str, Any]]:
     # The start's joints from THIS poll, copied before any await (parity-ef
     # plan E5, Codex R122 answer 2): the start a run check binds the
     # program's start-dependent beginning to.
-    start_joints, joints_why = _start_joints_now(STAT)
+    start_joints, joints_why = _start_joints_now(_stat_now())
     try:
         file = _status_runtime.program.loaded
         source = await asyncio.to_thread(program_source, file) if file else None
         ctx = _bulk.start_ctx(file) if file else None
-        ok, why = _bulk.run_start_check(file, STAT, source, open_drift=_ts_open_drift())
-        start = _start_snapshot(STAT)
+        ok, why = _bulk.run_start_check(file, _stat_now(), source, open_drift=_ts_open_drift())
+        start = _start_snapshot(_stat_now())
         if start_joints is not None:
             start["joints"] = start_joints
         else:
@@ -3458,12 +3581,22 @@ class _WriteRefused(PermissionError):
     the manual commands): the reply says why, nothing was written."""
 
 
-async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["_StartClaim"] = None,
+#: the refusal of a write whose Link was replaced or revoked before it went out
+LINK_CHANGED = "Connection to LinuxCNC changed — try again"
+
+
+async def _cmd_blocking(conn: Link, command: CmdOp, wait: Optional[float] = _CMD_WAIT_TIMEOUT,
+                        claim: Optional["_StartClaim"] = None,
                         admit: Optional[Callable[[], Optional[str]]] = None,
                         written: Optional[Callable[[], None]] = None) -> int:
-    """Run a blocking CMD.* call + optional wait_complete() on a worker thread.
+    """Run one command on the Link `conn` + optional wait_complete() on a
+    worker thread (package 2b: the admission, the write, the serial the claim
+    books and every wait slice belong to `conn`; a write whose Link is no
+    longer the published one when its thread runs — or after its admission —
+    is refused with LINK_CHANGED before it reaches either channel, and is
+    never redirected to another one).
 
-    Every `CMD.* + wait_complete()` pair must go through here. Returns
+    Every command + wait_complete() pair must go through here. Returns
     wait_complete()'s int result — linuxcnc.RCS_DONE (1) on success,
     linuxcnc.RCS_ERROR (3) when the command was rejected, -1 on timeout,
     _RC_WAIT_CANCELLED (-2) when the wait was abandoned on cancel — or 0
@@ -3499,7 +3632,8 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
     Caller must hold `_cmd_lock` — NML command channel is not thread-safe.
     """
     cancel = threading.Event()
-    kind = _start_kind(cmd_fn, args)
+    args = command.args
+    kind = _start_kind(command.name, args)
     if kind:
         # A start may write the toolsetter's values (M600 plan section 2,
         # Codex R105 VP-I60): booked here — every MDI line and every AUTO
@@ -3507,7 +3641,7 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
         # can reach the interpreter, so neither a cancel nor a timeout after
         # the write skips it (it was booked after the await, on four of five
         # paths). A command that never went out costs only a confirmation.
-        _ts_mark_assumed(toolsetter_assigned_keys(args[0] if args else "", _remap_env())
+        _ts_mark_assumed(toolsetter_assigned_keys(str(args[0]) if args else "", _remap_env())
                          if kind == "mdi" else _ts_program_writes())
     run_basis = None
     if kind == "auto" and args and args[0] in (getattr(linuxcnc, "AUTO_RUN", None),
@@ -3522,17 +3656,33 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
         if run_basis is not None:
             run_basis["state"] = "unsent"   # cancelled before the write: no run
         raise
-    def _run():
+    def _unsent() -> None:
+        if claim is not None:
+            claim.state = "unsent"   # nothing reached the controller
+        if run_basis is not None:
+            run_basis["state"] = "unsent"   # no run
+
+    def _run() -> int:
+        # The Link is current before the admission AND after it: a Link is
+        # published once, so the admission (which reads the controller through
+        # the published Link) read THIS one, and the write goes to it.
+        if not _link_is_current(conn):
+            _unsent()
+            raise _WriteRefused(LINK_CHANGED)
         if admit is not None:
-            refused = admit()
+            try:
+                refused = admit()
+            except BaseException:
+                _unsent()   # an admission that failed admitted nothing
+                raise
             if refused:
-                if claim is not None:
-                    claim.state = "unsent"   # nothing reached the controller
-                if run_basis is not None:
-                    run_basis["state"] = "unsent"
+                _unsent()
                 raise _WriteRefused(refused)
+            if not _link_is_current(conn):
+                _unsent()
+                raise _WriteRefused(LINK_CHANGED)
         try:
-            cmd_fn(*args)
+            getattr(conn.cmd, command.name)(*args)
         except BaseException:
             if claim is not None:
                 claim.state = "unsent"   # nothing reached the controller
@@ -3544,7 +3694,7 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
         if run_basis is not None:
             run_basis["state"] = "sent"
         if claim is not None:
-            claim.serial = getattr(CMD, "serial", None)
+            claim.serial = getattr(conn.cmd, "serial", None)
             claim.sent_t = time.monotonic()
             claim.state = "sent"
         if wait is None:
@@ -3554,7 +3704,7 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 return -1
-            rc = CMD.wait_complete(min(_CMD_WAIT_SLICE, remaining))
+            rc = conn.cmd.wait_complete(min(_CMD_WAIT_SLICE, remaining))
             if rc != -1:
                 return rc
             if cancel.is_set():
@@ -3580,7 +3730,7 @@ _MODE_NAMES = {1: "MANUAL", 2: "AUTO", 3: "MDI"}
 
 
 async def set_mode(mode: int, force: bool = False,
-                   admit: Optional[Callable[[], Optional[str]]] = None):
+                   admit: Optional[Callable[[], Optional[str]]] = None, conn: Optional[Link] = None):
     """Switch LinuxCNC task mode. Caller must hold `_cmd_lock`.
 
     `admit` (Codex R217): the switch's last check, inside its write thread
@@ -3601,7 +3751,8 @@ async def set_mode(mode: int, force: bool = False,
     bounded ok:false reply). It used to discard the rc while nine other
     call sites checked theirs — a handler then issued its MDI into the
     wrong mode and reported ok (2026-09-04)."""
-    STAT.poll()
+    c = conn if conn is not None else link()   # the Link the switch is written on
+    c.stat.poll()
     if safe_get("task_mode", None) == mode and not force:
         if mode in (linuxcnc.MODE_MDI, linuxcnc.MODE_AUTO):
             _active_jogs.clear()   # task cannot be in MDI/AUTO with a jog active
@@ -3609,7 +3760,7 @@ async def set_mode(mode: int, force: bool = False,
     def _admit_switch() -> Optional[str]:
         # the caller's class first: its reason is the more specific one
         return (admit() if admit is not None else None) or _interp_idle_refusal()
-    rc = await _cmd_blocking(CMD.mode, mode, admit=_admit_switch)
+    rc = await _cmd_blocking(c, op(linuxcnc.command.mode, mode), admit=_admit_switch)
     if _cmd_rc_failed(rc):
         _trace.emit("task.mode_switch_refused", level="warn", mode=mode, rc=rc)
         raise ValueError(f"LinuxCNC refused the mode switch to {_MODE_NAMES.get(mode, mode)} (rc={rc})")
@@ -3620,7 +3771,7 @@ async def set_mode(mode: int, force: bool = False,
     # (2026-09-05, → Zero pressed while the A jog was still held). Verify the
     # mode actually took; a stat without task_mode (the test binding) cannot
     # be verified and is not treated as a failure.
-    STAT.poll()
+    c.stat.poll()
     actual = safe_get("task_mode", None)
     if actual is not None and actual != mode:
         # Name only what is SEEN (Codex R62): a jog the gateway started, the
@@ -3655,14 +3806,14 @@ async def _send_jog_stop(axis: int) -> None:
     `_cmd_lock` and has ruled out AUTO running (task refuses a jog stop
     there, and no jog can run)."""
     jf, arg = _active_jogs[axis]
-    await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, arg, wait=None)
+    await _cmd_blocking(link(), op(linuxcnc.command.jog, linuxcnc.JOG_STOP, jf, arg), wait=None)
     _active_jogs.pop(axis, None)
 
 
 def _auto_running() -> bool:
     """AUTO with the interpreter not idle, on a read taken now: no jog can run
     there, and task answers a jog stop with an operator error."""
-    STAT.poll()
+    link().stat.poll()
     return (safe_get("task_mode", None) == linuxcnc.MODE_AUTO
             and safe_get("interp_state", None) != linuxcnc.INTERP_IDLE)
 
@@ -3678,7 +3829,7 @@ DIAGONAL_BEFORE_HOMING = "Diagonal jog after Home All"
 
 def _homed_now() -> Optional[bool]:
     """Every configured joint homed, on a read taken now; None unread."""
-    STAT.poll()
+    link().stat.poll()
     return _status_runtime_mod.homed_of(safe_get("homed", None), safe_get("joints", 0))
 
 
@@ -3740,11 +3891,9 @@ async def _start_jogs(cmd: str, armed: bool, entries) -> Dict[str, Any]:
             def book(axis=axis, jf=jf, arg=arg):
                 _active_jogs[axis] = (jf, arg)
             if dist is None:
-                rc = await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, arg, vel, wait=None,
-                                         admit=admit, written=book)
+                rc = await _cmd_blocking(link(), op(linuxcnc.command.jog, linuxcnc.JOG_CONTINUOUS, jf, arg, vel), wait=None, admit=admit, written=book)
             else:
-                rc = await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, arg, vel, dist, wait=None,
-                                         admit=admit, written=book)
+                rc = await _cmd_blocking(link(), op(linuxcnc.command.jog, linuxcnc.JOG_INCREMENT, jf, arg, vel, dist), wait=None, admit=admit, written=book)
             _trace_jog(cmd, axis, jf, arg, vel=vel, dist=dist, rc=rc)
     except _WriteRefused as refused:
         return {"ok": False, "error": str(refused)}
@@ -3752,7 +3901,7 @@ async def _start_jogs(cmd: str, armed: bool, entries) -> Dict[str, Any]:
 
 
 def reject_if_auto_running() -> Optional[Dict[str, Any]]:
-    STAT.poll()
+    link().stat.poll()
     mode = safe_get("task_mode", None)
     interp = safe_get("interp_state", None)
 
@@ -3788,7 +3937,7 @@ def _tool_table_now(tlo_meta):
         cur = None
     try:
         rows = [(int(t.id), float(t.zoffset))
-                for t in (getattr(STAT, "tool_table", None) or [])]
+                for t in (getattr(_stat_now(), "tool_table", None) or [])]
     except (AttributeError, TypeError, ValueError):
         rows = None
     return cur, rows
@@ -3805,7 +3954,7 @@ def _spawn_preview_task(coro):
 def _jog_joint_flag() -> int:
     """Return the joint_flag for CMD.jog() based on current trajectory mode.
     0 = Cartesian axis (TRAJ_MODE_TELEOP), 1 = joint (TRAJ_MODE_FREE, safe default)."""
-    STAT.poll()
+    link().stat.poll()
     if safe_get("motion_mode", None) == linuxcnc.TRAJ_MODE_TELEOP:
         return 0
     return 1
@@ -3816,7 +3965,7 @@ def _trace_jog(cmd: str, axis: int, jf: int, arg: int, **extra) -> None:
     what task/motion looked like at that instant. A jog that "did nothing"
     (matrix, 2026-09-05: jog_cont A, no disarm, no refusal, A never moved)
     is undiagnosable without it."""
-    STAT.poll()
+    link().stat.poll()
     _trace.emit("jog.cmd", level="info", cmd=cmd, axis=axis, jf=jf, arg=arg,
                 task_mode=safe_get("task_mode", None), motion_mode=safe_get("motion_mode", None),
                 interp=safe_get("interp_state", None), **extra)
@@ -3832,19 +3981,19 @@ async def _jog_mode_flag() -> int:
     FREE (joint) mode, jog the joint; back inside and homed → TELEOP again.
     Both transitions are traced. jog_stop never switches mode (a stop must
     address the jog that is running): it keeps using _jog_joint_flag()."""
-    STAT.poll()
+    link().stat.poll()
     beyond = getattr(_shared_status, "joints_beyond_limit", None) or []
     teleop = safe_get("motion_mode", None) == linuxcnc.TRAJ_MODE_TELEOP
     if beyond:
         if teleop:
-            rc = await _cmd_blocking(CMD.teleop_enable, 0, wait=2)
+            rc = await _cmd_blocking(link(), op(linuxcnc.command.teleop_enable, 0), wait=2)
             _trace.emit("jog.joint_mode_beyond_limit", level="warn", joints=list(beyond),
                         rc=rc, msg="joint(s) outside their soft-limit window — jogging in joint mode")
         return 1
     if not teleop and bool(getattr(_shared_status, "homed", False)):
-        rc = await _cmd_blocking(CMD.teleop_enable, 1, wait=2)
+        rc = await _cmd_blocking(link(), op(linuxcnc.command.teleop_enable, 1), wait=2)
         _trace.emit("jog.teleop_restored", level="info", rc=rc)
-        STAT.poll()
+        link().stat.poll()
         if safe_get("motion_mode", None) == linuxcnc.TRAJ_MODE_TELEOP:
             return 0
         return 1
@@ -4020,10 +4169,10 @@ def _write_admission_refusal(conn_key=None, *, tool_table: bool = False) -> Opti
         return why
     if _status_runtime.program_changing:
         return "A program is loading — wait"
-    if STAT is None:
+    if _stat_now() is None:
         return STATE_UNKNOWN
     try:
-        STAT.poll()
+        link().stat.poll()
     except Exception as e:  # noqa: BLE001 - no fresh read, no write
         _trace.emit_exc("write.stat_poll_failed", e)
         return "Machine status not read — try again"
@@ -4420,7 +4569,7 @@ def _program_start_refusal(armed: bool) -> Optional[str]:
         return "Machine status not read yet — wait"
     base = _live_policy_state(armed)
     try:
-        STAT.poll()
+        link().stat.poll()
     except Exception as e:  # noqa: BLE001 - no poll, no start
         _trace.emit_exc("start.stat_poll_failed", e)
         return "Machine status not read — start again"
@@ -4478,7 +4627,7 @@ def _rfl_clear_flag() -> None:
         idle_since = None
         try:
             while time.monotonic() < deadline:
-                STAT.poll()
+                link().stat.poll()
                 if safe_get("task_state", None) != linuxcnc.STATE_ON:
                     ok, why = False, "machine not on"
                     break
@@ -4537,7 +4686,7 @@ async def _rfl_wait_interp_idle(timeout_s: float, grace_s: float = 2.0):
     started = False
     while time.monotonic() < deadline:
         try:
-            STAT.poll()
+            link().stat.poll()
         except Exception as e:
             return False, f"STAT.poll failed: {e}"
         if safe_get("task_state", None) != linuxcnc.STATE_ON:
@@ -4558,7 +4707,7 @@ async def _rfl_mdi_step(text: str, timeout_s: float):
         if blocked:
             return False, blocked.get("error", "busy")
         await set_mode(linuxcnc.MODE_MDI)
-        await _cmd_blocking(CMD.mdi, text, wait=None)
+        await _cmd_blocking(link(), op(linuxcnc.command.mdi, text), wait=None)
     return await _rfl_wait_interp_idle(timeout_s)
 
 
@@ -4594,7 +4743,7 @@ def _rfl_entry_reached(entry: dict):
     interp idle with no error text). Compares machine position against the WCS
     target + active g5x/g92 offsets — valid because the scan REFUSES rotation/
     G92-mutating programs. Returns (ok, reason)."""
-    STAT.poll()
+    link().stat.poll()
     g5x = safe_get("g5x_offset", None) or (0.0,) * 9
     g92 = safe_get("g92_offset", None) or (0.0,) * 9
     pos = safe_get("position", None)
@@ -4643,7 +4792,7 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
             if not ok:
                 _rfl_phase("measure_failed", False, why)
                 return
-            STAT.poll()
+            link().stat.poll()
             tofs = safe_get("tool_offset", None)
             applied = abs(float(tofs[2])) if tofs else 0.0
             if safe_get("tool_in_spindle", None) != pre_tool or applied <= 1e-9:
@@ -4678,7 +4827,7 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
             # extends above 0 (the TWP sim before its limits were narrowed) a
             # bare G53 Z0 from above was a descent (2026-09-04). Same
             # predicate as the #<_abs_z> guard in go_to_zero/home/g30.ngc.
-            STAT.poll()
+            link().stat.poll()
             pos = safe_get("position", None)
             z_now = float(pos[2]) if pos else None
             if z_now is not None and z_now >= 0.0:
@@ -4688,7 +4837,7 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
                 if not ok:
                     _rfl_phase("safe_z_failed", False, why)
                     return
-                STAT.poll()
+                link().stat.poll()
                 pos = safe_get("position", None)
                 if pos and float(pos[2]) < -0.5:
                     # Move ended early (an abort mid-move leaves interp idle
@@ -4719,9 +4868,9 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
             async with _get_cmd_lock():
                 await set_mode(linuxcnc.MODE_MANUAL)
                 if spindle_dir == "forward":
-                    await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_FORWARD, spindle_speed, wait=None)
+                    await _cmd_blocking(link(), op(linuxcnc.command.spindle, linuxcnc.SPINDLE_FORWARD, spindle_speed), wait=None)
                 elif spindle_dir == "reverse":
-                    await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_REVERSE, spindle_speed, wait=None)
+                    await _cmd_blocking(link(), op(linuxcnc.command.spindle, linuxcnc.SPINDLE_REVERSE, spindle_speed), wait=None)
         _rfl_phase("starting")
         async with _get_cmd_lock():
             # The handler's admission is minutes old: the same current read
@@ -4738,8 +4887,7 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
                 # the switch admitted in its own write thread too (Codex R311
                 # FI-I38): a section saved after the early check switches nothing
                 await set_mode(linuxcnc.MODE_AUTO, admit=admit)
-                await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None,
-                                    admit=admit)
+                await _cmd_blocking(link(), op(linuxcnc.command.auto, linuxcnc.AUTO_RUN, start_line), wait=None, admit=admit)
             except _WriteRefused as refused:
                 _rfl_phase("failed", False, str(refused))
                 return
@@ -4832,7 +4980,7 @@ def _remap_env() -> RemapEnv:
     folder (milltask's), PROGRAM_PREFIX and SUBROUTINE_PATH; every file of a
     body's name. No INI read: unknown — every line may write anything."""
     try:
-        path = getattr(STAT, "ini_filename", None) if STAT else None
+        path = getattr(_stat_now(), "ini_filename", None) if _stat_now() else None
         if not path:
             raise FileNotFoundError("no INI file in the status")
         ini = linuxcnc.ini(path)
@@ -4978,7 +5126,7 @@ async def _apply_probe_vars_detail(vars_to_set: Dict[str, Any], armed: bool,
     _trace.emit("probe.set_vars", vars=vals)
     applied: Dict[str, float] = {}
     mdi_ok = False
-    STAT.poll()
+    link().stat.poll()
     if armed and bool(safe_get("enabled", False)) and not reject_if_auto_running():
         _ts_ensure()
         inflight: Optional[Dict[int, Optional[float]]] = None
@@ -5001,7 +5149,7 @@ async def _apply_probe_vars_detail(vars_to_set: Dict[str, Any], armed: bool,
             mdi_ok = True
             for chunk, booked in chunks:
                 inflight = booked
-                ret = await _cmd_blocking(CMD.mdi, chunk, wait=5, admit=admit)
+                ret = await _cmd_blocking(link(), op(linuxcnc.command.mdi, chunk), wait=5, admit=admit)
                 inflight = None
                 if _cmd_rc_failed(ret):   # success is RCS_DONE (1), not 0
                     mdi_ok = False
@@ -5185,7 +5333,7 @@ async def _feature_job(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, 
             return {"ok": False, "error": admit() or "Parameters not taken over — nothing started",
                     "persisted": persisted, "mdi_set": False}
         await set_mode(linuxcnc.MODE_MDI, admit=admit)
-        await _cmd_blocking(CMD.mdi, line, wait=None, admit=admit)
+        await _cmd_blocking(link(), op(linuxcnc.command.mdi, line), wait=None, admit=admit)
     except _WriteRefused as refused:
         return {"ok": False, "error": str(refused)}
     _trace.emit("features.job", cmd=cmd, line=line)
@@ -5298,8 +5446,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             merged = _merge_tool_data(tbl_tools, library)
             current_tool = None
             try:
-                if STAT:
-                    STAT.poll()
+                if _stat_now():
+                    link().stat.poll()
                     raw = safe_get("tool_in_spindle", None)
                     current_tool = int(raw) if raw is not None else None
             except (AttributeError, ValueError, TypeError, linuxcnc.error) as e:
@@ -5312,7 +5460,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             return {"ok": True, "points": pts}
 
         if cmd == "get_comp_grid":
-            ini_path = getattr(STAT, "ini_filename", None)
+            ini_path = getattr(_stat_now(), "ini_filename", None)
             config_dir = os.path.dirname(ini_path) if ini_path else ""
             path = os.path.join(config_dir, "probe-results-grid.json")
             if not os.path.isfile(path):
@@ -5336,7 +5484,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
     except Exception as e:
         return {"ok": False, "error": f"{type(e).__name__}: {e}"}
 
-    if not lcnc_connected:
+    if current_link() is None:
         return {"ok": False, "error": "LinuxCNC not connected"}
 
     # Backend command authorization (issue #19). Enforces the SAME unified policy
@@ -5391,7 +5539,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             return {"ok": True}
 
         if cmd == "estop":
-            await _cmd_blocking(CMD.state, linuxcnc.STATE_ESTOP, wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.state, linuxcnc.STATE_ESTOP), wait=None)
             _estop_hold = True
             _hal_send({"connected": False})  # hold via _estop_hold
             return {"ok": True}
@@ -5425,7 +5573,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             # and ok-out to land before STATE_ESTOP_RESET is evaluated.
             _hal_send({"trip_reset": True})
             await asyncio.sleep(0.02)
-            await _cmd_blocking(CMD.state, linuxcnc.STATE_ESTOP_RESET, wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.state, linuxcnc.STATE_ESTOP_RESET), wait=None)
             _estop_hold = False
             _hal_send({"connected": True})
             return {"ok": True}
@@ -5433,18 +5581,18 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
         if cmd == "machine_on":
             require_armed(armed)
             # Optional but nice: avoid guaranteed-fail calls
-            STAT.poll()
+            link().stat.poll()
             if safe_get("estop", True):
                 return {"ok": False, "error": "Cannot Machine On while in E-stop"}
             # Same edge-detection defense as estop_reset (issue #14).
             if _reader_get("emc_enable_in") is False:
                 return {"ok": False, "error": "Safety chain is open — cannot turn machine on"}
-            await _cmd_blocking(CMD.state, linuxcnc.STATE_ON, wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.state, linuxcnc.STATE_ON), wait=None)
             return {"ok": True}
 
         if cmd == "machine_off":
             require_armed(armed)
-            await _cmd_blocking(CMD.state, linuxcnc.STATE_OFF, wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.state, linuxcnc.STATE_OFF), wait=None)
             return {"ok": True}
 
         if cmd == "set_mode":
@@ -5488,7 +5636,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
         if cmd == "abort":
             # A stop needs no arm (button gates BG-08): arm authorizes NEW
             # machine effects — E-Stop was already open to every client.
-            await _cmd_blocking(CMD.abort, wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.abort), wait=None)
             return {"ok": True}
 
         if cmd == "mdi":
@@ -5524,7 +5672,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                 # The operator's own line names the flag: no longer known.
                 _skip_flag_unknown = True
             await set_mode(linuxcnc.MODE_MDI)
-            await _cmd_blocking(CMD.mdi, text, wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.mdi, text), wait=None)
             return reply
 
         if cmd == "run_macro":
@@ -5588,7 +5736,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                     raise ValueError("Machine status not read — try again")
                 if _mode_ignored_seq != seq0:
                     raise ValueError("LinuxCNC ignored the mode switch (a jog) — nothing started")
-                await _cmd_blocking(CMD.mdi, call["line"], wait=None, claim=claim)
+                await _cmd_blocking(link(), op(linuxcnc.command.mdi, call["line"]), wait=None, claim=claim)
             except BaseException:
                 if claim.state == "pending":
                     claim.state = "unsent"
@@ -5649,7 +5797,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                             raw=_raw, known=_cmds)
                 return {"ok": False, "error": why}
             await set_mode(linuxcnc.MODE_MDI)
-            await _cmd_blocking(CMD.mdi, line, wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.mdi, line), wait=None)
             # The scrape says what the remap SHOULD do; the pin says what
             # happened. A mismatch is reported, never assumed away — the
             # operator would otherwise jog in a frame the UI misnames.
@@ -5695,7 +5843,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                 return {"ok": False, "error": why}
             await set_mode(linuxcnc.MODE_MDI)
             for line in lines:
-                await _cmd_blocking(CMD.mdi, line, wait=None)
+                await _cmd_blocking(link(), op(linuxcnc.command.mdi, line), wait=None)
             _trace.emit("goto.zero", level="info", kins_type=pstate.kins_type, lines=lines)
             return {"ok": True, "lines": lines}
 
@@ -5773,7 +5921,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             tool_num = finite_int(msg["tool_number"], lo=0)
 
             # Don't delete the currently loaded tool
-            STAT.poll()
+            link().stat.poll()
             current = safe_get("tool_in_spindle", None)
             try:
                 current = int(current) if current is not None else None
@@ -5820,7 +5968,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
 
             # Don't renumber the tool in the spindle — its active offset would
             # shift under it.
-            STAT.poll()
+            link().stat.poll()
             current = safe_get("tool_in_spindle", None)
             try:
                 current = int(current) if current is not None else None
@@ -5862,20 +6010,20 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             # The M6 block's finish/synch barrier holds the next MDI until the
             # change completes. LinuxCNC owns this queue and clears it on abort;
             # never wait for the operator here while holding _cmd_lock.
-            await _cmd_blocking(CMD.mdi, f"T{tool_num} M6", wait=None)
-            await _cmd_blocking(CMD.mdi, f"G43 H{tool_num}" if tool_num else "G49", wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.mdi, f"T{tool_num} M6"), wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.mdi, f"G43 H{tool_num}" if tool_num else "G49"), wait=None)
             return {"ok": True}
 
         if cmd == "auto_step":
             require_armed(armed)
-            STAT.poll()
+            link().stat.poll()
             paused = bool(safe_get("paused", False))
             interp = safe_get("interp_state", None)
             mode = safe_get("task_mode", None)
 
             if paused:
                 # Already paused → advance one block (no mode change)
-                await _cmd_blocking(CMD.auto, linuxcnc.AUTO_STEP, wait=None)
+                await _cmd_blocking(link(), op(linuxcnc.command.auto, linuxcnc.AUTO_STEP), wait=None)
             elif mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
                 # Running (not paused). The 'step' gate forbids stepping while
                 # running, but it checks a status SNAPSHOT while this handler
@@ -5900,8 +6048,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                 if why:
                     return {"ok": False, "error": why}
                 await set_mode(linuxcnc.MODE_AUTO, admit=admit)
-                await _cmd_blocking(CMD.auto, linuxcnc.AUTO_STEP, wait=None,
-                                    admit=admit)
+                await _cmd_blocking(link(), op(linuxcnc.command.auto, linuxcnc.AUTO_STEP), wait=None, admit=admit)
                 return {"ok": True, "toolsetter": ts_note}
             return {"ok": True}
 
@@ -6018,12 +6165,12 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             if spindle_dir and spindle_speed > 0:
                 await set_mode(linuxcnc.MODE_MANUAL)
                 if spindle_dir == "forward":
-                    await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_FORWARD, spindle_speed, wait=None)
+                    await _cmd_blocking(link(), op(linuxcnc.command.spindle, linuxcnc.SPINDLE_FORWARD, spindle_speed), wait=None)
                 elif spindle_dir == "reverse":
-                    await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_REVERSE, spindle_speed, wait=None)
+                    await _cmd_blocking(link(), op(linuxcnc.command.spindle, linuxcnc.SPINDLE_REVERSE, spindle_speed), wait=None)
             admit = _basis_admit(basis, lambda: _program_start_refusal(armed))
             await set_mode(linuxcnc.MODE_AUTO, admit=admit)
-            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None, admit=admit)
+            await _cmd_blocking(link(), op(linuxcnc.command.auto, linuxcnc.AUTO_RUN, start_line), wait=None, admit=admit)
             return {"ok": True, "toolsetter": ts_note}
 
         # jog left intact (even if you're not using it right now)
@@ -6115,25 +6262,25 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
 
         if cmd == "home_all":
             require_armed(armed)
-            return await _manual_command("zero", armed, (CMD.home, (-1,), None))  # -1 homes all axes
+            return await _manual_command("zero", armed, (op(linuxcnc.command.home, -1), None))  # -1 homes all axes
 
         if cmd == "unhome_all":
             require_armed(armed)
             return await _manual_command("zero", armed,
-                                         (CMD.teleop_enable, (0,), _CMD_WAIT_TIMEOUT),  # unhome requires joint mode
-                                         (CMD.unhome, (-1,), None))  # -1 unhomes all axes
+                                         (op(linuxcnc.command.teleop_enable, 0), _CMD_WAIT_TIMEOUT),  # unhome requires joint mode
+                                         (op(linuxcnc.command.unhome, -1), None))  # -1 unhomes all axes
 
         if cmd == "home":
             require_armed(armed)
             joint = finite_int(msg.get("joint", -1))
-            return await _manual_command("zero", armed, (CMD.home, (joint,), None))
+            return await _manual_command("zero", armed, (op(linuxcnc.command.home, joint), None))
 
         if cmd == "unhome":
             require_armed(armed)
             joint = finite_int(msg.get("joint", -1))
             return await _manual_command("zero", armed,
-                                         (CMD.teleop_enable, (0,), _CMD_WAIT_TIMEOUT),  # unhome requires joint mode
-                                         (CMD.unhome, (joint,), None))
+                                         (op(linuxcnc.command.teleop_enable, 0), _CMD_WAIT_TIMEOUT),  # unhome requires joint mode
+                                         (op(linuxcnc.command.unhome, joint), None))
 
         if cmd == "cycle_start":
             require_armed(armed)
@@ -6153,20 +6300,19 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             if why:
                 return {"ok": False, "error": why}
             await set_mode(linuxcnc.MODE_AUTO, admit=admit)
-            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, 0, wait=None,  # Start from beginning
-                                admit=admit)
+            await _cmd_blocking(link(), op(linuxcnc.command.auto, linuxcnc.AUTO_RUN, 0), wait=None, admit=admit)
             return {"ok": True, "toolsetter": ts_note}
 
         if cmd == "cycle_pause":
             # Interrupting a running sequence is a stop (BG-08); resuming it
             # is new motion and keeps require_armed below.
-            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_PAUSE, wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.auto, linuxcnc.AUTO_PAUSE), wait=None)
             return {"ok": True}
 
         if cmd == "cycle_resume":
             require_armed(armed)
             # Don't call set_mode - already in AUTO mode when paused
-            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RESUME, wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.auto, linuxcnc.AUTO_RESUME), wait=None)
             return {"ok": True}
 
         if cmd == "set_feed_override":
@@ -6175,25 +6321,25 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             # MAX_FEED_OVERRIDE (was a hardcoded 2.0 here, which accepted 200%
             # on a machine whose builder declared 150%).
             scale = finite_float(msg.get("scale", 1.0), 1.0)
-            await _cmd_blocking(CMD.feedrate, scale, wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.feedrate, scale), wait=None)
             return {"ok": True, "scale": scale}
 
         if cmd == "set_spindle_override":
             require_armed(armed)
             # Range from the INI's MIN/MAX_SPINDLE_OVERRIDE (COMMAND_SCHEMA).
             scale = finite_float(msg.get("scale", 1.0), 1.0)
-            await _cmd_blocking(CMD.spindleoverride, scale, wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.spindleoverride, scale), wait=None)
             return {"ok": True, "scale": scale}
 
         if cmd == "spindle_forward":
             require_armed(armed)
             speed = finite_float(msg.get("speed", 0))
-            return await _manual_command("spindleManual", armed, (CMD.spindle, (linuxcnc.SPINDLE_FORWARD, speed,), None))
+            return await _manual_command("spindleManual", armed, (op(linuxcnc.command.spindle, linuxcnc.SPINDLE_FORWARD, speed), None))
 
         if cmd == "spindle_reverse":
             require_armed(armed)
             speed = finite_float(msg.get("speed", 0))
-            return await _manual_command("spindleManual", armed, (CMD.spindle, (linuxcnc.SPINDLE_REVERSE, speed,), None))
+            return await _manual_command("spindleManual", armed, (op(linuxcnc.command.spindle, linuxcnc.SPINDLE_REVERSE, speed), None))
 
         if cmd == "spindle_stop":
             # The spindle stop at idle (button gates BG-18): no arm, no
@@ -6201,38 +6347,38 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             # spindle stop in MANUAL, MDI and AUTO while the interpreter is
             # idle. A program or an MDI that started since the gate's
             # snapshot owns the spindle: refused, Pause / Abort are the stops.
-            STAT.poll()
+            link().stat.poll()
             if safe_get("interp_state", None) != linuxcnc.INTERP_IDLE:
                 return {"ok": False, "error": SPINDLE_OWNED}
-            await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_OFF, wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.spindle, linuxcnc.SPINDLE_OFF), wait=None)
             return {"ok": True}
 
         if cmd == "spindle_increase":
             require_armed(armed)
-            return await _manual_command("spindleManual", armed, (CMD.spindle, (linuxcnc.SPINDLE_INCREASE,), None))
+            return await _manual_command("spindleManual", armed, (op(linuxcnc.command.spindle, linuxcnc.SPINDLE_INCREASE), None))
 
         if cmd == "spindle_decrease":
             require_armed(armed)
-            return await _manual_command("spindleManual", armed, (CMD.spindle, (linuxcnc.SPINDLE_DECREASE,), None))
+            return await _manual_command("spindleManual", armed, (op(linuxcnc.command.spindle, linuxcnc.SPINDLE_DECREASE), None))
 
         if cmd == "flood_on":
             require_armed(armed)
-            await _cmd_blocking(CMD.flood, linuxcnc.FLOOD_ON, wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.flood, linuxcnc.FLOOD_ON), wait=None)
             return {"ok": True}
 
         if cmd == "flood_off":
             require_armed(armed)
-            await _cmd_blocking(CMD.flood, linuxcnc.FLOOD_OFF, wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.flood, linuxcnc.FLOOD_OFF), wait=None)
             return {"ok": True}
 
         if cmd == "mist_on":
             require_armed(armed)
-            await _cmd_blocking(CMD.mist, linuxcnc.MIST_ON, wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.mist, linuxcnc.MIST_ON), wait=None)
             return {"ok": True}
 
         if cmd == "mist_off":
             require_armed(armed)
-            await _cmd_blocking(CMD.mist, linuxcnc.MIST_OFF, wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.mist, linuxcnc.MIST_OFF), wait=None)
             return {"ok": True}
 
         if cmd == "set_rapid_override":
@@ -6240,26 +6386,26 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             # 0–100% (COMMAND_SCHEMA; 1.0 is LinuxCNC's own ceiling, not a
             # machine-declared one, so it is a named constant there).
             scale = finite_float(msg.get("scale", 1.0), 1.0)
-            await _cmd_blocking(CMD.rapidrate, scale, wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.rapidrate, scale), wait=None)
             return {"ok": True, "scale": scale}
 
         if cmd == "set_optional_stop":
             require_armed(armed)
             value = bool(msg.get("value", False))
-            await _cmd_blocking(CMD.set_optional_stop, value, wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.set_optional_stop, value), wait=None)
             return {"ok": True}
 
         if cmd == "set_block_delete":
             require_armed(armed)
             value = bool(msg.get("value", False))
-            await _cmd_blocking(CMD.set_block_delete, value, wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.set_block_delete, value), wait=None)
             return {"ok": True}
 
         if cmd == "set_max_velocity":
             require_armed(armed)
             # Range from the INI's TRAJ MAX_LINEAR_VELOCITY (COMMAND_SCHEMA).
             velocity = finite_float(msg.get("velocity", 0.0))
-            await _cmd_blocking(CMD.maxvel, velocity, wait=None)
+            await _cmd_blocking(link(), op(linuxcnc.command.maxvel, velocity), wait=None)
             return {"ok": True, "velocity": velocity}
 
         if cmd == "load_file":
@@ -6327,13 +6473,13 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                 # decides, never the handler's end (Codex R18 XZ-08).
                 # STAT.file NOW: a name already there is no proof of this
                 # open (a refused reload leaves it standing — Codex R19).
-                STAT.poll()
+                link().stat.poll()
                 _status_runtime.program.request_load(abs_path, time.monotonic(),
                                                      before=safe_get("file", None))
                 # The open's own status settles it: task has handled the open
                 # when the send returns, so the first wait slice answers
                 # (sliced — never a GIL-held wait_complete).
-                rc = await _cmd_blocking(CMD.program_open, abs_path, wait=5)
+                rc = await _cmd_blocking(link(), op(linuxcnc.command.program_open, abs_path), wait=5)
             finally:
                 _status_runtime.end_program_change()
             if rc == getattr(linuxcnc, "RCS_ERROR", 3):
@@ -6353,8 +6499,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             if not _status_runtime.begin_program_change():
                 return {"ok": False, "error": "Load record not writable — nothing unloaded"}
             try:
-                rc_abort = await _cmd_blocking(CMD.abort)
-                rc_reset = await _cmd_blocking(CMD.reset_interpreter)
+                rc_abort = await _cmd_blocking(link(), op(linuxcnc.command.abort))
+                rc_reset = await _cmd_blocking(link(), op(linuxcnc.command.reset_interpreter))
                 if _cmd_rc_failed(rc_abort) or _cmd_rc_failed(rc_reset):
                     # Refused or unanswered: the old program may still be
                     # open — named unconfirmed, never loaded (Codex R19).
@@ -6513,8 +6659,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                 return blocked
             target = msg.get("target", "active")
             if target == "active":
-                STAT.poll()
-                indices = [STAT.g5x_index]  # 1-based
+                link().stat.poll()
+                indices = [_stat_now().g5x_index]  # 1-based
             elif target == "all":
                 # On a TWP (switchable-kins) config the reserved rows G59..G59.3
                 # are the remap's — zeroing them under an active plane destroys
@@ -6531,11 +6677,11 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             else:
                 return {"ok": False, "error": f"Invalid target: {target}"}
             await set_mode(linuxcnc.MODE_MDI)
-            STAT.poll()
-            machine_axes = [a.lower() for a in _axes_from_mask(STAT.axis_mask)]
+            link().stat.poll()
+            machine_axes = [a.lower() for a in _axes_from_mask(_stat_now().axis_mask)]
             zero_parts = " ".join(f"{k.upper()}0" for k in machine_axes) + " R0"
             for p in indices:
-                await _cmd_blocking(CMD.mdi, f"G10 L2 P{p} {zero_parts}", wait=5)
+                await _cmd_blocking(link(), op(linuxcnc.command.mdi, f"G10 L2 P{p} {zero_parts}"), wait=5)
             # A cleared offset is still an ESTABLISHED one — zeros touched
             # off at whatever pose the table is at now. Stamping it keeps
             # the record true; leaving the previous stamp behind would make
@@ -6630,7 +6776,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                         f"[{values.get('Y', 0.0):.6f}] [{values.get('Z', 0.0):.6f}]")
                 _datum_before = _status_runtime_mod.assemble_twp_datum(_reader_get)
                 _seq_before = _reader_get("twp_datum_seq")
-                rc = await _cmd_blocking(CMD.mdi, line, wait=30)
+                rc = await _cmd_blocking(link(), op(linuxcnc.command.mdi, line), wait=30)
                 if _cmd_rc_failed(rc):
                     _trace.emit("touchoff.plane_failed", level="warn", rc=rc, line=line)
                     return {"ok": False, "error": "Plane touch-off failed — see the error channel"}
@@ -6663,12 +6809,12 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             # (interp_convert.cc convert_setup: p_int 0 → origin_index, then
             # find_current_in_system(p_int)), so for the normal case where the
             # named row IS active this is the same write as before.
-            rc = await _cmd_blocking(CMD.mdi, f"G10 L20 P{p} {words}", wait=5)
+            rc = await _cmd_blocking(link(), op(linuxcnc.command.mdi, f"G10 L20 P{p} {words}"), wait=5)
             if _cmd_rc_failed(rc):
                 _trace.emit("touchoff.mdi_failed", level="warn", rc=rc, words=words)
                 return {"ok": False, "error": "Touch-off failed — see the error channel"}
-            STAT.poll()
-            _p_after = finite_int(getattr(STAT, "g5x_index", p))
+            link().stat.poll()
+            _p_after = finite_int(getattr(_stat_now(), "g5x_index", p))
             if _p_after != p:
                 # The row we wrote is no longer the active one, so STAT's
                 # g5x_offset describes a DIFFERENT row: adopting it would
@@ -6677,7 +6823,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                             wrote=p, active=_p_after, words=words)
                 return {"ok": True, "route": "mdi", "index": p,
                         "table": [row.copy() for row in _wcs_cache]}
-            off = list(getattr(STAT, "g5x_offset", None) or [])
+            off = list(getattr(_stat_now(), "g5x_offset", None) or [])
             if len(off) < 3:
                 _trace.emit("touchoff.no_readback", level="warn", index=p)
                 return {"ok": True, "route": "mdi", "index": p,
@@ -6731,32 +6877,32 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                             kins_type=pstate.kins_type, g5x_index=pstate.g5x_index)
                 return {"ok": False, "error": reason}
             await set_mode(linuxcnc.MODE_MDI)
-            STAT.poll()
-            rot = finite_float(getattr(STAT, "rotation_xy", 0.0) or 0.0)
+            link().stat.poll()
+            rot = finite_float(getattr(_stat_now(), "rotation_xy", 0.0) or 0.0)
             if abs(rot) > 1e-9:
                 # G68.3's origin words assume an unrotated G54 — honest
                 # refusal beats a silently displaced plane origin.
                 return {"ok": False, "error": "G54 carries a G10 R rotation — "
                         "clear it (G10 L2 P1 R0) before capturing"}
-            rc = await _cmd_blocking(CMD.mdi, "G69", wait=10)
+            rc = await _cmd_blocking(link(), op(linuxcnc.command.mdi, "G69"), wait=10)
             if _cmd_rc_failed(rc):
                 _trace.emit("twp.capture_failed", level="warn", rc=rc, step="G69")
                 return {"ok": False, "error": "Capture plane failed at G69 — see the error channel"}
-            STAT.poll()
-            if finite_int(getattr(STAT, "g5x_index", 0)) != 1:
+            link().stat.poll()
+            if finite_int(getattr(_stat_now(), "g5x_index", 0)) != 1:
                 return {"ok": False, "error": "Capture: G69 did not land in G54 — refusing"}
-            _g92 = list(getattr(STAT, "g92_offset", None) or [])
+            _g92 = list(getattr(_stat_now(), "g92_offset", None) or [])
             if any(abs(finite_float(v)) > 1e-6 for v in _g92[:3]):
                 return {"ok": False, "error": "A G92 X/Y/Z offset appeared — G92.1 before capturing"}
-            _pos = list(getattr(STAT, "actual_position", None) or [])
-            _g5x = list(getattr(STAT, "g5x_offset", None) or [])
-            _tofs = list(getattr(STAT, "tool_offset", None) or [])
+            _pos = list(getattr(_stat_now(), "actual_position", None) or [])
+            _g5x = list(getattr(_stat_now(), "g5x_offset", None) or [])
+            _tofs = list(getattr(_stat_now(), "tool_offset", None) or [])
             if len(_pos) < 3 or len(_g5x) < 3 or len(_tofs) < 3:
                 return {"ok": False, "error": "Machine position unreadable — capture refused"}
             tip = [finite_float(_pos[i]) - finite_float(_g5x[i]) - finite_float(_tofs[i])
                    for i in range(3)]
             line = f"G68.3 X{tip[0]:.6f} Y{tip[1]:.6f} Z{tip[2]:.6f}"
-            rc = await _cmd_blocking(CMD.mdi, line, wait=10)
+            rc = await _cmd_blocking(link(), op(linuxcnc.command.mdi, line), wait=10)
             if _cmd_rc_failed(rc):
                 _trace.emit("twp.capture_failed", level="warn", rc=rc,
                             step="G68.3", line=line)
@@ -6778,7 +6924,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             # verbatim. A plain G53.1 P0 may pick the OTHER (B,C) branch
             # (observed live: a 168-deg C swing with the tip on the part).
             # G69 already left identity kins, the wrapper's demote is moot.
-            rc = await _cmd_blocking(CMD.mdi, "M530 P0 Q2", wait=30)
+            rc = await _cmd_blocking(link(), op(linuxcnc.command.mdi, "M530 P0 Q2"), wait=30)
             if _cmd_rc_failed(rc):
                 _trace.emit("twp.capture_failed", level="warn", rc=rc, step="M530 Q2")
                 return {"ok": False, "error": "Capture plane failed at the orient — see the error channel"}
@@ -6807,7 +6953,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             # remap stamps the provenance itself (kins 0 / A 0).
             _datum_before = _status_runtime_mod.assemble_twp_datum(_reader_get)
             _seq_before = _reader_get("twp_datum_seq")
-            rc = await _cmd_blocking(CMD.mdi, "o<twp_touchoff> call [7] [0] [0] [0]", wait=30)
+            rc = await _cmd_blocking(link(), op(linuxcnc.command.mdi, "o<twp_touchoff> call [7] [0] [0] [0]"), wait=30)
             if _cmd_rc_failed(rc):
                 _trace.emit("twp.capture_failed", level="warn", rc=rc, step="M535 zero")
                 return {"ok": False, "error": "Capture: the plane touch-off failed — see the error channel"}
@@ -6844,7 +6990,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             # writes shows up as a mismatch here).
             prewrite = [finite_float(_wcs_cache[ci].get(k, 0.0))
                         for k in ("x", "y", "z")]
-            await _cmd_blocking(CMD.mdi, f"G10 L2 P{p} {' '.join(parts)}", wait=5)
+            await _cmd_blocking(link(), op(linuxcnc.command.mdi, f"G10 L2 P{p} {' '.join(parts)}"), wait=5)
             for axis in all_keys:
                 val = msg.get(axis)
                 if val is not None:
@@ -6964,7 +7110,7 @@ async def _reserved_fixture_heal() -> None:
         if reject_if_auto_running():
             return
         await set_mode(linuxcnc.MODE_MDI)
-        rc = await _cmd_blocking(CMD.mdi, "G54", wait=5)
+        rc = await _cmd_blocking(link(), op(linuxcnc.command.mdi, "G54"), wait=5)
         if _cmd_rc_failed(rc):
             _trace.emit("twp.reserved_fixture_heal_failed", level="warn",
                         index=_reserved_heal_pending, rc=rc)
@@ -6993,11 +7139,11 @@ def get_machine_units() -> str:
     so each fallback is surfaced via _set_units_fallback (issue #21) rather than
     silently returning a default.
     """
-    if not STAT or not getattr(STAT, "ini_filename", None):
+    if not _stat_now() or not getattr(_stat_now(), "ini_filename", None):
         _set_units_fallback(True, "no INI loaded")
         return "mm"
     try:
-        lu = linuxcnc.ini(STAT.ini_filename).find("TRAJ", "LINEAR_UNITS")
+        lu = linuxcnc.ini(link().stat.ini_filename).find("TRAJ", "LINEAR_UNITS")
         if not lu:
             _set_units_fallback(True, "[TRAJ]LINEAR_UNITS missing")
             return "mm"
@@ -7162,8 +7308,8 @@ async def _stamp_wcs_provenance(indices, values_by_index,
     """
     out = {}
     try:
-        STAT.poll()
-        mask = int(getattr(STAT, "axis_mask", 0))
+        link().stat.poll()
+        mask = int(getattr(_stat_now(), "axis_mask", 0))
         if not (mask & (1 << 3)):
             return out  # no A axis: nothing to record
         if pose_override is not None:
@@ -7177,7 +7323,7 @@ async def _stamp_wcs_provenance(indices, values_by_index,
         # proven envelope) — there joint_actual_position has more entries
         # than axes and no per-axis compaction exists.
         a_joint = bin(mask & 0b111).count("1")
-        joints = getattr(STAT, "joint_actual_position", None)
+        joints = getattr(_stat_now(), "joint_actual_position", None)
         if not joints or len(joints) <= a_joint:
             _trace.emit("wcs.provenance_skipped", level="warn",
                         reason="no joint position")
@@ -7238,8 +7384,7 @@ async def _stamp_wcs_rows(indices, values_by_index, wrote_all_xyz,
                 a_val, kins_val, wrote_all_xyz)
             n = wcs_prov_params(p)
             if action == "clear":
-                rc = await _cmd_blocking(
-                    CMD.mdi, f"#{n['stamped']}=0.000000", wait=5)
+                rc = await _cmd_blocking(link(), op(linuxcnc.command.mdi, f"#{n['stamped']}=0.000000"), wait=5)
                 if _cmd_rc_failed(rc):
                     out[p] = "failed"
                     _trace.emit("wcs.provenance_stamp_failed", level="warn",
@@ -7255,12 +7400,9 @@ async def _stamp_wcs_rows(indices, values_by_index, wrote_all_xyz,
             # The flag goes LAST: if this line is interrupted part-way the
             # record stays unflagged, and an incomplete record must read as
             # absent rather than as a half-truth.
-            rc = await _cmd_blocking(
-                CMD.mdi,
-                f"#{n['kins']}={kins_val:.6f} #{n['a']}={a_val:.6f} "
+            rc = await _cmd_blocking(link(), op(linuxcnc.command.mdi, f"#{n['kins']}={kins_val:.6f} #{n['a']}={a_val:.6f} "
                 f"#{n['x']}={xyz[0]:.6f} #{n['y']}={xyz[1]:.6f} "
-                f"#{n['z']}={xyz[2]:.6f} #{n['stamped']}={PROV_STAMPED:.6f}",
-                wait=5)
+                f"#{n['z']}={xyz[2]:.6f} #{n['stamped']}={PROV_STAMPED:.6f}"), wait=5)
             if _cmd_rc_failed(rc):
                 # wait_complete said no (1) or timed out (-1): the record may
                 # not exist. No success trace, no cache update — the next
@@ -7306,10 +7448,10 @@ async def _ensure_prov_var_rows() -> None:
     """
     global _prov_rows_ok
     try:
-        if STAT is None:
+        if _stat_now() is None:
             return
-        STAT.poll()
-        if not (int(getattr(STAT, "axis_mask", 0) or 0) & (1 << 3)):
+        link().stat.poll()
+        if not (int(getattr(_stat_now(), "axis_mask", 0) or 0) & (1 << 3)):
             return  # no A rotary: the stamp records nothing that can go stale
         path = _resolve_var_file_path()
         if not path or path in _prov_rows_ensured:
@@ -7486,8 +7628,8 @@ def _coord_without_homing() -> bool:
     global _coord_without_homing_cache
     if _coord_without_homing_cache is not None:
         return _coord_without_homing_cache
-    ini_filename = getattr(STAT, "ini_filename", None) if STAT else None
-    kt = getattr(STAT, "kinematics_type", None) if STAT else None
+    ini_filename = getattr(_stat_now(), "ini_filename", None) if _stat_now() else None
+    kt = getattr(_stat_now(), "kinematics_type", None) if _stat_now() else None
     if not ini_filename or kt is None:
         return False
     try:
@@ -7508,7 +7650,7 @@ def _spindle_before_homing() -> bool:
     global _spindle_before_homing_cache
     if _spindle_before_homing_cache is not None:
         return _spindle_before_homing_cache
-    ini_filename = getattr(STAT, "ini_filename", None) if STAT else None
+    ini_filename = getattr(_stat_now(), "ini_filename", None) if _stat_now() else None
     if not ini_filename:
         return False
     try:
@@ -7548,7 +7690,7 @@ def _joint_jog_facts() -> dict:
     global _joint_jog_cache
     if _joint_jog_cache is not None:
         return _joint_jog_cache
-    ini_filename = getattr(STAT, "ini_filename", None) if STAT else None
+    ini_filename = getattr(_stat_now(), "ini_filename", None) if _stat_now() else None
     if not ini_filename:
         return _JOINT_JOG_OFF
     try:
@@ -7578,7 +7720,7 @@ def _joint_jog_facts() -> dict:
             return _joint_jog_cache
         if letters is None:
             letters = trivkins_coordinates(ini.find("KINS", "KINEMATICS"))
-        joints = getattr(STAT, "joints", None)
+        joints = getattr(_stat_now(), "joints", None)
         max_vels = []
         for j in range(joints if isinstance(joints, int) else 0):
             try:
@@ -7587,7 +7729,7 @@ def _joint_jog_facts() -> dict:
                 max_vels.append(None)
             if max_vels[-1] is not None and not max_vels[-1] > 0:
                 max_vels[-1] = None
-        axes = _axes_from_mask(int(getattr(STAT, "axis_mask", 0) or 0))
+        axes = _axes_from_mask(int(getattr(_stat_now(), "axis_mask", 0) or 0))
     except Exception as e:  # noqa: BLE001 - unreadable is the closed reading
         _trace.emit_exc("policy.joint_jog_unreadable", e)
         return _JOINT_JOG_OFF
@@ -7628,7 +7770,7 @@ def _kins_mode_commands() -> Dict[int, str]:
         return _kins_mode_cmd_cache
     cmds: Dict[int, str] = {}
     try:
-        ini_filename = getattr(STAT, "ini_filename", None) if STAT else None
+        ini_filename = getattr(_stat_now(), "ini_filename", None) if _stat_now() else None
         if ini_filename:
             _ini = linuxcnc.ini(ini_filename)
             dirs = get_ini_config().get("subroutine_paths", [])
@@ -7690,8 +7832,8 @@ def _controller_touchoff_state(base):
     and never invents what it cannot."""
     g5x, kins = base.g5x_index, base.kins_type
     try:
-        STAT.poll()
-        _g = getattr(STAT, "g5x_index", None)
+        link().stat.poll()
+        _g = getattr(_stat_now(), "g5x_index", None)
         if _g is not None:
             g5x = int(_g)
     except Exception as e:  # noqa: BLE001 - a poll failure keeps the snapshot value
@@ -7728,7 +7870,7 @@ def _controller_capture_state(armed: bool):
         return None, _G30_NO_STATUS
     base = _live_policy_state(armed)
     try:
-        STAT.poll()
+        link().stat.poll()
     except Exception as e:  # noqa: BLE001 - no poll, no take-over
         _trace.emit_exc("g30.capture_poll_failed", e)
         return None, _G30_NO_STATUS
@@ -7769,7 +7911,7 @@ def _controller_gate_refusal(gate: str, armed: bool) -> Optional[str]:
         return _STATUS_NOT_READ
     base = _live_policy_state(armed)
     try:
-        STAT.poll()
+        link().stat.poll()
     except Exception as e:  # noqa: BLE001 - no poll, no command
         _trace.emit_exc("policy.controller_poll_failed", e, gate=gate)
         return _STATUS_NOT_READ
@@ -7813,7 +7955,7 @@ def _interp_idle_refusal() -> Optional[str]:
     (button gates BG-32): the start guard's flag clear and the MDI half of
     _apply_probe_vars, before the queue and inside each write's thread."""
     try:
-        STAT.poll()
+        link().stat.poll()
     except Exception as e:  # noqa: BLE001 - no poll, no write
         _trace.emit_exc("policy.idle_poll_failed", e)
         return _STATUS_NOT_READ
@@ -7823,10 +7965,10 @@ def _interp_idle_refusal() -> Optional[str]:
     return None if t["is_idle"] else MACHINE_BUSY
 
 
-async def _manual_command(gate: str, armed: bool, *writes) -> Dict[str, Any]:
+async def _manual_command(gate: str, armed: bool, *writes: Tuple[CmdOp, Optional[float]]) -> Dict[str, Any]:
     """A manual command behind its own switch to MANUAL — the spindle's Fwd /
-    Rev / ± (button gates BG-31), Home and Unhome — each write `(cmd_fn,
-    args, wait)`. The command's class on a current read first (the early
+    Rev / ± (button gates BG-31), Home and Unhome — each write `(op(...),
+    wait)`, all on the ONE Link the command started on. The command's class on a current read first (the early
     reason, nothing queued), then INSIDE every write's thread: the switch
     (it would abort an MDI started since the snapshot: emcTaskSetMode →
     emcTaskAbort; and the unhomed spindle exception, Q1, must FIND MANUAL,
@@ -7837,10 +7979,11 @@ async def _manual_command(gate: str, armed: bool, *writes) -> Dict[str, Any]:
     why = admit()
     if why:
         return {"ok": False, "error": why}
+    conn = link()
     try:
-        await set_mode(linuxcnc.MODE_MANUAL, admit=admit)
-        for cmd_fn, args, wait in writes:
-            await _cmd_blocking(cmd_fn, *args, wait=wait, admit=admit)
+        await set_mode(linuxcnc.MODE_MANUAL, admit=admit, conn=conn)
+        for command, wait in writes:
+            await _cmd_blocking(conn, command, wait=wait, admit=admit)
     except _WriteRefused as refused:
         return {"ok": False, "error": str(refused)}
     return {"ok": True}
@@ -7871,7 +8014,7 @@ _viewer_init_cache: Dict[Tuple, Dict[str, Any]] = {}
 
 
 def _viewer_init_cache_key(stl_base_url: str, cfg: Dict[str, Any], cfg_mtime: float) -> Tuple:
-    ini_filename = getattr(STAT, "ini_filename", None) if STAT else None
+    ini_filename = getattr(_stat_now(), "ini_filename", None) if _stat_now() else None
     if ini_filename and os.path.exists(ini_filename):
         try:
             ini_mtime = int(os.path.getmtime(ini_filename))
@@ -7884,7 +8027,7 @@ def _viewer_init_cache_key(stl_base_url: str, cfg: Dict[str, Any], cfg_mtime: fl
         if (MACHINE_DIR / p["file"]).exists() else 0
         for p in cfg.get("parts", [])
     )
-    axis_mask = getattr(STAT, "axis_mask", 0) if STAT else 0
+    axis_mask = getattr(_stat_now(), "axis_mask", 0) if _stat_now() else 0
     max_v = safe_get("max_velocity", 0.0) or 0.0
     return (
         stl_base_url,
@@ -7922,7 +8065,7 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
         _bvi_steps[step] = (time.monotonic() - t0) * 1000
 
     _t = time.monotonic()
-    limits = read_machine_limits_from_ini(STAT) if STAT else None
+    limits = read_machine_limits_from_ini(_stat_now()) if _stat_now() else None
     _mark("read_machine_limits", _t)
     if limits:
         bounds_origin, bounds_size = limits
@@ -7937,9 +8080,9 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
     # connected yet, we ship no axes — the client waits for viewer_init before
     # rendering axis-dependent UI.
     _t = time.monotonic()
-    if STAT:
-        STAT.poll()
-        axes = _axes_from_mask(STAT.axis_mask)
+    if _stat_now():
+        link().stat.poll()
+        axes = _axes_from_mask(link().stat.axis_mask)
     else:
         axes = []
     _mark("stat_poll_axes", _t)
@@ -7973,7 +8116,7 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
     _t = time.monotonic()
     ini_cfg = get_ini_config()
     _mark("get_ini_config", _t)
-    ini_filename = getattr(STAT, "ini_filename", None) if STAT else None
+    ini_filename = getattr(_stat_now(), "ini_filename", None) if _stat_now() else None
 
     # Kins declaration (TCP+TWP plan phase 1d): module/type/identity_first/
     # pivot params, parsed from the INI — the single source that also
@@ -8284,6 +8427,15 @@ async def lifespan(app: "FastAPI"):
 
 
 app = FastAPI(lifespan=lifespan)
+
+
+@app.exception_handler(NotConnected)
+async def _not_connected_reply(request: Request, exc: NotConnected) -> JSONResponse:
+    """An HTTP route that needs the connection, without one: 503 with the
+    reason (package 2b — it used to surface as whatever AttributeError the
+    route hit, a 500)."""
+    _trace.emit("rest.not_connected", level="warn", path=request.url.path)
+    return JSONResponse({"ok": False, "error": str(exc)}, status_code=503)
 _trace.emit("boot.app_instantiated")
 
 # CORS is defense-in-depth only — the WS Origin gate and the REST token
@@ -9886,11 +10038,11 @@ async def _synch_interp_params() -> Tuple[Optional[int], str]:
     confirmed). In MANUAL and MDI, and with the machine off, task takes
     task_plan_synch; a start that lands first puts the task in AUTO, where
     the synch is refused — no abort."""
-    STAT.poll()
+    link().stat.poll()
     if (safe_get("task_state", None) == linuxcnc.STATE_ON
             and safe_get("task_mode", None) == linuxcnc.MODE_AUTO):
         return None, "auto"
-    return await _cmd_blocking(CMD.task_plan_synch, wait=5), "task_plan_synch"
+    return await _cmd_blocking(link(), op(linuxcnc.command.task_plan_synch), wait=5), "task_plan_synch"
 
 
 class _G30Unconfirmed(Exception):
@@ -9898,12 +10050,12 @@ class _G30Unconfirmed(Exception):
 
 
 def _g30_letters() -> List[str]:
-    mask = int(getattr(STAT, "axis_mask", 0) or 0)
+    mask = int(getattr(_stat_now(), "axis_mask", 0) or 0)
     return [AXIS_LETTERS[i] for i in range(9) if mask & (1 << i)]
 
 
 def _g30_ini():
-    ini_path = getattr(STAT, "ini_filename", None)
+    ini_path = getattr(_stat_now(), "ini_filename", None)
     return linuxcnc.ini(ini_path) if ini_path else None
 
 
@@ -9911,7 +10063,7 @@ def _g30_limits() -> Dict[str, tuple]:
     """The axis windows G30 values are checked against (AXIS_<L>, else
     JOINT_<n>; an absent bound is open — read_axis_limits)."""
     ini = _g30_ini()
-    return read_axis_limits(ini.find, int(getattr(STAT, "axis_mask", 0) or 0)) if ini else {}
+    return read_axis_limits(ini.find, int(getattr(_stat_now(), "axis_mask", 0) or 0)) if ini else {}
 
 
 def _g30_wrapped() -> set:
@@ -9960,7 +10112,7 @@ async def _g30_command(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, 
     path = _resolve_var_file_path()
     if not path:
         return {"ok": False, "confirmed": False, "error": "No parameter file — G30 not confirmed"}
-    STAT.poll()
+    link().stat.poll()
     letters = _g30_letters()
     keys = {L: str(g30_param(L)) for L in letters}
     values: Dict[str, float] = {}
@@ -10012,7 +10164,7 @@ async def _g30_command(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, 
             return {"ok": False, "confirmed": True, "values": by_letter,
                     "error": "G30 changed meanwhile — reload"}
         await set_mode(linuxcnc.MODE_MDI)
-        rc = await _cmd_blocking(CMD.mdi, " ".join(f"#{keys[L]}={v:.6f}" for L, v in values.items()), wait=5)
+        rc = await _cmd_blocking(link(), op(linuxcnc.command.mdi, " ".join(f"#{keys[L]}={v:.6f}" for L, v in values.items())), wait=5)
         if _cmd_rc_failed(rc):
             return {"ok": False, "confirmed": False, "error": "LinuxCNC did not take the G30 values"}
         try:
@@ -10150,7 +10302,7 @@ async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Di
         # the released-jog-button hazard and matches the "all paths
         # to disarmed do the same thing" principle.
         if _was_armed and not client.armed:
-            if CMD is not None and not _shutting_down:
+            if _cmd_now() is not None and not _shutting_down:
                 try:
                     async with _get_cmd_lock():
                         await _jog_stop_for_client()
@@ -10175,6 +10327,12 @@ async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Di
     _set_phase(f"handle_command cmd={msg.get('cmd', '?')} client#{client_id}")
     try:
         reply = await handle_command(msg, client.armed, client.conn_key)
+    except NotConnected as _nc_e:
+        # The connection went away while the command ran (a revoked Link):
+        # the same answer as a command that arrived without one.
+        _trace.emit("ws.command_not_connected", level="warn",
+                    client_id=client_id, cmd=msg.get("cmd"), msg=str(_nc_e))
+        reply = {"ok": False, "error": str(_nc_e)}
     except (ValueError, TypeError, KeyError, PermissionError, OverflowError) as _val_e:
         # Malformed payload or failed precondition (bad numeric cast,
         # missing field, not-armed). Return a bounded structured error
@@ -10245,29 +10403,19 @@ async def ws_endpoint(ws: WebSocket):
             accept_ms=round((time.monotonic() - _conn_t0) * 1000, 1),
         )
 
-        # Restore lcnc_connected if LinuxCNC is still running but the flag was
-        # cleared by a previous connection's WebSocket error
-        global lcnc_connected
+        # Connect now if no Link is published (LinuxCNC came up since, or the
+        # poller revoked it) — a connect publishes a new Link or nothing.
         _t = time.monotonic()
         _stat_path = "noop"
-        if not lcnc_connected:
-            if STAT is not None:
-                try:
-                    await asyncio.to_thread(STAT.poll)
-                    lcnc_connected = True
-                    _stat_path = "stat-poll"
-                except Exception:
-                    await asyncio.to_thread(try_connect_lcnc)
-                    _stat_path = "stat-fail-reconnect"
-            else:
-                await asyncio.to_thread(try_connect_lcnc)
-                _stat_path = "reconnect"
+        if current_link() is None:
+            await asyncio.to_thread(try_connect_lcnc)
+            _stat_path = "reconnect"
         _trace.emit(
             "ws.conn.lcnc_restored",
             client_id=client_id,
             dt_ms=round((time.monotonic() - _t) * 1000, 1),
             path=_stat_path,
-            connected=lcnc_connected,
+            connected=current_link() is not None,
         )
 
         # Viewer init URL base. The viewer_init frame itself is sent ONCE per
@@ -10300,8 +10448,8 @@ async def ws_endpoint(ws: WebSocket):
         _t = time.monotonic()
         _gcode_path = "no-file"
         try:
-            if STAT is not None:
-                STAT.poll()
+            if _stat_now() is not None:
+                link().stat.poll()
             # The LOADED program (LoadedProgram), never the interpreter's raw
             # open file — a sub left open after an MDI error is no program
             # to preview (Codex R16 XZ-08: the second adoption site).
@@ -10364,7 +10512,7 @@ async def ws_endpoint(ws: WebSocket):
             while True:
                 try:
                     # Not connected — disarm and send error to this client
-                    if not lcnc_connected:
+                    if current_link() is None:
                         if client.viewer_init_sent:
                             client.viewer_init_sent = False
                         if client.armed:
@@ -10429,7 +10577,7 @@ async def ws_endpoint(ws: WebSocket):
                     # re-fires after a LinuxCNC reconnect (the not-connected branch
                     # above resets viewer_init_sent).
                     if not client.viewer_init_sent:
-                        print(f"[VINIT] client#{client_id} sending viewer_init (post-poll), STAT={'OK' if STAT else 'None'}", flush=True)
+                        print(f"[VINIT] client#{client_id} sending viewer_init (post-poll), STAT={'OK' if _stat_now() else 'None'}", flush=True)
                         _t = time.monotonic()
                         try:
                             _set_phase(f"build_viewer_init client#{client_id}")
@@ -11300,12 +11448,12 @@ async def ws_endpoint(ws: WebSocket):
         # server_shutdown and closed sockets; skip the jog-stop in that
         # window so N clients don't all serialize on _cmd_lock during a
         # LinuxCNC teardown.
-        if client.armed and CMD is not None and not _shutting_down:
+        if client.armed and _cmd_now() is not None and not _shutting_down:
             _set_phase(f"ws_endpoint.finally.armed_jog_stop client#{client_id}")
             try:
                 async with _get_cmd_lock():
                     _set_phase(f"ws_endpoint.finally.armed_jog_stop.cmd_lock_held client#{client_id}")
-                    STAT.poll()
+                    link().stat.poll()
                     await _jog_stop_for_client()
             except Exception as _e:
                 _trace.emit(

@@ -74,11 +74,10 @@ class LinkOwnership(unittest.TestCase):
     def _write(self, claim, wait=1.0):
         async def go():
             async with gateway._get_cmd_lock():
-                return await gateway._cmd_blocking(self.old.cmd.mdi, "G4 P0", wait=wait,
+                return await gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.mdi, "G4 P0"), wait=wait,
                                                    claim=claim, admit=self._admit)
         return asyncio.run(go())
 
-    @unittest.expectedFailure   # package 2b: the Link
     def test_a_connection_replaced_before_the_thread_refuses_the_write(self):
         real = asyncio.to_thread
 
@@ -95,7 +94,6 @@ class LinkOwnership(unittest.TestCase):
         self.assertEqual((self.old.cmd.serial, self.new.cmd.serial), (40, 80))
         self.assertEqual(claim.state, "unsent")
 
-    @unittest.expectedFailure   # package 2b: the Link
     def test_a_connection_replaced_during_the_wait_never_answers_for_the_old_write(self):
         self.old.cmd.waits_running = 2
         self.old.cmd.on_wait = lambda: swap_connection(self.new)
@@ -133,7 +131,6 @@ class EntryPathsWithoutConnection(unittest.TestCase):
         asyncio.run(gateway._jog_stop_for_client())   # no exception, nothing sent
         self.assertEqual(gateway._active_jogs, {0: (0, 0)})
 
-    @unittest.expectedFailure   # package 2b: the Link
     def test_a_write_whose_connection_is_gone_before_the_thread_is_refused(self):
         events: list = []
         old = FakeConnection(stat=_Stat("old", events), cmd=_Chan("old", 40, events))
@@ -146,11 +143,95 @@ class EntryPathsWithoutConnection(unittest.TestCase):
 
         async def go():
             async with gateway._get_cmd_lock():
-                return await gateway._cmd_blocking(old.cmd.mdi, "G4 P0", wait=1.0, claim=_claim())
+                return await gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.mdi, "G4 P0"), wait=1.0, claim=_claim())
         with mock.patch.object(asyncio, "to_thread", gone_at_dispatch):
             with self.assertRaises(PermissionError):
                 asyncio.run(go())
         self.assertEqual([e for e in events if e[0] == "write"], [], "the stale channel took the write")
+
+
+class TheLinkContracts(unittest.TestCase):
+    """The Link's own contracts (package 2b, VM352-02)."""
+
+    def test_op_names_only_a_known_command_and_takes_no_keyword(self):
+        self.assertEqual(gateway.op(linuxcnc.command.auto, linuxcnc.AUTO_RUN, 3),
+                         gateway.CmdOp("auto", (linuxcnc.AUTO_RUN, 3)))
+        with self.assertRaises(ValueError):
+            gateway.op(len, [1])                       # not a LinuxCNC command
+        with self.assertRaises(TypeError):
+            gateway.op(linuxcnc.command.mdi, command="G0")   # the binding takes no keyword
+
+    def test_the_start_kind_reads_the_ops_name(self):
+        for code, kind in ((linuxcnc.AUTO_RUN, "auto"), (linuxcnc.AUTO_STEP, "auto"),
+                           (linuxcnc.AUTO_RESUME, "auto"), (linuxcnc.AUTO_PAUSE, None)):
+            c = gateway.op(linuxcnc.command.auto, code) if code != linuxcnc.AUTO_RUN \
+                else gateway.op(linuxcnc.command.auto, code, 0)
+            self.assertEqual(gateway._start_kind(c.name, c.args), kind, code)
+        m = gateway.op(linuxcnc.command.mdi, "G0 X1")
+        self.assertEqual(gateway._start_kind(m.name, m.args), "mdi")
+
+    def test_the_link_lock_is_never_held_across_a_write_or_a_wait(self):
+        events: list = []
+        held = []
+
+        class _Watching(_Chan):
+            def mdi(self, text, /):
+                held.append(("write", gateway._link_lock.locked()))
+                super().mdi(text)
+
+            def wait_complete(self, timeout=5.0, /):
+                held.append(("wait", gateway._link_lock.locked()))
+                return super().wait_complete(timeout)
+        conn = FakeConnection(stat=_Stat("one", events), cmd=_Watching("one", 1, events))
+        connect_fake(self, stat=conn.stat, cmd=conn.cmd)
+
+        async def go():
+            async with gateway._get_cmd_lock():
+                return await gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.mdi, "G4 P0"),
+                                                   wait=1.0, claim=_claim())
+        self.assertEqual(asyncio.run(go()), linuxcnc.RCS_DONE)
+        self.assertEqual(held, [("write", False), ("wait", False)])
+
+    def test_a_failed_connect_publishes_nothing_and_revokes_the_old_link(self):
+        connect_fake(self)
+        from link_fixture import is_connected, restore_after
+        restore_after(self)
+        self.assertTrue(is_connected())
+
+        class _Dead:
+            def poll(self):
+                raise linuxcnc.error("no status channel")
+        with mock.patch.object(gateway, "_nml_connectable", lambda: True), \
+                mock.patch.object(gateway.linuxcnc, "stat", _Dead):
+            self.assertFalse(gateway.try_connect_lcnc())
+        self.assertFalse(is_connected())
+
+    def test_a_ws_command_whose_connection_went_away_answers_not_connected(self):
+        connect_fake(self)
+        replies = []
+
+        async def reply(_ws, m):
+            replies.append(m)
+
+        async def revoked_during(msg, armed, conn_key=None):
+            gateway._revoke_link("test: the connection went away")
+            gateway.link()   # the handler needs it now
+
+        client = types.SimpleNamespace(armed=True, conn_key="k", cmd_preempted_by=None)
+        with mock.patch.object(gateway, "handle_command", revoked_during), \
+                mock.patch.object(gateway, "ws_send_json", reply):
+            asyncio.run(gateway._execute_client_command(7, client, None, {"cmd": "mdi", "req_id": 3}))
+        self.assertEqual(replies[-1]["ok"], False)
+        self.assertEqual(replies[-1]["error"], "LinuxCNC not connected")
+
+    def test_an_http_route_without_a_connection_answers_503(self):
+        from fastapi.testclient import TestClient
+
+        def needs_it():
+            raise gateway.NotConnected()
+        with mock.patch.object(gateway, "get_nc_files_dir", needs_it):
+            r = TestClient(gateway.app).get("/files")
+        self.assertEqual((r.status_code, r.json()), (503, {"ok": False, "error": "LinuxCNC not connected"}))
 
 
 if __name__ == "__main__":

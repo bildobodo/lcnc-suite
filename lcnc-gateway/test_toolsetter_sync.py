@@ -130,6 +130,17 @@ class TestProgramStartSync(unittest.TestCase):
         gateway._bulk.last_file = self.prog
         gateway._bulk.published_toolsetter = {"routine": False, "writes": []}
         gateway._remap_env = lambda: gateway.RemapEnv([], [])
+        # the scanned program IS the loaded one (else _ts_program_writes is
+        # "unknown — every key": the start books all assumed, rightly). Before
+        # the Link this double's `auto` was not recognised as a start at all
+        # (its recorder is named `record`), which hid the missing load.
+        import time as _time
+        loaded = gateway._status_runtime.program
+        self.addCleanup(lambda: setattr(gateway._status_runtime, "program", loaded))
+        gateway._status_runtime.program = program = gateway._status_runtime_mod.LoadedProgram()
+        program.update(None, True, _time.monotonic())
+        program.request_load(self.prog, _time.monotonic())
+        program.update(self.prog, True, _time.monotonic())
         self.assertTrue(self._send({"cmd": "cycle_start"})["ok"])
         first = len(self.toolsetter_mdis())
         self.assertTrue(first)

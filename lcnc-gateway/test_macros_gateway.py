@@ -99,7 +99,7 @@ class _Base(unittest.TestCase):
 
 class StartClaims(_Base):
     def test_a_start_is_claimed_until_the_controller_is_through(self):
-        _run(gateway._cmd_blocking(self.cmd.mdi, "G0 X1", wait=None))
+        _run(gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.mdi, "G0 X1"), wait=None))
         self.assertEqual([(c.what, c.state, c.serial) for c in gateway._source_claims], [("mdi", "sent", 1)])
         S = current().stat
         for echo, state, interp in [(0, 1, linuxcnc.INTERP_IDLE),          # task has not seen it
@@ -113,17 +113,17 @@ class StartClaims(_Base):
         self.assertEqual(gateway._source_claims, [])
 
     def test_only_reading_commands_are_starts(self):
-        _run(gateway._cmd_blocking(self.cmd.mode, linuxcnc.MODE_MDI, wait=None))
-        _run(gateway._cmd_blocking(self.cmd.auto, linuxcnc.AUTO_PAUSE, wait=None))
+        _run(gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.mode, linuxcnc.MODE_MDI), wait=None))
+        _run(gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.auto, linuxcnc.AUTO_PAUSE), wait=None))
         self.assertEqual(gateway._source_claims, [])
         for code in (linuxcnc.AUTO_RUN, linuxcnc.AUTO_STEP, linuxcnc.AUTO_RESUME):
-            _run(gateway._cmd_blocking(self.cmd.auto, code, wait=None))
+            _run(gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.auto, code), wait=None))
         self.assertEqual([c.what for c in gateway._source_claims], ["auto"] * 3)
 
     def test_a_command_that_never_left_drops_its_claim(self):
         self.cmd.fail_mdi = True
         with self.assertRaises(linuxcnc.error):
-            _run(gateway._cmd_blocking(self.cmd.mdi, "G0 X1", wait=None))
+            _run(gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.mdi, "G0 X1"), wait=None))
         self.assertEqual([c.state for c in gateway._source_claims], ["unsent"])
         gateway._release_start_claims()
         self.assertEqual(gateway._source_claims, [])
@@ -142,7 +142,7 @@ class StartClaims(_Base):
         use(self, cmd=cmd)
 
         async def go():
-            t = asyncio.ensure_future(gateway._cmd_blocking(cmd.mdi, "G0 X1", wait=5))
+            t = asyncio.ensure_future(gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.mdi, "G0 X1"), wait=5))
             await asyncio.sleep(0.05)
             t.cancel()
             release.set()
@@ -163,7 +163,7 @@ class StartClaims(_Base):
         # in its queue. Release: RCS_DONE (task's DONE needs every queue
         # empty and the interpreter idle) at an echo >= the claim's serial;
         # every value known.
-        _run(gateway._cmd_blocking(self.cmd.mdi, "o<park> call", wait=None))
+        _run(gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.mdi, "o<park> call"), wait=None))
         done = dict(echo_serial_number=1, state=RCS_DONE, interp_state=linuxcnc.INTERP_IDLE,
                     queued_mdi_commands=0, exec_state=EXEC_DONE)
         for over in [dict(state=RCS_ERROR, echo_serial_number=2, queued_mdi_commands=1),   # Codex's counterprobe
@@ -181,7 +181,7 @@ class StartClaims(_Base):
         # IS its serial — task read nothing after it), nothing queued, task's
         # execution done, the interpreter idle, over two polls >= 20 ms
         # apart (task moves a queued line on within a cycle). Unknown keeps.
-        _run(gateway._cmd_blocking(self.cmd.mdi, "G1 X1 F", wait=None))
+        _run(gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.mdi, "G1 X1 F"), wait=None))
         err = dict(echo_serial_number=1, state=RCS_ERROR, interp_state=linuxcnc.INTERP_IDLE,
                    queued_mdi_commands=0, exec_state=EXEC_DONE)
         t = time.monotonic() + 1
@@ -465,13 +465,20 @@ class CancelledWrites(_Folder):
         as the interpreter would read it at that moment."""
         seen, cmd = [], self.cmd
 
-        def mdi(text):
-            seen.append(Path(target).read_text() if Path(target).exists() else None)
-            cmd.mdi(text)
+        class _Reading:
+            """the installed channel, its mdi recording the file first"""
+            def __getattr__(self, name):
+                return getattr(cmd, name)
+
+            def mdi(self, text):
+                seen.append(Path(target).read_text() if Path(target).exists() else None)
+                cmd.mdi(text)
+        use(self, cmd=_Reading())
 
         async def start():
             async with gateway._get_cmd_lock():
-                await gateway._cmd_blocking(mdi, "o<park> call", wait=None)
+                await gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.mdi, "o<park> call"),
+                                            wait=None)
         return seen, start
 
     def test_a_cancelled_publish_keeps_a_start_out_until_it_ended(self):

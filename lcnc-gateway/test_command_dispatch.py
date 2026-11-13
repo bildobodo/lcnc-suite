@@ -760,8 +760,7 @@ class TestHandlerExecution(unittest.TestCase):
             lock = gateway._get_source_lock()
             await lock.acquire()
             try:
-                t = asyncio.ensure_future(gateway._cmd_blocking(current().cmd.auto, linuxcnc.AUTO_RUN, 0,
-                                                                wait=None))
+                t = asyncio.ensure_future(gateway._cmd_blocking(gateway.link(), gateway.op(linuxcnc.command.auto, linuxcnc.AUTO_RUN, 0), wait=None))
                 for _ in range(400):
                     await asyncio.sleep(0.005)
                     if gateway._run_basis is not None and gateway._run_basis.get("state") == "sending":

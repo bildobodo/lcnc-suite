@@ -47,7 +47,7 @@ def armed_writer(testcase, *, tool_change=False) -> str:
     gateway._clients[slot] = client
     testcase.addCleanup(gateway._clients.pop, slot, None)
     # an idle interpreter, read now (the admission polls STAT)
-    stat = gateway.STAT
+    stat = gateway._stat_now()
     if stat is not None:
         p = mock.patch.object(stat, "interp_state", gateway.linuxcnc.INTERP_IDLE, create=True)
         p.start()
